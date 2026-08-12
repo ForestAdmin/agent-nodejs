@@ -72,8 +72,9 @@ describe('createSemaphore', () => {
     let peak = 0;
     const run = createSemaphore(3);
 
+    // 3 running plus a full queue of 6 — the most the semaphore accepts at once.
     await Promise.all(
-      Array.from({ length: 20 }, () =>
+      Array.from({ length: 9 }, () =>
         run(async () => {
           active += 1;
           peak = Math.max(peak, active);
@@ -87,5 +88,27 @@ describe('createSemaphore', () => {
 
     expect(peak).toBe(3);
     expect(active).toBe(0);
+  });
+
+  // Waiting longer than the caller's own timeout is wasted work, so the queue is bounded.
+  it('refuses work once the queue is full instead of growing it', async () => {
+    const run = createSemaphore(2);
+    const blocker = new Promise(resolve => {
+      setTimeout(resolve, 50);
+    });
+
+    const accepted = Array.from({ length: 6 }, () => run(() => blocker));
+    const overflow = run(async () => 'never runs');
+
+    await expect(overflow).rejects.toThrow('Too many uploads are being read at once');
+    await Promise.all(accepted);
+  });
+
+  it('accepts work again once the queue drains', async () => {
+    const run = createSemaphore(1);
+
+    await Promise.all(Array.from({ length: 3 }, () => run(async () => 'done')));
+
+    await expect(run(async () => 'later')).resolves.toBe('later');
   });
 });

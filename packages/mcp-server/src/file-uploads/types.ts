@@ -38,6 +38,12 @@ export interface FileUploadsOptions {
   handleTtlSeconds?: number;
   maxBytes?: number;
   maxConcurrentDownloads?: number;
+  /**
+   * How long a single storage read may take. Keep it well under the request timeout of the
+   * clients calling the agent, so a slow backend fails here rather than being cut mid-flight.
+   * Defaults to 15 seconds.
+   */
+  downloadTimeoutSeconds?: number;
 }
 
 export interface ResolvedFileUploads {
@@ -46,6 +52,7 @@ export interface ResolvedFileUploads {
   uploadUrlTtlSeconds: number;
   handleTtlSeconds: number;
   maxBytes: number;
+  downloadTimeoutSeconds: number;
   authSecret: string;
   limitDownload: RunExclusive;
 }
@@ -55,6 +62,7 @@ const DEFAULT_UPLOAD_URL_TTL_SECONDS = 15 * 60;
 const DEFAULT_HANDLE_TTL_SECONDS = 45 * 60;
 const DEFAULT_MAX_BYTES = 20 * 1024 * 1024;
 const DEFAULT_MAX_CONCURRENT_DOWNLOADS = 5;
+const DEFAULT_DOWNLOAD_TIMEOUT_SECONDS = 15;
 
 function positiveInteger(field: keyof FileUploadsOptions, value: number | undefined): number {
   if (value === undefined) return undefined;
@@ -98,6 +106,9 @@ export function resolveFileUploads(
     uploadUrlTtlSeconds,
     handleTtlSeconds,
     maxBytes: positiveInteger('maxBytes', options.maxBytes) ?? DEFAULT_MAX_BYTES,
+    downloadTimeoutSeconds:
+      positiveInteger('downloadTimeoutSeconds', options.downloadTimeoutSeconds) ??
+      DEFAULT_DOWNLOAD_TIMEOUT_SECONDS,
     authSecret,
     limitDownload: createSemaphore(
       positiveInteger('maxConcurrentDownloads', options.maxConcurrentDownloads) ??

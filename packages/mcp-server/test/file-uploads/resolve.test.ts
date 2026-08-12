@@ -297,4 +297,49 @@ describe('resolveUploadedFileValues', () => {
         'Did the upload to uploadUrl succeed? (NoSuchKey)',
     );
   });
+
+  // Without a bound, a backend that stops answering holds its slot while the calling client's own
+  // timeout fires, so the failure would be invisible here.
+  it('gives up on a storage read that never answers', async () => {
+    const storage = makeStorage({ download: jest.fn().mockReturnValue(new Promise(() => {})) });
+    const uploads = resolveFileUploads({ storage, downloadTimeoutSeconds: 1 }, AUTH_SECRET);
+
+    await expect(
+      resolveUploadedFileValues({ document: makeHandle() }, authInfo, uploads),
+    ).rejects.toThrow('timed out after 1s');
+  });
+
+  it('gives up on a size probe that never answers', async () => {
+    const storage = makeStorage({ getSize: jest.fn().mockReturnValue(new Promise(() => {})) });
+    const uploads = resolveFileUploads({ storage, downloadTimeoutSeconds: 1 }, AUTH_SECRET);
+
+    await expect(
+      resolveUploadedFileValues({ document: makeHandle() }, authInfo, uploads),
+    ).rejects.toThrow('timed out after 1s');
+    expect(storage.download).not.toHaveBeenCalled();
+  });
+
+  it('frees the slot after a timeout, so later redemptions still work', async () => {
+    let answer = false;
+    const storage = makeStorage({
+      download: jest
+        .fn()
+        .mockImplementation(() =>
+          answer ? Promise.resolve(Buffer.from('ok')) : new Promise(() => {}),
+        ),
+    });
+    const uploads = resolveFileUploads(
+      { storage, maxConcurrentDownloads: 1, downloadTimeoutSeconds: 1 },
+      AUTH_SECRET,
+    );
+
+    await expect(
+      resolveUploadedFileValues({ document: makeHandle() }, authInfo, uploads),
+    ).rejects.toThrow('timed out');
+
+    answer = true;
+    const resolved = await resolveUploadedFileValues({ document: makeHandle() }, authInfo, uploads);
+
+    expect((resolved.document as { buffer: Buffer }).buffer.toString()).toBe('ok');
+  });
 });

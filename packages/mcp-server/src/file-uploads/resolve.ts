@@ -30,6 +30,23 @@ function collectReferences(
   return references;
 }
 
+// The contract puts no bound on a storage read. Without this, a backend that stops answering
+// holds its concurrency slot forever while the caller's own request timeout fires, so the
+// failure would be invisible here and the slots would drain away one by one.
+function withTimeout<T>(operation: string, seconds: number, promise: Promise<T>): Promise<T> {
+  let timer: NodeJS.Timeout;
+
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) => {
+      timer = setTimeout(
+        () => reject(new Error(`${operation} timed out after ${seconds}s`)),
+        seconds * 1000,
+      );
+    }),
+  ]).finally(() => clearTimeout(timer)) as Promise<T>;
+}
+
 async function download(
   field: string,
   claims: UploadHandleClaims,
@@ -42,7 +59,11 @@ async function download(
 
   // A pre-authorized upload URL cannot always cap the object size, so the limit is enforced
   // here, before the bytes are read whenever the backend can report a size.
-  const size = await uploads.storage.getSize(claims.key);
+  const size = await withTimeout(
+    `Field "${field}": reading the size of the uploaded file`,
+    uploads.downloadTimeoutSeconds,
+    uploads.storage.getSize(claims.key),
+  );
 
   if (typeof size === 'number' && Number.isFinite(size) && size > uploads.maxBytes) {
     throw tooLarge(size);
@@ -52,7 +73,11 @@ async function download(
   // likely mistake takes: the handle was never uploaded to. The raw message alone reads as an
   // infrastructure failure. The key it may contain is already in the model's context, inside the
   // handle it just sent.
-  const buffer = await uploads.storage.download(claims.key).catch((error: Error) => {
+  const buffer = await withTimeout(
+    `Field "${field}": reading the uploaded file`,
+    uploads.downloadTimeoutSeconds,
+    uploads.storage.download(claims.key),
+  ).catch((error: Error) => {
     throw new Error(
       `Field "${field}": could not read the uploaded file. ` +
         `Did the upload to uploadUrl succeed? (${error.message})`,

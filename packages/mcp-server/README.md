@@ -279,7 +279,13 @@ const server = new ForestMCPServer({
 
 The other options are `keyPrefix` (default `mcp-uploads/`), `uploadUrlTtlSeconds` (default 15 min),
 `handleTtlSeconds` (default 45 min, longer than the upload URL so a slow upload still leaves time to
-run the action), `maxBytes` (default 20 MiB), and `maxConcurrentDownloads` (default 5).
+run the action), `maxBytes` (default 20 MiB), `maxConcurrentDownloads` (default 5), and
+`downloadTimeoutSeconds` (default 15 s).
+
+Lower `downloadTimeoutSeconds` if the clients calling your agent cut requests sooner than that. The
+whole `executeAction` has to fit inside their timeout: reading the object, encoding it, and running
+your action. A read that outlives the caller is wasted work — and left unbounded it would hold its
+concurrency slot after the caller gave up.
 
 A few properties matter in production.
 
