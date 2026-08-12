@@ -805,6 +805,34 @@ describe('AuditTrailRoute', () => {
       });
     });
 
+    test('preserves the entry timestamped exactly at the requested instant instead of reverting it', async () => {
+      const history = [
+        {
+          operation: 'update',
+          timestamp: '2026-06-18T12:00:00.000Z',
+          previousValues: { status: 'open' },
+          newValues: { status: 'closed' },
+        },
+      ];
+      const { dataSource, route } = setupBooks(history);
+      jest
+        .spyOn(dataSource.getCollection('books'), 'list')
+        .mockResolvedValue([{ id: 2, status: 'closed', name: 'Acme' }]);
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: {
+          query: { at: '2026-06-18T12:00:00.000Z' },
+          params: { id: '2' },
+        },
+      });
+
+      await route.handleStateAt(context);
+
+      expect(context.response.body).toEqual({
+        data: { id: 2, status: 'closed', name: 'Acme' },
+      });
+    });
+
     test('reverts updates by walking entries newest-first', async () => {
       const history = [
         {

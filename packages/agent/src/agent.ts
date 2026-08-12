@@ -439,7 +439,10 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     }
   }
 
-  private async buildNoCodeDataSource(): Promise<DataSource> {
+  // `installAuditTrail: false` skips wiring the audit hooks (and, with them, the store's DB
+  // connection/migration) — used by `generateSchemaOnly()`, which only needs the collection
+  // structure and must not depend on the audit database being reachable.
+  private async buildNoCodeDataSource({ installAuditTrail = true } = {}): Promise<DataSource> {
     // It allows to rebuild the full customization stack with no code customizations
     this.nocodeCustomizer = new DataSourceCustomizer<S>({
       ignoreMissingSchemaElementErrors: this.options.ignoreMissingSchemaElementErrors || false,
@@ -448,7 +451,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     this.nocodeCustomizer.addDataSource(this.customizer.getFactory());
     this.nocodeCustomizer.use(this.customizationService.addCustomizations);
 
-    if (this.options.auditTrail) {
+    if (installAuditTrail && this.options.auditTrail) {
       const { store, redact } = this.options.auditTrail;
       this.nocodeCustomizer.use(installAuditTrailHooks, { store, redact });
     }
@@ -528,6 +531,10 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * their configuration from the Forest API so the generated schema includes them,
    * which requires connectivity to Forest.
    *
+   * Note: when `auditTrail` is configured, its hooks are not installed here, so the audit
+   * database is never connected to or migrated — only the collection structure is needed to
+   * generate the schema.
+   *
    * Unlike `start()`, this always rebuilds the schema — even when `isProduction` is
    * true — and writes the typings whenever `typingsPath` is set, regardless of
    * `isProduction`.
@@ -541,7 +548,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     const { logger, schemaPath, typingsPath, typingsMaxDepth } = this.options;
 
     try {
-      const dataSource = await this.buildNoCodeDataSource();
+      const dataSource = await this.buildNoCodeDataSource({ installAuditTrail: false });
       const schema = await this.schemaGenerator.buildSchema(dataSource);
       const meta = this.buildSchemaMeta();
 

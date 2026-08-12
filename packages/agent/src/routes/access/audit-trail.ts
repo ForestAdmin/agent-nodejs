@@ -95,12 +95,17 @@ export default class AuditTrailRoute extends CollectionRoute {
     }
 
     const { store } = this.options.auditTrail;
-    const entries = await store.listByRecord({
+    const fetched = await store.listByRecord({
       collection: this.collection.name,
       recordId: context.params.id,
       startTimestamp: at,
       order: 'desc',
     });
+
+    // `startTimestamp` is an inclusive lower bound, so an entry timestamped exactly `at` comes
+    // back too — but the record already reflects that entry's change at instant `at`, so it must
+    // be kept rather than reverted (which would wrongly return the state just *before* it).
+    const entries = fetched.filter(entry => entry.timestamp !== at);
 
     const state = revertRecord(current, entries as Parameters<typeof revertRecord>[1]);
 

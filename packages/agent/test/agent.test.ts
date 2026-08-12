@@ -113,6 +113,19 @@ describe('Agent', () => {
       expect(DataSourceCustomizer.prototype.addDataSource).toHaveBeenCalledWith('factory');
     });
 
+    test('installs the audit-trail hooks on start when auditTrail is configured', async () => {
+      const agent = new Agent({
+        ...options,
+        auditTrail: { connectionString: 'sqlite::memory:' },
+      });
+
+      await agent.start();
+
+      // addCustomizations + installAuditTrailHooks, unlike generateSchemaOnly which skips the
+      // latter.
+      expect(DataSourceCustomizer.prototype.use).toHaveBeenCalledTimes(2);
+    });
+
     test('start should create new schema definition/meta and upload apimap', async () => {
       const agent = new Agent(options);
       await agent.start();
@@ -347,6 +360,19 @@ describe('Agent', () => {
 
         await expect(agent.generateSchemaOnly()).rejects.toThrow('boom');
         expect(logger).toHaveBeenCalledWith('Error', 'Forest Admin schema generation failed: boom');
+      });
+
+      test('does not install audit-trail hooks, so the audit database is never touched', async () => {
+        const agent = new Agent({
+          ...options,
+          auditTrail: { connectionString: 'sqlite::memory:' },
+        });
+
+        await agent.generateSchemaOnly();
+
+        // Only `customizationService.addCustomizations` — not the audit-trail plugin, which
+        // would otherwise connect to and migrate the (here, real in-memory) audit database.
+        expect(DataSourceCustomizer.prototype.use).toHaveBeenCalledTimes(1);
       });
     });
   });
