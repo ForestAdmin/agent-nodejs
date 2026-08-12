@@ -300,7 +300,8 @@ export interface ListMcpWorkflowsParams {
 }
 
 /**
- * A single workflow resolved by id (O(1) lookup). Unlike the listing, this also carries
+ * A single workflow resolved by id: the match is resolved inside Postgres, so the client never
+ * receives or deserializes the full workflow list. Unlike the listing, this also carries
  * `mcpEnabled`: an existing-but-MCP-disabled workflow is returned with `mcpEnabled: false` rather
  * than hidden, so the caller can label a fail-closed audit log before triggering while the
  * start endpoint stays the guard that refuses a disabled trigger.
