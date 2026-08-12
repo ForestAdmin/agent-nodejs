@@ -79,13 +79,22 @@ function assertCollectionStillAllowed(readModel: ReadModel, collection: string):
   if (!readModel.isCollectionAllowed(collection)) throw unknownCollection();
 }
 
+function toValidationInput(body: ListRequestBody | RelationListRequestBody) {
+  return {
+    filter: body.filter,
+    sortFields: body.sort?.map(clause => clause.field),
+    projectionFields: body.projection,
+  };
+}
+
 function resolveCapabilities(
   deps: RequestHandlerDeps,
+  collection: string,
 ): Promise<{ capabilities: CapabilitiesResult; readModel: ReadModel }> {
   return callAgent(
     () =>
       deps.store.getCapabilities(
-        deps.collection,
+        collection,
         createAgentCapabilitiesFetcher({
           agentUrl: deps.agentUrl,
           token: deps.token,
@@ -96,14 +105,53 @@ function resolveCapabilities(
   );
 }
 
+async function resolveCapabilitiesOrRethrowUnlessVanished(
+  deps: RequestHandlerDeps,
+  collection: string,
+  assertStillExposed: (readModel: ReadModel) => void,
+): Promise<{ capabilities: CapabilitiesResult; readModel: ReadModel }> {
+  try {
+    return await resolveCapabilities(deps, collection);
+  } catch (error) {
+    deps.logger('Warn', 'Capabilities lookup failed; re-checking exposure before rethrowing', {
+      collection,
+    });
+
+    let readModel: ReadModel;
+
+    try {
+      readModel = await resolveReadModel(deps.store);
+    } catch {
+      throw error;
+    }
+
+    assertStillExposed(readModel);
+
+    throw error;
+  }
+}
+
+async function resolveOwnCapabilities(
+  deps: RequestHandlerDeps,
+): Promise<{ capabilities: CapabilitiesResult; readModel: ReadModel }> {
+  const assertStillAllowed = (readModel: ReadModel) =>
+    assertCollectionStillAllowed(readModel, deps.collection);
+
+  const result = await resolveCapabilitiesOrRethrowUnlessVanished(
+    deps,
+    deps.collection,
+    assertStillAllowed,
+  );
+
+  assertStillAllowed(result.readModel);
+
+  return result;
+}
+
 async function handleList(ctx: Context, body: ListRequestBody, deps: ListHandlerDeps) {
   assertNoRelationFieldPaths(collectListFieldPaths(body));
 
-  const validationInput = {
-    filter: body.filter,
-    sortFields: body.sort?.map(clause => clause.field),
-    projectionFields: body.projection,
-  };
+  const validationInput = toValidationInput(body);
 
   // The store hands back the read-model the capabilities belong to; using it keeps the primary keys
   // serialized below from a different schema generation than the fields just validated, and re-checks
@@ -111,8 +159,7 @@ async function handleList(ctx: Context, body: ListRequestBody, deps: ListHandler
   let { primaryKeys } = deps;
 
   if (hasCapabilityConstrainedInput(validationInput)) {
-    const { capabilities, readModel } = await resolveCapabilities(deps);
-    assertCollectionStillAllowed(readModel, deps.collection);
+    const { capabilities, readModel } = await resolveOwnCapabilities(deps);
     assertValidAgainstCapabilities(validationInput, capabilities);
     primaryKeys = readModel.getPrimaryKeys(deps.collection);
   }
@@ -129,8 +176,7 @@ async function handleCount(ctx: Context, body: CountRequestBody, deps: RequestHa
 
   // Count carries only a filter (no sort/projection), so that is all there is to validate.
   if (body.filter !== undefined) {
-    const { capabilities, readModel } = await resolveCapabilities(deps);
-    assertCollectionStillAllowed(readModel, deps.collection);
+    const { capabilities } = await resolveOwnCapabilities(deps);
     assertValidAgainstCapabilities({ filter: body.filter }, capabilities);
   }
 
@@ -150,15 +196,54 @@ interface RelationHandlerDeps extends RequestHandlerDeps {
 
 type RelationListHandlerDeps = RelationHandlerDeps & { primaryKeys: PrimaryKeyField[] };
 
+function assertRelationStillExposed(readModel: ReadModel, deps: RelationHandlerDeps): void {
+  assertCollectionStillAllowed(readModel, deps.collection);
+
+  const stillTargets = resolveForeignCollection(
+    readModel.getRelationTarget(deps.collection, deps.relation),
+  );
+
+  if (stillTargets !== deps.foreignCollection) {
+    throw unknownRelation(`Unknown relation: ${deps.collection}.${deps.relation}`);
+  }
+
+  assertCollectionStillAllowed(readModel, deps.foreignCollection);
+}
+
+async function resolveExposedRelationCapabilities(
+  deps: RelationHandlerDeps,
+): Promise<{ capabilities: CapabilitiesResult; readModel: ReadModel }> {
+  const assertStillExposed = (readModel: ReadModel) => assertRelationStillExposed(readModel, deps);
+
+  assertStillExposed(await resolveReadModel(deps.store));
+
+  const result = await resolveCapabilitiesOrRethrowUnlessVanished(
+    deps,
+    deps.foreignCollection,
+    assertStillExposed,
+  );
+
+  assertStillExposed(result.readModel);
+
+  return result;
+}
+
 async function handleRelationList(
   ctx: Context,
   body: RelationListRequestBody,
   deps: RelationListHandlerDeps,
 ) {
-  // The nested-relation guard IS wired here: the agent's list-related asserts browse only on the
-  // immediate foreign collection, so a nested `:`-path would traverse to a third collection whose
-  // browse is never checked. Plain foreign fields (no `:`) are unaffected.
   assertNoRelationFieldPaths(collectListFieldPaths(body));
+
+  const validationInput = toValidationInput(body);
+
+  let { primaryKeys } = deps;
+
+  if (hasCapabilityConstrainedInput(validationInput)) {
+    const { capabilities, readModel } = await resolveExposedRelationCapabilities(deps);
+    assertValidAgainstCapabilities(validationInput, capabilities);
+    primaryKeys = readModel.getPrimaryKeys(deps.foreignCollection);
+  }
 
   const query = buildListAgentQuery(deps.foreignCollection, deps.timezone, body);
   const records = await callAgent(
@@ -167,7 +252,7 @@ async function handleRelationList(
   );
 
   ctx.status = 200;
-  ctx.body = mapListResponse(deps.foreignCollection, records, deps.primaryKeys);
+  ctx.body = mapListResponse(deps.foreignCollection, records, primaryKeys);
 }
 
 async function handleRelationCount(
@@ -176,6 +261,11 @@ async function handleRelationCount(
   deps: RelationHandlerDeps,
 ) {
   assertNoRelationFieldPaths(collectCountFieldPaths(body));
+
+  if (body.filter !== undefined) {
+    const { capabilities } = await resolveExposedRelationCapabilities(deps);
+    assertValidAgainstCapabilities({ filter: body.filter }, capabilities);
+  }
 
   const query = buildCountAgentQuery(deps.timezone, body);
   const raw = await callAgent(

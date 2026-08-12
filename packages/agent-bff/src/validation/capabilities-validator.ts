@@ -21,7 +21,7 @@ interface FilterLeaf {
   operator?: string;
 }
 
-function isBranch(node: unknown): node is { conditions: unknown[] } {
+export function isBranch(node: unknown): node is { conditions: unknown[] } {
   return (
     typeof node === 'object' &&
     node !== null &&
@@ -29,7 +29,7 @@ function isBranch(node: unknown): node is { conditions: unknown[] } {
   );
 }
 
-function isLeaf(node: unknown): node is FilterLeaf {
+export function isLeaf(node: unknown): node is FilterLeaf {
   return (
     typeof node === 'object' &&
     node !== null &&
