@@ -78,7 +78,10 @@ const DEFAULT_DOWNLOAD_TIMEOUT_SECONDS = 15;
 // would multiply what the process can hold, which is the opposite of what setting it suggests.
 export const DEFAULT_EPHEMERAL_MAX_TOTAL_BYTES = 64 * 1024 * 1024;
 
-function positiveInteger(field: keyof FileUploadsOptions, value: number | undefined): number {
+function positiveInteger(
+  field: keyof FileUploadsOptions,
+  value: number | undefined,
+): number | undefined {
   if (value === undefined) return undefined;
 
   if (!Number.isInteger(value) || value <= 0) {

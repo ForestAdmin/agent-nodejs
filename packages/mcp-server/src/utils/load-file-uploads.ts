@@ -2,6 +2,13 @@ import type { FileUploadsOptions } from '../file-uploads/types';
 
 import * as path from 'path';
 
+// A module is free to throw a non-Error, and reading .message off it yields undefined.
+const describe = (error: unknown) => (error instanceof Error ? error.message : String(error));
+
+// Attached rather than passed to the constructor: the error cause option needs a newer lib than
+// this package targets, while Node itself carries the property fine.
+const withCause = (message: string, cause: unknown) => Object.assign(new Error(message), { cause });
+
 /**
  * Loads the `fileUploads` options of the standalone server from a module on disk.
  *
@@ -27,16 +34,37 @@ export default async function loadFileUploads(
     // eslint-disable-next-line global-require, import/no-dynamic-require, @typescript-eslint/no-var-requires
     loaded = require(resolved);
   } catch (error) {
-    throw new Error(
-      `Cannot load FOREST_MCP_UPLOAD_STORAGE_MODULE "${modulePath}" (resolved to ${resolved}): ` +
-        `${(error as Error).message}`,
+    // "cannot find it" and "it ran and failed" send the operator to different places, and only the
+    // first is about the path they configured.
+    const absent =
+      (error as NodeJS.ErrnoException)?.code === 'MODULE_NOT_FOUND' &&
+      String((error as Error)?.message).includes(resolved);
+
+    throw withCause(
+      absent
+        ? `FOREST_MCP_UPLOAD_STORAGE_MODULE "${modulePath}" was not found (resolved to ${resolved}).`
+        : `FOREST_MCP_UPLOAD_STORAGE_MODULE "${modulePath}" failed while loading: ${describe(
+            error,
+          )}`,
+      error,
     );
   }
 
   const exported = loaded?.default ?? loaded;
-  const options = (typeof exported === 'function' ? await exported() : exported) as
-    | FileUploadsOptions
-    | undefined;
+  let options: FileUploadsOptions | undefined;
+
+  try {
+    options = (typeof exported === 'function' ? await exported() : exported) as FileUploadsOptions;
+  } catch (error) {
+    // The sync path above is wrapped; a rejecting factory would otherwise surface with no mention
+    // of the module it came from.
+    throw withCause(
+      `FOREST_MCP_UPLOAD_STORAGE_MODULE "${modulePath}" failed while building the options: ${describe(
+        error,
+      )}`,
+      error,
+    );
+  }
 
   // An object without a storage is legitimate — it selects the in-memory store. Nothing at all is
   // a mistake, most likely a module that forgot to export.

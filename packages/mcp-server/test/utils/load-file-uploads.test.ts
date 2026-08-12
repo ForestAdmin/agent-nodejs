@@ -53,10 +53,37 @@ describe('loadFileUploads', () => {
     });
   });
 
-  it('names the module and the resolved path when it cannot be loaded', async () => {
+  it('names the module and the resolved path when it cannot be found', async () => {
     await expect(loadFileUploads('./does-not-exist.js')).rejects.toThrow(
-      /Cannot load FOREST_MCP_UPLOAD_STORAGE_MODULE "\.\/does-not-exist\.js" \(resolved to .+\)/,
+      /"\.\/does-not-exist\.js" was not found \(resolved to .+\)/,
     );
+  });
+
+  // "your path is wrong" and "your module rejected its own config" send the operator elsewhere.
+  it('separates a module that ran and failed from one that is absent', async () => {
+    const file = writeModule(`throw new Error('FOREST_S3_BUCKET is not set');`);
+
+    const error = (await loadFileUploads(file).catch((e: Error) => e)) as Error & {
+      cause?: unknown;
+    };
+
+    expect(error.message).toContain('failed while loading: FOREST_S3_BUCKET is not set');
+    expect(error.message).not.toContain('was not found');
+    expect(error.cause).toBeInstanceOf(Error);
+  });
+
+  it('names the module when its factory rejects', async () => {
+    const file = writeModule(`module.exports = async () => { throw new Error('no bucket'); };`);
+
+    await expect(loadFileUploads(file)).rejects.toThrow(
+      /failed while building the options: no bucket/,
+    );
+  });
+
+  it('describes a module that throws something that is not an Error', async () => {
+    const file = writeModule(`throw 'nope';`);
+
+    await expect(loadFileUploads(file)).rejects.toThrow(/failed while loading: nope/);
   });
 
   // Omitting the storage selects the in-memory store, so it must not be an error.

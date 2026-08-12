@@ -3626,13 +3626,15 @@ describe('file uploads without a storage backend', () => {
     );
   });
 
-  // Registered before allowedMethods(['POST']), which would otherwise answer 405.
+  // 404 comes from the uploads router itself, for a key it never handed out. A 405 would mean
+  // allowedMethods(['POST']) claimed the PUT first, and a hang would mean a body parser did.
   it('serves the upload endpoint under /mcp/uploads', async () => {
     const response = await request(await buildApp())
       .put('/mcp/uploads/mcp-uploads%2Fuuid%2Fa.txt')
       .send('hello');
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({ error: expect.stringContaining('no upload was authorized') });
   });
 
   it('leaves /mcp itself bearer-protected', async () => {

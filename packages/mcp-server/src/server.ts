@@ -565,6 +565,7 @@ export default class ForestMCPServer {
         maxBytes: this.fileUploads.maxBytes,
         maxTotalBytes: this.fileUploads.ephemeralMaxTotalBytes,
         ttlSeconds: this.fileUploads.handleTtlSeconds,
+        issuedTtlSeconds: this.fileUploads.uploadUrlTtlSeconds,
         publicBaseUrl: new URL(uploadsPath, effectiveBaseUrl).href,
       });
 
