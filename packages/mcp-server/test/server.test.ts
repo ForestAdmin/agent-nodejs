@@ -1,3 +1,4 @@
+import type EphemeralStorage from '../src/file-uploads/ephemeral-storage';
 import type * as net from 'net';
 
 import * as http from 'http';
@@ -3606,14 +3607,17 @@ describe('Logo URL', () => {
 });
 
 describe('file uploads without a storage backend', () => {
-  const buildApp = async (logger?: jest.Mock) =>
+  const build = (logger?: jest.Mock) =>
     new ForestMCPServer({
       envSecret: 'test-env-secret',
       authSecret: 'test-auth-secret',
       forestServerUrl: 'https://test.forestadmin.com',
       fileUploads: {},
       ...(logger && { logger }),
-    }).buildExpressApp(new URL('https://agent.example'));
+    });
+
+  const buildApp = async (logger?: jest.Mock) =>
+    build(logger).buildExpressApp(new URL('https://agent.example'));
 
   it('announces that objects are held in memory on this instance only', async () => {
     const logger = jest.fn();
@@ -3635,6 +3639,24 @@ describe('file uploads without a storage backend', () => {
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({ error: expect.stringContaining('no upload was authorized') });
+  });
+
+  // The url handed to the client is built from the server's own base url, while the route is
+  // mounted from the prefix. Uploading to the url it actually returns is the only check that the
+  // two agree — everything else here asks the route about a path the test itself wrote.
+  it('accepts an upload at the url it hands out, and serves those exact bytes back', async () => {
+    const server = build();
+    const app = await server.buildExpressApp(new URL('https://agent.example'));
+    const { ephemeralStorage: storage } = server as unknown as {
+      ephemeralStorage: EphemeralStorage;
+    };
+    const body = Buffer.from('CONTENU-BINAIRE- ÿ');
+
+    const { url } = await storage.createUploadUrl({ key: 'mcp-uploads/uuid/rapport final;v2.pdf' });
+    const response = await request(app).put(new URL(url).pathname).send(body);
+
+    expect(response.status).toBe(200);
+    await expect(storage.download('mcp-uploads/uuid/rapport final;v2.pdf')).resolves.toEqual(body);
   });
 
   it('leaves /mcp itself bearer-protected', async () => {
