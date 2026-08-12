@@ -125,13 +125,24 @@ describe('the unfolded document', () => {
     expect(request.allOf[0].$ref).toBe('#/components/schemas/ListRequest_orders');
   });
 
-  it('should require parentId on a relation request and type it from the parent key', () => {
+  it('should require parentId on a relation request and name the parent key it belongs to', () => {
     const request = requestSchema('My%20Coll/relations/orders/list') as unknown as {
-      allOf: [unknown, { properties: { parentId: { type: string } }; required: string[] }];
+      allOf: [unknown, { properties: { parentId: { description: string } }; required: string[] }];
     };
 
     expect(request.allOf[1].required).toEqual(['parentId']);
-    expect(request.allOf[1].properties.parentId.type).toBe('number');
+    expect(request.allOf[1].properties.parentId.description).toContain('(id, Number)');
+  });
+
+  it('should accept a numeric parent id as a number or its string form, like the runtime', () => {
+    const request = requestSchema('My%20Coll/relations/orders/list') as unknown as {
+      allOf: [unknown, { properties: { parentId: { anyOf: unknown[] } } }];
+    };
+
+    expect(request.allOf[1].properties.parentId.anyOf).toEqual([
+      { type: 'string', pattern: '\\S' },
+      { type: 'number' },
+    ]);
   });
 
   it('should document a composite parent key as its packed string form', () => {

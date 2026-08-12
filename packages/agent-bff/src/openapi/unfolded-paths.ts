@@ -209,10 +209,16 @@ function registerRequests(deps: Deps, plan: Omit<CollectionPlan, 'requests'>): R
   };
 }
 
+const PARENT_ID_SHAPE = {
+  anyOf: [{ type: 'string' as const, pattern: '\\S' }, { type: 'number' as const }],
+};
+
 /**
- * `parentId` is opaque on the wire, but the read-model knows the parent's key: only a `Number`
- * column comes back as a number, every other type stays a string, and a composite key travels as its
- * `|`-joined values (`unpackPrimaryKey` mirrors the agent's `IdUtils`).
+ * `parentId` is opaque on the wire: `parseParentId` takes a non-blank string or a finite number
+ * whatever the key's type is, and forwards it to the agent as a string. So the SHAPE stays that
+ * union — narrowing a numeric key to `number` would make a generated client reject `"123"`, which
+ * the endpoint accepts. What the read-model knows goes in the description: which column the id
+ * belongs to, and, for a composite key, the `|`-joined order `unpackPrimaryKey` expects.
  */
 function parentIdSchema(
   pool: ComponentPool,
@@ -223,7 +229,9 @@ function parentIdSchema(
 
   if (primaryKeys.length > 1) {
     return {
+      // A composite id only works as its packed string: a number could never carry the separator.
       type: 'string',
+      pattern: '\\S',
       description:
         `The composite id of the parent ${quoted(parent)} record: the values of ` +
         `${primaryKeys.map(key => key.name).join(', ')} joined by ` +
@@ -232,9 +240,13 @@ function parentIdSchema(
   }
 
   const [key] = primaryKeys;
-  const schema = key.type === 'Number' ? { type: 'number' as const } : { type: 'string' as const };
 
-  return { ...schema, description: `The parent ${quoted(parent)} record id (${key.name}).` };
+  return {
+    ...PARENT_ID_SHAPE,
+    description:
+      `The parent ${quoted(parent)} record id (${key.name}, ${key.type}). A number or its ` +
+      'string form are both accepted; the BFF forwards it to the agent as a string.',
+  };
 }
 
 function registerRelationRequests(
