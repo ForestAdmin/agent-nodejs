@@ -68,7 +68,7 @@ async function resolvePermissions({
   cache: PermissionsCache;
   client: PermissionsFetcher;
   logger: Logger;
-}): Promise<EvaluatedPermissions> {
+}): Promise<{ permissions: EvaluatedPermissions; fromFreshFetch: boolean }> {
   let resolved: EnvironmentAndUserPermissions;
 
   try {
@@ -80,7 +80,7 @@ async function resolvePermissions({
 
     const stillFresh = cache.getFresh();
 
-    if (stillFresh) return stillFresh;
+    if (stillFresh) return { permissions: stillFresh, fromFreshFetch: false };
 
     throw permissionsUnavailable(UNAVAILABLE_RETRY_AFTER_SECONDS);
   }
@@ -92,7 +92,7 @@ async function resolvePermissions({
 
   cache.set(permissions);
 
-  return permissions;
+  return { permissions, fromFreshFetch: true };
 }
 
 async function resolveCallerPermissions({
@@ -113,10 +113,16 @@ async function resolveCallerPermissions({
     return { permissions: cached, roleId: cachedRoleId };
   }
 
-  const permissions = await resolvePermissions({ cache, client, logger });
+  if (cache.wasRejectedByLatestFetch(caller.userId)) throw forestIdentityNotAllowed();
+
+  const { permissions, fromFreshFetch } = await resolvePermissions({ cache, client, logger });
   const roleId = findCallerRoleId(permissions.users, caller.userId);
 
-  if (roleId === undefined) throw forestIdentityNotAllowed();
+  if (roleId === undefined) {
+    if (fromFreshFetch) cache.rememberRejected(caller.userId);
+
+    throw forestIdentityNotAllowed();
+  }
 
   return { permissions, roleId };
 }

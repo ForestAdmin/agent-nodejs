@@ -219,6 +219,55 @@ describe('createPermissionsRoutesMiddleware', () => {
     });
   });
 
+  describe('when a caller a fresh fetch does not cover keeps calling in', () => {
+    it('should refetch once and serve the later attempts from the recorded rejection', async () => {
+      const cache = new PermissionsCache();
+      const client = fetcherOf({ environmentPermissions: NORMAL_MODE, users: [] });
+      const app = appOf({ client, cache, callerId: VIEWER_ID });
+
+      const first = await request(app.callback()).get(ROUTE);
+      const second = await request(app.callback()).get(ROUTE);
+      const third = await request(app.callback()).get(ROUTE);
+
+      expect([first.status, second.status, third.status]).toEqual([403, 403, 403]);
+      expect(client.fetchPermissions).toHaveBeenCalledTimes(1);
+    });
+
+    it('should refetch again once a later fetch refreshes the cached payload', async () => {
+      const cache = new PermissionsCache();
+      const client = fetcherOf({ environmentPermissions: NORMAL_MODE, users: [] });
+      const app = appOf({ client, cache, callerId: VIEWER_ID });
+
+      await request(app.callback()).get(ROUTE);
+      cache.set({
+        actionPermissions: generateActionsFromPermissions(NORMAL_MODE),
+        users: USERS,
+      });
+      const afterRefresh = await request(app.callback()).get(ROUTE);
+
+      expect(afterRefresh.status).toBe(200);
+      expect(client.fetchPermissions).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('when the SaaS is down and the stale cache does not cover the caller', () => {
+    it('should keep refetching rather than recording a rejection it never confirmed', async () => {
+      const cache = new PermissionsCache();
+      cache.set({
+        actionPermissions: generateActionsFromPermissions(NORMAL_MODE),
+        users: [{ id: CALLER_ID, roleId: ADMIN_ROLE } as UserPermissionV4],
+      });
+      const client = fetcherOf(new Error('SaaS down'));
+      const app = appOf({ client, cache, callerId: VIEWER_ID });
+
+      const first = await request(app.callback()).get(ROUTE);
+      const second = await request(app.callback()).get(ROUTE);
+
+      expect([first.status, second.status]).toEqual([403, 403]);
+      expect(client.fetchPermissions).toHaveBeenCalledTimes(2);
+    });
+  });
+
   describe('when the refetch triggered by an unknown caller fails', () => {
     it('should keep serving the cached permissions to the callers they cover', async () => {
       const cache = new PermissionsCache();
@@ -346,7 +395,7 @@ describe('createPermissionsRoutesMiddleware', () => {
   });
 
   describe('when the same collection is requested twice in the query', () => {
-    it('should deduplicate it in visibleActions and reuse the single-name cache entry', async () => {
+    it('should deduplicate it in visibleActions and fetch the permissions once', async () => {
       const cache = new PermissionsCache();
       const client = fetcherOf({ environmentPermissions: NORMAL_MODE, users: USERS });
       const app = appOf({ client, cache });

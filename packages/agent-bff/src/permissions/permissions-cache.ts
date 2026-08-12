@@ -23,9 +23,19 @@ export default class PermissionsCache {
 
   private entry: CacheEntry | undefined;
 
+  private readonly rejectedUserIds = new Set<number>();
+
   constructor({ now = Date.now, ttlMs = PERMISSIONS_CACHE_TTL_MS }: PermissionsCacheOptions = {}) {
     this.now = now;
     this.ttlMs = ttlMs;
+  }
+
+  wasRejectedByLatestFetch(userId: number): boolean {
+    return this.rejectedUserIds.has(userId);
+  }
+
+  rememberRejected(userId: number): void {
+    this.rejectedUserIds.add(userId);
   }
 
   getFresh(): EvaluatedPermissions | undefined {
@@ -42,6 +52,7 @@ export default class PermissionsCache {
 
   set(permissions: EvaluatedPermissions): void {
     this.entry = { permissions, storedAt: this.now() };
+    this.rejectedUserIds.clear();
   }
 
   get size(): number {
@@ -50,5 +61,6 @@ export default class PermissionsCache {
 
   clear(): void {
     this.entry = undefined;
+    this.rejectedUserIds.clear();
   }
 }
