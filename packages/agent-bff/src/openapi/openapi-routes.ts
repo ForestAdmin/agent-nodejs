@@ -11,6 +11,8 @@ export const OPENAPI_PATH = '/agent/openapi.json';
 
 const READ_METHODS = new Set(['GET', 'HEAD']);
 
+const MAX_GENERATION_RETRIES = 3;
+
 export interface OpenApiRoutesOptions {
   version: string;
   enabled: boolean;
@@ -30,22 +32,36 @@ export default function createOpenApiRoutes({
   // document is rebuilt exactly when the schema it describes changed.
   let unfolded: { readModel: ReadModel; document: string } | undefined;
 
-  async function resolveDocument(ctx: Parameters<Middleware>[0]): Promise<string> {
+  async function resolveDocument(
+    ctx: Parameters<Middleware>[0],
+    attemptsLeft = MAX_GENERATION_RETRIES,
+  ): Promise<string> {
     if (!source) return generic as string;
+
+    if (attemptsLeft <= 0) {
+      throw new Error('Schema generation kept changing while building the OpenAPI document');
+    }
 
     // Before the schema is even read, so a caller with no agent credentials cannot make the BFF
     // fetch anything: the unfolded document needs a token to ask the agent for capabilities.
     const token = requireAgentToken(ctx);
     const readModel = await resolveReadModel(source.store);
 
-    if (unfolded?.readModel !== readModel) {
-      unfolded = {
-        readModel,
-        document: await buildUnfoldedDocument(source, readModel, token, version),
-      };
+    if (unfolded?.readModel === readModel) return unfolded.document;
+
+    const document = await buildUnfoldedDocument(source, readModel, token, version);
+
+    // A schema refresh landing during the capabilities fan-out mixes the new generation's field sets
+    // into this generation's collections, relations and actions. Such a document must not be served
+    // nor cached — a consumer would generate a client from a self-contradictory schema. Bounded like
+    // `ReadModelStore.getCapabilities`, and driven by the 24h schema TTL rather than request volume.
+    if ((await resolveReadModel(source.store)) !== readModel) {
+      return resolveDocument(ctx, attemptsLeft - 1);
     }
 
-    return unfolded.document;
+    unfolded = { readModel, document };
+
+    return document;
   }
 
   return async function openApiRoutes(ctx, next) {

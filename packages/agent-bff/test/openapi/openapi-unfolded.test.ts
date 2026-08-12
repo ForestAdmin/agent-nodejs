@@ -101,6 +101,22 @@ describe('the unfolded document', () => {
     expect(request.properties.sort.items?.$ref).toBe('#/components/schemas/SortClause_My_Coll');
   });
 
+  it('should make the leaf and the branch mutually exclusive, which the runtime enforces', () => {
+    const leaf = schemas.FilterLeaf_My_Coll as unknown as { not: { required: string[] } };
+    const tree = schemas.Filter_My_Coll as unknown as {
+      anyOf: [unknown, { not: { required: string[] } }];
+    };
+
+    expect(leaf.not.required).toEqual(['conditions']);
+    expect(tree.anyOf[1].not.required).toEqual(['field']);
+  });
+
+  it('should not forbid an unknown extra key on a filter node, which the runtime strips', () => {
+    const leaf = schemas.FilterLeaf_My_Coll as { additionalProperties?: unknown };
+
+    expect(leaf.additionalProperties).toBeUndefined();
+  });
+
   it('should describe a relation request with the FOREIGN collection fields, not the parent ones', () => {
     const request = requestSchema('My%20Coll/relations/orders/list') as unknown as {
       allOf: [{ $ref: string }, Record<string, unknown>];

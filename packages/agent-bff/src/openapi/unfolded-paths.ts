@@ -33,7 +33,8 @@ const DEGRADED_NOTE: Record<NonNullable<CollectionFields['degraded']>, string> =
     'exposes is still accepted.',
   no_fields:
     'The field names are NOT enumerated here: the agent reports no filterable or projectable ' +
-    'field on this collection.',
+    'field on this collection. Any field sent in `projection`, `sort` or `filter` is therefore ' +
+    'rejected with 422 unknown_field — call this path without them.',
 };
 
 interface RequestRefs {
@@ -89,6 +90,10 @@ function filterSchema(
   const treeName = `Filter_${plan.key}`;
   const treeRef = { $ref: `#/components/schemas/${treeName}` };
 
+  // A node readable as BOTH a leaf and a branch is rejected with 400 (`agent-query.ts`
+  // `assertNoNodeReadableAsBothLeafAndBranch`), so each alternative excludes the other's discriminator.
+  // Expressed as `not: { required }` rather than `additionalProperties: false`, which would also
+  // forbid an unknown extra key — one the runtime strips and accepts.
   const leaf = pool.add(`FilterLeaf_${plan.key}`, {
     type: 'object',
     description: `A single condition on ${quoted(name)}.`,
@@ -98,12 +103,14 @@ function filterSchema(
       value: {},
     },
     required: ['field', 'operator'],
+    not: { properties: { conditions: {} }, required: ['conditions'] },
   });
 
   return pool.add(treeName, {
     description:
       `A filter on ${quoted(name)}: either a leaf condition or a branch nesting more ` +
-      'conditions. A branch must carry its aggregator.',
+      'conditions. A branch must carry its aggregator. A node carrying both `field` and ' +
+      '`conditions` is rejected with 400, so the two shapes are mutually exclusive.',
     anyOf: [
       leaf,
       {
@@ -113,6 +120,7 @@ function filterSchema(
           conditions: { type: 'array', items: treeRef },
         },
         required: ['aggregator', 'conditions'],
+        not: { properties: { field: {} }, required: ['field'] },
       },
     ],
   });

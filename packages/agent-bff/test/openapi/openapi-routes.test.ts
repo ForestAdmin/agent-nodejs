@@ -1,4 +1,5 @@
 import type { Logger } from '../../src/ports/logger-port';
+import type ReadModelStore from '../../src/read-model/read-model-store';
 import type { Middleware } from 'koa';
 
 import request from 'supertest';
@@ -6,6 +7,7 @@ import request from 'supertest';
 import runCli from '../../src/cli-core';
 import { issueBffAccessToken } from '../../src/oauth/bff-token';
 import createOpenApiRoutes, { OPENAPI_PATH } from '../../src/openapi/openapi-routes';
+import ReadModel from '../../src/read-model/read-model';
 import { action, collection, column, relation } from '../read-model/fixtures';
 
 const SCHEMA = [
@@ -251,6 +253,77 @@ describe('GET /agent/openapi.json', () => {
         expect(first.text).toBe(second.text);
         expect(fetchCapabilities).toHaveBeenCalledTimes(2);
       });
+    });
+  });
+
+  describe('when the schema refreshes while the document is being built', () => {
+    function readContext() {
+      return {
+        path: OPENAPI_PATH,
+        method: 'GET',
+        state: { agentToken: 'agent-jwt' },
+        status: 404,
+        body: undefined as unknown,
+        type: undefined,
+        set: () => undefined,
+      } as unknown as Parameters<Middleware>[0];
+    }
+
+    function storeOf(generations: ReadModel[]) {
+      const last = generations[generations.length - 1];
+
+      return {
+        getReadModel: jest.fn(async () => generations.shift() ?? last),
+        getCapabilities: async (
+          name: string,
+          fetcher: (collection: string) => Promise<unknown>,
+        ) => ({
+          capabilities: await fetcher(name),
+          readModel: last,
+        }),
+      } as unknown as ReadModelStore;
+    }
+
+    function routesFor(store: ReadModelStore): Middleware {
+      return createOpenApiRoutes({
+        version: '1.2.3',
+        enabled: true,
+        source: { store, agentUrl: 'https://agent.example.com', logger: noopLogger },
+      });
+    }
+
+    const oldGeneration = new ReadModel([collection('users', [column('id')])]);
+    const newGeneration = new ReadModel([collection('orders', [column('id')])]);
+
+    it('should serve the new generation rather than a document mixing the two', async () => {
+      // Read once before the build, once after: the second read observes the refresh, so the
+      // document built from the old collections with the new field sets is thrown away.
+      const store = storeOf([oldGeneration, newGeneration, newGeneration, newGeneration]);
+      const ctx = readContext();
+
+      await routesFor(store)(ctx, async () => undefined);
+
+      expect(Object.keys(JSON.parse(ctx.body as string).paths)).toEqual([
+        '/agent/v1/orders/list',
+        '/agent/v1/orders/count',
+      ]);
+    });
+
+    it('should give up rather than loop when the schema keeps changing under it', async () => {
+      const store = {
+        getReadModel: async () => new ReadModel([collection('users', [column('id')])]),
+        getCapabilities: async (
+          name: string,
+          fetcher: (collection: string) => Promise<unknown>,
+        ) => ({
+          capabilities: await fetcher(name),
+          readModel: newGeneration,
+        }),
+      } as unknown as ReadModelStore;
+
+      await expect(routesFor(store)(readContext(), async () => undefined)).rejects.toThrow(
+        /kept changing/,
+      );
     });
   });
 

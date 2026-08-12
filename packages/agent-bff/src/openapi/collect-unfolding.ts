@@ -121,8 +121,8 @@ function collectActions(readModel: ReadModel, collection: string): UnfoldedActio
  * produce byte-identical documents — the route/CLI comparison depends on it.
  *
  * A schema refresh landing mid-collect can mix the new generation's field sets into this snapshot's
- * structure. It is not guarded against: the caller memoizes per read-model identity, so the very
- * next request rebuilds the whole document from one generation.
+ * structure. Detecting it belongs to the caller, which knows whether the read-model it passed is
+ * still the current one once this resolves.
  */
 export default async function collectUnfolding(
   options: CollectUnfoldingOptions,
