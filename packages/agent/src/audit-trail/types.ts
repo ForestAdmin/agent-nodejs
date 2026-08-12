@@ -21,6 +21,8 @@ export type AuditHistoryQuery = {
   startTimestamp?: string;
   /** Inclusive upper bound on `timestamp` as a UTC ISO instant. */
   endTimestamp?: string;
+  /** Keep only entries whose change touched at least one of these fields. */
+  fields?: string[];
   /** Sort direction on `timestamp` (ties broken by insertion order). Defaults to `'asc'`. */
   order?: 'asc' | 'desc';
 };

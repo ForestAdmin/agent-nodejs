@@ -35,6 +35,15 @@ describe('AuditTrailRoute', () => {
     expect(router.get).toHaveBeenCalledWith('/_audit-trail/books/:id', expect.any(Function));
   });
 
+  test('registers the "/_audit-trail/books/:id/state" route', () => {
+    const { services, dataSource, options } = setup();
+    const router = factories.router.mockAllMethods().build();
+
+    new AuditTrailRoute(services, options, dataSource, 'books').setupRoutes(router);
+
+    expect(router.get).toHaveBeenCalledWith('/_audit-trail/books/:id/state', expect.any(Function));
+  });
+
   test('returns the record history read from the store', async () => {
     const history = [{ operation: 'update', recordId: '2' }];
     const { services, dataSource, options, store } = setup(history);
@@ -248,6 +257,81 @@ describe('AuditTrailRoute', () => {
     );
   });
 
+  test('forwards a comma-separated fields filter to the store', async () => {
+    const { services, dataSource, options, store } = setup();
+    const route = new AuditTrailRoute(services, options, dataSource, 'books');
+    const context = createMockContext({
+      state: { user: { email: 'john.doe@domain.com' } },
+      customProperties: {
+        query: { timezone: 'Europe/Paris', fields: 'title,author' },
+        params: { id: '2' },
+      },
+    });
+
+    await route.handleHistory(context);
+
+    expect(store.listByRecord).toHaveBeenCalledWith(
+      expect.objectContaining({ fields: ['title', 'author'] }),
+    );
+    expect(store.countByRecord).toHaveBeenCalledWith(
+      expect.objectContaining({ fields: ['title', 'author'] }),
+    );
+  });
+
+  test('trims whitespace around field tokens and drops empty ones', async () => {
+    const { services, dataSource, options, store } = setup();
+    const route = new AuditTrailRoute(services, options, dataSource, 'books');
+    const context = createMockContext({
+      state: { user: { email: 'john.doe@domain.com' } },
+      customProperties: {
+        query: { timezone: 'Europe/Paris', fields: ' title , , author ' },
+        params: { id: '2' },
+      },
+    });
+
+    await route.handleHistory(context);
+
+    expect(store.listByRecord).toHaveBeenCalledWith(
+      expect.objectContaining({ fields: ['title', 'author'] }),
+    );
+  });
+
+  test('omits the fields filter when the parameter is empty', async () => {
+    const { services, dataSource, options, store } = setup();
+    const route = new AuditTrailRoute(services, options, dataSource, 'books');
+    const context = createMockContext({
+      state: { user: { email: 'john.doe@domain.com' } },
+      customProperties: {
+        query: { timezone: 'Europe/Paris', fields: '' },
+        params: { id: '2' },
+      },
+    });
+
+    await route.handleHistory(context);
+
+    expect(store.listByRecord).toHaveBeenCalledWith(
+      expect.not.objectContaining({ fields: expect.anything() }),
+    );
+  });
+
+  test('omits the fields filter when every token is whitespace', async () => {
+    const { services, dataSource, options, store } = setup();
+    const route = new AuditTrailRoute(services, options, dataSource, 'books');
+    const context = createMockContext({
+      state: { user: { email: 'john.doe@domain.com' } },
+      customProperties: {
+        query: { timezone: 'Europe/Paris', fields: ' , , ' },
+        params: { id: '2' },
+      },
+    });
+
+    await route.handleHistory(context);
+
+    expect(store.listByRecord).toHaveBeenCalledWith(
+      expect.not.objectContaining({ fields: expect.anything() }),
+    );
+  });
+
   test('does not pass any filter when no filter param is present', async () => {
     const { services, dataSource, options, store } = setup();
     const route = new AuditTrailRoute(services, options, dataSource, 'books');
@@ -324,7 +408,7 @@ describe('AuditTrailRoute', () => {
     });
 
     await expect(route.handleHistory(context)).rejects.toThrow(
-      'Invalid date: "17-06-2026" (expected YYYY-MM-DD or YYYY-MM-DDTHH:mm)',
+      'Invalid date: "17-06-2026" (expected YYYY-MM-DD, YYYY-MM-DDTHH:mm, or an ISO 8601 instant)',
     );
     expect(store.listByRecord).not.toHaveBeenCalled();
   });
@@ -434,7 +518,7 @@ describe('AuditTrailRoute', () => {
     });
 
     await expect(route.handleHistory(context)).rejects.toThrow(
-      'Invalid date: "2026-06-18T11" (expected YYYY-MM-DD or YYYY-MM-DDTHH:mm)',
+      'Invalid date: "2026-06-18T11" (expected YYYY-MM-DD, YYYY-MM-DDTHH:mm, or an ISO 8601 instant)',
     );
     expect(store.listByRecord).not.toHaveBeenCalled();
   });
@@ -450,6 +534,285 @@ describe('AuditTrailRoute', () => {
     await route.handleHistory(context);
 
     expect(services.authorization.assertCanRead).toHaveBeenCalledWith(context, 'books');
+  });
+
+  describe('handleStateAt', () => {
+    const setupBooks = (history: unknown[] = []) => {
+      const services = factories.forestAdminHttpDriverServices.build();
+      const dataSource = factories.dataSource.buildWithCollections([
+        factories.collection.build({
+          name: 'books',
+          schema: factories.collectionSchema.build({
+            fields: {
+              id: factories.columnSchema.numericPrimaryKey().build(),
+              status: factories.columnSchema.build({ columnType: 'String' }),
+              name: factories.columnSchema.build({ columnType: 'String' }),
+              displayName: factories.columnSchema.build({ columnType: 'String', isReadOnly: true }),
+            },
+          }),
+        }),
+      ]);
+      const store = {
+        listByRecord: jest.fn().mockResolvedValue(history),
+        countByRecord: jest.fn(),
+      };
+      const options = factories.forestAdminHttpDriverOptions.build({
+        auditTrail: { connectionString: 'sqlite::memory:', store } as never,
+      });
+      const route = new AuditTrailRoute(services, options, dataSource, 'books');
+
+      return { services, dataSource, options, store, route };
+    };
+
+    test('queries the store with the parsed UTC timestamp, desc order, no pagination', async () => {
+      const { dataSource, store, route } = setupBooks([]);
+      jest
+        .spyOn(dataSource.getCollection('books'), 'list')
+        .mockResolvedValue([{ id: 2, status: 'closed', name: 'Acme' }]);
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: {
+          query: { timezone: 'Europe/Paris', at: '2026-06-18T12:00' },
+          params: { id: '2' },
+        },
+      });
+
+      await route.handleStateAt(context);
+
+      expect(store.listByRecord).toHaveBeenCalledWith({
+        collection: 'books',
+        recordId: '2',
+        startTimestamp: '2026-06-18T10:00:00.000Z',
+        order: 'desc',
+      });
+    });
+
+    test('rejects a missing "at" query parameter', async () => {
+      const { dataSource, route } = setupBooks();
+      jest.spyOn(dataSource.getCollection('books'), 'list').mockResolvedValue([]);
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: { query: { timezone: 'Europe/Paris' }, params: { id: '2' } },
+      });
+
+      await expect(route.handleStateAt(context)).rejects.toThrow('Missing "at" query parameter');
+    });
+
+    test('rejects a malformed "at" value', async () => {
+      const { dataSource, route } = setupBooks();
+      jest.spyOn(dataSource.getCollection('books'), 'list').mockResolvedValue([]);
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: {
+          query: { timezone: 'Europe/Paris', at: '17-06-2026' },
+          params: { id: '2' },
+        },
+      });
+
+      await expect(route.handleStateAt(context)).rejects.toThrow(
+        'Invalid date: "17-06-2026" (expected YYYY-MM-DD, YYYY-MM-DDTHH:mm, or an ISO 8601 instant)',
+      );
+    });
+
+    test('does not require a timezone query param when the timestamp is an ISO 8601 instant', async () => {
+      const { dataSource, store, route } = setupBooks([]);
+      jest
+        .spyOn(dataSource.getCollection('books'), 'list')
+        .mockResolvedValue([{ id: 2, status: 'closed', name: 'Acme' }]);
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: {
+          query: { at: '2026-06-18T14:26:06.545Z' },
+          params: { id: '2' },
+        },
+      });
+
+      await route.handleStateAt(context);
+
+      expect(store.listByRecord).toHaveBeenCalledWith({
+        collection: 'books',
+        recordId: '2',
+        startTimestamp: '2026-06-18T14:26:06.545Z',
+        order: 'desc',
+      });
+    });
+
+    test('accepts an ISO 8601 instant and ignores the request timezone for it', async () => {
+      const { dataSource, store, route } = setupBooks([]);
+      jest
+        .spyOn(dataSource.getCollection('books'), 'list')
+        .mockResolvedValue([{ id: 2, status: 'closed', name: 'Acme' }]);
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: {
+          query: { timezone: 'Europe/Paris', at: '2026-06-18T14:26:06.545Z' },
+          params: { id: '2' },
+        },
+      });
+
+      await route.handleStateAt(context);
+
+      expect(store.listByRecord).toHaveBeenCalledWith({
+        collection: 'books',
+        recordId: '2',
+        startTimestamp: '2026-06-18T14:26:06.545Z',
+        order: 'desc',
+      });
+    });
+
+    test('asserts the user can read the collection before returning state', async () => {
+      const { services, dataSource, route } = setupBooks();
+      jest
+        .spyOn(dataSource.getCollection('books'), 'list')
+        .mockResolvedValue([{ id: 2, status: 'closed', name: 'Acme' }]);
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: {
+          query: { timezone: 'Europe/Paris', at: '2026-06-18' },
+          params: { id: '2' },
+        },
+      });
+
+      await route.handleStateAt(context);
+
+      expect(services.authorization.assertCanRead).toHaveBeenCalledWith(context, 'books');
+    });
+
+    test('reads the current record projected on audited columns only (PKs + writable)', async () => {
+      const { dataSource, route } = setupBooks([]);
+      const list = jest
+        .spyOn(dataSource.getCollection('books'), 'list')
+        .mockResolvedValue([{ id: 2, status: 'closed', name: 'Acme' }]);
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: {
+          query: { timezone: 'Europe/Paris', at: '2026-06-18' },
+          params: { id: '2' },
+        },
+      });
+
+      await route.handleStateAt(context);
+
+      expect(list).toHaveBeenCalledWith(expect.anything(), expect.anything(), [
+        'id',
+        'status',
+        'name',
+      ]);
+    });
+
+    test('returns the current record unchanged when there are no audit entries at or after T', async () => {
+      const { dataSource, route } = setupBooks([]);
+      jest
+        .spyOn(dataSource.getCollection('books'), 'list')
+        .mockResolvedValue([{ id: 2, status: 'closed', name: 'Acme' }]);
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: {
+          query: { timezone: 'UTC', at: '2026-06-18T12:00' },
+          params: { id: '2' },
+        },
+      });
+
+      await route.handleStateAt(context);
+
+      expect(context.response.body).toEqual({
+        data: { id: 2, status: 'closed', name: 'Acme' },
+      });
+    });
+
+    test('reverts updates by walking entries newest-first', async () => {
+      const history = [
+        {
+          operation: 'update',
+          previousValues: { status: 'closed' },
+          newValues: { status: 'archived' },
+        },
+        {
+          operation: 'update',
+          previousValues: { status: 'open', name: 'Acme' },
+          newValues: { status: 'closed', name: 'Acme Inc.' },
+        },
+      ];
+      const { dataSource, route } = setupBooks(history);
+      jest
+        .spyOn(dataSource.getCollection('books'), 'list')
+        .mockResolvedValue([{ id: 2, status: 'archived', name: 'Acme Inc.' }]);
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: {
+          query: { timezone: 'UTC', at: '2026-06-18' },
+          params: { id: '2' },
+        },
+      });
+
+      await route.handleStateAt(context);
+
+      expect(context.response.body).toEqual({
+        data: { id: 2, status: 'open', name: 'Acme' },
+      });
+    });
+
+    test('returns 404 when the record does not exist now and the audit log is empty', async () => {
+      const { dataSource, route } = setupBooks([]);
+      jest.spyOn(dataSource.getCollection('books'), 'list').mockResolvedValue([]);
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: {
+          query: { timezone: 'UTC', at: '2026-06-18' },
+          params: { id: '2' },
+        },
+      });
+
+      await route.handleStateAt(context);
+
+      expect(context.throw).toHaveBeenCalledWith(404, 'Record did not exist at this timestamp');
+    });
+
+    test('returns 404 when walking back hits a create (record did not exist yet at T)', async () => {
+      const history = [
+        { operation: 'create', previousValues: {}, newValues: { id: 2, status: 'open' } },
+      ];
+      const { dataSource, route } = setupBooks(history);
+      jest
+        .spyOn(dataSource.getCollection('books'), 'list')
+        .mockResolvedValue([{ id: 2, status: 'open', name: 'Acme' }]);
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: {
+          query: { timezone: 'UTC', at: '2026-06-18' },
+          params: { id: '2' },
+        },
+      });
+
+      await route.handleStateAt(context);
+
+      expect(context.throw).toHaveBeenCalledWith(404, 'Record did not exist at this timestamp');
+    });
+
+    test('returns the delete snapshot when the record is currently gone', async () => {
+      const history = [
+        {
+          operation: 'delete',
+          previousValues: { id: 2, status: 'closed', name: 'Acme' },
+          newValues: {},
+        },
+      ];
+      const { dataSource, route } = setupBooks(history);
+      jest.spyOn(dataSource.getCollection('books'), 'list').mockResolvedValue([]);
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: {
+          query: { timezone: 'UTC', at: '2026-06-18' },
+          params: { id: '2' },
+        },
+      });
+
+      await route.handleStateAt(context);
+
+      expect(context.response.body).toEqual({
+        data: { id: 2, status: 'closed', name: 'Acme' },
+      });
+    });
   });
 
   describe('conditional mounting', () => {

@@ -63,13 +63,47 @@ export function toRow(record: AuditRecord): Record<string, unknown> {
   };
 }
 
-function buildHistoryWhereClause({
-  collection,
-  recordId,
-  userIds,
-  startTimestamp,
-  endTimestamp,
-}: AuditHistoryQuery): Record<string | symbol, unknown> {
+function fieldsChangedCondition(sequelize: Sequelize, fields: string[]) {
+  const dialect = sequelize.getDialect();
+
+  if (dialect === 'postgres') {
+    const keys = fields.map(field => sequelize.escape(field)).join(',');
+
+    return Sequelize.literal(
+      `(jsonb_exists_any("previous_values"::jsonb, ARRAY[${keys}]) ` +
+        `OR jsonb_exists_any("new_values"::jsonb, ARRAY[${keys}]))`,
+    );
+  }
+
+  if (dialect === 'sqlite') {
+    const tests = fields.flatMap(field => {
+      const path = sequelize.escape(`$.${field}`);
+
+      return [
+        `json_type(previous_values, ${path}) IS NOT NULL`,
+        `json_type(new_values, ${path}) IS NOT NULL`,
+      ];
+    });
+
+    return Sequelize.literal(`(${tests.join(' OR ')})`);
+  }
+
+  if (dialect === 'mysql' || dialect === 'mariadb') {
+    const paths = fields.map(field => sequelize.escape(`$.${field}`)).join(',');
+
+    return Sequelize.literal(
+      `(JSON_CONTAINS_PATH(previous_values, 'one', ${paths}) ` +
+        `OR JSON_CONTAINS_PATH(new_values, 'one', ${paths}))`,
+    );
+  }
+
+  throw new Error(`Audit-trail "fields" filter is not supported on dialect "${dialect}"`);
+}
+
+function buildHistoryWhereClause(
+  { collection, recordId, userIds, startTimestamp, endTimestamp, fields }: AuditHistoryQuery,
+  sequelize: Sequelize,
+): Record<string | symbol, unknown> {
   const where: Record<string | symbol, unknown> = { collection, recordId };
 
   if (userIds) where.userId = { [Op.in]: userIds };
@@ -78,6 +112,8 @@ function buildHistoryWhereClause({
   if (startTimestamp) timestampRange[Op.gte] = new Date(startTimestamp);
   if (endTimestamp) timestampRange[Op.lte] = new Date(endTimestamp);
   if (Object.getOwnPropertySymbols(timestampRange).length) where.timestamp = timestampRange;
+
+  if (fields?.length) where[Op.and] = [fieldsChangedCondition(sequelize, fields)];
 
   return where;
 }
@@ -111,28 +147,29 @@ export function createSqlAuditStore(options: AuditStorageOptions): {
   const { connectionString, schema = DEFAULT_SCHEMA, tableName = DEFAULT_TABLE } = options;
 
   let sequelize: Sequelize | null = null;
-  let modelPromise: Promise<ModelStatic<Model>> | null = null;
+  let bootstrap: Promise<{ model: ModelStatic<Model>; connection: Sequelize }> | null = null;
 
-  const init = (): Promise<ModelStatic<Model>> => {
-    if (modelPromise) return modelPromise;
+  const init = (): Promise<{ model: ModelStatic<Model>; connection: Sequelize }> => {
+    if (bootstrap) return bootstrap;
 
     const connection = new Sequelize(connectionString, { logging: false });
     sequelize = connection;
-    modelPromise = (async () => {
+    bootstrap = (async () => {
       try {
         await connection.authenticate();
+        const model = await ensureAuditStorage(connection, { schema, tableName });
 
-        return await ensureAuditStorage(connection, { schema, tableName });
+        return { model, connection };
       } catch (error) {
         // Reset so a later call can retry once the database is reachable.
         await connection.close().catch(() => undefined);
         sequelize = null;
-        modelPromise = null;
+        bootstrap = null;
         throw error;
       }
     })();
 
-    return modelPromise;
+    return bootstrap;
   };
 
   // Insertion-order tiebreaker on `id` keeps paging deterministic when timestamps collide.
@@ -147,16 +184,16 @@ export function createSqlAuditStore(options: AuditStorageOptions): {
         await init();
       },
       async append(record) {
-        const model = await init();
+        const { model } = await init();
         await model.create(toRow(record));
       },
       async listByRecord(query) {
-        const model = await init();
+        const { model, connection } = await init();
         const { skip = 0, limit, order = 'asc' } = query;
         const direction = order === 'desc' ? 'DESC' : 'ASC';
 
         const rows = await model.findAll({
-          where: buildHistoryWhereClause(query),
+          where: buildHistoryWhereClause(query, connection),
           order: [
             ['timestamp', direction],
             ['id', 'ASC'],
@@ -168,12 +205,12 @@ export function createSqlAuditStore(options: AuditStorageOptions): {
         return rows.map(fromRow);
       },
       async countByRecord(query) {
-        const model = await init();
+        const { model, connection } = await init();
 
-        return model.count({ where: buildHistoryWhereClause(query) });
+        return model.count({ where: buildHistoryWhereClause(query, connection) });
       },
       async listByCorrelation({ collection, recordId, correlationKey }) {
-        const model = await init();
+        const { model } = await init();
 
         const rows = await model.findAll({
           where: { collection, recordId, correlationKey },
@@ -185,7 +222,7 @@ export function createSqlAuditStore(options: AuditStorageOptions): {
       async listByCorrelations({ collection, recordId, correlationKeys }) {
         if (!correlationKeys.length) return [];
 
-        const model = await init();
+        const { model } = await init();
 
         const rows = await model.findAll({
           where: { collection, recordId, correlationKey: { [Op.in]: correlationKeys } },
@@ -198,7 +235,7 @@ export function createSqlAuditStore(options: AuditStorageOptions): {
     close: async () => {
       if (sequelize) await sequelize.close();
       sequelize = null;
-      modelPromise = null;
+      bootstrap = null;
     },
   };
 }

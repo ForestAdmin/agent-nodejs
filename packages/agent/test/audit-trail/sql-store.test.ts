@@ -215,6 +215,121 @@ describe('createSqlAuditStore (sqlite round-trip)', () => {
     await close();
   });
 
+  it('keeps only entries that touched at least one of the requested fields', async () => {
+    const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
+
+    await store.append(
+      record({
+        recordId: '1',
+        timestamp: '2026-01-01T00:00:00.000Z',
+        previousValues: { name: 'a' },
+        newValues: { name: 'b' },
+      }),
+    );
+    await store.append(
+      record({
+        recordId: '1',
+        timestamp: '2026-01-02T00:00:00.000Z',
+        previousValues: { email: 'x' },
+        newValues: { email: 'y' },
+      }),
+    );
+    await store.append(
+      record({
+        recordId: '1',
+        timestamp: '2026-01-03T00:00:00.000Z',
+        previousValues: { age: 1 },
+        newValues: { age: 2 },
+      }),
+    );
+
+    const history = await store.listByRecord({
+      collection: 'accounts',
+      recordId: '1',
+      fields: ['name', 'email'],
+    });
+
+    expect(history.map(r => r.timestamp)).toEqual([
+      '2026-01-01T00:00:00.000Z',
+      '2026-01-02T00:00:00.000Z',
+    ]);
+
+    await close();
+  });
+
+  it('paginates after applying the fields filter', async () => {
+    const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
+
+    await store.append(
+      record({
+        recordId: '1',
+        timestamp: '2026-01-01T00:00:00.000Z',
+        previousValues: { name: 'a' },
+        newValues: { name: 'b' },
+      }),
+    );
+    await store.append(
+      record({
+        recordId: '1',
+        timestamp: '2026-01-02T00:00:00.000Z',
+        previousValues: { other: 1 },
+        newValues: { other: 2 },
+      }),
+    );
+    await store.append(
+      record({
+        recordId: '1',
+        timestamp: '2026-01-03T00:00:00.000Z',
+        previousValues: { name: 'c' },
+        newValues: { name: 'd' },
+      }),
+    );
+    await store.append(
+      record({
+        recordId: '1',
+        timestamp: '2026-01-04T00:00:00.000Z',
+        previousValues: { name: 'e' },
+        newValues: { name: 'f' },
+      }),
+    );
+
+    const page = await store.listByRecord({
+      collection: 'accounts',
+      recordId: '1',
+      fields: ['name'],
+      skip: 1,
+      limit: 1,
+    });
+
+    expect(page.map(r => r.timestamp)).toEqual(['2026-01-03T00:00:00.000Z']);
+
+    await close();
+  });
+
+  it('counts only entries that touched at least one of the requested fields', async () => {
+    const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
+
+    await store.append(
+      record({ recordId: '1', previousValues: { name: 'a' }, newValues: { name: 'b' } }),
+    );
+    await store.append(
+      record({ recordId: '1', previousValues: { other: 1 }, newValues: { other: 2 } }),
+    );
+    await store.append(
+      record({ recordId: '1', previousValues: { name: 'c' }, newValues: { name: 'd' } }),
+    );
+
+    const count = await store.countByRecord({
+      collection: 'accounts',
+      recordId: '1',
+      fields: ['name'],
+    });
+
+    expect(count).toBe(2);
+
+    await close();
+  });
+
   it('counts only the rows matching the active filters', async () => {
     const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
 

@@ -9,4 +9,5 @@ export {
   DEFAULT_TABLE,
 } from './sql-store';
 export { runAuditMigrations } from './migrations';
+export { default as revertRecord } from './revert';
 export * from './types';
