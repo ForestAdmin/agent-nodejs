@@ -17,7 +17,7 @@ function buildApp(thrower: () => never) {
 describe('error middleware', () => {
   it('serializes a typed error to the structured body with details', async () => {
     const { callback } = buildApp(() => {
-      throw new BffHttpError(422, 'custom', 'boom', { field: 'x' });
+      throw new BffHttpError(422, 'custom', 'boom', { details: { field: 'x' } });
     });
 
     const res = await request(callback).get('/');

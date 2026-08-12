@@ -26,6 +26,9 @@ import createOAuthRoutes from './oauth/oauth-routes';
 import createInMemorySessionStore from './oauth/session-store';
 import createTokenCipher from './oauth/token-cipher';
 import createOpenApiRoutes from './openapi/openapi-routes';
+import PermissionsCache from './permissions/permissions-cache';
+import PermissionsClient from './permissions/permissions-client';
+import createPermissionsRoutesMiddleware from './permissions/permissions-routes-middleware';
 import createReadModel from './read-model/create-read-model';
 import createTimezoneMiddleware from './timezone/timezone-middleware';
 import version from './version';
@@ -161,8 +164,11 @@ function buildApiKeyMiddleware(config: BFFConfig, logger: Logger): Middleware | 
 function buildAgentRouteMiddlewares(config: BFFConfig, logger: Logger): Middleware[] {
   const apiKeyConfig = resolveApiKeyConfig(config);
 
-  if (!apiKeyConfig || !config.agentUrl) {
-    logger('Warn', 'Data endpoints disabled: AGENT_URL or read-model configuration is missing');
+  if (!apiKeyConfig) {
+    logger(
+      'Warn',
+      'Data, action and permissions endpoints disabled: FOREST_SERVER_URL, FOREST_ENV_SECRET or FOREST_AUTH_SECRET is missing',
+    );
 
     return [createAgentStubMiddleware()];
   }
@@ -174,7 +180,24 @@ function buildAgentRouteMiddlewares(config: BFFConfig, logger: Logger): Middlewa
   });
   const { agentUrl, agentTimeoutMs: timeoutMs } = config;
 
+  const permissionsMiddleware = createPermissionsRoutesMiddleware({
+    store,
+    client: new PermissionsClient({
+      forestServerUrl: apiKeyConfig.forestServerUrl,
+      envSecret: apiKeyConfig.forestEnvSecret,
+    }),
+    cache: new PermissionsCache(),
+    logger,
+  });
+
+  if (!agentUrl) {
+    logger('Warn', 'Data and action endpoints disabled: AGENT_URL is missing');
+
+    return [permissionsMiddleware, createAgentStubMiddleware()];
+  }
+
   return [
+    permissionsMiddleware,
     createDataRoutesMiddleware({ store, agentUrl, timeoutMs, logger }),
     createActionRoutesMiddleware({ store, agentUrl, timeoutMs, logger }),
   ];
