@@ -34,7 +34,6 @@ export interface VisibleActionRef {
 export interface CollectionHints {
   crud: CrudHints;
   actions: Record<string, ActionHints>;
-  visibleActions: VisibleActionRef[];
 }
 
 export interface PermissionHints {
@@ -49,11 +48,7 @@ export interface BuildPermissionHintsParams {
   collections: string[];
 }
 
-function devModeCrud(): CrudHints {
-  return { browse: true, read: true, edit: true, add: true, delete: true, export: true };
-}
-
-function normalModeCrud(
+function buildCrudHints(
   permissions: ActionPermissions,
   roleId: number,
   collection: string,
@@ -71,7 +66,7 @@ function normalModeCrud(
   };
 }
 
-function devModeAction(collection: string, name: string): ActionHints {
+function visibleWithoutApprovalHints(collection: string, name: string): ActionHints {
   return {
     collection,
     name,
@@ -118,22 +113,14 @@ function buildCollectionHints(
   const schemaExposedActionNames = Object.keys(readModel.getActionEndpoints()[collection] ?? {});
 
   const actions: Record<string, ActionHints> = Object.create(null);
-  const visibleActions: VisibleActionRef[] = [];
 
   for (const name of schemaExposedActionNames) {
-    const hints = isDevelopment
-      ? devModeAction(collection, name)
+    actions[name] = isDevelopment
+      ? visibleWithoutApprovalHints(collection, name)
       : normalModeAction(permissions, roleId, collection, name);
-
-    actions[name] = hints;
-    if (hints.visible) visibleActions.push({ collection, name });
   }
 
-  return {
-    crud: isDevelopment ? devModeCrud() : normalModeCrud(permissions, roleId, collection),
-    actions,
-    visibleActions,
-  };
+  return { crud: buildCrudHints(permissions, roleId, collection), actions };
 }
 
 export default function buildPermissionHints(params: BuildPermissionHintsParams): PermissionHints {
@@ -144,7 +131,11 @@ export default function buildPermissionHints(params: BuildPermissionHintsParams)
   for (const collection of params.collections) {
     const hints = buildCollectionHints({ ...params, permissions }, collection);
     collections[collection] = hints;
-    visibleActions.push(...hints.visibleActions);
+    visibleActions.push(
+      ...Object.values(hints.actions)
+        .filter(action => action.visible)
+        .map(({ name }) => ({ collection, name })),
+    );
   }
 
   return { collections, visibleActions };
