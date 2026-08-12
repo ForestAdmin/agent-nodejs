@@ -105,6 +105,49 @@ function resolveCapabilities(
   );
 }
 
+async function resolveCapabilitiesOrRethrowUnlessVanished(
+  deps: RequestHandlerDeps,
+  collection: string,
+  assertStillExposed: (readModel: ReadModel) => void,
+): Promise<{ capabilities: CapabilitiesResult; readModel: ReadModel }> {
+  try {
+    return await resolveCapabilities(deps, collection);
+  } catch (error) {
+    deps.logger('Warn', 'Capabilities lookup failed; re-checking exposure before rethrowing', {
+      collection,
+    });
+
+    let readModel: ReadModel;
+
+    try {
+      readModel = await resolveReadModel(deps.store);
+    } catch {
+      throw error;
+    }
+
+    assertStillExposed(readModel);
+
+    throw error;
+  }
+}
+
+async function resolveOwnCapabilities(
+  deps: RequestHandlerDeps,
+): Promise<{ capabilities: CapabilitiesResult; readModel: ReadModel }> {
+  const assertStillAllowed = (readModel: ReadModel) =>
+    assertCollectionStillAllowed(readModel, deps.collection);
+
+  const result = await resolveCapabilitiesOrRethrowUnlessVanished(
+    deps,
+    deps.collection,
+    assertStillAllowed,
+  );
+
+  assertStillAllowed(result.readModel);
+
+  return result;
+}
+
 async function handleList(ctx: Context, body: ListRequestBody, deps: ListHandlerDeps) {
   assertNoRelationFieldPaths(collectListFieldPaths(body));
 
@@ -116,8 +159,7 @@ async function handleList(ctx: Context, body: ListRequestBody, deps: ListHandler
   let { primaryKeys } = deps;
 
   if (hasCapabilityConstrainedInput(validationInput)) {
-    const { capabilities, readModel } = await resolveCapabilities(deps, deps.collection);
-    assertCollectionStillAllowed(readModel, deps.collection);
+    const { capabilities, readModel } = await resolveOwnCapabilities(deps);
     assertValidAgainstCapabilities(validationInput, capabilities);
     primaryKeys = readModel.getPrimaryKeys(deps.collection);
   }
@@ -134,8 +176,7 @@ async function handleCount(ctx: Context, body: CountRequestBody, deps: RequestHa
 
   // Count carries only a filter (no sort/projection), so that is all there is to validate.
   if (body.filter !== undefined) {
-    const { capabilities, readModel } = await resolveCapabilities(deps, deps.collection);
-    assertCollectionStillAllowed(readModel, deps.collection);
+    const { capabilities } = await resolveOwnCapabilities(deps);
     assertValidAgainstCapabilities({ filter: body.filter }, capabilities);
   }
 
@@ -169,44 +210,20 @@ function assertRelationStillExposed(readModel: ReadModel, deps: RelationHandlerD
   assertCollectionStillAllowed(readModel, deps.foreignCollection);
 }
 
-async function rethrowUnlessRelationVanished(
-  deps: RelationHandlerDeps,
-  original: unknown,
-): Promise<never> {
-  let readModel: ReadModel;
-
-  try {
-    readModel = await resolveReadModel(deps.store);
-  } catch {
-    throw original;
-  }
-
-  assertRelationStillExposed(readModel, deps);
-
-  throw original;
-}
-
-async function resolveForeignCapabilities(
+async function resolveExposedRelationCapabilities(
   deps: RelationHandlerDeps,
 ): Promise<{ capabilities: CapabilitiesResult; readModel: ReadModel }> {
-  assertRelationStillExposed(await resolveReadModel(deps.store), deps);
+  const assertStillExposed = (readModel: ReadModel) => assertRelationStillExposed(readModel, deps);
 
-  let result: { capabilities: CapabilitiesResult; readModel: ReadModel };
+  assertStillExposed(await resolveReadModel(deps.store));
 
-  try {
-    result = await resolveCapabilities(deps, deps.foreignCollection);
-  } catch (error) {
-    deps.logger('Warn', 'Foreign capabilities lookup failed; re-checking relation exposure', {
-      collection: deps.collection,
-      relation: deps.relation,
-      foreignCollection: deps.foreignCollection,
-      cause: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
-    });
+  const result = await resolveCapabilitiesOrRethrowUnlessVanished(
+    deps,
+    deps.foreignCollection,
+    assertStillExposed,
+  );
 
-    return rethrowUnlessRelationVanished(deps, error);
-  }
-
-  assertRelationStillExposed(result.readModel, deps);
+  assertStillExposed(result.readModel);
 
   return result;
 }
@@ -223,7 +240,7 @@ async function handleRelationList(
   let { primaryKeys } = deps;
 
   if (hasCapabilityConstrainedInput(validationInput)) {
-    const { capabilities, readModel } = await resolveForeignCapabilities(deps);
+    const { capabilities, readModel } = await resolveExposedRelationCapabilities(deps);
     assertValidAgainstCapabilities(validationInput, capabilities);
     primaryKeys = readModel.getPrimaryKeys(deps.foreignCollection);
   }
@@ -246,7 +263,7 @@ async function handleRelationCount(
   assertNoRelationFieldPaths(collectCountFieldPaths(body));
 
   if (body.filter !== undefined) {
-    const { capabilities } = await resolveForeignCapabilities(deps);
+    const { capabilities } = await resolveExposedRelationCapabilities(deps);
     assertValidAgainstCapabilities({ filter: body.filter }, capabilities);
   }
 

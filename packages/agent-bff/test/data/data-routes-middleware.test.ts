@@ -448,6 +448,69 @@ describe('data routes middleware', () => {
       },
     );
 
+    it.each([['list'], ['count']])(
+      'should return 404 on %s when a failed capabilities read is followed by the collection vanishing',
+      async operation => {
+        const client = {
+          list: jest.fn(async () => []),
+          countRaw: jest.fn(async () => ({ count: 0 })),
+        };
+        let capabilitiesAttempted = false;
+        const store = {
+          getReadModel: async () =>
+            capabilitiesAttempted
+              ? new ReadModel([collection('orders', [column('id')])])
+              : usersReadModel,
+          getCapabilities: async () => {
+            capabilitiesAttempted = true;
+
+            throw new AgentHttpError(503, {}, 'Service Unavailable');
+          },
+        } as unknown as ReadModelStore;
+        const app = buildApp(store, client);
+
+        const response = await request(app.callback())
+          .post(`/agent/v1/users/${operation}`)
+          .send({ filter: { field: 'id', operator: 'Equal', value: 1 } });
+
+        expect(response.status).toBe(404);
+        expect(response.body.error).toMatchObject({ type: 'unknown_collection', status: 404 });
+        expect(client.list).not.toHaveBeenCalled();
+        expect(client.countRaw).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each([['list'], ['count']])(
+      'should keep the original failure on %s when the exposure re-check cannot read the schema',
+      async operation => {
+        const client = {
+          list: jest.fn(async () => []),
+          countRaw: jest.fn(async () => ({ count: 0 })),
+        };
+        let capabilitiesAttempted = false;
+        const store = {
+          getReadModel: async () => {
+            if (capabilitiesAttempted) throw new SchemaUnavailableError();
+
+            return usersReadModel;
+          },
+          getCapabilities: async () => {
+            capabilitiesAttempted = true;
+
+            throw new AgentHttpError(503, {}, 'Service Unavailable');
+          },
+        } as unknown as ReadModelStore;
+        const app = buildApp(store, client);
+
+        const response = await request(app.callback())
+          .post(`/agent/v1/users/${operation}`)
+          .send({ filter: { field: 'id', operator: 'Equal', value: 1 } });
+
+        expect(response.status).toBe(503);
+        expect(response.body.error).toMatchObject({ type: 'agent_unavailable', status: 503 });
+      },
+    );
+
     it('should map a capabilities fetch failure to agent_unavailable instead of internal_error', async () => {
       const list = jest.fn(async () => []);
       const getCapabilities = jest.fn(async () => {
@@ -1349,7 +1412,7 @@ describe('data routes middleware', () => {
       },
     );
 
-    it('should log the cause when a foreign capabilities fetch fails on a relation list', async () => {
+    it('should log the agent reason when a foreign capabilities fetch fails on a relation list', async () => {
       const client = {
         listRelation: jest.fn(async () => []),
         countRelationRaw: jest.fn(async () => ({ count: 0 })),
@@ -1366,13 +1429,13 @@ describe('data routes middleware', () => {
 
       expect(logger).toHaveBeenCalledWith(
         'Warn',
-        'Foreign capabilities lookup failed; re-checking relation exposure',
-        expect.objectContaining({
-          collection: 'users',
-          relation: 'posts',
-          foreignCollection: 'posts',
-          cause: 'BffHttpError: The agent is unavailable',
-        }),
+        'Agent 5xx mapped to agent_unavailable; client message is generic',
+        { status: 503, cause: 'Service Unavailable' },
+      );
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        'Capabilities lookup failed; re-checking exposure before rethrowing',
+        { collection: 'posts' },
       );
     });
 
