@@ -124,8 +124,13 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     await this.embeddedExecutor?.stop();
     // Close anything related to ForestAdmin client
     this.options.forestAdminClient.close();
+    // Stop at framework level: this drains in-flight requests (e.g. the standalone server waits
+    // for open connections to finish before resolving). The audit trail is closed only after,
+    // so a create/update/delete still being handled at shutdown can still reach its after-hook
+    // and append its entry, instead of that write failing against an already-closed store.
+    await super.stop();
 
-    // A failure closing the audit-trail connection must not prevent framework shutdown below.
+    // A failure closing the audit-trail connection must not prevent the rest of shutdown.
     try {
       await this.options.auditTrail?.close();
     } catch (error) {
@@ -135,9 +140,6 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
         `Failed to close the audit-trail database connection: ${message}`,
       );
     }
-
-    // Stop at framework level
-    await super.stop();
   }
 
   /**

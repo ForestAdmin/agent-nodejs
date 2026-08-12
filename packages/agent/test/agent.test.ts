@@ -9,6 +9,7 @@ import { readFile } from 'fs/promises';
 
 import * as factories from './__factories__';
 import Agent from '../src/agent';
+import FrameworkMounter from '../src/framework-mounter';
 import SchemaGenerator from '../src/utils/forest-schema/generator';
 
 // Mock routes
@@ -494,6 +495,27 @@ describe('Agent', () => {
       await agent.stop();
 
       expect(close).toHaveBeenCalledTimes(1);
+    });
+
+    test('closes the audit-trail connection only after the framework has fully stopped', async () => {
+      // FrameworkMounter.stop() is what drains in-flight requests (e.g. the standalone server
+      // waits for open connections to finish). Closing the audit trail before that would let a
+      // create/update/delete still being handled reach its after-hook against an already-closed
+      // store, losing the audit entry for a write that otherwise succeeded.
+      const order: string[] = [];
+      const close = jest.fn().mockImplementation(async () => {
+        order.push('audit-trail close');
+      });
+      const options = factories.forestAdminHttpDriverOptions.build();
+      const agent = new Agent(options);
+      (agent as unknown as { options: { auditTrail: unknown } }).options.auditTrail = { close };
+      jest.spyOn(FrameworkMounter.prototype, 'stop').mockImplementationOnce(async () => {
+        order.push('framework stop');
+      });
+
+      await agent.stop();
+
+      expect(order).toEqual(['framework stop', 'audit-trail close']);
     });
 
     test('does not attempt to close anything when no audit trail is configured', async () => {
