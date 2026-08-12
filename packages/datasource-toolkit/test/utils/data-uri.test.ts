@@ -96,6 +96,19 @@ describe('DataUri', () => {
     it('throws a ValidationError so the message reaches the caller', () => {
       expect(() => parseDataUri('report.pdf')).toThrow(ValidationError);
     });
+
+    // These used to raise a raw TypeError / URIError, which the agent renders as a 500.
+    it.each([
+      ['no comma at all', 'data:text/plain;base64'],
+      ['a lone percent in a media type', 'data:text/plain;name=%;base64,aGk='],
+      ['an incomplete escape in the name', 'data:text/plain;name=100%.pdf;base64,aGk='],
+    ])('rejects a data uri with %s', (_, value) => {
+      expect(() => parseDataUri(value)).toThrow(ValidationError);
+    });
+
+    it('still accepts a percent-encoded name', () => {
+      expect(parseDataUri('data:text/plain;name=100%25.pdf;base64,aGk=').name).toBe('100%.pdf');
+    });
   });
 
   describe('round trip', () => {

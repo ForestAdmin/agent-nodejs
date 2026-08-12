@@ -25,14 +25,16 @@ export function makeDataUri(file: File): string {
 export function parseDataUri(dataUri: string): File {
   if (!dataUri) return null;
 
-  // Without this the split below yields undefined data and Buffer.from raises an opaque
-  // TypeError. Reachable from action values, which a model can populate freely. A bare Error
-  // would surface as a generic 500, so the caller would not learn what to send instead.
-  if (!dataUri.startsWith('data:')) {
-    throw new ValidationError(
+  // Everything below is reachable from an action value, which a model populates freely, and every
+  // raw failure here is opaque: no comma makes Buffer.from raise a TypeError, and a lone '%' in a
+  // media type makes decodeURIComponent raise a URIError. Both surface as a generic 500, so the
+  // caller never learns what to send instead.
+  const malformed = () =>
+    new ValidationError(
       `Expected a file, got "${dataUri.slice(0, 32)}". A file value must be a data uri.`,
     );
-  }
+
+  if (!dataUri.startsWith('data:') || !dataUri.includes(',')) throw malformed();
 
   const [header, data] = dataUri.substring(5).split(',');
   const [mimeType, ...mediaTypes] = header.split(';');
@@ -42,7 +44,11 @@ export function parseDataUri(dataUri: string): File {
     const index = mediaType.indexOf('=');
 
     if (index !== -1) {
-      result[mediaType.substring(0, index)] = decodeURIComponent(mediaType.substring(index + 1));
+      try {
+        result[mediaType.substring(0, index)] = decodeURIComponent(mediaType.substring(index + 1));
+      } catch {
+        throw malformed();
+      }
     }
   }
 
