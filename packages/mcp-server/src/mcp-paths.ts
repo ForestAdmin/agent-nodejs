@@ -22,15 +22,11 @@ export function normalizeMountPath(input?: string): string {
   return collapsed;
 }
 
-export interface McpRouteOptions {
-  fileUploads?: boolean;
-}
-
 /**
  * Well-known paths stay anchored at the origin root (per RFC 8414/9728) but carry the prefix
  * as a suffix, so a host's own root OAuth metadata is not claimed.
  */
-export function buildMcpPaths(prefix = '', options: McpRouteOptions = {}): string[] {
+export function buildMcpPaths(prefix = ''): string[] {
   const normalized = normalizeMountPath(prefix);
 
   const wellKnown = normalized
@@ -40,17 +36,11 @@ export function buildMcpPaths(prefix = '', options: McpRouteOptions = {}): strin
       ]
     : ['/.well-known/'];
 
-  return [
-    ...wellKnown,
-    `${normalized}/oauth/`,
-    `${normalized}/mcp`,
-    // Claimed only when uploads are enabled, so a host app's own /files route keeps working.
-    ...(options.fileUploads ? [`${normalized}/files`] : []),
-  ];
+  return [...wellKnown, `${normalized}/oauth/`, `${normalized}/mcp`];
 }
 
-export function makeIsMcpRoute(prefix = '', options: McpRouteOptions = {}): McpRouteMatcher {
-  const paths = buildMcpPaths(prefix, options);
+export function makeIsMcpRoute(prefix = ''): McpRouteMatcher {
+  const paths = buildMcpPaths(prefix);
 
   // Match on the pathname (req.url carries the query string) and on a segment boundary, so
   // '/mcp?x=1' still matches and '/ai/mcp' does not shadow '/ai/mcp-dashboard'.

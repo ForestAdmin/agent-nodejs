@@ -3493,6 +3493,7 @@ describe('enabledTools', () => {
         'dissociate',
         'getActionForm',
         'executeAction',
+        'requestFileUpload',
       ],
     });
 
@@ -3604,7 +3605,7 @@ describe('Logo URL', () => {
   });
 });
 
-describe('file uploads route', () => {
+describe('file uploads tool', () => {
   const storage = {
     createUploadUrl: jest.fn().mockResolvedValue({ url: 'https://storage.example/put' }),
     download: jest.fn(),
@@ -3619,20 +3620,20 @@ describe('file uploads route', () => {
       ...(fileUploads && { fileUploads }),
     }).buildExpressApp(new URL('https://agent.example'));
 
-  it('does not mount /files when the option is absent', async () => {
-    const response = await request(await buildApp())
+  // The tool replaced POST /files, so nothing must answer there any more.
+  it.each([[undefined], [{ storage }]])('does not serve /files (fileUploads: %p)', async opts => {
+    const response = await request(await buildApp(opts))
       .post('/files')
       .send({});
 
     expect(response.status).toBe(404);
   });
 
-  it('mounts /files behind bearer auth when the option is set', async () => {
+  it('still requires a bearer token on /mcp when uploads are enabled', async () => {
     const response = await request(await buildApp({ storage }))
-      .post('/files')
+      .post('/mcp')
       .send({});
 
     expect(response.status).toBe(401);
-    expect(storage.createUploadUrl).not.toHaveBeenCalled();
   });
 });

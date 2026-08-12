@@ -407,9 +407,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
       });
 
       const httpCallback = await mcpServer.getHttpCallback();
-      const isMcpRoute = makeIsMcpRoute(this.mcpBasePath, {
-        fileUploads: Boolean(this.mcpFileUploads),
-      });
+      const isMcpRoute = makeIsMcpRoute(this.mcpBasePath);
 
       mcpLogger('Info', 'Server initialized successfully');
       mcpLogger(

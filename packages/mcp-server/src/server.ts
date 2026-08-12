@@ -24,7 +24,6 @@ import cors from 'cors';
 import express from 'express';
 import * as http from 'http';
 
-import createFilesRouter from './file-uploads/routes';
 import { resolveFileUploads } from './file-uploads/types';
 import ForestOAuthProvider from './forest-oauth-provider';
 import { createForestServerClient } from './http-client';
@@ -38,6 +37,7 @@ import declareExecuteActionTool from './tools/execute-action';
 import declareGetActionFormTool from './tools/get-action-form';
 import declareListTool from './tools/list';
 import declareListRelatedTool from './tools/list-related';
+import declareRequestFileUploadTool from './tools/request-file-upload';
 import declareUpdateTool from './tools/update';
 import normalizeAgentUrl from './utils/normalize-agent-url';
 import normalizeDomainList from './utils/normalize-domain-list';
@@ -93,6 +93,7 @@ const SAFE_ARGUMENTS_FOR_LOGGING: Record<string, string[]> = {
   describeCollection: ['collectionName'],
   getActionForm: ['collectionName', 'actionName', 'recordIds'],
   executeAction: ['collectionName', 'actionName', 'recordIds'],
+  requestFileUpload: ['mimeType'],
   associate: ['collectionName', 'relationName', 'parentRecordId', 'targetRecordId'],
   dissociate: ['collectionName', 'relationName', 'parentRecordId', 'targetRecordIds'],
 };
@@ -107,7 +108,8 @@ export type ToolName =
   | 'associate'
   | 'dissociate'
   | 'getActionForm'
-  | 'executeAction';
+  | 'executeAction'
+  | 'requestFileUpload';
 
 /**
  * Options for configuring the Forest Admin MCP Server
@@ -261,6 +263,14 @@ export default class ForestMCPServer {
       { name: 'dissociate', register: () => declareDissociateTool(mcpServer, ctx) },
       { name: 'getActionForm', register: () => declareGetActionFormTool(mcpServer, ctx) },
       { name: 'executeAction', register: () => declareExecuteActionTool(mcpServer, ctx) },
+      ...(this.fileUploads
+        ? [
+            {
+              name: 'requestFileUpload' as const,
+              register: () => declareRequestFileUploadTool(mcpServer, ctx),
+            },
+          ]
+        : []),
     ];
 
     const enabledToolEntries = allTools.filter(tool => this.enabledTools.has(tool.name));
@@ -298,6 +308,7 @@ export default class ForestMCPServer {
       'dissociate',
       'getActionForm',
       'executeAction',
+      'requestFileUpload',
     ];
 
     const enabled = new Set(options?.enabledTools ?? allToolNames);
@@ -584,18 +595,6 @@ export default class ForestMCPServer {
       effectiveBaseUrl,
     ).href;
 
-    if (this.fileUploads) {
-      app.use(
-        `${prefix}/files`,
-        requireBearerAuth({
-          verifier: oauthProvider,
-          requiredScopes: ['mcp:action'],
-          resourceMetadataUrl,
-        }),
-        createFilesRouter(this.fileUploads, this.logger),
-      );
-    }
-
     app.post(
       `${prefix}/mcp`,
       requireBearerAuth({
@@ -670,7 +669,7 @@ export default class ForestMCPServer {
    */
   async getHttpCallback(baseUrl?: URL): Promise<HttpCallback> {
     const app = await this.buildExpressApp(baseUrl);
-    const isMcpRoute = makeIsMcpRoute(this.basePath, { fileUploads: Boolean(this.fileUploads) });
+    const isMcpRoute = makeIsMcpRoute(this.basePath);
 
     return (req, res, next) => {
       const url = req.url || '/';

@@ -168,7 +168,7 @@ The minimum for either value is 60 seconds; anything lower is raised to it. An i
 
 > **Experimental.** The MCP specification is still designing its own file transfer story
 > ([SEP-2631](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2631)). The
-> `UploadStorage` contract is expected to survive, but the `POST /files` route and the handle
+> `UploadStorage` contract is expected to survive, but the `requestFileUpload` tool and the handle
 > format may change to follow the specification once it lands.
 
 Actions with **File fields** cannot normally run over MCP. The agent expects file values as data
@@ -176,11 +176,26 @@ uris, which would transit the model's context window and exceed most MCP clients
 The `fileUploads` option enables them through an upload side-channel that keeps the bytes out of
 the conversation:
 
-1. The client `POST`s `/files` (same Bearer token as `/mcp`) with `{ "filename", "mimeType", "sha256"? }` and receives a pre-authorized upload URL plus a signed `fileHandle` string.
+1. The client calls the `requestFileUpload` tool with `{ "filename", "mimeType", "sha256"? }` and receives a pre-authorized upload URL plus a signed `fileHandle` string.
 2. The client uploads the raw bytes directly to the storage backend, so they never pass through the MCP server or the model.
 3. The client passes the handle (`"$uploadedFile:<...>"`) as the field value in `executeAction`. The server downloads the object and hands it to the agent. The model only ever exchanges the small handle.
 
-It is available on the embedded mount too: `agent.mountAiMcpServer({ fileUploads: { storage } })`.
+`requestFileUpload` is registered only when `fileUploads` is set, so a server without a storage backend never advertises it. It is available on the embedded mount too: `agent.mountAiMcpServer({ fileUploads: { storage } })`.
+
+### The client must be able to upload
+
+Step 2 is an ordinary HTTPS request, made by the client, outside the MCP protocol. The client has to
+be able to make it:
+
+- **Claude Code** and custom agents: works, they have shell or HTTP access.
+- **Claude Desktop and Claude.ai**: the attached file lands in the code execution sandbox and the
+  model can `curl -X PUT -T <path> <uploadUrl>`, but **the sandbox blocks outbound traffic by
+  default**. The host of `uploadUrl` must be added under *Settings > Capabilities > Code execution
+  and file creation > Additional allowed domains*. Without it the upload fails and nothing on the
+  server side can tell you why — so document your bucket's host for your users.
+
+The tool states this prerequisite in its description and repeats it in its response, so a model
+whose upload was blocked has the diagnosis in context.
 
 ```mermaid
 sequenceDiagram
@@ -189,7 +204,7 @@ sequenceDiagram
     participant Storage as Storage backend
     participant Agent as Forest Admin agent
 
-    Client->>Server: POST /files {filename, mimeType, sha256?}
+    Client->>Server: requestFileUpload {filename, mimeType, sha256?}
     Server-->>Client: uploadUrl + fileHandle (user-bound JWT)
     Client->>Storage: PUT raw bytes to uploadUrl
     Note over Client,Storage: bytes bypass the server and the model
@@ -278,7 +293,6 @@ Once running, the MCP server exposes the following endpoints:
 | Method | Path | Description |
 |--------|------|-------------|
 | POST | `/mcp` | Main MCP protocol endpoint (requires Bearer token) |
-| POST | `/files` | Upload side-channel for action file fields (only with `fileUploads`; requires Bearer token) |
 | POST | `/oauth/authorize` | OAuth 2.0 authorization |
 | POST | `/oauth/token` | OAuth 2.0 token exchange |
 | GET | `/.well-known/oauth-protected-resource/mcp` | OAuth metadata discovery |
