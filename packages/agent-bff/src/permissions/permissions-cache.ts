@@ -15,6 +15,15 @@ export interface EvaluatedPermissions {
 interface CacheEntry {
   permissions: EvaluatedPermissions;
   storedAt: number;
+  rejectedUserIds: Set<number>;
+}
+
+function sameUsers(previous: UserPermissionV4[], next: UserPermissionV4[]): boolean {
+  if (previous.length !== next.length) return false;
+
+  const previousRoleById = new Map(previous.map(user => [user.id, user.roleId]));
+
+  return next.every(user => previousRoleById.get(user.id) === user.roleId);
 }
 
 export default class PermissionsCache {
@@ -23,36 +32,33 @@ export default class PermissionsCache {
 
   private entry: CacheEntry | undefined;
 
-  private readonly rejectedUserIds = new Set<number>();
-
   constructor({ now = Date.now, ttlMs = PERMISSIONS_CACHE_TTL_MS }: PermissionsCacheOptions = {}) {
     this.now = now;
     this.ttlMs = ttlMs;
   }
 
   wasRejectedByLatestFetch(userId: number): boolean {
-    return this.rejectedUserIds.has(userId);
+    return this.getFreshEntry()?.rejectedUserIds.has(userId) ?? false;
   }
 
   rememberRejected(userId: number): void {
-    this.rejectedUserIds.add(userId);
+    this.getFreshEntry()?.rejectedUserIds.add(userId);
   }
 
   getFresh(): EvaluatedPermissions | undefined {
-    if (!this.entry) return undefined;
-
-    if (this.now() - this.entry.storedAt >= this.ttlMs) {
-      this.entry = undefined;
-
-      return undefined;
-    }
-
-    return this.entry.permissions;
+    return this.getFreshEntry()?.permissions;
   }
 
   set(permissions: EvaluatedPermissions): void {
-    this.entry = { permissions, storedAt: this.now() };
-    this.rejectedUserIds.clear();
+    const previous = this.getFreshEntry();
+    const carriesTheSameUsers =
+      previous !== undefined && sameUsers(previous.permissions.users, permissions.users);
+
+    this.entry = {
+      permissions,
+      storedAt: this.now(),
+      rejectedUserIds: carriesTheSameUsers ? previous.rejectedUserIds : new Set<number>(),
+    };
   }
 
   get size(): number {
@@ -61,6 +67,17 @@ export default class PermissionsCache {
 
   clear(): void {
     this.entry = undefined;
-    this.rejectedUserIds.clear();
+  }
+
+  private getFreshEntry(): CacheEntry | undefined {
+    if (!this.entry) return undefined;
+
+    if (this.now() - this.entry.storedAt >= this.ttlMs) {
+      this.entry = undefined;
+
+      return undefined;
+    }
+
+    return this.entry;
   }
 }

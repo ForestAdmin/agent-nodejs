@@ -250,6 +250,46 @@ describe('createPermissionsRoutesMiddleware', () => {
     });
   });
 
+  describe('when two callers a fresh fetch does not cover alternate', () => {
+    it('should remember both rather than letting each fetch evict the other', async () => {
+      const cache = new PermissionsCache();
+      const client = fetcherOf({ environmentPermissions: NORMAL_MODE, users: [] });
+      const first = appOf({ client, cache, callerId: VIEWER_ID });
+      const second = appOf({ client, cache, callerId: CALLER_ID });
+
+      await request(first.callback()).get(ROUTE);
+      await request(second.callback()).get(ROUTE);
+      await request(first.callback()).get(ROUTE);
+      await request(second.callback()).get(ROUTE);
+      await request(first.callback()).get(ROUTE);
+
+      expect(client.fetchPermissions).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('when the entry a rejection was derived from expires', () => {
+    it('should refetch rather than serving a 403 the expired payload no longer supports', async () => {
+      let clock = 1_000;
+      const cache = new PermissionsCache({ now: () => clock });
+      const unknown = fetcherOf({ environmentPermissions: NORMAL_MODE, users: [] });
+
+      const before = await request(
+        appOf({ client: unknown, cache, callerId: VIEWER_ID }).callback(),
+      ).get(ROUTE);
+
+      clock += PERMISSIONS_CACHE_TTL_MS;
+
+      const covering = fetcherOf({ environmentPermissions: NORMAL_MODE, users: USERS });
+      const after = await request(
+        appOf({ client: covering, cache, callerId: VIEWER_ID }).callback(),
+      ).get(ROUTE);
+
+      expect(before.status).toBe(403);
+      expect(after.status).toBe(200);
+      expect(covering.fetchPermissions).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('when the SaaS is down and the stale cache does not cover the caller', () => {
     it('should keep refetching rather than recording a rejection it never confirmed', async () => {
       const cache = new PermissionsCache();
