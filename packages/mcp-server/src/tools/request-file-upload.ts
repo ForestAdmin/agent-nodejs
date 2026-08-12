@@ -12,6 +12,7 @@ const MIME_TYPE_PATTERN = /^[\w.+-]+\/[\w.+-]+$/;
 const SHA256_HEX_PATTERN = /^[0-9a-f]{64}$/i;
 const SHA256_BASE64_PATTERN = /^[A-Za-z0-9+/]{43}=$/;
 const MAX_FILENAME_LENGTH = 128;
+const REQUIRED_SCOPE = 'mcp:action';
 
 const UPLOAD_PREREQUISITE =
   'Uploading requires an outbound HTTP request from your environment. In a code execution ' +
@@ -34,10 +35,9 @@ function sanitizeFilename(filename: string): string {
     .slice(-MAX_FILENAME_LENGTH)
     .replace(/[^\w.\- ()]/g, '_');
 
-  return /^\.+$/.test(safe) ? 'file' : safe;
+  return !safe || /^\.+$/.test(safe) ? 'file' : safe;
 }
 
-// Accepts the digest as hex (shasum -a 256 output) or base64.
 function normalizeSha256(sha256: string | undefined): string | undefined {
   if (!sha256) return undefined;
   if (SHA256_BASE64_PATTERN.test(sha256)) return sha256;
@@ -70,7 +70,11 @@ ${UPLOAD_PREREQUISITE}
 
 The handle expires, so run the upload and the action without a long pause in between.`,
       inputSchema: {
-        filename: z.string().min(1).describe('Original file name, e.g. "invoice-2026-01.pdf".'),
+        filename: z
+          .string()
+          .trim()
+          .min(1)
+          .describe('Original file name, e.g. "invoice-2026-01.pdf".'),
         mimeType: z.string().describe('Media type of the file, e.g. "application/pdf".'),
         sha256: z
           .string()
@@ -92,8 +96,16 @@ The handle expires, so run the upload and the action without a long pause in bet
         throw new Error('Cannot request a file upload without an authenticated user');
       }
 
+      // /mcp only requires mcp:read, but this mints a pre-authorized write into the host's
+      // storage. The route this tool replaced enforced mcp:action, so it is enforced here.
+      if (!extra.authInfo?.scopes?.includes(REQUIRED_SCOPE)) {
+        throw new Error(`Requesting a file upload requires the "${REQUIRED_SCOPE}" scope.`);
+      }
+
       if (!MIME_TYPE_PATTERN.test(options.mimeType)) {
-        throw new Error('mimeType is required, e.g. application/pdf.');
+        throw new Error(
+          `"${options.mimeType}" is not a media type. Expected a type/subtype pair, e.g. application/pdf.`,
+        );
       }
 
       const sha256Base64 = normalizeSha256(options.sha256);

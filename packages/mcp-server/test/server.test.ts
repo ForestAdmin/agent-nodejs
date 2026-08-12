@@ -3620,7 +3620,6 @@ describe('file uploads tool', () => {
       ...(fileUploads && { fileUploads }),
     }).buildExpressApp(new URL('https://agent.example'));
 
-  // The tool replaced POST /files, so nothing must answer there any more.
   it.each([[undefined], [{ storage }]])('does not serve /files (fileUploads: %p)', async opts => {
     const response = await request(await buildApp(opts))
       .post('/files')

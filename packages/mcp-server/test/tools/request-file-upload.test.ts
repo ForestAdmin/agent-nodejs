@@ -21,7 +21,7 @@ const mockForestServerClient = {
 } as unknown as ForestServerClient;
 
 const authenticatedExtra = {
-  authInfo: { token: 'test-token', extra: { userId: 42 } },
+  authInfo: { token: 'test-token', scopes: ['mcp:read', 'mcp:action'], extra: { userId: 42 } },
 } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
 describe('declareRequestFileUploadTool', () => {
@@ -242,7 +242,7 @@ describe('declareRequestFileUploadTool', () => {
 
     it.each([
       ['a malformed digest', { sha256: 'nope' }, 'sha256 must be the file digest'],
-      ['a mime type that is not a pair', { mimeType: 'not a mime type' }, 'mimeType is required'],
+      ['a mime type that is not a pair', { mimeType: 'not a mime type' }, 'is not a media type'],
     ])('rejects %s', async (_, override, message) => {
       setup();
 
@@ -255,6 +255,33 @@ describe('declareRequestFileUploadTool', () => {
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain(message);
       expect(storage.createUploadUrl).not.toHaveBeenCalled();
+    });
+
+    // /mcp only gates on mcp:read, so a read-only token would otherwise mint a pre-authorized
+    // write into the host's storage.
+    it('rejects a token that lacks the mcp:action scope', async () => {
+      setup();
+
+      const result = await callExpectingError({ filename: 'r.pdf', mimeType: 'application/pdf' }, {
+        authInfo: { token: 't', scopes: ['mcp:read'], extra: { userId: 42 } },
+      } as unknown as typeof authenticatedExtra);
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('requires the "mcp:action" scope');
+      expect(storage.createUploadUrl).not.toHaveBeenCalled();
+    });
+
+    // The zod schema trims and requires a non-empty name, but the fallback is what keeps a name
+    // that sanitizes down to nothing from becoming a key ending in '/' and an empty File name.
+    it.each([
+      ['   ', 'file'],
+      ['%%%', '___'],
+    ])('names an object %p as %p rather than leaving it empty', async (filename, expected) => {
+      setup();
+
+      const response = await call({ filename, mimeType: 'text/plain' });
+
+      expect(claimsOf(response.fileHandle).name).toBe(expected);
     });
 
     it('rejects a call with no authenticated user', async () => {

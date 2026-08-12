@@ -35,42 +35,50 @@ export default function createLocalUploadStorage(
     console.log(`[local-upload-storage] ${message}`);
   };
 
-  http
-    .createServer((req, res) => {
-      const key = decodeURIComponent((req.url ?? '/').replace(/^\/+/, ''));
+  const server = http.createServer((req, res) => {
+    const rawKey = (req.url ?? '/').replace(/^\/+/, '');
 
-      if (req.method !== 'PUT' || !key) {
-        res.writeHead(405).end();
+    if (req.method !== 'PUT' || !rawKey) {
+      res.writeHead(405).end();
 
-        return;
-      }
+      return;
+    }
 
-      const chunks: Buffer[] = [];
-      req.on('data', chunk => chunks.push(chunk as Buffer));
-      req.on('end', () => {
-        const body = Buffer.concat(chunks);
+    const chunks: Buffer[] = [];
+    req.on('data', chunk => chunks.push(chunk as Buffer));
+    req.on('end', () => {
+      const body = Buffer.concat(chunks);
 
-        // pathOf rejects a key that escapes the root, and a throw in this listener would take the
-        // process down, so it runs inside the chain the catch below covers.
-        Promise.resolve()
-          .then(async () => {
-            const destination = pathOf(key);
-            await fs.mkdir(path.dirname(destination), { recursive: true });
-            await fs.writeFile(destination, body);
-          })
-          .then(() => {
-            log(`stored ${key} (${body.length} bytes)`);
-            res.writeHead(200).end();
-          })
-          .catch((error: Error) => {
-            log(`refused ${key}: ${error.message}`);
-            res.writeHead(400).end();
-          });
-      });
-    })
-    .listen(port, () => {
-      log(`PUT endpoint on http://localhost:${port}, objects under ${root}`);
+      // Everything that can throw on a caller-controlled key runs inside this chain: both
+      // decodeURIComponent, which raises URIError on a lone '%', and pathOf, which rejects a key
+      // escaping the root. A throw in this listener would be an uncaughtException and take the
+      // whole agent down instead of failing one request.
+      Promise.resolve()
+        .then(async () => {
+          const destination = pathOf(decodeURIComponent(rawKey));
+          await fs.mkdir(path.dirname(destination), { recursive: true });
+          await fs.writeFile(destination, body);
+        })
+        .then(() => {
+          log(`stored ${rawKey} (${body.length} bytes)`);
+          res.writeHead(200).end();
+        })
+        .catch((error: Error) => {
+          log(`refused ${rawKey}: ${error.message}`);
+          res.writeHead(400).end();
+        });
     });
+
+    req.on('error', (error: Error) => log(`request failed: ${error.message}`));
+  });
+
+  server.on('error', (error: Error) => {
+    log(`cannot listen on ${port}: ${error.message}. Set HTTP_PORT_UPLOAD_STORAGE.`);
+  });
+
+  server.listen(port, () => {
+    log(`PUT endpoint on http://localhost:${port}, objects under ${root}`);
+  });
 
   return {
     async createUploadUrl({ key }) {
@@ -80,7 +88,6 @@ export default function createLocalUploadStorage(
       return fs.readFile(pathOf(key));
     },
     async getSize(key) {
-      // undefined means "not cheaply knowable": a missing object is download's job to reject.
       const stat = await fs.stat(pathOf(key)).catch(() => undefined);
 
       return stat?.size;
