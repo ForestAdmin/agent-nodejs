@@ -68,7 +68,8 @@ yarn start:dev       # Development (loads .env file automatically)
 | `FOREST_AGENT_URL` | No | your environment's back-end URL | URL the MCP server uses to reach the back-end's data layer. Set it when the server runs next to a self-hosted back-end at an internal address (e.g. `http://localhost:3310`), instead of the public URL registered in Forest |
 | `FOREST_MCP_ACCESS_TOKEN_TTL_SECONDS` | No | `3600` (1 hour) | Maximum lifetime of the OAuth access tokens the server issues (`tokenTtl.accessTokenSeconds`). Minimum `60` |
 | `FOREST_MCP_REFRESH_TOKEN_TTL_SECONDS` | No | unbounded | Maximum time between two interactive logins (`tokenTtl.refreshTokenSeconds`). Unset, a client that keeps refreshing never signs in again. Minimum `60` |
-| `FOREST_MCP_UPLOAD_STORAGE_MODULE` | No | - | Path to a module providing the `fileUploads` options, enabling action file uploads on the standalone server. See [Action File Uploads](#action-file-uploads) |
+| `FOREST_MCP_FILE_UPLOADS` | No | - | `true` enables action file uploads with the in-memory store (single instance only). See [Action File Uploads](#action-file-uploads) |
+| `FOREST_MCP_UPLOAD_STORAGE_MODULE` | No | - | Path to a module providing the `fileUploads` options, for a real storage backend |
 
 #### Example Configuration
 
@@ -182,14 +183,41 @@ the conversation:
 2. The client uploads the raw bytes directly to the storage backend, so they never pass through the MCP server or the model.
 3. The client passes the handle (`"$uploadedFile:<...>"`) as the field value in `executeAction`. The server downloads the object and hands it to the agent. The model only ever exchanges the small handle.
 
-`requestFileUpload` is registered only when `fileUploads` is set, so a server without a storage backend never advertises it. It is available on the embedded mount too: `agent.mountAiMcpServer({ fileUploads: { storage } })`.
+`requestFileUpload` is registered only when `fileUploads` is set, so a server without it never advertises the tool.
+
+### Nothing to provision
+
+`fileUploads: {}` is enough to try it. With no `storage`, the server holds the objects in memory and
+serves its own upload endpoint under `<origin>/mcp/uploads`:
+
+```typescript
+agent.mountAiMcpServer({ fileUploads: {} });
+```
+
+> **Single instance only.** The upload and the redemption are two separate requests. With several
+> replicas, in cluster mode, or on a serverless runtime (including cloud agents), one of them lands
+> on an instance that never saw the other and the action fails — intermittently, which reads as a
+> flaky feature rather than a misconfiguration. Objects are also lost on restart. The server logs a
+> warning at startup, and the failure names this cause. **Those deployments need a `storage`.**
+
+`ephemeralMaxTotalBytes` bounds what the in-memory store holds across all pending uploads, 64 MiB by
+default. It is deliberately absolute rather than a multiple of `maxBytes`: derived, raising the
+per-file limit would multiply what the process can hold.
+
+### With a storage backend
+
+Provide `storage` for anything beyond a single instance. Any backend that can pre-authorize an
+upload and read the object back works — S3 presigned URLs (below), GCS signed URLs, Azure SAS. The
+package has no storage dependency of its own.
 
 ### On the standalone server
 
-A storage backend is an object with methods, so unlike every other standalone option it cannot
-travel through an environment variable. Point `FOREST_MCP_UPLOAD_STORAGE_MODULE` at a module that
-default-exports the options instead — a bad path or a module without a `storage` fails at startup
-rather than running with uploads silently disabled:
+`FOREST_MCP_FILE_UPLOADS=true` enables the in-memory store, with the same single-instance caveat.
+
+For a real backend, a storage is an object with methods, so unlike every other standalone option it
+cannot travel through an environment variable. Point `FOREST_MCP_UPLOAD_STORAGE_MODULE` at a module
+that default-exports the options instead — a bad path, or a module that exports nothing, fails at
+startup rather than running with uploads silently disabled:
 
 ```javascript
 // forest-upload-storage.js
@@ -227,11 +255,10 @@ whose upload was blocked has the diagnosis in context.
 
 ### Trying it locally
 
-`packages/_example` wires the whole flow with no cloud account: `local-upload-storage.ts` is a
-disk-backed `UploadStorage` that serves its own PUT endpoint, and the `review` collection carries an
-`Attach a document` action with a `File` and a `FileList` field. Start the example agent, connect an
-MCP client to it, and ask for that action with a file — the action reports the name, mime type and
-byte count it received.
+`packages/_example` wires the whole flow with `fileUploads: {}` — no cloud account, no storage code.
+Its `review` collection carries an `Attach a document` action with a `File` and a `FileList` field.
+Start the example agent, connect an MCP client to it, and ask for that action with a file — the
+action reports the name, mime type and byte count it received.
 
 ```mermaid
 sequenceDiagram
@@ -307,7 +334,7 @@ const server = new ForestMCPServer({
 The other options are `keyPrefix` (default `mcp-uploads/`), `uploadUrlTtlSeconds` (default 15 min),
 `handleTtlSeconds` (default 45 min, longer than the upload URL so a slow upload still leaves time to
 run the action), `maxBytes` (default 20 MiB), `maxConcurrentDownloads` (default 5), and
-`downloadTimeoutSeconds` (default 15 s).
+`downloadTimeoutSeconds` (default 15 s), and `ephemeralMaxTotalBytes` (default 64 MiB, in-memory store only).
 
 Lower `downloadTimeoutSeconds` if the clients calling your agent cut requests sooner than that. The
 whole `executeAction` has to fit inside their timeout: reading the object, encoding it, and running

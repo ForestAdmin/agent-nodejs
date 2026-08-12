@@ -59,15 +59,19 @@ describe('loadFileUploads', () => {
     );
   });
 
-  it('rejects a module that exports no storage, rather than starting without uploads', async () => {
+  // Omitting the storage selects the in-memory store, so it must not be an error.
+  it('accepts options without a storage', async () => {
     const file = writeModule(`module.exports = { maxBytes: 10 };`);
 
-    await expect(loadFileUploads(file)).rejects.toThrow('must export { storage }');
+    await expect(loadFileUploads(file)).resolves.toEqual({ maxBytes: 10 });
   });
 
-  it('rejects a function that returns no storage', async () => {
-    const file = writeModule(`module.exports = () => undefined;`);
+  it.each([
+    ['a function returning nothing', 'module.exports = () => undefined;'],
+    ['a module exporting null', 'module.exports = null;'],
+  ])('rejects %s, which is a module that forgot to export', async (_, body) => {
+    const file = writeModule(body);
 
-    await expect(loadFileUploads(file)).rejects.toThrow('must export { storage }');
+    await expect(loadFileUploads(file)).rejects.toThrow('must export the fileUploads options');
   });
 });

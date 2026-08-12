@@ -9,7 +9,9 @@ const toSeconds = (value?: string) => (value === undefined ? undefined : Number(
 
 async function main() {
   // Loaded before constructing, so a bad module fails at startup like every other option.
-  const fileUploads = await loadFileUploads(process.env.FOREST_MCP_UPLOAD_STORAGE_MODULE);
+  const fileUploads =
+    (await loadFileUploads(process.env.FOREST_MCP_UPLOAD_STORAGE_MODULE)) ??
+    (process.env.FOREST_MCP_FILE_UPLOADS === 'true' ? {} : undefined);
 
   const server = new ForestMCPServer({
     forestServerUrl: process.env.FOREST_SERVER_URL || 'https://api.forestadmin.com',

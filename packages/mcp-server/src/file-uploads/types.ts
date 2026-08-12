@@ -31,13 +31,23 @@ export interface UploadStorage {
  * and the handle format may change to follow the specification once it lands.
  */
 export interface FileUploadsOptions {
-  storage: UploadStorage;
+  /**
+   * Where uploaded objects live between the upload and the action. Omit it and the server keeps
+   * them in memory, on its own origin — nothing to provision, but only correct for a single
+   * instance: see the README.
+   */
+  storage?: UploadStorage;
   keyPrefix?: string;
   uploadUrlTtlSeconds?: number;
   /** Must stay longer than uploadUrlTtlSeconds, so a slow upload leaves time to run the action. */
   handleTtlSeconds?: number;
   maxBytes?: number;
   maxConcurrentDownloads?: number;
+  /**
+   * Total size the in-memory store holds across all pending uploads. Defaults to 64 MiB. Has no
+   * effect once a `storage` is given.
+   */
+  ephemeralMaxTotalBytes?: number;
   /**
    * How long a single storage read may take. Keep it well under the request timeout of the
    * clients calling the agent, so a slow backend fails here rather than being cut mid-flight.
@@ -53,6 +63,7 @@ export interface ResolvedFileUploads {
   handleTtlSeconds: number;
   maxBytes: number;
   downloadTimeoutSeconds: number;
+  ephemeralMaxTotalBytes: number;
   authSecret: string;
   limitDownload: RunExclusive;
 }
@@ -63,6 +74,9 @@ const DEFAULT_HANDLE_TTL_SECONDS = 45 * 60;
 const DEFAULT_MAX_BYTES = 20 * 1024 * 1024;
 const DEFAULT_MAX_CONCURRENT_DOWNLOADS = 5;
 const DEFAULT_DOWNLOAD_TIMEOUT_SECONDS = 15;
+// Deliberately absolute rather than a multiple of maxBytes: derived, raising the per-file limit
+// would multiply what the process can hold, which is the opposite of what setting it suggests.
+export const DEFAULT_EPHEMERAL_MAX_TOTAL_BYTES = 64 * 1024 * 1024;
 
 function positiveInteger(field: keyof FileUploadsOptions, value: number | undefined): number {
   if (value === undefined) return undefined;
@@ -75,13 +89,21 @@ function positiveInteger(field: keyof FileUploadsOptions, value: number | undefi
 }
 
 export function resolveFileUploads(
-  options: FileUploadsOptions | undefined,
+  options: (FileUploadsOptions & { isEphemeral?: boolean }) | undefined,
   authSecret: string,
   logger?: Logger,
 ): ResolvedFileUploads | undefined {
   if (!options) return undefined;
 
   if (!options.storage) throw new Error('fileUploads.storage is required.');
+
+  if (options.ephemeralMaxTotalBytes !== undefined && !options.isEphemeral) {
+    logger?.(
+      'Warn',
+      'fileUploads.ephemeralMaxTotalBytes only bounds the in-memory store and is ignored when a ' +
+        'storage backend is given.',
+    );
+  }
 
   const uploadUrlTtlSeconds =
     positiveInteger('uploadUrlTtlSeconds', options.uploadUrlTtlSeconds) ??
@@ -109,6 +131,9 @@ export function resolveFileUploads(
     downloadTimeoutSeconds:
       positiveInteger('downloadTimeoutSeconds', options.downloadTimeoutSeconds) ??
       DEFAULT_DOWNLOAD_TIMEOUT_SECONDS,
+    ephemeralMaxTotalBytes:
+      positiveInteger('ephemeralMaxTotalBytes', options.ephemeralMaxTotalBytes) ??
+      DEFAULT_EPHEMERAL_MAX_TOTAL_BYTES,
     authSecret,
     limitDownload: createSemaphore(
       positiveInteger('maxConcurrentDownloads', options.maxConcurrentDownloads) ??

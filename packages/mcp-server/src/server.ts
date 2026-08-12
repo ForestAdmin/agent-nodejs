@@ -24,6 +24,7 @@ import cors from 'cors';
 import express from 'express';
 import * as http from 'http';
 
+import EphemeralStorage from './file-uploads/ephemeral-storage';
 import { resolveFileUploads } from './file-uploads/types';
 import ForestOAuthProvider from './forest-oauth-provider';
 import { createForestServerClient } from './http-client';
@@ -197,6 +198,7 @@ export default class ForestMCPServer {
   private allowedOAuthClients?: string[];
   private fileUploadsOptions?: FileUploadsOptions;
   private fileUploads?: ResolvedFileUploads;
+  private ephemeralStorage?: EphemeralStorage;
 
   constructor(options?: ForestMCPServerOptions) {
     this.forestServerUrl = options?.forestServerUrl || 'https://api.forestadmin.com';
@@ -457,7 +459,26 @@ export default class ForestMCPServer {
   async buildExpressApp(baseUrl?: URL): Promise<Express> {
     const { envSecret, authSecret } = this.ensureSecretsAreSet();
 
-    this.fileUploads = resolveFileUploads(this.fileUploadsOptions, authSecret, this.logger);
+    // No backend given: hold the objects here. Correct for one instance only, so it is announced
+    // rather than silently assumed — behind replicas the redemption lands where the upload did not.
+    if (this.fileUploadsOptions && !this.fileUploadsOptions.storage) {
+      this.ephemeralStorage = new EphemeralStorage();
+      this.logger(
+        'Warn',
+        'fileUploads has no storage backend: uploads are held in memory, on this instance only. ' +
+          'They are lost on restart, and a deployment with several replicas or a serverless ' +
+          'runtime needs a real backend.',
+      );
+    }
+
+    this.fileUploads = resolveFileUploads(
+      this.fileUploadsOptions && {
+        ...this.fileUploadsOptions,
+        ...(this.ephemeralStorage && { storage: this.ephemeralStorage, isEphemeral: true }),
+      },
+      authSecret,
+      this.logger,
+    );
 
     await this.fetchCollectionNames();
 
@@ -535,6 +556,21 @@ export default class ForestMCPServer {
     // Body parsers MUST come before OAuth handlers because the token handler
     // expects req.body to be parsed. When proxied from Koa, the body is already
     // available but Express needs to see it properly.
+    // Ahead of the body parsers: they would consume the stream for any content type they
+    // claim, and this endpoint needs the raw body. Also ahead of allowedMethods(['POST']).
+    if (this.ephemeralStorage && this.fileUploads) {
+      const uploadsPath = `${prefix}/mcp/uploads`;
+
+      this.ephemeralStorage.configure({
+        maxBytes: this.fileUploads.maxBytes,
+        maxTotalBytes: this.fileUploads.ephemeralMaxTotalBytes,
+        ttlSeconds: this.fileUploads.handleTtlSeconds,
+        publicBaseUrl: new URL(uploadsPath, effectiveBaseUrl).href,
+      });
+
+      app.use(uploadsPath, this.ephemeralStorage.createRouter(this.logger));
+    }
+
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
 

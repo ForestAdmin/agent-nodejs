@@ -19,7 +19,6 @@ import customizeReview from './customizations/review';
 import customizeSales from './customizations/sale';
 import customizeStore from './customizations/store';
 import createTypicode from './datasources/typicode';
-import createLocalUploadStorage from './local-upload-storage';
 import mongoose, { connectionString } from '../connections/mongoose';
 import sequelizeMsSql from '../connections/sequelize-mssql';
 import sequelizeMySql from '../connections/sequelize-mysql';
@@ -96,7 +95,7 @@ export default function makeAgent() {
     })
     .mountAiMcpServer({
       ...(allowedOAuthClients && { allowedOAuthClients }),
-      fileUploads: { storage: createLocalUploadStorage() },
+      fileUploads: {},
     })
 
     .customizeCollection('card', customizeCard)

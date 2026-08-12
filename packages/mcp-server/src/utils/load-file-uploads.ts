@@ -33,15 +33,17 @@ export default async function loadFileUploads(
     );
   }
 
-  const exported = loaded.default ?? loaded;
+  const exported = loaded?.default ?? loaded;
   const options = (typeof exported === 'function' ? await exported() : exported) as
     | FileUploadsOptions
     | undefined;
 
-  if (!options?.storage) {
+  // An object without a storage is legitimate — it selects the in-memory store. Nothing at all is
+  // a mistake, most likely a module that forgot to export.
+  if (!options || typeof options !== 'object') {
     throw new Error(
-      `FOREST_MCP_UPLOAD_STORAGE_MODULE "${modulePath}" must export { storage }, or a function ` +
-        'returning it. See the fileUploads section of the mcp-server README.',
+      `FOREST_MCP_UPLOAD_STORAGE_MODULE "${modulePath}" must export the fileUploads options, or a ` +
+        'function returning them. See the fileUploads section of the mcp-server README.',
     );
   }
 

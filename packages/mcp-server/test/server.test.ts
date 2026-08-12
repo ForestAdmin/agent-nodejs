@@ -3605,6 +3605,45 @@ describe('Logo URL', () => {
   });
 });
 
+describe('file uploads without a storage backend', () => {
+  const buildApp = async (logger?: jest.Mock) =>
+    new ForestMCPServer({
+      envSecret: 'test-env-secret',
+      authSecret: 'test-auth-secret',
+      forestServerUrl: 'https://test.forestadmin.com',
+      fileUploads: {},
+      ...(logger && { logger }),
+    }).buildExpressApp(new URL('https://agent.example'));
+
+  it('announces that objects are held in memory on this instance only', async () => {
+    const logger = jest.fn();
+
+    await buildApp(logger);
+
+    expect(logger).toHaveBeenCalledWith(
+      'Warn',
+      expect.stringContaining('held in memory, on this instance only'),
+    );
+  });
+
+  // Registered before allowedMethods(['POST']), which would otherwise answer 405.
+  it('serves the upload endpoint under /mcp/uploads', async () => {
+    const response = await request(await buildApp())
+      .put('/mcp/uploads/mcp-uploads%2Fuuid%2Fa.txt')
+      .send('hello');
+
+    expect(response.status).toBe(200);
+  });
+
+  it('leaves /mcp itself bearer-protected', async () => {
+    const response = await request(await buildApp())
+      .post('/mcp')
+      .send({});
+
+    expect(response.status).toBe(401);
+  });
+});
+
 describe('file uploads tool', () => {
   const storage = {
     createUploadUrl: jest.fn().mockResolvedValue({ url: 'https://storage.example/put' }),
