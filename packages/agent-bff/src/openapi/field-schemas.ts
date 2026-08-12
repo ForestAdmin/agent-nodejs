@@ -31,7 +31,9 @@ export default function toFieldSchema(type: FieldType): SchemaObject {
     return { type: 'array', items: item === undefined ? {} : toFieldSchema(item) };
   }
 
-  if (typeof type === 'object' && Array.isArray(type.fields)) {
+  // Null-checked because the capabilities payload is cast from untyped JSON, so nothing guarantees a
+  // column type is one of the three shapes the type declares.
+  if (typeof type === 'object' && type !== null && Array.isArray(type.fields)) {
     return {
       type: 'object',
       properties: Object.fromEntries(

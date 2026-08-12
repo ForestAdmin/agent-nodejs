@@ -3,6 +3,7 @@ import type { Logger } from '../../src/ports/logger-port';
 
 import { mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'fs';
 import http from 'http';
+import jsonwebtoken from 'jsonwebtoken';
 import { tmpdir } from 'os';
 import path from 'path';
 import request from 'supertest';
@@ -31,6 +32,7 @@ const CAPABILITIES = { fields: [{ name: 'id', type: 'Number', operators: ['equal
 
 const fetchSchema = jest.fn().mockResolvedValue(SCHEMA);
 const fetchCapabilities = jest.fn().mockResolvedValue(CAPABILITIES);
+const mintedTokens: string[] = [];
 
 jest.mock('../../src/read-model/forest-schema-client', () => ({
   __esModule: true,
@@ -42,9 +44,15 @@ jest.mock('../../src/read-model/forest-schema-client', () => ({
   },
 }));
 
+// The token is resolved here rather than ignored, because the CLI is expected to hand over a factory
+// that signs one per fetch — a single 5-minute token cannot cover a long fan-out.
 jest.mock('../../src/read-model/agent-capabilities-fetcher', () => ({
   __esModule: true,
-  default: () => fetchCapabilities,
+  default: ({ token }: { token: string | (() => string) }) => {
+    mintedTokens.push(typeof token === 'function' ? token() : token);
+
+    return fetchCapabilities;
+  },
 }));
 
 const VALID_ENV = {
@@ -62,6 +70,16 @@ describe('renderOpenApi', () => {
   beforeEach(() => {
     fetchSchema.mockReset().mockResolvedValue(SCHEMA);
     fetchCapabilities.mockReset().mockResolvedValue(CAPABILITIES);
+    mintedTokens.length = 0;
+  });
+
+  it('should sign its own agent token, since a CLI has no caller to borrow one from', async () => {
+    await renderOpenApi(VALID_ENV, noopLogger);
+
+    expect(mintedTokens).toHaveLength(1);
+    expect(jsonwebtoken.verify(mintedTokens[0], VALID_ENV.FOREST_AUTH_SECRET)).toEqual(
+      expect.objectContaining({ email: 'openapi@agent-bff.forestadmin.com' }),
+    );
   });
 
   it('should return a parseable OpenAPI 3.1 document', async () => {
@@ -122,6 +140,15 @@ describe('renderOpenApi', () => {
     expect(document.components.schemas.Fields_users).toBeDefined();
   });
 
+  it('should stay generic when the auth secret is there but the agent url is not', async () => {
+    const document = JSON.parse(
+      await renderOpenApi({ ...VALID_ENV, AGENT_URL: undefined }, noopLogger),
+    );
+
+    expect(Object.keys(document.paths)).toHaveLength(6);
+    expect(fetchSchema).not.toHaveBeenCalled();
+  });
+
   it('should ignore a broken server-only setting, which the export does not use', async () => {
     const document = JSON.parse(await renderOpenApi({ HTTP_PORT: 'nope' }, noopLogger));
 
@@ -150,6 +177,21 @@ describe('dispatchCli', () => {
       } finally {
         listen.mockRestore();
         stdout.mockRestore();
+      }
+    });
+
+    it('should fall back to the console logger when the caller passes none, as the bin does', async () => {
+      const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+      const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+
+      try {
+        const outcome = await dispatchCli(['openapi'], {});
+
+        expect(outcome).toEqual({ exitCode: 0 });
+        expect(JSON.parse(stdout.mock.calls[0][0] as string).openapi).toBe('3.1.0');
+      } finally {
+        stdout.mockRestore();
+        stderr.mockRestore();
       }
     });
 

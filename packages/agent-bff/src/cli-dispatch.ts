@@ -69,25 +69,23 @@ export async function renderOpenApi(env: NodeJS.ProcessEnv, logger: Logger): Pro
   // to do with (HTTP_PORT, the OAuth keys, the default timezone). A deployment that never asked for an
   // unfolded document must not see its export die on one of those, so the config is parsed only once
   // the four variables unfolding needs are all present — and from there a bad value is a real failure.
-  if (!authSecret || !wantsUnfolding(env)) {
+  const unfoldable =
+    authSecret && wantsUnfolding(env)
+      ? { source: resolveUnfoldSource(parseConfig(env), logger), authSecret }
+      : undefined;
+
+  if (!unfoldable?.source) {
     logger('Warn', `Emitting the generic OpenAPI document: ${NOTHING_TO_UNFOLD}`);
 
     return `${serializeOpenApi(generateOpenApiDocument(version))}\n`;
   }
 
-  const source = resolveUnfoldSource(parseConfig(env), logger);
-
-  if (!source) {
-    logger('Warn', `Emitting the generic OpenAPI document: ${NOTHING_TO_UNFOLD}`);
-
-    return `${serializeOpenApi(generateOpenApiDocument(version))}\n`;
-  }
-
+  const { source } = unfoldable;
   const readModel = await source.store.getReadModel();
   const { document, unfolding } = await buildUnfoldedDocument(
     source,
     readModel,
-    () => issueOpenApiAgentToken(authSecret),
+    () => issueOpenApiAgentToken(unfoldable.authSecret),
     version,
   );
 

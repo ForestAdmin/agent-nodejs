@@ -260,6 +260,29 @@ describe('the unfolded document', () => {
   });
 });
 
+describe('an unfolding naming a collection it does not carry', () => {
+  it('should skip that relation rather than reference a schema it never registered', () => {
+    // `collectUnfolding` filters those out, but the generator takes plain data: a hand-built
+    // snapshot must not be able to emit a path whose request schema does not exist.
+    const orphaned = generateOpenApiDocument('9.9.9', {
+      collections: [
+        {
+          name: 'users',
+          fields: { projectable: ['id'], filterable: ['id'], degraded: null },
+          primaryKeys: [{ name: 'id', type: 'Number' }],
+          relations: [{ name: 'secrets', foreignCollection: 'secrets' }],
+          actions: [],
+        },
+      ],
+    });
+
+    expect(Object.keys(orphaned.paths ?? {})).toEqual([
+      '/agent/v1/users/list',
+      '/agent/v1/users/count',
+    ]);
+  });
+});
+
 describe('names that collide once sanitized', () => {
   // `_` is both what sanitizing produces and the separator between a collection and its child, so
   // deduplicating each segment on its own is not enough: `A_B` + `C` and `A` + `B_C` compose the same

@@ -158,6 +158,28 @@ describe('collectUnfolding', () => {
       ]);
     });
 
+    it('should default a form field that declares neither isRequired nor enums', async () => {
+      const bare = action('Ban', '/forest/users/actions/ban');
+      bare.fields = [{ field: 'reason', type: 'String' } as (typeof bare.fields)[number]];
+      const readModel = new ReadModel([collection('users', [column('id')], [bare])]);
+
+      const { collections } = await collect(readModel);
+
+      expect(collections[0].actions[0].fields).toEqual([
+        { name: 'reason', type: 'String', isRequired: false, enums: null },
+      ]);
+    });
+
+    it('should treat an action with no fields key as a form with no field', async () => {
+      const fieldless = action('Ban', '/forest/users/actions/ban');
+      delete (fieldless as { fields?: unknown }).fields;
+      const readModel = new ReadModel([collection('users', [column('id')], [fieldless])]);
+
+      const { collections } = await collect(readModel);
+
+      expect(collections[0].actions).toEqual([{ name: 'Ban', fields: [] }]);
+    });
+
     it('should leave out an action with no endpoint, which the BFF does not expose', async () => {
       const endpointless = { ...action('Ban', ''), endpoint: undefined } as unknown as ReturnType<
         typeof action
