@@ -418,6 +418,62 @@ describe('QueryStringParser', () => {
     });
   });
 
+  describe('parseProjectionFromHeaderOrQuery', () => {
+    test('should give precedence to the header over the query string', () => {
+      const context = createMockContext({
+        headers: { 'forest-projection': 'name' },
+        customProperties: { query: { 'fields[books]': 'id' } },
+      });
+
+      const projection = QueryStringParser.parseProjectionFromHeaderOrQuery(
+        collectionSimple,
+        context,
+      );
+
+      expect(projection).toEqual(new Projection('name'));
+    });
+
+    test('should fallback to the query string when the header is missing', () => {
+      const context = createMockContext({
+        customProperties: { query: { 'fields[books]': 'name' } },
+      });
+
+      const projection = QueryStringParser.parseProjectionFromHeaderOrQuery(
+        collectionSimple,
+        context,
+      );
+
+      expect(projection).toEqual(new Projection('name'));
+    });
+
+    test('should fallback to the query string when the header is empty', () => {
+      const context = createMockContext({
+        headers: { 'forest-projection': '' },
+        customProperties: { query: { 'fields[books]': 'name' } },
+      });
+
+      const projection = QueryStringParser.parseProjectionFromHeaderOrQuery(
+        collectionSimple,
+        context,
+      );
+
+      expect(projection).toEqual(new Projection('name'));
+    });
+
+    test('should throw on an invalid header instead of falling back to the query string', () => {
+      const context = createMockContext({
+        headers: { 'forest-projection': 'field-that-do-not-exist' },
+        customProperties: { query: { 'fields[books]': 'name' } },
+      });
+
+      const fn = () =>
+        QueryStringParser.parseProjectionFromHeaderOrQuery(collectionSimple, context);
+
+      expect(fn).toThrow(ValidationError);
+      expect(fn).toThrow(/Invalid Forest-Projection header/);
+    });
+  });
+
   describe('parseSearch', () => {
     test('should return null when not provided', () => {
       const context = createMockContext({});

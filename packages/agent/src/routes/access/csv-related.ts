@@ -26,9 +26,10 @@ export default class CsvRelatedRoute extends RelationRoute {
 
     const { header } = context.request.query as Record<string, string>;
 
-    const projection =
-      QueryStringParser.parseProjectionFromHeader(this.foreignCollection, context) ??
-      QueryStringParser.parseProjection(this.foreignCollection, context);
+    const projection = QueryStringParser.parseProjectionFromHeaderOrQuery(
+      this.foreignCollection,
+      context,
+    );
     const scope = await this.services.authorization.getScope(this.foreignCollection, context);
     const caller = QueryStringParser.parseCaller(context);
     const filter = ContextFilterFactory.buildPaginated(this.foreignCollection, context, scope);

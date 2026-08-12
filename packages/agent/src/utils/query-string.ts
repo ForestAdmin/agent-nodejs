@@ -86,6 +86,13 @@ export default class QueryStringParser {
     }
   }
 
+  static parseProjectionFromHeaderOrQuery(collection: Collection, context: Context): Projection {
+    return (
+      QueryStringParser.parseProjectionFromHeader(collection, context) ??
+      QueryStringParser.parseProjection(collection, context)
+    );
+  }
+
   static parseSearch(collection: Collection, context: Context): string {
     const { query, body } = context.request as any;
     const search =

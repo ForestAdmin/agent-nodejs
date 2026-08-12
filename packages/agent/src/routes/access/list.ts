@@ -20,9 +20,7 @@ export default class ListRoute extends CollectionRoute {
       paginatedFilter,
     );
 
-    const projection =
-      QueryStringParser.parseProjectionFromHeader(this.collection, context) ??
-      QueryStringParser.parseProjection(this.collection, context);
+    const projection = QueryStringParser.parseProjectionFromHeaderOrQuery(this.collection, context);
 
     const records = await this.collection.list(
       QueryStringParser.parseCaller(context),
