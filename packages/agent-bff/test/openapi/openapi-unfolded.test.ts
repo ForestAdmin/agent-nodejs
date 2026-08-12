@@ -235,6 +235,49 @@ describe('the unfolded document', () => {
   });
 });
 
+describe('names that collide once sanitized', () => {
+  // `_` is both what sanitizing produces and the separator between a collection and its child, so
+  // deduplicating each segment on its own is not enough: `A_B` + `C` and `A` + `B_C` compose the same
+  // identifier, and one action would silently get the other's request schema.
+  const collection = (name: string, actionName: string, relationName: string) => ({
+    name,
+    fields: { projectable: ['id'], filterable: ['id'], degraded: null },
+    primaryKeys: [{ name: 'id', type: 'Number' }],
+    relations: [{ name: relationName, foreignCollection: name }],
+    actions: [{ name: actionName, fields: [] }],
+  });
+
+  const colliding = generateOpenApiDocument('9.9.9', {
+    collections: [collection('A_B', 'C', 'R'), collection('A', 'B_C', 'B_R')],
+  });
+  const operationIds = Object.values(
+    colliding.paths as Record<string, { post: { operationId: string } }>,
+  ).map(item => item.post.operationId);
+
+  it('should keep every operationId unique, which codegen tools require', () => {
+    expect(new Set(operationIds).size).toBe(operationIds.length);
+  });
+
+  it('should suffix the second composed identifier rather than reuse it', () => {
+    expect(operationIds).toContain('executeAction_A_B_C');
+    expect(operationIds).toContain('executeAction_A_B_C_2');
+    expect(operationIds).toContain('listRelatedRecords_A_B_R');
+    expect(operationIds).toContain('listRelatedRecords_A_B_R_2');
+  });
+
+  it('should give each action its own request schema, not the other one', () => {
+    const collidingPaths = colliding.paths as Record<
+      string,
+      { post: { requestBody: { content: Record<string, { schema: { $ref: string } }> } } }
+    >;
+    const refs = Object.entries(collidingPaths)
+      .filter(([path]) => path.includes('/actions/'))
+      .map(([, item]) => item.post.requestBody.content['application/json'].schema.$ref);
+
+    expect(new Set(refs).size).toBe(2);
+  });
+});
+
 describe('an unfolded document with no action', () => {
   it('should not carry the action-result response, which nothing would reference', () => {
     const withoutActions = generateOpenApiDocument('9.9.9', {

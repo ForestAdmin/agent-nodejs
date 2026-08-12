@@ -95,6 +95,18 @@ describe('renderOpenApi', () => {
 
     await expect(renderOpenApi(VALID_ENV, noopLogger)).rejects.toThrow();
   });
+
+  it('should ignore a broken server-only setting, which the export does not use', async () => {
+    const document = JSON.parse(await renderOpenApi({ HTTP_PORT: 'nope' }, noopLogger));
+
+    expect(Object.keys(document.paths)).toHaveLength(6);
+  });
+
+  it('should still reject a broken setting once the deployment asks to be unfolded', async () => {
+    await expect(renderOpenApi({ ...VALID_ENV, HTTP_PORT: 'nope' }, noopLogger)).rejects.toThrow(
+      /HTTP_PORT/,
+    );
+  });
 });
 
 describe('dispatchCli', () => {

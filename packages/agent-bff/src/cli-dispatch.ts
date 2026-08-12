@@ -42,6 +42,19 @@ export interface DispatchOutcome {
   server?: BFFHttpServer;
 }
 
+const UNFOLD_VARS = [
+  'FOREST_SERVER_URL',
+  'FOREST_ENV_SECRET',
+  'FOREST_AUTH_SECRET',
+  'AGENT_URL',
+] as const;
+
+const NOTHING_TO_UNFOLD = `${UNFOLD_VARS.join(', ')} must all be set to unfold it`;
+
+function wantsUnfolding(env: NodeJS.ProcessEnv): boolean {
+  return UNFOLD_VARS.every(name => (env[name] ?? '').trim() !== '');
+}
+
 /**
  * Unfolds when the deployment is configured to be inspected, and emits the generic document when it
  * is not configured at all — the command keeps working without configuration. A deployment that IS
@@ -49,27 +62,30 @@ export interface DispatchOutcome {
  * unfolded document, and a generic one would look like a complete answer.
  */
 export async function renderOpenApi(env: NodeJS.ProcessEnv, logger: Logger): Promise<string> {
-  const source = resolveUnfoldSource(parseConfig(env), logger);
   const authSecret = env.FOREST_AUTH_SECRET;
 
-  if (source && authSecret) {
-    const readModel = await source.store.getReadModel();
+  // `parseConfig` validates the WHOLE server configuration, including settings the export has nothing
+  // to do with (HTTP_PORT, the OAuth keys, the default timezone). A deployment that never asked for an
+  // unfolded document must not see its export die on one of those, so the config is parsed only once
+  // the four variables unfolding needs are all present — and from there a bad value is a real failure.
+  if (!authSecret || !wantsUnfolding(env)) {
+    logger('Warn', `Emitting the generic OpenAPI document: ${NOTHING_TO_UNFOLD}`);
 
-    return `${await buildUnfoldedDocument(
-      source,
-      readModel,
-      issueOpenApiAgentToken(authSecret),
-      version,
-    )}\n`;
+    return `${serializeOpenApi(generateOpenApiDocument(version))}\n`;
   }
 
-  logger(
-    'Warn',
-    'Emitting the generic OpenAPI document: FOREST_SERVER_URL, FOREST_ENV_SECRET, ' +
-      'FOREST_AUTH_SECRET or AGENT_URL is missing, so there is nothing to unfold against',
-  );
+  const source = resolveUnfoldSource(parseConfig(env), logger);
 
-  return `${serializeOpenApi(generateOpenApiDocument(version))}\n`;
+  if (!source) {
+    logger('Warn', `Emitting the generic OpenAPI document: ${NOTHING_TO_UNFOLD}`);
+
+    return `${serializeOpenApi(generateOpenApiDocument(version))}\n`;
+  }
+
+  const readModel = await source.store.getReadModel();
+  const token = issueOpenApiAgentToken(authSecret);
+
+  return `${await buildUnfoldedDocument(source, readModel, token, version)}\n`;
 }
 
 function rejectCli(reason: string): DispatchOutcome {

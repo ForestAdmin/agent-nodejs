@@ -14,7 +14,9 @@ export function sanitizeIdentifier(raw: string): string {
  * feed names in a stable order — the suffix depends on it, and two runs over one schema have to
  * produce the same document.
  */
-export default function createNamer(): (raw: string) => string {
+export type Namer = (raw: string) => string;
+
+export default function createNamer(): Namer {
   const used = new Set<string>();
 
   return (raw: string): string => {

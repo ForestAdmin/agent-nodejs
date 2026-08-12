@@ -1,4 +1,5 @@
 import type ComponentPool from './component-pool';
+import type { Namer } from './names';
 import type {
   CollectionFields,
   UnfoldedAction,
@@ -256,11 +257,11 @@ function registerRelationRequests(
     'resolves which records are related.';
 
   return {
-    list: pool.add(`RelationListRequest_${plan.key}_${relationKey}`, {
+    list: pool.add(`RelationListRequest_${relationKey}`, {
       description,
       allOf: [foreign.requests.list, parentProperties],
     }),
-    count: pool.add(`RelationCountRequest_${plan.key}_${relationKey}`, {
+    count: pool.add(`RelationCountRequest_${relationKey}`, {
       description,
       allOf: [foreign.requests.count, parentProperties],
     }),
@@ -301,7 +302,7 @@ function registerActionRequest(
 ): ReferenceObject {
   const { pool } = deps;
 
-  return pool.add(`ActionRequest_${plan.key}_${actionKey}`, {
+  return pool.add(`ActionRequest_${actionKey}`, {
     type: 'object',
     description:
       `The body of action ${quoted(action.name)} on ${quoted(plan.collection.name)}. ` +
@@ -386,21 +387,21 @@ function registerRelationOperations(
   deps: Deps,
   plan: CollectionPlan,
   plansByName: Map<string, CollectionPlan>,
+  namer: Namer,
 ): void {
   const { pool } = deps;
-  const namer = createNamer();
 
   plan.collection.relations.forEach(relation => {
     const foreign = plansByName.get(relation.foreignCollection);
     if (!foreign) return;
 
-    const relationKey = namer(relation.name);
+    const relationKey = namer(`${plan.key}_${relation.name}`);
     const requests = registerRelationRequests(deps, plan, relation, relationKey, foreign);
     const parent = `${quoted(plan.collection.name)}.${quoted(relation.name)}`;
 
     registerOperation(deps, {
       path: `${segment(plan.collection.name)}/relations/${segment(relation.name)}/list`,
-      operationId: `listRelatedRecords_${plan.key}_${relationKey}`,
+      operationId: `listRelatedRecords_${relationKey}`,
       summary: `List ${relation.name} of ${plan.collection.name}`,
       description: `Lists the ${quoted(foreign.collection.name)} records related to a ${quoted(
         plan.collection.name,
@@ -413,7 +414,7 @@ function registerRelationOperations(
 
     registerOperation(deps, {
       path: `${segment(plan.collection.name)}/relations/${segment(relation.name)}/count`,
-      operationId: `countRelatedRecords_${plan.key}_${relationKey}`,
+      operationId: `countRelatedRecords_${relationKey}`,
       summary: `Count ${relation.name} of ${plan.collection.name}`,
       description: `Counts the ${quoted(
         foreign.collection.name,
@@ -426,11 +427,9 @@ function registerRelationOperations(
   });
 }
 
-function registerActionOperations(deps: Deps, plan: CollectionPlan): void {
-  const namer = createNamer();
-
+function registerActionOperations(deps: Deps, plan: CollectionPlan, namer: Namer): void {
   plan.collection.actions.forEach(action => {
-    const actionKey = namer(action.name);
+    const actionKey = namer(`${plan.key}_${action.name}`);
     const request = registerActionRequest(deps, plan, action, actionKey);
     // The path segment is the exact schema action name, URL-encoded — that is what the middleware
     // decodes and looks up. The operationId is sanitized, so the exact name lives in prose.
@@ -439,7 +438,7 @@ function registerActionOperations(deps: Deps, plan: CollectionPlan): void {
 
     registerOperation(deps, {
       path: `${base}/form`,
-      operationId: `getActionForm_${plan.key}_${actionKey}`,
+      operationId: `getActionForm_${actionKey}`,
       summary: `Load the form of ${action.name} on ${plan.collection.name}`,
       description: `Loads the form of the custom action. ${identity} An unknown submitted field is skipped here, not rejected.`,
       request,
@@ -450,7 +449,7 @@ function registerActionOperations(deps: Deps, plan: CollectionPlan): void {
 
     registerOperation(deps, {
       path: `${base}/execute`,
-      operationId: `executeAction_${plan.key}_${actionKey}`,
+      operationId: `executeAction_${actionKey}`,
       summary: `Execute ${action.name} on ${plan.collection.name}`,
       description: `Executes the custom action. ${identity} A submitted field the loaded form does not carry is rejected with 400.`,
       request,
@@ -467,9 +466,16 @@ function registerActionOperations(deps: Deps, plan: CollectionPlan): void {
  * generic regexes — only the document unfolds.
  */
 export default function registerUnfoldedPaths(deps: Deps, unfolding: Unfolding): void {
-  const namer = createNamer();
+  // One namer per identifier family, fed the WHOLE composed name. Deduplicating each segment on its
+  // own would not be enough: sanitizing produces `_`, which is also the separator, so collection
+  // `A_B` with action `C` and collection `A` with action `B_C` both compose `A_B_C` — one action
+  // would then get the other's request schema.
+  const collections = createNamer();
+  const relations = createNamer();
+  const actions = createNamer();
+
   const plans = unfolding.collections.map(collection => {
-    const key = namer(collection.name);
+    const key = collections(collection.name);
 
     return { collection, key, requests: registerRequests(deps, { collection, key }) };
   });
@@ -477,7 +483,7 @@ export default function registerUnfoldedPaths(deps: Deps, unfolding: Unfolding):
 
   plans.forEach(plan => {
     registerCollectionOperations(deps, plan);
-    registerRelationOperations(deps, plan, plansByName);
-    registerActionOperations(deps, plan);
+    registerRelationOperations(deps, plan, plansByName, relations);
+    registerActionOperations(deps, plan, actions);
   });
 }
