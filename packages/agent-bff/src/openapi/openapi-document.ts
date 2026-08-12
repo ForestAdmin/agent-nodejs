@@ -1,7 +1,9 @@
+import type { Unfolding } from './unfolding';
 import type { OpenAPIObject } from 'openapi3-ts/oas31';
 
 import { OpenAPIRegistry, OpenApiGeneratorV31 } from '@asteasolutions/zod-to-openapi';
 
+import ComponentPool from './component-pool';
 import {
   ActionRequestSchema,
   CountRequestSchema,
@@ -13,6 +15,7 @@ import {
   RelationCountRequestSchema,
   RelationListRequestSchema,
 } from './schemas';
+import registerUnfoldedPaths from './unfolded-paths';
 import { z } from './zod-openapi';
 import BODY_LIMIT from '../http/body-limit';
 
@@ -43,46 +46,81 @@ const UNSUPPORTED_RESULT_DESCRIPTION =
   'Either the BFF runs without an agent configured, or the action returned a result shape the ' +
   'BFF cannot normalize. The second case carries no message field.';
 
-function errorResponses(statuses: string[], executeResults: boolean): Record<string, unknown> {
-  return Object.fromEntries(
-    statuses.map(status => {
-      const description = ERROR_STATUSES[status];
+const ERROR_RESPONSE_REF = '#/components/schemas/ErrorResponse';
+const MESSAGELESS_ERROR_RESPONSE_REF = '#/components/schemas/MessagelessErrorResponse';
 
-      if (!description) throw new Error(`No OpenAPI description for error status ${status}`);
+const UNSUPPORTED_ACTION_RESULT_COMPONENT = 'UnsupportedActionResult';
 
-      if (status === '501' && executeResults) {
-        return [
-          status,
-          {
-            description: UNSUPPORTED_RESULT_DESCRIPTION,
-            content: {
-              'application/json': {
-                schema: z.union([ErrorResponseSchema, MessagelessErrorResponseSchema]),
-              },
-            },
+const RETRY_AFTER_HEADER = {
+  'Retry-After': {
+    description: 'Seconds to wait before retrying. Set when the API key could not be resolved.',
+    required: false,
+    schema: { type: 'integer' as const },
+  },
+};
+
+type ResponseRef = { $ref: string };
+
+interface ErrorResponseRefs {
+  byStatus: Record<string, ResponseRef>;
+  unsupportedActionResult: ResponseRef;
+}
+
+// Every error body is identical across paths, and their descriptions are long: inlining them costs
+// ~2.8kB per path, which the unfolded document multiplies by every collection, relation and action.
+// Registering them once as components keeps a path's error block to a dozen refs.
+function registerErrorResponses(
+  registry: OpenAPIRegistry,
+  statuses: string[],
+  withActionResults: boolean,
+): ErrorResponseRefs {
+  registry.register('ErrorResponse', ErrorResponseSchema);
+
+  const byStatus: Record<string, ResponseRef> = {};
+
+  statuses.forEach(status => {
+    const description = ERROR_STATUSES[status];
+
+    if (!description) throw new Error(`No OpenAPI description for error status ${status}`);
+
+    byStatus[status] = registry.registerComponent('responses', `Error${status}`, {
+      description,
+      content: { 'application/json': { schema: { $ref: ERROR_RESPONSE_REF } } },
+      ...(status === '503' ? { headers: RETRY_AFTER_HEADER } : {}),
+    }).ref;
+  });
+
+  // A document with no action path must not carry this response, nor the messageless body it
+  // references: an unreferenced component trips redocly's unused-component rule.
+  if (!withActionResults) return { byStatus, unsupportedActionResult: byStatus['501'] };
+
+  registry.register('MessagelessErrorResponse', MessagelessErrorResponseSchema);
+
+  const unsupportedActionResult = registry.registerComponent(
+    'responses',
+    UNSUPPORTED_ACTION_RESULT_COMPONENT,
+    {
+      description: UNSUPPORTED_RESULT_DESCRIPTION,
+      content: {
+        'application/json': {
+          schema: {
+            anyOf: [{ $ref: ERROR_RESPONSE_REF }, { $ref: MESSAGELESS_ERROR_RESPONSE_REF }],
           },
-        ];
-      }
+        },
+      },
+    },
+  ).ref;
 
-      const response: Record<string, unknown> = {
-        description,
-        content: { 'application/json': { schema: ErrorResponseSchema } },
-      };
+  return { byStatus, unsupportedActionResult };
+}
 
-      if (status === '503') {
-        response.headers = {
-          'Retry-After': {
-            description:
-              'Seconds to wait before retrying. Set when the API key could not be resolved.',
-            required: false,
-            schema: { type: 'integer' },
-          },
-        };
-      }
-
-      return [status, response];
-    }),
-  );
+function errorResponses(
+  refs: ErrorResponseRefs,
+  executeResults: boolean,
+): Record<string, ResponseRef> {
+  return executeResults
+    ? { ...refs.byStatus, 501: refs.unsupportedActionResult }
+    : { ...refs.byStatus };
 }
 
 const DATA_ERRORS = [
@@ -188,19 +226,52 @@ function buildParams(names: string[]) {
   );
 }
 
-const TIMEZONE_HEADER_PARAM = z.object({
-  'X-Forest-Timezone': z
-    .string()
-    .optional()
-    .openapi({
-      description:
-        'An IANA timezone. Takes precedence over the `timezone` body field; the BFF default ' +
-        'applies when neither is sent.',
-    }),
-});
+// Registered as a parameter component rather than inlined: it is the same header on every path, and
+// its description costs a quarter of a path once the error responses are refs.
+const TIMEZONE_HEADER_COMPONENT = 'XForestTimezone';
 
-export function generateOpenApiDocument(version: string): OpenAPIObject {
+const TIMEZONE_HEADER = z
+  .string()
+  .optional()
+  .openapi({
+    param: { name: 'X-Forest-Timezone', in: 'header' },
+    description:
+      'An IANA timezone. Takes precedence over the `timezone` body field; the BFF default ' +
+      'applies when neither is sent.',
+  });
+
+const SHARED_DESCRIPTION =
+  'The timezone is resolved from the `X-Forest-Timezone` header first, then a `timezone` body ' +
+  'field, then the BFF default when one is configured. A deployment without a default rejects a ' +
+  'request carrying neither with 400 missing_timezone, so send one of the two to be safe. Sending ' +
+  'a content type other than application/json is not an error: a form-urlencoded body is parsed ' +
+  'like JSON, while any other content type is read as absent, which silently drops any filter, ' +
+  'sort, or page.';
+
+const GENERIC_DESCRIPTION =
+  'Paths are generic: one per operation, with the collection, relation and action passed as path ' +
+  'segments, and no field enumerated. This is the fallback form — a deployment configured to ' +
+  'reach its Forest schema and its agent unfolds one path per real collection, relation and ' +
+  'action instead, each carrying its own field set.';
+
+const UNFOLDED_DESCRIPTION =
+  'Paths are unfolded: one per exposed collection, to-many relation and action, each carrying the ' +
+  "collection's real field set. The RUNTIME routes stay generic — a path here is the generic " +
+  'route with its segments already filled in, so the collection, relation and action segments are ' +
+  'the exact schema names, URL-encoded. Every operationId is sanitized to stay usable as a ' +
+  'method name, so the exact name lives in the summary and description. A path whose fields are ' +
+  'not enumerated says so in its request description: the document was built without that ' +
+  "collection's capabilities. Only to-many relations appear; a to-one or polymorphic relation has " +
+  'no list or count route. This document describes the whole exposed schema regardless of the ' +
+  'caller: it is not filtered by the permissions of whoever fetched it.';
+
+export function generateOpenApiDocument(version: string, unfolding?: Unfolding): OpenAPIObject {
   const registry = new OpenAPIRegistry();
+  const hasActions =
+    unfolding === undefined ||
+    unfolding.collections.some(collection => collection.actions.length > 0);
+  const errorRefs = registerErrorResponses(registry, DATA_ERRORS, hasActions);
+  const timezoneHeader = [registry.registerParameter(TIMEZONE_HEADER_COMPONENT, TIMEZONE_HEADER)];
 
   registry.registerComponent('securitySchemes', SESSION_SCHEME, {
     type: 'http',
@@ -217,30 +288,44 @@ export function generateOpenApiDocument(version: string): OpenAPIObject {
     description: 'Mode 2: a BFF API key. Never send both this and an Authorization header.',
   });
 
-  ROUTES.forEach(route => {
-    registry.registerPath({
-      method: 'post',
-      path: `${ROUTE_PREFIX}${route.path}`,
-      operationId: route.operationId,
-      summary: route.summary,
-      security: SECURITY,
-      request: {
-        params: buildParams(route.params),
-        headers: TIMEZONE_HEADER_PARAM,
-        body: {
-          required: route.bodyRequired === true,
-          content: { 'application/json': { schema: route.request } },
-        },
+  if (unfolding) {
+    registerUnfoldedPaths(
+      {
+        registry,
+        pool: new ComponentPool(registry),
+        prefix: ROUTE_PREFIX,
+        security: SECURITY,
+        timezoneHeader,
+        errorResponses: executeResults => errorResponses(errorRefs, executeResults),
       },
-      responses: {
-        200: {
-          description: route.responseDescription,
-          content: { 'application/json': { schema: route.response } },
+      unfolding,
+    );
+  } else {
+    ROUTES.forEach(route => {
+      registry.registerPath({
+        method: 'post',
+        path: `${ROUTE_PREFIX}${route.path}`,
+        operationId: route.operationId,
+        summary: route.summary,
+        security: SECURITY,
+        request: {
+          params: buildParams(route.params),
+          headers: timezoneHeader,
+          body: {
+            required: route.bodyRequired === true,
+            content: { 'application/json': { schema: route.request } },
+          },
         },
-        ...errorResponses(DATA_ERRORS, route.executeResults === true),
-      },
+        responses: {
+          200: {
+            description: route.responseDescription,
+            content: { 'application/json': { schema: route.response } },
+          },
+          ...errorResponses(errorRefs, route.executeResults === true),
+        },
+      });
     });
-  });
+  }
 
   return new OpenApiGeneratorV31(registry.definitions).generateDocument({
     openapi: OPENAPI_VERSION,
@@ -248,15 +333,9 @@ export function generateOpenApiDocument(version: string): OpenAPIObject {
       title: 'Forest Admin BFF',
       version,
       license: { name: 'GPL-3.0', url: 'https://www.gnu.org/licenses/gpl-3.0.html' },
-      description:
-        'Runtime routes are generic: one path per operation, with the collection, relation and ' +
-        'action passed as path segments. The timezone is resolved from the `X-Forest-Timezone` ' +
-        'header first, then a `timezone` body field, then the BFF default when one is ' +
-        'configured. A deployment without a default rejects a request carrying neither with ' +
-        '400 missing_timezone, so send one of the two to be safe. Sending a content type other ' +
-        'than application/json is not an error: a form-urlencoded body is parsed like JSON, ' +
-        'while any other content type is read as absent, which silently drops any filter, ' +
-        'sort, or page.',
+      description: `${
+        unfolding ? UNFOLDED_DESCRIPTION : GENERIC_DESCRIPTION
+      } ${SHARED_DESCRIPTION}`,
     },
     servers: [{ url: '/' }],
   });

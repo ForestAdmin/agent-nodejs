@@ -10,6 +10,37 @@ import {
 const document = generateOpenApiDocument('9.9.9');
 const schemas = document.components?.schemas as Record<string, Record<string, unknown>>;
 
+type ResolvedResponse = {
+  description: string;
+  headers?: Record<string, unknown>;
+  content?: Record<string, { schema: Record<string, unknown> }>;
+};
+
+const responseComponents = (document.components?.responses ?? {}) as unknown as Record<
+  string,
+  ResolvedResponse
+>;
+
+function responsesOf(path: string): Record<string, ResolvedResponse> {
+  const { responses } = (document.paths?.[path] as { post: { responses: Record<string, unknown> } })
+    .post;
+
+  return Object.fromEntries(
+    Object.entries(responses).map(([status, response]) => {
+      const ref = (response as { $ref?: string }).$ref;
+      const resolved = ref
+        ? responseComponents[ref.replace('#/components/responses/', '')]
+        : (response as ResolvedResponse);
+
+      return [status, resolved];
+    }),
+  );
+}
+
+function listResponses(): Record<string, ResolvedResponse> {
+  return responsesOf(`${ROUTE_PREFIX}/{collection}/list`);
+}
+
 function leafOperators(): string[] {
   const leaf = schemas.ConditionTreeLeaf as {
     properties: { operator: { enum: string[] } };
@@ -202,13 +233,9 @@ describe('generateOpenApiDocument', () => {
   });
 
   it('should allow a messageless 501 body on execute, which the result mapper returns', () => {
-    const execute = document.paths?.[`${ROUTE_PREFIX}/{collection}/actions/{action}/execute`] as {
-      post: {
-        responses: Record<string, { content: Record<string, { schema: { anyOf: unknown[] } }> }>;
-      };
-    };
+    const execute = responsesOf(`${ROUTE_PREFIX}/{collection}/actions/{action}/execute`);
 
-    expect(execute.post.responses['501'].content['application/json'].schema.anyOf).toEqual([
+    expect(execute['501'].content?.['application/json'].schema.anyOf).toEqual([
       { $ref: '#/components/schemas/ErrorResponse' },
       { $ref: '#/components/schemas/MessagelessErrorResponse' },
     ]);
@@ -221,62 +248,85 @@ describe('generateOpenApiDocument', () => {
   });
 
   it('should keep a plain error body for the 501 the agent stub returns on other routes', () => {
-    const list = document.paths?.[`${ROUTE_PREFIX}/{collection}/list`] as {
-      post: {
-        responses: Record<string, { content: Record<string, { schema: { $ref: string } }> }>;
-      };
-    };
-
-    expect(list.post.responses['501'].content['application/json'].schema.$ref).toBe(
+    expect(listResponses()['501'].content?.['application/json'].schema.$ref).toBe(
       '#/components/schemas/ErrorResponse',
     );
   });
 
-  it('should declare the timezone header as a parameter, not only in prose', () => {
-    const list = document.paths?.[`${ROUTE_PREFIX}/{collection}/list`] as {
-      post: { parameters: { name: string; in: string; required?: boolean }[] };
-    };
-    const header = list.post.parameters.find(parameter => parameter.in === 'header');
+  it('should share one response component per error status instead of inlining it per path', () => {
+    const errors = Object.values(document.paths ?? {}).flatMap(path =>
+      Object.entries(
+        (path as { post: { responses: Record<string, unknown> } }).post.responses,
+      ).filter(([status]) => status !== '200'),
+    );
 
-    expect(header).toEqual(expect.objectContaining({ name: 'X-Forest-Timezone', in: 'header' }));
-    expect(header?.required).not.toBe(true);
+    expect(errors).toHaveLength(72);
+    errors.forEach(([, response]) => {
+      expect(response).toEqual({ $ref: expect.stringContaining('#/components/responses/') });
+    });
+    expect(Object.keys(responseComponents).sort()).toEqual([
+      'Error400',
+      'Error401',
+      'Error403',
+      'Error404',
+      'Error413',
+      'Error415',
+      'Error422',
+      'Error429',
+      'Error500',
+      'Error501',
+      'Error502',
+      'Error503',
+      'UnsupportedActionResult',
+    ]);
+  });
+
+  it('should declare the timezone header as a parameter, not only in prose', () => {
+    const header = (
+      document.components?.parameters as Record<
+        string,
+        { name: string; in: string; required?: boolean }
+      >
+    ).XForestTimezone;
+
+    expect(header).toEqual(
+      expect.objectContaining({ name: 'X-Forest-Timezone', in: 'header', required: false }),
+    );
+  });
+
+  it('should share the timezone header as one parameter component instead of per path', () => {
+    const parameters = Object.values(document.paths ?? {}).flatMap(
+      path => (path as { post: { parameters: unknown[] } }).post.parameters,
+    );
+
+    expect(parameters).toContainEqual({ $ref: '#/components/parameters/XForestTimezone' });
   });
 
   it('should describe an invalid filter operator under 400, the status it actually returns', () => {
-    const list = document.paths?.[`${ROUTE_PREFIX}/{collection}/list`] as {
-      post: { responses: Record<string, { description: string }> };
-    };
+    const list = listResponses();
 
-    expect(list.post.responses['400'].description).toContain('invalid filter operator');
-    expect(list.post.responses['422'].description).not.toContain('operator');
+    expect(list['400'].description).toContain('invalid filter operator');
+    expect(list['422'].description).not.toContain('operator');
   });
 
   it('should distinguish a form body, which is parsed, from other non-JSON bodies, which drop', () => {
-    const list = document.paths?.[`${ROUTE_PREFIX}/{collection}/list`] as {
-      post: { responses: Record<string, { description: string }> };
-    };
+    const list = listResponses();
 
-    expect(list.post.responses['415'].description).toContain('NOT rejected');
-    expect(list.post.responses['415'].description).toContain('form-urlencoded');
+    expect(list['415'].description).toContain('NOT rejected');
+    expect(list['415'].description).toContain('form-urlencoded');
     expect(document.info.description).toContain('form-urlencoded');
     expect(document.info.description).toContain('silently');
   });
 
   it('should name the 403s the BFF itself emits, not only the agent passthrough', () => {
-    const list = document.paths?.[`${ROUTE_PREFIX}/{collection}/list`] as {
-      post: { responses: Record<string, { description: string }> };
-    };
+    const list = listResponses();
 
-    expect(list.post.responses['403'].description).toContain('needs approval');
-    expect(list.post.responses['403'].description).toContain('Forest identity');
+    expect(list['403'].description).toContain('needs approval');
+    expect(list['403'].description).toContain('Forest identity');
   });
 
   it('should warn that a missing timezone is a 400 when no default is configured', () => {
-    const list = document.paths?.[`${ROUTE_PREFIX}/{collection}/list`] as {
-      post: { responses: Record<string, { description: string }> };
-    };
-
-    expect(list.post.responses['400'].description).toContain('missing or invalid timezone');
+    expect(listResponses()['400'].description).toContain('missing or invalid timezone');
     expect(document.info.description).toContain('missing_timezone');
   });
 
@@ -285,27 +335,19 @@ describe('generateOpenApiDocument', () => {
   });
 
   it('should declare Retry-After on 503, the only status that sets it', () => {
-    const list = document.paths?.[`${ROUTE_PREFIX}/{collection}/list`] as {
-      post: { responses: Record<string, { headers?: Record<string, unknown> }> };
-    };
+    const list = listResponses();
 
-    expect(Object.keys(list.post.responses['503'].headers ?? {})).toEqual(['Retry-After']);
-    expect(list.post.responses['429'].headers).toBeUndefined();
+    expect(Object.keys(list['503'].headers ?? {})).toEqual(['Retry-After']);
+    expect(list['429'].headers).toBeUndefined();
   });
 
   it('should not promise a Retry-After on 429, where no code path sets one', () => {
-    const list = document.paths?.[`${ROUTE_PREFIX}/{collection}/list`] as {
-      post: { responses: Record<string, { description: string }> };
-    };
-
-    expect(list.post.responses['429'].description).not.toContain('Retry-After');
+    expect(listResponses()['429'].description).not.toContain('Retry-After');
   });
 
   it('should give every response a description, which the OpenAPI struct rule requires', () => {
-    const responses = Object.values(document.paths ?? {}).flatMap(path =>
-      Object.values(
-        (path as { post: { responses: Record<string, { description?: string }> } }).post.responses,
-      ),
+    const responses = Object.keys(document.paths ?? {}).flatMap(path =>
+      Object.values(responsesOf(path)),
     );
 
     expect(responses.length).toBeGreaterThan(0);

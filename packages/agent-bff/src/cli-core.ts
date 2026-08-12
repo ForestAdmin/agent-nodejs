@@ -1,5 +1,7 @@
 import type { BFFConfig } from './config/env-config';
+import type { UnfoldSource } from './openapi/unfolded-document';
 import type { Logger } from './ports/logger-port';
+import type ReadModelStore from './read-model/read-model-store';
 import type { Middleware } from 'koa';
 
 import { bodyParser } from '@koa/bodyparser';
@@ -159,12 +161,55 @@ function buildApiKeyMiddleware(config: BFFConfig, logger: Logger): Middleware | 
   return createApiKeyMiddleware({ authenticator, logger });
 }
 
-// Data and action routes share one read-model store (a single cache, a single schema fetch). The
-// data middleware falls through to the action middleware on a non-data path.
-function buildAgentRouteMiddlewares(config: BFFConfig, logger: Logger): Middleware[] {
+interface ReadModelBundle {
+  store: ReadModelStore;
+  apiKeyConfig: ResolvedApiKeyConfig;
+}
+
+/**
+ * The read-model store the data routes, the action routes, the permissions endpoint and the OpenAPI
+ * unfolding all share — one cache, one schema fetch. Needs no agent: the permissions endpoint and the
+ * schema itself come from the SaaS.
+ */
+function resolveReadModelBundle(config: BFFConfig, logger: Logger): ReadModelBundle | undefined {
   const apiKeyConfig = resolveApiKeyConfig(config);
 
-  if (!apiKeyConfig) {
+  if (!apiKeyConfig) return undefined;
+
+  const { store } = createReadModel({
+    forestServerUrl: apiKeyConfig.forestServerUrl,
+    envSecret: apiKeyConfig.forestEnvSecret,
+    logger,
+  });
+
+  return { store, apiKeyConfig };
+}
+
+/**
+ * What the OpenAPI document needs to unfold. It also needs the AGENT_URL the store does not: the
+ * field set of a collection comes from the agent capabilities. Silent on purpose — the CLI and the
+ * server report a missing configuration differently.
+ */
+export function resolveUnfoldSource(config: BFFConfig, logger: Logger): UnfoldSource | undefined {
+  const bundle = resolveReadModelBundle(config, logger);
+
+  if (!bundle || !config.agentUrl) return undefined;
+
+  return {
+    store: bundle.store,
+    agentUrl: config.agentUrl,
+    timeoutMs: config.agentTimeoutMs,
+    logger,
+  };
+}
+
+// The data middleware falls through to the action middleware on a non-data path.
+function buildAgentRouteMiddlewares(
+  bundle: ReadModelBundle | undefined,
+  config: BFFConfig,
+  logger: Logger,
+): Middleware[] {
+  if (!bundle) {
     logger(
       'Warn',
       'Data, action and permissions endpoints disabled: FOREST_SERVER_URL, FOREST_ENV_SECRET or FOREST_AUTH_SECRET is missing',
@@ -173,11 +218,7 @@ function buildAgentRouteMiddlewares(config: BFFConfig, logger: Logger): Middlewa
     return [createAgentStubMiddleware()];
   }
 
-  const { store } = createReadModel({
-    forestServerUrl: apiKeyConfig.forestServerUrl,
-    envSecret: apiKeyConfig.forestEnvSecret,
-    logger,
-  });
+  const { store, apiKeyConfig } = bundle;
   const { agentUrl, agentTimeoutMs: timeoutMs } = config;
 
   const permissionsMiddleware = createPermissionsRoutesMiddleware({
@@ -213,14 +254,26 @@ function buildAgentMiddlewares(config: BFFConfig, logger: Logger): Middleware[] 
   }
 
   const apiKeyStep = buildApiKeyMiddleware(config, logger) ?? createApiKeyUnavailableGuard(logger);
+  // One store for the whole edge. The document only unfolds when the agent is reachable too: with no
+  // AGENT_URL every data path answers 501, so concrete paths would advertise a dead surface.
+  const bundle = resolveReadModelBundle(config, logger);
+  const source =
+    bundle && config.agentUrl
+      ? {
+          store: bundle.store,
+          agentUrl: config.agentUrl,
+          timeoutMs: config.agentTimeoutMs,
+          logger,
+        }
+      : undefined;
 
   const chain: Middleware[] = [
     createAuthModeMiddleware({ authSecret: forestAuthSecret }),
     apiKeyStep,
     createPerKeyOriginMiddleware(),
-    createOpenApiRoutes({ version, enabled: config.openapiEnabled }),
+    createOpenApiRoutes({ version, enabled: config.openapiEnabled, source }),
     createTimezoneMiddleware({ defaultTimezone }),
-    ...buildAgentRouteMiddlewares(config, logger),
+    ...buildAgentRouteMiddlewares(bundle, config, logger),
   ];
 
   return chain.map(agentScoped);

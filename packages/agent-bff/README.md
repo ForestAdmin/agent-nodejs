@@ -25,6 +25,20 @@ forest-bff openapi --output                # writes ./openapi.json
 forest-bff openapi --output docs/api.json  # writes that path
 ```
 
+The document comes in two forms, and the command picks one from the environment:
+
+- **Unfolded** when `FOREST_SERVER_URL`, `FOREST_ENV_SECRET`, `FOREST_AUTH_SECRET` and `AGENT_URL`
+  are all set: one path per exposed collection, per to-many relation and per action, each carrying
+  the collection's real field set. This is the form to generate a client from. The command reads the
+  Forest schema and asks the agent for each collection's capabilities, signing its own short-lived
+  agent token with `FOREST_AUTH_SECRET`. A deployment configured this way but whose schema cannot be
+  read exits 1 rather than emitting the generic document, which would look like a complete answer.
+- **Generic** when that configuration is absent: the six runtime routes with `{collection}`,
+  `{relation}` and `{action}` as path parameters and no field enumerated. `info.description` says
+  which form the document is.
+
+Either way the runtime routes stay generic — only the document unfolds.
+
 `--output` takes the next argument as the destination unless it is empty or starts with
 `-`; the default `openapi.json` is written only when `--output` is the last argument, and
 a leftover token is rejected like any other extra. A missing parent directory is created,
@@ -58,7 +72,7 @@ yarn start:dev         # node --env-file=.env dist/cli.js
 | `HTTP_PORT`          | no       | Server port, integer 0–65535. Defaults to `3450`. `0` binds an OS-assigned ephemeral port. |
 | `BFF_ALLOWED_ORIGINS`| no       | Comma-separated CORS allow-list of exact origins (scheme + host + port). No wildcard. Empty ⇒ no cross-origin browser access. |
 | `BFF_DEFAULT_TIMEZONE`| no      | Fallback IANA timezone used when a request carries neither an `X-Forest-Timezone` header nor a body `timezone`. |
-| `BFF_OPENAPI_ENABLED` | no       | Serve `GET/HEAD /agent/openapi.json` (auth-gated) when `true`. Defaults to `true`. Set to `false` for customers who do not want the HTTP surface exposed: an authenticated `GET`/`HEAD` then gets `404 openapi_disabled`, other methods fall through to the agent routes exactly as they do when enabled, and `forest-bff openapi` keeps working either way. Accepted values: `true`/`false`. |
+| `BFF_OPENAPI_ENABLED` | no       | Serve `GET/HEAD /agent/openapi.json` (auth-gated) when `true`. Defaults to `true`. Set to `false` for customers who do not want the HTTP surface exposed: an authenticated `GET`/`HEAD` then gets `404 openapi_disabled`, other methods fall through to the agent routes exactly as they do when enabled, and `forest-bff openapi` keeps working either way. Accepted values: `true`/`false`. **The served document is unfolded and is not filtered per caller**: any authenticated caller, whatever their role, reads the name of every exposed collection, relation and field. Set this to `false` if that surface must not be reachable over HTTP. |
 
 ### Config validation
 

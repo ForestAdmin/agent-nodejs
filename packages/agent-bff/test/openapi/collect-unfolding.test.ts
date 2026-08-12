@@ -1,0 +1,218 @@
+import type { Logger } from '../../src/ports/logger-port';
+import type {
+  CapabilitiesFetcher,
+  CapabilitiesResult,
+} from '../../src/read-model/capabilities-cache';
+import type ReadModelStore from '../../src/read-model/read-model-store';
+
+import collectUnfolding from '../../src/openapi/collect-unfolding';
+import ReadModel from '../../src/read-model/read-model';
+import { action, collection, column, polymorphic, relation } from '../read-model/fixtures';
+
+const noopLogger: Logger = () => undefined;
+
+function storeOf(readModel: ReadModel): ReadModelStore {
+  return {
+    getReadModel: async () => readModel,
+    getCapabilities: async (name: string, fetcher: CapabilitiesFetcher) => ({
+      capabilities: await fetcher(name),
+      readModel,
+    }),
+  } as unknown as ReadModelStore;
+}
+
+const CAPABILITIES: CapabilitiesResult = {
+  fields: [
+    { name: 'id', type: 'Number', operators: ['equal'] },
+    { name: 'author', type: 'ManyToOne' },
+  ],
+};
+
+function collect(
+  readModel: ReadModel,
+  {
+    capabilities = async () => CAPABILITIES,
+    logger = noopLogger,
+    concurrency,
+  }: {
+    capabilities?: CapabilitiesFetcher;
+    logger?: Logger;
+    concurrency?: number;
+  } = {},
+) {
+  return collectUnfolding({
+    readModel,
+    store: storeOf(readModel),
+    capabilitiesFetcher: capabilities,
+    logger,
+    concurrency,
+  });
+}
+
+describe('collectUnfolding', () => {
+  describe('relations', () => {
+    const readModel = new ReadModel([
+      collection('users', [
+        column('id'),
+        relation('orders', 'HasMany', 'orders.userId'),
+        relation('roles', 'BelongsToMany', 'roles.id'),
+        relation('company', 'BelongsTo', 'companies.id'),
+        relation('profile', 'HasOne', 'profiles.userId'),
+        polymorphic('owner', ['orders', 'roles']),
+        relation('secrets', 'HasMany', 'secrets.userId'),
+      ]),
+      collection('orders', [column('id')]),
+      collection('roles', [column('id')]),
+      collection('companies', [column('id')]),
+      collection('profiles', [column('id')]),
+    ]);
+
+    it('should keep only the to-many relations whose foreign collection is exposed', async () => {
+      const { collections } = await collect(readModel);
+      const users = collections.find(entry => entry.name === 'users');
+
+      expect(users?.relations).toEqual([
+        { name: 'orders', foreignCollection: 'orders' },
+        { name: 'roles', foreignCollection: 'roles' },
+      ]);
+    });
+
+    it('should drop a to-many relation pointing at a collection the BFF does not expose', async () => {
+      const { collections } = await collect(readModel);
+      const users = collections.find(entry => entry.name === 'users');
+
+      expect(users?.relations.map(entry => entry.name)).not.toContain('secrets');
+    });
+  });
+
+  describe('fields', () => {
+    const readModel = new ReadModel([collection('users', [column('id')])]);
+
+    it('should split projectable from filterable, since a ManyToOne carries no operator', async () => {
+      const { collections } = await collect(readModel);
+
+      expect(collections[0].fields).toEqual({
+        projectable: ['id', 'author'],
+        filterable: ['id'],
+        degraded: null,
+      });
+    });
+
+    it('should degrade a collection whose capabilities call fails, and say so in the log', async () => {
+      const logger = jest.fn();
+      const { collections } = await collect(readModel, {
+        capabilities: async () => {
+          throw new Error('agent is down');
+        },
+        logger,
+      });
+
+      expect(collections[0].fields).toEqual({
+        projectable: [],
+        filterable: [],
+        degraded: 'capabilities_unavailable',
+      });
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        'Documenting a collection without a field set: capabilities are unavailable',
+        { collection: 'users', error: 'agent is down' },
+      );
+    });
+
+    it('should degrade a collection the agent reports no field for', async () => {
+      const logger = jest.fn();
+      const { collections } = await collect(readModel, {
+        capabilities: async () => ({ fields: [] }),
+        logger,
+      });
+
+      expect(collections[0].fields.degraded).toBe('no_fields');
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        'Documenting a collection without a field set: capabilities returned none',
+        { collection: 'users' },
+      );
+    });
+  });
+
+  describe('actions', () => {
+    it('should map the static form fields of every action with an endpoint', async () => {
+      const withFields = action('Ban', '/forest/users/actions/ban');
+      withFields.fields = [
+        {
+          field: 'reason',
+          type: 'String',
+          isRequired: true,
+          enums: ['spam', 'abuse'],
+        } as (typeof withFields.fields)[number],
+      ];
+      const readModel = new ReadModel([collection('users', [column('id')], [withFields])]);
+
+      const { collections } = await collect(readModel);
+
+      expect(collections[0].actions).toEqual([
+        {
+          name: 'Ban',
+          fields: [{ name: 'reason', type: 'String', isRequired: true, enums: ['spam', 'abuse'] }],
+        },
+      ]);
+    });
+
+    it('should leave out an action with no endpoint, which the BFF does not expose', async () => {
+      const endpointless = { ...action('Ban', ''), endpoint: undefined } as unknown as ReturnType<
+        typeof action
+      >;
+      const readModel = new ReadModel([collection('users', [column('id')], [endpointless])]);
+
+      const { collections } = await collect(readModel);
+
+      expect(collections[0].actions).toEqual([]);
+    });
+  });
+
+  describe('determinism', () => {
+    it('should sort collections, relations and actions by name', async () => {
+      const readModel = new ReadModel([
+        collection(
+          'zulu',
+          [relation('beta', 'HasMany', 'alpha.id'), relation('alpha', 'HasMany', 'alpha.id')],
+          [action('zeta', '/z'), action('alpha', '/a')],
+        ),
+        collection('alpha', [column('id')]),
+      ]);
+
+      const { collections } = await collect(readModel);
+
+      expect(collections.map(entry => entry.name)).toEqual(['alpha', 'zulu']);
+      expect(collections[1].relations.map(entry => entry.name)).toEqual(['alpha', 'beta']);
+      expect(collections[1].actions.map(entry => entry.name)).toEqual(['alpha', 'zeta']);
+    });
+  });
+
+  describe('concurrency', () => {
+    it('should never have more capabilities calls in flight than the cap', async () => {
+      const readModel = new ReadModel(
+        Array.from({ length: 12 }, (_, index) => collection(`c${index}`, [column('id')])),
+      );
+      let inFlight = 0;
+      let peak = 0;
+
+      const { collections } = await collect(readModel, {
+        concurrency: 3,
+        capabilities: async () => {
+          inFlight += 1;
+          peak = Math.max(peak, inFlight);
+          await new Promise(resolve => {
+            setImmediate(resolve);
+          });
+          inFlight -= 1;
+
+          return CAPABILITIES;
+        },
+      });
+
+      expect(collections).toHaveLength(12);
+      expect(peak).toBe(3);
+    });
+  });
+});

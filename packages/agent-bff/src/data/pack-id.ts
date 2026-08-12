@@ -2,7 +2,7 @@ import type { PrimaryKeyField } from '../read-model/read-model';
 
 import { mappingError } from '../http/bff-local-errors';
 
-const PACKED_ID_SEPARATOR = '|';
+export const PACKED_ID_SEPARATOR = '|';
 
 // The only column type unpacked to a number, mirroring the agent's `IdUtils.unpackId`.
 const NUMBER_COLUMN_TYPE = 'Number';

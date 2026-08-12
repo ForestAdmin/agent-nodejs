@@ -4,9 +4,12 @@ import type { Logger } from './ports/logger-port';
 import { mkdirSync, writeFileSync } from 'fs';
 import path from 'path';
 
-import runCli from './cli-core';
+import createConsoleLogger from './adapters/console-logger';
+import runCli, { resolveUnfoldSource } from './cli-core';
+import { parseConfig } from './config/env-config';
 import { extractErrorMessage } from './errors';
 import { generateOpenApiDocument, serializeOpenApi } from './openapi/openapi-document';
+import buildUnfoldedDocument, { issueOpenApiAgentToken } from './openapi/unfolded-document';
 import version from './version';
 
 export const DEFAULT_OUTPUT_FILE = 'openapi.json';
@@ -17,7 +20,11 @@ export const USAGE = `Usage: forest-bff [command]
 
 Commands:
   (none)      Start the BFF server, configured from the environment.
-  openapi     Write the OpenAPI document to stdout. Needs no configuration.
+  openapi     Write the OpenAPI document to stdout. Needs no configuration, but
+              a deployment configured to reach its Forest schema and its agent
+              (FOREST_SERVER_URL, FOREST_ENV_SECRET, FOREST_AUTH_SECRET,
+              AGENT_URL) unfolds one path per collection, relation and action
+              instead of the generic ones.
               --output [file]  Write to a file instead of stdout, defaulting
                                to ${DEFAULT_OUTPUT_FILE} in the current directory.
 
@@ -35,7 +42,33 @@ export interface DispatchOutcome {
   server?: BFFHttpServer;
 }
 
-export function renderOpenApi(): string {
+/**
+ * Unfolds when the deployment is configured to be inspected, and emits the generic document when it
+ * is not configured at all — the command keeps working without configuration. A deployment that IS
+ * configured but whose schema cannot be read fails instead of quietly degrading: it asked for the
+ * unfolded document, and a generic one would look like a complete answer.
+ */
+export async function renderOpenApi(env: NodeJS.ProcessEnv, logger: Logger): Promise<string> {
+  const source = resolveUnfoldSource(parseConfig(env), logger);
+  const authSecret = env.FOREST_AUTH_SECRET;
+
+  if (source && authSecret) {
+    const readModel = await source.store.getReadModel();
+
+    return `${await buildUnfoldedDocument(
+      source,
+      readModel,
+      issueOpenApiAgentToken(authSecret),
+      version,
+    )}\n`;
+  }
+
+  logger(
+    'Warn',
+    'Emitting the generic OpenAPI document: FOREST_SERVER_URL, FOREST_ENV_SECRET, ' +
+      'FOREST_AUTH_SECRET or AGENT_URL is missing, so there is nothing to unfold against',
+  );
+
   return `${serializeOpenApi(generateOpenApiDocument(version))}\n`;
 }
 
@@ -64,7 +97,7 @@ function parseOutputOption(rest: string[]): OutputOption {
   };
 }
 
-function writeOpenApiFile(file: string): DispatchOutcome {
+function writeOpenApiFile(file: string, document: string): DispatchOutcome {
   const asDirectory = file.endsWith('/') || file.endsWith(path.sep);
   const destination = path.resolve(
     process.cwd(),
@@ -73,7 +106,7 @@ function writeOpenApiFile(file: string): DispatchOutcome {
 
   try {
     mkdirSync(path.dirname(destination), { recursive: true });
-    writeFileSync(destination, renderOpenApi());
+    writeFileSync(destination, document);
   } catch (error) {
     process.stderr.write(`Cannot write ${destination}: ${extractErrorMessage(error)}\n`);
 
@@ -124,11 +157,13 @@ export default async function dispatchCli(
     );
   }
 
+  const document = await renderOpenApi(env, logger ?? createConsoleLogger());
+
   if (file !== undefined) {
-    return writeOpenApiFile(file);
+    return writeOpenApiFile(file, document);
   }
 
-  process.stdout.write(renderOpenApi());
+  process.stdout.write(document);
 
   return { exitCode: 0 };
 }
