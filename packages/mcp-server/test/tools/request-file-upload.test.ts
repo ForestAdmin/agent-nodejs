@@ -142,6 +142,56 @@ describe('declareRequestFileUploadTool', () => {
       expect(claimsOf(response.fileHandle).sha256Base64).toBe(expected);
     });
 
+    it('falls back to PUT and a Content-Type header when the storage provides neither', async () => {
+      declareRequestFileUploadTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: [],
+        fileUploads: resolveFileUploads(
+          {
+            storage: {
+              createUploadUrl: jest.fn().mockResolvedValue({ url: 'https://storage.example/put' }),
+              download: jest.fn(),
+              getSize: jest.fn(),
+            },
+          },
+          AUTH_SECRET,
+        ),
+      });
+
+      const response = await call({ filename: 'report.pdf', mimeType: 'application/pdf' });
+
+      expect(response.method).toBe('PUT');
+      expect(response.headers).toEqual({ 'Content-Type': 'application/pdf' });
+    });
+
+    it('uses the method and headers the storage returns', async () => {
+      declareRequestFileUploadTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: [],
+        fileUploads: resolveFileUploads(
+          {
+            storage: {
+              createUploadUrl: jest.fn().mockResolvedValue({
+                url: 'https://storage.example/post',
+                method: 'POST',
+                headers: { 'x-amz-checksum-sha256': 'abc' },
+              }),
+              download: jest.fn(),
+              getSize: jest.fn(),
+            },
+          },
+          AUTH_SECRET,
+        ),
+      });
+
+      const response = await call({ filename: 'report.pdf', mimeType: 'application/pdf' });
+
+      expect(response.method).toBe('POST');
+      expect(response.headers).toEqual({ 'x-amz-checksum-sha256': 'abc' });
+    });
+
     it('accepts a digest already in base64', async () => {
       setup();
       const base64 = Buffer.alloc(32, 1).toString('base64');
