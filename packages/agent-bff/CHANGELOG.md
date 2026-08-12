@@ -1,3 +1,11 @@
+# @forestadmin/agent-bff [1.16.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.15.1...@forestadmin/agent-bff@1.16.0) (2026-08-12)
+
+
+### Features
+
+* **agent-bff:** serve the permissions display endpoint ([#1804](https://github.com/ForestAdmin/agent-nodejs/issues/1804)) ([b2e3c9c](https://github.com/ForestAdmin/agent-nodejs/commit/b2e3c9c21e84a019804ed3c649d89f79dcb5cbc7))
+* **agent-bff:** validate relation filters against the foreign collection ([#1801](https://github.com/ForestAdmin/agent-nodejs/issues/1801)) ([5c9e428](https://github.com/ForestAdmin/agent-nodejs/commit/5c9e428d0f68ac15e9e5c6544c16f2988970a22c))
+
 ## @forestadmin/agent-bff [1.15.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.15.0...@forestadmin/agent-bff@1.15.1) (2026-08-11)
 
 
