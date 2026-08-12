@@ -47,7 +47,7 @@ export default function declareTriggerWorkflowTool(mcpServer: McpServer, ctx: To
     {
       annotations: {
         readOnlyHint: false,
-        destructiveHint: false,
+        destructiveHint: true,
         idempotentHint: false,
         openWorldHint: true,
       },

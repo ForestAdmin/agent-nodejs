@@ -57,7 +57,7 @@ describe('declareTriggerWorkflowTool', () => {
       expect(registeredToolConfig.description).toContain('getWorkflowRun');
     });
 
-    it('should annotate the tool as a non-read-only, non-destructive, non-idempotent write', () => {
+    it('should annotate the tool as a non-read-only, destructive, non-idempotent write', () => {
       declareTriggerWorkflowTool(mcpServer, {
         forestServerClient: mockForestServerClient,
         logger: mockLogger,
@@ -66,7 +66,7 @@ describe('declareTriggerWorkflowTool', () => {
 
       expect(registeredToolConfig.annotations).toEqual({
         readOnlyHint: false,
-        destructiveHint: false,
+        destructiveHint: true,
         idempotentHint: false,
         openWorldHint: true,
       });
