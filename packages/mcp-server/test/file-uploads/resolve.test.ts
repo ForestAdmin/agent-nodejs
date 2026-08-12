@@ -283,13 +283,18 @@ describe('resolveUploadedFileValues', () => {
     expect(storage.download).not.toHaveBeenCalled();
   });
 
-  it('surfaces a download rejection rather than swallowing it', async () => {
+  // A contract-honouring backend rejects a missing object, so this is what "never uploaded"
+  // actually looks like — the empty-buffer branch only fires on backends that create the object.
+  it('turns a download rejection into an actionable message, keeping the cause', async () => {
     const storage = makeStorage({
       download: jest.fn().mockRejectedValue(new Error('NoSuchKey')),
     });
 
     await expect(
       resolveUploadedFileValues({ document: makeHandle() }, authInfo, makeUploads(storage)),
-    ).rejects.toThrow('NoSuchKey');
+    ).rejects.toThrow(
+      'Field "document": could not read the uploaded file. ' +
+        'Did the upload to uploadUrl succeed? (NoSuchKey)',
+    );
   });
 });

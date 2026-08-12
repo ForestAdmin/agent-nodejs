@@ -1,3 +1,4 @@
+import { ValidationError } from '../../src/errors';
 import { isDataUri, makeDataUri, parseDataUri } from '../../src/utils/data-uri';
 
 describe('DataUri', () => {
@@ -88,7 +89,12 @@ describe('DataUri', () => {
       ['an upload sentinel', '$uploadedFile:eyJhbGciOiJIUzI1NiJ9.eyJhIjoxfQ.sig'],
       ['an http url', 'https://example.com/f.pdf'],
     ])('rejects %s with a readable message instead of a TypeError', (_, value) => {
-      expect(() => parseDataUri(value)).toThrow('Not a data uri');
+      expect(() => parseDataUri(value)).toThrow('A file value must be a data uri');
+    });
+
+    // A bare Error surfaces as a generic 500 at the agent boundary, hiding the message.
+    it('throws a ValidationError so the message reaches the caller', () => {
+      expect(() => parseDataUri('report.pdf')).toThrow(ValidationError);
     });
   });
 

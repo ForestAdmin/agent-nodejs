@@ -1,5 +1,7 @@
 import type { File } from '../interfaces/action';
 
+import { ValidationError } from '../errors';
+
 export function isDataUri(value: unknown): value is string {
   return typeof value === 'string' && value.startsWith('data:');
 }
@@ -24,9 +26,12 @@ export function parseDataUri(dataUri: string): File {
   if (!dataUri) return null;
 
   // Without this the split below yields undefined data and Buffer.from raises an opaque
-  // TypeError. Reachable from action values, which a model can populate freely.
+  // TypeError. Reachable from action values, which a model can populate freely. A bare Error
+  // would surface as a generic 500, so the caller would not learn what to send instead.
   if (!dataUri.startsWith('data:')) {
-    throw new Error(`Not a data uri: "${dataUri.slice(0, 32)}"`);
+    throw new ValidationError(
+      `Expected a file, got "${dataUri.slice(0, 32)}". A file value must be a data uri.`,
+    );
   }
 
   const [header, data] = dataUri.substring(5).split(',');

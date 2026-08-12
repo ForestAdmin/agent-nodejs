@@ -48,8 +48,18 @@ async function download(
     throw tooLarge(size);
   }
 
-  const buffer = await uploads.storage.download(claims.key);
+  // A backend that honours the contract rejects a missing object, so this is the shape the most
+  // likely mistake takes: the handle was never uploaded to. The raw message alone reads as an
+  // infrastructure failure. The key it may contain is already in the model's context, inside the
+  // handle it just sent.
+  const buffer = await uploads.storage.download(claims.key).catch((error: Error) => {
+    throw new Error(
+      `Field "${field}": could not read the uploaded file. ` +
+        `Did the upload to uploadUrl succeed? (${error.message})`,
+    );
+  });
 
+  // Only a backend that creates empty objects reaches this.
   if (buffer.length === 0) {
     throw new Error(
       `Field "${field}": uploaded file is empty. Did the upload to uploadUrl succeed?`,
