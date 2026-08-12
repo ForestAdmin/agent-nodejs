@@ -27,7 +27,7 @@ export interface UnfoldedRelation {
 /**
  * `projectable` is every capability field; `filterable` is the subset carrying operators. They
  * differ: a `ManyToOne` is reported by the agent without operators, so projecting or sorting on it
- * works while filtering on it answers 400 field_not_filterable.
+ * works while filtering on it answers 422 field_not_filterable.
  *
  * `degraded` is set when the field set could not be established. The collection keeps its paths, but
  * their field schemas stay free-form strings — an empty enum would forbid every valid call.
@@ -39,6 +39,22 @@ export interface CollectionFields {
 }
 
 export type DegradedReason = 'capabilities_unavailable' | 'no_fields';
+
+/** True when at least one collection went out without its field set. */
+export function hasDegradedCollection(unfolding: Unfolding): boolean {
+  return unfolding.collections.some(collection => collection.fields.degraded !== null);
+}
+
+/**
+ * True when NO collection got its field set — the signature of an unreachable agent rather than of
+ * one odd collection. An empty schema is not degraded: there was nothing to enumerate.
+ */
+export function isFullyDegraded(unfolding: Unfolding): boolean {
+  return (
+    unfolding.collections.length > 0 &&
+    unfolding.collections.every(collection => collection.fields.degraded !== null)
+  );
+}
 
 export interface UnfoldedAction {
   name: string;

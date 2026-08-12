@@ -111,6 +111,20 @@ describe('the unfolded document', () => {
     expect(tree.anyOf[1].not.required).toEqual(['field']);
   });
 
+  it('should exclude only the type the runtime reads as the other shape', () => {
+    // `isBranch` needs an ARRAY `conditions` and `isLeaf` a STRING `field`, so a leaf carrying
+    // `conditions: "x"` is a plain leaf the runtime accepts and the document must not refuse.
+    const leaf = schemas.FilterLeaf_My_Coll as unknown as {
+      not: { properties: { conditions: { type: string } } };
+    };
+    const tree = schemas.Filter_My_Coll as unknown as {
+      anyOf: [unknown, { not: { properties: { field: { type: string } } } }];
+    };
+
+    expect(leaf.not.properties.conditions.type).toBe('array');
+    expect(tree.anyOf[1].not.properties.field.type).toBe('string');
+  });
+
   it('should not forbid an unknown extra key on a filter node, which the runtime strips', () => {
     const leaf = schemas.FilterLeaf_My_Coll as { additionalProperties?: unknown };
 

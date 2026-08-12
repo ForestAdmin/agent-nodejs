@@ -10,6 +10,7 @@ import { parseConfig } from './config/env-config';
 import { extractErrorMessage } from './errors';
 import { generateOpenApiDocument, serializeOpenApi } from './openapi/openapi-document';
 import buildUnfoldedDocument, { issueOpenApiAgentToken } from './openapi/unfolded-document';
+import { isFullyDegraded } from './openapi/unfolding';
 import version from './version';
 
 export const DEFAULT_OUTPUT_FILE = 'openapi.json';
@@ -83,9 +84,25 @@ export async function renderOpenApi(env: NodeJS.ProcessEnv, logger: Logger): Pro
   }
 
   const readModel = await source.store.getReadModel();
-  const token = issueOpenApiAgentToken(authSecret);
+  const { document, unfolding } = await buildUnfoldedDocument(
+    source,
+    readModel,
+    () => issueOpenApiAgentToken(authSecret),
+    version,
+  );
 
-  return `${await buildUnfoldedDocument(source, readModel, token, version)}\n`;
+  // Not one collection came back with its field set, so the agent was unreachable throughout. The
+  // paths are real but every field schema is free-form, which is not the document this command
+  // promises — a CI job regenerating it needs something to branch on, and the degraded notes buried
+  // in the descriptions are not it. One odd collection stays a warning, not a failure.
+  if (isFullyDegraded(unfolding)) {
+    throw new Error(
+      'No collection could be described: the agent answered no capabilities call, so every field ' +
+        'schema in the document would be free-form. Check AGENT_URL and the agent, then retry.',
+    );
+  }
+
+  return `${document}\n`;
 }
 
 function rejectCli(reason: string): DispatchOutcome {

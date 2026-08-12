@@ -27,10 +27,10 @@ const SCHEMA = [
   collection('orders', [column('id')]),
 ];
 
+const CAPABILITIES = { fields: [{ name: 'id', type: 'Number', operators: ['equal'] }] };
+
 const fetchSchema = jest.fn().mockResolvedValue(SCHEMA);
-const fetchCapabilities = jest
-  .fn()
-  .mockResolvedValue({ fields: [{ name: 'id', type: 'Number', operators: ['equal'] }] });
+const fetchCapabilities = jest.fn().mockResolvedValue(CAPABILITIES);
 
 jest.mock('../../src/read-model/forest-schema-client', () => ({
   __esModule: true,
@@ -59,6 +59,11 @@ const VALID_ENV = {
 const noopLogger: Logger = () => undefined;
 
 describe('renderOpenApi', () => {
+  beforeEach(() => {
+    fetchSchema.mockReset().mockResolvedValue(SCHEMA);
+    fetchCapabilities.mockReset().mockResolvedValue(CAPABILITIES);
+  });
+
   it('should return a parseable OpenAPI 3.1 document', async () => {
     expect(JSON.parse(await renderOpenApi({}, noopLogger)).openapi).toBe('3.1.0');
   });
@@ -94,6 +99,27 @@ describe('renderOpenApi', () => {
     fetchSchema.mockRejectedValueOnce(new Error('forest server is down'));
 
     await expect(renderOpenApi(VALID_ENV, noopLogger)).rejects.toThrow();
+  });
+
+  it('should fail when not one collection could be described, since CI has nothing to branch on', async () => {
+    fetchCapabilities.mockRejectedValue(new Error('agent is down'));
+
+    await expect(renderOpenApi(VALID_ENV, noopLogger)).rejects.toThrow(
+      /No collection could be described/,
+    );
+  });
+
+  it('should still emit the document when only one collection is degraded', async () => {
+    fetchCapabilities.mockImplementation(async (name: string) => {
+      if (name === 'orders') throw new Error('agent is down');
+
+      return { fields: [{ name: 'id', type: 'Number', operators: ['equal'] }] };
+    });
+
+    const document = JSON.parse(await renderOpenApi(VALID_ENV, noopLogger));
+
+    expect(Object.keys(document.paths)).toContain('/agent/v1/orders/list');
+    expect(document.components.schemas.Fields_users).toBeDefined();
   });
 
   it('should ignore a broken server-only setting, which the export does not use', async () => {

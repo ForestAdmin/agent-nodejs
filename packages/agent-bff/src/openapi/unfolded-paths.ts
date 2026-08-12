@@ -92,9 +92,11 @@ function filterSchema(
   const treeRef = { $ref: `#/components/schemas/${treeName}` };
 
   // A node readable as BOTH a leaf and a branch is rejected with 400 (`agent-query.ts`
-  // `assertNoNodeReadableAsBothLeafAndBranch`), so each alternative excludes the other's discriminator.
-  // Expressed as `not: { required }` rather than `additionalProperties: false`, which would also
-  // forbid an unknown extra key — one the runtime strips and accepts.
+  // `assertNoNodeReadableAsBothLeafAndBranch`), so each alternative excludes the other's
+  // discriminator. The exclusion carries the TYPE the runtime looks for — `isBranch` needs an ARRAY
+  // `conditions` and `isLeaf` a STRING `field` — because `{field, operator, conditions: "x"}` is a
+  // plain leaf the runtime accepts. Expressed as `not: { required }` rather than
+  // `additionalProperties: false`, which would also forbid an unknown extra key the runtime strips.
   const leaf = pool.add(`FilterLeaf_${plan.key}`, {
     type: 'object',
     description: `A single condition on ${quoted(name)}.`,
@@ -104,7 +106,7 @@ function filterSchema(
       value: {},
     },
     required: ['field', 'operator'],
-    not: { properties: { conditions: {} }, required: ['conditions'] },
+    not: { properties: { conditions: { type: 'array' } }, required: ['conditions'] },
   });
 
   return pool.add(treeName, {
@@ -121,7 +123,7 @@ function filterSchema(
           conditions: { type: 'array', items: treeRef },
         },
         required: ['aggregator', 'conditions'],
-        not: { properties: { field: {} }, required: ['field'] },
+        not: { properties: { field: { type: 'string' } }, required: ['field'] },
       },
     ],
   });
@@ -145,7 +147,7 @@ function fieldRefs(deps: Deps, plan: Pick<CollectionPlan, 'key' | 'collection'>)
   );
 
   // Filterable is a strict subset of projectable: the agent reports a ManyToOne without operators,
-  // so projecting or sorting on it works while filtering on it answers 400 field_not_filterable.
+  // so projecting or sorting on it works while filtering on it answers 422 field_not_filterable.
   const filterable = fieldsEnum(
     pool,
     `FilterableFields_${plan.key}`,

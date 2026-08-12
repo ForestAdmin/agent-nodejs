@@ -1,3 +1,4 @@
+import type { Unfolding } from './unfolding';
 import type { Logger } from '../ports/logger-port';
 import type ReadModel from '../read-model/read-model';
 import type ReadModelStore from '../read-model/read-model-store';
@@ -15,12 +16,18 @@ export interface UnfoldSource {
   logger: Logger;
 }
 
+export interface UnfoldedDocument {
+  document: string;
+  /** Handed back so a caller can react to a collection that went out without its field set. */
+  unfolding: Unfolding;
+}
+
 export default async function buildUnfoldedDocument(
   source: UnfoldSource,
   readModel: ReadModel,
-  token: string,
+  token: string | (() => string),
   version: string,
-): Promise<string> {
+): Promise<UnfoldedDocument> {
   const unfolding = await collectUnfolding({
     readModel,
     store: source.store,
@@ -32,13 +39,17 @@ export default async function buildUnfoldedDocument(
     logger: source.logger,
   });
 
-  return serializeOpenApi(generateOpenApiDocument(version, unfolding));
+  return { document: serializeOpenApi(generateOpenApiDocument(version, unfolding)), unfolding };
 }
 
 /**
  * The CLI has no caller to borrow an agent token from, so it signs its own with the deployment's
  * auth secret — the only thing the agent verifies, and the capabilities route it calls runs no
  * permission check. The identity is inert on purpose: it is never used to read or write records.
+ *
+ * Minted per capabilities call rather than once: an agent token lives 5 minutes
+ * (`AGENT_TOKEN_EXPIRES_IN`) and a fan-out over hundreds of collections against a slow agent can
+ * outlive that, which would degrade the tail of the document for no reason.
  */
 export function issueOpenApiAgentToken(authSecret: string): string {
   return issueAgentToken({

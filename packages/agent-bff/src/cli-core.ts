@@ -186,13 +186,16 @@ function resolveReadModelBundle(config: BFFConfig, logger: Logger): ReadModelBun
 }
 
 /**
- * What the OpenAPI document needs to unfold. It also needs the AGENT_URL the store does not: the
- * field set of a collection comes from the agent capabilities. Silent on purpose — the CLI and the
- * server report a missing configuration differently.
+ * When unfolding is possible, in ONE place: the document needs the AGENT_URL the store does not,
+ * because a collection's field set comes from the agent capabilities. The server passes the bundle it
+ * already built for the data routes; the CLI goes through `resolveUnfoldSource`. Silent on purpose —
+ * the two report a missing configuration differently.
  */
-export function resolveUnfoldSource(config: BFFConfig, logger: Logger): UnfoldSource | undefined {
-  const bundle = resolveReadModelBundle(config, logger);
-
+function toUnfoldSource(
+  bundle: ReadModelBundle | undefined,
+  config: BFFConfig,
+  logger: Logger,
+): UnfoldSource | undefined {
   if (!bundle || !config.agentUrl) return undefined;
 
   return {
@@ -201,6 +204,10 @@ export function resolveUnfoldSource(config: BFFConfig, logger: Logger): UnfoldSo
     timeoutMs: config.agentTimeoutMs,
     logger,
   };
+}
+
+export function resolveUnfoldSource(config: BFFConfig, logger: Logger): UnfoldSource | undefined {
+  return toUnfoldSource(resolveReadModelBundle(config, logger), config, logger);
 }
 
 // The data middleware falls through to the action middleware on a non-data path.
@@ -257,15 +264,7 @@ function buildAgentMiddlewares(config: BFFConfig, logger: Logger): Middleware[] 
   // One store for the whole edge. The document only unfolds when the agent is reachable too: with no
   // AGENT_URL every data path answers 501, so concrete paths would advertise a dead surface.
   const bundle = resolveReadModelBundle(config, logger);
-  const source =
-    bundle && config.agentUrl
-      ? {
-          store: bundle.store,
-          agentUrl: config.agentUrl,
-          timeoutMs: config.agentTimeoutMs,
-          logger,
-        }
-      : undefined;
+  const source = toUnfoldSource(bundle, config, logger);
 
   const chain: Middleware[] = [
     createAuthModeMiddleware({ authSecret: forestAuthSecret }),

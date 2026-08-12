@@ -256,6 +256,43 @@ describe('GET /agent/openapi.json', () => {
     });
   });
 
+  describe('when the agent was down while the document was built', () => {
+    it('should not memoize the degraded document, which would outlive the outage by a day', async () => {
+      fetchCapabilities.mockRejectedValue(new Error('agent is down'));
+
+      await withServer(VALID_ENV, async server => {
+        const token = sessionToken();
+        const get = () =>
+          request(server.callback).get(OPENAPI_PATH).set('Authorization', `Bearer ${token}`);
+
+        await get();
+        await get();
+
+        // Two collections, two requests: the fan-out ran again instead of serving the memo.
+        expect(fetchCapabilities).toHaveBeenCalledTimes(4);
+      });
+    });
+
+    it('should serve the enumerated fields as soon as the agent answers again', async () => {
+      fetchCapabilities.mockRejectedValueOnce(new Error('agent is down'));
+      fetchCapabilities.mockRejectedValueOnce(new Error('agent is down'));
+
+      await withServer(VALID_ENV, async server => {
+        const token = sessionToken();
+        const get = () =>
+          request(server.callback).get(OPENAPI_PATH).set('Authorization', `Bearer ${token}`);
+
+        const degraded = await get();
+        const recovered = await get();
+
+        expect(degraded.body.components.schemas.Fields_users).toBeUndefined();
+        expect(recovered.body.components.schemas.Fields_users).toEqual(
+          expect.objectContaining({ enum: ['id', 'email'] }),
+        );
+      });
+    });
+  });
+
   describe('when the schema refreshes while the document is being built', () => {
     function readContext() {
       return {

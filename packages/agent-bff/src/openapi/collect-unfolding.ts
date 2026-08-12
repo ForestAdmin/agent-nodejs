@@ -94,10 +94,16 @@ async function collectFields(
 // answers 404 on it (data-routes-middleware checks the foreign collection), so documenting it would
 // promise a dead path.
 function collectRelations(readModel: ReadModel, collection: string): UnfoldedRelation[] {
-  return readModel
+  const listable = readModel
     .getListableRelations(collection)
-    .filter(relation => readModel.isCollectionAllowed(relation.foreignCollection))
-    .sort((left, right) => left.name.localeCompare(right.name));
+    .filter(relation => readModel.isCollectionAllowed(relation.foreignCollection));
+
+  // By name, in code-unit order like the collection and action levels — NOT `localeCompare`, which
+  // follows the process locale: the route and the CLI could then order one schema's relations
+  // differently and stop producing the same document.
+  return listable.sort((left, right) =>
+    left.name < right.name ? -1 : Number(left.name > right.name),
+  );
 }
 
 function collectActions(readModel: ReadModel, collection: string): UnfoldedAction[] {

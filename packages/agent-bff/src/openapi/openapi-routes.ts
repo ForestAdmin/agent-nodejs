@@ -4,6 +4,7 @@ import type { Middleware } from 'koa';
 
 import { generateOpenApiDocument, serializeOpenApi } from './openapi-document';
 import buildUnfoldedDocument from './unfolded-document';
+import { hasDegradedCollection } from './unfolding';
 import { requireAgentToken, resolveReadModel } from '../http/agent-route-helpers';
 import { openapiDisabled } from '../http/bff-local-errors';
 
@@ -49,7 +50,7 @@ export default function createOpenApiRoutes({
 
     if (unfolded?.readModel === readModel) return unfolded.document;
 
-    const document = await buildUnfoldedDocument(source, readModel, token, version);
+    const { document, unfolding } = await buildUnfoldedDocument(source, readModel, token, version);
 
     // A schema refresh landing during the capabilities fan-out mixes the new generation's field sets
     // into this generation's collections, relations and actions. Such a document must not be served
@@ -59,7 +60,14 @@ export default function createOpenApiRoutes({
       return resolveDocument(ctx, attemptsLeft - 1);
     }
 
-    unfolded = { readModel, document };
+    // Only a complete document is memoized. The memo key is the schema generation, which moves on a
+    // 24h TTL, so caching a document built while the agent was briefly down would keep serving a
+    // field-less spec for a day — and longer still if a later schema refresh fails without bumping
+    // the revision. `CapabilitiesCache` deliberately caches successes only; this keeps that true
+    // end to end, at the cost of re-running the fan-out until the agent answers again.
+    if (!hasDegradedCollection(unfolding)) {
+      unfolded = { readModel, document };
+    }
 
     return document;
   }

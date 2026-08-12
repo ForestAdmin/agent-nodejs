@@ -171,6 +171,27 @@ describe('collectUnfolding', () => {
   });
 
   describe('determinism', () => {
+    it('should order relations by code unit, not by the process locale', async () => {
+      // `localeCompare` would put `ärenden` first under en-US and last under code units, so the CLI
+      // and the route could order one schema differently and stop producing the same document.
+      const readModel = new ReadModel([
+        collection('users', [
+          relation('zulu', 'HasMany', 'target.id'),
+          relation('ärenden', 'HasMany', 'target.id'),
+          relation('orders', 'HasMany', 'target.id'),
+        ]),
+        collection('target', [column('id')]),
+      ]);
+
+      const { collections } = await collect(readModel);
+
+      expect(collections[1].relations.map(entry => entry.name)).toEqual([
+        'orders',
+        'zulu',
+        'ärenden',
+      ]);
+    });
+
     it('should sort collections, relations and actions by name', async () => {
       const readModel = new ReadModel([
         collection(
