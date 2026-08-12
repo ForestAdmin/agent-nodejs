@@ -207,10 +207,13 @@ export default class EphemeralStorage implements UploadStorage {
       return `expired from the in-memory store ${ago}s ago, after handleTtlSeconds elapsed.`;
     }
 
+    // The refusal case is the one an operator meets first, and pointing it straight at the
+    // deployment sends it hunting for a replica problem it does not have.
     return (
-      'not found in the in-memory store. It only holds objects for the instance that received ' +
-      'the upload: behind several replicas or on a serverless runtime, configure a storage ' +
-      'backend on the fileUploads option.'
+      'not found in the in-memory store. Either the upload never completed — a refused one is ' +
+      'answered with a 413 — or it reached another instance: this store only holds what this ' +
+      'instance received, so several replicas or a serverless runtime need a storage backend on ' +
+      'the fileUploads option.'
     );
   }
 
