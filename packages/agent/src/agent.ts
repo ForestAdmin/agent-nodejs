@@ -112,6 +112,20 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     } catch (error) {
       const { message } = error as Error;
       this.options.logger('Error', `Forest Admin agent startup failure: ${message}`);
+
+      // buildRouterAndSendSchema() may already have opened the audit-trail connection even
+      // though a later startup step failed; close it so a failed start doesn't leak the pool
+      // (e.g. across restart retries).
+      try {
+        await this.options.auditTrail?.close();
+      } catch (closeError) {
+        const { message: closeMessage } = closeError as Error;
+        this.options.logger(
+          'Error',
+          `Failed to close the audit-trail database connection: ${closeMessage}`,
+        );
+      }
+
       throw error;
     }
   }

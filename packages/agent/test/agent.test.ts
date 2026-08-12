@@ -471,6 +471,41 @@ describe('Agent', () => {
         'Forest Admin agent startup failure: subscription failed',
       );
     });
+
+    test('closes the audit-trail connection when a later startup step fails', async () => {
+      const close = jest.fn().mockResolvedValue(undefined);
+      const forestAdminClient = factories.forestAdminClient.build({
+        subscribeToServerEvents: jest.fn().mockRejectedValue(new Error('subscription failed')),
+      });
+      const options = factories.forestAdminHttpDriverOptions.build({ forestAdminClient });
+      const agent = new Agent(options);
+      (agent as unknown as { options: { auditTrail: unknown } }).options.auditTrail = { close };
+
+      await expect(() => agent.start()).rejects.toThrow('subscription failed');
+
+      expect(close).toHaveBeenCalledTimes(1);
+    });
+
+    test('logs the close failure but rethrows the original startup error', async () => {
+      const mockLogger = jest.fn();
+      const close = jest.fn().mockRejectedValue(new Error('connection reset'));
+      const forestAdminClient = factories.forestAdminClient.build({
+        subscribeToServerEvents: jest.fn().mockRejectedValue(new Error('subscription failed')),
+      });
+      const options = factories.forestAdminHttpDriverOptions.build({
+        logger: mockLogger,
+        forestAdminClient,
+      });
+      const agent = new Agent(options);
+      (agent as unknown as { options: { auditTrail: unknown } }).options.auditTrail = { close };
+
+      await expect(() => agent.start()).rejects.toThrow('subscription failed');
+
+      expect(mockLogger).toHaveBeenCalledWith(
+        'Error',
+        'Failed to close the audit-trail database connection: connection reset',
+      );
+    });
   });
 
   describe('stop', () => {
