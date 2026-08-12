@@ -1,3 +1,10 @@
+# @forestadmin/agent [1.94.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.93.4...@forestadmin/agent@1.94.0) (2026-08-12)
+
+
+### Features
+
+* **agent:** accept the Forest-Projection header on list, relationship and csv routes ([#1822](https://github.com/ForestAdmin/agent-nodejs/issues/1822)) ([68602c6](https://github.com/ForestAdmin/agent-nodejs/commit/68602c6702cfcc69d5b314b935f20e0e7c3b1114)), closes [#1813](https://github.com/ForestAdmin/agent-nodejs/issues/1813)
+
 ## @forestadmin/agent [1.93.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.93.3...@forestadmin/agent@1.93.4) (2026-08-11)
 
 

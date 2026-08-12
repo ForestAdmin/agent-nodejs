@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/agent",
-  "version": "1.93.4",
+  "version": "1.94.0",
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "publishConfig": {
