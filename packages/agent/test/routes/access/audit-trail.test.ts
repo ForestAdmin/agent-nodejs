@@ -536,6 +536,91 @@ describe('AuditTrailRoute', () => {
     expect(services.authorization.assertCanRead).toHaveBeenCalledWith(context, 'books');
   });
 
+  describe('record-level scope', () => {
+    test('does not check record existence when no scope is configured', async () => {
+      const { services, dataSource, options, store } = setup();
+      const list = jest.spyOn(dataSource.getCollection('books'), 'list');
+      const route = new AuditTrailRoute(services, options, dataSource, 'books');
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: { query: { timezone: 'Europe/Paris' }, params: { id: '2' } },
+      });
+
+      await route.handleHistory(context);
+
+      expect(list).not.toHaveBeenCalled();
+      expect(store.listByRecord).toHaveBeenCalled();
+    });
+
+    test('rejects an id outside a restrictive scope without querying the store', async () => {
+      const { services, dataSource, options, store } = setup();
+      (services.authorization.getScope as jest.Mock).mockResolvedValue({
+        field: 'ownerId',
+        operator: 'Equal',
+        value: 1,
+      });
+      jest.spyOn(dataSource.getCollection('books'), 'list').mockResolvedValue([]);
+      const route = new AuditTrailRoute(services, options, dataSource, 'books');
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: { query: { timezone: 'Europe/Paris' }, params: { id: '2' } },
+      });
+
+      await route.handleHistory(context);
+
+      expect(context.throw).toHaveBeenCalledWith(404, 'Record does not exists');
+      expect(store.listByRecord).not.toHaveBeenCalled();
+    });
+
+    test('intersects the scope with the record id when checking visibility', async () => {
+      const { services, dataSource, options } = setup();
+      const scope = { field: 'ownerId', operator: 'Equal', value: 1 };
+      (services.authorization.getScope as jest.Mock).mockResolvedValue(scope);
+      const list = jest
+        .spyOn(dataSource.getCollection('books'), 'list')
+        .mockResolvedValue([{ id: 2 }]);
+      const route = new AuditTrailRoute(services, options, dataSource, 'books');
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: { query: { timezone: 'Europe/Paris' }, params: { id: '2' } },
+      });
+
+      await route.handleHistory(context);
+
+      expect(list).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          conditionTree: expect.objectContaining({
+            aggregator: 'And',
+            conditions: expect.arrayContaining([expect.objectContaining(scope)]),
+          }),
+        }),
+        expect.anything(),
+      );
+      expect(context.throw).not.toHaveBeenCalled();
+    });
+
+    test('allows an id inside a restrictive scope through to the store', async () => {
+      const { services, dataSource, options, store } = setup();
+      (services.authorization.getScope as jest.Mock).mockResolvedValue({
+        field: 'ownerId',
+        operator: 'Equal',
+        value: 1,
+      });
+      jest.spyOn(dataSource.getCollection('books'), 'list').mockResolvedValue([{ id: 2 }]);
+      const route = new AuditTrailRoute(services, options, dataSource, 'books');
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: { query: { timezone: 'Europe/Paris' }, params: { id: '2' } },
+      });
+
+      await route.handleHistory(context);
+
+      expect(context.throw).not.toHaveBeenCalled();
+      expect(store.listByRecord).toHaveBeenCalled();
+    });
+  });
+
   describe('handleStateAt', () => {
     const setupBooks = (history: unknown[] = []) => {
       const services = factories.forestAdminHttpDriverServices.build();

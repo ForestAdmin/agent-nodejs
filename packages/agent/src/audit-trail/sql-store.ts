@@ -23,7 +23,9 @@ export function defineAuditLogModel(
       timestamp: { type: DataTypes.DATE, allowNull: false },
       operation: { type: DataTypes.STRING, allowNull: false },
       collection: { type: DataTypes.STRING, allowNull: false },
-      recordId: { type: DataTypes.STRING, allowNull: false },
+      // TEXT, not STRING (VARCHAR(255)): a packed composite-id can exceed 255 characters, and the
+      // column is created as such by migration 003 — this must match.
+      recordId: { type: DataTypes.TEXT, allowNull: false },
       userId: { type: DataTypes.INTEGER, allowNull: true },
       correlationKey: { type: DataTypes.STRING, allowNull: true },
       previousValues: { type: DataTypes.JSON, allowNull: false, defaultValue: {} },
@@ -63,7 +65,14 @@ export function toRow(record: AuditRecord): Record<string, unknown> {
   };
 }
 
-function fieldsChangedCondition(sequelize: Sequelize, fields: string[]) {
+// A bare `$.${field}` path treats a dot in `field` as a nested-member separator instead of a
+// literal character (so `profile.name` would look up `profile` → `name` instead of the top-level
+// key `"profile.name"` the audit row actually stores under). Quoting the segment makes it literal.
+function jsonPath(field: string): string {
+  return `$."${field.replace(/"/g, '\\"')}"`;
+}
+
+export function fieldsChangedCondition(sequelize: Sequelize, fields: string[]) {
   const dialect = sequelize.getDialect();
 
   if (dialect === 'postgres') {
@@ -77,7 +86,7 @@ function fieldsChangedCondition(sequelize: Sequelize, fields: string[]) {
 
   if (dialect === 'sqlite') {
     const tests = fields.flatMap(field => {
-      const path = sequelize.escape(`$.${field}`);
+      const path = sequelize.escape(jsonPath(field));
 
       return [
         `json_type(previous_values, ${path}) IS NOT NULL`,
@@ -89,12 +98,26 @@ function fieldsChangedCondition(sequelize: Sequelize, fields: string[]) {
   }
 
   if (dialect === 'mysql' || dialect === 'mariadb') {
-    const paths = fields.map(field => sequelize.escape(`$.${field}`)).join(',');
+    const paths = fields.map(field => sequelize.escape(jsonPath(field))).join(',');
 
     return Sequelize.literal(
       `(JSON_CONTAINS_PATH(previous_values, 'one', ${paths}) ` +
         `OR JSON_CONTAINS_PATH(new_values, 'one', ${paths}))`,
     );
+  }
+
+  if (dialect === 'mssql') {
+    const tests = fields.flatMap(field => {
+      const path = sequelize.escape(jsonPath(field));
+
+      return [
+        `JSON_PATH_EXISTS(previous_values, ${path}) = 1`,
+        `JSON_PATH_EXISTS(new_values, ${path}) = 1`,
+      ];
+    });
+
+    // JSON_PATH_EXISTS requires SQL Server 2022+.
+    return Sequelize.literal(`(${tests.join(' OR ')})`);
   }
 
   throw new Error(`Audit-trail "fields" filter is not supported on dialect "${dialect}"`);
@@ -196,7 +219,7 @@ export function createSqlAuditStore(options: AuditStorageOptions): {
           where: buildHistoryWhereClause(query, connection),
           order: [
             ['timestamp', direction],
-            ['id', 'ASC'],
+            ['id', direction],
           ],
           offset: skip,
           limit,

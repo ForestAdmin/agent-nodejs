@@ -181,10 +181,12 @@ function getAuditTrailRoutes(
   if (!options.auditTrail) return [];
 
   return [
+    // Registered before the per-collection routes: if a collection is named "correlation", its
+    // `/_audit-trail/correlation/:id` route would otherwise shadow this one.
+    new AuditTrailCorrelationRoute(services, options, dataSource),
     ...dataSource.collections.map(
       collection => new AuditTrailRoute(services, options, dataSource, collection.name),
     ),
-    new AuditTrailCorrelationRoute(services, options, dataSource),
   ];
 }
 

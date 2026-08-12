@@ -3,6 +3,7 @@ export {
   createSqlAuditStore,
   ensureAuditStorage,
   defineAuditLogModel,
+  fieldsChangedCondition,
   toRow,
   fromRow,
   DEFAULT_SCHEMA,

@@ -1,4 +1,5 @@
 import revertRecord from '../../src/audit-trail/revert';
+import { ABSENT } from '../../src/audit-trail/types';
 
 const update = (
   previousValues: Record<string, unknown>,
@@ -88,7 +89,7 @@ describe('revertRecord', () => {
     expect(revertRecord(current, entries)).toBeNull();
   });
 
-  test('stops at a delete and returns its previousValues snapshot, ignoring older entries', () => {
+  test('restores the delete snapshot then keeps walking older entries', () => {
     const entries = [
       {
         operation: 'delete' as const,
@@ -96,6 +97,20 @@ describe('revertRecord', () => {
         newValues: {},
       },
       update({ status: 'open' }, { status: 'closed' }),
+    ];
+
+    // The target timestamp predates the update too, so it must also be reverted rather than
+    // stopping at the delete's own snapshot (which only reflects the moment just before deletion).
+    expect(revertRecord(null, entries)).toEqual({ id: 1, status: 'open', name: 'Acme' });
+  });
+
+  test('returns the delete snapshot as-is when it is the only entry in range', () => {
+    const entries = [
+      {
+        operation: 'delete' as const,
+        previousValues: { id: 1, status: 'closed', name: 'Acme' },
+        newValues: {},
+      },
     ];
 
     expect(revertRecord(null, entries)).toEqual({ id: 1, status: 'closed', name: 'Acme' });
@@ -113,6 +128,32 @@ describe('revertRecord', () => {
     ];
 
     expect(revertRecord(current, entries)).toEqual({ id: 1, status: 'old' });
+  });
+
+  test('removes a nested key that did not exist before the update (ABSENT marker)', () => {
+    const current = {
+      id: 1,
+      payload: { theme: 'dark', addedKey: 'x' },
+    };
+    const entries = [update({ payload: { addedKey: ABSENT } }, { payload: { addedKey: 'x' } })];
+
+    expect(revertRecord(current, entries)).toEqual({
+      id: 1,
+      payload: { theme: 'dark' },
+    });
+  });
+
+  test('removes an appended array element that did not exist before the update (ABSENT marker)', () => {
+    const current = {
+      id: 1,
+      payload: [{ step: 'a' }, { step: 'b' }],
+    };
+    const entries = [update({ payload: { 1: ABSENT } }, { payload: { 1: { step: 'b' } } })];
+
+    expect(revertRecord(current, entries)).toEqual({
+      id: 1,
+      payload: [{ step: 'a' }],
+    });
   });
 
   test('does not mutate the current record passed in', () => {

@@ -3,7 +3,12 @@ import type * as MigrationsModule from '../../src/audit-trail/migrations';
 
 import { Sequelize } from 'sequelize';
 
-import { createSqlAuditStore, ensureAuditStorage, toRow } from '../../src/audit-trail';
+import {
+  createSqlAuditStore,
+  ensureAuditStorage,
+  fieldsChangedCondition,
+  toRow,
+} from '../../src/audit-trail';
 import { runAuditMigrations } from '../../src/audit-trail/migrations';
 
 jest.mock('../../src/audit-trail/migrations', () => ({
@@ -385,6 +390,25 @@ describe('createSqlAuditStore (sqlite round-trip)', () => {
     await close();
   });
 
+  it('keeps equal-timestamp rows in reverse insertion order when order is desc', async () => {
+    const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
+    const timestamp = '2026-01-01T00:00:00.000Z';
+
+    await store.append(record({ recordId: '1', timestamp, correlationKey: 'first' }));
+    await store.append(record({ recordId: '1', timestamp, correlationKey: 'second' }));
+    await store.append(record({ recordId: '1', timestamp, correlationKey: 'third' }));
+
+    const history = await store.listByRecord({
+      collection: 'accounts',
+      recordId: '1',
+      order: 'desc',
+    });
+
+    expect(history.map(r => r.correlationKey)).toEqual(['third', 'second', 'first']);
+
+    await close();
+  });
+
   it('returns rows recorded under a correlationKey for a record, scoped and oldest first', async () => {
     const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
 
@@ -448,5 +472,76 @@ describe('createSqlAuditStore (sqlite round-trip)', () => {
     ).toEqual([]);
 
     await close();
+  });
+
+  it('keeps only entries that touched a field whose name contains a dot (sqlite)', async () => {
+    const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
+
+    await store.append(
+      record({
+        recordId: '1',
+        timestamp: '2026-01-01T00:00:00.000Z',
+        previousValues: { 'profile.name': 'a' },
+        newValues: { 'profile.name': 'b' },
+      }),
+    );
+    await store.append(
+      record({
+        recordId: '1',
+        timestamp: '2026-01-02T00:00:00.000Z',
+        previousValues: { other: 1 },
+        newValues: { other: 2 },
+      }),
+    );
+
+    const history = await store.listByRecord({
+      collection: 'accounts',
+      recordId: '1',
+      fields: ['profile.name'],
+    });
+
+    expect(history.map(r => r.timestamp)).toEqual(['2026-01-01T00:00:00.000Z']);
+
+    await close();
+  });
+});
+
+describe('fieldsChangedCondition', () => {
+  it('does not throw on mssql and quotes a dotted field as a literal path segment', () => {
+    const sequelize = new Sequelize('mssql://user:pwd@localhost/db', { logging: false });
+
+    const condition = fieldsChangedCondition(sequelize, ['profile.name']);
+
+    expect(condition.val).toContain('JSON_PATH_EXISTS');
+    expect(condition.val).toContain('$."profile.name"');
+  });
+
+  it('quotes a dotted field as a literal path segment on mysql/mariadb', () => {
+    const sequelize = new Sequelize('mysql://user:pwd@localhost/db', { logging: false });
+
+    const condition = fieldsChangedCondition(sequelize, ['profile.name']);
+
+    expect(condition.val).toContain('JSON_CONTAINS_PATH');
+    expect(condition.val).toContain('$.\\"profile.name\\"');
+  });
+
+  it('matches on the literal top-level key on postgres regardless of dots', () => {
+    const sequelize = new Sequelize('postgres://user:pwd@localhost:5432/db', { logging: false });
+
+    const condition = fieldsChangedCondition(sequelize, ['profile.name']);
+
+    expect(condition.val).toContain('jsonb_exists_any');
+    expect(condition.val).toContain("'profile.name'");
+  });
+
+  it('throws for a dialect it does not support', () => {
+    const fakeSequelize = {
+      getDialect: () => 'oracle',
+      escape: (value: string) => `'${value}'`,
+    } as unknown as Sequelize;
+
+    expect(() => fieldsChangedCondition(fakeSequelize, ['name'])).toThrow(
+      'Audit-trail "fields" filter is not supported on dialect "oracle"',
+    );
   });
 });

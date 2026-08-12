@@ -16,7 +16,7 @@ describe('correlation-id', () => {
 
       expect(first).toEqual(expect.any(String));
       expect(second).toBe(first);
-      expect(context.state.requestId).toBe(first);
+      expect(context.state.forestRequestId).toBe(first);
     });
 
     test('generates distinct ids for distinct contexts', () => {
@@ -35,7 +35,20 @@ describe('correlation-id', () => {
       await correlationIdMiddleware(context, next);
 
       expect(next).toHaveBeenCalledTimes(1);
-      expect(setHeader).toHaveBeenCalledWith(CORRELATION_ID_HEADER, context.state.requestId);
+      expect(setHeader).toHaveBeenCalledWith(CORRELATION_ID_HEADER, context.state.forestRequestId);
+    });
+
+    test('does not reuse an unrelated requestId already set by host middleware', async () => {
+      const context = createMockContext({ state: { requestId: 'host-middleware-id' } });
+      const next = jest.fn().mockImplementation(async () => {
+        getRequestId(context);
+      });
+      const setHeader = jest.spyOn(context.response, 'set');
+
+      await correlationIdMiddleware(context, next);
+
+      expect(setHeader).not.toHaveBeenCalledWith(CORRELATION_ID_HEADER, 'host-middleware-id');
+      expect(setHeader).toHaveBeenCalledWith(CORRELATION_ID_HEADER, context.state.forestRequestId);
     });
 
     test('runs the downstream handler before setting the header', async () => {

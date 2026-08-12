@@ -10,11 +10,38 @@ import type { Caller, RecordData } from '@forestadmin/datasource-toolkit';
 
 import { SchemaUtils } from '@forestadmin/datasource-toolkit';
 
-const snapshotsByFilter = new WeakMap<object, RecordData[]>();
+import { ABSENT } from './types';
+
+// One caller-supplied `Filter` object can be reused across concurrent operations (e.g. a bulk
+// helper looping over the same template), so each key holds a FIFO queue of snapshots rather than
+// a single value — otherwise a second concurrent `Before` would overwrite the first snapshot and
+// its `After` would silently emit nothing.
+const snapshotsByFilter = new WeakMap<object, RecordData[][]>();
+
+function pushSnapshot(key: object, snapshot: RecordData[]): void {
+  const queue = snapshotsByFilter.get(key) ?? [];
+  queue.push(snapshot);
+  snapshotsByFilter.set(key, queue);
+}
+
+function shiftSnapshot(key: object): RecordData[] {
+  const queue = snapshotsByFilter.get(key);
+  if (!queue || queue.length === 0) return [];
+
+  const snapshot = queue.shift();
+  if (queue.length === 0) snapshotsByFilter.delete(key);
+
+  return snapshot ?? [];
+}
 
 // Must match IdUtils.packId so recordIds align with the rest of Forest.
-const toPackedRecordId = (record: RecordData, primaryKeys: string[]): string =>
-  primaryKeys.map(pk => String(record[pk])).join('|');
+const toPackedRecordId = (record: RecordData, primaryKeys: string[]): string => {
+  if (primaryKeys.length === 0) {
+    throw new Error('Cannot audit a collection with no primary key');
+  }
+
+  return primaryKeys.map(pk => String(record[pk])).join('|');
+};
 
 const pickColumns = (record: RecordData, columns: string[]): Record<string, unknown> =>
   Object.fromEntries(columns.map(column => [column, record[column] ?? null]));
@@ -45,7 +72,9 @@ const isObjectArray = (value: unknown): value is Record<string, unknown>[] =>
   Array.isArray(value) && value.length > 0 && value.every(isPlainObject);
 
 // Returns only the leaves that changed. Plain objects and object-arrays recurse; everything else
-// (scalars, primitive arrays, Date, BSON) is compared and kept whole.
+// (scalars, primitive arrays, Date, BSON) is compared and kept whole. A leaf that did not exist
+// before/after (as opposed to one explicitly set to `null`) is encoded as `ABSENT` so `revertRecord`
+// can tell the two cases apart and remove the key/index instead of writing back a bogus `null`.
 const diff = (before: unknown, after: unknown): { previous: unknown; next: unknown } | null => {
   if (deepEquals(before, after)) return null;
 
@@ -81,19 +110,24 @@ const diff = (before: unknown, after: unknown): { previous: unknown; next: unkno
     return { previous, next };
   }
 
-  return { previous: before ?? null, next: after ?? null };
+  return {
+    previous: before === undefined ? ABSENT : before ?? null,
+    next: after === undefined ? ABSENT : after ?? null,
+  };
 };
 
+// Diffs against the record actually persisted by the write (`after`), not the requested patch, so
+// the log reflects normalization/coercion/side effects applied by the datasource or a decorator.
 const changedValues = (
   before: RecordData,
-  patch: RecordData,
+  after: RecordData,
   columns: string[],
 ): Pick<AuditRecord, 'previousValues' | 'newValues'> => {
   const previousValues: Record<string, unknown> = {};
   const newValues: Record<string, unknown> = {};
 
   for (const column of columns) {
-    const delta = column in patch ? diff(before[column], patch[column]) : null;
+    const delta = diff(before[column], after[column]);
 
     if (delta) {
       previousValues[column] = delta.previous;
@@ -142,32 +176,27 @@ function instrumentCollection(
 
   const emit = (
     caller: Caller,
-    operation: AuditRecord['operation'],
-    recordId: string,
-    previousValues: Record<string, unknown>,
-    newValues: Record<string, unknown>,
+    entry: Pick<AuditRecord, 'operation' | 'recordId' | 'previousValues' | 'newValues'>,
   ): Promise<void> | void =>
     sink({
       timestamp: new Date().toISOString(),
-      operation,
       collection: name,
-      recordId,
       userId: caller.id,
       correlationKey: caller.requestId,
-      previousValues: redactValues(previousValues, redactedFields),
-      newValues: redactValues(newValues, redactedFields),
+      ...entry,
+      previousValues: redactValues(entry.previousValues, redactedFields),
+      newValues: redactValues(entry.newValues, redactedFields),
     });
 
   collection.addInternalHook('After', 'Create', async (context: HookAfterCreateContext) => {
     await Promise.all(
       context.records.map(record =>
-        emit(
-          context.caller,
-          'create',
-          toPackedRecordId(record, primaryKeys),
-          {},
-          pickColumns(record, writableColumns),
-        ),
+        emit(context.caller, {
+          operation: 'create',
+          recordId: toPackedRecordId(record, primaryKeys),
+          previousValues: {},
+          newValues: pickColumns(record, writableColumns),
+        }),
       ),
     );
   });
@@ -177,27 +206,39 @@ function instrumentCollection(
       context.filter as never,
       readProjection as never[],
     );
-    snapshotsByFilter.set(context.filter, before as RecordData[]);
+    pushSnapshot(context.filter, before as RecordData[]);
   });
 
   collection.addInternalHook('After', 'Update', async (context: HookBeforeUpdateContext) => {
-    const before = snapshotsByFilter.get(context.filter) ?? [];
-    snapshotsByFilter.delete(context.filter);
+    const before = shiftSnapshot(context.filter);
 
-    const patch = context.patch as RecordData;
+    if (before.length === 0) return;
+
+    // Re-read what was actually persisted rather than trusting the requested patch: a decorator
+    // or the datasource itself may normalize, coerce, or otherwise alter the written values.
+    const after = (await context.collection.list(
+      context.filter as never,
+      readProjection as never[],
+    )) as RecordData[];
+
     await Promise.all(
-      before.map(record => {
-        const { previousValues, newValues } = changedValues(record, patch, writableColumns);
+      before.map((record, index) => {
+        const updated = after[index];
+
+        if (!updated) return undefined;
+
+        const { previousValues, newValues } = changedValues(record, updated, writableColumns);
 
         if (Object.keys(newValues).length === 0) return undefined;
 
-        return emit(
-          context.caller,
-          'update',
-          toPackedRecordId(record, primaryKeys),
+        // Packed from the post-update values: if the update changed a writable primary key, the
+        // entry is filed under the record's new id, matching what later history lookups use.
+        return emit(context.caller, {
+          operation: 'update',
+          recordId: toPackedRecordId(updated, primaryKeys),
           previousValues,
           newValues,
-        );
+        });
       }),
     );
   });
@@ -207,22 +248,20 @@ function instrumentCollection(
       context.filter as never,
       readProjection as never[],
     );
-    snapshotsByFilter.set(context.filter, before as RecordData[]);
+    pushSnapshot(context.filter, before as RecordData[]);
   });
 
   collection.addInternalHook('After', 'Delete', async (context: HookBeforeDeleteContext) => {
-    const before = snapshotsByFilter.get(context.filter) ?? [];
-    snapshotsByFilter.delete(context.filter);
+    const before = shiftSnapshot(context.filter);
 
     await Promise.all(
       before.map(record =>
-        emit(
-          context.caller,
-          'delete',
-          toPackedRecordId(record, primaryKeys),
-          pickColumns(record, writableColumns),
-          {},
-        ),
+        emit(context.caller, {
+          operation: 'delete',
+          recordId: toPackedRecordId(record, primaryKeys),
+          previousValues: pickColumns(record, writableColumns),
+          newValues: {},
+        }),
       ),
     );
   });

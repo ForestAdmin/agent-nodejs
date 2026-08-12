@@ -1,4 +1,4 @@
-import type { CollectionSchema } from '@forestadmin/datasource-toolkit';
+import type { CollectionSchema, ConditionTree } from '@forestadmin/datasource-toolkit';
 import type Router from '@koa/router';
 import type { Context } from 'koa';
 
@@ -41,6 +41,17 @@ export default class AuditTrailRoute extends CollectionRoute {
   public async handleHistory(context: Context): Promise<void> {
     await this.services.authorization.assertCanRead(context, this.collection.name);
 
+    const scope = await this.services.authorization.getScope(this.collection, context);
+
+    // A record-level scope can't be checked retroactively for a now-deleted record, so a caller
+    // whose access is scoped down cannot browse the history of an id outside their current scope
+    // (or one that no longer matches it) — otherwise scope could be bypassed by deleting a record.
+    if (scope && !(await this.isRecordVisible(context, scope))) {
+      context.throw(HttpCode.NotFound, 'Record does not exists');
+
+      return;
+    }
+
     const { store } = this.options.auditTrail;
     const { skip, limit } = AuditTrailRoute.parsePagination(context);
     const order = AuditTrailRoute.parseSort(context);
@@ -70,7 +81,17 @@ export default class AuditTrailRoute extends CollectionRoute {
 
     const at = AuditTrailRoute.parseAt(context);
     const auditedColumns = AuditTrailRoute.auditedColumns(this.collection.schema);
-    const current = await this.fetchCurrentRecord(context, auditedColumns);
+    const scope = await this.services.authorization.getScope(this.collection, context);
+    const current = await this.fetchCurrentRecord(context, auditedColumns, scope);
+
+    // Same reasoning as handleHistory: a missing current record is ambiguous (deleted vs.
+    // out-of-scope) once a scope applies, so it must not fall through to the revert walk below,
+    // which could otherwise surface a delete entry's full snapshot to an unauthorized caller.
+    if (!current && scope) {
+      context.throw(HttpCode.NotFound, 'Record did not exist at this timestamp');
+
+      return;
+    }
 
     const { store } = this.options.auditTrail;
     const entries = await store.listByRecord({
@@ -87,15 +108,34 @@ export default class AuditTrailRoute extends CollectionRoute {
     context.response.body = { data: state };
   }
 
+  private async isRecordVisible(context: Context, scope: ConditionTree): Promise<boolean> {
+    const id = IdUtils.unpackId(this.collection.schema, context.params.id);
+    const filter = new PaginatedFilter({
+      conditionTree: ConditionTreeFactory.intersect(
+        ConditionTreeFactory.matchIds(this.collection.schema, [id]),
+        scope,
+      ),
+    });
+
+    const records = await this.collection.list(
+      QueryStringParser.parseCaller(context, { defaultTimezone: 'UTC' }),
+      filter,
+      new Projection(...SchemaUtils.getPrimaryKeys(this.collection.schema)),
+    );
+
+    return records.length > 0;
+  }
+
   private async fetchCurrentRecord(
     context: Context,
     auditedColumns: string[],
+    scope: ConditionTree | null,
   ): Promise<Record<string, unknown> | null> {
     const id = IdUtils.unpackId(this.collection.schema, context.params.id);
     const filter = new PaginatedFilter({
       conditionTree: ConditionTreeFactory.intersect(
         ConditionTreeFactory.matchIds(this.collection.schema, [id]),
-        await this.services.authorization.getScope(this.collection, context),
+        scope,
       ),
     });
 

@@ -98,7 +98,10 @@ correlation key as the action.
 ## HTTP routes
 
 When `auditTrail` is set, the agent exposes three routes (all behind Forest's auth, gated by
-`assertCanRead` on the target collection).
+`assertCanRead` on the target collection). When the caller's role has a record-level scope on that
+collection, the per-record routes additionally require the target id to currently exist and match
+that scope — a scoped caller cannot retrieve the history or reconstructed state of a deleted record,
+since a scope can no longer be evaluated against data that no longer exists.
 
 ### `GET /forest/_audit-trail/{collection}/{recordId}` — per-record history
 

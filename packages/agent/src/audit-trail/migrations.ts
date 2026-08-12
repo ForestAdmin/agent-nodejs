@@ -1,4 +1,4 @@
-import type { QueryInterface, Sequelize } from 'sequelize';
+import type { QueryInterface, Sequelize, Transaction } from 'sequelize';
 
 import { DataTypes } from 'sequelize';
 import { SequelizeStorage, Umzug } from 'umzug';
@@ -7,15 +7,31 @@ export type MigrationContext = {
   queryInterface: QueryInterface;
   schema?: string;
   tableName: string;
+  transaction?: Transaction;
 };
-
-// Kept separate from the default `SequelizeMeta` so the audit trail's migration state never
-// collides with another component (e.g. the workflow executor) writing to the same database.
-const MIGRATIONS_TABLE = 'audit_migrations';
 
 // Arbitrary but stable pair, only needs to be unique across the advisory locks the application
 // takes — the audit-trail migration is the only critical section we hold this lock for.
 const ADVISORY_LOCK: readonly [number, number] = [0x464f, 0x5254];
+
+// Scoped by `tableName` (not a single fixed name) so two stores configured with different table
+// names in the same schema don't share migration state — otherwise Umzug would see the second
+// store's migrations as already applied and never create its table.
+function migrationsTableName(tableName: string): string {
+  return `${tableName}_migrations`;
+}
+
+async function indexNames(
+  queryInterface: QueryInterface,
+  table: { tableName: string; schema?: string },
+  transaction?: Transaction,
+): Promise<Set<string>> {
+  const indexes = (await queryInterface.showIndex(table, { transaction })) as Array<{
+    name: string;
+  }>;
+
+  return new Set(indexes.map(index => index.name));
+}
 
 // Append-only. To evolve the schema, add a new entry at the end — never edit, reorder or delete
 // an existing one (already-applied migrations are skipped).
@@ -23,8 +39,16 @@ const migrations = [
   {
     name: '001-create-audit-logs',
     up: async ({ context }: { context: MigrationContext }) => {
+      const table = { tableName: context.tableName, schema: context.schema };
+
+      // Idempotent: lets a process that loses a concurrent-boot race retry cleanly instead of
+      // failing on a "relation already exists" error from the winner's DDL.
+      if (await context.queryInterface.tableExists(table, { transaction: context.transaction })) {
+        return;
+      }
+
       await context.queryInterface.createTable(
-        { tableName: context.tableName, schema: context.schema },
+        table,
         {
           id: { type: DataTypes.BIGINT, primaryKey: true, autoIncrement: true },
           timestamp: { type: DataTypes.DATE, allowNull: false },
@@ -36,52 +60,136 @@ const migrations = [
           previous_values: { type: DataTypes.JSON, allowNull: false, defaultValue: {} },
           new_values: { type: DataTypes.JSON, allowNull: false, defaultValue: {} },
         },
+        { transaction: context.transaction },
       );
     },
     down: async ({ context }: { context: MigrationContext }) => {
-      await context.queryInterface.dropTable({
-        tableName: context.tableName,
-        schema: context.schema,
-      });
+      await context.queryInterface.dropTable(
+        { tableName: context.tableName, schema: context.schema },
+        { transaction: context.transaction },
+      );
     },
   },
   {
     name: '002-index-record-and-correlation',
     up: async ({ context }: { context: MigrationContext }) => {
       const table = { tableName: context.tableName, schema: context.schema };
+      const existing = await indexNames(context.queryInterface, table, context.transaction);
 
-      await context.queryInterface.addIndex(table, ['record_id'], {
-        name: `${context.tableName}_record_id`,
-      });
-      await context.queryInterface.addIndex(table, ['correlation_key'], {
-        name: `${context.tableName}_correlation_key`,
-      });
-      await context.queryInterface.addIndex(table, ['user_id'], {
-        name: `${context.tableName}_user_id`,
-      });
+      const ensureIndex = async (fields: string[], name: string) => {
+        if (existing.has(name)) return;
+
+        await context.queryInterface.addIndex(table, fields, {
+          name,
+          transaction: context.transaction,
+        });
+      };
+
+      await ensureIndex(['record_id'], `${context.tableName}_record_id`);
+      await ensureIndex(['correlation_key'], `${context.tableName}_correlation_key`);
+      await ensureIndex(['user_id'], `${context.tableName}_user_id`);
     },
     down: async ({ context }: { context: MigrationContext }) => {
       const table = { tableName: context.tableName, schema: context.schema };
+      const options = { transaction: context.transaction };
 
-      await context.queryInterface.removeIndex(table, `${context.tableName}_record_id`);
-      await context.queryInterface.removeIndex(table, `${context.tableName}_correlation_key`);
-      await context.queryInterface.removeIndex(table, `${context.tableName}_user_id`);
+      await context.queryInterface.removeIndex(table, `${context.tableName}_record_id`, options);
+      await context.queryInterface.removeIndex(
+        table,
+        `${context.tableName}_correlation_key`,
+        options,
+      );
+      await context.queryInterface.removeIndex(table, `${context.tableName}_user_id`, options);
+    },
+  },
+  {
+    // `record_id` was VARCHAR(255): a packed composite id can exceed that, silently failing every
+    // write for the affected record. Widened to TEXT; the index is rebuilt with a length prefix so
+    // it stays valid on MySQL/MariaDB, which cannot index an unbounded TEXT column directly.
+    //
+    // On dialects that implement `changeColumn` as a table rebuild (e.g. sqlite), every existing
+    // index is silently dropped along with the old table — so all of migration 002's indexes, not
+    // just this one, are re-created afterward if they're found missing.
+    name: '003-widen-record-id',
+    up: async ({ context }: { context: MigrationContext }) => {
+      const table = { tableName: context.tableName, schema: context.schema };
+      const options = { transaction: context.transaction };
+
+      await context.queryInterface.changeColumn(
+        table,
+        'record_id',
+        { type: DataTypes.TEXT, allowNull: false },
+        options,
+      );
+
+      const existing = await indexNames(context.queryInterface, table, context.transaction);
+
+      const ensureIndex = async (
+        fields: Array<string | { name: string; length: number }>,
+        name: string,
+      ) => {
+        if (existing.has(name)) return;
+
+        await context.queryInterface.addIndex(table, {
+          fields,
+          name,
+          transaction: context.transaction,
+        });
+      };
+
+      await ensureIndex([{ name: 'record_id', length: 191 }], `${context.tableName}_record_id`);
+      await ensureIndex(['correlation_key'], `${context.tableName}_correlation_key`);
+      await ensureIndex(['user_id'], `${context.tableName}_user_id`);
+    },
+    down: async ({ context }: { context: MigrationContext }) => {
+      const table = { tableName: context.tableName, schema: context.schema };
+      const options = { transaction: context.transaction };
+
+      await context.queryInterface.changeColumn(
+        table,
+        'record_id',
+        { type: DataTypes.STRING, allowNull: false },
+        options,
+      );
+
+      const existing = await indexNames(context.queryInterface, table, context.transaction);
+
+      const ensureIndex = async (fields: string[], name: string) => {
+        if (existing.has(name)) return;
+
+        await context.queryInterface.addIndex(table, fields, {
+          name,
+          transaction: context.transaction,
+        });
+      };
+
+      await ensureIndex(['record_id'], `${context.tableName}_record_id`);
+      await ensureIndex(['correlation_key'], `${context.tableName}_correlation_key`);
+      await ensureIndex(['user_id'], `${context.tableName}_user_id`);
     },
   },
 ];
 
-function buildUmzug(sequelize: Sequelize, options: { schema?: string; tableName: string }) {
+function buildUmzug(
+  sequelize: Sequelize,
+  options: { schema?: string; tableName: string; transaction?: Transaction },
+) {
   return new Umzug({
     migrations,
     context: {
       queryInterface: sequelize.getQueryInterface(),
       schema: options.schema,
       tableName: options.tableName,
+      transaction: options.transaction,
     },
     storage: new SequelizeStorage({
       sequelize,
       schema: options.schema,
-      tableName: MIGRATIONS_TABLE,
+      tableName: migrationsTableName(options.tableName),
+      // Sequelize caches model definitions by name on the `Sequelize` instance: without a distinct
+      // name here, a second store sharing that instance (a different `tableName`, same connection)
+      // would reuse the first store's model and read/write the wrong migration-state table.
+      modelName: migrationsTableName(options.tableName),
     }),
     logger: undefined,
   });
@@ -119,9 +227,11 @@ async function ensureSchema(sequelize: Sequelize, schema: string | undefined): P
 
 /**
  * Creates the schema then applies every pending audit-table migration. On Postgres the migrations
- * run inside a transaction-scoped advisory lock so concurrent agent boots serialize on the DDL —
- * losers block on the lock, then find the migrations already applied. Other dialects rely on the
- * idempotency of their individual statements.
+ * run inside a transaction-scoped advisory lock, and every DDL statement runs on that same
+ * transaction, so concurrent agent boots serialize on the DDL and a failure partway through a
+ * migration rolls back cleanly instead of leaving partial DDL behind. Other dialects have no
+ * equivalent distributed lock; each migration instead checks what already exists before creating
+ * it, which closes most — but not all — of the race window on a truly simultaneous boot.
  */
 export async function runAuditMigrations(
   sequelize: Sequelize,
@@ -141,6 +251,6 @@ export async function runAuditMigrations(
       replacements: { a: ADVISORY_LOCK[0], b: ADVISORY_LOCK[1] },
     });
 
-    await buildUmzug(sequelize, options).up();
+    await buildUmzug(sequelize, { ...options, transaction }).up();
   });
 }

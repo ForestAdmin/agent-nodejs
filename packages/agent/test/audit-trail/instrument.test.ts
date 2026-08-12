@@ -2,7 +2,7 @@ import type { AuditRecord, AuditTrailInstrumentOptions } from '../../src/audit-t
 import type { Caller } from '@forestadmin/datasource-toolkit';
 
 import InMemoryAuditStore from './in-memory-store';
-import { REDACTED, installAuditTrailHooks as auditTrail } from '../../src/audit-trail';
+import { ABSENT, REDACTED, installAuditTrailHooks as auditTrail } from '../../src/audit-trail';
 
 type AuditTrailOptions = AuditTrailInstrumentOptions;
 
@@ -56,7 +56,7 @@ function fakeCollection(
 
   const fire = (key: string, context: Record<string, unknown>) => handlers.get(key)!(context);
 
-  return { collection, handlers, list, fire };
+  return { collection, handlers, list, fire, records: listResult };
 }
 
 function register(collections: Array<{ collection: unknown }>, options?: AuditTrailOptions) {
@@ -69,7 +69,12 @@ type Target = ReturnType<typeof fakeCollection>;
 
 async function runUpdate(
   target: Target,
-  args: { caller: Caller; patch: Record<string, unknown>; filter?: object },
+  args: {
+    caller: Caller;
+    patch: Record<string, unknown>;
+    filter?: object;
+    after?: Record<string, unknown>[];
+  },
 ) {
   const filter = args.filter ?? {};
   await target.fire('Before:Update', {
@@ -77,7 +82,19 @@ async function runUpdate(
     filter,
     collection: { list: target.list },
   });
-  await target.fire('After:Update', { caller: args.caller, filter, patch: args.patch });
+
+  // The After hook re-reads the current values instead of trusting the patch; simulate the write
+  // actually persisting by default (the patch applied on top of the snapshot), unless the test
+  // overrides `after` to simulate the datasource storing something different from what was asked.
+  const after = args.after ?? target.records.map(record => ({ ...record, ...args.patch }));
+  target.list.mockResolvedValueOnce(after);
+
+  await target.fire('After:Update', {
+    caller: args.caller,
+    filter,
+    patch: args.patch,
+    collection: { list: target.list },
+  });
 }
 
 async function runDelete(target: Target, args: { caller: Caller; filter?: object }) {
@@ -482,6 +499,54 @@ describe('auditTrail plugin', () => {
       expect(sink).not.toHaveBeenCalled();
     });
 
+    it('logs the value actually persisted, not the requested patch', async () => {
+      const sink = jest.fn();
+      const accounts = fakeCollection('accounts', [
+        { id: 1, status: 'open', name: 'Acme', amount: 10 },
+      ]);
+      register([accounts], { sink });
+
+      // The datasource/a decorator normalizes the requested value before persisting it.
+      await runUpdate(accounts, {
+        caller: makeCaller(),
+        patch: { status: 'CLOSED' },
+        after: [{ id: 1, status: 'closed', name: 'Acme', amount: 10 }],
+      });
+
+      expect(sink).toHaveBeenCalledWith(
+        expect.objectContaining({
+          previousValues: { status: 'open' },
+          newValues: { status: 'closed' },
+        }),
+      );
+    });
+
+    it('files the entry under the post-update id when a writable primary key changes', async () => {
+      const sink = jest.fn();
+      const schema = {
+        fields: {
+          slug: { type: 'Column', columnType: 'String', isPrimaryKey: true },
+          name: { type: 'Column', columnType: 'String' },
+        },
+      };
+      const pages = fakeCollection('pages', [{ slug: 'old-slug', name: 'Home' }], schema);
+      register([pages], { sink });
+
+      await runUpdate(pages, {
+        caller: makeCaller(),
+        patch: { slug: 'new-slug' },
+        after: [{ slug: 'new-slug', name: 'Home' }],
+      });
+
+      expect(sink).toHaveBeenCalledWith(
+        expect.objectContaining({
+          recordId: 'new-slug',
+          previousValues: { slug: 'old-slug' },
+          newValues: { slug: 'new-slug' },
+        }),
+      );
+    });
+
     it('emits nothing in After:Update when no Before snapshot was taken', async () => {
       const sink = jest.fn();
       const accounts = fakeCollection('accounts');
@@ -506,9 +571,20 @@ describe('auditTrail plugin', () => {
       register([accounts], { sink });
 
       await accounts.fire('Before:Update', { caller, filter, collection: { list: accounts.list } });
-      await accounts.fire('After:Update', { caller, filter, patch: { status: 'closed' } });
+      accounts.list.mockResolvedValueOnce([{ id: 1, status: 'closed', name: 'Acme', amount: 10 }]);
+      await accounts.fire('After:Update', {
+        caller,
+        filter,
+        patch: { status: 'closed' },
+        collection: { list: accounts.list },
+      });
       sink.mockClear();
-      await accounts.fire('After:Update', { caller, filter, patch: { status: 'archived' } });
+      await accounts.fire('After:Update', {
+        caller,
+        filter,
+        patch: { status: 'archived' },
+        collection: { list: accounts.list },
+      });
 
       expect(sink).not.toHaveBeenCalled();
     });
@@ -523,7 +599,9 @@ describe('auditTrail plugin', () => {
       const filterB = { tag: 'B' };
       accounts.list
         .mockResolvedValueOnce([{ id: 1, status: 'open', name: 'Acme', amount: 10 }])
-        .mockResolvedValueOnce([{ id: 2, status: 'pending', name: 'Globex', amount: 20 }]);
+        .mockResolvedValueOnce([{ id: 2, status: 'pending', name: 'Globex', amount: 20 }])
+        .mockResolvedValueOnce([{ id: 1, status: 'closed', name: 'Acme', amount: 10 }])
+        .mockResolvedValueOnce([{ id: 2, status: 'closed', name: 'Globex', amount: 20 }]);
 
       // Interleave the two operations: both Before hooks run before either After.
       await accounts.fire('Before:Update', {
@@ -536,8 +614,18 @@ describe('auditTrail plugin', () => {
         filter: filterB,
         collection: { list: accounts.list },
       });
-      await accounts.fire('After:Update', { caller, filter: filterA, patch: { status: 'closed' } });
-      await accounts.fire('After:Update', { caller, filter: filterB, patch: { status: 'closed' } });
+      await accounts.fire('After:Update', {
+        caller,
+        filter: filterA,
+        patch: { status: 'closed' },
+        collection: { list: accounts.list },
+      });
+      await accounts.fire('After:Update', {
+        caller,
+        filter: filterB,
+        patch: { status: 'closed' },
+        collection: { list: accounts.list },
+      });
 
       expect(sink).toHaveBeenCalledTimes(2);
       expect(sink).toHaveBeenNthCalledWith(
@@ -548,6 +636,66 @@ describe('auditTrail plugin', () => {
         2,
         expect.objectContaining({ recordId: '2', previousValues: { status: 'pending' } }),
       );
+    });
+
+    it('keeps two concurrent updates sharing the same Filter instance from colliding', async () => {
+      const sink = jest.fn();
+      const caller = makeCaller('same-request');
+      const accounts = fakeCollection('accounts');
+      register([accounts], { sink });
+
+      // A caller can legitimately reuse one Filter object across two concurrent calls (e.g. a
+      // bulk helper looping over the same template) — this must not overwrite the first snapshot.
+      const sharedFilter = { tag: 'shared' };
+      accounts.list
+        .mockResolvedValueOnce([{ id: 1, status: 'open', name: 'Acme', amount: 10 }])
+        .mockResolvedValueOnce([{ id: 2, status: 'pending', name: 'Globex', amount: 20 }])
+        .mockResolvedValueOnce([{ id: 1, status: 'closed', name: 'Acme', amount: 10 }])
+        .mockResolvedValueOnce([{ id: 2, status: 'closed', name: 'Globex', amount: 20 }]);
+
+      await accounts.fire('Before:Update', {
+        caller,
+        filter: sharedFilter,
+        collection: { list: accounts.list },
+      });
+      await accounts.fire('Before:Update', {
+        caller,
+        filter: sharedFilter,
+        collection: { list: accounts.list },
+      });
+      await accounts.fire('After:Update', {
+        caller,
+        filter: sharedFilter,
+        patch: { status: 'closed' },
+        collection: { list: accounts.list },
+      });
+      await accounts.fire('After:Update', {
+        caller,
+        filter: sharedFilter,
+        patch: { status: 'closed' },
+        collection: { list: accounts.list },
+      });
+
+      expect(sink).toHaveBeenCalledTimes(2);
+      expect(sink).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({ recordId: '1', previousValues: { status: 'open' } }),
+      );
+      expect(sink).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({ recordId: '2', previousValues: { status: 'pending' } }),
+      );
+    });
+
+    it('throws instead of silently merging history when the collection has no primary key', async () => {
+      const sink = jest.fn();
+      const schema = { fields: { name: { type: 'Column', columnType: 'String' } } };
+      const views = fakeCollection('views', [{ name: 'Acme' }], schema);
+      register([views], { sink });
+
+      await expect(
+        runUpdate(views, { caller: makeCaller(), patch: { name: 'Globex' } }),
+      ).rejects.toThrow('Cannot audit a collection with no primary key');
     });
   });
 
@@ -672,6 +820,21 @@ describe('auditTrail plugin', () => {
       const changed = update({ ref: objectId('abc') }, { ref: objectId('def') });
       await changed.run();
       expect(changed.sink).toHaveBeenCalledTimes(1);
+    });
+
+    it('encodes a newly added nested key as ABSENT rather than a bogus null', async () => {
+      const { sink, run } = update(
+        { payload: { theme: 'dark' } },
+        { payload: { theme: 'dark', addedKey: 'x' } },
+      );
+      await run();
+
+      expect(sink).toHaveBeenCalledWith(
+        expect.objectContaining({
+          previousValues: { payload: { addedKey: ABSENT } },
+          newValues: { payload: { addedKey: 'x' } },
+        }),
+      );
     });
   });
 

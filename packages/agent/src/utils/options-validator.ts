@@ -88,14 +88,15 @@ export default class OptionsValidator {
       });
 
     const auditTrail: AuditTrailRuntime | null = copyOptions.auditTrail
-      ? {
-          ...copyOptions.auditTrail,
-          store: createSqlAuditStore({
+      ? (() => {
+          const { store, close } = createSqlAuditStore({
             connectionString: copyOptions.auditTrail.connectionString,
             schema: copyOptions.auditTrail.schema,
             tableName: copyOptions.auditTrail.tableName,
-          }).store,
-        }
+          });
+
+          return { ...copyOptions.auditTrail, store, close };
+        })()
       : null;
 
     return {

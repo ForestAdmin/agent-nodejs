@@ -125,7 +125,10 @@ export type WorkflowExecutorEmbedOptions = Omit<WorkflowExecutorTuningOptions, '
 };
 
 // Runtime view of `auditTrail`: the validator has built the SQL store from the connection string.
-export type AuditTrailRuntime = AuditTrailConfig & { store: AuditStore };
+export type AuditTrailRuntime = AuditTrailConfig & {
+  store: AuditStore;
+  close: () => Promise<void>;
+};
 
 export type AgentOptionsWithDefaults = Readonly<
   Required<Omit<AgentOptions, 'auditTrail'>> & {
