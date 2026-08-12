@@ -6,7 +6,8 @@ import type { Context } from 'koa';
 
 import { ValidationError } from '@forestadmin/datasource-toolkit';
 
-import { RouteType } from '../../types';
+import isRecordVisible from '../../audit-trail/scope';
+import { HttpCode, RouteType } from '../../types';
 import BaseRoute from '../base-route';
 
 export default class AuditTrailCorrelationRoute extends BaseRoute {
@@ -31,8 +32,10 @@ export default class AuditTrailCorrelationRoute extends BaseRoute {
   }
 
   public async handleHistory(context: Context): Promise<void> {
-    const { collection, recordId } = await this.assertRecordReadable(context);
+    const target = await this.assertRecordReadable(context);
+    if (!target) return;
 
+    const { collection, recordId } = target;
     const { store } = this.options.auditTrail;
     const history = await store.listByCorrelation({
       collection,
@@ -44,7 +47,10 @@ export default class AuditTrailCorrelationRoute extends BaseRoute {
   }
 
   public async handleBatch(context: Context): Promise<void> {
-    const { collection, recordId } = await this.assertRecordReadable(context);
+    const target = await this.assertRecordReadable(context);
+    if (!target) return;
+
+    const { collection, recordId } = target;
     const correlationKeys = AuditTrailCorrelationRoute.parseCorrelationKeys(context);
 
     const { store } = this.options.auditTrail;
@@ -55,21 +61,30 @@ export default class AuditTrailCorrelationRoute extends BaseRoute {
     context.response.body = { data: history };
   }
 
+  // Returns null (after issuing the 404) when a configured record-level scope excludes the id —
+  // same rule as the per-collection route: a scope can't be evaluated retroactively for a
+  // now-deleted record, so a scoped caller cannot look up correlations for an out-of-scope id.
   private async assertRecordReadable(
     context: Context,
-  ): Promise<{ collection: string; recordId: string }> {
+  ): Promise<{ collection: string; recordId: string } | null> {
     const query = context.request.query as Record<string, unknown>;
     const body = (context.request.body ?? {}) as Record<string, unknown>;
-    const collection = (query.collection ?? body.collection)?.toString();
+    const collectionName = (query.collection ?? body.collection)?.toString();
     const recordId = (query.recordId ?? body.recordId)?.toString();
 
-    if (!collection) throw new ValidationError('Missing collection');
+    if (!collectionName) throw new ValidationError('Missing collection');
     if (!recordId) throw new ValidationError('Missing recordId');
 
-    this.dataSource.getCollection(collection);
-    await this.services.authorization.assertCanRead(context, collection);
+    const collection = this.dataSource.getCollection(collectionName);
+    await this.services.authorization.assertCanRead(context, collectionName);
 
-    return { collection, recordId };
+    if (!(await isRecordVisible(this.services, collection, recordId, context))) {
+      context.throw(HttpCode.NotFound, 'Record does not exists');
+
+      return null;
+    }
+
+    return { collection: collectionName, recordId };
   }
 
   // Body array (POST) takes precedence over the comma-separated query param (GET).

@@ -170,7 +170,7 @@ const migrations = [
   },
 ];
 
-function buildUmzug(
+export function buildUmzug(
   sequelize: Sequelize,
   options: { schema?: string; tableName: string; transaction?: Transaction },
 ) {
@@ -198,7 +198,7 @@ function buildUmzug(
 // 42P06 = duplicate_schema (Postgres ≥ 9.2), 23505 = unique_violation on pg_namespace.
 const SCHEMA_ALREADY_EXISTS_CODES = new Set(['42P06', '23505']);
 
-function isSchemaAlreadyExistsError(error: unknown): boolean {
+export function isSchemaAlreadyExistsError(error: unknown): boolean {
   const code = (error as { original?: { code?: string } })?.original?.code;
 
   return code !== undefined && SCHEMA_ALREADY_EXISTS_CODES.has(code);
@@ -210,7 +210,10 @@ function isSchemaAlreadyExistsError(error: unknown): boolean {
  * pending in a transaction. Not covered by the advisory lock; the existence check + tolerated
  * "already exists" error makes it safe under concurrent boots instead.
  */
-async function ensureSchema(sequelize: Sequelize, schema: string | undefined): Promise<void> {
+export async function ensureSchema(
+  sequelize: Sequelize,
+  schema: string | undefined,
+): Promise<void> {
   if (!schema) return;
 
   const queryInterface = sequelize.getQueryInterface();

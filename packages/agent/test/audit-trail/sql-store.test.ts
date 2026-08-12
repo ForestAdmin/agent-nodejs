@@ -84,6 +84,18 @@ describe('createSqlAuditStore (sqlite round-trip)', () => {
     (runAuditMigrations as jest.Mock).mockResolvedValue(undefined);
   });
 
+  it('resets internal state after a failed init so a later call can retry', async () => {
+    const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
+    (runAuditMigrations as jest.Mock).mockImplementationOnce(() =>
+      Promise.reject(new Error('boom')),
+    );
+
+    await expect(store.append(record())).rejects.toThrow('boom');
+    await expect(store.append(record())).resolves.toBeUndefined();
+
+    await close();
+  });
+
   it('returns rows previously appended, sorted by timestamp, scoped to a single record', async () => {
     const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
 

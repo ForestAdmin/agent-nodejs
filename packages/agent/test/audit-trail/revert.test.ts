@@ -156,6 +156,41 @@ describe('revertRecord', () => {
     });
   });
 
+  test('removes multiple appended array elements, highest index first', () => {
+    const current = {
+      id: 1,
+      payload: [{ step: 'a' }, { step: 'b' }, { step: 'c' }],
+    };
+    const entries = [
+      update(
+        { payload: { 1: ABSENT, 2: ABSENT } },
+        { payload: { 1: { step: 'b' }, 2: { step: 'c' } } },
+      ),
+    ];
+
+    expect(revertRecord(current, entries)).toEqual({
+      id: 1,
+      payload: [{ step: 'a' }],
+    });
+  });
+
+  test('rebuilds a nested object from scratch when the current value is not an object', () => {
+    const current = { id: 1, payload: null };
+    const entries = [update({ payload: { theme: 'dark' } }, { payload: { theme: 'light' } })];
+
+    expect(revertRecord(current, entries)).toEqual({
+      id: 1,
+      payload: { theme: 'dark' },
+    });
+  });
+
+  test('removes a top-level column that did not exist before the update (ABSENT marker)', () => {
+    const current = { id: 1, status: 'closed', addedColumn: 'x' };
+    const entries = [update({ addedColumn: ABSENT }, { addedColumn: 'x' })];
+
+    expect(revertRecord(current, entries)).toEqual({ id: 1, status: 'closed' });
+  });
+
   test('does not mutate the current record passed in', () => {
     const current = { id: 1, status: 'closed', payload: { a: 1 } };
     const snapshot = JSON.parse(JSON.stringify(current));

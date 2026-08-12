@@ -75,5 +75,25 @@ describe('correlation-id', () => {
 
       expect(setHeader).not.toHaveBeenCalledWith(CORRELATION_ID_HEADER, expect.anything());
     });
+
+    test('still sets the header when the downstream handler throws', async () => {
+      const context = createMockContext({});
+      const setHeader = jest.spyOn(context.response, 'set');
+      const next = jest.fn().mockImplementation(async () => {
+        getRequestId(context);
+        throw new Error('boom');
+      });
+
+      await expect(correlationIdMiddleware(context, next)).rejects.toThrow('boom');
+
+      expect(setHeader).toHaveBeenCalledWith(CORRELATION_ID_HEADER, context.state.forestRequestId);
+    });
+
+    test('propagates the downstream error instead of swallowing it', async () => {
+      const context = createMockContext({});
+      const next = jest.fn().mockRejectedValue(new Error('boom'));
+
+      await expect(correlationIdMiddleware(context, next)).rejects.toThrow('boom');
+    });
   });
 });

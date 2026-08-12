@@ -455,6 +455,43 @@ describe('Agent', () => {
 
       expect(options.forestAdminClient.close).toHaveBeenCalledTimes(1);
     });
+
+    test('closes the audit-trail connection when one is configured', async () => {
+      // `withDefaults` always rebuilds `auditTrail` from a connection string via
+      // `createSqlAuditStore`, so a fake `close` can't be injected through the constructor —
+      // it's set directly on the already-built runtime options instead.
+      const close = jest.fn().mockResolvedValue(undefined);
+      const options = factories.forestAdminHttpDriverOptions.build();
+      const agent = new Agent(options);
+      (agent as unknown as { options: { auditTrail: unknown } }).options.auditTrail = { close };
+
+      await agent.stop();
+
+      expect(close).toHaveBeenCalledTimes(1);
+    });
+
+    test('does not attempt to close anything when no audit trail is configured', async () => {
+      const options = factories.forestAdminHttpDriverOptions.build({ auditTrail: null });
+      const agent = new Agent(options);
+
+      await expect(agent.stop()).resolves.toBeUndefined();
+    });
+
+    test('logs and still stops the framework when closing the audit trail fails', async () => {
+      const mockLogger = jest.fn();
+      const close = jest.fn().mockRejectedValue(new Error('connection reset'));
+      const options = factories.forestAdminHttpDriverOptions.build({ logger: mockLogger });
+      const agent = new Agent(options);
+      (agent as unknown as { options: { auditTrail: unknown } }).options.auditTrail = { close };
+
+      await expect(agent.stop()).resolves.toBeUndefined();
+
+      expect(mockLogger).toHaveBeenCalledWith(
+        'Error',
+        'Failed to close the audit-trail database connection: connection reset',
+      );
+      expect(options.forestAdminClient.close).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('updateTypesOnFileSystem', () => {

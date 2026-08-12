@@ -898,6 +898,35 @@ describe('AuditTrailRoute', () => {
         data: { id: 2, status: 'closed', name: 'Acme' },
       });
     });
+
+    test('returns 404 without exposing the delete snapshot when scope excludes a gone record', async () => {
+      const history = [
+        {
+          operation: 'delete',
+          previousValues: { id: 2, status: 'closed', name: 'Acme' },
+          newValues: {},
+        },
+      ];
+      const { services, dataSource, route } = setupBooks(history);
+      (services.authorization.getScope as jest.Mock).mockResolvedValue({
+        field: 'ownerId',
+        operator: 'Equal',
+        value: 1,
+      });
+      jest.spyOn(dataSource.getCollection('books'), 'list').mockResolvedValue([]);
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: {
+          query: { timezone: 'UTC', at: '2026-06-18' },
+          params: { id: '2' },
+        },
+      });
+
+      await route.handleStateAt(context);
+
+      expect(context.throw).toHaveBeenCalledWith(404, 'Record did not exist at this timestamp');
+      expect(context.response.body).toBeUndefined();
+    });
   });
 
   describe('conditional mounting', () => {

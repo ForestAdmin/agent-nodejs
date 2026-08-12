@@ -16,9 +16,11 @@ export function getRequestId(context: Context): string {
 }
 
 export async function correlationIdMiddleware(context: Context, next: Next): Promise<void> {
-  await next();
-
-  if (context.state[STATE_KEY]) {
-    context.response.set(CORRELATION_ID_HEADER, context.state[STATE_KEY] as string);
+  try {
+    await next();
+  } finally {
+    if (context.state[STATE_KEY]) {
+      context.response.set(CORRELATION_ID_HEADER, context.state[STATE_KEY] as string);
+    }
   }
 }

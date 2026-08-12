@@ -3,7 +3,12 @@ import type { AuditRecord } from '../../src/audit-trail';
 import { Sequelize } from 'sequelize';
 
 import { ensureAuditStorage, toRow } from '../../src/audit-trail';
-import { runAuditMigrations } from '../../src/audit-trail/migrations';
+import {
+  buildUmzug,
+  ensureSchema,
+  isSchemaAlreadyExistsError,
+  runAuditMigrations,
+} from '../../src/audit-trail/migrations';
 
 const record = (over: Partial<AuditRecord> = {}): AuditRecord => ({
   timestamp: '2026-01-02T03:04:05.000Z',
@@ -151,5 +156,106 @@ describe('ensureAuditStorage + insert (sqlite end to end)', () => {
     });
 
     await sequelize.close();
+  });
+});
+
+describe('buildUmzug (down migrations)', () => {
+  it('reverts all three migrations, dropping the table', async () => {
+    const sequelize = new Sequelize('sqlite::memory:', { logging: false });
+    const umzug = buildUmzug(sequelize, { tableName: 'audit_logs' });
+
+    await umzug.up();
+    await umzug.down({ to: 0 } as const);
+
+    await expect(sequelize.getQueryInterface().describeTable('audit_logs')).rejects.toThrow();
+
+    await sequelize.close();
+  });
+
+  it('reverts only migration 003, restoring the narrower record_id column and its index', async () => {
+    const sequelize = new Sequelize('sqlite::memory:', { logging: false });
+    const umzug = buildUmzug(sequelize, { tableName: 'audit_logs' });
+
+    await umzug.up();
+    await umzug.down({ step: 1 });
+
+    const description = await sequelize.getQueryInterface().describeTable('audit_logs');
+    expect(description.record_id.type).not.toBe('TEXT');
+
+    const indexes = (await sequelize.getQueryInterface().showIndex('audit_logs')) as Array<{
+      name: string;
+    }>;
+    expect(indexes.map(index => index.name)).toEqual(
+      expect.arrayContaining([
+        'audit_logs_record_id',
+        'audit_logs_correlation_key',
+        'audit_logs_user_id',
+      ]),
+    );
+
+    await sequelize.close();
+  });
+});
+
+describe('isSchemaAlreadyExistsError', () => {
+  it('recognizes the Postgres duplicate_schema and unique_violation codes', () => {
+    expect(isSchemaAlreadyExistsError({ original: { code: '42P06' } })).toBe(true);
+    expect(isSchemaAlreadyExistsError({ original: { code: '23505' } })).toBe(true);
+  });
+
+  it('returns false for an unrelated or missing error code', () => {
+    expect(isSchemaAlreadyExistsError({ original: { code: '42601' } })).toBe(false);
+    expect(isSchemaAlreadyExistsError(new Error('boom'))).toBe(false);
+  });
+});
+
+describe('ensureSchema', () => {
+  const fakeSequelize = (queryInterface: Record<string, jest.Mock>) =>
+    ({ getQueryInterface: () => queryInterface } as unknown as Sequelize);
+
+  it('does nothing when no schema is configured', async () => {
+    const createSchema = jest.fn();
+    const showAllSchemas = jest.fn();
+
+    await ensureSchema(fakeSequelize({ showAllSchemas, createSchema }), undefined);
+
+    expect(showAllSchemas).not.toHaveBeenCalled();
+    expect(createSchema).not.toHaveBeenCalled();
+  });
+
+  it('creates the schema when it does not already exist', async () => {
+    const createSchema = jest.fn().mockResolvedValue(undefined);
+    const showAllSchemas = jest.fn().mockResolvedValue([]);
+
+    await ensureSchema(fakeSequelize({ showAllSchemas, createSchema }), 'forest');
+
+    expect(createSchema).toHaveBeenCalledWith('forest');
+  });
+
+  it('skips creation when the schema already exists', async () => {
+    const createSchema = jest.fn();
+    const showAllSchemas = jest.fn().mockResolvedValue(['forest']);
+
+    await ensureSchema(fakeSequelize({ showAllSchemas, createSchema }), 'forest');
+
+    expect(createSchema).not.toHaveBeenCalled();
+  });
+
+  it('tolerates a concurrent "already exists" error', async () => {
+    const createSchema = jest.fn().mockRejectedValue({ original: { code: '42P06' } });
+    const showAllSchemas = jest.fn().mockResolvedValue([]);
+
+    await expect(
+      ensureSchema(fakeSequelize({ showAllSchemas, createSchema }), 'forest'),
+    ).resolves.toBeUndefined();
+  });
+
+  it('rethrows an unrelated error', async () => {
+    const createSchema = jest.fn().mockRejectedValue(new Error('connection lost'));
+    const showAllSchemas = jest.fn().mockResolvedValue([]);
+
+    await expect(
+      ensureSchema(fakeSequelize({ showAllSchemas, createSchema }), 'forest'),
+    ).rejects.toThrow('connection lost');
   });
 });

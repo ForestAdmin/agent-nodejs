@@ -124,8 +124,18 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     await this.embeddedExecutor?.stop();
     // Close anything related to ForestAdmin client
     this.options.forestAdminClient.close();
-    // Close the audit trail's database connection, if configured
-    await this.options.auditTrail?.close();
+
+    // A failure closing the audit-trail connection must not prevent framework shutdown below.
+    try {
+      await this.options.auditTrail?.close();
+    } catch (error) {
+      const { message } = error as Error;
+      this.options.logger(
+        'Error',
+        `Failed to close the audit-trail database connection: ${message}`,
+      );
+    }
+
     // Stop at framework level
     await super.stop();
   }

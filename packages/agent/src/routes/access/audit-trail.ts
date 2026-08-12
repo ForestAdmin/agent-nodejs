@@ -12,6 +12,7 @@ import {
 import { DateTime } from 'luxon';
 
 import { revertRecord } from '../../audit-trail';
+import isRecordVisible from '../../audit-trail/scope';
 import { HttpCode } from '../../types';
 import IdUtils from '../../utils/id';
 import QueryStringParser from '../../utils/query-string';
@@ -43,10 +44,10 @@ export default class AuditTrailRoute extends CollectionRoute {
 
     const scope = await this.services.authorization.getScope(this.collection, context);
 
-    // A record-level scope can't be checked retroactively for a now-deleted record, so a caller
-    // whose access is scoped down cannot browse the history of an id outside their current scope
-    // (or one that no longer matches it) — otherwise scope could be bypassed by deleting a record.
-    if (scope && !(await this.isRecordVisible(context, scope))) {
+    if (
+      scope &&
+      !(await isRecordVisible(this.services, this.collection, context.params.id, context))
+    ) {
       context.throw(HttpCode.NotFound, 'Record does not exists');
 
       return;
@@ -106,24 +107,6 @@ export default class AuditTrailRoute extends CollectionRoute {
     if (!state) context.throw(HttpCode.NotFound, 'Record did not exist at this timestamp');
 
     context.response.body = { data: state };
-  }
-
-  private async isRecordVisible(context: Context, scope: ConditionTree): Promise<boolean> {
-    const id = IdUtils.unpackId(this.collection.schema, context.params.id);
-    const filter = new PaginatedFilter({
-      conditionTree: ConditionTreeFactory.intersect(
-        ConditionTreeFactory.matchIds(this.collection.schema, [id]),
-        scope,
-      ),
-    });
-
-    const records = await this.collection.list(
-      QueryStringParser.parseCaller(context, { defaultTimezone: 'UTC' }),
-      filter,
-      new Projection(...SchemaUtils.getPrimaryKeys(this.collection.schema)),
-    );
-
-    return records.length > 0;
   }
 
   private async fetchCurrentRecord(
