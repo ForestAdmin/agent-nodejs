@@ -82,6 +82,70 @@ describe('CsvRelatedRoute', () => {
       });
     });
 
+    it('should give precedence to the Forest-Projection header over query params', async () => {
+      const { options, services, dataSource } = setupWithOneToManyRelation();
+      const csvRoute = new CsvRoute(services, options, dataSource, 'books', 'myPersons');
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        headers: { 'forest-projection': 'name' },
+        customProperties: {
+          query: { 'fields[persons]': 'id', header: 'Name column', timezone: 'Europe/Paris' },
+          params: { parentId: '123e4567-e89b-12d3-a456-111111111111' },
+        },
+      });
+
+      jest.spyOn(CollectionUtils, 'listRelation').mockResolvedValue([]);
+      const csvGenerator = jest.spyOn(CsvGenerator, 'generate');
+
+      await csvRoute.handleRelatedCsv(context);
+
+      await readCsv(context.response.body as AsyncGenerator<string>);
+      expect(csvGenerator).toHaveBeenCalledWith(
+        expect.anything(),
+        ['name'],
+        'Name column',
+        expect.anything(),
+        limitExportSize,
+        dataSource.getCollection('persons'),
+        expect.any(Function),
+      );
+    });
+
+    it('should not fall back to query params when the header is invalid', async () => {
+      const { options, services, dataSource } = setupWithOneToManyRelation();
+      const csvRoute = new CsvRoute(services, options, dataSource, 'books', 'myPersons');
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        headers: { 'forest-projection': 'field-that-do-not-exist' },
+        customProperties: {
+          query: { 'fields[persons]': 'id', header: 'id', timezone: 'Europe/Paris' },
+          params: { parentId: '123e4567-e89b-12d3-a456-111111111111' },
+        },
+      });
+
+      await expect(csvRoute.handleRelatedCsv(context)).rejects.toThrow(
+        'Invalid Forest-Projection header',
+      );
+    });
+
+    it('should not set the download headers when the projection is invalid', async () => {
+      const { options, services, dataSource } = setupWithOneToManyRelation();
+      const csvRoute = new CsvRoute(services, options, dataSource, 'books', 'myPersons');
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        headers: { 'forest-projection': 'field-that-do-not-exist' },
+        customProperties: {
+          query: { filename: 'export', header: 'id', timezone: 'Europe/Paris' },
+          params: { parentId: '123e4567-e89b-12d3-a456-111111111111' },
+        },
+      });
+
+      await expect(csvRoute.handleRelatedCsv(context)).rejects.toThrow(
+        'Invalid Forest-Projection header',
+      );
+      expect(context.response.headers['content-disposition']).toBeUndefined();
+    });
+
     it('calls the csv generator with the right params', async () => {
       // given
       const { options, services, dataSource } = setupWithOneToManyRelation();

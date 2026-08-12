@@ -19,12 +19,13 @@ export default class CsvRoute extends CollectionRoute {
     await this.services.authorization.assertCanExport(context, this.collection.name);
 
     const { header } = context.request.query as Record<string, string>;
-    CsvRouteContext.buildResponse(context);
 
-    const projection = QueryStringParser.parseProjection(this.collection, context);
+    const projection = QueryStringParser.parseProjectionFromHeaderOrQuery(this.collection, context);
     const scope = await this.services.authorization.getScope(this.collection, context);
     const caller = QueryStringParser.parseCaller(context);
     const filter = ContextFilterFactory.buildPaginated(this.collection, context, scope);
+
+    CsvRouteContext.buildResponse(context);
 
     const list = this.collection.list.bind(this.collection);
 

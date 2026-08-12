@@ -339,6 +339,73 @@ describe('Agent Integration Tests', () => {
         expect(error.status).toBe(400);
       });
 
+      it('should honor the Forest-Projection header on list requests', async () => {
+        const token = createTestToken();
+
+        const response = await superagent
+          .get(`${testContext.baseUrl}/forest/users`)
+          .query({ timezone: 'Europe/Paris' })
+          .set('Authorization', `Bearer ${token}`)
+          .set('Forest-Projection', 'firstName');
+
+        expect(response.status).toBe(200);
+        expect(response.body.data).toHaveLength(3);
+        expect(response.body.data[0].attributes).toEqual({ id: 1, firstName: 'John' });
+      });
+
+      it('should honor the Forest-Projection header on relationship list requests', async () => {
+        const token = createTestToken();
+
+        const response = await superagent
+          .get(`${testContext.baseUrl}/forest/users/1/relationships/posts`)
+          .query({ timezone: 'Europe/Paris' })
+          .set('Authorization', `Bearer ${token}`)
+          .set('Forest-Projection', 'title');
+
+        expect(response.status).toBe(200);
+        expect(response.body.data).toHaveLength(2);
+        expect(response.body.data[0].attributes).toEqual({ id: 1, title: 'First Post' });
+      });
+
+      it('should honor the Forest-Projection header on csv export requests', async () => {
+        const token = createTestToken();
+
+        const response = await superagent
+          .get(`${testContext.baseUrl}/forest/users.csv`)
+          .query({ timezone: 'Europe/Paris', header: 'firstName' })
+          .set('Authorization', `Bearer ${token}`)
+          .set('Forest-Projection', 'firstName');
+
+        expect(response.status).toBe(200);
+        expect(response.text).toBe('firstName\nJohn\nJane\nBob\n');
+      });
+
+      it('should ignore the Forest-Projection header on count requests', async () => {
+        const token = createTestToken();
+
+        const response = await superagent
+          .get(`${testContext.baseUrl}/forest/users/count`)
+          .query({ timezone: 'Europe/Paris' })
+          .set('Authorization', `Bearer ${token}`)
+          .set('Forest-Projection', 'field-that-do-not-exist');
+
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual({ count: 3 });
+      });
+
+      it('should ignore the Forest-Projection header on relationship count requests', async () => {
+        const token = createTestToken();
+
+        const response = await superagent
+          .get(`${testContext.baseUrl}/forest/users/1/relationships/posts/count`)
+          .query({ timezone: 'Europe/Paris' })
+          .set('Authorization', `Bearer ${token}`)
+          .set('Forest-Projection', 'field-that-do-not-exist');
+
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual({ count: 2 });
+      });
+
       it('should accept authenticated requests with valid JWT', async () => {
         const token = createTestToken();
 

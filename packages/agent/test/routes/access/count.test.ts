@@ -51,6 +51,21 @@ describe('CountRoute', () => {
         expect(context.response.body).toEqual({ count: 2 });
       });
 
+      test('should ignore the Forest-Projection header', async () => {
+        const aggregateSpy = jest.fn().mockReturnValue([{ value: 2 }]);
+        dataSource.getCollection('books').aggregate = aggregateSpy;
+        const count = new Count(services, options, dataSource, 'books');
+        const context = createMockContext({
+          headers: { 'forest-projection': 'field-that-do-not-exist' },
+          customProperties: { query: { timezone: 'Europe/Paris' } },
+          state: { user: { email: 'john.doe@domain.com' } },
+        });
+
+        await count.handleCount(context);
+
+        expect(context.response.body).toEqual({ count: 2 });
+      });
+
       test('should check that the user has permission to count', async () => {
         const aggregateSpy = jest.fn().mockReturnValue([{ value: 2 }]);
         dataSource.getCollection('books').aggregate = aggregateSpy;

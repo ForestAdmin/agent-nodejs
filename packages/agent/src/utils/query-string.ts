@@ -86,12 +86,11 @@ export default class QueryStringParser {
     }
   }
 
-  static parseProjectionWithPks(collection: Collection, context: Context): Projection {
-    const projection = QueryStringParser.parseProjection(collection, context);
-
-    // Primary keys are not explicitly listed in the projections that the frontend
-    // is sending, but are still required for the frontend to work.
-    return projection.withPks(collection);
+  static parseProjectionFromHeaderOrQuery(collection: Collection, context: Context): Projection {
+    return (
+      QueryStringParser.parseProjectionFromHeader(collection, context) ??
+      QueryStringParser.parseProjection(collection, context)
+    );
   }
 
   static parseSearch(collection: Collection, context: Context): string {
