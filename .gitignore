@@ -18,6 +18,9 @@ lerna-debug.log
 # forest-bff openapi --output default destination
 openapi.json
 
+# local upload storage of the _example agent
+.upload-storage
+
 # yarn
 yarn-error.log
 .vscode/settings.json

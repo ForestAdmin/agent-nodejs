@@ -20,6 +20,7 @@ This MCP server provides HTTP REST API access to Forest Admin operations, enabli
 | `dissociate` | Dissociate records from a relation |
 | `getActionForm` | Get the form fields for a custom action |
 | `executeAction` | Execute a custom action |
+| `requestFileUpload` | Get a destination to upload a file to, for an action `File` field (only with `fileUploads`) |
 
 ## Usage
 
@@ -196,6 +197,14 @@ be able to make it:
 
 The tool states this prerequisite in its description and repeats it in its response, so a model
 whose upload was blocked has the diagnosis in context.
+
+### Trying it locally
+
+`packages/_example` wires the whole flow with no cloud account: `local-upload-storage.ts` is a
+disk-backed `UploadStorage` that serves its own PUT endpoint, and the `review` collection carries an
+`Attach a document` action with a `File` and a `FileList` field. Start the example agent, connect an
+MCP client to it, and ask for that action with a file — the action reports the name, mime type and
+byte count it received.
 
 ```mermaid
 sequenceDiagram

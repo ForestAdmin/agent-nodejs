@@ -19,6 +19,7 @@ import customizeReview from './customizations/review';
 import customizeSales from './customizations/sale';
 import customizeStore from './customizations/store';
 import createTypicode from './datasources/typicode';
+import createLocalUploadStorage from './local-upload-storage';
 import mongoose, { connectionString } from '../connections/mongoose';
 import sequelizeMsSql from '../connections/sequelize-mssql';
 import sequelizeMySql from '../connections/sequelize-mysql';
@@ -93,7 +94,10 @@ export default function makeAgent() {
 
       return resultBuilder.value((rows?.[0]?.value as number) ?? 0);
     })
-    .mountAiMcpServer(allowedOAuthClients ? { allowedOAuthClients } : undefined)
+    .mountAiMcpServer({
+      ...(allowedOAuthClients && { allowedOAuthClients }),
+      fileUploads: { storage: createLocalUploadStorage() },
+    })
 
     .customizeCollection('card', customizeCard)
     .customizeCollection('account', customizeAccount)
