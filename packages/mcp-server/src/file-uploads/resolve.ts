@@ -84,13 +84,6 @@ async function download(
     );
   });
 
-  // Only a backend that creates empty objects reaches this.
-  if (buffer.length === 0) {
-    throw new Error(
-      `Field "${field}": uploaded file is empty. Did the upload to uploadUrl succeed?`,
-    );
-  }
-
   // Re-checked after download because getSize is advisory, and because the object can be
   // replaced between the two calls.
   if (buffer.length > uploads.maxBytes) throw tooLarge(buffer.length);

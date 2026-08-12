@@ -216,8 +216,9 @@ be able to make it:
 
 - **Claude Code** and custom agents: works, they have shell or HTTP access.
 - **Claude Desktop and Claude.ai**: the attached file lands in the code execution sandbox and the
-  model can `curl -X PUT -T <path> <uploadUrl>`, but **the sandbox blocks outbound traffic by
-  default**. The host of `uploadUrl` must be added under *Settings > Capabilities > Code execution
+  model can `curl -X PUT -T <path> <uploadUrl>` — applying every header the tool returned, since a
+  pinned `sha256` is signed into `x-amz-checksum-sha256` on S3 and the PUT is rejected without it —
+  but **the sandbox blocks outbound traffic by default**. The host of `uploadUrl` must be added under *Settings > Capabilities > Code execution
   and file creation > Additional allowed domains*. Without it the upload fails and nothing on the
   server side can tell you why — so document your bucket's host for your users.
 

@@ -106,6 +106,18 @@ describe('DataUri', () => {
       expect(() => parseDataUri(value)).toThrow(ValidationError);
     });
 
+    // Assigning any key would let a model-supplied uri replace the decoded bytes with a string.
+    it.each([
+      ['buffer', 'data:text/plain;buffer=oops;base64,aGk='],
+      ['mimeType', 'data:text/plain;mimeType=image/png;base64,aGk='],
+    ])('ignores a %p media type rather than letting it overwrite the parsed file', (_, uri) => {
+      const file = parseDataUri(uri);
+
+      expect(Buffer.isBuffer(file.buffer)).toBe(true);
+      expect(file.buffer.toString()).toBe('hi');
+      expect(file.mimeType).toBe('text/plain');
+    });
+
     it('still accepts a percent-encoded name', () => {
       expect(parseDataUri('data:text/plain;name=100%25.pdf;base64,aGk=').name).toBe('100%.pdf');
     });

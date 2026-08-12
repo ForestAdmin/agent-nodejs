@@ -146,12 +146,18 @@ describe('resolveUploadedFileValues', () => {
     ).rejects.toThrow('above the 10 byte limit');
   });
 
-  it('rejects an empty upload with a hint about the PUT step', async () => {
+  // A missing object is already rejected by download, so zero bytes only ever means the user
+  // uploaded an empty file — which maxBytes allows.
+  it('accepts a legitimately empty file', async () => {
     const storage = makeStorage({ download: jest.fn().mockResolvedValue(Buffer.alloc(0)) });
 
-    await expect(
-      resolveUploadedFileValues({ document: makeHandle() }, authInfo, makeUploads(storage)),
-    ).rejects.toThrow('Field "document": uploaded file is empty');
+    const resolved = await resolveUploadedFileValues(
+      { document: makeHandle() },
+      authInfo,
+      makeUploads(storage),
+    );
+
+    expect((resolved.document as { buffer: Buffer }).buffer).toHaveLength(0);
   });
 
   it('rejects content that does not match the sha256 the handle was pinned to', async () => {
@@ -216,7 +222,7 @@ describe('resolveUploadedFileValues', () => {
   });
 
   it('names the field in the error, so the model knows which file to re-upload', async () => {
-    const storage = makeStorage({ download: jest.fn().mockResolvedValue(Buffer.alloc(0)) });
+    const storage = makeStorage({ download: jest.fn().mockRejectedValue(new Error('NoSuchKey')) });
 
     await expect(
       resolveUploadedFileValues({ invoice: makeHandle() }, authInfo, makeUploads(storage)),

@@ -2,6 +2,8 @@ import type { File } from '../interfaces/action';
 
 import { ValidationError } from '../errors';
 
+const METADATA_KEYS = ['name', 'charset'] as const;
+
 export function isDataUri(value: unknown): value is string {
   return typeof value === 'string' && value.startsWith('data:');
 }
@@ -42,10 +44,13 @@ export function parseDataUri(dataUri: string): File {
 
   for (const mediaType of mediaTypes) {
     const index = mediaType.indexOf('=');
+    const key = index === -1 ? '' : mediaType.substring(0, index);
 
-    if (index !== -1) {
+    // Assigning any key would let "buffer=oops" replace the decoded bytes with a string, or
+    // "mimeType=..." contradict the header. Only the metadata Forest carries is read back.
+    if (METADATA_KEYS.includes(key as (typeof METADATA_KEYS)[number])) {
       try {
-        result[mediaType.substring(0, index)] = decodeURIComponent(mediaType.substring(index + 1));
+        result[key] = decodeURIComponent(mediaType.substring(index + 1));
       } catch {
         throw malformed();
       }

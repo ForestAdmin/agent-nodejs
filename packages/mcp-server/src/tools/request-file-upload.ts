@@ -63,7 +63,7 @@ Call this whenever getActionForm shows a field of type "File" or "FileList". Nev
 
 Workflow:
 1. Call this tool with the filename and mimeType. Pass sha256 to pin the upload to that exact content.
-2. Upload the raw bytes to the returned uploadUrl, with the returned method and headers, for example "curl -X PUT -T <path> <uploadUrl>". The bytes must not pass through this tool or through your own output.
+2. Upload the raw bytes to the returned uploadUrl, with the returned method and every returned header — a pinned sha256 is signed into a checksum header, and the upload is rejected if you omit it. The bytes must not pass through this tool or through your own output.
 3. Pass the returned fileHandle string as the value of the file field in executeAction.
 
 ${UPLOAD_PREREQUISITE}
