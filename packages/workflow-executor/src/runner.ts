@@ -203,15 +203,21 @@ export default class Runner {
     // Not awaited: the chain's outcome travels through updateStepExecution, never through this
     // response.
     void this.executeStep(step, auth.forestServerToken, options?.pendingData).catch(error => {
+      // Built before the try: causeMessage destructures its argument, so a null rejection would
+      // throw here and the catch below would turn the one FATAL line into no output at all.
+      const context = {
+        runId,
+        stepId: step.stepId,
+        stepIndex: step.stepIndex,
+        error: extractErrorMessage(error),
+        cause: error === null || error === undefined ? undefined : causeMessage(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      };
+
       // A throwing host logger must not reject this handler — nothing awaits it, so that would
       // take the process down instead of the one run.
       try {
-        this.logger('Error', 'FATAL: in-flight chain rejected — outcome not reported', {
-          runId,
-          error: extractErrorMessage(error),
-          cause: causeMessage(error),
-          stack: error instanceof Error ? error.stack : undefined,
-        });
+        this.logger('Error', 'FATAL: in-flight chain rejected', context);
       } catch {
         /* empty */
       }

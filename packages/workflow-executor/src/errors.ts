@@ -458,7 +458,7 @@ export class UserMismatchError extends AccessDeniedError {
 // distinct class so toHttpError can flag it as expected churn (a double trigger isn't log-worthy).
 export class RunAlreadyInFlightError extends WorkflowExecutorError {
   constructor(runId: string) {
-    super(`Run "${runId}" is already being processed`);
+    super(`Run "${runId}" is already being processed`, 'This step is already running.');
   }
 }
 

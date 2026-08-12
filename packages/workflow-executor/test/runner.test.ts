@@ -818,7 +818,7 @@ describe('trigger acknowledgement', () => {
 
     expect(mockLogger).toHaveBeenCalledWith(
       'Error',
-      'FATAL: in-flight chain rejected — outcome not reported',
+      'FATAL: in-flight chain rejected',
       expect.objectContaining({ runId: 'run-1', error: 'host logger exploded' }),
     );
   });
@@ -2188,6 +2188,7 @@ describe('error handling', () => {
   it('does not re-throw if updateStepExecution fails after a construction error', async () => {
     const workflowPort = createMockWorkflowPort();
     const aiClient = createMockAiClient();
+    const mockLogger = createMockLogger();
     const step = makePendingStep({ runId: 'run-1', stepId: 'step-fallback' });
     workflowPort.getAvailableRun.mockResolvedValue({
       step,
@@ -2199,10 +2200,20 @@ describe('error handling', () => {
     workflowPort.updateStepExecution.mockRejectedValueOnce(new Error('update failed'));
 
     runner = new Runner(
-      createRunnerConfig({ workflowPort, aiModelPort: aiClient as unknown as AiModelPort }),
+      createRunnerConfig({
+        workflowPort,
+        aiModelPort: aiClient as unknown as AiModelPort,
+        logger: mockLogger,
+      }),
     );
 
-    await expect(runner.triggerPoll('run-1')).resolves.toBeUndefined();
+    await expect(triggerAndDrain(runner, 'run-1')).resolves.toBeUndefined();
+
+    expect(mockLogger).toHaveBeenCalledWith(
+      'Error',
+      'Failed to report step outcome',
+      expect.objectContaining({ runId: 'run-1', stepId: 'step-fallback', error: 'update failed' }),
+    );
   });
 
   it('logs FATAL and posts a synthetic error outcome if executor.execute() rejects', async () => {
