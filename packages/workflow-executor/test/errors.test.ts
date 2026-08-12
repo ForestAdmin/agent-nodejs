@@ -6,6 +6,7 @@ import {
   OAuthReauthRequiredError,
   OAuthRefreshError,
   PendingDataNotFoundError,
+  causeMessage,
   extractErrorMessage,
 } from '../src/errors';
 
@@ -69,6 +70,27 @@ describe('extractErrorMessage', () => {
     (err as Error & { cause?: unknown }).cause = new Error('from cause');
 
     expect(extractErrorMessage(err)).toBe('from cause');
+  });
+});
+
+describe('causeMessage', () => {
+  it('returns the cause message when the error has an Error cause', () => {
+    const err = new Error('outer');
+    (err as Error & { cause?: unknown }).cause = new Error('inner');
+
+    expect(causeMessage(err)).toBe('inner');
+  });
+
+  it('returns undefined for a rejection with no usable cause', () => {
+    expect(causeMessage(new Error('no cause'))).toBeUndefined();
+    expect(causeMessage('a string')).toBeUndefined();
+  });
+
+  // Callers log from catch handlers, several of which cannot themselves throw — a rejection value
+  // of null or undefined must not turn a log line into a second failure.
+  it('returns undefined for null and undefined', () => {
+    expect(causeMessage(null)).toBeUndefined();
+    expect(causeMessage(undefined)).toBeUndefined();
   });
 });
 

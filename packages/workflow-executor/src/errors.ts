@@ -5,7 +5,7 @@ import type { AwaitingInputReason } from './types/validated/step-outcome';
 import type { z } from 'zod';
 
 export function causeMessage(error: unknown): string | undefined {
-  const { cause } = error as { cause?: unknown };
+  const { cause } = (error ?? {}) as { cause?: unknown };
 
   return cause instanceof Error ? cause.message : undefined;
 }
