@@ -92,21 +92,13 @@ function positiveInteger(
 }
 
 export function resolveFileUploads(
-  options: (FileUploadsOptions & { isEphemeral?: boolean }) | undefined,
+  options: FileUploadsOptions | undefined,
   authSecret: string,
   logger?: Logger,
 ): ResolvedFileUploads | undefined {
   if (!options) return undefined;
 
   if (!options.storage) throw new Error('fileUploads.storage is required.');
-
-  if (options.ephemeralMaxTotalBytes !== undefined && !options.isEphemeral) {
-    logger?.(
-      'Warn',
-      'fileUploads.ephemeralMaxTotalBytes only bounds the in-memory store and is ignored when a ' +
-        'storage backend is given.',
-    );
-  }
 
   const uploadUrlTtlSeconds =
     positiveInteger('uploadUrlTtlSeconds', options.uploadUrlTtlSeconds) ??

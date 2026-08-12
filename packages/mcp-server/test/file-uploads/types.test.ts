@@ -118,25 +118,4 @@ describe('resolveFileUploads', () => {
       ).not.toThrow();
     });
   });
-
-  // The option only bounds the in-memory store, so silently ignoring it would let someone believe
-  // they had capped their own backend.
-  it('warns when the ephemeral bound is set alongside a storage backend', () => {
-    resolveFileUploads({ storage, ephemeralMaxTotalBytes: 1024 }, AUTH_SECRET, logger);
-
-    expect(logger).toHaveBeenCalledWith(
-      'Warn',
-      expect.stringContaining('only bounds the in-memory store'),
-    );
-  });
-
-  it('stays quiet when it bounds the store it applies to', () => {
-    resolveFileUploads(
-      { storage, ephemeralMaxTotalBytes: 1024, isEphemeral: true },
-      AUTH_SECRET,
-      logger,
-    );
-
-    expect(logger).not.toHaveBeenCalled();
-  });
 });

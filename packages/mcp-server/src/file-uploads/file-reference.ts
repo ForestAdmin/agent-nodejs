@@ -6,14 +6,12 @@
  */
 export const UPLOADED_FILE_PREFIX = '$uploadedFile:';
 
-export type FileReference = { kind: 'uploadHandle'; handle: string };
-
 /**
- * Isolated so that the file URIs the MCP specification is designing (SEP-2631) can be added
- * as another kind without touching the resolution path.
+ * Isolated so that the file URIs the MCP specification is designing (SEP-2631) can be recognized
+ * here without touching the resolution path.
  */
-export default function parseFileReference(value: unknown): FileReference | null {
+export default function parseFileReference(value: unknown): string | null {
   if (typeof value !== 'string' || !value.startsWith(UPLOADED_FILE_PREFIX)) return null;
 
-  return { kind: 'uploadHandle', handle: value.slice(UPLOADED_FILE_PREFIX.length) };
+  return value.slice(UPLOADED_FILE_PREFIX.length);
 }

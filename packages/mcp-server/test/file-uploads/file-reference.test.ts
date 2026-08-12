@@ -6,10 +6,7 @@ describe('parseFileReference', () => {
   });
 
   it('extracts the handle of an upload reference', () => {
-    expect(parseFileReference('$uploadedFile:a.b.c')).toEqual({
-      kind: 'uploadHandle',
-      handle: 'a.b.c',
-    });
+    expect(parseFileReference('$uploadedFile:a.b.c')).toBe('a.b.c');
   });
 
   it.each([

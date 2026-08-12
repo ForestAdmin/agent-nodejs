@@ -19,10 +19,10 @@ function collectReferences(
     const candidates = Array.isArray(value) ? value : [value];
 
     candidates.forEach(candidate => {
-      const parsed = parseFileReference(candidate);
+      const handle = parseFileReference(candidate);
 
-      if (parsed && !references.has(candidate as string)) {
-        references.set(candidate as string, { field, handle: parsed.handle });
+      if (handle && !references.has(candidate as string)) {
+        references.set(candidate as string, { field, handle });
       }
     });
   }
@@ -146,8 +146,7 @@ export default async function resolveUploadedFileValues(
     ),
   );
 
-  const substitute = (value: unknown) =>
-    files.has(value as string) ? files.get(value as string) : value;
+  const substitute = (value: unknown) => files.get(value as string) ?? value;
 
   return Object.fromEntries(
     Object.entries(values).map(([field, value]) => [

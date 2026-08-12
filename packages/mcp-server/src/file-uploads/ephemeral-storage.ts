@@ -29,10 +29,9 @@ interface EphemeralOptions {
 export default class EphemeralStorage implements UploadStorage {
   private readonly objects = new Map<string, StoredObject>();
   private readonly issued = new Map<string, number>();
-  private readonly expired = new Map<string, number>();
   private storedBytes = 0;
   private inFlightBytes = 0;
-  private options?: EphemeralOptions;
+  private options!: EphemeralOptions;
 
   /** Separate from the constructor because the server only knows its own base url later. */
   configure(options: EphemeralOptions): void {
@@ -40,7 +39,7 @@ export default class EphemeralStorage implements UploadStorage {
   }
 
   async createUploadUrl({ key }: { key: string }): Promise<{ url: string; method: string }> {
-    const { publicBaseUrl, issuedTtlSeconds } = this.settings();
+    const { publicBaseUrl, issuedTtlSeconds } = this.options;
 
     // Recorded so the endpoint only accepts keys it handed out. Without this, anything reaching the
     // origin could fill the store under keys of its own and deny the feature to everyone else.
@@ -56,7 +55,14 @@ export default class EphemeralStorage implements UploadStorage {
   async download(key: string): Promise<Buffer> {
     const stored = this.read(key);
 
-    if (!stored) throw new Error(this.absenceReason(key));
+    if (!stored) {
+      throw new Error(
+        'not found in the in-memory store. Either the upload never completed — a refused one is ' +
+          'answered with a 413 — or it expired after handleTtlSeconds, or it reached another ' +
+          'instance: this store only holds what this instance received, so several replicas or a ' +
+          'serverless runtime need a storage backend on the fileUploads option.',
+      );
+    }
 
     // Dropped on read: the store is small, and keeping consumed objects until their ttl would let
     // a handful of redeemed uploads fill it. A handle is single-use against this backend.
@@ -81,7 +87,7 @@ export default class EphemeralStorage implements UploadStorage {
 
     router.put('/:key', (req: Request, res: Response) => {
       const { key } = req.params;
-      const { maxBytes, maxTotalBytes } = this.settings();
+      const { maxBytes, maxTotalBytes } = this.options;
 
       this.expire();
 
@@ -188,41 +194,11 @@ export default class EphemeralStorage implements UploadStorage {
     return router;
   }
 
-  private settings(): EphemeralOptions {
-    if (!this.options) {
-      throw new Error('EphemeralStorage was used before configure() — this is a wiring mistake.');
-    }
-
-    return this.options;
-  }
-
-  // An expired object and one that was never uploaded are the same absence to the caller, but the
-  // advice differs: one is a ttl to raise, the other a deployment to reconsider.
-  private absenceReason(key: string): string {
-    const expiredAt = this.expired.get(key);
-
-    if (expiredAt !== undefined) {
-      const ago = Math.round((Date.now() - expiredAt) / 1000);
-
-      return `expired from the in-memory store ${ago}s ago, after handleTtlSeconds elapsed.`;
-    }
-
-    // The refusal case is the one an operator meets first, and pointing it straight at the
-    // deployment sends it hunting for a replica problem it does not have.
-    return (
-      'not found in the in-memory store. Either the upload never completed — a refused one is ' +
-      'answered with a 413 — or it reached another instance: this store only holds what this ' +
-      'instance received, so several replicas or a serverless runtime need a storage backend on ' +
-      'the fileUploads option.'
-    );
-  }
-
   private write(key: string, body: Buffer): void {
     this.forget(key);
-    this.objects.set(key, { body, expiresAt: Date.now() + this.settings().ttlSeconds * 1000 });
+    this.objects.set(key, { body, expiresAt: Date.now() + this.options.ttlSeconds * 1000 });
     this.storedBytes += body.length;
     this.issued.delete(key);
-    this.expired.delete(key);
   }
 
   private read(key: string): StoredObject | undefined {
@@ -244,20 +220,11 @@ export default class EphemeralStorage implements UploadStorage {
     const now = Date.now();
 
     this.objects.forEach((stored, key) => {
-      if (stored.expiresAt <= now) {
-        this.forget(key);
-        this.expired.set(key, stored.expiresAt);
-      }
+      if (stored.expiresAt <= now) this.forget(key);
     });
 
     this.issued.forEach((expiresAt, key) => {
       if (expiresAt <= now) this.issued.delete(key);
-    });
-
-    // Bounded: it only holds keys, and a redemption that never comes is not worth remembering
-    // longer than the objects themselves.
-    this.expired.forEach((expiresAt, key) => {
-      if (expiresAt + this.settings().ttlSeconds * 1000 <= now) this.expired.delete(key);
     });
   }
 }

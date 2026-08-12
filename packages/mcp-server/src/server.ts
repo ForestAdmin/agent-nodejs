@@ -474,7 +474,7 @@ export default class ForestMCPServer {
     this.fileUploads = resolveFileUploads(
       this.fileUploadsOptions && {
         ...this.fileUploadsOptions,
-        ...(this.ephemeralStorage && { storage: this.ephemeralStorage, isEphemeral: true }),
+        ...(this.ephemeralStorage && { storage: this.ephemeralStorage }),
       },
       authSecret,
       this.logger,
