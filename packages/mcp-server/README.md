@@ -68,6 +68,7 @@ yarn start:dev       # Development (loads .env file automatically)
 | `FOREST_AGENT_URL` | No | your environment's back-end URL | URL the MCP server uses to reach the back-end's data layer. Set it when the server runs next to a self-hosted back-end at an internal address (e.g. `http://localhost:3310`), instead of the public URL registered in Forest |
 | `FOREST_MCP_ACCESS_TOKEN_TTL_SECONDS` | No | `3600` (1 hour) | Maximum lifetime of the OAuth access tokens the server issues (`tokenTtl.accessTokenSeconds`). Minimum `60` |
 | `FOREST_MCP_REFRESH_TOKEN_TTL_SECONDS` | No | unbounded | Maximum time between two interactive logins (`tokenTtl.refreshTokenSeconds`). Unset, a client that keeps refreshing never signs in again. Minimum `60` |
+| `FOREST_MCP_UPLOAD_STORAGE_MODULE` | No | - | Path to a module providing the `fileUploads` options, enabling action file uploads on the standalone server. See [Action File Uploads](#action-file-uploads) |
 
 #### Example Configuration
 
@@ -182,6 +183,31 @@ the conversation:
 3. The client passes the handle (`"$uploadedFile:<...>"`) as the field value in `executeAction`. The server downloads the object and hands it to the agent. The model only ever exchanges the small handle.
 
 `requestFileUpload` is registered only when `fileUploads` is set, so a server without a storage backend never advertises it. It is available on the embedded mount too: `agent.mountAiMcpServer({ fileUploads: { storage } })`.
+
+### On the standalone server
+
+A storage backend is an object with methods, so unlike every other standalone option it cannot
+travel through an environment variable. Point `FOREST_MCP_UPLOAD_STORAGE_MODULE` at a module that
+default-exports the options instead — a bad path or a module without a `storage` fails at startup
+rather than running with uploads silently disabled:
+
+```javascript
+// forest-upload-storage.js
+module.exports = {
+  storage: {
+    /* createUploadUrl / download / getSize, as below */
+  },
+  maxBytes: 50 * 1024 * 1024,
+  downloadTimeoutSeconds: 10,
+};
+```
+
+```bash
+FOREST_MCP_UPLOAD_STORAGE_MODULE=./forest-upload-storage.js npx forest-mcp-server
+```
+
+The module may also export a function, sync or async, returning the same options — useful when the
+backend needs credentials fetched at boot.
 
 ### The client must be able to upload
 
