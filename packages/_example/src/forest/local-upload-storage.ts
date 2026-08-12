@@ -12,6 +12,10 @@ import * as path from 'path';
  * object. Fine on localhost, never in production — there, hand a real backend to `fileUploads`
  * and let it sign the upload URL (see the mcp-server README).
  */
+// Slightly above the 20 MiB fileUploads default, so an oversized upload is reported by the
+// server's own maxBytes check rather than masked by this one.
+const MAX_BODY_BYTES = 25 * 1024 * 1024;
+
 export default function createLocalUploadStorage(
   port = Number(process.env.HTTP_PORT_UPLOAD_STORAGE ?? 3370),
 ): UploadStorage {
@@ -45,8 +49,31 @@ export default function createLocalUploadStorage(
     }
 
     const chunks: Buffer[] = [];
-    req.on('data', chunk => chunks.push(chunk as Buffer));
+    let received = 0;
+    let refused = false;
+
+    // Nothing authenticates this endpoint, so an unbounded body is a way to run the agent out of
+    // memory. Refuse as soon as the limit is crossed instead of accumulating to the end.
+    req.on('data', chunk => {
+      if (refused) return;
+
+      received += (chunk as Buffer).length;
+
+      if (received > MAX_BODY_BYTES) {
+        refused = true;
+        log(`refused ${rawKey}: body exceeds ${MAX_BODY_BYTES} bytes`);
+        res.writeHead(413).end();
+        req.destroy();
+
+        return;
+      }
+
+      chunks.push(chunk as Buffer);
+    });
+
     req.on('end', () => {
+      if (refused) return;
+
       const body = Buffer.concat(chunks);
 
       // Everything that can throw on a caller-controlled key runs inside this chain: both
