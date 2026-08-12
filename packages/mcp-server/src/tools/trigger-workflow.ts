@@ -31,6 +31,13 @@ function notMcpEnabledMessage(workflowId: string): string {
   );
 }
 
+function unavailableCollectionMessage(workflowId: string): string {
+  return (
+    `Workflow "${workflowId}" cannot be triggered via MCP because its collection is unavailable. ` +
+    "Check the workflow's configuration in Forest."
+  );
+}
+
 export default function declareTriggerWorkflowTool(mcpServer: McpServer, ctx: ToolContext): string {
   const { forestServerClient, logger } = ctx;
 
@@ -58,9 +65,8 @@ export default function declareTriggerWorkflowTool(mcpServer: McpServer, ctx: To
     async (args: TriggerWorkflowArgument, extra) => {
       const { forestServerToken, renderingId } = getAuthContext(extra);
 
-      // Resolve the workflow O(1) up front so the audit log can be labelled with its name/collection
-      // BEFORE the trigger (fail-closed, like create/update/delete). Reject unknown or MCP-disabled
-      // workflows here — no run is started and no log is written for a non-triggerable workflow.
+      // Resolve the workflow by id up front so the audit log can be labelled BEFORE the trigger
+      // (fail-closed). Reject unknown or MCP-disabled workflows here — no run, no log.
       let workflow: McpWorkflowLookup;
 
       try {
@@ -81,12 +87,18 @@ export default function declareTriggerWorkflowTool(mcpServer: McpServer, ctx: To
         throw new Error(notMcpEnabledMessage(args.workflowId));
       }
 
+      // A renamed/deleted collection leaves collectionName null. The activity log would be dropped
+      // server-side and fail-closed would block with a misleading message, so reject up front.
+      if (workflow.collectionName == null) {
+        throw new Error(unavailableCollectionMessage(args.workflowId));
+      }
+
       const result = await withActivityLog({
         forestServerClient,
         request: extra,
         action: 'triggerWorkflow',
         context: {
-          collectionName: workflow.collectionName ?? undefined,
+          collectionName: workflow.collectionName,
           recordId: args.recordId,
           label: `triggered the workflow "${workflow.name}"`,
         },

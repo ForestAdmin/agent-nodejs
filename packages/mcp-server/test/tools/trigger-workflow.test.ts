@@ -269,6 +269,32 @@ describe('declareTriggerWorkflowTool', () => {
       expect(mockForestServerClient.createMcpActivityLog).not.toHaveBeenCalled();
     });
 
+    it('should reject a workflow whose collection is unavailable without auditing or triggering', async () => {
+      mockForestServerClient.getMcpWorkflowById.mockResolvedValue({
+        workflowId: 'wf-1',
+        name: 'Refund order',
+        collectionName: null,
+        mcpEnabled: true,
+      });
+
+      const result = await registeredToolHandler({ workflowId: 'wf-1', recordId: '42' }, mockExtra);
+
+      expect(result).toEqual({
+        content: [
+          {
+            type: 'text',
+            text:
+              'Workflow "wf-1" cannot be triggered via MCP because its collection is unavailable. ' +
+              "Check the workflow's configuration in Forest.",
+          },
+        ],
+        isError: true,
+      });
+      expect(mockForestServerClient.createMcpActivityLog).not.toHaveBeenCalled();
+      expect(mockForestServerClient.triggerMcpWorkflow).not.toHaveBeenCalled();
+      expect(mockForestServerClient.updateActivityLogStatus).not.toHaveBeenCalled();
+    });
+
     it('should map a trigger-time 404 race to the friendly error and mark the log failed', async () => {
       mockForestServerClient.triggerMcpWorkflow.mockRejectedValue(
         new NotFoundError('Workflow MCP trigger not found or disabled'),
