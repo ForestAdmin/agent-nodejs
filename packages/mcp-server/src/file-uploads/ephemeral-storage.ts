@@ -100,6 +100,10 @@ export default class EphemeralStorage implements UploadStorage {
         return;
       }
 
+      // Dropped now rather than in write(): counting bytes this upload is about to replace would
+      // refuse a replacement that fits, and keeping them until 'end' would hold both at once.
+      this.forget(key);
+
       if (this.storedBytes + this.inFlightBytes >= maxTotalBytes) {
         refuse(res, key, 507, `the in-memory store is full (${maxTotalBytes} bytes)`);
 
