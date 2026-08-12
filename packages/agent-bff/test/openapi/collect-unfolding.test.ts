@@ -170,6 +170,19 @@ describe('collectUnfolding', () => {
       ]);
     });
 
+    it('should drop a form field with no usable name, which would document "undefined"', async () => {
+      const malformed = action('Ban', '/forest/users/actions/ban');
+      malformed.fields = [
+        null,
+        { field: 'reason', type: 'String' },
+      ] as unknown as typeof malformed.fields;
+      const readModel = new ReadModel([collection('users', [column('id')], [malformed])]);
+
+      const { collections } = await collect(readModel);
+
+      expect(collections[0].actions[0].fields.map(field => field.name)).toEqual(['reason']);
+    });
+
     it('should treat an action with no fields key as a form with no field', async () => {
       const fieldless = action('Ban', '/forest/users/actions/ban');
       delete (fieldless as { fields?: unknown }).fields;

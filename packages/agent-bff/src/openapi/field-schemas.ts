@@ -31,14 +31,17 @@ export default function toFieldSchema(type: FieldType): SchemaObject {
     return { type: 'array', items: item === undefined ? {} : toFieldSchema(item) };
   }
 
-  // Null-checked because the capabilities payload is cast from untyped JSON, so nothing guarantees a
-  // column type is one of the three shapes the type declares.
+  // Null-checked, and its elements checked rather than trusted: the payload a column type comes from
+  // is cast from untyped JSON, so nothing guarantees the declared shape. A malformed entry is dropped
+  // instead of aborting the whole document — one bad field is not worth losing the spec over.
   if (typeof type === 'object' && type !== null && Array.isArray(type.fields)) {
+    const named = type.fields.filter(
+      field => typeof field === 'object' && field !== null && typeof field.field === 'string',
+    );
+
     return {
       type: 'object',
-      properties: Object.fromEntries(
-        type.fields.map(field => [field.field, toFieldSchema(field.type)]),
-      ),
+      properties: Object.fromEntries(named.map(field => [field.field, toFieldSchema(field.type)])),
     };
   }
 

@@ -113,12 +113,17 @@ function collectActions(readModel: ReadModel, collection: string): UnfoldedActio
     .sort()
     .map(name => ({
       name,
-      fields: (byName[name].fields ?? []).map(field => ({
-        name: field.field,
-        type: field.type,
-        isRequired: field.isRequired === true,
-        enums: field.enums ?? null,
-      })),
+      // A form field with no usable name is dropped: the schema is cast from untyped JSON, and the
+      // read-model turns a malformed entry into `{}`, which would otherwise document a property
+      // literally called "undefined".
+      fields: (byName[name].fields ?? [])
+        .filter(field => typeof field?.field === 'string')
+        .map(field => ({
+          name: field.field,
+          type: field.type,
+          isRequired: field.isRequired === true,
+          enums: field.enums ?? null,
+        })),
     }));
 }
 

@@ -64,4 +64,17 @@ describe('toFieldSchema', () => {
   ])('should leave %s unconstrained, since the schema is cast from untyped data', (_, type) => {
     expect(toFieldSchema(type as never)).toEqual({});
   });
+
+  it.each([
+    ['a null entry', null],
+    ['an entry with no name', {}],
+    ['an entry whose name is not a string', { field: 42, type: 'String' }],
+  ])('should drop %s from a composite rather than abort the document', (_, field) => {
+    expect(
+      toFieldSchema({ fields: [field, { field: 'street', type: 'String' }] } as never),
+    ).toEqual({
+      type: 'object',
+      properties: { street: { type: 'string' } },
+    });
+  });
 });
