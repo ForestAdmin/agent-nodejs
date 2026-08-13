@@ -35,17 +35,25 @@ const stableKeyOrderReplacer = (key: string, value: unknown): unknown => {
 const deepEquals = (a: unknown, b: unknown): boolean =>
   JSON.stringify(a, stableKeyOrderReplacer) === JSON.stringify(b, stableKeyOrderReplacer);
 
+// A value with its own `toJSON` (Date, a BSON wrapper) has a canonical representation that
+// `Object.entries` can't be trusted to reproduce: BSON's `toJSON` is typically on the prototype
+// while the actual data lives in unrelated (and sometimes non-enumerable) own fields, so walking
+// `Object.entries` would silently reconstruct the wrong — or an empty — object instead.
+const hasCanonicalJson = (value: object): boolean =>
+  typeof (value as { toJSON?: unknown }).toJSON === 'function';
+
 // A raw BigInt surviving into a stored `previousValues`/`newValues` would fail later — Sequelize
 // serializing the JSON column, or Koa serializing an HTTP history response — the same way
-// JSON.stringify does above. Recurses through arrays and plain objects (mirroring isPlainObject's
-// own Date exclusion below) since a BigInt can be nested inside a JSON column's value rather than
-// being the column's value itself — `pickColumns` hands this a whole column value unprocessed by
-// `diff`'s own recursion, and a primitive array is a `diff` leaf kept whole rather than walked.
+// JSON.stringify does above. Recurses through arrays and plain objects (leaving anything with its
+// own `toJSON` untouched, see above) since a BigInt can be nested inside a JSON column's value
+// rather than being the column's value itself — `pickColumns` hands this a whole column value
+// unprocessed by `diff`'s own recursion, and a primitive array is a `diff` leaf kept whole rather
+// than walked.
 const toJsonSafe = (value: unknown): unknown => {
   if (typeof value === 'bigint') return value.toString();
   if (Array.isArray(value)) return value.map(toJsonSafe);
 
-  if (value && typeof value === 'object' && !(value instanceof Date)) {
+  if (value && typeof value === 'object' && !hasCanonicalJson(value)) {
     return Object.fromEntries(
       Object.entries(value as Record<string, unknown>).map(([key, entry]) => [
         key,

@@ -993,6 +993,35 @@ describe('auditTrail plugin', () => {
       expect(changed.sink).toHaveBeenCalledTimes(1);
     });
 
+    it('stores a BSON-like value by its canonical toJSON, not its internal own fields', async () => {
+      // Unlike the plain-object test double above, a real BSON wrapper's `toJSON` lives on its
+      // prototype rather than as an own property, with the actual data in an unrelated own field —
+      // `Object.entries`/`Object.fromEntries` would silently drop the (non-enumerable) prototype
+      // method and keep only that internal field.
+      class FakeObjectId {
+        constructor(private readonly hex: string) {}
+
+        toJSON() {
+          return this.hex;
+        }
+      }
+
+      const sink = jest.fn();
+      const records = fakeCollection('records', [], complexSchema);
+      register([records], { sink });
+
+      await records.fire('After:Create', {
+        caller: makeCaller(),
+        records: [{ id: 1, ref: new FakeObjectId('abc') }],
+      });
+
+      // `toJsonSafe` leaves it untouched (the eventual SQL JSON-column write calls its `toJSON`
+      // itself, same as `JSON.stringify` would) — the point is that it isn't reconstructed into a
+      // plain object first, which would silently discard the prototype method that produces this.
+      const [{ newValues }] = sink.mock.calls[0];
+      expect(JSON.stringify(newValues.ref)).toBe('"abc"');
+    });
+
     it('encodes a newly added nested key as ABSENT rather than a bogus null', async () => {
       const { sink, run } = update(
         { payload: { theme: 'dark' } },
