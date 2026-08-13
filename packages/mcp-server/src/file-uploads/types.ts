@@ -21,6 +21,11 @@ export interface UploadStorage {
    * Size of the uploaded object, used to reject oversized uploads before downloading them.
    * Return undefined when the backend cannot report it cheaply — `maxBytes` is then only
    * enforced after the bytes are in memory, so the process holds the whole object either way.
+   *
+   * Rejecting is fine when the object is absent — reading its metadata is how most backends
+   * answer this, and a missing object is the likeliest outcome of the whole flow, the upload
+   * having been blocked. The rejection is reported to the caller with the field name and the
+   * message, so it does not have to be distinguished from an unreadable one here.
    */
   getSize(key: string): Promise<number | undefined>;
 }

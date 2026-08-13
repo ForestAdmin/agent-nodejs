@@ -164,6 +164,9 @@ export default class EphemeralStorage implements UploadStorage {
       // refuse a replacement that fits, and keeping them until 'end' would hold both at once.
       this.forget(key);
 
+      // Refused before a byte is read whenever the store has no room at all, whatever this body
+      // turns out to be. `>=` rather than `>` so the answer is a 507 naming the store, instead of a
+      // 413 decided on the first chunk that reads as a problem with the file.
       if (this.storedBytes + this.inFlightBytes >= maxTotalBytes) {
         refuse(res, key, 507, `the in-memory store is full (${maxTotalBytes} bytes)`);
 
