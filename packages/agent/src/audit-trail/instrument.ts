@@ -13,6 +13,10 @@ import { ConditionTreeFactory, SchemaUtils } from '@forestadmin/datasource-toolk
 import { ABSENT } from './types';
 
 const stableKeyOrderReplacer = (key: string, value: unknown): unknown => {
+  // JSON.stringify has no native BigInt support and throws on one, regardless of nesting depth or
+  // whether it's the root value; the replacer gets a chance to convert it first either way.
+  if (typeof value === 'bigint') return value.toString();
+
   if (value && typeof value === 'object' && !Array.isArray(value)) {
     return Object.keys(value as Record<string, unknown>)
       .sort()
@@ -30,6 +34,12 @@ const stableKeyOrderReplacer = (key: string, value: unknown): unknown => {
 // plain-object key order irrelevant.
 const deepEquals = (a: unknown, b: unknown): boolean =>
   JSON.stringify(a, stableKeyOrderReplacer) === JSON.stringify(b, stableKeyOrderReplacer);
+
+// A raw BigInt surviving into a stored `previousValues`/`newValues` would fail later — Sequelize
+// serializing the JSON column, or Koa serializing an HTTP history response — the same way
+// JSON.stringify does above; every value captured off the datasource is normalized once, up front.
+const toJsonSafe = (value: unknown): unknown =>
+  typeof value === 'bigint' ? value.toString() : value;
 
 type PendingSnapshot = { before: RecordData[]; patch?: RecordData };
 
@@ -72,7 +82,7 @@ const toPackedRecordId = (record: RecordData, primaryKeys: string[]): string => 
 };
 
 const pickColumns = (record: RecordData, columns: string[]): Record<string, unknown> =>
-  Object.fromEntries(columns.map(column => [column, record[column] ?? null]));
+  Object.fromEntries(columns.map(column => [column, toJsonSafe(record[column]) ?? null]));
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date);
@@ -120,8 +130,8 @@ const diff = (before: unknown, after: unknown): { previous: unknown; next: unkno
   }
 
   return {
-    previous: before === undefined ? ABSENT : before ?? null,
-    next: after === undefined ? ABSENT : after ?? null,
+    previous: before === undefined ? ABSENT : toJsonSafe(before) ?? null,
+    next: after === undefined ? ABSENT : toJsonSafe(after) ?? null,
   };
 };
 

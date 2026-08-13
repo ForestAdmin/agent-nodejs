@@ -829,6 +829,22 @@ describe('auditTrail plugin', () => {
       expect(sink).not.toHaveBeenCalled();
     });
 
+    it('does not throw on a changed BigInt value, and stores it as a string', async () => {
+      const { sink, run } = update({ ref: 10n }, { ref: 20n });
+      await run();
+
+      expect(sink).toHaveBeenCalledWith(
+        expect.objectContaining({ previousValues: { ref: '10' }, newValues: { ref: '20' } }),
+      );
+    });
+
+    it('does not flag two equal BigInt values as changed', async () => {
+      const { sink, run } = update({ ref: 10n }, { ref: 10n });
+      await run();
+
+      expect(sink).not.toHaveBeenCalled();
+    });
+
     it('captures only the changed leaf inside a nested object, dropping unchanged siblings', async () => {
       const { sink, run } = update({ payload: { a: 1, b: 2 } }, { payload: { a: 1, b: 3 } });
       await run();
