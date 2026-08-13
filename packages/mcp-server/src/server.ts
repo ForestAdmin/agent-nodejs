@@ -38,7 +38,7 @@ import declareExecuteActionTool from './tools/execute-action';
 import declareGetActionFormTool from './tools/get-action-form';
 import declareListTool from './tools/list';
 import declareListRelatedTool from './tools/list-related';
-import declareRequestFileUploadTool from './tools/request-file-upload';
+import declareRequestActionFileUploadTool from './tools/request-action-file-upload';
 import declareUpdateTool from './tools/update';
 import normalizeAgentUrl from './utils/normalize-agent-url';
 import normalizeDomainList from './utils/normalize-domain-list';
@@ -94,7 +94,7 @@ const SAFE_ARGUMENTS_FOR_LOGGING: Record<string, string[]> = {
   describeCollection: ['collectionName'],
   getActionForm: ['collectionName', 'actionName', 'recordIds'],
   executeAction: ['collectionName', 'actionName', 'recordIds'],
-  requestFileUpload: ['mimeType'],
+  requestActionFileUpload: ['mimeType'],
   associate: ['collectionName', 'relationName', 'parentRecordId', 'targetRecordId'],
   dissociate: ['collectionName', 'relationName', 'parentRecordId', 'targetRecordIds'],
 };
@@ -110,7 +110,7 @@ export type ToolName =
   | 'dissociate'
   | 'getActionForm'
   | 'executeAction'
-  | 'requestFileUpload';
+  | 'requestActionFileUpload';
 
 /**
  * Options for configuring the Forest Admin MCP Server
@@ -268,8 +268,8 @@ export default class ForestMCPServer {
       ...(this.fileUploads
         ? [
             {
-              name: 'requestFileUpload' as const,
-              register: () => declareRequestFileUploadTool(mcpServer, ctx),
+              name: 'requestActionFileUpload' as const,
+              register: () => declareRequestActionFileUploadTool(mcpServer, ctx),
             },
           ]
         : []),
@@ -310,7 +310,7 @@ export default class ForestMCPServer {
       'dissociate',
       'getActionForm',
       'executeAction',
-      'requestFileUpload',
+      'requestActionFileUpload',
     ];
 
     const enabled = new Set(options?.enabledTools ?? allToolNames);

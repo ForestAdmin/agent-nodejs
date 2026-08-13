@@ -3494,7 +3494,7 @@ describe('enabledTools', () => {
         'dissociate',
         'getActionForm',
         'executeAction',
-        'requestFileUpload',
+        'requestActionFileUpload',
       ],
     });
 

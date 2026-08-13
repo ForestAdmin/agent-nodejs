@@ -612,7 +612,7 @@ describe('declareExecuteActionTool', () => {
         fileUploads: fileUploads(),
       });
 
-      expect(registeredToolConfig.description).toContain('requestFileUpload');
+      expect(registeredToolConfig.description).toContain('requestActionFileUpload');
       expect(registeredToolConfig.description).toContain('never inline base64');
     });
 
@@ -623,7 +623,7 @@ describe('declareExecuteActionTool', () => {
         collectionNames: [],
       });
 
-      expect(registeredToolConfig.description).not.toContain('requestFileUpload');
+      expect(registeredToolConfig.description).not.toContain('requestActionFileUpload');
     });
 
     it('hands the uploaded file to agent-client, which owns the encoding', async () => {

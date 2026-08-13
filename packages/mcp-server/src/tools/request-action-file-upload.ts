@@ -22,7 +22,7 @@ const UPLOAD_PREREQUISITE =
   'Additional allowed domains, which an organization owner may have to set. A blocked or ' +
   'unreachable request is a client configuration issue, not an expired handle.';
 
-interface RequestFileUploadArgument {
+interface RequestActionFileUploadArgument {
   filename: string;
   mimeType: string;
   sha256?: string;
@@ -48,7 +48,7 @@ function normalizeSha256(sha256: string | undefined): string | undefined {
   throw new Error('sha256 must be the file digest as hex or base64.');
 }
 
-export default function declareRequestFileUploadTool(
+export default function declareRequestActionFileUploadTool(
   mcpServer: McpServer,
   ctx: ToolContext,
 ): string {
@@ -56,9 +56,9 @@ export default function declareRequestFileUploadTool(
 
   return registerToolWithLogging(
     mcpServer,
-    'requestFileUpload',
+    'requestActionFileUpload',
     {
-      title: 'Request a file upload destination',
+      title: 'Request an upload destination for an action file field',
       description: `Get a destination to upload a file to, then reference it in an action form field.
 
 Call this whenever getActionForm shows a field of type "File" or "FileList". Never inline base64 file content as a field value: it would be far larger than any payload limit.
@@ -84,7 +84,7 @@ The url accepts one upload: to send different bytes, call this tool again for a 
           .describe('Optional sha256 digest of the file, hex or base64, to pin the upload.'),
       },
     },
-    async (options: RequestFileUploadArgument, extra) => {
+    async (options: RequestActionFileUploadArgument, extra) => {
       if (!fileUploads) {
         throw new Error(
           'File uploads are not configured on this server. ' +

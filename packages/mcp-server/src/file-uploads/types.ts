@@ -27,7 +27,7 @@ export interface UploadStorage {
 
 /**
  * @experimental The MCP specification is still designing its own file transfer story
- * (SEP-2631). The storage contract is expected to survive, but the `requestFileUpload` tool
+ * (SEP-2631). The storage contract is expected to survive, but the `requestActionFileUpload` tool
  * and the handle format may change to follow the specification once it lands.
  */
 export interface FileUploadsOptions {

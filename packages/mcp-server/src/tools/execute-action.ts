@@ -46,7 +46,7 @@ If you call executeAction with missing required fields, it will return an error 
         ctx.fileUploads
           ? `
 
-To fill a file field, never inline base64 file content. Call requestFileUpload to get an upload destination, upload the raw bytes there, and pass the returned fileHandle string as the field value.`
+To fill a file field, never inline base64 file content. Call requestActionFileUpload to get an upload destination, upload the raw bytes there, and pass the returned fileHandle string as the field value.`
           : ''
       }`,
       inputSchema: argumentShape,

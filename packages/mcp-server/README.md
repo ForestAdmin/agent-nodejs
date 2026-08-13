@@ -20,7 +20,7 @@ This MCP server provides HTTP REST API access to Forest Admin operations, enabli
 | `dissociate` | Dissociate records from a relation |
 | `getActionForm` | Get the form fields for a custom action |
 | `executeAction` | Execute a custom action |
-| `requestFileUpload` | Get a destination to upload a file to, for an action `File` field (only with `fileUploads`) |
+| `requestActionFileUpload` | Get a destination to upload a file to, for an action `File` field (only with `fileUploads`) |
 
 ## Usage
 
@@ -171,7 +171,7 @@ The minimum for either value is 60 seconds; anything lower is raised to it. An i
 
 > **Experimental.** The MCP specification is still designing its own file transfer story
 > ([SEP-2631](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2631)). The
-> `UploadStorage` contract is expected to survive, but the `requestFileUpload` tool and the handle
+> `UploadStorage` contract is expected to survive, but the `requestActionFileUpload` tool and the handle
 > format may change to follow the specification once it lands.
 
 Actions with **File fields** cannot normally run over MCP. The agent expects file values as data
@@ -179,11 +179,11 @@ uris, which would transit the model's context window and exceed most MCP clients
 The `fileUploads` option enables them through an upload side-channel that keeps the bytes out of
 the conversation:
 
-1. The client calls the `requestFileUpload` tool with `{ "filename", "mimeType", "sha256"? }` and receives a pre-authorized upload URL plus a signed `fileHandle` string.
+1. The client calls the `requestActionFileUpload` tool with `{ "filename", "mimeType", "sha256"? }` and receives a pre-authorized upload URL plus a signed `fileHandle` string.
 2. The client uploads the raw bytes directly to the storage backend, so they never pass through the MCP server or the model.
 3. The client passes the handle (`"$uploadedFile:<...>"`) as the field value in `executeAction`. The server downloads the object and hands it to the agent. The model only ever exchanges the small handle.
 
-`requestFileUpload` is registered only when `fileUploads` is set, so a server without it never advertises the tool.
+`requestActionFileUpload` is registered only when `fileUploads` is set, so a server without it never advertises the tool.
 
 The upload URL is unauthenticated — the model holds no agent credential, and must not — so the URL
 itself is the authorization, as with an S3 presigned PUT. It carries a random uuid, is refused
@@ -285,7 +285,7 @@ sequenceDiagram
     participant Storage as Storage backend
     participant Agent as Forest Admin agent
 
-    Client->>Server: requestFileUpload {filename, mimeType, sha256?}
+    Client->>Server: requestActionFileUpload {filename, mimeType, sha256?}
     Server-->>Client: uploadUrl + fileHandle (user-bound JWT)
     Client->>Storage: PUT raw bytes to uploadUrl
     Note over Client,Storage: bytes bypass the server and the model

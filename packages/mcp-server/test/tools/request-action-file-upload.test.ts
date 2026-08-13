@@ -8,7 +8,7 @@ import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sd
 
 import { verifyUploadHandle } from '../../src/file-uploads/handles';
 import { resolveFileUploads } from '../../src/file-uploads/types';
-import declareRequestFileUploadTool from '../../src/tools/request-file-upload';
+import declareRequestActionFileUploadTool from '../../src/tools/request-action-file-upload';
 
 const AUTH_SECRET = 'test-auth-secret';
 const mockLogger: Logger = jest.fn();
@@ -24,7 +24,7 @@ const authenticatedExtra = {
   authInfo: { token: 'test-token', scopes: ['mcp:read', 'mcp:action'], extra: { userId: 42 } },
 } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
-describe('declareRequestFileUploadTool', () => {
+describe('declareRequestActionFileUploadTool', () => {
   let mcpServer: McpServer;
   let handler: (options: unknown, extra: unknown) => Promise<{ content: { text: string }[] }>;
   let config: RegisteredToolConfig;
@@ -40,7 +40,7 @@ describe('declareRequestFileUploadTool', () => {
       getSize: jest.fn(),
     };
 
-    declareRequestFileUploadTool(mcpServer, {
+    declareRequestActionFileUploadTool(mcpServer, {
       forestServerClient: mockForestServerClient,
       logger: mockLogger,
       collectionNames: [],
@@ -143,7 +143,7 @@ describe('declareRequestFileUploadTool', () => {
     });
 
     it('falls back to PUT and a Content-Type header when the storage provides neither', async () => {
-      declareRequestFileUploadTool(mcpServer, {
+      declareRequestActionFileUploadTool(mcpServer, {
         forestServerClient: mockForestServerClient,
         logger: mockLogger,
         collectionNames: [],
@@ -166,7 +166,7 @@ describe('declareRequestFileUploadTool', () => {
     });
 
     it('uses the method and headers the storage returns', async () => {
-      declareRequestFileUploadTool(mcpServer, {
+      declareRequestActionFileUploadTool(mcpServer, {
         forestServerClient: mockForestServerClient,
         logger: mockLogger,
         collectionNames: [],
