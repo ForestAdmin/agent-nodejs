@@ -242,13 +242,23 @@ backend needs credentials fetched at boot.
 Step 2 is an ordinary HTTPS request, made by the client, outside the MCP protocol. The client has to
 be able to make it:
 
-- **Claude Code** and custom agents: works, they have shell or HTTP access.
+- **Claude Code** and custom agents: works. The shell runs on the same machine as the developer, so
+  it reaches a `localhost` agent too — this is the one place the whole flow can be tried end to end
+  against a local agent. Verified.
 - **Claude Desktop and Claude.ai**: the attached file lands in the code execution sandbox and the
   model can `curl -X PUT -T <path> <uploadUrl>` — applying every header the tool returned, since a
-  pinned `sha256` is signed into `x-amz-checksum-sha256` on S3 and the PUT is rejected without it —
-  but **the sandbox blocks outbound traffic by default**. The host of `uploadUrl` must be added under *Settings > Capabilities > Code execution
-  and file creation > Additional allowed domains*. Without it the upload fails and nothing on the
-  server side can tell you why — so document your bucket's host for your users.
+  pinned `sha256` is signed into `x-amz-checksum-sha256` on S3 and the PUT is rejected without it.
+  Two conditions, and both are needed:
+  1. **`uploadUrl` must be publicly reachable.** That sandbox is hosted and runs on its own
+     network, so a `localhost` or private address is never reachable from it, whatever else is
+     configured. An agent running on a developer's machine cannot be tested this way.
+  2. **Its host must be allowed for outbound traffic**, under *Settings > Capabilities > Code
+     execution and file creation > Additional allowed domains* — which on Team and Enterprise plans
+     an organization owner may have to set, not the end user.
+
+  Both are client-side and outside this server's control, so document your upload host for your
+  users. Condition 1 is established; condition 2 is expected to be sufficient but is **not yet
+  verified end to end** against a public agent.
 
 The tool states this prerequisite in its description and repeats it in its response, so a model
 whose upload was blocked has the diagnosis in context.

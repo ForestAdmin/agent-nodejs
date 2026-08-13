@@ -15,10 +15,12 @@ const MAX_FILENAME_LENGTH = 128;
 const REQUIRED_SCOPE = 'mcp:action';
 
 const UPLOAD_PREREQUISITE =
-  'Uploading requires an outbound HTTP request from your environment. In a code execution ' +
-  'sandbox, the host of uploadUrl must be allowed for outbound traffic: on Claude Desktop, add ' +
-  'it under Settings > Capabilities > Code execution and file creation > Additional allowed ' +
-  'domains. A blocked request is a client configuration issue, not an expired handle.';
+  'Uploading requires an outbound HTTP request from your environment. A hosted code execution ' +
+  'sandbox runs on its own network, so the host of uploadUrl must be publicly reachable — a ' +
+  'localhost or private address can never be reached from there — and allowed for outbound ' +
+  'traffic: on Claude Desktop, under Settings > Capabilities > Code execution and file creation > ' +
+  'Additional allowed domains, which an organization owner may have to set. A blocked or ' +
+  'unreachable request is a client configuration issue, not an expired handle.';
 
 interface RequestFileUploadArgument {
   filename: string;
