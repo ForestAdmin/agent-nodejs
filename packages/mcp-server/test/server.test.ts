@@ -200,6 +200,13 @@ describe('ForestMCPServer Instance', () => {
       await shutDownHttpServer(server?.httpServer as http.Server);
     });
 
+    it('should answer the unauthenticated health probe', async () => {
+      const response = await request(httpServer).get('/health');
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({ status: 'ok' });
+    });
+
     it('should handle POST requests to /mcp', async () => {
       const response = await request(httpServer)
         .post('/mcp')
