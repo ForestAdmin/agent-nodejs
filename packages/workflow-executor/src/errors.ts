@@ -5,7 +5,7 @@ import type { AwaitingInputReason } from './types/validated/step-outcome';
 import type { z } from 'zod';
 
 export function causeMessage(error: unknown): string | undefined {
-  const { cause } = error as { cause?: unknown };
+  const { cause } = (error ?? {}) as { cause?: unknown };
 
   return cause instanceof Error ? cause.message : undefined;
 }
@@ -458,7 +458,7 @@ export class UserMismatchError extends AccessDeniedError {
 // distinct class so toHttpError can flag it as expected churn (a double trigger isn't log-worthy).
 export class RunAlreadyInFlightError extends WorkflowExecutorError {
   constructor(runId: string) {
-    super(`Run "${runId}" is already being processed`);
+    super(`Run "${runId}" is already being processed`, 'This step is already running.');
   }
 }
 

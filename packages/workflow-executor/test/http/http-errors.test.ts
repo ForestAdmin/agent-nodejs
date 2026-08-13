@@ -78,7 +78,7 @@ describe('toHttpError', () => {
 
     expect(result).toBeInstanceOf(BadRequestHttpError);
     expect(result?.status).toBe(400);
-    expect(result?.userMessage).toBe('Run "run-1" is already being processed');
+    expect(result?.userMessage).toBe('This step is already running.');
     expect(result?.log).toBe(false);
     expect(result?.cause).toBe(domainError);
   });
