@@ -13,6 +13,9 @@ import type { Context, Next } from 'koa';
 import {
   ConditionTreeFactory,
   FilterFactory,
+  PaginatedFilter,
+  Projection,
+  SchemaUtils,
   UnprocessableError,
 } from '@forestadmin/datasource-toolkit';
 
@@ -145,6 +148,8 @@ export default class ActionRoute extends CollectionRoute {
   }
 
   // A failed run is worth recording too: "who tried to run this" is usually the interesting part.
+  // A resolved `{ type: 'Error' }` result counts as failed as well — the customer-declared action
+  // rejected the request (HTTP 400 below), it just didn't throw to say so.
   private async executeAndAudit(
     context: Context,
     caller: Caller,
@@ -153,11 +158,11 @@ export default class ActionRoute extends CollectionRoute {
   ): Promise<ActionResult> {
     try {
       const result = await this.collection.execute(caller, this.actionName, data, filter);
-      await this.auditAction(context, caller, data);
+      await this.auditAction(context, caller, data, filter, result.type === 'Error');
 
       return result;
     } catch (error) {
-      await this.auditAction(context, caller, data, true);
+      await this.auditAction(context, caller, data, filter, true);
       throw error;
     }
   }
@@ -166,6 +171,7 @@ export default class ActionRoute extends CollectionRoute {
     context: Context,
     caller: Caller,
     formValues: Record<string, unknown>,
+    filterForCaller: Filter,
     failed = false,
   ): Promise<void> {
     const { auditTrail } = this.options;
@@ -179,7 +185,7 @@ export default class ActionRoute extends CollectionRoute {
           caller,
           collection: this.collection.name,
           formValues,
-          recordIds: this.auditedRecordIds(context),
+          recordIds: await this.auditedRecordIds(context, caller, filterForCaller),
           failed,
         },
       );
@@ -193,16 +199,30 @@ export default class ActionRoute extends CollectionRoute {
 
   // Packed ids, the form the audit store keys on. A global action targets nothing, and a select-all
   // selection only tells us which ids were *excluded*: naming the targets would mean querying the
-  // whole selection, so those runs are recorded once, attached to no record.
-  private auditedRecordIds(context: Context): string[] {
+  // whole selection, so those runs are recorded once, attached to no record. An explicit selection
+  // is narrowed down to the caller's own authorized subset — via `filterForCaller`, the same filter
+  // `execute()` itself was given — so an id excluded by scope doesn't get an entry for an action that
+  // never touched it.
+  private async auditedRecordIds(
+    context: Context,
+    caller: Caller,
+    filterForCaller: Filter,
+  ): Promise<string[]> {
     if (this.collection.schema.actions[this.actionName].scope === 'Global') return [];
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const attributes = (context.request.body as any)?.data?.attributes;
 
     if (attributes?.all_records) return [];
+    if (!attributes?.ids?.length) return [];
 
-    return attributes?.ids ?? [];
+    const authorized = await this.collection.list(
+      caller,
+      new PaginatedFilter({ ...filterForCaller }),
+      new Projection(...SchemaUtils.getPrimaryKeys(this.collection.schema)),
+    );
+
+    return IdUtils.packIds(this.collection.schema, authorized);
   }
 
   private async handleHook(context: Context): Promise<void> {

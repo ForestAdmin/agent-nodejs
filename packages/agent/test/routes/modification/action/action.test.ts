@@ -977,6 +977,7 @@ describe('ActionRoute', () => {
             execute: jest
               .fn()
               .mockResolvedValue({ type: 'Success', message: 'ok', invalidated: new Set() }),
+            list: jest.fn().mockResolvedValue([{ id: '123e4567-e89b-12d3-a456-426614174000' }]),
           }),
         ]);
 
@@ -1030,6 +1031,62 @@ describe('ActionRoute', () => {
 
         expect(append).toHaveBeenCalledWith(
           expect.objectContaining({ operation: 'action_failed', collection: 'books' }),
+        );
+      });
+
+      test('records action_failed for a resolved Error result, not just a thrown one', async () => {
+        (dataSource.getCollection('books').execute as jest.Mock).mockResolvedValue({
+          type: 'Error',
+          message: 'insufficient funds',
+        });
+
+        const context = createMockContext({
+          ...baseContext,
+          requestBody: {
+            data: {
+              attributes: {
+                ...baseContext.requestBody.data.attributes,
+                values: { firstname: 'John' },
+              },
+            },
+          },
+        });
+
+        // @ts-expect-error: test private method
+        await route.handleExecute(context);
+
+        expect(append).toHaveBeenCalledWith(
+          expect.objectContaining({ operation: 'action_failed', collection: 'books' }),
+        );
+      });
+
+      test('excludes an id the caller is not authorized to act on from the audited ids', async () => {
+        (dataSource.getCollection('books').list as jest.Mock).mockResolvedValue([
+          { id: '123e4567-e89b-12d3-a456-426614174000' },
+        ]);
+
+        const context = createMockContext({
+          ...baseContext,
+          requestBody: {
+            data: {
+              attributes: {
+                ...baseContext.requestBody.data.attributes,
+                ids: [
+                  '123e4567-e89b-12d3-a456-426614174000',
+                  '123e4567-e89b-12d3-a456-426614174999',
+                ],
+                values: { firstname: 'John' },
+              },
+            },
+          },
+        });
+
+        // @ts-expect-error: test private method
+        await route.handleExecute(context);
+
+        expect(append).toHaveBeenCalledTimes(1);
+        expect(append).toHaveBeenCalledWith(
+          expect.objectContaining({ recordId: '123e4567-e89b-12d3-a456-426614174000' }),
         );
       });
 
@@ -1138,6 +1195,12 @@ describe('ActionRoute', () => {
             execute: jest
               .fn()
               .mockResolvedValue({ type: 'Success', message: 'ok', invalidated: new Set() }),
+            list: jest
+              .fn()
+              .mockResolvedValue([
+                { id: '123e4567-e89b-12d3-a456-426614174000' },
+                { id: '123e4567-e89b-12d3-a456-426614174001' },
+              ]),
           }),
         ]);
 
