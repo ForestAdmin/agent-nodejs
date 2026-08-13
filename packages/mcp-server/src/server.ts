@@ -169,8 +169,12 @@ export interface ForestMCPServerOptions {
    * @experimental Expected to change to follow the MCP file transfer specification once it
    * lands (SEP-2631).
    */
-  /** `true` enables it with every default; an object to configure it. */
-  fileUploads?: true | FileUploadsOptions;
+  /**
+   * Action file uploads are on by default, with objects held in memory. This only configures
+   * them — a `storage` backend, size limits, ttls. Drop `requestActionFileUpload` from
+   * `enabledTools` to turn the feature off entirely.
+   */
+  fileUploads?: FileUploadsOptions;
 }
 
 /**
@@ -215,9 +219,7 @@ export default class ForestMCPServer {
 
     this.allowedOAuthClients = normalizeDomainList(options?.allowedOAuthClients);
     // Resolved in buildExpressApp, where the auth secret is known to be set.
-    // Enabling with no configuration is the common case now that a storage is optional, and
-    // `fileUploads: {}` reads like a placeholder someone forgot to fill in.
-    this.fileUploadsOptions = options?.fileUploads === true ? {} : options?.fileUploads;
+    this.fileUploadsOptions = options?.fileUploads;
 
     // Use injected forestServerClient or create default
     this.forestServerClient = options?.forestServerClient ?? this.createDefaultForestServerClient();
@@ -462,26 +464,25 @@ export default class ForestMCPServer {
   async buildExpressApp(baseUrl?: URL): Promise<Express> {
     const { envSecret, authSecret } = this.ensureSecretsAreSet();
 
-    // No backend given: hold the objects here. Correct for one instance only, so it is announced
-    // rather than silently assumed — behind replicas the redemption lands where the upload did not.
-    if (this.fileUploadsOptions && !this.fileUploadsOptions.storage) {
-      this.ephemeralStorage = new EphemeralStorage(this.logger);
-      this.logger(
-        'Warn',
-        'fileUploads has no storage backend: uploads are held in memory, on this instance only. ' +
-          'They are lost on restart, and a deployment with several replicas or a serverless ' +
-          'runtime needs a real backend.',
+    // On unless the tool was left out of enabledTools, which is the one way to turn it off. Gating
+    // on that keeps executeAction from advertising an upload tool the server never registered.
+    if (this.enabledTools.has('requestActionFileUpload')) {
+      // No backend given: hold the objects here. Correct for one instance only, which
+      // EphemeralStorage announces the first time something actually asks for a destination —
+      // warning at boot would tax every agent, including those with no file field at all.
+      if (!this.fileUploadsOptions?.storage) {
+        this.ephemeralStorage = new EphemeralStorage(this.logger);
+      }
+
+      this.fileUploads = resolveFileUploads(
+        {
+          ...this.fileUploadsOptions,
+          ...(this.ephemeralStorage && { storage: this.ephemeralStorage }),
+        },
+        authSecret,
+        this.logger,
       );
     }
-
-    this.fileUploads = resolveFileUploads(
-      this.fileUploadsOptions && {
-        ...this.fileUploadsOptions,
-        ...(this.ephemeralStorage && { storage: this.ephemeralStorage }),
-      },
-      authSecret,
-      this.logger,
-    );
 
     await this.fetchCollectionNames();
 

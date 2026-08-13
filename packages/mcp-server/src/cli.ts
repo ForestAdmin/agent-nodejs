@@ -8,10 +8,9 @@ import parseToolList from './utils/parse-tool-list';
 const toSeconds = (value?: string) => (value === undefined ? undefined : Number(value));
 
 async function main() {
-  // Loaded before constructing, so a bad module fails at startup like every other option.
-  const fileUploads =
-    (await loadFileUploads(process.env.FOREST_MCP_UPLOAD_STORAGE_MODULE)) ??
-    (process.env.FOREST_MCP_FILE_UPLOADS === 'true' ? {} : undefined);
+  // Loaded before constructing, so a bad module fails at startup like every other option. Uploads
+  // are on without it, held in memory; this only points them at a real backend.
+  const fileUploads = await loadFileUploads(process.env.FOREST_MCP_UPLOAD_STORAGE_MODULE);
 
   const server = new ForestMCPServer({
     forestServerUrl: process.env.FOREST_SERVER_URL || 'https://api.forestadmin.com',

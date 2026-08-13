@@ -3607,27 +3607,56 @@ describe('Logo URL', () => {
 });
 
 describe('file uploads without a storage backend', () => {
-  const build = (logger?: jest.Mock) =>
+  const build = (options: Record<string, unknown> = {}) =>
     new ForestMCPServer({
       envSecret: 'test-env-secret',
       authSecret: 'test-auth-secret',
       forestServerUrl: 'https://test.forestadmin.com',
-      fileUploads: true,
-      ...(logger && { logger }),
+      ...options,
     });
 
-  const buildApp = async (logger?: jest.Mock) =>
-    build(logger).buildExpressApp(new URL('https://agent.example'));
+  const buildApp = async (options: Record<string, unknown> = {}) =>
+    build(options).buildExpressApp(new URL('https://agent.example'));
 
-  it('announces that objects are held in memory on this instance only', async () => {
+  // No option to set: the whole point is that an agent gets this without asking.
+  it('is enabled without any configuration', async () => {
+    const response = await request(await buildApp())
+      .put('/mcp/uploads/never-issued')
+      .send('hello');
+
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({ error: expect.stringContaining('no upload was authorized') });
+  });
+
+  // Boot-time would reach every agent, including those whose actions have no file field.
+  it('stays quiet at startup and announces the single instance on first use', async () => {
     const logger = jest.fn();
+    const server = build({ logger });
+    await server.buildExpressApp(new URL('https://agent.example'));
 
-    await buildApp(logger);
+    expect(logger).not.toHaveBeenCalledWith(
+      'Warn',
+      expect.stringContaining('held in memory, on this instance only'),
+    );
+
+    const { ephemeralStorage: storage } = server as unknown as {
+      ephemeralStorage: EphemeralStorage;
+    };
+    await storage.createUploadUrl({ key: 'k' });
 
     expect(logger).toHaveBeenCalledWith(
       'Warn',
       expect.stringContaining('held in memory, on this instance only'),
     );
+  });
+
+  // enabledTools is the off switch, and it has to take the endpoint with it.
+  it('serves no upload endpoint when the tool is not enabled', async () => {
+    const app = await buildApp({ enabledTools: ['describeCollection', 'list'] });
+
+    const response = await request(app).put('/mcp/uploads/anything').send('hello');
+
+    expect(response.status).toBe(405);
   });
 
   // 404 comes from the uploads router itself, for a key it never handed out. A 405 would mean

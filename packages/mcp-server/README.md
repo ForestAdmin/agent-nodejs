@@ -68,7 +68,6 @@ yarn start:dev       # Development (loads .env file automatically)
 | `FOREST_AGENT_URL` | No | your environment's back-end URL | URL the MCP server uses to reach the back-end's data layer. Set it when the server runs next to a self-hosted back-end at an internal address (e.g. `http://localhost:3310`), instead of the public URL registered in Forest |
 | `FOREST_MCP_ACCESS_TOKEN_TTL_SECONDS` | No | `3600` (1 hour) | Maximum lifetime of the OAuth access tokens the server issues (`tokenTtl.accessTokenSeconds`). Minimum `60` |
 | `FOREST_MCP_REFRESH_TOKEN_TTL_SECONDS` | No | unbounded | Maximum time between two interactive logins (`tokenTtl.refreshTokenSeconds`). Unset, a client that keeps refreshing never signs in again. Minimum `60` |
-| `FOREST_MCP_FILE_UPLOADS` | No | - | `true` enables action file uploads with the in-memory store (single instance only). See [Action File Uploads](#action-file-uploads) |
 | `FOREST_MCP_UPLOAD_STORAGE_MODULE` | No | - | Path to a module providing the `fileUploads` options, for a real storage backend |
 
 #### Example Configuration
@@ -183,7 +182,7 @@ the conversation:
 2. The client uploads the raw bytes directly to the storage backend, so they never pass through the MCP server or the model.
 3. The client passes the handle (`"$uploadedFile:<...>"`) as the field value in `executeAction`. The server downloads the object and hands it to the agent. The model only ever exchanges the small handle.
 
-`requestActionFileUpload` is registered only when `fileUploads` is set, so a server without it never advertises the tool.
+`requestActionFileUpload` follows `enabledTools` like every other tool, so a server that leaves it out never advertises it and never serves the upload endpoint.
 
 The upload URL is unauthenticated — the model holds no agent credential, and must not — so the URL
 itself is the authorization, as with an S3 presigned PUT. It carries a random uuid, is refused
@@ -193,14 +192,19 @@ bytes land, a leaked URL can no longer replace them. Writing is not consuming ei
 needs the signed handle, which is bound to the user who requested it. Pin `sha256` when the exact
 content matters; it is re-verified after download.
 
-### Nothing to provision
+### Nothing to provision, and nothing to switch on
 
-`fileUploads: true` is enough to try it. With no `storage`, the server holds the objects in memory and
-serves its own upload endpoint under `<origin>/mcp/uploads`:
+It is on by default. With no `storage`, the server holds the objects in memory and serves its own
+upload endpoint under `<origin>/mcp/uploads`. The `fileUploads` option only *configures* that — a
+backend, size limits, ttls:
 
 ```typescript
-agent.mountAiMcpServer({ fileUploads: true });
+agent.mountAiMcpServer();                             // in memory, single instance
+agent.mountAiMcpServer({ fileUploads: { storage } }); // a real backend
 ```
+
+To turn the feature off, leave `requestActionFileUpload` out of `enabledTools`. The upload endpoint
+is then never mounted and `executeAction` never mentions it.
 
 > **Single instance only.** The upload and the redemption are two separate requests. With several
 > replicas, in cluster mode, or on a serverless runtime (including cloud agents), one of them lands
@@ -220,7 +224,7 @@ package has no storage dependency of its own.
 
 ### On the standalone server
 
-`FOREST_MCP_FILE_UPLOADS=true` enables the in-memory store, with the same single-instance caveat.
+Uploads are on with the in-memory store, with the same single-instance caveat.
 
 For a real backend, a storage is an object with methods, so unlike every other standalone option it
 cannot travel through an environment variable. Point `FOREST_MCP_UPLOAD_STORAGE_MODULE` at a module
@@ -273,7 +277,7 @@ whose upload was blocked has the diagnosis in context.
 
 ### Trying it locally
 
-`packages/_example` wires the whole flow with `fileUploads: true` — no cloud account, no storage code.
+`packages/_example` needs no configuration for this — no cloud account, no storage code.
 Its `review` collection carries an `Attach a document` action with a `File` and a `FileList` field.
 Start the example agent, connect an MCP client to it, and ask for that action with a file — the
 action reports the name, mime type and byte count it received.

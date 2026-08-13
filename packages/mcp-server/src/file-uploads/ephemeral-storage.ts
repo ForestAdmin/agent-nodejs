@@ -37,6 +37,7 @@ export default class EphemeralStorage implements UploadStorage {
   private storedBytes = 0;
   private inFlightBytes = 0;
   private options!: EphemeralOptions;
+  private announced = false;
 
   constructor(private readonly logger: Logger) {}
 
@@ -47,6 +48,19 @@ export default class EphemeralStorage implements UploadStorage {
 
   async createUploadUrl({ key }: { key: string }): Promise<{ url: string; method: string }> {
     const { publicBaseUrl, issuedTtlSeconds } = this.options;
+
+    // Said here rather than at startup: uploads are on by default, so a boot-time warning would
+    // reach every agent including those whose actions have no file field. This fires when the
+    // feature is actually used, which is when the limitation starts to matter.
+    if (!this.announced) {
+      this.announced = true;
+      this.logger(
+        'Warn',
+        '[fileUploads] no storage backend: uploaded files are held in memory, on this instance ' +
+          'only. They are lost on restart, and a deployment with several replicas or a serverless ' +
+          'runtime needs a real backend on the fileUploads option.',
+      );
+    }
 
     // Recorded so the endpoint only accepts keys it handed out. Without this, anything reaching the
     // origin could fill the store under keys of its own and deny the feature to everyone else.
