@@ -207,7 +207,7 @@ To turn the feature off, leave `requestActionFileUpload` out of `enabledTools`. 
 is then never mounted and `executeAction` never mentions it.
 
 > **Single instance only.** The upload and the redemption are two separate requests. With several
-> replicas, in cluster mode, or on a serverless runtime (including cloud agents), one of them lands
+> replicas, in cluster mode, or on a serverless runtime, one of them lands
 > on an instance that never saw the other and the action fails — intermittently, which reads as a
 > flaky feature rather than a misconfiguration. Objects are also lost on restart. The server logs a
 > warning at startup, and the failure names this cause. **Those deployments need a `storage`.**
