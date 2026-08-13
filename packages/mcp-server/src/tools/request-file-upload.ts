@@ -65,12 +65,12 @@ Call this whenever getActionForm shows a field of type "File" or "FileList". Nev
 
 Workflow:
 1. Call this tool with the filename and mimeType. Pass sha256 to pin the upload to that exact content.
-2. Upload the raw bytes to the returned uploadUrl, with the returned method and every returned header — a pinned sha256 is signed into a checksum header, and the upload is rejected if you omit it. The bytes must not pass through this tool or through your own output.
+2. Upload the raw bytes to the returned uploadUrl, with the returned method and every returned header. Some backends sign a pinned sha256 into a checksum header and reject the upload without it, so apply the headers as returned rather than assuming which ones matter. A pinned digest is re-verified when the action runs either way. The bytes must not pass through this tool or through your own output.
 3. Pass the returned fileHandle string as the value of the file field in executeAction.
 
 ${UPLOAD_PREREQUISITE}
 
-The handle expires, so run the upload and the action without a long pause in between.`,
+The url accepts one upload: to send different bytes, call this tool again for a fresh destination. The handle expires too, so run the upload and the action without a long pause in between.`,
       inputSchema: {
         filename: z
           .string()

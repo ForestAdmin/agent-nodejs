@@ -185,6 +185,18 @@ describe('EphemeralStorage', () => {
       await expect(storage.getSize('k')).resolves.toBeUndefined();
     });
 
+    // Substituting the bytes of an upload that already landed is the one thing a leaked url could
+    // still do, so the authorization is consumed. A retry must say that, not blame a ttl.
+    it('names the used url rather than blaming a ttl on a second upload', async () => {
+      await put('k', Buffer.from('first'));
+
+      const response = await request(app).put('/k').send('second');
+
+      expect(response.status).toBe(409);
+      expect(response.body).toEqual({ error: expect.stringContaining('already used') });
+      await expect(storage.download('k')).resolves.toEqual(Buffer.from('first'));
+    });
+
     it('stops accepting an upload url that was never used in time', async () => {
       configure({ issuedTtlSeconds: 60 });
       await storage.createUploadUrl({ key: 'k' });

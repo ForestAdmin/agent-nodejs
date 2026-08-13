@@ -185,6 +185,14 @@ the conversation:
 
 `requestFileUpload` is registered only when `fileUploads` is set, so a server without it never advertises the tool.
 
+The upload URL is unauthenticated — the model holds no agent credential, and must not — so the URL
+itself is the authorization, as with an S3 presigned PUT. It carries a random uuid, is refused
+before a byte is read unless this server issued it, expires with `uploadUrlTtlSeconds`, and serves
+nothing but the `PUT`. Against the in-memory store it also **accepts a single upload**: once the
+bytes land, a leaked URL can no longer replace them. Writing is not consuming either — redemption
+needs the signed handle, which is bound to the user who requested it. Pin `sha256` when the exact
+content matters; it is re-verified after download.
+
 ### Nothing to provision
 
 `fileUploads: {}` is enough to try it. With no `storage`, the server holds the objects in memory and

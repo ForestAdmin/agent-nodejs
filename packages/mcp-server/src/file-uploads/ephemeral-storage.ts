@@ -92,7 +92,14 @@ export default class EphemeralStorage implements UploadStorage {
       this.expire();
 
       if (!this.issued.has(key)) {
-        refuse(res, key, 404, 'no upload was authorized for this key, or it has expired');
+        // write() consumes the authorization, so an object still sitting here means the url was
+        // already used. Reported apart because a retry is the case an integrator actually hits,
+        // and "not authorized, or expired" sends them looking at ttls instead.
+        if (this.objects.has(key)) {
+          refuse(res, key, 409, 'this upload url was already used; request a fresh one');
+        } else {
+          refuse(res, key, 404, 'no upload was authorized for this key, or it has expired');
+        }
 
         return;
       }
