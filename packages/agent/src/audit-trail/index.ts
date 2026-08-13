@@ -1,4 +1,5 @@
 export { default as installAuditTrailHooks, REDACTED } from './instrument';
+export { default as captureAction } from './action-capture';
 export {
   createSqlAuditStore,
   ensureAuditStorage,

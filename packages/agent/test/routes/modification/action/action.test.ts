@@ -948,4 +948,248 @@ describe('ActionRoute', () => {
       );
     });
   });
+
+  describe('audit trail', () => {
+    const append = jest.fn().mockResolvedValue(undefined);
+    const auditOptions = factories.forestAdminHttpDriverOptions.build({
+      auditTrail: { store: { append }, close: jest.fn() } as never,
+    });
+
+    beforeEach(() => {
+      append.mockClear();
+      (
+        auditOptions.forestAdminClient.permissionService.canTriggerCustomAction as jest.Mock
+      ).mockResolvedValue(true);
+    });
+
+    describe('with a single action', () => {
+      beforeEach(() => {
+        dataSource = factories.dataSource.buildWithCollections([
+          factories.collection.build({
+            name: 'books',
+            schema: {
+              actions: { MySingleAction: { scope: 'Single' } },
+              fields: { id: factories.columnSchema.uuidPrimaryKey().build() },
+            },
+            getForm: jest
+              .fn()
+              .mockResolvedValue([{ type: 'String', label: 'firstname', id: 'firstname' }]),
+            execute: jest
+              .fn()
+              .mockResolvedValue({ type: 'Success', message: 'ok', invalidated: new Set() }),
+          }),
+        ]);
+
+        route = new ActionRoute(services, auditOptions, dataSource, 'books', 'MySingleAction');
+      });
+
+      test('records a successful invocation keyed by the targeted record', async () => {
+        const context = createMockContext({
+          ...baseContext,
+          requestBody: {
+            data: {
+              attributes: {
+                ...baseContext.requestBody.data.attributes,
+                values: { firstname: 'John' },
+              },
+            },
+          },
+        });
+
+        // @ts-expect-error: test private method
+        await route.handleExecute(context);
+
+        expect(append).toHaveBeenCalledWith(
+          expect.objectContaining({
+            operation: 'action',
+            collection: 'books',
+            recordId: '123e4567-e89b-12d3-a456-426614174000',
+            newValues: { firstname: 'John' },
+          }),
+        );
+      });
+
+      test('records action_failed and rethrows when execute throws', async () => {
+        const executionError = new Error('boom');
+        (dataSource.getCollection('books').execute as jest.Mock).mockRejectedValue(executionError);
+
+        const context = createMockContext({
+          ...baseContext,
+          requestBody: {
+            data: {
+              attributes: {
+                ...baseContext.requestBody.data.attributes,
+                values: { firstname: 'John' },
+              },
+            },
+          },
+        });
+
+        // @ts-expect-error: test private method
+        await expect(route.handleExecute(context)).rejects.toThrow(executionError);
+
+        expect(append).toHaveBeenCalledWith(
+          expect.objectContaining({ operation: 'action_failed', collection: 'books' }),
+        );
+      });
+
+      test('does not record anything when no audit trail is configured', async () => {
+        route = new ActionRoute(services, options, dataSource, 'books', 'MySingleAction');
+        const context = createMockContext({
+          ...baseContext,
+          requestBody: {
+            data: {
+              attributes: {
+                ...baseContext.requestBody.data.attributes,
+                values: { firstname: 'John' },
+              },
+            },
+          },
+        });
+
+        // @ts-expect-error: test private method
+        await route.handleExecute(context);
+
+        expect(append).not.toHaveBeenCalled();
+      });
+
+      test('logs and swallows a failing audit store instead of failing the request', async () => {
+        const logger = jest.fn();
+        const brokenOptions = factories.forestAdminHttpDriverOptions.build({
+          logger,
+          auditTrail: {
+            store: { append: jest.fn().mockRejectedValue(new Error('store down')) },
+            close: jest.fn(),
+          } as never,
+        });
+        (
+          brokenOptions.forestAdminClient.permissionService.canTriggerCustomAction as jest.Mock
+        ).mockResolvedValue(true);
+        route = new ActionRoute(services, brokenOptions, dataSource, 'books', 'MySingleAction');
+
+        const context = createMockContext({
+          ...baseContext,
+          requestBody: {
+            data: {
+              attributes: {
+                ...baseContext.requestBody.data.attributes,
+                values: { firstname: 'John' },
+              },
+            },
+          },
+        });
+
+        // @ts-expect-error: test private method
+        await route.handleExecute(context);
+
+        expect(context.response.body).toEqual({
+          success: 'ok',
+          html: undefined,
+          refresh: { relationships: [] },
+        });
+        expect(logger).toHaveBeenCalledWith('Error', expect.stringContaining('Audit trail'));
+      });
+    });
+
+    describe('with a global action', () => {
+      beforeEach(() => {
+        dataSource = factories.dataSource.buildWithCollections([
+          factories.collection.build({
+            name: 'books',
+            schema: {
+              actions: { MyGlobalAction: { scope: 'Global' } },
+              fields: { id: factories.columnSchema.uuidPrimaryKey().build() },
+            },
+            getForm: jest.fn().mockResolvedValue([{ type: 'String', label: 'firstname' }]),
+            execute: jest
+              .fn()
+              .mockResolvedValue({ type: 'Success', message: 'ok', invalidated: new Set() }),
+          }),
+        ]);
+
+        route = new ActionRoute(services, auditOptions, dataSource, 'books', 'MyGlobalAction');
+      });
+
+      test('records the invocation attached to no record', async () => {
+        const context = createMockContext({
+          ...baseContext,
+          requestBody: {
+            data: { attributes: { ...baseContext.requestBody.data.attributes, all_records: true } },
+          },
+        });
+
+        // @ts-expect-error: test private method
+        await route.handleExecute(context);
+
+        expect(append).toHaveBeenCalledWith(expect.objectContaining({ recordId: '' }));
+      });
+    });
+
+    describe('with a bulk select-all action', () => {
+      beforeEach(() => {
+        dataSource = factories.dataSource.buildWithCollections([
+          factories.collection.build({
+            name: 'books',
+            schema: {
+              actions: { MyBulkAction: { scope: 'Bulk' } },
+              fields: { id: factories.columnSchema.uuidPrimaryKey().build() },
+            },
+            getForm: jest.fn().mockResolvedValue([{ type: 'String', label: 'firstname' }]),
+            execute: jest
+              .fn()
+              .mockResolvedValue({ type: 'Success', message: 'ok', invalidated: new Set() }),
+          }),
+        ]);
+
+        route = new ActionRoute(services, auditOptions, dataSource, 'books', 'MyBulkAction');
+      });
+
+      test('records the invocation attached to no record when the selection is select-all', async () => {
+        const context = createMockContext({
+          ...baseContext,
+          requestBody: {
+            data: {
+              attributes: {
+                ...baseContext.requestBody.data.attributes,
+                all_records: true,
+                all_records_ids_excluded: ['123e4567-e89b-12d3-a456-426614174000'],
+              },
+            },
+          },
+        });
+
+        // @ts-expect-error: test private method
+        await route.handleExecute(context);
+
+        expect(append).toHaveBeenCalledWith(expect.objectContaining({ recordId: '' }));
+      });
+
+      test('records one entry per targeted record for an explicit selection', async () => {
+        const context = createMockContext({
+          ...baseContext,
+          requestBody: {
+            data: {
+              attributes: {
+                ...baseContext.requestBody.data.attributes,
+                ids: [
+                  '123e4567-e89b-12d3-a456-426614174000',
+                  '123e4567-e89b-12d3-a456-426614174001',
+                ],
+              },
+            },
+          },
+        });
+
+        // @ts-expect-error: test private method
+        await route.handleExecute(context);
+
+        expect(append).toHaveBeenCalledWith(
+          expect.objectContaining({ recordId: '123e4567-e89b-12d3-a456-426614174000' }),
+        );
+        expect(append).toHaveBeenCalledWith(
+          expect.objectContaining({ recordId: '123e4567-e89b-12d3-a456-426614174001' }),
+        );
+      });
+    });
+  });
 });

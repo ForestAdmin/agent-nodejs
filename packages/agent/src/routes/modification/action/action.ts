@@ -5,7 +5,7 @@ import type {
   SmartActionRequestBody,
 } from '../../../services/authorization/types';
 import type { AgentOptionsWithDefaults } from '../../../types';
-import type { DataSource, Filter } from '@forestadmin/datasource-toolkit';
+import type { ActionResult, Caller, DataSource, Filter } from '@forestadmin/datasource-toolkit';
 import type { UserInfo } from '@forestadmin/forestadmin-client';
 import type Router from '@koa/router';
 import type { Context, Next } from 'koa';
@@ -17,6 +17,7 @@ import {
 } from '@forestadmin/datasource-toolkit';
 
 import ActionAuthorizationService from './action-authorization';
+import { captureAction } from '../../../audit-trail';
 import { HttpCode } from '../../../types';
 import BodyParser from '../../../utils/body-parser';
 import ContextFilterFactory from '../../../utils/context-filter-factory';
@@ -113,7 +114,7 @@ export default class ActionRoute extends CollectionRoute {
 
     // Now that we have the field list, we can parse the data again.
     const data = ForestValueConverter.makeFormData(dataSource, rawData, fields);
-    const result = await this.collection.execute(caller, this.actionName, data, filterForCaller);
+    const result = await this.executeAndAudit(context, caller, data, filterForCaller);
 
     if (result.responseHeaders) {
       context.response.set(result.responseHeaders);
@@ -141,6 +142,67 @@ export default class ActionRoute extends CollectionRoute {
     } else {
       throw new Error('Unexpected Action result.');
     }
+  }
+
+  // A failed run is worth recording too: "who tried to run this" is usually the interesting part.
+  private async executeAndAudit(
+    context: Context,
+    caller: Caller,
+    data: Record<string, unknown>,
+    filter: Filter,
+  ): Promise<ActionResult> {
+    try {
+      const result = await this.collection.execute(caller, this.actionName, data, filter);
+      await this.auditAction(context, caller, data);
+
+      return result;
+    } catch (error) {
+      await this.auditAction(context, caller, data, true);
+      throw error;
+    }
+  }
+
+  private async auditAction(
+    context: Context,
+    caller: Caller,
+    formValues: Record<string, unknown>,
+    failed = false,
+  ): Promise<void> {
+    const { auditTrail } = this.options;
+    if (!auditTrail) return;
+
+    try {
+      await captureAction(
+        record => auditTrail.store.append(record),
+        auditTrail.redact?.[this.collection.name] ?? [],
+        {
+          caller,
+          collection: this.collection.name,
+          formValues,
+          recordIds: this.auditedRecordIds(context),
+          failed,
+        },
+      );
+    } catch (error) {
+      // The action has already run (or failed on its own): a broken audit store must not also fail
+      // the request, which would report a successful run as an error and could prompt a client retry
+      // that reruns the action.
+      this.options.logger('Error', `[ForestAdmin] Audit trail unavailable, skipping: ${error}`);
+    }
+  }
+
+  // Packed ids, the form the audit store keys on. A global action targets nothing, and a select-all
+  // selection only tells us which ids were *excluded*: naming the targets would mean querying the
+  // whole selection, so those runs are recorded once, attached to no record.
+  private auditedRecordIds(context: Context): string[] {
+    if (this.collection.schema.actions[this.actionName].scope === 'Global') return [];
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const attributes = (context.request.body as any)?.data?.attributes;
+
+    if (attributes?.all_records) return [];
+
+    return attributes?.ids ?? [];
   }
 
   private async handleHook(context: Context): Promise<void> {

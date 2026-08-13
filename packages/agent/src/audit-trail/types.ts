@@ -1,4 +1,4 @@
-export type AuditOperation = 'create' | 'update' | 'delete';
+export type AuditOperation = 'create' | 'update' | 'delete' | 'action' | 'action_failed';
 
 // A sentinel distinguishable from a genuine `null` value: `diff` (instrument.ts) uses it to mark a
 // changed leaf that did not exist before/after, so `revertRecord` (revert.ts) can remove the

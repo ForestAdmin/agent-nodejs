@@ -79,7 +79,7 @@ The `forest.audit_logs` table has one row per audited change:
 | ----------------- | -------------------------------------------------------- |
 | `id`              | auto-increment primary key                               |
 | `timestamp`       | when the change happened                                 |
-| `operation`       | `create` / `update` / `delete`                           |
+| `operation`       | `create` / `update` / `delete` / `action` / `action_failed` |
 | `collection`      | audited collection name                                  |
 | `record_id`       | packed record id (primary keys joined with `\|`)         |
 | `user_id`         | the Forest user who made the change                      |
@@ -94,6 +94,15 @@ just that leaf rather than the whole document.
 Writes initiated from inside a smart action are audited too — `context.collection.update` /
 `create` / `delete` calls go through the internal hook decorator and produce rows under the same
 correlation key as the action.
+
+The action invocation itself is also recorded, as an `action` (or `action_failed` if it threw) row,
+under that same correlation key — one row per targeted record, or one row attached to no record for
+a global action or a select-all bulk run. This is the only way a smart action shows up in the trail
+when its `execute()` doesn't go through the Forest data layer (e.g. it calls an external API): the
+before/after hooks above can't see that. `new_values` holds the submitted form values (redacted per
+`redact`); which action ran lives in the Forest activity logs, joined by `correlation_key`. A failure
+recording the invocation is logged and dropped rather than failing the request — the action has
+already run (or failed on its own) by the time it's recorded.
 
 ## HTTP routes
 
