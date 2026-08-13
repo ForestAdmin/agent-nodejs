@@ -264,9 +264,10 @@ be able to make it:
   1. **`uploadUrl` must be publicly reachable.** That sandbox is hosted and runs on its own
      network, so a `localhost` or private address is never reachable from it, whatever else is
      configured. An agent running on a developer's machine cannot be tested this way.
-  2. **Its host must be allowed for outbound traffic**, under *Settings > Capabilities > Code
-     execution and file creation > Additional allowed domains* — which on Team and Enterprise plans
-     an organization owner may have to set, not the end user.
+  2. **Its host must be allowed for outbound traffic** in that sandbox. Where this is configured
+     differs between clients and versions — and on a managed workspace the setting may not be
+     exposed to the end user at all, in which case only an administrator can unblock the upload.
+     Do not promise your users a menu path; give them the host to get allowed.
 
   Both are client-side and outside this server's control, so document your upload host for your
   users. Condition 1 is established; condition 2 is expected to be sufficient but is **not yet

@@ -14,13 +14,16 @@ const SHA256_BASE64_PATTERN = /^[A-Za-z0-9+/]{43}=$/;
 const MAX_FILENAME_LENGTH = 128;
 const REQUIRED_SCOPE = 'mcp:action';
 
+// Names the requirement rather than a menu path: the setting that satisfies it is not in the same
+// place in every client, and on a managed workspace the end user may have no access to it at all.
 const UPLOAD_PREREQUISITE =
   'Uploading requires an outbound HTTP request from your environment. A hosted code execution ' +
-  'sandbox runs on its own network, so the host of uploadUrl must be publicly reachable — a ' +
-  'localhost or private address can never be reached from there — and allowed for outbound ' +
-  'traffic: on Claude Desktop, under Settings > Capabilities > Code execution and file creation > ' +
-  'Additional allowed domains, which an organization owner may have to set. A blocked or ' +
-  'unreachable request is a client configuration issue, not an expired handle.';
+  'sandbox runs on its own network and reaches only allowed hosts, so the host of uploadUrl must ' +
+  'be publicly reachable — a localhost or private address never is from there — and allowed for ' +
+  'outbound traffic in that environment. Where that is configured depends on the client, and on a ' +
+  'managed workspace it may be an administrator setting rather than a user one. A blocked or ' +
+  'unreachable request is a client configuration issue, not an expired handle: report it as such ' +
+  'instead of requesting another destination.';
 
 interface RequestActionFileUploadArgument {
   filename: string;

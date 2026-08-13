@@ -78,10 +78,10 @@ describe('declareRequestActionFileUploadTool', () => {
       expect(config.description).toContain('Never inline base64 file content');
     });
 
-    it('documents the outbound request prerequisite, including the Desktop allowlist', () => {
+    it('documents the outbound request prerequisite without promising where to configure it', () => {
       setup();
 
-      expect(config.description).toContain('Additional allowed domains');
+      expect(config.description).toContain('allowed for outbound traffic in that environment');
     });
   });
 
@@ -110,7 +110,7 @@ describe('declareRequestActionFileUploadTool', () => {
 
       const response = await call({ filename: 'report.pdf', mimeType: 'application/pdf' });
 
-      expect(response.prerequisite).toContain('Additional allowed domains');
+      expect(response.prerequisite).toContain('allowed for outbound traffic in that environment');
     });
 
     it('asks the storage for a key under the configured prefix', async () => {
