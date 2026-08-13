@@ -11,9 +11,11 @@ type Handler = (context: unknown) => Promise<void>;
 const makeCaller = (requestId = 'req-1'): Caller =>
   ({ id: 42, email: 'jane@forest.dev', role: 'admin', requestId } as unknown as Caller);
 
+const idFilterOperators = { filterOperators: new Set(['Equal', 'In']) };
+
 const baseSchema = {
   fields: {
-    id: { type: 'Column', columnType: 'Number', isPrimaryKey: true },
+    id: { type: 'Column', columnType: 'Number', isPrimaryKey: true, ...idFilterOperators },
     status: { type: 'Column', columnType: 'String' },
     name: { type: 'Column', columnType: 'String' },
     amount: { type: 'Column', columnType: 'Number' },
@@ -23,15 +25,20 @@ const baseSchema = {
 
 const compositeSchema = {
   fields: {
-    organizationId: { type: 'Column', columnType: 'Number', isPrimaryKey: true },
-    userId: { type: 'Column', columnType: 'Number', isPrimaryKey: true },
+    organizationId: {
+      type: 'Column',
+      columnType: 'Number',
+      isPrimaryKey: true,
+      ...idFilterOperators,
+    },
+    userId: { type: 'Column', columnType: 'Number', isPrimaryKey: true, ...idFilterOperators },
     role: { type: 'Column', columnType: 'String' },
   },
 };
 
 const complexSchema = {
   fields: {
-    id: { type: 'Column', columnType: 'Number', isPrimaryKey: true },
+    id: { type: 'Column', columnType: 'Number', isPrimaryKey: true, ...idFilterOperators },
     payload: { type: 'Column', columnType: 'Json' },
     tags: { type: 'Column', columnType: ['String'] },
     seenAt: { type: 'Column', columnType: 'Date' },
@@ -87,6 +94,7 @@ async function runUpdate(
   await target.fire('Before:Update', {
     caller: args.caller,
     filter,
+    patch: args.patch,
     collection: { list: target.list },
   });
 
@@ -384,7 +392,13 @@ describe('auditTrail plugin', () => {
       const sink = jest.fn();
       const schema = {
         fields: {
-          id: { type: 'Column', columnType: 'Number', isPrimaryKey: true, isReadOnly: true },
+          id: {
+            type: 'Column',
+            columnType: 'Number',
+            isPrimaryKey: true,
+            isReadOnly: true,
+            ...idFilterOperators,
+          },
           name: { type: 'Column', columnType: 'String' },
         },
       };
@@ -426,7 +440,7 @@ describe('auditTrail plugin', () => {
       const sink = jest.fn();
       const schema = {
         fields: {
-          id: { type: 'Column', columnType: 'Number', isPrimaryKey: true },
+          id: { type: 'Column', columnType: 'Number', isPrimaryKey: true, ...idFilterOperators },
           name: { type: 'Column', columnType: 'String' },
           fullName: { type: 'Column', columnType: 'String', isReadOnly: true },
         },
@@ -543,7 +557,12 @@ describe('auditTrail plugin', () => {
       const sink = jest.fn();
       const schema = {
         fields: {
-          slug: { type: 'Column', columnType: 'String', isPrimaryKey: true },
+          slug: {
+            type: 'Column',
+            columnType: 'String',
+            isPrimaryKey: true,
+            ...idFilterOperators,
+          },
           name: { type: 'Column', columnType: 'String' },
         },
       };
@@ -561,6 +580,83 @@ describe('auditTrail plugin', () => {
           recordId: 'new-slug',
           previousValues: { slug: 'old-slug' },
           newValues: { slug: 'new-slug' },
+        }),
+      );
+    });
+
+    it('still records an update that changes a field the update was itself filtered on', async () => {
+      const sink = jest.fn();
+      const accounts = fakeCollection('accounts', [
+        { id: 1, status: 'draft', name: 'Acme', amount: 10 },
+      ]);
+      register([accounts], { sink });
+
+      // A filter matching on `status` no longer matches once this very update archives the record,
+      // so re-reading with it (instead of by the record's own identity) would find nothing.
+      const filter = { conditionTree: { field: 'status', operator: 'Equal', value: 'draft' } };
+      await runUpdate(accounts, {
+        caller: makeCaller(),
+        filter,
+        patch: { status: 'archived' },
+        after: [{ id: 1, status: 'archived', name: 'Acme', amount: 10 }],
+      });
+
+      const [, secondCallFilter] = accounts.list.mock.calls[1];
+      expect(secondCallFilter).not.toBe(filter);
+
+      expect(sink).toHaveBeenCalledWith(
+        expect.objectContaining({
+          recordId: '1',
+          previousValues: { status: 'draft' },
+          newValues: { status: 'archived' },
+        }),
+      );
+    });
+
+    it("does not let a failed write's abandoned snapshot leak into a later update sharing the same Filter object", async () => {
+      const sink = jest.fn();
+      const caller = makeCaller();
+      const accounts = fakeCollection('accounts');
+      register([accounts], { sink });
+
+      const sharedFilter = { tag: 'shared' };
+
+      // First update's write throws after Before ran (not simulated here beyond simply never
+      // firing its After): the pushed snapshot is abandoned and must not poison the next update
+      // that happens to reuse the identical Filter object.
+      accounts.list.mockResolvedValueOnce([{ id: 1, status: 'open', name: 'Acme', amount: 10 }]);
+      await accounts.fire('Before:Update', {
+        caller,
+        filter: sharedFilter,
+        patch: { status: 'closed' },
+        collection: { list: accounts.list },
+      });
+
+      accounts.list.mockResolvedValueOnce([
+        { id: 2, status: 'pending', name: 'Globex', amount: 20 },
+      ]);
+      await accounts.fire('Before:Update', {
+        caller,
+        filter: sharedFilter,
+        patch: { amount: 99 },
+        collection: { list: accounts.list },
+      });
+      accounts.list.mockResolvedValueOnce([
+        { id: 2, status: 'pending', name: 'Globex', amount: 99 },
+      ]);
+      await accounts.fire('After:Update', {
+        caller,
+        filter: sharedFilter,
+        patch: { amount: 99 },
+        collection: { list: accounts.list },
+      });
+
+      expect(sink).toHaveBeenCalledTimes(1);
+      expect(sink).toHaveBeenCalledWith(
+        expect.objectContaining({
+          recordId: '2',
+          previousValues: { amount: 20 },
+          newValues: { amount: 99 },
         }),
       );
     });
@@ -713,7 +809,7 @@ describe('auditTrail plugin', () => {
 
       await expect(
         runUpdate(views, { caller: makeCaller(), patch: { name: 'Globex' } }),
-      ).rejects.toThrow('Cannot audit a collection with no primary key');
+      ).rejects.toThrow('Collection must have at least one primary key');
     });
   });
 

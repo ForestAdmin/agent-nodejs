@@ -8,43 +8,9 @@ import type {
 } from '@forestadmin/datasource-customizer';
 import type { Caller, RecordData } from '@forestadmin/datasource-toolkit';
 
-import { SchemaUtils } from '@forestadmin/datasource-toolkit';
+import { ConditionTreeFactory, SchemaUtils } from '@forestadmin/datasource-toolkit';
 
 import { ABSENT } from './types';
-
-// One caller-supplied `Filter` object can be reused across concurrent operations (e.g. a bulk
-// helper looping over the same template), so each key holds a FIFO queue of snapshots rather than
-// a single value — otherwise a second concurrent `Before` would overwrite the first snapshot and
-// its `After` would silently emit nothing.
-const snapshotsByFilter = new WeakMap<object, RecordData[][]>();
-
-function pushSnapshot(key: object, snapshot: RecordData[]): void {
-  const queue = snapshotsByFilter.get(key) ?? [];
-  queue.push(snapshot);
-  snapshotsByFilter.set(key, queue);
-}
-
-function shiftSnapshot(key: object): RecordData[] {
-  const queue = snapshotsByFilter.get(key);
-  if (!queue || queue.length === 0) return [];
-
-  const snapshot = queue.shift();
-  if (queue.length === 0) snapshotsByFilter.delete(key);
-
-  return snapshot ?? [];
-}
-
-// Must match IdUtils.packId so recordIds align with the rest of Forest.
-const toPackedRecordId = (record: RecordData, primaryKeys: string[]): string => {
-  if (primaryKeys.length === 0) {
-    throw new Error('Cannot audit a collection with no primary key');
-  }
-
-  return primaryKeys.map(pk => String(record[pk])).join('|');
-};
-
-const pickColumns = (record: RecordData, columns: string[]): Record<string, unknown> =>
-  Object.fromEntries(columns.map(column => [column, record[column] ?? null]));
 
 const stableKeyOrderReplacer = (key: string, value: unknown): unknown => {
   if (value && typeof value === 'object' && !Array.isArray(value)) {
@@ -64,6 +30,49 @@ const stableKeyOrderReplacer = (key: string, value: unknown): unknown => {
 // plain-object key order irrelevant.
 const deepEquals = (a: unknown, b: unknown): boolean =>
   JSON.stringify(a, stableKeyOrderReplacer) === JSON.stringify(b, stableKeyOrderReplacer);
+
+type PendingSnapshot = { before: RecordData[]; patch?: RecordData };
+
+// One caller-supplied `Filter` object can be reused across concurrent (or sequential, e.g. a
+// continue-on-error bulk loop) operations sharing the same template, so each key holds a queue of
+// snapshots rather than a single value — otherwise a second `Before` would overwrite the first
+// snapshot and its `After` would silently emit nothing.
+const snapshotsByFilter = new WeakMap<object, PendingSnapshot[]>();
+
+function pushSnapshot(key: object, entry: PendingSnapshot): void {
+  const queue = snapshotsByFilter.get(key) ?? [];
+  queue.push(entry);
+  snapshotsByFilter.set(key, queue);
+}
+
+// Correlates by `patch` content rather than queue position: if a write throws, its `Before`
+// snapshot is never consumed (there is no matching `After` call), so blindly taking the front of
+// the queue would hand a later, unrelated operation someone else's stale snapshot instead of its
+// own. Delete has no equivalent secondary key, so it falls back to FIFO order — a narrower version
+// of the same risk that remains for deletes sharing one `Filter` reference.
+function takeSnapshot(key: object, patch?: RecordData): RecordData[] {
+  const queue = snapshotsByFilter.get(key);
+  if (!queue || queue.length === 0) return [];
+
+  const index = patch ? queue.findIndex(entry => deepEquals(entry.patch, patch)) : 0;
+  const [entry] = queue.splice(index === -1 ? 0 : index, 1);
+
+  if (queue.length === 0) snapshotsByFilter.delete(key);
+
+  return entry?.before ?? [];
+}
+
+// Must match IdUtils.packId so recordIds align with the rest of Forest.
+const toPackedRecordId = (record: RecordData, primaryKeys: string[]): string => {
+  if (primaryKeys.length === 0) {
+    throw new Error('Cannot audit a collection with no primary key');
+  }
+
+  return primaryKeys.map(pk => String(record[pk])).join('|');
+};
+
+const pickColumns = (record: RecordData, columns: string[]): Record<string, unknown> =>
+  Object.fromEntries(columns.map(column => [column, record[column] ?? null]));
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date);
@@ -211,27 +220,34 @@ function instrumentCollection(
       context.filter as never,
       readProjection as never[],
     );
-    pushSnapshot(context.filter, before as RecordData[]);
+    pushSnapshot(context.filter, { before: before as RecordData[], patch: context.patch });
   });
 
   collection.addInternalHook(
     'After',
     'Update',
     async (context: HookBeforeUpdateContext) => {
-      const before = shiftSnapshot(context.filter);
+      const before = takeSnapshot(context.filter, context.patch);
 
       if (before.length === 0) return;
 
-      // Re-read what was actually persisted rather than trusting the requested patch: a decorator
-      // or the datasource itself may normalize, coerce, or otherwise alter the written values.
+      // Re-read each touched record by its own (possibly patch-changed) identity rather than via
+      // `context.filter`: if the update changed a field the filter matched on — including a
+      // writable primary key — re-querying with that same filter would find nothing, silently
+      // dropping the entry instead of filing it under the record's new id.
+      const expectedRecords = before.map(record => ({ ...record, ...context.patch }));
+      const expectedIds = expectedRecords.map(record => primaryKeys.map(pk => record[pk]));
       const after = (await context.collection.list(
-        context.filter as never,
+        { conditionTree: ConditionTreeFactory.matchIds(schema, expectedIds) } as never,
         readProjection as never[],
       )) as RecordData[];
+      const afterById = new Map(
+        after.map(record => [toPackedRecordId(record, primaryKeys), record]),
+      );
 
       await Promise.all(
         before.map((record, index) => {
-          const updated = after[index];
+          const updated = afterById.get(toPackedRecordId(expectedRecords[index], primaryKeys));
 
           if (!updated) return undefined;
 
@@ -258,14 +274,14 @@ function instrumentCollection(
       context.filter as never,
       readProjection as never[],
     );
-    pushSnapshot(context.filter, before as RecordData[]);
+    pushSnapshot(context.filter, { before: before as RecordData[] });
   });
 
   collection.addInternalHook(
     'After',
     'Delete',
     async (context: HookBeforeDeleteContext) => {
-      const before = shiftSnapshot(context.filter);
+      const before = takeSnapshot(context.filter);
 
       await Promise.all(
         before.map(record =>
