@@ -1,3 +1,10 @@
+## @forestadmin/workflow-executor [1.23.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.23.8...@forestadmin/workflow-executor@1.23.9) (2026-08-13)
+
+
+### Bug Fixes
+
+* **workflow-executor:** acknowledge a trigger once the run is claimed, not once the chain ends ([#1821](https://github.com/ForestAdmin/agent-nodejs/issues/1821)) ([d8666be](https://github.com/ForestAdmin/agent-nodejs/commit/d8666be2e526c44209fc222b1f43ae1ce9812971))
+
 ## @forestadmin/workflow-executor [1.23.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.23.7...@forestadmin/workflow-executor@1.23.8) (2026-08-11)
 
 
