@@ -1090,7 +1090,35 @@ describe('ActionRoute', () => {
         );
       });
 
-      test('does not record anything when no audit trail is configured', async () => {
+      test('still records the targeted record when the action itself deletes it', async () => {
+        const listMock = dataSource.getCollection('books').list as jest.Mock;
+        // Resolved before `execute()` runs; the action then deletes the record, so a re-list
+        // afterward (the bug being guarded against) would find nothing.
+        listMock.mockResolvedValueOnce([{ id: '123e4567-e89b-12d3-a456-426614174000' }]);
+        listMock.mockResolvedValue([]);
+
+        const context = createMockContext({
+          ...baseContext,
+          requestBody: {
+            data: {
+              attributes: {
+                ...baseContext.requestBody.data.attributes,
+                values: { firstname: 'John' },
+              },
+            },
+          },
+        });
+
+        // @ts-expect-error: test private method
+        await route.handleExecute(context);
+
+        expect(listMock).toHaveBeenCalledTimes(1);
+        expect(append).toHaveBeenCalledWith(
+          expect.objectContaining({ recordId: '123e4567-e89b-12d3-a456-426614174000' }),
+        );
+      });
+
+      test('does not record anything, or query for audited ids, when no audit trail is configured', async () => {
         route = new ActionRoute(services, options, dataSource, 'books', 'MySingleAction');
         const context = createMockContext({
           ...baseContext,
@@ -1108,6 +1136,7 @@ describe('ActionRoute', () => {
         await route.handleExecute(context);
 
         expect(append).not.toHaveBeenCalled();
+        expect(dataSource.getCollection('books').list).not.toHaveBeenCalled();
       });
 
       test('logs and swallows a failing audit store instead of failing the request', async () => {

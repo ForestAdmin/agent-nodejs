@@ -150,28 +150,36 @@ export default class ActionRoute extends CollectionRoute {
   // A failed run is worth recording too: "who tried to run this" is usually the interesting part.
   // A resolved `{ type: 'Error' }` result counts as failed as well — the customer-declared action
   // rejected the request (HTTP 400 below), it just didn't throw to say so.
+  //
+  // Record ids are resolved *before* `execute()` runs, not after: the action itself may delete the
+  // targeted records or change a field their own selection filter matched on, so resolving them
+  // afterward could find nothing and silently lose the association between the audit entry and the
+  // records it actually affected.
   private async executeAndAudit(
     context: Context,
     caller: Caller,
     data: Record<string, unknown>,
     filter: Filter,
   ): Promise<ActionResult> {
+    const recordIds = this.options.auditTrail
+      ? await this.auditedRecordIds(context, caller, filter)
+      : [];
+
     try {
       const result = await this.collection.execute(caller, this.actionName, data, filter);
-      await this.auditAction(context, caller, data, filter, result.type === 'Error');
+      await this.auditAction(caller, data, recordIds, result.type === 'Error');
 
       return result;
     } catch (error) {
-      await this.auditAction(context, caller, data, filter, true);
+      await this.auditAction(caller, data, recordIds, true);
       throw error;
     }
   }
 
   private async auditAction(
-    context: Context,
     caller: Caller,
     formValues: Record<string, unknown>,
-    filterForCaller: Filter,
+    recordIds: string[],
     failed = false,
   ): Promise<void> {
     const { auditTrail } = this.options;
@@ -181,13 +189,7 @@ export default class ActionRoute extends CollectionRoute {
       await captureAction(
         record => auditTrail.store.append(record),
         auditTrail.redact?.[this.collection.name] ?? [],
-        {
-          caller,
-          collection: this.collection.name,
-          formValues,
-          recordIds: await this.auditedRecordIds(context, caller, filterForCaller),
-          failed,
-        },
+        { caller, collection: this.collection.name, formValues, recordIds, failed },
       );
     } catch (error) {
       // The action has already run (or failed on its own): a broken audit store must not also fail
