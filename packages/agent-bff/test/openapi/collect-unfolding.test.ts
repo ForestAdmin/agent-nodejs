@@ -5,6 +5,8 @@ import type {
 } from '../../src/read-model/capabilities-cache';
 import type ReadModelStore from '../../src/read-model/read-model-store';
 
+import { allOperators } from '@forestadmin/datasource-toolkit';
+
 import collectUnfolding from '../../src/openapi/collect-unfolding';
 import ReadModel from '../../src/read-model/read-model';
 import { action, collection, column, polymorphic, relation } from '../read-model/fixtures';
@@ -93,9 +95,60 @@ describe('collectUnfolding', () => {
 
       expect(collections[0].fields).toEqual({
         projectable: ['id', 'author'],
-        filterable: ['id'],
+        filterable: [{ name: 'id', operators: ['Equal'] }],
         degraded: null,
       });
+    });
+
+    it('should normalize the capabilities operators to their canonical PascalCase form', async () => {
+      const { collections } = await collect(readModel, {
+        capabilities: async () => ({
+          fields: [{ name: 'id', type: 'String', operators: ['i_contains', 'not_equal'] }],
+        }),
+      });
+
+      expect(collections[0].fields.filterable).toEqual([
+        { name: 'id', operators: ['NotEqual', 'IContains'] },
+      ]);
+    });
+
+    it('should order the operators canonically, whatever order the agent listed them in', async () => {
+      const forward = await collect(readModel, {
+        capabilities: async () => ({
+          fields: [{ name: 'id', type: 'String', operators: ['equal', 'contains', 'in'] }],
+        }),
+      });
+      const backward = await collect(readModel, {
+        capabilities: async () => ({
+          fields: [{ name: 'id', type: 'String', operators: ['in', 'contains', 'equal'] }],
+        }),
+      });
+
+      expect(forward.collections[0].fields.filterable).toEqual([
+        { name: 'id', operators: ['Equal', 'In', 'Contains'] },
+      ]);
+      expect(backward.collections[0].fields.filterable).toEqual(
+        forward.collections[0].fields.filterable,
+      );
+    });
+
+    it('should keep every operator on a field carrying one the BFF cannot map, and log the skew', async () => {
+      const logger = jest.fn();
+      const { collections } = await collect(readModel, {
+        capabilities: async () => ({
+          fields: [{ name: 'id', type: 'String', operators: ['equal', 'teleports_to'] }],
+        }),
+        logger,
+      });
+
+      expect(collections[0].fields.filterable).toEqual([
+        { name: 'id', operators: [...allOperators] },
+      ]);
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        'Documenting a field with every operator: one of its own has no mapping',
+        { collection: 'users', field: 'id', operator: 'teleports_to' },
+      );
     });
 
     it('should degrade a collection whose capabilities call fails, and say so in the log', async () => {

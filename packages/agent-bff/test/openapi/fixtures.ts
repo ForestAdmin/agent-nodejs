@@ -3,8 +3,9 @@ import type { Unfolding } from '../../src/openapi/unfolding';
 /**
  * One snapshot exercising every shape the unfolding has to survive: a name carrying a space, a
  * dotted name, an action name carrying a slash, two action names that collapse to the same
- * identifier, a ManyToOne that is projectable but not filterable, a composite key, a parent with no
- * key metadata, and a collection whose capabilities could not be read.
+ * identifier, a ManyToOne that is projectable but not filterable, two fields of DIFFERENT types
+ * sharing one operator set, a composite key, a parent with no key metadata, and a collection whose
+ * capabilities could not be read.
  */
 export default function unfoldingFixture(): Unfolding {
   return {
@@ -13,7 +14,11 @@ export default function unfoldingFixture(): Unfolding {
         name: 'My Coll',
         fields: {
           projectable: ['id', 'email', 'tags', 'author'],
-          filterable: ['id', 'email', 'tags'],
+          filterable: [
+            { name: 'id', operators: ['Equal', 'NotEqual', 'In'] },
+            { name: 'email', operators: ['Equal', 'NotEqual', 'In', 'Contains'] },
+            { name: 'tags', operators: ['Equal', 'NotEqual', 'In'] },
+          ],
           degraded: null,
         },
         primaryKeys: [{ name: 'id', type: 'Number' }],
@@ -43,7 +48,11 @@ export default function unfoldingFixture(): Unfolding {
       },
       {
         name: 'users.address',
-        fields: { projectable: ['street'], filterable: ['street'], degraded: null },
+        fields: {
+          projectable: ['street'],
+          filterable: [{ name: 'street', operators: ['Equal'] }],
+          degraded: null,
+        },
         primaryKeys: [],
         relations: [{ name: 'orders', foreignCollection: 'orders' }],
         actions: [],

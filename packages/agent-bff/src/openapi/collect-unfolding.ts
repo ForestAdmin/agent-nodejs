@@ -1,16 +1,21 @@
 import type {
   CollectionFields,
+  FilterableField,
   UnfoldedAction,
   UnfoldedCollection,
   UnfoldedRelation,
   Unfolding,
 } from './unfolding';
 import type { Logger } from '../ports/logger-port';
-import type { CapabilitiesFetcher } from '../read-model/capabilities-cache';
+import type { CapabilitiesFetcher, CapabilitiesResult } from '../read-model/capabilities-cache';
 import type ReadModel from '../read-model/read-model';
 import type ReadModelStore from '../read-model/read-model-store';
+import type { Operator } from '@forestadmin/datasource-toolkit';
+
+import { allOperators } from '@forestadmin/datasource-toolkit';
 
 import { extractErrorMessage } from '../errors';
+import { normalizeOperator, toCanonicalOperatorSet } from '../validation/operator-normalizer';
 
 // A cold document costs one capabilities call per collection. They are capped rather than fired all
 // at once so a 200-collection deployment cannot open 200 sockets to the agent at the same time; a
@@ -56,6 +61,53 @@ const UNTYPED = (degraded: CollectionFields['degraded']): CollectionFields => ({
   degraded,
 });
 
+/**
+ * The operators to document for one field. An operator with no canonical mapping means the agent
+ * runs a newer operator set than this package: the field then keeps the WHOLE operator set rather
+ * than the mappable part of it. Documenting less than the runtime accepts would make a generated
+ * client refuse a call the agent honours, and a raw snake_case operator must never reach the public
+ * document — so the skew is surfaced in the log instead.
+ */
+function documentedOperators(
+  collection: string,
+  field: string,
+  operators: string[],
+  logger: Logger,
+): Operator[] {
+  const normalized: Operator[] = [];
+
+  for (const operator of operators) {
+    const canonical = normalizeOperator(operator);
+
+    if (!canonical) {
+      logger('Warn', 'Documenting a field with every operator: one of its own has no mapping', {
+        collection,
+        field,
+        operator,
+      });
+
+      return [...allOperators];
+    }
+
+    normalized.push(canonical);
+  }
+
+  return toCanonicalOperatorSet(normalized);
+}
+
+function collectFilterableFields(
+  collection: string,
+  capabilities: CapabilitiesResult,
+  logger: Logger,
+): FilterableField[] {
+  return capabilities.fields
+    .filter(field => (field.operators?.length ?? 0) > 0)
+    .map(field => ({
+      name: field.name,
+      operators: documentedOperators(collection, field.name, field.operators as string[], logger),
+    }));
+}
+
 async function collectFields(
   collection: string,
   { store, capabilitiesFetcher, logger }: CollectUnfoldingOptions,
@@ -73,9 +125,7 @@ async function collectFields(
 
     return {
       projectable: capabilities.fields.map(field => field.name),
-      filterable: capabilities.fields
-        .filter(field => (field.operators?.length ?? 0) > 0)
-        .map(field => field.name),
+      filterable: collectFilterableFields(collection, capabilities, logger),
       degraded: null,
     };
   } catch (error) {

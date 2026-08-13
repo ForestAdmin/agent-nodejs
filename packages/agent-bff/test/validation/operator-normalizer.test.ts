@@ -1,6 +1,10 @@
 import { allOperators } from '@forestadmin/datasource-toolkit';
 
-import { normalizeOperator, toSnakeCaseOperator } from '../../src/validation/operator-normalizer';
+import {
+  normalizeOperator,
+  toCanonicalOperatorSet,
+  toSnakeCaseOperator,
+} from '../../src/validation/operator-normalizer';
 
 describe('operator-normalizer', () => {
   describe('normalizeOperator', () => {
@@ -39,5 +43,29 @@ describe('operator-normalizer', () => {
         expect(normalizeOperator(key)).toBeUndefined();
       },
     );
+  });
+
+  describe('toCanonicalOperatorSet', () => {
+    it('reorders an operator set to the canonical order', () => {
+      expect(toCanonicalOperatorSet(['Contains', 'In', 'Equal'])).toEqual([
+        'Equal',
+        'In',
+        'Contains',
+      ]);
+    });
+
+    it('gives two sets listing the same operators the same result', () => {
+      expect(toCanonicalOperatorSet(['Blank', 'Present'])).toEqual(
+        toCanonicalOperatorSet(['Present', 'Blank']),
+      );
+    });
+
+    it('drops a duplicate, which an enum must not carry twice', () => {
+      expect(toCanonicalOperatorSet(['Equal', 'Equal', 'In'])).toEqual(['Equal', 'In']);
+    });
+
+    it('keeps every canonical operator in the toolkit order', () => {
+      expect(toCanonicalOperatorSet([...allOperators].reverse())).toEqual([...allOperators]);
+    });
   });
 });

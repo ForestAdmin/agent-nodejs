@@ -1,3 +1,7 @@
+import type { UnfoldedCollection } from '../../src/openapi/unfolding';
+
+import { allOperators } from '@forestadmin/datasource-toolkit';
+
 import unfoldingFixture from './fixtures';
 import { ROUTE_PREFIX, generateOpenApiDocument } from '../../src/openapi/openapi-document';
 
@@ -19,6 +23,45 @@ function requestSchemaName(path: string): string {
 
 function requestSchema(path: string): Record<string, never> {
   return schemas[requestSchemaName(path)] as Record<string, never>;
+}
+
+function dereference(ref: string): Record<string, unknown> {
+  return schemas[ref.replace('#/components/schemas/', '')];
+}
+
+// The leaf alternatives of a filter tree are its `$ref` ones; the branch alternative is inlined.
+function leavesOf(treeName: string): { fields: string[]; operators: string[] }[] {
+  const { anyOf } = schemas[treeName] as unknown as { anyOf: { $ref?: string }[] };
+
+  return anyOf
+    .filter(alternative => alternative.$ref !== undefined)
+    .map(alternative => {
+      const { properties } = dereference(alternative.$ref as string) as unknown as {
+        properties: { field: { enum?: string[] }; operator: { enum: string[] } };
+      };
+
+      return { fields: properties.field.enum ?? [], operators: properties.operator.enum };
+    });
+}
+
+function filterableFieldsOf(treeName: string): string[] {
+  return leavesOf(treeName).flatMap(leaf => leaf.fields);
+}
+
+function branchOf(treeName: string): Record<string, never> {
+  const { anyOf } = schemas[treeName] as unknown as { anyOf: Record<string, never>[] };
+
+  return anyOf[anyOf.length - 1];
+}
+
+// A relation request composes the foreign collection request, so its filter sits one hop further.
+function relationFilterOf(path: string): string {
+  const { allOf } = requestSchema(path) as unknown as { allOf: [{ $ref: string }, unknown] };
+  const { properties } = dereference(allOf[0].$ref) as unknown as {
+    properties: { filter: { $ref: string } };
+  };
+
+  return properties.filter.$ref.replace('#/components/schemas/', '');
 }
 
 describe('the unfolded document', () => {
@@ -85,10 +128,31 @@ describe('the unfolded document', () => {
     );
   });
 
-  it('should leave a ManyToOne out of the filterable fields, which the runtime rejects', () => {
-    expect(schemas.FilterableFields_My_Coll).toEqual(
-      expect.objectContaining({ type: 'string', enum: ['id', 'email', 'tags'] }),
-    );
+  it('should leave a ManyToOne out of every filter leaf, which the runtime rejects', () => {
+    expect(filterableFieldsOf('Filter_My_Coll')).toEqual(['id', 'tags', 'email']);
+  });
+
+  it('should pair each field with the operators its capabilities report', () => {
+    expect(leavesOf('Filter_My_Coll')).toEqual([
+      { fields: ['id', 'tags'], operators: ['Equal', 'NotEqual', 'In'] },
+      { fields: ['email'], operators: ['Equal', 'NotEqual', 'In', 'Contains'] },
+    ]);
+  });
+
+  it('should group two fields of different types that share one operator set', () => {
+    const [first] = leavesOf('Filter_My_Coll');
+
+    expect(first.fields).toEqual(['id', 'tags']);
+  });
+
+  it('should order the operators canonically rather than alphabetically', () => {
+    const [, second] = leavesOf('Filter_My_Coll');
+
+    expect(second.operators.indexOf('In')).toBeLessThan(second.operators.indexOf('Contains'));
+  });
+
+  it('should no longer emit a filterable-field enum, now that each leaf carries its own', () => {
+    expect(Object.keys(schemas).filter(name => name.startsWith('FilterableFields'))).toEqual([]);
   });
 
   it('should point the filter, the projection and the sort at that collection own fields', () => {
@@ -101,32 +165,33 @@ describe('the unfolded document', () => {
     expect(request.properties.sort.items?.$ref).toBe('#/components/schemas/SortClause_My_Coll');
   });
 
-  it('should make the leaf and the branch mutually exclusive, which the runtime enforces', () => {
-    const leaf = schemas.FilterLeaf_My_Coll as unknown as { not: { required: string[] } };
-    const tree = schemas.Filter_My_Coll as unknown as {
-      anyOf: [unknown, { not: { required: string[] } }];
-    };
+  it('should make every leaf and the branch mutually exclusive, which the runtime enforces', () => {
+    const branch = branchOf('Filter_My_Coll') as unknown as { not: { required: string[] } };
 
-    expect(leaf.not.required).toEqual(['conditions']);
-    expect(tree.anyOf[1].not.required).toEqual(['field']);
+    ['FilterLeaf_My_Coll_1', 'FilterLeaf_My_Coll_2'].forEach(name => {
+      const leaf = schemas[name] as unknown as { not: { required: string[] } };
+
+      expect(leaf.not.required).toEqual(['conditions']);
+    });
+    expect(branch.not.required).toEqual(['field']);
   });
 
   it('should exclude only the type the runtime reads as the other shape', () => {
     // `isBranch` needs an ARRAY `conditions` and `isLeaf` a STRING `field`, so a leaf carrying
     // `conditions: "x"` is a plain leaf the runtime accepts and the document must not refuse.
-    const leaf = schemas.FilterLeaf_My_Coll as unknown as {
+    const leaf = schemas.FilterLeaf_My_Coll_1 as unknown as {
       not: { properties: { conditions: { type: string } } };
     };
-    const tree = schemas.Filter_My_Coll as unknown as {
-      anyOf: [unknown, { not: { properties: { field: { type: string } } } }];
+    const branch = branchOf('Filter_My_Coll') as unknown as {
+      not: { properties: { field: { type: string } } };
     };
 
     expect(leaf.not.properties.conditions.type).toBe('array');
-    expect(tree.anyOf[1].not.properties.field.type).toBe('string');
+    expect(branch.not.properties.field.type).toBe('string');
   });
 
   it('should not forbid an unknown extra key on a filter node, which the runtime strips', () => {
-    const leaf = schemas.FilterLeaf_My_Coll as { additionalProperties?: unknown };
+    const leaf = schemas.FilterLeaf_My_Coll_1 as { additionalProperties?: unknown };
 
     expect(leaf.additionalProperties).toBeUndefined();
   });
@@ -187,6 +252,25 @@ describe('the unfolded document', () => {
     expect(request.properties.projection.items).toEqual({ type: 'string' });
     expect(request.description).toContain('NOT enumerated');
     expect(schemas.Fields_orders).toBeUndefined();
+  });
+
+  it('should keep every operator allowed on a collection whose capabilities failed', () => {
+    // Narrowing the operators there would forbid calls the runtime accepts: nothing is known about
+    // this collection fields, so nothing may be excluded.
+    expect(leavesOf('Filter_orders')).toEqual([{ fields: [], operators: [...allOperators] }]);
+  });
+
+  it('should carry the FOREIGN collection operators on a relation path, not the parent ones', () => {
+    expect(leavesOf(relationFilterOf('orders/relations/buyers/list'))).toEqual([
+      { fields: ['id', 'tags'], operators: ['Equal', 'NotEqual', 'In'] },
+      { fields: ['email'], operators: ['Equal', 'NotEqual', 'In', 'Contains'] },
+    ]);
+  });
+
+  it('should carry the foreign free-form leaf even when the parent has enumerated operators', () => {
+    // "My Coll".orders points at "orders", whose capabilities failed. The relation filter runs on the
+    // foreign collection, so this path must document its permissive leaf and NOT "My Coll" variants.
+    expect(filterableFieldsOf(relationFilterOf('My%20Coll/relations/orders/list'))).toEqual([]);
   });
 
   it('should type the action values from the static form fields, all optional', () => {
@@ -268,7 +352,11 @@ describe('an unfolding naming a collection it does not carry', () => {
       collections: [
         {
           name: 'users',
-          fields: { projectable: ['id'], filterable: ['id'], degraded: null },
+          fields: {
+            projectable: ['id'],
+            filterable: [{ name: 'id', operators: ['Equal'] }],
+            degraded: null,
+          },
           primaryKeys: [{ name: 'id', type: 'Number' }],
           relations: [{ name: 'secrets', foreignCollection: 'secrets' }],
           actions: [],
@@ -287,9 +375,17 @@ describe('names that collide once sanitized', () => {
   // `_` is both what sanitizing produces and the separator between a collection and its child, so
   // deduplicating each segment on its own is not enough: `A_B` + `C` and `A` + `B_C` compose the same
   // identifier, and one action would silently get the other's request schema.
-  const collection = (name: string, actionName: string, relationName: string) => ({
+  const collection = (
+    name: string,
+    actionName: string,
+    relationName: string,
+  ): UnfoldedCollection => ({
     name,
-    fields: { projectable: ['id'], filterable: ['id'], degraded: null },
+    fields: {
+      projectable: ['id'],
+      filterable: [{ name: 'id', operators: ['Equal'] }],
+      degraded: null,
+    },
     primaryKeys: [{ name: 'id', type: 'Number' }],
     relations: [{ name: relationName, foreignCollection: name }],
     actions: [{ name: actionName, fields: [] }],
@@ -332,7 +428,11 @@ describe('an unfolded document with no action', () => {
       collections: [
         {
           name: 'users',
-          fields: { projectable: ['id'], filterable: ['id'], degraded: null },
+          fields: {
+            projectable: ['id'],
+            filterable: [{ name: 'id', operators: ['Equal'] }],
+            degraded: null,
+          },
           primaryKeys: [{ name: 'id', type: 'Number' }],
           relations: [],
           actions: [],

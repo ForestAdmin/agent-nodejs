@@ -26,3 +26,18 @@ const SNAKE_TO_PASCAL = new Map<string, Operator>(
 export function normalizeOperator(snakeCaseOperator: string): Operator | undefined {
   return SNAKE_TO_PASCAL.get(snakeCaseOperator);
 }
+
+const CANONICAL_ORDER = new Map<Operator, number>(
+  allOperators.map((operator, index) => [operator, index]),
+);
+
+/**
+ * Deduplicates and reorders an operator set to the `allOperators` order. The agent serializes a
+ * field's operators from a set, so their order is not contractual: putting them in a canonical order
+ * is what lets two fields sharing an operator set be recognized as sharing it.
+ */
+export function toCanonicalOperatorSet(operators: Operator[]): Operator[] {
+  return [...new Set(operators)].sort(
+    (left, right) => (CANONICAL_ORDER.get(left) as number) - (CANONICAL_ORDER.get(right) as number),
+  );
+}
