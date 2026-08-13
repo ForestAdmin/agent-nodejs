@@ -830,6 +830,24 @@ describe('Builder > Collection', () => {
       ]);
       expect(self).toEqual(customizer);
     });
+
+    it('should prepend the handler when options.prepend is true', async () => {
+      const { dsc, customizer } = await setup();
+
+      const firstHandler = () => {};
+
+      const prependedHandler = () => {};
+
+      customizer.addHook('Before', 'List', firstHandler);
+      const self = customizer.addHook('Before', 'List', prependedHandler, { prepend: true });
+      await dsc.getDataSource(logger);
+
+      // @ts-ignore
+      expect(self.stack.hook.getCollection('authors').hooks.List.before).toStrictEqual([
+        prependedHandler,
+        firstHandler,
+      ]);
+    });
   });
 
   describe('overrideCreate', () => {

@@ -45,18 +45,25 @@ function fakeCollection(
   schema: unknown = baseSchema,
 ) {
   const handlers = new Map<string, Handler>();
+  const prepends = new Map<string, boolean>();
   const list = jest.fn().mockResolvedValue(listResult);
   const collection = {
     name,
     schema,
-    addInternalHook: (position: string, type: string, handler: Handler) => {
+    addInternalHook: (
+      position: string,
+      type: string,
+      handler: Handler,
+      options?: { prepend?: boolean },
+    ) => {
       handlers.set(`${position}:${type}`, handler);
+      prepends.set(`${position}:${type}`, options?.prepend ?? false);
     },
   };
 
   const fire = (key: string, context: Record<string, unknown>) => handlers.get(key)!(context);
 
-  return { collection, handlers, list, fire, records: listResult };
+  return { collection, handlers, prepends, list, fire, records: listResult };
 }
 
 function register(collections: Array<{ collection: unknown }>, options?: AuditTrailOptions) {
@@ -121,6 +128,17 @@ describe('auditTrail plugin', () => {
         'Before:Delete',
         'Before:Update',
       ]);
+    });
+
+    it('prepends the after-write hooks but appends the before-write ones', () => {
+      const accounts = fakeCollection('accounts');
+      register([accounts], { sink: jest.fn() });
+
+      expect(accounts.prepends.get('After:Create')).toBe(true);
+      expect(accounts.prepends.get('After:Update')).toBe(true);
+      expect(accounts.prepends.get('After:Delete')).toBe(true);
+      expect(accounts.prepends.get('Before:Update')).toBe(false);
+      expect(accounts.prepends.get('Before:Delete')).toBe(false);
     });
 
     it('instruments every collection of the datasource', () => {

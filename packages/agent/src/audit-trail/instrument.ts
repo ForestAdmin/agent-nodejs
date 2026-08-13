@@ -188,18 +188,23 @@ function instrumentCollection(
       newValues: redactValues(entry.newValues, redactedFields),
     });
 
-  collection.addInternalHook('After', 'Create', async (context: HookAfterCreateContext) => {
-    await Promise.all(
-      context.records.map(record =>
-        emit(context.caller, {
-          operation: 'create',
-          recordId: toPackedRecordId(record, primaryKeys),
-          previousValues: {},
-          newValues: pickColumns(record, writableColumns),
-        }),
-      ),
-    );
-  });
+  collection.addInternalHook(
+    'After',
+    'Create',
+    async (context: HookAfterCreateContext) => {
+      await Promise.all(
+        context.records.map(record =>
+          emit(context.caller, {
+            operation: 'create',
+            recordId: toPackedRecordId(record, primaryKeys),
+            previousValues: {},
+            newValues: pickColumns(record, writableColumns),
+          }),
+        ),
+      );
+    },
+    { prepend: true },
+  );
 
   collection.addInternalHook('Before', 'Update', async (context: HookBeforeUpdateContext) => {
     const before = await context.collection.list(
@@ -209,39 +214,44 @@ function instrumentCollection(
     pushSnapshot(context.filter, before as RecordData[]);
   });
 
-  collection.addInternalHook('After', 'Update', async (context: HookBeforeUpdateContext) => {
-    const before = shiftSnapshot(context.filter);
+  collection.addInternalHook(
+    'After',
+    'Update',
+    async (context: HookBeforeUpdateContext) => {
+      const before = shiftSnapshot(context.filter);
 
-    if (before.length === 0) return;
+      if (before.length === 0) return;
 
-    // Re-read what was actually persisted rather than trusting the requested patch: a decorator
-    // or the datasource itself may normalize, coerce, or otherwise alter the written values.
-    const after = (await context.collection.list(
-      context.filter as never,
-      readProjection as never[],
-    )) as RecordData[];
+      // Re-read what was actually persisted rather than trusting the requested patch: a decorator
+      // or the datasource itself may normalize, coerce, or otherwise alter the written values.
+      const after = (await context.collection.list(
+        context.filter as never,
+        readProjection as never[],
+      )) as RecordData[];
 
-    await Promise.all(
-      before.map((record, index) => {
-        const updated = after[index];
+      await Promise.all(
+        before.map((record, index) => {
+          const updated = after[index];
 
-        if (!updated) return undefined;
+          if (!updated) return undefined;
 
-        const { previousValues, newValues } = changedValues(record, updated, writableColumns);
+          const { previousValues, newValues } = changedValues(record, updated, writableColumns);
 
-        if (Object.keys(newValues).length === 0) return undefined;
+          if (Object.keys(newValues).length === 0) return undefined;
 
-        // Packed from the post-update values: if the update changed a writable primary key, the
-        // entry is filed under the record's new id, matching what later history lookups use.
-        return emit(context.caller, {
-          operation: 'update',
-          recordId: toPackedRecordId(updated, primaryKeys),
-          previousValues,
-          newValues,
-        });
-      }),
-    );
-  });
+          // Packed from the post-update values: if the update changed a writable primary key, the
+          // entry is filed under the record's new id, matching what later history lookups use.
+          return emit(context.caller, {
+            operation: 'update',
+            recordId: toPackedRecordId(updated, primaryKeys),
+            previousValues,
+            newValues,
+          });
+        }),
+      );
+    },
+    { prepend: true },
+  );
 
   collection.addInternalHook('Before', 'Delete', async (context: HookBeforeDeleteContext) => {
     const before = await context.collection.list(
@@ -251,20 +261,25 @@ function instrumentCollection(
     pushSnapshot(context.filter, before as RecordData[]);
   });
 
-  collection.addInternalHook('After', 'Delete', async (context: HookBeforeDeleteContext) => {
-    const before = shiftSnapshot(context.filter);
+  collection.addInternalHook(
+    'After',
+    'Delete',
+    async (context: HookBeforeDeleteContext) => {
+      const before = shiftSnapshot(context.filter);
 
-    await Promise.all(
-      before.map(record =>
-        emit(context.caller, {
-          operation: 'delete',
-          recordId: toPackedRecordId(record, primaryKeys),
-          previousValues: pickColumns(record, writableColumns),
-          newValues: {},
-        }),
-      ),
-    );
-  });
+      await Promise.all(
+        before.map(record =>
+          emit(context.caller, {
+            operation: 'delete',
+            recordId: toPackedRecordId(record, primaryKeys),
+            previousValues: pickColumns(record, writableColumns),
+            newValues: {},
+          }),
+        ),
+      );
+    },
+    { prepend: true },
+  );
 }
 
 export default function installAuditTrailHooks(

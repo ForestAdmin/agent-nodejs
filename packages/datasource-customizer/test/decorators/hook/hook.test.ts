@@ -58,6 +58,20 @@ describe('Hooks', () => {
           expect(secondHook).not.toHaveBeenCalled();
         });
       });
+
+      test('a prepended hook runs before hooks added earlier', async () => {
+        const order: string[] = [];
+        const firstAdded = jest.fn().mockImplementation(() => order.push('firstAdded'));
+        const prepended = jest.fn().mockImplementation(() => order.push('prepended'));
+
+        const hooks = new Hooks<FakeHookContext, FakeHookContext>();
+        hooks.addHandler('Before', firstAdded);
+        hooks.addHandler('Before', prepended, true);
+
+        await hooks.executeBefore(new FakeHookContext());
+
+        expect(order).toEqual(['prepended', 'firstAdded']);
+      });
     });
 
     describe('when after hook is defined', () => {
@@ -122,6 +136,20 @@ describe('Hooks', () => {
           await expect(() => hooks.executeAfter(context)).rejects.toThrow();
           expect(secondHook).not.toHaveBeenCalled();
         });
+      });
+
+      test('a prepended hook is not preempted by an earlier hook throwing', async () => {
+        const throwing = jest.fn().mockImplementation(() => {
+          throw new Error();
+        });
+        const prepended = jest.fn();
+
+        const hooks = new Hooks<FakeHookContext, FakeHookContext>();
+        hooks.addHandler('After', throwing);
+        hooks.addHandler('After', prepended, true);
+
+        await expect(() => hooks.executeAfter(new FakeHookContext())).rejects.toThrow();
+        expect(prepended).toHaveBeenCalledTimes(1);
       });
     });
 
