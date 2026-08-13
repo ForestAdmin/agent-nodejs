@@ -169,10 +169,13 @@ describe('file values in action forms', () => {
   });
 
   describe('type normalization', () => {
-    it('exposes the wire array form as a canonical list type', async () => {
+    // getType() feeds API responses in agent-bff and workflow-executor, so it has to stay the
+    // value the agent sent. Only getTypeName() collapses it, and only for dispatch and display.
+    it('keeps getType() on the wire form and offers the collapsed name apart', async () => {
       await setupFields([{ field: 'attachments', type: ['File'] }]);
 
-      expect(fieldFormStates.getField('attachments')?.getType()).toBe('FileList');
+      expect(fieldFormStates.getField('attachments')?.getType()).toEqual(['File']);
+      expect(fieldFormStates.getField('attachments')?.getTypeName()).toBe('FileList');
     });
 
     it('keeps the wire form in the payload echoed back to the agent', async () => {

@@ -19,9 +19,17 @@ export default class FieldGetter {
     return this.plainField.field;
   }
 
-  // Agents emit list types as ['File'] / ['String'] but loadChanges echoes plainField back to
-  // them verbatim, so the wire shape is normalized here for dispatch rather than in place.
-  getType(): string {
+  /** Exactly what the agent sent: a list type is the array `['File']`, not `'FileList'`. */
+  getType(): PlainField['type'] {
+    return this.plainField.type;
+  }
+
+  /**
+   * The same type as a single name, `['File']` becoming `'FileList'`. For dispatching on the type
+   * and for reporting it to a reader; never for anything that goes back to an agent, which echoes
+   * `plainField` verbatim through loadChanges and matches only the array form.
+   */
+  getTypeName(): string {
     const { type } = this.plainField;
 
     return Array.isArray(type) ? `${type[0]}List` : type;

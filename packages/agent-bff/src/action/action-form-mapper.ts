@@ -5,7 +5,8 @@ const ENUM_TYPE = 'Enum';
 
 export interface ActionFormFieldResponse {
   name: string;
-  type: string;
+  /** Verbatim from the agent, so a list type is `['String']` rather than `'StringList'`. */
+  type: string | [string];
   value: unknown;
   isRequired: boolean;
   enumValues?: string[] | null;

@@ -1,6 +1,7 @@
 import type { ToolContext } from '../tool-context';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
+import parseFileReference from '../file-uploads/file-reference';
 import { createActionArgumentShape } from '../utils/action-helpers';
 import { buildClientWithActions } from '../utils/agent-caller';
 import registerToolWithLogging from '../utils/tool-with-logging';
@@ -21,6 +22,21 @@ function toAllowedValue(option: unknown): { value: string | number | null; label
   }
 
   return { value: option as string | number, label: String(option) };
+}
+
+// Setting a field that declares a change hook posts every field value to the agent, and a change
+// hook reading `.buffer` off a handle string throws — a 500 on the very sequence executeAction's
+// description prescribes. Handles are not resolved on this path on purpose (the bytes would land
+// back in the model's context), so they are withheld from the hook instead: the field reads as
+// unset, which is what it was before the model chose a destination for it.
+function withoutFileReferences(values: Record<string, unknown>): Record<string, unknown> {
+  const kept = Object.entries(values).filter(([, value]) => {
+    const candidates = Array.isArray(value) ? value : [value];
+
+    return !candidates.some(candidate => parseFileReference(candidate));
+  });
+
+  return Object.fromEntries(kept);
 }
 
 export default function declareGetActionFormTool(mcpServer: McpServer, ctx: ToolContext): string {
@@ -66,7 +82,7 @@ The response includes:
       let skippedFields: string[] = [];
 
       if (options.values) {
-        skippedFields = await action.tryToSetFields(options.values);
+        skippedFields = await action.tryToSetFields(withoutFileReferences(options.values));
       }
 
       const fields = action.getFields();
@@ -87,13 +103,13 @@ The response includes:
                 const description = field.getPlainField()?.description;
                 const baseField = {
                   name: field.getName(),
-                  type: field.getType(),
+                  type: field.getTypeName(),
                   value: field.getValue(),
                   isRequired: field.isRequired() ?? false,
                   ...(description ? { description } : {}),
                 };
 
-                if (field.getType() === 'Enum') {
+                if (field.getTypeName() === 'Enum') {
                   const enumField = action.getEnumField(field.getName());
 
                   return { ...baseField, enumValues: enumField.getOptions() ?? null };

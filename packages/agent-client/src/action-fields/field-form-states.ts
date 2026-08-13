@@ -71,7 +71,7 @@ export default class FieldFormStates {
     const field = this.getField(name);
     if (!field) throw new Error(`Field "${name}" not found in action "${this.actionName}"`);
 
-    field.getPlainField().value = encodeFileFieldValue(field.getType(), value, name);
+    field.getPlainField().value = encodeFileFieldValue(field.getTypeName(), value, name);
 
     const fieldHasHook = field.getPlainField().hook;
 
