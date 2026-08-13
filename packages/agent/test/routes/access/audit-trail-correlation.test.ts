@@ -161,14 +161,17 @@ describe('AuditTrailCorrelationRoute', () => {
       expect(context.response.body).toEqual({ data: history });
     });
 
-    test('rejects an id outside a restrictive scope without querying the store', async () => {
+    test('rejects an id that still exists outside a restrictive scope, without querying the store', async () => {
       const { services, dataSource, options, store } = setup();
       (services.authorization.getScope as jest.Mock).mockResolvedValue({
         field: 'ownerId',
         operator: 'Equal',
         value: 1,
       });
-      jest.spyOn(dataSource.getCollection('books'), 'list').mockResolvedValue([]);
+      jest
+        .spyOn(dataSource.getCollection('books'), 'list')
+        .mockResolvedValueOnce([]) // scoped check: not in scope
+        .mockResolvedValueOnce([{ id: 2 }]); // bare check: still exists
       const route = new AuditTrailCorrelationRoute(services, options, dataSource);
       const context = contextWith({ timezone: 'Europe/Paris', collection: 'books', recordId: '2' });
 
@@ -176,6 +179,28 @@ describe('AuditTrailCorrelationRoute', () => {
 
       expect(context.throw).toHaveBeenCalledWith(404, 'Record does not exists');
       expect(store.listByCorrelation).not.toHaveBeenCalled();
+    });
+
+    test('allows a deleted id through to the store, scope aside', async () => {
+      const history = [{ operation: 'delete', correlationKey: 'req-1' }];
+      const { services, dataSource, options, store } = setup(history);
+      (services.authorization.getScope as jest.Mock).mockResolvedValue({
+        field: 'ownerId',
+        operator: 'Equal',
+        value: 1,
+      });
+      jest
+        .spyOn(dataSource.getCollection('books'), 'list')
+        .mockResolvedValueOnce([]) // scoped check: not found
+        .mockResolvedValueOnce([]); // bare check: genuinely gone, not just out of scope
+      const route = new AuditTrailCorrelationRoute(services, options, dataSource);
+      const context = contextWith({ timezone: 'Europe/Paris', collection: 'books', recordId: '2' });
+
+      await route.handleHistory(context);
+
+      expect(context.throw).not.toHaveBeenCalled();
+      expect(store.listByCorrelation).toHaveBeenCalled();
+      expect(context.response.body).toEqual({ data: history });
     });
 
     test('allows an id inside a restrictive scope through to the store', async () => {
@@ -203,7 +228,10 @@ describe('AuditTrailCorrelationRoute', () => {
         operator: 'Equal',
         value: 1,
       });
-      jest.spyOn(dataSource.getCollection('books'), 'list').mockResolvedValue([]);
+      jest
+        .spyOn(dataSource.getCollection('books'), 'list')
+        .mockResolvedValueOnce([]) // scoped check: not in scope
+        .mockResolvedValueOnce([{ id: 2 }]); // bare check: still exists
       const route = new AuditTrailCorrelationRoute(services, options, dataSource);
       const context = createMockContext({
         state: { user: { email: 'john.doe@domain.com' } },
@@ -215,6 +243,32 @@ describe('AuditTrailCorrelationRoute', () => {
 
       expect(context.throw).toHaveBeenCalledWith(404, 'Record does not exists');
       expect(store.listByCorrelations).not.toHaveBeenCalled();
+    });
+
+    test('allows a deleted id through the batch route, scope aside', async () => {
+      const history = [{ operation: 'delete', correlationKey: 'req-1' }];
+      const { services, dataSource, options, store } = setup(history);
+      (services.authorization.getScope as jest.Mock).mockResolvedValue({
+        field: 'ownerId',
+        operator: 'Equal',
+        value: 1,
+      });
+      jest
+        .spyOn(dataSource.getCollection('books'), 'list')
+        .mockResolvedValueOnce([]) // scoped check: not found
+        .mockResolvedValueOnce([]); // bare check: genuinely gone, not just out of scope
+      const route = new AuditTrailCorrelationRoute(services, options, dataSource);
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: { query: { timezone: 'Europe/Paris' } },
+        requestBody: { collection: 'books', recordId: '2', correlationKeys: ['req-1'] },
+      });
+
+      await route.handleBatch(context);
+
+      expect(context.throw).not.toHaveBeenCalled();
+      expect(store.listByCorrelations).toHaveBeenCalled();
+      expect(context.response.body).toEqual({ data: history });
     });
   });
 

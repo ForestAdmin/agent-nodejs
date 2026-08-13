@@ -100,9 +100,10 @@ correlation key as the action.
 When `auditTrail` is set, the agent exposes three routes (all behind Forest's auth, gated by
 `assertCanRead` on the target collection). When the caller's role has a record-level scope on that
 collection, every route below — including the correlation lookups — additionally requires the
-target id to currently exist and match that scope: a scoped caller cannot retrieve the history,
-reconstructed state, or correlated operations of a deleted record, since a scope can no longer be
-evaluated against data that no longer exists.
+target id to currently exist and match that scope. A scope can't be evaluated against a record that
+no longer exists, so this only refuses a still-existing, out-of-scope id: once a record is genuinely
+deleted, anyone who can read the collection can see its history, reconstructed state, or correlated
+operations, scope aside — inspecting what was deleted is much of the point of an audit trail.
 
 ### `GET /forest/_audit-trail/{collection}/{recordId}` — per-record history
 

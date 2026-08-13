@@ -12,7 +12,7 @@ import {
 import { DateTime } from 'luxon';
 
 import { revertRecord } from '../../audit-trail';
-import isRecordVisible from '../../audit-trail/scope';
+import isRecordVisible, { recordExists } from '../../audit-trail/scope';
 import { HttpCode } from '../../types';
 import IdUtils from '../../utils/id';
 import QueryStringParser from '../../utils/query-string';
@@ -85,13 +85,18 @@ export default class AuditTrailRoute extends CollectionRoute {
     const scope = await this.services.authorization.getScope(this.collection, context);
     const current = await this.fetchCurrentRecord(context, auditedColumns, scope);
 
-    // Same reasoning as handleHistory: a missing current record is ambiguous (deleted vs.
-    // out-of-scope) once a scope applies, so it must not fall through to the revert walk below,
-    // which could otherwise surface a delete entry's full snapshot to an unauthorized caller.
+    // A missing current record is ambiguous (deleted vs. out-of-scope) once a scope applies; only
+    // deny when the id still exists outside that scope. If it's genuinely gone there's nothing
+    // left to evaluate the scope against, so the revert walk below proceeds — including, possibly,
+    // surfacing a delete entry's snapshot, which is the point once nothing exists to protect.
     if (!current && scope) {
-      context.throw(HttpCode.NotFound, 'Record did not exist at this timestamp');
+      const stillExists = await recordExists(this.collection, context.params.id, context, null);
 
-      return;
+      if (stillExists) {
+        context.throw(HttpCode.NotFound, 'Record did not exist at this timestamp');
+
+        return;
+      }
     }
 
     const { store } = this.options.auditTrail;

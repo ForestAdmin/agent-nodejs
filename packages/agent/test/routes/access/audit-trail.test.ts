@@ -552,14 +552,17 @@ describe('AuditTrailRoute', () => {
       expect(store.listByRecord).toHaveBeenCalled();
     });
 
-    test('rejects an id outside a restrictive scope without querying the store', async () => {
+    test('rejects an id that still exists outside a restrictive scope, without querying the store', async () => {
       const { services, dataSource, options, store } = setup();
       (services.authorization.getScope as jest.Mock).mockResolvedValue({
         field: 'ownerId',
         operator: 'Equal',
         value: 1,
       });
-      jest.spyOn(dataSource.getCollection('books'), 'list').mockResolvedValue([]);
+      jest
+        .spyOn(dataSource.getCollection('books'), 'list')
+        .mockResolvedValueOnce([]) // scoped check: not in scope
+        .mockResolvedValueOnce([{ id: 2 }]); // bare check: still exists
       const route = new AuditTrailRoute(services, options, dataSource, 'books');
       const context = createMockContext({
         state: { user: { email: 'john.doe@domain.com' } },
@@ -570,6 +573,31 @@ describe('AuditTrailRoute', () => {
 
       expect(context.throw).toHaveBeenCalledWith(404, 'Record does not exists');
       expect(store.listByRecord).not.toHaveBeenCalled();
+    });
+
+    test('allows a deleted id through to the store, scope aside', async () => {
+      const history = [{ operation: 'delete', recordId: '2' }];
+      const { services, dataSource, options, store } = setup(history);
+      (services.authorization.getScope as jest.Mock).mockResolvedValue({
+        field: 'ownerId',
+        operator: 'Equal',
+        value: 1,
+      });
+      jest
+        .spyOn(dataSource.getCollection('books'), 'list')
+        .mockResolvedValueOnce([]) // scoped check: not found
+        .mockResolvedValueOnce([]); // bare check: genuinely gone, not just out of scope
+      const route = new AuditTrailRoute(services, options, dataSource, 'books');
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: { query: { timezone: 'Europe/Paris' }, params: { id: '2' } },
+      });
+
+      await route.handleHistory(context);
+
+      expect(context.throw).not.toHaveBeenCalled();
+      expect(store.listByRecord).toHaveBeenCalled();
+      expect(context.response.body).toEqual({ data: history, meta: { count: 1 } });
     });
 
     test('intersects the scope with the record id when checking visibility', async () => {
@@ -927,7 +955,7 @@ describe('AuditTrailRoute', () => {
       });
     });
 
-    test('returns 404 without exposing the delete snapshot when scope excludes a gone record', async () => {
+    test('returns 404 when scope excludes an id that still exists', async () => {
       const history = [
         {
           operation: 'delete',
@@ -941,7 +969,10 @@ describe('AuditTrailRoute', () => {
         operator: 'Equal',
         value: 1,
       });
-      jest.spyOn(dataSource.getCollection('books'), 'list').mockResolvedValue([]);
+      jest
+        .spyOn(dataSource.getCollection('books'), 'list')
+        .mockResolvedValueOnce([]) // scoped fetch: not found
+        .mockResolvedValueOnce([{ id: 2 }]); // bare check: still exists
       const context = createMockContext({
         state: { user: { email: 'john.doe@domain.com' } },
         customProperties: {
@@ -954,6 +985,40 @@ describe('AuditTrailRoute', () => {
 
       expect(context.throw).toHaveBeenCalledWith(404, 'Record did not exist at this timestamp');
       expect(context.response.body).toBeUndefined();
+    });
+
+    test('exposes the delete snapshot, scope aside, once the record is genuinely gone', async () => {
+      const history = [
+        {
+          operation: 'delete',
+          previousValues: { id: 2, status: 'closed', name: 'Acme' },
+          newValues: {},
+        },
+      ];
+      const { services, dataSource, route } = setupBooks(history);
+      (services.authorization.getScope as jest.Mock).mockResolvedValue({
+        field: 'ownerId',
+        operator: 'Equal',
+        value: 1,
+      });
+      jest
+        .spyOn(dataSource.getCollection('books'), 'list')
+        .mockResolvedValueOnce([]) // scoped fetch: not found
+        .mockResolvedValueOnce([]); // bare check: genuinely gone, not just out of scope
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: {
+          query: { timezone: 'UTC', at: '2026-06-18' },
+          params: { id: '2' },
+        },
+      });
+
+      await route.handleStateAt(context);
+
+      expect(context.throw).not.toHaveBeenCalled();
+      expect(context.response.body).toEqual({
+        data: { id: 2, status: 'closed', name: 'Acme' },
+      });
     });
   });
 
