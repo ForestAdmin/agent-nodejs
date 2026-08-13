@@ -57,7 +57,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   private mcpBasePath?: string;
   private mcpTokenTtl?: TokenTtlOptions;
   private mcpAllowedOAuthClients?: string[];
-  private mcpFileUploads?: FileUploadsOptions;
+  private mcpFileUploads?: true | FileUploadsOptions;
 
   /** In-process workflow executor, created only when addWorkflowExecutor() is called. */
   private embeddedExecutor: EmbeddedWorkflowExecutor | null = null;
@@ -265,16 +265,17 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * // Example: only accept approved OAuth client applications, matched by the domain of their
    * // registered redirect URIs (subdomains included). Other clients get invalid_client.
    * agent.mountAiMcpServer({ allowedOAuthClients: ['dust.tt'] });
-   * // Example: let action File fields be filled over MCP. Experimental, and it needs a storage
-   * // backend you provide: see the mcp-server README for the UploadStorage contract.
-   * agent.mountAiMcpServer({ fileUploads: { storage } });
+   * // Example: let action File fields be filled over MCP. Experimental. Nothing to provision,
+   * // but the in-memory store only serves a single instance: see the mcp-server README.
+   * agent.mountAiMcpServer({ fileUploads: true });        // in-memory, single instance
+   * agent.mountAiMcpServer({ fileUploads: { storage } }); // a real backend
    */
   mountAiMcpServer(options?: {
     enabledTools?: ToolName[];
     basePath?: string;
     tokenTtl?: TokenTtlOptions;
     allowedOAuthClients?: string[];
-    fileUploads?: FileUploadsOptions;
+    fileUploads?: true | FileUploadsOptions;
   }): this {
     this.mcpEnabled = true;
     this.mcpEnabledTools = options?.enabledTools;

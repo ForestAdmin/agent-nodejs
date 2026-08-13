@@ -169,7 +169,8 @@ export interface ForestMCPServerOptions {
    * @experimental Expected to change to follow the MCP file transfer specification once it
    * lands (SEP-2631).
    */
-  fileUploads?: FileUploadsOptions;
+  /** `true` enables it with every default; an object to configure it. */
+  fileUploads?: true | FileUploadsOptions;
 }
 
 /**
@@ -214,7 +215,9 @@ export default class ForestMCPServer {
 
     this.allowedOAuthClients = normalizeDomainList(options?.allowedOAuthClients);
     // Resolved in buildExpressApp, where the auth secret is known to be set.
-    this.fileUploadsOptions = options?.fileUploads;
+    // Enabling with no configuration is the common case now that a storage is optional, and
+    // `fileUploads: {}` reads like a placeholder someone forgot to fill in.
+    this.fileUploadsOptions = options?.fileUploads === true ? {} : options?.fileUploads;
 
     // Use injected forestServerClient or create default
     this.forestServerClient = options?.forestServerClient ?? this.createDefaultForestServerClient();
@@ -462,7 +465,7 @@ export default class ForestMCPServer {
     // No backend given: hold the objects here. Correct for one instance only, so it is announced
     // rather than silently assumed — behind replicas the redemption lands where the upload did not.
     if (this.fileUploadsOptions && !this.fileUploadsOptions.storage) {
-      this.ephemeralStorage = new EphemeralStorage();
+      this.ephemeralStorage = new EphemeralStorage(this.logger);
       this.logger(
         'Warn',
         'fileUploads has no storage backend: uploads are held in memory, on this instance only. ' +
@@ -569,7 +572,7 @@ export default class ForestMCPServer {
         publicBaseUrl: new URL(uploadsPath, effectiveBaseUrl).href,
       });
 
-      app.use(uploadsPath, this.ephemeralStorage.createRouter(this.logger));
+      app.use(uploadsPath, this.ephemeralStorage.createRouter());
     }
 
     app.use(express.json());

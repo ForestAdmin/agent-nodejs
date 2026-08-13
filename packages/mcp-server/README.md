@@ -195,11 +195,11 @@ content matters; it is re-verified after download.
 
 ### Nothing to provision
 
-`fileUploads: {}` is enough to try it. With no `storage`, the server holds the objects in memory and
+`fileUploads: true` is enough to try it. With no `storage`, the server holds the objects in memory and
 serves its own upload endpoint under `<origin>/mcp/uploads`:
 
 ```typescript
-agent.mountAiMcpServer({ fileUploads: {} });
+agent.mountAiMcpServer({ fileUploads: true });
 ```
 
 > **Single instance only.** The upload and the redemption are two separate requests. With several
@@ -273,7 +273,7 @@ whose upload was blocked has the diagnosis in context.
 
 ### Trying it locally
 
-`packages/_example` wires the whole flow with `fileUploads: {}` — no cloud account, no storage code.
+`packages/_example` wires the whole flow with `fileUploads: true` — no cloud account, no storage code.
 Its `review` collection carries an `Attach a document` action with a `File` and a `FileList` field.
 Start the example agent, connect an MCP client to it, and ask for that action with a file — the
 action reports the name, mime type and byte count it received.

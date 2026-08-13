@@ -3612,7 +3612,7 @@ describe('file uploads without a storage backend', () => {
       envSecret: 'test-env-secret',
       authSecret: 'test-auth-secret',
       forestServerUrl: 'https://test.forestadmin.com',
-      fileUploads: {},
+      fileUploads: true,
       ...(logger && { logger }),
     });
 

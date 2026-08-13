@@ -9,6 +9,11 @@ interface StoredObject {
   expiresAt: number;
 }
 
+// Issued keys are cheap next to a body — a few hundred bytes against up to maxBytes — but they
+// outlive the request that asked for one, and nothing forces the caller to ever upload. This bounds
+// them at about 2 MB, orders of magnitude beyond any real number of pending uploads.
+const MAX_OUTSTANDING_KEYS = 10_000;
+
 interface EphemeralOptions {
   maxBytes: number;
   maxTotalBytes: number;
@@ -33,6 +38,8 @@ export default class EphemeralStorage implements UploadStorage {
   private inFlightBytes = 0;
   private options!: EphemeralOptions;
 
+  constructor(private readonly logger: Logger) {}
+
   /** Separate from the constructor because the server only knows its own base url later. */
   configure(options: EphemeralOptions): void {
     this.options = options;
@@ -44,6 +51,21 @@ export default class EphemeralStorage implements UploadStorage {
     // Recorded so the endpoint only accepts keys it handed out. Without this, anything reaching the
     // origin could fill the store under keys of its own and deny the feature to everyone else.
     this.expire();
+
+    // Insertion order, so this drops the least recent pending upload. Refusing to issue instead
+    // would let one caller deny the feature to everyone; whoever is evicted gets a 404 telling
+    // them to ask again.
+    if (this.issued.size >= MAX_OUTSTANDING_KEYS) {
+      const [oldest] = this.issued.keys();
+
+      this.issued.delete(oldest);
+      this.logger(
+        'Warn',
+        `[fileUploads] ${MAX_OUTSTANDING_KEYS} upload urls are outstanding: dropped ${oldest}, ` +
+          'whose upload never came. Something is requesting destinations without uploading.',
+      );
+    }
+
     this.issued.set(key, Date.now() + issuedTtlSeconds * 1000);
 
     return {
@@ -75,8 +97,9 @@ export default class EphemeralStorage implements UploadStorage {
     return this.read(key)?.body.length;
   }
 
-  createRouter(logger: Logger): Router {
+  createRouter(): Router {
     const router = express.Router();
+    const { logger } = this;
 
     // The uploads route is mounted ahead of the request logger, which needs the body parsers this
     // one must precede, so each outcome is reported here instead.
@@ -91,14 +114,22 @@ export default class EphemeralStorage implements UploadStorage {
 
       this.expire();
 
-      if (!this.issued.has(key)) {
-        // write() consumes the authorization, so an object still sitting here means the url was
-        // already used. Reported apart because a retry is the case an integrator actually hits,
-        // and "not authorized, or expired" sends them looking at ttls instead.
+      // Consumed here rather than in write(): two concurrent PUTs for one key would both pass a
+      // has() check and the later would silently overwrite the earlier. A failed attempt burns the
+      // url too, which is the honest reading of single-use — retrying needs a fresh destination.
+      if (!this.issued.delete(key)) {
+        // An object still sitting here means the url was already used, which is the case an
+        // integrator actually hits. Reported apart because "or it has expired" sends them looking
+        // at ttls instead.
         if (this.objects.has(key)) {
           refuse(res, key, 409, 'this upload url was already used; request a fresh one');
         } else {
-          refuse(res, key, 404, 'no upload was authorized for this key, or it has expired');
+          refuse(
+            res,
+            key,
+            404,
+            'no upload was authorized for this key: it was never issued, already used, or expired',
+          );
         }
 
         return;
@@ -205,7 +236,6 @@ export default class EphemeralStorage implements UploadStorage {
     this.forget(key);
     this.objects.set(key, { body, expiresAt: Date.now() + this.options.ttlSeconds * 1000 });
     this.storedBytes += body.length;
-    this.issued.delete(key);
   }
 
   private read(key: string): StoredObject | undefined {

@@ -34,14 +34,29 @@ describe('EphemeralStorage', () => {
   beforeEach(() => {
     jest.useRealTimers();
     logger = jest.fn();
-    storage = new EphemeralStorage();
+    storage = new EphemeralStorage(logger);
     configure();
 
     app = express();
-    app.use('/', storage.createRouter(logger));
+    app.use('/', storage.createRouter());
   });
 
   describe('createUploadUrl', () => {
+    // An issued key outlives the request that asked for one, and nothing obliges the caller to
+    // upload. Cheap next to a body, but unbounded is unbounded.
+    it('drops the least recent pending upload past its outstanding cap', async () => {
+      for (let i = 0; i < 10_000; i += 1) {
+        // eslint-disable-next-line no-await-in-loop
+        await storage.createUploadUrl({ key: `k${i}` });
+      }
+
+      await storage.createUploadUrl({ key: 'one-too-many' });
+
+      expect(logger).toHaveBeenCalledWith('Warn', expect.stringContaining('dropped k0'));
+      await expect(request(app).put('/k0').send('x')).resolves.toMatchObject({ status: 404 });
+      await expect(request(app).put('/k1').send('x')).resolves.toMatchObject({ status: 200 });
+    });
+
     it('points at the configured origin, with the key encoded as one segment', async () => {
       const { url, method } = await storage.createUploadUrl({ key: 'mcp-uploads/uuid/a b.pdf' });
 
@@ -195,6 +210,34 @@ describe('EphemeralStorage', () => {
       expect(response.status).toBe(409);
       expect(response.body).toEqual({ error: expect.stringContaining('already used') });
       await expect(storage.download('k')).resolves.toEqual(Buffer.from('first'));
+    });
+
+    // Both would pass a has() check and the later would overwrite the earlier, so the
+    // authorization is consumed at the start of the request rather than once the body is stored.
+    it('lets one of two concurrent uploads through, not both', async () => {
+      await storage.createUploadUrl({ key: 'k' });
+
+      const [a, b] = await Promise.all([
+        request(app).put('/k').send('first'),
+        request(app).put('/k').send('second'),
+      ]);
+      const statuses = [a.status, b.status];
+
+      expect(statuses.filter(status => status === 200)).toHaveLength(1);
+      expect(statuses.some(status => status === 404 || status === 409)).toBe(true);
+      // Whichever won, the object is one whole body rather than two interleaved ones.
+      await expect(storage.download('k').then(String)).resolves.toMatch(/^(first|second)$/);
+    });
+
+    // Consuming at the start means a refused attempt burns the url too. That is the honest reading
+    // of single-use, and retrying an oversized body against the same url would fail anyway.
+    it('burns the url even when the upload was refused', async () => {
+      await put('k', Buffer.alloc(2000));
+
+      const response = await request(app).put('/k').send('x');
+
+      expect(response.status).toBe(404);
+      expect(response.body).toEqual({ error: expect.stringContaining('already used, or expired') });
     });
 
     it('stops accepting an upload url that was never used in time', async () => {

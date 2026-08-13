@@ -95,7 +95,7 @@ export default function makeAgent() {
     })
     .mountAiMcpServer({
       ...(allowedOAuthClients && { allowedOAuthClients }),
-      fileUploads: {},
+      fileUploads: true,
     })
 
     .customizeCollection('card', customizeCard)
