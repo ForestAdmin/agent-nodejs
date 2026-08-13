@@ -85,8 +85,9 @@ describe('EphemeralStorage', () => {
       await expect(storage.getSize(key)).resolves.toBe(body.length);
       await expect(storage.download(key)).resolves.toEqual(body);
 
-      // Single-use against this backend: keeping consumed objects would fill a small store.
-      await expect(storage.getSize(key)).resolves.toBeUndefined();
+      // Kept, not consumed: executeAction downloads every reference before it runs, so a later
+      // failure must not leave a retry with handles whose objects are gone.
+      await expect(storage.download(key)).resolves.toEqual(body);
     });
 
     it('accepts an empty upload', async () => {

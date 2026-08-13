@@ -277,7 +277,10 @@ describe('declareGetActionFormTool', () => {
       expect(mockTryToSetFields).toHaveBeenCalledWith(values);
     });
 
-    it('passes an upload handle through verbatim instead of resolving it', async () => {
+    // Resolving here would put the bytes back in the model's context, and handing the handle to a
+    // change hook makes it read `.buffer` off a string and throw a 500. So it is withheld, and the
+    // other values still reach the hook.
+    it('withholds an upload handle from the change hooks instead of resolving it', async () => {
       const mockTryToSetFields = jest.fn().mockResolvedValue([]);
       const mockAction = jest.fn().mockResolvedValue({
         getFields: jest.fn().mockReturnValue([]),
@@ -288,13 +291,17 @@ describe('declareGetActionFormTool', () => {
         authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
       } as unknown as ReturnType<typeof buildClientWithActions>);
 
-      const values = { document: '$uploadedFile:some-token' };
+      const values = {
+        document: '$uploadedFile:some-token',
+        attachments: ['$uploadedFile:another'],
+        note: 'hello',
+      };
       await registeredToolHandler(
         { collectionName: 'users', actionName: 'sendEmail', recordIds: [1], values },
         mockExtra,
       );
 
-      expect(mockTryToSetFields).toHaveBeenCalledWith({ document: '$uploadedFile:some-token' });
+      expect(mockTryToSetFields).toHaveBeenCalledWith({ note: 'hello' });
     });
 
     it('should not call tryToSetFields when values are not provided', async () => {
@@ -323,6 +330,7 @@ describe('declareGetActionFormTool', () => {
         {
           getName: () => 'subject',
           getType: () => 'String',
+          getTypeName: () => 'String',
           getValue: () => undefined,
           isRequired: () => true,
           getPlainField: () => ({}),
@@ -331,6 +339,7 @@ describe('declareGetActionFormTool', () => {
         {
           getName: () => 'message',
           getType: () => 'String',
+          getTypeName: () => 'String',
           getValue: () => 'Default message',
           isRequired: () => false,
           getPlainField: () => ({}),
@@ -374,6 +383,7 @@ describe('declareGetActionFormTool', () => {
         {
           getName: () => 'subject',
           getType: () => 'String',
+          getTypeName: () => 'String',
           getValue: () => 'Test Subject',
           isRequired: () => true,
           getPlainField: () => ({}),
@@ -382,6 +392,7 @@ describe('declareGetActionFormTool', () => {
         {
           getName: () => 'message',
           getType: () => 'String',
+          getTypeName: () => 'String',
           getValue: () => 'Test Message',
           isRequired: () => true,
           getPlainField: () => ({}),
@@ -416,6 +427,7 @@ describe('declareGetActionFormTool', () => {
         {
           getName: () => 'subject',
           getType: () => 'String',
+          getTypeName: () => 'String',
           getValue: () => undefined,
           isRequired: () => true,
           getPlainField: () => ({}),
@@ -424,6 +436,7 @@ describe('declareGetActionFormTool', () => {
         {
           getName: () => 'message',
           getType: () => 'String',
+          getTypeName: () => 'String',
           getValue: () => 'Test Message',
           isRequired: () => false,
           getPlainField: () => ({}),
@@ -458,6 +471,7 @@ describe('declareGetActionFormTool', () => {
         {
           getName: () => 'quantity',
           getType: () => 'Number',
+          getTypeName: () => 'Number',
           getValue: () => 0,
           isRequired: () => true,
           getPlainField: () => ({}),
@@ -492,6 +506,7 @@ describe('declareGetActionFormTool', () => {
         {
           getName: () => 'isActive',
           getType: () => 'Boolean',
+          getTypeName: () => 'Boolean',
           getValue: () => false,
           isRequired: () => true,
           getPlainField: () => ({}),
@@ -526,6 +541,7 @@ describe('declareGetActionFormTool', () => {
         {
           getName: () => 'notes',
           getType: () => 'String',
+          getTypeName: () => 'String',
           getValue: () => '',
           isRequired: () => true,
           getPlainField: () => ({}),
@@ -560,6 +576,7 @@ describe('declareGetActionFormTool', () => {
         {
           getName: () => 'subject',
           getType: () => 'String',
+          getTypeName: () => 'String',
           getValue: () => null,
           isRequired: () => true,
           getPlainField: () => ({}),
@@ -594,6 +611,7 @@ describe('declareGetActionFormTool', () => {
         {
           getName: () => 'optionalField',
           getType: () => 'String',
+          getTypeName: () => 'String',
           getValue: () => undefined,
           isRequired: () => false,
           getPlainField: () => ({}),
@@ -628,6 +646,7 @@ describe('declareGetActionFormTool', () => {
         {
           getName: () => 'status',
           getType: () => 'Enum',
+          getTypeName: () => 'Enum',
           getValue: () => undefined,
           isRequired: () => true,
           getPlainField: () => ({}),
@@ -636,6 +655,7 @@ describe('declareGetActionFormTool', () => {
         {
           getName: () => 'message',
           getType: () => 'String',
+          getTypeName: () => 'String',
           getValue: () => undefined,
           isRequired: () => false,
           getPlainField: () => ({}),
@@ -682,6 +702,7 @@ describe('declareGetActionFormTool', () => {
         {
           getName: () => 'plan',
           getType: () => 'String',
+          getTypeName: () => 'String',
           getValue: () => undefined,
           isRequired: () => true,
           getPlainField: () => ({ description: 'Subscription plan' }),
@@ -695,6 +716,7 @@ describe('declareGetActionFormTool', () => {
         {
           getName: () => 'priority',
           getType: () => 'String',
+          getTypeName: () => 'String',
           getValue: () => undefined,
           isRequired: () => false,
           getPlainField: () => ({}),
@@ -779,6 +801,7 @@ describe('declareGetActionFormTool', () => {
         {
           getName: () => 'subject',
           getType: () => 'String',
+          getTypeName: () => 'String',
           getValue: () => 'Test Subject',
           isRequired: () => true,
           getPlainField: () => ({}),
@@ -820,6 +843,7 @@ describe('declareGetActionFormTool', () => {
         {
           getName: () => 'subject',
           getType: () => 'String',
+          getTypeName: () => 'String',
           getValue: () => undefined,
           isRequired: () => true,
           getPlainField: () => ({}),

@@ -106,6 +106,11 @@ export function resolveFileUploads(
   const handleTtlSeconds =
     positiveInteger('handleTtlSeconds', options.handleTtlSeconds) ?? DEFAULT_HANDLE_TTL_SECONDS;
 
+  const maxBytes = positiveInteger('maxBytes', options.maxBytes) ?? DEFAULT_MAX_BYTES;
+  const ephemeralMaxTotalBytes =
+    positiveInteger('ephemeralMaxTotalBytes', options.ephemeralMaxTotalBytes) ??
+    DEFAULT_EPHEMERAL_MAX_TOTAL_BYTES;
+
   // A handle expiring before its upload URL means uploads succeed and every redemption then
   // fails with a bare "jwt expired".
   if (handleTtlSeconds <= uploadUrlTtlSeconds) {
@@ -122,13 +127,11 @@ export function resolveFileUploads(
     keyPrefix: options.keyPrefix ?? DEFAULT_KEY_PREFIX,
     uploadUrlTtlSeconds,
     handleTtlSeconds,
-    maxBytes: positiveInteger('maxBytes', options.maxBytes) ?? DEFAULT_MAX_BYTES,
+    maxBytes,
     downloadTimeoutSeconds:
       positiveInteger('downloadTimeoutSeconds', options.downloadTimeoutSeconds) ??
       DEFAULT_DOWNLOAD_TIMEOUT_SECONDS,
-    ephemeralMaxTotalBytes:
-      positiveInteger('ephemeralMaxTotalBytes', options.ephemeralMaxTotalBytes) ??
-      DEFAULT_EPHEMERAL_MAX_TOTAL_BYTES,
+    ephemeralMaxTotalBytes,
     authSecret,
     limitDownload: createSemaphore(
       positiveInteger('maxConcurrentDownloads', options.maxConcurrentDownloads) ??

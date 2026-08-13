@@ -66,13 +66,32 @@ export default async function loadFileUploads(
     );
   }
 
-  // An object without a storage is legitimate — it selects the in-memory store. Nothing at all is
-  // a mistake, most likely a module that forgot to export.
+  // An object without a storage key is legitimate — it selects the in-memory store. Nothing at all
+  // is a mistake, most likely a module that forgot to export.
   if (!options || typeof options !== 'object') {
     throw new Error(
       `FOREST_MCP_UPLOAD_STORAGE_MODULE "${modulePath}" must export the fileUploads options, or a ` +
         'function returning them. See the fileUploads section of the mcp-server README.',
     );
+  }
+
+  // Whoever sets this variable did it *for* the storage: a bad import or a factory that returned
+  // early leaves `{ storage: undefined }`, which the server would silently replace with the
+  // in-memory store — putting a deliberately replicated deployment on the one backend that cannot
+  // serve it. A missing method fails later, on the first user's upload, so it is checked here too.
+  if ('storage' in options) {
+    const storage = options.storage as unknown as Record<string, unknown> | undefined;
+    const missing = ['createUploadUrl', 'download', 'getSize'].filter(
+      method => typeof storage?.[method] !== 'function',
+    );
+
+    if (missing.length) {
+      throw new Error(
+        `FOREST_MCP_UPLOAD_STORAGE_MODULE "${modulePath}" exports a storage missing ` +
+          `${missing.join(', ')}. An UploadStorage implements createUploadUrl, download and ` +
+          'getSize. Omit the storage entirely to use the in-memory store on purpose.',
+      );
+    }
   }
 
   return options;

@@ -38,7 +38,9 @@ function sanitizeFilename(filename: string): string {
   const safe = filename
     .trim()
     .slice(-MAX_FILENAME_LENGTH)
-    .replace(/[^\w.\- ()]/g, '_');
+    // Unicode-aware: ASCII \w turns `facture-été.pdf` into `facture-_t_.pdf`, so the accented
+    // letters vanish while the spaces and parentheses survive. Same key safety, no `/`.
+    .replace(/[^\p{L}\p{N}._\- ()]/gu, '_');
 
   return !safe || /^\.+$/.test(safe) ? 'file' : safe;
 }

@@ -161,18 +161,13 @@ export interface ForestMCPServerOptions {
    */
   allowedOAuthClients?: string[];
   /**
-   * Enables file fields in action forms through an upload side-channel. Without it, action
-   * file fields are unusable over MCP: the agent expects them as data uris, which would
-   * transit the model's context window and exceed most clients' payload limits.
-   * See the README for the flow and the storage contract.
+   * Action file uploads are on by default, with the objects held in memory. This only configures
+   * them — a `storage` backend, size limits, ttls. Drop `requestActionFileUpload` from
+   * `enabledTools` to turn the feature off entirely. See the README for the flow and the storage
+   * contract.
    *
    * @experimental Expected to change to follow the MCP file transfer specification once it
    * lands (SEP-2631).
-   */
-  /**
-   * Action file uploads are on by default, with objects held in memory. This only configures
-   * them — a `storage` backend, size limits, ttls. Drop `requestActionFileUpload` from
-   * `enabledTools` to turn the feature off entirely.
    */
   fileUploads?: FileUploadsOptions;
 }
@@ -466,7 +461,9 @@ export default class ForestMCPServer {
 
     // On unless the tool was left out of enabledTools, which is the one way to turn it off. Gating
     // on that keeps executeAction from advertising an upload tool the server never registered.
-    if (this.enabledTools.has('requestActionFileUpload')) {
+    // `!this.fileUploads` because an agent rebuilds its router on every customization refresh:
+    // re-initializing would hand the new app a different store than the urls already in flight.
+    if (this.enabledTools.has('requestActionFileUpload') && !this.fileUploads) {
       // No backend given: hold the objects here. Correct for one instance only, which
       // EphemeralStorage announces the first time something actually asks for a destination —
       // warning at boot would tax every agent, including those with no file field at all.
@@ -482,6 +479,23 @@ export default class ForestMCPServer {
         authSecret,
         this.logger,
       );
+
+      // Said here rather than in resolveFileUploads, which cannot tell the in-memory store from a
+      // provided one: the tool reports maxBytes to the model verbatim, so a value above what the
+      // whole store holds promises a size every upload of which is refused — with "the store is
+      // full", on an empty store.
+      if (
+        this.ephemeralStorage &&
+        this.fileUploads.maxBytes > this.fileUploads.ephemeralMaxTotalBytes
+      ) {
+        this.logger(
+          'Warn',
+          `fileUploads.maxBytes=${this.fileUploads.maxBytes} exceeds what the in-memory store ` +
+            `holds in total (${this.fileUploads.ephemeralMaxTotalBytes} bytes, ` +
+            'ephemeralMaxTotalBytes), so an upload that large is always refused. Raise ' +
+            'ephemeralMaxTotalBytes too, or configure a storage backend.',
+        );
+      }
     }
 
     await this.fetchCollectionNames();

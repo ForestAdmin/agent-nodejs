@@ -1,8 +1,6 @@
 export type RunExclusive = <T>(task: () => Promise<T>) => Promise<T>;
 
-export default function createSemaphore(rawLimit: number): RunExclusive {
-  // A limit below 1 would queue every task with nothing left to release it, hanging forever.
-  const limit = Math.max(1, rawLimit);
+export default function createSemaphore(limit: number): RunExclusive {
   let active = 0;
   const queue: Array<() => void> = [];
 

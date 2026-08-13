@@ -40,6 +40,12 @@ export function parseDataUri(dataUri: string): File {
 
   const [header, data] = dataUri.substring(5).split(',');
   const [mimeType, ...mediaTypes] = header.split(';');
+
+  // Buffer.from(x, 'base64') never throws: it skips what it cannot read and stops at padding. So a
+  // uri whose payload is not base64 at all — `data:text/plain,hello` — would decode to plausible
+  // garbage and reach the end user as a corrupt file, reported as a success.
+  if (!mediaTypes.includes('base64')) throw malformed();
+
   const result = { mimeType, buffer: Buffer.from(data, 'base64') };
 
   for (const mediaType of mediaTypes) {

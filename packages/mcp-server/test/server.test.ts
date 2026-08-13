@@ -3650,6 +3650,16 @@ describe('file uploads without a storage backend', () => {
     );
   });
 
+  // The tool reports maxBytes to the model verbatim, so this would promise a size the store always
+  // refuses — with "the store is full", on an empty store.
+  it('warns when maxBytes exceeds what the in-memory store can ever hold', async () => {
+    const logger = jest.fn();
+
+    await buildApp({ logger, fileUploads: { maxBytes: 100 * 1024 * 1024 } });
+
+    expect(logger).toHaveBeenCalledWith('Warn', expect.stringContaining('always refused'));
+  });
+
   // enabledTools is the off switch, and it has to take the endpoint with it.
   it('serves no upload endpoint when the tool is not enabled', async () => {
     const app = await buildApp({ enabledTools: ['describeCollection', 'list'] });

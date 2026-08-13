@@ -57,13 +57,21 @@ async function download(
       `Field "${field}": uploaded file is ${bytes} bytes, above the ${uploads.maxBytes} byte limit`,
     );
 
-  // A pre-authorized upload URL cannot always cap the object size, so the limit is enforced
-  // here, before the bytes are read whenever the backend can report a size.
+  // A pre-authorized upload URL cannot always cap the object size, so the limit is enforced here,
+  // before the bytes are read whenever the backend can report a size. Wrapped like the download
+  // below: a backend that reports size from object metadata rejects on a missing key, which is the
+  // likeliest failure of the whole flow — the upload was blocked. Raw, that reaches the model as a
+  // bare SDK string with no field name and no diagnosis.
   const size = await withTimeout(
     `Field "${field}": reading the size of the uploaded file`,
     uploads.downloadTimeoutSeconds,
     uploads.storage.getSize(claims.key),
-  );
+  ).catch((error: Error) => {
+    throw new Error(
+      `Field "${field}": could not read the uploaded file. ` +
+        `Did the upload to uploadUrl succeed? (${error.message})`,
+    );
+  });
 
   if (typeof size === 'number' && Number.isFinite(size) && size > uploads.maxBytes) {
     throw tooLarge(size);
@@ -129,11 +137,18 @@ export default async function resolveUploadedFileValues(
 
   // Verified before acquiring a download slot: it is pure CPU, and it gates everything
   // expensive, so a batch of forged handles is rejected instead of queueing behind the limit.
-  const verified = [...references].map(([reference, { field, handle }]) => ({
-    field,
-    reference,
-    claims: verifyUploadHandle(handle, userId, uploads.authSecret),
-  }));
+  const verified = [...references].map(([reference, { field, handle }]) => {
+    try {
+      return { field, reference, claims: verifyUploadHandle(handle, userId, uploads.authSecret) };
+    } catch (error) {
+      // Reaching the model as a bare "jwt expired" names no field, and with several file fields in
+      // one form it names none of them.
+      throw new Error(
+        `Field "${field}": this file handle is not usable (${(error as Error).message}). ` +
+          'Call requestActionFileUpload again and upload the file to the new destination.',
+      );
+    }
+  });
 
   const files = new Map(
     await Promise.all(

@@ -86,6 +86,21 @@ describe('loadFileUploads', () => {
     await expect(loadFileUploads(file)).rejects.toThrow(/failed while loading: nope/);
   });
 
+  // The variable exists for the storage, so a storage that is present but broken must not fall
+  // back to the very backend the operator was configuring their way out of.
+  it.each([
+    ['undefined', 'module.exports = { storage: undefined };'],
+    ['not an object', 'module.exports = { storage: "s3" };'],
+    [
+      'missing getSize',
+      'module.exports = { storage: { createUploadUrl: () => {}, download: () => {} } };',
+    ],
+  ])('rejects a storage that is %s instead of falling back to memory', async (_, body) => {
+    const file = writeModule(body);
+
+    await expect(loadFileUploads(file)).rejects.toThrow(/exports a storage missing/);
+  });
+
   // Omitting the storage selects the in-memory store, so it must not be an error.
   it('accepts options without a storage', async () => {
     const file = writeModule(`module.exports = { maxBytes: 10 };`);

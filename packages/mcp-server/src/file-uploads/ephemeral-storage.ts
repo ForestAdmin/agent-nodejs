@@ -100,10 +100,11 @@ export default class EphemeralStorage implements UploadStorage {
       );
     }
 
-    // Dropped on read: the store is small, and keeping consumed objects until their ttl would let
-    // a handful of redeemed uploads fill it. A handle is single-use against this backend.
-    this.forget(key);
-
+    // Deliberately NOT dropped on read. executeAction downloads every reference before it sets
+    // fields or runs, so any later failure — a mistyped field name, a throwing hook — would leave
+    // the model retrying with handles whose objects are gone, told the upload failed when it did
+    // not. expire() and maxTotalBytes reclaim instead. The upload url stays single-use; that is a
+    // different property, enforced on the issued key.
     return stored.body;
   }
 
@@ -142,7 +143,8 @@ export default class EphemeralStorage implements UploadStorage {
             res,
             key,
             404,
-            'no upload was authorized for this key: it was never issued, already used, or expired',
+            'no upload was authorized for this key: it was never issued, already used, or ' +
+              'expired — or it was issued by another instance, which cannot be seen from here',
           );
         }
 

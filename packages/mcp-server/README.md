@@ -371,12 +371,17 @@ A few properties matter in production.
 - When the client sends `sha256` (hex or base64), the upload URL is pinned to that digest and the digest is checked again on the downloaded bytes at redemption. Content substituted after an upload URL leak cannot be redeemed.
 - **`maxBytes` does not bound memory on its own.** A pre-authorized upload URL cannot always cap the object size, so the limit is enforced at redemption: before downloading when `getSize` reports a size, and only after the bytes are in memory when it returns `undefined`. Implement `getSize` whenever the backend can answer it cheaply.
 - **`maxConcurrentDownloads` bounds concurrent downloads, not peak memory.** All the files one `executeAction` call references are held together until the call completes, so a form with N file fields holds up to N × `maxBytes` whatever the concurrency limit is. Size `maxBytes` against the number of file fields your actions declare.
-- The server never deletes objects. Configure a lifecycle rule on the storage backend, for example deleting objects under `keyPrefix` after one day.
+- **A timed-out read is abandoned, not cancelled.** `UploadStorage.download` takes no `AbortSignal`, so when `downloadTimeoutSeconds` fires the concurrency slot is freed while the underlying read keeps running. Against a backend slower than that timeout the number of reads in flight can therefore exceed `maxConcurrentDownloads`. Keep `downloadTimeoutSeconds` low so a slow backend fails fast instead of accumulating.
+- The server never deletes objects, and does not delete them once redeemed either: `executeAction` downloads every reference before it sets fields or runs, so consuming on read would leave a model retrying after any later failure with handles whose objects are gone, told the upload failed when it had not. Configure a lifecycle rule on the storage backend, for example deleting objects under `keyPrefix` after one day; the in-memory store reclaims on `handleTtlSeconds` and on its own total.
 
 Only `executeAction` resolves handles. `getActionForm` echoes field values back to the model, so a
 handle stays a handle there: resolving it would put the file content back into the model's context.
-A file field that declares a change hook therefore sends the unresolved handle to that hook, which
-receives it as a plain string rather than a parsed file.
+
+**Change hooks never see a handle.** On the `getActionForm` path, file references are withheld from
+`tryToSetFields`, so a hook fired by another field reads the file field as unset rather than as a
+string it would call `.buffer` on. On the `executeAction` path the handles are already resolved, so
+a hook receives the file as the data uri it expects. Either way a hook never has to know this
+side-channel exists.
 
 ## API Endpoints
 

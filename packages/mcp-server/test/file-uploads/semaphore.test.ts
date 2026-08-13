@@ -60,13 +60,6 @@ describe('createSemaphore', () => {
     ).rejects.toThrow('storage is down');
   });
 
-  it.each([[0], [-1]])('treats a limit of %p as 1 rather than hanging forever', async limit => {
-    const run = createSemaphore(limit);
-
-    await expect(run(async () => 'ran')).resolves.toBe('ran');
-    await expect(run(async () => 'ran again')).resolves.toBe('ran again');
-  });
-
   it('never exceeds the limit under load', async () => {
     let active = 0;
     let peak = 0;
