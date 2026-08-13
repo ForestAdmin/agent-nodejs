@@ -37,9 +37,25 @@ const deepEquals = (a: unknown, b: unknown): boolean =>
 
 // A raw BigInt surviving into a stored `previousValues`/`newValues` would fail later — Sequelize
 // serializing the JSON column, or Koa serializing an HTTP history response — the same way
-// JSON.stringify does above; every value captured off the datasource is normalized once, up front.
-const toJsonSafe = (value: unknown): unknown =>
-  typeof value === 'bigint' ? value.toString() : value;
+// JSON.stringify does above. Recurses through arrays and plain objects (mirroring isPlainObject's
+// own Date exclusion below) since a BigInt can be nested inside a JSON column's value rather than
+// being the column's value itself — `pickColumns` hands this a whole column value unprocessed by
+// `diff`'s own recursion, and a primitive array is a `diff` leaf kept whole rather than walked.
+const toJsonSafe = (value: unknown): unknown => {
+  if (typeof value === 'bigint') return value.toString();
+  if (Array.isArray(value)) return value.map(toJsonSafe);
+
+  if (value && typeof value === 'object' && !(value instanceof Date)) {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([key, entry]) => [
+        key,
+        toJsonSafe(entry),
+      ]),
+    );
+  }
+
+  return value;
+};
 
 type PendingSnapshot = { before: RecordData[]; patch?: RecordData };
 

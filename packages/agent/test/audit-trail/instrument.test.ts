@@ -845,6 +845,47 @@ describe('auditTrail plugin', () => {
       expect(sink).not.toHaveBeenCalled();
     });
 
+    it('does not throw on a BigInt nested inside a JSON object, and stores it as a string', async () => {
+      const { sink, run } = update({ payload: { count: 10n } }, { payload: { count: 20n } });
+      await run();
+
+      expect(sink).toHaveBeenCalledWith(
+        expect.objectContaining({
+          previousValues: { payload: { count: '10' } },
+          newValues: { payload: { count: '20' } },
+        }),
+      );
+    });
+
+    it('does not throw on a BigInt nested inside a primitive array, and stores it as a string', async () => {
+      const { sink, run } = update({ tags: [10n, 20n] }, { tags: [10n, 30n] });
+      await run();
+
+      expect(sink).toHaveBeenCalledWith(
+        expect.objectContaining({
+          previousValues: { tags: ['10', '20'] },
+          newValues: { tags: ['10', '30'] },
+        }),
+      );
+    });
+
+    it('does not throw creating a record whose JSON column nests a BigInt', async () => {
+      const sink = jest.fn();
+      const records = fakeCollection('records', [], complexSchema);
+      register([records], { sink });
+
+      await records.fire('After:Create', {
+        caller: makeCaller(),
+        records: [{ id: 1, payload: { count: 10n } }],
+      });
+
+      expect(sink).toHaveBeenCalledWith(
+        expect.objectContaining({
+          newValues: expect.objectContaining({ payload: { count: '10' } }),
+        }),
+      );
+    });
+
     it('captures only the changed leaf inside a nested object, dropping unchanged siblings', async () => {
       const { sink, run } = update({ payload: { a: 1, b: 2 } }, { payload: { a: 1, b: 3 } });
       await run();
