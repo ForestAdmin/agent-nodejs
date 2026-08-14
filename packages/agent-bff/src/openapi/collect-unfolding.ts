@@ -12,8 +12,6 @@ import type ReadModel from '../read-model/read-model';
 import type ReadModelStore from '../read-model/read-model-store';
 import type { Operator } from '@forestadmin/datasource-toolkit';
 
-import { allOperators } from '@forestadmin/datasource-toolkit';
-
 import { extractErrorMessage } from '../errors';
 import { normalizeOperator, toCanonicalOperatorSet } from '../validation/operator-normalizer';
 
@@ -62,31 +60,35 @@ const UNTYPED = (degraded: CollectionFields['degraded']): CollectionFields => ({
 });
 
 /**
- * The operators to document for one field. An operator with no canonical mapping means the agent
- * runs a newer operator set than this package: the field then keeps the WHOLE operator set rather
- * than the mappable part of it. Documenting less than the runtime accepts would make a generated
- * client refuse a call the agent honours, and a raw snake_case operator must never reach the public
- * document — so the skew is surfaced in the log instead.
+ * The operators to document for one field, or null to leave the field out of the filterable set.
+ *
+ * An operator with no canonical mapping means the agent runs a newer operator set than this package.
+ * The field is dropped rather than widened, because `capabilities-validator` normalizes a field's
+ * WHOLE operator list before comparing the one that was sent: a skewed field answers 500
+ * `mapping_error` on ANY filter, even a plain `Equal`. Documenting it as filterable would promise a
+ * call the BFF never honours, and a raw snake_case operator must never reach the public document. The
+ * skew is surfaced in the log instead — dropping the field keeps the document truthful, so it stays
+ * cacheable.
  */
 function documentedOperators(
   collection: string,
   field: string,
   operators: string[],
   logger: Logger,
-): Operator[] {
+): Operator[] | null {
   const normalized: Operator[] = [];
 
   for (const operator of operators) {
     const canonical = normalizeOperator(operator);
 
     if (!canonical) {
-      logger('Warn', 'Documenting a field with every operator: one of its own has no mapping', {
+      logger('Warn', 'Documenting a field as not filterable: one of its operators has no mapping', {
         collection,
         field,
         operator,
       });
 
-      return [...allOperators];
+      return null;
     }
 
     normalized.push(canonical);
@@ -100,12 +102,18 @@ function collectFilterableFields(
   capabilities: CapabilitiesResult,
   logger: Logger,
 ): FilterableField[] {
-  return capabilities.fields
-    .filter(field => (field.operators?.length ?? 0) > 0)
-    .map(field => ({
-      name: field.name,
-      operators: documentedOperators(collection, field.name, field.operators as string[], logger),
-    }));
+  return capabilities.fields.flatMap(field => {
+    if ((field.operators?.length ?? 0) === 0) return [];
+
+    const operators = documentedOperators(
+      collection,
+      field.name,
+      field.operators as string[],
+      logger,
+    );
+
+    return operators === null ? [] : [{ name: field.name, operators }];
+  });
 }
 
 async function collectFields(

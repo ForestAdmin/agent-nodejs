@@ -1,4 +1,8 @@
-import type { UnfoldedCollection } from '../../src/openapi/unfolding';
+import type {
+  DegradedReason,
+  FilterableField,
+  UnfoldedCollection,
+} from '../../src/openapi/unfolding';
 
 import { allOperators } from '@forestadmin/datasource-toolkit';
 
@@ -52,6 +56,20 @@ function branchOf(treeName: string): Record<string, never> {
   const { anyOf } = schemas[treeName] as unknown as { anyOf: Record<string, never>[] };
 
   return anyOf[anyOf.length - 1];
+}
+
+function collectionOf(
+  name: string,
+  filterable: FilterableField[],
+  degraded: DegradedReason | null = null,
+): UnfoldedCollection {
+  return {
+    name,
+    fields: { projectable: filterable.map(field => field.name), filterable, degraded },
+    primaryKeys: [{ name: 'id', type: 'Number' }],
+    relations: [],
+    actions: [],
+  };
 }
 
 // A relation request composes the foreign collection request, so its filter sits one hop further.
@@ -168,7 +186,7 @@ describe('the unfolded document', () => {
   it('should make every leaf and the branch mutually exclusive, which the runtime enforces', () => {
     const branch = branchOf('Filter_My_Coll') as unknown as { not: { required: string[] } };
 
-    ['FilterLeaf_My_Coll_1', 'FilterLeaf_My_Coll_2'].forEach(name => {
+    ['FilterLeaf_My_Coll-1', 'FilterLeaf_My_Coll-2'].forEach(name => {
       const leaf = schemas[name] as unknown as { not: { required: string[] } };
 
       expect(leaf.not.required).toEqual(['conditions']);
@@ -179,7 +197,7 @@ describe('the unfolded document', () => {
   it('should exclude only the type the runtime reads as the other shape', () => {
     // `isBranch` needs an ARRAY `conditions` and `isLeaf` a STRING `field`, so a leaf carrying
     // `conditions: "x"` is a plain leaf the runtime accepts and the document must not refuse.
-    const leaf = schemas.FilterLeaf_My_Coll_1 as unknown as {
+    const leaf = schemas['FilterLeaf_My_Coll-1'] as unknown as {
       not: { properties: { conditions: { type: string } } };
     };
     const branch = branchOf('Filter_My_Coll') as unknown as {
@@ -191,7 +209,7 @@ describe('the unfolded document', () => {
   });
 
   it('should not forbid an unknown extra key on a filter node, which the runtime strips', () => {
-    const leaf = schemas.FilterLeaf_My_Coll_1 as { additionalProperties?: unknown };
+    const leaf = schemas['FilterLeaf_My_Coll-1'] as { additionalProperties?: unknown };
 
     expect(leaf.additionalProperties).toBeUndefined();
   });
@@ -341,6 +359,57 @@ describe('the unfolded document', () => {
     const again = generateOpenApiDocument('9.9.9', unfoldingFixture());
 
     expect(JSON.stringify(again)).toBe(JSON.stringify(document));
+  });
+});
+
+describe('a collection whose key ends in an index-like suffix', () => {
+  // `sanitizeIdentifier` turns anything outside [A-Za-z0-9_] into `_`, and `createNamer` appends
+  // `_<n>` to a collapsed name, so a collection key can end in `_<digit>` on its own. A leaf namespace
+  // separated by `_` would let `Invoice 1` and `Invoice` claim the same component name, and
+  // `ComponentPool.add` settles a duplicate last-wins in silence.
+  const collision = generateOpenApiDocument('9.9.9', {
+    collections: [
+      collectionOf('Invoice 1', [], 'capabilities_unavailable'),
+      collectionOf('Invoice', [{ name: 'total', operators: ['Equal', 'GreaterThan'] }]),
+    ],
+  });
+  const collisionSchemas = collision.components?.schemas as Record<string, Record<string, never>>;
+
+  it('should give each collection its own filter leaf rather than share one', () => {
+    const leaves = Object.keys(collisionSchemas).filter(name => name.startsWith('FilterLeaf'));
+
+    expect(leaves).toHaveLength(2);
+    expect(new Set(leaves).size).toBe(2);
+  });
+
+  it('should not document one collection fields under the other name', () => {
+    const bare = collisionSchemas.FilterLeaf_Invoice_1 as unknown as {
+      description: string;
+      properties: { field: { enum?: string[] } };
+    };
+
+    expect(bare.description).toContain('"Invoice 1"');
+    expect(bare.properties.field.enum).toBeUndefined();
+  });
+});
+
+describe('an unfolding carrying a filterable field with no operator', () => {
+  it('should leave it out rather than emit an enum no value satisfies', () => {
+    // An empty enum forbids every value, so the leaf would be unsatisfiable. `collectFilterableFields`
+    // cannot produce one, but the generator takes hand-constructible plain data.
+    const empty = generateOpenApiDocument('9.9.9', {
+      collections: [collectionOf('E', [{ name: 'x', operators: [] }])],
+    });
+    const emptySchemas = empty.components?.schemas as Record<string, Record<string, never>>;
+    const leaf = emptySchemas.FilterLeaf_E as unknown as {
+      properties: { field: { enum?: string[] }; operator: { enum: string[] } };
+    };
+
+    expect(Object.keys(emptySchemas).filter(name => name.startsWith('FilterLeaf'))).toEqual([
+      'FilterLeaf_E',
+    ]);
+    expect(leaf.properties.field.enum).toBeUndefined();
+    expect(leaf.properties.operator.enum).toEqual([...allOperators]);
   });
 });
 

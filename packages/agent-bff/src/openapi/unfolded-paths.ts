@@ -100,6 +100,11 @@ function groupByOperators(filterable: FilterableField[]): OperatorGroup[] {
   const groups = new Map<string, OperatorGroup>();
 
   filterable.forEach(field => {
+    // An empty set would emit `enum: []`, which forbids every value and makes the leaf unsatisfiable —
+    // the trap `fieldsEnum` guards above. `collectFilterableFields` cannot produce one, but `Unfolding`
+    // is hand-constructible plain data, so the generator holds the invariant rather than assume it.
+    if (field.operators.length === 0) return;
+
     // Safe as a key because the operators are normalized to one canonical order at collect time.
     const signature = field.operators.join(',');
     const group = groups.get(signature);
@@ -136,9 +141,9 @@ function leafShape(
 }
 
 /**
- * One leaf alternative per operator set. A field the agent reports without operators — a `ManyToOne`,
- * for instance — is in none of them: filtering on it answers 422 field_not_filterable, so it must not
- * be documented as filterable at all.
+ * One leaf alternative per operator set. A field absent from `filterable` is in none of them, which is
+ * the only honest way to document it: a `ManyToOne` answers 422 field_not_filterable, and a field the
+ * collector dropped for an unmappable operator answers 500 mapping_error on every filter.
  */
 function filterLeaves(pool: ComponentPool, plan: Pick<CollectionPlan, 'key' | 'collection'>) {
   const { name, fields } = plan.collection;
@@ -155,9 +160,16 @@ function filterLeaves(pool: ComponentPool, plan: Pick<CollectionPlan, 'key' | 'c
     ];
   }
 
+  // `-` rather than `_` before the index, and the difference is load-bearing: `sanitizeIdentifier` maps
+  // every character outside `[A-Za-z0-9_]` to `_`, so a collection key can end in `_<digit>` — either
+  // because the customer named a collection `Invoice 1`, or because `createNamer` suffixed a name that
+  // collapsed. With `_`, collection `Invoice 1` (no group, so the bare name below) and collection
+  // `Invoice` (first group) both claim `FilterLeaf_Invoice_1`, and `ComponentPool.add` settles it
+  // last-wins in silence — one collection would document the other's fields and operators. Sanitizing
+  // can never produce a `-`, so this separator makes the two namespaces disjoint by construction.
   return groups.map((group, index) =>
     pool.add(
-      `FilterLeaf_${plan.key}_${index + 1}`,
+      `FilterLeaf_${plan.key}-${index + 1}`,
       leafShape(
         { type: 'string', enum: group.fields },
         group.operators,
