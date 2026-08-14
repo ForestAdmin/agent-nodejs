@@ -270,8 +270,12 @@ be able to make it:
      Do not promise your users a menu path; give them the host to get allowed.
 
   Both are client-side and outside this server's control, so document your upload host for your
-  users. Condition 1 is established; condition 2 is expected to be sufficient but is **not yet
-  verified end to end** against a public agent.
+  users.
+
+  **Verified end to end** from a Claude Desktop chat: an agent behind a public HTTPS URL, that host
+  added to the sandbox's allowed domains, and the model's `PUT` goes through. Before the host was
+  allowed, the same sandbox answered `Host not in allowlist` even for an ordinary public domain —
+  so the allowlist is the whole of condition 2, and satisfying it is enough.
 
 The tool states this prerequisite in its description and repeats it in its response, so a model
 whose upload was blocked has the diagnosis in context.
