@@ -18,6 +18,8 @@ lerna-debug.log
 # forest-bff openapi --output default destination
 openapi.json
 
+# document and client written by the OpenAPI codegen verification test
+packages/agent-bff/test/openapi/.generated
 
 # yarn
 yarn-error.log

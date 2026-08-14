@@ -41,6 +41,7 @@
     "zod": "4.3.6"
   },
   "devDependencies": {
+    "@hey-api/openapi-ts": "0.99.0",
     "@redocly/cli": "2.35.1",
     "@types/jsonwebtoken": "^9.0.1",
     "@types/koa": "^2.13.5",
