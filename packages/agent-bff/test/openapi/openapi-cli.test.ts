@@ -183,12 +183,39 @@ describe('dispatchCli', () => {
     it('should fall back to the console logger when the caller passes none, as the bin does', async () => {
       const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
       const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+      // Silenced because jest buffers console output and flushes it to process.stdout, which the spy
+      // would otherwise pick up ahead of the document.
+      const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
 
       try {
         const outcome = await dispatchCli(['openapi'], {});
 
         expect(outcome).toEqual({ exitCode: 0 });
         expect(JSON.parse(stdout.mock.calls[0][0] as string).openapi).toBe('3.1.0');
+        expect(warn).toHaveBeenCalled();
+      } finally {
+        stdout.mockRestore();
+        stderr.mockRestore();
+        warn.mockRestore();
+      }
+    });
+
+    // The redirected form is the one that breaks: `console.info` writes to the same stream as the
+    // document, so a single Info log makes `> openapi.json` produce a file JSON.parse rejects. Runs
+    // with the REAL console logger on purpose — passing a noop one is what hid this.
+    it('should leave stdout parseable when unfolding, whatever it logs on the way', async () => {
+      const written: string[] = [];
+      const stdout = jest
+        .spyOn(process.stdout, 'write')
+        .mockImplementation(chunk => written.push(String(chunk)) > 0);
+      const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+
+      try {
+        const outcome = await dispatchCli(['openapi'], VALID_ENV);
+
+        expect(outcome).toEqual({ exitCode: 0 });
+        expect(() => JSON.parse(written.join(''))).not.toThrow();
+        expect(JSON.parse(written.join('')).info.description).toContain('Paths are unfolded');
       } finally {
         stdout.mockRestore();
         stderr.mockRestore();

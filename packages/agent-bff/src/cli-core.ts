@@ -1,6 +1,7 @@
 import type { BFFConfig } from './config/env-config';
 import type { UnfoldSource } from './openapi/unfolded-document';
 import type { Logger } from './ports/logger-port';
+import type { Metrics } from './ports/metrics-port';
 import type ReadModelStore from './read-model/read-model-store';
 import type { Middleware } from 'koa';
 
@@ -171,7 +172,11 @@ interface ReadModelBundle {
  * unfolding all share — one cache, one schema fetch. Needs no agent: the permissions endpoint and the
  * schema itself come from the SaaS.
  */
-function resolveReadModelBundle(config: BFFConfig, logger: Logger): ReadModelBundle | undefined {
+function resolveReadModelBundle(
+  config: BFFConfig,
+  logger: Logger,
+  metrics?: Metrics,
+): ReadModelBundle | undefined {
   const apiKeyConfig = resolveApiKeyConfig(config);
 
   if (!apiKeyConfig) return undefined;
@@ -180,6 +185,7 @@ function resolveReadModelBundle(config: BFFConfig, logger: Logger): ReadModelBun
     forestServerUrl: apiKeyConfig.forestServerUrl,
     envSecret: apiKeyConfig.forestEnvSecret,
     logger,
+    metrics,
   });
 
   return { store, apiKeyConfig };
@@ -206,8 +212,16 @@ function toUnfoldSource(
   };
 }
 
+/**
+ * Metrics are dropped rather than logged: without an explicit sink `createReadModel` builds a console
+ * one, which reports gauges at `Info`, and `createConsoleLogger` sends `Info` to `console.info` — the
+ * stdout the document is written to. The server keeps its metrics; the export has no sink for them
+ * anyway.
+ */
+const UNMEASURED: Metrics = { increment: () => undefined, gauge: () => undefined };
+
 export function resolveUnfoldSource(config: BFFConfig, logger: Logger): UnfoldSource | undefined {
-  return toUnfoldSource(resolveReadModelBundle(config, logger), config, logger);
+  return toUnfoldSource(resolveReadModelBundle(config, logger, UNMEASURED), config, logger);
 }
 
 // The data middleware falls through to the action middleware on a non-data path.
