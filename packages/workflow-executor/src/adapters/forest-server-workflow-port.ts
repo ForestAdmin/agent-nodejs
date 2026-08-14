@@ -43,6 +43,8 @@ const ROUTES = {
   mcpServerConfigs: '/liana/mcp-server-configs-with-details',
 };
 
+const UNHYDRATABLE_RUN_USER_MESSAGE = 'This step could not be loaded and cannot be executed.';
+
 // Forest sends relatedCollectionName as a `collection.targetKey` reference (e.g. "store.id");
 // normalize it to a plain collection name (the related PK comes from the schema's primaryKeyFields).
 function stripReferenceKey(name: string | undefined): string | undefined {
@@ -69,11 +71,22 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
     for (const run of runs) {
       try {
         const dispatch = this.toDispatch(run);
-        if (dispatch) pending.push(dispatch);
-      } catch (error) {
-        if (error instanceof WorkflowExecutorError) {
-          malformed.push(this.toMalformedInfo(run, error));
+
+        if (dispatch) {
+          pending.push(dispatch);
         } else {
+          // Reporting is impossible here: there is no available step to attach an error to.
+          this.logger('Error', 'Pending run served with no executable step — dropped', {
+            runId: run.id,
+            lastStepIndex: run.workflowHistory?.at(-1)?.stepIndex,
+          });
+        }
+      } catch (error) {
+        // Every hydration failure must be reported, including non-domain ones: an unreported run
+        // keeps its claim, gets reaped after 60s and re-claimed forever (PRD-956).
+        malformed.push(this.toMalformedInfo(run, error));
+
+        if (!(error instanceof WorkflowExecutorError)) {
           this.logger('Error', 'Failed to hydrate pending run — unexpected error', {
             runId: run.id,
             error: extractErrorMessage(error),
@@ -99,12 +112,14 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
     try {
       return this.toDispatch(run);
     } catch (error) {
-      if (error instanceof WorkflowExecutorError) {
-        throw new MalformedRunError(this.toMalformedInfo(run, error));
+      if (!(error instanceof WorkflowExecutorError)) {
+        this.logger('Error', 'Failed to hydrate run — unexpected error', {
+          runId: run.id,
+          error: extractErrorMessage(error),
+        });
       }
 
-      /* istanbul ignore next — defensive fallback for unexpected non-domain errors */
-      throw error;
+      throw new MalformedRunError(this.toMalformedInfo(run, error));
     }
   }
 
@@ -133,18 +148,18 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
     return { step, auth: { forestServerToken: token } };
   }
 
-  private toMalformedInfo(
-    run: ServerHydratedWorkflowRun,
-    err: WorkflowExecutorError,
-  ): MalformedRunInfo {
-    const pending = run.workflowHistory.at(-1) ?? null;
+  private toMalformedInfo(run: ServerHydratedWorkflowRun, err: unknown): MalformedRunInfo {
+    // Optional chaining is load-bearing: this runs inside a catch block, and a run with a
+    // non-array workflowHistory is exactly what lands here. Throwing would kill the whole batch.
+    const pending = run.workflowHistory?.at(-1) ?? null;
+    const isDomainError = err instanceof WorkflowExecutorError;
 
     return {
       runId: String(run.id),
       stepId: pending?.stepName ?? null,
       stepIndex: pending?.stepIndex ?? null,
-      userMessage: err.userMessage,
-      technicalMessage: err.message,
+      userMessage: isDomainError ? err.userMessage : UNHYDRATABLE_RUN_USER_MESSAGE,
+      technicalMessage: extractErrorMessage(err) ?? 'Unknown error',
     };
   }
 

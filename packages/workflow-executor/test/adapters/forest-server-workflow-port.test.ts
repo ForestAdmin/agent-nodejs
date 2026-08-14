@@ -116,7 +116,9 @@ describe('ForestServerWorkflowPort', () => {
       expect(result.malformed).toEqual([]);
     });
 
-    it('filters out runs with no available step', async () => {
+    it('drops runs with no available step and logs it (no step to report an error against)', async () => {
+      const logger = jest.fn();
+      const portWithLogger = new ForestServerWorkflowPort({ ...options, logger });
       const terminalRun = makeRun({
         workflowHistory: [
           {
@@ -133,10 +135,15 @@ describe('ForestServerWorkflowPort', () => {
       });
       mockQuery.mockResolvedValue([terminalRun]);
 
-      const result = await port.getAvailableRuns();
+      const result = await portWithLogger.getAvailableRuns();
 
       expect(result.pending).toEqual([]);
       expect(result.malformed).toEqual([]);
+      expect(logger).toHaveBeenCalledWith(
+        'Error',
+        'Pending run served with no executable step — dropped',
+        { runId: 42, lastStepIndex: 0 },
+      );
     });
 
     it('bucketizes malformed runs and keeps valid ones in the pending bucket', async () => {
@@ -313,7 +320,7 @@ describe('ForestServerWorkflowPort', () => {
       );
     });
 
-    it('logs and skips when the mapping throws a non-WorkflowExecutorError', async () => {
+    it('reports and logs when the mapping throws a non-WorkflowExecutorError', async () => {
       const logger = jest.fn();
       const portWithLogger = new ForestServerWorkflowPort({ ...options, logger });
       // Simulate a non-domain error by passing a run whose workflowHistory will
@@ -324,11 +331,52 @@ describe('ForestServerWorkflowPort', () => {
       const result = await portWithLogger.getAvailableRuns();
 
       expect(result.pending).toEqual([]);
-      expect(result.malformed).toEqual([]);
+      expect(result.malformed).toEqual([
+        {
+          runId: '111',
+          stepId: null,
+          stepIndex: null,
+          userMessage: 'This step could not be loaded and cannot be executed.',
+          technicalMessage: expect.any(String),
+        },
+      ]);
       expect(logger).toHaveBeenCalledWith(
         'Error',
         'Failed to hydrate pending run — unexpected error',
         expect.objectContaining({ runId: 111 }),
+      );
+    });
+
+    it('reports a non-domain failure against the pending step so the claim can be cleared', async () => {
+      const brokenRun = makeRun({
+        id: 956,
+        workflowHistory: [
+          {
+            stepName: 'done-step',
+            stepIndex: 0,
+            done: true,
+            stepDefinition: makeConditionStepDef(),
+          },
+          {
+            stepName: 'Task_UpdateGoogleSheet',
+            stepIndex: 1,
+            done: false,
+            stepDefinition: undefined as never,
+          },
+        ],
+      });
+      mockQuery.mockResolvedValue([brokenRun]);
+
+      const result = await port.getAvailableRuns();
+
+      expect(result.pending).toEqual([]);
+      expect(result.malformed[0]).toEqual(
+        expect.objectContaining({
+          runId: '956',
+          stepId: 'Task_UpdateGoogleSheet',
+          stepIndex: 1,
+          userMessage: 'This step could not be loaded and cannot be executed.',
+        }),
       );
     });
   });
@@ -392,6 +440,27 @@ describe('ForestServerWorkflowPort', () => {
       mockQuery.mockResolvedValue(malformedRun);
 
       await expect(port.getAvailableRun('66')).rejects.toBeInstanceOf(MalformedRunError);
+    });
+
+    it('wraps a non-WorkflowExecutorError in MalformedRunError so the Runner still reports', async () => {
+      const logger = jest.fn();
+      const portWithLogger = new ForestServerWorkflowPort({ ...options, logger });
+      mockQuery.mockResolvedValue({ ...makeRun({ id: 112 }), workflowHistory: null as never });
+
+      await expect(portWithLogger.getAvailableRun('112')).rejects.toMatchObject({
+        name: 'MalformedRunError',
+        info: {
+          runId: '112',
+          stepId: null,
+          stepIndex: null,
+          userMessage: 'This step could not be loaded and cannot be executed.',
+        },
+      });
+      expect(logger).toHaveBeenCalledWith(
+        'Error',
+        'Failed to hydrate run — unexpected error',
+        expect.objectContaining({ runId: 112 }),
+      );
     });
   });
 
