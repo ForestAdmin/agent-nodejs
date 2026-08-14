@@ -155,6 +155,30 @@ describe('captureAction', () => {
       });
     });
 
+    test('strips userinfo and query/fragment from a Webhook URL, keeping origin and path', async () => {
+      const newValues = await capture({
+        type: 'Webhook',
+        url: 'https://user:secret@example.com/hook?token=abc123#frag',
+        method: 'POST',
+        headers: {},
+        body: {},
+      });
+
+      expect(newValues.url).toBe('https://example.com/hook');
+    });
+
+    test('strips a query string from a relative or otherwise unparseable Webhook URL', async () => {
+      const newValues = await capture({
+        type: 'Webhook',
+        url: '/hook?token=abc123',
+        method: 'POST',
+        headers: {},
+        body: {},
+      });
+
+      expect(newValues.url).toBe('/hook');
+    });
+
     test('keeps name/mimeType but drops the stream from a File result', async () => {
       const newValues = await capture({
         type: 'File',

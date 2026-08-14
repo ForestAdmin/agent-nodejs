@@ -20,6 +20,25 @@ const redactValues = (
   return result;
 };
 
+// A Webhook's target URL is otherwise untouched user/action-supplied data, so it can carry
+// credentials (userinfo) or a signed/one-time token (query string) that must not be written
+// permanently to the audit database — only the origin and path are kept. Falls back to a plain
+// string split for a relative or otherwise unparseable URL, which is exactly where such a token
+// would still live.
+const sanitizeUrl = (url: string): string => {
+  try {
+    const parsed = new URL(url);
+    parsed.username = '';
+    parsed.password = '';
+    parsed.search = '';
+    parsed.hash = '';
+
+    return parsed.toString();
+  } catch {
+    return url.split(/[?#]/)[0];
+  }
+};
+
 // Only a safe summary of the answer is kept: `html` (Success/Error), `invalidated` (Success),
 // `headers`/`body` (Webhook, which routinely carry credentials) and a File result's `stream` (file
 // bytes don't belong in an audit table) are all dropped. Absent when `execute()` threw rather than
@@ -33,7 +52,7 @@ const summarizeActionResult = (result?: ActionResult): Record<string, unknown> =
   if ('name' in result) summary.name = result.name;
   if ('mimeType' in result) summary.mimeType = result.mimeType;
   if ('method' in result) summary.method = result.method;
-  if ('url' in result) summary.url = result.url;
+  if ('url' in result) summary.url = sanitizeUrl(result.url);
   if ('path' in result) summary.path = result.path;
 
   return summary;
