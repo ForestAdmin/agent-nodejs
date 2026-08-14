@@ -1,3 +1,11 @@
+# @forestadmin/agent-bff [1.17.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.16.0...@forestadmin/agent-bff@1.17.0) (2026-08-14)
+
+
+### Features
+
+* **agent-bff:** document the real operator set of each filterable field ([#1824](https://github.com/ForestAdmin/agent-nodejs/issues/1824)) ([36cce08](https://github.com/ForestAdmin/agent-nodejs/commit/36cce08a3c7ab8ccff6653958ccd89971ee2d022))
+* **agent-bff:** unfold the OpenAPI document per collection, relation and action ([#1823](https://github.com/ForestAdmin/agent-nodejs/issues/1823)) ([a4a7102](https://github.com/ForestAdmin/agent-nodejs/commit/a4a7102f22213870e73589bc339bd044e60b327f))
+
 # @forestadmin/agent-bff [1.16.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.15.1...@forestadmin/agent-bff@1.16.0) (2026-08-12)
 
 
