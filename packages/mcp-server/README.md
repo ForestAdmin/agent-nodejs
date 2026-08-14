@@ -203,8 +203,10 @@ agent.mountAiMcpServer();                             // in memory, single insta
 agent.mountAiMcpServer({ fileUploads: { storage } }); // a real backend
 ```
 
-To turn the feature off, leave `requestActionFileUpload` out of `enabledTools`. The upload endpoint
-is then never mounted and `executeAction` never mentions it.
+To turn the feature off, pass `fileUploads: false`. The tool is not registered, the upload endpoint
+is never mounted, and `executeAction` stops mentioning either. Going through `enabledTools` would
+work too, but it is an allowlist — declining this one feature that way means naming every other
+tool and opting out of everything shipped after.
 
 > **Single instance only.** The upload and the redemption are two separate requests. With several
 > replicas, in cluster mode, or on a serverless runtime, one of them lands
@@ -213,7 +215,10 @@ is then never mounted and `executeAction` never mentions it.
 > warning at startup, and the failure names this cause. **Those deployments need a `storage`.**
 
 `ephemeralMaxTotalBytes` bounds what the in-memory store holds across all pending uploads, 64 MiB by
-default. It is deliberately absolute rather than a multiple of `maxBytes`: derived, raising the
+default. Redeeming a file does not free it — the object lives until `handleTtlSeconds` so a retry
+after a failed action still finds it — so on the defaults the store holds about three max-size
+files per 45-minute window rather than a rolling 64 MiB. Size it against that, or shorten
+`handleTtlSeconds`. It is deliberately absolute rather than a multiple of `maxBytes`: derived, raising the
 per-file limit would multiply what the process can hold.
 
 ### With a storage backend

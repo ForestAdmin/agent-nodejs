@@ -161,15 +161,15 @@ export interface ForestMCPServerOptions {
    */
   allowedOAuthClients?: string[];
   /**
-   * Action file uploads are on by default, with the objects held in memory. This only configures
-   * them — a `storage` backend, size limits, ttls. Drop `requestActionFileUpload` from
-   * `enabledTools` to turn the feature off entirely. See the README for the flow and the storage
-   * contract.
+   * Action file uploads are on by default, with the objects held in memory. Pass an object to
+   * configure them — a `storage` backend, size limits, ttls — or `false` to turn the feature off:
+   * no `requestActionFileUpload` tool, no upload endpoint, and `executeAction` stops mentioning
+   * either. See the README for the flow and the storage contract.
    *
    * @experimental Expected to change to follow the MCP file transfer specification once it
    * lands (SEP-2631).
    */
-  fileUploads?: FileUploadsOptions;
+  fileUploads?: false | FileUploadsOptions;
 }
 
 /**
@@ -214,7 +214,13 @@ export default class ForestMCPServer {
 
     this.allowedOAuthClients = normalizeDomainList(options?.allowedOAuthClients);
     // Resolved in buildExpressApp, where the auth secret is known to be set.
-    this.fileUploadsOptions = options?.fileUploads;
+    this.fileUploadsOptions = options?.fileUploads || undefined;
+
+    // `enabledTools` is an allowlist, so declining this one feature through it would mean naming
+    // the ten other tools and opting out of everything shipped later. Dropping it from the set
+    // here turns the whole feature off through the machinery that already gates it: registration,
+    // the upload endpoint, and the paragraph executeAction adds for it.
+    if (options?.fileUploads === false) this.enabledTools.delete('requestActionFileUpload');
 
     // Use injected forestServerClient or create default
     this.forestServerClient = options?.forestServerClient ?? this.createDefaultForestServerClient();

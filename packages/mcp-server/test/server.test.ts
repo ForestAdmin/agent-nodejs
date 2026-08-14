@@ -3669,6 +3669,22 @@ describe('file uploads without a storage backend', () => {
     expect(response.status).toBe(405);
   });
 
+  // enabledTools is an allowlist, so declining this one feature through it would mean naming every
+  // other tool and opting out of everything shipped later.
+  it('turns the whole feature off on fileUploads: false, without touching enabledTools', async () => {
+    const server = build({ fileUploads: false });
+    const app = await server.buildExpressApp(new URL('https://agent.example'));
+
+    await expect(request(app).put('/mcp/uploads/anything').send('hello')).resolves.toMatchObject({
+      status: 405,
+    });
+    expect((server as unknown as { enabledTools: Set<string> }).enabledTools).not.toContain(
+      'requestActionFileUpload',
+    );
+    // Every other tool is untouched, which is the point of not going through enabledTools.
+    expect((server as unknown as { enabledTools: Set<string> }).enabledTools).toContain('list');
+  });
+
   // 404 comes from the uploads router itself, for a key it never handed out. A 405 would mean
   // allowedMethods(['POST']) claimed the PUT first, and a hang would mean a body parser did.
   it('serves the upload endpoint under /mcp/uploads', async () => {

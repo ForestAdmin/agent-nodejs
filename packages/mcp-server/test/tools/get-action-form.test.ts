@@ -304,6 +304,45 @@ describe('declareGetActionFormTool', () => {
       expect(mockTryToSetFields).toHaveBeenCalledWith({ note: 'hello' });
     });
 
+    // Withholding must not make the field unsatisfiable: the agent never sees the handle, so
+    // counting it as missing would leave canExecute false with nothing the model could send.
+    it('counts a withheld handle as filling its required field, and echoes it back', async () => {
+      const mockTryToSetFields = jest.fn().mockResolvedValue([]);
+      const mockAction = jest.fn().mockResolvedValue({
+        getFields: jest.fn().mockReturnValue([
+          {
+            getName: () => 'Document',
+            getType: () => 'File',
+            getTypeName: () => 'File',
+            getValue: () => undefined,
+            isRequired: () => true,
+            getPlainField: () => ({}),
+            getMultipleChoiceField: () => ({ getOptions: () => null }),
+          },
+        ]),
+        tryToSetFields: mockTryToSetFields,
+      });
+      mockBuildClientWithActions.mockResolvedValue({
+        rpcClient: { collection: jest.fn().mockReturnValue({ action: mockAction }) },
+        authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+      } as unknown as ReturnType<typeof buildClientWithActions>);
+
+      const result = await registeredToolHandler(
+        {
+          collectionName: 'users',
+          actionName: 'sendEmail',
+          recordIds: [1],
+          values: { Document: '$uploadedFile:some-token' },
+        },
+        mockExtra,
+      );
+      const payload = JSON.parse((result as { content: { text: string }[] }).content[0].text);
+
+      expect(payload.canExecute).toBe(true);
+      expect(payload.requiredFields).toEqual([]);
+      expect(payload.fields[0].value).toBe('$uploadedFile:some-token');
+    });
+
     it('should not call tryToSetFields when values are not provided', async () => {
       const mockGetFields = jest.fn().mockReturnValue([]);
       const mockTryToSetFields = jest.fn().mockResolvedValue([]);

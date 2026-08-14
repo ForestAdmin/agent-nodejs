@@ -27,16 +27,23 @@ function toAllowedValue(option: unknown): { value: string | number | null; label
 // Setting a field that declares a change hook posts every field value to the agent, and a change
 // hook reading `.buffer` off a handle string throws — a 500 on the very sequence executeAction's
 // description prescribes. Handles are not resolved on this path on purpose (the bytes would land
-// back in the model's context), so they are withheld from the hook instead: the field reads as
-// unset, which is what it was before the model chose a destination for it.
-function withoutFileReferences(values: Record<string, unknown>): Record<string, unknown> {
-  const kept = Object.entries(values).filter(([, value]) => {
+// back in the model's context), so they are kept away from the agent and echoed back to the model
+// instead: a required file field stays satisfiable, and the model sees its handle was received.
+function splitFileReferences(values: Record<string, unknown>): {
+  forAgent: Record<string, unknown>;
+  withheld: Record<string, unknown>;
+} {
+  const forAgent: Record<string, unknown> = {};
+  const withheld: Record<string, unknown> = {};
+
+  for (const [field, value] of Object.entries(values)) {
     const candidates = Array.isArray(value) ? value : [value];
 
-    return !candidates.some(candidate => parseFileReference(candidate));
-  });
+    if (candidates.some(candidate => parseFileReference(candidate))) withheld[field] = value;
+    else forAgent[field] = value;
+  }
 
-  return Object.fromEntries(kept);
+  return { forAgent, withheld };
 }
 
 export default function declareGetActionFormTool(mcpServer: McpServer, ctx: ToolContext): string {
@@ -80,16 +87,26 @@ The response includes:
         .action(options.actionName, { recordIds });
 
       let skippedFields: string[] = [];
+      let withheld: Record<string, unknown> = {};
 
       if (options.values) {
-        skippedFields = await action.tryToSetFields(withoutFileReferences(options.values));
+        const split = splitFileReferences(options.values);
+
+        withheld = split.withheld;
+        skippedFields = await action.tryToSetFields(split.forAgent);
       }
 
       const fields = action.getFields();
+      // A withheld handle satisfies its field: the agent never saw it, so getValue() is undefined,
+      // and counting it as missing would leave canExecute false with nothing the model could send
+      // to fix it — a data uri is what it is told never to send, and the handle is what it just
+      // sent.
+      const valueOf = (field: { getName(): string; getValue(): unknown }) =>
+        field.getName() in withheld ? withheld[field.getName()] : field.getValue();
 
       const requiredFields = fields
         .filter(field => field.isRequired())
-        .filter(field => field.getValue() === undefined || field.getValue() === null)
+        .filter(field => valueOf(field) === undefined || valueOf(field) === null)
         .map(field => field.getName());
 
       const canExecute = requiredFields.length === 0;
@@ -104,7 +121,7 @@ The response includes:
                 const baseField = {
                   name: field.getName(),
                   type: field.getTypeName(),
-                  value: field.getValue(),
+                  value: valueOf(field),
                   isRequired: field.isRequired() ?? false,
                   ...(description ? { description } : {}),
                 };
