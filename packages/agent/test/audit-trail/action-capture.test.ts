@@ -179,6 +179,20 @@ describe('captureAction', () => {
       expect(newValues.url).toBe('/hook');
     });
 
+    test('strips userinfo from a Webhook URL even when it is otherwise unparseable', async () => {
+      // A space in the host makes `new URL` throw, exercising the fallback path — which must
+      // still strip the (perfectly valid) credentials sitting right next to it.
+      const newValues = await capture({
+        type: 'Webhook',
+        url: 'https://user:pass@exa mple.com/hook?token=abc123',
+        method: 'POST',
+        headers: {},
+        body: {},
+      });
+
+      expect(newValues.url).toBe('https://exa mple.com/hook');
+    });
+
     test('keeps name/mimeType but drops the stream from a File result', async () => {
       const newValues = await capture({
         type: 'File',
@@ -194,6 +208,12 @@ describe('captureAction', () => {
       const newValues = await capture({ type: 'Redirect', path: '/somewhere' });
 
       expect(newValues).toEqual({ type: 'Redirect', path: '/somewhere' });
+    });
+
+    test('strips a signed/one-time token from a Redirect path', async () => {
+      const newValues = await capture({ type: 'Redirect', path: '/callback?token=secret' });
+
+      expect(newValues).toEqual({ type: 'Redirect', path: '/callback' });
     });
 
     test('drops top-level responseHeaders regardless of result type', async () => {

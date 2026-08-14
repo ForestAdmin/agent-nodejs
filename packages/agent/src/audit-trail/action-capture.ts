@@ -20,11 +20,12 @@ const redactValues = (
   return result;
 };
 
-// A Webhook's target URL is otherwise untouched user/action-supplied data, so it can carry
-// credentials (userinfo) or a signed/one-time token (query string) that must not be written
-// permanently to the audit database — only the origin and path are kept. Falls back to a plain
-// string split for a relative or otherwise unparseable URL, which is exactly where such a token
-// would still live.
+// A Webhook's target URL and a Redirect's path are otherwise untouched user/action-supplied data,
+// so either can carry credentials (userinfo) or a signed/one-time token (query string) that must
+// not be written permanently to the audit database — only the origin and path are kept. Falls back
+// to a plain string split for a relative or otherwise unparseable URL — including one whose userinfo
+// itself is what made it unparseable to `new URL` (e.g. an invalid host next to valid credentials),
+// which is exactly where such a token would still live.
 const sanitizeUrl = (url: string): string => {
   try {
     const parsed = new URL(url);
@@ -35,7 +36,7 @@ const sanitizeUrl = (url: string): string => {
 
     return parsed.toString();
   } catch {
-    return url.split(/[?#]/)[0];
+    return url.split(/[?#]/)[0].replace(/^([a-z][a-z\d+.-]*:\/\/)[^/]*@/i, '$1');
   }
 };
 
@@ -53,7 +54,7 @@ const summarizeActionResult = (result?: ActionResult): Record<string, unknown> =
   if ('mimeType' in result) summary.mimeType = result.mimeType;
   if ('method' in result) summary.method = result.method;
   if ('url' in result) summary.url = sanitizeUrl(result.url);
-  if ('path' in result) summary.path = result.path;
+  if ('path' in result) summary.path = sanitizeUrl(result.path);
 
   return summary;
 };
