@@ -17,6 +17,8 @@ export interface DocsRoutesOptions {
   /** Where the shell fetches the document. Passed in so this module never reaches into `src/openapi`. */
   documentPath: string;
   logger: Logger;
+  /** The bundle lookup, as a seam: an install that shipped without the asset is a real state to serve. */
+  resolveBundlePath?: () => string | undefined;
 }
 
 /**
@@ -32,6 +34,8 @@ function resolveBundle(): string | undefined {
   try {
     return require.resolve(`redoc/bundles/${BUNDLE_FILE}`);
   } catch {
+    /* istanbul ignore next — `redoc` is a devDependency of this package, so the lookup only fails in
+       a published install whose `build:copy` did not run. */
     return undefined;
   }
 }
@@ -51,8 +55,9 @@ export default function createDocsRoutes({
   enabled,
   documentPath,
   logger,
+  resolveBundlePath = resolveBundle,
 }: DocsRoutesOptions): Middleware {
-  const bundle = enabled ? resolveBundle() : undefined;
+  const bundle = enabled ? resolveBundlePath() : undefined;
 
   if (enabled && !bundle) {
     logger('Warn', `API documentation page disabled: ${BUNDLE_FILE} is missing from this install`);
