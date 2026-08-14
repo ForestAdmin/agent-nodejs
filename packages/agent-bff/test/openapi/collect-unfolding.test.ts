@@ -93,9 +93,86 @@ describe('collectUnfolding', () => {
 
       expect(collections[0].fields).toEqual({
         projectable: ['id', 'author'],
-        filterable: ['id'],
+        filterable: [{ name: 'id', operators: ['Equal'] }],
         degraded: null,
       });
+    });
+
+    it('should normalize the capabilities operators to their canonical PascalCase form', async () => {
+      const { collections } = await collect(readModel, {
+        capabilities: async () => ({
+          fields: [{ name: 'id', type: 'String', operators: ['i_contains', 'not_equal'] }],
+        }),
+      });
+
+      expect(collections[0].fields.filterable).toEqual([
+        { name: 'id', operators: ['NotEqual', 'IContains'] },
+      ]);
+    });
+
+    it('should order the operators canonically, whatever order the agent listed them in', async () => {
+      const forward = await collect(readModel, {
+        capabilities: async () => ({
+          fields: [{ name: 'id', type: 'String', operators: ['equal', 'contains', 'in'] }],
+        }),
+      });
+      const backward = await collect(readModel, {
+        capabilities: async () => ({
+          fields: [{ name: 'id', type: 'String', operators: ['in', 'contains', 'equal'] }],
+        }),
+      });
+
+      expect(forward.collections[0].fields.filterable).toEqual([
+        { name: 'id', operators: ['Equal', 'In', 'Contains'] },
+      ]);
+      expect(backward.collections[0].fields.filterable).toEqual(
+        forward.collections[0].fields.filterable,
+      );
+    });
+
+    // The runtime answers 500 mapping_error on ANY filter on such a field, `Equal` included, because
+    // the validator normalizes the field's whole operator list before comparing the one that was sent.
+    it('should drop a field carrying an operator the BFF cannot map, and log the skew', async () => {
+      const logger = jest.fn();
+      const { collections } = await collect(readModel, {
+        capabilities: async () => ({
+          fields: [
+            { name: 'id', type: 'String', operators: ['equal', 'teleports_to'] },
+            { name: 'email', type: 'String', operators: ['equal'] },
+          ],
+        }),
+        logger,
+      });
+
+      expect(collections[0].fields.filterable).toEqual([{ name: 'email', operators: ['Equal'] }]);
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        'Documenting a field as not filterable: one of its operators has no mapping',
+        { collection: 'users', field: 'id', operator: 'teleports_to' },
+      );
+    });
+
+    it('should keep a skewed field projectable, since only filtering on it fails', async () => {
+      const { collections } = await collect(readModel, {
+        capabilities: async () => ({
+          fields: [{ name: 'id', type: 'String', operators: ['equal', 'teleports_to'] }],
+        }),
+      });
+
+      expect(collections[0].fields.projectable).toEqual(['id']);
+      expect(collections[0].fields.filterable).toEqual([]);
+    });
+
+    it('should not degrade a collection whose only problem is a skewed field', async () => {
+      // `degraded` drives the memo guard and the degraded notes. Dropping the field keeps the document
+      // truthful, so there is nothing to un-cache and nothing to warn a reader about.
+      const { collections } = await collect(readModel, {
+        capabilities: async () => ({
+          fields: [{ name: 'id', type: 'String', operators: ['teleports_to'] }],
+        }),
+      });
+
+      expect(collections[0].fields.degraded).toBeNull();
     });
 
     it('should degrade a collection whose capabilities call fails, and say so in the log', async () => {
