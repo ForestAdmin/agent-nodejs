@@ -259,6 +259,46 @@ describe('runCli', () => {
     });
   });
 
+  describe('when the API documentation viewer is mounted', () => {
+    it('should serve the page and its bundle without credentials, outside the agent chain', async () => {
+      const server = await runCli({ ...VALID_ENV }, noopLogger);
+
+      try {
+        const page = await request(server.callback).get('/docs');
+        const bundle = await request(server.callback).get('/docs/redoc.standalone.js');
+
+        expect([page.status, bundle.status]).toEqual([200, 200]);
+      } finally {
+        await server.stop();
+      }
+    });
+
+    it('should leave the document itself gated, since the public page must not have opened it', async () => {
+      const server = await runCli({ ...VALID_ENV }, noopLogger);
+
+      try {
+        const response = await request(server.callback).get('/agent/openapi.json');
+
+        expect(response.status).toBe(401);
+      } finally {
+        await server.stop();
+      }
+    });
+
+    it('should serve neither route when the document is disabled', async () => {
+      const server = await runCli({ ...VALID_ENV, BFF_OPENAPI_ENABLED: 'false' }, noopLogger);
+
+      try {
+        const page = await request(server.callback).get('/docs');
+        const bundle = await request(server.callback).get('/docs/redoc.standalone.js');
+
+        expect([page.status, bundle.status]).toEqual([404, 404]);
+      } finally {
+        await server.stop();
+      }
+    });
+  });
+
   describe('when a config value is malformed', () => {
     it('should throw ConfigurationError naming the key without echoing the secret', async () => {
       const err = await runCli(
