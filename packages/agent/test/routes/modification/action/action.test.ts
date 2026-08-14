@@ -1005,7 +1005,8 @@ describe('ActionRoute', () => {
             operation: 'action',
             collection: 'books',
             recordId: '123e4567-e89b-12d3-a456-426614174000',
-            newValues: { firstname: 'John' },
+            previousValues: { firstname: 'John' },
+            newValues: { type: 'Success', message: 'ok' },
           }),
         );
       });
@@ -1030,11 +1031,16 @@ describe('ActionRoute', () => {
         await expect(route.handleExecute(context)).rejects.toThrow(executionError);
 
         expect(append).toHaveBeenCalledWith(
-          expect.objectContaining({ operation: 'action_failed', collection: 'books' }),
+          expect.objectContaining({
+            operation: 'action_failed',
+            collection: 'books',
+            previousValues: { firstname: 'John' },
+            newValues: {},
+          }),
         );
       });
 
-      test('records action_failed for a resolved Error result, not just a thrown one', async () => {
+      test('records action_failed with the error summary for a resolved Error result, not just a thrown one', async () => {
         (dataSource.getCollection('books').execute as jest.Mock).mockResolvedValue({
           type: 'Error',
           message: 'insufficient funds',
@@ -1056,7 +1062,11 @@ describe('ActionRoute', () => {
         await route.handleExecute(context);
 
         expect(append).toHaveBeenCalledWith(
-          expect.objectContaining({ operation: 'action_failed', collection: 'books' }),
+          expect.objectContaining({
+            operation: 'action_failed',
+            collection: 'books',
+            newValues: { type: 'Error', message: 'insufficient funds' },
+          }),
         );
       });
 

@@ -167,11 +167,11 @@ export default class ActionRoute extends CollectionRoute {
 
     try {
       const result = await this.collection.execute(caller, this.actionName, data, filter);
-      await this.auditAction(caller, data, recordIds, result.type === 'Error');
+      await this.auditAction(caller, data, recordIds, result, result.type === 'Error');
 
       return result;
     } catch (error) {
-      await this.auditAction(caller, data, recordIds, true);
+      await this.auditAction(caller, data, recordIds, undefined, true);
       throw error;
     }
   }
@@ -180,6 +180,7 @@ export default class ActionRoute extends CollectionRoute {
     caller: Caller,
     formValues: Record<string, unknown>,
     recordIds: string[],
+    result: ActionResult | undefined,
     failed = false,
   ): Promise<void> {
     const { auditTrail } = this.options;
@@ -189,7 +190,7 @@ export default class ActionRoute extends CollectionRoute {
       await captureAction(
         record => auditTrail.store.append(record),
         auditTrail.redact?.[this.collection.name] ?? [],
-        { caller, collection: this.collection.name, formValues, recordIds, failed },
+        { caller, collection: this.collection.name, formValues, result, recordIds, failed },
       );
     } catch (error) {
       // The action has already run (or failed on its own): a broken audit store must not also fail

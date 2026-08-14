@@ -1,5 +1,5 @@
 import type { AuditRecord, AuditSink } from './types';
-import type { Caller } from '@forestadmin/datasource-toolkit';
+import type { ActionResult, Caller } from '@forestadmin/datasource-toolkit';
 
 import { REDACTED } from './instrument';
 
@@ -20,10 +20,31 @@ const redactValues = (
   return result;
 };
 
+// Only a safe summary of the answer is kept: `html` (Success/Error), `invalidated` (Success),
+// `headers`/`body` (Webhook, which routinely carry credentials) and a File result's `stream` (file
+// bytes don't belong in an audit table) are all dropped. Absent when `execute()` threw rather than
+// resolving — there is no answer to summarize.
+const summarizeActionResult = (result?: ActionResult): Record<string, unknown> => {
+  if (!result) return {};
+
+  const summary: Record<string, unknown> = { type: result.type };
+
+  if ('message' in result) summary.message = result.message;
+  if ('name' in result) summary.name = result.name;
+  if ('mimeType' in result) summary.mimeType = result.mimeType;
+  if ('method' in result) summary.method = result.method;
+  if ('url' in result) summary.url = result.url;
+  if ('path' in result) summary.path = result.path;
+
+  return summary;
+};
+
 export type ActionCaptureParams = {
   caller: Caller;
   collection: string;
   formValues: Record<string, unknown>;
+  /** Absent when `execute()` threw instead of resolving. */
+  result?: ActionResult;
   recordIds: string[];
   failed?: boolean;
 };
@@ -31,16 +52,17 @@ export type ActionCaptureParams = {
 // Records smart-action invocations into the same store as the field-level history. The Create/Update/
 // Delete hooks (instrument.ts) cannot see them: an action's writes are only audited when they go
 // through the Forest data layer, so a direct write inside the action's own `execute()` is invisible
-// and never recorded. What lands here is the invocation itself — on which records, with which form
-// values, and whether it raised. Which action it was lives in the Forest activity logs; `correlationKey`
-// is the join.
+// and never recorded. What lands here is the invocation itself — on which records, with the form that
+// was submitted and a summary of what the action answered. Which action it was lives in the Forest
+// activity logs; `correlationKey` is the join.
 export default async function captureAction(
   sink: AuditSink,
   redactedFields: string[],
   params: ActionCaptureParams,
 ): Promise<void> {
   const timestamp = new Date().toISOString();
-  const newValues = redactValues(params.formValues ?? {}, redactedFields);
+  const previousValues = redactValues(params.formValues ?? {}, redactedFields);
+  const newValues = summarizeActionResult(params.result);
   const recordIds = params.recordIds.length > 0 ? params.recordIds : [NO_RECORD];
 
   await Promise.all(
@@ -52,7 +74,7 @@ export default async function captureAction(
         recordId,
         userId: params.caller.id,
         correlationKey: params.caller.requestId,
-        previousValues: {},
+        previousValues,
         newValues,
       };
 
