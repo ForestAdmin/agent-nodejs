@@ -189,8 +189,15 @@ itself is the authorization, as with an S3 presigned PUT. It carries a random uu
 before a byte is read unless this server issued it, expires with `uploadUrlTtlSeconds`, and serves
 nothing but the `PUT`. Against the in-memory store it also **accepts a single upload**: once the
 bytes land, a leaked URL can no longer replace them. Writing is not consuming either — redemption
-needs the signed handle, which is bound to the user who requested it. Pin `sha256` when the exact
-content matters; it is re-verified after download.
+needs the signed handle, which is bound to the user who requested it.
+
+A presigned backend URL is a different animal: it is typically **replayable** until it expires — S3
+accepts as many `PUT`s as fit in `expiresInSeconds` — so there, a URL leaked to an access log can
+overwrite the bytes *after* the legitimate upload and before the action runs. The `sha256` pin is
+the defense that covers every backend at once: S3 signs it into the URL, so a different payload is
+rejected at upload time, and redemption re-verifies the digest regardless of what the backend
+checked. The tool instructs the model to pin by default; treat an unpinned upload as accepting that
+window.
 
 ### Nothing to provision, and nothing to switch on
 
