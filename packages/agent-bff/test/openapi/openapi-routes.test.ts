@@ -55,6 +55,31 @@ const VALID_ENV = {
 
 const noopLogger: Logger = () => undefined;
 
+const API_KEY = `fbff_${'a'.repeat(16)}_${'b'.repeat(64)}`;
+
+const RESOLVED_IDENTITY = {
+  user: {
+    id: 42,
+    email: 'ada@example.com',
+    firstName: 'Ada',
+    lastName: 'Lovelace',
+    team: 'Support',
+    tags: [],
+    permissionLevel: 'admin',
+  },
+  renderingId: 17,
+  allowedOrigins: [],
+};
+
+function mockApiKeyResolve(): void {
+  jest.spyOn(global, 'fetch').mockResolvedValue({
+    ok: true,
+    status: 200,
+    statusText: 'ok',
+    json: async () => RESOLVED_IDENTITY,
+  } as unknown as Response);
+}
+
 function sessionToken(): string {
   return issueBffAccessToken({
     sid: 'session-1',
@@ -159,6 +184,32 @@ describe('GET /agent/openapi.json', () => {
           .set('Authorization', `Bearer ${sessionToken()}`);
 
         expect(response.headers['cache-control']).toBe('no-store');
+      });
+    });
+  });
+
+  describe('when a valid api key is sent', () => {
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('should serve the same unfolded document as a session caller, since the mode only changes the gate', async () => {
+      mockApiKeyResolve();
+
+      await withServer(VALID_ENV, async server => {
+        const withKey = await request(server.callback)
+          .get(OPENAPI_PATH)
+          .set('X-Forest-Bff-Key', API_KEY);
+        const withSession = await request(server.callback)
+          .get(OPENAPI_PATH)
+          .set('Authorization', `Bearer ${sessionToken()}`);
+
+        expect(withKey.status).toBe(200);
+        expect(withKey.body.openapi).toBe('3.1.0');
+        expect(Object.keys(withKey.body.paths)).toHaveLength(8);
+        expect(Object.keys(withKey.body.paths).sort()).toEqual(
+          Object.keys(withSession.body.paths).sort(),
+        );
       });
     });
   });
@@ -455,6 +506,24 @@ describe('GET /agent/openapi.json', () => {
 
   describe('when BFF_OPENAPI_ENABLED is false', () => {
     const disabledEnv = { ...VALID_ENV, BFF_OPENAPI_ENABLED: 'false' };
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('should answer 404 to an api key caller, exactly like a session caller', async () => {
+      mockApiKeyResolve();
+
+      await withServer(disabledEnv, async server => {
+        const response = await request(server.callback)
+          .get(OPENAPI_PATH)
+          .set('X-Forest-Bff-Key', API_KEY);
+
+        expect(response.status).toBe(404);
+        expect(response.body.error.type).toBe('openapi_disabled');
+        expect(response.text).not.toContain('"openapi"');
+      });
+    });
 
     it('should still reject an unauthenticated caller with 401', async () => {
       await withServer(disabledEnv, async server => {
