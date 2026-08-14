@@ -69,7 +69,7 @@ export default function declareRequestActionFileUploadTool(
 Call this whenever getActionForm shows a field of type "File" or "FileList". Never inline base64 file content as a field value: it would be far larger than any payload limit.
 
 Workflow:
-1. Compute the file's sha256 and call this tool with the filename, mimeType and sha256. The digest pins the destination to that exact content — without it, anyone who reads the upload url in a log can replace the bytes before the action runs. Skip it only when you cannot compute a digest.
+1. Compute the file's sha256 and call this tool with the filename, mimeType and sha256. The digest pins the destination to that exact content — without it, on some backends anyone who reads the upload url in a log can replace the bytes before the action runs. Skip it only when you cannot compute a digest.
 2. Upload the raw bytes to the returned uploadUrl, with the returned method and every returned header. Some backends sign a pinned sha256 into a checksum header and reject the upload without it, so apply the headers as returned rather than assuming which ones matter. A pinned digest is re-verified when the action runs either way. The bytes must not pass through this tool or through your own output.
 3. Pass the returned fileHandle string as the value of the file field in executeAction.
 

@@ -343,6 +343,80 @@ describe('declareGetActionFormTool', () => {
       expect(payload.fields[0].value).toBe('$uploadedFile:some-token');
     });
 
+    it('does the same for a FileList: the array of handles fills the field and is echoed back', async () => {
+      const mockTryToSetFields = jest.fn().mockResolvedValue([]);
+      const mockAction = jest.fn().mockResolvedValue({
+        getFields: jest.fn().mockReturnValue([
+          {
+            getName: () => 'Attachments',
+            getType: () => ['File'],
+            getTypeName: () => 'FileList',
+            getValue: () => undefined,
+            isRequired: () => true,
+            getPlainField: () => ({}),
+            getMultipleChoiceField: () => ({ getOptions: () => null }),
+          },
+        ]),
+        tryToSetFields: mockTryToSetFields,
+      });
+      mockBuildClientWithActions.mockResolvedValue({
+        rpcClient: { collection: jest.fn().mockReturnValue({ action: mockAction }) },
+        authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+      } as unknown as ReturnType<typeof buildClientWithActions>);
+
+      const result = await registeredToolHandler(
+        {
+          collectionName: 'users',
+          actionName: 'sendEmail',
+          recordIds: [1],
+          values: { Attachments: ['$uploadedFile:a', '$uploadedFile:b'] },
+        },
+        mockExtra,
+      );
+      const payload = JSON.parse((result as { content: { text: string }[] }).content[0].text);
+
+      expect(payload.canExecute).toBe(true);
+      expect(payload.fields[0].value).toEqual(['$uploadedFile:a', '$uploadedFile:b']);
+    });
+
+    // `in` would walk the prototype chain: a field literally named toString would read as filled
+    // by Object.prototype.toString — a function — and canExecute would come back true on an empty
+    // form.
+    it('does not count a field named like an Object.prototype member as filled', async () => {
+      const mockAction = jest.fn().mockResolvedValue({
+        getFields: jest.fn().mockReturnValue([
+          {
+            getName: () => 'toString',
+            getType: () => 'String',
+            getTypeName: () => 'String',
+            getValue: () => undefined,
+            isRequired: () => true,
+            getPlainField: () => ({}),
+            getMultipleChoiceField: () => ({ getOptions: () => null }),
+          },
+        ]),
+        tryToSetFields: jest.fn().mockResolvedValue([]),
+      });
+      mockBuildClientWithActions.mockResolvedValue({
+        rpcClient: { collection: jest.fn().mockReturnValue({ action: mockAction }) },
+        authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+      } as unknown as ReturnType<typeof buildClientWithActions>);
+
+      const result = await registeredToolHandler(
+        {
+          collectionName: 'users',
+          actionName: 'sendEmail',
+          recordIds: [1],
+          values: { note: 'hello' },
+        },
+        mockExtra,
+      );
+      const payload = JSON.parse((result as { content: { text: string }[] }).content[0].text);
+
+      expect(payload.canExecute).toBe(false);
+      expect(payload.requiredFields).toEqual(['toString']);
+    });
+
     it('should not call tryToSetFields when values are not provided', async () => {
       const mockGetFields = jest.fn().mockReturnValue([]);
       const mockTryToSetFields = jest.fn().mockResolvedValue([]);

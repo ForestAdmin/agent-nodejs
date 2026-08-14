@@ -101,8 +101,13 @@ The response includes:
       // and counting it as missing would leave canExecute false with nothing the model could send
       // to fix it — a data uri is what it is told never to send, and the handle is what it just
       // sent.
+      // An own-property check, not `in`: withheld is keyed by model-sent field names, and `in`
+      // walks the prototype chain — a field literally named toString would read as filled by a
+      // function. hasOwnProperty.call because this package's lib predates Object.hasOwn.
       const valueOf = (field: { getName(): string; getValue(): unknown }) =>
-        field.getName() in withheld ? withheld[field.getName()] : field.getValue();
+        Object.prototype.hasOwnProperty.call(withheld, field.getName())
+          ? withheld[field.getName()]
+          : field.getValue();
 
       const requiredFields = fields
         .filter(field => field.isRequired())

@@ -68,7 +68,8 @@ yarn start:dev       # Development (loads .env file automatically)
 | `FOREST_AGENT_URL` | No | your environment's back-end URL | URL the MCP server uses to reach the back-end's data layer. Set it when the server runs next to a self-hosted back-end at an internal address (e.g. `http://localhost:3310`), instead of the public URL registered in Forest |
 | `FOREST_MCP_ACCESS_TOKEN_TTL_SECONDS` | No | `3600` (1 hour) | Maximum lifetime of the OAuth access tokens the server issues (`tokenTtl.accessTokenSeconds`). Minimum `60` |
 | `FOREST_MCP_REFRESH_TOKEN_TTL_SECONDS` | No | unbounded | Maximum time between two interactive logins (`tokenTtl.refreshTokenSeconds`). Unset, a client that keeps refreshing never signs in again. Minimum `60` |
-| `FOREST_MCP_UPLOAD_STORAGE_MODULE` | No | - | Path to a module providing the `fileUploads` options, for a real storage backend |
+| `FOREST_MCP_FILE_UPLOADS` | No | - | `false` turns action file uploads off (they are **on** by default, in memory). Any other value than `true`/`false` fails at startup |
+| `FOREST_MCP_UPLOAD_STORAGE_MODULE` | No | - | Path to a module providing the `fileUploads` options, for a real storage backend. `FOREST_MCP_FILE_UPLOADS=false` wins over it |
 
 #### Example Configuration
 
@@ -210,16 +211,17 @@ agent.mountAiMcpServer();                             // in memory, single insta
 agent.mountAiMcpServer({ fileUploads: { storage } }); // a real backend
 ```
 
-To turn the feature off, pass `fileUploads: false`. The tool is not registered, the upload endpoint
-is never mounted, and `executeAction` stops mentioning either. Going through `enabledTools` would
-work too, but it is an allowlist — declining this one feature that way means naming every other
-tool and opting out of everything shipped after.
+To turn the feature off, pass `fileUploads: false` — on the standalone server,
+`FOREST_MCP_FILE_UPLOADS=false`. The tool is not registered, the upload endpoint is never mounted,
+and `executeAction` stops mentioning either. Going through `enabledTools` would work too, but it is
+an allowlist — declining this one feature that way means naming every other tool and opting out of
+everything shipped after.
 
 > **Single instance only.** The upload and the redemption are two separate requests. With several
 > replicas, in cluster mode, or on a serverless runtime, one of them lands
 > on an instance that never saw the other and the action fails — intermittently, which reads as a
-> flaky feature rather than a misconfiguration. Objects are also lost on restart. The server logs a
-> warning at startup, and the failure names this cause. **Those deployments need a `storage`.**
+> flaky feature rather than a misconfiguration. Objects are also lost on restart. The server warns
+> the first time an upload destination is asked for, and the failure names this cause. **Those deployments need a `storage`.**
 
 `ephemeralMaxTotalBytes` bounds what the in-memory store holds across all pending uploads, 64 MiB by
 default. Redeeming a file does not free it — the object lives until `handleTtlSeconds` so a retry
@@ -347,6 +349,8 @@ const storage: UploadStorage = {
     });
     const url = await getSignedUrl(s3, command, {
       expiresIn: expiresInSeconds,
+      // Load-bearing: without it the checksum is hoisted to the query string, which S3 does not
+      // enforce — the pin would silently stop protecting the upload.
       ...(sha256 && { unhoistableHeaders: new Set(['x-amz-checksum-sha256']) }),
     });
     return {

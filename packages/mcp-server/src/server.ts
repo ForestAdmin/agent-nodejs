@@ -217,10 +217,22 @@ export default class ForestMCPServer {
     this.fileUploadsOptions = options?.fileUploads || undefined;
 
     // `enabledTools` is an allowlist, so declining this one feature through it would mean naming
-    // the ten other tools and opting out of everything shipped later. Dropping it from the set
-    // here turns the whole feature off through the machinery that already gates it: registration,
-    // the upload endpoint, and the paragraph executeAction adds for it.
-    if (options?.fileUploads === false) this.enabledTools.delete('requestActionFileUpload');
+    // every other tool and opting out of everything shipped later. Dropping it from the set here
+    // turns the whole feature off through the machinery that already gates it: registration, the
+    // upload endpoint, and the paragraph executeAction adds for it.
+    if (options?.fileUploads === false) {
+      // Said aloud when the two options contradict each other: resolveEnabledTools logs every
+      // other enablement surprise, and a tool the caller named vanishing without a line in the
+      // log reads as a bug in whichever config layer loses.
+      if (options.enabledTools?.includes('requestActionFileUpload')) {
+        this.logger(
+          'Warn',
+          'fileUploads: false removes requestActionFileUpload even though enabledTools lists it.',
+        );
+      }
+
+      this.enabledTools.delete('requestActionFileUpload');
+    }
 
     // Use injected forestServerClient or create default
     this.forestServerClient = options?.forestServerClient ?? this.createDefaultForestServerClient();
@@ -465,8 +477,9 @@ export default class ForestMCPServer {
   async buildExpressApp(baseUrl?: URL): Promise<Express> {
     const { envSecret, authSecret } = this.ensureSecretsAreSet();
 
-    // On unless the tool was left out of enabledTools, which is the one way to turn it off. Gating
-    // on that keeps executeAction from advertising an upload tool the server never registered.
+    // On unless requestActionFileUpload is absent from enabledTools — dropped by the caller, or by
+    // the fileUploads: false branch in the constructor, which lands in the same set. Gating on
+    // that keeps executeAction from advertising an upload tool the server never registered.
     // `!this.fileUploads` because an agent rebuilds its router on every customization refresh:
     // re-initializing would hand the new app a different store than the urls already in flight.
     if (this.enabledTools.has('requestActionFileUpload') && !this.fileUploads) {

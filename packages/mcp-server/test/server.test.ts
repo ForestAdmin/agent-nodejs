@@ -3669,8 +3669,6 @@ describe('file uploads without a storage backend', () => {
     expect(response.status).toBe(405);
   });
 
-  // enabledTools is an allowlist, so declining this one feature through it would mean naming every
-  // other tool and opting out of everything shipped later.
   it('turns the whole feature off on fileUploads: false, without touching enabledTools', async () => {
     const server = build({ fileUploads: false });
     const app = await server.buildExpressApp(new URL('https://agent.example'));
@@ -3683,6 +3681,26 @@ describe('file uploads without a storage backend', () => {
     );
     // Every other tool is untouched, which is the point of not going through enabledTools.
     expect((server as unknown as { enabledTools: Set<string> }).enabledTools).toContain('list');
+  });
+
+  // Config often merges from two layers; when they contradict each other, false wins — and says so,
+  // because a tool the caller named vanishing without a log line reads as a bug in the losing layer.
+  it('lets fileUploads: false override an enabledTools that lists the tool, and warns', async () => {
+    const logger = jest.fn();
+    const server = build({
+      logger,
+      fileUploads: false,
+      enabledTools: ['describeCollection', 'list', 'requestActionFileUpload'],
+    });
+    await server.buildExpressApp(new URL('https://agent.example'));
+
+    expect((server as unknown as { enabledTools: Set<string> }).enabledTools).not.toContain(
+      'requestActionFileUpload',
+    );
+    expect(logger).toHaveBeenCalledWith(
+      'Warn',
+      expect.stringContaining('even though enabledTools lists it'),
+    );
   });
 
   // 404 comes from the uploads router itself, for a key it never handed out. A 405 would mean

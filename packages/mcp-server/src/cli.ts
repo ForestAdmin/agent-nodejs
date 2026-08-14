@@ -8,9 +8,25 @@ import parseToolList from './utils/parse-tool-list';
 const toSeconds = (value?: string) => (value === undefined ? undefined : Number(value));
 
 async function main() {
+  // Uploads are on by default, so this variable only means one thing: 'false' turns them off.
+  // Anything else fails at startup like every other option — 'FALSE' or '0' silently leaving the
+  // feature on is the kind of surprise an operator meets in production.
+  const rawFileUploadsFlag = process.env.FOREST_MCP_FILE_UPLOADS;
+
+  if (rawFileUploadsFlag !== undefined && !['true', 'false'].includes(rawFileUploadsFlag)) {
+    throw new Error(
+      `Invalid FOREST_MCP_FILE_UPLOADS "${rawFileUploadsFlag}": use 'false' to turn action file ` +
+        'uploads off. They are on by default.',
+    );
+  }
+
   // Loaded before constructing, so a bad module fails at startup like every other option. Uploads
-  // are on without it, held in memory; this only points them at a real backend.
-  const fileUploads = await loadFileUploads(process.env.FOREST_MCP_UPLOAD_STORAGE_MODULE);
+  // are on without it, held in memory; this only points them at a real backend. 'false' wins over
+  // a configured module — an operator setting both is turning the feature off.
+  const fileUploads =
+    rawFileUploadsFlag === 'false'
+      ? (false as const)
+      : await loadFileUploads(process.env.FOREST_MCP_UPLOAD_STORAGE_MODULE);
 
   const server = new ForestMCPServer({
     forestServerUrl: process.env.FOREST_SERVER_URL || 'https://api.forestadmin.com',
@@ -25,7 +41,8 @@ async function main() {
       accessTokenSeconds: toSeconds(process.env.FOREST_MCP_ACCESS_TOKEN_TTL_SECONDS),
       refreshTokenSeconds: toSeconds(process.env.FOREST_MCP_REFRESH_TOKEN_TTL_SECONDS),
     },
-    ...(fileUploads && { fileUploads }),
+    // Not a truthy spread: `false` is a meaningful value and has to reach the constructor.
+    ...(fileUploads !== undefined && { fileUploads }),
   });
 
   await server.run();
