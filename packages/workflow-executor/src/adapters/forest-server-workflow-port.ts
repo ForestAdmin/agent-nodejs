@@ -43,8 +43,6 @@ const ROUTES = {
   mcpServerConfigs: '/liana/mcp-server-configs-with-details',
 };
 
-const UNHYDRATABLE_RUN_USER_MESSAGE = 'This step could not be loaded and cannot be executed.';
-
 // Forest sends relatedCollectionName as a `collection.targetKey` reference (e.g. "store.id");
 // normalize it to a plain collection name (the related PK comes from the schema's primaryKeyFields).
 function stripReferenceKey(name: string | undefined): string | undefined {
@@ -152,13 +150,15 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
     // Optional chaining is load-bearing: this runs inside a catch block, and a run with a
     // non-array workflowHistory is exactly what lands here. Throwing would kill the whole batch.
     const pending = run.workflowHistory?.at(-1) ?? null;
-    const isDomainError = err instanceof WorkflowExecutorError;
 
     return {
       runId: String(run.id),
       stepId: pending?.stepName ?? null,
       stepIndex: pending?.stepIndex ?? null,
-      userMessage: isDomainError ? err.userMessage : UNHYDRATABLE_RUN_USER_MESSAGE,
+      userMessage:
+        err instanceof WorkflowExecutorError
+          ? err.userMessage
+          : 'This step could not be loaded and cannot be executed.',
       technicalMessage: extractErrorMessage(err) ?? 'Unknown error',
     };
   }
