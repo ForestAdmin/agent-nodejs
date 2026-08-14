@@ -161,9 +161,7 @@ export default class ActionRoute extends CollectionRoute {
     data: Record<string, unknown>,
     filter: Filter,
   ): Promise<ActionResult> {
-    const recordIds = this.options.auditTrail
-      ? await this.auditedRecordIds(context, caller, filter)
-      : [];
+    const recordIds = await this.resolveAuditedRecordIds(context, caller, filter);
 
     try {
       const result = await this.collection.execute(caller, this.actionName, data, filter);
@@ -173,6 +171,28 @@ export default class ActionRoute extends CollectionRoute {
     } catch (error) {
       await this.auditAction(caller, data, recordIds, undefined, true);
       throw error;
+    }
+  }
+
+  // Best-effort: resolving the audited ids is itself an extra query (see auditedRecordIds), and a
+  // transient failure there must not prevent the action from running at all — same principle as
+  // auditAction's own try/catch below, applied to the lookup that happens before execute().
+  private async resolveAuditedRecordIds(
+    context: Context,
+    caller: Caller,
+    filter: Filter,
+  ): Promise<string[]> {
+    if (!this.options.auditTrail) return [];
+
+    try {
+      return await this.auditedRecordIds(context, caller, filter);
+    } catch (error) {
+      this.options.logger(
+        'Error',
+        `[ForestAdmin] Unable to resolve audited record ids, continuing: ${error}`,
+      );
+
+      return [];
     }
   }
 

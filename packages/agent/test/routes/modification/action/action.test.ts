@@ -1128,6 +1128,42 @@ describe('ActionRoute', () => {
         );
       });
 
+      test('still executes the action when resolving audited record ids throws', async () => {
+        const listError = new Error('connection reset');
+        (dataSource.getCollection('books').list as jest.Mock).mockRejectedValue(listError);
+        const logger = jest.fn();
+        const listErrorOptions = factories.forestAdminHttpDriverOptions.build({
+          logger,
+          auditTrail: { store: { append }, close: jest.fn() } as never,
+        });
+        (
+          listErrorOptions.forestAdminClient.permissionService.canTriggerCustomAction as jest.Mock
+        ).mockResolvedValue(true);
+        route = new ActionRoute(services, listErrorOptions, dataSource, 'books', 'MySingleAction');
+
+        const context = createMockContext({
+          ...baseContext,
+          requestBody: {
+            data: {
+              attributes: {
+                ...baseContext.requestBody.data.attributes,
+                values: { firstname: 'John' },
+              },
+            },
+          },
+        });
+
+        // @ts-expect-error: test private method
+        await route.handleExecute(context);
+
+        expect(dataSource.getCollection('books').execute).toHaveBeenCalled();
+        expect(logger).toHaveBeenCalledWith(
+          'Error',
+          expect.stringContaining('Unable to resolve audited record ids'),
+        );
+        expect(append).toHaveBeenCalledWith(expect.objectContaining({ recordId: '' }));
+      });
+
       test('does not record anything, or query for audited ids, when no audit trail is configured', async () => {
         route = new ActionRoute(services, options, dataSource, 'books', 'MySingleAction');
         const context = createMockContext({
