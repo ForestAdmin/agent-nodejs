@@ -1,4 +1,5 @@
 import type { Logger } from '../../src/ports/logger-port';
+import type ReadModelStore from '../../src/read-model/read-model-store';
 import type { Middleware } from 'koa';
 
 import request from 'supertest';
@@ -6,6 +7,42 @@ import request from 'supertest';
 import runCli from '../../src/cli-core';
 import { issueBffAccessToken } from '../../src/oauth/bff-token';
 import createOpenApiRoutes, { OPENAPI_PATH } from '../../src/openapi/openapi-routes';
+import ReadModel from '../../src/read-model/read-model';
+import { action, collection, column, relation } from '../read-model/fixtures';
+
+const SCHEMA = [
+  collection(
+    'users',
+    [column('id'), column('email'), relation('orders', 'HasMany', 'orders.userId')],
+    [action('Mark as paid', '/forest/users/actions/mark-as-paid')],
+  ),
+  collection('orders', [column('id'), column('label')]),
+];
+
+const CAPABILITIES = {
+  fields: [
+    { name: 'id', type: 'Number', operators: ['equal'] },
+    { name: 'email', type: 'String', operators: ['equal', 'like'] },
+  ],
+};
+
+const fetchSchema = jest.fn().mockResolvedValue(SCHEMA);
+const fetchCapabilities = jest.fn().mockResolvedValue(CAPABILITIES);
+
+jest.mock('../../src/read-model/forest-schema-client', () => ({
+  __esModule: true,
+  default: class {
+    // eslint-disable-next-line class-methods-use-this
+    fetchSchema() {
+      return fetchSchema();
+    }
+  },
+}));
+
+jest.mock('../../src/read-model/agent-capabilities-fetcher', () => ({
+  __esModule: true,
+  default: () => fetchCapabilities,
+}));
 
 const VALID_ENV = {
   FOREST_AUTH_SECRET: 'auth-secret',
@@ -52,6 +89,11 @@ async function withServer(
 }
 
 describe('GET /agent/openapi.json', () => {
+  beforeEach(() => {
+    fetchSchema.mockClear().mockResolvedValue(SCHEMA);
+    fetchCapabilities.mockClear().mockResolvedValue(CAPABILITIES);
+  });
+
   describe('when no credentials are sent', () => {
     it('should return 401 and never the document, since the route sits behind the agent gate', async () => {
       await withServer(VALID_ENV, async server => {
@@ -67,7 +109,7 @@ describe('GET /agent/openapi.json', () => {
   });
 
   describe('when a valid session token is sent', () => {
-    it('should serve the OpenAPI document', async () => {
+    it('should serve a document unfolded from the deployment schema', async () => {
       await withServer(VALID_ENV, async server => {
         const response = await request(server.callback)
           .get(OPENAPI_PATH)
@@ -75,7 +117,38 @@ describe('GET /agent/openapi.json', () => {
 
         expect(response.status).toBe(200);
         expect(response.body.openapi).toBe('3.1.0');
-        expect(Object.keys(response.body.paths)).toHaveLength(6);
+        expect(Object.keys(response.body.paths).sort()).toEqual([
+          '/agent/v1/orders/count',
+          '/agent/v1/orders/list',
+          '/agent/v1/users/actions/Mark%20as%20paid/execute',
+          '/agent/v1/users/actions/Mark%20as%20paid/form',
+          '/agent/v1/users/count',
+          '/agent/v1/users/list',
+          '/agent/v1/users/relations/orders/count',
+          '/agent/v1/users/relations/orders/list',
+        ]);
+      });
+    });
+
+    it('should enumerate the collection fields, which is what the unfolding is for', async () => {
+      await withServer(VALID_ENV, async server => {
+        const response = await request(server.callback)
+          .get(OPENAPI_PATH)
+          .set('Authorization', `Bearer ${sessionToken()}`);
+
+        expect(response.body.components.schemas.Fields_users).toEqual(
+          expect.objectContaining({ type: 'string', enum: ['id', 'email'] }),
+        );
+      });
+    });
+
+    it('should ask the agent for capabilities once per collection, not once per path', async () => {
+      await withServer(VALID_ENV, async server => {
+        await request(server.callback)
+          .get(OPENAPI_PATH)
+          .set('Authorization', `Bearer ${sessionToken()}`);
+
+        expect(fetchCapabilities.mock.calls).toEqual([['orders'], ['users']]);
       });
     });
 
@@ -102,14 +175,55 @@ describe('GET /agent/openapi.json', () => {
   });
 
   describe('when the agent url is absent, so data endpoints fall back to the stub', () => {
-    it('should still serve the document, since it never calls the agent', async () => {
+    it('should serve the generic document, since there is nothing to unfold against', async () => {
       await withServer({ ...VALID_ENV, AGENT_URL: undefined }, async server => {
         const response = await request(server.callback)
           .get(OPENAPI_PATH)
           .set('Authorization', `Bearer ${sessionToken()}`);
 
         expect(response.status).toBe(200);
-        expect(response.body.openapi).toBe('3.1.0');
+        expect(Object.keys(response.body.paths)).toHaveLength(6);
+        expect(response.body.info.description).toContain('Paths are generic');
+        expect(fetchSchema).not.toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe('when the schema cannot be read', () => {
+    it('should answer 503 rather than a generic document that looks complete', async () => {
+      fetchSchema.mockRejectedValue(new Error('forest server is down'));
+
+      await withServer(VALID_ENV, async server => {
+        const response = await request(server.callback)
+          .get(OPENAPI_PATH)
+          .set('Authorization', `Bearer ${sessionToken()}`);
+
+        expect(response.status).toBe(503);
+        expect(response.body.error.type).toBe('schema_unavailable');
+      });
+    });
+  });
+
+  describe('when a collection has no capabilities', () => {
+    it('should keep its paths with free-form field schemas instead of dropping it', async () => {
+      fetchCapabilities.mockImplementation(async (name: string) => {
+        if (name === 'orders') throw new Error('agent is down');
+
+        return CAPABILITIES;
+      });
+
+      await withServer(VALID_ENV, async server => {
+        const response = await request(server.callback)
+          .get(OPENAPI_PATH)
+          .set('Authorization', `Bearer ${sessionToken()}`);
+
+        expect(response.status).toBe(200);
+        expect(Object.keys(response.body.paths)).toContain('/agent/v1/orders/list');
+        expect(response.body.components.schemas.Fields_orders).toBeUndefined();
+        expect(response.body.components.schemas.ListRequest_orders.properties.projection).toEqual({
+          type: 'array',
+          items: { type: 'string' },
+        });
       });
     });
   });
@@ -126,7 +240,7 @@ describe('GET /agent/openapi.json', () => {
   });
 
   describe('when the document is requested twice', () => {
-    it('should return the byte-identical document, since it is built once at boot', async () => {
+    it('should return the byte-identical document, built once per schema generation', async () => {
       await withServer(VALID_ENV, async server => {
         const token = sessionToken();
         const first = await request(server.callback)
@@ -137,7 +251,116 @@ describe('GET /agent/openapi.json', () => {
           .set('Authorization', `Bearer ${token}`);
 
         expect(first.text).toBe(second.text);
+        expect(fetchCapabilities).toHaveBeenCalledTimes(2);
       });
+    });
+  });
+
+  describe('when the agent was down while the document was built', () => {
+    it('should not memoize the degraded document, which would outlive the outage by a day', async () => {
+      fetchCapabilities.mockRejectedValue(new Error('agent is down'));
+
+      await withServer(VALID_ENV, async server => {
+        const token = sessionToken();
+        const get = () =>
+          request(server.callback).get(OPENAPI_PATH).set('Authorization', `Bearer ${token}`);
+
+        await get();
+        await get();
+
+        // Two collections, two requests: the fan-out ran again instead of serving the memo.
+        expect(fetchCapabilities).toHaveBeenCalledTimes(4);
+      });
+    });
+
+    it('should serve the enumerated fields as soon as the agent answers again', async () => {
+      fetchCapabilities.mockRejectedValueOnce(new Error('agent is down'));
+      fetchCapabilities.mockRejectedValueOnce(new Error('agent is down'));
+
+      await withServer(VALID_ENV, async server => {
+        const token = sessionToken();
+        const get = () =>
+          request(server.callback).get(OPENAPI_PATH).set('Authorization', `Bearer ${token}`);
+
+        const degraded = await get();
+        const recovered = await get();
+
+        expect(degraded.body.components.schemas.Fields_users).toBeUndefined();
+        expect(recovered.body.components.schemas.Fields_users).toEqual(
+          expect.objectContaining({ enum: ['id', 'email'] }),
+        );
+      });
+    });
+  });
+
+  describe('when the schema refreshes while the document is being built', () => {
+    function readContext() {
+      return {
+        path: OPENAPI_PATH,
+        method: 'GET',
+        state: { agentToken: 'agent-jwt' },
+        status: 404,
+        body: undefined as unknown,
+        type: undefined,
+        set: () => undefined,
+      } as unknown as Parameters<Middleware>[0];
+    }
+
+    function storeOf(generations: ReadModel[]) {
+      const last = generations[generations.length - 1];
+
+      return {
+        getReadModel: jest.fn(async () => generations.shift() ?? last),
+        getCapabilities: async (
+          name: string,
+          fetcher: (collection: string) => Promise<unknown>,
+        ) => ({
+          capabilities: await fetcher(name),
+          readModel: last,
+        }),
+      } as unknown as ReadModelStore;
+    }
+
+    function routesFor(store: ReadModelStore): Middleware {
+      return createOpenApiRoutes({
+        version: '1.2.3',
+        enabled: true,
+        source: { store, agentUrl: 'https://agent.example.com', logger: noopLogger },
+      });
+    }
+
+    const oldGeneration = new ReadModel([collection('users', [column('id')])]);
+    const newGeneration = new ReadModel([collection('orders', [column('id')])]);
+
+    it('should serve the new generation rather than a document mixing the two', async () => {
+      // Read once before the build, once after: the second read observes the refresh, so the
+      // document built from the old collections with the new field sets is thrown away.
+      const store = storeOf([oldGeneration, newGeneration, newGeneration, newGeneration]);
+      const ctx = readContext();
+
+      await routesFor(store)(ctx, async () => undefined);
+
+      expect(Object.keys(JSON.parse(ctx.body as string).paths)).toEqual([
+        '/agent/v1/orders/list',
+        '/agent/v1/orders/count',
+      ]);
+    });
+
+    it('should give up rather than loop when the schema keeps changing under it', async () => {
+      const store = {
+        getReadModel: async () => new ReadModel([collection('users', [column('id')])]),
+        getCapabilities: async (
+          name: string,
+          fetcher: (collection: string) => Promise<unknown>,
+        ) => ({
+          capabilities: await fetcher(name),
+          readModel: newGeneration,
+        }),
+      } as unknown as ReadModelStore;
+
+      await expect(routesFor(store)(readContext(), async () => undefined)).rejects.toThrow(
+        /kept changing/,
+      );
     });
   });
 

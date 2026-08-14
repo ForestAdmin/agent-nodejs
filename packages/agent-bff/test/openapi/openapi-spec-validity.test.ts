@@ -1,8 +1,11 @@
+import type { OpenAPIObject } from 'openapi3-ts/oas31';
+
 import { spawnSync } from 'child_process';
 import { mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import path from 'path';
 
+import unfoldingFixture from './fixtures';
 import { generateOpenApiDocument, serializeOpenApi } from '../../src/openapi/openapi-document';
 
 const REDOCLY_BIN = path.join(
@@ -10,15 +13,18 @@ const REDOCLY_BIN = path.join(
   'bin/cli.js',
 );
 
-describe('the generated OpenAPI document', () => {
+describe.each([
+  ['generic', () => generateOpenApiDocument('1.0.0')],
+  ['unfolded', () => generateOpenApiDocument('1.0.0', unfoldingFixture())],
+])('the %s OpenAPI document', (name, build: () => OpenAPIObject) => {
   let directory: string;
   let status: number | null;
   let output: string;
 
   beforeAll(() => {
     directory = mkdtempSync(path.join(tmpdir(), 'bff-openapi-'));
-    const file = path.join(directory, 'openapi.json');
-    writeFileSync(file, serializeOpenApi(generateOpenApiDocument('1.0.0')));
+    const file = path.join(directory, `${name}.json`);
+    writeFileSync(file, serializeOpenApi(build()));
 
     const result = spawnSync(process.execPath, [REDOCLY_BIN, 'lint', file], { encoding: 'utf8' });
     status = result.status;

@@ -37,6 +37,44 @@ describe('createAgentCapabilitiesFetcher', () => {
     expect(result).toEqual({ fields: [{ name: 'email' }] });
   });
 
+  it('should reuse one client for a borrowed token, which cannot be renewed', async () => {
+    const collection = jest
+      .fn()
+      .mockReturnValue({ capabilities: jest.fn().mockResolvedValue({ fields: [] }) });
+    createRemoteAgentClientMock.mockReturnValue({ collection });
+
+    const fetcher = createAgentCapabilitiesFetcher({ agentUrl: 'https://agent', token: 'tok' });
+    await fetcher('users');
+    await fetcher('orders');
+
+    expect(createRemoteAgentClientMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('should sign a fresh token per fetch when given a factory, so a long fan-out cannot expire', async () => {
+    const collection = jest
+      .fn()
+      .mockReturnValue({ capabilities: jest.fn().mockResolvedValue({ fields: [] }) });
+    createRemoteAgentClientMock.mockReturnValue({ collection });
+    let minted = 0;
+
+    const fetcher = createAgentCapabilitiesFetcher({
+      agentUrl: 'https://agent',
+      token: () => {
+        minted += 1;
+
+        return `tok-${minted}`;
+      },
+    });
+    await fetcher('users');
+    await fetcher('orders');
+
+    expect(minted).toBe(2);
+    expect(createRemoteAgentClientMock.mock.calls.map(call => call[0].token)).toEqual([
+      'tok-1',
+      'tok-2',
+    ]);
+  });
+
   it('should inject an HttpRequester that applies the configured timeout', async () => {
     createRemoteAgentClientMock.mockReturnValue({
       collection: jest

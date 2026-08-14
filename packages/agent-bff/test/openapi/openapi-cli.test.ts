@@ -3,6 +3,7 @@ import type { Logger } from '../../src/ports/logger-port';
 
 import { mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'fs';
 import http from 'http';
+import jsonwebtoken from 'jsonwebtoken';
 import { tmpdir } from 'os';
 import path from 'path';
 import request from 'supertest';
@@ -16,6 +17,43 @@ import dispatchCli, {
 import { issueBffAccessToken } from '../../src/oauth/bff-token';
 import { OPENAPI_PATH } from '../../src/openapi/openapi-routes';
 import version from '../../src/version';
+import { action, collection, column, relation } from '../read-model/fixtures';
+
+const SCHEMA = [
+  collection(
+    'users',
+    [column('id'), column('email'), relation('orders', 'HasMany', 'orders.userId')],
+    [action('Mark as paid', '/forest/users/actions/mark-as-paid')],
+  ),
+  collection('orders', [column('id')]),
+];
+
+const CAPABILITIES = { fields: [{ name: 'id', type: 'Number', operators: ['equal'] }] };
+
+const fetchSchema = jest.fn().mockResolvedValue(SCHEMA);
+const fetchCapabilities = jest.fn().mockResolvedValue(CAPABILITIES);
+const mintedTokens: string[] = [];
+
+jest.mock('../../src/read-model/forest-schema-client', () => ({
+  __esModule: true,
+  default: class {
+    // eslint-disable-next-line class-methods-use-this
+    fetchSchema() {
+      return fetchSchema();
+    }
+  },
+}));
+
+// The token is resolved here rather than ignored, because the CLI is expected to hand over a factory
+// that signs one per fetch — a single 5-minute token cannot cover a long fan-out.
+jest.mock('../../src/read-model/agent-capabilities-fetcher', () => ({
+  __esModule: true,
+  default: ({ token }: { token: string | (() => string) }) => {
+    mintedTokens.push(typeof token === 'function' ? token() : token);
+
+    return fetchCapabilities;
+  },
+}));
 
 const VALID_ENV = {
   FOREST_AUTH_SECRET: 'auth-secret',
@@ -29,12 +67,98 @@ const VALID_ENV = {
 const noopLogger: Logger = () => undefined;
 
 describe('renderOpenApi', () => {
-  it('should return a parseable OpenAPI 3.1 document', () => {
-    expect(JSON.parse(renderOpenApi()).openapi).toBe('3.1.0');
+  beforeEach(() => {
+    fetchSchema.mockReset().mockResolvedValue(SCHEMA);
+    fetchCapabilities.mockReset().mockResolvedValue(CAPABILITIES);
+    mintedTokens.length = 0;
   });
 
-  it('should end with a newline, so the output pipes cleanly', () => {
-    expect(renderOpenApi().endsWith('\n')).toBe(true);
+  it('should sign its own agent token, since a CLI has no caller to borrow one from', async () => {
+    await renderOpenApi(VALID_ENV, noopLogger);
+
+    expect(mintedTokens).toHaveLength(1);
+    expect(jsonwebtoken.verify(mintedTokens[0], VALID_ENV.FOREST_AUTH_SECRET)).toEqual(
+      expect.objectContaining({ email: 'openapi@agent-bff.forestadmin.com' }),
+    );
+  });
+
+  it('should return a parseable OpenAPI 3.1 document', async () => {
+    expect(JSON.parse(await renderOpenApi({}, noopLogger)).openapi).toBe('3.1.0');
+  });
+
+  it('should end with a newline, so the output pipes cleanly', async () => {
+    expect((await renderOpenApi({}, noopLogger)).endsWith('\n')).toBe(true);
+  });
+
+  it('should emit the generic document when nothing is configured to unfold against', async () => {
+    const document = JSON.parse(await renderOpenApi({}, noopLogger));
+
+    expect(Object.keys(document.paths)).toHaveLength(6);
+    expect(document.info.description).toContain('Paths are generic');
+  });
+
+  it('should unfold when the deployment is configured, without borrowing a caller token', async () => {
+    const document = JSON.parse(await renderOpenApi(VALID_ENV, noopLogger));
+
+    expect(Object.keys(document.paths).sort()).toEqual([
+      '/agent/v1/orders/count',
+      '/agent/v1/orders/list',
+      '/agent/v1/users/actions/Mark%20as%20paid/execute',
+      '/agent/v1/users/actions/Mark%20as%20paid/form',
+      '/agent/v1/users/count',
+      '/agent/v1/users/list',
+      '/agent/v1/users/relations/orders/count',
+      '/agent/v1/users/relations/orders/list',
+    ]);
+    expect(document.info.description).toContain('Paths are unfolded');
+  });
+
+  it('should fail rather than degrade when a configured deployment cannot be read', async () => {
+    fetchSchema.mockRejectedValueOnce(new Error('forest server is down'));
+
+    await expect(renderOpenApi(VALID_ENV, noopLogger)).rejects.toThrow();
+  });
+
+  it('should fail when not one collection could be described, since CI has nothing to branch on', async () => {
+    fetchCapabilities.mockRejectedValue(new Error('agent is down'));
+
+    await expect(renderOpenApi(VALID_ENV, noopLogger)).rejects.toThrow(
+      /No collection could be described/,
+    );
+  });
+
+  it('should still emit the document when only one collection is degraded', async () => {
+    fetchCapabilities.mockImplementation(async (name: string) => {
+      if (name === 'orders') throw new Error('agent is down');
+
+      return { fields: [{ name: 'id', type: 'Number', operators: ['equal'] }] };
+    });
+
+    const document = JSON.parse(await renderOpenApi(VALID_ENV, noopLogger));
+
+    expect(Object.keys(document.paths)).toContain('/agent/v1/orders/list');
+    expect(document.components.schemas.Fields_users).toBeDefined();
+  });
+
+  it('should stay generic when the auth secret is there but the agent url is not', async () => {
+    const document = JSON.parse(
+      await renderOpenApi({ ...VALID_ENV, AGENT_URL: undefined }, noopLogger),
+    );
+
+    expect(Object.keys(document.paths)).toHaveLength(6);
+    expect(fetchSchema).not.toHaveBeenCalled();
+  });
+
+  it('should ignore a broken server-only setting, which the export does not use', async () => {
+    const document = JSON.parse(await renderOpenApi({ HTTP_PORT: 'nope' }, noopLogger));
+
+    expect(Object.keys(document.paths)).toHaveLength(6);
+  });
+
+  it('should still reject a broken setting once the deployment asks to be unfolded', async () => {
+    await expect(renderOpenApi({ ...VALID_ENV, HTTP_PORT: 'nope' }, noopLogger)).rejects.toThrow(
+      /HTTP_PORT/,
+    );
   });
 });
 
@@ -53,6 +177,48 @@ describe('dispatchCli', () => {
       } finally {
         listen.mockRestore();
         stdout.mockRestore();
+      }
+    });
+
+    it('should fall back to the console logger when the caller passes none, as the bin does', async () => {
+      const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+      const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+      // Silenced because jest buffers console output and flushes it to process.stdout, which the spy
+      // would otherwise pick up ahead of the document.
+      const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      try {
+        const outcome = await dispatchCli(['openapi'], {});
+
+        expect(outcome).toEqual({ exitCode: 0 });
+        expect(JSON.parse(stdout.mock.calls[0][0] as string).openapi).toBe('3.1.0');
+        expect(warn).toHaveBeenCalled();
+      } finally {
+        stdout.mockRestore();
+        stderr.mockRestore();
+        warn.mockRestore();
+      }
+    });
+
+    // The redirected form is the one that breaks: `console.info` writes to the same stream as the
+    // document, so a single Info log makes `> openapi.json` produce a file JSON.parse rejects. Runs
+    // with the REAL console logger on purpose — passing a noop one is what hid this.
+    it('should leave stdout parseable when unfolding, whatever it logs on the way', async () => {
+      const written: string[] = [];
+      const stdout = jest
+        .spyOn(process.stdout, 'write')
+        .mockImplementation(chunk => written.push(String(chunk)) > 0);
+      const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+
+      try {
+        const outcome = await dispatchCli(['openapi'], VALID_ENV);
+
+        expect(outcome).toEqual({ exitCode: 0 });
+        expect(() => JSON.parse(written.join(''))).not.toThrow();
+        expect(JSON.parse(written.join('')).info.description).toContain('Paths are unfolded');
+      } finally {
+        stdout.mockRestore();
+        stderr.mockRestore();
       }
     });
 
@@ -277,8 +443,8 @@ describe('dispatchCli --output', () => {
     rmSync(directory, { recursive: true, force: true });
   });
 
-  function expectedDocument(): string {
-    return renderOpenApi();
+  function expectedDocument(): Promise<string> {
+    return renderOpenApi({}, noopLogger);
   }
 
   async function exportQuietly(argv: string[]) {
@@ -301,7 +467,7 @@ describe('dispatchCli --output', () => {
 
         expect(outcome).toEqual({ exitCode: 0 });
         expect(readFileSync(path.join(directory, DEFAULT_OUTPUT_FILE), 'utf8')).toBe(
-          expectedDocument(),
+          await expectedDocument(),
         );
         expect(stdout).not.toHaveBeenCalled();
       } finally {
@@ -335,7 +501,7 @@ describe('dispatchCli --output', () => {
       const outcome = await dispatchCli(['openapi', '--output', target], {}, noopLogger);
 
       expect(outcome).toEqual({ exitCode: 0 });
-      expect(readFileSync(target, 'utf8')).toBe(expectedDocument());
+      expect(readFileSync(target, 'utf8')).toBe(await expectedDocument());
     });
 
     it(`should treat a trailing slash as a directory and write ${DEFAULT_OUTPUT_FILE} inside it`, async () => {
@@ -343,7 +509,7 @@ describe('dispatchCli --output', () => {
 
       expect(outcome).toEqual({ exitCode: 0 });
       expect(readFileSync(path.join(directory, 'build', DEFAULT_OUTPUT_FILE), 'utf8')).toBe(
-        expectedDocument(),
+        await expectedDocument(),
       );
     });
 
@@ -353,14 +519,16 @@ describe('dispatchCli --output', () => {
       const outcome = await exportQuietly(['openapi', '--output', target]);
 
       expect(outcome).toEqual({ exitCode: 0 });
-      expect(readFileSync(target, 'utf8')).toBe(expectedDocument());
+      expect(readFileSync(target, 'utf8')).toBe(await expectedDocument());
     });
 
     it('should resolve a relative path against the current directory', async () => {
       const outcome = await exportQuietly(['openapi', '--output', 'relative.json']);
 
       expect(outcome).toEqual({ exitCode: 0 });
-      expect(readFileSync(path.join(directory, 'relative.json'), 'utf8')).toBe(expectedDocument());
+      expect(readFileSync(path.join(directory, 'relative.json'), 'utf8')).toBe(
+        await expectedDocument(),
+      );
     });
   });
 
@@ -372,7 +540,7 @@ describe('dispatchCli --output', () => {
       const outcome = await exportQuietly(['openapi', '--output', target]);
 
       expect(outcome).toEqual({ exitCode: 0 });
-      expect(readFileSync(target, 'utf8')).toBe(expectedDocument());
+      expect(readFileSync(target, 'utf8')).toBe(await expectedDocument());
     });
   });
 
@@ -471,7 +639,7 @@ describe('dispatchCli --output', () => {
 
 describe('the CLI export and the HTTP route', () => {
   it('should produce the same document, since both use one generator', async () => {
-    const exported = renderOpenApi();
+    const exported = await renderOpenApi(VALID_ENV, noopLogger);
 
     const outcome = await dispatchCli([], VALID_ENV, noopLogger);
 

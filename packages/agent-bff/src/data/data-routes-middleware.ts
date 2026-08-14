@@ -8,7 +8,7 @@ import type {
 import type { Logger } from '../ports/logger-port';
 import type { CapabilitiesResult } from '../read-model/capabilities-cache';
 import type ReadModel from '../read-model/read-model';
-import type { PrimaryKeyField, RelationTarget } from '../read-model/read-model';
+import type { PrimaryKeyField } from '../read-model/read-model';
 import type ReadModelStore from '../read-model/read-model-store';
 import type { Context, Middleware } from 'koa';
 
@@ -40,15 +40,6 @@ import assertNoRelationFieldPaths from '../validation/relation-field-guard';
 
 const DATA_ROUTE = /^\/agent\/v1\/([^/]+)\/(list|count)$/;
 const RELATION_ROUTE = /^\/agent\/v1\/([^/]+)\/relations\/([^/]+)\/(list|count)$/;
-
-// Only to-many relations expose list/count on the agent; to-one relations get update-relation only.
-// A polymorphic relation carrying multiple targets is always the to-one (PolymorphicManyToOne) side.
-function resolveForeignCollection(target: RelationTarget | undefined): string | null {
-  if (!target || !('target' in target)) return null;
-  if (target.type !== 'HasMany' && target.type !== 'BelongsToMany') return null;
-
-  return target.target;
-}
 
 export interface DataRoutesMiddlewareOptions {
   store: ReadModelStore;
@@ -199,9 +190,7 @@ type RelationListHandlerDeps = RelationHandlerDeps & { primaryKeys: PrimaryKeyFi
 function assertRelationStillExposed(readModel: ReadModel, deps: RelationHandlerDeps): void {
   assertCollectionStillAllowed(readModel, deps.collection);
 
-  const stillTargets = resolveForeignCollection(
-    readModel.getRelationTarget(deps.collection, deps.relation),
-  );
+  const stillTargets = readModel.getListableRelationTarget(deps.collection, deps.relation);
 
   if (stillTargets !== deps.foreignCollection) {
     throw unknownRelation(`Unknown relation: ${deps.collection}.${deps.relation}`);
@@ -288,9 +277,7 @@ async function handleRelation(
 
   // The URL identity (does this listable relation exist?) is resolved before the body,
   // so a bad path 404s before its payload is inspected.
-  const foreignCollection = resolveForeignCollection(
-    readModel.getRelationTarget(deps.collection, relation),
-  );
+  const foreignCollection = readModel.getListableRelationTarget(deps.collection, relation);
 
   // TODO(PRD-672): the read-model's relation map is the allow-list, so an absent/to-one/polymorphic
   // relation cannot be told from a disallowed one — every non-listable relation maps to 404 here;
