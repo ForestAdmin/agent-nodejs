@@ -91,6 +91,43 @@ describe('docs routes', () => {
     });
   });
 
+  describe('when the install has no Redoc bundle', () => {
+    function buildBundlelessApp(logger: Logger): Koa {
+      const app = new Koa();
+      app.silent = true;
+      app.use(
+        createDocsRoutes({
+          enabled: true,
+          documentPath: DOCUMENT_PATH,
+          logger,
+          resolveBundlePath: () => undefined,
+        }),
+      );
+
+      return app;
+    }
+
+    it('should serve neither route, since a page without its viewer renders nothing', async () => {
+      const app = buildBundlelessApp(noopLogger).callback();
+      const page = await request(app).get(DOCS_PATH);
+      const bundle = await request(app).get(DOCS_BUNDLE_PATH);
+
+      expect([page.status, bundle.status]).toEqual([404, 404]);
+    });
+
+    it('should say why at boot, since a silent 404 looks like a disabled flag', async () => {
+      const logs: string[] = [];
+
+      buildBundlelessApp((_level, message) => {
+        logs.push(message);
+      });
+
+      expect(logs).toEqual([
+        'API documentation page disabled: redoc.standalone.js is missing from this install',
+      ]);
+    });
+  });
+
   describe('when the path or the method is not the viewer', () => {
     it('should pass a non-docs path through', async () => {
       const response = await request(buildApp(true).callback()).get('/health');
