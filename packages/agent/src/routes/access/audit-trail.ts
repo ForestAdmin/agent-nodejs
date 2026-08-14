@@ -110,7 +110,17 @@ export default class AuditTrailRoute extends CollectionRoute {
     // `startTimestamp` is an inclusive lower bound, so an entry timestamped exactly `at` comes
     // back too — but the record already reflects that entry's change at instant `at`, so it must
     // be kept rather than reverted (which would wrongly return the state just *before* it).
-    const entries = fetched.filter(entry => entry.timestamp !== at);
+    //
+    // Action rows are excluded outright: their previousValues/newValues hold a submitted form and a
+    // summary of the action's answer, not column values, so replaying them as a diff would corrupt
+    // the reconstructed record. An action's effect on the data still shows up through the
+    // create/update/delete rows it produced under the same correlation key.
+    const entries = fetched.filter(
+      entry =>
+        entry.timestamp !== at &&
+        entry.operation !== 'action' &&
+        entry.operation !== 'action_failed',
+    );
 
     const state = revertRecord(current, entries as Parameters<typeof revertRecord>[1]);
 

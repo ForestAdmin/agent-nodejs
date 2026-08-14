@@ -833,6 +833,37 @@ describe('AuditTrailRoute', () => {
       });
     });
 
+    test('excludes action/action_failed rows from the revert walk, even when their keys collide with real columns', async () => {
+      const history = [
+        {
+          operation: 'action',
+          timestamp: '2026-06-18T13:00:00.000Z',
+          // An action row's previousValues/newValues hold a submitted form and a result summary,
+          // not column values — replaying this as a diff would wrongly revert `status` to
+          // 'archived', with nothing else in the (empty otherwise) history to correct it back.
+          previousValues: { status: 'archived' },
+          newValues: { type: 'Success', message: 'ok' },
+        },
+      ];
+      const { dataSource, route } = setupBooks(history);
+      jest
+        .spyOn(dataSource.getCollection('books'), 'list')
+        .mockResolvedValue([{ id: 2, status: 'closed', name: 'Acme' }]);
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: {
+          query: { timezone: 'UTC', at: '2026-06-18T11:00:00.000Z' },
+          params: { id: '2' },
+        },
+      });
+
+      await route.handleStateAt(context);
+
+      expect(context.response.body).toEqual({
+        data: { id: 2, status: 'closed', name: 'Acme' },
+      });
+    });
+
     test('preserves the entry timestamped exactly at the requested instant instead of reverting it', async () => {
       const history = [
         {
