@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.55.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.54.0...@forestadmin/datasource-toolkit@1.55.0) (2026-08-17)
+
+
+### Features
+
+* upload files through the MCP server for action File fields ([#1815](https://github.com/ForestAdmin/agent-nodejs/issues/1815)) ([f09e88c](https://github.com/ForestAdmin/agent-nodejs/commit/f09e88cd3c8c542adf2f2bb89572fbc78c11e51a))
+
 # @forestadmin/datasource-toolkit [1.54.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.53.1...@forestadmin/datasource-toolkit@1.54.0) (2026-07-22)
 
 
