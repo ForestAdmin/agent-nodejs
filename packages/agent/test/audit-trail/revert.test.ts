@@ -1,5 +1,4 @@
 import revertRecord from '../../src/audit-trail/revert';
-import { ABSENT } from '../../src/audit-trail/types';
 
 const update = (
   previousValues: Record<string, unknown>,
@@ -130,12 +129,12 @@ describe('revertRecord', () => {
     expect(revertRecord(current, entries)).toEqual({ id: 1, status: 'old' });
   });
 
-  test('removes a nested key that did not exist before the update (ABSENT marker)', () => {
+  test('removes a nested key that did not exist before the update', () => {
     const current = {
       id: 1,
       payload: { theme: 'dark', addedKey: 'x' },
     };
-    const entries = [update({ payload: { addedKey: ABSENT } }, { payload: { addedKey: 'x' } })];
+    const entries = [update({ payload: {} }, { payload: { addedKey: 'x' } })];
 
     expect(revertRecord(current, entries)).toEqual({
       id: 1,
@@ -143,12 +142,12 @@ describe('revertRecord', () => {
     });
   });
 
-  test('removes an appended array element that did not exist before the update (ABSENT marker)', () => {
+  test('removes an appended array element that did not exist before the update', () => {
     const current = {
       id: 1,
       payload: [{ step: 'a' }, { step: 'b' }],
     };
-    const entries = [update({ payload: { 1: ABSENT } }, { payload: { 1: { step: 'b' } } })];
+    const entries = [update({ payload: {} }, { payload: { 1: { step: 'b' } } })];
 
     expect(revertRecord(current, entries)).toEqual({
       id: 1,
@@ -161,12 +160,7 @@ describe('revertRecord', () => {
       id: 1,
       payload: [{ step: 'a' }, { step: 'b' }, { step: 'c' }],
     };
-    const entries = [
-      update(
-        { payload: { 1: ABSENT, 2: ABSENT } },
-        { payload: { 1: { step: 'b' }, 2: { step: 'c' } } },
-      ),
-    ];
+    const entries = [update({ payload: {} }, { payload: { 1: { step: 'b' }, 2: { step: 'c' } } })];
 
     expect(revertRecord(current, entries)).toEqual({
       id: 1,
@@ -184,11 +178,28 @@ describe('revertRecord', () => {
     });
   });
 
-  test('removes a top-level column that did not exist before the update (ABSENT marker)', () => {
+  test('removes a top-level column that did not exist before the update', () => {
     const current = { id: 1, status: 'closed', addedColumn: 'x' };
-    const entries = [update({ addedColumn: ABSENT }, { addedColumn: 'x' })];
+    const entries = [update({}, { addedColumn: 'x' })];
 
     expect(revertRecord(current, entries)).toEqual({ id: 1, status: 'closed' });
+  });
+
+  test('restores a removed top-level column instead of leaving it deleted', () => {
+    const current = { id: 1, status: 'closed' };
+    const entries = [update({ removedColumn: 'x' }, {})];
+
+    expect(revertRecord(current, entries)).toEqual({ id: 1, status: 'closed', removedColumn: 'x' });
+  });
+
+  test('restores a removed nested key instead of leaving it deleted', () => {
+    const current = { id: 1, payload: { theme: 'dark' } };
+    const entries = [update({ payload: { removedKey: 'x' } }, { payload: {} })];
+
+    expect(revertRecord(current, entries)).toEqual({
+      id: 1,
+      payload: { theme: 'dark', removedKey: 'x' },
+    });
   });
 
   test('does not mutate the current record passed in', () => {

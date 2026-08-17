@@ -1,16 +1,21 @@
-import type { AuditRecord, AuditSink, AuditTrailInstrumentOptions } from './types';
+import type {
+  AuditRecordConfirmation,
+  AuditSink,
+  AuditStore,
+  AuditTrailInstrumentOptions,
+  PendingAuditRecord,
+} from './types';
 import type {
   CollectionCustomizer,
   DataSourceCustomizer,
   HookAfterCreateContext,
+  HookBeforeCreateContext,
   HookBeforeDeleteContext,
   HookBeforeUpdateContext,
 } from '@forestadmin/datasource-customizer';
-import type { Caller, RecordData } from '@forestadmin/datasource-toolkit';
+import type { Caller, Logger, RecordData } from '@forestadmin/datasource-toolkit';
 
 import { ConditionTreeFactory, SchemaUtils } from '@forestadmin/datasource-toolkit';
-
-import { ABSENT } from './types';
 
 const stableKeyOrderReplacer = (key: string, value: unknown): unknown => {
   // JSON.stringify has no native BigInt support and throws on one, regardless of nesting depth or
@@ -65,7 +70,16 @@ const toJsonSafe = (value: unknown): unknown => {
   return value;
 };
 
-type PendingSnapshot = { before: RecordData[]; patch?: RecordData };
+// Records touched by a bulk operation, bounded so one write can't hold an unbounded result set in
+// memory (or fan out an unbounded number of pending-row inserts). Truncation is logged explicitly
+// rather than silently auditing only part of the operation.
+const MAX_SNAPSHOT_RECORDS = 1000;
+
+type PendingSnapshot = {
+  before: RecordData[];
+  patch?: RecordData;
+  pendingIds: Array<number | null>;
+};
 
 // One caller-supplied `Filter` object can be reused across concurrent (or sequential, e.g. a
 // continue-on-error bulk loop) operations sharing the same template, so each key holds a queue of
@@ -84,17 +98,22 @@ function pushSnapshot(key: object, entry: PendingSnapshot): void {
 // the queue would hand a later, unrelated operation someone else's stale snapshot instead of its
 // own. Delete has no equivalent secondary key, so it falls back to FIFO order — a narrower version
 // of the same risk that remains for deletes sharing one `Filter` reference.
-function takeSnapshot(key: object, patch?: RecordData): RecordData[] {
+function takeSnapshot(key: object, patch?: RecordData): PendingSnapshot | undefined {
   const queue = snapshotsByFilter.get(key);
-  if (!queue || queue.length === 0) return [];
+  if (!queue || queue.length === 0) return undefined;
 
   const index = patch ? queue.findIndex(entry => deepEquals(entry.patch, patch)) : 0;
   const [entry] = queue.splice(index === -1 ? 0 : index, 1);
 
   if (queue.length === 0) snapshotsByFilter.delete(key);
 
-  return entry?.before ?? [];
+  return entry;
 }
+
+// Create has no Filter to key by (there's nothing to select yet), but `context.data` is the exact
+// same array reference in both the Before and After hook for one `.create()` call — verified via
+// `HookBeforeCreateContext`/`HookAfterCreateContext`, which both wrap the literal `data` argument.
+const pendingIdsByData = new WeakMap<object, Array<number | null>>();
 
 // Must match IdUtils.packId so recordIds align with the rest of Forest.
 const toPackedRecordId = (record: RecordData, primaryKeys: string[]): string => {
@@ -114,11 +133,14 @@ const isPlainObject = (value: unknown): value is Record<string, unknown> =>
 const isObjectArray = (value: unknown): value is Record<string, unknown>[] =>
   Array.isArray(value) && value.length > 0 && value.every(isPlainObject);
 
+type Delta = { previous: unknown; next: unknown; previousAbsent: boolean; nextAbsent: boolean };
+
 // Returns only the leaves that changed. Plain objects and object-arrays recurse; everything else
 // (scalars, primitive arrays, Date, BSON) is compared and kept whole. A leaf that did not exist
-// before/after (as opposed to one explicitly set to `null`) is encoded as `ABSENT` so `revertRecord`
-// can tell the two cases apart and remove the key/index instead of writing back a bogus `null`.
-const diff = (before: unknown, after: unknown): { previous: unknown; next: unknown } | null => {
+// before/after (as opposed to one explicitly set to `null`) is marked `*Absent`, so the caller
+// simply omits that key/index from that side rather than writing a placeholder value: the stored
+// diff itself never carries a marker, it just doesn't have the key.
+const diff = (before: unknown, after: unknown): Delta | null => {
   if (deepEquals(before, after)) return null;
 
   if (isPlainObject(before) && isPlainObject(after)) {
@@ -126,15 +148,15 @@ const diff = (before: unknown, after: unknown): { previous: unknown; next: unkno
     const next: Record<string, unknown> = {};
 
     for (const key of new Set([...Object.keys(before), ...Object.keys(after)])) {
-      const subDiff = diff(before[key], after[key]);
+      const subDelta = diff(before[key], after[key]);
 
-      if (subDiff) {
-        previous[key] = subDiff.previous;
-        next[key] = subDiff.next;
+      if (subDelta) {
+        if (!subDelta.previousAbsent) previous[key] = subDelta.previous;
+        if (!subDelta.nextAbsent) next[key] = subDelta.next;
       }
     }
 
-    return { previous, next };
+    return { previous, next, previousAbsent: false, nextAbsent: false };
   }
 
   if (isObjectArray(before) && isObjectArray(after)) {
@@ -142,20 +164,22 @@ const diff = (before: unknown, after: unknown): { previous: unknown; next: unkno
     const next: Record<number, unknown> = {};
 
     for (let index = 0; index < Math.max(before.length, after.length); index += 1) {
-      const subDiff = diff(before[index], after[index]);
+      const subDelta = diff(before[index], after[index]);
 
-      if (subDiff) {
-        previous[index] = subDiff.previous;
-        next[index] = subDiff.next;
+      if (subDelta) {
+        if (!subDelta.previousAbsent) previous[index] = subDelta.previous;
+        if (!subDelta.nextAbsent) next[index] = subDelta.next;
       }
     }
 
-    return { previous, next };
+    return { previous, next, previousAbsent: false, nextAbsent: false };
   }
 
   return {
-    previous: before === undefined ? ABSENT : toJsonSafe(before) ?? null,
-    next: after === undefined ? ABSENT : toJsonSafe(after) ?? null,
+    previous: before === undefined ? undefined : toJsonSafe(before) ?? null,
+    next: after === undefined ? undefined : toJsonSafe(after) ?? null,
+    previousAbsent: before === undefined,
+    nextAbsent: after === undefined,
   };
 };
 
@@ -165,7 +189,7 @@ const changedValues = (
   before: RecordData,
   after: RecordData,
   columns: string[],
-): Pick<AuditRecord, 'previousValues' | 'newValues'> => {
+): { previousValues: Record<string, unknown>; newValues: Record<string, unknown> } => {
   const previousValues: Record<string, unknown> = {};
   const newValues: Record<string, unknown> = {};
 
@@ -173,8 +197,8 @@ const changedValues = (
     const delta = diff(before[column], after[column]);
 
     if (delta) {
-      previousValues[column] = delta.previous;
-      newValues[column] = delta.next;
+      if (!delta.previousAbsent) previousValues[column] = delta.previous;
+      if (!delta.nextAbsent) newValues[column] = delta.next;
     }
   }
 
@@ -200,9 +224,89 @@ const consoleSink: AuditSink = record => {
   console.info('[audit-trail]', JSON.stringify(record));
 };
 
+// Bridges the two-phase pending/confirm protocol (a real `AuditStore`) with the simpler one-shot
+// `sink`/console fallback. `confirm` only ever needs the fields that can change once the write
+// resolves — identity/timestamp/correlation are fixed at insert time and never revisited — so a
+// real store can apply it as a plain `UPDATE`. The sink has no DB row to update, so it retains each
+// pending record locally under a synthetic id and merges the confirmation patch into it before
+// calling the sink once with the complete record.
+export type Recorder = {
+  insertPendingBatch(records: PendingAuditRecord[]): Promise<Array<number | null>>;
+  confirm(id: number | null, patch: AuditRecordConfirmation): Promise<void>;
+};
+
+export function buildRecorder(
+  store: AuditStore | undefined,
+  sink: AuditSink | undefined,
+  critical: boolean,
+  logger: Logger | undefined,
+): Recorder {
+  if (store) {
+    return {
+      async insertPendingBatch(records) {
+        if (records.length === 0) return [];
+
+        try {
+          return await store.insertPendingBatch(records);
+        } catch (error) {
+          // Critical: no unaudited write — refuse the operation before it runs. Non-critical:
+          // logged and swallowed, exactly like today's single-shot failures; the write proceeds
+          // with nothing to confirm later.
+          if (critical) throw error;
+
+          logger?.(
+            'Error',
+            `[ForestAdmin] Audit trail: unable to record pending entries, continuing: ${error}`,
+          );
+
+          return records.map(() => null);
+        }
+      },
+      async confirm(id, patch) {
+        if (id === null) return;
+
+        try {
+          await store.confirm(id, patch);
+        } catch (error) {
+          // The write has already happened by now; there is nothing left to refuse.
+          logger?.(
+            'Error',
+            `[ForestAdmin] Audit trail: unable to confirm entry, continuing: ${error}`,
+          );
+        }
+      },
+    };
+  }
+
+  const emit = sink ?? consoleSink;
+  const pendingById = new Map<number, PendingAuditRecord>();
+  let nextId = 1;
+
+  return {
+    async insertPendingBatch(records) {
+      return records.map(record => {
+        const id = nextId;
+        nextId += 1;
+        pendingById.set(id, record);
+
+        return id;
+      });
+    },
+    async confirm(id, patch) {
+      if (id === null) return;
+
+      const pending = pendingById.get(id);
+      pendingById.delete(id);
+      if (!pending) return;
+
+      await emit({ ...pending, ...patch });
+    },
+  };
+}
+
 function instrumentCollection(
   collection: CollectionCustomizer,
-  sink: AuditSink,
+  recorder: Recorder,
   redactedFields: string[],
 ): void {
   const { schema } = collection;
@@ -217,119 +321,155 @@ function instrumentCollection(
   const readProjection = [...new Set([...primaryKeys, ...writableColumns])];
   const { name } = collection;
 
-  const emit = (
+  const buildRecord = (
     caller: Caller,
-    entry: Pick<AuditRecord, 'operation' | 'recordId' | 'previousValues' | 'newValues'>,
-  ): Promise<void> | void =>
-    sink({
-      timestamp: new Date().toISOString(),
-      collection: name,
-      userId: caller.id,
-      correlationKey: caller.requestId,
-      ...entry,
-      previousValues: redactValues(entry.previousValues, redactedFields),
-      newValues: redactValues(entry.newValues, redactedFields),
-    });
+    entry: Pick<PendingAuditRecord, 'operation' | 'recordId' | 'previousValues' | 'newValues'>,
+  ): PendingAuditRecord => ({
+    timestamp: new Date().toISOString(),
+    collection: name,
+    userId: caller.id,
+    userFirstName: caller.firstName,
+    userLastName: caller.lastName,
+    userEmail: caller.email,
+    actionName: null,
+    correlationKey: caller.requestId,
+    ...entry,
+    previousValues: redactValues(entry.previousValues, redactedFields),
+    newValues: redactValues(entry.newValues, redactedFields),
+  });
 
-  collection.addInternalHook(
-    'After',
-    'Create',
-    async (context: HookAfterCreateContext) => {
-      await Promise.all(
-        context.records.map(record =>
-          emit(context.caller, {
-            operation: 'create',
-            recordId: toPackedRecordId(record, primaryKeys),
-            previousValues: {},
-            newValues: pickColumns(record, writableColumns),
-          }),
-        ),
-      );
-    },
-    { prepend: true },
-  );
+  const withLimit = (filter: unknown) => ({
+    ...(filter as Record<string, unknown>),
+    page: { skip: 0, limit: MAX_SNAPSHOT_RECORDS },
+  });
+
+  collection.addInternalHook('Before', 'Create', async (context: HookBeforeCreateContext) => {
+    const pendingRecords = context.data.map(() =>
+      buildRecord(context.caller, {
+        operation: 'create',
+        recordId: null,
+        previousValues: {},
+        newValues: {},
+      }),
+    );
+    const pendingIds = await recorder.insertPendingBatch(pendingRecords);
+
+    pendingIdsByData.set(context.data, pendingIds);
+  });
+
+  collection.addInternalHook('After', 'Create', async (context: HookAfterCreateContext) => {
+    const pendingIds = pendingIdsByData.get(context.data) ?? [];
+    pendingIdsByData.delete(context.data);
+
+    await Promise.all(
+      context.records.map((record, index) =>
+        recorder.confirm(pendingIds[index] ?? null, {
+          operation: 'create',
+          recordId: toPackedRecordId(record, primaryKeys),
+          previousValues: {},
+          newValues: redactValues(pickColumns(record, writableColumns), redactedFields),
+        }),
+      ),
+    );
+  });
 
   collection.addInternalHook('Before', 'Update', async (context: HookBeforeUpdateContext) => {
-    const before = await context.collection.list(
-      context.filter as never,
+    const before = (await context.collection.list(
+      withLimit(context.filter) as never,
       readProjection as never[],
+    )) as RecordData[];
+
+    const pendingRecords = before.map(record =>
+      buildRecord(context.caller, {
+        operation: 'update',
+        recordId: toPackedRecordId(record, primaryKeys),
+        previousValues: pickColumns(record, writableColumns),
+        newValues: {},
+      }),
     );
-    pushSnapshot(context.filter, { before: before as RecordData[], patch: context.patch });
+    const pendingIds = await recorder.insertPendingBatch(pendingRecords);
+
+    pushSnapshot(context.filter, { before, patch: context.patch, pendingIds });
   });
 
-  collection.addInternalHook(
-    'After',
-    'Update',
-    async (context: HookBeforeUpdateContext) => {
-      const before = takeSnapshot(context.filter, context.patch);
+  collection.addInternalHook('After', 'Update', async (context: HookBeforeUpdateContext) => {
+    const snapshot = takeSnapshot(context.filter, context.patch);
 
-      if (before.length === 0) return;
+    if (!snapshot || snapshot.before.length === 0) return;
 
-      // Re-read each touched record by its own (possibly patch-changed) identity rather than via
-      // `context.filter`: if the update changed a field the filter matched on — including a
-      // writable primary key — re-querying with that same filter would find nothing, silently
-      // dropping the entry instead of filing it under the record's new id.
-      const expectedRecords = before.map(record => ({ ...record, ...context.patch }));
-      const expectedIds = expectedRecords.map(record => primaryKeys.map(pk => record[pk]));
-      const after = (await context.collection.list(
-        { conditionTree: ConditionTreeFactory.matchIds(schema, expectedIds) } as never,
-        readProjection as never[],
-      )) as RecordData[];
-      const afterById = new Map(
-        after.map(record => [toPackedRecordId(record, primaryKeys), record]),
-      );
+    const { before, pendingIds } = snapshot;
 
-      await Promise.all(
-        before.map((record, index) => {
-          const updated = afterById.get(toPackedRecordId(expectedRecords[index], primaryKeys));
+    // Re-read each touched record by its own (possibly patch-changed) identity rather than via
+    // `context.filter`: if the update changed a field the filter matched on — including a
+    // writable primary key — re-querying with that same filter would find nothing, silently
+    // dropping the entry instead of filing it under the record's new id.
+    const expectedRecords = before.map(record => ({ ...record, ...context.patch }));
+    const expectedIds = expectedRecords.map(record => primaryKeys.map(pk => record[pk]));
+    const after = (await context.collection.list(
+      { conditionTree: ConditionTreeFactory.matchIds(schema, expectedIds) } as never,
+      readProjection as never[],
+    )) as RecordData[];
+    const afterById = new Map(after.map(record => [toPackedRecordId(record, primaryKeys), record]));
 
-          if (!updated) return undefined;
+    await Promise.all(
+      before.map((record, index) => {
+        const updated = afterById.get(toPackedRecordId(expectedRecords[index], primaryKeys));
+        const pendingId = pendingIds[index] ?? null;
 
-          const { previousValues, newValues } = changedValues(record, updated, writableColumns);
+        if (!updated) return undefined;
 
-          if (Object.keys(newValues).length === 0) return undefined;
+        const { previousValues, newValues } = changedValues(record, updated, writableColumns);
 
-          // Packed from the post-update values: if the update changed a writable primary key, the
-          // entry is filed under the record's new id, matching what later history lookups use.
-          return emit(context.caller, {
-            operation: 'update',
-            recordId: toPackedRecordId(updated, primaryKeys),
-            previousValues,
-            newValues,
-          });
-        }),
-      );
-    },
-    { prepend: true },
-  );
+        if (Object.keys(newValues).length === 0) return undefined;
+
+        // Packed from the post-update values: if the update changed a writable primary key, the
+        // entry is filed under the record's new id, matching what later history lookups use.
+        return recorder.confirm(pendingId, {
+          operation: 'update',
+          recordId: toPackedRecordId(updated, primaryKeys),
+          previousValues: redactValues(previousValues, redactedFields),
+          newValues: redactValues(newValues, redactedFields),
+        });
+      }),
+    );
+  });
 
   collection.addInternalHook('Before', 'Delete', async (context: HookBeforeDeleteContext) => {
-    const before = await context.collection.list(
-      context.filter as never,
+    const before = (await context.collection.list(
+      withLimit(context.filter) as never,
       readProjection as never[],
+    )) as RecordData[];
+
+    const pendingRecords = before.map(record =>
+      buildRecord(context.caller, {
+        operation: 'delete',
+        recordId: toPackedRecordId(record, primaryKeys),
+        previousValues: pickColumns(record, writableColumns),
+        newValues: {},
+      }),
     );
-    pushSnapshot(context.filter, { before: before as RecordData[] });
+    const pendingIds = await recorder.insertPendingBatch(pendingRecords);
+
+    pushSnapshot(context.filter, { before, pendingIds });
   });
 
-  collection.addInternalHook(
-    'After',
-    'Delete',
-    async (context: HookBeforeDeleteContext) => {
-      const before = takeSnapshot(context.filter);
+  collection.addInternalHook('After', 'Delete', async (context: HookBeforeDeleteContext) => {
+    const snapshot = takeSnapshot(context.filter);
+    if (!snapshot) return;
 
-      await Promise.all(
-        before.map(record =>
-          emit(context.caller, {
-            operation: 'delete',
-            recordId: toPackedRecordId(record, primaryKeys),
-            previousValues: pickColumns(record, writableColumns),
-            newValues: {},
-          }),
-        ),
-      );
-    },
-    { prepend: true },
-  );
+    const { before, pendingIds } = snapshot;
+
+    await Promise.all(
+      before.map((record, index) =>
+        recorder.confirm(pendingIds[index] ?? null, {
+          operation: 'delete',
+          recordId: toPackedRecordId(record, primaryKeys),
+          previousValues: redactValues(pickColumns(record, writableColumns), redactedFields),
+          newValues: {},
+        }),
+      ),
+    );
+  });
 }
 
 export default function installAuditTrailHooks(
@@ -337,11 +477,21 @@ export default function installAuditTrailHooks(
   _collectionCustomizer: CollectionCustomizer | null,
   options?: AuditTrailInstrumentOptions,
 ): Promise<void> | void {
-  const { sink, store, redact } = options ?? {};
-  const append = sink ?? (store ? record => store.append(record) : consoleSink);
+  const { sink, store, redact, critical = false, logger } = options ?? {};
+  const recorder = buildRecorder(store, sink, critical, logger);
 
   for (const collection of dataSourceCustomizer.collections) {
-    instrumentCollection(collection, append, redact?.[collection.name] ?? []);
+    // toPackedRecordId throws for a collection with no primary key — there is nothing to key an
+    // audit entry on, so skip instrumenting it entirely rather than installing hooks that would
+    // throw on the collection's first write.
+    if (SchemaUtils.getPrimaryKeys(collection.schema).length === 0) {
+      logger?.(
+        'Warn',
+        `[ForestAdmin] Audit trail: skipping "${collection.name}" — it has no primary key.`,
+      );
+    } else {
+      instrumentCollection(collection, recorder, redact?.[collection.name] ?? []);
+    }
   }
 
   // Returned so a broken bootstrap fails agent.start() instead of the first write.

@@ -1,5 +1,3 @@
-import { ABSENT } from './types';
-
 type AuditEntry = {
   operation: 'create' | 'update' | 'delete';
   previousValues: Record<string, unknown>;
@@ -9,24 +7,26 @@ type AuditEntry = {
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date);
 
-// Plain object on both sides ⇒ nested diff; otherwise `previous` is the leaf to write back, or
-// `ABSENT` to signal that the key/index did not exist before this change and must be removed.
+// Plain object on both sides ⇒ nested diff, walking the union of both sides' keys so an added key
+// (present only in `next`) is caught too, not just a removed one. Anything else — including a key
+// present in `next` but not `previous` at this exact level — is a leaf: `previous` is the value to
+// write back as-is (this also covers "the whole field was replaced with something else", where
+// `previous`/`next` at this level aren't a matching object pair at all).
 const revertValue = (current: unknown, previous: unknown, next: unknown): unknown => {
-  if (previous === ABSENT) return ABSENT;
   if (!isPlainObject(previous) || !isPlainObject(next)) return previous;
+
+  const keys = new Set([...Object.keys(previous), ...Object.keys(next)]);
 
   if (Array.isArray(current)) {
     const result = [...current];
     const removedIndices: number[] = [];
 
-    for (const key of Object.keys(previous)) {
-      const index = Number(key);
-      const reverted = revertValue(result[index], previous[key], next[key]);
-
-      if (reverted === ABSENT) {
-        removedIndices.push(index);
+    for (const key of keys) {
+      if (!(key in previous)) {
+        // Present only in `next`: this index was appended by the change, remove it on revert.
+        removedIndices.push(Number(key));
       } else {
-        result[index] = reverted;
+        result[Number(key)] = revertValue(result[Number(key)], previous[key], next[key]);
       }
     }
 
@@ -43,13 +43,12 @@ const revertValue = (current: unknown, previous: unknown, next: unknown): unknow
   const base = isPlainObject(current) ? current : {};
   const result: Record<string, unknown> = { ...base };
 
-  for (const key of Object.keys(previous)) {
-    const reverted = revertValue(result[key], previous[key], next[key]);
-
-    if (reverted === ABSENT) {
+  for (const key of keys) {
+    if (!(key in previous)) {
+      // Present only in `next`: this key was added by the change, remove it on revert.
       delete result[key];
     } else {
-      result[key] = reverted;
+      result[key] = revertValue(result[key], previous[key], next[key]);
     }
   }
 
@@ -61,18 +60,19 @@ const revertOne = (
   entry: AuditEntry,
 ): Record<string, unknown> => {
   const result = { ...current };
+  const columns = new Set([...Object.keys(entry.previousValues), ...Object.keys(entry.newValues)]);
 
-  for (const column of Object.keys(entry.previousValues)) {
-    const reverted = revertValue(
-      result[column],
-      entry.previousValues[column],
-      entry.newValues[column],
-    );
-
-    if (reverted === ABSENT) {
+  for (const column of columns) {
+    if (!(column in entry.previousValues)) {
+      // The change added this column (e.g. a smart action wrote a new field for the first time);
+      // reverting removes it rather than writing back a bogus `null`.
       delete result[column];
     } else {
-      result[column] = reverted;
+      result[column] = revertValue(
+        result[column],
+        entry.previousValues[column],
+        entry.newValues[column],
+      );
     }
   }
 

@@ -2,14 +2,21 @@ import type { AuditRecord, AuditTrailInstrumentOptions } from '../../src/audit-t
 import type { Caller } from '@forestadmin/datasource-toolkit';
 
 import InMemoryAuditStore from './in-memory-store';
-import { ABSENT, REDACTED, installAuditTrailHooks as auditTrail } from '../../src/audit-trail';
+import { REDACTED, installAuditTrailHooks as auditTrail } from '../../src/audit-trail';
 
 type AuditTrailOptions = AuditTrailInstrumentOptions;
 
 type Handler = (context: unknown) => Promise<void>;
 
 const makeCaller = (requestId = 'req-1'): Caller =>
-  ({ id: 42, email: 'jane@forest.dev', role: 'admin', requestId } as unknown as Caller);
+  ({
+    id: 42,
+    email: 'jane@forest.dev',
+    firstName: 'Jane',
+    lastName: 'Doe',
+    role: 'admin',
+    requestId,
+  } as unknown as Caller);
 
 const idFilterOperators = { filterOperators: new Set(['Equal', 'In']) };
 
@@ -52,25 +59,18 @@ function fakeCollection(
   schema: unknown = baseSchema,
 ) {
   const handlers = new Map<string, Handler>();
-  const prepends = new Map<string, boolean>();
   const list = jest.fn().mockResolvedValue(listResult);
   const collection = {
     name,
     schema,
-    addInternalHook: (
-      position: string,
-      type: string,
-      handler: Handler,
-      options?: { prepend?: boolean },
-    ) => {
+    addInternalHook: (position: string, type: string, handler: Handler) => {
       handlers.set(`${position}:${type}`, handler);
-      prepends.set(`${position}:${type}`, options?.prepend ?? false);
     },
   };
 
   const fire = (key: string, context: Record<string, unknown>) => handlers.get(key)!(context);
 
-  return { collection, handlers, prepends, list, fire, records: listResult };
+  return { collection, handlers, list, fire, records: listResult };
 }
 
 function register(collections: Array<{ collection: unknown }>, options?: AuditTrailOptions) {
@@ -80,6 +80,19 @@ function register(collections: Array<{ collection: unknown }>, options?: AuditTr
 }
 
 type Target = ReturnType<typeof fakeCollection>;
+
+// The Before:Create hook inserts one pending entry per record and keys them off the `data` array
+// reference; After:Create looks that array back up to correlate its confirm calls. Firing only
+// After:Create (as a real create never would) leaves nothing to correlate, so both must fire here
+// sharing the same `data` reference.
+async function runCreate(
+  target: Target,
+  args: { caller: Caller; records: Record<string, unknown>[] },
+) {
+  const data = args.records.map(() => ({}));
+  await target.fire('Before:Create', { caller: args.caller, data });
+  await target.fire('After:Create', { caller: args.caller, records: args.records, data });
+}
 
 async function runUpdate(
   target: Target,
@@ -124,7 +137,7 @@ async function runDelete(target: Target, args: { caller: Caller; filter?: object
 
 describe('auditTrail plugin', () => {
   describe('registration', () => {
-    it('registers exactly the five CRUD hooks on a collection', () => {
+    it('registers exactly the six CRUD hooks on a collection', () => {
       const accounts = fakeCollection('accounts');
       const sink = jest.fn();
       register([accounts], { sink });
@@ -133,20 +146,10 @@ describe('auditTrail plugin', () => {
         'After:Create',
         'After:Delete',
         'After:Update',
+        'Before:Create',
         'Before:Delete',
         'Before:Update',
       ]);
-    });
-
-    it('prepends the after-write hooks but appends the before-write ones', () => {
-      const accounts = fakeCollection('accounts');
-      register([accounts], { sink: jest.fn() });
-
-      expect(accounts.prepends.get('After:Create')).toBe(true);
-      expect(accounts.prepends.get('After:Update')).toBe(true);
-      expect(accounts.prepends.get('After:Delete')).toBe(true);
-      expect(accounts.prepends.get('Before:Update')).toBe(false);
-      expect(accounts.prepends.get('Before:Delete')).toBe(false);
     });
 
     it('instruments every collection of the datasource', () => {
@@ -154,8 +157,8 @@ describe('auditTrail plugin', () => {
       const contacts = fakeCollection('contacts');
       register([accounts, contacts], { sink: jest.fn() });
 
-      expect(accounts.handlers.size).toBe(5);
-      expect(contacts.handlers.size).toBe(5);
+      expect(accounts.handlers.size).toBe(6);
+      expect(contacts.handlers.size).toBe(6);
     });
 
     it('writes captured records to the provided store', async () => {
@@ -163,7 +166,7 @@ describe('auditTrail plugin', () => {
       const accounts = fakeCollection('accounts');
       register([accounts], { store });
 
-      await accounts.fire('After:Create', {
+      await runCreate(accounts, {
         caller: makeCaller(),
         records: [{ id: 1, status: 'open', name: 'Acme', amount: 10 }],
       });
@@ -177,11 +180,14 @@ describe('auditTrail plugin', () => {
       const init = jest.fn().mockRejectedValue(new Error('migration failed'));
       const store = {
         init,
-        append: jest.fn(),
+        insertPending: jest.fn(),
+        insertPendingBatch: jest.fn(),
+        confirm: jest.fn(),
         listByRecord: jest.fn().mockResolvedValue([]),
         countByRecord: jest.fn().mockResolvedValue(0),
         listByCorrelation: jest.fn().mockResolvedValue([]),
         listByCorrelations: jest.fn().mockResolvedValue([]),
+        listDistinctUsers: jest.fn().mockResolvedValue([]),
       };
       const accounts = fakeCollection('accounts');
 
@@ -189,7 +195,7 @@ describe('auditTrail plugin', () => {
       // migration must reject the returned promise (which the customizer awaits at start).
       const result = auditTrail({ collections: [accounts.collection] } as never, null, { store });
 
-      expect(accounts.handlers.size).toBe(5);
+      expect(accounts.handlers.size).toBe(6);
       await expect(result).rejects.toThrow('migration failed');
       expect(init).toHaveBeenCalledTimes(1);
     });
@@ -199,7 +205,7 @@ describe('auditTrail plugin', () => {
       const accounts = fakeCollection('accounts');
       register([accounts]);
 
-      await accounts.fire('After:Create', {
+      await runCreate(accounts, {
         caller: makeCaller(),
         records: [{ id: 1, status: 'open', name: 'Acme', amount: 10 }],
       });
@@ -218,7 +224,7 @@ describe('auditTrail plugin', () => {
       const accounts = fakeCollection('accounts');
       register([accounts], { sink });
 
-      await accounts.fire('After:Create', {
+      await runCreate(accounts, {
         caller: makeCaller('req-abc'),
         records: [{ id: 1, status: 'open', name: 'Acme', amount: 10 }],
       });
@@ -235,7 +241,7 @@ describe('auditTrail plugin', () => {
       const memberships = fakeCollection('memberships', [], compositeSchema);
       register([memberships], { sink });
 
-      await memberships.fire('After:Create', {
+      await runCreate(memberships, {
         caller: makeCaller(),
         records: [{ organizationId: 3, userId: 7, role: 'admin' }],
       });
@@ -254,7 +260,7 @@ describe('auditTrail plugin', () => {
       const pages = fakeCollection('pages', [], schema);
       register([pages], { sink });
 
-      await pages.fire('After:Create', {
+      await runCreate(pages, {
         caller: makeCaller(),
         records: [{ slug: 'home', name: 'Home' }],
       });
@@ -269,7 +275,7 @@ describe('auditTrail plugin', () => {
       const accounts = fakeCollection('accounts');
       register([accounts], { sink });
 
-      await accounts.fire('After:Create', {
+      await runCreate(accounts, {
         caller: makeCaller(),
         records: [{ id: 1, status: 'open', name: 'Acme', amount: 10 }],
       });
@@ -289,7 +295,7 @@ describe('auditTrail plugin', () => {
       const accounts = fakeCollection('accounts');
       register([accounts], { sink });
 
-      await accounts.fire('After:Create', {
+      await runCreate(accounts, {
         caller: makeCaller(),
         records: [{ id: 1, status: 'open', name: 'Acme', amount: 10, owner: { id: 9 } }],
       });
@@ -309,7 +315,7 @@ describe('auditTrail plugin', () => {
       const users = fakeCollection('users', [], schema);
       register([users], { sink });
 
-      await users.fire('After:Create', {
+      await runCreate(users, {
         caller: makeCaller(),
         records: [{ id: 1, name: 'Jane', fullName: 'Jane Doe' }],
       });
@@ -322,7 +328,7 @@ describe('auditTrail plugin', () => {
       const accounts = fakeCollection('accounts');
       register([accounts], { sink });
 
-      await accounts.fire('After:Create', {
+      await runCreate(accounts, {
         caller: makeCaller(),
         records: [{ id: 1, status: 'open' }],
       });
@@ -340,7 +346,7 @@ describe('auditTrail plugin', () => {
       const accounts = fakeCollection('accounts');
       register([accounts], { sink });
 
-      await accounts.fire('After:Create', {
+      await runCreate(accounts, {
         caller: makeCaller(),
         records: [{ id: 1, status: '', name: 'Acme', amount: 0 }],
       });
@@ -356,7 +362,7 @@ describe('auditTrail plugin', () => {
       const accounts = fakeCollection('accounts');
       register([accounts], { sink });
 
-      await accounts.fire('After:Create', {
+      await runCreate(accounts, {
         caller: makeCaller(),
         records: [
           { id: 1, status: 'open', name: 'Acme', amount: 10 },
@@ -385,7 +391,12 @@ describe('auditTrail plugin', () => {
         collection: { list: accounts.list },
       });
 
-      expect(accounts.list).toHaveBeenCalledWith(filter, ['id', 'status', 'name', 'amount']);
+      expect(accounts.list).toHaveBeenCalledWith({ ...filter, page: { skip: 0, limit: 1000 } }, [
+        'id',
+        'status',
+        'name',
+        'amount',
+      ]);
     });
 
     it('still builds the recordId when the primary key is read-only', async () => {
@@ -801,15 +812,15 @@ describe('auditTrail plugin', () => {
       );
     });
 
-    it('throws instead of silently merging history when the collection has no primary key', async () => {
+    it('skips a collection with no primary key instead of installing hooks that would later throw', () => {
       const sink = jest.fn();
+      const logger = jest.fn();
       const schema = { fields: { name: { type: 'Column', columnType: 'String' } } };
       const views = fakeCollection('views', [{ name: 'Acme' }], schema);
-      register([views], { sink });
+      register([views], { sink, logger });
 
-      await expect(
-        runUpdate(views, { caller: makeCaller(), patch: { name: 'Globex' } }),
-      ).rejects.toThrow('Collection must have at least one primary key');
+      expect(views.handlers.size).toBe(0);
+      expect(logger).toHaveBeenCalledWith('Warn', expect.stringContaining('"views"'));
     });
   });
 
@@ -874,7 +885,7 @@ describe('auditTrail plugin', () => {
       const records = fakeCollection('records', [], complexSchema);
       register([records], { sink });
 
-      await records.fire('After:Create', {
+      await runCreate(records, {
         caller: makeCaller(),
         records: [{ id: 1, payload: { count: 10n } }],
       });
@@ -1010,7 +1021,7 @@ describe('auditTrail plugin', () => {
       const records = fakeCollection('records', [], complexSchema);
       register([records], { sink });
 
-      await records.fire('After:Create', {
+      await runCreate(records, {
         caller: makeCaller(),
         records: [{ id: 1, ref: new FakeObjectId('abc') }],
       });
@@ -1022,7 +1033,7 @@ describe('auditTrail plugin', () => {
       expect(JSON.stringify(newValues.ref)).toBe('"abc"');
     });
 
-    it('encodes a newly added nested key as ABSENT rather than a bogus null', async () => {
+    it('omits a newly added nested key from previousValues rather than a bogus null', async () => {
       const { sink, run } = update(
         { payload: { theme: 'dark' } },
         { payload: { theme: 'dark', addedKey: 'x' } },
@@ -1031,8 +1042,23 @@ describe('auditTrail plugin', () => {
 
       expect(sink).toHaveBeenCalledWith(
         expect.objectContaining({
-          previousValues: { payload: { addedKey: ABSENT } },
+          previousValues: { payload: {} },
           newValues: { payload: { addedKey: 'x' } },
+        }),
+      );
+    });
+
+    it('omits a removed nested key from newValues rather than a bogus null', async () => {
+      const { sink, run } = update(
+        { payload: { theme: 'dark', removedKey: 'x' } },
+        { payload: { theme: 'dark' } },
+      );
+      await run();
+
+      expect(sink).toHaveBeenCalledWith(
+        expect.objectContaining({
+          previousValues: { payload: { removedKey: 'x' } },
+          newValues: { payload: {} },
         }),
       );
     });
@@ -1044,7 +1070,7 @@ describe('auditTrail plugin', () => {
       const accounts = fakeCollection('accounts');
       register([accounts], { sink, redact: { accounts: ['name'] } });
 
-      await accounts.fire('After:Create', {
+      await runCreate(accounts, {
         caller: makeCaller(),
         records: [{ id: 1, status: 'open', name: 'Acme', amount: 10 }],
       });
@@ -1106,7 +1132,7 @@ describe('auditTrail plugin', () => {
       const contacts = fakeCollection('contacts');
       register([accounts, contacts], { sink, redact: { accounts: ['name'] } });
 
-      await contacts.fire('After:Create', {
+      await runCreate(contacts, {
         caller: makeCaller(),
         records: [{ id: 1, status: 'open', name: 'Bob', amount: 0 }],
       });
@@ -1130,7 +1156,12 @@ describe('auditTrail plugin', () => {
         collection: { list: accounts.list },
       });
 
-      expect(accounts.list).toHaveBeenCalledWith(filter, ['id', 'status', 'name', 'amount']);
+      expect(accounts.list).toHaveBeenCalledWith({ ...filter, page: { skip: 0, limit: 1000 } }, [
+        'id',
+        'status',
+        'name',
+        'amount',
+      ]);
     });
 
     it('captures the full previous record and leaves newValues empty', async () => {
