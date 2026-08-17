@@ -135,9 +135,21 @@ describe('OptionsValidator', () => {
 
         expect(options.auditTrail).toMatchObject({
           connectionString: 'sqlite::memory:',
-          store: expect.objectContaining({ append: expect.any(Function) }),
+          critical: false,
+          store: expect.objectContaining({ insertPending: expect.any(Function) }),
           close: expect.any(Function),
         });
+
+        await options.auditTrail.close();
+      });
+
+      test('keeps an explicit critical: true instead of defaulting it', async () => {
+        const options = OptionsValidator.withDefaults({
+          ...mandatoryOptions,
+          auditTrail: { connectionString: 'sqlite::memory:', critical: true },
+        });
+
+        expect(options.auditTrail).toMatchObject({ critical: true });
 
         await options.auditTrail.close();
       });

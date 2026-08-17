@@ -20,6 +20,15 @@ export type AuditTrailConfig = {
    * they change, but their value is replaced with a sentinel instead of being stored.
    */
   redact?: Record<string, string[]>;
+  /**
+   * `true` refuses a write when its pending audit entry fails to record: nothing is written, no
+   * compensating write is issued. `false` (default) swallows the failure and lets the write proceed
+   * unaudited. What this buys is no unaudited write, not every row holding exact after-values — a
+   * row left `pending` means the write may or may not have landed, and that residue is evidence a
+   * write was attempted and never confirmed, which is the point.
+   * @default false
+   */
+  critical?: boolean;
 };
 
 /** Options to configure behavior of an agent's forestadmin driver */

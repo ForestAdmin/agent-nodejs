@@ -67,13 +67,23 @@ export default class AuditTrailRoute extends CollectionRoute {
       ...(fields && { fields }),
     };
 
+    // Distinct authors are scoped to the active filters but independent of the page — returned
+    // only on the first fetch (no explicit page[number]) so the front keeps the list it already
+    // saw rather than it silently drifting across pages, mirroring Forest's activity-logs route.
+    const isFirstFetch =
+      (context.request.query as Record<string, unknown>)['page[number]'] === undefined;
+
     // `count` reflects the active filters and is independent of the page.
-    const [data, count] = await Promise.all([
+    const [data, count, availableUsers] = await Promise.all([
       store.listByRecord({ ...filters, skip, limit, order }),
       store.countByRecord(filters),
+      isFirstFetch ? store.listDistinctUsers(filters) : undefined,
     ]);
 
-    context.response.body = { data, meta: { count } };
+    context.response.body = {
+      data,
+      meta: { count, ...(availableUsers && { availableUsers }) },
+    };
   }
 
   // Only audited columns are returned; read-only/computed fields are not captured in the log.

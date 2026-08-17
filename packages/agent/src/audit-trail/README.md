@@ -61,6 +61,7 @@ const agent = createAgent({
 | `schema`           | `forest`      | schema that namespaces Forest-owned tables (ignored on dialects with no schemas) |
 | `tableName`        | `audit_logs`  | name of the audit table                                                      |
 | `redact`           | `{}`          | `{ [collection]: string[] }` — field values to mask while still recording the change |
+| `critical`         | `false`       | `true` refuses a write when its pending audit entry fails to record; see [Write protocol](#write-protocol) |
 
 ### Redaction
 
@@ -78,21 +79,33 @@ auditTrail: {
 
 The `forest.audit_logs` table has one row per audited change:
 
-| column            | description                                              |
-| ----------------- | -------------------------------------------------------- |
-| `id`              | auto-increment primary key                               |
-| `timestamp`       | when the change happened                                 |
-| `operation`       | `create` / `update` / `delete` / `action` / `action_failed` |
-| `collection`      | audited collection name                                  |
-| `record_id`       | packed record id (primary keys joined with `\|`)         |
-| `user_id`         | the Forest user who made the change                      |
-| `correlation_key` | per-request correlation id (groups one request together) |
-| `previous_values` | values before the change (JSON)                          |
-| `new_values`      | values after the change (JSON)                           |
+| column               | description                                                       |
+| -------------------- | ------------------------------------------------------------------ |
+| `id`                 | auto-increment primary key; exposed in the API response too, as `id` |
+| `timestamp`          | when the change happened                                           |
+| `operation`          | `create` / `update` / `delete` / `action` / `action_failed`        |
+| `collection`         | audited collection name                                            |
+| `record_id`          | packed record id (primary keys joined with `\|`); `null` for a `create` row still `pending` (the record's id isn't assigned yet) |
+| `user_id`            | id of the Forest user who made the change                          |
+| `user_first_name`    | that user's first name, denormalized at write time                 |
+| `user_last_name`     | that user's last name, denormalized at write time                  |
+| `user_email`         | that user's email, denormalized at write time                      |
+| `action_name`        | the smart action's name, for `action` / `action_failed` rows only (`null` otherwise) |
+| `correlation_key`    | per-request correlation id (groups one request together)           |
+| `previous_values`    | values before the change (JSON)                                    |
+| `new_values`         | values after the change (JSON)                                     |
+| `status`             | `pending` or `done` — see [Write protocol](#write-protocol)         |
+
+The identity columns (`user_first_name`/`user_last_name`/`user_email`) are copied from the caller
+**at the moment of the write**, not looked up live from the current user record: a row reflects who
+acted *then*, not who holds that user id today (a renamed, deleted or reassigned account doesn't
+rewrite history).
 
 `previous_values` / `new_values` store **only the parts that actually changed**: for a JSON column,
 nested objects and arrays of objects are diffed structurally, so a single sub-field change records
-just that leaf rather than the whole document.
+just that leaf rather than the whole document. A key present on only one side (a nested field that
+was added, or one that was removed) is simply **omitted** from the other side — never written as a
+placeholder — so `'key' in previousValues` is itself the signal that the key didn't exist before.
 
 Writes initiated from inside a smart action are audited too — `context.collection.update` /
 `create` / `delete` calls go through the internal hook decorator and produce rows under the same
@@ -116,9 +129,34 @@ form and a reply, not column values, so **an action row is excluded from the `/s
 past-timestamp) route** rather than replayed as a diff — an action's effect on the data still shows
 up through the `create`/`update`/`delete` rows it produced under the same correlation key.
 
-Which action ran is not recorded here either; the Forest activity log has that, joined by
-`correlation_key`. A failure recording the invocation is logged and dropped rather than failing the
-request — the action has already run (or failed on its own) by the time it's recorded.
+Which action ran **is** recorded here, in `action_name` (unlike a create/update/delete row, where
+it's always `null`).
+
+## Write protocol
+
+Every row is written in two phases: a `pending` row is inserted **before** the write runs, carrying
+whatever is already known at that point (identity, `record_id` where it exists yet, the
+before-values); once the write resolves, that same row is updated to `status: 'done'` with the
+values the write actually produced (`operation`, final `record_id`, `previous_values`, `new_values`).
+
+This replaces a simpler fire-and-forget append after the fact, and exists for one reason: recording
+*after* the write means a broken audit store fails the request at the one moment failing is
+useless — the write already committed. Recording *before* means the request can instead be refused
+before anything happens, if that's what you want.
+
+That's what the `critical` option controls:
+
+- **`critical: false`** (default) — a failure inserting the pending row is logged and swallowed; the
+  write proceeds exactly as it does today, just without an audit entry for it.
+- **`critical: true`** — the same failure instead refuses the operation: nothing is written, no
+  compensating write is issued.
+
+What this buys is **no unaudited write, not every row holding exact after-values**. A row left
+`pending` means the write may or may not have landed — the confirm step that would have flipped it
+to `done` never ran, for whatever reason (a crash, a lost connection, the process being killed
+between the write and the confirm). That residue is evidence a write was attempted and never
+confirmed, and reading it that way is the point: don't delete a `pending` row, don't fill it in —
+its very presence tells you where to look.
 
 ## HTTP routes
 
@@ -139,6 +177,15 @@ Returns the current page of history together with the filtered total:
 ```
 
 `meta.count` reflects the active filters (not the absolute total) and is independent of the page.
+
+On the **first fetch only** (no `page[number]` given at all — an explicit `page[number]=1` does not
+count), the response also carries `meta.availableUsers`: the distinct authors matching the active
+filters, independent of pagination —
+`[{ "id": 1, "firstName": "Jane", "lastName": "Doe", "email": "jane@forest.dev" }, ...]`. Any later
+fetch (an explicit `page[number]`, whatever its value) omits the key entirely rather than sending an
+empty array, so the front is expected to keep the list it already saw — the same rule Forest's
+activity-logs route uses.
+
 Optional filters (all combine with `AND`; omitting them keeps the full history):
 
 | query param | format                            | effect                                                       |

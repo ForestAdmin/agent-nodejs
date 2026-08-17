@@ -95,7 +95,12 @@ export default class OptionsValidator {
             tableName: copyOptions.auditTrail.tableName,
           });
 
-          return { ...copyOptions.auditTrail, store, close };
+          return {
+            ...copyOptions.auditTrail,
+            critical: copyOptions.auditTrail.critical ?? false,
+            store,
+            close,
+          };
         })()
       : null;
 

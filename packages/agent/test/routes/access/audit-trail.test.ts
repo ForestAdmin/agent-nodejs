@@ -18,6 +18,7 @@ describe('AuditTrailRoute', () => {
     const store = {
       listByRecord: jest.fn().mockResolvedValue(history),
       countByRecord: jest.fn().mockResolvedValue(history.length),
+      listDistinctUsers: jest.fn().mockResolvedValue([]),
     };
     const options = factories.forestAdminHttpDriverOptions.build({
       auditTrail: { connectionString: 'sqlite::memory:', store } as never,
@@ -62,7 +63,10 @@ describe('AuditTrailRoute', () => {
       limit: 20,
       order: 'desc',
     });
-    expect(context.response.body).toEqual({ data: history, meta: { count: 1 } });
+    expect(context.response.body).toEqual({
+      data: history,
+      meta: { count: 1, availableUsers: [] },
+    });
   });
 
   test('forwards pagination from page[size]/page[number] to the store', async () => {
@@ -157,6 +161,70 @@ describe('AuditTrailRoute', () => {
       expect.not.objectContaining({ skip: expect.anything(), limit: expect.anything() }),
     );
     expect(context.response.body).toMatchObject({ meta: { count: 137 } });
+  });
+
+  describe('meta.availableUsers', () => {
+    test('fetches distinct users, scoped to the active filters, on the first fetch', async () => {
+      const { services, dataSource, options, store } = setup();
+      store.listDistinctUsers.mockResolvedValue([
+        { id: 1, firstName: 'Jane', lastName: 'Doe', email: 'jane@forest.dev' },
+      ]);
+      const route = new AuditTrailRoute(services, options, dataSource, 'books');
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: {
+          query: { timezone: 'Europe/Paris', userIds: '1' },
+          params: { id: '2' },
+        },
+      });
+
+      await route.handleHistory(context);
+
+      expect(store.listDistinctUsers).toHaveBeenCalledWith(
+        expect.objectContaining({ collection: 'books', recordId: '2', userIds: [1] }),
+      );
+      expect(context.response.body).toMatchObject({
+        meta: {
+          availableUsers: [{ id: 1, firstName: 'Jane', lastName: 'Doe', email: 'jane@forest.dev' }],
+        },
+      });
+    });
+
+    test('omits availableUsers, without querying for it, once page[number] is explicit', async () => {
+      const { services, dataSource, options, store } = setup();
+      const route = new AuditTrailRoute(services, options, dataSource, 'books');
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: {
+          query: { timezone: 'Europe/Paris', 'page[number]': '2' },
+          params: { id: '2' },
+        },
+      });
+
+      await route.handleHistory(context);
+
+      expect(store.listDistinctUsers).not.toHaveBeenCalled();
+      expect(context.response.body).not.toHaveProperty('meta.availableUsers');
+    });
+
+    test('omits availableUsers for an explicit page[number]=1 too, not just later pages', async () => {
+      // Only a truly omitted page[number] counts as "first fetch" — an explicit "1" is
+      // indistinguishable from any other explicit page once parsed, so it is treated the same.
+      const { services, dataSource, options, store } = setup();
+      const route = new AuditTrailRoute(services, options, dataSource, 'books');
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: {
+          query: { timezone: 'Europe/Paris', 'page[number]': '1' },
+          params: { id: '2' },
+        },
+      });
+
+      await route.handleHistory(context);
+
+      expect(store.listDistinctUsers).not.toHaveBeenCalled();
+      expect(context.response.body).not.toHaveProperty('meta.availableUsers');
+    });
   });
 
   test('forwards a comma-separated userIds filter as a list of integers', async () => {
@@ -597,7 +665,10 @@ describe('AuditTrailRoute', () => {
 
       expect(context.throw).not.toHaveBeenCalled();
       expect(store.listByRecord).toHaveBeenCalled();
-      expect(context.response.body).toEqual({ data: history, meta: { count: 1 } });
+      expect(context.response.body).toEqual({
+        data: history,
+        meta: { count: 1, availableUsers: [] },
+      });
     });
 
     test('intersects the scope with the record id when checking visibility', async () => {

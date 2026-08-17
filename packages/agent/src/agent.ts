@@ -468,8 +468,13 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     this.nocodeCustomizer.use(this.customizationService.addCustomizations);
 
     if (installAuditTrail && this.options.auditTrail) {
-      const { store, redact } = this.options.auditTrail;
-      this.nocodeCustomizer.use(installAuditTrailHooks, { store, redact });
+      const { store, redact, critical } = this.options.auditTrail;
+      this.nocodeCustomizer.use(installAuditTrailHooks, {
+        store,
+        redact,
+        critical,
+        logger: this.options.logger,
+      });
     }
 
     return this.nocodeCustomizer.getDataSource(this.options.logger);
