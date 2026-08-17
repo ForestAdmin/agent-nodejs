@@ -1,3 +1,20 @@
+# @forestadmin/workflow-executor [1.24.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.23.9...@forestadmin/workflow-executor@1.24.0) (2026-08-17)
+
+
+### Features
+
+* upload files through the MCP server for action File fields ([#1815](https://github.com/ForestAdmin/agent-nodejs/issues/1815)) ([f09e88c](https://github.com/ForestAdmin/agent-nodejs/commit/f09e88cd3c8c542adf2f2bb89572fbc78c11e51a))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.14.0
+* **@forestadmin/ai-proxy:** upgraded to 1.12.6
+* **@forestadmin/forestadmin-client:** upgraded to 1.42.1
+
 ## @forestadmin/workflow-executor [1.23.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.23.8...@forestadmin/workflow-executor@1.23.9) (2026-08-13)
 
 
