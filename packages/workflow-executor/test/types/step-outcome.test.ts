@@ -1,6 +1,10 @@
 import { StepType } from '../../src/types/validated/step-definition';
 import {
+  ConditionStepOutcomeSchema,
+  ErrorKindSchema,
+  GuidanceStepOutcomeSchema,
   McpStepOutcomeSchema,
+  RecordStepOutcomeSchema,
   stepTypeToOutcomeType,
 } from '../../src/types/validated/step-outcome';
 
@@ -73,6 +77,99 @@ describe('McpStepOutcomeSchema — awaitingInputReason', () => {
         ...base,
         status: 'awaiting-input',
         reason: 'needs-oauth-reauth',
+      }),
+    ).toThrow();
+  });
+});
+
+describe('ErrorKindSchema', () => {
+  // All three kinds cross the wire even though only 'operator' drives a UI branch — the vocabulary
+  // is a cross-service contract, so it is pinned here rather than by server-side validation.
+  it('accepts the three kinds of the classification vocabulary', () => {
+    expect(ErrorKindSchema.parse('operator')).toBe('operator');
+    expect(ErrorKindSchema.parse('configuration')).toBe('configuration');
+    expect(ErrorKindSchema.parse('system')).toBe('system');
+  });
+
+  it('rejects a kind outside the vocabulary', () => {
+    expect(() => ErrorKindSchema.parse('catastrophic')).toThrow();
+  });
+});
+
+describe('errorKind on step outcomes', () => {
+  const errored = { stepId: 'step-1', stepIndex: 0, status: 'error' as const, error: 'boom' };
+
+  // errorKind joins baseOutcomeFields, so a consumer reads the same key whatever the step type was.
+  it('is accepted on every outcome type', () => {
+    expect(
+      RecordStepOutcomeSchema.parse({ ...errored, type: 'record', errorKind: 'operator' })
+        .errorKind,
+    ).toBe('operator');
+    expect(
+      ConditionStepOutcomeSchema.parse({
+        ...errored,
+        type: 'condition',
+        errorKind: 'configuration',
+      }).errorKind,
+    ).toBe('configuration');
+    expect(
+      McpStepOutcomeSchema.parse({ ...errored, type: 'mcp', errorKind: 'system' }).errorKind,
+    ).toBe('system');
+    expect(
+      GuidanceStepOutcomeSchema.parse({ ...errored, type: 'guidance', errorKind: 'operator' })
+        .errorKind,
+    ).toBe('operator');
+  });
+
+  it('is absent from an unclassified error outcome', () => {
+    const parsed = RecordStepOutcomeSchema.parse({ ...errored, type: 'record' });
+
+    expect(parsed.errorKind).toBeUndefined();
+  });
+
+  it('rejects an unknown kind on an outcome', () => {
+    expect(() =>
+      RecordStepOutcomeSchema.parse({ ...errored, type: 'record', errorKind: 'user' }),
+    ).toThrow();
+  });
+});
+
+describe('errorSourceStepIndex on step outcomes', () => {
+  const errored = { stepId: 'step-1', stepIndex: 3, status: 'error' as const, error: 'boom' };
+
+  it('carries the index of the step the error is about', () => {
+    const parsed = RecordStepOutcomeSchema.parse({
+      ...errored,
+      type: 'record',
+      errorSourceStepIndex: 1,
+    });
+
+    expect(parsed.errorSourceStepIndex).toBe(1);
+  });
+
+  // The first step of a run is index 0, so the floor has to be inclusive.
+  it('accepts the first step of a run', () => {
+    const parsed = RecordStepOutcomeSchema.parse({
+      ...errored,
+      type: 'record',
+      errorSourceStepIndex: 0,
+    });
+
+    expect(parsed.errorSourceStepIndex).toBe(0);
+  });
+
+  it('is absent when the error names no source step', () => {
+    const parsed = RecordStepOutcomeSchema.parse({ ...errored, type: 'record' });
+
+    expect(parsed.errorSourceStepIndex).toBeUndefined();
+  });
+
+  it.each([-1, 1.5, '2'])('rejects %p as a step index', badIndex => {
+    expect(() =>
+      RecordStepOutcomeSchema.parse({
+        ...errored,
+        type: 'record',
+        errorSourceStepIndex: badIndex,
       }),
     ).toThrow();
   });

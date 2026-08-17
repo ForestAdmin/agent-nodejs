@@ -1,7 +1,8 @@
 import type { StepExecutionResult } from '../types/execution-context';
+import type { StepExecutionData } from '../types/step-execution-data';
 import type { CollectionSchema, FieldSchema, RecordRef } from '../types/validated/collection';
 import type { StepDefinition } from '../types/validated/step-definition';
-import type { RecordStepStatus } from '../types/validated/step-outcome';
+import type { ErrorKind, RecordStepStatus } from '../types/validated/step-outcome';
 
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 import { z } from 'zod';
@@ -15,12 +16,33 @@ import {
 import BaseStepExecutor from './base-step-executor';
 import { StepType, WORKFLOW_START_STEP_ID } from '../types/validated/step-definition';
 
+// The operator if they passed on a candidate the source step offered, whoever owns the workflow if
+// it had none to offer. An unreadable execution is as likely our own bug, so it names nobody.
+function classifyMissingSourceRecord(execution?: StepExecutionData): ErrorKind | undefined {
+  if (execution?.type !== 'load-related-record') return undefined;
+
+  const { pendingData, executionResult } = execution;
+
+  // Full AI continues without a record on its own judgment, having found no candidate to offer.
+  if (executionResult !== undefined) {
+    return 'skipped' in executionResult ? 'configuration' : undefined;
+  }
+
+  // It paused instead, so the candidates it offered say whether the operator could have chosen
+  // otherwise — and without that list there is nothing to read the situation from.
+  if (!pendingData) return undefined;
+
+  return pendingData.availableRecordIds.length > 0 ? 'operator' : 'configuration';
+}
+
 export default abstract class RecordStepExecutor<
   TStep extends StepDefinition = StepDefinition,
 > extends BaseStepExecutor<TStep> {
   protected buildOutcomeResult(outcome: {
     status: RecordStepStatus;
     error?: string;
+    errorKind?: ErrorKind;
+    errorSourceStepIndex?: number;
   }): StepExecutionResult {
     return {
       stepOutcome: {
@@ -84,7 +106,10 @@ export default abstract class RecordStepExecutor<
 
       // The source step exists but loaded nothing → clear "no source record" message,
       // distinct from a config pointing at a non-existent step.
-      throw new SourceRecordMissingError(sourceStep.stepDefinition.title);
+      throw new SourceRecordMissingError(sourceStep.stepDefinition.title, {
+        errorKind: classifyMissingSourceRecord(execution),
+        errorSourceStepIndex: sourceStep.stepOutcome.stepIndex,
+      });
     }
 
     throw new InvalidPreRecordedArgsError(`No source record found for step "${stepId}"`);

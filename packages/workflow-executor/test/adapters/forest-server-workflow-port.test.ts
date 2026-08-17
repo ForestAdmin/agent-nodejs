@@ -458,6 +458,44 @@ describe('ForestServerWorkflowPort', () => {
       );
     });
 
+    it('posts the classification and the source step alongside the error', async () => {
+      mockQuery.mockResolvedValue(undefined);
+      const stepOutcome: StepOutcome = {
+        type: 'record',
+        stepId: 'step-1',
+        stepIndex: 1,
+        status: 'error',
+        error: 'boom',
+        errorKind: 'operator',
+        errorSourceStepIndex: 0,
+      };
+
+      await port.updateStepExecution('42', stepOutcome);
+
+      expect(mockQuery).toHaveBeenCalledWith(
+        options,
+        'post',
+        '/api/workflow-orchestrator/update-step',
+        {},
+        {
+          runId: 42,
+          stepUpdate: {
+            stepIndex: 1,
+            attributes: {
+              done: true,
+              context: {
+                status: 'error',
+                error: 'boom',
+                errorKind: 'operator',
+                errorSourceStepIndex: 0,
+              },
+            },
+          },
+          executionStatus: { type: 'error', message: 'boom' },
+        },
+      );
+    });
+
     it('posts the mapped body for an awaiting-input outcome', async () => {
       mockQuery.mockResolvedValue(undefined);
       const stepOutcome: StepOutcome = {

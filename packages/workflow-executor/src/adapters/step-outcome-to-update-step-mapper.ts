@@ -27,6 +27,12 @@ export default function toUpdateStepRequest(
 ): ServerUpdateStepRequest {
   const context: Record<string, unknown> = { status: outcome.status };
   if (outcome.error !== undefined) context.error = outcome.error;
+  if (outcome.errorKind !== undefined) context.errorKind = outcome.errorKind;
+
+  // Index 0 is a real step, so this cannot be a truthiness check.
+  if (outcome.errorSourceStepIndex !== undefined) {
+    context.errorSourceStepIndex = outcome.errorSourceStepIndex;
+  }
 
   if (outcome.type === 'condition' && outcome.selectedOption !== undefined) {
     context.selectedOption = outcome.selectedOption;

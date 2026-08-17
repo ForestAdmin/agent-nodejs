@@ -1,11 +1,33 @@
+import type { WorkflowExecutorError } from '../src/errors';
+
 import {
+  ActionFormValidationError,
+  ActionNotFoundError,
+  ActionRequiresApprovalError,
+  AgentPortError,
   AiModelPortError,
+  FieldNotFoundError,
+  FieldTypeMissingError,
+  InvalidAiRequestError,
   InvalidPendingDataError,
+  InvalidPreRecordedArgsError,
+  MissingToolCallError,
+  NoActionsError,
   NoMcpToolsError,
+  NoReadableFieldsError,
+  NoRecordsError,
+  NoRelationshipFieldsError,
+  NoWritableFieldsError,
   OAuthInvalidGrantError,
   OAuthReauthRequiredError,
   OAuthRefreshError,
   PendingDataNotFoundError,
+  RecordNotFoundError,
+  RelatedRecordNotFoundError,
+  RelationNotFoundError,
+  SourceRecordMissingError,
+  StepStateError,
+  StepTimeoutError,
   causeMessage,
   extractErrorMessage,
 } from '../src/errors';
@@ -197,5 +219,76 @@ describe('OAuthRefreshError', () => {
 describe('OAuthInvalidGrantError', () => {
   it('includes the detail when provided', () => {
     expect(new OAuthInvalidGrantError('token expired').message).toMatch(/token expired/);
+  });
+});
+
+describe('errorKind classification', () => {
+  // The operator can resolve these themselves — nothing is broken in the workflow or the agent.
+  it.each<[string, WorkflowExecutorError]>([
+    ['NoRecordsError', new NoRecordsError()],
+    ['RecordNotFoundError', new RecordNotFoundError('customers', [42])],
+    ['RelatedRecordNotFoundError', new RelatedRecordNotFoundError('customers', 'orders')],
+    ['ActionFormValidationError', new ActionFormValidationError('send-welcome-email')],
+    ['ActionRequiresApprovalError', new ActionRequiresApprovalError('send-welcome-email')],
+  ])('classifies %s as operator', (_, error) => {
+    expect(error.errorKind).toBe('operator');
+  });
+
+  // The workflow or the Forest Admin schema needs an edit, which the operator running the step cannot
+  // do. Every member's own userMessage already says so; the kind only makes it machine-readable.
+  it.each<[string, WorkflowExecutorError]>([
+    ['FieldNotFoundError', new FieldNotFoundError('emailz', 'customers')],
+    ['ActionNotFoundError', new ActionNotFoundError('sned-email', 'customers')],
+    ['RelationNotFoundError', new RelationNotFoundError('orderz', 'customers')],
+    ['NoActionsError', new NoActionsError('customers')],
+    ['NoWritableFieldsError', new NoWritableFieldsError('customers')],
+    ['NoReadableFieldsError', new NoReadableFieldsError('customers')],
+    ['NoRelationshipFieldsError', new NoRelationshipFieldsError('customers')],
+    ['FieldTypeMissingError', new FieldTypeMissingError('status', 'customers')],
+    ['InvalidAiRequestError', new InvalidAiRequestError('SystemMessage at position 3')],
+    ['InvalidPreRecordedArgsError', new InvalidPreRecordedArgsError('no record at step index 4')],
+  ])('classifies %s as configuration', (_, error) => {
+    expect(error.errorKind).toBe('configuration');
+  });
+
+  // Unclassified is the starting default: an error nobody has triaged keeps today's framing.
+  it.each<[string, WorkflowExecutorError]>([
+    ['StepTimeoutError', new StepTimeoutError(30)],
+    ['AgentPortError', new AgentPortError('getRecord', new Error('ECONNREFUSED'))],
+    ['AiModelPortError', new AiModelPortError('invoke', new Error('timeout'))],
+    ['MissingToolCallError', new MissingToolCallError()],
+    ['StepStateError', new StepStateError('Step at index 0 has no pending data')],
+  ])('leaves %s unclassified', (_, error) => {
+    expect(error.errorKind).toBeUndefined();
+  });
+
+  describe('SourceRecordMissingError', () => {
+    it('is unclassified and names no source step by default', () => {
+      const error = new SourceRecordMissingError('Load the order');
+
+      expect(error.errorKind).toBeUndefined();
+      expect(error.errorSourceStepIndex).toBeUndefined();
+    });
+
+    // The only error whose kind depends on why it was thrown: the throw site is the one place that
+    // knows whether the operator had a candidate to pick.
+    it.each(['operator', 'configuration'] as const)(
+      'takes the %s kind from the throw site',
+      kind => {
+        const error = new SourceRecordMissingError('Load the order', { errorKind: kind });
+
+        expect(error.errorKind).toBe(kind);
+        expect(error.userMessage).toContain("didn't load any record");
+      },
+    );
+
+    it('carries the index of the source step the guard resolved', () => {
+      const error = new SourceRecordMissingError('Load the order', {
+        errorKind: 'operator',
+        errorSourceStepIndex: 4,
+      });
+
+      expect(error.errorSourceStepIndex).toBe(4);
+    });
   });
 });
