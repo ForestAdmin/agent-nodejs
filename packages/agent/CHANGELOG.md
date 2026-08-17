@@ -1,3 +1,23 @@
+# @forestadmin/agent [1.95.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.94.1...@forestadmin/agent@1.95.0) (2026-08-17)
+
+
+### Features
+
+* upload files through the MCP server for action File fields ([#1815](https://github.com/ForestAdmin/agent-nodejs/issues/1815)) ([f09e88c](https://github.com/ForestAdmin/agent-nodejs/commit/f09e88cd3c8c542adf2f2bb89572fbc78c11e51a))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.70.1
+* **@forestadmin/datasource-toolkit:** upgraded to 1.55.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.42.1
+* **@forestadmin/mcp-server:** upgraded to 1.22.0
+* **@forestadmin/datasource-sql:** upgraded to 1.17.12
+* **@forestadmin/workflow-executor:** upgraded to 1.24.0
+
 ## @forestadmin/agent [1.94.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.94.0...@forestadmin/agent@1.94.1) (2026-08-13)
 
 
