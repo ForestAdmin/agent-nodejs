@@ -323,9 +323,10 @@ describe('ForestServerWorkflowPort', () => {
     it('reports and logs when the mapping throws a non-WorkflowExecutorError', async () => {
       const logger = jest.fn();
       const portWithLogger = new ForestServerWorkflowPort({ ...options, logger });
-      // Simulate a non-domain error by passing a run whose workflowHistory will
-      // blow up a pure JS operation inside the mapper (missing `find` on non-array).
-      const brokenRun = { ...makeRun({ id: 111 }), workflowHistory: null as never };
+      // A non-array object, not null: it blows up the mapper the same way, but also makes
+      // toMalformedInfo throw a second time if that guards with `?.` instead of Array.isArray —
+      // which would abort the whole batch rather than reporting this run.
+      const brokenRun = { ...makeRun({ id: 111 }), workflowHistory: {} as never };
       mockQuery.mockResolvedValue([brokenRun]);
 
       const result = await portWithLogger.getAvailableRuns();
@@ -445,7 +446,7 @@ describe('ForestServerWorkflowPort', () => {
     it('wraps a non-WorkflowExecutorError in MalformedRunError so the Runner still reports', async () => {
       const logger = jest.fn();
       const portWithLogger = new ForestServerWorkflowPort({ ...options, logger });
-      mockQuery.mockResolvedValue({ ...makeRun({ id: 112 }), workflowHistory: null as never });
+      mockQuery.mockResolvedValue({ ...makeRun({ id: 112 }), workflowHistory: {} as never });
 
       await expect(portWithLogger.getAvailableRun('112')).rejects.toMatchObject({
         name: 'MalformedRunError',

@@ -147,9 +147,9 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
   }
 
   private toMalformedInfo(run: ServerHydratedWorkflowRun, err: unknown): MalformedRunInfo {
-    // Optional chaining is load-bearing: this runs inside a catch block, and a run with a
-    // non-array workflowHistory is exactly what lands here. Throwing would kill the whole batch.
-    const pending = run.workflowHistory?.at(-1) ?? null;
+    // Array.isArray, not `?.`: this runs inside a catch block and a malformed workflowHistory is
+    // exactly what lands here. `?.` would still throw on {} and silently index a string.
+    const pending = Array.isArray(run.workflowHistory) ? run.workflowHistory.at(-1) ?? null : null;
 
     return {
       runId: String(run.id),
