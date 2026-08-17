@@ -45,15 +45,27 @@ export default async function withActivityLog<T>(options: WithActivityLogOptions
 
   const activityLog = await createPendingActivityLog(forestServerClient, request, action, context);
 
+  // Null means the server dropped the audit write for a read action (fail-open):
+  // proceed without status tracking rather than blocking the read surface.
+  if (!activityLog) {
+    logger(
+      'Warn',
+      `Activity log for '${action}' was not persisted by the server; ` +
+        'proceeding without audit trail for this read operation.',
+    );
+  }
+
   try {
     const result = await operation();
 
-    markActivityLogAsSucceeded({
-      forestServerClient,
-      request,
-      activityLog,
-      logger,
-    });
+    if (activityLog) {
+      markActivityLogAsSucceeded({
+        forestServerClient,
+        request,
+        activityLog,
+        logger,
+      });
+    }
 
     return result;
   } catch (error) {
@@ -74,12 +86,14 @@ export default async function withActivityLog<T>(options: WithActivityLogOptions
       }
     }
 
-    markActivityLogAsFailed({
-      forestServerClient,
-      request,
-      activityLog,
-      logger,
-    });
+    if (activityLog) {
+      markActivityLogAsFailed({
+        forestServerClient,
+        request,
+        activityLog,
+        logger,
+      });
+    }
 
     throw new Error(errorMessage);
   }

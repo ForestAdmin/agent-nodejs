@@ -52,14 +52,21 @@ export default async function createPendingActivityLog(
     label: extra?.label,
   });
 
-  // Fail-closed: the server answers HTTP 200 with a null id when the audit write is dropped
-  // (audit store down, or a collection that no longer exists). Reject so callers relying on
-  // withActivityLog block the operation instead of proceeding with no audit trail.
+  // The server answers HTTP 200 with a null id when the audit write is dropped
+  // (audit store down, or a collection that no longer exists). Write actions are
+  // fail-closed: reject so withActivityLog blocks the operation instead of proceeding
+  // with no audit trail. Read actions are fail-open: return null so the operation
+  // proceeds (skipping status tracking) — an audit-store outage must not take down
+  // the whole read surface.
   if (activityLog?.id === null || activityLog?.id === undefined) {
-    throw new Error(
-      'Failed to create activity log: the server returned no activity log id. ' +
-        'Blocking the operation to preserve the audit trail.',
-    );
+    if (type === 'write') {
+      throw new Error(
+        'Failed to create activity log: the server returned no activity log id. ' +
+          'Blocking the operation to preserve the audit trail.',
+      );
+    }
+
+    return null;
   }
 
   return activityLog;

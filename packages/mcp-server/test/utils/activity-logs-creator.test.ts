@@ -256,23 +256,26 @@ describe('createPendingActivityLog', () => {
       ).resolves.not.toThrow();
     });
 
-    it('should reject when the server returns a 200 with a null id (fail-closed)', async () => {
-      mockForestServerClient.createMcpActivityLog.mockResolvedValue({
-        id: null,
-        attributes: {},
-      } as never);
+    it.each<ActivityLogAction>(['action', 'create', 'update', 'delete', 'triggerWorkflow'])(
+      'should reject when the server returns a 200 with a null id for write action "%s" (fail-closed)',
+      async action => {
+        mockForestServerClient.createMcpActivityLog.mockResolvedValue({
+          id: null,
+          attributes: {},
+        } as never);
 
-      const request = createMockRequest();
+        const request = createMockRequest();
 
-      await expect(
-        createPendingActivityLog(mockForestServerClient, request, 'triggerWorkflow'),
-      ).rejects.toThrow(
-        'Failed to create activity log: the server returned no activity log id. ' +
-          'Blocking the operation to preserve the audit trail.',
-      );
-    });
+        await expect(
+          createPendingActivityLog(mockForestServerClient, request, action),
+        ).rejects.toThrow(
+          'Failed to create activity log: the server returned no activity log id. ' +
+            'Blocking the operation to preserve the audit trail.',
+        );
+      },
+    );
 
-    it('should reject when the server returns a response with an undefined id (fail-closed)', async () => {
+    it('should reject when the server returns a response with an undefined id for a write action (fail-closed)', async () => {
       mockForestServerClient.createMcpActivityLog.mockResolvedValue({
         attributes: {},
       } as never);
@@ -283,6 +286,28 @@ describe('createPendingActivityLog', () => {
         createPendingActivityLog(mockForestServerClient, request, 'triggerWorkflow'),
       ).rejects.toThrow('the server returned no activity log id');
     });
+
+    it.each<ActivityLogAction>([
+      'index',
+      'search',
+      'filter',
+      'listRelatedData',
+      'describeCollection',
+    ])(
+      'should resolve to null when the server returns a 200 with a null id for read action "%s" (fail-open)',
+      async action => {
+        mockForestServerClient.createMcpActivityLog.mockResolvedValue({
+          id: null,
+          attributes: {},
+        } as never);
+
+        const request = createMockRequest();
+
+        await expect(
+          createPendingActivityLog(mockForestServerClient, request, action),
+        ).resolves.toBeNull();
+      },
+    );
   });
 });
 
