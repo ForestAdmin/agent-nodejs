@@ -788,8 +788,49 @@ export default class ForestMCPServer {
    * Run the MCP server as a standalone HTTP server.
    */
   async run(): Promise<void> {
-    const port = Number(process.env.MCP_SERVER_PORT) || 3931;
-    const baseUrl = new URL(`http://localhost:${port}`);
+    // Parsed before defaulting: `Number(x) || 3931` turns port 0, which means "any free port",
+    // into 3931. A configured FOREST_MCP_SERVER_URL also replaces the default url, so nothing else
+    // parses the port either.
+    const rawPort = process.env.MCP_SERVER_PORT;
+    const port = rawPort ? Number(rawPort) : 3931;
+    const configuredUrl = process.env.FOREST_MCP_SERVER_URL;
+
+    if (!Number.isInteger(port) || port < 0 || port > 65535) {
+      throw new Error(
+        `Invalid MCP_SERVER_PORT "${rawPort}": expected an integer between 0 and 65535.`,
+      );
+    }
+
+    // The url is built here, before listen() picks the port, so 0 cannot appear in it.
+    if (port === 0 && !configuredUrl) {
+      throw new Error(
+        'MCP_SERVER_PORT=0 binds a port chosen by the OS, which cannot be in the url advertised ' +
+          'to clients. Set FOREST_MCP_SERVER_URL to the public url they should use.',
+      );
+    }
+
+    const publicUrl = configuredUrl || `http://localhost:${port}`;
+    const baseUrl = URL.canParse(publicUrl) ? new URL(publicUrl) : undefined;
+
+    // Origin only: the OAuth endpoints are concatenated onto this href, the uploads base resolves
+    // against it.
+    if (
+      !baseUrl ||
+      !['http:', 'https:'].includes(baseUrl.protocol) ||
+      baseUrl.href !== `${baseUrl.origin}/`
+    ) {
+      // Never the raw value: it may carry credentials. `origin` is "null" for an opaque scheme,
+      // which is what a forgotten scheme parses as.
+      const shown =
+        baseUrl && baseUrl.origin !== 'null'
+          ? baseUrl.origin
+          : publicUrl.slice(publicUrl.lastIndexOf('@') + 1);
+
+      throw new Error(
+        `Invalid FOREST_MCP_SERVER_URL "${shown}": expected an http(s) origin with no path, ` +
+          'query, fragment or credentials, e.g. https://mcp.example.com',
+      );
+    }
 
     const app = await this.buildExpressApp(baseUrl);
 
@@ -797,7 +838,18 @@ export default class ForestMCPServer {
     this.httpServer = http.createServer(app);
 
     this.httpServer.listen(port, () => {
-      this.logger('Info', `Forest Admin MCP Server running on http://localhost:${port}`);
+      this.logger(
+        'Info',
+        `Forest Admin MCP Server running on port ${port}, advertising ${baseUrl.href}`,
+      );
+
+      if (!configuredUrl) {
+        this.logger(
+          'Warn',
+          `Advertising http://localhost:${port} to clients. Deployed behind a public url? Set ` +
+            'FOREST_MCP_SERVER_URL, or remote OAuth and file uploads will point at localhost.',
+        );
+      }
     });
   }
 }
