@@ -265,22 +265,27 @@ The `audit_logs` table is created and evolved through versioned
 [Umzug](https://github.com/sequelize/umzug) migrations rather than `sync()`, so schema changes are
 actually applied to existing databases (a plain "create if not exists" would silently skip them).
 
-- Applied migrations are tracked in a dedicated `forest.audit_migrations` table, kept separate from
-  the default `SequelizeMeta` so it never shares migration state with another component writing to
-  the same database.
+- Applied migrations are tracked in a dedicated `{tableName}_migration` table (e.g.
+  `audit_logs_migration`), scoped per `tableName` so two stores configured with different table
+  names in the same schema never share migration state, and kept separate from the default
+  `SequelizeMeta` so it never shares migration state with another component writing to the same
+  database.
+- Each migration's name is qualified with the schema and table it targets — e.g.
+  `forest.audit_logs:001-create-audit-logs` — so it's self-descriptive when read directly out of
+  that table, without needing to already know which physical table you're looking at.
 - Pending migrations run automatically when the agent starts (`agent.start()` awaits the bootstrap
   before mounting the router).
 - **Multiple instances:** on Postgres the migrations run inside a transaction-scoped advisory lock,
   so several agents booting at once apply them one after another instead of racing on the same
-  DDL — the losers block on the lock, then find the migrations already applied and continue. The
+  DDL — the losers block on the lock, then find the migration already applied and continue. The
   `forest` schema is created (and committed) first, before the lock, since the migration runner
   opens its own connection and would not see an uncommitted `CREATE SCHEMA`; that step is made
   idempotent (existence check + tolerating a concurrent "already exists").
 
-**Evolving the table (maintainers):** append a new entry to the `migrations` array in
+**Evolving the table (maintainers):** append a new migration to the array built in
 `packages/agent/src/audit-trail/migrations.ts` and update the model in `sql-store.ts` to match.
-Never edit, reorder or delete an existing migration, and keep changes additive/backward-compatible
-— the connection string may point at the customer's own database.
+Never edit, reorder or delete an existing migration once it has shipped, and keep changes
+additive/backward-compatible — the connection string may point at the customer's own database.
 
 ## Notes
 

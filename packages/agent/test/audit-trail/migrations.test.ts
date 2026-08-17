@@ -56,28 +56,30 @@ describe('runAuditMigrations (sqlite)', () => {
     await sequelize.close();
   });
 
-  it('records the applied migration and is idempotent across runs', async () => {
+  it('records the applied migration, qualified by schema and table, and is idempotent across runs', async () => {
+    const sequelize = new Sequelize('sqlite::memory:', { logging: false });
+
+    await runAuditMigrations(sequelize, { schema: 'forest', tableName: 'audit_logs' });
+    // A second run must not throw nor re-apply the migration.
+    await expect(
+      runAuditMigrations(sequelize, { schema: 'forest', tableName: 'audit_logs' }),
+    ).resolves.toBeUndefined();
+
+    // sqlite has no real schema/catalog separation: Sequelize represents a schema-qualified table
+    // as a single literal identifier joining schema and table name with a dot.
+    const [applied] = await sequelize.query('SELECT name FROM "forest.audit_logs_migration"');
+    expect(applied).toEqual([{ name: 'forest.audit_logs:001-create-audit-logs' }]);
+
+    await sequelize.close();
+  });
+
+  it('qualifies the migration name by table only when no schema is configured', async () => {
     const sequelize = new Sequelize('sqlite::memory:', { logging: false });
 
     await runAuditMigrations(sequelize, { tableName: 'audit_logs' });
-    // A second run must not throw nor re-apply the migrations.
-    await expect(
-      runAuditMigrations(sequelize, { tableName: 'audit_logs' }),
-    ).resolves.toBeUndefined();
 
-    const [applied] = await sequelize.query(
-      'SELECT name FROM "audit_logs_migrations" ORDER BY name',
-    );
-    expect(applied).toEqual([
-      { name: '001-create-audit-logs' },
-      { name: '002-index-record-and-correlation' },
-      { name: '003-widen-record-id' },
-      { name: '004-add-user-identity-columns' },
-      { name: '005-add-action-name' },
-      { name: '006-add-status' },
-      { name: '007-record-id-nullable' },
-      { name: '008-timestamp-millisecond-precision' },
-    ]);
+    const [applied] = await sequelize.query('SELECT name FROM "audit_logs_migration"');
+    expect(applied).toEqual([{ name: 'audit_logs:001-create-audit-logs' }]);
 
     await sequelize.close();
   });
@@ -101,7 +103,7 @@ describe('runAuditMigrations (sqlite)', () => {
     await sequelize.close();
   });
 
-  it('widens record_id to TEXT so a long packed composite id round-trips', async () => {
+  it('creates record_id as TEXT so a long packed composite id round-trips', async () => {
     const sequelize = new Sequelize('sqlite::memory:', { logging: false });
     await runAuditMigrations(sequelize, { tableName: 'audit_logs' });
 
@@ -123,8 +125,8 @@ describe('runAuditMigrations (sqlite)', () => {
     const sequelize = new Sequelize('sqlite::memory:', { logging: false });
 
     await runAuditMigrations(sequelize, { tableName: 'audit_logs' });
-    // A second, differently-named table must still get its own migrations applied rather than
-    // Umzug treating them as already-done because of the first table's migration state.
+    // A second, differently-named table must still get its own migration applied rather than
+    // Umzug treating it as already-done because of the first table's migration state.
     await runAuditMigrations(sequelize, { tableName: 'other_audit_logs' });
 
     const description = await sequelize.getQueryInterface().describeTable('other_audit_logs');
@@ -135,46 +137,22 @@ describe('runAuditMigrations (sqlite)', () => {
 
   it('tolerates the table and indexes already existing from a concurrent-boot race', async () => {
     const sequelize = new Sequelize('sqlite::memory:', { logging: false });
-    // Simulate a partial prior run: the table and its migration 003 column width are already in
-    // place, but nothing was logged as applied yet.
+    // Simulate a partial prior run: the table is already in place, but nothing was logged as
+    // applied yet.
     await runAuditMigrations(sequelize, { tableName: 'audit_logs' });
-    await sequelize.query('DELETE FROM "audit_logs_migrations"');
+    await sequelize.query('DELETE FROM "audit_logs_migration"');
 
     await expect(
       runAuditMigrations(sequelize, { tableName: 'audit_logs' }),
     ).resolves.toBeUndefined();
 
-    const [applied] = await sequelize.query(
-      'SELECT name FROM "audit_logs_migrations" ORDER BY name',
-    );
-    expect(applied).toHaveLength(8);
+    const [applied] = await sequelize.query('SELECT name FROM "audit_logs_migration"');
+    expect(applied).toHaveLength(1);
 
     await sequelize.close();
   });
 
-  it('backfills every pre-existing row to status "done"', async () => {
-    const sequelize = new Sequelize('sqlite::memory:', { logging: false });
-    const umzug = buildUmzug(sequelize, { tableName: 'audit_logs' });
-
-    // Land right after 003, before `status` exists, then insert a row the way an agent on an
-    // older version would have — before running the rest of the migrations.
-    await umzug.up({ to: '003-widen-record-id' });
-    await sequelize.query(
-      'INSERT INTO audit_logs ' +
-        '(timestamp, operation, collection, record_id, previous_values, new_values) ' +
-        "VALUES (:timestamp, 'update', 'accounts', '1', '{}', '{}')",
-      { replacements: { timestamp: new Date().toISOString() } },
-    );
-
-    await umzug.up();
-
-    const [rows] = await sequelize.query('SELECT status FROM audit_logs');
-    expect(rows).toEqual([{ status: 'done' }]);
-
-    await sequelize.close();
-  });
-
-  it('rejects a pre-existing table sharing the name that is missing core audit columns', async () => {
+  it('rejects a pre-existing table sharing the name that is missing audit-trail columns', async () => {
     const sequelize = new Sequelize('sqlite::memory:', { logging: false });
     await sequelize.getQueryInterface().createTable('audit_logs', {
       // A customer's own unrelated table, coincidentally named the same.
@@ -185,23 +163,6 @@ describe('runAuditMigrations (sqlite)', () => {
     await expect(runAuditMigrations(sequelize, { tableName: 'audit_logs' })).rejects.toThrow(
       /does not look like a Forest audit-trail table/,
     );
-
-    await sequelize.close();
-  });
-
-  it('accepts a genuine, older audit table missing only later columns', async () => {
-    const sequelize = new Sequelize('sqlite::memory:', { logging: false });
-    const umzug = buildUmzug(sequelize, { tableName: 'audit_logs' });
-    // A table created by an earlier agent version, missing every column added since.
-    await umzug.up({ to: '001-create-audit-logs' });
-    await sequelize.query('DELETE FROM "audit_logs_migrations"');
-
-    await expect(
-      runAuditMigrations(sequelize, { tableName: 'audit_logs' }),
-    ).resolves.toBeUndefined();
-
-    const description = await sequelize.getQueryInterface().describeTable('audit_logs');
-    expect(Object.keys(description)).toContain('status');
 
     await sequelize.close();
   });
@@ -230,8 +191,8 @@ describe('ensureAuditStorage + insert (sqlite end to end)', () => {
   });
 });
 
-describe('buildUmzug (down migrations)', () => {
-  it('reverts all three migrations, dropping the table', async () => {
+describe('buildUmzug (down migration)', () => {
+  it('reverts the migration, dropping the table', async () => {
     const sequelize = new Sequelize('sqlite::memory:', { logging: false });
     const umzug = buildUmzug(sequelize, { tableName: 'audit_logs' });
 
@@ -239,32 +200,6 @@ describe('buildUmzug (down migrations)', () => {
     await umzug.down({ to: 0 } as const);
 
     await expect(sequelize.getQueryInterface().describeTable('audit_logs')).rejects.toThrow();
-
-    await sequelize.close();
-  });
-
-  it('reverts down to migration 002, restoring the narrower record_id column and its index', async () => {
-    const sequelize = new Sequelize('sqlite::memory:', { logging: false });
-    const umzug = buildUmzug(sequelize, { tableName: 'audit_logs' });
-
-    await umzug.up();
-    // Reverts 008 through 003 (six migrations), landing right after 002 — same end state the
-    // original single-migration revert asserted, back when 003 was still the last migration.
-    await umzug.down({ step: 6 });
-
-    const description = await sequelize.getQueryInterface().describeTable('audit_logs');
-    expect(description.record_id.type).not.toBe('TEXT');
-
-    const indexes = (await sequelize.getQueryInterface().showIndex('audit_logs')) as Array<{
-      name: string;
-    }>;
-    expect(indexes.map(index => index.name)).toEqual(
-      expect.arrayContaining([
-        'audit_logs_record_id',
-        'audit_logs_correlation_key',
-        'audit_logs_user_id',
-      ]),
-    );
 
     await sequelize.close();
   });

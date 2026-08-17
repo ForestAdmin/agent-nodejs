@@ -34,8 +34,8 @@ export function defineAuditLogModel(
       operation: { type: DataTypes.STRING, allowNull: false },
       collection: { type: DataTypes.STRING, allowNull: false },
       // TEXT, not STRING (VARCHAR(255)): a packed composite-id can exceed 255 characters, and the
-      // column is created as such by migration 003 — this must match. Nullable: a pending create's
-      // row has no id yet, since the record doesn't exist until the write resolves.
+      // migration creates the column as such — this must match. Nullable: a pending create's row
+      // has no id yet, since the record doesn't exist until the write resolves.
       recordId: { type: DataTypes.TEXT, allowNull: true },
       userId: { type: DataTypes.INTEGER, allowNull: true },
       // Denormalised from the caller at write time — who acted then, not who holds that id today.
