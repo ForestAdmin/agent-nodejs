@@ -1,4 +1,4 @@
-import type { AuditRecord } from '../../src/audit-trail';
+import type { AuditStatus, PendingAuditRecord } from '../../src/audit-trail';
 
 import { Sequelize } from 'sequelize';
 
@@ -10,15 +10,22 @@ import {
   runAuditMigrations,
 } from '../../src/audit-trail/migrations';
 
-const record = (over: Partial<AuditRecord> = {}): AuditRecord => ({
+type StoredRecord = PendingAuditRecord & { status: AuditStatus };
+
+const record = (over: Partial<StoredRecord> = {}): StoredRecord => ({
   timestamp: '2026-01-02T03:04:05.000Z',
   operation: 'update',
   collection: 'accounts',
   recordId: '1',
   userId: 42,
+  userFirstName: 'Jane',
+  userLastName: 'Doe',
+  userEmail: 'jane.doe@forest.dev',
+  actionName: null,
   correlationKey: 'req-1',
   previousValues: { status: 'open' },
   newValues: { status: 'closed' },
+  status: 'done',
   ...over,
 });
 
@@ -30,6 +37,7 @@ describe('runAuditMigrations (sqlite)', () => {
 
     const description = await sequelize.getQueryInterface().describeTable('audit_logs');
     expect(Object.keys(description).sort()).toEqual([
+      'action_name',
       'collection',
       'correlation_key',
       'id',
@@ -37,8 +45,12 @@ describe('runAuditMigrations (sqlite)', () => {
       'operation',
       'previous_values',
       'record_id',
+      'status',
       'timestamp',
+      'user_email',
+      'user_first_name',
       'user_id',
+      'user_last_name',
     ]);
 
     await sequelize.close();
@@ -60,6 +72,11 @@ describe('runAuditMigrations (sqlite)', () => {
       { name: '001-create-audit-logs' },
       { name: '002-index-record-and-correlation' },
       { name: '003-widen-record-id' },
+      { name: '004-add-user-identity-columns' },
+      { name: '005-add-action-name' },
+      { name: '006-add-status' },
+      { name: '007-record-id-nullable' },
+      { name: '008-timestamp-millisecond-precision' },
     ]);
 
     await sequelize.close();
@@ -130,7 +147,61 @@ describe('runAuditMigrations (sqlite)', () => {
     const [applied] = await sequelize.query(
       'SELECT name FROM "audit_logs_migrations" ORDER BY name',
     );
-    expect(applied).toHaveLength(3);
+    expect(applied).toHaveLength(8);
+
+    await sequelize.close();
+  });
+
+  it('backfills every pre-existing row to status "done"', async () => {
+    const sequelize = new Sequelize('sqlite::memory:', { logging: false });
+    const umzug = buildUmzug(sequelize, { tableName: 'audit_logs' });
+
+    // Land right after 003, before `status` exists, then insert a row the way an agent on an
+    // older version would have — before running the rest of the migrations.
+    await umzug.up({ to: '003-widen-record-id' });
+    await sequelize.query(
+      'INSERT INTO audit_logs ' +
+        '(timestamp, operation, collection, record_id, previous_values, new_values) ' +
+        "VALUES (:timestamp, 'update', 'accounts', '1', '{}', '{}')",
+      { replacements: { timestamp: new Date().toISOString() } },
+    );
+
+    await umzug.up();
+
+    const [rows] = await sequelize.query('SELECT status FROM audit_logs');
+    expect(rows).toEqual([{ status: 'done' }]);
+
+    await sequelize.close();
+  });
+
+  it('rejects a pre-existing table sharing the name that is missing core audit columns', async () => {
+    const sequelize = new Sequelize('sqlite::memory:', { logging: false });
+    await sequelize.getQueryInterface().createTable('audit_logs', {
+      // A customer's own unrelated table, coincidentally named the same.
+      id: { type: 'INTEGER', primaryKey: true, autoIncrement: true },
+      note: { type: 'TEXT' },
+    });
+
+    await expect(runAuditMigrations(sequelize, { tableName: 'audit_logs' })).rejects.toThrow(
+      /does not look like a Forest audit-trail table/,
+    );
+
+    await sequelize.close();
+  });
+
+  it('accepts a genuine, older audit table missing only later columns', async () => {
+    const sequelize = new Sequelize('sqlite::memory:', { logging: false });
+    const umzug = buildUmzug(sequelize, { tableName: 'audit_logs' });
+    // A table created by an earlier agent version, missing every column added since.
+    await umzug.up({ to: '001-create-audit-logs' });
+    await sequelize.query('DELETE FROM "audit_logs_migrations"');
+
+    await expect(
+      runAuditMigrations(sequelize, { tableName: 'audit_logs' }),
+    ).resolves.toBeUndefined();
+
+    const description = await sequelize.getQueryInterface().describeTable('audit_logs');
+    expect(Object.keys(description)).toContain('status');
 
     await sequelize.close();
   });
@@ -172,12 +243,14 @@ describe('buildUmzug (down migrations)', () => {
     await sequelize.close();
   });
 
-  it('reverts only migration 003, restoring the narrower record_id column and its index', async () => {
+  it('reverts down to migration 002, restoring the narrower record_id column and its index', async () => {
     const sequelize = new Sequelize('sqlite::memory:', { logging: false });
     const umzug = buildUmzug(sequelize, { tableName: 'audit_logs' });
 
     await umzug.up();
-    await umzug.down({ step: 1 });
+    // Reverts 008 through 003 (six migrations), landing right after 002 — same end state the
+    // original single-migration revert asserted, back when 003 was still the last migration.
+    await umzug.down({ step: 6 });
 
     const description = await sequelize.getQueryInterface().describeTable('audit_logs');
     expect(description.record_id.type).not.toBe('TEXT');

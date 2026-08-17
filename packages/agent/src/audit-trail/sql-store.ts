@@ -1,4 +1,11 @@
-import type { AuditHistoryQuery, AuditRecord, AuditStorageOptions, AuditStore } from './types';
+import type {
+  AuditHistoryQuery,
+  AuditRecord,
+  AuditStatus,
+  AuditStorageOptions,
+  AuditStore,
+  PendingAuditRecord,
+} from './types';
 import type { Model, ModelStatic } from 'sequelize';
 
 import { DataTypes, Op, Sequelize } from 'sequelize';
@@ -20,16 +27,27 @@ export function defineAuditLogModel(
     MODEL_NAME,
     {
       id: { type: DataTypes.BIGINT, primaryKey: true, autoIncrement: true },
-      timestamp: { type: DataTypes.DATE, allowNull: false },
+      // Millisecond precision: a bare DATE truncates to whole seconds on MySQL, which would
+      // silently drop the fractional part the `/state` boundary and the `id` tiebreaker both rely
+      // on for correct ordering.
+      timestamp: { type: DataTypes.DATE(3), allowNull: false },
       operation: { type: DataTypes.STRING, allowNull: false },
       collection: { type: DataTypes.STRING, allowNull: false },
       // TEXT, not STRING (VARCHAR(255)): a packed composite-id can exceed 255 characters, and the
-      // column is created as such by migration 003 — this must match.
-      recordId: { type: DataTypes.TEXT, allowNull: false },
+      // column is created as such by migration 003 — this must match. Nullable: a pending create's
+      // row has no id yet, since the record doesn't exist until the write resolves.
+      recordId: { type: DataTypes.TEXT, allowNull: true },
       userId: { type: DataTypes.INTEGER, allowNull: true },
+      // Denormalised from the caller at write time — who acted then, not who holds that id today.
+      userFirstName: { type: DataTypes.TEXT, allowNull: true },
+      userLastName: { type: DataTypes.TEXT, allowNull: true },
+      userEmail: { type: DataTypes.TEXT, allowNull: true },
+      // `action` / `action_failed` rows only.
+      actionName: { type: DataTypes.TEXT, allowNull: true },
       correlationKey: { type: DataTypes.STRING, allowNull: true },
       previousValues: { type: DataTypes.JSON, allowNull: false, defaultValue: {} },
       newValues: { type: DataTypes.JSON, allowNull: false, defaultValue: {} },
+      status: { type: DataTypes.STRING, allowNull: false, defaultValue: 'done' },
     },
     {
       schema: options.schema,
@@ -52,16 +70,23 @@ export async function ensureAuditStorage(
   return defineAuditLogModel(sequelize, { schema, tableName: options.tableName });
 }
 
-export function toRow(record: AuditRecord): Record<string, unknown> {
+export function toRow(
+  record: PendingAuditRecord & { status: AuditStatus },
+): Record<string, unknown> {
   return {
     timestamp: record.timestamp,
     operation: record.operation,
     collection: record.collection,
     recordId: record.recordId,
     userId: record.userId,
+    userFirstName: record.userFirstName,
+    userLastName: record.userLastName,
+    userEmail: record.userEmail,
+    actionName: record.actionName,
     correlationKey: record.correlationKey,
     previousValues: record.previousValues,
     newValues: record.newValues,
+    status: record.status,
   };
 }
 
@@ -146,14 +171,20 @@ export function fromRow(row: Model): AuditRecord {
   const { timestamp } = plain;
 
   return {
+    id: Number(plain.id),
     timestamp: timestamp instanceof Date ? timestamp.toISOString() : String(timestamp),
     operation: plain.operation as AuditRecord['operation'],
     collection: plain.collection as string,
-    recordId: plain.recordId as string,
+    recordId: (plain.recordId as string) ?? null,
     userId: plain.userId as number,
+    userFirstName: (plain.userFirstName as string) ?? null,
+    userLastName: (plain.userLastName as string) ?? null,
+    userEmail: (plain.userEmail as string) ?? null,
+    actionName: (plain.actionName as string) ?? null,
     correlationKey: plain.correlationKey as string,
     previousValues: (plain.previousValues as Record<string, unknown>) ?? {},
     newValues: (plain.newValues as Record<string, unknown>) ?? {},
+    status: plain.status as AuditStatus,
   };
 }
 
@@ -206,9 +237,29 @@ export function createSqlAuditStore(options: AuditStorageOptions): {
       async init() {
         await init();
       },
-      async append(record) {
+      async insertPending(record) {
         const { model } = await init();
-        await model.create(toRow(record));
+        const row = await model.create(toRow({ ...record, status: 'pending' }));
+
+        return Number(row.get('id'));
+      },
+      // Per-row generated ids from one statement are trustworthy on every supported dialect:
+      // Postgres/MSSQL return them natively (RETURNING/OUTPUT), Sequelize infers them sequentially
+      // from the single last-insert-id on MySQL/MariaDB (safe because a multi-row INSERT holds the
+      // table's auto-increment lock for the whole statement under the default lock mode — no other
+      // connection's insert can land an id in the middle of this batch), and sqlite returns them
+      // directly too (verified empirically).
+      async insertPendingBatch(records) {
+        const { model } = await init();
+        const rows = await model.bulkCreate(
+          records.map(record => toRow({ ...record, status: 'pending' })),
+        );
+
+        return rows.map(row => Number(row.get('id')));
+      },
+      async confirm(id, patch) {
+        const { model } = await init();
+        await model.update({ ...patch, status: 'done' }, { where: { id } });
       },
       async listByRecord(query) {
         const { model, connection } = await init();
@@ -231,6 +282,35 @@ export function createSqlAuditStore(options: AuditStorageOptions): {
         const { model, connection } = await init();
 
         return model.count({ where: buildHistoryWhereClause(query, connection) });
+      },
+      async listDistinctUsers(query) {
+        const { model, connection } = await init();
+
+        // MAX() rather than a bare column: grouping by `user_id` alone is invalid in strict SQL
+        // unless every selected column is either grouped or aggregated.
+        const rows = (await model.findAll({
+          where: buildHistoryWhereClause(query as AuditHistoryQuery, connection),
+          attributes: [
+            'userId',
+            [Sequelize.fn('MAX', Sequelize.col('user_first_name')), 'userFirstName'],
+            [Sequelize.fn('MAX', Sequelize.col('user_last_name')), 'userLastName'],
+            [Sequelize.fn('MAX', Sequelize.col('user_email')), 'userEmail'],
+          ],
+          group: ['userId'],
+          raw: true,
+        })) as unknown as Array<{
+          userId: number;
+          userFirstName: string | null;
+          userLastName: string | null;
+          userEmail: string | null;
+        }>;
+
+        return rows.map(row => ({
+          id: row.userId,
+          firstName: row.userFirstName ?? null,
+          lastName: row.userLastName ?? null,
+          email: row.userEmail ?? null,
+        }));
       },
       async listByCorrelation({ collection, recordId, correlationKey }) {
         const { model } = await init();

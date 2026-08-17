@@ -33,6 +33,63 @@ async function indexNames(
   return new Set(indexes.map(index => index.name));
 }
 
+async function columnNames(
+  queryInterface: QueryInterface,
+  table: { tableName: string; schema?: string },
+): Promise<Set<string>> {
+  const columns = await queryInterface.describeTable(table);
+
+  return new Set(Object.keys(columns));
+}
+
+// Re-creates every index the audit table needs after a `changeColumn` that may have rebuilt the
+// table (sqlite's `changeColumn` drops all indexes along with it — see migration 003).
+async function recreateAuditIndexes(
+  queryInterface: QueryInterface,
+  table: { tableName: string; schema?: string },
+  transaction?: Transaction,
+): Promise<void> {
+  const existing = await indexNames(queryInterface, table, transaction);
+
+  const ensureIndex = async (
+    fields: Array<string | { name: string; length: number }>,
+    name: string,
+  ) => {
+    if (existing.has(name)) return;
+
+    await queryInterface.addIndex(table, { fields, name, transaction });
+  };
+
+  await ensureIndex([{ name: 'record_id', length: 191 }], `${table.tableName}_record_id`);
+  await ensureIndex(['correlation_key'], `${table.tableName}_correlation_key`);
+  await ensureIndex(['user_id'], `${table.tableName}_user_id`);
+}
+
+// Migration 001's own idempotency check (`tableExists`) only asks "is there a table with this
+// name", not "is it ours" — so an unrelated customer table happening to share the name would be
+// silently adopted, and subsequent migrations would start altering it. Verifying the columns migration
+// 001 itself creates catches that without requiring the table to be fully up to date (a genuine,
+// older audit table missing only *later* columns is still accepted — those migrations run next).
+const CORE_COLUMNS = ['id', 'timestamp', 'operation', 'collection', 'record_id'];
+
+async function assertOwnsTable(
+  queryInterface: QueryInterface,
+  table: { tableName: string; schema?: string },
+): Promise<void> {
+  const existing = await columnNames(queryInterface, table);
+  const missing = CORE_COLUMNS.filter(column => !existing.has(column));
+
+  if (missing.length > 0) {
+    const target = table.schema ? `${table.schema}.${table.tableName}` : table.tableName;
+
+    throw new Error(
+      `[ForestAdmin] Audit trail: "${target}" already exists but is missing column(s) ` +
+        `${missing.join(', ')} — it does not look like a Forest audit-trail table. Point ` +
+        `auditTrail at a different table via the "tableName" option instead of reusing this one.`,
+    );
+  }
+}
+
 // Append-only. To evolve the schema, add a new entry at the end — never edit, reorder or delete
 // an existing one (already-applied migrations are skipped).
 const migrations = [
@@ -42,8 +99,11 @@ const migrations = [
       const table = { tableName: context.tableName, schema: context.schema };
 
       // Idempotent: lets a process that loses a concurrent-boot race retry cleanly instead of
-      // failing on a "relation already exists" error from the winner's DDL.
+      // failing on a "relation already exists" error from the winner's DDL. Guards against reusing
+      // an unrelated table sharing the name, too — see assertOwnsTable.
       if (await context.queryInterface.tableExists(table, { transaction: context.transaction })) {
+        await assertOwnsTable(context.queryInterface, table);
+
         return;
       }
 
@@ -166,6 +226,144 @@ const migrations = [
       await ensureIndex(['record_id'], `${context.tableName}_record_id`);
       await ensureIndex(['correlation_key'], `${context.tableName}_correlation_key`);
       await ensureIndex(['user_id'], `${context.tableName}_user_id`);
+    },
+  },
+  {
+    // Denormalised from the caller at write time — who acted then, not who holds that id today.
+    name: '004-add-user-identity-columns',
+    up: async ({ context }: { context: MigrationContext }) => {
+      const table = { tableName: context.tableName, schema: context.schema };
+      const existing = await columnNames(context.queryInterface, table);
+
+      const ensureColumn = async (name: string) => {
+        if (existing.has(name)) return;
+
+        await context.queryInterface.addColumn(
+          table,
+          name,
+          { type: DataTypes.TEXT, allowNull: true },
+          { transaction: context.transaction },
+        );
+      };
+
+      await ensureColumn('user_first_name');
+      await ensureColumn('user_last_name');
+      await ensureColumn('user_email');
+    },
+    down: async ({ context }: { context: MigrationContext }) => {
+      const table = { tableName: context.tableName, schema: context.schema };
+      const options = { transaction: context.transaction };
+
+      await context.queryInterface.removeColumn(table, 'user_first_name', options);
+      await context.queryInterface.removeColumn(table, 'user_last_name', options);
+      await context.queryInterface.removeColumn(table, 'user_email', options);
+    },
+  },
+  {
+    // `action` / `action_failed` rows only — which action ran otherwise lives only in the Forest
+    // activity log, joined by correlation_key.
+    name: '005-add-action-name',
+    up: async ({ context }: { context: MigrationContext }) => {
+      const table = { tableName: context.tableName, schema: context.schema };
+      const existing = await columnNames(context.queryInterface, table);
+
+      if (existing.has('action_name')) return;
+
+      await context.queryInterface.addColumn(
+        table,
+        'action_name',
+        { type: DataTypes.TEXT, allowNull: true },
+        { transaction: context.transaction },
+      );
+    },
+    down: async ({ context }: { context: MigrationContext }) => {
+      await context.queryInterface.removeColumn(
+        { tableName: context.tableName, schema: context.schema },
+        'action_name',
+        { transaction: context.transaction },
+      );
+    },
+  },
+  {
+    // A row is inserted `pending` before the write runs and confirmed `done` after — the default
+    // backfills every pre-existing row to `done` (nothing about them was ever left in flight).
+    name: '006-add-status',
+    up: async ({ context }: { context: MigrationContext }) => {
+      const table = { tableName: context.tableName, schema: context.schema };
+      const existing = await columnNames(context.queryInterface, table);
+
+      if (existing.has('status')) return;
+
+      await context.queryInterface.addColumn(
+        table,
+        'status',
+        { type: DataTypes.STRING, allowNull: false, defaultValue: 'done' },
+        { transaction: context.transaction },
+      );
+    },
+    down: async ({ context }: { context: MigrationContext }) => {
+      await context.queryInterface.removeColumn(
+        { tableName: context.tableName, schema: context.schema },
+        'status',
+        { transaction: context.transaction },
+      );
+    },
+  },
+  {
+    // A pending create's row has no id yet — the record doesn't exist until the write resolves.
+    name: '007-record-id-nullable',
+    up: async ({ context }: { context: MigrationContext }) => {
+      const table = { tableName: context.tableName, schema: context.schema };
+
+      await context.queryInterface.changeColumn(
+        table,
+        'record_id',
+        { type: DataTypes.TEXT, allowNull: true },
+        { transaction: context.transaction },
+      );
+
+      await recreateAuditIndexes(context.queryInterface, table, context.transaction);
+    },
+    down: async ({ context }: { context: MigrationContext }) => {
+      const table = { tableName: context.tableName, schema: context.schema };
+
+      await context.queryInterface.changeColumn(
+        table,
+        'record_id',
+        { type: DataTypes.TEXT, allowNull: false },
+        { transaction: context.transaction },
+      );
+
+      await recreateAuditIndexes(context.queryInterface, table, context.transaction);
+    },
+  },
+  {
+    // A bare DATE truncates to whole seconds on MySQL, silently dropping the fractional part the
+    // `/state` inclusive boundary and the `id` ordering tiebreaker both rely on.
+    name: '008-timestamp-millisecond-precision',
+    up: async ({ context }: { context: MigrationContext }) => {
+      const table = { tableName: context.tableName, schema: context.schema };
+
+      await context.queryInterface.changeColumn(
+        table,
+        'timestamp',
+        { type: DataTypes.DATE(3), allowNull: false },
+        { transaction: context.transaction },
+      );
+
+      await recreateAuditIndexes(context.queryInterface, table, context.transaction);
+    },
+    down: async ({ context }: { context: MigrationContext }) => {
+      const table = { tableName: context.tableName, schema: context.schema };
+
+      await context.queryInterface.changeColumn(
+        table,
+        'timestamp',
+        { type: DataTypes.DATE, allowNull: false },
+        { transaction: context.transaction },
+      );
+
+      await recreateAuditIndexes(context.queryInterface, table, context.transaction);
     },
   },
 ];

@@ -1,4 +1,4 @@
-import type { AuditRecord } from '../../src/audit-trail';
+import type { AuditStatus, AuditStore, PendingAuditRecord } from '../../src/audit-trail';
 import type * as MigrationsModule from '../../src/audit-trail/migrations';
 
 import { Sequelize } from 'sequelize';
@@ -15,29 +15,50 @@ jest.mock('../../src/audit-trail/migrations', () => ({
   runAuditMigrations: jest.fn().mockResolvedValue(undefined),
 }));
 
-const record = (over: Partial<AuditRecord> = {}): AuditRecord => ({
+const record = (over: Partial<PendingAuditRecord> = {}): PendingAuditRecord => ({
   timestamp: '2026-01-02T03:04:05.000Z',
   operation: 'update',
   collection: 'accounts',
   recordId: '1',
   userId: 42,
+  userFirstName: 'Jane',
+  userLastName: 'Doe',
+  userEmail: 'jane.doe@forest.dev',
+  actionName: null,
   correlationKey: 'req-1',
   previousValues: { status: 'open' },
   newValues: { status: 'closed' },
   ...over,
 });
 
+// The store's public contract is now insertPending-then-confirm; this test's `record()` fixtures
+// already carry final values, so seeding just inserts pending and immediately confirms with the
+// same values, landing a `done` row equivalent to the old single `append`.
+async function seed(store: AuditStore, entry: PendingAuditRecord): Promise<number> {
+  const id = await store.insertPending(entry);
+  await store.confirm(id, entry);
+
+  return id;
+}
+
 describe('toRow', () => {
   it('maps every audit-record field, including the flat user id', () => {
-    expect(toRow(record())).toEqual({
+    const status: AuditStatus = 'done';
+
+    expect(toRow({ ...record(), status })).toEqual({
       timestamp: '2026-01-02T03:04:05.000Z',
       operation: 'update',
       collection: 'accounts',
       recordId: '1',
       userId: 42,
+      userFirstName: 'Jane',
+      userLastName: 'Doe',
+      userEmail: 'jane.doe@forest.dev',
+      actionName: null,
       correlationKey: 'req-1',
       previousValues: { status: 'open' },
       newValues: { status: 'closed' },
+      status: 'done',
     });
   });
 });
@@ -90,8 +111,8 @@ describe('createSqlAuditStore (sqlite round-trip)', () => {
       Promise.reject(new Error('boom')),
     );
 
-    await expect(store.append(record())).rejects.toThrow('boom');
-    await expect(store.append(record())).resolves.toBeUndefined();
+    await expect(store.insertPending(record())).rejects.toThrow('boom');
+    await expect(store.insertPending(record())).resolves.toEqual(expect.any(Number));
 
     await close();
   });
@@ -108,9 +129,9 @@ describe('createSqlAuditStore (sqlite round-trip)', () => {
     });
     const otherRecord = record({ recordId: '2' });
 
-    await store.append(second);
-    await store.append(first);
-    await store.append(otherRecord);
+    await seed(store, second);
+    await seed(store, first);
+    await seed(store, otherRecord);
 
     const history = await store.listByRecord({ collection: 'accounts', recordId: '1' });
 
@@ -126,7 +147,7 @@ describe('createSqlAuditStore (sqlite round-trip)', () => {
   it('returns an empty array when no row matches the queried record', async () => {
     const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
 
-    await store.append(record());
+    await seed(store, record());
 
     expect(await store.listByRecord({ collection: 'accounts', recordId: 'missing' })).toEqual([]);
 
@@ -151,10 +172,10 @@ describe('createSqlAuditStore (sqlite round-trip)', () => {
   it('honors the skip and limit parameters in listByRecord', async () => {
     const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
 
-    await store.append(record({ timestamp: '2026-01-02T00:00:01.000Z' }));
-    await store.append(record({ timestamp: '2026-01-02T00:00:02.000Z' }));
-    await store.append(record({ timestamp: '2026-01-02T00:00:03.000Z' }));
-    await store.append(record({ timestamp: '2026-01-02T00:00:04.000Z' }));
+    await seed(store, record({ timestamp: '2026-01-02T00:00:01.000Z' }));
+    await seed(store, record({ timestamp: '2026-01-02T00:00:02.000Z' }));
+    await seed(store, record({ timestamp: '2026-01-02T00:00:03.000Z' }));
+    await seed(store, record({ timestamp: '2026-01-02T00:00:04.000Z' }));
 
     const page = await store.listByRecord({
       collection: 'accounts',
@@ -174,9 +195,9 @@ describe('createSqlAuditStore (sqlite round-trip)', () => {
   it('filters by userIds at the query level', async () => {
     const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
 
-    await store.append(record({ recordId: '1', userId: 1 }));
-    await store.append(record({ recordId: '1', userId: 2 }));
-    await store.append(record({ recordId: '1', userId: 3 }));
+    await seed(store, record({ recordId: '1', userId: 1 }));
+    await seed(store, record({ recordId: '1', userId: 2 }));
+    await seed(store, record({ recordId: '1', userId: 3 }));
 
     const history = await store.listByRecord({
       collection: 'accounts',
@@ -192,9 +213,9 @@ describe('createSqlAuditStore (sqlite round-trip)', () => {
   it('filters by the inclusive startTimestamp/endTimestamp range at the query level', async () => {
     const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
 
-    await store.append(record({ recordId: '1', timestamp: '2026-01-01T00:00:00.000Z' }));
-    await store.append(record({ recordId: '1', timestamp: '2026-01-02T00:00:00.000Z' }));
-    await store.append(record({ recordId: '1', timestamp: '2026-01-03T00:00:00.000Z' }));
+    await seed(store, record({ recordId: '1', timestamp: '2026-01-01T00:00:00.000Z' }));
+    await seed(store, record({ recordId: '1', timestamp: '2026-01-02T00:00:00.000Z' }));
+    await seed(store, record({ recordId: '1', timestamp: '2026-01-03T00:00:00.000Z' }));
 
     const history = await store.listByRecord({
       collection: 'accounts',
@@ -216,7 +237,7 @@ describe('createSqlAuditStore (sqlite round-trip)', () => {
 
     await Promise.all(
       [1, 2, 3, 4].map(i =>
-        store.append(record({ recordId: '1', timestamp: `2026-01-0${i}T00:00:00.000Z` })),
+        seed(store, record({ recordId: '1', timestamp: `2026-01-0${i}T00:00:00.000Z` })),
       ),
     );
 
@@ -235,7 +256,8 @@ describe('createSqlAuditStore (sqlite round-trip)', () => {
   it('keeps only entries that touched at least one of the requested fields', async () => {
     const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
 
-    await store.append(
+    await seed(
+      store,
       record({
         recordId: '1',
         timestamp: '2026-01-01T00:00:00.000Z',
@@ -243,7 +265,8 @@ describe('createSqlAuditStore (sqlite round-trip)', () => {
         newValues: { name: 'b' },
       }),
     );
-    await store.append(
+    await seed(
+      store,
       record({
         recordId: '1',
         timestamp: '2026-01-02T00:00:00.000Z',
@@ -251,7 +274,8 @@ describe('createSqlAuditStore (sqlite round-trip)', () => {
         newValues: { email: 'y' },
       }),
     );
-    await store.append(
+    await seed(
+      store,
       record({
         recordId: '1',
         timestamp: '2026-01-03T00:00:00.000Z',
@@ -277,7 +301,8 @@ describe('createSqlAuditStore (sqlite round-trip)', () => {
   it('paginates after applying the fields filter', async () => {
     const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
 
-    await store.append(
+    await seed(
+      store,
       record({
         recordId: '1',
         timestamp: '2026-01-01T00:00:00.000Z',
@@ -285,7 +310,8 @@ describe('createSqlAuditStore (sqlite round-trip)', () => {
         newValues: { name: 'b' },
       }),
     );
-    await store.append(
+    await seed(
+      store,
       record({
         recordId: '1',
         timestamp: '2026-01-02T00:00:00.000Z',
@@ -293,7 +319,8 @@ describe('createSqlAuditStore (sqlite round-trip)', () => {
         newValues: { other: 2 },
       }),
     );
-    await store.append(
+    await seed(
+      store,
       record({
         recordId: '1',
         timestamp: '2026-01-03T00:00:00.000Z',
@@ -301,7 +328,8 @@ describe('createSqlAuditStore (sqlite round-trip)', () => {
         newValues: { name: 'd' },
       }),
     );
-    await store.append(
+    await seed(
+      store,
       record({
         recordId: '1',
         timestamp: '2026-01-04T00:00:00.000Z',
@@ -326,13 +354,16 @@ describe('createSqlAuditStore (sqlite round-trip)', () => {
   it('counts only entries that touched at least one of the requested fields', async () => {
     const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
 
-    await store.append(
+    await seed(
+      store,
       record({ recordId: '1', previousValues: { name: 'a' }, newValues: { name: 'b' } }),
     );
-    await store.append(
+    await seed(
+      store,
       record({ recordId: '1', previousValues: { other: 1 }, newValues: { other: 2 } }),
     );
-    await store.append(
+    await seed(
+      store,
       record({ recordId: '1', previousValues: { name: 'c' }, newValues: { name: 'd' } }),
     );
 
@@ -350,9 +381,9 @@ describe('createSqlAuditStore (sqlite round-trip)', () => {
   it('counts only the rows matching the active filters', async () => {
     const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
 
-    await store.append(record({ recordId: '1', userId: 1 }));
-    await store.append(record({ recordId: '1', userId: 2 }));
-    await store.append(record({ recordId: '1', userId: 1 }));
+    await seed(store, record({ recordId: '1', userId: 1 }));
+    await seed(store, record({ recordId: '1', userId: 2 }));
+    await seed(store, record({ recordId: '1', userId: 1 }));
 
     const count = await store.countByRecord({
       collection: 'accounts',
@@ -368,9 +399,9 @@ describe('createSqlAuditStore (sqlite round-trip)', () => {
   it('orders newest first when order is desc', async () => {
     const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
 
-    await store.append(record({ recordId: '1', timestamp: '2026-01-01T00:00:00.000Z' }));
-    await store.append(record({ recordId: '1', timestamp: '2026-01-02T00:00:00.000Z' }));
-    await store.append(record({ recordId: '1', timestamp: '2026-01-03T00:00:00.000Z' }));
+    await seed(store, record({ recordId: '1', timestamp: '2026-01-01T00:00:00.000Z' }));
+    await seed(store, record({ recordId: '1', timestamp: '2026-01-02T00:00:00.000Z' }));
+    await seed(store, record({ recordId: '1', timestamp: '2026-01-03T00:00:00.000Z' }));
 
     const history = await store.listByRecord({
       collection: 'accounts',
@@ -391,9 +422,9 @@ describe('createSqlAuditStore (sqlite round-trip)', () => {
     const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
     const timestamp = '2026-01-01T00:00:00.000Z';
 
-    await store.append(record({ recordId: '1', timestamp, correlationKey: 'first' }));
-    await store.append(record({ recordId: '1', timestamp, correlationKey: 'second' }));
-    await store.append(record({ recordId: '1', timestamp, correlationKey: 'third' }));
+    await seed(store, record({ recordId: '1', timestamp, correlationKey: 'first' }));
+    await seed(store, record({ recordId: '1', timestamp, correlationKey: 'second' }));
+    await seed(store, record({ recordId: '1', timestamp, correlationKey: 'third' }));
 
     const history = await store.listByRecord({ collection: 'accounts', recordId: '1' });
 
@@ -406,9 +437,9 @@ describe('createSqlAuditStore (sqlite round-trip)', () => {
     const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
     const timestamp = '2026-01-01T00:00:00.000Z';
 
-    await store.append(record({ recordId: '1', timestamp, correlationKey: 'first' }));
-    await store.append(record({ recordId: '1', timestamp, correlationKey: 'second' }));
-    await store.append(record({ recordId: '1', timestamp, correlationKey: 'third' }));
+    await seed(store, record({ recordId: '1', timestamp, correlationKey: 'first' }));
+    await seed(store, record({ recordId: '1', timestamp, correlationKey: 'second' }));
+    await seed(store, record({ recordId: '1', timestamp, correlationKey: 'third' }));
 
     const history = await store.listByRecord({
       collection: 'accounts',
@@ -424,14 +455,16 @@ describe('createSqlAuditStore (sqlite round-trip)', () => {
   it('returns rows recorded under a correlationKey for a record, scoped and oldest first', async () => {
     const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
 
-    await store.append(
+    await seed(
+      store,
       record({ recordId: '1', correlationKey: 'req-1', timestamp: '2026-01-01T00:00:02.000Z' }),
     );
-    await store.append(
+    await seed(
+      store,
       record({ recordId: '1', correlationKey: 'req-1', timestamp: '2026-01-01T00:00:01.000Z' }),
     );
-    await store.append(record({ recordId: '1', correlationKey: 'req-2' }));
-    await store.append(record({ recordId: '2', correlationKey: 'req-1' }));
+    await seed(store, record({ recordId: '1', correlationKey: 'req-2' }));
+    await seed(store, record({ recordId: '2', correlationKey: 'req-1' }));
 
     const history = await store.listByCorrelation({
       collection: 'accounts',
@@ -450,14 +483,16 @@ describe('createSqlAuditStore (sqlite round-trip)', () => {
   it('returns a flat list across multiple correlationKeys for a record, oldest first', async () => {
     const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
 
-    await store.append(
+    await seed(
+      store,
       record({ recordId: '1', correlationKey: 'a', timestamp: '2026-01-01T00:00:03.000Z' }),
     );
-    await store.append(
+    await seed(
+      store,
       record({ recordId: '1', correlationKey: 'b', timestamp: '2026-01-01T00:00:01.000Z' }),
     );
-    await store.append(record({ recordId: '1', correlationKey: 'c' }));
-    await store.append(record({ recordId: '2', correlationKey: 'a' }));
+    await seed(store, record({ recordId: '1', correlationKey: 'c' }));
+    await seed(store, record({ recordId: '2', correlationKey: 'a' }));
 
     const history = await store.listByCorrelations({
       collection: 'accounts',
@@ -473,7 +508,7 @@ describe('createSqlAuditStore (sqlite round-trip)', () => {
   it('returns an empty array for an empty key list without querying', async () => {
     const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
 
-    await store.append(record({ recordId: '1', correlationKey: 'a' }));
+    await seed(store, record({ recordId: '1', correlationKey: 'a' }));
 
     expect(
       await store.listByCorrelations({
@@ -489,7 +524,8 @@ describe('createSqlAuditStore (sqlite round-trip)', () => {
   it('keeps only entries that touched a field whose name contains a dot (sqlite)', async () => {
     const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
 
-    await store.append(
+    await seed(
+      store,
       record({
         recordId: '1',
         timestamp: '2026-01-01T00:00:00.000Z',
@@ -497,7 +533,8 @@ describe('createSqlAuditStore (sqlite round-trip)', () => {
         newValues: { 'profile.name': 'b' },
       }),
     );
-    await store.append(
+    await seed(
+      store,
       record({
         recordId: '1',
         timestamp: '2026-01-02T00:00:00.000Z',
@@ -513,6 +550,56 @@ describe('createSqlAuditStore (sqlite round-trip)', () => {
     });
 
     expect(history.map(r => r.timestamp)).toEqual(['2026-01-01T00:00:00.000Z']);
+
+    await close();
+  });
+
+  it('inserts a batch and returns one id per record, in the same order', async () => {
+    const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
+
+    const ids = await store.insertPendingBatch([
+      record({ recordId: '1' }),
+      record({ recordId: '2' }),
+      record({ recordId: '3' }),
+    ]);
+
+    expect(ids).toHaveLength(3);
+    expect(new Set(ids).size).toBe(3);
+
+    await close();
+  });
+
+  it('confirms a pending row to done with the final operation/recordId/values', async () => {
+    const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
+
+    const id = await store.insertPending(record({ recordId: null, newValues: {} }));
+    await store.confirm(id, {
+      operation: 'create',
+      recordId: '1',
+      previousValues: {},
+      newValues: { status: 'open' },
+    });
+
+    const [entry] = await store.listByRecord({ collection: 'accounts', recordId: '1' });
+    expect(entry).toMatchObject({
+      operation: 'create',
+      recordId: '1',
+      newValues: { status: 'open' },
+    });
+
+    await close();
+  });
+
+  it('returns one distinct user per matching row, ignoring pagination', async () => {
+    const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
+
+    await seed(store, record({ recordId: '1', userId: 1, userFirstName: 'Jane' }));
+    await seed(store, record({ recordId: '1', userId: 1, userFirstName: 'Jane' }));
+    await seed(store, record({ recordId: '1', userId: 2, userFirstName: 'John' }));
+
+    const users = await store.listDistinctUsers({ collection: 'accounts', recordId: '1' });
+
+    expect(users.map(user => user.id).sort()).toEqual([1, 2]);
 
     await close();
   });
