@@ -1,3 +1,20 @@
+# @forestadmin/agent-bff [1.18.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.17.0...@forestadmin/agent-bff@1.18.0) (2026-08-17)
+
+
+### Features
+
+* upload files through the MCP server for action File fields ([#1815](https://github.com/ForestAdmin/agent-nodejs/issues/1815)) ([f09e88c](https://github.com/ForestAdmin/agent-nodejs/commit/f09e88cd3c8c542adf2f2bb89572fbc78c11e51a))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.14.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.55.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.42.1
+
 # @forestadmin/agent-bff [1.17.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.16.0...@forestadmin/agent-bff@1.17.0) (2026-08-14)
 
 

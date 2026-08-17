@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/agent-bff",
-  "version": "1.17.0",
+  "version": "1.18.0",
   "main": "dist/index.js",
   "bin": {
     "forest-bff": "dist/cli.js"
@@ -32,9 +32,9 @@
   },
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "8.5.0",
-    "@forestadmin/agent-client": "1.13.1",
-    "@forestadmin/datasource-toolkit": "1.54.0",
-    "@forestadmin/forestadmin-client": "1.42.0",
+    "@forestadmin/agent-client": "1.14.0",
+    "@forestadmin/datasource-toolkit": "1.55.0",
+    "@forestadmin/forestadmin-client": "1.42.1",
     "@koa/bodyparser": "^6.1.0",
     "jsonwebtoken": "^9.0.3",
     "koa": "^3.0.1",
