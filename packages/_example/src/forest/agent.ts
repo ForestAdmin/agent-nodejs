@@ -93,7 +93,9 @@ export default function makeAgent() {
 
       return resultBuilder.value((rows?.[0]?.value as number) ?? 0);
     })
-    .mountAiMcpServer(allowedOAuthClients ? { allowedOAuthClients } : undefined)
+    .mountAiMcpServer({
+      ...(allowedOAuthClients && { allowedOAuthClients }),
+    })
 
     .customizeCollection('card', customizeCard)
     .customizeCollection('account', customizeAccount)

@@ -7,7 +7,8 @@ import createAgentHttpRequester from '../agent/create-agent-http-requester';
 
 export interface ActionFormField {
   getName(): string;
-  getType(): string;
+  /** A list type is the array the agent sent, `['String']`, not `'StringList'`. */
+  getType(): string | [string];
   getValue(): unknown;
   isRequired(): boolean | undefined;
 }

@@ -1,3 +1,4 @@
+import type EphemeralStorage from '../src/file-uploads/ephemeral-storage';
 import type * as net from 'net';
 
 import * as http from 'http';
@@ -3493,6 +3494,7 @@ describe('enabledTools', () => {
         'dissociate',
         'getActionForm',
         'executeAction',
+        'requestActionFileUpload',
       ],
     });
 
@@ -3601,5 +3603,172 @@ describe('Logo URL', () => {
 
     expect(response.ok).toBe(true);
     expect(response.headers.get('content-type')).toContain('image/png');
+  });
+});
+
+describe('file uploads without a storage backend', () => {
+  const build = (options: Record<string, unknown> = {}) =>
+    new ForestMCPServer({
+      envSecret: 'test-env-secret',
+      authSecret: 'test-auth-secret',
+      forestServerUrl: 'https://test.forestadmin.com',
+      ...options,
+    });
+
+  const buildApp = async (options: Record<string, unknown> = {}) =>
+    build(options).buildExpressApp(new URL('https://agent.example'));
+
+  // No option to set: the whole point is that an agent gets this without asking.
+  it('is enabled without any configuration', async () => {
+    const response = await request(await buildApp())
+      .put('/mcp/uploads/never-issued')
+      .send('hello');
+
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({ error: expect.stringContaining('no upload was authorized') });
+  });
+
+  // Boot-time would reach every agent, including those whose actions have no file field.
+  it('stays quiet at startup and announces the single instance on first use', async () => {
+    const logger = jest.fn();
+    const server = build({ logger });
+    await server.buildExpressApp(new URL('https://agent.example'));
+
+    expect(logger).not.toHaveBeenCalledWith(
+      'Warn',
+      expect.stringContaining('held in memory, on this instance only'),
+    );
+
+    const { ephemeralStorage: storage } = server as unknown as {
+      ephemeralStorage: EphemeralStorage;
+    };
+    await storage.createUploadUrl({ key: 'k' });
+
+    expect(logger).toHaveBeenCalledWith(
+      'Warn',
+      expect.stringContaining('held in memory, on this instance only'),
+    );
+  });
+
+  // The tool reports maxBytes to the model verbatim, so this would promise a size the store always
+  // refuses — with "the store is full", on an empty store.
+  it('warns when maxBytes exceeds what the in-memory store can ever hold', async () => {
+    const logger = jest.fn();
+
+    await buildApp({ logger, fileUploads: { maxBytes: 100 * 1024 * 1024 } });
+
+    expect(logger).toHaveBeenCalledWith('Warn', expect.stringContaining('always refused'));
+  });
+
+  // enabledTools is the off switch, and it has to take the endpoint with it.
+  it('serves no upload endpoint when the tool is not enabled', async () => {
+    const app = await buildApp({ enabledTools: ['describeCollection', 'list'] });
+
+    const response = await request(app).put('/mcp/uploads/anything').send('hello');
+
+    expect(response.status).toBe(405);
+  });
+
+  it('turns the whole feature off on fileUploads: false, without touching enabledTools', async () => {
+    const server = build({ fileUploads: false });
+    const app = await server.buildExpressApp(new URL('https://agent.example'));
+
+    await expect(request(app).put('/mcp/uploads/anything').send('hello')).resolves.toMatchObject({
+      status: 405,
+    });
+    expect((server as unknown as { enabledTools: Set<string> }).enabledTools).not.toContain(
+      'requestActionFileUpload',
+    );
+    // Every other tool is untouched, which is the point of not going through enabledTools.
+    expect((server as unknown as { enabledTools: Set<string> }).enabledTools).toContain('list');
+  });
+
+  // Config often merges from two layers; when they contradict each other, false wins — and says so,
+  // because a tool the caller named vanishing without a log line reads as a bug in the losing layer.
+  it('lets fileUploads: false override an enabledTools that lists the tool, and warns', async () => {
+    const logger = jest.fn();
+    const server = build({
+      logger,
+      fileUploads: false,
+      enabledTools: ['describeCollection', 'list', 'requestActionFileUpload'],
+    });
+    await server.buildExpressApp(new URL('https://agent.example'));
+
+    expect((server as unknown as { enabledTools: Set<string> }).enabledTools).not.toContain(
+      'requestActionFileUpload',
+    );
+    expect(logger).toHaveBeenCalledWith(
+      'Warn',
+      expect.stringContaining('even though enabledTools lists it'),
+    );
+  });
+
+  // 404 comes from the uploads router itself, for a key it never handed out. A 405 would mean
+  // allowedMethods(['POST']) claimed the PUT first, and a hang would mean a body parser did.
+  it('serves the upload endpoint under /mcp/uploads', async () => {
+    const response = await request(await buildApp())
+      .put('/mcp/uploads/mcp-uploads%2Fuuid%2Fa.txt')
+      .send('hello');
+
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({ error: expect.stringContaining('no upload was authorized') });
+  });
+
+  // The url handed to the client is built from the server's own base url, while the route is
+  // mounted from the prefix. Uploading to the url it actually returns is the only check that the
+  // two agree — everything else here asks the route about a path the test itself wrote.
+  it('accepts an upload at the url it hands out, and serves those exact bytes back', async () => {
+    const server = build();
+    const app = await server.buildExpressApp(new URL('https://agent.example'));
+    const { ephemeralStorage: storage } = server as unknown as {
+      ephemeralStorage: EphemeralStorage;
+    };
+    const body = Buffer.from('CONTENU-BINAIRE- ÿ');
+
+    const { url } = await storage.createUploadUrl({ key: 'mcp-uploads/uuid/rapport final;v2.pdf' });
+    const response = await request(app).put(new URL(url).pathname).send(body);
+
+    expect(response.status).toBe(200);
+    await expect(storage.download('mcp-uploads/uuid/rapport final;v2.pdf')).resolves.toEqual(body);
+  });
+
+  it('leaves /mcp itself bearer-protected', async () => {
+    const response = await request(await buildApp())
+      .post('/mcp')
+      .send({});
+
+    expect(response.status).toBe(401);
+  });
+});
+
+describe('file uploads tool', () => {
+  const storage = {
+    createUploadUrl: jest.fn().mockResolvedValue({ url: 'https://storage.example/put' }),
+    download: jest.fn(),
+    getSize: jest.fn(),
+  };
+
+  const buildApp = async (fileUploads?: { storage: typeof storage }) =>
+    new ForestMCPServer({
+      envSecret: 'test-env-secret',
+      authSecret: 'test-auth-secret',
+      forestServerUrl: 'https://test.forestadmin.com',
+      ...(fileUploads && { fileUploads }),
+    }).buildExpressApp(new URL('https://agent.example'));
+
+  it.each([[undefined], [{ storage }]])('does not serve /files (fileUploads: %p)', async opts => {
+    const response = await request(await buildApp(opts))
+      .post('/files')
+      .send({});
+
+    expect(response.status).toBe(404);
+  });
+
+  it('still requires a bearer token on /mcp when uploads are enabled', async () => {
+    const response = await request(await buildApp({ storage }))
+      .post('/mcp')
+      .send({});
+
+    expect(response.status).toBe(401);
   });
 });

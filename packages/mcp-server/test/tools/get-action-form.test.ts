@@ -277,6 +277,146 @@ describe('declareGetActionFormTool', () => {
       expect(mockTryToSetFields).toHaveBeenCalledWith(values);
     });
 
+    // Resolving here would put the bytes back in the model's context, and handing the handle to a
+    // change hook makes it read `.buffer` off a string and throw a 500. So it is withheld, and the
+    // other values still reach the hook.
+    it('withholds an upload handle from the change hooks instead of resolving it', async () => {
+      const mockTryToSetFields = jest.fn().mockResolvedValue([]);
+      const mockAction = jest.fn().mockResolvedValue({
+        getFields: jest.fn().mockReturnValue([]),
+        tryToSetFields: mockTryToSetFields,
+      });
+      mockBuildClientWithActions.mockResolvedValue({
+        rpcClient: { collection: jest.fn().mockReturnValue({ action: mockAction }) },
+        authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+      } as unknown as ReturnType<typeof buildClientWithActions>);
+
+      const values = {
+        document: '$uploadedFile:some-token',
+        attachments: ['$uploadedFile:another'],
+        note: 'hello',
+      };
+      await registeredToolHandler(
+        { collectionName: 'users', actionName: 'sendEmail', recordIds: [1], values },
+        mockExtra,
+      );
+
+      expect(mockTryToSetFields).toHaveBeenCalledWith({ note: 'hello' });
+    });
+
+    // Withholding must not make the field unsatisfiable: the agent never sees the handle, so
+    // counting it as missing would leave canExecute false with nothing the model could send.
+    it('counts a withheld handle as filling its required field, and echoes it back', async () => {
+      const mockTryToSetFields = jest.fn().mockResolvedValue([]);
+      const mockAction = jest.fn().mockResolvedValue({
+        getFields: jest.fn().mockReturnValue([
+          {
+            getName: () => 'Document',
+            getType: () => 'File',
+            getTypeName: () => 'File',
+            getValue: () => undefined,
+            isRequired: () => true,
+            getPlainField: () => ({}),
+            getMultipleChoiceField: () => ({ getOptions: () => null }),
+          },
+        ]),
+        tryToSetFields: mockTryToSetFields,
+      });
+      mockBuildClientWithActions.mockResolvedValue({
+        rpcClient: { collection: jest.fn().mockReturnValue({ action: mockAction }) },
+        authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+      } as unknown as ReturnType<typeof buildClientWithActions>);
+
+      const result = await registeredToolHandler(
+        {
+          collectionName: 'users',
+          actionName: 'sendEmail',
+          recordIds: [1],
+          values: { Document: '$uploadedFile:some-token' },
+        },
+        mockExtra,
+      );
+      const payload = JSON.parse((result as { content: { text: string }[] }).content[0].text);
+
+      expect(payload.canExecute).toBe(true);
+      expect(payload.requiredFields).toEqual([]);
+      expect(payload.fields[0].value).toBe('$uploadedFile:some-token');
+    });
+
+    it('does the same for a FileList: the array of handles fills the field and is echoed back', async () => {
+      const mockTryToSetFields = jest.fn().mockResolvedValue([]);
+      const mockAction = jest.fn().mockResolvedValue({
+        getFields: jest.fn().mockReturnValue([
+          {
+            getName: () => 'Attachments',
+            getType: () => ['File'],
+            getTypeName: () => 'FileList',
+            getValue: () => undefined,
+            isRequired: () => true,
+            getPlainField: () => ({}),
+            getMultipleChoiceField: () => ({ getOptions: () => null }),
+          },
+        ]),
+        tryToSetFields: mockTryToSetFields,
+      });
+      mockBuildClientWithActions.mockResolvedValue({
+        rpcClient: { collection: jest.fn().mockReturnValue({ action: mockAction }) },
+        authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+      } as unknown as ReturnType<typeof buildClientWithActions>);
+
+      const result = await registeredToolHandler(
+        {
+          collectionName: 'users',
+          actionName: 'sendEmail',
+          recordIds: [1],
+          values: { Attachments: ['$uploadedFile:a', '$uploadedFile:b'] },
+        },
+        mockExtra,
+      );
+      const payload = JSON.parse((result as { content: { text: string }[] }).content[0].text);
+
+      expect(payload.canExecute).toBe(true);
+      expect(payload.fields[0].value).toEqual(['$uploadedFile:a', '$uploadedFile:b']);
+    });
+
+    // `in` would walk the prototype chain: a field literally named toString would read as filled
+    // by Object.prototype.toString — a function — and canExecute would come back true on an empty
+    // form.
+    it('does not count a field named like an Object.prototype member as filled', async () => {
+      const mockAction = jest.fn().mockResolvedValue({
+        getFields: jest.fn().mockReturnValue([
+          {
+            getName: () => 'toString',
+            getType: () => 'String',
+            getTypeName: () => 'String',
+            getValue: () => undefined,
+            isRequired: () => true,
+            getPlainField: () => ({}),
+            getMultipleChoiceField: () => ({ getOptions: () => null }),
+          },
+        ]),
+        tryToSetFields: jest.fn().mockResolvedValue([]),
+      });
+      mockBuildClientWithActions.mockResolvedValue({
+        rpcClient: { collection: jest.fn().mockReturnValue({ action: mockAction }) },
+        authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+      } as unknown as ReturnType<typeof buildClientWithActions>);
+
+      const result = await registeredToolHandler(
+        {
+          collectionName: 'users',
+          actionName: 'sendEmail',
+          recordIds: [1],
+          values: { note: 'hello' },
+        },
+        mockExtra,
+      );
+      const payload = JSON.parse((result as { content: { text: string }[] }).content[0].text);
+
+      expect(payload.canExecute).toBe(false);
+      expect(payload.requiredFields).toEqual(['toString']);
+    });
+
     it('should not call tryToSetFields when values are not provided', async () => {
       const mockGetFields = jest.fn().mockReturnValue([]);
       const mockTryToSetFields = jest.fn().mockResolvedValue([]);
@@ -303,6 +443,7 @@ describe('declareGetActionFormTool', () => {
         {
           getName: () => 'subject',
           getType: () => 'String',
+          getTypeName: () => 'String',
           getValue: () => undefined,
           isRequired: () => true,
           getPlainField: () => ({}),
@@ -311,6 +452,7 @@ describe('declareGetActionFormTool', () => {
         {
           getName: () => 'message',
           getType: () => 'String',
+          getTypeName: () => 'String',
           getValue: () => 'Default message',
           isRequired: () => false,
           getPlainField: () => ({}),
@@ -354,6 +496,7 @@ describe('declareGetActionFormTool', () => {
         {
           getName: () => 'subject',
           getType: () => 'String',
+          getTypeName: () => 'String',
           getValue: () => 'Test Subject',
           isRequired: () => true,
           getPlainField: () => ({}),
@@ -362,6 +505,7 @@ describe('declareGetActionFormTool', () => {
         {
           getName: () => 'message',
           getType: () => 'String',
+          getTypeName: () => 'String',
           getValue: () => 'Test Message',
           isRequired: () => true,
           getPlainField: () => ({}),
@@ -396,6 +540,7 @@ describe('declareGetActionFormTool', () => {
         {
           getName: () => 'subject',
           getType: () => 'String',
+          getTypeName: () => 'String',
           getValue: () => undefined,
           isRequired: () => true,
           getPlainField: () => ({}),
@@ -404,6 +549,7 @@ describe('declareGetActionFormTool', () => {
         {
           getName: () => 'message',
           getType: () => 'String',
+          getTypeName: () => 'String',
           getValue: () => 'Test Message',
           isRequired: () => false,
           getPlainField: () => ({}),
@@ -438,6 +584,7 @@ describe('declareGetActionFormTool', () => {
         {
           getName: () => 'quantity',
           getType: () => 'Number',
+          getTypeName: () => 'Number',
           getValue: () => 0,
           isRequired: () => true,
           getPlainField: () => ({}),
@@ -472,6 +619,7 @@ describe('declareGetActionFormTool', () => {
         {
           getName: () => 'isActive',
           getType: () => 'Boolean',
+          getTypeName: () => 'Boolean',
           getValue: () => false,
           isRequired: () => true,
           getPlainField: () => ({}),
@@ -506,6 +654,7 @@ describe('declareGetActionFormTool', () => {
         {
           getName: () => 'notes',
           getType: () => 'String',
+          getTypeName: () => 'String',
           getValue: () => '',
           isRequired: () => true,
           getPlainField: () => ({}),
@@ -540,6 +689,7 @@ describe('declareGetActionFormTool', () => {
         {
           getName: () => 'subject',
           getType: () => 'String',
+          getTypeName: () => 'String',
           getValue: () => null,
           isRequired: () => true,
           getPlainField: () => ({}),
@@ -574,6 +724,7 @@ describe('declareGetActionFormTool', () => {
         {
           getName: () => 'optionalField',
           getType: () => 'String',
+          getTypeName: () => 'String',
           getValue: () => undefined,
           isRequired: () => false,
           getPlainField: () => ({}),
@@ -608,6 +759,7 @@ describe('declareGetActionFormTool', () => {
         {
           getName: () => 'status',
           getType: () => 'Enum',
+          getTypeName: () => 'Enum',
           getValue: () => undefined,
           isRequired: () => true,
           getPlainField: () => ({}),
@@ -616,6 +768,7 @@ describe('declareGetActionFormTool', () => {
         {
           getName: () => 'message',
           getType: () => 'String',
+          getTypeName: () => 'String',
           getValue: () => undefined,
           isRequired: () => false,
           getPlainField: () => ({}),
@@ -662,6 +815,7 @@ describe('declareGetActionFormTool', () => {
         {
           getName: () => 'plan',
           getType: () => 'String',
+          getTypeName: () => 'String',
           getValue: () => undefined,
           isRequired: () => true,
           getPlainField: () => ({ description: 'Subscription plan' }),
@@ -675,6 +829,7 @@ describe('declareGetActionFormTool', () => {
         {
           getName: () => 'priority',
           getType: () => 'String',
+          getTypeName: () => 'String',
           getValue: () => undefined,
           isRequired: () => false,
           getPlainField: () => ({}),
@@ -759,6 +914,7 @@ describe('declareGetActionFormTool', () => {
         {
           getName: () => 'subject',
           getType: () => 'String',
+          getTypeName: () => 'String',
           getValue: () => 'Test Subject',
           isRequired: () => true,
           getPlainField: () => ({}),
@@ -800,6 +956,7 @@ describe('declareGetActionFormTool', () => {
         {
           getName: () => 'subject',
           getType: () => 'String',
+          getTypeName: () => 'String',
           getValue: () => undefined,
           isRequired: () => true,
           getPlainField: () => ({}),

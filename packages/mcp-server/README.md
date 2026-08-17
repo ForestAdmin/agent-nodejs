@@ -20,6 +20,7 @@ This MCP server provides HTTP REST API access to Forest Admin operations, enabli
 | `dissociate` | Dissociate records from a relation |
 | `getActionForm` | Get the form fields for a custom action |
 | `executeAction` | Execute a custom action |
+| `requestActionFileUpload` | Get a destination to upload a file to, for an action `File` field (only with `fileUploads`) |
 
 ## Usage
 
@@ -67,6 +68,8 @@ yarn start:dev       # Development (loads .env file automatically)
 | `FOREST_AGENT_URL` | No | your environment's back-end URL | URL the MCP server uses to reach the back-end's data layer. Set it when the server runs next to a self-hosted back-end at an internal address (e.g. `http://localhost:3310`), instead of the public URL registered in Forest |
 | `FOREST_MCP_ACCESS_TOKEN_TTL_SECONDS` | No | `3600` (1 hour) | Maximum lifetime of the OAuth access tokens the server issues (`tokenTtl.accessTokenSeconds`). Minimum `60` |
 | `FOREST_MCP_REFRESH_TOKEN_TTL_SECONDS` | No | unbounded | Maximum time between two interactive logins (`tokenTtl.refreshTokenSeconds`). Unset, a client that keeps refreshing never signs in again. Minimum `60` |
+| `FOREST_MCP_FILE_UPLOADS` | No | - | `false` turns action file uploads off (they are **on** by default, in memory). Any other value than `true`/`false` fails at startup |
+| `FOREST_MCP_UPLOAD_STORAGE_MODULE` | No | - | Path to a module providing the `fileUploads` options, for a real storage backend. `FOREST_MCP_FILE_UPLOADS=false` wins over it |
 
 #### Example Configuration
 
@@ -163,6 +166,250 @@ The two settings differ in what the user notices:
 - `refreshTokenSeconds` bounds the time between two **interactive logins**: once it elapses, the assistant can no longer refresh and the user signs in through the browser again. It is measured from the login itself, so an active assistant cannot keep extending its session. Refresh tokens issued before you enabled the option carry no login timestamp, so their window is measured from their last refresh instead — one longer session each, then bounded.
 
 The minimum for either value is 60 seconds; anything lower is raised to it. An invalid value (zero, negative, fractional) fails at startup rather than silently leaving the tokens uncapped.
+
+## Action File Uploads
+
+> **Experimental.** The MCP specification is still designing its own file transfer story
+> ([SEP-2631](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2631)). The
+> `UploadStorage` contract is expected to survive, but the `requestActionFileUpload` tool and the handle
+> format may change to follow the specification once it lands.
+
+Actions with **File fields** cannot normally run over MCP. The agent expects file values as data
+uris, which would transit the model's context window and exceed most MCP clients' payload limits.
+The `fileUploads` option enables them through an upload side-channel that keeps the bytes out of
+the conversation:
+
+1. The client calls the `requestActionFileUpload` tool with `{ "filename", "mimeType", "sha256"? }` and receives a pre-authorized upload URL plus a signed `fileHandle` string.
+2. The client uploads the raw bytes directly to the storage backend, so they never pass through the MCP server or the model.
+3. The client passes the handle (`"$uploadedFile:<...>"`) as the field value in `executeAction`. The server downloads the object and hands it to the agent. The model only ever exchanges the small handle.
+
+`requestActionFileUpload` follows `enabledTools` like every other tool, so a server that leaves it out never advertises it and never serves the upload endpoint.
+
+The upload URL is unauthenticated — the model holds no agent credential, and must not — so the URL
+itself is the authorization, as with an S3 presigned PUT. It carries a random uuid, is refused
+before a byte is read unless this server issued it, expires with `uploadUrlTtlSeconds`, and serves
+nothing but the `PUT`. Against the in-memory store it also **accepts a single upload**: once the
+bytes land, a leaked URL can no longer replace them. Writing is not consuming either — redemption
+needs the signed handle, which is bound to the user who requested it.
+
+A presigned backend URL is a different animal: it is typically **replayable** until it expires — S3
+accepts as many `PUT`s as fit in `expiresInSeconds` — so there, a URL leaked to an access log can
+overwrite the bytes *after* the legitimate upload and before the action runs. The `sha256` pin is
+the defense that covers every backend at once: S3 signs it into the URL, so a different payload is
+rejected at upload time, and redemption re-verifies the digest regardless of what the backend
+checked. The tool instructs the model to pin by default; treat an unpinned upload as accepting that
+window.
+
+### Nothing to provision, and nothing to switch on
+
+It is on by default. With no `storage`, the server holds the objects in memory and serves its own
+upload endpoint under `<origin>/mcp/uploads`. The `fileUploads` option only *configures* that — a
+backend, size limits, ttls:
+
+```typescript
+agent.mountAiMcpServer();                             // in memory, single instance
+agent.mountAiMcpServer({ fileUploads: { storage } }); // a real backend
+```
+
+To turn the feature off, pass `fileUploads: false` — on the standalone server,
+`FOREST_MCP_FILE_UPLOADS=false`. The tool is not registered, the upload endpoint is never mounted,
+and `executeAction` stops mentioning either. Going through `enabledTools` would work too, but it is
+an allowlist — declining this one feature that way means naming every other tool and opting out of
+everything shipped after.
+
+> **Single instance only.** The upload and the redemption are two separate requests. With several
+> replicas, in cluster mode, or on a serverless runtime, one of them lands
+> on an instance that never saw the other and the action fails — intermittently, which reads as a
+> flaky feature rather than a misconfiguration. Objects are also lost on restart. The server warns
+> the first time an upload destination is asked for, and the failure names this cause. **Those deployments need a `storage`.**
+
+`ephemeralMaxTotalBytes` bounds what the in-memory store holds across all pending uploads, 64 MiB by
+default. Redeeming a file does not free it — the object lives until `handleTtlSeconds` so a retry
+after a failed action still finds it — so on the defaults the store holds about three max-size
+files per 45-minute window rather than a rolling 64 MiB. Size it against that, or shorten
+`handleTtlSeconds`. It is deliberately absolute rather than a multiple of `maxBytes`: derived, raising the
+per-file limit would multiply what the process can hold.
+
+### With a storage backend
+
+Provide `storage` for anything beyond a single instance. Any backend that can pre-authorize an
+upload and read the object back works — S3 presigned URLs (below), GCS signed URLs, Azure SAS. The
+package has no storage dependency of its own.
+
+### On the standalone server
+
+Uploads are on with the in-memory store, with the same single-instance caveat.
+
+For a real backend, a storage is an object with methods, so unlike every other standalone option it
+cannot travel through an environment variable. Point `FOREST_MCP_UPLOAD_STORAGE_MODULE` at a module
+that default-exports the options instead — a bad path, or a module that exports nothing, fails at
+startup rather than running with uploads silently disabled:
+
+```javascript
+// forest-upload-storage.js
+module.exports = {
+  storage: {
+    /* createUploadUrl / download / getSize, as below */
+  },
+  maxBytes: 50 * 1024 * 1024,
+  downloadTimeoutSeconds: 10,
+};
+```
+
+```bash
+FOREST_MCP_UPLOAD_STORAGE_MODULE=./forest-upload-storage.js npx forest-mcp-server
+```
+
+The module may also export a function, sync or async, returning the same options — useful when the
+backend needs credentials fetched at boot.
+
+### The client must be able to upload
+
+Step 2 is an ordinary HTTPS request, made by the client, outside the MCP protocol. The client has to
+be able to make it:
+
+- **Claude Code** and custom agents: works. The shell runs on the same machine as the developer, so
+  it reaches a `localhost` agent too — this is the one place the whole flow can be tried end to end
+  against a local agent. Verified.
+- **Claude Desktop, Claude.ai and Cowork**: the attached file lands in the code execution sandbox
+  and the model can `curl -X PUT -T <path> <uploadUrl>` — applying every header the tool returned,
+  since a pinned `sha256` is signed into `x-amz-checksum-sha256` on S3 and the PUT is rejected
+  without it. Two conditions, and both are needed:
+  1. **`uploadUrl` must be publicly reachable.** That sandbox is hosted and runs on its own
+     network, so a `localhost` or private address is never reachable from it, whatever else is
+     configured. An agent running on a developer's machine cannot be tested this way.
+  2. **Its host must be allowed for outbound traffic** in that sandbox. Where this is configured
+     differs between clients and versions — and on a managed workspace the setting may not be
+     exposed to the end user at all, in which case only an administrator can unblock the upload.
+     Do not promise your users a menu path; give them the host to get allowed.
+
+  Both are client-side and outside this server's control, so document your upload host for your
+  users.
+
+  **Verified end to end** from a Claude Desktop chat and from a Cowork cloud session: an agent
+  behind a public HTTPS URL, that host added to the sandbox's allowed domains, and the model's
+  `PUT` goes through. Before the host was allowed, the same sandbox answered `Host not in
+  allowlist` even for an ordinary public domain — so the allowlist is the whole of condition 2,
+  and satisfying it is enough. The Cowork run started from a single natural sentence, with no tool
+  named: the model found the form, requested a destination and pinned the `sha256` unprompted, and
+  no tool argument carried base64 — checked against the request bodies at the tunnel, not the
+  transcript.
+
+  One wrinkle observed there: the filename the action stores is whatever the client reports, and a
+  sandbox may normalize it (`rapport-1815.pdf` arrived as `rapport1815.pdf` while the bytes and
+  mime type were exact). Treat it as a label, not an identifier.
+
+The tool states this prerequisite in its description and repeats it in its response, so a model
+whose upload was blocked has the diagnosis in context.
+
+### Trying it locally
+
+`packages/_example` needs no configuration for this — no cloud account, no storage code.
+Its `review` collection carries an `Attach a document` action with a `File` and a `FileList` field.
+Start the example agent, connect an MCP client to it, and ask for that action with a file — the
+action reports the name, mime type and byte count it received.
+
+```mermaid
+sequenceDiagram
+    participant Client as MCP client
+    participant Server as MCP server
+    participant Storage as Storage backend
+    participant Agent as Forest Admin agent
+
+    Client->>Server: requestActionFileUpload {filename, mimeType, sha256?}
+    Server-->>Client: uploadUrl + fileHandle (user-bound JWT)
+    Client->>Storage: PUT raw bytes to uploadUrl
+    Note over Client,Storage: bytes bypass the server and the model
+    Client->>Server: executeAction {values: {field: "$uploadedFile:..."}}
+    Server->>Storage: download object
+    Note over Server: verify user, TTL, maxBytes, sha256 pin
+    Server->>Agent: executeAction with the file
+    Agent-->>Server: action result
+    Server-->>Client: result (the model only saw the handle)
+```
+
+The storage backend is pluggable, and this package has no storage dependency. Provide an
+implementation of `UploadStorage`; any backend that can pre-authorize an upload and read the object
+back works, such as S3 presigned URLs (below), GCS signed URLs, Azure SAS, or an endpoint you serve
+yourself. The only hard requirement is that the URL be reachable from the MCP client, since that is
+what uploads the bytes.
+
+```typescript
+import {
+  S3Client,
+  GetObjectCommand,
+  HeadObjectCommand,
+  PutObjectCommand,
+} from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import type { UploadStorage } from '@forestadmin/mcp-server';
+
+const s3 = new S3Client({});
+const bucket = 'my-uploads-bucket';
+
+const storage: UploadStorage = {
+  async createUploadUrl({ key, mimeType, sha256, expiresInSeconds }) {
+    const command = new PutObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      ContentType: mimeType,
+      ...(sha256 && { ChecksumSHA256: sha256 }),
+    });
+    const url = await getSignedUrl(s3, command, {
+      expiresIn: expiresInSeconds,
+      // Load-bearing: without it the checksum is hoisted to the query string, which S3 does not
+      // enforce — the pin would silently stop protecting the upload.
+      ...(sha256 && { unhoistableHeaders: new Set(['x-amz-checksum-sha256']) }),
+    });
+    return {
+      url,
+      headers: { 'Content-Type': mimeType, ...(sha256 && { 'x-amz-checksum-sha256': sha256 }) },
+    };
+  },
+  async getSize(key) {
+    const head = await s3.send(new HeadObjectCommand({ Bucket: bucket, Key: key }));
+    return head.ContentLength;
+  },
+  async download(key) {
+    const object = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+    return Buffer.from(await object.Body.transformToByteArray());
+  },
+};
+
+const server = new ForestMCPServer({
+  // ...
+  fileUploads: { storage },
+});
+```
+
+The other options are `keyPrefix` (default `mcp-uploads/`), `uploadUrlTtlSeconds` (default 15 min),
+`handleTtlSeconds` (default 45 min, longer than the upload URL so a slow upload still leaves time to
+run the action), `maxBytes` (default 20 MiB), `maxConcurrentDownloads` (default 5), and
+`downloadTimeoutSeconds` (default 15 s), and `ephemeralMaxTotalBytes` (default 64 MiB, in-memory store only).
+
+Lower `downloadTimeoutSeconds` if the clients calling your agent cut requests sooner than that. The
+whole `executeAction` has to fit inside their timeout: reading the object, encoding it, and running
+your action. A read that outlives the caller is wasted work — and left unbounded it would hold its
+concurrency slot after the caller gave up.
+
+A few properties matter in production.
+
+- The server stays stateless. The handle is a JWT signed with `authSecret`, so there is no database and no session affinity, and any replica can redeem a handle issued by another.
+- A handle is bound to the user it was issued to. Only that user's Bearer token can redeem it, and it expires with `handleTtlSeconds`. It stays redeemable until then, so keep the TTL short.
+- When the client sends `sha256` (hex or base64), the upload URL is pinned to that digest and the digest is checked again on the downloaded bytes at redemption. Content substituted after an upload URL leak cannot be redeemed.
+- **`maxBytes` does not bound memory on its own.** A pre-authorized upload URL cannot always cap the object size, so the limit is enforced at redemption: before downloading when `getSize` reports a size, and only after the bytes are in memory when it returns `undefined`. Implement `getSize` whenever the backend can answer it cheaply.
+- **`maxConcurrentDownloads` bounds concurrent downloads, not peak memory.** All the files one `executeAction` call references are held together until the call completes, so a form with N file fields holds up to N × `maxBytes` whatever the concurrency limit is. Size `maxBytes` against the number of file fields your actions declare.
+- **A timed-out read is abandoned, not cancelled.** `UploadStorage.download` takes no `AbortSignal`, so when `downloadTimeoutSeconds` fires the concurrency slot is freed while the underlying read keeps running. Against a backend slower than that timeout the number of reads in flight can therefore exceed `maxConcurrentDownloads`. Keep `downloadTimeoutSeconds` low so a slow backend fails fast instead of accumulating.
+- The server never deletes objects, and does not delete them once redeemed either: `executeAction` downloads every reference before it sets fields or runs, so consuming on read would leave a model retrying after any later failure with handles whose objects are gone, told the upload failed when it had not. Configure a lifecycle rule on the storage backend, for example deleting objects under `keyPrefix` after one day; the in-memory store reclaims on `handleTtlSeconds` and on its own total.
+
+Only `executeAction` resolves handles. `getActionForm` echoes field values back to the model, so a
+handle stays a handle there: resolving it would put the file content back into the model's context.
+
+**Change hooks never see a handle.** On the `getActionForm` path, file references are withheld from
+`tryToSetFields`, so a hook fired by another field reads the file field as unset rather than as a
+string it would call `.buffer` on. On the `executeAction` path the handles are already resolved, so
+a hook receives the file as the data uri it expects. Either way a hook never has to know this
+side-channel exists.
 
 ## API Endpoints
 
