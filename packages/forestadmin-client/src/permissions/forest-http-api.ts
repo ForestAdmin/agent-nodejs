@@ -193,8 +193,7 @@ export default class ForestHttpApi implements ForestAdminServerInterface {
     recordId: string,
   ): Promise<WorkflowRunTriggerResult> {
     // The orchestrator returns a numeric runId; normalize it to the string form expected by
-    // getMcpWorkflowRun. workflowName/collectionName are passed through when present so the
-    // caller can label the audit log without listing every workflow first.
+    // getMcpWorkflowRun.
     const result = await ServerUtils.queryWithBearerToken<
       Omit<WorkflowRunTriggerResult, 'runId'> & { runId: number | string }
     >({
@@ -206,7 +205,7 @@ export default class ForestHttpApi implements ForestAdminServerInterface {
       headers: { 'forest-rendering-id': renderingId, ...options.headers },
     });
 
-    return { ...result, runId: String(result.runId) };
+    return { runId: String(result.runId), runState: result.runState };
   }
 
   async getMcpWorkflowRun(
