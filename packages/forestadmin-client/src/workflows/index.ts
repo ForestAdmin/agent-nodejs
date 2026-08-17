@@ -15,27 +15,47 @@ export type WorkflowsServiceOptions = {
   headers?: Record<string, string>;
 };
 
+type WorkflowTransportMethod =
+  | 'listMcpEnabledWorkflows'
+  | 'getMcpWorkflowById'
+  | 'triggerMcpWorkflow'
+  | 'getMcpWorkflowRun';
+
 export default class WorkflowsService {
   constructor(
     private forestAdminServerInterface: ForestAdminServerInterface,
     private options: WorkflowsServiceOptions,
   ) {}
 
+  // The transport interface methods are optional so external implementations keep compiling;
+  // resolve the bound method or fail with a uniform message.
+  private resolveTransportMethod<K extends WorkflowTransportMethod>(
+    name: K,
+  ): NonNullable<ForestAdminServerInterface[K]> {
+    const method = this.forestAdminServerInterface[name];
+
+    if (!method) {
+      throw new Error(`The configured Forest server transport does not support ${name}.`);
+    }
+
+    return method.bind(this.forestAdminServerInterface) as NonNullable<
+      ForestAdminServerInterface[K]
+    >;
+  }
+
+  private httpOptions(forestServerToken: string) {
+    return {
+      forestServerUrl: this.options.forestServerUrl,
+      bearerToken: forestServerToken,
+      headers: this.options.headers,
+    };
+  }
+
   async listMcpEnabledWorkflows(params: ListMcpWorkflowsParams): Promise<McpWorkflow[]> {
     const { forestServerToken, renderingId, collectionName } = params;
 
-    if (!this.forestAdminServerInterface.listMcpEnabledWorkflows) {
-      throw new Error(
-        'The configured Forest server transport does not support listMcpEnabledWorkflows.',
-      );
-    }
-
-    return this.forestAdminServerInterface.listMcpEnabledWorkflows(
-      {
-        forestServerUrl: this.options.forestServerUrl,
-        bearerToken: forestServerToken,
-        headers: this.options.headers,
-      },
+    return this.resolveTransportMethod('listMcpEnabledWorkflows')(
+      this.httpOptions(forestServerToken),
       renderingId,
       collectionName,
     );
@@ -44,18 +64,8 @@ export default class WorkflowsService {
   async getMcpWorkflowById(params: GetMcpWorkflowByIdParams): Promise<McpWorkflowLookup> {
     const { forestServerToken, renderingId, workflowId } = params;
 
-    if (!this.forestAdminServerInterface.getMcpWorkflowById) {
-      throw new Error(
-        'The configured Forest server transport does not support getMcpWorkflowById.',
-      );
-    }
-
-    return this.forestAdminServerInterface.getMcpWorkflowById(
-      {
-        forestServerUrl: this.options.forestServerUrl,
-        bearerToken: forestServerToken,
-        headers: this.options.headers,
-      },
+    return this.resolveTransportMethod('getMcpWorkflowById')(
+      this.httpOptions(forestServerToken),
       renderingId,
       workflowId,
     );
@@ -64,18 +74,8 @@ export default class WorkflowsService {
   async triggerMcpWorkflow(params: TriggerMcpWorkflowParams): Promise<WorkflowRunTriggerResult> {
     const { forestServerToken, renderingId, workflowId, recordId } = params;
 
-    if (!this.forestAdminServerInterface.triggerMcpWorkflow) {
-      throw new Error(
-        'The configured Forest server transport does not support triggerMcpWorkflow.',
-      );
-    }
-
-    return this.forestAdminServerInterface.triggerMcpWorkflow(
-      {
-        forestServerUrl: this.options.forestServerUrl,
-        bearerToken: forestServerToken,
-        headers: this.options.headers,
-      },
+    return this.resolveTransportMethod('triggerMcpWorkflow')(
+      this.httpOptions(forestServerToken),
       renderingId,
       workflowId,
       recordId,
@@ -85,16 +85,8 @@ export default class WorkflowsService {
   async getMcpWorkflowRun(params: GetMcpWorkflowRunParams): Promise<HydratedWorkflowRun> {
     const { forestServerToken, renderingId, runId } = params;
 
-    if (!this.forestAdminServerInterface.getMcpWorkflowRun) {
-      throw new Error('The configured Forest server transport does not support getMcpWorkflowRun.');
-    }
-
-    return this.forestAdminServerInterface.getMcpWorkflowRun(
-      {
-        forestServerUrl: this.options.forestServerUrl,
-        bearerToken: forestServerToken,
-        headers: this.options.headers,
-      },
+    return this.resolveTransportMethod('getMcpWorkflowRun')(
+      this.httpOptions(forestServerToken),
       renderingId,
       runId,
     );
