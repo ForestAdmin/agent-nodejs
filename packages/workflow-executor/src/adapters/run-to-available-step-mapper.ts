@@ -27,7 +27,11 @@ import {
   type Step,
   type StepUser,
 } from '../types/validated/execution';
-import { stepTypeToOutcomeType } from '../types/validated/step-outcome';
+import {
+  ErrorKindSchema,
+  ErrorSourceStepIndexSchema,
+  stepTypeToOutcomeType,
+} from '../types/validated/step-outcome';
 
 function toRecordStatus(ctxStatus: unknown): RecordStepOutcome['status'] {
   if (ctxStatus === 'error') return 'error';
@@ -44,10 +48,17 @@ function toStepOutcome(s: ServerStepHistory): StepOutcome {
   const outcomeType = stepTypeToOutcomeType(stepDef.type);
   const ctx = (s.context ?? {}) as Record<string, unknown>;
 
+  // A value the executor didn't write (legacy frontend, or a newer executor's vocabulary) is dropped
+  // rather than passed on: AvailableStepExecutionSchema.parse below would fail the whole run.
+  const parsedErrorKind = ErrorKindSchema.safeParse(ctx.errorKind);
+  const parsedSourceStepIndex = ErrorSourceStepIndexSchema.safeParse(ctx.errorSourceStepIndex);
+
   const baseFromCtx = {
     stepId: s.stepName,
     stepIndex: s.stepIndex,
     error: typeof ctx.error === 'string' ? ctx.error : undefined,
+    ...(parsedErrorKind.success && { errorKind: parsedErrorKind.data }),
+    ...(parsedSourceStepIndex.success && { errorSourceStepIndex: parsedSourceStepIndex.data }),
   };
 
   if (outcomeType === 'condition') {

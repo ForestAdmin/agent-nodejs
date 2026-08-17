@@ -1,7 +1,7 @@
 /* eslint-disable max-classes-per-file */
 import type { MalformedRunInfo } from './ports/workflow-port';
 import type { RecordId } from './types/validated/collection';
-import type { AwaitingInputReason } from './types/validated/step-outcome';
+import type { AwaitingInputReason, ErrorKind } from './types/validated/step-outcome';
 import type { z } from 'zod';
 
 export function causeMessage(error: unknown): string | undefined {
@@ -30,10 +30,19 @@ export abstract class WorkflowExecutorError extends Error {
   readonly userMessage: string;
   cause?: unknown;
 
+  // Who has to act. Subclasses declare it once via defaultErrorKind; the throw site overrides only
+  // where the same error has different audiences depending on why it was raised.
+  errorKind?: ErrorKind;
+  static readonly defaultErrorKind?: ErrorKind;
+
+  // Set when the error is about a different step than the one being executed.
+  errorSourceStepIndex?: number;
+
   constructor(message: string, userMessage?: string) {
     super(message);
     this.name = this.constructor.name;
     this.userMessage = userMessage ?? message;
+    this.errorKind = (this.constructor as typeof WorkflowExecutorError).defaultErrorKind;
   }
 }
 
@@ -68,6 +77,8 @@ export class MalformedToolCallError extends WorkflowExecutorError {
 }
 
 export class RecordNotFoundError extends WorkflowExecutorError {
+  static override readonly defaultErrorKind: ErrorKind = 'operator';
+
   constructor(collectionName: string, recordId: RecordId) {
     super(
       `Record not found: collection "${collectionName}", id "${recordId.join('|')}"`,
@@ -77,12 +88,16 @@ export class RecordNotFoundError extends WorkflowExecutorError {
 }
 
 export class NoRecordsError extends WorkflowExecutorError {
+  static override readonly defaultErrorKind: ErrorKind = 'operator';
+
   constructor() {
     super('No records available');
   }
 }
 
 export class NoReadableFieldsError extends WorkflowExecutorError {
+  static override readonly defaultErrorKind: ErrorKind = 'configuration';
+
   constructor(collectionName: string) {
     super(
       `No readable fields on record from collection "${collectionName}"`,
@@ -101,6 +116,8 @@ export class NoResolvedFieldsError extends WorkflowExecutorError {
 }
 
 export class NoWritableFieldsError extends WorkflowExecutorError {
+  static override readonly defaultErrorKind: ErrorKind = 'configuration';
+
   constructor(collectionName: string) {
     super(
       `No writable fields on record from collection "${collectionName}"`,
@@ -110,6 +127,8 @@ export class NoWritableFieldsError extends WorkflowExecutorError {
 }
 
 export class NoActionsError extends WorkflowExecutorError {
+  static override readonly defaultErrorKind: ErrorKind = 'configuration';
+
   constructor(collectionName: string) {
     super(
       `No actions available on collection "${collectionName}"`,
@@ -131,6 +150,8 @@ export class UnsupportedActionFormError extends WorkflowExecutorError {
 // NOT an infra failure. Full AI treats this as a fallback-to-AI-assisted reason
 // so a human can fix the values and resubmit.
 export class ActionFormValidationError extends WorkflowExecutorError {
+  static override readonly defaultErrorKind: ErrorKind = 'operator';
+
   constructor(actionName: string, cause?: unknown) {
     super(
       `Action "${actionName}" rejected the submitted form values`,
@@ -145,6 +166,8 @@ export class ActionFormValidationError extends WorkflowExecutorError {
 // falls back to AI-assisted so the native front handles the approval flow. The executor
 // MUST NOT self-sign an approval request.
 export class ActionRequiresApprovalError extends WorkflowExecutorError {
+  static override readonly defaultErrorKind: ErrorKind = 'operator';
+
   readonly roleIdsAllowedToApprove?: number[];
 
   constructor(actionName: string, roleIdsAllowedToApprove?: number[]) {
@@ -178,6 +201,8 @@ export class RunStorePortError extends UnavailableError {
 }
 
 export class NoRelationshipFieldsError extends WorkflowExecutorError {
+  static override readonly defaultErrorKind: ErrorKind = 'configuration';
+
   constructor(collectionName: string) {
     super(
       `No relationship fields on record from collection "${collectionName}"`,
@@ -187,6 +212,8 @@ export class NoRelationshipFieldsError extends WorkflowExecutorError {
 }
 
 export class RelatedRecordNotFoundError extends WorkflowExecutorError {
+  static override readonly defaultErrorKind: ErrorKind = 'operator';
+
   constructor(collectionName: string, relationName: string) {
     super(
       `No related record found for relation "${relationName}" on collection "${collectionName}"`,
@@ -202,12 +229,16 @@ export class InvalidAIResponseError extends WorkflowExecutorError {
 }
 
 export class InvalidAiRequestError extends WorkflowExecutorError {
+  static override readonly defaultErrorKind: ErrorKind = 'configuration';
+
   constructor(message: string) {
     super(message, 'Step configuration error — please contact your administrator.');
   }
 }
 
 export class RelationNotFoundError extends WorkflowExecutorError {
+  static override readonly defaultErrorKind: ErrorKind = 'configuration';
+
   constructor(name: string, collectionName: string) {
     super(
       `Relation "${name}" not found in collection "${collectionName}"`,
@@ -217,6 +248,8 @@ export class RelationNotFoundError extends WorkflowExecutorError {
 }
 
 export class FieldNotFoundError extends WorkflowExecutorError {
+  static override readonly defaultErrorKind: ErrorKind = 'configuration';
+
   constructor(name: string, collectionName: string) {
     super(
       `Field "${name}" not found in collection "${collectionName}"`,
@@ -226,6 +259,8 @@ export class FieldNotFoundError extends WorkflowExecutorError {
 }
 
 export class FieldTypeMissingError extends WorkflowExecutorError {
+  static override readonly defaultErrorKind: ErrorKind = 'configuration';
+
   constructor(name: string, collectionName: string) {
     super(
       `Field "${name}" in collection "${collectionName}" has no column type`,
@@ -236,6 +271,8 @@ export class FieldTypeMissingError extends WorkflowExecutorError {
 }
 
 export class ActionNotFoundError extends WorkflowExecutorError {
+  static override readonly defaultErrorKind: ErrorKind = 'configuration';
+
   constructor(name: string, collectionName: string) {
     super(
       `Action "${name}" not found in collection "${collectionName}"`,
@@ -486,6 +523,8 @@ export class InvalidPendingDataError extends WorkflowExecutorError {
 }
 
 export class InvalidPreRecordedArgsError extends WorkflowExecutorError {
+  static override readonly defaultErrorKind: ErrorKind = 'configuration';
+
   constructor(detail: string) {
     super(`Invalid pre-recorded args: ${detail}`, 'The pre-configured step parameters are invalid');
   }
@@ -494,13 +533,20 @@ export class InvalidPreRecordedArgsError extends WorkflowExecutorError {
 // A "Related to" / "On record" source step ran but loaded no record, so the step that uses it has
 // no source to act on ("no source record"). Distinct from a bad config — the
 // user can continue without. Wording is step-type-neutral (shared by load-related and trigger-action).
+// The kind comes from the throw site: only there is it known whether the operator had a record to
+// pick, which is what decides who can act on it.
 export class SourceRecordMissingError extends WorkflowExecutorError {
-  constructor(sourceTitle?: string) {
+  constructor(
+    sourceTitle?: string,
+    options: { errorKind?: ErrorKind; errorSourceStepIndex?: number } = {},
+  ) {
     const from = sourceTitle ? `"${sourceTitle}"` : 'its source step';
     super(
       `Source step ${from} loaded no record`,
       `This step uses ${from} as its source, but that step didn't load any record.`,
     );
+    this.errorKind = options.errorKind;
+    this.errorSourceStepIndex = options.errorSourceStepIndex;
   }
 }
 

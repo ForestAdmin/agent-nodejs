@@ -9,7 +9,11 @@ import type { StepExecutionData } from '../../src/types/step-execution-data';
 import type { RecordRef } from '../../src/types/validated/collection';
 import type { Step } from '../../src/types/validated/execution';
 import type { StepDefinition } from '../../src/types/validated/step-definition';
-import type { BaseStepStatus, StepOutcome } from '../../src/types/validated/step-outcome';
+import type {
+  BaseStepStatus,
+  ErrorKind,
+  StepOutcome,
+} from '../../src/types/validated/step-outcome';
 import type { BaseMessage, DynamicStructuredTool } from '@forestadmin/ai-proxy';
 
 import { HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
@@ -45,6 +49,7 @@ class TestableExecutor extends BaseStepExecutor {
   protected buildOutcomeResult(outcome: {
     status: BaseStepStatus;
     error?: string;
+    errorKind?: ErrorKind;
   }): StepExecutionResult {
     return {
       stepOutcome: {
@@ -53,6 +58,7 @@ class TestableExecutor extends BaseStepExecutor {
         stepIndex: this.context.stepIndex,
         status: outcome.status,
         ...(outcome.error !== undefined && { error: outcome.error }),
+        ...(outcome.errorKind !== undefined && { errorKind: outcome.errorKind }),
       },
     };
   }
@@ -407,21 +413,36 @@ describe('BaseStepExecutor', () => {
   });
 
   describe('execute error handling', () => {
-    it('converts NoRecordsError to error outcome', async () => {
+    it('converts NoRecordsError to an operator-classified error outcome', async () => {
       const executor = new TestableExecutor(makeContext(), new NoRecordsError());
 
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe('No records available');
+      expect(result.stepOutcome.errorKind).toBe('operator');
+    });
+
+    it('reports an unclassified error without an errorKind', async () => {
+      const executor = new TestableExecutor(
+        makeContext(),
+        new StepStateError('Step at index 0 has no pending data'),
+      );
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome).not.toHaveProperty('errorKind');
     });
 
     describe('unexpected error handling', () => {
+      // A thrown non-WorkflowExecutorError has no kind to carry — it keeps today's framing.
       it('returns error outcome instead of rethrowing', async () => {
         const executor = new TestableExecutor(makeContext(), new Error('db connection refused'));
         const result = await executor.execute();
         expect(result.stepOutcome.status).toBe('error');
         expect(result.stepOutcome.error).toBe('Unexpected error during step execution');
+        expect(result.stepOutcome).not.toHaveProperty('errorKind');
       });
 
       it('logs the full error context when logger is provided', async () => {
