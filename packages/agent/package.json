@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/agent",
-  "version": "1.95.0",
+  "version": "1.95.1",
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "publishConfig": {
@@ -47,7 +47,7 @@
   },
   "devDependencies": {
     "@fastify/express": "^1.1.0",
-    "@forestadmin/datasource-sql": "1.17.12",
+    "@forestadmin/datasource-sql": "1.17.13",
     "@forestadmin/workflow-executor": "1.24.0",
     "@nestjs/common": "^11.1.24",
     "@nestjs/core": "^11.1.24",
