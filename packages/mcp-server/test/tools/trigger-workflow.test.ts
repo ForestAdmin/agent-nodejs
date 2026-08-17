@@ -167,7 +167,7 @@ describe('declareTriggerWorkflowTool', () => {
           type: 'write',
           collectionName: 'orders',
           recordId: '42',
-          label: 'triggered the workflow "Refund order"',
+          label: 'triggered the workflow "Refund order" via MCP',
         }),
       );
 

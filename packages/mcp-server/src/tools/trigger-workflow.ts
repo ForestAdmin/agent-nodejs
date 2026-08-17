@@ -100,7 +100,10 @@ export default function declareTriggerWorkflowTool(mcpServer: McpServer, ctx: To
         context: {
           collectionName: workflow.collectionName,
           recordId: args.recordId,
-          label: `triggered the workflow "${workflow.name}"`,
+          // Aligned with the orchestrator's own audit row ("… via MCP"): one trigger writes two
+          // complementary entries — this one (fail-closed, no runId yet) and the orchestrator's
+          // (attached to the run) — so both must read as MCP-originated.
+          label: `triggered the workflow "${workflow.name}" via MCP`,
         },
         logger,
         operation: () =>
