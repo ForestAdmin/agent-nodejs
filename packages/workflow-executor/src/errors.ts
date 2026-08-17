@@ -545,7 +545,7 @@ export class SourceRecordMissingError extends WorkflowExecutorError {
       `Source step ${from} loaded no record`,
       `This step uses ${from} as its source, but that step didn't load any record.`,
     );
-    this.errorKind = options.errorKind;
+    this.errorKind = options.errorKind ?? this.errorKind;
     this.errorSourceStepIndex = options.errorSourceStepIndex;
   }
 }

@@ -23,15 +23,13 @@ function classifyMissingSourceRecord(execution?: StepExecutionData): ErrorKind |
 
   const { pendingData, executionResult } = execution;
 
-  // Full AI continues without a record on its own judgment, having found no candidate to offer.
-  if (executionResult !== undefined) {
-    return 'skipped' in executionResult ? 'configuration' : undefined;
-  }
+  // A result we cannot read is as likely our own bug as anything that happened in the run.
+  if (executionResult !== undefined && !('skipped' in executionResult)) return undefined;
 
-  // It paused instead, so the candidates it offered say whether the operator could have chosen
-  // otherwise — and without that list there is nothing to read the situation from.
-  if (!pendingData) return undefined;
+  // Nothing was ever offered: only Full AI continues without pausing, so no operator had a choice.
+  if (!pendingData) return executionResult !== undefined ? 'configuration' : undefined;
 
+  // Whether it paused or the operator declined, the candidates it offered say who had an alternative.
   return pendingData.availableRecordIds.length > 0 ? 'operator' : 'configuration';
 }
 
