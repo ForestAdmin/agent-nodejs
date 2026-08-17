@@ -291,6 +291,9 @@ export default class QueryConverter {
         association: name,
         attributes: relAttrProjection.columns,
         include: this.getIncludeFromProjection(relAttrProjection, relTableProjection),
+        // A `defaultScope` on the target makes sequelize mark the include as required, degrading
+        // the LEFT OUTER JOIN into an INNER JOIN and dropping parent records from lists and counts.
+        required: false,
       };
     });
   }
