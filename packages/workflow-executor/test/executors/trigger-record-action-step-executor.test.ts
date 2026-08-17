@@ -2087,6 +2087,30 @@ describe('TriggerRecordActionStepExecutor', () => {
         expect(stepOutcome.errorSourceStepIndex).toBe(2);
       });
 
+      it('classifies a declined confirmation with candidates as an operator error', async () => {
+        // The confirmation flow records a decline as a skipped result while keeping the candidate
+        // list, so the result shape alone would read this as nobody's choice.
+        const { stepOutcome } = await runPinnedToSource({
+          executions: [
+            {
+              type: 'load-related-record',
+              stepIndex: 2,
+              pendingData: {
+                availableFields: [relation],
+                suggestedField: relation,
+                availableRecordIds: oneCandidate,
+              },
+              userConfirmation: { userConfirmed: false },
+              executionResult: { skipped: true },
+            },
+          ],
+        });
+
+        expect(stepOutcome.status).toBe('error');
+        expect(stepOutcome.errorKind).toBe('operator');
+        expect(stepOutcome.errorSourceStepIndex).toBe(2);
+      });
+
       it('classifies a source step id that matches no step as a configuration error', async () => {
         const { stepOutcome, agentPort } = await runPinnedToSource({
           selectedRecordStepId: 'load-9',

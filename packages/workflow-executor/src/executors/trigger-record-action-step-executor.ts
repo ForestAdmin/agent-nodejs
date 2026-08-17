@@ -7,7 +7,7 @@ import type {
 } from '../types/step-execution-data';
 import type { ActionSchema, CollectionSchema, RecordRef } from '../types/validated/collection';
 import type { TriggerActionStepDefinition } from '../types/validated/step-definition';
-import type { RecordStepStatus } from '../types/validated/step-outcome';
+import type { ErrorKind, RecordStepStatus } from '../types/validated/step-outcome';
 
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 import { z } from 'zod';
@@ -51,6 +51,8 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
   protected override buildOutcomeResult(outcome: {
     status: RecordStepStatus;
     error?: string;
+    errorKind?: ErrorKind;
+    errorSourceStepIndex?: number;
     approvalRequest?: { id: string };
   }): StepExecutionResult {
     return super.buildOutcomeResult(outcome);
