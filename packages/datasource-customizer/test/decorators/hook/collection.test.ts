@@ -166,27 +166,6 @@ describe('CollectionHookDecorator', () => {
     });
   });
 
-  describe('when adding a prepended hook', () => {
-    test('it should run before hooks added earlier', async () => {
-      const order: string[] = [];
-      decoratedTransactions.addHook('After', 'Create', () => {
-        order.push('firstAdded');
-      });
-      decoratedTransactions.addHook(
-        'After',
-        'Create',
-        () => {
-          order.push('prepended');
-        },
-        true,
-      );
-
-      await decoratedTransactions.create(factories.caller.build(), [factories.recordData.build()]);
-
-      expect(order).toEqual(['prepended', 'firstAdded']);
-    });
-  });
-
   describe('when adding an after hook', () => {
     describe('on a list', () => {
       test('it should call the hook with valid parameters', async () => {

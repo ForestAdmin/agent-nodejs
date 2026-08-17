@@ -37,9 +37,8 @@ export default class CollectionHookDecorator extends CollectionDecorator {
     position: P,
     type: T,
     handler: HookHandler<HooksContext[P][T]>,
-    prepend = false,
   ): void {
-    this.hooks[type as HookType].addHandler(position, handler as HookHandler<HookContext>, prepend);
+    this.hooks[type as HookType].addHandler(position, handler as HookHandler<HookContext>);
   }
 
   override async create(caller: Caller, data: RecordData[]): Promise<RecordData[]> {

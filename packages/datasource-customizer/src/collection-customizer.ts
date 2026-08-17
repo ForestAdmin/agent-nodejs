@@ -262,17 +262,11 @@ export default class CollectionCustomizer<
     position: P,
     type: T,
     handler: HookHandler<HooksContext<S, N>[P][T]>,
-    options?: { prepend?: boolean },
   ): this {
     return this.pushCustomization(async () => {
       this.stack.hook
         .getCollection(this.name)
-        .addHook(
-          position,
-          type,
-          handler as unknown as HookHandler<HooksContext[P][T]>,
-          options?.prepend,
-        );
+        .addHook(position, type, handler as unknown as HookHandler<HooksContext[P][T]>);
     });
   }
 
@@ -284,17 +278,11 @@ export default class CollectionCustomizer<
     position: P,
     type: T,
     handler: HookHandler<HooksContext<S, N>[P][T]>,
-    options?: { prepend?: boolean },
   ): this {
     return this.pushCustomization(async () => {
       this.stack.internalHook
         .getCollection(this.name)
-        .addHook(
-          position,
-          type,
-          handler as unknown as HookHandler<HooksContext[P][T]>,
-          options?.prepend,
-        );
+        .addHook(position, type, handler as unknown as HookHandler<HooksContext[P][T]>);
     });
   }
 

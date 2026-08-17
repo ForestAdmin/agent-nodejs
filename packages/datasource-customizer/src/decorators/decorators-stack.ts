@@ -52,7 +52,12 @@ export default class DecoratorsStack extends DecoratorsStackBase {
 
     // Step 3: Access to all fields AND emulated capabilities
     last = this.chart = new ChartDataSourceDecorator(last);
-    // Below `action` so writes emitted from inside a smart action also traverse it.
+    // Below `action` so writes emitted from inside a smart action also traverse it. This also means
+    // its After-hooks fully run (and return) before `hook`'s After-hooks even begin — a `hook`-layer
+    // after-hook throwing can never preempt one registered here, since control doesn't reach `hook`
+    // until this layer's call has already completed. A consumer that needs that guarantee (e.g. the
+    // audit trail recording a write that already happened) should register on this layer instead of
+    // reaching for a "run first" option on `hook` itself.
     last = this.internalHook = new DataSourceDecorator(last, HookCollectionDecorator);
     last = this.action = new DataSourceDecorator(last, ActionCollectionDecorator);
     last = this.schema = new DataSourceDecorator(last, SchemaCollectionDecorator);
