@@ -5,6 +5,8 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
 
+import { UPLOADED_FILE_PREFIX, signUploadHandle } from '../../src/file-uploads/handles';
+import { resolveFileUploads } from '../../src/file-uploads/types';
 import declareExecuteActionTool from '../../src/tools/execute-action';
 import { buildClientWithActions } from '../../src/utils/agent-caller';
 import withActivityLog from '../../src/utils/with-activity-log';
@@ -550,6 +552,133 @@ describe('declareExecuteActionTool', () => {
           isError: true,
         });
       });
+    });
+  });
+
+  describe('file uploads', () => {
+    const AUTH_SECRET = 'test-auth-secret';
+
+    const fileUploads = () =>
+      resolveFileUploads(
+        {
+          storage: {
+            createUploadUrl: jest.fn().mockResolvedValue({ url: 'https://storage.example/put' }),
+            download: jest.fn().mockResolvedValue(Buffer.from('%PDF-1.4')),
+          },
+        },
+        AUTH_SECRET,
+      );
+
+    const uploadExtra = {
+      authInfo: {
+        token: 'test-token',
+        extra: { userId: 42, forestServerToken: 'forest-token', renderingId: '123' },
+      },
+    } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
+
+    const makeHandle = () =>
+      `${UPLOADED_FILE_PREFIX}${signUploadHandle(
+        {
+          key: 'mcp-uploads/uuid/report.pdf',
+          name: 'report.pdf',
+          mimeType: 'application/pdf',
+          userId: 42,
+        },
+        AUTH_SECRET,
+        60,
+      )}`;
+
+    const mockAgentAction = () => {
+      const mockSetFields = jest.fn().mockResolvedValue(undefined);
+      const mockAction = jest.fn().mockResolvedValue({
+        execute: jest.fn().mockResolvedValue({ success: 'Action executed' }),
+        setFields: mockSetFields,
+      });
+      mockBuildClientWithActions.mockResolvedValue({
+        rpcClient: { collection: jest.fn().mockReturnValue({ action: mockAction }) },
+        authData: { userId: 42, renderingId: '123', environmentId: 1, projectId: 1 },
+      } as unknown as ReturnType<typeof buildClientWithActions>);
+
+      return mockSetFields;
+    };
+
+    it('documents the upload workflow in the description when uploads are enabled', () => {
+      declareExecuteActionTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: [],
+        fileUploads: fileUploads(),
+      });
+
+      expect(registeredToolConfig.description).toContain('POST /files');
+      expect(registeredToolConfig.description).toContain('never inline base64');
+    });
+
+    it('does not mention uploads in the description when disabled', () => {
+      declareExecuteActionTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: [],
+      });
+
+      expect(registeredToolConfig.description).not.toContain('POST /files');
+    });
+
+    it('swaps a file handle for the uploaded data URI before setting the form fields', async () => {
+      declareExecuteActionTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: [],
+        fileUploads: fileUploads(),
+      });
+      const mockSetFields = mockAgentAction();
+
+      await registeredToolHandler(
+        {
+          collectionName: 'users',
+          actionName: 'attachDocument',
+          recordIds: [1],
+          values: { document: makeHandle(), note: 'untouched' },
+        },
+        uploadExtra,
+      );
+
+      expect(mockSetFields).toHaveBeenCalledWith({
+        document: `data:application/pdf;name=report.pdf;base64,${Buffer.from('%PDF-1.4').toString(
+          'base64',
+        )}`,
+        note: 'untouched',
+      });
+    });
+
+    it('returns a tool error when a handle is sent but uploads are not configured', async () => {
+      declareExecuteActionTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: [],
+      });
+      const mockSetFields = mockAgentAction();
+
+      const result = await registeredToolHandler(
+        {
+          collectionName: 'users',
+          actionName: 'attachDocument',
+          recordIds: [1],
+          values: { document: makeHandle() },
+        },
+        uploadExtra,
+      );
+
+      expect(result).toEqual({
+        content: [
+          {
+            type: 'text',
+            text: expect.stringContaining('File uploads are not configured on this server'),
+          },
+        ],
+        isError: true,
+      });
+      expect(mockSetFields).not.toHaveBeenCalled();
     });
   });
 });

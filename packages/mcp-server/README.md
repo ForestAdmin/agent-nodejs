@@ -164,6 +164,93 @@ The two settings differ in what the user notices:
 
 The minimum for either value is 60 seconds; anything lower is raised to it. An invalid value (zero, negative, fractional) fails at startup rather than silently leaving the tokens uncapped.
 
+## Action File Uploads
+
+Actions with **File fields** cannot normally run over MCP. The agent expects file values as base64 data URIs, which would transit the model's context window and exceed most MCP clients' payload limits. The `fileUploads` option enables them through an upload side-channel that keeps the bytes out of the conversation:
+
+1. The client `POST`s `/files` (same Bearer token as `/mcp`) with `{ "filename", "mimeType", "sha256"? }` and receives a pre-authorized upload URL plus a signed `fileHandle` string.
+2. The client uploads the raw bytes directly to the storage backend, so they never pass through the MCP server or the model.
+3. The client passes the handle (`"$uploadedFile:<...>"`) as the field value in `executeAction`. The server redeems it by downloading the object, re-encoding it as the data URI the agent expects, and forwarding it. The model only ever exchanges the small handle.
+
+```mermaid
+sequenceDiagram
+    participant Client as MCP client
+    participant Server as MCP server
+    participant Storage as Storage backend
+    participant Agent as Forest Admin agent
+
+    Client->>Server: POST /files {filename, mimeType, sha256?}
+    Server-->>Client: uploadUrl + fileHandle (user-bound JWT)
+    Client->>Storage: PUT raw bytes to uploadUrl
+    Note over Client,Storage: bytes bypass the server and the model
+    Client->>Server: executeAction {values: {field: "$uploadedFile:..."}}
+    Server->>Storage: download object
+    Note over Server: verify user, TTL, maxBytes, sha256 pin
+    Server->>Agent: executeAction with the file as a data URI
+    Agent-->>Server: action result
+    Server-->>Client: result (the model only saw the handle)
+```
+
+The storage backend is pluggable. The server itself has no storage dependency. You provide an implementation of the `UploadStorage` interface, and any backend that can pre-authorize an upload and read the object back works, such as S3 presigned URLs (shown below), GCS signed URLs, Azure SAS, or a local endpoint you serve yourself.
+
+```typescript
+import {
+  S3Client,
+  GetObjectCommand,
+  HeadObjectCommand,
+  PutObjectCommand,
+} from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import type { UploadStorage } from '@forestadmin/mcp-server';
+
+const s3 = new S3Client({});
+const bucket = 'my-uploads-bucket';
+
+const storage: UploadStorage = {
+  async createUploadUrl({ key, mimeType, sha256, expiresInSeconds }) {
+    const command = new PutObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      ContentType: mimeType,
+      ...(sha256 && { ChecksumSHA256: sha256 }),
+    });
+    const url = await getSignedUrl(s3, command, {
+      expiresIn: expiresInSeconds,
+      ...(sha256 && { unhoistableHeaders: new Set(['x-amz-checksum-sha256']) }),
+    });
+    return {
+      url,
+      headers: { 'Content-Type': mimeType, ...(sha256 && { 'x-amz-checksum-sha256': sha256 }) },
+    };
+  },
+  async getSize(key) {
+    const head = await s3.send(new HeadObjectCommand({ Bucket: bucket, Key: key }));
+    return head.ContentLength;
+  },
+  async download(key) {
+    const object = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+    return Buffer.from(await object.Body.transformToByteArray());
+  },
+};
+
+const server = new ForestMCPServer({
+  // ...
+  fileUploads: { storage },
+});
+```
+
+The other options are `keyPrefix` (default `mcp-uploads/`), `uploadUrlTtlSeconds` (default 15 min), `handleTtlSeconds` (default 45 min, longer than the upload URL so a slow upload still leaves time to run the action), `maxBytes` (default 20 MiB), and `maxConcurrentDownloads` (default 5).
+
+A few properties matter in production.
+
+- The server stays stateless. The handle is a JWT signed with `authSecret`, so there is no database and no session affinity, and any replica can redeem a handle issued by another.
+- A handle is bound to the user it was issued to. Only that user's Bearer token can redeem it, and it expires with `handleTtlSeconds`.
+- When the client sends `sha256` (hex or base64), the upload URL is pinned to that digest and the digest is checked again on the downloaded bytes at redemption. Content substituted after an upload URL leak cannot be redeemed.
+- A pre-authorized upload URL cannot always cap the object size, so `maxBytes` is enforced at redemption (before download when the backend implements `getSize`). Each redemption holds up to the file plus its base64 copy in memory, and `maxConcurrentDownloads` bounds the process's worst case to roughly `maxBytes × 2.3 × maxConcurrentDownloads`.
+- The server never deletes objects. Configure a lifecycle rule on the storage backend, for example deleting objects under `keyPrefix` after one day. Handles cannot be revoked before they expire, so keep `handleTtlSeconds` short.
+
+Only `executeAction` resolves handles. `getActionForm` echoes field values back to the model, so a handle stays a handle there. Resolving it would put the file content back into the model's context.
+
 ## API Endpoints
 
 Once running, the MCP server exposes the following endpoints:
@@ -171,6 +258,7 @@ Once running, the MCP server exposes the following endpoints:
 | Method | Path | Description |
 |--------|------|-------------|
 | POST | `/mcp` | Main MCP protocol endpoint (requires Bearer token) |
+| POST | `/files` | Upload side-channel for action file fields (only with `fileUploads`; requires Bearer token) |
 | POST | `/oauth/authorize` | OAuth 2.0 authorization |
 | POST | `/oauth/token` | OAuth 2.0 token exchange |
 | GET | `/.well-known/oauth-protected-resource/mcp` | OAuth metadata discovery |

@@ -3,6 +3,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import { z } from 'zod';
 
+import resolveUploadedFileValues from '../file-uploads/resolve';
 import { createActionArgumentShape } from '../utils/action-helpers';
 import { buildClientWithActions } from '../utils/agent-caller';
 import registerToolWithLogging from '../utils/tool-with-logging';
@@ -41,7 +42,13 @@ Required workflow:
 2. If getActionForm returns "canExecute": false, call it again with values until "canExecute": true
 3. Only then call executeAction with the same values used in the last getActionForm call
 
-If you call executeAction with missing required fields, it will return an error with the missing fields instead of executing the action.`,
+If you call executeAction with missing required fields, it will return an error with the missing fields instead of executing the action.${
+        ctx.fileUploads
+          ? `
+
+To fill a file field, never inline base64 file content. Request an upload destination via POST /files (same Bearer token, JSON body with "filename", "mimeType" and optionally "sha256"), upload the raw bytes to the returned uploadUrl, and pass the returned fileHandle string as the field value.`
+          : ''
+      }`,
       inputSchema: argumentShape,
     },
     async (options: ExecuteActionArgument, extra) => {
@@ -53,6 +60,12 @@ If you call executeAction with missing required fields, it will return an error 
 
       // Cast to satisfy the type system - the API accepts both string[] and number[]
       const recordIds = (options.recordIds ?? []) as string[] | number[];
+
+      // Swap "$uploadedFile:<handle>" values for the data URIs the agent expects,
+      // before the values reach the form. This is a no-op when no value carries a handle.
+      const values = options.values
+        ? await resolveUploadedFileValues(options.values, extra.authInfo, ctx.fileUploads)
+        : undefined;
 
       return withActivityLog({
         forestServerClient,
@@ -69,8 +82,8 @@ If you call executeAction with missing required fields, it will return an error 
             .collection(options.collectionName)
             .action(options.actionName, { recordIds });
 
-          if (options.values) {
-            await action.setFields(options.values);
+          if (values) {
+            await action.setFields(values);
           }
 
           const result = await action.execute({ approvalRequestMessage: options.reasoning });
