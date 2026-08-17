@@ -271,10 +271,10 @@ be able to make it:
 - **Claude Code** and custom agents: works. The shell runs on the same machine as the developer, so
   it reaches a `localhost` agent too — this is the one place the whole flow can be tried end to end
   against a local agent. Verified.
-- **Claude Desktop and Claude.ai**: the attached file lands in the code execution sandbox and the
-  model can `curl -X PUT -T <path> <uploadUrl>` — applying every header the tool returned, since a
-  pinned `sha256` is signed into `x-amz-checksum-sha256` on S3 and the PUT is rejected without it.
-  Two conditions, and both are needed:
+- **Claude Desktop, Claude.ai and Cowork**: the attached file lands in the code execution sandbox
+  and the model can `curl -X PUT -T <path> <uploadUrl>` — applying every header the tool returned,
+  since a pinned `sha256` is signed into `x-amz-checksum-sha256` on S3 and the PUT is rejected
+  without it. Two conditions, and both are needed:
   1. **`uploadUrl` must be publicly reachable.** That sandbox is hosted and runs on its own
      network, so a `localhost` or private address is never reachable from it, whatever else is
      configured. An agent running on a developer's machine cannot be tested this way.
@@ -286,10 +286,18 @@ be able to make it:
   Both are client-side and outside this server's control, so document your upload host for your
   users.
 
-  **Verified end to end** from a Claude Desktop chat: an agent behind a public HTTPS URL, that host
-  added to the sandbox's allowed domains, and the model's `PUT` goes through. Before the host was
-  allowed, the same sandbox answered `Host not in allowlist` even for an ordinary public domain —
-  so the allowlist is the whole of condition 2, and satisfying it is enough.
+  **Verified end to end** from a Claude Desktop chat and from a Cowork cloud session: an agent
+  behind a public HTTPS URL, that host added to the sandbox's allowed domains, and the model's
+  `PUT` goes through. Before the host was allowed, the same sandbox answered `Host not in
+  allowlist` even for an ordinary public domain — so the allowlist is the whole of condition 2,
+  and satisfying it is enough. The Cowork run started from a single natural sentence, with no tool
+  named: the model found the form, requested a destination and pinned the `sha256` unprompted, and
+  no tool argument carried base64 — checked against the request bodies at the tunnel, not the
+  transcript.
+
+  One wrinkle observed there: the filename the action stores is whatever the client reports, and a
+  sandbox may normalize it (`rapport-1815.pdf` arrived as `rapport1815.pdf` while the bytes and
+  mime type were exact). Treat it as a label, not an identifier.
 
 The tool states this prerequisite in its description and repeats it in its response, so a model
 whose upload was blocked has the diagnosis in context.
