@@ -1,3 +1,19 @@
+# @forestadmin/mcp-server [1.22.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.21.1...@forestadmin/mcp-server@1.22.0) (2026-08-17)
+
+
+### Features
+
+* upload files through the MCP server for action File fields ([#1815](https://github.com/ForestAdmin/agent-nodejs/issues/1815)) ([f09e88c](https://github.com/ForestAdmin/agent-nodejs/commit/f09e88cd3c8c542adf2f2bb89572fbc78c11e51a))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.14.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.42.1
+
 ## @forestadmin/mcp-server [1.21.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.21.0...@forestadmin/mcp-server@1.21.1) (2026-08-11)
 
 
