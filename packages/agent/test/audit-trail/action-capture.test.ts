@@ -1,22 +1,46 @@
+import type { ActionCaptureParams } from '../../src/audit-trail/action-capture';
 import type { ActionResult, Caller } from '@forestadmin/datasource-toolkit';
 
-import captureAction from '../../src/audit-trail/action-capture';
-import { REDACTED } from '../../src/audit-trail/instrument';
+import { captureActionConfirm, captureActionPending } from '../../src/audit-trail/action-capture';
+import { REDACTED, buildRecorder } from '../../src/audit-trail/instrument';
 
-const caller: Caller = { id: 42, requestId: 'req-1' } as unknown as Caller;
+const caller: Caller = {
+  id: 42,
+  requestId: 'req-1',
+  firstName: 'Jane',
+  lastName: 'Doe',
+  email: 'jane.doe@forest.dev',
+} as unknown as Caller;
 
-describe('captureAction', () => {
+async function run(
+  sink: jest.Mock,
+  redactedFields: string[],
+  params: Omit<ActionCaptureParams, 'caller' | 'actionName'> &
+    Partial<Pick<ActionCaptureParams, 'caller' | 'actionName'>>,
+  result: ActionResult | undefined,
+  failed = false,
+): Promise<void> {
+  const recorder = buildRecorder(undefined, sink, false, undefined);
+  const pending = await captureActionPending(recorder, redactedFields, {
+    caller,
+    actionName: 'Mark closed',
+    ...params,
+  });
+
+  await captureActionConfirm(recorder, pending, result, failed);
+}
+
+describe('captureActionPending / captureActionConfirm', () => {
   test('records one entry per targeted record with a shared correlation key', async () => {
     const sink = jest.fn();
     const result: ActionResult = { type: 'Success', message: 'ok', invalidated: new Set() };
 
-    await captureAction(sink, [], {
-      caller,
-      collection: 'books',
-      formValues: { title: 'Dune' },
+    await run(
+      sink,
+      [],
+      { collection: 'books', formValues: { title: 'Dune' }, recordIds: ['1', '2'] },
       result,
-      recordIds: ['1', '2'],
-    });
+    );
 
     expect(sink).toHaveBeenCalledTimes(2);
     expect(sink).toHaveBeenCalledWith(
@@ -25,6 +49,7 @@ describe('captureAction', () => {
         collection: 'books',
         recordId: '1',
         userId: 42,
+        actionName: 'Mark closed',
         correlationKey: 'req-1',
         previousValues: { title: 'Dune' },
         newValues: { type: 'Success', message: 'ok' },
@@ -36,12 +61,7 @@ describe('captureAction', () => {
   test('records one entry attached to no record when no id is given', async () => {
     const sink = jest.fn();
 
-    await captureAction(sink, [], {
-      caller,
-      collection: 'books',
-      formValues: {},
-      recordIds: [],
-    });
+    await run(sink, [], { collection: 'books', formValues: {}, recordIds: [] }, undefined);
 
     expect(sink).toHaveBeenCalledTimes(1);
     expect(sink).toHaveBeenCalledWith(expect.objectContaining({ recordId: '' }));
@@ -50,13 +70,7 @@ describe('captureAction', () => {
   test('records action_failed with empty newValues when the invocation threw', async () => {
     const sink = jest.fn();
 
-    await captureAction(sink, [], {
-      caller,
-      collection: 'books',
-      formValues: {},
-      recordIds: ['1'],
-      failed: true,
-    });
+    await run(sink, [], { collection: 'books', formValues: {}, recordIds: ['1'] }, undefined, true);
 
     expect(sink).toHaveBeenCalledWith(
       expect.objectContaining({ operation: 'action_failed', newValues: {} }),
@@ -67,14 +81,7 @@ describe('captureAction', () => {
     const sink = jest.fn();
     const result: ActionResult = { type: 'Error', message: 'insufficient funds' };
 
-    await captureAction(sink, [], {
-      caller,
-      collection: 'books',
-      formValues: {},
-      result,
-      recordIds: ['1'],
-      failed: true,
-    });
+    await run(sink, [], { collection: 'books', formValues: {}, recordIds: ['1'] }, result, true);
 
     expect(sink).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -92,13 +99,12 @@ describe('captureAction', () => {
       invalidated: new Set(),
     };
 
-    await captureAction(sink, ['ssn'], {
-      caller,
-      collection: 'books',
-      formValues: { title: 'Dune', ssn: '123-45-6789' },
+    await run(
+      sink,
+      ['ssn'],
+      { collection: 'books', formValues: { title: 'Dune', ssn: '123-45-6789' }, recordIds: ['1'] },
       result,
-      recordIds: ['1'],
-    });
+    );
 
     expect(sink).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -111,13 +117,7 @@ describe('captureAction', () => {
   describe('result summary', () => {
     const capture = async (result: ActionResult) => {
       const sink = jest.fn();
-      await captureAction(sink, [], {
-        caller,
-        collection: 'books',
-        formValues: {},
-        result,
-        recordIds: ['1'],
-      });
+      await run(sink, [], { collection: 'books', formValues: {}, recordIds: ['1'] }, result);
 
       return sink.mock.calls[0][0].newValues;
     };

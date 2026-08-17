@@ -1,5 +1,6 @@
-export { default as installAuditTrailHooks, REDACTED } from './instrument';
-export { default as captureAction } from './action-capture';
+export { default as installAuditTrailHooks, buildRecorder, REDACTED } from './instrument';
+export type { Recorder } from './instrument';
+export { captureActionPending, captureActionConfirm } from './action-capture';
 export {
   createSqlAuditStore,
   ensureAuditStorage,

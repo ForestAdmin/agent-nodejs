@@ -20,7 +20,7 @@ import {
 } from '@forestadmin/datasource-toolkit';
 
 import ActionAuthorizationService from './action-authorization';
-import { captureAction } from '../../../audit-trail';
+import { buildRecorder, captureActionConfirm, captureActionPending } from '../../../audit-trail';
 import { HttpCode } from '../../../types';
 import BodyParser from '../../../utils/body-parser';
 import ContextFilterFactory from '../../../utils/context-filter-factory';
@@ -154,29 +154,58 @@ export default class ActionRoute extends CollectionRoute {
   // Record ids are resolved *before* `execute()` runs, not after: the action itself may delete the
   // targeted records or change a field their own selection filter matched on, so resolving them
   // afterward could find nothing and silently lose the association between the audit entry and the
-  // records it actually affected.
+  // records it actually affected. The pending audit entry is inserted before `execute()` too, for the
+  // same reason `instrument.ts` inserts pending rows before a create/update/delete runs: a broken
+  // store fails the request *before* the action has any effect, instead of 500ing after it already
+  // ran (`critical: true`), or is swallowed and the action proceeds unaudited (`critical: false`,
+  // default) — see `captureActionPending`.
   private async executeAndAudit(
     context: Context,
     caller: Caller,
     data: Record<string, unknown>,
     filter: Filter,
   ): Promise<ActionResult> {
+    const { auditTrail } = this.options;
     const recordIds = await this.resolveAuditedRecordIds(context, caller, filter);
+    const audit = auditTrail
+      ? {
+          recorder: buildRecorder(
+            auditTrail.store,
+            undefined,
+            auditTrail.critical ?? false,
+            this.options.logger,
+          ),
+          redactedFields: auditTrail.redact?.[this.collection.name] ?? [],
+        }
+      : null;
+    const pending = audit
+      ? await captureActionPending(audit.recorder, audit.redactedFields, {
+          caller,
+          collection: this.collection.name,
+          actionName: this.actionName,
+          formValues: data,
+          recordIds,
+        })
+      : null;
 
     try {
       const result = await this.collection.execute(caller, this.actionName, data, filter);
-      await this.auditAction(caller, data, recordIds, result, result.type === 'Error');
+
+      if (audit && pending) {
+        await captureActionConfirm(audit.recorder, pending, result, result.type === 'Error');
+      }
 
       return result;
     } catch (error) {
-      await this.auditAction(caller, data, recordIds, undefined, true);
+      if (audit && pending) await captureActionConfirm(audit.recorder, pending, undefined, true);
       throw error;
     }
   }
 
   // Best-effort: resolving the audited ids is itself an extra query (see auditedRecordIds), and a
   // transient failure there must not prevent the action from running at all — same principle as
-  // auditAction's own try/catch below, applied to the lookup that happens before execute().
+  // the pending-capture step below applies (for `critical: false`), applied to the lookup that
+  // happens before execute().
   private async resolveAuditedRecordIds(
     context: Context,
     caller: Caller,
@@ -193,30 +222,6 @@ export default class ActionRoute extends CollectionRoute {
       );
 
       return [];
-    }
-  }
-
-  private async auditAction(
-    caller: Caller,
-    formValues: Record<string, unknown>,
-    recordIds: string[],
-    result: ActionResult | undefined,
-    failed = false,
-  ): Promise<void> {
-    const { auditTrail } = this.options;
-    if (!auditTrail) return;
-
-    try {
-      await captureAction(
-        record => auditTrail.store.append(record),
-        auditTrail.redact?.[this.collection.name] ?? [],
-        { caller, collection: this.collection.name, formValues, result, recordIds, failed },
-      );
-    } catch (error) {
-      // The action has already run (or failed on its own): a broken audit store must not also fail
-      // the request, which would report a successful run as an error and could prompt a client retry
-      // that reruns the action.
-      this.options.logger('Error', `[ForestAdmin] Audit trail unavailable, skipping: ${error}`);
     }
   }
 

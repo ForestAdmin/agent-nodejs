@@ -1,4 +1,5 @@
-import type { AuditRecord, AuditSink } from './types';
+import type { Recorder } from './instrument';
+import type { PendingAuditRecord } from './types';
 import type { ActionResult, Caller } from '@forestadmin/datasource-toolkit';
 
 import { REDACTED } from './instrument';
@@ -62,43 +63,72 @@ const summarizeActionResult = (result?: ActionResult): Record<string, unknown> =
 export type ActionCaptureParams = {
   caller: Caller;
   collection: string;
+  actionName: string;
   formValues: Record<string, unknown>;
-  /** Absent when `execute()` threw instead of resolving. */
-  result?: ActionResult;
   recordIds: string[];
-  failed?: boolean;
+};
+
+// Threads pending ids from `captureActionPending` (called before `execute()` runs) through to
+// `captureActionConfirm` (called once it resolves or throws) — one entry per targeted record, or a
+// single entry attached to no record for a global/select-all run.
+export type PendingActionAudit = {
+  pendingIds: Array<number | null>;
+  recordIds: string[];
+  previousValues: Record<string, unknown>;
 };
 
 // Records smart-action invocations into the same store as the field-level history. The Create/Update/
 // Delete hooks (instrument.ts) cannot see them: an action's writes are only audited when they go
 // through the Forest data layer, so a direct write inside the action's own `execute()` is invisible
 // and never recorded. What lands here is the invocation itself — on which records, with the form that
-// was submitted and a summary of what the action answered. Which action it was lives in the Forest
-// activity logs; `correlationKey` is the join.
-export default async function captureAction(
-  sink: AuditSink,
+// was submitted and (once confirmed) a summary of what the action answered. Which action ran is
+// captured directly (`actionName`), unlike a create/update/delete row.
+export async function captureActionPending(
+  recorder: Recorder,
   redactedFields: string[],
   params: ActionCaptureParams,
-): Promise<void> {
+): Promise<PendingActionAudit> {
   const timestamp = new Date().toISOString();
   const previousValues = redactValues(params.formValues ?? {}, redactedFields);
-  const newValues = summarizeActionResult(params.result);
   const recordIds = params.recordIds.length > 0 ? params.recordIds : [NO_RECORD];
 
-  await Promise.all(
-    recordIds.map(recordId => {
-      const record: AuditRecord = {
-        timestamp,
-        operation: params.failed ? 'action_failed' : 'action',
-        collection: params.collection,
-        recordId,
-        userId: params.caller.id,
-        correlationKey: params.caller.requestId,
-        previousValues,
-        newValues,
-      };
+  const pendingRecords: PendingAuditRecord[] = recordIds.map(recordId => ({
+    timestamp,
+    operation: 'action',
+    collection: params.collection,
+    recordId,
+    userId: params.caller.id,
+    userFirstName: params.caller.firstName,
+    userLastName: params.caller.lastName,
+    userEmail: params.caller.email,
+    actionName: params.actionName,
+    correlationKey: params.caller.requestId,
+    previousValues,
+    newValues: {},
+  }));
 
-      return sink(record);
-    }),
+  const pendingIds = await recorder.insertPendingBatch(pendingRecords);
+
+  return { pendingIds, recordIds, previousValues };
+}
+
+export async function captureActionConfirm(
+  recorder: Recorder,
+  pending: PendingActionAudit,
+  result: ActionResult | undefined,
+  failed: boolean,
+): Promise<void> {
+  const newValues = summarizeActionResult(result);
+  const operation = failed ? 'action_failed' : 'action';
+
+  await Promise.all(
+    pending.pendingIds.map((pendingId, index) =>
+      recorder.confirm(pendingId, {
+        operation,
+        recordId: pending.recordIds[index],
+        previousValues: pending.previousValues,
+        newValues,
+      }),
+    ),
   );
 }

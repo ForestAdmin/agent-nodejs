@@ -950,13 +950,21 @@ describe('ActionRoute', () => {
   });
 
   describe('audit trail', () => {
-    const append = jest.fn().mockResolvedValue(undefined);
+    const insertPendingBatch = jest
+      .fn()
+      .mockImplementation(async (records: unknown[]) => records.map((_, index) => index + 1));
+    const confirm = jest.fn().mockResolvedValue(undefined);
     const auditOptions = factories.forestAdminHttpDriverOptions.build({
-      auditTrail: { store: { append }, close: jest.fn() } as never,
+      auditTrail: { store: { insertPendingBatch, confirm }, close: jest.fn() } as never,
     });
 
     beforeEach(() => {
-      append.mockClear();
+      // The outer `jest.resetAllMocks()` (top-level beforeEach) wipes every mock's implementation
+      // before each test, so it must be reapplied here rather than only once at describe-time.
+      insertPendingBatch.mockImplementation(async (records: unknown[]) =>
+        records.map((_, index) => index + 1),
+      );
+      confirm.mockResolvedValue(undefined);
       (
         auditOptions.forestAdminClient.permissionService.canTriggerCustomAction as jest.Mock
       ).mockResolvedValue(true);
@@ -1000,10 +1008,18 @@ describe('ActionRoute', () => {
         // @ts-expect-error: test private method
         await route.handleExecute(context);
 
-        expect(append).toHaveBeenCalledWith(
+        expect(insertPendingBatch).toHaveBeenCalledWith([
+          expect.objectContaining({
+            collection: 'books',
+            recordId: '123e4567-e89b-12d3-a456-426614174000',
+            actionName: 'MySingleAction',
+            previousValues: { firstname: 'John' },
+          }),
+        ]);
+        expect(confirm).toHaveBeenCalledWith(
+          expect.any(Number),
           expect.objectContaining({
             operation: 'action',
-            collection: 'books',
             recordId: '123e4567-e89b-12d3-a456-426614174000',
             previousValues: { firstname: 'John' },
             newValues: { type: 'Success', message: 'ok' },
@@ -1030,10 +1046,10 @@ describe('ActionRoute', () => {
         // @ts-expect-error: test private method
         await expect(route.handleExecute(context)).rejects.toThrow(executionError);
 
-        expect(append).toHaveBeenCalledWith(
+        expect(confirm).toHaveBeenCalledWith(
+          expect.any(Number),
           expect.objectContaining({
             operation: 'action_failed',
-            collection: 'books',
             previousValues: { firstname: 'John' },
             newValues: {},
           }),
@@ -1061,10 +1077,10 @@ describe('ActionRoute', () => {
         // @ts-expect-error: test private method
         await route.handleExecute(context);
 
-        expect(append).toHaveBeenCalledWith(
+        expect(confirm).toHaveBeenCalledWith(
+          expect.any(Number),
           expect.objectContaining({
             operation: 'action_failed',
-            collection: 'books',
             newValues: { type: 'Error', message: 'insufficient funds' },
           }),
         );
@@ -1094,10 +1110,9 @@ describe('ActionRoute', () => {
         // @ts-expect-error: test private method
         await route.handleExecute(context);
 
-        expect(append).toHaveBeenCalledTimes(1);
-        expect(append).toHaveBeenCalledWith(
+        expect(insertPendingBatch).toHaveBeenCalledWith([
           expect.objectContaining({ recordId: '123e4567-e89b-12d3-a456-426614174000' }),
-        );
+        ]);
       });
 
       test('still records the targeted record when the action itself deletes it', async () => {
@@ -1123,9 +1138,9 @@ describe('ActionRoute', () => {
         await route.handleExecute(context);
 
         expect(listMock).toHaveBeenCalledTimes(1);
-        expect(append).toHaveBeenCalledWith(
+        expect(insertPendingBatch).toHaveBeenCalledWith([
           expect.objectContaining({ recordId: '123e4567-e89b-12d3-a456-426614174000' }),
-        );
+        ]);
       });
 
       test('still executes the action when resolving audited record ids throws', async () => {
@@ -1134,7 +1149,7 @@ describe('ActionRoute', () => {
         const logger = jest.fn();
         const listErrorOptions = factories.forestAdminHttpDriverOptions.build({
           logger,
-          auditTrail: { store: { append }, close: jest.fn() } as never,
+          auditTrail: { store: { insertPendingBatch, confirm }, close: jest.fn() } as never,
         });
         (
           listErrorOptions.forestAdminClient.permissionService.canTriggerCustomAction as jest.Mock
@@ -1161,7 +1176,9 @@ describe('ActionRoute', () => {
           'Error',
           expect.stringContaining('Unable to resolve audited record ids'),
         );
-        expect(append).toHaveBeenCalledWith(expect.objectContaining({ recordId: '' }));
+        expect(insertPendingBatch).toHaveBeenCalledWith([
+          expect.objectContaining({ recordId: '' }),
+        ]);
       });
 
       test('does not record anything, or query for audited ids, when no audit trail is configured', async () => {
@@ -1181,7 +1198,7 @@ describe('ActionRoute', () => {
         // @ts-expect-error: test private method
         await route.handleExecute(context);
 
-        expect(append).not.toHaveBeenCalled();
+        expect(insertPendingBatch).not.toHaveBeenCalled();
         expect(dataSource.getCollection('books').list).not.toHaveBeenCalled();
       });
 
@@ -1190,7 +1207,10 @@ describe('ActionRoute', () => {
         const brokenOptions = factories.forestAdminHttpDriverOptions.build({
           logger,
           auditTrail: {
-            store: { append: jest.fn().mockRejectedValue(new Error('store down')) },
+            store: {
+              insertPendingBatch: jest.fn().mockRejectedValue(new Error('store down')),
+              confirm: jest.fn(),
+            },
             close: jest.fn(),
           } as never,
         });
@@ -1253,7 +1273,9 @@ describe('ActionRoute', () => {
         // @ts-expect-error: test private method
         await route.handleExecute(context);
 
-        expect(append).toHaveBeenCalledWith(expect.objectContaining({ recordId: '' }));
+        expect(insertPendingBatch).toHaveBeenCalledWith([
+          expect.objectContaining({ recordId: '' }),
+        ]);
       });
     });
 
@@ -1299,7 +1321,9 @@ describe('ActionRoute', () => {
         // @ts-expect-error: test private method
         await route.handleExecute(context);
 
-        expect(append).toHaveBeenCalledWith(expect.objectContaining({ recordId: '' }));
+        expect(insertPendingBatch).toHaveBeenCalledWith([
+          expect.objectContaining({ recordId: '' }),
+        ]);
       });
 
       test('records one entry per targeted record for an explicit selection', async () => {
@@ -1321,12 +1345,10 @@ describe('ActionRoute', () => {
         // @ts-expect-error: test private method
         await route.handleExecute(context);
 
-        expect(append).toHaveBeenCalledWith(
+        expect(insertPendingBatch).toHaveBeenCalledWith([
           expect.objectContaining({ recordId: '123e4567-e89b-12d3-a456-426614174000' }),
-        );
-        expect(append).toHaveBeenCalledWith(
           expect.objectContaining({ recordId: '123e4567-e89b-12d3-a456-426614174001' }),
-        );
+        ]);
       });
     });
   });
