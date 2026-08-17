@@ -45,8 +45,7 @@ export default async function withActivityLog<T>(options: WithActivityLogOptions
 
   const activityLog = await createPendingActivityLog(forestServerClient, request, action, context);
 
-  // Null means the server dropped the audit write for a read action (fail-open):
-  // proceed without status tracking rather than blocking the read surface.
+  // Read whose audit write was dropped (fail-open): proceed without status tracking.
   if (!activityLog) {
     logger(
       'Warn',
