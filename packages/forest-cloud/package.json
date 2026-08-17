@@ -1,14 +1,14 @@
 {
   "name": "@forestadmin/forest-cloud",
-  "version": "1.12.175",
+  "version": "1.12.176",
   "description": "Utility to bootstrap and publish forest admin cloud projects customization",
   "dependencies": {
-    "@forestadmin/agent": "1.95.0",
+    "@forestadmin/agent": "1.95.1",
     "@forestadmin/datasource-customizer": "1.70.1",
     "@forestadmin/datasource-mongo": "1.6.11",
     "@forestadmin/datasource-mongoose": "1.14.1",
-    "@forestadmin/datasource-sequelize": "1.13.10",
-    "@forestadmin/datasource-sql": "1.17.12",
+    "@forestadmin/datasource-sequelize": "1.13.11",
+    "@forestadmin/datasource-sql": "1.17.13",
     "@forestadmin/datasource-toolkit": "1.55.0",
     "adm-zip": "^0.6.0",
     "apollo-cache-inmemory": "^1.6.6",
