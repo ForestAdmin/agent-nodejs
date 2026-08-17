@@ -416,8 +416,9 @@ export interface WorkflowHistoryStep {
  * The full hydrated workflow run as returned by the orchestrator for MCP consumption.
  * It exposes the whole run — including internal fields (userId, bpmnVersion, collectionId,
  * step indices, per-step context) — so the LLM has maximum context about where the run is
- * and what each step does. The orchestrator holds no customer record data (that lives in
- * the executor), so the full run is safe to surface.
+ * and what each step does. The orchestrator carries no record payload (records live in the
+ * executor), but identifiers (`selectedRecordId`) and executor-reported error strings
+ * (`context.error`) may still contain customer data.
  */
 export interface HydratedWorkflowRun {
   id: number;
