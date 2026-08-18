@@ -251,6 +251,18 @@ describe('BinaryCollectionDecorator', () => {
       );
       expect(books.list).not.toHaveBeenCalled();
     });
+
+    it('should reject a data uri that is not base64, rather than decode it to garbage', async () => {
+      const caller = factories.caller.build();
+      const filter = new PaginatedFilter({
+        conditionTree: new ConditionTreeLeaf('cover', 'Equal', 'data:text/plain,hello'),
+      });
+
+      await expect(decoratedBook.list(caller, filter, new Projection('id'))).rejects.toThrow(
+        ValidationError,
+      );
+      expect(books.list).not.toHaveBeenCalled();
+    });
   });
 
   describe('list with a more complex filter', () => {

@@ -20,7 +20,7 @@ import {
   CollectionDecorator,
   SchemaUtils,
   TypeGetter,
-  ValidationError,
+  parseDataUri,
 } from '@forestadmin/datasource-toolkit';
 import { filetypemime } from 'magic-bytes.js';
 
@@ -252,15 +252,7 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
 
       if (useHex) return Buffer.from(string, 'hex');
 
-      const payload = string.split(',')[1];
-
-      if (payload === undefined) {
-        throw new ValidationError(
-          `Expected a data uri of the form "data:<mime>;base64,<payload>", received "${string}"`,
-        );
-      }
-
-      return Buffer.from(payload, 'base64');
+      return parseDataUri(string).buffer;
     }
 
     const buffer = value as Buffer;
