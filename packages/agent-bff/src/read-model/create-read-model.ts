@@ -20,6 +20,7 @@ export interface CreateReadModelOptions {
 export interface ReadModelBundle {
   store: ReadModelStore;
   actionEndpointResolver: ActionEndpointResolver;
+  schemaCache: SchemaCache;
 }
 
 export default function createReadModel({
@@ -40,5 +41,5 @@ export default function createReadModel({
     resolvedMetrics,
   );
 
-  return { store, actionEndpointResolver };
+  return { store, actionEndpointResolver, schemaCache };
 }
