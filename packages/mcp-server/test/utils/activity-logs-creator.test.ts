@@ -236,16 +236,65 @@ describe('createPendingActivityLog', () => {
   });
 
   describe('error handling', () => {
-    it('should propagate error when createMcpActivityLog fails', async () => {
-      mockForestServerClient.createMcpActivityLog.mockRejectedValue(
-        new Error('Failed to create activity log: Server error message'),
-      );
+    it.each<ActivityLogAction>(['action', 'create', 'update', 'delete', 'triggerWorkflow'])(
+      'should propagate the error when createMcpActivityLog rejects for write action "%s" (fail-closed)',
+      async action => {
+        mockForestServerClient.createMcpActivityLog.mockRejectedValue(
+          new Error('Failed to create activity log: Server error message'),
+        );
+
+        const request = createMockRequest();
+
+        await expect(
+          createPendingActivityLog(mockForestServerClient, request, action),
+        ).rejects.toThrow('Failed to create activity log: Server error message');
+      },
+    );
+
+    it.each<ActivityLogAction>([
+      'index',
+      'search',
+      'filter',
+      'listRelatedData',
+      'describeCollection',
+    ])(
+      'should resolve to null when createMcpActivityLog rejects for read action "%s" (fail-open)',
+      async action => {
+        mockForestServerClient.createMcpActivityLog.mockRejectedValue(
+          new Error('Failed to create activity log: Server error message'),
+        );
+
+        const request = createMockRequest();
+
+        await expect(
+          createPendingActivityLog(mockForestServerClient, request, action),
+        ).resolves.toBeNull();
+      },
+    );
+
+    it.each([
+      ['a 400 rejection (unresolvable collection)', new Error('Validation failed')],
+      ['a 5xx rejection (audit store unreachable)', new Error('Internal Server Error')],
+      ['a transport failure', new Error('connect ECONNREFUSED')],
+    ])('should let a read through on %s', async (_label, error) => {
+      mockForestServerClient.createMcpActivityLog.mockRejectedValue(error);
 
       const request = createMockRequest();
 
       await expect(
         createPendingActivityLog(mockForestServerClient, request, 'index'),
-      ).rejects.toThrow('Failed to create activity log: Server error message');
+      ).resolves.toBeNull();
+    });
+
+    it('should still throw an invalid-auth-context error for a read action', async () => {
+      const request = {
+        authInfo: { extra: { renderingId: '12345' } },
+      } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
+
+      await expect(
+        createPendingActivityLog(mockForestServerClient, request, 'index'),
+      ).rejects.toThrow('Invalid or missing forestServerToken in authentication context');
+      expect(mockForestServerClient.createMcpActivityLog).not.toHaveBeenCalled();
     });
 
     it('should not throw when createMcpActivityLog succeeds', async () => {

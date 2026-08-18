@@ -14,6 +14,12 @@ import getAuthContext from './auth-context';
 
 export type { ActivityLogAction, ActivityLogResponse };
 
+/**
+ * Fail policy for the audit trail, keyed by action type: a write whose activity log cannot be
+ * created is blocked (no unaudited side effect), while a read proceeds with a warning (an audit
+ * store outage must not take down the read surface). Both the refusal/outage path and the
+ * 200-with-no-id path in `createPendingActivityLog` are arbitrated by this map.
+ */
 const ACTION_TO_TYPE: Record<ActivityLogAction, ActivityLogType> = {
   index: 'read',
   search: 'read',
@@ -39,21 +45,32 @@ export default async function createPendingActivityLog(
   },
 ) {
   const type = ACTION_TO_TYPE[action];
+  // Outside the fail policy below: a missing auth context is a caller bug, not an audit outage.
   const { forestServerToken, renderingId } = getAuthContext(request);
 
-  const activityLog = await forestServerClient.createMcpActivityLog({
-    forestServerToken,
-    renderingId,
-    action,
-    type,
-    collectionName: extra?.collectionName,
-    recordId: extra?.recordId,
-    recordIds: extra?.recordIds,
-    label: extra?.label,
-  });
+  let activityLog: ActivityLogResponse | undefined;
 
-  // 200-with-null-id = audit write dropped (store down, or stale collection).
-  // Writes fail closed; reads fail open so an audit outage never blocks the read surface.
+  try {
+    activityLog = await forestServerClient.createMcpActivityLog({
+      forestServerToken,
+      renderingId,
+      action,
+      type,
+      collectionName: extra?.collectionName,
+      recordId: extra?.recordId,
+      recordIds: extra?.recordIds,
+      label: extra?.label,
+    });
+  } catch (error) {
+    // The audit log was refused (400/404 — e.g. an unresolvable collection) or the store is
+    // unreachable (5xx, timeout, connection error). Both land here, and both are far more likely
+    // than the 200-with-null-id case below.
+    if (type === 'write') throw error;
+
+    return null;
+  }
+
+  // 200 with no id: the route answered but the audit store dropped the write.
   if (activityLog?.id === null || activityLog?.id === undefined) {
     if (type === 'write') {
       throw new Error(

@@ -301,6 +301,27 @@ describe('withActivityLog', () => {
     });
   });
 
+  describe('when the activity log could not be created (write action, fail-closed)', () => {
+    it('should not run the operation and should propagate the error', async () => {
+      mockCreatePendingActivityLog.mockRejectedValue(new Error('Internal Server Error'));
+      const operation = jest.fn().mockResolvedValue({ result: 'success' });
+
+      await expect(
+        withActivityLog({
+          forestServerClient: mockForestServerClient,
+          request: mockRequest,
+          action: 'triggerWorkflow',
+          logger: mockLogger,
+          operation,
+        }),
+      ).rejects.toThrow('Internal Server Error');
+
+      expect(operation).not.toHaveBeenCalled();
+      expect(mockMarkActivityLogAsSucceeded).not.toHaveBeenCalled();
+      expect(mockMarkActivityLogAsFailed).not.toHaveBeenCalled();
+    });
+  });
+
   describe('errorEnhancer', () => {
     it('should apply errorEnhancer to error message when provided', async () => {
       const operation = jest.fn().mockRejectedValue(new Error('Original error'));

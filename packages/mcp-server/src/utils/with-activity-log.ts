@@ -40,12 +40,12 @@ export default async function withActivityLog<T>(options: WithActivityLogOptions
   const { forestServerClient, request, action, context, logger, operation, errorEnhancer } =
     options;
 
-  // We want to create the activity log before executing the operation
-  // If activity log creation fails, we must prevent the execution of the operation
-
+  // The activity log is created before the operation runs, so intent is captured even when the
+  // operation itself fails. `createPendingActivityLog` owns the fail policy: it throws for a write
+  // whose log could not be created (blocking the operation), and resolves to null for a read.
   const activityLog = await createPendingActivityLog(forestServerClient, request, action, context);
 
-  // Read whose audit write was dropped (fail-open): proceed without status tracking.
+  // Read whose audit log could not be created (fail-open): proceed without status tracking.
   if (!activityLog) {
     logger(
       'Warn',
