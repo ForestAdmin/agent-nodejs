@@ -63,6 +63,7 @@ yarn start:dev       # Development (loads .env file automatically)
 | `FOREST_ENV_SECRET` | **Yes** | - | Your Forest Admin environment secret |
 | `FOREST_AUTH_SECRET` | **Yes** | - | Your Forest Admin authentication secret (must match your agent) |
 | `MCP_SERVER_PORT` | No | `3931` | Port for the HTTP server |
+| `FOREST_MCP_SERVER_URL` | No | `http://localhost:<port>` | Public URL this server is reachable at — an http(s) **origin only**, no path. **Required for any deployed server**: without it the OAuth metadata advertise `localhost`, and the in-memory upload store mints `localhost` upload URLs no remote client can reach |
 | `FOREST_MCP_ENABLED_TOOLS` | No | - | Comma-separated list of tools to enable (allowlist) |
 | `FOREST_MCP_ALLOWED_OAUTH_CLIENTS` | No | - | Comma-separated domains of the OAuth client applications allowed to connect (`allowedOAuthClients`). Unset, any registered client is accepted |
 | `FOREST_AGENT_URL` | No | your environment's back-end URL | URL the MCP server uses to reach the back-end's data layer. Set it when the server runs next to a self-hosted back-end at an internal address (e.g. `http://localhost:3310`), instead of the public URL registered in Forest |
@@ -90,6 +91,13 @@ Or set the variables inline:
 
 ```bash
 FOREST_ENV_SECRET="your-env-secret" FOREST_AUTH_SECRET="your-auth-secret" npx forest-mcp-server
+```
+
+Deployed behind a public URL, add it — clients are sent wherever this says:
+
+```bash
+FOREST_MCP_SERVER_URL="https://mcp.example.com" \
+  FOREST_ENV_SECRET="your-env-secret" FOREST_AUTH_SECRET="your-auth-secret" npx forest-mcp-server
 ```
 
 ## Restrict Tools

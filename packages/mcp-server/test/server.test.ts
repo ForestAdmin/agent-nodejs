@@ -118,7 +118,155 @@ describe('ForestMCPServer Instance', () => {
 
   describe('run method', () => {
     afterEach(async () => {
+      delete process.env.FOREST_MCP_SERVER_URL;
+      delete process.env.MCP_SERVER_PORT;
       await shutDownHttpServer(server?.httpServer as http.Server);
+    });
+
+    it('advertises FOREST_MCP_SERVER_URL instead of localhost when set', async () => {
+      const testPort = await getAvailablePort();
+      process.env.MCP_SERVER_PORT = testPort.toString();
+      process.env.FOREST_MCP_SERVER_URL = 'https://mcp.example.com';
+
+      server = new ForestMCPServer({
+        authSecret: 'AUTH_SECRET',
+        envSecret: 'ENV_SECRET',
+        forestServerClient: createMockForestServerClient(),
+      });
+      server.run();
+      await new Promise(resolve => {
+        setTimeout(resolve, 500);
+      });
+
+      // global.fetch is the Forest mock here.
+      const response = await originalFetch(
+        `http://localhost:${testPort}/.well-known/oauth-authorization-server`,
+      );
+      const metadata = (await response.json()) as { issuer: string };
+
+      expect(metadata.issuer).toBe('https://mcp.example.com/');
+
+      // The other consumer of the same base url — the half that motivated the option.
+      const { ephemeralStorage } = server as unknown as {
+        ephemeralStorage: { createUploadUrl(p: { key: string }): Promise<{ url: string }> };
+      };
+      const { url } = await ephemeralStorage.createUploadUrl({ key: 'k' });
+
+      expect(url.startsWith('https://mcp.example.com/mcp/uploads/')).toBe(true);
+    });
+
+    // The OAuth endpoints are concatenated onto the href and the uploads base resolves against the
+    // origin, so anything beyond an http(s) origin advertises broken urls instead of failing here.
+    it.each([
+      ['a trailing slash', 'https://mcp.example.com/', 'https://mcp.example.com/'],
+      ['no trailing slash', 'https://mcp.example.com', 'https://mcp.example.com/'],
+      ['an explicit default port', 'https://mcp.example.com:443', 'https://mcp.example.com/'],
+      ['a custom port', 'https://mcp.example.com:8443', 'https://mcp.example.com:8443/'],
+    ])('accepts a FOREST_MCP_SERVER_URL with %s', async (_, value, expected) => {
+      const testPort = await getAvailablePort();
+      process.env.MCP_SERVER_PORT = testPort.toString();
+      process.env.FOREST_MCP_SERVER_URL = value;
+
+      server = new ForestMCPServer({
+        authSecret: 'AUTH_SECRET',
+        envSecret: 'ENV_SECRET',
+        forestServerClient: createMockForestServerClient(),
+      });
+      server.run();
+      await new Promise(resolve => {
+        setTimeout(resolve, 500);
+      });
+
+      const response = await originalFetch(
+        `http://localhost:${testPort}/.well-known/oauth-authorization-server`,
+      );
+
+      expect(((await response.json()) as { issuer: string }).issuer).toBe(expected);
+    });
+
+    it('refuses MCP_SERVER_PORT=0 unless it is told what to advertise', async () => {
+      process.env.MCP_SERVER_PORT = '0';
+
+      server = new ForestMCPServer({
+        authSecret: 'AUTH_SECRET',
+        envSecret: 'ENV_SECRET',
+        forestServerClient: createMockForestServerClient(),
+      });
+
+      await expect(server.run()).rejects.toThrow(/MCP_SERVER_PORT=0 binds a port chosen by the OS/);
+    });
+
+    it('binds an ephemeral port on MCP_SERVER_PORT=0 rather than falling back to 3931', async () => {
+      process.env.MCP_SERVER_PORT = '0';
+      process.env.FOREST_MCP_SERVER_URL = 'https://mcp.example.com';
+
+      server = new ForestMCPServer({
+        authSecret: 'AUTH_SECRET',
+        envSecret: 'ENV_SECRET',
+        forestServerClient: createMockForestServerClient(),
+      });
+      server.run();
+      await new Promise(resolve => {
+        setTimeout(resolve, 500);
+      });
+
+      const { port } = (server.httpServer as http.Server).address() as net.AddressInfo;
+
+      expect(port).toBeGreaterThan(0);
+      expect(port).not.toBe(3931);
+    });
+
+    it.each([
+      ['out of range', '99999'],
+      ['fractional', '3931.5'],
+      ['negative', '-1'],
+      ['non-numeric', 'abc'],
+    ])('refuses an %s MCP_SERVER_PORT before doing any work', async (_, value) => {
+      process.env.MCP_SERVER_PORT = value;
+      process.env.FOREST_MCP_SERVER_URL = 'https://mcp.example.com';
+
+      server = new ForestMCPServer({
+        authSecret: 'AUTH_SECRET',
+        envSecret: 'ENV_SECRET',
+        forestServerClient: createMockForestServerClient(),
+      });
+
+      await expect(server.run()).rejects.toThrow(`Invalid MCP_SERVER_PORT "${value}"`);
+    });
+
+    it('does not echo credentials back when rejecting them', async () => {
+      process.env.FOREST_MCP_SERVER_URL = 'https://svc:p4ssw0rd@mcp.example.com';
+
+      server = new ForestMCPServer({
+        authSecret: 'AUTH_SECRET',
+        envSecret: 'ENV_SECRET',
+        forestServerClient: createMockForestServerClient(),
+      });
+      const error = (await server.run().catch((e: Error) => e)) as Error;
+
+      expect(error.message).toContain('Invalid FOREST_MCP_SERVER_URL "https://mcp.example.com"');
+      expect(error.message).not.toContain('p4ssw0rd');
+    });
+
+    it.each([
+      ['no scheme', 'mcp.example.com', 'mcp.example.com'],
+      ['a host-port pair that parses as a scheme', 'mcp.example.com:8080', 'mcp.example.com:8080'],
+      ['a path', 'https://example.com/mcp-server', 'https://example.com'],
+      ['a query', 'https://example.com?tenant=x', 'https://example.com'],
+      ['a fragment', 'https://example.com#prod', 'https://example.com'],
+      ['a non-http scheme', 'ftp://example.com', 'ftp://example.com'],
+      ['credentials', 'https://user:secret@example.com', 'https://example.com'],
+      ['credentials and no scheme', 'user:secret@example.com', 'example.com'],
+    ])('refuses a FOREST_MCP_SERVER_URL with %s', async (_, value, shown) => {
+      process.env.FOREST_MCP_SERVER_URL = value;
+
+      server = new ForestMCPServer({
+        authSecret: 'AUTH_SECRET',
+        envSecret: 'ENV_SECRET',
+        forestServerClient: createMockForestServerClient(),
+      });
+
+      await expect(server.run()).rejects.toThrow(`Invalid FOREST_MCP_SERVER_URL "${shown}"`);
     });
 
     it('should start server on specified port', async () => {
