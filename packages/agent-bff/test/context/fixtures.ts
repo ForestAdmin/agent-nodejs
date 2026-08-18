@@ -73,6 +73,11 @@ export default function schemaCoveringEveryContractShape(): ForestSchemaCollecti
           { field: 'limit', type: 'Number', defaultValue: 0 },
           { field: 'since', type: 'Date', defaultValue: null },
           { field: 'format', type: 'Enum', enums: [] },
+          {
+            field: 'loading',
+            type: 'String',
+            enums: null,
+          } as unknown as ForestSchemaAction['fields'][number],
         ]),
         action('Archive', 'bulk', '/forest/users/actions/archive'),
         action('Endpointless action', 'single', undefined),

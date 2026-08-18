@@ -96,7 +96,17 @@ describe('buildContext', () => {
         { field: 'limit', type: 'Number', defaultValue: 0 },
         { field: 'since', type: 'Date', defaultValue: null },
         { field: 'format', type: 'Enum', enums: [] },
+        { field: 'loading', type: 'String' },
       ]);
+    });
+
+    it('should omit enums when the agent sends null, which it does on every dynamic form', () => {
+      const context = buildContext(schema, readModel, 1);
+      const loading = usersOf(context)
+        ?.actions.find(entry => entry.name === 'Export all')
+        ?.fields.find(entry => entry.field === 'loading');
+
+      expect(loading).not.toHaveProperty('enums');
     });
 
     it('should serialize an action field with its enums and default value', () => {
