@@ -381,6 +381,36 @@ describe('markActivityLogAsFailed', () => {
     } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
   }
 
+  it.each([
+    ['a missing token', {}],
+    ['a non-string token', { forestServerToken: 42 }],
+    ['an empty token', { forestServerToken: '' }],
+  ])('should skip the status update on %s rather than send an empty Bearer', async (_l, extra) => {
+    const request = {
+      authInfo: { token: 'mock-token', extra },
+    } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
+    const activityLog = { id: 'log-123', attributes: { index: 'idx-456' } };
+    const mockLogger = jest.fn();
+
+    markActivityLogAsFailed({
+      forestServerClient: mockForestServerClient,
+      request,
+      activityLog,
+      logger: mockLogger,
+    });
+
+    await new Promise(resolve => {
+      setTimeout(resolve, 0);
+    });
+
+    // An empty Bearer would 401, and the 404 retry branch would then repeat it five times.
+    expect(mockForestServerClient.updateActivityLogStatus).not.toHaveBeenCalled();
+    expect(mockLogger).toHaveBeenCalledWith(
+      'Error',
+      "Cannot update activity log status to 'failed': no forestServerToken in the auth context.",
+    );
+  });
+
   it('should call updateActivityLogStatus with failed status', async () => {
     const request = createMockRequest();
     const activityLog = { id: 'log-123', attributes: { index: 'idx-456' } };
