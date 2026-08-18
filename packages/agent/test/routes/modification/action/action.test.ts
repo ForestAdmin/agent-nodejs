@@ -1181,6 +1181,40 @@ describe('ActionRoute', () => {
         ]);
       });
 
+      test('refuses the action instead of running it under-audited when critical and resolving record ids throws', async () => {
+        const listError = new Error('connection reset');
+        (dataSource.getCollection('books').list as jest.Mock).mockRejectedValue(listError);
+        const criticalOptions = factories.forestAdminHttpDriverOptions.build({
+          auditTrail: {
+            store: { insertPendingBatch, confirm },
+            critical: true,
+            close: jest.fn(),
+          } as never,
+        });
+        (
+          criticalOptions.forestAdminClient.permissionService.canTriggerCustomAction as jest.Mock
+        ).mockResolvedValue(true);
+        route = new ActionRoute(services, criticalOptions, dataSource, 'books', 'MySingleAction');
+
+        const context = createMockContext({
+          ...baseContext,
+          requestBody: {
+            data: {
+              attributes: {
+                ...baseContext.requestBody.data.attributes,
+                values: { firstname: 'John' },
+              },
+            },
+          },
+        });
+
+        // @ts-expect-error: test private method
+        await expect(route.handleExecute(context)).rejects.toThrow('connection reset');
+
+        expect(dataSource.getCollection('books').execute).not.toHaveBeenCalled();
+        expect(insertPendingBatch).not.toHaveBeenCalled();
+      });
+
       test('does not record anything, or query for audited ids, when no audit trail is configured', async () => {
         route = new ActionRoute(services, options, dataSource, 'books', 'MySingleAction');
         const context = createMockContext({

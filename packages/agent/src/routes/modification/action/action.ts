@@ -202,10 +202,12 @@ export default class ActionRoute extends CollectionRoute {
     }
   }
 
-  // Best-effort: resolving the audited ids is itself an extra query (see auditedRecordIds), and a
-  // transient failure there must not prevent the action from running at all — same principle as
-  // the pending-capture step below applies (for `critical: false`), applied to the lookup that
-  // happens before execute().
+  // Best-effort under `critical: false`: resolving the audited ids is itself an extra query (see
+  // auditedRecordIds), and a transient failure there must not prevent the action from running at
+  // all — same principle the pending-capture step below applies. Under `critical: true`, falling
+  // back to `[]` would let a record-scoped action run with only a no-record audit entry instead of
+  // per-record coverage, which is exactly what `critical` exists to refuse — so this rethrows
+  // there instead, refusing the action before execute() runs.
   private async resolveAuditedRecordIds(
     context: Context,
     caller: Caller,
@@ -216,6 +218,8 @@ export default class ActionRoute extends CollectionRoute {
     try {
       return await this.auditedRecordIds(context, caller, filter);
     } catch (error) {
+      if (this.options.auditTrail.critical) throw error;
+
       this.options.logger(
         'Error',
         `[ForestAdmin] Unable to resolve audited record ids, continuing: ${error}`,
