@@ -25,6 +25,36 @@ describe('ReadModelStore', () => {
     clock = 1_000_000;
   });
 
+  describe('getSchemaSnapshot', () => {
+    it('should return a read-model derived from the very collections it returns', async () => {
+      const store = build(jest.fn().mockResolvedValue(makeSchema('users')));
+
+      const { collections, readModel, revision } = await store.getSchemaSnapshot();
+
+      expect(collections.map(entry => entry.name)).toEqual(['users']);
+      expect(readModel.getAllowedCollections()).toEqual(collections.map(entry => entry.name));
+      expect(revision).toBe(1);
+    });
+
+    it('should not label one generation of collections with another generation revision', async () => {
+      const fetchSchema = jest
+        .fn()
+        .mockResolvedValueOnce(makeSchema('first'))
+        .mockResolvedValueOnce(makeSchema('second'));
+      const store = build(fetchSchema);
+
+      const first = await store.getSchemaSnapshot();
+      clock += ONE_DAY_MS + 1;
+      const second = await store.getSchemaSnapshot();
+
+      expect(first.collections.map(entry => entry.name)).toEqual(['first']);
+      expect(first.readModel.getAllowedCollections()).toEqual(['first']);
+      expect(second.collections.map(entry => entry.name)).toEqual(['second']);
+      expect(second.readModel.getAllowedCollections()).toEqual(['second']);
+      expect(second.revision).toBeGreaterThan(first.revision);
+    });
+  });
+
   describe('getReadModel', () => {
     it('should build the read-model from the fetched schema', async () => {
       const store = build(jest.fn().mockResolvedValue(makeSchema('users')));

@@ -36,14 +36,15 @@ export default class ReadModelStore {
 
   async getSchemaSnapshot(): Promise<SchemaSnapshot> {
     const collections = await this.schemaCache.get();
+    const { revision } = this.schemaCache;
 
-    if (this.schemaCache.revision !== this.builtRevision || !this.readModel) {
+    if (revision !== this.builtRevision || !this.readModel) {
       this.readModel = new ReadModel(collections);
-      this.builtRevision = this.schemaCache.revision;
+      this.builtRevision = revision;
       this.capabilitiesCache.clear();
     }
 
-    return { collections, readModel: this.readModel, revision: this.builtRevision };
+    return { collections, readModel: this.readModel, revision };
   }
 
   /**
