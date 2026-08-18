@@ -188,13 +188,17 @@ export const ContextResponseSchema = z
   })
   .openapi('ContextResponse', {
     description:
-      'The schema the agent exposes, filtered by the allow-list: collection names, typed fields ' +
-      'with their relation markers, and the custom actions that carry an endpoint. Field types ' +
-      'are passed through from the agent wire format, so a type is a string, an array of types, ' +
-      'or a composite object. The document carries no rendering, environment, project or team ' +
-      'identity, and it is NOT filtered by the caller permissions: cross it with ' +
-      '`/agent/v1/permissions` for that. `meta.schemaRevision` increments whenever the BFF ' +
-      'refreshes its schema, and resets when the BFF restarts.',
+      'Everything the agent schema exposes: collection names, typed fields with their relation ' +
+      'markers, and the custom actions that carry an endpoint. Field types are passed through ' +
+      'from the agent wire format, so a type is a string, an array of types, or a composite ' +
+      'object. `reference` keeps the raw agent form, the foreign collection and the key joined ' +
+      'by a dot — the collection name may itself contain dots, so drop only the trailing ' +
+      'segment to recover it. ' +
+      'The document carries no rendering, environment, project or team identity. It is NOT ' +
+      'filtered by the caller permissions, nor by anything else: it describes the whole exposed ' +
+      'schema, so cross it with `/agent/v1/permissions` to know what the caller may actually ' +
+      'see. `meta.schemaRevision` increments whenever the BFF refreshes its schema, and resets ' +
+      'when the BFF restarts.',
   });
 
 export const ErrorResponseSchema = z

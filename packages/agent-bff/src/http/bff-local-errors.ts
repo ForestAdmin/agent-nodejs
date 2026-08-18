@@ -58,10 +58,6 @@ export function oauthRequired(
   return new BffHttpError(403, 'oauth_required', message);
 }
 
-export function unknownRoute(message = 'Unknown route'): BffHttpError {
-  return new BffHttpError(404, 'unknown_route', message);
-}
-
 export function permissionsUnavailable(
   retryAfter: number,
   message = 'Permissions are unavailable',

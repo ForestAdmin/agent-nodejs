@@ -304,6 +304,7 @@ export function generateOpenApiDocument(version: string, unfolding?: Unfolding):
       401: errorRefs.byStatus['401'],
       403: errorRefs.byStatus['403'],
       500: errorRefs.byStatus['500'],
+      501: errorRefs.byStatus['501'],
       503: errorRefs.byStatus['503'],
     },
   });

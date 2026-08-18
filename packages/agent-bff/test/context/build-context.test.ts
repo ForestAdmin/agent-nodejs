@@ -87,6 +87,18 @@ describe('buildContext', () => {
       );
     });
 
+    it('should keep a falsy default value and an empty enum list, which carry meaning', () => {
+      const context = buildContext(schema, readModel, 1);
+      const exportAction = usersOf(context)?.actions.find(entry => entry.name === 'Export all');
+
+      expect(exportAction?.fields).toEqual([
+        { field: 'includeArchived', type: 'Boolean', isRequired: false, defaultValue: false },
+        { field: 'limit', type: 'Number', defaultValue: 0 },
+        { field: 'since', type: 'Date', defaultValue: null },
+        { field: 'format', type: 'Enum', enums: [] },
+      ]);
+    });
+
     it('should serialize an action field with its enums and default value', () => {
       const context = buildContext(schema, readModel, 1);
       const banAction = usersOf(context)?.actions.find(entry => entry.name === 'Ban user');

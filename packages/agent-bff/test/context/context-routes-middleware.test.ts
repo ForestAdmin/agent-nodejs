@@ -25,7 +25,7 @@ function makeApp(fetchSchema: jest.Mock, authMode: string | undefined = 'oauth')
     ctx.state.authMode = authMode;
     await next();
   });
-  app.use(createContextRoutesMiddleware({ store, schemaCache }));
+  app.use(createContextRoutesMiddleware({ store }));
 
   return { app, schemaCache };
 }

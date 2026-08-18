@@ -68,7 +68,12 @@ export default function schemaCoveringEveryContractShape(): ForestSchemaCollecti
             enums: ['spam', 'abuse'],
           },
         ]),
-        action('Export all', 'global', '/forest/users/actions/export'),
+        action('Export all', 'global', '/forest/users/actions/export', [
+          { field: 'includeArchived', type: 'Boolean', isRequired: false, defaultValue: false },
+          { field: 'limit', type: 'Number', defaultValue: 0 },
+          { field: 'since', type: 'Date', defaultValue: null },
+          { field: 'format', type: 'Enum', enums: [] },
+        ]),
         action('Archive', 'bulk', '/forest/users/actions/archive'),
         action('Endpointless action', 'single', undefined),
       ],
