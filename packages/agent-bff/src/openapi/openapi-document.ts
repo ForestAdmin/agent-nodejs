@@ -301,6 +301,7 @@ export function generateOpenApiDocument(version: string, unfolding?: Unfolding):
         description: 'The exposed schema: collections, typed fields, relations and actions',
         content: { 'application/json': { schema: ContextResponseSchema } },
       },
+      400: errorRefs.byStatus['400'],
       401: errorRefs.byStatus['401'],
       403: errorRefs.byStatus['403'],
       500: errorRefs.byStatus['500'],
