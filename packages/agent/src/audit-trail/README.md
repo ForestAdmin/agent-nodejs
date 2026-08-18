@@ -161,6 +161,11 @@ confirm). That residue is evidence a write was attempted and never confirmed, an
 way is the point: don't delete a `pending` row, don't fill it in — its very presence tells you where
 to look.
 
+A write that matches a record but changes nothing still confirms its row to `done` — the write
+itself resolved, so leaving the row `pending` (or skipping it entirely) would misrepresent a
+completed no-op as one that never landed. `previous_values`/`new_values` are simply both empty on
+that row.
+
 A bulk update or delete's before-write snapshot is capped at 1000 records. Under `critical: false`,
 hitting the cap logs an explicit warning naming the collection and operation and proceeds, auditing
 only the first 1000 matched records — the "no unaudited write" guarantee above doesn't extend past
