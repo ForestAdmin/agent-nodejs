@@ -27,9 +27,26 @@ export interface WithUserConfirmation<T extends Record<string, unknown> = Record
 
 // -- Condition --
 
+export interface ConditionEvaluation {
+  option: string;
+  outcome: 'matched' | 'not-matched' | 'not-evaluated';
+  /** Absent when outcome is 'not-evaluated'. `met: null` = the value could not be evaluated. */
+  conditions?: Array<{ index: number; met: boolean | null }>;
+}
+
+// Deterministic evaluation trace read by the run view (PRD-472 contract shape). The fallback
+// never appears in `evaluations` — the front derives its display from `usedFallback`.
+export interface DeterministicConditionExecutionParams {
+  evaluations: ConditionEvaluation[];
+  selectedOption: string;
+  usedFallback: boolean;
+}
+
 export interface ConditionStepExecutionData extends BaseStepExecutionData {
   type: 'condition';
-  executionParams: { answer: string | null; reasoning?: string };
+  executionParams:
+    | { answer: string | null; reasoning?: string }
+    | DeterministicConditionExecutionParams;
   executionResult?: { answer: string };
 }
 

@@ -2,7 +2,8 @@ import type { ActivityLogPort } from '../../src/ports/activity-log-port';
 import type { AgentPort } from '../../src/ports/agent-port';
 import type { RunStore } from '../../src/ports/run-store';
 import type { WorkflowPort } from '../../src/ports/workflow-port';
-import type { ExecutionContext } from '../../src/types/execution-context';
+import type { ExecutionContext, Step } from '../../src/types/execution-context';
+import type { FieldReadResult, StepExecutionData } from '../../src/types/step-execution-data';
 import type { RecordRef } from '../../src/types/validated/collection';
 import type { ConditionStepDefinition } from '../../src/types/validated/step-definition';
 import type { ConditionStepOutcome } from '../../src/types/validated/step-outcome';
@@ -22,6 +23,39 @@ function makeStep(overrides: Partial<ConditionStepDefinition> = {}): ConditionSt
     options: ['Approve', 'Reject'],
     prompt: 'Should we approve this?',
     ...overrides,
+  };
+}
+
+type ConditionPreRecordedArgs = NonNullable<ConditionStepDefinition['preRecordedArgs']>;
+
+function makeDeterministicStep(preRecordedArgs: ConditionPreRecordedArgs): ConditionStepDefinition {
+  return makeStep({
+    executionType: StepExecutionMode.Deterministic,
+    options: [
+      ...preRecordedArgs.optionConditions.map(o => o.option),
+      preRecordedArgs.fallbackOption,
+    ],
+    preRecordedArgs,
+  });
+}
+
+function makeGetDataStep(stepId: string, stepIndex: number): Step {
+  return {
+    stepDefinition: {
+      type: StepType.ReadRecord,
+      executionType: StepExecutionMode.FullyAutomated,
+    },
+    stepOutcome: { type: 'record', stepId, stepIndex, status: 'success' },
+  };
+}
+
+function makeReadRecordExecution(stepIndex: number, fields: FieldReadResult[]): StepExecutionData {
+  return {
+    type: 'read-record',
+    stepIndex,
+    executionParams: { fields: fields.map(({ name, displayName }) => ({ name, displayName })) },
+    executionResult: { fields },
+    selectedRecordRef: { collectionName: 'orders', recordId: [1], stepIndex: 0 },
   };
 }
 
@@ -418,6 +452,337 @@ describe('ConditionStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('error');
       expect(mockModel.bindTools).not.toHaveBeenCalled();
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('executionType=Deterministic', () => {
+    const amountArgs: ConditionPreRecordedArgs = {
+      optionConditions: [
+        {
+          option: 'High',
+          aggregator: 'and',
+          conditions: [
+            { sourceStepId: 'get-1', fieldName: 'amount', operator: 'greater_than', value: 100 },
+          ],
+        },
+        {
+          option: 'Low',
+          aggregator: 'and',
+          conditions: [
+            {
+              sourceStepId: 'get-1',
+              fieldName: 'amount',
+              operator: 'less_than_or_equal',
+              value: 100,
+            },
+          ],
+        },
+      ],
+      fallbackOption: 'Other',
+    };
+
+    function makeDeterministicContext(
+      preRecordedArgs: ConditionPreRecordedArgs,
+      fields: FieldReadResult[],
+      overrides: Partial<ExecutionContext<ConditionStepDefinition>> = {},
+    ) {
+      const mockModel = makeMockModel();
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([makeReadRecordExecution(1, fields)]),
+      });
+      const context = makeContext({
+        model: mockModel.model,
+        runStore,
+        stepDefinition: makeDeterministicStep(preRecordedArgs),
+        previousSteps: [makeGetDataStep('get-1', 1)],
+        ...overrides,
+      });
+
+      return { context, mockModel, runStore };
+    }
+
+    it('selects the first matching option without calling the AI or awaiting input', async () => {
+      const { context, mockModel, runStore } = makeDeterministicContext(amountArgs, [
+        { name: 'amount', displayName: 'Amount', value: 150 },
+      ]);
+      const executor = new ConditionStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('High');
+      expect(mockModel.bindTools).not.toHaveBeenCalled();
+      expect(mockModel.invoke).not.toHaveBeenCalled();
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith('run-1', {
+        type: 'condition',
+        stepIndex: 0,
+        executionParams: {
+          evaluations: [
+            { option: 'High', outcome: 'matched', conditions: [{ index: 0, met: true }] },
+            { option: 'Low', outcome: 'not-evaluated' },
+          ],
+          selectedOption: 'High',
+          usedFallback: false,
+        },
+        executionResult: { answer: 'High' },
+      });
+    });
+
+    it('does not evaluate options after the first match, even if they would also match', async () => {
+      const bothMatch: ConditionPreRecordedArgs = {
+        optionConditions: [
+          {
+            option: 'First',
+            aggregator: 'and',
+            conditions: [{ sourceStepId: 'get-1', fieldName: 'amount', operator: 'present' }],
+          },
+          {
+            option: 'Second',
+            aggregator: 'and',
+            conditions: [{ sourceStepId: 'get-1', fieldName: 'amount', operator: 'present' }],
+          },
+        ],
+        fallbackOption: 'Other',
+      };
+      const { context, runStore } = makeDeterministicContext(bothMatch, [
+        { name: 'amount', displayName: 'Amount', value: 150 },
+      ]);
+
+      const result = await new ConditionStepExecutor(context).execute();
+
+      expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('First');
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          executionParams: expect.objectContaining({
+            evaluations: [
+              { option: 'First', outcome: 'matched', conditions: [{ index: 0, met: true }] },
+              { option: 'Second', outcome: 'not-evaluated' },
+            ],
+          }),
+        }),
+      );
+    });
+
+    it('requires all conditions with the and aggregator', async () => {
+      const andArgs: ConditionPreRecordedArgs = {
+        optionConditions: [
+          {
+            option: 'High paid',
+            aggregator: 'and',
+            conditions: [
+              { sourceStepId: 'get-1', fieldName: 'amount', operator: 'greater_than', value: 100 },
+              { sourceStepId: 'get-1', fieldName: 'status', operator: 'equal', value: 'paid' },
+            ],
+          },
+        ],
+        fallbackOption: 'Other',
+      };
+      const { context, runStore } = makeDeterministicContext(andArgs, [
+        { name: 'amount', displayName: 'Amount', value: 150 },
+        { name: 'status', displayName: 'Status', value: 'pending' },
+      ]);
+
+      const result = await new ConditionStepExecutor(context).execute();
+
+      expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('Other');
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith('run-1', {
+        type: 'condition',
+        stepIndex: 0,
+        executionParams: {
+          evaluations: [
+            {
+              option: 'High paid',
+              outcome: 'not-matched',
+              conditions: [
+                { index: 0, met: true },
+                { index: 1, met: false },
+              ],
+            },
+          ],
+          selectedOption: 'Other',
+          usedFallback: true,
+        },
+        executionResult: { answer: 'Other' },
+      });
+    });
+
+    it('matches with the or aggregator when any condition is met', async () => {
+      const orArgs: ConditionPreRecordedArgs = {
+        optionConditions: [
+          {
+            option: 'High or paid',
+            aggregator: 'or',
+            conditions: [
+              { sourceStepId: 'get-1', fieldName: 'status', operator: 'equal', value: 'paid' },
+              { sourceStepId: 'get-1', fieldName: 'amount', operator: 'greater_than', value: 100 },
+            ],
+          },
+        ],
+        fallbackOption: 'Other',
+      };
+      const { context, runStore } = makeDeterministicContext(orArgs, [
+        { name: 'amount', displayName: 'Amount', value: 150 },
+        { name: 'status', displayName: 'Status', value: 'pending' },
+      ]);
+
+      const result = await new ConditionStepExecutor(context).execute();
+
+      expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('High or paid');
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          executionParams: expect.objectContaining({
+            evaluations: [
+              {
+                option: 'High or paid',
+                outcome: 'matched',
+                conditions: [
+                  { index: 0, met: false },
+                  { index: 1, met: true },
+                ],
+              },
+            ],
+          }),
+        }),
+      );
+    });
+
+    it('treats a null field value as not evaluable and falls back — never an error', async () => {
+      const { context, runStore } = makeDeterministicContext(amountArgs, [
+        { name: 'amount', displayName: 'Amount', value: null },
+      ]);
+
+      const result = await new ConditionStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('Other');
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith('run-1', {
+        type: 'condition',
+        stepIndex: 0,
+        executionParams: {
+          evaluations: [
+            { option: 'High', outcome: 'not-matched', conditions: [{ index: 0, met: null }] },
+            { option: 'Low', outcome: 'not-matched', conditions: [{ index: 0, met: null }] },
+          ],
+          selectedOption: 'Other',
+          usedFallback: true,
+        },
+        executionResult: { answer: 'Other' },
+      });
+    });
+
+    it('treats an unresolvable source step as not evaluable and falls back', async () => {
+      const unknownSource: ConditionPreRecordedArgs = {
+        optionConditions: [
+          {
+            option: 'High',
+            aggregator: 'and',
+            conditions: [
+              {
+                sourceStepId: 'never-ran',
+                fieldName: 'amount',
+                operator: 'greater_than',
+                value: 100,
+              },
+            ],
+          },
+        ],
+        fallbackOption: 'Other',
+      };
+      const { context } = makeDeterministicContext(unknownSource, [
+        { name: 'amount', displayName: 'Amount', value: 150 },
+      ]);
+
+      const result = await new ConditionStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('Other');
+    });
+
+    it('treats a field the Get Data step failed to read as not evaluable', async () => {
+      const { context, runStore } = makeDeterministicContext(amountArgs, [
+        { name: 'amount', displayName: 'Amount', error: 'Field not found: amount' },
+      ]);
+
+      const result = await new ConditionStepExecutor(context).execute();
+
+      expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('Other');
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          executionParams: expect.objectContaining({
+            evaluations: expect.arrayContaining([
+              { option: 'High', outcome: 'not-matched', conditions: [{ index: 0, met: null }] },
+            ]),
+          }),
+        }),
+      );
+    });
+
+    it('lets blank match a resolved null value (unlike an unresolvable one)', async () => {
+      const blankArgs: ConditionPreRecordedArgs = {
+        optionConditions: [
+          {
+            option: 'No amount',
+            aggregator: 'and',
+            conditions: [{ sourceStepId: 'get-1', fieldName: 'amount', operator: 'blank' }],
+          },
+        ],
+        fallbackOption: 'Other',
+      };
+      const { context } = makeDeterministicContext(blankArgs, [
+        { name: 'amount', displayName: 'Amount', value: null },
+      ]);
+
+      const result = await new ConditionStepExecutor(context).execute();
+
+      expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('No amount');
+    });
+
+    it('selects the fallback when no option matches', async () => {
+      const { context, runStore } = makeDeterministicContext(amountArgs, [
+        { name: 'amount', displayName: 'Amount', value: 'not a number' },
+      ]);
+
+      const result = await new ConditionStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('Other');
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith('run-1', {
+        type: 'condition',
+        stepIndex: 0,
+        executionParams: {
+          evaluations: [
+            { option: 'High', outcome: 'not-matched', conditions: [{ index: 0, met: false }] },
+            { option: 'Low', outcome: 'not-matched', conditions: [{ index: 0, met: false }] },
+          ],
+          selectedOption: 'Other',
+          usedFallback: true,
+        },
+        executionResult: { answer: 'Other' },
+      });
+    });
+
+    it('uses the most recent occurrence of a repeated source step id (loop)', async () => {
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest
+          .fn()
+          .mockResolvedValue([
+            makeReadRecordExecution(1, [{ name: 'amount', displayName: 'Amount', value: 50 }]),
+            makeReadRecordExecution(2, [{ name: 'amount', displayName: 'Amount', value: 150 }]),
+          ]),
+      });
+      const context = makeContext({
+        model: makeMockModel().model,
+        runStore,
+        stepDefinition: makeDeterministicStep(amountArgs),
+        previousSteps: [makeGetDataStep('get-1', 1), makeGetDataStep('get-1', 2)],
+      });
+
+      const result = await new ConditionStepExecutor(context).execute();
+
+      expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('High');
     });
   });
 

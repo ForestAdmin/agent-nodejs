@@ -35,6 +35,7 @@ export enum ServerStepExecutionTypeEnum {
   Manual = 'manual',
   AutomatedWithConfirmation = 'automated-with-confirmation',
   FullyAutomated = 'fully-automated',
+  Deterministic = 'deterministic',
 }
 
 interface ServerWorkflowStepBase {
@@ -122,9 +123,27 @@ export interface ServerWorkflowEnd extends ServerWorkflowStepBase {
 
 export interface ServerWorkflowCondition extends ServerWorkflowStepBase {
   type: ServerStepTypeEnum.Condition;
-  executionType: ServerStepExecutionTypeEnum.Manual | ServerStepExecutionTypeEnum.FullyAutomated;
+  executionType:
+    | ServerStepExecutionTypeEnum.Manual
+    | ServerStepExecutionTypeEnum.FullyAutomated
+    | ServerStepExecutionTypeEnum.Deterministic;
   prompt: string | null;
   automaticCompletion: false;
+  // Parsed from `forest:optionConditions` server-side (flowId → answer). Present when
+  // executionType is deterministic. Validated by the step-definition schema.
+  preRecordedArgs?: {
+    optionConditions: Array<{
+      option: string;
+      aggregator: 'and' | 'or';
+      conditions: Array<{
+        sourceStepId: string;
+        fieldName: string;
+        operator: string;
+        value?: unknown;
+      }>;
+    }>;
+    fallbackOption: string;
+  };
 }
 
 export interface ServerWorkflowEscalation extends ServerWorkflowStepBase {
