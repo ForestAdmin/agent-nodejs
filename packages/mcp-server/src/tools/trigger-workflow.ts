@@ -23,11 +23,14 @@ interface TriggerWorkflowArgument {
 }
 
 // One message for the unknown, MCP-disabled and trigger-time-404 cases, so the LLM-facing
-// contract stays uniform and never leaks whether a given workflow exists.
+// contract stays uniform and never leaks whether a given workflow exists. The last sentence exists
+// so a model cannot loop: an orchestrator that predates (or was rolled back before) the by-id
+// endpoint 404s every lookup while listWorkflows keeps returning the same ids.
 function notMcpEnabledMessage(workflowId: string): string {
   return (
     `Workflow "${workflowId}" is not an MCP-enabled workflow you can access. ` +
-    'Use listWorkflows to discover triggerable workflows.'
+    'Use listWorkflows to discover triggerable workflows. If listWorkflows just returned this id, ' +
+    'do not retry — report it to your Forest administrator instead.'
   );
 }
 
@@ -76,6 +79,15 @@ export default function declareTriggerWorkflowTool(mcpServer: McpServer, ctx: To
           workflowId: args.workflowId,
         });
       } catch (error) {
+        // Always log: a 404 here is indistinguishable from a missing route, so without this an
+        // orchestrator too old to serve the lookup is visible only to the model.
+        logger(
+          'Error',
+          `Failed to resolve workflow "${args.workflowId}" via getMcpWorkflowById: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+
         if (error instanceof NotFoundError) {
           throw new Error(notMcpEnabledMessage(args.workflowId));
         }
@@ -87,8 +99,9 @@ export default function declareTriggerWorkflowTool(mcpServer: McpServer, ctx: To
         throw new Error(notMcpEnabledMessage(args.workflowId));
       }
 
-      // A renamed/deleted collection leaves collectionName null. The activity log would be dropped
-      // server-side and fail-closed would block with a misleading message, so reject up front.
+      // A renamed/deleted collection leaves collectionName null, which the audit route rejects
+      // (collectionModelName is required). Fail-closed would then block with a misleading message,
+      // so reject up front with one that names the actual problem.
       if (workflow.collectionName == null) {
         throw new Error(unavailableCollectionMessage(args.workflowId));
       }

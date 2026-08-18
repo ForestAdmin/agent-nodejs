@@ -249,6 +249,41 @@ describe('declareTriggerWorkflowTool', () => {
       expect(mockForestServerClient.createMcpActivityLog).not.toHaveBeenCalled();
     });
 
+    it('should tell the caller not to retry when the lookup 404s, so a missing route cannot loop', async () => {
+      mockForestServerClient.getMcpWorkflowById.mockRejectedValue(
+        new NotFoundError('Workflow not found'),
+      );
+
+      const result = await registeredToolHandler({ workflowId: 'wf-1', recordId: '42' }, mockExtra);
+
+      expect(result).toEqual({
+        content: [
+          {
+            type: 'text',
+            text:
+              'Workflow "wf-1" is not an MCP-enabled workflow you can access. Use listWorkflows to ' +
+              'discover triggerable workflows. If listWorkflows just returned this id, do not ' +
+              'retry — report it to your Forest administrator instead.',
+          },
+        ],
+        isError: true,
+      });
+    });
+
+    it('should log the underlying lookup failure so an outage is visible to an operator', async () => {
+      mockForestServerClient.getMcpWorkflowById.mockRejectedValue(
+        new NotFoundError('Cannot GET /api/workflow-orchestrator/mcp-workflows/wf-1'),
+      );
+
+      await registeredToolHandler({ workflowId: 'wf-1', recordId: '42' }, mockExtra);
+
+      expect(mockLogger).toHaveBeenCalledWith(
+        'Error',
+        'Failed to resolve workflow "wf-1" via getMcpWorkflowById: ' +
+          'Cannot GET /api/workflow-orchestrator/mcp-workflows/wf-1',
+      );
+    });
+
     it('should reject an MCP-disabled workflow without triggering or auditing', async () => {
       mockForestServerClient.getMcpWorkflowById.mockResolvedValue({
         workflowId: 'wf-1',
