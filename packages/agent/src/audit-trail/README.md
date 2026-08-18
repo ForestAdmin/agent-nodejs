@@ -147,16 +147,19 @@ before anything happens, if that's what you want.
 That's what the `critical` option controls:
 
 - **`critical: false`** (default) — a failure inserting the pending row is logged and swallowed; the
-  write proceeds exactly as it does today, just without an audit entry for it.
+  write proceeds exactly as it does today, just without an audit entry for it. **This means a write
+  can succeed with no audit row at all** — configuring `auditTrail` alone does not guarantee every
+  write gets one; it is a best-effort audit trail until `critical` says otherwise.
 - **`critical: true`** — the same failure instead refuses the operation: nothing is written, no
   compensating write is issued.
 
-What this buys is **no unaudited write, not every row holding exact after-values**. A row left
-`pending` means the write may or may not have landed — the confirm step that would have flipped it
-to `done` never ran, for whatever reason (a crash, a lost connection, the process being killed
-between the write and the confirm). That residue is evidence a write was attempted and never
-confirmed, and reading it that way is the point: don't delete a `pending` row, don't fill it in —
-its very presence tells you where to look.
+The **"no unaudited write" guarantee only holds under `critical: true`**. What it buys, precisely,
+is no unaudited write, not every row holding exact after-values. A row left `pending` means the
+write may or may not have landed — the confirm step that would have flipped it to `done` never ran,
+for whatever reason (a crash, a lost connection, the process being killed between the write and the
+confirm). That residue is evidence a write was attempted and never confirmed, and reading it that
+way is the point: don't delete a `pending` row, don't fill it in — its very presence tells you where
+to look.
 
 A bulk update or delete's before-write snapshot is capped at 1000 records. Under `critical: false`,
 hitting the cap logs an explicit warning naming the collection and operation and proceeds, auditing
@@ -235,6 +238,13 @@ containment/text cast, same idea as the `fields` filter above), not an in-memory
 rows, so it composes with pagination and `meta.count` the same way every other filter does. A
 redacted value can never match a search for the real value: `redact` replaces it before the row is
 ever written, so the real value was never in the database to find.
+
+Matching the *serialized* text rather than a structural walk of the parsed value is cheap and still
+correct for "keys and scalar values" — but two things follow from it. A punctuation-only term (`,`,
+`:`, `{`) matches almost any row whose diff has more than one key, since those characters are JSON
+structure rather than content. And a value containing a double quote or a backslash can't be found
+by searching for it literally — `5"` is stored in the JSON text as `5\"`, so searching `5"` never
+matches the row that holds it. Neither is severe, and both are inherent to the approach.
 
 Defensive parsing:
 

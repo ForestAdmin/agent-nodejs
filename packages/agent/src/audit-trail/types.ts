@@ -57,6 +57,14 @@ export type AuditHistoryQuery = {
    * `timestamp` — those are machine identifiers a user would never search, and matching them
    * produces confusing hits. A redacted value can't match a search for the real value: the real
    * value was never stored in the first place.
+   *
+   * The match runs against the *serialized JSON text* of `previousValues`/`newValues`, not a
+   * structural walk of the parsed value — cheap, and correct for "keys and scalar values", but two
+   * things fall out of that: a punctuation-only term (`,`, `:`, `{`) matches almost any row whose
+   * diff has more than one key, since those characters are JSON structure rather than content; and
+   * a value containing a double quote or a backslash can't be found by searching for it literally
+   * (`5"` is stored as `5\"`, so searching `5"` never matches the row that holds it). Neither is
+   * severe, and both are inherent to matching the serialized form rather than the parsed value.
    */
   search?: string;
   /** Sort direction on `timestamp` (ties broken by insertion order). Defaults to `'asc'`. */
