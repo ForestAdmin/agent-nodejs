@@ -35,22 +35,40 @@ export async function recordExists(
   return records.length > 0;
 }
 
+export type RecordVisibility = {
+  /** False → the id still exists and fails the scope; the caller must be denied entirely (404). */
+  visible: boolean;
+  /**
+   * True once the id no longer exists at all, under any scope. `visible` is then true for a
+   * different reason than "the record matches the scope": there is nothing left to check
+   * existence against. It doesn't mean every value the audit trail holds for that record is safe
+   * to hand back to this caller — a scoped-down field value captured while the record still
+   * existed can still fall outside the caller's scope, and callers should check that separately
+   * (e.g. by re-evaluating the scope's `ConditionTree` against a delete row's `previousValues`)
+   * before deciding how much of the record's captured data to surface.
+   */
+  goneEntirely: boolean;
+};
+
 // A record-level scope can't be evaluated against a record that no longer exists, so a caller whose
 // access is scoped down is only denied when the id currently exists and fails that scope — once it's
-// genuinely gone there is nothing left to scope against, and showing what it was (including its
-// delete snapshot) is much of the point of an audit trail. Anyone who can read the collection at all
-// can therefore see the history of a deleted record, scope aside; only a still-existing, out-of-scope
-// record is refused.
-export default async function isRecordVisible(
+// genuinely gone there is nothing left to scope against, and showing that it existed (including that
+// it was deleted, by whom and when) is much of the point of an audit trail.
+export default async function checkRecordVisibility(
   services: ForestAdminHttpDriverServices,
   collection: Collection,
   packedId: string,
   context: Context,
-): Promise<boolean> {
+): Promise<RecordVisibility> {
   const scope = await services.authorization.getScope(collection, context);
 
-  if (!scope) return true;
-  if (await recordExists(collection, packedId, context, scope)) return true;
+  if (!scope) return { visible: true, goneEntirely: false };
 
-  return !(await recordExists(collection, packedId, context, null));
+  if (await recordExists(collection, packedId, context, scope)) {
+    return { visible: true, goneEntirely: false };
+  }
+
+  const existsOutsideScope = await recordExists(collection, packedId, context, null);
+
+  return { visible: !existsOutsideScope, goneEntirely: !existsOutsideScope };
 }

@@ -1,3 +1,4 @@
+import type { AuditRecord } from '../../audit-trail';
 import type { CollectionSchema, ConditionTree } from '@forestadmin/datasource-toolkit';
 import type Router from '@koa/router';
 import type { Context } from 'koa';
@@ -12,7 +13,7 @@ import {
 import { DateTime } from 'luxon';
 
 import { revertRecord } from '../../audit-trail';
-import isRecordVisible, { recordExists } from '../../audit-trail/scope';
+import checkRecordVisibility, { recordExists } from '../../audit-trail/scope';
 import { HttpCode } from '../../types';
 import IdUtils from '../../utils/id';
 import QueryStringParser from '../../utils/query-string';
@@ -43,11 +44,14 @@ export default class AuditTrailRoute extends CollectionRoute {
     await this.services.authorization.assertCanRead(context, this.collection.name);
 
     const scope = await this.services.authorization.getScope(this.collection, context);
+    const { visible, goneEntirely } = await checkRecordVisibility(
+      this.services,
+      this.collection,
+      context.params.id,
+      context,
+    );
 
-    if (
-      scope &&
-      !(await isRecordVisible(this.services, this.collection, context.params.id, context))
-    ) {
+    if (!visible) {
       context.throw(HttpCode.NotFound, 'Record does not exists');
 
       return;
@@ -74,16 +78,38 @@ export default class AuditTrailRoute extends CollectionRoute {
       (context.request.query as Record<string, unknown>)['page[number]'] === undefined;
 
     // `count` reflects the active filters and is independent of the page.
-    const [data, count, availableUsers] = await Promise.all([
+    const [rawData, count, availableUsers] = await Promise.all([
       store.listByRecord({ ...filters, skip, limit, order }),
       store.countByRecord(filters),
       isFirstFetch ? store.listDistinctUsers(filters) : undefined,
     ]);
 
+    // A genuinely deleted record bypasses the scope check above — there's nothing left to check
+    // existence against — but its delete row's previousValues is the record's full last known
+    // state. If that state itself would have failed the caller's scope, withhold it while still
+    // surfacing that a deletion happened, by whom and when: that part stays visible regardless.
+    const data =
+      scope && goneEntirely ? this.withholdOutOfScopeDeletes(rawData, scope, context) : rawData;
+
     context.response.body = {
       data,
       meta: { count, ...(availableUsers && { availableUsers }) },
     };
+  }
+
+  private withholdOutOfScopeDeletes(
+    entries: AuditRecord[],
+    scope: ConditionTree,
+    context: Context,
+  ): AuditRecord[] {
+    const { timezone } = QueryStringParser.parseCaller(context, { defaultTimezone: 'UTC' });
+
+    return entries.map(entry => {
+      if (entry.operation !== 'delete') return entry;
+      if (scope.match(entry.previousValues, this.collection, timezone)) return entry;
+
+      return { ...entry, previousValues: {} };
+    });
   }
 
   // Only audited columns are returned; read-only/computed fields are not captured in the log.

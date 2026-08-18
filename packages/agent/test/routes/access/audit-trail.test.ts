@@ -1,3 +1,4 @@
+import { ConditionTreeLeaf } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import makeRoutes from '../../../src/routes';
@@ -11,7 +12,13 @@ describe('AuditTrailRoute', () => {
       factories.collection.build({
         name: 'books',
         schema: factories.collectionSchema.build({
-          fields: { id: factories.columnSchema.numericPrimaryKey().build() },
+          fields: {
+            id: factories.columnSchema.numericPrimaryKey().build(),
+            ownerId: factories.columnSchema.build({
+              columnType: 'Number',
+              filterOperators: new Set(['Equal']),
+            }),
+          },
         }),
       }),
     ]);
@@ -643,14 +650,14 @@ describe('AuditTrailRoute', () => {
       expect(store.listByRecord).not.toHaveBeenCalled();
     });
 
-    test('allows a deleted id through to the store, scope aside', async () => {
-      const history = [{ operation: 'delete', recordId: '2' }];
+    test("allows a deleted id through to the store, but withholds an out-of-scope delete row's previousValues", async () => {
+      const history = [
+        { operation: 'delete', recordId: '2', previousValues: { ownerId: 2, title: 'Secret' } },
+      ];
       const { services, dataSource, options, store } = setup(history);
-      (services.authorization.getScope as jest.Mock).mockResolvedValue({
-        field: 'ownerId',
-        operator: 'Equal',
-        value: 1,
-      });
+      (services.authorization.getScope as jest.Mock).mockResolvedValue(
+        new ConditionTreeLeaf('ownerId', 'Equal', 1),
+      );
       jest
         .spyOn(dataSource.getCollection('books'), 'list')
         .mockResolvedValueOnce([]) // scoped check: not found
@@ -664,6 +671,61 @@ describe('AuditTrailRoute', () => {
       await route.handleHistory(context);
 
       expect(context.throw).not.toHaveBeenCalled();
+      expect(store.listByRecord).toHaveBeenCalled();
+      expect(context.response.body).toEqual({
+        data: [{ operation: 'delete', recordId: '2', previousValues: {} }],
+        meta: { count: 1, availableUsers: [] },
+      });
+    });
+
+    test("keeps a genuinely-deleted delete row's previousValues when they match the caller's scope", async () => {
+      const history = [
+        { operation: 'delete', recordId: '2', previousValues: { ownerId: 1, title: 'Visible' } },
+      ];
+      const { services, dataSource, options, store } = setup(history);
+      (services.authorization.getScope as jest.Mock).mockResolvedValue(
+        new ConditionTreeLeaf('ownerId', 'Equal', 1),
+      );
+      jest
+        .spyOn(dataSource.getCollection('books'), 'list')
+        .mockResolvedValueOnce([]) // scoped check: not found
+        .mockResolvedValueOnce([]); // bare check: genuinely gone, not just out of scope
+      const route = new AuditTrailRoute(services, options, dataSource, 'books');
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: { query: { timezone: 'Europe/Paris' }, params: { id: '2' } },
+      });
+
+      await route.handleHistory(context);
+
+      expect(context.throw).not.toHaveBeenCalled();
+      expect(store.listByRecord).toHaveBeenCalled();
+      expect(context.response.body).toEqual({
+        data: history,
+        meta: { count: 1, availableUsers: [] },
+      });
+    });
+
+    test('does not withhold a non-delete row even when the record is genuinely gone and scoped', async () => {
+      const history = [
+        { operation: 'update', recordId: '2', previousValues: { ownerId: 2, title: 'Old' } },
+      ];
+      const { services, dataSource, options, store } = setup(history);
+      (services.authorization.getScope as jest.Mock).mockResolvedValue(
+        new ConditionTreeLeaf('ownerId', 'Equal', 1),
+      );
+      jest
+        .spyOn(dataSource.getCollection('books'), 'list')
+        .mockResolvedValueOnce([]) // scoped check: not found
+        .mockResolvedValueOnce([]); // bare check: genuinely gone, not just out of scope
+      const route = new AuditTrailRoute(services, options, dataSource, 'books');
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: { query: { timezone: 'Europe/Paris' }, params: { id: '2' } },
+      });
+
+      await route.handleHistory(context);
+
       expect(store.listByRecord).toHaveBeenCalled();
       expect(context.response.body).toEqual({
         data: history,

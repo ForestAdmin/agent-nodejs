@@ -6,7 +6,7 @@ import type { Context } from 'koa';
 
 import { ValidationError } from '@forestadmin/datasource-toolkit';
 
-import isRecordVisible from '../../audit-trail/scope';
+import checkRecordVisibility from '../../audit-trail/scope';
 import { HttpCode, RouteType } from '../../types';
 import BaseRoute from '../base-route';
 
@@ -78,7 +78,9 @@ export default class AuditTrailCorrelationRoute extends BaseRoute {
     const collection = this.dataSource.getCollection(collectionName);
     await this.services.authorization.assertCanRead(context, collectionName);
 
-    if (!(await isRecordVisible(this.services, collection, recordId, context))) {
+    const { visible } = await checkRecordVisibility(this.services, collection, recordId, context);
+
+    if (!visible) {
       context.throw(HttpCode.NotFound, 'Record does not exists');
 
       return null;

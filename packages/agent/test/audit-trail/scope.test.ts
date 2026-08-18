@@ -1,6 +1,6 @@
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
-import isRecordVisible, { recordExists } from '../../src/audit-trail/scope';
+import checkRecordVisibility, { recordExists } from '../../src/audit-trail/scope';
 import * as factories from '../__factories__';
 
 describe('audit-trail scope', () => {
@@ -53,13 +53,15 @@ describe('audit-trail scope', () => {
     });
   });
 
-  describe('isRecordVisible', () => {
+  describe('checkRecordVisibility', () => {
     test('is visible without querying anything when no scope is configured', async () => {
       const services = factories.forestAdminHttpDriverServices.build();
       const collection = buildCollection();
       const list = jest.spyOn(collection, 'list');
 
-      await expect(isRecordVisible(services, collection, '2', buildContext())).resolves.toBe(true);
+      await expect(
+        checkRecordVisibility(services, collection, '2', buildContext()),
+      ).resolves.toEqual({ visible: true, goneEntirely: false });
       expect(list).not.toHaveBeenCalled();
     });
 
@@ -73,7 +75,9 @@ describe('audit-trail scope', () => {
       const collection = buildCollection();
       jest.spyOn(collection, 'list').mockResolvedValueOnce([{ id: 2 }]);
 
-      await expect(isRecordVisible(services, collection, '2', buildContext())).resolves.toBe(true);
+      await expect(
+        checkRecordVisibility(services, collection, '2', buildContext()),
+      ).resolves.toEqual({ visible: true, goneEntirely: false });
     });
 
     test('is not visible when the id still exists but fails the scope', async () => {
@@ -89,10 +93,12 @@ describe('audit-trail scope', () => {
         .mockResolvedValueOnce([]) // scoped: not in scope
         .mockResolvedValueOnce([{ id: 2 }]); // bare: still exists
 
-      await expect(isRecordVisible(services, collection, '2', buildContext())).resolves.toBe(false);
+      await expect(
+        checkRecordVisibility(services, collection, '2', buildContext()),
+      ).resolves.toEqual({ visible: false, goneEntirely: false });
     });
 
-    test('is visible when the id no longer exists at all, scope aside', async () => {
+    test('is visible, and reports goneEntirely, when the id no longer exists at all, scope aside', async () => {
       const services = factories.forestAdminHttpDriverServices.build();
       (services.authorization.getScope as jest.Mock).mockResolvedValue({
         field: 'ownerId',
@@ -105,7 +111,9 @@ describe('audit-trail scope', () => {
         .mockResolvedValueOnce([]) // scoped: not found
         .mockResolvedValueOnce([]); // bare: genuinely gone
 
-      await expect(isRecordVisible(services, collection, '2', buildContext())).resolves.toBe(true);
+      await expect(
+        checkRecordVisibility(services, collection, '2', buildContext()),
+      ).resolves.toEqual({ visible: true, goneEntirely: true });
       expect(list).toHaveBeenCalledTimes(2);
     });
   });
