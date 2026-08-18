@@ -13,9 +13,14 @@ import type {
   HookBeforeDeleteContext,
   HookBeforeUpdateContext,
 } from '@forestadmin/datasource-customizer';
-import type { Caller, Logger, RecordData } from '@forestadmin/datasource-toolkit';
+import type { Caller, Filter, Logger, RecordData } from '@forestadmin/datasource-toolkit';
 
-import { ConditionTreeFactory, SchemaUtils } from '@forestadmin/datasource-toolkit';
+import {
+  ConditionTreeFactory,
+  Page,
+  PaginatedFilter,
+  SchemaUtils,
+} from '@forestadmin/datasource-toolkit';
 
 const stableKeyOrderReplacer = (key: string, value: unknown): unknown => {
   // JSON.stringify has no native BigInt support and throws on one, regardless of nesting depth or
@@ -340,21 +345,26 @@ function instrumentCollection(
     newValues: redactValues(entry.newValues, redactedFields),
   });
 
-  const withLimit = (filter: unknown) => ({
-    ...(filter as Record<string, unknown>),
-    page: { skip: 0, limit: MAX_SNAPSHOT_RECORDS },
-  });
+  // Requests one more than the cap: fetching exactly `MAX_SNAPSHOT_RECORDS` can never distinguish
+  // "matched exactly the cap" (nothing lost) from "matched more than it" (truncated) — the extra
+  // row is what makes that distinguishable, and is dropped again below before anything is audited.
+  // Constructs a real `PaginatedFilter` (via `.override`-equivalent spread of `context.filter`'s
+  // own fields, which is a plain `Filter` for Update/Delete) rather than merging `page` onto a bare
+  // object: the latter would depend on `context.collection.list` happening to reconstruct a proper
+  // instance from whatever shape it's handed, which isn't part of its contract.
+  const withLimit = (filter: Filter): PaginatedFilter =>
+    new PaginatedFilter({ ...filter, page: new Page(0, MAX_SNAPSHOT_RECORDS + 1) });
 
   // Hitting the cap means the operation may have matched more records than were actually audited.
   // Under `critical: false`, silently dropping the excess would look identical to "everything got
   // audited" — logged instead. Under `critical: true`, that gap is exactly what the option exists
   // to refuse: no unaudited write, so the whole operation is refused rather than let through
   // partially covered.
-  const enforceSnapshotCap = (operation: 'update' | 'delete', before: RecordData[]): void => {
-    if (before.length < MAX_SNAPSHOT_RECORDS) return;
+  const enforceSnapshotCap = (operation: 'update' | 'delete', truncated: boolean): void => {
+    if (!truncated) return;
 
     const message =
-      `[ForestAdmin] Audit trail: "${name}" ${operation} matched at least ` +
+      `[ForestAdmin] Audit trail: "${name}" ${operation} matched more than ` +
       `${MAX_SNAPSHOT_RECORDS} records — only the first ${MAX_SNAPSHOT_RECORDS} can be audited.`;
 
     if (critical) {
@@ -395,12 +405,17 @@ function instrumentCollection(
   });
 
   collection.addInternalHook('Before', 'Update', async (context: HookBeforeUpdateContext) => {
-    const before = (await context.collection.list(
-      withLimit(context.filter) as never,
+    const fetched = (await context.collection.list(
+      // `context.filter` is typed as the plain-object `TFilter` shape for customer ergonomics, but
+      // is a real (frozen) `Filter` instance at runtime — the same cast the hook decorator itself
+      // performs to produce it.
+      withLimit(context.filter as unknown as Filter) as never,
       readProjection as never[],
     )) as RecordData[];
 
-    enforceSnapshotCap('update', before);
+    const truncated = fetched.length > MAX_SNAPSHOT_RECORDS;
+    enforceSnapshotCap('update', truncated);
+    const before = truncated ? fetched.slice(0, MAX_SNAPSHOT_RECORDS) : fetched;
 
     const pendingRecords = before.map(record =>
       buildRecord(context.caller, {
@@ -458,12 +473,17 @@ function instrumentCollection(
   });
 
   collection.addInternalHook('Before', 'Delete', async (context: HookBeforeDeleteContext) => {
-    const before = (await context.collection.list(
-      withLimit(context.filter) as never,
+    const fetched = (await context.collection.list(
+      // `context.filter` is typed as the plain-object `TFilter` shape for customer ergonomics, but
+      // is a real (frozen) `Filter` instance at runtime — the same cast the hook decorator itself
+      // performs to produce it.
+      withLimit(context.filter as unknown as Filter) as never,
       readProjection as never[],
     )) as RecordData[];
 
-    enforceSnapshotCap('delete', before);
+    const truncated = fetched.length > MAX_SNAPSHOT_RECORDS;
+    enforceSnapshotCap('delete', truncated);
+    const before = truncated ? fetched.slice(0, MAX_SNAPSHOT_RECORDS) : fetched;
 
     const pendingRecords = before.map(record =>
       buildRecord(context.caller, {

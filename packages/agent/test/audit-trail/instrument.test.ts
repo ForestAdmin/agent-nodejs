@@ -1,6 +1,8 @@
 import type { AuditRecord, AuditTrailInstrumentOptions } from '../../src/audit-trail';
 import type { Caller } from '@forestadmin/datasource-toolkit';
 
+import { Page, PaginatedFilter } from '@forestadmin/datasource-toolkit';
+
 import InMemoryAuditStore from './in-memory-store';
 import { REDACTED, installAuditTrailHooks as auditTrail } from '../../src/audit-trail';
 
@@ -391,15 +393,17 @@ describe('auditTrail plugin', () => {
         collection: { list: accounts.list },
       });
 
-      expect(accounts.list).toHaveBeenCalledWith({ ...filter, page: { skip: 0, limit: 1000 } }, [
-        'id',
-        'status',
-        'name',
-        'amount',
-      ]);
+      expect(accounts.list).toHaveBeenCalledWith(
+        new PaginatedFilter({ ...filter, page: new Page(0, 1001) } as never),
+        ['id', 'status', 'name', 'amount'],
+      );
     });
 
-    it('logs a truncation warning when a bulk update hits the 1000-record snapshot cap', async () => {
+    it('does not report truncation when the matched count is exactly the 1000-record cap', async () => {
+      // Fetching exactly `MAX_SNAPSHOT_RECORDS` back can never distinguish "matched exactly the
+      // cap" from "matched more" — requesting one extra (see the test above) is what makes it
+      // distinguishable; the fake here returns precisely what it's asked for, one row short of
+      // the requested 1001, simulating "the real total is 1000".
       const sink = jest.fn();
       const logger = jest.fn();
       const matched = Array.from({ length: 1000 }, (_, i) => ({
@@ -418,9 +422,33 @@ describe('auditTrail plugin', () => {
         collection: { list: accounts.list },
       });
 
+      expect(logger).not.toHaveBeenCalled();
+    });
+
+    it('logs a truncation warning when a bulk update matches more than the 1000-record snapshot cap', async () => {
+      const sink = jest.fn();
+      const logger = jest.fn();
+      // One more than the cap: simulates the datasource actually having more than 1000 matches,
+      // since the fake returns everything it's given regardless of the requested page size.
+      const matched = Array.from({ length: 1001 }, (_, i) => ({
+        id: i + 1,
+        status: 'open',
+        name: 'Acme',
+        amount: 10,
+      }));
+      const accounts = fakeCollection('accounts', matched);
+      register([accounts], { sink, logger });
+
+      await accounts.fire('Before:Update', {
+        caller: makeCaller(),
+        filter: {},
+        patch: { status: 'closed' },
+        collection: { list: accounts.list },
+      });
+
       expect(logger).toHaveBeenCalledWith(
         'Warn',
-        expect.stringContaining('"accounts" update matched at least 1000 records'),
+        expect.stringContaining('"accounts" update matched more than 1000 records'),
       );
     });
 
@@ -442,10 +470,10 @@ describe('auditTrail plugin', () => {
       expect(logger).not.toHaveBeenCalled();
     });
 
-    it('refuses a bulk update that hits the snapshot cap when critical is enabled', async () => {
+    it('refuses a bulk update that matches more than the snapshot cap when critical is enabled', async () => {
       const sink = jest.fn();
       const logger = jest.fn();
-      const matched = Array.from({ length: 1000 }, (_, i) => ({
+      const matched = Array.from({ length: 1001 }, (_, i) => ({
         id: i + 1,
         status: 'open',
         name: 'Acme',
@@ -1221,15 +1249,13 @@ describe('auditTrail plugin', () => {
         collection: { list: accounts.list },
       });
 
-      expect(accounts.list).toHaveBeenCalledWith({ ...filter, page: { skip: 0, limit: 1000 } }, [
-        'id',
-        'status',
-        'name',
-        'amount',
-      ]);
+      expect(accounts.list).toHaveBeenCalledWith(
+        new PaginatedFilter({ ...filter, page: new Page(0, 1001) } as never),
+        ['id', 'status', 'name', 'amount'],
+      );
     });
 
-    it('logs a truncation warning when a bulk delete hits the 1000-record snapshot cap', async () => {
+    it('does not report truncation when the matched count is exactly the 1000-record cap', async () => {
       const sink = jest.fn();
       const logger = jest.fn();
       const matched = Array.from({ length: 1000 }, (_, i) => ({
@@ -1247,9 +1273,30 @@ describe('auditTrail plugin', () => {
         collection: { list: accounts.list },
       });
 
+      expect(logger).not.toHaveBeenCalled();
+    });
+
+    it('logs a truncation warning when a bulk delete matches more than the 1000-record snapshot cap', async () => {
+      const sink = jest.fn();
+      const logger = jest.fn();
+      const matched = Array.from({ length: 1001 }, (_, i) => ({
+        id: i + 1,
+        status: 'open',
+        name: 'Acme',
+        amount: 10,
+      }));
+      const accounts = fakeCollection('accounts', matched);
+      register([accounts], { sink, logger });
+
+      await accounts.fire('Before:Delete', {
+        caller: makeCaller(),
+        filter: {},
+        collection: { list: accounts.list },
+      });
+
       expect(logger).toHaveBeenCalledWith(
         'Warn',
-        expect.stringContaining('"accounts" delete matched at least 1000 records'),
+        expect.stringContaining('"accounts" delete matched more than 1000 records'),
       );
     });
 
@@ -1270,10 +1317,10 @@ describe('auditTrail plugin', () => {
       expect(logger).not.toHaveBeenCalled();
     });
 
-    it('refuses a bulk delete that hits the snapshot cap when critical is enabled', async () => {
+    it('refuses a bulk delete that matches more than the snapshot cap when critical is enabled', async () => {
       const sink = jest.fn();
       const logger = jest.fn();
-      const matched = Array.from({ length: 1000 }, (_, i) => ({
+      const matched = Array.from({ length: 1001 }, (_, i) => ({
         id: i + 1,
         status: 'open',
         name: 'Acme',
