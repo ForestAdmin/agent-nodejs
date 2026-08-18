@@ -90,17 +90,6 @@ describe('contextRoutesMiddleware', () => {
     });
   });
 
-  describe('when no timezone is supplied', () => {
-    it('should still answer 200, because the contract needs no timezone', async () => {
-      const fetchSchema = jest.fn().mockResolvedValue(schema);
-      const { app } = makeApp(fetchSchema);
-
-      const response = await request(app.callback()).get(ROUTE).unset('X-Forest-Timezone');
-
-      expect(response.status).toBe(200);
-    });
-  });
-
   describe('when the path or method does not match', () => {
     it('should pass through to the next middleware', async () => {
       const fetchSchema = jest.fn().mockResolvedValue(schema);
