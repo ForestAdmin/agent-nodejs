@@ -42,6 +42,10 @@ export default class Capabilities extends BaseRoute {
         canUseProjectionViaHeader: true,
         canUseProjectionViaHeaderOnList: true,
         canUseMultipleFieldsProjectionOnRelation: true,
+        // The audit-trail routes are only mounted when `auditTrail` is configured, but
+        // `x-forest-correlation-id` is emitted on every response regardless — the frontend must
+        // gate the History tab on this flag rather than inferring the feature from that header.
+        canUseAuditTrail: this.options.auditTrail !== null,
       },
       collections:
         collections?.map(collection => {

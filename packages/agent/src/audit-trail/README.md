@@ -270,6 +270,11 @@ Every response carries an `x-forest-correlation-id` header (a UUID generated onc
 echoed back through CORS). The same id is set as `caller.requestId` for the duration of the request
 and is the value stored as `correlation_key` on every row written during that request.
 
+This header is emitted on every response regardless of whether `auditTrail` is configured — it isn't
+a signal that the feature is enabled. `POST /forest/_internal/capabilities` reports
+`agentCapabilities.canUseAuditTrail: true` when it is; the frontend should gate the History tab on
+that flag, not on the header's presence.
+
 ## Schema migrations
 
 The `audit_logs` table is created and evolved through versioned

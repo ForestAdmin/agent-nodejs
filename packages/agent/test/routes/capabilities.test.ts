@@ -80,6 +80,7 @@ describe('Capabilities', () => {
             canUseProjectionViaHeader: true,
             canUseProjectionViaHeaderOnList: true,
             canUseMultipleFieldsProjectionOnRelation: true,
+            canUseAuditTrail: false,
           },
           collections: [],
         });
@@ -104,6 +105,7 @@ describe('Capabilities', () => {
             canUseProjectionViaHeader: true,
             canUseProjectionViaHeaderOnList: true,
             canUseMultipleFieldsProjectionOnRelation: true,
+            canUseAuditTrail: false,
           },
           collections: [],
         });
@@ -126,8 +128,33 @@ describe('Capabilities', () => {
             canUseProjectionViaHeader: true,
             canUseProjectionViaHeaderOnList: true,
             canUseMultipleFieldsProjectionOnRelation: true,
+            canUseAuditTrail: false,
           },
           collections: [],
+        });
+      });
+    });
+
+    describe('when auditTrail is configured', () => {
+      test('reports canUseAuditTrail: true so the front can gate the History tab on it', async () => {
+        const auditTrailOptions = factories.forestAdminHttpDriverOptions.build({
+          auditTrail: { store: {}, close: jest.fn() } as never,
+        });
+        const dataSource = factories.dataSource.buildWithCollection(
+          factories.collection.build({ name: 'books' }),
+        );
+        const auditTrailRoute = new Capabilities(services, auditTrailOptions, dataSource);
+        const context = createMockContext({
+          ...defaultContext,
+          requestBody: { collectionNames: [] },
+        });
+
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        await auditTrailRoute.fetchCapabilities(context);
+
+        expect(context.response.body).toMatchObject({
+          agentCapabilities: { canUseAuditTrail: true },
         });
       });
     });
@@ -150,6 +177,7 @@ describe('Capabilities', () => {
             canUseProjectionViaHeader: true,
             canUseProjectionViaHeaderOnList: true,
             canUseMultipleFieldsProjectionOnRelation: true,
+            canUseAuditTrail: false,
           },
           collections: [
             {
