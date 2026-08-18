@@ -1058,6 +1058,38 @@ describe('AuditTrailRoute', () => {
       });
     });
 
+    test('excludes a pending row from the revert walk — its write may not have landed', async () => {
+      const history = [
+        {
+          operation: 'update',
+          timestamp: '2026-06-18T13:00:00.000Z',
+          status: 'pending',
+          // A pending row's newValues is empty (nothing was confirmed yet); if it were replayed,
+          // `status` would wrongly get reverted to 'archived' even though the write it represents
+          // may never have landed at all.
+          previousValues: { status: 'archived' },
+          newValues: {},
+        },
+      ];
+      const { dataSource, route } = setupBooks(history);
+      jest
+        .spyOn(dataSource.getCollection('books'), 'list')
+        .mockResolvedValue([{ id: 2, status: 'closed', name: 'Acme' }]);
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: {
+          query: { timezone: 'UTC', at: '2026-06-18T11:00:00.000Z' },
+          params: { id: '2' },
+        },
+      });
+
+      await route.handleStateAt(context);
+
+      expect(context.response.body).toEqual({
+        data: { id: 2, status: 'closed', name: 'Acme' },
+      });
+    });
+
     test('preserves the entry timestamped exactly at the requested instant instead of reverting it', async () => {
       const history = [
         {

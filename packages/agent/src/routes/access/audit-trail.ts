@@ -172,11 +172,18 @@ export default class AuditTrailRoute extends CollectionRoute {
     // summary of the action's answer, not column values, so replaying them as a diff would corrupt
     // the reconstructed record. An action's effect on the data still shows up through the
     // create/update/delete rows it produced under the same correlation key.
+    //
+    // A `pending` row is also excluded: its write may or may not have landed (that's the whole
+    // point of the status), and if it hasn't, its previousValues/newValues aren't the write's
+    // actual result — a concurrent request could otherwise revert a mutation that never happened,
+    // or a row left permanently `pending` (e.g. the process crashed between write and confirm)
+    // would permanently corrupt every state-at-a-past-timestamp reconstruction for this record.
     const entries = fetched.filter(
       entry =>
         entry.timestamp !== at &&
         entry.operation !== 'action' &&
-        entry.operation !== 'action_failed',
+        entry.operation !== 'action_failed' &&
+        entry.status !== 'pending',
     );
 
     const state = revertRecord(current, entries as Parameters<typeof revertRecord>[1]);
