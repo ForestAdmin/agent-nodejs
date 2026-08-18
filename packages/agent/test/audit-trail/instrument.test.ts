@@ -399,6 +399,49 @@ describe('auditTrail plugin', () => {
       ]);
     });
 
+    it('logs a truncation warning when a bulk update hits the 1000-record snapshot cap', async () => {
+      const sink = jest.fn();
+      const logger = jest.fn();
+      const matched = Array.from({ length: 1000 }, (_, i) => ({
+        id: i + 1,
+        status: 'open',
+        name: 'Acme',
+        amount: 10,
+      }));
+      const accounts = fakeCollection('accounts', matched);
+      register([accounts], { sink, logger });
+
+      await accounts.fire('Before:Update', {
+        caller: makeCaller(),
+        filter: {},
+        patch: { status: 'closed' },
+        collection: { list: accounts.list },
+      });
+
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        expect.stringContaining('"accounts" update matched at least 1000 records'),
+      );
+    });
+
+    it('does not log a truncation warning when the matched count stays under the cap', async () => {
+      const sink = jest.fn();
+      const logger = jest.fn();
+      const accounts = fakeCollection('accounts', [
+        { id: 1, status: 'open', name: 'Acme', amount: 10 },
+      ]);
+      register([accounts], { sink, logger });
+
+      await accounts.fire('Before:Update', {
+        caller: makeCaller(),
+        filter: {},
+        patch: { status: 'closed' },
+        collection: { list: accounts.list },
+      });
+
+      expect(logger).not.toHaveBeenCalled();
+    });
+
     it('still builds the recordId when the primary key is read-only', async () => {
       const sink = jest.fn();
       const schema = {
@@ -1162,6 +1205,47 @@ describe('auditTrail plugin', () => {
         'name',
         'amount',
       ]);
+    });
+
+    it('logs a truncation warning when a bulk delete hits the 1000-record snapshot cap', async () => {
+      const sink = jest.fn();
+      const logger = jest.fn();
+      const matched = Array.from({ length: 1000 }, (_, i) => ({
+        id: i + 1,
+        status: 'open',
+        name: 'Acme',
+        amount: 10,
+      }));
+      const accounts = fakeCollection('accounts', matched);
+      register([accounts], { sink, logger });
+
+      await accounts.fire('Before:Delete', {
+        caller: makeCaller(),
+        filter: {},
+        collection: { list: accounts.list },
+      });
+
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        expect.stringContaining('"accounts" delete matched at least 1000 records'),
+      );
+    });
+
+    it('does not log a truncation warning when the matched count stays under the cap', async () => {
+      const sink = jest.fn();
+      const logger = jest.fn();
+      const accounts = fakeCollection('accounts', [
+        { id: 7, status: 'open', name: 'Globex', amount: 20 },
+      ]);
+      register([accounts], { sink, logger });
+
+      await accounts.fire('Before:Delete', {
+        caller: makeCaller(),
+        filter: {},
+        collection: { list: accounts.list },
+      });
+
+      expect(logger).not.toHaveBeenCalled();
     });
 
     it('captures the full previous record and leaves newValues empty', async () => {

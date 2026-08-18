@@ -308,6 +308,7 @@ function instrumentCollection(
   collection: CollectionCustomizer,
   recorder: Recorder,
   redactedFields: string[],
+  logger: Logger | undefined,
 ): void {
   const { schema } = collection;
   const writableColumns = Object.keys(schema.fields).filter(name => {
@@ -342,6 +343,19 @@ function instrumentCollection(
     ...(filter as Record<string, unknown>),
     page: { skip: 0, limit: MAX_SNAPSHOT_RECORDS },
   });
+
+  // Hitting the cap means the operation may have matched more records than were actually audited —
+  // silently dropping the excess would look identical to "everything got audited".
+  const warnIfTruncated = (operation: 'update' | 'delete', before: RecordData[]): void => {
+    if (before.length < MAX_SNAPSHOT_RECORDS) return;
+
+    logger?.(
+      'Warn',
+      `[ForestAdmin] Audit trail: "${name}" ${operation} matched at least ` +
+        `${MAX_SNAPSHOT_RECORDS} records — only the first ${MAX_SNAPSHOT_RECORDS} were audited, ` +
+        'the rest were skipped.',
+    );
+  };
 
   collection.addInternalHook('Before', 'Create', async (context: HookBeforeCreateContext) => {
     const pendingRecords = context.data.map(() =>
@@ -378,6 +392,8 @@ function instrumentCollection(
       withLimit(context.filter) as never,
       readProjection as never[],
     )) as RecordData[];
+
+    warnIfTruncated('update', before);
 
     const pendingRecords = before.map(record =>
       buildRecord(context.caller, {
@@ -440,6 +456,8 @@ function instrumentCollection(
       readProjection as never[],
     )) as RecordData[];
 
+    warnIfTruncated('delete', before);
+
     const pendingRecords = before.map(record =>
       buildRecord(context.caller, {
         operation: 'delete',
@@ -490,7 +508,7 @@ export default function installAuditTrailHooks(
         `[ForestAdmin] Audit trail: skipping "${collection.name}" — it has no primary key.`,
       );
     } else {
-      instrumentCollection(collection, recorder, redact?.[collection.name] ?? []);
+      instrumentCollection(collection, recorder, redact?.[collection.name] ?? [], logger);
     }
   }
 

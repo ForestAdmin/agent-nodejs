@@ -158,6 +158,10 @@ between the write and the confirm). That residue is evidence a write was attempt
 confirmed, and reading it that way is the point: don't delete a `pending` row, don't fill it in —
 its very presence tells you where to look.
 
+A bulk update or delete's before-write snapshot is capped at 1000 records: hitting the cap logs an
+explicit warning naming the collection and operation rather than silently auditing only part of a
+larger operation.
+
 ## HTTP routes
 
 When `auditTrail` is set, the agent exposes three routes (all behind Forest's auth, gated by
