@@ -52,6 +52,16 @@ export function forestIdentityNotAllowed(message = 'Forest identity not allowed'
   return new BffHttpError(403, 'forest_identity_not_allowed', message);
 }
 
+export function oauthRequired(
+  message = 'This route requires an OAuth session; an API key is not accepted',
+): BffHttpError {
+  return new BffHttpError(403, 'oauth_required', message);
+}
+
+export function unknownRoute(message = 'Unknown route'): BffHttpError {
+  return new BffHttpError(404, 'unknown_route', message);
+}
+
 export function permissionsUnavailable(
   retryAfter: number,
   message = 'Permissions are unavailable',

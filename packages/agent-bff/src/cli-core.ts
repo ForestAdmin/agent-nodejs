@@ -17,6 +17,7 @@ import createApiKeyMiddleware from './api-key/api-key-middleware';
 import createResolveCache from './api-key/resolve-cache';
 import createAuthModeMiddleware from './auth/auth-mode-middleware';
 import { parseConfig } from './config/env-config';
+import createContextRoutesMiddleware from './context/context-routes-middleware';
 import createCorsMiddleware from './cors/cors-middleware';
 import createPerKeyOriginMiddleware from './cors/per-key-origin';
 import createDataRoutesMiddleware from './data/data-routes-middleware';
@@ -267,6 +268,12 @@ function buildAgentRouteMiddlewares(
   ];
 }
 
+function buildContextMiddlewares(bundle: AgentEdgeReadModel | undefined): Middleware[] {
+  if (!bundle) return [];
+
+  return [createContextRoutesMiddleware({ store: bundle.store, schemaCache: bundle.schemaCache })];
+}
+
 function buildAgentMiddlewares(config: BFFConfig, logger: Logger): Middleware[] {
   const { forestAuthSecret, defaultTimezone } = config;
 
@@ -287,6 +294,7 @@ function buildAgentMiddlewares(config: BFFConfig, logger: Logger): Middleware[] 
     apiKeyStep,
     createPerKeyOriginMiddleware(),
     createOpenApiRoutes({ version, enabled: config.openapiEnabled, source }),
+    ...buildContextMiddlewares(bundle),
     createTimezoneMiddleware({ defaultTimezone }),
     ...buildAgentRouteMiddlewares(bundle, config, logger),
   ];
