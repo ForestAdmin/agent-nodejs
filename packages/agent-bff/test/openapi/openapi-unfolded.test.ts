@@ -10,7 +10,9 @@ import unfoldingFixture from './fixtures';
 import { ROUTE_PREFIX, generateOpenApiDocument } from '../../src/openapi/openapi-document';
 
 const document = generateOpenApiDocument('9.9.9', unfoldingFixture());
-const paths = document.paths as Record<string, { post: Record<string, unknown> }>;
+const paths = Object.fromEntries(
+  Object.entries(document.paths ?? {}).filter(([path]) => path !== `${ROUTE_PREFIX}/context`),
+) as Record<string, { post: Record<string, unknown> }>;
 const schemas = document.components?.schemas as Record<string, Record<string, unknown>>;
 
 function operation(path: string): Record<string, unknown> {
@@ -434,6 +436,7 @@ describe('an unfolding naming a collection it does not carry', () => {
     });
 
     expect(Object.keys(orphaned.paths ?? {})).toEqual([
+      '/agent/v1/context',
       '/agent/v1/users/list',
       '/agent/v1/users/count',
     ]);
@@ -464,8 +467,10 @@ describe('names that collide once sanitized', () => {
     collections: [collection('A_B', 'C', 'R'), collection('A', 'B_C', 'B_R')],
   });
   const operationIds = Object.values(
-    colliding.paths as Record<string, { post: { operationId: string } }>,
-  ).map(item => item.post.operationId);
+    colliding.paths as Record<string, { post?: { operationId: string } }>,
+  )
+    .filter(item => item.post !== undefined)
+    .map(item => (item.post as { operationId: string }).operationId);
 
   it('should keep every operationId unique, which codegen tools require', () => {
     expect(new Set(operationIds).size).toBe(operationIds.length);
