@@ -492,6 +492,24 @@ describe('auditTrail plugin', () => {
       ).rejects.toThrow('Refusing the operation because "critical" is enabled');
     });
 
+    it('logs and swallows a rejecting sink at confirm time instead of failing the write', async () => {
+      const sink = jest.fn().mockRejectedValue(new Error('sink unreachable'));
+      const logger = jest.fn();
+      const accounts = fakeCollection('accounts', [
+        { id: 1, status: 'open', name: 'Acme', amount: 10 },
+      ]);
+      register([accounts], { sink, logger });
+
+      await expect(
+        runUpdate(accounts, { caller: makeCaller(), patch: { status: 'closed' } }),
+      ).resolves.toBeUndefined();
+
+      expect(logger).toHaveBeenCalledWith(
+        'Error',
+        expect.stringContaining('unable to confirm entry, continuing'),
+      );
+    });
+
     it('still builds the recordId when the primary key is read-only', async () => {
       const sink = jest.fn();
       const schema = {

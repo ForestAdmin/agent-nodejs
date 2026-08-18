@@ -304,7 +304,15 @@ export function buildRecorder(
       pendingById.delete(id);
       if (!pending) return;
 
-      await emit({ ...pending, ...patch });
+      try {
+        await emit({ ...pending, ...patch });
+      } catch (error) {
+        // The write has already happened by now; there is nothing left to refuse.
+        logger?.(
+          'Error',
+          `[ForestAdmin] Audit trail: unable to confirm entry, continuing: ${error}`,
+        );
+      }
     },
   };
 }
