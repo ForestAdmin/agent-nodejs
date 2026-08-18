@@ -175,7 +175,7 @@ describe('ForestHttpApi', () => {
         path: '/api/activity-logs-requests/mcp',
         bearerToken: 'bearer-token',
         body,
-        headers: { 'Custom-Header': 'value' },
+        headers: { 'Forest-Application-Source': 'MCP', 'Custom-Header': 'value' },
       });
       expect(result).toEqual(mockActivityLog);
     });
@@ -222,7 +222,10 @@ describe('ForestHttpApi', () => {
         method: 'get',
         path: '/api/workflow-orchestrator/mcp-workflows',
         bearerToken: 'bearer-token',
-        headers: { 'forest-rendering-id': '12345' },
+        headers: {
+          'forest-rendering-id': '12345',
+          'Forest-Application-Source': 'MCP',
+        },
       });
       expect(result).toEqual(workflows);
     });
@@ -240,7 +243,10 @@ describe('ForestHttpApi', () => {
         expect.objectContaining({
           method: 'get',
           path: '/api/workflow-orchestrator/mcp-workflows?collectionName=sales%20orders',
-          headers: { 'forest-rendering-id': '12345' },
+          headers: {
+            'forest-rendering-id': '12345',
+            'Forest-Application-Source': 'MCP',
+          },
         }),
       );
     });
@@ -267,7 +273,10 @@ describe('ForestHttpApi', () => {
         method: 'get',
         path: '/api/workflow-orchestrator/mcp-workflows/wf-1',
         bearerToken: 'bearer-token',
-        headers: { 'forest-rendering-id': '12345' },
+        headers: {
+          'forest-rendering-id': '12345',
+          'Forest-Application-Source': 'MCP',
+        },
       });
       expect(result).toEqual(workflow);
     });
@@ -315,7 +324,10 @@ describe('ForestHttpApi', () => {
         path: '/api/workflow-orchestrator/mcp-workflows/wf-1/start',
         bearerToken: 'bearer-token',
         body: { recordId: '42' },
-        headers: { 'forest-rendering-id': '12345' },
+        headers: {
+          'forest-rendering-id': '12345',
+          'Forest-Application-Source': 'MCP',
+        },
       });
       expect(result).toEqual({ runId: '7', runState: 'loading' });
     });
@@ -389,9 +401,92 @@ describe('ForestHttpApi', () => {
         method: 'get',
         path: '/api/workflow-orchestrator/mcp-workflows/runs/7',
         bearerToken: 'bearer-token',
-        headers: { 'forest-rendering-id': '12345' },
+        headers: {
+          'forest-rendering-id': '12345',
+          'Forest-Application-Source': 'MCP',
+        },
       });
       expect(result).toEqual(runStatus);
+    });
+
+    it('should strip fields the contract does not declare, including a leaked serverToken', async () => {
+      (ServerUtils.queryWithBearerToken as jest.Mock).mockResolvedValue({
+        id: 7,
+        runState: 'started',
+        workflowHistory: [
+          { stepName: 'Review', stepIndex: 0, done: false, stepDefinition: { type: 'task' } },
+        ],
+        // What the executor-facing build of the same run carries.
+        collectionName: 'orders',
+        userProfile: { email: 'ops@example.com', serverToken: 'super-secret-forest-token' },
+      });
+
+      const result = await new ForestHttpApi().getMcpWorkflowRun(
+        { forestServerUrl: options.forestServerUrl, bearerToken: 'bearer-token' },
+        '12345',
+        '7',
+      );
+
+      expect(result).not.toHaveProperty('userProfile');
+      expect(result).not.toHaveProperty('collectionName');
+      expect(JSON.stringify(result)).not.toContain('super-secret-forest-token');
+      expect(result.id).toBe(7);
+      expect(result.runState).toBe('started');
+    });
+
+    it('should keep the task-type-specific stepDefinition fields the model reasons about', async () => {
+      (ServerUtils.queryWithBearerToken as jest.Mock).mockResolvedValue({
+        runState: 'started',
+        workflowHistory: [
+          {
+            stepName: 'Refund',
+            stepIndex: 0,
+            done: false,
+            isCardStep: false,
+            context: { error: 'boom' },
+            stepDefinition: {
+              type: 'task',
+              taskType: 'update-data',
+              preRecordedArgs: { fieldName: 'status', value: 'refunded' },
+            },
+          },
+        ],
+      });
+
+      const result = await new ForestHttpApi().getMcpWorkflowRun(
+        { forestServerUrl: options.forestServerUrl, bearerToken: 'bearer-token' },
+        '12345',
+        '7',
+      );
+
+      expect(result.workflowHistory[0]).toEqual({
+        stepName: 'Refund',
+        stepIndex: 0,
+        originalStepIndex: undefined,
+        done: false,
+        revised: undefined,
+        cancelled: undefined,
+        childrenWorkflowId: undefined,
+        isCardStep: false,
+        context: { error: 'boom' },
+        stepDefinition: {
+          type: 'task',
+          taskType: 'update-data',
+          preRecordedArgs: { fieldName: 'status', value: 'refunded' },
+        },
+      });
+    });
+
+    it('should tolerate a run served without a workflowHistory', async () => {
+      (ServerUtils.queryWithBearerToken as jest.Mock).mockResolvedValue({ runState: 'pending' });
+
+      const result = await new ForestHttpApi().getMcpWorkflowRun(
+        { forestServerUrl: options.forestServerUrl, bearerToken: 'bearer-token' },
+        '12345',
+        '7',
+      );
+
+      expect(result.workflowHistory).toEqual([]);
     });
 
     it('should url-encode the run id in the path', async () => {

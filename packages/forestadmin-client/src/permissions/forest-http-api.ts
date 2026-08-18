@@ -21,6 +21,55 @@ import JSONAPISerializer from 'json-api-serializer';
 import AuthService from '../auth';
 import ServerUtils from '../utils/server';
 
+/**
+ * These routes exist only for the MCP transport, so the source header belongs to the call rather
+ * than to the caller's configuration: the embedded `mountAiMcpServer` path builds its services from
+ * the shared client options, which carry no headers, and was silently sending MCP traffic
+ * unlabelled. Callers can still override it.
+ */
+const MCP_SOURCE_HEADER = { 'Forest-Application-Source': 'MCP' } as const;
+
+/**
+ * Projects the run onto the declared contract instead of forwarding the response as-is. The
+ * getWorkflowRun tool stringifies this straight into an LLM's context, and the orchestrator builds
+ * a second, executor-facing shape of the same run that carries a `userProfile` with a live Forest
+ * `serverToken`. The MCP route uses a different builder today, but the two return types are
+ * assignable to one another, so nothing structural keeps them apart — this whitelist is the
+ * guardrail rather than the type annotation.
+ *
+ * `stepDefinition` is passed through whole: its task-type-specific fields are the organisation's own
+ * workflow configuration, deliberately surfaced so the model can reason about the step.
+ */
+function projectHydratedRun(run: HydratedWorkflowRun): HydratedWorkflowRun {
+  return {
+    id: run.id,
+    userId: run.userId,
+    renderingId: run.renderingId,
+    collectionId: run.collectionId,
+    workflowId: run.workflowId,
+    bpmnVersion: run.bpmnVersion,
+    selectedRecordId: run.selectedRecordId,
+    runState: run.runState,
+    engine: run.engine,
+    triggerType: run.triggerType,
+    lockedAt: run.lockedAt,
+    createdAt: run.createdAt,
+    updatedAt: run.updatedAt,
+    workflowHistory: (run.workflowHistory ?? []).map(step => ({
+      stepName: step.stepName,
+      stepIndex: step.stepIndex,
+      originalStepIndex: step.originalStepIndex,
+      done: step.done,
+      revised: step.revised,
+      cancelled: step.cancelled,
+      childrenWorkflowId: step.childrenWorkflowId,
+      isCardStep: step.isCardStep,
+      context: step.context,
+      stepDefinition: step.stepDefinition,
+    })),
+  };
+}
+
 export default class ForestHttpApi implements ForestAdminServerInterface {
   async getEnvironmentPermissions(options: HttpOptions): Promise<EnvironmentPermissionsV4> {
     return ServerUtils.query(options, 'get', '/liana/v4/permissions/environment');
@@ -134,7 +183,7 @@ export default class ForestHttpApi implements ForestAdminServerInterface {
       path: '/api/activity-logs-requests/mcp',
       bearerToken: options.bearerToken,
       body,
-      headers: options.headers,
+      headers: { ...MCP_SOURCE_HEADER, ...options.headers },
     });
 
     return activityLog;
@@ -168,7 +217,7 @@ export default class ForestHttpApi implements ForestAdminServerInterface {
       method: 'get',
       path: `/api/workflow-orchestrator/mcp-workflows${query}`,
       bearerToken: options.bearerToken,
-      headers: { 'forest-rendering-id': renderingId, ...options.headers },
+      headers: { 'forest-rendering-id': renderingId, ...MCP_SOURCE_HEADER, ...options.headers },
     });
   }
 
@@ -182,7 +231,7 @@ export default class ForestHttpApi implements ForestAdminServerInterface {
       method: 'get',
       path: `/api/workflow-orchestrator/mcp-workflows/${encodeURIComponent(workflowId)}`,
       bearerToken: options.bearerToken,
-      headers: { 'forest-rendering-id': renderingId, ...options.headers },
+      headers: { 'forest-rendering-id': renderingId, ...MCP_SOURCE_HEADER, ...options.headers },
     });
   }
 
@@ -202,7 +251,7 @@ export default class ForestHttpApi implements ForestAdminServerInterface {
       path: `/api/workflow-orchestrator/mcp-workflows/${encodeURIComponent(workflowId)}/start`,
       bearerToken: options.bearerToken,
       body: { recordId },
-      headers: { 'forest-rendering-id': renderingId, ...options.headers },
+      headers: { 'forest-rendering-id': renderingId, ...MCP_SOURCE_HEADER, ...options.headers },
     });
 
     return { runId: String(result.runId), runState: result.runState };
@@ -213,12 +262,14 @@ export default class ForestHttpApi implements ForestAdminServerInterface {
     renderingId: string,
     runId: string,
   ): Promise<HydratedWorkflowRun> {
-    return ServerUtils.queryWithBearerToken<HydratedWorkflowRun>({
+    const run = await ServerUtils.queryWithBearerToken<HydratedWorkflowRun>({
       forestServerUrl: options.forestServerUrl,
       method: 'get',
       path: `/api/workflow-orchestrator/mcp-workflows/runs/${encodeURIComponent(runId)}`,
       bearerToken: options.bearerToken,
-      headers: { 'forest-rendering-id': renderingId, ...options.headers },
+      headers: { 'forest-rendering-id': renderingId, ...MCP_SOURCE_HEADER, ...options.headers },
     });
+
+    return projectHydratedRun(run);
   }
 }
