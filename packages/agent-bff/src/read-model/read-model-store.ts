@@ -1,10 +1,17 @@
 import type CapabilitiesCache from './capabilities-cache';
 import type { CapabilitiesFetcher, CapabilitiesResult } from './capabilities-cache';
 import type SchemaCache from './schema-cache';
+import type { ForestSchemaCollection } from '@forestadmin/forestadmin-client';
 
 import ReadModel from './read-model';
 
 const MAX_GENERATION_RETRIES = 3;
+
+export interface SchemaSnapshot {
+  collections: ForestSchemaCollection[];
+  readModel: ReadModel;
+  revision: number;
+}
 
 /**
  * Single owner of the coupled schema + capabilities lifecycle. A successful schema refresh (a bump
@@ -24,6 +31,10 @@ export default class ReadModelStore {
   }
 
   async getReadModel(): Promise<ReadModel> {
+    return (await this.getSchemaSnapshot()).readModel;
+  }
+
+  async getSchemaSnapshot(): Promise<SchemaSnapshot> {
     const collections = await this.schemaCache.get();
 
     if (this.schemaCache.revision !== this.builtRevision || !this.readModel) {
@@ -32,7 +43,7 @@ export default class ReadModelStore {
       this.capabilitiesCache.clear();
     }
 
-    return this.readModel;
+    return { collections, readModel: this.readModel, revision: this.builtRevision };
   }
 
   /**

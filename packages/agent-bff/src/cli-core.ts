@@ -3,7 +3,6 @@ import type { UnfoldSource } from './openapi/unfolded-document';
 import type { Logger } from './ports/logger-port';
 import type { Metrics } from './ports/metrics-port';
 import type ReadModelStore from './read-model/read-model-store';
-import type SchemaCache from './read-model/schema-cache';
 import type { Middleware } from 'koa';
 
 import { bodyParser } from '@koa/bodyparser';
@@ -167,7 +166,6 @@ function buildApiKeyMiddleware(config: BFFConfig, logger: Logger): Middleware | 
 
 interface AgentEdgeReadModel {
   store: ReadModelStore;
-  schemaCache: SchemaCache;
   apiKeyConfig: ResolvedApiKeyConfig;
 }
 
@@ -185,14 +183,14 @@ function resolveReadModelBundle(
 
   if (!apiKeyConfig) return undefined;
 
-  const { store, schemaCache } = createReadModel({
+  const { store } = createReadModel({
     forestServerUrl: apiKeyConfig.forestServerUrl,
     envSecret: apiKeyConfig.forestEnvSecret,
     logger,
     metrics,
   });
 
-  return { store, schemaCache, apiKeyConfig };
+  return { store, apiKeyConfig };
 }
 
 /**
@@ -272,7 +270,7 @@ function buildAgentRouteMiddlewares(
 function buildContextMiddlewares(bundle: AgentEdgeReadModel | undefined): Middleware[] {
   if (!bundle) return [];
 
-  return [createContextRoutesMiddleware({ store: bundle.store, schemaCache: bundle.schemaCache })];
+  return [createContextRoutesMiddleware({ store: bundle.store })];
 }
 
 function buildAgentMiddlewares(config: BFFConfig, logger: Logger): Middleware[] {
