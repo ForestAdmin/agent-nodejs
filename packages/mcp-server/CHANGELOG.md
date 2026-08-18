@@ -1,3 +1,10 @@
+## @forestadmin/mcp-server [1.22.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.22.0...@forestadmin/mcp-server@1.22.1) (2026-08-18)
+
+
+### Bug Fixes
+
+* **mcp-server:** let a deployed standalone server know its public url ([#1832](https://github.com/ForestAdmin/agent-nodejs/issues/1832)) ([e83a3f4](https://github.com/ForestAdmin/agent-nodejs/commit/e83a3f41ff5ef902ef2bb422b98068ed2f316eea))
+
 # @forestadmin/mcp-server [1.22.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.21.1...@forestadmin/mcp-server@1.22.0) (2026-08-17)
 
 
