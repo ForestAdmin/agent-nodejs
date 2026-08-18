@@ -135,6 +135,22 @@ describe('runAuditMigrations (sqlite)', () => {
     await sequelize.close();
   });
 
+  it("rejects a tableName whose derived migration-tracking table collides with another store's own table", async () => {
+    const sequelize = new Sequelize('sqlite::memory:', { logging: false });
+
+    // `collision_a`'s own migration-tracking table is `collision_a_migration` — a second store
+    // configured with that exact name as its own data table silently collides with it.
+    await runAuditMigrations(sequelize, { tableName: 'collision_a' });
+
+    await expect(
+      runAuditMigrations(sequelize, { tableName: 'collision_a_migration' }),
+    ).rejects.toThrow(
+      /is claimed by both "tableName: collision_a_migration" and "tableName: collision_a"/,
+    );
+
+    await sequelize.close();
+  });
+
   it('tolerates the table and indexes already existing from a concurrent-boot race', async () => {
     const sequelize = new Sequelize('sqlite::memory:', { logging: false });
     // Simulate a partial prior run: the table is already in place, but nothing was logged as
