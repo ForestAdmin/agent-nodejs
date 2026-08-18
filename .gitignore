@@ -15,6 +15,10 @@ lerna-debug.log
 .env.executors
 .forestadmin-schema.json
 
+# forest-bff openapi --output default destination
+openapi.json
+
+
 # yarn
 yarn-error.log
 .vscode/settings.json

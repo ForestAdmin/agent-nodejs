@@ -3,6 +3,7 @@ import {
   collectionNotAllowed,
   invalidRequest,
   mappingError,
+  openapiDisabled,
   relationNotAllowed,
   schemaUnavailable,
   unknownAction,
@@ -23,6 +24,7 @@ describe('bff local errors', () => {
     [mappingError, 'mapping_error', 500],
     [schemaUnavailable, 'schema_unavailable', 503],
     [unsupportedActionResult, 'unsupported_action_result', 501],
+    [openapiDisabled, 'openapi_disabled', 404],
   ])('%p builds a %s error with status %d', (factory, type, status) => {
     expect(factory()).toMatchObject({ type, status });
   });

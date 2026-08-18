@@ -1,4 +1,6 @@
+import type { AiProxyLogger } from './to-ai-proxy-logger';
 import type { AiModelPort, GetModelOptions } from '../ports/ai-model-port';
+import type { Logger } from '../ports/logger-port';
 import type {
   AiConfiguration,
   BaseChatModel,
@@ -10,20 +12,25 @@ import type {
 import { AiClient } from '@forestadmin/ai-proxy';
 
 import { AiModelPortError, WorkflowExecutorError } from '../errors';
+import toAiProxyLogger from './to-ai-proxy-logger';
 
 export interface ServerAiAdapterOptions {
   forestServerUrl: string;
   envSecret: string;
+  logger?: Logger;
 }
 
 export default class ServerAiAdapter implements AiModelPort {
   private readonly options: ServerAiAdapterOptions;
+  private readonly aiProxyLogger?: AiProxyLogger;
   private readonly aiClient: AiClient;
 
   constructor(options: ServerAiAdapterOptions) {
     this.options = options;
+    this.aiProxyLogger = options.logger ? toAiProxyLogger(options.logger) : undefined;
     this.aiClient = new AiClient({
       aiConfigurations: [ServerAiAdapter.buildProxyConfiguration(options)],
+      logger: this.aiProxyLogger,
     });
   }
 
@@ -31,6 +38,7 @@ export default class ServerAiAdapter implements AiModelPort {
     try {
       const client = new AiClient({
         aiConfigurations: [ServerAiAdapter.buildProxyConfiguration(this.options, userId)],
+        logger: this.aiProxyLogger,
       });
 
       return client.getModel();

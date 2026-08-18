@@ -5,8 +5,8 @@ agent from a browser without learning MCP or JSON:API.
 
 It is a bootable Koa 3 server with a `/health` endpoint, a version header, env-driven config
 validation, OAuth (Mode 1) + API-key (Mode 2) auth, and a hardened request edge (timezone, CORS,
-auth-mode precedence, structured error contract). The data-endpoint proxy and OpenAPI generation
-land in later slices.
+auth-mode precedence, structured error contract), and it serves and exports its own OpenAPI
+document. The data-endpoint proxy lands in a later slice.
 
 ## Usage
 
@@ -15,6 +15,39 @@ Packaged / production — run the bin:
 ```bash
 forest-bff
 ```
+
+Export the OpenAPI document without booting the server. Needs no configuration, so
+it works in CI to commit the document, diff it, or generate a client:
+
+```bash
+forest-bff openapi > openapi.json          # stdout, redirected
+forest-bff openapi --output                # writes ./openapi.json
+forest-bff openapi --output docs/api.json  # writes that path
+```
+
+The document comes in two forms, and the command picks one from the environment:
+
+- **Unfolded** when `FOREST_SERVER_URL`, `FOREST_ENV_SECRET`, `FOREST_AUTH_SECRET` and `AGENT_URL`
+  are all set: one path per exposed collection, per to-many relation and per action, each carrying
+  the collection's real field set. This is the form to generate a client from. The command reads the
+  Forest schema and asks the agent for each collection's capabilities, signing its own short-lived
+  agent token with `FOREST_AUTH_SECRET`. A deployment configured this way but whose schema cannot be
+  read exits 1 rather than emitting the generic document, which would look like a complete answer.
+- **Generic** when that configuration is absent: the six runtime routes with `{collection}`,
+  `{relation}` and `{action}` as path parameters and no field enumerated. `info.description` says
+  which form the document is.
+
+Either way the runtime routes stay generic — only the document unfolds.
+
+`--output` takes the next argument as the destination unless it is empty or starts with
+`-`; the default `openapi.json` is written only when `--output` is the last argument, and
+a leftover token is rejected like any other extra. A missing parent directory is created,
+an existing file is overwritten, and a destination that cannot be written exits 1 with the
+path on stderr. The path is confirmed on stderr, so stdout stays empty and pipeable.
+
+`forest-bff --help` and `forest-bff --version` print to stdout and exit 0, ignoring
+anything that follows. An unknown command, or an argument other than `--output` after
+`openapi`, exits 1 with the reason on stderr.
 
 Local development — copy the env template, fill it in, and start with it loaded:
 
@@ -39,12 +72,13 @@ yarn start:dev         # node --env-file=.env dist/cli.js
 | `HTTP_PORT`          | no       | Server port, integer 0–65535. Defaults to `3450`. `0` binds an OS-assigned ephemeral port. |
 | `BFF_ALLOWED_ORIGINS`| no       | Comma-separated CORS allow-list of exact origins (scheme + host + port). No wildcard. Empty ⇒ no cross-origin browser access. |
 | `BFF_DEFAULT_TIMEZONE`| no      | Fallback IANA timezone used when a request carries neither an `X-Forest-Timezone` header nor a body `timezone`. |
+| `BFF_OPENAPI_ENABLED` | no       | Serve `GET/HEAD /agent/openapi.json` (auth-gated) when `true`. Defaults to `true`. Set to `false` for customers who do not want the HTTP surface exposed: an authenticated `GET`/`HEAD` then gets `404 openapi_disabled`, other methods fall through to the agent routes exactly as they do when enabled, and `forest-bff openapi` keeps working either way. Accepted values: `true`/`false`. **The served document is unfolded and is not filtered per caller**: any authenticated caller, whatever their role, reads the name of every exposed collection, relation and field. Set this to `false` if that surface must not be reachable over HTTP. |
 
 ### Config validation
 
 - A malformed value (a non-http(s) `*_URL`, a `HTTP_PORT` that is not a decimal integer in 0–65535,
-  a non-IANA `BFF_DEFAULT_TIMEZONE`) fails fast at boot: the process exits with a clear error and
-  never echoes the offending value.
+  a non-IANA `BFF_DEFAULT_TIMEZONE`, a non-boolean `BFF_OPENAPI_ENABLED`) fails fast at boot: the
+  process exits with a clear error and never echoes the offending value.
 - A required var that is absent (or empty / whitespace-only) does not crash the server. It boots and
   reports the gap through `/health` (503 `degraded`).
 - Malformed `BFF_ALLOWED_ORIGINS` entries (including a literal `*`) are dropped and logged once at

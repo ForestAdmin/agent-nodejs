@@ -25,9 +25,6 @@ export async function resolveReadModel(store: ReadModelStore): Promise<ReadModel
   }
 }
 
-// The agent token is minted only on the API-key path; the OAuth path sets a principal but no agent
-// token yet. Fail closed instead of calling the agent with `Bearer undefined`.
-// TODO(PRD-637): mint an agent token from the OAuth principal so agent routes work in OAuth mode.
 export function requireAgentToken(ctx: Context): string {
   const token = ctx.state.agentToken as string | undefined;
   if (!token) throw unauthorized('No agent credentials for this request');

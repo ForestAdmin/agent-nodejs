@@ -66,7 +66,16 @@ function fallbackTypeByStatus(status: number): BffErrorType {
   return FALLBACK_TYPE_BY_STATUS[status] ?? TYPE_INVALID_REQUEST;
 }
 
-function agentUnavailable(): BffHttpError {
+function logCauseAndReturnAgentUnavailable(
+  logger: Logger,
+  status: number,
+  cause: string,
+): BffHttpError {
+  logger('Warn', 'Agent 5xx mapped to agent_unavailable; client message is generic', {
+    status,
+    cause,
+  });
+
   return new BffHttpError(503, TYPE_AGENT_UNAVAILABLE, DEFAULT_UNAVAILABLE_MESSAGE);
 }
 
@@ -88,7 +97,13 @@ function mapJsonApiError(
   const status = bodyStatus >= 400 ? bodyStatus : fallbackStatus;
 
   // The wrapped-message path skips the outer AgentHttpError 5xx check, so normalize here too.
-  if (status >= 500) return agentUnavailable();
+  if (status >= 500) {
+    return logCauseAndReturnAgentUnavailable(
+      logger,
+      status,
+      agentError.detail ?? agentError.message ?? DEFAULT_ERROR_MESSAGE,
+    );
+  }
 
   const message = agentError.detail ?? agentError.message ?? DEFAULT_ERROR_MESSAGE;
   const mappedType = agentError.name ? AGENT_ERROR_TYPE_MAP[agentError.name] : undefined;
@@ -100,12 +115,9 @@ function mapJsonApiError(
     });
   }
 
-  return new BffHttpError(
-    status,
-    mappedType ?? fallbackTypeByStatus(status),
-    message,
-    agentError.data,
-  );
+  return new BffHttpError(status, mappedType ?? fallbackTypeByStatus(status), message, {
+    details: agentError.data,
+  });
 }
 
 function parseJsonApiFromMessage(error: unknown): AgentJsonApiError | undefined {
@@ -154,7 +166,13 @@ export function mapAgentError(error: unknown, { logger }: { logger: Logger }): B
     return new BffHttpError(502, TYPE_NETWORK_ERROR, DEFAULT_NETWORK_MESSAGE);
   }
 
-  if (error.status >= 500) return agentUnavailable();
+  if (error.status >= 500) {
+    return logCauseAndReturnAgentUnavailable(
+      logger,
+      error.status,
+      firstJsonApiError(error.body)?.detail ?? error.responseText ?? DEFAULT_ERROR_MESSAGE,
+    );
+  }
 
   const agentError = firstJsonApiError(error.body);
   if (agentError) return mapJsonApiError(agentError, error.status, logger);

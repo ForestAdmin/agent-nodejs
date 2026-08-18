@@ -4,6 +4,7 @@ import type { Middleware } from 'koa';
 import jsonwebtoken from 'jsonwebtoken';
 
 import { extractBearerToken, resolveAuthMode } from './auth-mode';
+import { issueAgentTokenFromPrincipal } from '../api-key/agent-token';
 import { sessionExpired, unauthorized } from '../http/bff-http-error';
 import { BFF_ACCESS_TOKEN_TYPE } from '../oauth/bff-token';
 
@@ -61,7 +62,10 @@ export default function createAuthModeMiddleware({
     ctx.state.authMode = mode;
 
     if (mode === 'oauth') {
-      ctx.state.principal = verifyBffAccess(bearer as string, authSecret);
+      const principal = verifyBffAccess(bearer as string, authSecret);
+      ctx.state.principal = principal;
+      ctx.state.agentToken = issueAgentTokenFromPrincipal({ principal, authSecret });
+      ctx.set('Cache-Control', 'no-store');
     }
 
     await next();

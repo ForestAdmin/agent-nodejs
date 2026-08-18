@@ -24,10 +24,12 @@ export default class GetRoute extends CollectionRoute {
       ),
     });
 
+    const projection = QueryStringParser.parseProjectionFromHeaderOrQuery(this.collection, context);
+
     const records = await this.collection.list(
       QueryStringParser.parseCaller(context),
       filter,
-      QueryStringParser.parseProjectionWithPks(this.collection, context),
+      projection.withPks(this.collection),
     );
 
     if (!records.length) {

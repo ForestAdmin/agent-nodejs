@@ -44,6 +44,7 @@ describe('bff-token', () => {
       expect(payload.last_name).toBe('Lovelace');
       expect(payload.rendering_id).toBe('17');
       expect(payload.permission_level).toBe('admin');
+      expect(payload.role).toBe('Admin');
       expect(payload.tags).toEqual({ plan: 'pro' });
     });
 
@@ -79,7 +80,7 @@ describe('bff-token', () => {
     it('should not leak any non-whitelisted user field into the payload', () => {
       const token = issueBffAccessToken({
         sid: 'sid-4',
-        user: { ...USER, role: 'SHOULD-NOT-LEAK' as string } as UserInfo,
+        user: { ...USER, secret: 'SHOULD-NOT-LEAK' } as UserInfo,
         renderingId: 17,
         authSecret: AUTH_SECRET,
         expiresInSeconds: 900,

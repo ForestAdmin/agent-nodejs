@@ -9,6 +9,19 @@ export type RelationTarget =
 
 export type PrimaryKeyField = { name: string; type: string };
 
+export type ListableRelation = { name: string; foreignCollection: string };
+
+// Only to-many relations expose list/count on the agent; to-one relations get update-relation only.
+// A polymorphic relation carrying multiple targets is always the to-one (PolymorphicManyToOne) side.
+// The data routes and the OpenAPI unfolding both resolve listability here, so a relation can never be
+// documented as listable while the runtime 404s it, or the reverse.
+function toListableTarget(target: RelationTarget): string | null {
+  if (!('target' in target)) return null;
+  if (target.type !== 'HasMany' && target.type !== 'BelongsToMany') return null;
+
+  return target.target;
+}
+
 function toRelationTarget(field: ForestSchemaField): RelationTarget | null {
   if (!field.relationship) return null;
 
@@ -45,12 +58,14 @@ function deepFreeze<T>(value: T): T {
 export default class ReadModel {
   private readonly collections: Set<string>;
   private readonly relations: Map<string, Map<string, RelationTarget>>;
+  private readonly listableRelations: Map<string, Map<string, string>>;
   private readonly actionEndpoints: ActionEndpointsByCollection;
   private readonly primaryKeys: Map<string, PrimaryKeyField[]>;
 
   constructor(collections: ForestSchemaCollection[]) {
     this.collections = new Set();
     this.relations = new Map();
+    this.listableRelations = new Map();
     // Null-prototype so an action/collection named like an Object.prototype member
     // (`toString`, `constructor`, `__proto__`, …) can't falsely pass the allow-list.
     this.actionEndpoints = Object.create(null) as ActionEndpointsByCollection;
@@ -71,13 +86,20 @@ export default class ReadModel {
 
   private buildRelations(collection: ForestSchemaCollection): void {
     const relations = new Map<string, RelationTarget>();
+    const listable = new Map<string, string>();
 
     for (const field of collection.fields ?? []) {
       const target = toRelationTarget(field);
-      if (target) relations.set(field.field, target);
+
+      if (target) {
+        relations.set(field.field, target);
+        const foreignCollection = toListableTarget(target);
+        if (foreignCollection) listable.set(field.field, foreignCollection);
+      }
     }
 
     this.relations.set(collection.name, relations);
+    this.listableRelations.set(collection.name, listable);
   }
 
   private buildActionEndpoints(collection: ForestSchemaCollection): void {
@@ -114,6 +136,28 @@ export default class ReadModel {
 
   isCollectionAllowed(collection: string): boolean {
     return this.collections.has(collection);
+  }
+
+  /** A fresh copy per call, so a consumer cannot mutate the shared cached read-model. */
+  getAllowedCollections(): string[] {
+    return [...this.collections];
+  }
+
+  /**
+   * The to-many, non-polymorphic relations of a collection — the only ones with a list/count route.
+   * The foreign collection is NOT checked against the allow-list here: the data routes must keep
+   * telling a non-listable relation (404 unknown_relation) from a listable one pointing at a hidden
+   * collection (404 unknown_collection), so that filter belongs to each caller.
+   */
+  getListableRelations(collection: string): ListableRelation[] {
+    const listable = this.listableRelations.get(collection);
+    if (!listable) return [];
+
+    return [...listable].map(([name, foreignCollection]) => ({ name, foreignCollection }));
+  }
+
+  getListableRelationTarget(collection: string, relation: string): string | undefined {
+    return this.listableRelations.get(collection)?.get(relation);
   }
 
   isRelationAllowed(collection: string, relation: string): boolean {

@@ -1,4 +1,9 @@
-import { REQUIRED_KEYS, parseConfig } from '../../src/config/env-config';
+import {
+  DEFAULT_AGENT_TIMEOUT_MS,
+  MAX_AGENT_TIMEOUT_MS,
+  REQUIRED_KEYS,
+  parseConfig,
+} from '../../src/config/env-config';
 import DEFAULT_BFF_PORT from '../../src/defaults';
 import { ConfigurationError } from '../../src/errors';
 
@@ -208,6 +213,76 @@ describe('parseConfig', () => {
     it('should throw ConfigurationError for a non-IANA timezone', () => {
       expect(() => parseConfig({ ...VALID_ENV, BFF_DEFAULT_TIMEZONE: 'Mars/Phobos' })).toThrow(
         ConfigurationError,
+      );
+    });
+  });
+
+  describe('BFF_AGENT_TIMEOUT_MS', () => {
+    it('should default to 10 seconds when unset', () => {
+      expect(parseConfig({ ...VALID_ENV }).agentTimeoutMs).toBe(DEFAULT_AGENT_TIMEOUT_MS);
+      expect(DEFAULT_AGENT_TIMEOUT_MS).toBe(10_000);
+    });
+
+    it('should expose a configured value', () => {
+      expect(parseConfig({ ...VALID_ENV, BFF_AGENT_TIMEOUT_MS: '2000' }).agentTimeoutMs).toBe(2000);
+    });
+
+    it('should treat a blank value as unset', () => {
+      expect(parseConfig({ ...VALID_ENV, BFF_AGENT_TIMEOUT_MS: '   ' }).agentTimeoutMs).toBe(
+        DEFAULT_AGENT_TIMEOUT_MS,
+      );
+    });
+
+    it('should accept the largest value Node can hold in a timer', () => {
+      expect(
+        parseConfig({ ...VALID_ENV, BFF_AGENT_TIMEOUT_MS: String(MAX_AGENT_TIMEOUT_MS) })
+          .agentTimeoutMs,
+      ).toBe(MAX_AGENT_TIMEOUT_MS);
+    });
+
+    it.each([
+      ['zero', '0'],
+      ['negative', '-1'],
+      ['non-numeric', 'soon'],
+      ['fractional', '1.5'],
+      ['past the Node timer ceiling', String(MAX_AGENT_TIMEOUT_MS + 1)],
+    ])('should throw ConfigurationError for a %s value', (_label, value) => {
+      expect(() => parseConfig({ ...VALID_ENV, BFF_AGENT_TIMEOUT_MS: value })).toThrow(
+        ConfigurationError,
+      );
+    });
+  });
+
+  describe('BFF_OPENAPI_ENABLED', () => {
+    it('should default to true when unset, empty, or whitespace-only', () => {
+      expect(parseConfig({ ...VALID_ENV }).openapiEnabled).toBe(true);
+      expect(parseConfig({ ...VALID_ENV, BFF_OPENAPI_ENABLED: '' }).openapiEnabled).toBe(true);
+      expect(parseConfig({ ...VALID_ENV, BFF_OPENAPI_ENABLED: '   ' }).openapiEnabled).toBe(true);
+    });
+
+    it.each(['true', 'TRUE', ' True '])('should enable OpenAPI HTTP serving for %j', value => {
+      expect(parseConfig({ ...VALID_ENV, BFF_OPENAPI_ENABLED: value }).openapiEnabled).toBe(true);
+    });
+
+    it.each(['false', 'FALSE', ' False '])('should disable OpenAPI HTTP serving for %j', value => {
+      expect(parseConfig({ ...VALID_ENV, BFF_OPENAPI_ENABLED: value }).openapiEnabled).toBe(false);
+    });
+
+    it.each(['1', '0', 'yes', 'no', 'on', 'off'])('should reject the alias %j', value => {
+      expect(() => parseConfig({ ...VALID_ENV, BFF_OPENAPI_ENABLED: value })).toThrow(
+        /BFF_OPENAPI_ENABLED must be a boolean/,
+      );
+    });
+
+    it('should throw ConfigurationError for a non-boolean value without echoing it', () => {
+      expect(() => parseConfig({ ...VALID_ENV, BFF_OPENAPI_ENABLED: 'maybe-secret' })).toThrow(
+        ConfigurationError,
+      );
+      expect(() => parseConfig({ ...VALID_ENV, BFF_OPENAPI_ENABLED: 'maybe-secret' })).toThrow(
+        /BFF_OPENAPI_ENABLED must be a boolean/,
+      );
+      expect(() => parseConfig({ ...VALID_ENV, BFF_OPENAPI_ENABLED: 'maybe-secret' })).not.toThrow(
+        /maybe-secret/,
       );
     });
   });

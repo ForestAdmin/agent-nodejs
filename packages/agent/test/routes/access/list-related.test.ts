@@ -254,6 +254,80 @@ describe('ListRelatedRoute', () => {
     });
   });
 
+  describe('with the Forest-Projection header', () => {
+    test('it should read the projection of the foreign collection from the header', async () => {
+      const { services, dataSource, options } = setupWithOneToManyRelation();
+      services.serializer.serializeWithSearchMetadata = jest.fn().mockReturnValue('serialized');
+      const route = new ListRelatedRoute(services, options, dataSource, 'books', 'myPersons');
+      const listRelationSpy = jest.spyOn(CollectionUtils, 'listRelation').mockResolvedValue([]);
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        headers: { 'forest-projection': 'name' },
+        customProperties: {
+          params: { parentId: '2d162303-78bf-599e-b197-93590ac3d315' },
+          query: { timezone: 'Europe/Paris' },
+        },
+      });
+
+      await route.handleListRelated(context);
+
+      expect(listRelationSpy).toHaveBeenCalledWith(
+        dataSource.getCollection('books'),
+        ['2d162303-78bf-599e-b197-93590ac3d315'],
+        'myPersons',
+        expect.anything(),
+        expect.anything(),
+        ['name', 'id'],
+      );
+    });
+
+    test('it should give precedence to the header over the fields query params', async () => {
+      const { services, dataSource, options } = setupWithOneToManyRelation();
+      services.serializer.serializeWithSearchMetadata = jest.fn().mockReturnValue('serialized');
+      const route = new ListRelatedRoute(services, options, dataSource, 'books', 'myPersons');
+      const listRelationSpy = jest.spyOn(CollectionUtils, 'listRelation').mockResolvedValue([]);
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        headers: { 'forest-projection': 'name' },
+        customProperties: {
+          params: { parentId: '2d162303-78bf-599e-b197-93590ac3d315' },
+          query: { timezone: 'Europe/Paris', 'fields[persons]': 'id' },
+        },
+      });
+
+      await route.handleListRelated(context);
+
+      expect(listRelationSpy).toHaveBeenCalledWith(
+        dataSource.getCollection('books'),
+        ['2d162303-78bf-599e-b197-93590ac3d315'],
+        'myPersons',
+        expect.anything(),
+        expect.anything(),
+        ['name', 'id'],
+      );
+    });
+
+    test('it should not fall back to query params when the header is invalid', async () => {
+      const { services, dataSource, options } = setupWithOneToManyRelation();
+      const route = new ListRelatedRoute(services, options, dataSource, 'books', 'myPersons');
+      const listRelationSpy = jest.spyOn(CollectionUtils, 'listRelation').mockResolvedValue([]);
+      listRelationSpy.mockClear();
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        headers: { 'forest-projection': 'field-that-do-not-exist' },
+        customProperties: {
+          params: { parentId: '2d162303-78bf-599e-b197-93590ac3d315' },
+          query: { timezone: 'Europe/Paris', 'fields[persons]': 'id' },
+        },
+      });
+
+      await expect(route.handleListRelated(context)).rejects.toThrow(
+        'Invalid Forest-Projection header',
+      );
+      expect(listRelationSpy).not.toHaveBeenCalled();
+    });
+  });
+
   describe('with special characters in names', () => {
     it('should register routes with escaped characters', () => {
       const services = factories.forestAdminHttpDriverServices.build();

@@ -139,6 +139,13 @@ export class McpConnectionError extends McpError {
   }
 }
 
+export class McpLoadTimeoutError extends McpError {
+  constructor(serverName: string, timeoutMs: number) {
+    super(`Timeout: MCP server "${serverName}" did not return its tools within ${timeoutMs}ms`);
+    this.name = 'McpLoadTimeoutError';
+  }
+}
+
 export class McpConflictError extends McpError {
   constructor(entityName: string) {
     super(`"${entityName}" already exists for your project`);

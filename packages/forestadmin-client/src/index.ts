@@ -55,11 +55,22 @@ export { IpWhitelistConfiguration } from './ip-whitelist/types';
 // These types are used for the agent-generator package
 export {
   CollectionActionEvent,
+  CustomActionEvent,
   EnvironmentPermissionsV4,
   RenderingPermissionV4,
   UserPermissionV4,
 } from './permissions/types';
 export { UserInfo } from './auth/types';
+
+export { default as generateActionsFromPermissions } from './permissions/generate-actions-from-permissions';
+export {
+  ActionPermission,
+  ActionPermissions,
+} from './permissions/generate-actions-from-permissions';
+export {
+  generateCollectionActionIdentifier,
+  generateCustomActionIdentifier,
+} from './permissions/generate-action-identifier';
 
 export default function createForestAdminClient(
   options: ForestAdminClientOptions,

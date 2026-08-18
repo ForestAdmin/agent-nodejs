@@ -4,12 +4,12 @@ import request from 'supertest';
 import createPerKeyOriginMiddleware from '../../src/cors/per-key-origin';
 import createErrorMiddleware from '../../src/http/error-middleware';
 
-function buildApp(allowedOrigins: string[]) {
+function buildApp(allowedOrigins?: string[]) {
   const app = new Koa();
   app.silent = true;
   app.use(createErrorMiddleware({ logger: () => undefined }));
   app.use(async (ctx, next) => {
-    ctx.state.apiKeyIdentity = { allowedOrigins };
+    if (allowedOrigins !== undefined) ctx.state.apiKeyIdentity = { allowedOrigins };
     await next();
   });
   app.use(createPerKeyOriginMiddleware());
@@ -63,5 +63,14 @@ describe('per-key origin middleware (layer 2)', () => {
 
     expect(response.status).toBe(403);
     expect(response.body.error.type).toBe('origin_not_allowed');
+  });
+
+  it('does not restrict an oauth request, which carries no per-key identity', async () => {
+    const response = await request(buildApp().callback())
+      .get('/agent/x')
+      .set('Origin', 'https://anything.com');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ reached: true });
   });
 });

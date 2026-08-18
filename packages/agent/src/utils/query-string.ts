@@ -71,12 +71,26 @@ export default class QueryStringParser {
     }
   }
 
-  static parseProjectionWithPks(collection: Collection, context: Context): Projection {
-    const projection = QueryStringParser.parseProjection(collection, context);
+  static parseProjectionFromHeader(collection: Collection, context: Context): Projection | null {
+    const header = context.request.headers['forest-projection']?.toString().trim();
+    if (!header) return null;
 
-    // Primary keys are not explicitly listed in the projections that the frontend
-    // is sending, but are still required for the frontend to work.
-    return projection.withPks(collection);
+    try {
+      const fields = header.split(',').map(field => field.trim());
+
+      ProjectionValidator.validate(collection, fields);
+
+      return new Projection(...fields);
+    } catch (e) {
+      throw new ValidationError(`Invalid Forest-Projection header: ${e.message}`);
+    }
+  }
+
+  static parseProjectionFromHeaderOrQuery(collection: Collection, context: Context): Projection {
+    return (
+      QueryStringParser.parseProjectionFromHeader(collection, context) ??
+      QueryStringParser.parseProjection(collection, context)
+    );
   }
 
   static parseSearch(collection: Collection, context: Context): string {

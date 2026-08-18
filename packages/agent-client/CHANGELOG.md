@@ -1,3 +1,36 @@
+# @forestadmin/agent-client [1.14.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.13.1...@forestadmin/agent-client@1.14.0) (2026-08-17)
+
+
+### Features
+
+* upload files through the MCP server for action File fields ([#1815](https://github.com/ForestAdmin/agent-nodejs/issues/1815)) ([f09e88c](https://github.com/ForestAdmin/agent-nodejs/commit/f09e88cd3c8c542adf2f2bb89572fbc78c11e51a))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.55.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.42.1
+
+## @forestadmin/agent-client [1.13.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.13.0...@forestadmin/agent-client@1.13.1) (2026-08-11)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.42.0
+
+# @forestadmin/agent-client [1.13.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.12.2...@forestadmin/agent-client@1.13.0) (2026-08-04)
+
+
+### Features
+
+* **agent-bff:** expose the action execute endpoint with result normalization ([#1752](https://github.com/ForestAdmin/agent-nodejs/issues/1752)) ([ff8cb75](https://github.com/ForestAdmin/agent-nodejs/commit/ff8cb75d6200f24b6670bfe6cc44fd4825da6f5e))
+
 ## @forestadmin/agent-client [1.12.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.12.1...@forestadmin/agent-client@1.12.2) (2026-08-03)
 
 

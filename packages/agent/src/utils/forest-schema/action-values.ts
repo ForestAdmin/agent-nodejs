@@ -1,5 +1,7 @@
 import type { ActionField, CompositeId, DataSource, File } from '@forestadmin/datasource-toolkit';
 
+import { isDataUri, makeDataUri, parseDataUri } from '@forestadmin/datasource-toolkit';
+
 import ActionFields from './action-fields';
 import SchemaGeneratorActions from './generator-actions';
 import IdUtils from '../id';
@@ -28,9 +30,9 @@ export default class ForestValueConverter {
 
           data[key] = IdUtils.unpackId(collection.schema, value as string);
         } else if (ActionFields.isFileField(field) && value) {
-          data[key] = this.parseDataUri(value as string);
+          data[key] = parseDataUri(value as string);
         } else if (ActionFields.isFileListField(field) && value) {
-          data[key] = (value as string[])?.map(v => this.parseDataUri(v));
+          data[key] = (value as string[])?.map(v => parseDataUri(v));
         } else {
           data[key] = value;
         }
@@ -56,9 +58,11 @@ export default class ForestValueConverter {
           const collection = dataSource.getCollection(collectionName);
           data[field.field] = IdUtils.unpackId(collection.schema, field.value as string);
         } else if (field.type === 'File') {
-          data[field.field] = this.parseDataUri(field.value as string);
+          data[field.field] = isDataUri(field.value) ? parseDataUri(field.value) : field.value;
         } else if (Array.isArray(field.type) && field.type[0] === 'File') {
-          data[field.field] = (field.value as string[])?.map(v => this.parseDataUri(v));
+          data[field.field] = (field.value as string[])?.map(v =>
+            isDataUri(v) ? parseDataUri(v) : v,
+          );
         } else {
           data[field.field] = field.value;
         }
@@ -83,10 +87,10 @@ export default class ForestValueConverter {
     for (const [key, value] of Object.entries(rawData)) {
       // Skip fields from the default form
       if (!SchemaGeneratorActions.defaultFields.map(f => f.field).includes(key)) {
-        if (Array.isArray(value) && value.every(v => this.isDataUri(v))) {
-          data[key] = value.map(uri => this.parseDataUri(uri));
-        } else if (this.isDataUri(value)) {
-          data[key] = this.parseDataUri(value as string);
+        if (Array.isArray(value) && value.every(v => isDataUri(v))) {
+          data[key] = value.map(uri => parseDataUri(uri));
+        } else if (isDataUri(value)) {
+          data[key] = parseDataUri(value as string);
         } else {
           data[key] = value;
         }
@@ -110,50 +114,13 @@ export default class ForestValueConverter {
     }
 
     if (field.type === 'File') {
-      return this.makeDataUri(value as File);
+      return makeDataUri(value as File);
     }
 
     if (field.type === 'FileList') {
-      return (value as File[])?.map(f => this.makeDataUri(f));
+      return (value as File[])?.map(f => makeDataUri(f));
     }
 
     return value;
-  }
-
-  private static parseDataUri(dataUri: string): File {
-    if (!dataUri) return null;
-
-    // Poor man's data uri parser (spec compliants one don't get the filename).
-    // Hopefully this does not break.
-    const [header, data] = dataUri.substring(5).split(',');
-    const [mimeType, ...mediaTypes] = header.split(';');
-    const result = { mimeType, buffer: Buffer.from(data, 'base64') };
-
-    for (const mediaType of mediaTypes) {
-      const index = mediaType.indexOf('=');
-
-      if (index !== -1) {
-        result[mediaType.substring(0, index)] = decodeURIComponent(mediaType.substring(index + 1));
-      }
-    }
-
-    return result as File;
-  }
-
-  private static makeDataUri(file: File): string {
-    if (!file) return null;
-
-    const { mimeType, buffer, ...rest } = file;
-    const mediaTypes = Object.entries(rest)
-      .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
-      .join(';');
-
-    return mediaTypes.length
-      ? `data:${file.mimeType};${mediaTypes};base64,${buffer.toString('base64')}`
-      : `data:${file.mimeType};base64,${buffer.toString('base64')}`;
-  }
-
-  private static isDataUri(value: unknown): boolean {
-    return typeof value === 'string' && value.startsWith('data:');
   }
 }

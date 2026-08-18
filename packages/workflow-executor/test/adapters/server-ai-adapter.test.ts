@@ -1,3 +1,6 @@
+import type { AiProxyLogger } from '../../src/adapters/to-ai-proxy-logger';
+import type { Logger } from '../../src/ports/logger-port';
+
 import ServerAiAdapter from '../../src/adapters/server-ai-adapter';
 
 const mockGetModel = jest.fn().mockReturnValue({ id: 'fake-model' });
@@ -150,6 +153,54 @@ describe('ServerAiAdapter', () => {
       await adapter.closeConnections();
 
       expect(mockCloseConnections).toHaveBeenCalled();
+    });
+  });
+
+  describe('logger', () => {
+    const buildAdapter = (logger?: Logger) =>
+      new ServerAiAdapter({
+        forestServerUrl: 'https://api.forestadmin.com',
+        envSecret: ENV_SECRET,
+        logger,
+      });
+
+    const aiProxyLoggerGivenToLatestClient = () => {
+      const { calls } = mockAiClientConstructor.mock;
+
+      return (calls[calls.length - 1][0] as { logger?: AiProxyLogger }).logger;
+    };
+
+    it("routes ai-proxy's MCP diagnostics to the executor logger with the cause flattened", () => {
+      const executorLogger = jest.fn();
+      buildAdapter(executorLogger);
+      const cause = new Error('401 Unauthorized');
+
+      aiProxyLoggerGivenToLatestClient()?.('Error', 'Error loading tools for notion', cause);
+
+      expect(executorLogger).toHaveBeenCalledWith('Error', 'Error loading tools for notion', {
+        error: '401 Unauthorized',
+        stack: cause.stack,
+      });
+    });
+
+    // Wiring only: the captured logger is invoked directly, since a client built for a single
+    // unnamed configuration reaches none of AiClient's own emit sites.
+    it('wires the same logger into the per-call AiClient built by getModel', () => {
+      const executorLogger = jest.fn();
+      buildAdapter(executorLogger).getModel({ userId: 42 });
+
+      aiProxyLoggerGivenToLatestClient()?.('Warn', 'Error during remote tool connection cleanup');
+
+      expect(executorLogger).toHaveBeenCalledWith(
+        'Warn',
+        'Error during remote tool connection cleanup',
+      );
+    });
+
+    it('leaves AiClient without a logger when none is configured', () => {
+      buildAdapter();
+
+      expect(aiProxyLoggerGivenToLatestClient()).toBeUndefined();
     });
   });
 });

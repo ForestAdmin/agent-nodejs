@@ -4,6 +4,7 @@ import type { OAuthClientInformationFull } from '@modelcontextprotocol/sdk/share
 import type { Response } from 'express';
 
 import createForestAdminClient from '@forestadmin/forestadmin-client';
+import { InvalidClientError } from '@modelcontextprotocol/sdk/server/auth/errors.js';
 import jsonwebtoken from 'jsonwebtoken';
 
 import MockServer from './test-utils/mock-server';
@@ -1314,6 +1315,202 @@ describe('ForestOAuthProvider', () => {
 
       expect(signedTtl(1)).toBe(-10);
       expect(result.expires_in).toBe(3600);
+    });
+  });
+
+  describe('allowedOAuthClients', () => {
+    const CLIENT_ID = 'client-1';
+
+    function createRestrictedProvider(
+      allowedOAuthClients: string[] | undefined,
+      logger: Logger = console.info,
+    ) {
+      return new ForestOAuthProvider({
+        forestServerUrl: 'https://api.forestadmin.com',
+        forestAppUrl: TEST_FOREST_APP_URL,
+        envSecret: TEST_ENV_SECRET,
+        authSecret: TEST_AUTH_SECRET,
+        logger,
+        allowedOAuthClients,
+      });
+    }
+
+    function registerClient(redirectUris?: string[]) {
+      const clientData: Record<string, unknown> = {
+        client_id: CLIENT_ID,
+        client_name: 'Some Client',
+      };
+      if (redirectUris) clientData.redirect_uris = redirectUris;
+      mockServer.get(`/oauth/register/${CLIENT_ID}`, clientData);
+      global.fetch = mockServer.fetch;
+
+      return clientData;
+    }
+
+    async function getClientError(provider: ForestOAuthProvider): Promise<InvalidClientError> {
+      const error = await Promise.resolve()
+        .then(() => provider.clientsStore.getClient(CLIENT_ID))
+        .then(() => undefined)
+        .catch(caught => caught);
+
+      expect(error).toBeInstanceOf(InvalidClientError);
+
+      return error;
+    }
+
+    it('returns the client when every redirect URI is on an allowed domain', async () => {
+      const clientData = registerClient(['https://dust.tt/oauth/mcp_static/finalize']);
+      const provider = createRestrictedProvider(['dust.tt']);
+
+      const client = await provider.clientsStore.getClient(CLIENT_ID);
+
+      expect(client).toEqual(clientData);
+      expect(mockServer.fetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('returns the client when redirect URIs are on subdomains of an allowed domain', async () => {
+      const clientData = registerClient([
+        'https://eu.dust.tt/oauth/mcp_static/finalize',
+        'https://app.dust.tt/oauth/mcp_static/finalize',
+        'https://mcp.front.eu.dust.tt/oauth/mcp_static/finalize',
+      ]);
+      const provider = createRestrictedProvider(['dust.tt']);
+
+      const client = await provider.clientsStore.getClient(CLIENT_ID);
+
+      expect(client).toEqual(clientData);
+    });
+
+    it('matches domains case-insensitively', async () => {
+      const clientData = registerClient(['https://EU.Dust.TT/callback']);
+      const provider = createRestrictedProvider(['DUST.tt']);
+
+      const client = await provider.clientsStore.getClient(CLIENT_ID);
+
+      expect(client).toEqual(clientData);
+    });
+
+    it('returns the client when it is allowed by any of several domains', async () => {
+      const clientData = registerClient(['https://claude.ai/api/mcp/auth_callback']);
+      const provider = createRestrictedProvider(['dust.tt', 'claude.ai']);
+
+      const client = await provider.clientsStore.getClient(CLIENT_ID);
+
+      expect(client).toEqual(clientData);
+    });
+
+    it('rejects a client having one redirect URI outside the allowed domains', async () => {
+      registerClient(['https://eu.dust.tt/oauth/mcp_static/finalize', 'https://evil.example/cb']);
+      const provider = createRestrictedProvider(['dust.tt']);
+
+      const error = await getClientError(provider);
+
+      expect(error.message).toMatch(/approved client applications/i);
+      expect(error.message).toMatch(/administrator/i);
+      expect(error.message).not.toContain('dust.tt');
+    });
+
+    it('rejects a lookalike domain that merely ends with an allowed domain', async () => {
+      registerClient(['https://evil-dust.tt/callback']);
+      const provider = createRestrictedProvider(['dust.tt']);
+
+      const error = await getClientError(provider);
+
+      expect(error.errorCode).toBe('invalid_client');
+    });
+
+    it('matches subdomains under a split top-level domain', async () => {
+      const clientData = registerClient(['https://app.myvendor.co.uk/callback']);
+      const provider = createRestrictedProvider(['myvendor.co.uk']);
+
+      const client = await provider.clientsStore.getClient(CLIENT_ID);
+
+      expect(client).toEqual(clientData);
+    });
+
+    it('rejects a sibling domain that only shares a split top-level domain', async () => {
+      registerClient(['https://othervendor.co.uk/callback']);
+      const provider = createRestrictedProvider(['myvendor.co.uk']);
+
+      const error = await getClientError(provider);
+
+      expect(error.errorCode).toBe('invalid_client');
+    });
+
+    it('rejects a custom-scheme redirect URI even when its hostname is on an allowed domain', async () => {
+      registerClient(['attacker-app://dust.tt/callback']);
+      const provider = createRestrictedProvider(['dust.tt']);
+
+      const error = await getClientError(provider);
+
+      expect(error.errorCode).toBe('invalid_client');
+    });
+
+    it('rejects a client registered with an empty redirect URI list', async () => {
+      registerClient([]);
+      const provider = createRestrictedProvider(['dust.tt']);
+
+      const error = await getClientError(provider);
+
+      expect(error.errorCode).toBe('invalid_client');
+    });
+
+    it('rejects a client registered without redirect URIs', async () => {
+      registerClient(undefined);
+      const provider = createRestrictedProvider(['dust.tt']);
+
+      const error = await getClientError(provider);
+
+      expect(error.errorCode).toBe('invalid_client');
+    });
+
+    it('rejects a client whose redirect URI is not a parseable URL', async () => {
+      registerClient(['not-a-valid-url']);
+      const provider = createRestrictedProvider(['dust.tt']);
+
+      const error = await getClientError(provider);
+
+      expect(error.errorCode).toBe('invalid_client');
+    });
+
+    it('rejects a loopback redirect URI since localhost is never an allowed domain', async () => {
+      registerClient(['http://localhost:33418/callback']);
+      const provider = createRestrictedProvider(['dust.tt']);
+
+      const error = await getClientError(provider);
+
+      expect(error.errorCode).toBe('invalid_client');
+    });
+
+    it('logs the rejected client and its redirect URIs for diagnosability', async () => {
+      const logger = jest.fn();
+      registerClient(['https://evil.example/cb']);
+      const provider = createRestrictedProvider(['dust.tt'], logger);
+
+      await getClientError(provider);
+
+      const loggedMessages = logger.mock.calls.map(([, message]) => message).join('\n');
+      expect(loggedMessages).toContain(CLIENT_ID);
+      expect(loggedMessages).toContain('https://evil.example/cb');
+    });
+
+    it('keeps returning any registered client when the option is omitted', async () => {
+      const clientData = registerClient(['http://localhost:33418/callback']);
+      const provider = createRestrictedProvider(undefined);
+
+      const client = await provider.clientsStore.getClient(CLIENT_ID);
+
+      expect(client).toEqual(clientData);
+    });
+
+    it('still returns undefined for an unknown client when the allowlist is set', async () => {
+      mockServer.get(`/oauth/register/${CLIENT_ID}`, { error: 'Not found' }, 404);
+      global.fetch = mockServer.fetch;
+      const provider = createRestrictedProvider(['dust.tt']);
+
+      const client = await provider.clientsStore.getClient(CLIENT_ID);
+
+      expect(client).toBeUndefined();
     });
   });
 });

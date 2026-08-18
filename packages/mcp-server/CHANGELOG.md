@@ -1,3 +1,54 @@
+## @forestadmin/mcp-server [1.22.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.22.0...@forestadmin/mcp-server@1.22.1) (2026-08-18)
+
+
+### Bug Fixes
+
+* **mcp-server:** let a deployed standalone server know its public url ([#1832](https://github.com/ForestAdmin/agent-nodejs/issues/1832)) ([e83a3f4](https://github.com/ForestAdmin/agent-nodejs/commit/e83a3f41ff5ef902ef2bb422b98068ed2f316eea))
+
+# @forestadmin/mcp-server [1.22.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.21.1...@forestadmin/mcp-server@1.22.0) (2026-08-17)
+
+
+### Features
+
+* upload files through the MCP server for action File fields ([#1815](https://github.com/ForestAdmin/agent-nodejs/issues/1815)) ([f09e88c](https://github.com/ForestAdmin/agent-nodejs/commit/f09e88cd3c8c542adf2f2bb89572fbc78c11e51a))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.14.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.42.1
+
+## @forestadmin/mcp-server [1.21.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.21.0...@forestadmin/mcp-server@1.21.1) (2026-08-11)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.13.1
+* **@forestadmin/forestadmin-client:** upgraded to 1.42.0
+
+# @forestadmin/mcp-server [1.21.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.20.3...@forestadmin/mcp-server@1.21.0) (2026-08-06)
+
+
+### Features
+
+* **mcp-server:** restrict oauth clients to an allowlist of domains ([#1797](https://github.com/ForestAdmin/agent-nodejs/issues/1797)) ([ebaeb17](https://github.com/ForestAdmin/agent-nodejs/commit/ebaeb17fec615ad80b1e635955325490748d6fb2))
+
+## @forestadmin/mcp-server [1.20.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.20.2...@forestadmin/mcp-server@1.20.3) (2026-08-04)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.13.0
+
 ## @forestadmin/mcp-server [1.20.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.20.1...@forestadmin/mcp-server@1.20.2) (2026-08-03)
 
 

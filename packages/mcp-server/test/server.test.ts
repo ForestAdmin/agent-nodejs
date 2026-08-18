@@ -1,3 +1,4 @@
+import type EphemeralStorage from '../src/file-uploads/ephemeral-storage';
 import type * as net from 'net';
 
 import * as http from 'http';
@@ -117,7 +118,155 @@ describe('ForestMCPServer Instance', () => {
 
   describe('run method', () => {
     afterEach(async () => {
+      delete process.env.FOREST_MCP_SERVER_URL;
+      delete process.env.MCP_SERVER_PORT;
       await shutDownHttpServer(server?.httpServer as http.Server);
+    });
+
+    it('advertises FOREST_MCP_SERVER_URL instead of localhost when set', async () => {
+      const testPort = await getAvailablePort();
+      process.env.MCP_SERVER_PORT = testPort.toString();
+      process.env.FOREST_MCP_SERVER_URL = 'https://mcp.example.com';
+
+      server = new ForestMCPServer({
+        authSecret: 'AUTH_SECRET',
+        envSecret: 'ENV_SECRET',
+        forestServerClient: createMockForestServerClient(),
+      });
+      server.run();
+      await new Promise(resolve => {
+        setTimeout(resolve, 500);
+      });
+
+      // global.fetch is the Forest mock here.
+      const response = await originalFetch(
+        `http://localhost:${testPort}/.well-known/oauth-authorization-server`,
+      );
+      const metadata = (await response.json()) as { issuer: string };
+
+      expect(metadata.issuer).toBe('https://mcp.example.com/');
+
+      // The other consumer of the same base url — the half that motivated the option.
+      const { ephemeralStorage } = server as unknown as {
+        ephemeralStorage: { createUploadUrl(p: { key: string }): Promise<{ url: string }> };
+      };
+      const { url } = await ephemeralStorage.createUploadUrl({ key: 'k' });
+
+      expect(url.startsWith('https://mcp.example.com/mcp/uploads/')).toBe(true);
+    });
+
+    // The OAuth endpoints are concatenated onto the href and the uploads base resolves against the
+    // origin, so anything beyond an http(s) origin advertises broken urls instead of failing here.
+    it.each([
+      ['a trailing slash', 'https://mcp.example.com/', 'https://mcp.example.com/'],
+      ['no trailing slash', 'https://mcp.example.com', 'https://mcp.example.com/'],
+      ['an explicit default port', 'https://mcp.example.com:443', 'https://mcp.example.com/'],
+      ['a custom port', 'https://mcp.example.com:8443', 'https://mcp.example.com:8443/'],
+    ])('accepts a FOREST_MCP_SERVER_URL with %s', async (_, value, expected) => {
+      const testPort = await getAvailablePort();
+      process.env.MCP_SERVER_PORT = testPort.toString();
+      process.env.FOREST_MCP_SERVER_URL = value;
+
+      server = new ForestMCPServer({
+        authSecret: 'AUTH_SECRET',
+        envSecret: 'ENV_SECRET',
+        forestServerClient: createMockForestServerClient(),
+      });
+      server.run();
+      await new Promise(resolve => {
+        setTimeout(resolve, 500);
+      });
+
+      const response = await originalFetch(
+        `http://localhost:${testPort}/.well-known/oauth-authorization-server`,
+      );
+
+      expect(((await response.json()) as { issuer: string }).issuer).toBe(expected);
+    });
+
+    it('refuses MCP_SERVER_PORT=0 unless it is told what to advertise', async () => {
+      process.env.MCP_SERVER_PORT = '0';
+
+      server = new ForestMCPServer({
+        authSecret: 'AUTH_SECRET',
+        envSecret: 'ENV_SECRET',
+        forestServerClient: createMockForestServerClient(),
+      });
+
+      await expect(server.run()).rejects.toThrow(/MCP_SERVER_PORT=0 binds a port chosen by the OS/);
+    });
+
+    it('binds an ephemeral port on MCP_SERVER_PORT=0 rather than falling back to 3931', async () => {
+      process.env.MCP_SERVER_PORT = '0';
+      process.env.FOREST_MCP_SERVER_URL = 'https://mcp.example.com';
+
+      server = new ForestMCPServer({
+        authSecret: 'AUTH_SECRET',
+        envSecret: 'ENV_SECRET',
+        forestServerClient: createMockForestServerClient(),
+      });
+      server.run();
+      await new Promise(resolve => {
+        setTimeout(resolve, 500);
+      });
+
+      const { port } = (server.httpServer as http.Server).address() as net.AddressInfo;
+
+      expect(port).toBeGreaterThan(0);
+      expect(port).not.toBe(3931);
+    });
+
+    it.each([
+      ['out of range', '99999'],
+      ['fractional', '3931.5'],
+      ['negative', '-1'],
+      ['non-numeric', 'abc'],
+    ])('refuses an %s MCP_SERVER_PORT before doing any work', async (_, value) => {
+      process.env.MCP_SERVER_PORT = value;
+      process.env.FOREST_MCP_SERVER_URL = 'https://mcp.example.com';
+
+      server = new ForestMCPServer({
+        authSecret: 'AUTH_SECRET',
+        envSecret: 'ENV_SECRET',
+        forestServerClient: createMockForestServerClient(),
+      });
+
+      await expect(server.run()).rejects.toThrow(`Invalid MCP_SERVER_PORT "${value}"`);
+    });
+
+    it('does not echo credentials back when rejecting them', async () => {
+      process.env.FOREST_MCP_SERVER_URL = 'https://svc:p4ssw0rd@mcp.example.com';
+
+      server = new ForestMCPServer({
+        authSecret: 'AUTH_SECRET',
+        envSecret: 'ENV_SECRET',
+        forestServerClient: createMockForestServerClient(),
+      });
+      const error = (await server.run().catch((e: Error) => e)) as Error;
+
+      expect(error.message).toContain('Invalid FOREST_MCP_SERVER_URL "https://mcp.example.com"');
+      expect(error.message).not.toContain('p4ssw0rd');
+    });
+
+    it.each([
+      ['no scheme', 'mcp.example.com', 'mcp.example.com'],
+      ['a host-port pair that parses as a scheme', 'mcp.example.com:8080', 'mcp.example.com:8080'],
+      ['a path', 'https://example.com/mcp-server', 'https://example.com'],
+      ['a query', 'https://example.com?tenant=x', 'https://example.com'],
+      ['a fragment', 'https://example.com#prod', 'https://example.com'],
+      ['a non-http scheme', 'ftp://example.com', 'ftp://example.com'],
+      ['credentials', 'https://user:secret@example.com', 'https://example.com'],
+      ['credentials and no scheme', 'user:secret@example.com', 'example.com'],
+    ])('refuses a FOREST_MCP_SERVER_URL with %s', async (_, value, shown) => {
+      process.env.FOREST_MCP_SERVER_URL = value;
+
+      server = new ForestMCPServer({
+        authSecret: 'AUTH_SECRET',
+        envSecret: 'ENV_SECRET',
+        forestServerClient: createMockForestServerClient(),
+      });
+
+      await expect(server.run()).rejects.toThrow(`Invalid FOREST_MCP_SERVER_URL "${shown}"`);
     });
 
     it('should start server on specified port', async () => {
@@ -2919,6 +3068,214 @@ describe('tokenTtl option', () => {
   });
 });
 
+describe('allowedOAuthClients option', () => {
+  const originalFetch = global.fetch;
+  const FOREST_SECRET = 'forest-signing-secret';
+  let mockFetchServer: MockServer;
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+    mockFetchServer?.restoreSuperagent();
+  });
+
+  function stubForestServer(redirectUris: string[]) {
+    mockFetchServer = new MockServer();
+    mockFetchServer
+      .get('/liana/environment', {
+        data: { id: '1', attributes: { api_endpoint: 'https://api.example.com' } },
+      })
+      .get(/\/oauth\/register\//, {
+        client_id: 'test-client',
+        redirect_uris: redirectUris,
+      })
+      .post('/oauth/token', {
+        access_token: jsonwebtoken.sign(
+          { meta: { renderingId: 456 }, scope: 'mcp:read' },
+          FOREST_SECRET,
+          { expiresIn: 3600 },
+        ),
+        refresh_token: jsonwebtoken.sign({}, FOREST_SECRET, { expiresIn: '7d' }),
+        expires_in: 3600,
+        token_type: 'Bearer',
+        scope: 'mcp:read',
+      })
+      .get(/\/liana\/v2\/renderings\/\d+\/authorization/, {
+        data: {
+          id: '123',
+          attributes: {
+            email: 'user@example.com',
+            first_name: 'Test',
+            last_name: 'User',
+            teams: ['Operations'],
+            role: 'Admin',
+            permission_level: 'admin',
+            tags: [],
+          },
+        },
+      });
+    global.fetch = mockFetchServer.fetch;
+    mockFetchServer.setupSuperagentMock();
+  }
+
+  function createRestrictedServer(allowedOAuthClients: string[]) {
+    return new ForestMCPServer({
+      envSecret: 'ENV_SECRET',
+      authSecret: 'AUTH_SECRET',
+      forestServerClient: createMockForestServerClient(),
+      allowedOAuthClients,
+    });
+  }
+
+  it('completes the token exchange and refresh for a client on an allowed domain', async () => {
+    stubForestServer(['https://eu.dust.tt/oauth/mcp_static/finalize']);
+    const server = createRestrictedServer(['dust.tt']);
+    const app = await server.buildExpressApp(new URL('http://localhost:3000'));
+
+    const exchangeResponse = await request(app).post('/oauth/token').type('form').send({
+      grant_type: 'authorization_code',
+      code: 'auth-code',
+      code_verifier: 'code-verifier',
+      client_id: 'test-client',
+    });
+
+    expect(exchangeResponse.status).toBe(200);
+    expect(exchangeResponse.body.access_token).toBeDefined();
+    expect(exchangeResponse.body.error).toBeUndefined();
+
+    const refreshResponse = await request(app).post('/oauth/token').type('form').send({
+      grant_type: 'refresh_token',
+      refresh_token: exchangeResponse.body.refresh_token,
+      client_id: 'test-client',
+    });
+
+    expect(refreshResponse.status).toBe(200);
+    expect(refreshResponse.body.access_token).toBeDefined();
+    expect(refreshResponse.body.error).toBeUndefined();
+  });
+
+  it('redirects an allowed client to the Forest Admin login on authorization', async () => {
+    stubForestServer(['https://eu.dust.tt/oauth/mcp_static/finalize']);
+    const server = createRestrictedServer(['dust.tt']);
+    const app = await server.buildExpressApp(new URL('http://localhost:3000'));
+
+    const response = await request(app).get('/oauth/authorize').query({
+      response_type: 'code',
+      client_id: 'test-client',
+      redirect_uri: 'https://eu.dust.tt/oauth/mcp_static/finalize',
+      code_challenge: 'challenge',
+      code_challenge_method: 'S256',
+      state: 'some-state',
+    });
+
+    expect(response.status).toBe(302);
+    expect(response.headers.location).toContain('/oauth/authorize');
+  });
+
+  it('rejects the token exchange of a disallowed client with a targeted invalid_client error', async () => {
+    stubForestServer(['https://claude.ai/api/mcp/auth_callback']);
+    const server = createRestrictedServer(['dust.tt']);
+    const app = await server.buildExpressApp(new URL('http://localhost:3000'));
+
+    const response = await request(app).post('/oauth/token').type('form').send({
+      grant_type: 'authorization_code',
+      code: 'auth-code',
+      code_verifier: 'code-verifier',
+      client_id: 'test-client',
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe('invalid_client');
+    expect(response.body.error_description).toMatch(/approved client applications/i);
+    expect(response.body.error_description).not.toContain('dust.tt');
+  });
+
+  it('rejects the authorization of a disallowed client directly, without redirecting', async () => {
+    stubForestServer(['https://claude.ai/api/mcp/auth_callback']);
+    const server = createRestrictedServer(['dust.tt']);
+    const app = await server.buildExpressApp(new URL('http://localhost:3000'));
+
+    const response = await request(app).get('/oauth/authorize').query({
+      response_type: 'code',
+      client_id: 'test-client',
+      redirect_uri: 'https://claude.ai/api/mcp/auth_callback',
+      code_challenge: 'challenge',
+      code_challenge_method: 'S256',
+      state: 'some-state',
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe('invalid_client');
+    expect(response.body.error_description).toMatch(/approved client applications/i);
+  });
+
+  it('rejects the refresh grant of a disallowed client before touching the refresh token', async () => {
+    stubForestServer(['https://claude.ai/api/mcp/auth_callback']);
+    const server = createRestrictedServer(['dust.tt']);
+    const app = await server.buildExpressApp(new URL('http://localhost:3000'));
+
+    const response = await request(app).post('/oauth/token').type('form').send({
+      grant_type: 'refresh_token',
+      refresh_token: 'refresh-token-issued-before-the-allowlist-existed',
+      client_id: 'test-client',
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe('invalid_client');
+  });
+
+  it('rejects an empty allowlist at construction rather than silently blocking every client', () => {
+    expect(
+      () =>
+        new ForestMCPServer({
+          envSecret: 'ENV_SECRET',
+          authSecret: 'AUTH_SECRET',
+          forestServerClient: createMockForestServerClient(),
+          allowedOAuthClients: [],
+        }),
+    ).toThrow(/allowedOAuthClients/);
+  });
+
+  it('rejects a blank-only allowlist at construction rather than silently blocking every client', () => {
+    expect(
+      () =>
+        new ForestMCPServer({
+          envSecret: 'ENV_SECRET',
+          authSecret: 'AUTH_SECRET',
+          forestServerClient: createMockForestServerClient(),
+          allowedOAuthClients: ['  '],
+        }),
+    ).toThrow(/allowedOAuthClients/);
+  });
+
+  it('rejects an allowlist entry carrying a scheme at construction', () => {
+    expect(
+      () =>
+        new ForestMCPServer({
+          envSecret: 'ENV_SECRET',
+          authSecret: 'AUTH_SECRET',
+          forestServerClient: createMockForestServerClient(),
+          allowedOAuthClients: ['https://dust.tt'],
+        }),
+    ).toThrow(/bare domains/);
+  });
+
+  it('matches a unicode allowlist entry against its punycode hostname', async () => {
+    stubForestServer(['https://xn--bcher-kva.de/oauth/callback']);
+    const server = createRestrictedServer(['bücher.de']);
+    const app = await server.buildExpressApp(new URL('http://localhost:3000'));
+
+    const response = await request(app).post('/oauth/token').type('form').send({
+      grant_type: 'authorization_code',
+      code: 'auth-code',
+      code_verifier: 'code-verifier',
+      client_id: 'test-client',
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body.access_token).toBeDefined();
+  });
+});
+
 describe('handleMcpRequest cleanup', () => {
   const originalFetch = global.fetch;
   let cleanupServer: ForestMCPServer;
@@ -3288,6 +3645,7 @@ describe('enabledTools', () => {
         'listWorkflows',
         'triggerWorkflow',
         'getWorkflowRun',
+        'requestActionFileUpload',
       ],
     });
 
@@ -3396,5 +3754,172 @@ describe('Logo URL', () => {
 
     expect(response.ok).toBe(true);
     expect(response.headers.get('content-type')).toContain('image/png');
+  });
+});
+
+describe('file uploads without a storage backend', () => {
+  const build = (options: Record<string, unknown> = {}) =>
+    new ForestMCPServer({
+      envSecret: 'test-env-secret',
+      authSecret: 'test-auth-secret',
+      forestServerUrl: 'https://test.forestadmin.com',
+      ...options,
+    });
+
+  const buildApp = async (options: Record<string, unknown> = {}) =>
+    build(options).buildExpressApp(new URL('https://agent.example'));
+
+  // No option to set: the whole point is that an agent gets this without asking.
+  it('is enabled without any configuration', async () => {
+    const response = await request(await buildApp())
+      .put('/mcp/uploads/never-issued')
+      .send('hello');
+
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({ error: expect.stringContaining('no upload was authorized') });
+  });
+
+  // Boot-time would reach every agent, including those whose actions have no file field.
+  it('stays quiet at startup and announces the single instance on first use', async () => {
+    const logger = jest.fn();
+    const server = build({ logger });
+    await server.buildExpressApp(new URL('https://agent.example'));
+
+    expect(logger).not.toHaveBeenCalledWith(
+      'Warn',
+      expect.stringContaining('held in memory, on this instance only'),
+    );
+
+    const { ephemeralStorage: storage } = server as unknown as {
+      ephemeralStorage: EphemeralStorage;
+    };
+    await storage.createUploadUrl({ key: 'k' });
+
+    expect(logger).toHaveBeenCalledWith(
+      'Warn',
+      expect.stringContaining('held in memory, on this instance only'),
+    );
+  });
+
+  // The tool reports maxBytes to the model verbatim, so this would promise a size the store always
+  // refuses — with "the store is full", on an empty store.
+  it('warns when maxBytes exceeds what the in-memory store can ever hold', async () => {
+    const logger = jest.fn();
+
+    await buildApp({ logger, fileUploads: { maxBytes: 100 * 1024 * 1024 } });
+
+    expect(logger).toHaveBeenCalledWith('Warn', expect.stringContaining('always refused'));
+  });
+
+  // enabledTools is the off switch, and it has to take the endpoint with it.
+  it('serves no upload endpoint when the tool is not enabled', async () => {
+    const app = await buildApp({ enabledTools: ['describeCollection', 'list'] });
+
+    const response = await request(app).put('/mcp/uploads/anything').send('hello');
+
+    expect(response.status).toBe(405);
+  });
+
+  it('turns the whole feature off on fileUploads: false, without touching enabledTools', async () => {
+    const server = build({ fileUploads: false });
+    const app = await server.buildExpressApp(new URL('https://agent.example'));
+
+    await expect(request(app).put('/mcp/uploads/anything').send('hello')).resolves.toMatchObject({
+      status: 405,
+    });
+    expect((server as unknown as { enabledTools: Set<string> }).enabledTools).not.toContain(
+      'requestActionFileUpload',
+    );
+    // Every other tool is untouched, which is the point of not going through enabledTools.
+    expect((server as unknown as { enabledTools: Set<string> }).enabledTools).toContain('list');
+  });
+
+  // Config often merges from two layers; when they contradict each other, false wins — and says so,
+  // because a tool the caller named vanishing without a log line reads as a bug in the losing layer.
+  it('lets fileUploads: false override an enabledTools that lists the tool, and warns', async () => {
+    const logger = jest.fn();
+    const server = build({
+      logger,
+      fileUploads: false,
+      enabledTools: ['describeCollection', 'list', 'requestActionFileUpload'],
+    });
+    await server.buildExpressApp(new URL('https://agent.example'));
+
+    expect((server as unknown as { enabledTools: Set<string> }).enabledTools).not.toContain(
+      'requestActionFileUpload',
+    );
+    expect(logger).toHaveBeenCalledWith(
+      'Warn',
+      expect.stringContaining('even though enabledTools lists it'),
+    );
+  });
+
+  // 404 comes from the uploads router itself, for a key it never handed out. A 405 would mean
+  // allowedMethods(['POST']) claimed the PUT first, and a hang would mean a body parser did.
+  it('serves the upload endpoint under /mcp/uploads', async () => {
+    const response = await request(await buildApp())
+      .put('/mcp/uploads/mcp-uploads%2Fuuid%2Fa.txt')
+      .send('hello');
+
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({ error: expect.stringContaining('no upload was authorized') });
+  });
+
+  // The url handed to the client is built from the server's own base url, while the route is
+  // mounted from the prefix. Uploading to the url it actually returns is the only check that the
+  // two agree — everything else here asks the route about a path the test itself wrote.
+  it('accepts an upload at the url it hands out, and serves those exact bytes back', async () => {
+    const server = build();
+    const app = await server.buildExpressApp(new URL('https://agent.example'));
+    const { ephemeralStorage: storage } = server as unknown as {
+      ephemeralStorage: EphemeralStorage;
+    };
+    const body = Buffer.from('CONTENU-BINAIRE- ÿ');
+
+    const { url } = await storage.createUploadUrl({ key: 'mcp-uploads/uuid/rapport final;v2.pdf' });
+    const response = await request(app).put(new URL(url).pathname).send(body);
+
+    expect(response.status).toBe(200);
+    await expect(storage.download('mcp-uploads/uuid/rapport final;v2.pdf')).resolves.toEqual(body);
+  });
+
+  it('leaves /mcp itself bearer-protected', async () => {
+    const response = await request(await buildApp())
+      .post('/mcp')
+      .send({});
+
+    expect(response.status).toBe(401);
+  });
+});
+
+describe('file uploads tool', () => {
+  const storage = {
+    createUploadUrl: jest.fn().mockResolvedValue({ url: 'https://storage.example/put' }),
+    download: jest.fn(),
+    getSize: jest.fn(),
+  };
+
+  const buildApp = async (fileUploads?: { storage: typeof storage }) =>
+    new ForestMCPServer({
+      envSecret: 'test-env-secret',
+      authSecret: 'test-auth-secret',
+      forestServerUrl: 'https://test.forestadmin.com',
+      ...(fileUploads && { fileUploads }),
+    }).buildExpressApp(new URL('https://agent.example'));
+
+  it.each([[undefined], [{ storage }]])('does not serve /files (fileUploads: %p)', async opts => {
+    const response = await request(await buildApp(opts))
+      .post('/files')
+      .send({});
+
+    expect(response.status).toBe(404);
+  });
+
+  it('still requires a bearer token on /mcp when uploads are enabled', async () => {
+    const response = await request(await buildApp({ storage }))
+      .post('/mcp')
+      .send({});
+
+    expect(response.status).toBe(401);
   });
 });

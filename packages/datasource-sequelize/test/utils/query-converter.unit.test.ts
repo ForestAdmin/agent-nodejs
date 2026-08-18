@@ -543,7 +543,7 @@ describe('Utils > QueryConverter', () => {
         const queryConverter = new QueryConverter(model);
 
         expect(queryConverter.getIncludeFromProjection(projection)).toEqual([
-          { association: 'model', include: [], attributes: ['another_field'] },
+          { association: 'model', include: [], attributes: ['another_field'], required: false },
         ]);
       });
 
@@ -555,8 +555,16 @@ describe('Utils > QueryConverter', () => {
         expect(queryConverter.getIncludeFromProjection(projection)).toEqual([
           {
             association: 'model',
-            include: [{ association: 'another_model', include: [], attributes: ['a_field'] }],
+            include: [
+              {
+                association: 'another_model',
+                include: [],
+                attributes: ['a_field'],
+                required: false,
+              },
+            ],
             attributes: [],
+            required: false,
           },
         ]);
       });
@@ -567,7 +575,7 @@ describe('Utils > QueryConverter', () => {
         const queryConverter = new QueryConverter(model);
 
         expect(queryConverter.getIncludeFromProjection(new Projection(), projection)).toEqual([
-          { association: 'model', include: [], attributes: [] },
+          { association: 'model', include: [], attributes: [], required: false },
         ]);
       });
 
@@ -579,8 +587,11 @@ describe('Utils > QueryConverter', () => {
         expect(queryConverter.getIncludeFromProjection(new Projection(), projection)).toEqual([
           {
             association: 'model',
-            include: [{ association: 'another_model', include: [], attributes: [] }],
+            include: [
+              { association: 'another_model', include: [], attributes: [], required: false },
+            ],
             attributes: [],
+            required: false,
           },
         ]);
       });

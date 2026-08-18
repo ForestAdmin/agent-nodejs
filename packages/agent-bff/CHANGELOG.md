@@ -1,3 +1,118 @@
+# @forestadmin/agent-bff [1.18.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.17.0...@forestadmin/agent-bff@1.18.0) (2026-08-17)
+
+
+### Features
+
+* upload files through the MCP server for action File fields ([#1815](https://github.com/ForestAdmin/agent-nodejs/issues/1815)) ([f09e88c](https://github.com/ForestAdmin/agent-nodejs/commit/f09e88cd3c8c542adf2f2bb89572fbc78c11e51a))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.14.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.55.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.42.1
+
+# @forestadmin/agent-bff [1.17.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.16.0...@forestadmin/agent-bff@1.17.0) (2026-08-14)
+
+
+### Features
+
+* **agent-bff:** document the real operator set of each filterable field ([#1824](https://github.com/ForestAdmin/agent-nodejs/issues/1824)) ([36cce08](https://github.com/ForestAdmin/agent-nodejs/commit/36cce08a3c7ab8ccff6653958ccd89971ee2d022))
+* **agent-bff:** unfold the OpenAPI document per collection, relation and action ([#1823](https://github.com/ForestAdmin/agent-nodejs/issues/1823)) ([a4a7102](https://github.com/ForestAdmin/agent-nodejs/commit/a4a7102f22213870e73589bc339bd044e60b327f))
+
+# @forestadmin/agent-bff [1.16.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.15.1...@forestadmin/agent-bff@1.16.0) (2026-08-12)
+
+
+### Features
+
+* **agent-bff:** serve the permissions display endpoint ([#1804](https://github.com/ForestAdmin/agent-nodejs/issues/1804)) ([b2e3c9c](https://github.com/ForestAdmin/agent-nodejs/commit/b2e3c9c21e84a019804ed3c649d89f79dcb5cbc7))
+* **agent-bff:** validate relation filters against the foreign collection ([#1801](https://github.com/ForestAdmin/agent-nodejs/issues/1801)) ([5c9e428](https://github.com/ForestAdmin/agent-nodejs/commit/5c9e428d0f68ac15e9e5c6544c16f2988970a22c))
+
+## @forestadmin/agent-bff [1.15.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.15.0...@forestadmin/agent-bff@1.15.1) (2026-08-11)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.13.1
+* **@forestadmin/forestadmin-client:** upgraded to 1.42.0
+
+# @forestadmin/agent-bff [1.15.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.14.0...@forestadmin/agent-bff@1.15.0) (2026-08-11)
+
+
+### Features
+
+* **agent-bff:** gate the OpenAPI HTTP route behind a env variable ([#1816](https://github.com/ForestAdmin/agent-nodejs/issues/1816)) ([1828e35](https://github.com/ForestAdmin/agent-nodejs/commit/1828e3513dc2e8bbe7a56fe66a0914835f40f5f4))
+
+# @forestadmin/agent-bff [1.14.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.13.0...@forestadmin/agent-bff@1.14.0) (2026-08-11)
+
+
+### Features
+
+* **agent-bff:** emit the OpenAPI document from a forest-bff openapi subcommand ([#1811](https://github.com/ForestAdmin/agent-nodejs/issues/1811)) ([ca9c849](https://github.com/ForestAdmin/agent-nodejs/commit/ca9c849f0233bde308899344387d72be5c08ff9c))
+
+# @forestadmin/agent-bff [1.13.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.12.1...@forestadmin/agent-bff@1.13.0) (2026-08-11)
+
+
+### Features
+
+* **agent-bff:** serve the static OpenAPI document behind the agent gate ([#1810](https://github.com/ForestAdmin/agent-nodejs/issues/1810)) ([314b955](https://github.com/ForestAdmin/agent-nodejs/commit/314b9551da2e52c4227c8ca8a39ff4de20c3fa0a))
+
+## @forestadmin/agent-bff [1.12.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.12.0...@forestadmin/agent-bff@1.12.1) (2026-08-11)
+
+
+### Bug Fixes
+
+* **agent:** authorize count-related on the target collection instead of the parent ([#1818](https://github.com/ForestAdmin/agent-nodejs/issues/1818)) ([8d60e94](https://github.com/ForestAdmin/agent-nodejs/commit/8d60e946d37665f4e6fa441d606c3cb245abf624))
+
+# @forestadmin/agent-bff [1.12.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.11.0...@forestadmin/agent-bff@1.12.0) (2026-08-10)
+
+
+### Features
+
+* **agent:** support get-one projection via the Forest-Projection header ([#1813](https://github.com/ForestAdmin/agent-nodejs/issues/1813)) ([83d3ab8](https://github.com/ForestAdmin/agent-nodejs/commit/83d3ab832d5d98bdecc355c2d202d48a3509cf3b))
+
+# @forestadmin/agent-bff [1.11.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.10.0...@forestadmin/agent-bff@1.11.0) (2026-08-07)
+
+
+### Features
+
+* **agent-bff:** mint an agent token from the OAuth principal ([#1800](https://github.com/ForestAdmin/agent-nodejs/issues/1800)) ([b2414db](https://github.com/ForestAdmin/agent-nodejs/commit/b2414db92c359701efca57bea89ad9dbaee9782e))
+
+# @forestadmin/agent-bff [1.10.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.9.1...@forestadmin/agent-bff@1.10.0) (2026-08-06)
+
+
+### Features
+
+* **agent-bff:** make the agent request timeout configurable ([#1803](https://github.com/ForestAdmin/agent-nodejs/issues/1803)) ([2977b52](https://github.com/ForestAdmin/agent-nodejs/commit/2977b529cd8acbb8561e69e375787a1cb1ec22b9))
+
+## @forestadmin/agent-bff [1.9.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.9.0...@forestadmin/agent-bff@1.9.1) (2026-08-05)
+
+
+### Bug Fixes
+
+* **agent-bff:** wrap action errors in the standard error envelope ([#1799](https://github.com/ForestAdmin/agent-nodejs/issues/1799)) ([e660395](https://github.com/ForestAdmin/agent-nodejs/commit/e660395b1ba3117ce2345329c9f55dd47effeef0))
+
+# @forestadmin/agent-bff [1.9.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.8.6...@forestadmin/agent-bff@1.9.0) (2026-08-04)
+
+
+### Features
+
+* **agent-bff:** expose the action execute endpoint with result normalization ([#1752](https://github.com/ForestAdmin/agent-nodejs/issues/1752)) ([ff8cb75](https://github.com/ForestAdmin/agent-nodejs/commit/ff8cb75d6200f24b6670bfe6cc44fd4825da6f5e))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.13.0
+
 ## @forestadmin/agent-bff [1.8.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.8.5...@forestadmin/agent-bff@1.8.6) (2026-08-03)
 
 

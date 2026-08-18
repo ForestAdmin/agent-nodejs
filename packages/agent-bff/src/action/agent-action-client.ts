@@ -3,9 +3,12 @@ import type { ForestServerActionFormLayoutElement } from '@forestadmin/forestadm
 
 import { createRemoteAgentClient } from '@forestadmin/agent-client';
 
+import createAgentHttpRequester from '../agent/create-agent-http-requester';
+
 export interface ActionFormField {
   getName(): string;
-  getType(): string;
+  /** A list type is the array the agent sent, `['String']`, not `'StringList'`. */
+  getType(): string | [string];
   getValue(): unknown;
   isRequired(): boolean | undefined;
 }
@@ -19,14 +22,22 @@ export interface ActionForm {
   getLayout(): unknown;
 }
 
+// The form and execute endpoints load the same agent-client `Action` object; execute adds the
+// strict setFields + execute members on top of the form ones.
+export interface Action extends ActionForm {
+  setFields(values: Record<string, unknown>): Promise<void>;
+  execute(): Promise<unknown>;
+}
+
 export interface AgentActionClient {
-  loadActionForm(collection: string, action: string, recordIds: string[]): Promise<ActionForm>;
+  loadAction(collection: string, action: string, recordIds: string[]): Promise<Action>;
 }
 
 export interface AgentActionClientOptions {
   agentUrl: string;
   token: string;
   actionEndpoints: ActionEndpointsByCollection;
+  timeoutMs?: number;
 }
 
 // The raw layout must be read AFTER tryToSetFields: a change hook rebuilds fields+layout in place.
@@ -49,11 +60,17 @@ export default function createAgentActionClient({
   agentUrl,
   token,
   actionEndpoints,
+  timeoutMs,
 }: AgentActionClientOptions): AgentActionClient {
-  const client = createRemoteAgentClient({ url: agentUrl, token, actionEndpoints });
+  const client = createRemoteAgentClient({
+    url: agentUrl,
+    token,
+    actionEndpoints,
+    httpRequester: createAgentHttpRequester(token, agentUrl, timeoutMs),
+  });
 
   return {
-    loadActionForm: (collection, action, recordIds) =>
+    loadAction: (collection, action, recordIds) =>
       client.collection(collection).action(action, { recordIds }),
   };
 }

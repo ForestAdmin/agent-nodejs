@@ -25,7 +25,7 @@ export function actionNotAllowed(message = 'Action is not allowed'): BffHttpErro
 }
 
 export function invalidRequest(message = 'Invalid request', details?: unknown): BffHttpError {
-  return new BffHttpError(400, 'invalid_request', message, details);
+  return new BffHttpError(400, 'invalid_request', message, { details });
 }
 
 export function mappingError(message = 'Failed to map the agent response'): BffHttpError {
@@ -38,4 +38,30 @@ export function schemaUnavailable(message = 'The agent schema is unavailable'): 
 
 export function unsupportedActionResult(message = 'Unsupported action result'): BffHttpError {
   return new BffHttpError(501, 'unsupported_action_result', message);
+}
+
+export function actionError(message = 'The action failed', details?: unknown): BffHttpError {
+  return new BffHttpError(400, 'action_error', message, { details });
+}
+
+export function openapiDisabled(message = 'The OpenAPI document is not served'): BffHttpError {
+  return new BffHttpError(404, 'openapi_disabled', message);
+}
+
+export function forestIdentityNotAllowed(message = 'Forest identity not allowed'): BffHttpError {
+  return new BffHttpError(403, 'forest_identity_not_allowed', message);
+}
+
+export function permissionsUnavailable(
+  retryAfter: number,
+  message = 'Permissions are unavailable',
+): BffHttpError {
+  return new BffHttpError(503, 'permissions_unavailable', message, { retryAfter });
+}
+
+export function actionRequiresApproval(
+  message = 'This action requires an approval before it can run',
+  details?: unknown,
+): BffHttpError {
+  return new BffHttpError(403, 'action_requires_approval', message, { details });
 }

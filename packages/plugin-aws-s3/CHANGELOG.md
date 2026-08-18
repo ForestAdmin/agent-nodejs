@@ -1,3 +1,19 @@
+# @forestadmin/plugin-aws-s3 [1.6.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-aws-s3@1.5.14...@forestadmin/plugin-aws-s3@1.6.0) (2026-08-17)
+
+
+### Features
+
+* upload files through the MCP server for action File fields ([#1815](https://github.com/ForestAdmin/agent-nodejs/issues/1815)) ([f09e88c](https://github.com/ForestAdmin/agent-nodejs/commit/f09e88cd3c8c542adf2f2bb89572fbc78c11e51a))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.55.0
+* **@forestadmin/datasource-customizer:** upgraded to 1.70.1
+
 ## @forestadmin/plugin-aws-s3 [1.5.14](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-aws-s3@1.5.13...@forestadmin/plugin-aws-s3@1.5.14) (2026-07-24)
 
 

@@ -616,6 +616,7 @@ describe('SequelizeDataSource > Collection', () => {
                   association: 'relations',
                   include: [],
                   attributes: [],
+                  required: false,
                 },
               ],
             }),

@@ -594,6 +594,20 @@ describe('Agent', () => {
       );
     });
 
+    test('should pass allowedOAuthClients to ForestMCPServer', async () => {
+      const options = factories.forestAdminHttpDriverOptions.build();
+      const agent = new Agent(options);
+
+      agent.mountAiMcpServer({ allowedOAuthClients: ['dust.tt'] });
+      await agent.start();
+
+      expect(mcpServerSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          allowedOAuthClients: ['dust.tt'],
+        }),
+      );
+    });
+
     test('passes an in-process agentDispatcher to ForestMCPServer', async () => {
       const options = factories.forestAdminHttpDriverOptions.build();
       const agent = new Agent(options);

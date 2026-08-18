@@ -621,7 +621,7 @@ describe('ExecutorHttpServer', () => {
         .set('Authorization', `Bearer ${token}`);
 
       expect(response.status).toBe(400);
-      expect(response.body).toEqual({ error: 'Run "run-1" is already being processed' });
+      expect(response.body).toEqual({ error: 'This step is already running.' });
     });
 
     it('returns 500 when triggerPoll rejects with an unexpected error', async () => {

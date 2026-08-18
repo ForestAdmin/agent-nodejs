@@ -1,8 +1,9 @@
-import { HttpRequester } from '@forestadmin/agent-client';
+import createAgentHttpRequester from '../agent/create-agent-http-requester';
 
 export interface AgentDataClientOptions {
   agentUrl: string;
   token: string;
+  timeoutMs?: number;
 }
 
 export interface AgentDataClient {
@@ -30,8 +31,9 @@ export interface AgentDataClient {
 export default function createAgentDataClient({
   agentUrl,
   token,
+  timeoutMs,
 }: AgentDataClientOptions): AgentDataClient {
-  const requester = new HttpRequester(token, { url: agentUrl });
+  const requester = createAgentHttpRequester(token, agentUrl, timeoutMs);
 
   // Segments are passed raw: HttpRequester.buildUrl already runs the whole path through
   // escapeUrlSlug/encodeURI, so pre-encoding here would double-encode (`|` -> `%257C`).

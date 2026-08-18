@@ -1,3 +1,146 @@
+## @forestadmin/agent [1.95.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.95.1...@forestadmin/agent@1.95.2) (2026-08-18)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/mcp-server:** upgraded to 1.22.1
+
+## @forestadmin/agent [1.95.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.95.0...@forestadmin/agent@1.95.1) (2026-08-17)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sql:** upgraded to 1.17.13
+
+# @forestadmin/agent [1.95.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.94.1...@forestadmin/agent@1.95.0) (2026-08-17)
+
+
+### Features
+
+* upload files through the MCP server for action File fields ([#1815](https://github.com/ForestAdmin/agent-nodejs/issues/1815)) ([f09e88c](https://github.com/ForestAdmin/agent-nodejs/commit/f09e88cd3c8c542adf2f2bb89572fbc78c11e51a))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.70.1
+* **@forestadmin/datasource-toolkit:** upgraded to 1.55.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.42.1
+* **@forestadmin/mcp-server:** upgraded to 1.22.0
+* **@forestadmin/datasource-sql:** upgraded to 1.17.12
+* **@forestadmin/workflow-executor:** upgraded to 1.24.0
+
+## @forestadmin/agent [1.94.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.94.0...@forestadmin/agent@1.94.1) (2026-08-13)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/workflow-executor:** upgraded to 1.23.9
+
+# @forestadmin/agent [1.94.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.93.4...@forestadmin/agent@1.94.0) (2026-08-12)
+
+
+### Features
+
+* **agent:** accept the Forest-Projection header on list, relationship and csv routes ([#1822](https://github.com/ForestAdmin/agent-nodejs/issues/1822)) ([68602c6](https://github.com/ForestAdmin/agent-nodejs/commit/68602c6702cfcc69d5b314b935f20e0e7c3b1114)), closes [#1813](https://github.com/ForestAdmin/agent-nodejs/issues/1813)
+
+## @forestadmin/agent [1.93.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.93.3...@forestadmin/agent@1.93.4) (2026-08-11)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.42.0
+* **@forestadmin/mcp-server:** upgraded to 1.21.1
+* **@forestadmin/workflow-executor:** upgraded to 1.23.8
+
+## @forestadmin/agent [1.93.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.93.2...@forestadmin/agent@1.93.3) (2026-08-11)
+
+
+### Bug Fixes
+
+* **agent:** authorize associate-related on the foreign collection and scope the many-to-many link ([#1820](https://github.com/ForestAdmin/agent-nodejs/issues/1820)) ([3000206](https://github.com/ForestAdmin/agent-nodejs/commit/300020624a7c68aed6556a99d68bb1bc960b1ac4)), closes [throu#collection](https://github.com/throu/issues/collection) [throu#create](https://github.com/throu/issues/create)
+
+## @forestadmin/agent [1.93.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.93.1...@forestadmin/agent@1.93.2) (2026-08-11)
+
+
+### Bug Fixes
+
+* **agent:** authorize create with linked one-to-one on the foreign collection ([#1819](https://github.com/ForestAdmin/agent-nodejs/issues/1819)) ([32b828c](https://github.com/ForestAdmin/agent-nodejs/commit/32b828ccdf1b5c67eb0f4da34001a4cfcc3459ab))
+
+## @forestadmin/agent [1.93.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.93.0...@forestadmin/agent@1.93.1) (2026-08-11)
+
+
+### Bug Fixes
+
+* **agent:** authorize count-related on the target collection instead of the parent ([#1818](https://github.com/ForestAdmin/agent-nodejs/issues/1818)) ([8d60e94](https://github.com/ForestAdmin/agent-nodejs/commit/8d60e946d37665f4e6fa441d606c3cb245abf624))
+
+# @forestadmin/agent [1.93.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.92.1...@forestadmin/agent@1.93.0) (2026-08-10)
+
+
+### Features
+
+* **agent:** support get-one projection via the Forest-Projection header ([#1813](https://github.com/ForestAdmin/agent-nodejs/issues/1813)) ([83d3ab8](https://github.com/ForestAdmin/agent-nodejs/commit/83d3ab832d5d98bdecc355c2d202d48a3509cf3b))
+
+## @forestadmin/agent [1.92.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.92.0...@forestadmin/agent@1.92.1) (2026-08-10)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/workflow-executor:** upgraded to 1.23.7
+
+# @forestadmin/agent [1.92.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.91.6...@forestadmin/agent@1.92.0) (2026-08-06)
+
+
+### Features
+
+* **mcp-server:** restrict oauth clients to an allowlist of domains ([#1797](https://github.com/ForestAdmin/agent-nodejs/issues/1797)) ([ebaeb17](https://github.com/ForestAdmin/agent-nodejs/commit/ebaeb17fec615ad80b1e635955325490748d6fb2))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/mcp-server:** upgraded to 1.21.0
+
+## @forestadmin/agent [1.91.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.91.5...@forestadmin/agent@1.91.6) (2026-08-05)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/workflow-executor:** upgraded to 1.23.6
+
+## @forestadmin/agent [1.91.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.91.4...@forestadmin/agent@1.91.5) (2026-08-04)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/mcp-server:** upgraded to 1.20.3
+* **@forestadmin/workflow-executor:** upgraded to 1.23.5
+
 ## @forestadmin/agent [1.91.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.91.3...@forestadmin/agent@1.91.4) (2026-08-03)
 
 

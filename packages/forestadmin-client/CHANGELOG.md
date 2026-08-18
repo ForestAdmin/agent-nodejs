@@ -1,3 +1,20 @@
+## @forestadmin/forestadmin-client [1.42.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.42.0...@forestadmin/forestadmin-client@1.42.1) (2026-08-17)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.55.0
+
+# @forestadmin/forestadmin-client [1.42.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.41.3...@forestadmin/forestadmin-client@1.42.0) (2026-08-11)
+
+
+### Features
+
+* **forestadmin-client:** export the permission evaluator ([#1802](https://github.com/ForestAdmin/agent-nodejs/issues/1802)) ([6315933](https://github.com/ForestAdmin/agent-nodejs/commit/6315933a7190aff8ebec219a4d2845f4d52265f9))
+
 ## @forestadmin/forestadmin-client [1.41.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.41.2...@forestadmin/forestadmin-client@1.41.3) (2026-08-03)
 
 

@@ -145,10 +145,11 @@ describe('runCli', () => {
     });
 
     it('should let an oauth Bearer request through the guard to timezone resolution', async () => {
-      const token = jsonwebtoken.sign({ type: 'bff_access' }, VALID_ENV.FOREST_AUTH_SECRET, {
-        algorithm: 'HS256',
-        expiresIn: '15m',
-      });
+      const token = jsonwebtoken.sign(
+        { type: 'bff_access', sid: 's1', rendering_id: '1', tags: {} },
+        VALID_ENV.FOREST_AUTH_SECRET,
+        { algorithm: 'HS256', expiresIn: '15m' },
+      );
       const server = await runCli({ ...VALID_ENV, FOREST_ENV_SECRET: undefined }, noopLogger);
 
       try {
@@ -158,6 +159,86 @@ describe('runCli', () => {
 
         expect(response.status).toBe(400);
         expect(response.body.error.type).toBe('missing_timezone');
+      } finally {
+        await server.stop();
+      }
+    });
+
+    it('should carry an oauth Bearer past requireAgentToken on a data route', async () => {
+      const token = jsonwebtoken.sign(
+        {
+          type: 'bff_access',
+          sid: 's1',
+          id: 1,
+          email: 'a@b.c',
+          first_name: 'A',
+          last_name: 'B',
+          team: 'T',
+          rendering_id: '1',
+          permission_level: 'admin',
+          tags: {},
+        },
+        VALID_ENV.FOREST_AUTH_SECRET,
+        { algorithm: 'HS256', expiresIn: '15m' },
+      );
+      const server = await runCli(VALID_ENV, noopLogger);
+
+      try {
+        const response = await request(server.callback)
+          .post('/agent/v1/users/list')
+          .set('Authorization', `Bearer ${token}`)
+          .set('X-Forest-Timezone', 'Europe/Paris')
+          .send({});
+
+        expect(response.status).toBe(503);
+        expect(response.body.error).toEqual(
+          expect.objectContaining({ type: 'schema_unavailable', status: 503 }),
+        );
+      } finally {
+        await server.stop();
+      }
+    });
+  });
+
+  describe('when AGENT_URL is absent', () => {
+    it('should still serve the permissions endpoint instead of the agent stub', async () => {
+      const token = jsonwebtoken.sign(
+        { type: 'bff_access', sid: 's', id: 1, rendering_id: '7' },
+        VALID_ENV.FOREST_AUTH_SECRET,
+        { algorithm: 'HS256', expiresIn: '15m' },
+      );
+      const server = await runCli({ ...VALID_ENV, AGENT_URL: undefined }, noopLogger);
+
+      try {
+        const response = await request(server.callback)
+          .get('/agent/v1/permissions')
+          .set('Authorization', `Bearer ${token}`)
+          .set('X-Forest-Timezone', 'Europe/Paris');
+
+        expect(response.status).not.toBe(501);
+        expect(response.body.error?.type).not.toBe('not_implemented');
+      } finally {
+        await server.stop();
+      }
+    });
+
+    it('should still stub the data routes', async () => {
+      const token = jsonwebtoken.sign(
+        { type: 'bff_access', sid: 's', id: 1, rendering_id: '7' },
+        VALID_ENV.FOREST_AUTH_SECRET,
+        { algorithm: 'HS256', expiresIn: '15m' },
+      );
+      const server = await runCli({ ...VALID_ENV, AGENT_URL: undefined }, noopLogger);
+
+      try {
+        const response = await request(server.callback)
+          .post('/agent/v1/users/list')
+          .set('Authorization', `Bearer ${token}`)
+          .set('X-Forest-Timezone', 'Europe/Paris')
+          .send({});
+
+        expect(response.status).toBe(501);
+        expect(response.body.error.type).toBe('not_implemented');
       } finally {
         await server.stop();
       }

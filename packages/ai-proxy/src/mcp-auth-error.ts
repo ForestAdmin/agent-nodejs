@@ -3,6 +3,8 @@
 // re-consent cannot resolve, so it is left to surface as an ordinary failure. The MCP SDK / HTTP
 // transport reports failures in several shapes (a numeric status field, or only a message string),
 // so the checks walk the cause chain and inspect both structured status and the message text.
+import { McpLoadTimeoutError } from './errors';
+
 const AUTH_STATUSES = new Set([401]);
 const AUTH_PATTERN = /\b401\b|unauthorized/i;
 const CONNECTION_PATTERN =
@@ -51,6 +53,9 @@ export function isMcpAuthError(error: unknown): boolean {
 }
 
 export function classifyMcpLoadError(error: unknown): McpLoadFailureKind {
+  // Must run before the text patterns: the timeout message contains the user-controlled server name.
+  if (error instanceof McpLoadTimeoutError) return 'connection';
+
   if (isMcpAuthError(error)) return 'auth';
 
   const isConnectionFailure = errorChain(error).some(link =>

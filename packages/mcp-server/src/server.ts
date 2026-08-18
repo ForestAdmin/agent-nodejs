@@ -2,6 +2,7 @@
 // This ensures URL.canParse is available for MCP SDK's Zod validation
 import './polyfills';
 
+import type { FileUploadsOptions, ResolvedFileUploads } from './file-uploads/types';
 import type { ForestServerClient } from './http-client';
 import type { InProcessAgentDispatcher } from './in-process-agent-dispatcher';
 import type { ToolContext } from './tool-context';
@@ -23,6 +24,8 @@ import cors from 'cors';
 import express from 'express';
 import * as http from 'http';
 
+import EphemeralStorage from './file-uploads/ephemeral-storage';
+import { resolveFileUploads } from './file-uploads/types';
 import ForestOAuthProvider from './forest-oauth-provider';
 import { createForestServerClient } from './http-client';
 import { makeIsMcpRoute, normalizeMountPath } from './mcp-paths';
@@ -37,9 +40,11 @@ import declareGetWorkflowRunTool from './tools/get-workflow-run';
 import declareListTool from './tools/list';
 import declareListRelatedTool from './tools/list-related';
 import declareListWorkflowsTool from './tools/list-workflows';
+import declareRequestActionFileUploadTool from './tools/request-action-file-upload';
 import declareTriggerWorkflowTool from './tools/trigger-workflow';
 import declareUpdateTool from './tools/update';
 import normalizeAgentUrl from './utils/normalize-agent-url';
+import normalizeDomainList from './utils/normalize-domain-list';
 import { fetchForestSchema, getCollectionNames } from './utils/schema-fetcher';
 import interceptResponseForErrorLogging from './utils/sse-error-logger';
 import normalizeTokenTtl from './utils/token-ttl';
@@ -92,6 +97,7 @@ const SAFE_ARGUMENTS_FOR_LOGGING: Record<string, string[]> = {
   describeCollection: ['collectionName'],
   getActionForm: ['collectionName', 'actionName', 'recordIds'],
   executeAction: ['collectionName', 'actionName', 'recordIds'],
+  requestActionFileUpload: ['mimeType'],
   associate: ['collectionName', 'relationName', 'parentRecordId', 'targetRecordId'],
   dissociate: ['collectionName', 'relationName', 'parentRecordId', 'targetRecordIds'],
   listWorkflows: ['collectionName'],
@@ -112,7 +118,8 @@ export type ToolName =
   | 'executeAction'
   | 'listWorkflows'
   | 'triggerWorkflow'
-  | 'getWorkflowRun';
+  | 'getWorkflowRun'
+  | 'requestActionFileUpload';
 
 /**
  * Options for configuring the Forest Admin MCP Server
@@ -157,6 +164,21 @@ export interface ForestMCPServerOptions {
    * logins. Minimum 60s for either.
    */
   tokenTtl?: TokenTtlOptions;
+  /**
+   * Domains of the OAuth clients allowed to use this server, e.g. ['dust.tt']; subdomains match.
+   * Omit to accept any dynamically registered client.
+   */
+  allowedOAuthClients?: string[];
+  /**
+   * Action file uploads are on by default, with the objects held in memory. Pass an object to
+   * configure them — a `storage` backend, size limits, ttls — or `false` to turn the feature off:
+   * no `requestActionFileUpload` tool, no upload endpoint, and `executeAction` stops mentioning
+   * either. See the README for the flow and the storage contract.
+   *
+   * @experimental Expected to change to follow the MCP file transfer specification once it
+   * lands (SEP-2631).
+   */
+  fileUploads?: false | FileUploadsOptions;
 }
 
 /**
@@ -182,6 +204,10 @@ export default class ForestMCPServer {
   private agentUrl?: string;
   private agentDispatcher?: InProcessAgentDispatcher;
   private tokenTtl?: TokenTtlOptions;
+  private allowedOAuthClients?: string[];
+  private fileUploadsOptions?: FileUploadsOptions;
+  private fileUploads?: ResolvedFileUploads;
+  private ephemeralStorage?: EphemeralStorage;
 
   constructor(options?: ForestMCPServerOptions) {
     this.forestServerUrl = options?.forestServerUrl || 'https://api.forestadmin.com';
@@ -194,6 +220,28 @@ export default class ForestMCPServer {
     this.agentUrl = normalizeAgentUrl(options?.agentUrl);
     this.agentDispatcher = options?.agentDispatcher;
     this.tokenTtl = normalizeTokenTtl(options?.tokenTtl, this.logger);
+
+    this.allowedOAuthClients = normalizeDomainList(options?.allowedOAuthClients);
+    // Resolved in buildExpressApp, where the auth secret is known to be set.
+    this.fileUploadsOptions = options?.fileUploads || undefined;
+
+    // `enabledTools` is an allowlist, so declining this one feature through it would mean naming
+    // every other tool and opting out of everything shipped later. Dropping it from the set here
+    // turns the whole feature off through the machinery that already gates it: registration, the
+    // upload endpoint, and the paragraph executeAction adds for it.
+    if (options?.fileUploads === false) {
+      // Said aloud when the two options contradict each other: resolveEnabledTools logs every
+      // other enablement surprise, and a tool the caller named vanishing without a line in the
+      // log reads as a bug in whichever config layer loses.
+      if (options.enabledTools?.includes('requestActionFileUpload')) {
+        this.logger(
+          'Warn',
+          'fileUploads: false removes requestActionFileUpload even though enabledTools lists it.',
+        );
+      }
+
+      this.enabledTools.delete('requestActionFileUpload');
+    }
 
     // Use injected forestServerClient or create default
     this.forestServerClient = options?.forestServerClient ?? this.createDefaultForestServerClient();
@@ -230,6 +278,7 @@ export default class ForestMCPServer {
       logger: this.logger,
       collectionNames: this.collectionNames,
       agentDispatcher: this.agentDispatcher,
+      fileUploads: this.fileUploads,
     };
 
     const allTools: Array<{ name: ToolName; register: () => string }> = [
@@ -246,6 +295,14 @@ export default class ForestMCPServer {
       { name: 'listWorkflows', register: () => declareListWorkflowsTool(mcpServer, ctx) },
       { name: 'triggerWorkflow', register: () => declareTriggerWorkflowTool(mcpServer, ctx) },
       { name: 'getWorkflowRun', register: () => declareGetWorkflowRunTool(mcpServer, ctx) },
+      ...(this.fileUploads
+        ? [
+            {
+              name: 'requestActionFileUpload' as const,
+              register: () => declareRequestActionFileUploadTool(mcpServer, ctx),
+            },
+          ]
+        : []),
     ];
 
     const enabledToolEntries = allTools.filter(tool => this.enabledTools.has(tool.name));
@@ -286,6 +343,7 @@ export default class ForestMCPServer {
       'listWorkflows',
       'triggerWorkflow',
       'getWorkflowRun',
+      'requestActionFileUpload',
     ];
 
     const enabled = new Set(options?.enabledTools ?? allToolNames);
@@ -434,6 +492,46 @@ export default class ForestMCPServer {
   async buildExpressApp(baseUrl?: URL): Promise<Express> {
     const { envSecret, authSecret } = this.ensureSecretsAreSet();
 
+    // On unless requestActionFileUpload is absent from enabledTools — dropped by the caller, or by
+    // the fileUploads: false branch in the constructor, which lands in the same set. Gating on
+    // that keeps executeAction from advertising an upload tool the server never registered.
+    // `!this.fileUploads` because an agent rebuilds its router on every customization refresh:
+    // re-initializing would hand the new app a different store than the urls already in flight.
+    if (this.enabledTools.has('requestActionFileUpload') && !this.fileUploads) {
+      // No backend given: hold the objects here. Correct for one instance only, which
+      // EphemeralStorage announces the first time something actually asks for a destination —
+      // warning at boot would tax every agent, including those with no file field at all.
+      if (!this.fileUploadsOptions?.storage) {
+        this.ephemeralStorage = new EphemeralStorage(this.logger);
+      }
+
+      this.fileUploads = resolveFileUploads(
+        {
+          ...this.fileUploadsOptions,
+          ...(this.ephemeralStorage && { storage: this.ephemeralStorage }),
+        },
+        authSecret,
+        this.logger,
+      );
+
+      // Said here rather than in resolveFileUploads, which cannot tell the in-memory store from a
+      // provided one: the tool reports maxBytes to the model verbatim, so a value above what the
+      // whole store holds promises a size every upload of which is refused — with "the store is
+      // full", on an empty store.
+      if (
+        this.ephemeralStorage &&
+        this.fileUploads.maxBytes > this.fileUploads.ephemeralMaxTotalBytes
+      ) {
+        this.logger(
+          'Warn',
+          `fileUploads.maxBytes=${this.fileUploads.maxBytes} exceeds what the in-memory store ` +
+            `holds in total (${this.fileUploads.ephemeralMaxTotalBytes} bytes, ` +
+            'ephemeralMaxTotalBytes), so an upload that large is always refused. Raise ' +
+            'ephemeralMaxTotalBytes too, or configure a storage backend.',
+        );
+      }
+    }
+
     await this.fetchCollectionNames();
 
     const app = express();
@@ -457,6 +555,7 @@ export default class ForestMCPServer {
       logger: this.logger,
       agentUrl: this.agentUrl,
       tokenTtl: this.tokenTtl,
+      allowedOAuthClients: this.allowedOAuthClients,
     });
     await oauthProvider.initialize();
 
@@ -509,6 +608,22 @@ export default class ForestMCPServer {
     // Body parsers MUST come before OAuth handlers because the token handler
     // expects req.body to be parsed. When proxied from Koa, the body is already
     // available but Express needs to see it properly.
+    // Ahead of the body parsers: they would consume the stream for any content type they
+    // claim, and this endpoint needs the raw body. Also ahead of allowedMethods(['POST']).
+    if (this.ephemeralStorage && this.fileUploads) {
+      const uploadsPath = `${prefix}/mcp/uploads`;
+
+      this.ephemeralStorage.configure({
+        maxBytes: this.fileUploads.maxBytes,
+        maxTotalBytes: this.fileUploads.ephemeralMaxTotalBytes,
+        ttlSeconds: this.fileUploads.handleTtlSeconds,
+        issuedTtlSeconds: this.fileUploads.uploadUrlTtlSeconds,
+        publicBaseUrl: new URL(uploadsPath, effectiveBaseUrl).href,
+      });
+
+      app.use(uploadsPath, this.ephemeralStorage.createRouter());
+    }
+
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
 
@@ -564,15 +679,17 @@ export default class ForestMCPServer {
 
     app.use(allowedMethods(['POST']));
 
+    const resourceMetadataUrl = new URL(
+      `/.well-known/oauth-protected-resource${mcpResourceUrl.pathname}`,
+      effectiveBaseUrl,
+    ).href;
+
     app.post(
       `${prefix}/mcp`,
       requireBearerAuth({
         verifier: oauthProvider,
         requiredScopes: ['mcp:read'],
-        resourceMetadataUrl: new URL(
-          `/.well-known/oauth-protected-resource${mcpResourceUrl.pathname}`,
-          effectiveBaseUrl,
-        ).href,
+        resourceMetadataUrl,
       }),
       (req, res) => {
         this.handleMcpRequest(req, res).catch(error => {
@@ -686,8 +803,49 @@ export default class ForestMCPServer {
    * Run the MCP server as a standalone HTTP server.
    */
   async run(): Promise<void> {
-    const port = Number(process.env.MCP_SERVER_PORT) || 3931;
-    const baseUrl = new URL(`http://localhost:${port}`);
+    // Parsed before defaulting: `Number(x) || 3931` turns port 0, which means "any free port",
+    // into 3931. A configured FOREST_MCP_SERVER_URL also replaces the default url, so nothing else
+    // parses the port either.
+    const rawPort = process.env.MCP_SERVER_PORT;
+    const port = rawPort ? Number(rawPort) : 3931;
+    const configuredUrl = process.env.FOREST_MCP_SERVER_URL;
+
+    if (!Number.isInteger(port) || port < 0 || port > 65535) {
+      throw new Error(
+        `Invalid MCP_SERVER_PORT "${rawPort}": expected an integer between 0 and 65535.`,
+      );
+    }
+
+    // The url is built here, before listen() picks the port, so 0 cannot appear in it.
+    if (port === 0 && !configuredUrl) {
+      throw new Error(
+        'MCP_SERVER_PORT=0 binds a port chosen by the OS, which cannot be in the url advertised ' +
+          'to clients. Set FOREST_MCP_SERVER_URL to the public url they should use.',
+      );
+    }
+
+    const publicUrl = configuredUrl || `http://localhost:${port}`;
+    const baseUrl = URL.canParse(publicUrl) ? new URL(publicUrl) : undefined;
+
+    // Origin only: the OAuth endpoints are concatenated onto this href, the uploads base resolves
+    // against it.
+    if (
+      !baseUrl ||
+      !['http:', 'https:'].includes(baseUrl.protocol) ||
+      baseUrl.href !== `${baseUrl.origin}/`
+    ) {
+      // Never the raw value: it may carry credentials. `origin` is "null" for an opaque scheme,
+      // which is what a forgotten scheme parses as.
+      const shown =
+        baseUrl && baseUrl.origin !== 'null'
+          ? baseUrl.origin
+          : publicUrl.slice(publicUrl.lastIndexOf('@') + 1);
+
+      throw new Error(
+        `Invalid FOREST_MCP_SERVER_URL "${shown}": expected an http(s) origin with no path, ` +
+          'query, fragment or credentials, e.g. https://mcp.example.com',
+      );
+    }
 
     const app = await this.buildExpressApp(baseUrl);
 
@@ -695,7 +853,18 @@ export default class ForestMCPServer {
     this.httpServer = http.createServer(app);
 
     this.httpServer.listen(port, () => {
-      this.logger('Info', `Forest Admin MCP Server running on http://localhost:${port}`);
+      this.logger(
+        'Info',
+        `Forest Admin MCP Server running on port ${port}, advertising ${baseUrl.href}`,
+      );
+
+      if (!configuredUrl) {
+        this.logger(
+          'Warn',
+          `Advertising http://localhost:${port} to clients. Deployed behind a public url? Set ` +
+            'FOREST_MCP_SERVER_URL, or remote OAuth and file uploads will point at localhost.',
+        );
+      }
     });
   }
 }

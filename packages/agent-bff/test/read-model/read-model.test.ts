@@ -94,6 +94,73 @@ describe('ReadModel', () => {
     });
   });
 
+  describe('collection enumeration', () => {
+    it('should enumerate the schema collections in schema order', () => {
+      const model = new ReadModel([
+        collection('users', [column('id')]),
+        collection('orders', [column('id')]),
+      ]);
+
+      expect(model.getAllowedCollections()).toEqual(['users', 'orders']);
+    });
+
+    it('should hand out a fresh array, so a mutating consumer cannot shrink the allow-list', () => {
+      const model = new ReadModel([collection('users', [column('id')])]);
+
+      model.getAllowedCollections().push('secrets');
+
+      expect(model.getAllowedCollections()).toEqual(['users']);
+      expect(model.isCollectionAllowed('secrets')).toBe(false);
+    });
+  });
+
+  describe('listable relations', () => {
+    const model = new ReadModel([
+      collection('users', [
+        relation('orders', 'HasMany', 'orders.userId'),
+        relation('roles', 'BelongsToMany', 'roles.id'),
+        relation('company', 'BelongsTo', 'companies.id'),
+        relation('profile', 'HasOne', 'profiles.userId'),
+        polymorphic('owner', ['posts', 'videos']),
+      ]),
+    ]);
+
+    it('should enumerate only the to-many relations, which are the ones with a list route', () => {
+      expect(model.getListableRelations('users')).toEqual([
+        { name: 'orders', foreignCollection: 'orders' },
+        { name: 'roles', foreignCollection: 'roles' },
+      ]);
+    });
+
+    it('should resolve a to-many relation to its foreign collection', () => {
+      expect(model.getListableRelationTarget('users', 'orders')).toBe('orders');
+      expect(model.getListableRelationTarget('users', 'roles')).toBe('roles');
+    });
+
+    it.each(['company', 'profile', 'owner'])(
+      'should not resolve %s, which has no list route',
+      relationName => {
+        expect(model.getListableRelationTarget('users', relationName)).toBeUndefined();
+      },
+    );
+
+    it('should still enumerate a to-many relation pointing at a collection outside the schema', () => {
+      const withHiddenTarget = new ReadModel([
+        collection('users', [relation('secrets', 'HasMany', 'secrets.userId')]),
+      ]);
+
+      expect(withHiddenTarget.getListableRelations('users')).toEqual([
+        { name: 'secrets', foreignCollection: 'secrets' },
+      ]);
+      expect(withHiddenTarget.isCollectionAllowed('secrets')).toBe(false);
+    });
+
+    it('should return nothing for an unknown collection', () => {
+      expect(model.getListableRelations('ghosts')).toEqual([]);
+      expect(model.getListableRelationTarget('ghosts', 'orders')).toBeUndefined();
+    });
+  });
+
   describe('collection-scoped keying', () => {
     it('should keep same-named relations on different collections distinct', () => {
       const model = new ReadModel([

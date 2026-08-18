@@ -1,5 +1,8 @@
 import type { BFFConfig } from './config/env-config';
+import type { UnfoldSource } from './openapi/unfolded-document';
 import type { Logger } from './ports/logger-port';
+import type { Metrics } from './ports/metrics-port';
+import type ReadModelStore from './read-model/read-model-store';
 import type { Middleware } from 'koa';
 
 import { bodyParser } from '@koa/bodyparser';
@@ -19,16 +22,20 @@ import createDataRoutesMiddleware from './data/data-routes-middleware';
 import { extractErrorMessage } from './errors';
 import { unauthorized } from './http/bff-http-error';
 import BFFHttpServer from './http/bff-http-server';
+import BODY_LIMIT from './http/body-limit';
 import createErrorMiddleware from './http/error-middleware';
 import ForestServerClient from './oauth/forest-server-client';
 import createOAuthRoutes from './oauth/oauth-routes';
 import createInMemorySessionStore from './oauth/session-store';
 import createTokenCipher from './oauth/token-cipher';
+import createOpenApiRoutes from './openapi/openapi-routes';
+import PermissionsCache from './permissions/permissions-cache';
+import PermissionsClient from './permissions/permissions-client';
+import createPermissionsRoutesMiddleware from './permissions/permissions-routes-middleware';
 import createReadModel from './read-model/create-read-model';
 import createTimezoneMiddleware from './timezone/timezone-middleware';
 import version from './version';
 
-const BODY_LIMIT = '16kb';
 const SESSION_TTL_SECONDS = 24 * 60 * 60;
 
 function isAgentPath(path: string): boolean {
@@ -155,27 +162,106 @@ function buildApiKeyMiddleware(config: BFFConfig, logger: Logger): Middleware | 
   return createApiKeyMiddleware({ authenticator, logger });
 }
 
-// Data and action routes share one read-model store (a single cache, a single schema fetch). The
-// data middleware falls through to the action middleware on a non-data path.
-function buildAgentRouteMiddlewares(config: BFFConfig, logger: Logger): Middleware[] {
+interface ReadModelBundle {
+  store: ReadModelStore;
+  apiKeyConfig: ResolvedApiKeyConfig;
+}
+
+/**
+ * The read-model store the data routes, the action routes, the permissions endpoint and the OpenAPI
+ * unfolding all share — one cache, one schema fetch. Needs no agent: the permissions endpoint and the
+ * schema itself come from the SaaS.
+ */
+function resolveReadModelBundle(
+  config: BFFConfig,
+  logger: Logger,
+  metrics?: Metrics,
+): ReadModelBundle | undefined {
   const apiKeyConfig = resolveApiKeyConfig(config);
 
-  if (!apiKeyConfig || !config.agentUrl) {
-    logger('Warn', 'Data endpoints disabled: AGENT_URL or read-model configuration is missing');
-
-    return [createAgentStubMiddleware()];
-  }
+  if (!apiKeyConfig) return undefined;
 
   const { store } = createReadModel({
     forestServerUrl: apiKeyConfig.forestServerUrl,
     envSecret: apiKeyConfig.forestEnvSecret,
     logger,
+    metrics,
   });
-  const { agentUrl } = config;
+
+  return { store, apiKeyConfig };
+}
+
+/**
+ * When unfolding is possible, in ONE place: the document needs the AGENT_URL the store does not,
+ * because a collection's field set comes from the agent capabilities. The server passes the bundle it
+ * already built for the data routes; the CLI goes through `resolveUnfoldSource`. Silent on purpose —
+ * the two report a missing configuration differently.
+ */
+function toUnfoldSource(
+  bundle: ReadModelBundle | undefined,
+  config: BFFConfig,
+  logger: Logger,
+): UnfoldSource | undefined {
+  if (!bundle || !config.agentUrl) return undefined;
+
+  return {
+    store: bundle.store,
+    agentUrl: config.agentUrl,
+    timeoutMs: config.agentTimeoutMs,
+    logger,
+  };
+}
+
+/**
+ * Metrics are dropped rather than logged: without an explicit sink `createReadModel` builds a console
+ * one, which reports gauges at `Info`, and `createConsoleLogger` sends `Info` to `console.info` — the
+ * stdout the document is written to. The server keeps its metrics; the export has no sink for them
+ * anyway.
+ */
+const UNMEASURED: Metrics = { increment: () => undefined, gauge: () => undefined };
+
+export function resolveUnfoldSource(config: BFFConfig, logger: Logger): UnfoldSource | undefined {
+  return toUnfoldSource(resolveReadModelBundle(config, logger, UNMEASURED), config, logger);
+}
+
+// The data middleware falls through to the action middleware on a non-data path.
+function buildAgentRouteMiddlewares(
+  bundle: ReadModelBundle | undefined,
+  config: BFFConfig,
+  logger: Logger,
+): Middleware[] {
+  if (!bundle) {
+    logger(
+      'Warn',
+      'Data, action and permissions endpoints disabled: FOREST_SERVER_URL, FOREST_ENV_SECRET or FOREST_AUTH_SECRET is missing',
+    );
+
+    return [createAgentStubMiddleware()];
+  }
+
+  const { store, apiKeyConfig } = bundle;
+  const { agentUrl, agentTimeoutMs: timeoutMs } = config;
+
+  const permissionsMiddleware = createPermissionsRoutesMiddleware({
+    store,
+    client: new PermissionsClient({
+      forestServerUrl: apiKeyConfig.forestServerUrl,
+      envSecret: apiKeyConfig.forestEnvSecret,
+    }),
+    cache: new PermissionsCache(),
+    logger,
+  });
+
+  if (!agentUrl) {
+    logger('Warn', 'Data and action endpoints disabled: AGENT_URL is missing');
+
+    return [permissionsMiddleware, createAgentStubMiddleware()];
+  }
 
   return [
-    createDataRoutesMiddleware({ store, agentUrl, logger }),
-    createActionRoutesMiddleware({ store, agentUrl, logger }),
+    permissionsMiddleware,
+    createDataRoutesMiddleware({ store, agentUrl, timeoutMs, logger }),
+    createActionRoutesMiddleware({ store, agentUrl, timeoutMs, logger }),
   ];
 }
 
@@ -189,13 +275,18 @@ function buildAgentMiddlewares(config: BFFConfig, logger: Logger): Middleware[] 
   }
 
   const apiKeyStep = buildApiKeyMiddleware(config, logger) ?? createApiKeyUnavailableGuard(logger);
+  // One store for the whole edge. The document only unfolds when the agent is reachable too: with no
+  // AGENT_URL every data path answers 501, so concrete paths would advertise a dead surface.
+  const bundle = resolveReadModelBundle(config, logger);
+  const source = toUnfoldSource(bundle, config, logger);
 
   const chain: Middleware[] = [
     createAuthModeMiddleware({ authSecret: forestAuthSecret }),
     apiKeyStep,
     createPerKeyOriginMiddleware(),
+    createOpenApiRoutes({ version, enabled: config.openapiEnabled, source }),
     createTimezoneMiddleware({ defaultTimezone }),
-    ...buildAgentRouteMiddlewares(config, logger),
+    ...buildAgentRouteMiddlewares(bundle, config, logger),
   ];
 
   return chain.map(agentScoped);

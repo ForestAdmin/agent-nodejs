@@ -1,4 +1,8 @@
 import { invalidRequest } from '../http/bff-local-errors';
+import { MAX_FILTER_DEPTH, isBranch, isLeaf } from '../validation/capabilities-validator';
+import { filterTooDeep } from '../validation/validation-errors';
+
+export { MAX_FILTER_DEPTH as MAX_PARSED_FILTER_DEPTH };
 
 export interface BffSortClause {
   field: string;
@@ -31,6 +35,23 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function assertNoNodeReadableAsBothLeafAndBranch(node: unknown, depth = 0): void {
+  if (depth > MAX_FILTER_DEPTH) throw filterTooDeep(MAX_FILTER_DEPTH);
+  if (typeof node !== 'object' || node === null) return;
+
+  const readableAsBranch = isBranch(node);
+
+  if (isLeaf(node) && readableAsBranch) {
+    throw invalidRequest('A filter node cannot carry both "field" and "conditions"');
+  }
+
+  if (readableAsBranch) {
+    node.conditions.forEach(condition =>
+      assertNoNodeReadableAsBothLeafAndBranch(condition, depth + 1),
+    );
+  }
+}
+
 // Validate the untyped request body before it reaches the query builders, so malformed shapes
 // (e.g. `projection` or `sort` as a string) surface as 400 invalid_request rather than a 500 from
 // an array method blowing up downstream.
@@ -59,8 +80,9 @@ export function parseListRequest(body: unknown): ListRequestBody {
     if (!valid) throw invalidRequest('sort must be an array of { field, direction? }');
   }
 
-  if (filter !== undefined && !isPlainObject(filter)) {
-    throw invalidRequest('filter must be an object');
+  if (filter !== undefined) {
+    if (!isPlainObject(filter)) throw invalidRequest('filter must be an object');
+    assertNoNodeReadableAsBothLeafAndBranch(filter);
   }
 
   if (page !== undefined) {
@@ -83,35 +105,12 @@ export function parseListRequest(body: unknown): ListRequestBody {
 export function parseCountRequest(body: unknown): CountRequestBody {
   if (!isPlainObject(body)) throw invalidRequest('Request body must be an object');
 
-  if (body.filter !== undefined && !isPlainObject(body.filter)) {
-    throw invalidRequest('filter must be an object');
+  if (body.filter !== undefined) {
+    if (!isPlainObject(body.filter)) throw invalidRequest('filter must be an object');
+    assertNoNodeReadableAsBothLeafAndBranch(body.filter);
   }
 
   return body as CountRequestBody;
-}
-
-interface ConditionTreeBranch {
-  conditions: unknown[];
-}
-
-interface ConditionTreeLeaf {
-  field: string;
-}
-
-function isBranch(node: unknown): node is ConditionTreeBranch {
-  return (
-    typeof node === 'object' &&
-    node !== null &&
-    Array.isArray((node as { conditions?: unknown }).conditions)
-  );
-}
-
-function isLeaf(node: unknown): node is ConditionTreeLeaf {
-  return (
-    typeof node === 'object' &&
-    node !== null &&
-    typeof (node as { field?: unknown }).field === 'string'
-  );
 }
 
 function collectFilterFields(filter: unknown, acc: string[]): void {

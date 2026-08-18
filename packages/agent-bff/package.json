@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/agent-bff",
-  "version": "1.8.6",
+  "version": "1.18.0",
   "main": "dist/index.js",
   "bin": {
     "forest-bff": "dist/cli.js"
@@ -31,17 +31,21 @@
     "test": "jest"
   },
   "dependencies": {
-    "@forestadmin/agent-client": "1.12.2",
-    "@forestadmin/forestadmin-client": "1.41.3",
+    "@asteasolutions/zod-to-openapi": "8.5.0",
+    "@forestadmin/agent-client": "1.14.0",
+    "@forestadmin/datasource-toolkit": "1.55.0",
+    "@forestadmin/forestadmin-client": "1.42.1",
     "@koa/bodyparser": "^6.1.0",
     "jsonwebtoken": "^9.0.3",
     "koa": "^3.0.1",
     "zod": "4.3.6"
   },
   "devDependencies": {
+    "@redocly/cli": "2.35.1",
     "@types/jsonwebtoken": "^9.0.1",
     "@types/koa": "^2.13.5",
     "@types/supertest": "^6.0.2",
+    "openapi3-ts": "4.6.1",
     "supertest": "^7.1.3"
   }
 }

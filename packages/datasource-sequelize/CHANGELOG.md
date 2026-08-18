@@ -1,3 +1,20 @@
+## @forestadmin/datasource-sequelize [1.13.11](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.13.10...@forestadmin/datasource-sequelize@1.13.11) (2026-08-17)
+
+
+### Bug Fixes
+
+* **datasource-sequelize:** keep parent records when a projected relation is scoped ([#1831](https://github.com/ForestAdmin/agent-nodejs/issues/1831)) ([95a63d0](https://github.com/ForestAdmin/agent-nodejs/commit/95a63d01ae4078ed7655607c525724d99d597afd))
+
+## @forestadmin/datasource-sequelize [1.13.10](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.13.9...@forestadmin/datasource-sequelize@1.13.10) (2026-08-17)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.55.0
+
 ## @forestadmin/datasource-sequelize [1.13.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.13.8...@forestadmin/datasource-sequelize@1.13.9) (2026-07-22)
 
 

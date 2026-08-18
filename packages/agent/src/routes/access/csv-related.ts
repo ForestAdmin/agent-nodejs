@@ -25,13 +25,17 @@ export default class CsvRelatedRoute extends RelationRoute {
     await this.services.authorization.assertCanExport(context, this.foreignCollection.name);
 
     const { header } = context.request.query as Record<string, string>;
-    CsvRouteContext.buildResponse(context);
 
-    const projection = QueryStringParser.parseProjection(this.foreignCollection, context);
+    const projection = QueryStringParser.parseProjectionFromHeaderOrQuery(
+      this.foreignCollection,
+      context,
+    );
     const scope = await this.services.authorization.getScope(this.foreignCollection, context);
     const caller = QueryStringParser.parseCaller(context);
     const filter = ContextFilterFactory.buildPaginated(this.foreignCollection, context, scope);
     const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
+
+    CsvRouteContext.buildResponse(context);
 
     const gen = CsvGenerator.generate(
       caller,

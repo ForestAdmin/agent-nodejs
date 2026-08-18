@@ -17,7 +17,7 @@ import type {
 } from '@forestadmin/datasource-customizer';
 import type { DataSource, DataSourceFactory } from '@forestadmin/datasource-toolkit';
 import type { ForestSchema } from '@forestadmin/forestadmin-client';
-import type { TokenTtlOptions, ToolName } from '@forestadmin/mcp-server';
+import type { FileUploadsOptions, TokenTtlOptions, ToolName } from '@forestadmin/mcp-server';
 
 import { DataSourceCustomizer } from '@forestadmin/datasource-customizer';
 import bodyParser from '@koa/bodyparser';
@@ -56,6 +56,8 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   private mcpEnabledTools?: ToolName[];
   private mcpBasePath?: string;
   private mcpTokenTtl?: TokenTtlOptions;
+  private mcpAllowedOAuthClients?: string[];
+  private mcpFileUploads?: false | FileUploadsOptions;
 
   /** In-process workflow executor, created only when addWorkflowExecutor() is called. */
   private embeddedExecutor: EmbeddedWorkflowExecutor | null = null;
@@ -260,16 +262,28 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * // grants; `refreshTokenSeconds` bounds the time between two interactive logins, which is
    * // otherwise unbounded since Forest re-grants its refresh lifetime on every refresh.
    * agent.mountAiMcpServer({ tokenTtl: { accessTokenSeconds: 900, refreshTokenSeconds: 86400 } });
+   * // Example: only accept approved OAuth client applications, matched by the domain of their
+   * // registered redirect URIs (subdomains included). Other clients get invalid_client.
+   * agent.mountAiMcpServer({ allowedOAuthClients: ['dust.tt'] });
+   * // Example: action File fields work over MCP out of the box, with the files held in memory.
+   * // Experimental. Point them at a real backend when one instance is not enough, or pass
+   * // false to turn the feature off.
+   * agent.mountAiMcpServer({ fileUploads: { storage } });
+   * agent.mountAiMcpServer({ fileUploads: false });
    */
   mountAiMcpServer(options?: {
     enabledTools?: ToolName[];
     basePath?: string;
     tokenTtl?: TokenTtlOptions;
+    allowedOAuthClients?: string[];
+    fileUploads?: false | FileUploadsOptions;
   }): this {
     this.mcpEnabled = true;
     this.mcpEnabledTools = options?.enabledTools;
     this.mcpBasePath = options?.basePath;
     this.mcpTokenTtl = options?.tokenTtl;
+    this.mcpAllowedOAuthClients = options?.allowedOAuthClients;
+    this.mcpFileUploads = options?.fileUploads;
 
     return this;
   }
@@ -390,6 +404,8 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
         enabledTools: this.mcpEnabledTools,
         basePath: this.mcpBasePath,
         tokenTtl: this.mcpTokenTtl,
+        allowedOAuthClients: this.mcpAllowedOAuthClients,
+        fileUploads: this.mcpFileUploads,
         agentDispatcher: this.getInProcessDispatcher(),
       });
 
