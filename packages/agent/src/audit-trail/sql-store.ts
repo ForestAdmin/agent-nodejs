@@ -166,9 +166,13 @@ function jsonColumnAsText(sequelize: Sequelize, column: string): string {
 // redacted value can't match a search for the real value — the real value already isn't in this
 // text, `redactValues` replaced it before the row was ever written.
 export function searchCondition(sequelize: Sequelize, term: string) {
-  // Escapes the two LIKE wildcards plus the escape character itself, so a term containing `%`/`_`
-  // is matched literally instead of behaving like a pattern.
-  const escaped = term.replace(/[\\%_]/g, char => `\\${char}`);
+  // `~` rather than the standard `\`: MySQL/MariaDB treat backslash as a string-literal escape
+  // character under the default sql_mode (no NO_BACKSLASH_ESCAPES), so a bare `ESCAPE '\'` is
+  // itself malformed there — the backslash escapes the closing quote instead of terminating the
+  // literal. `~` has no special meaning to any of the four supported dialects' string literals, so
+  // it sidesteps that interaction entirely. Escapes the two LIKE wildcards plus itself, so a term
+  // containing `%`/`_`/`~` is matched literally instead of behaving like a pattern.
+  const escaped = term.replace(/[~%_]/g, char => `~${char}`);
   const pattern = sequelize.escape(`%${escaped}%`);
 
   const columns = [
@@ -181,9 +185,7 @@ export function searchCondition(sequelize: Sequelize, term: string) {
   ];
 
   return Sequelize.literal(
-    `(${columns
-      .map(column => `LOWER(${column}) LIKE LOWER(${pattern}) ESCAPE '\\'`)
-      .join(' OR ')})`,
+    `(${columns.map(column => `LOWER(${column}) LIKE LOWER(${pattern}) ESCAPE '~'`).join(' OR ')})`,
   );
 }
 

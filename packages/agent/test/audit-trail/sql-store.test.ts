@@ -831,6 +831,24 @@ describe('searchCondition', () => {
 
     const condition = searchCondition(sequelize, '50%_off');
 
-    expect(condition.val).toContain("LOWER('%50\\%\\_off%')");
+    expect(condition.val).toContain("LOWER('%50~%~_off%')");
+    expect(condition.val).toContain("ESCAPE '~'");
+  });
+
+  it('escapes a literal ~ in the search term too, since it is now the escape character', () => {
+    const sequelize = new Sequelize('sqlite::memory:', { logging: false });
+
+    const condition = searchCondition(sequelize, 'a~b');
+
+    expect(condition.val).toContain("LOWER('%a~~b%')");
+  });
+
+  it('never uses a backslash as the escape character, which MySQL/MariaDB parse as a string-literal escape under the default sql_mode', () => {
+    const sequelize = new Sequelize('mysql://user:pwd@localhost/db', { logging: false });
+
+    const condition = searchCondition(sequelize, 'Lyon');
+
+    expect(condition.val).not.toContain('\\');
+    expect(condition.val).toContain("ESCAPE '~'");
   });
 });
