@@ -30,8 +30,8 @@ export abstract class WorkflowExecutorError extends Error {
   readonly userMessage: string;
   cause?: unknown;
 
-  // Who has to act. Subclasses declare it once via defaultErrorKind; the throw site overrides only
-  // where the same error has different audiences depending on why it was raised.
+  // The kind of failure. A family or a class declares it once via defaultErrorKind; the throw site
+  // overrides only where the same error can be either kind depending on why it was raised.
   errorKind?: ErrorKind;
   static readonly defaultErrorKind?: ErrorKind;
 
@@ -54,6 +54,12 @@ export abstract class WorkflowExecutorError extends Error {
 export abstract class NotFoundError extends WorkflowExecutorError {}
 export abstract class AccessDeniedError extends WorkflowExecutorError {}
 export abstract class UnavailableError extends WorkflowExecutorError {}
+
+// The workflow or the Forest Admin schema needs an edit: the step cannot succeed as configured,
+// whatever the run does. Extending this is how a step-execution error joins that family.
+export abstract class WorkflowConfigurationError extends WorkflowExecutorError {
+  static override readonly defaultErrorKind: ErrorKind = 'configuration';
+}
 
 export class MissingToolCallError extends WorkflowExecutorError {
   constructor() {
@@ -95,9 +101,7 @@ export class NoRecordsError extends WorkflowExecutorError {
   }
 }
 
-export class NoReadableFieldsError extends WorkflowExecutorError {
-  static override readonly defaultErrorKind: ErrorKind = 'configuration';
-
+export class NoReadableFieldsError extends WorkflowConfigurationError {
   constructor(collectionName: string) {
     super(
       `No readable fields on record from collection "${collectionName}"`,
@@ -115,9 +119,7 @@ export class NoResolvedFieldsError extends WorkflowExecutorError {
   }
 }
 
-export class NoWritableFieldsError extends WorkflowExecutorError {
-  static override readonly defaultErrorKind: ErrorKind = 'configuration';
-
+export class NoWritableFieldsError extends WorkflowConfigurationError {
   constructor(collectionName: string) {
     super(
       `No writable fields on record from collection "${collectionName}"`,
@@ -126,9 +128,7 @@ export class NoWritableFieldsError extends WorkflowExecutorError {
   }
 }
 
-export class NoActionsError extends WorkflowExecutorError {
-  static override readonly defaultErrorKind: ErrorKind = 'configuration';
-
+export class NoActionsError extends WorkflowConfigurationError {
   constructor(collectionName: string) {
     super(
       `No actions available on collection "${collectionName}"`,
@@ -200,9 +200,7 @@ export class RunStorePortError extends UnavailableError {
   }
 }
 
-export class NoRelationshipFieldsError extends WorkflowExecutorError {
-  static override readonly defaultErrorKind: ErrorKind = 'configuration';
-
+export class NoRelationshipFieldsError extends WorkflowConfigurationError {
   constructor(collectionName: string) {
     super(
       `No relationship fields on record from collection "${collectionName}"`,
@@ -228,17 +226,13 @@ export class InvalidAIResponseError extends WorkflowExecutorError {
   }
 }
 
-export class InvalidAiRequestError extends WorkflowExecutorError {
-  static override readonly defaultErrorKind: ErrorKind = 'configuration';
-
+export class InvalidAiRequestError extends WorkflowConfigurationError {
   constructor(message: string) {
     super(message, 'Step configuration error — please contact your administrator.');
   }
 }
 
-export class RelationNotFoundError extends WorkflowExecutorError {
-  static override readonly defaultErrorKind: ErrorKind = 'configuration';
-
+export class RelationNotFoundError extends WorkflowConfigurationError {
   constructor(name: string, collectionName: string) {
     super(
       `Relation "${name}" not found in collection "${collectionName}"`,
@@ -247,9 +241,7 @@ export class RelationNotFoundError extends WorkflowExecutorError {
   }
 }
 
-export class FieldNotFoundError extends WorkflowExecutorError {
-  static override readonly defaultErrorKind: ErrorKind = 'configuration';
-
+export class FieldNotFoundError extends WorkflowConfigurationError {
   constructor(name: string, collectionName: string) {
     super(
       `Field "${name}" not found in collection "${collectionName}"`,
@@ -258,9 +250,7 @@ export class FieldNotFoundError extends WorkflowExecutorError {
   }
 }
 
-export class FieldTypeMissingError extends WorkflowExecutorError {
-  static override readonly defaultErrorKind: ErrorKind = 'configuration';
-
+export class FieldTypeMissingError extends WorkflowConfigurationError {
   constructor(name: string, collectionName: string) {
     super(
       `Field "${name}" in collection "${collectionName}" has no column type`,
@@ -270,9 +260,7 @@ export class FieldTypeMissingError extends WorkflowExecutorError {
   }
 }
 
-export class ActionNotFoundError extends WorkflowExecutorError {
-  static override readonly defaultErrorKind: ErrorKind = 'configuration';
-
+export class ActionNotFoundError extends WorkflowConfigurationError {
   constructor(name: string, collectionName: string) {
     super(
       `Action "${name}" not found in collection "${collectionName}"`,
@@ -522,9 +510,7 @@ export class InvalidPendingDataError extends WorkflowExecutorError {
   }
 }
 
-export class InvalidPreRecordedArgsError extends WorkflowExecutorError {
-  static override readonly defaultErrorKind: ErrorKind = 'configuration';
-
+export class InvalidPreRecordedArgsError extends WorkflowConfigurationError {
   constructor(detail: string) {
     super(`Invalid pre-recorded args: ${detail}`, 'The pre-configured step parameters are invalid');
   }

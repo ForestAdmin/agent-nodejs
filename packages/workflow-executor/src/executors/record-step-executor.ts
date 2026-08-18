@@ -16,20 +16,20 @@ import {
 import BaseStepExecutor from './base-step-executor';
 import { StepType, WORKFLOW_START_STEP_ID } from '../types/validated/step-definition';
 
-// The operator if they passed on a candidate the source step offered, whoever owns the workflow if
-// it had none to offer. An unreadable execution is as likely our own bug, so it names nobody.
+// A source step that offered a candidate and was passed over is an operator situation; one that had
+// nothing to offer is a configuration one. An execution the guard cannot read stays unclassified.
 function classifyMissingSourceRecord(execution?: StepExecutionData): ErrorKind | undefined {
   if (execution?.type !== 'load-related-record') return undefined;
 
   const { pendingData, executionResult } = execution;
 
-  // A result we cannot read is as likely our own bug as anything that happened in the run.
+  // A result outside the declared shape signals an executor defect, not a decision the run made.
   if (executionResult !== undefined && !('skipped' in executionResult)) return undefined;
 
-  // Nothing was ever offered: only Full AI continues without pausing, so no operator had a choice.
+  // Nothing was ever offered: only Full AI continues without pausing, so there was no choice to make.
   if (!pendingData) return executionResult !== undefined ? 'configuration' : undefined;
 
-  // Whether it paused or the operator declined, the candidates it offered say who had an alternative.
+  // Whether it paused or recorded a decline, the candidate list says whether there was a choice.
   return pendingData.availableRecordIds.length > 0 ? 'operator' : 'configuration';
 }
 
