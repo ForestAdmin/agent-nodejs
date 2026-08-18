@@ -458,8 +458,8 @@ function instrumentCollection(
 
         const { previousValues, newValues } = changedValues(record, updated, writableColumns);
 
-        if (Object.keys(newValues).length === 0) return undefined;
-
+        // Confirmed even when empty: the write still ran and resolved, so leaving the pending row
+        // unconfirmed would misrepresent a completed no-op write as one that never landed.
         // Packed from the post-update values: if the update changed a writable primary key, the
         // entry is filed under the record's new id, matching what later history lookups use.
         return recorder.confirm(pendingId, {

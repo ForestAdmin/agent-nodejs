@@ -584,7 +584,7 @@ describe('auditTrail plugin', () => {
       );
     });
 
-    it('emits nothing when the patch changes no value', async () => {
+    it('confirms with empty diffs when the patch changes no value', async () => {
       const sink = jest.fn();
       const accounts = fakeCollection('accounts', [
         { id: 1, status: 'open', name: 'Acme', amount: 10 },
@@ -593,7 +593,9 @@ describe('auditTrail plugin', () => {
 
       await runUpdate(accounts, { caller: makeCaller(), patch: { status: 'open' } });
 
-      expect(sink).not.toHaveBeenCalled();
+      expect(sink).toHaveBeenCalledWith(
+        expect.objectContaining({ previousValues: {}, newValues: {} }),
+      );
     });
 
     it('emits one record per matched record on a bulk update, with per-record previous values', async () => {
@@ -930,7 +932,9 @@ describe('auditTrail plugin', () => {
       const { sink, run } = update({ payload: { a: 1, b: 2 } }, { payload: { b: 2, a: 1 } });
       await run();
 
-      expect(sink).not.toHaveBeenCalled();
+      expect(sink).toHaveBeenCalledWith(
+        expect.objectContaining({ previousValues: {}, newValues: {} }),
+      );
     });
 
     it('does not throw on a changed BigInt value, and stores it as a string', async () => {
@@ -946,7 +950,9 @@ describe('auditTrail plugin', () => {
       const { sink, run } = update({ ref: 10n }, { ref: 10n });
       await run();
 
-      expect(sink).not.toHaveBeenCalled();
+      expect(sink).toHaveBeenCalledWith(
+        expect.objectContaining({ previousValues: {}, newValues: {} }),
+      );
     });
 
     it('does not throw on a BigInt nested inside a JSON object, and stores it as a string', async () => {
@@ -1057,7 +1063,9 @@ describe('auditTrail plugin', () => {
     it('does not flag an equal array, but flags a reorder', async () => {
       const equal = update({ tags: ['x', 'y'] }, { tags: ['x', 'y'] });
       await equal.run();
-      expect(equal.sink).not.toHaveBeenCalled();
+      expect(equal.sink).toHaveBeenCalledWith(
+        expect.objectContaining({ previousValues: {}, newValues: {} }),
+      );
 
       const reordered = update({ tags: ['x', 'y'] }, { tags: ['y', 'x'] });
       await reordered.run();
@@ -1075,7 +1083,9 @@ describe('auditTrail plugin', () => {
         { seenAt: new Date('2026-01-01T00:00:00Z') },
       );
       await same.run();
-      expect(same.sink).not.toHaveBeenCalled();
+      expect(same.sink).toHaveBeenCalledWith(
+        expect.objectContaining({ previousValues: {}, newValues: {} }),
+      );
 
       const changed = update(
         { seenAt: new Date('2026-01-01T00:00:00Z') },
@@ -1090,7 +1100,9 @@ describe('auditTrail plugin', () => {
 
       const same = update({ ref: objectId('abc') }, { ref: objectId('abc') });
       await same.run();
-      expect(same.sink).not.toHaveBeenCalled();
+      expect(same.sink).toHaveBeenCalledWith(
+        expect.objectContaining({ previousValues: {}, newValues: {} }),
+      );
 
       const changed = update({ ref: objectId('abc') }, { ref: objectId('def') });
       await changed.run();
@@ -1193,7 +1205,7 @@ describe('auditTrail plugin', () => {
       );
     });
 
-    it('does not emit when only a redacted field is patched with an unchanged value', async () => {
+    it('confirms with empty diffs, rather than leaving the entry pending, when a patch changes nothing', async () => {
       const sink = jest.fn();
       const accounts = fakeCollection('accounts', [
         { id: 1, status: 'open', name: 'Acme', amount: 10 },
@@ -1202,7 +1214,9 @@ describe('auditTrail plugin', () => {
 
       await runUpdate(accounts, { caller: makeCaller(), patch: { name: 'Acme' } });
 
-      expect(sink).not.toHaveBeenCalled();
+      expect(sink).toHaveBeenCalledWith(
+        expect.objectContaining({ previousValues: {}, newValues: {} }),
+      );
     });
 
     it('masks a redacted field on delete', async () => {
