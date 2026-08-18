@@ -50,6 +50,15 @@ export type AuditHistoryQuery = {
   endTimestamp?: string;
   /** Keep only entries whose change touched at least one of these fields. */
   fields?: string[];
+  /**
+   * Free-text, case-insensitive substring match against `actionName`, `userFirstName`,
+   * `userLastName`, `userEmail`, and the keys and scalar values of `previousValues`/`newValues` at
+   * any depth. Never matches `operation`, `correlationKey`, `recordId`, `collection`, `status` or
+   * `timestamp` — those are machine identifiers a user would never search, and matching them
+   * produces confusing hits. A redacted value can't match a search for the real value: the real
+   * value was never stored in the first place.
+   */
+  search?: string;
   /** Sort direction on `timestamp` (ties broken by insertion order). Defaults to `'asc'`. */
   order?: 'asc' | 'desc';
 };

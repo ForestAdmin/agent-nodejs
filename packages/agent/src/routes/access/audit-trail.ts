@@ -32,6 +32,7 @@ type AuditHistoryFilters = {
   startTimestamp?: string;
   endTimestamp?: string;
   fields?: string[];
+  search?: string;
 };
 
 export default class AuditTrailRoute extends CollectionRoute {
@@ -60,7 +61,8 @@ export default class AuditTrailRoute extends CollectionRoute {
     const { store } = this.options.auditTrail;
     const { skip, limit } = AuditTrailRoute.parsePagination(context);
     const order = AuditTrailRoute.parseSort(context);
-    const { userIds, startTimestamp, endTimestamp, fields } = AuditTrailRoute.parseFilters(context);
+    const { userIds, startTimestamp, endTimestamp, fields, search } =
+      AuditTrailRoute.parseFilters(context);
 
     const filters = {
       collection: this.collection.name,
@@ -69,6 +71,7 @@ export default class AuditTrailRoute extends CollectionRoute {
       ...(startTimestamp && { startTimestamp }),
       ...(endTimestamp && { endTimestamp }),
       ...(fields && { fields }),
+      ...(search && { search }),
     };
 
     // Distinct authors are scoped to the active filters but independent of the page — returned
@@ -282,6 +285,7 @@ export default class AuditTrailRoute extends CollectionRoute {
       ),
       endTimestamp: AuditTrailRoute.parseDateBoundary(query.endDate?.toString(), timezone, 'end'),
       fields: AuditTrailRoute.parseFields(query.fields?.toString()),
+      search: AuditTrailRoute.parseSearch(query.search?.toString()),
     };
   }
 
@@ -307,6 +311,13 @@ export default class AuditTrailRoute extends CollectionRoute {
       .filter(token => token.length > 0);
 
     return fields.length > 0 ? fields : undefined;
+  }
+
+  // Trimmed; empty after trimming is treated the same as absent.
+  private static parseSearch(raw?: string): string | undefined {
+    const trimmed = raw?.trim();
+
+    return trimmed || undefined;
   }
 
   // Bare day (`YYYY-MM-DD`) or wall-clock datetime (`YYYY-MM-DD[T| ]HH:mm[:ss]`), interpreted as

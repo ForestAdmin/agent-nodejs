@@ -6,6 +6,7 @@ export {
   ensureAuditStorage,
   defineAuditLogModel,
   fieldsChangedCondition,
+  searchCondition,
   toRow,
   fromRow,
   DEFAULT_SCHEMA,

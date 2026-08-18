@@ -148,8 +148,55 @@ export function fieldsChangedCondition(sequelize: Sequelize, fields: string[]) {
   throw new Error(`Audit-trail "fields" filter is not supported on dialect "${dialect}"`);
 }
 
+// JSON columns are already stored as plain text on dialects with no native JSON type (sqlite,
+// mssql); only postgres/mysql/mariadb need an explicit cast before a text match can run on them.
+function jsonColumnAsText(sequelize: Sequelize, column: string): string {
+  const dialect = sequelize.getDialect();
+
+  if (dialect === 'postgres') return `${column}::text`;
+  if (dialect === 'mysql' || dialect === 'mariadb') return `CAST(${column} AS CHAR)`;
+
+  return column;
+}
+
+// A free-text search against the *serialized* JSON text naturally covers "keys and scalar values
+// at any depth" without walking the structure by hand: both a key and a value appear as a quoted
+// literal substring of that text. This runs as a SQL WHERE clause (not an in-memory scan of
+// fetched rows), so it composes with pagination and COUNT the same way every other filter does. A
+// redacted value can't match a search for the real value — the real value already isn't in this
+// text, `redactValues` replaced it before the row was ever written.
+export function searchCondition(sequelize: Sequelize, term: string) {
+  // Escapes the two LIKE wildcards plus the escape character itself, so a term containing `%`/`_`
+  // is matched literally instead of behaving like a pattern.
+  const escaped = term.replace(/[\\%_]/g, char => `\\${char}`);
+  const pattern = sequelize.escape(`%${escaped}%`);
+
+  const columns = [
+    'action_name',
+    'user_first_name',
+    'user_last_name',
+    'user_email',
+    jsonColumnAsText(sequelize, 'previous_values'),
+    jsonColumnAsText(sequelize, 'new_values'),
+  ];
+
+  return Sequelize.literal(
+    `(${columns
+      .map(column => `LOWER(${column}) LIKE LOWER(${pattern}) ESCAPE '\\'`)
+      .join(' OR ')})`,
+  );
+}
+
 function buildHistoryWhereClause(
-  { collection, recordId, userIds, startTimestamp, endTimestamp, fields }: AuditHistoryQuery,
+  {
+    collection,
+    recordId,
+    userIds,
+    startTimestamp,
+    endTimestamp,
+    fields,
+    search,
+  }: AuditHistoryQuery,
   sequelize: Sequelize,
 ): Record<string | symbol, unknown> {
   const where: Record<string | symbol, unknown> = { collection, recordId };
@@ -161,7 +208,10 @@ function buildHistoryWhereClause(
   if (endTimestamp) timestampRange[Op.lte] = new Date(endTimestamp);
   if (Object.getOwnPropertySymbols(timestampRange).length) where.timestamp = timestampRange;
 
-  if (fields?.length) where[Op.and] = [fieldsChangedCondition(sequelize, fields)];
+  const andConditions = [];
+  if (fields?.length) andConditions.push(fieldsChangedCondition(sequelize, fields));
+  if (search) andConditions.push(searchCondition(sequelize, search));
+  if (andConditions.length) where[Op.and] = andConditions;
 
   return where;
 }

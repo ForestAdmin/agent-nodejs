@@ -407,6 +407,70 @@ describe('AuditTrailRoute', () => {
     );
   });
 
+  test('forwards the search filter to the store, trimmed', async () => {
+    const { services, dataSource, options, store } = setup();
+    const route = new AuditTrailRoute(services, options, dataSource, 'books');
+    const context = createMockContext({
+      state: { user: { email: 'john.doe@domain.com' } },
+      customProperties: {
+        query: { timezone: 'Europe/Paris', search: '  Lyon  ' },
+        params: { id: '2' },
+      },
+    });
+
+    await route.handleHistory(context);
+
+    expect(store.listByRecord).toHaveBeenCalledWith(expect.objectContaining({ search: 'Lyon' }));
+    expect(store.countByRecord).toHaveBeenCalledWith(expect.objectContaining({ search: 'Lyon' }));
+  });
+
+  test('omits the search filter when the parameter is empty or only whitespace', async () => {
+    const { services, dataSource, options, store } = setup();
+    const route = new AuditTrailRoute(services, options, dataSource, 'books');
+    const context = createMockContext({
+      state: { user: { email: 'john.doe@domain.com' } },
+      customProperties: {
+        query: { timezone: 'Europe/Paris', search: '   ' },
+        params: { id: '2' },
+      },
+    });
+
+    await route.handleHistory(context);
+
+    expect(store.listByRecord).toHaveBeenCalledWith(
+      expect.not.objectContaining({ search: expect.anything() }),
+    );
+  });
+
+  test('combines the search filter with userIds and date range filters (AND)', async () => {
+    const { services, dataSource, options, store } = setup();
+    const route = new AuditTrailRoute(services, options, dataSource, 'books');
+    const context = createMockContext({
+      state: { user: { email: 'john.doe@domain.com' } },
+      customProperties: {
+        query: {
+          timezone: 'UTC',
+          search: 'Lyon',
+          userIds: '7',
+          startDate: '2026-01-01',
+          endDate: '2026-01-31',
+        },
+        params: { id: '2' },
+      },
+    });
+
+    await route.handleHistory(context);
+
+    expect(store.listByRecord).toHaveBeenCalledWith(
+      expect.objectContaining({
+        search: 'Lyon',
+        userIds: [7],
+        startTimestamp: '2026-01-01T00:00:00.000Z',
+        endTimestamp: '2026-01-31T23:59:59.999Z',
+      }),
+    );
+  });
+
   test('does not pass any filter when no filter param is present', async () => {
     const { services, dataSource, options, store } = setup();
     const route = new AuditTrailRoute(services, options, dataSource, 'books');

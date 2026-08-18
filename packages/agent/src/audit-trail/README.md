@@ -201,11 +201,13 @@ activity-logs route uses.
 
 Optional filters (all combine with `AND`; omitting them keeps the full history):
 
-| query param | format                            | effect                                                       |
-| ----------- | --------------------------------- | ------------------------------------------------------------ |
-| `userIds`   | comma-separated integers `12,45`  | keep only entries whose `userId` is in the list              |
-| `startDate` | `YYYY-MM-DD` or datetime (incl.)  | keep entries from this lower bound onward                    |
-| `endDate`   | `YYYY-MM-DD` or datetime (incl.)  | keep entries up to this upper bound                          |
+| query param | format                                    | effect                                            |
+| ----------- | ------------------------------------------ | -------------------------------------------------- |
+| `userIds`   | comma-separated integers `12,45`           | keep only entries whose `userId` is in the list   |
+| `startDate` | `YYYY-MM-DD` or datetime (incl.)           | keep entries from this lower bound onward         |
+| `endDate`   | `YYYY-MM-DD` or datetime (incl.)           | keep entries up to this upper bound               |
+| `fields`    | comma-separated column names `city,street` | keep entries whose change touched at least one   |
+| `search`    | free text, trimmed; empty ⇒ absent         | keep entries matching the term                    |
 
 `startDate` / `endDate` are interpreted as **local wall-clock time** in the request `timezone`
 (e.g. `Europe/Paris`); the route converts each bound to a UTC instant before querying the store.
@@ -218,6 +220,21 @@ Two shapes are accepted:
   stays at `:00.000`.
 
 Both bounds are **inclusive**.
+
+`search` matches, case-insensitively as a substring:
+
+- `action_name`
+- `user_first_name`, `user_last_name`, `user_email`
+- the keys and the scalar values of `previous_values` and `new_values`, **at any depth** — a search
+  for `Lyon` finds `{"address":{"city":"Lyon"}}`
+
+It does **not** match `operation`, `correlation_key`, `record_id`, `collection`, `status` or
+`timestamp` — machine identifiers a user would never search, and matching them produces confusing
+hits. The match runs as a SQL `WHERE` clause against the serialized JSON text (a per-dialect
+containment/text cast, same idea as the `fields` filter above), not an in-memory scan of fetched
+rows, so it composes with pagination and `meta.count` the same way every other filter does. A
+redacted value can never match a search for the real value: `redact` replaces it before the row is
+ever written, so the real value was never in the database to find.
 
 Defensive parsing:
 

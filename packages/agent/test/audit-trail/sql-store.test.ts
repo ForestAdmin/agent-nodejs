@@ -7,6 +7,7 @@ import {
   createSqlAuditStore,
   ensureAuditStorage,
   fieldsChangedCondition,
+  searchCondition,
   toRow,
 } from '../../src/audit-trail';
 import { runAuditMigrations } from '../../src/audit-trail/migrations';
@@ -554,6 +555,147 @@ describe('createSqlAuditStore (sqlite round-trip)', () => {
     await close();
   });
 
+  it('search matches a nested value at any depth, case-insensitively', async () => {
+    const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
+
+    await seed(
+      store,
+      record({
+        recordId: '1',
+        timestamp: '2026-01-01T00:00:00.000Z',
+        previousValues: { address: { city: 'Paris' } },
+        newValues: { address: { city: 'Lyon' } },
+      }),
+    );
+    await seed(
+      store,
+      record({
+        recordId: '1',
+        timestamp: '2026-01-02T00:00:00.000Z',
+        previousValues: { name: 'Acme' },
+        newValues: { name: 'Globex' },
+      }),
+    );
+
+    const history = await store.listByRecord({
+      collection: 'accounts',
+      recordId: '1',
+      search: 'lyon',
+    });
+
+    expect(history.map(r => r.timestamp)).toEqual(['2026-01-01T00:00:00.000Z']);
+
+    await close();
+  });
+
+  it('search matches a nested key at any depth', async () => {
+    const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
+
+    await seed(
+      store,
+      record({
+        recordId: '1',
+        previousValues: {},
+        newValues: { address: { postalCode: '69000' } },
+      }),
+    );
+
+    const history = await store.listByRecord({
+      collection: 'accounts',
+      recordId: '1',
+      search: 'postalCode',
+    });
+
+    expect(history).toHaveLength(1);
+
+    await close();
+  });
+
+  it('search matches actionName', async () => {
+    const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
+
+    await seed(store, record({ recordId: '1', actionName: 'Send invoice' }));
+
+    await expect(
+      store.listByRecord({ collection: 'accounts', recordId: '1', search: 'invoice' }),
+    ).resolves.toHaveLength(1);
+
+    await close();
+  });
+
+  it('search matches the denormalized user identity columns', async () => {
+    const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
+
+    await seed(store, record({ recordId: '1' }));
+
+    await expect(
+      store.listByRecord({ collection: 'accounts', recordId: '1', search: 'Doe' }),
+    ).resolves.toHaveLength(1);
+    await expect(
+      store.listByRecord({ collection: 'accounts', recordId: '1', search: 'forest.dev' }),
+    ).resolves.toHaveLength(1);
+    await expect(
+      store.listByRecord({ collection: 'accounts', recordId: '1', search: 'no-such-match' }),
+    ).resolves.toEqual([]);
+
+    await close();
+  });
+
+  it('search does not match a value that was redacted before it was ever stored', async () => {
+    const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
+
+    // Simulates what instrument.ts's redactValues does before a redacted row ever reaches the
+    // store: the real value is replaced on both sides, so it is never written anywhere.
+    await seed(
+      store,
+      record({
+        recordId: '1',
+        previousValues: { ssn: '[redacted]' },
+        newValues: { ssn: '[redacted]' },
+      }),
+    );
+
+    await expect(
+      store.listByRecord({ collection: 'accounts', recordId: '1', search: '123-45-6789' }),
+    ).resolves.toEqual([]);
+    await expect(
+      store.listByRecord({ collection: 'accounts', recordId: '1', search: 'redacted' }),
+    ).resolves.toHaveLength(1);
+
+    await close();
+  });
+
+  it('search composes as AND with other filters', async () => {
+    const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
+
+    await seed(store, record({ recordId: '1', userId: 1, newValues: { city: 'Lyon' } }));
+    await seed(store, record({ recordId: '1', userId: 2, newValues: { city: 'Lyon' } }));
+
+    const history = await store.listByRecord({
+      collection: 'accounts',
+      recordId: '1',
+      search: 'Lyon',
+      userIds: [1],
+    });
+
+    expect(history.map(r => r.userId)).toEqual([1]);
+
+    await close();
+  });
+
+  it('countByRecord reflects the search filter', async () => {
+    const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
+
+    await seed(store, record({ recordId: '1', newValues: { city: 'Lyon' } }));
+    await seed(store, record({ recordId: '1', newValues: { city: 'Paris' } }));
+
+    await expect(
+      store.countByRecord({ collection: 'accounts', recordId: '1', search: 'Lyon' }),
+    ).resolves.toBe(1);
+
+    await close();
+  });
+
   it('inserts a batch and returns one id per record, in the same order', async () => {
     const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
 
@@ -642,5 +784,53 @@ describe('fieldsChangedCondition', () => {
     expect(() => fieldsChangedCondition(fakeSequelize, ['name'])).toThrow(
       'Audit-trail "fields" filter is not supported on dialect "oracle"',
     );
+  });
+});
+
+describe('searchCondition', () => {
+  it('casts previous_values/new_values to text on postgres', () => {
+    const sequelize = new Sequelize('postgres://user:pwd@localhost:5432/db', { logging: false });
+
+    const condition = searchCondition(sequelize, 'Lyon');
+
+    expect(condition.val).toContain('previous_values::text');
+    expect(condition.val).toContain('new_values::text');
+    expect(condition.val).toContain("LOWER('%Lyon%')");
+  });
+
+  it('casts previous_values/new_values with CAST(... AS CHAR) on mysql/mariadb', () => {
+    const sequelize = new Sequelize('mysql://user:pwd@localhost/db', { logging: false });
+
+    const condition = searchCondition(sequelize, 'Lyon');
+
+    expect(condition.val).toContain('CAST(previous_values AS CHAR)');
+    expect(condition.val).toContain('CAST(new_values AS CHAR)');
+  });
+
+  it('does not cast previous_values/new_values on sqlite or mssql, already stored as text', () => {
+    const sqlite = new Sequelize('sqlite::memory:', { logging: false });
+    const mssql = new Sequelize('mssql://user:pwd@localhost/db', { logging: false });
+
+    expect(searchCondition(sqlite, 'Lyon').val).toMatch(/LOWER\(previous_values\)/);
+    expect(searchCondition(mssql, 'Lyon').val).toMatch(/LOWER\(previous_values\)/);
+  });
+
+  it('matches against the identity columns as well as the JSON columns', () => {
+    const sequelize = new Sequelize('sqlite::memory:', { logging: false });
+
+    const condition = searchCondition(sequelize, 'Lyon');
+
+    expect(condition.val).toContain('action_name');
+    expect(condition.val).toContain('user_first_name');
+    expect(condition.val).toContain('user_last_name');
+    expect(condition.val).toContain('user_email');
+  });
+
+  it('escapes a literal % or _ in the search term so it is matched literally, not as a wildcard', () => {
+    const sequelize = new Sequelize('sqlite::memory:', { logging: false });
+
+    const condition = searchCondition(sequelize, '50%_off');
+
+    expect(condition.val).toContain("LOWER('%50\\%\\_off%')");
   });
 });
