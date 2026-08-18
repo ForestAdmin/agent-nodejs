@@ -103,6 +103,7 @@ function mapCondition(condition: ServerWorkflowCondition): ConditionStepDefiniti
     executionType: condition.executionType,
     title: condition.title,
     options,
+    preRecordedArgs: condition.preRecordedArgs,
   });
 }
 

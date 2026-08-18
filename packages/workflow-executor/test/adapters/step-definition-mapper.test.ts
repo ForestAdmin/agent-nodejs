@@ -309,7 +309,7 @@ describe('toStepDefinition', () => {
       });
     });
 
-    // A newer orchestrator may send a deterministic mode this executor version does not know.
+    // A newer orchestrator may send an execution mode this executor version does not know.
     // The `.catch(FullyAutomated)` that used to sit on the condition schema would have silently
     // handed the decision to the AI; the mapper must reject the run as malformed instead.
     it('should throw InvalidStepDefinitionError for an unknown executionType instead of coercing to Full AI', () => {
@@ -318,11 +318,53 @@ describe('toStepDefinition', () => {
           { stepId: 's1', buttonText: null, answer: 'Yes' },
           { stepId: 's2', buttonText: null, answer: 'No' },
         ],
-        { executionType: 'deterministic' as ServerWorkflowCondition['executionType'] },
+        { executionType: 'not-a-mode' as ServerWorkflowCondition['executionType'] },
       );
 
       expect(() => toStepDefinition(condition)).toThrow(InvalidStepDefinitionError);
       expect(() => toStepDefinition(condition)).toThrow(/executionType/);
+    });
+
+    it('should forward preRecordedArgs on a deterministic condition', () => {
+      const preRecordedArgs = {
+        optionConditions: [
+          {
+            option: 'Yes',
+            aggregator: 'and' as const,
+            conditions: [
+              { sourceStepId: 'get-data-1', fieldName: 'status', operator: 'equal', value: 'ok' },
+            ],
+          },
+        ],
+        fallbackOption: 'No',
+      };
+      const condition = makeCondition(
+        [
+          { stepId: 's1', buttonText: null, answer: 'Yes' },
+          { stepId: 's2', buttonText: null, answer: 'No' },
+        ],
+        { executionType: ServerStepExecutionTypeEnum.Deterministic, preRecordedArgs },
+      );
+
+      expect(toStepDefinition(condition)).toMatchObject({
+        type: StepType.Condition,
+        executionType: StepExecutionMode.Deterministic,
+        options: ['Yes', 'No'],
+        preRecordedArgs,
+      });
+    });
+
+    it('should throw InvalidStepDefinitionError for a deterministic condition without preRecordedArgs', () => {
+      const condition = makeCondition(
+        [
+          { stepId: 's1', buttonText: null, answer: 'Yes' },
+          { stepId: 's2', buttonText: null, answer: 'No' },
+        ],
+        { executionType: ServerStepExecutionTypeEnum.Deterministic },
+      );
+
+      expect(() => toStepDefinition(condition)).toThrow(InvalidStepDefinitionError);
+      expect(() => toStepDefinition(condition)).toThrow(/preRecordedArgs/);
     });
 
     it('should throw InvalidStepDefinitionError when fewer than 2 options', () => {
