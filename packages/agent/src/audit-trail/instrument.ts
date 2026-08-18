@@ -309,6 +309,7 @@ function instrumentCollection(
   recorder: Recorder,
   redactedFields: string[],
   logger: Logger | undefined,
+  critical: boolean,
 ): void {
   const { schema } = collection;
   const writableColumns = Object.keys(schema.fields).filter(name => {
@@ -344,17 +345,23 @@ function instrumentCollection(
     page: { skip: 0, limit: MAX_SNAPSHOT_RECORDS },
   });
 
-  // Hitting the cap means the operation may have matched more records than were actually audited —
-  // silently dropping the excess would look identical to "everything got audited".
-  const warnIfTruncated = (operation: 'update' | 'delete', before: RecordData[]): void => {
+  // Hitting the cap means the operation may have matched more records than were actually audited.
+  // Under `critical: false`, silently dropping the excess would look identical to "everything got
+  // audited" — logged instead. Under `critical: true`, that gap is exactly what the option exists
+  // to refuse: no unaudited write, so the whole operation is refused rather than let through
+  // partially covered.
+  const enforceSnapshotCap = (operation: 'update' | 'delete', before: RecordData[]): void => {
     if (before.length < MAX_SNAPSHOT_RECORDS) return;
 
-    logger?.(
-      'Warn',
+    const message =
       `[ForestAdmin] Audit trail: "${name}" ${operation} matched at least ` +
-        `${MAX_SNAPSHOT_RECORDS} records — only the first ${MAX_SNAPSHOT_RECORDS} were audited, ` +
-        'the rest were skipped.',
-    );
+      `${MAX_SNAPSHOT_RECORDS} records — only the first ${MAX_SNAPSHOT_RECORDS} can be audited.`;
+
+    if (critical) {
+      throw new Error(`${message} Refusing the operation because "critical" is enabled.`);
+    }
+
+    logger?.('Warn', `${message} The rest were skipped.`);
   };
 
   collection.addInternalHook('Before', 'Create', async (context: HookBeforeCreateContext) => {
@@ -393,7 +400,7 @@ function instrumentCollection(
       readProjection as never[],
     )) as RecordData[];
 
-    warnIfTruncated('update', before);
+    enforceSnapshotCap('update', before);
 
     const pendingRecords = before.map(record =>
       buildRecord(context.caller, {
@@ -456,7 +463,7 @@ function instrumentCollection(
       readProjection as never[],
     )) as RecordData[];
 
-    warnIfTruncated('delete', before);
+    enforceSnapshotCap('delete', before);
 
     const pendingRecords = before.map(record =>
       buildRecord(context.caller, {
@@ -508,7 +515,7 @@ export default function installAuditTrailHooks(
         `[ForestAdmin] Audit trail: skipping "${collection.name}" — it has no primary key.`,
       );
     } else {
-      instrumentCollection(collection, recorder, redact?.[collection.name] ?? [], logger);
+      instrumentCollection(collection, recorder, redact?.[collection.name] ?? [], logger, critical);
     }
   }
 

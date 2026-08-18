@@ -442,6 +442,28 @@ describe('auditTrail plugin', () => {
       expect(logger).not.toHaveBeenCalled();
     });
 
+    it('refuses a bulk update that hits the snapshot cap when critical is enabled', async () => {
+      const sink = jest.fn();
+      const logger = jest.fn();
+      const matched = Array.from({ length: 1000 }, (_, i) => ({
+        id: i + 1,
+        status: 'open',
+        name: 'Acme',
+        amount: 10,
+      }));
+      const accounts = fakeCollection('accounts', matched);
+      register([accounts], { sink, logger, critical: true });
+
+      await expect(
+        accounts.fire('Before:Update', {
+          caller: makeCaller(),
+          filter: {},
+          patch: { status: 'closed' },
+          collection: { list: accounts.list },
+        }),
+      ).rejects.toThrow('Refusing the operation because "critical" is enabled');
+    });
+
     it('still builds the recordId when the primary key is read-only', async () => {
       const sink = jest.fn();
       const schema = {
@@ -1246,6 +1268,27 @@ describe('auditTrail plugin', () => {
       });
 
       expect(logger).not.toHaveBeenCalled();
+    });
+
+    it('refuses a bulk delete that hits the snapshot cap when critical is enabled', async () => {
+      const sink = jest.fn();
+      const logger = jest.fn();
+      const matched = Array.from({ length: 1000 }, (_, i) => ({
+        id: i + 1,
+        status: 'open',
+        name: 'Acme',
+        amount: 10,
+      }));
+      const accounts = fakeCollection('accounts', matched);
+      register([accounts], { sink, logger, critical: true });
+
+      await expect(
+        accounts.fire('Before:Delete', {
+          caller: makeCaller(),
+          filter: {},
+          collection: { list: accounts.list },
+        }),
+      ).rejects.toThrow('Refusing the operation because "critical" is enabled');
     });
 
     it('captures the full previous record and leaves newValues empty', async () => {

@@ -158,9 +158,11 @@ between the write and the confirm). That residue is evidence a write was attempt
 confirmed, and reading it that way is the point: don't delete a `pending` row, don't fill it in —
 its very presence tells you where to look.
 
-A bulk update or delete's before-write snapshot is capped at 1000 records: hitting the cap logs an
-explicit warning naming the collection and operation rather than silently auditing only part of a
-larger operation.
+A bulk update or delete's before-write snapshot is capped at 1000 records. Under `critical: false`,
+hitting the cap logs an explicit warning naming the collection and operation and proceeds, auditing
+only the first 1000 matched records — the "no unaudited write" guarantee above doesn't extend past
+the cap in this mode. Under `critical: true` it does: hitting the cap refuses the whole operation
+instead, so it stays true that nothing is ever written without a pending row for it.
 
 ## HTTP routes
 
