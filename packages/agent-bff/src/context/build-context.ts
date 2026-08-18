@@ -40,6 +40,10 @@ export interface AgentContext {
   meta: { schemaRevision: number };
 }
 
+function toArray<T>(value: T[] | null | undefined): T[] {
+  return Array.isArray(value) ? value : [];
+}
+
 function toContextField(field: ForestSchemaField): ContextField {
   const serialized: ContextField = { field: field.field, type: field.type };
 
@@ -56,7 +60,7 @@ function toContextActionField(field: ForestSchemaAction['fields'][number]): Cont
 
   if (field.isRequired !== undefined) serialized.isRequired = field.isRequired;
   if (field.defaultValue !== undefined) serialized.defaultValue = field.defaultValue;
-  if (field.enums !== undefined) serialized.enums = [...field.enums];
+  if (Array.isArray(field.enums)) serialized.enums = [...field.enums];
 
   return serialized;
 }
@@ -66,7 +70,7 @@ function toContextAction(action: ForestSchemaAction): ContextAction {
     id: action.id,
     name: action.name,
     type: action.type,
-    fields: (action.fields ?? []).map(toContextActionField),
+    fields: toArray(action.fields).map(toContextActionField),
   };
 }
 
@@ -76,8 +80,8 @@ function toContextCollection(
 ): ContextCollection {
   return {
     name: collection.name,
-    fields: (collection.fields ?? []).map(toContextField),
-    actions: (collection.actions ?? [])
+    fields: toArray(collection.fields).map(toContextField),
+    actions: toArray(collection.actions)
       .filter(action => readModel.isActionAllowed(collection.name, action.name))
       .map(toContextAction),
   };
