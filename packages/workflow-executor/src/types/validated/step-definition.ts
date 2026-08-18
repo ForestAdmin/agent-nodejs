@@ -21,8 +21,9 @@ export enum StepExecutionMode {
 }
 
 // Shared fields across all step types. executionType is intentionally excluded —
-// each schema declares its own valid modes (most with .default().catch() for normalization;
-// guidance deliberately omits .catch to fail loud on an unknown mode).
+// each schema declares its own valid modes (read/update/mcp normalize with .default().catch();
+// condition, trigger-action, load-related-record and guidance deliberately omit .catch to fail
+// loud on an unknown mode).
 // The orchestrator serializes missing BPMN attributes as JSON null (DOM getAttribute), not as
 // absent keys — accept both and normalize to undefined.
 const optionalString = z
@@ -42,7 +43,10 @@ const { Manual, AutomatedWithConfirmation, FullyAutomated } = StepExecutionMode;
 export const ConditionStepDefinitionSchema = z.object({
   ...sharedFields,
   type: z.literal(StepType.Condition),
-  executionType: z.enum([Manual, FullyAutomated]).default(FullyAutomated).catch(FullyAutomated),
+  // NO `.catch` — coercing an unknown mode (e.g. a future `deterministic` from a newer
+  // orchestrator) to FullyAutomated would silently let the AI decide instead of the conditions
+  // the builder configured precisely because they don't trust the AI.
+  executionType: z.enum([Manual, FullyAutomated]).default(FullyAutomated),
   options: z.array(z.string()).min(2),
 });
 export type ConditionStepDefinition = z.infer<typeof ConditionStepDefinitionSchema>;

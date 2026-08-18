@@ -1,9 +1,41 @@
 import {
+  ConditionStepDefinitionSchema,
   GuidanceStepDefinitionSchema,
   LoadRelatedRecordStepDefinitionSchema,
   StepExecutionMode,
   StepType,
 } from '../../src/types/validated/step-definition';
+
+describe('ConditionStepDefinitionSchema executionType', () => {
+  const base = { type: StepType.Condition as const, options: ['Yes', 'No'] };
+
+  it('parses each valid execution mode to its own value', () => {
+    expect(
+      ConditionStepDefinitionSchema.parse({ ...base, executionType: 'manual' }).executionType,
+    ).toBe(StepExecutionMode.Manual);
+    expect(
+      ConditionStepDefinitionSchema.parse({ ...base, executionType: 'fully-automated' })
+        .executionType,
+    ).toBe(StepExecutionMode.FullyAutomated);
+  });
+
+  it('defaults a missing executionType to FullyAutomated', () => {
+    expect(ConditionStepDefinitionSchema.parse(base).executionType).toBe(
+      StepExecutionMode.FullyAutomated,
+    );
+  });
+
+  // No `.catch` on the enum: an unknown value must be rejected, not silently coerced to
+  // FullyAutomated (which would let the AI decide in place of a future deterministic mode).
+  it('rejects an invalid executionType instead of coercing it', () => {
+    expect(
+      ConditionStepDefinitionSchema.safeParse({ ...base, executionType: 'deterministic' }).success,
+    ).toBe(false);
+    expect(
+      ConditionStepDefinitionSchema.safeParse({ ...base, executionType: 'not-a-mode' }).success,
+    ).toBe(false);
+  });
+});
 
 describe('LoadRelatedRecordStepDefinitionSchema executionType', () => {
   const base = { type: StepType.LoadRelatedRecord as const };
