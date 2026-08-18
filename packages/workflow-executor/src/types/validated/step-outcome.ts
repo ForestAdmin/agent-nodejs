@@ -14,8 +14,8 @@ export type RecordStepStatus = z.infer<typeof RecordStepStatusSchema>;
 export const AwaitingInputReasonSchema = z.enum(['needs-oauth-reauth']);
 export type AwaitingInputReason = z.infer<typeof AwaitingInputReasonSchema>;
 
-// Who has to act on a step error. All three cross the wire even though only 'operator' drives a UI
-// branch today: widening an enum is cheap, changing a cross-service contract is not.
+// What kind of failure a step error is. All three cross the wire even though only 'operator' drives
+// a UI branch today: widening an enum is cheap, changing a cross-service contract is not.
 export const ErrorKindSchema = z.enum(['operator', 'configuration', 'system']);
 export type ErrorKind = z.infer<typeof ErrorKindSchema>;
 

@@ -223,7 +223,7 @@ describe('OAuthInvalidGrantError', () => {
 });
 
 describe('errorKind classification', () => {
-  // The operator can resolve these themselves — nothing is broken in the workflow or the agent.
+  // The record or the submitted input is the problem — nothing is broken in the workflow or the agent.
   it.each<[string, WorkflowExecutorError]>([
     ['NoRecordsError', new NoRecordsError()],
     ['RecordNotFoundError', new RecordNotFoundError('customers', [42])],
@@ -234,8 +234,8 @@ describe('errorKind classification', () => {
     expect(error.errorKind).toBe('operator');
   });
 
-  // The workflow or the Forest Admin schema needs an edit, which the operator running the step cannot
-  // do. Every member's own userMessage already says so; the kind only makes it machine-readable.
+  // The step cannot succeed as configured, whatever the run does. Every member's own userMessage
+  // already says so; the kind only makes it machine-readable.
   it.each<[string, WorkflowExecutorError]>([
     ['FieldNotFoundError', new FieldNotFoundError('emailz', 'customers')],
     ['ActionNotFoundError', new ActionNotFoundError('sned-email', 'customers')],
@@ -271,7 +271,7 @@ describe('errorKind classification', () => {
     });
 
     // The only error whose kind depends on why it was thrown: the throw site is the one place that
-    // knows whether the operator had a candidate to pick.
+    // knows whether a candidate was offered.
     it.each(['operator', 'configuration'] as const)(
       'takes the %s kind from the throw site',
       kind => {
