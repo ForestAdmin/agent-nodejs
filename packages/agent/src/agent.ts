@@ -97,6 +97,8 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * Start the agent.
    */
   async start(): Promise<void> {
+    let mounted = false;
+
     try {
       const { router, mcpHttpCallback, mcpIsMcpRoute } = await this.buildRouterAndSendSchema();
 
@@ -105,6 +107,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
 
       this.setMcpCallback(mcpHttpCallback ?? null, mcpIsMcpRoute);
       await this.mount(router);
+      mounted = true;
 
       // Boot after mount(): the embedded executor reaches the agent over HTTP, and the
       // standalone server's host/port (used to derive that URL) are only known once mounted.
@@ -115,15 +118,19 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
 
       // buildRouterAndSendSchema() may already have opened the audit-trail connection even
       // though a later startup step failed; close it so a failed start doesn't leak the pool
-      // (e.g. across restart retries).
-      try {
-        await this.options.auditTrail?.close();
-      } catch (closeError) {
-        const { message: closeMessage } = closeError as Error;
-        this.options.logger(
-          'Error',
-          `Failed to close the audit-trail database connection: ${closeMessage}`,
-        );
+      // (e.g. across restart retries) — but only when that failure happened before mount(): once
+      // the router is mounted, the host framework is already serving requests against this same
+      // connection, and closing it here would break those instead of freeing an unused pool.
+      if (!mounted) {
+        try {
+          await this.options.auditTrail?.close();
+        } catch (closeError) {
+          const { message: closeMessage } = closeError as Error;
+          this.options.logger(
+            'Error',
+            `Failed to close the audit-trail database connection: ${closeMessage}`,
+          );
+        }
       }
 
       throw error;

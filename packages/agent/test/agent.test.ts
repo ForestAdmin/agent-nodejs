@@ -506,6 +506,23 @@ describe('Agent', () => {
         'Failed to close the audit-trail database connection: connection reset',
       );
     });
+
+    test('does not close the audit-trail connection when the failure happens after mount()', async () => {
+      // Once mount() has succeeded the host framework is already serving requests against this
+      // connection; closing it here (because a later step — the embedded executor — failed)
+      // would break those requests instead of freeing an unused pool.
+      const close = jest.fn().mockResolvedValue(undefined);
+      const options = factories.forestAdminHttpDriverOptions.build();
+      const agent = new Agent(options);
+      (agent as unknown as { options: { auditTrail: unknown } }).options.auditTrail = { close };
+      (agent as unknown as { embeddedExecutor: { start: jest.Mock } }).embeddedExecutor = {
+        start: jest.fn().mockRejectedValue(new Error('executor failed')),
+      };
+
+      await expect(() => agent.start()).rejects.toThrow('executor failed');
+
+      expect(close).not.toHaveBeenCalled();
+    });
   });
 
   describe('stop', () => {
