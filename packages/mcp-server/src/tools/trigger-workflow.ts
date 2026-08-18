@@ -62,7 +62,9 @@ export default function declareTriggerWorkflowTool(mcpServer: McpServer, ctx: To
         'Discover triggerable workflows with listWorkflows first.',
       inputSchema: {
         workflowId: z.string().min(1).describe(WORKFLOW_ID_DESCRIPTION),
-        recordId: z.string().min(1).describe(RECORD_ID_DESCRIPTION),
+        // 255 matches the server's selectedRecordId column, so an over-long id is rejected here
+        // rather than after the pending audit row has been written.
+        recordId: z.string().min(1).max(255).describe(RECORD_ID_DESCRIPTION),
       },
     },
     async (args: TriggerWorkflowArgument, extra) => {

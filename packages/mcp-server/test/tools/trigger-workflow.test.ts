@@ -249,6 +249,15 @@ describe('declareTriggerWorkflowTool', () => {
       expect(mockForestServerClient.createMcpActivityLog).not.toHaveBeenCalled();
     });
 
+    it('should reject a recordId longer than the server column, before any call', async () => {
+      const schema = registeredToolConfig.inputSchema as {
+        recordId: { safeParse: (value: unknown) => { success: boolean } };
+      };
+
+      expect(schema.recordId.safeParse('x'.repeat(255)).success).toBe(true);
+      expect(schema.recordId.safeParse('x'.repeat(256)).success).toBe(false);
+    });
+
     it('should tell the caller not to retry when the lookup 404s, so a missing route cannot loop', async () => {
       mockForestServerClient.getMcpWorkflowById.mockRejectedValue(
         new NotFoundError('Workflow not found'),
