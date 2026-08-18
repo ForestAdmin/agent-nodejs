@@ -8,6 +8,7 @@ import {
   Filter,
   PaginatedFilter,
   Projection,
+  ValidationError,
 } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
@@ -235,6 +236,20 @@ describe('BinaryCollectionDecorator', () => {
           },
         },
       ]);
+    });
+  });
+
+  describe('list filtering a binary column with a value that is not a data uri', () => {
+    it('should reject the filter instead of crashing on an undefined base64 payload', async () => {
+      const caller = factories.caller.build();
+      const filter = new PaginatedFilter({
+        conditionTree: new ConditionTreeLeaf('cover', 'Equal', 'Anthony'),
+      });
+
+      await expect(decoratedBook.list(caller, filter, new Projection('id'))).rejects.toThrow(
+        ValidationError,
+      );
+      expect(books.list).not.toHaveBeenCalled();
     });
   });
 

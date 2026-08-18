@@ -16,7 +16,12 @@ import type {
   RecordData,
 } from '@forestadmin/datasource-toolkit';
 
-import { CollectionDecorator, SchemaUtils, TypeGetter } from '@forestadmin/datasource-toolkit';
+import {
+  CollectionDecorator,
+  SchemaUtils,
+  TypeGetter,
+  ValidationError,
+} from '@forestadmin/datasource-toolkit';
 import { filetypemime } from 'magic-bytes.js';
 
 /**
@@ -245,7 +250,17 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
     if (toBackend) {
       const string = value as string;
 
-      return useHex ? Buffer.from(string, 'hex') : Buffer.from(string.split(',')[1], 'base64');
+      if (useHex) return Buffer.from(string, 'hex');
+
+      const payload = string.split(',')[1];
+
+      if (payload === undefined) {
+        throw new ValidationError(
+          `Expected a data uri of the form "data:<mime>;base64,<payload>", received "${string}"`,
+        );
+      }
+
+      return Buffer.from(payload, 'base64');
     }
 
     const buffer = value as Buffer;
