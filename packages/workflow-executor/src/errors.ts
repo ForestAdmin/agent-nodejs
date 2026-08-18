@@ -30,8 +30,8 @@ export abstract class WorkflowExecutorError extends Error {
   readonly userMessage: string;
   cause?: unknown;
 
-  // The kind of failure. A family or a class declares it once via defaultErrorKind; the throw site
-  // overrides only where the same error can be either kind depending on why it was raised.
+  // The kind of failure, declared once by each family below via defaultErrorKind. The throw site
+  // overrides it only where the same error can be either kind depending on why it was raised.
   errorKind?: ErrorKind;
   static readonly defaultErrorKind?: ErrorKind;
 
@@ -55,10 +55,14 @@ export abstract class NotFoundError extends WorkflowExecutorError {}
 export abstract class AccessDeniedError extends WorkflowExecutorError {}
 export abstract class UnavailableError extends WorkflowExecutorError {}
 
-// The workflow or the Forest Admin schema needs an edit: the step cannot succeed as configured,
-// whatever the run does. Extending this is how a step-execution error joins that family.
+// One abstract per classified kind: the family declares it once and a new member joins by extending
+// it. An error extending neither stays unclassified, which is what preserves today's framing.
 export abstract class WorkflowConfigurationError extends WorkflowExecutorError {
   static override readonly defaultErrorKind: ErrorKind = 'configuration';
+}
+
+export abstract class WorkflowOperatorError extends WorkflowExecutorError {
+  static override readonly defaultErrorKind: ErrorKind = 'operator';
 }
 
 export class MissingToolCallError extends WorkflowExecutorError {
@@ -82,9 +86,7 @@ export class MalformedToolCallError extends WorkflowExecutorError {
   }
 }
 
-export class RecordNotFoundError extends WorkflowExecutorError {
-  static override readonly defaultErrorKind: ErrorKind = 'operator';
-
+export class RecordNotFoundError extends WorkflowOperatorError {
   constructor(collectionName: string, recordId: RecordId) {
     super(
       `Record not found: collection "${collectionName}", id "${recordId.join('|')}"`,
@@ -93,9 +95,7 @@ export class RecordNotFoundError extends WorkflowExecutorError {
   }
 }
 
-export class NoRecordsError extends WorkflowExecutorError {
-  static override readonly defaultErrorKind: ErrorKind = 'operator';
-
+export class NoRecordsError extends WorkflowOperatorError {
   constructor() {
     super('No records available');
   }
@@ -149,9 +149,7 @@ export class UnsupportedActionFormError extends WorkflowExecutorError {
 // The action submission was rejected by the agent's server-side validation (bad/missing values),
 // NOT an infra failure. Full AI treats this as a fallback-to-AI-assisted reason
 // so a human can fix the values and resubmit.
-export class ActionFormValidationError extends WorkflowExecutorError {
-  static override readonly defaultErrorKind: ErrorKind = 'operator';
-
+export class ActionFormValidationError extends WorkflowOperatorError {
   constructor(actionName: string, cause?: unknown) {
     super(
       `Action "${actionName}" rejected the submitted form values`,
@@ -165,9 +163,7 @@ export class ActionFormValidationError extends WorkflowExecutorError {
 // CustomActionRequiresApprovalError. Distinct from a plain permission 403 — Full AI
 // falls back to AI-assisted so the native front handles the approval flow. The executor
 // MUST NOT self-sign an approval request.
-export class ActionRequiresApprovalError extends WorkflowExecutorError {
-  static override readonly defaultErrorKind: ErrorKind = 'operator';
-
+export class ActionRequiresApprovalError extends WorkflowOperatorError {
   readonly roleIdsAllowedToApprove?: number[];
 
   constructor(actionName: string, roleIdsAllowedToApprove?: number[]) {
@@ -209,9 +205,7 @@ export class NoRelationshipFieldsError extends WorkflowConfigurationError {
   }
 }
 
-export class RelatedRecordNotFoundError extends WorkflowExecutorError {
-  static override readonly defaultErrorKind: ErrorKind = 'operator';
-
+export class RelatedRecordNotFoundError extends WorkflowOperatorError {
   constructor(collectionName: string, relationName: string) {
     super(
       `No related record found for relation "${relationName}" on collection "${collectionName}"`,
