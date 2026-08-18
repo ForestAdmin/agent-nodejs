@@ -184,7 +184,7 @@ export const ContextResponseSchema = z
         actions: z.array(ContextActionSchema),
       }),
     ),
-    meta: z.object({ schemaRevision: z.number() }),
+    meta: z.object({ schemaRevision: z.number(), environmentId: z.number().optional() }),
   })
   .openapi('ContextResponse', {
     description:
@@ -198,7 +198,9 @@ export const ContextResponseSchema = z
       'filtered by the caller permissions, nor by anything else: it describes the whole exposed ' +
       'schema, so cross it with `/agent/v1/permissions` to know what the caller may actually ' +
       'see. `meta.schemaRevision` increments whenever the BFF refreshes its schema, and resets ' +
-      'when the BFF restarts.',
+      'when the BFF restarts. `meta.environmentId` is the environment the BFF resolved at boot ' +
+      'from its own secret — it is telemetry, not a routing input, and it is absent when the ' +
+      'deployment runs without the OAuth configuration.',
   });
 
 export const ErrorResponseSchema = z
