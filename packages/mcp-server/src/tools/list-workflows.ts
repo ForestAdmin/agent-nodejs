@@ -10,7 +10,7 @@ const COLLECTION_NAME_DESCRIPTION =
   'Optional. Narrow the results to workflows operating on this collection — typically the ' +
   'collection of the record currently in context.';
 
-export function createListWorkflowsArgumentShape(collectionNames: string[]) {
+function createListWorkflowsArgumentShape(collectionNames: string[]) {
   const collectionName =
     collectionNames.length > 0 ? z.enum(collectionNames as [string, ...string[]]) : z.string();
 
@@ -19,7 +19,7 @@ export function createListWorkflowsArgumentShape(collectionNames: string[]) {
   };
 }
 
-export type ListWorkflowsArgument = z.infer<
+type ListWorkflowsArgument = z.infer<
   z.ZodObject<ReturnType<typeof createListWorkflowsArgumentShape>>
 >;
 
@@ -30,7 +30,15 @@ export default function declareListWorkflowsTool(mcpServer: McpServer, ctx: Tool
     mcpServer,
     'listWorkflows',
     {
-      annotations: { readOnlyHint: true },
+      // Spelled out rather than relying on defaults: the MCP spec defaults an omitted
+      // destructiveHint to true, so a client reading that field alone would treat these
+      // reads as destructive.
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
       title: 'List MCP-enabled workflows',
       description:
         'Discover Forest workflows enabled for MCP triggering that you can access. Returns each ' +

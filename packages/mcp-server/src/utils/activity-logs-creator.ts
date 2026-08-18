@@ -102,9 +102,19 @@ async function updateActivityLogStatus(
 ): Promise<void> {
   const { forestServerClient, request, activityLog, status, logger } = options;
 
-  // Use optional chaining with fallback since we're in error handling context
-  // and don't want to throw a different error if auth context is missing
-  const forestServerToken = (request.authInfo?.extra?.forestServerToken as string) ?? '';
+  // Read directly rather than through getAuthContext: this runs in a fire-and-forget path and must
+  // not throw a second, unrelated error. A missing token means the request cannot be authenticated,
+  // so skip the call - sending an empty Bearer would 401 and then be retried on the 404 branch.
+  const forestServerToken = request.authInfo?.extra?.forestServerToken;
+
+  if (typeof forestServerToken !== 'string' || !forestServerToken) {
+    logger(
+      'Error',
+      `Cannot update activity log status to '${status}': no forestServerToken in the auth context.`,
+    );
+
+    return;
+  }
 
   try {
     await forestServerClient.updateActivityLogStatus({

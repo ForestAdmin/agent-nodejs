@@ -59,14 +59,21 @@ describe('declareGetWorkflowRunTool', () => {
       expect(registeredToolConfig.description).toContain('wait at least a few seconds');
     });
 
-    it('should be annotated as read-only', () => {
+    it('should spell out every annotation, not just readOnlyHint', () => {
       declareGetWorkflowRunTool(mcpServer, {
         forestServerClient: mockForestServerClient,
         logger: mockLogger,
         collectionNames: [],
       });
 
-      expect(registeredToolConfig.annotations).toEqual({ readOnlyHint: true });
+      // An omitted destructiveHint defaults to true in the MCP spec, so a client reading
+      // that field alone would treat this read as destructive.
+      expect(registeredToolConfig.annotations).toEqual({
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      });
     });
 
     it('should require a string runId argument', () => {

@@ -308,6 +308,7 @@ export interface ListMcpWorkflowsParams {
  * enabled case; the start endpoint stays the guard that refuses a disabled trigger.
  */
 export interface McpWorkflowLookup {
+  /** Echo of the requested id — the server returns it so the payload is self-describing. */
   workflowId: string;
   name: string;
   collectionName: string | null;

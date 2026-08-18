@@ -19,7 +19,15 @@ export default function declareGetWorkflowRunTool(mcpServer: McpServer, ctx: Too
     mcpServer,
     'getWorkflowRun',
     {
-      annotations: { readOnlyHint: true },
+      // Spelled out rather than relying on defaults: the MCP spec defaults an omitted
+      // destructiveHint to true, so a client reading that field alone would treat these
+      // reads as destructive.
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
       title: 'Get a workflow run status',
       description:
         'Poll a workflow run started with triggerWorkflow. Returns the full hydrated run: its ' +

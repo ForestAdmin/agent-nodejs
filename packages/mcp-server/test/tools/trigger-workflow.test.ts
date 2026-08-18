@@ -352,7 +352,14 @@ describe('declareTriggerWorkflowTool', () => {
         ],
         isError: true,
       });
-      expect(mockForestServerClient.createMcpActivityLog).toHaveBeenCalled();
+      expect(mockForestServerClient.createMcpActivityLog).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'triggerWorkflow',
+          collectionName: 'orders',
+          recordId: '42',
+          label: 'triggered the workflow "Refund order" via MCP',
+        }),
+      );
       expect(mockForestServerClient.updateActivityLogStatus).toHaveBeenCalledWith(
         expect.objectContaining({ status: 'failed' }),
       );
@@ -371,7 +378,14 @@ describe('declareTriggerWorkflowTool', () => {
         ],
         isError: true,
       });
-      expect(mockForestServerClient.createMcpActivityLog).toHaveBeenCalled();
+      expect(mockForestServerClient.createMcpActivityLog).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'triggerWorkflow',
+          collectionName: 'orders',
+          recordId: '42',
+          label: 'triggered the workflow "Refund order" via MCP',
+        }),
+      );
       expect(mockForestServerClient.updateActivityLogStatus).toHaveBeenCalledWith(
         expect.objectContaining({ status: 'failed' }),
       );

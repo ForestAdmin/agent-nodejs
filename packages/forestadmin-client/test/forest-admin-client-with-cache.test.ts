@@ -12,42 +12,58 @@ const verifyAndExtractApprovalMock = verifyAndExtractApproval as jest.Mock;
 describe('ForestAdminClientWithCache', () => {
   describe('constructor wiring', () => {
     it('should assign each positional service to its matching property', () => {
+      const options = factories.forestAdminClientOptions.build();
       const permissionService = factories.permission.build();
+      const renderingPermissionService = factories.renderingPermission.build();
       const contextVariablesInstantiator = factories.contextVariablesInstantiator.build();
       const chartHandler = factories.chartHandler.build();
+      const ipWhitelistService = factories.ipWhiteList.build();
       const schemaService = factories.schema.build();
       const activityLogsService = factories.activityLogs.build();
       const authService = factories.auth.build();
       const modelCustomizationService = factories.modelCustomization.build();
       const mcpServerConfigService = factories.mcpServerConfig.build();
+      const eventsSubscription = factories.eventsSubscription.build();
+      const eventsHandler = factories.eventsHandler.build();
       const workflowsService = factories.workflows.build();
 
       const forestAdminClient = new ForestAdminClient(
-        factories.forestAdminClientOptions.build(),
+        options,
         permissionService,
-        factories.renderingPermission.build(),
+        renderingPermissionService,
         contextVariablesInstantiator,
         chartHandler,
-        factories.ipWhiteList.build(),
+        ipWhitelistService,
         schemaService,
         activityLogsService,
         authService,
         modelCustomizationService,
         mcpServerConfigService,
-        factories.eventsSubscription.build(),
-        factories.eventsHandler.build(),
+        eventsSubscription,
+        eventsHandler,
         workflowsService,
       );
 
-      expect(forestAdminClient.permissionService).toBe(permissionService);
-      expect(forestAdminClient.contextVariablesInstantiator).toBe(contextVariablesInstantiator);
-      expect(forestAdminClient.chartHandler).toBe(chartHandler);
-      expect(forestAdminClient.schemaService).toBe(schemaService);
-      expect(forestAdminClient.activityLogsService).toBe(activityLogsService);
-      expect(forestAdminClient.authService).toBe(authService);
-      expect(forestAdminClient.modelCustomizationService).toBe(modelCustomizationService);
-      expect(forestAdminClient.mcpServerConfigService).toBe(mcpServerConfigService);
-      expect(forestAdminClient.workflowsService).toBe(workflowsService);
+      // All 14 positions, not just the public ones: this test exists to catch a silent argument
+      // shift, and two adjacent services of the same shape (eventsSubscription / eventsHandler,
+      // renderingPermission / ipWhitelist) would swap unnoticed if only the public members were
+      // asserted. Reading the protected ones needs the cast.
+      const wired = forestAdminClient as unknown as Record<string, unknown>;
+
+      expect(wired.options).toBe(options);
+      expect(wired.permissionService).toBe(permissionService);
+      expect(wired.renderingPermissionService).toBe(renderingPermissionService);
+      expect(wired.contextVariablesInstantiator).toBe(contextVariablesInstantiator);
+      expect(wired.chartHandler).toBe(chartHandler);
+      expect(wired.ipWhitelistService).toBe(ipWhitelistService);
+      expect(wired.schemaService).toBe(schemaService);
+      expect(wired.activityLogsService).toBe(activityLogsService);
+      expect(wired.authService).toBe(authService);
+      expect(wired.modelCustomizationService).toBe(modelCustomizationService);
+      expect(wired.mcpServerConfigService).toBe(mcpServerConfigService);
+      expect(wired.eventsSubscription).toBe(eventsSubscription);
+      expect(wired.eventsHandler).toBe(eventsHandler);
+      expect(wired.workflowsService).toBe(workflowsService);
     });
   });
 
