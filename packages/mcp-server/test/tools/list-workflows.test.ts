@@ -169,6 +169,55 @@ describe('declareListWorkflowsTool', () => {
       });
     });
 
+    it('should hide workflows whose collection is unavailable, since triggerWorkflow rejects them', async () => {
+      mockForestServerClient.listMcpEnabledWorkflows.mockResolvedValue([
+        { workflowId: 'wf-1', name: 'Refund order', collectionName: 'orders' },
+        { workflowId: 'wf-2', name: 'Retired process', collectionName: null },
+      ]);
+
+      const result = await registeredToolHandler({}, mockExtra);
+
+      expect(result).toEqual({
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify([
+              { workflowId: 'wf-1', name: 'Refund order', collectionName: 'orders' },
+            ]),
+          },
+        ],
+      });
+    });
+
+    it('should warn the operator about each hidden workflow', async () => {
+      mockForestServerClient.listMcpEnabledWorkflows.mockResolvedValue([
+        { workflowId: 'wf-1', name: 'Refund order', collectionName: 'orders' },
+        { workflowId: 'wf-2', name: 'Retired process', collectionName: null },
+        { workflowId: 'wf-3', name: 'Other retired', collectionName: null },
+      ]);
+
+      await registeredToolHandler({}, mockExtra);
+
+      expect(mockLogger).toHaveBeenCalledWith(
+        'Warn',
+        'listWorkflows hid 2 MCP-enabled workflow(s) whose collection is no longer available in ' +
+          'this rendering; they cannot be triggered until their configuration is fixed.',
+      );
+    });
+
+    it('should not warn when every workflow is triggerable', async () => {
+      mockForestServerClient.listMcpEnabledWorkflows.mockResolvedValue([
+        { workflowId: 'wf-1', name: 'Refund order', collectionName: 'orders' },
+      ]);
+
+      await registeredToolHandler({}, mockExtra);
+
+      expect(mockLogger).not.toHaveBeenCalledWith(
+        'Warn',
+        expect.stringContaining('listWorkflows hid'),
+      );
+    });
+
     it('should return an error result when the auth context is missing the token', async () => {
       const extraWithoutToken = {
         authInfo: { extra: { renderingId: 123 } },

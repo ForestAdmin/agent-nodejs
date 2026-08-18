@@ -47,7 +47,21 @@ export default function declareListWorkflowsTool(mcpServer: McpServer, ctx: Tool
         collectionName: args.collectionName,
       });
 
-      return { content: [{ type: 'text', text: JSON.stringify(workflows) }] };
+      // A workflow whose collection was renamed or removed cannot be triggered - triggerWorkflow
+      // rejects a null collectionName up front - so listing it would only send the model round the
+      // discover, trigger, rejected, discover loop. Surface the drop to the operator instead.
+      const triggerable = workflows.filter(workflow => workflow.collectionName !== null);
+      const droppedCount = workflows.length - triggerable.length;
+
+      if (droppedCount > 0) {
+        logger(
+          'Warn',
+          `listWorkflows hid ${droppedCount} MCP-enabled workflow(s) whose collection is no longer ` +
+            'available in this rendering; they cannot be triggered until their configuration is fixed.',
+        );
+      }
+
+      return { content: [{ type: 'text', text: JSON.stringify(triggerable) }] };
     },
     logger,
   );
