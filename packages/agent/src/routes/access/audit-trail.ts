@@ -85,11 +85,12 @@ export default class AuditTrailRoute extends CollectionRoute {
     ]);
 
     // A genuinely deleted record bypasses the scope check above — there's nothing left to check
-    // existence against — but its delete row's previousValues is the record's full last known
-    // state. If that state itself would have failed the caller's scope, withhold it while still
-    // surfacing that a deletion happened, by whom and when: that part stays visible regardless.
+    // existence against — but create/update/delete rows still carry captured column values from
+    // when the record existed. If those values themselves would have failed the caller's scope,
+    // withhold them while still surfacing that the row happened, by whom and when: that part
+    // stays visible regardless.
     const data =
-      scope && goneEntirely ? this.withholdOutOfScopeDeletes(rawData, scope, context) : rawData;
+      scope && goneEntirely ? this.withholdOutOfScopeValues(rawData, scope, context) : rawData;
 
     context.response.body = {
       data,
@@ -97,7 +98,7 @@ export default class AuditTrailRoute extends CollectionRoute {
     };
   }
 
-  private withholdOutOfScopeDeletes(
+  private withholdOutOfScopeValues(
     entries: AuditRecord[],
     scope: ConditionTree,
     context: Context,
@@ -105,10 +106,30 @@ export default class AuditTrailRoute extends CollectionRoute {
     const { timezone } = QueryStringParser.parseCaller(context, { defaultTimezone: 'UTC' });
 
     return entries.map(entry => {
-      if (entry.operation !== 'delete') return entry;
-      if (scope.match(entry.previousValues, this.collection, timezone)) return entry;
+      // `delete`'s previousValues and `create`'s newValues both capture every writable column
+      // (see instrument.ts's pickColumns), so the scope can be evaluated against them directly.
+      if (entry.operation === 'delete') {
+        if (scope.match(entry.previousValues, this.collection, timezone)) return entry;
 
-      return { ...entry, previousValues: {} };
+        return { ...entry, previousValues: {} };
+      }
+
+      if (entry.operation === 'create') {
+        if (scope.match(entry.newValues, this.collection, timezone)) return entry;
+
+        return { ...entry, newValues: {} };
+      }
+
+      // `update`'s previousValues/newValues are a partial diff (only the columns that changed) —
+      // a scope condition referencing a column this particular update didn't touch can't be
+      // evaluated reliably against it, so withhold unconditionally rather than risk a false
+      // negative. `action`/`action_failed` rows hold a submitted form and a result summary, not
+      // column values, so the scope doesn't apply to them at all.
+      if (entry.operation === 'update') {
+        return { ...entry, previousValues: {}, newValues: {} };
+      }
+
+      return entry;
     });
   }
 

@@ -706,9 +706,18 @@ describe('AuditTrailRoute', () => {
       });
     });
 
-    test('does not withhold a non-delete row even when the record is genuinely gone and scoped', async () => {
+    test('unconditionally withholds an update row for a genuinely gone, scoped record — its values are a partial diff, not a full record', async () => {
+      // A scope condition can reference a column this particular update didn't even touch, so the
+      // match can't be evaluated reliably against a partial diff — withhold regardless, rather
+      // than risk a false negative that would leak column values the caller was never allowed to
+      // see (this is exactly the gap the create/delete-only version of this fix left open).
       const history = [
-        { operation: 'update', recordId: '2', previousValues: { ownerId: 2, title: 'Old' } },
+        {
+          operation: 'update',
+          recordId: '2',
+          previousValues: { title: 'Old' },
+          newValues: { title: 'New' },
+        },
       ];
       const { services, dataSource, options, store } = setup(history);
       (services.authorization.getScope as jest.Mock).mockResolvedValue(
@@ -727,6 +736,58 @@ describe('AuditTrailRoute', () => {
       await route.handleHistory(context);
 
       expect(store.listByRecord).toHaveBeenCalled();
+      expect(context.response.body).toEqual({
+        data: [{ operation: 'update', recordId: '2', previousValues: {}, newValues: {} }],
+        meta: { count: 1, availableUsers: [] },
+      });
+    });
+
+    test("withholds an out-of-scope create row's newValues for a genuinely gone, scoped record", async () => {
+      const history = [
+        { operation: 'create', recordId: '2', newValues: { ownerId: 2, title: 'Secret' } },
+      ];
+      const { services, dataSource, options } = setup(history);
+      (services.authorization.getScope as jest.Mock).mockResolvedValue(
+        new ConditionTreeLeaf('ownerId', 'Equal', 1),
+      );
+      jest
+        .spyOn(dataSource.getCollection('books'), 'list')
+        .mockResolvedValueOnce([]) // scoped check: not found
+        .mockResolvedValueOnce([]); // bare check: genuinely gone, not just out of scope
+      const route = new AuditTrailRoute(services, options, dataSource, 'books');
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: { query: { timezone: 'Europe/Paris' }, params: { id: '2' } },
+      });
+
+      await route.handleHistory(context);
+
+      expect(context.response.body).toEqual({
+        data: [{ operation: 'create', recordId: '2', newValues: {} }],
+        meta: { count: 1, availableUsers: [] },
+      });
+    });
+
+    test("keeps a genuinely-gone create row's newValues when they match the caller's scope", async () => {
+      const history = [
+        { operation: 'create', recordId: '2', newValues: { ownerId: 1, title: 'Visible' } },
+      ];
+      const { services, dataSource, options } = setup(history);
+      (services.authorization.getScope as jest.Mock).mockResolvedValue(
+        new ConditionTreeLeaf('ownerId', 'Equal', 1),
+      );
+      jest
+        .spyOn(dataSource.getCollection('books'), 'list')
+        .mockResolvedValueOnce([]) // scoped check: not found
+        .mockResolvedValueOnce([]); // bare check: genuinely gone, not just out of scope
+      const route = new AuditTrailRoute(services, options, dataSource, 'books');
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: { query: { timezone: 'Europe/Paris' }, params: { id: '2' } },
+      });
+
+      await route.handleHistory(context);
+
       expect(context.response.body).toEqual({
         data: history,
         meta: { count: 1, availableUsers: [] },
