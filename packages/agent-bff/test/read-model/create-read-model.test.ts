@@ -30,6 +30,20 @@ describe('createReadModel', () => {
     expect(model.isActionAllowed('users', 'ban')).toBe(true);
   });
 
+  it('should expose the same schema cache the store reads from', async () => {
+    const { store, schemaCache } = createReadModel({
+      forestServerUrl: 'x',
+      envSecret: 'y',
+      metrics: makeMetrics(),
+    });
+
+    await store.getReadModel();
+    const collections = await schemaCache.get();
+
+    expect(getSchema).toHaveBeenCalledTimes(1);
+    expect(collections.map(entry => entry.name)).toEqual(['users']);
+  });
+
   it('should wire an action-endpoint resolver that resolves mapped actions', async () => {
     const { actionEndpointResolver } = createReadModel({
       forestServerUrl: 'x',

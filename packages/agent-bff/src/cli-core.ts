@@ -3,6 +3,7 @@ import type { UnfoldSource } from './openapi/unfolded-document';
 import type { Logger } from './ports/logger-port';
 import type { Metrics } from './ports/metrics-port';
 import type ReadModelStore from './read-model/read-model-store';
+import type SchemaCache from './read-model/schema-cache';
 import type { Middleware } from 'koa';
 
 import { bodyParser } from '@koa/bodyparser';
@@ -163,8 +164,9 @@ function buildApiKeyMiddleware(config: BFFConfig, logger: Logger): Middleware | 
   return createApiKeyMiddleware({ authenticator, logger });
 }
 
-interface ReadModelBundle {
+interface AgentEdgeReadModel {
   store: ReadModelStore;
+  schemaCache: SchemaCache;
   apiKeyConfig: ResolvedApiKeyConfig;
 }
 
@@ -177,19 +179,19 @@ function resolveReadModelBundle(
   config: BFFConfig,
   logger: Logger,
   metrics?: Metrics,
-): ReadModelBundle | undefined {
+): AgentEdgeReadModel | undefined {
   const apiKeyConfig = resolveApiKeyConfig(config);
 
   if (!apiKeyConfig) return undefined;
 
-  const { store } = createReadModel({
+  const { store, schemaCache } = createReadModel({
     forestServerUrl: apiKeyConfig.forestServerUrl,
     envSecret: apiKeyConfig.forestEnvSecret,
     logger,
     metrics,
   });
 
-  return { store, apiKeyConfig };
+  return { store, schemaCache, apiKeyConfig };
 }
 
 /**
@@ -199,7 +201,7 @@ function resolveReadModelBundle(
  * the two report a missing configuration differently.
  */
 function toUnfoldSource(
-  bundle: ReadModelBundle | undefined,
+  bundle: AgentEdgeReadModel | undefined,
   config: BFFConfig,
   logger: Logger,
 ): UnfoldSource | undefined {
@@ -227,7 +229,7 @@ export function resolveUnfoldSource(config: BFFConfig, logger: Logger): UnfoldSo
 
 // The data middleware falls through to the action middleware on a non-data path.
 function buildAgentRouteMiddlewares(
-  bundle: ReadModelBundle | undefined,
+  bundle: AgentEdgeReadModel | undefined,
   config: BFFConfig,
   logger: Logger,
 ): Middleware[] {
