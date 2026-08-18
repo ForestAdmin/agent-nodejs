@@ -10,6 +10,7 @@ export const CONTEXT_ROUTE = '/agent/v1/context';
 
 export interface ContextRoutesMiddlewareOptions {
   store: ReadModelStore;
+  environmentId?: number;
 }
 
 async function readSnapshot(store: ReadModelStore): Promise<SchemaSnapshot> {
@@ -23,6 +24,7 @@ async function readSnapshot(store: ReadModelStore): Promise<SchemaSnapshot> {
 
 export default function createContextRoutesMiddleware({
   store,
+  environmentId,
 }: ContextRoutesMiddlewareOptions): Middleware {
   return async function contextRoutesMiddleware(ctx, next) {
     if (ctx.path !== CONTEXT_ROUTE || ctx.method !== 'GET') {
@@ -36,6 +38,6 @@ export default function createContextRoutesMiddleware({
     const { collections, readModel, revision } = await readSnapshot(store);
 
     ctx.status = 200;
-    ctx.body = buildContext(collections, readModel, revision);
+    ctx.body = buildContext(collections, readModel, { schemaRevision: revision, environmentId });
   };
 }

@@ -35,9 +35,14 @@ export interface ContextCollection {
   actions: ContextAction[];
 }
 
+export interface ContextMeta {
+  schemaRevision: number;
+  environmentId?: number;
+}
+
 export interface AgentContext {
   collections: ContextCollection[];
-  meta: { schemaRevision: number };
+  meta: ContextMeta;
 }
 
 function toArray<T>(value: T[] | null | undefined): T[] {
@@ -90,12 +95,12 @@ function toContextCollection(
 export default function buildContext(
   collections: ForestSchemaCollection[],
   readModel: ReadModel,
-  schemaRevision: number,
+  meta: ContextMeta,
 ): AgentContext {
   return {
     collections: collections
       .filter(collection => readModel.isCollectionAllowed(collection.name))
       .map(collection => toContextCollection(collection, readModel)),
-    meta: { schemaRevision },
+    meta: meta.environmentId === undefined ? { schemaRevision: meta.schemaRevision } : { ...meta },
   };
 }

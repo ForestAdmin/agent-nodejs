@@ -91,13 +91,18 @@ function resolveOAuthConfig(config: BFFConfig): ResolvedOAuthConfig | undefined 
   return undefined;
 }
 
-async function buildOAuthMiddlewares(config: BFFConfig, logger: Logger): Promise<Middleware[]> {
+interface OAuthEdge {
+  middlewares: Middleware[];
+  environmentId?: number;
+}
+
+async function buildOAuthMiddlewares(config: BFFConfig, logger: Logger): Promise<OAuthEdge> {
   const oauthConfig = resolveOAuthConfig(config);
 
   if (!oauthConfig) {
     logger('Warn', 'OAuth routes disabled: required configuration is missing');
 
-    return [];
+    return { middlewares: [] };
   }
 
   const { forestServerUrl, forestEnvSecret, forestAppUrl, forestAuthSecret, tokenEncryptionKey } =
@@ -121,7 +126,7 @@ async function buildOAuthMiddlewares(config: BFFConfig, logger: Logger): Promise
     logger,
   });
 
-  return [oauthRoutes];
+  return { middlewares: [oauthRoutes], environmentId };
 }
 
 interface ResolvedApiKeyConfig {
@@ -266,13 +271,20 @@ function buildAgentRouteMiddlewares(
   ];
 }
 
-function buildContextMiddlewares(bundle: AgentEdgeReadModel | undefined): Middleware[] {
+function buildContextMiddlewares(
+  bundle: AgentEdgeReadModel | undefined,
+  environmentId?: number,
+): Middleware[] {
   if (!bundle) return [];
 
-  return [createContextRoutesMiddleware({ store: bundle.store })];
+  return [createContextRoutesMiddleware({ store: bundle.store, environmentId })];
 }
 
-function buildAgentMiddlewares(config: BFFConfig, logger: Logger): Middleware[] {
+function buildAgentMiddlewares(
+  config: BFFConfig,
+  logger: Logger,
+  environmentId?: number,
+): Middleware[] {
   const { forestAuthSecret, defaultTimezone } = config;
 
   if (!forestAuthSecret) {
@@ -292,7 +304,7 @@ function buildAgentMiddlewares(config: BFFConfig, logger: Logger): Middleware[] 
     apiKeyStep,
     createPerKeyOriginMiddleware(),
     createOpenApiRoutes({ version, enabled: config.openapiEnabled, source }),
-    ...buildContextMiddlewares(bundle),
+    ...buildContextMiddlewares(bundle, environmentId),
     createTimezoneMiddleware({ defaultTimezone }),
     ...buildAgentRouteMiddlewares(bundle, config, logger),
   ];
@@ -312,15 +324,15 @@ export default async function runCli(
     });
   }
 
-  const oauthMiddlewares = await buildOAuthMiddlewares(config, logger);
-  const agentMiddlewares = buildAgentMiddlewares(config, logger);
+  const oauth = await buildOAuthMiddlewares(config, logger);
+  const agentMiddlewares = buildAgentMiddlewares(config, logger, oauth.environmentId);
   const agentErrorMiddleware =
     agentMiddlewares.length > 0 ? [agentScoped(createErrorMiddleware({ logger }))] : [];
   const middlewares = [
     createCorsMiddleware({ allowedOrigins: config.allowedOrigins }),
     ...agentErrorMiddleware,
     bodyParser({ jsonLimit: BODY_LIMIT }),
-    ...oauthMiddlewares,
+    ...oauth.middlewares,
     ...agentMiddlewares,
   ];
   const server = new BFFHttpServer({

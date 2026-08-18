@@ -16,7 +16,7 @@ describe('buildContext', () => {
 
   describe('when the schema carries every field shape', () => {
     it('should pass a primitive, an array and a composite type through untouched', () => {
-      const context = buildContext(schema, readModel, 1);
+      const context = buildContext(schema, readModel, { schemaRevision: 1 });
 
       expect(fieldNamed(context, 'id')?.type).toBe('Uuid');
       expect(fieldNamed(context, 'tagsWithArrayType')?.type).toEqual(['String']);
@@ -26,7 +26,7 @@ describe('buildContext', () => {
     });
 
     it('should carry reference and inverseOf on a relation that has them', () => {
-      const context = buildContext(schema, readModel, 1);
+      const context = buildContext(schema, readModel, { schemaRevision: 1 });
 
       expect(fieldNamed(context, 'ordersHasManyWithInverseOf')).toEqual({
         field: 'ordersHasManyWithInverseOf',
@@ -37,7 +37,7 @@ describe('buildContext', () => {
     });
 
     it('should omit inverseOf on a relation that lacks it', () => {
-      const context = buildContext(schema, readModel, 1);
+      const context = buildContext(schema, readModel, { schemaRevision: 1 });
       const relation = fieldNamed(context, 'teamBelongsToWithoutInverseOf');
 
       expect(relation).toEqual({
@@ -49,7 +49,7 @@ describe('buildContext', () => {
     });
 
     it('should keep a polymorphic relation, which carries no reference', () => {
-      const context = buildContext(schema, readModel, 1);
+      const context = buildContext(schema, readModel, { schemaRevision: 1 });
 
       expect(fieldNamed(context, 'ownerPolymorphic')).toEqual({
         field: 'ownerPolymorphic',
@@ -58,7 +58,7 @@ describe('buildContext', () => {
     });
 
     it('should carry isRequired and isReadOnly only when true', () => {
-      const context = buildContext(schema, readModel, 1);
+      const context = buildContext(schema, readModel, { schemaRevision: 1 });
 
       expect(fieldNamed(context, 'emailRequired')?.isRequired).toBe(true);
       expect(fieldNamed(context, 'lockedReadOnly')?.isReadOnly).toBe(true);
@@ -69,7 +69,7 @@ describe('buildContext', () => {
 
   describe('when the schema carries actions', () => {
     it('should expose single, bulk and global actions alike', () => {
-      const context = buildContext(schema, readModel, 1);
+      const context = buildContext(schema, readModel, { schemaRevision: 1 });
 
       expect(usersOf(context)?.actions.map(entry => [entry.name, entry.type])).toEqual([
         ['Ban user', 'single'],
@@ -79,7 +79,7 @@ describe('buildContext', () => {
     });
 
     it('should drop an action with no endpoint, matching the read-model allow-list', () => {
-      const context = buildContext(schema, readModel, 1);
+      const context = buildContext(schema, readModel, { schemaRevision: 1 });
 
       expect(readModel.isActionAllowed('users', 'Endpointless action')).toBe(false);
       expect(usersOf(context)?.actions.map(entry => entry.name)).not.toContain(
@@ -88,7 +88,7 @@ describe('buildContext', () => {
     });
 
     it('should keep a falsy default value and an empty enum list, which carry meaning', () => {
-      const context = buildContext(schema, readModel, 1);
+      const context = buildContext(schema, readModel, { schemaRevision: 1 });
       const exportAction = usersOf(context)?.actions.find(entry => entry.name === 'Export all');
 
       expect(exportAction?.fields).toEqual([
@@ -101,7 +101,7 @@ describe('buildContext', () => {
     });
 
     it('should omit enums when the agent sends null, which it does on every dynamic form', () => {
-      const context = buildContext(schema, readModel, 1);
+      const context = buildContext(schema, readModel, { schemaRevision: 1 });
       const loading = usersOf(context)
         ?.actions.find(entry => entry.name === 'Export all')
         ?.fields.find(entry => entry.field === 'loading');
@@ -110,7 +110,7 @@ describe('buildContext', () => {
     });
 
     it('should serialize an action field with its enums and default value', () => {
-      const context = buildContext(schema, readModel, 1);
+      const context = buildContext(schema, readModel, { schemaRevision: 1 });
       const banAction = usersOf(context)?.actions.find(entry => entry.name === 'Ban user');
 
       expect(banAction?.fields).toEqual([
@@ -129,7 +129,7 @@ describe('buildContext', () => {
     it('should omit it', () => {
       const restricted = new ReadModel(schema.filter(collection => collection.name === 'users'));
 
-      const context = buildContext(schema, restricted, 1);
+      const context = buildContext(schema, restricted, { schemaRevision: 1 });
 
       expect(context.collections.map(collection => collection.name)).toEqual(['users']);
     });
@@ -137,7 +137,7 @@ describe('buildContext', () => {
 
   describe('when a collection name is unusual', () => {
     it('should keep a dotted name and a name carrying a space verbatim', () => {
-      const context = buildContext(schema, readModel, 1);
+      const context = buildContext(schema, readModel, { schemaRevision: 1 });
 
       expect(context.collections.map(collection => collection.name)).toEqual([
         'users',
@@ -150,7 +150,7 @@ describe('buildContext', () => {
 
   describe('when a collection has neither fields nor actions', () => {
     it('should serialize it with empty lists rather than throwing', () => {
-      const context = buildContext(schema, readModel, 1);
+      const context = buildContext(schema, readModel, { schemaRevision: 1 });
 
       expect(
         context.collections.find(
@@ -162,20 +162,34 @@ describe('buildContext', () => {
 
   describe('meta', () => {
     it('should carry the schema revision it was built from', () => {
-      expect(buildContext(schema, readModel, 7).meta).toEqual({ schemaRevision: 7 });
+      expect(buildContext(schema, readModel, { schemaRevision: 7 }).meta).toEqual({
+        schemaRevision: 7,
+      });
+    });
+
+    it('should carry the environment id when the deployment resolved one', () => {
+      expect(
+        buildContext(schema, readModel, { schemaRevision: 7, environmentId: 42 }).meta,
+      ).toEqual({ schemaRevision: 7, environmentId: 42 });
+    });
+
+    it('should omit the environment id rather than send null when none was resolved', () => {
+      const { meta } = buildContext(schema, readModel, { schemaRevision: 7 });
+
+      expect(meta).not.toHaveProperty('environmentId');
     });
   });
 
   describe('identity', () => {
     it('should expose collections and meta only, so no identity can ride along', () => {
-      const context = buildContext(schema, readModel, 1);
+      const context = buildContext(schema, readModel, { schemaRevision: 1 });
 
       expect(Object.keys(context).sort()).toEqual(['collections', 'meta']);
       expect(Object.keys(context.meta)).toEqual(['schemaRevision']);
     });
 
     it('should expose only the agreed keys on a collection, a field and an action', () => {
-      const context = buildContext(schema, readModel, 1);
+      const context = buildContext(schema, readModel, { schemaRevision: 1 });
       const users = usersOf(context);
 
       expect(Object.keys(users ?? {}).sort()).toEqual(['actions', 'fields', 'name']);
