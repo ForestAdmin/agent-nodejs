@@ -259,9 +259,43 @@ describe('BinaryCollectionDecorator', () => {
       });
 
       await expect(decoratedBook.list(caller, filter, new Projection('id'))).rejects.toThrow(
-        ValidationError,
+        /must be a data uri/,
       );
       expect(books.list).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('list filtering a hex binary column with a value that is not hex', () => {
+    it('should reject it rather than query for an empty buffer', async () => {
+      const caller = factories.caller.build();
+      const filter = new PaginatedFilter({
+        conditionTree: new ConditionTreeLeaf('id', 'Equal', 'Anthony'),
+      });
+
+      await expect(decoratedBook.list(caller, filter, new Projection('id'))).rejects.toThrow(
+        /even-length hex string/,
+      );
+      expect(books.list).not.toHaveBeenCalled();
+    });
+
+    it('should reject an odd-length hex string, which silently drops its last digit', async () => {
+      const caller = factories.caller.build();
+      const filter = new PaginatedFilter({
+        conditionTree: new ConditionTreeLeaf('id', 'Equal', '303'),
+      });
+
+      await expect(decoratedBook.list(caller, filter, new Projection('id'))).rejects.toThrow(
+        /even-length hex string/,
+      );
+    });
+  });
+
+  describe('writing a non-string value into a binary column', () => {
+    it('should reject it with a validation error rather than an opaque TypeError', async () => {
+      const caller = factories.caller.build();
+
+      await expect(decoratedBook.create(caller, [{ cover: 42 }])).rejects.toThrow(ValidationError);
+      expect(books.create).not.toHaveBeenCalled();
     });
   });
 
