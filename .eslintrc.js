@@ -155,11 +155,12 @@ module.exports = {
     },
     {
       // Demo fixtures mirror snake_case database table names.
-      files: ['packages/datasource-demo-fintech/**/*'],
+      files: ['packages/datasource-demo-fintech/src/customizations/**/*'],
       rules: { 'unicorn/filename-case': 'off' },
     },
     {
-      // Tests use _-grouped filenames.
+      // Test filenames separate subject from case with an underscore; nothing imports
+      // them, so their casing cannot break a build.
       files: ['**/test/**/*'],
       rules: { 'unicorn/filename-case': 'off' },
     },
