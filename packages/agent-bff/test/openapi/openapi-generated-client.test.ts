@@ -6,7 +6,7 @@ import type { Server } from 'http';
 
 import { bodyParser } from '@koa/bodyparser';
 import { spawnSync } from 'child_process';
-import { readFileSync, rmSync } from 'fs';
+import { existsSync, readFileSync, rmSync } from 'fs';
 import Koa from 'koa';
 import path from 'path';
 
@@ -76,11 +76,14 @@ const RECORD_ID = '1';
 const GENERATED_DIR = path.join(__dirname, '.generated');
 const DOCUMENT_FILE = path.join(GENERATED_DIR, 'openapi.json');
 const CLIENT_DIR = path.join(GENERATED_DIR, 'client');
+const SDK_FILE = path.join(CLIENT_DIR, 'sdk.gen.ts');
 
 const CODEGEN_BIN = path.join(
   path.dirname(require.resolve('@hey-api/openapi-ts/package.json')),
   'bin/run.js',
 );
+
+const CODEGEN_TIMEOUT_MS = 60_000;
 
 const noopLogger: Logger = () => undefined;
 
@@ -188,7 +191,7 @@ function documentedOperators(document: {
 }
 
 describe('a client generated from the emitted OpenAPI document', () => {
-  let codegen: { status: number | null; output: string };
+  let codegenOutput: string;
   let document: ReturnType<typeof JSON.parse>;
   let sdk: Record<string, Call>;
   let server: Server;
@@ -196,26 +199,47 @@ describe('a client generated from the emitted OpenAPI document', () => {
   beforeAll(async () => {
     rmSync(GENERATED_DIR, { recursive: true, force: true });
 
+    // The command writes its own progress to stderr. Silenced so the run stays readable, but kept:
+    // it is the only account of why an emission failed.
     const stderr = jest.spyOn(process.stderr, 'write').mockReturnValue(true);
-    const emitted = await dispatchCli(['openapi', '--output', DOCUMENT_FILE], ENV, noopLogger);
-    stderr.mockRestore();
+    const emitted = await dispatchCli(
+      ['openapi', '--output', DOCUMENT_FILE],
+      ENV,
+      noopLogger,
+    ).finally(() => stderr.mockRestore());
 
-    if (emitted.exitCode !== 0) throw new Error('The CLI could not emit the document');
+    if (emitted.exitCode !== 0) {
+      throw new Error(
+        `The CLI could not emit the document: ${stderr.mock.calls.flat().join('')}`.trim(),
+      );
+    }
 
+    // Timed out rather than left to the `beforeAll` deadline: `spawnSync` blocks the event loop, so a
+    // codegen child that hangs would hang the whole Jest run until CI kills the job. `--no-log-file`
+    // because a failing run otherwise drops an `openapi-ts-error-*.log` in the working directory.
     const result = spawnSync(
       process.execPath,
-      [CODEGEN_BIN, '--input', DOCUMENT_FILE, '--output', CLIENT_DIR, '--silent'],
-      { encoding: 'utf8' },
+      [CODEGEN_BIN, '--input', DOCUMENT_FILE, '--output', CLIENT_DIR, '--silent', '--no-log-file'],
+      { encoding: 'utf8', timeout: CODEGEN_TIMEOUT_MS },
     );
-    codegen = {
-      status: result.status,
-      output: `${result.stdout ?? ''}${result.stderr ?? ''}`,
-    };
+    codegenOutput = `${result.stdout ?? ''}${result.stderr ?? ''}`;
+
+    // Before requiring anything it generated: a failed codegen leaves no `sdk.gen.ts`, and the
+    // MODULE_NOT_FOUND that follows would bury the tool's own account of what it choked on. The file
+    // is checked as well as the status, because this codegen reports some failures — a missing input
+    // among them — on its output while still exiting 0.
+    if (result.status !== 0 || !existsSync(SDK_FILE)) {
+      throw new Error(
+        `The codegen could not consume the document (status ${result.status}${
+          result.error ? `, ${result.error.message}` : ''
+        }): ${codegenOutput || `nothing was written to ${SDK_FILE}`}`.trim(),
+      );
+    }
 
     document = JSON.parse(readFileSync(DOCUMENT_FILE, 'utf8'));
 
     // eslint-disable-next-line global-require, import/no-dynamic-require
-    sdk = require(path.join(CLIENT_DIR, 'sdk.gen.ts'));
+    sdk = require(SDK_FILE);
     // eslint-disable-next-line global-require, import/no-dynamic-require, @typescript-eslint/no-var-requires
     const { client } = require(path.join(CLIENT_DIR, 'client.gen.ts')) as {
       client: GeneratedClient;
@@ -229,10 +253,16 @@ describe('a client generated from the emitted OpenAPI document', () => {
       auth: () => API_KEY,
       headers: { [TIMEZONE_HEADER]: TIMEZONE },
     });
-  }, 60_000);
+  }, CODEGEN_TIMEOUT_MS * 2);
 
-  afterAll(() => {
-    server?.close();
+  afterAll(async () => {
+    // Awaited: a fire-and-forget close can leave the port open into the next suite.
+    if (server?.listening) {
+      await new Promise<void>((resolve, reject) => {
+        server.close(error => (error ? reject(error) : resolve()));
+      });
+    }
+
     rmSync(GENERATED_DIR, { recursive: true, force: true });
   });
 
@@ -241,8 +271,8 @@ describe('a client generated from the emitted OpenAPI document', () => {
   });
 
   describe('when a standard codegen reads the document', () => {
-    it('should generate without failing, since a consumer runs this before anything else', () => {
-      expect(codegen).toEqual({ status: 0, output: '' });
+    it('should generate without a warning, since a warning is the document confusing the tool', () => {
+      expect(codegenOutput).toBe('');
     });
 
     it('should expose one function per documented operation, named after its operationId', () => {
