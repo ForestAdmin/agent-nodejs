@@ -1385,6 +1385,45 @@ describe('ActionRoute', () => {
         ]);
       });
 
+      test('resolves the live-query segment context variables before listing the audited selection', async () => {
+        const context = createMockContext({
+          ...baseContext,
+          customProperties: {
+            query: {
+              ...baseContext.customProperties.query,
+              segmentQuery: 'SELECT 1',
+              connectionName: 'main',
+            },
+          },
+          requestBody: {
+            data: {
+              attributes: {
+                ...baseContext.requestBody.data.attributes,
+                ids: [
+                  '123e4567-e89b-12d3-a456-426614174000',
+                  '123e4567-e89b-12d3-a456-426614174001',
+                ],
+              },
+            },
+          },
+        });
+
+        // @ts-expect-error: test private method
+        await route.handleExecute(context);
+
+        expect(dataSource.getCollection('books').list).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            liveQuerySegment: expect.objectContaining({
+              query: 'SELECT 1',
+              connectionName: 'main',
+              contextVariables: {},
+            }),
+          }),
+          expect.anything(),
+        );
+      });
+
       test('logs and records attached to no record when an explicit selection exceeds the snapshot cap', async () => {
         const logger = jest.fn();
         const overCapOptions = factories.forestAdminHttpDriverOptions.build({

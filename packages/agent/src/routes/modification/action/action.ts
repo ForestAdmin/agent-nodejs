@@ -248,6 +248,12 @@ export default class ActionRoute extends CollectionRoute {
   // distinguishable from "matched exactly the cap". Over the cap, recording one row per id would be a
   // partial audit of the run, which is what `critical` exists to refuse; non-critical falls back to
   // the existing no-record-attached recording instead of naming a subset of the targets.
+  //
+  // `filterForCaller` can carry a live-query segment with unresolved `$contextVariable` placeholders
+  // — the same filter reaches `getForm`/`execute` unresolved too, but those hand it to the collection
+  // as-is; this method calls `collection.list` directly, so it must run the filter through
+  // `segmentQueryHandler.handleLiveQuerySegmentFilter` itself first, the same step `list`/`count`
+  // apply before their own `collection.list` call.
   private async auditedRecordIds(
     context: Context,
     caller: Caller,
@@ -261,9 +267,13 @@ export default class ActionRoute extends CollectionRoute {
     if (attributes?.all_records) return [];
     if (!attributes?.ids?.length) return [];
 
+    const paginatedFilter = await this.services.segmentQueryHandler.handleLiveQuerySegmentFilter(
+      context,
+      new PaginatedFilter({ ...filterForCaller, page: new Page(0, MAX_SNAPSHOT_RECORDS + 1) }),
+    );
     const authorized = await this.collection.list(
       caller,
-      new PaginatedFilter({ ...filterForCaller, page: new Page(0, MAX_SNAPSHOT_RECORDS + 1) }),
+      paginatedFilter,
       new Projection(...SchemaUtils.getPrimaryKeys(this.collection.schema)),
     );
 
