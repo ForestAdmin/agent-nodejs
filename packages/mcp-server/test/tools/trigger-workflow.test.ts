@@ -5,7 +5,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
 
-import { NotFoundError } from '@forestadmin/forestadmin-client';
+import { ForbiddenError, HttpError, NotFoundError } from '@forestadmin/forestadmin-client';
 
 import declareTriggerWorkflowTool from '../../src/tools/trigger-workflow';
 import createMockForestServerClient from '../helpers/forest-server-client';
@@ -326,6 +326,88 @@ describe('declareTriggerWorkflowTool', () => {
       expect(mockForestServerClient.triggerMcpWorkflow).not.toHaveBeenCalled();
     });
 
+    // The server validates workflowId as a UUID, the identity, and the workflow engine on every
+    // lookup, so these fail identically on every attempt. Sending them down the "retry later" path
+    // is what let a model loop forever on a request — typically a workflow *name* it guessed
+    // instead of the id — that can never succeed. Each keeps Forest's own reason: unlike the 404,
+    // none of them leaks whether the workflow exists.
+    it.each([
+      ['a non-UUID workflowId (400)', new HttpError('"workflowId" must be a valid GUID', 400)],
+      ['an expired token (401)', new HttpError('Unauthorized', 401)],
+      ['a refused identity (403)', new ForbiddenError('Forbidden')],
+      [
+        'a browser-engine environment (409)',
+        new HttpError('This environment still runs workflows in the browser', 409),
+      ],
+    ])('should treat %s as terminal rather than retryable', async (_, error) => {
+      mockForestServerClient.getMcpWorkflowById.mockRejectedValue(error);
+
+      const result = await registeredToolHandler({ workflowId: 'wf-1', recordId: '42' }, mockExtra);
+      const { text } = (result as { content: [{ text: string }] }).content[0];
+
+      expect(result).toMatchObject({ isError: true });
+      expect(text).toBe(
+        `Workflow "wf-1" could not be resolved — ${error.message.replace(/\.$/, '')}. Retrying ` +
+          'will not help: fix the request, or report it to your Forest administrator.',
+      );
+      expect(text).not.toContain('retry later');
+      expect(mockForestServerClient.triggerMcpWorkflow).not.toHaveBeenCalled();
+    });
+
+    // The 404 is the one that must stay uniform: it covers unknown, MCP-disabled and
+    // out-of-rendering alike, so a caller cannot use it to probe which workflows exist.
+    it('should keep the uniform wording on a 404 so it cannot be used to probe', async () => {
+      mockForestServerClient.getMcpWorkflowById.mockRejectedValue(
+        new NotFoundError('Workflow 3f7c not found in rendering 42'),
+      );
+
+      const result = await registeredToolHandler({ workflowId: 'wf-1', recordId: '42' }, mockExtra);
+      const { text } = (result as { content: [{ text: string }] }).content[0];
+
+      expect(text).toBe(
+        'Workflow "wf-1" is not an MCP-enabled workflow you can access. Use listWorkflows to ' +
+          'discover triggerable workflows. If listWorkflows just returned this id, do not retry ' +
+          '— report it to your Forest administrator instead.',
+      );
+      expect(text).not.toContain('rendering 42');
+    });
+
+    it('should still tell the caller to retry when the lookup fails with a 5xx', async () => {
+      mockForestServerClient.getMcpWorkflowById.mockRejectedValue(
+        new HttpError('Internal Server Error', 503),
+      );
+
+      const result = await registeredToolHandler({ workflowId: 'wf-1', recordId: '42' }, mockExtra);
+
+      expect((result as { content: [{ text: string }] }).content[0].text).toContain('retry later');
+    });
+
+    // The lookup's guard is one call early: the start itself goes through withActivityLog, which
+    // rethrows the parsed message as-is.
+    it('should keep transport detail out of the model when the trigger call itself fails', async () => {
+      mockForestServerClient.triggerMcpWorkflow.mockRejectedValue(
+        new Error('connect ECONNREFUSED 10.0.4.17:3310'),
+      );
+
+      const result = await registeredToolHandler({ workflowId: 'wf-1', recordId: '42' }, mockExtra);
+      const { text } = (result as { content: [{ text: string }] }).content[0];
+
+      expect(result).toMatchObject({ isError: true });
+      expect(text).toBe(
+        'Workflow "wf-1" could not be triggered because Forest could not be reached. The run may ' +
+          'or may not have started — do not retry blindly; report it to your Forest administrator.',
+      );
+      expect(text).not.toContain('ECONNREFUSED');
+      expect(mockLogger).toHaveBeenCalledWith(
+        'Error',
+        'Failed to trigger workflow "wf-1": connect ECONNREFUSED 10.0.4.17:3310',
+      );
+      // The audit row was written before the trigger and must still be closed out.
+      expect(mockForestServerClient.updateActivityLogStatus).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'failed' }),
+      );
+    });
+
     it('should reject an MCP-disabled workflow without triggering or auditing', async () => {
       mockForestServerClient.getMcpWorkflowById.mockResolvedValue({
         workflowId: 'wf-1',
@@ -399,8 +481,11 @@ describe('declareTriggerWorkflowTool', () => {
     });
 
     it('should pass a 409 already-ongoing run through as an error and mark the log failed', async () => {
+      // An HttpError, not a bare Error: ServerUtils maps a 409 carrying a JSON:API detail to
+      // `new HttpError(detail, 409)`. The distinction is load-bearing — a bare Error is what a raw
+      // transport failure looks like, and those are the ones whose message must not reach a model.
       mockForestServerClient.triggerMcpWorkflow.mockRejectedValue(
-        new Error('A run is already ongoing on this record'),
+        new HttpError('A run is already ongoing on this record', 409),
       );
 
       const result = await registeredToolHandler({ workflowId: 'wf-1', recordId: '42' }, mockExtra);

@@ -5,7 +5,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
 
-import { ForbiddenError, NotFoundError } from '@forestadmin/forestadmin-client';
+import { ForbiddenError, HttpError, NotFoundError } from '@forestadmin/forestadmin-client';
 
 import declareGetWorkflowRunTool from '../../src/tools/get-workflow-run';
 import createMockForestServerClient from '../helpers/forest-server-client';
@@ -235,6 +235,37 @@ describe('declareGetWorkflowRunTool', () => {
         content: [{ type: 'text', text: expect.stringContaining('not allowed') }],
         isError: true,
       });
+    });
+
+    it.each([
+      ['a raw connection error', new Error('connect ECONNREFUSED 10.0.4.17:3310')],
+      [
+        'a timeout naming the server URL',
+        new HttpError(
+          'The request to Forest Admin server has timed out while trying to reach ' +
+            'https://api.internal.acme.corp/api/workflow-orchestrator/mcp-workflows/runs/7 at ' +
+            '2026-08-19T13:00:00.000Z. Message: Timeout of 10000ms exceeded',
+          408,
+        ),
+      ],
+    ])('should keep transport detail out of the tool result on %s', async (_, error) => {
+      mockForestServerClient.getMcpWorkflowRun.mockRejectedValue(error);
+
+      const result = await registeredToolHandler({ runId: '7' }, mockExtra);
+      const { text } = (result as { content: [{ text: string }] }).content[0];
+
+      expect(result).toMatchObject({ isError: true });
+      expect(text).toBe(
+        'Run "7" could not be read because Forest could not be reached. This is a temporary ' +
+          'server-side failure, not a problem with the run id — retry later, and report it to ' +
+          'your Forest administrator if it persists.',
+      );
+      expect(text).not.toContain('10.0.4.17');
+      expect(text).not.toContain('acme.corp');
+      expect(mockLogger).toHaveBeenCalledWith(
+        'Error',
+        `Failed to read workflow run "7": ${error.message}`,
+      );
     });
   });
 });

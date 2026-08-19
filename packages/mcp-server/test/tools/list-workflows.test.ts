@@ -5,7 +5,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
 
-import { NotFoundError } from '@forestadmin/forestadmin-client';
+import { HttpError, NotFoundError } from '@forestadmin/forestadmin-client';
 
 import declareListWorkflowsTool from '../../src/tools/list-workflows';
 import createMockForestServerClient from '../helpers/forest-server-client';
@@ -252,6 +252,40 @@ describe('declareListWorkflowsTool', () => {
         ],
         isError: true,
       });
+    });
+
+    // This result is stringified straight into a model's context, so it is the one place a raw
+    // connection error must not reach: the model vendor would receive the private Forest endpoint.
+    it.each([
+      ['a raw connection error', new Error('connect ECONNREFUSED 10.0.4.17:3310')],
+      [
+        'a timeout naming the server URL',
+        new HttpError(
+          'The request to Forest Admin server has timed out while trying to reach ' +
+            'https://api.internal.acme.corp/api/workflow-orchestrator/mcp-workflows at ' +
+            '2026-08-19T13:00:00.000Z. Message: Timeout of 10000ms exceeded',
+          408,
+        ),
+      ],
+    ])('should keep transport detail out of the tool result on %s', async (_, error) => {
+      mockForestServerClient.listMcpEnabledWorkflows.mockRejectedValue(error);
+
+      const result = await registeredToolHandler({}, mockExtra);
+      const { text } = (result as { content: [{ text: string }] }).content[0];
+
+      expect(result).toMatchObject({ isError: true });
+      expect(text).toBe(
+        'The MCP-enabled workflows could not be listed because Forest could not be reached. This ' +
+          'is a temporary server-side failure — retry later, and report it to your Forest ' +
+          'administrator if it persists.',
+      );
+      expect(text).not.toContain('10.0.4.17');
+      expect(text).not.toContain('acme.corp');
+      // The operator keeps the whole cause.
+      expect(mockLogger).toHaveBeenCalledWith(
+        'Error',
+        `Failed to list MCP-enabled workflows: ${error.message}`,
+      );
     });
   });
 });

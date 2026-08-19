@@ -5,6 +5,12 @@ import { z } from 'zod';
 
 import getAuthContext from '../utils/auth-context';
 import registerToolWithLogging from '../utils/tool-with-logging';
+import toModelSafeError from '../utils/workflow-error';
+
+const LISTING_UNAVAILABLE_MESSAGE =
+  'The MCP-enabled workflows could not be listed because Forest could not be reached. This is a ' +
+  'temporary server-side failure — retry later, and report it to your Forest administrator if it ' +
+  'persists.';
 
 const COLLECTION_NAME_DESCRIPTION =
   'Optional. Narrow the results to workflows operating on this collection — typically the ' +
@@ -49,11 +55,24 @@ export default function declareListWorkflowsTool(mcpServer: McpServer, ctx: Tool
     async (args: ListWorkflowsArgument, extra) => {
       const { forestServerToken, renderingId } = getAuthContext(extra);
 
-      const workflows = await forestServerClient.listMcpEnabledWorkflows({
-        forestServerToken,
-        renderingId,
-        collectionName: args.collectionName,
-      });
+      let workflows;
+
+      try {
+        workflows = await forestServerClient.listMcpEnabledWorkflows({
+          forestServerToken,
+          renderingId,
+          collectionName: args.collectionName,
+        });
+      } catch (error) {
+        // Forest's own refusals still reach the model — they say something actionable. What must
+        // not is a raw transport failure: its message carries the Forest server URL and an internal
+        // host and port, and this result is stringified straight into a model's context.
+        throw toModelSafeError(error, {
+          logger,
+          context: 'Failed to list MCP-enabled workflows',
+          unavailableMessage: LISTING_UNAVAILABLE_MESSAGE,
+        });
+      }
 
       // A workflow whose collection was renamed or removed cannot be triggered - triggerWorkflow
       // rejects a null collectionName up front - so listing it would only send the model round the

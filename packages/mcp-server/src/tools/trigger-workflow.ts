@@ -8,6 +8,7 @@ import { z } from 'zod';
 import getAuthContext from '../utils/auth-context';
 import registerToolWithLogging from '../utils/tool-with-logging';
 import withActivityLog from '../utils/with-activity-log';
+import { carriesTransportDetail, isRetryable } from '../utils/workflow-error';
 
 const WORKFLOW_ID_DESCRIPTION =
   'The id of the workflow to start, as returned by listWorkflows. The workflow must have the MCP ' +
@@ -36,12 +37,37 @@ function notMcpEnabledMessage(workflowId: string): string {
 
 // Distinct from the uniform 404 message: the workflow may well exist and be triggerable, Forest
 // just could not be reached. Retrying later is the right advice, and the transport detail stays in
-// the operator log rather than in the model's context.
+// the operator log rather than in the model's context. Reserved for genuinely retryable failures —
+// see isRetryable: a 4xx handed this message would make the model retry an id that can never work.
 function lookupUnavailableMessage(workflowId: string): string {
   return (
     `Workflow "${workflowId}" could not be resolved because Forest could not be reached. ` +
     'This is a temporary server-side failure, not a problem with the workflow id — retry later, ' +
     'and report it to your Forest administrator if it persists.'
+  );
+}
+
+// Forest refused the lookup for a reason that will not change on retry, and said why. Reached only
+// for an HttpError — isRetryable treats everything else as retryable — so `detail` is either the
+// server's own JSON:API message or a fixed string, never transport detail. Keeping it distinguishes
+// a malformed id, a refused identity and a browser-engine environment from one another, instead of
+// having all three claim the workflow is not MCP-enabled.
+function terminalLookupMessage(workflowId: string, detail: string): string {
+  const reason = detail.replace(/\.$/, '');
+
+  return (
+    `Workflow "${workflowId}" could not be resolved — ${reason}. Retrying will not help: fix the ` +
+    'request, or report it to your Forest administrator.'
+  );
+}
+
+// The trigger is not idempotent and the write may have landed before the transport failed, so this
+// deliberately does not tell the model to retry: a blind retry either duplicates intent or hits the
+// active-run conflict, and neither is something a model should decide on its own.
+function triggerUnavailableMessage(workflowId: string): string {
+  return (
+    `Workflow "${workflowId}" could not be triggered because Forest could not be reached. The run ` +
+    'may or may not have started — do not retry blindly; report it to your Forest administrator.'
   );
 }
 
@@ -101,13 +127,28 @@ export default function declareTriggerWorkflowTool(mcpServer: McpServer, ctx: To
           }`,
         );
 
+        // A 404 keeps the uniform wording on purpose: unknown, MCP-disabled and out-of-rendering
+        // must stay indistinguishable, or the contract leaks whether a given workflow exists.
         if (error instanceof NotFoundError) {
           throw new Error(notMcpEnabledMessage(args.workflowId));
         }
 
-        // Anything else (5xx, timeout, ECONNREFUSED) carries transport detail — the Forest server
-        // URL, an internal host and port — that has no business in a model's context. The full
-        // error is in the operator log above.
+        // Any other non-retryable refusal (a 400 on a malformed id, a 401/403 on the identity, a
+        // 409 on a browser-engine environment) fails identically on every attempt. Sending those
+        // down the "retry later" path is what made a model loop forever on a request that can
+        // never succeed — typically a workflow *name* it guessed instead of the id.
+        if (!isRetryable(error)) {
+          throw new Error(
+            terminalLookupMessage(
+              args.workflowId,
+              error instanceof Error ? error.message : String(error),
+            ),
+          );
+        }
+
+        // Retryable (5xx, timeout, ECONNREFUSED). Its message carries transport detail — the Forest
+        // server URL, an internal host and port — that has no business in a model's context, so
+        // only the fixed sentence travels. The full error is in the operator log above.
         throw new Error(lookupUnavailableMessage(args.workflowId));
       }
 
@@ -140,11 +181,29 @@ export default function declareTriggerWorkflowTool(mcpServer: McpServer, ctx: To
             workflowId: args.workflowId,
             recordId: args.recordId,
           }),
-        // Guard the race where the workflow is disabled/deleted between the lookup and the trigger.
-        errorEnhancer: async (parsedMessage, originalError) =>
-          originalError instanceof NotFoundError
-            ? notMcpEnabledMessage(args.workflowId)
-            : parsedMessage,
+        errorEnhancer: async (parsedMessage, originalError) => {
+          // Guard the race where the workflow is disabled/deleted between the lookup and the
+          // trigger.
+          if (originalError instanceof NotFoundError) {
+            return notMcpEnabledMessage(args.workflowId);
+          }
+
+          // withActivityLog rethrows the parsed message as-is, so without this the raw transport
+          // failure of the start call itself reaches the model — the same leak the lookup above
+          // guards, one call later.
+          if (carriesTransportDetail(originalError)) {
+            logger(
+              'Error',
+              `Failed to trigger workflow "${args.workflowId}": ${
+                originalError instanceof Error ? originalError.message : String(originalError)
+              }`,
+            );
+
+            return triggerUnavailableMessage(args.workflowId);
+          }
+
+          return parsedMessage;
+        },
       });
 
       return {

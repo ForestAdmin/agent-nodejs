@@ -5,8 +5,17 @@ import { z } from 'zod';
 
 import getAuthContext from '../utils/auth-context';
 import registerToolWithLogging from '../utils/tool-with-logging';
+import toModelSafeError from '../utils/workflow-error';
 
 const RUN_ID_DESCRIPTION = 'The id of the workflow run to observe, as returned by triggerWorkflow.';
+
+function runUnavailableMessage(runId: string): string {
+  return (
+    `Run "${runId}" could not be read because Forest could not be reached. This is a temporary ` +
+    'server-side failure, not a problem with the run id — retry later, and report it to your ' +
+    'Forest administrator if it persists.'
+  );
+}
 
 interface GetWorkflowRunArgument {
   runId: string;
@@ -46,11 +55,23 @@ export default function declareGetWorkflowRunTool(mcpServer: McpServer, ctx: Too
     async (args: GetWorkflowRunArgument, extra) => {
       const { forestServerToken, renderingId } = getAuthContext(extra);
 
-      const runStatus = await forestServerClient.getMcpWorkflowRun({
-        forestServerToken,
-        renderingId,
-        runId: args.runId,
-      });
+      let runStatus;
+
+      try {
+        runStatus = await forestServerClient.getMcpWorkflowRun({
+          forestServerToken,
+          renderingId,
+          runId: args.runId,
+        });
+      } catch (error) {
+        // Same rule as the two sibling workflow tools: Forest's own refusal is worth reading, a
+        // raw transport failure is transport detail the model must never receive.
+        throw toModelSafeError(error, {
+          logger,
+          context: `Failed to read workflow run "${args.runId}"`,
+          unavailableMessage: runUnavailableMessage(args.runId),
+        });
+      }
 
       return { content: [{ type: 'text', text: JSON.stringify(runStatus) }] };
     },
