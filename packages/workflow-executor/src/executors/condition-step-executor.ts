@@ -1,14 +1,19 @@
 import type { StepExecutionResult } from '../types/execution-context';
-import type { ConditionStepDefinition } from '../types/validated/step-definition';
+import type { ConditionEvaluation, StepExecutionData } from '../types/step-execution-data';
+import type {
+  ConditionStepDefinition,
+  DeterministicCondition,
+} from '../types/validated/step-definition';
 import type { ConditionStepOutcome } from '../types/validated/step-outcome';
 
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 import { z } from 'zod';
 
-import { StepStateError } from '../errors';
+import { InvalidStepDefinitionError, StepStateError } from '../errors';
 import BaseStepExecutor from './base-step-executor';
+import evaluateOperator from './deterministic-condition-evaluator';
 import patchBodySchemas from '../http/pending-data-validators';
-import { StepExecutionMode } from '../types/validated/step-definition';
+import { StepExecutionMode, StepType } from '../types/validated/step-definition';
 
 interface GatewayToolArgs {
   option: string | null;
@@ -62,6 +67,12 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
   protected async doExecute(): Promise<StepExecutionResult> {
     const { stepDefinition: step, incomingPendingData } = this.context;
 
+    // Deterministic mode: pure evaluation of build-time conditions against the run's step
+    // history — never calls the AI, never awaits input.
+    if (step.executionType === StepExecutionMode.Deterministic) {
+      return this.evaluateDeterministically(step);
+    }
+
     // Manual mode: the user picks the option from the frontend. Wait for their input
     // without ever calling the AI.
     const isManual = step.executionType === StepExecutionMode.Manual;
@@ -90,6 +101,93 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
     }
 
     return this.buildOutcomeResult({ status: 'success', selectedOption });
+  }
+
+  private async evaluateDeterministically(
+    step: ConditionStepDefinition,
+  ): Promise<StepExecutionResult> {
+    // Guaranteed by the schema's superRefine for the deterministic mode.
+    const { optionConditions, fallbackOption } = step.preRecordedArgs!;
+    const stepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
+
+    let matchedOption: string | undefined;
+    const evaluations = optionConditions.map(({ option, aggregator, conditions }) => {
+      if (matchedOption !== undefined) {
+        return { option, outcome: 'not-evaluated' } satisfies ConditionEvaluation;
+      }
+
+      const results = conditions.map((condition, index) => ({
+        index,
+        met: this.evaluateCondition(condition, stepExecutions),
+      }));
+      const matched =
+        aggregator === 'or'
+          ? results.some(result => result.met === true)
+          : results.every(result => result.met === true);
+      if (matched) matchedOption = option;
+
+      return {
+        option,
+        outcome: matched ? 'matched' : 'not-matched',
+        conditions: results,
+      } satisfies ConditionEvaluation;
+    });
+
+    const usedFallback = matchedOption === undefined;
+    const selectedOption = matchedOption ?? fallbackOption;
+
+    // optionConditions and options come from two different server-side derivations; an option the
+    // orchestrator cannot route must fail here, not silently succeed and break the run downstream.
+    if (!step.options.includes(selectedOption)) {
+      const allowed = step.options.join(', ');
+      throw new InvalidStepDefinitionError(
+        `deterministic option "${selectedOption}" is not a valid choice (expected one of: ${allowed})`,
+      );
+    }
+
+    await this.context.runStore.saveStepExecution(this.context.runId, {
+      type: 'condition',
+      stepIndex: this.context.stepIndex,
+      executionParams: { evaluations, selectedOption, usedFallback },
+      executionResult: { answer: selectedOption },
+    });
+
+    return this.buildOutcomeResult({ status: 'success', selectedOption });
+  }
+
+  private evaluateCondition(
+    condition: DeterministicCondition,
+    stepExecutions: StepExecutionData[],
+  ): boolean | null {
+    const resolved = this.resolveConditionValue(condition, stepExecutions);
+    // Unresolvable reference (step never ran, field not read, read error) → not evaluable, even
+    // for present/blank — a value that was never read is not the same as a blank one.
+    if (!resolved.found) return null;
+
+    return evaluateOperator(condition.operator, resolved.value, condition.value);
+  }
+
+  // Same live-path + most-recent-occurrence resolution as resolveSourceRecordRef: previousSteps
+  // are already restricted to the live path, and in a loop the same step id repeats.
+  private resolveConditionValue(
+    condition: DeterministicCondition,
+    stepExecutions: StepExecutionData[],
+  ): { found: true; value: unknown } | { found: false } {
+    const matches = this.context.previousSteps.filter(
+      step =>
+        step.stepDefinition.type === StepType.ReadRecord &&
+        step.stepOutcome.stepId === condition.sourceStepId,
+    );
+    const sourceStep = matches[matches.length - 1];
+    if (!sourceStep) return { found: false };
+
+    const execution = this.resolveStepExecution(sourceStep, stepExecutions);
+    if (execution?.type !== 'read-record') return { found: false };
+
+    const field = execution.executionResult.fields.find(f => f.name === condition.fieldName);
+    if (!field || !('value' in field)) return { found: false };
+
+    return { found: true, value: field.value };
   }
 
   private readUserChoice(

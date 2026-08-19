@@ -1,0 +1,130 @@
+import type { ConditionOperator } from '../types/validated/step-definition';
+
+// Guard against Date.parse's laxity ("5" parses as a year in some engines): only strings that
+// start like an ISO date are treated as dates.
+const ISO_DATE_PREFIX = /^\d{4}-\d{2}-\d{2}/;
+const TIMEZONE_SUFFIX = /(Z|[+-]\d{2}:?\d{2})$/i;
+// Sequelize hands back numeric/decimal/bigint columns as strings although datasource-sequelize
+// maps them to the Number primitive, so the builder's JSON number meets a string at runtime.
+const NUMERIC_STRING = /^-?\d+(\.\d+)?$/;
+
+function toTimestamp(value: unknown): number | null {
+  if (typeof value !== 'string' || !ISO_DATE_PREFIX.test(value)) return null;
+
+  // Date.parse reads an offset-less datetime as host-local (date-only as UTC), which would route
+  // the same run differently per machine — pin every offset-less datetime to UTC.
+  const absolute = value.includes('T') && !TIMEZONE_SUFFIX.test(value) ? `${value}Z` : value;
+  const parsed = Date.parse(absolute);
+
+  return Number.isNaN(parsed) ? null : parsed;
+}
+
+function toNumber(value: unknown): number | null {
+  if (typeof value === 'number') return Number.isNaN(value) ? null : value;
+
+  return typeof value === 'string' && NUMERIC_STRING.test(value) ? Number(value) : null;
+}
+
+// Coercion only kicks in against a real number (always the build-time side): two numeric-looking
+// strings stay strings, since the contract exposes ordering operators for Number/Date fields only.
+function toNumberPair(actual: unknown, expected: unknown): [number, number] | null {
+  if (typeof actual !== 'number' && typeof expected !== 'number') return null;
+
+  const actualNumber = toNumber(actual);
+  const expectedNumber = toNumber(expected);
+
+  return actualNumber !== null && expectedNumber !== null ? [actualNumber, expectedNumber] : null;
+}
+
+function scalarEqual(actual: unknown, expected: unknown): boolean | null {
+  if (actual === expected) return true;
+
+  const numbers = toNumberPair(actual, expected);
+  if (numbers) return numbers[0] === numbers[1];
+
+  const actualTs = toTimestamp(actual);
+  const expectedTs = toTimestamp(expected);
+  if (actualTs !== null && expectedTs !== null) return actualTs === expectedTs;
+
+  return typeof actual === typeof expected ? false : null;
+}
+
+function isEqual(actual: unknown, expected: unknown): boolean | null {
+  if (Array.isArray(actual) && Array.isArray(expected)) {
+    return (
+      actual.length === expected.length &&
+      actual.every((item, index) => scalarEqual(item, expected[index]) === true)
+    );
+  }
+
+  if (Array.isArray(actual) || Array.isArray(expected)) return null;
+
+  return scalarEqual(actual, expected);
+}
+
+function compare(actual: unknown, expected: unknown): number | null {
+  const numbers = toNumberPair(actual, expected);
+  if (numbers) return numbers[0] - numbers[1];
+
+  const actualTs = toTimestamp(actual);
+  const expectedTs = toTimestamp(expected);
+  if (actualTs !== null && expectedTs !== null) return actualTs - expectedTs;
+
+  return null;
+}
+
+function isPresent(value: unknown): boolean {
+  if (value === null || value === undefined) return false;
+  if (typeof value === 'string') return value.length > 0;
+  if (Array.isArray(value)) return value.length > 0;
+
+  return true;
+}
+
+function isMemberOf(list: unknown, candidate: unknown): boolean {
+  return Array.isArray(list) && list.some(item => scalarEqual(item, candidate) === true);
+}
+
+function ordering(satisfies: (diff: number) => boolean) {
+  return (actual: unknown, expected: unknown): boolean => {
+    const diff = compare(actual, expected);
+
+    return diff !== null && satisfies(diff);
+  };
+}
+
+const EVALUATORS: Record<
+  Exclude<ConditionOperator, 'present' | 'blank'>,
+  (actual: unknown, expected: unknown) => boolean
+> = {
+  equal: (actual, expected) => isEqual(actual, expected) === true,
+  not_equal: (actual, expected) => isEqual(actual, expected) === false,
+  greater_than: ordering(diff => diff > 0),
+  less_than: ordering(diff => diff < 0),
+  greater_than_or_equal: ordering(diff => diff >= 0),
+  less_than_or_equal: ordering(diff => diff <= 0),
+  in: (actual, expected) => isMemberOf(expected, actual),
+  not_in: (actual, expected) => Array.isArray(expected) && !isMemberOf(expected, actual),
+  contains: (actual, expected) =>
+    typeof actual === 'string' && typeof expected === 'string' && actual.includes(expected),
+  not_contains: (actual, expected) =>
+    typeof actual === 'string' && typeof expected === 'string' && !actual.includes(expected),
+};
+
+/**
+ * Pure evaluation of one deterministic condition. Never throws for data reasons:
+ * - `null` = not evaluable (the resolved value is null/missing) — treated as "not met";
+ * - a type-mismatched comparison (including for negated operators) is "not met" (`false`),
+ *   so a broken config can never accidentally satisfy a condition.
+ */
+export default function evaluateOperator(
+  operator: ConditionOperator,
+  actual: unknown,
+  expected: unknown,
+): boolean | null {
+  if (operator === 'present') return isPresent(actual);
+  if (operator === 'blank') return !isPresent(actual);
+  if (actual === null || actual === undefined) return null;
+
+  return EVALUATORS[operator](actual, expected);
+}
