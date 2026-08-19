@@ -1,3 +1,10 @@
+# @forestadmin/datasource-customizer [1.71.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.70.1...@forestadmin/datasource-customizer@1.71.0) (2026-08-19)
+
+
+### Features
+
+* **agent:** built-in audit trail — history, state-at-timestamp, and smart-action capture ([#1686](https://github.com/ForestAdmin/agent-nodejs/issues/1686)) ([0528f5d](https://github.com/ForestAdmin/agent-nodejs/commit/0528f5d4a292ff66e5d2bf06a2b44d11e0f068da))
+
 ## @forestadmin/datasource-customizer [1.70.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.70.0...@forestadmin/datasource-customizer@1.70.1) (2026-08-17)
 
 
