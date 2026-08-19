@@ -9,6 +9,7 @@ import { readFile } from 'fs/promises';
 
 import * as factories from './__factories__';
 import Agent from '../src/agent';
+import FrameworkMounter from '../src/framework-mounter';
 import SchemaGenerator from '../src/utils/forest-schema/generator';
 
 // Mock routes
@@ -111,6 +112,19 @@ describe('Agent', () => {
 
       expect(DataSourceCustomizer.prototype.addDataSource).toHaveBeenCalledTimes(1);
       expect(DataSourceCustomizer.prototype.addDataSource).toHaveBeenCalledWith('factory');
+    });
+
+    test('installs the audit-trail hooks on start when auditTrail is configured', async () => {
+      const agent = new Agent({
+        ...options,
+        auditTrail: { connectionString: 'sqlite::memory:' },
+      });
+
+      await agent.start();
+
+      // addCustomizations + installAuditTrailHooks, unlike generateSchemaOnly which skips the
+      // latter.
+      expect(DataSourceCustomizer.prototype.use).toHaveBeenCalledTimes(2);
     });
 
     test('start should create new schema definition/meta and upload apimap', async () => {
@@ -348,6 +362,19 @@ describe('Agent', () => {
         await expect(agent.generateSchemaOnly()).rejects.toThrow('boom');
         expect(logger).toHaveBeenCalledWith('Error', 'Forest Admin schema generation failed: boom');
       });
+
+      test('does not install audit-trail hooks, so the audit database is never touched', async () => {
+        const agent = new Agent({
+          ...options,
+          auditTrail: { connectionString: 'sqlite::memory:' },
+        });
+
+        await agent.generateSchemaOnly();
+
+        // Only `customizationService.addCustomizations` — not the audit-trail plugin, which
+        // would otherwise connect to and migrate the (here, real in-memory) audit database.
+        expect(DataSourceCustomizer.prototype.use).toHaveBeenCalledTimes(1);
+      });
     });
   });
 
@@ -444,6 +471,58 @@ describe('Agent', () => {
         'Forest Admin agent startup failure: subscription failed',
       );
     });
+
+    test('closes the audit-trail connection when a later startup step fails', async () => {
+      const close = jest.fn().mockResolvedValue(undefined);
+      const forestAdminClient = factories.forestAdminClient.build({
+        subscribeToServerEvents: jest.fn().mockRejectedValue(new Error('subscription failed')),
+      });
+      const options = factories.forestAdminHttpDriverOptions.build({ forestAdminClient });
+      const agent = new Agent(options);
+      (agent as unknown as { options: { auditTrail: unknown } }).options.auditTrail = { close };
+
+      await expect(() => agent.start()).rejects.toThrow('subscription failed');
+
+      expect(close).toHaveBeenCalledTimes(1);
+    });
+
+    test('logs the close failure but rethrows the original startup error', async () => {
+      const mockLogger = jest.fn();
+      const close = jest.fn().mockRejectedValue(new Error('connection reset'));
+      const forestAdminClient = factories.forestAdminClient.build({
+        subscribeToServerEvents: jest.fn().mockRejectedValue(new Error('subscription failed')),
+      });
+      const options = factories.forestAdminHttpDriverOptions.build({
+        logger: mockLogger,
+        forestAdminClient,
+      });
+      const agent = new Agent(options);
+      (agent as unknown as { options: { auditTrail: unknown } }).options.auditTrail = { close };
+
+      await expect(() => agent.start()).rejects.toThrow('subscription failed');
+
+      expect(mockLogger).toHaveBeenCalledWith(
+        'Error',
+        'Failed to close the audit-trail database connection: connection reset',
+      );
+    });
+
+    test('does not close the audit-trail connection when the failure happens after mount()', async () => {
+      // Once mount() has succeeded the host framework is already serving requests against this
+      // connection; closing it here (because a later step — the embedded executor — failed)
+      // would break those requests instead of freeing an unused pool.
+      const close = jest.fn().mockResolvedValue(undefined);
+      const options = factories.forestAdminHttpDriverOptions.build();
+      const agent = new Agent(options);
+      (agent as unknown as { options: { auditTrail: unknown } }).options.auditTrail = { close };
+      (agent as unknown as { embeddedExecutor: { start: jest.Mock } }).embeddedExecutor = {
+        start: jest.fn().mockRejectedValue(new Error('executor failed')),
+      };
+
+      await expect(() => agent.start()).rejects.toThrow('executor failed');
+
+      expect(close).not.toHaveBeenCalled();
+    });
   });
 
   describe('stop', () => {
@@ -453,6 +532,64 @@ describe('Agent', () => {
 
       await agent.stop();
 
+      expect(options.forestAdminClient.close).toHaveBeenCalledTimes(1);
+    });
+
+    test('closes the audit-trail connection when one is configured', async () => {
+      // `withDefaults` always rebuilds `auditTrail` from a connection string via
+      // `createSqlAuditStore`, so a fake `close` can't be injected through the constructor —
+      // it's set directly on the already-built runtime options instead.
+      const close = jest.fn().mockResolvedValue(undefined);
+      const options = factories.forestAdminHttpDriverOptions.build();
+      const agent = new Agent(options);
+      (agent as unknown as { options: { auditTrail: unknown } }).options.auditTrail = { close };
+
+      await agent.stop();
+
+      expect(close).toHaveBeenCalledTimes(1);
+    });
+
+    test('closes the audit-trail connection only after the framework has fully stopped', async () => {
+      // FrameworkMounter.stop() is what drains in-flight requests (e.g. the standalone server
+      // waits for open connections to finish). Closing the audit trail before that would let a
+      // create/update/delete still being handled reach its after-hook against an already-closed
+      // store, losing the audit entry for a write that otherwise succeeded.
+      const order: string[] = [];
+      const close = jest.fn().mockImplementation(async () => {
+        order.push('audit-trail close');
+      });
+      const options = factories.forestAdminHttpDriverOptions.build();
+      const agent = new Agent(options);
+      (agent as unknown as { options: { auditTrail: unknown } }).options.auditTrail = { close };
+      jest.spyOn(FrameworkMounter.prototype, 'stop').mockImplementationOnce(async () => {
+        order.push('framework stop');
+      });
+
+      await agent.stop();
+
+      expect(order).toEqual(['framework stop', 'audit-trail close']);
+    });
+
+    test('does not attempt to close anything when no audit trail is configured', async () => {
+      const options = factories.forestAdminHttpDriverOptions.build({ auditTrail: null });
+      const agent = new Agent(options);
+
+      await expect(agent.stop()).resolves.toBeUndefined();
+    });
+
+    test('logs and still stops the framework when closing the audit trail fails', async () => {
+      const mockLogger = jest.fn();
+      const close = jest.fn().mockRejectedValue(new Error('connection reset'));
+      const options = factories.forestAdminHttpDriverOptions.build({ logger: mockLogger });
+      const agent = new Agent(options);
+      (agent as unknown as { options: { auditTrail: unknown } }).options.auditTrail = { close };
+
+      await expect(agent.stop()).resolves.toBeUndefined();
+
+      expect(mockLogger).toHaveBeenCalledWith(
+        'Error',
+        'Failed to close the audit-trail database connection: connection reset',
+      );
       expect(options.forestAdminClient.close).toHaveBeenCalledTimes(1);
     });
   });

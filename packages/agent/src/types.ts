@@ -1,7 +1,35 @@
+import type { AuditStore } from './audit-trail/types';
 import type { CompositeId, Logger, LoggerLevel } from '@forestadmin/datasource-toolkit';
 import type { ForestAdminClient } from '@forestadmin/forestadmin-client';
 import type { WorkflowExecutorTuningOptions } from '@forestadmin/workflow-executor';
 import type { IncomingMessage, ServerResponse } from 'http';
+
+export type AuditTrailConfig = {
+  /**
+   * Postgres / SQL connection string for the audit database. May point at an empty database, the
+   * database already used by the agent, or one that already contains the `forest` schema — the
+   * schema and table are created on the fly when missing.
+   */
+  connectionString: string;
+  /** Defaults to `forest`. */
+  schema?: string;
+  /** Defaults to `audit_logs`. */
+  tableName?: string;
+  /**
+   * Fields to mask, keyed by collection name. Redacted fields still produce an audit entry when
+   * they change, but their value is replaced with a sentinel instead of being stored.
+   */
+  redact?: Record<string, string[]>;
+  /**
+   * `true` refuses a write when its pending audit entry fails to record: nothing is written, no
+   * compensating write is issued. `false` (default) swallows the failure and lets the write proceed
+   * unaudited. What this buys is no unaudited write, not every row holding exact after-values — a
+   * row left `pending` means the write may or may not have landed, and that residue is evidence a
+   * write was attempted and never confirmed, which is the point.
+   * @default false
+   */
+  critical?: boolean;
+};
 
 /** Options to configure behavior of an agent's forestadmin driver */
 export type AgentOptions = {
@@ -56,6 +84,11 @@ export type AgentOptions = {
    * @example 'http://localhost:4001'
    */
   workflowExecutorUrl?: string | null;
+  /**
+   * Records every create/update/delete and exposes `/_audit-trail/{collection}/:id` and
+   * `/_audit-trail/correlation*` routes. Disabled when `null` or unset.
+   */
+  auditTrail?: AuditTrailConfig | null;
 };
 
 /**
@@ -99,7 +132,18 @@ export type WorkflowExecutorEmbedOptions = Omit<WorkflowExecutorTuningOptions, '
    */
   encryptionKey?: string;
 };
-export type AgentOptionsWithDefaults = Readonly<Required<AgentOptions>>;
+
+// Runtime view of `auditTrail`: the validator has built the SQL store from the connection string.
+export type AuditTrailRuntime = AuditTrailConfig & {
+  store: AuditStore;
+  close: () => Promise<void>;
+};
+
+export type AgentOptionsWithDefaults = Readonly<
+  Required<Omit<AgentOptions, 'auditTrail'>> & {
+    auditTrail: AuditTrailRuntime | null;
+  }
+>;
 
 export type HttpCallback = (req: IncomingMessage, res: ServerResponse, next?: () => void) => void;
 

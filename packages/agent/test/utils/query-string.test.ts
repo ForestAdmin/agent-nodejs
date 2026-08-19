@@ -675,6 +675,30 @@ describe('QueryStringParser', () => {
       });
     });
 
+    test('should reuse the same requestId across calls within one request', () => {
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: { query: { timezone: 'America/Los_Angeles' } },
+      });
+
+      const first = QueryStringParser.parseCaller(context).requestId;
+      const second = QueryStringParser.parseCaller(context).requestId;
+
+      expect(first).toBe(second);
+    });
+
+    test('should generate a different requestId for different requests', () => {
+      const makeContext = () =>
+        createMockContext({
+          state: { user: { email: 'john.doe@domain.com' } },
+          customProperties: { query: { timezone: 'America/Los_Angeles' } },
+        });
+
+      expect(QueryStringParser.parseCaller(makeContext()).requestId).not.toBe(
+        QueryStringParser.parseCaller(makeContext()).requestId,
+      );
+    });
+
     test('should throw a ValidationError when the timezone is missing', () => {
       const context = createMockContext({
         customProperties: { query: {} },
@@ -683,6 +707,28 @@ describe('QueryStringParser', () => {
       const fn = () => QueryStringParser.parseCaller(context);
 
       expect(fn).toThrow('Missing timezone');
+    });
+
+    test('falls back to the provided defaultTimezone when the timezone is missing', () => {
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: { query: {} },
+      });
+
+      expect(QueryStringParser.parseCaller(context, { defaultTimezone: 'UTC' })).toEqual(
+        expect.objectContaining({ timezone: 'UTC' }),
+      );
+    });
+
+    test('keeps the request timezone when both query and defaultTimezone are set', () => {
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: { query: { timezone: 'America/Los_Angeles' } },
+      });
+
+      expect(QueryStringParser.parseCaller(context, { defaultTimezone: 'UTC' })).toEqual(
+        expect.objectContaining({ timezone: 'America/Los_Angeles' }),
+      );
     });
 
     test('should throw a ValidationError when the timezone is invalid', () => {

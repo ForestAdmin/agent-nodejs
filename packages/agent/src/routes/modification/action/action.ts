@@ -5,7 +5,7 @@ import type {
   SmartActionRequestBody,
 } from '../../../services/authorization/types';
 import type { AgentOptionsWithDefaults } from '../../../types';
-import type { DataSource, Filter } from '@forestadmin/datasource-toolkit';
+import type { ActionResult, Caller, DataSource, Filter } from '@forestadmin/datasource-toolkit';
 import type { UserInfo } from '@forestadmin/forestadmin-client';
 import type Router from '@koa/router';
 import type { Context, Next } from 'koa';
@@ -13,10 +13,20 @@ import type { Context, Next } from 'koa';
 import {
   ConditionTreeFactory,
   FilterFactory,
+  Page,
+  PaginatedFilter,
+  Projection,
+  SchemaUtils,
   UnprocessableError,
 } from '@forestadmin/datasource-toolkit';
 
 import ActionAuthorizationService from './action-authorization';
+import {
+  MAX_SNAPSHOT_RECORDS,
+  buildRecorder,
+  captureActionConfirm,
+  captureActionPending,
+} from '../../../audit-trail';
 import { HttpCode } from '../../../types';
 import BodyParser from '../../../utils/body-parser';
 import ContextFilterFactory from '../../../utils/context-filter-factory';
@@ -113,7 +123,7 @@ export default class ActionRoute extends CollectionRoute {
 
     // Now that we have the field list, we can parse the data again.
     const data = ForestValueConverter.makeFormData(dataSource, rawData, fields);
-    const result = await this.collection.execute(caller, this.actionName, data, filterForCaller);
+    const result = await this.executeAndAudit(context, caller, data, filterForCaller);
 
     if (result.responseHeaders) {
       context.response.set(result.responseHeaders);
@@ -141,6 +151,147 @@ export default class ActionRoute extends CollectionRoute {
     } else {
       throw new Error('Unexpected Action result.');
     }
+  }
+
+  // A failed run is worth recording too: "who tried to run this" is usually the interesting part.
+  // A resolved `{ type: 'Error' }` result counts as failed as well — the customer-declared action
+  // rejected the request (HTTP 400 below), it just didn't throw to say so.
+  //
+  // Record ids are resolved *before* `execute()` runs, not after: the action itself may delete the
+  // targeted records or change a field their own selection filter matched on, so resolving them
+  // afterward could find nothing and silently lose the association between the audit entry and the
+  // records it actually affected. The pending audit entry is inserted before `execute()` too, for the
+  // same reason `instrument.ts` inserts pending rows before a create/update/delete runs: a broken
+  // store fails the request *before* the action has any effect, instead of 500ing after it already
+  // ran (`critical: true`), or is swallowed and the action proceeds unaudited (`critical: false`,
+  // default) — see `captureActionPending`.
+  private async executeAndAudit(
+    context: Context,
+    caller: Caller,
+    data: Record<string, unknown>,
+    filter: Filter,
+  ): Promise<ActionResult> {
+    const { auditTrail } = this.options;
+    const recordIds = await this.resolveAuditedRecordIds(context, caller, filter);
+    const audit = auditTrail
+      ? {
+          recorder: buildRecorder(
+            auditTrail.store,
+            undefined,
+            auditTrail.critical ?? false,
+            this.options.logger,
+          ),
+          redactedFields: auditTrail.redact?.[this.collection.name] ?? [],
+        }
+      : null;
+    const pending = audit
+      ? await captureActionPending(audit.recorder, audit.redactedFields, {
+          caller,
+          collection: this.collection.name,
+          actionName: this.actionName,
+          formValues: data,
+          recordIds,
+        })
+      : null;
+
+    try {
+      const result = await this.collection.execute(caller, this.actionName, data, filter);
+
+      if (audit && pending) {
+        await captureActionConfirm(audit.recorder, pending, result, result.type === 'Error');
+      }
+
+      return result;
+    } catch (error) {
+      if (audit && pending) await captureActionConfirm(audit.recorder, pending, undefined, true);
+      throw error;
+    }
+  }
+
+  // Best-effort under `critical: false`: resolving the audited ids is itself an extra query (see
+  // auditedRecordIds), and a transient failure there must not prevent the action from running at
+  // all — same principle the pending-capture step below applies. Under `critical: true`, falling
+  // back to `[]` would let a record-scoped action run with only a no-record audit entry instead of
+  // per-record coverage, which is exactly what `critical` exists to refuse — so this rethrows
+  // there instead, refusing the action before execute() runs.
+  private async resolveAuditedRecordIds(
+    context: Context,
+    caller: Caller,
+    filter: Filter,
+  ): Promise<string[]> {
+    if (!this.options.auditTrail) return [];
+
+    try {
+      return await this.auditedRecordIds(context, caller, filter);
+    } catch (error) {
+      if (this.options.auditTrail.critical) throw error;
+
+      this.options.logger(
+        'Error',
+        `[ForestAdmin] Unable to resolve audited record ids, continuing: ${error}`,
+      );
+
+      return [];
+    }
+  }
+
+  // Packed ids, the form the audit store keys on. A global action targets nothing, and a select-all
+  // selection only tells us which ids were *excluded*: naming the targets would mean querying the
+  // whole selection, so those runs are recorded once, attached to no record. An explicit selection
+  // is narrowed down to the caller's own authorized subset — via `filterForCaller`, the same filter
+  // `execute()` itself was given — so an id excluded by scope doesn't get an entry for an action that
+  // never touched it.
+  //
+  // The selection is capped at MAX_SNAPSHOT_RECORDS, same as a bulk update/delete's before-write
+  // snapshot (instrument.ts) and the same value the Ruby agent uses for this exact check — one shared
+  // constant so the two can't drift apart. Fetching cap+1 is what makes "matched more than the cap"
+  // distinguishable from "matched exactly the cap". Over the cap, recording one row per id would be a
+  // partial audit of the run, which is what `critical` exists to refuse; non-critical falls back to
+  // the existing no-record-attached recording instead of naming a subset of the targets.
+  //
+  // `filterForCaller` can carry a live-query segment with unresolved `$contextVariable` placeholders
+  // — the same filter reaches `getForm`/`execute` unresolved too, but those hand it to the collection
+  // as-is; this method calls `collection.list` directly, so it must run the filter through
+  // `segmentQueryHandler.handleLiveQuerySegmentFilter` itself first, the same step `list`/`count`
+  // apply before their own `collection.list` call.
+  private async auditedRecordIds(
+    context: Context,
+    caller: Caller,
+    filterForCaller: Filter,
+  ): Promise<string[]> {
+    if (this.collection.schema.actions[this.actionName].scope === 'Global') return [];
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const attributes = (context.request.body as any)?.data?.attributes;
+
+    if (attributes?.all_records) return [];
+    if (!attributes?.ids?.length) return [];
+
+    const paginatedFilter = await this.services.segmentQueryHandler.handleLiveQuerySegmentFilter(
+      context,
+      new PaginatedFilter({ ...filterForCaller, page: new Page(0, MAX_SNAPSHOT_RECORDS + 1) }),
+    );
+    const authorized = await this.collection.list(
+      caller,
+      paginatedFilter,
+      new Projection(...SchemaUtils.getPrimaryKeys(this.collection.schema)),
+    );
+
+    if (authorized.length <= MAX_SNAPSHOT_RECORDS) {
+      return IdUtils.packIds(this.collection.schema, authorized);
+    }
+
+    const message =
+      `[ForestAdmin] Audit trail: "${this.collection.name}" action "${this.actionName}" targets ` +
+      `more than ${MAX_SNAPSHOT_RECORDS} records — recorded as one entry attached to no record.`;
+
+    if (this.options.auditTrail.critical) {
+      throw new Error(`${message} Refusing the action because "critical" is enabled.`);
+    }
+
+    this.options.logger('Warn', message);
+
+    return [];
   }
 
   private async handleHook(context: Context): Promise<void> {

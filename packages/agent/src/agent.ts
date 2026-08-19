@@ -26,11 +26,13 @@ import Router from '@koa/router';
 import { readFile, writeFile } from 'fs/promises';
 import stringify from 'json-stringify-pretty-compact';
 
+import { installAuditTrailHooks } from './audit-trail';
 import EmbeddedWorkflowExecutor from './embedded-workflow-executor';
 import FrameworkMounter from './framework-mounter';
 import makeRoutes from './routes';
 import makeServices from './services';
 import CustomizationService from './services/model-customizations/customization';
+import { CORRELATION_ID_HEADER, correlationIdMiddleware } from './utils/correlation-id';
 import SchemaGenerator from './utils/forest-schema/generator';
 import OptionsValidator from './utils/options-validator';
 
@@ -96,6 +98,8 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * Start the agent.
    */
   async start(): Promise<void> {
+    let mounted = false;
+
     try {
       const { router, mcpHttpCallback, mcpIsMcpRoute } = await this.buildRouterAndSendSchema();
 
@@ -104,6 +108,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
 
       this.setMcpCallback(mcpHttpCallback ?? null, mcpIsMcpRoute);
       await this.mount(router);
+      mounted = true;
 
       // Boot after mount(): the embedded executor reaches the agent over HTTP, and the
       // standalone server's host/port (used to derive that URL) are only known once mounted.
@@ -111,6 +116,24 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     } catch (error) {
       const { message } = error as Error;
       this.options.logger('Error', `Forest Admin agent startup failure: ${message}`);
+
+      // buildRouterAndSendSchema() may already have opened the audit-trail connection even
+      // though a later startup step failed; close it so a failed start doesn't leak the pool
+      // (e.g. across restart retries) — but only when that failure happened before mount(): once
+      // the router is mounted, the host framework is already serving requests against this same
+      // connection, and closing it here would break those instead of freeing an unused pool.
+      if (!mounted) {
+        try {
+          await this.options.auditTrail?.close();
+        } catch (closeError) {
+          const { message: closeMessage } = closeError as Error;
+          this.options.logger(
+            'Error',
+            `Failed to close the audit-trail database connection: ${closeMessage}`,
+          );
+        }
+      }
+
       throw error;
     }
   }
@@ -123,8 +146,22 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     await this.embeddedExecutor?.stop();
     // Close anything related to ForestAdmin client
     this.options.forestAdminClient.close();
-    // Stop at framework level
+    // Stop at framework level: this drains in-flight requests (e.g. the standalone server waits
+    // for open connections to finish before resolving). The audit trail is closed only after,
+    // so a create/update/delete still being handled at shutdown can still reach its after-hook
+    // and append its entry, instead of that write failing against an already-closed store.
     await super.stop();
+
+    // A failure closing the audit-trail connection must not prevent the rest of shutdown.
+    try {
+      await this.options.auditTrail?.close();
+    } catch (error) {
+      const { message } = error as Error;
+      this.options.logger(
+        'Error',
+        `Failed to close the audit-trail database connection: ${message}`,
+      );
+    }
   }
 
   /**
@@ -356,7 +393,15 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
 
     // Build main router
     const router = new Router();
-    router.all('(.*)', cors({ credentials: true, maxAge: 24 * 3600, privateNetworkAccess: true }));
+    router.all(
+      '(.*)',
+      cors({
+        credentials: true,
+        maxAge: 24 * 3600,
+        privateNetworkAccess: true,
+        exposeHeaders: [CORRELATION_ID_HEADER],
+      }),
+    );
     router.use(
       bodyParser({
         encoding: 'utf-8',
@@ -365,6 +410,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
         ...this.options.bodyParserOptions,
       }),
     );
+    router.use(correlationIdMiddleware);
     routes.forEach(route => route.setupRoutes(router));
 
     return { router, mcpHttpCallback, mcpIsMcpRoute };
@@ -425,7 +471,10 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     }
   }
 
-  private async buildNoCodeDataSource(): Promise<DataSource> {
+  // `installAuditTrail: false` skips wiring the audit hooks (and, with them, the store's DB
+  // connection/migration) — used by `generateSchemaOnly()`, which only needs the collection
+  // structure and must not depend on the audit database being reachable.
+  private async buildNoCodeDataSource({ installAuditTrail = true } = {}): Promise<DataSource> {
     // It allows to rebuild the full customization stack with no code customizations
     this.nocodeCustomizer = new DataSourceCustomizer<S>({
       ignoreMissingSchemaElementErrors: this.options.ignoreMissingSchemaElementErrors || false,
@@ -433,6 +482,16 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     });
     this.nocodeCustomizer.addDataSource(this.customizer.getFactory());
     this.nocodeCustomizer.use(this.customizationService.addCustomizations);
+
+    if (installAuditTrail && this.options.auditTrail) {
+      const { store, redact, critical } = this.options.auditTrail;
+      this.nocodeCustomizer.use(installAuditTrailHooks, {
+        store,
+        redact,
+        critical,
+        logger: this.options.logger,
+      });
+    }
 
     return this.nocodeCustomizer.getDataSource(this.options.logger);
   }
@@ -509,6 +568,10 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * their configuration from the Forest API so the generated schema includes them,
    * which requires connectivity to Forest.
    *
+   * Note: when `auditTrail` is configured, its hooks are not installed here, so the audit
+   * database is never connected to or migrated — only the collection structure is needed to
+   * generate the schema.
+   *
    * Unlike `start()`, this always rebuilds the schema — even when `isProduction` is
    * true — and writes the typings whenever `typingsPath` is set, regardless of
    * `isProduction`.
@@ -522,7 +585,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     const { logger, schemaPath, typingsPath, typingsMaxDepth } = this.options;
 
     try {
-      const dataSource = await this.buildNoCodeDataSource();
+      const dataSource = await this.buildNoCodeDataSource({ installAuditTrail: false });
       const schema = await this.schemaGenerator.buildSchema(dataSource);
       const meta = this.buildSchemaMeta();
 

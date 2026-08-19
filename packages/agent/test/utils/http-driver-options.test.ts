@@ -119,6 +119,61 @@ describe('OptionsValidator', () => {
         });
       });
     });
+
+    describe('auditTrail', () => {
+      test('defaults to null when not configured', () => {
+        const options = OptionsValidator.withDefaults(mandatoryOptions);
+
+        expect(options.auditTrail).toBeNull();
+      });
+
+      test('builds a runtime store and close function from the connection string', async () => {
+        const options = OptionsValidator.withDefaults({
+          ...mandatoryOptions,
+          auditTrail: { connectionString: 'sqlite::memory:' },
+        });
+
+        expect(options.auditTrail).toMatchObject({
+          connectionString: 'sqlite::memory:',
+          critical: false,
+          store: expect.objectContaining({ insertPending: expect.any(Function) }),
+          close: expect.any(Function),
+        });
+
+        await options.auditTrail.close();
+      });
+
+      test('keeps an explicit critical: true instead of defaulting it', async () => {
+        const options = OptionsValidator.withDefaults({
+          ...mandatoryOptions,
+          auditTrail: { connectionString: 'sqlite::memory:', critical: true },
+        });
+
+        expect(options.auditTrail).toMatchObject({ critical: true });
+
+        await options.auditTrail.close();
+      });
+
+      test('keeps the configured schema, tableName and redact alongside the built store', async () => {
+        const options = OptionsValidator.withDefaults({
+          ...mandatoryOptions,
+          auditTrail: {
+            connectionString: 'sqlite::memory:',
+            schema: 'custom_schema',
+            tableName: 'custom_table',
+            redact: { accounts: ['ssn'] },
+          },
+        });
+
+        expect(options.auditTrail).toMatchObject({
+          schema: 'custom_schema',
+          tableName: 'custom_table',
+          redact: { accounts: ['ssn'] },
+        });
+
+        await options.auditTrail.close();
+      });
+    });
   });
 
   describe('OptionsValidator.validate', () => {
