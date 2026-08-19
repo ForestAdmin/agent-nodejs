@@ -60,7 +60,8 @@ describe('withActivityLog', () => {
       mockForestServerClient,
       mockRequest,
       'index',
-      { collectionName: 'users' },
+      // The logger travels with the context so the creator can report why a read went unaudited.
+      { collectionName: 'users', logger: expect.any(Function) },
     );
     expect(mockCreatePendingActivityLog).toHaveBeenCalledBefore(operation);
   });
@@ -200,7 +201,7 @@ describe('withActivityLog', () => {
       mockForestServerClient,
       mockRequest,
       'index',
-      undefined,
+      { logger: expect.any(Function) },
     );
   });
 
@@ -228,6 +229,7 @@ describe('withActivityLog', () => {
         collectionName: 'orders',
         recordIds: [1, 2, 3],
         label: 'Bulk delete orders',
+        logger: expect.any(Function),
       },
     );
   });

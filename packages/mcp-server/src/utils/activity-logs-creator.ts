@@ -8,7 +8,7 @@ import type { Logger } from '../server';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol.js';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types.js';
 
-import { NotFoundError } from '@forestadmin/forestadmin-client';
+import { HttpError, NotFoundError } from '@forestadmin/forestadmin-client';
 
 import getAuthContext from './auth-context';
 
@@ -19,6 +19,9 @@ export type { ActivityLogAction, ActivityLogResponse };
  * created is blocked (no unaudited side effect), while a read proceeds with a warning (an audit
  * store outage must not take down the read surface). Both the refusal/outage path and the
  * 200-with-no-id path in `createPendingActivityLog` are arbitrated by this map.
+ *
+ * One case is arbitrated by the cause instead of the action type: an authorization refusal
+ * (401/403) propagates for reads too — see `isAuthorizationRefusal`.
  */
 const ACTION_TO_TYPE: Record<ActivityLogAction, ActivityLogType> = {
   index: 'read',
@@ -33,6 +36,15 @@ const ACTION_TO_TYPE: Record<ActivityLogAction, ActivityLogType> = {
   triggerWorkflow: 'write',
 };
 
+/**
+ * The caller's identity was rejected (401/403), which is not an audit outage: the read the caller
+ * is about to perform is not authorized either. Fail-open exists so a broken audit store cannot
+ * take down the read surface — it must not turn an authorization refusal into a silent warning.
+ */
+function isAuthorizationRefusal(error: unknown): boolean {
+  return error instanceof HttpError && (error.status === 401 || error.status === 403);
+}
+
 export default async function createPendingActivityLog(
   forestServerClient: ForestServerClient,
   request: RequestHandlerExtra<ServerRequest, ServerNotification>,
@@ -42,6 +54,8 @@ export default async function createPendingActivityLog(
     recordId?: string | number;
     recordIds?: string[] | number[];
     label?: string;
+    /** Used only to report why a read proceeded unaudited; never sent to the server. */
+    logger?: Logger;
   },
 ) {
   const type = ACTION_TO_TYPE[action];
@@ -65,7 +79,16 @@ export default async function createPendingActivityLog(
     // The audit log was refused (400/404 — e.g. an unresolvable collection) or the store is
     // unreachable (5xx, timeout, connection error). Both land here, and both are far more likely
     // than the 200-with-null-id case below.
-    if (type === 'write') throw error;
+    if (type === 'write' || isAuthorizationRefusal(error)) throw error;
+
+    // Report the cause: without it every fail-open read logs the same sentence, and an operator
+    // cannot tell a validation refusal (act now) from a transient outage (wait).
+    extra?.logger?.(
+      'Error',
+      `Activity log for '${action}' could not be created: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
 
     return null;
   }
@@ -78,6 +101,12 @@ export default async function createPendingActivityLog(
           'Blocking the operation to preserve the audit trail.',
       );
     }
+
+    extra?.logger?.(
+      'Error',
+      `Activity log for '${action}' could not be created: the server answered 200 with no ` +
+        'activity log id, so the audit store dropped the write.',
+    );
 
     return null;
   }

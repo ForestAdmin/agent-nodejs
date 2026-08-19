@@ -3,7 +3,7 @@ import type { ActivityLogAction } from '../../src/utils/activity-logs-creator';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
 
-import { NotFoundError } from '@forestadmin/forestadmin-client';
+import { ForbiddenError, HttpError, NotFoundError } from '@forestadmin/forestadmin-client';
 
 import createPendingActivityLog, {
   markActivityLogAsFailed,
@@ -272,9 +272,11 @@ describe('createPendingActivityLog', () => {
       },
     );
 
+    // Real HttpErrors rather than bare Errors: the status is what the fail policy now reads, so a
+    // generic Error would make these labels describe a mode the code never sees.
     it.each([
-      ['a 400 rejection (unresolvable collection)', new Error('Validation failed')],
-      ['a 5xx rejection (audit store unreachable)', new Error('Internal Server Error')],
+      ['a 400 rejection (unresolvable collection)', new HttpError('Validation failed', 400)],
+      ['a 5xx rejection (audit store unreachable)', new HttpError('Internal Server Error', 500)],
       ['a transport failure', new Error('connect ECONNREFUSED')],
     ])('should let a read through on %s', async (_label, error) => {
       mockForestServerClient.createMcpActivityLog.mockRejectedValue(error);
@@ -284,6 +286,69 @@ describe('createPendingActivityLog', () => {
       await expect(
         createPendingActivityLog(mockForestServerClient, request, 'index'),
       ).resolves.toBeNull();
+    });
+
+    // An authorization refusal is not an audit outage: the caller's identity was rejected, so the
+    // read it is about to perform is not authorized either. Fail-open must not swallow it.
+    it.each([
+      ['a 401 rejection', new HttpError('Unauthorized', 401)],
+      ['a 403 rejection', new ForbiddenError('Forbidden')],
+    ])('should propagate %s even for a read action', async (_label, error) => {
+      mockForestServerClient.createMcpActivityLog.mockRejectedValue(error);
+
+      const request = createMockRequest();
+
+      await expect(
+        createPendingActivityLog(mockForestServerClient, request, 'index'),
+      ).rejects.toThrow(error);
+    });
+
+    it('should report the cause when a read proceeds unaudited', async () => {
+      mockForestServerClient.createMcpActivityLog.mockRejectedValue(
+        new HttpError('collectionModelName is required', 400),
+      );
+
+      const logger = jest.fn();
+      const request = createMockRequest();
+
+      await expect(
+        createPendingActivityLog(mockForestServerClient, request, 'index', { logger }),
+      ).resolves.toBeNull();
+
+      expect(logger).toHaveBeenCalledWith(
+        'Error',
+        "Activity log for 'index' could not be created: collectionModelName is required",
+      );
+    });
+
+    it('should report the cause when a read gets a 200 with no activity log id', async () => {
+      mockForestServerClient.createMcpActivityLog.mockResolvedValue({ id: null } as never);
+
+      const logger = jest.fn();
+      const request = createMockRequest();
+
+      await expect(
+        createPendingActivityLog(mockForestServerClient, request, 'index', { logger }),
+      ).resolves.toBeNull();
+
+      expect(logger).toHaveBeenCalledWith(
+        'Error',
+        "Activity log for 'index' could not be created: the server answered 200 with no " +
+          'activity log id, so the audit store dropped the write.',
+      );
+    });
+
+    it('should never forward the logger to the server', async () => {
+      mockForestServerClient.createMcpActivityLog.mockResolvedValue({ id: 'log-1' } as never);
+
+      const logger = jest.fn();
+      const request = createMockRequest();
+
+      await createPendingActivityLog(mockForestServerClient, request, 'index', { logger });
+
+      expect(mockForestServerClient.createMcpActivityLog).toHaveBeenCalledWith(
+        expect.not.objectContaining({ logger: expect.anything() }),
+      );
     });
 
     it('should still throw an invalid-auth-context error for a read action', async () => {
