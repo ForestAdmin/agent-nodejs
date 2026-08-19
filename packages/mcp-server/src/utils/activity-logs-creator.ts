@@ -133,7 +133,7 @@ async function updateActivityLogStatus(
 
   // Read directly rather than through getAuthContext: this runs in a fire-and-forget path and must
   // not throw a second, unrelated error. A missing token means the request cannot be authenticated,
-  // so skip the call - sending an empty Bearer would 401 and then be retried on the 404 branch.
+  // so skip the call rather than spend a round trip on a request that can only be refused.
   const forestServerToken = request.authInfo?.extra?.forestServerToken;
 
   if (typeof forestServerToken !== 'string' || !forestServerToken) {

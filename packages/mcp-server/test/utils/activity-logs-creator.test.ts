@@ -468,7 +468,9 @@ describe('markActivityLogAsFailed', () => {
       setTimeout(resolve, 0);
     });
 
-    // An empty Bearer would 401, and the 404 retry branch would then repeat it five times.
+    // An empty Bearer can only be refused, so the round trip is skipped entirely. (The retry
+    // branch below is 404-only, so a 401 would not have been repeated — it would just have cost
+    // one pointless call and an error log naming an auth failure rather than the missing token.)
     expect(mockForestServerClient.updateActivityLogStatus).not.toHaveBeenCalled();
     expect(mockLogger).toHaveBeenCalledWith(
       'Error',
