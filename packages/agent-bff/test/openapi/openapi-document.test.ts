@@ -169,12 +169,12 @@ describe('generateOpenApiDocument', () => {
     });
   });
 
-  it('should secure the context contract with the session scheme, the one mode it accepts', () => {
+  it('should let both auth modes reach the context contract, which is not caller-scoped', () => {
     const context = (document.paths ?? {})[`${ROUTE_PREFIX}/context`] as {
       get: { security: unknown };
     };
 
-    expect(context.get.security).toEqual([{ bffSession: [] }]);
+    expect(context.get.security).toEqual([{ bffSession: [] }, { bffApiKey: [] }]);
   });
 
   it('should say in the session scheme which routes accept it', () => {
@@ -182,7 +182,7 @@ describe('generateOpenApiDocument', () => {
       document.components?.securitySchemes as Record<string, { description: string }>
     ).bffSession;
 
-    expect(session.description).toContain('context contract requires it');
+    expect(session.description).toContain('including the context contract');
   });
 
   it('should require a body where parentId or recordIds is mandatory', () => {
