@@ -105,14 +105,7 @@ describe('buildContext', () => {
       ]);
     });
 
-    it('should drop the message, which is UI copy rather than contract', () => {
-      const context = buildContext(schema, readModel, { schemaRevision: 1 });
-      const [rule] = fieldNamed(context, 'titleWithPresence')?.validations ?? [];
-
-      expect(Object.keys(rule ?? {})).toEqual(['type']);
-    });
-
-    it('should keep a rule that carries no value, rather than inventing one', () => {
+    it('should drop the message and invent no value on a rule that has neither', () => {
       const context = buildContext(schema, readModel, { schemaRevision: 1 });
 
       expect(fieldNamed(context, 'titleWithPresence')?.validations).toEqual([
