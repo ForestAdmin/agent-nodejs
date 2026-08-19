@@ -1,3 +1,18 @@
+# @forestadmin/agent [1.96.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.95.2...@forestadmin/agent@1.96.0) (2026-08-19)
+
+
+### Features
+
+* **agent:** built-in audit trail — history, state-at-timestamp, and smart-action capture ([#1686](https://github.com/ForestAdmin/agent-nodejs/issues/1686)) ([0528f5d](https://github.com/ForestAdmin/agent-nodejs/commit/0528f5d4a292ff66e5d2bf06a2b44d11e0f068da))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.71.0
+
 ## @forestadmin/agent [1.95.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.95.1...@forestadmin/agent@1.95.2) (2026-08-18)
 
 
