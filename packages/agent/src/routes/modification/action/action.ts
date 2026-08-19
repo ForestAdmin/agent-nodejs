@@ -13,6 +13,7 @@ import type { Context, Next } from 'koa';
 import {
   ConditionTreeFactory,
   FilterFactory,
+  Page,
   PaginatedFilter,
   Projection,
   SchemaUtils,
@@ -20,7 +21,12 @@ import {
 } from '@forestadmin/datasource-toolkit';
 
 import ActionAuthorizationService from './action-authorization';
-import { buildRecorder, captureActionConfirm, captureActionPending } from '../../../audit-trail';
+import {
+  MAX_SNAPSHOT_RECORDS,
+  buildRecorder,
+  captureActionConfirm,
+  captureActionPending,
+} from '../../../audit-trail';
 import { HttpCode } from '../../../types';
 import BodyParser from '../../../utils/body-parser';
 import ContextFilterFactory from '../../../utils/context-filter-factory';
@@ -235,6 +241,13 @@ export default class ActionRoute extends CollectionRoute {
   // is narrowed down to the caller's own authorized subset — via `filterForCaller`, the same filter
   // `execute()` itself was given — so an id excluded by scope doesn't get an entry for an action that
   // never touched it.
+  //
+  // The selection is capped at MAX_SNAPSHOT_RECORDS, same as a bulk update/delete's before-write
+  // snapshot (instrument.ts) and the same value the Ruby agent uses for this exact check — one shared
+  // constant so the two can't drift apart. Fetching cap+1 is what makes "matched more than the cap"
+  // distinguishable from "matched exactly the cap". Over the cap, recording one row per id would be a
+  // partial audit of the run, which is what `critical` exists to refuse; non-critical falls back to
+  // the existing no-record-attached recording instead of naming a subset of the targets.
   private async auditedRecordIds(
     context: Context,
     caller: Caller,
@@ -250,11 +263,25 @@ export default class ActionRoute extends CollectionRoute {
 
     const authorized = await this.collection.list(
       caller,
-      new PaginatedFilter({ ...filterForCaller }),
+      new PaginatedFilter({ ...filterForCaller, page: new Page(0, MAX_SNAPSHOT_RECORDS + 1) }),
       new Projection(...SchemaUtils.getPrimaryKeys(this.collection.schema)),
     );
 
-    return IdUtils.packIds(this.collection.schema, authorized);
+    if (authorized.length <= MAX_SNAPSHOT_RECORDS) {
+      return IdUtils.packIds(this.collection.schema, authorized);
+    }
+
+    const message =
+      `[ForestAdmin] Audit trail: "${this.collection.name}" action "${this.actionName}" targets ` +
+      `more than ${MAX_SNAPSHOT_RECORDS} records — recorded as one entry attached to no record.`;
+
+    if (this.options.auditTrail.critical) {
+      throw new Error(`${message} Refusing the action because "critical" is enabled.`);
+    }
+
+    this.options.logger('Warn', message);
+
+    return [];
   }
 
   private async handleHook(context: Context): Promise<void> {

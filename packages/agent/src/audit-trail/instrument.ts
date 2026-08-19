@@ -77,8 +77,10 @@ const toJsonSafe = (value: unknown): unknown => {
 
 // Records touched by a bulk operation, bounded so one write can't hold an unbounded result set in
 // memory (or fan out an unbounded number of pending-row inserts). Truncation is logged explicitly
-// rather than silently auditing only part of the operation.
-const MAX_SNAPSHOT_RECORDS = 1000;
+// rather than silently auditing only part of the operation. Also the cap a smart action's audited
+// selection is checked against (action.ts) — one constant, so the two can't drift apart the way this
+// value and the Ruby agent's once did.
+export const MAX_SNAPSHOT_RECORDS = 1000;
 
 type PendingSnapshot = {
   before: RecordData[];

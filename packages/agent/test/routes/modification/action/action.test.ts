@@ -1384,6 +1384,91 @@ describe('ActionRoute', () => {
           expect.objectContaining({ recordId: '123e4567-e89b-12d3-a456-426614174001' }),
         ]);
       });
+
+      test('logs and records attached to no record when an explicit selection exceeds the snapshot cap', async () => {
+        const logger = jest.fn();
+        const overCapOptions = factories.forestAdminHttpDriverOptions.build({
+          logger,
+          auditTrail: { store: { insertPendingBatch, confirm }, close: jest.fn() } as never,
+        });
+        (
+          overCapOptions.forestAdminClient.permissionService.canTriggerCustomAction as jest.Mock
+        ).mockResolvedValue(true);
+        (dataSource.getCollection('books').list as jest.Mock).mockResolvedValue(
+          Array.from({ length: 1001 }, (_, index) => ({
+            id: `123e4567-e89b-12d3-a456-${String(index).padStart(12, '0')}`,
+          })),
+        );
+        route = new ActionRoute(services, overCapOptions, dataSource, 'books', 'MyBulkAction');
+
+        const context = createMockContext({
+          ...baseContext,
+          requestBody: {
+            data: {
+              attributes: {
+                ...baseContext.requestBody.data.attributes,
+                ids: Array.from(
+                  { length: 1001 },
+                  (_, index) => `123e4567-e89b-12d3-a456-${String(index).padStart(12, '0')}`,
+                ),
+              },
+            },
+          },
+        });
+
+        // @ts-expect-error: test private method
+        await route.handleExecute(context);
+
+        expect(logger).toHaveBeenCalledWith(
+          'Warn',
+          expect.stringContaining('targets more than 1000 records'),
+        );
+        expect(insertPendingBatch).toHaveBeenCalledWith([
+          expect.objectContaining({ recordId: '' }),
+        ]);
+      });
+
+      test('refuses an explicit selection exceeding the snapshot cap when critical is enabled', async () => {
+        const criticalOptions = factories.forestAdminHttpDriverOptions.build({
+          auditTrail: {
+            store: { insertPendingBatch, confirm },
+            critical: true,
+            close: jest.fn(),
+          } as never,
+        });
+        (
+          criticalOptions.forestAdminClient.permissionService.canTriggerCustomAction as jest.Mock
+        ).mockResolvedValue(true);
+        (dataSource.getCollection('books').list as jest.Mock).mockResolvedValue(
+          Array.from({ length: 1001 }, (_, index) => ({
+            id: `123e4567-e89b-12d3-a456-${String(index).padStart(12, '0')}`,
+          })),
+        );
+        route = new ActionRoute(services, criticalOptions, dataSource, 'books', 'MyBulkAction');
+
+        const context = createMockContext({
+          ...baseContext,
+          requestBody: {
+            data: {
+              attributes: {
+                ...baseContext.requestBody.data.attributes,
+                ids: Array.from(
+                  { length: 1001 },
+                  (_, index) => `123e4567-e89b-12d3-a456-${String(index).padStart(12, '0')}`,
+                ),
+              },
+            },
+          },
+        });
+
+        // @ts-expect-error: test private method
+        await expect(route.handleExecute(context)).rejects.toThrow(
+          'Refusing the action because "critical" is enabled',
+        );
+
+        expect(dataSource.getCollection('books').execute).not.toHaveBeenCalled();
+        expect(insertPendingBatch).not.toHaveBeenCalled();
+      });
     });
   });
 });

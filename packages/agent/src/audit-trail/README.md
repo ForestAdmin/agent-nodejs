@@ -172,6 +172,14 @@ only the first 1000 matched records — the "no unaudited write" guarantee above
 the cap in this mode. Under `critical: true` it does: hitting the cap refuses the whole operation
 instead, so it stays true that nothing is ever written without a pending row for it.
 
+A smart action's targeted selection is capped the same way, at the same 1000 (one shared constant,
+so the two can never drift apart the way this cap and the Ruby agent's once did). Naming a subset of
+the targets when the true selection is wider would be a false record of what the action actually
+covered, so instead of truncating, an over-cap selection is recorded the same way a global or
+select-all run already is: one entry attached to no record. `critical: false` logs a warning and
+proceeds that way; `critical: true` refuses the action before it runs, for the same reason it
+refuses an over-cap bulk write.
+
 ## HTTP routes
 
 When `auditTrail` is set, the agent exposes three routes (all behind Forest's auth, gated by
