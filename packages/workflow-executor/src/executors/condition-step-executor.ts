@@ -9,7 +9,7 @@ import type { ConditionStepOutcome, ErrorKind } from '../types/validated/step-ou
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 import { z } from 'zod';
 
-import { StepStateError } from '../errors';
+import { InvalidStepDefinitionError, StepStateError } from '../errors';
 import BaseStepExecutor from './base-step-executor';
 import evaluateOperator from './deterministic-condition-evaluator';
 import patchBodySchemas from '../http/pending-data-validators';
@@ -137,6 +137,15 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
 
     const usedFallback = matchedOption === undefined;
     const selectedOption = matchedOption ?? fallbackOption;
+
+    // optionConditions and options come from two different server-side derivations; an option the
+    // orchestrator cannot route must fail here, not silently succeed and break the run downstream.
+    if (!step.options.includes(selectedOption)) {
+      const allowed = step.options.join(', ');
+      throw new InvalidStepDefinitionError(
+        `deterministic option "${selectedOption}" is not a valid choice (expected one of: ${allowed})`,
+      );
+    }
 
     await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'condition',

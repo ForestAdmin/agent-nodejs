@@ -30,9 +30,9 @@ describe('evaluateOperator', () => {
       expect(evaluateOperator('equal', 'active', 'inactive')).toBe(false);
     });
 
-    it('rejects a type mismatch (no coercion)', () => {
-      expect(evaluateOperator('equal', 5, '5')).toBe(false);
+    it('rejects a type mismatch', () => {
       expect(evaluateOperator('equal', true, 'true')).toBe(false);
+      expect(evaluateOperator('equal', 'abc', 100)).toBe(false);
     });
 
     it('matches ISO dates by timestamp, not by string', () => {
@@ -56,7 +56,7 @@ describe('evaluateOperator', () => {
   describe('not_equal', () => {
     it('matches different values', () => {
       expect(evaluateOperator('not_equal', 'active', 'inactive')).toBe(true);
-      expect(evaluateOperator('not_equal', 5, '5')).toBe(true);
+      expect(evaluateOperator('not_equal', 5, 6)).toBe(true);
     });
 
     it('rejects identical values', () => {
@@ -64,6 +64,39 @@ describe('evaluateOperator', () => {
       expect(
         evaluateOperator('not_equal', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00.000Z'),
       ).toBe(false);
+    });
+
+    it('is not satisfied by a type mismatch, like every other operator', () => {
+      expect(evaluateOperator('not_equal', true, 'true')).toBe(false);
+      expect(evaluateOperator('not_equal', 5, 'abc')).toBe(false);
+      expect(evaluateOperator('not_equal', ['a'], 'a')).toBe(false);
+    });
+  });
+
+  describe('numeric strings (decimal/bigint columns come back as strings)', () => {
+    it('compares a numeric string against a number', () => {
+      expect(evaluateOperator('greater_than', '150.00', 100)).toBe(true);
+      expect(evaluateOperator('greater_than', '50.00', 100)).toBe(false);
+      expect(evaluateOperator('less_than', 100, '150.00')).toBe(true);
+      expect(evaluateOperator('greater_than_or_equal', '100', 100)).toBe(true);
+      expect(evaluateOperator('less_than_or_equal', '-3', 0)).toBe(true);
+    });
+
+    it('equates a numeric string with a number', () => {
+      expect(evaluateOperator('equal', '42', 42)).toBe(true);
+      expect(evaluateOperator('equal', 42, '42.0')).toBe(true);
+      expect(evaluateOperator('not_equal', '42', 42)).toBe(false);
+      expect(evaluateOperator('in', '150.00', [100, 150])).toBe(true);
+    });
+
+    it('leaves a non-numeric string uncoerced', () => {
+      expect(evaluateOperator('greater_than', 'abc', 100)).toBe(false);
+      expect(evaluateOperator('greater_than', '12abc', 100)).toBe(false);
+      expect(evaluateOperator('equal', '', 0)).toBe(false);
+    });
+
+    it('does not coerce when neither side is a number', () => {
+      expect(evaluateOperator('greater_than', '5', '3')).toBe(false);
     });
   });
 
@@ -122,9 +155,8 @@ describe('evaluateOperator', () => {
     });
 
     it('is not met on a type mismatch or non-comparable operands', () => {
-      expect(evaluateOperator('greater_than', 5, '3')).toBe(false);
-      expect(evaluateOperator('greater_than', '5', 3)).toBe(false);
       expect(evaluateOperator('greater_than', 'abc', 'abd')).toBe(false);
+      expect(evaluateOperator('greater_than', true, 3)).toBe(false);
       expect(evaluateOperator('less_than', Number.NaN, 5)).toBe(false);
     });
   });
@@ -145,6 +177,28 @@ describe('evaluateOperator', () => {
       expect(evaluateOperator('greater_than', '2026-02-01', 'not a date')).toBe(false);
       expect(evaluateOperator('less_than', 'not a date', '2026-02-01')).toBe(false);
     });
+
+    describe('on a host whose timezone is not UTC', () => {
+      const originalTz = process.env.TZ;
+
+      beforeAll(() => {
+        process.env.TZ = 'Pacific/Kiritimati';
+      });
+
+      afterAll(() => {
+        process.env.TZ = originalTz;
+      });
+
+      it('reads a datetime without an offset as UTC, not as host-local time', () => {
+        expect(evaluateOperator('equal', '2026-01-01T10:00:00', '2026-01-01T10:00:00Z')).toBe(true);
+        expect(
+          evaluateOperator('greater_than', '2026-01-01T12:00:00', '2026-01-01T11:00:00Z'),
+        ).toBe(true);
+        expect(
+          evaluateOperator('less_than', '2026-01-01T10:00:00', '2026-01-01T11:00:00+00:00'),
+        ).toBe(true);
+      });
+    });
   });
 
   describe('in', () => {
@@ -158,7 +212,7 @@ describe('evaluateOperator', () => {
 
     it('rejects when the value is not in the list', () => {
       expect(evaluateOperator('in', 'c', ['a', 'b'])).toBe(false);
-      expect(evaluateOperator('in', 2, ['2'])).toBe(false);
+      expect(evaluateOperator('in', 2, ['3'])).toBe(false);
     });
 
     it('is not met when the expected value is not an array', () => {
@@ -186,12 +240,8 @@ describe('evaluateOperator', () => {
       expect(evaluateOperator('contains', 'hello', 'world')).toBe(false);
     });
 
-    it('matches membership on arrays', () => {
-      expect(evaluateOperator('contains', ['a', 'b'], 'b')).toBe(true);
-      expect(evaluateOperator('contains', ['a', 'b'], 'c')).toBe(false);
-    });
-
-    it('is not met on a type mismatch', () => {
+    it('is not met on anything but two strings (contract: String fields only)', () => {
+      expect(evaluateOperator('contains', ['a', 'b'], 'b')).toBe(false);
       expect(evaluateOperator('contains', 5, '5')).toBe(false);
       expect(evaluateOperator('contains', 'abc', 5)).toBe(false);
     });
@@ -203,12 +253,8 @@ describe('evaluateOperator', () => {
       expect(evaluateOperator('not_contains', 'hello world', 'world')).toBe(false);
     });
 
-    it('matches when the array does not contain the value', () => {
-      expect(evaluateOperator('not_contains', ['a'], 'b')).toBe(true);
-      expect(evaluateOperator('not_contains', ['a'], 'a')).toBe(false);
-    });
-
-    it('is not met (never satisfied by mismatch) on a type mismatch', () => {
+    it('is not met (never satisfied by mismatch) on anything but two strings', () => {
+      expect(evaluateOperator('not_contains', ['a'], 'b')).toBe(false);
       expect(evaluateOperator('not_contains', 5, '5')).toBe(false);
       expect(evaluateOperator('not_contains', 'abc', 5)).toBe(false);
     });
