@@ -44,6 +44,29 @@ export default function schemaCoveringEveryContractShape(): ForestSchemaCollecti
         field('addressWithCompositeType', { fields: [{ field: 'city', type: 'String' }] }),
         field('lockedReadOnly', 'Boolean', { isReadOnly: true }),
         field('emailRequired', 'String', { isRequired: true }),
+        field('thumbnailWithPattern', 'String', {
+          validations: [
+            {
+              type: 'is like',
+              value: '/^data:.*;base64,.*/',
+              message: 'Value must match /^data:.*;base64,.*/',
+            },
+          ],
+        }),
+        field('titleWithPresence', 'String', {
+          validations: [{ type: 'is present', message: 'Field is required' }],
+        }),
+        field('fieldWithMalformedValidations', 'String', {
+          validations: [
+            null,
+            { message: 'no type at all' },
+            'garbage',
+            { type: 'contains', value: 'ok' },
+          ],
+        } as unknown as Partial<ForestSchemaField>),
+        field('fieldWithNullValidations', 'String', {
+          validations: null,
+        } as unknown as Partial<ForestSchemaField>),
         field('ordersHasManyWithInverseOf', 'String', {
           reference: 'orders.customerId',
           relationship: 'HasMany',

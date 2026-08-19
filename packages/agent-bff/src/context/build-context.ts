@@ -20,6 +20,11 @@ export interface ContextAction {
   fields: ContextActionField[];
 }
 
+export interface ContextValidation {
+  type: string;
+  value?: unknown;
+}
+
 export interface ContextField {
   field: string;
   type: unknown;
@@ -27,6 +32,7 @@ export interface ContextField {
   inverseOf?: string;
   isRequired?: boolean;
   isReadOnly?: boolean;
+  validations?: ContextValidation[];
 }
 
 export interface ContextCollection {
@@ -49,6 +55,19 @@ function toArray<T>(value: T[] | null | undefined): T[] {
   return Array.isArray(value) ? value : [];
 }
 
+function toContextValidations(validations: unknown): ContextValidation[] {
+  return toArray(validations as unknown[])
+    .filter(
+      (entry): entry is { type: string; value?: unknown } =>
+        typeof entry === 'object' &&
+        entry !== null &&
+        typeof (entry as { type?: unknown }).type === 'string',
+    )
+    .map(entry =>
+      'value' in entry ? { type: entry.type, value: entry.value } : { type: entry.type },
+    );
+}
+
 function toContextField(field: ForestSchemaField): ContextField {
   const serialized: ContextField = { field: field.field, type: field.type };
 
@@ -56,6 +75,9 @@ function toContextField(field: ForestSchemaField): ContextField {
   if (field.inverseOf) serialized.inverseOf = field.inverseOf;
   if (field.isRequired) serialized.isRequired = true;
   if (field.isReadOnly) serialized.isReadOnly = true;
+
+  const validations = toContextValidations(field.validations);
+  if (validations.length > 0) serialized.validations = validations;
 
   return serialized;
 }

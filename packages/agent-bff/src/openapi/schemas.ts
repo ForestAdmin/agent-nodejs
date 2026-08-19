@@ -151,6 +151,18 @@ const ContextFieldTypeSchema = z.unknown().openapi('ContextFieldType', {
     'than fail.',
 });
 
+const ContextValidationSchema = z
+  .object({ type: z.string(), value: z.unknown().optional() })
+  .openapi('ContextValidation', {
+    description:
+      'A validation rule as the agent states it. `type` is the Forest wording (`is like`, `is ' +
+      'present`, `is longer than`, …) and `value` is passed through unchanged, so its shape ' +
+      'follows the rule: a number for a length rule, a date for a comparison. On `is like` it is ' +
+      'the JavaScript literal form of the regular expression, **delimiting slashes included** ' +
+      '(`/^data:.*;base64,.*/`) — strip them before building a RegExp, or the pattern will match ' +
+      'nothing. A rule with no operand carries no `value`.',
+  });
+
 const ContextFieldSchema = z.object({
   field: z.string(),
   type: ContextFieldTypeSchema,
@@ -158,6 +170,7 @@ const ContextFieldSchema = z.object({
   inverseOf: z.string().optional(),
   isRequired: z.boolean().optional(),
   isReadOnly: z.boolean().optional(),
+  validations: z.array(ContextValidationSchema).optional(),
 });
 
 const ContextActionSchema = z.object({
@@ -191,9 +204,11 @@ export const ContextResponseSchema = z
       'Everything the agent schema exposes: collection names, typed fields with their relation ' +
       'markers, and the custom actions that carry an endpoint. Field types are passed through ' +
       'from the agent wire format, so a type is a string, an array of types, or a composite ' +
-      'object. `reference` keeps the raw agent form, the foreign collection and the key joined ' +
-      'by a dot — the collection name may itself contain dots, so drop only the trailing ' +
-      'segment to recover it. ' +
+      'object. A `Binary` column is advertised as `String`, because that is what it is on the ' +
+      'wire — the bytes travel as a data uri or as hex — so `type` alone does not tell a text ' +
+      'field from an encoded one: read `validations` for that. `reference` keeps the raw agent ' +
+      'form, the foreign collection and the key joined by a dot — the collection name may itself ' +
+      'contain dots, so drop only the trailing segment to recover it. ' +
       'The document carries no rendering, environment, project or team identity. It is NOT ' +
       'filtered by the caller permissions, nor by anything else: it describes the whole exposed ' +
       'schema, so cross it with `/agent/v1/permissions` to know what the caller may actually ' +
