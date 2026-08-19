@@ -105,7 +105,9 @@ function toContextAction(action: ForestSchemaAction): ContextAction {
     id: action.id,
     name: action.name,
     type: action.type,
-    fields: toArray(action.fields).map(toContextActionField),
+    fields: toArray(action.fields)
+      .filter(field => typeof field === 'object' && field !== null)
+      .map(toContextActionField),
   };
 }
 
