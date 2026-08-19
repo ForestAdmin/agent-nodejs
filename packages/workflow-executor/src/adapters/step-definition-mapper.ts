@@ -4,6 +4,7 @@ import type {
   ServerWorkflowTask,
 } from './server-types';
 import type { ConditionStepDefinition, StepDefinition } from '../types/validated/step-definition';
+import type { z } from 'zod';
 
 import { ServerTaskTypeEnum } from './server-types';
 import { InvalidStepDefinitionError, UnsupportedStepTypeError } from '../errors';
@@ -18,41 +19,62 @@ import {
   UpdateRecordStepDefinitionSchema,
 } from '../types/validated/step-definition';
 
+// A bare ZodError escaping this mapper is logged-and-dropped by the port's getAvailableRuns
+// (only WorkflowExecutorError instances are reported as malformed), leaving the run silently
+// re-fetched on every poll — wrap parse failures so the run is reported to the orchestrator.
+function parseStepDefinition<Schema extends z.ZodType>(
+  schema: Schema,
+  input: unknown,
+): z.infer<Schema> {
+  const result = schema.safeParse(input);
+  if (result.success) return result.data;
+
+  const detail = result.error.issues
+    .map(issue => `${issue.path.join('.') || '(root)'}: ${issue.message}`)
+    .join('; ');
+
+  throw new InvalidStepDefinitionError(detail);
+}
+
 function mapTask(task: ServerWorkflowTask): StepDefinition {
   // executionType is passed through as-is. Each schema applies its own `.default()` for a missing
-  // value; schemas that accept `manual` (guidance, load-related, trigger-action) drop `.catch` and
-  // reject an out-of-enum value rather than coercing it — server values are a 1:1 enum mapping today.
+  // value; schemas that accept `manual` (guidance, load-related, trigger-action) drop `.catch`
+  // and reject an out-of-enum value rather than coercing it — server values are a 1:1 enum
+  // mapping today.
   const base = { prompt: task.prompt, executionType: task.executionType, title: task.title };
 
   switch (task.taskType) {
     case ServerTaskTypeEnum.McpServer:
-      return McpStepDefinitionSchema.parse({
+      return parseStepDefinition(McpStepDefinitionSchema, {
         ...base,
         type: StepType.Mcp,
         mcpServerId: task.mcpServerId,
       });
     case ServerTaskTypeEnum.Guideline:
-      return GuidanceStepDefinitionSchema.parse({ ...base, type: StepType.Guidance });
+      return parseStepDefinition(GuidanceStepDefinitionSchema, {
+        ...base,
+        type: StepType.Guidance,
+      });
     case ServerTaskTypeEnum.GetData:
-      return ReadRecordStepDefinitionSchema.parse({
+      return parseStepDefinition(ReadRecordStepDefinitionSchema, {
         ...base,
         type: StepType.ReadRecord,
         preRecordedArgs: task.preRecordedArgs,
       });
     case ServerTaskTypeEnum.UpdateData:
-      return UpdateRecordStepDefinitionSchema.parse({
+      return parseStepDefinition(UpdateRecordStepDefinitionSchema, {
         ...base,
         type: StepType.UpdateRecord,
         preRecordedArgs: task.preRecordedArgs,
       });
     case ServerTaskTypeEnum.TriggerAction:
-      return TriggerActionStepDefinitionSchema.parse({
+      return parseStepDefinition(TriggerActionStepDefinitionSchema, {
         ...base,
         type: StepType.TriggerAction,
         preRecordedArgs: task.preRecordedArgs,
       });
     case ServerTaskTypeEnum.LoadRelatedRecord:
-      return LoadRelatedRecordStepDefinitionSchema.parse({
+      return parseStepDefinition(LoadRelatedRecordStepDefinitionSchema, {
         ...base,
         type: StepType.LoadRelatedRecord,
         preRecordedArgs: task.preRecordedArgs,
@@ -75,7 +97,7 @@ function mapCondition(condition: ServerWorkflowCondition): ConditionStepDefiniti
     );
   }
 
-  return ConditionStepDefinitionSchema.parse({
+  return parseStepDefinition(ConditionStepDefinitionSchema, {
     type: StepType.Condition,
     prompt: condition.prompt,
     executionType: condition.executionType,
