@@ -316,6 +316,31 @@ describe('ForestHttpApi', () => {
       expect(result).toEqual(workflow);
     });
 
+    it('should drop any field the contract does not declare', async () => {
+      (ServerUtils.queryWithBearerToken as jest.Mock).mockResolvedValue({
+        workflowId: 'wf-1',
+        name: 'Refund order',
+        collectionName: 'orders',
+        mcpEnabled: true,
+        // A column the server could add tomorrow. `name` from this payload is written into a
+        // persisted audit label, so the response is a whitelist like the other three MCP routes.
+        internalOwnerEmail: 'ops@acme.corp',
+      });
+
+      const result = await new ForestHttpApi().getMcpWorkflowById(
+        { forestServerUrl: options.forestServerUrl, bearerToken: 'bearer-token' },
+        '12345',
+        'wf-1',
+      );
+
+      expect(Object.keys(result).sort()).toEqual([
+        'collectionName',
+        'mcpEnabled',
+        'name',
+        'workflowId',
+      ]);
+    });
+
     it('should url-encode the workflow id in the path', async () => {
       (ServerUtils.queryWithBearerToken as jest.Mock).mockResolvedValue({
         workflowId: 'wf/with space',

@@ -255,13 +255,23 @@ export default class ForestHttpApi implements ForestAdminServerInterface {
     renderingId: string,
     workflowId: string,
   ): Promise<McpWorkflowLookup> {
-    return ServerUtils.queryWithBearerToken<McpWorkflowLookup>({
+    const workflow = await ServerUtils.queryWithBearerToken<McpWorkflowLookup>({
       forestServerUrl: options.forestServerUrl,
       method: 'get',
       path: `/api/workflow-orchestrator/mcp-workflows/${encodeURIComponent(workflowId)}`,
       bearerToken: options.bearerToken,
       headers: { 'forest-rendering-id': renderingId, ...MCP_SOURCE_HEADER, ...options.headers },
     });
+
+    // Projected like the other three MCP routes. This payload does not reach a model directly, but
+    // `name` is written verbatim into a persisted Activity Log label, and the type is an unvalidated
+    // cast of the HTTP response — so a column added server-side would otherwise arrive unannounced.
+    return {
+      workflowId: workflow.workflowId,
+      name: workflow.name,
+      collectionName: workflow.collectionName,
+      mcpEnabled: workflow.mcpEnabled,
+    };
   }
 
   async triggerMcpWorkflow(
