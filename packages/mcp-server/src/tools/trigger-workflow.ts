@@ -34,6 +34,17 @@ function notMcpEnabledMessage(workflowId: string): string {
   );
 }
 
+// Distinct from the uniform 404 message: the workflow may well exist and be triggerable, Forest
+// just could not be reached. Retrying later is the right advice, and the transport detail stays in
+// the operator log rather than in the model's context.
+function lookupUnavailableMessage(workflowId: string): string {
+  return (
+    `Workflow "${workflowId}" could not be resolved because Forest could not be reached. ` +
+    'This is a temporary server-side failure, not a problem with the workflow id — retry later, ' +
+    'and report it to your Forest administrator if it persists.'
+  );
+}
+
 function unavailableCollectionMessage(workflowId: string): string {
   return (
     `Workflow "${workflowId}" cannot be triggered via MCP because its collection is unavailable. ` +
@@ -94,7 +105,10 @@ export default function declareTriggerWorkflowTool(mcpServer: McpServer, ctx: To
           throw new Error(notMcpEnabledMessage(args.workflowId));
         }
 
-        throw error;
+        // Anything else (5xx, timeout, ECONNREFUSED) carries transport detail — the Forest server
+        // URL, an internal host and port — that has no business in a model's context. The full
+        // error is in the operator log above.
+        throw new Error(lookupUnavailableMessage(args.workflowId));
       }
 
       if (!workflow.mcpEnabled) {

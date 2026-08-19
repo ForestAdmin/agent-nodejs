@@ -293,6 +293,39 @@ describe('declareTriggerWorkflowTool', () => {
       );
     });
 
+    it('should not leak transport detail to the model when the lookup fails for any other reason', async () => {
+      mockForestServerClient.getMcpWorkflowById.mockRejectedValue(
+        new Error(
+          'Failed to reach Forest: connect ECONNREFUSED 10.1.2.3:3310 ' +
+            '(https://api.internal.forestadmin.com)',
+        ),
+      );
+
+      const result = await registeredToolHandler({ workflowId: 'wf-1', recordId: '42' }, mockExtra);
+
+      expect(result).toEqual({
+        content: [
+          {
+            type: 'text',
+            text:
+              'Workflow "wf-1" could not be resolved because Forest could not be reached. This is ' +
+              'a temporary server-side failure, not a problem with the workflow id — retry later, ' +
+              'and report it to your Forest administrator if it persists.',
+          },
+        ],
+        isError: true,
+      });
+      // The detail stays operator-side.
+      expect(JSON.stringify(result)).not.toContain('ECONNREFUSED');
+      expect(JSON.stringify(result)).not.toContain('api.internal.forestadmin.com');
+      expect(mockLogger).toHaveBeenCalledWith(
+        'Error',
+        expect.stringContaining('connect ECONNREFUSED 10.1.2.3:3310'),
+      );
+      expect(mockForestServerClient.createMcpActivityLog).not.toHaveBeenCalled();
+      expect(mockForestServerClient.triggerMcpWorkflow).not.toHaveBeenCalled();
+    });
+
     it('should reject an MCP-disabled workflow without triggering or auditing', async () => {
       mockForestServerClient.getMcpWorkflowById.mockResolvedValue({
         workflowId: 'wf-1',
