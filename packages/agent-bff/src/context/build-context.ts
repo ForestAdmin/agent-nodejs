@@ -1,4 +1,5 @@
 import type ReadModel from '../read-model/read-model';
+import type { RelationshipType } from '../read-model/read-model';
 import type {
   ForestSchemaAction,
   ForestSchemaCollection,
@@ -28,8 +29,10 @@ export interface ContextValidation {
 export interface ContextField {
   field: string;
   type: unknown;
+  relationship?: RelationshipType;
   reference?: string;
   inverseOf?: string;
+  polymorphicTargets?: string[];
   isPrimaryKey?: boolean;
   isRequired?: boolean;
   isReadOnly?: boolean;
@@ -75,8 +78,13 @@ function toContextValidations(validations: unknown): ContextValidation[] {
 function toContextField(field: FieldWithWireEnums): ContextField {
   const serialized: ContextField = { field: field.field, type: field.type };
 
+  if (field.relationship) serialized.relationship = field.relationship;
   if (field.reference) serialized.reference = field.reference;
   if (field.inverseOf) serialized.inverseOf = field.inverseOf;
+
+  const polymorphicTargets = toArray(field.polymorphicReferencedModels);
+  if (polymorphicTargets.length > 0) serialized.polymorphicTargets = [...polymorphicTargets];
+
   if (field.isPrimaryKey) serialized.isPrimaryKey = true;
   if (field.isRequired) serialized.isRequired = true;
   if (field.isReadOnly) serialized.isReadOnly = true;
