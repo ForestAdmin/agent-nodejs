@@ -53,6 +53,12 @@ export default function schemaCoveringEveryContractShape(): ForestSchemaCollecti
             },
           ],
         }),
+        field('statusWithEnums', 'Enum', {
+          enums: ['DRAFT', 'PUBLISHED'],
+        } as unknown as Partial<ForestSchemaField>),
+        field('statusWithFlaggedPattern', 'Enum', {
+          validations: [{ type: 'is like', value: '/^a|b|c$/g', message: 'x' }],
+        }),
         field('titleWithPresence', 'String', {
           validations: [{ type: 'is present', message: 'Field is required' }],
         }),

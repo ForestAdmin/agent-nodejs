@@ -158,9 +158,11 @@ const ContextValidationSchema = z
       'A validation rule as the agent states it. `type` is the Forest wording (`is like`, `is ' +
       'present`, `is longer than`, …) and `value` is passed through unchanged, so its shape ' +
       'follows the rule: a number for a length rule, a date for a comparison. On `is like` it is ' +
-      'the JavaScript literal form of the regular expression, **delimiting slashes included** ' +
-      '(`/^data:.*;base64,.*/`) — strip them before building a RegExp, or the pattern will match ' +
-      'nothing. A rule with no operand carries no `value`.',
+      'the JavaScript **literal** form of the regular expression — slashes included, and flags ' +
+      'after the closing one (`/^data:.*;base64,.*/`, but also `/^a|b|c$/g`). Parse it as a ' +
+      'literal, splitting on the LAST slash to separate pattern from flags; stripping the outer ' +
+      'characters instead leaves the flags inside the pattern, which then matches nothing. A ' +
+      'rule with no operand carries no `value`.',
   });
 
 const ContextFieldSchema = z.object({
@@ -168,8 +170,10 @@ const ContextFieldSchema = z.object({
   type: ContextFieldTypeSchema,
   reference: z.string().optional(),
   inverseOf: z.string().optional(),
+  isPrimaryKey: z.boolean().optional(),
   isRequired: z.boolean().optional(),
   isReadOnly: z.boolean().optional(),
+  enums: z.array(z.string()).optional(),
   validations: z.array(ContextValidationSchema).optional(),
 });
 
