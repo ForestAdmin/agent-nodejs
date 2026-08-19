@@ -12,6 +12,7 @@ import type {
   IpWhitelistRulesResponse,
   McpWorkflow,
   McpWorkflowLookup,
+  WorkflowHistoryStepContext,
   WorkflowRunTriggerResult,
 } from '../types';
 import type { HttpOptions } from '../utils/http-options';
@@ -38,8 +39,27 @@ const MCP_SOURCE_HEADER = { 'Forest-Application-Source': 'MCP' } as const;
  * guardrail rather than the type annotation.
  *
  * `stepDefinition` is passed through whole: its task-type-specific fields are the organisation's own
- * workflow configuration, deliberately surfaced so the model can reason about the step.
+ * workflow configuration, deliberately surfaced so the model can reason about the step. Per-step
+ * `context` is not — it is a closed interface here but an open bag server-side, so forwarding it
+ * whole would let a future orchestrator field reach the model with nothing to catch it.
  */
+function projectStepContext(
+  context: WorkflowHistoryStepContext | undefined,
+): WorkflowHistoryStepContext | undefined {
+  if (!context) return context;
+
+  return {
+    manuallyCompleted: context.manuallyCompleted,
+    completedBy: context.completedBy,
+    subWorkflowVersion: context.subWorkflowVersion,
+    selectedOption: context.selectedOption,
+    error: context.error,
+    childrenWorkflowId: context.childrenWorkflowId,
+    escalationState: context.escalationState,
+    awaitingInputReason: context.awaitingInputReason,
+  };
+}
+
 function projectHydratedRun(run: HydratedWorkflowRun): HydratedWorkflowRun {
   return {
     id: run.id,
@@ -64,7 +84,7 @@ function projectHydratedRun(run: HydratedWorkflowRun): HydratedWorkflowRun {
       cancelled: step.cancelled,
       childrenWorkflowId: step.childrenWorkflowId,
       isCardStep: step.isCardStep,
-      context: step.context,
+      context: projectStepContext(step.context),
       stepDefinition: step.stepDefinition,
     })),
   };
@@ -212,13 +232,22 @@ export default class ForestHttpApi implements ForestAdminServerInterface {
   ): Promise<McpWorkflow[]> {
     const query = collectionName ? `?collectionName=${encodeURIComponent(collectionName)}` : '';
 
-    return ServerUtils.queryWithBearerToken<McpWorkflow[]>({
+    const workflows = await ServerUtils.queryWithBearerToken<McpWorkflow[]>({
       forestServerUrl: options.forestServerUrl,
       method: 'get',
       path: `/api/workflow-orchestrator/mcp-workflows${query}`,
       bearerToken: options.bearerToken,
       headers: { 'forest-rendering-id': renderingId, ...MCP_SOURCE_HEADER, ...options.headers },
     });
+
+    // Projected for the same reason as the run: the listWorkflows tool stringifies this array
+    // straight into an LLM's context, so a column added to the server query must not reach a
+    // model's prompt without a change here.
+    return (workflows ?? []).map(workflow => ({
+      workflowId: workflow.workflowId,
+      name: workflow.name,
+      collectionName: workflow.collectionName,
+    }));
   }
 
   async getMcpWorkflowById(

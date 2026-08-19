@@ -230,6 +230,41 @@ describe('ForestHttpApi', () => {
       expect(result).toEqual(workflows);
     });
 
+    it('should strip fields the contract does not declare from each listed workflow', async () => {
+      (ServerUtils.queryWithBearerToken as jest.Mock).mockResolvedValue([
+        {
+          workflowId: 'wf-1',
+          name: 'Refund order',
+          collectionName: 'orders',
+          // A column added to the server query must not reach the model's prompt on its own.
+          createdByEmail: 'ops@example.com',
+          bpmnAwsS3Identifier: 'internal/path.bpmn',
+        },
+      ]);
+
+      const result = await new ForestHttpApi().listMcpEnabledWorkflows(
+        { forestServerUrl: options.forestServerUrl, bearerToken: 'bearer-token' },
+        '12345',
+      );
+
+      expect(result).toEqual([
+        { workflowId: 'wf-1', name: 'Refund order', collectionName: 'orders' },
+      ]);
+      expect(JSON.stringify(result)).not.toContain('ops@example.com');
+      expect(JSON.stringify(result)).not.toContain('internal/path.bpmn');
+    });
+
+    it('should return an empty array when the server answers with no body', async () => {
+      (ServerUtils.queryWithBearerToken as jest.Mock).mockResolvedValue(undefined);
+
+      const result = await new ForestHttpApi().listMcpEnabledWorkflows(
+        { forestServerUrl: options.forestServerUrl, bearerToken: 'bearer-token' },
+        '12345',
+      );
+
+      expect(result).toEqual([]);
+    });
+
     it('should append the collectionName filter as a url-encoded query param', async () => {
       (ServerUtils.queryWithBearerToken as jest.Mock).mockResolvedValue([]);
 
@@ -432,6 +467,57 @@ describe('ForestHttpApi', () => {
       expect(JSON.stringify(result)).not.toContain('super-secret-forest-token');
       expect(result.id).toBe(7);
       expect(result.runState).toBe('started');
+    });
+
+    it('should strip fields the contract does not declare from a per-step context', async () => {
+      (ServerUtils.queryWithBearerToken as jest.Mock).mockResolvedValue({
+        runState: 'started',
+        workflowHistory: [
+          {
+            stepName: 'Approve',
+            stepIndex: 0,
+            done: false,
+            stepDefinition: { type: 'escalation' },
+            context: {
+              escalationState: 'escalated',
+              error: 'record 42 not found',
+              // The step context is a closed interface here but an open bag server-side.
+              completedByUser: { email: 'ops@example.com', serverToken: 'leaked-token' },
+            },
+          },
+        ],
+      });
+
+      const result = await new ForestHttpApi().getMcpWorkflowRun(
+        { forestServerUrl: options.forestServerUrl, bearerToken: 'bearer-token' },
+        '12345',
+        '7',
+      );
+
+      expect(result.workflowHistory[0].context).not.toHaveProperty('completedByUser');
+      expect(JSON.stringify(result)).not.toContain('leaked-token');
+      // The declared fields the docs tell readers to diagnose with survive.
+      expect(result.workflowHistory[0].context).toMatchObject({
+        escalationState: 'escalated',
+        error: 'record 42 not found',
+      });
+    });
+
+    it('should leave a step with no context untouched', async () => {
+      (ServerUtils.queryWithBearerToken as jest.Mock).mockResolvedValue({
+        runState: 'started',
+        workflowHistory: [
+          { stepName: 'Review', stepIndex: 0, done: true, stepDefinition: { type: 'task' } },
+        ],
+      });
+
+      const result = await new ForestHttpApi().getMcpWorkflowRun(
+        { forestServerUrl: options.forestServerUrl, bearerToken: 'bearer-token' },
+        '12345',
+        '7',
+      );
+
+      expect(result.workflowHistory[0].context).toBeUndefined();
     });
 
     it('should keep the task-type-specific stepDefinition fields the model reasons about', async () => {
