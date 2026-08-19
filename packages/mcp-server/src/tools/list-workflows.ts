@@ -58,7 +58,9 @@ export default function declareListWorkflowsTool(mcpServer: McpServer, ctx: Tool
       // A workflow whose collection was renamed or removed cannot be triggered - triggerWorkflow
       // rejects a null collectionName up front - so listing it would only send the model round the
       // discover, trigger, rejected, discover loop. Surface the drop to the operator instead.
-      const triggerable = workflows.filter(workflow => workflow.collectionName !== null);
+      // `!= null` on purpose, to match triggerWorkflow's own guard: an absent key and an explicit
+      // null must be dropped by the same rule, or the discover/trigger loop reopens.
+      const triggerable = workflows.filter(workflow => workflow.collectionName != null);
       const droppedCount = workflows.length - triggerable.length;
 
       if (droppedCount > 0) {
