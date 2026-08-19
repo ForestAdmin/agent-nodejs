@@ -344,3 +344,8 @@ additive/backward-compatible — the connection string may point at the customer
 - The store is constructed when the agent is built, but the actual connection and pending
   migrations only run during `agent.start()`. Any connection or migration error therefore surfaces
   at startup, not on the first request.
+- **A renamed record's history doesn't walk back past the rename.** This agent files an update
+  under the record's new id when a writable primary key changes, but has no `previous_record_id`
+  column to chain that update back to the old id (the Ruby agent does have one). The same record
+  shows a complete timeline on the Ruby agent and a history beginning at the rename here, until this
+  column is ported.
