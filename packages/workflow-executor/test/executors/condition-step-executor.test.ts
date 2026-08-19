@@ -764,6 +764,143 @@ describe('ConditionStepExecutor', () => {
       });
     });
 
+    it('ignores incomingPendingData: no user override, no awaiting-input', async () => {
+      const { context, mockModel, runStore } = makeDeterministicContext(
+        amountArgs,
+        [{ name: 'amount', displayName: 'Amount', value: 150 }],
+        { incomingPendingData: { selectedOption: 'Low' } },
+      );
+
+      const result = await new ConditionStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('High');
+      expect(mockModel.bindTools).not.toHaveBeenCalled();
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          executionParams: expect.objectContaining({ selectedOption: 'High' }),
+        }),
+      );
+    });
+
+    it('matches an or option when one condition is not evaluable and another is met', async () => {
+      const orArgs: ConditionPreRecordedArgs = {
+        optionConditions: [
+          {
+            option: 'Unknown or high',
+            aggregator: 'or',
+            conditions: [
+              { sourceStepId: 'get-1', fieldName: 'status', operator: 'equal', value: 'paid' },
+              { sourceStepId: 'get-1', fieldName: 'amount', operator: 'greater_than', value: 100 },
+            ],
+          },
+        ],
+        fallbackOption: 'Other',
+      };
+      const { context, runStore } = makeDeterministicContext(orArgs, [
+        { name: 'status', displayName: 'Status', value: null },
+        { name: 'amount', displayName: 'Amount', value: 150 },
+      ]);
+
+      const result = await new ConditionStepExecutor(context).execute();
+
+      expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('Unknown or high');
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          executionParams: expect.objectContaining({
+            evaluations: [
+              {
+                option: 'Unknown or high',
+                outcome: 'matched',
+                conditions: [
+                  { index: 0, met: null },
+                  { index: 1, met: true },
+                ],
+              },
+            ],
+          }),
+        }),
+      );
+    });
+
+    it.each(['blank', 'present'] as const)(
+      'does not satisfy %s when the reference cannot be resolved at all',
+      async operator => {
+        const unresolvable: ConditionPreRecordedArgs = {
+          optionConditions: [
+            {
+              option: 'Matched',
+              aggregator: 'and',
+              conditions: [{ sourceStepId: 'never-ran', fieldName: 'amount', operator }],
+            },
+          ],
+          fallbackOption: 'Other',
+        };
+        const { context, runStore } = makeDeterministicContext(unresolvable, [
+          { name: 'amount', displayName: 'Amount', value: 150 },
+        ]);
+
+        const result = await new ConditionStepExecutor(context).execute();
+
+        expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('Other');
+        expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+          'run-1',
+          expect.objectContaining({
+            executionParams: expect.objectContaining({
+              evaluations: [
+                {
+                  option: 'Matched',
+                  outcome: 'not-matched',
+                  conditions: [{ index: 0, met: null }],
+                },
+              ],
+            }),
+          }),
+        );
+      },
+    );
+
+    it('compares a decimal column returned as a string against the builder number', async () => {
+      const { context } = makeDeterministicContext(amountArgs, [
+        { name: 'amount', displayName: 'Amount', value: '150.00' },
+      ]);
+
+      const result = await new ConditionStepExecutor(context).execute();
+
+      expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('High');
+    });
+
+    it('fails loud when the matched option is not one of the step options', async () => {
+      const { context, runStore } = makeDeterministicContext(amountArgs, [
+        { name: 'amount', displayName: 'Amount', value: 150 },
+      ]);
+      const result = await new ConditionStepExecutor({
+        ...context,
+        stepDefinition: { ...context.stepDefinition, options: ['Low', 'Other'] },
+      }).execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        'The workflow step configuration is invalid. Please check the workflow designer.',
+      );
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
+
+    it('fails loud when the fallback option is not one of the step options', async () => {
+      const { context, runStore } = makeDeterministicContext(amountArgs, [
+        { name: 'amount', displayName: 'Amount', value: 'not a number' },
+      ]);
+      const result = await new ConditionStepExecutor({
+        ...context,
+        stepDefinition: { ...context.stepDefinition, options: ['High', 'Low'] },
+      }).execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
+
     it('uses the most recent occurrence of a repeated source step id (loop)', async () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest
