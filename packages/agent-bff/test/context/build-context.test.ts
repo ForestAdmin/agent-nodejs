@@ -67,6 +67,51 @@ describe('buildContext', () => {
     });
   });
 
+  describe('validations', () => {
+    it('should carry the pattern a binary field requires, which the type alone cannot express', () => {
+      const context = buildContext(schema, readModel, { schemaRevision: 1 });
+
+      expect(fieldNamed(context, 'thumbnailWithPattern')?.validations).toEqual([
+        { type: 'is like', value: '/^data:.*;base64,.*/' },
+      ]);
+    });
+
+    it('should drop the message, which is UI copy rather than contract', () => {
+      const context = buildContext(schema, readModel, { schemaRevision: 1 });
+      const [rule] = fieldNamed(context, 'titleWithPresence')?.validations ?? [];
+
+      expect(Object.keys(rule ?? {})).toEqual(['type']);
+    });
+
+    it('should keep a rule that carries no value, rather than inventing one', () => {
+      const context = buildContext(schema, readModel, { schemaRevision: 1 });
+
+      expect(fieldNamed(context, 'titleWithPresence')?.validations).toEqual([
+        { type: 'is present' },
+      ]);
+    });
+
+    it('should skip malformed entries instead of failing the whole contract', () => {
+      const context = buildContext(schema, readModel, { schemaRevision: 1 });
+
+      expect(fieldNamed(context, 'fieldWithMalformedValidations')?.validations).toEqual([
+        { type: 'contains', value: 'ok' },
+      ]);
+    });
+
+    it('should omit the key entirely when the agent sends null', () => {
+      const context = buildContext(schema, readModel, { schemaRevision: 1 });
+
+      expect(fieldNamed(context, 'fieldWithNullValidations')).not.toHaveProperty('validations');
+    });
+
+    it('should omit the key on a field with no validation at all', () => {
+      const context = buildContext(schema, readModel, { schemaRevision: 1 });
+
+      expect(fieldNamed(context, 'id')).not.toHaveProperty('validations');
+    });
+  });
+
   describe('when the schema carries actions', () => {
     it('should expose single, bulk and global actions alike', () => {
       const context = buildContext(schema, readModel, { schemaRevision: 1 });
