@@ -30,8 +30,10 @@ export interface ContextField {
   type: unknown;
   reference?: string;
   inverseOf?: string;
+  isPrimaryKey?: boolean;
   isRequired?: boolean;
   isReadOnly?: boolean;
+  enums?: string[];
   validations?: ContextValidation[];
 }
 
@@ -73,8 +75,12 @@ function toContextField(field: ForestSchemaField): ContextField {
 
   if (field.reference) serialized.reference = field.reference;
   if (field.inverseOf) serialized.inverseOf = field.inverseOf;
+  if (field.isPrimaryKey) serialized.isPrimaryKey = true;
   if (field.isRequired) serialized.isRequired = true;
   if (field.isReadOnly) serialized.isReadOnly = true;
+
+  const enums = toArray((field as { enums?: string[] }).enums);
+  if (enums.length > 0) serialized.enums = [...enums];
 
   const validations = toContextValidations(field.validations);
   if (validations.length > 0) serialized.validations = validations;

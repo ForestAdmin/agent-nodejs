@@ -67,7 +67,36 @@ describe('buildContext', () => {
     });
   });
 
+  describe('when a field is an enum or a primary key', () => {
+    it('should carry the allowed values, which the type alone does not give', () => {
+      const context = buildContext(schema, readModel, { schemaRevision: 1 });
+
+      expect(fieldNamed(context, 'statusWithEnums')?.enums).toEqual(['DRAFT', 'PUBLISHED']);
+    });
+
+    it('should flag the primary key, so a caller can build recordIds without a list call', () => {
+      const context = buildContext(schema, readModel, { schemaRevision: 1 });
+
+      expect(fieldNamed(context, 'id')?.isPrimaryKey).toBe(true);
+      expect(fieldNamed(context, 'emailRequired')).not.toHaveProperty('isPrimaryKey');
+    });
+
+    it('should omit enums on a field that has none rather than send an empty list', () => {
+      const context = buildContext(schema, readModel, { schemaRevision: 1 });
+
+      expect(fieldNamed(context, 'id')).not.toHaveProperty('enums');
+    });
+  });
+
   describe('validations', () => {
+    it('should keep the flags of a regex rule, which the agent emits on rewritten In filters', () => {
+      const context = buildContext(schema, readModel, { schemaRevision: 1 });
+
+      expect(fieldNamed(context, 'statusWithFlaggedPattern')?.validations).toEqual([
+        { type: 'is like', value: '/^a|b|c$/g' },
+      ]);
+    });
+
     it('should carry the pattern a binary field requires, which the type alone cannot express', () => {
       const context = buildContext(schema, readModel, { schemaRevision: 1 });
 
