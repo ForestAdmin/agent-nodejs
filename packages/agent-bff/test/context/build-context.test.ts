@@ -176,6 +176,13 @@ describe('buildContext', () => {
       expect(loading).not.toHaveProperty('enums');
     });
 
+    it('should skip a null action field rather than fail the whole contract', () => {
+      const context = buildContext(schema, readModel, { schemaRevision: 1 });
+      const archive = usersOf(context)?.actions.find(entry => entry.name === 'Archive');
+
+      expect(archive?.fields).toEqual([{ field: 'confirm', type: 'Boolean' }]);
+    });
+
     it('should serialize an action field with its enums and default value', () => {
       const context = buildContext(schema, readModel, { schemaRevision: 1 });
       const banAction = usersOf(context)?.actions.find(entry => entry.name === 'Ban user');

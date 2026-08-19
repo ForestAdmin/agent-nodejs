@@ -108,7 +108,10 @@ export default function schemaCoveringEveryContractShape(): ForestSchemaCollecti
             enums: null,
           } as unknown as ForestSchemaAction['fields'][number],
         ]),
-        action('Archive', 'bulk', '/forest/users/actions/archive'),
+        action('Archive', 'bulk', '/forest/users/actions/archive', [
+          null,
+          { field: 'confirm', type: 'Boolean' },
+        ] as unknown as ForestSchemaAction['fields']),
         action('Endpointless action', 'single', undefined),
       ],
     },
