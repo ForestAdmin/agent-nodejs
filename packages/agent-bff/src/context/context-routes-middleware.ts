@@ -6,7 +6,7 @@ import buildContext from './build-context';
 import { oauthRequired, schemaUnavailable } from '../http/bff-local-errors';
 import SchemaUnavailableError from '../read-model/errors';
 
-export const CONTEXT_ROUTE = '/agent/v1/context';
+const CONTEXT_ROUTE = '/agent/v1/context';
 
 export interface ContextRoutesMiddlewareOptions {
   store: ReadModelStore;

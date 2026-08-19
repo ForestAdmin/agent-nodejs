@@ -57,6 +57,8 @@ function toArray<T>(value: T[] | null | undefined): T[] {
   return Array.isArray(value) ? value : [];
 }
 
+type FieldWithWireEnums = ForestSchemaField & { enums?: string[] };
+
 function toContextValidations(validations: unknown): ContextValidation[] {
   return toArray(validations as unknown[])
     .filter(
@@ -70,7 +72,7 @@ function toContextValidations(validations: unknown): ContextValidation[] {
     );
 }
 
-function toContextField(field: ForestSchemaField): ContextField {
+function toContextField(field: FieldWithWireEnums): ContextField {
   const serialized: ContextField = { field: field.field, type: field.type };
 
   if (field.reference) serialized.reference = field.reference;
@@ -79,7 +81,7 @@ function toContextField(field: ForestSchemaField): ContextField {
   if (field.isRequired) serialized.isRequired = true;
   if (field.isReadOnly) serialized.isReadOnly = true;
 
-  const enums = toArray((field as { enums?: string[] }).enums);
+  const enums = toArray(field.enums);
   if (enums.length > 0) serialized.enums = [...enums];
 
   const validations = toContextValidations(field.validations);
@@ -120,6 +122,14 @@ function toContextCollection(
   };
 }
 
+function toContextMeta({ schemaRevision, environmentId }: ContextMeta): ContextMeta {
+  const meta: ContextMeta = { schemaRevision };
+
+  if (environmentId !== undefined) meta.environmentId = environmentId;
+
+  return meta;
+}
+
 export default function buildContext(
   collections: ForestSchemaCollection[],
   readModel: ReadModel,
@@ -129,6 +139,6 @@ export default function buildContext(
     collections: collections
       .filter(collection => readModel.isCollectionAllowed(collection.name))
       .map(collection => toContextCollection(collection, readModel)),
-    meta: meta.environmentId === undefined ? { schemaRevision: meta.schemaRevision } : { ...meta },
+    meta: toContextMeta(meta),
   };
 }
