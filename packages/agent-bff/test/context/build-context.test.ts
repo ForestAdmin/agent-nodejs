@@ -31,6 +31,7 @@ describe('buildContext', () => {
       expect(fieldNamed(context, 'ordersHasManyWithInverseOf')).toEqual({
         field: 'ordersHasManyWithInverseOf',
         type: 'String',
+        relationship: 'HasMany',
         reference: 'orders.customerId',
         inverseOf: 'customer',
       });
@@ -43,18 +44,29 @@ describe('buildContext', () => {
       expect(relation).toEqual({
         field: 'teamBelongsToWithoutInverseOf',
         type: 'String',
+        relationship: 'BelongsTo',
         reference: 'teams.id',
       });
       expect(relation).not.toHaveProperty('inverseOf');
     });
 
-    it('should keep a polymorphic relation, which carries no reference', () => {
+    it('should name the targets of a polymorphic relation, which carries no reference', () => {
       const context = buildContext(schema, readModel, { schemaRevision: 1 });
 
       expect(fieldNamed(context, 'ownerPolymorphic')).toEqual({
         field: 'ownerPolymorphic',
         type: 'String',
+        relationship: 'BelongsTo',
+        polymorphicTargets: ['users', 'teams'],
       });
+    });
+
+    it('should tell a to-many relation from a to-one, which share the reference shape', () => {
+      const context = buildContext(schema, readModel, { schemaRevision: 1 });
+
+      expect(fieldNamed(context, 'ordersHasManyWithInverseOf')?.relationship).toBe('HasMany');
+      expect(fieldNamed(context, 'teamBelongsToWithoutInverseOf')?.relationship).toBe('BelongsTo');
+      expect(fieldNamed(context, 'id')).not.toHaveProperty('relationship');
     });
 
     it('should carry isRequired and isReadOnly only when true', () => {
@@ -271,6 +283,7 @@ describe('buildContext', () => {
         'field',
         'inverseOf',
         'reference',
+        'relationship',
         'type',
       ]);
       expect(Object.keys(users?.actions[0] ?? {}).sort()).toEqual(['fields', 'id', 'name', 'type']);
