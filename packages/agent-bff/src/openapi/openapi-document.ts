@@ -31,7 +31,7 @@ const SECURITY = [{ [API_KEY_SCHEME]: [] }];
 const ERROR_STATUSES: Record<string, string> = {
   400: 'Malformed body, a malformed URL-encoded path segment, an invalid filter operator, a filter nested too deep, ambiguous credentials, an unsupported page, a missing or invalid timezone, an unknown submitted action field, or a rejected action form (type action_error)',
   401: 'Missing, invalid, or expired credentials',
-  403: 'The action needs approval before it runs (the body carries the approving roles), the Forest identity behind the API key is not allowed, the origin is not allowed for this key, the route requires an OAuth session and an API key was presented (type oauth_required), or the agent refused the collection, relation, or action',
+  403: 'The action needs approval before it runs (the body carries the approving roles), the Forest identity behind the API key is not allowed, the origin is not allowed for this key, or the agent refused the collection, relation, or action',
   404: 'Unknown collection, relation, or action',
   413: `The request body exceeds the BFF limit of ${BODY_LIMIT}`,
   415: 'The request declares a character set the server cannot decode. Other content types are NOT rejected: a form-urlencoded body is parsed and validated like JSON (its values arrive as strings, so typed fields such as page.limit fail with 400), while any other non-JSON content type is read as an absent body, silently dropping filters and pagination',
@@ -278,9 +278,8 @@ export function generateOpenApiDocument(version: string, unfolding?: Unfolding):
     type: 'http',
     scheme: 'bearer',
     description:
-      'Mode 1: the BFF session token issued after the OAuth login. The context contract requires ' +
-      'it and accepts nothing else, since it is the only credential carrying a session. The data ' +
-      'and action routes list the API key instead.',
+      'Mode 1: the BFF session token issued after the OAuth login. Accepted on every agent route, ' +
+      'including the context contract.',
   });
   registry.registerComponent('securitySchemes', API_KEY_SCHEME, {
     type: 'apiKey',
@@ -294,7 +293,7 @@ export function generateOpenApiDocument(version: string, unfolding?: Unfolding):
     path: `${ROUTE_PREFIX}/context`,
     operationId: 'getContext',
     summary: 'Read the exposed schema contract',
-    security: [{ [SESSION_SCHEME]: [] }],
+    security: [{ [SESSION_SCHEME]: [] }, { [API_KEY_SCHEME]: [] }],
     request: {},
     responses: {
       200: {
@@ -303,7 +302,8 @@ export function generateOpenApiDocument(version: string, unfolding?: Unfolding):
       },
       400: errorRefs.byStatus['400'],
       401: errorRefs.byStatus['401'],
-      403: errorRefs.byStatus['403'],
+      413: errorRefs.byStatus['413'],
+      415: errorRefs.byStatus['415'],
       500: errorRefs.byStatus['500'],
       501: errorRefs.byStatus['501'],
       503: errorRefs.byStatus['503'],

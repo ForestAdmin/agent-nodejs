@@ -1,25 +1,14 @@
 import type ReadModelStore from '../read-model/read-model-store';
-import type { SchemaSnapshot } from '../read-model/read-model-store';
 import type { Middleware } from 'koa';
 
 import buildContext from './build-context';
-import { oauthRequired, schemaUnavailable } from '../http/bff-local-errors';
-import SchemaUnavailableError from '../read-model/errors';
+import { resolveSchemaSnapshot } from '../http/agent-route-helpers';
 
 const CONTEXT_ROUTE = '/agent/v1/context';
 
 export interface ContextRoutesMiddlewareOptions {
   store: ReadModelStore;
   environmentId?: number;
-}
-
-async function readSnapshot(store: ReadModelStore): Promise<SchemaSnapshot> {
-  try {
-    return await store.getSchemaSnapshot();
-  } catch (error) {
-    if (error instanceof SchemaUnavailableError) throw schemaUnavailable();
-    throw error;
-  }
 }
 
 export default function createContextRoutesMiddleware({
@@ -33,9 +22,7 @@ export default function createContextRoutesMiddleware({
       return;
     }
 
-    if (ctx.state.authMode !== 'oauth') throw oauthRequired();
-
-    const { collections, readModel, revision } = await readSnapshot(store);
+    const { collections, readModel, revision } = await resolveSchemaSnapshot(store);
 
     ctx.status = 200;
     ctx.body = buildContext(collections, readModel, { schemaRevision: revision, environmentId });

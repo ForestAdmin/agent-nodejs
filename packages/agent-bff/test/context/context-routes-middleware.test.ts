@@ -78,15 +78,16 @@ describe('contextRoutesMiddleware', () => {
   });
 
   describe('when the caller authenticated with an API key', () => {
-    it('should refuse with 403 oauth_required', async () => {
+    it('should serve the same contract as an OAuth caller, since the schema is not caller-scoped', async () => {
       const fetchSchema = jest.fn().mockResolvedValue(schema);
-      const { app } = makeApp(fetchSchema, 'api-key');
+      const withKey = makeApp(fetchSchema, 'api-key');
+      const withSession = makeApp(jest.fn().mockResolvedValue(schema));
 
-      const response = await request(app.callback()).get(ROUTE);
+      const keyResponse = await request(withKey.app.callback()).get(ROUTE);
+      const sessionResponse = await request(withSession.app.callback()).get(ROUTE);
 
-      expect(response.status).toBe(403);
-      expect(response.body.error).toMatchObject({ type: 'oauth_required', status: 403 });
-      expect(fetchSchema).not.toHaveBeenCalled();
+      expect(keyResponse.status).toBe(200);
+      expect(keyResponse.body).toEqual(sessionResponse.body);
     });
   });
 
