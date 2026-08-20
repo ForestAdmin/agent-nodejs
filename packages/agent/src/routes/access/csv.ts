@@ -17,10 +17,17 @@ export default class CsvRoute extends CollectionRoute {
   async handleCsv(context: Context): Promise<void> {
     await this.services.authorization.assertCanBrowse(context, this.collection.name);
     await this.services.authorization.assertCanExport(context, this.collection.name);
+    await this.services.authorization.assertCanReadQueryFields(context, this.collection);
 
-    const { header } = context.request.query as Record<string, string>;
+    const { header: requestedHeader } = context.request.query as Record<string, string>;
 
-    const projection = QueryStringParser.parseProjectionFromHeaderOrQuery(this.collection, context);
+    const requested = QueryStringParser.parseProjectionFromHeaderOrQuery(this.collection, context);
+    const projection = await this.services.authorization.redactProjection(
+      context,
+      this.collection,
+      requested,
+    );
+    const header = CsvGenerator.filterHeader(requestedHeader, requested.projection, projection);
     const scope = await this.services.authorization.getScope(this.collection, context);
     const caller = QueryStringParser.parseCaller(context);
     const filter = ContextFilterFactory.buildPaginated(this.collection, context, scope);

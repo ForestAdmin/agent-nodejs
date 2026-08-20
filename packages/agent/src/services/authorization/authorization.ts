@@ -1,8 +1,9 @@
+import type { RequestedProjection } from '../../utils/query-string';
 import type { Collection, ConditionTree } from '@forestadmin/datasource-toolkit';
 import type { ForestAdminClient } from '@forestadmin/forestadmin-client';
 import type { Context } from 'koa';
 
-import { UnprocessableError } from '@forestadmin/datasource-toolkit';
+import { ForbiddenError, Projection, UnprocessableError } from '@forestadmin/datasource-toolkit';
 import {
   ChainedSQLQueryError,
   CollectionActionEvent,
@@ -12,6 +13,10 @@ import {
 
 import { HttpCode } from '../../types';
 import ConditionTreeParser from '../../utils/condition-tree-parser';
+import FieldPathUtils from '../../utils/field-path';
+import QueryStringParser from '../../utils/query-string';
+
+type FieldUsage = { action: string; path: string; collectionName: string };
 
 export default class AuthorizationService {
   constructor(private readonly forestAdminClient: ForestAdminClient) {}
@@ -38,6 +43,121 @@ export default class AuthorizationService {
 
   public async assertCanExport(context: Context, collectionName: string) {
     await this.assertCanOnCollection(CollectionActionEvent.Export, context, collectionName);
+  }
+
+  public async canRead(context: Context, collectionName: string): Promise<boolean> {
+    return this.forestAdminClient.permissionService.canOnCollection({
+      userId: context.state.user.id,
+      event: CollectionActionEvent.Read,
+      collectionName,
+    });
+  }
+
+  /**
+   * An unnamed field is redacted rather than refused: `ProjectionFactory.all` expands every column
+   * of every to-one relation when no `fields[]` is sent, so refusing would turn an ordinary
+   * listing into a 403.
+   */
+  public async redactProjection(
+    context: Context,
+    collection: Collection,
+    requested: RequestedProjection,
+  ): Promise<Projection> {
+    const { projection, explicit } = requested;
+    const owners = projection.map(path => FieldPathUtils.getLeafCollection(collection, path).name);
+    const permissions = await this.getReadPermissions(context, collection.name, owners);
+    const isReadable = (index: number) => permissions.get(owners[index]);
+
+    if (explicit) {
+      const denied = projection
+        .map((field, index) => ({ field, collection: owners[index] }))
+        .filter((_, index) => !isReadable(index));
+
+      if (denied.length) {
+        const fields = denied
+          .map(({ field, collection: name }) => `'${field}' from the '${name}' collection`)
+          .join(', ');
+
+        throw new ForbiddenError(`You are not allowed to read ${fields}.`);
+      }
+    }
+
+    return new Projection(...projection.filter((_, index) => isReadable(index)));
+  }
+
+  /**
+   * Refused rather than redacted: dropping a condition widens the result set and dropping a sort
+   * clause silently reorders it, while both leak the value they touch anyway — a `starts_with`
+   * filter answers one guess per request without returning a column of its own.
+   */
+  public async assertCanReadQueryFields(context: Context, collection: Collection): Promise<void> {
+    const usages: FieldUsage[] = [];
+    const push = (action: string, path: string) =>
+      usages.push({
+        action,
+        path,
+        collectionName: FieldPathUtils.getLeafCollection(collection, path).name,
+      });
+
+    QueryStringParser.parseConditionTree(collection, context)?.forEachLeaf(leaf =>
+      push('filter on', leaf.field),
+    );
+
+    for (const { field } of QueryStringParser.parseSort(collection, context)) {
+      push('sort on', field);
+    }
+
+    if (
+      QueryStringParser.parseSearch(collection, context) &&
+      QueryStringParser.parseSearchExtended(context)
+    ) {
+      for (const [name, field] of Object.entries(collection.schema.fields)) {
+        if (field.type === 'ManyToOne' || field.type === 'OneToOne') {
+          usages.push({
+            action: 'run an extended search through',
+            path: name,
+            collectionName: field.foreignCollection,
+          });
+        }
+      }
+    }
+
+    await this.assertCanReadUsages(context, collection.name, usages);
+  }
+
+  public async assertCanReadUsages(
+    context: Context,
+    rootCollectionName: string,
+    usages: FieldUsage[],
+  ): Promise<void> {
+    const permissions = await this.getReadPermissions(
+      context,
+      rootCollectionName,
+      usages.map(usage => usage.collectionName),
+    );
+    const denied = usages.find(usage => !permissions.get(usage.collectionName));
+
+    if (denied) {
+      throw new ForbiddenError(
+        `You cannot ${denied.action} '${denied.path}': you are not allowed to read the ` +
+          `'${denied.collectionName}' collection.`,
+      );
+    }
+  }
+
+  /** The root is skipped: its own route already asserts `browse` on a listing, `read` on a get. */
+  private async getReadPermissions(
+    context: Context,
+    rootCollectionName: string,
+    collectionNames: string[],
+  ): Promise<Map<string, boolean>> {
+    const toCheck = [...new Set(collectionNames)].filter(name => name !== rootCollectionName);
+    const allowed = await Promise.all(toCheck.map(name => this.canRead(context, name)));
+
+    return new Map<string, boolean>([
+      [rootCollectionName, true],
+      ...toCheck.map((name, index): [string, boolean] => [name, allowed[index]]),
+    ]);
   }
 
   private async assertCanOnCollection(

@@ -1,5 +1,6 @@
 import type { Context } from 'koa';
 
+import { Projection } from '@forestadmin/datasource-toolkit';
 import {
   ChainedSQLQueryError,
   ChartType,
@@ -431,6 +432,111 @@ describe('AuthorizationService', () => {
       authorizationService.invalidateScopeCache(42);
 
       expect(forestAdminClient.markScopesAsUpdated).toHaveBeenCalledWith(42);
+    });
+  });
+
+  describe('keepReadableProjection', () => {
+    const buildDataSource = () =>
+      factories.dataSource.buildWithCollections([
+        factories.collection.build({
+          name: 'cards',
+          schema: factories.collectionSchema.build({
+            fields: {
+              id: factories.columnSchema.uuidPrimaryKey().build(),
+              holderId: factories.columnSchema.build({ columnType: 'Uuid' }),
+              holder: factories.manyToOneSchema.build({
+                foreignCollection: 'holders',
+                foreignKey: 'holderId',
+              }),
+            },
+          }),
+        }),
+        factories.collection.build({
+          name: 'holders',
+          schema: factories.collectionSchema.build({
+            fields: {
+              id: factories.columnSchema.uuidPrimaryKey().build(),
+              fullName: factories.columnSchema.build(),
+              nationalId: factories.columnSchema.build(),
+            },
+          }),
+        }),
+      ]);
+
+    const context = {
+      state: { user: { id: 35, renderingId: 42 } },
+    } as unknown as Context;
+
+    it('should spend no permission check on the root collection', async () => {
+      const forestAdminClient = factories.forestAdminClient.build();
+      const authorizationService = new AuthorizationService(forestAdminClient);
+
+      const projection = await authorizationService.redactProjection(
+        context,
+        buildDataSource().getCollection('cards'),
+        { projection: new Projection('id', 'holderId'), explicit: true },
+      );
+
+      expect(projection).toEqual(['id', 'holderId']);
+      expect(forestAdminClient.permissionService.canOnCollection).not.toHaveBeenCalled();
+    });
+
+    it('should check a traversed collection once, whatever the number of paths', async () => {
+      const forestAdminClient = factories.forestAdminClient.build();
+      const authorizationService = new AuthorizationService(forestAdminClient);
+
+      (forestAdminClient.permissionService.canOnCollection as jest.Mock).mockResolvedValue(true);
+
+      await authorizationService.redactProjection(
+        context,
+        buildDataSource().getCollection('cards'),
+        {
+          projection: new Projection('id', 'holder:fullName', 'holder:nationalId'),
+          explicit: true,
+        },
+      );
+
+      expect(forestAdminClient.permissionService.canOnCollection).toHaveBeenCalledTimes(1);
+      expect(forestAdminClient.permissionService.canOnCollection).toHaveBeenCalledWith({
+        userId: 35,
+        event: CollectionActionEvent.Read,
+        collectionName: 'holders',
+      });
+    });
+
+    it('should drop every path reaching a denied collection', async () => {
+      const forestAdminClient = factories.forestAdminClient.build();
+      const authorizationService = new AuthorizationService(forestAdminClient);
+
+      (forestAdminClient.permissionService.canOnCollection as jest.Mock).mockResolvedValue(false);
+
+      const projection = await authorizationService.redactProjection(
+        context,
+        buildDataSource().getCollection('cards'),
+        {
+          projection: new Projection('id', 'holder:fullName', 'holder:nationalId'),
+          explicit: false,
+        },
+      );
+
+      expect(projection).toEqual(['id']);
+    });
+
+    it('should refuse instead of redacting when the caller named the fields', async () => {
+      const forestAdminClient = factories.forestAdminClient.build();
+      const authorizationService = new AuthorizationService(forestAdminClient);
+
+      (forestAdminClient.permissionService.canOnCollection as jest.Mock).mockResolvedValue(false);
+
+      await expect(
+        authorizationService.redactProjection(context, buildDataSource().getCollection('cards'), {
+          projection: new Projection('id', 'holder:fullName', 'holder:nationalId'),
+          explicit: true,
+        }),
+      ).rejects.toThrow(
+        "You are not allowed to read 'holder:fullName' from the 'holders' collection, " +
+          "'holder:nationalId' from the 'holders' collection.",
+      );
     });
   });
 });

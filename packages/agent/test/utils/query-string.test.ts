@@ -430,7 +430,7 @@ describe('QueryStringParser', () => {
         context,
       );
 
-      expect(projection).toEqual(new Projection('name'));
+      expect(projection).toEqual({ projection: new Projection('name'), explicit: true });
     });
 
     test('should fallback to the query string when the header is missing', () => {
@@ -443,7 +443,7 @@ describe('QueryStringParser', () => {
         context,
       );
 
-      expect(projection).toEqual(new Projection('name'));
+      expect(projection).toEqual({ projection: new Projection('name'), explicit: true });
     });
 
     test('should fallback to the query string when the header is empty', () => {
@@ -457,7 +457,31 @@ describe('QueryStringParser', () => {
         context,
       );
 
-      expect(projection).toEqual(new Projection('name'));
+      expect(projection).toEqual({ projection: new Projection('name'), explicit: true });
+    });
+
+    test('should report the default expansion as not explicit when no field is requested', () => {
+      const context = createMockContext({ customProperties: { query: {} } });
+
+      const { explicit } = QueryStringParser.parseProjectionFromHeaderOrQuery(
+        collectionSimple,
+        context,
+      );
+
+      expect(explicit).toBe(false);
+    });
+
+    test('should report an empty fields query param as not explicit', () => {
+      const context = createMockContext({
+        customProperties: { query: { 'fields[books]': '' } },
+      });
+
+      const { explicit } = QueryStringParser.parseProjectionFromHeaderOrQuery(
+        collectionSimple,
+        context,
+      );
+
+      expect(explicit).toBe(false);
     });
 
     test('should throw on an invalid header instead of falling back to the query string', () => {

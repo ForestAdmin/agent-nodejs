@@ -1,5 +1,6 @@
 import type {
   Caller,
+  Collection,
   ConditionTreeBranch,
   DateOperation,
   Filter,
@@ -29,6 +30,7 @@ import { DateTime } from 'luxon';
 import { v1 as uuidv1 } from 'uuid';
 
 import ContextFilterFactory from '../../utils/context-filter-factory';
+import FieldPathUtils from '../../utils/field-path';
 import QueryStringParser from '../../utils/query-string';
 import CollectionRoute from '../collection-route';
 
@@ -66,6 +68,8 @@ export default class ChartRoute extends CollectionRoute {
       renderingId,
       chartRequest,
     });
+
+    await this.services.authorization.assertCanReadQueryFields(context, this.collection);
 
     switch (chartRequest.type) {
       case ChartType.Value:
@@ -120,6 +124,11 @@ export default class ChartRoute extends CollectionRoute {
       aggregateFieldName: aggregateField,
     } = <PieChart>context.request.body;
 
+    await this.assertCanReadAggregatedFields(context, this.collection, [
+      ['group a chart by', groupByField],
+      ['aggregate a chart on', aggregateField],
+    ]);
+
     const rows = await this.collection.aggregate(
       QueryStringParser.parseCaller(context),
       await this.getFilter(context),
@@ -143,6 +152,11 @@ export default class ChartRoute extends CollectionRoute {
       groupByFieldName: groupByDateField,
       timeRange,
     } = <LineChart>context.request.body;
+
+    await this.assertCanReadAggregatedFields(context, this.collection, [
+      ['group a chart by', groupByDateField],
+      ['aggregate a chart on', aggregateField],
+    ]);
 
     const filter = await this.getFilter(context);
     const filterOnlyWithValues = filter.override({
@@ -233,9 +247,25 @@ export default class ChartRoute extends CollectionRoute {
     }
 
     if (collection && filter && aggregation) {
-      const rows = await this.dataSource
-        .getCollection(collection)
-        .aggregate(QueryStringParser.parseCaller(context), filter, aggregation, Number(body.limit));
+      const aggregatedCollection = this.dataSource.getCollection(collection);
+
+      await this.assertCanReadAggregatedFields(context, aggregatedCollection, [
+        ['group a leaderboard by', aggregation.groups[0].field],
+        ['aggregate a leaderboard on', aggregation.field],
+      ]);
+
+      // A count exposes the cardinality of the relation, which `/relationships/<name>/count` puts
+      // behind `browse`.
+      if (!aggregation.field) {
+        await this.services.authorization.assertCanBrowse(context, field.foreignCollection);
+      }
+
+      const rows = await aggregatedCollection.aggregate(
+        QueryStringParser.parseCaller(context),
+        filter,
+        aggregation,
+        Number(body.limit),
+      );
 
       return rows.map(row => ({
         key: row.group[aggregation.groups[0].field] as string,
@@ -254,6 +284,10 @@ export default class ChartRoute extends CollectionRoute {
     );
     const aggregation = new Aggregation({ operation: aggregator, field: aggregateField });
 
+    await this.assertCanReadAggregatedFields(context, this.collection, [
+      ['aggregate a chart on', aggregateField],
+    ]);
+
     const rows = await this.collection.aggregate(
       QueryStringParser.parseCaller(context),
       filter,
@@ -261,6 +295,24 @@ export default class ChartRoute extends CollectionRoute {
     );
 
     return rows.length ? (rows[0].value as number) : 0;
+  }
+
+  private async assertCanReadAggregatedFields(
+    context: Context,
+    collection: Collection,
+    fields: Array<[action: string, path: string]>,
+  ): Promise<void> {
+    await this.services.authorization.assertCanReadUsages(
+      context,
+      this.collection.name,
+      fields
+        .filter(([, path]) => path)
+        .map(([action, path]) => ({
+          action,
+          path,
+          collectionName: FieldPathUtils.getLeafCollection(collection, path).name,
+        })),
+    );
   }
 
   private async getFilter(context: Context): Promise<Filter> {
