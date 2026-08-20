@@ -10,6 +10,8 @@ import type Projection from '../interfaces/query/projection';
 import type { CompositeId, RecordData } from '../interfaces/record';
 import type { CollectionSchema } from '../interfaces/schema';
 
+export type SearchedField = { path: string; collection: string };
+
 export default class CollectionDecorator implements Collection {
   readonly dataSource: DataSource;
   protected childCollection: Collection;
@@ -32,6 +34,16 @@ export default class CollectionDecorator implements Collection {
 
   get name(): string {
     return this.childCollection.name;
+  }
+
+  /**
+   * Which fields a search will actually reach, and where they live — `null` when the collection
+   * cannot say, which a caller must read as "unknown", never as "none".
+   */
+  getSearchedFields(search: string, extended: boolean): SearchedField[] | null {
+    return this.childCollection instanceof CollectionDecorator
+      ? this.childCollection.getSearchedFields(search, extended)
+      : null;
   }
 
   constructor(childCollection: Collection, dataSource: DataSource) {

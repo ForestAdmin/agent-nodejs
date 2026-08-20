@@ -9,12 +9,13 @@ import type {
   DataSourceDecorator,
   PaginatedFilter,
   PlainConditionTree,
+  SearchedField,
 } from '@forestadmin/datasource-toolkit';
 
 import { CollectionDecorator, ConditionTreeFactory } from '@forestadmin/datasource-toolkit';
 
 import CollectionSearchContext from './collection-search-context';
-import { lenientGetSchema } from './field-paths';
+import { getLeafCollectionName, getSearchedFieldPaths, lenientGetSchema } from './field-paths';
 import { extractSpecifiedFields, generateConditionTree, parseQuery } from './parse-query';
 
 export default class SearchCollectionDecorator extends CollectionDecorator {
@@ -118,6 +119,25 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
     return conditionTree?.toPlainObject();
   }
 
+  /**
+   * Answers against `childCollection`, which is what the search actually reads — a field hidden by
+   * the publication or renaming layers above is still searched. Returns `null` when a replacer is
+   * installed: the customer's handler chooses the fields, and the caller only supplies the text.
+   */
+  override getSearchedFields(search: string, extended: boolean): SearchedField[] | null {
+    if (this.replacer) return null;
+
+    const paths = [
+      ...getSearchedFieldPaths(this.childCollection, search),
+      ...this.getFields(this.childCollection, extended).map(([path]) => path),
+    ];
+
+    return paths.map(path => ({
+      path,
+      collection: getLeafCollectionName(this.childCollection, path),
+    }));
+  }
+
   private getFields(collection: Collection, extended: boolean): [string, ColumnSchema][] {
     const fields: [string, ColumnSchema][] = [];
 
@@ -135,5 +155,4 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
 
     return fields;
   }
-
 }

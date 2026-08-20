@@ -1,9 +1,12 @@
 import type { RequestedProjection } from '../../utils/query-string';
-import type { Collection, ConditionTree } from '@forestadmin/datasource-toolkit';
+import type {
+  Collection,
+  CollectionDecorator,
+  ConditionTree,
+} from '@forestadmin/datasource-toolkit';
 import type { ForestAdminClient } from '@forestadmin/forestadmin-client';
 import type { Context } from 'koa';
 
-import { getSearchedFieldPaths } from '@forestadmin/datasource-customizer';
 import { ForbiddenError, Projection, UnprocessableError } from '@forestadmin/datasource-toolkit';
 import {
   ChainedSQLQueryError,
@@ -111,20 +114,18 @@ export default class AuthorizationService {
     const search = QueryStringParser.parseSearch(collection, context);
 
     if (search) {
-      // `relation.column:term` is end-user search syntax and works without extended search, so the
-      // paths it names are resolved by the search decorator's own resolver rather than guessed at.
-      for (const path of getSearchedFieldPaths(collection, search)) push('search on', path);
+      // Asked of the stack rather than derived from the schema: `relation.column:term` is end-user
+      // syntax that needs no extended search, and the fields an extended one reaches are read below
+      // the publication and renaming layers. A `null` answer means the collection cannot say — a
+      // replaced search, where the customer's handler picks the fields and the caller only supplies
+      // the text.
+      const searched = (collection as CollectionDecorator).getSearchedFields?.(
+        search,
+        QueryStringParser.parseSearchExtended(context),
+      );
 
-      if (QueryStringParser.parseSearchExtended(context)) {
-        for (const [name, field] of Object.entries(collection.schema.fields)) {
-          if (field.type === 'ManyToOne' || field.type === 'OneToOne') {
-            usages.push({
-              action: 'run an extended search through',
-              path: name,
-              collectionName: field.foreignCollection,
-            });
-          }
-        }
+      for (const { path, collection: name } of searched ?? []) {
+        usages.push({ action: 'search on', path, collectionName: name });
       }
     }
 

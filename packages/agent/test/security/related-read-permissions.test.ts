@@ -1,4 +1,4 @@
-import type { DataSource } from '@forestadmin/datasource-toolkit';
+import type { CollectionDecorator, DataSource } from '@forestadmin/datasource-toolkit';
 
 import { CollectionActionEvent } from '@forestadmin/forestadmin-client';
 import { createMockContext } from '@shopify/jest-koa-mocks';
@@ -293,21 +293,14 @@ describe('read permissions on related collections', () => {
   });
 
   describe('extended search', () => {
-    it('should refuse an extended search when a to-one relation cannot be read', async () => {
+    it('should refuse whatever the stack says the search will reach', async () => {
       const dataSource = buildDataSource();
       const services = buildServices();
+      const cards = dataSource.getCollection('cards') as CollectionDecorator;
+      const aggregate = jest.spyOn(cards, 'aggregate');
 
-      await expect(
-        new List(services, options, dataSource, 'cards').handleList(
-          buildContext({ query: { search: 'martin', searchExtended: '1' } }),
-        ),
-      ).rejects.toThrow('you are not allowed to read the');
-    });
-
-    it('should refuse a search naming a relation column through the dot syntax', async () => {
-      const dataSource = buildDataSource();
-      const services = buildServices();
-      const aggregate = jest.spyOn(dataSource.getCollection('cards'), 'aggregate');
+      // `relation.column:term` needs no extended search, and only the stack knows it resolves.
+      cards.getSearchedFields = () => [{ path: 'holder:nationalId', collection: 'holders' }];
 
       await expect(
         new Count(services, options, dataSource, 'cards').handleCount(
@@ -321,26 +314,35 @@ describe('read permissions on related collections', () => {
       expect(aggregate).not.toHaveBeenCalled();
     });
 
-    it('should refuse a search reaching a denied collection across a to-many relation', async () => {
+    it('should ask the stack with the extended flag the caller sent', async () => {
       const dataSource = buildDataSource();
-      const forestAdminClient = factories.forestAdminClient.build();
-      const services = factories.forestAdminHttpDriverServices.build();
-      services.authorization = new AuthorizationService(forestAdminClient);
-      services.serializer.serializeWithSearchMetadata = jest.fn();
+      const services = buildServices();
+      const cards = dataSource.getCollection('cards') as CollectionDecorator;
+      const getSearchedFields = jest.fn().mockReturnValue([]);
+      cards.getSearchedFields = getSearchedFields;
+      jest.spyOn(cards, 'list').mockResolvedValue([]);
 
-      // Searching from `holders`, so `cards` is the denied one here.
-      (forestAdminClient.permissionService.canOnCollection as jest.Mock).mockImplementation(
-        ({ collectionName }) => collectionName !== 'cards',
+      await new List(services, options, dataSource, 'cards').handleList(
+        buildContext({ query: { search: 'martin', searchExtended: '1' } }),
       );
 
-      await expect(
-        new List(services, options, dataSource, 'holders').handleList(
-          buildContext({ query: { search: 'cards.panLast4:4242' } }),
-        ),
-      ).rejects.toThrow(
-        "You cannot search on 'cards:panLast4': you are not allowed to read the " +
-          "'cards' collection.",
+      expect(getSearchedFields).toHaveBeenCalledWith('martin', true);
+    });
+
+    it('should serve the request when the stack cannot say what a search reaches', async () => {
+      const dataSource = buildDataSource();
+      const services = buildServices();
+      const cards = dataSource.getCollection('cards') as CollectionDecorator;
+      const list = jest.spyOn(cards, 'list').mockResolvedValue([]);
+
+      // A replaced search: the handler picks the fields, the caller only supplies the text.
+      cards.getSearchedFields = () => null;
+
+      await new List(services, options, dataSource, 'cards').handleList(
+        buildContext({ query: { search: 'martin', searchExtended: '1' } }),
       );
+
+      expect(list.mock.calls[0][1]).toMatchObject({ search: 'martin', searchExtended: true });
     });
 
     it('should accept a plain search, which never leaves the root collection', async () => {

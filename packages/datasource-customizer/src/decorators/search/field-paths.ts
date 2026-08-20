@@ -40,3 +40,18 @@ export function getSearchedFieldPaths(collection: Collection, search: string): s
     .map(name => lenientGetSchema(collection, name)?.field)
     .filter(Boolean);
 }
+
+export function getLeafCollectionName(collection: Collection, path: string): string {
+  const index = path.indexOf(':');
+
+  if (index === -1) return collection.name;
+
+  const relation = collection.schema.fields[path.substring(0, index)];
+
+  if (!relation || relation.type === 'Column') return collection.name;
+
+  return getLeafCollectionName(
+    collection.dataSource.getCollection(relation.foreignCollection),
+    path.substring(index + 1),
+  );
+}
