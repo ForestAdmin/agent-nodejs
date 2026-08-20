@@ -299,7 +299,7 @@ export default class ChartRoute extends CollectionRoute {
 
   private async assertCanReadAggregatedFields(
     context: Context,
-    collection: Collection,
+    pathCollection: Collection,
     fields: Array<[action: string, path: string]>,
   ): Promise<void> {
     await this.services.authorization.assertCanReadUsages(
@@ -310,7 +310,7 @@ export default class ChartRoute extends CollectionRoute {
         .map(([action, path]) => ({
           action,
           path,
-          collectionName: FieldPathUtils.getLeafCollection(collection, path).name,
+          collectionName: FieldPathUtils.getLeafCollection(pathCollection, path).name,
         })),
     );
   }

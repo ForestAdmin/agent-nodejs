@@ -435,7 +435,7 @@ describe('AuthorizationService', () => {
     });
   });
 
-  describe('keepReadableProjection', () => {
+  describe('redactProjection', () => {
     const buildDataSource = () =>
       factories.dataSource.buildWithCollections([
         factories.collection.build({
