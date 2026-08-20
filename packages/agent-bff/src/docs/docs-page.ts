@@ -114,15 +114,17 @@ export default function renderDocsPage(documentPath: string, bundlePath: string)
           })
             .then(function (response) {
               return response.text().then(function (text) {
-                var body;
-
                 try {
-                  body = JSON.parse(text);
+                  return { ok: response.ok, status: response.status, body: JSON.parse(text) };
                 } catch (parseError) {
-                  body = { error: { type: 'unreadable_response', message: text.slice(0, 200) } };
+                  // Never successful, whatever the status said: a body we cannot parse is not a
+                  // document, and handing this placeholder to Redoc would hide why.
+                  return {
+                    ok: false,
+                    status: response.status,
+                    body: { error: { type: 'unreadable_response', message: text.slice(0, 200) } },
+                  };
                 }
-
-                return { ok: response.ok, status: response.status, body: body };
               });
             })
             .then(function (result) {
