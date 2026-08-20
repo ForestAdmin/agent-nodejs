@@ -5,6 +5,7 @@ import path from 'path';
 import request from 'supertest';
 
 import createDocsRoutes, { DOCS_BUNDLE_PATH, DOCS_PATH } from '../../src/docs/docs-routes';
+import { REDOC_THEME } from '../../src/docs/docs-theme';
 
 const DOCUMENT_PATH = '/agent/openapi.json';
 
@@ -54,6 +55,19 @@ describe('docs routes', () => {
       const response = await request(buildApp(true).callback()).get(DOCS_PATH);
 
       expect(response.text).not.toContain('<form');
+    });
+
+    it('should request nothing off-origin, since a page holding a key must not talk to a CDN', async () => {
+      const response = await request(buildApp(true).callback()).get(DOCS_PATH);
+
+      expect(response.text).not.toMatch(/https?:\/\/|\/\/fonts\./);
+    });
+
+    it('should carry the Forest theme, so the viewer is not stock Redoc', async () => {
+      const response = await request(buildApp(true).callback()).get(DOCS_PATH);
+
+      expect(response.text).toContain(JSON.stringify(REDOC_THEME.sidebar.activeTextColor));
+      expect(response.text).toContain(REDOC_THEME.typography.fontFamily);
     });
 
     it('should never be cached, since the page is the entry point to a credential prompt', async () => {
