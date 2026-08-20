@@ -20,6 +20,7 @@ interface FakeElement {
 
 interface PendingResponse {
   resolve(response: { ok: boolean; status: number; body: unknown }): void;
+  resolveText(response: { ok: boolean; status: number; text: string }): void;
   reject(error: Error): void;
 }
 
@@ -62,6 +63,9 @@ function runPage() {
           resolve({ ok, status, body }) {
             resolveFetch({ ok, status, text: () => Promise.resolve(JSON.stringify(body)) });
           },
+          resolveText({ ok, status, text }) {
+            resolveFetch({ ok, status, text: () => Promise.resolve(text) });
+          },
           reject: rejectFetch,
         });
       }),
@@ -83,9 +87,11 @@ function runPage() {
       input.value = key;
       (elements.get('load') as FakeElement).listeners.click[0]();
     },
+    // setImmediate, not nextTick: the fetch chain is three promise hops deep, and the nextTick queue
+    // runs BEFORE the microtask queue, so a single tick can resolve while continuations are pending.
     flush: () =>
       new Promise(resolve => {
-        process.nextTick(resolve);
+        setImmediate(resolve);
       }),
   };
 }
@@ -177,6 +183,19 @@ describe('docs page script', () => {
 
       expect(page.errorText()).toBe('The BFF answered 401 unauthorized: Key revoked');
       expect(page.redocInit).not.toHaveBeenCalled();
+    });
+
+    it('should refuse an unparsable body, since a 200 that is not JSON is not a document', async () => {
+      const page = runPage();
+
+      page.submit('good-key');
+      page.pending[0].resolveText({ ok: true, status: 200, text: '<html>gateway</html>' });
+      await page.flush();
+
+      expect(page.redocInit).not.toHaveBeenCalled();
+      expect(page.errorText()).toBe(
+        'The BFF answered 200 unreadable_response: <html>gateway</html>',
+      );
     });
 
     it('should keep the prompt on screen when the key is empty, since nothing was sent', () => {
