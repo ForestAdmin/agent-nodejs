@@ -14,6 +14,14 @@
  * form there is no default action to prevent and no submit to observe: without this script the button
  * does nothing at all.
  */
+import { PAGE_STYLES, REDOC_THEME } from './docs-theme';
+
+/**
+ * `untrustedSpec` because the descriptions in the document come from the agent's own schema, which is
+ * customer-authored, and Redoc renders their markdown as HTML unsanitized otherwise.
+ */
+const REDOC_OPTIONS = { hideDownloadButton: true, untrustedSpec: true, theme: REDOC_THEME };
+
 export default function renderDocsPage(documentPath: string, bundlePath: string): string {
   return `<!doctype html>
 <html lang="en">
@@ -21,19 +29,12 @@ export default function renderDocsPage(documentPath: string, bundlePath: string)
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex" />
-    <title>Forest Admin BFF API</title>
-    <style>
-      body { margin: 0; font-family: system-ui, sans-serif; }
-      #unlock { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding: 16px; border-bottom: 1px solid #e1e1e1; }
-      #unlock label { font-size: 14px; }
-      #unlock input { flex: 1 1 280px; padding: 6px 8px; font: inherit; }
-      #unlock button { padding: 6px 14px; font: inherit; cursor: pointer; }
-      #error { display: none; margin: 16px; padding: 12px; border-left: 3px solid #c00; background: #fff5f5; font-size: 14px; white-space: pre-wrap; }
-      #error[data-shown] { display: block; }
-    </style>
+    <title>Forest BFF API</title>
+    <style>${PAGE_STYLES}    </style>
   </head>
   <body>
     <div id="unlock">
+      <strong>Forest<span>.</span></strong>
       <label for="key">BFF API key</label>
       <input id="key" type="password" autocomplete="off" spellcheck="false" />
       <button id="load" type="button">Load the API document</button>
@@ -45,6 +46,7 @@ export default function renderDocsPage(documentPath: string, bundlePath: string)
       (function () {
         var DOCUMENT_PATH = ${JSON.stringify(documentPath)};
         var BUNDLE_PATH = ${JSON.stringify(bundlePath)};
+        var REDOC_OPTIONS = ${JSON.stringify(REDOC_OPTIONS)};
         var unlock = document.getElementById('unlock');
         var input = document.getElementById('key');
         var button = document.getElementById('load');
@@ -71,9 +73,7 @@ export default function renderDocsPage(documentPath: string, bundlePath: string)
 
         /**
          * Kept out of the fetch chain: a throw from here is a viewer problem, and reporting it as
-         * "could not reach the document" would point the reader at the wrong thing. \`untrustedSpec\`
-         * because the descriptions in the document come from the agent's own schema, and Redoc renders
-         * their markdown as HTML — unsanitized unless it is told the spec is untrusted.
+         * "could not reach the document" would point the reader at the wrong thing.
          */
         function render(spec) {
           if (typeof Redoc === 'undefined') {
@@ -85,11 +85,7 @@ export default function renderDocsPage(documentPath: string, bundlePath: string)
           unlock.style.display = 'none';
 
           try {
-            Redoc.init(
-              spec,
-              { hideDownloadButton: true, untrustedSpec: true },
-              document.getElementById('redoc'),
-            );
+            Redoc.init(spec, REDOC_OPTIONS, document.getElementById('redoc'));
           } catch (initError) {
             unlock.style.display = '';
             show('The Redoc viewer could not render the document: ' + initError);
