@@ -1,6 +1,7 @@
 import type { Logger } from '../../src/ports/logger-port';
 
 import Koa from 'koa';
+import path from 'path';
 import request from 'supertest';
 
 import createDocsRoutes, { DOCS_BUNDLE_PATH, DOCS_PATH } from '../../src/docs/docs-routes';
@@ -49,6 +50,12 @@ describe('docs routes', () => {
       expect(response.text).toContain('X-Forest-Bff-Key');
     });
 
+    it('should carry no form, since a default submit would put the key in the URL', async () => {
+      const response = await request(buildApp(true).callback()).get(DOCS_PATH);
+
+      expect(response.text).not.toContain('<form');
+    });
+
     it('should never be cached, since the page is the entry point to a credential prompt', async () => {
       const response = await request(buildApp(true).callback()).get(DOCS_PATH);
 
@@ -70,6 +77,48 @@ describe('docs routes', () => {
       const response = await request(buildApp(true).callback()).get(DOCS_BUNDLE_PATH);
 
       expect(response.text).toContain('Redoc');
+    });
+
+    it('should be cacheable, since it is a versioned third-party asset and not a credential path', async () => {
+      const response = await request(buildApp(true).callback()).get(DOCS_BUNDLE_PATH);
+
+      expect(response.headers['cache-control']).toBe('public, max-age=3600');
+    });
+  });
+
+  describe('when the bundle resolved at boot but cannot be read', () => {
+    function buildUnreadableBundleApp(logs: string[]): Koa {
+      const app = new Koa();
+      app.silent = true;
+      app.use(
+        createDocsRoutes({
+          enabled: true,
+          documentPath: DOCUMENT_PATH,
+          logger: (_level, message) => logs.push(message),
+          resolveBundlePath: () => path.join(__dirname, 'no-such-bundle.js'),
+        }),
+      );
+      app.use(async ctx => {
+        ctx.status = 418;
+      });
+
+      return app;
+    }
+
+    it('should fall through rather than answer a bare 500, since no error middleware covers it', async () => {
+      const response = await request(buildUnreadableBundleApp([]).callback()).get(DOCS_BUNDLE_PATH);
+
+      expect(response.status).toBe(418);
+    });
+
+    it('should say which file it could not read', async () => {
+      const logs: string[] = [];
+
+      await request(buildUnreadableBundleApp(logs).callback()).get(DOCS_BUNDLE_PATH);
+
+      expect(logs).toEqual([
+        `API documentation bundle unreadable: ${path.join(__dirname, 'no-such-bundle.js')}`,
+      ]);
     });
   });
 

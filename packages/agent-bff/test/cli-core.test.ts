@@ -297,6 +297,19 @@ describe('runCli', () => {
         await server.stop();
       }
     });
+
+    it('should serve neither route when the agent edge is not mounted, since no document is served', async () => {
+      const server = await runCli({ ...VALID_ENV, FOREST_AUTH_SECRET: undefined }, noopLogger);
+
+      try {
+        const page = await request(server.callback).get('/docs');
+        const document = await request(server.callback).get('/agent/openapi.json');
+
+        expect([page.status, document.status]).toEqual([404, 404]);
+      } finally {
+        await server.stop();
+      }
+    });
   });
 
   describe('when a config value is malformed', () => {

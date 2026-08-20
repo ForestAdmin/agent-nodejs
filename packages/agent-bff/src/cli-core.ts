@@ -315,8 +315,13 @@ export default async function runCli(
     bodyParser({ jsonLimit: BODY_LIMIT }),
     ...oauthMiddlewares,
     // Outside the agent-scoped chain on purpose: the viewer is a public page, the document it fetches
-    // is not.
-    createDocsRoutes({ enabled: config.openapiEnabled, documentPath: OPENAPI_PATH, logger }),
+    // is not. Gated on the edge being mounted too, like the error middleware above: with no agent
+    // chain there is no document to fetch, and the page would only ever reach a bare Koa 404.
+    createDocsRoutes({
+      enabled: config.openapiEnabled && agentMiddlewares.length > 0,
+      documentPath: OPENAPI_PATH,
+      logger,
+    }),
     ...agentMiddlewares,
   ];
   const server = new BFFHttpServer({
