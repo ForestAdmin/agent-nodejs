@@ -287,5 +287,34 @@ describe('declareListWorkflowsTool', () => {
         `Failed to list MCP-enabled workflows: ${error.message}`,
       );
     });
+
+    // Discovery is the step a model repeats when anything downstream rejects it, so a refusal that
+    // will not change has to close the loop rather than invite another round.
+    it.each([
+      ['an unknown rendering', new NotFoundError('Rendering not found')],
+      ['a malformed collectionName', new HttpError('Validation failed', 400)],
+    ])('should tell the model not to retry %s', async (_, error) => {
+      mockForestServerClient.listMcpEnabledWorkflows.mockRejectedValue(error);
+
+      const result = await registeredToolHandler({}, mockExtra);
+      const { text } = (result as { content: [{ text: string }] }).content[0];
+
+      expect(result).toMatchObject({ isError: true });
+      expect(text).toBe(
+        `${error.message.replace(/\.$/, '')}. Retrying will not help: fix the request, or report ` +
+          'it to your Forest administrator.',
+      );
+    });
+
+    it('should leave a server error retryable, with no advice to stop', async () => {
+      const error = new HttpError('Internal server error', 500);
+      mockForestServerClient.listMcpEnabledWorkflows.mockRejectedValue(error);
+
+      const result = await registeredToolHandler({}, mockExtra);
+      const { text } = (result as { content: [{ text: string }] }).content[0];
+
+      expect(text).toBe('Internal server error');
+      expect(text).not.toContain('Retrying will not help');
+    });
   });
 });

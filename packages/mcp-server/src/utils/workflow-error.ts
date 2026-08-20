@@ -34,8 +34,16 @@ export function isRetryable(error: unknown): boolean {
 }
 
 /**
+ * Closing advice for a refusal that will repeat. Shared so the three workflow tools tell a model
+ * the same thing — the wording is the only signal it has that retrying is pointless.
+ */
+export const RETRY_WILL_NOT_HELP =
+  'Retrying will not help: fix the request, or report it to your Forest administrator.';
+
+/**
  * Turns a workflow transport failure into an error the model may see: the full cause always goes
- * to the operator log, and a message carrying transport detail is replaced by `unavailableMessage`.
+ * to the operator log, a message carrying transport detail is replaced by `unavailableMessage`,
+ * and a refusal that will repeat is told to stop.
  */
 export default function toModelSafeError(
   error: unknown,
@@ -49,5 +57,14 @@ export default function toModelSafeError(
 
   logger('Error', `${context}: ${detail}`);
 
-  return new Error(carriesTransportDetail(error) ? unavailableMessage : detail);
+  if (carriesTransportDetail(error)) return new Error(unavailableMessage);
+
+  // A 4xx that is neither a timeout nor a rate limit fails identically on every attempt. Handing a
+  // model the bare reason leaves nothing saying so — and these are the tools it is told to poll, so
+  // the loop it produces is the documented usage rather than a mistake.
+  if (!isRetryable(error)) {
+    return new Error(`${detail.replace(/\.$/, '')}. ${RETRY_WILL_NOT_HELP}`);
+  }
+
+  return new Error(detail);
 }

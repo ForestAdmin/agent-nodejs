@@ -8,7 +8,7 @@ import { z } from 'zod';
 import getAuthContext from '../utils/auth-context';
 import registerToolWithLogging from '../utils/tool-with-logging';
 import withActivityLog from '../utils/with-activity-log';
-import { carriesTransportDetail, isRetryable } from '../utils/workflow-error';
+import { RETRY_WILL_NOT_HELP, carriesTransportDetail, isRetryable } from '../utils/workflow-error';
 
 const WORKFLOW_ID_DESCRIPTION =
   'The id of the workflow to start, as returned by listWorkflows. The workflow must have the MCP ' +
@@ -55,10 +55,7 @@ function lookupUnavailableMessage(workflowId: string): string {
 function terminalLookupMessage(workflowId: string, detail: string): string {
   const reason = detail.replace(/\.$/, '');
 
-  return (
-    `Workflow "${workflowId}" could not be resolved — ${reason}. Retrying will not help: fix the ` +
-    'request, or report it to your Forest administrator.'
-  );
+  return `Workflow "${workflowId}" could not be resolved — ${reason}. ${RETRY_WILL_NOT_HELP}`;
 }
 
 // The trigger is not idempotent and the write may have landed before the transport failed, so this

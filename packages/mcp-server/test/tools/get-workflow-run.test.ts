@@ -267,5 +267,41 @@ describe('declareGetWorkflowRunTool', () => {
         `Failed to read workflow run "7": ${error.message}`,
       );
     });
+
+    // This is the tool the model is told to poll, so a refusal it cannot fix has to say so or the
+    // documented usage becomes an endless loop.
+    it.each([
+      ['an unknown runId', new NotFoundError('Workflow run not found')],
+      ['a refused identity', new ForbiddenError('You are not allowed to access this workflow run')],
+      ['a malformed runId', new HttpError('Validation failed', 400)],
+      [
+        'a browser-engine environment',
+        new HttpError('This environment runs workflows in the browser', 409),
+      ],
+    ])('should tell the model not to retry %s', async (_, error) => {
+      mockForestServerClient.getMcpWorkflowRun.mockRejectedValue(error);
+
+      const result = await registeredToolHandler({ runId: '7' }, mockExtra);
+      const { text } = (result as { content: [{ text: string }] }).content[0];
+
+      expect(result).toMatchObject({ isError: true });
+      expect(text).toBe(
+        `${error.message.replace(/\.$/, '')}. Retrying will not help: fix the request, or report ` +
+          'it to your Forest administrator.',
+      );
+    });
+
+    it.each([
+      ['a rate limit', new HttpError('Too many requests', 429)],
+      ['a server error', new HttpError('Internal server error', 500)],
+    ])('should leave %s retryable, with no advice to stop', async (_, error) => {
+      mockForestServerClient.getMcpWorkflowRun.mockRejectedValue(error);
+
+      const result = await registeredToolHandler({ runId: '7' }, mockExtra);
+      const { text } = (result as { content: [{ text: string }] }).content[0];
+
+      expect(text).toBe(error.message);
+      expect(text).not.toContain('Retrying will not help');
+    });
   });
 });
