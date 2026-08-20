@@ -170,8 +170,14 @@ export default function declareTriggerWorkflowTool(mcpServer: McpServer, ctx: To
         context: {
           collectionName: workflow.collectionName,
           recordId: args.recordId,
-          // Matches the orchestrator's own "via MCP" row — one trigger writes two entries.
-          label: `triggered the workflow "${workflow.name}" via MCP`,
+          // One trigger writes two Activity Logs rows, and this is the first: it records the
+          // request, before the run exists. The orchestrator writes the second once the run is
+          // committed, labelled "triggered ... via MCP". The two deliberately do not share a
+          // wording — this one cannot carry a runId (that is what makes it fail-closed), and the
+          // second is best-effort, so a successful trigger can leave only this one. Identical
+          // labels made a single trigger read as two indistinguishable events, and made "how many
+          // workflows did assistants start?" answerable only by deduplicating on the runId.
+          label: `requested the workflow "${workflow.name}" via MCP`,
         },
         logger,
         operation: () =>

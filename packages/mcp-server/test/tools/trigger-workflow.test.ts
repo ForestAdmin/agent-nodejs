@@ -158,7 +158,12 @@ describe('declareTriggerWorkflowTool', () => {
       });
     });
 
-    it('should record the activity log before triggering, labelled from the resolved workflow', async () => {
+    // "requested", not "triggered": the orchestrator writes a second row with the latter once the
+    // run is committed. Aligning the two wordings — which an earlier round did — made one trigger
+    // read as two identical events in Activity Logs, and since the orchestrator's row is
+    // best-effort while this one is fail-closed, the number of rows per trigger is not even
+    // stable. Do not "fix" this back to match its sibling.
+    it('should record the activity log before triggering, labelled as a request', async () => {
       await registeredToolHandler({ workflowId: 'wf-1', recordId: '42' }, mockExtra);
 
       expect(mockForestServerClient.createMcpActivityLog).toHaveBeenCalledWith(
@@ -167,7 +172,7 @@ describe('declareTriggerWorkflowTool', () => {
           type: 'write',
           collectionName: 'orders',
           recordId: '42',
-          label: 'triggered the workflow "Refund order" via MCP',
+          label: 'requested the workflow "Refund order" via MCP',
         }),
       );
 
@@ -472,7 +477,7 @@ describe('declareTriggerWorkflowTool', () => {
           action: 'triggerWorkflow',
           collectionName: 'orders',
           recordId: '42',
-          label: 'triggered the workflow "Refund order" via MCP',
+          label: 'requested the workflow "Refund order" via MCP',
         }),
       );
       expect(mockForestServerClient.updateActivityLogStatus).toHaveBeenCalledWith(
@@ -501,7 +506,7 @@ describe('declareTriggerWorkflowTool', () => {
           action: 'triggerWorkflow',
           collectionName: 'orders',
           recordId: '42',
-          label: 'triggered the workflow "Refund order" via MCP',
+          label: 'requested the workflow "Refund order" via MCP',
         }),
       );
       expect(mockForestServerClient.updateActivityLogStatus).toHaveBeenCalledWith(
