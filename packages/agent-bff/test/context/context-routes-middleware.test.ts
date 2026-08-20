@@ -22,14 +22,14 @@ const RAW_KEY = `fbff_${'a'.repeat(16)}_${'b'.repeat(64)}`;
 
 // No auth middleware: the route reads no principal, so these cases exercise the serializer and the
 // cache. The credentialed paths go through `makeEdge` below, which mounts the real chain.
-function makeApp(fetchSchema: jest.Mock) {
+function makeApp(fetchSchema: jest.Mock, environmentId?: number) {
   const fetcher: SchemaFetcher = { fetchSchema };
   const schemaCache = new SchemaCache({ fetcher, metrics: makeMetrics() });
   const store = new ReadModelStore(schemaCache, new CapabilitiesCache({}));
 
   const app = new Koa();
   app.use(createErrorMiddleware({ logger: () => {} }));
-  app.use(createContextRoutesMiddleware({ store }));
+  app.use(createContextRoutesMiddleware({ store, environmentId }));
 
   return { app, schemaCache };
 }
@@ -100,6 +100,22 @@ describe('contextRoutesMiddleware', () => {
         'My Coll',
         'collectionWithoutFieldsNorActions',
       ]);
+      expect(response.body.meta).toEqual({ schemaRevision: 1 });
+    });
+
+    it('should carry the environment id the deployment resolved at boot', async () => {
+      const { app } = makeApp(jest.fn().mockResolvedValue(schema), 42);
+
+      const response = await request(app.callback()).get(ROUTE);
+
+      expect(response.body.meta).toEqual({ schemaRevision: 1, environmentId: 42 });
+    });
+
+    it('should omit the environment id when the deployment resolved none', async () => {
+      const { app } = makeApp(jest.fn().mockResolvedValue(schema));
+
+      const response = await request(app.callback()).get(ROUTE);
+
       expect(response.body.meta).toEqual({ schemaRevision: 1 });
     });
 
