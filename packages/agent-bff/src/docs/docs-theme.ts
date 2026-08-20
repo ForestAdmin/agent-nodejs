@@ -80,6 +80,20 @@ export const REDOC_THEME = {
   schema: { typeNameColor: SLATE[700], typeTitleColor: LIME[700], requireLabelColor: RED[700] },
 } as const;
 
+/**
+ * The product logo, verbatim from the frontend's `public/img/logo.svg` minus its XML prolog — the
+ * mark itself, not a redrawing of it, so it cannot drift in geometry. The tree is negative space:
+ * the lime path covers everything the dark ground does not show through. Both colours are the logo's
+ * own, brighter and darker than any shade the interface palette carries.
+ *
+ * Inline rather than a file: this page must request nothing off-origin, and a favicon is a request
+ * like any other. It also needs no route of its own, and no bundle to exist.
+ */
+export const FAVICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1080" fill="none">
+  <rect width="1080" height="1080" fill="#3F5B1E"/>
+  <path d="M0 0V1080H487.658V649.169L277.256 859.597L203.317 785.648L540 448.922L876.683 785.648L802.744 859.597L592.342 649.169V1080H1080V0H0ZM802.675 568.892L539.931 306.115L277.188 568.892L203.248 494.943L539.931 158.217L876.614 494.943L802.675 568.892Z" fill="#DDF327"/>
+</svg>`;
+
 /** The shell around Redoc: the key prompt, and the error box it writes into. */
 export const PAGE_STYLES = `
       body { margin: 0; font-family: ${SANS}; color: ${SLATE[1000]}; }

@@ -70,6 +70,12 @@ describe('docs routes', () => {
       expect(response.text).toContain(REDOC_THEME.typography.fontFamily);
     });
 
+    it('should carry its favicon inline, since an icon file would be a request off this page', async () => {
+      const response = await request(buildApp(true).callback()).get(DOCS_PATH);
+
+      expect(response.text).toContain('rel="icon" href="data:image/svg+xml,');
+    });
+
     it('should never be cached, since the page is the entry point to a credential prompt', async () => {
       const response = await request(buildApp(true).callback()).get(DOCS_PATH);
 
