@@ -212,6 +212,26 @@ describe('buildContext', () => {
     });
   });
 
+  // Deliberate, and the opposite of `collect-unfolding`, which drops a relation whose target is
+  // hidden because documenting a route would promise a 404. Here nothing is a route: dropping the
+  // target would make a relation indistinguishable from a plain text column, which is the very bug
+  // `relationship`/`polymorphicTargets` exist to prevent.
+  describe('when a relation points at a collection the document does not serve', () => {
+    it('should still name the target, leaving the cross-check to the consumer', () => {
+      const context = buildContext(schema, readModel, { schemaRevision: 1 });
+      const served = context.collections.map(collection => collection.name);
+
+      expect(served).not.toContain('orders');
+      expect(fieldNamed(context, 'ordersHasManyWithInverseOf')?.reference).toBe(
+        'orders.customerId',
+      );
+      expect(fieldNamed(context, 'ownerPolymorphic')?.polymorphicTargets).toEqual([
+        'users',
+        'teams',
+      ]);
+    });
+  });
+
   describe('when a collection name is unusual', () => {
     it('should keep a dotted name and a name carrying a space verbatim', () => {
       const context = buildContext(schema, readModel, { schemaRevision: 1 });
@@ -286,13 +306,13 @@ describe('buildContext', () => {
   // edge, so validating what the serializer emits against what the document promises catches a drift
   // between the two without either one importing the other's types.
   describe('when the built context is validated against the published OpenAPI schema', () => {
-    it('should satisfy ContextResponseSchema for every shape the fixture covers', () => {
+    // Compared to the input rather than asserted valid: `z.object()` strips unknown keys instead of
+    // rejecting them, so a key the serializer emits and the document does not declare would pass
+    // validation and be silently dropped. Round-tripping catches that direction too.
+    it('should round-trip through ContextResponseSchema for every shape the fixture covers', () => {
       const context = buildContext(schema, readModel, { schemaRevision: 3, environmentId: 42 });
 
-      const result = ContextResponseSchema.safeParse(context);
-
-      expect(result.error?.issues ?? []).toEqual([]);
-      expect(result.success).toBe(true);
+      expect(ContextResponseSchema.parse(context)).toEqual(context);
     });
   });
 });

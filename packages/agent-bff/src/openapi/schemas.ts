@@ -215,7 +215,12 @@ export const ContextResponseSchema = z
       'wire — the bytes travel as a data uri or as hex — so `type` alone does not tell a text ' +
       'field from an encoded one: read `validations` for that. `reference` keeps the raw agent ' +
       'form, the foreign collection and the key joined by a dot — the collection name may itself ' +
-      'contain dots, so drop only the trailing segment to recover it. ' +
+      'contain dots, so drop only the trailing segment to recover it. A target named by ' +
+      '`reference` or `polymorphicTargets` is NOT guaranteed to appear in `collections[]`: the ' +
+      'schema describes a field as the agent declares it, and a relation can point at a ' +
+      'collection this document does not expose. Cross a target against `collections[]` before ' +
+      'following it — unlike the per-collection route documents, nothing here is dropped for ' +
+      'pointing outside the served set. ' +
       'The document carries no rendering, project or team identity, and the only environment ' +
       'datum is `meta.environmentId` below. It is served to both auth modes — an OAuth session ' +
       'and a BFF API key get the same document. It is NOT ' +
