@@ -1,7 +1,14 @@
 import type { ActionEndpointsByCollection } from '@forestadmin/agent-client';
 import type { ForestSchemaCollection, ForestSchemaField } from '@forestadmin/forestadmin-client';
 
-export type RelationshipType = 'BelongsTo' | 'HasOne' | 'HasMany' | 'BelongsToMany';
+export const RELATIONSHIP_TYPES = [
+  'BelongsTo',
+  'HasOne',
+  'HasMany',
+  'BelongsToMany',
+] as const satisfies readonly NonNullable<ForestSchemaField['relationship']>[];
+
+export type RelationshipType = (typeof RELATIONSHIP_TYPES)[number];
 
 export type RelationTarget =
   | { type: RelationshipType; polymorphic: false; target: string }

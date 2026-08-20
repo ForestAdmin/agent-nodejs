@@ -278,8 +278,8 @@ export function generateOpenApiDocument(version: string, unfolding?: Unfolding):
     type: 'http',
     scheme: 'bearer',
     description:
-      'Mode 1: the BFF session token issued after the OAuth login. Accepted on every agent route, ' +
-      'including the context contract.',
+      'Mode 1: the BFF session token issued after the OAuth login. Accepted on the context ' +
+      'contract; the data and action routes advertise the API key only.',
   });
   registry.registerComponent('securitySchemes', API_KEY_SCHEME, {
     type: 'apiKey',
@@ -302,8 +302,7 @@ export function generateOpenApiDocument(version: string, unfolding?: Unfolding):
       },
       400: errorRefs.byStatus['400'],
       401: errorRefs.byStatus['401'],
-      413: errorRefs.byStatus['413'],
-      415: errorRefs.byStatus['415'],
+      403: errorRefs.byStatus['403'],
       500: errorRefs.byStatus['500'],
       501: errorRefs.byStatus['501'],
       503: errorRefs.byStatus['503'],
