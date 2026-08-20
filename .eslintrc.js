@@ -17,11 +17,15 @@ module.exports = {
     sourceType: 'module',
     project: ['./tsconfig.eslint.json'],
   },
-  plugins: ['@typescript-eslint', 'prettier', 'jest', 'jest-formatting'],
+  plugins: ['@typescript-eslint', 'prettier', 'jest', 'jest-formatting', 'unicorn'],
   rules: {
     /**********/
     /** Style */
     /**********/
+
+    // Kebab-case filenames avoid case-sensitivity mismatches between macOS and Linux CI.
+    // Generated parser, snake-case demo fixtures, and _-grouped tests are relaxed below.
+    'unicorn/filename-case': ['error', { case: 'kebabCase' }],
 
     // Code spacing
     'prettier/prettier': 'error',
@@ -143,6 +147,22 @@ module.exports = {
           },
         ],
       },
+    },
+    {
+      // Generated ANTLR parser: cannot rename without breaking regeneration.
+      files: ['**/generated-parser/**/*'],
+      rules: { 'unicorn/filename-case': 'off' },
+    },
+    {
+      // Demo fixtures mirror snake_case database table names.
+      files: ['packages/datasource-demo-fintech/src/customizations/**/*'],
+      rules: { 'unicorn/filename-case': 'off' },
+    },
+    {
+      // Test filenames separate subject from case with an underscore; nothing imports
+      // them, so their casing cannot break a build.
+      files: ['**/test/**/*'],
+      rules: { 'unicorn/filename-case': 'off' },
     },
   ],
 };
