@@ -5,9 +5,12 @@ import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import Chart from '../../src/routes/access/chart';
 import Count from '../../src/routes/access/count';
+import CountRelated from '../../src/routes/access/count-related';
 import Csv from '../../src/routes/access/csv';
+import CsvRelated from '../../src/routes/access/csv-related';
 import Get from '../../src/routes/access/get';
 import List from '../../src/routes/access/list';
+import ListRelated from '../../src/routes/access/list-related';
 import AuthorizationService from '../../src/services/authorization/authorization';
 import * as factories from '../__factories__';
 
@@ -42,7 +45,7 @@ describe('read permissions on related collections', () => {
         schema: factories.collectionSchema.build({
           fields: {
             id: factories.columnSchema.uuidPrimaryKey().build(),
-            iban: factories.columnSchema.build({ columnType: 'String' }),
+            iban: factories.columnSchema.text().build(),
             balance: factories.columnSchema.build({ columnType: 'Number' }),
             organizationId: factories.columnSchema.build({ columnType: 'Uuid' }),
             organization: factories.manyToOneSchema.build({
@@ -176,7 +179,8 @@ describe('read permissions on related collections', () => {
         buildContext({}, { 'forest-projection': 'id,account:organization:name' }),
       );
 
-      // The `account:` primary keys `withPks` re-adds are already on the row as `cards.accountId`.
+      // `withPks` re-adds `account:id`, which a ManyToOne already carries on the row as
+      // `cards.accountId`. A OneToOne intermediate would expose a key the row does not carry.
       expect([...list.mock.calls[0][2]].sort()).toEqual([
         'account:id',
         'account:organization:id',
@@ -245,7 +249,11 @@ describe('read permissions on related collections', () => {
         buildContext({ query: { filters: oracleFilter } }),
       );
 
-      expect(list).toHaveBeenCalled();
+      expect(list.mock.calls[0][1].conditionTree).toMatchObject({
+        field: 'holder:nationalId',
+        operator: 'StartsWith',
+        value: '1850',
+      });
     });
 
     it('should not check the scope, which the agent injects rather than the caller', async () => {
@@ -261,7 +269,10 @@ describe('read permissions on related collections', () => {
 
       await new List(services, options, dataSource, 'cards').handleList(buildContext({}));
 
-      expect(list).toHaveBeenCalled();
+      expect(list.mock.calls[0][1].conditionTree).toMatchObject({
+        field: 'holder:nationalId',
+        value: '1850',
+      });
     });
   });
 
@@ -341,7 +352,7 @@ describe('read permissions on related collections', () => {
         buildContext({ query: { search: 'martin' } }),
       );
 
-      expect(list).toHaveBeenCalled();
+      expect(list.mock.calls[0][1]).toMatchObject({ search: 'martin', searchExtended: false });
     });
 
     it('should accept an extended search once every to-one relation is readable', async () => {
@@ -353,7 +364,7 @@ describe('read permissions on related collections', () => {
         buildContext({ query: { search: 'martin', searchExtended: '1' } }),
       );
 
-      expect(list).toHaveBeenCalled();
+      expect(list.mock.calls[0][1]).toMatchObject({ search: 'martin', searchExtended: true });
     });
   });
 
@@ -376,6 +387,70 @@ describe('read permissions on related collections', () => {
     });
   });
 
+  // The related routes are the only sites resolving against `foreignCollection` rather than the
+  // route's own collection, so a swap between the two would otherwise go unnoticed.
+  describe('related routes', () => {
+    const holderCardsContext = () =>
+      buildContext({
+        params: { parentId: '2d162303-78bf-599e-b197-93590ac3d315' },
+        query: {
+          filters: JSON.stringify({
+            field: 'account:iban',
+            operator: 'equal',
+            value: 'FR76',
+          }),
+        },
+      });
+
+    it('should refuse a filter on a denied collection reached from the related list', async () => {
+      const dataSource = buildDataSource();
+      const services = buildServices();
+
+      await expect(
+        new ListRelated(services, options, dataSource, 'holders', 'cards').handleListRelated(
+          holderCardsContext(),
+        ),
+      ).rejects.toThrow(
+        "You cannot filter on 'account:iban': you are not allowed to read the " +
+          "'accounts' collection.",
+      );
+    });
+
+    it('should refuse the same filter on the related export', async () => {
+      const dataSource = buildDataSource();
+      const services = buildServices();
+
+      await expect(
+        new CsvRelated(services, options, dataSource, 'holders', 'cards').handleRelatedCsv(
+          holderCardsContext(),
+        ),
+      ).rejects.toThrow("you are not allowed to read the 'accounts' collection");
+    });
+
+    it('should refuse the same filter on the related count', async () => {
+      const dataSource = buildDataSource();
+      const services = buildServices();
+
+      await expect(
+        new CountRelated(services, options, dataSource, 'holders', 'cards').handleCountRelated(
+          holderCardsContext(),
+        ),
+      ).rejects.toThrow("you are not allowed to read the 'accounts' collection");
+    });
+
+    it('should redact the related list projection rather than refuse it', async () => {
+      const dataSource = buildDataSource();
+      const services = buildServices();
+      const list = jest.spyOn(dataSource.getCollection('cards'), 'list').mockResolvedValue([]);
+
+      await new ListRelated(services, options, dataSource, 'holders', 'cards').handleListRelated(
+        buildContext({ params: { parentId: '2d162303-78bf-599e-b197-93590ac3d315' } }),
+      );
+
+      expect(list.mock.calls[0][2].sort()).toEqual(['accountId', 'holderId', 'id', 'panLast4']);
+    });
+  });
+
   describe('chart', () => {
     it('should refuse to group a chart by a column of an unreadable collection', async () => {
       const dataSource = buildDataSource();
@@ -393,6 +468,41 @@ describe('read permissions on related collections', () => {
       ).rejects.toThrow(
         "You cannot group a chart by 'holder:fullName': you are not allowed to read the " +
           "'holders' collection.",
+      );
+    });
+
+    it('should refuse a line chart grouped by a column of an unreadable collection', async () => {
+      const dataSource = buildDataSource();
+      const services = buildServices();
+      const body = {
+        type: 'Line',
+        aggregator: 'Count',
+        groupByFieldName: 'holder:fullName',
+        timeRange: 'Day',
+      };
+
+      (services.chartHandler.getChartWithContextInjected as jest.Mock).mockResolvedValue(body);
+
+      await expect(
+        new Chart(services, options, dataSource, 'cards').handleChart(buildContext({}, {}, body)),
+      ).rejects.toThrow(
+        "You cannot group a chart by 'holder:fullName': you are not allowed to read the " +
+          "'holders' collection.",
+      );
+    });
+
+    it('should refuse a value chart aggregating a column of an unreadable collection', async () => {
+      const dataSource = buildDataSource();
+      const services = buildServices();
+      const body = { type: 'Value', aggregator: 'Sum', aggregateFieldName: 'account:balance' };
+
+      (services.chartHandler.getChartWithContextInjected as jest.Mock).mockResolvedValue(body);
+
+      await expect(
+        new Chart(services, options, dataSource, 'cards').handleChart(buildContext({}, {}, body)),
+      ).rejects.toThrow(
+        "You cannot aggregate a chart on 'account:balance': you are not allowed to read the " +
+          "'accounts' collection.",
       );
     });
 

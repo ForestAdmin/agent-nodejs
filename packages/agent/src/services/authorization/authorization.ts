@@ -151,7 +151,7 @@ export default class AuthorizationService {
     }
   }
 
-  /** The root is skipped: its own route already asserts `browse` on a listing, `read` on a get. */
+  /** The root is skipped: `browse` gates a listing, `read` a get, and the signed hash a chart. */
   private async getReadPermissions(
     context: Context,
     rootCollectionName: string,
