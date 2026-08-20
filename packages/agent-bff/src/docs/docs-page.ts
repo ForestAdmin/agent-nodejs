@@ -52,6 +52,7 @@ export default function renderDocsPage(documentPath: string, bundlePath: string)
         var input = document.getElementById('key');
         var button = document.getElementById('load');
         var errorBox = document.getElementById('error');
+        var attempts = 0;
 
         function show(message) {
           errorBox.textContent = message;
@@ -93,8 +94,19 @@ export default function renderDocsPage(documentPath: string, bundlePath: string)
           }
         }
 
+        /**
+         * Every completion is checked against \`attempt\`: two submissions in quick succession — a
+         * mistyped key corrected straight away — resolve in whatever order the network gives, and a
+         * late answer from the abandoned one would otherwise render its document or report its error
+         * over the current attempt's result.
+         */
         function load(key) {
           hide();
+
+          var attempt = ++attempts;
+          var current = function () {
+            return attempt === attempts;
+          };
 
           fetch(DOCUMENT_PATH, {
             cache: 'no-store',
@@ -114,6 +126,8 @@ export default function renderDocsPage(documentPath: string, bundlePath: string)
               });
             })
             .then(function (result) {
+              if (!current()) return;
+
               if (!result.ok) {
                 show(describe(result.status, result.body));
 
@@ -123,6 +137,8 @@ export default function renderDocsPage(documentPath: string, bundlePath: string)
               render(result.body);
             })
             .catch(function (fetchError) {
+              if (!current()) return;
+
               show('Could not reach ' + DOCUMENT_PATH + ': ' + fetchError);
             });
         }
