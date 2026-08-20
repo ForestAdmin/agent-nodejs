@@ -3,9 +3,10 @@ import type { ActivityLogAction } from '../../src/utils/activity-logs-creator';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
 
-import { NotFoundError } from '@forestadmin/forestadmin-client';
+import { ForbiddenError, HttpError, NotFoundError } from '@forestadmin/forestadmin-client';
 
 import createPendingActivityLog, {
+  AUDIT_UNAVAILABLE_MESSAGE,
   markActivityLogAsFailed,
   markActivityLogAsSucceeded,
 } from '../../src/utils/activity-logs-creator';
@@ -236,16 +237,155 @@ describe('createPendingActivityLog', () => {
   });
 
   describe('error handling', () => {
-    it('should propagate error when createMcpActivityLog fails', async () => {
-      mockForestServerClient.createMcpActivityLog.mockRejectedValue(
-        new Error('Failed to create activity log: Server error message'),
+    it.each<ActivityLogAction>(['action', 'create', 'update', 'delete', 'triggerWorkflow'])(
+      'should block write action "%s" and keep the server reason when createMcpActivityLog rejects (fail-closed)',
+      async action => {
+        mockForestServerClient.createMcpActivityLog.mockRejectedValue(
+          new HttpError('collectionModelName is required', 400),
+        );
+
+        const request = createMockRequest();
+
+        await expect(
+          createPendingActivityLog(mockForestServerClient, request, action),
+        ).rejects.toThrow('collectionModelName is required');
+      },
+    );
+
+    // The blocked write is reported to a model, so a cause carrying the Forest server URL, an
+    // internal host:port or a TLS chain must not travel with it - only the fixed sentence does,
+    // and the cause goes to the operator log instead.
+    it.each([
+      ['a transport failure', new Error('connect ECONNREFUSED 10.0.0.4:5432')],
+      [
+        'a timeout',
+        new HttpError('Timeout of 10000ms exceeded on https://api.forestadmin.com/liana', 408),
+      ],
+    ])('should replace %s with a sanitized message on a write', async (_label, error) => {
+      mockForestServerClient.createMcpActivityLog.mockRejectedValue(error);
+
+      const logger = jest.fn();
+      const request = createMockRequest();
+
+      await expect(
+        createPendingActivityLog(mockForestServerClient, request, 'triggerWorkflow', { logger }),
+      ).rejects.toThrow(AUDIT_UNAVAILABLE_MESSAGE);
+
+      expect(logger).toHaveBeenCalledWith(
+        'Error',
+        `Activity log for 'triggerWorkflow' could not be created: ${(error as Error).message}`,
       );
+    });
+
+    it.each<ActivityLogAction>([
+      'index',
+      'search',
+      'filter',
+      'listRelatedData',
+      'describeCollection',
+    ])(
+      'should resolve to null when createMcpActivityLog rejects for read action "%s" (fail-open)',
+      async action => {
+        mockForestServerClient.createMcpActivityLog.mockRejectedValue(
+          new Error('Failed to create activity log: Server error message'),
+        );
+
+        const request = createMockRequest();
+
+        await expect(
+          createPendingActivityLog(mockForestServerClient, request, action),
+        ).resolves.toBeNull();
+      },
+    );
+
+    // Real HttpErrors rather than bare Errors: the status is what the fail policy now reads, so a
+    // generic Error would make these labels describe a mode the code never sees.
+    it.each([
+      ['a 400 rejection (unresolvable collection)', new HttpError('Validation failed', 400)],
+      ['a 5xx rejection (audit store unreachable)', new HttpError('Internal Server Error', 500)],
+      ['a transport failure', new Error('connect ECONNREFUSED')],
+    ])('should let a read through on %s', async (_label, error) => {
+      mockForestServerClient.createMcpActivityLog.mockRejectedValue(error);
 
       const request = createMockRequest();
 
       await expect(
         createPendingActivityLog(mockForestServerClient, request, 'index'),
-      ).rejects.toThrow('Failed to create activity log: Server error message');
+      ).resolves.toBeNull();
+    });
+
+    // An authorization refusal is not an audit outage: the caller's identity was rejected, so the
+    // read it is about to perform is not authorized either. Fail-open must not swallow it.
+    it.each([
+      ['a 401 rejection', new HttpError('Unauthorized', 401)],
+      ['a 403 rejection', new ForbiddenError('Forbidden')],
+    ])('should propagate %s even for a read action', async (_label, error) => {
+      mockForestServerClient.createMcpActivityLog.mockRejectedValue(error);
+
+      const request = createMockRequest();
+
+      await expect(
+        createPendingActivityLog(mockForestServerClient, request, 'index'),
+      ).rejects.toThrow(error);
+    });
+
+    it('should report the cause when a read proceeds unaudited', async () => {
+      mockForestServerClient.createMcpActivityLog.mockRejectedValue(
+        new HttpError('collectionModelName is required', 400),
+      );
+
+      const logger = jest.fn();
+      const request = createMockRequest();
+
+      await expect(
+        createPendingActivityLog(mockForestServerClient, request, 'index', { logger }),
+      ).resolves.toBeNull();
+
+      expect(logger).toHaveBeenCalledWith(
+        'Error',
+        "Activity log for 'index' could not be created: collectionModelName is required",
+      );
+    });
+
+    it('should report the cause when a read gets a 200 with no activity log id', async () => {
+      mockForestServerClient.createMcpActivityLog.mockResolvedValue({ id: null } as never);
+
+      const logger = jest.fn();
+      const request = createMockRequest();
+
+      await expect(
+        createPendingActivityLog(mockForestServerClient, request, 'index', { logger }),
+      ).resolves.toBeNull();
+
+      expect(logger).toHaveBeenCalledWith(
+        'Error',
+        "Activity log for 'index' could not be created: the server answered 200 with no " +
+          'activity log id, so the audit store dropped the write.',
+      );
+    });
+
+    it('should never forward the logger to the server', async () => {
+      mockForestServerClient.createMcpActivityLog.mockResolvedValue({ id: 'log-1' } as never);
+
+      const logger = jest.fn();
+      const request = createMockRequest();
+
+      await createPendingActivityLog(mockForestServerClient, request, 'index', { logger });
+
+      expect(mockForestServerClient.createMcpActivityLog).toHaveBeenCalledWith(
+        expect.not.objectContaining({ logger: expect.anything() }),
+      );
+    });
+
+    it('should still throw an invalid-auth-context error for a read action', async () => {
+      const request = {
+        authInfo: { extra: { renderingId: '12345' } },
+      } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
+
+      await expect(
+        createPendingActivityLog(mockForestServerClient, request, 'index'),
+      ).rejects.toThrow('Invalid or missing forestServerToken in authentication context');
+      expect(mockForestServerClient.createMcpActivityLog).not.toHaveBeenCalled();
     });
 
     it('should not throw when createMcpActivityLog succeeds', async () => {
@@ -255,6 +395,59 @@ describe('createPendingActivityLog', () => {
         createPendingActivityLog(mockForestServerClient, request, 'index'),
       ).resolves.not.toThrow();
     });
+
+    it.each<ActivityLogAction>(['action', 'create', 'update', 'delete', 'triggerWorkflow'])(
+      'should reject when the server returns a 200 with a null id for write action "%s" (fail-closed)',
+      async action => {
+        mockForestServerClient.createMcpActivityLog.mockResolvedValue({
+          id: null,
+          attributes: {},
+        } as never);
+
+        const request = createMockRequest();
+
+        await expect(
+          createPendingActivityLog(mockForestServerClient, request, action),
+        ).rejects.toThrow(
+          'Failed to create activity log: the server returned no activity log id. ' +
+            'Blocking the operation to preserve the audit trail.',
+        );
+      },
+    );
+
+    it('should reject when the server returns a response with an undefined id for a write action (fail-closed)', async () => {
+      mockForestServerClient.createMcpActivityLog.mockResolvedValue({
+        attributes: {},
+      } as never);
+
+      const request = createMockRequest();
+
+      await expect(
+        createPendingActivityLog(mockForestServerClient, request, 'triggerWorkflow'),
+      ).rejects.toThrow('the server returned no activity log id');
+    });
+
+    it.each<ActivityLogAction>([
+      'index',
+      'search',
+      'filter',
+      'listRelatedData',
+      'describeCollection',
+    ])(
+      'should resolve to null when the server returns a 200 with a null id for read action "%s" (fail-open)',
+      async action => {
+        mockForestServerClient.createMcpActivityLog.mockResolvedValue({
+          id: null,
+          attributes: {},
+        } as never);
+
+        const request = createMockRequest();
+
+        await expect(
+          createPendingActivityLog(mockForestServerClient, request, action),
+        ).resolves.toBeNull();
+      },
+    );
   });
 });
 
@@ -278,6 +471,38 @@ describe('markActivityLogAsFailed', () => {
       },
     } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
   }
+
+  it.each([
+    ['a missing token', {}],
+    ['a non-string token', { forestServerToken: 42 }],
+    ['an empty token', { forestServerToken: '' }],
+  ])('should skip the status update on %s rather than send an empty Bearer', async (_l, extra) => {
+    const request = {
+      authInfo: { token: 'mock-token', extra },
+    } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
+    const activityLog = { id: 'log-123', attributes: { index: 'idx-456' } };
+    const mockLogger = jest.fn();
+
+    markActivityLogAsFailed({
+      forestServerClient: mockForestServerClient,
+      request,
+      activityLog,
+      logger: mockLogger,
+    });
+
+    await new Promise(resolve => {
+      setTimeout(resolve, 0);
+    });
+
+    // An empty Bearer can only be refused, so the round trip is skipped entirely. (The retry
+    // branch below is 404-only, so a 401 would not have been repeated — it would just have cost
+    // one pointless call and an error log naming an auth failure rather than the missing token.)
+    expect(mockForestServerClient.updateActivityLogStatus).not.toHaveBeenCalled();
+    expect(mockLogger).toHaveBeenCalledWith(
+      'Error',
+      "Cannot update activity log status to 'failed': no forestServerToken in the auth context.",
+    );
+  });
 
   it('should call updateActivityLogStatus with failed status', async () => {
     const request = createMockRequest();

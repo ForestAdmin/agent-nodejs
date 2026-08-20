@@ -8,10 +8,22 @@ import type { Logger } from '../server';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol.js';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types.js';
 
-import { NotFoundError } from '@forestadmin/forestadmin-client';
+import { HttpError, NotFoundError } from '@forestadmin/forestadmin-client';
+
+import getAuthContext from './auth-context';
+import { carriesTransportDetail } from './workflow-error';
 
 export type { ActivityLogAction, ActivityLogResponse };
 
+/**
+ * Fail policy for the audit trail, keyed by action type: a write whose activity log cannot be
+ * created is blocked (no unaudited side effect), while a read proceeds with a warning (an audit
+ * store outage must not take down the read surface). Both the refusal/outage path and the
+ * 200-with-no-id path in `createPendingActivityLog` are arbitrated by this map.
+ *
+ * One case is arbitrated by the cause instead of the action type: an authorization refusal
+ * (401/403) propagates for reads too — see `isAuthorizationRefusal`.
+ */
 const ACTION_TO_TYPE: Record<ActivityLogAction, ActivityLogType> = {
   index: 'read',
   search: 'read',
@@ -22,26 +34,27 @@ const ACTION_TO_TYPE: Record<ActivityLogAction, ActivityLogType> = {
   delete: 'write',
   listRelatedData: 'read',
   describeCollection: 'read',
+  triggerWorkflow: 'write',
 };
 
-function getAuthContext(request: RequestHandlerExtra<ServerRequest, ServerNotification>): {
-  forestServerToken: string;
-  renderingId: string;
-} {
-  const forestServerToken = request.authInfo?.extra?.forestServerToken;
-  const renderingId = request.authInfo?.extra?.renderingId;
-
-  if (!forestServerToken || typeof forestServerToken !== 'string') {
-    throw new Error('Invalid or missing forestServerToken in authentication context');
-  }
-
-  // renderingId can be number (from JWT) or string - convert to string for API calls
-  if (renderingId === undefined || renderingId === null) {
-    throw new Error('Invalid or missing renderingId in authentication context');
-  }
-
-  return { forestServerToken, renderingId: String(renderingId) };
+/**
+ * The caller's identity was rejected (401/403), which is not an audit outage: the read the caller
+ * is about to perform is not authorized either. Fail-open exists so a broken audit store cannot
+ * take down the read surface — it must not turn an authorization refusal into a silent warning.
+ */
+function isAuthorizationRefusal(error: unknown): boolean {
+  return error instanceof HttpError && (error.status === 401 || error.status === 403);
 }
+
+/**
+ * Sent instead of the cause when a write is blocked by an audit failure whose message carries
+ * transport detail. Retrying is safe advice here, unlike a failure of the operation itself: this
+ * throws before the operation runs, so nothing has happened yet.
+ */
+export const AUDIT_UNAVAILABLE_MESSAGE =
+  'Forest could not be reached to write the audit trail, so the operation was not performed. ' +
+  'This is a temporary server-side failure — retry later, and report it to your Forest ' +
+  'administrator if it persists.';
 
 export default async function createPendingActivityLog(
   forestServerClient: ForestServerClient,
@@ -52,21 +65,83 @@ export default async function createPendingActivityLog(
     recordId?: string | number;
     recordIds?: string[] | number[];
     label?: string;
+    /** Used only to report why a read proceeded unaudited; never sent to the server. */
+    logger?: Logger;
   },
 ) {
   const type = ACTION_TO_TYPE[action];
+  // Outside the fail policy below: a missing auth context is a caller bug, not an audit outage.
   const { forestServerToken, renderingId } = getAuthContext(request);
 
-  return forestServerClient.createMcpActivityLog({
-    forestServerToken,
-    renderingId,
-    action,
-    type,
-    collectionName: extra?.collectionName,
-    recordId: extra?.recordId,
-    recordIds: extra?.recordIds,
-    label: extra?.label,
-  });
+  let activityLog: ActivityLogResponse | undefined;
+
+  try {
+    activityLog = await forestServerClient.createMcpActivityLog({
+      forestServerToken,
+      renderingId,
+      action,
+      type,
+      collectionName: extra?.collectionName,
+      recordId: extra?.recordId,
+      recordIds: extra?.recordIds,
+      label: extra?.label,
+    });
+  } catch (error) {
+    // The audit log was refused (400/404 — e.g. an unresolvable collection) or the store is
+    // unreachable (5xx, timeout, connection error). Both land here, and both are far more likely
+    // than the 200-with-null-id case below.
+    if (type === 'write' || isAuthorizationRefusal(error)) {
+      // A blocked write is reported to the caller, and for an MCP tool the caller is a model. An
+      // HttpError message is the server's own detail or a fixed string, both meant to be read; a
+      // timeout or a raw Node/superagent error instead carries the Forest server URL, an internal
+      // host:port or a TLS chain. Only the sanitized sentence may travel — the same split the
+      // workflow tools apply to their own calls, and what the 200-with-no-id branch below has
+      // always done. Without this the cause reaches the model verbatim.
+      if (carriesTransportDetail(error)) {
+        extra?.logger?.(
+          'Error',
+          `Activity log for '${action}' could not be created: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+
+        throw new Error(AUDIT_UNAVAILABLE_MESSAGE);
+      }
+
+      throw error;
+    }
+
+    // Report the cause: without it every fail-open read logs the same sentence, and an operator
+    // cannot tell a validation refusal (act now) from a transient outage (wait).
+    extra?.logger?.(
+      'Error',
+      `Activity log for '${action}' could not be created: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+
+    return null;
+  }
+
+  // 200 with no id: the route answered but the audit store dropped the write.
+  if (activityLog?.id === null || activityLog?.id === undefined) {
+    if (type === 'write') {
+      throw new Error(
+        'Failed to create activity log: the server returned no activity log id. ' +
+          'Blocking the operation to preserve the audit trail.',
+      );
+    }
+
+    extra?.logger?.(
+      'Error',
+      `Activity log for '${action}' could not be created: the server answered 200 with no ` +
+        'activity log id, so the audit store dropped the write.',
+    );
+
+    return null;
+  }
+
+  return activityLog;
 }
 
 interface UpdateActivityLogOptions {
@@ -86,9 +161,19 @@ async function updateActivityLogStatus(
 ): Promise<void> {
   const { forestServerClient, request, activityLog, status, logger } = options;
 
-  // Use optional chaining with fallback since we're in error handling context
-  // and don't want to throw a different error if auth context is missing
-  const forestServerToken = (request.authInfo?.extra?.forestServerToken as string) ?? '';
+  // Read directly rather than through getAuthContext: this runs in a fire-and-forget path and must
+  // not throw a second, unrelated error. A missing token means the request cannot be authenticated,
+  // so skip the call rather than spend a round trip on a request that can only be refused.
+  const forestServerToken = request.authInfo?.extra?.forestServerToken;
+
+  if (typeof forestServerToken !== 'string' || !forestServerToken) {
+    logger(
+      'Error',
+      `Cannot update activity log status to '${status}': no forestServerToken in the auth context.`,
+    );
+
+    return;
+  }
 
   try {
     await forestServerClient.updateActivityLogStatus({

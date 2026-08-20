@@ -22,6 +22,7 @@ import UserPermissionService from './permissions/user-permission';
 import SchemaService from './schema';
 import ContextVariablesInstantiator from './utils/context-variables-instantiator';
 import defaultLogger from './utils/default-logger';
+import WorkflowsService from './workflows';
 
 export default function buildApplicationServices(
   forestAdminServerInterface: ForestAdminServerInterface,
@@ -31,6 +32,7 @@ export default function buildApplicationServices(
   renderingPermission: RenderingPermissionService;
   schema: SchemaService;
   activityLogs: ActivityLogsService;
+  workflows: WorkflowsService;
   contextVariables: ContextVariablesInstantiator;
   ipWhitelist: IpWhiteListService;
   permission: PermissionService;
@@ -89,6 +91,7 @@ export default function buildApplicationServices(
     ipWhitelist: new IpWhiteListService(forestAdminServerInterface, optionsWithDefaults),
     schema: new SchemaService(forestAdminServerInterface, optionsWithDefaults),
     activityLogs: new ActivityLogsService(forestAdminServerInterface, optionsWithDefaults),
+    workflows: new WorkflowsService(forestAdminServerInterface, optionsWithDefaults),
     auth: forestAdminServerInterface.makeAuthService(optionsWithDefaults),
     modelCustomizationService: new ModelCustomizationFromApiService(
       forestAdminServerInterface,

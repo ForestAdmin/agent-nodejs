@@ -36,9 +36,12 @@ import declareDescribeCollectionTool from './tools/describe-collection';
 import declareDissociateTool from './tools/dissociate';
 import declareExecuteActionTool from './tools/execute-action';
 import declareGetActionFormTool from './tools/get-action-form';
+import declareGetWorkflowRunTool from './tools/get-workflow-run';
 import declareListTool from './tools/list';
 import declareListRelatedTool from './tools/list-related';
+import declareListWorkflowsTool from './tools/list-workflows';
 import declareRequestActionFileUploadTool from './tools/request-action-file-upload';
+import declareTriggerWorkflowTool from './tools/trigger-workflow';
 import declareUpdateTool from './tools/update';
 import normalizeAgentUrl from './utils/normalize-agent-url';
 import normalizeDomainList from './utils/normalize-domain-list';
@@ -97,6 +100,9 @@ const SAFE_ARGUMENTS_FOR_LOGGING: Record<string, string[]> = {
   requestActionFileUpload: ['mimeType'],
   associate: ['collectionName', 'relationName', 'parentRecordId', 'targetRecordId'],
   dissociate: ['collectionName', 'relationName', 'parentRecordId', 'targetRecordIds'],
+  listWorkflows: ['collectionName'],
+  triggerWorkflow: ['workflowId', 'recordId'],
+  getWorkflowRun: ['runId'],
 };
 
 export type ToolName =
@@ -110,6 +116,9 @@ export type ToolName =
   | 'dissociate'
   | 'getActionForm'
   | 'executeAction'
+  | 'listWorkflows'
+  | 'triggerWorkflow'
+  | 'getWorkflowRun'
   | 'requestActionFileUpload';
 
 /**
@@ -283,6 +292,9 @@ export default class ForestMCPServer {
       { name: 'dissociate', register: () => declareDissociateTool(mcpServer, ctx) },
       { name: 'getActionForm', register: () => declareGetActionFormTool(mcpServer, ctx) },
       { name: 'executeAction', register: () => declareExecuteActionTool(mcpServer, ctx) },
+      { name: 'listWorkflows', register: () => declareListWorkflowsTool(mcpServer, ctx) },
+      { name: 'triggerWorkflow', register: () => declareTriggerWorkflowTool(mcpServer, ctx) },
+      { name: 'getWorkflowRun', register: () => declareGetWorkflowRunTool(mcpServer, ctx) },
       ...(this.fileUploads
         ? [
             {
@@ -328,6 +340,9 @@ export default class ForestMCPServer {
       'dissociate',
       'getActionForm',
       'executeAction',
+      'listWorkflows',
+      'triggerWorkflow',
+      'getWorkflowRun',
       'requestActionFileUpload',
     ];
 

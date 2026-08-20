@@ -436,6 +436,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
       const forestServerClient = new ForestServerClientImpl(
         this.options.forestAdminClient.schemaService,
         this.options.forestAdminClient.activityLogsService,
+        this.options.forestAdminClient.workflowsService,
         this.options.forestServerUrl,
       );
 

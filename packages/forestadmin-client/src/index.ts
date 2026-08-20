@@ -28,8 +28,26 @@ export {
   ActivityLogType,
   CreateActivityLogParams,
   UpdateActivityLogStatusParams,
+  McpWorkflow,
+  McpWorkflowLookup,
+  ListMcpWorkflowsParams,
+  GetMcpWorkflowByIdParams,
+  TriggerMcpWorkflowParams,
+  GetMcpWorkflowRunParams,
+  WorkflowRunState,
+  WorkflowRunEngine,
+  WorkflowRunTriggerType,
+  WorkflowStepType,
+  WorkflowTaskType,
+  WorkflowStepOutgoing,
+  WorkflowStepDefinition,
+  WorkflowHistoryStepContext,
+  WorkflowHistoryStep,
+  HydratedWorkflowRun,
+  WorkflowRunTriggerResult,
   // Service interfaces for MCP
   ActivityLogsServiceInterface,
+  WorkflowsServiceInterface,
   SchemaServiceInterface,
 } from './types';
 export { IpWhitelistConfiguration } from './ip-whitelist/types';
@@ -66,6 +84,7 @@ export default function createForestAdminClient(
     ipWhitelist,
     schema,
     activityLogs,
+    workflows,
     auth,
     modelCustomizationService,
     mcpServerConfigService,
@@ -87,6 +106,7 @@ export default function createForestAdminClient(
     mcpServerConfigService,
     eventsSubscription,
     eventsHandler,
+    workflows,
   );
 }
 
@@ -105,6 +125,7 @@ export { default as ServerUtils } from './utils/server';
 // export is necessary for the agent-generator package
 export { default as SchemaService, SchemaServiceOptions } from './schema';
 export { default as ActivityLogsService, ActivityLogsOptions } from './activity-logs';
+export { default as WorkflowsService, WorkflowsServiceOptions } from './workflows';
 
 export * from './auth/errors';
 export * from './utils/errors';

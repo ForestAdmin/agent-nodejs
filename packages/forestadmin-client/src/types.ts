@@ -53,6 +53,7 @@ export interface ForestAdminClient {
   readonly authService: ForestAdminAuthServiceInterface;
   readonly schemaService: SchemaServiceInterface;
   readonly activityLogsService: ActivityLogsServiceInterface;
+  readonly workflowsService: WorkflowsServiceInterface;
 
   verifySignedActionParameters<TSignedParameters>(signedParameters: string): TSignedParameters;
 
@@ -252,7 +253,8 @@ export type ActivityLogAction =
   | 'update'
   | 'delete'
   | 'listRelatedData'
-  | 'describeCollection';
+  | 'describeCollection'
+  | 'triggerWorkflow';
 
 export type ActivityLogType = 'read' | 'write';
 
@@ -280,6 +282,177 @@ export interface ActivityLogsServiceInterface {
   createActivityLog: (params: CreateActivityLogParams) => Promise<ActivityLogResponse>;
   createMcpActivityLog: (params: CreateActivityLogParams) => Promise<ActivityLogResponse>;
   updateActivityLogStatus: (params: UpdateActivityLogStatusParams) => Promise<void>;
+}
+
+/**
+ * An MCP-enabled workflow, as returned by the Forest server's workflow listing endpoint.
+ */
+export interface McpWorkflow {
+  workflowId: string;
+  name: string;
+  collectionName: string | null;
+}
+
+export interface ListMcpWorkflowsParams {
+  forestServerToken: string;
+  renderingId: string;
+  collectionName?: string;
+}
+
+/**
+ * A single workflow resolved by id: the match is resolved inside Postgres, so the client never
+ * receives or deserializes the full workflow list. Unlike the listing, this also carries
+ * `mcpEnabled`: an existing-but-MCP-disabled workflow is returned with `mcpEnabled: false` rather
+ * than hidden, so the caller can tell an unknown workflow from a disabled one and reject the
+ * latter without starting a run. `name` is what makes the fail-closed audit label possible in the
+ * enabled case; the start endpoint stays the guard that refuses a disabled trigger.
+ */
+export interface McpWorkflowLookup {
+  /** Echo of the requested id — the server returns it so the payload is self-describing. */
+  workflowId: string;
+  name: string;
+  collectionName: string | null;
+  mcpEnabled: boolean;
+}
+
+export interface GetMcpWorkflowByIdParams {
+  forestServerToken: string;
+  renderingId: string;
+  workflowId: string;
+}
+
+/**
+ * The lifecycle state of a workflow run, as persisted by the orchestrator.
+ */
+export type WorkflowRunState = 'started' | 'pending' | 'loading' | 'aborted' | 'finished';
+
+/**
+ * The outcome of starting a workflow run: the run continues asynchronously server-side.
+ * `runId` is normalized to a string so it can be fed back to `getMcpWorkflowRun` as-is.
+ * Workflow name and collection are not part of this contract — the audit label is resolved
+ * up front via `getMcpWorkflowById`.
+ */
+export interface WorkflowRunTriggerResult {
+  runId: string;
+  runState: WorkflowRunState;
+}
+
+export interface TriggerMcpWorkflowParams {
+  forestServerToken: string;
+  renderingId: string;
+  workflowId: string;
+  recordId: string;
+}
+
+export type WorkflowRunEngine = 'orchestrator' | 'browser';
+
+export type WorkflowRunTriggerType = 'manual' | 'webhook' | 'mcp';
+
+export type WorkflowStepType =
+  | 'task'
+  | 'condition'
+  | 'end'
+  | 'escalation'
+  | 'start-sub-workflow'
+  | 'close-sub-workflow';
+
+export type WorkflowTaskType =
+  | 'guideline'
+  | 'trigger-action'
+  | 'get-data'
+  | 'update-data'
+  | 'load-related-record'
+  | 'mcp-server';
+
+export interface WorkflowStepOutgoing {
+  stepId: string;
+  buttonText: string | null;
+  buttonColor?: string | null;
+  answer?: string;
+}
+
+/**
+ * The resolved BPMN definition of a step. Common fields are typed; task-type-specific
+ * fields (completionType, inputType, preRecordedArgs, mcpServerId, ...) vary by `taskType`
+ * and are left open via the index signature.
+ */
+export interface WorkflowStepDefinition {
+  type: WorkflowStepType;
+  title: string;
+  prompt?: string;
+  executionType: 'manual' | 'automated-with-confirmation' | 'fully-automated';
+  automaticCompletion: boolean;
+  outgoing: WorkflowStepOutgoing[];
+  taskType?: WorkflowTaskType;
+  [key: string]: unknown;
+}
+
+export interface WorkflowHistoryStepContext {
+  manuallyCompleted?: true;
+  completedBy?: number;
+  subWorkflowVersion?: string;
+  selectedOption?: string;
+  error?: string;
+  childrenWorkflowId?: string;
+  escalationState?: 'escalated' | 'error';
+  awaitingInputReason?: 'needs-oauth-reauth';
+}
+
+/**
+ * One entry in a run's history: the step and its resolved definition plus per-step context.
+ */
+export interface WorkflowHistoryStep {
+  stepName: string;
+  stepIndex: number;
+  originalStepIndex?: number;
+  done: boolean;
+  revised?: boolean;
+  cancelled?: boolean;
+  childrenWorkflowId?: string;
+  isCardStep: boolean;
+  context?: WorkflowHistoryStepContext;
+  stepDefinition: WorkflowStepDefinition;
+}
+
+/**
+ * The full hydrated workflow run as returned by the orchestrator for MCP consumption.
+ * It exposes the whole run — including internal fields (userId, bpmnVersion, collectionId,
+ * step indices, per-step context) — so the LLM has maximum context about where the run is
+ * and what each step does. The orchestrator carries no record payload (records live in the
+ * executor), but identifiers (`selectedRecordId`) and executor-reported error strings
+ * (`context.error`) may still contain customer data.
+ */
+export interface HydratedWorkflowRun {
+  id: number;
+  userId: number;
+  renderingId: number;
+  collectionId: string;
+  workflowId: string;
+  bpmnVersion: string;
+  selectedRecordId: string;
+  runState: WorkflowRunState;
+  engine: WorkflowRunEngine;
+  triggerType: WorkflowRunTriggerType;
+  lockedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  workflowHistory: WorkflowHistoryStep[];
+}
+
+export interface GetMcpWorkflowRunParams {
+  forestServerToken: string;
+  renderingId: string;
+  runId: string;
+}
+
+/**
+ * Service interface for workflow operations (MCP-related).
+ */
+export interface WorkflowsServiceInterface {
+  listMcpEnabledWorkflows: (params: ListMcpWorkflowsParams) => Promise<McpWorkflow[]>;
+  getMcpWorkflowById: (params: GetMcpWorkflowByIdParams) => Promise<McpWorkflowLookup>;
+  triggerMcpWorkflow: (params: TriggerMcpWorkflowParams) => Promise<WorkflowRunTriggerResult>;
+  getMcpWorkflowRun: (params: GetMcpWorkflowRunParams) => Promise<HydratedWorkflowRun>;
 }
 
 /**
@@ -320,6 +493,29 @@ export interface ForestAdminServerInterface {
     id: string,
     body: object,
   ) => Promise<void>;
+
+  // Workflow operations
+  listMcpEnabledWorkflows?: (
+    options: ActivityLogHttpOptions,
+    renderingId: string,
+    collectionName?: string,
+  ) => Promise<McpWorkflow[]>;
+  getMcpWorkflowById?: (
+    options: ActivityLogHttpOptions,
+    renderingId: string,
+    workflowId: string,
+  ) => Promise<McpWorkflowLookup>;
+  triggerMcpWorkflow?: (
+    options: ActivityLogHttpOptions,
+    renderingId: string,
+    workflowId: string,
+    recordId: string,
+  ) => Promise<WorkflowRunTriggerResult>;
+  getMcpWorkflowRun?: (
+    options: ActivityLogHttpOptions,
+    renderingId: string,
+    runId: string,
+  ) => Promise<HydratedWorkflowRun>;
 }
 
 export type ActivityLogHttpOptions = {

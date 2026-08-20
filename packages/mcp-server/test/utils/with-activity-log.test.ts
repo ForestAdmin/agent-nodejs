@@ -60,7 +60,8 @@ describe('withActivityLog', () => {
       mockForestServerClient,
       mockRequest,
       'index',
-      { collectionName: 'users' },
+      // The logger travels with the context so the creator can report why a read went unaudited.
+      { collectionName: 'users', logger: expect.any(Function) },
     );
     expect(mockCreatePendingActivityLog).toHaveBeenCalledBefore(operation);
   });
@@ -200,7 +201,7 @@ describe('withActivityLog', () => {
       mockForestServerClient,
       mockRequest,
       'index',
-      undefined,
+      { logger: expect.any(Function) },
     );
   });
 
@@ -228,8 +229,99 @@ describe('withActivityLog', () => {
         collectionName: 'orders',
         recordIds: [1, 2, 3],
         label: 'Bulk delete orders',
+        logger: expect.any(Function),
       },
     );
+  });
+
+  describe('when the activity log was not persisted (read action, fail-open)', () => {
+    beforeEach(() => {
+      mockCreatePendingActivityLog.mockResolvedValue(null);
+    });
+
+    it('should run the operation and return its result', async () => {
+      const expectedResult = { content: [{ type: 'text', text: 'data' }] };
+      const operation = jest.fn().mockResolvedValue(expectedResult);
+
+      const result = await withActivityLog({
+        forestServerClient: mockForestServerClient,
+        request: mockRequest,
+        action: 'index',
+        logger: mockLogger,
+        operation,
+      });
+
+      expect(result).toEqual(expectedResult);
+    });
+
+    it('should log a warning about the missing audit trail', async () => {
+      const operation = jest.fn().mockResolvedValue({ result: 'success' });
+
+      await withActivityLog({
+        forestServerClient: mockForestServerClient,
+        request: mockRequest,
+        action: 'index',
+        logger: mockLogger,
+        operation,
+      });
+
+      expect(mockLogger).toHaveBeenCalledWith(
+        'Warn',
+        "Activity log for 'index' was not persisted by the server; " +
+          'proceeding without audit trail for this read operation.',
+      );
+    });
+
+    it('should not track the activity log status on success', async () => {
+      const operation = jest.fn().mockResolvedValue({ result: 'success' });
+
+      await withActivityLog({
+        forestServerClient: mockForestServerClient,
+        request: mockRequest,
+        action: 'index',
+        logger: mockLogger,
+        operation,
+      });
+
+      expect(mockMarkActivityLogAsSucceeded).not.toHaveBeenCalled();
+    });
+
+    it('should not track the activity log status on failure, and still throw', async () => {
+      const operation = jest.fn().mockRejectedValue(new Error('Operation failed'));
+
+      await expect(
+        withActivityLog({
+          forestServerClient: mockForestServerClient,
+          request: mockRequest,
+          action: 'index',
+          logger: mockLogger,
+          operation,
+        }),
+      ).rejects.toThrow('Operation failed');
+
+      expect(mockMarkActivityLogAsFailed).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('when the activity log could not be created (write action, fail-closed)', () => {
+    it('should not run the operation and should propagate the error', async () => {
+      mockCreatePendingActivityLog.mockRejectedValue(new Error('Internal Server Error'));
+      const operation = jest.fn().mockResolvedValue({ result: 'success' });
+
+      await expect(
+        withActivityLog({
+          forestServerClient: mockForestServerClient,
+          request: mockRequest,
+          action: 'triggerWorkflow',
+          logger: mockLogger,
+          operation,
+        }),
+      ).rejects.toThrow('Internal Server Error');
+
+      expect(operation).not.toHaveBeenCalled();
+      expect(mockMarkActivityLogAsSucceeded).not.toHaveBeenCalled();
+      expect(mockMarkActivityLogAsFailed).not.toHaveBeenCalled();
+    });
   });
 
   describe('errorEnhancer', () => {
