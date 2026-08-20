@@ -16,7 +16,13 @@ import type {
   RecordData,
 } from '@forestadmin/datasource-toolkit';
 
-import { CollectionDecorator, SchemaUtils, TypeGetter } from '@forestadmin/datasource-toolkit';
+import {
+  CollectionDecorator,
+  SchemaUtils,
+  TypeGetter,
+  ValidationError,
+  parseDataUri,
+} from '@forestadmin/datasource-toolkit';
 import { filetypemime } from 'magic-bytes.js';
 
 /**
@@ -237,15 +243,31 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
     return value;
   }
 
+  private parseHex(value: string): Buffer {
+    if (!/^([0-9a-f]{2})*$/i.test(value)) {
+      throw new ValidationError(
+        `Expected an even-length hex string for a binary field, got "${value}"`,
+      );
+    }
+
+    return Buffer.from(value, 'hex');
+  }
+
   private async convertScalar(
     toBackend: boolean,
     useHex: boolean,
     value: unknown,
   ): Promise<unknown> {
     if (toBackend) {
-      const string = value as string;
+      if (typeof value !== 'string') {
+        throw new ValidationError(
+          `Expected a string for a binary field, got ${typeof value}: ${JSON.stringify(value)}`,
+        );
+      }
 
-      return useHex ? Buffer.from(string, 'hex') : Buffer.from(string.split(',')[1], 'base64');
+      if (useHex) return this.parseHex(value);
+
+      return parseDataUri(value).buffer;
     }
 
     const buffer = value as Buffer;
