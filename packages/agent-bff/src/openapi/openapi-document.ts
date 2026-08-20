@@ -330,7 +330,7 @@ export function generateOpenApiDocument(version: string, unfolding?: Unfolding):
   return new OpenApiGeneratorV31(registry.definitions).generateDocument({
     openapi: OPENAPI_VERSION,
     info: {
-      title: 'Forest Admin BFF',
+      title: 'Forest BFF',
       version,
       license: { name: 'GPL-3.0', url: 'https://www.gnu.org/licenses/gpl-3.0.html' },
       description: `${
