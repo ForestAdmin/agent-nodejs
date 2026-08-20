@@ -1,11 +1,15 @@
 import type { SchemaFetcher } from '../../src/read-model/forest-schema-client';
 import type { ForestSchemaCollection } from '@forestadmin/forestadmin-client';
 
+import jsonwebtoken from 'jsonwebtoken';
 import Koa from 'koa';
 import request from 'supertest';
 
 import schemaCoveringEveryContractShape from './fixtures';
+import createApiKeyMiddleware, { BFF_KEY_HEADER } from '../../src/api-key/api-key-middleware';
+import createAuthModeMiddleware from '../../src/auth/auth-mode-middleware';
 import createContextRoutesMiddleware from '../../src/context/context-routes-middleware';
+import createPerKeyOriginMiddleware from '../../src/cors/per-key-origin';
 import createErrorMiddleware from '../../src/http/error-middleware';
 import CapabilitiesCache from '../../src/read-model/capabilities-cache';
 import ReadModelStore from '../../src/read-model/read-model-store';
@@ -13,6 +17,8 @@ import SchemaCache from '../../src/read-model/schema-cache';
 import { makeMetrics } from '../read-model/fixtures';
 
 const ROUTE = '/agent/v1/context';
+const AUTH_SECRET = 'context-secret';
+const RAW_KEY = `fbff_${'a'.repeat(16)}_${'b'.repeat(64)}`;
 
 function makeApp(fetchSchema: jest.Mock, authMode: string | undefined = 'oauth') {
   const fetcher: SchemaFetcher = { fetchSchema };
@@ -28,6 +34,51 @@ function makeApp(fetchSchema: jest.Mock, authMode: string | undefined = 'oauth')
   app.use(createContextRoutesMiddleware({ store }));
 
   return { app, schemaCache };
+}
+
+function apiKeyIdentity(allowedOrigins: string[] = []) {
+  return {
+    user: {
+      id: 1,
+      email: 'a@b.com',
+      firstName: 'A',
+      lastName: 'B',
+      team: 'T',
+      tags: [],
+      permissionLevel: 'admin',
+    },
+    renderingId: 1,
+    allowedOrigins,
+  };
+}
+
+// The real agent edge, in the order `cli-core` mounts it: an API key is resolved by the api-key
+// middleware and screened by the per-key origin guard before the context route ever runs.
+function makeEdge(fetchSchema: jest.Mock, allowedOrigins: string[] = []) {
+  const fetcher: SchemaFetcher = { fetchSchema };
+  const schemaCache = new SchemaCache({ fetcher, metrics: makeMetrics() });
+  const store = new ReadModelStore(schemaCache, new CapabilitiesCache({}));
+  const logger = () => undefined;
+
+  const app = new Koa();
+  app.silent = true;
+  app.use(createErrorMiddleware({ logger }));
+  app.use(createAuthModeMiddleware({ authSecret: AUTH_SECRET }));
+  app.use(
+    createApiKeyMiddleware({
+      authenticator: {
+        authenticate: async () => ({
+          agentToken: 'agent-token',
+          identity: apiKeyIdentity(allowedOrigins),
+        }),
+      },
+      logger,
+    }),
+  );
+  app.use(createPerKeyOriginMiddleware());
+  app.use(createContextRoutesMiddleware({ store }));
+
+  return app.callback();
 }
 
 describe('contextRoutesMiddleware', () => {
@@ -77,17 +128,36 @@ describe('contextRoutesMiddleware', () => {
     });
   });
 
-  describe('when the caller authenticated with an API key', () => {
-    it('should serve the same contract as an OAuth caller, since the schema is not caller-scoped', async () => {
-      const fetchSchema = jest.fn().mockResolvedValue(schema);
-      const withKey = makeApp(fetchSchema, 'api-key');
-      const withSession = makeApp(jest.fn().mockResolvedValue(schema));
+  describe('when the caller authenticated with an API key through the full edge', () => {
+    it('should serve the same contract an OAuth session gets, since the schema is not caller-scoped', async () => {
+      const sessionToken = jsonwebtoken.sign(
+        { type: 'bff_access', sid: 's1', rendering_id: '1', tags: {} },
+        AUTH_SECRET,
+        { algorithm: 'HS256', expiresIn: '15m' } as jsonwebtoken.SignOptions,
+      );
 
-      const keyResponse = await request(withKey.app.callback()).get(ROUTE);
-      const sessionResponse = await request(withSession.app.callback()).get(ROUTE);
+      const keyResponse = await request(makeEdge(jest.fn().mockResolvedValue(schema)))
+        .get(ROUTE)
+        .set(BFF_KEY_HEADER, RAW_KEY);
+      const sessionResponse = await request(makeEdge(jest.fn().mockResolvedValue(schema)))
+        .get(ROUTE)
+        .set('Authorization', `Bearer ${sessionToken}`);
 
       expect(keyResponse.status).toBe(200);
+      expect(keyResponse.body.collections).toHaveLength(4);
       expect(keyResponse.body).toEqual(sessionResponse.body);
+    });
+
+    it('should refuse with 403 origin_not_allowed when the key does not allow the request origin', async () => {
+      const response = await request(
+        makeEdge(jest.fn().mockResolvedValue(schema), ['https://ok.com']),
+      )
+        .get(ROUTE)
+        .set(BFF_KEY_HEADER, RAW_KEY)
+        .set('Origin', 'https://evil.com');
+
+      expect(response.status).toBe(403);
+      expect(response.body.error).toMatchObject({ type: 'origin_not_allowed', status: 403 });
     });
   });
 

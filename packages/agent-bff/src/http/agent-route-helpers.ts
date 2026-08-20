@@ -17,9 +17,9 @@ export function decodeSegment(raw: string, label: string): string {
   }
 }
 
-export async function resolveReadModel(store: ReadModelStore): Promise<ReadModel> {
+async function mappingSchemaFailure<T>(read: () => Promise<T>): Promise<T> {
   try {
-    return await store.getReadModel();
+    return await read();
   } catch (error) {
     if (error instanceof SchemaUnavailableError) throw schemaUnavailable();
     throw error;
@@ -27,12 +27,11 @@ export async function resolveReadModel(store: ReadModelStore): Promise<ReadModel
 }
 
 export async function resolveSchemaSnapshot(store: ReadModelStore): Promise<SchemaSnapshot> {
-  try {
-    return await store.getSchemaSnapshot();
-  } catch (error) {
-    if (error instanceof SchemaUnavailableError) throw schemaUnavailable();
-    throw error;
-  }
+  return mappingSchemaFailure(() => store.getSchemaSnapshot());
+}
+
+export async function resolveReadModel(store: ReadModelStore): Promise<ReadModel> {
+  return mappingSchemaFailure(() => store.getReadModel());
 }
 
 export function requireAgentToken(ctx: Context): string {

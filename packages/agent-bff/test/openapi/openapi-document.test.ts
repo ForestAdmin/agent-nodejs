@@ -182,7 +182,8 @@ describe('generateOpenApiDocument', () => {
       document.components?.securitySchemes as Record<string, { description: string }>
     ).bffSession;
 
-    expect(session.description).toContain('including the context contract');
+    expect(session.description).toContain('Accepted on the context contract');
+    expect(session.description).toContain('the data and action routes advertise the API key only');
   });
 
   it('should require a body where parentId or recordIds is mandatory', () => {

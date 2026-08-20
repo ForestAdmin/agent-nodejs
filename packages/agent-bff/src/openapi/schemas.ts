@@ -1,6 +1,7 @@
 import { allOperators } from '@forestadmin/datasource-toolkit';
 
 import { z } from './zod-openapi';
+import { RELATIONSHIP_TYPES } from '../read-model/read-model';
 import { MAX_FILTER_DEPTH } from '../validation/capabilities-validator';
 
 const OPERATORS = [...allOperators] as [string, ...string[]];
@@ -168,7 +169,7 @@ const ContextValidationSchema = z
 const ContextFieldSchema = z.object({
   field: z.string(),
   type: ContextFieldTypeSchema,
-  relationship: z.enum(['BelongsTo', 'HasOne', 'HasMany', 'BelongsToMany']).optional(),
+  relationship: z.enum(RELATIONSHIP_TYPES).optional(),
   reference: z.string().optional(),
   inverseOf: z.string().optional(),
   polymorphicTargets: z.array(z.string()).optional(),
@@ -216,7 +217,8 @@ export const ContextResponseSchema = z
       'form, the foreign collection and the key joined by a dot — the collection name may itself ' +
       'contain dots, so drop only the trailing segment to recover it. ' +
       'The document carries no rendering, project or team identity, and the only environment ' +
-      'datum is `meta.environmentId` below. It is served to both auth modes — an OAuth session and a BFF API key get the same document. It is NOT ' +
+      'datum is `meta.environmentId` below. It is served to both auth modes — an OAuth session ' +
+      'and a BFF API key get the same document. It is NOT ' +
       'filtered by the caller permissions, nor by anything else: it describes the whole exposed ' +
       'schema, so cross it with `/agent/v1/permissions` to know what the caller may actually ' +
       'see. `meta.schemaRevision` increments whenever the BFF refreshes its schema, and resets ' +
