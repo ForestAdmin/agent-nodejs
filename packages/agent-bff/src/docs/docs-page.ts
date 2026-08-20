@@ -14,7 +14,7 @@
  * form there is no default action to prevent and no submit to observe: without this script the button
  * does nothing at all.
  */
-import { PAGE_STYLES, REDOC_THEME } from './docs-theme';
+import { FAVICON_SVG, PAGE_STYLES, REDOC_THEME } from './docs-theme';
 
 /**
  * `untrustedSpec` because the descriptions in the document come from the agent's own schema, which is
@@ -30,6 +30,7 @@ export default function renderDocsPage(documentPath: string, bundlePath: string)
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex" />
     <title>Forest BFF API</title>
+    <link rel="icon" href="data:image/svg+xml,${encodeURIComponent(FAVICON_SVG)}" />
     <style>${PAGE_STYLES}    </style>
   </head>
   <body>
