@@ -6,6 +6,7 @@ import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sd
 import { ForbiddenError, HttpError, NotFoundError } from '@forestadmin/forestadmin-client';
 
 import createPendingActivityLog, {
+  AUDIT_UNAVAILABLE_MESSAGE,
   markActivityLogAsFailed,
   markActivityLogAsSucceeded,
 } from '../../src/utils/activity-logs-creator';
@@ -237,19 +238,44 @@ describe('createPendingActivityLog', () => {
 
   describe('error handling', () => {
     it.each<ActivityLogAction>(['action', 'create', 'update', 'delete', 'triggerWorkflow'])(
-      'should propagate the error when createMcpActivityLog rejects for write action "%s" (fail-closed)',
+      'should block write action "%s" and keep the server reason when createMcpActivityLog rejects (fail-closed)',
       async action => {
         mockForestServerClient.createMcpActivityLog.mockRejectedValue(
-          new Error('Failed to create activity log: Server error message'),
+          new HttpError('collectionModelName is required', 400),
         );
 
         const request = createMockRequest();
 
         await expect(
           createPendingActivityLog(mockForestServerClient, request, action),
-        ).rejects.toThrow('Failed to create activity log: Server error message');
+        ).rejects.toThrow('collectionModelName is required');
       },
     );
+
+    // The blocked write is reported to a model, so a cause carrying the Forest server URL, an
+    // internal host:port or a TLS chain must not travel with it - only the fixed sentence does,
+    // and the cause goes to the operator log instead.
+    it.each([
+      ['a transport failure', new Error('connect ECONNREFUSED 10.0.0.4:5432')],
+      [
+        'a timeout',
+        new HttpError('Timeout of 10000ms exceeded on https://api.forestadmin.com/liana', 408),
+      ],
+    ])('should replace %s with a sanitized message on a write', async (_label, error) => {
+      mockForestServerClient.createMcpActivityLog.mockRejectedValue(error);
+
+      const logger = jest.fn();
+      const request = createMockRequest();
+
+      await expect(
+        createPendingActivityLog(mockForestServerClient, request, 'triggerWorkflow', { logger }),
+      ).rejects.toThrow(AUDIT_UNAVAILABLE_MESSAGE);
+
+      expect(logger).toHaveBeenCalledWith(
+        'Error',
+        `Activity log for 'triggerWorkflow' could not be created: ${(error as Error).message}`,
+      );
+    });
 
     it.each<ActivityLogAction>([
       'index',

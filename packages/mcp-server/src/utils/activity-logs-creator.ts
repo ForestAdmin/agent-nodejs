@@ -11,6 +11,7 @@ import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sd
 import { HttpError, NotFoundError } from '@forestadmin/forestadmin-client';
 
 import getAuthContext from './auth-context';
+import { carriesTransportDetail } from './workflow-error';
 
 export type { ActivityLogAction, ActivityLogResponse };
 
@@ -44,6 +45,16 @@ const ACTION_TO_TYPE: Record<ActivityLogAction, ActivityLogType> = {
 function isAuthorizationRefusal(error: unknown): boolean {
   return error instanceof HttpError && (error.status === 401 || error.status === 403);
 }
+
+/**
+ * Sent instead of the cause when a write is blocked by an audit failure whose message carries
+ * transport detail. Retrying is safe advice here, unlike a failure of the operation itself: this
+ * throws before the operation runs, so nothing has happened yet.
+ */
+export const AUDIT_UNAVAILABLE_MESSAGE =
+  'Forest could not be reached to write the audit trail, so the operation was not performed. ' +
+  'This is a temporary server-side failure — retry later, and report it to your Forest ' +
+  'administrator if it persists.';
 
 export default async function createPendingActivityLog(
   forestServerClient: ForestServerClient,
@@ -79,7 +90,26 @@ export default async function createPendingActivityLog(
     // The audit log was refused (400/404 — e.g. an unresolvable collection) or the store is
     // unreachable (5xx, timeout, connection error). Both land here, and both are far more likely
     // than the 200-with-null-id case below.
-    if (type === 'write' || isAuthorizationRefusal(error)) throw error;
+    if (type === 'write' || isAuthorizationRefusal(error)) {
+      // A blocked write is reported to the caller, and for an MCP tool the caller is a model. An
+      // HttpError message is the server's own detail or a fixed string, both meant to be read; a
+      // timeout or a raw Node/superagent error instead carries the Forest server URL, an internal
+      // host:port or a TLS chain. Only the sanitized sentence may travel — the same split the
+      // workflow tools apply to their own calls, and what the 200-with-no-id branch below has
+      // always done. Without this the cause reaches the model verbatim.
+      if (carriesTransportDetail(error)) {
+        extra?.logger?.(
+          'Error',
+          `Activity log for '${action}' could not be created: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+
+        throw new Error(AUDIT_UNAVAILABLE_MESSAGE);
+      }
+
+      throw error;
+    }
 
     // Report the cause: without it every fail-open read logs the same sentence, and an operator
     // cannot tell a validation refusal (act now) from a transient outage (wait).

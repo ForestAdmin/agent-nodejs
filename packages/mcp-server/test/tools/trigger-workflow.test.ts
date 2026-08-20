@@ -190,14 +190,21 @@ describe('declareTriggerWorkflowTool', () => {
     });
 
     it('should not start the run when the pending activity log cannot be created (fail-closed)', async () => {
-      mockForestServerClient.createMcpActivityLog.mockRejectedValue(new Error('audit down'));
+      mockForestServerClient.createMcpActivityLog.mockRejectedValue(
+        new Error('connect ECONNREFUSED 10.0.0.4:5432'),
+      );
 
-      const result = await registeredToolHandler({ workflowId: 'wf-1', recordId: '42' }, mockExtra);
+      const result = (await registeredToolHandler(
+        { workflowId: 'wf-1', recordId: '42' },
+        mockExtra,
+      )) as { content: [{ type: string; text: string }]; isError: boolean };
 
       expect(result).toEqual({
-        content: [{ type: 'text', text: expect.stringContaining('audit down') }],
+        content: [{ type: 'text', text: expect.stringContaining('was not performed') }],
         isError: true,
       });
+      // The cause never reaches the model: it names an internal host and port.
+      expect(result.content[0].text).not.toContain('ECONNREFUSED');
       expect(mockForestServerClient.triggerMcpWorkflow).not.toHaveBeenCalled();
     });
 
