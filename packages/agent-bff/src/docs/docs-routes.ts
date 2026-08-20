@@ -76,8 +76,19 @@ export default function createDocsRoutes({
     }
 
     if (ctx.path === DOCS_BUNDLE_PATH) {
-      // Read once and kept in memory: ~1 MB, served on every page load.
-      if (script === undefined) script = readFileSync(bundle, 'utf8');
+      // Read once and kept in memory: ~1 MB, served on every page load. A file that resolved at boot
+      // and is unreadable now falls through like a missing one: no error middleware covers this path.
+      if (script === undefined) {
+        try {
+          script = readFileSync(bundle, 'utf8');
+        } catch (error) {
+          logger('Warn', `API documentation bundle unreadable: ${bundle}`, { error });
+
+          await next();
+
+          return;
+        }
+      }
 
       ctx.status = 200;
       ctx.type = 'application/javascript';

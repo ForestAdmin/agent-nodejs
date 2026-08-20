@@ -6,6 +6,13 @@
  *
  * The key is never persisted: it is read from the input, passed down as an argument, and the input is
  * cleared. Once the document is fetched the page has no further use for it.
+ *
+ * Deliberately NOT a `<form>`. A form with no `action` navigates to `/docs?key=<the key>` the moment
+ * its default submit is not prevented — a CSP that blocks this inline script is enough — which would
+ * put the key in the browser history and in every access log on the way. A form submit is also what
+ * Chrome reads as a login, and it then offers to save the key whatever `autocomplete` says. With no
+ * form there is no default action to prevent and no submit to observe: without this script the button
+ * does nothing at all.
  */
 export default function renderDocsPage(documentPath: string, bundlePath: string): string {
   return `<!doctype html>
@@ -26,19 +33,21 @@ export default function renderDocsPage(documentPath: string, bundlePath: string)
     </style>
   </head>
   <body>
-    <form id="unlock">
+    <div id="unlock">
       <label for="key">BFF API key</label>
-      <input id="key" name="key" type="password" autocomplete="off" spellcheck="false" />
-      <button type="submit">Load the API document</button>
-    </form>
+      <input id="key" type="password" autocomplete="off" spellcheck="false" />
+      <button id="load" type="button">Load the API document</button>
+    </div>
     <div id="error"></div>
     <div id="redoc"></div>
     <script src="${bundlePath}"></script>
     <script>
       (function () {
         var DOCUMENT_PATH = ${JSON.stringify(documentPath)};
-        var form = document.getElementById('unlock');
+        var BUNDLE_PATH = ${JSON.stringify(bundlePath)};
+        var unlock = document.getElementById('unlock');
         var input = document.getElementById('key');
+        var button = document.getElementById('load');
         var errorBox = document.getElementById('error');
 
         function show(message) {
@@ -58,6 +67,33 @@ export default function renderDocsPage(documentPath: string, bundlePath: string)
           }
 
           return 'The BFF answered ' + status + ': ' + JSON.stringify(body);
+        }
+
+        /**
+         * Kept out of the fetch chain: a throw from here is a viewer problem, and reporting it as
+         * "could not reach the document" would point the reader at the wrong thing. \`untrustedSpec\`
+         * because the descriptions in the document come from the agent's own schema, and Redoc renders
+         * their markdown as HTML — unsanitized unless it is told the spec is untrusted.
+         */
+        function render(spec) {
+          if (typeof Redoc === 'undefined') {
+            show('The Redoc viewer did not load from ' + BUNDLE_PATH + ', so the document cannot be rendered.');
+
+            return;
+          }
+
+          unlock.style.display = 'none';
+
+          try {
+            Redoc.init(
+              spec,
+              { hideDownloadButton: true, untrustedSpec: true },
+              document.getElementById('redoc'),
+            );
+          } catch (initError) {
+            unlock.style.display = '';
+            show('The Redoc viewer could not render the document: ' + initError);
+          }
         }
 
         function load(key) {
@@ -87,22 +123,24 @@ export default function renderDocsPage(documentPath: string, bundlePath: string)
                 return;
               }
 
-              form.style.display = 'none';
-              Redoc.init(result.body, { hideDownloadButton: true }, document.getElementById('redoc'));
+              render(result.body);
             })
             .catch(function (fetchError) {
               show('Could not reach ' + DOCUMENT_PATH + ': ' + fetchError);
             });
         }
 
-        form.addEventListener('submit', function (event) {
-          event.preventDefault();
-
+        function unlockDocument() {
           var key = input.value.trim();
           input.value = '';
 
           if (key) load(key);
           else show('A BFF API key is required: the document is never served unauthenticated.');
+        }
+
+        button.addEventListener('click', unlockDocument);
+        input.addEventListener('keydown', function (event) {
+          if (event.key === 'Enter') unlockDocument();
         });
       })();
     </script>
