@@ -52,7 +52,10 @@ export default class StepSummaryBuilder {
         }
       }
     } else {
-      const { stepId, stepIndex, type, ...historyDetails } = stepOutcome;
+      // The classification addresses the operator and the UI, not the model: `error` already carries
+      // the only fact that constrains a later step, and naming a culprit cannot change what it writes.
+      const { stepId, stepIndex, type, errorKind, errorSourceStepIndex, ...historyDetails } =
+        stepOutcome;
       lines.push(`  History: ${JSON.stringify(historyDetails)}`);
     }
 
