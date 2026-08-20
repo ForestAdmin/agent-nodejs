@@ -20,17 +20,15 @@ const ROUTE = '/agent/v1/context';
 const AUTH_SECRET = 'context-secret';
 const RAW_KEY = `fbff_${'a'.repeat(16)}_${'b'.repeat(64)}`;
 
-function makeApp(fetchSchema: jest.Mock, authMode: string | undefined = 'oauth') {
+// No auth middleware: the route reads no principal, so these cases exercise the serializer and the
+// cache. The credentialed paths go through `makeEdge` below, which mounts the real chain.
+function makeApp(fetchSchema: jest.Mock) {
   const fetcher: SchemaFetcher = { fetchSchema };
   const schemaCache = new SchemaCache({ fetcher, metrics: makeMetrics() });
   const store = new ReadModelStore(schemaCache, new CapabilitiesCache({}));
 
   const app = new Koa();
   app.use(createErrorMiddleware({ logger: () => {} }));
-  app.use(async (ctx, next) => {
-    ctx.state.authMode = authMode;
-    await next();
-  });
   app.use(createContextRoutesMiddleware({ store }));
 
   return { app, schemaCache };
@@ -88,7 +86,7 @@ describe('contextRoutesMiddleware', () => {
     schema = schemaCoveringEveryContractShape();
   });
 
-  describe('when the caller holds an OAuth session', () => {
+  describe('when the route serves the contract', () => {
     it('should serve the contract with its collections and schema revision', async () => {
       const fetchSchema = jest.fn().mockResolvedValue(schema);
       const { app } = makeApp(fetchSchema);
