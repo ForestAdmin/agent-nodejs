@@ -3,6 +3,7 @@ import type { Collection, ConditionTree } from '@forestadmin/datasource-toolkit'
 import type { ForestAdminClient } from '@forestadmin/forestadmin-client';
 import type { Context } from 'koa';
 
+import { getSearchedFieldPaths } from '@forestadmin/datasource-customizer';
 import { ForbiddenError, Projection, UnprocessableError } from '@forestadmin/datasource-toolkit';
 import {
   ChainedSQLQueryError,
@@ -107,17 +108,22 @@ export default class AuthorizationService {
       push('sort on', field);
     }
 
-    if (
-      QueryStringParser.parseSearch(collection, context) &&
-      QueryStringParser.parseSearchExtended(context)
-    ) {
-      for (const [name, field] of Object.entries(collection.schema.fields)) {
-        if (field.type === 'ManyToOne' || field.type === 'OneToOne') {
-          usages.push({
-            action: 'run an extended search through',
-            path: name,
-            collectionName: field.foreignCollection,
-          });
+    const search = QueryStringParser.parseSearch(collection, context);
+
+    if (search) {
+      // `relation.column:term` is end-user search syntax and works without extended search, so the
+      // paths it names are resolved by the search decorator's own resolver rather than guessed at.
+      for (const path of getSearchedFieldPaths(collection, search)) push('search on', path);
+
+      if (QueryStringParser.parseSearchExtended(context)) {
+        for (const [name, field] of Object.entries(collection.schema.fields)) {
+          if (field.type === 'ManyToOne' || field.type === 'OneToOne') {
+            usages.push({
+              action: 'run an extended search through',
+              path: name,
+              collectionName: field.foreignCollection,
+            });
+          }
         }
       }
     }

@@ -293,6 +293,45 @@ describe('read permissions on related collections', () => {
       ).rejects.toThrow('you are not allowed to read the');
     });
 
+    it('should refuse a search naming a relation column through the dot syntax', async () => {
+      const dataSource = buildDataSource();
+      const services = buildServices();
+      const aggregate = jest.spyOn(dataSource.getCollection('cards'), 'aggregate');
+
+      await expect(
+        new Count(services, options, dataSource, 'cards').handleCount(
+          buildContext({ query: { search: 'holder.nationalId:1850' } }),
+        ),
+      ).rejects.toThrow(
+        "You cannot search on 'holder:nationalId': you are not allowed to read the " +
+          "'holders' collection.",
+      );
+
+      expect(aggregate).not.toHaveBeenCalled();
+    });
+
+    it('should refuse a search reaching a denied collection across a to-many relation', async () => {
+      const dataSource = buildDataSource();
+      const forestAdminClient = factories.forestAdminClient.build();
+      const services = factories.forestAdminHttpDriverServices.build();
+      services.authorization = new AuthorizationService(forestAdminClient);
+      services.serializer.serializeWithSearchMetadata = jest.fn();
+
+      // Searching from `holders`, so `cards` is the denied one here.
+      (forestAdminClient.permissionService.canOnCollection as jest.Mock).mockImplementation(
+        ({ collectionName }) => collectionName !== 'cards',
+      );
+
+      await expect(
+        new List(services, options, dataSource, 'holders').handleList(
+          buildContext({ query: { search: 'cards.panLast4:4242' } }),
+        ),
+      ).rejects.toThrow(
+        "You cannot search on 'cards:panLast4': you are not allowed to read the " +
+          "'cards' collection.",
+      );
+    });
+
     it('should accept a plain search, which never leaves the root collection', async () => {
       const dataSource = buildDataSource();
       const services = buildServices();

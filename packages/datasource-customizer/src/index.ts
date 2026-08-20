@@ -13,6 +13,7 @@ export { default as CollectionChartContext } from './decorators/chart/context';
 export { ComputedDefinition } from './decorators/computed/types';
 export { OperatorDefinition } from './decorators/operators-emulate/types';
 export { RelationDefinition } from './decorators/relation/types';
+export { getSearchedFieldPaths } from './decorators/search/field-paths';
 export { SearchDefinition } from './decorators/search/types';
 export { SegmentDefinition } from './decorators/segment/types';
 export * from './decorators/write/write-replace/types';
