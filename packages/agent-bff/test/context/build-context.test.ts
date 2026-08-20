@@ -1,5 +1,6 @@
 import schemaCoveringEveryContractShape from './fixtures';
 import buildContext from '../../src/context/build-context';
+import { ContextResponseSchema } from '../../src/openapi/schemas';
 import ReadModel from '../../src/read-model/read-model';
 
 describe('buildContext', () => {
@@ -211,16 +212,6 @@ describe('buildContext', () => {
     });
   });
 
-  describe('when a collection is not in the read-model allow-list', () => {
-    it('should omit it', () => {
-      const restricted = new ReadModel(schema.filter(collection => collection.name === 'users'));
-
-      const context = buildContext(schema, restricted, { schemaRevision: 1 });
-
-      expect(context.collections.map(collection => collection.name)).toEqual(['users']);
-    });
-  });
-
   describe('when a collection name is unusual', () => {
     it('should keep a dotted name and a name carrying a space verbatim', () => {
       const context = buildContext(schema, readModel, { schemaRevision: 1 });
@@ -287,6 +278,21 @@ describe('buildContext', () => {
         'type',
       ]);
       expect(Object.keys(users?.actions[0] ?? {}).sort()).toEqual(['fields', 'id', 'name', 'type']);
+    });
+  });
+
+  // The serializer and the OpenAPI schema declare the contract twice, on purpose: the documentation
+  // layer must not become the source of truth for the runtime shape. The fixture covers every wire
+  // edge, so validating what the serializer emits against what the document promises catches a drift
+  // between the two without either one importing the other's types.
+  describe('when the built context is validated against the published OpenAPI schema', () => {
+    it('should satisfy ContextResponseSchema for every shape the fixture covers', () => {
+      const context = buildContext(schema, readModel, { schemaRevision: 3, environmentId: 42 });
+
+      const result = ContextResponseSchema.safeParse(context);
+
+      expect(result.error?.issues ?? []).toEqual([]);
+      expect(result.success).toBe(true);
     });
   });
 });

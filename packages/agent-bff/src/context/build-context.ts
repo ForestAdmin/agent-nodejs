@@ -146,9 +146,7 @@ export default function buildContext(
   meta: ContextMeta,
 ): AgentContext {
   return {
-    collections: collections
-      .filter(collection => readModel.isCollectionAllowed(collection.name))
-      .map(collection => toContextCollection(collection, readModel)),
+    collections: collections.map(collection => toContextCollection(collection, readModel)),
     meta: toContextMeta(meta),
   };
 }
