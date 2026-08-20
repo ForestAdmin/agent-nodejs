@@ -1,3 +1,4 @@
+import type { FieldType } from '../read-model/capabilities-cache';
 import type ReadModel from '../read-model/read-model';
 import type { RelationshipType } from '../read-model/read-model';
 import type {
@@ -8,7 +9,7 @@ import type {
 
 export interface ContextActionField {
   field: string;
-  type: unknown;
+  type: FieldType;
   isRequired?: boolean;
   defaultValue?: unknown;
   enums?: string[];
@@ -28,7 +29,7 @@ export interface ContextValidation {
 
 export interface ContextField {
   field: string;
-  type: unknown;
+  type: FieldType;
   relationship?: RelationshipType;
   reference?: string;
   inverseOf?: string;
