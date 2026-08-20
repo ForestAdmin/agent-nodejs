@@ -167,7 +167,7 @@ export interface ForestSchemaField {
   type: string;
   isFilterable?: boolean;
   isSortable?: boolean;
-  enum: string[] | null;
+  enums: string[] | null;
   inverseOf?: string | null;
   reference: string | null;
   isReadOnly: boolean;

@@ -99,7 +99,7 @@ describe('SchemaService', () => {
               field: 'id',
               type: 'Number',
               isPrimaryKey: true,
-              enum: null,
+              enums: null,
               reference: null,
               isReadOnly: false,
               isRequired: true,
