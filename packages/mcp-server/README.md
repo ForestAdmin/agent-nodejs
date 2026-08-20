@@ -21,6 +21,14 @@ This MCP server provides HTTP REST API access to Forest Admin operations, enabli
 | `getActionForm` | Get the form fields for a custom action |
 | `executeAction` | Execute a custom action |
 | `requestActionFileUpload` | Get a destination to upload a file to, for an action `File` field (only with `fileUploads`) |
+| `listWorkflows` | List the MCP-enabled workflows in the caller's rendering, optionally filtered by collection |
+| `triggerWorkflow` | Start a workflow run on a record, and return its `runId` |
+| `getWorkflowRun` | Read a run started through MCP: its state and step-by-step history |
+
+`triggerWorkflow` starts a process with side effects, so it is annotated `destructiveHint: true` and
+MCP clients are expected to ask the user before each call. Like every other tool it is **enabled by
+default**, but it stays inert until someone turns the MCP trigger on for a given workflow in Forest
+— the server refuses a trigger on any workflow that has not opted in.
 
 ## Usage
 
