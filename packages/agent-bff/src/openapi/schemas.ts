@@ -144,13 +144,23 @@ export const CountResponseSchema = z
       'collection disables count. The pair never disagrees.',
   });
 
-const ContextFieldTypeSchema = z.unknown().openapi('ContextFieldType', {
-  description:
-    'The field type, passed through from the agent wire format without normalization: a string ' +
-    'for a primitive, an array of types for an array field, or an object carrying `fields` for a ' +
-    'composite. A consumer that only understands primitives should ignore the other two rather ' +
-    'than fail.',
-});
+const ContextFieldTypeSchema: z.ZodType = z
+  .lazy(() =>
+    z.union([
+      z.string(),
+      z.array(ContextFieldTypeSchema),
+      z.object({
+        fields: z.array(z.object({ field: z.string(), type: ContextFieldTypeSchema })),
+      }),
+    ]),
+  )
+  .openapi('ContextFieldType', {
+    description:
+      'The field type, passed through from the agent wire format without normalization: a string ' +
+      'for a primitive, an array of types for an array field, or an object carrying `fields` for ' +
+      'a composite. A consumer that only understands primitives should ignore the other two ' +
+      'rather than fail.',
+  });
 
 const ContextValidationSchema = z
   .object({ type: z.string(), value: z.unknown().optional() })
