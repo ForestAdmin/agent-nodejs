@@ -61,6 +61,10 @@ function toArray<T>(value: T[] | null | undefined): T[] {
   return Array.isArray(value) ? value : [];
 }
 
+function toObjectArray<T>(value: T[] | null | undefined): T[] {
+  return toArray(value).filter(entry => typeof entry === 'object' && entry !== null);
+}
+
 type FieldWithWireEnums = ForestSchemaField & { enums?: string[] };
 
 function toContextValidations(validations: unknown): ContextValidation[] {
@@ -114,9 +118,7 @@ function toContextAction(action: ForestSchemaAction): ContextAction {
     id: action.id,
     name: action.name,
     type: action.type,
-    fields: toArray(action.fields)
-      .filter(field => typeof field === 'object' && field !== null)
-      .map(toContextActionField),
+    fields: toObjectArray(action.fields).map(toContextActionField),
   };
 }
 
@@ -126,8 +128,8 @@ function toContextCollection(
 ): ContextCollection {
   return {
     name: collection.name,
-    fields: toArray(collection.fields).map(toContextField),
-    actions: toArray(collection.actions)
+    fields: toObjectArray(collection.fields).map(toContextField),
+    actions: toObjectArray(collection.actions)
       .filter(action => readModel.isActionAllowed(collection.name, action.name))
       .map(toContextAction),
   };
