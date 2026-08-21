@@ -168,7 +168,7 @@ function buildApiKeyMiddleware(config: BFFConfig, logger: Logger): Middleware | 
   return createApiKeyMiddleware({ authenticator, logger });
 }
 
-interface AgentEdgeReadModel {
+interface ReadModelBundle {
   store: ReadModelStore;
   apiKeyConfig: ResolvedApiKeyConfig;
 }
@@ -182,7 +182,7 @@ function resolveReadModelBundle(
   config: BFFConfig,
   logger: Logger,
   metrics?: Metrics,
-): AgentEdgeReadModel | undefined {
+): ReadModelBundle | undefined {
   const apiKeyConfig = resolveApiKeyConfig(config);
 
   if (!apiKeyConfig) return undefined;
@@ -204,7 +204,7 @@ function resolveReadModelBundle(
  * the two report a missing configuration differently.
  */
 function toUnfoldSource(
-  bundle: AgentEdgeReadModel | undefined,
+  bundle: ReadModelBundle | undefined,
   config: BFFConfig,
   logger: Logger,
 ): UnfoldSource | undefined {
@@ -232,7 +232,7 @@ export function resolveUnfoldSource(config: BFFConfig, logger: Logger): UnfoldSo
 
 // The data middleware falls through to the action middleware on a non-data path.
 function buildAgentRouteMiddlewares(
-  bundle: AgentEdgeReadModel | undefined,
+  bundle: ReadModelBundle | undefined,
   config: BFFConfig,
   logger: Logger,
 ): Middleware[] {
@@ -271,15 +271,6 @@ function buildAgentRouteMiddlewares(
   ];
 }
 
-function buildContextMiddlewares(
-  bundle: AgentEdgeReadModel | undefined,
-  environmentId?: number,
-): Middleware[] {
-  if (!bundle) return [];
-
-  return [createContextRoutesMiddleware({ store: bundle.store, environmentId })];
-}
-
 function buildAgentMiddlewares(
   config: BFFConfig,
   logger: Logger,
@@ -304,7 +295,7 @@ function buildAgentMiddlewares(
     apiKeyStep,
     createPerKeyOriginMiddleware(),
     createOpenApiRoutes({ version, enabled: config.openapiEnabled, source }),
-    ...buildContextMiddlewares(bundle, environmentId),
+    ...(bundle ? [createContextRoutesMiddleware({ store: bundle.store, environmentId })] : []),
     createTimezoneMiddleware({ defaultTimezone }),
     ...buildAgentRouteMiddlewares(bundle, config, logger),
   ];
