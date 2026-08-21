@@ -9,14 +9,14 @@ describe('ReadModelStore', () => {
   let clock: number;
   const now = () => clock;
 
-  function build(fetchSchema: jest.Mock): ReadModelStore {
+  function build(fetchSchema: jest.Mock, clockOverride: () => number = now): ReadModelStore {
     const metrics = makeMetrics();
     const schemaCache = new SchemaCache({
       fetcher: { fetchSchema } as SchemaFetcher,
       metrics,
-      now,
+      now: clockOverride,
     });
-    const capabilitiesCache = new CapabilitiesCache({ now });
+    const capabilitiesCache = new CapabilitiesCache({ now: clockOverride });
 
     return new ReadModelStore(schemaCache, capabilitiesCache);
   }
@@ -33,6 +33,31 @@ describe('ReadModelStore', () => {
 
       expect(collections.map(entry => entry.name)).toEqual(['users']);
       expect(readModel.getAllowedCollections()).toEqual(collections.map(entry => entry.name));
+      expect(revision).toBe(1);
+    });
+
+    it('should read the schema once, so the read-model cannot come from a later generation', async () => {
+      let generation = 0;
+
+      const fetchSchema = jest.fn().mockImplementation(async () => {
+        generation += 1;
+
+        return makeSchema(`generation-${generation}`);
+      });
+
+      const alwaysExpiredClock = () => {
+        clock += ONE_DAY_MS + 1;
+
+        return clock;
+      };
+
+      const store = build(fetchSchema, alwaysExpiredClock);
+
+      const { collections, readModel, revision } = await store.getSchemaSnapshot();
+
+      expect(fetchSchema).toHaveBeenCalledTimes(1);
+      expect(collections.map(entry => entry.name)).toEqual(['generation-1']);
+      expect(readModel.getAllowedCollections()).toEqual(['generation-1']);
       expect(revision).toBe(1);
     });
 
