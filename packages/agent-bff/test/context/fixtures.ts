@@ -4,7 +4,14 @@ import type {
   ForestSchemaField,
 } from '@forestadmin/forestadmin-client';
 
-function field(name: string, type: unknown, extra: Partial<ForestSchemaField> = {}) {
+type WireField = Partial<Omit<ForestSchemaField, 'validations'>> & {
+  enums?: string[] | null;
+  validations?: unknown;
+};
+
+type WireActionField = ForestSchemaAction['fields'][number] | null;
+
+function field(name: string, type: unknown, extra: WireField = {}) {
   return {
     field: name,
     type,
@@ -21,7 +28,7 @@ function action(
   name: string,
   type: ForestSchemaAction['type'],
   endpoint: string | undefined,
-  fields: ForestSchemaAction['fields'] = [],
+  fields: WireActionField[] = [],
 ) {
   return {
     id: `${name}-id`,
@@ -55,7 +62,7 @@ export default function schemaCoveringEveryContractShape(): ForestSchemaCollecti
         }),
         field('statusWithEnums', 'Enum', {
           enums: ['DRAFT', 'PUBLISHED'],
-        } as unknown as Partial<ForestSchemaField>),
+        }),
         field('statusWithFlaggedPattern', 'Enum', {
           validations: [{ type: 'is like', value: '/^a|b|c$/g', message: 'x' }],
         }),
@@ -69,10 +76,10 @@ export default function schemaCoveringEveryContractShape(): ForestSchemaCollecti
             'garbage',
             { type: 'contains', value: 'ok' },
           ],
-        } as unknown as Partial<ForestSchemaField>),
+        }),
         field('fieldWithNullValidations', 'String', {
           validations: null,
-        } as unknown as Partial<ForestSchemaField>),
+        }),
         field('ordersHasManyWithInverseOf', 'String', {
           reference: 'orders.customerId',
           relationship: 'HasMany',
@@ -110,12 +117,12 @@ export default function schemaCoveringEveryContractShape(): ForestSchemaCollecti
             field: 'loading',
             type: 'String',
             enums: null,
-          } as unknown as ForestSchemaAction['fields'][number],
+          },
         ]),
         action('Archive', 'bulk', '/forest/users/actions/archive', [
           null,
           { field: 'confirm', type: 'Boolean' },
-        ] as unknown as ForestSchemaAction['fields']),
+        ]),
         action('Endpointless action', 'single', undefined),
       ],
     },
