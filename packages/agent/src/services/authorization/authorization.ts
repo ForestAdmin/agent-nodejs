@@ -22,6 +22,10 @@ import QueryStringParser from '../../utils/query-string';
 
 type FieldUsage = { action: string; path: string; collectionName: string };
 
+export type QueryComponent = 'filter' | 'sort' | 'search';
+
+const ALL_QUERY_COMPONENTS: QueryComponent[] = ['filter', 'sort', 'search'];
+
 export default class AuthorizationService {
   constructor(private readonly forestAdminClient: ForestAdminClient) {}
 
@@ -93,8 +97,16 @@ export default class AuthorizationService {
    * Refused rather than redacted: dropping a condition widens the result set and dropping a sort
    * clause silently reorders it, while both leak the value they touch anyway — a `starts_with`
    * filter answers one guess per request without returning a column of its own.
+   *
+   * `consumes` names the query components the calling route applies to its filter. Checking one it
+   * drops would refuse a request the denied field cannot reach: `ContextFilterFactory.build` carries
+   * no sort, which only `buildPaginated` adds.
    */
-  public async assertCanReadQueryFields(context: Context, collection: Collection): Promise<void> {
+  public async assertCanReadQueryFields(
+    context: Context,
+    collection: Collection,
+    consumes: QueryComponent[] = ALL_QUERY_COMPONENTS,
+  ): Promise<void> {
     const usages: FieldUsage[] = [];
     const push = (action: string, path: string) =>
       usages.push({
@@ -103,15 +115,21 @@ export default class AuthorizationService {
         collectionName: FieldPathUtils.getLeafCollection(collection, path).name,
       });
 
-    QueryStringParser.parseConditionTree(collection, context)?.forEachLeaf(leaf =>
-      push('filter on', leaf.field),
-    );
-
-    for (const { field } of QueryStringParser.parseSort(collection, context)) {
-      push('sort on', field);
+    if (consumes.includes('filter')) {
+      QueryStringParser.parseConditionTree(collection, context)?.forEachLeaf(leaf =>
+        push('filter on', leaf.field),
+      );
     }
 
-    const search = QueryStringParser.parseSearch(collection, context);
+    if (consumes.includes('sort')) {
+      for (const { field } of QueryStringParser.parseSort(collection, context)) {
+        push('sort on', field);
+      }
+    }
+
+    const search = consumes.includes('search')
+      ? QueryStringParser.parseSearch(collection, context)
+      : null;
 
     if (search) {
       // Asked whatever the extended flag: `relation.column:term` is end-user syntax and reaches a

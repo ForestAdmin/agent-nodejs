@@ -281,6 +281,22 @@ describe('read permissions on related collections', () => {
   });
 
   describe('sort', () => {
+    // A count applies no sort — `ContextFilterFactory.build` carries none, only `buildPaginated`
+    // does — so refusing one would refuse a request the denied field cannot reach.
+    it('should ignore a sort on the count route, which never applies one', async () => {
+      const dataSource = buildDataSource();
+      const services = buildServices();
+      const aggregate = jest
+        .spyOn(dataSource.getCollection('cards'), 'aggregate')
+        .mockResolvedValue([{ value: 3, group: {} }]);
+
+      await new Count(services, options, dataSource, 'cards').handleCount(
+        buildContext({ query: { sort: '-holder.nationalId' } }),
+      );
+
+      expect(aggregate).toHaveBeenCalled();
+    });
+
     it('should refuse a sort reading a collection the caller cannot read', async () => {
       const dataSource = buildDataSource();
       const services = buildServices();

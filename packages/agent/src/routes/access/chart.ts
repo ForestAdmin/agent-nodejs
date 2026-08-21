@@ -69,7 +69,10 @@ export default class ChartRoute extends CollectionRoute {
       chartRequest,
     });
 
-    await this.services.authorization.assertCanReadQueryFields(context, this.collection);
+    await this.services.authorization.assertCanReadQueryFields(context, this.collection, [
+      'filter',
+      'search',
+    ]);
 
     switch (chartRequest.type) {
       case ChartType.Value:

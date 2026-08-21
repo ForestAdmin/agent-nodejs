@@ -20,7 +20,10 @@ export default class CountRelatedRoute extends RelationRoute {
     await this.services.authorization.assertCanBrowse(context, this.foreignCollection.name);
 
     if (this.foreignCollection.schema.countable) {
-      await this.services.authorization.assertCanReadQueryFields(context, this.foreignCollection);
+      await this.services.authorization.assertCanReadQueryFields(context, this.foreignCollection, [
+        'filter',
+        'search',
+      ]);
 
       const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
       const scope = await this.services.authorization.getScope(this.foreignCollection, context);

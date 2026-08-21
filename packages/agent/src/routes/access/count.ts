@@ -16,7 +16,10 @@ export default class CountRoute extends CollectionRoute {
     await this.services.authorization.assertCanBrowse(context, this.collection.name);
 
     if (this.collection.schema.countable) {
-      await this.services.authorization.assertCanReadQueryFields(context, this.collection);
+      await this.services.authorization.assertCanReadQueryFields(context, this.collection, [
+        'filter',
+        'search',
+      ]);
 
       const scope = await this.services.authorization.getScope(this.collection, context);
       const caller = QueryStringParser.parseCaller(context);
