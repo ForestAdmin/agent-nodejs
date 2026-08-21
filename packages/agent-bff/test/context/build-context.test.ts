@@ -21,6 +21,10 @@ describe('buildContext', () => {
 
       expect(fieldNamed(context, 'id')?.type).toBe('Uuid');
       expect(fieldNamed(context, 'tagsWithArrayType')?.type).toEqual(['String']);
+      expect(fieldNamed(context, 'matrixWithNestedArrayType')?.type).toEqual([['String']]);
+      expect(fieldNamed(context, 'addressesWithArrayOfComposite')?.type).toEqual([
+        { fields: [{ field: 'label', type: 'String' }] },
+      ]);
       expect(fieldNamed(context, 'addressWithCompositeType')?.type).toEqual({
         fields: [
           { field: 'city', type: 'String' },
