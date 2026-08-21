@@ -14,6 +14,7 @@
  * form there is no default action to prevent and no submit to observe: without this script the button
  * does nothing at all.
  */
+import SAMPLES_SCRIPT from './docs-samples';
 import { FAVICON_SVG, PAGE_STYLES, REDOC_THEME } from './docs-theme';
 
 /**
@@ -53,7 +54,7 @@ export default function renderDocsPage(documentPath: string, bundlePath: string)
         var button = document.getElementById('load');
         var errorBox = document.getElementById('error');
         var attempts = 0;
-
+${SAMPLES_SCRIPT}
         function show(message) {
           errorBox.textContent = message;
           errorBox.setAttribute('data-shown', '');
@@ -87,7 +88,7 @@ export default function renderDocsPage(documentPath: string, bundlePath: string)
           unlock.style.display = 'none';
 
           try {
-            Redoc.init(spec, REDOC_OPTIONS, document.getElementById('redoc'));
+            Redoc.init(withSamples(spec), REDOC_OPTIONS, document.getElementById('redoc'));
           } catch (initError) {
             unlock.style.display = '';
             show('The Redoc viewer could not render the document: ' + initError);
