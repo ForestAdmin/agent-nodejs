@@ -63,8 +63,8 @@ function toArray<T>(value: T[] | null | undefined): T[] {
 
 type FieldWithWireEnums = ForestSchemaField & { enums?: string[] };
 
-function toContextValidations(validations: unknown): ContextValidation[] {
-  return toArray(validations as unknown[])
+function toContextValidations(validations: unknown[] | null | undefined): ContextValidation[] {
+  return toArray(validations)
     .filter(
       (entry): entry is { type: string; value?: unknown } =>
         typeof entry === 'object' &&
