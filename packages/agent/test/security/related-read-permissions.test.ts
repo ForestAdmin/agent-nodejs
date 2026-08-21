@@ -11,6 +11,7 @@ import CsvRelated from '../../src/routes/access/csv-related';
 import Get from '../../src/routes/access/get';
 import List from '../../src/routes/access/list';
 import ListRelated from '../../src/routes/access/list-related';
+import Update from '../../src/routes/modification/update';
 import AuthorizationService from '../../src/services/authorization/authorization';
 import * as factories from '../__factories__';
 
@@ -386,6 +387,59 @@ describe('read permissions on related collections', () => {
       await expect(
         new Csv(services, options, dataSource, 'cards').handleCsv(context),
       ).rejects.toThrow("You are not allowed to read 'holder:nationalId' from the 'holders'");
+    });
+  });
+
+  // `edit` is the entry point here, not `read`: the route re-lists the row it just wrote with a
+  // projection the caller never supplied, so the same disclosure is one HTTP verb away.
+  describe('update', () => {
+    const updateContext = () =>
+      buildContext(
+        { params: { id: '2d162303-78bf-599e-b197-93590ac3d315' } },
+        {},
+        {
+          data: {
+            id: '2d162303-78bf-599e-b197-93590ac3d315',
+            attributes: { panLast4: '4242' },
+          },
+        },
+      );
+
+    it('should redact the record it serializes back rather than refusing the write', async () => {
+      const dataSource = buildDataSource();
+      const services = buildServices();
+      const cards = dataSource.getCollection('cards');
+      cards.update = jest.fn();
+      const list = jest.spyOn(cards, 'list').mockResolvedValue([{ id: 'a-card' }]);
+
+      await new Update(services, options, dataSource, 'cards').handleUpdate(updateContext());
+
+      expect([...list.mock.calls[0][2]].sort()).toEqual([
+        'accountId',
+        'holderId',
+        'id',
+        'panLast4',
+      ]);
+    });
+
+    it('should keep the columns of a collection the caller may read', async () => {
+      const dataSource = buildDataSource();
+      const services = buildServices(['holders']);
+      const cards = dataSource.getCollection('cards');
+      cards.update = jest.fn();
+      const list = jest.spyOn(cards, 'list').mockResolvedValue([{ id: 'a-card' }]);
+
+      await new Update(services, options, dataSource, 'cards').handleUpdate(updateContext());
+
+      expect([...list.mock.calls[0][2]].sort()).toEqual([
+        'accountId',
+        'holder:fullName',
+        'holder:id',
+        'holder:nationalId',
+        'holderId',
+        'id',
+        'panLast4',
+      ]);
     });
   });
 

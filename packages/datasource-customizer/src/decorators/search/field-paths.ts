@@ -1,7 +1,17 @@
-import type { Collection, ColumnSchema } from '@forestadmin/datasource-toolkit';
+import type {
+  Collection,
+  ColumnSchema,
+  FieldSchema,
+  RelationSchema,
+} from '@forestadmin/datasource-toolkit';
 
 import normalizeName from './normalize-name';
 import { extractSpecifiedFields, parseQuery } from './parse-query';
+
+const SEARCHABLE_THROUGH = ['OneToMany', 'ManyToOne', 'OneToOne'];
+
+const isSearchableThrough = (schema: FieldSchema): schema is RelationSchema =>
+  SEARCHABLE_THROUGH.includes(schema.type);
 
 export function lenientGetSchema(
   collection: Collection,
@@ -9,22 +19,22 @@ export function lenientGetSchema(
 ): { field: string; schema: ColumnSchema } | null {
   const [prefix, suffix] = path.split(/:(.*)/);
   const fuzzyPrefix = normalizeName(prefix);
+  const matches = Object.entries(collection.schema.fields).filter(
+    ([field]) => fuzzyPrefix === normalizeName(field),
+  );
 
-  for (const [field, schema] of Object.entries(collection.schema.fields)) {
-    if (fuzzyPrefix === normalizeName(field)) {
-      if (!suffix && schema.type === 'Column') {
-        return { field, schema };
-      }
+  if (!suffix) {
+    const column = matches.find(([, schema]) => schema.type === 'Column');
 
-      if (
-        suffix &&
-        (schema.type === 'OneToMany' || schema.type === 'ManyToOne' || schema.type === 'OneToOne')
-      ) {
-        const related = collection.dataSource.getCollection(schema.foreignCollection);
-        const fuzzy = lenientGetSchema(related, suffix);
+    return column ? { field: column[0], schema: column[1] as ColumnSchema } : null;
+  }
 
-        if (fuzzy) return { field: `${field}:${fuzzy.field}`, schema: fuzzy.schema };
-      }
+  for (const [field, schema] of matches) {
+    if (isSearchableThrough(schema)) {
+      const related = collection.dataSource.getCollection(schema.foreignCollection);
+      const fuzzy = lenientGetSchema(related, suffix);
+
+      if (fuzzy) return { field: `${field}:${fuzzy.field}`, schema: fuzzy.schema };
     }
   }
 
