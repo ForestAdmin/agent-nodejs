@@ -223,9 +223,9 @@ export const ContextResponseSchema = z
       'pointing outside the served set. ' +
       'The document carries no rendering, project or team identity, and the only environment ' +
       'datum is `meta.environmentId` below. It is served to both auth modes — an OAuth session ' +
-      'and a BFF API key get the same document. It is NOT ' +
-      'filtered by the caller permissions, nor by anything else: it describes the whole exposed ' +
-      'schema, so cross it with `/agent/v1/permissions` to know what the caller may actually ' +
+      'and a BFF API key get the same document. It is NOT filtered by the caller permissions: ' +
+      'it describes the whole exposed schema minus the endpoint-less actions, so cross it with ' +
+      '`/agent/v1/permissions` to know what the caller may actually ' +
       'see. `meta.schemaRevision` increments whenever the BFF refreshes its schema, and resets ' +
       'when the BFF restarts. `meta.environmentId` is the environment the BFF resolved at boot ' +
       'from its own secret — it is telemetry, not a routing input, and it is absent when the ' +
