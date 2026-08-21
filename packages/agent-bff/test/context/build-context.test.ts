@@ -212,16 +212,13 @@ describe('buildContext', () => {
     });
   });
 
-  // Deliberate, and the opposite of `collect-unfolding`, which drops a relation whose target is
-  // hidden because documenting a route would promise a 404. Here nothing is a route: dropping the
-  // target would make a relation indistinguishable from a plain text column, which is the very bug
-  // `relationship`/`polymorphicTargets` exist to prevent.
   describe('when a relation points at a collection the document does not serve', () => {
     it('should still name the target, leaving the cross-check to the consumer', () => {
       const context = buildContext(schema, readModel, { schemaRevision: 1 });
       const served = context.collections.map(collection => collection.name);
 
       expect(served).not.toContain('orders');
+      expect(served).not.toContain('teams');
       expect(fieldNamed(context, 'ordersHasManyWithInverseOf')?.reference).toBe(
         'orders.customerId',
       );
@@ -229,6 +226,16 @@ describe('buildContext', () => {
         'users',
         'teams',
       ]);
+    });
+  });
+
+  describe('when a relation targets a collection whose name contains dots', () => {
+    it('should keep the reference whole so only the trailing segment is the key', () => {
+      const context = buildContext(schema, readModel, { schemaRevision: 1 });
+
+      expect(fieldNamed(context, 'addressBelongsToDottedCollection')?.reference).toBe(
+        'User.address.city',
+      );
     });
   });
 
@@ -301,18 +308,11 @@ describe('buildContext', () => {
     });
   });
 
-  // The serializer and the OpenAPI schema declare the contract twice, on purpose: the documentation
-  // layer must not become the source of truth for the runtime shape. The fixture covers every wire
-  // edge, so validating what the serializer emits against what the document promises catches a drift
-  // between the two without either one importing the other's types.
   describe('when the built context is validated against the published OpenAPI schema', () => {
-    // Compared to the input rather than asserted valid: `z.object()` strips unknown keys instead of
-    // rejecting them, so a key the serializer emits and the document does not declare would pass
-    // validation and be silently dropped. Round-tripping catches that direction too.
     it('should round-trip through ContextResponseSchema for every shape the fixture covers', () => {
       const context = buildContext(schema, readModel, { schemaRevision: 3, environmentId: 42 });
 
-      expect(ContextResponseSchema.parse(context)).toEqual(context);
+      expect(ContextResponseSchema.parse(context)).toStrictEqual(context);
     });
   });
 });
