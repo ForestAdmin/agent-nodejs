@@ -20,9 +20,7 @@ const ROUTE = '/agent/v1/context';
 const AUTH_SECRET = 'context-secret';
 const RAW_KEY = `fbff_${'a'.repeat(16)}_${'b'.repeat(64)}`;
 
-// No auth middleware: the route reads no principal, so these cases exercise the serializer and the
-// cache. The credentialed paths go through `makeEdge` below, which mounts the real chain.
-function makeApp(fetchSchema: jest.Mock, environmentId?: number) {
+function makeRouteOnlyApp(fetchSchema: jest.Mock, environmentId?: number) {
   const fetcher: SchemaFetcher = { fetchSchema };
   const schemaCache = new SchemaCache({ fetcher, metrics: makeMetrics() });
   const store = new ReadModelStore(schemaCache, new CapabilitiesCache({}));
@@ -50,9 +48,7 @@ function apiKeyIdentity(allowedOrigins: string[] = []) {
   };
 }
 
-// The real agent edge, in the order `cli-core` mounts it: an API key is resolved by the api-key
-// middleware and screened by the per-key origin guard before the context route ever runs.
-function makeEdge(fetchSchema: jest.Mock, allowedOrigins: string[] = []) {
+function makeFullAgentEdge(fetchSchema: jest.Mock, allowedOrigins: string[] = []) {
   const fetcher: SchemaFetcher = { fetchSchema };
   const schemaCache = new SchemaCache({ fetcher, metrics: makeMetrics() });
   const store = new ReadModelStore(schemaCache, new CapabilitiesCache({}));
@@ -89,7 +85,7 @@ describe('contextRoutesMiddleware', () => {
   describe('when the route serves the contract', () => {
     it('should serve the contract with its collections and schema revision', async () => {
       const fetchSchema = jest.fn().mockResolvedValue(schema);
-      const { app } = makeApp(fetchSchema);
+      const { app } = makeRouteOnlyApp(fetchSchema);
 
       const response = await request(app.callback()).get(ROUTE);
 
@@ -104,7 +100,7 @@ describe('contextRoutesMiddleware', () => {
     });
 
     it('should carry the environment id the deployment resolved at boot', async () => {
-      const { app } = makeApp(jest.fn().mockResolvedValue(schema), 42);
+      const { app } = makeRouteOnlyApp(jest.fn().mockResolvedValue(schema), 42);
 
       const response = await request(app.callback()).get(ROUTE);
 
@@ -112,7 +108,7 @@ describe('contextRoutesMiddleware', () => {
     });
 
     it('should omit the environment id when the deployment resolved none', async () => {
-      const { app } = makeApp(jest.fn().mockResolvedValue(schema));
+      const { app } = makeRouteOnlyApp(jest.fn().mockResolvedValue(schema));
 
       const response = await request(app.callback()).get(ROUTE);
 
@@ -121,7 +117,7 @@ describe('contextRoutesMiddleware', () => {
 
     it('should fetch the schema once on a cold cache and never again while it stays warm', async () => {
       const fetchSchema = jest.fn().mockResolvedValue(schema);
-      const { app } = makeApp(fetchSchema);
+      const { app } = makeRouteOnlyApp(fetchSchema);
 
       await request(app.callback()).get(ROUTE);
       await request(app.callback()).get(ROUTE);
@@ -133,7 +129,7 @@ describe('contextRoutesMiddleware', () => {
   describe('when the schema cannot be read', () => {
     it('should answer 503 schema_unavailable rather than an empty contract', async () => {
       const fetchSchema = jest.fn().mockRejectedValue(new Error('agent down'));
-      const { app } = makeApp(fetchSchema);
+      const { app } = makeRouteOnlyApp(fetchSchema);
 
       const response = await request(app.callback()).get(ROUTE);
 
@@ -150,10 +146,10 @@ describe('contextRoutesMiddleware', () => {
         { algorithm: 'HS256', expiresIn: '15m' } as jsonwebtoken.SignOptions,
       );
 
-      const keyResponse = await request(makeEdge(jest.fn().mockResolvedValue(schema)))
+      const keyResponse = await request(makeFullAgentEdge(jest.fn().mockResolvedValue(schema)))
         .get(ROUTE)
         .set(BFF_KEY_HEADER, RAW_KEY);
-      const sessionResponse = await request(makeEdge(jest.fn().mockResolvedValue(schema)))
+      const sessionResponse = await request(makeFullAgentEdge(jest.fn().mockResolvedValue(schema)))
         .get(ROUTE)
         .set('Authorization', `Bearer ${sessionToken}`);
 
@@ -164,7 +160,7 @@ describe('contextRoutesMiddleware', () => {
 
     it('should refuse with 403 origin_not_allowed when the key does not allow the request origin', async () => {
       const response = await request(
-        makeEdge(jest.fn().mockResolvedValue(schema), ['https://ok.com']),
+        makeFullAgentEdge(jest.fn().mockResolvedValue(schema), ['https://ok.com']),
       )
         .get(ROUTE)
         .set(BFF_KEY_HEADER, RAW_KEY)
@@ -178,7 +174,7 @@ describe('contextRoutesMiddleware', () => {
   describe('when the path or method does not match', () => {
     it('should pass through to the next middleware', async () => {
       const fetchSchema = jest.fn().mockResolvedValue(schema);
-      const { app } = makeApp(fetchSchema);
+      const { app } = makeRouteOnlyApp(fetchSchema);
       app.use(async ctx => {
         ctx.status = 418;
       });

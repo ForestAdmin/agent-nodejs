@@ -82,6 +82,10 @@ export default function schemaCoveringEveryContractShape(): ForestSchemaCollecti
           reference: 'teams.id',
           relationship: 'BelongsTo',
         }),
+        field('addressBelongsToDottedCollection', 'String', {
+          reference: 'User.address.city',
+          relationship: 'BelongsTo',
+        }),
         field('ownerPolymorphic', 'String', {
           relationship: 'BelongsTo',
           polymorphicReferencedModels: ['users', 'teams'],
