@@ -150,7 +150,13 @@ const ContextFieldTypeSchema: z.ZodType = z
       z.string(),
       z.array(ContextFieldTypeSchema),
       z.object({
-        fields: z.array(z.object({ field: z.string(), type: ContextFieldTypeSchema })),
+        fields: z.array(
+          z.object({
+            field: z.string(),
+            type: ContextFieldTypeSchema,
+            enums: z.array(z.string()).optional(),
+          }),
+        ),
       }),
     ]),
   )
@@ -158,8 +164,9 @@ const ContextFieldTypeSchema: z.ZodType = z
     description:
       'The field type, passed through from the agent wire format without normalization: a string ' +
       'for a primitive, an array of types for an array field, or an object carrying `fields` for ' +
-      'a composite. A consumer that only understands primitives should ignore the other two ' +
-      'rather than fail.',
+      'a composite. A composite sub-field carries its own `type`, recursively, and its own ' +
+      '`enums` when it is an enum. A consumer that only understands primitives should ignore the ' +
+      'other two rather than fail.',
   });
 
 const ContextValidationSchema = z
