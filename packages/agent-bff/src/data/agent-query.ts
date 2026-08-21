@@ -19,10 +19,14 @@ export interface ListRequestBody {
   projection?: string[];
   sort?: BffSortClause[];
   page?: BffPage;
+  search?: string;
+  searchExtended?: boolean;
 }
 
 export interface CountRequestBody {
   filter?: unknown;
+  search?: string;
+  searchExtended?: boolean;
 }
 
 export type RelationListRequestBody = ListRequestBody & { parentId: string };
@@ -55,10 +59,28 @@ function assertNoNodeReadableAsBothLeafAndBranch(node: unknown, depth = 0): void
 // Validate the untyped request body before it reaches the query builders, so malformed shapes
 // (e.g. `projection` or `sort` as a string) surface as 400 invalid_request rather than a 500 from
 // an array method blowing up downstream.
+/**
+ * The agent reads `search`/`searchExtended` from query params, so it coerces both from strings.
+ * The BFF is a JSON contract: a real boolean is required here, like `page.limit` requires a real
+ * integer. Only the type is checked — whether a blank search is worth sending is the builder's
+ * call, so a cleared search box parses the same way as an absent one.
+ */
+function assertValidSearch(search: unknown, searchExtended: unknown): void {
+  if (search !== undefined && typeof search !== 'string') {
+    throw invalidRequest('search must be a string');
+  }
+
+  if (searchExtended !== undefined && typeof searchExtended !== 'boolean') {
+    throw invalidRequest('searchExtended must be a boolean');
+  }
+}
+
 export function parseListRequest(body: unknown): ListRequestBody {
   if (!isPlainObject(body)) throw invalidRequest('Request body must be an object');
 
   const { filter, projection, sort, page } = body;
+
+  assertValidSearch(body.search, body.searchExtended);
 
   if (projection !== undefined) {
     if (!Array.isArray(projection) || projection.some(field => typeof field !== 'string')) {
@@ -105,6 +127,8 @@ export function parseListRequest(body: unknown): ListRequestBody {
 export function parseCountRequest(body: unknown): CountRequestBody {
   if (!isPlainObject(body)) throw invalidRequest('Request body must be an object');
 
+  assertValidSearch(body.search, body.searchExtended);
+
   if (body.filter !== undefined) {
     if (!isPlainObject(body.filter)) throw invalidRequest('filter must be an object');
     assertNoNodeReadableAsBothLeafAndBranch(body.filter);
@@ -138,6 +162,24 @@ function serializePage(page: BffPage): Record<string, number> {
   return { 'page[size]': limit, 'page[number]': offset / limit + 1 };
 }
 
+/**
+ * `search` and `searchExtended` are the wire names the agent reads; no other spelling is parsed.
+ *
+ * A blank search is dropped rather than forwarded. The agent's search decorator already treats it
+ * as absent, but `parseSearch` guards on a truthy value, so a whitespace-only search would raise
+ * "Collection is not searchable" on a non-searchable collection while an empty one would not — a
+ * cleared search box must not depend on how many spaces it holds.
+ *
+ * `searchExtended` only ships alongside a real search: on its own it changes nothing agent-side,
+ * and emitting it would alter the outgoing query of every search-less request.
+ */
+function applySearch(query: AgentQuery, body: CountRequestBody): void {
+  if (!body.search?.trim()) return;
+
+  query.search = body.search;
+  if (body.searchExtended !== undefined) query.searchExtended = body.searchExtended;
+}
+
 export function buildListAgentQuery(
   collection: string,
   timezone: string,
@@ -149,6 +191,7 @@ export function buildListAgentQuery(
   if (body.projection?.length) query[`fields[${collection}]`] = body.projection.join(',');
   if (body.sort?.length) query.sort = serializeSort(body.sort);
   if (body.page) Object.assign(query, serializePage(body.page));
+  applySearch(query, body);
 
   return query;
 }
@@ -157,6 +200,7 @@ export function buildCountAgentQuery(timezone: string, body: CountRequestBody): 
   const query: AgentQuery = { timezone };
 
   if (body.filter !== undefined) query.filters = JSON.stringify(body.filter);
+  applySearch(query, body);
 
   return query;
 }

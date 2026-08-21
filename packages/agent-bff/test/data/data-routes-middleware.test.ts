@@ -204,6 +204,75 @@ describe('data routes middleware', () => {
       expect(list).toHaveBeenCalledWith('users', expect.objectContaining({ timezone: TIMEZONE }));
     });
 
+    it('should pass search and searchExtended to the agent query', async () => {
+      const list = jest.fn(async () => []);
+      const app = buildApp(storeOf(usersReadModel), { list });
+
+      await request(app.callback())
+        .post('/agent/v1/users/list')
+        .send({ search: 'ada', searchExtended: true });
+
+      expect(list).toHaveBeenCalledWith('users', {
+        timezone: TIMEZONE,
+        search: 'ada',
+        searchExtended: true,
+      });
+    });
+
+    it('should leave the agent query untouched when no search is sent', async () => {
+      const list = jest.fn(async () => []);
+      const app = buildApp(storeOf(usersReadModel), { list });
+
+      await request(app.callback())
+        .post('/agent/v1/users/list')
+        .send({ projection: ['id'] });
+
+      expect(list).toHaveBeenCalledWith('users', {
+        timezone: TIMEZONE,
+        'fields[users]': 'id',
+      });
+    });
+
+    it('should reject a non-boolean searchExtended with 400 without calling the agent', async () => {
+      const list = jest.fn(async () => []);
+      const app = buildApp(storeOf(usersReadModel), { list });
+
+      const response = await request(app.callback())
+        .post('/agent/v1/users/list')
+        .send({ search: 'ada', searchExtended: 'true' });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toMatchObject({ type: 'invalid_request', status: 400 });
+      expect(list).not.toHaveBeenCalled();
+    });
+
+    it('should reach the agent without a search when the search box is cleared', async () => {
+      const list = jest.fn(async () => []);
+      const app = buildApp(storeOf(usersReadModel), { list });
+
+      const response = await request(app.callback())
+        .post('/agent/v1/users/list')
+        .send({ search: '  ' });
+
+      expect(response.status).toBe(200);
+      expect(list).toHaveBeenCalledWith('users', { timezone: TIMEZONE });
+    });
+
+    it('should validate the filter against capabilities while carrying the search through', async () => {
+      const list = jest.fn(async () => []);
+      const app = buildApp(storeOf(usersReadModel), { list });
+
+      await request(app.callback())
+        .post('/agent/v1/users/list')
+        .send({ filter: { field: 'email', operator: 'Present' }, search: 'ada' });
+
+      expect(list).toHaveBeenCalledWith('users', {
+        timezone: TIMEZONE,
+        filters: JSON.stringify({ field: 'email', operator: 'Present' }),
+        search: 'ada',
+      });
+    });
+
     it.each([['projection'], ['filter'], ['sort']])(
       'should reject a nested relation path in %s with 422',
       async surface => {
@@ -690,6 +759,43 @@ describe('data routes middleware', () => {
       expect(response.body).toEqual({ count: null, countStatus: 'deactivated' });
     });
 
+    it('should pass search and searchExtended to the agent query', async () => {
+      const countRaw = jest.fn(async () => ({ count: 2 }));
+      const app = buildApp(storeOf(usersReadModel), { countRaw });
+
+      await request(app.callback())
+        .post('/agent/v1/users/count')
+        .send({ search: 'ada', searchExtended: true });
+
+      expect(countRaw).toHaveBeenCalledWith('users', {
+        timezone: TIMEZONE,
+        search: 'ada',
+        searchExtended: true,
+      });
+    });
+
+    it('should leave the agent query untouched when no search is sent', async () => {
+      const countRaw = jest.fn(async () => ({ count: 2 }));
+      const app = buildApp(storeOf(usersReadModel), { countRaw });
+
+      await request(app.callback()).post('/agent/v1/users/count').send({});
+
+      expect(countRaw).toHaveBeenCalledWith('users', { timezone: TIMEZONE });
+    });
+
+    it('should reject a non-string search with 400 without calling the agent', async () => {
+      const countRaw = jest.fn();
+      const app = buildApp(storeOf(usersReadModel), { countRaw });
+
+      const response = await request(app.callback())
+        .post('/agent/v1/users/count')
+        .send({ search: 42 });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toMatchObject({ type: 'invalid_request', status: 400 });
+      expect(countRaw).not.toHaveBeenCalled();
+    });
+
     it('should reject a nested relation path in the count filter with 422', async () => {
       const countRaw = jest.fn();
       const app = buildApp(storeOf(usersReadModel), { countRaw });
@@ -817,6 +923,21 @@ describe('data routes middleware', () => {
           },
         ],
         meta: { countStatus: 'not_requested' },
+      });
+    });
+
+    it('should search the foreign collection, not the parent one', async () => {
+      const listRelation = jest.fn(async () => []);
+      const app = buildApp(storeOf(relationReadModel), { listRelation });
+
+      await request(app.callback())
+        .post('/agent/v1/users/relations/posts/list')
+        .send({ parentId: '7', search: 'hello', searchExtended: true });
+
+      expect(listRelation).toHaveBeenCalledWith('users', '7', 'posts', {
+        timezone: TIMEZONE,
+        search: 'hello',
+        searchExtended: true,
       });
     });
 
@@ -1005,6 +1126,21 @@ describe('data routes middleware', () => {
 
       expect(response.status).toBe(200);
       expect(response.body).toEqual({ count: null, countStatus: 'deactivated' });
+    });
+
+    it('should pass search and searchExtended to the relation count query', async () => {
+      const countRelationRaw = jest.fn(async () => ({ count: 1 }));
+      const app = buildApp(storeOf(relationReadModel), { countRelationRaw });
+
+      await request(app.callback())
+        .post('/agent/v1/users/relations/posts/count')
+        .send({ parentId: '7', search: 'hello', searchExtended: true });
+
+      expect(countRelationRaw).toHaveBeenCalledWith('users', '7', 'posts', {
+        timezone: TIMEZONE,
+        search: 'hello',
+        searchExtended: true,
+      });
     });
 
     it.each([
