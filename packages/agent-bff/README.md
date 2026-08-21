@@ -1,6 +1,6 @@
 # @forestadmin/agent-bff
 
-Standalone REST BFF (Backend-For-Frontend) that lets a trusted third-party UI call a Forest Admin
+Standalone REST BFF (Backend-For-Frontend) that lets a trusted third-party UI call a Forest
 agent from a browser without learning MCP or JSON:API.
 
 It is a bootable Koa 3 server with a `/health` endpoint, a version header, env-driven config

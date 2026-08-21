@@ -415,6 +415,13 @@ function registerActionRequest(
 interface OperationOptions {
   path: string;
   operationId: string;
+  /**
+   * The collection the operation belongs to, verbatim. Untagged, an unfolded document renders as one
+   * flat list of every operation — hundreds of entries on a real schema — because a viewer has no
+   * other structure to group by. The relation and action operations take their PARENT collection, so
+   * a group answers "what can I do with this collection", which is how a reader arrives.
+   */
+  tag: string;
   summary: string;
   description: string;
   request: ReferenceObject;
@@ -429,6 +436,7 @@ function registerOperation(deps: Deps, options: OperationOptions): void {
     method: 'post',
     path: `${deps.prefix}/${options.path}`,
     operationId: options.operationId,
+    tags: [options.tag],
     summary: options.summary,
     description: options.description,
     security: deps.security,
@@ -458,6 +466,7 @@ function registerCollectionOperations(deps: Deps, plan: CollectionPlan): void {
   registerOperation(deps, {
     path: `${segment(name)}/list`,
     operationId: `listRecords_${plan.key}`,
+    tag: name,
     summary: `List records of ${name}`,
     description: `Lists records of the ${quoted(name)} collection.`,
     request: plan.requests.list,
@@ -469,6 +478,7 @@ function registerCollectionOperations(deps: Deps, plan: CollectionPlan): void {
   registerOperation(deps, {
     path: `${segment(name)}/count`,
     operationId: `countRecords_${plan.key}`,
+    tag: name,
     summary: `Count records of ${name}`,
     description: `Counts records of the ${quoted(name)} collection.`,
     request: plan.requests.count,
@@ -497,6 +507,7 @@ function registerRelationOperations(
     registerOperation(deps, {
       path: `${segment(plan.collection.name)}/relations/${segment(relation.name)}/list`,
       operationId: `listRelatedRecords_${relationKey}`,
+      tag: plan.collection.name,
       summary: `List ${relation.name} of ${plan.collection.name}`,
       description: `Lists the ${quoted(foreign.collection.name)} records related to a ${quoted(
         plan.collection.name,
@@ -510,6 +521,7 @@ function registerRelationOperations(
     registerOperation(deps, {
       path: `${segment(plan.collection.name)}/relations/${segment(relation.name)}/count`,
       operationId: `countRelatedRecords_${relationKey}`,
+      tag: plan.collection.name,
       summary: `Count ${relation.name} of ${plan.collection.name}`,
       description: `Counts the ${quoted(
         foreign.collection.name,
@@ -534,6 +546,7 @@ function registerActionOperations(deps: Deps, plan: CollectionPlan, namer: Namer
     registerOperation(deps, {
       path: `${base}/form`,
       operationId: `getActionForm_${actionKey}`,
+      tag: plan.collection.name,
       summary: `Load the form of ${action.name} on ${plan.collection.name}`,
       description: `Loads the form of the custom action. ${identity} An unknown submitted field is skipped here, not rejected.`,
       request,
@@ -545,6 +558,7 @@ function registerActionOperations(deps: Deps, plan: CollectionPlan, namer: Namer
     registerOperation(deps, {
       path: `${base}/execute`,
       operationId: `executeAction_${actionKey}`,
+      tag: plan.collection.name,
       summary: `Execute ${action.name} on ${plan.collection.name}`,
       description: `Executes the custom action. ${identity} A submitted field the loaded form does not carry is rejected with 400.`,
       request,

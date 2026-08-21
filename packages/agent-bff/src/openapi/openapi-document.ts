@@ -329,8 +329,17 @@ export function generateOpenApiDocument(version: string, unfolding?: Unfolding):
 
   return new OpenApiGeneratorV31(registry.definitions).generateDocument({
     openapi: OPENAPI_VERSION,
+    // Declared rather than left to first appearance: this is what fixes the order a viewer groups by,
+    // and it gives a consumer the collection list without parsing paths for it. The generic document
+    // has one operation per shape and nothing to group.
+    tags: unfolding?.collections.map(collection => ({
+      name: collection.name,
+      description: `Records, relations and actions of the ${JSON.stringify(
+        collection.name,
+      )} collection.`,
+    })),
     info: {
-      title: 'Forest Admin BFF',
+      title: 'Forest BFF',
       version,
       license: { name: 'GPL-3.0', url: 'https://www.gnu.org/licenses/gpl-3.0.html' },
       description: `${
