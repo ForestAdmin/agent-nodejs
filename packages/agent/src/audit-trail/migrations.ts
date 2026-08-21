@@ -71,8 +71,12 @@ async function indexNames(
 async function columnNames(
   queryInterface: QueryInterface,
   table: { tableName: string; schema?: string },
+  transaction?: Transaction,
 ): Promise<Set<string>> {
-  const columns = await queryInterface.describeTable(table);
+  // `describeTable`'s options type omits `transaction`, unlike its sibling queryInterface methods,
+  // even though it forwards the whole options object into the underlying `sequelize.query()` call
+  // (verified against sequelize's own source) — a typings gap, not a runtime one.
+  const columns = await queryInterface.describeTable(table, { transaction } as never);
 
   return new Set(Object.keys(columns));
 }
@@ -100,8 +104,9 @@ const AUDIT_LOG_COLUMNS = [
 async function assertOwnsTable(
   queryInterface: QueryInterface,
   table: { tableName: string; schema?: string },
+  transaction?: Transaction,
 ): Promise<void> {
-  const existing = await columnNames(queryInterface, table);
+  const existing = await columnNames(queryInterface, table, transaction);
   const missing = AUDIT_LOG_COLUMNS.filter(column => !existing.has(column));
 
   if (missing.length > 0) {
@@ -149,7 +154,7 @@ function buildMigrations(schema: string | undefined, tableName: string) {
         // failing on a "relation already exists" error from the winner's DDL. Guards against
         // reusing an unrelated table sharing the name, too — see assertOwnsTable.
         if (await context.queryInterface.tableExists(table, { transaction: context.transaction })) {
-          await assertOwnsTable(context.queryInterface, table);
+          await assertOwnsTable(context.queryInterface, table, context.transaction);
 
           return;
         }
