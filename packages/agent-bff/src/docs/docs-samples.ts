@@ -124,6 +124,32 @@ const SAMPLES_SCRIPT = `
           return header || { name: KEY_HEADER, prefix: '', secret: true };
         }
 
+        /**
+         * The unfolded document has no path parameter left — its segments are the real names, already
+         * URL-encoded — but the generic one is all templates, and a sample cannot be made to invoke
+         * those: the generic document is served precisely BECAUSE the deployment cannot enumerate its
+         * collections, so there is no real name to substitute. Inventing one would read as runnable
+         * and answer 404. Each template becomes the same \`<name>\` placeholder the bodies use, so one
+         * notation across a snippet means "replace this" and none of it looks like API syntax.
+         */
+        function samplePath(spec, item, operation, path) {
+          var parameters = (item.parameters || []).concat(operation.parameters || []);
+          var components = (spec.components || {}).parameters || {};
+          var sampled = path;
+
+          parameters.forEach(function (parameter) {
+            var declared = parameter && parameter.$ref
+              ? components[parameter.$ref.split('/').pop()] || {}
+              : parameter || {};
+
+            if (declared.in !== 'path' || !declared.name) return;
+
+            sampled = sampled.split('{' + declared.name + '}').join('<' + declared.name + '>');
+          });
+
+          return sampled;
+        }
+
         function headersOf(spec, operation, body) {
           var headers = [authHeader(spec, operation)];
 
@@ -230,7 +256,7 @@ const SAMPLES_SCRIPT = `
 
               var body = exampleBody(spec, operation);
               var headers = headersOf(spec, operation, body);
-              var url = origin + path;
+              var url = origin + samplePath(spec, item, operation, path);
               var verb = method.toUpperCase();
 
               operation['x-codeSamples'] = [
