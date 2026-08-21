@@ -61,6 +61,25 @@ describe('ReadModelStore', () => {
       expect(revision).toBe(1);
     });
 
+    it('should read the cache revision once, so the triple cannot straddle two generations', async () => {
+      const store = build(jest.fn().mockResolvedValue(makeSchema('users')));
+      const cache = Reflect.get(store, 'schemaCache') as SchemaCache;
+      let reads = 0;
+      let bumped = 0;
+
+      jest.spyOn(cache, 'revision', 'get').mockImplementation(() => {
+        reads += 1;
+        bumped += 1;
+
+        return bumped;
+      });
+
+      const { revision } = await store.getSchemaSnapshot();
+
+      expect(reads).toBe(1);
+      expect(revision).toBe(1);
+    });
+
     it('should not label one generation of collections with another generation revision', async () => {
       const fetchSchema = jest
         .fn()

@@ -48,6 +48,8 @@ export default function schemaCoveringEveryContractShape(): ForestSchemaCollecti
       fields: [
         field('id', 'Uuid'),
         field('tagsWithArrayType', ['String']),
+        field('matrixWithNestedArrayType', [['String']]),
+        field('addressesWithArrayOfComposite', [{ fields: [{ field: 'label', type: 'String' }] }]),
         field('addressWithCompositeType', {
           fields: [
             { field: 'city', type: 'String' },
