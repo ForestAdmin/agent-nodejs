@@ -118,6 +118,49 @@ describe('createSqlAuditStore (sqlite round-trip)', () => {
     await close();
   });
 
+  it('never adopts a transaction from Sequelize.useCLS, even when a host process sets one', async () => {
+    // `Sequelize._cls` is a class-level static, shared by every Sequelize instance in the same
+    // loaded copy of the package — including this store's own, unrelated connection. A query
+    // that omits `transaction` reads it as the ambient transaction (and thus connection) to use.
+    // Migrations run their own explicit `sequelize.transaction(...)`, which — unlike a plain
+    // query — invokes CLS's `.run()`/`.bind()` too; warming the store up before CLS is active
+    // keeps this fake namespace to the one method (`.get()`) the vulnerable path actually calls,
+    // without having to reimplement the rest of a real CLS namespace's contract.
+    const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
+    const id = await store.insertPending(record());
+
+    const connectionAccessed = jest.fn();
+    const hijackedTransaction = {
+      get connection() {
+        connectionAccessed();
+
+        return { fakeConnection: true };
+      },
+    };
+    // Reflect avoids both a dot-notation member expression (forbidden on a dangling-underscore
+    // name) and an object-literal property of the same name (same rule, same reason).
+    Reflect.set(Sequelize, '_cls', {
+      get: (key: string) => (key === 'transaction' ? hijackedTransaction : undefined),
+    });
+
+    try {
+      await expect(
+        store.confirm(id, {
+          operation: 'update',
+          recordId: '1',
+          previousValues: {},
+          newValues: {},
+        }),
+      ).resolves.toBeUndefined();
+
+      expect(connectionAccessed).not.toHaveBeenCalled();
+    } finally {
+      Reflect.deleteProperty(Sequelize, '_cls');
+    }
+
+    await close();
+  });
+
   it('returns rows previously appended, sorted by timestamp, scoped to a single record', async () => {
     const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
 
