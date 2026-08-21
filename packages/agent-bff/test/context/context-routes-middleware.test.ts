@@ -13,17 +13,22 @@ import createPerKeyOriginMiddleware from '../../src/cors/per-key-origin';
 import createErrorMiddleware from '../../src/http/error-middleware';
 import CapabilitiesCache from '../../src/read-model/capabilities-cache';
 import ReadModelStore from '../../src/read-model/read-model-store';
-import SchemaCache from '../../src/read-model/schema-cache';
+import SchemaCache, { ONE_DAY_MS } from '../../src/read-model/schema-cache';
 import { makeMetrics } from '../read-model/fixtures';
 
 const ROUTE = '/agent/v1/context';
 const AUTH_SECRET = 'context-secret';
 const RAW_KEY = `fbff_${'a'.repeat(16)}_${'b'.repeat(64)}`;
 
-function makeRouteOnlyApp(fetchSchema: jest.Mock, environmentId?: number) {
+function makeStore(fetchSchema: jest.Mock, now?: () => number) {
   const fetcher: SchemaFetcher = { fetchSchema };
-  const schemaCache = new SchemaCache({ fetcher, metrics: makeMetrics() });
-  const store = new ReadModelStore(schemaCache, new CapabilitiesCache({}));
+  const schemaCache = new SchemaCache({ fetcher, metrics: makeMetrics(), now });
+
+  return { schemaCache, store: new ReadModelStore(schemaCache, new CapabilitiesCache({})) };
+}
+
+function makeRouteOnlyApp(fetchSchema: jest.Mock, environmentId?: number, now?: () => number) {
+  const { schemaCache, store } = makeStore(fetchSchema, now);
 
   const app = new Koa();
   app.use(createErrorMiddleware({ logger: () => {} }));
@@ -49,9 +54,7 @@ function apiKeyIdentity(allowedOrigins: string[] = []) {
 }
 
 function makeFullAgentEdge(fetchSchema: jest.Mock, allowedOrigins: string[] = []) {
-  const fetcher: SchemaFetcher = { fetchSchema };
-  const schemaCache = new SchemaCache({ fetcher, metrics: makeMetrics() });
-  const store = new ReadModelStore(schemaCache, new CapabilitiesCache({}));
+  const { store } = makeStore(fetchSchema);
   const logger = () => undefined;
 
   const app = new Koa();
@@ -123,6 +126,19 @@ describe('contextRoutesMiddleware', () => {
       await request(app.callback()).get(ROUTE);
 
       expect(fetchSchema).toHaveBeenCalledTimes(1);
+    });
+
+    it('should fetch the schema again once the cached one has outlived its ttl', async () => {
+      const fetchSchema = jest.fn().mockResolvedValue(schema);
+      let clock = 1_000_000;
+      const { app } = makeRouteOnlyApp(fetchSchema, undefined, () => clock);
+
+      await request(app.callback()).get(ROUTE);
+      clock += ONE_DAY_MS + 1;
+      const response = await request(app.callback()).get(ROUTE);
+
+      expect(fetchSchema).toHaveBeenCalledTimes(2);
+      expect(response.body.meta.schemaRevision).toBe(2);
     });
   });
 

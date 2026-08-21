@@ -186,6 +186,36 @@ describe('runCli', () => {
       }
     });
 
+    it('should fall through to the agent stub when the deployment carries no read-model', async () => {
+      const token = jsonwebtoken.sign(
+        { type: 'bff_access', sid: 's1', id: 1, rendering_id: '1', tags: {} },
+        VALID_ENV.FOREST_AUTH_SECRET,
+        { algorithm: 'HS256', expiresIn: '15m' },
+      );
+      const server = await runCli({ ...VALID_ENV, FOREST_ENV_SECRET: undefined }, noopLogger);
+
+      try {
+        const withTimezone = await request(server.callback)
+          .get('/agent/v1/context')
+          .set('Authorization', `Bearer ${token}`)
+          .set('X-Forest-Timezone', 'Europe/Paris');
+        const withoutTimezone = await request(server.callback)
+          .get('/agent/v1/context')
+          .set('Authorization', `Bearer ${token}`);
+
+        expect(withTimezone.status).toBe(501);
+        expect(withTimezone.body.error).toEqual(
+          expect.objectContaining({ type: 'not_implemented', status: 501 }),
+        );
+        expect(withoutTimezone.status).toBe(400);
+        expect(withoutTimezone.body.error).toEqual(
+          expect.objectContaining({ type: 'missing_timezone', status: 400 }),
+        );
+      } finally {
+        await server.stop();
+      }
+    });
+
     it('should carry an oauth Bearer past requireAgentToken on a data route', async () => {
       const token = jsonwebtoken.sign(
         {
