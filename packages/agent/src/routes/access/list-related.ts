@@ -18,6 +18,7 @@ export default class ListRelatedRoute extends RelationRoute {
 
   public async handleListRelated(context: Context): Promise<void> {
     await this.services.authorization.assertCanBrowse(context, this.foreignCollection.name);
+    await this.services.authorization.assertCanReadQueryFields(context, this.foreignCollection);
 
     const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
     const scope = await this.services.authorization.getScope(this.foreignCollection, context);
@@ -27,9 +28,10 @@ export default class ListRelatedRoute extends RelationRoute {
       scope,
     );
 
-    const projection = QueryStringParser.parseProjectionFromHeaderOrQuery(
-      this.foreignCollection,
+    const projection = await this.services.authorization.redactProjection(
       context,
+      this.foreignCollection,
+      QueryStringParser.parseProjectionFromHeaderOrQuery(this.foreignCollection, context),
     );
 
     const records = await CollectionUtils.listRelation(

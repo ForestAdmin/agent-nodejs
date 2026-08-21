@@ -749,3 +749,56 @@ describe('SearchCollectionDecorator', () => {
     });
   });
 });
+
+describe('getSearchedFields', () => {
+  const buildCards = () =>
+    buildCollection(
+      {
+        fields: {
+          id: factories.columnSchema.uuidPrimaryKey().build(),
+          panLast4: factories.columnSchema.build({ columnType: 'String' }),
+          holderId: factories.columnSchema.build({ columnType: 'Uuid' }),
+          holder: factories.manyToOneSchema.build({
+            foreignCollection: 'holders',
+            foreignKey: 'holderId',
+          }),
+        },
+      },
+      [
+        factories.collection.build({
+          name: 'holders',
+          schema: factories.collectionSchema.build({
+            fields: {
+              id: factories.columnSchema.uuidPrimaryKey().build(),
+              nationalId: factories.columnSchema.build({ columnType: 'String' }),
+            },
+          }),
+        }),
+      ],
+    );
+
+  test('it names the relation column the dot syntax reaches, without extended search', () => {
+    const searched = buildCards().getSearchedFields('holder.nationalId:1850', false);
+
+    expect(searched).toContainEqual({ path: 'holder:nationalId', collection: 'holders' });
+  });
+
+  test('it names every to-one column an extended search reaches', () => {
+    const searched = buildCards().getSearchedFields('martin', true);
+
+    expect(searched).toContainEqual({ path: 'holder:nationalId', collection: 'holders' });
+  });
+
+  test('it names none of them when the search is not extended', () => {
+    const searched = buildCards().getSearchedFields('martin', false);
+
+    expect(searched.every(({ collection }) => collection !== 'holders')).toBe(true);
+  });
+
+  test('it says it cannot tell when a replacer picks the fields', () => {
+    const decorator = buildCards();
+    decorator.replaceSearch(value => ({ field: 'id', operator: 'Equal', value }));
+
+    expect(decorator.getSearchedFields('martin', true)).toBeNull();
+  });
+});

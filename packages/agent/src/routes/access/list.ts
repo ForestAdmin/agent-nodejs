@@ -12,6 +12,7 @@ export default class ListRoute extends CollectionRoute {
 
   public async handleList(context: Context) {
     await this.services.authorization.assertCanBrowse(context, this.collection.name);
+    await this.services.authorization.assertCanReadQueryFields(context, this.collection);
 
     const scope = await this.services.authorization.getScope(this.collection, context);
     let paginatedFilter = ContextFilterFactory.buildPaginated(this.collection, context, scope);
@@ -20,7 +21,11 @@ export default class ListRoute extends CollectionRoute {
       paginatedFilter,
     );
 
-    const projection = QueryStringParser.parseProjectionFromHeaderOrQuery(this.collection, context);
+    const projection = await this.services.authorization.redactProjection(
+      context,
+      this.collection,
+      QueryStringParser.parseProjectionFromHeaderOrQuery(this.collection, context),
+    );
 
     const records = await this.collection.list(
       QueryStringParser.parseCaller(context),
