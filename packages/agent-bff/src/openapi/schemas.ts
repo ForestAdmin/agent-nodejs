@@ -1,6 +1,7 @@
 import { allOperators } from '@forestadmin/datasource-toolkit';
 
 import { z } from './zod-openapi';
+import { RELATIONSHIP_TYPES } from '../read-model/read-model';
 import { MAX_FILTER_DEPTH } from '../validation/capabilities-validator';
 
 const OPERATORS = [...allOperators] as [string, ...string[]];
@@ -141,6 +142,111 @@ export const CountResponseSchema = z
     description:
       'Two shapes only: a number with `available`, or null with `deactivated` when the ' +
       'collection disables count. The pair never disagrees.',
+  });
+
+const ContextFieldTypeSchema: z.ZodType = z
+  .lazy(() =>
+    z.union([
+      z.string(),
+      z.array(ContextFieldTypeSchema),
+      z.object({
+        fields: z.array(
+          z.object({
+            field: z.string(),
+            type: ContextFieldTypeSchema,
+            enums: z.array(z.string()).optional(),
+          }),
+        ),
+      }),
+    ]),
+  )
+  .openapi('ContextFieldType', {
+    description:
+      'The field type, passed through from the agent wire format without normalization: a string ' +
+      'for a primitive, an array of types for an array field, or an object carrying `fields` for ' +
+      'a composite. A composite sub-field carries its own `type`, recursively, and its own ' +
+      '`enums` when it is an enum. A consumer that only understands primitives should ignore the ' +
+      'other two rather than fail.',
+  });
+
+const ContextValidationSchema = z
+  .object({ type: z.string(), value: z.unknown().optional() })
+  .openapi('ContextValidation', {
+    description:
+      'A validation rule as the agent states it. `type` is the Forest wording (`is like`, `is ' +
+      'present`, `is longer than`, …) and `value` is passed through unchanged, so its shape ' +
+      'follows the rule: a number for a length rule, a date for a comparison. On `is like` it is ' +
+      'the JavaScript **literal** form of the regular expression — slashes included, and flags ' +
+      'after the closing one (`/^data:.*;base64,.*/`, but also `/^a|b|c$/g`). Parse it as a ' +
+      'literal, splitting on the LAST slash to separate pattern from flags; stripping the outer ' +
+      'characters instead leaves the flags inside the pattern, which then matches nothing. A ' +
+      'rule with no operand carries no `value`.',
+  });
+
+const ContextFieldSchema = z.object({
+  field: z.string(),
+  type: ContextFieldTypeSchema,
+  relationship: z.enum(RELATIONSHIP_TYPES).optional(),
+  reference: z.string().optional(),
+  inverseOf: z.string().optional(),
+  polymorphicTargets: z.array(z.string()).optional(),
+  isPrimaryKey: z.boolean().optional(),
+  isRequired: z.boolean().optional(),
+  isReadOnly: z.boolean().optional(),
+  enums: z.array(z.string()).optional(),
+  validations: z.array(ContextValidationSchema).optional(),
+});
+
+const ContextActionSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  type: z.enum(['single', 'bulk', 'global']),
+  fields: z.array(
+    z.object({
+      field: z.string(),
+      type: ContextFieldTypeSchema,
+      isRequired: z.boolean().optional(),
+      defaultValue: z.unknown().optional(),
+      enums: z.array(z.string()).optional(),
+    }),
+  ),
+});
+
+export const ContextResponseSchema = z
+  .object({
+    collections: z.array(
+      z.object({
+        name: z.string(),
+        fields: z.array(ContextFieldSchema),
+        actions: z.array(ContextActionSchema),
+      }),
+    ),
+    meta: z.object({ schemaRevision: z.number(), environmentId: z.number().optional() }),
+  })
+  .openapi('ContextResponse', {
+    description:
+      'Everything the agent schema exposes: collection names, typed fields with their relation ' +
+      'markers, and the custom actions that carry an endpoint. Field types are passed through ' +
+      'from the agent wire format, so a type is a string, an array of types, or a composite ' +
+      'object. A `Binary` column is advertised as `String`, because that is what it is on the ' +
+      'wire — the bytes travel as a data uri or as hex — so `type` alone does not tell a text ' +
+      'field from an encoded one: read `validations` for that. `reference` keeps the raw agent ' +
+      'form, the foreign collection and the key joined by a dot — the collection name may itself ' +
+      'contain dots, so drop only the trailing segment to recover it. A target named by ' +
+      '`reference` or `polymorphicTargets` is NOT guaranteed to appear in `collections[]`: the ' +
+      'schema describes a field as the agent declares it, and a relation can point at a ' +
+      'collection this document does not expose. Cross a target against `collections[]` before ' +
+      'following it — unlike the per-collection route documents, nothing here is dropped for ' +
+      'pointing outside the served set. ' +
+      'The document carries no rendering, project or team identity, and the only environment ' +
+      'datum is `meta.environmentId` below. It is served to both auth modes — an OAuth session ' +
+      'and a BFF API key get the same document. It is NOT filtered by the caller permissions: ' +
+      'it describes the whole exposed schema minus the endpoint-less actions, so cross it with ' +
+      '`/agent/v1/permissions` to know what the caller may actually ' +
+      'see. `meta.schemaRevision` increments whenever the BFF refreshes its schema, and resets ' +
+      'when the BFF restarts. `meta.environmentId` is the environment the BFF resolved at boot ' +
+      'from its own secret — it is telemetry, not a routing input, and it is absent when the ' +
+      'deployment runs without the OAuth configuration.',
   });
 
 export const ErrorResponseSchema = z

@@ -6,6 +6,7 @@ import { OpenAPIRegistry, OpenApiGeneratorV31 } from '@asteasolutions/zod-to-ope
 import ComponentPool from './component-pool';
 import {
   ActionRequestSchema,
+  ContextResponseSchema,
   CountRequestSchema,
   CountResponseSchema,
   ErrorResponseSchema,
@@ -36,7 +37,7 @@ const ERROR_STATUSES: Record<string, string> = {
   415: 'The request declares a character set the server cannot decode. Other content types are NOT rejected: a form-urlencoded body is parsed and validated like JSON (its values arrive as strings, so typed fields such as page.limit fail with 400), while any other non-JSON content type is read as an absent body, silently dropping filters and pagination',
   422: 'A field is unknown, not filterable, or is a nested relation path',
   429: 'The agent rate-limited the request',
-  500: 'The agent payload could not be mapped to the BFF contract',
+  500: 'The agent payload could not be mapped to the BFF contract, or the BFF hit an unexpected error',
   501: 'The BFF is running without an agent configured, so the proxy is not implemented',
   502: 'The agent could not be reached',
   503: 'The agent schema is unavailable, the agent returned a 5xx, or the API key could not be resolved',
@@ -277,15 +278,35 @@ export function generateOpenApiDocument(version: string, unfolding?: Unfolding):
     type: 'http',
     scheme: 'bearer',
     description:
-      'Mode 1: the BFF session token issued after the OAuth login. It authenticates the caller ' +
-      'but the data and action routes reject it until the BFF mints an agent token from the ' +
-      'OAuth principal, so no operation lists it yet. Use the API key today.',
+      'Mode 1: the BFF session token issued after the OAuth login. Accepted on the context ' +
+      'contract; the data and action routes advertise the API key only.',
   });
   registry.registerComponent('securitySchemes', API_KEY_SCHEME, {
     type: 'apiKey',
     in: 'header',
     name: 'X-Forest-Bff-Key',
     description: 'Mode 2: a BFF API key. Never send both this and an Authorization header.',
+  });
+
+  registry.registerPath({
+    method: 'get',
+    path: `${ROUTE_PREFIX}/context`,
+    operationId: 'getContext',
+    summary: 'Read the exposed schema contract',
+    security: [{ [SESSION_SCHEME]: [] }, { [API_KEY_SCHEME]: [] }],
+    request: {},
+    responses: {
+      200: {
+        description: 'The exposed schema: collections, typed fields, relations and actions',
+        content: { 'application/json': { schema: ContextResponseSchema } },
+      },
+      400: errorRefs.byStatus['400'],
+      401: errorRefs.byStatus['401'],
+      403: errorRefs.byStatus['403'],
+      500: errorRefs.byStatus['500'],
+      501: errorRefs.byStatus['501'],
+      503: errorRefs.byStatus['503'],
+    },
   });
 
   if (unfolding) {

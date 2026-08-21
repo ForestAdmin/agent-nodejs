@@ -4,7 +4,10 @@ import { ONE_DAY_MS } from './schema-cache';
  * A Forest column type: a primitive name, a one-element array wrapping another type, a composite
  * `{ fields }`, or a relation marker like `ManyToOne`.
  */
-export type FieldType = string | FieldType[] | { fields: { field: string; type: FieldType }[] };
+export type FieldType =
+  | string
+  | FieldType[]
+  | { fields: { field: string; type: FieldType; enums?: string[] }[] };
 
 export interface CapabilitiesResult {
   // `type` is the agent's raw `columnType`, so it is not always a plain name: an array-of-primitive
