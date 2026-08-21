@@ -517,3 +517,61 @@ describe('an unfolded document with no action', () => {
     );
   });
 });
+
+describe('the tags of an unfolded document', () => {
+  const tagsOf = (path: string) => operation(path).tags;
+
+  it('should declare one tag per collection, in the order the schema exposes them', () => {
+    expect(document.tags).toEqual([
+      {
+        name: 'My Coll',
+        description: 'Records, relations and actions of the "My Coll" collection.',
+      },
+      { name: 'orders', description: 'Records, relations and actions of the "orders" collection.' },
+      {
+        name: 'users.address',
+        description: 'Records, relations and actions of the "users.address" collection.',
+      },
+    ]);
+  });
+
+  it('should tag records operations with their own collection', () => {
+    expect([tagsOf('My%20Coll/list'), tagsOf('My%20Coll/count')]).toEqual([
+      ['My Coll'],
+      ['My Coll'],
+    ]);
+  });
+
+  it('should tag a relation with the parent collection, not the foreign one', () => {
+    expect(tagsOf('My%20Coll/relations/orders/list')).toEqual(['My Coll']);
+  });
+
+  it('should tag an action with the collection it belongs to', () => {
+    expect(tagsOf('My%20Coll/actions/Mark%20as%20paid%2Fdone/execute')).toEqual(['My Coll']);
+  });
+
+  it('should leave no operation untagged, since one would fall outside every group', () => {
+    const untagged = Object.entries(document.paths ?? {})
+      .filter(([, item]) => ((item as { post: { tags?: string[] } }).post.tags ?? []).length === 0)
+      .map(([path]) => path);
+
+    expect(untagged).toEqual([]);
+  });
+
+  it('should reference only declared tags, so a viewer groups nothing under an unknown name', () => {
+    const declared = new Set((document.tags ?? []).map(tag => tag.name));
+    const used = new Set(
+      Object.values(document.paths ?? {}).flatMap(
+        item => (item as { post: { tags?: string[] } }).post.tags ?? [],
+      ),
+    );
+
+    expect([...used].filter(tag => !declared.has(tag))).toEqual([]);
+  });
+});
+
+describe('the tags of a generic document', () => {
+  it('should carry none, since one operation per shape has nothing to group', () => {
+    expect(generateOpenApiDocument('9.9.9').tags).toBeUndefined();
+  });
+});
