@@ -5,6 +5,8 @@ import type {
   RelationSchema,
 } from '@forestadmin/datasource-toolkit';
 
+import { SchemaUtils } from '@forestadmin/datasource-toolkit';
+
 import normalizeName from './normalize-name';
 import { extractSpecifiedFields, parseQuery } from './parse-query';
 
@@ -51,14 +53,21 @@ export function getSearchedFieldPaths(collection: Collection, search: string): s
     .filter(Boolean);
 }
 
+/**
+ * The collection a path's last column belongs to — the one a read permission applies to. A prefix
+ * that names no relation throws rather than falling back to `collection`, which the caller pins to
+ * readable: an unresolvable path must not read as an allowed one.
+ */
 export function getLeafCollectionName(collection: Collection, path: string): string {
   const index = path.indexOf(':');
 
   if (index === -1) return collection.name;
 
-  const relation = collection.schema.fields[path.substring(0, index)];
-
-  if (!relation || relation.type === 'Column') return collection.name;
+  const relation = SchemaUtils.getRelation(
+    collection.schema,
+    path.substring(0, index),
+    collection.name,
+  );
 
   return getLeafCollectionName(
     collection.dataSource.getCollection(relation.foreignCollection),

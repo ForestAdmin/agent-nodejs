@@ -349,7 +349,10 @@ describe('read permissions on related collections', () => {
     it('should accept a plain search, which never leaves the root collection', async () => {
       const dataSource = buildDataSource();
       const services = buildServices();
-      const list = jest.spyOn(dataSource.getCollection('cards'), 'list').mockResolvedValue([]);
+      const cards = dataSource.getCollection('cards') as CollectionDecorator;
+      const list = jest.spyOn(cards, 'list').mockResolvedValue([]);
+
+      cards.getSearchedFields = () => [{ path: 'panLast4', collection: 'cards' }];
 
       await new List(services, options, dataSource, 'cards').handleList(
         buildContext({ query: { search: 'martin' } }),
@@ -361,7 +364,14 @@ describe('read permissions on related collections', () => {
     it('should accept an extended search once every to-one relation is readable', async () => {
       const dataSource = buildDataSource();
       const services = buildServices(['holders', 'accounts']);
-      const list = jest.spyOn(dataSource.getCollection('cards'), 'list').mockResolvedValue([]);
+      const cards = dataSource.getCollection('cards') as CollectionDecorator;
+      const list = jest.spyOn(cards, 'list').mockResolvedValue([]);
+
+      cards.getSearchedFields = () => [
+        { path: 'panLast4', collection: 'cards' },
+        { path: 'holder:fullName', collection: 'holders' },
+        { path: 'account:iban', collection: 'accounts' },
+      ];
 
       await new List(services, options, dataSource, 'cards').handleList(
         buildContext({ query: { search: 'martin', searchExtended: '1' } }),
