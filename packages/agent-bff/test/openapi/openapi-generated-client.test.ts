@@ -20,6 +20,8 @@ import { action, collection, column, relation } from '../read-model/fixtures';
 
 const MARK_AS_PAID = 'Mark as paid';
 const GENERATE_INVOICE = 'Générer la facture';
+// A name carrying the path separator: raw in the document it would not resolve to any route.
+const SPLIT_INVOICE = 'Facture 50/50';
 
 // One fixture for both sides: the document is generated from this schema and these capabilities, and
 // the chain the generated client calls runs on the very same ones. Two sources would let the test go
@@ -31,6 +33,7 @@ const SCHEMA = [
     [
       action(MARK_AS_PAID, '/forest/users/actions/mark-as-paid'),
       action(GENERATE_INVOICE, '/forest/users/actions/generer-la-facture'),
+      action(SPLIT_INVOICE, '/forest/users/actions/facture-50-50'),
     ],
   ),
   collection('orders', [column('id')]),
@@ -110,6 +113,8 @@ const OPERATIONS = [
   'executeActionUsersMarkAsPaid',
   'getActionFormUsersGNRerLaFacture',
   'executeActionUsersGNRerLaFacture',
+  'getActionFormUsersFacture5050',
+  'executeActionUsersFacture5050',
 ] as const;
 
 const dataClient: AgentDataClient = {
@@ -201,17 +206,21 @@ describe('a client generated from the emitted OpenAPI document', () => {
 
     // The command writes its own progress to stderr. Silenced so the run stays readable, but kept:
     // it is the only account of why an emission failed.
+    // Read out before restoring, not after: `mockRestore` clears `mock.calls`, so a message built
+    // from the spy afterwards would always be empty — which is the whole account of a failure here.
     const stderr = jest.spyOn(process.stderr, 'write').mockReturnValue(true);
+    let written = '';
     const emitted = await dispatchCli(
       ['openapi', '--output', DOCUMENT_FILE],
       ENV,
       noopLogger,
-    ).finally(() => stderr.mockRestore());
+    ).finally(() => {
+      written = stderr.mock.calls.flat().join('');
+      stderr.mockRestore();
+    });
 
     if (emitted.exitCode !== 0) {
-      throw new Error(
-        `The CLI could not emit the document: ${stderr.mock.calls.flat().join('')}`.trim(),
-      );
+      throw new Error(`The CLI could not emit the document: ${written}`.trim());
     }
 
     // Timed out rather than left to the `beforeAll` deadline: `spawnSync` blocks the event loop, so a
@@ -220,7 +229,13 @@ describe('a client generated from the emitted OpenAPI document', () => {
     const result = spawnSync(
       process.execPath,
       [CODEGEN_BIN, '--input', DOCUMENT_FILE, '--output', CLIENT_DIR, '--silent', '--no-log-file'],
-      { encoding: 'utf8', timeout: CODEGEN_TIMEOUT_MS },
+      {
+        encoding: 'utf8',
+        timeout: CODEGEN_TIMEOUT_MS,
+        // Cleared so a Node warning inherited from the parent cannot land in the output this file
+        // asserts on: what is measured here is the document, not the runner's flags.
+        env: { ...process.env, NODE_OPTIONS: '' },
+      },
     );
     codegenOutput = `${result.stdout ?? ''}${result.stderr ?? ''}`;
 
@@ -282,9 +297,12 @@ describe('a client generated from the emitted OpenAPI document', () => {
     it('should carry the documented operator set into the generated types', () => {
       const types = readFileSync(path.join(CLIENT_DIR, 'types.gen.ts'), 'utf8');
 
-      expect(
-        documentedOperators(document).filter(operator => !types.includes(`'${operator}'`)),
-      ).toEqual([]);
+      const operators = documentedOperators(document);
+
+      // Asserted against the literal first: both sides of the filter below derive from the document,
+      // so an empty enum would satisfy it vacuously.
+      expect(operators).toEqual([DOCUMENTED_OPERATOR]);
+      expect(operators.filter(operator => !types.includes(`'${operator}'`))).toEqual([]);
     });
   });
 
@@ -381,9 +399,20 @@ describe('a client generated from the emitted OpenAPI document', () => {
       });
     });
 
-    it('should reach an action whose name needs URL-encoding beyond spaces', async () => {
+    it('should reach an action whose name carries an accent', async () => {
       const form = await sdk.getActionFormUsersGNRerLaFacture({ body: { recordIds: [RECORD_ID] } });
       const executed = await sdk.executeActionUsersGNRerLaFacture({
+        body: { recordIds: [RECORD_ID] },
+      });
+
+      expect([form.response.status, executed.response.status]).toEqual([200, 200]);
+    });
+
+    // The separator is what makes this more than a formality: a raw name would split the path into
+    // segments the route cannot match, so only a percent-encoded document resolves here.
+    it('should reach an action whose name carries the path separator', async () => {
+      const form = await sdk.getActionFormUsersFacture5050({ body: { recordIds: [RECORD_ID] } });
+      const executed = await sdk.executeActionUsersFacture5050({
         body: { recordIds: [RECORD_ID] },
       });
 
