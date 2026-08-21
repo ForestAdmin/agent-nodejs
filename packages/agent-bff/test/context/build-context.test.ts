@@ -22,7 +22,11 @@ describe('buildContext', () => {
       expect(fieldNamed(context, 'id')?.type).toBe('Uuid');
       expect(fieldNamed(context, 'tagsWithArrayType')?.type).toEqual(['String']);
       expect(fieldNamed(context, 'addressWithCompositeType')?.type).toEqual({
-        fields: [{ field: 'city', type: 'String' }],
+        fields: [
+          { field: 'city', type: 'String' },
+          { field: 'country', type: 'Enum', enums: ['FR', 'BE'] },
+          { field: 'tags', type: ['String'] },
+        ],
       });
     });
 

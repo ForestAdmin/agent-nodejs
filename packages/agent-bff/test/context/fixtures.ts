@@ -48,7 +48,13 @@ export default function schemaCoveringEveryContractShape(): ForestSchemaCollecti
       fields: [
         field('id', 'Uuid'),
         field('tagsWithArrayType', ['String']),
-        field('addressWithCompositeType', { fields: [{ field: 'city', type: 'String' }] }),
+        field('addressWithCompositeType', {
+          fields: [
+            { field: 'city', type: 'String' },
+            { field: 'country', type: 'Enum', enums: ['FR', 'BE'] },
+            { field: 'tags', type: ['String'] },
+          ],
+        }),
         field('lockedReadOnly', 'Boolean', { isReadOnly: true }),
         field('emailRequired', 'String', { isRequired: true }),
         field('thumbnailWithPattern', 'String', {
