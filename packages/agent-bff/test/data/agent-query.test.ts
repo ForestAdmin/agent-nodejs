@@ -66,6 +66,84 @@ describe('buildCountAgentQuery', () => {
   });
 });
 
+describe('search in the outgoing agent query', () => {
+  it('should send the search term under the wire name the agent reads', () => {
+    expect(buildListAgentQuery('users', 'Europe/Paris', { search: 'ada' })).toEqual({
+      timezone: 'Europe/Paris',
+      search: 'ada',
+    });
+  });
+
+  it('should send searchExtended under the wire name the agent reads', () => {
+    expect(
+      buildListAgentQuery('users', 'Europe/Paris', { search: 'ada', searchExtended: true }),
+    ).toEqual({ timezone: 'Europe/Paris', search: 'ada', searchExtended: true });
+  });
+
+  it('should send searchExtended false when explicitly disabled alongside a search', () => {
+    expect(
+      buildListAgentQuery('users', 'Europe/Paris', { search: 'ada', searchExtended: false }),
+    ).toEqual({ timezone: 'Europe/Paris', search: 'ada', searchExtended: false });
+  });
+
+  it('should send both the filter and the search so the agent intersects them', () => {
+    expect(
+      buildListAgentQuery('users', 'Europe/Paris', {
+        filter: { field: 'active', operator: 'equal', value: true },
+        search: 'ada',
+      }),
+    ).toEqual({
+      timezone: 'Europe/Paris',
+      filters: JSON.stringify({ field: 'active', operator: 'equal', value: true }),
+      search: 'ada',
+    });
+  });
+
+  it('should treat an empty search as absent', () => {
+    expect(buildListAgentQuery('users', 'Europe/Paris', { search: '' })).toEqual({
+      timezone: 'Europe/Paris',
+    });
+  });
+
+  it('should treat a whitespace-only search as absent', () => {
+    expect(buildListAgentQuery('users', 'Europe/Paris', { search: '   ' })).toEqual({
+      timezone: 'Europe/Paris',
+    });
+  });
+
+  it('should not send searchExtended when it arrives without a search', () => {
+    expect(buildListAgentQuery('users', 'Europe/Paris', { searchExtended: true })).toEqual({
+      timezone: 'Europe/Paris',
+    });
+  });
+
+  it('should not send searchExtended when the search it accompanies is blank', () => {
+    expect(
+      buildListAgentQuery('users', 'Europe/Paris', { search: ' ', searchExtended: true }),
+    ).toEqual({ timezone: 'Europe/Paris' });
+  });
+
+  it('should send the search term unchanged, including its inner spacing', () => {
+    expect(buildListAgentQuery('users', 'Europe/Paris', { search: 'ada lovelace' }).search).toBe(
+      'ada lovelace',
+    );
+  });
+
+  it('should accept the same search inputs on count as on list', () => {
+    expect(buildCountAgentQuery('Europe/Paris', { search: 'ada', searchExtended: true })).toEqual({
+      timezone: 'Europe/Paris',
+      search: 'ada',
+      searchExtended: true,
+    });
+  });
+
+  it('should leave the count query untouched when the search is blank', () => {
+    expect(buildCountAgentQuery('UTC', { search: '  ', searchExtended: true })).toEqual({
+      timezone: 'UTC',
+    });
+  });
+});
+
 describe('collectListFieldPaths', () => {
   it('should collect field paths from projection, filter and sort', () => {
     const paths = collectListFieldPaths({
@@ -113,6 +191,43 @@ describe('parseListRequest', () => {
       expect.objectContaining({ type: 'invalid_request', status: 400 }),
     );
   });
+
+  it('should accept a body carrying search and searchExtended', () => {
+    const body = { search: 'ada', searchExtended: true };
+
+    expect(parseListRequest(body)).toBe(body);
+  });
+
+  it('should accept a blank search rather than rejecting a cleared search box', () => {
+    const body = { search: '   ' };
+
+    expect(parseListRequest(body)).toBe(body);
+  });
+
+  it.each([
+    ['a non-string search', { search: 42 }],
+    ['a null search', { search: null }],
+    ['an array search', { search: ['ada'] }],
+  ])('should reject %s with 400 invalid_request', (_label, body) => {
+    expect(() => parseListRequest(body)).toThrow(
+      expect.objectContaining({ type: 'invalid_request', status: 400 }),
+    );
+  });
+
+  it.each([
+    ['the string "true"', { search: 'ada', searchExtended: 'true' }],
+    ['the string "false"', { search: 'ada', searchExtended: 'false' }],
+    ['the number 1', { search: 'ada', searchExtended: 1 }],
+    ['the string "0"', { search: 'ada', searchExtended: '0' }],
+    ['a null value', { search: 'ada', searchExtended: null }],
+  ])(
+    'should reject searchExtended sent as %s rather than coercing it like the agent does',
+    (_label, body) => {
+      expect(() => parseListRequest(body)).toThrow(
+        expect.objectContaining({ type: 'invalid_request', status: 400 }),
+      );
+    },
+  );
 });
 
 describe('parseCountRequest', () => {
@@ -127,6 +242,21 @@ describe('parseCountRequest', () => {
     ['a string', 'foo'],
     ['an array', []],
   ])('should reject a non-object body (%s) with 400 invalid_request', (_label, body) => {
+    expect(() => parseCountRequest(body)).toThrow(
+      expect.objectContaining({ type: 'invalid_request', status: 400 }),
+    );
+  });
+
+  it('should accept a body carrying search and searchExtended', () => {
+    const body = { search: 'ada', searchExtended: false };
+
+    expect(parseCountRequest(body)).toBe(body);
+  });
+
+  it.each([
+    ['a non-string search', { search: 42 }],
+    ['a non-boolean searchExtended', { search: 'ada', searchExtended: 'true' }],
+  ])('should reject %s with 400 invalid_request', (_label, body) => {
     expect(() => parseCountRequest(body)).toThrow(
       expect.objectContaining({ type: 'invalid_request', status: 400 }),
     );
