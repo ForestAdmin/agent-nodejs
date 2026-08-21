@@ -180,8 +180,11 @@ describe('read permissions on related collections', () => {
         buildContext({}, { 'forest-projection': 'id,account:organization:name' }),
       );
 
-      // `withPks` re-adds `account:id`, which a ManyToOne already carries on the row as
-      // `cards.accountId`. A OneToOne intermediate would expose a key the row does not carry.
+      // `withPks` runs after the check and re-adds a key per surviving relation, so `account:id`
+      // comes back from a collection the caller cannot read. It carries nothing new only here,
+      // where the ManyToOne targets the primary key and the row already holds it as
+      // `cards.accountId`. A OneToOne, or a `foreignKeyTarget` that is not the primary key,
+      // exposes a key the row does not carry.
       expect([...list.mock.calls[0][2]].sort()).toEqual([
         'account:id',
         'account:organization:id',
