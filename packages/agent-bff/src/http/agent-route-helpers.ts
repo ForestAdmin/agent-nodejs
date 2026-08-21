@@ -17,7 +17,7 @@ export function decodeSegment(raw: string, label: string): string {
   }
 }
 
-async function mappingSchemaFailure<T>(read: () => Promise<T>): Promise<T> {
+async function mapSchemaFailure<T>(read: () => Promise<T>): Promise<T> {
   try {
     return await read();
   } catch (error) {
@@ -27,11 +27,11 @@ async function mappingSchemaFailure<T>(read: () => Promise<T>): Promise<T> {
 }
 
 export async function resolveSchemaSnapshot(store: ReadModelStore): Promise<SchemaSnapshot> {
-  return mappingSchemaFailure(() => store.getSchemaSnapshot());
+  return mapSchemaFailure(() => store.getSchemaSnapshot());
 }
 
 export async function resolveReadModel(store: ReadModelStore): Promise<ReadModel> {
-  return mappingSchemaFailure(() => store.getReadModel());
+  return mapSchemaFailure(() => store.getReadModel());
 }
 
 export function requireAgentToken(ctx: Context): string {
