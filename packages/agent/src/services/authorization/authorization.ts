@@ -67,12 +67,12 @@ export default class AuthorizationService {
     collection: Collection,
     requested: RequestedProjection,
   ): Promise<Projection> {
-    const { projection, explicit } = requested;
+    const { projection, namedByCaller } = requested;
     const owners = projection.map(path => FieldPathUtils.getLeafCollection(collection, path).name);
     const permissions = await this.getReadPermissions(context, collection.name, owners);
     const isReadable = (index: number) => permissions.get(owners[index]);
 
-    if (explicit) {
+    if (namedByCaller) {
       const denied = projection
         .map((field, index) => ({ field, collection: owners[index] }))
         .filter((_, index) => !isReadable(index));
@@ -114,11 +114,8 @@ export default class AuthorizationService {
     const search = QueryStringParser.parseSearch(collection, context);
 
     if (search) {
-      // Asked of the stack rather than derived from the schema: `relation.column:term` is end-user
-      // syntax that needs no extended search, and the fields an extended one reaches are read below
-      // the publication and renaming layers. A `null` answer means the collection cannot say — a
-      // replaced search, where the customer's handler picks the fields and the caller only supplies
-      // the text.
+      // Asked whatever the extended flag: `relation.column:term` is end-user syntax and reaches a
+      // relation without it. An unknown answer serves the request — the `replaceSearch` exemption.
       const searched = (collection as CollectionDecorator).getSearchedFields?.(
         search,
         QueryStringParser.parseSearchExtended(context),

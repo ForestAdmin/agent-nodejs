@@ -21,7 +21,7 @@ import { getRequestId } from './correlation-id';
 const DEFAULT_ITEMS_PER_PAGE = 15;
 const DEFAULT_PAGE_TO_SKIP = 1;
 
-export type RequestedProjection = { projection: Projection; explicit: boolean };
+export type RequestedProjection = { projection: Projection; namedByCaller: boolean };
 
 export default class QueryStringParser {
   private static VALID_TIMEZONES = new Set<string>();
@@ -88,20 +88,19 @@ export default class QueryStringParser {
     }
   }
 
-  /** `explicit` is false when the projection is the default `ProjectionFactory.all` expansion. */
   static parseProjectionFromHeaderOrQuery(
     collection: Collection,
     context: Context,
   ): RequestedProjection {
     const fromHeader = QueryStringParser.parseProjectionFromHeader(collection, context);
 
-    if (fromHeader) return { projection: fromHeader, explicit: true };
+    if (fromHeader) return { projection: fromHeader, namedByCaller: true };
 
     const fields = context.request.query[`fields[${collection.name}]`];
 
     return {
       projection: QueryStringParser.parseProjection(collection, context),
-      explicit: fields !== '' && fields !== undefined,
+      namedByCaller: fields !== '' && fields !== undefined,
     };
   }
 

@@ -300,7 +300,6 @@ describe('read permissions on related collections', () => {
       const cards = dataSource.getCollection('cards') as CollectionDecorator;
       const aggregate = jest.spyOn(cards, 'aggregate');
 
-      // `relation.column:term` needs no extended search, and only the stack knows it resolves.
       cards.getSearchedFields = () => [{ path: 'holder:nationalId', collection: 'holders' }];
 
       await expect(

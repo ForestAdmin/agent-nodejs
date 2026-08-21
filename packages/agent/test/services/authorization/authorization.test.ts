@@ -474,7 +474,7 @@ describe('AuthorizationService', () => {
       const projection = await authorizationService.redactProjection(
         context,
         buildDataSource().getCollection('cards'),
-        { projection: new Projection('id', 'holderId'), explicit: true },
+        { projection: new Projection('id', 'holderId'), namedByCaller: true },
       );
 
       expect(projection).toEqual(['id', 'holderId']);
@@ -492,7 +492,7 @@ describe('AuthorizationService', () => {
         buildDataSource().getCollection('cards'),
         {
           projection: new Projection('id', 'holder:fullName', 'holder:nationalId'),
-          explicit: true,
+          namedByCaller: true,
         },
       );
 
@@ -515,7 +515,7 @@ describe('AuthorizationService', () => {
         buildDataSource().getCollection('cards'),
         {
           projection: new Projection('id', 'holder:fullName', 'holder:nationalId'),
-          explicit: false,
+          namedByCaller: false,
         },
       );
 
@@ -531,7 +531,7 @@ describe('AuthorizationService', () => {
       await expect(
         authorizationService.redactProjection(context, buildDataSource().getCollection('cards'), {
           projection: new Projection('id', 'holder:fullName', 'holder:nationalId'),
-          explicit: true,
+          namedByCaller: true,
         }),
       ).rejects.toThrow(
         "You are not allowed to read 'holder:fullName' from the 'holders' collection, " +

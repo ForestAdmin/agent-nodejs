@@ -42,7 +42,7 @@ export default class UpdateRoute extends CollectionRoute {
       new Filter({ conditionTree }),
       await this.services.authorization.redactProjection(context, this.collection, {
         projection: ProjectionFactory.all(this.collection),
-        explicit: false,
+        namedByCaller: false,
       }),
     );
 

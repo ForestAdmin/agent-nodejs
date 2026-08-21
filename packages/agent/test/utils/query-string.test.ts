@@ -430,7 +430,7 @@ describe('QueryStringParser', () => {
         context,
       );
 
-      expect(projection).toEqual({ projection: new Projection('name'), explicit: true });
+      expect(projection).toEqual({ projection: new Projection('name'), namedByCaller: true });
     });
 
     test('should fallback to the query string when the header is missing', () => {
@@ -443,7 +443,7 @@ describe('QueryStringParser', () => {
         context,
       );
 
-      expect(projection).toEqual({ projection: new Projection('name'), explicit: true });
+      expect(projection).toEqual({ projection: new Projection('name'), namedByCaller: true });
     });
 
     test('should fallback to the query string when the header is empty', () => {
@@ -457,31 +457,31 @@ describe('QueryStringParser', () => {
         context,
       );
 
-      expect(projection).toEqual({ projection: new Projection('name'), explicit: true });
+      expect(projection).toEqual({ projection: new Projection('name'), namedByCaller: true });
     });
 
-    test('should report the default expansion as not explicit when no field is requested', () => {
+    test('should report the default expansion as not named by the caller', () => {
       const context = createMockContext({ customProperties: { query: {} } });
 
-      const { explicit } = QueryStringParser.parseProjectionFromHeaderOrQuery(
+      const { namedByCaller } = QueryStringParser.parseProjectionFromHeaderOrQuery(
         collectionSimple,
         context,
       );
 
-      expect(explicit).toBe(false);
+      expect(namedByCaller).toBe(false);
     });
 
-    test('should report an empty fields query param as not explicit', () => {
+    test('should report an empty fields query param as not named by the caller', () => {
       const context = createMockContext({
         customProperties: { query: { 'fields[books]': '' } },
       });
 
-      const { explicit } = QueryStringParser.parseProjectionFromHeaderOrQuery(
+      const { namedByCaller } = QueryStringParser.parseProjectionFromHeaderOrQuery(
         collectionSimple,
         context,
       );
 
-      expect(explicit).toBe(false);
+      expect(namedByCaller).toBe(false);
     });
 
     test('should throw on an invalid header instead of falling back to the query string', () => {
