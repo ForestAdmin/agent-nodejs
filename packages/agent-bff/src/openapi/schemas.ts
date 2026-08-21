@@ -62,12 +62,32 @@ export const TimezoneSchema = z.string().openapi('Timezone', {
     'missing_timezone.',
 });
 
+export const SearchSchema = z.string().openapi('Search', {
+  description:
+    "The agent's native full-text search, applied on top of `filter` rather than instead of it. " +
+    'An empty or whitespace-only value is treated as absent, so clearing a search box is not an ' +
+    'error. Searching a collection whose search is disabled is not rejected here: the agent ' +
+    'answers 400 validation_error with "Collection is not searchable". The response does not say ' +
+    'which field matched.',
+});
+
+export const SearchExtendedSchema = z.boolean().openapi('SearchExtended', {
+  description:
+    'Widens `search` to the related collections reachable from this one. Meaningless on its own: ' +
+    'sent without `search` it is ignored and changes nothing. Note it reads relation fields even ' +
+    'though naming a relation field path in `filter`, `sort` or `projection` is rejected with 422 ' +
+    'relation_field_not_supported — records can therefore match on a field the response cannot ' +
+    'show.',
+});
+
 export const ListRequestSchema = z
   .object({
     filter: ConditionTreeSchema.optional(),
     projection: z.array(z.string()).optional(),
     sort: z.array(SortClauseSchema).optional(),
     page: PageSchema.optional(),
+    search: SearchSchema.optional(),
+    searchExtended: SearchExtendedSchema.optional(),
     timezone: TimezoneSchema.optional(),
   })
   .openapi('ListRequest');
@@ -75,9 +95,15 @@ export const ListRequestSchema = z
 export const CountRequestSchema = z
   .object({
     filter: ConditionTreeSchema.optional(),
+    search: SearchSchema.optional(),
+    searchExtended: SearchExtendedSchema.optional(),
     timezone: TimezoneSchema.optional(),
   })
-  .openapi('CountRequest');
+  .openapi('CountRequest', {
+    description:
+      'Accepts the same search inputs as list, so a client can count exactly the rows its search ' +
+      'returns.',
+  });
 
 const ParentIdSchema = z.union([z.string().regex(/\S/), z.number()]).openapi('ParentId', {
   description:
@@ -89,7 +115,7 @@ export const RelationListRequestSchema = ListRequestSchema.extend({
   parentId: ParentIdSchema,
 }).openapi('RelationListRequest', {
   description:
-    'Filter, sort and projection apply to the FOREIGN collection; the parent only resolves ' +
+    'Filter, sort, projection and search apply to the FOREIGN collection; the parent only resolves ' +
     'which records are related.',
 });
 
