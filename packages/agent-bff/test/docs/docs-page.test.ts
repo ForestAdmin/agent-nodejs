@@ -425,6 +425,43 @@ describe('the code samples the docs page injects', () => {
     expect(page.rendered.paths['/agent/v1/loop/list'].post['x-codeSamples']).toHaveLength(3);
   });
 
+  it('should replace a path template with the placeholder notation the bodies use', async () => {
+    const page = await render({
+      components: {
+        parameters: {
+          Collection: {
+            name: 'collection',
+            in: 'path',
+            schema: { type: 'string' },
+          },
+        },
+      },
+      paths: {
+        '/agent/v1/{collection}/actions/{action}/execute': {
+          post: {
+            responses: { 200: {} },
+            parameters: [
+              { $ref: '#/components/parameters/Collection' },
+              { name: 'action', in: 'path', schema: { type: 'string' } },
+              { name: 'X-Forest-Timezone', in: 'header', schema: { type: 'string' } },
+            ],
+          },
+        },
+      },
+    });
+
+    const curl = page.sourceOf('/agent/v1/{collection}/actions/{action}/execute', 'cURL');
+
+    expect(curl).toContain(`'${ORIGIN}/agent/v1/<collection>/actions/<action>/execute'`);
+    expect(curl).not.toContain('{collection}');
+  });
+
+  it('should leave an unfolded path alone, since its segments are already the real names', async () => {
+    const page = await render(API_KEY_SPEC);
+
+    expect(page.sourceOf(LIST, 'cURL')).toContain(`'${ORIGIN}/agent/v1/My%20Coll/list'`);
+  });
+
   it('should leave a document with no path untouched rather than fail to render', async () => {
     const page = await render({ openapi: '3.1.0' });
 
