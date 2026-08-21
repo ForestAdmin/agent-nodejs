@@ -160,35 +160,71 @@ const SAMPLES_SCRIPT = `
           return headers;
         }
 
+        /**
+         * A collection or action name reaches these samples with its apostrophes intact:
+         * \`encodeURIComponent\` leaves \`'\` alone, so a collection called \`John's orders\` is a path
+         * segment carrying one, and a field name or enum value can carry one into a body. Every
+         * interpolation therefore goes through the quoting of its target language.
+         */
+        function shellQuoted(value) {
+          return "'" + String(value).split("'").join("'\\\\''") + "'";
+        }
+
+        // For a value that must EXPAND: single quotes would send the literal '$BFF_KEY' and earn a
+        // 401. Only fixed text is ever placed here, but it is escaped for the context regardless.
+        function shellExpanding(text) {
+          return String(text).replace(/([\\\\"\`$])/g, '\\\\$1');
+        }
+
+        function rubyQuoted(value) {
+          return "'" + String(value).replace(/\\\\/g, '\\\\\\\\').split("'").join("\\\\'") + "'";
+        }
+
+        // Ruby interpolates #{...} inside double quotes, and a JSON literal is double-quoted.
+        function rubySafeJson(text) {
+          return String(text).split('#{').join('\\\\#{');
+        }
+
         function curlSample(url, method, headers, body) {
-          var lines = ["curl -X " + method + " '" + url + "'"];
+          var lines = ['curl -X ' + method + ' ' + shellQuoted(url)];
 
           headers.forEach(function (header) {
-            var value = header.secret ? header.prefix + '$' + KEY_VARIABLE : header.value;
+            if (header.secret) {
+              var expanded =
+                shellExpanding(header.name) +
+                ': ' +
+                shellExpanding(header.prefix) +
+                '$' +
+                KEY_VARIABLE;
 
-            lines.push("  -H '" + header.name + ": " + value + "'");
+              lines.push('  -H "' + expanded + '"');
+
+              return;
+            }
+
+            lines.push('  -H ' + shellQuoted(header.name + ': ' + header.value));
           });
 
-          if (body !== undefined) lines.push("  -d '" + JSON.stringify(body) + "'");
+          if (body !== undefined) lines.push('  -d ' + shellQuoted(JSON.stringify(body)));
 
           return lines.join(' \\\\\\n');
         }
 
         function nodeSample(url, method, headers, body) {
           var lines = [
-            "const response = await fetch('" + url + "', {",
-            "  method: '" + method + "',",
+            'const response = await fetch(' + JSON.stringify(url) + ', {',
+            '  method: ' + JSON.stringify(method) + ',',
             '  headers: {',
           ];
 
           headers.forEach(function (header) {
             var value = header.secret
-              ? (header.prefix ? "'" + header.prefix + "' + " : '') +
+              ? (header.prefix ? JSON.stringify(header.prefix) + ' + ' : '') +
                 'process.env.' +
                 KEY_VARIABLE
-              : "'" + header.value + "'";
+              : JSON.stringify(header.value);
 
-            lines.push("    '" + header.name + "': " + value + ',');
+            lines.push('    ' + JSON.stringify(header.name) + ': ' + value + ',');
           });
 
           lines.push('  },');
@@ -214,7 +250,7 @@ const SAMPLES_SCRIPT = `
             "require 'json'",
             "require 'net/http'",
             '',
-            "uri = URI('" + url + "')",
+            'uri = URI(' + rubyQuoted(url) + ')',
             'request = Net::HTTP::' + verb + '.new(uri)',
           ];
 
@@ -222,13 +258,13 @@ const SAMPLES_SCRIPT = `
             var read = "ENV.fetch('" + KEY_VARIABLE + "')";
             var value = header.secret
               ? (header.prefix ? '"' + header.prefix + '#{' + read + '}"' : read)
-              : "'" + header.value + "'";
+              : rubyQuoted(header.value);
 
-            lines.push("request['" + header.name + "'] = " + value);
+            lines.push('request[' + rubyQuoted(header.name) + '] = ' + value);
           });
 
           if (body !== undefined) {
-            lines.push('request.body = JSON.generate(' + JSON.stringify(body) + ')');
+            lines.push('request.body = JSON.generate(' + rubySafeJson(JSON.stringify(body)) + ')');
           }
 
           lines.push('');

@@ -330,12 +330,21 @@ describe('the code samples the docs page injects', () => {
     expect(page.sourceOf(RELATION, 'cURL')).toBe(
       [
         `curl -X POST '${ORIGIN}/agent/v1/My%20Coll/relations/orders/list' \\`,
-        "  -H 'X-Forest-Bff-Key: $BFF_KEY' \\",
+        '  -H "X-Forest-Bff-Key: $BFF_KEY" \\',
         "  -H 'X-Forest-Timezone: UTC' \\",
         "  -H 'Content-Type: application/json' \\",
         `  -d '{"parentId":"<parentId>"}'`,
       ].join('\n'),
     );
+  });
+
+  it('should double-quote the secret header, since single quotes stop the shell expanding it', async () => {
+    const page = await render(API_KEY_SPEC);
+    const curl = page.sourceOf(RELATION, 'cURL');
+
+    expect(curl).toContain('  -H "X-Forest-Bff-Key: $BFF_KEY"');
+    expect(curl).not.toContain("'X-Forest-Bff-Key: $BFF_KEY'");
+    expect(curl).toContain("  -H 'X-Forest-Timezone: UTC'");
   });
 
   it('should send only what the request schema requires, flattening the relation allOf', async () => {
@@ -355,7 +364,7 @@ describe('the code samples the docs page injects', () => {
   it('should take the auth header from the scheme the operation names', async () => {
     const page = await render(API_KEY_SPEC);
 
-    expect(page.sourceOf(ACTION, 'cURL')).toContain("-H 'Authorization: Bearer $BFF_KEY'");
+    expect(page.sourceOf(ACTION, 'cURL')).toContain('-H "Authorization: Bearer $BFF_KEY"');
     expect(page.sourceOf(ACTION, 'cURL')).not.toContain('X-Forest-Bff-Key');
   });
 
@@ -364,12 +373,12 @@ describe('the code samples the docs page injects', () => {
 
     expect(page.sourceOf(RELATION, 'JavaScript')).toBe(
       [
-        `const response = await fetch('${ORIGIN}/agent/v1/My%20Coll/relations/orders/list', {`,
-        "  method: 'POST',",
+        `const response = await fetch("${ORIGIN}/agent/v1/My%20Coll/relations/orders/list", {`,
+        '  method: "POST",',
         '  headers: {',
-        "    'X-Forest-Bff-Key': process.env.BFF_KEY,",
-        "    'X-Forest-Timezone': 'UTC',",
-        "    'Content-Type': 'application/json',",
+        '    "X-Forest-Bff-Key": process.env.BFF_KEY,',
+        '    "X-Forest-Timezone": "UTC",',
+        '    "Content-Type": "application/json",',
         '  },',
         '  body: JSON.stringify({"parentId":"<parentId>"}),',
         '});',
@@ -460,6 +469,58 @@ describe('the code samples the docs page injects', () => {
     const page = await render(API_KEY_SPEC);
 
     expect(page.sourceOf(LIST, 'cURL')).toContain(`'${ORIGIN}/agent/v1/My%20Coll/list'`);
+  });
+
+  describe('when a name carries an apostrophe, which URL encoding leaves alone', () => {
+    const QUOTED_SPEC = {
+      components: {
+        schemas: {
+          Quoted: {
+            type: 'object',
+            properties: { "it's": { type: 'string' } },
+            required: ["it's"],
+          },
+        },
+      },
+      paths: {
+        "/agent/v1/John's%20orders/list": {
+          post: {
+            responses: { 200: {} },
+            requestBody: {
+              content: { 'application/json': { schema: { $ref: '#/components/schemas/Quoted' } } },
+            },
+          },
+        },
+      },
+    };
+
+    const QUOTED_PATH = "/agent/v1/John's%20orders/list";
+
+    it('should close and reopen the shell quoting rather than break the command', async () => {
+      const page = await render(QUOTED_SPEC);
+      const curl = page.sourceOf(QUOTED_PATH, 'cURL');
+
+      expect(curl.split('\n')[0]).toBe(
+        `${String.raw`curl -X POST '${ORIGIN}/agent/v1/John'\''s%20orders/list' `}\\`,
+      );
+      expect(curl).toContain(String.raw`-d '{"it'\''s":"<it'\''s>"}'`);
+    });
+
+    it('should escape it in the ruby single-quoted URI', async () => {
+      const page = await render(QUOTED_SPEC);
+
+      expect(page.sourceOf(QUOTED_PATH, 'Ruby')).toContain(
+        String.raw`uri = URI('${ORIGIN}/agent/v1/John\'s%20orders/list')`,
+      );
+    });
+
+    it('should leave it alone in node, where the literals are double-quoted', async () => {
+      const page = await render(QUOTED_SPEC);
+
+      expect(page.sourceOf(QUOTED_PATH, 'JavaScript')).toContain(
+        `await fetch("${ORIGIN}/agent/v1/John's%20orders/list", {`,
+      );
+    });
   });
 
   it('should leave a document with no path untouched rather than fail to render', async () => {
