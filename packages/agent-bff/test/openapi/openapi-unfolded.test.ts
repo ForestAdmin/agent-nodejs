@@ -555,9 +555,9 @@ describe('the tags of an unfolded document', () => {
     expect(tagsOf('My%20Coll/actions/Mark%20as%20paid%2Fdone/execute')).toEqual(['My Coll']);
   });
 
-  it('should leave no operation untagged, since one would fall outside every group', () => {
-    const untagged = Object.entries(document.paths ?? {})
-      .filter(([, item]) => ((item as { post: { tags?: string[] } }).post.tags ?? []).length === 0)
+  it('should leave no collection operation untagged, since one would fall outside every group', () => {
+    const untagged = Object.entries(paths)
+      .filter(([, item]) => ((item.post.tags as string[] | undefined) ?? []).length === 0)
       .map(([path]) => path);
 
     expect(untagged).toEqual([]);
@@ -566,9 +566,7 @@ describe('the tags of an unfolded document', () => {
   it('should reference only declared tags, so a viewer groups nothing under an unknown name', () => {
     const declared = new Set((document.tags ?? []).map(tag => tag.name));
     const used = new Set(
-      Object.values(document.paths ?? {}).flatMap(
-        item => (item as { post: { tags?: string[] } }).post.tags ?? [],
-      ),
+      Object.values(paths).flatMap(item => (item.post.tags as string[] | undefined) ?? []),
     );
 
     expect([...used].filter(tag => !declared.has(tag))).toEqual([]);
