@@ -322,5 +322,24 @@ describe('ServerUtils', () => {
         }),
       ).rejects.toThrow('The requested resource was not found on Forest Admin server.');
     });
+
+    it('should surface the server detail on a 409 conflict (already-running workflow run)', async () => {
+      nock(options.forestServerUrl)
+        .post('/api/workflow-orchestrator/mcp-workflows/wf-1/start')
+        .reply(409, { errors: [{ detail: 'A run is already ongoing on this record' }] });
+
+      await expect(
+        ServerUtils.queryWithBearerToken({
+          forestServerUrl: options.forestServerUrl,
+          method: 'post',
+          path: '/api/workflow-orchestrator/mcp-workflows/wf-1/start',
+          bearerToken: 'valid-token',
+          body: { recordId: '42' },
+        }),
+      ).rejects.toMatchObject({
+        message: 'A run is already ongoing on this record',
+        status: 409,
+      });
+    });
   });
 });

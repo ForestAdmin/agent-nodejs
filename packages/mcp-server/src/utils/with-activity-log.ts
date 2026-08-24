@@ -40,20 +40,36 @@ export default async function withActivityLog<T>(options: WithActivityLogOptions
   const { forestServerClient, request, action, context, logger, operation, errorEnhancer } =
     options;
 
-  // We want to create the activity log before executing the operation
-  // If activity log creation fails, we must prevent the execution of the operation
+  // The activity log is created before the operation runs, so intent is captured even when the
+  // operation itself fails. `createPendingActivityLog` owns the fail policy: it throws for a write
+  // whose log could not be created (blocking the operation) and for an authorization refusal on
+  // any action, and resolves to null for a read whose audit write was lost.
+  const activityLog = await createPendingActivityLog(forestServerClient, request, action, {
+    ...context,
+    logger,
+  });
 
-  const activityLog = await createPendingActivityLog(forestServerClient, request, action, context);
+  // Read whose audit log could not be created (fail-open): proceed without status tracking. The
+  // cause was already logged by `createPendingActivityLog`.
+  if (!activityLog) {
+    logger(
+      'Warn',
+      `Activity log for '${action}' was not persisted by the server; ` +
+        'proceeding without audit trail for this read operation.',
+    );
+  }
 
   try {
     const result = await operation();
 
-    markActivityLogAsSucceeded({
-      forestServerClient,
-      request,
-      activityLog,
-      logger,
-    });
+    if (activityLog) {
+      markActivityLogAsSucceeded({
+        forestServerClient,
+        request,
+        activityLog,
+        logger,
+      });
+    }
 
     return result;
   } catch (error) {
@@ -74,12 +90,14 @@ export default async function withActivityLog<T>(options: WithActivityLogOptions
       }
     }
 
-    markActivityLogAsFailed({
-      forestServerClient,
-      request,
-      activityLog,
-      logger,
-    });
+    if (activityLog) {
+      markActivityLogAsFailed({
+        forestServerClient,
+        request,
+        activityLog,
+        logger,
+      });
+    }
 
     throw new Error(errorMessage);
   }

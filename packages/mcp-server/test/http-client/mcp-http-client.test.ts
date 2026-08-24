@@ -2,6 +2,7 @@ import type {
   ActivityLogsServiceInterface,
   ForestSchemaCollection,
   SchemaServiceInterface,
+  WorkflowsServiceInterface,
 } from '../../src/http-client/types';
 
 import { createForestServerClient } from '../../src/http-client';
@@ -10,6 +11,7 @@ import ForestServerClientImpl from '../../src/http-client/mcp-http-client';
 describe('ForestServerClientImpl', () => {
   let mockSchemaService: jest.Mocked<SchemaServiceInterface>;
   let mockActivityLogsService: jest.Mocked<ActivityLogsServiceInterface>;
+  let mockWorkflowsService: jest.Mocked<WorkflowsServiceInterface>;
   let client: ForestServerClientImpl;
 
   beforeEach(() => {
@@ -21,9 +23,16 @@ describe('ForestServerClientImpl', () => {
       createMcpActivityLog: jest.fn(),
       updateActivityLogStatus: jest.fn(),
     };
+    mockWorkflowsService = {
+      listMcpEnabledWorkflows: jest.fn(),
+      getMcpWorkflowById: jest.fn(),
+      triggerMcpWorkflow: jest.fn(),
+      getMcpWorkflowRun: jest.fn(),
+    };
     client = new ForestServerClientImpl(
       mockSchemaService,
       mockActivityLogsService,
+      mockWorkflowsService,
       'https://api.forestadmin.com',
     );
   });
@@ -102,6 +111,99 @@ describe('ForestServerClientImpl', () => {
       expect(mockActivityLogsService.updateActivityLogStatus).toHaveBeenCalledWith(params);
     });
   });
+
+  describe('listMcpEnabledWorkflows', () => {
+    it('should delegate to workflowsService.listMcpEnabledWorkflows()', async () => {
+      const workflows = [{ workflowId: 'wf-1', name: 'Refund order', collectionName: 'orders' }];
+      mockWorkflowsService.listMcpEnabledWorkflows.mockResolvedValue(workflows);
+
+      const params = {
+        forestServerToken: 'test-token',
+        renderingId: '12345',
+        collectionName: 'orders',
+      };
+
+      const result = await client.listMcpEnabledWorkflows(params);
+
+      expect(mockWorkflowsService.listMcpEnabledWorkflows).toHaveBeenCalledWith(params);
+      expect(result).toBe(workflows);
+    });
+  });
+
+  describe('getMcpWorkflowById', () => {
+    it('should delegate to workflowsService.getMcpWorkflowById()', async () => {
+      const workflow = {
+        workflowId: 'wf-1',
+        name: 'Refund order',
+        collectionName: 'orders',
+        mcpEnabled: true,
+      };
+      mockWorkflowsService.getMcpWorkflowById.mockResolvedValue(workflow);
+
+      const params = {
+        forestServerToken: 'test-token',
+        renderingId: '12345',
+        workflowId: 'wf-1',
+      };
+
+      const result = await client.getMcpWorkflowById(params);
+
+      expect(mockWorkflowsService.getMcpWorkflowById).toHaveBeenCalledWith(params);
+      expect(result).toBe(workflow);
+    });
+  });
+
+  describe('triggerMcpWorkflow', () => {
+    it('should delegate to workflowsService.triggerMcpWorkflow()', async () => {
+      const run = { runId: '7', runState: 'loading' as const };
+      mockWorkflowsService.triggerMcpWorkflow.mockResolvedValue(run);
+
+      const params = {
+        forestServerToken: 'test-token',
+        renderingId: '12345',
+        workflowId: 'wf-1',
+        recordId: '42',
+      };
+
+      const result = await client.triggerMcpWorkflow(params);
+
+      expect(mockWorkflowsService.triggerMcpWorkflow).toHaveBeenCalledWith(params);
+      expect(result).toBe(run);
+    });
+  });
+
+  describe('getMcpWorkflowRun', () => {
+    it('should delegate to workflowsService.getMcpWorkflowRun()', async () => {
+      const hydratedRun = {
+        id: 7,
+        userId: 42,
+        renderingId: 12345,
+        collectionId: 'orders',
+        workflowId: 'wf-1',
+        bpmnVersion: '3',
+        selectedRecordId: '99',
+        runState: 'finished' as const,
+        engine: 'orchestrator' as const,
+        triggerType: 'mcp' as const,
+        lockedAt: null,
+        createdAt: '2024-01-01T00:00:00.000Z',
+        updatedAt: '2024-01-01T00:05:00.000Z',
+        workflowHistory: [],
+      };
+      mockWorkflowsService.getMcpWorkflowRun.mockResolvedValue(hydratedRun);
+
+      const params = {
+        forestServerToken: 'test-token',
+        renderingId: '12345',
+        runId: '7',
+      };
+
+      const result = await client.getMcpWorkflowRun(params);
+
+      expect(mockWorkflowsService.getMcpWorkflowRun).toHaveBeenCalledWith(params);
+      expect(result).toBe(hydratedRun);
+    });
+  });
 });
 
 describe('createForestServerClient', () => {
@@ -133,5 +235,9 @@ describe('createForestServerClient', () => {
     expect(client.createActivityLog).toBeDefined();
     expect(client.createMcpActivityLog).toBeDefined();
     expect(client.updateActivityLogStatus).toBeDefined();
+    expect(client.listMcpEnabledWorkflows).toBeDefined();
+    expect(client.getMcpWorkflowById).toBeDefined();
+    expect(client.triggerMcpWorkflow).toBeDefined();
+    expect(client.getMcpWorkflowRun).toBeDefined();
   });
 });

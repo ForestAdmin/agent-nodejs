@@ -13,6 +13,7 @@ import permissionServiceFactory from './permissions/permission';
 import renderingPermissionsFactory from './permissions/rendering-permission';
 import schemaServiceFactory from './schema';
 import contextVariablesInstantiatorFactory from './utils/context-variables-instantiator';
+import workflowsServiceFactory from './workflows';
 import ForestAdminClient from '../../src/forest-admin-client-with-cache';
 
 export class ForestAdminClientFactory extends Factory<ForestAdminClient> {
@@ -41,6 +42,7 @@ const forestAdminClientFactory = ForestAdminClientFactory.define(
       mcpServerConfigServiceFactory.build(),
       eventsSubscriptionServiceFactory.build(),
       nativeRefreshEventsHandlerServiceFactory.build(),
+      workflowsServiceFactory.build(),
     ),
 );
 

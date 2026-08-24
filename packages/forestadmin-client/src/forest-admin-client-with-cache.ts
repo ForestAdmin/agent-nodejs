@@ -19,6 +19,7 @@ import type {
   PermissionService,
 } from './types';
 import type ContextVariablesInstantiator from './utils/context-variables-instantiator';
+import type WorkflowsService from './workflows';
 
 import verifyAndExtractApproval from './permissions/verify-approval';
 
@@ -37,6 +38,7 @@ export default class ForestAdminClientWithCache implements ForestAdminClient {
     public readonly mcpServerConfigService: McpServerConfigService,
     protected readonly eventsSubscription: BaseEventsSubscriptionService,
     protected readonly eventsHandler: RefreshEventsHandlerService,
+    public readonly workflowsService: WorkflowsService,
   ) {}
 
   verifySignedActionParameters<TSignedParameters>(signedParameters: string): TSignedParameters {

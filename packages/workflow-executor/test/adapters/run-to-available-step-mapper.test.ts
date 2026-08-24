@@ -135,6 +135,14 @@ describe('toAvailableStepExecution', () => {
     expect(result?.triggerType).toBe(TriggerType.Webhook);
   });
 
+  it('should map an mcp-triggered run without failing validation', () => {
+    const run = makeRun({ triggerType: ServerWorkflowTriggerType.mcp });
+
+    const result = toAvailableStepExecution(run);
+
+    expect(result?.triggerType).toBe(TriggerType.Mcp);
+  });
+
   it('should default triggerType to manual when the orchestrator omits it', () => {
     const run = makeRun();
     delete run.triggerType;

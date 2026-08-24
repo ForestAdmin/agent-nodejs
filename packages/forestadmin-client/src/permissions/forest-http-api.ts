@@ -8,7 +8,12 @@ import type {
   ForestAdminClientOptions,
   ForestAdminServerInterface,
   ForestSchemaCollection,
+  HydratedWorkflowRun,
   IpWhitelistRulesResponse,
+  McpWorkflow,
+  McpWorkflowLookup,
+  WorkflowHistoryStepContext,
+  WorkflowRunTriggerResult,
 } from '../types';
 import type { HttpOptions } from '../utils/http-options';
 
@@ -16,6 +21,74 @@ import JSONAPISerializer from 'json-api-serializer';
 
 import AuthService from '../auth';
 import ServerUtils from '../utils/server';
+
+/**
+ * These routes exist only for the MCP transport, so the source header belongs to the call rather
+ * than to the caller's configuration: the embedded `mountAiMcpServer` path builds its services from
+ * the shared client options, which carry no headers, and was silently sending MCP traffic
+ * unlabelled. Callers can still override it.
+ */
+const MCP_SOURCE_HEADER = { 'Forest-Application-Source': 'MCP' } as const;
+
+/**
+ * Projects the run onto the declared contract instead of forwarding the response as-is. The
+ * getWorkflowRun tool stringifies this straight into an LLM's context, and the orchestrator builds
+ * a second, executor-facing shape of the same run that carries a `userProfile` with a live Forest
+ * `serverToken`. The MCP route uses a different builder today, but the two return types are
+ * assignable to one another, so nothing structural keeps them apart — this whitelist is the
+ * guardrail rather than the type annotation.
+ *
+ * `stepDefinition` is passed through whole: its task-type-specific fields are the organisation's own
+ * workflow configuration, deliberately surfaced so the model can reason about the step. Per-step
+ * `context` is not — it is a closed interface here but an open bag server-side, so forwarding it
+ * whole would let a future orchestrator field reach the model with nothing to catch it.
+ */
+function projectStepContext(
+  context: WorkflowHistoryStepContext | undefined,
+): WorkflowHistoryStepContext | undefined {
+  if (!context) return context;
+
+  return {
+    manuallyCompleted: context.manuallyCompleted,
+    completedBy: context.completedBy,
+    subWorkflowVersion: context.subWorkflowVersion,
+    selectedOption: context.selectedOption,
+    error: context.error,
+    childrenWorkflowId: context.childrenWorkflowId,
+    escalationState: context.escalationState,
+    awaitingInputReason: context.awaitingInputReason,
+  };
+}
+
+function projectHydratedRun(run: HydratedWorkflowRun): HydratedWorkflowRun {
+  return {
+    id: run.id,
+    userId: run.userId,
+    renderingId: run.renderingId,
+    collectionId: run.collectionId,
+    workflowId: run.workflowId,
+    bpmnVersion: run.bpmnVersion,
+    selectedRecordId: run.selectedRecordId,
+    runState: run.runState,
+    engine: run.engine,
+    triggerType: run.triggerType,
+    lockedAt: run.lockedAt,
+    createdAt: run.createdAt,
+    updatedAt: run.updatedAt,
+    workflowHistory: (run.workflowHistory ?? []).map(step => ({
+      stepName: step.stepName,
+      stepIndex: step.stepIndex,
+      originalStepIndex: step.originalStepIndex,
+      done: step.done,
+      revised: step.revised,
+      cancelled: step.cancelled,
+      childrenWorkflowId: step.childrenWorkflowId,
+      isCardStep: step.isCardStep,
+      context: projectStepContext(step.context),
+      stepDefinition: step.stepDefinition,
+    })),
+  };
+}
 
 export default class ForestHttpApi implements ForestAdminServerInterface {
   async getEnvironmentPermissions(options: HttpOptions): Promise<EnvironmentPermissionsV4> {
@@ -130,7 +203,7 @@ export default class ForestHttpApi implements ForestAdminServerInterface {
       path: '/api/activity-logs-requests/mcp',
       bearerToken: options.bearerToken,
       body,
-      headers: options.headers,
+      headers: { ...MCP_SOURCE_HEADER, ...options.headers },
     });
 
     return activityLog;
@@ -150,5 +223,92 @@ export default class ForestHttpApi implements ForestAdminServerInterface {
       body,
       headers: options.headers,
     });
+  }
+
+  async listMcpEnabledWorkflows(
+    options: ActivityLogHttpOptions,
+    renderingId: string,
+    collectionName?: string,
+  ): Promise<McpWorkflow[]> {
+    const query = collectionName ? `?collectionName=${encodeURIComponent(collectionName)}` : '';
+
+    const workflows = await ServerUtils.queryWithBearerToken<McpWorkflow[]>({
+      forestServerUrl: options.forestServerUrl,
+      method: 'get',
+      path: `/api/workflow-orchestrator/mcp-workflows${query}`,
+      bearerToken: options.bearerToken,
+      headers: { 'forest-rendering-id': renderingId, ...MCP_SOURCE_HEADER, ...options.headers },
+    });
+
+    // Projected for the same reason as the run: the listWorkflows tool stringifies this array
+    // straight into an LLM's context, so a column added to the server query must not reach a
+    // model's prompt without a change here.
+    return (workflows ?? []).map(workflow => ({
+      workflowId: workflow.workflowId,
+      name: workflow.name,
+      collectionName: workflow.collectionName,
+    }));
+  }
+
+  async getMcpWorkflowById(
+    options: ActivityLogHttpOptions,
+    renderingId: string,
+    workflowId: string,
+  ): Promise<McpWorkflowLookup> {
+    const workflow = await ServerUtils.queryWithBearerToken<McpWorkflowLookup>({
+      forestServerUrl: options.forestServerUrl,
+      method: 'get',
+      path: `/api/workflow-orchestrator/mcp-workflows/${encodeURIComponent(workflowId)}`,
+      bearerToken: options.bearerToken,
+      headers: { 'forest-rendering-id': renderingId, ...MCP_SOURCE_HEADER, ...options.headers },
+    });
+
+    // Projected like the other three MCP routes. This payload does not reach a model directly, but
+    // `name` is written verbatim into a persisted Activity Log label, and the type is an unvalidated
+    // cast of the HTTP response — so a column added server-side would otherwise arrive unannounced.
+    return {
+      workflowId: workflow.workflowId,
+      name: workflow.name,
+      collectionName: workflow.collectionName,
+      mcpEnabled: workflow.mcpEnabled,
+    };
+  }
+
+  async triggerMcpWorkflow(
+    options: ActivityLogHttpOptions,
+    renderingId: string,
+    workflowId: string,
+    recordId: string,
+  ): Promise<WorkflowRunTriggerResult> {
+    // The orchestrator returns a numeric runId; normalize it to the string form expected by
+    // getMcpWorkflowRun.
+    const result = await ServerUtils.queryWithBearerToken<
+      Omit<WorkflowRunTriggerResult, 'runId'> & { runId: number | string }
+    >({
+      forestServerUrl: options.forestServerUrl,
+      method: 'post',
+      path: `/api/workflow-orchestrator/mcp-workflows/${encodeURIComponent(workflowId)}/start`,
+      bearerToken: options.bearerToken,
+      body: { recordId },
+      headers: { 'forest-rendering-id': renderingId, ...MCP_SOURCE_HEADER, ...options.headers },
+    });
+
+    return { runId: String(result.runId), runState: result.runState };
+  }
+
+  async getMcpWorkflowRun(
+    options: ActivityLogHttpOptions,
+    renderingId: string,
+    runId: string,
+  ): Promise<HydratedWorkflowRun> {
+    const run = await ServerUtils.queryWithBearerToken<HydratedWorkflowRun>({
+      forestServerUrl: options.forestServerUrl,
+      method: 'get',
+      path: `/api/workflow-orchestrator/mcp-workflows/runs/${encodeURIComponent(runId)}`,
+      bearerToken: options.bearerToken,
+      headers: { 'forest-rendering-id': renderingId, ...MCP_SOURCE_HEADER, ...options.headers },
+    });
+
+    return projectHydratedRun(run);
   }
 }
