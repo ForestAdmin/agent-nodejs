@@ -297,6 +297,16 @@ describe('BinaryCollectionDecorator', () => {
       await expect(decoratedBook.create(caller, [{ cover: 42 }])).rejects.toThrow(ValidationError);
       expect(books.create).not.toHaveBeenCalled();
     });
+
+    it('should let a buffer through, as it needs no conversion', async () => {
+      const caller = factories.caller.build();
+      const id = Buffer.from('0000', 'ascii');
+      (books.create as jest.Mock).mockResolvedValue([{ id }]);
+
+      await decoratedBook.create(caller, [{ id }]);
+
+      expect(books.create).toHaveBeenCalledWith(caller, [{ id }]);
+    });
   });
 
   describe('list with a more complex filter', () => {

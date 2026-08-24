@@ -259,6 +259,8 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
     value: unknown,
   ): Promise<unknown> {
     if (toBackend) {
+      if (Buffer.isBuffer(value)) return value;
+
       if (typeof value !== 'string') {
         throw new ValidationError(
           `Expected a string for a binary field, got ${typeof value}: ${JSON.stringify(value)}`,
