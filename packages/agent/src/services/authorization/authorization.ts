@@ -133,11 +133,21 @@ export default class AuthorizationService {
 
     if (search) {
       // Asked whatever the extended flag: `relation.column:term` is end-user syntax and reaches a
-      // relation without it. An unknown answer serves the request — the `replaceSearch` exemption.
-      const searched = (collection as CollectionDecorator).getSearchedFields?.(
-        search,
-        QueryStringParser.parseSearchExtended(context),
-      );
+      // relation without it.
+      const extended = QueryStringParser.parseSearchExtended(context);
+      const searched = (collection as CollectionDecorator).getSearchedFields?.(search, extended);
+
+      // An unknown footprint is a `replaceSearch` handler choosing its own fields. On a plain
+      // search the caller aimed at nothing, so it is served — the same category as a scope, and
+      // refusing would remove search from every customized collection. The extended flag is the
+      // caller's own, though: running one term both ways isolates the rows matched through a
+      // relation, a bit per term on collections no check covered. The exemption stops there.
+      if (!searched && extended) {
+        throw new ForbiddenError(
+          `You cannot run an extended search on the '${collection.name}' collection: the fields ` +
+            'it reaches cannot be determined, so they cannot be checked against your permissions.',
+        );
+      }
 
       for (const { path, collection: name } of searched ?? []) {
         usages.push({ action: 'search on', path, collectionName: name });

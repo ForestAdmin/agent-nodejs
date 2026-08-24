@@ -437,20 +437,61 @@ describe('read permissions on related collections', () => {
       expect(getSearchedFields).toHaveBeenCalledWith('martin', true);
     });
 
-    it('should serve the request when the stack cannot say what a search reaches', async () => {
+    it('should serve a plain search when the stack cannot say what it reaches', async () => {
       const dataSource = buildDataSource();
       const services = buildServices();
       const cards = dataSource.getCollection('cards') as CollectionDecorator;
       const list = jest.spyOn(cards, 'list').mockResolvedValue([]);
 
-      // A replaced search: the handler picks the fields, the caller only supplies the text.
+      // A replaced search: the handler picks the fields, the caller only supplies the text. They
+      // aimed at nothing, and the footprint is the same for every role.
       cards.getSearchedFields = () => null;
 
       await new List(services, options, dataSource, 'cards').handleList(
-        buildContext({ query: { search: 'martin', searchExtended: '1' } }),
+        buildContext({ query: { search: 'martin' } }),
       );
 
-      expect(list.mock.calls[0][1]).toMatchObject({ search: 'martin', searchExtended: true });
+      expect(list.mock.calls[0][1]).toMatchObject({ search: 'martin', searchExtended: false });
+    });
+
+    it('should refuse the extended half of that same search', async () => {
+      const dataSource = buildDataSource();
+      const services = buildServices();
+      const cards = dataSource.getCollection('cards') as CollectionDecorator;
+      const list = jest.spyOn(cards, 'list').mockResolvedValue([]);
+
+      cards.getSearchedFields = () => null;
+
+      // The flag is the caller's: the same term with it off and on differs by exactly the rows
+      // matched through a relation, so an unverifiable traversal is refused where a plain search
+      // is served.
+      await expect(
+        new List(services, options, dataSource, 'cards').handleList(
+          buildContext({ query: { search: 'martin', searchExtended: '1' } }),
+        ),
+      ).rejects.toThrow(
+        "You cannot run an extended search on the 'cards' collection: the fields it reaches " +
+          'cannot be determined, so they cannot be checked against your permissions.',
+      );
+
+      expect(list).not.toHaveBeenCalled();
+    });
+
+    it('should read a stack that cannot answer at all as an unknown footprint too', async () => {
+      const dataSource = buildDataSource();
+      const services = buildServices();
+      const cards = dataSource.getCollection('cards');
+      const list = jest.spyOn(cards, 'list').mockResolvedValue([]);
+
+      // No `getSearchedFields` on the collection rather than one answering `null`: silence is not
+      // an empty footprint either.
+      await expect(
+        new List(services, options, dataSource, 'cards').handleList(
+          buildContext({ query: { search: 'martin', searchExtended: '1' } }),
+        ),
+      ).rejects.toThrow("You cannot run an extended search on the 'cards' collection");
+
+      expect(list).not.toHaveBeenCalled();
     });
 
     it('should accept a plain search, which never leaves the root collection', async () => {
