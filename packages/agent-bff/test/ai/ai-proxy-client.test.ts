@@ -130,6 +130,20 @@ describe('AiProxyClient', () => {
     });
   });
 
+  describe('when the timeout fires while the body is being read', () => {
+    it('should raise a timeout error rather than report an unparseable body', async () => {
+      global.fetch = jest.fn().mockResolvedValue({
+        status: 200,
+        headers: { get: () => 'application/json' },
+        json: async () => {
+          throw Object.assign(new Error('The operation was aborted'), { name: 'TimeoutError' });
+        },
+      }) as unknown as typeof fetch;
+
+      await expect(makeClient().query(params())).rejects.toBeInstanceOf(AiProxyTimeoutError);
+    });
+  });
+
   describe('when the upstream cannot be reached', () => {
     it('should raise a timeout error on abort', async () => {
       const timeout = Object.assign(new Error('The operation was aborted'), {

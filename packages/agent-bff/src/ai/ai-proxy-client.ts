@@ -6,6 +6,10 @@ export { default as AiProxyTimeoutError } from './ai-proxy-errors';
 const AI_QUERY_PATH = '/api/ai-proxy/ai-query';
 const JSON_CONTENT_TYPE = 'application/json';
 
+function isTimeout(error: unknown): boolean {
+  return error instanceof Error && error.name === 'TimeoutError';
+}
+
 export interface AiProxyClientOptions {
   forestServerUrl: string;
   timeoutMs: number;
@@ -63,7 +67,7 @@ export default class AiProxyClient {
         signal: AbortSignal.timeout(this.timeoutMs),
       });
     } catch (error) {
-      if (error instanceof Error && error.name === 'TimeoutError') throw new AiProxyTimeoutError();
+      if (isTimeout(error)) throw new AiProxyTimeoutError();
       throw new Error('The Forest server could not be reached');
     }
 
@@ -74,7 +78,9 @@ export default class AiProxyClient {
 
     try {
       return { status: response.status, body: await response.json(), isJson: true };
-    } catch {
+    } catch (error) {
+      if (isTimeout(error)) throw new AiProxyTimeoutError();
+
       return { status: response.status, body: undefined, isJson: false };
     }
   }
