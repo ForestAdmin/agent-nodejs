@@ -1,3 +1,10 @@
+## @forestadmin/datasource-customizer [1.71.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.71.0...@forestadmin/datasource-customizer@1.71.1) (2026-08-24)
+
+
+### Bug Fixes
+
+* **datasource-customizer:** reject malformed binary filter values instead of crashing ([#1835](https://github.com/ForestAdmin/agent-nodejs/issues/1835)) ([73bc2f7](https://github.com/ForestAdmin/agent-nodejs/commit/73bc2f7be41fa65058661f0edac0100954e6c1d3))
+
 # @forestadmin/datasource-customizer [1.71.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.70.1...@forestadmin/datasource-customizer@1.71.0) (2026-08-19)
 
 
