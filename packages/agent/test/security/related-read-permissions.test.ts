@@ -1,4 +1,4 @@
-import type { CollectionDecorator, DataSource } from '@forestadmin/datasource-toolkit';
+import type { CollectionDecorator, DataSource, RecordData } from '@forestadmin/datasource-toolkit';
 
 import { CollectionActionEvent } from '@forestadmin/forestadmin-client';
 import { createMockContext } from '@shopify/jest-koa-mocks';
@@ -13,6 +13,7 @@ import List from '../../src/routes/access/list';
 import ListRelated from '../../src/routes/access/list-related';
 import Update from '../../src/routes/modification/update';
 import AuthorizationService from '../../src/services/authorization/authorization';
+import Serializer from '../../src/services/serializer';
 import * as factories from '../__factories__';
 
 describe('read permissions on related collections', () => {
@@ -38,6 +39,11 @@ describe('read permissions on related collections', () => {
               foreignCollection: 'holders',
               foreignKey: 'holderId',
             }),
+            contract: factories.oneToOneSchema.build({
+              foreignCollection: 'contracts',
+              originKey: 'cardId',
+              originKeyTarget: 'id',
+            }),
           },
         }),
       }),
@@ -48,6 +54,21 @@ describe('read permissions on related collections', () => {
             id: factories.columnSchema.uuidPrimaryKey().build(),
             iban: factories.columnSchema.text().build(),
             balance: factories.columnSchema.build({ columnType: 'Number' }),
+            organizationId: factories.columnSchema.build({ columnType: 'Uuid' }),
+            organization: factories.manyToOneSchema.build({
+              foreignCollection: 'organizations',
+              foreignKey: 'organizationId',
+            }),
+          },
+        }),
+      }),
+      factories.collection.build({
+        name: 'contracts',
+        schema: factories.collectionSchema.build({
+          fields: {
+            id: factories.columnSchema.uuidPrimaryKey().build(),
+            cardId: factories.columnSchema.build({ columnType: 'Uuid' }),
+            reference: factories.columnSchema.text().build(),
             organizationId: factories.columnSchema.build({ columnType: 'Uuid' }),
             organization: factories.manyToOneSchema.build({
               foreignCollection: 'organizations',
@@ -180,17 +201,85 @@ describe('read permissions on related collections', () => {
         buildContext({}, { 'forest-projection': 'id,account:organization:name' }),
       );
 
-      // `withPks` runs after the check and re-adds a key per surviving relation, so `account:id`
-      // comes back from a collection the caller cannot read. It carries nothing new only here,
-      // where the ManyToOne targets the primary key and the row already holds it as
-      // `cards.accountId`. A OneToOne, or a `foreignKeyTarget` that is not the primary key,
-      // exposes a key the row does not carry.
+      // `account:id` comes back from a collection the caller cannot read, and has to: JSON:API
+      // renders a traversed relation as a resource of its own, so `accounts` needs an identity for
+      // `account:organization:name` to be served at all. `withPks` is what supplies it — dropping
+      // it would 500 rather than redact, see the serialization case below.
       expect([...list.mock.calls[0][2]].sort()).toEqual([
         'account:id',
         'account:organization:id',
         'account:organization:name',
         'id',
       ]);
+    });
+
+    it('should serve the key of a traversed OneToOne, which the root row does not carry', async () => {
+      const dataSource = buildDataSource();
+      const services = buildServices(['organizations']);
+      const list = jest.spyOn(dataSource.getCollection('cards'), 'list').mockResolvedValue([]);
+
+      await new List(services, options, dataSource, 'cards').handleList(
+        buildContext({}, { 'forest-projection': 'id,contract:organization:name' }),
+      );
+
+      // The sharp end of the same rule: `contract` is a OneToOne, so `contracts.id` is not a
+      // foreign key the card row holds — the caller reads a value it has no other way to obtain.
+      // The alternative is refusing the traversal outright, which the leaf-only rule declines.
+      expect([...list.mock.calls[0][2]].sort()).toEqual([
+        'contract:id',
+        'contract:organization:id',
+        'contract:organization:name',
+        'id',
+      ]);
+    });
+
+    it('should expose that key and nothing else of the traversed collection', async () => {
+      const dataSource = buildDataSource();
+      const services = buildServices(['organizations']);
+      services.serializer = new Serializer();
+
+      const row = {
+        id: 'card-1',
+        panLast4: '4242',
+        contract: {
+          id: 'contract-1',
+          reference: 'C-1',
+          organization: { id: 'org-1', name: 'Acme' },
+        },
+      };
+
+      // Reprojected rather than returned whole, so the payload shows what the projection allowed:
+      // drop `contract:id` from it and the serializer throws on a relation with no identity.
+      jest
+        .spyOn(dataSource.getCollection('cards'), 'list')
+        .mockImplementation(async (caller, filter, projection) => projection.apply([row]));
+
+      const context = buildContext({}, { 'forest-projection': 'id,contract:organization:name' });
+
+      await new List(services, options, dataSource, 'cards').handleList(context);
+
+      const body = context.response.body as {
+        data: RecordData[];
+        included: RecordData[];
+      };
+
+      expect(body.data[0].relationships).toEqual({
+        contract: { data: { type: 'contracts', id: 'contract-1' } },
+      });
+
+      // The bound on what the residual costs: the traversed record carries its identity and no
+      // column of its own — `reference`, `cardId` and `organizationId` never reach the payload.
+      expect(body.included).toContainEqual({
+        type: 'contracts',
+        id: 'contract-1',
+        attributes: { id: 'contract-1' },
+        relationships: { organization: { data: { type: 'organizations', id: 'org-1' } } },
+      });
+      expect(body.included).toContainEqual({
+        type: 'organizations',
+        id: 'org-1',
+        attributes: { id: 'org-1', name: 'Acme' },
+      });
     });
   });
 
