@@ -523,6 +523,42 @@ describe('the code samples the docs page injects', () => {
     });
   });
 
+  it('should survive an allOf that names its own schema, and keep sampling what follows', async () => {
+    const page = await render({
+      components: {
+        schemas: {
+          Loop: { allOf: [{ $ref: '#/components/schemas/Loop' }] },
+          Ref: { $ref: '#/components/schemas/Ref' },
+        },
+      },
+      paths: {
+        '/agent/v1/loop/list': {
+          post: {
+            responses: { 200: {} },
+            requestBody: {
+              content: { 'application/json': { schema: { $ref: '#/components/schemas/Loop' } } },
+            },
+          },
+        },
+        '/agent/v1/selfref/list': {
+          post: {
+            responses: { 200: {} },
+            requestBody: {
+              content: { 'application/json': { schema: { $ref: '#/components/schemas/Ref' } } },
+            },
+          },
+        },
+        '/agent/v1/after/list': {
+          post: { responses: { 200: {} } },
+        },
+      },
+    });
+
+    expect(page.samplesOf('/agent/v1/loop/list')).toHaveLength(3);
+    expect(page.samplesOf('/agent/v1/selfref/list')).toHaveLength(3);
+    expect(page.samplesOf('/agent/v1/after/list')).toHaveLength(3);
+  });
+
   it('should leave a document with no path untouched rather than fail to render', async () => {
     const page = await render({ openapi: '3.1.0' });
 

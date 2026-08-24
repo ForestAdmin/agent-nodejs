@@ -33,28 +33,36 @@ const SAMPLES_SCRIPT = `
         var SAMPLE_TIMEZONE = ${JSON.stringify(SAMPLE_TIMEZONE)};
         var KEY_VARIABLE = ${JSON.stringify(KEY_VARIABLE)};
 
-        function schemaOf(spec, node) {
-          if (!node) return {};
+        /**
+         * Every walk below is depth-bounded, because a document can reference itself: a filter is a
+         * condition TREE, and nothing stops a \`$ref\` or an \`allOf\` from naming its own schema. An
+         * overflow here is not local — it throws out of the decoration, so every operation after the
+         * offending one loses its samples too.
+         */
+        var MAX_DEPTH = 6;
+
+        function schemaOf(spec, node, depth) {
+          if (!node || depth > MAX_DEPTH) return {};
 
           if (node.$ref) {
             var schemas = (spec.components || {}).schemas || {};
 
-            return schemaOf(spec, schemas[node.$ref.split('/').pop()]);
+            return schemaOf(spec, schemas[node.$ref.split('/').pop()], depth + 1);
           }
 
           return node;
         }
 
         // A relation request is its foreign collection request plus a parent id, expressed as allOf.
-        function flatten(spec, node) {
-          var schema = schemaOf(spec, node);
+        function flatten(spec, node, depth) {
+          var schema = schemaOf(spec, node, depth);
 
-          if (!schema.allOf) return schema;
+          if (!schema.allOf || depth > MAX_DEPTH) return schema;
 
           var merged = { properties: {}, required: [] };
 
           schema.allOf.forEach(function (part) {
-            var flat = flatten(spec, part);
+            var flat = flatten(spec, part, depth + 1);
 
             Object.keys(flat.properties || {}).forEach(function (name) {
               merged.properties[name] = flat.properties[name];
@@ -65,12 +73,10 @@ const SAMPLES_SCRIPT = `
           return merged;
         }
 
-        // Depth-bounded: a filter is a condition TREE, so a schema can reference itself, and a
-        // future required field of that shape would otherwise recurse until the stack gives out.
         function placeholder(spec, name, node, depth) {
-          if (depth > 6) return '<' + name + '>';
+          if (depth > MAX_DEPTH) return '<' + name + '>';
 
-          var schema = schemaOf(spec, node);
+          var schema = schemaOf(spec, node, depth);
           var alternatives = schema.anyOf || schema.oneOf;
 
           if (alternatives && alternatives.length) {
@@ -91,7 +97,7 @@ const SAMPLES_SCRIPT = `
 
           if (!content) return undefined;
 
-          var schema = flatten(spec, content.schema);
+          var schema = flatten(spec, content.schema, 0);
           var body = {};
 
           (schema.required || []).forEach(function (name) {
