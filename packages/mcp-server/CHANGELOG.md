@@ -1,3 +1,19 @@
+## @forestadmin/mcp-server [1.23.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.23.0...@forestadmin/mcp-server@1.23.1) (2026-08-24)
+
+
+### Bug Fixes
+
+* declare the enum field under the name the wire uses ([#1844](https://github.com/ForestAdmin/agent-nodejs/issues/1844)) ([1fde29c](https://github.com/ForestAdmin/agent-nodejs/commit/1fde29cece0bd543ec05e8c202a48db643b46f15))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.14.2
+* **@forestadmin/forestadmin-client:** upgraded to 1.43.1
+
 # @forestadmin/mcp-server [1.23.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.22.1...@forestadmin/mcp-server@1.23.0) (2026-08-24)
 
 
