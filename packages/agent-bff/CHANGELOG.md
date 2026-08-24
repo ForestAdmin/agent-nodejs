@@ -1,3 +1,10 @@
+# @forestadmin/agent-bff [1.20.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.19.1...@forestadmin/agent-bff@1.20.0) (2026-08-24)
+
+
+### Features
+
+* **agent-bff:** serve the agent schema contract on GET /agent/v1/context ([#1838](https://github.com/ForestAdmin/agent-nodejs/issues/1838)) ([7b5d48a](https://github.com/ForestAdmin/agent-nodejs/commit/7b5d48abfec83b0315b0c1fa769e60a04f81da76))
+
 ## @forestadmin/agent-bff [1.19.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.19.0...@forestadmin/agent-bff@1.19.1) (2026-08-24)
 
 
