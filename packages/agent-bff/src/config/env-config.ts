@@ -40,7 +40,7 @@ export interface BFFConfig {
 const DECIMAL_INTEGER = /^\d+$/;
 export const DEFAULT_AGENT_TIMEOUT_MS = 10_000;
 export const DEFAULT_AI_TIMEOUT_MS = 120_000;
-export const MAX_AGENT_TIMEOUT_MS = 2_147_483_647;
+export const MAX_TIMEOUT_MS = 2_147_483_647;
 const MAX_PORT = 65535;
 const ENCRYPTION_KEY_BYTES = 32;
 const BASE64_PATTERN = /^[A-Za-z0-9+/]+={0,2}$/;
@@ -91,9 +91,9 @@ function parseTimeoutMs(raw: string | undefined, envName: string, defaultMs: num
 
   const timeout = DECIMAL_INTEGER.test(value.trim()) ? Number(value.trim()) : NaN;
 
-  if (Number.isNaN(timeout) || timeout === 0 || timeout > MAX_AGENT_TIMEOUT_MS) {
+  if (Number.isNaN(timeout) || timeout === 0 || timeout > MAX_TIMEOUT_MS) {
     throw new ConfigurationError(
-      `Invalid configuration: ${envName} must be a positive integer of at most ${MAX_AGENT_TIMEOUT_MS} milliseconds.`,
+      `Invalid configuration: ${envName} must be a positive integer of at most ${MAX_TIMEOUT_MS} milliseconds.`,
     );
   }
 

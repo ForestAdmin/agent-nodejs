@@ -1,7 +1,7 @@
 import {
   DEFAULT_AGENT_TIMEOUT_MS,
   DEFAULT_AI_TIMEOUT_MS,
-  MAX_AGENT_TIMEOUT_MS,
+  MAX_TIMEOUT_MS,
   REQUIRED_KEYS,
   parseConfig,
 } from '../../src/config/env-config';
@@ -236,9 +236,8 @@ describe('parseConfig', () => {
 
     it('should accept the largest value Node can hold in a timer', () => {
       expect(
-        parseConfig({ ...VALID_ENV, BFF_AGENT_TIMEOUT_MS: String(MAX_AGENT_TIMEOUT_MS) })
-          .agentTimeoutMs,
-      ).toBe(MAX_AGENT_TIMEOUT_MS);
+        parseConfig({ ...VALID_ENV, BFF_AGENT_TIMEOUT_MS: String(MAX_TIMEOUT_MS) }).agentTimeoutMs,
+      ).toBe(MAX_TIMEOUT_MS);
     });
 
     it.each([
@@ -246,7 +245,7 @@ describe('parseConfig', () => {
       ['negative', '-1'],
       ['non-numeric', 'soon'],
       ['fractional', '1.5'],
-      ['past the Node timer ceiling', String(MAX_AGENT_TIMEOUT_MS + 1)],
+      ['past the Node timer ceiling', String(MAX_TIMEOUT_MS + 1)],
     ])('should throw ConfigurationError for a %s value', (_label, value) => {
       expect(() => parseConfig({ ...VALID_ENV, BFF_AGENT_TIMEOUT_MS: value })).toThrow(
         ConfigurationError,
@@ -281,7 +280,7 @@ describe('parseConfig', () => {
       ['negative', '-1'],
       ['non-numeric', 'never'],
       ['fractional', '1.5'],
-      ['past the Node timer ceiling', String(MAX_AGENT_TIMEOUT_MS + 1)],
+      ['past the Node timer ceiling', String(MAX_TIMEOUT_MS + 1)],
     ])('should throw ConfigurationError for a %s value', (_label, value) => {
       expect(() => parseConfig({ ...VALID_ENV, BFF_AI_TIMEOUT_MS: value })).toThrow(
         ConfigurationError,
