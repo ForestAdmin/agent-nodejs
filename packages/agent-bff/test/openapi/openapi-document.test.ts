@@ -7,7 +7,7 @@ import {
   serializeOpenApi,
 } from '../../src/openapi/openapi-document';
 
-const document = generateOpenApiDocument('9.9.9');
+const document = generateOpenApiDocument('9.9.9', { hasAiQueryRoute: true });
 const schemas = document.components?.schemas as Record<string, Record<string, unknown>>;
 
 type ResolvedResponse = {

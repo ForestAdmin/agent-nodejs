@@ -67,7 +67,8 @@ export default class AiProxyClient {
       throw new Error('The Forest server could not be reached');
     }
 
-    const declaresJson = response.headers.get('content-type')?.includes(JSON_CONTENT_TYPE) ?? false;
+    const contentType = response.headers.get('content-type')?.toLowerCase() ?? '';
+    const declaresJson = contentType.includes(JSON_CONTENT_TYPE);
 
     if (!declaresJson) return { status: response.status, body: undefined, isJson: false };
 

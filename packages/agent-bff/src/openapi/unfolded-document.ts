@@ -27,6 +27,7 @@ export default async function buildUnfoldedDocument(
   readModel: ReadModel,
   token: string | (() => string),
   version: string,
+  hasAiQueryRoute = false,
 ): Promise<UnfoldedDocument> {
   const unfolding = await collectUnfolding({
     readModel,
@@ -39,7 +40,10 @@ export default async function buildUnfoldedDocument(
     logger: source.logger,
   });
 
-  return { document: serializeOpenApi(generateOpenApiDocument(version, unfolding)), unfolding };
+  return {
+    document: serializeOpenApi(generateOpenApiDocument(version, { unfolding, hasAiQueryRoute })),
+    unfolding,
+  };
 }
 
 /**

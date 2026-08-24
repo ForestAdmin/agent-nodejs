@@ -294,13 +294,54 @@ const UNFOLDED_DESCRIPTION =
   'no list or count route. This document describes the whole exposed schema regardless of the ' +
   'caller: it is not filtered by the permissions of whoever fetched it.';
 
-export function generateOpenApiDocument(version: string, unfolding?: Unfolding): OpenAPIObject {
+function registerAiQueryPath(
+  registry: OpenAPIRegistry,
+  aiErrorRefs: Record<string, ResponseRef>,
+): void {
+  registry.registerPath({
+    method: 'post',
+    path: `${ROUTE_PREFIX}/ai/query`,
+    operationId: 'aiQuery',
+    summary: 'Relay an AI query to the Forest server',
+    description:
+      'Relays the body unchanged to the Forest AI proxy, authenticated with the OAuth session ' +
+      'held by the BFF. Requires a session: an API key is rejected with 403 oauth_required, ' +
+      'because only the OAuth flow yields the Forest access token this route forwards. The ' +
+      'environment and rendering are derived server-side, so sending forest-* headers has no ' +
+      `effect. The body limit is ${AI_BODY_LIMIT} here rather than the ${BODY_LIMIT} of every ` +
+      'other route, and only application/json is parsed. This path is published only by a ' +
+      'deployment whose OAuth configuration is complete, since the relay needs a session.',
+    security: [{ [SESSION_SCHEME]: [] }],
+    request: {
+      body: { required: true, content: { 'application/json': { schema: AiQueryRequestSchema } } },
+    },
+    responses: {
+      200: {
+        description: 'The AI provider response, passed through unchanged',
+        content: { 'application/json': { schema: z.unknown() } },
+      },
+      ...aiErrorRefs,
+    },
+  });
+}
+
+export interface GenerateOpenApiDocumentOptions {
+  unfolding?: Unfolding;
+  hasAiQueryRoute?: boolean;
+}
+
+export function generateOpenApiDocument(
+  version: string,
+  { unfolding, hasAiQueryRoute = false }: GenerateOpenApiDocumentOptions = {},
+): OpenAPIObject {
   const registry = new OpenAPIRegistry();
   const hasActions =
     unfolding === undefined ||
     unfolding.collections.some(collection => collection.actions.length > 0);
   const errorRefs = registerErrorResponses(registry, DATA_ERRORS, hasActions);
-  const aiErrorRefs = registerAiQueryErrorResponses(registry, errorRefs);
+  const aiErrorRefs = hasAiQueryRoute
+    ? registerAiQueryErrorResponses(registry, errorRefs)
+    : undefined;
   const timezoneHeader = [registry.registerParameter(TIMEZONE_HEADER_COMPONENT, TIMEZONE_HEADER)];
 
   registry.registerComponent('securitySchemes', SESSION_SCHEME, {
@@ -338,30 +379,7 @@ export function generateOpenApiDocument(version: string, unfolding?: Unfolding):
     },
   });
 
-  registry.registerPath({
-    method: 'post',
-    path: `${ROUTE_PREFIX}/ai/query`,
-    operationId: 'aiQuery',
-    summary: 'Relay an AI query to the Forest server',
-    description:
-      'Relays the body unchanged to the Forest AI proxy, authenticated with the OAuth session ' +
-      'held by the BFF. Requires a session: an API key is rejected with 403 oauth_required, ' +
-      'because only the OAuth flow yields the Forest access token this route forwards. The ' +
-      'environment and rendering are derived server-side, so sending forest-* headers has no ' +
-      `effect. The body limit is ${AI_BODY_LIMIT} here rather than the ${BODY_LIMIT} of every ` +
-      'other route, and only application/json is parsed.',
-    security: [{ [SESSION_SCHEME]: [] }],
-    request: {
-      body: { required: true, content: { 'application/json': { schema: AiQueryRequestSchema } } },
-    },
-    responses: {
-      200: {
-        description: 'The AI provider response, passed through unchanged',
-        content: { 'application/json': { schema: z.unknown() } },
-      },
-      ...aiErrorRefs,
-    },
-  });
+  if (aiErrorRefs) registerAiQueryPath(registry, aiErrorRefs);
 
   if (unfolding) {
     registerUnfoldedPaths(

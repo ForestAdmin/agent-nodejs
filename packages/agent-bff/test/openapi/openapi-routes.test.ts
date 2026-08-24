@@ -143,7 +143,6 @@ describe('GET /agent/openapi.json', () => {
         expect(response.status).toBe(200);
         expect(response.body.openapi).toBe('3.1.0');
         expect(Object.keys(response.body.paths).sort()).toEqual([
-          '/agent/v1/ai/query',
           '/agent/v1/context',
           '/agent/v1/orders/count',
           '/agent/v1/orders/list',
@@ -208,7 +207,7 @@ describe('GET /agent/openapi.json', () => {
 
         expect(withKey.status).toBe(200);
         expect(withKey.body.openapi).toBe('3.1.0');
-        expect(Object.keys(withKey.body.paths)).toHaveLength(10);
+        expect(Object.keys(withKey.body.paths)).toHaveLength(9);
         expect(Object.keys(withKey.body.paths).sort()).toEqual(
           Object.keys(withSession.body.paths).sort(),
         );
@@ -235,7 +234,7 @@ describe('GET /agent/openapi.json', () => {
           .set('Authorization', `Bearer ${sessionToken()}`);
 
         expect(response.status).toBe(200);
-        expect(Object.keys(response.body.paths)).toHaveLength(8);
+        expect(Object.keys(response.body.paths)).toHaveLength(7);
         expect(response.body.info.description).toContain('Paths are generic');
         expect(fetchSchema).not.toHaveBeenCalled();
       });
@@ -395,7 +394,6 @@ describe('GET /agent/openapi.json', () => {
 
       expect(Object.keys(JSON.parse(ctx.body as string).paths)).toEqual([
         '/agent/v1/context',
-        '/agent/v1/ai/query',
         '/agent/v1/orders/list',
         '/agent/v1/orders/count',
       ]);

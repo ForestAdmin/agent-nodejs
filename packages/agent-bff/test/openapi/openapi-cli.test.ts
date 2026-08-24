@@ -93,15 +93,20 @@ describe('renderOpenApi', () => {
   it('should emit the generic document when nothing is configured to unfold against', async () => {
     const document = JSON.parse(await renderOpenApi({}, noopLogger));
 
-    expect(Object.keys(document.paths)).toHaveLength(8);
+    expect(Object.keys(document.paths)).toHaveLength(7);
     expect(document.info.description).toContain('Paths are generic');
+  });
+
+  it('should omit the ai relay, since the export cannot know whether OAuth is configured', async () => {
+    const document = JSON.parse(await renderOpenApi(VALID_ENV, noopLogger));
+
+    expect(Object.keys(document.paths)).not.toContain('/agent/v1/ai/query');
   });
 
   it('should unfold when the deployment is configured, without borrowing a caller token', async () => {
     const document = JSON.parse(await renderOpenApi(VALID_ENV, noopLogger));
 
     expect(Object.keys(document.paths).sort()).toEqual([
-      '/agent/v1/ai/query',
       '/agent/v1/context',
       '/agent/v1/orders/count',
       '/agent/v1/orders/list',
@@ -147,14 +152,14 @@ describe('renderOpenApi', () => {
       await renderOpenApi({ ...VALID_ENV, AGENT_URL: undefined }, noopLogger),
     );
 
-    expect(Object.keys(document.paths)).toHaveLength(8);
+    expect(Object.keys(document.paths)).toHaveLength(7);
     expect(fetchSchema).not.toHaveBeenCalled();
   });
 
   it('should ignore a broken server-only setting, which the export does not use', async () => {
     const document = JSON.parse(await renderOpenApi({ HTTP_PORT: 'nope' }, noopLogger));
 
-    expect(Object.keys(document.paths)).toHaveLength(8);
+    expect(Object.keys(document.paths)).toHaveLength(7);
   });
 
   it('should still reject a broken setting once the deployment asks to be unfolded', async () => {
@@ -232,7 +237,7 @@ describe('dispatchCli', () => {
 
         const document = JSON.parse(stdout.mock.calls[0][0] as string);
 
-        expect(Object.keys(document.paths)).toHaveLength(8);
+        expect(Object.keys(document.paths)).toHaveLength(7);
       } finally {
         stdout.mockRestore();
       }

@@ -86,6 +86,20 @@ describe('AiProxyClient', () => {
     });
   });
 
+  describe('when the upstream declares json in a different case', () => {
+    it('should still parse it, since media types are case-insensitive', async () => {
+      global.fetch = jest.fn().mockResolvedValue({
+        status: 200,
+        headers: { get: () => 'Application/JSON; charset=utf-8' },
+        json: async () => ({ choices: [] }),
+      }) as unknown as typeof fetch;
+
+      const result = await makeClient().query(params());
+
+      expect(result).toStrictEqual({ status: 200, body: { choices: [] }, isJson: true });
+    });
+  });
+
   describe('when the upstream answers a non-JSON body', () => {
     it('should flag it and drop the body rather than carry infrastructure html', async () => {
       global.fetch = jest.fn().mockResolvedValue({

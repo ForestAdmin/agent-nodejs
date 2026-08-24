@@ -321,14 +321,20 @@ function buildAgentMiddlewares(config: BFFConfig, logger: Logger, oauth: OAuthEd
   // AGENT_URL every data path answers 501, so concrete paths would advertise a dead surface.
   const bundle = resolveReadModelBundle(config, logger);
   const source = toUnfoldSource(bundle, config, logger);
+  const aiMiddlewares = buildAiMiddlewares(config, oauth, logger);
 
   const chain: Middleware[] = [
     createAuthModeMiddleware({ authSecret: forestAuthSecret }),
     apiKeyStep,
     createPerKeyOriginMiddleware(),
-    createOpenApiRoutes({ version, enabled: config.openapiEnabled, source }),
+    createOpenApiRoutes({
+      version,
+      enabled: config.openapiEnabled,
+      source,
+      hasAiQueryRoute: aiMiddlewares.length > 0,
+    }),
     ...(bundle ? [createContextRoutesMiddleware({ store: bundle.store, environmentId })] : []),
-    ...buildAiMiddlewares(config, oauth, logger),
+    ...aiMiddlewares,
     createTimezoneMiddleware({ defaultTimezone }),
     ...buildAgentRouteMiddlewares(bundle, config, logger),
   ];
