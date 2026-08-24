@@ -119,6 +119,34 @@ describe('GET /agent/openapi.json', () => {
     fetchCapabilities.mockClear().mockResolvedValue(CAPABILITIES);
   });
 
+  describe('when the deployment carries a complete OAuth configuration', () => {
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('should publish the ai relay, which that deployment does mount', async () => {
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        statusText: 'ok',
+        json: async () => ({ data: { id: '42' } }),
+      }) as unknown as typeof fetch;
+
+      const oauthEnv = {
+        ...VALID_ENV,
+        BFF_TOKEN_ENCRYPTION_KEY: Buffer.alloc(32).toString('base64'),
+      } satisfies NodeJS.ProcessEnv;
+
+      await withServer(oauthEnv, async server => {
+        const response = await request(server.callback)
+          .get(OPENAPI_PATH)
+          .set('Authorization', `Bearer ${sessionToken()}`);
+
+        expect(Object.keys(response.body.paths)).toContain('/agent/v1/ai/query');
+      });
+    });
+  });
+
   describe('when no credentials are sent', () => {
     it('should return 401 and never the document, since the route sits behind the agent gate', async () => {
       await withServer(VALID_ENV, async server => {
