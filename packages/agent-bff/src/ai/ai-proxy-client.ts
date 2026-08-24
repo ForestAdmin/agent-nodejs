@@ -1,7 +1,7 @@
 import AI_NAME from './ai-name';
-import AiProxyTimeoutError from './ai-proxy-errors';
+import AiProxyTimeoutError from './ai-proxy-timeout-error';
 
-export { default as AiProxyTimeoutError } from './ai-proxy-errors';
+export { default as AiProxyTimeoutError } from './ai-proxy-timeout-error';
 
 const AI_QUERY_PATH = '/api/ai-proxy/ai-query';
 const JSON_CONTENT_TYPE = 'application/json';
