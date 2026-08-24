@@ -6,6 +6,7 @@ import { OpenAPIRegistry, OpenApiGeneratorV31 } from '@asteasolutions/zod-to-ope
 import ComponentPool from './component-pool';
 import {
   ActionRequestSchema,
+  AiQueryRequestSchema,
   ContextResponseSchema,
   CountRequestSchema,
   CountResponseSchema,
@@ -18,7 +19,7 @@ import {
 } from './schemas';
 import registerUnfoldedPaths from './unfolded-paths';
 import { z } from './zod-openapi';
-import BODY_LIMIT from '../http/body-limit';
+import BODY_LIMIT, { AI_BODY_LIMIT } from '../http/body-limit';
 
 export const OPENAPI_VERSION = '3.1.0';
 export const ROUTE_PREFIX = '/agent/v1';
@@ -34,6 +35,7 @@ const ERROR_STATUSES: Record<string, string> = {
   403: 'The action needs approval before it runs (the body carries the approving roles), the Forest identity behind the API key is not allowed, the origin is not allowed for this key, or the agent refused the collection, relation, or action',
   404: 'Unknown collection, relation, or action',
   413: `The request body exceeds the BFF limit of ${BODY_LIMIT}`,
+  504: 'The Forest server did not answer the AI query before the BFF timeout',
   415: 'The request declares a character set the server cannot decode. Other content types are NOT rejected: a form-urlencoded body is parsed and validated like JSON (its values arrive as strings, so typed fields such as page.limit fail with 400), while any other non-JSON content type is read as an absent body, silently dropping filters and pagination',
   422: 'A field is unknown, not filterable, or is a nested relation path',
   429: 'The agent rate-limited the request',
@@ -138,6 +140,32 @@ const DATA_ERRORS = [
   '502',
   '503',
 ];
+
+const AI_QUERY_SHARED_ERRORS = ['400', '401', '403', '429', '500', '502', '503'];
+
+const AI_BODY_LIMIT_COMPONENT = 'Error413AiQuery';
+const AI_TIMEOUT_COMPONENT = 'Error504AiQuery';
+
+function registerAiQueryErrorResponses(
+  registry: OpenAPIRegistry,
+  shared: ErrorResponseRefs,
+): Record<string, ResponseRef> {
+  const timeout = registry.registerComponent('responses', AI_TIMEOUT_COMPONENT, {
+    description: ERROR_STATUSES['504'],
+    content: { 'application/json': { schema: { $ref: ERROR_RESPONSE_REF } } },
+  }).ref;
+
+  const bodyLimit = registry.registerComponent('responses', AI_BODY_LIMIT_COMPONENT, {
+    description: `The request body exceeds the AI query limit of ${AI_BODY_LIMIT}`,
+    content: { 'application/json': { schema: { $ref: ERROR_RESPONSE_REF } } },
+  }).ref;
+
+  return {
+    ...Object.fromEntries(AI_QUERY_SHARED_ERRORS.map(status => [status, shared.byStatus[status]])),
+    413: bodyLimit,
+    504: timeout,
+  };
+}
 
 interface RouteDefinition {
   path: string;
@@ -272,6 +300,7 @@ export function generateOpenApiDocument(version: string, unfolding?: Unfolding):
     unfolding === undefined ||
     unfolding.collections.some(collection => collection.actions.length > 0);
   const errorRefs = registerErrorResponses(registry, DATA_ERRORS, hasActions);
+  const aiErrorRefs = registerAiQueryErrorResponses(registry, errorRefs);
   const timezoneHeader = [registry.registerParameter(TIMEZONE_HEADER_COMPONENT, TIMEZONE_HEADER)];
 
   registry.registerComponent('securitySchemes', SESSION_SCHEME, {
@@ -306,6 +335,31 @@ export function generateOpenApiDocument(version: string, unfolding?: Unfolding):
       500: errorRefs.byStatus['500'],
       501: errorRefs.byStatus['501'],
       503: errorRefs.byStatus['503'],
+    },
+  });
+
+  registry.registerPath({
+    method: 'post',
+    path: `${ROUTE_PREFIX}/ai/query`,
+    operationId: 'aiQuery',
+    summary: 'Relay an AI query to the Forest server',
+    description:
+      'Relays the body unchanged to the Forest AI proxy, authenticated with the OAuth session ' +
+      'held by the BFF. Requires a session: an API key is rejected with 403 oauth_required, ' +
+      'because only the OAuth flow yields the Forest access token this route forwards. The ' +
+      'environment and rendering are derived server-side, so sending forest-* headers has no ' +
+      `effect. The body limit is ${AI_BODY_LIMIT} here rather than the ${BODY_LIMIT} of every ` +
+      'other route, and only application/json is parsed.',
+    security: [{ [SESSION_SCHEME]: [] }],
+    request: {
+      body: { required: true, content: { 'application/json': { schema: AiQueryRequestSchema } } },
+    },
+    responses: {
+      200: {
+        description: 'The AI provider response, passed through unchanged',
+        content: { 'application/json': { schema: z.unknown() } },
+      },
+      ...aiErrorRefs,
     },
   });
 

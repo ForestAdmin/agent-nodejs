@@ -44,10 +44,14 @@ function listResponses(): Record<string, ResolvedResponse> {
   return responsesOf(`${ROUTE_PREFIX}/{collection}/list`);
 }
 
+const AI_QUERY_PATH = `${ROUTE_PREFIX}/ai/query`;
+
 function dataOperations(): { security: unknown; responses: Record<string, unknown> }[] {
-  return Object.values(document.paths ?? {})
+  return Object.entries(document.paths ?? {})
+    .filter(([path]) => path !== AI_QUERY_PATH)
     .map(
-      path => (path as { post?: { security: unknown; responses: Record<string, unknown> } }).post,
+      ([, path]) =>
+        (path as { post?: { security: unknown; responses: Record<string, unknown> } }).post,
     )
     .filter(operation => operation !== undefined);
 }
@@ -69,12 +73,13 @@ describe('generateOpenApiDocument', () => {
   it('should serve every path under the /agent/v1 prefix', () => {
     const paths = Object.keys(document.paths ?? {});
 
-    expect(paths).toHaveLength(7);
+    expect(paths).toHaveLength(8);
     expect(paths.every(path => path.startsWith(`${ROUTE_PREFIX}/`))).toBe(true);
   });
 
-  it('should expose the six generic runtime routes plus the context contract', () => {
+  it('should expose the six generic runtime routes plus the context contract and the ai relay', () => {
     expect(Object.keys(document.paths ?? {}).sort()).toEqual([
+      `${ROUTE_PREFIX}/ai/query`,
       `${ROUTE_PREFIX}/context`,
       `${ROUTE_PREFIX}/{collection}/actions/{action}/execute`,
       `${ROUTE_PREFIX}/{collection}/actions/{action}/form`,
@@ -189,6 +194,7 @@ describe('generateOpenApiDocument', () => {
   it('should require a body where parentId or recordIds is mandatory', () => {
     const requiredByPath = Object.fromEntries(
       Object.entries(document.paths ?? {})
+        .filter(([path]) => path !== AI_QUERY_PATH)
         .filter(([, item]) => (item as { post?: unknown }).post !== undefined)
         .map(([path, item]) => [
           path,
@@ -283,6 +289,7 @@ describe('generateOpenApiDocument', () => {
       'Error403',
       'Error404',
       'Error413',
+      'Error413AiQuery',
       'Error415',
       'Error422',
       'Error429',
@@ -290,8 +297,20 @@ describe('generateOpenApiDocument', () => {
       'Error501',
       'Error502',
       'Error503',
+      'Error504AiQuery',
       'UnsupportedActionResult',
     ]);
+  });
+
+  it('should keep the ai query body limit and timeout out of every data route', () => {
+    const statuses = dataOperations().flatMap(operation => Object.keys(operation.responses));
+    const aiOperation = (document.paths ?? {})[AI_QUERY_PATH] as {
+      post: { responses: Record<string, { $ref: string }> };
+    };
+
+    expect(statuses).not.toContain('504');
+    expect(aiOperation.post.responses['413'].$ref).toContain('Error413AiQuery');
+    expect(aiOperation.post.responses['504'].$ref).toContain('Error504AiQuery');
   });
 
   it('should declare the timezone header as a parameter, not only in prose', () => {

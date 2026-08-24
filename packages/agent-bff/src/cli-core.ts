@@ -1,4 +1,5 @@
 import type { BFFConfig } from './config/env-config';
+import type { SessionStore } from './oauth/session-store';
 import type { UnfoldSource } from './openapi/unfolded-document';
 import type { Logger } from './ports/logger-port';
 import type { Metrics } from './ports/metrics-port';
@@ -10,6 +11,8 @@ import { bodyParser } from '@koa/bodyparser';
 import createActionRoutesMiddleware from './action/action-routes-middleware';
 import createConsoleLogger from './adapters/console-logger';
 import createAgentStubMiddleware from './agent/agent-stub';
+import AiProxyClient from './ai/ai-proxy-client';
+import createAiRoutesMiddleware, { AI_QUERY_ROUTE } from './ai/ai-routes-middleware';
 import createApiKeyAuthenticator from './api-key/api-key-authenticator';
 import ApiKeyClient from './api-key/api-key-client';
 import createApiKeyMiddleware from './api-key/api-key-middleware';
@@ -24,7 +27,7 @@ import createDocsRoutes from './docs/docs-routes';
 import { extractErrorMessage } from './errors';
 import { unauthorized } from './http/bff-http-error';
 import BFFHttpServer from './http/bff-http-server';
-import BODY_LIMIT from './http/body-limit';
+import BODY_LIMIT, { AI_BODY_LIMIT } from './http/body-limit';
 import createErrorMiddleware from './http/error-middleware';
 import ForestServerClient from './oauth/forest-server-client';
 import createOAuthRoutes from './oauth/oauth-routes';
@@ -47,6 +50,18 @@ function isAgentPath(path: string): boolean {
 function agentScoped(middleware: Middleware): Middleware {
   return async function scoped(ctx, next) {
     if (!isAgentPath(ctx.path)) {
+      await next();
+
+      return;
+    }
+
+    await middleware(ctx, next);
+  };
+}
+
+function pathScoped(path: string, middleware: Middleware): Middleware {
+  return async function scoped(ctx, next) {
+    if (ctx.path !== path) {
       await next();
 
       return;
@@ -95,6 +110,8 @@ function resolveOAuthConfig(config: BFFConfig): ResolvedOAuthConfig | undefined 
 interface OAuthEdge {
   middlewares: Middleware[];
   environmentId?: number;
+  sessionStore?: SessionStore;
+  serverClient?: ForestServerClient;
 }
 
 async function buildOAuthMiddlewares(config: BFFConfig, logger: Logger): Promise<OAuthEdge> {
@@ -127,7 +144,7 @@ async function buildOAuthMiddlewares(config: BFFConfig, logger: Logger): Promise
     logger,
   });
 
-  return { middlewares: [oauthRoutes], environmentId };
+  return { middlewares: [oauthRoutes], environmentId, sessionStore, serverClient };
 }
 
 interface ResolvedApiKeyConfig {
@@ -272,12 +289,26 @@ function buildAgentRouteMiddlewares(
   ];
 }
 
-function buildAgentMiddlewares(
-  config: BFFConfig,
-  logger: Logger,
-  environmentId?: number,
-): Middleware[] {
+function buildAiMiddlewares(config: BFFConfig, oauth: OAuthEdge, logger: Logger): Middleware[] {
+  const { sessionStore, serverClient, environmentId } = oauth;
+
+  if (!sessionStore || !serverClient || !config.forestServerUrl) {
+    logger('Warn', 'AI query route disabled: the deployment carries no OAuth session');
+
+    return [];
+  }
+
+  const client = new AiProxyClient({
+    forestServerUrl: config.forestServerUrl,
+    timeoutMs: config.aiTimeoutMs,
+  });
+
+  return [createAiRoutesMiddleware({ client, sessionStore, serverClient, environmentId, logger })];
+}
+
+function buildAgentMiddlewares(config: BFFConfig, logger: Logger, oauth: OAuthEdge): Middleware[] {
   const { forestAuthSecret, defaultTimezone } = config;
+  const { environmentId } = oauth;
 
   if (!forestAuthSecret) {
     logger('Warn', 'Agent edge disabled: FOREST_AUTH_SECRET is missing');
@@ -297,6 +328,7 @@ function buildAgentMiddlewares(
     createPerKeyOriginMiddleware(),
     createOpenApiRoutes({ version, enabled: config.openapiEnabled, source }),
     ...(bundle ? [createContextRoutesMiddleware({ store: bundle.store, environmentId })] : []),
+    ...buildAiMiddlewares(config, oauth, logger),
     createTimezoneMiddleware({ defaultTimezone }),
     ...buildAgentRouteMiddlewares(bundle, config, logger),
   ];
@@ -317,12 +349,13 @@ export default async function runCli(
   }
 
   const oauth = await buildOAuthMiddlewares(config, logger);
-  const agentMiddlewares = buildAgentMiddlewares(config, logger, oauth.environmentId);
+  const agentMiddlewares = buildAgentMiddlewares(config, logger, oauth);
   const agentErrorMiddleware =
     agentMiddlewares.length > 0 ? [agentScoped(createErrorMiddleware({ logger }))] : [];
   const middlewares = [
     createCorsMiddleware({ allowedOrigins: config.allowedOrigins }),
     ...agentErrorMiddleware,
+    pathScoped(AI_QUERY_ROUTE, bodyParser({ jsonLimit: AI_BODY_LIMIT, enableTypes: ['json'] })),
     bodyParser({ jsonLimit: BODY_LIMIT }),
     ...oauth.middlewares,
     // Outside the agent-scoped chain on purpose: the viewer is a public page, the document it fetches

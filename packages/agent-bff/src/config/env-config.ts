@@ -30,6 +30,7 @@ export interface BFFConfig {
   invalidAllowedOrigins: string[];
   defaultTimezone?: string;
   agentTimeoutMs?: number;
+  aiTimeoutMs: number;
   openapiEnabled: boolean;
   httpPort: number;
   presence: PresenceMap;
@@ -38,6 +39,7 @@ export interface BFFConfig {
 
 const DECIMAL_INTEGER = /^\d+$/;
 export const DEFAULT_AGENT_TIMEOUT_MS = 10_000;
+export const DEFAULT_AI_TIMEOUT_MS = 120_000;
 export const MAX_AGENT_TIMEOUT_MS = 2_147_483_647;
 const MAX_PORT = 65535;
 const ENCRYPTION_KEY_BYTES = 32;
@@ -83,15 +85,15 @@ function parseEncryptionKey(raw?: string): string | undefined {
   return value;
 }
 
-function parseAgentTimeoutMs(raw?: string): number {
+function parseTimeoutMs(raw: string | undefined, envName: string, defaultMs: number): number {
   const value = normalize(raw);
-  if (value === undefined) return DEFAULT_AGENT_TIMEOUT_MS;
+  if (value === undefined) return defaultMs;
 
   const timeout = DECIMAL_INTEGER.test(value.trim()) ? Number(value.trim()) : NaN;
 
   if (Number.isNaN(timeout) || timeout === 0 || timeout > MAX_AGENT_TIMEOUT_MS) {
     throw new ConfigurationError(
-      `Invalid configuration: BFF_AGENT_TIMEOUT_MS must be a positive integer of at most ${MAX_AGENT_TIMEOUT_MS} milliseconds.`,
+      `Invalid configuration: ${envName} must be a positive integer of at most ${MAX_AGENT_TIMEOUT_MS} milliseconds.`,
     );
   }
 
@@ -153,7 +155,12 @@ export function parseConfig(env: NodeJS.ProcessEnv): BFFConfig {
     allowedOrigins,
     invalidAllowedOrigins,
     defaultTimezone,
-    agentTimeoutMs: parseAgentTimeoutMs(env.BFF_AGENT_TIMEOUT_MS),
+    agentTimeoutMs: parseTimeoutMs(
+      env.BFF_AGENT_TIMEOUT_MS,
+      'BFF_AGENT_TIMEOUT_MS',
+      DEFAULT_AGENT_TIMEOUT_MS,
+    ),
+    aiTimeoutMs: parseTimeoutMs(env.BFF_AI_TIMEOUT_MS, 'BFF_AI_TIMEOUT_MS', DEFAULT_AI_TIMEOUT_MS),
     openapiEnabled: parseOpenApiEnabled(env.BFF_OPENAPI_ENABLED),
     httpPort: parsePort(env.HTTP_PORT),
     presence,

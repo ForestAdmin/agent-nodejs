@@ -52,6 +52,30 @@ export function forestIdentityNotAllowed(message = 'Forest identity not allowed'
   return new BffHttpError(403, 'forest_identity_not_allowed', message);
 }
 
+export function oauthRequired(message = 'This route requires an OAuth session'): BffHttpError {
+  return new BffHttpError(403, 'oauth_required', message);
+}
+
+const UPSTREAM_FALLBACK_STATUS = 502;
+
+export function upstreamError(status: number): BffHttpError {
+  const relayed = status >= 400 && status <= 599 ? status : UPSTREAM_FALLBACK_STATUS;
+
+  return new BffHttpError(
+    relayed,
+    'upstream_error',
+    'The Forest server failed to handle the request',
+  );
+}
+
+export function upstreamUnreachable(): BffHttpError {
+  return new BffHttpError(502, 'network_error', 'The Forest server could not be reached');
+}
+
+export function upstreamTimeout(): BffHttpError {
+  return new BffHttpError(504, 'upstream_timeout', 'The Forest server did not respond in time');
+}
+
 export function permissionsUnavailable(
   retryAfter: number,
   message = 'Permissions are unavailable',

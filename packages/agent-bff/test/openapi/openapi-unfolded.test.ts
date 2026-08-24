@@ -10,8 +10,10 @@ import unfoldingFixture from './fixtures';
 import { ROUTE_PREFIX, generateOpenApiDocument } from '../../src/openapi/openapi-document';
 
 const document = generateOpenApiDocument('9.9.9', unfoldingFixture());
+const NON_UNFOLDED_PATHS = [`${ROUTE_PREFIX}/context`, `${ROUTE_PREFIX}/ai/query`];
+
 const paths = Object.fromEntries(
-  Object.entries(document.paths ?? {}).filter(([path]) => path !== `${ROUTE_PREFIX}/context`),
+  Object.entries(document.paths ?? {}).filter(([path]) => !NON_UNFOLDED_PATHS.includes(path)),
 ) as Record<string, { post: Record<string, unknown> }>;
 const schemas = document.components?.schemas as Record<string, Record<string, unknown>>;
 
@@ -437,6 +439,7 @@ describe('an unfolding naming a collection it does not carry', () => {
 
     expect(Object.keys(orphaned.paths ?? {})).toEqual([
       '/agent/v1/context',
+      '/agent/v1/ai/query',
       '/agent/v1/users/list',
       '/agent/v1/users/count',
     ]);

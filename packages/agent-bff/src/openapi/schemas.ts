@@ -249,6 +249,20 @@ export const ContextResponseSchema = z
       'deployment runs without the OAuth configuration.',
   });
 
+export const AiQueryRequestSchema = z
+  .object({
+    messages: z.array(z.unknown()),
+    tools: z.array(z.unknown()).optional(),
+    tool_choice: z.unknown().optional(),
+    parallel_tool_calls: z.boolean().optional(),
+  })
+  .openapi('AiQueryRequest', {
+    description:
+      'Passed through to the Forest AI proxy without validation or rewriting, so the authority ' +
+      'on this shape is the upstream contract, not the BFF. `messages` follows the OpenAI chat ' +
+      'format. A malformed body is rejected by the Forest server, not here.',
+  });
+
 export const ErrorResponseSchema = z
   .object({
     error: z.object({

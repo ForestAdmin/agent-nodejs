@@ -95,6 +95,98 @@ describe('runCli', () => {
     });
   });
 
+  describe('when the AI query route is mounted', () => {
+    const OAUTH_ENV = {
+      ...VALID_ENV,
+      BFF_TOKEN_ENCRYPTION_KEY: Buffer.alloc(32).toString('base64'),
+    } satisfies NodeJS.ProcessEnv;
+
+    function sessionToken() {
+      return jsonwebtoken.sign(
+        { type: 'bff_access', sid: 's1', id: 1, rendering_id: '1', tags: {} },
+        VALID_ENV.FOREST_AUTH_SECRET,
+        { algorithm: 'HS256', expiresIn: '15m' },
+      );
+    }
+
+    beforeEach(() => {
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        statusText: 'ok',
+        json: async () => ({ data: { id: '42' } }),
+      }) as unknown as typeof fetch;
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('should accept a body just under 1mb, which the 16kb global parser would have rejected', async () => {
+      const server = await runCli(OAUTH_ENV, noopLogger);
+
+      try {
+        const response = await request(server.callback)
+          .post('/agent/v1/ai/query')
+          .set('Authorization', `Bearer ${sessionToken()}`)
+          .send({ messages: [{ role: 'user', content: 'x'.repeat(900_000) }] });
+
+        expect(response.status).toBe(401);
+        expect(response.body.error.type).toBe('session_expired');
+      } finally {
+        await server.stop();
+      }
+    });
+
+    it('should reject a body above 1mb', async () => {
+      const server = await runCli(OAUTH_ENV, noopLogger);
+
+      try {
+        const response = await request(server.callback)
+          .post('/agent/v1/ai/query')
+          .set('Authorization', `Bearer ${sessionToken()}`)
+          .set('Content-Type', 'application/json')
+          .set('Content-Length', String(2 * 1024 * 1024))
+          .send('{"messages":[]}')
+          .ok(() => true);
+
+        expect(response.status).toBe(413);
+      } finally {
+        await server.stop();
+      }
+    });
+
+    it('should reach the route without a timezone, since it is mounted before that middleware', async () => {
+      const server = await runCli(OAUTH_ENV, noopLogger);
+
+      try {
+        const response = await request(server.callback)
+          .post('/agent/v1/ai/query')
+          .set('Authorization', `Bearer ${sessionToken()}`)
+          .send({ messages: [] });
+
+        expect(response.status).toBe(401);
+        expect(response.body.error.type).toBe('session_expired');
+      } finally {
+        await server.stop();
+      }
+    });
+
+    it('should keep parsing /oauth/token, which the scoped parser must not shadow', async () => {
+      const server = await runCli(OAUTH_ENV, noopLogger);
+
+      try {
+        const response = await request(server.callback)
+          .post('/oauth/token')
+          .send({ grant_type: 'refresh_token' });
+
+        expect(response.body.error_description).toContain('refresh_token');
+      } finally {
+        await server.stop();
+      }
+    });
+  });
+
   describe('when FOREST_AUTH_SECRET is absent', () => {
     it('should disable the agent edge and log it', async () => {
       const logs: string[] = [];
@@ -181,6 +273,51 @@ describe('runCli', () => {
         expect(response.body.error).toEqual(
           expect.objectContaining({ type: 'schema_unavailable', status: 503 }),
         );
+      } finally {
+        await server.stop();
+      }
+    });
+
+    it('should not mount the AI query route without the OAuth configuration, since it has no session', async () => {
+      const token = jsonwebtoken.sign(
+        { type: 'bff_access', sid: 's1', id: 1, rendering_id: '1', tags: {} },
+        VALID_ENV.FOREST_AUTH_SECRET,
+        { algorithm: 'HS256', expiresIn: '15m' },
+      );
+      const logs: string[] = [];
+      const logger: Logger = (_level, message) => logs.push(message);
+      const server = await runCli(VALID_ENV, logger);
+
+      try {
+        const response = await request(server.callback)
+          .post('/agent/v1/ai/query')
+          .set('Authorization', `Bearer ${token}`)
+          .set('X-Forest-Timezone', 'Europe/Paris')
+          .send({ messages: [] });
+
+        expect(logs).toContain('AI query route disabled: the deployment carries no OAuth session');
+        expect(response.status).toBe(404);
+      } finally {
+        await server.stop();
+      }
+    });
+
+    it('should keep the 16kb limit on data routes, so the AI parser did not widen the whole edge', async () => {
+      const token = jsonwebtoken.sign(
+        { type: 'bff_access', sid: 's1', id: 1, rendering_id: '1', tags: {} },
+        VALID_ENV.FOREST_AUTH_SECRET,
+        { algorithm: 'HS256', expiresIn: '15m' },
+      );
+      const server = await runCli(VALID_ENV, noopLogger);
+
+      try {
+        const response = await request(server.callback)
+          .post('/agent/v1/books/list')
+          .set('Authorization', `Bearer ${token}`)
+          .set('X-Forest-Timezone', 'Europe/Paris')
+          .send({ filler: 'x'.repeat(20_000) });
+
+        expect(response.status).toBe(413);
       } finally {
         await server.stop();
       }
