@@ -1,6 +1,7 @@
 import type { Logger } from '../ports/logger-port';
 import type ReadModel from '../read-model/read-model';
 import type ReadModelStore from '../read-model/read-model-store';
+import type { SchemaSnapshot } from '../read-model/read-model-store';
 import type { Context } from 'koa';
 
 import { mapAgentError } from './agent-error-mapper';
@@ -16,13 +17,21 @@ export function decodeSegment(raw: string, label: string): string {
   }
 }
 
-export async function resolveReadModel(store: ReadModelStore): Promise<ReadModel> {
+async function mapSchemaFailure<T>(read: () => Promise<T>): Promise<T> {
   try {
-    return await store.getReadModel();
+    return await read();
   } catch (error) {
     if (error instanceof SchemaUnavailableError) throw schemaUnavailable();
     throw error;
   }
+}
+
+export async function resolveSchemaSnapshot(store: ReadModelStore): Promise<SchemaSnapshot> {
+  return mapSchemaFailure(() => store.getSchemaSnapshot());
+}
+
+export async function resolveReadModel(store: ReadModelStore): Promise<ReadModel> {
+  return mapSchemaFailure(() => store.getReadModel());
 }
 
 export function requireAgentToken(ctx: Context): string {

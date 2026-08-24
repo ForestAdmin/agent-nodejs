@@ -22,8 +22,11 @@ const responseComponents = (document.components?.responses ?? {}) as unknown as 
 >;
 
 function responsesOf(path: string): Record<string, ResolvedResponse> {
-  const { responses } = (document.paths?.[path] as { post: { responses: Record<string, unknown> } })
-    .post;
+  const item = document.paths?.[path] as {
+    post?: { responses: Record<string, unknown> };
+    get?: { responses: Record<string, unknown> };
+  };
+  const { responses } = (item.post ?? item.get) as { responses: Record<string, unknown> };
 
   return Object.fromEntries(
     Object.entries(responses).map(([status, response]) => {
@@ -39,6 +42,14 @@ function responsesOf(path: string): Record<string, ResolvedResponse> {
 
 function listResponses(): Record<string, ResolvedResponse> {
   return responsesOf(`${ROUTE_PREFIX}/{collection}/list`);
+}
+
+function dataOperations(): { security: unknown; responses: Record<string, unknown> }[] {
+  return Object.values(document.paths ?? {})
+    .map(
+      path => (path as { post?: { security: unknown; responses: Record<string, unknown> } }).post,
+    )
+    .filter(operation => operation !== undefined);
 }
 
 function leafOperators(): string[] {
@@ -58,12 +69,13 @@ describe('generateOpenApiDocument', () => {
   it('should serve every path under the /agent/v1 prefix', () => {
     const paths = Object.keys(document.paths ?? {});
 
-    expect(paths).toHaveLength(6);
+    expect(paths).toHaveLength(7);
     expect(paths.every(path => path.startsWith(`${ROUTE_PREFIX}/`))).toBe(true);
   });
 
-  it('should expose the six generic runtime routes', () => {
+  it('should expose the six generic runtime routes plus the context contract', () => {
     expect(Object.keys(document.paths ?? {}).sort()).toEqual([
+      `${ROUTE_PREFIX}/context`,
       `${ROUTE_PREFIX}/{collection}/actions/{action}/execute`,
       `${ROUTE_PREFIX}/{collection}/actions/{action}/form`,
       `${ROUTE_PREFIX}/{collection}/count`,
@@ -148,10 +160,8 @@ describe('generateOpenApiDocument', () => {
     });
   });
 
-  it('should secure every operation with the API key only, the one mode the routes accept', () => {
-    const operations = Object.values(document.paths ?? {}).map(
-      path => (path as { post: { security: unknown } }).post,
-    );
+  it('should secure every data operation with the API key only, the one mode those routes accept', () => {
+    const operations = dataOperations();
 
     expect(operations).toHaveLength(6);
     operations.forEach(operation => {
@@ -159,21 +169,32 @@ describe('generateOpenApiDocument', () => {
     });
   });
 
-  it('should say in the session scheme why no operation accepts it yet', () => {
+  it('should let both auth modes reach the context contract, which is not caller-scoped', () => {
+    const context = (document.paths ?? {})[`${ROUTE_PREFIX}/context`] as {
+      get: { security: unknown };
+    };
+
+    expect(context.get.security).toEqual([{ bffSession: [] }, { bffApiKey: [] }]);
+  });
+
+  it('should say in the session scheme which routes accept it', () => {
     const session = (
       document.components?.securitySchemes as Record<string, { description: string }>
     ).bffSession;
 
-    expect(session.description).toContain('reject it until');
+    expect(session.description).toContain('Accepted on the context contract');
+    expect(session.description).toContain('the data and action routes advertise the API key only');
   });
 
   it('should require a body where parentId or recordIds is mandatory', () => {
     const requiredByPath = Object.fromEntries(
-      Object.entries(document.paths ?? {}).map(([path, item]) => [
-        path,
-        (item as { post: { requestBody: { required?: boolean } } }).post.requestBody.required ===
-          true,
-      ]),
+      Object.entries(document.paths ?? {})
+        .filter(([, item]) => (item as { post?: unknown }).post !== undefined)
+        .map(([path, item]) => [
+          path,
+          (item as { post: { requestBody: { required?: boolean } } }).post.requestBody.required ===
+            true,
+        ]),
     );
 
     expect(requiredByPath).toEqual({
@@ -209,26 +230,20 @@ describe('generateOpenApiDocument', () => {
   });
 
   it('should document 502, which any agent transport failure returns', () => {
-    Object.values(document.paths ?? {}).forEach(path => {
-      expect(
-        Object.keys((path as { post: { responses: Record<string, unknown> } }).post.responses),
-      ).toContain('502');
+    dataOperations().forEach(operation => {
+      expect(Object.keys(operation.responses)).toContain('502');
     });
   });
 
   it('should document 413, since the BFF caps the body at 16kb', () => {
-    Object.values(document.paths ?? {}).forEach(path => {
-      expect(
-        Object.keys((path as { post: { responses: Record<string, unknown> } }).post.responses),
-      ).toContain('413');
+    dataOperations().forEach(operation => {
+      expect(Object.keys(operation.responses)).toContain('413');
     });
   });
 
   it('should declare 501 everywhere, since the agent stub returns it on every route', () => {
-    Object.values(document.paths ?? {}).forEach(path => {
-      expect(
-        Object.keys((path as { post: { responses: Record<string, unknown> } }).post.responses),
-      ).toContain('501');
+    dataOperations().forEach(operation => {
+      expect(Object.keys(operation.responses)).toContain('501');
     });
   });
 
@@ -254,10 +269,8 @@ describe('generateOpenApiDocument', () => {
   });
 
   it('should share one response component per error status instead of inlining it per path', () => {
-    const errors = Object.values(document.paths ?? {}).flatMap(path =>
-      Object.entries(
-        (path as { post: { responses: Record<string, unknown> } }).post.responses,
-      ).filter(([status]) => status !== '200'),
+    const errors = dataOperations().flatMap(operation =>
+      Object.entries(operation.responses).filter(([status]) => status !== '200'),
     );
 
     expect(errors).toHaveLength(72);
@@ -296,7 +309,7 @@ describe('generateOpenApiDocument', () => {
 
   it('should share the timezone header as one parameter component instead of per path', () => {
     const parameters = Object.values(document.paths ?? {}).flatMap(
-      path => (path as { post: { parameters: unknown[] } }).post.parameters,
+      path => (path as { post?: { parameters: unknown[] } }).post?.parameters ?? [],
     );
 
     expect(parameters).toContainEqual({ $ref: '#/components/parameters/XForestTimezone' });

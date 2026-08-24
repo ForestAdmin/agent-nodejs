@@ -10,7 +10,9 @@ import unfoldingFixture from './fixtures';
 import { ROUTE_PREFIX, generateOpenApiDocument } from '../../src/openapi/openapi-document';
 
 const document = generateOpenApiDocument('9.9.9', unfoldingFixture());
-const paths = document.paths as Record<string, { post: Record<string, unknown> }>;
+const paths = Object.fromEntries(
+  Object.entries(document.paths ?? {}).filter(([path]) => path !== `${ROUTE_PREFIX}/context`),
+) as Record<string, { post: Record<string, unknown> }>;
 const schemas = document.components?.schemas as Record<string, Record<string, unknown>>;
 
 function operation(path: string): Record<string, unknown> {
@@ -434,6 +436,7 @@ describe('an unfolding naming a collection it does not carry', () => {
     });
 
     expect(Object.keys(orphaned.paths ?? {})).toEqual([
+      '/agent/v1/context',
       '/agent/v1/users/list',
       '/agent/v1/users/count',
     ]);
@@ -464,8 +467,10 @@ describe('names that collide once sanitized', () => {
     collections: [collection('A_B', 'C', 'R'), collection('A', 'B_C', 'B_R')],
   });
   const operationIds = Object.values(
-    colliding.paths as Record<string, { post: { operationId: string } }>,
-  ).map(item => item.post.operationId);
+    colliding.paths as Record<string, { post?: { operationId: string } }>,
+  )
+    .filter(item => item.post !== undefined)
+    .map(item => (item.post as { operationId: string }).operationId);
 
   it('should keep every operationId unique, which codegen tools require', () => {
     expect(new Set(operationIds).size).toBe(operationIds.length);
@@ -550,9 +555,9 @@ describe('the tags of an unfolded document', () => {
     expect(tagsOf('My%20Coll/actions/Mark%20as%20paid%2Fdone/execute')).toEqual(['My Coll']);
   });
 
-  it('should leave no operation untagged, since one would fall outside every group', () => {
-    const untagged = Object.entries(document.paths ?? {})
-      .filter(([, item]) => ((item as { post: { tags?: string[] } }).post.tags ?? []).length === 0)
+  it('should leave no collection operation untagged, since one would fall outside every group', () => {
+    const untagged = Object.entries(paths)
+      .filter(([, item]) => ((item.post.tags as string[] | undefined) ?? []).length === 0)
       .map(([path]) => path);
 
     expect(untagged).toEqual([]);
@@ -561,9 +566,7 @@ describe('the tags of an unfolded document', () => {
   it('should reference only declared tags, so a viewer groups nothing under an unknown name', () => {
     const declared = new Set((document.tags ?? []).map(tag => tag.name));
     const used = new Set(
-      Object.values(document.paths ?? {}).flatMap(
-        item => (item as { post: { tags?: string[] } }).post.tags ?? [],
-      ),
+      Object.values(paths).flatMap(item => (item.post.tags as string[] | undefined) ?? []),
     );
 
     expect([...used].filter(tag => !declared.has(tag))).toEqual([]);

@@ -42,9 +42,8 @@ describe.each([
     });
   });
 
-  it('should warn only that the session scheme is unused, which is deliberate', () => {
-    expect(output).toContain('You have 1 warning');
-    expect(output).toContain('bffSession" is never used');
+  it('should lint clean, now that the context contract uses the session scheme', () => {
+    expect(output).not.toMatch(/You have \d+ warning/);
     expect(output).not.toMatch(/You have \d+ error/);
   });
 });

@@ -9,20 +9,94 @@ describe('ReadModelStore', () => {
   let clock: number;
   const now = () => clock;
 
-  function build(fetchSchema: jest.Mock): ReadModelStore {
+  function build(fetchSchema: jest.Mock, clockOverride: () => number = now): ReadModelStore {
     const metrics = makeMetrics();
     const schemaCache = new SchemaCache({
       fetcher: { fetchSchema } as SchemaFetcher,
       metrics,
-      now,
+      now: clockOverride,
     });
-    const capabilitiesCache = new CapabilitiesCache({ now });
+    const capabilitiesCache = new CapabilitiesCache({ now: clockOverride });
 
     return new ReadModelStore(schemaCache, capabilitiesCache);
   }
 
   beforeEach(() => {
     clock = 1_000_000;
+  });
+
+  describe('getSchemaSnapshot', () => {
+    it('should return a read-model derived from the very collections it returns', async () => {
+      const store = build(jest.fn().mockResolvedValue(makeSchema('users')));
+
+      const { collections, readModel, revision } = await store.getSchemaSnapshot();
+
+      expect(collections.map(entry => entry.name)).toEqual(['users']);
+      expect(readModel.getAllowedCollections()).toEqual(collections.map(entry => entry.name));
+      expect(revision).toBe(1);
+    });
+
+    it('should read the schema once, so the read-model cannot come from a later generation', async () => {
+      let generation = 0;
+
+      const fetchSchema = jest.fn().mockImplementation(async () => {
+        generation += 1;
+
+        return makeSchema(`generation-${generation}`);
+      });
+
+      const alwaysExpiredClock = () => {
+        clock += ONE_DAY_MS + 1;
+
+        return clock;
+      };
+
+      const store = build(fetchSchema, alwaysExpiredClock);
+
+      const { collections, readModel, revision } = await store.getSchemaSnapshot();
+
+      expect(fetchSchema).toHaveBeenCalledTimes(1);
+      expect(collections.map(entry => entry.name)).toEqual(['generation-1']);
+      expect(readModel.getAllowedCollections()).toEqual(['generation-1']);
+      expect(revision).toBe(1);
+    });
+
+    it('should read the cache revision once, so the triple cannot straddle two generations', async () => {
+      const store = build(jest.fn().mockResolvedValue(makeSchema('users')));
+      const cache = Reflect.get(store, 'schemaCache') as SchemaCache;
+      let reads = 0;
+      let bumped = 0;
+
+      jest.spyOn(cache, 'revision', 'get').mockImplementation(() => {
+        reads += 1;
+        bumped += 1;
+
+        return bumped;
+      });
+
+      const { revision } = await store.getSchemaSnapshot();
+
+      expect(reads).toBe(1);
+      expect(revision).toBe(1);
+    });
+
+    it('should not label one generation of collections with another generation revision', async () => {
+      const fetchSchema = jest
+        .fn()
+        .mockResolvedValueOnce(makeSchema('first'))
+        .mockResolvedValueOnce(makeSchema('second'));
+      const store = build(fetchSchema);
+
+      const first = await store.getSchemaSnapshot();
+      clock += ONE_DAY_MS + 1;
+      const second = await store.getSchemaSnapshot();
+
+      expect(first.collections.map(entry => entry.name)).toEqual(['first']);
+      expect(first.readModel.getAllowedCollections()).toEqual(['first']);
+      expect(second.collections.map(entry => entry.name)).toEqual(['second']);
+      expect(second.readModel.getAllowedCollections()).toEqual(['second']);
+      expect(second.revision).toBeGreaterThan(first.revision);
+    });
   });
 
   describe('getReadModel', () => {
