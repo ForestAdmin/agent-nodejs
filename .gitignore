@@ -18,7 +18,6 @@ lerna-debug.log
 # forest-bff openapi --output default destination
 openapi.json
 
-
 # yarn
 yarn-error.log
 .vscode/settings.json
