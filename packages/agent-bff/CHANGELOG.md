@@ -1,3 +1,10 @@
+# @forestadmin/agent-bff [1.19.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.18.0...@forestadmin/agent-bff@1.19.0) (2026-08-24)
+
+
+### Features
+
+* **agent-bff:** serve the OpenAPI document in a browser through Redoc ([#1829](https://github.com/ForestAdmin/agent-nodejs/issues/1829)) ([eb73b7e](https://github.com/ForestAdmin/agent-nodejs/commit/eb73b7eb2e965d9bc9c49b2bc6ec981b4dd43c30))
+
 # @forestadmin/agent-bff [1.18.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.17.0...@forestadmin/agent-bff@1.18.0) (2026-08-17)
 
 
