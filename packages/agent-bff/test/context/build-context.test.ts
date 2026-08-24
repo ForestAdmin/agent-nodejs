@@ -179,6 +179,8 @@ describe('buildContext', () => {
         ['Ban user', 'single'],
         ['Export all', 'global'],
         ['Archive', 'bulk'],
+        ['Duplicated', 'single'],
+        ['TwiceEndpointed', 'bulk'],
       ]);
     });
 
@@ -218,6 +220,20 @@ describe('buildContext', () => {
       const archive = usersOf(context)?.actions.find(entry => entry.name === 'Archive');
 
       expect(archive?.fields).toEqual([{ field: 'confirm', type: 'Boolean' }]);
+    });
+
+    it('should keep only the endpoint-bearing twin when two actions share a name', () => {
+      const context = buildContext(schema, readModel, { schemaRevision: 1 });
+      const duplicated = usersOf(context)?.actions.filter(entry => entry.name === 'Duplicated');
+
+      expect(duplicated?.map(entry => entry.id)).toEqual(['Duplicated-kept']);
+    });
+
+    it('should keep the one the read-model resolved when both twins carry an endpoint', () => {
+      const context = buildContext(schema, readModel, { schemaRevision: 1 });
+      const twins = usersOf(context)?.actions.filter(entry => entry.name === 'TwiceEndpointed');
+
+      expect(twins?.map(entry => entry.id)).toEqual(['Twice-late']);
     });
 
     it('should serialize an action field with its enums and default value', () => {

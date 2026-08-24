@@ -123,13 +123,19 @@ function toContextCollection(
   collection: ForestSchemaCollection,
   readModel: ReadModel,
 ): ContextCollection {
+  const allowedActions = readModel.getActionEndpoints()[collection.name] ?? {};
+
   return {
     name: collection.name,
     fields: toArray(collection.fields)
       .filter(field => typeof field === 'object' && field !== null)
       .map(toContextField),
     actions: toArray(collection.actions)
-      .filter(action => readModel.isActionAllowed(collection.name, action.name))
+      .filter(action => {
+        const allowed = allowedActions[action?.name];
+
+        return allowed !== undefined && allowed.id === action.id;
+      })
       .map(toContextAction),
   };
 }
