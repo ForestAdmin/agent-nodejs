@@ -13,7 +13,7 @@ export function column(field: string): ForestSchemaField {
   return {
     field,
     type: 'String',
-    enum: null,
+    enums: null,
     reference: null,
     isReadOnly: false,
     isRequired: false,
