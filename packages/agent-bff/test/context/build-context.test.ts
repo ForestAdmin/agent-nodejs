@@ -88,6 +88,16 @@ describe('buildContext', () => {
     });
   });
 
+  describe('when a schema field is not an object', () => {
+    it('should skip it rather than serialize a field with neither name nor type', () => {
+      const context = buildContext(schema, readModel, { schemaRevision: 1 });
+
+      expect(usersOf(context)?.fields.every(entry => Boolean(entry.field && entry.type))).toBe(
+        true,
+      );
+    });
+  });
+
   describe('when a field is an enum or a primary key', () => {
     it('should carry the allowed values, which the type alone does not give', () => {
       const context = buildContext(schema, readModel, { schemaRevision: 1 });
@@ -102,10 +112,16 @@ describe('buildContext', () => {
       expect(fieldNamed(context, 'emailRequired')).not.toHaveProperty('isPrimaryKey');
     });
 
-    it('should omit enums on a field that has none rather than send an empty list', () => {
+    it('should omit enums on a field the agent sends none for', () => {
       const context = buildContext(schema, readModel, { schemaRevision: 1 });
 
       expect(fieldNamed(context, 'id')).not.toHaveProperty('enums');
+    });
+
+    it('should keep an empty enum list, which an enum with no value cannot otherwise express', () => {
+      const context = buildContext(schema, readModel, { schemaRevision: 1 });
+
+      expect(fieldNamed(context, 'statusWithEmptyEnums')?.enums).toEqual([]);
     });
   });
 

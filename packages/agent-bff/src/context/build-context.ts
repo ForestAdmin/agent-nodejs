@@ -90,8 +90,7 @@ function toContextField(field: FieldWithWireEnums): ContextField {
   if (field.isRequired) serialized.isRequired = true;
   if (field.isReadOnly) serialized.isReadOnly = true;
 
-  const enums = toArray(field.enums);
-  if (enums.length > 0) serialized.enums = [...enums];
+  if (Array.isArray(field.enums)) serialized.enums = [...field.enums];
 
   const validations = toContextValidations(field.validations);
   if (validations.length > 0) serialized.validations = validations;
@@ -126,7 +125,9 @@ function toContextCollection(
 ): ContextCollection {
   return {
     name: collection.name,
-    fields: toArray(collection.fields).map(toContextField),
+    fields: toArray(collection.fields)
+      .filter(field => typeof field === 'object' && field !== null)
+      .map(toContextField),
     actions: toArray(collection.actions)
       .filter(action => readModel.isActionAllowed(collection.name, action.name))
       .map(toContextAction),

@@ -71,6 +71,9 @@ export default function schemaCoveringEveryContractShape(): ForestSchemaCollecti
         field('statusWithEnums', 'Enum', {
           enums: ['DRAFT', 'PUBLISHED'],
         }),
+        field('statusWithEmptyEnums', 'Enum', {
+          enums: [],
+        }),
         field('statusWithFlaggedPattern', 'Enum', {
           validations: [{ type: 'is like', value: '/^a|b|c$/g', message: 'x' }],
         }),
@@ -105,6 +108,7 @@ export default function schemaCoveringEveryContractShape(): ForestSchemaCollecti
           relationship: 'BelongsTo',
           polymorphicReferencedModels: ['users', 'teams'],
         }),
+        'garbage' as unknown as ForestSchemaField,
       ],
       actions: [
         action('Ban user', 'single', '/forest/users/actions/ban', [
