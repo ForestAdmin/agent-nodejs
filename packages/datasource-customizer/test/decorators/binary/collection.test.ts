@@ -8,7 +8,6 @@ import {
   Filter,
   PaginatedFilter,
   Projection,
-  ValidationError,
 } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
@@ -239,54 +238,37 @@ describe('BinaryCollectionDecorator', () => {
     });
   });
 
-  describe('list filtering a binary column with a value that is not a data uri', () => {
-    it('should reject the filter instead of crashing on an undefined base64 payload', async () => {
+  describe('list filtering a binary column with a malformed value', () => {
+    it.each([
+      ['cover', 'Anthony', /must be a data uri/],
+      ['cover', 'data:text/plain,hello', /must be a data uri/],
+      ['id', 'Anthony', /hex string of full bytes/],
+      ['id', '303', /hex string of full bytes/],
+    ])(
+      'should reject %s = %p instead of querying the collection',
+      async (field, value, message) => {
+        const caller = factories.caller.build();
+        const filter = new PaginatedFilter({
+          conditionTree: new ConditionTreeLeaf(field, 'Equal', value),
+        });
+
+        await expect(decoratedBook.list(caller, filter, new Projection('id'))).rejects.toThrow(
+          message,
+        );
+        expect(books.list).not.toHaveBeenCalled();
+      },
+    );
+
+    it('should truncate a long value in the error message', async () => {
       const caller = factories.caller.build();
       const filter = new PaginatedFilter({
-        conditionTree: new ConditionTreeLeaf('cover', 'Equal', 'Anthony'),
+        conditionTree: new ConditionTreeLeaf('id', 'Equal', 'z'.repeat(5000)),
       });
 
       await expect(decoratedBook.list(caller, filter, new Projection('id'))).rejects.toThrow(
-        ValidationError,
+        `Expected a hex string of full bytes for a binary field, got "${'z'.repeat(32)}"`,
       );
       expect(books.list).not.toHaveBeenCalled();
-    });
-
-    it('should reject a data uri that is not base64, rather than decode it to garbage', async () => {
-      const caller = factories.caller.build();
-      const filter = new PaginatedFilter({
-        conditionTree: new ConditionTreeLeaf('cover', 'Equal', 'data:text/plain,hello'),
-      });
-
-      await expect(decoratedBook.list(caller, filter, new Projection('id'))).rejects.toThrow(
-        /must be a data uri/,
-      );
-      expect(books.list).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('list filtering a hex binary column with a value that is not hex', () => {
-    it('should reject it rather than query for an empty buffer', async () => {
-      const caller = factories.caller.build();
-      const filter = new PaginatedFilter({
-        conditionTree: new ConditionTreeLeaf('id', 'Equal', 'Anthony'),
-      });
-
-      await expect(decoratedBook.list(caller, filter, new Projection('id'))).rejects.toThrow(
-        /even-length hex string/,
-      );
-      expect(books.list).not.toHaveBeenCalled();
-    });
-
-    it('should reject an odd-length hex string, which silently drops its last digit', async () => {
-      const caller = factories.caller.build();
-      const filter = new PaginatedFilter({
-        conditionTree: new ConditionTreeLeaf('id', 'Equal', '303'),
-      });
-
-      await expect(decoratedBook.list(caller, filter, new Projection('id'))).rejects.toThrow(
-        /even-length hex string/,
-      );
     });
   });
 
@@ -294,7 +276,9 @@ describe('BinaryCollectionDecorator', () => {
     it('should reject it with a validation error rather than an opaque TypeError', async () => {
       const caller = factories.caller.build();
 
-      await expect(decoratedBook.create(caller, [{ cover: 42 }])).rejects.toThrow(ValidationError);
+      await expect(decoratedBook.create(caller, [{ cover: 42 }])).rejects.toThrow(
+        'Expected a string for a binary field, got number: 42',
+      );
       expect(books.create).not.toHaveBeenCalled();
     });
 

@@ -248,7 +248,7 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
   private parseHex(value: string): Buffer {
     if (!HEX_BYTES.test(value)) {
       throw new ValidationError(
-        `Expected an even-length hex string for a binary field, got "${value}"`,
+        `Expected a hex string of full bytes for a binary field, got "${value.slice(0, 32)}"`,
       );
     }
 
@@ -265,7 +265,9 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
 
       if (typeof value !== 'string') {
         throw new ValidationError(
-          `Expected a string for a binary field, got ${typeof value}: ${JSON.stringify(value)}`,
+          `Expected a string for a binary field, got ${typeof value}: ${JSON.stringify(
+            value,
+          )?.slice(0, 32)}`,
         );
       }
 
