@@ -19,6 +19,7 @@ import { parseConfig } from './config/env-config';
 import createCorsMiddleware from './cors/cors-middleware';
 import createPerKeyOriginMiddleware from './cors/per-key-origin';
 import createDataRoutesMiddleware from './data/data-routes-middleware';
+import createDocsRoutes from './docs/docs-routes';
 import { extractErrorMessage } from './errors';
 import { unauthorized } from './http/bff-http-error';
 import BFFHttpServer from './http/bff-http-server';
@@ -28,7 +29,7 @@ import ForestServerClient from './oauth/forest-server-client';
 import createOAuthRoutes from './oauth/oauth-routes';
 import createInMemorySessionStore from './oauth/session-store';
 import createTokenCipher from './oauth/token-cipher';
-import createOpenApiRoutes from './openapi/openapi-routes';
+import createOpenApiRoutes, { OPENAPI_PATH } from './openapi/openapi-routes';
 import PermissionsCache from './permissions/permissions-cache';
 import PermissionsClient from './permissions/permissions-client';
 import createPermissionsRoutesMiddleware from './permissions/permissions-routes-middleware';
@@ -313,6 +314,14 @@ export default async function runCli(
     ...agentErrorMiddleware,
     bodyParser({ jsonLimit: BODY_LIMIT }),
     ...oauthMiddlewares,
+    // Outside the agent-scoped chain on purpose: the viewer is a public page, the document it fetches
+    // is not. Gated on the edge being mounted too, like the error middleware above: with no agent
+    // chain there is no document to fetch, and the page would only ever reach a bare Koa 404.
+    createDocsRoutes({
+      enabled: config.openapiEnabled && agentMiddlewares.length > 0,
+      documentPath: OPENAPI_PATH,
+      logger,
+    }),
     ...agentMiddlewares,
   ];
   const server = new BFFHttpServer({

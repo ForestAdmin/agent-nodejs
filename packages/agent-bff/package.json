@@ -22,8 +22,9 @@
     "dist/**/*.d.ts"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && yarn build:copy",
     "build:watch": "tsc --watch",
+    "build:copy": "node -e \"require('fs').copyFileSync(require.resolve('redoc/bundles/redoc.standalone.js'), 'dist/docs/redoc.standalone.js')\"",
     "start": "node dist/cli.js",
     "start:dev": "node --env-file=.env dist/cli.js",
     "clean": "rm -rf coverage dist",
@@ -47,6 +48,7 @@
     "@types/koa": "^2.13.5",
     "@types/supertest": "^6.0.2",
     "openapi3-ts": "4.6.1",
+    "redoc": "2.5.3",
     "supertest": "^7.1.3"
   }
 }
