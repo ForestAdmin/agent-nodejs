@@ -122,10 +122,12 @@ describe('contextRoutesMiddleware', () => {
       const fetchSchema = jest.fn().mockResolvedValue(schema);
       const { app } = makeRouteOnlyApp(fetchSchema);
 
-      await request(app.callback()).get(ROUTE);
-      await request(app.callback()).get(ROUTE);
+      const coldResponse = await request(app.callback()).get(ROUTE);
+      const warmResponse = await request(app.callback()).get(ROUTE);
 
       expect(fetchSchema).toHaveBeenCalledTimes(1);
+      expect(warmResponse.status).toBe(200);
+      expect(warmResponse.body).toEqual(coldResponse.body);
     });
 
     it('should fetch the schema again once the cached one has outlived its ttl', async () => {
