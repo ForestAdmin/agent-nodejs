@@ -1,3 +1,20 @@
+# @forestadmin/agent [1.97.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.96.0...@forestadmin/agent@1.97.0) (2026-08-24)
+
+
+### Features
+
+* **mcp-server:** expose workflow tools in Forest MCP server (PRD-49) ([#1792](https://github.com/ForestAdmin/agent-nodejs/issues/1792)) ([7e34af2](https://github.com/ForestAdmin/agent-nodejs/commit/7e34af25cd5a4105b86490087c1331ea12f22893)), closes [#1771](https://github.com/ForestAdmin/agent-nodejs/issues/1771) [#1777](https://github.com/ForestAdmin/agent-nodejs/issues/1777) [#1785](https://github.com/ForestAdmin/agent-nodejs/issues/1785) [#1805](https://github.com/ForestAdmin/agent-nodejs/issues/1805) [#1786](https://github.com/ForestAdmin/agent-nodejs/issues/1786)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.43.0
+* **@forestadmin/mcp-server:** upgraded to 1.23.0
+* **@forestadmin/workflow-executor:** upgraded to 1.25.0
+
 # @forestadmin/agent [1.96.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.95.2...@forestadmin/agent@1.96.0) (2026-08-19)
 
 
