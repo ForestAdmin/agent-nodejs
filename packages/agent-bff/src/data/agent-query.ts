@@ -56,9 +56,6 @@ function assertNoNodeReadableAsBothLeafAndBranch(node: unknown, depth = 0): void
   }
 }
 
-// Validate the untyped request body before it reaches the query builders, so malformed shapes
-// (e.g. `projection` or `sort` as a string) surface as 400 invalid_request rather than a 500 from
-// an array method blowing up downstream.
 /**
  * The agent reads `search`/`searchExtended` from query params, so it coerces both from strings.
  * The BFF is a JSON contract: a real boolean is required here, like `page.limit` requires a real
@@ -75,6 +72,9 @@ function assertValidSearch(search: unknown, searchExtended: unknown): void {
   }
 }
 
+// Validate the untyped request body before it reaches the query builders, so malformed shapes
+// (e.g. `projection` or `sort` as a string) surface as 400 invalid_request rather than a 500 from
+// an array method blowing up downstream.
 export function parseListRequest(body: unknown): ListRequestBody {
   if (!isPlainObject(body)) throw invalidRequest('Request body must be an object');
 
@@ -173,7 +173,10 @@ function serializePage(page: BffPage): Record<string, number> {
  * `searchExtended` only ships alongside a real search: on its own it changes nothing agent-side,
  * and emitting it would alter the outgoing query of every search-less request.
  */
-function applySearch(query: AgentQuery, body: CountRequestBody): void {
+function applySearch(
+  query: AgentQuery,
+  body: Pick<CountRequestBody, 'search' | 'searchExtended'>,
+): void {
   if (!body.search?.trim()) return;
 
   query.search = body.search;

@@ -160,6 +160,31 @@ describe('search against a real agent', () => {
       expect(titlesOf(response.body)).toEqual(['Foundation', 'I, Robot']);
     });
 
+    // Accepted behaviour, pinned here so it cannot change unnoticed: the search value is a query,
+    // and `relation.column:value` crosses a relation with no `searchExtended`. The same path in a
+    // filter draws 422 relation_field_not_supported, so this is the one way a request reaches a
+    // relation column through the top-level routes.
+    it('should cross a relation through the query syntax without searchExtended', async () => {
+      const response = await request(app.callback())
+        .post('/agent/v1/books/list')
+        .send({ projection: ['id', 'title'], search: 'author.name:asimov' });
+
+      expect(response.status).toBe(200);
+      expect(titlesOf(response.body)).toEqual(['Foundation', 'I, Robot']);
+    });
+
+    it('should reject the same relation path in a filter, unlike in a search', async () => {
+      const response = await request(app.callback())
+        .post('/agent/v1/books/list')
+        .send({
+          projection: ['id', 'title'],
+          filter: { field: 'author:name', operator: 'IContains', value: 'asimov' },
+        });
+
+      expect(response.status).toBe(422);
+      expect(response.body.error).toMatchObject({ type: 'relation_field_not_supported' });
+    });
+
     it('should intersect the search with the filter rather than replace it', async () => {
       const response = await request(app.callback())
         .post('/agent/v1/books/list')

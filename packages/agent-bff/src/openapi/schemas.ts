@@ -68,16 +68,20 @@ export const SearchSchema = z.string().openapi('Search', {
     'An empty or whitespace-only value is treated as absent, so clearing a search box is not an ' +
     'error. Searching a collection whose search is disabled is not rejected here: the agent ' +
     'answers 400 validation_error with "Collection is not searchable". The response does not say ' +
-    'which field matched.',
+    'which field matched. The value is a query, not a plain term: `column:value` narrows the ' +
+    'search to one column, and `relation.column:value` narrows it to a column of a related ' +
+    'collection — so a search reaches relation fields on its own, with no `searchExtended`, and ' +
+    'escapes the 422 relation_field_not_supported that the same path draws in `filter`, `sort` or ' +
+    '`projection`. The agent resolves a relation named in a query against its own schema, so a ' +
+    'query can filter on a column of a collection this BFF does not expose.',
 });
 
 export const SearchExtendedSchema = z.boolean().openapi('SearchExtended', {
   description:
-    'Widens `search` to the related collections reachable from this one. Meaningless on its own: ' +
-    'sent without `search` it is ignored and changes nothing. Note it reads relation fields even ' +
-    'though naming a relation field path in `filter`, `sort` or `projection` is rejected with 422 ' +
-    'relation_field_not_supported — records can therefore match on a field the response cannot ' +
-    'show.',
+    'Widens `search` to every related collection reachable from this one, instead of only this ' +
+    "collection's own columns. Meaningless on its own: sent without `search` it is ignored and " +
+    'changes nothing. It is not the only way a search reaches a relation — see `Search` for the ' +
+    '`relation.column:value` syntax, which does so without this flag.',
 });
 
 export const ListRequestSchema = z

@@ -192,16 +192,15 @@ describe('parseListRequest', () => {
     );
   });
 
-  it('should accept a body carrying search and searchExtended', () => {
-    const body = { search: 'ada', searchExtended: true };
-
-    expect(parseListRequest(body)).toBe(body);
+  it('should pass search and searchExtended through rather than strip them', () => {
+    expect(parseListRequest({ search: 'ada', searchExtended: true })).toMatchObject({
+      search: 'ada',
+      searchExtended: true,
+    });
   });
 
   it('should accept a blank search rather than rejecting a cleared search box', () => {
-    const body = { search: '   ' };
-
-    expect(parseListRequest(body)).toBe(body);
+    expect(parseListRequest({ search: '   ' })).toMatchObject({ search: '   ' });
   });
 
   it.each([
@@ -247,10 +246,11 @@ describe('parseCountRequest', () => {
     );
   });
 
-  it('should accept a body carrying search and searchExtended', () => {
-    const body = { search: 'ada', searchExtended: false };
-
-    expect(parseCountRequest(body)).toBe(body);
+  it('should pass search and searchExtended through rather than strip them', () => {
+    expect(parseCountRequest({ search: 'ada', searchExtended: false })).toMatchObject({
+      search: 'ada',
+      searchExtended: false,
+    });
   });
 
   it.each([
