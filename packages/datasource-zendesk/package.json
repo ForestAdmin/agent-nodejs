@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/datasource-zendesk",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "publishConfig": {
@@ -16,7 +16,7 @@
     "superagent": "^10.3.0"
   },
   "devDependencies": {
-    "@forestadmin/datasource-customizer": "1.71.0",
+    "@forestadmin/datasource-customizer": "1.71.1",
     "@types/superagent": "^8.1.0"
   },
   "files": [
