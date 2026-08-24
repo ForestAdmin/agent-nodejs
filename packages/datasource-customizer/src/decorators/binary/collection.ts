@@ -25,6 +25,8 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import { filetypemime } from 'magic-bytes.js';
 
+const HEX_BYTES = /^([0-9a-f]{2})+$/i;
+
 /**
  * As the transport layer between the forest admin agent and the frontend is JSON-API, binary data
  * is not supported.
@@ -244,7 +246,7 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
   }
 
   private parseHex(value: string): Buffer {
-    if (!/^([0-9a-f]{2})*$/i.test(value)) {
+    if (!HEX_BYTES.test(value)) {
       throw new ValidationError(
         `Expected an even-length hex string for a binary field, got "${value}"`,
       );
@@ -306,7 +308,7 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
       const maxLength = schema.validation?.find(v => v.operator === 'ShorterThan')?.value as number;
 
       if (this.shouldUseHex(name)) {
-        validation.push({ operator: 'Match', value: /^[0-9a-f]+$/ });
+        validation.push({ operator: 'Match', value: HEX_BYTES });
         if (minLength) validation.push({ operator: 'LongerThan', value: minLength * 2 + 1 });
         if (maxLength) validation.push({ operator: 'ShorterThan', value: maxLength * 2 - 1 });
       } else {

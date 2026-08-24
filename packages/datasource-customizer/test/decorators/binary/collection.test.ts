@@ -110,7 +110,7 @@ describe('BinaryCollectionDecorator', () => {
           isPrimaryKey: true,
           columnType: 'String',
           validation: [
-            { operator: 'Match', value: /^[0-9a-f]+$/ },
+            { operator: 'Match', value: /^([0-9a-f]{2})+$/i },
             { operator: 'LongerThan', value: 31 },
             { operator: 'ShorterThan', value: 33 },
             { operator: 'Present' },
@@ -141,7 +141,7 @@ describe('BinaryCollectionDecorator', () => {
       expect(decoratedBook.schema.fields.cover).toEqual(
         expect.objectContaining({
           columnType: 'String',
-          validation: [{ operator: 'Match', value: /^[0-9a-f]+$/ }],
+          validation: [{ operator: 'Match', value: /^([0-9a-f]{2})+$/i }],
         }),
       );
     });
