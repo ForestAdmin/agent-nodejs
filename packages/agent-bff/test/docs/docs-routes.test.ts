@@ -1,10 +1,16 @@
 import type { Logger } from '../../src/ports/logger-port';
 
+import { mkdtempSync, writeFileSync } from 'fs';
 import Koa from 'koa';
+import { tmpdir } from 'os';
 import path from 'path';
 import request from 'supertest';
 
-import createDocsRoutes, { DOCS_BUNDLE_PATH, DOCS_PATH } from '../../src/docs/docs-routes';
+import createDocsRoutes, {
+  DOCS_BUNDLE_PATH,
+  DOCS_PATH,
+  resolveBundle,
+} from '../../src/docs/docs-routes';
 import { REDOC_THEME } from '../../src/docs/docs-theme';
 
 const DOCUMENT_PATH = '/agent/openapi.json';
@@ -26,6 +32,22 @@ function buildApp(enabled: boolean, { sentinel = true }: { sentinel?: boolean } 
 
   return app;
 }
+
+describe('the bundle lookup', () => {
+  it('should serve the copied file, which is the only branch a published install takes', () => {
+    const directory = mkdtempSync(path.join(tmpdir(), 'bff-bundle-'));
+    const copied = path.join(directory, 'redoc.standalone.js');
+    writeFileSync(copied, '/* the copied bundle */');
+
+    expect(resolveBundle(directory)).toBe(copied);
+  });
+
+  it('should fall back to the pinned devDependency when nothing was copied next to it', () => {
+    const directory = mkdtempSync(path.join(tmpdir(), 'bff-bundle-'));
+
+    expect(resolveBundle(directory)).toBe(require.resolve('redoc/bundles/redoc.standalone.js'));
+  });
+});
 
 describe('docs routes', () => {
   describe('when the viewer page is requested without credentials', () => {

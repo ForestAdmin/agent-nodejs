@@ -25,9 +25,12 @@ export interface DocsRoutesOptions {
  * The bundle is copied next to this module at build time (`build:copy`), which is what a published
  * install serves. Running from `src` — tests, `build:watch` — there is nothing to copy to, so the
  * `redoc` devDependency is resolved instead: the same file, from the package that pins its version.
+ *
+ * The directory is a parameter so both branches are reachable from a test. Running from `src` only
+ * ever takes the fallback, which would leave the branch a published install actually uses untested.
  */
-function resolveBundle(): string | undefined {
-  const copied = path.join(__dirname, BUNDLE_FILE);
+export function resolveBundle(directory: string = __dirname): string | undefined {
+  const copied = path.join(directory, BUNDLE_FILE);
 
   if (existsSync(copied)) return copied;
 
