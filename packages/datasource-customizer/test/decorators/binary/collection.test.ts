@@ -109,7 +109,7 @@ describe('BinaryCollectionDecorator', () => {
           isPrimaryKey: true,
           columnType: 'String',
           validation: [
-            { operator: 'Match', value: /^[0-9a-f]+$/ },
+            { operator: 'Match', value: /^([0-9a-f]{2})+$/i },
             { operator: 'LongerThan', value: 31 },
             { operator: 'ShorterThan', value: 33 },
             { operator: 'Present' },
@@ -140,7 +140,7 @@ describe('BinaryCollectionDecorator', () => {
       expect(decoratedBook.schema.fields.cover).toEqual(
         expect.objectContaining({
           columnType: 'String',
-          validation: [{ operator: 'Match', value: /^[0-9a-f]+$/ }],
+          validation: [{ operator: 'Match', value: /^([0-9a-f]{2})+$/i }],
         }),
       );
     });
@@ -235,6 +235,61 @@ describe('BinaryCollectionDecorator', () => {
           },
         },
       ]);
+    });
+  });
+
+  describe('list filtering a binary column with a malformed value', () => {
+    it.each([
+      ['cover', 'Anthony', /must be a data uri/],
+      ['cover', 'data:text/plain,hello', /must be a data uri/],
+      ['id', 'Anthony', /hex string of full bytes/],
+      ['id', '303', /hex string of full bytes/],
+    ])(
+      'should reject %s = %p instead of querying the collection',
+      async (field, value, message) => {
+        const caller = factories.caller.build();
+        const filter = new PaginatedFilter({
+          conditionTree: new ConditionTreeLeaf(field, 'Equal', value),
+        });
+
+        await expect(decoratedBook.list(caller, filter, new Projection('id'))).rejects.toThrow(
+          message,
+        );
+        expect(books.list).not.toHaveBeenCalled();
+      },
+    );
+
+    it('should truncate a long value in the error message', async () => {
+      const caller = factories.caller.build();
+      const filter = new PaginatedFilter({
+        conditionTree: new ConditionTreeLeaf('id', 'Equal', 'z'.repeat(5000)),
+      });
+
+      await expect(decoratedBook.list(caller, filter, new Projection('id'))).rejects.toThrow(
+        `Expected a hex string of full bytes for a binary field, got "${'z'.repeat(32)}"`,
+      );
+      expect(books.list).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('writing a non-string value into a binary column', () => {
+    it('should reject it with a validation error rather than an opaque TypeError', async () => {
+      const caller = factories.caller.build();
+
+      await expect(decoratedBook.create(caller, [{ cover: 42 }])).rejects.toThrow(
+        'Expected a string for a binary field, got number: 42',
+      );
+      expect(books.create).not.toHaveBeenCalled();
+    });
+
+    it('should let a buffer through, as it needs no conversion', async () => {
+      const caller = factories.caller.build();
+      const id = Buffer.from('0000', 'ascii');
+      (books.create as jest.Mock).mockResolvedValue([{ id }]);
+
+      await decoratedBook.create(caller, [{ id }]);
+
+      expect(books.create).toHaveBeenCalledWith(caller, [{ id }]);
     });
   });
 

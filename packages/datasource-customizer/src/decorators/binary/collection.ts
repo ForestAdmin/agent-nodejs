@@ -16,8 +16,16 @@ import type {
   RecordData,
 } from '@forestadmin/datasource-toolkit';
 
-import { CollectionDecorator, SchemaUtils, TypeGetter } from '@forestadmin/datasource-toolkit';
+import {
+  CollectionDecorator,
+  SchemaUtils,
+  TypeGetter,
+  ValidationError,
+  parseDataUri,
+} from '@forestadmin/datasource-toolkit';
 import { filetypemime } from 'magic-bytes.js';
+
+const HEX_BYTES = /^([0-9a-f]{2})+$/i;
 
 /**
  * As the transport layer between the forest admin agent and the frontend is JSON-API, binary data
@@ -237,15 +245,35 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
     return value;
   }
 
+  private parseHex(value: string): Buffer {
+    if (!HEX_BYTES.test(value)) {
+      throw new ValidationError(
+        `Expected a hex string of full bytes for a binary field, got "${value.slice(0, 32)}"`,
+      );
+    }
+
+    return Buffer.from(value, 'hex');
+  }
+
   private async convertScalar(
     toBackend: boolean,
     useHex: boolean,
     value: unknown,
   ): Promise<unknown> {
     if (toBackend) {
-      const string = value as string;
+      if (Buffer.isBuffer(value)) return value;
 
-      return useHex ? Buffer.from(string, 'hex') : Buffer.from(string.split(',')[1], 'base64');
+      if (typeof value !== 'string') {
+        throw new ValidationError(
+          `Expected a string for a binary field, got ${typeof value}: ${JSON.stringify(
+            value,
+          )?.slice(0, 32)}`,
+        );
+      }
+
+      if (useHex) return this.parseHex(value);
+
+      return parseDataUri(value).buffer;
     }
 
     const buffer = value as Buffer;
@@ -282,7 +310,7 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
       const maxLength = schema.validation?.find(v => v.operator === 'ShorterThan')?.value as number;
 
       if (this.shouldUseHex(name)) {
-        validation.push({ operator: 'Match', value: /^[0-9a-f]+$/ });
+        validation.push({ operator: 'Match', value: HEX_BYTES });
         if (minLength) validation.push({ operator: 'LongerThan', value: minLength * 2 + 1 });
         if (maxLength) validation.push({ operator: 'ShorterThan', value: maxLength * 2 - 1 });
       } else {
