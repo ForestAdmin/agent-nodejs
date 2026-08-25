@@ -1,4 +1,9 @@
-import type { Action, AgentActionClient, AgentActionClientOptions } from './agent-action-client';
+import type {
+  Action,
+  ActionForm,
+  AgentActionClient,
+  AgentActionClientOptions,
+} from './agent-action-client';
 import type { Logger } from '../ports/logger-port';
 import type ReadModelStore from '../read-model/read-model-store';
 import type { Context, Middleware } from 'koa';
@@ -79,7 +84,7 @@ export interface ActionRoutesMiddlewareOptions {
 
 async function handleForm(
   ctx: Context,
-  action: Action,
+  action: ActionForm,
   values: Record<string, unknown>,
   logger: Logger,
 ): Promise<void> {
