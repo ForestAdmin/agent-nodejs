@@ -405,6 +405,7 @@ describe('GET /agent/openapi.json', () => {
       return createOpenApiRoutes({
         version: '1.2.3',
         enabled: true,
+        hasAiQueryRoute: false,
         source: { store, agentUrl: 'https://agent.example.com', logger: noopLogger },
       });
     }
@@ -520,7 +521,11 @@ describe('GET /agent/openapi.json', () => {
     ])(
       'should delegate to the next middleware and touch nothing on %s',
       async (_, path, method, enabled) => {
-        const openApiRoutes = createOpenApiRoutes({ version: '1.2.3', enabled });
+        const openApiRoutes = createOpenApiRoutes({
+          version: '1.2.3',
+          enabled,
+          hasAiQueryRoute: false,
+        });
         const ctx = fakeContext(path, method);
         const next = jest.fn().mockResolvedValue(undefined);
 

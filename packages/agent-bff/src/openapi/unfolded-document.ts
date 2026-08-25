@@ -22,12 +22,16 @@ export interface UnfoldedDocument {
   unfolding: Unfolding;
 }
 
+export interface UnfoldOptions {
+  version: string;
+  hasAiQueryRoute: boolean;
+}
+
 export default async function buildUnfoldedDocument(
   source: UnfoldSource,
   readModel: ReadModel,
   token: string | (() => string),
-  version: string,
-  hasAiQueryRoute = false,
+  { version, hasAiQueryRoute }: UnfoldOptions,
 ): Promise<UnfoldedDocument> {
   const unfolding = await collectUnfolding({
     readModel,

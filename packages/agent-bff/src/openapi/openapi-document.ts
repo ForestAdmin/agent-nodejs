@@ -1,5 +1,5 @@
 import type { Unfolding } from './unfolding';
-import type { OpenAPIObject } from 'openapi3-ts/oas31';
+import type { OpenAPIObject, ReferenceObject, SchemaObject } from 'openapi3-ts/oas31';
 
 import { OpenAPIRegistry, OpenApiGeneratorV31 } from '@asteasolutions/zod-to-openapi';
 
@@ -35,7 +35,6 @@ const ERROR_STATUSES: Record<string, string> = {
   403: 'The action needs approval before it runs (the body carries the approving roles), the Forest identity behind the API key is not allowed, the origin is not allowed for this key, or the agent refused the collection, relation, or action',
   404: 'Unknown collection, relation, or action',
   413: `The request body exceeds the BFF limit of ${BODY_LIMIT}`,
-  504: 'The Forest server did not answer the AI query before the BFF timeout',
   415: 'The request declares a character set the server cannot decode. Other content types are NOT rejected: a form-urlencoded body is parsed and validated like JSON (its values arrive as strings, so typed fields such as page.limit fail with 400), while any other non-JSON content type is read as an absent body, silently dropping filters and pagination',
   422: 'A field is unknown, not filterable, or is a nested relation path',
   429: 'The agent rate-limited the request',
@@ -69,6 +68,24 @@ interface ErrorResponseRefs {
   unsupportedActionResult: ResponseRef;
 }
 
+interface ErrorComponent {
+  description: string;
+  schema: SchemaObject | ReferenceObject;
+  headers?: typeof RETRY_AFTER_HEADER;
+}
+
+function registerErrorComponent(
+  registry: OpenAPIRegistry,
+  name: string,
+  { description, schema, headers }: ErrorComponent,
+): ResponseRef {
+  return registry.registerComponent('responses', name, {
+    description,
+    content: { 'application/json': { schema } },
+    ...(headers ? { headers } : {}),
+  }).ref;
+}
+
 // Every error body is identical across paths, and their descriptions are long: inlining them costs
 // ~2.8kB per path, which the unfolded document multiplies by every collection, relation and action.
 // Registering them once as components keeps a path's error block to a dozen refs.
@@ -86,11 +103,11 @@ function registerErrorResponses(
 
     if (!description) throw new Error(`No OpenAPI description for error status ${status}`);
 
-    byStatus[status] = registry.registerComponent('responses', `Error${status}`, {
+    byStatus[status] = registerErrorComponent(registry, `Error${status}`, {
       description,
-      content: { 'application/json': { schema: { $ref: ERROR_RESPONSE_REF } } },
+      schema: { $ref: ERROR_RESPONSE_REF },
       ...(status === '503' ? { headers: RETRY_AFTER_HEADER } : {}),
-    }).ref;
+    });
   });
 
   // A document with no action path must not carry this response, nor the messageless body it
@@ -99,20 +116,16 @@ function registerErrorResponses(
 
   registry.register('MessagelessErrorResponse', MessagelessErrorResponseSchema);
 
-  const unsupportedActionResult = registry.registerComponent(
-    'responses',
+  const unsupportedActionResult = registerErrorComponent(
+    registry,
     UNSUPPORTED_ACTION_RESULT_COMPONENT,
     {
       description: UNSUPPORTED_RESULT_DESCRIPTION,
-      content: {
-        'application/json': {
-          schema: {
-            anyOf: [{ $ref: ERROR_RESPONSE_REF }, { $ref: MESSAGELESS_ERROR_RESPONSE_REF }],
-          },
-        },
+      schema: {
+        anyOf: [{ $ref: ERROR_RESPONSE_REF }, { $ref: MESSAGELESS_ERROR_RESPONSE_REF }],
       },
     },
-  ).ref;
+  );
 
   return { byStatus, unsupportedActionResult };
 }
@@ -141,29 +154,60 @@ const DATA_ERRORS = [
   '503',
 ];
 
-const AI_QUERY_SHARED_ERRORS = ['400', '401', '403', '429', '500', '502', '503'];
+const AI_RELAYED_OR_ENVELOPE =
+  'Below 500 the BFF relays whatever JSON the Forest AI proxy answered, unchanged, so the authority ' +
+  'on this body is the upstream contract and not the BFF one. When the upstream answer carried no ' +
+  'JSON body, the BFF substitutes its own `{ error: { type, status, message } }` envelope at the ' +
+  'same status. A consumer must accept either shape.';
 
-const AI_BODY_LIMIT_COMPONENT = 'Error413AiQuery';
-const AI_TIMEOUT_COMPONENT = 'Error504AiQuery';
+const AI_DUAL_SHAPED_ERRORS: Record<string, string> = {
+  400: `The BFF could not parse the body as JSON, or the Forest AI proxy rejected the query. ${AI_RELAYED_OR_ENVELOPE}`,
+  401: `The BFF session is missing, invalid or expired, or the Forest server refused the access token this route forwards. ${AI_RELAYED_OR_ENVELOPE}`,
+  403: `The request presented an API key instead of a session (type oauth_required), or the Forest server refused the query. ${AI_RELAYED_OR_ENVELOPE}`,
+  413: `The request body exceeds the AI query limit of ${AI_BODY_LIMIT}, or the Forest AI proxy refused it as too large. ${AI_RELAYED_OR_ENVELOPE}`,
+  415: `The request declares a character set the BFF cannot decode. ${AI_RELAYED_OR_ENVELOPE}`,
+  429: `The Forest AI proxy rate-limited the query. ${AI_RELAYED_OR_ENVELOPE}`,
+};
 
-function registerAiQueryErrorResponses(
-  registry: OpenAPIRegistry,
-  shared: ErrorResponseRefs,
-): Record<string, ResponseRef> {
-  const timeout = registry.registerComponent('responses', AI_TIMEOUT_COMPONENT, {
-    description: ERROR_STATUSES['504'],
-    content: { 'application/json': { schema: { $ref: ERROR_RESPONSE_REF } } },
-  }).ref;
+const AI_ENVELOPE_ERRORS: Record<string, string> = {
+  500: 'The BFF hit an unexpected error, or the Forest server answered a 500 whose body is withheld',
+  502: 'The Forest server could not be reached, or answered a status the BFF does not relay',
+  503: 'The Forest server reported itself unavailable',
+  504: 'The Forest server did not answer the AI query before the BFF timeout',
+};
 
-  const bodyLimit = registry.registerComponent('responses', AI_BODY_LIMIT_COMPONENT, {
-    description: `The request body exceeds the AI query limit of ${AI_BODY_LIMIT}`,
-    content: { 'application/json': { schema: { $ref: ERROR_RESPONSE_REF } } },
-  }).ref;
+const AI_DEFAULT_DESCRIPTION =
+  'Any other status this relay can answer. Below 500 the body is the Forest AI proxy answer, ' +
+  'relayed unchanged when it was JSON and replaced by the BFF ' +
+  '`{ error: { type, status, message } }` envelope when it was not. At 500 and above the body is ' +
+  'always that envelope, so no upstream infrastructure detail reaches the caller. An upstream ' +
+  'answer below 400 that carries no JSON body is reported as 502, since there is nothing to relay.';
+
+const AI_COMPONENT_SUFFIX = 'AiQuery';
+
+function registerAiQueryErrorResponses(registry: OpenAPIRegistry): Record<string, ResponseRef> {
+  const dualShaped = Object.entries(AI_DUAL_SHAPED_ERRORS).map(([status, description]) => [
+    status,
+    registerErrorComponent(registry, `Error${status}${AI_COMPONENT_SUFFIX}`, {
+      description,
+      schema: {},
+    }),
+  ]);
+
+  const envelope = Object.entries(AI_ENVELOPE_ERRORS).map(([status, description]) => [
+    status,
+    registerErrorComponent(registry, `Error${status}${AI_COMPONENT_SUFFIX}`, {
+      description,
+      schema: { $ref: ERROR_RESPONSE_REF },
+    }),
+  ]);
 
   return {
-    ...Object.fromEntries(AI_QUERY_SHARED_ERRORS.map(status => [status, shared.byStatus[status]])),
-    413: bodyLimit,
-    504: timeout,
+    ...Object.fromEntries([...dualShaped, ...envelope]),
+    default: registerErrorComponent(registry, `ErrorDefault${AI_COMPONENT_SUFFIX}`, {
+      description: AI_DEFAULT_DESCRIPTION,
+      schema: {},
+    }),
   };
 }
 
@@ -309,7 +353,9 @@ function registerAiQueryPath(
       'because only the OAuth flow yields the Forest access token this route forwards. The ' +
       'environment and rendering are derived server-side, so sending forest-* headers has no ' +
       `effect. The body limit is ${AI_BODY_LIMIT} here rather than the ${BODY_LIMIT} of every ` +
-      'other route, and only application/json is parsed. This path is published only by a ' +
+      'other route, and only application/json is parsed: any other content type arrives as an ' +
+      'empty body, is relayed as {} and the Forest server rejects the query. This path is ' +
+      'published only by a ' +
       'deployment whose OAuth configuration is complete, since the relay needs a session.',
     security: [{ [SESSION_SCHEME]: [] }],
     request: {
@@ -339,9 +385,7 @@ export function generateOpenApiDocument(
     unfolding === undefined ||
     unfolding.collections.some(collection => collection.actions.length > 0);
   const errorRefs = registerErrorResponses(registry, DATA_ERRORS, hasActions);
-  const aiErrorRefs = hasAiQueryRoute
-    ? registerAiQueryErrorResponses(registry, errorRefs)
-    : undefined;
+  const aiErrorRefs = hasAiQueryRoute ? registerAiQueryErrorResponses(registry) : undefined;
   const timezoneHeader = [registry.registerParameter(TIMEZONE_HEADER_COMPONENT, TIMEZONE_HEADER)];
 
   registry.registerComponent('securitySchemes', SESSION_SCHEME, {

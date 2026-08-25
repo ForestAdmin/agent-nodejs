@@ -5,7 +5,8 @@ import { mkdirSync, writeFileSync } from 'fs';
 import path from 'path';
 
 import createConsoleLogger from './adapters/console-logger';
-import runCli, { resolveUnfoldSource } from './cli-core';
+import { AI_QUERY_ROUTE } from './ai/ai-routes-middleware';
+import runCli, { resolveOAuthConfig, resolveUnfoldSource } from './cli-core';
 import { parseConfig } from './config/env-config';
 import { extractErrorMessage } from './errors';
 import { generateOpenApiDocument, serializeOpenApi } from './openapi/openapi-document';
@@ -56,6 +57,21 @@ function wantsUnfolding(env: NodeJS.ProcessEnv): boolean {
   return UNFOLD_VARS.every(name => (env[name] ?? '').trim() !== '');
 }
 
+function publishesAiQuery(env: NodeJS.ProcessEnv, logger: Logger): boolean {
+  try {
+    return resolveOAuthConfig(parseConfig(env)) !== undefined;
+  } catch (error) {
+    const reason = extractErrorMessage(error);
+
+    logger(
+      'Warn',
+      `Omitting ${AI_QUERY_ROUTE} from the document: the configuration could not be read (${reason})`,
+    );
+
+    return false;
+  }
+}
+
 /**
  * Unfolds when the deployment is configured to be inspected, and emits the generic document when it
  * is not configured at all — the command keeps working without configuration. A deployment that IS
@@ -74,10 +90,12 @@ export async function renderOpenApi(env: NodeJS.ProcessEnv, logger: Logger): Pro
       ? { source: resolveUnfoldSource(parseConfig(env), logger), authSecret }
       : undefined;
 
+  const hasAiQueryRoute = publishesAiQuery(env, logger);
+
   if (!unfoldable?.source) {
     logger('Warn', `Emitting the generic OpenAPI document: ${NOTHING_TO_UNFOLD}`);
 
-    return `${serializeOpenApi(generateOpenApiDocument(version))}\n`;
+    return `${serializeOpenApi(generateOpenApiDocument(version, { hasAiQueryRoute }))}\n`;
   }
 
   const { source } = unfoldable;
@@ -86,7 +104,7 @@ export async function renderOpenApi(env: NodeJS.ProcessEnv, logger: Logger): Pro
     source,
     readModel,
     () => issueOpenApiAgentToken(unfoldable.authSecret),
-    version,
+    { version, hasAiQueryRoute },
   );
 
   // Not one collection came back with its field set, so the agent was unreachable throughout. The

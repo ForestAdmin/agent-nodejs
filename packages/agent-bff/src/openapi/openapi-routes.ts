@@ -17,7 +17,7 @@ const MAX_GENERATION_RETRIES = 3;
 export interface OpenApiRoutesOptions {
   version: string;
   enabled: boolean;
-  hasAiQueryRoute?: boolean;
+  hasAiQueryRoute: boolean;
   /** Absent (no agent or no read-model configuration) serves the generic document. */
   source?: UnfoldSource;
 }
@@ -26,7 +26,7 @@ export default function createOpenApiRoutes({
   version,
   enabled,
   source,
-  hasAiQueryRoute = false,
+  hasAiQueryRoute,
 }: OpenApiRoutesOptions): Middleware {
   const generic =
     enabled && !source
@@ -54,13 +54,10 @@ export default function createOpenApiRoutes({
 
     if (unfolded?.readModel === readModel) return unfolded.document;
 
-    const { document, unfolding } = await buildUnfoldedDocument(
-      source,
-      readModel,
-      token,
+    const { document, unfolding } = await buildUnfoldedDocument(source, readModel, token, {
       version,
       hasAiQueryRoute,
-    );
+    });
 
     // A schema refresh landing during the capabilities fan-out mixes the new generation's field sets
     // into this generation's collections, relations and actions. Such a document must not be served

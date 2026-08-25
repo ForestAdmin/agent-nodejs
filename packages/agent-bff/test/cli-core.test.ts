@@ -122,7 +122,7 @@ describe('runCli', () => {
       jest.restoreAllMocks();
     });
 
-    it('should accept a body just under 1mb, which the 16kb global parser would have rejected', async () => {
+    it('should parse a body just under 1mb and reach the route, which the 16kb global parser would have rejected', async () => {
       const server = await runCli(OAUTH_ENV, noopLogger);
 
       try {
@@ -131,8 +131,42 @@ describe('runCli', () => {
           .set('Authorization', `Bearer ${sessionToken()}`)
           .send({ messages: [{ role: 'user', content: 'x'.repeat(900_000) }] });
 
+        expect(response.status).not.toBe(413);
         expect(response.status).toBe(401);
         expect(response.body.error.type).toBe('session_expired');
+      } finally {
+        await server.stop();
+      }
+    });
+
+    it('should keep the 16kb limit on a data route while the ai parser is mounted', async () => {
+      const server = await runCli(OAUTH_ENV, noopLogger);
+
+      try {
+        const response = await request(server.callback)
+          .post('/agent/v1/books/list')
+          .set('Authorization', `Bearer ${sessionToken()}`)
+          .set('X-Forest-Timezone', 'Europe/Paris')
+          .send({ filler: 'x'.repeat(20_000) });
+
+        expect(response.status).toBe(413);
+      } finally {
+        await server.stop();
+      }
+    });
+
+    it('should leave a form body unparsed rather than let the generic parser cap it at its form limit', async () => {
+      const server = await runCli(OAUTH_ENV, noopLogger);
+
+      try {
+        const response = await request(server.callback)
+          .post('/agent/v1/ai/query')
+          .set('Authorization', `Bearer ${sessionToken()}`)
+          .type('form')
+          .send(`messages=${'x'.repeat(100_000)}`);
+
+        expect(response.status).not.toBe(413);
+        expect(response.status).toBe(401);
       } finally {
         await server.stop();
       }
@@ -297,6 +331,26 @@ describe('runCli', () => {
 
         expect(logs).toContain('AI query route disabled: the deployment carries no OAuth session');
         expect(response.status).toBe(404);
+      } finally {
+        await server.stop();
+      }
+    });
+
+    it('should not mount the 1mb parser on the ai path when the route itself is absent', async () => {
+      const token = jsonwebtoken.sign(
+        { type: 'bff_access', sid: 's1', id: 1, rendering_id: '1', tags: {} },
+        VALID_ENV.FOREST_AUTH_SECRET,
+        { algorithm: 'HS256', expiresIn: '15m' },
+      );
+      const server = await runCli(VALID_ENV, noopLogger);
+
+      try {
+        const response = await request(server.callback)
+          .post('/agent/v1/ai/query')
+          .set('Authorization', `Bearer ${token}`)
+          .send({ messages: [{ role: 'user', content: 'x'.repeat(900_000) }] });
+
+        expect(response.status).toBe(413);
       } finally {
         await server.stop();
       }
