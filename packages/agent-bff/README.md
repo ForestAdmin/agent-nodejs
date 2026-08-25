@@ -91,8 +91,12 @@ Every agent call flows through a request edge that enforces three cross-cutting 
 (Slice-3) proxy runs. Errors use a structured, type-first contract — `{ error: { type, status,
 message, details? } }` — so consumers branch on `error.type`, never on message text.
 
-Two paths are mounted before the timezone layer and so skip it: `/agent/v1/context`, and the AI
-relay described below. Neither reaches an agent, so neither has a timezone to resolve.
+Two paths sit before the timezone layer and so skip it: `/agent/v1/context`, and the AI relay
+described below. Neither reaches an agent, so neither has a timezone to resolve. This holds only
+where they are actually mounted — `/agent/v1/context` needs the read-model bundle and the AI relay
+needs an OAuth session. In a deployment missing either, the request falls through to the timezone
+layer instead, so a caller sending no timezone against a BFF with no `BFF_DEFAULT_TIMEZONE` gets
+`400 missing_timezone` rather than the `404` it would expect from an unmounted route.
 
 ### Auth-mode precedence
 
