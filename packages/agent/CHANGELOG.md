@@ -1,3 +1,23 @@
+## @forestadmin/agent [1.97.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.97.2...@forestadmin/agent@1.97.3) (2026-08-25)
+
+
+### Bug Fixes
+
+* **agent:** serve only the columns of collections the caller may read ([#1840](https://github.com/ForestAdmin/agent-nodejs/issues/1840)) ([4d65c17](https://github.com/ForestAdmin/agent-nodejs/commit/4d65c176c7271a1b0850a6787ad2bca655315c08)), closes [throu#collection](https://github.com/throu/issues/collection) [throu#collection](https://github.com/throu/issues/collection)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.71.2
+* **@forestadmin/datasource-toolkit:** upgraded to 1.55.1
+* **@forestadmin/forestadmin-client:** upgraded to 1.43.2
+* **@forestadmin/mcp-server:** upgraded to 1.23.2
+* **@forestadmin/datasource-sql:** upgraded to 1.17.14
+* **@forestadmin/workflow-executor:** upgraded to 1.25.2
+
 ## @forestadmin/agent [1.97.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.97.1...@forestadmin/agent@1.97.2) (2026-08-24)
 
 
