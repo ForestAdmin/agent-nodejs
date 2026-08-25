@@ -178,6 +178,19 @@ describe('evaluateOperator', () => {
       expect(evaluateOperator('less_than', 'not a date', '2026-02-01')).toBe(false);
     });
 
+    it('treats an impossible calendar date as not a date instead of rolling it over', () => {
+      expect(evaluateOperator('equal', '2026-03-02', '2026-02-30')).toBe(false);
+      expect(evaluateOperator('equal', '2026-05-01', '2026-04-31')).toBe(false);
+      expect(evaluateOperator('equal', '2025-03-01', '2025-02-29')).toBe(false);
+      expect(evaluateOperator('greater_than', '2026-02-30', '2026-01-01')).toBe(false);
+      expect(evaluateOperator('less_than_or_equal', '2026-01-01', '2026-02-30')).toBe(false);
+      expect(evaluateOperator('in', '2026-03-02', ['2026-02-30'])).toBe(false);
+    });
+
+    it('still accepts a leap day that exists', () => {
+      expect(evaluateOperator('equal', '2024-02-29', '2024-02-29T00:00:00.000Z')).toBe(true);
+    });
+
     describe('on a host whose timezone is not UTC', () => {
       const originalTz = process.env.TZ;
 
