@@ -123,10 +123,14 @@ describe('search in the outgoing agent query', () => {
     ).toEqual({ timezone: 'Europe/Paris' });
   });
 
-  it('should send the search term unchanged, including its inner spacing', () => {
+  it('should keep the inner spacing of the search term', () => {
     expect(buildListAgentQuery('users', 'Europe/Paris', { search: 'ada lovelace' }).search).toBe(
       'ada lovelace',
     );
+  });
+
+  it('should trim the search term on the way out', () => {
+    expect(buildListAgentQuery('users', 'Europe/Paris', { search: '  ada  ' }).search).toBe('ada');
   });
 
   it('should accept the same search inputs on count as on list', () => {

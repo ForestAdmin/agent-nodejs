@@ -28,6 +28,13 @@ const OPERATORS = new Set<Operator>([
  * A read-only in-memory collection: enough to let the agent's own search decorator build a real
  * condition tree and apply it. `searchable` stays false, as on any datasource with no native
  * search, which is the path the decorator implements itself.
+ *
+ * `datasource-dummy` cannot stand in for this, for two measured reasons. Its collections never call
+ * `enableCount()` and the customizer only exposes `disableCount()`, so count answers
+ * `countStatus: 'deactivated'` — which is the one assertion this whole harness exists to make.
+ * And `emulateFieldOperator('title', 'IContains')` does not reach the search decorator's operator
+ * choice: searching `'Foundation'` matches while `'foundation'` does not, so the suite would
+ * silently exercise case-sensitive `Contains` instead of the `IContains` production takes.
  */
 export default class InMemoryCollection extends BaseCollection {
   private readonly records: RecordData[];

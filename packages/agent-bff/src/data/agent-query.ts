@@ -172,14 +172,18 @@ function serializePage(page: BffPage): Record<string, number> {
  *
  * `searchExtended` only ships alongside a real search: on its own it changes nothing agent-side,
  * and emitting it would alter the outgoing query of every search-less request.
+ *
+ * The value is trimmed on the way out, not in the parser: parsing stays pure validation here, and
+ * `parseListRequest` returns the caller's body untouched, which its own callers rely on.
  */
 function applySearch(
   query: AgentQuery,
   body: Pick<CountRequestBody, 'search' | 'searchExtended'>,
 ): void {
-  if (!body.search?.trim()) return;
+  const search = body.search?.trim();
+  if (!search) return;
 
-  query.search = body.search;
+  query.search = search;
   if (body.searchExtended !== undefined) query.searchExtended = body.searchExtended;
 }
 
