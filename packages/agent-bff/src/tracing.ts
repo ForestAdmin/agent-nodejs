@@ -98,6 +98,15 @@ function armFlush(
   }
 }
 
+/**
+ * The OTel specification defines its boolean environment variables as case-insensitive, and this
+ * one is the kill switch: reading `TRUE` as "not disabled" would leave tracing running for someone
+ * who just asked for it to stop.
+ */
+function isDisabled(raw: string | undefined): boolean {
+  return raw?.trim().toLowerCase() === 'true';
+}
+
 export default function initTracing(options: TracingOptions = {}): OtelSdk | undefined {
   const {
     env = process.env,
@@ -111,7 +120,12 @@ export default function initTracing(options: TracingOptions = {}): OtelSdk | und
     },
   } = options;
 
-  if (!env.OTEL_EXPORTER_OTLP_ENDPOINT || env.OTEL_SDK_DISABLED === 'true') return undefined;
+  const endpoint = env.OTEL_EXPORTER_OTLP_ENDPOINT?.trim();
+
+  // A blank endpoint counts as unset, not as "export to the OTel default": `env_file` hands an
+  // empty string through for a variable left blank in a `.env`, and arming the SDK against
+  // localhost:4318 is not what leaving the line empty asks for.
+  if (!endpoint || isDisabled(env.OTEL_SDK_DISABLED)) return undefined;
 
   const modules = load();
 
@@ -132,10 +146,7 @@ export default function initTracing(options: TracingOptions = {}): OtelSdk | und
   sdk.start();
   armFlush(sdk, { onSignal, raise });
 
-  logger('Info', 'OpenTelemetry tracing enabled', {
-    serviceName,
-    endpoint: env.OTEL_EXPORTER_OTLP_ENDPOINT,
-  });
+  logger('Info', 'OpenTelemetry tracing enabled', { serviceName, endpoint });
 
   return sdk;
 }

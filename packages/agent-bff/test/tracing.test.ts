@@ -64,12 +64,40 @@ describe('initTracing', () => {
       expect(NodeSDK).not.toHaveBeenCalled();
       expect(logger).not.toHaveBeenCalled();
     });
+
+    it('should treat a blank endpoint as unset rather than export to the OTel default', () => {
+      const sdk = setup({ env: { OTEL_EXPORTER_OTLP_ENDPOINT: '   ' } });
+
+      expect(sdk).toBeUndefined();
+      expect(NodeSDK).not.toHaveBeenCalled();
+    });
+
+    it('should report the trimmed endpoint it exports to', () => {
+      setup({ env: { OTEL_EXPORTER_OTLP_ENDPOINT: ` ${ENDPOINT} ` } });
+
+      expect(logger).toHaveBeenCalledWith(
+        'Info',
+        'OpenTelemetry tracing enabled',
+        expect.objectContaining({ endpoint: ENDPOINT }),
+      );
+    });
   });
 
   describe('when OTEL_SDK_DISABLED is "true"', () => {
     it('should not build an SDK even with an endpoint configured', () => {
       const sdk = setup({
         env: { OTEL_EXPORTER_OTLP_ENDPOINT: ENDPOINT, OTEL_SDK_DISABLED: 'true' },
+      });
+
+      expect(sdk).toBeUndefined();
+      expect(NodeSDK).not.toHaveBeenCalled();
+    });
+
+    // The OTel spec defines its boolean variables as case-insensitive, and this one is the kill
+    // switch: reading "TRUE" as "not disabled" leaves tracing on for someone asking it to stop.
+    it.each(['TRUE', 'True', ' true '])('should also honour %p', raw => {
+      const sdk = setup({
+        env: { OTEL_EXPORTER_OTLP_ENDPOINT: ENDPOINT, OTEL_SDK_DISABLED: raw },
       });
 
       expect(sdk).toBeUndefined();
