@@ -100,7 +100,7 @@ Configure it entirely through the standard OTel environment variables:
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP receiver URL (e.g. `http://collector:4318`). **Tracing stays disabled until this is set.** |
 | `OTEL_SERVICE_NAME` | Service name reported in traces. Default: `forestadmin-agent-bff`. |
 | `OTEL_RESOURCE_ATTRIBUTES` | Extra resource attributes, e.g. `deployment.environment=production`. |
-| `OTEL_SDK_DISABLED` | Set to `true` to force-disable tracing even when an endpoint is configured. |
+| `OTEL_SDK_DISABLED` | Set to `true` (case-insensitive) to force-disable tracing even when an endpoint is configured. |
 
 ```bash
 docker run -d \
@@ -116,9 +116,10 @@ docker run -d \
   ghcr.io/forestadmin/agent-bff:latest
 ```
 
-> **Note:** OpenTelemetry is bundled only in the Docker image. It is not shipped with the npm
-> package — with an endpoint set but the packages absent, the BFF logs a warning and starts
-> untraced rather than failing.
+> **Note:** These variables only do anything in the Docker image. The image's entry point loads
+> the tracing preload before the CLI; the npm `forest-bff` bin runs the CLI on its own, and the
+> OpenTelemetry packages are not npm dependencies — so outside Docker an `OTEL_*` variable is
+> read by nothing and the process starts untraced, silently.
 
 ### Without Docker
 
