@@ -1,3 +1,10 @@
+## @forestadmin/datasource-toolkit [1.55.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.55.0...@forestadmin/datasource-toolkit@1.55.1) (2026-08-25)
+
+
+### Bug Fixes
+
+* **agent:** serve only the columns of collections the caller may read ([#1840](https://github.com/ForestAdmin/agent-nodejs/issues/1840)) ([4d65c17](https://github.com/ForestAdmin/agent-nodejs/commit/4d65c176c7271a1b0850a6787ad2bca655315c08)), closes [throu#collection](https://github.com/throu/issues/collection) [throu#collection](https://github.com/throu/issues/collection)
+
 # @forestadmin/datasource-toolkit [1.55.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.54.0...@forestadmin/datasource-toolkit@1.55.0) (2026-08-17)
 
 
