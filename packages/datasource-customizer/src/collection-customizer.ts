@@ -596,6 +596,13 @@ export default class CollectionCustomizer<
 
   /**
    * Replace the behavior of the search bar
+   *
+   * On a plain search, the fields the handler reads are exempt from read permissions: the caller
+   * supplies the text and the handler picks the fields, so the agent cannot tell an intended one
+   * from one the role may not read. Point a handler at a column of a collection a role cannot read
+   * and that role can test values against it, reading each answer from whether rows come back.
+   * An extended search is refused rather than exempted, because the caller owns that flag and can
+   * compare the same term with it off and on.
    * @param definition handler to describe the new behavior
    * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/search Documentation Link}
    * @example

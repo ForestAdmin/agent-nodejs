@@ -7,7 +7,7 @@ export { MAP_ALLOWED_OPERATORS_FOR_COLUMN_TYPE as allowedOperatorsForColumnType 
 export { default as BaseCollection } from './base-collection';
 export { default as BaseDataSource } from './base-datasource';
 export { default as DataSourceDecorator } from './decorators/datasource-decorator';
-export { default as CollectionDecorator } from './decorators/collection-decorator';
+export { default as CollectionDecorator, SearchedField } from './decorators/collection-decorator';
 
 // Query Interface
 export { default as Aggregation } from './interfaces/query/aggregation';

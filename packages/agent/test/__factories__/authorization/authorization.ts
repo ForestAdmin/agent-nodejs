@@ -15,6 +15,12 @@ export class AuthorizationsFactory extends Factory<AuthorizationService> {
       Authorizations.getScope = jest.fn();
       Authorizations.assertCanExecuteChart = jest.fn();
       Authorizations.invalidateScopeCache = jest.fn();
+      Authorizations.canRead = jest.fn().mockResolvedValue(true);
+      Authorizations.assertCanReadQueryFields = jest.fn();
+      Authorizations.assertCanReadUsages = jest.fn();
+      Authorizations.redactProjection = jest
+        .fn()
+        .mockImplementation(async (context, collection, requested) => requested.projection);
     });
   }
 }

@@ -52,6 +52,16 @@ export default class CsvGenerator {
     }
   }
 
+  /** Labels are positionally aligned with the requested projection; dropping one shifts the rest. */
+  static filterHeader(header: string, requested: Projection, kept: Projection): string {
+    if (!header || kept.length === requested.length) return header;
+
+    return header
+      .split(',')
+      .filter((_, index) => kept.includes(requested[index]))
+      .join(',');
+  }
+
   private static convert(records: RecordData[], projection: Projection): Promise<string> {
     return writeToString(
       records.map(record =>

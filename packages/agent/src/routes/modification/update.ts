@@ -40,7 +40,10 @@ export default class UpdateRoute extends CollectionRoute {
     const [updateResult] = await this.collection.list(
       caller,
       new Filter({ conditionTree }),
-      ProjectionFactory.all(this.collection),
+      await this.services.authorization.redactProjection(context, this.collection, {
+        projection: ProjectionFactory.all(this.collection),
+        namedByCaller: false,
+      }),
     );
 
     context.response.body = this.services.serializer.serialize(this.collection, updateResult);

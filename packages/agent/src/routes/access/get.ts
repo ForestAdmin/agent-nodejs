@@ -24,7 +24,11 @@ export default class GetRoute extends CollectionRoute {
       ),
     });
 
-    const projection = QueryStringParser.parseProjectionFromHeaderOrQuery(this.collection, context);
+    const projection = await this.services.authorization.redactProjection(
+      context,
+      this.collection,
+      QueryStringParser.parseProjectionFromHeaderOrQuery(this.collection, context),
+    );
 
     const records = await this.collection.list(
       QueryStringParser.parseCaller(context),

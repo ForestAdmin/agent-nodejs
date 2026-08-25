@@ -409,4 +409,48 @@ describe('CsvGenerator', () => {
       });
     });
   });
+
+  describe('filterHeader', () => {
+    it('should drop the labels of the paths that were pruned', () => {
+      const header = CsvGenerator.filterHeader(
+        'Id,Pan,Holder national id',
+        new Projection('id', 'panLast4', 'holder:nationalId'),
+        new Projection('id', 'panLast4'),
+      );
+
+      expect(header).toEqual('Id,Pan');
+    });
+
+    it('should drop a label from the middle without shifting the others', () => {
+      const header = CsvGenerator.filterHeader(
+        'Id,Holder national id,Pan',
+        new Projection('id', 'holder:nationalId', 'panLast4'),
+        new Projection('id', 'panLast4'),
+      );
+
+      expect(header).toEqual('Id,Pan');
+    });
+
+    it('should return the header untouched when nothing was pruned', () => {
+      const projection = new Projection('id', 'panLast4');
+
+      expect(CsvGenerator.filterHeader('Id,Pan', projection, projection)).toEqual('Id,Pan');
+    });
+
+    it('should return an absent header as is', () => {
+      expect(
+        CsvGenerator.filterHeader(undefined, new Projection('id', 'x:y'), new Projection('id')),
+      ).toBeUndefined();
+    });
+
+    it('should drop every label when every path was pruned', () => {
+      const header = CsvGenerator.filterHeader(
+        'Holder national id',
+        new Projection('holder:nationalId'),
+        new Projection(),
+      );
+
+      expect(header).toEqual('');
+    });
+  });
 });
