@@ -1,17 +1,16 @@
-// Reports the image's library (npm) vulnerabilities.
+// Gates the image publish on library (npm) vulnerabilities by ORIGIN, not severity.
 //
 // Trivy splits findings into OS packages (gated natively in the workflow, blocking —
-// only fixable by bumping the base image here) and libraries. The libraries here are
-// the BFF's npm dependencies, already shipped to npm consumers — blocking the image
-// would desync GHCR from npm without removing the vuln, which is fixed at the source
-// via a dependency bump — plus the npm CLI the base image bundles, fixed by bumping
-// that base image. Neither is fixable in this Dockerfile → REPORT only.
+// only fixable by bumping the base image here) and libraries. Among libraries:
+//   - @opentelemetry/* are Docker-only (pinned in build-deps-manifest.js): the image
+//     is the ONLY place they exist and can be fixed → BLOCK.
+//   - everything else is either the BFF's npm dependencies, already shipped via the
+//     npm package (blocking the image would desync GHCR from npm without removing the
+//     vuln, which is fixed at the source), or the npm CLI the base image bundles
+//     → REPORT only.
 //
-// The image ships no Docker-only npm dependency today. The day it does (APM), that
-// dependency exists ONLY here and can only be fixed here — it must then BLOCK, the
-// way the workflow-executor image gates its @opentelemetry packages.
-//
-// Usage: node scan-gate.js <trivy-library-results.json>
+// Usage: node scan-gate.js <trivy-library-results.json>   (exits 1 if a blocking
+// OTel vuln is found; always prints every library finding for visibility)
 
 const fs = require('fs');
 
@@ -45,4 +44,15 @@ const summary = lines.join('\n');
 console.log(summary);
 if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${summary}\n`);
 
-console.log('\nEvery library finding above is report-only — this step gates nothing today.');
+// Block only on Docker-only OTel packages — everything else is report-only.
+const blocking = findings.filter(f => f.pkg.startsWith('@opentelemetry/'));
+if (blocking.length) {
+  console.error(
+    `\n::error::${blocking.length} fixable vuln(s) in Docker-only @opentelemetry packages must be ` +
+      'fixed here (bump versions in build-deps-manifest.js): ' +
+      blocking.map(f => `${f.pkg}@${f.installed} (${f.id})`).join(', '),
+  );
+  process.exit(1);
+}
+
+console.log('\nNo blocking (Docker-only) library vulnerabilities — npm-shared deps are report-only.');

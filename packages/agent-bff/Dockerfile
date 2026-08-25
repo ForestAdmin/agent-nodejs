@@ -109,4 +109,8 @@ LABEL org.opencontainers.image.title="forestadmin-agent-bff" \
 # Exec form, no wrapper script: the CLI takes positional subcommands (`openapi`),
 # so a "is the first argument a flag?" wrapper would misread them as a command to
 # exec. Use `--entrypoint` to run anything else in the image.
-ENTRYPOINT ["node", "/app/packages/agent-bff/dist/cli.js"]
+#
+# tracing-preload runs before cli.js so the OTel auto-instrumentation patches land
+# before the app imports anything. It is inert until OTEL_EXPORTER_OTLP_ENDPOINT is
+# set, so this costs an install that never opted into APM nothing but the require.
+ENTRYPOINT ["node", "--require", "/app/packages/agent-bff/dist/tracing-preload.js", "/app/packages/agent-bff/dist/cli.js"]

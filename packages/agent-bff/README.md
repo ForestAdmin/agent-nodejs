@@ -84,6 +84,41 @@ so under load it would SIGKILL exactly when the shutdown is doing its job. Hence
 above and `stop_grace_period: 15s` in the Compose file; on Kubernetes the default
 `terminationGracePeriodSeconds` of 30 already covers it.
 
+### Observability (OpenTelemetry)
+
+The Docker image ships with [OpenTelemetry](https://opentelemetry.io/) APM built in, and works with
+any OTLP-compatible backend (Datadog, Grafana Tempo, Jaeger, Honeycomb, etc.). It is **off by
+default** and turns on as soon as you point it at an OTLP receiver — no code changes or extra
+installs required. Tracing is set up before the app starts (auto-instrumentation for HTTP and the
+outbound calls to the agent and the Forest SaaS), and buffered spans are flushed on `SIGTERM` /
+`SIGINT` before the process exits.
+
+Configure it entirely through the standard OTel environment variables:
+
+| Variable | Description |
+| --- | --- |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP receiver URL (e.g. `http://collector:4318`). **Tracing stays disabled until this is set.** |
+| `OTEL_SERVICE_NAME` | Service name reported in traces. Default: `forestadmin-agent-bff`. |
+| `OTEL_RESOURCE_ATTRIBUTES` | Extra resource attributes, e.g. `deployment.environment=production`. |
+| `OTEL_SDK_DISABLED` | Set to `true` to force-disable tracing even when an endpoint is configured. |
+
+```bash
+docker run -d \
+  -p 3450:3450 \
+  -e FOREST_AUTH_SECRET="..." \
+  -e FOREST_ENV_SECRET="..." \
+  -e FOREST_SERVER_URL="https://api.forestadmin.com" \
+  -e FOREST_APP_URL="https://app.forestadmin.com" \
+  -e AGENT_URL="http://host.docker.internal:3351" \
+  -e BFF_TOKEN_ENCRYPTION_KEY="$(openssl rand -base64 32)" \
+  -e OTEL_EXPORTER_OTLP_ENDPOINT="http://collector:4318" \
+  ghcr.io/forestadmin/agent-bff:latest
+```
+
+> **Note:** OpenTelemetry is bundled only in the Docker image. It is not shipped with the npm
+> package — with an endpoint set but the packages absent, the BFF logs a warning and starts
+> untraced rather than failing.
+
 ### Without Docker
 
 Packaged / production — run the bin:
