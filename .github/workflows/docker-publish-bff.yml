@@ -30,7 +30,9 @@ permissions:
 
 concurrency:
   # Include the dispatch version so two manual runs for different versions from the
-  # same branch don't cancel each other mid-release.
+  # same branch don't cancel each other mid-release. Two versions therefore CAN publish
+  # concurrently and finish out of order; the merge job re-decides latest-stable against
+  # the tags as they are then, so the finishing order cannot regress the mutable tags.
   group: docker-publish-bff-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version || '' }}
   cancel-in-progress: true
 
@@ -109,8 +111,19 @@ jobs:
           fetch-depth: 0
       - name: Parse version from input
         id: version
+        # The dispatch input reaches the shell through `env`, never interpolated into
+        # the script: `${{ }}` is substituted as raw text before bash sees it, so a
+        # crafted version would run as commands with this job's packages:write token.
+        # It is then validated as a semver before anything is done with it — the
+        # `ref:` the build job checks out is built from the same value.
+        env:
+          INPUT_VERSION: ${{ github.event.inputs.version }}
         run: |
-          VERSION="${{ github.event.inputs.version }}"
+          VERSION="$INPUT_VERSION"
+          if ! printf '%s' "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then
+            echo "::error::Invalid version input: expected MAJOR.MINOR.PATCH[-prerelease]."
+            exit 1
+          fi
           echo "full=$VERSION" >> $GITHUB_OUTPUT
           echo "minor=${VERSION%.*}" >> $GITHUB_OUTPUT
           echo "major=${VERSION%%.*}" >> $GITHUB_OUTPUT
@@ -150,8 +163,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # Build from the requested version's tag, not the default branch.
-          ref: ${{ format('@forestadmin/agent-bff@{0}', github.event.inputs.version) }}
+          # Build from the requested version's tag, not the default branch. Taken from
+          # extract-version rather than the raw input, so only a validated semver ever
+          # reaches a ref.
+          ref: ${{ format('@forestadmin/agent-bff@{0}', needs.extract-version.outputs.full) }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -237,12 +252,45 @@ jobs:
     needs: [extract-version, build]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+        with:
+          # Tags only — this job builds nothing, it re-reads the release history below.
+          fetch-depth: 0
+
       - name: Download digests
         uses: actions/download-artifact@v4
         with:
           pattern: digest-bff-*
           merge-multiple: true
           path: /tmp/digests
+
+      # extract-version decided is_latest from the tags as they were when this run
+      # STARTED, and two dispatches for different versions run concurrently (their
+      # concurrency groups differ by version). An older run finishing last would then
+      # move :latest back onto a stale image. Re-deciding here, against the tags as
+      # they are now, makes the outcome independent of which run finishes first: a
+      # version that is no longer the highest stable one simply stops being latest.
+      - name: Re-check latest-stable against current tags
+        id: recheck
+        env:
+          FULL: ${{ needs.extract-version.outputs.full }}
+          IS_LATEST: ${{ needs.extract-version.outputs.is_latest }}
+        run: |
+          if [ "$IS_LATEST" != "true" ]; then
+            echo "is_latest=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          PREFIX="@forestadmin/agent-bff@"
+          LATEST_STABLE=$(git tag --list "${PREFIX}*" \
+            | sed "s|^${PREFIX}||" \
+            | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' \
+            | sort -V | tail -n1)
+          if [ "$FULL" = "$LATEST_STABLE" ]; then
+            echo "is_latest=true" >> $GITHUB_OUTPUT
+          else
+            echo "::notice::${FULL} is no longer the latest stable version (${LATEST_STABLE}); leaving the mutable tags alone."
+            echo "is_latest=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -261,7 +309,7 @@ jobs:
           FULL: ${{ needs.extract-version.outputs.full }}
           MINOR: ${{ needs.extract-version.outputs.minor }}
           MAJOR: ${{ needs.extract-version.outputs.major }}
-          IS_LATEST: ${{ needs.extract-version.outputs.is_latest }}
+          IS_LATEST: ${{ steps.recheck.outputs.is_latest }}
         run: |
           # Always publish the immutable full-version tag. The mutable tags
           # (minor, major, latest) only move when this is the latest stable

@@ -34,7 +34,19 @@ const queue = [ROOT_PACKAGE];
 while (queue.length) {
   const name = queue.shift();
   const dir = nameToDir[name];
-  if (!dir || closure.has(dir)) continue;
+
+  // An @forestadmin package that lives outside this monorepo would fall through every
+  // mechanism the image has: the walk cannot reach its dependencies, build-deps-manifest
+  // skips the whole @forestadmin/ prefix when gathering external deps, and there is no
+  // dist to COPY. It would be absent from the image entirely, so refuse rather than
+  // report a clean closure.
+  if (!dir) {
+    console.error(`Unknown @forestadmin dependency "${name}": no package under packages/ declares it.`);
+    console.error('The Docker image can only ship workspace packages — vendor it or add it to the monorepo.');
+    process.exit(1);
+  }
+
+  if (closure.has(dir)) continue;
   closure.add(dir);
   const { dependencies = {} } = JSON.parse(
     fs.readFileSync(path.join(PACKAGES_DIR, dir, 'package.json'), 'utf8'),
@@ -55,11 +67,22 @@ const extraInList = declared.filter(p => !actual.includes(p));
 if (missingFromList.length) errors.push(`WORKSPACE_PACKAGES is missing: ${missingFromList.join(', ')}`);
 if (extraInList.length) errors.push(`WORKSPACE_PACKAGES has stale entries: ${extraInList.join(', ')}`);
 
-// Every closure package except the BFF itself must be copied into node_modules.
+// Only active COPY instructions count — a path that survives in a comment or in prose
+// would otherwise pass the check while shipping nothing.
+const copied = dockerfile
+  .split('\n')
+  .filter(line => /^\s*COPY\s/.test(line))
+  .join('\n');
+
+// Every closure package is copied out of the builder, and BOTH halves are required:
+// without the dist there is no code, and without the package.json there is no "main"
+// for Node to resolve the package by. The dependencies land in node_modules and the BFF
+// in packages/agent-bff/, but they are all copied FROM the same builder paths.
 for (const pkg of actual) {
-  if (pkg === 'agent-bff') continue;
-  if (!dockerfile.includes(`/app/packages/${pkg}/dist`)) {
-    errors.push(`Dockerfile is missing a COPY for packages/${pkg}/dist`);
+  for (const file of ['dist', 'package.json']) {
+    if (!copied.includes(`/app/packages/${pkg}/${file}`)) {
+      errors.push(`Dockerfile is missing a COPY for packages/${pkg}/${file}`);
+    }
   }
 }
 
