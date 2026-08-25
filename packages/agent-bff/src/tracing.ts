@@ -44,15 +44,29 @@ export interface TracingOptions {
   raise?: (signal: NodeJS.Signals) => void;
 }
 
-export function loadOtelModules(): OtelModules | undefined {
-  try {
-    /* eslint-disable global-require, @typescript-eslint/no-var-requires, import/no-extraneous-dependencies */
-    const { NodeSDK } = require('@opentelemetry/sdk-node');
-    const { getNodeAutoInstrumentations } = require('@opentelemetry/auto-instrumentations-node');
-    const { OTLPTraceExporter } = require('@opentelemetry/exporter-trace-otlp-http');
-    /* eslint-enable global-require, @typescript-eslint/no-var-requires, import/no-extraneous-dependencies */
+/** The packages this image installs for APM, and the export it takes from each. */
+export const OTEL_MODULE_IDS = {
+  sdk: '@opentelemetry/sdk-node',
+  instrumentations: '@opentelemetry/auto-instrumentations-node',
+  exporter: '@opentelemetry/exporter-trace-otlp-http',
+} as const;
 
-    return { NodeSDK, getNodeAutoInstrumentations, OTLPTraceExporter };
+/**
+ * The module resolution, as a seam. These packages are absent everywhere except the Docker image,
+ * so the real `require` can only ever take the failure branch here — passing a loader is what lets
+ * the success branch, and the package ids it asks for, be exercised at all. A typo in one of them
+ * would otherwise surface as an untraced image and nothing else.
+ */
+export type ModuleLoader = (id: string) => Record<string, unknown>;
+
+export function loadOtelModules(load: ModuleLoader = require): OtelModules | undefined {
+  try {
+    return {
+      NodeSDK: load(OTEL_MODULE_IDS.sdk).NodeSDK,
+      getNodeAutoInstrumentations: load(OTEL_MODULE_IDS.instrumentations)
+        .getNodeAutoInstrumentations,
+      OTLPTraceExporter: load(OTEL_MODULE_IDS.exporter).OTLPTraceExporter,
+    } as OtelModules;
   } catch {
     return undefined;
   }
