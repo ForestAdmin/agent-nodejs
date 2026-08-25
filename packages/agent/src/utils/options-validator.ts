@@ -42,6 +42,7 @@ export default class OptionsValidator {
     copyOptions.instantCacheRefresh = copyOptions.instantCacheRefresh ?? true;
     copyOptions.workflowExecutorUrl = copyOptions.workflowExecutorUrl ?? null;
     copyOptions.auditTrail = copyOptions.auditTrail ?? null;
+    copyOptions.maxRecordsForApproval = copyOptions.maxRecordsForApproval ?? 500;
     copyOptions.maxBodySize = copyOptions.maxBodySize || '50mb';
     copyOptions.bodyParserOptions = copyOptions.bodyParserOptions || {
       jsonLimit: '50mb',
