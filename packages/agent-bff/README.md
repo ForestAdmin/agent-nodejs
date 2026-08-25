@@ -31,6 +31,43 @@ dropped collection reachable.
 
 ## Usage
 
+### Docker (recommended)
+
+```bash
+cp .env.example .env   # then fill in the secrets
+docker compose up
+```
+
+The `docker-compose.yml` at the root of this package starts a single BFF instance. See
+`.env.example` for the full list of environment variables and their descriptions.
+
+Or run the image directly:
+
+```bash
+docker run -d \
+  -p 3450:3450 \
+  -e FOREST_AUTH_SECRET="..." \
+  -e FOREST_ENV_SECRET="..." \
+  -e FOREST_SERVER_URL="https://api.forestadmin.com" \
+  -e FOREST_APP_URL="https://app.forestadmin.com" \
+  -e AGENT_URL="http://host.docker.internal:3351" \
+  -e BFF_TOKEN_ENCRYPTION_KEY="$(openssl rand -base64 32)" \
+  ghcr.io/forestadmin/agent-bff:latest
+```
+
+> **Note:** When the BFF runs in Docker and your agent runs on the host machine, use
+> `host.docker.internal` instead of `localhost` in `AGENT_URL`.
+
+The image's entry point is the CLI, so the subcommands below work the same way:
+
+```bash
+docker run --rm ghcr.io/forestadmin/agent-bff:latest openapi > openapi.json
+```
+
+Tags follow the npm package: `:latest`, `:1`, `:1.20` and the immutable `:1.20.2`.
+
+### Without Docker
+
 Packaged / production — run the bin:
 
 ```bash
