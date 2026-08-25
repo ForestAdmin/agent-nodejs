@@ -38,6 +38,10 @@ cp .env.example .env   # then fill in the secrets
 docker compose up
 ```
 
+The template targets a local, non-containerised run, so one value has to change for Docker:
+set `AGENT_URL=http://host.docker.internal:3351`. Left at `localhost`, it resolves to the BFF
+container itself and every agent call fails (see the note below).
+
 The `docker-compose.yml` at the root of this package starts a single BFF instance. See
 `.env.example` for the full list of environment variables and their descriptions.
 
