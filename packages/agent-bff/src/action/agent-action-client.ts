@@ -29,13 +29,15 @@ export interface Action extends ActionForm {
   execute(): Promise<unknown>;
 }
 
+export interface LoadActionParams {
+  collection: string;
+  action: string;
+  recordIds: string[];
+  timezone: string;
+}
+
 export interface AgentActionClient {
-  loadAction(
-    collection: string,
-    action: string,
-    recordIds: string[],
-    timezone: string,
-  ): Promise<Action>;
+  loadAction(params: LoadActionParams): Promise<Action>;
 }
 
 export interface AgentActionClientOptions {
@@ -75,7 +77,7 @@ export default function createAgentActionClient({
   });
 
   return {
-    loadAction: (collection, action, recordIds, timezone) =>
+    loadAction: ({ collection, action, recordIds, timezone }) =>
       client.collection(collection).action(action, { recordIds, timezone }),
   };
 }

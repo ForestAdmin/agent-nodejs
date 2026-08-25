@@ -302,7 +302,12 @@ describe('action routes middleware', () => {
       .post('/agent/v1/users/actions/approve/form')
       .send({ recordIds: ['1|2'] });
 
-    expect(loadAction).toHaveBeenCalledWith('users', 'approve', ['1|2'], TIMEZONE);
+    expect(loadAction).toHaveBeenCalledWith({
+      collection: 'users',
+      action: 'approve',
+      recordIds: ['1|2'],
+      timezone: TIMEZONE,
+    });
   });
 
   it('coerces a numeric zero recordId to a string so it survives the downstream filter', async () => {
@@ -314,7 +319,12 @@ describe('action routes middleware', () => {
       .post('/agent/v1/users/actions/approve/form')
       .send({ recordIds: [0] });
 
-    expect(loadAction).toHaveBeenCalledWith('users', 'approve', ['0'], TIMEZONE);
+    expect(loadAction).toHaveBeenCalledWith({
+      collection: 'users',
+      action: 'approve',
+      recordIds: ['0'],
+      timezone: TIMEZONE,
+    });
   });
 
   it('accepts an empty recordIds array for a global action', async () => {
@@ -327,7 +337,12 @@ describe('action routes middleware', () => {
       .send({ recordIds: [] });
 
     expect(response.status).toBe(200);
-    expect(loadAction).toHaveBeenCalledWith('users', 'approve', [], TIMEZONE);
+    expect(loadAction).toHaveBeenCalledWith({
+      collection: 'users',
+      action: 'approve',
+      recordIds: [],
+      timezone: TIMEZONE,
+    });
   });
 
   it('forwards the request-resolved timezone to the action form load', async () => {
@@ -341,7 +356,12 @@ describe('action routes middleware', () => {
       .post('/agent/v1/users/actions/approve/form')
       .send({ recordIds: ['42'] });
 
-    expect(loadAction).toHaveBeenCalledWith('users', 'approve', ['42'], 'America/New_York');
+    expect(loadAction).toHaveBeenCalledWith({
+      collection: 'users',
+      action: 'approve',
+      recordIds: ['42'],
+      timezone: 'America/New_York',
+    });
   });
 
   it('returns 400 invalid_request with no agent call when recordIds is missing', async () => {
@@ -488,7 +508,12 @@ describe('action execute', () => {
       .post('/agent/v1/users/actions/approve/execute')
       .send({ recordIds: ['42'], values: { reason: 'x' } });
 
-    expect(loadAction).toHaveBeenCalledWith('users', 'approve', ['42'], TIMEZONE);
+    expect(loadAction).toHaveBeenCalledWith({
+      collection: 'users',
+      action: 'approve',
+      recordIds: ['42'],
+      timezone: TIMEZONE,
+    });
     expect(setFields).toHaveBeenCalledWith({ reason: 'x' });
     expect(execute).toHaveBeenCalledTimes(1);
     // Order is the behaviour named by this test: executing before the values are applied would run
@@ -507,7 +532,12 @@ describe('action execute', () => {
       .post('/agent/v1/users/actions/approve/execute')
       .send({ recordIds: ['42'] });
 
-    expect(loadAction).toHaveBeenCalledWith('users', 'approve', ['42'], 'Asia/Tokyo');
+    expect(loadAction).toHaveBeenCalledWith({
+      collection: 'users',
+      action: 'approve',
+      recordIds: ['42'],
+      timezone: 'Asia/Tokyo',
+    });
   });
 
   it('normalizes a Success result to 200 with invalidated as an array', async () => {

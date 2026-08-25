@@ -30,7 +30,12 @@ describe('createAgentActionClient', () => {
       token: 'jwt-token',
       actionEndpoints,
     });
-    const result = await client.loadAction('users', 'approve', ['1', '2'], 'America/New_York');
+    const result = await client.loadAction({
+      collection: 'users',
+      action: 'approve',
+      recordIds: ['1', '2'],
+      timezone: 'America/New_York',
+    });
 
     expect(HttpRequester).toHaveBeenCalledWith('jwt-token', { url: 'https://agent.example.com' });
     expect(createRemoteAgentClientMock).toHaveBeenCalledWith({
