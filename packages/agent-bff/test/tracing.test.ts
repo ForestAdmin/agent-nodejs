@@ -1,7 +1,11 @@
 import type { Logger } from '../src/ports/logger-port';
 import type { OtelModules, TracingOptions } from '../src/tracing';
 
-import initTracing, { DEFAULT_SERVICE_NAME, loadOtelModules } from '../src/tracing';
+import initTracing, {
+  DEFAULT_SERVICE_NAME,
+  OTEL_MODULE_IDS,
+  loadOtelModules,
+} from '../src/tracing';
 
 const ENDPOINT = 'http://collector:4318';
 
@@ -189,9 +193,37 @@ describe('initTracing', () => {
 });
 
 describe('loadOtelModules', () => {
-  // The OpenTelemetry packages ship only in the Docker image, so this is the branch an
-  // npm consumer takes: it must report their absence, not throw out of the preload.
-  it('should return undefined when the packages are not installed', () => {
+  it('should take each entry point from the package that provides it', () => {
+    const packageExports = {
+      [OTEL_MODULE_IDS.sdk]: { NodeSDK: 'sdk' },
+      [OTEL_MODULE_IDS.instrumentations]: { getNodeAutoInstrumentations: 'instrumentations' },
+      [OTEL_MODULE_IDS.exporter]: { OTLPTraceExporter: 'exporter' },
+    } as Record<string, Record<string, unknown>>;
+    const load = jest.fn((id: string) => packageExports[id]);
+
+    expect(loadOtelModules(load)).toEqual({
+      NodeSDK: 'sdk',
+      getNodeAutoInstrumentations: 'instrumentations',
+      OTLPTraceExporter: 'exporter',
+    });
+    expect(load.mock.calls.map(([id]) => id)).toEqual([
+      '@opentelemetry/sdk-node',
+      '@opentelemetry/auto-instrumentations-node',
+      '@opentelemetry/exporter-trace-otlp-http',
+    ]);
+  });
+
+  it('should return undefined when a package cannot be resolved', () => {
+    const load = jest.fn(() => {
+      throw new Error("Cannot find module '@opentelemetry/sdk-node'");
+    });
+
+    expect(loadOtelModules(load)).toBeUndefined();
+  });
+
+  // The packages ship only in the Docker image, so this is the branch an npm consumer
+  // takes: it must report their absence, not throw out of the preload.
+  it('should return undefined against the real require, outside the Docker image', () => {
     expect(loadOtelModules()).toBeUndefined();
   });
 });
