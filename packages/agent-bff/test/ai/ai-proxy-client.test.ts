@@ -115,18 +115,24 @@ describe('AiProxyClient', () => {
   });
 
   describe('when the upstream declares json but the body cannot be parsed', () => {
-    it('should report it as non-json rather than pass an empty body off as a success', async () => {
+    it('should report it as non-json and hand back the parse failure, so the caller can log it', async () => {
+      const parseFailure = new SyntaxError('Unexpected token < in JSON');
       global.fetch = jest.fn().mockResolvedValue({
         status: 200,
         headers: { get: () => 'application/json' },
         json: async () => {
-          throw new SyntaxError('Unexpected token < in JSON');
+          throw parseFailure;
         },
       }) as unknown as typeof fetch;
 
       const result = await makeClient().query(params());
 
-      expect(result).toStrictEqual({ status: 200, body: undefined, isJson: false });
+      expect(result).toStrictEqual({
+        status: 200,
+        body: undefined,
+        isJson: false,
+        unparseableBodyError: parseFailure,
+      });
     });
   });
 
@@ -154,17 +160,37 @@ describe('AiProxyClient', () => {
       await expect(makeClient().query(params())).rejects.toBeInstanceOf(AiProxyTimeoutError);
     });
 
-    it('should raise a network error carrying no internal topology', async () => {
-      global.fetch = jest
-        .fn()
-        .mockRejectedValue(
-          new Error('connect ECONNREFUSED 10.0.0.1:443'),
-        ) as unknown as typeof fetch;
+    it('should propagate the transport error, so the caller can log the real cause', async () => {
+      const transport = Object.assign(new TypeError('fetch failed'), {
+        cause: new Error('connect ECONNREFUSED 10.0.0.1:443'),
+      });
+      global.fetch = jest.fn().mockRejectedValue(transport) as unknown as typeof fetch;
 
-      await expect(makeClient().query(params())).rejects.toThrow(
-        'The Forest server could not be reached',
-      );
-      await expect(makeClient().query(params())).rejects.not.toThrow('10.0.0.1');
+      await expect(makeClient().query(params())).rejects.toBe(transport);
+    });
+
+    it('should classify a real AbortSignal timeout reason as a timeout, not as a transport error', async () => {
+      const signal = AbortSignal.timeout(1);
+      await new Promise(resolve => {
+        signal.addEventListener('abort', resolve);
+      });
+      global.fetch = jest.fn().mockRejectedValue(signal.reason) as unknown as typeof fetch;
+
+      await expect(makeClient().query(params())).rejects.toBeInstanceOf(AiProxyTimeoutError);
+    });
+
+    it('should pass the configured timeout to the abort signal', async () => {
+      const timeout = jest.spyOn(AbortSignal, 'timeout');
+      global.fetch = jest.fn().mockResolvedValue({
+        status: 200,
+        headers: { get: () => 'application/json' },
+        json: async () => ({}),
+      }) as unknown as typeof fetch;
+
+      await makeClient(4321).query(params());
+
+      expect(timeout).toHaveBeenCalledWith(4321);
+      timeout.mockRestore();
     });
   });
 });

@@ -53,6 +53,7 @@ function makeApp({
   environmentId = 7,
 }: AppOptions = {}) {
   const sessionStore = store ?? makeSessionStore({ saasAccessToken: freshAccessToken() });
+  const logger = jest.fn();
   const app = new Koa();
 
   app.use(createErrorMiddleware({ logger: () => undefined }));
@@ -72,11 +73,11 @@ function makeApp({
       sessionStore,
       serverClient,
       environmentId,
-      logger: () => undefined,
+      logger,
     }),
   );
 
-  return { app, query, sessionStore };
+  return { app, query, sessionStore, logger };
 }
 
 function jsonResponse(status: number, body: unknown): AiProxyResponse {
@@ -136,6 +137,26 @@ describe('createAiRoutesMiddleware', () => {
       expect(response.body.error.type).toBe('network_error');
       expect(query).not.toHaveBeenCalled();
     });
+
+    it('should log the transport cause through the whole wrapper chain, not just the fetch wrapper', async () => {
+      const transport = Object.assign(new TypeError('fetch failed'), {
+        cause: new Error('connect ECONNREFUSED 10.0.0.1:443'),
+      });
+      const store = makeSessionStore({ saasAccessToken: 'expired.token.value' });
+      const serverClient = {
+        refreshServerToken: jest.fn().mockRejectedValue(transport),
+      } as unknown as ForestServerClient;
+      (store.getSaasRefreshToken as jest.Mock).mockReturnValue('refresh-token');
+      const { app, logger } = makeApp({ store, serverClient });
+
+      await request(app.callback()).post(AI_QUERY_ROUTE).send({ messages: [] });
+
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        'AI query refused: the Forest server could not refresh the session',
+        { cause: expect.stringContaining('ECONNREFUSED 10.0.0.1') },
+      );
+    });
   });
 
   describe('when the session carries no usable rendering', () => {
@@ -187,6 +208,28 @@ describe('createAiRoutesMiddleware', () => {
       expect(response.body).toStrictEqual(upstream);
     });
 
+    it('should relay a JSON null body as null, instead of collapsing the status to 204', async () => {
+      const query = jest.fn().mockResolvedValue(jsonResponse(200, null));
+      const { app } = makeApp({ query });
+
+      const response = await request(app.callback()).post(AI_QUERY_ROUTE).send({ messages: [] });
+
+      expect(response.status).toBe(200);
+      expect(response.text).toBe('null');
+      expect(response.type).toBe('application/json');
+    });
+
+    it('should relay a bare JSON string as valid JSON, not as a raw text body', async () => {
+      const query = jest.fn().mockResolvedValue(jsonResponse(200, 'answer'));
+      const { app } = makeApp({ query });
+
+      const response = await request(app.callback()).post(AI_QUERY_ROUTE).send({ messages: [] });
+
+      expect(response.status).toBe(200);
+      expect(response.text).toBe('"answer"');
+      expect(response.type).toBe('application/json');
+    });
+
     it('should relay a JSON 4xx with its status and body, so the upstream contract survives', async () => {
       const upstream = { errors: [{ detail: 'Missing required body parameter: messages' }] };
       const query = jest.fn().mockResolvedValue(jsonResponse(400, upstream));
@@ -222,6 +265,42 @@ describe('createAiRoutesMiddleware', () => {
       expect(JSON.stringify(response.body)).not.toContain('topology');
     });
 
+    it('should log why an upstream body could not be parsed, instead of only that it was not json', async () => {
+      const query = jest.fn().mockResolvedValue({
+        status: 200,
+        body: undefined,
+        isJson: false,
+        unparseableBodyError: new SyntaxError('Unexpected end of JSON input'),
+      });
+      const { app, logger } = makeApp({ query });
+
+      await request(app.callback()).post(AI_QUERY_ROUTE).send({ messages: [] });
+
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        'AI proxy upstream body withheld; client message is generic',
+        {
+          status: 200,
+          isJson: false,
+          cause: expect.stringContaining('Unexpected end of JSON input'),
+        },
+      );
+    });
+
+    it('should clamp an oversized upstream cause instead of logging it whole', async () => {
+      const query = jest.fn().mockRejectedValue(new Error('x'.repeat(5_000)));
+      const { app, logger } = makeApp({ query });
+
+      await request(app.callback()).post(AI_QUERY_ROUTE).send({ messages: [] });
+
+      const [, , context] = logger.mock.calls.find(
+        ([, message]) => message === 'AI query failed against the Forest server',
+      ) as [string, string, { cause: string }];
+
+      expect(context.cause.length).toBeLessThan(1_000);
+      expect(context.cause).toContain('…');
+    });
+
     it('should answer 504 when the upstream times out', async () => {
       const query = jest.fn().mockRejectedValue(new AiProxyTimeoutError());
       const { app } = makeApp({ query });
@@ -230,6 +309,20 @@ describe('createAiRoutesMiddleware', () => {
 
       expect(response.status).toBe(504);
       expect(response.body.error.type).toBe('upstream_timeout');
+    });
+
+    it('should log the abort reason behind a 504, not only the bff wrapper message', async () => {
+      const abort = Object.assign(new Error('The operation was aborted due to timeout'), {
+        name: 'TimeoutError',
+      });
+      const query = jest.fn().mockRejectedValue(new AiProxyTimeoutError(abort));
+      const { app, logger } = makeApp({ query });
+
+      await request(app.callback()).post(AI_QUERY_ROUTE).send({ messages: [] });
+
+      expect(logger).toHaveBeenCalledWith('Warn', 'AI query failed against the Forest server', {
+        cause: expect.stringContaining('aborted due to timeout'),
+      });
     });
 
     it('should answer 502 when the upstream is unreachable', async () => {

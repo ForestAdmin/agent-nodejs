@@ -1,13 +1,16 @@
-import AI_NAME from './ai-name';
 import AiProxyTimeoutError from './ai-proxy-timeout-error';
 
 export { default as AiProxyTimeoutError } from './ai-proxy-timeout-error';
 
+const AI_NAME = 'zendesk';
 const AI_QUERY_PATH = '/api/ai-proxy/ai-query';
 const JSON_CONTENT_TYPE = 'application/json';
+const TIMEOUT_ERROR_NAME = 'TimeoutError';
 
 function isTimeout(error: unknown): boolean {
-  return error instanceof Error && error.name === 'TimeoutError';
+  if (typeof error !== 'object' || error === null) return false;
+
+  return (error as { name?: unknown }).name === TIMEOUT_ERROR_NAME;
 }
 
 export interface AiProxyClientOptions {
@@ -26,6 +29,7 @@ export interface AiProxyResponse {
   status: number;
   body: unknown;
   isJson: boolean;
+  unparseableBodyError?: unknown;
 }
 
 export default class AiProxyClient {
@@ -67,8 +71,8 @@ export default class AiProxyClient {
         signal: AbortSignal.timeout(this.timeoutMs),
       });
     } catch (error) {
-      if (isTimeout(error)) throw new AiProxyTimeoutError();
-      throw new Error('The Forest server could not be reached');
+      if (isTimeout(error)) throw new AiProxyTimeoutError(error);
+      throw error;
     }
 
     const contentType = response.headers.get('content-type')?.toLowerCase() ?? '';
@@ -79,9 +83,14 @@ export default class AiProxyClient {
     try {
       return { status: response.status, body: await response.json(), isJson: true };
     } catch (error) {
-      if (isTimeout(error)) throw new AiProxyTimeoutError();
+      if (isTimeout(error)) throw new AiProxyTimeoutError(error);
 
-      return { status: response.status, body: undefined, isJson: false };
+      return {
+        status: response.status,
+        body: undefined,
+        isJson: false,
+        unparseableBodyError: error,
+      };
     }
   }
 }

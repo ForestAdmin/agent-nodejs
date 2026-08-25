@@ -7,6 +7,7 @@ import type { Logger } from '../ports/logger-port';
 import type { Context, Middleware } from 'koa';
 
 import { AiProxyTimeoutError } from './ai-proxy-client';
+import { requireRenderingId } from '../auth/auth-mode';
 import { unauthorized } from '../http/bff-http-error';
 import {
   oauthRequired,
@@ -19,7 +20,9 @@ import ensureFreshServerAccess from '../oauth/session-lifecycle';
 
 export const AI_QUERY_ROUTE = '/agent/v1/ai/query';
 
-const POSITIVE_INTEGER = /^[1-9]\d*$/;
+const JSON_CONTENT_TYPE = 'application/json';
+const MAX_CAUSE_DEPTH = 3;
+const MAX_CAUSE_MESSAGE = 512;
 
 export interface AiRoutesMiddlewareOptions {
   client: AiProxyClient;
@@ -38,23 +41,36 @@ function requireSessionPrincipal(ctx: Context): BffAccessTokenPayload {
   return principal;
 }
 
-function requireRenderingId(principal: BffAccessTokenPayload): number {
-  if (!POSITIVE_INTEGER.test(String(principal.rendering_id))) {
-    throw unauthorized('The session carries no usable rendering');
-  }
+function clamp(message: string): string {
+  return message.length > MAX_CAUSE_MESSAGE ? `${message.slice(0, MAX_CAUSE_MESSAGE)}…` : message;
+}
 
-  return Number(principal.rendering_id);
+function describeFailure(error: unknown, depthLeft = MAX_CAUSE_DEPTH): string {
+  if (!(error instanceof Error)) return clamp(String(error));
+
+  const { cause } = error as { cause?: unknown };
+  const walkable = depthLeft > 0 && cause !== undefined;
+  const tail = walkable ? ` (cause: ${describeFailure(cause, depthLeft - 1)})` : '';
+
+  return `${error.name}: ${clamp(error.message)}${tail}`;
 }
 
 async function resolveSessionAccessToken(
   principal: BffAccessTokenPayload,
   store: SessionStore,
   serverClient: ForestServerClient,
+  logger: Logger,
 ): Promise<string> {
   try {
     return await ensureFreshServerAccess({ sid: principal.sid, store, serverClient });
   } catch (error) {
-    if (error instanceof OAuthRequestError && error.status >= 500) throw upstreamUnreachable();
+    if (error instanceof OAuthRequestError && error.status >= 500) {
+      logger('Warn', 'AI query refused: the Forest server could not refresh the session', {
+        cause: describeFailure(error),
+      });
+
+      throw upstreamUnreachable();
+    }
 
     throw error;
   }
@@ -71,13 +87,17 @@ function relayJsonBodyOrGenericError(
     logger('Warn', 'AI proxy upstream body withheld; client message is generic', {
       status: response.status,
       isJson: response.isJson,
+      ...(response.unparseableBodyError !== undefined
+        ? { cause: describeFailure(response.unparseableBodyError) }
+        : {}),
     });
 
     throw upstreamError(response.status);
   }
 
   ctx.status = response.status;
-  ctx.body = response.body;
+  ctx.type = JSON_CONTENT_TYPE;
+  ctx.body = JSON.stringify(response.body);
 }
 
 export default function createAiRoutesMiddleware({
@@ -97,7 +117,12 @@ export default function createAiRoutesMiddleware({
     const principal = requireSessionPrincipal(ctx);
     const renderingId = requireRenderingId(principal);
 
-    const saasAccessToken = await resolveSessionAccessToken(principal, sessionStore, serverClient);
+    const saasAccessToken = await resolveSessionAccessToken(
+      principal,
+      sessionStore,
+      serverClient,
+      logger,
+    );
 
     let response: AiProxyResponse;
 
@@ -109,7 +134,12 @@ export default function createAiRoutesMiddleware({
         body: ctx.request.body,
       });
     } catch (error) {
+      logger('Warn', 'AI query failed against the Forest server', {
+        cause: describeFailure(error),
+      });
+
       if (error instanceof AiProxyTimeoutError) throw upstreamTimeout();
+
       throw upstreamUnreachable();
     }
 
