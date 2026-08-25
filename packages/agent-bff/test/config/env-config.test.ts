@@ -255,7 +255,7 @@ describe('parseConfig', () => {
 
   describe('BFF_AI_TIMEOUT_MS', () => {
     it('should default to 2 minutes when unset, since an AI generation is slow', () => {
-      expect(parseConfig({ ...VALID_ENV }).aiTimeoutMs).toBe(120_000);
+      expect(parseConfig({ ...VALID_ENV }).aiTimeoutMs).toBe(DEFAULT_AI_TIMEOUT_MS);
     });
 
     it('should expose a configured value', () => {

@@ -17,6 +17,34 @@ const VALID_ENV = {
 
 const noopLogger: Logger = () => undefined;
 
+async function oversizedBodyOutcome(
+  callback: Parameters<typeof request>[0],
+  path: string,
+  token: string,
+  bytes: number,
+): Promise<string> {
+  try {
+    const response = await request(callback)
+      .post(path)
+      .set('Authorization', `Bearer ${token}`)
+      .set('Content-Type', 'application/json')
+      .send(JSON.stringify({ messages: [{ role: 'user', content: 'x'.repeat(bytes) }] }))
+      .ok(() => true);
+
+    return String(response.status);
+  } catch (error) {
+    return `aborted:${(error as { code?: string }).code ?? 'unknown'}`;
+  }
+}
+
+function sessionToken() {
+  return jsonwebtoken.sign(
+    { type: 'bff_access', sid: 's1', id: 1, rendering_id: '1', tags: {} },
+    VALID_ENV.FOREST_AUTH_SECRET,
+    { algorithm: 'HS256', expiresIn: '15m' },
+  );
+}
+
 describe('runCli', () => {
   describe('when a required var is absent but not malformed', () => {
     it('should still boot the server (model C, not fail-fast)', async () => {
@@ -101,14 +129,6 @@ describe('runCli', () => {
       BFF_TOKEN_ENCRYPTION_KEY: Buffer.alloc(32).toString('base64'),
     } satisfies NodeJS.ProcessEnv;
 
-    function sessionToken() {
-      return jsonwebtoken.sign(
-        { type: 'bff_access', sid: 's1', id: 1, rendering_id: '1', tags: {} },
-        VALID_ENV.FOREST_AUTH_SECRET,
-        { algorithm: 'HS256', expiresIn: '15m' },
-      );
-    }
-
     beforeEach(() => {
       global.fetch = jest.fn().mockResolvedValue({
         ok: true,
@@ -172,7 +192,7 @@ describe('runCli', () => {
       }
     });
 
-    it('should reject a body above 1mb', async () => {
+    it('should reject a body above 1mb on its declared length, without reading it', async () => {
       const server = await runCli(OAUTH_ENV, noopLogger);
 
       try {
@@ -185,6 +205,39 @@ describe('runCli', () => {
           .ok(() => true);
 
         expect(response.status).toBe(413);
+      } finally {
+        await server.stop();
+      }
+    });
+
+    it('should reject a body just above 1mb whose bytes it had to count', async () => {
+      const server = await runCli(OAUTH_ENV, noopLogger);
+
+      try {
+        const outcome = await oversizedBodyOutcome(
+          server.callback,
+          '/agent/v1/ai/query',
+          sessionToken(),
+          1_050_000,
+        );
+
+        expect(outcome).toMatch(/^(413|aborted:)/);
+      } finally {
+        await server.stop();
+      }
+    });
+
+    it('should still apply the 1mb parser when the caller appends a query string', async () => {
+      const server = await runCli(OAUTH_ENV, noopLogger);
+
+      try {
+        const response = await request(server.callback)
+          .post('/agent/v1/ai/query?ai-name=caller-chosen')
+          .set('Authorization', `Bearer ${sessionToken()}`)
+          .send({ messages: [{ role: 'user', content: 'x'.repeat(900_000) }] });
+
+        expect(response.status).not.toBe(413);
+        expect(response.status).toBe(401);
       } finally {
         await server.stop();
       }
@@ -291,11 +344,7 @@ describe('runCli', () => {
     });
 
     it('should reach the context route without a timezone, since it is mounted before that middleware', async () => {
-      const token = jsonwebtoken.sign(
-        { type: 'bff_access', sid: 's1', id: 1, rendering_id: '1', tags: {} },
-        VALID_ENV.FOREST_AUTH_SECRET,
-        { algorithm: 'HS256', expiresIn: '15m' },
-      );
+      const token = sessionToken();
       const server = await runCli(VALID_ENV, noopLogger);
 
       try {
@@ -313,11 +362,7 @@ describe('runCli', () => {
     });
 
     it('should not mount the AI query route without the OAuth configuration, since it has no session', async () => {
-      const token = jsonwebtoken.sign(
-        { type: 'bff_access', sid: 's1', id: 1, rendering_id: '1', tags: {} },
-        VALID_ENV.FOREST_AUTH_SECRET,
-        { algorithm: 'HS256', expiresIn: '15m' },
-      );
+      const token = sessionToken();
       const logs: string[] = [];
       const logger: Logger = (_level, message) => logs.push(message);
       const server = await runCli(VALID_ENV, logger);
@@ -337,31 +382,25 @@ describe('runCli', () => {
     });
 
     it('should not mount the 1mb parser on the ai path when the route itself is absent', async () => {
-      const token = jsonwebtoken.sign(
-        { type: 'bff_access', sid: 's1', id: 1, rendering_id: '1', tags: {} },
-        VALID_ENV.FOREST_AUTH_SECRET,
-        { algorithm: 'HS256', expiresIn: '15m' },
-      );
+      const token = sessionToken();
       const server = await runCli(VALID_ENV, noopLogger);
 
       try {
-        const response = await request(server.callback)
-          .post('/agent/v1/ai/query')
-          .set('Authorization', `Bearer ${token}`)
-          .send({ messages: [{ role: 'user', content: 'x'.repeat(900_000) }] });
+        const outcome = await oversizedBodyOutcome(
+          server.callback,
+          '/agent/v1/ai/query',
+          token,
+          900_000,
+        );
 
-        expect(response.status).toBe(413);
+        expect(outcome).toMatch(/^(413|aborted:)/);
       } finally {
         await server.stop();
       }
     });
 
     it('should keep the 16kb limit on data routes, so the AI parser did not widen the whole edge', async () => {
-      const token = jsonwebtoken.sign(
-        { type: 'bff_access', sid: 's1', id: 1, rendering_id: '1', tags: {} },
-        VALID_ENV.FOREST_AUTH_SECRET,
-        { algorithm: 'HS256', expiresIn: '15m' },
-      );
+      const token = sessionToken();
       const server = await runCli(VALID_ENV, noopLogger);
 
       try {
@@ -378,11 +417,7 @@ describe('runCli', () => {
     });
 
     it('should fall through to the agent stub when the deployment carries no read-model', async () => {
-      const token = jsonwebtoken.sign(
-        { type: 'bff_access', sid: 's1', id: 1, rendering_id: '1', tags: {} },
-        VALID_ENV.FOREST_AUTH_SECRET,
-        { algorithm: 'HS256', expiresIn: '15m' },
-      );
+      const token = sessionToken();
       const server = await runCli({ ...VALID_ENV, FOREST_ENV_SECRET: undefined }, noopLogger);
 
       try {

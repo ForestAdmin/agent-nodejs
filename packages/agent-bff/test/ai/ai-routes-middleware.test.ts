@@ -8,8 +8,9 @@ import jsonwebtoken from 'jsonwebtoken';
 import Koa from 'koa';
 import request from 'supertest';
 
-import { AiProxyTimeoutError } from '../../src/ai/ai-proxy-client';
+import RealAiProxyClient, { AiProxyTimeoutError } from '../../src/ai/ai-proxy-client';
 import createAiRoutesMiddleware, { AI_QUERY_ROUTE } from '../../src/ai/ai-routes-middleware';
+import { AI_BODY_LIMIT } from '../../src/http/body-limit';
 import createErrorMiddleware from '../../src/http/error-middleware';
 
 const SAAS_ACCESS_TOKEN = 'saas-access-token';
@@ -37,6 +38,7 @@ function freshAccessToken(): string {
 
 interface AppOptions {
   query?: jest.Mock;
+  client?: AiProxyClient;
   store?: SessionStore;
   serverClient?: ForestServerClient;
   authMode?: 'oauth' | 'api-key';
@@ -46,6 +48,7 @@ interface AppOptions {
 
 function makeApp({
   query = jest.fn(),
+  client,
   store,
   serverClient = {} as ForestServerClient,
   authMode = 'oauth',
@@ -57,7 +60,7 @@ function makeApp({
   const app = new Koa();
 
   app.use(createErrorMiddleware({ logger: () => undefined }));
-  app.use(bodyParser({ jsonLimit: '1mb', enableTypes: ['json'] }));
+  app.use(bodyParser({ jsonLimit: AI_BODY_LIMIT, enableTypes: ['json'] }));
   app.use(async (ctx, next) => {
     ctx.state.authMode = authMode;
 
@@ -69,7 +72,7 @@ function makeApp({
   });
   app.use(
     createAiRoutesMiddleware({
-      client: { query } as unknown as AiProxyClient,
+      client: client ?? ({ query } as unknown as AiProxyClient),
       sessionStore,
       serverClient,
       environmentId,
@@ -187,6 +190,28 @@ describe('createAiRoutesMiddleware', () => {
       );
     });
 
+    it('should keep the deployment ai-name on the outgoing url whatever the caller asks for', async () => {
+      global.fetch = jest.fn().mockResolvedValue({
+        status: 200,
+        headers: { get: () => 'application/json' },
+        json: async () => ({ choices: [] }),
+      }) as unknown as typeof fetch;
+      const client = new RealAiProxyClient({
+        forestServerUrl: 'https://api.forestadmin.com',
+        timeoutMs: 5_000,
+      });
+      const { app } = makeApp({ client });
+
+      const response = await request(app.callback())
+        .post(`${AI_QUERY_ROUTE}?ai-name=caller-chosen`)
+        .send({ messages: [] });
+
+      expect(response.status).toBe(200);
+      expect((global.fetch as jest.Mock).mock.calls[0][0]).toBe(
+        'https://api.forestadmin.com/api/ai-proxy/ai-query?ai-name=zendesk',
+      );
+    });
+
     it('should relay the request body unchanged', async () => {
       const query = jest.fn().mockResolvedValue(jsonResponse(200, {}));
       const { app } = makeApp({ query });
@@ -285,6 +310,25 @@ describe('createAiRoutesMiddleware', () => {
           cause: expect.stringContaining('Unexpected end of JSON input'),
         },
       );
+    });
+
+    it('should stop walking the cause chain past its depth bound', async () => {
+      const deepest = new Error('level-five-must-not-appear');
+      const chain = [4, 3, 2, 1].reduce<Error>(
+        (cause, level) => Object.assign(new Error(`level-${level}`), { cause }),
+        deepest,
+      );
+      const query = jest.fn().mockRejectedValue(chain);
+      const { app, logger } = makeApp({ query });
+
+      await request(app.callback()).post(AI_QUERY_ROUTE).send({ messages: [] });
+
+      const [, , context] = logger.mock.calls.find(
+        ([, message]) => message === 'AI query failed against the Forest server',
+      ) as [string, string, { cause: string }];
+
+      expect(context.cause).toContain('level-4');
+      expect(context.cause).not.toContain('level-five-must-not-appear');
     });
 
     it('should clamp an oversized upstream cause instead of logging it whole', async () => {
