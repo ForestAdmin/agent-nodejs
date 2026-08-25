@@ -238,7 +238,7 @@ jobs:
     concurrency:
       group: release-${{ github.ref }}
       cancel-in-progress: false
-    needs: [build-api-reference, send-coverage, lint]
+    needs: [build-api-reference, send-coverage, lint, bff-integration-tests]
     if: |
       github.event_name == 'push'
       && (
@@ -321,7 +321,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [build-api-reference, send-coverage, lint]
+    needs: [build-api-reference, send-coverage, lint, bff-integration-tests]
     steps:
       - name: Setup Pages
         uses: actions/configure-pages@v3
