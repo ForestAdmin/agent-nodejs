@@ -46,6 +46,7 @@ export default class Collection extends CollectionChart {
       actionInfo.hooks,
       actionInfo.fields,
       actionInfo.layout,
+      actionContext?.timezone,
     );
 
     const action = new Action(

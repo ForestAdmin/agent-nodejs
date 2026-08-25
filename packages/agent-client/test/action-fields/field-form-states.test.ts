@@ -275,6 +275,91 @@ describe('FieldFormStates', () => {
     });
   });
 
+  describe('timezone', () => {
+    const withTimezone = (timezone?: string) =>
+      new FieldFormStates(
+        'testAction',
+        '/forest/actions/test-action',
+        'users',
+        httpRequester,
+        ['1'],
+        undefined,
+        undefined,
+        undefined,
+        timezone,
+      );
+
+    it('should send the timezone in the load hook query when one is provided', async () => {
+      httpRequester.query.mockResolvedValue({ fields: [], layout: [] });
+
+      await withTimezone('America/New_York').loadInitialState();
+
+      expect(httpRequester.query).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: '/forest/actions/test-action/hooks/load',
+          query: { timezone: 'America/New_York' },
+        }),
+      );
+    });
+
+    it('should send no query in the load hook when no timezone is provided', async () => {
+      httpRequester.query.mockResolvedValue({ fields: [], layout: [] });
+
+      await withTimezone().loadInitialState();
+
+      expect(httpRequester.query.mock.calls[0][0].query).toBeUndefined();
+    });
+
+    it('should send the timezone in the change hook query when one is provided', async () => {
+      const formStates = withTimezone('Asia/Tokyo');
+      httpRequester.query.mockResolvedValue({
+        fields: [
+          {
+            field: 'name',
+            type: 'String',
+            isRequired: false,
+            isReadOnly: false,
+            value: 'initial',
+            hook: 'changeHook',
+          },
+        ],
+        layout: [],
+      });
+      await formStates.loadInitialState();
+
+      await formStates.setFieldValue('name', 'updated');
+
+      expect(httpRequester.query).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          path: '/forest/actions/test-action/hooks/change',
+          query: { timezone: 'Asia/Tokyo' },
+        }),
+      );
+    });
+
+    it('should send no query in the change hook when no timezone is provided', async () => {
+      const formStates = withTimezone();
+      httpRequester.query.mockResolvedValue({
+        fields: [
+          {
+            field: 'name',
+            type: 'String',
+            isRequired: false,
+            isReadOnly: false,
+            value: 'initial',
+            hook: 'changeHook',
+          },
+        ],
+        layout: [],
+      });
+      await formStates.loadInitialState();
+
+      await formStates.setFieldValue('name', 'updated');
+
+      expect(httpRequester.query.mock.calls[1][0].query).toBeUndefined();
+    });
+  });
+
   describe('hooks configuration', () => {
     it('should not throw when hooks.load is false and server returns 404', async () => {
       const formStates = new FieldFormStates(

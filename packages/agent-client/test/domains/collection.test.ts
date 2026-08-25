@@ -1,6 +1,7 @@
 import type { ActionEndpointsByCollection } from '../../src/domains/action';
 import type HttpRequester from '../../src/http-requester';
 
+import FieldFormStates from '../../src/action-fields/field-form-states';
 import Collection from '../../src/domains/collection';
 
 jest.mock('../../src/http-requester');
@@ -402,6 +403,38 @@ describe('Collection', () => {
       const result = await collection.action('sendEmail', {});
 
       expect(result).toBeDefined();
+    });
+
+    it('should forward the action context timezone to the form states', async () => {
+      await collection.action('sendEmail', { recordIds: ['1'], timezone: 'America/New_York' });
+
+      expect(FieldFormStates).toHaveBeenCalledWith(
+        'sendEmail',
+        '/forest/actions/send-email',
+        'users',
+        httpRequester,
+        ['1'],
+        { load: false, change: [] },
+        [],
+        undefined,
+        'America/New_York',
+      );
+    });
+
+    it('should forward no timezone when the action context omits it', async () => {
+      await collection.action('sendEmail', { recordIds: ['1'] });
+
+      expect(FieldFormStates).toHaveBeenCalledWith(
+        'sendEmail',
+        '/forest/actions/send-email',
+        'users',
+        httpRequester,
+        ['1'],
+        { load: false, change: [] },
+        [],
+        undefined,
+        undefined,
+      );
     });
 
     it('should pipe-encode composite recordIds when executing the action', async () => {
