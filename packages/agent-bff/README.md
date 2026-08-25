@@ -105,6 +105,7 @@ Configure it entirely through the standard OTel environment variables:
 ```bash
 docker run -d \
   -p 3450:3450 \
+  --add-host host.docker.internal:host-gateway \
   -e FOREST_AUTH_SECRET="..." \
   -e FOREST_ENV_SECRET="..." \
   -e FOREST_SERVER_URL="https://api.forestadmin.com" \
