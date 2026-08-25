@@ -46,6 +46,7 @@ Or run the image directly:
 ```bash
 docker run -d \
   -p 3450:3450 \
+  --add-host host.docker.internal:host-gateway \
   -e FOREST_AUTH_SECRET="..." \
   -e FOREST_ENV_SECRET="..." \
   -e FOREST_SERVER_URL="https://api.forestadmin.com" \
@@ -56,7 +57,9 @@ docker run -d \
 ```
 
 > **Note:** When the BFF runs in Docker and your agent runs on the host machine, use
-> `host.docker.internal` instead of `localhost` in `AGENT_URL`.
+> `host.docker.internal` instead of `localhost` in `AGENT_URL`. Docker Desktop resolves that
+> name natively; on Docker Engine for Linux it does not exist unless you map it, hence the
+> `--add-host` above (the Compose setup does the same through `extra_hosts`).
 
 The image's entry point is the CLI, so the subcommands below work the same way:
 
