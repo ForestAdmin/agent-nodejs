@@ -131,7 +131,7 @@ const API_KEY_SPEC = {
   paths: {
     '/agent/v1/My%20Coll/list': {
       post: {
-        security: [{ bffApiKey: [] }],
+        security: [{ bffSession: [] }, { bffApiKey: [] }],
         responses: { 200: {} },
         requestBody: {
           required: false,
@@ -366,6 +366,13 @@ describe('the code samples the docs page injects', () => {
 
     expect(page.sourceOf(ACTION, 'cURL')).toContain('-H "Authorization: Bearer $BFF_KEY"');
     expect(page.sourceOf(ACTION, 'cURL')).not.toContain('X-Forest-Bff-Key');
+  });
+
+  it('should sample the key on an operation accepting both, since the reader unlocked with one', async () => {
+    const page = await render(API_KEY_SPEC);
+
+    expect(page.sourceOf(LIST, 'cURL')).toContain('-H "X-Forest-Bff-Key: $BFF_KEY"');
+    expect(page.sourceOf(LIST, 'cURL')).not.toContain('Authorization');
   });
 
   it('should read the key from the environment in node, not inline it', async () => {

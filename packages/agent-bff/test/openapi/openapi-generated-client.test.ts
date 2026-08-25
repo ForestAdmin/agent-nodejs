@@ -152,6 +152,7 @@ function storeOf(readModel: ReadModel): ReadModelStore {
 }
 
 const receivedKeys: string[] = [];
+const receivedAuthorizations: string[] = [];
 
 function buildApp(): Koa {
   const store = storeOf(new ReadModel(SCHEMA));
@@ -161,6 +162,7 @@ function buildApp(): Koa {
   app.use(bodyParser());
   app.use(async (ctx, next) => {
     receivedKeys.push(ctx.get('X-Forest-Bff-Key'));
+    receivedAuthorizations.push(ctx.get('Authorization'));
     // Auth is out of this test's scope (the gate is its own ticket): the request arrives with agent
     // credentials already resolved, exactly as the auth chain would have left it.
     ctx.state.agentToken = 'agent-jwt';
@@ -265,7 +267,8 @@ describe('a client generated from the emitted OpenAPI document', () => {
 
     client.setConfig({
       baseUrl: `http://127.0.0.1:${port}`,
-      auth: () => API_KEY,
+      auth: (scheme: { name?: string }) =>
+        scheme.name === 'X-Forest-Bff-Key' ? API_KEY : undefined,
       headers: { [TIMEZONE_HEADER]: TIMEZONE },
     });
   }, CODEGEN_TIMEOUT_MS * 2);
@@ -283,6 +286,7 @@ describe('a client generated from the emitted OpenAPI document', () => {
 
   beforeEach(() => {
     receivedKeys.length = 0;
+    receivedAuthorizations.length = 0;
   });
 
   describe('when a standard codegen reads the document', () => {
@@ -340,6 +344,12 @@ describe('a client generated from the emitted OpenAPI document', () => {
       await sdk.countRecordsUsers({ body: {} });
 
       expect(receivedKeys).toEqual([API_KEY]);
+    });
+
+    it('should send the key alone, since a route accepting both credentials rejects both at once', async () => {
+      await sdk.countRecordsUsers({ body: {} });
+
+      expect(receivedAuthorizations).toEqual(['']);
     });
   });
 

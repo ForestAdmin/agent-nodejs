@@ -107,7 +107,6 @@ const SAMPLES_SCRIPT = `
           return body;
         }
 
-        // The scheme the operation names, so a document that renames or re-types it stays right.
         function authHeader(spec, operation) {
           var schemes = (spec.components || {}).securitySchemes || {};
           var requirements = operation.security || spec.security || [];
@@ -115,13 +114,11 @@ const SAMPLES_SCRIPT = `
 
           requirements.forEach(function (requirement) {
             Object.keys(requirement).forEach(function (name) {
-              if (header) return;
-
               var scheme = schemes[name] || {};
 
               if (scheme.type === 'apiKey' && scheme.in === 'header') {
                 header = { name: scheme.name, prefix: '', secret: true };
-              } else if (scheme.type === 'http' && scheme.scheme === 'bearer') {
+              } else if (!header && scheme.type === 'http' && scheme.scheme === 'bearer') {
                 header = { name: 'Authorization', prefix: 'Bearer ', secret: true };
               }
             });

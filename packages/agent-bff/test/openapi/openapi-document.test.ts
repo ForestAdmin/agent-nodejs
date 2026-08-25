@@ -184,6 +184,12 @@ describe('generateOpenApiDocument', () => {
     });
   });
 
+  it('should keep the ai query relay on the session alone, the only credential it can forward', () => {
+    const ai = (document.paths ?? {})[AI_QUERY_PATH] as { post: { security: unknown } };
+
+    expect(ai.post.security).toEqual([{ bffSession: [] }]);
+  });
+
   it('should let both auth modes reach the context contract, which is not caller-scoped', () => {
     const context = (document.paths ?? {})[`${ROUTE_PREFIX}/context`] as {
       get: { security: unknown };
