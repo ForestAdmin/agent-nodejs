@@ -6,7 +6,28 @@ agent from a browser without learning MCP or JSON:API.
 It is a bootable Koa 3 server with a `/health` endpoint, a version header, env-driven config
 validation, OAuth (Mode 1) + API-key (Mode 2) auth, and a hardened request edge (timezone, CORS,
 auth-mode precedence, structured error contract), and it serves and exports its own OpenAPI
-document. The data-endpoint proxy lands in a later slice.
+document.
+
+## The routes it serves
+
+Everything the agent proxy exposes lives under `/agent/v1`. The data and action routes are `POST`
+— the filter, projection and paging all travel in the body, never in the query string:
+
+| Route | Method | What it does |
+| --- | --- | --- |
+| `/agent/v1/{collection}/list` · `/count` | `POST` | list or count records of a collection |
+| `/agent/v1/{collection}/relations/{relation}/list` · `/count` | `POST` | same, through a **to-many** relation — to-one relations are not listable and 404 by design |
+| `/agent/v1/{collection}/actions/{action}/form` · `/execute` | `POST` | load a Smart Action's form, then run it |
+| `/agent/v1/permissions` | `GET` | what the caller may see and do, **as display hints** for graying out UI — never an authorization decision |
+| `/agent/openapi.json` | `GET`/`HEAD` | the unfolded document, auth-gated, when `BFF_OPENAPI_ENABLED` is on |
+
+`/health` and `/oauth/*` sit outside the prefix and outside the auth edge.
+
+**The agent enforces permissions and scopes, not the BFF.** Each proxied call carries a
+short-lived agent token the BFF mints for the caller, so a request reaches the agent as that
+person and comes back filtered exactly as it would for them in Forest. A collection the current
+schema no longer exposes is re-checked on every call, so a schema refresh can never leave a
+dropped collection reachable.
 
 ## Usage
 
@@ -66,7 +87,7 @@ yarn start:dev         # node --env-file=.env dist/cli.js
 | `FOREST_AUTH_SECRET` | yes      | Agent JWT signing secret (never logged or echoed).                   |
 | `FOREST_ENV_SECRET`  | yes      | Forest SaaS environment secret (`forest-secret-key`), server-to-server. |
 | `FOREST_SERVER_URL`  | yes      | Forest SaaS API base URL.                                            |
-| `FOREST_APP_URL`     | yes      | Forest front base URL (OAuth front-channel, later slices).          |
+| `FOREST_APP_URL`     | yes      | Forest front base URL, used to build the OAuth front-channel redirect (`src/oauth/oauth-routes.ts`). |
 | `AGENT_URL`          | yes      | The customer agent base URL the BFF calls via agent-client.          |
 | `BFF_TOKEN_ENCRYPTION_KEY`| for OAuth | Base64-encoded 32-byte AES-256 key encrypting stored refresh tokens. Until it is set, the `/oauth/*` token-issuance routes are disabled and `/health` reports `degraded`; already-issued `bff_access` tokens still authenticate on `/agent/*` whenever `FOREST_AUTH_SECRET` is present. |
 | `HTTP_PORT`          | no       | Server port, integer 0–65535. Defaults to `3450`. `0` binds an OS-assigned ephemeral port. |
@@ -87,7 +108,7 @@ yarn start:dev         # node --env-file=.env dist/cli.js
 ## Request edge (`/agent/*`)
 
 Every agent call flows through a request edge that enforces three cross-cutting concerns before the
-(Slice-3) proxy runs. Errors use a structured, type-first contract — `{ error: { type, status,
+call is proxied to the agent. Errors use a structured, type-first contract — `{ error: { type, status,
 message, details? } }` — so consumers branch on `error.type`, never on message text.
 
 ### Auth-mode precedence
