@@ -203,6 +203,17 @@ describe('parseListRequest', () => {
     });
   });
 
+  it.each([
+    ['sort.0.direction', { sort: [{ field: 'a', direction: 'up' }] }],
+    ['page.limit', { page: { limit: 0, offset: 0 } }],
+    ['projection.0', { projection: [1] }],
+    ['searchExtended', { searchExtended: 'true' }],
+  ])('should name %s in the rejection message', (path, body) => {
+    expect(() => parseListRequest(body)).toThrow(
+      expect.objectContaining({ message: expect.stringContaining(`${path}: `) }),
+    );
+  });
+
   it('should accept a blank search rather than rejecting a cleared search box', () => {
     expect(parseListRequest({ search: '   ' })).toMatchObject({ search: '   ' });
   });
