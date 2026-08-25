@@ -1,7 +1,7 @@
 import type { Logger } from '../src/ports/logger-port';
 import type { OtelModules, TracingOptions } from '../src/tracing';
 
-import initTracing, { DEFAULT_SERVICE_NAME } from '../src/tracing';
+import initTracing, { DEFAULT_SERVICE_NAME, loadOtelModules } from '../src/tracing';
 
 const ENDPOINT = 'http://collector:4318';
 
@@ -154,5 +154,44 @@ describe('initTracing', () => {
 
       expect(raise).toHaveBeenCalledWith('SIGTERM');
     });
+  });
+
+  describe('with the signal seams left to their defaults', () => {
+    let once: jest.SpyInstance;
+    let kill: jest.SpyInstance;
+
+    beforeEach(() => {
+      once = jest.spyOn(process, 'once').mockReturnValue(process);
+      kill = jest.spyOn(process, 'kill').mockReturnValue(true);
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('should register on the real process and re-raise through process.kill', async () => {
+      initTracing({
+        env: { OTEL_EXPORTER_OTLP_ENDPOINT: ENDPOINT },
+        logger,
+        load: () => modules(),
+      });
+
+      expect(once).toHaveBeenCalledWith('SIGTERM', expect.any(Function));
+      expect(once).toHaveBeenCalledWith('SIGINT', expect.any(Function));
+
+      const [, handler] = once.mock.calls[0] as [string, () => void];
+      handler();
+      await flushMicrotasks();
+
+      expect(kill).toHaveBeenCalledWith(process.pid, 'SIGTERM');
+    });
+  });
+});
+
+describe('loadOtelModules', () => {
+  // The OpenTelemetry packages ship only in the Docker image, so this is the branch an
+  // npm consumer takes: it must report their absence, not throw out of the preload.
+  it('should return undefined when the packages are not installed', () => {
+    expect(loadOtelModules()).toBeUndefined();
   });
 });
