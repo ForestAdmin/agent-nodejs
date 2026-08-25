@@ -165,12 +165,22 @@ describe('generateOpenApiDocument', () => {
     });
   });
 
-  it('should secure every data operation with the API key only, the one mode those routes accept', () => {
-    const operations = dataOperations();
+  it('should let both auth modes reach every data and action operation, as mode 1 mints an agent token', () => {
+    const securityByPath = Object.fromEntries(
+      Object.entries(document.paths ?? {})
+        .filter(([path]) => path !== AI_QUERY_PATH)
+        .filter(([, item]) => (item as { post?: unknown }).post !== undefined)
+        .map(([path, item]) => [path, (item as { post: { security: unknown } }).post.security]),
+    );
+    const bothModes = [{ bffSession: [] }, { bffApiKey: [] }];
 
-    expect(operations).toHaveLength(6);
-    operations.forEach(operation => {
-      expect(operation.security).toEqual([{ bffApiKey: [] }]);
+    expect(securityByPath).toEqual({
+      [`${ROUTE_PREFIX}/{collection}/list`]: bothModes,
+      [`${ROUTE_PREFIX}/{collection}/count`]: bothModes,
+      [`${ROUTE_PREFIX}/{collection}/relations/{relation}/list`]: bothModes,
+      [`${ROUTE_PREFIX}/{collection}/relations/{relation}/count`]: bothModes,
+      [`${ROUTE_PREFIX}/{collection}/actions/{action}/form`]: bothModes,
+      [`${ROUTE_PREFIX}/{collection}/actions/{action}/execute`]: bothModes,
     });
   });
 
@@ -188,7 +198,8 @@ describe('generateOpenApiDocument', () => {
     ).bffSession;
 
     expect(session.description).toContain('Accepted on the context contract');
-    expect(session.description).toContain('the data and action routes advertise the API key only');
+    expect(session.description).toContain('every data and action route');
+    expect(session.description).not.toContain('advertise the API key only');
   });
 
   it('should require a body where parentId or recordIds is mandatory', () => {

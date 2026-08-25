@@ -27,7 +27,7 @@ export const ROUTE_PREFIX = '/agent/v1';
 const SESSION_SCHEME = 'bffSession';
 const API_KEY_SCHEME = 'bffApiKey';
 
-const SECURITY = [{ [API_KEY_SCHEME]: [] }];
+const SECURITY = [{ [SESSION_SCHEME]: [] }, { [API_KEY_SCHEME]: [] }];
 
 const ERROR_STATUSES: Record<string, string> = {
   400: 'Malformed body, a malformed URL-encoded path segment, an invalid filter operator, a filter nested too deep, ambiguous credentials, an unsupported page, a missing or invalid timezone, an unknown submitted action field, or a rejected action form (type action_error)',
@@ -393,7 +393,9 @@ export function generateOpenApiDocument(
     scheme: 'bearer',
     description:
       'Mode 1: the BFF session token issued after the OAuth login. Accepted on the context ' +
-      'contract; the data and action routes advertise the API key only.',
+      'contract and on every data and action route, where the BFF mints the agent token from the ' +
+      'session. The session must carry a usable rendering, otherwise the request is rejected ' +
+      'with 401.',
   });
   registry.registerComponent('securitySchemes', API_KEY_SCHEME, {
     type: 'apiKey',
