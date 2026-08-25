@@ -346,7 +346,7 @@ describe('a client generated from the emitted OpenAPI document', () => {
       expect(receivedKeys).toEqual([API_KEY]);
     });
 
-    it('should send the key alone, since a route accepting both credentials rejects both at once', async () => {
+    it('should send no Authorization header beside the key, which the BFF rejects as ambiguous', async () => {
       await sdk.countRecordsUsers({ body: {} });
 
       expect(receivedAuthorizations).toEqual(['']);
