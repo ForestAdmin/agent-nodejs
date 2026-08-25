@@ -146,7 +146,7 @@ holds, and relays the answer back:
   refreshes it against the Forest server, and that hop has its own hard-coded 60 s ceiling which
   answers `502 network_error`, not `504`.
 - **Error shape.** Below 500 the upstream JSON body is relayed unchanged, so its shape is the Forest
-  AI proxy's contract and not the BFF's; when the upstream answer carried no JSON body the BFF
+AI proxy's contract and not the BFF's; when a 4xx upstream answer carried no JSON body the BFF
   substitutes its own envelope at the same status. At 500 and above the body is always the BFF
   envelope, so no upstream infrastructure detail reaches the caller. **This is the one route where a
   sub-500 body is not guaranteed to be `{ error: { type, … } }`**, so a consumer cannot branch on
