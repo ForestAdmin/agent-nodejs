@@ -30,7 +30,12 @@ export interface Action extends ActionForm {
 }
 
 export interface AgentActionClient {
-  loadAction(collection: string, action: string, recordIds: string[]): Promise<Action>;
+  loadAction(
+    collection: string,
+    action: string,
+    recordIds: string[],
+    timezone: string,
+  ): Promise<Action>;
 }
 
 export interface AgentActionClientOptions {
@@ -42,8 +47,8 @@ export interface AgentActionClientOptions {
 
 // The raw layout must be read AFTER tryToSetFields: a change hook rebuilds fields+layout in place.
 // agent-client's `Action.getLayout()` only returns an `ActionLayoutRoot` wrapper whose element array
-// lives in a protected field. The rollback contract forbids agent-client changes, so we read it
-// through a cast rather than adding a public accessor. `extract-raw-layout.test.ts` builds a real
+// lives in a protected field. PRD-673's rollback contract forbade agent-client changes, so we read
+// it through a cast rather than adding a public accessor. `extract-raw-layout.test.ts` builds a real
 // `ActionLayoutRoot` and asserts this unwraps it, so a rename of that field fails a test.
 export function extractRawLayout(action: ActionForm): ForestServerActionFormLayoutElement[] {
   const root = action.getLayout() as { layout?: ForestServerActionFormLayoutElement[] };
@@ -70,7 +75,7 @@ export default function createAgentActionClient({
   });
 
   return {
-    loadAction: (collection, action, recordIds) =>
-      client.collection(collection).action(action, { recordIds }),
+    loadAction: (collection, action, recordIds, timezone) =>
+      client.collection(collection).action(action, { recordIds, timezone }),
   };
 }

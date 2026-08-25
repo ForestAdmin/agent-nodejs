@@ -18,7 +18,7 @@ describe('createAgentActionClient', () => {
     mockedHttpRequester.mockImplementation(() => ({ query, stream } as unknown as HttpRequester));
   });
 
-  it('loads the action via createRemoteAgentClient().collection(name).action(name, { recordIds })', async () => {
+  it('loads the action via createRemoteAgentClient().collection(name).action(name, { recordIds, timezone })', async () => {
     const loadedAction = { tag: 'action' };
     const actionFn = jest.fn(async () => loadedAction);
     const collectionFn = jest.fn(() => ({ action: actionFn }));
@@ -30,7 +30,7 @@ describe('createAgentActionClient', () => {
       token: 'jwt-token',
       actionEndpoints,
     });
-    const result = await client.loadAction('users', 'approve', ['1', '2']);
+    const result = await client.loadAction('users', 'approve', ['1', '2'], 'America/New_York');
 
     expect(HttpRequester).toHaveBeenCalledWith('jwt-token', { url: 'https://agent.example.com' });
     expect(createRemoteAgentClientMock).toHaveBeenCalledWith({
@@ -40,7 +40,10 @@ describe('createAgentActionClient', () => {
       httpRequester: expect.objectContaining({ query }),
     });
     expect(collectionFn).toHaveBeenCalledWith('users');
-    expect(actionFn).toHaveBeenCalledWith('approve', { recordIds: ['1', '2'] });
+    expect(actionFn).toHaveBeenCalledWith('approve', {
+      recordIds: ['1', '2'],
+      timezone: 'America/New_York',
+    });
     expect(result).toBe(loadedAction);
   });
 

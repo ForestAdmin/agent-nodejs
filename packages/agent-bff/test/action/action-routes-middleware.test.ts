@@ -98,14 +98,15 @@ function buildApp(
   {
     agentToken = 'agent-jwt',
     logger = noopLogger,
-  }: { agentToken?: string | null; logger?: Logger } = {},
+    timezone = TIMEZONE,
+  }: { agentToken?: string | null; logger?: Logger; timezone?: string } = {},
 ) {
   const app = new Koa();
   app.silent = true;
   app.use(createErrorMiddleware({ logger: noopLogger }));
   app.use(bodyParser());
   app.use(async (ctx, next) => {
-    ctx.state.timezone = TIMEZONE;
+    ctx.state.timezone = timezone;
     if (agentToken !== null) ctx.state.agentToken = agentToken;
     await next();
   });
@@ -301,7 +302,7 @@ describe('action routes middleware', () => {
       .post('/agent/v1/users/actions/approve/form')
       .send({ recordIds: ['1|2'] });
 
-    expect(loadAction).toHaveBeenCalledWith('users', 'approve', ['1|2']);
+    expect(loadAction).toHaveBeenCalledWith('users', 'approve', ['1|2'], TIMEZONE);
   });
 
   it('coerces a numeric zero recordId to a string so it survives the downstream filter', async () => {
@@ -313,7 +314,7 @@ describe('action routes middleware', () => {
       .post('/agent/v1/users/actions/approve/form')
       .send({ recordIds: [0] });
 
-    expect(loadAction).toHaveBeenCalledWith('users', 'approve', ['0']);
+    expect(loadAction).toHaveBeenCalledWith('users', 'approve', ['0'], TIMEZONE);
   });
 
   it('accepts an empty recordIds array for a global action', async () => {
@@ -326,7 +327,21 @@ describe('action routes middleware', () => {
       .send({ recordIds: [] });
 
     expect(response.status).toBe(200);
-    expect(loadAction).toHaveBeenCalledWith('users', 'approve', []);
+    expect(loadAction).toHaveBeenCalledWith('users', 'approve', [], TIMEZONE);
+  });
+
+  it('forwards the request-resolved timezone to the action form load', async () => {
+    const form = makeAction();
+    const loadAction = jest.fn(async () => form);
+    const app = buildApp(storeOf(readModel), clientOf(form, loadAction), {
+      timezone: 'America/New_York',
+    });
+
+    await request(app.callback())
+      .post('/agent/v1/users/actions/approve/form')
+      .send({ recordIds: ['42'] });
+
+    expect(loadAction).toHaveBeenCalledWith('users', 'approve', ['42'], 'America/New_York');
   });
 
   it('returns 400 invalid_request with no agent call when recordIds is missing', async () => {
@@ -473,12 +488,26 @@ describe('action execute', () => {
       .post('/agent/v1/users/actions/approve/execute')
       .send({ recordIds: ['42'], values: { reason: 'x' } });
 
-    expect(loadAction).toHaveBeenCalledWith('users', 'approve', ['42']);
+    expect(loadAction).toHaveBeenCalledWith('users', 'approve', ['42'], TIMEZONE);
     expect(setFields).toHaveBeenCalledWith({ reason: 'x' });
     expect(execute).toHaveBeenCalledTimes(1);
     // Order is the behaviour named by this test: executing before the values are applied would run
     // the action on an empty form.
     expect(setFields.mock.invocationCallOrder[0]).toBeLessThan(execute.mock.invocationCallOrder[0]);
+  });
+
+  it('forwards the request-resolved timezone to the action execute load', async () => {
+    const form = makeAction();
+    const loadAction = jest.fn(async () => form);
+    const app = buildApp(storeOf(readModel), clientOf(form, loadAction), {
+      timezone: 'Asia/Tokyo',
+    });
+
+    await request(app.callback())
+      .post('/agent/v1/users/actions/approve/execute')
+      .send({ recordIds: ['42'] });
+
+    expect(loadAction).toHaveBeenCalledWith('users', 'approve', ['42'], 'Asia/Tokyo');
   });
 
   it('normalizes a Success result to 200 with invalidated as an array', async () => {

@@ -90,7 +90,7 @@ async function handleForm(
   // callAgent so a local BFF bug surfaces as a 500, not a mislabelled agent error. Fields and
   // layout are read AFTER tryToSetFields because a change hook rebuilds them in place.
   const action = await callAgent(
-    () => client.loadAction(collection, actionName, recordIds),
+    () => client.loadAction(collection, actionName, recordIds, ctx.state.timezone as string),
     logger,
   );
   const skippedFields = await callAgent(() => action.tryToSetFields(values), logger);
@@ -109,7 +109,7 @@ async function handleExecute(
   logger: Logger,
 ): Promise<void> {
   const action = await callAgent(
-    () => client.loadAction(collection, actionName, recordIds),
+    () => client.loadAction(collection, actionName, recordIds, ctx.state.timezone as string),
     logger,
   );
 
