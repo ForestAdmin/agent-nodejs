@@ -1,3 +1,15 @@
+## @forestadmin/datasource-demo-fintech [1.0.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-demo-fintech@1.0.6...@forestadmin/datasource-demo-fintech@1.0.7) (2026-08-25)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.71.2
+* **@forestadmin/datasource-sql:** upgraded to 1.17.14
+* **@forestadmin/datasource-toolkit:** upgraded to 1.55.1
+
 ## @forestadmin/datasource-demo-fintech [1.0.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-demo-fintech@1.0.5...@forestadmin/datasource-demo-fintech@1.0.6) (2026-08-24)
 
 
