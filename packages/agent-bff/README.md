@@ -72,7 +72,7 @@ yarn start:dev         # node --env-file=.env dist/cli.js
 | `HTTP_PORT`          | no       | Server port, integer 0–65535. Defaults to `3450`. `0` binds an OS-assigned ephemeral port. |
 | `BFF_ALLOWED_ORIGINS`| no       | Comma-separated CORS allow-list of exact origins (scheme + host + port). No wildcard. Empty ⇒ no cross-origin browser access. |
 | `BFF_DEFAULT_TIMEZONE`| no      | Fallback IANA timezone used when a request carries neither an `X-Forest-Timezone` header nor a body `timezone`. |
-| `BFF_AI_TIMEOUT_MS`  | no       | How long `POST /agent/v1/ai/query` waits for the Forest server, in milliseconds. Defaults to `120000` — an AI generation is slow, and neither the app nor the Forest server bounds it, so this is the only cap on the chain. Past it the route answers `504`. A malformed value (non-integer, `0`, or above 2147483647) fails the boot, unlike an absent one which takes the default. |
+| `BFF_AI_TIMEOUT_MS`  | no       | How long `POST /agent/v1/ai/query` waits for the Forest server on the relay itself, in milliseconds. Defaults to `120000` — an AI generation is slow, and neither the app nor the Forest server bounds it. Past it the route answers `504`. It is not the route's end-to-end cap: an expired session is refreshed first, under a separate hard-coded 60 s ceiling that answers `502`, so a request can exceed this value. A malformed value (non-integer, `0`, or above 2147483647) fails the boot, unlike an absent one which takes the default. |
 | `BFF_OPENAPI_ENABLED` | no       | Serve `GET/HEAD /agent/openapi.json` (auth-gated) when `true`. Defaults to `true`. Set to `false` for customers who do not want the HTTP surface exposed: an authenticated `GET`/`HEAD` then gets `404 openapi_disabled`, other methods fall through to the agent routes exactly as they do when enabled, and `forest-bff openapi` keeps working either way. Accepted values: `true`/`false`. **The served document is unfolded and is not filtered per caller**: any authenticated caller, whatever their role, reads the name of every exposed collection, relation and field. Set this to `false` if that surface must not be reachable over HTTP. |
 
 ### Config validation
@@ -146,8 +146,9 @@ holds, and relays the answer back:
   refreshes it against the Forest server, and that hop has its own hard-coded 60 s ceiling which
   answers `502 network_error`, not `504`.
 - **Error shape.** Below 500 the upstream JSON body is relayed unchanged, so its shape is the Forest
-AI proxy's contract and not the BFF's; when a 4xx upstream answer carried no JSON body the BFF
-  substitutes its own envelope at the same status. At 500 and above the body is always the BFF
+  AI proxy's contract and not the BFF's; when the upstream answer carried no JSON body the BFF
+  substitutes its own envelope, keeping the status only when it was 4xx and reporting `502` for a
+  2xx or 3xx that carried nothing to relay. At 500 and above the body is always the BFF
   envelope, so no upstream infrastructure detail reaches the caller. **This is the one route where a
   sub-500 body is not guaranteed to be `{ error: { type, … } }`**, so a consumer cannot branch on
   `error.type` here without checking that the field exists.
