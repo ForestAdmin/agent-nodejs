@@ -1,3 +1,18 @@
+## @forestadmin/datasource-customizer [1.71.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.71.1...@forestadmin/datasource-customizer@1.71.2) (2026-08-25)
+
+
+### Bug Fixes
+
+* **agent:** serve only the columns of collections the caller may read ([#1840](https://github.com/ForestAdmin/agent-nodejs/issues/1840)) ([4d65c17](https://github.com/ForestAdmin/agent-nodejs/commit/4d65c176c7271a1b0850a6787ad2bca655315c08)), closes [throu#collection](https://github.com/throu/issues/collection) [throu#collection](https://github.com/throu/issues/collection)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.55.1
+
 ## @forestadmin/datasource-customizer [1.71.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.71.0...@forestadmin/datasource-customizer@1.71.1) (2026-08-24)
 
 
