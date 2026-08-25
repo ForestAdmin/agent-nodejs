@@ -125,6 +125,28 @@ describe('ConditionStepDefinitionSchema deterministic mode', () => {
     expect(result.success).toBe(false);
   });
 
+  it.each(['equal', 'not_equal', 'greater_than', 'in', 'contains'])(
+    'rejects a "%s" condition with no value',
+    operator => {
+      const result = ConditionStepDefinitionSchema.safeParse({
+        ...base,
+        executionType: 'deterministic',
+        preRecordedArgs: {
+          ...preRecordedArgs,
+          optionConditions: [
+            {
+              option: 'High value',
+              aggregator: 'and',
+              conditions: [{ sourceStepId: 'get-data-1', fieldName: 'amount', operator }],
+            },
+          ],
+        },
+      });
+
+      expect(result.success).toBe(false);
+    },
+  );
+
   it('accepts a value-less condition for present/blank operators', () => {
     const result = ConditionStepDefinitionSchema.safeParse({
       ...base,

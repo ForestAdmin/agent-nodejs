@@ -8,8 +8,17 @@ const TIMEZONE_SUFFIX = /(Z|[+-]\d{2}:?\d{2})$/i;
 // maps them to the Number primitive, so the builder's JSON number meets a string at runtime.
 const NUMERIC_STRING = /^-?\d+(\.\d+)?$/;
 
+// Date.parse rolls an out-of-range day over ("2026-02-30" becomes 2026-03-02), which would make a
+// nonsensical config compare equal to a real date instead of being inert.
+function isRealCalendarDate(datePart: string): boolean {
+  const parsed = new Date(`${datePart}T00:00:00.000Z`);
+
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().startsWith(datePart);
+}
+
 function toTimestamp(value: unknown): number | null {
   if (typeof value !== 'string' || !ISO_DATE_PREFIX.test(value)) return null;
+  if (!isRealCalendarDate(value.slice(0, 10))) return null;
 
   // Date.parse reads an offset-less datetime as host-local (date-only as UTC), which would route
   // the same run differently per machine — pin every offset-less datetime to UTC.

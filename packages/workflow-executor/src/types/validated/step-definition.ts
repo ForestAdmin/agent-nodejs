@@ -59,14 +59,28 @@ export const CONDITION_OPERATORS = [
 ] as const;
 export type ConditionOperator = (typeof CONDITION_OPERATORS)[number];
 
-const DeterministicConditionSchema = z.object({
-  /** Stable BPMN id of the upstream Get Data step whose output holds the value. */
-  sourceStepId: z.string().min(1),
-  fieldName: z.string().min(1),
-  operator: z.enum(CONDITION_OPERATORS),
-  /** Absent for `present`/`blank`. */
-  value: z.unknown().optional(),
-});
+const VALUE_LESS_OPERATORS: readonly ConditionOperator[] = ['present', 'blank'];
+
+const DeterministicConditionSchema = z
+  .object({
+    /** Stable BPMN id of the upstream Get Data step whose output holds the value. */
+    sourceStepId: z.string().min(1),
+    fieldName: z.string().min(1),
+    operator: z.enum(CONDITION_OPERATORS),
+    /** Absent for `present`/`blank`. */
+    value: z.unknown().optional(),
+  })
+  // A value-bearing operator without its value compares against `undefined`: it can never be met,
+  // so the step would silently route to the fallback instead of reporting the broken config.
+  .superRefine((condition, ctx) => {
+    if (!VALUE_LESS_OPERATORS.includes(condition.operator) && condition.value === undefined) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['value'],
+        message: `value is required for the "${condition.operator}" operator`,
+      });
+    }
+  });
 export type DeterministicCondition = z.infer<typeof DeterministicConditionSchema>;
 
 const OptionConditionsSchema = z.object({
