@@ -5,6 +5,7 @@ import initTracing, {
   DEFAULT_SERVICE_NAME,
   OTEL_MODULE_IDS,
   loadOtelModules,
+  redactEndpoint,
 } from '../src/tracing';
 
 const ENDPOINT = 'http://collector:4318';
@@ -135,6 +136,18 @@ describe('initTracing', () => {
       });
     });
 
+    // Container logs are the last place a collector token should end up, and this package echoes
+    // no other secret anywhere.
+    it('should keep collector credentials out of that log line', () => {
+      setup({
+        env: { OTEL_EXPORTER_OTLP_ENDPOINT: 'https://user:s3cret@collector.example/v1/traces' },
+      });
+
+      const [, , context] = logger.mock.calls[0];
+      expect(context?.endpoint).toBe('https://collector.example/v1/traces');
+      expect(JSON.stringify(context)).not.toContain('s3cret');
+    });
+
     it('should hand the SDK back for the shutdown path to flush through', () => {
       const sdk = setup();
 
@@ -189,5 +202,28 @@ describe('loadOtelModules', () => {
   // takes: it must report their absence, not throw out of the preload.
   it('should return undefined against the real require, outside the Docker image', () => {
     expect(loadOtelModules()).toBeUndefined();
+  });
+});
+
+describe('redactEndpoint', () => {
+  it('should leave an endpoint without credentials exactly as it is', () => {
+    expect(redactEndpoint('http://collector:4318/v1/traces')).toBe(
+      'http://collector:4318/v1/traces',
+    );
+  });
+
+  it.each([
+    ['a user and a password', 'https://user:s3cret@collector.example/v1/traces'],
+    ['a token as the user', 'https://s3cret@collector.example/v1/traces'],
+  ])('should strip %s while keeping the rest of the URL', (_label, endpoint) => {
+    const redacted = redactEndpoint(endpoint);
+
+    expect(redacted).toBe('https://collector.example/v1/traces');
+    expect(redacted).not.toContain('s3cret');
+  });
+
+  // It cannot be redacted, so it cannot be shown. The SDK fails on it soon enough on its own.
+  it('should drop an endpoint it cannot parse rather than pass it through', () => {
+    expect(redactEndpoint('not a url')).toBeUndefined();
   });
 });
