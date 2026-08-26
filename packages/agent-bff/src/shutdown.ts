@@ -109,21 +109,26 @@ export default function armShutdown(options: ShutdownOptions): void {
     stopping = true;
     logger?.('Info', 'Shutting down', { signal, graceMs });
 
-    Promise.all([server.stop(graceMs), flush ? bounded(flush(), flushMs) : undefined])
-      .then(() => {
+    // allSettled, not all: a failing `stop()` must not short-circuit the flush. Promise.all is
+    // fail-fast, so the exit would fire while the export was still in flight and the force-exit
+    // fallback would cut it — losing exactly the telemetry that explains the failed shutdown.
+    Promise.allSettled([server.stop(graceMs), flush ? bounded(flush(), flushMs) : undefined]).then(
+      ([stopped]) => {
         if (interrupted) return;
+
+        if (stopped.status === 'rejected') {
+          // The server failed to close cleanly. Nothing left to salvage, and staying alive would
+          // hold the container open until it is killed — report it through the exit code instead.
+          logger?.('Error', 'Shutdown failed, exiting anyway', { signal });
+          exit(1);
+
+          return;
+        }
 
         logger?.('Info', 'Forest BFF stopped');
         exit(0);
-      })
-      .catch(() => {
-        if (interrupted) return;
-
-        // The server failed to close cleanly. Nothing left to salvage, and staying alive would
-        // hold the container open until it is killed — report it through the exit code instead.
-        logger?.('Error', 'Shutdown failed, exiting anyway', { signal });
-        exit(1);
-      });
+      },
+    );
   };
 
   for (const signal of SIGNALS) {

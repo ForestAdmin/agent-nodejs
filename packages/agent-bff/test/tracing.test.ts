@@ -148,6 +148,48 @@ describe('initTracing', () => {
       expect(JSON.stringify(context)).not.toContain('s3cret');
     });
 
+    // Supplying traceExporter puts NodeSDK on its manual path, where it never reads
+    // OTEL_TRACES_EXPORTER — passing one unconditionally would silently ignore the standard way
+    // to turn export off.
+    it.each(['none', 'NONE', ' none '])(
+      'should configure no exporter when OTEL_TRACES_EXPORTER is %p',
+      raw => {
+        setup({ env: { OTEL_EXPORTER_OTLP_ENDPOINT: ENDPOINT, OTEL_TRACES_EXPORTER: raw } });
+
+        expect(NodeSDK).toHaveBeenCalledWith(
+          expect.not.objectContaining({ traceExporter: expect.anything() }),
+        );
+        expect(OTLPTraceExporter).not.toHaveBeenCalled();
+      },
+    );
+
+    // Only the export stops; the spans still get created, so trace context keeps propagating.
+    it('should keep the instrumentations when export is turned off', () => {
+      setup({ env: { OTEL_EXPORTER_OTLP_ENDPOINT: ENDPOINT, OTEL_TRACES_EXPORTER: 'none' } });
+
+      expect(NodeSDK).toHaveBeenCalledWith(
+        expect.objectContaining({ instrumentations: ['instrumentations'] }),
+      );
+      expect(start).toHaveBeenCalledTimes(1);
+    });
+
+    it('should not name an endpoint it will not export to', () => {
+      setup({ env: { OTEL_EXPORTER_OTLP_ENDPOINT: ENDPOINT, OTEL_TRACES_EXPORTER: 'none' } });
+
+      expect(logger).toHaveBeenCalledWith('Info', 'OpenTelemetry tracing enabled', {
+        serviceName: DEFAULT_SERVICE_NAME,
+        exporter: 'none',
+      });
+    });
+
+    it('should still export for any other exporter value', () => {
+      setup({ env: { OTEL_EXPORTER_OTLP_ENDPOINT: ENDPOINT, OTEL_TRACES_EXPORTER: 'otlp' } });
+
+      expect(NodeSDK).toHaveBeenCalledWith(
+        expect.objectContaining({ traceExporter: expect.any(OTLPTraceExporter) }),
+      );
+    });
+
     it('should hand the SDK back for the shutdown path to flush through', () => {
       const sdk = setup();
 

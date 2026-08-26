@@ -28,6 +28,9 @@ export function getTracingHandle(): TracingHandle | undefined {
  * Flushes buffered spans, or resolves immediately when tracing was never armed — the shutdown path
  * should not have to know which. A failing export is swallowed: a dead collector must not turn a
  * clean shutdown into a failed one.
+ *
+ * No deadline here on purpose: `armShutdown` bounds whatever flush it is given, and it is the only
+ * caller. Bounding it twice would say the deadline lives in two places when it does not.
  */
 export async function flushTracing(): Promise<void> {
   try {

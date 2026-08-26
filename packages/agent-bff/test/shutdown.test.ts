@@ -113,6 +113,33 @@ describe('armShutdown', () => {
       expect(exit).toHaveBeenCalledWith(0);
     });
 
+    // Promise.all is fail-fast: a rejected stop() would exit while the export was still in
+    // flight, losing exactly the spans that explain the failed shutdown.
+    it('should still wait for the flush when the server fails to close', async () => {
+      let releaseFlush: () => void = () => undefined;
+      const flush = jest.fn(
+        () =>
+          new Promise<void>(resolve => {
+            releaseFlush = resolve;
+          }),
+      );
+      stop.mockRejectedValue(new Error('close failed'));
+      armShutdown({ server: { stop }, logger, onSignal, exit, flush, flushMs: 500 });
+
+      handlers.SIGTERM();
+      await settle();
+
+      expect(exit).not.toHaveBeenCalled();
+
+      releaseFlush();
+      await settle();
+
+      expect(exit).toHaveBeenCalledWith(1);
+      expect(logger).toHaveBeenCalledWith('Error', 'Shutdown failed, exiting anyway', {
+        signal: 'SIGTERM',
+      });
+    });
+
     it('should not let a failing flush change the exit code', async () => {
       const flush = jest.fn().mockRejectedValue(new Error('collector down'));
       armShutdown({ server: { stop }, logger, onSignal, exit, flush });

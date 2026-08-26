@@ -103,6 +103,7 @@ Configure it entirely through the standard OTel environment variables:
 | `OTEL_SERVICE_NAME` | Service name reported in traces. Default: `forestadmin-agent-bff`. |
 | `OTEL_RESOURCE_ATTRIBUTES` | Extra resource attributes, e.g. `deployment.environment=production`. |
 | `OTEL_SDK_DISABLED` | Set to `true` (case-insensitive) to force-disable tracing even when an endpoint is configured. |
+| `OTEL_TRACES_EXPORTER` | Set to `none` to stop exporting while keeping instrumentation on, so trace context still propagates to the agent and the Forest SaaS. Any other value exports over OTLP. |
 
 ```bash
 docker run -d \
