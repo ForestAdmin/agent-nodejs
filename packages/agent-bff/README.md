@@ -89,7 +89,8 @@ above and `stop_grace_period: 15s` in the Compose file; on Kubernetes the defaul
 The Docker image ships with [OpenTelemetry](https://opentelemetry.io/) APM built in, and works with
 any OTLP-compatible backend (Datadog, Grafana Tempo, Jaeger, Honeycomb, etc.). It is **off by
 default** and turns on as soon as you point it at an OTLP receiver — no code changes or extra
-installs required. Tracing is set up before the app starts (auto-instrumentation for HTTP and the
+installs required. A setup that cannot start logs a warning and runs untraced rather than taking
+the process down with it. Tracing is set up before the app starts (auto-instrumentation for HTTP and the
 outbound calls to the agent and the Forest SaaS). The graceful shutdown described above waits for
 the buffered spans to be exported before it exits, but gives that its own 2 second deadline rather
 than the 10 seconds in-flight requests get: an unreachable collector costs you the last spans, never
@@ -99,11 +100,11 @@ Configure it entirely through the standard OTel environment variables:
 
 | Variable | Description |
 | --- | --- |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP receiver URL (e.g. `http://collector:4318`). **Tracing stays disabled until this is set.** |
-| `OTEL_SERVICE_NAME` | Service name reported in traces. Default: `forestadmin-agent-bff`. |
-| `OTEL_RESOURCE_ATTRIBUTES` | Extra resource attributes, e.g. `deployment.environment=production`. |
-| `OTEL_SDK_DISABLED` | Set to `true` (case-insensitive) to force-disable tracing even when an endpoint is configured. |
-| `OTEL_TRACES_EXPORTER` | Unset (or `otlp`) exports over OTLP to the endpoint above. Any other value — `none`, `console`, a list — is left to the SDK to configure from the environment, and only the OTLP exporter ships in the image. Instrumentation stays on either way, so trace context keeps propagating to the agent and the Forest SaaS. |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP receiver URL (e.g. `http://collector:4318`). **Tracing stays off until this or `OTEL_TRACES_EXPORTER` is set.** |
+| `OTEL_SERVICE_NAME` | Service name reported in traces. Falls back to `service.name` in `OTEL_RESOURCE_ATTRIBUTES`, then to `forestadmin-agent-bff`. |
+| `OTEL_RESOURCE_ATTRIBUTES` | Extra resource attributes, e.g. `deployment.environment=production`. A `service.name` here is honoured when `OTEL_SERVICE_NAME` is unset. |
+| `OTEL_SDK_DISABLED` | Set to `true` (case-insensitive) to force-disable tracing whatever else is configured. |
+| `OTEL_TRACES_EXPORTER` | Unset (or `otlp`) exports over OTLP to the endpoint above. Any other value — `none`, `console`, a list — is left to the SDK to configure from the environment; only the OTLP and console exporters ship in the image. Setting it alone turns tracing on without an OTLP endpoint, which is what makes `console` usable for debugging. Instrumentation stays on either way, so trace context keeps propagating to the agent and the Forest SaaS. |
 
 ```bash
 docker run -d \

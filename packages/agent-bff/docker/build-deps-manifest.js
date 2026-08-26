@@ -24,7 +24,11 @@ const WORKSPACE_PACKAGES = [
   'forestadmin-client',
 ];
 
-// Pinned to exact versions — OTel ships only in the Docker image.
+// Pinned to exact versions — OTel ships only in the Docker image, so nothing else bumps them.
+// A fixable CRITICAL/HIGH in this tree blocks every publish of this image until someone raises a
+// pin here and refreshes deps/yarn.lock (see the propagator-jaeger resolution below for the shape
+// of that fix). Renovate does not watch this file — it is a plain object, not a manifest — so an
+// unrelated release will stall on it unless someone is looking.
 const OTEL_DEPENDENCIES = {
   '@opentelemetry/sdk-node': '0.219.0',
   '@opentelemetry/auto-instrumentations-node': '0.77.0',
@@ -114,4 +118,4 @@ if (require.main === module) {
   generate(packagesDir, outFile);
 }
 
-module.exports = { WORKSPACE_PACKAGES, OTEL_DEPENDENCIES, generate };
+module.exports = { WORKSPACE_PACKAGES, generate };

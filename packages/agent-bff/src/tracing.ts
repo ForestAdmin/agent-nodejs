@@ -38,6 +38,12 @@ export interface OtelModules {
 }
 
 export interface TracingOptions {
+  /**
+   * The environment OUR decisions read — whether to arm, what to name the service, which exporter
+   * to leave to the SDK. It stops there: `OTLPTraceExporter` reads the real `process.env` itself,
+   * so where spans are sent is not steerable from here and a test injecting `env` cannot assert it.
+   * Identical objects in production, so this is a limit on what the seam can test, not a behaviour.
+   */
   env?: NodeJS.ProcessEnv;
   logger?: Logger;
   /** The dynamic require, as a seam: the packages exist only in the Docker image. */
@@ -61,12 +67,21 @@ export type ModuleLoader = (id: string) => Record<string, unknown>;
 
 export function loadOtelModules(load: ModuleLoader = require): OtelModules | undefined {
   try {
-    return {
+    const modules = {
       NodeSDK: load(OTEL_MODULE_IDS.sdk).NodeSDK,
       getNodeAutoInstrumentations: load(OTEL_MODULE_IDS.instrumentations)
         .getNodeAutoInstrumentations,
       OTLPTraceExporter: load(OTEL_MODULE_IDS.exporter).OTLPTraceExporter,
-    } as OtelModules;
+    };
+
+    // Resolving is not the same as finding what we came for. A package that loads but no longer
+    // exports the name we read — a rename on a version bump — would otherwise hand back a truthy
+    // object of undefined members, skip the "packages not available" branch, and throw a
+    // TypeError inside a `--require`, before the entry point runs at all. That is a dead container
+    // for an APM layer that is supposed to degrade to a warning.
+    if (Object.values(modules).some(exported => typeof exported !== 'function')) return undefined;
+
+    return modules as OtelModules;
   } catch {
     return undefined;
   }
@@ -79,6 +94,23 @@ export function loadOtelModules(load: ModuleLoader = require): OtelModules | und
  */
 function isDisabled(raw: string | undefined): boolean {
   return raw?.trim().toLowerCase() === 'true';
+}
+
+/**
+ * The service name the environment already carries, by the spec's precedence: `OTEL_SERVICE_NAME`
+ * wins, then a `service.name` entry in the comma-separated `OTEL_RESOURCE_ATTRIBUTES` list.
+ * Undefined when neither names one, which is the only case where our own default should apply.
+ */
+export function serviceNameFromEnv(env: NodeJS.ProcessEnv): string | undefined {
+  const explicit = env.OTEL_SERVICE_NAME?.trim();
+
+  if (explicit) return explicit;
+
+  return env.OTEL_RESOURCE_ATTRIBUTES?.split(',')
+    .map(entry => entry.split('='))
+    .filter(([key, value]) => key?.trim() === 'service.name' && value?.trim())
+    .map(([, value]) => value.trim())
+    .pop();
 }
 
 /**
@@ -108,11 +140,16 @@ export default function initTracing(options: TracingOptions = {}): OtelSdk | und
   const { env = process.env, logger = createConsoleLogger(), load = loadOtelModules } = options;
 
   const endpoint = env.OTEL_EXPORTER_OTLP_ENDPOINT?.trim();
+  const requestedExporter = env.OTEL_TRACES_EXPORTER?.trim().toLowerCase();
 
-  // A blank endpoint counts as unset, not as "export to the OTel default": `env_file` hands an
-  // empty string through for a variable left blank in a `.env`, and arming the SDK against
+  // Either variable turns tracing on. Gating on the endpoint alone would make
+  // OTEL_TRACES_EXPORTER=console — the obvious first thing to reach for when debugging — require an
+  // OTLP collector to do anything, which is nonsense for an exporter that writes to stdout.
+  //
+  // A blank value counts as unset either way, not as "export to the OTel default": `env_file` hands
+  // an empty string through for a variable left blank in a `.env`, and arming the SDK against
   // localhost:4318 is not what leaving the line empty asks for.
-  if (!endpoint || isDisabled(env.OTEL_SDK_DISABLED)) return undefined;
+  if ((!endpoint && !requestedExporter) || isDisabled(env.OTEL_SDK_DISABLED)) return undefined;
 
   const modules = load();
 
@@ -123,7 +160,12 @@ export default function initTracing(options: TracingOptions = {}): OtelSdk | und
   }
 
   const { NodeSDK, getNodeAutoInstrumentations, OTLPTraceExporter } = modules;
-  const serviceName = env.OTEL_SERVICE_NAME || DEFAULT_SERVICE_NAME;
+
+  // Passing `serviceName` unconditionally would override OTEL_RESOURCE_ATTRIBUTES=service.name=...,
+  // which is a documented knob — someone setting only that would silently get our default. So we
+  // fill it in only when the environment names no service at all, and otherwise leave the SDK to
+  // apply the spec's own precedence (OTEL_SERVICE_NAME first, then the resource attribute).
+  const named = serviceNameFromEnv(env);
 
   // Supplying `traceExporter` puts NodeSDK on its manual-configuration path, where it never reads
   // OTEL_TRACES_EXPORTER. So we only supply one when the operator has not asked for something else:
@@ -135,10 +177,9 @@ export default function initTracing(options: TracingOptions = {}): OtelSdk | und
   //
   // Instrumentation stays on in every case, so trace context keeps propagating to the agent and the
   // Forest SaaS whatever the export does.
-  const requestedExporter = env.OTEL_TRACES_EXPORTER?.trim().toLowerCase();
   const exportsTraces = !requestedExporter || requestedExporter === 'otlp';
   const sdk = new NodeSDK({
-    serviceName,
+    ...(named ? {} : { serviceName: DEFAULT_SERVICE_NAME }),
     ...(exportsTraces ? { traceExporter: new OTLPTraceExporter() } : {}),
     instrumentations: [getNodeAutoInstrumentations()],
   });
@@ -146,7 +187,7 @@ export default function initTracing(options: TracingOptions = {}): OtelSdk | und
   sdk.start();
 
   logger('Info', 'OpenTelemetry tracing enabled', {
-    serviceName,
+    serviceName: named ?? DEFAULT_SERVICE_NAME,
     // Naming the endpoint it will not export to would read as a promise it is not keeping. Saying
     // which exporter was asked for instead is what an operator needs to see when the SDK, not us,
     // is the one deciding.

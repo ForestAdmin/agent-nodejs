@@ -157,6 +157,7 @@ CONTAINER=$(docker run -d -p "127.0.0.1:$PORT:3450" \
   -e FOREST_APP_URL=http://127.0.0.1:1 \
   -e AGENT_URL=http://127.0.0.1:1 \
   -e BFF_TOKEN_ENCRYPTION_KEY="$(openssl rand -base64 32)" \
+  -e OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318 \
   "$IMAGE")
 
 status=""
@@ -180,4 +181,35 @@ if ! grep -q '"status":"ok"' /tmp/bff-health-ok.json; then
   exit 1
 fi
 
+# Stop this one rather than leave it to the trap: the shutdown path is the riskiest code in the
+# image and nothing else runs it there. Tracing is armed above against a collector that is not
+# listening, which is the case that matters — the span flush must give up on its own deadline and
+# let the process exit, not hold it until the orchestrator loses patience and SIGKILLs.
+#
+# -t 30 so this measures the BFF rather than whatever `docker stop` defaults to locally.
+STOP_STARTED=$(date +%s)
+docker stop -t 30 "$CONTAINER" >/dev/null
+STOP_ELAPSED=$(( $(date +%s) - STOP_STARTED ))
+STOP_CODE=$(docker inspect "$CONTAINER" --format '{{.State.ExitCode}}')
+logs=$(docker logs "$CONTAINER" 2>&1)
+
+if [ "$STOP_CODE" != "0" ]; then
+  echo "::error::the container exited $STOP_CODE on docker stop, expected 0 (137 means it was SIGKILLed)"
+  echo "$logs"
+  exit 1
+fi
+if ! echo "$logs" | grep -q "Forest BFF stopped"; then
+  echo "::error::the shutdown never completed — no 'Forest BFF stopped' in the logs"
+  echo "$logs"
+  exit 1
+fi
+# The README promises ~3s: a 2s flush deadline plus the 1s exit fallback. Anything near the OTLP
+# retry budget means the flush stopped being bounded.
+if [ "$STOP_ELAPSED" -gt 8 ]; then
+  echo "::error::shutdown took ${STOP_ELAPSED}s against a dead collector; the span flush is no longer bounded"
+  echo "$logs"
+  exit 1
+fi
+
+echo "shutdown with an unreachable collector: exit 0 in ${STOP_ELAPSED}s"
 echo "smoke test passed for $IMAGE"
