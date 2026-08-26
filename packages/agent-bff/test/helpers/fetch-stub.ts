@@ -6,6 +6,14 @@ export function stubFetch(response: unknown): jest.Mock {
   return stub;
 }
 
+export function rejectFetch(error: unknown): jest.Mock {
+  const stub = jest.fn().mockRejectedValue(error);
+
+  global.fetch = stub as unknown as typeof fetch;
+
+  return stub;
+}
+
 export function stubEnvironmentIdFetch(): jest.Mock {
   return stubFetch({
     ok: true,

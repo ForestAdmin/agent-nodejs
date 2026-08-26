@@ -1,6 +1,7 @@
 import type { AiQueryParams } from '../../src/ai/ai-proxy-client';
 
 import AiProxyClient, { AiProxyTimeoutError } from '../../src/ai/ai-proxy-client';
+import { rejectFetch, restoreFetchAfterEach, stubFetch } from '../helpers/fetch-stub';
 
 const FOREST_SERVER_URL = 'https://api.forestadmin.com';
 
@@ -31,15 +32,15 @@ function firstCall() {
 }
 
 describe('AiProxyClient', () => {
+  restoreFetchAfterEach();
+
   afterEach(() => {
     jest.restoreAllMocks();
   });
 
   describe('when the call succeeds', () => {
     beforeEach(() => {
-      global.fetch = jest
-        .fn()
-        .mockResolvedValue(jsonFetchResponse(200, { choices: [] })) as unknown as typeof fetch;
+      stubFetch(jsonFetchResponse(200, { choices: [] }));
     });
 
     it('should target the fixed ai-query path with the ai-name of this deployment', async () => {
@@ -88,11 +89,11 @@ describe('AiProxyClient', () => {
 
   describe('when the upstream declares json in a different case', () => {
     it('should still parse it, since media types are case-insensitive', async () => {
-      global.fetch = jest.fn().mockResolvedValue({
+      stubFetch({
         status: 200,
         headers: { get: () => 'Application/JSON; charset=utf-8' },
         json: async () => ({ choices: [] }),
-      }) as unknown as typeof fetch;
+      });
 
       const result = await makeClient().query(params());
 
@@ -102,11 +103,11 @@ describe('AiProxyClient', () => {
 
   describe('when the upstream answers a non-JSON body', () => {
     it('should flag it and drop the body rather than carry infrastructure html', async () => {
-      global.fetch = jest.fn().mockResolvedValue({
+      stubFetch({
         status: 403,
         headers: { get: () => 'text/html' },
         json: async () => undefined,
-      }) as unknown as typeof fetch;
+      });
 
       const result = await makeClient().query(params());
 
@@ -117,13 +118,13 @@ describe('AiProxyClient', () => {
   describe('when the upstream declares json but the body cannot be parsed', () => {
     it('should report it as non-json and hand back the parse failure, so the caller can log it', async () => {
       const parseFailure = new SyntaxError('Unexpected token < in JSON');
-      global.fetch = jest.fn().mockResolvedValue({
+      stubFetch({
         status: 200,
         headers: { get: () => 'application/json' },
         json: async () => {
           throw parseFailure;
         },
-      }) as unknown as typeof fetch;
+      });
 
       const result = await makeClient().query(params());
 
@@ -138,13 +139,13 @@ describe('AiProxyClient', () => {
 
   describe('when the timeout fires while the body is being read', () => {
     it('should raise a timeout error rather than report an unparseable body', async () => {
-      global.fetch = jest.fn().mockResolvedValue({
+      stubFetch({
         status: 200,
         headers: { get: () => 'application/json' },
         json: async () => {
           throw Object.assign(new Error('The operation was aborted'), { name: 'TimeoutError' });
         },
-      }) as unknown as typeof fetch;
+      });
 
       await expect(makeClient().query(params())).rejects.toBeInstanceOf(AiProxyTimeoutError);
     });
@@ -155,7 +156,7 @@ describe('AiProxyClient', () => {
       const timeout = Object.assign(new Error('The operation was aborted'), {
         name: 'TimeoutError',
       });
-      global.fetch = jest.fn().mockRejectedValue(timeout) as unknown as typeof fetch;
+      rejectFetch(timeout);
 
       await expect(makeClient().query(params())).rejects.toBeInstanceOf(AiProxyTimeoutError);
     });
@@ -164,7 +165,7 @@ describe('AiProxyClient', () => {
       const transport = Object.assign(new TypeError('fetch failed'), {
         cause: new Error('connect ECONNREFUSED 10.0.0.1:443'),
       });
-      global.fetch = jest.fn().mockRejectedValue(transport) as unknown as typeof fetch;
+      rejectFetch(transport);
 
       await expect(makeClient().query(params())).rejects.toBe(transport);
     });
@@ -174,18 +175,18 @@ describe('AiProxyClient', () => {
       await new Promise(resolve => {
         signal.addEventListener('abort', resolve);
       });
-      global.fetch = jest.fn().mockRejectedValue(signal.reason) as unknown as typeof fetch;
+      rejectFetch(signal.reason);
 
       await expect(makeClient().query(params())).rejects.toBeInstanceOf(AiProxyTimeoutError);
     });
 
     it('should pass the configured timeout to the abort signal', async () => {
       const timeout = jest.spyOn(AbortSignal, 'timeout');
-      global.fetch = jest.fn().mockResolvedValue({
+      stubFetch({
         status: 200,
         headers: { get: () => 'application/json' },
         json: async () => ({}),
-      }) as unknown as typeof fetch;
+      });
 
       await makeClient(4321).query(params());
 
