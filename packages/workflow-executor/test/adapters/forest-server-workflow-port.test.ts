@@ -313,21 +313,29 @@ describe('ForestServerWorkflowPort', () => {
       );
     });
 
-    it('logs and skips when the mapping throws a non-WorkflowExecutorError', async () => {
+    it('reports a non-WorkflowExecutorError as malformed instead of skipping the run', async () => {
       const logger = jest.fn();
       const portWithLogger = new ForestServerWorkflowPort({ ...options, logger });
-      // Simulate a non-domain error by passing a run whose workflowHistory will
-      // blow up a pure JS operation inside the mapper (missing `find` on non-array).
-      const brokenRun = { ...makeRun({ id: 111 }), workflowHistory: null as never };
+      // A numeric selectedRecordId passes the mapper's truthiness guard, then blows up on .split
+      // — a TypeError, not a domain error, on a run whose history is otherwise intact.
+      const brokenRun = { ...makeRun({ id: 111 }), selectedRecordId: 42 as never };
       mockQuery.mockResolvedValue([brokenRun]);
 
       const result = await portWithLogger.getAvailableRuns();
 
       expect(result.pending).toEqual([]);
-      expect(result.malformed).toEqual([]);
+      expect(result.malformed).toEqual([
+        expect.objectContaining({
+          runId: '111',
+          stepId: expect.any(String),
+          stepIndex: expect.any(Number),
+          userMessage:
+            'This workflow run could not be prepared for execution. Please contact support.',
+        }),
+      ]);
       expect(logger).toHaveBeenCalledWith(
         'Error',
-        'Failed to hydrate pending run — unexpected error',
+        'Failed to hydrate pending run',
         expect.objectContaining({ runId: 111 }),
       );
     });

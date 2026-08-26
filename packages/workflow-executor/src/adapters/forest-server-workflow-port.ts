@@ -20,6 +20,7 @@ import toUpdateStepRequest from './step-outcome-to-update-step-mapper';
 import withRetry from './with-retry';
 import {
   DomainValidationError,
+  HydrationFailedError,
   InvalidStepDefinitionError,
   MalformedRunError,
   WorkflowExecutorError,
@@ -71,14 +72,20 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
         const dispatch = this.toDispatch(run);
         if (dispatch) pending.push(dispatch);
       } catch (error) {
-        if (error instanceof WorkflowExecutorError) {
-          malformed.push(this.toMalformedInfo(run, error));
-        } else {
-          this.logger('Error', 'Failed to hydrate pending run — unexpected error', {
-            runId: run.id,
-            error: extractErrorMessage(error),
-          });
-        }
+        // Reported whatever it is: an unreported failure leaves the run pending, so every poll
+        // returns it and fails again.
+        this.logger('Error', 'Failed to hydrate pending run', {
+          runId: run.id,
+          error: extractErrorMessage(error),
+        });
+        malformed.push(
+          this.toMalformedInfo(
+            run,
+            error instanceof WorkflowExecutorError
+              ? error
+              : new HydrationFailedError(extractErrorMessage(error)),
+          ),
+        );
       }
     }
 
@@ -137,7 +144,8 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
     run: ServerHydratedWorkflowRun,
     err: WorkflowExecutorError,
   ): MalformedRunInfo {
-    const pending = run.workflowHistory.at(-1) ?? null;
+    const history = Array.isArray(run.workflowHistory) ? run.workflowHistory : [];
+    const pending = history.at(-1) ?? null;
 
     return {
       runId: String(run.id),
