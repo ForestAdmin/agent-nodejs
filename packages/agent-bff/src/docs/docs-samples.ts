@@ -265,10 +265,14 @@ const SAMPLES_SCRIPT = `
           ];
 
           headers.forEach(function (header) {
+            if (!header.variable) {
+              lines.push('request[' + rubyQuoted(header.name) + '] = ' + rubyQuoted(header.value));
+
+              return;
+            }
+
             var read = "ENV.fetch('" + header.variable + "')";
-            var value = header.variable
-              ? (header.prefix ? '"' + header.prefix + '#{' + read + '}"' : read)
-              : rubyQuoted(header.value);
+            var value = header.prefix ? '"' + header.prefix + '#{' + read + '}"' : read;
 
             lines.push('request[' + rubyQuoted(header.name) + '] = ' + value);
           });
