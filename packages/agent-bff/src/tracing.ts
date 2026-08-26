@@ -34,15 +34,14 @@ export interface OtelSdk {
 export interface OtelModules {
   NodeSDK: new (options: Record<string, unknown>) => OtelSdk;
   getNodeAutoInstrumentations: () => unknown;
-  OTLPTraceExporter: new () => unknown;
 }
 
 export interface TracingOptions {
   /**
-   * The environment OUR decisions read — whether to arm, what to name the service, which exporter
-   * to leave to the SDK. It stops there: `OTLPTraceExporter` reads the real `process.env` itself,
-   * so where spans are sent is not steerable from here and a test injecting `env` cannot assert it.
-   * Identical objects in production, so this is a limit on what the seam can test, not a behaviour.
+   * The environment OUR decisions read: whether to arm at all, and what to name the service when
+   * nothing else does. It stops there — the SDK reads the real `process.env` for everything about
+   * the export itself, so a test injecting `env` cannot assert where spans go. Identical objects in
+   * production, so this is a limit on what the seam can test, not a behaviour.
    */
   env?: NodeJS.ProcessEnv;
   logger?: Logger;
@@ -54,7 +53,6 @@ export interface TracingOptions {
 export const OTEL_MODULE_IDS = {
   sdk: '@opentelemetry/sdk-node',
   instrumentations: '@opentelemetry/auto-instrumentations-node',
-  exporter: '@opentelemetry/exporter-trace-otlp-http',
 } as const;
 
 /**
@@ -71,7 +69,6 @@ export function loadOtelModules(load: ModuleLoader = require): OtelModules | und
       NodeSDK: load(OTEL_MODULE_IDS.sdk).NodeSDK,
       getNodeAutoInstrumentations: load(OTEL_MODULE_IDS.instrumentations)
         .getNodeAutoInstrumentations,
-      OTLPTraceExporter: load(OTEL_MODULE_IDS.exporter).OTLPTraceExporter,
     };
 
     // Resolving is not the same as finding what we came for. A package that loads but no longer
@@ -139,16 +136,18 @@ export function redactEndpoint(endpoint: string): string | undefined {
 export default function initTracing(options: TracingOptions = {}): OtelSdk | undefined {
   const { env = process.env, logger = createConsoleLogger(), load = loadOtelModules } = options;
 
-  const endpoint = env.OTEL_EXPORTER_OTLP_ENDPOINT?.trim();
-  const requestedExporter = env.OTEL_TRACES_EXPORTER?.trim().toLowerCase();
-
-  // Either variable turns tracing on. Gating on the endpoint alone would make
-  // OTEL_TRACES_EXPORTER=console — the obvious first thing to reach for when debugging — require an
-  // OTLP collector to do anything, which is nonsense for an exporter that writes to stdout.
+  // Any of the three standard ways to say "export traces somewhere" turns tracing on. The per-signal
+  // endpoint counts as much as the generic one, and OTEL_TRACES_EXPORTER counts on its own —
+  // requiring an OTLP collector before `console` does anything would be nonsense for an exporter
+  // that writes to stdout, and it is the obvious first thing to reach for when debugging.
   //
-  // A blank value counts as unset either way, not as "export to the OTel default": `env_file` hands
+  // A blank value counts as unset throughout, not as "export to the OTel default": `env_file` hands
   // an empty string through for a variable left blank in a `.env`, and arming the SDK against
   // localhost:4318 is not what leaving the line empty asks for.
+  const endpoint =
+    env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT?.trim() || env.OTEL_EXPORTER_OTLP_ENDPOINT?.trim();
+  const requestedExporter = env.OTEL_TRACES_EXPORTER?.trim().toLowerCase();
+
   if ((!endpoint && !requestedExporter) || isDisabled(env.OTEL_SDK_DISABLED)) return undefined;
 
   const modules = load();
@@ -159,7 +158,7 @@ export default function initTracing(options: TracingOptions = {}): OtelSdk | und
     return undefined;
   }
 
-  const { NodeSDK, getNodeAutoInstrumentations, OTLPTraceExporter } = modules;
+  const { NodeSDK, getNodeAutoInstrumentations } = modules;
 
   // Passing `serviceName` unconditionally would override OTEL_RESOURCE_ATTRIBUTES=service.name=...,
   // which is a documented knob — someone setting only that would silently get our default. So we
@@ -167,31 +166,29 @@ export default function initTracing(options: TracingOptions = {}): OtelSdk | und
   // apply the spec's own precedence (OTEL_SERVICE_NAME first, then the resource attribute).
   const named = serviceNameFromEnv(env);
 
-  // Supplying `traceExporter` puts NodeSDK on its manual-configuration path, where it never reads
-  // OTEL_TRACES_EXPORTER. So we only supply one when the operator has not asked for something else:
-  // unset (our documented default, OTLP to the configured endpoint) or `otlp` (the same thing, said
-  // out loud). Anything else — `none`, `console`, `zipkin`, a list — is handed back to the SDK,
-  // which configures it from the environment. Sending spans to the OTLP endpoint because we did not
-  // recognise the value would be worse than not sending them: it is telemetry going somewhere the
-  // operator did not ask for, and the SDK says so out loud when it cannot honour the request.
+  // No `traceExporter`, deliberately. Passing one puts NodeSDK on its manual-configuration path,
+  // where it stops reading the environment — which is how OTEL_TRACES_EXPORTER, then
+  // OTEL_EXPORTER_OTLP_PROTOCOL, then the per-signal endpoint each turned out to be silently
+  // ignored, one review round after another. They were three symptoms of doing the SDK's job.
   //
-  // Instrumentation stays on in every case, so trace context keeps propagating to the agent and the
-  // Forest SaaS whatever the export does.
-  const exportsTraces = !requestedExporter || requestedExporter === 'otlp';
+  // sdk-node depends on every OTLP exporter and on the Zipkin one, so all of them are in the image
+  // already; leaving the choice to the SDK costs nothing and makes the whole standard surface work,
+  // protocol and per-signal overrides included. Our only decisions are whether to arm at all, and
+  // the service name when nothing else supplies one.
   const sdk = new NodeSDK({
     ...(named ? {} : { serviceName: DEFAULT_SERVICE_NAME }),
-    ...(exportsTraces ? { traceExporter: new OTLPTraceExporter() } : {}),
     instrumentations: [getNodeAutoInstrumentations()],
   });
 
   sdk.start();
 
+  // What was ASKED for, not what the SDK settled on — we no longer choose, so claiming a
+  // destination we did not pick would be inventing one. The endpoint is dropped when an exporter
+  // was named instead, since it would read as a promise this line cannot keep.
   logger('Info', 'OpenTelemetry tracing enabled', {
     serviceName: named ?? DEFAULT_SERVICE_NAME,
-    // Naming the endpoint it will not export to would read as a promise it is not keeping. Saying
-    // which exporter was asked for instead is what an operator needs to see when the SDK, not us,
-    // is the one deciding.
-    ...(exportsTraces ? { endpoint: redactEndpoint(endpoint) } : { exporter: requestedExporter }),
+    ...(requestedExporter ? { exporter: requestedExporter } : {}),
+    ...(endpoint && !requestedExporter ? { endpoint: redactEndpoint(endpoint) } : {}),
   });
 
   return sdk;
