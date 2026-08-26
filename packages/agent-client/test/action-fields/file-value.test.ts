@@ -30,13 +30,13 @@ describe('file values in action forms', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     httpRequester = { query: jest.fn() } as unknown as jest.Mocked<HttpRequester>;
-    fieldFormStates = new FieldFormStates(
-      'attachDocument',
-      '/forest/actions/attach-document',
-      'operations',
+    fieldFormStates = new FieldFormStates({
+      actionName: 'attachDocument',
+      actionPath: '/forest/actions/attach-document',
+      collectionName: 'operations',
       httpRequester,
-      ['1'],
-    );
+      ids: ['1'],
+    });
   });
 
   describe('on a File field', () => {

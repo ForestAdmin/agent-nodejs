@@ -86,6 +86,7 @@ function toActionError(error: unknown): unknown {
 export type BaseActionContext = {
   recordId?: RecordId;
   recordIds?: RecordId[];
+  timezone?: string;
 };
 
 export type ActionExecuteOptions = {

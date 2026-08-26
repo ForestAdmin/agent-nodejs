@@ -179,6 +179,20 @@ describe('HttpRequester', () => {
       });
     });
 
+    it('should let an explicit query timezone override the default', async () => {
+      mockRequest.then = jest.fn((onFulfilled: any) => {
+        return Promise.resolve(onFulfilled({ body: {} }));
+      });
+
+      await requester.query({
+        method: 'post',
+        path: '/forest/_actions/users/0/approve/hooks/load',
+        query: { timezone: 'America/New_York' },
+      });
+
+      expect(mockRequest.query).toHaveBeenCalledWith({ timezone: 'America/New_York' });
+    });
+
     it('should normalize path without leading slash', async () => {
       mockRequest.then = jest.fn((onFulfilled: any) => {
         return Promise.resolve(onFulfilled({ body: {} }));

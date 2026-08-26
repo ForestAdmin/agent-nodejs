@@ -9,6 +9,18 @@ import ActionFieldMultipleChoice from './action-field-multiple-choice';
 import FieldGetter from './field-getter';
 import encodeFileFieldValue from './file-value';
 
+export interface FieldFormStatesOptions {
+  actionName: string;
+  actionPath: string;
+  collectionName: string;
+  httpRequester: HttpRequester;
+  ids: string[];
+  hooks?: ForestSchemaAction['hooks'];
+  fallbackFields?: ForestSchemaAction['fields'];
+  fallbackLayout?: ForestSchemaAction['layout'];
+  timezone?: string;
+}
+
 export default class FieldFormStates {
   private readonly fields: FieldGetter[];
   private readonly actionName: string;
@@ -20,17 +32,19 @@ export default class FieldFormStates {
   private readonly hooks?: ForestSchemaAction['hooks'];
   private readonly fallbackFields?: ForestSchemaAction['fields'];
   private readonly fallbackLayout?: ForestSchemaAction['layout'];
+  private readonly timezone?: string;
 
-  constructor(
-    actionName: string,
-    actionPath: string,
-    collectionName: string,
-    httpRequester: HttpRequester,
-    ids: string[],
-    hooks?: ForestSchemaAction['hooks'],
-    fallbackFields?: ForestSchemaAction['fields'],
-    fallbackLayout?: ForestSchemaAction['layout'],
-  ) {
+  constructor({
+    actionName,
+    actionPath,
+    collectionName,
+    httpRequester,
+    ids,
+    hooks,
+    fallbackFields,
+    fallbackLayout,
+    timezone,
+  }: FieldFormStatesOptions) {
     this.fields = [];
     this.actionName = actionName;
     this.actionPath = actionPath;
@@ -41,6 +55,7 @@ export default class FieldFormStates {
     this.hooks = hooks;
     this.fallbackFields = fallbackFields;
     this.fallbackLayout = fallbackLayout;
+    this.timezone = timezone;
   }
 
   getFieldValues(): Record<string, unknown> {
@@ -108,6 +123,7 @@ export default class FieldFormStates {
         method: 'post',
         path: `${this.actionPath}/hooks/load`,
         body: requestBody,
+        query: this.buildTimezoneQuery(),
       });
 
       this.clearFieldsAndLayout();
@@ -147,6 +163,10 @@ export default class FieldFormStates {
     }
   }
 
+  private buildTimezoneQuery(): { timezone: string } | undefined {
+    return this.timezone ? { timezone: this.timezone } : undefined;
+  }
+
   private addFields(plainFields: PlainField[]): void {
     plainFields.forEach(f => this.fields.push(new FieldGetter(f)));
   }
@@ -173,6 +193,7 @@ export default class FieldFormStates {
       method: 'post',
       path: `${this.actionPath}/hooks/change`,
       body: requestBody,
+      query: this.buildTimezoneQuery(),
     });
 
     this.clearFieldsAndLayout();

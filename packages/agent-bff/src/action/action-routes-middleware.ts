@@ -1,4 +1,9 @@
-import type { AgentActionClient, AgentActionClientOptions } from './agent-action-client';
+import type {
+  Action,
+  ActionForm,
+  AgentActionClient,
+  AgentActionClientOptions,
+} from './agent-action-client';
 import type { Logger } from '../ports/logger-port';
 import type ReadModelStore from '../read-model/read-model-store';
 import type { Context, Middleware } from 'koa';
@@ -77,42 +82,34 @@ export interface ActionRoutesMiddlewareOptions {
   createClient?: (options: AgentActionClientOptions) => AgentActionClient;
 }
 
-async function handleForm(
-  ctx: Context,
-  client: AgentActionClient,
-  collection: string,
-  actionName: string,
-  recordIds: string[],
-  values: Record<string, unknown>,
-  logger: Logger,
-): Promise<void> {
+interface ActionHandlerArgs<TAction extends ActionForm> {
+  ctx: Context;
+  action: TAction;
+  values: Record<string, unknown>;
+  logger: Logger;
+}
+
+async function handleForm({
+  ctx,
+  action,
+  values,
+  logger,
+}: ActionHandlerArgs<ActionForm>): Promise<void> {
   // Each agent-hitting call is wrapped on its own; getFields/extractRawLayout/mapping stay outside
   // callAgent so a local BFF bug surfaces as a 500, not a mislabelled agent error. Fields and
   // layout are read AFTER tryToSetFields because a change hook rebuilds them in place.
-  const action = await callAgent(
-    () => client.loadAction(collection, actionName, recordIds),
-    logger,
-  );
   const skippedFields = await callAgent(() => action.tryToSetFields(values), logger);
 
   ctx.status = 200;
   ctx.body = mapActionForm(action, skippedFields, extractRawLayout(action));
 }
 
-async function handleExecute(
-  ctx: Context,
-  client: AgentActionClient,
-  collection: string,
-  actionName: string,
-  recordIds: string[],
-  values: Record<string, unknown>,
-  logger: Logger,
-): Promise<void> {
-  const action = await callAgent(
-    () => client.loadAction(collection, actionName, recordIds),
-    logger,
-  );
-
+async function handleExecute({
+  ctx,
+  action,
+  values,
+  logger,
+}: ActionHandlerArgs<Action>): Promise<void> {
   // setFields is strict: an unknown submitted field is a client error (400), not a 500. A transport
   // failure from the change-hook it triggers is a genuine agent error, so it goes to the mapper.
   try {
@@ -202,10 +199,23 @@ export default function createActionRoutesMiddleware({
       timeoutMs,
     });
 
+    const action = await callAgent(
+      () =>
+        client.loadAction({
+          collection,
+          actionName,
+          recordIds,
+          timezone: ctx.state.timezone as string,
+        }),
+      logger,
+    );
+
+    const handlerArgs = { ctx, action, values, logger };
+
     if (verb === 'execute') {
-      await handleExecute(ctx, client, collection, actionName, recordIds, values, logger);
+      await handleExecute(handlerArgs);
     } else {
-      await handleForm(ctx, client, collection, actionName, recordIds, values, logger);
+      await handleForm(handlerArgs);
     }
   };
 }

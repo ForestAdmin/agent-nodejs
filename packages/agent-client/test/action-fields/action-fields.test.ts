@@ -24,13 +24,13 @@ describe('ActionField implementations', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     httpRequester = { query: jest.fn() } as unknown as jest.Mocked<HttpRequester>;
-    fieldFormStates = new FieldFormStates(
-      'testAction',
-      '/forest/actions/test',
-      'users',
+    fieldFormStates = new FieldFormStates({
+      actionName: 'testAction',
+      actionPath: '/forest/actions/test',
+      collectionName: 'users',
       httpRequester,
-      ['1'],
-    );
+      ids: ['1'],
+    });
   });
 
   const setupFields = async (fields: PlainField[]) => {
