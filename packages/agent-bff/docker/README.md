@@ -9,6 +9,10 @@ keeps the image small while staying reproducible.
 - [`build-deps-manifest.js`](./build-deps-manifest.js) merges the external
   (non-`@forestadmin`) runtime dependencies of the BFF and its 4 workspace
   dependencies, plus the OpenTelemetry packages, into a single `package.json`.
+  Three OTel packages are named there; `sdk-node` drags in every OTLP exporter
+  and the Zipkin one behind them, which is what lets the image honour
+  `OTEL_TRACES_EXPORTER` and `OTEL_EXPORTER_OTLP_PROTOCOL` without the app ever
+  choosing an exporter.
 - [`deps/yarn.lock`](./deps/) pins every transitive version.
 - The Docker build regenerates the manifest from the live `package.json` files
   and runs `yarn install --frozen-lockfile`. If a workspace dependency changes
