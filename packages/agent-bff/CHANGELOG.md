@@ -1,3 +1,10 @@
+# @forestadmin/agent-bff [1.22.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.21.0...@forestadmin/agent-bff@1.22.0) (2026-08-26)
+
+
+### Features
+
+* **agent-bff:** proxy the ai query on post /agent/v1/ai/query ([#1845](https://github.com/ForestAdmin/agent-nodejs/issues/1845)) ([1dc7225](https://github.com/ForestAdmin/agent-nodejs/commit/1dc7225a340cea406e2fe3b3e12d3171cbcbd205))
+
 # @forestadmin/agent-bff [1.21.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.20.2...@forestadmin/agent-bff@1.21.0) (2026-08-26)
 
 
