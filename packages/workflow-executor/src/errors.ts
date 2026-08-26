@@ -587,6 +587,15 @@ export class InvalidStepDefinitionError extends WorkflowExecutorError {
   }
 }
 
+export class HydrationFailedError extends WorkflowExecutorError {
+  constructor(detail: string) {
+    super(
+      `Failed to hydrate run: ${detail}`,
+      'This workflow run could not be prepared for execution. Please contact support.',
+    );
+  }
+}
+
 // A deterministic condition reads a field a Get Data step was supposed to have loaded. Build-time
 // validation cannot always catch this: when that step lets the AI pick its fields, nobody knows
 // which ones it will return until the run. Treating it as "not met" would route to the fallback and
