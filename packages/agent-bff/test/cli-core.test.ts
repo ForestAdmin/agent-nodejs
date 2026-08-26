@@ -17,6 +17,8 @@ const VALID_ENV = {
 
 const noopLogger: Logger = () => undefined;
 
+const OVERSIZED_BODY_OUTCOMES = ['413', 'aborted:EPIPE', 'aborted:ECONNRESET'];
+
 async function oversizedBodyOutcome(
   callback: Parameters<typeof request>[0],
   path: string,
@@ -192,7 +194,7 @@ describe('runCli', () => {
       }
     });
 
-    it('should reject a body above 1mb on its declared length, without reading it', async () => {
+    it('should reject a body above 1mb on its declared length, before the route is reached', async () => {
       const server = await runCli(OAUTH_ENV, noopLogger);
 
       try {
@@ -221,7 +223,7 @@ describe('runCli', () => {
           1_050_000,
         );
 
-        expect(outcome).toMatch(/^(413|aborted:)/);
+        expect(OVERSIZED_BODY_OUTCOMES).toContain(outcome);
       } finally {
         await server.stop();
       }
@@ -393,7 +395,7 @@ describe('runCli', () => {
           900_000,
         );
 
-        expect(outcome).toMatch(/^(413|aborted:)/);
+        expect(OVERSIZED_BODY_OUTCOMES).toContain(outcome);
       } finally {
         await server.stop();
       }
