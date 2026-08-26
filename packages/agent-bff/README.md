@@ -144,7 +144,10 @@ holds, and relays the answer back:
   sending `forest-*` headers has no effect.
 - **Body.** `1mb` instead of the `16kb` of every other route, and `application/json` only — any other
   content type arrives as an empty body, is relayed upstream as `{}`, and the Forest server rejects
-  the query. Over the limit → `413`.
+  the query. Over the limit → `413`. The parser is selected on the request path alone and runs ahead
+  of authentication, so an unauthenticated caller can make the BFF buffer and JSON-parse 1 MB on this
+  path — 64x the pre-auth surface of every other route. Bounding that is a deployment concern (rate
+  limiting or a body cap at the reverse proxy), not a BFF one.
 - **Timeout.** `BFF_AI_TIMEOUT_MS` (default `120000`) caps the relay itself; past it → `504`. It is
   not the only cap on the request: when the session's access token has expired the route first
   refreshes it against the Forest server, and that hop has its own hard-coded 60 s ceiling which
