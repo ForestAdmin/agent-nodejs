@@ -174,9 +174,20 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
     stepExecutions: StepExecutionData[],
   ): boolean | null {
     const resolved = this.resolveConditionValue(condition, stepExecutions);
+
     // Unresolvable reference (step never ran, field not read, read error) → not evaluable, even
-    // for present/blank — a value that was never read is not the same as a blank one.
-    if (!resolved.found) return null;
+    // for present/blank — a value that was never read is not the same as a blank one. Logged
+    // because it is the one way a run reaches its fallback while reporting success: the trace says
+    // so in the run view, but an operator watching the logs would otherwise see nothing.
+    if (!resolved.found) {
+      this.context.logger('Warn', 'Condition value could not be resolved, counting it as not met', {
+        ...this.logCtx,
+        sourceStepId: condition.sourceStepId,
+        fieldName: condition.fieldName,
+      });
+
+      return null;
+    }
 
     return evaluateOperator(condition.operator, resolved.value, condition.value);
   }
