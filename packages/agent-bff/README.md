@@ -91,7 +91,7 @@ any OTLP-compatible backend (Datadog, Grafana Tempo, Jaeger, Honeycomb, etc.). I
 default** and turns on as soon as you point it at an OTLP receiver — no code changes or extra
 installs required. Tracing is set up before the app starts (auto-instrumentation for HTTP and the
 outbound calls to the agent and the Forest SaaS), and buffered spans are flushed on `SIGTERM` /
-`SIGINT` before the process exits.
+`SIGINT`, alongside the graceful shutdown described above.
 
 Configure it entirely through the standard OTel environment variables:
 
