@@ -105,10 +105,13 @@ export default class ActionRoute extends CollectionRoute {
       await this.actionAuthorizationService.assertCanTriggerCustomAction({
         ...canPerformCustomActionParams,
         // Only a "select all" trigger needs its selection resolved (capped) for the approval
-        // request — a normal execute is never capped.
-        resolveSelectAllRecordIds: requestBody?.data?.attributes?.all_records
-          ? () => this.resolveApprovalRecordIds(context, caller, filterForCaller)
-          : undefined,
+        // request — a normal execute is never capped, and a global action targets no specific
+        // records (mirrors auditedRecordIds).
+        resolveSelectAllRecordIds:
+          requestBody?.data?.attributes?.all_records &&
+          this.collection.schema.actions[this.actionName].scope !== 'Global'
+            ? () => this.resolveApprovalRecordIds(context, caller, filterForCaller)
+            : undefined,
       });
     }
 

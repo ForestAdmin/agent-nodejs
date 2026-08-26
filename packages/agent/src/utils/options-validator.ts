@@ -9,6 +9,8 @@ import { createSqlAuditStore } from '../audit-trail';
 const DEFAULT_MINIMUM_CACHE_DURATION = 60;
 // One year cache duration when using events
 const DEFAULT_CACHE_DURATION_WITH_EVENTS = 31560000;
+// Cross-service contract: the Forest server rejects approval requests above this many record ids.
+export const DEFAULT_MAX_RECORDS_FOR_APPROVAL = 500;
 
 export default class OptionsValidator {
   private static loggerPrefix = {
@@ -42,7 +44,11 @@ export default class OptionsValidator {
     copyOptions.instantCacheRefresh = copyOptions.instantCacheRefresh ?? true;
     copyOptions.workflowExecutorUrl = copyOptions.workflowExecutorUrl ?? null;
     copyOptions.auditTrail = copyOptions.auditTrail ?? null;
-    copyOptions.maxRecordsForApproval = copyOptions.maxRecordsForApproval ?? 500;
+    // Number.isFinite (not ??) so that NaN — e.g. Number() on an unset env var — also falls back
+    // to the default instead of silently disabling the cap (length > NaN is always false).
+    copyOptions.maxRecordsForApproval = Number.isFinite(copyOptions.maxRecordsForApproval)
+      ? copyOptions.maxRecordsForApproval
+      : DEFAULT_MAX_RECORDS_FOR_APPROVAL;
     copyOptions.maxBodySize = copyOptions.maxBodySize || '50mb';
     copyOptions.bodyParserOptions = copyOptions.bodyParserOptions || {
       jsonLimit: '50mb',
