@@ -50,6 +50,7 @@ Or run the image directly:
 ```bash
 docker run -d \
   -p 3450:3450 \
+  --stop-timeout 15 \
   --add-host host.docker.internal:host-gateway \
   -e FOREST_AUTH_SECRET="..." \
   -e FOREST_ENV_SECRET="..." \
@@ -74,9 +75,14 @@ docker run --rm ghcr.io/forestadmin/agent-bff:latest openapi > openapi.json
 Tags follow the npm package: `:latest`, `:1`, `:1.20` and the immutable `:1.20.2`.
 
 On `SIGTERM` or `SIGINT` the BFF stops accepting connections and gives the requests already in
-flight 10 seconds to finish before cutting their sockets, then exits 0. Allow for that in your
-orchestrator's grace period — `docker stop` defaults to 10s, which is exactly the deadline, so the
-Compose setup raises it to 15s. A second signal gives up on the wait and exits 1.
+flight 10 seconds to finish before cutting their sockets, then exits 0. A second signal gives up on
+the wait and exits 1.
+
+Allow for that in your orchestrator's grace period. The whole budget is up to 11 seconds — the 10
+second deadline plus a 1 second fallback for the exit itself — and `docker stop` defaults to 10,
+so under load it would SIGKILL exactly when the shutdown is doing its job. Hence `--stop-timeout 15`
+above and `stop_grace_period: 15s` in the Compose file; on Kubernetes the default
+`terminationGracePeriodSeconds` of 30 already covers it.
 
 ### Without Docker
 

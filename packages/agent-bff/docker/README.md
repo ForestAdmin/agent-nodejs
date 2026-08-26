@@ -20,6 +20,18 @@ keeps the image small while staying reproducible.
 - [`smoke-test.sh`](./smoke-test.sh) runs a locally-loaded image before it is
   published: CLI surface, module graph, Redoc bundle, boot and `/health`.
 
+## Running the smoke test
+
+```bash
+sh packages/agent-bff/docker/smoke-test.sh <image-ref>
+```
+
+It needs `docker`, `curl`, `openssl` and **`python3`** on the host. The last one
+serves a two-line stub of the Forest server so the second boot can be fully
+configured and reach `/health` 200 — the path the image's own HEALTHCHECK
+demands, which nothing else exercises. All four are present on the GitHub
+runners; on a slim box python3 is the one likely to be missing.
+
 ## Updating the lockfile
 
 Only `deps/yarn.lock` is committed — the manifest is generated on demand (the
