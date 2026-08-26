@@ -304,7 +304,12 @@ describe('FieldFormStates', () => {
 
       await withTimezone().loadInitialState();
 
-      expect(httpRequester.query.mock.calls[0][0].query).toBeUndefined();
+      expect(httpRequester.query).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: '/forest/actions/test-action/hooks/load',
+          query: undefined,
+        }),
+      );
     });
 
     it('should send the timezone in the change hook query when one is provided', async () => {
@@ -353,7 +358,12 @@ describe('FieldFormStates', () => {
 
       await formStates.setFieldValue('name', 'updated');
 
-      expect(httpRequester.query.mock.calls[1][0].query).toBeUndefined();
+      expect(httpRequester.query).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: '/forest/actions/test-action/hooks/change',
+          query: undefined,
+        }),
+      );
     });
   });
 
