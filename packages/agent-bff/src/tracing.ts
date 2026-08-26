@@ -81,6 +81,29 @@ function isDisabled(raw: string | undefined): boolean {
   return raw?.trim().toLowerCase() === 'true';
 }
 
+/**
+ * Strips the credentials out of the endpoint before it reaches the logs. `https://user:token@host`
+ * is a legitimate way to reach a collector behind basic auth, and container logs are the last place
+ * that token should end up — this package does not echo a secret anywhere else either.
+ *
+ * An endpoint that does not parse is dropped from the log entirely rather than passed through: it
+ * cannot be redacted, so it cannot be shown. The SDK will fail on it soon enough on its own.
+ */
+export function redactEndpoint(endpoint: string): string | undefined {
+  try {
+    const url = new URL(endpoint);
+
+    if (!url.username && !url.password) return endpoint;
+
+    url.username = '';
+    url.password = '';
+
+    return url.toString();
+  } catch {
+    return undefined;
+  }
+}
+
 export default function initTracing(options: TracingOptions = {}): OtelSdk | undefined {
   const { env = process.env, logger = createConsoleLogger(), load = loadOtelModules } = options;
 
@@ -109,7 +132,10 @@ export default function initTracing(options: TracingOptions = {}): OtelSdk | und
 
   sdk.start();
 
-  logger('Info', 'OpenTelemetry tracing enabled', { serviceName, endpoint });
+  logger('Info', 'OpenTelemetry tracing enabled', {
+    serviceName,
+    endpoint: redactEndpoint(endpoint),
+  });
 
   return sdk;
 }
