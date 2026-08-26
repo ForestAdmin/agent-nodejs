@@ -278,7 +278,7 @@ describe('runCli', () => {
           .post('/oauth/token')
           .send({ grant_type: 'refresh_token' });
 
-        expect(response.body.error_description).toContain('refresh_token');
+        expect(response.body.error).toBe('invalid_request');
       } finally {
         await server.stop();
       }
