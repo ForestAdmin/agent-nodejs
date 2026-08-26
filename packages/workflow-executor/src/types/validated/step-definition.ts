@@ -18,7 +18,6 @@ export enum StepExecutionMode {
   Manual = 'manual',
   AutomatedWithConfirmation = 'automated-with-confirmation',
   FullyAutomated = 'fully-automated',
-  Deterministic = 'deterministic',
 }
 
 // Shared fields across all step types. executionType is intentionally excluded —
@@ -39,7 +38,7 @@ const sharedFields = {
 };
 
 // Use z.enum(EnumObject), not z.nativeEnum — the latter is deprecated in zod 4.
-const { Manual, AutomatedWithConfirmation, FullyAutomated, Deterministic } = StepExecutionMode;
+const { Manual, AutomatedWithConfirmation, FullyAutomated } = StepExecutionMode;
 
 // Wire-final operator names (PRD-472 cross-repo contract). An unknown operator is rejected here,
 // at the schema boundary, so a run never reaches evaluation with a comparison it cannot honor.
@@ -90,33 +89,24 @@ const OptionConditionsSchema = z.object({
 });
 export type OptionConditions = z.infer<typeof OptionConditionsSchema>;
 
-export const ConditionStepDefinitionSchema = z
-  .object({
-    ...sharedFields,
-    type: z.literal(StepType.Condition),
-    // NO `.catch` — coercing an unknown mode from a newer orchestrator to FullyAutomated would
-    // silently let the AI decide instead of the conditions the builder configured precisely
-    // because they don't trust the AI.
-    executionType: z.enum([Manual, FullyAutomated, Deterministic]).default(FullyAutomated),
-    /** Ordered — evaluation priority for the deterministic mode (top-to-bottom, first-match-wins). */
-    options: z.array(z.string()).min(2),
-    preRecordedArgs: z
-      .object({
-        optionConditions: z.array(OptionConditionsSchema).min(1),
-        fallbackOption: z.string().min(1),
-      })
-      .optional(),
-  })
-  // No silent fallback to manual/AI: a deterministic step without its conditions must fail loud.
-  .superRefine((step, ctx) => {
-    if (step.executionType === Deterministic && step.preRecordedArgs === undefined) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['preRecordedArgs'],
-        message: 'preRecordedArgs is required when executionType is "deterministic"',
-      });
-    }
-  });
+export const ConditionStepDefinitionSchema = z.object({
+  ...sharedFields,
+  type: z.literal(StepType.Condition),
+  // NO `.catch` — coercing an unknown mode from a newer orchestrator to FullyAutomated would
+  // silently let the AI decide instead of the conditions the builder configured precisely
+  // because they don't trust the AI.
+  executionType: z.enum([Manual, FullyAutomated]).default(FullyAutomated),
+  /** Ordered — evaluation priority for the deterministic mode (top-to-bottom, first-match-wins). */
+  options: z.array(z.string()).min(2),
+  // Presence *is* the deterministic mode. A malformed config is rejected here rather than dropped,
+  // so it can never degrade to a manual/AI decision.
+  preRecordedArgs: z
+    .object({
+      optionConditions: z.array(OptionConditionsSchema).min(1),
+      fallbackOption: z.string().min(1),
+    })
+    .optional(),
+});
 export type ConditionStepDefinition = z.infer<typeof ConditionStepDefinitionSchema>;
 
 export const ReadRecordStepDefinitionSchema = z.object({

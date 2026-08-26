@@ -309,23 +309,29 @@ describe('toStepDefinition', () => {
       });
     });
 
-    // A newer orchestrator may send an execution mode this executor version does not know.
-    // The `.catch(FullyAutomated)` that used to sit on the condition schema would have silently
-    // handed the decision to the AI; the mapper must reject the run as malformed instead.
-    it('should throw InvalidStepDefinitionError for an unknown executionType instead of coercing to Full AI', () => {
-      const condition = makeCondition(
-        [
-          { stepId: 's1', buttonText: null, answer: 'Yes' },
-          { stepId: 's2', buttonText: null, answer: 'No' },
-        ],
-        { executionType: 'not-a-mode' as ServerWorkflowCondition['executionType'] },
-      );
+    // A newer orchestrator may send an execution mode this executor version does not know, and
+    // `deterministic` is now one of them. The `.catch(FullyAutomated)` that used to sit on the
+    // condition schema would have silently handed the decision to the AI; the mapper must reject
+    // the run as malformed instead.
+    it.each(['not-a-mode', 'deterministic'])(
+      'should throw InvalidStepDefinitionError for the unknown executionType "%s" instead of coercing to Full AI',
+      executionType => {
+        const condition = makeCondition(
+          [
+            { stepId: 's1', buttonText: null, answer: 'Yes' },
+            { stepId: 's2', buttonText: null, answer: 'No' },
+          ],
+          { executionType: executionType as ServerWorkflowCondition['executionType'] },
+        );
 
-      expect(() => toStepDefinition(condition)).toThrow(InvalidStepDefinitionError);
-      expect(() => toStepDefinition(condition)).toThrow(/executionType/);
-    });
+        expect(() => toStepDefinition(condition)).toThrow(InvalidStepDefinitionError);
+        expect(() => toStepDefinition(condition)).toThrow(/executionType/);
+      },
+    );
 
-    it('should forward preRecordedArgs on a deterministic condition', () => {
+    // A deterministic gateway publishes with `aiDecision` stripped, so it arrives as `manual` and
+    // the preRecordedArgs are the only thing that marks it deterministic.
+    it('should forward preRecordedArgs on a manual condition', () => {
       const preRecordedArgs = {
         optionConditions: [
           {
@@ -343,28 +349,31 @@ describe('toStepDefinition', () => {
           { stepId: 's1', buttonText: null, answer: 'Yes' },
           { stepId: 's2', buttonText: null, answer: 'No' },
         ],
-        { executionType: ServerStepExecutionTypeEnum.Deterministic, preRecordedArgs },
+        { executionType: ServerStepExecutionTypeEnum.Manual, preRecordedArgs },
       );
 
       expect(toStepDefinition(condition)).toMatchObject({
         type: StepType.Condition,
-        executionType: StepExecutionMode.Deterministic,
+        executionType: StepExecutionMode.Manual,
         options: ['Yes', 'No'],
         preRecordedArgs,
       });
     });
 
-    it('should throw InvalidStepDefinitionError for a deterministic condition without preRecordedArgs', () => {
+    it('should throw InvalidStepDefinitionError for malformed preRecordedArgs rather than dropping them', () => {
       const condition = makeCondition(
         [
           { stepId: 's1', buttonText: null, answer: 'Yes' },
           { stepId: 's2', buttonText: null, answer: 'No' },
         ],
-        { executionType: ServerStepExecutionTypeEnum.Deterministic },
+        {
+          executionType: ServerStepExecutionTypeEnum.Manual,
+          preRecordedArgs: { optionConditions: [], fallbackOption: 'No' },
+        },
       );
 
       expect(() => toStepDefinition(condition)).toThrow(InvalidStepDefinitionError);
-      expect(() => toStepDefinition(condition)).toThrow(/preRecordedArgs/);
+      expect(() => toStepDefinition(condition)).toThrow(/optionConditions/);
     });
 
     it('should throw InvalidStepDefinitionError when fewer than 2 options', () => {

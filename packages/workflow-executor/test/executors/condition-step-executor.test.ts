@@ -28,9 +28,14 @@ function makeStep(overrides: Partial<ConditionStepDefinition> = {}): ConditionSt
 
 type ConditionPreRecordedArgs = NonNullable<ConditionStepDefinition['preRecordedArgs']>;
 
-function makeDeterministicStep(preRecordedArgs: ConditionPreRecordedArgs): ConditionStepDefinition {
+// A deterministic gateway is published with `aiDecision` stripped, so the orchestrator sends it as
+// `manual` + preRecordedArgs — the args are what make it deterministic, not the mode.
+function makeDeterministicStep(
+  preRecordedArgs: ConditionPreRecordedArgs,
+  executionType: ConditionStepDefinition['executionType'] = StepExecutionMode.Manual,
+): ConditionStepDefinition {
   return makeStep({
-    executionType: StepExecutionMode.Deterministic,
+    executionType,
     options: [
       ...preRecordedArgs.optionConditions.map(o => o.option),
       preRecordedArgs.fallbackOption,
@@ -455,7 +460,7 @@ describe('ConditionStepExecutor', () => {
     });
   });
 
-  describe('executionType=Deterministic', () => {
+  describe('deterministic evaluation driven by preRecordedArgs', () => {
     const amountArgs: ConditionPreRecordedArgs = {
       optionConditions: [
         {
@@ -500,6 +505,53 @@ describe('ConditionStepExecutor', () => {
 
       return { context, mockModel, runStore };
     }
+
+    it('evaluates a manual condition instead of awaiting input, with no incomingPendingData', async () => {
+      const { context, mockModel, runStore } = makeDeterministicContext(amountArgs, [
+        { name: 'amount', displayName: 'Amount', value: 150 },
+      ]);
+
+      expect(context.stepDefinition.executionType).toBe(StepExecutionMode.Manual);
+      expect(context.incomingPendingData).toBeUndefined();
+
+      const result = await new ConditionStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('High');
+      expect(mockModel.bindTools).not.toHaveBeenCalled();
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          executionParams: expect.objectContaining({ selectedOption: 'High', usedFallback: false }),
+        }),
+      );
+    });
+
+    it('evaluates a fully-automated condition carrying preRecordedArgs without calling the AI', async () => {
+      const { context, mockModel, runStore } = makeDeterministicContext(
+        amountArgs,
+        [{ name: 'amount', displayName: 'Amount', value: 150 }],
+        { stepDefinition: makeDeterministicStep(amountArgs, StepExecutionMode.FullyAutomated) },
+      );
+
+      const result = await new ConditionStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('High');
+      expect(mockModel.bindTools).not.toHaveBeenCalled();
+      expect(mockModel.invoke).not.toHaveBeenCalled();
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          executionParams: expect.objectContaining({
+            evaluations: [
+              { option: 'High', outcome: 'matched', conditions: [{ index: 0, met: true }] },
+              { option: 'Low', outcome: 'not-evaluated' },
+            ],
+          }),
+        }),
+      );
+    });
 
     it('selects the first matching option without calling the AI or awaiting input', async () => {
       const { context, mockModel, runStore } = makeDeterministicContext(amountArgs, [
@@ -924,16 +976,15 @@ describe('ConditionStepExecutor', () => {
   });
 
   describe('executionType=Manual', () => {
-    it('returns awaiting-input without calling AI or saving when no incomingPendingData', async () => {
+    it('returns awaiting-input without preRecordedArgs, no AI and no save, when no incomingPendingData', async () => {
       const mockModel = makeMockModel();
       const runStore = makeMockRunStore();
+      const stepDefinition = makeStep({ executionType: StepExecutionMode.Manual });
       const executor = new ConditionStepExecutor(
-        makeContext({
-          model: mockModel.model,
-          runStore,
-          stepDefinition: makeStep({ executionType: StepExecutionMode.Manual }),
-        }),
+        makeContext({ model: mockModel.model, runStore, stepDefinition }),
       );
+
+      expect(stepDefinition.preRecordedArgs).toBeUndefined();
 
       const result = await executor.execute();
 
