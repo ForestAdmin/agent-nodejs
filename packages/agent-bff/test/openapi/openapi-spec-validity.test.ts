@@ -20,6 +20,7 @@ describe.each([
     () =>
       generateOpenApiDocument('1.0.0', { unfolding: unfoldingFixture(), hasAiQueryRoute: true }),
   ],
+  ['ai-less', () => generateOpenApiDocument('1.0.0', { hasAiQueryRoute: false })],
 ])('the %s OpenAPI document', (name, build: () => OpenAPIObject) => {
   let directory: string;
   let status: number | null;
