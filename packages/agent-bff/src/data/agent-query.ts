@@ -1,3 +1,6 @@
+import type { ZodType } from 'zod';
+
+import { CountFlatInputs, ListFlatInputs } from './request-schemas';
 import { invalidRequest } from '../http/bff-local-errors';
 import { MAX_FILTER_DEPTH, isBranch, isLeaf } from '../validation/capabilities-validator';
 import { filterTooDeep } from '../validation/validation-errors';
@@ -19,10 +22,14 @@ export interface ListRequestBody {
   projection?: string[];
   sort?: BffSortClause[];
   page?: BffPage;
+  search?: string;
+  searchExtended?: boolean;
 }
 
 export interface CountRequestBody {
   filter?: unknown;
+  search?: string;
+  searchExtended?: boolean;
 }
 
 export type RelationListRequestBody = ListRequestBody & { parentId: string };
@@ -52,52 +59,36 @@ function assertNoNodeReadableAsBothLeafAndBranch(node: unknown, depth = 0): void
   }
 }
 
-// Validate the untyped request body before it reaches the query builders, so malformed shapes
-// (e.g. `projection` or `sort` as a string) surface as 400 invalid_request rather than a 500 from
-// an array method blowing up downstream.
+/**
+ * Checks the flat inputs against the shared schema and reports the first failure as
+ * 400 invalid_request, so a malformed shape (`projection` as a string, a fractional `page.limit`)
+ * surfaces as a client error rather than a 500 from an array method blowing up downstream.
+ *
+ * Unknown keys are left alone: the object schemas ignore them, so `filter`, `timezone` and
+ * `parentId` travel through untouched and the body is returned by reference, not rebuilt.
+ */
+function assertFlatInputs(schema: ZodType, body: Record<string, unknown>): void {
+  const result = schema.safeParse(body);
+  if (result.success) return;
+
+  const [issue] = result.error.issues;
+  const path = issue.path.join('.');
+
+  throw invalidRequest(path ? `${path}: ${issue.message}` : issue.message);
+}
+
+function assertFilter(filter: unknown): void {
+  if (filter === undefined) return;
+  if (!isPlainObject(filter)) throw invalidRequest('filter must be an object');
+
+  assertNoNodeReadableAsBothLeafAndBranch(filter);
+}
+
 export function parseListRequest(body: unknown): ListRequestBody {
   if (!isPlainObject(body)) throw invalidRequest('Request body must be an object');
 
-  const { filter, projection, sort, page } = body;
-
-  if (projection !== undefined) {
-    if (!Array.isArray(projection) || projection.some(field => typeof field !== 'string')) {
-      throw invalidRequest('projection must be an array of field names');
-    }
-  }
-
-  if (sort !== undefined) {
-    const valid =
-      Array.isArray(sort) &&
-      sort.every(
-        clause =>
-          isPlainObject(clause) &&
-          typeof clause.field === 'string' &&
-          (clause.direction === undefined ||
-            clause.direction === 'asc' ||
-            clause.direction === 'desc'),
-      );
-    if (!valid) throw invalidRequest('sort must be an array of { field, direction? }');
-  }
-
-  if (filter !== undefined) {
-    if (!isPlainObject(filter)) throw invalidRequest('filter must be an object');
-    assertNoNodeReadableAsBothLeafAndBranch(filter);
-  }
-
-  if (page !== undefined) {
-    if (!isPlainObject(page)) {
-      throw invalidRequest('page must be an object with limit and offset');
-    }
-
-    if (!Number.isInteger(page.limit) || (page.limit as number) <= 0) {
-      throw invalidRequest('page.limit must be a positive integer');
-    }
-
-    if (!Number.isInteger(page.offset) || (page.offset as number) < 0) {
-      throw invalidRequest('page.offset must be a non-negative integer');
-    }
-  }
+  assertFlatInputs(ListFlatInputs, body);
+  assertFilter(body.filter);
 
   return body as ListRequestBody;
 }
@@ -105,10 +96,8 @@ export function parseListRequest(body: unknown): ListRequestBody {
 export function parseCountRequest(body: unknown): CountRequestBody {
   if (!isPlainObject(body)) throw invalidRequest('Request body must be an object');
 
-  if (body.filter !== undefined) {
-    if (!isPlainObject(body.filter)) throw invalidRequest('filter must be an object');
-    assertNoNodeReadableAsBothLeafAndBranch(body.filter);
-  }
+  assertFlatInputs(CountFlatInputs, body);
+  assertFilter(body.filter);
 
   return body as CountRequestBody;
 }
@@ -138,6 +127,31 @@ function serializePage(page: BffPage): Record<string, number> {
   return { 'page[size]': limit, 'page[number]': offset / limit + 1 };
 }
 
+/**
+ * `search` and `searchExtended` are the wire names the agent reads; no other spelling is parsed.
+ *
+ * A blank search is dropped rather than forwarded. The agent's search decorator already treats it
+ * as absent, but `parseSearch` guards on a truthy value, so a whitespace-only search would raise
+ * "Collection is not searchable" on a non-searchable collection while an empty one would not — a
+ * cleared search box must not depend on how many spaces it holds.
+ *
+ * `searchExtended` only ships alongside a real search: on its own it changes nothing agent-side,
+ * and emitting it would alter the outgoing query of every search-less request.
+ *
+ * The value is trimmed on the way out, not in the parser: parsing stays pure validation here, and
+ * `parseListRequest` returns the caller's body untouched, which its own callers rely on.
+ */
+function applySearch(
+  query: AgentQuery,
+  body: Pick<CountRequestBody, 'search' | 'searchExtended'>,
+): void {
+  const search = body.search?.trim();
+  if (!search) return;
+
+  query.search = search;
+  if (body.searchExtended !== undefined) query.searchExtended = body.searchExtended;
+}
+
 export function buildListAgentQuery(
   collection: string,
   timezone: string,
@@ -149,6 +163,7 @@ export function buildListAgentQuery(
   if (body.projection?.length) query[`fields[${collection}]`] = body.projection.join(',');
   if (body.sort?.length) query.sort = serializeSort(body.sort);
   if (body.page) Object.assign(query, serializePage(body.page));
+  applySearch(query, body);
 
   return query;
 }
@@ -157,6 +172,7 @@ export function buildCountAgentQuery(timezone: string, body: CountRequestBody): 
   const query: AgentQuery = { timezone };
 
   if (body.filter !== undefined) query.filters = JSON.stringify(body.filter);
+  applySearch(query, body);
 
   return query;
 }

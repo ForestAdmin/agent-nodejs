@@ -390,6 +390,75 @@ describe('generateOpenApiDocument', () => {
   });
 });
 
+describe('the documented search inputs', () => {
+  function propertiesOf(name: string): Record<string, { $ref?: string }> {
+    return (schemas[name] as { properties: Record<string, { $ref?: string }> }).properties;
+  }
+
+  // Walks a schema's `allOf` refs into the components it points at, so a relation body is checked
+  // on the properties a client actually resolves rather than on the fact that zod extended it.
+  function resolvedPropertiesOf(name: string): Record<string, { $ref?: string }> {
+    const schema = schemas[name] as {
+      properties?: Record<string, { $ref?: string }>;
+      allOf?: Array<{ $ref?: string; properties?: Record<string, { $ref?: string }> }>;
+    };
+
+    let resolved: Record<string, { $ref?: string }> = { ...(schema.properties ?? {}) };
+
+    for (const entry of schema.allOf ?? []) {
+      const inherited = entry.$ref
+        ? resolvedPropertiesOf(entry.$ref.replace('#/components/schemas/', ''))
+        : entry.properties ?? {};
+
+      resolved = { ...resolved, ...inherited };
+    }
+
+    return resolved;
+  }
+
+  it.each([['ListRequest'], ['CountRequest']])('should expose search on %s', name => {
+    expect(propertiesOf(name).search).toEqual({ $ref: '#/components/schemas/Search' });
+    expect(propertiesOf(name).searchExtended).toEqual({
+      $ref: '#/components/schemas/SearchExtended',
+    });
+  });
+
+  it.each([['RelationListRequest'], ['RelationCountRequest']])(
+    'should resolve the search inputs on %s, which shares the parsers and builders',
+    name => {
+      expect(resolvedPropertiesOf(name).search).toEqual({ $ref: '#/components/schemas/Search' });
+      expect(resolvedPropertiesOf(name).searchExtended).toEqual({
+        $ref: '#/components/schemas/SearchExtended',
+      });
+    },
+  );
+
+  it('should say a blank search is treated as absent rather than rejected', () => {
+    expect(schemas.Search.description).toContain('treated as absent');
+  });
+
+  it('should say a non-searchable collection is answered by the agent, not the BFF', () => {
+    expect(schemas.Search.description).toContain('Collection is not searchable');
+  });
+
+  it('should say searchExtended alone changes nothing', () => {
+    expect(schemas.SearchExtended.description).toContain('without `search` it is ignored');
+  });
+
+  it('should document that a search query reaches a relation without searchExtended', () => {
+    expect(schemas.Search.description).toContain('`relation.column:value`');
+    expect(schemas.Search.description).toContain('with no `searchExtended`');
+  });
+
+  it('should warn that a search query escapes the relation-path rejection', () => {
+    expect(schemas.Search.description).toContain('relation_field_not_supported');
+  });
+
+  it('should warn that a search query can filter on a collection the BFF does not expose', () => {
+    expect(schemas.Search.description).toContain('does not expose');
+  });
+});
+
 describe('serializeOpenApi', () => {
   it('should produce indented JSON that parses back to the same document', () => {
     const serialized = serializeOpenApi(document);

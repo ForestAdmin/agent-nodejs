@@ -107,8 +107,11 @@ jobs:
           fail-on-cache-miss: true
       - name: Lint Typescript
         run: cd packages/${{ matrix.package }} && yarn lint && cd -
-      - name: Test code (excluding LLM integration tests)
-        run: cd packages/${{ matrix.package }} && yarn test --coverage --testPathIgnorePatterns='llm.integration' && cd -
+      # The ignore list names each integration suite explicitly rather than matching `integration`
+      # broadly: most packages keep genuine unit tests under `test/integration*/`, and a wide
+      # pattern would silently stop running hundreds of them.
+      - name: Test code (excluding integration suites with their own job)
+        run: cd packages/${{ matrix.package }} && yarn test --coverage --testPathIgnorePatterns='llm.integration|search-agent.integration' && cd -
       - name: Upload coverage
         uses: actions/upload-artifact@v4
         with:
@@ -146,6 +149,35 @@ jobs:
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+  # Boots a real agent on a local HTTP port, so it stays out of the unit job. Unlike the LLM suite
+  # it reaches no third party and is deterministic, hence no continue-on-error: it must gate.
+  bff-integration-tests:
+    name: BFF Integration Tests (agent-bff)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [build]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+      - name: Restore dependencies from cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            packages/*/node_modules
+          key: ${{ runner.os }}-modules-${{ hashFiles('yarn.lock') }}-${{ hashFiles('packages/*/package.json') }}
+          fail-on-cache-miss: true
+      - name: Restore build from cache
+        uses: actions/cache/restore@v4
+        with:
+          path: packages/*/dist
+          key: ${{ runner.os }}-build-${{ github.sha }}
+          fail-on-cache-miss: true
+      - name: Run BFF integration tests
+        run: yarn workspace @forestadmin/agent-bff test --testPathPattern='search-agent.integration'
 
   send-coverage:
     name: Send Coverage
@@ -206,7 +238,7 @@ jobs:
     concurrency:
       group: release-${{ github.ref }}
       cancel-in-progress: false
-    needs: [build-api-reference, send-coverage, lint]
+    needs: [build-api-reference, send-coverage, lint, bff-integration-tests]
     if: |
       github.event_name == 'push'
       && (
@@ -289,7 +321,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [build-api-reference, send-coverage, lint]
+    needs: [build-api-reference, send-coverage, lint, bff-integration-tests]
     steps:
       - name: Setup Pages
         uses: actions/configure-pages@v3

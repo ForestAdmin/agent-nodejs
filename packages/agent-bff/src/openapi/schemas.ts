@@ -1,6 +1,15 @@
 import { allOperators } from '@forestadmin/datasource-toolkit';
 
 import { z } from './zod-openapi';
+import {
+  PageInput,
+  ParentIdInput,
+  ProjectionInput,
+  SearchExtendedInput,
+  SearchInput,
+  SortClauseInput,
+  TimezoneInput,
+} from '../data/request-schemas';
 import { RELATIONSHIP_TYPES } from '../read-model/read-model';
 import { MAX_FILTER_DEPTH } from '../validation/capabilities-validator';
 
@@ -37,37 +46,53 @@ const ConditionTreeSchema: z.ZodType = z
       'collection capabilities; relation list and count forward the filter without either check.',
   });
 
-export const SortClauseSchema = z
-  .object({
-    field: z.string(),
-    direction: z.enum(['asc', 'desc']).optional(),
-  })
-  .openapi('SortClause', { description: 'Omitting `direction` sorts ascending.' });
+export const SortClauseSchema = SortClauseInput.openapi('SortClause', {
+  description: 'Omitting `direction` sorts ascending.',
+});
 
-export const PageSchema = z
-  .object({
-    limit: z.number().int().positive(),
-    offset: z.number().int().nonnegative(),
-  })
-  .openapi('Page', {
-    description:
-      'The agent paginates by page number, so `offset` must be a whole multiple of `limit`. ' +
-      'Any other offset is rejected with 400 invalid_request.',
-  });
+export const PageSchema = PageInput.openapi('Page', {
+  description:
+    'The agent paginates by page number, so `offset` must be a whole multiple of `limit`. ' +
+    'Any other offset is rejected with 400 invalid_request.',
+});
 
-export const TimezoneSchema = z.string().openapi('Timezone', {
+export const TimezoneSchema = TimezoneInput.openapi('Timezone', {
   description:
     'Used when the X-Forest-Timezone header is absent. The header wins when both are sent. A ' +
     'deployment with no configured default rejects a request carrying neither with 400 ' +
     'missing_timezone.',
 });
 
+export const SearchSchema = SearchInput.openapi('Search', {
+  description:
+    "The agent's native full-text search, applied on top of `filter` rather than instead of it. " +
+    'An empty or whitespace-only value is treated as absent, so clearing a search box is not an ' +
+    'error. Searching a collection whose search is disabled is not rejected here: the agent ' +
+    'answers 400 validation_error with "Collection is not searchable". The response does not say ' +
+    'which field matched. The value is a query, not a plain term: `column:value` narrows the ' +
+    'search to one column, and `relation.column:value` narrows it to a column of a related ' +
+    'collection — so a search reaches relation fields on its own, with no `searchExtended`, and ' +
+    'escapes the 422 relation_field_not_supported that the same path draws in `filter`, `sort` or ' +
+    '`projection`. The agent resolves a relation named in a query against its own schema, so a ' +
+    'query can filter on a column of a collection this BFF does not expose.',
+});
+
+export const SearchExtendedSchema = SearchExtendedInput.openapi('SearchExtended', {
+  description:
+    'Widens `search` to every related collection reachable from this one, instead of only this ' +
+    "collection's own columns. Meaningless on its own: sent without `search` it is ignored and " +
+    'changes nothing. It is not the only way a search reaches a relation — see `Search` for the ' +
+    '`relation.column:value` syntax, which does so without this flag.',
+});
+
 export const ListRequestSchema = z
   .object({
     filter: ConditionTreeSchema.optional(),
-    projection: z.array(z.string()).optional(),
+    projection: ProjectionInput.optional(),
     sort: z.array(SortClauseSchema).optional(),
     page: PageSchema.optional(),
+    search: SearchSchema.optional(),
+    searchExtended: SearchExtendedSchema.optional(),
     timezone: TimezoneSchema.optional(),
   })
   .openapi('ListRequest');
@@ -75,11 +100,17 @@ export const ListRequestSchema = z
 export const CountRequestSchema = z
   .object({
     filter: ConditionTreeSchema.optional(),
+    search: SearchSchema.optional(),
+    searchExtended: SearchExtendedSchema.optional(),
     timezone: TimezoneSchema.optional(),
   })
-  .openapi('CountRequest');
+  .openapi('CountRequest', {
+    description:
+      'Accepts the same search inputs as list, so a client can count exactly the rows its search ' +
+      'returns.',
+  });
 
-const ParentIdSchema = z.union([z.string().regex(/\S/), z.number()]).openapi('ParentId', {
+const ParentIdSchema = ParentIdInput.openapi('ParentId', {
   description:
     'The parent record id, opaque: a composite or packed id must be passed unchanged. A ' +
     'blank string is rejected.',
@@ -89,7 +120,7 @@ export const RelationListRequestSchema = ListRequestSchema.extend({
   parentId: ParentIdSchema,
 }).openapi('RelationListRequest', {
   description:
-    'Filter, sort and projection apply to the FOREIGN collection; the parent only resolves ' +
+    'Filter, sort, projection and search apply to the FOREIGN collection; the parent only resolves ' +
     'which records are related.',
 });
 
