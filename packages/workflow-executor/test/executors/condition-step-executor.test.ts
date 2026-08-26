@@ -28,8 +28,7 @@ function makeStep(overrides: Partial<ConditionStepDefinition> = {}): ConditionSt
 
 type ConditionPreRecordedArgs = NonNullable<ConditionStepDefinition['preRecordedArgs']>;
 
-// A deterministic gateway is published with `aiDecision` stripped, so the orchestrator sends it as
-// `manual` + preRecordedArgs — the args are what make it deterministic, not the mode.
+// Published with aiDecision stripped, so a deterministic gateway arrives as manual: the args make it deterministic, not the mode.
 function makeDeterministicStep(
   preRecordedArgs: ConditionPreRecordedArgs,
   executionType: ConditionStepDefinition['executionType'] = StepExecutionMode.Manual,

@@ -93,7 +93,7 @@ interface ServerWorkflowTaskLoadRelatedRecord extends ServerWorkflowTaskBase {
   executionType:
     | ServerStepExecutionTypeEnum.FullyAutomated
     | ServerStepExecutionTypeEnum.AutomatedWithConfirmation;
-  // Deterministic build-time config. Validated by the step-definition schema.
+  // Validated by the step-definition schema.
   preRecordedArgs?: { selectedRecordStepId?: string; relationName?: string };
 }
 
@@ -125,8 +125,8 @@ export interface ServerWorkflowCondition extends ServerWorkflowStepBase {
   executionType: ServerStepExecutionTypeEnum.Manual | ServerStepExecutionTypeEnum.FullyAutomated;
   prompt: string | null;
   automaticCompletion: false;
-  // Parsed from `forest:optionConditions` server-side (flowId → answer). Presence *is* the
-  // deterministic mode. Validated by the step-definition schema.
+  // Parsed server-side from `forest:optionConditions` (flowId → answer). Its presence is what makes
+  // the gateway deterministic.
   preRecordedArgs?: {
     optionConditions: Array<{
       option: string;

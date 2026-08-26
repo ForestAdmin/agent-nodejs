@@ -309,10 +309,7 @@ describe('toStepDefinition', () => {
       });
     });
 
-    // A newer orchestrator may send an execution mode this executor version does not know, and
-    // `deterministic` is now one of them. The `.catch(FullyAutomated)` that used to sit on the
-    // condition schema would have silently handed the decision to the AI; the mapper must reject
-    // the run as malformed instead.
+    // 'deterministic' is now just another unknown mode: the wire contract dropped it.
     it.each(['not-a-mode', 'deterministic'])(
       'should throw InvalidStepDefinitionError for the unknown executionType "%s" instead of coercing to Full AI',
       executionType => {
@@ -329,8 +326,6 @@ describe('toStepDefinition', () => {
       },
     );
 
-    // A deterministic gateway publishes with `aiDecision` stripped, so it arrives as `manual` and
-    // the preRecordedArgs are the only thing that marks it deterministic.
     it('should forward preRecordedArgs on a manual condition', () => {
       const preRecordedArgs = {
         optionConditions: [
