@@ -1,5 +1,6 @@
 import type { SearchOptions } from './collection-search-context';
-import type { SearchDefinition } from './types';
+import type { QueryContext } from './generated-parser/QueryParser';
+import type { SearchDefinition, SearchFieldsDefinition, SearchHandlerDefinition } from './types';
 import type {
   Caller,
   Collection,
@@ -15,7 +16,7 @@ import type {
 import { CollectionDecorator, ConditionTreeFactory } from '@forestadmin/datasource-toolkit';
 
 import CollectionSearchContext from './collection-search-context';
-import { getLeafCollectionName, getSearchedFieldPaths, lenientGetSchema } from './field-paths';
+import { getLeafCollectionName, lenientGetSchema } from './field-paths';
 import { extractSpecifiedFields, generateConditionTree, parseQuery } from './parse-query';
 
 export default class SearchCollectionDecorator extends CollectionDecorator {
@@ -27,6 +28,14 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
     this.searchable = true;
     this.replacer = replacer;
     this.markSchemaAsDirty();
+  }
+
+  private get handler(): SearchHandlerDefinition | null {
+    return typeof this.replacer === 'function' ? this.replacer : null;
+  }
+
+  private get fieldSelection(): SearchFieldsDefinition | null {
+    return this.replacer && typeof this.replacer !== 'function' ? this.replacer : null;
   }
 
   disable() {
@@ -53,11 +62,12 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
       );
       let tree: ConditionTree;
 
-      if (this.replacer) {
-        const plainTree = await this.replacer(filter.search, filter.searchExtended, ctx);
+      if (this.handler) {
+        const plainTree = await this.handler(filter.search, filter.searchExtended, ctx);
         tree = ConditionTreeFactory.fromPlainObject(plainTree);
       } else {
         tree = this.generateSearchFilter(caller, filter.search, {
+          ...this.fieldSelection,
           extended: filter.searchExtended,
         });
       }
@@ -75,20 +85,21 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
     return filter;
   }
 
-  private generateSearchFilter(
-    caller: Caller,
-    searchText: string,
+  /**
+   * Both the condition tree and the footprint `getSearchedFields` reports must come from here:
+   * a path the search reads without appearing in the footprint is a column read unchecked.
+   */
+  private getSearchableFields(
+    parsedQuery: QueryContext,
     options?: SearchOptions,
-  ): ConditionTree {
-    const parsedQuery = parseQuery(searchText);
-
+  ): Map<string, ColumnSchema> {
     const specifiedFields = options?.onlyFields ? [] : extractSpecifiedFields(parsedQuery);
 
     const defaultFields = options?.onlyFields
       ? []
       : this.getFields(this.childCollection, Boolean(options?.extended));
 
-    const searchableFields = new Map(
+    return new Map(
       [
         ...defaultFields,
         ...[...specifiedFields, ...(options?.onlyFields ?? []), ...(options?.includeFields ?? [])]
@@ -99,6 +110,15 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
         .filter(Boolean)
         .filter(([field]) => !options?.excludeFields?.includes(field)),
     );
+  }
+
+  private generateSearchFilter(
+    caller: Caller,
+    searchText: string,
+    options?: SearchOptions,
+  ): ConditionTree {
+    const parsedQuery = parseQuery(searchText);
+    const searchableFields = this.getSearchableFields(parsedQuery, options);
 
     const conditionTree = generateConditionTree(caller, parsedQuery, [...searchableFields]);
 
@@ -121,15 +141,14 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
 
   /**
    * Answers against `childCollection`, which is what the search actually reads — a field hidden by
-   * the publication or renaming layers above is still searched. Returns `null` when a replacer is
-   * installed: the customer's handler chooses the fields, and the caller only supplies the text.
+   * the publication or renaming layers above is still searched. Returns `null` only when a handler
+   * is installed: it chooses the fields, and the caller only supplies the text.
    */
   override getSearchedFields(search: string, extended: boolean): SearchedField[] | null {
-    if (this.replacer) return null;
+    if (this.handler) return null;
 
     const paths = [
-      ...getSearchedFieldPaths(this.childCollection, search),
-      ...this.getFields(this.childCollection, extended).map(([path]) => path),
+      ...this.getSearchableFields(parseQuery(search), { ...this.fieldSelection, extended }).keys(),
     ];
 
     return paths.map(path => ({

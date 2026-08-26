@@ -144,6 +144,66 @@ describe('SearchCollectionDecorator', () => {
       });
     });
 
+    describe('when a field selection is provided', () => {
+      const buildTexts = () =>
+        buildCollection({
+          fields: {
+            id: factories.columnSchema.uuidPrimaryKey().build(),
+            name: factories.columnSchema.text().build(),
+            description: factories.columnSchema.text().build(),
+          },
+        });
+
+      test('it narrows the default search the same way the equivalent handler does', async () => {
+        const decorator = buildTexts();
+        decorator.replaceSearch({ excludeFields: ['name'] });
+
+        const filter = factories.filter.build({ search: 'something', searchExtended: true });
+
+        expect(await decorator.refineFilter(caller, filter)).toEqual({
+          ...filter,
+          conditionTree: new ConditionTreeLeaf('description', 'IContains', 'something'),
+          search: null,
+        });
+      });
+
+      test('it forwards the caller-owned extended flag rather than pinning it', async () => {
+        const decorator = buildCollection(
+          {
+            fields: {
+              id: factories.columnSchema.uuidPrimaryKey().build(),
+              holderId: factories.columnSchema.build({ columnType: 'Uuid' }),
+              holder: factories.manyToOneSchema.build({
+                foreignCollection: 'holders',
+                foreignKey: 'holderId',
+              }),
+            },
+          },
+          [
+            factories.collection.build({
+              name: 'holders',
+              schema: factories.collectionSchema.build({
+                fields: { name: factories.columnSchema.text().build() },
+              }),
+            }),
+          ],
+        );
+        decorator.replaceSearch({ excludeFields: [] });
+
+        const plain = await decorator.refineFilter(
+          caller,
+          factories.filter.build({ search: 'martin', searchExtended: false }),
+        );
+        const extended = await decorator.refineFilter(
+          caller,
+          factories.filter.build({ search: 'martin', searchExtended: true }),
+        );
+
+        expect(JSON.stringify(plain.conditionTree)).not.toContain('holder:name');
+        expect(JSON.stringify(extended.conditionTree)).toContain('holder:name');
+      });
+    });
+
     describe('when the search is defined and the collection schema is not searchable', () => {
       describe('when the search is empty', () => {
         test('returns the same filter and set search as null', async () => {
@@ -800,5 +860,122 @@ describe('getSearchedFields', () => {
     decorator.replaceSearch(value => ({ field: 'id', operator: 'Equal', value }));
 
     expect(decorator.getSearchedFields('martin', true)).toBeNull();
+  });
+
+  describe('when a field selection narrows the default search', () => {
+    test('it answers the footprint instead of refusing to tell', () => {
+      const decorator = buildCards();
+      decorator.replaceSearch({ excludeFields: ['panLast4'] });
+
+      expect(decorator.getSearchedFields('martin', true)).toContainEqual({
+        path: 'holder:nationalId',
+        collection: 'holders',
+      });
+    });
+
+    test('it drops an excluded field from the footprint', () => {
+      const decorator = buildCards();
+      decorator.replaceSearch({ excludeFields: ['panLast4'] });
+
+      const searched = decorator.getSearchedFields('martin', true);
+
+      expect(searched.every(({ path }) => path !== 'panLast4')).toBe(true);
+    });
+
+    test('it names the leaf collection of an included relation path, extended or not', () => {
+      const decorator = buildCards();
+      decorator.replaceSearch({ includeFields: ['holder:nationalId'] });
+
+      expect(decorator.getSearchedFields('martin', false)).toContainEqual({
+        path: 'holder:nationalId',
+        collection: 'holders',
+      });
+    });
+
+    test('it reports only the replaced set when onlyFields is given', () => {
+      const decorator = buildCards();
+      decorator.replaceSearch({ onlyFields: ['holder:nationalId'] });
+
+      expect(decorator.getSearchedFields('martin', true)).toEqual([
+        { path: 'holder:nationalId', collection: 'holders' },
+      ]);
+    });
+
+    test('it covers every path the search actually reads', async () => {
+      const decorator = buildCollection(
+        {
+          fields: {
+            id: factories.columnSchema.uuidPrimaryKey().build(),
+            panLast4: factories.columnSchema.text().build(),
+            holderId: factories.columnSchema.build({ columnType: 'Uuid' }),
+            holder: factories.manyToOneSchema.build({
+              foreignCollection: 'holders',
+              foreignKey: 'holderId',
+            }),
+          },
+        },
+        [
+          factories.collection.build({
+            name: 'holders',
+            schema: factories.collectionSchema.build({
+              fields: { nationalId: factories.columnSchema.text().build() },
+            }),
+          }),
+        ],
+      );
+      decorator.replaceSearch({ includeFields: ['holder:nationalId'] });
+
+      const footprint = decorator
+        .getSearchedFields('martin', true)
+        .map(({ path }) => path)
+        .sort();
+
+      const { conditionTree } = await decorator.refineFilter(
+        caller,
+        factories.filter.build({ search: 'martin', searchExtended: true }),
+      );
+      const read = [...new Set(conditionTree.projection)].sort();
+
+      expect(read).toContain('holder:nationalId');
+      expect(footprint).toEqual(expect.arrayContaining(read));
+    });
+
+    // `onlyFields` drops the `field:term` syntax from the searchable set, and the walker then
+    // searches the replaced set with the term reassembled.
+    test('it covers what a dot-syntax term reads once onlyFields replaced the set', async () => {
+      const decorator = buildCollection(
+        {
+          fields: {
+            id: factories.columnSchema.uuidPrimaryKey().build(),
+            panLast4: factories.columnSchema.text().build(),
+            holderId: factories.columnSchema.build({ columnType: 'Uuid' }),
+            holder: factories.manyToOneSchema.build({
+              foreignCollection: 'holders',
+              foreignKey: 'holderId',
+            }),
+          },
+        },
+        [
+          factories.collection.build({
+            name: 'holders',
+            schema: factories.collectionSchema.build({
+              fields: { nationalId: factories.columnSchema.text().build() },
+            }),
+          }),
+        ],
+      );
+      decorator.replaceSearch({ onlyFields: ['holder:nationalId'] });
+
+      const footprint = decorator.getSearchedFields('panLast4:1850', true).map(({ path }) => path);
+
+      const { conditionTree } = await decorator.refineFilter(
+        caller,
+        factories.filter.build({ search: 'panLast4:1850', searchExtended: true }),
+      );
+      const read = [...new Set(conditionTree.projection)];
+
+      expect(footprint).toEqual(['holder:nationalId']);
+      expect(footprint).toEqual(expect.arrayContaining(read));
+    });
   });
 });
