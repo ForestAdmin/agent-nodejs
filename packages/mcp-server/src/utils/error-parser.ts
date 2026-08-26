@@ -19,7 +19,7 @@ function jsonApiDetail(body: unknown, text?: string): string | null {
 
 // Turn an agent RPC error into a human-readable message: the JSON:API detail with its HTTP status
 // when one can be extracted, else the raw message (which already carries the status).
-export default function parseAgentError(error: unknown): string | null {
+export default function parseAgentError(error: unknown, depth = 0): string | null {
   if (error instanceof AgentHttpError) {
     const detail = jsonApiDetail(error.body, error.responseText);
 
@@ -27,7 +27,17 @@ export default function parseAgentError(error: unknown): string | null {
   }
 
   if (error && typeof error === 'object' && 'message' in error) {
-    return (error as { message: string }).message || null;
+    const { message } = error as { message: string };
+    // Wrapper errors (e.g. ApprovalRequestCreationError) carry the actionable detail — like the
+    // Forest server's "limited to N records" 422 — in their cause: surface it alongside.
+    const causeDetail =
+      'cause' in error && depth < 3
+        ? parseAgentError((error as { cause: unknown }).cause, depth + 1)
+        : null;
+
+    if (message && causeDetail) return `${message} ${causeDetail}`;
+
+    return message || causeDetail;
   }
 
   return null;
