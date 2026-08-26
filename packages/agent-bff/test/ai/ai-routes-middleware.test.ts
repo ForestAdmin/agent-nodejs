@@ -36,15 +36,16 @@ function freshAccessToken(): string {
   return jsonwebtoken.sign({ scope: 'saas' }, 'irrelevant-for-decode', { expiresIn: '1h' });
 }
 
-interface AppOptions {
-  query?: jest.Mock;
-  client?: AiProxyClient;
+interface AppContext {
   store?: SessionStore;
   serverClient?: ForestServerClient;
   authMode?: 'oauth' | 'api-key';
   renderingId?: string;
   environmentId?: number;
 }
+
+type AppOptions = AppContext &
+  ({ query?: jest.Mock; client?: never } | { client: AiProxyClient; query?: never });
 
 function makeApp({
   query = jest.fn(),
@@ -88,6 +89,12 @@ function jsonResponse(status: number, body: unknown): AiProxyResponse {
 }
 
 describe('createAiRoutesMiddleware', () => {
+  const originalFetch = global.fetch;
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+  });
+
   describe('when the path or method does not match', () => {
     it('should fall through without calling the upstream', async () => {
       const { app, query } = makeApp();
