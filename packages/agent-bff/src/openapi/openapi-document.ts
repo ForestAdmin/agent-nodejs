@@ -409,7 +409,7 @@ export function generateOpenApiDocument(
     path: `${ROUTE_PREFIX}/context`,
     operationId: 'getContext',
     summary: 'Read the exposed schema contract',
-    security: [{ [SESSION_SCHEME]: [] }, { [API_KEY_SCHEME]: [] }],
+    security: SECURITY,
     request: {},
     responses: {
       200: {

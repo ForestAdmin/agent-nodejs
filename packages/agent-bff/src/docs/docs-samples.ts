@@ -107,6 +107,8 @@ const SAMPLES_SCRIPT = `
           return body;
         }
 
+        // The page only ever unlocks with the API key, so it wins wherever an operation takes it;
+        // a session-only operation still samples the bearer it names.
         function authHeader(spec, operation) {
           var schemes = (spec.components || {}).securitySchemes || {};
           var requirements = operation.security || spec.security || [];

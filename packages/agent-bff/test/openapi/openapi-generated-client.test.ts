@@ -11,6 +11,7 @@ import Koa from 'koa';
 import path from 'path';
 
 import createActionRoutesMiddleware from '../../src/action/action-routes-middleware';
+import { BFF_KEY_HEADER } from '../../src/api-key/api-key-middleware';
 import dispatchCli from '../../src/cli-dispatch';
 import createDataRoutesMiddleware from '../../src/data/data-routes-middleware';
 import createErrorMiddleware from '../../src/http/error-middleware';
@@ -151,6 +152,11 @@ function storeOf(readModel: ReadModel): ReadModelStore {
   } as unknown as ReadModelStore;
 }
 
+type AuthCallback = (scheme: { name?: string }) => string | undefined;
+
+const SCHEME_AWARE_AUTH: AuthCallback = scheme =>
+  scheme.name === BFF_KEY_HEADER ? API_KEY : undefined;
+
 const receivedKeys: string[] = [];
 const receivedAuthorizations: string[] = [];
 
@@ -161,7 +167,7 @@ function buildApp(): Koa {
   app.use(createErrorMiddleware({ logger: noopLogger }));
   app.use(bodyParser());
   app.use(async (ctx, next) => {
-    receivedKeys.push(ctx.get('X-Forest-Bff-Key'));
+    receivedKeys.push(ctx.get(BFF_KEY_HEADER));
     receivedAuthorizations.push(ctx.get('Authorization'));
     // Auth is out of this test's scope (the gate is its own ticket): the request arrives with agent
     // credentials already resolved, exactly as the auth chain would have left it.
@@ -199,6 +205,7 @@ function documentedOperators(document: {
 
 describe('a client generated from the emitted OpenAPI document', () => {
   let codegenOutput: string;
+  let configure: (auth: AuthCallback) => unknown;
   let document: ReturnType<typeof JSON.parse>;
   let sdk: Record<string, Call>;
   let server: Server;
@@ -265,12 +272,13 @@ describe('a client generated from the emitted OpenAPI document', () => {
     server = buildApp().listen(0);
     const { port } = server.address() as { port: number };
 
-    client.setConfig({
-      baseUrl: `http://127.0.0.1:${port}`,
-      auth: (scheme: { name?: string }) =>
-        scheme.name === 'X-Forest-Bff-Key' ? API_KEY : undefined,
-      headers: { [TIMEZONE_HEADER]: TIMEZONE },
-    });
+    configure = auth =>
+      client.setConfig({
+        baseUrl: `http://127.0.0.1:${port}`,
+        auth,
+        headers: { [TIMEZONE_HEADER]: TIMEZONE },
+      });
+    configure(SCHEME_AWARE_AUTH);
   }, CODEGEN_TIMEOUT_MS * 2);
 
   afterAll(async () => {
@@ -346,10 +354,25 @@ describe('a client generated from the emitted OpenAPI document', () => {
       expect(receivedKeys).toEqual([API_KEY]);
     });
 
-    it('should send no Authorization header beside the key, which the BFF rejects as ambiguous', async () => {
+    it('should send the key alone when the caller reads the scheme it is answering', async () => {
       await sdk.countRecordsUsers({ body: {} });
 
       expect(receivedAuthorizations).toEqual(['']);
+    });
+
+    it('should send both credentials when the caller answers every scheme with the same token, which the BFF rejects with 400 ambiguous_credentials', async () => {
+      configure(() => API_KEY);
+
+      try {
+        await sdk.countRecordsUsers({ body: {} });
+      } finally {
+        configure(SCHEME_AWARE_AUTH);
+      }
+
+      expect({ keys: receivedKeys, authorizations: receivedAuthorizations }).toEqual({
+        keys: [API_KEY],
+        authorizations: [`Bearer ${API_KEY}`],
+      });
     });
   });
 
