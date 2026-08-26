@@ -44,18 +44,16 @@ interface AppContext {
   environmentId?: number;
 }
 
-type AppOptions = AppContext &
-  ({ query?: jest.Mock; client?: never } | { client: AiProxyClient; query?: never });
-
-function makeApp({
-  query = jest.fn(),
-  client,
-  store,
-  serverClient = {} as ForestServerClient,
-  authMode = 'oauth',
-  renderingId = '42',
-  environmentId = 7,
-}: AppOptions = {}) {
+function buildApp(
+  client: AiProxyClient,
+  {
+    store,
+    serverClient = {} as ForestServerClient,
+    authMode = 'oauth',
+    renderingId = '42',
+    environmentId = 7,
+  }: AppContext,
+) {
   const sessionStore = store ?? makeSessionStore({ saasAccessToken: freshAccessToken() });
   const logger = jest.fn();
   const app = new Koa();
@@ -71,17 +69,17 @@ function makeApp({
 
     await next();
   });
-  app.use(
-    createAiRoutesMiddleware({
-      client: client ?? ({ query } as unknown as AiProxyClient),
-      sessionStore,
-      serverClient,
-      environmentId,
-      logger,
-    }),
-  );
+  app.use(createAiRoutesMiddleware({ client, sessionStore, serverClient, environmentId, logger }));
 
-  return { app, query, sessionStore, logger };
+  return { app, sessionStore, logger };
+}
+
+function makeApp({ query = jest.fn(), ...context }: AppContext & { query?: jest.Mock } = {}) {
+  return { ...buildApp({ query } as unknown as AiProxyClient, context), query };
+}
+
+function makeAppWithClient(client: AiProxyClient, context: AppContext = {}) {
+  return buildApp(client, context);
 }
 
 function jsonResponse(status: number, body: unknown): AiProxyResponse {
@@ -207,7 +205,7 @@ describe('createAiRoutesMiddleware', () => {
         forestServerUrl: 'https://api.forestadmin.com',
         timeoutMs: 5_000,
       });
-      const { app } = makeApp({ client });
+      const { app } = makeAppWithClient(client);
 
       const response = await request(app.callback())
         .post(`${AI_QUERY_ROUTE}?ai-name=caller-chosen`)
