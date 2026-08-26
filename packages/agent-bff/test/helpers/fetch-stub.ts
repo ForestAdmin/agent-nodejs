@@ -1,17 +1,15 @@
-export function stubFetch(response: unknown): jest.Mock {
-  const stub = jest.fn().mockResolvedValue(response);
-
+function installFetch(stub: jest.Mock): jest.Mock {
   global.fetch = stub as unknown as typeof fetch;
 
   return stub;
 }
 
+export function stubFetch(response: unknown): jest.Mock {
+  return installFetch(jest.fn().mockResolvedValue(response));
+}
+
 export function rejectFetch(error: unknown): jest.Mock {
-  const stub = jest.fn().mockRejectedValue(error);
-
-  global.fetch = stub as unknown as typeof fetch;
-
-  return stub;
+  return installFetch(jest.fn().mockRejectedValue(error));
 }
 
 export function stubEnvironmentIdFetch(): jest.Mock {
