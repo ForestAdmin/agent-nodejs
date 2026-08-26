@@ -104,7 +104,9 @@ Configure it entirely through the standard OTel environment variables:
 | `OTEL_SERVICE_NAME` | Service name reported in traces. Falls back to `service.name` in `OTEL_RESOURCE_ATTRIBUTES`, then to `forestadmin-agent-bff`. |
 | `OTEL_RESOURCE_ATTRIBUTES` | Extra resource attributes, e.g. `deployment.environment=production`. A `service.name` here is honoured when `OTEL_SERVICE_NAME` is unset. |
 | `OTEL_SDK_DISABLED` | Set to `true` (case-insensitive) to force-disable tracing whatever else is configured. |
-| `OTEL_TRACES_EXPORTER` | Unset (or `otlp`) exports over OTLP to the endpoint above. Any other value — `none`, `console`, a list — is left to the SDK to configure from the environment; only the OTLP and console exporters ship in the image. Setting it alone turns tracing on without an OTLP endpoint, which is what makes `console` usable for debugging. Instrumentation stays on either way, so trace context keeps propagating to the agent and the Forest SaaS. |
+| `OTEL_TRACES_EXPORTER` | Which exporter the SDK builds: `otlp` (the default), `console`, `zipkin`, `none`, or a list. Setting it alone turns tracing on without an OTLP endpoint, which is what makes `console` usable for debugging. `none` keeps instrumentation running with nothing exported, so trace context still propagates to the agent and the Forest SaaS. |
+| `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` | Per-signal endpoint, taking precedence over the generic one above. Setting either turns tracing on. |
+| `OTEL_EXPORTER_OTLP_PROTOCOL` | `http/protobuf` (the default), `http/json` or `grpc`, with `OTEL_EXPORTER_OTLP_TRACES_PROTOCOL` for traces alone. |
 
 ```bash
 docker run -d \

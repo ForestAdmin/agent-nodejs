@@ -25,6 +25,8 @@ const WORKSPACE_PACKAGES = [
 ];
 
 // Pinned to exact versions — OTel ships only in the Docker image, so nothing else bumps them.
+// sdk-node drags in every OTLP exporter plus the Zipkin one, which is why the image can honour
+// OTEL_TRACES_EXPORTER and OTEL_EXPORTER_OTLP_PROTOCOL without naming an exporter here.
 // A fixable CRITICAL/HIGH in this tree blocks every publish of this image until someone raises a
 // pin here and refreshes deps/yarn.lock (see the propagator-jaeger resolution below for the shape
 // of that fix). Renovate does not watch this file — it is a plain object, not a manifest — so an

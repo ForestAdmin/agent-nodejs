@@ -16,15 +16,10 @@ describe('initTracing', () => {
   let shutdown: jest.Mock;
   let NodeSDK: jest.Mock;
   let getNodeAutoInstrumentations: jest.Mock;
-  let OTLPTraceExporter: jest.Mock;
   let logger: jest.MockedFunction<Logger>;
 
   const modules = (): OtelModules =>
-    ({
-      NodeSDK,
-      getNodeAutoInstrumentations,
-      OTLPTraceExporter,
-    } as unknown as OtelModules);
+    ({ NodeSDK, getNodeAutoInstrumentations } as unknown as OtelModules);
 
   const setup = (options: Partial<TracingOptions> = {}) =>
     initTracing({
@@ -39,7 +34,6 @@ describe('initTracing', () => {
     shutdown = jest.fn().mockResolvedValue(undefined);
     NodeSDK = jest.fn().mockImplementation(() => ({ start, shutdown }));
     getNodeAutoInstrumentations = jest.fn().mockReturnValue('instrumentations');
-    OTLPTraceExporter = jest.fn().mockImplementation(() => 'exporter');
     logger = jest.fn();
   });
 
@@ -117,7 +111,6 @@ describe('initTracing', () => {
       setup({ env: { OTEL_TRACES_EXPORTER: 'console' } });
 
       expect(NodeSDK).toHaveBeenCalledTimes(1);
-      expect(OTLPTraceExporter).not.toHaveBeenCalled();
       expect(logger).toHaveBeenCalledWith(
         'Info',
         'OpenTelemetry tracing enabled',
@@ -133,16 +126,61 @@ describe('initTracing', () => {
     });
   });
 
+  // The per-signal endpoint is the standard way to point traces somewhere of their own, and it
+  // counts as much as the generic one for deciding whether to arm.
+  describe('when only OTEL_EXPORTER_OTLP_TRACES_ENDPOINT is set', () => {
+    const TRACES_ENDPOINT = 'http://traces-collector:4318/v1/traces';
+
+    it('should arm the SDK and report that endpoint', () => {
+      setup({ env: { OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: TRACES_ENDPOINT } });
+
+      expect(NodeSDK).toHaveBeenCalledTimes(1);
+      expect(logger).toHaveBeenCalledWith(
+        'Info',
+        'OpenTelemetry tracing enabled',
+        expect.objectContaining({ endpoint: TRACES_ENDPOINT }),
+      );
+    });
+
+    it('should take precedence over the generic endpoint when reporting', () => {
+      setup({
+        env: {
+          OTEL_EXPORTER_OTLP_ENDPOINT: ENDPOINT,
+          OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: TRACES_ENDPOINT,
+        },
+      });
+
+      expect(logger).toHaveBeenCalledWith(
+        'Info',
+        'OpenTelemetry tracing enabled',
+        expect.objectContaining({ endpoint: TRACES_ENDPOINT }),
+      );
+    });
+  });
+
   describe('when the packages are available', () => {
-    it('should start an SDK carrying the OTLP exporter and the auto-instrumentations', () => {
+    it('should start an SDK with the auto-instrumentations', () => {
       setup();
 
-      expect(NodeSDK).toHaveBeenCalledWith({
-        serviceName: DEFAULT_SERVICE_NAME,
-        traceExporter: expect.any(OTLPTraceExporter),
-        instrumentations: ['instrumentations'],
-      });
+      expect(NodeSDK).toHaveBeenCalledWith(
+        expect.objectContaining({ instrumentations: ['instrumentations'] }),
+      );
       expect(start).toHaveBeenCalledTimes(1);
+    });
+
+    // Passing one puts NodeSDK on its manual path, where it stops reading the environment — which
+    // is how OTEL_TRACES_EXPORTER, OTEL_EXPORTER_OTLP_PROTOCOL and the per-signal endpoint each
+    // ended up silently ignored.
+    it.each([
+      ['nothing else is set', {}],
+      ['an exporter is named', { OTEL_TRACES_EXPORTER: 'console' }],
+      ['a protocol is named', { OTEL_EXPORTER_OTLP_PROTOCOL: 'grpc' }],
+    ])('should never configure an exporter itself, even when %s', (_label, extra) => {
+      setup({ env: { OTEL_EXPORTER_OTLP_ENDPOINT: ENDPOINT, ...extra } });
+
+      expect(NodeSDK).toHaveBeenCalledWith(
+        expect.not.objectContaining({ traceExporter: expect.anything() }),
+      );
     });
 
     // Passing serviceName would put our default ahead of the SDK's own precedence, so the two
@@ -181,68 +219,13 @@ describe('initTracing', () => {
       );
     });
 
-    it('should log the service name and endpoint it reports to', () => {
-      setup();
-
-      expect(logger).toHaveBeenCalledWith('Info', 'OpenTelemetry tracing enabled', {
-        serviceName: DEFAULT_SERVICE_NAME,
-        endpoint: ENDPOINT,
-      });
-    });
-
-    // Container logs are the last place a collector token should end up, and this package echoes
-    // no other secret anywhere.
-    it('should keep collector credentials out of that log line', () => {
-      setup({
-        env: { OTEL_EXPORTER_OTLP_ENDPOINT: 'https://user:s3cret@collector.example/v1/traces' },
-      });
-
-      const [, , context] = logger.mock.calls[0];
-      expect(context?.endpoint).toBe('https://collector.example/v1/traces');
-      expect(JSON.stringify(context)).not.toContain('s3cret');
-    });
-
-    // Supplying traceExporter puts NodeSDK on its manual path, where it never reads
-    // OTEL_TRACES_EXPORTER. Exporting to OTLP because we did not recognise the requested value
-    // would send telemetry somewhere the operator never asked for.
-    it.each(['none', 'NONE', ' none ', 'console', 'zipkin', 'otlp,console'])(
-      'should leave the exporter to the SDK when OTEL_TRACES_EXPORTER is %p',
-      raw => {
-        setup({ env: { OTEL_EXPORTER_OTLP_ENDPOINT: ENDPOINT, OTEL_TRACES_EXPORTER: raw } });
-
-        expect(NodeSDK).toHaveBeenCalledWith(
-          expect.not.objectContaining({ traceExporter: expect.anything() }),
-        );
-        expect(OTLPTraceExporter).not.toHaveBeenCalled();
-      },
-    );
-
-    // Only our exporter choice changes; the spans still get created, so context keeps propagating.
-    it('should keep the instrumentations when the exporter is left to the SDK', () => {
-      setup({ env: { OTEL_EXPORTER_OTLP_ENDPOINT: ENDPOINT, OTEL_TRACES_EXPORTER: 'none' } });
-
-      expect(NodeSDK).toHaveBeenCalledWith(
-        expect.objectContaining({ instrumentations: ['instrumentations'] }),
-      );
-      expect(start).toHaveBeenCalledTimes(1);
-    });
-
-    it('should report which exporter was asked for instead of an endpoint it will not use', () => {
+    it('should report the exporter that was asked for rather than an endpoint it did not pick', () => {
       setup({ env: { OTEL_EXPORTER_OTLP_ENDPOINT: ENDPOINT, OTEL_TRACES_EXPORTER: 'console' } });
 
       expect(logger).toHaveBeenCalledWith('Info', 'OpenTelemetry tracing enabled', {
         serviceName: DEFAULT_SERVICE_NAME,
         exporter: 'console',
       });
-    });
-
-    // Unset is our documented default; `otlp` is the same thing said out loud.
-    it.each(['otlp', 'OTLP', ' otlp '])('should export over OTLP for %p', raw => {
-      setup({ env: { OTEL_EXPORTER_OTLP_ENDPOINT: ENDPOINT, OTEL_TRACES_EXPORTER: raw } });
-
-      expect(NodeSDK).toHaveBeenCalledWith(
-        expect.objectContaining({ traceExporter: expect.any(OTLPTraceExporter) }),
-      );
     });
 
     it('should hand the SDK back for the shutdown path to flush through', () => {
@@ -297,23 +280,16 @@ describe('loadOtelModules', () => {
   it('should take each entry point from the package that provides it', () => {
     const NodeSDK = () => undefined;
     const getNodeAutoInstrumentations = () => undefined;
-    const OTLPTraceExporter = () => undefined;
     const packageExports = {
       [OTEL_MODULE_IDS.sdk]: { NodeSDK },
       [OTEL_MODULE_IDS.instrumentations]: { getNodeAutoInstrumentations },
-      [OTEL_MODULE_IDS.exporter]: { OTLPTraceExporter },
     } as Record<string, Record<string, unknown>>;
     const load = jest.fn((id: string) => packageExports[id]);
 
-    expect(loadOtelModules(load)).toEqual({
-      NodeSDK,
-      getNodeAutoInstrumentations,
-      OTLPTraceExporter,
-    });
+    expect(loadOtelModules(load)).toEqual({ NodeSDK, getNodeAutoInstrumentations });
     expect(load.mock.calls.map(([id]) => id)).toEqual([
       '@opentelemetry/sdk-node',
       '@opentelemetry/auto-instrumentations-node',
-      '@opentelemetry/exporter-trace-otlp-http',
     ]);
   });
 
@@ -331,12 +307,10 @@ describe('loadOtelModules', () => {
   it.each([
     ['sdk-node', OTEL_MODULE_IDS.sdk],
     ['auto-instrumentations-node', OTEL_MODULE_IDS.instrumentations],
-    ['exporter-trace-otlp-http', OTEL_MODULE_IDS.exporter],
   ])('should return undefined when %s loads without the export we read', (_label, missing) => {
     const complete = {
       [OTEL_MODULE_IDS.sdk]: { NodeSDK: () => undefined },
       [OTEL_MODULE_IDS.instrumentations]: { getNodeAutoInstrumentations: () => undefined },
-      [OTEL_MODULE_IDS.exporter]: { OTLPTraceExporter: () => undefined },
     } as Record<string, Record<string, unknown>>;
 
     expect(loadOtelModules(id => (id === missing ? {} : complete[id]))).toBeUndefined();
