@@ -399,6 +399,14 @@ describe('the code samples the docs page injects', () => {
     });
   });
 
+  it('should interpolate the bearer prefix in node, not send the token bare', async () => {
+    const page = await render(API_KEY_SPEC);
+
+    expect(page.sourceOf(AI_QUERY, 'JavaScript')).toContain(
+      '    "Authorization": "Bearer " + process.env.BFF_SESSION,',
+    );
+  });
+
   it('should read the key from the environment in node, not inline it', async () => {
     const page = await render(API_KEY_SPEC);
 
