@@ -10,7 +10,11 @@ import type { ConditionStepOutcome } from '../types/validated/step-outcome';
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 import { z } from 'zod';
 
-import { InvalidStepDefinitionError, StepStateError } from '../errors';
+import {
+  ConditionSourceNotLoadedError,
+  InvalidStepDefinitionError,
+  StepStateError,
+} from '../errors';
 import BaseStepExecutor from './base-step-executor';
 import evaluateOperator from './deterministic-condition-evaluator';
 import patchBodySchemas from '../http/pending-data-validators';
@@ -173,18 +177,12 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
   ): boolean | null {
     const resolved = this.resolveConditionValue(condition, stepExecutions);
 
-    // Unresolvable reference (step never ran, field not read, read error) → not evaluable, even
-    // for present/blank — a value that was never read is not the same as a blank one. Logged
-    // because it is the one way a run reaches its fallback while reporting success: the trace says
-    // so in the run view, but an operator watching the logs would otherwise see nothing.
+    // A missing *reference* is a broken config, not data: routing to the fallback would report a
+    // decision as taken when its input never arrived. Every other step type already throws here
+    // (FieldNotFoundError, RelationNotFoundError, ActionNotFoundError) — this one used to be the
+    // exception. A value that is present but null still counts as not met, per the spec.
     if (!resolved.found) {
-      this.context.logger('Warn', 'Condition value could not be resolved, counting it as not met', {
-        ...this.logCtx,
-        sourceStepId: condition.sourceStepId,
-        fieldName: condition.fieldName,
-      });
-
-      return null;
+      throw new ConditionSourceNotLoadedError(condition.fieldName, condition.sourceStepId);
     }
 
     return evaluateOperator(condition.operator, resolved.value, condition.value);

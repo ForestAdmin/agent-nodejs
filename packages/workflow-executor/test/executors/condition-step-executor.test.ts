@@ -723,7 +723,7 @@ describe('ConditionStepExecutor', () => {
       });
     });
 
-    it('treats an unresolvable source step as not evaluable and falls back', async () => {
+    it('fails loud when the source step never ran', async () => {
       const unknownSource: ConditionPreRecordedArgs = {
         optionConditions: [
           {
@@ -741,34 +741,29 @@ describe('ConditionStepExecutor', () => {
         ],
         fallbackOption: 'Other',
       };
-      const { context } = makeDeterministicContext(unknownSource, [
+      const { context, runStore } = makeDeterministicContext(unknownSource, [
         { name: 'amount', displayName: 'Amount', value: 150 },
       ]);
 
       const result = await new ConditionStepExecutor(context).execute();
 
-      expect(result.stepOutcome.status).toBe('success');
-      expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('Other');
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toContain('did not load that field');
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
 
-    it('treats a field the Get Data step failed to read as not evaluable', async () => {
+    // Build-time validation cannot catch this one: the Get Data step may let the AI pick its
+    // fields, so nobody knows which ones it returns until the run.
+    it('fails loud when the Get Data step failed to read the field', async () => {
       const { context, runStore } = makeDeterministicContext(amountArgs, [
         { name: 'amount', displayName: 'Amount', error: 'Field not found: amount' },
       ]);
 
       const result = await new ConditionStepExecutor(context).execute();
 
-      expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('Other');
-      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
-        'run-1',
-        expect.objectContaining({
-          executionParams: expect.objectContaining({
-            evaluations: expect.arrayContaining([
-              { option: 'High', outcome: 'not-matched', conditions: [{ index: 0, met: null }] },
-            ]),
-          }),
-        }),
-      );
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toContain('did not load that field');
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
 
     it('lets blank match a resolved null value (unlike an unresolvable one)', async () => {
@@ -876,8 +871,10 @@ describe('ConditionStepExecutor', () => {
       );
     });
 
+    // Not even present/blank get an answer out of a reference that was never loaded: "no value was
+    // read" is not the same claim as "the value is empty".
     it.each(['blank', 'present'] as const)(
-      'does not satisfy %s when the reference cannot be resolved at all',
+      'fails loud on %s when the reference cannot be resolved at all',
       async operator => {
         const unresolvable: ConditionPreRecordedArgs = {
           optionConditions: [
@@ -895,21 +892,9 @@ describe('ConditionStepExecutor', () => {
 
         const result = await new ConditionStepExecutor(context).execute();
 
-        expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('Other');
-        expect(runStore.saveStepExecution).toHaveBeenCalledWith(
-          'run-1',
-          expect.objectContaining({
-            executionParams: expect.objectContaining({
-              evaluations: [
-                {
-                  option: 'Matched',
-                  outcome: 'not-matched',
-                  conditions: [{ index: 0, met: null }],
-                },
-              ],
-            }),
-          }),
-        );
+        expect(result.stepOutcome.status).toBe('error');
+        expect(result.stepOutcome.error).toContain('did not load that field');
+        expect(runStore.saveStepExecution).not.toHaveBeenCalled();
       },
     );
 
