@@ -126,11 +126,17 @@ export default function initTracing(options: TracingOptions = {}): OtelSdk | und
   const serviceName = env.OTEL_SERVICE_NAME || DEFAULT_SERVICE_NAME;
 
   // Supplying `traceExporter` puts NodeSDK on its manual-configuration path, where it never reads
-  // OTEL_TRACES_EXPORTER — so passing one unconditionally would silently ignore the standard way to
-  // turn export off. Omitting it on `none` hands the decision back to the SDK, which then configures
-  // no exporter. Instrumentation stays on either way, so trace context still propagates to the agent
-  // and the Forest SaaS; only the export stops, which is what the variable asks for.
-  const exportsTraces = env.OTEL_TRACES_EXPORTER?.trim().toLowerCase() !== 'none';
+  // OTEL_TRACES_EXPORTER. So we only supply one when the operator has not asked for something else:
+  // unset (our documented default, OTLP to the configured endpoint) or `otlp` (the same thing, said
+  // out loud). Anything else — `none`, `console`, `zipkin`, a list — is handed back to the SDK,
+  // which configures it from the environment. Sending spans to the OTLP endpoint because we did not
+  // recognise the value would be worse than not sending them: it is telemetry going somewhere the
+  // operator did not ask for, and the SDK says so out loud when it cannot honour the request.
+  //
+  // Instrumentation stays on in every case, so trace context keeps propagating to the agent and the
+  // Forest SaaS whatever the export does.
+  const requestedExporter = env.OTEL_TRACES_EXPORTER?.trim().toLowerCase();
+  const exportsTraces = !requestedExporter || requestedExporter === 'otlp';
   const sdk = new NodeSDK({
     serviceName,
     ...(exportsTraces ? { traceExporter: new OTLPTraceExporter() } : {}),
@@ -141,8 +147,10 @@ export default function initTracing(options: TracingOptions = {}): OtelSdk | und
 
   logger('Info', 'OpenTelemetry tracing enabled', {
     serviceName,
-    // Naming the endpoint it will not export to would read as a promise it is not keeping.
-    ...(exportsTraces ? { endpoint: redactEndpoint(endpoint) } : { exporter: 'none' }),
+    // Naming the endpoint it will not export to would read as a promise it is not keeping. Saying
+    // which exporter was asked for instead is what an operator needs to see when the SDK, not us,
+    // is the one deciding.
+    ...(exportsTraces ? { endpoint: redactEndpoint(endpoint) } : { exporter: requestedExporter }),
   });
 
   return sdk;

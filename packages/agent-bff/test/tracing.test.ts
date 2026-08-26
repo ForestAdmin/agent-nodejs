@@ -149,10 +149,10 @@ describe('initTracing', () => {
     });
 
     // Supplying traceExporter puts NodeSDK on its manual path, where it never reads
-    // OTEL_TRACES_EXPORTER — passing one unconditionally would silently ignore the standard way
-    // to turn export off.
-    it.each(['none', 'NONE', ' none '])(
-      'should configure no exporter when OTEL_TRACES_EXPORTER is %p',
+    // OTEL_TRACES_EXPORTER. Exporting to OTLP because we did not recognise the requested value
+    // would send telemetry somewhere the operator never asked for.
+    it.each(['none', 'NONE', ' none ', 'console', 'zipkin', 'otlp,console'])(
+      'should leave the exporter to the SDK when OTEL_TRACES_EXPORTER is %p',
       raw => {
         setup({ env: { OTEL_EXPORTER_OTLP_ENDPOINT: ENDPOINT, OTEL_TRACES_EXPORTER: raw } });
 
@@ -163,8 +163,8 @@ describe('initTracing', () => {
       },
     );
 
-    // Only the export stops; the spans still get created, so trace context keeps propagating.
-    it('should keep the instrumentations when export is turned off', () => {
+    // Only our exporter choice changes; the spans still get created, so context keeps propagating.
+    it('should keep the instrumentations when the exporter is left to the SDK', () => {
       setup({ env: { OTEL_EXPORTER_OTLP_ENDPOINT: ENDPOINT, OTEL_TRACES_EXPORTER: 'none' } });
 
       expect(NodeSDK).toHaveBeenCalledWith(
@@ -173,17 +173,18 @@ describe('initTracing', () => {
       expect(start).toHaveBeenCalledTimes(1);
     });
 
-    it('should not name an endpoint it will not export to', () => {
-      setup({ env: { OTEL_EXPORTER_OTLP_ENDPOINT: ENDPOINT, OTEL_TRACES_EXPORTER: 'none' } });
+    it('should report which exporter was asked for instead of an endpoint it will not use', () => {
+      setup({ env: { OTEL_EXPORTER_OTLP_ENDPOINT: ENDPOINT, OTEL_TRACES_EXPORTER: 'console' } });
 
       expect(logger).toHaveBeenCalledWith('Info', 'OpenTelemetry tracing enabled', {
         serviceName: DEFAULT_SERVICE_NAME,
-        exporter: 'none',
+        exporter: 'console',
       });
     });
 
-    it('should still export for any other exporter value', () => {
-      setup({ env: { OTEL_EXPORTER_OTLP_ENDPOINT: ENDPOINT, OTEL_TRACES_EXPORTER: 'otlp' } });
+    // Unset is our documented default; `otlp` is the same thing said out loud.
+    it.each(['otlp', 'OTLP', ' otlp '])('should export over OTLP for %p', raw => {
+      setup({ env: { OTEL_EXPORTER_OTLP_ENDPOINT: ENDPOINT, OTEL_TRACES_EXPORTER: raw } });
 
       expect(NodeSDK).toHaveBeenCalledWith(
         expect.objectContaining({ traceExporter: expect.any(OTLPTraceExporter) }),
