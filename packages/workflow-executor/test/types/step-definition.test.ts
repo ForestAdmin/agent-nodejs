@@ -25,10 +25,8 @@ describe('ConditionStepDefinitionSchema executionType', () => {
     );
   });
 
-  // No `.catch` on the enum: an unknown value must be rejected, not silently coerced to
-  // FullyAutomated, which would hand the decision to the AI. `deterministic` is one such unknown
-  // value now that it is gone from the wire contract.
-  it.each(['not-a-mode', 'deterministic', 'whatever'])(
+  // 'deterministic' is now an unknown mode — and unknown modes must be rejected, not coerced.
+  it.each(['not-a-mode', 'deterministic'])(
     'rejects the unknown executionType "%s" instead of coercing it',
     executionType => {
       expect(ConditionStepDefinitionSchema.safeParse({ ...base, executionType }).success).toBe(
@@ -73,8 +71,6 @@ describe('ConditionStepDefinitionSchema deterministic conditions', () => {
     fallbackOption: 'Fallback',
   };
 
-  // A deterministic gateway publishes with `aiDecision` stripped, so it reaches the executor as
-  // `manual` + preRecordedArgs: the args carry the mode, the executionType does not.
   it('accepts manual with preRecordedArgs and round-trips them', () => {
     const parsed = ConditionStepDefinitionSchema.parse({
       ...base,
@@ -93,8 +89,7 @@ describe('ConditionStepDefinitionSchema deterministic conditions', () => {
     expect(parsed.preRecordedArgs).toEqual(preRecordedArgs);
   });
 
-  // The `value` is supplied on purpose: without it the value-less-operator refinement would
-  // reject the condition anyway, and the test would pass without pinning the operator enum.
+  // value supplied so the failure is the operator enum, not the value-less-operator refinement.
   it('rejects an unknown operator at the schema boundary', () => {
     const result = ConditionStepDefinitionSchema.safeParse({
       ...base,
@@ -116,6 +111,57 @@ describe('ConditionStepDefinitionSchema deterministic conditions', () => {
     expect(result.success).toBe(false);
     expect(JSON.stringify(!result.success && result.error.issues)).toContain('operator');
   });
+
+  // An empty reference resolves to "not found" → met: null → not met → the step routes to the
+  // fallback. Same silent-fallback failure the value-less-operator refinement exists to prevent.
+  it.each([
+    ['sourceStepId', { sourceStepId: '', fieldName: 'amount' }],
+    ['fieldName', { sourceStepId: 'get-data-1', fieldName: '' }],
+  ])('rejects a condition with an empty %s', (_label, reference) => {
+    const result = ConditionStepDefinitionSchema.safeParse({
+      ...base,
+      preRecordedArgs: {
+        ...preRecordedArgs,
+        optionConditions: [
+          {
+            option: 'High value',
+            aggregator: 'and',
+            conditions: [{ ...reference, operator: 'equal', value: 1 }],
+          },
+        ],
+      },
+    });
+
+    expect(result.success).toBe(false);
+    expect(JSON.stringify(!result.success && result.error.issues)).toContain(_label);
+  });
+
+  it.each([
+    ['option', { option: '', fallbackOption: 'Otherwise' }],
+    ['fallbackOption', { option: 'High value', fallbackOption: '' }],
+  ])(
+    'rejects an empty %s, which no outgoing flow can answer',
+    (_label, { option, fallbackOption }) => {
+      const result = ConditionStepDefinitionSchema.safeParse({
+        ...base,
+        preRecordedArgs: {
+          fallbackOption,
+          optionConditions: [
+            {
+              option,
+              aggregator: 'and',
+              conditions: [
+                { sourceStepId: 'get-data-1', fieldName: 'amount', operator: 'equal', value: 1 },
+              ],
+            },
+          ],
+        },
+      });
+
+      expect(result.success).toBe(false);
+      expect(JSON.stringify(!result.success && result.error.issues)).toContain(_label);
+    },
+  );
 
   it('rejects preRecordedArgs missing fallbackOption', () => {
     const result = ConditionStepDefinitionSchema.safeParse({

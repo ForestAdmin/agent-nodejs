@@ -92,14 +92,12 @@ export type OptionConditions = z.infer<typeof OptionConditionsSchema>;
 export const ConditionStepDefinitionSchema = z.object({
   ...sharedFields,
   type: z.literal(StepType.Condition),
-  // NO `.catch` — coercing an unknown mode from a newer orchestrator to FullyAutomated would
-  // silently let the AI decide instead of the conditions the builder configured precisely
-  // because they don't trust the AI.
+  // NO `.catch` — coercing an unknown mode to FullyAutomated would turn a gateway the builder made
+  // manual into an AI decision.
   executionType: z.enum([Manual, FullyAutomated]).default(FullyAutomated),
-  /** Ordered — evaluation priority for the deterministic mode (top-to-bottom, first-match-wins). */
   options: z.array(z.string()).min(2),
-  // Presence *is* the deterministic mode. A malformed config is rejected here rather than dropped,
-  // so it can never degrade to a manual/AI decision.
+  // A malformed config is rejected here rather than dropped, so it can never degrade to a
+  // manual/AI decision.
   preRecordedArgs: z
     .object({
       optionConditions: z.array(OptionConditionsSchema).min(1),
@@ -108,6 +106,14 @@ export const ConditionStepDefinitionSchema = z.object({
     .optional(),
 });
 export type ConditionStepDefinition = z.infer<typeof ConditionStepDefinitionSchema>;
+
+export type DeterministicConditionStep = ConditionStepDefinition &
+  Required<Pick<ConditionStepDefinition, 'preRecordedArgs'>>;
+
+// Carrying the conditions *is* the deterministic mode — no executionType says so.
+export const isDeterministicConditionStep = (
+  step: ConditionStepDefinition,
+): step is DeterministicConditionStep => step.preRecordedArgs !== undefined;
 
 export const ReadRecordStepDefinitionSchema = z.object({
   ...sharedFields,

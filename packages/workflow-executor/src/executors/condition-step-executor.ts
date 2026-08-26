@@ -3,6 +3,7 @@ import type { ConditionEvaluation, StepExecutionData } from '../types/step-execu
 import type {
   ConditionStepDefinition,
   DeterministicCondition,
+  DeterministicConditionStep,
 } from '../types/validated/step-definition';
 import type { ConditionStepOutcome, ErrorKind } from '../types/validated/step-outcome';
 
@@ -13,7 +14,11 @@ import { InvalidStepDefinitionError, StepStateError } from '../errors';
 import BaseStepExecutor from './base-step-executor';
 import evaluateOperator from './deterministic-condition-evaluator';
 import patchBodySchemas from '../http/pending-data-validators';
-import { StepExecutionMode, StepType } from '../types/validated/step-definition';
+import {
+  StepExecutionMode,
+  StepType,
+  isDeterministicConditionStep,
+} from '../types/validated/step-definition';
 
 interface GatewayToolArgs {
   option: string | null;
@@ -69,9 +74,18 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
   protected async doExecute(): Promise<StepExecutionResult> {
     const { stepDefinition: step, incomingPendingData } = this.context;
 
-    // Conditions present *is* the deterministic mode: pure evaluation, no AI, no user input.
-    if (step.preRecordedArgs) {
-      return this.evaluateDeterministically(step, step.preRecordedArgs);
+    if (isDeterministicConditionStep(step)) {
+      // The config wins over an explicit human action, so say so: a mixed-version fleet can pause
+      // the step on an args-blind instance, and the user's click would otherwise vanish untraced.
+      if (incomingPendingData !== undefined) {
+        this.context.logger(
+          'Warn',
+          'Ignoring a submitted option: this decision is evaluated from its conditions',
+          this.logCtx,
+        );
+      }
+
+      return this.evaluateDeterministically(step);
     }
 
     // Manual mode: the user picks the option from the frontend. Wait for their input
@@ -105,9 +119,9 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
   }
 
   private async evaluateDeterministically(
-    step: ConditionStepDefinition,
-    { optionConditions, fallbackOption }: NonNullable<ConditionStepDefinition['preRecordedArgs']>,
+    step: DeterministicConditionStep,
   ): Promise<StepExecutionResult> {
+    const { optionConditions, fallbackOption } = step.preRecordedArgs;
     const stepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
 
     let matchedOption: string | undefined;
