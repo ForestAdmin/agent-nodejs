@@ -86,7 +86,10 @@ COPY --from=builder /app/packages/agent-bff/package.json ./packages/agent-bff/pa
 USER node
 
 # HTTP server (GET /health, the /agent edge, GET /docs).
-# Override with the HTTP_PORT env var.
+# Override with the HTTP_PORT env var — but only with a real port. `0` asks the OS
+# for an ephemeral one, which is useful for a local run and unusable here: nothing
+# outside the process learns which port it got, so it can be neither published nor
+# probed, and the healthcheck below would report the container unhealthy forever.
 EXPOSE 3450
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \

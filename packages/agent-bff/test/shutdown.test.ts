@@ -88,6 +88,47 @@ describe('armShutdown', () => {
       release();
       await flush();
     });
+
+    it('should not let the interrupted stop report success once it finishes', async () => {
+      let release: () => void = () => undefined;
+      stop.mockReturnValue(
+        new Promise<void>(resolve => {
+          release = resolve;
+        }),
+      );
+      arm();
+
+      handlers.SIGTERM();
+      handlers.SIGINT();
+      release();
+      await flush();
+
+      expect(exit).toHaveBeenCalledTimes(1);
+      expect(exit).toHaveBeenCalledWith(1);
+      expect(logger).not.toHaveBeenCalledWith('Info', 'Forest BFF stopped');
+    });
+
+    it('should stay quiet when the interrupted stop fails too', async () => {
+      let fail: (error: Error) => void = () => undefined;
+      stop.mockReturnValue(
+        new Promise<void>((_, reject) => {
+          fail = reject;
+        }),
+      );
+      arm();
+
+      handlers.SIGTERM();
+      handlers.SIGINT();
+      fail(new Error('close failed'));
+      await flush();
+
+      expect(exit).toHaveBeenCalledTimes(1);
+      expect(logger).not.toHaveBeenCalledWith(
+        'Error',
+        'Shutdown failed, exiting anyway',
+        expect.anything(),
+      );
+    });
   });
 
   describe('with the signal seam left to its default', () => {
