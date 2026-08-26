@@ -29,9 +29,7 @@ export default class ActionAuthorizationService {
     caller,
     resolveSelectAllRecordIds,
   }: CanPerformCustomActionParams & {
-    // Set on a "select all" trigger: the frontend has no explicit id list to store in the approval
-    // request, so when approval turns out to be required, the resolved (capped) ids are handed back
-    // through the error. Resolution lives in the caller — it needs the http context.
+    // Set on "select all": resolves the selection to the ids stored in the approval request.
     resolveSelectAllRecordIds?: () => Promise<Array<string | number>>;
   }): Promise<void> {
     const canTrigger = await this.canTriggerCustomAction(

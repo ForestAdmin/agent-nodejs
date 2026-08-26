@@ -75,9 +75,8 @@ export type AgentOptions = {
   ignoreMissingSchemaElementErrors?: boolean;
   useUnsafeActionEndpoint?: boolean;
   /**
-   * Max number of records an approval-required action may target when "select all" is used.
-   * Above this the trigger is rejected instead of storing a huge id snapshot in the approval.
-   * Must not exceed the Forest server's own cap (default 500), which is the authoritative gate.
+   * Max number of records a "select all" approval-required action may target.
+   * Must not exceed the Forest server's own cap (500).
    * @default 500
    */
   maxRecordsForApproval?: number;

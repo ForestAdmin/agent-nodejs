@@ -104,9 +104,7 @@ export default class ActionRoute extends CollectionRoute {
     } else {
       await this.actionAuthorizationService.assertCanTriggerCustomAction({
         ...canPerformCustomActionParams,
-        // Only a "select all" trigger needs its selection resolved (capped) for the approval
-        // request — a normal execute is never capped, and a global action targets no specific
-        // records (mirrors auditedRecordIds).
+        // Global actions target no specific records (mirrors auditedRecordIds).
         resolveSelectAllRecordIds:
           requestBody?.data?.attributes?.all_records &&
           this.collection.schema.actions[this.actionName].scope !== 'Global'
@@ -303,11 +301,7 @@ export default class ActionRoute extends CollectionRoute {
     return [];
   }
 
-  // Resolve a "select all" selection to the concrete ids stored in the approval request. Capped at
-  // `maxRecordsForApproval`: above it we refuse the trigger rather than snapshot an unbounded id list
-  // (the Forest server enforces the same cap authoritatively when the request is created). Fetching
-  // cap+1 distinguishes "over the cap" from "exactly the cap". Runs the live-query segment handler
-  // for the same reason `auditedRecordIds` does.
+  // Fetching cap+1 distinguishes "over the cap" from "exactly the cap".
   private async resolveApprovalRecordIds(
     context: Context,
     caller: Caller,

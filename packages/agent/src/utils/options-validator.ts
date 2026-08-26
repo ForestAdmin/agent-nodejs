@@ -44,8 +44,7 @@ export default class OptionsValidator {
     copyOptions.instantCacheRefresh = copyOptions.instantCacheRefresh ?? true;
     copyOptions.workflowExecutorUrl = copyOptions.workflowExecutorUrl ?? null;
     copyOptions.auditTrail = copyOptions.auditTrail ?? null;
-    // Number.isFinite (not ??) so that NaN — e.g. Number() on an unset env var — also falls back
-    // to the default instead of silently disabling the cap (length > NaN is always false).
+    // Number.isFinite so NaN (e.g. Number() on an unset env var) also gets the default.
     copyOptions.maxRecordsForApproval = Number.isFinite(copyOptions.maxRecordsForApproval)
       ? copyOptions.maxRecordsForApproval
       : DEFAULT_MAX_RECORDS_FOR_APPROVAL;

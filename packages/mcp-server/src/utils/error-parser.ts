@@ -28,8 +28,7 @@ export default function parseAgentError(error: unknown, depth = 0): string | nul
 
   if (error && typeof error === 'object' && 'message' in error) {
     const { message } = error as { message: string };
-    // Wrapper errors (e.g. ApprovalRequestCreationError) carry the actionable detail — like the
-    // Forest server's "limited to N records" 422 — in their cause: surface it alongside.
+    // Wrapper errors (e.g. ApprovalRequestCreationError) carry the actionable detail in `cause`.
     const causeDetail =
       'cause' in error && depth < 3
         ? parseAgentError((error as { cause: unknown }).cause, depth + 1)
