@@ -124,9 +124,16 @@ export default function initTracing(options: TracingOptions = {}): OtelSdk | und
 
   const { NodeSDK, getNodeAutoInstrumentations, OTLPTraceExporter } = modules;
   const serviceName = env.OTEL_SERVICE_NAME || DEFAULT_SERVICE_NAME;
+
+  // Supplying `traceExporter` puts NodeSDK on its manual-configuration path, where it never reads
+  // OTEL_TRACES_EXPORTER — so passing one unconditionally would silently ignore the standard way to
+  // turn export off. Omitting it on `none` hands the decision back to the SDK, which then configures
+  // no exporter. Instrumentation stays on either way, so trace context still propagates to the agent
+  // and the Forest SaaS; only the export stops, which is what the variable asks for.
+  const exportsTraces = env.OTEL_TRACES_EXPORTER?.trim().toLowerCase() !== 'none';
   const sdk = new NodeSDK({
     serviceName,
-    traceExporter: new OTLPTraceExporter(),
+    ...(exportsTraces ? { traceExporter: new OTLPTraceExporter() } : {}),
     instrumentations: [getNodeAutoInstrumentations()],
   });
 
@@ -134,7 +141,8 @@ export default function initTracing(options: TracingOptions = {}): OtelSdk | und
 
   logger('Info', 'OpenTelemetry tracing enabled', {
     serviceName,
-    endpoint: redactEndpoint(endpoint),
+    // Naming the endpoint it will not export to would read as a promise it is not keeping.
+    ...(exportsTraces ? { endpoint: redactEndpoint(endpoint) } : { exporter: 'none' }),
   });
 
   return sdk;
