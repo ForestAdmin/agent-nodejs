@@ -8,7 +8,6 @@ import { createSequelizeDataSource } from '@forestadmin/datasource-sequelize';
 import { createSqlDataSource } from '@forestadmin/datasource-sql';
 
 import customizeAccount from './customizations/account';
-import customizeAccountBill from './customizations/account-bill';
 import customizeCard from './customizations/card';
 import customizeComment from './customizations/comment';
 import customizeCustomer from './customizations/customer';
@@ -100,7 +99,6 @@ export default function makeAgent() {
 
     .customizeCollection('card', customizeCard)
     .customizeCollection('account', customizeAccount)
-    .customizeCollection('account_bills', customizeAccountBill)
     .customizeCollection('owner', customizeOwner)
     .customizeCollection('store', customizeStore)
     .customizeCollection('rental', customizeRental)
