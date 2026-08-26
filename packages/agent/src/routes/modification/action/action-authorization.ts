@@ -27,7 +27,11 @@ export default class ActionAuthorizationService {
     filterForCaller,
     filterForAllCaller,
     caller,
-  }: CanPerformCustomActionParams): Promise<void> {
+    resolveSelectAllRecordIds,
+  }: CanPerformCustomActionParams & {
+    // Set on "select all": resolves the selection to the ids stored in the approval request.
+    resolveSelectAllRecordIds?: () => Promise<Array<string | number>>;
+  }): Promise<void> {
     const canTrigger = await this.canTriggerCustomAction(
       caller,
       customActionName,
@@ -54,7 +58,10 @@ export default class ActionAuthorizationService {
         filterForAllCaller,
       );
 
-      throw new CustomActionRequiresApprovalError(roleIdsAllowedToApprove);
+      throw new CustomActionRequiresApprovalError(
+        roleIdsAllowedToApprove,
+        await resolveSelectAllRecordIds?.(),
+      );
     }
   }
 

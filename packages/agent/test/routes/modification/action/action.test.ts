@@ -713,6 +713,192 @@ describe('ActionRoute', () => {
     });
   });
 
+  describe('when an approval-required action is triggered on a select-all selection', () => {
+    beforeEach(() => {
+      dataSource = factories.dataSource.buildWithCollections([
+        factories.collection.build({
+          name: 'books',
+          schema: {
+            actions: { MyBulkAction: { scope: 'Bulk' } },
+            fields: { id: factories.columnSchema.uuidPrimaryKey().build() },
+          },
+          getForm: jest.fn().mockResolvedValue([]),
+          execute: jest.fn(),
+        }),
+      ]);
+      (
+        options.forestAdminClient.permissionService
+          .doesTriggerCustomActionRequiresApproval as jest.Mock
+      ).mockResolvedValue(true);
+      (
+        options.forestAdminClient.permissionService
+          .getRoleIdsAllowedToApproveWithoutConditions as jest.Mock
+      ).mockResolvedValue([7]);
+      (
+        options.forestAdminClient.permissionService.getConditionalApproveConditions as jest.Mock
+      ).mockResolvedValue(new Map());
+    });
+
+    const selectAllContext = () =>
+      createMockContext({
+        ...baseContext,
+        requestBody: {
+          data: {
+            attributes: {
+              ...baseContext.requestBody.data.attributes,
+              ids: [],
+              all_records: true,
+              all_records_ids_excluded: [],
+            },
+          },
+        },
+      });
+
+    test('resolves the selection to concrete ids and returns them in the approval error', async () => {
+      (dataSource.getCollection('books').list as jest.Mock).mockResolvedValue([
+        { id: '123e4567-e89b-12d3-a456-426614174000' },
+        { id: '123e4567-e89b-12d3-a456-426614174001' },
+      ]);
+      route = new ActionRoute(services, options, dataSource, 'books', 'MyBulkAction');
+
+      // @ts-expect-error: test private method
+      await expect(route.handleExecute(selectAllContext())).rejects.toMatchObject({
+        name: 'CustomActionRequiresApprovalError',
+        data: {
+          roleIdsAllowedToApprove: [7],
+          recordIds: [
+            '123e4567-e89b-12d3-a456-426614174000',
+            '123e4567-e89b-12d3-a456-426614174001',
+          ],
+        },
+      });
+    });
+
+    test('rejects with ApprovalSelectionTooLargeError above the configured cap', async () => {
+      const cappedOptions = factories.forestAdminHttpDriverOptions.build({
+        maxRecordsForApproval: 2,
+      });
+      (
+        cappedOptions.forestAdminClient.permissionService.canTriggerCustomAction as jest.Mock
+      ).mockResolvedValue(true);
+      (
+        cappedOptions.forestAdminClient.permissionService
+          .doesTriggerCustomActionRequiresApproval as jest.Mock
+      ).mockResolvedValue(true);
+      (
+        cappedOptions.forestAdminClient.permissionService
+          .getRoleIdsAllowedToApproveWithoutConditions as jest.Mock
+      ).mockResolvedValue([7]);
+      (
+        cappedOptions.forestAdminClient.permissionService
+          .getConditionalApproveConditions as jest.Mock
+      ).mockResolvedValue(new Map());
+      // cap+1 rows fetched => over the cap of 2
+      (dataSource.getCollection('books').list as jest.Mock).mockResolvedValue([
+        { id: '123e4567-e89b-12d3-a456-426614174000' },
+        { id: '123e4567-e89b-12d3-a456-426614174001' },
+        { id: '123e4567-e89b-12d3-a456-426614174002' },
+      ]);
+      route = new ActionRoute(services, cappedOptions, dataSource, 'books', 'MyBulkAction');
+
+      // @ts-expect-error: test private method
+      await expect(route.handleExecute(selectAllContext())).rejects.toMatchObject({
+        name: 'ApprovalSelectionTooLargeError',
+        message: expect.stringContaining('more than 2 records'),
+      });
+    });
+
+    test('accepts a selection of exactly the configured cap', async () => {
+      const cappedOptions = factories.forestAdminHttpDriverOptions.build({
+        maxRecordsForApproval: 2,
+      });
+      (
+        cappedOptions.forestAdminClient.permissionService.canTriggerCustomAction as jest.Mock
+      ).mockResolvedValue(true);
+      (
+        cappedOptions.forestAdminClient.permissionService
+          .doesTriggerCustomActionRequiresApproval as jest.Mock
+      ).mockResolvedValue(true);
+      (
+        cappedOptions.forestAdminClient.permissionService
+          .getRoleIdsAllowedToApproveWithoutConditions as jest.Mock
+      ).mockResolvedValue([7]);
+      (
+        cappedOptions.forestAdminClient.permissionService
+          .getConditionalApproveConditions as jest.Mock
+      ).mockResolvedValue(new Map());
+      (dataSource.getCollection('books').list as jest.Mock).mockResolvedValue([
+        { id: '123e4567-e89b-12d3-a456-426614174000' },
+        { id: '123e4567-e89b-12d3-a456-426614174001' },
+      ]);
+      route = new ActionRoute(services, cappedOptions, dataSource, 'books', 'MyBulkAction');
+
+      // @ts-expect-error: test private method
+      await expect(route.handleExecute(selectAllContext())).rejects.toMatchObject({
+        name: 'CustomActionRequiresApprovalError',
+        data: {
+          recordIds: [
+            '123e4567-e89b-12d3-a456-426614174000',
+            '123e4567-e89b-12d3-a456-426614174001',
+          ],
+        },
+      });
+      // cap+1 is requested so "exactly the cap" and "over the cap" are distinguishable
+      expect(dataSource.getCollection('books').list).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ page: expect.objectContaining({ skip: 0, limit: 3 }) }),
+        expect.anything(),
+      );
+    });
+
+    test('does not resolve ids on a global action (it targets no specific records)', async () => {
+      dataSource = factories.dataSource.buildWithCollections([
+        factories.collection.build({
+          name: 'books',
+          schema: {
+            actions: { MyGlobalAction: { scope: 'Global' } },
+            fields: { id: factories.columnSchema.uuidPrimaryKey().build() },
+          },
+          getForm: jest.fn().mockResolvedValue([]),
+          execute: jest.fn(),
+        }),
+      ]);
+      route = new ActionRoute(services, options, dataSource, 'books', 'MyGlobalAction');
+
+      // @ts-expect-error: test private method
+      const error = await route.handleExecute(selectAllContext()).catch(e => e);
+
+      expect(error).toMatchObject({ name: 'CustomActionRequiresApprovalError' });
+      expect(error.data.recordIds).toBeUndefined();
+      // No 422 above the cap, no id snapshot in the error.
+      expect(dataSource.getCollection('books').list).not.toHaveBeenCalled();
+    });
+
+    test('does not resolve ids nor cap an explicit selection requiring approval', async () => {
+      route = new ActionRoute(services, options, dataSource, 'books', 'MyBulkAction');
+
+      const context = createMockContext({
+        ...baseContext,
+        requestBody: {
+          data: {
+            attributes: {
+              ...baseContext.requestBody.data.attributes,
+              ids: ['123e4567-e89b-12d3-a456-426614174000'],
+              all_records: false,
+            },
+          },
+        },
+      });
+
+      // @ts-expect-error: test private method
+      await expect(route.handleExecute(context)).rejects.toMatchObject({
+        name: 'CustomActionRequiresApprovalError',
+      });
+      // No select-all resolution => the id-listing query is never issued.
+      expect(dataSource.getCollection('books').list).not.toHaveBeenCalled();
+    });
+  });
+
   describe('with a global action used from list-view, detail-view & summary', () => {
     beforeEach(() => {
       dataSource = factories.dataSource.buildWithCollections([

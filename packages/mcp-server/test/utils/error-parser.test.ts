@@ -47,6 +47,36 @@ describe('parseAgentError', () => {
     expect(parseAgentError({ unknownProperty: 'some value' })).toBeNull();
   });
 
+  it('appends the cause detail of a wrapper error (e.g. ApprovalRequestCreationError)', () => {
+    const error = new Error(
+      'The action requires an approval, but the approval request could not be created.',
+    ) as Error & { cause: unknown };
+    error.cause = new AgentHttpError(422, {
+      errors: [
+        { detail: 'Approval requests are limited to 500 records; please narrow your selection' },
+      ],
+    });
+
+    expect(parseAgentError(error)).toBe(
+      'The action requires an approval, but the approval request could not be created. ' +
+        'Approval requests are limited to 500 records; please narrow your selection (HTTP 422)',
+    );
+  });
+
+  it('ignores a cause without extractable detail', () => {
+    const error = new Error('Wrapper message') as Error & { cause: unknown };
+    error.cause = { foo: 'bar' };
+
+    expect(parseAgentError(error)).toBe('Wrapper message');
+  });
+
+  it('does not recurse forever on a cyclic cause chain', () => {
+    const error = new Error('Cyclic') as Error & { cause: unknown };
+    error.cause = error;
+
+    expect(parseAgentError(error)).toBe('Cyclic Cyclic Cyclic Cyclic');
+  });
+
   it('returns null for null/undefined', () => {
     expect(parseAgentError(null)).toBeNull();
     expect(parseAgentError(undefined)).toBeNull();

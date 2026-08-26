@@ -21,6 +21,32 @@ describe('OptionsValidator', () => {
       expect(options).toHaveProperty('skipSchemaUpdate', false);
     });
 
+    describe('maxRecordsForApproval', () => {
+      test('defaults to 500 when not configured', () => {
+        const options = OptionsValidator.withDefaults(mandatoryOptions);
+
+        expect(options).toHaveProperty('maxRecordsForApproval', 500);
+      });
+
+      test('defaults to 500 when NaN is passed (e.g. Number() on an unset env var)', () => {
+        const options = OptionsValidator.withDefaults({
+          ...mandatoryOptions,
+          maxRecordsForApproval: Number(process.env.SOME_UNSET_ENV_VAR),
+        });
+
+        expect(options).toHaveProperty('maxRecordsForApproval', 500);
+      });
+
+      test('keeps a configured value', () => {
+        const options = OptionsValidator.withDefaults({
+          ...mandatoryOptions,
+          maxRecordsForApproval: 100,
+        });
+
+        expect(options).toHaveProperty('maxRecordsForApproval', 100);
+      });
+    });
+
     test('logger should be callable', () => {
       jest.spyOn(console, 'error').mockReturnValue();
 

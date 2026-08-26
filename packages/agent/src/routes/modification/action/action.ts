@@ -21,6 +21,7 @@ import {
 } from '@forestadmin/datasource-toolkit';
 
 import ActionAuthorizationService from './action-authorization';
+import ApprovalSelectionTooLargeError from './errors/approval-selection-too-large-error';
 import {
   MAX_SNAPSHOT_RECORDS,
   buildRecorder,
@@ -101,9 +102,15 @@ export default class ActionRoute extends CollectionRoute {
         requesterId: requestBody.data.attributes.requester_id,
       });
     } else {
-      await this.actionAuthorizationService.assertCanTriggerCustomAction(
-        canPerformCustomActionParams,
-      );
+      await this.actionAuthorizationService.assertCanTriggerCustomAction({
+        ...canPerformCustomActionParams,
+        // Global actions target no specific records (mirrors auditedRecordIds).
+        resolveSelectAllRecordIds:
+          requestBody?.data?.attributes?.all_records &&
+          this.collection.schema.actions[this.actionName].scope !== 'Global'
+            ? () => this.resolveApprovalRecordIds(context, caller, filterForCaller)
+            : undefined,
+      });
     }
 
     const rawData = requestBody.data.attributes.values;
@@ -292,6 +299,28 @@ export default class ActionRoute extends CollectionRoute {
     this.options.logger('Warn', message);
 
     return [];
+  }
+
+  // Fetching cap+1 distinguishes "over the cap" from "exactly the cap".
+  private async resolveApprovalRecordIds(
+    context: Context,
+    caller: Caller,
+    filterForCaller: Filter,
+  ): Promise<Array<string | number>> {
+    const max = this.options.maxRecordsForApproval;
+    const paginatedFilter = await this.services.segmentQueryHandler.handleLiveQuerySegmentFilter(
+      context,
+      new PaginatedFilter({ ...filterForCaller, page: new Page(0, max + 1) }),
+    );
+    const records = await this.collection.list(
+      caller,
+      paginatedFilter,
+      new Projection(...SchemaUtils.getPrimaryKeys(this.collection.schema)),
+    );
+
+    if (records.length > max) throw new ApprovalSelectionTooLargeError(max);
+
+    return IdUtils.packIds(this.collection.schema, records);
   }
 
   private async handleHook(context: Context): Promise<void> {

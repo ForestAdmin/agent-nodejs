@@ -75,6 +75,12 @@ export type AgentOptions = {
   ignoreMissingSchemaElementErrors?: boolean;
   useUnsafeActionEndpoint?: boolean;
   /**
+   * Max number of records a "select all" approval-required action may target.
+   * Must not exceed the Forest server's own cap (500).
+   * @default 500
+   */
+  maxRecordsForApproval?: number;
+  /**
    * Base URL of the workflow executor to proxy requests to.
    * When set, the agent forwards `/_internal/executor/*` to the executor verbatim,
    * benefiting from the agent's authentication layer.
