@@ -12,6 +12,7 @@ import RealAiProxyClient, { AiProxyTimeoutError } from '../../src/ai/ai-proxy-cl
 import createAiRoutesMiddleware, { AI_QUERY_ROUTE } from '../../src/ai/ai-routes-middleware';
 import { AI_BODY_LIMIT } from '../../src/http/body-limit';
 import createErrorMiddleware from '../../src/http/error-middleware';
+import { restoreFetchAfterEach, stubFetch } from '../helpers/fetch-stub';
 
 const SAAS_ACCESS_TOKEN = 'saas-access-token';
 
@@ -87,11 +88,7 @@ function jsonResponse(status: number, body: unknown): AiProxyResponse {
 }
 
 describe('createAiRoutesMiddleware', () => {
-  const originalFetch = global.fetch;
-
-  afterEach(() => {
-    global.fetch = originalFetch;
-  });
+  restoreFetchAfterEach();
 
   describe('when the path or method does not match', () => {
     it('should fall through without calling the upstream', async () => {
@@ -196,11 +193,11 @@ describe('createAiRoutesMiddleware', () => {
     });
 
     it('should keep the deployment ai-name on the outgoing url whatever the caller asks for', async () => {
-      global.fetch = jest.fn().mockResolvedValue({
+      const upstream = stubFetch({
         status: 200,
         headers: { get: () => 'application/json' },
         json: async () => ({ choices: [] }),
-      }) as unknown as typeof fetch;
+      });
       const client = new RealAiProxyClient({
         forestServerUrl: 'https://api.forestadmin.com',
         timeoutMs: 5_000,
@@ -212,7 +209,7 @@ describe('createAiRoutesMiddleware', () => {
         .send({ messages: [] });
 
       expect(response.status).toBe(200);
-      expect((global.fetch as jest.Mock).mock.calls[0][0]).toBe(
+      expect(upstream.mock.calls[0][0]).toBe(
         'https://api.forestadmin.com/api/ai-proxy/ai-query?ai-name=zendesk',
       );
     });

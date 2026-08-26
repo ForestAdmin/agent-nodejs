@@ -8,7 +8,7 @@ import runCli from '../../src/cli-core';
 import { issueBffAccessToken } from '../../src/oauth/bff-token';
 import createOpenApiRoutes, { OPENAPI_PATH } from '../../src/openapi/openapi-routes';
 import ReadModel from '../../src/read-model/read-model';
-import { restoreFetch, stubEnvironmentIdFetch } from '../helpers/environment-id-fetch';
+import { restoreFetchAfterEach, stubEnvironmentIdFetch } from '../helpers/fetch-stub';
 import { action, collection, column, relation } from '../read-model/fixtures';
 
 const SCHEMA = [
@@ -121,11 +121,7 @@ describe('GET /agent/openapi.json', () => {
   });
 
   describe('when the deployment carries a complete OAuth configuration', () => {
-    const originalFetch = global.fetch;
-
-    afterEach(() => {
-      restoreFetch(originalFetch);
-    });
+    restoreFetchAfterEach();
 
     it('should publish the ai relay, which that deployment does mount', async () => {
       stubEnvironmentIdFetch();

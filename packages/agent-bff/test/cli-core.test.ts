@@ -8,7 +8,7 @@ import request from 'supertest';
 
 import runCli, { reportFatalError } from '../src/cli-core';
 import { ConfigurationError } from '../src/errors';
-import { restoreFetch, stubEnvironmentIdFetch } from './helpers/environment-id-fetch';
+import { restoreFetchAfterEach, stubEnvironmentIdFetch } from './helpers/fetch-stub';
 
 const VALID_ENV = {
   FOREST_AUTH_SECRET: 'auth-secret',
@@ -70,11 +70,7 @@ function sessionToken() {
 }
 
 describe('runCli', () => {
-  const originalFetch = global.fetch;
-
-  afterEach(() => {
-    restoreFetch(originalFetch);
-  });
+  restoreFetchAfterEach();
 
   describe('when a required var is absent but not malformed', () => {
     it('should still boot the server (model C, not fail-fast)', async () => {

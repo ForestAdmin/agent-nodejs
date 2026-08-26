@@ -2,7 +2,7 @@ import type { Logger } from '../src/ports/logger-port';
 
 import AiProxyClient from '../src/ai/ai-proxy-client';
 import runCli from '../src/cli-core';
-import { restoreFetch, stubEnvironmentIdFetch } from './helpers/environment-id-fetch';
+import { restoreFetchAfterEach, stubEnvironmentIdFetch } from './helpers/fetch-stub';
 
 jest.mock('../src/ai/ai-proxy-client');
 
@@ -19,15 +19,11 @@ const OAUTH_ENV = {
 const noopLogger: Logger = () => undefined;
 
 describe('runCli', () => {
-  const originalFetch = global.fetch;
+  restoreFetchAfterEach();
 
   beforeEach(() => {
     (AiProxyClient as unknown as jest.Mock).mockClear();
     stubEnvironmentIdFetch();
-  });
-
-  afterEach(() => {
-    restoreFetch(originalFetch);
   });
 
   describe('when wiring the AI proxy client', () => {
