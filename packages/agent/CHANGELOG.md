@@ -1,3 +1,18 @@
+# @forestadmin/agent [1.98.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.97.3...@forestadmin/agent@1.98.0) (2026-08-26)
+
+
+### Features
+
+* **agent:** resolve select-all selections for approval-required actions ([#1847](https://github.com/ForestAdmin/agent-nodejs/issues/1847)) ([4bf3344](https://github.com/ForestAdmin/agent-nodejs/commit/4bf3344dc0887cd87f135b11a253ad301d04efd6))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/mcp-server:** upgraded to 1.24.0
+
 ## @forestadmin/agent [1.97.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.97.2...@forestadmin/agent@1.97.3) (2026-08-25)
 
 
