@@ -1,8 +1,19 @@
+import type { BffAccessTokenPayload } from '../oauth/bff-token';
+
 import { ambiguousCredentials, unauthorized } from '../http/bff-http-error';
 
 export type AuthMode = 'oauth' | 'api-key';
 
 const BEARER_PATTERN = /^Bearer[ \t]+(.+)$/i;
+const POSITIVE_INTEGER = /^[1-9]\d*$/;
+
+export function requireRenderingId(principal: BffAccessTokenPayload): number {
+  if (!POSITIVE_INTEGER.test(String(principal.rendering_id))) {
+    throw unauthorized('The session carries no usable rendering');
+  }
+
+  return Number(principal.rendering_id);
+}
 
 export function extractBearerToken(authorization: string | undefined): string | undefined {
   if (!authorization) return undefined;

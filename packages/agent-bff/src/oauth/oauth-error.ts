@@ -1,12 +1,14 @@
 export class OAuthRequestError extends Error {
   readonly status: number;
   readonly type: string;
+  readonly cause?: unknown;
 
-  constructor(status: number, type: string, message: string) {
+  constructor(status: number, type: string, message: string, cause?: unknown) {
     super(message);
     this.name = 'OAuthRequestError';
     this.status = status;
     this.type = type;
+    this.cause = cause;
   }
 }
 
@@ -47,6 +49,6 @@ export function sessionInvalidated(message: string): OAuthRequestError {
   return new OAuthRequestError(401, 'session_invalidated', message);
 }
 
-export function serverError(message: string): OAuthRequestError {
-  return new OAuthRequestError(502, 'server_error', message);
+export function serverError(message: string, cause?: unknown): OAuthRequestError {
+  return new OAuthRequestError(502, 'server_error', message, cause);
 }

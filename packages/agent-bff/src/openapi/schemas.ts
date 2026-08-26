@@ -280,6 +280,16 @@ export const ContextResponseSchema = z
       'deployment runs without the OAuth configuration.',
   });
 
+export const AiQueryRequestSchema = z.unknown().openapi('AiQueryRequest', {
+  description:
+    'Passed through to the Forest AI proxy without validation or rewriting, so the authority on ' +
+    'this shape is the upstream contract, not the BFF. It is left free-form on purpose: the BFF ' +
+    'enforces nothing here, and a shape published from this side would drift from the upstream ' +
+    'one nobody keeps it in sync with. In practice it is the OpenAI chat-completion body — ' +
+    '`messages`, and optionally `tools`, `tool_choice`, `parallel_tool_calls`. A malformed body ' +
+    'is rejected by the Forest server, not here.',
+});
+
 export const ErrorResponseSchema = z
   .object({
     error: z.object({

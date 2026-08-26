@@ -64,6 +64,13 @@ const VALID_ENV = {
   HTTP_PORT: '0',
 } satisfies NodeJS.ProcessEnv;
 
+const OAUTH_ENV = {
+  ...VALID_ENV,
+  BFF_TOKEN_ENCRYPTION_KEY: Buffer.alloc(32).toString('base64'),
+} satisfies NodeJS.ProcessEnv;
+
+const AI_QUERY_PATH = '/agent/v1/ai/query';
+
 const noopLogger: Logger = () => undefined;
 
 describe('renderOpenApi', () => {
@@ -95,6 +102,39 @@ describe('renderOpenApi', () => {
 
     expect(Object.keys(document.paths)).toHaveLength(7);
     expect(document.info.description).toContain('Paths are generic');
+  });
+
+  it('should publish the ai relay on the unfolded document when OAuth resolves', async () => {
+    const document = JSON.parse(await renderOpenApi(OAUTH_ENV, noopLogger));
+
+    expect(Object.keys(document.paths)).toContain(AI_QUERY_PATH);
+  });
+
+  it('should publish the ai relay on the generic document too, since OAuth needs no AGENT_URL', async () => {
+    const { AGENT_URL, ...withoutAgent } = OAUTH_ENV;
+    const document = JSON.parse(await renderOpenApi(withoutAgent, noopLogger));
+
+    expect(document.info.description).toContain('Paths are generic');
+    expect(Object.keys(document.paths)).toContain(AI_QUERY_PATH);
+  });
+
+  it('should omit the ai relay when the deployment cannot mount it', async () => {
+    const document = JSON.parse(await renderOpenApi(VALID_ENV, noopLogger));
+
+    expect(Object.keys(document.paths)).not.toContain(AI_QUERY_PATH);
+  });
+
+  it('should omit the ai relay and say why when the configuration cannot be read', async () => {
+    const { AGENT_URL, ...withoutAgent } = OAUTH_ENV;
+    const logged: string[] = [];
+    const document = JSON.parse(
+      await renderOpenApi({ ...withoutAgent, HTTP_PORT: 'not-a-port' }, (_level, message) => {
+        logged.push(message);
+      }),
+    );
+
+    expect(Object.keys(document.paths)).not.toContain(AI_QUERY_PATH);
+    expect(logged.join('\n')).toContain(`Omitting ${AI_QUERY_PATH} from the document`);
   });
 
   it('should unfold when the deployment is configured, without borrowing a caller token', async () => {

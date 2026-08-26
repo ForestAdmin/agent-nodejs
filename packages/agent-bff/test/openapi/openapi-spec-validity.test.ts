@@ -14,8 +14,13 @@ const REDOCLY_BIN = path.join(
 );
 
 describe.each([
-  ['generic', () => generateOpenApiDocument('1.0.0')],
-  ['unfolded', () => generateOpenApiDocument('1.0.0', unfoldingFixture())],
+  ['generic', () => generateOpenApiDocument('1.0.0', { hasAiQueryRoute: true })],
+  [
+    'unfolded',
+    () =>
+      generateOpenApiDocument('1.0.0', { unfolding: unfoldingFixture(), hasAiQueryRoute: true }),
+  ],
+  ['ai-less', () => generateOpenApiDocument('1.0.0', { hasAiQueryRoute: false })],
 ])('the %s OpenAPI document', (name, build: () => OpenAPIObject) => {
   let directory: string;
   let status: number | null;

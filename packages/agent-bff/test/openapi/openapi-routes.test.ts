@@ -8,6 +8,7 @@ import runCli from '../../src/cli-core';
 import { issueBffAccessToken } from '../../src/oauth/bff-token';
 import createOpenApiRoutes, { OPENAPI_PATH } from '../../src/openapi/openapi-routes';
 import ReadModel from '../../src/read-model/read-model';
+import { restoreFetchAfterEach, stubEnvironmentIdFetch } from '../helpers/fetch-stub';
 import { action, collection, column, relation } from '../read-model/fixtures';
 
 const SCHEMA = [
@@ -117,6 +118,27 @@ describe('GET /agent/openapi.json', () => {
   beforeEach(() => {
     fetchSchema.mockClear().mockResolvedValue(SCHEMA);
     fetchCapabilities.mockClear().mockResolvedValue(CAPABILITIES);
+  });
+
+  describe('when the deployment carries a complete OAuth configuration', () => {
+    restoreFetchAfterEach();
+
+    it('should publish the ai relay, which that deployment does mount', async () => {
+      stubEnvironmentIdFetch();
+
+      const oauthEnv = {
+        ...VALID_ENV,
+        BFF_TOKEN_ENCRYPTION_KEY: Buffer.alloc(32).toString('base64'),
+      } satisfies NodeJS.ProcessEnv;
+
+      await withServer(oauthEnv, async server => {
+        const response = await request(server.callback)
+          .get(OPENAPI_PATH)
+          .set('Authorization', `Bearer ${sessionToken()}`);
+
+        expect(Object.keys(response.body.paths)).toContain('/agent/v1/ai/query');
+      });
+    });
   });
 
   describe('when no credentials are sent', () => {
@@ -377,6 +399,7 @@ describe('GET /agent/openapi.json', () => {
       return createOpenApiRoutes({
         version: '1.2.3',
         enabled: true,
+        hasAiQueryRoute: false,
         source: { store, agentUrl: 'https://agent.example.com', logger: noopLogger },
       });
     }
@@ -492,7 +515,11 @@ describe('GET /agent/openapi.json', () => {
     ])(
       'should delegate to the next middleware and touch nothing on %s',
       async (_, path, method, enabled) => {
-        const openApiRoutes = createOpenApiRoutes({ version: '1.2.3', enabled });
+        const openApiRoutes = createOpenApiRoutes({
+          version: '1.2.3',
+          enabled,
+          hasAiQueryRoute: false,
+        });
         const ctx = fakeContext(path, method);
         const next = jest.fn().mockResolvedValue(undefined);
 

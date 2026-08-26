@@ -2,6 +2,7 @@ import type {
   DegradedReason,
   FilterableField,
   UnfoldedCollection,
+  Unfolding,
 } from '../../src/openapi/unfolding';
 
 import { allOperators } from '@forestadmin/datasource-toolkit';
@@ -9,9 +10,15 @@ import { allOperators } from '@forestadmin/datasource-toolkit';
 import unfoldingFixture from './fixtures';
 import { ROUTE_PREFIX, generateOpenApiDocument } from '../../src/openapi/openapi-document';
 
-const document = generateOpenApiDocument('9.9.9', unfoldingFixture());
+function unfoldedDocument(unfolding: Unfolding) {
+  return generateOpenApiDocument('9.9.9', { unfolding, hasAiQueryRoute: true });
+}
+
+const document = unfoldedDocument(unfoldingFixture());
+const NON_UNFOLDED_PATHS = [`${ROUTE_PREFIX}/context`, `${ROUTE_PREFIX}/ai/query`];
+
 const paths = Object.fromEntries(
-  Object.entries(document.paths ?? {}).filter(([path]) => path !== `${ROUTE_PREFIX}/context`),
+  Object.entries(document.paths ?? {}).filter(([path]) => !NON_UNFOLDED_PATHS.includes(path)),
 ) as Record<string, { post: Record<string, unknown> }>;
 const schemas = document.components?.schemas as Record<string, Record<string, unknown>>;
 
@@ -358,7 +365,7 @@ describe('the unfolded document', () => {
   });
 
   it('should build a byte-identical document from the same snapshot', () => {
-    const again = generateOpenApiDocument('9.9.9', unfoldingFixture());
+    const again = unfoldedDocument(unfoldingFixture());
 
     expect(JSON.stringify(again)).toBe(JSON.stringify(document));
   });
@@ -369,7 +376,7 @@ describe('a collection whose key ends in an index-like suffix', () => {
   // `_<n>` to a collapsed name, so a collection key can end in `_<digit>` on its own. A leaf namespace
   // separated by `_` would let `Invoice 1` and `Invoice` claim the same component name, and
   // `ComponentPool.add` settles a duplicate last-wins in silence.
-  const collision = generateOpenApiDocument('9.9.9', {
+  const collision = unfoldedDocument({
     collections: [
       collectionOf('Invoice 1', [], 'capabilities_unavailable'),
       collectionOf('Invoice', [{ name: 'total', operators: ['Equal', 'GreaterThan'] }]),
@@ -399,7 +406,7 @@ describe('an unfolding carrying a filterable field with no operator', () => {
   it('should leave it out rather than emit an enum no value satisfies', () => {
     // An empty enum forbids every value, so the leaf would be unsatisfiable. `collectFilterableFields`
     // cannot produce one, but the generator takes hand-constructible plain data.
-    const empty = generateOpenApiDocument('9.9.9', {
+    const empty = unfoldedDocument({
       collections: [collectionOf('E', [{ name: 'x', operators: [] }])],
     });
     const emptySchemas = empty.components?.schemas as Record<string, Record<string, never>>;
@@ -419,7 +426,7 @@ describe('an unfolding naming a collection it does not carry', () => {
   it('should skip that relation rather than reference a schema it never registered', () => {
     // `collectUnfolding` filters those out, but the generator takes plain data: a hand-built
     // snapshot must not be able to emit a path whose request schema does not exist.
-    const orphaned = generateOpenApiDocument('9.9.9', {
+    const orphaned = unfoldedDocument({
       collections: [
         {
           name: 'users',
@@ -437,6 +444,7 @@ describe('an unfolding naming a collection it does not carry', () => {
 
     expect(Object.keys(orphaned.paths ?? {})).toEqual([
       '/agent/v1/context',
+      '/agent/v1/ai/query',
       '/agent/v1/users/list',
       '/agent/v1/users/count',
     ]);
@@ -463,7 +471,7 @@ describe('names that collide once sanitized', () => {
     actions: [{ name: actionName, fields: [] }],
   });
 
-  const colliding = generateOpenApiDocument('9.9.9', {
+  const colliding = unfoldedDocument({
     collections: [collection('A_B', 'C', 'R'), collection('A', 'B_C', 'B_R')],
   });
   const operationIds = Object.values(
@@ -498,7 +506,7 @@ describe('names that collide once sanitized', () => {
 
 describe('an unfolded document with no action', () => {
   it('should not carry the action-result response, which nothing would reference', () => {
-    const withoutActions = generateOpenApiDocument('9.9.9', {
+    const withoutActions = unfoldedDocument({
       collections: [
         {
           name: 'users',

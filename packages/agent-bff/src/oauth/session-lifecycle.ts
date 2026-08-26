@@ -42,7 +42,7 @@ async function refreshAndPersist(
       throw sessionExpired('The Forest server rejected the refresh token');
     }
 
-    throw serverError('Failed to reach the Forest server to refresh the session');
+    throw serverError('Failed to reach the Forest server to refresh the session', error);
   }
 
   if (!store.get(sid)) {

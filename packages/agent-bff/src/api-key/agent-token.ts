@@ -3,7 +3,7 @@ import type { BffAccessTokenPayload } from '../oauth/bff-token';
 
 import jsonwebtoken from 'jsonwebtoken';
 
-import { unauthorized } from '../http/bff-http-error';
+import { requireRenderingId } from '../auth/auth-mode';
 
 export const AGENT_TOKEN_EXPIRES_IN = '5m';
 
@@ -16,8 +16,6 @@ export interface IssueAgentTokenFromPrincipalParams {
   principal: BffAccessTokenPayload;
   authSecret: string;
 }
-
-const POSITIVE_INTEGER = /^[1-9]\d*$/;
 
 function tagsToRecord(tags: { key: string; value: string }[]): Record<string, string> {
   return tags.reduce((memo, { key, value }) => ({ ...memo, [key]: value }), {});
@@ -79,9 +77,7 @@ export function issueAgentTokenFromPrincipal({
   principal,
   authSecret,
 }: IssueAgentTokenFromPrincipalParams): string {
-  if (!POSITIVE_INTEGER.test(String(principal.rendering_id))) {
-    throw unauthorized('The session carries no usable rendering');
-  }
+  const renderingId = requireRenderingId(principal);
 
   return signWithSnakeCaseAliasesForRubyAndPythonAgents(
     {
@@ -90,7 +86,7 @@ export function issueAgentTokenFromPrincipal({
       firstName: principal.first_name,
       lastName: principal.last_name,
       team: principal.team,
-      renderingId: Number(principal.rendering_id),
+      renderingId,
       tags: principal.tags ?? {},
       permissionLevel: principal.permission_level,
       role: principal.role,

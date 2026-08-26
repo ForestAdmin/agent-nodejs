@@ -1,6 +1,7 @@
 import {
   DEFAULT_AGENT_TIMEOUT_MS,
-  MAX_AGENT_TIMEOUT_MS,
+  DEFAULT_AI_TIMEOUT_MS,
+  MAX_TIMEOUT_MS,
   REQUIRED_KEYS,
   parseConfig,
 } from '../../src/config/env-config';
@@ -235,9 +236,8 @@ describe('parseConfig', () => {
 
     it('should accept the largest value Node can hold in a timer', () => {
       expect(
-        parseConfig({ ...VALID_ENV, BFF_AGENT_TIMEOUT_MS: String(MAX_AGENT_TIMEOUT_MS) })
-          .agentTimeoutMs,
-      ).toBe(MAX_AGENT_TIMEOUT_MS);
+        parseConfig({ ...VALID_ENV, BFF_AGENT_TIMEOUT_MS: String(MAX_TIMEOUT_MS) }).agentTimeoutMs,
+      ).toBe(MAX_TIMEOUT_MS);
     });
 
     it.each([
@@ -245,10 +245,50 @@ describe('parseConfig', () => {
       ['negative', '-1'],
       ['non-numeric', 'soon'],
       ['fractional', '1.5'],
-      ['past the Node timer ceiling', String(MAX_AGENT_TIMEOUT_MS + 1)],
+      ['past the Node timer ceiling', String(MAX_TIMEOUT_MS + 1)],
     ])('should throw ConfigurationError for a %s value', (_label, value) => {
       expect(() => parseConfig({ ...VALID_ENV, BFF_AGENT_TIMEOUT_MS: value })).toThrow(
         ConfigurationError,
+      );
+    });
+  });
+
+  describe('BFF_AI_TIMEOUT_MS', () => {
+    it('should default to 2 minutes when unset, since an AI generation is slow', () => {
+      expect(parseConfig({ ...VALID_ENV }).aiTimeoutMs).toBe(DEFAULT_AI_TIMEOUT_MS);
+    });
+
+    it('should expose a configured value', () => {
+      expect(parseConfig({ ...VALID_ENV, BFF_AI_TIMEOUT_MS: '45000' }).aiTimeoutMs).toBe(45_000);
+    });
+
+    it('should treat a blank value as unset', () => {
+      expect(parseConfig({ ...VALID_ENV, BFF_AI_TIMEOUT_MS: '   ' }).aiTimeoutMs).toBe(
+        DEFAULT_AI_TIMEOUT_MS,
+      );
+    });
+
+    it('should not affect the agent timeout, which keeps its own default', () => {
+      const config = parseConfig({ ...VALID_ENV, BFF_AI_TIMEOUT_MS: '45000' });
+
+      expect(config.agentTimeoutMs).toBe(DEFAULT_AGENT_TIMEOUT_MS);
+    });
+
+    it.each([
+      ['zero', '0'],
+      ['negative', '-1'],
+      ['non-numeric', 'never'],
+      ['fractional', '1.5'],
+      ['past the Node timer ceiling', String(MAX_TIMEOUT_MS + 1)],
+    ])('should throw ConfigurationError for a %s value', (_label, value) => {
+      expect(() => parseConfig({ ...VALID_ENV, BFF_AI_TIMEOUT_MS: value })).toThrow(
+        ConfigurationError,
+      );
+    });
+
+    it('should name the offending variable in the error, not the agent one', () => {
+      expect(() => parseConfig({ ...VALID_ENV, BFF_AI_TIMEOUT_MS: '0' })).toThrow(
+        /BFF_AI_TIMEOUT_MS/,
       );
     });
   });

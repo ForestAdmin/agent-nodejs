@@ -7,7 +7,7 @@ import {
   serializeOpenApi,
 } from '../../src/openapi/openapi-document';
 
-const document = generateOpenApiDocument('9.9.9');
+const document = generateOpenApiDocument('9.9.9', { hasAiQueryRoute: true });
 const schemas = document.components?.schemas as Record<string, Record<string, unknown>>;
 
 type ResolvedResponse = {
@@ -44,10 +44,14 @@ function listResponses(): Record<string, ResolvedResponse> {
   return responsesOf(`${ROUTE_PREFIX}/{collection}/list`);
 }
 
+const AI_QUERY_PATH = `${ROUTE_PREFIX}/ai/query`;
+
 function dataOperations(): { security: unknown; responses: Record<string, unknown> }[] {
-  return Object.values(document.paths ?? {})
+  return Object.entries(document.paths ?? {})
+    .filter(([path]) => path !== AI_QUERY_PATH)
     .map(
-      path => (path as { post?: { security: unknown; responses: Record<string, unknown> } }).post,
+      ([, path]) =>
+        (path as { post?: { security: unknown; responses: Record<string, unknown> } }).post,
     )
     .filter(operation => operation !== undefined);
 }
@@ -69,12 +73,13 @@ describe('generateOpenApiDocument', () => {
   it('should serve every path under the /agent/v1 prefix', () => {
     const paths = Object.keys(document.paths ?? {});
 
-    expect(paths).toHaveLength(7);
+    expect(paths).toHaveLength(8);
     expect(paths.every(path => path.startsWith(`${ROUTE_PREFIX}/`))).toBe(true);
   });
 
-  it('should expose the six generic runtime routes plus the context contract', () => {
+  it('should expose the six generic runtime routes plus the context contract and the ai relay', () => {
     expect(Object.keys(document.paths ?? {}).sort()).toEqual([
+      `${ROUTE_PREFIX}/ai/query`,
       `${ROUTE_PREFIX}/context`,
       `${ROUTE_PREFIX}/{collection}/actions/{action}/execute`,
       `${ROUTE_PREFIX}/{collection}/actions/{action}/form`,
@@ -160,13 +165,19 @@ describe('generateOpenApiDocument', () => {
     });
   });
 
-  it('should secure every data operation with the API key only, the one mode those routes accept', () => {
+  it('should let both auth modes reach every data and action operation, as mode 1 mints an agent token', () => {
     const operations = dataOperations();
 
     expect(operations).toHaveLength(6);
     operations.forEach(operation => {
-      expect(operation.security).toEqual([{ bffApiKey: [] }]);
+      expect(operation.security).toEqual([{ bffSession: [] }, { bffApiKey: [] }]);
     });
+  });
+
+  it('should keep the ai query relay on the session alone, the only credential it can forward', () => {
+    const ai = (document.paths ?? {})[AI_QUERY_PATH] as { post: { security: unknown } };
+
+    expect(ai.post.security).toEqual([{ bffSession: [] }]);
   });
 
   it('should let both auth modes reach the context contract, which is not caller-scoped', () => {
@@ -183,12 +194,13 @@ describe('generateOpenApiDocument', () => {
     ).bffSession;
 
     expect(session.description).toContain('Accepted on the context contract');
-    expect(session.description).toContain('the data and action routes advertise the API key only');
+    expect(session.description).toContain('every data and action route');
   });
 
   it('should require a body where parentId or recordIds is mandatory', () => {
     const requiredByPath = Object.fromEntries(
       Object.entries(document.paths ?? {})
+        .filter(([path]) => path !== AI_QUERY_PATH)
         .filter(([, item]) => (item as { post?: unknown }).post !== undefined)
         .map(([path, item]) => [
           path,
@@ -279,19 +291,78 @@ describe('generateOpenApiDocument', () => {
     });
     expect(Object.keys(responseComponents).sort()).toEqual([
       'Error400',
+      'Error400AiQuery',
       'Error401',
+      'Error401AiQuery',
       'Error403',
+      'Error403AiQuery',
       'Error404',
       'Error413',
+      'Error413AiQuery',
       'Error415',
+      'Error415AiQuery',
       'Error422',
       'Error429',
+      'Error429AiQuery',
       'Error500',
+      'Error500AiQuery',
       'Error501',
       'Error502',
+      'Error502AiQuery',
       'Error503',
+      'Error503AiQuery',
+      'Error504AiQuery',
+      'ErrorDefaultAiQuery',
       'UnsupportedActionResult',
     ]);
+  });
+
+  it('should keep the ai query body limit and timeout out of every data route', () => {
+    const statuses = dataOperations().flatMap(operation => Object.keys(operation.responses));
+    const aiOperation = (document.paths ?? {})[AI_QUERY_PATH] as {
+      post: { responses: Record<string, { $ref: string }> };
+    };
+
+    expect(statuses).not.toContain('504');
+    expect(aiOperation.post.responses['413'].$ref).toContain('Error413AiQuery');
+    expect(aiOperation.post.responses['504'].$ref).toContain('Error504AiQuery');
+  });
+
+  it('should leave every ai query status below 500 free-form, since the upstream body is relayed unchanged', () => {
+    const responses = responsesOf(AI_QUERY_PATH);
+
+    ['400', '401', '403', '413', '415', '429'].forEach(status => {
+      expect(responses[status].content?.['application/json'].schema).toEqual({});
+    });
+  });
+
+  it('should pin every ai query status of 500 and above to the bff error envelope', () => {
+    const responses = responsesOf(AI_QUERY_PATH);
+
+    ['500', '502', '503', '504'].forEach(status => {
+      expect(responses[status].content?.['application/json'].schema).toEqual({
+        $ref: '#/components/schemas/ErrorResponse',
+      });
+    });
+  });
+
+  it('should document a default ai query response, since the upstream can answer an undocumented status', () => {
+    const { default: fallback } = responsesOf(AI_QUERY_PATH);
+
+    expect(fallback.content?.['application/json'].schema).toEqual({});
+    expect(fallback.description).toContain('relayed unchanged when it was JSON');
+    expect(fallback.description).toContain('replaced by the BFF');
+    expect(fallback.description).toContain(
+      'below 400 that carries no JSON body is reported as 502',
+    );
+  });
+
+  it('should never describe the agent on the ai query path, which never reaches an agent', () => {
+    const descriptions = Object.values(responsesOf(AI_QUERY_PATH)).map(
+      response => response.description,
+    );
+
+    expect(descriptions.filter(description => description.includes('the agent'))).toEqual([]);
   });
 
   it('should declare the timezone header as a parameter, not only in prose', () => {

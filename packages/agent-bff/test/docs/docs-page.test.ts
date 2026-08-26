@@ -131,7 +131,7 @@ const API_KEY_SPEC = {
   paths: {
     '/agent/v1/My%20Coll/list': {
       post: {
-        security: [{ bffApiKey: [] }],
+        security: [{ bffSession: [] }, { bffApiKey: [] }],
         responses: { 200: {} },
         requestBody: {
           required: false,
@@ -155,13 +155,23 @@ const API_KEY_SPEC = {
     },
     '/agent/v1/My%20Coll/actions/Mark%2Fdone/execute': {
       post: {
-        security: [{ bffSession: [] }],
+        security: [{ bffSession: [] }, { bffApiKey: [] }],
         responses: { 200: {} },
         requestBody: {
           required: true,
           content: {
             'application/json': { schema: { $ref: '#/components/schemas/ActionRequest' } },
           },
+        },
+      },
+    },
+    '/agent/v1/ai/query': {
+      post: {
+        security: [{ bffSession: [] }],
+        responses: { 200: {} },
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { type: 'object' } } },
         },
       },
     },
@@ -311,11 +321,12 @@ describe('the code samples the docs page injects', () => {
   const LIST = '/agent/v1/My%20Coll/list';
   const RELATION = '/agent/v1/My%20Coll/relations/orders/list';
   const ACTION = '/agent/v1/My%20Coll/actions/Mark%2Fdone/execute';
+  const AI_QUERY = '/agent/v1/ai/query';
 
   it('should offer the three languages on every operation', async () => {
     const page = await render(API_KEY_SPEC);
 
-    [LIST, RELATION, ACTION].forEach(path => {
+    [LIST, RELATION, ACTION, AI_QUERY].forEach(path => {
       expect(page.samplesOf(path).map(sample => sample.lang)).toEqual([
         'cURL',
         'JavaScript',
@@ -361,11 +372,39 @@ describe('the code samples the docs page injects', () => {
     page.allSources().forEach(source => expect(source).toContain('X-Forest-Timezone'));
   });
 
-  it('should take the auth header from the scheme the operation names', async () => {
+  it('should take the auth header from the scheme a session-only operation names', async () => {
     const page = await render(API_KEY_SPEC);
 
-    expect(page.sourceOf(ACTION, 'cURL')).toContain('-H "Authorization: Bearer $BFF_KEY"');
-    expect(page.sourceOf(ACTION, 'cURL')).not.toContain('X-Forest-Bff-Key');
+    expect(page.sourceOf(AI_QUERY, 'cURL')).toContain('-H "Authorization: Bearer $BFF_SESSION"');
+    expect(page.sourceOf(AI_QUERY, 'cURL')).not.toContain('X-Forest-Bff-Key');
+  });
+
+  it('should not sample the unlock key on the session-only route, which answers 403 to it', async () => {
+    const page = await render(API_KEY_SPEC);
+
+    ['cURL', 'JavaScript', 'Ruby'].forEach(language => {
+      const source = page.sourceOf(AI_QUERY, language);
+
+      expect(source).toContain('BFF_SESSION');
+      expect(source).not.toContain('BFF_KEY');
+    });
+  });
+
+  it('should sample the key on an operation accepting both, since the reader unlocked with one', async () => {
+    const page = await render(API_KEY_SPEC);
+
+    [LIST, ACTION].forEach(path => {
+      expect(page.sourceOf(path, 'cURL')).toContain('-H "X-Forest-Bff-Key: $BFF_KEY"');
+      expect(page.sourceOf(path, 'cURL')).not.toContain('Authorization');
+    });
+  });
+
+  it('should interpolate the bearer prefix in node, not send the token bare', async () => {
+    const page = await render(API_KEY_SPEC);
+
+    expect(page.sourceOf(AI_QUERY, 'JavaScript')).toContain(
+      '    "Authorization": "Bearer " + process.env.BFF_SESSION,',
+    );
   });
 
   it('should read the key from the environment in node, not inline it', async () => {
@@ -396,8 +435,8 @@ describe('the code samples the docs page injects', () => {
     expect(page.sourceOf(RELATION, 'Ruby')).toContain(
       "request['X-Forest-Bff-Key'] = ENV.fetch('BFF_KEY')",
     );
-    expect(page.sourceOf(ACTION, 'Ruby')).toContain(
-      `request['Authorization'] = "Bearer #{ENV.fetch('BFF_KEY')}"`,
+    expect(page.sourceOf(AI_QUERY, 'Ruby')).toContain(
+      `request['Authorization'] = "Bearer #{ENV.fetch('BFF_SESSION')}"`,
     );
     expect(page.sourceOf(RELATION, 'Ruby')).toContain('request = Net::HTTP::Post.new(uri)');
   });

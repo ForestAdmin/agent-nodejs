@@ -93,6 +93,7 @@ yarn start:dev         # node --env-file=.env dist/cli.js
 | `HTTP_PORT`          | no       | Server port, integer 0–65535. Defaults to `3450`. `0` binds an OS-assigned ephemeral port. |
 | `BFF_ALLOWED_ORIGINS`| no       | Comma-separated CORS allow-list of exact origins (scheme + host + port). No wildcard. Empty ⇒ no cross-origin browser access. |
 | `BFF_DEFAULT_TIMEZONE`| no      | Fallback IANA timezone used when a request carries neither an `X-Forest-Timezone` header nor a body `timezone`. |
+| `BFF_AI_TIMEOUT_MS`  | no       | How long `POST /agent/v1/ai/query` waits for the Forest server on the relay itself, in milliseconds. Defaults to `120000` — an AI generation is slow, and neither the app nor the Forest server bounds it. Past it the route answers `504`. It is not the route's end-to-end cap: an expired session is refreshed first, under a separate hard-coded 60 s ceiling that answers `502`, so a request can exceed this value. A malformed value (non-integer, `0`, or above 2147483647) fails the boot, unlike an absent one which takes the default. |
 | `BFF_OPENAPI_ENABLED` | no       | Serve `GET/HEAD /agent/openapi.json` (auth-gated) when `true`. Defaults to `true`. Set to `false` for customers who do not want the HTTP surface exposed: an authenticated `GET`/`HEAD` then gets `404 openapi_disabled`, other methods fall through to the agent routes exactly as they do when enabled, and `forest-bff openapi` keeps working either way. Accepted values: `true`/`false`. **The served document is unfolded and is not filtered per caller**: any authenticated caller, whatever their role, reads the name of every exposed collection, relation and field. Set this to `false` if that surface must not be reachable over HTTP. |
 
 ### Config validation
@@ -110,6 +111,13 @@ yarn start:dev         # node --env-file=.env dist/cli.js
 Every agent call flows through a request edge that enforces three cross-cutting concerns before the
 call is proxied to the agent. Errors use a structured, type-first contract — `{ error: { type, status,
 message, details? } }` — so consumers branch on `error.type`, never on message text.
+
+Two paths sit before the timezone layer and so skip it: `/agent/v1/context`, and the AI relay
+described below. Neither reaches an agent, so neither has a timezone to resolve. This holds only
+where they are actually mounted — `/agent/v1/context` needs the read-model bundle and the AI relay
+needs an OAuth session. In a deployment missing either, the request falls through to the timezone
+layer instead, so a caller sending no timezone against a BFF with no `BFF_DEFAULT_TIMEZONE` gets
+`400 missing_timezone` rather than the `404` it would expect from an unmounted route.
 
 ### Auth-mode precedence
 
@@ -142,9 +150,38 @@ normalized away, no trailing slash, no wildcard, no subdomain matching):
 
 ### Timezone
 
-The BFF always forwards an explicit `timezone` to the agent, resolved in order: (1) `X-Forest-Timezone`
-header, (2) body `timezone` field, (3) `BFF_DEFAULT_TIMEZONE`. None → `400 missing_timezone`; a
-non-IANA value → `400 invalid_timezone`.
+On every route that reaches an agent, the BFF forwards an explicit `timezone`, resolved in order:
+(1) `X-Forest-Timezone` header, (2) body `timezone` field, (3) `BFF_DEFAULT_TIMEZONE`. None →
+`400 missing_timezone`; a non-IANA value → `400 invalid_timezone`. The two paths listed above are
+mounted ahead of this layer and answer without it.
+
+### AI query relay
+
+`POST /agent/v1/ai/query` relays its body to the Forest AI proxy under the OAuth session the BFF
+holds, and relays the answer back:
+
+- **Session only.** An API key is refused with `403 oauth_required`: only the OAuth flow yields the
+  Forest access token this route forwards. The environment and rendering are derived server-side, so
+  sending `forest-*` headers has no effect.
+- **Body.** `1mb` instead of the `16kb` of every other route, and `application/json` only — any other
+  content type arrives as an empty body, is relayed upstream as `{}`, and the Forest server rejects
+  the query. Over the limit → `413`. The parser is selected on the request path alone and runs ahead
+  of authentication, so an unauthenticated caller can make the BFF buffer and JSON-parse 1 MB on this
+  path — 64x the pre-auth surface of every other route. Bounding that is a deployment concern (rate
+  limiting or a body cap at the reverse proxy), not a BFF one.
+- **Timeout.** `BFF_AI_TIMEOUT_MS` (default `120000`) caps the relay itself; past it → `504`. It is
+  not the only cap on the request: when the session's access token has expired the route first
+  refreshes it against the Forest server, and that hop has its own hard-coded 60 s ceiling which
+  answers `502 network_error`, not `504`.
+- **Error shape.** Below 500 the upstream JSON body is relayed unchanged, so its shape is the Forest
+  AI proxy's contract and not the BFF's; when the upstream answer carried no JSON body the BFF
+  substitutes its own envelope, keeping the status only when it was 4xx and reporting `502` for a
+  2xx or 3xx that carried nothing to relay. At 500 and above the body is always the BFF
+  envelope, so no upstream infrastructure detail reaches the caller. **This is the one route where a
+  sub-500 body is not guaranteed to be `{ error: { type, … } }`**, so a consumer cannot branch on
+  `error.type` here without checking that the field exists.
+- **Mounted only with OAuth.** Without a complete OAuth configuration the route is absent (`404`) and
+  `forest-bff openapi` omits it from the document.
 
 ## Sessions & token rotation
 

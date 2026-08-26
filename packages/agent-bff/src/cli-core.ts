@@ -1,4 +1,5 @@
 import type { BFFConfig } from './config/env-config';
+import type { SessionStore } from './oauth/session-store';
 import type { UnfoldSource } from './openapi/unfolded-document';
 import type { Logger } from './ports/logger-port';
 import type { Metrics } from './ports/metrics-port';
@@ -10,6 +11,8 @@ import { bodyParser } from '@koa/bodyparser';
 import createActionRoutesMiddleware from './action/action-routes-middleware';
 import createConsoleLogger from './adapters/console-logger';
 import createAgentStubMiddleware from './agent/agent-stub';
+import AiProxyClient from './ai/ai-proxy-client';
+import createAiRoutesMiddleware, { AI_QUERY_ROUTE } from './ai/ai-routes-middleware';
 import createApiKeyAuthenticator from './api-key/api-key-authenticator';
 import ApiKeyClient from './api-key/api-key-client';
 import createApiKeyMiddleware from './api-key/api-key-middleware';
@@ -24,7 +27,7 @@ import createDocsRoutes from './docs/docs-routes';
 import { extractErrorMessage } from './errors';
 import { unauthorized } from './http/bff-http-error';
 import BFFHttpServer from './http/bff-http-server';
-import BODY_LIMIT from './http/body-limit';
+import BODY_LIMIT, { AI_BODY_LIMIT } from './http/body-limit';
 import createErrorMiddleware from './http/error-middleware';
 import ForestServerClient from './oauth/forest-server-client';
 import createOAuthRoutes from './oauth/oauth-routes';
@@ -56,6 +59,24 @@ function agentScoped(middleware: Middleware): Middleware {
   };
 }
 
+function createBodyParser(hasAiQueryRoute: boolean): Middleware {
+  const parseBody = bodyParser({ jsonLimit: BODY_LIMIT });
+
+  if (!hasAiQueryRoute) return parseBody;
+
+  const parseAiBody = bodyParser({ jsonLimit: AI_BODY_LIMIT, enableTypes: ['json'] });
+
+  return async function selectedBodyParser(ctx, next) {
+    if (ctx.path === AI_QUERY_ROUTE) {
+      await parseAiBody(ctx, next);
+
+      return;
+    }
+
+    await parseBody(ctx, next);
+  };
+}
+
 function createApiKeyUnavailableGuard(logger: Logger): Middleware {
   return async function apiKeyUnavailableGuard(ctx, next) {
     if (ctx.state.authMode === 'api-key') {
@@ -75,7 +96,7 @@ interface ResolvedOAuthConfig {
   tokenEncryptionKey: string;
 }
 
-function resolveOAuthConfig(config: BFFConfig): ResolvedOAuthConfig | undefined {
+export function resolveOAuthConfig(config: BFFConfig): ResolvedOAuthConfig | undefined {
   const { forestServerUrl, forestEnvSecret, forestAppUrl, forestAuthSecret, tokenEncryptionKey } =
     config;
 
@@ -92,9 +113,16 @@ function resolveOAuthConfig(config: BFFConfig): ResolvedOAuthConfig | undefined 
   return undefined;
 }
 
+interface OAuthSession {
+  store: SessionStore;
+  serverClient: ForestServerClient;
+  forestServerUrl: string;
+}
+
 interface OAuthEdge {
   middlewares: Middleware[];
   environmentId?: number;
+  session?: OAuthSession;
 }
 
 async function buildOAuthMiddlewares(config: BFFConfig, logger: Logger): Promise<OAuthEdge> {
@@ -127,7 +155,11 @@ async function buildOAuthMiddlewares(config: BFFConfig, logger: Logger): Promise
     logger,
   });
 
-  return { middlewares: [oauthRoutes], environmentId };
+  return {
+    middlewares: [oauthRoutes],
+    environmentId,
+    session: { store: sessionStore, serverClient, forestServerUrl },
+  };
 }
 
 interface ResolvedApiKeyConfig {
@@ -272,12 +304,39 @@ function buildAgentRouteMiddlewares(
   ];
 }
 
+function buildAiMiddlewares(config: BFFConfig, oauth: OAuthEdge, logger: Logger): Middleware[] {
+  const { session, environmentId } = oauth;
+
+  if (!session) {
+    logger('Warn', 'AI query route disabled: the deployment carries no OAuth session');
+
+    return [];
+  }
+
+  const client = new AiProxyClient({
+    forestServerUrl: session.forestServerUrl,
+    timeoutMs: config.aiTimeoutMs,
+  });
+
+  return [
+    createAiRoutesMiddleware({
+      client,
+      sessionStore: session.store,
+      serverClient: session.serverClient,
+      environmentId,
+      logger,
+    }),
+  ];
+}
+
 function buildAgentMiddlewares(
   config: BFFConfig,
   logger: Logger,
-  environmentId?: number,
+  oauth: OAuthEdge,
+  aiMiddlewares: Middleware[],
 ): Middleware[] {
   const { forestAuthSecret, defaultTimezone } = config;
+  const { environmentId } = oauth;
 
   if (!forestAuthSecret) {
     logger('Warn', 'Agent edge disabled: FOREST_AUTH_SECRET is missing');
@@ -295,8 +354,14 @@ function buildAgentMiddlewares(
     createAuthModeMiddleware({ authSecret: forestAuthSecret }),
     apiKeyStep,
     createPerKeyOriginMiddleware(),
-    createOpenApiRoutes({ version, enabled: config.openapiEnabled, source }),
+    createOpenApiRoutes({
+      version,
+      enabled: config.openapiEnabled,
+      source,
+      hasAiQueryRoute: aiMiddlewares.length > 0,
+    }),
     ...(bundle ? [createContextRoutesMiddleware({ store: bundle.store, environmentId })] : []),
+    ...aiMiddlewares,
     createTimezoneMiddleware({ defaultTimezone }),
     ...buildAgentRouteMiddlewares(bundle, config, logger),
   ];
@@ -317,13 +382,14 @@ export default async function runCli(
   }
 
   const oauth = await buildOAuthMiddlewares(config, logger);
-  const agentMiddlewares = buildAgentMiddlewares(config, logger, oauth.environmentId);
+  const aiMiddlewares = buildAiMiddlewares(config, oauth, logger);
+  const agentMiddlewares = buildAgentMiddlewares(config, logger, oauth, aiMiddlewares);
   const agentErrorMiddleware =
     agentMiddlewares.length > 0 ? [agentScoped(createErrorMiddleware({ logger }))] : [];
   const middlewares = [
     createCorsMiddleware({ allowedOrigins: config.allowedOrigins }),
     ...agentErrorMiddleware,
-    bodyParser({ jsonLimit: BODY_LIMIT }),
+    createBodyParser(aiMiddlewares.length > 0),
     ...oauth.middlewares,
     // Outside the agent-scoped chain on purpose: the viewer is a public page, the document it fetches
     // is not. Gated on the edge being mounted too, like the error middleware above: with no agent

@@ -4,6 +4,7 @@ import { TIMEZONE_HEADER } from '../timezone/timezone-middleware';
 /** Neutral and always valid, where a local zone would only be right for whoever generated it. */
 const SAMPLE_TIMEZONE = 'UTC';
 const KEY_VARIABLE = 'BFF_KEY';
+const SESSION_VARIABLE = 'BFF_SESSION';
 
 /**
  * Browser source, injected into the page: it decorates the fetched document with `x-codeSamples`,
@@ -32,6 +33,7 @@ const SAMPLES_SCRIPT = `
         var TIMEZONE_HEADER = ${JSON.stringify(TIMEZONE_HEADER)};
         var SAMPLE_TIMEZONE = ${JSON.stringify(SAMPLE_TIMEZONE)};
         var KEY_VARIABLE = ${JSON.stringify(KEY_VARIABLE)};
+        var SESSION_VARIABLE = ${JSON.stringify(SESSION_VARIABLE)};
 
         /**
          * Every walk below is depth-bounded, because a document can reference itself: a filter is a
@@ -107,27 +109,29 @@ const SAMPLES_SCRIPT = `
           return body;
         }
 
-        // The scheme the operation names, so a document that renames or re-types it stays right.
+        // The page only ever unlocks with the API key, so it wins wherever an operation takes it. A
+        // session-only operation samples the bearer it names, under its OWN variable: that route
+        // answers 403 oauth_required to an API key, so reusing the unlock secret would emit a
+        // command that cannot work.
         function authHeader(spec, operation) {
           var schemes = (spec.components || {}).securitySchemes || {};
           var requirements = operation.security || spec.security || [];
-          var header = null;
+          var apiKey = null;
+          var bearer = null;
 
           requirements.forEach(function (requirement) {
             Object.keys(requirement).forEach(function (name) {
-              if (header) return;
-
               var scheme = schemes[name] || {};
 
               if (scheme.type === 'apiKey' && scheme.in === 'header') {
-                header = { name: scheme.name, prefix: '', secret: true };
+                apiKey = { name: scheme.name, prefix: '', variable: KEY_VARIABLE };
               } else if (scheme.type === 'http' && scheme.scheme === 'bearer') {
-                header = { name: 'Authorization', prefix: 'Bearer ', secret: true };
+                bearer = { name: 'Authorization', prefix: 'Bearer ', variable: SESSION_VARIABLE };
               }
             });
           });
 
-          return header || { name: KEY_HEADER, prefix: '', secret: true };
+          return apiKey || bearer || { name: KEY_HEADER, prefix: '', variable: KEY_VARIABLE };
         }
 
         /**
@@ -195,13 +199,13 @@ const SAMPLES_SCRIPT = `
           var lines = ['curl -X ' + method + ' ' + shellQuoted(url)];
 
           headers.forEach(function (header) {
-            if (header.secret) {
+            if (header.variable) {
               var expanded =
                 shellExpanding(header.name) +
                 ': ' +
                 shellExpanding(header.prefix) +
                 '$' +
-                KEY_VARIABLE;
+                header.variable;
 
               lines.push('  -H "' + expanded + '"');
 
@@ -224,10 +228,10 @@ const SAMPLES_SCRIPT = `
           ];
 
           headers.forEach(function (header) {
-            var value = header.secret
+            var value = header.variable
               ? (header.prefix ? JSON.stringify(header.prefix) + ' + ' : '') +
                 'process.env.' +
-                KEY_VARIABLE
+                header.variable
               : JSON.stringify(header.value);
 
             lines.push('    ' + JSON.stringify(header.name) + ': ' + value + ',');
@@ -261,10 +265,14 @@ const SAMPLES_SCRIPT = `
           ];
 
           headers.forEach(function (header) {
-            var read = "ENV.fetch('" + KEY_VARIABLE + "')";
-            var value = header.secret
-              ? (header.prefix ? '"' + header.prefix + '#{' + read + '}"' : read)
-              : rubyQuoted(header.value);
+            if (!header.variable) {
+              lines.push('request[' + rubyQuoted(header.name) + '] = ' + rubyQuoted(header.value));
+
+              return;
+            }
+
+            var read = "ENV.fetch('" + header.variable + "')";
+            var value = header.prefix ? '"' + header.prefix + '#{' + read + '}"' : read;
 
             lines.push('request[' + rubyQuoted(header.name) + '] = ' + value);
           });
