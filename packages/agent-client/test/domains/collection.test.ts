@@ -408,33 +408,33 @@ describe('Collection', () => {
     it('should forward the action context timezone to the form states', async () => {
       await collection.action('sendEmail', { recordIds: ['1'], timezone: 'America/New_York' });
 
-      expect(FieldFormStates).toHaveBeenCalledWith(
-        'sendEmail',
-        '/forest/actions/send-email',
-        'users',
+      expect(FieldFormStates).toHaveBeenCalledWith({
+        actionName: 'sendEmail',
+        actionPath: '/forest/actions/send-email',
+        collectionName: 'users',
         httpRequester,
-        ['1'],
-        { load: false, change: [] },
-        [],
-        undefined,
-        'America/New_York',
-      );
+        ids: ['1'],
+        hooks: { load: false, change: [] },
+        fallbackFields: [],
+        fallbackLayout: undefined,
+        timezone: 'America/New_York',
+      });
     });
 
     it('should forward no timezone when the action context omits it', async () => {
       await collection.action('sendEmail', { recordIds: ['1'] });
 
-      expect(FieldFormStates).toHaveBeenCalledWith(
-        'sendEmail',
-        '/forest/actions/send-email',
-        'users',
+      expect(FieldFormStates).toHaveBeenCalledWith({
+        actionName: 'sendEmail',
+        actionPath: '/forest/actions/send-email',
+        collectionName: 'users',
         httpRequester,
-        ['1'],
-        { load: false, change: [] },
-        [],
-        undefined,
-        undefined,
-      );
+        ids: ['1'],
+        hooks: { load: false, change: [] },
+        fallbackFields: [],
+        fallbackLayout: undefined,
+        timezone: undefined,
+      });
     });
 
     it('should pipe-encode composite recordIds when executing the action', async () => {

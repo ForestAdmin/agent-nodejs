@@ -37,17 +37,17 @@ export default class Collection extends CollectionChart {
       .filter((id): id is RecordId => Boolean(id))
       .map(serializeRecordId);
 
-    const fieldsFormStates = new FieldFormStates(
+    const fieldsFormStates = new FieldFormStates({
       actionName,
-      actionInfo.endpoint,
-      this.name,
-      this.httpRequester,
+      actionPath: actionInfo.endpoint,
+      collectionName: this.name,
+      httpRequester: this.httpRequester,
       ids,
-      actionInfo.hooks,
-      actionInfo.fields,
-      actionInfo.layout,
-      actionContext?.timezone,
-    );
+      hooks: actionInfo.hooks,
+      fallbackFields: actionInfo.fields,
+      fallbackLayout: actionInfo.layout,
+      timezone: actionContext?.timezone,
+    });
 
     const action = new Action(
       this.name,

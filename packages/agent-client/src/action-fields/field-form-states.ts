@@ -9,6 +9,18 @@ import ActionFieldMultipleChoice from './action-field-multiple-choice';
 import FieldGetter from './field-getter';
 import encodeFileFieldValue from './file-value';
 
+export interface FieldFormStatesOptions {
+  actionName: string;
+  actionPath: string;
+  collectionName: string;
+  httpRequester: HttpRequester;
+  ids: string[];
+  hooks?: ForestSchemaAction['hooks'];
+  fallbackFields?: ForestSchemaAction['fields'];
+  fallbackLayout?: ForestSchemaAction['layout'];
+  timezone?: string;
+}
+
 export default class FieldFormStates {
   private readonly fields: FieldGetter[];
   private readonly actionName: string;
@@ -22,17 +34,17 @@ export default class FieldFormStates {
   private readonly fallbackLayout?: ForestSchemaAction['layout'];
   private readonly timezone?: string;
 
-  constructor(
-    actionName: string,
-    actionPath: string,
-    collectionName: string,
-    httpRequester: HttpRequester,
-    ids: string[],
-    hooks?: ForestSchemaAction['hooks'],
-    fallbackFields?: ForestSchemaAction['fields'],
-    fallbackLayout?: ForestSchemaAction['layout'],
-    timezone?: string,
-  ) {
+  constructor({
+    actionName,
+    actionPath,
+    collectionName,
+    httpRequester,
+    ids,
+    hooks,
+    fallbackFields,
+    fallbackLayout,
+    timezone,
+  }: FieldFormStatesOptions) {
     this.fields = [];
     this.actionName = actionName;
     this.actionPath = actionPath;

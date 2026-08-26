@@ -18,13 +18,13 @@ describe('FieldFormStates', () => {
     httpRequester = {
       query: jest.fn(),
     } as unknown as jest.Mocked<HttpRequester>;
-    fieldFormStates = new FieldFormStates(
-      'testAction',
-      '/forest/actions/test-action',
-      'users',
+    fieldFormStates = new FieldFormStates({
+      actionName: 'testAction',
+      actionPath: '/forest/actions/test-action',
+      collectionName: 'users',
       httpRequester,
-      ['1', '2'],
-    );
+      ids: ['1', '2'],
+    });
   });
 
   describe('loadInitialState', () => {
@@ -277,17 +277,14 @@ describe('FieldFormStates', () => {
 
   describe('timezone', () => {
     const withTimezone = (timezone?: string) =>
-      new FieldFormStates(
-        'testAction',
-        '/forest/actions/test-action',
-        'users',
+      new FieldFormStates({
+        actionName: 'testAction',
+        actionPath: '/forest/actions/test-action',
+        collectionName: 'users',
         httpRequester,
-        ['1'],
-        undefined,
-        undefined,
-        undefined,
+        ids: ['1'],
         timezone,
-      );
+      });
 
     it('should send the timezone in the load hook query when one is provided', async () => {
       httpRequester.query.mockResolvedValue({ fields: [], layout: [] });
@@ -362,14 +359,14 @@ describe('FieldFormStates', () => {
 
   describe('hooks configuration', () => {
     it('should not throw when hooks.load is false and server returns 404', async () => {
-      const formStates = new FieldFormStates(
-        'testAction',
-        '/forest/actions/test-action',
-        'users',
+      const formStates = new FieldFormStates({
+        actionName: 'testAction',
+        actionPath: '/forest/actions/test-action',
+        collectionName: 'users',
         httpRequester,
-        ['1'],
-        { load: false, change: [] },
-      );
+        ids: ['1'],
+        hooks: { load: false, change: [] },
+      });
 
       const error404 = new AgentHttpError(404, null, 'Not Found');
       httpRequester.query.mockRejectedValue(error404);
@@ -388,15 +385,15 @@ describe('FieldFormStates', () => {
         { field: 'note', type: 'String' },
       ];
 
-      const formStates = new FieldFormStates(
-        'testAction',
-        '/forest/actions/test-action',
-        'users',
+      const formStates = new FieldFormStates({
+        actionName: 'testAction',
+        actionPath: '/forest/actions/test-action',
+        collectionName: 'users',
         httpRequester,
-        ['1'],
-        { load: false, change: [] },
+        ids: ['1'],
+        hooks: { load: false, change: [] },
         fallbackFields,
-      );
+      });
 
       await formStates.loadInitialState();
 
@@ -436,15 +433,15 @@ describe('FieldFormStates', () => {
         },
       ];
 
-      const formStates = new FieldFormStates(
-        'testAction',
-        '/forest/actions/test-action',
-        'users',
+      const formStates = new FieldFormStates({
+        actionName: 'testAction',
+        actionPath: '/forest/actions/test-action',
+        collectionName: 'users',
         httpRequester,
-        ['1'],
-        { load: false, change: ['onFieldChanged'] },
+        ids: ['1'],
+        hooks: { load: false, change: ['onFieldChanged'] },
         fallbackFields,
-      );
+      });
 
       await formStates.loadInitialState();
 
@@ -468,16 +465,16 @@ describe('FieldFormStates', () => {
         { component: 'Input', fieldId: 'note' },
       ] as never[];
 
-      const formStates = new FieldFormStates(
-        'testAction',
-        '/forest/actions/test-action',
-        'users',
+      const formStates = new FieldFormStates({
+        actionName: 'testAction',
+        actionPath: '/forest/actions/test-action',
+        collectionName: 'users',
         httpRequester,
-        ['1'],
-        { load: false, change: [] },
+        ids: ['1'],
+        hooks: { load: false, change: [] },
         fallbackFields,
         fallbackLayout,
-      );
+      });
 
       await formStates.loadInitialState();
 
@@ -486,15 +483,15 @@ describe('FieldFormStates', () => {
     });
 
     it('should skip the request when hooks.load is false and the static form is empty', async () => {
-      const formStates = new FieldFormStates(
-        'testAction',
-        '/forest/actions/test-action',
-        'users',
+      const formStates = new FieldFormStates({
+        actionName: 'testAction',
+        actionPath: '/forest/actions/test-action',
+        collectionName: 'users',
         httpRequester,
-        ['1'],
-        { load: false, change: [] },
-        [],
-      );
+        ids: ['1'],
+        hooks: { load: false, change: [] },
+        fallbackFields: [],
+      });
 
       await formStates.loadInitialState();
 
@@ -503,13 +500,13 @@ describe('FieldFormStates', () => {
     });
 
     it('should probe and swallow the 404 when the schema has no hooks at all', async () => {
-      const formStates = new FieldFormStates(
-        'testAction',
-        '/forest/actions/test-action',
-        'users',
+      const formStates = new FieldFormStates({
+        actionName: 'testAction',
+        actionPath: '/forest/actions/test-action',
+        collectionName: 'users',
         httpRequester,
-        ['1'],
-      );
+        ids: ['1'],
+      });
 
       const error404 = new AgentHttpError(404, null, 'Not Found');
       httpRequester.query.mockRejectedValue(error404);
@@ -523,14 +520,14 @@ describe('FieldFormStates', () => {
     });
 
     it('should rethrow the 404 when the schema declares a load hook', async () => {
-      const formStates = new FieldFormStates(
-        'testAction',
-        '/forest/actions/test-action',
-        'users',
+      const formStates = new FieldFormStates({
+        actionName: 'testAction',
+        actionPath: '/forest/actions/test-action',
+        collectionName: 'users',
         httpRequester,
-        ['1'],
-        { load: true, change: [] },
-      );
+        ids: ['1'],
+        hooks: { load: true, change: [] },
+      });
 
       const error404 = new AgentHttpError(404, null, 'Not Found');
       httpRequester.query.mockRejectedValue(error404);
@@ -539,14 +536,14 @@ describe('FieldFormStates', () => {
     });
 
     it('should throw when hooks.load is false but server returns 500', async () => {
-      const formStates = new FieldFormStates(
-        'testAction',
-        '/forest/actions/test-action',
-        'users',
+      const formStates = new FieldFormStates({
+        actionName: 'testAction',
+        actionPath: '/forest/actions/test-action',
+        collectionName: 'users',
         httpRequester,
-        ['1'],
-        { load: false, change: [] },
-      );
+        ids: ['1'],
+        hooks: { load: false, change: [] },
+      });
 
       const error500 = new AgentHttpError(500, null, 'Internal Server Error');
       httpRequester.query.mockRejectedValue(error500);
@@ -555,14 +552,14 @@ describe('FieldFormStates', () => {
     });
 
     it('should load fields when hooks.load is false but server responds successfully', async () => {
-      const formStates = new FieldFormStates(
-        'testAction',
-        '/forest/actions/test-action',
-        'users',
+      const formStates = new FieldFormStates({
+        actionName: 'testAction',
+        actionPath: '/forest/actions/test-action',
+        collectionName: 'users',
         httpRequester,
-        ['1'],
-        { load: false, change: [] },
-      );
+        ids: ['1'],
+        hooks: { load: false, change: [] },
+      });
 
       httpRequester.query.mockResolvedValue({
         fields: [
@@ -578,14 +575,14 @@ describe('FieldFormStates', () => {
     });
 
     it('should call loadInitialState when hooks.load is true', async () => {
-      const formStates = new FieldFormStates(
-        'testAction',
-        '/forest/actions/test-action',
-        'users',
+      const formStates = new FieldFormStates({
+        actionName: 'testAction',
+        actionPath: '/forest/actions/test-action',
+        collectionName: 'users',
         httpRequester,
-        ['1'],
-        { load: true, change: [] },
-      );
+        ids: ['1'],
+        hooks: { load: true, change: [] },
+      });
 
       httpRequester.query.mockResolvedValue({ fields: [], layout: [] });
 
@@ -597,14 +594,14 @@ describe('FieldFormStates', () => {
     });
 
     it('should skip change hook when hooks.change is empty', async () => {
-      const formStates = new FieldFormStates(
-        'testAction',
-        '/forest/actions/test-action',
-        'users',
+      const formStates = new FieldFormStates({
+        actionName: 'testAction',
+        actionPath: '/forest/actions/test-action',
+        collectionName: 'users',
         httpRequester,
-        ['1'],
-        { load: true, change: [] },
-      );
+        ids: ['1'],
+        hooks: { load: true, change: [] },
+      });
 
       httpRequester.query.mockResolvedValue({
         fields: [
@@ -621,14 +618,14 @@ describe('FieldFormStates', () => {
     });
 
     it('should call change hook when the changed field has a hook', async () => {
-      const formStates = new FieldFormStates(
-        'testAction',
-        '/forest/actions/test-action',
-        'users',
+      const formStates = new FieldFormStates({
+        actionName: 'testAction',
+        actionPath: '/forest/actions/test-action',
+        collectionName: 'users',
         httpRequester,
-        ['1'],
-        { load: true, change: ['changeHook'] },
-      );
+        ids: ['1'],
+        hooks: { load: true, change: ['changeHook'] },
+      });
 
       httpRequester.query.mockResolvedValue({
         fields: [
@@ -661,14 +658,14 @@ describe('FieldFormStates', () => {
     });
 
     it('should skip change hook when the changed field has no hook, even with change hooks', async () => {
-      const formStates = new FieldFormStates(
-        'testAction',
-        '/forest/actions/test-action',
-        'users',
+      const formStates = new FieldFormStates({
+        actionName: 'testAction',
+        actionPath: '/forest/actions/test-action',
+        collectionName: 'users',
         httpRequester,
-        ['1'],
-        { load: true, change: ['changeHook'] },
-      );
+        ids: ['1'],
+        hooks: { load: true, change: ['changeHook'] },
+      });
 
       httpRequester.query.mockResolvedValue({
         fields: [
