@@ -82,12 +82,19 @@ export interface ActionRoutesMiddlewareOptions {
   createClient?: (options: AgentActionClientOptions) => AgentActionClient;
 }
 
-async function handleForm(
-  ctx: Context,
-  action: ActionForm,
-  values: Record<string, unknown>,
-  logger: Logger,
-): Promise<void> {
+interface ActionHandlerArgs<TAction extends ActionForm> {
+  ctx: Context;
+  action: TAction;
+  values: Record<string, unknown>;
+  logger: Logger;
+}
+
+async function handleForm({
+  ctx,
+  action,
+  values,
+  logger,
+}: ActionHandlerArgs<ActionForm>): Promise<void> {
   // Each agent-hitting call is wrapped on its own; getFields/extractRawLayout/mapping stay outside
   // callAgent so a local BFF bug surfaces as a 500, not a mislabelled agent error. Fields and
   // layout are read AFTER tryToSetFields because a change hook rebuilds them in place.
@@ -97,12 +104,12 @@ async function handleForm(
   ctx.body = mapActionForm(action, skippedFields, extractRawLayout(action));
 }
 
-async function handleExecute(
-  ctx: Context,
-  action: Action,
-  values: Record<string, unknown>,
-  logger: Logger,
-): Promise<void> {
+async function handleExecute({
+  ctx,
+  action,
+  values,
+  logger,
+}: ActionHandlerArgs<Action>): Promise<void> {
   // setFields is strict: an unknown submitted field is a client error (400), not a 500. A transport
   // failure from the change-hook it triggers is a genuine agent error, so it goes to the mapper.
   try {
@@ -203,10 +210,12 @@ export default function createActionRoutesMiddleware({
       logger,
     );
 
+    const handlerArgs = { ctx, action, values, logger };
+
     if (verb === 'execute') {
-      await handleExecute(ctx, action, values, logger);
+      await handleExecute(handlerArgs);
     } else {
-      await handleForm(ctx, action, values, logger);
+      await handleForm(handlerArgs);
     }
   };
 }
