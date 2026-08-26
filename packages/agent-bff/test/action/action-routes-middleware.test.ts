@@ -304,7 +304,7 @@ describe('action routes middleware', () => {
 
     expect(loadAction).toHaveBeenCalledWith({
       collection: 'users',
-      action: 'approve',
+      actionName: 'approve',
       recordIds: ['1|2'],
       timezone: TIMEZONE,
     });
@@ -321,7 +321,7 @@ describe('action routes middleware', () => {
 
     expect(loadAction).toHaveBeenCalledWith({
       collection: 'users',
-      action: 'approve',
+      actionName: 'approve',
       recordIds: ['0'],
       timezone: TIMEZONE,
     });
@@ -339,7 +339,7 @@ describe('action routes middleware', () => {
     expect(response.status).toBe(200);
     expect(loadAction).toHaveBeenCalledWith({
       collection: 'users',
-      action: 'approve',
+      actionName: 'approve',
       recordIds: [],
       timezone: TIMEZONE,
     });
@@ -358,7 +358,7 @@ describe('action routes middleware', () => {
 
     expect(loadAction).toHaveBeenCalledWith({
       collection: 'users',
-      action: 'approve',
+      actionName: 'approve',
       recordIds: ['42'],
       timezone: 'America/New_York',
     });
@@ -510,7 +510,7 @@ describe('action execute', () => {
 
     expect(loadAction).toHaveBeenCalledWith({
       collection: 'users',
-      action: 'approve',
+      actionName: 'approve',
       recordIds: ['42'],
       timezone: TIMEZONE,
     });
@@ -534,7 +534,7 @@ describe('action execute', () => {
 
     expect(loadAction).toHaveBeenCalledWith({
       collection: 'users',
-      action: 'approve',
+      actionName: 'approve',
       recordIds: ['42'],
       timezone: 'Asia/Tokyo',
     });

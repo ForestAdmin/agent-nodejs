@@ -203,7 +203,7 @@ export default function createActionRoutesMiddleware({
       () =>
         client.loadAction({
           collection,
-          action: actionName,
+          actionName,
           recordIds,
           timezone: ctx.state.timezone as string,
         }),

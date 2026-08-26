@@ -32,7 +32,7 @@ describe('createAgentActionClient', () => {
     });
     const result = await client.loadAction({
       collection: 'users',
-      action: 'approve',
+      actionName: 'approve',
       recordIds: ['1', '2'],
       timezone: 'America/New_York',
     });

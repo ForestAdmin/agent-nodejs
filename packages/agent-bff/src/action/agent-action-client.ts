@@ -31,7 +31,7 @@ export interface Action extends ActionForm {
 
 export interface LoadActionParams {
   collection: string;
-  action: string;
+  actionName: string;
   recordIds: string[];
   timezone: string;
 }
@@ -77,7 +77,7 @@ export default function createAgentActionClient({
   });
 
   return {
-    loadAction: ({ collection, action, recordIds, timezone }) =>
-      client.collection(collection).action(action, { recordIds, timezone }),
+    loadAction: ({ collection, actionName, recordIds, timezone }) =>
+      client.collection(collection).action(actionName, { recordIds, timezone }),
   };
 }
