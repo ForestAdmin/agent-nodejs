@@ -103,9 +103,13 @@ STUB_PORT=13451
 STUB_DIR=$(mktemp -d)
 mkdir -p "$STUB_DIR/liana"
 printf '{"data":{"id":1}}' > "$STUB_DIR/liana/environment"
+# Bound to every interface, not just loopback: host-gateway resolves to the docker
+# bridge address on Linux, so a stub listening only on 127.0.0.1 is unreachable from
+# the container. It serves one static file for the length of this script.
+#
 # --directory rather than a `cd` subshell: `$!` must be python's own pid, or the
 # kill below reaps the subshell and leaves the server holding the port.
-python3 -m http.server "$STUB_PORT" --bind 127.0.0.1 --directory "$STUB_DIR" >/dev/null 2>&1 &
+python3 -m http.server "$STUB_PORT" --bind 0.0.0.0 --directory "$STUB_DIR" >/dev/null 2>&1 &
 STUB_PID=$!
 
 CONTAINER=""

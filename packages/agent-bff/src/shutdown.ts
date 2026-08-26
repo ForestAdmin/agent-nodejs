@@ -58,9 +58,14 @@ export default function armShutdown(options: ShutdownOptions): void {
   } = options;
 
   let stopping = false;
+  // The escalation has already reported failure and set the exit code. A `stop()` that finishes
+  // afterwards must stay quiet: announcing a clean stop and exiting 0 would overwrite it and
+  // report success for a shutdown someone had to interrupt.
+  let interrupted = false;
 
   const handle = (signal: NodeJS.Signals) => () => {
     if (stopping) {
+      interrupted = true;
       logger?.('Warn', 'Second termination signal, giving up on the grace period', { signal });
       exit(1);
 
@@ -73,10 +78,14 @@ export default function armShutdown(options: ShutdownOptions): void {
     server
       .stop(graceMs)
       .then(() => {
+        if (interrupted) return;
+
         logger?.('Info', 'Forest BFF stopped');
         exit(0);
       })
       .catch(() => {
+        if (interrupted) return;
+
         // The server failed to close cleanly. Nothing left to salvage, and staying alive would
         // hold the container open until it is killed — report it through the exit code instead.
         logger?.('Error', 'Shutdown failed, exiting anyway', { signal });
