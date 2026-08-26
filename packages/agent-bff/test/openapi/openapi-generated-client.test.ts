@@ -360,7 +360,7 @@ describe('a client generated from the emitted OpenAPI document', () => {
       expect(receivedAuthorizations).toEqual(['']);
     });
 
-    it('should send both credentials when the caller answers every scheme with the same token, which the BFF rejects with 400 ambiguous_credentials', async () => {
+    it('should send both credentials when the caller answers every scheme with the same token', async () => {
       configure(() => API_KEY);
 
       try {
