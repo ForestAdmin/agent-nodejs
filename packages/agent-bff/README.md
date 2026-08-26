@@ -90,8 +90,10 @@ The Docker image ships with [OpenTelemetry](https://opentelemetry.io/) APM built
 any OTLP-compatible backend (Datadog, Grafana Tempo, Jaeger, Honeycomb, etc.). It is **off by
 default** and turns on as soon as you point it at an OTLP receiver — no code changes or extra
 installs required. Tracing is set up before the app starts (auto-instrumentation for HTTP and the
-outbound calls to the agent and the Forest SaaS), and buffered spans are flushed on `SIGTERM` /
-`SIGINT`, alongside the graceful shutdown described above.
+outbound calls to the agent and the Forest SaaS). The graceful shutdown described above waits for
+the buffered spans to be exported before it exits, but gives that its own 2 second deadline rather
+than the 10 seconds in-flight requests get: an unreachable collector costs you the last spans, never
+the ability to stop. Worst case it adds ~3 seconds to a shutdown.
 
 Configure it entirely through the standard OTel environment variables:
 

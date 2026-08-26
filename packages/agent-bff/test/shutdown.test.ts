@@ -2,7 +2,7 @@ import type { Logger } from '../src/ports/logger-port';
 
 import armShutdown, { DEFAULT_GRACE_MS, FORCE_EXIT_MS } from '../src/shutdown';
 
-const flush = () =>
+const settle = () =>
   new Promise(resolve => {
     setImmediate(resolve);
   });
@@ -38,7 +38,7 @@ describe('armShutdown', () => {
       arm(500);
 
       handlers.SIGTERM();
-      await flush();
+      await settle();
 
       expect(stop).toHaveBeenCalledWith(500);
       expect(exit).toHaveBeenCalledWith(0);
@@ -48,7 +48,7 @@ describe('armShutdown', () => {
       arm();
 
       handlers.SIGINT();
-      await flush();
+      await settle();
 
       expect(stop).toHaveBeenCalledWith(DEFAULT_GRACE_MS);
     });
@@ -60,12 +60,67 @@ describe('armShutdown', () => {
       arm();
 
       handlers.SIGTERM();
-      await flush();
+      await settle();
 
       expect(exit).toHaveBeenCalledWith(1);
       expect(logger).toHaveBeenCalledWith('Error', 'Shutdown failed, exiting anyway', {
         signal: 'SIGTERM',
       });
+    });
+  });
+
+  describe('with a flush to run', () => {
+    it('should run it alongside the stop and exit only once both settle', async () => {
+      let releaseFlush: () => void = () => undefined;
+      const flush = jest.fn(
+        () =>
+          new Promise<void>(resolve => {
+            releaseFlush = resolve;
+          }),
+      );
+      armShutdown({ server: { stop }, logger, onSignal, exit, flush, flushMs: 500 });
+
+      handlers.SIGTERM();
+      await settle();
+
+      expect(flush).toHaveBeenCalledTimes(1);
+      expect(exit).not.toHaveBeenCalled();
+
+      releaseFlush();
+      await settle();
+
+      expect(exit).toHaveBeenCalledWith(0);
+    });
+
+    // A collector that never answers must cost the shutdown its last spans, not its ability to end.
+    // The deadline is the flush's own: telemetry does not get the grace period in-flight requests do.
+    it('should give up on the flush once its own deadline elapses', async () => {
+      jest.useFakeTimers();
+      const flush = jest.fn(
+        () =>
+          new Promise<void>(() => {
+            /* never settles */
+          }),
+      );
+      armShutdown({ server: { stop }, logger, onSignal, exit, flush, flushMs: 500 });
+
+      handlers.SIGTERM();
+      await Promise.resolve();
+      jest.advanceTimersByTime(500);
+      jest.useRealTimers();
+      await settle();
+
+      expect(exit).toHaveBeenCalledWith(0);
+    });
+
+    it('should not let a failing flush change the exit code', async () => {
+      const flush = jest.fn().mockRejectedValue(new Error('collector down'));
+      armShutdown({ server: { stop }, logger, onSignal, exit, flush });
+
+      handlers.SIGTERM();
+      await settle();
+
+      expect(exit).toHaveBeenCalledWith(0);
     });
   });
 
@@ -86,7 +141,7 @@ describe('armShutdown', () => {
       expect(exit).toHaveBeenCalledWith(1);
 
       release();
-      await flush();
+      await settle();
     });
 
     it('should not let the interrupted stop report success once it finishes', async () => {
@@ -101,7 +156,7 @@ describe('armShutdown', () => {
       handlers.SIGTERM();
       handlers.SIGINT();
       release();
-      await flush();
+      await settle();
 
       expect(exit).toHaveBeenCalledTimes(1);
       expect(exit).toHaveBeenCalledWith(1);
@@ -120,7 +175,7 @@ describe('armShutdown', () => {
       handlers.SIGTERM();
       handlers.SIGINT();
       fail(new Error('close failed'));
-      await flush();
+      await settle();
 
       expect(exit).toHaveBeenCalledTimes(1);
       expect(logger).not.toHaveBeenCalledWith(

@@ -9,11 +9,6 @@ import initTracing, {
 
 const ENDPOINT = 'http://collector:4318';
 
-const flushMicrotasks = () =>
-  new Promise(resolve => {
-    setImmediate(resolve);
-  });
-
 describe('initTracing', () => {
   let start: jest.Mock;
   let shutdown: jest.Mock;
@@ -21,8 +16,6 @@ describe('initTracing', () => {
   let getNodeAutoInstrumentations: jest.Mock;
   let OTLPTraceExporter: jest.Mock;
   let logger: jest.MockedFunction<Logger>;
-  let onSignal: jest.Mock;
-  let handlers: Record<string, () => void>;
 
   const modules = (): OtelModules =>
     ({
@@ -36,7 +29,6 @@ describe('initTracing', () => {
       env: { OTEL_EXPORTER_OTLP_ENDPOINT: ENDPOINT },
       logger,
       load: () => modules(),
-      onSignal,
       ...options,
     });
 
@@ -47,10 +39,6 @@ describe('initTracing', () => {
     getNodeAutoInstrumentations = jest.fn().mockReturnValue('instrumentations');
     OTLPTraceExporter = jest.fn().mockImplementation(() => 'exporter');
     logger = jest.fn();
-    handlers = {};
-    onSignal = jest.fn((signal: string, handler: () => void) => {
-      handlers[signal] = handler;
-    });
   });
 
   describe('when OTEL_EXPORTER_OTLP_ENDPOINT is absent', () => {
@@ -147,76 +135,23 @@ describe('initTracing', () => {
       });
     });
 
-    it('should arm a flush on SIGTERM and SIGINT', () => {
-      setup();
+    it('should hand the SDK back for the shutdown path to flush through', () => {
+      const sdk = setup();
 
-      expect(onSignal.mock.calls.map(([signal]) => signal)).toEqual(['SIGTERM', 'SIGINT']);
-    });
-  });
-
-  describe('on a termination signal', () => {
-    it('should flush the buffered spans', async () => {
-      setup();
-
-      handlers.SIGTERM();
-      await flushMicrotasks();
-
-      expect(shutdown).toHaveBeenCalledTimes(1);
+      expect(sdk).toEqual(expect.objectContaining({ shutdown: expect.any(Function) }));
     });
 
-    // Ending the process belongs to armShutdown, which closes the server first. A flush that
-    // exited here would cut in-flight requests short; one that re-raised the signal would not
-    // end anything at all, since the kernel gives PID 1 no default disposition.
-    it('should leave ending the process to the shutdown handler', async () => {
-      const exit = jest.spyOn(process, 'exit').mockImplementation((() => undefined) as never);
-      const kill = jest.spyOn(process, 'kill').mockReturnValue(true);
+    // Arming one here would swallow a signal the CLI has not armed its own handler for yet, and
+    // nothing would then terminate the process.
+    it('should register no signal handler of its own', () => {
+      const once = jest.spyOn(process, 'once').mockReturnValue(process);
+      const on = jest.spyOn(process, 'on').mockReturnValue(process);
+
       setup();
 
-      handlers.SIGTERM();
-      await flushMicrotasks();
-
-      expect(exit).not.toHaveBeenCalled();
-      expect(kill).not.toHaveBeenCalled();
+      expect(once).not.toHaveBeenCalled();
+      expect(on).not.toHaveBeenCalled();
       jest.restoreAllMocks();
-    });
-
-    it('should swallow a failing flush rather than leave an unhandled rejection behind', async () => {
-      shutdown.mockRejectedValue(new Error('collector unreachable'));
-      setup();
-
-      handlers.SIGTERM();
-      await flushMicrotasks();
-
-      expect(shutdown).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  describe('with the signal seam left to its default', () => {
-    let once: jest.SpyInstance;
-
-    beforeEach(() => {
-      once = jest.spyOn(process, 'once').mockReturnValue(process);
-    });
-
-    afterEach(() => {
-      jest.restoreAllMocks();
-    });
-
-    it('should register the flush on the real process', async () => {
-      initTracing({
-        env: { OTEL_EXPORTER_OTLP_ENDPOINT: ENDPOINT },
-        logger,
-        load: () => modules(),
-      });
-
-      expect(once).toHaveBeenCalledWith('SIGTERM', expect.any(Function));
-      expect(once).toHaveBeenCalledWith('SIGINT', expect.any(Function));
-
-      const [, handler] = once.mock.calls[0] as [string, () => void];
-      handler();
-      await flushMicrotasks();
-
-      expect(shutdown).toHaveBeenCalledTimes(1);
     });
   });
 });
