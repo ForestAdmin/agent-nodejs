@@ -5,6 +5,7 @@ import request from 'supertest';
 
 import runCli, { reportFatalError } from '../src/cli-core';
 import { ConfigurationError } from '../src/errors';
+import { restoreFetch, stubEnvironmentIdFetch } from './helpers/environment-id-fetch';
 
 const VALID_ENV = {
   FOREST_AUTH_SECRET: 'auth-secret',
@@ -48,6 +49,12 @@ function sessionToken() {
 }
 
 describe('runCli', () => {
+  const originalFetch = global.fetch;
+
+  afterEach(() => {
+    restoreFetch(originalFetch);
+  });
+
   describe('when a required var is absent but not malformed', () => {
     it('should still boot the server (model C, not fail-fast)', async () => {
       const server = await runCli({ ...VALID_ENV, FOREST_SERVER_URL: undefined }, noopLogger);
@@ -85,18 +92,8 @@ describe('runCli', () => {
       BFF_TOKEN_ENCRYPTION_KEY: Buffer.alloc(32).toString('base64'),
     } satisfies NodeJS.ProcessEnv;
 
-    afterEach(() => {
-      jest.restoreAllMocks();
-    });
-
     it('should wire OAuth routes (no disabled warning) and boot', async () => {
-      global.fetch = jest.fn().mockResolvedValue({
-        ok: true,
-        status: 200,
-        statusText: 'ok',
-        json: async () => ({ data: { id: '42' } }),
-      }) as unknown as typeof fetch;
-
+      const fetchEnvironmentId = stubEnvironmentIdFetch();
       const logs: string[] = [];
 
       const logger: Logger = (_level, message) => {
@@ -108,7 +105,7 @@ describe('runCli', () => {
       try {
         expect(server).toBeDefined();
         expect(logs).not.toContain('OAuth routes disabled: required configuration is missing');
-        expect(global.fetch).toHaveBeenCalledTimes(1);
+        expect(fetchEnvironmentId).toHaveBeenCalledTimes(1);
       } finally {
         await server.stop();
       }
@@ -132,16 +129,7 @@ describe('runCli', () => {
     } satisfies NodeJS.ProcessEnv;
 
     beforeEach(() => {
-      global.fetch = jest.fn().mockResolvedValue({
-        ok: true,
-        status: 200,
-        statusText: 'ok',
-        json: async () => ({ data: { id: '42' } }),
-      }) as unknown as typeof fetch;
-    });
-
-    afterEach(() => {
-      jest.restoreAllMocks();
+      stubEnvironmentIdFetch();
     });
 
     it('should parse a body just under 1mb and reach the route, which the 16kb global parser would have rejected', async () => {
