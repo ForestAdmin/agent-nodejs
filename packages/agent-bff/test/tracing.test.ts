@@ -22,7 +22,6 @@ describe('initTracing', () => {
   let OTLPTraceExporter: jest.Mock;
   let logger: jest.MockedFunction<Logger>;
   let onSignal: jest.Mock;
-  let raise: jest.Mock;
   let handlers: Record<string, () => void>;
 
   const modules = (): OtelModules =>
@@ -38,7 +37,6 @@ describe('initTracing', () => {
       logger,
       load: () => modules(),
       onSignal,
-      raise,
       ...options,
     });
 
@@ -53,7 +51,6 @@ describe('initTracing', () => {
     onSignal = jest.fn((signal: string, handler: () => void) => {
       handlers[signal] = handler;
     });
-    raise = jest.fn();
   });
 
   describe('when OTEL_EXPORTER_OTLP_ENDPOINT is absent', () => {
@@ -158,50 +155,54 @@ describe('initTracing', () => {
   });
 
   describe('on a termination signal', () => {
-    it('should flush the spans, then re-raise the same signal so the default action terminates', async () => {
+    it('should flush the buffered spans', async () => {
       setup();
 
       handlers.SIGTERM();
       await flushMicrotasks();
 
       expect(shutdown).toHaveBeenCalledTimes(1);
-      expect(raise).toHaveBeenCalledWith('SIGTERM');
     });
 
-    it('should re-raise SIGINT when SIGINT is what arrived', async () => {
+    // Ending the process belongs to armShutdown, which closes the server first. A flush that
+    // exited here would cut in-flight requests short; one that re-raised the signal would not
+    // end anything at all, since the kernel gives PID 1 no default disposition.
+    it('should leave ending the process to the shutdown handler', async () => {
+      const exit = jest.spyOn(process, 'exit').mockImplementation((() => undefined) as never);
+      const kill = jest.spyOn(process, 'kill').mockReturnValue(true);
       setup();
 
-      handlers.SIGINT();
+      handlers.SIGTERM();
       await flushMicrotasks();
 
-      expect(raise).toHaveBeenCalledWith('SIGINT');
+      expect(exit).not.toHaveBeenCalled();
+      expect(kill).not.toHaveBeenCalled();
+      jest.restoreAllMocks();
     });
 
-    it('should still re-raise when the flush rejects, so a failing exporter cannot hang the process', async () => {
+    it('should swallow a failing flush rather than leave an unhandled rejection behind', async () => {
       shutdown.mockRejectedValue(new Error('collector unreachable'));
       setup();
 
       handlers.SIGTERM();
       await flushMicrotasks();
 
-      expect(raise).toHaveBeenCalledWith('SIGTERM');
+      expect(shutdown).toHaveBeenCalledTimes(1);
     });
   });
 
-  describe('with the signal seams left to their defaults', () => {
+  describe('with the signal seam left to its default', () => {
     let once: jest.SpyInstance;
-    let kill: jest.SpyInstance;
 
     beforeEach(() => {
       once = jest.spyOn(process, 'once').mockReturnValue(process);
-      kill = jest.spyOn(process, 'kill').mockReturnValue(true);
     });
 
     afterEach(() => {
       jest.restoreAllMocks();
     });
 
-    it('should register on the real process and re-raise through process.kill', async () => {
+    it('should register the flush on the real process', async () => {
       initTracing({
         env: { OTEL_EXPORTER_OTLP_ENDPOINT: ENDPOINT },
         logger,
@@ -215,7 +216,7 @@ describe('initTracing', () => {
       handler();
       await flushMicrotasks();
 
-      expect(kill).toHaveBeenCalledWith(process.pid, 'SIGTERM');
+      expect(shutdown).toHaveBeenCalledTimes(1);
     });
   });
 });

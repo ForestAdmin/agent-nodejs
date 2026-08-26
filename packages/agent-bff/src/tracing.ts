@@ -8,8 +8,8 @@ import createConsoleLogger from './adapters/console-logger';
  * apart is what lets this module be imported by a test without arming an SDK.
  *
  * The SDK is initialised only when `OTEL_EXPORTER_OTLP_ENDPOINT` is set, so an install that never
- * opted into APM pays nothing. All configuration goes through the standard OTel environment
- * variables:
+ * opted into APM pays nothing. Ending the process is not this module's business — see `armFlush`.
+ * All configuration goes through the standard OTel environment variables:
  *
  *   OTEL_EXPORTER_OTLP_ENDPOINT   OTLP receiver (e.g. http://localhost:4318)
  *   OTEL_SERVICE_NAME             default: forestadmin-agent-bff
@@ -41,7 +41,6 @@ export interface TracingOptions {
   load?: () => OtelModules | undefined;
   /** Signal registration, as a seam: a test must not arm a handler on the real process. */
   onSignal?: (signal: NodeJS.Signals, handler: () => void) => void;
-  raise?: (signal: NodeJS.Signals) => void;
 }
 
 /** The packages this image installs for APM, and the export it takes from each. */
@@ -73,27 +72,22 @@ export function loadOtelModules(load: ModuleLoader = require): OtelModules | und
 }
 
 /**
- * Flushes buffered spans on the way out, then re-raises the signal so the default action terminates
- * the process. The BFF installs no signal handler of its own, and a listener SUPPRESSES the default
- * termination — arming one without re-raising would leave `docker stop` waiting out its timeout for
- * a SIGKILL. `once` has already removed this listener by the time the signal comes back around, so
- * the second delivery finds none and terminates.
+ * Flushes buffered spans on the way out, alongside the shutdown `armShutdown` runs — this handler
+ * does not end the process and must not try to. Ending it is `src/shutdown.ts`'s job: it closes the
+ * server, bounds the wait for in-flight requests and exits explicitly, which is the only thing that
+ * works when node is PID 1 (the kernel gives PID 1 no default disposition, so "let the default
+ * action terminate" ends in a SIGKILL rather than a clean exit).
  *
- * A failing flush must not keep the process alive either: the shutdown result is swallowed, the
- * signal is re-raised regardless.
+ * So this only flushes. Once both the flush and that shutdown settle the loop empties and the
+ * process exits on its own. A rejected flush is swallowed for the same reason: it must not become
+ * an unhandled rejection that outlives the shutdown it is running beside.
  */
-function armFlush(
-  sdk: OtelSdk,
-  options: Required<Pick<TracingOptions, 'onSignal' | 'raise'>>,
-): void {
+function armFlush(sdk: OtelSdk, onSignal: NonNullable<TracingOptions['onSignal']>): void {
   const signals: NodeJS.Signals[] = ['SIGTERM', 'SIGINT'];
 
   for (const signal of signals) {
-    options.onSignal(signal, () => {
-      void sdk
-        .shutdown()
-        .catch(() => undefined)
-        .then(() => options.raise(signal));
+    onSignal(signal, () => {
+      void sdk.shutdown().catch(() => undefined);
     });
   }
 }
@@ -114,9 +108,6 @@ export default function initTracing(options: TracingOptions = {}): OtelSdk | und
     load = loadOtelModules,
     onSignal = (signal, handler) => {
       process.once(signal, handler);
-    },
-    raise = signal => {
-      process.kill(process.pid, signal);
     },
   } = options;
 
@@ -144,7 +135,7 @@ export default function initTracing(options: TracingOptions = {}): OtelSdk | und
   });
 
   sdk.start();
-  armFlush(sdk, { onSignal, raise });
+  armFlush(sdk, onSignal);
 
   logger('Info', 'OpenTelemetry tracing enabled', { serviceName, endpoint });
 
