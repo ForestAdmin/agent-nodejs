@@ -67,10 +67,9 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
   protected async doExecute(): Promise<StepExecutionResult> {
     const { stepDefinition: step, incomingPendingData } = this.context;
 
-    // Deterministic mode: pure evaluation of build-time conditions against the run's step
-    // history — never calls the AI, never awaits input.
-    if (step.executionType === StepExecutionMode.Deterministic) {
-      return this.evaluateDeterministically(step);
+    // Conditions present *is* the deterministic mode: pure evaluation, no AI, no user input.
+    if (step.preRecordedArgs) {
+      return this.evaluateDeterministically(step, step.preRecordedArgs);
     }
 
     // Manual mode: the user picks the option from the frontend. Wait for their input
@@ -105,9 +104,8 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
 
   private async evaluateDeterministically(
     step: ConditionStepDefinition,
+    { optionConditions, fallbackOption }: NonNullable<ConditionStepDefinition['preRecordedArgs']>,
   ): Promise<StepExecutionResult> {
-    // Guaranteed by the schema's superRefine for the deterministic mode.
-    const { optionConditions, fallbackOption } = step.preRecordedArgs!;
     const stepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
 
     let matchedOption: string | undefined;
