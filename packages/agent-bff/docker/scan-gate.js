@@ -45,4 +45,4 @@ const summary = lines.join('\n');
 console.log(summary);
 if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${summary}\n`);
 
-console.log('\nNo blocking library vulnerabilities — npm-shared deps are report-only.');
+console.log('\nEvery library finding above is report-only — this step gates nothing today.');

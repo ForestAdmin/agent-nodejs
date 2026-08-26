@@ -22,7 +22,10 @@ WORKDIR /app
 # --frozen-lockfile guarantees the resolved tree matches yarn.lock exactly.
 # --ignore-scripts skips husky, native (node-gyp) builds, and binary downloads
 # irrelevant here (sqlite3 is dev-only and never loaded at runtime).
-COPY --parents package.json yarn.lock packages/*/package.json packages/workflow-executor/example/package.json ./
+# The second glob covers the workspaces nested one level under a package (today
+# only workflow-executor/example): naming them would make this build fail with an
+# opaque yarn error the next time someone adds one.
+COPY --parents package.json yarn.lock packages/*/package.json packages/*/*/package.json ./
 RUN yarn install --frozen-lockfile --ignore-scripts
 
 COPY . .

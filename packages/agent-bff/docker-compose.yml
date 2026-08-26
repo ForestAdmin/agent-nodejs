@@ -18,6 +18,13 @@ services:
     # (resolves natively on Docker Desktop, no-op there).
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    # Host side and container side are separate knobs: BFF_HOST_PORT remaps the
+    # published port without touching what the BFF listens on. HTTP_PORT=0 (an
+    # ephemeral port the app picks at boot) is a valid app value but cannot be
+    # published — there is no target port to write here — so leave it set.
     ports:
-      - "${HTTP_PORT:-3450}:${HTTP_PORT:-3450}"
+      - "${BFF_HOST_PORT:-3450}:${HTTP_PORT:-3450}"
+    # Longer than the BFF's own 10s grace period for in-flight requests, so the
+    # process gets to finish its shutdown instead of being SIGKILLed mid-way.
+    stop_grace_period: 15s
     # Healthcheck is inherited from the image's HEALTHCHECK (see Dockerfile).

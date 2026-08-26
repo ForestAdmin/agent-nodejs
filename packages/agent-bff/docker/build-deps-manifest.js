@@ -34,45 +34,30 @@ const RESOLUTIONS = {
 };
 
 function generate(packagesDir, outFile) {
-  // Collect every declared range per external dependency, tracking which packages
-  // ask for it — a flat install can hold only one version, so we must resolve
-  // disagreements deliberately rather than let iteration order decide.
-  const declared = {};
+  // A flat install holds one version per dependency, so two packages asking for
+  // different ranges is a decision, not something to let iteration order settle.
+  // It has never happened here — refusing keeps it that way, and keeps the answer
+  // out of this script.
+  const deps = {};
+  const declaredBy = {};
+
   for (const pkg of WORKSPACE_PACKAGES) {
     const manifestPath = path.join(packagesDir, pkg, 'package.json');
     const { dependencies = {} } = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 
     for (const [name, range] of Object.entries(dependencies)) {
       if (name.startsWith('@forestadmin/')) continue;
-      declared[name] = declared[name] || {};
-      (declared[name][range] = declared[name][range] || []).push(pkg);
-    }
-  }
 
-  const deps = {};
-  for (const [name, byRange] of Object.entries(declared)) {
-    const ranges = Object.keys(byRange);
-    if (ranges.length === 1) {
-      [deps[name]] = ranges;
-      continue;
-    }
+      if (deps[name] !== undefined && deps[name] !== range) {
+        throw new Error(
+          `Conflicting ranges for "${name}": ${deps[name]} (${declaredBy[name]}) and ` +
+            `${range} (${pkg}). Align the version in the source packages.`,
+        );
+      }
 
-    // Conflicting ranges. The image IS the BFF, so its own pin is authoritative
-    // (its tested version); any other conflict must be aligned by a human rather
-    // than silently collapsed.
-    const bffRange = ranges.find(r => byRange[r].includes('agent-bff'));
-    if (!bffRange) {
-      const detail = ranges.map(r => `${r} (${byRange[r].join(', ')})`).join('; ');
-      throw new Error(
-        `Conflicting ranges for "${name}" not arbitrated by agent-bff: ${detail}. ` +
-          'Align the version in the source packages.',
-      );
+      deps[name] = range;
+      declaredBy[name] = pkg;
     }
-    console.warn(
-      `[build-deps] "${name}": conflicting ranges (${ranges.join(', ')}); ` +
-        `using the BFF's pin "${bffRange}".`,
-    );
-    deps[name] = bffRange;
   }
 
   const sorted = Object.fromEntries(Object.keys(deps).sort().map(key => [key, deps[key]]));
