@@ -1,3 +1,19 @@
+# @forestadmin/agent-bff [1.21.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.20.2...@forestadmin/agent-bff@1.21.0) (2026-08-26)
+
+
+### Features
+
+* **agent-bff:** expose full-text search on the list and count endpoints ([#1843](https://github.com/ForestAdmin/agent-nodejs/issues/1843)) ([f56bf8f](https://github.com/ForestAdmin/agent-nodejs/commit/f56bf8fe9a49e53d6bca72f0dd2044cdee7a81cb))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.98.0
+* **@forestadmin/agent-testing:** upgraded to 1.2.4
+
 ## @forestadmin/agent-bff [1.20.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.20.1...@forestadmin/agent-bff@1.20.2) (2026-08-25)
 
 
