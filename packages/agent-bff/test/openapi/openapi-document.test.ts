@@ -165,13 +165,19 @@ describe('generateOpenApiDocument', () => {
     });
   });
 
-  it('should secure every data operation with the API key only, the one mode those routes accept', () => {
+  it('should let both auth modes reach every data and action operation, as mode 1 mints an agent token', () => {
     const operations = dataOperations();
 
     expect(operations).toHaveLength(6);
     operations.forEach(operation => {
-      expect(operation.security).toEqual([{ bffApiKey: [] }]);
+      expect(operation.security).toEqual([{ bffSession: [] }, { bffApiKey: [] }]);
     });
+  });
+
+  it('should keep the ai query relay on the session alone, the only credential it can forward', () => {
+    const ai = (document.paths ?? {})[AI_QUERY_PATH] as { post: { security: unknown } };
+
+    expect(ai.post.security).toEqual([{ bffSession: [] }]);
   });
 
   it('should let both auth modes reach the context contract, which is not caller-scoped', () => {
@@ -188,7 +194,7 @@ describe('generateOpenApiDocument', () => {
     ).bffSession;
 
     expect(session.description).toContain('Accepted on the context contract');
-    expect(session.description).toContain('the data and action routes advertise the API key only');
+    expect(session.description).toContain('every data and action route');
   });
 
   it('should require a body where parentId or recordIds is mandatory', () => {

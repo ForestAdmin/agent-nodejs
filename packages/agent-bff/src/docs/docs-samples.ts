@@ -107,27 +107,27 @@ const SAMPLES_SCRIPT = `
           return body;
         }
 
-        // The scheme the operation names, so a document that renames or re-types it stays right.
+        // The page only ever unlocks with the API key, so it wins wherever an operation takes it;
+        // a session-only operation still samples the bearer it names.
         function authHeader(spec, operation) {
           var schemes = (spec.components || {}).securitySchemes || {};
           var requirements = operation.security || spec.security || [];
-          var header = null;
+          var apiKey = null;
+          var bearer = null;
 
           requirements.forEach(function (requirement) {
             Object.keys(requirement).forEach(function (name) {
-              if (header) return;
-
               var scheme = schemes[name] || {};
 
               if (scheme.type === 'apiKey' && scheme.in === 'header') {
-                header = { name: scheme.name, prefix: '', secret: true };
+                apiKey = { name: scheme.name, prefix: '', secret: true };
               } else if (scheme.type === 'http' && scheme.scheme === 'bearer') {
-                header = { name: 'Authorization', prefix: 'Bearer ', secret: true };
+                bearer = { name: 'Authorization', prefix: 'Bearer ', secret: true };
               }
             });
           });
 
-          return header || { name: KEY_HEADER, prefix: '', secret: true };
+          return apiKey || bearer || { name: KEY_HEADER, prefix: '', secret: true };
         }
 
         /**
