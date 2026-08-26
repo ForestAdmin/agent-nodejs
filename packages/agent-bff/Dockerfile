@@ -92,8 +92,13 @@ USER node
 # probed, and the healthcheck below would report the container unhealthy forever.
 EXPOSE 3450
 
+# Trimmed and defaulted exactly the way `parsePort` does it (src/config/env-config.ts),
+# so the probe and the server always agree on the port: ` 8080 ` is a port the server
+# binds, and an untrimmed one would build a URL that cannot be requested — reporting a
+# perfectly healthy container unhealthy. Blank and whitespace-only fall back to 3450
+# there too, hence the trim BEFORE the default rather than after.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:'+(process.env.HTTP_PORT||3450)+'/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
+  CMD node -e "require('http').get('http://localhost:'+(String(process.env.HTTP_PORT||'').trim()||3450)+'/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
 
 # OCI image metadata (https://github.com/opencontainers/image-spec).
 LABEL org.opencontainers.image.title="forestadmin-agent-bff" \
