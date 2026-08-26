@@ -375,8 +375,19 @@ describe('the code samples the docs page injects', () => {
   it('should take the auth header from the scheme a session-only operation names', async () => {
     const page = await render(API_KEY_SPEC);
 
-    expect(page.sourceOf(AI_QUERY, 'cURL')).toContain('-H "Authorization: Bearer $BFF_KEY"');
+    expect(page.sourceOf(AI_QUERY, 'cURL')).toContain('-H "Authorization: Bearer $BFF_SESSION"');
     expect(page.sourceOf(AI_QUERY, 'cURL')).not.toContain('X-Forest-Bff-Key');
+  });
+
+  it('should not sample the unlock key on the session-only route, which answers 403 to it', async () => {
+    const page = await render(API_KEY_SPEC);
+
+    ['cURL', 'JavaScript', 'Ruby'].forEach(language => {
+      const source = page.sourceOf(AI_QUERY, language);
+
+      expect(source).toContain('BFF_SESSION');
+      expect(source).not.toContain('BFF_KEY');
+    });
   });
 
   it('should sample the key on an operation accepting both, since the reader unlocked with one', async () => {
@@ -417,7 +428,7 @@ describe('the code samples the docs page injects', () => {
       "request['X-Forest-Bff-Key'] = ENV.fetch('BFF_KEY')",
     );
     expect(page.sourceOf(AI_QUERY, 'Ruby')).toContain(
-      `request['Authorization'] = "Bearer #{ENV.fetch('BFF_KEY')}"`,
+      `request['Authorization'] = "Bearer #{ENV.fetch('BFF_SESSION')}"`,
     );
     expect(page.sourceOf(RELATION, 'Ruby')).toContain('request = Net::HTTP::Post.new(uri)');
   });
