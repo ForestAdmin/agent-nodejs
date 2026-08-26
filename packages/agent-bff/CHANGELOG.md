@@ -1,3 +1,20 @@
+# @forestadmin/agent-bff [1.23.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.22.0...@forestadmin/agent-bff@1.23.0) (2026-08-26)
+
+
+### Features
+
+* **agent-client:** allow per-request timezone override on action form hooks ([#1851](https://github.com/ForestAdmin/agent-nodejs/issues/1851)) ([8ee83f2](https://github.com/ForestAdmin/agent-nodejs/commit/8ee83f28bca24db36526a39f6f97c66b0b8c31e2))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.15.0
+* **@forestadmin/agent:** upgraded to 1.98.1
+* **@forestadmin/agent-testing:** upgraded to 1.2.5
+
 # @forestadmin/agent-bff [1.22.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.21.0...@forestadmin/agent-bff@1.22.0) (2026-08-26)
 
 
