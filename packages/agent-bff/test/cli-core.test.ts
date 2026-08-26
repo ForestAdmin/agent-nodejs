@@ -1,5 +1,8 @@
 import type { Logger } from '../src/ports/logger-port';
+import type { RequestListener } from 'http';
+import type { AddressInfo } from 'net';
 
+import { createServer, request as httpRequest } from 'http';
 import jsonwebtoken from 'jsonwebtoken';
 import request from 'supertest';
 
@@ -18,25 +21,43 @@ const VALID_ENV = {
 
 const noopLogger: Logger = () => undefined;
 
-const OVERSIZED_BODY_OUTCOMES = ['413', 'aborted:EPIPE', 'aborted:ECONNRESET'];
-
-async function oversizedBodyOutcome(
-  callback: Parameters<typeof request>[0],
+async function countedOversizedBodyStatus(
+  callback: RequestListener,
   path: string,
   token: string,
   bytes: number,
-): Promise<string> {
-  try {
-    const response = await request(callback)
-      .post(path)
-      .set('Authorization', `Bearer ${token}`)
-      .set('Content-Type', 'application/json')
-      .send(JSON.stringify({ messages: [{ role: 'user', content: 'x'.repeat(bytes) }] }))
-      .ok(() => true);
+): Promise<number> {
+  const server = createServer(callback);
+  await new Promise<void>(resolve => {
+    server.listen(0, resolve);
+  });
 
-    return String(response.status);
-  } catch (error) {
-    return `aborted:${(error as { code?: string }).code ?? 'unknown'}`;
+  try {
+    const { port } = server.address() as AddressInfo;
+
+    return await new Promise<number>((resolve, reject) => {
+      const outgoing = httpRequest(
+        {
+          port,
+          path,
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        },
+        response => {
+          response.resume();
+          resolve(response.statusCode as number);
+        },
+      );
+
+      outgoing.on('error', () => undefined);
+      outgoing.setTimeout(10_000, () => reject(new Error('the server never answered')));
+      outgoing.write(`{"messages":[{"role":"user","content":"${'x'.repeat(bytes)}"}]}`);
+      outgoing.end();
+    });
+  } finally {
+    await new Promise(resolve => {
+      server.close(resolve);
+    });
   }
 }
 
@@ -204,14 +225,14 @@ describe('runCli', () => {
       const server = await runCli(OAUTH_ENV, noopLogger);
 
       try {
-        const outcome = await oversizedBodyOutcome(
+        const status = await countedOversizedBodyStatus(
           server.callback,
           '/agent/v1/ai/query',
           sessionToken(),
           1_050_000,
         );
 
-        expect(OVERSIZED_BODY_OUTCOMES).toContain(outcome);
+        expect(status).toBe(413);
       } finally {
         await server.stop();
       }
@@ -376,14 +397,15 @@ describe('runCli', () => {
       const server = await runCli(VALID_ENV, noopLogger);
 
       try {
-        const outcome = await oversizedBodyOutcome(
-          server.callback,
-          '/agent/v1/ai/query',
-          token,
-          900_000,
-        );
+        const response = await request(server.callback)
+          .post('/agent/v1/ai/query')
+          .set('Authorization', `Bearer ${token}`)
+          .set('Content-Type', 'application/json')
+          .set('Content-Length', String(900_000))
+          .send('{"messages":[]}')
+          .ok(() => true);
 
-        expect(OVERSIZED_BODY_OUTCOMES).toContain(outcome);
+        expect(response.status).toBe(413);
       } finally {
         await server.stop();
       }
