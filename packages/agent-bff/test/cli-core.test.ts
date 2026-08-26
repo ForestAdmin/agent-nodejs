@@ -21,6 +21,8 @@ const VALID_ENV = {
 
 const noopLogger: Logger = () => undefined;
 
+const ANSWER_TIMEOUT_MS = 3_000;
+
 async function countedOversizedBodyStatus(
   callback: RequestListener,
   path: string,
@@ -49,12 +51,13 @@ async function countedOversizedBodyStatus(
         },
       );
 
-      outgoing.on('error', () => undefined);
-      outgoing.setTimeout(10_000, () => reject(new Error('the server never answered')));
+      outgoing.on('error', reject);
+      outgoing.setTimeout(ANSWER_TIMEOUT_MS, () => reject(new Error('the server never answered')));
       outgoing.write(`{"messages":[{"role":"user","content":"${'x'.repeat(bytes)}"}]}`);
       outgoing.end();
     });
   } finally {
+    server.closeAllConnections();
     await new Promise(resolve => {
       server.close(resolve);
     });
