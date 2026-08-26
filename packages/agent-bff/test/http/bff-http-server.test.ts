@@ -208,6 +208,44 @@ describe('BFFHttpServer', () => {
     });
   });
 
+  describe('when stopping a running server', () => {
+    it('should cut the remaining sockets once the grace period elapses', async () => {
+      jest.useFakeTimers();
+      const server = createServer({ ...VALID_ENV });
+      await server.start();
+
+      const internal = (server as unknown as { server: Server }).server;
+      const closeAll = jest.spyOn(internal, 'closeAllConnections');
+      jest.spyOn(internal, 'close').mockImplementation((() => internal) as Server['close']);
+
+      void server.stop(5_000);
+      jest.advanceTimersByTime(5_000);
+
+      expect(closeAll).toHaveBeenCalledTimes(1);
+
+      jest.restoreAllMocks();
+      jest.useRealTimers();
+      await closeServer(internal);
+    });
+
+    it('should not arm a deadline when no grace period is given', async () => {
+      jest.useFakeTimers();
+      const server = createServer({ ...VALID_ENV });
+      await server.start();
+
+      const internal = (server as unknown as { server: Server }).server;
+      const closeAll = jest.spyOn(internal, 'closeAllConnections');
+
+      await server.stop();
+      jest.advanceTimersByTime(60_000);
+
+      expect(closeAll).not.toHaveBeenCalled();
+
+      jest.restoreAllMocks();
+      jest.useRealTimers();
+    });
+  });
+
   describe('when the underlying server fails to close', () => {
     it('should reject with the close error', async () => {
       const server = createServer({ ...VALID_ENV });

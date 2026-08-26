@@ -73,6 +73,11 @@ docker run --rm ghcr.io/forestadmin/agent-bff:latest openapi > openapi.json
 
 Tags follow the npm package: `:latest`, `:1`, `:1.20` and the immutable `:1.20.2`.
 
+On `SIGTERM` or `SIGINT` the BFF stops accepting connections and gives the requests already in
+flight 10 seconds to finish before cutting their sockets, then exits 0. Allow for that in your
+orchestrator's grace period — `docker stop` defaults to 10s, which is exactly the deadline, so the
+Compose setup raises it to 15s. A second signal gives up on the wait and exits 1.
+
 ### Without Docker
 
 Packaged / production — run the bin:

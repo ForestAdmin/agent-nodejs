@@ -87,15 +87,30 @@ export default class BFFHttpServer {
     });
   }
 
-  async stop(): Promise<void> {
+  /**
+   * `close` stops accepting and drops idle keep-alive sockets, but it then waits for the requests
+   * still in flight — and a request that never completes would hold shutdown open forever. Passing
+   * `graceMs` bounds that wait: once it elapses the remaining sockets are cut and `close` returns.
+   * Without it the caller has no way to bound its own shutdown.
+   */
+  async stop(graceMs?: number): Promise<void> {
     return new Promise((resolve, reject) => {
-      if (!this.server) {
+      const { server } = this;
+
+      if (!server) {
         resolve();
 
         return;
       }
 
-      this.server.close(err => {
+      const timer =
+        graceMs === undefined
+          ? undefined
+          : setTimeout(() => server.closeAllConnections(), graceMs).unref();
+
+      server.close(err => {
+        if (timer) clearTimeout(timer);
+
         if (err) {
           reject(err);
         } else {
