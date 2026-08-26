@@ -163,6 +163,7 @@ CONTAINER=$(docker run -d -p "127.0.0.1:$PORT:3450" \
   -e FOREST_APP_URL=http://127.0.0.1:1 \
   -e AGENT_URL=http://127.0.0.1:1 \
   -e BFF_TOKEN_ENCRYPTION_KEY="$(openssl rand -base64 32)" \
+  -e OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318 \
   "$IMAGE")
 
 status=""
@@ -196,6 +197,9 @@ fi
 # terminate itself waits out the orchestrator's grace and is SIGKILLed, dropping in-flight
 # requests. Nothing outside the image exercises that — the unit tests run as an ordinary pid.
 #
+# Tracing is armed above against a collector that is not listening, so this also covers the case
+# that matters for the span flush: it must not hold the process past the grace period.
+#
 # -t 30 so this measures the BFF rather than whatever `docker stop` defaults to locally.
 STOP_STARTED=$(date +%s)
 docker stop -t 30 "$CONTAINER" >/dev/null
@@ -208,10 +212,10 @@ if [ "$STOP_CODE" != "0" ]; then
   exit 1
 fi
 if [ "$STOP_ELAPSED" -gt 8 ]; then
-  echo "::error::shutdown took ${STOP_ELAPSED}s; the connection close is no longer bounded"
+  echo "::error::shutdown took ${STOP_ELAPSED}s; the shutdown is no longer bounded"
   docker logs "$CONTAINER" 2>&1 || true
   exit 1
 fi
 
-echo "graceful shutdown: exit 0 in ${STOP_ELAPSED}s"
+echo "graceful shutdown with an unreachable collector: exit 0 in ${STOP_ELAPSED}s"
 echo "smoke test passed for $IMAGE"

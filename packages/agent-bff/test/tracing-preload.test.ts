@@ -53,4 +53,25 @@ describe('tracing-preload', () => {
 
     expect(loadPreload()).toBeUndefined();
   });
+
+  // A --require runs before the entry point, so anything thrown here kills the process before the
+  // BFF exists — a dead container in exchange for optional telemetry.
+  it('should start untraced rather than let a failing setup abort the process', () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+    (initTracing as jest.Mock).mockImplementation(() => {
+      throw new Error('sdk.start blew up');
+    });
+
+    expect(loadPreload()).toBeUndefined();
+    expect(warn).toHaveBeenCalledTimes(1);
+
+    const payload = JSON.parse(warn.mock.calls[0][0] as string);
+    expect(payload).toMatchObject({
+      level: 'Warn',
+      message: 'OpenTelemetry failed to initialise, starting untraced',
+      reason: 'sdk.start blew up',
+    });
+
+    jest.restoreAllMocks();
+  });
 });

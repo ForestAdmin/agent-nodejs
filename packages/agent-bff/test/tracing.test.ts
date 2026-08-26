@@ -6,6 +6,7 @@ import initTracing, {
   OTEL_MODULE_IDS,
   loadOtelModules,
   redactEndpoint,
+  serviceNameFromEnv,
 } from '../src/tracing';
 
 const ENDPOINT = 'http://collector:4318';
@@ -109,6 +110,29 @@ describe('initTracing', () => {
     });
   });
 
+  // Tracing is on as soon as either variable says so. Requiring an OTLP endpoint for
+  // OTEL_TRACES_EXPORTER=console would make the obvious debugging move need a collector.
+  describe('when only OTEL_TRACES_EXPORTER is set', () => {
+    it('should still arm the SDK, with no endpoint of ours to hand it', () => {
+      setup({ env: { OTEL_TRACES_EXPORTER: 'console' } });
+
+      expect(NodeSDK).toHaveBeenCalledTimes(1);
+      expect(OTLPTraceExporter).not.toHaveBeenCalled();
+      expect(logger).toHaveBeenCalledWith(
+        'Info',
+        'OpenTelemetry tracing enabled',
+        expect.objectContaining({ exporter: 'console' }),
+      );
+    });
+
+    it('should stay off when it is blank', () => {
+      const sdk = setup({ env: { OTEL_TRACES_EXPORTER: '   ' } });
+
+      expect(sdk).toBeUndefined();
+      expect(NodeSDK).not.toHaveBeenCalled();
+    });
+  });
+
   describe('when the packages are available', () => {
     it('should start an SDK carrying the OTLP exporter and the auto-instrumentations', () => {
       setup();
@@ -121,10 +145,40 @@ describe('initTracing', () => {
       expect(start).toHaveBeenCalledTimes(1);
     });
 
-    it('should prefer OTEL_SERVICE_NAME over the default service name', () => {
-      setup({ env: { OTEL_EXPORTER_OTLP_ENDPOINT: ENDPOINT, OTEL_SERVICE_NAME: 'bff-staging' } });
+    // Passing serviceName would put our default ahead of the SDK's own precedence, so the two
+    // documented ways of naming the service are left to it and only the fallback is ours.
+    it.each([
+      ['OTEL_SERVICE_NAME', { OTEL_SERVICE_NAME: 'bff-staging' }],
+      ['a service.name resource attribute', { OTEL_RESOURCE_ATTRIBUTES: 'service.name=bff-attr' }],
+    ])('should leave the service name to the SDK when %s is set', (_label, named) => {
+      setup({ env: { OTEL_EXPORTER_OTLP_ENDPOINT: ENDPOINT, ...named } });
 
-      expect(NodeSDK).toHaveBeenCalledWith(expect.objectContaining({ serviceName: 'bff-staging' }));
+      expect(NodeSDK).toHaveBeenCalledWith(
+        expect.not.objectContaining({ serviceName: expect.anything() }),
+      );
+    });
+
+    it('should report the name the environment carries, whichever way it was set', () => {
+      setup({
+        env: {
+          OTEL_EXPORTER_OTLP_ENDPOINT: ENDPOINT,
+          OTEL_RESOURCE_ATTRIBUTES: 'service.name=bff-attr',
+        },
+      });
+
+      expect(logger).toHaveBeenCalledWith(
+        'Info',
+        'OpenTelemetry tracing enabled',
+        expect.objectContaining({ serviceName: 'bff-attr' }),
+      );
+    });
+
+    it('should fall back to its own default when the environment names no service', () => {
+      setup();
+
+      expect(NodeSDK).toHaveBeenCalledWith(
+        expect.objectContaining({ serviceName: DEFAULT_SERVICE_NAME }),
+      );
     });
 
     it('should log the service name and endpoint it reports to', () => {
@@ -212,19 +266,49 @@ describe('initTracing', () => {
   });
 });
 
+describe('serviceNameFromEnv', () => {
+  it('should prefer OTEL_SERVICE_NAME', () => {
+    expect(
+      serviceNameFromEnv({
+        OTEL_SERVICE_NAME: 'explicit',
+        OTEL_RESOURCE_ATTRIBUTES: 'service.name=attribute',
+      }),
+    ).toBe('explicit');
+  });
+
+  it('should fall back to service.name in the resource attributes', () => {
+    expect(
+      serviceNameFromEnv({
+        OTEL_RESOURCE_ATTRIBUTES: 'deployment.environment=prod,service.name=from-attributes',
+      }),
+    ).toBe('from-attributes');
+  });
+
+  it.each([
+    ['neither is set', {}],
+    ['both are blank', { OTEL_SERVICE_NAME: '  ', OTEL_RESOURCE_ATTRIBUTES: 'service.name=  ' }],
+    ['the attributes name something else', { OTEL_RESOURCE_ATTRIBUTES: 'host.name=box' }],
+  ])('should report no name when %s', (_label, env) => {
+    expect(serviceNameFromEnv(env)).toBeUndefined();
+  });
+});
+
 describe('loadOtelModules', () => {
   it('should take each entry point from the package that provides it', () => {
+    const NodeSDK = () => undefined;
+    const getNodeAutoInstrumentations = () => undefined;
+    const OTLPTraceExporter = () => undefined;
     const packageExports = {
-      [OTEL_MODULE_IDS.sdk]: { NodeSDK: 'sdk' },
-      [OTEL_MODULE_IDS.instrumentations]: { getNodeAutoInstrumentations: 'instrumentations' },
-      [OTEL_MODULE_IDS.exporter]: { OTLPTraceExporter: 'exporter' },
+      [OTEL_MODULE_IDS.sdk]: { NodeSDK },
+      [OTEL_MODULE_IDS.instrumentations]: { getNodeAutoInstrumentations },
+      [OTEL_MODULE_IDS.exporter]: { OTLPTraceExporter },
     } as Record<string, Record<string, unknown>>;
     const load = jest.fn((id: string) => packageExports[id]);
 
     expect(loadOtelModules(load)).toEqual({
-      NodeSDK: 'sdk',
-      getNodeAutoInstrumentations: 'instrumentations',
-      OTLPTraceExporter: 'exporter',
+      NodeSDK,
+      getNodeAutoInstrumentations,
+      OTLPTraceExporter,
     });
     expect(load.mock.calls.map(([id]) => id)).toEqual([
       '@opentelemetry/sdk-node',
@@ -239,6 +323,23 @@ describe('loadOtelModules', () => {
     });
 
     expect(loadOtelModules(load)).toBeUndefined();
+  });
+
+  // Resolving is not finding what we came for. A truthy object of undefined members would skip the
+  // "packages not available" branch and throw a TypeError inside a --require, before the entry
+  // point runs — a dead container for an APM layer that is meant to degrade to a warning.
+  it.each([
+    ['sdk-node', OTEL_MODULE_IDS.sdk],
+    ['auto-instrumentations-node', OTEL_MODULE_IDS.instrumentations],
+    ['exporter-trace-otlp-http', OTEL_MODULE_IDS.exporter],
+  ])('should return undefined when %s loads without the export we read', (_label, missing) => {
+    const complete = {
+      [OTEL_MODULE_IDS.sdk]: { NodeSDK: () => undefined },
+      [OTEL_MODULE_IDS.instrumentations]: { getNodeAutoInstrumentations: () => undefined },
+      [OTEL_MODULE_IDS.exporter]: { OTLPTraceExporter: () => undefined },
+    } as Record<string, Record<string, unknown>>;
+
+    expect(loadOtelModules(id => (id === missing ? {} : complete[id]))).toBeUndefined();
   });
 
   // The packages ship only in the Docker image, so this is the branch an npm consumer
