@@ -90,6 +90,18 @@ describe('armShutdown', () => {
     });
   });
 
+  describe('with the signal seam left to its default', () => {
+    it('should register both handlers on the real process', () => {
+      const on = jest.spyOn(process, 'on').mockReturnValue(process);
+
+      armShutdown({ server: { stop }, exit });
+
+      expect(on).toHaveBeenCalledWith('SIGTERM', expect.any(Function));
+      expect(on).toHaveBeenCalledWith('SIGINT', expect.any(Function));
+      jest.restoreAllMocks();
+    });
+  });
+
   describe('with the exit seam left to its default', () => {
     // process.exit would discard whatever is still buffered on stdout, and stdout is a pipe
     // under Docker — the shutdown lines would never reach `docker logs`.
