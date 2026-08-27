@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/datasource-demo-fintech",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "publishConfig": {
@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@faker-js/faker": "^9.0.0",
-    "@forestadmin/datasource-customizer": "1.71.2",
+    "@forestadmin/datasource-customizer": "1.71.3",
     "@forestadmin/datasource-sql": "1.17.14",
     "@forestadmin/datasource-toolkit": "1.55.1",
     "knex": "^3.1.0",
