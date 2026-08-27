@@ -1,3 +1,10 @@
+## @forestadmin/workflow-executor [1.25.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.25.3...@forestadmin/workflow-executor@1.25.4) (2026-08-27)
+
+
+### Bug Fixes
+
+* **workflow-executor:** report invalid step definitions instead of dropping or coercing them ([#1836](https://github.com/ForestAdmin/agent-nodejs/issues/1836)) ([ee1a696](https://github.com/ForestAdmin/agent-nodejs/commit/ee1a696ce3829462020e985ff76463e0fc296988))
+
 ## @forestadmin/workflow-executor [1.25.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.25.2...@forestadmin/workflow-executor@1.25.3) (2026-08-26)
 
 
