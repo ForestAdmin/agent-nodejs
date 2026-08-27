@@ -12,7 +12,7 @@ import type {
   UpdateOverrideHandler,
 } from './decorators/override/types';
 import type { RelationDefinition } from './decorators/relation/types';
-import type { SearchDefinition } from './decorators/search/types';
+import type { SearchReplaceDefinition } from './decorators/search/types';
 import type { SegmentDefinition } from './decorators/segment/types';
 import type { WriteDefinition } from './decorators/write/write-replace/types';
 import type {
@@ -600,6 +600,8 @@ export default class CollectionCustomizer<
    * A field selection narrows the same default search, so the agent knows which columns are read
    * and checks them against the caller's read permissions: an extended search keeps working, and a
    * path the role may not read is refused by name. Prefer it whenever it expresses what you need.
+   * On a collection whose datasource searches natively (`enableSearch()`), it does not narrow that
+   * native search — it replaces it with the agent's own per-column one, restricted to the selection.
    *
    * A handler is unrestricted, and pays for it. The fields it reads are exempt from read
    * permissions on a plain search: the caller supplies the text and the handler picks the fields,
@@ -616,12 +618,12 @@ export default class CollectionCustomizer<
    *   return { field: 'name', operator: 'Contains', value: searchString };
    * });
    */
-  replaceSearch(definition: SearchDefinition<S, N>): this {
+  replaceSearch(definition: SearchReplaceDefinition<S, N>): this {
     return this.pushCustomization(async () => {
       this.stack.search
         .getCollection(this.name)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .replaceSearch(definition as SearchDefinition<any, any>);
+        .replaceSearch(definition as SearchReplaceDefinition<any, any>);
     });
   }
 

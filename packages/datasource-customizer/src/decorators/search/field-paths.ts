@@ -44,8 +44,12 @@ export function lenientGetSchema(
 }
 
 /**
- * The field paths a search string reaches through the `relation.column:term` syntax, resolved the
- * same way the search decorator resolves them — fuzzily, and across to-many relations too.
+ * The field paths a search string reaches through the `relation.column:term` syntax, resolved
+ * fuzzily and across to-many relations too.
+ *
+ * Unused by the decorator, which derives its own footprint from `getSearchableFields` so the paths
+ * it reports and the ones it searches cannot diverge. Kept only because it has been exported from
+ * the package index since 1.71.x; nothing keeps it in step with what a search actually reads.
  */
 export function getSearchedFieldPaths(collection: Collection, search: string): string[] {
   return extractSpecifiedFields(parseQuery(search))

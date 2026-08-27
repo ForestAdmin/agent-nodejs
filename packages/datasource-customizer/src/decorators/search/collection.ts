@@ -1,6 +1,10 @@
 import type { SearchOptions } from './collection-search-context';
 import type { QueryContext } from './generated-parser/QueryParser';
-import type { SearchDefinition, SearchFieldsDefinition, SearchHandlerDefinition } from './types';
+import type {
+  SearchFieldsDefinition,
+  SearchHandlerDefinition,
+  SearchReplaceDefinition,
+} from './types';
 import type {
   Caller,
   Collection,
@@ -21,10 +25,10 @@ import { extractSpecifiedFields, generateConditionTree, parseQuery } from './par
 
 export default class SearchCollectionDecorator extends CollectionDecorator {
   override dataSource: DataSourceDecorator<SearchCollectionDecorator>;
-  replacer: SearchDefinition = null;
+  replacer: SearchReplaceDefinition = null;
   searchable = true;
 
-  replaceSearch(replacer: SearchDefinition): void {
+  replaceSearch(replacer: SearchReplaceDefinition): void {
     this.searchable = true;
     this.replacer = replacer;
     this.markSchemaAsDirty();
@@ -99,6 +103,13 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
       ? []
       : this.getFields(this.childCollection, Boolean(options?.extended));
 
+    // Resolved the same way the included ones are, or `excludeFields: ['panLast4']` would silently
+    // fail to drop a `pan_last4` column that `includeFields` resolves. An unresolvable name is kept
+    // as written: it excludes nothing either way.
+    const excludedFields = new Set(
+      (options?.excludeFields ?? []).map(name => lenientGetSchema(this, name)?.field ?? name),
+    );
+
     return new Map(
       [
         ...defaultFields,
@@ -108,7 +119,7 @@ export default class SearchCollectionDecorator extends CollectionDecorator {
           .map(schema => [schema.field, schema.schema] as [string, ColumnSchema]),
       ]
         .filter(Boolean)
-        .filter(([field]) => !options?.excludeFields?.includes(field)),
+        .filter(([field]) => !excludedFields.has(field)),
     );
   }
 

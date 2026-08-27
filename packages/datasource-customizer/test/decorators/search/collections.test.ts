@@ -863,6 +863,31 @@ describe('getSearchedFields', () => {
   });
 
   describe('when a field selection narrows the default search', () => {
+    // Every column searchable by an `IContains` term, so what the condition tree reads can be
+    // compared against what the footprint claims.
+    const buildSearchableCards = () =>
+      buildCollection(
+        {
+          fields: {
+            id: factories.columnSchema.uuidPrimaryKey().build(),
+            panLast4: factories.columnSchema.text().build(),
+            holderId: factories.columnSchema.build({ columnType: 'Uuid' }),
+            holder: factories.manyToOneSchema.build({
+              foreignCollection: 'holders',
+              foreignKey: 'holderId',
+            }),
+          },
+        },
+        [
+          factories.collection.build({
+            name: 'holders',
+            schema: factories.collectionSchema.build({
+              fields: { nationalId: factories.columnSchema.text().build() },
+            }),
+          }),
+        ],
+      );
+
     test('it answers the footprint instead of refusing to tell', () => {
       const decorator = buildCards();
       decorator.replaceSearch({ excludeFields: ['panLast4'] });
@@ -902,27 +927,7 @@ describe('getSearchedFields', () => {
     });
 
     test('it covers every path the search actually reads', async () => {
-      const decorator = buildCollection(
-        {
-          fields: {
-            id: factories.columnSchema.uuidPrimaryKey().build(),
-            panLast4: factories.columnSchema.text().build(),
-            holderId: factories.columnSchema.build({ columnType: 'Uuid' }),
-            holder: factories.manyToOneSchema.build({
-              foreignCollection: 'holders',
-              foreignKey: 'holderId',
-            }),
-          },
-        },
-        [
-          factories.collection.build({
-            name: 'holders',
-            schema: factories.collectionSchema.build({
-              fields: { nationalId: factories.columnSchema.text().build() },
-            }),
-          }),
-        ],
-      );
+      const decorator = buildSearchableCards();
       decorator.replaceSearch({ includeFields: ['holder:nationalId'] });
 
       const footprint = decorator
@@ -940,14 +945,52 @@ describe('getSearchedFields', () => {
       expect(footprint).toEqual(expect.arrayContaining(read));
     });
 
-    // `onlyFields` drops the `field:term` syntax from the searchable set, and the walker then
-    // searches the replaced set with the term reassembled.
-    test('it covers what a dot-syntax term reads once onlyFields replaced the set', async () => {
+    test('it covers every path the search actually reads once excludeFields dropped one', async () => {
+      const decorator = buildSearchableCards();
+      decorator.replaceSearch({ excludeFields: ['panLast4'] });
+
+      const footprint = decorator
+        .getSearchedFields('martin', true)
+        .map(({ path }) => path)
+        .sort();
+
+      const { conditionTree } = await decorator.refineFilter(
+        caller,
+        factories.filter.build({ search: 'martin', searchExtended: true }),
+      );
+      const read = [...new Set(conditionTree.projection)].sort();
+
+      expect(read).not.toContain('panLast4');
+      expect(read).toContain('holder:nationalId');
+      expect(footprint).toEqual(expect.arrayContaining(read));
+    });
+
+    test('it excludes a column whose name the selection spells in another case', async () => {
+      const decorator = buildCollection({
+        fields: {
+          id: factories.columnSchema.uuidPrimaryKey().build(),
+          pan_last4: factories.columnSchema.text().build(),
+          label: factories.columnSchema.text().build(),
+        },
+      });
+      decorator.replaceSearch({ excludeFields: ['panLast4'] });
+
+      const { conditionTree } = await decorator.refineFilter(
+        caller,
+        factories.filter.build({ search: 'martin', searchExtended: false }),
+      );
+
+      expect(decorator.getSearchedFields('martin', false).map(({ path }) => path)).not.toContain(
+        'pan_last4',
+      );
+      expect(conditionTree).toEqual(new ConditionTreeLeaf('label', 'IContains', 'martin'));
+    });
+
+    test('it excludes a relation path the selection spells in another case', () => {
       const decorator = buildCollection(
         {
           fields: {
             id: factories.columnSchema.uuidPrimaryKey().build(),
-            panLast4: factories.columnSchema.text().build(),
             holderId: factories.columnSchema.build({ columnType: 'Uuid' }),
             holder: factories.manyToOneSchema.build({
               foreignCollection: 'holders',
@@ -959,11 +1002,22 @@ describe('getSearchedFields', () => {
           factories.collection.build({
             name: 'holders',
             schema: factories.collectionSchema.build({
-              fields: { nationalId: factories.columnSchema.text().build() },
+              fields: { national_id: factories.columnSchema.text().build() },
             }),
           }),
         ],
       );
+      decorator.replaceSearch({ excludeFields: ['holder:nationalId'] });
+
+      expect(decorator.getSearchedFields('martin', true).map(({ path }) => path)).not.toContain(
+        'holder:national_id',
+      );
+    });
+
+    // `onlyFields` drops the `field:term` syntax from the searchable set, and the walker then
+    // searches the replaced set with the term reassembled.
+    test('it covers what a dot-syntax term reads once onlyFields replaced the set', async () => {
+      const decorator = buildSearchableCards();
       decorator.replaceSearch({ onlyFields: ['holder:nationalId'] });
 
       const footprint = decorator.getSearchedFields('panLast4:1850', true).map(({ path }) => path);

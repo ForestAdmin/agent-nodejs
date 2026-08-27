@@ -1,5 +1,8 @@
 import type { CollectionDecorator, DataSource, RecordData } from '@forestadmin/datasource-toolkit';
 
+import type { SearchReplaceDefinition } from '@forestadmin/datasource-customizer';
+
+import { DataSourceCustomizer } from '@forestadmin/datasource-customizer';
 import { CollectionActionEvent } from '@forestadmin/forestadmin-client';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
@@ -526,6 +529,90 @@ describe('read permissions on related collections', () => {
       );
 
       expect(list.mock.calls[0][1]).toMatchObject({ search: 'martin', searchExtended: true });
+    });
+  });
+
+  // The suite above stubs `getSearchedFields` to pin the route's policy. These run the real
+  // `replaceSearch` field selection through the whole stack instead, so what the decorator reports
+  // and what the route does with it are checked together.
+  describe('extended search through a real replaceSearch field selection', () => {
+    const buildCustomizedDataSource = async (definition: SearchReplaceDefinition) => {
+      const base = buildDataSource();
+      const customizer = new DataSourceCustomizer();
+
+      customizer.addDataSource(async () => base);
+      customizer.customizeCollection('cards', collection => collection.replaceSearch(definition));
+
+      return { base, dataSource: await customizer.getDataSource(() => {}) };
+    };
+
+    it('should refuse an extended search by naming a denied path, not for want of a footprint', async () => {
+      const { base, dataSource } = await buildCustomizedDataSource({
+        includeFields: ['holder:nationalId'],
+      });
+      const services = buildServices(['accounts', 'contracts', 'organizations']);
+      const list = jest.spyOn(base.getCollection('cards'), 'list').mockResolvedValue([]);
+
+      // The refusal a field selection buys: the denied collection is named, where the handler form
+      // could only be told the fields were undeterminable.
+      await expect(
+        new List(services, options, dataSource, 'cards').handleList(
+          buildContext({ query: { search: 'martin', searchExtended: '1' } }),
+        ),
+      ).rejects.toThrow(
+        /You cannot search on 'holder:\w+': you are not allowed to read the 'holders' collection\./,
+      );
+
+      expect(list).not.toHaveBeenCalled();
+    });
+
+    it('should refuse it on a plain search too, where the handler form was served', async () => {
+      const { base, dataSource } = await buildCustomizedDataSource({
+        includeFields: ['holder:nationalId'],
+      });
+      const services = buildServices();
+      const list = jest.spyOn(base.getCollection('cards'), 'list').mockResolvedValue([]);
+
+      await expect(
+        new List(services, options, dataSource, 'cards').handleList(
+          buildContext({ query: { search: 'martin' } }),
+        ),
+      ).rejects.toThrow("You cannot search on 'holder:nationalId'");
+
+      expect(list).not.toHaveBeenCalled();
+    });
+
+    it('should serve the extended search a handler form would have refused', async () => {
+      const { base, dataSource } = await buildCustomizedDataSource({
+        includeFields: ['holder:nationalId'],
+      });
+      const services = buildServices(['holders', 'accounts', 'contracts', 'organizations']);
+      const list = jest.spyOn(base.getCollection('cards'), 'list').mockResolvedValue([]);
+
+      await new List(services, options, dataSource, 'cards').handleList(
+        buildContext({ query: { search: 'martin', searchExtended: '1' } }),
+      );
+
+      // Served, and the search really reached the included path rather than being dropped.
+      expect(JSON.stringify(list.mock.calls[0][1].conditionTree)).toContain('holder:nationalId');
+    });
+
+    it('should still refuse the extended search of the equivalent handler', async () => {
+      const { base, dataSource } = await buildCustomizedDataSource(value => ({
+        field: 'panLast4',
+        operator: 'Contains',
+        value,
+      }));
+      const services = buildServices(['holders', 'accounts', 'contracts', 'organizations']);
+      const list = jest.spyOn(base.getCollection('cards'), 'list').mockResolvedValue([]);
+
+      await expect(
+        new List(services, options, dataSource, 'cards').handleList(
+          buildContext({ query: { search: 'martin', searchExtended: '1' } }),
+        ),
+      ).rejects.toThrow("You cannot run an extended search on the 'cards' collection");
+
+      expect(list).not.toHaveBeenCalled();
     });
   });
 

@@ -18,6 +18,7 @@ export {
   SearchDefinition,
   SearchFieldsDefinition,
   SearchHandlerDefinition,
+  SearchReplaceDefinition,
 } from './decorators/search/types';
 export { SegmentDefinition } from './decorators/segment/types';
 export * from './decorators/write/write-replace/types';
