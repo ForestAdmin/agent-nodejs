@@ -1,3 +1,10 @@
+## @forestadmin/datasource-customizer [1.71.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.71.2...@forestadmin/datasource-customizer@1.71.3) (2026-08-27)
+
+
+### Bug Fixes
+
+* **datasource-customizer:** let a narrowed search be permission-checked instead of refused ([#1852](https://github.com/ForestAdmin/agent-nodejs/issues/1852)) ([bb81798](https://github.com/ForestAdmin/agent-nodejs/commit/bb8179837b655f46e34d60fc0e6dda97cd68ca24)), closes [#1840](https://github.com/ForestAdmin/agent-nodejs/issues/1840)
+
 ## @forestadmin/datasource-customizer [1.71.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.71.1...@forestadmin/datasource-customizer@1.71.2) (2026-08-25)
 
 
