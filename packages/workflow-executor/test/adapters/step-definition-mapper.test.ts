@@ -146,7 +146,7 @@ describe('toStepDefinition', () => {
     it('rejects an mcp-server task missing mcpServerId at the zod boundary', () => {
       const task = makeTask({ taskType: ServerTaskTypeEnum.McpServer, prompt: 'run mcp' });
 
-      expect(() => toStepDefinition(task)).toThrow();
+      expect(() => toStepDefinition(task)).toThrow(InvalidStepDefinitionError);
     });
 
     it('should map task with guideline taskType to guidance', () => {
@@ -307,6 +307,22 @@ describe('toStepDefinition', () => {
       expect(toStepDefinition(condition)).toMatchObject({
         executionType: ServerStepExecutionTypeEnum.Manual,
       });
+    });
+
+    // A newer orchestrator may send a deterministic mode this executor version does not know.
+    // The `.catch(FullyAutomated)` that used to sit on the condition schema would have silently
+    // handed the decision to the AI; the mapper must reject the run as malformed instead.
+    it('should throw InvalidStepDefinitionError for an unknown executionType instead of coercing to Full AI', () => {
+      const condition = makeCondition(
+        [
+          { stepId: 's1', buttonText: null, answer: 'Yes' },
+          { stepId: 's2', buttonText: null, answer: 'No' },
+        ],
+        { executionType: 'deterministic' as ServerWorkflowCondition['executionType'] },
+      );
+
+      expect(() => toStepDefinition(condition)).toThrow(InvalidStepDefinitionError);
+      expect(() => toStepDefinition(condition)).toThrow(/executionType/);
     });
 
     it('should throw InvalidStepDefinitionError when fewer than 2 options', () => {
