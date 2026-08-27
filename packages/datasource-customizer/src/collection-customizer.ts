@@ -12,7 +12,7 @@ import type {
   UpdateOverrideHandler,
 } from './decorators/override/types';
 import type { RelationDefinition } from './decorators/relation/types';
-import type { SearchDefinition } from './decorators/search/types';
+import type { SearchReplaceDefinition } from './decorators/search/types';
 import type { SegmentDefinition } from './decorators/segment/types';
 import type { WriteDefinition } from './decorators/write/write-replace/types';
 import type {
@@ -595,27 +595,35 @@ export default class CollectionCustomizer<
   }
 
   /**
-   * Replace the behavior of the search bar
+   * Replace the behavior of the search bar, either with a handler or with a field selection.
    *
-   * On a plain search, the fields the handler reads are exempt from read permissions: the caller
-   * supplies the text and the handler picks the fields, so the agent cannot tell an intended one
-   * from one the role may not read. Point a handler at a column of a collection a role cannot read
-   * and that role can test values against it, reading each answer from whether rows come back.
-   * An extended search is refused rather than exempted, because the caller owns that flag and can
-   * compare the same term with it off and on.
-   * @param definition handler to describe the new behavior
+   * A field selection narrows the same default search, so the agent knows which columns are read
+   * and checks them against the caller's read permissions: an extended search keeps working, and a
+   * path the role may not read is refused by name. Prefer it whenever it expresses what you need.
+   * On a collection whose datasource searches natively (`enableSearch()`), it does not narrow that
+   * native search — it replaces it with the agent's own per-column one, restricted to the selection.
+   *
+   * A handler is unrestricted, and pays for it. The fields it reads are exempt from read
+   * permissions on a plain search: the caller supplies the text and the handler picks the fields,
+   * so the agent cannot tell an intended one from one the role may not read. Point a handler at a
+   * column of a collection a role cannot read and that role can test values against it, reading
+   * each answer from whether rows come back. An extended search is refused outright rather than
+   * exempted, because the caller owns that flag and can compare the same term with it off and on.
+   * @param definition a handler describing the new behavior, or the fields the default search reads
    * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/search Documentation Link}
+   * @example
+   * .replaceSearch({ includeFields: ['project:name'], excludeFields: ['description'] });
    * @example
    * .replaceSearch(async (searchString) => {
    *   return { field: 'name', operator: 'Contains', value: searchString };
    * });
    */
-  replaceSearch(definition: SearchDefinition<S, N>): this {
+  replaceSearch(definition: SearchReplaceDefinition<S, N>): this {
     return this.pushCustomization(async () => {
       this.stack.search
         .getCollection(this.name)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .replaceSearch(definition as SearchDefinition<any, any>);
+        .replaceSearch(definition as SearchReplaceDefinition<any, any>);
     });
   }
 
