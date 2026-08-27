@@ -62,6 +62,7 @@
     "**/eslint/js-yaml": "^4.3.1",
     "**/@eslint/eslintrc/js-yaml": "^4.3.1",
     "**/@semrel-extra/topo/js-yaml": "^4.3.1",
+    "**/@hey-api/json-schema-ref-parser/js-yaml": "^4.3.1",
     "**/@oclif/core/js-yaml": "^3.15.1",
     "**/@istanbuljs/load-nyc-config/js-yaml": "^3.15.1",
     "semantic-release": "^25.0.0",
