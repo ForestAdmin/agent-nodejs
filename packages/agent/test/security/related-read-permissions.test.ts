@@ -1,6 +1,5 @@
-import type { CollectionDecorator, DataSource, RecordData } from '@forestadmin/datasource-toolkit';
-
 import type { SearchReplaceDefinition } from '@forestadmin/datasource-customizer';
+import type { CollectionDecorator, DataSource, RecordData } from '@forestadmin/datasource-toolkit';
 
 import { DataSourceCustomizer } from '@forestadmin/datasource-customizer';
 import { CollectionActionEvent } from '@forestadmin/forestadmin-client';
