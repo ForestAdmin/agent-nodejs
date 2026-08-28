@@ -304,7 +304,7 @@ describe('runCli', () => {
         expect(second.body.error.type).toBe('missing_timezone');
         expect(third.status).toBe(429);
         expect(third.body.error).toMatchObject({ type: 'too_many_requests', status: 429 });
-        expect(third.headers['retry-after']).toBeDefined();
+        expect(third.headers['retry-after']).toMatch(/^[1-9]\d*$/);
       } finally {
         await server.stop();
       }

@@ -98,6 +98,26 @@ describe('rate limit middleware', () => {
     expect(fresh.status).toBe(200);
   });
 
+  it('separates budgets per rendering, so the same user on two renderings keeps two windows', async () => {
+    const authenticate: ApiKeyAuthenticator['authenticate'] = async rawKey =>
+      rawKey === RAW_KEY
+        ? { agentToken: 'token', identity: identity(1, 1) }
+        : { agentToken: 'token', identity: identity(1, 2) };
+
+    const edge = buildEdge(
+      createRateLimitMiddleware({ now: () => 1_000_000, maxRequests: 1, windowMs: 60_000 }),
+      authenticate,
+    );
+
+    const first = await request(edge).get('/agent/v1/users/list').set(BFF_KEY_HEADER, RAW_KEY);
+    const sameUserOtherRendering = await request(edge)
+      .get('/agent/v1/users/list')
+      .set(BFF_KEY_HEADER, OTHER_KEY);
+
+    expect(first.status).toBe(200);
+    expect(sameUserOtherRendering.status).toBe(200);
+  });
+
   it('isolates the oauth bucket from the api-key bucket even at identical ids', async () => {
     const edge = buildEdge(
       createRateLimitMiddleware({ now: () => 1_000_000, maxRequests: 1, windowMs: 60_000 }),
@@ -132,6 +152,22 @@ describe('rate limit middleware', () => {
     expect(first.status).toBe(200);
     expect(throttled.status).toBe(429);
     expect(refreshed.status).toBe(200);
+  });
+
+  it('treats a request arriving exactly at the window boundary as a new window', async () => {
+    let current = 1_000_000;
+    const edge = buildEdge(
+      createRateLimitMiddleware({ now: () => current, maxRequests: 1, windowMs: 60_000 }),
+    );
+
+    const first = await request(edge).get('/agent/v1/users/list').set(BFF_KEY_HEADER, RAW_KEY);
+
+    current += 60_000;
+
+    const atBoundary = await request(edge).get('/agent/v1/users/list').set(BFF_KEY_HEADER, RAW_KEY);
+
+    expect(first.status).toBe(200);
+    expect(atBoundary.status).toBe(200);
   });
 
   it('rounds the Retry-After up to at least one second', async () => {

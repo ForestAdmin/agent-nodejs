@@ -37,7 +37,7 @@ const ERROR_STATUSES: Record<string, string> = {
   413: `The request body exceeds the BFF limit of ${BODY_LIMIT}`,
   415: 'The request declares a character set the server cannot decode. Other content types are NOT rejected: a form-urlencoded body is parsed and validated like JSON (its values arrive as strings, so typed fields such as page.limit fail with 400), while any other non-JSON content type is read as an absent body, silently dropping filters and pagination',
   422: 'A field is unknown, not filterable, or is a nested relation path',
-  429: 'The BFF rate-limited the request (the caller identity exceeded its per-window budget, and Retry-After carries the seconds to wait), or the agent rate-limited the request',
+  429: 'The BFF rate-limited the request (the caller identity exceeded its per-window budget, and Retry-After carries the seconds to wait); on data and action routes the agent may also rate-limit the request itself',
   500: 'The agent payload could not be mapped to the BFF contract, or the BFF hit an unexpected error',
   501: 'The BFF is running without an agent configured, so the proxy is not implemented',
   502: 'The agent could not be reached',
@@ -64,8 +64,8 @@ const RETRY_AFTER_HEADER = {
 const RETRY_AFTER_RATE_LIMIT_HEADER = {
   'Retry-After': {
     description:
-      'Seconds until the BFF rate-limit window of the caller resets. The BFF emits this 429 ' +
-      'itself once an identity exceeds its per-window request budget.',
+      'Seconds until the BFF rate-limit window of the caller resets. Present when the BFF ' +
+      'itself emitted this 429; an agent 429 relayed from upstream carries no header.',
     required: false,
     schema: { type: 'integer' as const },
   },
