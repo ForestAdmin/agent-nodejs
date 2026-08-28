@@ -446,6 +446,13 @@ describe('generateOpenApiDocument', () => {
     expect(listResponses()['429'].description).toContain('BFF rate-limited');
   });
 
+  it('should declare the 429 on the context route, which the same limiter answers', () => {
+    const context = responsesOf(`${ROUTE_PREFIX}/context`);
+
+    expect(context['429'].description).toContain('BFF rate-limited');
+    expect(Object.keys(context['429'].headers ?? {})).toEqual(['Retry-After']);
+  });
+
   it('should also set Retry-After on the AI query 429, which the same limiter answers', () => {
     const ai = responsesOf(`${ROUTE_PREFIX}/ai/query`);
     const header = (ai['429'].headers ?? {}) as {

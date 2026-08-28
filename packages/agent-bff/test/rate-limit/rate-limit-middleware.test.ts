@@ -186,6 +186,7 @@ describe('rate limit middleware', () => {
     expect(resident.status).toBe(200);
     expect(overflow.status).toBe(429);
     expect(overflow.body.error).toMatchObject({ type: 'too_many_requests', status: 429 });
+    expect(overflow.headers['retry-after']).toBe('60');
   });
 
   it('throttles concurrent bursts, not only sequential request chains', async () => {

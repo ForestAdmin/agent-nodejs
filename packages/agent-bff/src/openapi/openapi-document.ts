@@ -437,6 +437,7 @@ export function generateOpenApiDocument(
       400: errorRefs.byStatus['400'],
       401: errorRefs.byStatus['401'],
       403: errorRefs.byStatus['403'],
+      429: errorRefs.byStatus['429'],
       500: errorRefs.byStatus['500'],
       501: errorRefs.byStatus['501'],
       503: errorRefs.byStatus['503'],

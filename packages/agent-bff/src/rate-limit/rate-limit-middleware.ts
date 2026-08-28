@@ -90,7 +90,12 @@ export default function createRateLimitMiddleware({
       purgeExpired(current);
 
       if (buckets.size >= maxEntries) {
-        throw tooManyRequests(1, 'Too many requests: the rate limiter is saturated');
+        // Truthful delay: the table holds only live windows at this point (purge ran), so the
+        // earliest reset among them is when a slot frees for this identity.
+        const earliestReset = Math.min(...[...buckets.values()].map(live => live.resetAt));
+        const retryAfter = Math.max(1, Math.ceil((earliestReset - current) / 1000));
+
+        throw tooManyRequests(retryAfter, 'Too many requests: the rate limiter is saturated');
       }
 
       entry = { count: 0, resetAt: current + windowMs };
