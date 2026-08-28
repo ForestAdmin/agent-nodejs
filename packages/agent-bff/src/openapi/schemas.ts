@@ -148,17 +148,19 @@ export const ActionRequestSchema = z
 const ActionFormResponseFieldSchema = z
   .object({
     name: z.string(),
-    // Verbatim from the agent, so a list field carries `['String']` rather than `'StringList'`.
-    type: z.union([z.string(), z.array(z.string())]),
+    // Verbatim from the agent, so a list field carries exactly `['String']` rather than
+    // `'StringList'`: a one-element tuple, never a free-form array.
+    type: z.union([z.string(), z.tuple([z.string()])]),
     value: z.unknown().optional(),
     isRequired: z.boolean(),
     enumValues: z.union([z.array(z.string()), z.null()]).optional(),
   })
   .openapi('ActionFormResponseField', {
     description:
-      'A form field with its current value. `value` is the resolved value at load time and is ' +
-      'absent when the field carries none; `enumValues` is present only on an Enum field, and ' +
-      'null when the agent declares no options.',
+      'A form field with its current value. `value` is the resolved value at load time: absent ' +
+      'when the field carries none (the resolved value was undefined), an explicit null is ' +
+      'serialized as null. `enumValues` is present only on an Enum field, and null when the ' +
+      'agent declares no options.',
   });
 
 export const ActionFormResponseSchema = z
@@ -209,7 +211,7 @@ export const ActionResultWebhookSchema = z
   .openapi('ActionResultWebhook', {
     description:
       'The action asks the caller to fire an HTTP request. `headers` and `body` are relayed ' +
-      'from the agent payload and are absent when it carried none.',
+      'from the agent payload: absent when it omitted them, an explicit null relayed as null.',
   });
 
 export const ActionResultRedirectSchema = z

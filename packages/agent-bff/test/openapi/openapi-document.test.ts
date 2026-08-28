@@ -505,14 +505,14 @@ describe('the documented action responses', () => {
     });
   });
 
-  it('should carry a field type that is a string or an array of strings, verbatim from the agent', () => {
+  it('should carry a field type that is a string or the one-element list form, verbatim from the agent', () => {
     const field = schemas.ActionFormResponseField as unknown as {
       properties: { type: { anyOf: unknown[] } };
     };
 
     expect(field.properties.type.anyOf).toEqual([
       { type: 'string' },
-      { type: 'array', items: { type: 'string' } },
+      { type: 'array', prefixItems: [{ type: 'string' }] },
     ]);
   });
 
