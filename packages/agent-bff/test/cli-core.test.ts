@@ -185,7 +185,115 @@ describe('runCli', () => {
       }
     });
 
-    it('should leave a form body unparsed rather than let the generic parser cap it at its form limit', async () => {
+    it('should return 415 unsupported_media_type when a data route body arrives as text/plain', async () => {
+      const server = await runCli(OAUTH_ENV, noopLogger);
+
+      try {
+        const response = await request(server.callback)
+          .post('/agent/v1/books/list')
+          .set('Content-Type', 'text/plain')
+          .send(JSON.stringify({ page: { limit: 5 } }));
+
+        expect(response.status).toBe(415);
+        expect(response.body.error).toMatchObject({ type: 'unsupported_media_type', status: 415 });
+      } finally {
+        await server.stop();
+      }
+    });
+
+    it('should reject a form body on a data route with 415, not parse it as JSON', async () => {
+      const server = await runCli(OAUTH_ENV, noopLogger);
+
+      try {
+        const response = await request(server.callback)
+          .post('/agent/v1/books/list')
+          .type('form')
+          .send('page.limit=5');
+
+        expect(response.status).toBe(415);
+        expect(response.body.error.type).toBe('unsupported_media_type');
+      } finally {
+        await server.stop();
+      }
+    });
+
+    it('should return 415 on the ai route for a non-JSON content type, before auth', async () => {
+      const server = await runCli(OAUTH_ENV, noopLogger);
+
+      try {
+        const response = await request(server.callback)
+          .post('/agent/v1/ai/query')
+          .set('Authorization', `Bearer ${sessionToken()}`)
+          .set('Content-Type', 'text/plain')
+          .send(JSON.stringify({ messages: [] }));
+
+        expect(response.status).toBe(415);
+        expect(response.body.error.type).toBe('unsupported_media_type');
+      } finally {
+        await server.stop();
+      }
+    });
+
+    it('should still parse an application/*+json body on a data route', async () => {
+      const server = await runCli(OAUTH_ENV, noopLogger);
+
+      try {
+        const response = await request(server.callback)
+          .post('/agent/v1/books/list')
+          .set('Content-Type', 'application/vnd.api+json')
+          .send(JSON.stringify({ page: { limit: 5 } }));
+
+        expect(response.status).not.toBe(415);
+        expect(response.status).toBe(401);
+      } finally {
+        await server.stop();
+      }
+    });
+
+    it('should still parse a JSON body carrying a charset parameter', async () => {
+      const server = await runCli(OAUTH_ENV, noopLogger);
+
+      try {
+        const response = await request(server.callback)
+          .post('/agent/v1/books/list')
+          .set('Content-Type', 'application/json; charset=utf-8')
+          .send(JSON.stringify({ page: { limit: 5 } }));
+
+        expect(response.status).not.toBe(415);
+        expect(response.status).toBe(401);
+      } finally {
+        await server.stop();
+      }
+    });
+
+    it('should not reject a bodyless POST that carries no Content-Type', async () => {
+      const server = await runCli(OAUTH_ENV, noopLogger);
+
+      try {
+        const response = await request(server.callback).post('/agent/v1/books/list');
+
+        expect(response.status).not.toBe(415);
+        expect(response.status).toBe(401);
+      } finally {
+        await server.stop();
+      }
+    });
+
+    it('should never guard a GET request, whatever its Content-Type', async () => {
+      const server = await runCli(OAUTH_ENV, noopLogger);
+
+      try {
+        const response = await request(server.callback)
+          .get('/agent/v1/permissions')
+          .set('Content-Type', 'text/plain');
+
+        expect(response.status).not.toBe(415);
+      } finally {
+        await server.stop();
+      }
+    });
+
+    it('should reject a form body on the ai route with 415 before auth, not parse or cap it', async () => {
       const server = await runCli(OAUTH_ENV, noopLogger);
 
       try {
@@ -196,7 +304,8 @@ describe('runCli', () => {
           .send(`messages=${'x'.repeat(100_000)}`);
 
         expect(response.status).not.toBe(413);
-        expect(response.status).toBe(401);
+        expect(response.status).toBe(415);
+        expect(response.body.error.type).toBe('unsupported_media_type');
       } finally {
         await server.stop();
       }

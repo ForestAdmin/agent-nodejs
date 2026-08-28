@@ -35,7 +35,7 @@ const ERROR_STATUSES: Record<string, string> = {
   403: 'The action needs approval before it runs (the body carries the approving roles), the Forest identity behind the API key is not allowed, the origin is not allowed for this key, or the agent refused the collection, relation, or action',
   404: 'Unknown collection, relation, or action',
   413: `The request body exceeds the BFF limit of ${BODY_LIMIT}`,
-  415: 'The request declares a character set the server cannot decode. Other content types are NOT rejected: a form-urlencoded body is parsed and validated like JSON (its values arrive as strings, so typed fields such as page.limit fail with 400), while any other non-JSON content type is read as an absent body, silently dropping filters and pagination',
+  415: 'The request Content-Type is neither application/json nor an application/*+json type, including form-urlencoded, and is rejected with 415 instead of being silently dropped; or the declared character set cannot be decoded',
   422: 'A field is unknown, not filterable, or is a nested relation path',
   429: 'The agent rate-limited the request',
   500: 'The agent payload could not be mapped to the BFF contract, or the BFF hit an unexpected error',
@@ -165,7 +165,7 @@ const AI_DUAL_SHAPED_ERRORS: Record<string, string> = {
   401: `The BFF session is missing, invalid or expired, or the Forest server refused the access token this route forwards. ${AI_RELAYED_OR_ENVELOPE}`,
   403: `The request presented an API key instead of a session (type oauth_required), or the Forest server refused the query. ${AI_RELAYED_OR_ENVELOPE}`,
   413: `The request body exceeds the AI query limit of ${AI_BODY_LIMIT}, or the Forest AI proxy refused it as too large. ${AI_RELAYED_OR_ENVELOPE}`,
-  415: `The request declares a character set the BFF cannot decode. ${AI_RELAYED_OR_ENVELOPE}`,
+  415: `The request Content-Type is not application/json, or declares a character set the BFF cannot decode. ${AI_RELAYED_OR_ENVELOPE}`,
   429: `The Forest AI proxy rate-limited the query. ${AI_RELAYED_OR_ENVELOPE}`,
 };
 
@@ -316,10 +316,9 @@ const TIMEZONE_HEADER = z
 const SHARED_DESCRIPTION =
   'The timezone is resolved from the `X-Forest-Timezone` header first, then a `timezone` body ' +
   'field, then the BFF default when one is configured. A deployment without a default rejects a ' +
-  'request carrying neither with 400 missing_timezone, so send one of the two to be safe. Sending ' +
-  'a content type other than application/json is not an error: a form-urlencoded body is parsed ' +
-  'like JSON, while any other content type is read as absent, which silently drops any filter, ' +
-  'sort, or page.';
+  'request carrying neither with 400 missing_timezone, so send one of the two to be safe. Agent ' +
+  'routes read application/json (and application/*+json) bodies only: any other Content-Type, ' +
+  'form-urlencoded included, is rejected with 415 instead of being read as an absent body.';
 
 const GENERIC_DESCRIPTION =
   'Paths are generic: one per operation, with the collection, relation and action passed as path ' +

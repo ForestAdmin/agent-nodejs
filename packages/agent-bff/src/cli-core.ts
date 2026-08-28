@@ -25,7 +25,7 @@ import createPerKeyOriginMiddleware from './cors/per-key-origin';
 import createDataRoutesMiddleware from './data/data-routes-middleware';
 import createDocsRoutes from './docs/docs-routes';
 import { extractErrorMessage } from './errors';
-import { unauthorized } from './http/bff-http-error';
+import { unauthorized, unsupportedMediaType } from './http/bff-http-error';
 import BFFHttpServer from './http/bff-http-server';
 import BODY_LIMIT, { AI_BODY_LIMIT } from './http/body-limit';
 import createErrorMiddleware from './http/error-middleware';
@@ -47,6 +47,22 @@ function isAgentPath(path: string): boolean {
   return path === '/agent' || path.startsWith('/agent/');
 }
 
+const BODY_METHODS = new Set(['POST', 'PUT', 'PATCH']);
+
+// @koa/bodyparser skips a content type that matches no enableType without an error, which turns a
+// filtered query into an unfiltered one. Agent routes declare application/json only, so reject any
+// other declared type instead of letting the body be read as absent.
+function rejectNonJsonBody(ctx: Parameters<Middleware>[0]): void {
+  if (!BODY_METHODS.has(ctx.method)) return;
+  if (ctx.request.type === '') return;
+
+  const mime = ctx.request.type.toLowerCase();
+
+  if (mime !== 'application/json' && !(mime.startsWith('application/') && mime.endsWith('+json'))) {
+    throw unsupportedMediaType();
+  }
+}
+
 function agentScoped(middleware: Middleware): Middleware {
   return async function scoped(ctx, next) {
     if (!isAgentPath(ctx.path)) {
@@ -61,13 +77,13 @@ function agentScoped(middleware: Middleware): Middleware {
 
 function createBodyParser(hasAiQueryRoute: boolean): Middleware {
   const parseBody = bodyParser({ jsonLimit: BODY_LIMIT });
-
-  if (!hasAiQueryRoute) return parseBody;
-
   const parseAiBody = bodyParser({ jsonLimit: AI_BODY_LIMIT, enableTypes: ['json'] });
 
   return async function selectedBodyParser(ctx, next) {
-    if (ctx.path === AI_QUERY_ROUTE) {
+    // The error middleware that renders the 415 is agent-scoped, so the guard must be too.
+    if (isAgentPath(ctx.path)) rejectNonJsonBody(ctx);
+
+    if (hasAiQueryRoute && ctx.path === AI_QUERY_ROUTE) {
       await parseAiBody(ctx, next);
 
       return;
