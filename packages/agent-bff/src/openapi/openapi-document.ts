@@ -37,7 +37,7 @@ const ERROR_STATUSES: Record<string, string> = {
   413: `The request body exceeds the BFF limit of ${BODY_LIMIT}`,
   415: 'The request declares a character set the server cannot decode. Other content types are NOT rejected: a form-urlencoded body is parsed and validated like JSON (its values arrive as strings, so typed fields such as page.limit fail with 400), while any other non-JSON content type is read as an absent body, silently dropping filters and pagination',
   422: 'A field is unknown, not filterable, or is a nested relation path',
-  429: 'The agent rate-limited the request',
+  429: 'The BFF rate-limited the request (the caller identity exceeded its per-window budget, and Retry-After carries the seconds to wait), or the agent rate-limited the request',
   500: 'The agent payload could not be mapped to the BFF contract, or the BFF hit an unexpected error',
   501: 'The BFF is running without an agent configured, so the proxy is not implemented',
   502: 'The agent could not be reached',
@@ -56,6 +56,16 @@ const UNSUPPORTED_ACTION_RESULT_COMPONENT = 'UnsupportedActionResult';
 const RETRY_AFTER_HEADER = {
   'Retry-After': {
     description: 'Seconds to wait before retrying. Set when the API key could not be resolved.',
+    required: false,
+    schema: { type: 'integer' as const },
+  },
+};
+
+const RETRY_AFTER_RATE_LIMIT_HEADER = {
+  'Retry-After': {
+    description:
+      'Seconds until the BFF rate-limit window of the caller resets. The BFF emits this 429 ' +
+      'itself once an identity exceeds its per-window request budget.',
     required: false,
     schema: { type: 'integer' as const },
   },
@@ -89,6 +99,13 @@ function registerErrorComponent(
 // Every error body is identical across paths, and their descriptions are long: inlining them costs
 // ~2.8kB per path, which the unfolded document multiplies by every collection, relation and action.
 // Registering them once as components keeps a path's error block to a dozen refs.
+function retryAfterHeaders(status: string): { headers?: typeof RETRY_AFTER_HEADER } {
+  if (status === '503') return { headers: RETRY_AFTER_HEADER };
+  if (status === '429') return { headers: RETRY_AFTER_RATE_LIMIT_HEADER };
+
+  return {};
+}
+
 function registerErrorResponses(
   registry: OpenAPIRegistry,
   statuses: string[],
@@ -106,7 +123,7 @@ function registerErrorResponses(
     byStatus[status] = registerErrorComponent(registry, `Error${status}`, {
       description,
       schema: { $ref: ERROR_RESPONSE_REF },
-      ...(status === '503' ? { headers: RETRY_AFTER_HEADER } : {}),
+      ...retryAfterHeaders(status),
     });
   });
 
@@ -166,7 +183,7 @@ const AI_DUAL_SHAPED_ERRORS: Record<string, string> = {
   403: `The request presented an API key instead of a session (type oauth_required), or the Forest server refused the query. ${AI_RELAYED_OR_ENVELOPE}`,
   413: `The request body exceeds the AI query limit of ${AI_BODY_LIMIT}, or the Forest AI proxy refused it as too large. ${AI_RELAYED_OR_ENVELOPE}`,
   415: `The request declares a character set the BFF cannot decode. ${AI_RELAYED_OR_ENVELOPE}`,
-  429: `The Forest AI proxy rate-limited the query. ${AI_RELAYED_OR_ENVELOPE}`,
+  429: `The BFF rate-limited the request (its own envelope, with Retry-After), or the Forest AI proxy rate-limited the query. ${AI_RELAYED_OR_ENVELOPE}`,
 };
 
 const AI_ENVELOPE_ERRORS: Record<string, string> = {
@@ -191,6 +208,7 @@ function registerAiQueryErrorResponses(registry: OpenAPIRegistry): Record<string
     registerErrorComponent(registry, `Error${status}${AI_COMPONENT_SUFFIX}`, {
       description,
       schema: {},
+      headers: status === '429' ? RETRY_AFTER_RATE_LIMIT_HEADER : undefined,
     }),
   ]);
 

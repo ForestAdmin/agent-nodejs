@@ -32,6 +32,8 @@ export interface BFFConfig {
   agentTimeoutMs?: number;
   aiTimeoutMs: number;
   openapiEnabled: boolean;
+  rateLimitMaxRequests: number;
+  rateLimitWindowMs: number;
   httpPort: number;
   presence: PresenceMap;
   hasAllRequired: boolean;
@@ -41,6 +43,10 @@ const DECIMAL_INTEGER = /^\d+$/;
 export const DEFAULT_AGENT_TIMEOUT_MS = 10_000;
 export const DEFAULT_AI_TIMEOUT_MS = 120_000;
 export const MAX_TIMEOUT_MS = 2_147_483_647;
+export const DEFAULT_RATE_LIMIT_MAX_REQUESTS = 300;
+export const DEFAULT_RATE_LIMIT_WINDOW_MS = 60_000;
+export const MAX_RATE_LIMIT_REQUESTS = 10_000;
+export const MIN_RATE_LIMIT_WINDOW_MS = 1_000;
 const MAX_PORT = 65535;
 const ENCRYPTION_KEY_BYTES = 32;
 const BASE64_PATTERN = /^[A-Za-z0-9+/]+={0,2}$/;
@@ -122,6 +128,25 @@ function parseOpenApiEnabled(raw?: string): boolean {
   );
 }
 
+function parseBoundedInteger(
+  raw: string | undefined,
+  envName: string,
+  { min, max, fallback }: { min: number; max: number; fallback: number },
+): number {
+  const value = normalize(raw);
+  if (value === undefined) return fallback;
+
+  const parsed = DECIMAL_INTEGER.test(value.trim()) ? Number(value.trim()) : NaN;
+
+  if (Number.isNaN(parsed) || parsed < min || parsed > max) {
+    throw new ConfigurationError(
+      `Invalid configuration: ${envName} must be an integer between ${min} and ${max}.`,
+    );
+  }
+
+  return parsed;
+}
+
 export function parseConfig(env: NodeJS.ProcessEnv): BFFConfig {
   const normalized = Object.fromEntries(
     REQUIRED_KEYS.map(key => [key, normalize(env[key])]),
@@ -162,6 +187,24 @@ export function parseConfig(env: NodeJS.ProcessEnv): BFFConfig {
     ),
     aiTimeoutMs: parseTimeoutMs(env.BFF_AI_TIMEOUT_MS, 'BFF_AI_TIMEOUT_MS', DEFAULT_AI_TIMEOUT_MS),
     openapiEnabled: parseOpenApiEnabled(env.BFF_OPENAPI_ENABLED),
+    rateLimitMaxRequests: parseBoundedInteger(
+      env.BFF_RATE_LIMIT_MAX_REQUESTS,
+      'BFF_RATE_LIMIT_MAX_REQUESTS',
+      {
+        min: 1,
+        max: MAX_RATE_LIMIT_REQUESTS,
+        fallback: DEFAULT_RATE_LIMIT_MAX_REQUESTS,
+      },
+    ),
+    rateLimitWindowMs: parseBoundedInteger(
+      env.BFF_RATE_LIMIT_WINDOW_MS,
+      'BFF_RATE_LIMIT_WINDOW_MS',
+      {
+        min: MIN_RATE_LIMIT_WINDOW_MS,
+        max: MAX_TIMEOUT_MS,
+        fallback: DEFAULT_RATE_LIMIT_WINDOW_MS,
+      },
+    ),
     httpPort: parsePort(env.HTTP_PORT),
     presence,
     hasAllRequired: REQUIRED_KEYS.every(key => presence[key]) && tokenEncryptionKey !== undefined,

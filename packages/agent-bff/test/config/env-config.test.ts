@@ -1,7 +1,11 @@
 import {
   DEFAULT_AGENT_TIMEOUT_MS,
   DEFAULT_AI_TIMEOUT_MS,
+  DEFAULT_RATE_LIMIT_MAX_REQUESTS,
+  DEFAULT_RATE_LIMIT_WINDOW_MS,
+  MAX_RATE_LIMIT_REQUESTS,
   MAX_TIMEOUT_MS,
+  MIN_RATE_LIMIT_WINDOW_MS,
   REQUIRED_KEYS,
   parseConfig,
 } from '../../src/config/env-config';
@@ -323,6 +327,62 @@ describe('parseConfig', () => {
       );
       expect(() => parseConfig({ ...VALID_ENV, BFF_OPENAPI_ENABLED: 'maybe-secret' })).not.toThrow(
         /maybe-secret/,
+      );
+    });
+  });
+
+  describe('BFF_RATE_LIMIT_MAX_REQUESTS', () => {
+    it('should default to 300 per window when unset or blank', () => {
+      expect(parseConfig({ ...VALID_ENV }).rateLimitMaxRequests).toBe(
+        DEFAULT_RATE_LIMIT_MAX_REQUESTS,
+      );
+      expect(
+        parseConfig({ ...VALID_ENV, BFF_RATE_LIMIT_MAX_REQUESTS: '   ' }).rateLimitMaxRequests,
+      ).toBe(DEFAULT_RATE_LIMIT_MAX_REQUESTS);
+    });
+
+    it('should expose a configured value', () => {
+      expect(
+        parseConfig({ ...VALID_ENV, BFF_RATE_LIMIT_MAX_REQUESTS: '42' }).rateLimitMaxRequests,
+      ).toBe(42);
+    });
+
+    it.each([
+      ['zero', '0'],
+      ['negative', '-5'],
+      ['non-numeric', 'many'],
+      ['fractional', '2.5'],
+      ['past the ceiling', String(MAX_RATE_LIMIT_REQUESTS + 1)],
+    ])('should throw ConfigurationError for a %s value', (_label, value) => {
+      expect(() => parseConfig({ ...VALID_ENV, BFF_RATE_LIMIT_MAX_REQUESTS: value })).toThrow(
+        /BFF_RATE_LIMIT_MAX_REQUESTS/,
+      );
+    });
+  });
+
+  describe('BFF_RATE_LIMIT_WINDOW_MS', () => {
+    it('should default to one minute when unset or blank', () => {
+      expect(parseConfig({ ...VALID_ENV }).rateLimitWindowMs).toBe(DEFAULT_RATE_LIMIT_WINDOW_MS);
+      expect(parseConfig({ ...VALID_ENV, BFF_RATE_LIMIT_WINDOW_MS: '' }).rateLimitWindowMs).toBe(
+        DEFAULT_RATE_LIMIT_WINDOW_MS,
+      );
+    });
+
+    it('should expose a configured value', () => {
+      expect(
+        parseConfig({ ...VALID_ENV, BFF_RATE_LIMIT_WINDOW_MS: '5000' }).rateLimitWindowMs,
+      ).toBe(5_000);
+    });
+
+    it.each([
+      ['zero', '0'],
+      ['below the floor', String(MIN_RATE_LIMIT_WINDOW_MS - 1)],
+      ['non-numeric', 'minute'],
+      ['fractional', '1.5'],
+      ['past the Node timer ceiling', String(MAX_TIMEOUT_MS + 1)],
+    ])('should throw ConfigurationError for a %s value', (_label, value) => {
+      expect(() => parseConfig({ ...VALID_ENV, BFF_RATE_LIMIT_WINDOW_MS: value })).toThrow(
+        /BFF_RATE_LIMIT_WINDOW_MS/,
       );
     });
   });

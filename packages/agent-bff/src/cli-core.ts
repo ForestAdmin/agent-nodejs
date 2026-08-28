@@ -37,6 +37,7 @@ import createOpenApiRoutes, { OPENAPI_PATH } from './openapi/openapi-routes';
 import PermissionsCache from './permissions/permissions-cache';
 import PermissionsClient from './permissions/permissions-client';
 import createPermissionsRoutesMiddleware from './permissions/permissions-routes-middleware';
+import createRateLimitMiddleware from './rate-limit/rate-limit-middleware';
 import createReadModel from './read-model/create-read-model';
 import createTimezoneMiddleware from './timezone/timezone-middleware';
 import version from './version';
@@ -353,6 +354,12 @@ function buildAgentMiddlewares(
   const chain: Middleware[] = [
     createAuthModeMiddleware({ authSecret: forestAuthSecret }),
     apiKeyStep,
+    // Behind the auth steps so buckets key on the resolved identity: anonymous requests 401
+    // upstream and never allocate one. Counts every authenticated /agent request.
+    createRateLimitMiddleware({
+      maxRequests: config.rateLimitMaxRequests,
+      windowMs: config.rateLimitWindowMs,
+    }),
     createPerKeyOriginMiddleware(),
     createOpenApiRoutes({
       version,

@@ -284,6 +284,58 @@ describe('runCli', () => {
     });
   });
 
+  describe('when the agent edge rate limit is mounted', () => {
+    it('should let a configured burst through, then answer 429 with Retry-After', async () => {
+      const server = await runCli({ ...VALID_ENV, BFF_RATE_LIMIT_MAX_REQUESTS: '2' }, noopLogger);
+
+      try {
+        const token = sessionToken();
+        const first = await request(server.callback)
+          .get('/agent/records')
+          .set('Authorization', `Bearer ${token}`);
+        const second = await request(server.callback)
+          .get('/agent/records')
+          .set('Authorization', `Bearer ${token}`);
+        const third = await request(server.callback)
+          .get('/agent/records')
+          .set('Authorization', `Bearer ${token}`);
+
+        expect(first.body.error.type).toBe('missing_timezone');
+        expect(second.body.error.type).toBe('missing_timezone');
+        expect(third.status).toBe(429);
+        expect(third.body.error).toMatchObject({ type: 'too_many_requests', status: 429 });
+        expect(third.headers['retry-after']).toBeDefined();
+      } finally {
+        await server.stop();
+      }
+    });
+
+    it('should leave a small burst untouched at the default configuration', async () => {
+      const server = await runCli({ ...VALID_ENV }, noopLogger);
+
+      try {
+        const token = sessionToken();
+        const responses = [];
+
+        for (let attempt = 0; attempt < 3; attempt += 1) {
+          // eslint-disable-next-line no-await-in-loop -- the burst must be sequential so the window cannot advance
+          const response = await request(server.callback)
+            .get('/agent/records')
+            .set('Authorization', `Bearer ${token}`);
+
+          responses.push(response);
+        }
+
+        responses.forEach(response => {
+          expect(response.status).toBe(400);
+          expect(response.body.error.type).toBe('missing_timezone');
+        });
+      } finally {
+        await server.stop();
+      }
+    });
+  });
+
   describe('when FOREST_AUTH_SECRET is absent', () => {
     it('should disable the agent edge and log it', async () => {
       const logs: string[] = [];
