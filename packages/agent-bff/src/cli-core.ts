@@ -49,9 +49,6 @@ function isAgentPath(path: string): boolean {
 
 const BODY_METHODS = new Set(['POST', 'PUT', 'PATCH']);
 
-// @koa/bodyparser skips a content type that matches no enableType without an error, which turns a
-// filtered query into an unfiltered one. Agent routes declare application/json only, so reject any
-// other declared type instead of letting the body be read as absent.
 function rejectNonJsonBody(ctx: Parameters<Middleware>[0]): void {
   if (!BODY_METHODS.has(ctx.method)) return;
   if (ctx.request.type === '') return;
@@ -80,7 +77,6 @@ function createBodyParser(hasAiQueryRoute: boolean): Middleware {
   const parseAiBody = bodyParser({ jsonLimit: AI_BODY_LIMIT, enableTypes: ['json'] });
 
   return async function selectedBodyParser(ctx, next) {
-    // The error middleware that renders the 415 is agent-scoped, so the guard must be too.
     if (isAgentPath(ctx.path)) rejectNonJsonBody(ctx);
 
     if (hasAiQueryRoute && ctx.path === AI_QUERY_ROUTE) {

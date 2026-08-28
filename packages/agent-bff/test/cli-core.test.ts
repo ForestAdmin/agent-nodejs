@@ -211,7 +211,7 @@ describe('runCli', () => {
           .send('page.limit=5');
 
         expect(response.status).toBe(415);
-        expect(response.body.error.type).toBe('unsupported_media_type');
+        expect(response.body.error).toMatchObject({ type: 'unsupported_media_type', status: 415 });
       } finally {
         await server.stop();
       }
@@ -228,7 +228,7 @@ describe('runCli', () => {
           .send(JSON.stringify({ messages: [] }));
 
         expect(response.status).toBe(415);
-        expect(response.body.error.type).toBe('unsupported_media_type');
+        expect(response.body.error).toMatchObject({ type: 'unsupported_media_type', status: 415 });
       } finally {
         await server.stop();
       }
@@ -243,7 +243,6 @@ describe('runCli', () => {
           .set('Content-Type', 'application/vnd.api+json')
           .send(JSON.stringify({ page: { limit: 5 } }));
 
-        expect(response.status).not.toBe(415);
         expect(response.status).toBe(401);
       } finally {
         await server.stop();
@@ -259,7 +258,6 @@ describe('runCli', () => {
           .set('Content-Type', 'application/json; charset=utf-8')
           .send(JSON.stringify({ page: { limit: 5 } }));
 
-        expect(response.status).not.toBe(415);
         expect(response.status).toBe(401);
       } finally {
         await server.stop();
@@ -272,7 +270,6 @@ describe('runCli', () => {
       try {
         const response = await request(server.callback).post('/agent/v1/books/list');
 
-        expect(response.status).not.toBe(415);
         expect(response.status).toBe(401);
       } finally {
         await server.stop();
@@ -305,7 +302,7 @@ describe('runCli', () => {
 
         expect(response.status).not.toBe(413);
         expect(response.status).toBe(415);
-        expect(response.body.error.type).toBe('unsupported_media_type');
+        expect(response.body.error).toMatchObject({ type: 'unsupported_media_type', status: 415 });
       } finally {
         await server.stop();
       }
