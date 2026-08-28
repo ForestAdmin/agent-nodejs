@@ -1,6 +1,11 @@
 import type { ZodType } from 'zod';
 
-import { CountFlatInputs, ListFlatInputs } from './request-schemas';
+import {
+  CountFlatInputs,
+  ListFlatInputs,
+  RelationCountFlatInputs,
+  RelationListFlatInputs,
+} from './request-schemas';
 import { invalidRequest } from '../http/bff-local-errors';
 import { MAX_FILTER_DEPTH, isBranch, isLeaf } from '../validation/capabilities-validator';
 import { filterTooDeep } from '../validation/validation-errors';
@@ -64,8 +69,10 @@ function assertNoNodeReadableAsBothLeafAndBranch(node: unknown, depth = 0): void
  * 400 invalid_request, so a malformed shape (`projection` as a string, a fractional `page.limit`)
  * surfaces as a client error rather than a 500 from an array method blowing up downstream.
  *
- * Unknown keys are left alone: the object schemas ignore them, so `filter`, `timezone` and
- * `parentId` travel through untouched and the body is returned by reference, not rebuilt.
+ * The schemas are closed, so an undeclared key is reported the same way rather than stripped: a
+ * misspelled `filter` must not run the query unfiltered and answer 200. The declared keys —
+ * `filter`, `timezone`, and `parentId` on a relation — travel through untouched, and the body is
+ * returned by reference, not rebuilt.
  */
 function assertFlatInputs(schema: ZodType, body: Record<string, unknown>): void {
   const result = schema.safeParse(body);
@@ -84,22 +91,21 @@ function assertFilter(filter: unknown): void {
   assertNoNodeReadableAsBothLeafAndBranch(filter);
 }
 
-export function parseListRequest(body: unknown): ListRequestBody {
+function parseRequest<T>(schema: ZodType, body: unknown): T {
   if (!isPlainObject(body)) throw invalidRequest('Request body must be an object');
 
-  assertFlatInputs(ListFlatInputs, body);
+  assertFlatInputs(schema, body);
   assertFilter(body.filter);
 
-  return body as ListRequestBody;
+  return body as T;
+}
+
+export function parseListRequest(body: unknown): ListRequestBody {
+  return parseRequest<ListRequestBody>(ListFlatInputs, body);
 }
 
 export function parseCountRequest(body: unknown): CountRequestBody {
-  if (!isPlainObject(body)) throw invalidRequest('Request body must be an object');
-
-  assertFlatInputs(CountFlatInputs, body);
-  assertFilter(body.filter);
-
-  return body as CountRequestBody;
+  return parseRequest<CountRequestBody>(CountFlatInputs, body);
 }
 
 function collectFilterFields(filter: unknown, acc: string[]): void {
@@ -205,13 +211,13 @@ export function parseParentId(parentId: unknown): string {
 export function parseRelationListRequest(body: unknown): RelationListRequestBody {
   const parentId = parseParentId((body as { parentId?: unknown } | null)?.parentId);
 
-  return { ...parseListRequest(body), parentId };
+  return { ...parseRequest<ListRequestBody>(RelationListFlatInputs, body), parentId };
 }
 
 export function parseRelationCountRequest(body: unknown): RelationCountRequestBody {
   const parentId = parseParentId((body as { parentId?: unknown } | null)?.parentId);
 
-  return { ...parseCountRequest(body), parentId };
+  return { ...parseRequest<CountRequestBody>(RelationCountFlatInputs, body), parentId };
 }
 
 export function collectCountFieldPaths(body: CountRequestBody): string[] {

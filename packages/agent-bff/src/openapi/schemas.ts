@@ -85,48 +85,58 @@ export const SearchExtendedSchema = SearchExtendedInput.openapi('SearchExtended'
     '`relation.column:value` syntax, which does so without this flag.',
 });
 
-export const ListRequestSchema = z
-  .object({
-    filter: ConditionTreeSchema.optional(),
-    projection: ProjectionInput.optional(),
-    sort: z.array(SortClauseSchema).optional(),
-    page: PageSchema.optional(),
-    search: SearchSchema.optional(),
-    searchExtended: SearchExtendedSchema.optional(),
-    timezone: TimezoneSchema.optional(),
-  })
-  .openapi('ListRequest');
-
-export const CountRequestSchema = z
-  .object({
-    filter: ConditionTreeSchema.optional(),
-    search: SearchSchema.optional(),
-    searchExtended: SearchExtendedSchema.optional(),
-    timezone: TimezoneSchema.optional(),
-  })
-  .openapi('CountRequest', {
-    description:
-      'Accepts the same search inputs as list, so a client can count exactly the rows its search ' +
-      'returns.',
-  });
-
 const ParentIdSchema = ParentIdInput.openapi('ParentId', {
   description:
     'The parent record id, opaque: a composite or packed id must be passed unchanged. A ' +
     'blank string is rejected.',
 });
 
-export const RelationListRequestSchema = ListRequestSchema.extend({
-  parentId: ParentIdSchema,
-}).openapi('RelationListRequest', {
+const countRequestShape = {
+  filter: ConditionTreeSchema.optional(),
+  search: SearchSchema.optional(),
+  searchExtended: SearchExtendedSchema.optional(),
+  timezone: TimezoneSchema.optional(),
+};
+
+const listRequestShape = {
+  ...countRequestShape,
+  projection: ProjectionInput.optional(),
+  sort: z.array(SortClauseSchema).optional(),
+  page: PageSchema.optional(),
+};
+
+const CLOSED_BODY_NOTE =
+  'The body is closed at the TOP LEVEL: an undeclared top-level key is rejected with 400 ' +
+  'invalid_request, so `filters` instead of `filter` cannot silently return unfiltered rows. ' +
+  'Inside the filter tree the check stops there: an unknown key on a condition node is still ' +
+  'forwarded to the agent, so a leaf carrying `valu` runs with no value rather than being rejected.';
+
+export const ListRequestSchema = z
+  .strictObject(listRequestShape)
+  .openapi('ListRequest', { description: CLOSED_BODY_NOTE });
+
+export const CountRequestSchema = z.strictObject(countRequestShape).openapi('CountRequest', {
   description:
-    'Filter, sort, projection and search apply to the FOREIGN collection; the parent only resolves ' +
-    'which records are related.',
+    'Accepts the same search inputs as list, so a client can count exactly the rows its search ' +
+    `returns. ${CLOSED_BODY_NOTE}`,
 });
 
-export const RelationCountRequestSchema = CountRequestSchema.extend({
-  parentId: ParentIdSchema,
-}).openapi('RelationCountRequest');
+/**
+ * Spread from the same shapes rather than extended from the schemas above: extending a REGISTERED
+ * object publishes an `allOf` of the two, and a closed base then forbids `parentId` in the very
+ * component that adds it — an unsatisfiable body.
+ */
+export const RelationListRequestSchema = z
+  .strictObject({ ...listRequestShape, parentId: ParentIdSchema })
+  .openapi('RelationListRequest', {
+    description:
+      'Filter, sort, projection and search apply to the FOREIGN collection; the parent only ' +
+      `resolves which records are related. ${CLOSED_BODY_NOTE}`,
+  });
+
+export const RelationCountRequestSchema = z
+  .strictObject({ ...countRequestShape, parentId: ParentIdSchema })
+  .openapi('RelationCountRequest', { description: CLOSED_BODY_NOTE });
 
 export const ActionRequestSchema = z
   .object({

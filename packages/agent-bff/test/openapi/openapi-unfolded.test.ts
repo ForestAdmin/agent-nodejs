@@ -217,10 +217,25 @@ describe('the unfolded document', () => {
     expect(branch.not.properties.field.type).toBe('string');
   });
 
-  it('should not forbid an unknown extra key on a filter node, which the runtime strips', () => {
+  it('should not forbid an unknown extra key on a filter node, which the runtime forwards', () => {
     const leaf = schemas['FilterLeaf_My_Coll-1'] as { additionalProperties?: unknown };
 
     expect(leaf.additionalProperties).toBeUndefined();
+  });
+
+  // This document composes relation bodies with `allOf`, where `additionalProperties: false` on one
+  // branch forbids the key the other adds, so the closed shape is stated in prose until the relation
+  // requests are flattened. A reader must not conclude from the missing keyword that a stray
+  // top-level key is accepted.
+  it.each([
+    ['My%20Coll/list'],
+    ['My%20Coll/count'],
+    ['My%20Coll/relations/orders/list'],
+    ['My%20Coll/relations/orders/count'],
+  ])('should say on %s that an undeclared top-level key is rejected', path => {
+    const request = requestSchema(path) as unknown as { description: string };
+
+    expect(request.description).toContain('undeclared TOP-LEVEL key with 400 invalid_request');
   });
 
   it('should describe a relation request with the FOREIGN collection fields, not the parent ones', () => {

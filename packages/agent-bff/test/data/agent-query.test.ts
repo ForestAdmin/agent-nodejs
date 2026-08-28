@@ -395,6 +395,80 @@ describe('parseRelationCountRequest', () => {
   });
 });
 
+describe('unknown keys', () => {
+  const REJECTED = expect.objectContaining({ type: 'invalid_request', status: 400 });
+
+  it.each([
+    ['parseListRequest', parseListRequest],
+    ['parseCountRequest', parseCountRequest],
+  ])('should reject a misspelled filter on %s rather than run unfiltered', (_label, parse) => {
+    expect(() => parse({ filters: { field: 'plan', operator: 'Equal', value: 'free' } })).toThrow(
+      REJECTED,
+    );
+  });
+
+  it.each([
+    ['parseListRequest', parseListRequest],
+    ['parseCountRequest', parseCountRequest],
+  ])('should name the unknown key in the %s rejection', (_label, parse) => {
+    expect(() => parse({ totallyUnknownField: 123 })).toThrow(
+      expect.objectContaining({ message: expect.stringContaining('totallyUnknownField') }),
+    );
+  });
+
+  it('should reject a misspelled projection rather than return every field', () => {
+    expect(() => parseListRequest({ projections: ['id'] })).toThrow(REJECTED);
+  });
+
+  it('should reject parentId on a plain list, where a parent id means nothing', () => {
+    expect(() => parseListRequest({ parentId: '7' })).toThrow(REJECTED);
+  });
+
+  it.each([
+    ['parseRelationListRequest', parseRelationListRequest],
+    ['parseRelationCountRequest', parseRelationCountRequest],
+  ])('should reject a misspelled filter on %s', (_label, parse) => {
+    expect(() => parse({ parentId: '7', filters: { field: 'a', operator: 'present' } })).toThrow(
+      REJECTED,
+    );
+  });
+
+  it.each([
+    ['parseRelationListRequest', parseRelationListRequest],
+    ['parseRelationCountRequest', parseRelationCountRequest],
+  ])('should still accept parentId on %s', (_label, parse) => {
+    expect(parse({ parentId: '7' })).toMatchObject({ parentId: '7' });
+  });
+
+  it.each([
+    ['parseListRequest', parseListRequest],
+    ['parseCountRequest', parseCountRequest],
+  ])('should still accept the timezone the middleware reads on %s', (_label, parse) => {
+    expect(parse({ timezone: 'Europe/Paris' })).toMatchObject({ timezone: 'Europe/Paris' });
+  });
+
+  // The middleware falls back to the header or the deployment default for a non-string timezone,
+  // so rejecting one here would break a client that serializes an unset field as null.
+  it.each([
+    ['parseListRequest', parseListRequest],
+    ['parseCountRequest', parseCountRequest],
+  ])('should leave a null timezone to the middleware on %s', (_label, parse) => {
+    expect(parse({ timezone: null })).toMatchObject({ timezone: null });
+  });
+
+  it('should reject a misspelled sort direction rather than sort ascending', () => {
+    expect(() => parseListRequest({ sort: [{ field: 'createdAt', direciton: 'desc' }] })).toThrow(
+      REJECTED,
+    );
+  });
+
+  it('should reject an unknown key inside page', () => {
+    expect(() => parseListRequest({ page: { limit: 10, offset: 0, cursor: 'x' } })).toThrow(
+      REJECTED,
+    );
+  });
+});
+
 describe('collectCountFieldPaths', () => {
   it('should collect field paths from the filter only', () => {
     const paths = collectCountFieldPaths({

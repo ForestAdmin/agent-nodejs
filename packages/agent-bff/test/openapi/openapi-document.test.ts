@@ -1,6 +1,12 @@
 import { allOperators } from '@forestadmin/datasource-toolkit';
 
 import {
+  CountFlatInputs,
+  ListFlatInputs,
+  RelationCountFlatInputs,
+  RelationListFlatInputs,
+} from '../../src/data/request-schemas';
+import {
   OPENAPI_VERSION,
   ROUTE_PREFIX,
   generateOpenApiDocument,
@@ -459,6 +465,47 @@ describe('generateOpenApiDocument', () => {
       url: 'https://www.gnu.org/licenses/gpl-3.0.html',
     });
   });
+});
+
+describe('the closed request bodies', () => {
+  // The runtime rejects an undeclared key, so the document is only honest while it publishes the
+  // SAME key set. The two live in different files by design, and nothing but this check couples
+  // them: a key added to one and forgotten in the other makes the document lie about a 400.
+  it.each([
+    ['ListRequest', ListFlatInputs],
+    ['CountRequest', CountFlatInputs],
+    ['RelationListRequest', RelationListFlatInputs],
+    ['RelationCountRequest', RelationCountFlatInputs],
+  ])('should publish exactly the keys %s accepts', (name, schema) => {
+    const published = Object.keys(
+      (schemas[name] as { properties: Record<string, unknown> }).properties,
+    ).sort();
+
+    expect(published).toEqual(Object.keys(schema.shape).sort());
+  });
+
+  it.each([
+    ['ListRequest'],
+    ['CountRequest'],
+    ['RelationListRequest'],
+    ['RelationCountRequest'],
+    ['SortClause'],
+    ['Page'],
+  ])('should forbid an undeclared key on %s', name => {
+    expect(schemas[name].additionalProperties).toBe(false);
+  });
+
+  // Flat, not `allOf`: a closed base composed with the component that adds `parentId` forbids that
+  // very key, and the published body becomes unsatisfiable.
+  it.each([['RelationListRequest'], ['RelationCountRequest']])(
+    'should publish %s flat rather than as an allOf of a closed base',
+    name => {
+      expect(schemas[name].allOf).toBeUndefined();
+      expect(
+        (schemas[name] as { properties: Record<string, unknown> }).properties.parentId,
+      ).toEqual({ $ref: '#/components/schemas/ParentId' });
+    },
+  );
 });
 
 describe('the documented search inputs', () => {
