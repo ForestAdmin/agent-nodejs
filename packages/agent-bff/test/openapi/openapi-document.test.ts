@@ -488,6 +488,121 @@ describe('the documented ai query path', () => {
   });
 });
 
+describe('the documented action responses', () => {
+  it('should type the form 200 response rather than leave it free-form', () => {
+    const form = responsesOf(`${ROUTE_PREFIX}/{collection}/actions/{action}/form`);
+
+    expect(form['200'].content?.['application/json'].schema).toEqual({
+      $ref: '#/components/schemas/ActionFormResponse',
+    });
+  });
+
+  it('should type the execute 200 response as the discriminated result union', () => {
+    const execute = responsesOf(`${ROUTE_PREFIX}/{collection}/actions/{action}/execute`);
+
+    expect(execute['200'].content?.['application/json'].schema).toEqual({
+      $ref: '#/components/schemas/ActionResult',
+    });
+  });
+
+  it('should carry a field type that is a string or an array of strings, verbatim from the agent', () => {
+    const field = schemas.ActionFormResponseField as unknown as {
+      properties: { type: { anyOf: unknown[] } };
+    };
+
+    expect(field.properties.type.anyOf).toEqual([
+      { type: 'string' },
+      { type: 'array', items: { type: 'string' } },
+    ]);
+  });
+
+  it('should require exactly the keys the form mappers always assign', () => {
+    const field = schemas.ActionFormResponseField as { required: string[] };
+    const form = schemas.ActionFormResponse as { required: string[] };
+
+    expect([...field.required].sort()).toEqual(['isRequired', 'name', 'type']);
+    expect([...form.required].sort()).toEqual([
+      'canExecute',
+      'fields',
+      'layout',
+      'requiredFields',
+      'skippedFields',
+    ]);
+  });
+
+  it('should keep a missing value and a non-enum field honest on the wire', () => {
+    const field = schemas.ActionFormResponseField as unknown as {
+      properties: { value: unknown; enumValues: { anyOf: unknown[] } };
+    };
+
+    // `value` is dropped by JSON serialization when the field carries none, so it stays optional;
+    // `enumValues` is emitted only on Enum fields, null included.
+    expect(field.properties.value).toEqual({});
+    expect(field.properties.enumValues.anyOf).toEqual([
+      { type: 'array', items: { type: 'string' } },
+      { type: 'null' },
+    ]);
+  });
+
+  it('should discriminate the result union on type with exactly the three 200 branches', () => {
+    const result = schemas.ActionResult as unknown as {
+      oneOf: { $ref: string }[];
+      discriminator: { propertyName: string; mapping: Record<string, string> };
+    };
+
+    expect(result.oneOf).toEqual([
+      { $ref: '#/components/schemas/ActionResultSuccess' },
+      { $ref: '#/components/schemas/ActionResultWebhook' },
+      { $ref: '#/components/schemas/ActionResultRedirect' },
+    ]);
+    expect(result.discriminator.propertyName).toBe('type');
+    expect(result.discriminator.mapping).toEqual({
+      success: '#/components/schemas/ActionResultSuccess',
+      webhook: '#/components/schemas/ActionResultWebhook',
+      redirect: '#/components/schemas/ActionResultRedirect',
+    });
+  });
+
+  it('should require the nullable message and html on success, which the mapper always assigns', () => {
+    const success = schemas.ActionResultSuccess as unknown as {
+      properties: { message: { anyOf: unknown[] }; html: { anyOf: unknown[] } };
+      required: string[];
+    };
+
+    expect(success.properties.message.anyOf).toEqual([{ type: 'string' }, { type: 'null' }]);
+    expect(success.properties.html.anyOf).toEqual([{ type: 'string' }, { type: 'null' }]);
+    expect([...success.required].sort()).toEqual(['html', 'invalidated', 'message', 'type']);
+  });
+
+  it('should mark the webhook headers and body optional, which the agent payload can omit', () => {
+    const webhook = schemas.ActionResultWebhook as unknown as {
+      properties: { headers: unknown; body: unknown };
+      required: string[];
+    };
+
+    expect(webhook.properties.headers).toEqual({});
+    expect(webhook.properties.body).toEqual({});
+    expect([...webhook.required].sort()).toEqual(['method', 'type', 'url']);
+  });
+
+  it('should require the redirect path', () => {
+    const redirect = schemas.ActionResultRedirect as { required: string[] };
+
+    expect([...redirect.required].sort()).toEqual(['path', 'type']);
+  });
+
+  it('should carry the untrusted-html warning on success.html (PRD-1095)', () => {
+    const success = schemas.ActionResultSuccess as unknown as {
+      properties: { html: { description: string } };
+    };
+
+    expect(success.properties.html.description).toContain('Untrusted HTML');
+    expect(success.properties.html.description).toContain('sanitize');
+  });
+});
+  });
+});
+
 describe('the documented search inputs', () => {
   function propertiesOf(name: string): Record<string, { $ref?: string }> {
     return (schemas[name] as { properties: Record<string, { $ref?: string }> }).properties;

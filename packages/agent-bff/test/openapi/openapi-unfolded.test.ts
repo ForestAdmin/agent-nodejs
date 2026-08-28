@@ -349,6 +349,45 @@ describe('the unfolded document', () => {
     expect(request.required).toEqual(['recordIds']);
   });
 
+  it('should reference the shared action response components rather than an empty schema', () => {
+    const form = operation('My%20Coll/actions/Mark%20as%20paid%2Fdone/form') as unknown as {
+      responses: Record<string, { content: Record<string, { schema: { $ref: string } }> }>;
+    };
+    const execute = operation('My%20Coll/actions/Mark%20as%20paid%2Fdone/execute') as unknown as {
+      responses: Record<string, { content: Record<string, { schema: { $ref: string } }> }>;
+    };
+
+    expect(form.responses['200'].content['application/json'].schema.$ref).toBe(
+      '#/components/schemas/ActionFormResponse',
+    );
+    expect(execute.responses['200'].content['application/json'].schema.$ref).toBe(
+      '#/components/schemas/ActionResult',
+    );
+  });
+
+  it('should share one response schema per verb across every unfolded action', () => {
+    const refsOf = (prefix: string) =>
+      Object.values(paths)
+        .map(
+          path =>
+            path.post as unknown as {
+              operationId?: string;
+              responses?: Record<string, { content: Record<string, { schema: { $ref: string } }> }>;
+            },
+        )
+        .filter(item => item.operationId?.startsWith(prefix))
+        .map(item => item.responses?.['200'].content['application/json'].schema.$ref);
+
+    expect(refsOf('getActionForm')).toEqual([
+      '#/components/schemas/ActionFormResponse',
+      '#/components/schemas/ActionFormResponse',
+    ]);
+    expect(refsOf('executeAction')).toEqual([
+      '#/components/schemas/ActionResult',
+      '#/components/schemas/ActionResult',
+    ]);
+  });
+
   it('should share one response component per error status across every unfolded path', () => {
     const errors = Object.values(paths).flatMap(path =>
       Object.entries(path.post.responses as Record<string, unknown>).filter(
@@ -553,8 +592,16 @@ describe('an unfolded document with no action', () => {
     expect(Object.keys(withoutActions.components?.responses ?? {})).not.toContain(
       'UnsupportedActionResult',
     );
-    expect(Object.keys(withoutActions.components?.schemas ?? {})).not.toContain(
+    [
       'MessagelessErrorResponse',
+      'ActionFormResponse',
+      'ActionFormResponseField',
+      'ActionResult',
+      'ActionResultSuccess',
+      'ActionResultWebhook',
+      'ActionResultRedirect',
+    ].forEach(name =>
+      expect(Object.keys(withoutActions.components?.schemas ?? {})).not.toContain(name),
     );
   });
 });

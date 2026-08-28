@@ -5,7 +5,9 @@ import { OpenAPIRegistry, OpenApiGeneratorV31 } from '@asteasolutions/zod-to-ope
 
 import ComponentPool from './component-pool';
 import {
+  ActionFormResponseSchema,
   ActionRequestSchema,
+  ActionResultSchema,
   AiQueryRequestSchema,
   ContextResponseSchema,
   CountRequestSchema,
@@ -267,9 +269,9 @@ const ROUTES: RouteDefinition[] = [
     operationId: 'getActionForm',
     summary: 'Load the form of a custom action',
     request: ActionRequestSchema,
-    response: z.unknown(),
+    response: ActionFormResponseSchema,
     responseDescription:
-      'The action form fields; htmlBlock layout content is sanitized server-side against an allowlist before relaying',
+      'The action form fields; htmlBlock layout content is sanitized server-side against an allowlist before relaying'
     params: ['collection', 'action'],
     bodyRequired: true,
   },
@@ -278,9 +280,9 @@ const ROUTES: RouteDefinition[] = [
     operationId: 'executeAction',
     summary: 'Execute a custom action',
     request: ActionRequestSchema,
-    response: z.unknown(),
+    response: ActionResultSchema,
     responseDescription:
-      'The normalized action result; a success result html field is sanitized server-side against an allowlist before relaying',
+      'The normalized action result; a success result html field is sanitized server-side against an allowlist before relaying'
     params: ['collection', 'action'],
     bodyRequired: true,
     executeResults: true,

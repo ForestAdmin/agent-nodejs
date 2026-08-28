@@ -145,6 +145,95 @@ export const ActionRequestSchema = z
       'targets no record. Every id is coerced to a string before reaching the agent.',
   });
 
+const ActionFormResponseFieldSchema = z
+  .object({
+    name: z.string(),
+    // Verbatim from the agent, so a list field carries `['String']` rather than `'StringList'`.
+    type: z.union([z.string(), z.array(z.string())]),
+    value: z.unknown().optional(),
+    isRequired: z.boolean(),
+    enumValues: z.union([z.array(z.string()), z.null()]).optional(),
+  })
+  .openapi('ActionFormResponseField', {
+    description:
+      'A form field with its current value. `value` is the resolved value at load time and is ' +
+      'absent when the field carries none; `enumValues` is present only on an Enum field, and ' +
+      'null when the agent declares no options.',
+  });
+
+export const ActionFormResponseSchema = z
+  .object({
+    fields: z.array(ActionFormResponseFieldSchema),
+    canExecute: z.boolean(),
+    requiredFields: z.array(z.string()),
+    skippedFields: z.array(z.string()),
+    layout: z.array(z.unknown()),
+  })
+  .openapi('ActionFormResponse', {
+    description:
+      'The loaded form. `canExecute` is true only when every required field already carries a ' +
+      'value: an explicit empty string or 0 counts as present, only a missing one does not. ' +
+      '`requiredFields` names the required fields still missing a value. `skippedFields` names ' +
+      'the submitted fields the static form does not carry; the same names are rejected with 400 ' +
+      'on execute. `layout` is the agent layout tree relayed verbatim (pages, rows, separators, ' +
+      'HTML blocks and field references, discriminated by `component`); it is the agent own ' +
+      'contract, so it is left untyped here.',
+  });
+
+export const ActionResultSuccessSchema = z
+  .object({
+    type: z.literal('success'),
+    message: z.union([z.string(), z.null()]),
+    invalidated: z.array(z.string()),
+    html: z
+      .union([z.string(), z.null()])
+      .describe(
+        'Untrusted HTML relayed verbatim from the agent result: sanitize it before rendering ' +
+          '(stored/reflected XSS risk). Null when the result carries none.',
+      ),
+  })
+  .openapi('ActionResultSuccess', {
+    description:
+      'The action ran. `invalidated` lists the collections whose records changed and should be ' +
+      're-fetched; `message` is the agent wording, null when the result carries none.',
+  });
+
+export const ActionResultWebhookSchema = z
+  .object({
+    type: z.literal('webhook'),
+    url: z.string(),
+    method: z.string(),
+    headers: z.unknown().optional(),
+    body: z.unknown().optional(),
+  })
+  .openapi('ActionResultWebhook', {
+    description:
+      'The action asks the caller to fire an HTTP request. `headers` and `body` are relayed ' +
+      'from the agent payload and are absent when it carried none.',
+  });
+
+export const ActionResultRedirectSchema = z
+  .object({
+    type: z.literal('redirect'),
+    path: z.string(),
+  })
+  .openapi('ActionResultRedirect', {
+    description: 'The action asks the caller to navigate to `path`, relayed verbatim.',
+  });
+
+export const ActionResultSchema = z
+  .discriminatedUnion('type', [
+    ActionResultSuccessSchema,
+    ActionResultWebhookSchema,
+    ActionResultRedirectSchema,
+  ])
+  .openapi('ActionResult', {
+    description:
+      'The normalized execute result, discriminated by `type`. These three are the only 200 ' +
+      'bodies: a result the BFF cannot normalize answers 501 instead (see the execute 501 ' +
+      'response), and a form the agent rejects answers 400 action_error.',
+  });
+
 const ForestRecordMetaSchema = z
   .object({
     collection: z.string(),
