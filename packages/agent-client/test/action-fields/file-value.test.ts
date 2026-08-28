@@ -2,6 +2,7 @@ import type { PlainField } from '../../src/action-fields/types';
 import type HttpRequester from '../../src/http-requester';
 
 import FieldFormStates from '../../src/action-fields/field-form-states';
+import { InvalidActionFileValueError } from '../../src/errors';
 
 jest.mock('../../src/http-requester', () => {
   const actual = jest.requireActual('../../src/http-requester');
@@ -108,6 +109,16 @@ describe('file values in action forms', () => {
       await expect(fieldFormStates.setFieldValue('document', value)).rejects.toThrow(
         'Field "document" expects a file: pass { buffer, mimeType, name } ' +
           'or a string holding a data uri.',
+      );
+    });
+
+    // agent-bff maps this typed error to 400 invalid_request; a plain Error there would be
+    // indistinguishable from a transport failure and mislabelled 502.
+    it('rejects with the typed InvalidActionFileValueError, not a plain Error', async () => {
+      await setupFields([{ field: 'document', type: 'File' }]);
+
+      await expect(fieldFormStates.setFieldValue('document', { foo: 1 })).rejects.toBeInstanceOf(
+        InvalidActionFileValueError,
       );
     });
   });

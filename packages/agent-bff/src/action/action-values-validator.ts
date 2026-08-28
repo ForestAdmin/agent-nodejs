@@ -28,15 +28,14 @@ function expectedScalar(type: string, options: string[] | undefined): string | u
 }
 
 // Returns the violated expectation, or undefined when the value fits the published field schema.
-// A nullish value is never a type violation: for a required field it is reported as missing, for
-// an optional one it is a legitimate "left empty".
+// Strict at every nesting level: a null list item violates a constrained item type, because the
+// published array schemas mark no item as nullable. Field-level nullishness is handled by the
+// caller: a required field without a value is "missing", an optional one is legitimately empty.
 function expectedWhenViolated(
   type: string | [string],
   value: unknown,
   options: string[] | undefined,
 ): string | undefined {
-  if (value === null || value === undefined) return undefined;
-
   if (Array.isArray(type)) {
     const [itemType] = type;
 
@@ -83,8 +82,8 @@ export default function assertActionValuesExecutable(action: ActionForm): void {
     const name = field.getName();
     const value = field.getValue();
 
-    if (field.isRequired() && (value === undefined || value === null)) {
-      missing.push(name);
+    if (value === undefined || value === null) {
+      if (field.isRequired()) missing.push(name);
     } else {
       const expected = expectedWhenViolated(
         field.getType(),

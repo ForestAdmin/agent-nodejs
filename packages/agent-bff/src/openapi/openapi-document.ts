@@ -30,12 +30,16 @@ const API_KEY_SCHEME = 'bffApiKey';
 const SECURITY = [{ [SESSION_SCHEME]: [] }, { [API_KEY_SCHEME]: [] }];
 
 const ERROR_STATUSES: Record<string, string> = {
-  400: 'Malformed body, a malformed URL-encoded path segment, an invalid filter operator, a filter nested too deep, ambiguous credentials, an unsupported page, a missing or invalid timezone, an unknown submitted action field, a required action field left empty at execute, or a rejected action form (type action_error)',
+  400: 'Malformed body, a malformed URL-encoded path segment, an invalid filter operator, a filter nested too deep, ambiguous credentials, an unsupported page, a missing or invalid timezone, an unknown submitted action field, a required action field left empty or a malformed file value at execute, or a rejected action form (type action_error)',
   401: 'Missing, invalid, or expired credentials',
   403: 'The action needs approval before it runs (the body carries the approving roles), the Forest identity behind the API key is not allowed, the origin is not allowed for this key, or the agent refused the collection, relation, or action',
   404: 'Unknown collection, relation, or action',
   413: `The request body exceeds the BFF limit of ${BODY_LIMIT}`,
+<<<<<<< HEAD
   415: 'The request Content-Type is neither application/json nor an application/*+json type, including form-urlencoded, and is rejected with 415 instead of being silently dropped; a request carrying a body with no Content-Type at all is rejected the same way; or the declared character set cannot be decoded',
+=======
+  415: 'The request declares a character set the server cannot decode. Other content types are NOT rejected: a form-urlencoded body is parsed and validated like JSON (its values arrive as strings, so typed fields such as page.limit fail with 400; an action body needs JSON, since a urlencoded form cannot carry the nested recordIds and values), while any other non-JSON content type is read as an absent body, silently dropping filters and pagination',
+>>>>>>> a8ce7ac2d (fix(agent-bff): enforce list item types and align the unfolded enum schemas)
   422: 'A field is unknown, not filterable, is a nested relation path, or an action value at execute is outside its enum or of the wrong type',
   429: 'The agent rate-limited the request',
   500: 'The agent payload could not be mapped to the BFF contract, or the BFF hit an unexpected error',

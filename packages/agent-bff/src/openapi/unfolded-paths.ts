@@ -364,9 +364,21 @@ function registerRelationRequests(
 }
 
 function actionFieldSchema(field: UnfoldedAction['fields'][number]): SchemaObject {
-  const base = field.enums
-    ? { type: 'string' as const, enum: field.enums }
-    : toFieldSchema(field.type);
+  // An empty enums array would emit `enum: []` and forbid every value (the same doctrine as the
+  // filter leaves above), so only a non-empty options list constrains the schema.
+  const enums = field.enums !== null && field.enums.length > 0 ? field.enums : null;
+
+  let base: SchemaObject;
+
+  if (enums === null) {
+    base = toFieldSchema(field.type);
+  } else if (Array.isArray(field.type)) {
+    // A list field carries its options on the items: the runtime checks each member against the
+    // enum, so the document must not collapse the list into a scalar string.
+    base = { type: 'array', items: { type: 'string', enum: enums } };
+  } else {
+    base = { type: 'string', enum: enums };
+  }
 
   return field.isRequired
     ? { ...base, description: 'The agent declares this field required on the static form.' }

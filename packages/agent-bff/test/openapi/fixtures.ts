@@ -31,6 +31,8 @@ export default function unfoldingFixture(): Unfolding {
               { name: 'kind', type: 'Enum', isRequired: false, enums: ['refund', 'gift'] },
               { name: 'files', type: ['File'], isRequired: false, enums: null },
               { name: 'payload', type: 'Json', isRequired: false, enums: null },
+              { name: 'tiers', type: ['Enum'], isRequired: false, enums: ['gold', 'silver'] },
+              { name: 'flags', type: 'Enum', isRequired: false, enums: [] },
             ],
           },
           { name: 'Mark-as-paid/done', fields: [] },

@@ -947,22 +947,88 @@ describe('action execute', () => {
       expect(execute).not.toHaveBeenCalled();
     });
 
-    it('executes an in-options enum value and accepts a string on an enum field without options', async () => {
+    it('executes an in-options enum value, a number on a Number field, and an enum without options', async () => {
       const execute = jest.fn(async () => ({ success: 'Done' }));
       const form = makeAction({
         fields: [
           { name: 'tier', type: 'Enum', value: null, isRequired: false, enumValues: ['gold'] },
-          { name: 'free', type: 'Enum', value: null, isRequired: false },
+          // An agent can declare an Enum with no options: the field then accepts any string.
+          { name: 'free', type: 'Enum', value: null, isRequired: false, enumValues: [] },
+          { name: 'amount', type: 'Number', value: null, isRequired: false },
         ],
         execute,
       });
 
       const response = await request(execApp(clientOf(form)).callback())
         .post('/agent/v1/users/actions/approve/execute')
-        .send({ recordIds: ['42'], values: { tier: 'gold', free: 'anything' } });
+        .send({ recordIds: ['42'], values: { tier: 'gold', free: 'anything', amount: 5 } });
 
       expect(response.status).toBe(200);
       expect(execute).toHaveBeenCalledTimes(1);
+    });
+
+    it('rejects a null item inside a constrained list before executing', async () => {
+      const makeListForm = (values: Record<string, unknown>) => {
+        const execute = jest.fn(async () => ({ success: 'Done' }));
+
+        return {
+          execute,
+          response: request(
+            execApp(
+              clientOf(
+                makeAction({
+                  fields: [
+                    {
+                      name: 'tags',
+                      type: ['Enum'],
+                      value: null,
+                      isRequired: false,
+                      enumValues: ['a'],
+                    },
+                    { name: 'ids', type: ['Number'], value: null, isRequired: false },
+                  ],
+                  execute,
+                }),
+              ),
+            ).callback(),
+          )
+            .post('/agent/v1/users/actions/approve/execute')
+            .send({ recordIds: ['42'], values }),
+        };
+      };
+
+      const enumResult = await makeListForm({ tags: ['a', null] }).response;
+      expect(enumResult.status).toBe(422);
+      expect(enumResult.body.error).toMatchObject({
+        type: 'invalid_action_value',
+        details: { fields: [{ field: 'tags', expected: 'one of: a' }] },
+      });
+
+      const numberResult = await makeListForm({ ids: [1, null] }).response;
+      expect(numberResult.status).toBe(422);
+      expect(numberResult.body.error).toMatchObject({
+        type: 'invalid_action_value',
+        details: { fields: [{ field: 'ids', expected: 'a number' }] },
+      });
+    });
+
+    it('rejects a form-urlencoded execute body: it cannot carry the nested recordIds and values', async () => {
+      // A urlencoded form flattens bracket notation instead of nesting it, so recordIds never
+      // arrives as an array and the request fails at the shape check, before value validation.
+      const execute = jest.fn(async () => ({ success: 'Done' }));
+      const form = makeAction({
+        fields: [{ name: 'amount', type: 'Number', value: null, isRequired: false }],
+        execute,
+      });
+
+      const response = await request(execApp(clientOf(form)).callback())
+        .post('/agent/v1/users/actions/approve/execute')
+        .type('form')
+        .send({ recordIds: ['42'], values: { amount: '5' } });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toMatchObject({ type: 'invalid_request', status: 400 });
+      expect(execute).not.toHaveBeenCalled();
     });
 
     it.each([
