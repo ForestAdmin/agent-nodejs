@@ -230,7 +230,15 @@ describe('collectUnfolding', () => {
       expect(collections[0].actions).toEqual([
         {
           name: 'Ban',
-          fields: [{ name: 'reason', type: 'String', isRequired: true, enums: ['spam', 'abuse'] }],
+          fields: [
+            {
+              name: 'reason',
+              type: 'String',
+              isRequired: true,
+              enums: ['spam', 'abuse'],
+              reference: null,
+            },
+          ],
         },
       ]);
     });
@@ -243,7 +251,7 @@ describe('collectUnfolding', () => {
       const { collections } = await collect(readModel);
 
       expect(collections[0].actions[0].fields).toEqual([
-        { name: 'reason', type: 'String', isRequired: false, enums: null },
+        { name: 'reason', type: 'String', isRequired: false, enums: null, reference: null },
       ]);
     });
 

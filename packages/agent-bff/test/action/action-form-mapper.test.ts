@@ -19,6 +19,7 @@ function fieldStub(f: FakeField): ActionFormField {
   return {
     getName: () => f.name,
     getType: () => f.type,
+    getReference: () => null,
     getValue: () => f.value,
     isRequired: () => f.isRequired,
   };

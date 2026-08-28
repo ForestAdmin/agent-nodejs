@@ -364,6 +364,12 @@ function registerRelationRequests(
 }
 
 function actionFieldSchema(field: UnfoldedAction['fields'][number]): SchemaObject {
+  // A record-picker field publishes its target PK's column type, but the value it exchanges is a
+  // packed id string ("42", "1|2") whatever that type is: the agent unpacks strings only.
+  if (field.reference !== null) {
+    return { type: 'string', description: `A packed record id for ${field.reference}.` };
+  }
+
   // An empty enums array would emit `enum: []` and forbid every value (the same doctrine as the
   // filter leaves above), so only a non-empty options list constrains the schema.
   const enums = field.enums !== null && field.enums.length > 0 ? field.enums : null;

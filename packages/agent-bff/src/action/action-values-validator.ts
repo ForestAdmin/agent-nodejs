@@ -17,14 +17,22 @@ const STRING_TYPES = new Set([
   'Uuid',
 ]);
 
+const PACKED_ID_EXPECTATION = 'a string holding a packed record id';
+
 // The expectation a value must meet, or undefined when the BFF deliberately does not constrain it.
 function expectedScalar(type: string, options: string[] | undefined): string | undefined {
-  if (options?.length) return `one of: ${options.join(', ')}`;
+  if (Array.isArray(options) && options.length > 0) return `one of: ${options.join(', ')}`;
 
   if (type === 'Number') return 'a number';
   if (type === 'Boolean') return 'a boolean';
 
   return STRING_TYPES.has(type) ? 'a string' : undefined;
+}
+
+// Enum membership only applies to Enum fields (scalar or list), mirroring the form endpoint: a
+// leftover enums array on a typed field is ignored, and a malformed (non-array) one must not crash.
+function isEnumType(type: string | [string]): boolean {
+  return Array.isArray(type) ? type[0] === 'Enum' : type === 'Enum';
 }
 
 // Returns the violated expectation, or undefined when the value fits the published field schema.
@@ -55,7 +63,7 @@ function expectedWhenViolated(
 
   if (expected === undefined) return undefined;
 
-  if (options?.length) {
+  if (Array.isArray(options) && options.length > 0) {
     return typeof value === 'string' && options.includes(value) ? undefined : expected;
   }
 
@@ -84,12 +92,18 @@ export default function assertActionValuesExecutable(action: ActionForm): void {
 
     if (value === undefined || value === null) {
       if (field.isRequired()) missing.push(name);
+    } else if (field.getReference()) {
+      // A record-picker field publishes its target PK's column type, but the value it exchanges is
+      // a packed id string ("42", "1|2") whatever that type is: the agent unpacks strings only,
+      // so enforcing the published JSON type here would reject the only shape that executes.
+      if (typeof value !== 'string') {
+        violations.push({ field: name, expected: PACKED_ID_EXPECTATION });
+      }
     } else {
-      const expected = expectedWhenViolated(
-        field.getType(),
-        value,
-        action.getEnumField(name).getOptions(),
-      );
+      const type = field.getType();
+      // Options are consulted for Enum fields only, mirroring the form endpoint.
+      const options = isEnumType(type) ? action.getEnumField(name).getOptions() : undefined;
+      const expected = expectedWhenViolated(type, value, options);
 
       if (expected) violations.push({ field: name, expected });
     }

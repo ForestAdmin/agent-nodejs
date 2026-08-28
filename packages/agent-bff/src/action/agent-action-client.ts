@@ -9,6 +9,8 @@ export interface ActionFormField {
   getName(): string;
   /** A list type is the array the agent sent, `['String']`, not `'StringList'`. */
   getType(): string | [string];
+  /** Set on record-picker fields: the exchanged value is a packed id string. */
+  getReference(): string | null | undefined;
   getValue(): unknown;
   isRequired(): boolean | undefined;
 }

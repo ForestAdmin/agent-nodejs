@@ -39,6 +39,7 @@ interface FakeField {
   value: unknown;
   isRequired: boolean;
   enumValues?: string[];
+  reference?: string | null;
 }
 
 function makeAction({
@@ -92,6 +93,7 @@ function makeAction({
       state.fields.map(f => ({
         getName: () => f.name,
         getType: () => f.type,
+        getReference: () => f.reference ?? null,
         getValue: () => f.value,
         isRequired: () => f.isRequired,
       })),
@@ -870,13 +872,18 @@ describe('action execute', () => {
     it('executes when the submitted value satisfies the required field', async () => {
       const execute = jest.fn(async () => ({ success: 'Done' }));
       const form = makeAction({
-        fields: [{ name: 'reason', type: 'String', value: null, isRequired: true }],
+        fields: [
+          { name: 'reason', type: 'String', value: null, isRequired: true },
+          // 0 and false count as present values, exactly like the form endpoint's requiredFields.
+          { name: 'amount', type: 'Number', value: null, isRequired: true },
+          { name: 'confirm', type: 'Boolean', value: null, isRequired: true },
+        ],
         execute,
       });
 
       const response = await request(execApp(clientOf(form)).callback())
         .post('/agent/v1/users/actions/approve/execute')
-        .send({ recordIds: ['42'], values: { reason: 'because' } });
+        .send({ recordIds: ['42'], values: { reason: 'because', amount: 0, confirm: false } });
 
       expect(response.status).toBe(200);
       expect(execute).toHaveBeenCalledTimes(1);
@@ -1147,6 +1154,96 @@ describe('action execute', () => {
           recordIds: ['42'],
           values: { meta: { any: [1, null] }, doc: 'data:text/plain;aGk=' },
         });
+
+      expect(response.status).toBe(200);
+      expect(execute).toHaveBeenCalledTimes(1);
+    });
+
+    it('accepts a packed id string on a record-picker field whose PK type is Number', async () => {
+      // The agent rewrites a Collection field to its target PK column type, but execute unpacks
+      // packed id STRINGS only (IdUtils.unpackId throws on a number): the published type is not
+      // the runtime contract, and the string is the only shape that may execute.
+      const execute = jest.fn(async () => ({ success: 'Done' }));
+      const form = makeAction({
+        fields: [
+          {
+            name: 'assignee',
+            type: 'Number',
+            value: null,
+            isRequired: false,
+            reference: 'users.id',
+          },
+        ],
+        execute,
+      });
+
+      const ok = await request(execApp(clientOf(form)).callback())
+        .post('/agent/v1/users/actions/approve/execute')
+        .send({ recordIds: ['42'], values: { assignee: '42' } });
+
+      expect(ok.status).toBe(200);
+      expect(execute).toHaveBeenCalledTimes(1);
+    });
+
+    it('rejects a raw number on a record-picker field with the packed id expectation', async () => {
+      const execute = jest.fn(async () => ({ success: 'Done' }));
+      const form = makeAction({
+        fields: [
+          {
+            name: 'assignee',
+            type: 'Number',
+            value: null,
+            isRequired: false,
+            reference: 'users.id',
+          },
+        ],
+        execute,
+      });
+
+      const response = await request(execApp(clientOf(form)).callback())
+        .post('/agent/v1/users/actions/approve/execute')
+        .send({ recordIds: ['42'], values: { assignee: 42 } });
+
+      expect(response.status).toBe(422);
+      expect(response.body.error).toEqual({
+        type: 'invalid_action_value',
+        status: 422,
+        message:
+          'Invalid action field values: assignee (expected a string holding a packed record id)',
+        details: {
+          fields: [{ field: 'assignee', expected: 'a string holding a packed record id' }],
+        },
+      });
+      expect(execute).not.toHaveBeenCalled();
+    });
+
+    it('ignores a leftover enums array on a typed field and a malformed options array', async () => {
+      const execute = jest.fn(async () => ({ success: 'Done' }));
+      const form = makeAction({
+        fields: [
+          // A hook can rebuild a form leaving enums on a field whose type is not Enum: membership
+          // applies to Enum fields only. `enums` arrives malformed (a bare string) on the other.
+          {
+            name: 'amount',
+            type: 'Number',
+            value: null,
+            isRequired: false,
+            enumValues: ['gold', 'silver'],
+          },
+          {
+            name: 'tier',
+            type: 'Enum',
+            value: null,
+            isRequired: false,
+            enumValues: 'gold' as unknown as string[],
+          },
+        ],
+        execute,
+      });
+
+      const response = await request(execApp(clientOf(form)).callback())
+        .post('/agent/v1/users/actions/approve/execute')
+        .send({ recordIds: ['42'], values: { amount: 5, tier: 'whatever' } });
 
       expect(response.status).toBe(200);
       expect(execute).toHaveBeenCalledTimes(1);
