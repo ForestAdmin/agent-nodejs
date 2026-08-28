@@ -320,6 +320,8 @@ describe('ReadRecordStepExecutor', () => {
       expect(result.stepOutcome.error).toBe(
         "The AI selected fields that don't exist on this record. Try rephrasing the step's prompt.",
       );
+      // The AI picking a name that doesn't exist is its own miss, not a workflow edit.
+      expect(result.stepOutcome).not.toHaveProperty('errorKind');
       expect(agentPort.getRecord).not.toHaveBeenCalled();
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
@@ -1084,7 +1086,7 @@ describe('ReadRecordStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('error');
     });
 
-    it('returns error when all pre-recorded fieldNames are invalid', async () => {
+    it('classifies invalid pre-recorded fieldNames as a configuration error', async () => {
       const mockModel = makeMockModel();
       const context = makeContext({
         model: mockModel.model,
@@ -1097,6 +1099,9 @@ describe('ReadRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('error');
+      // Same verdict and wording as Update Data gets for the same renamed field.
+      expect(result.stepOutcome.errorKind).toBe('configuration');
+      expect(result.stepOutcome.error).toContain("doesn't exist on this record");
     });
 
     it('resolves a pre-recorded technical fieldName to its own field, not another whose displayName collides', async () => {

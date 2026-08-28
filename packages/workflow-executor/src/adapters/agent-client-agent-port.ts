@@ -23,6 +23,7 @@ import {
   ActionRequiresApprovalError as ClientActionRequiresApprovalError,
   ApprovalRequestCreationError as ClientApprovalRequestCreationError,
   HttpRequester,
+  UnknownActionFieldError,
   createRemoteAgentClient,
 } from '@forestadmin/agent-client';
 import jsonwebtoken from 'jsonwebtoken';
@@ -258,12 +259,16 @@ export default class AgentClientAgentPort implements AgentPort {
       const act = await client.collection(collection).action(action, { recordIds });
 
       if (values) {
-        // setFields is strict (mirrors MCP execute-action): an unknown field is a config/drift
-        // problem, surfaced as a validation error rather than a silent skip.
+        // An unknown field is a config/drift problem, surfaced rather than silently skipped. Anything
+        // else comes from the change-hook request setFields makes: transport, not a rejected form.
         try {
           await act.setFields(values);
         } catch (cause) {
-          throw new ActionFormValidationError(action, cause);
+          if (cause instanceof UnknownActionFieldError) {
+            throw new ActionFormValidationError(action, cause);
+          }
+
+          throw cause;
         }
       }
 

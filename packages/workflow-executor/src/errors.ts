@@ -513,8 +513,7 @@ export class InvalidPreRecordedArgsError extends WorkflowConfigurationError {
 // A "Related to" / "On record" source step ran but loaded no record, so the step that uses it has
 // no source to act on ("no source record"). Distinct from a bad config — the
 // user can continue without. Wording is step-type-neutral (shared by load-related and trigger-action).
-// The kind comes from the throw site: only there is it known whether the operator had a record to
-// pick, which is what decides who can act on it.
+// The kind comes from the throw site: only there is it known whether a candidate was on offer.
 export class SourceRecordMissingError extends WorkflowExecutorError {
   constructor(
     sourceTitle?: string,

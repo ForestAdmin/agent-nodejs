@@ -6,6 +6,7 @@ import {
   ActionRequiresApprovalError as ClientApprovalError,
   ApprovalRequestCreationError as ClientApprovalRequestCreationError,
   ActionFormValidationError as ClientFormValidationError,
+  UnknownActionFieldError as ClientUnknownActionFieldError,
   HttpRequester,
   createRemoteAgentClient,
 } from '@forestadmin/agent-client';
@@ -51,6 +52,13 @@ jest.mock('@forestadmin/agent-client', () => {
     }
   }
 
+  class MockUnknownActionFieldError extends Error {
+    constructor(fieldName: string) {
+      super(`Field "${fieldName}" does not exist in this form`);
+      this.name = 'UnknownActionFieldError';
+    }
+  }
+
   class MockApprovalRequestCreationError extends Error {
     constructor(public readonly cause?: unknown) {
       super('The approval request could not be created.');
@@ -63,6 +71,7 @@ jest.mock('@forestadmin/agent-client', () => {
     ActionRequiresApprovalError: MockActionRequiresApprovalError,
     ActionFormValidationError: MockActionFormValidationError,
     ApprovalRequestCreationError: MockApprovalRequestCreationError,
+    UnknownActionFieldError: MockUnknownActionFieldError,
     createRemoteAgentClient: jest.fn(),
     HttpRequester: { is404Error: jest.fn() },
   };
@@ -1003,8 +1012,8 @@ describe('AgentClientAgentPort', () => {
       expect(mockAction.execute).toHaveBeenCalled();
     });
 
-    it('maps a setFields failure (unknown field) to ActionFormValidationError', async () => {
-      mockAction.setFields.mockRejectedValue(new Error('Field "x" does not exist in this form'));
+    it('maps an unknown field on setFields to ActionFormValidationError', async () => {
+      mockAction.setFields.mockRejectedValue(new ClientUnknownActionFieldError('x'));
 
       await expect(
         port.executeAction(
@@ -1012,6 +1021,24 @@ describe('AgentClientAgentPort', () => {
           { user },
         ),
       ).rejects.toBeInstanceOf(ActionFormValidationError);
+      expect(mockAction.execute).not.toHaveBeenCalled();
+    });
+
+    // setFields awaits a /hooks/change request for any field carrying a change hook, so it can fail
+    // for reasons that have nothing to do with the submitted values.
+    it('does not blame the form for a transport failure on setFields', async () => {
+      mockAction.setFields.mockRejectedValue(new Error('socket hang up'));
+
+      const error = await port
+        .executeAction(
+          { collection: 'users', action: 'refund', id: [1], values: { amount: 50 } },
+          { user },
+        )
+        .catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(AgentPortError);
+      expect(error).not.toBeInstanceOf(ActionFormValidationError);
+      expect((error as AgentPortError).errorKind).toBeUndefined();
       expect(mockAction.execute).not.toHaveBeenCalled();
     });
 
