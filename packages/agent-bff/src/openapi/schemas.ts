@@ -148,9 +148,6 @@ export const ActionRequestSchema = z
 const ActionFormResponseFieldSchema = z
   .object({
     name: z.string(),
-    // Verbatim from the agent, so a list field carries exactly `['String']` rather than
-    // `'StringList'`: an array of exactly one string. Length is pinned (zod-to-openapi maps
-    // min/max but not `.length`) because `prefixItems` alone would still admit extra elements.
     type: z.union([z.string(), z.array(z.string()).min(1).max(1)]),
     value: z.unknown().optional(),
     isRequired: z.boolean(),
@@ -183,7 +180,7 @@ export const ActionFormResponseSchema = z
       'contract, so it is left untyped here.',
   });
 
-export const ActionResultSuccessSchema = z
+const ActionResultSuccessSchema = z
   .object({
     type: z.literal('success'),
     message: z.union([z.string(), z.null()]),
@@ -201,7 +198,7 @@ export const ActionResultSuccessSchema = z
       're-fetched; `message` is the agent wording, null when the result carries none.',
   });
 
-export const ActionResultWebhookSchema = z
+const ActionResultWebhookSchema = z
   .object({
     type: z.literal('webhook'),
     url: z.string(),
@@ -215,7 +212,7 @@ export const ActionResultWebhookSchema = z
       'from the agent payload: absent when it omitted them, an explicit null relayed as null.',
   });
 
-export const ActionResultRedirectSchema = z
+const ActionResultRedirectSchema = z
   .object({
     type: z.literal('redirect'),
     path: z.string(),

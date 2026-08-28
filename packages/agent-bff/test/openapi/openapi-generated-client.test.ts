@@ -138,8 +138,6 @@ function makeAction(): Action {
         isRequired: () => false,
       },
       {
-        // A list-typed field, so the generated client carries the array form the agent really
-        // sends; `value` is undefined, which the mapper drops rather than serialize.
         getName: () => 'tags',
         getType: () => ['String'],
         getValue: () => undefined,

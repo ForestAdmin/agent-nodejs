@@ -510,7 +510,6 @@ describe('the documented action responses', () => {
       properties: { type: { anyOf: unknown[] } };
     };
 
-    // Length is pinned: an unpinned array form would still admit extra elements in OpenAPI 3.1.
     expect(field.properties.type.anyOf).toEqual([
       { type: 'string' },
       { type: 'array', items: { type: 'string' }, minItems: 1, maxItems: 1 },
@@ -536,8 +535,6 @@ describe('the documented action responses', () => {
       properties: { value: unknown; enumValues: { anyOf: unknown[] } };
     };
 
-    // `value` is dropped by JSON serialization when the field carries none, so it stays optional;
-    // `enumValues` is emitted only on Enum fields, null included.
     expect(field.properties.value).toEqual({});
     expect(field.properties.enumValues.anyOf).toEqual([
       { type: 'array', items: { type: 'string' } },
