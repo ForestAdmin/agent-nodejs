@@ -278,7 +278,8 @@ const ROUTES: RouteDefinition[] = [
     summary: 'Execute a custom action',
     request: ActionRequestSchema,
     response: z.unknown(),
-    responseDescription: 'The normalized action result',
+    responseDescription:
+      'The normalized action result; a success result html field is sanitized server-side against an allowlist before relaying',
     params: ['collection', 'action'],
     bodyRequired: true,
     executeResults: true,

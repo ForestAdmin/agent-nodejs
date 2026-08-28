@@ -19,6 +19,39 @@ describe('mapActionExecuteResult', () => {
     });
   });
 
+  // PRD-1095: the agent's html is untrusted output (it can interpolate record data), so the BFF
+  // sanitizes it with an allowlist before relaying. Safe markup survives; active markup does not.
+  it('sanitizes the success html: safe markup kept, active markup stripped', () => {
+    expect(
+      mapActionExecuteResult({
+        success: 'With html',
+        html:
+          '<p>Safe <b>markup</b></p>' +
+          '<img src=x onerror="parent.postMessage({qa:xss},\'*\')">' +
+          '<svg onload="alert(1)"></svg>' +
+          '<a href="javascript:alert(2)">click</a>',
+        refresh: { relationships: [] },
+      }),
+    ).toEqual({
+      status: 200,
+      body: {
+        type: 'success',
+        message: 'With html',
+        invalidated: [],
+        html: '<p>Safe <b>markup</b></p><a>click</a>',
+      },
+    });
+  });
+
+  it('maps a non-string html to null instead of relaying or crashing on it', () => {
+    expect(
+      mapActionExecuteResult({ success: 'ok', html: 42, refresh: { relationships: [] } }),
+    ).toEqual({
+      status: 200,
+      body: { type: 'success', message: 'ok', invalidated: [], html: null },
+    });
+  });
+
   it('defaults message and html to null and invalidated to [] when absent', () => {
     expect(mapActionExecuteResult({ success: undefined, refresh: { relationships: [] } })).toEqual({
       status: 200,

@@ -17,6 +17,7 @@ import {
 import { mapActionExecuteResult } from './action-execute-mapper';
 import { mapActionForm } from './action-form-mapper';
 import defaultCreateAgentActionClient, { extractRawLayout } from './agent-action-client';
+import sanitizeActionHtml from './sanitize-action-html';
 import { mapAgentError } from '../http/agent-error-mapper';
 import {
   callAgent,
@@ -137,7 +138,11 @@ async function handleExecute({
     }
 
     if (error instanceof ActionFormValidationError) {
-      throw actionError(error.message, error.html !== undefined ? { html: error.html } : undefined);
+      // The agent's Error-result html is the same untrusted output as the success html, so it
+      // goes through the same sanitizer; a non-string value yields no details rather than a 500.
+      const html = sanitizeActionHtml(error.html);
+
+      throw actionError(error.message, html === null ? undefined : { html });
     }
 
     throw mapAgentError(error, { logger });

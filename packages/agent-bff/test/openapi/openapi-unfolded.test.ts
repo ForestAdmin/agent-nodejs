@@ -140,6 +140,15 @@ describe('the unfolded document', () => {
     );
   });
 
+  it('should say on the execute response that a success html is sanitized server-side', () => {
+    const response = operation('My%20Coll/actions/Mark%20as%20paid%2Fdone/execute')
+      .responses as Record<string, { description: string }>;
+
+    expect(response['200'].description).toContain(
+      'html field is sanitized server-side against an allowlist',
+    );
+  });
+
   it('should name the exact action in prose, since the operationId cannot carry it', () => {
     expect(operation('My%20Coll/actions/Mark%20as%20paid%2Fdone/form').description).toContain(
       'exactly "Mark as paid/done"',
