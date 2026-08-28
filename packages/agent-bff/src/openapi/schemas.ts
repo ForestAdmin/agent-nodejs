@@ -2,6 +2,7 @@ import { allOperators } from '@forestadmin/datasource-toolkit';
 
 import { z } from './zod-openapi';
 import {
+  MAX_PAGE_LIMIT,
   PageInput,
   ParentIdInput,
   ProjectionInput,
@@ -53,7 +54,8 @@ export const SortClauseSchema = SortClauseInput.openapi('SortClause', {
 export const PageSchema = PageInput.openapi('Page', {
   description:
     'The agent paginates by page number, so `offset` must be a whole multiple of `limit`. ' +
-    'Any other offset is rejected with 400 invalid_request.',
+    `Any other offset is rejected with 400 invalid_request, as is a \`limit\` above \`${MAX_PAGE_LIMIT}\` ` +
+    '(the maximum is not clamped silently).',
 });
 
 export const TimezoneSchema = TimezoneInput.openapi('Timezone', {
