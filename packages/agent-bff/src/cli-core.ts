@@ -37,16 +37,13 @@ import createOpenApiRoutes, { OPENAPI_PATH } from './openapi/openapi-routes';
 import PermissionsCache from './permissions/permissions-cache';
 import PermissionsClient from './permissions/permissions-client';
 import createPermissionsRoutesMiddleware from './permissions/permissions-routes-middleware';
+import isAgentPath from './rate-limit/agent-path';
 import createRateLimitMiddleware from './rate-limit/rate-limit-middleware';
 import createReadModel from './read-model/create-read-model';
 import createTimezoneMiddleware from './timezone/timezone-middleware';
 import version from './version';
 
 const SESSION_TTL_SECONDS = 24 * 60 * 60;
-
-function isAgentPath(path: string): boolean {
-  return path === '/agent' || path.startsWith('/agent/');
-}
 
 function agentScoped(middleware: Middleware): Middleware {
   return async function scoped(ctx, next) {

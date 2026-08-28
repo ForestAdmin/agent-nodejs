@@ -1,5 +1,6 @@
 import type { Middleware } from 'koa';
 
+import isAgentPath from './agent-path';
 import { tooManyRequests } from '../http/bff-local-errors';
 
 export interface RateLimitMiddlewareOptions {
@@ -63,7 +64,7 @@ export default function createRateLimitMiddleware({
   }
 
   return async function rateLimitMiddleware(ctx, next) {
-    if (ctx.path !== '/agent' && !ctx.path.startsWith('/agent/')) {
+    if (!isAgentPath(ctx.path)) {
       await next();
 
       return;
