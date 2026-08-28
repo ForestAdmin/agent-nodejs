@@ -2,9 +2,12 @@ import { allOperators } from '@forestadmin/datasource-toolkit';
 
 import { z } from './zod-openapi';
 import {
+  CountFlatInputs,
+  ListFlatInputs,
   PageInput,
   ParentIdInput,
-  ProjectionInput,
+  RelationCountFlatInputs,
+  RelationListFlatInputs,
   SearchExtendedInput,
   SearchInput,
   SortClauseInput,
@@ -91,52 +94,59 @@ const ParentIdSchema = ParentIdInput.openapi('ParentId', {
     'blank string is rejected.',
 });
 
-const countRequestShape = {
+/** Stated once, published on every request component and reused by the unfolded document. */
+export const CLOSED_BODY_NOTE =
+  'The runtime rejects an undeclared TOP-LEVEL key with 400 invalid_request, so `filters` instead ' +
+  'of `filter` is an error rather than a silently unfiltered result. Inside the filter tree the ' +
+  'check stops there: an unknown key on a condition node still reaches the agent, so a leaf ' +
+  'carrying `valu` runs with no value rather than being rejected.';
+
+/**
+ * Overrides on top of the runtime schemas, not a second declaration of the same key set: a key
+ * added to `ListFlatInputs` publishes here on its own, and `satisfies` refuses a decoration for a
+ * key the runtime does not accept. The keys absent from this list are published as the runtime
+ * declares them.
+ *
+ * Extending is safe here only because the runtime schemas are NOT registered. Extending a
+ * REGISTERED object publishes an `allOf` of the two, and a closed base then forbids `parentId` in
+ * the very component that adds it — an unsatisfiable body.
+ */
+const countOverrides = {
   filter: ConditionTreeSchema.optional(),
   search: SearchSchema.optional(),
   searchExtended: SearchExtendedSchema.optional(),
   timezone: TimezoneSchema.optional(),
-};
+} satisfies Partial<Record<keyof typeof CountFlatInputs.shape, z.ZodType>>;
 
-const listRequestShape = {
-  ...countRequestShape,
-  projection: ProjectionInput.optional(),
+const listOverrides = {
+  ...countOverrides,
   sort: z.array(SortClauseSchema).optional(),
   page: PageSchema.optional(),
-};
+} satisfies Partial<Record<keyof typeof ListFlatInputs.shape, z.ZodType>>;
 
-const CLOSED_BODY_NOTE =
-  'The body is closed at the TOP LEVEL: an undeclared top-level key is rejected with 400 ' +
-  'invalid_request, so `filters` instead of `filter` cannot silently return unfiltered rows. ' +
-  'Inside the filter tree the check stops there: an unknown key on a condition node is still ' +
-  'forwarded to the agent, so a leaf carrying `valu` runs with no value rather than being rejected.';
+export const ListRequestSchema = ListFlatInputs.extend(listOverrides).openapi('ListRequest', {
+  description: CLOSED_BODY_NOTE,
+});
 
-export const ListRequestSchema = z
-  .strictObject(listRequestShape)
-  .openapi('ListRequest', { description: CLOSED_BODY_NOTE });
-
-export const CountRequestSchema = z.strictObject(countRequestShape).openapi('CountRequest', {
+export const CountRequestSchema = CountFlatInputs.extend(countOverrides).openapi('CountRequest', {
   description:
     'Accepts the same search inputs as list, so a client can count exactly the rows its search ' +
     `returns. ${CLOSED_BODY_NOTE}`,
 });
 
-/**
- * Spread from the same shapes rather than extended from the schemas above: extending a REGISTERED
- * object publishes an `allOf` of the two, and a closed base then forbids `parentId` in the very
- * component that adds it — an unsatisfiable body.
- */
-export const RelationListRequestSchema = z
-  .strictObject({ ...listRequestShape, parentId: ParentIdSchema })
-  .openapi('RelationListRequest', {
-    description:
-      'Filter, sort, projection and search apply to the FOREIGN collection; the parent only ' +
-      `resolves which records are related. ${CLOSED_BODY_NOTE}`,
-  });
+export const RelationListRequestSchema = RelationListFlatInputs.extend({
+  ...listOverrides,
+  parentId: ParentIdSchema,
+}).openapi('RelationListRequest', {
+  description:
+    'Filter, sort, projection and search apply to the FOREIGN collection; the parent only ' +
+    `resolves which records are related. ${CLOSED_BODY_NOTE}`,
+});
 
-export const RelationCountRequestSchema = z
-  .strictObject({ ...countRequestShape, parentId: ParentIdSchema })
-  .openapi('RelationCountRequest', { description: CLOSED_BODY_NOTE });
+export const RelationCountRequestSchema = RelationCountFlatInputs.extend({
+  ...countOverrides,
+  parentId: ParentIdSchema,
+}).openapi('RelationCountRequest', { description: CLOSED_BODY_NOTE });
 
 export const ActionRequestSchema = z
   .object({

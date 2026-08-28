@@ -16,6 +16,7 @@ import type { ReferenceObject, SchemaObject } from 'openapi3-ts/oas31';
 import toFieldSchema from './field-schemas';
 import createNamer from './names';
 import {
+  CLOSED_BODY_NOTE,
   CountResponseSchema,
   ListResponseSchema,
   OPERATORS,
@@ -255,21 +256,17 @@ function fieldRefs(deps: Deps, plan: Pick<CollectionPlan, 'key' | 'collection'>)
 }
 
 /**
- * Stated in prose because the shape cannot say it here: these bodies compose with `allOf` for the
- * relation paths, and `additionalProperties: false` on a composed branch forbids the very key the
- * other branch adds. `oas31` has no `unevaluatedProperties` to express it either, so closing this
- * document means flattening every relation request -- its own change.
+ * The same rule as the folded document, minus the keyword that states it: these bodies compose with
+ * `allOf` for the relation paths, and `additionalProperties: false` on a composed branch forbids
+ * the very key the other branch adds. `oas31` has no `unevaluatedProperties` to express it either,
+ * so closing this document means flattening every relation request -- its own change.
  */
-const CLOSED_BODY_NOTE =
-  'The runtime rejects an undeclared TOP-LEVEL key with 400 invalid_request, so `filters` instead ' +
-  'of `filter` is an error rather than a silently unfiltered result. This schema does not say so ' +
-  'structurally yet: treat it as closed. Inside the filter tree the check stops there, and an ' +
-  'unknown key on a condition node still reaches the agent.';
+const CLOSED_BODY_PROSE_ONLY = `${CLOSED_BODY_NOTE} This schema does not say so structurally yet: treat it as closed.`;
 
 function requestDescription(collection: UnfoldedCollection, subject: string): string {
   const note = collection.fields.degraded ? ` ${DEGRADED_NOTE[collection.fields.degraded]}` : '';
 
-  return `${subject}${note} ${CLOSED_BODY_NOTE}`;
+  return `${subject}${note} ${CLOSED_BODY_PROSE_ONLY}`;
 }
 
 function registerRequests(deps: Deps, plan: Omit<CollectionPlan, 'requests'>): RequestRefs {
@@ -361,7 +358,7 @@ function registerRelationRequests(
   const description =
     `Filter, sort and projection apply to ${quoted(foreign.collection.name)}, the foreign ` +
     `collection of ${quoted(plan.collection.name)}.${quoted(relation.name)}; the parent only ` +
-    `resolves which records are related. ${CLOSED_BODY_NOTE}`;
+    `resolves which records are related. ${CLOSED_BODY_PROSE_ONLY}`;
 
   return {
     list: pool.add(`RelationListRequest_${relationKey}`, {

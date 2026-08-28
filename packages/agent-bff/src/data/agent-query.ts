@@ -1,4 +1,5 @@
-import type { ZodType } from 'zod';
+import type { PageInput, SortClauseInput } from './request-schemas';
+import type { ZodType, z } from 'zod';
 
 import {
   CountFlatInputs,
@@ -12,34 +13,21 @@ import { filterTooDeep } from '../validation/validation-errors';
 
 export { MAX_FILTER_DEPTH as MAX_PARSED_FILTER_DEPTH };
 
-export interface BffSortClause {
-  field: string;
-  direction?: 'asc' | 'desc';
-}
+// Inferred, never transcribed: a hand-written interface drifts from the schema that actually
+// accepts the body, and the parsers below return that body by reference.
+export type BffSortClause = z.infer<typeof SortClauseInput>;
 
-export interface BffPage {
-  limit: number;
-  offset: number;
-}
+export type BffPage = z.infer<typeof PageInput>;
 
-export interface ListRequestBody {
-  filter?: unknown;
-  projection?: string[];
-  sort?: BffSortClause[];
-  page?: BffPage;
-  search?: string;
-  searchExtended?: boolean;
-}
+export type ListRequestBody = z.infer<typeof ListFlatInputs>;
 
-export interface CountRequestBody {
-  filter?: unknown;
-  search?: string;
-  searchExtended?: boolean;
-}
+export type CountRequestBody = z.infer<typeof CountFlatInputs>;
 
-export type RelationListRequestBody = ListRequestBody & { parentId: string };
+export type RelationListRequestBody = z.infer<typeof RelationListFlatInputs> & { parentId: string };
 
-export type RelationCountRequestBody = CountRequestBody & { parentId: string };
+export type RelationCountRequestBody = z.infer<typeof RelationCountFlatInputs> & {
+  parentId: string;
+};
 
 export type AgentQuery = Record<string, unknown> & { timezone: string };
 
@@ -91,21 +79,21 @@ function assertFilter(filter: unknown): void {
   assertNoNodeReadableAsBothLeafAndBranch(filter);
 }
 
-function parseRequest<T>(schema: ZodType, body: unknown): T {
+function parseRequest<S extends ZodType>(schema: S, body: unknown): z.output<S> {
   if (!isPlainObject(body)) throw invalidRequest('Request body must be an object');
 
   assertFlatInputs(schema, body);
   assertFilter(body.filter);
 
-  return body as T;
+  return body as z.output<S>;
 }
 
 export function parseListRequest(body: unknown): ListRequestBody {
-  return parseRequest<ListRequestBody>(ListFlatInputs, body);
+  return parseRequest(ListFlatInputs, body);
 }
 
 export function parseCountRequest(body: unknown): CountRequestBody {
-  return parseRequest<CountRequestBody>(CountFlatInputs, body);
+  return parseRequest(CountFlatInputs, body);
 }
 
 function collectFilterFields(filter: unknown, acc: string[]): void {
@@ -211,13 +199,13 @@ export function parseParentId(parentId: unknown): string {
 export function parseRelationListRequest(body: unknown): RelationListRequestBody {
   const parentId = parseParentId((body as { parentId?: unknown } | null)?.parentId);
 
-  return { ...parseRequest<ListRequestBody>(RelationListFlatInputs, body), parentId };
+  return { ...parseRequest(RelationListFlatInputs, body), parentId };
 }
 
 export function parseRelationCountRequest(body: unknown): RelationCountRequestBody {
   const parentId = parseParentId((body as { parentId?: unknown } | null)?.parentId);
 
-  return { ...parseRequest<CountRequestBody>(RelationCountFlatInputs, body), parentId };
+  return { ...parseRequest(RelationCountFlatInputs, body), parentId };
 }
 
 export function collectCountFieldPaths(body: CountRequestBody): string[] {

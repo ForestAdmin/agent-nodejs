@@ -11,6 +11,18 @@ import {
   parseRelationListRequest,
 } from '../../src/data/agent-query';
 
+type Parser = [string, (body: unknown) => unknown];
+
+const FLAT_PARSERS: Parser[] = [
+  ['parseListRequest', parseListRequest],
+  ['parseCountRequest', parseCountRequest],
+];
+
+const RELATION_PARSERS: Parser[] = [
+  ['parseRelationListRequest', parseRelationListRequest],
+  ['parseRelationCountRequest', parseRelationCountRequest],
+];
+
 describe('buildListAgentQuery', () => {
   it('should always pass the resolved timezone', () => {
     expect(buildListAgentQuery('users', 'America/New_York', {})).toEqual({
@@ -286,10 +298,7 @@ describe('a filter node readable as both a leaf and a branch', () => {
     conditions: [],
   };
 
-  it.each([
-    ['parseListRequest', parseListRequest],
-    ['parseCountRequest', parseCountRequest],
-  ])('should reject it in %s with 400 invalid_request', (_label, parse) => {
+  it.each(FLAT_PARSERS)('should reject it in %s with 400 invalid_request', (_label, parse) => {
     expect(() => parse({ filter: READABLE_AS_BOTH })).toThrow(
       expect.objectContaining({ type: 'invalid_request', status: 400 }),
     );
@@ -398,19 +407,16 @@ describe('parseRelationCountRequest', () => {
 describe('unknown keys', () => {
   const REJECTED = expect.objectContaining({ type: 'invalid_request', status: 400 });
 
-  it.each([
-    ['parseListRequest', parseListRequest],
-    ['parseCountRequest', parseCountRequest],
-  ])('should reject a misspelled filter on %s rather than run unfiltered', (_label, parse) => {
-    expect(() => parse({ filters: { field: 'plan', operator: 'Equal', value: 'free' } })).toThrow(
-      REJECTED,
-    );
-  });
+  it.each(FLAT_PARSERS)(
+    'should reject a misspelled filter on %s rather than run unfiltered',
+    (_label, parse) => {
+      expect(() => parse({ filters: { field: 'plan', operator: 'Equal', value: 'free' } })).toThrow(
+        REJECTED,
+      );
+    },
+  );
 
-  it.each([
-    ['parseListRequest', parseListRequest],
-    ['parseCountRequest', parseCountRequest],
-  ])('should name the unknown key in the %s rejection', (_label, parse) => {
+  it.each(FLAT_PARSERS)('should name the unknown key in the %s rejection', (_label, parse) => {
     expect(() => parse({ totallyUnknownField: 123 })).toThrow(
       expect.objectContaining({ message: expect.stringContaining('totallyUnknownField') }),
     );
@@ -424,35 +430,26 @@ describe('unknown keys', () => {
     expect(() => parseListRequest({ parentId: '7' })).toThrow(REJECTED);
   });
 
-  it.each([
-    ['parseRelationListRequest', parseRelationListRequest],
-    ['parseRelationCountRequest', parseRelationCountRequest],
-  ])('should reject a misspelled filter on %s', (_label, parse) => {
+  it.each(RELATION_PARSERS)('should reject a misspelled filter on %s', (_label, parse) => {
     expect(() => parse({ parentId: '7', filters: { field: 'a', operator: 'present' } })).toThrow(
       REJECTED,
     );
   });
 
-  it.each([
-    ['parseRelationListRequest', parseRelationListRequest],
-    ['parseRelationCountRequest', parseRelationCountRequest],
-  ])('should still accept parentId on %s', (_label, parse) => {
+  it.each(RELATION_PARSERS)('should still accept parentId on %s', (_label, parse) => {
     expect(parse({ parentId: '7' })).toMatchObject({ parentId: '7' });
   });
 
-  it.each([
-    ['parseListRequest', parseListRequest],
-    ['parseCountRequest', parseCountRequest],
-  ])('should still accept the timezone the middleware reads on %s', (_label, parse) => {
-    expect(parse({ timezone: 'Europe/Paris' })).toMatchObject({ timezone: 'Europe/Paris' });
-  });
+  it.each(FLAT_PARSERS)(
+    'should still accept the timezone the middleware reads on %s',
+    (_label, parse) => {
+      expect(parse({ timezone: 'Europe/Paris' })).toMatchObject({ timezone: 'Europe/Paris' });
+    },
+  );
 
   // The middleware falls back to the header or the deployment default for a non-string timezone,
   // so rejecting one here would break a client that serializes an unset field as null.
-  it.each([
-    ['parseListRequest', parseListRequest],
-    ['parseCountRequest', parseCountRequest],
-  ])('should leave a null timezone to the middleware on %s', (_label, parse) => {
+  it.each(FLAT_PARSERS)('should leave a null timezone to the middleware on %s', (_label, parse) => {
     expect(parse({ timezone: null })).toMatchObject({ timezone: null });
   });
 
