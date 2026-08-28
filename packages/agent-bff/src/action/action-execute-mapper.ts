@@ -92,8 +92,6 @@ export function mapActionExecuteResult(raw: unknown): ActionExecuteMapped {
         type: 'success',
         message: typeof body.success === 'string' ? body.success : null,
         invalidated: relationships.filter((name): name is string => typeof name === 'string'),
-        // Untrusted agent output sanitized at the BFF boundary (PRD-1095); a non-string value
-        // relays as null exactly as before.
         html: sanitizeActionHtml(body.html),
       },
     };

@@ -665,8 +665,6 @@ describe('action execute', () => {
     });
   });
 
-  // PRD-1095: the same untrusted agent html travels in a native action Error's details; the
-  // sanitizer applies here too, and a non-string html yields no details rather than a 500.
   it('sanitizes the html carried by a native action Error in details', async () => {
     const form = makeAction({
       execute: jest.fn(async () => {

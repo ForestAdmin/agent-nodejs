@@ -138,8 +138,6 @@ async function handleExecute({
     }
 
     if (error instanceof ActionFormValidationError) {
-      // The agent's Error-result html is the same untrusted output as the success html, so it
-      // goes through the same sanitizer; a non-string value yields no details rather than a 500.
       const html = sanitizeActionHtml(error.html);
 
       throw actionError(error.message, html === null ? undefined : { html });

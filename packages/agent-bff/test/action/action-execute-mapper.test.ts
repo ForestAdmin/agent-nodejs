@@ -19,8 +19,6 @@ describe('mapActionExecuteResult', () => {
     });
   });
 
-  // PRD-1095: the agent's html is untrusted output (it can interpolate record data), so the BFF
-  // sanitizes it with an allowlist before relaying. Safe markup survives; active markup does not.
   it('sanitizes the success html: safe markup kept, active markup stripped', () => {
     expect(
       mapActionExecuteResult({
