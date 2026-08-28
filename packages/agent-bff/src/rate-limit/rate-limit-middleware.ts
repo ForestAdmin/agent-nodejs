@@ -1,3 +1,5 @@
+import type { ResolvedApiKeyIdentity } from '../api-key/api-key-client';
+import type { BffAccessTokenPayload } from '../oauth/bff-token';
 import type { Middleware } from 'koa';
 
 import isAgentPath from './agent-path';
@@ -21,9 +23,11 @@ interface WindowEntry {
 
 const DEFAULT_MAX_ENTRIES = 10_000;
 
+// The real auth contracts rather than local structural copies: if either shape drifts, the
+// compiler moves here instead of letting the bucket keys silently diverge.
 interface AuthEdgeState {
-  apiKeyIdentity?: { user: { id: number }; renderingId: number };
-  principal?: { id: number; rendering_id: string };
+  apiKeyIdentity?: ResolvedApiKeyIdentity;
+  principal?: BffAccessTokenPayload;
 }
 
 // One bucket per authenticated identity, mode-prefixed so an API key and an OAuth session can

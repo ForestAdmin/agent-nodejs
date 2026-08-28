@@ -1,12 +1,11 @@
 import type { ZodType } from 'zod';
 
-import { CountFlatInputs, ListFlatInputs, MAX_PAGE_LIMIT } from './request-schemas';
+import { CountFlatInputs, ListFlatInputs } from './request-schemas';
 import { invalidRequest } from '../http/bff-local-errors';
 import { MAX_FILTER_DEPTH, isBranch, isLeaf } from '../validation/capabilities-validator';
 import { filterTooDeep } from '../validation/validation-errors';
 
 export { MAX_FILTER_DEPTH as MAX_PARSED_FILTER_DEPTH };
-export { MAX_PAGE_LIMIT };
 
 export interface BffSortClause {
   field: string;

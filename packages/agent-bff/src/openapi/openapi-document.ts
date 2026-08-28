@@ -53,23 +53,24 @@ const MESSAGELESS_ERROR_RESPONSE_REF = '#/components/schemas/MessagelessErrorRes
 
 const UNSUPPORTED_ACTION_RESULT_COMPONENT = 'UnsupportedActionResult';
 
-const RETRY_AFTER_HEADER = {
+// The envelope is declared once; only the description differs between the resolver wait (503)
+// and the rate-limit window reset (429).
+const retryAfterHeader = (description: string) => ({
   'Retry-After': {
-    description: 'Seconds to wait before retrying. Set when the API key could not be resolved.',
+    description,
     required: false,
     schema: { type: 'integer' as const },
   },
-};
+});
 
-const RETRY_AFTER_RATE_LIMIT_HEADER = {
-  'Retry-After': {
-    description:
-      'Seconds until the BFF rate-limit window of the caller resets. Present when the BFF ' +
-      'itself emitted this 429; an agent 429 relayed from upstream carries no header.',
-    required: false,
-    schema: { type: 'integer' as const },
-  },
-};
+const RETRY_AFTER_HEADER = retryAfterHeader(
+  'Seconds to wait before retrying. Set when the API key could not be resolved.',
+);
+
+const RETRY_AFTER_RATE_LIMIT_HEADER = retryAfterHeader(
+  'Seconds until the BFF rate-limit window of the caller resets. Present when the BFF ' +
+    'itself emitted this 429; an agent 429 relayed from upstream carries no header.',
+);
 
 type ResponseRef = { $ref: string };
 

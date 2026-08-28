@@ -1,5 +1,4 @@
 import {
-  MAX_PAGE_LIMIT,
   MAX_PARSED_FILTER_DEPTH,
   buildCountAgentQuery,
   buildListAgentQuery,
@@ -11,6 +10,7 @@ import {
   parseRelationCountRequest,
   parseRelationListRequest,
 } from '../../src/data/agent-query';
+import { MAX_PAGE_LIMIT } from '../../src/data/request-schemas';
 
 describe('buildListAgentQuery', () => {
   it('should always pass the resolved timezone', () => {
