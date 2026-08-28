@@ -27,6 +27,7 @@ describe('mapActionExecuteResult', () => {
         success: 'With html',
         html:
           '<p>Safe <b>markup</b></p>' +
+          '<script>alert(1)</script>' +
           '<img src=x onerror="parent.postMessage({qa:xss},\'*\')">' +
           '<svg onload="alert(1)"></svg>' +
           '<a href="javascript:alert(2)">click</a>',
