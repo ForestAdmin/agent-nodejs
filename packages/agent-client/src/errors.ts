@@ -32,6 +32,16 @@ export class UnknownActionFieldError extends Error {
   }
 }
 
+// A submitted value cannot be encoded for the agent (a malformed file value). Thrown synchronously
+// from setFields, so callers can tell a rejected input apart from a transport failure: network and
+// timeout errors carry no HTTP response and are NOT AgentHttpError either.
+export class InvalidActionFileValueError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'InvalidActionFileValueError';
+  }
+}
+
 // The action is approval-gated, but filing the approval request failed — distinct from the action
 // itself failing, so the caller can tell the two apart.
 export class ApprovalRequestCreationError extends Error {

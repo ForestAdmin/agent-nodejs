@@ -6,6 +6,7 @@ import {
   ActionFormValidationError,
   ActionRequiresApprovalError,
   AgentHttpError,
+  InvalidActionFileValueError,
   UnknownActionFieldError,
 } from '@forestadmin/agent-client';
 import { bodyParser } from '@koa/bodyparser';
@@ -806,7 +807,7 @@ describe('action execute', () => {
 
   it('maps a malformed file value from setFields to 400 invalid_request, not a 502', async () => {
     const setFields = jest.fn(async () => {
-      throw new Error('Field "doc" expects a file: pass { buffer, mimeType, name }.');
+      throw new InvalidActionFileValueError('Field "doc" expects a file: pass { buffer, mimeType, name }.');
     });
     const execute = jest.fn();
     const form = makeAction({ setFields, execute });
@@ -817,6 +818,25 @@ describe('action execute', () => {
 
     expect(response.status).toBe(400);
     expect(response.body.error).toMatchObject({ type: 'invalid_request', status: 400 });
+    expect(execute).not.toHaveBeenCalled();
+  });
+
+  it('maps a raw network failure from setFields to 502, never to a 400', async () => {
+    // A change hook runs inside setFields; when the agent is unreachable the requester throws a
+    // plain error with no HTTP response, which is NOT an AgentHttpError. Only typed client-input
+    // errors may become 400.
+    const setFields = jest.fn(async () => {
+      throw new TypeError('fetch failed');
+    });
+    const execute = jest.fn();
+    const form = makeAction({ setFields, execute });
+
+    const response = await request(execApp(clientOf(form)).callback())
+      .post('/agent/v1/users/actions/approve/execute')
+      .send({ recordIds: ['42'], values: { reason: 'x' } });
+
+    expect(response.status).toBe(502);
+    expect(response.body.error).toMatchObject({ type: 'network_error', status: 502 });
     expect(execute).not.toHaveBeenCalled();
   });
 

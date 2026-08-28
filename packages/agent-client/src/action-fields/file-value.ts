@@ -2,6 +2,8 @@ import type { File } from '@forestadmin/datasource-toolkit';
 
 import { makeDataUri } from '@forestadmin/datasource-toolkit';
 
+import { InvalidActionFileValueError } from '../errors';
+
 function isFileType(type: string): boolean {
   return type === 'File';
 }
@@ -23,11 +25,13 @@ function isFile(value: unknown): value is File {
 }
 
 function fileError(fieldName: string, detail: string): Error {
-  return new Error(`Field "${fieldName}" ${detail}`);
+  return new InvalidActionFileValueError(`Field "${fieldName}" ${detail}`);
 }
 
-function encodeFileValue(value: unknown, fieldName: string): unknown {
-  if (value === null || value === undefined) return value;
+function encodeFileValue(value: unknown, fieldName: string): string | null | undefined {
+  if (value === null) return null;
+
+  if (value === undefined) return undefined;
 
   // Callers that address the file indirectly (mcp-server upload handles) keep their sentinel:
   // validating strings here would break them, and the agent owns the final validation.

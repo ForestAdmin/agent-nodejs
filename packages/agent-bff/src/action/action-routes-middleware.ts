@@ -11,7 +11,7 @@ import type { Context, Middleware } from 'koa';
 import {
   ActionFormValidationError,
   ActionRequiresApprovalError,
-  AgentHttpError,
+  InvalidActionFileValueError,
   UnknownActionFieldError,
 } from '@forestadmin/agent-client';
 
@@ -113,15 +113,16 @@ async function handleExecute({
   values,
   logger,
 }: ActionHandlerArgs<Action>): Promise<void> {
-  // setFields is strict: an unknown submitted field is a client error (400), not a 500, and so is a
-  // rejected input value (agent-client throws a plain Error for a malformed file value). A
-  // transport failure from the change-hook it triggers is a genuine agent error, so it goes to the
-  // mapper.
+  // setFields is strict: an unknown submitted field and a malformed file value are client errors
+  // (400), not 500s — both carry typed errors from agent-client. Anything else (an AgentHttpError
+  // from the change-hook, or a raw network failure with no HTTP response) is a genuine agent
+  // error for the mapper: network/timeout errors are NOT AgentHttpError, so they must not land in
+  // the 400 branch.
   try {
     await action.setFields(values);
   } catch (error) {
-    if (error instanceof UnknownActionFieldError || !(error instanceof AgentHttpError)) {
-      throw invalidRequest(error instanceof Error ? error.message : String(error));
+    if (error instanceof UnknownActionFieldError || error instanceof InvalidActionFileValueError) {
+      throw invalidRequest(error.message);
     }
 
     throw mapAgentError(error, { logger });
