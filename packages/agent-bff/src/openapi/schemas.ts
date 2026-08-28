@@ -142,7 +142,9 @@ export const ActionRequestSchema = z
   .openapi('ActionRequest', {
     description:
       '`recordIds` is required, even on a global action: send an empty array when the action ' +
-      'targets no record. Every id is coerced to a string before reaching the agent.',
+      'targets no record. Every id is coerced to a string before reaching the agent. On execute ' +
+      'the submitted values are validated against the live form: a required field left empty ' +
+      'answers 400, an out-of-enum or wrongly typed value 422.',
   });
 
 const ForestRecordMetaSchema = z

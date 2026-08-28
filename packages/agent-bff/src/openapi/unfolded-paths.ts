@@ -379,10 +379,14 @@ function actionValuesSchema(action: UnfoldedAction): SchemaObject {
     // No property is required and no additional one is forbidden on purpose: a load or change hook
     // rebuilds the form at call time, so the schema's static fields are an indication, not the
     // contract — and the read-model cannot tell a hookless action from a legacy schema that simply
-    // omitted its hooks, so "static" is never certain.
+    // omitted its hooks, so "static" is never certain. On execute, the values are validated
+    // against that live form: a required field left empty answers 400, an out-of-enum or wrongly
+    // typed value 422.
     description:
       'The submitted action fields. These are the fields the schema declares statically; a load ' +
-      'or change hook can add, drop or require others at call time.',
+      'or change hook can add, drop or require others at call time. On execute the values are ' +
+      'validated against that live form: a required field left empty answers 400, an out-of-enum ' +
+      'or wrongly typed value 422.',
     properties: Object.fromEntries(
       action.fields.map(field => [field.name, actionFieldSchema(field)]),
     ),

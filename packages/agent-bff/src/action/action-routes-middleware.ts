@@ -11,11 +11,13 @@ import type { Context, Middleware } from 'koa';
 import {
   ActionFormValidationError,
   ActionRequiresApprovalError,
+  AgentHttpError,
   UnknownActionFieldError,
 } from '@forestadmin/agent-client';
 
 import { mapActionExecuteResult } from './action-execute-mapper';
 import { mapActionForm } from './action-form-mapper';
+import assertActionValuesExecutable from './action-values-validator';
 import defaultCreateAgentActionClient, { extractRawLayout } from './agent-action-client';
 import sanitizeActionHtml from './sanitize-action-html';
 import { mapAgentError } from '../http/agent-error-mapper';
@@ -111,14 +113,24 @@ async function handleExecute({
   values,
   logger,
 }: ActionHandlerArgs<Action>): Promise<void> {
-  // setFields is strict: an unknown submitted field is a client error (400), not a 500. A transport
-  // failure from the change-hook it triggers is a genuine agent error, so it goes to the mapper.
+  // setFields is strict: an unknown submitted field is a client error (400), not a 500, and so is a
+  // rejected input value (agent-client throws a plain Error for a malformed file value). A
+  // transport failure from the change-hook it triggers is a genuine agent error, so it goes to the
+  // mapper.
   try {
     await action.setFields(values);
   } catch (error) {
-    if (error instanceof UnknownActionFieldError) throw invalidRequest(error.message);
+    if (error instanceof UnknownActionFieldError || !(error instanceof AgentHttpError)) {
+      throw invalidRequest(error instanceof Error ? error.message : String(error));
+    }
+
     throw mapAgentError(error, { logger });
   }
+
+  // The published field contract is enforced here, on the live form: setFields has applied the
+  // submitted values and the change hooks have rebuilt the fields, so this validates exactly the
+  // state execute() would submit. canExecute at form time was only ever a hint.
+  assertActionValuesExecutable(action);
 
   // execute() cannot go through the generic callAgent: agent-client turns the native action Error
   // (HTTP 400) into ActionFormValidationError, a non-AgentHttpError the mapper would mislabel as a

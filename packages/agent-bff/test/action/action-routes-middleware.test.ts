@@ -34,7 +34,7 @@ function storeOf(readModel: ReadModel | Error): ReadModelStore {
 
 interface FakeField {
   name: string;
-  type: string;
+  type: string | [string];
   value: unknown;
   isRequired: boolean;
   enumValues?: string[];
@@ -45,17 +45,35 @@ function makeAction({
   layout = [],
   skipped = [],
   postChange,
+  postSet,
   execute = jest.fn(),
-  setFields = jest.fn(async () => {}),
+  setFields,
 }: {
   fields?: FakeField[];
   layout?: unknown[];
   skipped?: string[];
   postChange?: { fields?: FakeField[]; layout?: unknown[] };
+  postSet?: { fields?: FakeField[]; layout?: unknown[] };
   execute?: jest.Mock;
   setFields?: jest.Mock;
 } = {}) {
   const state = { fields: [...fields], layout: [...layout] };
+
+  // Mirrors the real Action: setFields assigns each submitted value onto the matching field
+  // (unknown fields would throw there; tests that need that pass their own setFields mock), and a
+  // change hook can rebuild the fields in place, which is what a postSet fixture simulates.
+  const applyValues = async (values: Record<string, unknown>) => {
+    for (const [name, value] of Object.entries(values)) {
+      const field = state.fields.find(f => f.name === name);
+      if (field) field.value = value;
+    }
+
+    if (postSet) {
+      state.fields = postSet.fields ?? state.fields;
+      state.layout = postSet.layout ?? state.layout;
+    }
+  };
+
   const tryToSetFields = jest.fn(async () => {
     if (postChange) {
       state.fields = postChange.fields ?? state.fields;
@@ -67,7 +85,7 @@ function makeAction({
 
   const form: Action & { tryToSetFields: jest.Mock; execute: jest.Mock; setFields: jest.Mock } = {
     execute,
-    setFields,
+    setFields: setFields ?? jest.fn(applyValues),
     tryToSetFields,
     getFields: () =>
       state.fields.map(f => ({
@@ -784,6 +802,267 @@ describe('action execute', () => {
     expect(response.status).toBe(422);
     expect(response.body.error).toMatchObject({ type: 'unprocessable_entity', status: 422 });
     expect(execute).not.toHaveBeenCalled();
+  });
+
+  it('maps a malformed file value from setFields to 400 invalid_request, not a 502', async () => {
+    const setFields = jest.fn(async () => {
+      throw new Error('Field "doc" expects a file: pass { buffer, mimeType, name }.');
+    });
+    const execute = jest.fn();
+    const form = makeAction({ setFields, execute });
+
+    const response = await request(execApp(clientOf(form)).callback())
+      .post('/agent/v1/users/actions/approve/execute')
+      .send({ recordIds: ['42'], values: { doc: 42 } });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toMatchObject({ type: 'invalid_request', status: 400 });
+    expect(execute).not.toHaveBeenCalled();
+  });
+
+  describe('execute input validation', () => {
+    it('rejects a missing required field with 400 missing_required_fields before executing', async () => {
+      const execute = jest.fn(async () => ({ success: 'Done' }));
+      const form = makeAction({
+        fields: [
+          { name: 'reason', type: 'String', value: null, isRequired: true },
+          { name: 'tier', type: 'String', value: null, isRequired: true },
+        ],
+        execute,
+      });
+
+      const response = await request(execApp(clientOf(form)).callback())
+        .post('/agent/v1/users/actions/approve/execute')
+        .send({ recordIds: ['42'], values: {} });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toEqual({
+        type: 'missing_required_fields',
+        status: 400,
+        message: 'Required action fields are missing: reason, tier',
+        details: { fields: ['reason', 'tier'] },
+      });
+      expect(execute).not.toHaveBeenCalled();
+    });
+
+    it('executes when the submitted value satisfies the required field', async () => {
+      const execute = jest.fn(async () => ({ success: 'Done' }));
+      const form = makeAction({
+        fields: [{ name: 'reason', type: 'String', value: null, isRequired: true }],
+        execute,
+      });
+
+      const response = await request(execApp(clientOf(form)).callback())
+        .post('/agent/v1/users/actions/approve/execute')
+        .send({ recordIds: ['42'], values: { reason: 'because' } });
+
+      expect(response.status).toBe(200);
+      expect(execute).toHaveBeenCalledTimes(1);
+    });
+
+    it('executes when a required field is satisfied by a loaded default, not a submission', async () => {
+      const execute = jest.fn(async () => ({ success: 'Done' }));
+      const form = makeAction({
+        fields: [{ name: 'reason', type: 'String', value: 'preset', isRequired: true }],
+        execute,
+      });
+
+      const response = await request(execApp(clientOf(form)).callback())
+        .post('/agent/v1/users/actions/approve/execute')
+        .send({ recordIds: ['42'], values: {} });
+
+      expect(response.status).toBe(200);
+      expect(execute).toHaveBeenCalledTimes(1);
+    });
+
+    it('validates the form as rebuilt by a change hook, not the loaded one', async () => {
+      const execute = jest.fn(async () => ({ success: 'Done' }));
+      // The loaded form requires nothing; the hook that runs on setFields makes "late" required.
+      const form = makeAction({
+        fields: [{ name: 'reason', type: 'String', value: null, isRequired: false }],
+        postSet: { fields: [{ name: 'late', type: 'String', value: null, isRequired: true }] },
+        execute,
+      });
+
+      const response = await request(execApp(clientOf(form)).callback())
+        .post('/agent/v1/users/actions/approve/execute')
+        .send({ recordIds: ['42'], values: { reason: 'x' } });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toMatchObject({
+        type: 'missing_required_fields',
+        details: { fields: ['late'] },
+      });
+      expect(execute).not.toHaveBeenCalled();
+    });
+
+    it('rejects an out-of-enum value with 422 invalid_action_value before executing', async () => {
+      const execute = jest.fn(async () => ({ success: 'Done' }));
+      const form = makeAction({
+        fields: [
+          {
+            name: 'tier',
+            type: 'Enum',
+            value: null,
+            isRequired: false,
+            enumValues: ['gold', 'silver'],
+          },
+        ],
+        execute,
+      });
+
+      const response = await request(execApp(clientOf(form)).callback())
+        .post('/agent/v1/users/actions/approve/execute')
+        .send({ recordIds: ['42'], values: { tier: 'NOPE' } });
+
+      expect(response.status).toBe(422);
+      expect(response.body.error).toEqual({
+        type: 'invalid_action_value',
+        status: 422,
+        message: 'Invalid action field values: tier (expected one of: gold, silver)',
+        details: { fields: [{ field: 'tier', expected: 'one of: gold, silver' }] },
+      });
+      expect(execute).not.toHaveBeenCalled();
+    });
+
+    it('executes an in-options enum value and accepts a string on an enum field without options', async () => {
+      const execute = jest.fn(async () => ({ success: 'Done' }));
+      const form = makeAction({
+        fields: [
+          { name: 'tier', type: 'Enum', value: null, isRequired: false, enumValues: ['gold'] },
+          { name: 'free', type: 'Enum', value: null, isRequired: false },
+        ],
+        execute,
+      });
+
+      const response = await request(execApp(clientOf(form)).callback())
+        .post('/agent/v1/users/actions/approve/execute')
+        .send({ recordIds: ['42'], values: { tier: 'gold', free: 'anything' } });
+
+      expect(response.status).toBe(200);
+      expect(execute).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([
+      ['a string sent to a Number field', 'amount', 'Number', 'nan', 'a number'],
+      ['a string sent to a Boolean field', 'flag', 'Boolean', 'true', 'a boolean'],
+      ['a number sent to a String field', 'reason', 'String', 42, 'a string'],
+    ])(
+      'rejects %s with 422 naming the expectation',
+      async (_label, name, type, value, expected) => {
+        const execute = jest.fn(async () => ({ success: 'Done' }));
+        const form = makeAction({
+          fields: [{ name, type, value: null, isRequired: false }],
+          execute,
+        });
+
+        const response = await request(execApp(clientOf(form)).callback())
+          .post('/agent/v1/users/actions/approve/execute')
+          .send({ recordIds: ['42'], values: { [name]: value } });
+
+        expect(response.status).toBe(422);
+        expect(response.body.error).toEqual({
+          type: 'invalid_action_value',
+          status: 422,
+          message: `Invalid action field values: ${name} (expected ${expected})`,
+          details: { fields: [{ field: name, expected }] },
+        });
+        expect(execute).not.toHaveBeenCalled();
+      },
+    );
+
+    it('rejects a non-array sent to a list field and an out-of-options list item', async () => {
+      const makeListForm = () => {
+        const execute = jest.fn(async () => ({ success: 'Done' }));
+
+        return {
+          execute,
+          form: makeAction({
+            fields: [
+              { name: 'ids', type: ['Number'], value: null, isRequired: false },
+              {
+                name: 'tags',
+                type: ['Enum'],
+                value: null,
+                isRequired: false,
+                enumValues: ['a', 'b'],
+              },
+            ],
+            execute,
+          }),
+        };
+      };
+
+      // Each request loads a fresh Action from the agent, so the two cases get separate forms.
+      const firstCase = makeListForm();
+      const first = await request(execApp(clientOf(firstCase.form)).callback())
+        .post('/agent/v1/users/actions/approve/execute')
+        .send({ recordIds: ['42'], values: { ids: 'nope' } });
+
+      expect(first.status).toBe(422);
+      expect(first.body.error).toMatchObject({
+        type: 'invalid_action_value',
+        details: { fields: [{ field: 'ids', expected: 'an array of a number' }] },
+      });
+
+      const secondCase = makeListForm();
+      const second = await request(execApp(clientOf(secondCase.form)).callback())
+        .post('/agent/v1/users/actions/approve/execute')
+        .send({ recordIds: ['42'], values: { tags: ['a', 'zzz'] } });
+
+      expect(second.status).toBe(422);
+      expect(second.body.error).toMatchObject({
+        type: 'invalid_action_value',
+        details: { fields: [{ field: 'tags', expected: 'one of: a, b' }] },
+      });
+      expect(firstCase.execute).not.toHaveBeenCalled();
+      expect(secondCase.execute).not.toHaveBeenCalled();
+    });
+
+    it('executes a fully valid list submission', async () => {
+      const execute = jest.fn(async () => ({ success: 'Done' }));
+      const form = makeAction({
+        fields: [
+          { name: 'ids', type: ['Number'], value: null, isRequired: false },
+          {
+            name: 'tags',
+            type: ['Enum'],
+            value: null,
+            isRequired: false,
+            enumValues: ['a', 'b'],
+          },
+        ],
+        execute,
+      });
+
+      const response = await request(execApp(clientOf(form)).callback())
+        .post('/agent/v1/users/actions/approve/execute')
+        .send({ recordIds: ['42'], values: { ids: [1, 2], tags: ['a', 'b'] } });
+
+      expect(response.status).toBe(200);
+      expect(execute).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not type-check Json or File fields at the BFF', async () => {
+      const execute = jest.fn(async () => ({ success: 'Done' }));
+      const form = makeAction({
+        fields: [
+          { name: 'meta', type: 'Json', value: null, isRequired: false },
+          { name: 'doc', type: 'File', value: null, isRequired: false },
+        ],
+        execute,
+      });
+
+      const response = await request(execApp(clientOf(form)).callback())
+        .post('/agent/v1/users/actions/approve/execute')
+        .send({
+          recordIds: ['42'],
+          values: { meta: { any: [1, null] }, doc: 'data:text/plain;aGk=' },
+        });
+
+      expect(response.status).toBe(200);
+      expect(execute).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('maps an approval-gated action to 403 action_requires_approval with the allowed roles', async () => {
