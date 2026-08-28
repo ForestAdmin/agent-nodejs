@@ -149,8 +149,9 @@ const ActionFormResponseFieldSchema = z
   .object({
     name: z.string(),
     // Verbatim from the agent, so a list field carries exactly `['String']` rather than
-    // `'StringList'`: a one-element tuple, never a free-form array.
-    type: z.union([z.string(), z.tuple([z.string()])]),
+    // `'StringList'`: an array of exactly one string. Length is pinned (zod-to-openapi maps
+    // min/max but not `.length`) because `prefixItems` alone would still admit extra elements.
+    type: z.union([z.string(), z.array(z.string()).min(1).max(1)]),
     value: z.unknown().optional(),
     isRequired: z.boolean(),
     enumValues: z.union([z.array(z.string()), z.null()]).optional(),

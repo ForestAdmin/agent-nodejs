@@ -510,9 +510,10 @@ describe('the documented action responses', () => {
       properties: { type: { anyOf: unknown[] } };
     };
 
+    // Length is pinned: an unpinned array form would still admit extra elements in OpenAPI 3.1.
     expect(field.properties.type.anyOf).toEqual([
       { type: 'string' },
-      { type: 'array', prefixItems: [{ type: 'string' }] },
+      { type: 'array', items: { type: 'string' }, minItems: 1, maxItems: 1 },
     ]);
   });
 
