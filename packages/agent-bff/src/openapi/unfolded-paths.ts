@@ -25,6 +25,7 @@ import {
   TimezoneSchema,
 } from './schemas';
 import { PACKED_ID_SEPARATOR } from '../data/pack-id';
+import { isEnumFieldType } from '../read-model/capabilities-cache';
 
 const AGGREGATORS = ['And', 'Or'];
 
@@ -370,20 +371,25 @@ function actionFieldSchema(field: UnfoldedAction['fields'][number]): SchemaObjec
     return { type: 'string', description: `A packed record id for ${field.reference}.` };
   }
 
-  // An empty enums array would emit `enum: []` and forbid every value (the same doctrine as the
-  // filter leaves above), so only a non-empty options list constrains the schema.
-  const enums = field.enums !== null && field.enums.length > 0 ? field.enums : null;
+  // Enums apply to Enum fields only (the collect step already normalized legacy 'EnumList' forms):
+  // a stale options array on a typed field must not overwrite the published type. An empty enums
+  // array would emit `enum: []` and forbid every value (the same doctrine as the filter leaves
+  // above), so only a non-empty options list constrains the schema.
+  const options =
+    isEnumFieldType(field.type) && field.enums !== null && field.enums.length > 0
+      ? field.enums
+      : null;
 
   let base: SchemaObject;
 
-  if (enums === null) {
+  if (options === null) {
     base = toFieldSchema(field.type);
   } else if (Array.isArray(field.type)) {
     // A list field carries its options on the items: the runtime checks each member against the
     // enum, so the document must not collapse the list into a scalar string.
-    base = { type: 'array', items: { type: 'string', enum: enums } };
+    base = { type: 'array', items: { type: 'string', enum: options } };
   } else {
-    base = { type: 'string', enum: enums };
+    base = { type: 'string', enum: options };
   }
 
   return field.isRequired

@@ -13,6 +13,7 @@ import type ReadModelStore from '../read-model/read-model-store';
 import type { Operator } from '@forestadmin/datasource-toolkit';
 
 import { extractErrorMessage } from '../errors';
+import { normalizeFieldType } from '../read-model/capabilities-cache';
 import { normalizeOperator, toCanonicalOperatorSet } from '../validation/operator-normalizer';
 
 // A cold document costs one capabilities call per collection. They are capped rather than fired all
@@ -178,7 +179,9 @@ function collectActions(readModel: ReadModel, collection: string): UnfoldedActio
         .filter(field => typeof field?.field === 'string')
         .map(field => ({
           name: field.field,
-          type: field.type,
+          // Legacy list types ('NumberList') collapse to the array form here, so every later
+          // consumer (document and tests) sees one canonical shape.
+          type: normalizeFieldType(field.type),
           isRequired: field.isRequired === true,
           enums: field.enums ?? null,
           // The generator serializes `reference` on every action field, but the agent-client

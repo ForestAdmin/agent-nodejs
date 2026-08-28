@@ -1,11 +1,19 @@
 import type { ActionForm } from './agent-action-client';
+import type { FieldType } from '../read-model/capabilities-cache';
 
+import { isEnumFieldType, normalizeFieldType } from '../read-model/capabilities-cache';
 import { invalidActionValue, missingRequiredActionFields } from '../validation/validation-errors';
 
-// The scalar types the published field schemas (openapi/field-schemas.ts) declare as JSON strings.
-// Json, File and anything unrecognized stay unconstrained at the BFF: the agent owns their final
+const PACKED_ID_EXPECTATION = 'a string holding a packed record id';
+
+// The JSON shape a Forest field type exchanges. This mirrors what the published document declares
+// for the same types (openapi/field-schemas.ts): the mount-point invariant deliberately keeps the
+// runtime and the document apart, so the two maps are maintained side by side on purpose.
+// Json, File, and anything unrecognized stay unconstrained at the BFF: the agent owns their final
 // validation (agent-client already rejects a malformed File value inside setFields).
-const STRING_TYPES = new Set([
+type JsonShape = 'array' | 'boolean' | 'number' | 'string' | 'any';
+
+const STRING_SHAPES = new Set([
   'Binary',
   'Date',
   'Dateonly',
@@ -17,30 +25,57 @@ const STRING_TYPES = new Set([
   'Uuid',
 ]);
 
-const PACKED_ID_EXPECTATION = 'a string holding a packed record id';
+function jsonShapeOf(type: FieldType): JsonShape {
+  if (Array.isArray(type)) return 'array';
+  if (type === 'Number') return 'number';
+  if (type === 'Boolean') return 'boolean';
+  if (typeof type === 'string' && STRING_SHAPES.has(type)) return 'string';
 
-// The expectation a value must meet, or undefined when the BFF deliberately does not constrain it.
-function expectedScalar(type: string, options: string[] | undefined): string | undefined {
-  if (Array.isArray(options) && options.length > 0) return `one of: ${options.join(', ')}`;
-
-  if (type === 'Number') return 'a number';
-  if (type === 'Boolean') return 'a boolean';
-
-  return STRING_TYPES.has(type) ? 'a string' : undefined;
+  return 'any';
 }
 
-// Enum membership only applies to Enum fields (scalar or list), mirroring the form endpoint: a
-// leftover enums array on a typed field is ignored, and a malformed (non-array) one must not crash.
-function isEnumType(type: string | [string]): boolean {
-  return Array.isArray(type) ? type[0] === 'Enum' : type === 'Enum';
+// The human-readable expectation for a scalar shape. Options, when an Enum field carries them,
+// override the shape: membership is the contract then.
+function describeShape(shape: JsonShape, options: string[] | undefined): string {
+  if (options !== undefined) return `one of: ${options.join(', ')}`;
+
+  switch (shape) {
+    case 'boolean':
+      return 'a boolean';
+    case 'number':
+      return 'a number';
+    case 'string':
+      return 'a string';
+    default:
+      return 'any value';
+  }
 }
 
-// Returns the violated expectation, or undefined when the value fits the published field schema.
+function valueMatchesShape(
+  shape: JsonShape,
+  value: unknown,
+  options: string[] | undefined,
+): boolean {
+  if (options !== undefined) return typeof value === 'string' && options.includes(value);
+
+  switch (shape) {
+    case 'boolean':
+      return typeof value === 'boolean';
+    case 'number':
+      return typeof value === 'number' && Number.isFinite(value);
+    case 'string':
+      return typeof value === 'string';
+    default:
+      return true;
+  }
+}
+
+// Returns the violated expectation, or undefined when the value fits the published field contract.
 // Strict at every nesting level: a null list item violates a constrained item type, because the
 // published array schemas mark no item as nullable. Field-level nullishness is handled by the
 // caller: a required field without a value is "missing", an optional one is legitimately empty.
 function expectedWhenViolated(
-  type: string | [string],
+  type: FieldType,
   value: unknown,
   options: string[] | undefined,
 ): string | undefined {
@@ -48,7 +83,7 @@ function expectedWhenViolated(
     const [itemType] = type;
 
     if (!Array.isArray(value)) {
-      return `an array of ${expectedScalar(itemType, options) ?? 'any value'}`;
+      return `an array of ${describeShape(jsonShapeOf(itemType), options)}`;
     }
 
     for (const item of value) {
@@ -59,21 +94,11 @@ function expectedWhenViolated(
     return undefined;
   }
 
-  const expected = expectedScalar(type, options);
+  const shape = jsonShapeOf(type);
 
-  if (expected === undefined) return undefined;
+  if (!valueMatchesShape(shape, value, options)) return describeShape(shape, options);
 
-  if (Array.isArray(options) && options.length > 0) {
-    return typeof value === 'string' && options.includes(value) ? undefined : expected;
-  }
-
-  if (type === 'Number') {
-    return typeof value === 'number' && Number.isFinite(value) ? undefined : expected;
-  }
-
-  if (type === 'Boolean') return typeof value === 'boolean' ? undefined : expected;
-
-  return typeof value === 'string' ? undefined : expected;
+  return undefined;
 }
 
 /**
@@ -100,9 +125,12 @@ export default function assertActionValuesExecutable(action: ActionForm): void {
         violations.push({ field: name, expected: PACKED_ID_EXPECTATION });
       }
     } else {
-      const type = field.getType();
-      // Options are consulted for Enum fields only, mirroring the form endpoint.
-      const options = isEnumType(type) ? action.getEnumField(name).getOptions() : undefined;
+      const type = normalizeFieldType(field.getType());
+      // Options are consulted for Enum fields only, mirroring the form endpoint: a leftover enums
+      // array on a typed field is ignored. A malformed (non-array) options value is dropped here,
+      // once, so the helpers downstream can trust what they receive.
+      const rawOptions = isEnumFieldType(type) ? action.getEnumField(name).getOptions() : undefined;
+      const options = Array.isArray(rawOptions) && rawOptions.length > 0 ? rawOptions : undefined;
       const expected = expectedWhenViolated(type, value, options);
 
       if (expected) violations.push({ field: name, expected });

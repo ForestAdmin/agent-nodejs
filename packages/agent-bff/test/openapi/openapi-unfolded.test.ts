@@ -347,6 +347,7 @@ describe('the unfolded document', () => {
       tiers: { type: 'array', items: { type: 'string', enum: ['gold', 'silver'] } },
       flags: { type: 'string' },
       assignee: { type: 'string', description: 'A packed record id for users.id.' },
+      levels: { type: 'array', items: { type: 'number' } },
     });
     expect(request.properties.values.required).toBeUndefined();
     expect(request.required).toEqual(['recordIds']);
