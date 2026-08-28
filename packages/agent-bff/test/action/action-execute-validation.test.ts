@@ -39,7 +39,6 @@ describe('execute input validation', () => {
     const form = makeAction({
       fields: [
         { name: 'reason', type: 'String', value: null, isRequired: true },
-        // 0 and false count as present values, exactly like the form endpoint's requiredFields.
         { name: 'amount', type: 'Number', value: null, isRequired: true },
         { name: 'confirm', type: 'Boolean', value: null, isRequired: true },
       ],
@@ -71,7 +70,6 @@ describe('execute input validation', () => {
 
   it('validates the form as rebuilt by a change hook, not the loaded one', async () => {
     const execute = jest.fn(async () => ({ success: 'Done' }));
-    // The loaded form requires nothing; the hook that runs on setFields makes "late" required.
     const form = makeAction({
       fields: [{ name: 'reason', type: 'String', value: null, isRequired: false }],
       postSet: { fields: [{ name: 'late', type: 'String', value: null, isRequired: true }] },
@@ -124,7 +122,6 @@ describe('execute input validation', () => {
     const form = makeAction({
       fields: [
         { name: 'tier', type: 'Enum', value: null, isRequired: false, enumValues: ['gold'] },
-        // An agent can declare an Enum with no options: the field then accepts any string.
         { name: 'free', type: 'Enum', value: null, isRequired: false, enumValues: [] },
         { name: 'amount', type: 'Number', value: null, isRequired: false },
       ],
@@ -137,6 +134,25 @@ describe('execute input validation', () => {
 
     expect(response.status).toBe(200);
     expect(execute).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects a non-array sent to a list of unconstrained items', async () => {
+    const execute = jest.fn(async () => ({ success: 'Done' }));
+    const form = makeAction({
+      fields: [{ name: 'meta', type: ['Json'], value: null, isRequired: false }],
+      execute,
+    });
+
+    const response = await request(execApp(clientOf(form)).callback())
+      .post('/agent/v1/users/actions/approve/execute')
+      .send({ recordIds: ['42'], values: { meta: 'nope' } });
+
+    expect(response.status).toBe(422);
+    expect(response.body.error).toMatchObject({
+      type: 'invalid_action_value',
+      details: { fields: [{ field: 'meta', expected: 'an array of any value' }] },
+    });
+    expect(execute).not.toHaveBeenCalled();
   });
 
   it('rejects a null item inside a constrained list before executing', async () => {
@@ -185,8 +201,6 @@ describe('execute input validation', () => {
   });
 
   it('rejects a form-urlencoded execute body: it cannot carry the nested recordIds and values', async () => {
-    // A urlencoded form flattens bracket notation instead of nesting it, so recordIds never
-    // arrives as an array and the request fails at the shape check, before value validation.
     const execute = jest.fn(async () => ({ success: 'Done' }));
     const form = makeAction({
       fields: [{ name: 'amount', type: 'Number', value: null, isRequired: false }],
@@ -250,7 +264,6 @@ describe('execute input validation', () => {
       };
     };
 
-    // Each request loads a fresh Action from the agent, so the two cases get separate forms.
     const firstCase = makeListForm();
     const first = await request(execApp(clientOf(firstCase.form)).callback())
       .post('/agent/v1/users/actions/approve/execute')
@@ -301,8 +314,6 @@ describe('execute input validation', () => {
   });
 
   it('rejects a wrongly typed item in a legacy NumberList field', async () => {
-    // Some agents emit list types under their collapsed legacy names; agent-client's
-    // Action.getField dispatches on both forms, so the validator must too.
     const execute = jest.fn(async () => ({ success: 'Done' }));
     const form = makeAction({
       fields: [{ name: 'ids', type: 'NumberList', value: null, isRequired: false }],
@@ -385,9 +396,6 @@ describe('execute input validation', () => {
   });
 
   it('accepts a packed id string on a record-picker field whose PK type is Number', async () => {
-    // The agent rewrites a Collection field to its target PK column type, but execute unpacks
-    // packed id STRINGS only (IdUtils.unpackId throws on a number): the published type is not
-    // the runtime contract, and the string is the only shape that may execute.
     const execute = jest.fn(async () => ({ success: 'Done' }));
     const form = makeAction({
       fields: [
@@ -446,8 +454,6 @@ describe('execute input validation', () => {
     const execute = jest.fn(async () => ({ success: 'Done' }));
     const form = makeAction({
       fields: [
-        // A hook can rebuild a form leaving enums on a field whose type is not Enum: membership
-        // applies to Enum fields only. `enums` arrives malformed (a bare string) on the other.
         {
           name: 'amount',
           type: 'Number',

@@ -52,9 +52,6 @@ export function makeAction({
 } = {}) {
   const state = { fields: [...fields], layout: [...layout] };
 
-  // Mirrors the real Action: setFields assigns each submitted value onto the matching field
-  // (unknown fields would throw there; tests that need that pass their own setFields mock), and a
-  // change hook can rebuild the fields in place, which is what a postSet fixture simulates.
   const applyValues = async (values: Record<string, unknown>) => {
     for (const [name, value] of Object.entries(values)) {
       const field = state.fields.find(f => f.name === name);

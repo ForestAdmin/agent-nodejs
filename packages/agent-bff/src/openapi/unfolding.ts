@@ -78,7 +78,6 @@ export interface UnfoldedActionField {
   type: FieldType;
   isRequired: boolean;
   enums: string[] | null;
-  /** Set on record-picker fields: the value is a packed id string whatever the target PK type. */
   reference: string | null;
 }
 

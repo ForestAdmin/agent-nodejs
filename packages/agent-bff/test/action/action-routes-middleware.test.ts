@@ -680,9 +680,6 @@ describe('action execute', () => {
   });
 
   it('maps a raw network failure from setFields to 502, never to a 400', async () => {
-    // A change hook runs inside setFields; when the agent is unreachable the requester throws a
-    // plain error with no HTTP response, which is NOT an AgentHttpError. Only typed client-input
-    // errors may become 400.
     const setFields = jest.fn(async () => {
       throw new TypeError('fetch failed');
     });

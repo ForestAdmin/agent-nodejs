@@ -113,11 +113,6 @@ async function handleExecute({
   values,
   logger,
 }: ActionHandlerArgs<Action>): Promise<void> {
-  // setFields is strict: an unknown submitted field and a malformed file value are client errors
-  // (400), not 500s — both carry typed errors from agent-client. Anything else (an AgentHttpError
-  // from the change-hook, or a raw network failure with no HTTP response) is a genuine agent
-  // error for the mapper: network/timeout errors are NOT AgentHttpError, so they must not land in
-  // the 400 branch.
   try {
     await action.setFields(values);
   } catch (error) {
@@ -128,9 +123,6 @@ async function handleExecute({
     throw mapAgentError(error, { logger });
   }
 
-  // The published field contract is enforced here, on the live form: setFields has applied the
-  // submitted values and the change hooks have rebuilt the fields, so this validates exactly the
-  // state execute() would submit. canExecute at form time was only ever a hint.
   assertActionValuesExecutable(action);
 
   // execute() cannot go through the generic callAgent: agent-client turns the native action Error

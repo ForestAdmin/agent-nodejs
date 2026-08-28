@@ -417,6 +417,16 @@ describe('Action', () => {
   });
 
   describe('getField', () => {
+    it('should expose the reference of a record-picker field', () => {
+      fieldsFormStates.getField.mockReturnValue({
+        getName: () => 'assignee',
+        getType: () => 'Number',
+        getPlainField: () => ({ reference: 'users.id' }),
+      } as any);
+
+      expect(action.getField('assignee').getReference()).toBe('users.id');
+    });
+
     it('should return string field for String type', () => {
       fieldsFormStates.getField.mockReturnValue({
         getName: () => 'email',

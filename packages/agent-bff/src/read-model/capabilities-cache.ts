@@ -9,9 +9,6 @@ export type FieldType =
   | FieldType[]
   | { fields: { field: string; type: FieldType; enums?: string[] }[] };
 
-// Some agents emit list types under their legacy collapsed names ('NumberList') instead of the
-// single-element array form (['Number']); agent-client's Action.getField dispatches on both. Every
-// Forest list type ends in 'List' and no scalar does, so the suffix is the discriminator.
 export function normalizeFieldType(type: FieldType): FieldType {
   if (typeof type === 'string' && type.endsWith('List')) return [type.slice(0, -4)];
 

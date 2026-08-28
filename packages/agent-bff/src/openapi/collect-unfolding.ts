@@ -179,14 +179,9 @@ function collectActions(readModel: ReadModel, collection: string): UnfoldedActio
         .filter(field => typeof field?.field === 'string')
         .map(field => ({
           name: field.field,
-          // Legacy list types ('NumberList') collapse to the array form here, so every later
-          // consumer (document and tests) sees one canonical shape.
           type: normalizeFieldType(field.type),
           isRequired: field.isRequired === true,
           enums: field.enums ?? null,
-          // The generator serializes `reference` on every action field, but the agent-client
-          // endpoints type narrows the schema to a subset that drops it; read through the wire
-          // shape instead (the extractRawLayout cast documents the same precedent).
           reference: (field as { reference?: string | null }).reference ?? null,
         })),
     }));

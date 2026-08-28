@@ -52,8 +52,6 @@ export default function unfoldingFixture(): Unfolding {
                 enums: null,
                 reference: 'users.id',
               },
-              // Post-collect shape: legacy collapsed list names are already arrays here
-              // (collect-unfolding owns that normalization; its own tests pin it).
               { name: 'levels', type: ['Number'], isRequired: false, enums: null, reference: null },
             ],
           },

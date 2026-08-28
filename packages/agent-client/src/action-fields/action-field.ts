@@ -22,7 +22,6 @@ export default abstract class ActionField {
     return this.field?.getType();
   }
 
-  /** Set on record-picker fields: the exchanged value is a packed id string. */
   getReference(): PlainField['reference'] {
     return this.field?.getPlainField().reference;
   }

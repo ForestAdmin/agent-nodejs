@@ -222,8 +222,6 @@ describe('collectUnfolding', () => {
           isRequired: true,
           enums: ['spam', 'abuse'],
         } as (typeof withFields.fields)[number],
-        // A legacy collapsed list name is normalized to the array form, the one shape every
-        // downstream consumer (document, runtime validator) dispatches on.
         { field: 'levels', type: 'NumberList' } as (typeof withFields.fields)[number],
       ];
       const readModel = new ReadModel([collection('users', [column('id')], [withFields])]);

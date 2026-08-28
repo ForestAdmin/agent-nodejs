@@ -45,12 +45,8 @@ function encodeFileValue(value: unknown, fieldName: string): string | null | und
   );
 }
 
-// A file field's encoded representation: null/undefined stays as-is (an unset field), a string
-// is kept verbatim (indirect handles, data uris), and a File object becomes its data uri.
 export type EncodedFileValue = string | null | undefined;
 
-// Identity for non-file values (the generic passthrough preserves the caller's type), encoding
-// for File and FileList fields, and a typed rejection for anything that cannot be encoded.
 export default function encodeFileFieldValue<T>(
   type: string,
   value: T,

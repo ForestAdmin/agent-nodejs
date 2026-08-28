@@ -112,8 +112,6 @@ describe('file values in action forms', () => {
       );
     });
 
-    // agent-bff maps this typed error to 400 invalid_request; a plain Error there would be
-    // indistinguishable from a transport failure and mislabelled 502.
     it('rejects with the typed InvalidActionFileValueError, not a plain Error', async () => {
       await setupFields([{ field: 'document', type: 'File' }]);
 

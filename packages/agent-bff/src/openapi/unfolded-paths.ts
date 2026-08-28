@@ -365,16 +365,10 @@ function registerRelationRequests(
 }
 
 function actionFieldSchema(field: UnfoldedAction['fields'][number]): SchemaObject {
-  // A record-picker field publishes its target PK's column type, but the value it exchanges is a
-  // packed id string ("42", "1|2") whatever that type is: the agent unpacks strings only.
   if (field.reference !== null) {
     return { type: 'string', description: `A packed record id for ${field.reference}.` };
   }
 
-  // Enums apply to Enum fields only (the collect step already normalized legacy 'EnumList' forms):
-  // a stale options array on a typed field must not overwrite the published type. An empty enums
-  // array would emit `enum: []` and forbid every value (the same doctrine as the filter leaves
-  // above), so only a non-empty options list constrains the schema.
   const options =
     isEnumFieldType(field.type) && field.enums !== null && field.enums.length > 0
       ? field.enums
@@ -385,8 +379,6 @@ function actionFieldSchema(field: UnfoldedAction['fields'][number]): SchemaObjec
   if (options === null) {
     base = toFieldSchema(field.type);
   } else if (Array.isArray(field.type)) {
-    // A list field carries its options on the items: the runtime checks each member against the
-    // enum, so the document must not collapse the list into a scalar string.
     base = { type: 'array', items: { type: 'string', enum: options } };
   } else {
     base = { type: 'string', enum: options };
@@ -403,9 +395,6 @@ function actionValuesSchema(action: UnfoldedAction): SchemaObject {
     // No property is required and no additional one is forbidden on purpose: a load or change hook
     // rebuilds the form at call time, so the schema's static fields are an indication, not the
     // contract — and the read-model cannot tell a hookless action from a legacy schema that simply
-    // omitted its hooks, so "static" is never certain. On execute, the values are validated
-    // against that live form: a required field left empty answers 400, an out-of-enum or wrongly
-    // typed value 422.
     description:
       'The submitted action fields. These are the fields the schema declares statically; a load ' +
       'or change hook can add, drop or require others at call time. On execute the values are ' +
