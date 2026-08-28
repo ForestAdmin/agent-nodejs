@@ -56,7 +56,9 @@ function expectedWhenViolated(
 
   if (expected === undefined) return undefined;
 
-  if (options?.length) return options.includes(value as string) ? undefined : expected;
+  if (options?.length) {
+    return typeof value === 'string' && options.includes(value) ? undefined : expected;
+  }
 
   if (type === 'Number') {
     return typeof value === 'number' && Number.isFinite(value) ? undefined : expected;
