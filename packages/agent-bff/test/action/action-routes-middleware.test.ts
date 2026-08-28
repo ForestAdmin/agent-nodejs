@@ -807,7 +807,9 @@ describe('action execute', () => {
 
   it('maps a malformed file value from setFields to 400 invalid_request, not a 502', async () => {
     const setFields = jest.fn(async () => {
-      throw new InvalidActionFileValueError('Field "doc" expects a file: pass { buffer, mimeType, name }.');
+      throw new InvalidActionFileValueError(
+        'Field "doc" expects a file: pass { buffer, mimeType, name }.',
+      );
     });
     const execute = jest.fn();
     const form = makeAction({ setFields, execute });
