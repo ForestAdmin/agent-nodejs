@@ -13,8 +13,6 @@ import { filterTooDeep } from '../validation/validation-errors';
 
 export { MAX_FILTER_DEPTH as MAX_PARSED_FILTER_DEPTH };
 
-// Inferred, never transcribed: a hand-written interface drifts from the schema that actually
-// accepts the body, and the parsers below return that body by reference.
 export type BffSortClause = z.infer<typeof SortClauseInput>;
 
 export type BffPage = z.infer<typeof PageInput>;
@@ -52,16 +50,6 @@ function assertNoNodeReadableAsBothLeafAndBranch(node: unknown, depth = 0): void
   }
 }
 
-/**
- * Checks the flat inputs against the shared schema and reports the first failure as
- * 400 invalid_request, so a malformed shape (`projection` as a string, a fractional `page.limit`)
- * surfaces as a client error rather than a 500 from an array method blowing up downstream.
- *
- * The schemas are closed, so an undeclared key is reported the same way rather than stripped: a
- * misspelled `filter` must not run the query unfiltered and answer 200. The declared keys —
- * `filter`, `timezone`, and `parentId` on a relation — travel through untouched, and the body is
- * returned by reference, not rebuilt.
- */
 function assertFlatInputs(schema: ZodType, body: Record<string, unknown>): void {
   const result = schema.safeParse(body);
   if (result.success) return;

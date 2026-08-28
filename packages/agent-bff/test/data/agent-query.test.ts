@@ -447,8 +447,6 @@ describe('unknown keys', () => {
     },
   );
 
-  // The middleware falls back to the header or the deployment default for a non-string timezone,
-  // so rejecting one here would break a client that serializes an unset field as null.
   it.each(FLAT_PARSERS)('should leave a null timezone to the middleware on %s', (_label, parse) => {
     expect(parse({ timezone: null })).toMatchObject({ timezone: null });
   });

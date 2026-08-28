@@ -255,12 +255,6 @@ function fieldRefs(deps: Deps, plan: Pick<CollectionPlan, 'key' | 'collection'>)
   };
 }
 
-/**
- * The same rule as the folded document, minus the keyword that states it: these bodies compose with
- * `allOf` for the relation paths, and `additionalProperties: false` on a composed branch forbids
- * the very key the other branch adds. `oas31` has no `unevaluatedProperties` to express it either,
- * so closing this document means flattening every relation request -- its own change.
- */
 const CLOSED_BODY_PROSE_ONLY = `${CLOSED_BODY_NOTE} This schema does not say so structurally yet: treat it as closed.`;
 
 function requestDescription(collection: UnfoldedCollection, subject: string): string {

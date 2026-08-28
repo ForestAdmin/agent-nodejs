@@ -94,23 +94,12 @@ const ParentIdSchema = ParentIdInput.openapi('ParentId', {
     'blank string is rejected.',
 });
 
-/** Stated once, published on every request component and reused by the unfolded document. */
 export const CLOSED_BODY_NOTE =
   'The runtime rejects an undeclared TOP-LEVEL key with 400 invalid_request, so `filters` instead ' +
   'of `filter` is an error rather than a silently unfiltered result. Inside the filter tree the ' +
   'check stops there: an unknown key on a condition node still reaches the agent, so a leaf ' +
   'carrying `valu` runs with no value rather than being rejected.';
 
-/**
- * Overrides on top of the runtime schemas, not a second declaration of the same key set: a key
- * added to `ListFlatInputs` publishes here on its own, and `satisfies` refuses a decoration for a
- * key the runtime does not accept. The keys absent from this list are published as the runtime
- * declares them.
- *
- * Extending is safe here only because the runtime schemas are NOT registered. Extending a
- * REGISTERED object publishes an `allOf` of the two, and a closed base then forbids `parentId` in
- * the very component that adds it — an unsatisfiable body.
- */
 const countOverrides = {
   filter: ConditionTreeSchema.optional(),
   search: SearchSchema.optional(),
@@ -134,19 +123,27 @@ export const CountRequestSchema = CountFlatInputs.extend(countOverrides).openapi
     `returns. ${CLOSED_BODY_NOTE}`,
 });
 
-export const RelationListRequestSchema = RelationListFlatInputs.extend({
+const relationListOverrides = {
   ...listOverrides,
   parentId: ParentIdSchema,
-}).openapi('RelationListRequest', {
+} satisfies Partial<Record<keyof typeof RelationListFlatInputs.shape, z.ZodType>>;
+
+const relationCountOverrides = {
+  ...countOverrides,
+  parentId: ParentIdSchema,
+} satisfies Partial<Record<keyof typeof RelationCountFlatInputs.shape, z.ZodType>>;
+
+export const RelationListRequestSchema = RelationListFlatInputs.extend(
+  relationListOverrides,
+).openapi('RelationListRequest', {
   description:
     'Filter, sort, projection and search apply to the FOREIGN collection; the parent only ' +
     `resolves which records are related. ${CLOSED_BODY_NOTE}`,
 });
 
-export const RelationCountRequestSchema = RelationCountFlatInputs.extend({
-  ...countOverrides,
-  parentId: ParentIdSchema,
-}).openapi('RelationCountRequest', { description: CLOSED_BODY_NOTE });
+export const RelationCountRequestSchema = RelationCountFlatInputs.extend(
+  relationCountOverrides,
+).openapi('RelationCountRequest', { description: CLOSED_BODY_NOTE });
 
 export const ActionRequestSchema = z
   .object({

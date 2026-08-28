@@ -473,8 +473,6 @@ describe('the closed request bodies', () => {
     expect(schemas[name].additionalProperties).toBe(false);
   });
 
-  // Flat, not `allOf`: a closed base composed with the component that adds `parentId` forbids that
-  // very key, and the published body becomes unsatisfiable.
   it.each([['RelationListRequest'], ['RelationCountRequest']])(
     'should publish %s flat rather than as an allOf of a closed base',
     name => {

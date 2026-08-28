@@ -223,10 +223,6 @@ describe('the unfolded document', () => {
     expect(leaf.additionalProperties).toBeUndefined();
   });
 
-  // This document composes relation bodies with `allOf`, where `additionalProperties: false` on one
-  // branch forbids the key the other adds, so the closed shape is stated in prose until the relation
-  // requests are flattened. A reader must not conclude from the missing keyword that a stray
-  // top-level key is accepted.
   it.each([
     ['My%20Coll/list'],
     ['My%20Coll/count'],
