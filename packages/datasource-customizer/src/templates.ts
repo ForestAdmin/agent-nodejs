@@ -78,14 +78,52 @@ export type TPartialFlatRow<
   N extends TCollectionName<S> = TCollectionName<S>,
 > = RecursivePartial<S[N]['plain'] & S[N]['flat']>;
 
+/** Operators that require no value */
+type NoValueOperator =
+  | 'Blank'
+  | 'Present'
+  | 'Missing'
+  | 'Today'
+  | 'Yesterday'
+  | 'PreviousMonth'
+  | 'PreviousQuarter'
+  | 'PreviousWeek'
+  | 'PreviousYear'
+  | 'PreviousMonthToDate'
+  | 'PreviousQuarterToDate'
+  | 'PreviousWeekToDate'
+  | 'PreviousYearToDate'
+  | 'Past'
+  | 'Future';
+
+/** Operators that require an array of values */
+type ArrayValueOperator = 'In' | 'NotIn' | 'IncludesAll' | 'IncludesNone';
+
+/** Operators that always require a number value */
+type NumberValueOperator =
+  | 'PreviousXDaysToDate'
+  | 'PreviousXDays'
+  | 'BeforeXHoursAgo'
+  | 'AfterXHoursAgo'
+  | 'LongerThan'
+  | 'ShorterThan';
+
+/** Operators that require a single value matching the field type */
+type SingleValueOperator = Exclude<
+  Operator,
+  NoValueOperator | ArrayValueOperator | NumberValueOperator
+>;
+
 export type TConditionTreeLeaf<
   S extends TSchema = TSchema,
   N extends TCollectionName<S> = TCollectionName<S>,
 > = {
-  field: TFieldName<S, N>;
-  operator: Operator;
-  value?: unknown;
-};
+  [F in TFieldName<S, N>]:
+    | { field: F; operator: NoValueOperator }
+    | { field: F; operator: ArrayValueOperator; value: TFieldType<S, N, F>[] }
+    | { field: F; operator: NumberValueOperator; value: number }
+    | { field: F; operator: SingleValueOperator; value: TFieldType<S, N, F> };
+}[TFieldName<S, N>];
 
 export type TConditionTreeBranch<
   S extends TSchema = TSchema,
