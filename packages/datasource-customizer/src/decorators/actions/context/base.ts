@@ -17,6 +17,7 @@ export default class ActionContext<
 > extends CollectionCustomizationContext<S, N> {
   readonly formValues: RecordData;
   readonly filter: TFilter<S, N>;
+  readonly actionIntentParams: Record<string, unknown> | null;
 
   private _changedField: string;
 
@@ -45,11 +46,13 @@ export default class ActionContext<
     filter: TFilter<S, N>,
     used?: Set<string>,
     changedField?: string,
+    actionIntentParams?: Record<string, unknown>,
   ) {
     super(collection, caller);
     this.formValues = formValue;
     this.filter = filter;
     this._changedField = changedField;
+    this.actionIntentParams = actionIntentParams;
     this.reset();
 
     // Spy on which formValues are accessed to set-up change hooks
