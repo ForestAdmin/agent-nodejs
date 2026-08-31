@@ -1,4 +1,20 @@
-import { normalizeOrigin, originAllowed, parseAllowedOrigins } from '../../src/cors/origin';
+import {
+  hasOrigin,
+  normalizeOrigin,
+  originAllowed,
+  parseAllowedOrigins,
+} from '../../src/cors/origin';
+
+describe('hasOrigin', () => {
+  it('is false for the empty string koa returns when the header is absent', () => {
+    expect(hasOrigin('')).toBe(false);
+  });
+
+  it('is true for any present value, even an opaque or malformed one', () => {
+    expect(hasOrigin('null')).toBe(true);
+    expect(hasOrigin('not a url')).toBe(true);
+  });
+});
 
 describe('normalizeOrigin', () => {
   it.each([

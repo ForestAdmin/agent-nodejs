@@ -1,6 +1,6 @@
 import type { Middleware } from 'koa';
 
-import { originAllowed } from './origin';
+import { hasOrigin, originAllowed } from './origin';
 import { originNotAllowed } from '../http/bff-http-error';
 
 export default function createPerKeyOriginMiddleware(): Middleware {
@@ -9,7 +9,7 @@ export default function createPerKeyOriginMiddleware(): Middleware {
     const allowedOrigins = identity?.allowedOrigins ?? [];
     const origin = ctx.get('Origin');
 
-    if (allowedOrigins.length > 0 && origin && !originAllowed(origin, allowedOrigins)) {
+    if (allowedOrigins.length > 0 && hasOrigin(origin) && !originAllowed(origin, allowedOrigins)) {
       throw originNotAllowed();
     }
 

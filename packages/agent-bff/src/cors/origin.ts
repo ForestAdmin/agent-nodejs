@@ -1,3 +1,7 @@
+export function hasOrigin(raw: string): boolean {
+  return raw !== '';
+}
+
 export function normalizeOrigin(raw: string | undefined | null): string | null {
   if (raw === undefined || raw === null) return null;
 
