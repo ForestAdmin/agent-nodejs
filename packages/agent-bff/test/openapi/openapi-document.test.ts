@@ -1,11 +1,14 @@
 import { allOperators } from '@forestadmin/datasource-toolkit';
 
 import {
+  DOCUMENT_PATH,
   OPENAPI_VERSION,
   ROUTE_PREFIX,
   generateOpenApiDocument,
   serializeOpenApi,
 } from '../../src/openapi/openapi-document';
+import { OPENAPI_PATH } from '../../src/openapi/openapi-routes';
+import { DISPLAY_HINT_FINALITY } from '../../src/permissions/build-permission-hints';
 
 const document = generateOpenApiDocument('9.9.9', { hasAiQueryRoute: true });
 const schemas = document.components?.schemas as Record<string, Record<string, unknown>>;
@@ -46,6 +49,14 @@ function listResponses(): Record<string, ResolvedResponse> {
 
 const AI_QUERY_PATH = `${ROUTE_PREFIX}/ai/query`;
 
+function permissionsParameters(): unknown[] {
+  const permissions = document.paths?.[`${ROUTE_PREFIX}/permissions`] as {
+    get: { parameters: unknown[] };
+  };
+
+  return permissions.get.parameters;
+}
+
 function dataOperations(): { security: unknown; responses: Record<string, unknown> }[] {
   return Object.entries(document.paths ?? {})
     .filter(([path]) => path !== AI_QUERY_PATH)
@@ -70,17 +81,23 @@ describe('generateOpenApiDocument', () => {
     expect(document.info.version).toBe('9.9.9');
   });
 
-  it('should serve every path under the /agent/v1 prefix', () => {
+  it('should serve every path under the /agent prefix, which is what the auth chain covers', () => {
     const paths = Object.keys(document.paths ?? {});
 
-    expect(paths).toHaveLength(8);
-    expect(paths.every(path => path.startsWith(`${ROUTE_PREFIX}/`))).toBe(true);
+    expect(paths).toHaveLength(10);
+    expect(paths.every(path => path.startsWith('/agent/'))).toBe(true);
   });
 
-  it('should expose the six generic runtime routes plus the context contract and the ai relay', () => {
+  it('should document the served path of this very document, not a stale copy of it', () => {
+    expect(DOCUMENT_PATH).toBe(OPENAPI_PATH);
+  });
+
+  it('should expose the six generic runtime routes plus the context, permissions, document and ai paths', () => {
     expect(Object.keys(document.paths ?? {}).sort()).toEqual([
+      DOCUMENT_PATH,
       `${ROUTE_PREFIX}/ai/query`,
       `${ROUTE_PREFIX}/context`,
+      `${ROUTE_PREFIX}/permissions`,
       `${ROUTE_PREFIX}/{collection}/actions/{action}/execute`,
       `${ROUTE_PREFIX}/{collection}/actions/{action}/form`,
       `${ROUTE_PREFIX}/{collection}/count`,
@@ -297,6 +314,7 @@ describe('generateOpenApiDocument', () => {
       'Error403',
       'Error403AiQuery',
       'Error404',
+      'Error404OpenapiDisabled',
       'Error413',
       'Error413AiQuery',
       'Error415',
@@ -451,6 +469,103 @@ describe('generateOpenApiDocument', () => {
       { type: 'string' },
       { type: 'number' },
     ]);
+  });
+
+  it('should document the permission hints path, which a client needs to gray out its buttons', () => {
+    const permissions = (document.paths ?? {})[`${ROUTE_PREFIX}/permissions`] as {
+      get: {
+        security: unknown;
+        parameters: unknown[];
+        responses: Record<string, { content: Record<string, { schema: { $ref: string } }> }>;
+      };
+    };
+
+    expect(permissions.get.security).toEqual([{ bffSession: [] }, { bffApiKey: [] }]);
+    expect(permissions.get.responses['200'].content['application/json'].schema).toEqual({
+      $ref: '#/components/schemas/PermissionHints',
+    });
+  });
+
+  it('should declare the collections query filter, the only way to narrow the hints', () => {
+    const parameters = permissionsParameters();
+    const collections = parameters.find(
+      parameter => (parameter as { name?: string }).name === 'collections',
+    ) as { in: string; required?: boolean; description: string };
+
+    expect(collections.in).toBe('query');
+    expect(collections.required).toBeFalsy();
+    expect(collections.description).toContain('Comma-separated');
+    expect(collections.description).toContain('dropped silently');
+  });
+
+  it('should declare the timezone header on the hints path, which 400s without it on some deployments', () => {
+    expect(permissionsParameters()).toContainEqual({
+      $ref: '#/components/parameters/XForestTimezone',
+    });
+  });
+
+  it('should say the hints are display advice, never an authorization decision', () => {
+    const hints = schemas.PermissionHints as { description: string };
+
+    expect(hints.description).toContain('display hints only');
+    expect(hints.description).toContain('Never an authorization decision');
+  });
+
+  it('should pin the action finality to display_hint, the value the builder always sets', () => {
+    const action = schemas.ActionHints as {
+      properties: { finality: { enum: string[] } };
+    };
+
+    expect(action.properties.finality.enum).toEqual([DISPLAY_HINT_FINALITY]);
+  });
+
+  it('should document the permissions 503 as retryable, since it carries Retry-After', () => {
+    const responses = responsesOf(`${ROUTE_PREFIX}/permissions`);
+
+    expect(Object.keys(responses).sort()).toEqual([
+      '200',
+      '400',
+      '401',
+      '403',
+      '500',
+      '501',
+      '503',
+    ]);
+    expect(responses['503'].headers).toEqual(
+      expect.objectContaining({ 'Retry-After': expect.anything() }),
+    );
+  });
+
+  it('should self-document the document path, so a consumer can re-fetch the contract', () => {
+    const responses = responsesOf(DOCUMENT_PATH);
+
+    expect(Object.keys(responses).sort()).toEqual([
+      '200',
+      '400',
+      '401',
+      '403',
+      '404',
+      '500',
+      '503',
+    ]);
+    expect(responses['404'].description).toContain('openapi_disabled');
+    expect(responses['404'].description).not.toContain('Unknown collection');
+  });
+
+  it('should keep the document path behind both credentials, like the schema it describes', () => {
+    const path = (document.paths ?? {})[DOCUMENT_PATH] as {
+      get: { security: unknown; description: string };
+    };
+
+    expect(path.get.security).toEqual([{ bffSession: [] }, { bffApiKey: [] }]);
+    expect(path.get.description).toContain('`HEAD` is served identically');
+  });
+
+  it('should say which live routes it deliberately leaves out, since a consumer cannot guess', () => {
+    expect(Object.keys(document.paths ?? {})).not.toContain('/health');
+    expect(document.info.description).toContain('deliberately absent');
+    expect(document.info.description).toContain('GET /health');
+    expect(document.info.description).toContain('/oauth/*');
   });
 
   it('should carry the package license, which the OpenAPI recommended ruleset requires', () => {

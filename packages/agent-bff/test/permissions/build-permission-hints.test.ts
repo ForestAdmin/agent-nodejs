@@ -3,6 +3,7 @@ import type { EnvironmentPermissionsV4 } from '@forestadmin/forestadmin-client';
 
 import { generateActionsFromPermissions } from '@forestadmin/forestadmin-client';
 
+import { PermissionHintsSchema } from '../../src/openapi/schemas';
 import buildPermissionHints, {
   DISPLAY_HINT_FINALITY,
 } from '../../src/permissions/build-permission-hints';
@@ -275,6 +276,21 @@ describe('buildPermissionHints', () => {
         { collection: 'User', name: 'address.reset' },
         { collection: 'User.address', name: 'reset' },
       ]);
+    });
+  });
+
+  describe('when the built hints are checked against the documented schema', () => {
+    it('should parse back identically, since the OpenAPI document promises this exact shape', () => {
+      const hints = buildPermissionHints({
+        actionPermissions: generateActionsFromPermissions(NORMAL_MODE),
+        roleId: ADMIN_ROLE,
+        readModel: readModelStub({ users: ['Block user'], orders: [] }),
+        collections: ['users', 'orders'],
+      });
+
+      // Deep equality, not just a successful parse: zod strips what it does not know, so a field
+      // added to the runtime hints and not to the document shows up as a missing key here.
+      expect(PermissionHintsSchema.parse(hints)).toEqual(hints);
     });
   });
 

@@ -14,15 +14,18 @@ import {
   ListRequestSchema,
   ListResponseSchema,
   MessagelessErrorResponseSchema,
+  PermissionHintsSchema,
   RelationCountRequestSchema,
   RelationListRequestSchema,
 } from './schemas';
 import registerUnfoldedPaths from './unfolded-paths';
 import { z } from './zod-openapi';
 import BODY_LIMIT, { AI_BODY_LIMIT } from '../http/body-limit';
+import { PERMISSIONS_CACHE_TTL_MS } from '../permissions/permissions-cache';
 
 export const OPENAPI_VERSION = '3.1.0';
 export const ROUTE_PREFIX = '/agent/v1';
+export const DOCUMENT_PATH = '/agent/openapi.json';
 
 const SESSION_SCHEME = 'bffSession';
 const API_KEY_SCHEME = 'bffApiKey';
@@ -52,6 +55,8 @@ const ERROR_RESPONSE_REF = '#/components/schemas/ErrorResponse';
 const MESSAGELESS_ERROR_RESPONSE_REF = '#/components/schemas/MessagelessErrorResponse';
 
 const UNSUPPORTED_ACTION_RESULT_COMPONENT = 'UnsupportedActionResult';
+
+const OPENAPI_DISABLED_COMPONENT = 'Error404OpenapiDisabled';
 
 const RETRY_AFTER_HEADER = {
   'Retry-After': {
@@ -321,6 +326,12 @@ const SHARED_DESCRIPTION =
   'like JSON, while any other content type is read as absent, which silently drops any filter, ' +
   'sort, or page.';
 
+const SURFACE_DESCRIPTION =
+  'Only the auth-gated `/agent` surface is described here. `GET /health`, which answers 200 `ok` or ' +
+  '503 `degraded` to an unauthenticated probe, and the `/oauth/*` login routes are live but ' +
+  'deliberately absent: they sit outside the agent contract and outside its auth edge, and the ' +
+  'package README documents both.';
+
 const GENERIC_DESCRIPTION =
   'Paths are generic: one per operation, with the collection, relation and action passed as path ' +
   'segments, and no field enumerated. This is the fallback form — a deployment configured to ' +
@@ -337,6 +348,95 @@ const UNFOLDED_DESCRIPTION =
   "collection's capabilities. Only to-many relations appear; a to-one or polymorphic relation has " +
   'no list or count route. This document describes the whole exposed schema regardless of the ' +
   'caller: it is not filtered by the permissions of whoever fetched it.';
+
+function registerPermissionsPath(
+  registry: OpenAPIRegistry,
+  errorRefs: ErrorResponseRefs,
+  timezoneHeader: ReturnType<OpenAPIRegistry['registerParameter']>[],
+): void {
+  registry.registerPath({
+    method: 'get',
+    path: `${ROUTE_PREFIX}/permissions`,
+    operationId: 'getPermissionHints',
+    summary: 'Read what the caller may see and do, as display hints',
+    description:
+      'Answers for the caller behind the credentials, so two callers get two different payloads. ' +
+      'The hints come from the Forest permissions, cached for ' +
+      `${
+        PERMISSIONS_CACHE_TTL_MS / 60_000
+      } minutes: a permission changed in Forest can take that ` +
+      'long to show up here, while the agent enforces the new one immediately. A 503 means the ' +
+      'permissions could not be fetched and no fresh cache was left (type ' +
+      '`permissions_unavailable`); it carries Retry-After. Like every route under `/agent`, this ' +
+      'one goes through the timezone middleware even though it reads no timezone, so a deployment ' +
+      'with no configured default answers 400 `missing_timezone` unless `X-Forest-Timezone` is ' +
+      'sent.',
+    security: SECURITY,
+    request: {
+      query: z.object({
+        collections: z
+          .string()
+          .optional()
+          .openapi({
+            description:
+              'Comma-separated collection names to restrict the answer to. Absent means every ' +
+              'exposed collection. Entries are trimmed and deduplicated, and a name the schema ' +
+              'does not expose is dropped silently rather than rejected — so an empty ' +
+              '`collections` object means none of the names matched.',
+          }),
+      }),
+      headers: timezoneHeader,
+    },
+    responses: {
+      200: {
+        description: 'The display hints for the caller role',
+        content: { 'application/json': { schema: PermissionHintsSchema } },
+      },
+      400: errorRefs.byStatus['400'],
+      401: errorRefs.byStatus['401'],
+      403: errorRefs.byStatus['403'],
+      500: errorRefs.byStatus['500'],
+      501: errorRefs.byStatus['501'],
+      503: errorRefs.byStatus['503'],
+    },
+  });
+}
+
+function registerDocumentPath(registry: OpenAPIRegistry, errorRefs: ErrorResponseRefs): void {
+  const disabled = registerErrorComponent(registry, OPENAPI_DISABLED_COMPONENT, {
+    description:
+      'The deployment runs with `BFF_OPENAPI_ENABLED=false`, so the document is not served over ' +
+      'HTTP. The body is typed `openapi_disabled`; a bare 404 with no typed body means the agent ' +
+      'edge is not mounted at all.',
+    schema: { $ref: ERROR_RESPONSE_REF },
+  });
+
+  registry.registerPath({
+    method: 'get',
+    path: DOCUMENT_PATH,
+    operationId: 'getOpenApiDocument',
+    summary: 'Read this document',
+    description:
+      'Serves this very document, behind the same credentials as every other `/agent` route: ' +
+      'without them the schema it describes is not readable. `HEAD` is served identically. The ' +
+      'answer is never cached (`Cache-Control: no-store`) and is regenerated when the BFF ' +
+      'refreshes its schema, so a client can re-fetch it to pick up a new collection or field.',
+    security: SECURITY,
+    request: {},
+    responses: {
+      200: {
+        description: 'The OpenAPI document of this BFF',
+        content: { 'application/json': { schema: z.unknown() } },
+      },
+      400: errorRefs.byStatus['400'],
+      401: errorRefs.byStatus['401'],
+      403: errorRefs.byStatus['403'],
+      404: disabled,
+      500: errorRefs.byStatus['500'],
+      503: errorRefs.byStatus['503'],
+    },
+  });
+}
 
 function registerAiQueryPath(
   registry: OpenAPIRegistry,
@@ -425,6 +525,9 @@ export function generateOpenApiDocument(
     },
   });
 
+  registerPermissionsPath(registry, errorRefs, timezoneHeader);
+  registerDocumentPath(registry, errorRefs);
+
   if (aiErrorRefs) registerAiQueryPath(registry, aiErrorRefs);
 
   if (unfolding) {
@@ -483,7 +586,7 @@ export function generateOpenApiDocument(
       license: { name: 'GPL-3.0', url: 'https://www.gnu.org/licenses/gpl-3.0.html' },
       description: `${
         unfolding ? UNFOLDED_DESCRIPTION : GENERIC_DESCRIPTION
-      } ${SHARED_DESCRIPTION}`,
+      } ${SHARED_DESCRIPTION} ${SURFACE_DESCRIPTION}`,
     },
     servers: [{ url: '/' }],
   });
