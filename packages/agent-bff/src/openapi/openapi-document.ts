@@ -42,6 +42,7 @@ const ERROR_STATUSES: Record<string, string> = {
   501: 'The BFF is running without an agent configured, so the proxy is not implemented',
   502: 'The agent could not be reached',
   503: 'The agent schema is unavailable, the agent returned a 5xx, or the API key could not be resolved',
+  504: 'The agent accepted the connection but did not answer before the BFF timeout',
 };
 
 const UNSUPPORTED_RESULT_DESCRIPTION =
@@ -152,6 +153,7 @@ const DATA_ERRORS = [
   '501',
   '502',
   '503',
+  '504',
 ];
 
 const AI_RELAYED_OR_ENVELOPE =

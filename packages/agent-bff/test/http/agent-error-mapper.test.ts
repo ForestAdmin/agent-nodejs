@@ -147,6 +147,38 @@ describe('mapAgentError', () => {
     );
   });
 
+  it('maps a superagent timeout to agent_timeout (504) with a generic message and logs the cause', () => {
+    const timeout = Object.assign(new Error('Timeout of 1500ms exceeded'), {
+      code: 'ECONNABORTED',
+      errno: 'ETIME',
+      timeout: 1500,
+    });
+
+    const result = mapAgentError(timeout, { logger });
+
+    expect(result).toMatchObject({
+      type: 'agent_timeout',
+      status: 504,
+      message: 'The agent did not respond in time',
+    });
+    expect(logger).toHaveBeenCalledWith(
+      'Warn',
+      expect.any(String),
+      expect.objectContaining({ cause: 'Timeout of 1500ms exceeded' }),
+    );
+  });
+
+  it('keeps a connect timeout on network_error, since the agent never accepted the connection', () => {
+    const connectTimeout = Object.assign(new Error('connect ETIMEDOUT 10.0.4.23:8080'), {
+      code: 'ETIMEDOUT',
+    });
+
+    expect(mapAgentError(connectTimeout, { logger })).toMatchObject({
+      type: 'network_error',
+      status: 502,
+    });
+  });
+
   it('maps valid JSON without an errors array to network_error and logs it', () => {
     const result = mapAgentError(new Error('{"foo":"bar"}'), { logger });
 

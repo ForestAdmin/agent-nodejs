@@ -12,6 +12,7 @@ const TYPE_NOT_FOUND = 'not_found';
 const TYPE_UNPROCESSABLE = 'unprocessable_entity';
 const TYPE_TOO_MANY_REQUESTS = 'too_many_requests';
 const TYPE_NETWORK_ERROR = 'network_error';
+const TYPE_AGENT_TIMEOUT = 'agent_timeout';
 const TYPE_AGENT_UNAVAILABLE = 'agent_unavailable';
 
 type BffErrorType =
@@ -23,9 +24,11 @@ type BffErrorType =
   | typeof TYPE_UNPROCESSABLE
   | typeof TYPE_TOO_MANY_REQUESTS
   | typeof TYPE_NETWORK_ERROR
+  | typeof TYPE_AGENT_TIMEOUT
   | typeof TYPE_AGENT_UNAVAILABLE;
 
 const DEFAULT_NETWORK_MESSAGE = 'The agent could not be reached';
+const DEFAULT_TIMEOUT_MESSAGE = 'The agent did not respond in time';
 const DEFAULT_UNAVAILABLE_MESSAGE = 'The agent is unavailable';
 const DEFAULT_ERROR_MESSAGE = 'Unexpected error';
 
@@ -120,6 +123,12 @@ function mapJsonApiError(
   });
 }
 
+function isAgentTimeout(error: unknown): boolean {
+  const { code, timeout } = (error ?? {}) as { code?: unknown; timeout?: unknown };
+
+  return code === 'ECONNABORTED' && typeof timeout === 'number';
+}
+
 function parseJsonApiFromMessage(error: unknown): AgentJsonApiError | undefined {
   if (!(error instanceof Error)) return undefined;
 
@@ -150,6 +159,14 @@ export function mapAgentError(error: unknown, { logger }: { logger: Logger }): B
   if (error instanceof BffHttpError) return error;
 
   if (!(error instanceof AgentHttpError)) {
+    if (isAgentTimeout(error)) {
+      logger('Warn', 'Agent timeout mapped to agent_timeout', {
+        cause: error instanceof Error ? error.message : String(error),
+      });
+
+      return new BffHttpError(504, TYPE_AGENT_TIMEOUT, DEFAULT_TIMEOUT_MESSAGE);
+    }
+
     const agentError = parseJsonApiFromMessage(error);
     if (agentError) return mapJsonApiError(agentError, 400, logger);
 

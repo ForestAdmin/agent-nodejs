@@ -238,6 +238,7 @@ describe('generateOpenApiDocument', () => {
       '501',
       '502',
       '503',
+      '504',
     ]);
   });
 
@@ -301,7 +302,7 @@ describe('generateOpenApiDocument', () => {
       Object.entries(operation.responses).filter(([status]) => status !== '200'),
     );
 
-    expect(errors).toHaveLength(72);
+    expect(errors).toHaveLength(78);
     errors.forEach(([, response]) => {
       expect(response).toEqual({ $ref: expect.stringContaining('#/components/responses/') });
     });
@@ -327,19 +328,33 @@ describe('generateOpenApiDocument', () => {
       'Error502AiQuery',
       'Error503',
       'Error503AiQuery',
+      'Error504',
       'Error504AiQuery',
       'ErrorDefaultAiQuery',
       'UnsupportedActionResult',
     ]);
   });
 
-  it('should keep the ai query body limit and timeout out of every data route', () => {
-    const statuses = dataOperations().flatMap(operation => Object.keys(operation.responses));
+  it('should document 504 on every data route, since an agent timeout is not a network error', () => {
+    dataOperations().forEach(operation => {
+      expect((operation.responses as Record<string, { $ref: string }>)['504'].$ref).toContain(
+        '#/components/responses/Error504',
+      );
+    });
+  });
+
+  it('should keep the ai query body limit and timeout components out of every data route', () => {
+    const refs = dataOperations().flatMap(operation =>
+      Object.values(operation.responses as Record<string, { $ref?: string }>).map(
+        response => response.$ref,
+      ),
+    );
     const aiOperation = (document.paths ?? {})[AI_QUERY_PATH] as {
       post: { responses: Record<string, { $ref: string }> };
     };
 
-    expect(statuses).not.toContain('504');
+    expect(refs).not.toContain('#/components/responses/Error504AiQuery');
+    expect(refs).not.toContain('#/components/responses/Error413AiQuery');
     expect(aiOperation.post.responses['413'].$ref).toContain('Error413AiQuery');
     expect(aiOperation.post.responses['504'].$ref).toContain('Error504AiQuery');
   });

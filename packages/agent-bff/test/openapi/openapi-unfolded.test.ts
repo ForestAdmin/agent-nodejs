@@ -356,7 +356,7 @@ describe('the unfolded document', () => {
       ),
     );
 
-    expect(errors).toHaveLength(16 * 12);
+    expect(errors).toHaveLength(16 * 13);
     errors.forEach(([, response]) => {
       expect(response).toEqual({ $ref: expect.stringContaining('#/components/responses/') });
     });
