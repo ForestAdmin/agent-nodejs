@@ -353,7 +353,7 @@ function buildAgentMiddlewares(
   const chain: Middleware[] = [
     createAuthModeMiddleware({ authSecret: forestAuthSecret }),
     apiKeyStep,
-    createPerKeyOriginMiddleware(),
+    createPerKeyOriginMiddleware({ logger }),
     createOpenApiRoutes({
       version,
       enabled: config.openapiEnabled,
@@ -387,7 +387,7 @@ export default async function runCli(
   const agentErrorMiddleware =
     agentMiddlewares.length > 0 ? [agentScoped(createErrorMiddleware({ logger }))] : [];
   const middlewares = [
-    createCorsMiddleware({ allowedOrigins: config.allowedOrigins }),
+    createCorsMiddleware({ allowedOrigins: config.allowedOrigins, logger }),
     ...agentErrorMiddleware,
     createBodyParser(aiMiddlewares.length > 0),
     ...oauth.middlewares,
