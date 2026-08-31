@@ -34,9 +34,18 @@ export interface UnfoldedRelation {
  * their field schemas stay free-form strings — an empty enum would forbid every valid call.
  */
 export interface CollectionFields {
-  projectable: string[];
+  projectable: ProjectableField[];
   filterable: FilterableField[];
   degraded: DegradedReason | null;
+}
+
+/**
+ * A field the agent reports, with the column type it declares. The type is what turns the response
+ * records into a typed schema; the name is what the request enums carry.
+ */
+export interface ProjectableField {
+  name: string;
+  type: FieldType;
 }
 
 /**

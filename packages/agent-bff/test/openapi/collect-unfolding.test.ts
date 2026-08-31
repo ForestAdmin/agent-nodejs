@@ -92,7 +92,10 @@ describe('collectUnfolding', () => {
       const { collections } = await collect(readModel);
 
       expect(collections[0].fields).toEqual({
-        projectable: ['id', 'author'],
+        projectable: [
+          { name: 'id', type: 'Number' },
+          { name: 'author', type: 'ManyToOne' },
+        ],
         filterable: [{ name: 'id', operators: ['Equal'] }],
         degraded: null,
       });
@@ -159,7 +162,7 @@ describe('collectUnfolding', () => {
         }),
       });
 
-      expect(collections[0].fields.projectable).toEqual(['id']);
+      expect(collections[0].fields.projectable).toEqual([{ name: 'id', type: 'String' }]);
       expect(collections[0].fields.filterable).toEqual([]);
     });
 

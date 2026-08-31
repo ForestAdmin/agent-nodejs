@@ -38,6 +38,14 @@ function requestSchema(path: string): Record<string, never> {
   return schemas[requestSchemaName(path)] as Record<string, never>;
 }
 
+function responseRef(path: string): string {
+  const { responses } = operation(path) as {
+    responses: Record<string, { content: Record<string, { schema: { $ref: string } }> }>;
+  };
+
+  return responses['200'].content['application/json'].schema.$ref;
+}
+
 function dereference(ref: string): Record<string, unknown> {
   return schemas[ref.replace('#/components/schemas/', '')];
 }
@@ -74,7 +82,11 @@ function collectionOf(
 ): UnfoldedCollection {
   return {
     name,
-    fields: { projectable: filterable.map(field => field.name), filterable, degraded },
+    fields: {
+      projectable: filterable.map(field => ({ name: field.name, type: 'String' as const })),
+      filterable,
+      degraded,
+    },
     primaryKeys: [{ name: 'id', type: 'Number' }],
     relations: [],
     actions: [],
@@ -151,7 +163,10 @@ describe('the unfolded document', () => {
 
   it('should enumerate the projectable fields of the collection', () => {
     expect(schemas.Fields_My_Coll).toEqual(
-      expect.objectContaining({ type: 'string', enum: ['id', 'email', 'tags', 'author'] }),
+      expect.objectContaining({
+        type: 'string',
+        enum: ['id', 'email', 'tags', 'author', 'created_at'],
+      }),
     );
   });
 
@@ -371,6 +386,119 @@ describe('the unfolded document', () => {
   });
 });
 
+describe('the per-collection record schema', () => {
+  const recordOf = (name: string) =>
+    schemas[name] as unknown as {
+      properties: Record<string, unknown>;
+      required: string[];
+      additionalProperties?: unknown;
+    };
+
+  it('should type every property from the column type the capabilities report', () => {
+    const { properties } = recordOf('Record_My_Coll');
+
+    expect(properties.email).toEqual({ type: 'string' });
+    expect(properties.tags).toEqual({ type: 'array', items: { type: 'string' } });
+    expect(properties.author).toEqual({});
+  });
+
+  it('should publish a field under the key the response carries, not its schema name', () => {
+    const { properties } = recordOf('Record_My_Coll');
+
+    expect(properties.createdAt).toEqual({
+      type: 'string',
+      format: 'date-time',
+      description: 'The "created_at" field.',
+    });
+    expect(properties.created_at).toBeUndefined();
+  });
+
+  it('should force id to a string even when the key column is a Number', () => {
+    const { properties } = recordOf('Record_My_Coll');
+
+    expect((properties.id as { type: string }).type).toBe('string');
+    expect((properties.id as { description: string }).description).toContain('always a string');
+  });
+
+  it('should require only id and __forest, the keys a record carries whatever the projection', () => {
+    expect(recordOf('Record_My_Coll').required).toEqual(['id', '__forest']);
+  });
+
+  it('should reference ForestRecordMeta from __forest', () => {
+    expect(recordOf('Record_My_Coll').properties).toEqual(
+      expect.objectContaining({ __forest: { $ref: '#/components/schemas/ForestRecordMeta' } }),
+    );
+  });
+
+  it('should keep the record open, since the capabilities do not report every projected key', () => {
+    expect(recordOf('Record_My_Coll').additionalProperties).toBeUndefined();
+  });
+
+  it('should sanitize a dotted collection name into the record component name', () => {
+    expect(recordOf('Record_users_address').properties.street).toEqual({ type: 'string' });
+  });
+
+  it('should answer a collection list with its own response schema over its own record', () => {
+    expect(responseRef('My%20Coll/list')).toBe('#/components/schemas/ListResponse_My_Coll');
+    expect(
+      (schemas.ListResponse_My_Coll as { properties: { data: unknown } }).properties.data,
+    ).toEqual({ type: 'array', items: { $ref: '#/components/schemas/Record_My_Coll' } });
+  });
+
+  it('should answer a relation list with the FOREIGN collection response schema', () => {
+    expect(responseRef('orders/relations/buyers/list')).toBe(
+      '#/components/schemas/ListResponse_My_Coll',
+    );
+  });
+
+  it('should keep the shared untyped ListResponse for a degraded collection own list', () => {
+    expect(responseRef('orders/list')).toBe('#/components/schemas/ListResponse');
+    expect(schemas.Record_orders).toBeUndefined();
+    expect(schemas.ListResponse_orders).toBeUndefined();
+  });
+
+  it('should keep the shared untyped ListResponse for a relation pointing at a degraded foreign', () => {
+    expect(responseRef('My%20Coll/relations/orders/list')).toBe(
+      '#/components/schemas/ListResponse',
+    );
+  });
+});
+
+describe('two fields whose response key collides', () => {
+  const colliding = unfoldedDocument({
+    collections: [
+      {
+        name: 'twins',
+        fields: {
+          projectable: [
+            { name: 'first_name', type: 'String' },
+            { name: 'firstName', type: 'Number' },
+          ],
+          filterable: [],
+          degraded: null,
+        },
+        primaryKeys: [{ name: 'first_name', type: 'String' }],
+        relations: [],
+        actions: [],
+      },
+    ],
+  });
+  const record = (colliding.components?.schemas as Record<string, unknown>)
+    .Record_twins as unknown as { properties: Record<string, unknown> };
+
+  it('should publish one unconstrained property naming the fields that collapse onto it', () => {
+    expect(record.properties.firstName).toEqual({
+      description:
+        '"first_name", "firstName" all reach the response under this single key, so which one it ' +
+        'holds is not determined here. Project one of them at a time to know.',
+    });
+  });
+
+  it('should emit the collided key once, plus id and __forest, and nothing else', () => {
+    expect(Object.keys(record.properties)).toEqual(['firstName', 'id', '__forest']);
+  });
+});
+
 describe('a collection whose key ends in an index-like suffix', () => {
   // `sanitizeIdentifier` turns anything outside [A-Za-z0-9_] into `_`, and `createNamer` appends
   // `_<n>` to a collapsed name, so a collection key can end in `_<digit>` on its own. A leaf namespace
@@ -431,7 +559,7 @@ describe('an unfolding naming a collection it does not carry', () => {
         {
           name: 'users',
           fields: {
-            projectable: ['id'],
+            projectable: [{ name: 'id', type: 'Number' }],
             filterable: [{ name: 'id', operators: ['Equal'] }],
             degraded: null,
           },
@@ -462,7 +590,7 @@ describe('names that collide once sanitized', () => {
   ): UnfoldedCollection => ({
     name,
     fields: {
-      projectable: ['id'],
+      projectable: [{ name: 'id', type: 'Number' }],
       filterable: [{ name: 'id', operators: ['Equal'] }],
       degraded: null,
     },
@@ -511,7 +639,7 @@ describe('an unfolded document with no action', () => {
         {
           name: 'users',
           fields: {
-            projectable: ['id'],
+            projectable: [{ name: 'id', type: 'Number' }],
             filterable: [{ name: 'id', operators: ['Equal'] }],
             degraded: null,
           },
