@@ -42,6 +42,7 @@ describe('agent transport failures reaching mapAgentError', () => {
       expect(mapAgentError(await callAgent(url), { logger })).toMatchObject({
         type: 'agent_timeout',
         status: 504,
+        message: 'The agent did not respond in time',
       });
     } finally {
       await close(silent);
