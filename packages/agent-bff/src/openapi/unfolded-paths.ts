@@ -21,6 +21,8 @@ import {
   OPERATORS,
   PageSchema,
   ParentIdSchema,
+  SearchExtendedSchema,
+  SearchSchema,
   SortClauseSchema,
   TimezoneSchema,
 } from './schemas';
@@ -265,19 +267,23 @@ function registerRequests(deps: Deps, plan: Omit<CollectionPlan, 'requests'>): R
   const { collection, key } = plan;
   const refs = fieldRefs(deps, plan);
   const timezone = pool.reuse('Timezone', TimezoneSchema);
+  const search = pool.reuse('Search', SearchSchema);
+  const searchExtended = pool.reuse('SearchExtended', SearchExtendedSchema);
 
   return {
     list: pool.add(`ListRequest_${key}`, {
       type: 'object',
       description: requestDescription(
         collection,
-        `Filter, sort and project records of ${quoted(collection.name)}.`,
+        `Filter, search, sort and project records of ${quoted(collection.name)}.`,
       ),
       properties: {
         filter: refs.filter,
         projection: { type: 'array', items: refs.projectable },
         sort: { type: 'array', items: refs.sort },
         page: pool.reuse('Page', PageSchema),
+        search,
+        searchExtended,
         timezone,
       },
     }),
@@ -285,9 +291,9 @@ function registerRequests(deps: Deps, plan: Omit<CollectionPlan, 'requests'>): R
       type: 'object',
       description: requestDescription(
         collection,
-        `Count records of ${quoted(collection.name)} matching a filter.`,
+        `Count records of ${quoted(collection.name)} matching a filter and a search.`,
       ),
-      properties: { filter: refs.filter, timezone },
+      properties: { filter: refs.filter, search, searchExtended, timezone },
     }),
   };
 }
@@ -346,18 +352,18 @@ function registerRelationRequests(
     properties: { parentId },
     required: ['parentId'],
   };
-  const description =
-    `Filter, sort and projection apply to ${quoted(foreign.collection.name)}, the foreign ` +
+  const describe = (inputs: string) =>
+    `${inputs} apply to ${quoted(foreign.collection.name)}, the foreign ` +
     `collection of ${quoted(plan.collection.name)}.${quoted(relation.name)}; the parent only ` +
     'resolves which records are related.';
 
   return {
     list: pool.add(`RelationListRequest_${relationKey}`, {
-      description,
+      description: describe('Filter, sort, projection and search'),
       allOf: [foreign.requests.list, parentProperties],
     }),
     count: pool.add(`RelationCountRequest_${relationKey}`, {
-      description,
+      description: describe('Filter and search'),
       allOf: [foreign.requests.count, parentProperties],
     }),
   };

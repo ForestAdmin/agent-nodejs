@@ -220,6 +220,56 @@ describe('the unfolded document', () => {
     expect(request.properties.page.$ref).toBe('#/components/schemas/Page');
   });
 
+  it.each([['My%20Coll/list'], ['My%20Coll/count']])(
+    'should expose the search inputs on %s, which the runtime honours',
+    path => {
+      const request = requestSchema(path) as unknown as {
+        properties: Record<string, { $ref?: string }>;
+      };
+
+      expect(request.properties.search).toEqual({ $ref: '#/components/schemas/Search' });
+      expect(request.properties.searchExtended).toEqual({
+        $ref: '#/components/schemas/SearchExtended',
+      });
+    },
+  );
+
+  it('should share one search component across collections rather than unfold one each', () => {
+    const searchNames = Object.keys(schemas).filter(name => name.startsWith('Search'));
+
+    expect(searchNames.sort()).toEqual(['Search', 'SearchExtended']);
+  });
+
+  it.each([['orders/list'], ['orders/count']])(
+    'should still expose the search inputs on %s, whose capabilities failed',
+    path => {
+      const request = requestSchema(path) as unknown as {
+        properties: Record<string, { $ref?: string }>;
+      };
+
+      expect(request.properties.search).toEqual({ $ref: '#/components/schemas/Search' });
+      expect(request.properties.searchExtended).toEqual({
+        $ref: '#/components/schemas/SearchExtended',
+      });
+    },
+  );
+
+  it.each([['My%20Coll/relations/orders/list'], ['My%20Coll/relations/orders/count']])(
+    'should carry the search inputs to %s through the foreign collection request',
+    path => {
+      const { allOf } = requestSchema(path) as unknown as { allOf: [{ $ref: string }, unknown] };
+      const { properties } = dereference(allOf[0].$ref) as unknown as {
+        properties: Record<string, { $ref?: string }>;
+      };
+
+      expect(properties.search).toEqual({ $ref: '#/components/schemas/Search' });
+      expect(properties.searchExtended).toEqual({
+        $ref: '#/components/schemas/SearchExtended',
+      });
+    },
+  );
+
+
   it('should make every leaf and the branch mutually exclusive, which the runtime enforces', () => {
     const branch = branchOf('Filter_My_Coll') as unknown as { not: { required: string[] } };
 
@@ -257,6 +307,24 @@ describe('the unfolded document', () => {
     };
 
     expect(request.allOf[0].$ref).toBe('#/components/schemas/ListRequest_orders');
+  });
+
+  it('should say search applies to the foreign collection too, like filter, sort and projection', () => {
+    const { description } = requestSchema('My%20Coll/relations/orders/list') as unknown as {
+      description: string;
+    };
+
+    expect(description).toContain('Filter, sort, projection and search apply to "orders"');
+  });
+
+  it('should not promise sort or projection on a relation count, which carries neither', () => {
+    const { description } = requestSchema('My%20Coll/relations/orders/count') as unknown as {
+      description: string;
+    };
+
+    expect(description).toContain('Filter and search apply to "orders"');
+    expect(description).not.toContain('projection');
+    expect(description).not.toContain('sort');
   });
 
   it('should require parentId on a relation request and name the parent key it belongs to', () => {
