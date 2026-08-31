@@ -326,4 +326,48 @@ describe('parseConfig', () => {
       );
     });
   });
+
+  describe('BFF_PUBLIC_URL', () => {
+    it('should stay undefined when unset, empty, or whitespace-only', () => {
+      expect(parseConfig({ ...VALID_ENV }).publicUrl).toBeUndefined();
+      expect(parseConfig({ ...VALID_ENV, BFF_PUBLIC_URL: '' }).publicUrl).toBeUndefined();
+      expect(parseConfig({ ...VALID_ENV, BFF_PUBLIC_URL: '   ' }).publicUrl).toBeUndefined();
+    });
+
+    it('should keep a valid http(s) URL as-is', () => {
+      expect(
+        parseConfig({ ...VALID_ENV, BFF_PUBLIC_URL: 'https://bff.example.com' }).publicUrl,
+      ).toBe('https://bff.example.com');
+      expect(
+        parseConfig({ ...VALID_ENV, BFF_PUBLIC_URL: 'http://localhost:3450/bff' }).publicUrl,
+      ).toBe('http://localhost:3450/bff');
+    });
+
+    it('should strip trailing slashes, which a client would otherwise concatenate into //', () => {
+      expect(
+        parseConfig({ ...VALID_ENV, BFF_PUBLIC_URL: 'https://bff.example.com/' }).publicUrl,
+      ).toBe('https://bff.example.com');
+      expect(
+        parseConfig({ ...VALID_ENV, BFF_PUBLIC_URL: 'https://bff.example.com/bff//' }).publicUrl,
+      ).toBe('https://bff.example.com/bff');
+    });
+
+    it.each(['/', 'bff.example.com', 'ftp://bff.example.com', 'https://bff example.com'])(
+      'should reject %j',
+      value => {
+        expect(() => parseConfig({ ...VALID_ENV, BFF_PUBLIC_URL: value })).toThrow(
+          ConfigurationError,
+        );
+        expect(() => parseConfig({ ...VALID_ENV, BFF_PUBLIC_URL: value })).toThrow(
+          /BFF_PUBLIC_URL must be a valid http\(s\) URL/,
+        );
+      },
+    );
+
+    it('should not echo the offending value', () => {
+      expect(() => parseConfig({ ...VALID_ENV, BFF_PUBLIC_URL: 'not-a-url-secret' })).not.toThrow(
+        /not-a-url-secret/,
+      );
+    });
+  });
 });

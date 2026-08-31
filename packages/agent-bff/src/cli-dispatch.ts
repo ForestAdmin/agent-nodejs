@@ -7,7 +7,7 @@ import path from 'path';
 import createConsoleLogger from './adapters/console-logger';
 import { AI_QUERY_ROUTE } from './ai/ai-routes-middleware';
 import runCli, { resolveOAuthConfig, resolveUnfoldSource } from './cli-core';
-import { parseConfig } from './config/env-config';
+import { parseConfig, parsePublicUrl } from './config/env-config';
 import { extractErrorMessage } from './errors';
 import { generateOpenApiDocument, serializeOpenApi } from './openapi/openapi-document';
 import buildUnfoldedDocument, { issueOpenApiAgentToken } from './openapi/unfolded-document';
@@ -91,11 +91,14 @@ export async function renderOpenApi(env: NodeJS.ProcessEnv, logger: Logger): Pro
       : undefined;
 
   const hasAiQueryRoute = publishesAiQuery(env, logger);
+  const publicUrl = parsePublicUrl(env.BFF_PUBLIC_URL);
 
   if (!unfoldable?.source) {
     logger('Warn', `Emitting the generic OpenAPI document: ${NOTHING_TO_UNFOLD}`);
 
-    return `${serializeOpenApi(generateOpenApiDocument(version, { hasAiQueryRoute }))}\n`;
+    return `${serializeOpenApi(
+      generateOpenApiDocument(version, { hasAiQueryRoute, publicUrl }),
+    )}\n`;
   }
 
   const { source } = unfoldable;
@@ -104,7 +107,7 @@ export async function renderOpenApi(env: NodeJS.ProcessEnv, logger: Logger): Pro
     source,
     readModel,
     () => issueOpenApiAgentToken(unfoldable.authSecret),
-    { version, hasAiQueryRoute },
+    { version, hasAiQueryRoute, publicUrl },
   );
 
   // Not one collection came back with its field set, so the agent was unreachable throughout. The

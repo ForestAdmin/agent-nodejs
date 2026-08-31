@@ -65,6 +65,35 @@ function leafOperators(): string[] {
 }
 
 describe('generateOpenApiDocument', () => {
+  describe('servers', () => {
+    it('should publish the configured public URL as an absolute base URL', () => {
+      expect(
+        generateOpenApiDocument('9.9.9', { publicUrl: 'https://bff.example.com' }).servers,
+      ).toEqual([
+        { url: 'https://bff.example.com', description: expect.stringContaining('public base URL') },
+      ]);
+    });
+
+    // A generated client concatenates `servers[0].url` with the operation path, so anything holding
+    // a template placeholder leaves it with no base URL at all — worse than the relative fallback.
+    it('should fall back to the root-relative URL when no public URL is configured', () => {
+      const [server] = generateOpenApiDocument('9.9.9').servers ?? [];
+
+      expect(server.url).toBe('/');
+      expect(server.description).toContain('BFF_PUBLIC_URL');
+      expect(server.variables).toBeUndefined();
+    });
+
+    it('should carry the public URL into the unfolded document too', () => {
+      const unfolded = generateOpenApiDocument('9.9.9', {
+        unfolding: { collections: [] },
+        publicUrl: 'https://bff.example.com',
+      });
+
+      expect(unfolded.servers?.[0].url).toBe('https://bff.example.com');
+    });
+  });
+
   it('should emit OpenAPI 3.1.0 with the package version', () => {
     expect(document.openapi).toBe(OPENAPI_VERSION);
     expect(document.info.version).toBe('9.9.9');

@@ -371,14 +371,27 @@ function registerAiQueryPath(
   });
 }
 
+const CONFIGURED_SERVER_DESCRIPTION = 'The public base URL of this BFF deployment.';
+
+// A self-hosted BFF cannot know its own external URL, and this document is also exported offline by
+// the CLI, so the absolute form has to be configured. Not a server variable in the meantime: a
+// generator that meets a templated url drops the base URL entirely instead of substituting the
+// default, which leaves a client worse off than the root-relative form.
+const RELATIVE_SERVER_DESCRIPTION =
+  'Resolved against the URL this document was fetched from. Set BFF_PUBLIC_URL on the deployment ' +
+  'to publish its absolute base URL here instead, which a client generated from an offline export ' +
+  'needs.';
+
 export interface GenerateOpenApiDocumentOptions {
   unfolding?: Unfolding;
   hasAiQueryRoute?: boolean;
+  /** The deployment's own external base URL, from `BFF_PUBLIC_URL`. Absent falls back to `/`. */
+  publicUrl?: string;
 }
 
 export function generateOpenApiDocument(
   version: string,
-  { unfolding, hasAiQueryRoute = false }: GenerateOpenApiDocumentOptions = {},
+  { unfolding, hasAiQueryRoute = false, publicUrl }: GenerateOpenApiDocumentOptions = {},
 ): OpenAPIObject {
   const registry = new OpenAPIRegistry();
   const hasActions =
@@ -485,7 +498,11 @@ export function generateOpenApiDocument(
         unfolding ? UNFOLDED_DESCRIPTION : GENERIC_DESCRIPTION
       } ${SHARED_DESCRIPTION}`,
     },
-    servers: [{ url: '/' }],
+    servers: [
+      publicUrl
+        ? { url: publicUrl, description: CONFIGURED_SERVER_DESCRIPTION }
+        : { url: '/', description: RELATIVE_SERVER_DESCRIPTION },
+    ],
   });
 }
 
