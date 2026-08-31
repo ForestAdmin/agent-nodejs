@@ -24,7 +24,11 @@ function buildApp(allowedOrigins?: string[]) {
 function expectOriginForbidden(response: request.Response) {
   expect(response.status).toBe(403);
   expect(response.body).toEqual({
-    error: { type: 'origin_not_allowed', status: 403, message: expect.any(String) },
+    error: {
+      type: 'origin_not_allowed',
+      status: 403,
+      message: 'Origin is not allowed for this key',
+    },
   });
 }
 
