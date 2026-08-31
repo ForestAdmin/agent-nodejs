@@ -26,7 +26,9 @@ async function callAgent(url: string): Promise<unknown> {
   const requester = createAgentHttpRequester('tok', url, TIMEOUT_MS);
 
   return requester.query({ method: 'get', path: '/forest/users' }).then(
-    () => undefined,
+    () => {
+      throw new Error('agent request resolved; expected a rejection');
+    },
     error => error,
   );
 }
@@ -54,7 +56,9 @@ describe('agent transport failures reaching mapAgentError', () => {
     const url = await listen(closed);
     await close(closed);
 
-    expect(mapAgentError(await callAgent(url), { logger })).toMatchObject({
+    const error = await callAgent(url);
+    expect(error).toMatchObject({ code: 'ECONNREFUSED' });
+    expect(mapAgentError(error, { logger })).toMatchObject({
       type: 'network_error',
       status: 502,
     });
