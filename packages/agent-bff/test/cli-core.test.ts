@@ -403,6 +403,21 @@ describe('runCli', () => {
         await server.stop();
       }
     });
+
+    it('should answer 404 on a non-json agent body instead of an unrendered 415', async () => {
+      const server = await runCli({ ...VALID_ENV, FOREST_AUTH_SECRET: undefined }, noopLogger);
+
+      try {
+        const response = await request(server.callback)
+          .post('/agent/v1/books/list')
+          .set('Content-Type', 'text/plain')
+          .send(JSON.stringify({ page: { limit: 5 } }));
+
+        expect(response.status).toBe(404);
+      } finally {
+        await server.stop();
+      }
+    });
   });
 
   describe('when BFF_ALLOWED_ORIGINS has malformed entries', () => {

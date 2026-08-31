@@ -72,12 +72,12 @@ function agentScoped(middleware: Middleware): Middleware {
   };
 }
 
-function createBodyParser(hasAiQueryRoute: boolean): Middleware {
+function createBodyParser(hasAiQueryRoute: boolean, hasAgentEdge: boolean): Middleware {
   const parseBody = bodyParser({ jsonLimit: BODY_LIMIT });
   const parseAiBody = bodyParser({ jsonLimit: AI_BODY_LIMIT, enableTypes: ['json'] });
 
   return async function selectedBodyParser(ctx, next) {
-    if (isAgentPath(ctx.path)) rejectNonJsonBody(ctx);
+    if (hasAgentEdge && isAgentPath(ctx.path)) rejectNonJsonBody(ctx);
 
     if (hasAiQueryRoute && ctx.path === AI_QUERY_ROUTE) {
       await parseAiBody(ctx, next);
@@ -401,7 +401,7 @@ export default async function runCli(
   const middlewares = [
     createCorsMiddleware({ allowedOrigins: config.allowedOrigins }),
     ...agentErrorMiddleware,
-    createBodyParser(aiMiddlewares.length > 0),
+    createBodyParser(aiMiddlewares.length > 0, agentMiddlewares.length > 0),
     ...oauth.middlewares,
     // Outside the agent-scoped chain on purpose: the viewer is a public page, the document it fetches
     // is not. Gated on the edge being mounted too, like the error middleware above: with no agent
