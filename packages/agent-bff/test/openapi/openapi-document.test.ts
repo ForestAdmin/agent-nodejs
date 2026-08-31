@@ -528,12 +528,17 @@ describe('the documented search inputs', () => {
   it('should warn that a search query can filter on a collection the BFF does not expose', () => {
     expect(schemas.Search.description).toContain('does not expose');
   });
+});
 
+describe('the documented pagination inputs', () => {
   it('should publish the default page applied when page is absent', () => {
     expect(schemas.Page.description).toContain('the object itself is optional');
     expect(schemas.Page.description).toContain('the first page (offset 0)');
     expect(schemas.Page.description).toContain('a limit of 15 records on the Node agent');
     expect(schemas.Page.description).toContain('silently missing');
+  });
+
+  it('should require both limit and offset once page is sent', () => {
     expect(schemas.Page.required).toEqual(['limit', 'offset']);
   });
 
