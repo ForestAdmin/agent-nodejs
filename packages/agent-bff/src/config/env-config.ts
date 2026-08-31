@@ -87,6 +87,12 @@ export function parsePublicUrl(raw?: string): string | undefined {
     );
   }
 
+  if (/^https?:\/\/[^/?#]*@/.test(value)) {
+    throw new ConfigurationError(
+      'Invalid configuration: BFF_PUBLIC_URL must not carry credentials.',
+    );
+  }
+
   return value.replace(/\/+$/, '');
 }
 

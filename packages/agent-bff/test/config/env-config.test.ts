@@ -381,6 +381,18 @@ describe('parseConfig', () => {
       },
     );
 
+    it.each(['https://user:password@bff.example.com', 'https://user@bff.example.com'])(
+      'should reject the credentials in %j, which every reader of the document would receive',
+      value => {
+        expect(() => parseConfig({ ...VALID_ENV, BFF_PUBLIC_URL: value })).toThrow(
+          ConfigurationError,
+        );
+        expect(() => parseConfig({ ...VALID_ENV, BFF_PUBLIC_URL: value })).toThrow(
+          /BFF_PUBLIC_URL must not carry credentials/,
+        );
+      },
+    );
+
     it('should not echo the offending value', () => {
       expect(() => parseConfig({ ...VALID_ENV, BFF_PUBLIC_URL: 'not-a-url-secret' })).not.toThrow(
         /not-a-url-secret/,
