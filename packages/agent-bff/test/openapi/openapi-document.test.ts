@@ -337,7 +337,7 @@ describe('generateOpenApiDocument', () => {
 
   it('should document 504 on every data route, since an agent timeout is not a network error', () => {
     dataOperations().forEach(operation => {
-      expect((operation.responses as Record<string, { $ref: string }>)['504'].$ref).toContain(
+      expect((operation.responses as Record<string, { $ref: string }>)['504'].$ref).toBe(
         '#/components/responses/Error504',
       );
     });
