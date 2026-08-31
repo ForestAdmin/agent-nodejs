@@ -42,6 +42,28 @@ function dereference(ref: string): Record<string, unknown> {
   return schemas[ref.replace('#/components/schemas/', '')];
 }
 
+function propertiesOf(path: string): Record<string, { $ref?: string }> {
+  const schema = requestSchema(path) as unknown as {
+    properties?: Record<string, { $ref?: string }>;
+    allOf?: [{ $ref: string }, unknown];
+  };
+
+  if (schema.properties) return schema.properties;
+
+  const foreign = dereference(schema.allOf?.[0].$ref ?? '') as unknown as {
+    properties: Record<string, { $ref?: string }>;
+  };
+
+  return foreign.properties;
+}
+
+function expectSearchInputsOn(path: string): void {
+  const properties = propertiesOf(path);
+
+  expect(properties.search).toEqual({ $ref: '#/components/schemas/Search' });
+  expect(properties.searchExtended).toEqual({ $ref: '#/components/schemas/SearchExtended' });
+}
+
 // The leaf alternatives of a filter tree are its `$ref` ones; the branch alternative is inlined.
 function leavesOf(treeName: string): { fields: string[]; operators: string[] }[] {
   const { anyOf } = schemas[treeName] as unknown as { anyOf: { $ref?: string }[] };
@@ -222,17 +244,10 @@ describe('the unfolded document', () => {
 
   it.each([['My%20Coll/list'], ['My%20Coll/count']])(
     'should expose the search inputs on %s, which the runtime honours',
-    path => {
-      const request = requestSchema(path) as unknown as {
-        properties: Record<string, { $ref?: string }>;
-      };
-
-      expect(request.properties.search).toEqual({ $ref: '#/components/schemas/Search' });
-      expect(request.properties.searchExtended).toEqual({
-        $ref: '#/components/schemas/SearchExtended',
-      });
-    },
+    path => expectSearchInputsOn(path),
   );
+
+
 
   it('should share one search component across collections rather than unfold one each', () => {
     const searchNames = Object.keys(schemas).filter(name => name.startsWith('Search'));
@@ -242,32 +257,31 @@ describe('the unfolded document', () => {
 
   it.each([['orders/list'], ['orders/count']])(
     'should still expose the search inputs on %s, whose capabilities failed',
-    path => {
-      const request = requestSchema(path) as unknown as {
-        properties: Record<string, { $ref?: string }>;
-      };
-
-      expect(request.properties.search).toEqual({ $ref: '#/components/schemas/Search' });
-      expect(request.properties.searchExtended).toEqual({
-        $ref: '#/components/schemas/SearchExtended',
-      });
-    },
+    path => expectSearchInputsOn(path),
   );
+
+
 
   it.each([['My%20Coll/relations/orders/list'], ['My%20Coll/relations/orders/count']])(
     'should carry the search inputs to %s through the foreign collection request',
-    path => {
-      const { allOf } = requestSchema(path) as unknown as { allOf: [{ $ref: string }, unknown] };
-      const { properties } = dereference(allOf[0].$ref) as unknown as {
-        properties: Record<string, { $ref?: string }>;
-      };
-
-      expect(properties.search).toEqual({ $ref: '#/components/schemas/Search' });
-      expect(properties.searchExtended).toEqual({
-        $ref: '#/components/schemas/SearchExtended',
-      });
-    },
+    path => expectSearchInputsOn(path),
   );
+
+
+  it('should mirror the generic list and count inputs, so an input never lands on one document only', () => {
+    const generic = generateOpenApiDocument('9.9.9').components?.schemas as Record<
+      string,
+      { properties?: Record<string, unknown> }
+    >;
+
+    expect(Object.keys(propertiesOf('My%20Coll/list'))).toEqual(
+      Object.keys(generic.ListRequest.properties ?? {}),
+    );
+    expect(Object.keys(propertiesOf('My%20Coll/count'))).toEqual(
+      Object.keys(generic.CountRequest.properties ?? {}),
+    );
+  });
+
 
 
   it('should make every leaf and the branch mutually exclusive, which the runtime enforces', () => {
