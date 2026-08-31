@@ -106,7 +106,8 @@ describe('cors middleware (layer 1)', () => {
 
       const response = await request(app.callback())
         .options('/agent/x')
-        .set('Origin', 'https://evil.example.com');
+        .set('Origin', 'https://evil.example.com')
+        .set('Access-Control-Request-Method', 'GET');
 
       expect(response.status).toBe(204);
       expect(logger).toHaveBeenCalledTimes(1);
@@ -119,7 +120,10 @@ describe('cors middleware (layer 1)', () => {
     it('logs nothing when the preflight origin is allow-listed', async () => {
       const logger = jest.fn();
 
-      await request(buildApp(logger).app.callback()).options('/agent/x').set('Origin', ALLOWED);
+      await request(buildApp(logger).app.callback())
+        .options('/agent/x')
+        .set('Origin', ALLOWED)
+        .set('Access-Control-Request-Method', 'GET');
 
       expect(logger).not.toHaveBeenCalled();
     });
@@ -129,6 +133,17 @@ describe('cors middleware (layer 1)', () => {
 
       await request(buildApp(logger).app.callback()).options('/agent/x');
 
+      expect(logger).not.toHaveBeenCalled();
+    });
+
+    it('does not log an OPTIONS without Access-Control-Request-Method, which is not a preflight', async () => {
+      const logger = jest.fn();
+
+      const response = await request(buildApp(logger).app.callback())
+        .options('/agent/x')
+        .set('Origin', 'https://evil.example.com');
+
+      expect(response.status).toBe(204);
       expect(logger).not.toHaveBeenCalled();
     });
   });

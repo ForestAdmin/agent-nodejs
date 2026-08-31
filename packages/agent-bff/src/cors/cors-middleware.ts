@@ -31,7 +31,7 @@ export default function createCorsMiddleware({
         ctx.set('Access-Control-Allow-Methods', ALLOWED_METHODS);
         ctx.set('Access-Control-Allow-Headers', ALLOWED_HEADERS);
         ctx.set('Access-Control-Max-Age', String(PREFLIGHT_MAX_AGE_SECONDS));
-      } else if (origin) {
+      } else if (origin && ctx.get('Access-Control-Request-Method')) {
         logger('Warn', 'BFF preflight origin rejected', { origin, path: ctx.path });
       }
 
