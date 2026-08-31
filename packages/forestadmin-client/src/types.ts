@@ -205,6 +205,7 @@ export interface ForestSchemaAction {
     // Widget options (dropdown/radio/checkbox/color values...) — the static form's only source
     // for consumers like getMultipleChoiceField() once the /hooks/load probe is skipped.
     widgetEdit?: {
+      name?: string;
       parameters: {
         static: {
           options?: { label: string; value: string }[];

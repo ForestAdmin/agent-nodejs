@@ -61,7 +61,10 @@ export default function encodeFileFieldValue(
   // A file reaching a field that is not declared as one is never intentional, and it would be
   // JSON-serialized into the column as {"buffer":{"type":"Buffer",...}} without any error.
   if (isFile(value)) {
-    throw fileError(fieldName, `is a ${type} field and cannot hold a file.`);
+    throw fileError(
+      fieldName,
+      `is a ${type} field and cannot hold a file: declare it as type File, or give it the "file picker" widget.`,
+    );
   }
 
   return value;

@@ -71,4 +71,75 @@ describe('FieldGetter', () => {
       expect(new FieldGetter(createPlainField({ type: 'Json' })).getType()).toBe('Json');
     });
   });
+
+  describe('getEffectiveTypeName', () => {
+    const filePicker = { name: 'file picker', parameters: { static: {} } };
+
+    it('should map a String carrying the file picker widget to File', () => {
+      const fieldGetter = new FieldGetter(
+        createPlainField({ type: 'String', widgetEdit: filePicker }),
+      );
+
+      expect(fieldGetter.getEffectiveTypeName()).toBe('File');
+      expect(fieldGetter.getTypeName()).toBe('String');
+    });
+
+    it('should map a String list carrying the file picker widget to FileList', () => {
+      const fieldGetter = new FieldGetter(
+        createPlainField({ type: ['String'], widgetEdit: filePicker }),
+      );
+
+      expect(fieldGetter.getEffectiveTypeName()).toBe('FileList');
+      expect(fieldGetter.getTypeName()).toBe('StringList');
+    });
+
+    it('should leave a String without the file picker widget untouched', () => {
+      expect(new FieldGetter(createPlainField({ type: 'String' })).getEffectiveTypeName()).toBe(
+        'String',
+      );
+      expect(
+        new FieldGetter(
+          createPlainField({
+            type: 'String',
+            widgetEdit: { name: 'text area editor', parameters: { static: {} } },
+          }),
+        ).getEffectiveTypeName(),
+      ).toBe('String');
+    });
+
+    it('should leave a String untouched on the null widgetEdit the saas stores', () => {
+      const plainField = {
+        ...createPlainField({ type: 'String' }),
+        widgetEdit: null,
+      } as unknown as PlainField;
+
+      expect(new FieldGetter(plainField).getEffectiveTypeName()).toBe('String');
+    });
+
+    it('should leave a non String type untouched even with the file picker widget', () => {
+      const fieldGetter = new FieldGetter(
+        createPlainField({ type: 'Number', widgetEdit: filePicker }),
+      );
+
+      expect(fieldGetter.getEffectiveTypeName()).toBe('Number');
+    });
+
+    it('should leave an Enum untouched', () => {
+      const fieldGetter = new FieldGetter(
+        createPlainField({ type: 'Enum', enums: ['passport', 'id_card'] }),
+      );
+
+      expect(fieldGetter.getEffectiveTypeName()).toBe('Enum');
+      expect(fieldGetter.getTypeName()).toBe('Enum');
+    });
+
+    it('should delegate to getTypeName for native file types', () => {
+      expect(new FieldGetter(createPlainField({ type: 'File' })).getEffectiveTypeName()).toBe(
+        'File',
+      );
+      expect(new FieldGetter(createPlainField({ type: ['File'] })).getEffectiveTypeName()).toBe(
+        'FileList',
+      );
+    });
+  });
 });

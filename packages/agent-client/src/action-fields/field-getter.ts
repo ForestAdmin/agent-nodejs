@@ -34,4 +34,14 @@ export default class FieldGetter {
 
     return Array.isArray(type) ? `${type[0]}List` : type;
   }
+
+  getEffectiveTypeName(): string {
+    const typeName = this.getTypeName();
+    const hasFilePickerWidget = this.plainField.widgetEdit?.name === 'file picker';
+
+    if (hasFilePickerWidget && typeName === 'String') return 'File';
+    if (hasFilePickerWidget && typeName === 'StringList') return 'FileList';
+
+    return typeName;
+  }
 }

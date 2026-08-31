@@ -26,6 +26,10 @@ export default abstract class ActionField {
     return this.field?.getTypeName();
   }
 
+  getEffectiveTypeName(): string {
+    return this.field?.getEffectiveTypeName();
+  }
+
   getValue() {
     return this.field?.getValue();
   }

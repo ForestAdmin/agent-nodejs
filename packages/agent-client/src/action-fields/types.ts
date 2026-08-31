@@ -20,6 +20,7 @@ export type PlainField = {
   isReadOnly: boolean;
   hook?: string;
   widgetEdit?: {
+    name?: string;
     parameters: {
       static: {
         options?: PlainFieldOption[];
