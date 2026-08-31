@@ -864,5 +864,43 @@ describe('ActionField implementations', () => {
       const field = new ActionFieldString('testField', fieldFormStates);
       expect(field.isRequired()).toBe(true);
     });
+
+    it('should report a String carrying the file picker widget as File while keeping its declared type', async () => {
+      await setupFields([
+        {
+          field: 'file_0',
+          type: 'String',
+          isRequired: true,
+          isReadOnly: false,
+          widgetEdit: { name: 'file picker', parameters: { static: {} } },
+        },
+      ]);
+
+      const field = new ActionFieldString('file_0', fieldFormStates);
+
+      expect(field.getEffectiveTypeName()).toBe('File');
+      expect(field.getType()).toBe('String');
+    });
+
+    it('should report a String list carrying the file picker widget as FileList', async () => {
+      await setupFields([
+        {
+          field: 'files',
+          type: ['String'],
+          isRequired: false,
+          isReadOnly: false,
+          widgetEdit: { name: 'file picker', parameters: { static: {} } },
+        },
+      ]);
+
+      const field = new ActionFieldString('files', fieldFormStates);
+
+      expect(field.getEffectiveTypeName()).toBe('FileList');
+    });
+
+    it('should report a String without the file picker widget as String', () => {
+      const field = new ActionFieldString('testField', fieldFormStates);
+      expect(field.getEffectiveTypeName()).toBe('String');
+    });
   });
 });

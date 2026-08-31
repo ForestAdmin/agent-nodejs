@@ -133,7 +133,7 @@ describe('FieldGetter', () => {
       expect(fieldGetter.getTypeName()).toBe('Enum');
     });
 
-    it('should delegate to getTypeName for native file types', () => {
+    it('should report a native File as File and a native File list as FileList', () => {
       expect(new FieldGetter(createPlainField({ type: 'File' })).getEffectiveTypeName()).toBe(
         'File',
       );
