@@ -561,6 +561,34 @@ describe('generateOpenApiDocument', () => {
     expect(path.get.description).toContain('`HEAD` is served identically');
   });
 
+  it('should document HEAD on the document path, so a generated client can probe before fetching', () => {
+    const path = (document.paths ?? {})[DOCUMENT_PATH] as {
+      get: { responses: Record<string, unknown> };
+      head: {
+        operationId: string;
+        security: unknown;
+        responses: Record<string, { $ref?: string; description?: string; content?: unknown }>;
+      };
+    };
+
+    expect(path.head.operationId).toBe('headOpenApiDocument');
+    expect(path.head.security).toEqual([{ bffSession: [] }, { bffApiKey: [] }]);
+    expect(Object.keys(path.head.responses).sort()).toEqual([
+      '200',
+      '400',
+      '401',
+      '403',
+      '404',
+      '500',
+      '503',
+    ]);
+    expect(path.head.responses['200'].content).toBeUndefined();
+    expect(path.head.responses['200'].description).toContain('no body');
+    expect(path.head.responses['404'].$ref).toBe(
+      (path.get.responses['404'] as { $ref: string }).$ref,
+    );
+  });
+
   it('should say which live routes it deliberately leaves out, since a consumer cannot guess', () => {
     expect(Object.keys(document.paths ?? {})).not.toContain('/health');
     expect(document.info.description).toContain('deliberately absent');

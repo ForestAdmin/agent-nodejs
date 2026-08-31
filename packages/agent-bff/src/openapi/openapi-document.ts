@@ -436,6 +436,28 @@ function registerDocumentPath(registry: OpenAPIRegistry, errorRefs: ErrorRespons
       503: errorRefs.byStatus['503'],
     },
   });
+
+  registry.registerPath({
+    method: 'head',
+    path: DOCUMENT_PATH,
+    operationId: 'headOpenApiDocument',
+    summary: 'Probe this document without fetching it',
+    description:
+      'Same route as `GET`, answering the same statuses and headers with no body, so a client can ' +
+      'probe whether the document is enabled and reachable before re-fetching it. A 404 here ' +
+      'carries the same `openapi_disabled` type as the GET.',
+    security: SECURITY,
+    request: {},
+    responses: {
+      200: { description: 'The document exists and is readable; no body is returned for HEAD' },
+      400: errorRefs.byStatus['400'],
+      401: errorRefs.byStatus['401'],
+      403: errorRefs.byStatus['403'],
+      404: disabled,
+      500: errorRefs.byStatus['500'],
+      503: errorRefs.byStatus['503'],
+    },
+  });
 }
 
 function registerAiQueryPath(
