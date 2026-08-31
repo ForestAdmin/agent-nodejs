@@ -53,7 +53,12 @@ export const SortClauseSchema = SortClauseInput.openapi('SortClause', {
 export const PageSchema = PageInput.openapi('Page', {
   description:
     'The agent paginates by page number, so `offset` must be a whole multiple of `limit`. ' +
-    'Any other offset is rejected with 400 invalid_request.',
+    'Any other offset is rejected with 400 invalid_request. `limit` and `offset` are both ' +
+    'required once `page` is sent, but the object itself is optional on every list — and ' +
+    'omitting it is not a request for the whole collection. The BFF then forwards no ' +
+    'pagination, so the agent applies its own default: the first page (offset 0), a limit ' +
+    'of 15 records on the Node agent. Anything past that page is silently missing. Send ' +
+    '`page` and walk it to read a collection in full.',
 });
 
 export const TimezoneSchema = TimezoneInput.openapi('Timezone', {
@@ -161,7 +166,12 @@ export const ListResponseSchema = z
   .openapi('ListResponse', {
     description:
       'Records are flat, each carrying a `__forest` envelope. The list never carries a total: ' +
-      'call the count endpoint for that, which is why `countStatus` is always `not_requested`.',
+      'call the count endpoint for that, which is why `countStatus` is always `not_requested`. ' +
+      'It is always one page, not guaranteed to be the whole collection: a request that omitted ' +
+      "`page` still gets a page, the agent's default (up to 15 records from the start on the " +
+      'Node agent), so a response of exactly that default length is probably truncated, and ' +
+      'nothing in the body says so. Send `page` and walk it. Count gives the total unless the ' +
+      'collection disables it.',
   });
 
 export const CountResponseSchema = z

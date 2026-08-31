@@ -528,6 +528,20 @@ describe('the documented search inputs', () => {
   it('should warn that a search query can filter on a collection the BFF does not expose', () => {
     expect(schemas.Search.description).toContain('does not expose');
   });
+
+  it('should publish the default page applied when page is absent', () => {
+    expect(schemas.Page.description).toContain('the object itself is optional');
+    expect(schemas.Page.description).toContain('the first page (offset 0)');
+    expect(schemas.Page.description).toContain('a limit of 15 records on the Node agent');
+    expect(schemas.Page.description).toContain('silently missing');
+    expect(schemas.Page.required).toEqual(['limit', 'offset']);
+  });
+
+  it('should warn on the response that a page-less list is one page, not the collection', () => {
+    expect(schemas.ListResponse.description).toContain('not guaranteed to be the whole collection');
+    expect(schemas.ListResponse.description).toContain('up to 15 records from the start');
+    expect(schemas.ListResponse.description).toContain('probably truncated');
+  });
 });
 
 describe('serializeOpenApi', () => {
