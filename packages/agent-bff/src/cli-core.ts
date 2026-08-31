@@ -351,8 +351,6 @@ function buildAgentMiddlewares(
   const chain: Middleware[] = [
     createAuthModeMiddleware({ authSecret: forestAuthSecret }),
     apiKeyStep,
-    // Behind the auth steps so buckets key on the resolved identity: anonymous requests 401
-    // upstream and never allocate one. Counts every authenticated /agent request.
     createRateLimitMiddleware({
       maxRequests: config.rateLimitMaxRequests,
       windowMs: config.rateLimitWindowMs,

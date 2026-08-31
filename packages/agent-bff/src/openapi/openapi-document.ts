@@ -53,8 +53,6 @@ const MESSAGELESS_ERROR_RESPONSE_REF = '#/components/schemas/MessagelessErrorRes
 
 const UNSUPPORTED_ACTION_RESULT_COMPONENT = 'UnsupportedActionResult';
 
-// The envelope is declared once; only the description differs between the resolver wait (503)
-// and the rate-limit window reset (429).
 const retryAfterHeader = (description: string) => ({
   'Retry-After': {
     description,

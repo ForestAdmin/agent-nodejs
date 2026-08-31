@@ -14,12 +14,6 @@ export const SortClauseInput = z.object({
   direction: z.enum(['asc', 'desc']).optional(),
 });
 
-/**
- * The hard ceiling on `page.limit`: one request may not ask for more rows than this. Above it the
- * body is rejected 400 rather than clamped - a clamped `limit` with an arbitrary `offset` would
- * still express a deep fetch (`page[number]` scales with `offset / limit`), so the caller must ask
- * for pages it can name.
- */
 export const MAX_PAGE_LIMIT = 1000;
 
 export const PageInput = z.object({

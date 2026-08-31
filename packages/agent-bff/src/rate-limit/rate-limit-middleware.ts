@@ -6,13 +6,9 @@ import isAgentPath from './agent-path';
 import { tooManyRequests } from '../http/bff-local-errors';
 
 export interface RateLimitMiddlewareOptions {
-  /** Milliseconds of the fixed window. */
   windowMs: number;
-  /** Requests allowed per identity per window. */
   maxRequests: number;
-  /** Clock, injectable for tests. Defaults to `Date.now`. */
   now?: () => number;
-  /** Maximum number of live identity buckets; a new identity beyond it fails closed. */
   maxEntries?: number;
 }
 
@@ -23,17 +19,11 @@ interface WindowEntry {
 
 const DEFAULT_MAX_ENTRIES = 10_000;
 
-// The real auth contracts rather than local structural copies: if either shape drifts, the
-// compiler moves here instead of letting the bucket keys silently diverge.
 interface AuthEdgeState {
   apiKeyIdentity?: ResolvedApiKeyIdentity;
   principal?: BffAccessTokenPayload;
 }
 
-// One bucket per authenticated identity, mode-prefixed so an API key and an OAuth session can
-// never share a budget even at identical numeric ids. Anonymous requests have no bucket: they
-// already answered 401 upstream of the limiter, and bucketing them would let unauthenticated
-// traffic allocate memory.
 function bucketKeyOf(state: AuthEdgeState): string | undefined {
   const { apiKeyIdentity, principal } = state;
 
@@ -43,16 +33,6 @@ function bucketKeyOf(state: AuthEdgeState): string | undefined {
   return undefined;
 }
 
-/**
- * Fixed-window per-identity rate limiter for the `/agent` edge: `maxRequests` per `windowMs`,
- * counting every authenticated agent request, 429 `too_many_requests` beyond it.
- *
- * The counter increments synchronously before the downstream chain runs, so concurrent bursts
- * cannot all slip past a shared `await`. At the `maxEntries` ceiling a NEW identity fails closed
- * rather than evicting a live window: a limiter must not silently reset someone's quota. This is
- * an in-process guard like the session store: one deployment, one window, no cross-instance
- * coordination; restarts clear the counters.
- */
 export default function createRateLimitMiddleware({
   windowMs,
   maxRequests,
@@ -94,8 +74,6 @@ export default function createRateLimitMiddleware({
       purgeExpired(current);
 
       if (buckets.size >= maxEntries) {
-        // Truthful delay: the table holds only live windows at this point (purge ran), so the
-        // earliest reset among them is when a slot frees for this identity.
         const earliestReset = Math.min(...[...buckets.values()].map(live => live.resetAt));
         const retryAfter = Math.max(1, Math.ceil((earliestReset - current) / 1000));
 

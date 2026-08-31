@@ -37,8 +37,6 @@ function bearerToken(id = 1, renderingId = '1') {
   );
 }
 
-// The limiter sits behind the auth middlewares in production; this chain mirrors that order and
-// answers 200 past them, so a 429 can only come from the limiter itself.
 function buildEdge(
   limiter: ReturnType<typeof createRateLimitMiddleware>,
   authenticate: ApiKeyAuthenticator['authenticate'] = async () => ({
@@ -250,6 +248,25 @@ describe('rate limit middleware', () => {
 
     const first = await request(edge).get('/health').set(BFF_KEY_HEADER, RAW_KEY);
     const second = await request(edge).get('/health').set(BFF_KEY_HEADER, RAW_KEY);
+
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(200);
+  });
+
+  it('passes a request through unbucketed when no authenticated identity is on the context', async () => {
+    const app = new Koa();
+    app.silent = true;
+    app.use(createErrorMiddleware({ logger: () => undefined }));
+    app.use(createRateLimitMiddleware({ now: () => 1_000_000, maxRequests: 1, windowMs: 60_000 }));
+    app.use(async ctx => {
+      ctx.status = 200;
+      ctx.body = { ok: true };
+    });
+
+    const edge = app.callback();
+
+    const first = await request(edge).get('/agent/v1/users/list');
+    const second = await request(edge).get('/agent/v1/users/list');
 
     expect(first.status).toBe(200);
     expect(second.status).toBe(200);
