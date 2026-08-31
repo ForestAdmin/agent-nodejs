@@ -364,7 +364,12 @@ describe('parseConfig', () => {
       },
     );
 
-    it.each(['https://bff.example.com?tenant=1', 'https://bff.example.com/#dashboard'])(
+    it.each([
+      'https://bff.example.com?tenant=1',
+      'https://bff.example.com/#dashboard',
+      'https://bff.example.com?',
+      'https://bff.example.com#',
+    ])(
       'should reject the query or fragment in %j, which the client path concatenation would swallow',
       value => {
         expect(() => parseConfig({ ...VALID_ENV, BFF_PUBLIC_URL: value })).toThrow(

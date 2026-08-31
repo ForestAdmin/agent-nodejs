@@ -81,9 +81,7 @@ export function parsePublicUrl(raw?: string): string | undefined {
     );
   }
 
-  const { search, hash } = new URL(value);
-
-  if (search || hash) {
+  if (value.includes('?') || value.includes('#')) {
     throw new ConfigurationError(
       'Invalid configuration: BFF_PUBLIC_URL must not carry a query string or fragment.',
     );
