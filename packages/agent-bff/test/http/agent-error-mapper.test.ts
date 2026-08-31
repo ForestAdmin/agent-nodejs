@@ -163,7 +163,7 @@ describe('mapAgentError', () => {
     });
     expect(logger).toHaveBeenCalledWith(
       'Warn',
-      expect.any(String),
+      'Agent timeout mapped to agent_timeout',
       expect.objectContaining({ cause: 'Timeout of 1500ms exceeded' }),
     );
   });
