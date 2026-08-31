@@ -142,8 +142,11 @@ normalized away, no trailing slash, no wildcard, no subdomain matching):
   blocks). Applies to `POST /oauth/token` too. Preflight `OPTIONS` from an allow-listed origin gets
   the allowed methods + headers; credentials are never enabled.
 - **Layer 2 (per-key authorization, Mode 2 only)** — when the resolved key has a non-empty
-  `allowedOrigins`, the request `Origin` must also be in that list (a missing `Origin` is rejected),
-  else `403 origin_not_allowed`. An empty per-key list is a no-op.
+  `allowedOrigins`, an `Origin` sent by the client must be in that list, else
+  `403 origin_not_allowed`. A request with no `Origin` at all — a server-side client such as curl,
+  a Node backend or CI, an empty header counting as none — passes: there the API key is the
+  boundary, not the origin. An opaque `Origin: null` (sandboxed iframe, cross-origin redirect) is a
+  present origin and is rejected. An empty per-key list is a no-op.
 
 **Local development:** browsers still enforce CORS against `localhost`, so add your dev origin(s) to
 `BFF_ALLOWED_ORIGINS` (e.g. `BFF_ALLOWED_ORIGINS=http://localhost:4200`) — there is no dev bypass.

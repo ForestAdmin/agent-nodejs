@@ -58,11 +58,31 @@ describe('per-key origin middleware (layer 2)', () => {
     expect(response.status).toBe(200);
   });
 
-  it('returns 403 when the per-key list is non-empty and the request has no Origin', async () => {
+  it('proceeds when the per-key list is non-empty and the request has no Origin', async () => {
     const response = await request(buildApp(['https://a.com']).callback()).get('/agent/x');
 
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ reached: true });
+  });
+
+  it('returns 403 when the per-key list is non-empty and the Origin is the opaque null', async () => {
+    const response = await request(buildApp(['https://a.com']).callback())
+      .get('/agent/x')
+      .set('Origin', 'null');
+
     expect(response.status).toBe(403);
-    expect(response.body.error.type).toBe('origin_not_allowed');
+    expect(response.body).toEqual({
+      error: { type: 'origin_not_allowed', status: 403, message: expect.any(String) },
+    });
+  });
+
+  it('treats an empty Origin header like an absent one and proceeds', async () => {
+    const response = await request(buildApp(['https://a.com']).callback())
+      .get('/agent/x')
+      .set('Origin', '');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ reached: true });
   });
 
   it('does not restrict an oauth request, which carries no per-key identity', async () => {

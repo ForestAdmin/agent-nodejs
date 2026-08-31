@@ -7,8 +7,9 @@ export default function createPerKeyOriginMiddleware(): Middleware {
   return async function perKeyOriginMiddleware(ctx, next) {
     const identity = ctx.state.apiKeyIdentity as { allowedOrigins?: string[] } | undefined;
     const allowedOrigins = identity?.allowedOrigins ?? [];
+    const origin = ctx.get('Origin');
 
-    if (allowedOrigins.length > 0 && !originAllowed(ctx.get('Origin'), allowedOrigins)) {
+    if (allowedOrigins.length > 0 && origin && !originAllowed(origin, allowedOrigins)) {
       throw originNotAllowed();
     }
 
