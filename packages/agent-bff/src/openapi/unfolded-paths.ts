@@ -22,6 +22,8 @@ import {
   OPERATORS,
   PageSchema,
   ParentIdSchema,
+  SearchExtendedSchema,
+  SearchSchema,
   SortClauseSchema,
   TimezoneSchema,
 } from './schemas';
@@ -268,6 +270,8 @@ function registerRequests(deps: Deps, plan: Omit<CollectionPlan, 'requests'>): R
   const { collection, key } = plan;
   const refs = fieldRefs(deps, plan);
   const timezone = pool.reuse('Timezone', TimezoneSchema);
+  const search = pool.reuse('Search', SearchSchema);
+  const searchExtended = pool.reuse('SearchExtended', SearchExtendedSchema);
 
   return {
     list: pool.add(`ListRequest_${key}`, {
@@ -281,6 +285,8 @@ function registerRequests(deps: Deps, plan: Omit<CollectionPlan, 'requests'>): R
         projection: { type: 'array', items: refs.projectable },
         sort: { type: 'array', items: refs.sort },
         page: pool.reuse('Page', PageSchema),
+        search,
+        searchExtended,
         timezone,
       },
     }),
@@ -290,7 +296,7 @@ function registerRequests(deps: Deps, plan: Omit<CollectionPlan, 'requests'>): R
         collection,
         `Count records of ${quoted(collection.name)} matching a filter.`,
       ),
-      properties: { filter: refs.filter, timezone },
+      properties: { filter: refs.filter, search, searchExtended, timezone },
     }),
   };
 }

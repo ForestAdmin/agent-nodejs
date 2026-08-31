@@ -192,6 +192,20 @@ describe('the unfolded document', () => {
     expect(request.properties.sort.items?.$ref).toBe('#/components/schemas/SortClause_My_Coll');
   });
 
+  it('should publish search and searchExtended on list and count, which the runtime accepts', () => {
+    const list = requestSchema('My%20Coll/list') as unknown as {
+      properties: Record<string, { $ref?: string }>;
+    };
+    const count = requestSchema('My%20Coll/count') as unknown as {
+      properties: Record<string, { $ref?: string }>;
+    };
+
+    expect(list.properties.search.$ref).toBe('#/components/schemas/Search');
+    expect(list.properties.searchExtended.$ref).toBe('#/components/schemas/SearchExtended');
+    expect(count.properties.search.$ref).toBe('#/components/schemas/Search');
+    expect(count.properties.searchExtended.$ref).toBe('#/components/schemas/SearchExtended');
+  });
+
   it('should make every leaf and the branch mutually exclusive, which the runtime enforces', () => {
     const branch = branchOf('Filter_My_Coll') as unknown as { not: { required: string[] } };
 
