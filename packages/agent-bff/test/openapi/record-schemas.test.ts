@@ -1,4 +1,31 @@
-import { recordKey } from '../../src/openapi/record-schemas';
+import type { UnfoldedCollection } from '../../src/openapi/unfolding';
+
+import recordSchema, { recordKey } from '../../src/openapi/record-schemas';
+
+const PEOPLE: UnfoldedCollection = {
+  name: 'people',
+  fields: {
+    projectable: [{ name: 'profile_file', type: 'File' }],
+    filterable: [],
+    degraded: null,
+  },
+  primaryKeys: [{ name: 'id', type: 'Number' }],
+  relations: [],
+  actions: [],
+};
+
+describe('recordSchema', () => {
+  it('should keep the File data-URI contract when the wire key differs from the schema name', () => {
+    const schema = recordSchema(PEOPLE, {
+      $ref: '#/components/schemas/ForestRecordMeta',
+    }) as { properties: Record<string, unknown> };
+
+    expect(schema.properties.profileFile).toEqual({
+      type: 'string',
+      description: 'A data URI. The "profile_file" field.',
+    });
+  });
+});
 
 describe('recordKey', () => {
   it('should leave an already-clean name untouched', () => {

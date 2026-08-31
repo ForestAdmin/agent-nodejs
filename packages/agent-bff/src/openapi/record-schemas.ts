@@ -51,7 +51,11 @@ function propertySchema(key: string, fields: ProjectableField[]): SchemaObject {
   const [field] = fields;
   const schema = toFieldSchema(field.type);
 
-  return field.name === key ? schema : { ...schema, description: `The ${names} field.` };
+  if (field.name === key) return schema;
+
+  const description = [schema.description, `The ${names} field.`].filter(Boolean).join(' ');
+
+  return { ...schema, description };
 }
 
 function fieldProperties(projectable: ProjectableField[]): Record<string, SchemaObject> {
