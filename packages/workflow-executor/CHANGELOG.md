@@ -1,3 +1,10 @@
+# @forestadmin/workflow-executor [1.26.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.25.5...@forestadmin/workflow-executor@1.26.0) (2026-09-01)
+
+
+### Features
+
+* **workflow-executor:** carry an error classification on step outcomes ([#1833](https://github.com/ForestAdmin/agent-nodejs/issues/1833)) ([4accf4f](https://github.com/ForestAdmin/agent-nodejs/commit/4accf4f87a758de1fe9e802e980d89be02d83936))
+
 ## @forestadmin/workflow-executor [1.25.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.25.4...@forestadmin/workflow-executor@1.25.5) (2026-09-01)
 
 
