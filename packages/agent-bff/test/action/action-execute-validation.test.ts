@@ -10,6 +10,62 @@ function execApp(client: AgentActionClient, logger?: Logger) {
 }
 
 describe('execute input validation', () => {
+  it('logs the rejected field names, never the submitted values', async () => {
+    const logger = jest.fn();
+    const form = makeAction({
+      fields: [
+        { name: 'reason', type: 'String', value: null, isRequired: true },
+        { name: 'tier', type: 'Enum', value: null, isRequired: false, enumValues: ['gold'] },
+      ],
+      execute: jest.fn(async () => ({ success: 'Done' })),
+    });
+
+    await request(execApp(clientOf(form), logger).callback())
+      .post('/agent/v1/users/actions/approve/execute')
+      .send({ recordIds: ['42'], values: {} });
+
+    expect(logger).toHaveBeenCalledWith(
+      'Warn',
+      'Action execute rejected: required fields left empty',
+      { fields: ['reason'] },
+    );
+  });
+
+  it('logs the invalid field names without the values that failed', async () => {
+    const logger = jest.fn();
+    const form = makeAction({
+      fields: [
+        { name: 'tier', type: 'Enum', value: null, isRequired: false, enumValues: ['gold'] },
+      ],
+      execute: jest.fn(async () => ({ success: 'Done' })),
+    });
+
+    await request(execApp(clientOf(form), logger).callback())
+      .post('/agent/v1/users/actions/approve/execute')
+      .send({ recordIds: ['42'], values: { tier: 'secret-value' } });
+
+    expect(logger).toHaveBeenCalledWith('Warn', 'Action execute rejected: invalid values', {
+      fields: ['tier'],
+    });
+    expect(JSON.stringify(logger.mock.calls)).not.toContain('secret-value');
+  });
+
+  it('logs an enum field it had to accept without options', async () => {
+    const logger = jest.fn();
+    const form = makeAction({
+      fields: [{ name: 'tier', type: 'Enum', value: null, isRequired: false, enumValues: [] }],
+      execute: jest.fn(async () => ({ success: 'Done' })),
+    });
+
+    await request(execApp(clientOf(form), logger).callback())
+      .post('/agent/v1/users/actions/approve/execute')
+      .send({ recordIds: ['42'], values: { tier: 'anything' } });
+
+    expect(logger).toHaveBeenCalledWith('Warn', 'Action enum field accepted without its options', {
+      field: 'tier',
+    });
+  });
+
   it('rejects a missing required field with 400 missing_required_fields before executing', async () => {
     const execute = jest.fn(async () => ({ success: 'Done' }));
     const form = makeAction({
@@ -190,7 +246,7 @@ describe('execute input validation', () => {
     expect(enumResult.status).toBe(422);
     expect(enumResult.body.error).toMatchObject({
       type: 'invalid_action_value',
-      details: { fields: [{ field: 'tags', expected: 'one of: a' }] },
+      details: { fields: [{ field: 'tags', expected: 'index 1 to be one of: a' }] },
     });
     expect(enumCase.execute).not.toHaveBeenCalled();
 
@@ -199,7 +255,7 @@ describe('execute input validation', () => {
     expect(numberResult.status).toBe(422);
     expect(numberResult.body.error).toMatchObject({
       type: 'invalid_action_value',
-      details: { fields: [{ field: 'ids', expected: 'a number' }] },
+      details: { fields: [{ field: 'ids', expected: 'index 1 to be a number' }] },
     });
     expect(numberCase.execute).not.toHaveBeenCalled();
   });
@@ -287,7 +343,7 @@ describe('execute input validation', () => {
     expect(second.status).toBe(422);
     expect(second.body.error).toMatchObject({
       type: 'invalid_action_value',
-      details: { fields: [{ field: 'tags', expected: 'one of: a, b' }] },
+      details: { fields: [{ field: 'tags', expected: 'index 1 to be one of: a, b' }] },
     });
     expect(firstCase.execute).not.toHaveBeenCalled();
     expect(secondCase.execute).not.toHaveBeenCalled();
@@ -331,7 +387,7 @@ describe('execute input validation', () => {
     expect(response.status).toBe(422);
     expect(response.body.error).toMatchObject({
       type: 'invalid_action_value',
-      details: { fields: [{ field: 'ids', expected: 'a number' }] },
+      details: { fields: [{ field: 'ids', expected: 'index 1 to be a number' }] },
     });
     expect(execute).not.toHaveBeenCalled();
   });
@@ -365,7 +421,7 @@ describe('execute input validation', () => {
     expect(rejected.status).toBe(422);
     expect(rejected.body.error).toMatchObject({
       type: 'invalid_action_value',
-      details: { fields: [{ field: 'tags', expected: 'one of: a, b' }] },
+      details: { fields: [{ field: 'tags', expected: 'index 1 to be one of: a, b' }] },
     });
     expect(bad.execute).not.toHaveBeenCalled();
 

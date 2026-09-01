@@ -144,7 +144,9 @@ export const ActionRequestSchema = z
       '`recordIds` is required, even on a global action: send an empty array when the action ' +
       'targets no record. Every id is coerced to a string before reaching the agent. On execute ' +
       'the submitted values are validated against the live form: a required field left empty ' +
-      'answers 400, an out-of-enum or wrongly typed value 422.',
+      'answers 400, an out-of-enum or wrongly typed value 422. Only the JSON type and an Enum ' +
+      "field's options are checked there: a declared string format (date-time, uuid) and a " +
+      "widget's own option list are not.",
   });
 
 const ForestRecordMetaSchema = z

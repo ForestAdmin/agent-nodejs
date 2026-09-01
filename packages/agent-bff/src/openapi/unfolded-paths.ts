@@ -401,7 +401,8 @@ function actionValuesSchema(action: UnfoldedAction): SchemaObject {
       'The submitted action fields. These are the fields the schema declares statically; a load ' +
       'or change hook can add, drop or require others at call time. On execute the values are ' +
       'validated against that live form: a required field left empty answers 400, an out-of-enum ' +
-      'or wrongly typed value 422.',
+      "or wrongly typed value 422. Only the JSON type and an Enum field's options are checked " +
+      "there: a declared string format (date-time, uuid) and a widget's own option list are not.",
     properties: Object.fromEntries(
       action.fields.map(field => [field.name, actionFieldSchema(field)]),
     ),

@@ -1,8 +1,14 @@
 import type { ActionForm } from './agent-action-client';
+import type { Logger } from '../ports/logger-port';
 import type { FieldType, PrimitiveShape } from '../read-model/field-type';
 
 import { missingRequiredFieldNames } from './action-form-mapper';
-import { enumOptionsOf, normalizeFieldType, primitiveShapeOf } from '../read-model/field-type';
+import {
+  enumOptionsOf,
+  isEnumFieldType,
+  normalizeFieldType,
+  primitiveShapeOf,
+} from '../read-model/field-type';
 import { invalidActionValue, missingRequiredActionFields } from '../validation/validation-errors';
 
 const PACKED_ID_EXPECTATION = 'a string holding a packed record id';
@@ -45,13 +51,15 @@ function expectedWhenViolated(
 
     if (!Array.isArray(value)) return `an array of ${checkFor(itemType, options).expected}`;
 
-    for (const item of value) {
-      const expected = expectedWhenViolated(itemType, item, options);
+    const bad = value
+      .map((item, index) => ({ index, expected: expectedWhenViolated(itemType, item, options) }))
+      .filter((item): item is { index: number; expected: string } => item.expected !== undefined);
 
-      if (expected) return expected;
-    }
+    if (bad.length === 0) return undefined;
 
-    return undefined;
+    const label = bad.length === 1 ? 'index' : 'indexes';
+
+    return `${label} ${bad.map(item => item.index).join(', ')} to be ${bad[0].expected}`;
   }
 
   const check = checkFor(type, options);
@@ -59,11 +67,15 @@ function expectedWhenViolated(
   return check.matches(value) ? undefined : check.expected;
 }
 
-export default function assertActionValuesExecutable(action: ActionForm): void {
+export default function assertActionValuesExecutable(action: ActionForm, logger: Logger): void {
   const fields = action.getFields();
   const missing = missingRequiredFieldNames(fields);
 
-  if (missing.length > 0) throw missingRequiredActionFields(missing);
+  if (missing.length > 0) {
+    logger('Warn', 'Action execute rejected: required fields left empty', { fields: missing });
+
+    throw missingRequiredActionFields(missing);
+  }
 
   const violations: { field: string; expected: string }[] = [];
 
@@ -82,11 +94,22 @@ export default function assertActionValuesExecutable(action: ActionForm): void {
     } else {
       const type = normalizeFieldType(field.getType());
       const options = enumOptionsOf(type, action.getEnumField(name).getOptions());
+
+      if (options === undefined && isEnumFieldType(type)) {
+        logger('Warn', 'Action enum field accepted without its options', { field: name });
+      }
+
       const expected = expectedWhenViolated(type, value, options);
 
       if (expected) violations.push({ field: name, expected });
     }
   }
 
-  if (violations.length > 0) throw invalidActionValue(violations);
+  if (violations.length > 0) {
+    logger('Warn', 'Action execute rejected: invalid values', {
+      fields: violations.map(violation => violation.field),
+    });
+
+    throw invalidActionValue(violations);
+  }
 }

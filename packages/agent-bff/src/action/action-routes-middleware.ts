@@ -123,7 +123,7 @@ async function handleExecute({
     throw mapAgentError(error, { logger });
   }
 
-  assertActionValuesExecutable(action);
+  assertActionValuesExecutable(action, logger);
 
   // execute() cannot go through the generic callAgent: agent-client turns the native action Error
   // (HTTP 400) into ActionFormValidationError, a non-AgentHttpError the mapper would mislabel as a
