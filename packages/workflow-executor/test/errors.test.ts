@@ -238,11 +238,8 @@ describe('errorKind classification', () => {
   // The step cannot succeed as configured, whatever the run does. Every member's own userMessage
   // already says so; the kind only makes it machine-readable.
   it.each<[string, WorkflowExecutorError]>([
-    ['FieldNotFoundError', new FieldNotFoundError('emailz', 'customers')],
     ['PinnedArgNotFoundError (field)', new PinnedArgNotFoundError('field', 'total', 'orders')],
     ['PinnedArgNotFoundError (action)', new PinnedArgNotFoundError('action', 'refund', 'orders')],
-    ['ActionNotFoundError', new ActionNotFoundError('sned-email', 'customers')],
-    ['RelationNotFoundError', new RelationNotFoundError('orderz', 'customers')],
     ['NoActionsError', new NoActionsError('customers')],
     ['NoWritableFieldsError', new NoWritableFieldsError('customers')],
     ['NoReadableFieldsError', new NoReadableFieldsError('customers')],
@@ -254,8 +251,14 @@ describe('errorKind classification', () => {
     expect(error.errorKind).toBe('configuration');
   });
 
-  // Unclassified is the starting default: an error nobody has triaged keeps today's framing.
+  // Unclassified is the starting default: an error nobody has triaged keeps today's framing. The
+  // three not-found errors are here by decision, not omission -- a name the AI chose may resolve on
+  // a re-run, so calling them configuration would assert a permanence they don't have. Their pinned
+  // counterpart is classified, because there the name cannot change without editing the step.
   it.each<[string, WorkflowExecutorError]>([
+    ['FieldNotFoundError', new FieldNotFoundError('emailz', 'customers')],
+    ['ActionNotFoundError', new ActionNotFoundError('sned-email', 'customers')],
+    ['RelationNotFoundError', new RelationNotFoundError('orderz', 'customers')],
     ['StepTimeoutError', new StepTimeoutError(30)],
     ['AgentPortError', new AgentPortError('getRecord', new Error('ECONNREFUSED'))],
     ['AiModelPortError', new AiModelPortError('invoke', new Error('timeout'))],

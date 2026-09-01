@@ -226,7 +226,12 @@ export class InvalidAiRequestError extends WorkflowConfigurationError {
   }
 }
 
-export class RelationNotFoundError extends WorkflowConfigurationError {
+// The three errors below stay unclassified on purpose. A name that doesn't resolve has two possible
+// causes with opposite remedies -- a vague prompt (configuration) or the AI simply missing on a
+// retryable call -- and the throw site cannot tell them apart. 'configuration' would assert the step
+// can never succeed as configured, which a re-run may disprove. Their pinned counterpart is
+// PinnedArgNotFoundError, where the name was fixed by the workflow and the kind is knowable.
+export class RelationNotFoundError extends WorkflowExecutorError {
   constructor(name: string, collectionName: string) {
     super(
       `Relation "${name}" not found in collection "${collectionName}"`,
@@ -235,7 +240,7 @@ export class RelationNotFoundError extends WorkflowConfigurationError {
   }
 }
 
-export class FieldNotFoundError extends WorkflowConfigurationError {
+export class FieldNotFoundError extends WorkflowExecutorError {
   constructor(name: string, collectionName: string) {
     super(
       `Field "${name}" not found in collection "${collectionName}"`,
@@ -268,7 +273,7 @@ export class FieldTypeMissingError extends WorkflowConfigurationError {
   }
 }
 
-export class ActionNotFoundError extends WorkflowConfigurationError {
+export class ActionNotFoundError extends WorkflowExecutorError {
   constructor(name: string, collectionName: string) {
     super(
       `Action "${name}" not found in collection "${collectionName}"`,
