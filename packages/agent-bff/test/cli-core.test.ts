@@ -113,7 +113,6 @@ describe('runCli', () => {
     } satisfies NodeJS.ProcessEnv;
 
     it('should wire OAuth routes (no disabled warning) and boot', async () => {
-      const fetchEnvironmentId = stubEnvironmentIdFetch();
       const logs: string[] = [];
 
       const logger: Logger = (_level, message) => {
@@ -125,20 +124,35 @@ describe('runCli', () => {
       try {
         expect(server).toBeDefined();
         expect(logs).not.toContain('OAuth routes disabled: required configuration is missing');
-        expect(fetchEnvironmentId).toHaveBeenCalledTimes(1);
       } finally {
         await server.stop();
       }
     });
 
-    it('should propagate a fetchEnvironmentId failure out of runCli', async () => {
+    it('should not reach the Forest server while booting', async () => {
+      const fetchEnvironmentId = stubEnvironmentIdFetch();
+
+      const server = await runCli({ ...FULL_ENV }, noopLogger);
+
+      try {
+        expect(fetchEnvironmentId).not.toHaveBeenCalled();
+      } finally {
+        await server.stop();
+      }
+    });
+
+    it('should still boot when the Forest server is unreachable', async () => {
       global.fetch = jest
         .fn()
         .mockRejectedValue(new Error('forest server unreachable')) as unknown as typeof fetch;
 
-      await expect(runCli({ ...FULL_ENV }, noopLogger)).rejects.toThrow(
-        'forest server unreachable',
-      );
+      const server = await runCli({ ...FULL_ENV }, noopLogger);
+
+      try {
+        expect(server).toBeDefined();
+      } finally {
+        await server.stop();
+      }
     });
   });
 
