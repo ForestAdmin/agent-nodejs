@@ -6,6 +6,16 @@ import SchemaUnavailableError from './errors';
 
 export const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
+/**
+ * How long after a `clear()` the cache keeps re-reading the schema, and how often. An invalidation
+ * says "the agent just changed its schema", but the SaaS the BFF reads from may not have finished
+ * recording it: caching whatever comes back on the very next read would pin the old schema for a
+ * full day. Within this window a read costs one request every few seconds, which is nothing next to
+ * serving a collection the agent exposes and the BFF 404s.
+ */
+export const REVALIDATION_WINDOW_MS = 60 * 1000;
+export const REVALIDATION_TTL_MS = 5 * 1000;
+
 export const SCHEMA_CACHE_REFRESH_ERROR = 'schema_cache_refresh_error';
 export const SCHEMA_CACHE_AGE_SECONDS = 'schema_cache_age_seconds';
 
@@ -36,6 +46,8 @@ export default class SchemaCache {
   private entry: CacheEntry | null = null;
   private inFlight: Promise<ForestSchemaCollection[]> | null = null;
   private revisionValue = 0;
+  private generation = 0;
+  private revalidatingUntil = 0;
 
   constructor({ fetcher, metrics, now = Date.now, ttlMs = ONE_DAY_MS }: SchemaCacheOptions) {
     this.fetcher = fetcher;
@@ -45,13 +57,27 @@ export default class SchemaCache {
   }
 
   async get(): Promise<ForestSchemaCollection[]> {
-    if (this.entry && this.now() - this.entry.fetchedAt < this.ttlMs) {
+    if (this.entry && this.now() - this.entry.fetchedAt < this.currentTtlMs()) {
       this.emitAge();
 
       return this.entry.collections;
     }
 
     return this.refresh();
+  }
+
+  /**
+   * Drop what is cached and re-read it eagerly for a while. Called when something outside knows the
+   * schema moved — an agent restarting on a customization refresh, say.
+   */
+  clear(): void {
+    this.entry = null;
+    this.generation += 1;
+    this.revalidatingUntil = this.now() + REVALIDATION_WINDOW_MS;
+  }
+
+  private currentTtlMs(): number {
+    return this.now() < this.revalidatingUntil ? REVALIDATION_TTL_MS : this.ttlMs;
   }
 
   ageSeconds(): number | undefined {
@@ -75,6 +101,8 @@ export default class SchemaCache {
   }
 
   private async doRefresh(): Promise<ForestSchemaCollection[]> {
+    const { generation } = this;
+
     try {
       const collections = await this.fetcher.fetchSchema();
 
@@ -83,9 +111,13 @@ export default class SchemaCache {
       // failed fetch and fall through to the failure path below.
       if (collections.length === 0) throw new Error('Forest returned an empty schema');
 
-      this.entry = { collections, fetchedAt: this.now() };
-      this.revisionValue += 1;
-      this.emitAge();
+      // Skip the write if a clear() happened while this fetch was in flight: it read the schema the
+      // invalidation declared stale, and caching it now would undo the invalidation.
+      if (this.generation === generation) {
+        this.entry = { collections, fetchedAt: this.now() };
+        this.revisionValue += 1;
+        this.emitAge();
+      }
 
       return collections;
     } catch (error) {

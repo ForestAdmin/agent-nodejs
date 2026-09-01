@@ -274,4 +274,29 @@ describe('ReadModelStore', () => {
       expect(store.ageSeconds()).toBe(7);
     });
   });
+
+  describe('invalidate', () => {
+    it('should re-read the schema on the next snapshot', async () => {
+      const fetchSchema = jest.fn().mockResolvedValue(makeSchema('users'));
+      const store = build(fetchSchema);
+      await store.getSchemaSnapshot();
+
+      store.invalidate();
+      await store.getSchemaSnapshot();
+
+      expect(fetchSchema).toHaveBeenCalledTimes(2);
+    });
+
+    it('should drop the capabilities with it, since they belong to the schema generation', async () => {
+      const fetchSchema = jest.fn().mockResolvedValue(makeSchema('users'));
+      const store = build(fetchSchema);
+      const capabilities = jest.fn().mockResolvedValue({ fields: [] });
+      await store.getCapabilities('users', capabilities);
+
+      store.invalidate();
+      await store.getCapabilities('users', capabilities);
+
+      expect(capabilities).toHaveBeenCalledTimes(2);
+    });
+  });
 });

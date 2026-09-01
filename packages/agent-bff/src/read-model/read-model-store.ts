@@ -34,6 +34,15 @@ export default class ReadModelStore {
     return (await this.getSchemaSnapshot()).readModel;
   }
 
+  /**
+   * Forget the cached schema. The capabilities follow on their own: the next snapshot sees a new
+   * revision and clears them, which is also what keeps the allow-list and the capabilities from
+   * splitting across generations.
+   */
+  invalidate(): void {
+    this.schemaCache.clear();
+  }
+
   async getSchemaSnapshot(): Promise<SchemaSnapshot> {
     const collections = await this.schemaCache.get();
     const { revision } = this.schemaCache;

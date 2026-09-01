@@ -68,6 +68,11 @@ export interface BuildBffOptions {
 
 export interface Bff {
   callback: BffCallback;
+  /**
+   * Forget what was read from the SaaS. A host that knows the schema just moved — an agent
+   * restarting on a customization refresh — calls this instead of waiting out the 24h TTL.
+   */
+  invalidate(): void;
 }
 
 function isAgentPath(path: string): boolean {
@@ -297,6 +302,7 @@ function buildAgentRouteMiddlewares(
   bundle: ReadModelBundle | undefined,
   config: BFFConfig,
   logger: Logger,
+  permissionsCache: PermissionsCache,
 ): Middleware[] {
   if (!bundle) {
     logger(
@@ -316,7 +322,7 @@ function buildAgentRouteMiddlewares(
       forestServerUrl: apiKeyConfig.forestServerUrl,
       envSecret: apiKeyConfig.forestEnvSecret,
     }),
-    cache: new PermissionsCache(),
+    cache: permissionsCache,
     logger,
   });
 
@@ -360,19 +366,24 @@ function buildAiMiddlewares(config: BFFConfig, oauth: OAuthEdge, logger: Logger)
   ];
 }
 
+interface AgentEdge {
+  middlewares: Middleware[];
+  invalidate(): void;
+}
+
 function buildAgentMiddlewares(
   config: BFFConfig,
   logger: Logger,
   oauth: OAuthEdge,
   aiMiddlewares: Middleware[],
   basePath: string,
-): Middleware[] {
+): AgentEdge {
   const { forestAuthSecret, defaultTimezone } = config;
 
   if (!forestAuthSecret) {
     logger('Warn', 'Agent edge disabled: FOREST_AUTH_SECRET is missing');
 
-    return [];
+    return { middlewares: [], invalidate: () => undefined };
   }
 
   const apiKeyStep = buildApiKeyMiddleware(config, logger) ?? createApiKeyUnavailableGuard(logger);
@@ -380,6 +391,7 @@ function buildAgentMiddlewares(
   // AGENT_URL every data path answers 501, so concrete paths would advertise a dead surface.
   const bundle = resolveReadModelBundle(config, logger);
   const source = toUnfoldSource(bundle, config, logger);
+  const permissionsCache = new PermissionsCache();
 
   const chain: Middleware[] = [
     createAuthModeMiddleware({ authSecret: forestAuthSecret }),
@@ -404,10 +416,16 @@ function buildAgentMiddlewares(
       : []),
     ...aiMiddlewares,
     createTimezoneMiddleware({ defaultTimezone }),
-    ...buildAgentRouteMiddlewares(bundle, config, logger),
+    ...buildAgentRouteMiddlewares(bundle, config, logger, permissionsCache),
   ];
 
-  return chain.map(agentScoped);
+  return {
+    middlewares: chain.map(agentScoped),
+    invalidate: () => {
+      bundle?.store.invalidate();
+      permissionsCache.clear();
+    },
+  };
 }
 
 /**
@@ -436,7 +454,8 @@ export default async function buildBff({
 
   const oauth = buildOAuthMiddlewares(config, logger);
   const aiMiddlewares = buildAiMiddlewares(config, oauth, logger);
-  const agentMiddlewares = buildAgentMiddlewares(config, logger, oauth, aiMiddlewares, mountPath);
+  const agentEdge = buildAgentMiddlewares(config, logger, oauth, aiMiddlewares, mountPath);
+  const agentMiddlewares = agentEdge.middlewares;
   const agentErrorMiddleware =
     agentMiddlewares.length > 0 ? [agentScoped(createErrorMiddleware({ logger }))] : [];
 
@@ -462,5 +481,5 @@ export default async function buildBff({
   const app = new Koa();
   for (const middleware of middlewares) app.use(middleware);
 
-  return { callback: app.callback() };
+  return { callback: app.callback(), invalidate: agentEdge.invalidate };
 }

@@ -175,6 +175,17 @@ describe('buildBff', () => {
     });
   });
 
+  describe('invalidate', () => {
+    it('should be safe on a deployment whose agent edge is not mounted', async () => {
+      const bff = await buildBff({
+        config: parseConfig({ ...VALID_ENV, FOREST_AUTH_SECRET: undefined }),
+        logger: noopLogger,
+      });
+
+      expect(() => bff.invalidate()).not.toThrow();
+    });
+  });
+
   describe('when BFF_ALLOWED_ORIGINS carries a malformed entry', () => {
     it('should warn once with the rejected entries', async () => {
       const logger = jest.fn();

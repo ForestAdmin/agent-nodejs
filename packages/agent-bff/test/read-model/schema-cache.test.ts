@@ -6,6 +6,8 @@ import { makeMetrics, makeSchema } from './fixtures';
 import SchemaUnavailableError from '../../src/read-model/errors';
 import SchemaCache, {
   ONE_DAY_MS,
+  REVALIDATION_TTL_MS,
+  REVALIDATION_WINDOW_MS,
   SCHEMA_CACHE_AGE_SECONDS,
   SCHEMA_CACHE_REFRESH_ERROR,
 } from '../../src/read-model/schema-cache';
@@ -240,6 +242,87 @@ describe('SchemaCache', () => {
       await cache.get();
 
       expect(cache.revision).toBe(1);
+    });
+  });
+
+  describe('clear', () => {
+    it('should re-read the schema on the next get', async () => {
+      const cache = build();
+      fetcher.fetchSchema.mockResolvedValue(makeSchema('users'));
+      await cache.get();
+
+      cache.clear();
+      await cache.get();
+
+      expect(fetcher.fetchSchema).toHaveBeenCalledTimes(2);
+    });
+
+    it('should keep re-reading during the revalidation window, since the SaaS may still be catching up', async () => {
+      const cache = build();
+      fetcher.fetchSchema.mockResolvedValue(makeSchema('users'));
+      await cache.get();
+      cache.clear();
+      await cache.get();
+
+      clock += REVALIDATION_TTL_MS;
+      await cache.get();
+
+      expect(fetcher.fetchSchema).toHaveBeenCalledTimes(3);
+    });
+
+    it('should go back to the long TTL once the window is over', async () => {
+      const cache = build();
+      fetcher.fetchSchema.mockResolvedValue(makeSchema('users'));
+      await cache.get();
+      cache.clear();
+      await cache.get();
+
+      clock += REVALIDATION_WINDOW_MS;
+      await cache.get();
+      const afterWindow = fetcher.fetchSchema.mock.calls.length;
+      clock += REVALIDATION_TTL_MS;
+      await cache.get();
+
+      expect(fetcher.fetchSchema).toHaveBeenCalledTimes(afterWindow);
+    });
+
+    it('should not let a fetch started before the clear repopulate the cache', async () => {
+      const cache = build();
+      const stale = makeSchema('stale');
+      let releaseStale: (collections: ForestSchemaCollection[]) => void = () => undefined;
+      fetcher.fetchSchema.mockReturnValueOnce(
+        new Promise(resolve => {
+          releaseStale = resolve;
+        }),
+      );
+
+      const pending = cache.get();
+      cache.clear();
+      releaseStale(stale);
+      await pending;
+
+      fetcher.fetchSchema.mockResolvedValue(makeSchema('fresh'));
+      const result = await cache.get();
+
+      expect(result).toEqual(makeSchema('fresh'));
+      expect(fetcher.fetchSchema).toHaveBeenCalledTimes(2);
+    });
+
+    it('should not bump the revision for a fetch the clear invalidated', async () => {
+      const cache = build();
+      let releaseStale: (collections: ForestSchemaCollection[]) => void = () => undefined;
+      fetcher.fetchSchema.mockReturnValueOnce(
+        new Promise(resolve => {
+          releaseStale = resolve;
+        }),
+      );
+
+      const pending = cache.get();
+      cache.clear();
+      releaseStale(makeSchema('stale'));
+      await pending;
+
+      expect(cache.revision).toBe(0);
     });
   });
 });
