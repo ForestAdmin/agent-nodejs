@@ -202,9 +202,13 @@ describe('renderOpenApi', () => {
     );
   });
 
-  // The export is the case BFF_PUBLIC_URL exists for: an offline document has no retrieval URL to
-  // resolve `/` against, so a client generated from it would have no base URL at all.
-  it('should publish BFF_PUBLIC_URL in the generic export', async () => {
+  it('should fail on a bad BFF_PUBLIC_URL before warning about an unrelated omitted route', async () => {
+    await expect(
+      renderOpenApi({ BFF_PUBLIC_URL: 'https://bff.example.com?tenant=1' }, noopLogger),
+    ).rejects.toThrow(/BFF_PUBLIC_URL/);
+  });
+
+  it('should publish BFF_PUBLIC_URL in the generic export, which has no retrieval url to resolve against', async () => {
     const document = JSON.parse(
       await renderOpenApi({ BFF_PUBLIC_URL: 'https://bff.example.com/' }, noopLogger),
     );

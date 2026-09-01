@@ -90,8 +90,8 @@ export async function renderOpenApi(env: NodeJS.ProcessEnv, logger: Logger): Pro
       ? { source: resolveUnfoldSource(parseConfig(env), logger), authSecret }
       : undefined;
 
-  const hasAiQueryRoute = publishesAiQuery(env, logger);
   const publicUrl = parsePublicUrl(env.BFF_PUBLIC_URL);
+  const hasAiQueryRoute = publishesAiQuery(env, logger);
 
   if (!unfoldable?.source) {
     logger('Warn', `Emitting the generic OpenAPI document: ${NOTHING_TO_UNFOLD}`);

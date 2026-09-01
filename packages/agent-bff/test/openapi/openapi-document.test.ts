@@ -74,9 +74,7 @@ describe('generateOpenApiDocument', () => {
       ]);
     });
 
-    // A generated client concatenates `servers[0].url` with the operation path, so anything holding
-    // a template placeholder leaves it with no base URL at all — worse than the relative fallback.
-    it('should fall back to the root-relative URL when no public URL is configured', () => {
+    it('should fall back to a root-relative url with no template variable, which a generator cannot resolve', () => {
       const [server] = generateOpenApiDocument('9.9.9').servers ?? [];
 
       expect(server.url).toBe('/');
