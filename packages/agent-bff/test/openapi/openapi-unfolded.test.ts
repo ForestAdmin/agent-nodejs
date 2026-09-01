@@ -267,6 +267,12 @@ describe('the unfolded document', () => {
     path => expectSearchInputsOn(path),
   );
 
+  it('should tell a count caller its search inputs match list, not that a search is required', () => {
+    const { description } = requestSchema('My%20Coll/count') as unknown as { description: string };
+
+    expect(description).toContain('Accepts the same search inputs as list');
+    expect(description).not.toContain('matching a filter and a search');
+  });
 
   it('should mirror the generic list and count inputs, so an input never lands on one document only', () => {
     const generic = generateOpenApiDocument('9.9.9').components?.schemas as Record<

@@ -291,7 +291,8 @@ function registerRequests(deps: Deps, plan: Omit<CollectionPlan, 'requests'>): R
       type: 'object',
       description: requestDescription(
         collection,
-        `Count records of ${quoted(collection.name)} matching a filter and a search.`,
+        `Count records of ${quoted(collection.name)}. Accepts the same search inputs as list, so ` +
+          'a client can count exactly the rows its search returns.',
       ),
       properties: { filter: refs.filter, search, searchExtended, timezone },
     }),
