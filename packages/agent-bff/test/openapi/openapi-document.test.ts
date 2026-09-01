@@ -542,6 +542,26 @@ describe('the documented action responses', () => {
     ]);
   });
 
+  it('should say invalidated names relations, not collections', () => {
+    const success = schemas.ActionResultSuccess as { description: string };
+
+    expect(success.description).toContain('names the relations of the acted-on collection');
+    expect(success.description).not.toContain('lists the collections');
+  });
+
+  it('should say a null value counts as missing for canExecute, like an absent one', () => {
+    const form = schemas.ActionFormResponse as { description: string };
+
+    expect(form.description).toContain('a null or absent value counts as missing');
+  });
+
+  it('should warn that the action_error details html is untrusted, like the success html', () => {
+    const error = schemas.ErrorResponse as { description: string };
+
+    expect(error.description).toContain('`{ html }` on action_error');
+    expect(error.description).toContain('sanitize it before rendering');
+  });
+
   it('should discriminate the result union on type with exactly the three 200 branches', () => {
     const result = schemas.ActionResult as unknown as {
       oneOf: { $ref: string }[];

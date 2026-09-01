@@ -172,7 +172,8 @@ export const ActionFormResponseSchema = z
   .openapi('ActionFormResponse', {
     description:
       'The loaded form. `canExecute` is true only when every required field already carries a ' +
-      'value: an explicit empty string or 0 counts as present, only a missing one does not. ' +
+      'value: a null or absent value counts as missing, an explicit empty string or 0 as ' +
+      'present. ' +
       '`requiredFields` names the required fields still missing a value. `skippedFields` names ' +
       'the submitted fields the static form does not carry; the same names are rejected with 400 ' +
       'on execute. `layout` is the agent layout tree relayed verbatim (pages, rows, separators, ' +
@@ -194,8 +195,10 @@ const ActionResultSuccessSchema = z
   })
   .openapi('ActionResultSuccess', {
     description:
-      'The action ran. `invalidated` lists the collections whose records changed and should be ' +
-      're-fetched; `message` is the agent wording, null when the result carries none.',
+      'The action ran. `invalidated` names the relations of the acted-on collection whose ' +
+      'Related Data should be re-fetched — the agent fills it from ' +
+      '`resultBuilder.success(message, { invalidated })` and the BFF relays it from the agent ' +
+      '`refresh.relationships`. `message` is the agent wording, null when the result carries none.',
   });
 
 const ActionResultWebhookSchema = z
@@ -398,7 +401,17 @@ export const ErrorResponseSchema = z
       details: z.unknown().optional(),
     }),
   })
-  .openapi('ErrorResponse');
+  .openapi('ErrorResponse', {
+    description:
+      'The error envelope. `details` is left untyped because its shape depends on `type`: ' +
+      '`{ field }` on unknown_field and field_not_filterable, `{ field, validOperators }` on ' +
+      'invalid_filter_operator, `{ maxDepth }` on filter_too_deep, `{ fields }` on ' +
+      'relation_field_not_supported, `{ roleIdsAllowedToApprove }` on ' +
+      'action_requires_approval, and `{ html }` on action_error. That html is untrusted agent ' +
+      'output relayed verbatim — sanitize it before rendering (stored/reflected XSS risk), ' +
+      'exactly like the execute success html. Errors forwarded from the agent carry the agent ' +
+      'own payload instead.',
+  });
 
 export const MessagelessErrorResponseSchema = z
   .object({
