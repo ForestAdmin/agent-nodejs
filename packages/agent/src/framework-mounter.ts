@@ -8,6 +8,7 @@ import { createServer } from 'http';
 import Koa from 'koa';
 import path from 'path';
 
+import { isBffRoute } from './bff-routes';
 import FastifyAdapter from './fastify-adapter';
 import InProcessDispatcher from './mcp-in-process-dispatcher';
 import RootMiddleware from './root-middleware';
@@ -48,6 +49,11 @@ export default class FrameworkMounter {
    */
   protected setMcpCallback(handler: RootHandler | null): void {
     this.rootMiddleware.set('mcp', handler);
+  }
+
+  /** Serve an embedded BFF at `/bff`. Pass null to stop answering there. */
+  protected setBffCallback(callback: HttpCallback | null): void {
+    this.rootMiddleware.set('bff', callback, isBffRoute);
   }
 
   /**

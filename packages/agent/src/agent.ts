@@ -3,6 +3,7 @@ import type { ForestAdminHttpDriverServices } from './services';
 import type {
   AgentOptions,
   AgentOptionsWithDefaults,
+  BffEmbedOptions,
   RootHandler,
   WorkflowExecutorEmbedOptions,
 } from './types';
@@ -26,6 +27,8 @@ import { readFile, writeFile } from 'fs/promises';
 import stringify from 'json-stringify-pretty-compact';
 
 import { installAuditTrailHooks } from './audit-trail';
+import { BFF_PREFIX } from './bff-routes';
+import EmbeddedBff from './embedded-bff';
 import EmbeddedWorkflowExecutor from './embedded-workflow-executor';
 import FrameworkMounter from './framework-mounter';
 import makeRoutes from './routes';
@@ -34,6 +37,12 @@ import CustomizationService from './services/model-customizations/customization'
 import { CORRELATION_ID_HEADER, correlationIdMiddleware } from './utils/correlation-id';
 import SchemaGenerator from './utils/forest-schema/generator';
 import OptionsValidator from './utils/options-validator';
+
+// Whichever is registered second raises it: the MCP server claims `<basePath>/oauth` and
+// `<basePath>/mcp`, and it is consulted first, so it would shadow two of the BFF's own routes.
+const BFF_MCP_COLLISION =
+  `Cannot use addBff together with mountAiMcpServer({ basePath: '${BFF_PREFIX}' }): the MCP ` +
+  `server would claim ${BFF_PREFIX}/oauth and ${BFF_PREFIX}/mcp. Mount the MCP server elsewhere.`;
 
 /**
  * Allow to create a new Forest Admin agent from scratch.
@@ -62,6 +71,9 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
 
   /** In-process workflow executor, created only when addWorkflowExecutor() is called. */
   private embeddedExecutor: EmbeddedWorkflowExecutor | null = null;
+
+  /** In-process BFF, created only when addBff() is called. */
+  private embeddedBff: EmbeddedBff | null = null;
 
   private isRestarting = false;
 
@@ -112,6 +124,8 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
       // Boot after mount(): the embedded executor reaches the agent over HTTP, and the
       // standalone server's host/port (used to derive that URL) are only known once mounted.
       await this.embeddedExecutor?.start(this.standaloneServerHost, this.standaloneServerPort);
+      // Same reason, without the socket: the dispatcher injects into the stack mount() just built.
+      await this.embeddedBff?.start(this.getInProcessDispatcher());
     } catch (error) {
       const { message } = error as Error;
       this.options.logger('Error', `Forest Admin agent startup failure: ${message}`);
@@ -141,7 +155,10 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * Stop the agent.
    */
   override async stop(): Promise<void> {
-    // Drain the embedded executor first, while the agent it depends on is still serving.
+    // Stop answering before the stack it dispatches into goes away: the host application keeps
+    // whatever middleware it registered, so a stopped agent would otherwise still serve BFF data.
+    this.embeddedBff?.stop();
+    // Drain the embedded executor next, while the agent it depends on is still serving.
     await this.embeddedExecutor?.stop();
     // Close anything related to ForestAdmin client
     this.options.forestAdminClient.close();
@@ -183,6 +200,8 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
 
       this.setMcpCallback(mcp ?? null);
       await this.remount(router);
+      // A restart means the customizations changed, so the schema the BFF read is stale.
+      this.embeddedBff?.invalidate();
     } finally {
       this.isRestarting = false;
     }
@@ -314,6 +333,10 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     allowedOAuthClients?: string[];
     fileUploads?: false | FileUploadsOptions;
   }): this {
+    if (this.embeddedBff && options?.basePath === BFF_PREFIX) {
+      throw new Error(BFF_MCP_COLLISION);
+    }
+
     this.mcpEnabled = true;
     this.mcpEnabledTools = options?.enabledTools;
     this.mcpBasePath = options?.basePath;
@@ -358,6 +381,51 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     // configure() succeeds, so a conflict error leaves no half-initialized executor.
     (this.options as AgentOptions).workflowExecutorUrl = executor.configure(options);
     this.embeddedExecutor = executor;
+
+    return this;
+  }
+
+  /**
+   * Serve a BFF in-process, alongside the agent, at `/bff` — no second deployment, no second port.
+   * The agent builds it on start(), stops it on stop(), and hands it a dispatcher that reaches its
+   * own stack without a socket, so this works the same on every mount target.
+   *
+   * Requires the `@forestadmin/agent-bff` package to be installed:
+   * ```bash
+   * npm install @forestadmin/agent-bff
+   * ```
+   *
+   * The secrets, the Forest urls and the logger are inherited from the agent. Everything left is
+   * a feature the BFF switches on when configured: `tokenEncryptionKey` enables OAuth (and with it
+   * the AI relay), `allowedOrigins` enables browser access, `openapiEnabled` serves the docs.
+   *
+   * @param options embedded BFF options
+   * @returns the agent instance for chaining
+   * @throws Error if called more than once, or if the MCP server already claims `/bff`
+   *
+   * @example
+   * createAgent(options)
+   *   .addDataSource(...)
+   *   .addBff({ allowedOrigins: ['https://my-app.com'] })
+   *   .start();
+   */
+  addBff(options: BffEmbedOptions = {}): this {
+    if (this.embeddedBff) {
+      throw new Error('addBff can only be called once.');
+    }
+
+    if (this.mcpBasePath === BFF_PREFIX) {
+      throw new Error(BFF_MCP_COLLISION);
+    }
+
+    const bff = new EmbeddedBff(this.options);
+    bff.configure(options);
+    this.embeddedBff = bff;
+    // Registered now rather than at start(): getInProcessDispatcher() pushes its hook the first
+    // time it is called, and mount() only runs the hooks registered before it — asked for later,
+    // the dispatcher would have no handler until the first restart.
+    this.getInProcessDispatcher();
+    this.setBffCallback(bff.handle);
 
     return this;
   }

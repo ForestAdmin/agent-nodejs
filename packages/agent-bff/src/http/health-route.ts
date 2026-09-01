@@ -1,14 +1,27 @@
-import type { BFFConfig } from '../config/env-config';
 import type { Middleware } from 'koa';
 
 export const HEALTH_PATH = '/health';
 
-export interface HealthRouteOptions {
-  config: BFFConfig;
-  version: string;
+/** What the deployment actually serves, and therefore what its configuration switched on. */
+export interface HealthFeatures {
+  oauth: boolean;
+  ai: boolean;
+  cors: boolean;
+  openapi: boolean;
 }
 
-export default function createHealthRoute({ config, version }: HealthRouteOptions): Middleware {
+export interface HealthRouteOptions {
+  version: string;
+  /** Whether everything this deployment needs is configured. Embedded, it always is. */
+  healthy: boolean;
+  features: HealthFeatures;
+}
+
+export default function createHealthRoute({
+  version,
+  healthy,
+  features,
+}: HealthRouteOptions): Middleware {
   return async function health(ctx, next) {
     const isHealthRequest =
       (ctx.method === 'GET' || ctx.method === 'HEAD') && ctx.path === HEALTH_PATH;
@@ -19,7 +32,7 @@ export default function createHealthRoute({ config, version }: HealthRouteOption
       return;
     }
 
-    ctx.status = config.hasAllRequired ? 200 : 503;
-    ctx.body = { status: config.hasAllRequired ? 'ok' : 'degraded', version };
+    ctx.status = healthy ? 200 : 503;
+    ctx.body = { status: healthy ? 'ok' : 'degraded', version, features };
   };
 }
