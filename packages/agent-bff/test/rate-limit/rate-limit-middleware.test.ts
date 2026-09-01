@@ -253,7 +253,7 @@ describe('rate limit middleware', () => {
     expect(second.status).toBe(200);
   });
 
-  it('passes a request through unbucketed when no authenticated identity is on the context', async () => {
+  it('rejects an agent request the limiter cannot bucket, rather than letting it through unlimited', async () => {
     const app = new Koa();
     app.silent = true;
     app.use(createErrorMiddleware({ logger: () => undefined }));
@@ -268,7 +268,7 @@ describe('rate limit middleware', () => {
     const first = await request(edge).get('/agent/v1/users/list');
     const second = await request(edge).get('/agent/v1/users/list');
 
-    expect(first.status).toBe(200);
-    expect(second.status).toBe(200);
+    expect(first.status).toBe(401);
+    expect(second.status).toBe(401);
   });
 });

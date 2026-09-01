@@ -104,18 +104,7 @@ function parseEncryptionKey(raw?: string): string | undefined {
 }
 
 function parseTimeoutMs(raw: string | undefined, envName: string, defaultMs: number): number {
-  const value = normalize(raw);
-  if (value === undefined) return defaultMs;
-
-  const timeout = DECIMAL_INTEGER.test(value.trim()) ? Number(value.trim()) : NaN;
-
-  if (Number.isNaN(timeout) || timeout === 0 || timeout > MAX_TIMEOUT_MS) {
-    throw new ConfigurationError(
-      `Invalid configuration: ${envName} must be a positive integer of at most ${MAX_TIMEOUT_MS} milliseconds.`,
-    );
-  }
-
-  return timeout;
+  return parseBoundedInteger(raw, envName, { min: 1, max: MAX_TIMEOUT_MS, fallback: defaultMs });
 }
 
 function parseDefaultTimezone(raw?: string): string | undefined {

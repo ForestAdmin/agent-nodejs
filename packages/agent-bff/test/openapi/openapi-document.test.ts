@@ -425,6 +425,21 @@ describe('generateOpenApiDocument', () => {
     expect(Object.keys(schemas.ActionRequest.properties as object)).toContain('timezone');
   });
 
+  it('should name both 429 causes, since a saturation 429 blames a caller that exceeded nothing', () => {
+    const list = responsesOf(`${ROUTE_PREFIX}/{collection}/list`);
+
+    expect(list['429'].description).toContain('exceeded its per-window budget');
+    expect(list['429'].description).toContain('the limiter is saturated');
+  });
+
+  it('should call the saturation Retry-After a lower bound, not the caller own window', () => {
+    const list = responsesOf(`${ROUTE_PREFIX}/{collection}/list`);
+    const header = list['429'].headers?.['Retry-After'] as { description: string };
+
+    expect(header.description).toContain('lower bound');
+    expect(header.description).toContain('earliest reset among the identities');
+  });
+
   it('should declare Retry-After on 503 and on 429, the two statuses that set it', () => {
     const list = listResponses();
 

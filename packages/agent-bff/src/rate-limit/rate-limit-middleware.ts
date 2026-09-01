@@ -3,6 +3,7 @@ import type { BffAccessTokenPayload } from '../oauth/bff-token';
 import type { Middleware } from 'koa';
 
 import isAgentPath from './agent-path';
+import { unauthorized } from '../http/bff-http-error';
 import { tooManyRequests } from '../http/bff-local-errors';
 
 export interface RateLimitMiddlewareOptions {
@@ -18,6 +19,12 @@ interface WindowEntry {
 }
 
 const DEFAULT_MAX_ENTRIES = 10_000;
+
+const MS_PER_SECOND = 1000;
+
+function retryAfterSeconds(resetAt: number, current: number): number {
+  return Math.max(1, Math.ceil((resetAt - current) / MS_PER_SECOND));
+}
 
 interface AuthEdgeState {
   apiKeyIdentity?: ResolvedApiKeyIdentity;
@@ -56,11 +63,7 @@ export default function createRateLimitMiddleware({
 
     const key = bucketKeyOf(ctx.state as AuthEdgeState);
 
-    if (key === undefined) {
-      await next();
-
-      return;
-    }
+    if (key === undefined) throw unauthorized();
 
     const current = now();
     let entry = buckets.get(key);
@@ -75,9 +78,11 @@ export default function createRateLimitMiddleware({
 
       if (buckets.size >= maxEntries) {
         const earliestReset = Math.min(...[...buckets.values()].map(live => live.resetAt));
-        const retryAfter = Math.max(1, Math.ceil((earliestReset - current) / 1000));
 
-        throw tooManyRequests(retryAfter, 'Too many requests: the rate limiter is saturated');
+        throw tooManyRequests(
+          retryAfterSeconds(earliestReset, current),
+          'Too many requests: the rate limiter is saturated',
+        );
       }
 
       entry = { count: 0, resetAt: current + windowMs };
@@ -87,12 +92,10 @@ export default function createRateLimitMiddleware({
     entry.count += 1;
 
     if (entry.count > maxRequests) {
-      const retryAfter = Math.max(1, Math.ceil((entry.resetAt - current) / 1000));
-
       throw tooManyRequests(
-        retryAfter,
+        retryAfterSeconds(entry.resetAt, current),
         `Too many requests: the limit is ${maxRequests} per ${Math.round(
-          windowMs / 1000,
+          windowMs / MS_PER_SECOND,
         )}s per identity`,
       );
     }
