@@ -42,6 +42,21 @@ describe('mapActionExecuteResult', () => {
     });
   });
 
+  it('keeps presentational inline styles on the success html', () => {
+    expect(
+      mapActionExecuteResult({
+        success: 'KYC Approved',
+        html: '<div style="background:#16a34a;color:#fff">ok</div><div style="position:fixed">x</div>',
+        refresh: { relationships: [] },
+      }).body,
+    ).toEqual({
+      type: 'success',
+      message: 'KYC Approved',
+      invalidated: [],
+      html: '<div style="background:#16a34a;color:#fff">ok</div><div>x</div>',
+    });
+  });
+
   it('maps an html that is entirely active markup to null rather than an empty string', () => {
     expect(
       mapActionExecuteResult({

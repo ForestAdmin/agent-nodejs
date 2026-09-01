@@ -126,6 +126,38 @@ describe('mapActionForm', () => {
     ]);
   });
 
+  it('keeps presentational inline styles on an htmlBlock', () => {
+    const layout = [
+      {
+        component: 'htmlBlock',
+        content: '<div style="background:#16a34a;color:#fff;padding:12px">KYC Approved</div>',
+      },
+    ] as never;
+
+    const result = mapActionForm(actionWith([]), [], layout);
+
+    expect(result.layout).toEqual([
+      {
+        component: 'htmlBlock',
+        content: '<div style="background:#16a34a;color:#fff;padding:12px">KYC Approved</div>',
+      },
+    ]);
+  });
+
+  it('drops style properties that can overlay the host page or carry a url', () => {
+    const layout = [
+      {
+        component: 'htmlBlock',
+        content:
+          '<div style="position:fixed;top:0;z-index:9999;background:url(javascript:alert(1))">x</div>',
+      },
+    ] as never;
+
+    const result = mapActionForm(actionWith([]), [], layout);
+
+    expect(result.layout).toEqual([{ component: 'htmlBlock', content: '<div>x</div>' }]);
+  });
+
   it('leaves a malformed layout element untouched instead of throwing', () => {
     const layout = [null, { component: 'page', elements: 'nope' }] as never;
 

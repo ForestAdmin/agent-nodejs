@@ -20,4 +20,8 @@ describe('extractRawLayout', () => {
   it('falls back to an empty array when the layout exposes no element array', () => {
     expect(extractRawLayout(actionReturning({}))).toEqual([]);
   });
+
+  it('falls back to an empty array when the agent sends a layout that is not an array', () => {
+    expect(extractRawLayout(actionReturning({ layout: { nope: true } }))).toEqual([]);
+  });
 });
