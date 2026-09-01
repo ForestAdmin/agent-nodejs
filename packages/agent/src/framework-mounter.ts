@@ -10,7 +10,8 @@ import path from 'path';
 
 import FastifyAdapter from './fastify-adapter';
 import InProcessDispatcher from './mcp-in-process-dispatcher';
-import McpMiddleware from './mcp-middleware';
+import isMcpRoute from './mcp-routes';
+import RootMiddleware from './root-middleware';
 
 export default class FrameworkMounter {
   public standaloneServerPort: number;
@@ -24,7 +25,7 @@ export default class FrameworkMounter {
   private readonly logger: Logger;
 
   private readonly fastifyAdapter: FastifyAdapter;
-  private readonly mcpMiddleware: McpMiddleware;
+  private readonly rootMiddleware: RootMiddleware;
   private readonly inProcessDispatcher: InProcessDispatcher;
   private inProcessHookRegistered = false;
 
@@ -37,7 +38,7 @@ export default class FrameworkMounter {
     this.prefix = prefix;
     this.logger = logger;
     this.fastifyAdapter = new FastifyAdapter(logger);
-    this.mcpMiddleware = new McpMiddleware();
+    this.rootMiddleware = new RootMiddleware();
     this.inProcessDispatcher = new InProcessDispatcher(logger);
   }
 
@@ -45,7 +46,7 @@ export default class FrameworkMounter {
    * Set the MCP HTTP callback. Call this before mount() or remount().
    */
   protected setMcpCallback(callback: HttpCallback | null, routeMatcher?: McpRouteMatcher): void {
-    this.mcpMiddleware.setCallback(callback, routeMatcher);
+    this.rootMiddleware.set('mcp', callback, routeMatcher ?? isMcpRoute);
   }
 
   /**
@@ -129,7 +130,7 @@ export default class FrameworkMounter {
    */
   mountOnExpress(express: any): this {
     // MCP middleware - the callback handles its own path filtering and calls next() for non-MCP routes
-    express.use(this.mcpMiddleware.getExpressMiddleware());
+    express.use(this.rootMiddleware.getExpressMiddleware());
 
     // Mount main forest routes at /{prefix}/forest
     express.use(this.completeMountPrefix, this.getConnectCallback(false));
@@ -145,7 +146,7 @@ export default class FrameworkMounter {
    */
   mountOnFastify(fastify: any): this {
     // MCP middleware at root - the callback handles its own path filtering
-    this.fastifyAdapter.useCallback(fastify, this.mcpMiddleware.getExpressMiddleware(), '/');
+    this.fastifyAdapter.useCallback(fastify, this.rootMiddleware.getExpressMiddleware(), '/');
 
     // Mount main forest routes
     const callback = this.getConnectCallback(false);
@@ -177,7 +178,7 @@ export default class FrameworkMounter {
     });
 
     // MCP middleware - intercepts MCP routes before they reach Koa's body parser
-    koa.use(this.mcpMiddleware.getKoaMiddleware());
+    koa.use(this.rootMiddleware.getKoaMiddleware());
     koa.use(parentRouter.routes());
     this.logger('Info', `Successfully mounted on Koa`);
 
@@ -194,12 +195,12 @@ export default class FrameworkMounter {
 
     if (adapter.constructor.name === 'ExpressAdapter') {
       // MCP middleware at root - the callback handles its own path filtering
-      nestJs.use(this.mcpMiddleware.getExpressMiddleware());
+      nestJs.use(this.rootMiddleware.getExpressMiddleware());
       // Mount main forest routes
       nestJs.use(this.completeMountPrefix, callback);
     } else {
       // Fastify adapter - MCP middleware at root
-      this.fastifyAdapter.useCallback(nestJs, this.mcpMiddleware.getExpressMiddleware(), '/');
+      this.fastifyAdapter.useCallback(nestJs, this.rootMiddleware.getExpressMiddleware(), '/');
       this.fastifyAdapter.useCallback(nestJs, callback, this.completeMountPrefix);
     }
 
@@ -224,10 +225,10 @@ export default class FrameworkMounter {
     return (req, res) => {
       // For standalone server (nested), check MCP callback first
       // The MCP callback handles its own path filtering
-      const mcpCallback = this.mcpMiddleware.getCallback();
+      const rootCallback = this.rootMiddleware.getCallback();
 
-      if (nested && mcpCallback) {
-        mcpCallback(req, res, () => {
+      if (nested && rootCallback) {
+        rootCallback(req, res, () => {
           // next() called means not an MCP route - forward to main handler
           if (handler) {
             handler(req, res);
