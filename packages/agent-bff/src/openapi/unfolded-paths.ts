@@ -375,9 +375,6 @@ function registerRelationRequests(
     `foreign collection of ${quoted(plan.collection.name)}.${quoted(relation.name)}; the parent ` +
     `only resolves which records are related. ${CLOSED_BODY_NOTE}`;
 
-  // The foreign properties are spread rather than composed with `allOf`: `additionalProperties:
-  // false` on one branch forbids the key the other adds, and oas31 carries no
-  // `unevaluatedProperties` to lift that. Flattening is what lets the relation body close too.
   const body = (properties: BodyProperties): SchemaObject => ({
     type: 'object',
     description,
