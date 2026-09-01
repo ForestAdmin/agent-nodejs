@@ -42,9 +42,7 @@ export default function createAgentHttpRequester(
     );
 
   requester.stream = (options: StreamOptions): Promise<void> =>
-    withTypedTimeout(() =>
-      stream({ ...options, maxTimeAllowed: options.maxTimeAllowed ?? timeoutMs }),
-    );
+    stream({ ...options, maxTimeAllowed: options.maxTimeAllowed ?? timeoutMs });
 
   return requester;
 }

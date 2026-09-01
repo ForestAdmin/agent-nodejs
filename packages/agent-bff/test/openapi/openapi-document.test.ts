@@ -591,14 +591,20 @@ describe('the documented pagination inputs', () => {
   });
 });
 
-describe('the documented agent transport errors', () => {
-  it('should split the transport statuses by cause, since 502 and 504 mean different failures', () => {
+describe('the documented transport failures', () => {
+  it('should split 502 and 504 by cause, since they mean different failures', () => {
     const list = responsesOf(`${ROUTE_PREFIX}/{collection}/list`);
 
     expect(list['502'].description).toContain('refused the connection');
     expect(list['502'].description).toContain('rather than running out of time');
+  });
+
+  it('should say the 504 deadline starts with the request, and where that stops holding', () => {
+    const list = responsesOf(`${ROUTE_PREFIX}/{collection}/list`);
+
     expect(list['504'].description).toContain('BFF_AGENT_TIMEOUT_MS');
     expect(list['504'].description).toContain('armed when the request starts');
+    expect(list['504'].description).toContain('past the OS connect timeout and that case reverts');
   });
 });
 
