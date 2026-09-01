@@ -5,6 +5,8 @@ import sanitizeHtml from 'sanitize-html';
 
 const MAX_HTML_CHARACTERS = 256 * 1024;
 
+const MAX_LAYOUT_DEPTH = 10;
+
 const SAFE_STYLE_VALUE = /^[^;{}()]*$/;
 
 const ALLOWED_STYLE_PROPERTIES = [
@@ -83,6 +85,7 @@ export default function sanitizeActionHtml(html: unknown, logger: Logger): strin
 export function sanitizeActionLayout(
   layout: ForestServerActionFormLayoutElement[],
   logger: Logger,
+  depth = 0,
 ): ForestServerActionFormLayoutElement[] {
   return layout.map(element => {
     if (element?.component === 'htmlBlock') {
@@ -90,7 +93,15 @@ export function sanitizeActionLayout(
     }
 
     if (element?.component === 'page' && Array.isArray(element.elements)) {
-      return { ...element, elements: sanitizeActionLayout(element.elements, logger) };
+      if (depth >= MAX_LAYOUT_DEPTH) {
+        logger('Warn', 'Action layout elements dropped: nested deeper than the sanitizable depth', {
+          limit: MAX_LAYOUT_DEPTH,
+        });
+
+        return { ...element, elements: [] };
+      }
+
+      return { ...element, elements: sanitizeActionLayout(element.elements, logger, depth + 1) };
     }
 
     return element;

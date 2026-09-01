@@ -5,6 +5,8 @@ import { mapActionForm } from '../../src/action/action-form-mapper';
 
 const logger = jest.fn();
 
+beforeEach(() => logger.mockClear());
+
 interface FakeField {
   name: string;
   type: string;
@@ -135,6 +137,26 @@ describe('mapActionForm', () => {
     expect(result.layout).toEqual([
       { component: 'page', elements: [{ component: 'htmlBlock', content: '<i>ok</i>' }] },
     ]);
+  });
+
+  it('drops the elements of a page nested deeper than the sanitizable depth', () => {
+    const deepest = { component: 'htmlBlock', content: '<script>alert(1)</script>' };
+    const layout = [
+      Array.from({ length: 12 }).reduce(
+        (inner: unknown) => ({ component: 'page', elements: [inner] }),
+        deepest,
+      ),
+    ] as never;
+
+    const result = JSON.stringify(mapForm(actionWith([]), [], layout).layout);
+
+    expect(result).not.toContain('script');
+    expect(result).toContain('"elements":[]');
+    expect(logger).toHaveBeenCalledWith(
+      'Warn',
+      'Action layout elements dropped: nested deeper than the sanitizable depth',
+      { limit: 10 },
+    );
   });
 
   it('empties an htmlBlock whose content is not a string', () => {
