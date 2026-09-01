@@ -244,14 +244,16 @@ export class FieldNotFoundError extends WorkflowConfigurationError {
   }
 }
 
-// A field the step pinned in preRecordedArgs no longer resolves -- the collection changed under a
-// saved workflow. Distinct from FieldNotFoundError because the remedy is the opposite: the name was
-// never the AI's to choose, so rephrasing the prompt cannot reach it. Editing the step can.
-export class PinnedFieldNotFoundError extends WorkflowConfigurationError {
-  constructor(name: string, collectionName: string) {
+// Something the step pinned in preRecordedArgs no longer resolves -- the collection changed under a
+// saved workflow. Distinct from the Field/Action variants because the remedy is the opposite: the
+// name was never the AI's to choose, so rephrasing the prompt cannot reach it. Editing the step can.
+// One class for every pinned kind: the diagnosis differs, the thing the operator must do does not.
+export class PinnedArgNotFoundError extends WorkflowConfigurationError {
+  constructor(kind: 'field' | 'action', name: string, collectionName: string) {
     super(
-      `Pinned field "${name}" not found in collection "${collectionName}"`,
-      'A field pinned on this step no longer exists on this record. Edit the step to pick another one.',
+      `Pinned ${kind} "${name}" not found in collection "${collectionName}"`,
+      `The ${kind} pinned on this step no longer exists on this record. ` +
+        'Edit the step to pick another one.',
     );
   }
 }

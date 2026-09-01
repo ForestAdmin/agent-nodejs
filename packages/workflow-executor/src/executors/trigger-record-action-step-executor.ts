@@ -17,6 +17,7 @@ import {
   ActionNotFoundError,
   ActionRequiresApprovalError,
   NoActionsError,
+  PinnedArgNotFoundError,
   StepStateError,
 } from '../errors';
 import RecordStepExecutor from './record-step-executor';
@@ -145,14 +146,19 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
         : await this.resolveRecordRef(await this.getAvailableRecordRefs(), step.prompt);
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
     const recordedAction = preRecordedArgs?.actionName;
-    const selection = recordedAction
-      ? { actionName: recordedAction }
-      : await this.selectAction(schema, step.prompt);
+    const selection =
+      recordedAction !== undefined
+        ? { actionName: recordedAction }
+        : await this.selectAction(schema, step.prompt);
     const { actionName } = selection;
     const action = this.findActionByTechnicalName(schema, actionName);
 
     if (!action) {
-      throw new ActionNotFoundError(actionName, schema.collectionName);
+      // A pinned action that stopped resolving is a workflow edit -- an admin renamed or removed it.
+      // Only a name the AI chose can be reached by rephrasing the prompt.
+      throw recordedAction !== undefined
+        ? new PinnedArgNotFoundError('action', actionName, schema.collectionName)
+        : new ActionNotFoundError(actionName, schema.collectionName);
     }
 
     const approvalMessage = ('reasoning' in selection && selection.reasoning) || step.prompt;

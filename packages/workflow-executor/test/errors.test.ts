@@ -22,7 +22,7 @@ import {
   OAuthReauthRequiredError,
   OAuthRefreshError,
   PendingDataNotFoundError,
-  PinnedFieldNotFoundError,
+  PinnedArgNotFoundError,
   RecordNotFoundError,
   RelatedRecordNotFoundError,
   RelationNotFoundError,
@@ -239,7 +239,8 @@ describe('errorKind classification', () => {
   // already says so; the kind only makes it machine-readable.
   it.each<[string, WorkflowExecutorError]>([
     ['FieldNotFoundError', new FieldNotFoundError('emailz', 'customers')],
-    ['PinnedFieldNotFoundError', new PinnedFieldNotFoundError('total', 'orders')],
+    ['PinnedArgNotFoundError (field)', new PinnedArgNotFoundError('field', 'total', 'orders')],
+    ['PinnedArgNotFoundError (action)', new PinnedArgNotFoundError('action', 'refund', 'orders')],
     ['ActionNotFoundError', new ActionNotFoundError('sned-email', 'customers')],
     ['RelationNotFoundError', new RelationNotFoundError('orderz', 'customers')],
     ['NoActionsError', new NoActionsError('customers')],

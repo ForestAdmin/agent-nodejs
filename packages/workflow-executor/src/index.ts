@@ -91,7 +91,7 @@ export {
   InvalidAiRequestError,
   RelationNotFoundError,
   FieldNotFoundError,
-  PinnedFieldNotFoundError,
+  PinnedArgNotFoundError,
   ActionNotFoundError,
   StepStateError,
   NoMcpToolsError,

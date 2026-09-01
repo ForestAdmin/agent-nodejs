@@ -1103,7 +1103,7 @@ describe('ReadRecordStepExecutor', () => {
       // Names the pin, not the prompt: the operator cannot rephrase their way to a field the
       // workflow fixed in preRecordedArgs. Same wording Update Data gives for the same rename.
       expect(result.stepOutcome.error).toBe(
-        'A field pinned on this step no longer exists on this record. Edit the step to pick another one.',
+        'The field pinned on this step no longer exists on this record. Edit the step to pick another one.',
       );
     });
 

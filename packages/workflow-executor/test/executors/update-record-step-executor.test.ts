@@ -1452,7 +1452,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.errorKind).toBe('configuration');
       expect(result.stepOutcome.error).toBe(
-        'A field pinned on this step no longer exists on this record. Edit the step to pick another one.',
+        'The field pinned on this step no longer exists on this record. Edit the step to pick another one.',
       );
     });
 
@@ -1723,7 +1723,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.errorKind).toBe('configuration');
       expect(result.stepOutcome.error).toBe(
-        'A field pinned on this step no longer exists on this record. Edit the step to pick another one.',
+        'The field pinned on this step no longer exists on this record. Edit the step to pick another one.',
       );
     });
 

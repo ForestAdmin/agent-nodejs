@@ -1720,6 +1720,50 @@ describe('TriggerRecordActionStepExecutor', () => {
 
     // An empty id is a pin that lost its target, not an absent pin: falling back to AI selection
     // would silently run the action on a different record than the workflow was configured to run it on.
+    // The reachable case: the editor pinned a real action and an admin later renamed or removed it.
+    // Telling the operator to rephrase the prompt sends them after a name no prompt ever chose.
+    it('names the step, not the prompt, when a pinned actionName no longer resolves', async () => {
+      const mockModel = makeMockModel();
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort: makeMockAgentPort(),
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          preRecordedArgs: { actionName: 'renamed_away' },
+        }),
+      });
+
+      const result = await new TriggerRecordActionStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.errorKind).toBe('configuration');
+      expect(result.stepOutcome.error).toBe(
+        'The action pinned on this step no longer exists on this record. Edit the step to pick another one.',
+      );
+      // The pin was never the AI's to make, so it must not fall back to choosing an action.
+      expect(mockModel.bindTools).not.toHaveBeenCalled();
+    });
+
+    it('rejects an empty actionName instead of letting the AI choose an action to execute', async () => {
+      const mockModel = makeMockModel();
+      const agentPort = makeMockAgentPort();
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort,
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          preRecordedArgs: { actionName: '' },
+        }),
+      });
+
+      const result = await new TriggerRecordActionStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.errorKind).toBe('configuration');
+      expect(mockModel.bindTools).not.toHaveBeenCalled();
+      expect(agentPort.executeAction).not.toHaveBeenCalled();
+    });
+
     it('rejects an empty selectedRecordStepId instead of selecting a record with AI', async () => {
       const mockModel = makeMockModel();
       const context = makeContext({
