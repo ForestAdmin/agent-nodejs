@@ -234,31 +234,40 @@ describe('runCli', () => {
       }
     });
 
-    it('should still parse an application/*+json body on a data route', async () => {
+    it.each([
+      ['application/vnd.api+json', 'a +json type the parser knows'],
+      ['application/ld+json', 'a +json type only the wildcard covers'],
+      ['application/json; charset=utf-8', 'a charset parameter'],
+      ['application/json ; charset=utf-8', 'a space before the parameter separator'],
+    ])(
+      'should parse a data-route body declared as %s (%s), proven by the size limit firing',
+      async contentType => {
+        const server = await runCli(OAUTH_ENV, noopLogger);
+
+        try {
+          const response = await request(server.callback)
+            .post('/agent/v1/books/list')
+            .set('Content-Type', contentType)
+            .send(JSON.stringify({ filler: 'x'.repeat(20_000) }));
+
+          expect(response.status).toBe(413);
+        } finally {
+          await server.stop();
+        }
+      },
+    );
+
+    it('should reject a body sent with no Content-Type at all, the last silent-drop path', async () => {
       const server = await runCli(OAUTH_ENV, noopLogger);
 
       try {
         const response = await request(server.callback)
           .post('/agent/v1/books/list')
-          .set('Content-Type', 'application/vnd.api+json')
+          .set('Content-Type', '')
           .send(JSON.stringify({ page: { limit: 5 } }));
 
-        expect(response.status).toBe(401);
-      } finally {
-        await server.stop();
-      }
-    });
-
-    it('should still parse a JSON body carrying a charset parameter', async () => {
-      const server = await runCli(OAUTH_ENV, noopLogger);
-
-      try {
-        const response = await request(server.callback)
-          .post('/agent/v1/books/list')
-          .set('Content-Type', 'application/json; charset=utf-8')
-          .send(JSON.stringify({ page: { limit: 5 } }));
-
-        expect(response.status).toBe(401);
+        expect(response.status).toBe(415);
+        expect(response.body.error).toMatchObject({ type: 'unsupported_media_type', status: 415 });
       } finally {
         await server.stop();
       }

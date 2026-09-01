@@ -49,15 +49,30 @@ function isAgentPath(path: string): boolean {
 
 const BODY_METHODS = new Set(['POST', 'PUT', 'PATCH']);
 
-function rejectNonJsonBody(ctx: Parameters<Middleware>[0]): void {
-  if (!BODY_METHODS.has(ctx.method)) return;
-  if (ctx.request.type === '') return;
+const JSON_BODY_TYPES = ['application/json', 'application/*+json'];
 
-  const mime = ctx.request.type.toLowerCase();
+function hasBody(ctx: Parameters<Middleware>[0]): boolean {
+  return (ctx.request.length ?? 0) > 0 || ctx.get('transfer-encoding') !== '';
+}
 
-  if (mime !== 'application/json' && !(mime.startsWith('application/') && mime.endsWith('+json'))) {
-    throw unsupportedMediaType();
-  }
+function isJsonType(mime: string): boolean {
+  return mime === 'application/json' || (mime.startsWith('application/') && mime.endsWith('+json'));
+}
+
+function createJsonOnlyGuard(): Middleware {
+  return async function jsonOnlyGuard(ctx, next) {
+    if (!BODY_METHODS.has(ctx.method)) {
+      await next();
+
+      return;
+    }
+
+    const mime = ctx.request.type.trim().toLowerCase();
+
+    if (mime === '' ? hasBody(ctx) : !isJsonType(mime)) throw unsupportedMediaType();
+
+    await next();
+  };
 }
 
 function agentScoped(middleware: Middleware): Middleware {
@@ -72,13 +87,16 @@ function agentScoped(middleware: Middleware): Middleware {
   };
 }
 
-function createBodyParser(hasAiQueryRoute: boolean, hasAgentEdge: boolean): Middleware {
-  const parseBody = bodyParser({ jsonLimit: BODY_LIMIT });
-  const parseAiBody = bodyParser({ jsonLimit: AI_BODY_LIMIT, enableTypes: ['json'] });
+function createBodyParser(hasAiQueryRoute: boolean): Middleware {
+  const extendTypes = { json: JSON_BODY_TYPES };
+  const parseBody = bodyParser({ jsonLimit: BODY_LIMIT, extendTypes });
+  const parseAiBody = bodyParser({
+    jsonLimit: AI_BODY_LIMIT,
+    enableTypes: ['json'],
+    extendTypes,
+  });
 
   return async function selectedBodyParser(ctx, next) {
-    if (hasAgentEdge && isAgentPath(ctx.path)) rejectNonJsonBody(ctx);
-
     if (hasAiQueryRoute && ctx.path === AI_QUERY_ROUTE) {
       await parseAiBody(ctx, next);
 
@@ -396,12 +414,14 @@ export default async function runCli(
   const oauth = await buildOAuthMiddlewares(config, logger);
   const aiMiddlewares = buildAiMiddlewares(config, oauth, logger);
   const agentMiddlewares = buildAgentMiddlewares(config, logger, oauth, aiMiddlewares);
-  const agentErrorMiddleware =
-    agentMiddlewares.length > 0 ? [agentScoped(createErrorMiddleware({ logger }))] : [];
+  const hasAgentEdge = agentMiddlewares.length > 0;
+  const agentErrorMiddleware = hasAgentEdge ? [agentScoped(createErrorMiddleware({ logger }))] : [];
+  const agentJsonOnlyGuard = hasAgentEdge ? [agentScoped(createJsonOnlyGuard())] : [];
   const middlewares = [
     createCorsMiddleware({ allowedOrigins: config.allowedOrigins }),
     ...agentErrorMiddleware,
-    createBodyParser(aiMiddlewares.length > 0, agentMiddlewares.length > 0),
+    ...agentJsonOnlyGuard,
+    createBodyParser(aiMiddlewares.length > 0),
     ...oauth.middlewares,
     // Outside the agent-scoped chain on purpose: the viewer is a public page, the document it fetches
     // is not. Gated on the edge being mounted too, like the error middleware above: with no agent
