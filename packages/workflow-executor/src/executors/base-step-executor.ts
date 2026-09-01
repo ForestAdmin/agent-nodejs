@@ -6,7 +6,7 @@ import type {
 import type { ConfirmableStepExecutionData, StepExecutionData } from '../types/step-execution-data';
 import type { Step } from '../types/validated/execution';
 import type { StepDefinition } from '../types/validated/step-definition';
-import type { StepStatus } from '../types/validated/step-outcome';
+import type { ErrorKind, StepStatus } from '../types/validated/step-outcome';
 import type {
   BaseMessage,
   DynamicStructuredTool,
@@ -75,7 +75,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
           timeoutS: this.context.stepTimeoutS,
         });
 
-        return this.buildOutcomeResult({ status: 'error', error: error.userMessage });
+        return this.buildErrorOutcome(error);
       }
 
       if (error instanceof WorkflowExecutorError) {
@@ -85,7 +85,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
           stack: error.cause instanceof Error ? error.cause.stack : undefined,
         });
 
-        return this.buildOutcomeResult({ status: 'error', error: error.userMessage });
+        return this.buildErrorOutcome(error);
       }
 
       const { cause: errorCause } = error as { cause?: unknown };
@@ -101,6 +101,19 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
         error: 'Unexpected error during step execution',
       });
     }
+  }
+
+  // Both catch branches below route through here, so neither can drop the classification. The
+  // factory's own catch (step-executor-factory.ts) builds its outcome separately and does not.
+  private buildErrorOutcome(error: WorkflowExecutorError): StepExecutionResult {
+    return this.buildOutcomeResult({
+      status: 'error',
+      error: error.userMessage,
+      ...(error.errorKind !== undefined && { errorKind: error.errorKind }),
+      ...(error.errorSourceStepIndex !== undefined && {
+        errorSourceStepIndex: error.errorSourceStepIndex,
+      }),
+    });
   }
 
   protected abstract doExecute(): Promise<StepExecutionResult>;
@@ -146,6 +159,8 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
   protected abstract buildOutcomeResult(outcome: {
     status: StepStatus;
     error?: string;
+    errorKind?: ErrorKind;
+    errorSourceStepIndex?: number;
   }): StepExecutionResult;
 
   protected async findPendingExecution<TExec extends ConfirmableStepExecutionData>(

@@ -19,10 +19,12 @@ import type { RecordData } from '../types/validated/collection';
 import type { ActionEndpointsByCollection, SelectOptions } from '@forestadmin/agent-client';
 
 import {
+  AgentHttpError,
   ActionFormValidationError as ClientActionFormValidationError,
   ActionRequiresApprovalError as ClientActionRequiresApprovalError,
   ApprovalRequestCreationError as ClientApprovalRequestCreationError,
   HttpRequester,
+  UnknownActionFieldError,
   createRemoteAgentClient,
 } from '@forestadmin/agent-client';
 import jsonwebtoken from 'jsonwebtoken';
@@ -96,6 +98,18 @@ function toAllowedValue(option: unknown): { value: string | number | null; label
   }
 
   return { value: option as string | number, label: String(option) };
+}
+
+// The statuses a change hook answers with when it refuses the submitted value. Auth, rate limiting
+// and timeouts are also 4xx but say nothing about the value, so they must not reach the form fallback.
+const FORM_VALIDATION_STATUSES = [400, 422];
+
+// setFields refuses a value two ways: an unknown field, or the change-hook request it makes rejecting
+// it. Anything else is the agent or the caller faltering, and blaming the form would misdirect.
+function isRejectedFormValue(cause: unknown): boolean {
+  if (cause instanceof UnknownActionFieldError) return true;
+
+  return cause instanceof AgentHttpError && FORM_VALIDATION_STATUSES.includes(cause.status);
 }
 
 export default class AgentClientAgentPort implements AgentPort {
@@ -258,12 +272,12 @@ export default class AgentClientAgentPort implements AgentPort {
       const act = await client.collection(collection).action(action, { recordIds });
 
       if (values) {
-        // setFields is strict (mirrors MCP execute-action): an unknown field is a config/drift
-        // problem, surfaced as a validation error rather than a silent skip.
         try {
           await act.setFields(values);
         } catch (cause) {
-          throw new ActionFormValidationError(action, cause);
+          if (isRejectedFormValue(cause)) throw new ActionFormValidationError(action, cause);
+
+          throw cause;
         }
       }
 
