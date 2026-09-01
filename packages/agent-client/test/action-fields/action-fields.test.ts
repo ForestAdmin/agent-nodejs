@@ -14,6 +14,7 @@ import ActionFieldRadioGroup from '../../src/action-fields/action-field-radio-gr
 import ActionFieldString from '../../src/action-fields/action-field-string';
 import ActionFieldStringList from '../../src/action-fields/action-field-string-list';
 import FieldFormStates from '../../src/action-fields/field-form-states';
+import Action from '../../src/domains/action';
 
 jest.mock('../../src/http-requester');
 
@@ -901,6 +902,47 @@ describe('ActionField implementations', () => {
     it('should report a String without the file picker widget as String', () => {
       const field = new ActionFieldString('testField', fieldFormStates);
       expect(field.getEffectiveTypeName()).toBe('String');
+    });
+  });
+
+  describe('Action.getFields on a v1 file picker form', () => {
+    it('should return a String-typed field that reports itself as File', async () => {
+      httpRequester.query.mockResolvedValue({
+        fields: [
+          {
+            field: 'doc_type_0',
+            type: 'Enum',
+            isRequired: true,
+            isReadOnly: false,
+            enums: ['passport', 'id_card'],
+          },
+          {
+            field: 'file_0',
+            type: 'String',
+            isRequired: true,
+            isReadOnly: false,
+            widgetEdit: { name: 'file picker', parameters: { static: {} } },
+          },
+        ],
+        layout: [],
+      });
+
+      await fieldFormStates.loadInitialState();
+
+      const action = new Action(
+        'users',
+        'Upload doc',
+        httpRequester,
+        '/forest/actions/test',
+        fieldFormStates,
+        ['1'],
+      );
+      const [docType, file] = action.getFields();
+
+      expect(file).toBeInstanceOf(ActionFieldString);
+      expect(file.getType()).toBe('String');
+      expect(file.getEffectiveTypeName()).toBe('File');
+      expect(docType.getEffectiveTypeName()).toBe('Enum');
     });
   });
 });
