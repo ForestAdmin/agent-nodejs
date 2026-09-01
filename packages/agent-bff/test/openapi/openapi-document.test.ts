@@ -461,6 +461,17 @@ describe('generateOpenApiDocument', () => {
   });
 });
 
+describe('the documented ai query path', () => {
+  it('should say a non-json body is rejected here, matching the 415 the guard raises', () => {
+    const { description } = document.paths[`${ROUTE_PREFIX}/ai/query`].post as {
+      description: string;
+    };
+
+    expect(description).toContain('rejected with 415 before the relay');
+    expect(description).not.toContain('relayed as {}');
+  });
+});
+
 describe('the documented search inputs', () => {
   function propertiesOf(name: string): Record<string, { $ref?: string }> {
     return (schemas[name] as { properties: Record<string, { $ref?: string }> }).properties;

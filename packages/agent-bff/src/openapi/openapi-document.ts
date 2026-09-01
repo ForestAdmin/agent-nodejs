@@ -353,10 +353,10 @@ function registerAiQueryPath(
       'because only the OAuth flow yields the Forest access token this route forwards. The ' +
       'environment and rendering are derived server-side, so sending forest-* headers has no ' +
       `effect. The body limit is ${AI_BODY_LIMIT} here rather than the ${BODY_LIMIT} of every ` +
-      'other route, and only application/json is parsed: any other content type arrives as an ' +
-      'empty body, is relayed as {} and the Forest server rejects the query. This path is ' +
-      'published only by a ' +
-      'deployment whose OAuth configuration is complete, since the relay needs a session.',
+      'other route, and only application/json and application/*+json are read: any other ' +
+      'content type, and a body sent with none at all, is rejected with 415 before the relay. ' +
+      'This path is published only by a deployment whose OAuth configuration is complete, ' +
+      'since the relay needs a session.',
     security: [{ [SESSION_SCHEME]: [] }],
     request: {
       body: { required: true, content: { 'application/json': { schema: AiQueryRequestSchema } } },
