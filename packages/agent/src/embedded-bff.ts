@@ -65,6 +65,9 @@ export default class EmbeddedBff {
       config,
       dispatcher,
       basePath: BFF_PREFIX,
+      // Dropped rather than logged: the default sink reports gauges at Info, which would put a
+      // schema-cache age line in the host's logs on every read, for a number nobody reads there.
+      metrics: { increment: () => undefined, gauge: () => undefined },
       logger: (level, message, context) => this.options.logger(level, formatLog(message, context)),
     });
 
