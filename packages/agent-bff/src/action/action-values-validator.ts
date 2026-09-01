@@ -1,44 +1,38 @@
 import type { ActionForm } from './agent-action-client';
-import type { FieldType, JsonShape } from '../read-model/capabilities-cache';
+import type { FieldType, PrimitiveShape } from '../read-model/field-type';
 
 import { missingRequiredFieldNames } from './action-form-mapper';
-import { enumOptionsOf, jsonShapeOf, normalizeFieldType } from '../read-model/capabilities-cache';
+import { enumOptionsOf, normalizeFieldType, primitiveShapeOf } from '../read-model/field-type';
 import { invalidActionValue, missingRequiredActionFields } from '../validation/validation-errors';
 
 const PACKED_ID_EXPECTATION = 'a string holding a packed record id';
 
-function describeShape(shape: JsonShape, options: string[] | undefined): string {
-  if (options !== undefined) return `one of: ${options.join(', ')}`;
-
-  switch (shape) {
-    case 'boolean':
-      return 'a boolean';
-    case 'number':
-      return 'a number';
-    case 'string':
-      return 'a string';
-    default:
-      return 'any value';
-  }
+function shapeOf(type: FieldType): PrimitiveShape {
+  return typeof type === 'string' ? primitiveShapeOf(type) : 'any';
 }
 
-function valueMatchesShape(
-  shape: JsonShape,
-  value: unknown,
-  options: string[] | undefined,
-): boolean {
-  if (options !== undefined) return typeof value === 'string' && options.includes(value);
+interface ValueCheck {
+  expected: string;
+  matches(value: unknown): boolean;
+}
 
-  switch (shape) {
-    case 'boolean':
-      return typeof value === 'boolean';
-    case 'number':
-      return typeof value === 'number' && Number.isFinite(value);
-    case 'string':
-      return typeof value === 'string';
-    default:
-      return true;
-  }
+const SHAPE_CHECKS: Record<PrimitiveShape, ValueCheck> = {
+  any: { expected: 'any value', matches: () => true },
+  boolean: { expected: 'a boolean', matches: value => typeof value === 'boolean' },
+  number: {
+    expected: 'a number',
+    matches: value => typeof value === 'number' && Number.isFinite(value),
+  },
+  string: { expected: 'a string', matches: value => typeof value === 'string' },
+};
+
+function checkFor(type: FieldType, options: string[] | undefined): ValueCheck {
+  if (options === undefined) return SHAPE_CHECKS[shapeOf(type)];
+
+  return {
+    expected: `one of: ${options.join(', ')}`,
+    matches: value => typeof value === 'string' && options.includes(value),
+  };
 }
 
 function expectedWhenViolated(
@@ -49,23 +43,20 @@ function expectedWhenViolated(
   if (Array.isArray(type)) {
     const [itemType] = type;
 
-    if (!Array.isArray(value)) {
-      return `an array of ${describeShape(jsonShapeOf(itemType), options)}`;
-    }
+    if (!Array.isArray(value)) return `an array of ${checkFor(itemType, options).expected}`;
 
     for (const item of value) {
       const expected = expectedWhenViolated(itemType, item, options);
+
       if (expected) return expected;
     }
 
     return undefined;
   }
 
-  const shape = jsonShapeOf(type);
+  const check = checkFor(type, options);
 
-  if (!valueMatchesShape(shape, value, options)) return describeShape(shape, options);
-
-  return undefined;
+  return check.matches(value) ? undefined : check.expected;
 }
 
 export default function assertActionValuesExecutable(action: ActionForm): void {

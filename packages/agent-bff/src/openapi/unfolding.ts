@@ -1,4 +1,4 @@
-import type { FieldType } from '../read-model/capabilities-cache';
+import type { FieldType } from '../read-model/field-type';
 import type { PrimaryKeyField } from '../read-model/read-model';
 import type { Operator } from '@forestadmin/datasource-toolkit';
 

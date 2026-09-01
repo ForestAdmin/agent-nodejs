@@ -1,62 +1,6 @@
+import type { FieldType } from './field-type';
+
 import { ONE_DAY_MS } from './schema-cache';
-
-/**
- * A Forest column type: a primitive name, a one-element array wrapping another type, a composite
- * `{ fields }`, or a relation marker like `ManyToOne`.
- */
-export type FieldType =
-  | string
-  | FieldType[]
-  | { fields: { field: string; type: FieldType; enums?: string[] }[] };
-
-export function normalizeFieldType(type: FieldType): FieldType {
-  if (typeof type === 'string' && type.endsWith('List')) return [type.slice(0, -4)];
-
-  return type;
-}
-
-export function isEnumFieldType(type: FieldType): boolean {
-  const normalized = normalizeFieldType(type);
-
-  return Array.isArray(normalized) ? normalized[0] === 'Enum' : normalized === 'Enum';
-}
-
-export type JsonShape = 'any' | 'array' | 'boolean' | 'number' | 'object' | 'string';
-
-// The JSON shape of every Forest primitive, in one place: the OpenAPI document builds its schemas
-// from it and the execute validator judges submitted values against it, so a primitive a newer
-// agent introduces is unconstrained on both sides rather than on one.
-const PRIMITIVE_SHAPES: Record<string, JsonShape> = {
-  Binary: 'string',
-  Boolean: 'boolean',
-  Date: 'string',
-  Dateonly: 'string',
-  Enum: 'string',
-  File: 'string',
-  Json: 'any',
-  Number: 'number',
-  Point: 'string',
-  String: 'string',
-  Time: 'string',
-  Timeonly: 'string',
-  Uuid: 'string',
-};
-
-export function jsonShapeOf(type: FieldType): JsonShape {
-  if (Array.isArray(type)) return 'array';
-
-  if (typeof type === 'object' && type !== null && Array.isArray(type.fields)) return 'object';
-
-  return typeof type === 'string' ? PRIMITIVE_SHAPES[type] ?? 'any' : 'any';
-}
-
-export function enumOptionsOf(type: FieldType, options: unknown): string[] | undefined {
-  if (!isEnumFieldType(type) || !Array.isArray(options) || options.length === 0) return undefined;
-
-  const names = options.filter((option): option is string => typeof option === 'string');
-
-  return names.length > 0 ? names : undefined;
-}
 
 export interface CapabilitiesResult {
   // `type` is the agent's raw `columnType`, so it is not always a plain name: an array-of-primitive

@@ -25,7 +25,7 @@ import {
   TimezoneSchema,
 } from './schemas';
 import { PACKED_ID_SEPARATOR } from '../data/pack-id';
-import { enumOptionsOf } from '../read-model/capabilities-cache';
+import { enumOptionsOf } from '../read-model/field-type';
 
 const AGGREGATORS = ['And', 'Or'];
 

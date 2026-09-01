@@ -422,7 +422,7 @@ describe('Action', () => {
         getName: () => 'assignee',
         getType: () => 'Number',
         getPlainField: () => ({ reference: 'users.id' }),
-      } as any);
+      } as never);
 
       expect(action.getField('assignee').getReference()).toBe('users.id');
     });

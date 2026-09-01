@@ -3,7 +3,7 @@ import type { Logger } from '../ports/logger-port';
 import type { ForestServerActionFormLayoutElement } from '@forestadmin/forestadmin-client';
 
 import { sanitizeActionLayout } from './sanitize-action-html';
-import { isEnumFieldType } from '../read-model/capabilities-cache';
+import { isEnumFieldType } from '../read-model/field-type';
 
 export interface ActionFormFieldResponse {
   name: string;

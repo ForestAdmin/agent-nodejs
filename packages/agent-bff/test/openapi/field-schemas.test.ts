@@ -13,6 +13,13 @@ describe('toFieldSchema', () => {
     expect(toFieldSchema(type)).toEqual(expected);
   });
 
+  it.each(['constructor', 'toString', '__proto__'])(
+    'should leave a %s column type unconstrained rather than reading Object.prototype',
+    type => {
+      expect(toFieldSchema(type)).toEqual({});
+    },
+  );
+
   it('should leave a Json column unconstrained, since any JSON value is accepted there', () => {
     expect(toFieldSchema('Json')).toEqual({});
   });
