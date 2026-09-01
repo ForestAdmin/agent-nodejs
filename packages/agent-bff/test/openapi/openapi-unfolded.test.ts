@@ -397,8 +397,8 @@ describe('the per-collection record schema', () => {
   it('should type every property from the column type the capabilities report', () => {
     const { properties } = recordOf('Record_My_Coll');
 
-    expect(properties.email).toEqual({ type: 'string' });
-    expect(properties.tags).toEqual({ type: 'array', items: { type: 'string' } });
+    expect(properties.email).toEqual({ type: ['string', 'null'] });
+    expect(properties.tags).toEqual({ type: ['array', 'null'], items: { type: 'string' } });
     expect(properties.author).toEqual({});
   });
 
@@ -406,7 +406,7 @@ describe('the per-collection record schema', () => {
     const { properties } = recordOf('Record_My_Coll');
 
     expect(properties.createdAt).toEqual({
-      type: 'string',
+      type: ['string', 'null'],
       format: 'date-time',
       description: 'The "created_at" field.',
     });
@@ -435,7 +435,9 @@ describe('the per-collection record schema', () => {
   });
 
   it('should sanitize a dotted collection name into the record component name', () => {
-    expect(recordOf('Record_users_address').properties.street).toEqual({ type: 'string' });
+    expect(recordOf('Record_users_address').properties.street).toEqual({
+      type: ['string', 'null'],
+    });
   });
 
   it('should answer a collection list with its own response schema over its own record', () => {

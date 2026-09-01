@@ -21,9 +21,30 @@ describe('recordSchema', () => {
     }) as { properties: Record<string, unknown> };
 
     expect(schema.properties.profileFile).toEqual({
-      type: 'string',
+      type: ['string', 'null'],
       description: 'A data URI. The "profile_file" field.',
     });
+  });
+
+  it('should publish every field as nullable, since capabilities never report nullability', () => {
+    const schema = recordSchema(
+      {
+        ...PEOPLE,
+        fields: {
+          ...PEOPLE.fields,
+          projectable: [
+            { name: 'first_name', type: 'String' },
+            { name: 'age', type: 'Number' },
+            { name: 'payload', type: 'Json' },
+          ],
+        },
+      },
+      { $ref: '#/components/schemas/ForestRecordMeta' },
+    ) as { properties: Record<string, { type?: unknown }> };
+
+    expect(schema.properties.firstName.type).toEqual(['string', 'null']);
+    expect(schema.properties.age.type).toEqual(['number', 'null']);
+    expect(schema.properties.payload.type).toBeUndefined();
   });
 });
 

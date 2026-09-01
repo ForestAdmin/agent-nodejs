@@ -47,6 +47,7 @@
     "@forestadmin/agent-testing": "1.2.7",
     "@hey-api/openapi-ts": "0.99.0",
     "@redocly/cli": "2.35.1",
+    "@types/inflected": "^1.1.29",
     "@types/jsonwebtoken": "^9.0.1",
     "@types/koa": "^2.13.5",
     "@types/supertest": "^6.0.2",

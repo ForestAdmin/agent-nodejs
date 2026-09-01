@@ -37,6 +37,18 @@ const ID_SCHEMA: SchemaObject = {
  * which one wins depends on the order the agent serialized them in, so the type is left open rather
  * than picked.
  */
+/**
+ * Every published field is nullable. The capabilities report a column type and never its
+ * nullability, so a nullable column answers `null` against a type this schema would otherwise
+ * declare non-null — a generated client validating the response would reject what the runtime
+ * really sends. An unconstrained schema already accepts null and is left alone.
+ */
+function nullable(schema: SchemaObject): SchemaObject {
+  if (typeof schema.type !== 'string') return schema;
+
+  return { ...schema, type: [schema.type, 'null'] };
+}
+
 function propertySchema(key: string, fields: ProjectableField[]): SchemaObject {
   const names = fields.map(field => quoted(field.name)).join(', ');
 
@@ -49,7 +61,7 @@ function propertySchema(key: string, fields: ProjectableField[]): SchemaObject {
   }
 
   const [field] = fields;
-  const schema = toFieldSchema(field.type);
+  const schema = nullable(toFieldSchema(field.type));
 
   if (field.name === key) return schema;
 
@@ -88,7 +100,9 @@ export default function recordSchema(
     description:
       `A record of ${quoted(collection.name)}. It carries the fields the request projected — ` +
       'omit `projection` and the agent returns them all. The properties below are the ones the ' +
-      "collection's capabilities report; a record can carry more, such as a to-one relation.",
+      "collection's capabilities report; a record can carry more, such as a to-one relation. " +
+      'Every field is nullable: the capabilities report a column type and never its nullability, ' +
+      'so a null is always possible whatever the type says.',
     properties: {
       ...fieldProperties(collection.fields.projectable),
       id: ID_SCHEMA,
