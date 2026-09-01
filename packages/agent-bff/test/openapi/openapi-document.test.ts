@@ -486,11 +486,13 @@ describe('generateOpenApiDocument', () => {
     });
   });
 
-  it('should say the permission hints and the agent enforcement can disagree either way', () => {
+  it('should say the agent enforces first by default, and only then that the two can disagree', () => {
     const { description } = (
       document.paths?.[`${ROUTE_PREFIX}/permissions`] as { get: { description: string } }
     ).get;
 
+    expect(description).toContain('`instantCacheRefresh` by default');
+    expect(description).toContain('enforces the new permission while these hints are still stale');
     expect(description).toContain('disagree in either direction');
     expect(description).toContain('Unlike the context and document routes');
     expect(description).not.toContain('Like every route under');
@@ -500,6 +502,15 @@ describe('generateOpenApiDocument', () => {
     const crud = schemas.CrudHints as { description: string };
 
     expect(crud.description).toContain('development environment all six are true');
+  });
+
+  it('should not promise Retry-After on every 503 the hints route can answer', () => {
+    const { description } = (
+      document.paths?.[`${ROUTE_PREFIX}/permissions`] as { get: { description: string } }
+    ).get;
+
+    expect(description).toContain('schema_unavailable');
+    expect(description).toContain('key_resolution_unavailable');
   });
 
   it('should declare the collections query filter, the only way to narrow the hints', () => {

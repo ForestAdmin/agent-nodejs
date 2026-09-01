@@ -339,10 +339,11 @@ const SHARED_DESCRIPTION =
   'sort, or page.';
 
 const SURFACE_DESCRIPTION =
-  'Only the auth-gated `/agent` surface is described here. `GET /health`, which answers 200 `ok` or ' +
-  '503 `degraded` to an unauthenticated probe, and the `/oauth/*` login routes are live but ' +
-  'deliberately absent: they sit outside the agent contract and outside its auth edge, and the ' +
-  'package README documents both.';
+  'Only the auth-gated `/agent` surface is described here. Three live route families are ' +
+  'deliberately absent because they sit outside that surface and outside its auth edge: ' +
+  '`GET /health`, which answers 200 `ok` or 503 `degraded` to an unauthenticated probe; the ' +
+  '`/oauth/*` login routes; and `GET /docs`, the unauthenticated viewer that renders this very ' +
+  'document. The package README documents all three.';
 
 const GENERIC_DESCRIPTION =
   'Paths are generic: one per operation, with the collection, relation and action passed as path ' +
@@ -376,15 +377,16 @@ function registerPermissionsPath(
       'The hints come from the Forest permissions, cached for ' +
       `${
         PERMISSIONS_CACHE_TTL_MS / 60_000
-      } minutes. The agent caches its own copy for the same 15 ` +
-      'minutes by default, and the two are independent: after a change in Forest these hints and ' +
-      'what the agent enforces can disagree in either direction until both expire. An agent ' +
-      'running with `instantCacheRefresh` enforces immediately while these hints stay stale. A ' +
-      '503 means the permissions could not be fetched and no fresh cache was left (type ' +
-      '`permissions_unavailable`); it carries Retry-After. Unlike the context and document ' +
-      'routes, this one sits behind the timezone middleware even though it reads no timezone, so ' +
-      'a deployment with no configured default answers 400 `missing_timezone` unless ' +
-      '`X-Forest-Timezone` is sent.',
+      } minutes, so they lag a change made in Forest. The agent does not: it runs with ` +
+      '`instantCacheRefresh` by default and invalidates on Forest events, so it enforces the new ' +
+      'permission while these hints are still stale. An agent explicitly configured with ' +
+      '`instantCacheRefresh: false` caches for 15 minutes of its own, independently, and the two ' +
+      'can then disagree in either direction until both expire. A 503 here is either ' +
+      '`permissions_unavailable` — they could not be fetched and no fresh cache was left, and it ' +
+      'carries Retry-After — or `schema_unavailable` / `key_resolution_unavailable`, which do ' +
+      'not. Unlike the context and document routes, this one sits behind the timezone middleware ' +
+      'even though it reads no timezone, so a deployment with no configured default answers 400 ' +
+      '`missing_timezone` unless `X-Forest-Timezone` is sent.',
     security: SECURITY,
     request: {
       query: z.object({
@@ -453,8 +455,9 @@ function registerDocumentPath(registry: OpenAPIRegistry, errorRefs: ErrorRespons
     summary: 'Probe this document without fetching it',
     description:
       'Same route as `GET`, answering the same statuses and headers with no body, so a client can ' +
-      'probe whether the document is enabled and reachable before re-fetching it. A 404 here ' +
-      'carries the same `openapi_disabled` type as the GET.',
+      'probe whether the document is enabled and reachable before re-fetching it. The 404 is the ' +
+      'same disabled case as the GET, but the typed `openapi_disabled` body only comes back on a ' +
+      'GET: read the status here, not the type.',
     security: SECURITY,
     request: {},
     responses: {

@@ -288,8 +288,6 @@ describe('buildPermissionHints', () => {
         collections: ['users', 'orders'],
       });
 
-      // Deep equality, not just a successful parse: zod strips what it does not know, so a field
-      // added to the runtime hints and not to the document shows up as a missing key here.
       expect(PermissionHintsSchema.parse(hints)).toEqual(hints);
     });
   });
