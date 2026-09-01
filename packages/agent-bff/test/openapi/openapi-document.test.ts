@@ -530,12 +530,17 @@ describe('the documented action responses', () => {
     ]);
   });
 
-  it('should keep a missing value and a non-enum field honest on the wire', () => {
-    const field = schemas.ActionFormResponseField as unknown as {
-      properties: { value: unknown; enumValues: { anyOf: unknown[] } };
-    };
+  it('should leave value unconstrained, since an unresolved one is absent from the body', () => {
+    const field = schemas.ActionFormResponseField as unknown as { properties: { value: unknown } };
 
     expect(field.properties.value).toEqual({});
+  });
+
+  it('should type enumValues as a string list or null, null when the agent declares none', () => {
+    const field = schemas.ActionFormResponseField as unknown as {
+      properties: { enumValues: { anyOf: unknown[] } };
+    };
+
     expect(field.properties.enumValues.anyOf).toEqual([
       { type: 'array', items: { type: 'string' } },
       { type: 'null' },
