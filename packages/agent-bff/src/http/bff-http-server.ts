@@ -1,3 +1,4 @@
+import type { BffCallback } from '../build-bff';
 import type { BFFConfig } from '../config/env-config';
 import type { Logger } from '../ports/logger-port';
 import type { Server } from 'http';
@@ -6,6 +7,8 @@ import type { Middleware } from 'koa';
 import http from 'http';
 import Koa from 'koa';
 
+import createHealthRoute from './health-route';
+import createVersionHeaderMiddleware from './version-header-middleware';
 import createConsoleLogger from '../adapters/console-logger';
 
 export interface BFFHttpServerOptions {
@@ -14,10 +17,15 @@ export interface BFFHttpServerOptions {
   config: BFFConfig;
   logger?: Logger;
   middlewares?: Middleware[];
+  /**
+   * Prebuilt request handler, as returned by `buildBff`. When set, the server listens on it as-is
+   * and `middlewares` is ignored: the handler already carries `/health` and the version header.
+   */
+  callback?: BffCallback;
 }
 
 export default class BFFHttpServer {
-  private readonly app: Koa;
+  private readonly handler: BffCallback;
   private readonly options: BFFHttpServerOptions;
   private readonly logger: Logger;
   private server: Server | null = null;
@@ -25,35 +33,28 @@ export default class BFFHttpServer {
   constructor(options: BFFHttpServerOptions) {
     this.options = options;
     this.logger = options.logger ?? createConsoleLogger();
-    this.app = new Koa();
+    this.handler = options.callback ?? BFFHttpServer.buildHandler(options);
+  }
 
-    this.app.use(async (ctx, next) => {
-      ctx.set('X-Forest-Bff-Version', this.options.version);
-      await next();
-    });
+  private static buildHandler(options: BFFHttpServerOptions): BffCallback {
+    const { config, version } = options;
+    const app = new Koa();
 
-    this.app.use(async (ctx, next) => {
-      if ((ctx.method === 'GET' || ctx.method === 'HEAD') && ctx.path === '/health') {
-        const { config, version } = this.options;
-        ctx.status = config.hasAllRequired ? 200 : 503;
-        ctx.body = { status: config.hasAllRequired ? 'ok' : 'degraded', version };
+    app.use(createVersionHeaderMiddleware(version));
+    app.use(createHealthRoute({ config, version }));
 
-        return;
-      }
-
-      await next();
-    });
-
-    for (const middleware of this.options.middlewares ?? []) {
-      this.app.use(middleware);
+    for (const middleware of options.middlewares ?? []) {
+      app.use(middleware);
     }
+
+    return app.callback();
   }
 
   async start(): Promise<void> {
     if (this.server) throw new Error('Server already started');
 
     return new Promise((resolve, reject) => {
-      const server = http.createServer(this.app.callback());
+      const server = http.createServer(this.handler);
       this.server = server;
       let onError: (error: Error) => void;
 
@@ -107,6 +108,6 @@ export default class BFFHttpServer {
   }
 
   get callback() {
-    return this.app.callback();
+    return this.handler;
   }
 }
