@@ -86,13 +86,51 @@ describe('mapActionForm', () => {
     expect(result.canExecute).toBe(true);
   });
 
-  it('passes skippedFields and layout through unchanged', () => {
+  it('passes skippedFields and non-html layout elements through unchanged', () => {
     const layout = [{ component: 'page', elements: [] }] as never;
     const action = actionWith([]);
 
     const result = mapActionForm(action, ['ghost'], layout);
 
     expect(result.skippedFields).toEqual(['ghost']);
-    expect(result.layout).toBe(layout);
+    expect(result.layout).toEqual([{ component: 'page', elements: [] }]);
+  });
+
+  it('sanitizes htmlBlock content: safe markup kept, active markup stripped', () => {
+    const layout = [
+      {
+        component: 'htmlBlock',
+        content: '<p>Safe <b>markup</b></p><img src=x onerror="alert(1)"><script>alert(2)</script>',
+      },
+    ] as never;
+
+    const result = mapActionForm(actionWith([]), [], layout);
+
+    expect(result.layout).toEqual([
+      { component: 'htmlBlock', content: '<p>Safe <b>markup</b></p>' },
+    ]);
+  });
+
+  it('sanitizes htmlBlock content nested inside a page', () => {
+    const layout = [
+      {
+        component: 'page',
+        elements: [{ component: 'htmlBlock', content: '<svg onload="alert(1)"></svg><i>ok</i>' }],
+      },
+    ] as never;
+
+    const result = mapActionForm(actionWith([]), [], layout);
+
+    expect(result.layout).toEqual([
+      { component: 'page', elements: [{ component: 'htmlBlock', content: '<i>ok</i>' }] },
+    ]);
+  });
+
+  it('empties an htmlBlock whose content is entirely active markup', () => {
+    const layout = [{ component: 'htmlBlock', content: '<script>alert(1)</script>' }] as never;
+
+    const result = mapActionForm(actionWith([]), [], layout);
+
+    expect(result.layout).toEqual([{ component: 'htmlBlock', content: '' }]);
   });
 });

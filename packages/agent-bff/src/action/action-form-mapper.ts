@@ -1,6 +1,8 @@
 import type { ActionForm } from './agent-action-client';
 import type { ForestServerActionFormLayoutElement } from '@forestadmin/forestadmin-client';
 
+import { sanitizeActionLayout } from './sanitize-action-html';
+
 const ENUM_TYPE = 'Enum';
 
 export interface ActionFormFieldResponse {
@@ -53,6 +55,6 @@ export function mapActionForm(
     canExecute: requiredFields.length === 0,
     requiredFields,
     skippedFields,
-    layout,
+    layout: sanitizeActionLayout(layout),
   };
 }

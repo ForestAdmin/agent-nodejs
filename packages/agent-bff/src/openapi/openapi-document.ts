@@ -268,7 +268,8 @@ const ROUTES: RouteDefinition[] = [
     summary: 'Load the form of a custom action',
     request: ActionRequestSchema,
     response: z.unknown(),
-    responseDescription: 'The action form fields',
+    responseDescription:
+      'The action form fields; htmlBlock layout content is sanitized server-side against an allowlist before relaying',
     params: ['collection', 'action'],
     bodyRequired: true,
   },

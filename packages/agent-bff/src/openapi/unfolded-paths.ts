@@ -551,7 +551,8 @@ function registerActionOperations(deps: Deps, plan: CollectionPlan, namer: Namer
       description: `Loads the form of the custom action. ${identity} An unknown submitted field is skipped here, not rejected.`,
       request,
       response: {},
-      responseDescription: 'The action form fields',
+      responseDescription:
+        'The action form fields; htmlBlock layout content is sanitized server-side against an allowlist before relaying',
       bodyRequired: true,
     });
 

@@ -274,6 +274,14 @@ describe('generateOpenApiDocument', () => {
     expect(messageless.properties.error.required).toEqual(['type', 'status']);
   });
 
+  it('should say on the form response that htmlBlock layout content is sanitized server-side', () => {
+    const form = responsesOf(`${ROUTE_PREFIX}/{collection}/actions/{action}/form`);
+
+    expect(form['200'].description).toContain(
+      'htmlBlock layout content is sanitized server-side against an allowlist',
+    );
+  });
+
   it('should say on the execute response that a success html is sanitized server-side', () => {
     const execute = responsesOf(`${ROUTE_PREFIX}/{collection}/actions/{action}/execute`);
 
