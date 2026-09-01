@@ -1,4 +1,5 @@
 import type { BFFConfig } from './config/env-config';
+import type { EnvironmentIdResolver } from './oauth/environment-id';
 import type { SessionStore } from './oauth/session-store';
 import type { UnfoldSource } from './openapi/unfolded-document';
 import type { Logger } from './ports/logger-port';
@@ -31,6 +32,7 @@ import BODY_LIMIT, { AI_BODY_LIMIT } from './http/body-limit';
 import createErrorMiddleware from './http/error-middleware';
 import createHealthRoute from './http/health-route';
 import createVersionHeaderMiddleware from './http/version-header-middleware';
+import createEnvironmentIdResolver from './oauth/environment-id';
 import ForestServerClient from './oauth/forest-server-client';
 import createOAuthRoutes from './oauth/oauth-routes';
 import createInMemorySessionStore from './oauth/session-store';
@@ -135,11 +137,11 @@ interface OAuthSession {
 
 interface OAuthEdge {
   middlewares: Middleware[];
-  environmentId?: number;
+  resolveEnvironmentId?: EnvironmentIdResolver;
   session?: OAuthSession;
 }
 
-async function buildOAuthMiddlewares(config: BFFConfig, logger: Logger): Promise<OAuthEdge> {
+function buildOAuthMiddlewares(config: BFFConfig, logger: Logger): OAuthEdge {
   const oauthConfig = resolveOAuthConfig(config);
 
   if (!oauthConfig) {
@@ -152,7 +154,7 @@ async function buildOAuthMiddlewares(config: BFFConfig, logger: Logger): Promise
     oauthConfig;
 
   const serverClient = new ForestServerClient({ forestServerUrl, envSecret: forestEnvSecret });
-  const environmentId = await serverClient.fetchEnvironmentId();
+  const resolveEnvironmentId = createEnvironmentIdResolver(serverClient);
 
   const sessionStore = createInMemorySessionStore({
     cipher: createTokenCipher(tokenEncryptionKey),
@@ -165,13 +167,13 @@ async function buildOAuthMiddlewares(config: BFFConfig, logger: Logger): Promise
     sessionStore,
     forestAppUrl,
     authSecret: forestAuthSecret,
-    environmentId,
+    resolveEnvironmentId,
     logger,
   });
 
   return {
     middlewares: [oauthRoutes],
-    environmentId,
+    resolveEnvironmentId,
     session: { store: sessionStore, serverClient, forestServerUrl },
   };
 }
@@ -319,7 +321,7 @@ function buildAgentRouteMiddlewares(
 }
 
 function buildAiMiddlewares(config: BFFConfig, oauth: OAuthEdge, logger: Logger): Middleware[] {
-  const { session, environmentId } = oauth;
+  const { session, resolveEnvironmentId } = oauth;
 
   if (!session) {
     logger('Warn', 'AI query route disabled: the deployment carries no OAuth session');
@@ -337,10 +339,35 @@ function buildAiMiddlewares(config: BFFConfig, oauth: OAuthEdge, logger: Logger)
       client,
       sessionStore: session.store,
       serverClient: session.serverClient,
-      environmentId,
+      resolveEnvironmentId,
       logger,
     }),
   ];
+}
+
+/**
+ * The context payload carries the environment id when there is one, and drops it when the Forest
+ * server cannot be reached — the route itself must keep answering either way.
+ */
+function toleratedEnvironmentId(
+  oauth: OAuthEdge,
+  logger: Logger,
+): (() => Promise<number | undefined>) | undefined {
+  const { resolveEnvironmentId } = oauth;
+
+  if (!resolveEnvironmentId) return undefined;
+
+  return async function resolveOrForget(): Promise<number | undefined> {
+    try {
+      return await resolveEnvironmentId();
+    } catch (error) {
+      logger('Warn', 'Serving the context without an environment id', {
+        cause: error instanceof Error ? error.message : String(error),
+      });
+
+      return undefined;
+    }
+  };
 }
 
 function buildAgentMiddlewares(
@@ -350,7 +377,6 @@ function buildAgentMiddlewares(
   aiMiddlewares: Middleware[],
 ): Middleware[] {
   const { forestAuthSecret, defaultTimezone } = config;
-  const { environmentId } = oauth;
 
   if (!forestAuthSecret) {
     logger('Warn', 'Agent edge disabled: FOREST_AUTH_SECRET is missing');
@@ -374,7 +400,14 @@ function buildAgentMiddlewares(
       source,
       hasAiQueryRoute: aiMiddlewares.length > 0,
     }),
-    ...(bundle ? [createContextRoutesMiddleware({ store: bundle.store, environmentId })] : []),
+    ...(bundle
+      ? [
+          createContextRoutesMiddleware({
+            store: bundle.store,
+            resolveEnvironmentId: toleratedEnvironmentId(oauth, logger),
+          }),
+        ]
+      : []),
     ...aiMiddlewares,
     createTimezoneMiddleware({ defaultTimezone }),
     ...buildAgentRouteMiddlewares(bundle, config, logger),
@@ -402,7 +435,7 @@ export default async function buildBff({
 
   warnMissingConfig(config, logger);
 
-  const oauth = await buildOAuthMiddlewares(config, logger);
+  const oauth = buildOAuthMiddlewares(config, logger);
   const aiMiddlewares = buildAiMiddlewares(config, oauth, logger);
   const agentMiddlewares = buildAgentMiddlewares(config, logger, oauth, aiMiddlewares);
   const agentErrorMiddleware =

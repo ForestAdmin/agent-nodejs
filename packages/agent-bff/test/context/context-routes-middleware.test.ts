@@ -32,7 +32,9 @@ function makeRouteOnlyApp(fetchSchema: jest.Mock, environmentId?: number, now?: 
 
   const app = new Koa();
   app.use(createErrorMiddleware({ logger: () => {} }));
-  app.use(createContextRoutesMiddleware({ store, environmentId }));
+  app.use(
+    createContextRoutesMiddleware({ store, resolveEnvironmentId: async () => environmentId }),
+  );
 
   return { app, schemaCache };
 }

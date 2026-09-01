@@ -70,7 +70,15 @@ function buildApp(
 
     await next();
   });
-  app.use(createAiRoutesMiddleware({ client, sessionStore, serverClient, environmentId, logger }));
+  app.use(
+    createAiRoutesMiddleware({
+      client,
+      sessionStore,
+      serverClient,
+      resolveEnvironmentId: async () => environmentId,
+      logger,
+    }),
+  );
 
   return { app, sessionStore, logger };
 }

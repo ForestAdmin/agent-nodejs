@@ -1,6 +1,7 @@
 import type AiProxyClient from './ai-proxy-client';
 import type { AiProxyResponse } from './ai-proxy-client';
 import type { BffAccessTokenPayload } from '../oauth/bff-token';
+import type { EnvironmentIdResolver } from '../oauth/environment-id';
 import type ForestServerClient from '../oauth/forest-server-client';
 import type { SessionStore } from '../oauth/session-store';
 import type { Logger } from '../ports/logger-port';
@@ -28,7 +29,7 @@ export interface AiRoutesMiddlewareOptions {
   client: AiProxyClient;
   sessionStore: SessionStore;
   serverClient: ForestServerClient;
-  environmentId?: number;
+  resolveEnvironmentId?: EnvironmentIdResolver;
   logger: Logger;
 }
 
@@ -104,7 +105,7 @@ export default function createAiRoutesMiddleware({
   client,
   sessionStore,
   serverClient,
-  environmentId,
+  resolveEnvironmentId,
   logger,
 }: AiRoutesMiddlewareOptions): Middleware {
   return async function aiRoutesMiddleware(ctx, next) {
@@ -129,7 +130,7 @@ export default function createAiRoutesMiddleware({
     try {
       response = await client.query({
         saasAccessToken,
-        environmentId,
+        environmentId: await resolveEnvironmentId?.(),
         renderingId,
         body: ctx.request.body,
       });
