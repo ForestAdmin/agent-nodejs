@@ -370,10 +370,12 @@ function registerRelationRequests(
 ): RequestRefs {
   const { pool } = deps;
   const parentId = parentIdSchema(pool, plan.collection.name, plan.collection.primaryKeys);
+  const { degraded } = foreign.collection.fields;
+  const foreignNote = degraded ? ` ${DEGRADED_NOTE[degraded]}` : '';
   const description =
     `Filter, sort, projection and search apply to ${quoted(foreign.collection.name)}, the ` +
     `foreign collection of ${quoted(plan.collection.name)}.${quoted(relation.name)}; the parent ` +
-    `only resolves which records are related. ${CLOSED_BODY_NOTE}`;
+    `only resolves which records are related.${foreignNote} ${CLOSED_BODY_NOTE}`;
 
   const body = (properties: BodyProperties): SchemaObject => ({
     type: 'object',

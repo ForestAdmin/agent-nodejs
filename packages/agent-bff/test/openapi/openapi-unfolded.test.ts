@@ -275,6 +275,17 @@ describe('the unfolded document', () => {
     expect(request.properties.filter).toEqual(foreign.properties.filter);
   });
 
+  it('should carry the foreign degraded note on a relation request, like the collection body', () => {
+    const relation = requestSchema('My%20Coll/relations/orders/list') as unknown as {
+      description: string;
+    };
+    const foreign = requestSchema('orders/list') as unknown as { description: string };
+    const note = 'The field names are NOT enumerated here';
+
+    expect(foreign.description).toContain(note);
+    expect(relation.description).toContain(note);
+  });
+
   it('should close a relation request structurally, not only in prose', () => {
     const request = requestSchema('My%20Coll/relations/orders/list') as unknown as {
       additionalProperties: boolean;
