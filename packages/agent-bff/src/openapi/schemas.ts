@@ -100,18 +100,20 @@ export const CLOSED_BODY_NOTE =
   'check stops there: an unknown key on a condition node still reaches the agent, so a leaf ' +
   'carrying `valu` runs with no value rather than being rejected.';
 
+type OverridesOf<S extends { shape: object }> = Partial<Record<keyof S['shape'], z.ZodType>>;
+
 const countOverrides = {
   filter: ConditionTreeSchema.optional(),
   search: SearchSchema.optional(),
   searchExtended: SearchExtendedSchema.optional(),
   timezone: TimezoneSchema.optional(),
-} satisfies Partial<Record<keyof typeof CountFlatInputs.shape, z.ZodType>>;
+} satisfies OverridesOf<typeof CountFlatInputs>;
 
 const listOverrides = {
   ...countOverrides,
   sort: z.array(SortClauseSchema).optional(),
   page: PageSchema.optional(),
-} satisfies Partial<Record<keyof typeof ListFlatInputs.shape, z.ZodType>>;
+} satisfies OverridesOf<typeof ListFlatInputs>;
 
 export const ListRequestSchema = ListFlatInputs.extend(listOverrides).openapi('ListRequest', {
   description: CLOSED_BODY_NOTE,
@@ -126,12 +128,12 @@ export const CountRequestSchema = CountFlatInputs.extend(countOverrides).openapi
 const relationListOverrides = {
   ...listOverrides,
   parentId: ParentIdSchema,
-} satisfies Partial<Record<keyof typeof RelationListFlatInputs.shape, z.ZodType>>;
+} satisfies OverridesOf<typeof RelationListFlatInputs>;
 
 const relationCountOverrides = {
   ...countOverrides,
   parentId: ParentIdSchema,
-} satisfies Partial<Record<keyof typeof RelationCountFlatInputs.shape, z.ZodType>>;
+} satisfies OverridesOf<typeof RelationCountFlatInputs>;
 
 export const RelationListRequestSchema = RelationListFlatInputs.extend(
   relationListOverrides,

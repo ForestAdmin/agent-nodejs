@@ -81,10 +81,9 @@ function collectionOf(
   };
 }
 
-// A relation request composes the foreign collection request, so its filter sits one hop further.
+// A relation request spreads the foreign collection properties, so its filter sits on the body.
 function relationFilterOf(path: string): string {
-  const { allOf } = requestSchema(path) as unknown as { allOf: [{ $ref: string }, unknown] };
-  const { properties } = dereference(allOf[0].$ref) as unknown as {
+  const { properties } = requestSchema(path) as unknown as {
     properties: { filter: { $ref: string } };
   };
 
@@ -248,29 +247,61 @@ describe('the unfolded document', () => {
     expect(request.description).toContain('undeclared TOP-LEVEL key with 400 invalid_request');
   });
 
+  it('should close a per-collection sort clause, so a misspelled direction is not silently kept', () => {
+    const sort = schemas.SortClause_My_Coll as unknown as { additionalProperties: boolean };
+
+    expect(sort.additionalProperties).toBe(false);
+  });
+
+  it('should close the per-collection list and count bodies structurally', () => {
+    const list = requestSchema('My%20Coll/list') as unknown as { additionalProperties: boolean };
+    const count = requestSchema('My%20Coll/count') as unknown as { additionalProperties: boolean };
+
+    expect(list.additionalProperties).toBe(false);
+    expect(count.additionalProperties).toBe(false);
+  });
+
   it('should describe a relation request with the FOREIGN collection fields, not the parent ones', () => {
+    const foreign = dereference('#/components/schemas/ListRequest_orders') as unknown as {
+      properties: Record<string, unknown>;
+    };
     const request = requestSchema('My%20Coll/relations/orders/list') as unknown as {
-      allOf: [{ $ref: string }, Record<string, unknown>];
+      properties: Record<string, unknown>;
     };
 
-    expect(request.allOf[0].$ref).toBe('#/components/schemas/ListRequest_orders');
+    expect(Object.keys(request.properties).sort()).toEqual(
+      [...Object.keys(foreign.properties), 'parentId'].sort(),
+    );
+    expect(request.properties.filter).toEqual(foreign.properties.filter);
+  });
+
+  it('should close a relation request structurally, not only in prose', () => {
+    const request = requestSchema('My%20Coll/relations/orders/list') as unknown as {
+      additionalProperties: boolean;
+      description: string;
+    };
+
+    expect(request.additionalProperties).toBe(false);
+    expect(request.description).toContain('undeclared TOP-LEVEL key with 400 invalid_request');
+    expect(request.description).not.toContain('does not say so structurally');
   });
 
   it('should require parentId on a relation request and name the parent key it belongs to', () => {
     const request = requestSchema('My%20Coll/relations/orders/list') as unknown as {
-      allOf: [unknown, { properties: { parentId: { description: string } }; required: string[] }];
+      properties: { parentId: { description: string } };
+      required: string[];
     };
 
-    expect(request.allOf[1].required).toEqual(['parentId']);
-    expect(request.allOf[1].properties.parentId.description).toContain('(id, Number)');
+    expect(request.required).toEqual(['parentId']);
+    expect(request.properties.parentId.description).toContain('(id, Number)');
   });
 
   it('should accept a numeric parent id as a number or its string form, like the runtime', () => {
     const request = requestSchema('My%20Coll/relations/orders/list') as unknown as {
-      allOf: [unknown, { properties: { parentId: { anyOf: unknown[] } } }];
+      properties: { parentId: { anyOf: unknown[] } };
     };
 
-    expect(request.allOf[1].properties.parentId.anyOf).toEqual([
+    expect(request.properties.parentId.anyOf).toEqual([
       { type: 'string', pattern: '\\S' },
       { type: 'number' },
     ]);
@@ -278,21 +309,19 @@ describe('the unfolded document', () => {
 
   it('should document a composite parent key as its packed string form', () => {
     const request = requestSchema('orders/relations/buyers/list') as unknown as {
-      allOf: [unknown, { properties: { parentId: { type: string; description: string } } }];
+      properties: { parentId: { type: string; description: string } };
     };
 
-    expect(request.allOf[1].properties.parentId.type).toBe('string');
-    expect(request.allOf[1].properties.parentId.description).toContain(
-      'shop, number joined by "|"',
-    );
+    expect(request.properties.parentId.type).toBe('string');
+    expect(request.properties.parentId.description).toContain('shop, number joined by "|"');
   });
 
   it('should fall back to the opaque parent id when the parent exposes no key metadata', () => {
     const request = requestSchema('users.address/relations/orders/list') as unknown as {
-      allOf: [unknown, { properties: { parentId: { $ref?: string } } }];
+      properties: { parentId: { $ref?: string } };
     };
 
-    expect(request.allOf[1].properties.parentId.$ref).toBe('#/components/schemas/ParentId');
+    expect(request.properties.parentId.$ref).toBe('#/components/schemas/ParentId');
   });
 
   it('should keep the paths of a collection whose capabilities failed, with free-form fields', () => {

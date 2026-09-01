@@ -426,6 +426,12 @@ describe('unknown keys', () => {
     expect(() => parseListRequest({ projections: ['id'] })).toThrow(REJECTED);
   });
 
+  it('should reject a list-only key on a count body, where paging and projection mean nothing', () => {
+    expect(() => parseCountRequest({ projection: ['id'] })).toThrow(REJECTED);
+    expect(() => parseCountRequest({ sort: [{ field: 'id' }] })).toThrow(REJECTED);
+    expect(() => parseCountRequest({ page: { limit: 10, offset: 0 } })).toThrow(REJECTED);
+  });
+
   it('should reject parentId on a plain list, where a parent id means nothing', () => {
     expect(() => parseListRequest({ parentId: '7' })).toThrow(REJECTED);
   });

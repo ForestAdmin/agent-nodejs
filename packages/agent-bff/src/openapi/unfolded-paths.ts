@@ -47,10 +47,18 @@ interface RequestRefs {
   count: ReferenceObject;
 }
 
+type BodyProperties = Record<string, ReferenceObject | SchemaObject>;
+
+interface RequestProperties {
+  list: BodyProperties;
+  count: BodyProperties;
+}
+
 interface CollectionPlan {
   collection: UnfoldedCollection;
   key: string;
   requests: RequestRefs;
+  properties: RequestProperties;
 }
 
 interface Deps {
@@ -253,25 +261,43 @@ function fieldRefs(deps: Deps, plan: Pick<CollectionPlan, 'key' | 'collection'>)
               direction: { type: 'string', enum: ['asc', 'desc'] },
             },
             required: ['field'],
+            additionalProperties: false,
           }),
   };
 }
 
-const CLOSED_BODY_PROSE_ONLY = `${CLOSED_BODY_NOTE} This schema does not say so structurally yet: treat it as closed.`;
-
 function requestDescription(collection: UnfoldedCollection, subject: string): string {
   const note = collection.fields.degraded ? ` ${DEGRADED_NOTE[collection.fields.degraded]}` : '';
 
-  return `${subject}${note} ${CLOSED_BODY_PROSE_ONLY}`;
+  return `${subject}${note} ${CLOSED_BODY_NOTE}`;
 }
 
-function registerRequests(deps: Deps, plan: Omit<CollectionPlan, 'requests'>): RequestRefs {
+function requestProperties(deps: Deps, plan: Pick<CollectionPlan, 'key' | 'collection'>) {
   const { pool } = deps;
-  const { collection, key } = plan;
   const refs = fieldRefs(deps, plan);
   const timezone = pool.reuse('Timezone', TimezoneSchema);
   const search = pool.reuse('Search', SearchSchema);
   const searchExtended = pool.reuse('SearchExtended', SearchExtendedSchema);
+  const count: BodyProperties = { filter: refs.filter, search, searchExtended, timezone };
+
+  return {
+    count,
+    list: {
+      ...count,
+      projection: { type: 'array', items: refs.projectable },
+      sort: { type: 'array', items: refs.sort },
+      page: pool.reuse('Page', PageSchema),
+    } satisfies BodyProperties,
+  };
+}
+
+function registerRequests(
+  deps: Deps,
+  plan: Pick<CollectionPlan, 'key' | 'collection'>,
+  properties: RequestProperties,
+): RequestRefs {
+  const { pool } = deps;
+  const { collection, key } = plan;
 
   return {
     list: pool.add(`ListRequest_${key}`, {
@@ -280,15 +306,8 @@ function registerRequests(deps: Deps, plan: Omit<CollectionPlan, 'requests'>): R
         collection,
         `Filter, sort and project records of ${quoted(collection.name)}.`,
       ),
-      properties: {
-        filter: refs.filter,
-        projection: { type: 'array', items: refs.projectable },
-        sort: { type: 'array', items: refs.sort },
-        page: pool.reuse('Page', PageSchema),
-        search,
-        searchExtended,
-        timezone,
-      },
+      properties: properties.list,
+      additionalProperties: false,
     }),
     count: pool.add(`CountRequest_${key}`, {
       type: 'object',
@@ -296,7 +315,8 @@ function registerRequests(deps: Deps, plan: Omit<CollectionPlan, 'requests'>): R
         collection,
         `Count records of ${quoted(collection.name)} matching a filter.`,
       ),
-      properties: { filter: refs.filter, search, searchExtended, timezone },
+      properties: properties.count,
+      additionalProperties: false,
     }),
   };
 }
@@ -350,25 +370,25 @@ function registerRelationRequests(
 ): RequestRefs {
   const { pool } = deps;
   const parentId = parentIdSchema(pool, plan.collection.name, plan.collection.primaryKeys);
-  const parentProperties = {
-    type: 'object' as const,
-    properties: { parentId },
-    required: ['parentId'],
-  };
   const description =
-    `Filter, sort and projection apply to ${quoted(foreign.collection.name)}, the foreign ` +
-    `collection of ${quoted(plan.collection.name)}.${quoted(relation.name)}; the parent only ` +
-    `resolves which records are related. ${CLOSED_BODY_PROSE_ONLY}`;
+    `Filter, sort, projection and search apply to ${quoted(foreign.collection.name)}, the ` +
+    `foreign collection of ${quoted(plan.collection.name)}.${quoted(relation.name)}; the parent ` +
+    `only resolves which records are related. ${CLOSED_BODY_NOTE}`;
+
+  // The foreign properties are spread rather than composed with `allOf`: `additionalProperties:
+  // false` on one branch forbids the key the other adds, and oas31 carries no
+  // `unevaluatedProperties` to lift that. Flattening is what lets the relation body close too.
+  const body = (properties: BodyProperties): SchemaObject => ({
+    type: 'object',
+    description,
+    properties: { ...properties, parentId },
+    required: ['parentId'],
+    additionalProperties: false,
+  });
 
   return {
-    list: pool.add(`RelationListRequest_${relationKey}`, {
-      description,
-      allOf: [foreign.requests.list, parentProperties],
-    }),
-    count: pool.add(`RelationCountRequest_${relationKey}`, {
-      description,
-      allOf: [foreign.requests.count, parentProperties],
-    }),
+    list: pool.add(`RelationListRequest_${relationKey}`, body(foreign.properties.list)),
+    count: pool.add(`RelationCountRequest_${relationKey}`, body(foreign.properties.count)),
   };
 }
 
@@ -595,7 +615,14 @@ export default function registerUnfoldedPaths(deps: Deps, unfolding: Unfolding):
   const plans = unfolding.collections.map(collection => {
     const key = collections(collection.name);
 
-    return { collection, key, requests: registerRequests(deps, { collection, key }) };
+    const properties = requestProperties(deps, { collection, key });
+
+    return {
+      collection,
+      key,
+      properties,
+      requests: registerRequests(deps, { collection, key }, properties),
+    };
   });
   const plansByName = new Map(plans.map(plan => [plan.collection.name, plan]));
 
