@@ -1,6 +1,9 @@
 import type { ActionForm, ActionFormField } from '../../src/action/agent-action-client';
+import type { ForestServerActionFormLayoutElement } from '@forestadmin/forestadmin-client';
 
 import { mapActionForm } from '../../src/action/action-form-mapper';
+
+const logger = jest.fn();
 
 interface FakeField {
   name: string;
@@ -30,11 +33,19 @@ function actionWith(fields: FakeField[]): ActionForm {
   };
 }
 
+function mapForm(
+  action: ActionForm,
+  skippedFields: string[] = [],
+  layout: ForestServerActionFormLayoutElement[] = [],
+) {
+  return mapActionForm(action, skippedFields, layout, logger);
+}
+
 describe('mapActionForm', () => {
   it('maps each field to name, type, value and isRequired', () => {
     const action = actionWith([{ name: 'reason', type: 'String', value: 'x', isRequired: true }]);
 
-    const result = mapActionForm(action, [], []);
+    const result = mapForm(action, [], []);
 
     expect(result.fields).toEqual([
       { name: 'reason', type: 'String', value: 'x', isRequired: true },
@@ -47,7 +58,7 @@ describe('mapActionForm', () => {
       { name: 'status', type: 'Enum', value: null, isRequired: false, enumValues: ['a', 'b'] },
     ]);
 
-    const result = mapActionForm(action, [], []);
+    const result = mapForm(action, [], []);
 
     expect(result.fields[0]).not.toHaveProperty('enumValues');
     expect(result.fields[1]).toMatchObject({ name: 'status', enumValues: ['a', 'b'] });
@@ -56,7 +67,7 @@ describe('mapActionForm', () => {
   it('sets enumValues to null when an Enum field has no options', () => {
     const action = actionWith([{ name: 'status', type: 'Enum', value: null, isRequired: false }]);
 
-    const result = mapActionForm(action, [], []);
+    const result = mapForm(action, [], []);
 
     expect(result.fields[0].enumValues).toBeNull();
   });
@@ -68,7 +79,7 @@ describe('mapActionForm', () => {
       { name: 'c', type: 'String', value: 'set', isRequired: true },
     ]);
 
-    const result = mapActionForm(action, [], []);
+    const result = mapForm(action, [], []);
 
     expect(result.requiredFields).toEqual(['a', 'b']);
     expect(result.canExecute).toBe(false);
@@ -80,7 +91,7 @@ describe('mapActionForm', () => {
       { name: 'b', type: 'Number', value: 0, isRequired: true },
     ]);
 
-    const result = mapActionForm(action, [], []);
+    const result = mapForm(action, [], []);
 
     expect(result.requiredFields).toEqual([]);
     expect(result.canExecute).toBe(true);
@@ -90,7 +101,7 @@ describe('mapActionForm', () => {
     const layout = [{ component: 'page', elements: [] }] as never;
     const action = actionWith([]);
 
-    const result = mapActionForm(action, ['ghost'], layout);
+    const result = mapForm(action, ['ghost'], layout);
 
     expect(result.skippedFields).toEqual(['ghost']);
     expect(result.layout).toEqual([{ component: 'page', elements: [] }]);
@@ -104,7 +115,7 @@ describe('mapActionForm', () => {
       },
     ] as never;
 
-    const result = mapActionForm(actionWith([]), [], layout);
+    const result = mapForm(actionWith([]), [], layout);
 
     expect(result.layout).toEqual([
       { component: 'htmlBlock', content: '<p>Safe <b>markup</b></p>' },
@@ -119,10 +130,18 @@ describe('mapActionForm', () => {
       },
     ] as never;
 
-    const result = mapActionForm(actionWith([]), [], layout);
+    const result = mapForm(actionWith([]), [], layout);
 
     expect(result.layout).toEqual([
       { component: 'page', elements: [{ component: 'htmlBlock', content: '<i>ok</i>' }] },
+    ]);
+  });
+
+  it('empties an htmlBlock whose content is not a string', () => {
+    const layout = [{ component: 'htmlBlock', content: { evil: 1 } }] as never;
+
+    expect(mapForm(actionWith([]), [], layout).layout).toEqual([
+      { component: 'htmlBlock', content: '' },
     ]);
   });
 
@@ -134,7 +153,7 @@ describe('mapActionForm', () => {
       },
     ] as never;
 
-    const result = mapActionForm(actionWith([]), [], layout);
+    const result = mapForm(actionWith([]), [], layout);
 
     expect(result.layout).toEqual([
       {
@@ -153,7 +172,7 @@ describe('mapActionForm', () => {
       },
     ] as never;
 
-    const result = mapActionForm(actionWith([]), [], layout);
+    const result = mapForm(actionWith([]), [], layout);
 
     expect(result.layout).toEqual([{ component: 'htmlBlock', content: '<div>x</div>' }]);
   });
@@ -161,7 +180,7 @@ describe('mapActionForm', () => {
   it('leaves a malformed layout element untouched instead of throwing', () => {
     const layout = [null, { component: 'page', elements: 'nope' }] as never;
 
-    const result = mapActionForm(actionWith([]), [], layout);
+    const result = mapForm(actionWith([]), [], layout);
 
     expect(result.layout).toEqual([null, { component: 'page', elements: 'nope' }]);
   });
@@ -169,7 +188,7 @@ describe('mapActionForm', () => {
   it('empties an htmlBlock whose content is entirely active markup', () => {
     const layout = [{ component: 'htmlBlock', content: '<script>alert(1)</script>' }] as never;
 
-    const result = mapActionForm(actionWith([]), [], layout);
+    const result = mapForm(actionWith([]), [], layout);
 
     expect(result.layout).toEqual([{ component: 'htmlBlock', content: '' }]);
   });

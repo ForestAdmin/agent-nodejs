@@ -1,3 +1,5 @@
+import type { Logger } from '../ports/logger-port';
+
 import sanitizeActionHtml from './sanitize-action-html';
 
 export interface ActionExecuteSuccessBody {
@@ -65,7 +67,7 @@ function isRefresh(value: unknown): value is { relationships: unknown[] } {
 // untyped at the BFF boundary (`Action.execute(): Promise<unknown>`), so we discriminate on the
 // agent HTTP payload shape. A File result streams a binary with no JSON marker, so any unrecognized
 // 200 body falls through to a structured 501 rather than being mislabelled.
-export function mapActionExecuteResult(raw: unknown): ActionExecuteMapped {
+export function mapActionExecuteResult(raw: unknown, logger: Logger): ActionExecuteMapped {
   const body = (typeof raw === 'object' && raw !== null ? raw : {}) as Record<string, unknown>;
 
   // Each branch validates the value shape, not just key presence: a malformed payload
@@ -92,7 +94,7 @@ export function mapActionExecuteResult(raw: unknown): ActionExecuteMapped {
         type: 'success',
         message: typeof body.success === 'string' ? body.success : null,
         invalidated: relationships.filter((name): name is string => typeof name === 'string'),
-        html: sanitizeActionHtml(body.html),
+        html: sanitizeActionHtml(body.html, logger),
       },
     };
   }

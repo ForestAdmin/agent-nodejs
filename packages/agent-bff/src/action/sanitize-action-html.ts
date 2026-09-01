@@ -1,6 +1,9 @@
+import type { Logger } from '../ports/logger-port';
 import type { ForestServerActionFormLayoutElement } from '@forestadmin/forestadmin-client';
 
 import sanitizeHtml from 'sanitize-html';
+
+const MAX_HTML_CHARACTERS = 256 * 1024;
 
 const SAFE_STYLE_VALUE = /^[^;{}()]*$/;
 
@@ -52,24 +55,42 @@ const OPTIONS: sanitizeHtml.IOptions = {
   },
 };
 
-function sanitize(html: unknown): string {
-  return typeof html === 'string' ? sanitizeHtml(html, OPTIONS) : '';
+function sanitize(html: unknown, logger: Logger): string {
+  if (typeof html !== 'string') return '';
+
+  if (html.length > MAX_HTML_CHARACTERS) {
+    logger('Warn', 'Action html dropped: longer than the sanitizable size', {
+      characters: html.length,
+      limit: MAX_HTML_CHARACTERS,
+    });
+
+    return '';
+  }
+
+  try {
+    return sanitizeHtml(html, OPTIONS);
+  } catch (error) {
+    logger('Error', 'Action html dropped: sanitization failed', { cause: String(error) });
+
+    return '';
+  }
 }
 
-export default function sanitizeActionHtml(html: unknown): string | null {
-  return sanitize(html) || null;
+export default function sanitizeActionHtml(html: unknown, logger: Logger): string | null {
+  return sanitize(html, logger) || null;
 }
 
 export function sanitizeActionLayout(
   layout: ForestServerActionFormLayoutElement[],
+  logger: Logger,
 ): ForestServerActionFormLayoutElement[] {
   return layout.map(element => {
     if (element?.component === 'htmlBlock') {
-      return { ...element, content: sanitize(element.content) };
+      return { ...element, content: sanitize(element.content, logger) };
     }
 
     if (element?.component === 'page' && Array.isArray(element.elements)) {
-      return { ...element, elements: sanitizeActionLayout(element.elements) };
+      return { ...element, elements: sanitizeActionLayout(element.elements, logger) };
     }
 
     return element;

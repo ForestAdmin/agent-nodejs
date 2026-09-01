@@ -1,4 +1,5 @@
 import type { ActionForm } from './agent-action-client';
+import type { Logger } from '../ports/logger-port';
 import type { ForestServerActionFormLayoutElement } from '@forestadmin/forestadmin-client';
 
 import { sanitizeActionLayout } from './sanitize-action-html';
@@ -28,6 +29,7 @@ export function mapActionForm(
   action: ActionForm,
   skippedFields: string[],
   layout: ForestServerActionFormLayoutElement[],
+  logger: Logger,
 ): ActionFormResponse {
   const fields = action.getFields();
 
@@ -55,6 +57,6 @@ export function mapActionForm(
     canExecute: requiredFields.length === 0,
     requiredFields,
     skippedFields,
-    layout: sanitizeActionLayout(layout),
+    layout: sanitizeActionLayout(layout, logger),
   };
 }
