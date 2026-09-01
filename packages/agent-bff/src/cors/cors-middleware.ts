@@ -1,6 +1,6 @@
 import type { Middleware } from 'koa';
 
-import { hasOrigin, originAllowed } from './origin';
+import { originAllowed } from './origin';
 
 export const ALLOWED_METHODS = 'GET, POST, PUT, PATCH, DELETE, OPTIONS';
 export const ALLOWED_HEADERS =
@@ -17,9 +17,9 @@ export default function createCorsMiddleware({
   return async function corsMiddleware(ctx, next) {
     const origin = ctx.get('Origin');
 
-    if (hasOrigin(origin)) ctx.vary('Origin');
+    if (origin) ctx.vary('Origin');
 
-    const allowed = hasOrigin(origin) && originAllowed(origin, allowedOrigins);
+    const allowed = origin ? originAllowed(origin, allowedOrigins) : false;
 
     if (allowed) ctx.set('Access-Control-Allow-Origin', origin);
 

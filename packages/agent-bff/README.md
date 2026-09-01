@@ -146,7 +146,8 @@ normalized away, no trailing slash, no wildcard, no subdomain matching):
   `403 origin_not_allowed`. A request with no `Origin` at all — a server-side client such as curl,
   a Node backend or CI, an empty header counting as none — passes: there the API key is the
   boundary, not the origin. An opaque `Origin: null` (sandboxed iframe, cross-origin redirect) is a
-  present origin and is rejected. An empty per-key list is a no-op.
+  present origin and is rejected. An empty per-key list is a no-op. The OpenAPI document says the
+  same on the `bffApiKey` security scheme, so a consumer reading the document alone learns it too.
 
 **Local development:** browsers still enforce CORS against `localhost`, so add your dev origin(s) to
 `BFF_ALLOWED_ORIGINS` (e.g. `BFF_ALLOWED_ORIGINS=http://localhost:4200`) — there is no dev bypass.

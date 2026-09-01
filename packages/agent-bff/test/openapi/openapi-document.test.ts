@@ -197,6 +197,15 @@ describe('generateOpenApiDocument', () => {
     expect(session.description).toContain('every data and action route');
   });
 
+  it('should say in the api key scheme that allowedOrigins gates browsers only', () => {
+    const apiKey = (document.components?.securitySchemes as Record<string, { description: string }>)
+      .bffApiKey;
+
+    expect(apiKey.description).toContain('restricts browser callers only');
+    expect(apiKey.description).toContain('a request with no Origin at all');
+    expect(apiKey.description).toContain('opaque Origin null is a present origin and is rejected');
+  });
+
   it('should require a body where parentId or recordIds is mandatory', () => {
     const requiredByPath = Object.fromEntries(
       Object.entries(document.paths ?? {})

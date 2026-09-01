@@ -1,5 +1,5 @@
-export function hasOrigin(raw: string): boolean {
-  return raw !== '';
+export function hasOrigin(raw: string | undefined | null): boolean {
+  return raw !== undefined && raw !== null && raw.trim() !== '';
 }
 
 export function normalizeOrigin(raw: string | undefined | null): string | null {

@@ -401,7 +401,12 @@ export function generateOpenApiDocument(
     type: 'apiKey',
     in: 'header',
     name: 'X-Forest-Bff-Key',
-    description: 'Mode 2: a BFF API key. Never send both this and an Authorization header.',
+    description:
+      'Mode 2: a BFF API key. Never send both this and an Authorization header. A key created ' +
+      'with allowedOrigins restricts browser callers only: an Origin the client sends must be in ' +
+      'that list, else 403 origin_not_allowed, while a request with no Origin at all — curl, a ' +
+      'server-side client, CI — passes, because there the key is the boundary rather than the ' +
+      'origin. The opaque Origin null is a present origin and is rejected.',
   });
 
   registry.registerPath({
