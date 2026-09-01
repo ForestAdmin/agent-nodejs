@@ -42,6 +42,19 @@ describe('mapActionExecuteResult', () => {
     });
   });
 
+  it('maps an html that is entirely active markup to null rather than an empty string', () => {
+    expect(
+      mapActionExecuteResult({
+        success: 'ok',
+        html: '<script>alert(1)</script>',
+        refresh: { relationships: [] },
+      }),
+    ).toEqual({
+      status: 200,
+      body: { type: 'success', message: 'ok', invalidated: [], html: null },
+    });
+  });
+
   it('maps a non-string html to null instead of relaying or crashing on it', () => {
     expect(
       mapActionExecuteResult({ success: 'ok', html: 42, refresh: { relationships: [] } }),

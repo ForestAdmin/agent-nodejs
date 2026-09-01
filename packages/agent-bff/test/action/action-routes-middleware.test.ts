@@ -690,6 +690,23 @@ describe('action execute', () => {
     });
   });
 
+  it('omits details when the action Error html is entirely active markup', async () => {
+    const form = makeAction({
+      execute: jest.fn(async () => {
+        throw new ActionFormValidationError('Refund failed', '<script>alert(1)</script>');
+      }),
+    });
+
+    const response = await request(execApp(clientOf(form)).callback())
+      .post('/agent/v1/users/actions/approve/execute')
+      .send({ recordIds: ['42'] });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      error: { type: 'action_error', status: 400, message: 'Refund failed' },
+    });
+  });
+
   it('omits details when the action Error html is not a string', async () => {
     const form = makeAction({
       execute: jest.fn(async () => {
