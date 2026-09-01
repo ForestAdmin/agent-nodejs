@@ -519,4 +519,75 @@ describe('embedded BFF', () => {
       BOOT_TIMEOUT_MS,
     );
   });
+
+  describe('the host registration order', () => {
+    async function startAgentOn(hostApp: express.Express, mountFirst: boolean) {
+      const orderAgent = new Agent({
+        authSecret: AUTH_SECRET,
+        envSecret: ENV_SECRET,
+        forestServerUrl: 'https://api.forestadmin.com',
+        forestAppUrl: 'https://hostApp.forestadmin.com',
+        isProduction: false,
+        schemaPath: path.join(tmpdir(), `.forestadmin-schema-bff-order-${Date.now()}.json`),
+        logger: () => undefined,
+      })
+        .addDataSource(async () => new SearchDataSource())
+        .addBff({});
+
+      if (mountFirst) orderAgent.mountOnExpress(hostApp);
+      hostApp.use(express.json());
+      if (!mountFirst) orderAgent.mountOnExpress(hostApp);
+
+      await orderAgent.start();
+
+      return orderAgent;
+    }
+
+    function listBooks(hostApp: express.Express) {
+      return supertest(hostApp)
+        .post('/bff/agent/v1/books/list')
+        .set('Authorization', `Bearer ${sessionToken()}`)
+        .set('X-Forest-Timezone', 'Europe/Paris')
+        .send({ projection: ['id', 'title'], search: 'foundation' });
+    }
+
+    it(
+      'should serve normally when the agent is mounted before the host body parser',
+      async () => {
+        const hostApp = express();
+        const orderAgent = await startAgentOn(hostApp, true);
+
+        try {
+          const response = await listBooks(hostApp);
+
+          expect(response.status).toBe(200);
+          expect(response.body.data).toHaveLength(1);
+        } finally {
+          await orderAgent.stop();
+        }
+      },
+      BOOT_TIMEOUT_MS,
+    );
+
+    // Pinned rather than fixed: a body parser that ran first has already consumed the stream, and
+    // nothing downstream can put it back. Failing loudly beats serving a request whose filters,
+    // projection and search silently went missing.
+    it(
+      'should fail loudly when a host body parser consumed the stream first',
+      async () => {
+        const hostApp = express();
+        const orderAgent = await startAgentOn(hostApp, false);
+
+        try {
+          const response = await listBooks(hostApp);
+
+          expect(response.status).toBe(500);
+          expect(response.body.error).toMatchObject({ type: 'stream.not.readable' });
+        } finally {
+          await orderAgent.stop();
+        }
+      },
+      BOOT_TIMEOUT_MS,
+    );
+  });
 });

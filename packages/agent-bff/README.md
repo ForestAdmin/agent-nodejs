@@ -31,6 +31,9 @@ dropped collection reachable.
 
 ## Usage
 
+Two ways to run it: embedded in a Forest agent (`agent.addBff()`, see
+[Embedded in an agent](#embedded-in-an-agent)) or standalone, described here.
+
 Packaged / production — run the bin:
 
 ```bash
@@ -206,11 +209,69 @@ with `session_expired`. Horizontal scaling requires both a shared session store 
 
 ```jsonc
 // 200 — all required config present
-{ "status": "ok", "version": "<package version>" }
+{
+  "status": "ok",
+  "version": "<package version>",
+  "features": { "oauth": true, "ai": true, "cors": true, "openapi": true }
+}
 // 503 — one or more required keys missing
-{ "status": "degraded", "version": "<package version>" }
+{ "status": "degraded", "version": "<package version>", "features": { /* … */ } }
 ```
 
-The body never discloses which config keys are present or missing — that would leak the internal
-config surface to an unauthenticated probe. Missing keys are logged once at startup (`Warn`) for
-operators. Every response carries the `X-Forest-Bff-Version` header, read from `package.json`.
+`features` says what this deployment actually serves. They form a chain, not four independent
+switches:
+
+| Feature | Switched on by |
+| --- | --- |
+| `oauth` | `BFF_TOKEN_ENCRYPTION_KEY` (`tokenEncryptionKey` when embedded) |
+| `ai` | `oauth` — the relay needs a session, and only the OAuth flow creates one |
+| `cors` | a non-empty `BFF_ALLOWED_ORIGINS` (`allowedOrigins`) |
+| `openapi` | `BFF_OPENAPI_ENABLED` (`openapiEnabled`), and a mounted agent edge |
+
+The body still never discloses which config *keys* are present or missing — that would leak the
+internal config surface to an unauthenticated probe. It reports what is served, not how it was
+configured. Missing keys are logged once at startup (`Warn`) for operators. Every response carries
+the `X-Forest-Bff-Version` header, read from `package.json`.
+
+## Embedded in an agent
+
+The same BFF runs inside a Forest agent, with no second deployment and no second port:
+
+```ts
+createAgent(options)
+  .addDataSource(/* … */)
+  .addBff({ allowedOrigins: ['https://my-app.com'] })
+  .start();
+```
+
+It answers under `/bff` on the agent's own port — `/bff/agent/v1/{collection}/list`,
+`/bff/health`, `/bff/oauth/*` — so the REST contract is the one documented above and only the base
+url changes. A client generated from the OpenAPI document stays portable: the document's `servers`
+entry carries the prefix.
+
+What differs from the standalone deployment:
+
+| | Standalone | Embedded |
+| --- | --- | --- |
+| Configuration | environment variables | `addBff()` options; the secrets, the Forest urls and the logger are inherited from the agent and cannot be overridden |
+| `AGENT_URL` | required, an http(s) url | gone — the BFF reaches the agent in the same process, without a socket |
+| `HTTP_PORT` | its own listener | gone — the agent's port serves it |
+| `openapiEnabled` | `true` | `false`. The document is not filtered per caller, so adding a BFF must not silently publish every collection and field name on an already-open port |
+| `/health` | 503 until every required key is set | always 200: everything required is inherited, so there is no gap to report. Read `features` |
+
+**Registration order matters on Express and Connect-style hosts.** Mount the agent *before* any
+body parser of your own:
+
+```ts
+const app = express();
+agent.mountOnExpress(app);  // first
+app.use(express.json());    // then yours
+```
+
+A body parser that runs first has already consumed the request stream, and nothing downstream can
+put it back: every BFF `POST` then answers `500 stream.not.readable`. The same applies to a
+permissive `cors()` registered ahead of the mount — it answers the preflight itself, and the BFF's
+strict allow-list never gets a say.
+
+When to prefer which: embedded for a single deployment, which is most of them. Standalone when
+several agents share one BFF, or when the BFF and the agent have to scale separately.
