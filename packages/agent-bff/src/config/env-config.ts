@@ -87,13 +87,15 @@ export function parsePublicUrl(raw?: string): string | undefined {
     );
   }
 
-  if (/^https?:\/\/[^/?#]*@/.test(value)) {
+  const url = new URL(value);
+
+  if (url.username !== '' || url.password !== '') {
     throw new ConfigurationError(
       'Invalid configuration: BFF_PUBLIC_URL must not carry credentials.',
     );
   }
 
-  return value.replace(/\/+$/, '');
+  return url.href.replace(/\/+$/, '');
 }
 
 function isValidEncryptionKey(value: string): boolean {

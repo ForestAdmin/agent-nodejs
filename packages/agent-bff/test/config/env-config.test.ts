@@ -348,6 +348,9 @@ describe('parseConfig', () => {
         parseConfig({ ...VALID_ENV, BFF_PUBLIC_URL: 'https://bff.example.com/' }).publicUrl,
       ).toBe('https://bff.example.com');
       expect(
+        parseConfig({ ...VALID_ENV, BFF_PUBLIC_URL: 'HTTPS://BFF.Example.COM' }).publicUrl,
+      ).toBe('https://bff.example.com');
+      expect(
         parseConfig({ ...VALID_ENV, BFF_PUBLIC_URL: 'https://bff.example.com/bff//' }).publicUrl,
       ).toBe('https://bff.example.com/bff');
     });
@@ -381,7 +384,14 @@ describe('parseConfig', () => {
       },
     );
 
-    it.each(['https://user:password@bff.example.com', 'https://user@bff.example.com'])(
+    it.each([
+      'https://user:password@bff.example.com',
+      'https://user@bff.example.com',
+      'HTTPS://user:password@bff.example.com',
+      'https:/user:password@bff.example.com',
+      'https:user:password@bff.example.com',
+      String.raw`https:\\user:password@bff.example.com`,
+    ])(
       'should reject the credentials in %j, which every reader of the document would receive',
       value => {
         expect(() => parseConfig({ ...VALID_ENV, BFF_PUBLIC_URL: value })).toThrow(
