@@ -47,7 +47,7 @@ export default class ReadRecordStepExecutor extends RecordStepExecutor<ReadRecor
       // A pinned name that no longer resolves is a workflow edit, as it is on Update Data; only a
       // name the AI chose is the AI's own miss.
       if (pinnedFieldNames) {
-        throw new FieldNotFoundError(pinnedFieldNames[0], schema.collectionName);
+        throw new FieldNotFoundError(pinnedFieldNames.join('", "'), schema.collectionName);
       }
 
       throw new NoResolvedFieldsError(selectedFields.map(s => s.requested));

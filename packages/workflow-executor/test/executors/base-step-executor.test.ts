@@ -25,6 +25,7 @@ import {
   MissingToolCallError,
   NoRecordsError,
   RunStorePortError,
+  SourceRecordMissingError,
   StepStateError,
 } from '../../src/errors';
 import ActivityLog from '../../src/executors/activity-log';
@@ -50,6 +51,7 @@ class TestableExecutor extends BaseStepExecutor {
     status: BaseStepStatus;
     error?: string;
     errorKind?: ErrorKind;
+    errorSourceStepIndex?: number;
   }): StepExecutionResult {
     return {
       stepOutcome: {
@@ -59,6 +61,9 @@ class TestableExecutor extends BaseStepExecutor {
         status: outcome.status,
         ...(outcome.error !== undefined && { error: outcome.error }),
         ...(outcome.errorKind !== undefined && { errorKind: outcome.errorKind }),
+        ...(outcome.errorSourceStepIndex !== undefined && {
+          errorSourceStepIndex: outcome.errorSourceStepIndex,
+        }),
       },
     };
   }
@@ -420,6 +425,22 @@ describe('BaseStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe('No records available');
+      expect(result.stepOutcome.errorKind).toBe('operator');
+    });
+
+    // Index 0 is a real source step, so the boundary cannot presence-check it by truthiness.
+    it('carries a source step index of 0 onto the outcome', async () => {
+      const executor = new TestableExecutor(
+        makeContext(),
+        new SourceRecordMissingError('Load the order', {
+          errorKind: 'operator',
+          errorSourceStepIndex: 0,
+        }),
+      );
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.errorSourceStepIndex).toBe(0);
       expect(result.stepOutcome.errorKind).toBe('operator');
     });
 

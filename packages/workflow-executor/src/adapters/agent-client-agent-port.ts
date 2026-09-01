@@ -19,6 +19,7 @@ import type { RecordData } from '../types/validated/collection';
 import type { ActionEndpointsByCollection, SelectOptions } from '@forestadmin/agent-client';
 
 import {
+  AgentHttpError,
   ActionFormValidationError as ClientActionFormValidationError,
   ActionRequiresApprovalError as ClientActionRequiresApprovalError,
   ApprovalRequestCreationError as ClientApprovalRequestCreationError,
@@ -97,6 +98,14 @@ function toAllowedValue(option: unknown): { value: string | number | null; label
   }
 
   return { value: option as string | number, label: String(option) };
+}
+
+// setFields refuses a value two ways: an unknown field, or the change-hook request it makes
+// answering 4xx. A 5xx or a dead socket is the agent faltering, and blaming the form would misdirect.
+function isRejectedFormValue(cause: unknown): boolean {
+  if (cause instanceof UnknownActionFieldError) return true;
+
+  return cause instanceof AgentHttpError && cause.status >= 400 && cause.status < 500;
 }
 
 export default class AgentClientAgentPort implements AgentPort {
@@ -259,14 +268,10 @@ export default class AgentClientAgentPort implements AgentPort {
       const act = await client.collection(collection).action(action, { recordIds });
 
       if (values) {
-        // An unknown field is a config/drift problem, surfaced rather than silently skipped. Anything
-        // else comes from the change-hook request setFields makes: transport, not a rejected form.
         try {
           await act.setFields(values);
         } catch (cause) {
-          if (cause instanceof UnknownActionFieldError) {
-            throw new ActionFormValidationError(action, cause);
-          }
+          if (isRejectedFormValue(cause)) throw new ActionFormValidationError(action, cause);
 
           throw cause;
         }
