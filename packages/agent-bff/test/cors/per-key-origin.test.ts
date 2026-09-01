@@ -89,15 +89,6 @@ describe('per-key origin middleware (layer 2)', () => {
     expectOriginForbidden(response);
   });
 
-  it('treats a whitespace-only Origin header like an absent one and proceeds', async () => {
-    const response = await request(buildApp(['https://a.com']).callback())
-      .get('/agent/x')
-      .set('Origin', '   ');
-
-    expect(response.status).toBe(200);
-    expect(response.body).toEqual({ reached: true });
-  });
-
   it('treats an empty Origin header like an absent one and proceeds', async () => {
     const response = await request(buildApp(['https://a.com']).callback())
       .get('/agent/x')

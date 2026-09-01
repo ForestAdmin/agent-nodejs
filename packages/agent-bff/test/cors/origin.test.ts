@@ -14,6 +14,12 @@ describe('hasOrigin', () => {
     expect(hasOrigin('null')).toBe(true);
     expect(hasOrigin('not a url')).toBe(true);
   });
+
+  it('is false for blank or absent input, the same contract normalizeOrigin takes', () => {
+    expect(hasOrigin('   ')).toBe(false);
+    expect(hasOrigin(undefined)).toBe(false);
+    expect(hasOrigin(null)).toBe(false);
+  });
 });
 
 describe('normalizeOrigin', () => {
