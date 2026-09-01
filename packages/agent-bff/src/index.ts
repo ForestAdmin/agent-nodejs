@@ -3,6 +3,15 @@ export { parseConfig, REQUIRED_KEYS } from './config/env-config';
 export type { BFFConfig, PresenceMap, RequiredKey } from './config/env-config';
 export { default as runCli } from './cli-core';
 export { default as buildBff } from './build-bff';
+export {
+  default as createInProcessTransport,
+  IN_PROCESS_AGENT_URL,
+} from './agent/in-process-transport';
+export type {
+  AgentDispatcher,
+  AgentDispatchRequest,
+  AgentDispatchResponse,
+} from './agent/in-process-transport';
 export type { Bff, BuildBffOptions, BffCallback } from './build-bff';
 export { ConfigurationError } from './errors';
 export { default as DEFAULT_BFF_PORT } from './defaults';

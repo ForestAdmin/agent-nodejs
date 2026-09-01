@@ -1,3 +1,5 @@
+import type { AgentTransport } from './agent/agent-transport';
+import type { AgentDispatcher } from './agent/in-process-transport';
 import type { BFFConfig } from './config/env-config';
 import type { EnvironmentIdResolver } from './oauth/environment-id';
 import type { SessionStore } from './oauth/session-store';
@@ -15,6 +17,7 @@ import createActionRoutesMiddleware from './action/action-routes-middleware';
 import createConsoleLogger from './adapters/console-logger';
 import createAgentStubMiddleware from './agent/agent-stub';
 import { createHttpTransport } from './agent/agent-transport';
+import createInProcessTransport from './agent/in-process-transport';
 import AiProxyClient from './ai/ai-proxy-client';
 import createAiRoutesMiddleware, { AI_QUERY_ROUTE } from './ai/ai-routes-middleware';
 import createApiKeyAuthenticator from './api-key/api-key-authenticator';
@@ -64,6 +67,11 @@ export interface BuildBffOptions {
    * origin root. Normalized by `normalizeBasePath`, which throws on anything else.
    */
   basePath?: string;
+  /**
+   * Reaches an agent living in the same process, without a socket. When set, it replaces the HTTP
+   * transport entirely: `AGENT_URL` then only names where the agent answers, never how it is called.
+   */
+  dispatcher?: AgentDispatcher;
 }
 
 export interface Bff {
@@ -263,6 +271,23 @@ function resolveReadModelBundle(
 }
 
 /**
+ * How this deployment reaches the agent: in-process when a dispatcher was handed over, over HTTP
+ * when an AGENT_URL was configured, and not at all otherwise — which is what makes the data and
+ * action routes fall back to their stub.
+ */
+function resolveTransport(
+  config: BFFConfig,
+  dispatcher: AgentDispatcher | undefined,
+): AgentTransport | undefined {
+  const timeoutMs = config.agentTimeoutMs;
+
+  if (dispatcher) return createInProcessTransport({ dispatcher, timeoutMs });
+  if (config.agentUrl) return createHttpTransport({ agentUrl: config.agentUrl, timeoutMs });
+
+  return undefined;
+}
+
+/**
  * When unfolding is possible, in ONE place: the document needs the AGENT_URL the store does not,
  * because a collection's field set comes from the agent capabilities. The server passes the bundle it
  * already built for the data routes; the CLI goes through `resolveUnfoldSource`. Silent on purpose —
@@ -270,19 +295,12 @@ function resolveReadModelBundle(
  */
 function toUnfoldSource(
   bundle: ReadModelBundle | undefined,
-  config: BFFConfig,
+  transport: AgentTransport | undefined,
   logger: Logger,
 ): UnfoldSource | undefined {
-  if (!bundle || !config.agentUrl) return undefined;
+  if (!bundle || !transport) return undefined;
 
-  return {
-    store: bundle.store,
-    transport: createHttpTransport({
-      agentUrl: config.agentUrl,
-      timeoutMs: config.agentTimeoutMs,
-    }),
-    logger,
-  };
+  return { store: bundle.store, transport, logger };
 }
 
 /**
@@ -294,13 +312,17 @@ function toUnfoldSource(
 const UNMEASURED: Metrics = { increment: () => undefined, gauge: () => undefined };
 
 export function resolveUnfoldSource(config: BFFConfig, logger: Logger): UnfoldSource | undefined {
-  return toUnfoldSource(resolveReadModelBundle(config, logger, UNMEASURED), config, logger);
+  return toUnfoldSource(
+    resolveReadModelBundle(config, logger, UNMEASURED),
+    resolveTransport(config, undefined),
+    logger,
+  );
 }
 
 // The data middleware falls through to the action middleware on a non-data path.
 function buildAgentRouteMiddlewares(
   bundle: ReadModelBundle | undefined,
-  config: BFFConfig,
+  transport: AgentTransport | undefined,
   logger: Logger,
   permissionsCache: PermissionsCache,
 ): Middleware[] {
@@ -314,7 +336,6 @@ function buildAgentRouteMiddlewares(
   }
 
   const { store, apiKeyConfig } = bundle;
-  const { agentUrl, agentTimeoutMs: timeoutMs } = config;
 
   const permissionsMiddleware = createPermissionsRoutesMiddleware({
     store,
@@ -326,13 +347,11 @@ function buildAgentRouteMiddlewares(
     logger,
   });
 
-  if (!agentUrl) {
+  if (!transport) {
     logger('Warn', 'Data and action endpoints disabled: AGENT_URL is missing');
 
     return [permissionsMiddleware, createAgentStubMiddleware()];
   }
-
-  const transport = createHttpTransport({ agentUrl, timeoutMs });
 
   return [
     permissionsMiddleware,
@@ -377,6 +396,7 @@ function buildAgentMiddlewares(
   oauth: OAuthEdge,
   aiMiddlewares: Middleware[],
   basePath: string,
+  transport: AgentTransport | undefined,
 ): AgentEdge {
   const { forestAuthSecret, defaultTimezone } = config;
 
@@ -390,7 +410,7 @@ function buildAgentMiddlewares(
   // One store for the whole edge. The document only unfolds when the agent is reachable too: with no
   // AGENT_URL every data path answers 501, so concrete paths would advertise a dead surface.
   const bundle = resolveReadModelBundle(config, logger);
-  const source = toUnfoldSource(bundle, config, logger);
+  const source = toUnfoldSource(bundle, transport, logger);
   const permissionsCache = new PermissionsCache();
 
   const chain: Middleware[] = [
@@ -416,7 +436,7 @@ function buildAgentMiddlewares(
       : []),
     ...aiMiddlewares,
     createTimezoneMiddleware({ defaultTimezone }),
-    ...buildAgentRouteMiddlewares(bundle, config, logger, permissionsCache),
+    ...buildAgentRouteMiddlewares(bundle, transport, logger, permissionsCache),
   ];
 
   return {
@@ -442,6 +462,7 @@ export default async function buildBff({
   config,
   logger = createConsoleLogger(),
   basePath,
+  dispatcher,
 }: BuildBffOptions): Promise<Bff> {
   // Before anything is assembled: a mount the host does not serve must fail at boot, not surface as
   // a docs page that cannot load itself.
@@ -455,16 +476,42 @@ export default async function buildBff({
 
   warnMissingConfig(config, logger);
 
+  if (config.allowedOrigins.length === 0) {
+    logger(
+      'Warn',
+      'No allowed origin: no browser can call this BFF. Set BFF_ALLOWED_ORIGINS, or `allowedOrigins`.',
+    );
+  }
+
+  const transport = resolveTransport(config, dispatcher);
   const oauth = buildOAuthMiddlewares(config, logger);
   const aiMiddlewares = buildAiMiddlewares(config, oauth, logger);
-  const agentEdge = buildAgentMiddlewares(config, logger, oauth, aiMiddlewares, mountPath);
+  const agentEdge = buildAgentMiddlewares(
+    config,
+    logger,
+    oauth,
+    aiMiddlewares,
+    mountPath,
+    transport,
+  );
   const agentMiddlewares = agentEdge.middlewares;
   const agentErrorMiddleware =
     agentMiddlewares.length > 0 ? [agentScoped(createErrorMiddleware({ logger }))] : [];
 
   const middlewares = [
     createVersionHeaderMiddleware(version),
-    createHealthRoute({ config, version }),
+    createHealthRoute({
+      version,
+      // Embedded, everything required is inherited from the agent, so there is no gap to report: a
+      // 503 here would let a load balancer restart a process that serves api-key traffic fine.
+      healthy: dispatcher !== undefined || config.hasAllRequired,
+      features: {
+        oauth: oauth.middlewares.length > 0,
+        ai: aiMiddlewares.length > 0,
+        cors: config.allowedOrigins.length > 0,
+        openapi: config.openapiEnabled && agentMiddlewares.length > 0,
+      },
+    }),
     createCorsMiddleware({ allowedOrigins: config.allowedOrigins }),
     ...agentErrorMiddleware,
     createBodyParser(aiMiddlewares.length > 0),

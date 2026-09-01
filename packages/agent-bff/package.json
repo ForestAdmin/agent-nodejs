@@ -42,8 +42,6 @@
     "zod": "4.3.6"
   },
   "devDependencies": {
-    "@forestadmin/agent": "1.98.5",
-    "@forestadmin/agent-testing": "1.2.9",
     "@hey-api/openapi-ts": "0.99.0",
     "@redocly/cli": "2.35.1",
     "@types/jsonwebtoken": "^9.0.1",

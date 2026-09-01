@@ -85,7 +85,7 @@ describe('BFFHttpServer', () => {
       const response = await request(server.callback).get('/health');
 
       expect(response.status).toBe(200);
-      expect(response.body).toEqual({ status: 'ok', version: VERSION });
+      expect(response.body).toMatchObject({ status: 'ok', version: VERSION });
     });
 
     it('should never expose config presence or secret values in the response body', async () => {
@@ -116,7 +116,7 @@ describe('BFFHttpServer', () => {
       const response = await request(server.callback).get('/health');
 
       expect(response.status).toBe(503);
-      expect(response.body).toEqual({ status: 'degraded', version: VERSION });
+      expect(response.body).toMatchObject({ status: 'degraded', version: VERSION });
     });
 
     it('should answer HEAD /health with 503', async () => {

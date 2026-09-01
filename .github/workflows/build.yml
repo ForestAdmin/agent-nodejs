@@ -153,7 +153,7 @@ jobs:
   # Boots a real agent on a local HTTP port, so it stays out of the unit job. Unlike the LLM suite
   # it reaches no third party and is deterministic, hence no continue-on-error: it must gate.
   bff-integration-tests:
-    name: BFF Integration Tests (agent-bff)
+    name: BFF Integration Tests (embedded BFF)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: [build]
@@ -177,7 +177,7 @@ jobs:
           key: ${{ runner.os }}-build-${{ github.sha }}
           fail-on-cache-miss: true
       - name: Run BFF integration tests
-        run: yarn workspace @forestadmin/agent-bff test --testPathPattern='search-agent.integration'
+        run: yarn workspace @forestadmin/agent test --testPathPattern='bff/embedded-bff.e2e'
 
   send-coverage:
     name: Send Coverage

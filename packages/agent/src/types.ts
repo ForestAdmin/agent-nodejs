@@ -139,6 +139,37 @@ export type WorkflowExecutorEmbedOptions = Omit<WorkflowExecutorTuningOptions, '
   encryptionKey?: string;
 };
 
+/**
+ * Options of an embedded BFF. Everything the BFF shares with the agent — the secrets, the Forest
+ * urls, the logger — is inherited rather than repeated: a divergent `authSecret` would make the
+ * agent reject the very tokens the BFF mints, as an opaque 401.
+ */
+export type BffEmbedOptions = {
+  /**
+   * Base64-encoded 32-byte AES-256 key encrypting stored refresh tokens. Enables OAuth (mode 1),
+   * and with it the AI relay. Absent, the BFF serves API-key callers only.
+   */
+  tokenEncryptionKey?: string;
+  /**
+   * Exact origins (scheme + host + port) allowed to call the BFF from a browser. No wildcard.
+   * Empty means no cross-origin browser access at all, which for a backend-for-frontend is
+   * almost always a mistake — the BFF warns about it at startup.
+   */
+  allowedOrigins?: string[];
+  /** Fallback IANA timezone for a request that carries none. */
+  defaultTimezone?: string;
+  /** How long a call to the agent may take. Defaults to 10s. */
+  agentTimeoutMs?: number;
+  /** How long the AI relay waits for the Forest server. Defaults to 120s. */
+  aiTimeoutMs?: number;
+  /**
+   * Serve `/bff/docs` and `/bff/agent/openapi.json`. Defaults to `false` when embedded: the
+   * document is not filtered per caller, so any authenticated caller reads the name of every
+   * exposed collection, relation and field.
+   */
+  openapiEnabled?: boolean;
+};
+
 // Runtime view of `auditTrail`: the validator has built the SQL store from the connection string.
 export type AuditTrailRuntime = AuditTrailConfig & {
   store: AuditStore;

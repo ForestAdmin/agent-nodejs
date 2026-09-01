@@ -5,7 +5,7 @@ import { HttpRequester } from '@forestadmin/agent-client';
 import { streamingUnsupported } from '../http/bff-local-errors';
 
 /** A sentinel that never reaches the network: `query` answers before any socket is opened. */
-const IN_PROCESS_URL = 'http://in-process.agent';
+export const IN_PROCESS_AGENT_URL = 'http://in-process.agent';
 
 export interface AgentDispatchRequest {
   method: 'get' | 'post' | 'put' | 'delete';
@@ -46,7 +46,7 @@ class InProcessRequester extends HttpRequester {
     private readonly dispatcher: AgentDispatcher,
     private readonly defaultTimeoutMs?: number,
   ) {
-    super(bearerToken, { url: IN_PROCESS_URL });
+    super(bearerToken, { url: IN_PROCESS_AGENT_URL });
   }
 
   // No socket to stream from, and nothing in the BFF streams today. A typed 501 rather than a raw
@@ -141,7 +141,7 @@ export default function createInProcessTransport({
   timeoutMs,
 }: InProcessTransportOptions): AgentTransport {
   return {
-    url: IN_PROCESS_URL,
+    url: IN_PROCESS_AGENT_URL,
     createRequester: token => new InProcessRequester(token, dispatcher, timeoutMs),
   };
 }
