@@ -110,6 +110,45 @@ describe('buildBff', () => {
     expect(response.status).toBe(401);
   });
 
+  describe('when the host serves the BFF under a prefix', () => {
+    it('should point the docs page at the prefixed document and bundle', async () => {
+      const { callback } = await buildBff({
+        config: parseConfig(VALID_ENV),
+        logger: noopLogger,
+        basePath: '/bff',
+      });
+
+      const response = await request(callback).get('/docs');
+
+      expect(response.status).toBe(200);
+      expect(response.text).toContain('/bff/agent/openapi.json');
+      expect(response.text).toContain('/bff/docs/redoc.standalone.js');
+    });
+
+    it('should leave the routes themselves unprefixed, since the host strips before dispatching', async () => {
+      const { callback } = await buildBff({
+        config: parseConfig(VALID_ENV),
+        logger: noopLogger,
+        basePath: '/bff',
+      });
+
+      const response = await request(callback).get('/health');
+
+      expect(response.status).toBe(200);
+    });
+  });
+
+  describe('when the BFF owns the origin root', () => {
+    it('should emit unprefixed asset paths', async () => {
+      const callback = await buildCallback(VALID_ENV);
+
+      const response = await request(callback).get('/docs');
+
+      expect(response.text).toContain('"/agent/openapi.json"');
+      expect(response.text).toContain('src="/docs/redoc.standalone.js"');
+    });
+  });
+
   describe('when BFF_ALLOWED_ORIGINS carries a malformed entry', () => {
     it('should warn once with the rejected entries', async () => {
       const logger = jest.fn();

@@ -100,6 +100,22 @@ describe('generateOpenApiDocument', () => {
       expect(server.variables).toBeUndefined();
     });
 
+    it('should carry the mount prefix, so a generated client targets the right base url', () => {
+      const [server] = generateOpenApiDocument('9.9.9', { basePath: '/bff' }).servers ?? [];
+
+      expect(server.url).toBe('/bff');
+    });
+
+    it('should prefer the configured public URL over the mount prefix', () => {
+      const [server] =
+        generateOpenApiDocument('9.9.9', {
+          publicUrl: 'https://bff.example.com',
+          basePath: '/bff',
+        }).servers ?? [];
+
+      expect(server.url).toBe('https://bff.example.com');
+    });
+
     it('should carry the public URL into the unfolded document too', () => {
       const unfolded = generateOpenApiDocument('9.9.9', {
         unfolding: { collections: [] },

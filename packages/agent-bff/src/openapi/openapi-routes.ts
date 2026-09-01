@@ -19,6 +19,8 @@ export interface OpenApiRoutesOptions {
   enabled: boolean;
   hasAiQueryRoute: boolean;
   publicUrl?: string;
+  /** Prefix the host serves the BFF under, so a generated client targets the right base url. */
+  basePath?: string;
   /** Absent (no agent or no read-model configuration) serves the generic document. */
   source?: UnfoldSource;
 }
@@ -29,10 +31,13 @@ export default function createOpenApiRoutes({
   source,
   hasAiQueryRoute,
   publicUrl,
+  basePath,
 }: OpenApiRoutesOptions): Middleware {
   const generic =
     enabled && !source
-      ? serializeOpenApi(generateOpenApiDocument(version, { hasAiQueryRoute, publicUrl }))
+      ? serializeOpenApi(
+          generateOpenApiDocument(version, { hasAiQueryRoute, publicUrl, basePath }),
+        )
       : undefined;
 
   // Memoized on the read-model identity: the store builds a new one per schema generation, so the
@@ -60,6 +65,7 @@ export default function createOpenApiRoutes({
       version,
       hasAiQueryRoute,
       publicUrl,
+      basePath,
     });
 
     // A schema refresh landing during the capabilities fan-out mixes the new generation's field sets

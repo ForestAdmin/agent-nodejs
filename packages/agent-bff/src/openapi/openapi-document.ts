@@ -562,13 +562,20 @@ const RELATIVE_SERVER_DESCRIPTION =
 export interface GenerateOpenApiDocumentOptions {
   unfolding?: Unfolding;
   hasAiQueryRoute?: boolean;
-  /** The deployment's own external base URL, from `BFF_PUBLIC_URL`. Absent falls back to `/`. */
+  /** The deployment's own external base URL, from `BFF_PUBLIC_URL`. Takes precedence. */
   publicUrl?: string;
+  /** Where the BFF answers from the caller's point of view. Empty when it owns the origin root. */
+  basePath?: string;
 }
 
 export function generateOpenApiDocument(
   version: string,
-  { unfolding, hasAiQueryRoute = false, publicUrl }: GenerateOpenApiDocumentOptions = {},
+  {
+    unfolding,
+    hasAiQueryRoute = false,
+    publicUrl,
+    basePath = '',
+  }: GenerateOpenApiDocumentOptions = {},
 ): OpenAPIObject {
   const registry = new OpenAPIRegistry();
   const hasActions =
@@ -688,7 +695,7 @@ export function generateOpenApiDocument(
     servers: [
       publicUrl
         ? { url: publicUrl, description: CONFIGURED_SERVER_DESCRIPTION }
-        : { url: '/', description: RELATIVE_SERVER_DESCRIPTION },
+        : { url: basePath || '/', description: RELATIVE_SERVER_DESCRIPTION },
     ],
   });
 }
