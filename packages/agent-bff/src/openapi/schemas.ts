@@ -293,7 +293,9 @@ const CrudHintsSchema = z
   .openapi('CrudHints', {
     description:
       'The six collection-level rights of the caller role, as Forest states them. `browse` false ' +
-      'does not remove the collection from this response, nor from the schema contract.',
+      'does not remove the collection from this response, nor from the schema contract. On a ' +
+      'development environment all six are true whatever the role, so an all-true block is not a ' +
+      'statement about the role.',
   });
 
 const ActionHintsSchema = z

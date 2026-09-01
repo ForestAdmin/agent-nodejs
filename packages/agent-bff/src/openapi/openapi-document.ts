@@ -44,7 +44,7 @@ const ERROR_STATUSES: Record<string, string> = {
   500: 'The agent payload could not be mapped to the BFF contract, or the BFF hit an unexpected error',
   501: 'The BFF is running without an agent configured, so the proxy is not implemented',
   502: 'The agent could not be reached',
-  503: 'The agent schema is unavailable, the agent returned a 5xx, or the API key could not be resolved',
+  503: 'The agent schema is unavailable, the agent returned a 5xx, the API key could not be resolved, or the Forest permissions could not be fetched and no fresh cache was left (type permissions_unavailable)',
 };
 
 const UNSUPPORTED_RESULT_DESCRIPTION =
@@ -60,7 +60,9 @@ const OPENAPI_DISABLED_COMPONENT = 'Error404OpenapiDisabled';
 
 const RETRY_AFTER_HEADER = {
   'Retry-After': {
-    description: 'Seconds to wait before retrying. Set when the API key could not be resolved.',
+    description:
+      'Seconds to wait before retrying. Set when the BFF could not reach the Forest server — an ' +
+      'unresolvable API key, or permissions it could not fetch.',
     required: false,
     schema: { type: 'integer' as const },
   },
@@ -71,6 +73,7 @@ type ResponseRef = { $ref: string };
 interface ErrorResponseRefs {
   byStatus: Record<string, ResponseRef>;
   unsupportedActionResult: ResponseRef;
+  openapiDisabled: ResponseRef;
 }
 
 interface ErrorComponent {
@@ -102,6 +105,13 @@ function registerErrorResponses(
   registry.register('ErrorResponse', ErrorResponseSchema);
 
   const byStatus: Record<string, ResponseRef> = {};
+  const openapiDisabled = registerErrorComponent(registry, OPENAPI_DISABLED_COMPONENT, {
+    description:
+      'The deployment runs with `BFF_OPENAPI_ENABLED=false`, so the document is not served over ' +
+      'HTTP. The body is typed `openapi_disabled`; a bare 404 with no typed body means the agent ' +
+      'edge is not mounted at all.',
+    schema: { $ref: ERROR_RESPONSE_REF },
+  });
 
   statuses.forEach(status => {
     const description = ERROR_STATUSES[status];
@@ -117,7 +127,9 @@ function registerErrorResponses(
 
   // A document with no action path must not carry this response, nor the messageless body it
   // references: an unreferenced component trips redocly's unused-component rule.
-  if (!withActionResults) return { byStatus, unsupportedActionResult: byStatus['501'] };
+  if (!withActionResults) {
+    return { byStatus, openapiDisabled, unsupportedActionResult: byStatus['501'] };
+  }
 
   registry.register('MessagelessErrorResponse', MessagelessErrorResponseSchema);
 
@@ -132,7 +144,7 @@ function registerErrorResponses(
     },
   );
 
-  return { byStatus, unsupportedActionResult };
+  return { byStatus, openapiDisabled, unsupportedActionResult };
 }
 
 function errorResponses(
@@ -364,25 +376,28 @@ function registerPermissionsPath(
       'The hints come from the Forest permissions, cached for ' +
       `${
         PERMISSIONS_CACHE_TTL_MS / 60_000
-      } minutes: a permission changed in Forest can take that ` +
-      'long to show up here, while the agent enforces the new one immediately. A 503 means the ' +
-      'permissions could not be fetched and no fresh cache was left (type ' +
-      '`permissions_unavailable`); it carries Retry-After. Like every route under `/agent`, this ' +
-      'one goes through the timezone middleware even though it reads no timezone, so a deployment ' +
-      'with no configured default answers 400 `missing_timezone` unless `X-Forest-Timezone` is ' +
-      'sent.',
+      } minutes. The agent caches its own copy for the same 15 ` +
+      'minutes by default, and the two are independent: after a change in Forest these hints and ' +
+      'what the agent enforces can disagree in either direction until both expire. An agent ' +
+      'running with `instantCacheRefresh` enforces immediately while these hints stay stale. A ' +
+      '503 means the permissions could not be fetched and no fresh cache was left (type ' +
+      '`permissions_unavailable`); it carries Retry-After. Unlike the context and document ' +
+      'routes, this one sits behind the timezone middleware even though it reads no timezone, so ' +
+      'a deployment with no configured default answers 400 `missing_timezone` unless ' +
+      '`X-Forest-Timezone` is sent.',
     security: SECURITY,
     request: {
       query: z.object({
         collections: z
-          .string()
+          .union([z.string(), z.array(z.string())])
           .optional()
           .openapi({
             description:
-              'Comma-separated collection names to restrict the answer to. Absent means every ' +
-              'exposed collection. Entries are trimmed and deduplicated, and a name the schema ' +
-              'does not expose is dropped silently rather than rejected — so an empty ' +
-              '`collections` object means none of the names matched.',
+              'Comma-separated collection names to restrict the answer to, repeatable — a ' +
+              'repeated parameter is joined with commas before being split again, so both forms ' +
+              'behave the same. Absent means every exposed collection. Entries are trimmed and ' +
+              'deduplicated, and a name the schema does not expose is dropped silently rather ' +
+              'than rejected — so an empty `collections` object means none of the names matched.',
           }),
       }),
       headers: timezoneHeader,
@@ -403,13 +418,7 @@ function registerPermissionsPath(
 }
 
 function registerDocumentPath(registry: OpenAPIRegistry, errorRefs: ErrorResponseRefs): void {
-  const disabled = registerErrorComponent(registry, OPENAPI_DISABLED_COMPONENT, {
-    description:
-      'The deployment runs with `BFF_OPENAPI_ENABLED=false`, so the document is not served over ' +
-      'HTTP. The body is typed `openapi_disabled`; a bare 404 with no typed body means the agent ' +
-      'edge is not mounted at all.',
-    schema: { $ref: ERROR_RESPONSE_REF },
-  });
+  const disabled = errorRefs.openapiDisabled;
 
   registry.registerPath({
     method: 'get',

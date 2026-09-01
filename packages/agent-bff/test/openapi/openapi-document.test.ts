@@ -486,15 +486,36 @@ describe('generateOpenApiDocument', () => {
     });
   });
 
+  it('should say the permission hints and the agent enforcement can disagree either way', () => {
+    const { description } = (
+      document.paths?.[`${ROUTE_PREFIX}/permissions`] as { get: { description: string } }
+    ).get;
+
+    expect(description).toContain('disagree in either direction');
+    expect(description).toContain('Unlike the context and document routes');
+    expect(description).not.toContain('Like every route under');
+  });
+
+  it('should warn that a development environment reports every crud right true', () => {
+    const crud = schemas.CrudHints as { description: string };
+
+    expect(crud.description).toContain('development environment all six are true');
+  });
+
   it('should declare the collections query filter, the only way to narrow the hints', () => {
     const parameters = permissionsParameters();
     const collections = parameters.find(
       parameter => (parameter as { name?: string }).name === 'collections',
-    ) as { in: string; required?: boolean; description: string };
+    ) as { in: string; required?: boolean; description: string; schema: { anyOf?: unknown[] } };
 
     expect(collections.in).toBe('query');
     expect(collections.required).toBeFalsy();
     expect(collections.description).toContain('Comma-separated');
+    expect(collections.description).toContain('repeatable');
+    expect(collections.schema.anyOf).toEqual([
+      { type: 'string' },
+      { type: 'array', items: { type: 'string' } },
+    ]);
     expect(collections.description).toContain('dropped silently');
   });
 
