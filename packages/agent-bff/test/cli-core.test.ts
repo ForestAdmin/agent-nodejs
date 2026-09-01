@@ -257,6 +257,44 @@ describe('runCli', () => {
       },
     );
 
+    it.each([
+      ['application/json; charset', 'a parameter with no value'],
+      ['application/json;;', 'a dangling separator'],
+      ['text/plain', 'a type the parser would skip'],
+    ])(
+      'should reject a data-route body declared as %s (%s) instead of dropping it',
+      async contentType => {
+        const server = await runCli(OAUTH_ENV, noopLogger);
+
+        try {
+          const response = await request(server.callback)
+            .post('/agent/v1/books/list')
+            .set('Content-Type', contentType)
+            .send(JSON.stringify({ page: { limit: 5 } }));
+
+          expect(response.status).toBe(415);
+        } finally {
+          await server.stop();
+        }
+      },
+    );
+
+    it('should let a bodyless POST through whatever Content-Type it declares', async () => {
+      const server = await runCli(OAUTH_ENV, noopLogger);
+
+      try {
+        const response = await request(server.callback)
+          .post('/agent/v1/books/list')
+          .set('Content-Type', 'text/plain')
+          .set('Content-Length', '0')
+          .send();
+
+        expect(response.status).not.toBe(415);
+      } finally {
+        await server.stop();
+      }
+    });
+
     it('should reject a body sent with no Content-Type at all, the last silent-drop path', async () => {
       const server = await runCli(OAUTH_ENV, noopLogger);
 

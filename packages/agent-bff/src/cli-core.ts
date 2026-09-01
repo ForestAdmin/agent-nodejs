@@ -55,21 +55,11 @@ function hasBody(ctx: Parameters<Middleware>[0]): boolean {
   return (ctx.request.length ?? 0) > 0 || ctx.get('transfer-encoding') !== '';
 }
 
-function isJsonType(mime: string): boolean {
-  return mime === 'application/json' || (mime.startsWith('application/') && mime.endsWith('+json'));
-}
-
 function createJsonOnlyGuard(): Middleware {
   return async function jsonOnlyGuard(ctx, next) {
-    if (!BODY_METHODS.has(ctx.method)) {
-      await next();
-
-      return;
+    if (BODY_METHODS.has(ctx.method) && hasBody(ctx) && !ctx.is(JSON_BODY_TYPES)) {
+      throw unsupportedMediaType();
     }
-
-    const mime = ctx.request.type.trim().toLowerCase();
-
-    if (mime === '' ? hasBody(ctx) : !isJsonType(mime)) throw unsupportedMediaType();
 
     await next();
   };
