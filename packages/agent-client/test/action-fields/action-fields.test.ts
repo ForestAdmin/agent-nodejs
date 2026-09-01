@@ -873,7 +873,7 @@ describe('ActionField implementations', () => {
           type: 'String',
           isRequired: true,
           isReadOnly: false,
-          widgetEdit: { name: 'file picker', parameters: { static: {} } },
+          widgetEdit: { name: 'file picker', parameters: {} },
         },
       ]);
 
@@ -890,7 +890,7 @@ describe('ActionField implementations', () => {
           type: ['String'],
           isRequired: false,
           isReadOnly: false,
-          widgetEdit: { name: 'file picker', parameters: { static: {} } },
+          widgetEdit: { name: 'file picker', parameters: {} },
         },
       ]);
 
@@ -921,7 +921,7 @@ describe('ActionField implementations', () => {
             type: 'String',
             isRequired: true,
             isReadOnly: false,
-            widgetEdit: { name: 'file picker', parameters: { static: {} } },
+            widgetEdit: { name: 'file picker', parameters: {} },
           },
         ],
         layout: [],

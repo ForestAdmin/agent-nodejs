@@ -207,7 +207,9 @@ export interface ForestSchemaAction {
     widgetEdit?: {
       name?: string;
       parameters: {
-        static: {
+        // Absent on widgets that carry no choices — a file picker emits `{}` on v1 and the upload
+        // constraints on v2.
+        static?: {
           options?: { label: string; value: string }[];
           enableOpacity?: boolean;
           quickPalette?: string[];

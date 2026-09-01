@@ -821,7 +821,7 @@ describe('FieldFormStates', () => {
             type: 'String',
             isRequired: true,
             hook: 'onFieldChanged',
-            widgetEdit: { name: 'file picker', parameters: { static: {} } },
+            widgetEdit: { name: 'file picker', parameters: {} },
           },
           { field: 'comments_0', type: 'String', hook: 'onFieldChanged' },
         ],
@@ -832,7 +832,7 @@ describe('FieldFormStates', () => {
       expect(httpRequester.query).not.toHaveBeenCalled();
       expect(formStates.getField('file_0')?.getPlainField().widgetEdit).toEqual({
         name: 'file picker',
-        parameters: { static: {} },
+        parameters: {},
       });
       expect(formStates.getField('file_0')?.getEffectiveTypeName()).toBe('File');
       expect(formStates.getField('doc_type_0')?.getEffectiveTypeName()).toBe('Enum');

@@ -73,7 +73,7 @@ describe('FieldGetter', () => {
   });
 
   describe('getEffectiveTypeName', () => {
-    const filePicker = { name: 'file picker', parameters: { static: {} } };
+    const filePicker = { name: 'file picker', parameters: {} };
 
     it('should map a String carrying the file picker widget to File', () => {
       const fieldGetter = new FieldGetter(
@@ -101,7 +101,7 @@ describe('FieldGetter', () => {
         new FieldGetter(
           createPlainField({
             type: 'String',
-            widgetEdit: { name: 'text area editor', parameters: { static: {} } },
+            widgetEdit: { name: 'text area editor', parameters: {} },
           }),
         ).getEffectiveTypeName(),
       ).toBe('String');

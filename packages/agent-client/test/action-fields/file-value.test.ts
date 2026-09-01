@@ -163,14 +163,15 @@ describe('file values in action forms', () => {
       await setupFields([{ field: 'comment', type: 'String' }]);
 
       await expect(fieldFormStates.setFieldValue('comment', pdf)).rejects.toThrow(
-        'Field "comment" is a String field and cannot hold a file: declare it as type File, or ' +
-          'give it the "file picker" widget.',
+        'Field "comment" takes String, not a file: send the file to a File field instead. ' +
+          'If this field is meant to take one, the action must declare it as type File or ' +
+          'carry the "file picker" widget.',
       );
     });
   });
 
   describe('on a v1 field declared String with the file picker widget', () => {
-    const filePicker = { name: 'file picker', parameters: { static: {} } };
+    const filePicker = { name: 'file picker', parameters: {} };
 
     it('encodes a file object as a data uri, as if the field were a File', async () => {
       await setupFields([{ field: 'file_0', type: 'String', widgetEdit: filePicker }]);
@@ -232,12 +233,12 @@ describe('file values in action forms', () => {
         {
           field: 'comment',
           type: 'String',
-          widgetEdit: { name: 'text area editor', parameters: { static: {} } },
+          widgetEdit: { name: 'text area editor', parameters: {} },
         },
       ]);
 
       await expect(fieldFormStates.setFieldValue('comment', pdf)).rejects.toThrow(
-        'Field "comment" is a String field and cannot hold a file',
+        'Field "comment" takes String, not a file',
       );
     });
   });

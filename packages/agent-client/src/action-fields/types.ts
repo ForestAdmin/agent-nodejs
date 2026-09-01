@@ -21,8 +21,10 @@ export type PlainField = {
   hook?: string;
   widgetEdit?: {
     name?: string;
+    // `static` is the choice widgets' slice. A file picker carries none of it: v1 emits an empty
+    // object, v2 the upload constraints — so requiring it would only make fixtures invent one.
     parameters: {
-      static: {
+      static?: {
         options?: PlainFieldOption[];
         enableOpacity?: boolean;
         quickPalette?: string[];

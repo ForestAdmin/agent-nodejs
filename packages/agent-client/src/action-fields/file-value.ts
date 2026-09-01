@@ -63,7 +63,9 @@ export default function encodeFileFieldValue(
   if (isFile(value)) {
     throw fileError(
       fieldName,
-      `is a ${type} field and cannot hold a file: declare it as type File, or give it the "file picker" widget.`,
+      `takes ${type}, not a file: send the file to a File field instead. If this field is ` +
+        'meant to take one, the action must declare it as type File or carry the ' +
+        '"file picker" widget.',
     );
   }
 
