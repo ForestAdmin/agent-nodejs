@@ -72,6 +72,11 @@ export interface BuildBffOptions {
    * transport entirely: `AGENT_URL` then only names where the agent answers, never how it is called.
    */
   dispatcher?: AgentDispatcher;
+  /**
+   * Where the read-model reports its gauges. Defaults to the console sink, which is what the
+   * standalone deployment wants; an embedding host passes its own, or a no-op.
+   */
+  metrics?: Metrics;
 }
 
 export interface Bff {
@@ -397,6 +402,7 @@ function buildAgentMiddlewares(
   aiMiddlewares: Middleware[],
   basePath: string,
   transport: AgentTransport | undefined,
+  metrics: Metrics | undefined,
 ): AgentEdge {
   const { forestAuthSecret, defaultTimezone } = config;
 
@@ -409,7 +415,7 @@ function buildAgentMiddlewares(
   const apiKeyStep = buildApiKeyMiddleware(config, logger) ?? createApiKeyUnavailableGuard(logger);
   // One store for the whole edge. The document only unfolds when the agent is reachable too: with no
   // AGENT_URL every data path answers 501, so concrete paths would advertise a dead surface.
-  const bundle = resolveReadModelBundle(config, logger);
+  const bundle = resolveReadModelBundle(config, logger, metrics);
   const source = toUnfoldSource(bundle, transport, logger);
   const permissionsCache = new PermissionsCache();
 
@@ -463,6 +469,7 @@ export default async function buildBff({
   logger = createConsoleLogger(),
   basePath,
   dispatcher,
+  metrics,
 }: BuildBffOptions): Promise<Bff> {
   // Before anything is assembled: a mount the host does not serve must fail at boot, not surface as
   // a docs page that cannot load itself.
@@ -493,6 +500,7 @@ export default async function buildBff({
     aiMiddlewares,
     mountPath,
     transport,
+    metrics,
   );
   const agentMiddlewares = agentEdge.middlewares;
   const agentErrorMiddleware =
