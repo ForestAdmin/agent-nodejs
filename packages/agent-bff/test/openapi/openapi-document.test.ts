@@ -591,6 +591,17 @@ describe('the documented pagination inputs', () => {
   });
 });
 
+describe('the documented agent transport errors', () => {
+  it('should split the transport statuses by cause, since 502 and 504 mean different failures', () => {
+    const list = responsesOf(`${ROUTE_PREFIX}/{collection}/list`);
+
+    expect(list['502'].description).toContain('refused the connection');
+    expect(list['502'].description).toContain('rather than running out of time');
+    expect(list['504'].description).toContain('BFF_AGENT_TIMEOUT_MS');
+    expect(list['504'].description).toContain('armed when the request starts');
+  });
+});
+
 describe('serializeOpenApi', () => {
   it('should produce indented JSON that parses back to the same document', () => {
     const serialized = serializeOpenApi(document);

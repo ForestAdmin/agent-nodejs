@@ -3,6 +3,7 @@ import type { Logger } from '../ports/logger-port';
 import { AgentHttpError } from '@forestadmin/agent-client';
 
 import { BffHttpError } from './bff-http-error';
+import { AgentTimeoutError } from '../agent/create-agent-http-requester';
 
 const TYPE_INVALID_REQUEST = 'invalid_request';
 const TYPE_VALIDATION_ERROR = 'validation_error';
@@ -123,12 +124,6 @@ function mapJsonApiError(
   });
 }
 
-function isAgentTimeout(error: unknown): boolean {
-  const { code, timeout } = (error ?? {}) as { code?: unknown; timeout?: unknown };
-
-  return code === 'ECONNABORTED' && typeof timeout === 'number';
-}
-
 function parseJsonApiFromMessage(error: unknown): AgentJsonApiError | undefined {
   if (!(error instanceof Error)) return undefined;
 
@@ -159,10 +154,8 @@ export function mapAgentError(error: unknown, { logger }: { logger: Logger }): B
   if (error instanceof BffHttpError) return error;
 
   if (!(error instanceof AgentHttpError)) {
-    if (isAgentTimeout(error)) {
-      logger('Warn', 'Agent timeout mapped to agent_timeout', {
-        cause: error instanceof Error ? error.message : String(error),
-      });
+    if (error instanceof AgentTimeoutError) {
+      logger('Warn', 'Agent timeout mapped to agent_timeout', { cause: error.message });
 
       return new BffHttpError(504, TYPE_AGENT_TIMEOUT, DEFAULT_TIMEOUT_MESSAGE);
     }

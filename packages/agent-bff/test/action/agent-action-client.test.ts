@@ -42,7 +42,7 @@ describe('createAgentActionClient', () => {
       url: 'https://agent.example.com',
       token: 'jwt-token',
       actionEndpoints,
-      httpRequester: expect.objectContaining({ query }),
+      httpRequester: expect.objectContaining({ query: expect.any(Function) }),
     });
     expect(collectionFn).toHaveBeenCalledWith('users');
     expect(actionFn).toHaveBeenCalledWith('approve', {

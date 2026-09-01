@@ -1,5 +1,6 @@
 import { AgentHttpError } from '@forestadmin/agent-client';
 
+import { AgentTimeoutError } from '../../src/agent/create-agent-http-requester';
 import { mapAgentError } from '../../src/http/agent-error-mapper';
 import { BffHttpError } from '../../src/http/bff-http-error';
 
@@ -147,14 +148,8 @@ describe('mapAgentError', () => {
     );
   });
 
-  it('maps a superagent timeout to agent_timeout (504) with a generic message and logs the cause', () => {
-    const timeout = Object.assign(new Error('Timeout of 1500ms exceeded'), {
-      code: 'ECONNABORTED',
-      errno: 'ETIME',
-      timeout: 1500,
-    });
-
-    const result = mapAgentError(timeout, { logger });
+  it('maps a typed agent timeout to agent_timeout (504) with a generic message and logs the cause', () => {
+    const result = mapAgentError(new AgentTimeoutError('Timeout of 1500ms exceeded'), { logger });
 
     expect(result).toMatchObject({
       type: 'agent_timeout',
