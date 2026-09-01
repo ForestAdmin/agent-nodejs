@@ -54,6 +54,12 @@ export type BffCallback = (req: IncomingMessage, res: ServerResponse) => void | 
 export interface BuildBffOptions {
   config: BFFConfig;
   logger?: Logger;
+  /**
+   * Prefix the host serves this BFF under, `/bff` for an embedded one. Routing is the host's job —
+   * it strips the prefix before the request lands here — but the paths the BFF *emits* (the OpenAPI
+   * `servers` entry, the docs page's asset and document urls) must carry it.
+   */
+  basePath?: string;
 }
 
 export interface Bff {
@@ -355,6 +361,7 @@ function buildAgentMiddlewares(
   logger: Logger,
   oauth: OAuthEdge,
   aiMiddlewares: Middleware[],
+  basePath: string,
 ): Middleware[] {
   const { forestAuthSecret, defaultTimezone } = config;
 
@@ -379,6 +386,7 @@ function buildAgentMiddlewares(
       enabled: config.openapiEnabled,
       source,
       hasAiQueryRoute: aiMiddlewares.length > 0,
+      basePath,
     }),
     ...(bundle
       ? [
@@ -408,6 +416,7 @@ function buildAgentMiddlewares(
 export default async function buildBff({
   config,
   logger = createConsoleLogger(),
+  basePath = '',
 }: BuildBffOptions): Promise<Bff> {
   if (config.invalidAllowedOrigins.length > 0) {
     logger('Warn', 'Ignoring malformed BFF_ALLOWED_ORIGINS entries', {
@@ -419,7 +428,7 @@ export default async function buildBff({
 
   const oauth = buildOAuthMiddlewares(config, logger);
   const aiMiddlewares = buildAiMiddlewares(config, oauth, logger);
-  const agentMiddlewares = buildAgentMiddlewares(config, logger, oauth, aiMiddlewares);
+  const agentMiddlewares = buildAgentMiddlewares(config, logger, oauth, aiMiddlewares, basePath);
   const agentErrorMiddleware =
     agentMiddlewares.length > 0 ? [agentScoped(createErrorMiddleware({ logger }))] : [];
 
@@ -436,6 +445,7 @@ export default async function buildBff({
     createDocsRoutes({
       enabled: config.openapiEnabled && agentMiddlewares.length > 0,
       documentPath: OPENAPI_PATH,
+      basePath,
       logger,
     }),
     ...agentMiddlewares,

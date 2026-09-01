@@ -64,6 +64,18 @@ function leafOperators(): string[] {
   return leaf.properties.operator.enum;
 }
 
+describe('servers', () => {
+  it('should point at the origin root when the BFF owns it', () => {
+    expect(generateOpenApiDocument('9.9.9').servers).toEqual([{ url: '/' }]);
+  });
+
+  it('should carry the mount prefix, so a generated client targets the right base url', () => {
+    expect(generateOpenApiDocument('9.9.9', { basePath: '/bff' }).servers).toEqual([
+      { url: '/bff' },
+    ]);
+  });
+});
+
 describe('generateOpenApiDocument', () => {
   it('should emit OpenAPI 3.1.0 with the package version', () => {
     expect(document.openapi).toBe(OPENAPI_VERSION);

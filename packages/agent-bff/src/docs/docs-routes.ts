@@ -16,6 +16,11 @@ export interface DocsRoutesOptions {
   enabled: boolean;
   /** Where the shell fetches the document. Passed in so this module never reaches into `src/openapi`. */
   documentPath: string;
+  /**
+   * Prefix the host serves the BFF under. The page carries absolute paths — the browser resolves
+   * them against the origin, not against the page — so they must carry the prefix too.
+   */
+  basePath?: string;
   logger: Logger;
   /** The bundle lookup, as a seam: an install that shipped without the asset is a real state to serve. */
   resolveBundlePath?: () => string | undefined;
@@ -57,6 +62,7 @@ export function resolveBundle(directory: string = __dirname): string | undefined
 export default function createDocsRoutes({
   enabled,
   documentPath,
+  basePath = '',
   logger,
   resolveBundlePath = resolveBundle,
 }: DocsRoutesOptions): Middleware {
@@ -66,7 +72,9 @@ export default function createDocsRoutes({
     logger('Warn', `API documentation page disabled: ${BUNDLE_FILE} is missing from this install`);
   }
 
-  const page = bundle ? renderDocsPage(documentPath, DOCS_BUNDLE_PATH) : undefined;
+  const page = bundle
+    ? renderDocsPage(`${basePath}${documentPath}`, `${basePath}${DOCS_BUNDLE_PATH}`)
+    : undefined;
   let script: string | undefined;
 
   return async function docsRoutes(ctx, next) {
