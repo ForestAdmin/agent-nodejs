@@ -126,6 +126,14 @@ describe('mapActionForm', () => {
     ]);
   });
 
+  it('leaves a malformed layout element untouched instead of throwing', () => {
+    const layout = [null, { component: 'page', elements: 'nope' }] as never;
+
+    const result = mapActionForm(actionWith([]), [], layout);
+
+    expect(result.layout).toEqual([null, { component: 'page', elements: 'nope' }]);
+  });
+
   it('empties an htmlBlock whose content is entirely active markup', () => {
     const layout = [{ component: 'htmlBlock', content: '<script>alert(1)</script>' }] as never;
 
