@@ -1099,9 +1099,12 @@ describe('ReadRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('error');
-      // Same verdict and wording as Update Data gets for the same renamed field.
       expect(result.stepOutcome.errorKind).toBe('configuration');
-      expect(result.stepOutcome.error).toContain("doesn't exist on this record");
+      // Names the pin, not the prompt: the operator cannot rephrase their way to a field the
+      // workflow fixed in preRecordedArgs. Same wording Update Data gives for the same rename.
+      expect(result.stepOutcome.error).toBe(
+        'A field pinned on this step no longer exists on this record. Edit the step to pick another one.',
+      );
     });
 
     it('resolves a pre-recorded technical fieldName to its own field, not another whose displayName collides', async () => {

@@ -6,7 +6,7 @@ import type { ReadRecordStepDefinition } from '../types/validated/step-definitio
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 import { z } from 'zod';
 
-import { FieldNotFoundError, NoReadableFieldsError, NoResolvedFieldsError } from '../errors';
+import { NoReadableFieldsError, NoResolvedFieldsError, PinnedFieldNotFoundError } from '../errors';
 import RecordStepExecutor from './record-step-executor';
 
 const READ_RECORD_SYSTEM_PROMPT = `You are an AI agent reading fields from a record to answer a user request.
@@ -48,7 +48,7 @@ export default class ReadRecordStepExecutor extends RecordStepExecutor<ReadRecor
       // A pinned name that no longer resolves is a workflow edit, as it is on Update Data; only a
       // name the AI chose is the AI's own miss.
       if (pinnedFieldNames) {
-        throw new FieldNotFoundError(pinnedFieldNames.join('", "'), schema.collectionName);
+        throw new PinnedFieldNotFoundError(pinnedFieldNames.join('", "'), schema.collectionName);
       }
 
       throw new NoResolvedFieldsError(selectedFields.map(s => s.requested));

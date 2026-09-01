@@ -1450,6 +1450,10 @@ describe('UpdateRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.errorKind).toBe('configuration');
+      expect(result.stepOutcome.error).toBe(
+        'A field pinned on this step no longer exists on this record. Edit the step to pick another one.',
+      );
     });
 
     it('falls back to AI when preRecordedArgs has no fieldName', async () => {
@@ -1717,6 +1721,10 @@ describe('UpdateRecordStepExecutor', () => {
       const result = await new UpdateRecordStepExecutor(context).execute();
 
       expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.errorKind).toBe('configuration');
+      expect(result.stepOutcome.error).toBe(
+        'A field pinned on this step no longer exists on this record. Edit the step to pick another one.',
+      );
     });
 
     // Regression: a Boolean field's coercion schema (z.preprocess) crashed langchain's real
