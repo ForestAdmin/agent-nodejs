@@ -1,33 +1,11 @@
 import type { ActionForm } from './agent-action-client';
-import type { FieldType } from '../read-model/capabilities-cache';
+import type { FieldType, JsonShape } from '../read-model/capabilities-cache';
 
-import { isEnumFieldType, normalizeFieldType } from '../read-model/capabilities-cache';
+import { missingRequiredFieldNames } from './action-form-mapper';
+import { enumOptionsOf, jsonShapeOf, normalizeFieldType } from '../read-model/capabilities-cache';
 import { invalidActionValue, missingRequiredActionFields } from '../validation/validation-errors';
 
 const PACKED_ID_EXPECTATION = 'a string holding a packed record id';
-
-type JsonShape = 'array' | 'boolean' | 'number' | 'string' | 'any';
-
-const STRING_SHAPES = new Set([
-  'Binary',
-  'Date',
-  'Dateonly',
-  'Enum',
-  'Point',
-  'String',
-  'Time',
-  'Timeonly',
-  'Uuid',
-]);
-
-function jsonShapeOf(type: FieldType): JsonShape {
-  if (Array.isArray(type)) return 'array';
-  if (type === 'Number') return 'number';
-  if (type === 'Boolean') return 'boolean';
-  if (typeof type === 'string' && STRING_SHAPES.has(type)) return 'string';
-
-  return 'any';
-}
 
 function describeShape(shape: JsonShape, options: string[] | undefined): string {
   if (options !== undefined) return `one of: ${options.join(', ')}`;
@@ -91,29 +69,33 @@ function expectedWhenViolated(
 }
 
 export default function assertActionValuesExecutable(action: ActionForm): void {
-  const missing: string[] = [];
+  const fields = action.getFields();
+  const missing = missingRequiredFieldNames(fields);
+
+  if (missing.length > 0) throw missingRequiredActionFields(missing);
+
   const violations: { field: string; expected: string }[] = [];
 
-  for (const field of action.getFields()) {
+  const provided = fields.filter(
+    field => field.getValue() !== undefined && field.getValue() !== null,
+  );
+
+  for (const field of provided) {
     const name = field.getName();
     const value = field.getValue();
 
-    if (value === undefined || value === null) {
-      if (field.isRequired()) missing.push(name);
-    } else if (field.getReference()) {
+    if (field.getReference()) {
       if (typeof value !== 'string') {
         violations.push({ field: name, expected: PACKED_ID_EXPECTATION });
       }
     } else {
       const type = normalizeFieldType(field.getType());
-      const rawOptions = isEnumFieldType(type) ? action.getEnumField(name).getOptions() : undefined;
-      const options = Array.isArray(rawOptions) && rawOptions.length > 0 ? rawOptions : undefined;
+      const options = enumOptionsOf(type, action.getEnumField(name).getOptions());
       const expected = expectedWhenViolated(type, value, options);
 
       if (expected) violations.push({ field: name, expected });
     }
   }
 
-  if (missing.length > 0) throw missingRequiredActionFields(missing);
   if (violations.length > 0) throw invalidActionValue(violations);
 }

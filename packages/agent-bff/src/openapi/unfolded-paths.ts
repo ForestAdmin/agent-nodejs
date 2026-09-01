@@ -25,7 +25,7 @@ import {
   TimezoneSchema,
 } from './schemas';
 import { PACKED_ID_SEPARATOR } from '../data/pack-id';
-import { isEnumFieldType } from '../read-model/capabilities-cache';
+import { enumOptionsOf } from '../read-model/capabilities-cache';
 
 const AGGREGATORS = ['And', 'Or'];
 
@@ -364,29 +364,31 @@ function registerRelationRequests(
   };
 }
 
-function actionFieldSchema(field: UnfoldedAction['fields'][number]): SchemaObject {
+function actionFieldBaseSchema(field: UnfoldedAction['fields'][number]): SchemaObject {
   if (field.reference !== null) {
     return { type: 'string', description: `A packed record id for ${field.reference}.` };
   }
 
-  const options =
-    isEnumFieldType(field.type) && field.enums !== null && field.enums.length > 0
-      ? field.enums
-      : null;
+  const options = enumOptionsOf(field.type, field.enums);
 
-  let base: SchemaObject;
+  if (options === undefined) return toFieldSchema(field.type);
 
-  if (options === null) {
-    base = toFieldSchema(field.type);
-  } else if (Array.isArray(field.type)) {
-    base = { type: 'array', items: { type: 'string', enum: options } };
-  } else {
-    base = { type: 'string', enum: options };
-  }
+  return Array.isArray(field.type)
+    ? { type: 'array', items: { type: 'string', enum: options } }
+    : { type: 'string', enum: options };
+}
 
-  return field.isRequired
-    ? { ...base, description: 'The agent declares this field required on the static form.' }
-    : base;
+function actionFieldSchema(field: UnfoldedAction['fields'][number]): SchemaObject {
+  const base = actionFieldBaseSchema(field);
+
+  if (!field.isRequired) return base;
+
+  const required = 'The agent declares this field required on the static form.';
+
+  return {
+    ...base,
+    description: base.description === undefined ? required : `${base.description} ${required}`,
+  };
 }
 
 function actionValuesSchema(action: UnfoldedAction): SchemaObject {

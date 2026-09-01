@@ -53,6 +53,13 @@ export default function unfoldingFixture(): Unfolding {
                 reference: 'users.id',
               },
               { name: 'levels', type: ['Number'], isRequired: false, enums: null, reference: null },
+              {
+                name: 'owner',
+                type: 'Number',
+                isRequired: true,
+                enums: null,
+                reference: 'users.id',
+              },
             ],
           },
           { name: 'Mark-as-paid/done', fields: [] },

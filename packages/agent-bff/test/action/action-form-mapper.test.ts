@@ -67,6 +67,16 @@ describe('mapActionForm', () => {
     expect(result.fields[1]).toMatchObject({ name: 'status', enumValues: ['a', 'b'] });
   });
 
+  it('emits enumValues for a legacy EnumList field, which the execute validator checks', () => {
+    const action = actionWith([
+      { name: 'tiers', type: 'EnumList', value: null, isRequired: false, enumValues: ['a', 'b'] },
+    ]);
+
+    const result = mapActionForm(action, [], []);
+
+    expect(result.fields[0]).toMatchObject({ name: 'tiers', enumValues: ['a', 'b'] });
+  });
+
   it('sets enumValues to null when an Enum field has no options', () => {
     const action = actionWith([{ name: 'status', type: 'Enum', value: null, isRequired: false }]);
 
