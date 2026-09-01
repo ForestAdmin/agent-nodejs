@@ -6,7 +6,8 @@ import path from 'path';
 
 import createConsoleLogger from './adapters/console-logger';
 import { AI_QUERY_ROUTE } from './ai/ai-routes-middleware';
-import runCli, { resolveOAuthConfig, resolveUnfoldSource } from './cli-core';
+import { resolveOAuthConfig, resolveUnfoldSource } from './build-bff';
+import runCli from './cli-core';
 import { parseConfig } from './config/env-config';
 import { extractErrorMessage } from './errors';
 import { generateOpenApiDocument, serializeOpenApi } from './openapi/openapi-document';
