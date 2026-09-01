@@ -1,6 +1,11 @@
 import { HttpRequester } from '@forestadmin/agent-client';
 
+import { createHttpTransport } from '../../src/agent/agent-transport';
 import createAgentDataClient from '../../src/data/agent-data-client';
+
+function transportTo(agentUrl: string, timeoutMs?: number) {
+  return createHttpTransport({ agentUrl, timeoutMs });
+}
 
 jest.mock('@forestadmin/agent-client');
 
@@ -18,14 +23,14 @@ describe('createAgentDataClient', () => {
   });
 
   it('should build the requester with the agent url and token', () => {
-    createAgentDataClient({ agentUrl: 'https://agent.example.com', token: 'tok' });
+    createAgentDataClient({ transport: transportTo('https://agent.example.com'), token: 'tok' });
 
     expect(HttpRequester).toHaveBeenCalledWith('tok', { url: 'https://agent.example.com' });
   });
 
   it('should query the list endpoint (deserialized) for the given collection', async () => {
     query.mockResolvedValue([{ id: '1' }]);
-    const client = createAgentDataClient({ agentUrl: 'https://agent', token: 'tok' });
+    const client = createAgentDataClient({ transport: transportTo('https://agent'), token: 'tok' });
 
     const result = await client.list('users', { timezone: 'Europe/Paris', filters: '{}' });
 
@@ -39,9 +44,8 @@ describe('createAgentDataClient', () => {
 
   it('should apply the configured timeout as maxTimeAllowed on every query', async () => {
     const client = createAgentDataClient({
-      agentUrl: 'https://agent',
+      transport: transportTo('https://agent', 2500),
       token: 'tok',
-      timeoutMs: 2500,
     });
 
     await client.list('users', { timezone: 'Europe/Paris' });
@@ -75,7 +79,7 @@ describe('createAgentDataClient', () => {
 
   it('should query the count endpoint with skipDeserialization to read the raw payload', async () => {
     query.mockResolvedValue({ meta: { count: 'deactivated' } });
-    const client = createAgentDataClient({ agentUrl: 'https://agent', token: 'tok' });
+    const client = createAgentDataClient({ transport: transportTo('https://agent'), token: 'tok' });
 
     const result = await client.countRaw('users', { timezone: 'Europe/Paris' });
 
@@ -89,7 +93,7 @@ describe('createAgentDataClient', () => {
   });
 
   it('should request the relation list path without pre-encoding the segments', async () => {
-    const client = createAgentDataClient({ agentUrl: 'https://agent', token: 'tok' });
+    const client = createAgentDataClient({ transport: transportTo('https://agent'), token: 'tok' });
 
     await client.listRelation('users', 'tenant-1|42', 'posts', { timezone: 'Europe/Paris' });
 
@@ -101,7 +105,7 @@ describe('createAgentDataClient', () => {
   });
 
   it('should request the relation count path with skipDeserialization and no pre-encoding', async () => {
-    const client = createAgentDataClient({ agentUrl: 'https://agent', token: 'tok' });
+    const client = createAgentDataClient({ transport: transportTo('https://agent'), token: 'tok' });
 
     await client.countRelationRaw('users', 'tenant-1|42', 'posts', { timezone: 'Europe/Paris' });
 

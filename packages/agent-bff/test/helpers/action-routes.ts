@@ -6,6 +6,7 @@ import { bodyParser } from '@koa/bodyparser';
 import Koa from 'koa';
 
 import createActionRoutesMiddleware from '../../src/action/action-routes-middleware';
+import { createHttpTransport } from '../../src/agent/agent-transport';
 import createErrorMiddleware from '../../src/http/error-middleware';
 import ReadModel from '../../src/read-model/read-model';
 import { action, collection, column } from '../read-model/fixtures';
@@ -122,7 +123,7 @@ export function buildApp(
   app.use(
     createActionRoutesMiddleware({
       store,
-      agentUrl: 'https://agent.example.com',
+      transport: createHttpTransport({ agentUrl: 'https://agent.example.com' }),
       logger,
       createClient: () => client,
     }),
@@ -148,7 +149,7 @@ export function buildAppWithTerminal(client: AgentActionClient) {
   app.use(
     createActionRoutesMiddleware({
       store: storeOf(readModel),
-      agentUrl: 'https://agent.example.com',
+      transport: createHttpTransport({ agentUrl: 'https://agent.example.com' }),
       logger: noopLogger,
       createClient: () => client,
     }),

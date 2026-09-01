@@ -8,6 +8,7 @@ import jsonwebtoken from 'jsonwebtoken';
 import Koa from 'koa';
 import net from 'net';
 
+import { createHttpTransport } from '../../../src/agent/agent-transport';
 import createDataRoutesMiddleware from '../../../src/data/data-routes-middleware';
 import createErrorMiddleware from '../../../src/http/error-middleware';
 import CapabilitiesCache from '../../../src/read-model/capabilities-cache';
@@ -80,7 +81,13 @@ export function buildApp(agentUrl: string, schemaPath: string): Koa {
     ctx.state.agentToken = token;
     await next();
   });
-  app.use(createDataRoutesMiddleware({ store, agentUrl, logger: noopLogger }));
+  app.use(
+    createDataRoutesMiddleware({
+      store,
+      transport: createHttpTransport({ agentUrl }),
+      logger: noopLogger,
+    }),
+  );
 
   return app;
 }

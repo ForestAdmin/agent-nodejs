@@ -1,6 +1,11 @@
 import { HttpRequester, createRemoteAgentClient } from '@forestadmin/agent-client';
 
 import createAgentActionClient from '../../src/action/agent-action-client';
+import { createHttpTransport } from '../../src/agent/agent-transport';
+
+function transportTo(agentUrl: string, timeoutMs?: number) {
+  return createHttpTransport({ agentUrl, timeoutMs });
+}
 
 jest.mock('@forestadmin/agent-client');
 
@@ -26,7 +31,7 @@ describe('createAgentActionClient', () => {
 
     const actionEndpoints = { users: { approve: {} } } as never;
     const client = createAgentActionClient({
-      agentUrl: 'https://agent.example.com',
+      transport: transportTo('https://agent.example.com'),
       token: 'jwt-token',
       actionEndpoints,
     });
@@ -58,10 +63,9 @@ describe('createAgentActionClient', () => {
     });
 
     createAgentActionClient({
-      agentUrl: 'https://agent',
+      transport: transportTo('https://agent', 2500),
       token: 'tok',
       actionEndpoints: {} as never,
-      timeoutMs: 2500,
     });
 
     const httpRequester = createRemoteAgentClientMock.mock.calls[0][0]

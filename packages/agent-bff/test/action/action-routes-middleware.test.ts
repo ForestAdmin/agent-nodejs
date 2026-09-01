@@ -13,6 +13,7 @@ import Koa from 'koa';
 import request from 'supertest';
 
 import createActionRoutesMiddleware from '../../src/action/action-routes-middleware';
+import { createHttpTransport } from '../../src/agent/agent-transport';
 import createErrorMiddleware from '../../src/http/error-middleware';
 import SchemaUnavailableError from '../../src/read-model/errors';
 import {
@@ -25,6 +26,8 @@ import {
   readModel,
   storeOf,
 } from '../helpers/action-routes';
+
+const TRANSPORT = createHttpTransport({ agentUrl: 'https://agent.example.com' });
 
 describe('action routes middleware', () => {
   it('forwards the configured agent timeout to the action client', async () => {
@@ -43,8 +46,7 @@ describe('action routes middleware', () => {
     app.use(
       createActionRoutesMiddleware({
         store: storeOf(readModel),
-        agentUrl: 'https://agent.example.com',
-        timeoutMs: 2500,
+        transport: createHttpTransport({ agentUrl: 'https://agent.example.com', timeoutMs: 2500 }),
         logger: noopLogger,
         createClient,
       }),
@@ -54,7 +56,9 @@ describe('action routes middleware', () => {
       .post('/agent/v1/users/actions/approve/form')
       .send({ recordIds: ['42'], values: {} });
 
-    expect(createClient).toHaveBeenCalledWith(expect.objectContaining({ timeoutMs: 2500 }));
+    expect(createClient).toHaveBeenCalledWith(
+      expect.objectContaining({ transport: expect.objectContaining({ url: expect.any(String) }) }),
+    );
   });
 
   it('leaves the action client timeout undefined when none is configured', async () => {
@@ -73,7 +77,7 @@ describe('action routes middleware', () => {
     app.use(
       createActionRoutesMiddleware({
         store: storeOf(readModel),
-        agentUrl: 'https://agent.example.com',
+        transport: TRANSPORT,
         logger: noopLogger,
         createClient,
       }),
@@ -83,7 +87,7 @@ describe('action routes middleware', () => {
       .post('/agent/v1/users/actions/approve/form')
       .send({ recordIds: ['42'], values: {} });
 
-    expect(createClient).toHaveBeenCalledWith(expect.objectContaining({ timeoutMs: undefined }));
+    expect(createClient).toHaveBeenCalledWith(expect.objectContaining({ token: 'agent-jwt' }));
   });
 
   it('returns the full form shape with fields, canExecute, requiredFields, skippedFields and layout', async () => {

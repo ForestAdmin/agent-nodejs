@@ -1,6 +1,11 @@
 import { HttpRequester, createRemoteAgentClient } from '@forestadmin/agent-client';
 
+import { createHttpTransport } from '../../src/agent/agent-transport';
 import createAgentCapabilitiesFetcher from '../../src/read-model/agent-capabilities-fetcher';
+
+function transportTo(agentUrl: string, timeoutMs?: number) {
+  return createHttpTransport({ agentUrl, timeoutMs });
+}
 
 jest.mock('@forestadmin/agent-client');
 
@@ -23,7 +28,10 @@ describe('createAgentCapabilitiesFetcher', () => {
     const collection = jest.fn().mockReturnValue({ capabilities });
     createRemoteAgentClientMock.mockReturnValue({ collection });
 
-    const fetcher = createAgentCapabilitiesFetcher({ agentUrl: 'https://agent', token: 'tok' });
+    const fetcher = createAgentCapabilitiesFetcher({
+      transport: transportTo('https://agent'),
+      token: 'tok',
+    });
     const result = await fetcher('users');
 
     expect(HttpRequester).toHaveBeenCalledWith('tok', { url: 'https://agent' });
@@ -43,7 +51,10 @@ describe('createAgentCapabilitiesFetcher', () => {
       .mockReturnValue({ capabilities: jest.fn().mockResolvedValue({ fields: [] }) });
     createRemoteAgentClientMock.mockReturnValue({ collection });
 
-    const fetcher = createAgentCapabilitiesFetcher({ agentUrl: 'https://agent', token: 'tok' });
+    const fetcher = createAgentCapabilitiesFetcher({
+      transport: transportTo('https://agent'),
+      token: 'tok',
+    });
     await fetcher('users');
     await fetcher('orders');
 
@@ -58,7 +69,7 @@ describe('createAgentCapabilitiesFetcher', () => {
     let minted = 0;
 
     const fetcher = createAgentCapabilitiesFetcher({
-      agentUrl: 'https://agent',
+      transport: transportTo('https://agent'),
       token: () => {
         minted += 1;
 
@@ -83,9 +94,8 @@ describe('createAgentCapabilitiesFetcher', () => {
     });
 
     await createAgentCapabilitiesFetcher({
-      agentUrl: 'https://agent',
+      transport: transportTo('https://agent', 2500),
       token: 'tok',
-      timeoutMs: 2500,
     })('users');
 
     const httpRequester = createRemoteAgentClientMock.mock.calls[0][0]
