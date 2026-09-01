@@ -185,19 +185,23 @@ describe('execute input validation', () => {
       };
     };
 
-    const enumResult = await makeListForm({ tags: ['a', null] }).response;
+    const enumCase = makeListForm({ tags: ['a', null] });
+    const enumResult = await enumCase.response;
     expect(enumResult.status).toBe(422);
     expect(enumResult.body.error).toMatchObject({
       type: 'invalid_action_value',
       details: { fields: [{ field: 'tags', expected: 'one of: a' }] },
     });
+    expect(enumCase.execute).not.toHaveBeenCalled();
 
-    const numberResult = await makeListForm({ ids: [1, null] }).response;
+    const numberCase = makeListForm({ ids: [1, null] });
+    const numberResult = await numberCase.response;
     expect(numberResult.status).toBe(422);
     expect(numberResult.body.error).toMatchObject({
       type: 'invalid_action_value',
       details: { fields: [{ field: 'ids', expected: 'a number' }] },
     });
+    expect(numberCase.execute).not.toHaveBeenCalled();
   });
 
   it('rejects a form-urlencoded execute body: it cannot carry the nested recordIds and values', async () => {
