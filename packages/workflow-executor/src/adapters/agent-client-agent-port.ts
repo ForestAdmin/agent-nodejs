@@ -100,12 +100,16 @@ function toAllowedValue(option: unknown): { value: string | number | null; label
   return { value: option as string | number, label: String(option) };
 }
 
-// setFields refuses a value two ways: an unknown field, or the change-hook request it makes
-// answering 4xx. A 5xx or a dead socket is the agent faltering, and blaming the form would misdirect.
+// The statuses a change hook answers with when it refuses the submitted value. Auth, rate limiting
+// and timeouts are also 4xx but say nothing about the value, so they must not reach the form fallback.
+const FORM_VALIDATION_STATUSES = [400, 422];
+
+// setFields refuses a value two ways: an unknown field, or the change-hook request it makes rejecting
+// it. Anything else is the agent or the caller faltering, and blaming the form would misdirect.
 function isRejectedFormValue(cause: unknown): boolean {
   if (cause instanceof UnknownActionFieldError) return true;
 
-  return cause instanceof AgentHttpError && cause.status >= 400 && cause.status < 500;
+  return cause instanceof AgentHttpError && FORM_VALIDATION_STATUSES.includes(cause.status);
 }
 
 export default class AgentClientAgentPort implements AgentPort {

@@ -139,9 +139,10 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
 
     // "On record" pins the source by stable step id (revise-safe); legacy steps without it fall
     // back to AI record selection among the available source records.
-    const selectedRecordRef = preRecordedArgs?.selectedRecordStepId
-      ? await this.resolveSourceRecordRef(preRecordedArgs.selectedRecordStepId)
-      : await this.resolveRecordRef(await this.getAvailableRecordRefs(), step.prompt);
+    const selectedRecordRef =
+      preRecordedArgs?.selectedRecordStepId !== undefined
+        ? await this.resolveSourceRecordRef(preRecordedArgs.selectedRecordStepId)
+        : await this.resolveRecordRef(await this.getAvailableRecordRefs(), step.prompt);
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
     const recordedAction = preRecordedArgs?.actionName;
     const selection = recordedAction

@@ -1525,6 +1525,27 @@ describe('UpdateRecordStepExecutor', () => {
       );
     });
 
+    // An empty id is a pin that lost its target, not an absent pin: falling back to AI selection
+    // would silently update a different record than the workflow was configured to update.
+    it('rejects an empty selectedRecordStepId instead of selecting a record with AI', async () => {
+      const mockModel = makeMockModel();
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort: makeMockAgentPort({ status: 'active' }),
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          preRecordedArgs: { selectedRecordStepId: '', fieldName: 'status', value: 'active' },
+        }),
+      });
+
+      const result = await new UpdateRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe('The pre-configured step parameters are invalid');
+      expect(result.stepOutcome.errorKind).toBe('configuration');
+      expect(mockModel.bindTools).not.toHaveBeenCalled();
+    });
+
     it('resolves WORKFLOW_START_STEP_ID to the base record', async () => {
       const mockModel = makeMockModel();
       const agentPort = makeMockAgentPort({ status: 'active' });

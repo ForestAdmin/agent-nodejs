@@ -1718,6 +1718,27 @@ describe('TriggerRecordActionStepExecutor', () => {
       );
     });
 
+    // An empty id is a pin that lost its target, not an absent pin: falling back to AI selection
+    // would silently run the action on a different record than the workflow was configured to run it on.
+    it('rejects an empty selectedRecordStepId instead of selecting a record with AI', async () => {
+      const mockModel = makeMockModel();
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort: makeMockAgentPort(),
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          preRecordedArgs: { selectedRecordStepId: '', actionName: 'send-welcome-email' },
+        }),
+      });
+
+      const result = await new TriggerRecordActionStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe('The pre-configured step parameters are invalid');
+      expect(result.stepOutcome.errorKind).toBe('configuration');
+      expect(mockModel.bindTools).not.toHaveBeenCalled();
+    });
+
     it('falls back to the step prompt as approvalMessage when the action is pre-recorded', async () => {
       const agentPort = makeMockAgentPort();
       (agentPort.executeAction as jest.Mock).mockResolvedValue({ result: { ok: true } });

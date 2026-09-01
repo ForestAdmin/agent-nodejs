@@ -1024,19 +1024,43 @@ describe('AgentClientAgentPort', () => {
       expect(mockAction.execute).not.toHaveBeenCalled();
     });
 
-    // A change hook answering 4xx is the customer's own validation refusing the value, so Full AI
-    // must still degrade to a human review rather than hard-erroring the step.
-    it('maps a 4xx from the change hook to ActionFormValidationError', async () => {
-      mockAction.setFields.mockRejectedValue(new AgentHttpError(422, { errors: ['bad amount'] }));
+    // A change hook rejecting the value is the customer's own validation, so Full AI must still
+    // degrade to a human review rather than hard-erroring the step.
+    it.each([400, 422])(
+      'maps a %i from the change hook to ActionFormValidationError',
+      async status => {
+        mockAction.setFields.mockRejectedValue(new AgentHttpError(status, { errors: ['bad'] }));
 
-      await expect(
-        port.executeAction(
-          { collection: 'users', action: 'refund', id: [1], values: { amount: -1 } },
-          { user },
-        ),
-      ).rejects.toBeInstanceOf(ActionFormValidationError);
-      expect(mockAction.execute).not.toHaveBeenCalled();
-    });
+        await expect(
+          port.executeAction(
+            { collection: 'users', action: 'refund', id: [1], values: { amount: -1 } },
+            { user },
+          ),
+        ).rejects.toBeInstanceOf(ActionFormValidationError);
+        expect(mockAction.execute).not.toHaveBeenCalled();
+      },
+    );
+
+    // These are 4xx too, but they say nothing about the submitted value: telling the operator to fix
+    // the form when the agent refused the caller or throttled it would send them after the wrong thing.
+    it.each([401, 403, 404, 408, 429])(
+      'does not blame the form for a %i from the change hook',
+      async status => {
+        mockAction.setFields.mockRejectedValue(new AgentHttpError(status, 'refused'));
+
+        const error = await port
+          .executeAction(
+            { collection: 'users', action: 'refund', id: [1], values: { amount: 50 } },
+            { user },
+          )
+          .catch((e: unknown) => e);
+
+        expect(error).toBeInstanceOf(AgentPortError);
+        expect(error).not.toBeInstanceOf(ActionFormValidationError);
+        expect((error as AgentPortError).errorKind).toBeUndefined();
+        expect(mockAction.execute).not.toHaveBeenCalled();
+      },
+    );
 
     it('does not blame the form for a 5xx from the change hook', async () => {
       mockAction.setFields.mockRejectedValue(new AgentHttpError(500, 'hook crashed'));

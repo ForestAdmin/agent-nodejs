@@ -1228,6 +1228,23 @@ describe('ReadRecordStepExecutor', () => {
       expect(result.stepOutcome.error).toBe('The pre-configured step parameters are invalid');
     });
 
+    // An empty id is a pin that lost its target, not an absent pin: falling back to AI selection
+    // would silently read a different record than the workflow was configured to read.
+    it('rejects an empty selectedRecordStepId instead of selecting a record with AI', async () => {
+      const mockModel = makeMockModel();
+      const context = makeContext({
+        model: mockModel.model,
+        stepDefinition: makeStep({ preRecordedArgs: { selectedRecordStepId: '' } }),
+      });
+
+      const result = await new ReadRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe('The pre-configured step parameters are invalid');
+      expect(result.stepOutcome.errorKind).toBe('configuration');
+      expect(mockModel.bindTools).not.toHaveBeenCalled();
+    });
+
     it('returns SourceRecordMissingError when the pinned source step loaded no record', async () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest

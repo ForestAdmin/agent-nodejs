@@ -22,13 +22,14 @@ export default class ReadRecordStepExecutor extends RecordStepExecutor<ReadRecor
     const { stepDefinition: step } = this.context;
     const { preRecordedArgs } = step;
 
-    const selectedRecordRef = preRecordedArgs?.selectedRecordStepId
-      ? await this.resolveSourceRecordRef(preRecordedArgs.selectedRecordStepId)
-      : await this.resolveRecordRef(
-          await this.getAvailableRecordRefs(),
-          step.prompt,
-          preRecordedArgs?.selectedRecordStepIndex,
-        );
+    const selectedRecordRef =
+      preRecordedArgs?.selectedRecordStepId !== undefined
+        ? await this.resolveSourceRecordRef(preRecordedArgs.selectedRecordStepId)
+        : await this.resolveRecordRef(
+            await this.getAvailableRecordRefs(),
+            step.prompt,
+            preRecordedArgs?.selectedRecordStepIndex,
+          );
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
     const pinnedFieldNames = preRecordedArgs?.fieldNames?.length
       ? preRecordedArgs.fieldNames
