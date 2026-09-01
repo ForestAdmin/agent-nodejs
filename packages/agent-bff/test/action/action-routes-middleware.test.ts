@@ -13,10 +13,13 @@ import Koa from 'koa';
 import request from 'supertest';
 
 import createActionRoutesMiddleware from '../../src/action/action-routes-middleware';
+import { createHttpTransport } from '../../src/agent/agent-transport';
 import createErrorMiddleware from '../../src/http/error-middleware';
 import SchemaUnavailableError from '../../src/read-model/errors';
 import ReadModel from '../../src/read-model/read-model';
 import { action, collection, column } from '../read-model/fixtures';
+
+const TRANSPORT = createHttpTransport({ agentUrl: 'https://agent.example.com' });
 
 const TIMEZONE = 'Europe/Paris';
 
@@ -113,7 +116,7 @@ function buildApp(
   app.use(
     createActionRoutesMiddleware({
       store,
-      agentUrl: 'https://agent.example.com',
+      transport: TRANSPORT,
       logger,
       createClient: () => client,
     }),
@@ -139,7 +142,7 @@ function buildAppWithTerminal(client: AgentActionClient) {
   app.use(
     createActionRoutesMiddleware({
       store: storeOf(readModel),
-      agentUrl: 'https://agent.example.com',
+      transport: TRANSPORT,
       logger: noopLogger,
       createClient: () => client,
     }),
@@ -152,7 +155,7 @@ function buildAppWithTerminal(client: AgentActionClient) {
 }
 
 describe('action routes middleware', () => {
-  it('forwards the configured agent timeout to the action client', async () => {
+  it('hands the configured transport to the action client', async () => {
     const createClient = jest.fn(
       () => clientOf(makeAction({ fields: [], layout: [], skipped: [] })) as AgentActionClient,
     );
@@ -168,8 +171,7 @@ describe('action routes middleware', () => {
     app.use(
       createActionRoutesMiddleware({
         store: storeOf(readModel),
-        agentUrl: 'https://agent.example.com',
-        timeoutMs: 2500,
+        transport: TRANSPORT,
         logger: noopLogger,
         createClient,
       }),
@@ -179,10 +181,10 @@ describe('action routes middleware', () => {
       .post('/agent/v1/users/actions/approve/form')
       .send({ recordIds: ['42'], values: {} });
 
-    expect(createClient).toHaveBeenCalledWith(expect.objectContaining({ timeoutMs: 2500 }));
+    expect(createClient).toHaveBeenCalledWith(expect.objectContaining({ transport: TRANSPORT }));
   });
 
-  it('leaves the action client timeout undefined when none is configured', async () => {
+  it('leaves the agent token on the client options for every call', async () => {
     const createClient = jest.fn(
       () => clientOf(makeAction({ fields: [], layout: [], skipped: [] })) as AgentActionClient,
     );
@@ -198,7 +200,7 @@ describe('action routes middleware', () => {
     app.use(
       createActionRoutesMiddleware({
         store: storeOf(readModel),
-        agentUrl: 'https://agent.example.com',
+        transport: TRANSPORT,
         logger: noopLogger,
         createClient,
       }),
@@ -208,7 +210,7 @@ describe('action routes middleware', () => {
       .post('/agent/v1/users/actions/approve/form')
       .send({ recordIds: ['42'], values: {} });
 
-    expect(createClient).toHaveBeenCalledWith(expect.objectContaining({ timeoutMs: undefined }));
+    expect(createClient).toHaveBeenCalledWith(expect.objectContaining({ token: 'agent-jwt' }));
   });
 
   it('returns the full form shape with fields, canExecute, requiredFields, skippedFields and layout', async () => {

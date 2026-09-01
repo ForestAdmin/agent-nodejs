@@ -4,6 +4,7 @@ import type {
   AgentActionClient,
   AgentActionClientOptions,
 } from './agent-action-client';
+import type { AgentTransport } from '../agent/agent-transport';
 import type { Logger } from '../ports/logger-port';
 import type ReadModelStore from '../read-model/read-model-store';
 import type { Context, Middleware } from 'koa';
@@ -76,8 +77,7 @@ function describePayloadShape(raw: unknown): string {
 
 export interface ActionRoutesMiddlewareOptions {
   store: ReadModelStore;
-  agentUrl: string;
-  timeoutMs?: number;
+  transport: AgentTransport;
   logger: Logger;
   createClient?: (options: AgentActionClientOptions) => AgentActionClient;
 }
@@ -159,8 +159,7 @@ async function handleExecute({
 
 export default function createActionRoutesMiddleware({
   store,
-  agentUrl,
-  timeoutMs,
+  transport,
   logger,
   createClient = defaultCreateAgentActionClient,
 }: ActionRoutesMiddlewareOptions): Middleware {
@@ -193,10 +192,9 @@ export default function createActionRoutesMiddleware({
     const values = parseValues(body.values);
 
     const client = createClient({
-      agentUrl,
+      transport,
       token,
       actionEndpoints: readModel.getActionEndpoints(),
-      timeoutMs,
     });
 
     const action = await callAgent(

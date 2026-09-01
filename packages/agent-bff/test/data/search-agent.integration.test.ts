@@ -14,6 +14,7 @@ import path from 'path';
 import request from 'supertest';
 
 import SearchDataSource from './fixtures/search-datasource';
+import { createHttpTransport } from '../../src/agent/agent-transport';
 import createDataRoutesMiddleware from '../../src/data/data-routes-middleware';
 import createErrorMiddleware from '../../src/http/error-middleware';
 import CapabilitiesCache from '../../src/read-model/capabilities-cache';
@@ -70,6 +71,7 @@ function schemaFetcherFromFile(schemaPath: string): SchemaFetcher {
  * production fetches it from the Forest server, which plays no part in search.
  */
 function buildApp(agentUrl: string, schemaPath: string): Koa {
+  const transport = createHttpTransport({ agentUrl });
   const token = agentToken();
   const schemaCache = new SchemaCache({
     fetcher: schemaFetcherFromFile(schemaPath),
@@ -86,7 +88,7 @@ function buildApp(agentUrl: string, schemaPath: string): Koa {
     ctx.state.agentToken = token;
     await next();
   });
-  app.use(createDataRoutesMiddleware({ store, agentUrl, logger: noopLogger }));
+  app.use(createDataRoutesMiddleware({ store, transport, logger: noopLogger }));
 
   return app;
 }

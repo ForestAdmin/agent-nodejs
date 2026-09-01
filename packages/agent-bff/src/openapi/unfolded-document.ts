@@ -1,4 +1,5 @@
 import type { Unfolding } from './unfolding';
+import type { AgentTransport } from '../agent/agent-transport';
 import type { Logger } from '../ports/logger-port';
 import type ReadModel from '../read-model/read-model';
 import type ReadModelStore from '../read-model/read-model-store';
@@ -11,8 +12,7 @@ import createAgentCapabilitiesFetcher from '../read-model/agent-capabilities-fet
 /** Everything needed to unfold. Absent when the deployment cannot reach its schema or its agent. */
 export interface UnfoldSource {
   store: ReadModelStore;
-  agentUrl: string;
-  timeoutMs?: number;
+  transport: AgentTransport;
   logger: Logger;
 }
 
@@ -36,11 +36,7 @@ export default async function buildUnfoldedDocument(
   const unfolding = await collectUnfolding({
     readModel,
     store: source.store,
-    capabilitiesFetcher: createAgentCapabilitiesFetcher({
-      agentUrl: source.agentUrl,
-      token,
-      timeoutMs: source.timeoutMs,
-    }),
+    capabilitiesFetcher: createAgentCapabilitiesFetcher({ transport: source.transport, token }),
     logger: source.logger,
   });
 

@@ -4,6 +4,7 @@ import type { Middleware } from 'koa';
 
 import request from 'supertest';
 
+import { createHttpTransport } from '../../src/agent/agent-transport';
 import runCli from '../../src/cli-core';
 import { issueBffAccessToken } from '../../src/oauth/bff-token';
 import createOpenApiRoutes, { OPENAPI_PATH } from '../../src/openapi/openapi-routes';
@@ -400,7 +401,11 @@ describe('GET /agent/openapi.json', () => {
         version: '1.2.3',
         enabled: true,
         hasAiQueryRoute: false,
-        source: { store, agentUrl: 'https://agent.example.com', logger: noopLogger },
+        source: {
+          store,
+          transport: createHttpTransport({ agentUrl: 'https://agent.example.com' }),
+          logger: noopLogger,
+        },
       });
     }
 
