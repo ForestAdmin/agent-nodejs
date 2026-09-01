@@ -1,4 +1,5 @@
 import type { PageInput, SortClauseInput } from './request-schemas';
+import type { Logger } from '../ports/logger-port';
 import type { ZodType, z } from 'zod';
 
 import {
@@ -50,14 +51,18 @@ function assertNoNodeReadableAsBothLeafAndBranch(node: unknown, depth = 0): void
   }
 }
 
-function assertFlatInputs(schema: ZodType, body: Record<string, unknown>): void {
+function assertFlatInputs(schema: ZodType, body: Record<string, unknown>, logger: Logger): void {
   const result = schema.safeParse(body);
   if (result.success) return;
 
-  const [issue] = result.error.issues;
+  const { issues } = result.error;
+  const issue = issues.find(candidate => candidate.code === 'unrecognized_keys') ?? issues[0];
   const path = issue.path.join('.');
+  const reason = path ? `${path}: ${issue.message}` : issue.message;
 
-  throw invalidRequest(path ? `${path}: ${issue.message}` : issue.message);
+  logger('Warn', 'Request body rejected', { reason });
+
+  throw invalidRequest(reason);
 }
 
 function assertFilter(filter: unknown): void {
@@ -67,21 +72,21 @@ function assertFilter(filter: unknown): void {
   assertNoNodeReadableAsBothLeafAndBranch(filter);
 }
 
-function parseRequest<S extends ZodType>(schema: S, body: unknown): z.output<S> {
+function parseRequest<S extends ZodType>(schema: S, body: unknown, logger: Logger): z.output<S> {
   if (!isPlainObject(body)) throw invalidRequest('Request body must be an object');
 
-  assertFlatInputs(schema, body);
+  assertFlatInputs(schema, body, logger);
   assertFilter(body.filter);
 
   return body as z.output<S>;
 }
 
-export function parseListRequest(body: unknown): ListRequestBody {
-  return parseRequest(ListFlatInputs, body);
+export function parseListRequest(body: unknown, logger: Logger): ListRequestBody {
+  return parseRequest(ListFlatInputs, body, logger);
 }
 
-export function parseCountRequest(body: unknown): CountRequestBody {
-  return parseRequest(CountFlatInputs, body);
+export function parseCountRequest(body: unknown, logger: Logger): CountRequestBody {
+  return parseRequest(CountFlatInputs, body, logger);
 }
 
 function collectFilterFields(filter: unknown, acc: string[]): void {
@@ -184,16 +189,16 @@ export function parseParentId(parentId: unknown): string {
   throw invalidRequest('parentId is required and must be a non-empty string or a number');
 }
 
-export function parseRelationListRequest(body: unknown): RelationListRequestBody {
+export function parseRelationListRequest(body: unknown, logger: Logger): RelationListRequestBody {
   const parentId = parseParentId((body as { parentId?: unknown } | null)?.parentId);
 
-  return { ...parseRequest(RelationListFlatInputs, body), parentId };
+  return { ...parseRequest(RelationListFlatInputs, body, logger), parentId };
 }
 
-export function parseRelationCountRequest(body: unknown): RelationCountRequestBody {
+export function parseRelationCountRequest(body: unknown, logger: Logger): RelationCountRequestBody {
   const parentId = parseParentId((body as { parentId?: unknown } | null)?.parentId);
 
-  return { ...parseRequest(RelationCountFlatInputs, body), parentId };
+  return { ...parseRequest(RelationCountFlatInputs, body, logger), parentId };
 }
 
 export function collectCountFieldPaths(body: CountRequestBody): string[] {

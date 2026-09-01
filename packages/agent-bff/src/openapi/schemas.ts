@@ -98,7 +98,8 @@ export const CLOSED_BODY_NOTE =
   'The runtime rejects an undeclared TOP-LEVEL key with 400 invalid_request, so `filters` instead ' +
   'of `filter` is an error rather than a silently unfiltered result. Inside the filter tree the ' +
   'check stops there: an unknown key on a condition node still reaches the agent, so a leaf ' +
-  'carrying `valu` runs with no value rather than being rejected.';
+  'carrying `valu` instead of `value` is not rejected here and what the agent then does with it ' +
+  'is not defined by this contract.';
 
 type OverridesOf<S extends { shape: object }> = Partial<Record<keyof S['shape'], z.ZodType>>;
 

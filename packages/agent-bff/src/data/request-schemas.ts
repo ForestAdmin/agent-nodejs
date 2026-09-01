@@ -29,7 +29,7 @@ export const ListFlatInputs = z.strictObject({
   page: PageInput.optional(),
   search: SearchInput.optional(),
   searchExtended: SearchExtendedInput.optional(),
-  timezone: validatedElsewhere,
+  timezone: TimezoneInput.optional(),
 });
 
 /** A count body carries no projection, sort or page. */
@@ -37,7 +37,7 @@ export const CountFlatInputs = z.strictObject({
   filter: validatedElsewhere,
   search: SearchInput.optional(),
   searchExtended: SearchExtendedInput.optional(),
-  timezone: validatedElsewhere,
+  timezone: TimezoneInput.optional(),
 });
 
 export const RelationListFlatInputs = ListFlatInputs.extend({ parentId: validatedElsewhere });

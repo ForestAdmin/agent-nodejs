@@ -13,14 +13,16 @@ import {
 
 type Parser = [string, (body: unknown) => unknown];
 
+const logger = jest.fn();
+
 const FLAT_PARSERS: Parser[] = [
-  ['parseListRequest', parseListRequest],
-  ['parseCountRequest', parseCountRequest],
+  ['parseListRequest', body => parseListRequest(body, logger)],
+  ['parseCountRequest', body => parseCountRequest(body, logger)],
 ];
 
 const RELATION_PARSERS: Parser[] = [
-  ['parseRelationListRequest', parseRelationListRequest],
-  ['parseRelationCountRequest', parseRelationCountRequest],
+  ['parseRelationListRequest', body => parseRelationListRequest(body, logger)],
+  ['parseRelationCountRequest', body => parseRelationCountRequest(body, logger)],
 ];
 
 describe('buildListAgentQuery', () => {
@@ -187,7 +189,7 @@ describe('parseListRequest', () => {
       page: { limit: 10, offset: 0 },
     };
 
-    expect(parseListRequest(body)).toBe(body);
+    expect(parseListRequest(body, logger)).toBe(body);
   });
 
   it.each([
@@ -203,13 +205,13 @@ describe('parseListRequest', () => {
     ['a non-integer page.limit', { page: { limit: 2.5, offset: 0 } }],
     ['a negative page.offset', { page: { limit: 10, offset: -10 } }],
   ])('should reject %s with 400 invalid_request', (_label, body) => {
-    expect(() => parseListRequest(body)).toThrow(
+    expect(() => parseListRequest(body, logger)).toThrow(
       expect.objectContaining({ type: 'invalid_request', status: 400 }),
     );
   });
 
   it('should pass search and searchExtended through rather than strip them', () => {
-    expect(parseListRequest({ search: 'ada', searchExtended: true })).toMatchObject({
+    expect(parseListRequest({ search: 'ada', searchExtended: true }, logger)).toMatchObject({
       search: 'ada',
       searchExtended: true,
     });
@@ -221,13 +223,13 @@ describe('parseListRequest', () => {
     ['projection.0', { projection: [1] }],
     ['searchExtended', { searchExtended: 'true' }],
   ])('should name %s in the rejection message', (path, body) => {
-    expect(() => parseListRequest(body)).toThrow(
+    expect(() => parseListRequest(body, logger)).toThrow(
       expect.objectContaining({ message: expect.stringContaining(`${path}: `) }),
     );
   });
 
   it('should accept a blank search rather than rejecting a cleared search box', () => {
-    expect(parseListRequest({ search: '   ' })).toMatchObject({ search: '   ' });
+    expect(parseListRequest({ search: '   ' }, logger)).toMatchObject({ search: '   ' });
   });
 
   it.each([
@@ -235,7 +237,7 @@ describe('parseListRequest', () => {
     ['a null search', { search: null }],
     ['an array search', { search: ['ada'] }],
   ])('should reject %s with 400 invalid_request', (_label, body) => {
-    expect(() => parseListRequest(body)).toThrow(
+    expect(() => parseListRequest(body, logger)).toThrow(
       expect.objectContaining({ type: 'invalid_request', status: 400 }),
     );
   });
@@ -249,7 +251,7 @@ describe('parseListRequest', () => {
   ])(
     'should reject searchExtended sent as %s rather than coercing it like the agent does',
     (_label, body) => {
-      expect(() => parseListRequest(body)).toThrow(
+      expect(() => parseListRequest(body, logger)).toThrow(
         expect.objectContaining({ type: 'invalid_request', status: 400 }),
       );
     },
@@ -258,7 +260,7 @@ describe('parseListRequest', () => {
 
 describe('parseCountRequest', () => {
   it('should reject a string filter with 400 invalid_request', () => {
-    expect(() => parseCountRequest({ filter: 'id' })).toThrow(
+    expect(() => parseCountRequest({ filter: 'id' }, logger)).toThrow(
       expect.objectContaining({ type: 'invalid_request', status: 400 }),
     );
   });
@@ -268,13 +270,13 @@ describe('parseCountRequest', () => {
     ['a string', 'foo'],
     ['an array', []],
   ])('should reject a non-object body (%s) with 400 invalid_request', (_label, body) => {
-    expect(() => parseCountRequest(body)).toThrow(
+    expect(() => parseCountRequest(body, logger)).toThrow(
       expect.objectContaining({ type: 'invalid_request', status: 400 }),
     );
   });
 
   it('should pass search and searchExtended through rather than strip them', () => {
-    expect(parseCountRequest({ search: 'ada', searchExtended: false })).toMatchObject({
+    expect(parseCountRequest({ search: 'ada', searchExtended: false }, logger)).toMatchObject({
       search: 'ada',
       searchExtended: false,
     });
@@ -284,7 +286,7 @@ describe('parseCountRequest', () => {
     ['a non-string search', { search: 42 }],
     ['a non-boolean searchExtended', { search: 'ada', searchExtended: 'true' }],
   ])('should reject %s with 400 invalid_request', (_label, body) => {
-    expect(() => parseCountRequest(body)).toThrow(
+    expect(() => parseCountRequest(body, logger)).toThrow(
       expect.objectContaining({ type: 'invalid_request', status: 400 }),
     );
   });
@@ -306,7 +308,7 @@ describe('a filter node readable as both a leaf and a branch', () => {
 
   it('should reject it nested inside a legitimate branch', () => {
     expect(() =>
-      parseListRequest({ filter: { aggregator: 'And', conditions: [READABLE_AS_BOTH] } }),
+      parseListRequest({ filter: { aggregator: 'And', conditions: [READABLE_AS_BOTH] } }, logger),
     ).toThrow(expect.objectContaining({ type: 'invalid_request', status: 400 }));
   });
 
@@ -317,9 +319,9 @@ describe('a filter node readable as both a leaf and a branch', () => {
   it('should still accept a plain leaf and a plain branch', () => {
     const leaf = { field: 'title', operator: 'Present' };
 
-    expect(() => parseCountRequest({ filter: leaf })).not.toThrow();
+    expect(() => parseCountRequest({ filter: leaf }, logger)).not.toThrow();
     expect(() =>
-      parseListRequest({ filter: { aggregator: 'And', conditions: [leaf] } }),
+      parseListRequest({ filter: { aggregator: 'And', conditions: [leaf] } }, logger),
     ).not.toThrow();
   });
 
@@ -330,7 +332,7 @@ describe('a filter node readable as both a leaf and a branch', () => {
       filter = { aggregator: 'And', conditions: [filter] };
     }
 
-    expect(() => parseCountRequest({ filter })).toThrow(
+    expect(() => parseCountRequest({ filter }, logger)).toThrow(
       expect.objectContaining({
         type: 'filter_too_deep',
         status: 400,
@@ -371,20 +373,20 @@ describe('parseParentId', () => {
 
 describe('parseRelationListRequest', () => {
   it('should return the validated list body with the parsed parentId', () => {
-    expect(parseRelationListRequest({ parentId: 'a|b', projection: ['id'] })).toEqual({
+    expect(parseRelationListRequest({ parentId: 'a|b', projection: ['id'] }, logger)).toEqual({
       parentId: 'a|b',
       projection: ['id'],
     });
   });
 
   it('should reject a missing parentId with 400 invalid_request', () => {
-    expect(() => parseRelationListRequest({ projection: ['id'] })).toThrow(
+    expect(() => parseRelationListRequest({ projection: ['id'] }, logger)).toThrow(
       expect.objectContaining({ type: 'invalid_request', status: 400 }),
     );
   });
 
   it('should reject an invalid list body with 400 invalid_request', () => {
-    expect(() => parseRelationListRequest({ parentId: '7', projection: 'id' })).toThrow(
+    expect(() => parseRelationListRequest({ parentId: '7', projection: 'id' }, logger)).toThrow(
       expect.objectContaining({ type: 'invalid_request', status: 400 }),
     );
   });
@@ -393,12 +395,15 @@ describe('parseRelationListRequest', () => {
 describe('parseRelationCountRequest', () => {
   it('should return the validated count body with the parsed parentId', () => {
     expect(
-      parseRelationCountRequest({ parentId: '7', filter: { field: 'a', operator: 'present' } }),
+      parseRelationCountRequest(
+        { parentId: '7', filter: { field: 'a', operator: 'present' } },
+        logger,
+      ),
     ).toEqual({ parentId: '7', filter: { field: 'a', operator: 'present' } });
   });
 
   it('should reject a missing parentId with 400 invalid_request', () => {
-    expect(() => parseRelationCountRequest({})).toThrow(
+    expect(() => parseRelationCountRequest({}, logger)).toThrow(
       expect.objectContaining({ type: 'invalid_request', status: 400 }),
     );
   });
@@ -423,17 +428,17 @@ describe('unknown keys', () => {
   });
 
   it('should reject a misspelled projection rather than return every field', () => {
-    expect(() => parseListRequest({ projections: ['id'] })).toThrow(REJECTED);
+    expect(() => parseListRequest({ projections: ['id'] }, logger)).toThrow(REJECTED);
   });
 
   it('should reject a list-only key on a count body, where paging and projection mean nothing', () => {
-    expect(() => parseCountRequest({ projection: ['id'] })).toThrow(REJECTED);
-    expect(() => parseCountRequest({ sort: [{ field: 'id' }] })).toThrow(REJECTED);
-    expect(() => parseCountRequest({ page: { limit: 10, offset: 0 } })).toThrow(REJECTED);
+    expect(() => parseCountRequest({ projection: ['id'] }, logger)).toThrow(REJECTED);
+    expect(() => parseCountRequest({ sort: [{ field: 'id' }] }, logger)).toThrow(REJECTED);
+    expect(() => parseCountRequest({ page: { limit: 10, offset: 0 } }, logger)).toThrow(REJECTED);
   });
 
   it('should reject parentId on a plain list, where a parent id means nothing', () => {
-    expect(() => parseListRequest({ parentId: '7' })).toThrow(REJECTED);
+    expect(() => parseListRequest({ parentId: '7' }, logger)).toThrow(REJECTED);
   });
 
   it.each(RELATION_PARSERS)('should reject a misspelled filter on %s', (_label, parse) => {
@@ -453,18 +458,38 @@ describe('unknown keys', () => {
     },
   );
 
-  it.each(FLAT_PARSERS)('should leave a null timezone to the middleware on %s', (_label, parse) => {
-    expect(parse({ timezone: null })).toMatchObject({ timezone: null });
+  it.each(FLAT_PARSERS)(
+    'should reject a non-string timezone on %s rather than resolve one the caller did not send',
+    (_label, parse) => {
+      expect(() => parse({ timezone: null })).toThrow(REJECTED);
+      expect(() => parse({ timezone: 42 })).toThrow(REJECTED);
+    },
+  );
+
+  it.each(FLAT_PARSERS)('should log the rejected key on %s, never the value', (_label, parse) => {
+    logger.mockClear();
+    expect(() => parse({ filters: { value: 'secret' } })).toThrow(REJECTED);
+    expect(logger).toHaveBeenCalledWith('Warn', 'Request body rejected', {
+      reason: 'Unrecognized key: "filters"',
+    });
+    expect(JSON.stringify(logger.mock.calls)).not.toContain('secret');
   });
 
-  it('should reject a misspelled sort direction rather than sort ascending', () => {
-    expect(() => parseListRequest({ sort: [{ field: 'createdAt', direciton: 'desc' }] })).toThrow(
-      REJECTED,
+  it('should name the unrecognized key even when another issue comes first', () => {
+    logger.mockClear();
+    expect(() => parseListRequest({ filters: {}, page: { limit: 0, offset: 0 } }, logger)).toThrow(
+      expect.objectContaining({ message: expect.stringContaining('filters') }),
     );
   });
 
+  it('should reject a misspelled sort direction rather than sort ascending', () => {
+    expect(() =>
+      parseListRequest({ sort: [{ field: 'createdAt', direciton: 'desc' }] }, logger),
+    ).toThrow(REJECTED);
+  });
+
   it('should reject an unknown key inside page', () => {
-    expect(() => parseListRequest({ page: { limit: 10, offset: 0, cursor: 'x' } })).toThrow(
+    expect(() => parseListRequest({ page: { limit: 10, offset: 0, cursor: 'x' } }, logger)).toThrow(
       REJECTED,
     );
   });
