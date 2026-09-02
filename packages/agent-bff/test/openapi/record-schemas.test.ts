@@ -46,6 +46,34 @@ describe('recordSchema', () => {
     expect(schema.properties.age.type).toEqual(['number', 'null']);
     expect(schema.properties.payload.type).toBeUndefined();
   });
+
+  it('should publish array items and nested properties as nullable too, not just the container', () => {
+    const schema = recordSchema(
+      {
+        ...PEOPLE,
+        fields: {
+          ...PEOPLE.fields,
+          projectable: [
+            { name: 'tags', type: ['String'] },
+            {
+              name: 'address',
+              type: { fields: [{ field: 'city', type: 'String' }] },
+            },
+          ],
+        },
+      },
+      { $ref: '#/components/schemas/ForestRecordMeta' },
+    ) as { properties: Record<string, unknown> };
+
+    expect(schema.properties.tags).toEqual({
+      type: ['array', 'null'],
+      items: { type: ['string', 'null'] },
+    });
+    expect(schema.properties.address).toEqual({
+      type: ['object', 'null'],
+      properties: { city: { type: ['string', 'null'] } },
+    });
+  });
 });
 
 describe('recordKey', () => {

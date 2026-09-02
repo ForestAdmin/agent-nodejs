@@ -398,7 +398,10 @@ describe('the per-collection record schema', () => {
     const { properties } = recordOf('Record_My_Coll');
 
     expect(properties.email).toEqual({ type: ['string', 'null'] });
-    expect(properties.tags).toEqual({ type: ['array', 'null'], items: { type: 'string' } });
+    expect(properties.tags).toEqual({
+      type: ['array', 'null'],
+      items: { type: ['string', 'null'] },
+    });
     expect(properties.author).toEqual({});
   });
 

@@ -31,6 +31,10 @@ const ID_SCHEMA: SchemaObject = {
     `${quoted(PACKED_ID_SEPARATOR)}.`,
 };
 
+function isReference(schema: SchemaObject | ReferenceObject): schema is ReferenceObject {
+  return '$ref' in schema;
+}
+
 /**
  * Every published field is nullable. The capabilities report a column type and never its
  * nullability, so a nullable column answers `null` against a type this schema would otherwise
@@ -40,7 +44,22 @@ const ID_SCHEMA: SchemaObject = {
 function nullable(schema: SchemaObject): SchemaObject {
   if (typeof schema.type !== 'string') return schema;
 
-  return { ...schema, type: [schema.type, 'null'] };
+  const widened: SchemaObject = { ...schema, type: [schema.type, 'null'] };
+
+  if (schema.items !== undefined && !isReference(schema.items)) {
+    widened.items = nullable(schema.items);
+  }
+
+  if (schema.properties !== undefined) {
+    widened.properties = Object.fromEntries(
+      Object.entries(schema.properties).map(([key, nested]) => [
+        key,
+        isReference(nested) ? nested : nullable(nested),
+      ]),
+    );
+  }
+
+  return widened;
 }
 
 /**
