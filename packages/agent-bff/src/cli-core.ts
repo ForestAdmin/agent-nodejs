@@ -353,7 +353,7 @@ function buildAgentMiddlewares(
   const chain: Middleware[] = [
     createAuthModeMiddleware({ authSecret: forestAuthSecret }),
     apiKeyStep,
-    createPerKeyOriginMiddleware({ logger }),
+    createPerKeyOriginMiddleware({ logger, serverAllowedOrigins: config.allowedOrigins }),
     createOpenApiRoutes({
       version,
       enabled: config.openapiEnabled,

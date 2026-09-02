@@ -11,7 +11,11 @@ import createErrorMiddleware from '../../src/http/error-middleware';
 const RENDERING_ID = 42;
 const RAW_KEY = 'forest-bff-key-under-test';
 
-function buildApp(allowedOrigins?: string[], logger: Logger = () => undefined) {
+function buildApp(
+  allowedOrigins?: string[],
+  logger: Logger = () => undefined,
+  serverAllowedOrigins?: string[],
+) {
   const app = new Koa();
   app.silent = true;
   app.use(createErrorMiddleware({ logger: () => undefined }));
@@ -22,7 +26,7 @@ function buildApp(allowedOrigins?: string[], logger: Logger = () => undefined) {
 
     await next();
   });
-  app.use(createPerKeyOriginMiddleware({ logger }));
+  app.use(createPerKeyOriginMiddleware({ logger, serverAllowedOrigins }));
   app.use(async ctx => {
     ctx.status = 200;
     ctx.body = { reached: true };
@@ -152,6 +156,53 @@ describe('per-key origin middleware (layer 2)', () => {
       await request(buildApp(undefined, logger).callback())
         .get('/agent/x')
         .set('Origin', 'https://anything.com');
+
+      expect(logger).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('when no key origin can pass the server allow-list', () => {
+    it('reports the key once, naming its origins, instead of leaving no trace at all', async () => {
+      const logger = jest.fn();
+      const app = buildApp(['https://a.com'], logger, ['https://b.com']);
+
+      await request(app.callback())
+        .get('/agent/x')
+        .set('Origin', 'https://a.com')
+        .set(BFF_KEY_HEADER, RAW_KEY);
+      await request(app.callback())
+        .get('/agent/x')
+        .set('Origin', 'https://a.com')
+        .set(BFF_KEY_HEADER, RAW_KEY);
+
+      expect(logger).toHaveBeenCalledTimes(1);
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        'BFF key origins are all outside BFF_ALLOWED_ORIGINS',
+        { keyHash: fingerprintApiKey(RAW_KEY), keyOrigins: ['https://a.com'] },
+      );
+    });
+
+    it('stays silent when one key origin is on the server allow-list', async () => {
+      const logger = jest.fn();
+
+      await request(
+        buildApp(['https://a.com', 'https://c.com'], logger, ['https://c.com']).callback(),
+      )
+        .get('/agent/x')
+        .set('Origin', 'https://c.com')
+        .set(BFF_KEY_HEADER, RAW_KEY);
+
+      expect(logger).not.toHaveBeenCalled();
+    });
+
+    it('stays silent when the server allow-list is empty, where no key is at fault', async () => {
+      const logger = jest.fn();
+
+      await request(buildApp(['https://a.com'], logger, []).callback())
+        .get('/agent/x')
+        .set('Origin', 'https://a.com')
+        .set(BFF_KEY_HEADER, RAW_KEY);
 
       expect(logger).not.toHaveBeenCalled();
     });
