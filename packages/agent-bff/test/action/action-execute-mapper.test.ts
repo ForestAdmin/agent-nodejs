@@ -1,9 +1,15 @@
 import { mapActionExecuteResult } from '../../src/action/action-execute-mapper';
 
+const logger = jest.fn();
+
+beforeEach(() => logger.mockClear());
+
+const mapResult = (raw: unknown) => mapActionExecuteResult(raw, logger);
+
 describe('mapActionExecuteResult', () => {
   it('maps a Success payload, serializing refresh.relationships into invalidated', () => {
     expect(
-      mapActionExecuteResult({
+      mapResult({
         success: 'Done',
         html: '<b>ok</b>',
         refresh: { relationships: ['orders', 'items'] },
@@ -19,15 +25,142 @@ describe('mapActionExecuteResult', () => {
     });
   });
 
+  it('sanitizes the success html: safe markup kept, active markup stripped', () => {
+    expect(
+      mapResult({
+        success: 'With html',
+        html:
+          '<p>Safe <b>markup</b></p>' +
+          '<script>alert(1)</script>' +
+          '<img src=x onerror="parent.postMessage({qa:xss},\'*\')">' +
+          '<svg onload="alert(1)"></svg>' +
+          '<a href="javascript:alert(2)">click</a>',
+        refresh: { relationships: [] },
+      }),
+    ).toEqual({
+      status: 200,
+      body: {
+        type: 'success',
+        message: 'With html',
+        invalidated: [],
+        html: '<p>Safe <b>markup</b></p><a>click</a>',
+      },
+    });
+  });
+
+  it('truncates an html longer than the sanitizable size instead of dropping it', () => {
+    const html = `${'a'.repeat(262143)}<script>alert(1)</script>${'b'.repeat(100)}`;
+
+    expect(mapResult({ success: 'ok', html, refresh: { relationships: [] } }).body).toEqual({
+      type: 'success',
+      message: 'ok',
+      invalidated: [],
+      html: `${'a'.repeat(262143)}&lt;`,
+    });
+    expect(logger).toHaveBeenCalledWith(
+      'Warn',
+      'Action html truncated: longer than the sanitizable size',
+      { characters: html.length, limit: 262144 },
+    );
+  });
+
+  it('keeps presentational inline styles on the success html', () => {
+    expect(
+      mapResult({
+        success: 'KYC Approved',
+        html: '<div style="background:#16a34a;color:#fff">ok</div><div style="position:fixed">x</div>',
+        refresh: { relationships: [] },
+      }).body,
+    ).toEqual({
+      type: 'success',
+      message: 'KYC Approved',
+      invalidated: [],
+      html: '<div style="background:#16a34a;color:#fff">ok</div><div>x</div>',
+    });
+  });
+
+  it('keeps parenthesised css values such as rgb(), calc() and var() on the success html', () => {
+    expect(
+      mapResult({
+        success: 'ok',
+        html: '<div style="color:rgb(22, 163, 74);width:calc(100% - 12px);background:var(--fa-brand)">x</div>',
+        refresh: { relationships: [] },
+      }).body,
+    ).toEqual({
+      type: 'success',
+      message: 'ok',
+      invalidated: [],
+      html: '<div style="color:rgb(22, 163, 74);width:calc(100% - 12px);background:var(--fa-brand)">x</div>',
+    });
+  });
+
+  it('drops a style value spelling url with case or a css escape on the success html', () => {
+    expect(
+      mapResult({
+        success: 'ok',
+        html:
+          '<div style="background:URL(https://e.test/p.gif)">x</div>' +
+          '<div style="background:\\75rl(https://e.test/p.gif)">y</div>',
+        refresh: { relationships: [] },
+      }).body,
+    ).toEqual({
+      type: 'success',
+      message: 'ok',
+      invalidated: [],
+      html: '<div>x</div><div>y</div>',
+    });
+  });
+
+  it('keeps documented forest utility classes and filters other classes on the success html', () => {
+    expect(
+      mapResult({
+        success: 'Charge failed',
+        html:
+          '<p class="c-clr-1-4 l-mt l-mb modal ember-view">x</p>' +
+          '<strong class="c-form__label--read c-clr-1-2">Reason</strong>' +
+          '<p class="modal only">y</p>',
+        refresh: { relationships: [] },
+      }).body,
+    ).toEqual({
+      type: 'success',
+      message: 'Charge failed',
+      invalidated: [],
+      html:
+        '<p class="c-clr-1-4 l-mt l-mb">x</p>' +
+        '<strong class="c-form__label--read c-clr-1-2">Reason</strong>' +
+        '<p>y</p>',
+    });
+  });
+
+  it('maps an html that is entirely active markup to null rather than an empty string', () => {
+    expect(
+      mapResult({
+        success: 'ok',
+        html: '<script>alert(1)</script>',
+        refresh: { relationships: [] },
+      }),
+    ).toEqual({
+      status: 200,
+      body: { type: 'success', message: 'ok', invalidated: [], html: null },
+    });
+  });
+
+  it('maps a non-string html to null instead of relaying or crashing on it', () => {
+    expect(mapResult({ success: 'ok', html: 42, refresh: { relationships: [] } })).toEqual({
+      status: 200,
+      body: { type: 'success', message: 'ok', invalidated: [], html: null },
+    });
+  });
+
   it('defaults message and html to null and invalidated to [] when absent', () => {
-    expect(mapActionExecuteResult({ success: undefined, refresh: { relationships: [] } })).toEqual({
+    expect(mapResult({ success: undefined, refresh: { relationships: [] } })).toEqual({
       status: 200,
       body: { type: 'success', message: null, invalidated: [], html: null },
     });
   });
 
   it('treats a bare refresh payload as a Success', () => {
-    expect(mapActionExecuteResult({ refresh: { relationships: ['orders'] } })).toEqual({
+    expect(mapResult({ refresh: { relationships: ['orders'] } })).toEqual({
       status: 200,
       body: { type: 'success', message: null, invalidated: ['orders'], html: null },
     });
@@ -37,7 +170,7 @@ describe('mapActionExecuteResult', () => {
     ['relationships absent', { success: 'ok', refresh: {} }],
     ['relationships not an array', { success: 'ok', refresh: { relationships: 'x' } }],
   ])('falls back invalidated to [] when %s', (_label, payload) => {
-    expect(mapActionExecuteResult(payload)).toEqual({
+    expect(mapResult(payload)).toEqual({
       status: 200,
       body: { type: 'success', message: 'ok', invalidated: [], html: null },
     });
@@ -45,7 +178,7 @@ describe('mapActionExecuteResult', () => {
 
   it('maps a Webhook payload verbatim', () => {
     expect(
-      mapActionExecuteResult({
+      mapResult({
         webhook: { url: 'https://x.test', method: 'POST', headers: { a: '1' }, body: { b: 2 } },
       }),
     ).toEqual({
@@ -67,7 +200,7 @@ describe('mapActionExecuteResult', () => {
     ['method missing', { webhook: { url: 'https://x.test' } }],
     ['url not a string', { webhook: { url: 42, method: 'POST' } }],
   ])('falls through to 501 when the webhook payload is %s', (_label, payload) => {
-    expect(mapActionExecuteResult(payload)).toEqual({
+    expect(mapResult(payload)).toEqual({
       status: 501,
       body: { error: { type: 'unsupported_action_result', status: 501 } },
     });
@@ -78,37 +211,35 @@ describe('mapActionExecuteResult', () => {
     ['an object without relationships', { refresh: {} }],
     ['relationships not an array', { refresh: { relationships: 'x' } }],
   ])('falls through to 501 when the only marker is a refresh that is %s', (_label, payload) => {
-    expect(mapActionExecuteResult(payload)).toEqual({
+    expect(mapResult(payload)).toEqual({
       status: 501,
       body: { error: { type: 'unsupported_action_result', status: 501 } },
     });
   });
 
   it('drops non-string entries from invalidated', () => {
-    expect(
-      mapActionExecuteResult({ success: 'ok', refresh: { relationships: ['orders', 42, null] } }),
-    ).toEqual({
+    expect(mapResult({ success: 'ok', refresh: { relationships: ['orders', 42, null] } })).toEqual({
       status: 200,
       body: { type: 'success', message: 'ok', invalidated: ['orders'], html: null },
     });
   });
 
   it('maps a Redirect payload to the path', () => {
-    expect(mapActionExecuteResult({ redirectTo: '/orders/1' })).toEqual({
+    expect(mapResult({ redirectTo: '/orders/1' })).toEqual({
       status: 200,
       body: { type: 'redirect', path: '/orders/1' },
     });
   });
 
   it('falls through to 501 for an unrecognized (File) payload', () => {
-    expect(mapActionExecuteResult({})).toEqual({
+    expect(mapResult({})).toEqual({
       status: 501,
       body: { error: { type: 'unsupported_action_result', status: 501 } },
     });
   });
 
   it('falls through to 501 for a non-object payload', () => {
-    expect(mapActionExecuteResult(null)).toEqual({
+    expect(mapResult(null)).toEqual({
       status: 501,
       body: { error: { type: 'unsupported_action_result', status: 501 } },
     });
@@ -119,7 +250,7 @@ describe('mapActionExecuteResult', () => {
     ['a non-string redirectTo', { redirectTo: {} }],
     ['a non-string success with no refresh', { success: {} }],
   ])('falls through to 501 for a malformed payload: %s', (_label, payload) => {
-    expect(mapActionExecuteResult(payload)).toEqual({
+    expect(mapResult(payload)).toEqual({
       status: 501,
       body: { error: { type: 'unsupported_action_result', status: 501 } },
     });
