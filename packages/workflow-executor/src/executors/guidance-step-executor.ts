@@ -1,7 +1,7 @@
 import type { StepExecutionResult } from '../types/execution-context';
 import type { GuidanceStepExecutionData } from '../types/step-execution-data';
 import type { GuidanceStepDefinition } from '../types/validated/step-definition';
-import type { RecordStepStatus } from '../types/validated/step-outcome';
+import type { ErrorKind, RecordStepStatus } from '../types/validated/step-outcome';
 
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 import { z } from 'zod';
@@ -237,6 +237,8 @@ export default class GuidanceStepExecutor extends BaseStepExecutor<GuidanceStepD
   protected buildOutcomeResult(outcome: {
     status: RecordStepStatus;
     error?: string;
+    errorKind?: ErrorKind;
+    errorSourceStepIndex?: number;
   }): StepExecutionResult {
     return {
       stepOutcome: {

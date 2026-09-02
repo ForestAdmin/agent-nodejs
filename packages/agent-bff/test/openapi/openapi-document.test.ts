@@ -393,13 +393,13 @@ describe('generateOpenApiDocument', () => {
     expect(list['422'].description).not.toContain('operator');
   });
 
-  it('should distinguish a form body, which is parsed, from other non-JSON bodies, which drop', () => {
+  it('should reject every non-JSON body with 415, form-urlencoded included', () => {
     const list = listResponses();
 
-    expect(list['415'].description).toContain('NOT rejected');
     expect(list['415'].description).toContain('form-urlencoded');
-    expect(document.info.description).toContain('form-urlencoded');
-    expect(document.info.description).toContain('silently');
+    expect(list['415'].description).toContain('415');
+    expect(document.info.description).toContain('415');
+    expect(document.info.description).not.toContain('silently');
   });
 
   it('should name the 403s the BFF itself emits, not only the agent passthrough', () => {
@@ -495,6 +495,18 @@ describe('the closed request bodies', () => {
       ).toEqual({ $ref: '#/components/schemas/ParentId' });
     },
   );
+});
+
+
+describe('the documented ai query path', () => {
+  it('should say a non-json body is rejected here, matching the 415 the guard raises', () => {
+    const { description } = document.paths[`${ROUTE_PREFIX}/ai/query`].post as {
+      description: string;
+    };
+
+    expect(description).toContain('rejected with 415 before the relay');
+    expect(description).not.toContain('relayed as {}');
+  });
 });
 
 describe('the documented search inputs', () => {

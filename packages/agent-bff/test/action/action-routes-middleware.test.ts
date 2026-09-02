@@ -665,6 +665,65 @@ describe('action execute', () => {
     });
   });
 
+  it('sanitizes the html carried by a native action Error in details', async () => {
+    const form = makeAction({
+      execute: jest.fn(async () => {
+        throw new ActionFormValidationError(
+          'Refund failed',
+          '<strong>Nope</strong><img src=x onerror="alert(1)">',
+        );
+      }),
+    });
+
+    const response = await request(execApp(clientOf(form)).callback())
+      .post('/agent/v1/users/actions/approve/execute')
+      .send({ recordIds: ['42'] });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      error: {
+        type: 'action_error',
+        status: 400,
+        message: 'Refund failed',
+        details: { html: '<strong>Nope</strong>' },
+      },
+    });
+  });
+
+  it('omits details when the action Error html is entirely active markup', async () => {
+    const form = makeAction({
+      execute: jest.fn(async () => {
+        throw new ActionFormValidationError('Refund failed', '<script>alert(1)</script>');
+      }),
+    });
+
+    const response = await request(execApp(clientOf(form)).callback())
+      .post('/agent/v1/users/actions/approve/execute')
+      .send({ recordIds: ['42'] });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      error: { type: 'action_error', status: 400, message: 'Refund failed' },
+    });
+  });
+
+  it('omits details when the action Error html is not a string', async () => {
+    const form = makeAction({
+      execute: jest.fn(async () => {
+        throw new ActionFormValidationError('Refund failed', { evil: 1 } as unknown as string);
+      }),
+    });
+
+    const response = await request(execApp(clientOf(form)).callback())
+      .post('/agent/v1/users/actions/approve/execute')
+      .send({ recordIds: ['42'] });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      error: { type: 'action_error', status: 400, message: 'Refund failed' },
+    });
+  });
+
   it('omits details entirely when the action Error carries no html', async () => {
     const form = makeAction({
       execute: jest.fn(async () => {

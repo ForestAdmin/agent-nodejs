@@ -255,4 +255,116 @@ describe('toUpdateStepRequest', () => {
       expect(body.stepUpdate.attributes.context).toEqual({ status: 'success' });
     });
   });
+
+  describe('errorKind propagation', () => {
+    it('writes errorKind beside error in the update-step context', () => {
+      const outcome: StepOutcome = {
+        type: 'record',
+        stepId: 'step-1',
+        stepIndex: 2,
+        status: 'error',
+        error: 'The record no longer exists. It may have been deleted.',
+        errorKind: 'operator',
+      };
+
+      const body = toUpdateStepRequest('42', outcome);
+
+      expect(body.stepUpdate.attributes).toEqual({
+        done: true,
+        context: {
+          status: 'error',
+          error: 'The record no longer exists. It may have been deleted.',
+          errorKind: 'operator',
+        },
+      });
+      expect(body.executionStatus).toEqual({
+        type: 'error',
+        message: 'The record no longer exists. It may have been deleted.',
+      });
+    });
+
+    // Only 'operator' drives a UI branch today, but all three cross the wire — widening the enum
+    // later must not require another cross-service change.
+    it.each(['operator', 'configuration', 'system'] as const)('forwards the %s kind', kind => {
+      const outcome: StepOutcome = {
+        type: 'mcp',
+        stepId: 'step-1',
+        stepIndex: 0,
+        status: 'error',
+        error: 'The tool failed to execute.',
+        errorKind: kind,
+      };
+
+      const body = toUpdateStepRequest('42', outcome);
+
+      expect(body.stepUpdate.attributes.context).toEqual({
+        status: 'error',
+        error: 'The tool failed to execute.',
+        errorKind: kind,
+      });
+    });
+
+    it('writes errorSourceStepIndex alongside the kind', () => {
+      const outcome: StepOutcome = {
+        type: 'record',
+        stepId: 'step-3',
+        stepIndex: 3,
+        status: 'error',
+        error:
+          'This step uses "Load the order" as its source, but that step didn\'t load any record.',
+        errorKind: 'operator',
+        errorSourceStepIndex: 2,
+      };
+
+      const body = toUpdateStepRequest('42', outcome);
+
+      expect(body.stepUpdate.attributes.context).toEqual({
+        status: 'error',
+        error:
+          'This step uses "Load the order" as its source, but that step didn\'t load any record.',
+        errorKind: 'operator',
+        errorSourceStepIndex: 2,
+      });
+    });
+
+    // Index 0 is a real step, so a falsy-value check in the mapper would drop the first step of a run.
+    it('writes errorSourceStepIndex 0', () => {
+      const outcome: StepOutcome = {
+        type: 'record',
+        stepId: 'step-1',
+        stepIndex: 1,
+        status: 'error',
+        error: 'boom',
+        errorKind: 'operator',
+        errorSourceStepIndex: 0,
+      };
+
+      const body = toUpdateStepRequest('42', outcome);
+
+      expect(body.stepUpdate.attributes.context).toEqual({
+        status: 'error',
+        error: 'boom',
+        errorKind: 'operator',
+        errorSourceStepIndex: 0,
+      });
+    });
+
+    it('sends the payload unchanged for an unclassified error', () => {
+      const outcome: StepOutcome = {
+        type: 'condition',
+        stepId: 'step-1',
+        stepIndex: 0,
+        status: 'error',
+        error: 'AI gateway unreachable',
+      };
+
+      const body = toUpdateStepRequest('7', outcome);
+
+      expect(body.stepUpdate.attributes.context).toEqual({
+        status: 'error',
+        error: 'AI gateway unreachable',
+      });
+      expect(body.stepUpdate.attributes.context).not.toHaveProperty('errorKind');
+    });
+  });
 });

@@ -576,7 +576,8 @@ function registerActionOperations(deps: Deps, plan: CollectionPlan, namer: Namer
       description: `Loads the form of the custom action. ${identity} An unknown submitted field is skipped here, not rejected.`,
       request,
       response: {},
-      responseDescription: 'The action form fields',
+      responseDescription:
+        'The action form fields; htmlBlock layout content is sanitized server-side against an allowlist before relaying',
       bodyRequired: true,
     });
 
@@ -588,7 +589,8 @@ function registerActionOperations(deps: Deps, plan: CollectionPlan, namer: Namer
       description: `Executes the custom action. ${identity} A submitted field the loaded form does not carry is rejected with 400.`,
       request,
       response: {},
-      responseDescription: 'The normalized action result',
+      responseDescription:
+        'The normalized action result; a success result html field is sanitized server-side against an allowlist before relaying',
       bodyRequired: true,
       executeResults: true,
     });

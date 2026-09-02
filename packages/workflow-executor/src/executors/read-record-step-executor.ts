@@ -6,7 +6,7 @@ import type { ReadRecordStepDefinition } from '../types/validated/step-definitio
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 import { z } from 'zod';
 
-import { NoReadableFieldsError, NoResolvedFieldsError } from '../errors';
+import { NoReadableFieldsError, NoResolvedFieldsError, PinnedArgNotFoundError } from '../errors';
 import RecordStepExecutor from './record-step-executor';
 
 const READ_RECORD_SYSTEM_PROMPT = `You are an AI agent reading fields from a record to answer a user request.
@@ -22,17 +22,19 @@ export default class ReadRecordStepExecutor extends RecordStepExecutor<ReadRecor
     const { stepDefinition: step } = this.context;
     const { preRecordedArgs } = step;
 
-    const selectedRecordRef = preRecordedArgs?.selectedRecordStepId
-      ? await this.resolveSourceRecordRef(preRecordedArgs.selectedRecordStepId)
-      : await this.resolveRecordRef(
-          await this.getAvailableRecordRefs(),
-          step.prompt,
-          preRecordedArgs?.selectedRecordStepIndex,
-        );
+    const selectedRecordRef =
+      preRecordedArgs?.selectedRecordStepId !== undefined
+        ? await this.resolveSourceRecordRef(preRecordedArgs.selectedRecordStepId)
+        : await this.resolveRecordRef(
+            await this.getAvailableRecordRefs(),
+            step.prompt,
+            preRecordedArgs?.selectedRecordStepIndex,
+          );
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
-    const fieldNames = preRecordedArgs?.fieldNames?.length
+    const pinnedFieldNames = preRecordedArgs?.fieldNames?.length
       ? preRecordedArgs.fieldNames
-      : await this.selectFields(schema, step.prompt);
+      : undefined;
+    const fieldNames = pinnedFieldNames ?? (await this.selectFields(schema, step.prompt));
     const selectedFields = fieldNames.map(requested => ({
       requested,
       field: this.findFieldByTechnicalName(schema, requested),
@@ -43,6 +45,16 @@ export default class ReadRecordStepExecutor extends RecordStepExecutor<ReadRecor
       .filter((name): name is string => name !== undefined);
 
     if (resolvedFieldNames.length === 0) {
+      // A pinned name that no longer resolves is a workflow edit, as it is on Update Data; only a
+      // name the AI chose is the AI's own miss.
+      if (pinnedFieldNames) {
+        throw new PinnedArgNotFoundError(
+          'field',
+          pinnedFieldNames.join('", "'),
+          schema.collectionName,
+        );
+      }
+
       throw new NoResolvedFieldsError(selectedFields.map(s => s.requested));
     }
 

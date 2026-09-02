@@ -17,6 +17,7 @@ import {
 import { mapActionExecuteResult } from './action-execute-mapper';
 import { mapActionForm } from './action-form-mapper';
 import defaultCreateAgentActionClient, { extractRawLayout } from './agent-action-client';
+import sanitizeActionHtml from './sanitize-action-html';
 import { mapAgentError } from '../http/agent-error-mapper';
 import {
   callAgent,
@@ -101,7 +102,7 @@ async function handleForm({
   const skippedFields = await callAgent(() => action.tryToSetFields(values), logger);
 
   ctx.status = 200;
-  ctx.body = mapActionForm(action, skippedFields, extractRawLayout(action));
+  ctx.body = mapActionForm(action, skippedFields, extractRawLayout(action), logger);
 }
 
 async function handleExecute({
@@ -137,13 +138,15 @@ async function handleExecute({
     }
 
     if (error instanceof ActionFormValidationError) {
-      throw actionError(error.message, error.html !== undefined ? { html: error.html } : undefined);
+      const html = sanitizeActionHtml(error.html, logger);
+
+      throw actionError(error.message, html === null ? undefined : { html });
     }
 
     throw mapAgentError(error, { logger });
   }
 
-  const { status, body } = mapActionExecuteResult(raw);
+  const { status, body } = mapActionExecuteResult(raw, logger);
 
   // An unrecognized payload (a File stream, or a new agent result type) maps to a generic 501 with
   // no trace of what it was; log a short shape hint so the case can be diagnosed without the body.

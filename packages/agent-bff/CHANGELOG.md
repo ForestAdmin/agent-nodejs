@@ -1,3 +1,34 @@
+## @forestadmin/agent-bff [1.23.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.23.4...@forestadmin/agent-bff@1.23.5) (2026-09-02)
+
+
+### Bug Fixes
+
+* **agent-bff:** sanitize action result html before relaying ([#1859](https://github.com/ForestAdmin/agent-nodejs/issues/1859)) ([695e160](https://github.com/ForestAdmin/agent-nodejs/commit/695e160361be95d9ef90da051f1e35e1de841f53))
+
+## @forestadmin/agent-bff [1.23.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.23.3...@forestadmin/agent-bff@1.23.4) (2026-09-01)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.98.5
+* **@forestadmin/agent-testing:** upgraded to 1.2.9
+
+## @forestadmin/agent-bff [1.23.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.23.2...@forestadmin/agent-bff@1.23.3) (2026-09-01)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.15.1
+* **@forestadmin/forestadmin-client:** upgraded to 1.43.3
+* **@forestadmin/agent:** upgraded to 1.98.4
+* **@forestadmin/agent-testing:** upgraded to 1.2.8
+
 ## @forestadmin/agent-bff [1.23.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.23.1...@forestadmin/agent-bff@1.23.2) (2026-08-27)
 
 

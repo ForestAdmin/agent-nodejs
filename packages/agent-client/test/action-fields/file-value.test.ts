@@ -163,7 +163,82 @@ describe('file values in action forms', () => {
       await setupFields([{ field: 'comment', type: 'String' }]);
 
       await expect(fieldFormStates.setFieldValue('comment', pdf)).rejects.toThrow(
-        'Field "comment" is a String field and cannot hold a file.',
+        'Field "comment" takes String, not a file: send the file to a File field instead. ' +
+          'If this field is meant to take one, the action must declare it as type File or ' +
+          'carry the "file picker" widget.',
+      );
+    });
+  });
+
+  describe('on a v1 field declared String with the file picker widget', () => {
+    const filePicker = { name: 'file picker', parameters: {} };
+
+    it('encodes a file object as a data uri, as if the field were a File', async () => {
+      await setupFields([{ field: 'file_0', type: 'String', widgetEdit: filePicker }]);
+
+      await fieldFormStates.setFieldValue('file_0', pdf);
+
+      expect(fieldFormStates.getFieldValues()).toEqual({ file_0: pdfDataUri });
+    });
+
+    it('encodes every item when the field is declared as a list', async () => {
+      await setupFields([{ field: 'files', type: ['String'], widgetEdit: filePicker }]);
+
+      await fieldFormStates.setFieldValue('files', [pdf, pdf]);
+
+      expect(fieldFormStates.getFieldValues()).toEqual({ files: [pdfDataUri, pdfDataUri] });
+    });
+
+    it('reports the effective type while keeping the wire type intact', async () => {
+      await setupFields([
+        { field: 'file_0', type: 'String', widgetEdit: filePicker },
+        { field: 'files', type: ['String'], widgetEdit: filePicker },
+      ]);
+
+      expect(fieldFormStates.getField('file_0')?.getEffectiveTypeName()).toBe('File');
+      expect(fieldFormStates.getField('file_0')?.getTypeName()).toBe('String');
+      expect(fieldFormStates.getField('file_0')?.getType()).toBe('String');
+      expect(fieldFormStates.getField('files')?.getEffectiveTypeName()).toBe('FileList');
+      expect(fieldFormStates.getField('files')?.getTypeName()).toBe('StringList');
+      expect(fieldFormStates.getField('files')?.getType()).toEqual(['String']);
+    });
+
+    it('leaves a plain string untouched, as the front already sends a data uri', async () => {
+      await setupFields([{ field: 'file_0', type: 'String', widgetEdit: filePicker }]);
+
+      await fieldFormStates.setFieldValue('file_0', pdfDataUri);
+
+      expect(fieldFormStates.getFieldValues()).toEqual({ file_0: pdfDataUri });
+    });
+
+    it('rejects an object that is not a file, instead of storing it as is', async () => {
+      await setupFields([{ field: 'file_0', type: 'String', widgetEdit: filePicker }]);
+
+      await expect(fieldFormStates.setFieldValue('file_0', { foo: 1 })).rejects.toThrow(
+        'Field "file_0" expects a file: pass { buffer, mimeType, name } ' +
+          'or a string holding a data uri.',
+      );
+    });
+
+    it('rejects a bare value where the list field expects an array', async () => {
+      await setupFields([{ field: 'files', type: ['String'], widgetEdit: filePicker }]);
+
+      await expect(fieldFormStates.setFieldValue('files', pdfDataUri)).rejects.toThrow(
+        'Field "files" expects a list of files: pass an array.',
+      );
+    });
+
+    it('leaves a String field carrying another widget rejecting files', async () => {
+      await setupFields([
+        {
+          field: 'comment',
+          type: 'String',
+          widgetEdit: { name: 'text area editor', parameters: {} },
+        },
+      ]);
+
+      await expect(fieldFormStates.setFieldValue('comment', pdf)).rejects.toThrow(
+        'Field "comment" takes String, not a file',
       );
     });
   });

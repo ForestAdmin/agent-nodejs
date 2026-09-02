@@ -55,7 +55,7 @@ export interface AgentActionClientOptions {
 export function extractRawLayout(action: ActionForm): ForestServerActionFormLayoutElement[] {
   const root = action.getLayout() as { layout?: ForestServerActionFormLayoutElement[] };
 
-  return root.layout ?? [];
+  return Array.isArray(root.layout) ? root.layout : [];
 }
 
 /**
