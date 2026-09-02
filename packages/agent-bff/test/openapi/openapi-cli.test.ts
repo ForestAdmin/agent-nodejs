@@ -203,9 +203,13 @@ describe('renderOpenApi', () => {
   });
 
   it('should fail on a bad BFF_PUBLIC_URL before warning about an unrelated omitted route', async () => {
+    const logger = jest.fn();
+
     await expect(
-      renderOpenApi({ BFF_PUBLIC_URL: 'https://bff.example.com?tenant=1' }, noopLogger),
+      renderOpenApi({ BFF_PUBLIC_URL: 'https://bff.example.com?tenant=1' }, logger),
     ).rejects.toThrow(/BFF_PUBLIC_URL/);
+
+    expect(logger).not.toHaveBeenCalled();
   });
 
   it('should publish BFF_PUBLIC_URL in the generic export, which has no retrieval url to resolve against', async () => {
