@@ -20,6 +20,7 @@ import ApiKeyClient from './api-key/api-key-client';
 import createApiKeyMiddleware from './api-key/api-key-middleware';
 import createResolveCache from './api-key/resolve-cache';
 import createAuthModeMiddleware from './auth/auth-mode-middleware';
+import warnMissingConfig from './config/missing-config-warning';
 import createContextRoutesMiddleware from './context/context-routes-middleware';
 import createCorsMiddleware from './cors/cors-middleware';
 import createPerKeyOriginMiddleware from './cors/per-key-origin';
@@ -43,7 +44,6 @@ import createRateLimitMiddleware from './rate-limit/rate-limit-middleware';
 import createReadModel from './read-model/create-read-model';
 import createTimezoneMiddleware from './timezone/timezone-middleware';
 import version from './version';
-
 
 /** What a host must hand to `http.createServer`, or mount, to serve the BFF. */
 export type BffCallback = (req: IncomingMessage, res: ServerResponse) => void | Promise<void>;
@@ -412,7 +412,9 @@ function buildAgentMiddlewares(
 /**
  * Assemble the whole BFF — `/health`, the version header, and every middleware in the one order both
  * deployment modes must share — and hand back the request handler. `runCli` puts it behind a
- * listener; an embedding host mounts it on its own server.
+ * listener; an embedding host mounts it at the root of its own server. The handler is terminal — it
+ * answers 404 itself instead of yielding to a host `next()` — and every path it serves is absolute,
+ * so a prefix mount would move `/health` and `/agent/...` off the paths the frontend calls.
  */
 export default async function buildBff({
   config,
@@ -423,6 +425,8 @@ export default async function buildBff({
       entries: config.invalidAllowedOrigins,
     });
   }
+
+  warnMissingConfig(config, logger);
 
   const oauth = await buildOAuthMiddlewares(config, logger);
   const aiMiddlewares = buildAiMiddlewares(config, oauth, logger);

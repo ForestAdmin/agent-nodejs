@@ -40,6 +40,14 @@ describe('buildBff', () => {
       expect(response.status).toBe(200);
       expect(response.body).toEqual({ status: 'ok', version });
     });
+
+    it('should set the version header on /health, which only holds if it is mounted first', async () => {
+      const callback = await buildCallback(VALID_ENV);
+
+      const response = await request(callback).get('/health');
+
+      expect(response.headers['x-forest-bff-version']).toBe(version);
+    });
   });
 
   describe('when a required key is missing', () => {
@@ -51,6 +59,18 @@ describe('buildBff', () => {
       expect(response.status).toBe(503);
       expect(response.body).toEqual({ status: 'degraded', version });
     });
+
+    it('should warn naming the missing keys', async () => {
+      const logger = jest.fn();
+
+      await buildBff({ config: parseConfig({ ...VALID_ENV, AGENT_URL: undefined }), logger });
+
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        'Missing required configuration; /health will report degraded',
+        { missing: ['AGENT_URL'] },
+      );
+    });
   });
 
   it('should set the version header on every response', async () => {
@@ -61,7 +81,7 @@ describe('buildBff', () => {
     expect(response.headers['x-forest-bff-version']).toBe(version);
   });
 
-  it('should mount the agent edge behind the health route', async () => {
+  it('should answer 401 on an unauthenticated agent route', async () => {
     const callback = await buildCallback(VALID_ENV);
 
     const response = await request(callback).post('/agent/v1/companies/list').send({});

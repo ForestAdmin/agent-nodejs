@@ -10,18 +10,36 @@ import Koa from 'koa';
 import createHealthRoute from './health-route';
 import createVersionHeaderMiddleware from './version-header-middleware';
 import createConsoleLogger from '../adapters/console-logger';
+import warnMissingConfig from '../config/missing-config-warning';
 
-export interface BFFHttpServerOptions {
+interface BFFHttpServerBaseOptions {
   port: number;
-  version: string;
   config: BFFConfig;
   logger?: Logger;
+}
+
+/** The server assembles its own Koa app around `/health` and the version header. */
+interface AssembledOptions extends BFFHttpServerBaseOptions {
+  version: string;
   middlewares?: Middleware[];
-  /**
-   * Prebuilt request handler, as returned by `buildBff`. When set, the server listens on it as-is
-   * and `middlewares` is ignored: the handler already carries `/health` and the version header.
-   */
-  callback?: BffCallback;
+  callback?: never;
+}
+
+/**
+ * The server only listens: `buildBff` already assembled the handler, `/health` and the version
+ * header included. `version` and `middlewares` are forbidden here rather than ignored — a host
+ * passing them would otherwise boot fine and 404 every one of its own routes.
+ */
+interface PrebuiltOptions extends BFFHttpServerBaseOptions {
+  callback: BffCallback;
+  version?: never;
+  middlewares?: never;
+}
+
+export type BFFHttpServerOptions = AssembledOptions | PrebuiltOptions;
+
+function isPrebuilt(options: BFFHttpServerOptions): options is PrebuiltOptions {
+  return options.callback !== undefined;
 }
 
 export default class BFFHttpServer {
@@ -33,10 +51,18 @@ export default class BFFHttpServer {
   constructor(options: BFFHttpServerOptions) {
     this.options = options;
     this.logger = options.logger ?? createConsoleLogger();
-    this.handler = options.callback ?? BFFHttpServer.buildHandler(options);
+
+    if (isPrebuilt(options)) {
+      this.handler = options.callback;
+
+      return;
+    }
+
+    this.handler = BFFHttpServer.buildHandler(options);
+    warnMissingConfig(options.config, this.logger);
   }
 
-  private static buildHandler(options: BFFHttpServerOptions): BffCallback {
+  private static buildHandler(options: AssembledOptions): BffCallback {
     const { config, version } = options;
     const app = new Koa();
 
@@ -63,16 +89,6 @@ export default class BFFHttpServer {
         const address = server.address();
         const port = typeof address === 'object' && address ? address.port : this.options.port;
         this.logger('Info', 'Forest BFF started', { port });
-
-        const missing = Object.entries(this.options.config.presence)
-          .filter(([, present]) => !present)
-          .map(([key]) => key);
-
-        if (missing.length > 0) {
-          this.logger('Warn', 'Missing required configuration; /health will report degraded', {
-            missing,
-          });
-        }
 
         resolve();
       };
