@@ -601,11 +601,12 @@ export class HydrationFailedError extends WorkflowExecutorError {
 // which ones it will return until the run. Treating it as "not met" would route to the fallback and
 // report success — the decision would look taken when its input never arrived.
 export class ConditionSourceNotLoadedError extends WorkflowExecutorError {
-  constructor(fieldName: string, sourceStepId: string) {
+  constructor(fieldName: string, sourceStepId: string, sourceStepIndex?: number) {
     super(
       `Condition reads "${fieldName}" from step "${sourceStepId}", which did not load it`,
       `This decision compares the field "${fieldName}", but the step it reads from did not load that field. Add it to that step's fields, or remove the condition.`,
     );
+    this.errorSourceStepIndex = sourceStepIndex;
   }
 }
 

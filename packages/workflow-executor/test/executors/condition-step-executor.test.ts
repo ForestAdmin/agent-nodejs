@@ -750,6 +750,7 @@ describe('ConditionStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toContain('did not load that field');
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+      expect(result.stepOutcome).not.toHaveProperty('errorSourceStepIndex');
     });
 
     // Build-time validation cannot catch this one: the Get Data step may let the AI pick its
@@ -763,6 +764,22 @@ describe('ConditionStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toContain('did not load that field');
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+      // Same contract as SourceRecordMissingError: the Get Data step is the one implicated.
+      expect(result.stepOutcome.errorSourceStepIndex).toBe(1);
+      expect(result.stepOutcome).not.toHaveProperty('errorKind');
+    });
+
+    it('fails loud and names the Get Data step when it stored no execution at all', async () => {
+      const { context, runStore } = makeDeterministicContext(amountArgs, [], {
+        runStore: makeMockRunStore({ getStepExecutions: jest.fn().mockResolvedValue([]) }),
+      });
+
+      const result = await new ConditionStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toContain('did not load that field');
+      expect(result.stepOutcome.errorSourceStepIndex).toBe(1);
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
 

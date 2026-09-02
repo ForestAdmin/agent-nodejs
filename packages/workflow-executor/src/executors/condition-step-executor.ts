@@ -183,8 +183,12 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
     // decision as taken when its input never arrived. Every other step type already throws here
     // (FieldNotFoundError, RelationNotFoundError, ActionNotFoundError) — this one used to be the
     // exception. A value that is present but null still counts as not met, per the spec.
-    if (!resolved.found) {
-      throw new ConditionSourceNotLoadedError(condition.fieldName, condition.sourceStepId);
+    if (resolved.found === false) {
+      throw new ConditionSourceNotLoadedError(
+        condition.fieldName,
+        condition.sourceStepId,
+        resolved.sourceStepIndex,
+      );
     }
 
     return evaluateOperator(condition.operator, resolved.value, condition.value);
@@ -195,7 +199,7 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
   private resolveConditionValue(
     condition: DeterministicCondition,
     stepExecutions: StepExecutionData[],
-  ): { found: true; value: unknown } | { found: false } {
+  ): { found: true; value: unknown } | { found: false; sourceStepIndex?: number } {
     const matches = this.context.previousSteps.filter(
       step =>
         step.stepDefinition.type === StepType.ReadRecord &&
@@ -204,11 +208,12 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
     const sourceStep = matches[matches.length - 1];
     if (!sourceStep) return { found: false };
 
+    const sourceStepIndex = sourceStep.stepOutcome.stepIndex;
     const execution = this.resolveStepExecution(sourceStep, stepExecutions);
-    if (execution?.type !== 'read-record') return { found: false };
+    if (execution?.type !== 'read-record') return { found: false, sourceStepIndex };
 
     const field = execution.executionResult.fields.find(f => f.name === condition.fieldName);
-    if (!field || !('value' in field)) return { found: false };
+    if (!field || !('value' in field)) return { found: false, sourceStepIndex };
 
     return { found: true, value: field.value };
   }
