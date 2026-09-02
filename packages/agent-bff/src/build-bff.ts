@@ -510,9 +510,12 @@ export default async function buildBff({
     createVersionHeaderMiddleware(version),
     createHealthRoute({
       version,
-      // Embedded, everything required is inherited from the agent, so there is no gap to report: a
-      // 503 here would let a load balancer restart a process that serves api-key traffic fine.
-      healthy: dispatcher !== undefined || config.hasAllRequired,
+      // Embedded, the rest is inherited from the agent, so there is no gap to report: a 503 here
+      // would let a load balancer restart a process that serves api-key traffic fine. The auth
+      // secret is still required — without it the agent edge is a stub and nothing authenticated
+      // can be served, which is exactly what a probe must see.
+      healthy:
+        (dispatcher !== undefined && Boolean(config.forestAuthSecret)) || config.hasAllRequired,
       features: {
         oauth: oauth.middlewares.length > 0,
         ai: aiMiddlewares.length > 0,

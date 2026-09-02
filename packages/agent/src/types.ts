@@ -146,8 +146,12 @@ export type WorkflowExecutorEmbedOptions = Omit<WorkflowExecutorTuningOptions, '
  */
 export type BffEmbedOptions = {
   /**
-   * Base64-encoded 32-byte AES-256 key encrypting stored refresh tokens. Enables OAuth (mode 1),
-   * and with it the AI relay. Absent, the BFF serves API-key callers only.
+   * Base64-encoded 32-byte AES-256 key encrypting stored refresh tokens. Gates the OAuth
+   * login/refresh flow (mode 1) and, with it, the AI relay.
+   *
+   * It is not an access control. The data routes accept a `bff_access` bearer whether or not this
+   * is set, because that token is verified against the agent's `authSecret` alone. Omitting it
+   * closes the login flow, not the session-bearer path — what protects that path is `authSecret`.
    */
   tokenEncryptionKey?: string;
   /**
@@ -158,7 +162,14 @@ export type BffEmbedOptions = {
   allowedOrigins?: string[];
   /** Fallback IANA timezone for a request that carries none. */
   defaultTimezone?: string;
-  /** How long a call to the agent may take. Defaults to 10s. */
+  /**
+   * How long a call to the agent may take. Defaults to 10s.
+   *
+   * It bounds how long the BFF waits, and cancels nothing: an action or a write cut off at the
+   * deadline keeps running inside the agent and still commits, so a client retrying on the timeout
+   * can double the mutation. Raise it rather than relying on a retry for operations that are not
+   * idempotent.
+   */
   agentTimeoutMs?: number;
   /** How long the AI relay waits for the Forest server. Defaults to 120s. */
   aiTimeoutMs?: number;

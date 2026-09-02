@@ -79,16 +79,40 @@ function closeServer(server: Server): Promise<void> {
 
 describe('BFFHttpServer', () => {
   describe('when config is complete', () => {
-    it('should answer GET /health with 200 ok and the version only', async () => {
+    it('should answer GET /health with 200 ok, the version and the features it serves', async () => {
       const server = createServer({ ...VALID_ENV });
 
       const response = await request(server.callback).get('/health');
 
       expect(response.status).toBe(200);
-      expect(response.body).toMatchObject({ status: 'ok', version: VERSION });
+      expect(response.body).toEqual({
+        status: 'ok',
+        version: VERSION,
+        features: { oauth: true, ai: true, cors: false, openapi: true },
+      });
     });
 
-    it('should never expose config presence or secret values in the response body', async () => {
+    it('should report the features a partial configuration leaves off', async () => {
+      const server = createServer({
+        ...VALID_ENV,
+        BFF_TOKEN_ENCRYPTION_KEY: undefined,
+        BFF_ALLOWED_ORIGINS: 'https://my-app.com',
+        BFF_OPENAPI_ENABLED: 'false',
+      });
+
+      const response = await request(server.callback).get('/health');
+
+      expect(response.body.features).toEqual({
+        oauth: false,
+        ai: false,
+        cors: true,
+        openapi: false,
+      });
+    });
+
+    // The features block names capabilities, never values: an anonymous caller learns that OAuth is
+    // configured, not what any secret holds.
+    it('should never expose secret values or the config itself in the response body', async () => {
       const server = createServer({ ...VALID_ENV });
 
       const response = await request(server.callback).get('/health');

@@ -1,4 +1,4 @@
-import { isBffRoute, stripBffPrefix } from '../src/bff-routes';
+import { collidesWithBff, isBffRoute, stripBffPrefix } from '../src/bff-routes';
 
 describe('isBffRoute', () => {
   it.each(['/bff', '/bff/health', '/bff/agent/v1/books/list', '/bff?x=1', '/bff/health?x=1'])(
@@ -31,4 +31,20 @@ describe('stripBffPrefix', () => {
   it('should never yield an empty url, which Koa would read as malformed', () => {
     expect(stripBffPrefix('/bff')).not.toBe('');
   });
+});
+
+describe('collidesWithBff', () => {
+  it.each(['/bff', '/bff/', '//bff//', 'bff', ' /bff ', '/bff/ai'])(
+    'should reject %s, which the MCP server normalizes onto a path the BFF answers',
+    basePath => {
+      expect(collidesWithBff(basePath)).toBe(true);
+    },
+  );
+
+  it.each([undefined, '', '/', '/ai', '/bffalo', '/bff-server'])(
+    'should accept %s, which lands outside /bff',
+    basePath => {
+      expect(collidesWithBff(basePath)).toBe(false);
+    },
+  );
 });
