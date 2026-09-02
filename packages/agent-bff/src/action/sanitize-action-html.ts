@@ -90,10 +90,33 @@ export function sanitizeActionLayout(
   layout: ForestServerActionFormLayoutElement[],
   logger: Logger,
   depth = 0,
+  budget: { remaining: number } = { remaining: MAX_HTML_CHARACTERS },
 ): ForestServerActionFormLayoutElement[] {
   return layout.map(element => {
     if (element?.component === 'htmlBlock') {
-      return { ...element, content: sanitize(element.content, logger) ?? '' };
+      const { content } = element;
+
+      if (typeof content !== 'string') {
+        return { ...element, content: sanitize(content, logger) ?? '' };
+      }
+
+      if (content.length > budget.remaining) {
+        logger(
+          'Warn',
+          'Action layout html truncated: total layout html longer than the sanitizable size',
+          {
+            characters: content.length,
+            remaining: budget.remaining,
+            limit: MAX_HTML_CHARACTERS,
+          },
+        );
+      }
+
+      const bounded = content.slice(0, budget.remaining);
+
+      budget.remaining -= bounded.length;
+
+      return { ...element, content: sanitize(bounded, logger) ?? '' };
     }
 
     if (element?.component === 'page' && Array.isArray(element.elements)) {
@@ -105,7 +128,10 @@ export function sanitizeActionLayout(
         return { ...element, elements: [] };
       }
 
-      return { ...element, elements: sanitizeActionLayout(element.elements, logger, depth + 1) };
+      return {
+        ...element,
+        elements: sanitizeActionLayout(element.elements, logger, depth + 1, budget),
+      };
     }
 
     return element;

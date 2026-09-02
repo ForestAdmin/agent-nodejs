@@ -222,6 +222,44 @@ describe('mapActionForm', () => {
     ]);
   });
 
+  it('truncates an htmlBlock to the remaining total layout html budget and logs it', () => {
+    const layout = [
+      { component: 'htmlBlock', content: 'a'.repeat(262140) },
+      { component: 'htmlBlock', content: '<p>bcdef</p><script>alert(1)</script>' },
+    ] as never;
+
+    const result = mapForm(actionWith([]), [], layout);
+
+    expect(result.layout).toEqual([
+      { component: 'htmlBlock', content: 'a'.repeat(262140) },
+      { component: 'htmlBlock', content: '<p>b</p>' },
+    ]);
+    expect(logger).toHaveBeenCalledWith(
+      'Warn',
+      'Action layout html truncated: total layout html longer than the sanitizable size',
+      { characters: 37, remaining: 4, limit: 262144 },
+    );
+  });
+
+  it('empties htmlBlocks once the total layout html budget is spent', () => {
+    const layout = [
+      { component: 'htmlBlock', content: 'x'.repeat(262144) },
+      { component: 'htmlBlock', content: '<p>after</p>' },
+      {
+        component: 'page',
+        elements: [{ component: 'htmlBlock', content: '<i>nested</i>' }],
+      },
+    ] as never;
+
+    const result = mapForm(actionWith([]), [], layout);
+
+    expect(result.layout).toEqual([
+      { component: 'htmlBlock', content: 'x'.repeat(262144) },
+      { component: 'htmlBlock', content: '' },
+      { component: 'page', elements: [{ component: 'htmlBlock', content: '' }] },
+    ]);
+  });
+
   it('empties an htmlBlock whose content is entirely active markup', () => {
     const layout = [{ component: 'htmlBlock', content: '<script>alert(1)</script>' }] as never;
 
