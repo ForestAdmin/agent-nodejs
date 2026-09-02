@@ -80,6 +80,9 @@ function agentScoped(middleware: Middleware): Middleware {
 function createBodyParser(hasAiQueryRoute: boolean): Middleware {
   const extendTypes = { json: JSON_BODY_TYPES };
   const parseBody = bodyParser({ jsonLimit: BODY_LIMIT, extendTypes });
+
+  if (!hasAiQueryRoute) return parseBody;
+
   const parseAiBody = bodyParser({
     jsonLimit: AI_BODY_LIMIT,
     enableTypes: ['json'],
@@ -87,7 +90,7 @@ function createBodyParser(hasAiQueryRoute: boolean): Middleware {
   });
 
   return async function selectedBodyParser(ctx, next) {
-    if (hasAiQueryRoute && ctx.path === AI_QUERY_ROUTE) {
+    if (ctx.path === AI_QUERY_ROUTE) {
       await parseAiBody(ctx, next);
 
       return;
