@@ -127,12 +127,6 @@ function groupByOperators(filterable: FilterableField[]): OperatorGroup[] {
   return [...groups.values()];
 }
 
-// A node readable as BOTH a leaf and a branch is rejected with 400 (`agent-query.ts`
-// `assertNoNodeReadableAsBothLeafAndBranch`), so each alternative excludes the other's discriminator.
-// The exclusion carries the TYPE the runtime looks for — `isBranch` needs an ARRAY `conditions` and
-// `isLeaf` a STRING `field` — because `{field, operator, conditions: "x"}` is a plain leaf the runtime
-// accepts. Expressed as `not: { required }` rather than `additionalProperties: false`, which would
-// also forbid an unknown extra key the runtime strips.
 function leafShape(
   field: ReferenceObject | SchemaObject,
   operators: string[],
@@ -147,7 +141,7 @@ function leafShape(
       value: {},
     },
     required: ['field', 'operator'],
-    not: { properties: { conditions: { type: 'array' } }, required: ['conditions'] },
+    additionalProperties: false,
   };
 }
 
@@ -220,7 +214,7 @@ function filterSchema(
           conditions: { type: 'array', items: treeRef },
         },
         required: ['aggregator', 'conditions'],
-        not: { properties: { field: { type: 'string' } }, required: ['field'] },
+        additionalProperties: false,
       },
     ],
   });

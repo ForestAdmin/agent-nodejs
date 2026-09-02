@@ -477,6 +477,15 @@ describe('the closed request bodies', () => {
     expect(schemas[name].additionalProperties).toBe(false);
   });
 
+  it('should forbid an undeclared key on both shapes of a condition tree node', () => {
+    const { anyOf } = schemas.ConditionTree as unknown as { anyOf: unknown[] };
+    const [leaf, branch] = anyOf;
+
+    expect(leaf).toEqual({ $ref: '#/components/schemas/ConditionTreeLeaf' });
+    expect(branch).toEqual(expect.objectContaining({ additionalProperties: false }));
+    expect(schemas.ConditionTreeLeaf.additionalProperties).toBe(false);
+  });
+
   it.each([['RelationListRequest'], ['RelationCountRequest']])(
     'should publish %s flat rather than as an allOf of a closed base',
     name => {

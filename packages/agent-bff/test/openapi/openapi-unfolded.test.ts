@@ -205,35 +205,15 @@ describe('the unfolded document', () => {
     expect(count.properties.searchExtended.$ref).toBe('#/components/schemas/SearchExtended');
   });
 
-  it('should make every leaf and the branch mutually exclusive, which the runtime enforces', () => {
-    const branch = branchOf('Filter_My_Coll') as unknown as { not: { required: string[] } };
-
-    ['FilterLeaf_My_Coll-1', 'FilterLeaf_My_Coll-2'].forEach(name => {
-      const leaf = schemas[name] as unknown as { not: { required: string[] } };
-
-      expect(leaf.not.required).toEqual(['conditions']);
+  it('should close every leaf and the branch of a filter tree, so a stray key is refused before it leaves', () => {
+    ['FilterLeaf_My_Coll-1', 'FilterLeaf_My_Coll-2', 'FilterLeaf_orders'].forEach(name => {
+      expect((schemas[name] as { additionalProperties?: boolean }).additionalProperties).toBe(
+        false,
+      );
     });
-    expect(branch.not.required).toEqual(['field']);
-  });
-
-  it('should exclude only the type the runtime reads as the other shape', () => {
-    // `isBranch` needs an ARRAY `conditions` and `isLeaf` a STRING `field`, so a leaf carrying
-    // `conditions: "x"` is a plain leaf the runtime accepts and the document must not refuse.
-    const leaf = schemas['FilterLeaf_My_Coll-1'] as unknown as {
-      not: { properties: { conditions: { type: string } } };
-    };
-    const branch = branchOf('Filter_My_Coll') as unknown as {
-      not: { properties: { field: { type: string } } };
-    };
-
-    expect(leaf.not.properties.conditions.type).toBe('array');
-    expect(branch.not.properties.field.type).toBe('string');
-  });
-
-  it('should not forbid an unknown extra key on a filter node, which the runtime forwards', () => {
-    const leaf = schemas['FilterLeaf_My_Coll-1'] as { additionalProperties?: unknown };
-
-    expect(leaf.additionalProperties).toBeUndefined();
+    expect(
+      (branchOf('Filter_My_Coll') as { additionalProperties?: boolean }).additionalProperties,
+    ).toBe(false);
   });
 
   it.each([
@@ -241,10 +221,11 @@ describe('the unfolded document', () => {
     ['My%20Coll/count'],
     ['My%20Coll/relations/orders/list'],
     ['My%20Coll/relations/orders/count'],
-  ])('should say on %s that an undeclared top-level key is rejected', path => {
+  ])('should say on %s that an undeclared key is rejected, in the body and the tree alike', path => {
     const request = requestSchema(path) as unknown as { description: string };
 
-    expect(request.description).toContain('undeclared TOP-LEVEL key with 400 invalid_request');
+    expect(request.description).toContain('undeclared key with 400 invalid_request');
+    expect(request.description).toContain('`valu` instead of `value` is rejected');
   });
 
   it('should close a per-collection sort clause, so a misspelled direction is not silently kept', () => {
@@ -293,7 +274,7 @@ describe('the unfolded document', () => {
     };
 
     expect(request.additionalProperties).toBe(false);
-    expect(request.description).toContain('undeclared TOP-LEVEL key with 400 invalid_request');
+    expect(request.description).toContain('undeclared key with 400 invalid_request');
     expect(request.description).not.toContain('does not say so structurally');
   });
 

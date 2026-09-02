@@ -19,7 +19,7 @@ import { MAX_FILTER_DEPTH } from '../validation/capabilities-validator';
 const OPERATORS = [...allOperators] as [string, ...string[]];
 
 const ConditionTreeLeafSchema = z
-  .object({
+  .strictObject({
     field: z.string(),
     operator: z.enum(OPERATORS),
     value: z.unknown().optional(),
@@ -34,7 +34,7 @@ const ConditionTreeSchema: z.ZodType = z
   .lazy(() =>
     z.union([
       ConditionTreeLeafSchema,
-      z.object({
+      z.strictObject({
         aggregator: z.enum(['And', 'Or']),
         conditions: z.array(ConditionTreeSchema),
       }),
@@ -96,11 +96,10 @@ const ParentIdSchema = ParentIdInput.openapi('ParentId', {
 });
 
 export const CLOSED_BODY_NOTE =
-  'The runtime rejects an undeclared TOP-LEVEL key with 400 invalid_request, so `filters` instead ' +
-  'of `filter` is an error rather than a silently unfiltered result. Inside the filter tree the ' +
-  'check stops there: an unknown key on a condition node still reaches the agent, so a leaf ' +
-  'carrying `valu` instead of `value` is not rejected here and what the agent then does with it ' +
-  'is not defined by this contract.';
+  'The runtime rejects an undeclared key with 400 invalid_request, at the top level and inside ' +
+  'the filter tree alike: `filters` instead of `filter` is an error rather than a silently ' +
+  'unfiltered result, and a leaf carrying `valu` instead of `value` is rejected rather than run ' +
+  'with its value dropped.';
 
 type OverridesOf<S extends { shape: object }> = Partial<Record<keyof S['shape'], z.ZodType>>;
 
