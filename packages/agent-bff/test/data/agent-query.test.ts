@@ -398,14 +398,14 @@ describe('a filter node carrying an unknown key', () => {
 
 describe('parseParentId', () => {
   it('should return a non-empty string unchanged, including a composite packed id', () => {
-    expect(parseParentId('a|b')).toBe('a|b');
-    expect(parseParentId('550e8400-e29b-41d4-a716-446655440000')).toBe(
+    expect(parseParentId('a|b', logger)).toBe('a|b');
+    expect(parseParentId('550e8400-e29b-41d4-a716-446655440000', logger)).toBe(
       '550e8400-e29b-41d4-a716-446655440000',
     );
   });
 
   it('should coerce a finite number to a string', () => {
-    expect(parseParentId(42)).toBe('42');
+    expect(parseParentId(42, logger)).toBe('42');
   });
 
   it.each([
@@ -419,7 +419,7 @@ describe('parseParentId', () => {
     ['NaN', NaN],
     ['Infinity', Infinity],
   ])('should reject %s with invalid_request', (_label, value) => {
-    expect(() => parseParentId(value)).toThrow(
+    expect(() => parseParentId(value, logger)).toThrow(
       expect.objectContaining({ type: 'invalid_request', status: 400 }),
     );
   });
@@ -527,6 +527,56 @@ describe('unknown keys', () => {
       reason: 'Unrecognized key: "filters"',
     });
     expect(JSON.stringify(logger.mock.calls)).not.toContain('secret');
+  });
+
+  it.each(FLAT_PARSERS)(
+    'should log a stray key inside the filter tree on %s, never the value',
+    (_label, parse) => {
+      logger.mockClear();
+      expect(() =>
+        parse({ filter: { field: 'title', operator: 'Equal', valu: 'secret' } }),
+      ).toThrow(REJECTED);
+      expect(logger).toHaveBeenCalledWith('Warn', 'Request body rejected', {
+        reason: 'A filter node cannot carry "valu"',
+      });
+      expect(JSON.stringify(logger.mock.calls)).not.toContain('secret');
+    },
+  );
+
+  it.each([
+    ['a non-object body', 'nope', 'Request body must be an object'],
+    ['a non-object filter', { filter: 'id' }, 'filter must be an object'],
+  ])('should log %s too, not only zod rejections', (_label, body, reason) => {
+    logger.mockClear();
+    expect(() => parseListRequest(body, logger)).toThrow(REJECTED);
+    expect(logger).toHaveBeenCalledWith('Warn', 'Request body rejected', { reason });
+  });
+
+  it.each(RELATION_PARSERS)(
+    'should log a parentId failure on %s, which the schema never sees',
+    (_label, parse) => {
+      logger.mockClear();
+      expect(() => parse({ projection: ['id'] })).toThrow(REJECTED);
+      expect(logger).toHaveBeenCalledWith('Warn', 'Request body rejected', {
+        reason: 'parentId is required and must be a non-empty string or a number',
+      });
+    },
+  );
+
+  it('should log a filter nested past the depth cap', () => {
+    let filter: unknown = { field: 'title', operator: 'Present' };
+
+    for (let i = 0; i <= MAX_PARSED_FILTER_DEPTH; i += 1) {
+      filter = { aggregator: 'And', conditions: [filter] };
+    }
+
+    logger.mockClear();
+    expect(() => parseCountRequest({ filter }, logger)).toThrow(
+      expect.objectContaining({ type: 'filter_too_deep' }),
+    );
+    expect(logger).toHaveBeenCalledWith('Warn', 'Request body rejected', {
+      reason: `Filter nesting exceeds the maximum depth of ${MAX_PARSED_FILTER_DEPTH}`,
+    });
   });
 
   it('should name the unrecognized key even when another issue comes first', () => {

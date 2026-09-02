@@ -1,3 +1,4 @@
+import type { BffHttpError } from '../http/bff-http-error';
 import type { PageInput, SortClauseInput } from './request-schemas';
 import type { Logger } from '../ports/logger-port';
 import type { ZodType, z } from 'zod';
@@ -37,43 +38,52 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 const LEAF_KEYS = ['field', 'operator', 'value'];
 const BRANCH_KEYS = ['aggregator', 'conditions'];
 
+function rejectBody(logger: Logger, error: BffHttpError): never {
+  logger('Warn', 'Request body rejected', { reason: error.message });
+
+  throw error;
+}
+
 // The tree is closed like the flat body is: a leaf carrying `valu` instead of `value` builds a
 // condition with `value: undefined`, which the agent reads as null and runs — a typo must not
 // silently change the returned rows.
-function assertNoStrayKey(node: object, allowed: string[]): void {
+function assertNoStrayKey(node: Record<string, unknown>, allowed: string[], logger: Logger): void {
   const stray = Object.keys(node).find(key => !allowed.includes(key));
 
   if (stray !== undefined) {
-    throw invalidRequest(`A filter node cannot carry "${stray}"`);
+    rejectBody(logger, invalidRequest(`A filter node cannot carry "${stray}"`));
   }
 }
 
-function assertFilterNode(node: unknown, depth = 0): void {
-  if (depth > MAX_FILTER_DEPTH) throw filterTooDeep(MAX_FILTER_DEPTH);
-  if (typeof node !== 'object' || node === null) return;
+function assertFilterNode(node: unknown, logger: Logger, depth = 0): void {
+  if (depth > MAX_FILTER_DEPTH) rejectBody(logger, filterTooDeep(MAX_FILTER_DEPTH));
+  if (!isPlainObject(node)) return;
 
   const readableAsBranch = isBranch(node);
 
   if (isLeaf(node) && readableAsBranch) {
-    throw invalidRequest('A filter node cannot carry both "field" and "conditions"');
+    rejectBody(
+      logger,
+      invalidRequest('A filter node cannot carry both "field" and "conditions"'),
+    );
   }
 
   if (readableAsBranch) {
-    assertNoStrayKey(node, BRANCH_KEYS);
-    node.conditions.forEach(condition => assertFilterNode(condition, depth + 1));
+    assertNoStrayKey(node, BRANCH_KEYS, logger);
+    node.conditions.forEach(condition => assertFilterNode(condition, logger, depth + 1));
 
     return;
   }
 
   if (isLeaf(node)) {
-    assertNoStrayKey(node, LEAF_KEYS);
+    assertNoStrayKey(node, LEAF_KEYS, logger);
 
     return;
   }
 
   // Neither readable as a leaf nor as a branch: `feild` instead of `field` reaches the agent as a
   // node it cannot act on. An empty object stays allowed — it is how an absent filter is spelled.
-  assertNoStrayKey(node, []);
+  assertNoStrayKey(node, [], logger);
 }
 
 function assertFlatInputs(schema: ZodType, body: Record<string, unknown>, logger: Logger): void {
@@ -85,23 +95,23 @@ function assertFlatInputs(schema: ZodType, body: Record<string, unknown>, logger
   const path = issue.path.join('.');
   const reason = path ? `${path}: ${issue.message}` : issue.message;
 
-  logger('Warn', 'Request body rejected', { reason });
-
-  throw invalidRequest(reason);
+  rejectBody(logger, invalidRequest(reason));
 }
 
-function assertFilter(filter: unknown): void {
+function assertFilter(filter: unknown, logger: Logger): void {
   if (filter === undefined) return;
-  if (!isPlainObject(filter)) throw invalidRequest('filter must be an object');
+  if (!isPlainObject(filter)) rejectBody(logger, invalidRequest('filter must be an object'));
 
-  assertFilterNode(filter);
+  assertFilterNode(filter, logger);
 }
 
 function parseRequest<S extends ZodType>(schema: S, body: unknown, logger: Logger): z.output<S> {
-  if (!isPlainObject(body)) throw invalidRequest('Request body must be an object');
+  if (!isPlainObject(body)) {
+    rejectBody(logger, invalidRequest('Request body must be an object'));
+  }
 
   assertFlatInputs(schema, body, logger);
-  assertFilter(body.filter);
+  assertFilter(body.filter, logger);
 
   return body as z.output<S>;
 }
@@ -200,9 +210,11 @@ export function collectListFieldPaths(body: ListRequestBody): string[] {
 // The parent record id is opaque: a packed/composite id must survive unchanged, so its content is
 // never inspected — only presence and primitive type. A finite number (single numeric pk) is
 // coerced to string; anything else is a BFF-local 400 with no agent call.
-export function parseParentId(parentId: unknown): string {
+export function parseParentId(parentId: unknown, logger: Logger): string {
   if (typeof parentId === 'string') {
-    if (parentId.trim() === '') throw invalidRequest('parentId must not be empty');
+    if (parentId.trim() === '') {
+      rejectBody(logger, invalidRequest('parentId must not be empty'));
+    }
 
     return parentId;
   }
@@ -211,17 +223,20 @@ export function parseParentId(parentId: unknown): string {
     return String(parentId);
   }
 
-  throw invalidRequest('parentId is required and must be a non-empty string or a number');
+  rejectBody(
+    logger,
+    invalidRequest('parentId is required and must be a non-empty string or a number'),
+  );
 }
 
 export function parseRelationListRequest(body: unknown, logger: Logger): RelationListRequestBody {
-  const parentId = parseParentId((body as { parentId?: unknown } | null)?.parentId);
+  const parentId = parseParentId((body as { parentId?: unknown } | null)?.parentId, logger);
 
   return { ...parseRequest(RelationListFlatInputs, body, logger), parentId };
 }
 
 export function parseRelationCountRequest(body: unknown, logger: Logger): RelationCountRequestBody {
-  const parentId = parseParentId((body as { parentId?: unknown } | null)?.parentId);
+  const parentId = parseParentId((body as { parentId?: unknown } | null)?.parentId, logger);
 
   return { ...parseRequest(RelationCountFlatInputs, body, logger), parentId };
 }
