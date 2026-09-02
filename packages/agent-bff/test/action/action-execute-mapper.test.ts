@@ -48,18 +48,18 @@ describe('mapActionExecuteResult', () => {
     });
   });
 
-  it('drops an html longer than the sanitizable size and logs it', () => {
-    const html = '<div>'.repeat(60000);
+  it('truncates an html longer than the sanitizable size instead of dropping it', () => {
+    const html = 'a'.repeat(262143) + '<script>alert(1)</script>' + 'b'.repeat(100);
 
     expect(mapResult({ success: 'ok', html, refresh: { relationships: [] } }).body).toEqual({
       type: 'success',
       message: 'ok',
       invalidated: [],
-      html: null,
+      html: 'a'.repeat(262143) + '&lt;',
     });
     expect(logger).toHaveBeenCalledWith(
       'Warn',
-      'Action html dropped: longer than the sanitizable size',
+      'Action html truncated: longer than the sanitizable size',
       { characters: html.length, limit: 262144 },
     );
   });

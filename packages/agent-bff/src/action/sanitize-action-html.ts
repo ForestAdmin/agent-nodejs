@@ -60,17 +60,19 @@ const OPTIONS: sanitizeHtml.IOptions = {
 function sanitize(html: unknown, logger: Logger): string | null {
   if (typeof html !== 'string') return null;
 
-  if (html.length > MAX_HTML_CHARACTERS) {
-    logger('Warn', 'Action html dropped: longer than the sanitizable size', {
-      characters: html.length,
+  let bounded = html;
+
+  if (bounded.length > MAX_HTML_CHARACTERS) {
+    logger('Warn', 'Action html truncated: longer than the sanitizable size', {
+      characters: bounded.length,
       limit: MAX_HTML_CHARACTERS,
     });
 
-    return null;
+    bounded = bounded.slice(0, MAX_HTML_CHARACTERS);
   }
 
   try {
-    return sanitizeHtml(html, OPTIONS) || null;
+    return sanitizeHtml(bounded, OPTIONS) || null;
   } catch (error) {
     logger('Error', 'Action html dropped: sanitization failed', { cause: String(error) });
 
