@@ -377,16 +377,20 @@ function registerPermissionsPath(
       'The hints come from the Forest permissions, cached for ' +
       `${
         PERMISSIONS_CACHE_TTL_MS / 60_000
-      } minutes, so they lag a change made in Forest. The agent does not: it runs with ` +
-      '`instantCacheRefresh` by default and invalidates on Forest events, so it enforces the new ' +
-      'permission while these hints are still stale. An agent explicitly configured with ' +
-      '`instantCacheRefresh: false` caches for 15 minutes of its own, independently, and the two ' +
-      'can then disagree in either direction until both expire. A 503 here is either ' +
-      '`permissions_unavailable` — they could not be fetched and no fresh cache was left, and it ' +
-      'carries Retry-After — or `schema_unavailable` / `key_resolution_unavailable`, which do ' +
-      'not. Unlike the context and document routes, this one sits behind the timezone middleware ' +
-      'even though it reads no timezone, so a deployment with no configured default answers 400 ' +
-      '`missing_timezone` unless `X-Forest-Timezone` is sent.',
+      } minutes, so they lag a change made in Forest. The agent runs with ` +
+      '`instantCacheRefresh` by default, so its own cache has no meaningful expiry — about a year — ' +
+      'and freshness rides on the Forest event stream: as long as those events reach it, the agent ' +
+      'enforces the new permission while these hints are still stale. If the stream is cut — a ' +
+      'reverse proxy that swallows it, which the agent logs — the agent can hold the old permission ' +
+      'far longer than these hints, and the hints are then the fresher of the two. An agent ' +
+      'explicitly configured with `instantCacheRefresh: false` caches for ' +
+      '`permissionsCacheDurationInSeconds` — 15 minutes by default, configurable with a 60-second ' +
+      'floor — independently of these hints, and the two can then disagree in either direction ' +
+      'until both expire. A 503 here is `permissions_unavailable` or ' +
+      '`key_resolution_unavailable`, which always carry Retry-After, or `schema_unavailable`, ' +
+      'which does not. Unlike the context, document and AI-query routes, this one sits behind the ' +
+      'timezone middleware even though it reads no timezone, so a deployment with no configured ' +
+      'default answers 400 `missing_timezone` unless `X-Forest-Timezone` is sent.',
     security: SECURITY,
     request: {
       query: z.object({

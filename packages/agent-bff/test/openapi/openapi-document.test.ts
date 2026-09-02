@@ -486,15 +486,20 @@ describe('generateOpenApiDocument', () => {
     });
   });
 
-  it('should say the agent enforces first by default, and only then that the two can disagree', () => {
+  it('should say the agent enforces first by default, and when its event stream is cut it does not', () => {
     const { description } = (
       document.paths?.[`${ROUTE_PREFIX}/permissions`] as { get: { description: string } }
     ).get;
 
     expect(description).toContain('`instantCacheRefresh` by default');
     expect(description).toContain('enforces the new permission while these hints are still stale');
+    expect(description).toContain('freshness rides on the Forest event stream');
+    expect(description).toContain('the hints are then the fresher of the two');
+    expect(description).toContain('`permissionsCacheDurationInSeconds`');
+    expect(description).toContain('60-second floor');
     expect(description).toContain('disagree in either direction');
-    expect(description).toContain('Unlike the context and document routes');
+    expect(description).toContain('Unlike the context, document and AI-query routes');
+    expect(description).not.toContain('Unlike the context and document routes');
     expect(description).not.toContain('Like every route under');
   });
 
@@ -504,13 +509,15 @@ describe('generateOpenApiDocument', () => {
     expect(crud.description).toContain('development environment all six are true');
   });
 
-  it('should not promise Retry-After on every 503 the hints route can answer', () => {
+  it('should promise Retry-After on exactly two of the three 503 types the hints route answers', () => {
     const { description } = (
       document.paths?.[`${ROUTE_PREFIX}/permissions`] as { get: { description: string } }
     ).get;
 
-    expect(description).toContain('schema_unavailable');
-    expect(description).toContain('key_resolution_unavailable');
+    expect(description).toContain(
+      '`permissions_unavailable` or `key_resolution_unavailable`, which always carry Retry-After',
+    );
+    expect(description).toContain('`schema_unavailable`, which does not');
   });
 
   it('should declare the collections query filter, the only way to narrow the hints', () => {
