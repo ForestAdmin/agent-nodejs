@@ -65,8 +65,9 @@ export default function encodeFileFieldValue<T>(
   if (isFileType(type)) return encodeFileValue(value, fieldName);
 
   // A file reaching a field that is not declared as one is never intentional, and it would be
-  // JSON-serialized into the column as {"buffer":{"type":"Buffer",...}} without any error.
-  if (isFile(value)) {
+  // JSON-serialized into the column as {"buffer":{"type":"Buffer",...}} without any error. A list
+  // field (['String'], or a Json column holding an array) takes the same path through an array.
+  if (isFile(value) || (Array.isArray(value) && value.some(isFile))) {
     throw fileError(
       fieldName,
       `takes ${type}, not a file: send the file to a File field instead. If this field is ` +

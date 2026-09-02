@@ -250,6 +250,30 @@ describe('file values in action forms', () => {
         'Field "comment" takes String, not a file',
       );
     });
+
+    it('rejects an array carrying a file on a list field', async () => {
+      await setupFields([{ field: 'tags', type: ['String'] }]);
+
+      await expect(fieldFormStates.setFieldValue('tags', ['a', pdf])).rejects.toThrow(
+        'Field "tags" is a StringList field and cannot hold a file.',
+      );
+    });
+
+    it('rejects an array carrying a file on a Json field', async () => {
+      await setupFields([{ field: 'payload', type: 'Json' }]);
+
+      await expect(fieldFormStates.setFieldValue('payload', [pdf])).rejects.toThrow(
+        'Field "payload" is a Json field and cannot hold a file.',
+      );
+    });
+
+    it('still accepts an array of plain values on a list field', async () => {
+      await setupFields([{ field: 'tags', type: ['String'] }]);
+
+      await fieldFormStates.setFieldValue('tags', ['a', 'b']);
+
+      expect(fieldFormStates.getFieldValues()).toEqual({ tags: ['a', 'b'] });
+    });
   });
 
   describe('type normalization', () => {
