@@ -271,7 +271,7 @@ const ROUTES: RouteDefinition[] = [
     request: ActionRequestSchema,
     response: ActionFormResponseSchema,
     responseDescription:
-      'The action form fields; htmlBlock layout content is sanitized server-side against an allowlist before relaying'
+      'The action form fields; htmlBlock layout content is sanitized server-side against an allowlist before relaying',
     params: ['collection', 'action'],
     bodyRequired: true,
   },
@@ -282,7 +282,7 @@ const ROUTES: RouteDefinition[] = [
     request: ActionRequestSchema,
     response: ActionResultSchema,
     responseDescription:
-      'The normalized action result; a success result html field is sanitized server-side against an allowlist before relaying'
+      'The normalized action result; a success result html field is sanitized server-side against an allowlist before relaying',
     params: ['collection', 'action'],
     bodyRequired: true,
     executeResults: true,

@@ -647,8 +647,6 @@ describe('the documented action responses', () => {
     expect(success.properties.html.description).toContain('sanitize');
   });
 });
-  });
-});
 
 describe('the documented search inputs', () => {
   function propertiesOf(name: string): Record<string, { $ref?: string }> {

@@ -556,7 +556,7 @@ function registerActionOperations(deps: Deps, plan: CollectionPlan, namer: Namer
       request,
       response: pool.reuse('ActionFormResponse', ActionFormResponseSchema),
       responseDescription:
-        'The action form fields; htmlBlock layout content is sanitized server-side against an allowlist before relaying'
+        'The action form fields; htmlBlock layout content is sanitized server-side against an allowlist before relaying',
       bodyRequired: true,
     });
 
@@ -569,7 +569,7 @@ function registerActionOperations(deps: Deps, plan: CollectionPlan, namer: Namer
       request,
       response: pool.reuse('ActionResult', ActionResultSchema),
       responseDescription:
-        'The normalized action result; a success result html field is sanitized server-side against an allowlist before relaying'
+        'The normalized action result; a success result html field is sanitized server-side against an allowlist before relaying',
       bodyRequired: true,
       executeResults: true,
     });
