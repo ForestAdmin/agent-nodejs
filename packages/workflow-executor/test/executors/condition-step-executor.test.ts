@@ -710,19 +710,29 @@ describe('ConditionStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('success');
       expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('Other');
-      expect(runStore.saveStepExecution).toHaveBeenCalledWith('run-1', {
-        type: 'condition',
-        stepIndex: 0,
-        executionParams: {
-          evaluations: [
-            { option: 'High', outcome: 'not-matched', conditions: [{ index: 0, met: null }] },
-            { option: 'Low', outcome: 'not-matched', conditions: [{ index: 0, met: null }] },
-          ],
-          selectedOption: 'Other',
-          usedFallback: true,
+      // Strict, because toHaveBeenCalledWith compares like toEqual: a stray `reason: undefined`
+      // would read as equal to no reason at all, and this test is what pins its absence.
+      expect(jest.mocked(runStore.saveStepExecution).mock.calls[0]).toStrictEqual([
+        'run-1',
+        {
+          type: 'condition',
+          stepIndex: 0,
+          executionParams: {
+            evaluations: [
+              { option: 'High', outcome: 'not-matched', conditions: [{ index: 0, met: null }] },
+              { option: 'Low', outcome: 'not-matched', conditions: [{ index: 0, met: null }] },
+            ],
+            selectedOption: 'Other',
+            usedFallback: true,
+          },
+          executionResult: { answer: 'Other' },
         },
-        executionResult: { answer: 'Other' },
-      });
+      ]);
+      expect(context.logger).not.toHaveBeenCalledWith(
+        'Warn',
+        'Condition value could not be resolved, counting it as not met',
+        expect.anything(),
+      );
     });
 
     it('counts a condition whose source step never ran as not met, and says so', async () => {
@@ -824,6 +834,27 @@ describe('ConditionStepExecutor', () => {
       const result = await new ConditionStepExecutor(context).execute();
 
       expect(result.stepOutcome.status).toBe('success');
+      expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('Other');
+      expect(context.logger).toHaveBeenCalledWith(
+        'Warn',
+        'Condition value could not be resolved, counting it as not met',
+        expect.objectContaining({ reason: 'field-not-loaded' }),
+      );
+    });
+
+    it('counts a condition as not met when the source step stored another kind of execution', async () => {
+      const { context } = makeDeterministicContext(amountArgs, [], {
+        runStore: makeMockRunStore({
+          getStepExecutions: jest
+            .fn()
+            .mockResolvedValue([
+              { type: 'guidance', stepIndex: 1, executionParams: {}, executionResult: {} },
+            ]),
+        }),
+      });
+
+      const result = await new ConditionStepExecutor(context).execute();
+
       expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('Other');
       expect(context.logger).toHaveBeenCalledWith(
         'Warn',

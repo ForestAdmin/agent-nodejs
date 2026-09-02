@@ -180,10 +180,9 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
   ): { met: boolean | null; reason?: ConditionNotLoadedReason } {
     const resolved = this.resolveConditionValue(condition, stepExecutions);
 
-    // Nothing was read, so the decision carries on with this condition not met and says why in the
-    // run view — it no longer fails the step. The reason is what keeps the fallback from looking
-    // like a decision the data took: "never read" is not "read and empty", so present and blank
-    // get no answer out of it either.
+    // The reason is what keeps the fallback from passing for a decision the data took: the run view
+    // words it instead of showing a bare cross. Returning here also means "never read" is not
+    // "read and empty", so present and blank get no answer out of it either.
     if (resolved.found === false) {
       this.context.logger('Warn', 'Condition value could not be resolved, counting it as not met', {
         ...this.logCtx,

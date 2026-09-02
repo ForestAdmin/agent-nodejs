@@ -27,8 +27,8 @@ export interface WithUserConfirmation<T extends Record<string, unknown> = Record
 
 // -- Condition --
 
-// Why a condition read nothing. A code rather than a sentence: executionParams is replayed into
-// the AI context of later steps, and the run view words it for the operator.
+// A code rather than a sentence: executionParams is replayed into the AI context of later steps,
+// and the run view is what words this for the operator.
 export type ConditionNotLoadedReason = 'source-step-not-reached' | 'field-not-loaded';
 
 export interface ConditionEvaluation {
@@ -36,8 +36,8 @@ export interface ConditionEvaluation {
   outcome: 'matched' | 'not-matched' | 'not-evaluated';
   /**
    * Absent when outcome is 'not-evaluated'. `met: null` = the value could not be evaluated.
-   * `reason` is set only alongside `met: null`, and only when nothing was read at all — a value
-   * that was read and is null carries no reason.
+   * `reason` accompanies `met: null` only when nothing was read at all: a value read as null
+   * carries none, which is how the run view tells the two apart.
    */
   conditions?: Array<{ index: number; met: boolean | null; reason?: ConditionNotLoadedReason }>;
 }
