@@ -623,11 +623,13 @@ describe('generateOpenApiDocument', () => {
     ]);
     expect(path.head.responses['200'].content).toBeUndefined();
     expect(path.head.responses['200'].description).toContain('no body');
+
     for (const status of ['400', '401', '403', '404', '500', '503']) {
       expect(path.head.responses[status].content).toBeUndefined();
       expect(path.head.responses[status].$ref).toBeUndefined();
       expect(path.head.responses[status].description).toBeTruthy();
     }
+
     expect(path.head.responses['404'].description).toContain('`openapi_disabled` body');
     expect(path.head.responses['404'].description).toContain('never comes back on a HEAD');
   });

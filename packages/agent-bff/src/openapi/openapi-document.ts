@@ -424,6 +424,23 @@ function registerPermissionsPath(
   });
 }
 
+function headDocumentResponses(): Record<string, { description: string }> {
+  return {
+    200: { description: 'The document exists and is readable; no body is returned for HEAD' },
+    400: { description: ERROR_STATUSES['400'] },
+    401: { description: ERROR_STATUSES['401'] },
+    403: { description: ERROR_STATUSES['403'] },
+    404: {
+      description:
+        'The deployment runs with `BFF_OPENAPI_ENABLED=false`, so the document is not served ' +
+        'over HTTP. The status is the same as the GET one, but the typed `openapi_disabled` body ' +
+        'never comes back on a HEAD: read the status, not the type.',
+    },
+    500: { description: ERROR_STATUSES['500'] },
+    503: { description: ERROR_STATUSES['503'] },
+  };
+}
+
 function registerDocumentPath(registry: OpenAPIRegistry, errorRefs: ErrorResponseRefs): void {
   const disabled = errorRefs.openapiDisabled;
 
@@ -465,23 +482,6 @@ function registerDocumentPath(registry: OpenAPIRegistry, errorRefs: ErrorRespons
     request: {},
     responses: headDocumentResponses(),
   });
-}
-
-function headDocumentResponses(): Record<string, { description: string }> {
-  return {
-    200: { description: 'The document exists and is readable; no body is returned for HEAD' },
-    400: { description: ERROR_STATUSES['400'] },
-    401: { description: ERROR_STATUSES['401'] },
-    403: { description: ERROR_STATUSES['403'] },
-    404: {
-      description:
-        'The deployment runs with `BFF_OPENAPI_ENABLED=false`, so the document is not served ' +
-        'over HTTP. The status is the same as the GET one, but the typed `openapi_disabled` body ' +
-        'never comes back on a HEAD: read the status, not the type.',
-    },
-    500: { description: ERROR_STATUSES['500'] },
-    503: { description: ERROR_STATUSES['503'] },
-  };
 }
 
 function registerAiQueryPath(
