@@ -203,6 +203,7 @@ describe('generateOpenApiDocument', () => {
 
     expect(apiKey.description).toContain('restricts browser callers only');
     expect(apiKey.description).toContain('a request with no Origin at all');
+    expect(apiKey.description).toContain('an empty Origin header counting as none');
     expect(apiKey.description).toContain('opaque Origin null is a present origin and is rejected');
   });
 
