@@ -520,6 +520,14 @@ describe('unknown keys', () => {
     },
   );
 
+  it.each(FLAT_PARSERS)(
+    'should reject a blank timezone on %s rather than silently resolve another one',
+    (_label, parse) => {
+      expect(() => parse({ timezone: '' })).toThrow(REJECTED);
+      expect(() => parse({ timezone: '   ' })).toThrow(REJECTED);
+    },
+  );
+
   it.each(FLAT_PARSERS)('should log the rejected key on %s, never the value', (_label, parse) => {
     logger.mockClear();
     expect(() => parse({ filters: { value: 'secret' } })).toThrow(REJECTED);

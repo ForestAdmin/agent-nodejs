@@ -418,6 +418,10 @@ describe('generateOpenApiDocument', () => {
     expect(Object.keys(schemas.ActionRequest.properties as object)).toContain('timezone');
   });
 
+  it('should publish the blank-timezone rejection in the schema, not only at runtime', () => {
+    expect(schemas.Timezone).toEqual(expect.objectContaining({ type: 'string', pattern: '\\S' }));
+  });
+
   it('should declare Retry-After on 503, the only status that sets it', () => {
     const list = listResponses();
 

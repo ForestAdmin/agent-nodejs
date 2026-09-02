@@ -16,7 +16,7 @@ export const SearchInput = z.string();
 
 export const SearchExtendedInput = z.boolean();
 
-export const TimezoneInput = z.string();
+export const TimezoneInput = z.string().regex(/\S/);
 
 export const ParentIdInput = z.union([z.string().regex(/\S/), z.number()]);
 
