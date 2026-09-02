@@ -366,22 +366,25 @@ function registerRelationRequests(
   const parentId = parentIdSchema(pool, plan.collection.name, plan.collection.primaryKeys);
   const { degraded } = foreign.collection.fields;
   const foreignNote = degraded ? ` ${DEGRADED_NOTE[degraded]}` : '';
-  const description =
-    `Filter, sort, projection and search apply to ${quoted(foreign.collection.name)}, the ` +
-    `foreign collection of ${quoted(plan.collection.name)}.${quoted(relation.name)}; the parent ` +
-    `only resolves which records are related.${foreignNote} ${CLOSED_BODY_NOTE}`;
+  const appliesTo =
+    `apply to ${quoted(foreign.collection.name)}, the foreign collection of ` +
+    `${quoted(plan.collection.name)}.${quoted(relation.name)}; the parent only resolves which ` +
+    'records are related.';
 
-  const body = (properties: BodyProperties): SchemaObject => ({
+  const body = (inputs: 'list' | 'count', subject: string): SchemaObject => ({
     type: 'object',
-    description,
-    properties: { ...properties, parentId },
+    description: `${subject} ${appliesTo}${foreignNote} ${CLOSED_BODY_NOTE}`,
+    properties: { ...foreign.properties[inputs], parentId },
     required: ['parentId'],
     additionalProperties: false,
   });
 
   return {
-    list: pool.add(`RelationListRequest_${relationKey}`, body(foreign.properties.list)),
-    count: pool.add(`RelationCountRequest_${relationKey}`, body(foreign.properties.count)),
+    list: pool.add(
+      `RelationListRequest_${relationKey}`,
+      body('list', 'Filter, sort, projection and search'),
+    ),
+    count: pool.add(`RelationCountRequest_${relationKey}`, body('count', 'Filter and search')),
   };
 }
 

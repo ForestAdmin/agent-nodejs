@@ -267,6 +267,26 @@ describe('the unfolded document', () => {
     expect(relation.description).toContain(note);
   });
 
+  it('should not advertise list-only keys on the relation count body or its description', () => {
+    const list = requestSchema('My%20Coll/relations/orders/list') as unknown as {
+      description: string;
+    };
+    const count = requestSchema('My%20Coll/relations/orders/count') as unknown as {
+      description: string;
+      properties: Record<string, unknown>;
+    };
+
+    expect(list.description).toContain('Filter, sort, projection and search');
+    expect(count.description).toContain('Filter and search');
+    expect(Object.keys(count.properties).sort()).toEqual([
+      'filter',
+      'parentId',
+      'search',
+      'searchExtended',
+      'timezone',
+    ]);
+  });
+
   it('should close a relation request structurally, not only in prose', () => {
     const request = requestSchema('My%20Coll/relations/orders/list') as unknown as {
       additionalProperties: boolean;
