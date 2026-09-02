@@ -170,7 +170,7 @@ describe('oauth-routes GET /oauth/authorize', () => {
       expect(location.searchParams.get('error')).toBe('server_error');
       expect(location.searchParams.get('state')).toBe('state-xyz');
       expect(logs).toContainEqual({
-        level: 'Warn',
+        level: 'Error',
         message: 'Could not resolve the Forest environment id',
         context: { cause: 'forest server unreachable' },
       });

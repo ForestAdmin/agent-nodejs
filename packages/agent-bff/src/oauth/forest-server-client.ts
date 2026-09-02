@@ -3,9 +3,10 @@ import type { UserInfo } from '@forestadmin/forestadmin-client';
 import createForestAdminClient from '@forestadmin/forestadmin-client';
 import jsonwebtoken from 'jsonwebtoken';
 
+import EnvironmentFetchError from './environment-fetch-error';
 import OAuthExchangeError from './oauth-exchange-error';
 
-export { OAuthExchangeError };
+export { EnvironmentFetchError, OAuthExchangeError };
 
 export interface RegisteredClient {
   client_id: string;
@@ -36,8 +37,20 @@ export interface ForestServerClientOptions {
 const DEFAULT_HEADERS = { 'Content-Type': 'application/json' } as const;
 const REQUEST_TIMEOUT_MS = 60_000;
 
-function fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
-  return fetch(url, { ...init, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
+/**
+ * The environment id sits on the critical path of routes that only decorate their payload with it,
+ * and it is a configuration read rather than a user operation: it gets a deadline of its own, short
+ * enough that a Forest server which accepts the connection and then never answers costs seconds
+ * instead of a minute per request.
+ */
+const ENVIRONMENT_TIMEOUT_MS = 5_000;
+
+function fetchWithTimeout(
+  url: string,
+  init: RequestInit,
+  timeoutMs = REQUEST_TIMEOUT_MS,
+): Promise<Response> {
+  return fetch(url, { ...init, signal: AbortSignal.timeout(timeoutMs) });
 }
 
 export default class ForestServerClient {
@@ -56,26 +69,36 @@ export default class ForestServerClient {
   }
 
   async fetchEnvironmentId(): Promise<number> {
-    const response = await fetchWithTimeout(this.url('/liana/environment'), {
-      method: 'GET',
-      headers: { ...DEFAULT_HEADERS, 'forest-secret-key': this.envSecret },
-    });
+    const response = await fetchWithTimeout(
+      this.url('/liana/environment'),
+      {
+        method: 'GET',
+        headers: { ...DEFAULT_HEADERS, 'forest-secret-key': this.envSecret },
+      },
+      ENVIRONMENT_TIMEOUT_MS,
+    );
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch environment: ${response.status} ${response.statusText}`);
+      throw EnvironmentFetchError.fromStatus(response.status, response.statusText);
     }
 
     const body = (await response.json()) as { data?: { id?: string | number } };
     const id = body.data?.id;
 
     if (typeof id !== 'number' && (typeof id !== 'string' || !/^\d+$/.test(id))) {
-      throw new Error('Failed to parse environment id from the Forest server response');
+      throw new EnvironmentFetchError(
+        'Failed to parse environment id from the Forest server response',
+        true,
+      );
     }
 
     const environmentId = Number(id);
 
     if (!Number.isInteger(environmentId) || environmentId <= 0) {
-      throw new Error('Failed to parse environment id from the Forest server response');
+      throw new EnvironmentFetchError(
+        'Failed to parse environment id from the Forest server response',
+        true,
+      );
     }
 
     return environmentId;
