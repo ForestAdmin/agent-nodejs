@@ -5,7 +5,6 @@ import buildBff from './build-bff';
 import { parseConfig } from './config/env-config';
 import { extractErrorMessage } from './errors';
 import BFFHttpServer from './http/bff-http-server';
-import version from './version';
 
 export default async function runCli(
   env: NodeJS.ProcessEnv,
@@ -14,13 +13,7 @@ export default async function runCli(
   const config = parseConfig(env);
   const { callback } = await buildBff({ config, logger });
 
-  const server = new BFFHttpServer({
-    port: config.httpPort,
-    version,
-    config,
-    logger,
-    callback,
-  });
+  const server = new BFFHttpServer({ port: config.httpPort, config, logger, callback });
 
   await server.start();
 

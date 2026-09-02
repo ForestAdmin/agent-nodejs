@@ -1,3 +1,5 @@
+import type { BffCallback } from '../../src/build-bff';
+import type { Logger } from '../../src/ports/logger-port';
 import type { Server } from 'http';
 
 import http from 'http';
@@ -19,10 +21,19 @@ const VALID_ENV = {
 
 const noopLogger = () => undefined;
 
-function createServer(env: NodeJS.ProcessEnv, port = 0) {
+const teapot: BffCallback = (req, res) => {
+  res.statusCode = 418;
+  res.end();
+};
+
+function createServer(env: NodeJS.ProcessEnv, port = 0, logger: Logger = noopLogger) {
   const config = parseConfig(env);
 
-  return new BFFHttpServer({ port, version: VERSION, config, logger: noopLogger });
+  return new BFFHttpServer({ port, version: VERSION, config, logger });
+}
+
+function createPrebuiltServer(env: NodeJS.ProcessEnv, logger: Logger = noopLogger) {
+  return new BFFHttpServer({ port: 0, config: parseConfig(env), logger, callback: teapot });
 }
 
 function listenOnEphemeralPort(server: Server): Promise<number> {
@@ -116,16 +127,10 @@ describe('BFFHttpServer', () => {
       expect(response.status).toBe(503);
     });
 
-    it('should warn at startup listing the missing keys', async () => {
+    it('should warn when assembling its own handler, listing the missing keys', async () => {
       const logger = jest.fn();
-      const config = parseConfig({ ...VALID_ENV, AGENT_URL: undefined });
-      const server = new BFFHttpServer({ port: 0, version: VERSION, config, logger });
 
-      try {
-        await server.start();
-      } finally {
-        await server.stop();
-      }
+      createServer({ ...VALID_ENV, AGENT_URL: undefined }, 0, logger);
 
       expect(logger).toHaveBeenCalledWith(
         'Warn',
@@ -155,6 +160,28 @@ describe('BFFHttpServer', () => {
 
       expect(response.status).toBe(418);
       expect(response.body).toEqual({ handled: true });
+    });
+  });
+
+  describe('when constructed with a prebuilt callback', () => {
+    it('should serve it as-is, health route included', async () => {
+      const server = createPrebuiltServer({ ...VALID_ENV });
+
+      const response = await request(server.callback).get('/health');
+
+      expect(response.status).toBe(418);
+    });
+
+    it('should leave the missing-key warning to whoever built the handler', async () => {
+      const logger = jest.fn();
+
+      createPrebuiltServer({ ...VALID_ENV, AGENT_URL: undefined }, logger);
+
+      expect(logger).not.toHaveBeenCalledWith(
+        'Warn',
+        'Missing required configuration; /health will report degraded',
+        expect.anything(),
+      );
     });
   });
 
