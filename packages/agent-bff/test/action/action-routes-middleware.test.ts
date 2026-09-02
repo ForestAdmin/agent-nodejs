@@ -276,6 +276,23 @@ describe('action routes middleware', () => {
     expect(loadAction).not.toHaveBeenCalled();
   });
 
+  it('returns 400 invalid_request when the body carries a misspelled values, with no agent call', async () => {
+    const loadAction = jest.fn();
+    const app = buildApp(storeOf(readModel), clientOf(makeAction(), loadAction));
+
+    const response = await request(app.callback())
+      .post('/agent/v1/users/actions/approve/form')
+      .send({ recordIds: ['42'], valeus: { amount: 1 } });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toMatchObject({
+      type: 'invalid_request',
+      status: 400,
+      message: 'Request body cannot carry "valeus"',
+    });
+    expect(loadAction).not.toHaveBeenCalled();
+  });
+
   it('returns 404 unknown_action for an action that is not exposed', async () => {
     const loadAction = jest.fn();
     const app = buildApp(storeOf(readModel), clientOf(makeAction(), loadAction));

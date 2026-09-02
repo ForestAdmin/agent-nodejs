@@ -54,6 +54,18 @@ function parseRecordIds(raw: unknown): string[] {
   return raw.map(id => String(id));
 }
 
+const ACTION_BODY_KEYS = ['recordIds', 'values', 'timezone'];
+
+// The body is closed like the data bodies are: a misspelled `values` used to execute the action
+// with no value at all, and answer 200 as if every field had been filled.
+function assertKnownBodyKeys(body: Record<string, unknown>): void {
+  const stray = Object.keys(body).find(key => !ACTION_BODY_KEYS.includes(key));
+
+  if (stray !== undefined) {
+    throw invalidRequest(`Request body cannot carry "${stray}"`);
+  }
+}
+
 function parseValues(raw: unknown): Record<string, unknown> {
   if (raw === undefined) return {};
 
@@ -197,6 +209,7 @@ export default function createActionRoutesMiddleware({
     }
 
     const body = (ctx.request.body ?? {}) as ActionRequestBody;
+    assertKnownBodyKeys(body as Record<string, unknown>);
     const recordIds = parseRecordIds(body.recordIds);
     const values = parseValues(body.values);
 

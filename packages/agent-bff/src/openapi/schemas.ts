@@ -134,7 +134,7 @@ export const RelationCountRequestSchema = CountRequestSchema.extend({
 }).openapi('RelationCountRequest');
 
 export const ActionRequestSchema = z
-  .object({
+  .strictObject({
     recordIds: z.array(z.union([z.string(), z.number()])),
     values: z.record(z.string(), z.unknown()).optional(),
     timezone: TimezoneSchema.optional(),

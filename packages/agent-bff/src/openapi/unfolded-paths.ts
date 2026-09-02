@@ -429,6 +429,7 @@ function registerActionRequest(
       timezone: pool.reuse('Timezone', TimezoneSchema),
     },
     required: ['recordIds'],
+    additionalProperties: false,
   });
 }
 
