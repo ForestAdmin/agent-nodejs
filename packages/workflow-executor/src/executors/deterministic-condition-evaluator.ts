@@ -90,8 +90,16 @@ function isPresent(value: unknown): boolean {
   return true;
 }
 
-function isMemberOf(list: unknown, candidate: unknown): boolean {
-  return Array.isArray(list) && list.some(item => scalarEqual(item, candidate) === true);
+// Tri-state like scalarEqual: null = the candidate could not be compared to any member, so a
+// negated membership test cannot claim "not a member" about a comparison it never managed to make.
+// An empty list compares nothing and mismatches nothing, so it stays a plain false.
+function memberOf(list: unknown, candidate: unknown): boolean | null {
+  if (!Array.isArray(list)) return null;
+
+  const results = list.map(item => scalarEqual(item, candidate));
+  if (results.includes(true)) return true;
+
+  return results.includes(null) ? null : false;
 }
 
 function ordering(satisfies: (diff: number) => boolean) {
@@ -112,8 +120,8 @@ const EVALUATORS: Record<
   less_than: ordering(diff => diff < 0),
   greater_than_or_equal: ordering(diff => diff >= 0),
   less_than_or_equal: ordering(diff => diff <= 0),
-  in: (actual, expected) => isMemberOf(expected, actual),
-  not_in: (actual, expected) => Array.isArray(expected) && !isMemberOf(expected, actual),
+  in: (actual, expected) => memberOf(expected, actual) === true,
+  not_in: (actual, expected) => memberOf(expected, actual) === false,
   contains: (actual, expected) =>
     typeof actual === 'string' && typeof expected === 'string' && actual.includes(expected),
   not_contains: (actual, expected) =>

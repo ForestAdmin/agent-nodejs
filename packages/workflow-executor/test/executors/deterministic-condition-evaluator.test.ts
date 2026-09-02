@@ -231,6 +231,10 @@ describe('evaluateOperator', () => {
     it('is not met when the expected value is not an array', () => {
       expect(evaluateOperator('in', 'a', 'a')).toBe(false);
     });
+
+    it('is not met when no member of the list is comparable to the value', () => {
+      expect(evaluateOperator('in', true, ['true'])).toBe(false);
+    });
   });
 
   describe('not_in', () => {
@@ -244,6 +248,17 @@ describe('evaluateOperator', () => {
 
     it('is not met (never satisfied by mismatch) when the expected value is not an array', () => {
       expect(evaluateOperator('not_in', 'a', 'b')).toBe(false);
+    });
+
+    // The negated operators are the ones a type mismatch could accidentally satisfy: nothing in the
+    // list is comparable to the value, so "absent from the list" is a claim we cannot make.
+    it('is not met when no member of the list is comparable to the value', () => {
+      expect(evaluateOperator('not_in', true, ['true'])).toBe(false);
+      expect(evaluateOperator('not_in', 'closed', ['active', 5])).toBe(false);
+    });
+
+    it('still matches against an empty list, which mismatches nothing', () => {
+      expect(evaluateOperator('not_in', 'c', [])).toBe(true);
     });
   });
 
