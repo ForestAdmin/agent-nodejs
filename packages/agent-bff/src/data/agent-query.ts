@@ -34,7 +34,21 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function assertNoNodeReadableAsBothLeafAndBranch(node: unknown, depth = 0): void {
+const LEAF_KEYS = ['field', 'operator', 'value'];
+const BRANCH_KEYS = ['aggregator', 'conditions'];
+
+// The tree is closed like the flat body is: a leaf carrying `valu` instead of `value` builds a
+// condition with `value: undefined`, which the agent reads as null and runs — a typo must not
+// silently change the returned rows.
+function assertNoStrayKey(node: object, allowed: string[]): void {
+  const stray = Object.keys(node).find(key => !allowed.includes(key));
+
+  if (stray !== undefined) {
+    throw invalidRequest(`A filter node cannot carry "${stray}"`);
+  }
+}
+
+function assertFilterNode(node: unknown, depth = 0): void {
   if (depth > MAX_FILTER_DEPTH) throw filterTooDeep(MAX_FILTER_DEPTH);
   if (typeof node !== 'object' || node === null) return;
 
@@ -45,10 +59,21 @@ function assertNoNodeReadableAsBothLeafAndBranch(node: unknown, depth = 0): void
   }
 
   if (readableAsBranch) {
-    node.conditions.forEach(condition =>
-      assertNoNodeReadableAsBothLeafAndBranch(condition, depth + 1),
-    );
+    assertNoStrayKey(node, BRANCH_KEYS);
+    node.conditions.forEach(condition => assertFilterNode(condition, depth + 1));
+
+    return;
   }
+
+  if (isLeaf(node)) {
+    assertNoStrayKey(node, LEAF_KEYS);
+
+    return;
+  }
+
+  // Neither readable as a leaf nor as a branch: `feild` instead of `field` reaches the agent as a
+  // node it cannot act on. An empty object stays allowed — it is how an absent filter is spelled.
+  assertNoStrayKey(node, []);
 }
 
 function assertFlatInputs(schema: ZodType, body: Record<string, unknown>, logger: Logger): void {
@@ -69,7 +94,7 @@ function assertFilter(filter: unknown): void {
   if (filter === undefined) return;
   if (!isPlainObject(filter)) throw invalidRequest('filter must be an object');
 
-  assertNoNodeReadableAsBothLeafAndBranch(filter);
+  assertFilterNode(filter);
 }
 
 function parseRequest<S extends ZodType>(schema: S, body: unknown, logger: Logger): z.output<S> {

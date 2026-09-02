@@ -342,6 +342,60 @@ describe('a filter node readable as both a leaf and a branch', () => {
   });
 });
 
+describe('a filter node carrying an unknown key', () => {
+  it.each(FLAT_PARSERS)('should reject a misspelled leaf value in %s', (_label, parse) => {
+    expect(() => parse({ filter: { field: 'title', operator: 'Equal', valu: 'x' } })).toThrow(
+      expect.objectContaining({
+        type: 'invalid_request',
+        status: 400,
+        message: 'A filter node cannot carry "valu"',
+      }),
+    );
+  });
+
+  it('should reject a misspelled leaf value nested inside a branch', () => {
+    expect(() =>
+      parseListRequest(
+        {
+          filter: {
+            aggregator: 'And',
+            conditions: [{ field: 'title', operator: 'Equal', valu: 'x' }],
+          },
+        },
+        logger,
+      ),
+    ).toThrow(expect.objectContaining({ type: 'invalid_request', status: 400 }));
+  });
+
+  it('should reject a misspelled aggregator on a branch', () => {
+    expect(() =>
+      parseCountRequest({ filter: { agregator: 'And', conditions: [] } }, logger),
+    ).toThrow(
+      expect.objectContaining({
+        type: 'invalid_request',
+        status: 400,
+        message: 'A filter node cannot carry "agregator"',
+      }),
+    );
+  });
+
+  it('should reject a node readable as neither a leaf nor a branch', () => {
+    expect(() =>
+      parseCountRequest({ filter: { feild: 'title', operator: 'Equal', value: 'x' } }, logger),
+    ).toThrow(expect.objectContaining({ type: 'invalid_request', status: 400 }));
+  });
+
+  it('should accept an empty filter object, which is how an absent filter is spelled', () => {
+    expect(() => parseCountRequest({ filter: {} }, logger)).not.toThrow();
+  });
+
+  it('should accept a leaf carrying field, operator and value', () => {
+    expect(() =>
+      parseCountRequest({ filter: { field: 'title', operator: 'Equal', value: 'x' } }, logger),
+    ).not.toThrow();
+  });
+});
+
 describe('parseParentId', () => {
   it('should return a non-empty string unchanged, including a composite packed id', () => {
     expect(parseParentId('a|b')).toBe('a|b');
