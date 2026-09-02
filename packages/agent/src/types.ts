@@ -153,7 +153,10 @@ export type AgentOptionsWithDefaults = Readonly<
 
 export type HttpCallback = (req: IncomingMessage, res: ServerResponse, next?: () => void) => void;
 
-export type McpRouteMatcher = (url: string) => boolean;
+export type RouteMatcher = (url: string) => boolean;
+
+/** A handler served at the root of the host application, with the urls it claims. */
+export type RootHandler = { callback: HttpCallback; matches: RouteMatcher };
 
 export enum HttpCode {
   BadRequest = 400,
