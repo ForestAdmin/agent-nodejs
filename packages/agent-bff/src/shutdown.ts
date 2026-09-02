@@ -10,6 +10,19 @@ export interface ShutdownOptions {
   logger?: Logger;
   /** How long in-flight requests get before their sockets are cut. */
   graceMs?: number;
+  /**
+   * Anything that must reach its destination before the process ends — today the buffered
+   * OpenTelemetry spans. It runs alongside `server.stop()` and is awaited with it, so the exit
+   * cannot cut an export that is still in flight.
+   */
+  flush?: () => Promise<void>;
+  /**
+   * The flush's own, much shorter deadline. It deliberately does not share `graceMs`: finishing a
+   * request someone is waiting on is worth ten seconds, telemetry is not, and an unreachable
+   * collector that held the process for the full grace period would be SIGKILLed by an orchestrator
+   * whose own patience starts at the same ten seconds — losing the shutdown, not just the spans.
+   */
+  flushMs?: number;
   /** Signal registration, as a seam: a test must not arm a handler on the real process. */
   onSignal?: (signal: NodeJS.Signals, handler: () => void) => void;
   exit?: (code: number) => void;
@@ -18,6 +31,7 @@ export interface ShutdownOptions {
 export const SIGNALS: NodeJS.Signals[] = ['SIGTERM', 'SIGINT'];
 export const DEFAULT_GRACE_MS = 10_000;
 export const FORCE_EXIT_MS = 1_000;
+export const DEFAULT_FLUSH_MS = 2_000;
 
 /**
  * Ends the process without `process.exit`, which would discard whatever is still buffered on stdout
@@ -32,6 +46,24 @@ export const FORCE_EXIT_MS = 1_000;
 function defaultExit(code: number): void {
   process.exitCode = code;
   setTimeout(() => process.exit(code), FORCE_EXIT_MS).unref();
+}
+
+/**
+ * Gives a promise a deadline, resolving either way — a slow collector should cost the shutdown its
+ * last spans, not its ability to end. The timer is cleared on settle so it cannot hold the loop open
+ * once the work is done.
+ */
+function bounded(work: Promise<void>, ms: number): Promise<void> {
+  return new Promise(resolve => {
+    const timer = setTimeout(resolve, ms);
+
+    void work
+      .catch(() => undefined)
+      .then(() => {
+        clearTimeout(timer);
+        resolve();
+      });
+  });
 }
 
 /**
@@ -51,6 +83,8 @@ export default function armShutdown(options: ShutdownOptions): void {
     server,
     logger,
     graceMs = DEFAULT_GRACE_MS,
+    flush,
+    flushMs = DEFAULT_FLUSH_MS,
     onSignal = (signal, handler) => {
       process.on(signal, handler);
     },
@@ -75,22 +109,26 @@ export default function armShutdown(options: ShutdownOptions): void {
     stopping = true;
     logger?.('Info', 'Shutting down', { signal, graceMs });
 
-    server
-      .stop(graceMs)
-      .then(() => {
+    // allSettled, not all: a failing `stop()` must not short-circuit the flush. Promise.all is
+    // fail-fast, so the exit would fire while the export was still in flight and the force-exit
+    // fallback would cut it — losing exactly the telemetry that explains the failed shutdown.
+    Promise.allSettled([server.stop(graceMs), flush ? bounded(flush(), flushMs) : undefined]).then(
+      ([stopped]) => {
         if (interrupted) return;
+
+        if (stopped.status === 'rejected') {
+          // The server failed to close cleanly. Nothing left to salvage, and staying alive would
+          // hold the container open until it is killed — report it through the exit code instead.
+          logger?.('Error', 'Shutdown failed, exiting anyway', { signal });
+          exit(1);
+
+          return;
+        }
 
         logger?.('Info', 'Forest BFF stopped');
         exit(0);
-      })
-      .catch(() => {
-        if (interrupted) return;
-
-        // The server failed to close cleanly. Nothing left to salvage, and staying alive would
-        // hold the container open until it is killed — report it through the exit code instead.
-        logger?.('Error', 'Shutdown failed, exiting anyway', { signal });
-        exit(1);
-      });
+      },
+    );
   };
 
   for (const signal of SIGNALS) {

@@ -8,7 +8,11 @@ keeps the image small while staying reproducible.
 
 - [`build-deps-manifest.js`](./build-deps-manifest.js) merges the external
   (non-`@forestadmin`) runtime dependencies of the BFF and its 4 workspace
-  dependencies into a single `package.json`.
+  dependencies, plus the OpenTelemetry packages, into a single `package.json`.
+  Three OTel packages are named there; `sdk-node` drags in every OTLP exporter
+  and the Zipkin one behind them, which is what lets the image honour
+  `OTEL_TRACES_EXPORTER` and `OTEL_EXPORTER_OTLP_PROTOCOL` without the app ever
+  choosing an exporter.
 - [`deps/yarn.lock`](./deps/) pins every transitive version.
 - The Docker build regenerates the manifest from the live `package.json` files
   and runs `yarn install --frozen-lockfile`. If a workspace dependency changes
@@ -37,7 +41,8 @@ runners; on a slim box python3 is the one likely to be missing.
 Only `deps/yarn.lock` is committed — the manifest is generated on demand (the
 Docker build regenerates it too), so there is no stale `package.json` to drift.
 Run this whenever a runtime dependency of one of the 5 workspace packages
-changes (the build will fail with `--frozen-lockfile` until you do):
+changes **or when the `OTEL_DEPENDENCIES` versions in `build-deps-manifest.js`
+are bumped** (the build will fail with `--frozen-lockfile` until you do):
 
 The generated manifest carries the repo's pinned `packageManager`
 (`yarn@1.22.19`), so with Corepack enabled (`corepack enable`) the refresh uses

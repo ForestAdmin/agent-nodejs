@@ -84,6 +84,50 @@ so under load it would SIGKILL exactly when the shutdown is doing its job. Hence
 above and `stop_grace_period: 15s` in the Compose file; on Kubernetes the default
 `terminationGracePeriodSeconds` of 30 already covers it.
 
+### Observability (OpenTelemetry)
+
+The Docker image ships with [OpenTelemetry](https://opentelemetry.io/) APM built in, and works with
+any OTLP-compatible backend (Datadog, Grafana Tempo, Jaeger, Honeycomb, etc.). It is **off by
+default** and turns on as soon as you point it at an OTLP receiver — no code changes or extra
+installs required. A setup that cannot start logs a warning and runs untraced rather than taking
+the process down with it. Tracing is set up before the app starts (auto-instrumentation for HTTP and the
+outbound calls to the agent and the Forest SaaS). The graceful shutdown described above waits for
+the buffered spans to be exported before it exits, but gives that its own 2 second deadline rather
+than the 10 seconds in-flight requests get: an unreachable collector costs you the last spans, never
+the ability to stop. Worst case it adds ~3 seconds to a shutdown.
+
+Configure it entirely through the standard OTel environment variables:
+
+| Variable | Description |
+| --- | --- |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP receiver URL (e.g. `http://collector:4318`). **Tracing stays off until this or `OTEL_TRACES_EXPORTER` is set.** |
+| `OTEL_SERVICE_NAME` | Service name reported in traces. Falls back to `service.name` in `OTEL_RESOURCE_ATTRIBUTES`, then to `forestadmin-agent-bff`. |
+| `OTEL_RESOURCE_ATTRIBUTES` | Extra resource attributes, e.g. `deployment.environment=production`. A `service.name` here is honoured when `OTEL_SERVICE_NAME` is unset. |
+| `OTEL_SDK_DISABLED` | Set to `true` (case-insensitive) to force-disable tracing whatever else is configured. |
+| `OTEL_TRACES_EXPORTER` | Which exporter the SDK builds: `otlp` (the default), `console`, `zipkin`, `none`, or a list. Setting it alone turns tracing on without an OTLP endpoint, which is what makes `console` usable for debugging. `none` keeps instrumentation running with nothing exported, so trace context still propagates to the agent and the Forest SaaS. |
+| `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` | Per-signal endpoint, taking precedence over the generic one above. Setting either turns tracing on. |
+| `OTEL_EXPORTER_OTLP_PROTOCOL` | `http/protobuf` (the default), `http/json` or `grpc`, with `OTEL_EXPORTER_OTLP_TRACES_PROTOCOL` for traces alone. |
+
+```bash
+docker run -d \
+  -p 3450:3450 \
+  --stop-timeout 15 \
+  --add-host host.docker.internal:host-gateway \
+  -e FOREST_AUTH_SECRET="..." \
+  -e FOREST_ENV_SECRET="..." \
+  -e FOREST_SERVER_URL="https://api.forestadmin.com" \
+  -e FOREST_APP_URL="https://app.forestadmin.com" \
+  -e AGENT_URL="http://host.docker.internal:3351" \
+  -e BFF_TOKEN_ENCRYPTION_KEY="$(openssl rand -base64 32)" \
+  -e OTEL_EXPORTER_OTLP_ENDPOINT="http://collector:4318" \
+  ghcr.io/forestadmin/agent-bff:latest
+```
+
+> **Note:** These variables only do anything in the Docker image. The image's entry point loads
+> the tracing preload before the CLI; the npm `forest-bff` bin runs the CLI on its own, and the
+> OpenTelemetry packages are not npm dependencies — so outside Docker an `OTEL_*` variable is
+> read by nothing and the process starts untraced, silently.
+
 ### Without Docker
 
 Packaged / production — run the bin:

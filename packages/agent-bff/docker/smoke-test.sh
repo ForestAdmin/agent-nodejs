@@ -1,7 +1,8 @@
 #!/bin/sh
 # Smoke-test a built agent-bff image: prove the entrypoint works, the full module
 # graph loads (cli.js eagerly imports cli-core -> every @forestadmin + external
-# dep), the Redoc bundle shipped, and the server boots and answers.
+# dep), the Redoc bundle shipped, the OTel SDK initialises, and the server boots
+# and answers.
 # Run against a locally-loaded image before it is published.
 #
 # Usage: smoke-test.sh <image-ref>
@@ -37,12 +38,17 @@ grep -q '"openapi"' /tmp/bff-openapi.json
 # nothing reaches the network, whereas a fully configured boot would fetch the
 # environment id from FOREST_SERVER_URL and die on an unreachable host.
 # /health therefore reports `degraded` — the point is that it answers at all.
+#
+# OTEL_EXPORTER_OTLP_ENDPOINT is set so the SDK actually initialises: the packages
+# exist only in this image, so nothing else would prove they are loadable. The
+# receiver is unreachable on purpose — exporting is asynchronous and best-effort.
 CONTAINER=$(docker run -d -p "127.0.0.1:$PORT:3450" \
   -e FOREST_AUTH_SECRET=smoke-test \
   -e FOREST_ENV_SECRET="$(openssl rand -hex 32)" \
   -e FOREST_SERVER_URL=http://127.0.0.1:1 \
   -e FOREST_APP_URL=http://127.0.0.1:1 \
   -e AGENT_URL=http://127.0.0.1:1 \
+  -e OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318 \
   "$IMAGE")
 trap 'docker logs "$CONTAINER" 2>&1 || true; docker rm -f "$CONTAINER" >/dev/null 2>&1 || true' EXIT
 
@@ -63,6 +69,10 @@ if echo "$logs" | grep -qiE "Cannot find module|MODULE_NOT_FOUND"; then
 fi
 if ! echo "$logs" | grep -q "Forest BFF started"; then
   echo "::error::the BFF did not reach startup — boot failure"
+  exit 1
+fi
+if ! echo "$logs" | grep -q "OpenTelemetry tracing enabled"; then
+  echo "::error::the OTel SDK did not initialise — packages missing from the image?"
   exit 1
 fi
 if [ "$status" != "503" ]; then
@@ -147,6 +157,7 @@ CONTAINER=$(docker run -d -p "127.0.0.1:$PORT:3450" \
   -e FOREST_APP_URL=http://127.0.0.1:1 \
   -e AGENT_URL=http://127.0.0.1:1 \
   -e BFF_TOKEN_ENCRYPTION_KEY="$(openssl rand -base64 32)" \
+  -e OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318 \
   "$IMAGE")
 
 status=""
@@ -170,4 +181,35 @@ if ! grep -q '"status":"ok"' /tmp/bff-health-ok.json; then
   exit 1
 fi
 
+# Stop this one rather than leave it to the trap: the shutdown path is the riskiest code in the
+# image and nothing else runs it there. Tracing is armed above against a collector that is not
+# listening, which is the case that matters — the span flush must give up on its own deadline and
+# let the process exit, not hold it until the orchestrator loses patience and SIGKILLs.
+#
+# -t 30 so this measures the BFF rather than whatever `docker stop` defaults to locally.
+STOP_STARTED=$(date +%s)
+docker stop -t 30 "$CONTAINER" >/dev/null
+STOP_ELAPSED=$(( $(date +%s) - STOP_STARTED ))
+STOP_CODE=$(docker inspect "$CONTAINER" --format '{{.State.ExitCode}}')
+logs=$(docker logs "$CONTAINER" 2>&1)
+
+if [ "$STOP_CODE" != "0" ]; then
+  echo "::error::the container exited $STOP_CODE on docker stop, expected 0 (137 means it was SIGKILLed)"
+  echo "$logs"
+  exit 1
+fi
+if ! echo "$logs" | grep -q "Forest BFF stopped"; then
+  echo "::error::the shutdown never completed — no 'Forest BFF stopped' in the logs"
+  echo "$logs"
+  exit 1
+fi
+# The README promises ~3s: a 2s flush deadline plus the 1s exit fallback. Anything near the OTLP
+# retry budget means the flush stopped being bounded.
+if [ "$STOP_ELAPSED" -gt 8 ]; then
+  echo "::error::shutdown took ${STOP_ELAPSED}s against a dead collector; the span flush is no longer bounded"
+  echo "$logs"
+  exit 1
+fi
+
+echo "shutdown with an unreachable collector: exit 0 in ${STOP_ELAPSED}s"
 echo "smoke test passed for $IMAGE"
