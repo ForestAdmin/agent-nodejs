@@ -27,11 +27,19 @@ export interface WithUserConfirmation<T extends Record<string, unknown> = Record
 
 // -- Condition --
 
+// Why a condition read nothing. A code rather than a sentence: executionParams is replayed into
+// the AI context of later steps, and the run view words it for the operator.
+export type ConditionNotLoadedReason = 'source-step-not-reached' | 'field-not-loaded';
+
 export interface ConditionEvaluation {
   option: string;
   outcome: 'matched' | 'not-matched' | 'not-evaluated';
-  /** Absent when outcome is 'not-evaluated'. `met: null` = the value could not be evaluated. */
-  conditions?: Array<{ index: number; met: boolean | null }>;
+  /**
+   * Absent when outcome is 'not-evaluated'. `met: null` = the value could not be evaluated.
+   * `reason` is set only alongside `met: null`, and only when nothing was read at all — a value
+   * that was read and is null carries no reason.
+   */
+  conditions?: Array<{ index: number; met: boolean | null; reason?: ConditionNotLoadedReason }>;
 }
 
 // Deterministic evaluation trace read by the run view (PRD-472 contract shape). The fallback

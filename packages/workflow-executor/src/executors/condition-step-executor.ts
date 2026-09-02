@@ -1,5 +1,9 @@
 import type { StepExecutionResult } from '../types/execution-context';
-import type { ConditionEvaluation, StepExecutionData } from '../types/step-execution-data';
+import type {
+  ConditionEvaluation,
+  ConditionNotLoadedReason,
+  StepExecutionData,
+} from '../types/step-execution-data';
 import type {
   ConditionStepDefinition,
   DeterministicCondition,
@@ -10,11 +14,7 @@ import type { ConditionStepOutcome, ErrorKind } from '../types/validated/step-ou
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 import { z } from 'zod';
 
-import {
-  ConditionSourceNotLoadedError,
-  InvalidStepDefinitionError,
-  StepStateError,
-} from '../errors';
+import { InvalidStepDefinitionError, StepStateError } from '../errors';
 import BaseStepExecutor from './base-step-executor';
 import evaluateOperator from './deterministic-condition-evaluator';
 import patchBodySchemas from '../http/pending-data-validators';
@@ -134,10 +134,11 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
         return { option, outcome: 'not-evaluated' } satisfies ConditionEvaluation;
       }
 
-      const results = conditions.map((condition, index) => ({
-        index,
-        met: this.evaluateCondition(condition, stepExecutions),
-      }));
+      const results = conditions.map((condition, index) => {
+        const { met, reason } = this.evaluateCondition(condition, stepExecutions);
+
+        return { index, met, ...(reason && { reason }) };
+      });
       const matched =
         aggregator === 'or'
           ? results.some(result => result.met === true)
@@ -176,20 +177,25 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
   private evaluateCondition(
     condition: DeterministicCondition,
     stepExecutions: StepExecutionData[],
-  ): boolean | null {
+  ): { met: boolean | null; reason?: ConditionNotLoadedReason } {
     const resolved = this.resolveConditionValue(condition, stepExecutions);
 
-    // A missing *reference* is a broken config, not data: routing to the fallback would report a
-    // decision as taken when its input never arrived. Every other step type already throws here
-    // (FieldNotFoundError, RelationNotFoundError, ActionNotFoundError) — this one used to be the
-    // exception. A value that is present but null still counts as not met, per the spec.
+    // Nothing was read, so the decision carries on with this condition not met and says why in the
+    // run view — it no longer fails the step. The reason is what keeps the fallback from looking
+    // like a decision the data took: "never read" is not "read and empty", so present and blank
+    // get no answer out of it either.
     if (resolved.found === false) {
-      throw new ConditionSourceNotLoadedError(condition.fieldName, condition.sourceStepId, {
-        errorSourceStepIndex: resolved.sourceStepIndex,
+      this.context.logger('Warn', 'Condition value could not be resolved, counting it as not met', {
+        ...this.logCtx,
+        sourceStepId: condition.sourceStepId,
+        fieldName: condition.fieldName,
+        reason: resolved.reason,
       });
+
+      return { met: null, reason: resolved.reason };
     }
 
-    return evaluateOperator(condition.operator, resolved.value, condition.value);
+    return { met: evaluateOperator(condition.operator, resolved.value, condition.value) };
   }
 
   // Same live-path + most-recent-occurrence resolution as resolveSourceRecordRef: previousSteps
@@ -197,21 +203,20 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
   private resolveConditionValue(
     condition: DeterministicCondition,
     stepExecutions: StepExecutionData[],
-  ): { found: true; value: unknown } | { found: false; sourceStepIndex?: number } {
+  ): { found: true; value: unknown } | { found: false; reason: ConditionNotLoadedReason } {
     const matches = this.context.previousSteps.filter(
       step =>
         step.stepDefinition.type === StepType.ReadRecord &&
         step.stepOutcome.stepId === condition.sourceStepId,
     );
     const sourceStep = matches[matches.length - 1];
-    if (!sourceStep) return { found: false };
+    if (!sourceStep) return { found: false, reason: 'source-step-not-reached' };
 
-    const sourceStepIndex = sourceStep.stepOutcome.stepIndex;
     const execution = this.resolveStepExecution(sourceStep, stepExecutions);
-    if (execution?.type !== 'read-record') return { found: false, sourceStepIndex };
+    if (execution?.type !== 'read-record') return { found: false, reason: 'field-not-loaded' };
 
     const field = execution.executionResult.fields.find(f => f.name === condition.fieldName);
-    if (!field || !('value' in field)) return { found: false, sourceStepIndex };
+    if (!field || !('value' in field)) return { found: false, reason: 'field-not-loaded' };
 
     return { found: true, value: field.value };
   }

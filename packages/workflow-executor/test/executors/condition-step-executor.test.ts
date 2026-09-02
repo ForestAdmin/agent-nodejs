@@ -725,7 +725,7 @@ describe('ConditionStepExecutor', () => {
       });
     });
 
-    it('fails loud when the source step never ran', async () => {
+    it('counts a condition whose source step never ran as not met, and says so', async () => {
       const unknownSource: ConditionPreRecordedArgs = {
         optionConditions: [
           {
@@ -749,41 +749,132 @@ describe('ConditionStepExecutor', () => {
 
       const result = await new ConditionStepExecutor(context).execute();
 
-      expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toContain('did not load that field');
-      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
-      expect(result.stepOutcome).not.toHaveProperty('errorSourceStepIndex');
+      expect(result.stepOutcome.status).toBe('success');
+      expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('Other');
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith('run-1', {
+        type: 'condition',
+        stepIndex: 0,
+        executionParams: {
+          evaluations: [
+            {
+              option: 'High',
+              outcome: 'not-matched',
+              conditions: [{ index: 0, met: null, reason: 'source-step-not-reached' }],
+            },
+          ],
+          selectedOption: 'Other',
+          usedFallback: true,
+        },
+        executionResult: { answer: 'Other' },
+      });
+      expect(context.logger).toHaveBeenCalledWith(
+        'Warn',
+        'Condition value could not be resolved, counting it as not met',
+        expect.objectContaining({
+          sourceStepId: 'never-ran',
+          fieldName: 'amount',
+          reason: 'source-step-not-reached',
+        }),
+      );
     });
 
     // Build-time validation cannot catch this one: the Get Data step may let the AI pick its
     // fields, so nobody knows which ones it returns until the run.
-    it('fails loud when the Get Data step failed to read the field', async () => {
+    it('counts a condition the Get Data step failed to read as not met, and says so', async () => {
       const { context, runStore } = makeDeterministicContext(amountArgs, [
         { name: 'amount', displayName: 'Amount', error: 'Field not found: amount' },
       ]);
 
       const result = await new ConditionStepExecutor(context).execute();
 
-      expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toContain('did not load that field');
-      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
-      // Same contract as SourceRecordMissingError.
-      expect(result.stepOutcome.errorSourceStepIndex).toBe(1);
-      expect(result.stepOutcome).not.toHaveProperty('errorKind');
+      expect(result.stepOutcome.status).toBe('success');
+      expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('Other');
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          executionParams: expect.objectContaining({
+            evaluations: [
+              {
+                option: 'High',
+                outcome: 'not-matched',
+                conditions: [{ index: 0, met: null, reason: 'field-not-loaded' }],
+              },
+              {
+                option: 'Low',
+                outcome: 'not-matched',
+                conditions: [{ index: 0, met: null, reason: 'field-not-loaded' }],
+              },
+            ],
+            usedFallback: true,
+          }),
+        }),
+      );
+      expect(context.logger).toHaveBeenCalledWith(
+        'Warn',
+        'Condition value could not be resolved, counting it as not met',
+        expect.objectContaining({ fieldName: 'amount', reason: 'field-not-loaded' }),
+      );
     });
 
-    it('fails loud and names the Get Data step when it stored no execution at all', async () => {
-      const { context, runStore } = makeDeterministicContext(amountArgs, [], {
+    it('counts a condition as not met when the Get Data step stored no execution at all', async () => {
+      const { context } = makeDeterministicContext(amountArgs, [], {
         runStore: makeMockRunStore({ getStepExecutions: jest.fn().mockResolvedValue([]) }),
       });
 
       const result = await new ConditionStepExecutor(context).execute();
 
-      expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toContain('did not load that field');
-      expect(result.stepOutcome.errorSourceStepIndex).toBe(1);
-      expect(result.stepOutcome).not.toHaveProperty('errorKind');
-      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+      expect(result.stepOutcome.status).toBe('success');
+      expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('Other');
+      expect(context.logger).toHaveBeenCalledWith(
+        'Warn',
+        'Condition value could not be resolved, counting it as not met',
+        expect.objectContaining({ reason: 'field-not-loaded' }),
+      );
+    });
+
+    // The whole point of not failing: an option that could not be read must not stop the ones
+    // after it from being tried.
+    it('goes on to evaluate the next option after one it could not read', async () => {
+      const twoOptions: ConditionPreRecordedArgs = {
+        optionConditions: [
+          {
+            option: 'High',
+            aggregator: 'and',
+            conditions: [{ sourceStepId: 'get-1', fieldName: 'missing', operator: 'present' }],
+          },
+          {
+            option: 'Low',
+            aggregator: 'and',
+            conditions: [
+              { sourceStepId: 'get-1', fieldName: 'amount', operator: 'greater_than', value: 100 },
+            ],
+          },
+        ],
+        fallbackOption: 'Other',
+      };
+      const { context, runStore } = makeDeterministicContext(twoOptions, [
+        { name: 'amount', displayName: 'Amount', value: 150 },
+      ]);
+
+      const result = await new ConditionStepExecutor(context).execute();
+
+      expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('Low');
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          executionParams: expect.objectContaining({
+            evaluations: [
+              {
+                option: 'High',
+                outcome: 'not-matched',
+                conditions: [{ index: 0, met: null, reason: 'field-not-loaded' }],
+              },
+              { option: 'Low', outcome: 'matched', conditions: [{ index: 0, met: true }] },
+            ],
+            usedFallback: false,
+          }),
+        }),
+      );
     });
 
     it('lets blank match a resolved null value (unlike an unresolvable one)', async () => {
@@ -894,7 +985,7 @@ describe('ConditionStepExecutor', () => {
     // Not even present/blank get an answer out of a reference that was never loaded: "no value was
     // read" is not the same claim as "the value is empty".
     it.each(['blank', 'present'] as const)(
-      'fails loud on %s when the reference cannot be resolved at all',
+      'answers %s not met, never true, when the reference cannot be resolved at all',
       async operator => {
         const unresolvable: ConditionPreRecordedArgs = {
           optionConditions: [
@@ -912,9 +1003,21 @@ describe('ConditionStepExecutor', () => {
 
         const result = await new ConditionStepExecutor(context).execute();
 
-        expect(result.stepOutcome.status).toBe('error');
-        expect(result.stepOutcome.error).toContain('did not load that field');
-        expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+        expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('Other');
+        expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+          'run-1',
+          expect.objectContaining({
+            executionParams: expect.objectContaining({
+              evaluations: [
+                {
+                  option: 'Matched',
+                  outcome: 'not-matched',
+                  conditions: [{ index: 0, met: null, reason: 'source-step-not-reached' }],
+                },
+              ],
+            }),
+          }),
+        );
       },
     );
 
@@ -957,7 +1060,7 @@ describe('ConditionStepExecutor', () => {
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
 
-    it('names the most recent occurrence of a repeated source step id when it did not load', async () => {
+    it('reads nothing from a repeated source step id whose latest occurrence did not load', async () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest
           .fn()
@@ -975,9 +1078,22 @@ describe('ConditionStepExecutor', () => {
 
       const result = await new ConditionStepExecutor(context).execute();
 
-      expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.errorSourceStepIndex).toBe(2);
-      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+      // The value the earlier occurrence did load must not be borrowed: this iteration read nothing.
+      expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('Other');
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          executionParams: expect.objectContaining({
+            evaluations: expect.arrayContaining([
+              {
+                option: 'High',
+                outcome: 'not-matched',
+                conditions: [{ index: 0, met: null, reason: 'field-not-loaded' }],
+              },
+            ]),
+          }),
+        }),
+      );
     });
 
     it('uses the most recent occurrence of a repeated source step id (loop)', async () => {
