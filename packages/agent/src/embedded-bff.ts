@@ -1,18 +1,25 @@
 import type { AgentOptionsWithDefaults, BffEmbedOptions, HttpCallback } from './types';
-import type { AgentDispatcher, Bff } from '@forestadmin/agent-bff';
+import type { AgentDispatcher, BFFConfig, Bff } from '@forestadmin/agent-bff';
 
 import { BFF_PREFIX, stripBffPrefix } from './bff-routes';
 
 /**
  * Serialize the BFF's structured log context onto the message: the agent's logger only accepts an
- * Error as its third argument, so the context would be dropped otherwise. Never throws — logging
- * must not break a request.
+ * Error as its third argument, so the context would be dropped otherwise. Errors are unfolded by
+ * hand — their `message` and `stack` are not enumerable, so `JSON.stringify` alone turns the one
+ * value worth logging into `{}`. Never throws — logging must not break a request.
  */
 function formatLog(message: string, context?: Record<string, unknown>): string {
   if (!context || Object.keys(context).length === 0) return `[bff] ${message}`;
 
   try {
-    return `[bff] ${message} ${JSON.stringify(context)}`;
+    const serialized = JSON.stringify(context, (_key, value) =>
+      value instanceof Error
+        ? { name: value.name, message: value.message, stack: value.stack }
+        : value,
+    );
+
+    return `[bff] ${message} ${serialized}`;
   } catch {
     return `[bff] ${message} [unserializable context]`;
   }
@@ -24,32 +31,31 @@ function formatLog(message: string, context?: Record<string, unknown>): string {
  * the callback and delegates start/stop.
  */
 export default class EmbeddedBff {
-  private embedOptions: BffEmbedOptions | null = null;
+  private config: BFFConfig | null = null;
   private bff: Bff | null = null;
+  private stopped = false;
 
-  constructor(private readonly options: AgentOptionsWithDefaults) {}
-
-  /** Register the embedded BFF. Nothing is built yet: the agent must be mounted first. */
-  configure(embedOptions: BffEmbedOptions): void {
-    this.embedOptions = embedOptions;
-  }
+  constructor(
+    private readonly options: AgentOptionsWithDefaults,
+    private readonly embedOptions: BffEmbedOptions,
+  ) {}
 
   /**
-   * Build the BFF. Called from agent.start() after mount(), because the dispatcher only reaches the
-   * agent's own stack once that stack is mounted.
+   * Load the package and validate the options the caller handed to `addBff()`. Called before the
+   * agent mounts anything: everything checked here is caller input, and `parseConfig` throws on a
+   * mistyped `tokenEncryptionKey`, timezone, timeout or url. Failing here leaves nothing serving,
+   * where failing after mount() would leave the host with a live `/forest` and a bricked `/bff`.
    */
-  async start(dispatcher: AgentDispatcher): Promise<void> {
+  async prepare(): Promise<void> {
+    const { parseConfig, IN_PROCESS_AGENT_URL } = await this.importPackage();
     const { embedOptions } = this;
-    if (!embedOptions) return;
 
-    const { buildBff, parseConfig, IN_PROCESS_AGENT_URL } = await this.importPackage();
-
-    const config = parseConfig({
+    this.config = parseConfig({
       FOREST_AUTH_SECRET: this.options.authSecret,
       FOREST_ENV_SECRET: this.options.envSecret,
       FOREST_SERVER_URL: this.options.forestServerUrl,
       FOREST_APP_URL: this.options.forestAppUrl,
-      // Names where the agent answers, never how it is reached: the dispatcher below is the transport.
+      // Names where the agent answers, never how it is reached: the dispatcher is the transport.
       AGENT_URL: IN_PROCESS_AGENT_URL,
       BFF_TOKEN_ENCRYPTION_KEY: embedOptions.tokenEncryptionKey,
       BFF_ALLOWED_ORIGINS: embedOptions.allowedOrigins?.join(','),
@@ -60,16 +66,32 @@ export default class EmbeddedBff {
       // publish the name of every exposed collection and field on an already-open port.
       BFF_OPENAPI_ENABLED: String(embedOptions.openapiEnabled ?? false),
     });
+  }
+
+  /**
+   * Build the BFF. Called from agent.start() after mount(), because the dispatcher only reaches the
+   * agent's own stack once that stack is mounted.
+   */
+  async start(dispatcher: AgentDispatcher): Promise<void> {
+    if (!this.config) await this.prepare();
+
+    const { buildBff } = await this.importPackage();
 
     this.bff = await buildBff({
-      config,
+      config: this.config as BFFConfig,
       dispatcher,
       basePath: BFF_PREFIX,
-      // Dropped rather than logged: the default sink reports gauges at Info, which would put a
-      // schema-cache age line in the host's logs on every read, for a number nobody reads there.
-      metrics: { increment: () => undefined, gauge: () => undefined },
+      // Counters are the schema cache's and the action-endpoint resolver's only channel — they take
+      // no logger — and every one of them reports a failure, so they go to the host's logs. Gauges
+      // do not: they are periodic cache sizes, and the default console sink reports them at Info,
+      // which would flood a host that only asked for a BFF.
+      metrics: {
+        increment: name => this.options.logger('Warn', formatLog(`metric ${name}`)),
+        gauge: () => undefined,
+      },
       logger: (level, message, context) => this.options.logger(level, formatLog(message, context)),
     });
+    this.stopped = false;
 
     this.options.logger('Info', formatLog(`Embedded BFF mounted on ${BFF_PREFIX}`));
   }
@@ -85,28 +107,33 @@ export default class EmbeddedBff {
    */
   stop(): void {
     this.bff = null;
+    this.stopped = true;
   }
 
   /**
    * The callback the agent registers at `/bff`. Answers 503 rather than falling through while the
-   * BFF is configured but not built yet: a 404 from the host would read as "wrong url" instead of
-   * "not started".
+   * BFF is not serving: a 404 from the host would read as "wrong url" instead of "not available".
+   * Boot and shutdown are told apart, because a probe should wait on the first and drain on the
+   * second.
    */
-  readonly handle: HttpCallback = (req, res, next) => {
-    if (!this.embedOptions) {
-      next?.();
-
-      return;
-    }
-
+  readonly handle: HttpCallback = (req, res) => {
     if (!this.bff) {
+      const type = this.stopped ? 'bff_stopped' : 'bff_not_started';
+      const message = this.stopped
+        ? 'The embedded BFF was stopped with the agent.'
+        : 'The embedded BFF is not started yet.';
+
       res.statusCode = 503;
       res.setHeader('Content-Type', 'application/json');
-      res.end(JSON.stringify({ error: { type: 'bff_not_started', status: 503 } }));
+      res.end(JSON.stringify({ error: { type, status: 503, message } }));
 
       return;
     }
 
+    // The BFF knows nothing of the prefix it is served under. `originalUrl` is claimed before the
+    // rewrite so a host logger reading it still reports the url the client asked for.
+    const bffReq = req as typeof req & { originalUrl?: string };
+    bffReq.originalUrl ??= bffReq.url;
     req.url = stripBffPrefix(req.url ?? BFF_PREFIX);
     this.bff.callback(req, res);
   };
@@ -119,10 +146,19 @@ export default class EmbeddedBff {
     try {
       return await import('@forestadmin/agent-bff');
     } catch (error) {
-      throw new Error(
-        'The embedded BFF requires the `@forestadmin/agent-bff` package. ' +
-          'Install it with `npm install @forestadmin/agent-bff`.',
+      // The original reason is kept: the package resolves from the host's own node_modules, so this
+      // also fires on a broken transitive dependency, a SyntaxError from a partial install, or a
+      // throw during the package's own evaluation — none of which "install it" would fix.
+      const { message } = error as Error;
+      const wrapped = new Error(
+        `The embedded BFF requires the \`@forestadmin/agent-bff\` package, which failed to ` +
+          `load: ${message}. Install it with \`npm install @forestadmin/agent-bff\`.`,
       );
+      // Assigned rather than passed to the constructor: the repo targets ES2020, whose lib has no
+      // options bag on Error, though the declared engines guarantee a runtime that reads it.
+      (wrapped as Error & { cause?: unknown }).cause = error;
+
+      throw wrapped;
     }
   }
 }

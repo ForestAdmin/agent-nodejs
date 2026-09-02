@@ -118,14 +118,14 @@ class InProcessRequester extends HttpRequester {
    * enough: `escapeUrlSlug` prefixes `+?*` with a backslash, which the WHATWG parser `buildUrl`
    * feeds reads as a path separator, and that parse also resolves `..` and splits a trailing query
    * off. Running it here is what keeps a given id addressing the same record over both transports —
-   * both remain wrong for those three characters, which is PRD-1124's to fix on both at once.
+   * both remain wrong for those three characters — TODO(PRD-1124), to fix on both at once.
    */
   private static toDispatchTarget(path: string): {
     path: string;
     query: Record<string, string>;
   } {
     const normalized = path.startsWith('/') ? path : `/${path}`;
-    const url = new URL(`${IN_PROCESS_URL}${HttpRequester.escapeUrlSlug(normalized)}`);
+    const url = new URL(`${IN_PROCESS_AGENT_URL}${HttpRequester.escapeUrlSlug(normalized)}`);
 
     return { path: url.pathname, query: Object.fromEntries(url.searchParams) };
   }

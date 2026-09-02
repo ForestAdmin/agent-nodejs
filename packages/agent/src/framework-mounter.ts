@@ -53,7 +53,7 @@ export default class FrameworkMounter {
 
   /** Serve an embedded BFF at `/bff`. Pass null to stop answering there. */
   protected setBffCallback(callback: HttpCallback | null): void {
-    this.rootMiddleware.set('bff', callback, isBffRoute);
+    this.rootMiddleware.set('bff', callback && { callback, matches: isBffRoute });
   }
 
   /**

@@ -26,3 +26,24 @@ export function stripBffPrefix(url: string): string {
 
   return remainder.startsWith('/') ? remainder : `/${remainder}`;
 }
+
+/**
+ * Whether an MCP mount path would land inside `/bff`. The MCP server normalizes its `basePath`
+ * (trim, leading slash, collapsed and stripped trailing slashes) before deriving
+ * `<basePath>/oauth/` and `<basePath>/mcp`, so comparing the raw option to `/bff` would let `bff`,
+ * `/bff/` and `/bff/ai` through — each of which claims paths the BFF answers on. The normalization
+ * is mirrored rather than imported: mcp-server keeps it internal.
+ */
+export function collidesWithBff(mcpBasePath?: string): boolean {
+  if (!mcpBasePath) return false;
+
+  const trimmed = mcpBasePath.trim();
+
+  if (trimmed === '' || trimmed === '/') return false;
+
+  const normalized = (trimmed.startsWith('/') ? trimmed : `/${trimmed}`)
+    .replace(/\/+/g, '/')
+    .replace(/\/+$/, '');
+
+  return isBffRoute(`${normalized}/mcp`);
+}

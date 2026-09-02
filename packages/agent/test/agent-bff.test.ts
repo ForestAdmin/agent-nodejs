@@ -37,6 +37,37 @@ describe('Agent.addBff', () => {
     });
   });
 
+  describe('when the MCP server claims /bff under another spelling', () => {
+    it.each(['/bff/', 'bff', '/bff/ai'])(
+      'should refuse basePath %s, which the MCP server normalizes into /bff',
+      basePath => {
+        const agent = buildAgent();
+        agent.mountAiMcpServer({ basePath });
+
+        expect(() => agent.addBff()).toThrow('Cannot use addBff together with mountAiMcpServer');
+      },
+    );
+
+    it.each(['/bff/', 'bff', '/bff/ai'])(
+      'should refuse basePath %s in the other order too',
+      basePath => {
+        const agent = buildAgent().addBff();
+
+        expect(() => agent.mountAiMcpServer({ basePath })).toThrow(
+          'Cannot use addBff together with mountAiMcpServer',
+        );
+      },
+    );
+
+    it('should name the basePath the caller actually passed', () => {
+      const agent = buildAgent().addBff();
+
+      expect(() => agent.mountAiMcpServer({ basePath: '/bff/ai' })).toThrow(
+        "mountAiMcpServer({ basePath: '/bff/ai' })",
+      );
+    });
+  });
+
   describe('when the MCP server is mounted elsewhere', () => {
     it('should accept both', () => {
       const agent = buildAgent();
