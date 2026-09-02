@@ -14,7 +14,7 @@ import CapabilitiesCache from '../../../src/read-model/capabilities-cache';
 import ReadModelStore from '../../../src/read-model/read-model-store';
 import SchemaCache from '../../../src/read-model/schema-cache';
 
-export const TIMEZONE = 'Europe/Paris';
+const TIMEZONE = 'Europe/Paris';
 export const AUTH_SECRET = 'b0bdf0a639c16bae8851dd24ee3d79ef0a352e957c5b86cb';
 export const ENV_SECRET = 'ceba742f5bc73946b34da192816a4d7177b3233fee7769955c29c0e90fd584f2';
 export const BOOT_TIMEOUT_MS = 60_000;
@@ -23,7 +23,7 @@ export const BOOT_TIMEOUT_MS = 60_000;
 // temporary schema cleaned up by `agent.stop()` even though the path is chosen here.
 export const RESERVED_SCHEMA_PREFIX = 'reserved-forestadmin-schema-test-';
 
-export const noopLogger: Logger = () => {};
+const noopLogger: Logger = () => {};
 
 export async function findFreePort(): Promise<number> {
   return new Promise((resolve, reject) => {
