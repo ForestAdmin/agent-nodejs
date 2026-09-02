@@ -18,22 +18,43 @@ npm install @forestadmin/agent-bff
 ```
 
 ```ts
-createAgent(options)
+await createAgent(options)
   .addDataSource(/* … */)
   .addBff({ allowedOrigins: ['https://my-app.com'] })
+  .mountOnStandaloneServer(3351)
   .start();
 ```
 
-Serves the REST BFF at `/bff` on the agent's own port, on every mount target. It reaches the agent
-in the same process, so there is no second port, no agent url to configure, and no secrets to keep
-in sync — `authSecret`, `envSecret`, the Forest urls and the logger are inherited.
+Serves the REST BFF under `/bff` on whatever port the agent is mounted on, on every mount target —
+`mountOnStandaloneServer` above, or the host's own listener with `mountOnExpress`, `mountOnKoa`,
+`mountOnFastify`, `mountOnNestJs`. A `mountOn*` call is what opens a socket: `start()` only builds
+the agent's router, so a chain without one serves nothing, BFF included.
+
+The BFF reaches the agent in the same process, so there is no second port, no agent url to
+configure, and no secrets to keep in sync — `authSecret`, `envSecret`, the Forest urls and the
+logger are inherited.
 
 Everything `addBff()` takes is a feature it switches on: `tokenEncryptionKey` enables OAuth (and
 with it the AI relay), `allowedOrigins` enables browser access, `openapiEnabled` serves the docs
 (off by default when embedded). `GET /bff/health` reports which of them are on.
 
 **Mount the agent before any body parser of your own** — a parser that runs first consumes the
-request stream, and every BFF `POST` then answers `500 stream.not.readable`.
+request stream, and every BFF `POST` then answers `500 stream.not.readable`. A permissive `cors()`
+registered ahead of the mount is the quieter version of the same mistake: it answers the preflight
+with its own policy, and the BFF's exact-origin allow-list never gets a say.
+
+**Mount the agent on the root application, not on a sub-router.** The `/bff` prefix is fixed and
+resolved against the url the host hands the agent, so an agent mounted on an express router at
+`/api` answers at `/api/bff` while the OpenAPI document still advertises `/bff`.
+
+**`agentTimeoutMs` bounds the wait, not the work.** When a call to the agent exceeds it the BFF
+answers with an error, but nothing is cancelled: the in-process request runs to completion. An
+action cut at the timeout still applies its mutation, so a client that retries applies it twice.
+Size the timeout above your slowest action, and make actions idempotent if you intend to retry them.
+
+**`addBff()` cannot be combined with `mountAiMcpServer({ basePath: '/bff' })`** — the MCP server
+would claim `/bff/oauth` and `/bff/mcp`. The agent throws at startup rather than letting the two
+overlap.
 
 See [`@forestadmin/agent-bff`](../agent-bff/README.md) for the routes, the auth modes and the
 differences with the standalone deployment.

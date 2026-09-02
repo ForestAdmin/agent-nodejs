@@ -410,10 +410,14 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * @returns the agent instance for chaining
    * @throws Error if called more than once, or if the MCP server already claims `/bff`
    *
+   * A `mountOn*` call is what opens a socket — start() only builds the router — so the BFF is only
+   * reachable on an agent that is mounted somewhere.
+   *
    * @example
-   * createAgent(options)
+   * await createAgent(options)
    *   .addDataSource(...)
    *   .addBff({ allowedOrigins: ['https://my-app.com'] })
+   *   .mountOnStandaloneServer(3351)
    *   .start();
    */
   addBff(options: BffEmbedOptions = {}): this {

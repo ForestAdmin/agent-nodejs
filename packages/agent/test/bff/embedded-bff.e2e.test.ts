@@ -1,3 +1,4 @@
+import type { BffEmbedOptions } from '../../src/types';
 import type { Server } from 'http';
 import type supertest from 'supertest';
 
@@ -15,6 +16,22 @@ import MockForestServer from '../__helper__/mock-forest-server';
 const AUTH_SECRET = 'test-auth-secret-32-chars-min!!!';
 const ENV_SECRET = '0'.repeat(64);
 const BOOT_TIMEOUT_MS = 30_000;
+const ALLOWED_ORIGIN = 'https://my-app.com';
+const FOREIGN_ORIGIN = 'https://not-my-app.com';
+
+/** What `cors()` with no options does: answer any preflight, allow any origin. */
+const permissiveCors: express.RequestHandler = (req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+
+  if (req.method === 'OPTIONS') {
+    res.statusCode = 204;
+    res.end();
+
+    return;
+  }
+
+  next();
+};
 
 const COLLECTION_PERMISSIONS = {
   collection: {
@@ -261,7 +278,7 @@ describe('embedded BFF', () => {
 
     agent = new Agent(agentOptions('embedded'))
       .addDataSource(async () => new SearchDataSource())
-      .addBff({ allowedOrigins: ['https://my-app.com'] });
+      .addBff({ allowedOrigins: [ALLOWED_ORIGIN] });
 
     app = express();
     agent.mountOnExpress(app);
@@ -521,8 +538,8 @@ describe('embedded BFF', () => {
   });
 
   describe('the host registration order', () => {
-    async function startAgentOn(hostApp: express.Express, mountFirst: boolean) {
-      const orderAgent = new Agent({
+    function createOrderAgent(bffOptions: BffEmbedOptions) {
+      return new Agent({
         authSecret: AUTH_SECRET,
         envSecret: ENV_SECRET,
         forestServerUrl: 'https://api.forestadmin.com',
@@ -532,7 +549,11 @@ describe('embedded BFF', () => {
         logger: () => undefined,
       })
         .addDataSource(async () => new SearchDataSource())
-        .addBff({});
+        .addBff(bffOptions);
+    }
+
+    async function startAgentOn(hostApp: express.Express, mountFirst: boolean) {
+      const orderAgent = createOrderAgent({});
 
       if (mountFirst) orderAgent.mountOnExpress(hostApp);
       hostApp.use(express.json());
@@ -541,6 +562,25 @@ describe('embedded BFF', () => {
       await orderAgent.start();
 
       return orderAgent;
+    }
+
+    async function startAgentBehindHostCors(hostApp: express.Express, mountFirst: boolean) {
+      const orderAgent = createOrderAgent({ allowedOrigins: [ALLOWED_ORIGIN] });
+
+      if (mountFirst) orderAgent.mountOnExpress(hostApp);
+      hostApp.use(permissiveCors);
+      if (!mountFirst) orderAgent.mountOnExpress(hostApp);
+
+      await orderAgent.start();
+
+      return orderAgent;
+    }
+
+    function preflightListBooks(hostApp: express.Express) {
+      return supertest(hostApp)
+        .options('/bff/agent/v1/books/list')
+        .set('Origin', FOREIGN_ORIGIN)
+        .set('Access-Control-Request-Method', 'POST');
     }
 
     function listBooks(hostApp: express.Express) {
@@ -583,6 +623,45 @@ describe('embedded BFF', () => {
 
           expect(response.status).toBe(500);
           expect(response.body.error).toMatchObject({ type: 'stream.not.readable' });
+        } finally {
+          await orderAgent.stop();
+        }
+      },
+      BOOT_TIMEOUT_MS,
+    );
+
+    it(
+      'should let the BFF allow-list refuse a foreign origin when the agent is mounted first',
+      async () => {
+        const hostApp = express();
+        const orderAgent = await startAgentBehindHostCors(hostApp, true);
+
+        try {
+          const response = await preflightListBooks(hostApp);
+
+          expect(response.status).toBe(204);
+          expect(response.headers['access-control-allow-origin']).toBeUndefined();
+        } finally {
+          await orderAgent.stop();
+        }
+      },
+      BOOT_TIMEOUT_MS,
+    );
+
+    // Pinned for the same reason as the body-parser pair: a host that answers the preflight itself
+    // silently replaces the BFF's exact-origin allow-list with its own policy, and nothing about the
+    // response says so.
+    it(
+      'should let a permissive host cors registered first answer for a foreign origin',
+      async () => {
+        const hostApp = express();
+        const orderAgent = await startAgentBehindHostCors(hostApp, false);
+
+        try {
+          const response = await preflightListBooks(hostApp);
+
+          expect(response.status).toBe(204);
+          expect(response.headers['access-control-allow-origin']).toBe('*');
         } finally {
           await orderAgent.stop();
         }

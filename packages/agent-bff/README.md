@@ -223,31 +223,45 @@ switches:
 
 | Feature | Switched on by |
 | --- | --- |
-| `oauth` | `BFF_TOKEN_ENCRYPTION_KEY` (`tokenEncryptionKey` when embedded) |
+| `oauth` | `BFF_TOKEN_ENCRYPTION_KEY` **and** `FOREST_SERVER_URL`, `FOREST_ENV_SECRET`, `FOREST_APP_URL`, `FOREST_AUTH_SECRET` — the routes need a Forest server to talk to as much as a key. Embedded, only `tokenEncryptionKey` is yours to set: the other four are inherited |
 | `ai` | `oauth` — the relay needs a session, and only the OAuth flow creates one |
 | `cors` | a non-empty `BFF_ALLOWED_ORIGINS` (`allowedOrigins`) |
 | `openapi` | `BFF_OPENAPI_ENABLED` (`openapiEnabled`), and a mounted agent edge |
 
 The body still never discloses which config *keys* are present or missing — that would leak the
 internal config surface to an unauthenticated probe. It reports what is served, not how it was
-configured. Missing keys are logged once at startup (`Warn`) for operators. Every response carries
-the `X-Forest-Bff-Version` header, read from `package.json`.
+configured. Missing keys are logged once at startup (`Warn`) for operators. Every response the BFF
+itself produces carries the `X-Forest-Bff-Version` header, read from `package.json`. The one
+exception is the embedded `503 bff_not_started` below: the agent writes it before there is a BFF to
+read a version from.
 
 ## Embedded in an agent
 
 The same BFF runs inside a Forest agent, with no second deployment and no second port:
 
 ```ts
-createAgent(options)
+await createAgent(options)
   .addDataSource(/* … */)
   .addBff({ allowedOrigins: ['https://my-app.com'] })
+  .mountOnStandaloneServer(3351)
   .start();
 ```
 
-It answers under `/bff` on the agent's own port — `/bff/agent/v1/{collection}/list`,
+A mount is what opens a socket — `start()` only builds the agent's router, so without a
+`mountOn*` call nothing is served, BFF included.
+
+It answers under `/bff` on whatever port the agent is mounted on — `/bff/agent/v1/{collection}/list`,
 `/bff/health`, `/bff/oauth/*` — so the REST contract is the one documented above and only the base
-url changes. A client generated from the OpenAPI document stays portable: the document's `servers`
-entry carries the prefix.
+url changes.
+
+The prefix is fixed at `/bff` and is resolved against the url the host hands the agent, so **mount
+the agent on the root application, not on a sub-router**: an agent mounted on an express router at
+`/api` answers at `/api/bff`, while the OpenAPI document and the docs page still say `/bff`.
+
+The *served* OpenAPI document carries the prefix in its `servers` entry, so a client generated from
+`GET /bff/agent/openapi.json` is correct as-is. The *exported* one does not: `forest-bff openapi`
+has no way to be told about a prefix and always emits `servers: [{ "url": "/" }]`. Generating a
+client from the export against an embedded BFF means pointing its base url at `/bff` yourself.
 
 What differs from the standalone deployment:
 
@@ -257,7 +271,7 @@ What differs from the standalone deployment:
 | `AGENT_URL` | required, an http(s) url | gone — the BFF reaches the agent in the same process, without a socket |
 | `HTTP_PORT` | its own listener | gone — the agent's port serves it |
 | `openapiEnabled` | `true` | `false`. The document is not filtered per caller, so adding a BFF must not silently publish every collection and field name on an already-open port |
-| `/health` | 503 until every required key is set | always 200: everything required is inherited, so there is no gap to report. Read `features` |
+| `/health` | 503 until every required key is set | always 200: an in-process dispatcher short-circuits the readiness check, since a 503 here would let a load balancer restart a process that serves api-key traffic fine. It stays 200 with no `tokenEncryptionKey`, which is *not* inherited — read `features` to know what is on |
 
 **Registration order matters on Express and Connect-style hosts.** Mount the agent *before* any
 body parser of your own:
@@ -266,12 +280,25 @@ body parser of your own:
 const app = express();
 agent.mountOnExpress(app);  // first
 app.use(express.json());    // then yours
+await agent.start();
 ```
 
 A body parser that runs first has already consumed the request stream, and nothing downstream can
 put it back: every BFF `POST` then answers `500 stream.not.readable`. The same applies to a
 permissive `cors()` registered ahead of the mount — it answers the preflight itself, and the BFF's
 strict allow-list never gets a say.
+
+NestJS needs no special handling as long as you mount before `listen()`: `NestFactory.create()`
+does not install its body parser, `init()` does, and `listen()` is what triggers `init()` — so the
+middleware `mountOnNestJs()` registers is already ahead of it.
+
+**`/bff/*` answers `503 bff_not_started`** between `addBff()` and the end of `start()`, and again
+after `stop()` — the agent claims the prefix as soon as it is mounted, and a 404 there would read as
+"wrong url" rather than "not ready yet". A host restarting an agent under traffic will see it.
+
+**`addBff()` and `mountAiMcpServer({ basePath: '/bff' })` are mutually exclusive** and throw at
+startup rather than letting the MCP server quietly claim `/bff/oauth` and `/bff/mcp`. Mount the MCP
+server elsewhere.
 
 When to prefer which: embedded for a single deployment, which is most of them. Standalone when
 several agents share one BFF, or when the BFF and the agent have to scale separately.
