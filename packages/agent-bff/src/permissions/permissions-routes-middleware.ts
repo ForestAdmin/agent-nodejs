@@ -70,6 +70,7 @@ async function resolvePermissions({
   logger: Logger;
 }): Promise<{ permissions: EvaluatedPermissions; fromFreshFetch: boolean }> {
   let resolved: EnvironmentAndUserPermissions;
+  const { generation } = cache;
 
   try {
     resolved = await client.fetchPermissions();
@@ -90,7 +91,7 @@ async function resolvePermissions({
     users: resolved.users,
   };
 
-  cache.set(permissions);
+  cache.set(permissions, generation);
 
   return { permissions, fromFreshFetch: true };
 }

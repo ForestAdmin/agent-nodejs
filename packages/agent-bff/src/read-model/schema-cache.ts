@@ -1,4 +1,5 @@
 import type { SchemaFetcher } from './forest-schema-client';
+import type { Logger } from '../ports/logger-port';
 import type { Metrics } from '../ports/metrics-port';
 import type { ForestSchemaCollection } from '@forestadmin/forestadmin-client';
 
@@ -22,6 +23,7 @@ export const SCHEMA_CACHE_AGE_SECONDS = 'schema_cache_age_seconds';
 export interface SchemaCacheOptions {
   fetcher: SchemaFetcher;
   metrics: Metrics;
+  logger?: Logger;
   now?: () => number;
   ttlMs?: number;
 }
@@ -29,6 +31,12 @@ export interface SchemaCacheOptions {
 interface CacheEntry {
   collections: ForestSchemaCollection[];
   fetchedAt: number;
+  /**
+   * Decided when the entry is written, not when it is read: a read taken while the revalidation
+   * window was open cannot be trusted for a day, and must not be promoted to a long-lived entry the
+   * moment the window closes.
+   */
+  expiresAt: number;
 }
 
 /**
@@ -40,6 +48,7 @@ interface CacheEntry {
 export default class SchemaCache {
   private readonly fetcher: SchemaFetcher;
   private readonly metrics: Metrics;
+  private readonly logger: Logger;
   private readonly now: () => number;
   private readonly ttlMs: number;
 
@@ -49,15 +58,22 @@ export default class SchemaCache {
   private generation = 0;
   private revalidatingUntil = 0;
 
-  constructor({ fetcher, metrics, now = Date.now, ttlMs = ONE_DAY_MS }: SchemaCacheOptions) {
+  constructor({
+    fetcher,
+    metrics,
+    logger = () => undefined,
+    now = Date.now,
+    ttlMs = ONE_DAY_MS,
+  }: SchemaCacheOptions) {
     this.fetcher = fetcher;
     this.metrics = metrics;
+    this.logger = logger;
     this.now = now;
     this.ttlMs = ttlMs;
   }
 
   async get(): Promise<ForestSchemaCollection[]> {
-    if (this.entry && this.now() - this.entry.fetchedAt < this.currentTtlMs()) {
+    if (this.entry && this.now() < this.entry.expiresAt) {
       this.emitAge();
 
       return this.entry.collections;
@@ -67,17 +83,20 @@ export default class SchemaCache {
   }
 
   /**
-   * Drop what is cached and re-read it eagerly for a while. Called when something outside knows the
-   * schema moved — an agent restarting on a customization refresh, say.
+   * Expire what is cached and re-read it eagerly for a while. Called when something outside knows
+   * the schema moved — an agent restarting on a customization refresh, say.
+   *
+   * The entry is expired, not dropped: every read now goes through a refresh, so nothing the host
+   * declared stale is served while the SaaS answers, but the class keeps its safety net — a refresh
+   * that fails still has a last good schema to fall back on. Dropping it would turn a restart
+   * during a SaaS blip into a `503 schema_unavailable` on every data route.
    */
   clear(): void {
-    this.entry = null;
     this.generation += 1;
+    this.inFlight = null;
     this.revalidatingUntil = this.now() + REVALIDATION_WINDOW_MS;
-  }
 
-  private currentTtlMs(): number {
-    return this.now() < this.revalidatingUntil ? REVALIDATION_TTL_MS : this.ttlMs;
+    if (this.entry) this.entry = { ...this.entry, expiresAt: this.now() };
   }
 
   ageSeconds(): number | undefined {
@@ -92,9 +111,13 @@ export default class SchemaCache {
 
   private async refresh(): Promise<ForestSchemaCollection[]> {
     if (!this.inFlight) {
-      this.inFlight = this.doRefresh().finally(() => {
-        this.inFlight = null;
+      // Identity-guarded, because `clear()` detaches the in-flight fetch: a read that lands after an
+      // invalidation must start its own, not join the one that read the invalidated schema.
+      const pending: Promise<ForestSchemaCollection[]> = this.doRefresh().finally(() => {
+        if (this.inFlight === pending) this.inFlight = null;
       });
+
+      this.inFlight = pending;
     }
 
     return this.inFlight;
@@ -114,7 +137,9 @@ export default class SchemaCache {
       // Skip the write if a clear() happened while this fetch was in flight: it read the schema the
       // invalidation declared stale, and caching it now would undo the invalidation.
       if (this.generation === generation) {
-        this.entry = { collections, fetchedAt: this.now() };
+        const fetchedAt = this.now();
+
+        this.entry = { collections, fetchedAt, expiresAt: fetchedAt + this.ttlFor(fetchedAt) };
         this.revisionValue += 1;
         this.emitAge();
       }
@@ -122,9 +147,16 @@ export default class SchemaCache {
       return collections;
     } catch (error) {
       this.metrics.increment(SCHEMA_CACHE_REFRESH_ERROR);
+      // The counter alone cannot tell "the SaaS returned an empty array" from "the SaaS is down"
+      // from "the env secret is wrong", and the cause is otherwise swallowed: it becomes the `cause`
+      // of a `SchemaUnavailableError` the error middleware serialises without logging.
+      this.logger('Warn', 'Schema refresh failed', {
+        cause: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
+        servedStale: this.entry !== null,
+      });
 
       // Warm cache: keep serving the last good schema (stale), do not poison — the next read
-      // re-attempts because `fetchedAt` is unchanged and the entry stays expired.
+      // re-attempts because `expiresAt` is unchanged and the entry stays expired.
       if (this.entry) {
         this.emitAge();
 
@@ -134,6 +166,10 @@ export default class SchemaCache {
       // Cold cache: nothing to serve.
       throw new SchemaUnavailableError(error);
     }
+  }
+
+  private ttlFor(fetchedAt: number): number {
+    return fetchedAt < this.revalidatingUntil ? REVALIDATION_TTL_MS : this.ttlMs;
   }
 
   private emitAge(): void {

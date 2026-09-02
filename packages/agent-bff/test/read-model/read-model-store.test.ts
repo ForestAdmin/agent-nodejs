@@ -298,5 +298,22 @@ describe('ReadModelStore', () => {
 
       expect(capabilities).toHaveBeenCalledTimes(2);
     });
+
+    it('should drop the capabilities even when the revision does not move', async () => {
+      const fetchSchema = jest
+        .fn()
+        .mockResolvedValueOnce(makeSchema('users'))
+        .mockRejectedValue(new Error('boom'));
+      const store = build(fetchSchema);
+      const capabilities = jest.fn().mockResolvedValue({ fields: [] });
+      await store.getCapabilities('users', capabilities);
+      const before = await store.getSchemaSnapshot();
+
+      store.invalidate();
+      await store.getCapabilities('users', capabilities);
+
+      expect((await store.getSchemaSnapshot()).revision).toBe(before.revision);
+      expect(capabilities).toHaveBeenCalledTimes(2);
+    });
   });
 });
