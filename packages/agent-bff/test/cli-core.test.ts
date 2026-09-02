@@ -301,8 +301,8 @@ describe('runCli', () => {
       try {
         const response = await request(server.callback)
           .post('/agent/v1/books/list')
-          .set('Content-Type', '')
-          .send(JSON.stringify({ page: { limit: 5 } }));
+          .send(JSON.stringify({ page: { limit: 5 } }))
+          .unset('Content-Type');
 
         expect(response.status).toBe(415);
         expect(response.body.error).toMatchObject({ type: 'unsupported_media_type', status: 415 });
