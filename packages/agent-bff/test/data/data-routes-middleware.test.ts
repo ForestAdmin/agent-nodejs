@@ -143,7 +143,7 @@ describe('data routes middleware', () => {
       expect(createClient).toHaveBeenCalledWith({ transport: TRANSPORT, token: 'jwt-123' });
     });
 
-    it('should build one client per request with the configured transport', async () => {
+    it('should build one client per request, each bound to that request token', async () => {
       const createClient = jest.fn(() => ({ list: async () => [] } as unknown as AgentDataClient));
       const app = new Koa();
       app.silent = true;
@@ -151,7 +151,7 @@ describe('data routes middleware', () => {
       app.use(bodyParser());
       app.use(async (ctx, next) => {
         ctx.state.timezone = TIMEZONE;
-        ctx.state.agentToken = 'agent-jwt';
+        ctx.state.agentToken = ctx.get('x-agent-token');
         await next();
       });
       app.use(
@@ -163,9 +163,18 @@ describe('data routes middleware', () => {
         }),
       );
 
-      await request(app.callback()).post('/agent/v1/users/list').send({});
+      await request(app.callback())
+        .post('/agent/v1/users/list')
+        .set('x-agent-token', 'jwt-1')
+        .send({});
+      await request(app.callback())
+        .post('/agent/v1/users/list')
+        .set('x-agent-token', 'jwt-2')
+        .send({});
 
-      expect(createClient).toHaveBeenCalledWith(expect.objectContaining({ transport: TRANSPORT }));
+      expect(createClient).toHaveBeenCalledTimes(2);
+      expect(createClient).toHaveBeenNthCalledWith(1, { transport: TRANSPORT, token: 'jwt-1' });
+      expect(createClient).toHaveBeenNthCalledWith(2, { transport: TRANSPORT, token: 'jwt-2' });
     });
   });
 
