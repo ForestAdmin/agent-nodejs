@@ -120,6 +120,22 @@ describe('per-key origin middleware (layer 2)', () => {
       });
     });
 
+    it('truncates an oversized origin, which a caller controls and nothing rate-limits', async () => {
+      const logger = jest.fn();
+      const origin = `https://${'a'.repeat(4000)}.com`;
+
+      await request(buildApp(['https://a.com'], logger).callback())
+        .get('/agent/x')
+        .set('Origin', origin)
+        .set(BFF_KEY_HEADER, RAW_KEY);
+
+      const [, , context] = logger.mock.calls[0] as [string, string, { origin: string }];
+
+      expect(context.origin).toHaveLength(257);
+      expect(context.origin.endsWith('…')).toBe(true);
+      expect(origin.startsWith(context.origin.slice(0, -1))).toBe(true);
+    });
+
     it('logs nothing when the origin is allowed', async () => {
       const logger = jest.fn();
 

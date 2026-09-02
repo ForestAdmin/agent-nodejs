@@ -1,3 +1,14 @@
+const MAX_LOGGED_ORIGIN_LENGTH = 256;
+
+/**
+ * The origin as it is safe to log: caller-controlled, so a header near Node's ~16kb limit would
+ * otherwise land verbatim in one Warn per rejected request, with no rate limit above it. The
+ * truncation marker keeps a cut value from reading like the real one.
+ */
+export function loggableOrigin(raw: string): string {
+  return raw.length > MAX_LOGGED_ORIGIN_LENGTH ? `${raw.slice(0, MAX_LOGGED_ORIGIN_LENGTH)}…` : raw;
+}
+
 export function normalizeOrigin(raw: string | undefined | null): string | null {
   if (raw === undefined || raw === null) return null;
 
