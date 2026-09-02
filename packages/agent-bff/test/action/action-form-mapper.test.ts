@@ -72,7 +72,7 @@ describe('mapActionForm', () => {
       { name: 'tiers', type: 'EnumList', value: null, isRequired: false, enumValues: ['a', 'b'] },
     ]);
 
-    const result = mapActionForm(action, [], []);
+    const result = mapForm(action, [], []);
 
     expect(result.fields[0]).toMatchObject({ name: 'tiers', enumValues: ['a', 'b'] });
   });
