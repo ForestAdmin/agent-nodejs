@@ -1,3 +1,4 @@
+import type { Logger } from '../../src/ports/logger-port';
 import type { Metrics } from '../../src/ports/metrics-port';
 import type { SchemaFetcher } from '../../src/read-model/forest-schema-client';
 import type { ForestSchemaCollection } from '@forestadmin/forestadmin-client';
@@ -24,8 +25,8 @@ describe('SchemaCache', () => {
     fetcher = { fetchSchema: jest.fn() };
   });
 
-  function build(): SchemaCache {
-    return new SchemaCache({ fetcher: fetcher as SchemaFetcher, metrics, now });
+  function build(logger: Logger = () => undefined): SchemaCache {
+    return new SchemaCache({ fetcher: fetcher as SchemaFetcher, metrics, logger, now });
   }
 
   describe('cold cache', () => {
@@ -123,6 +124,23 @@ describe('SchemaCache', () => {
       expect(metrics.increment).toHaveBeenCalledWith(SCHEMA_CACHE_REFRESH_ERROR);
     });
 
+    it('should log the cause and that the stale schema was served', async () => {
+      const logger = jest.fn();
+      fetcher.fetchSchema
+        .mockResolvedValueOnce(makeSchema('users'))
+        .mockRejectedValueOnce(new Error('boom'));
+      const cache = build(logger);
+
+      await cache.get();
+      clock += ONE_DAY_MS;
+      await cache.get();
+
+      expect(logger).toHaveBeenCalledWith('Warn', 'Schema refresh failed', {
+        cause: 'Error: boom',
+        servedStale: true,
+      });
+    });
+
     it('should re-attempt on the next read and serve the fresh schema once it succeeds', async () => {
       const good = makeSchema('users');
       const fresh = makeSchema('users-v2');
@@ -186,6 +204,18 @@ describe('SchemaCache', () => {
       await expect(cache.get()).rejects.toBeInstanceOf(SchemaUnavailableError);
       expect(metrics.increment).toHaveBeenCalledWith(SCHEMA_CACHE_REFRESH_ERROR);
       expect(cache.ageSeconds()).toBeUndefined();
+    });
+
+    it('should log the empty schema as the cause, since the counter cannot tell it from an outage', async () => {
+      const logger = jest.fn();
+      fetcher.fetchSchema.mockResolvedValue([]);
+
+      await expect(build(logger).get()).rejects.toBeInstanceOf(SchemaUnavailableError);
+
+      expect(logger).toHaveBeenCalledWith('Warn', 'Schema refresh failed', {
+        cause: 'Error: Forest returned an empty schema',
+        servedStale: false,
+      });
     });
 
     it('should keep serving the last good schema when a refresh returns empty', async () => {
@@ -299,13 +329,80 @@ describe('SchemaCache', () => {
       const pending = cache.get();
       cache.clear();
       releaseStale(stale);
-      await pending;
+
+      await expect(pending).resolves.toEqual(stale);
 
       fetcher.fetchSchema.mockResolvedValue(makeSchema('fresh'));
       const result = await cache.get();
 
       expect(result).toEqual(makeSchema('fresh'));
       expect(fetcher.fetchSchema).toHaveBeenCalledTimes(2);
+    });
+
+    it('should start its own fetch for a read that lands after the clear, not join the invalidated one', async () => {
+      const cache = build();
+      const stale = makeSchema('stale');
+      let releaseStale: (collections: ForestSchemaCollection[]) => void = () => undefined;
+      fetcher.fetchSchema.mockReturnValueOnce(
+        new Promise(resolve => {
+          releaseStale = resolve;
+        }),
+      );
+
+      const beforeClear = cache.get();
+      cache.clear();
+      fetcher.fetchSchema.mockResolvedValue(makeSchema('fresh'));
+      const afterClear = cache.get();
+      releaseStale(stale);
+
+      await expect(beforeClear).resolves.toEqual(stale);
+      await expect(afterClear).resolves.toEqual(makeSchema('fresh'));
+      expect(fetcher.fetchSchema).toHaveBeenCalledTimes(2);
+    });
+
+    it('should not promote a read taken inside the window to the long TTL once the window closes', async () => {
+      const cache = build();
+      fetcher.fetchSchema.mockResolvedValue(makeSchema('users'));
+      await cache.get();
+
+      cache.clear();
+      clock += REVALIDATION_TTL_MS;
+      await cache.get();
+      clock += REVALIDATION_WINDOW_MS;
+      await cache.get();
+
+      expect(fetcher.fetchSchema).toHaveBeenCalledTimes(3);
+    });
+
+    it('should keep the last good schema as a fallback when the refresh after a clear fails', async () => {
+      const good = makeSchema('users');
+      fetcher.fetchSchema.mockResolvedValueOnce(good).mockRejectedValue(new Error('boom'));
+      const cache = build();
+      await cache.get();
+
+      cache.clear();
+      const result = await cache.get();
+
+      expect(result).toBe(good);
+      expect(metrics.increment).toHaveBeenCalledWith(SCHEMA_CACHE_REFRESH_ERROR);
+    });
+
+    it('should keep re-reading after serving that fallback, so the invalidation is not defeated', async () => {
+      const good = makeSchema('users');
+      const fresh = makeSchema('users-v2');
+      fetcher.fetchSchema
+        .mockResolvedValueOnce(good)
+        .mockRejectedValueOnce(new Error('boom'))
+        .mockResolvedValueOnce(fresh);
+      const cache = build();
+      await cache.get();
+
+      cache.clear();
+      await cache.get();
+      const result = await cache.get();
+
+      expect(result).toBe(fresh);
+      expect(fetcher.fetchSchema).toHaveBeenCalledTimes(3);
     });
 
     it('should not bump the revision for a fetch the clear invalidated', async () => {

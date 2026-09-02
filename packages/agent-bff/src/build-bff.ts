@@ -422,6 +422,9 @@ function buildAgentMiddlewares(
   return {
     middlewares: chain.map(agentScoped),
     invalidate: () => {
+      // The one trace an invalidation leaves: the operator asked "the schema is wrong" needs to
+      // establish that one happened and when, and the age gauge cannot say it.
+      logger('Info', 'Dropping the SaaS read caches on host request');
       bundle?.store.invalidate();
       permissionsCache.clear();
     },

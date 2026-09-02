@@ -35,12 +35,15 @@ export default class ReadModelStore {
   }
 
   /**
-   * Forget the cached schema. The capabilities follow on their own: the next snapshot sees a new
-   * revision and clears them, which is also what keeps the allow-list and the capabilities from
-   * splitting across generations.
+   * Forget the cached schema and the capabilities that belong to it, then force the read-model to be
+   * rebuilt. The capabilities are dropped here rather than left to the next revision change: a
+   * `clear()` also drops a schema write that was in flight, and a dropped write moves nothing the
+   * snapshot can notice, so inferring the invalidation from the revision would miss it.
    */
   invalidate(): void {
     this.schemaCache.clear();
+    this.capabilitiesCache.clear();
+    this.builtRevision = -1;
   }
 
   async getSchemaSnapshot(): Promise<SchemaSnapshot> {
