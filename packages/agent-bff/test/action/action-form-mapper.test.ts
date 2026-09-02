@@ -207,6 +207,21 @@ describe('mapActionForm', () => {
     expect(result.layout).toEqual([null, { component: 'page', elements: 'nope' }]);
   });
 
+  it('keeps forest utility classes on an htmlBlock and drops the others', () => {
+    const layout = [
+      {
+        component: 'htmlBlock',
+        content: '<p class="c-clr-1-4 l-mt modal">x</p><p class="ember-view">y</p>',
+      },
+    ] as never;
+
+    const result = mapForm(actionWith([]), [], layout);
+
+    expect(result.layout).toEqual([
+      { component: 'htmlBlock', content: '<p class="c-clr-1-4 l-mt">x</p><p>y</p>' },
+    ]);
+  });
+
   it('empties an htmlBlock whose content is entirely active markup', () => {
     const layout = [{ component: 'htmlBlock', content: '<script>alert(1)</script>' }] as never;
 

@@ -7,7 +7,8 @@ const MAX_HTML_CHARACTERS = 256 * 1024;
 
 const MAX_LAYOUT_DEPTH = 10;
 
-const SAFE_STYLE_VALUE = /^(?![^;{}\\]*(?:url|expression|image-set|element|-moz-binding)\s*\()[^;{}\\]*$/i;
+const SAFE_STYLE_VALUE =
+  /^(?![^;{}\\]*(?:url|expression|image-set|element|-moz-binding)\s*\()[^;{}\\]*$/i;
 
 const ALLOWED_STYLE_PROPERTIES = [
   'background',
@@ -52,6 +53,7 @@ const ALLOWED_STYLE_PROPERTIES = [
 
 const OPTIONS: sanitizeHtml.IOptions = {
   allowedAttributes: { ...sanitizeHtml.defaults.allowedAttributes, '*': ['style'] },
+  allowedClasses: { '*': ['c-*', 'l-*'] },
   allowedStyles: {
     '*': Object.fromEntries(ALLOWED_STYLE_PROPERTIES.map(name => [name, [SAFE_STYLE_VALUE]])),
   },

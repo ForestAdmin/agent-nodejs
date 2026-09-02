@@ -49,13 +49,13 @@ describe('mapActionExecuteResult', () => {
   });
 
   it('truncates an html longer than the sanitizable size instead of dropping it', () => {
-    const html = 'a'.repeat(262143) + '<script>alert(1)</script>' + 'b'.repeat(100);
+    const html = `${'a'.repeat(262143)}<script>alert(1)</script>${'b'.repeat(100)}`;
 
     expect(mapResult({ success: 'ok', html, refresh: { relationships: [] } }).body).toEqual({
       type: 'success',
       message: 'ok',
       invalidated: [],
-      html: 'a'.repeat(262143) + '&lt;',
+      html: `${'a'.repeat(262143)}&lt;`,
     });
     expect(logger).toHaveBeenCalledWith(
       'Warn',
@@ -83,16 +83,14 @@ describe('mapActionExecuteResult', () => {
     expect(
       mapResult({
         success: 'ok',
-        html:
-          '<div style="color:rgb(22, 163, 74);width:calc(100% - 12px);background:var(--fa-brand)">x</div>',
+        html: '<div style="color:rgb(22, 163, 74);width:calc(100% - 12px);background:var(--fa-brand)">x</div>',
         refresh: { relationships: [] },
       }).body,
     ).toEqual({
       type: 'success',
       message: 'ok',
       invalidated: [],
-      html:
-        '<div style="color:rgb(22, 163, 74);width:calc(100% - 12px);background:var(--fa-brand)">x</div>',
+      html: '<div style="color:rgb(22, 163, 74);width:calc(100% - 12px);background:var(--fa-brand)">x</div>',
     });
   });
 
@@ -110,6 +108,27 @@ describe('mapActionExecuteResult', () => {
       message: 'ok',
       invalidated: [],
       html: '<div>x</div><div>y</div>',
+    });
+  });
+
+  it('keeps documented forest utility classes and filters other classes on the success html', () => {
+    expect(
+      mapResult({
+        success: 'Charge failed',
+        html:
+          '<p class="c-clr-1-4 l-mt l-mb modal ember-view">x</p>' +
+          '<strong class="c-form__label--read c-clr-1-2">Reason</strong>' +
+          '<p class="modal only">y</p>',
+        refresh: { relationships: [] },
+      }).body,
+    ).toEqual({
+      type: 'success',
+      message: 'Charge failed',
+      invalidated: [],
+      html:
+        '<p class="c-clr-1-4 l-mt l-mb">x</p>' +
+        '<strong class="c-form__label--read c-clr-1-2">Reason</strong>' +
+        '<p>y</p>',
     });
   });
 
