@@ -114,13 +114,15 @@ function mapIdentityError(error: unknown): OAuthRequestError {
 
 /**
  * The id is only needed once the redirect_uri is trusted, so a resolution failure travels back to
- * the client as `server_error` (RFC 6749 §4.1.2.1) instead of a bare 500.
+ * the client as `server_error` (RFC 6749 §4.1.2.1) instead of a bare 500. Logged at `Error` whatever
+ * the cause: the route still answers 302, so no status-code alert can fire, and every login is
+ * broken until the id resolves.
  */
 async function resolveEnvironmentId(options: OAuthRoutesOptions): Promise<number> {
   try {
     return await options.resolveEnvironmentId();
   } catch (error) {
-    options.logger('Warn', 'Could not resolve the Forest environment id', {
+    options.logger('Error', 'Could not resolve the Forest environment id', {
       cause: error instanceof Error ? error.message : String(error),
     });
 

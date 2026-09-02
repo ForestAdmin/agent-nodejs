@@ -12,6 +12,7 @@ import RealAiProxyClient, { AiProxyTimeoutError } from '../../src/ai/ai-proxy-cl
 import createAiRoutesMiddleware, { AI_QUERY_ROUTE } from '../../src/ai/ai-routes-middleware';
 import { AI_BODY_LIMIT } from '../../src/http/body-limit';
 import createErrorMiddleware from '../../src/http/error-middleware';
+import EnvironmentFetchError from '../../src/oauth/environment-fetch-error';
 import { restoreFetchAfterEach, stubFetch } from '../helpers/fetch-stub';
 
 const SAAS_ACCESS_TOKEN = 'saas-access-token';
@@ -43,6 +44,7 @@ interface AppContext {
   authMode?: 'oauth' | 'api-key';
   renderingId?: string;
   environmentId?: number;
+  resolveEnvironmentId?: () => Promise<number>;
 }
 
 function buildApp(
@@ -53,6 +55,7 @@ function buildApp(
     authMode = 'oauth',
     renderingId = '42',
     environmentId = 7,
+    resolveEnvironmentId = async () => environmentId,
   }: AppContext,
 ) {
   const sessionStore = store ?? makeSessionStore({ saasAccessToken: freshAccessToken() });
@@ -75,7 +78,7 @@ function buildApp(
       client,
       sessionStore,
       serverClient,
-      resolveEnvironmentId: async () => environmentId,
+      resolveEnvironmentId,
       logger,
     }),
   );
@@ -179,6 +182,56 @@ describe('createAiRoutesMiddleware', () => {
       const response = await request(app.callback()).post(AI_QUERY_ROUTE).send({ messages: [] });
 
       expect(response.status).toBe(401);
+      expect(query).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('when the Forest server refuses the environment id read', () => {
+    it('should answer 502 environment_unresolved and never contact the AI proxy', async () => {
+      const { app, query } = makeApp({
+        resolveEnvironmentId: async () => {
+          throw EnvironmentFetchError.fromStatus(401, 'Unauthorized');
+        },
+      });
+
+      const response = await request(app.callback()).post(AI_QUERY_ROUTE).send({ messages: [] });
+
+      expect(response.status).toBe(502);
+      expect(response.body.error.type).toBe('environment_unresolved');
+      expect(query).not.toHaveBeenCalled();
+    });
+
+    it('should log at Error naming the environment read, not the AI query', async () => {
+      const { app, logger } = makeApp({
+        resolveEnvironmentId: async () => {
+          throw EnvironmentFetchError.fromStatus(401, 'Unauthorized');
+        },
+      });
+
+      await request(app.callback()).post(AI_QUERY_ROUTE).send({ messages: [] });
+
+      expect(logger).toHaveBeenCalledWith(
+        'Error',
+        'AI query refused: the Forest environment id could not be resolved',
+        { cause: 'EnvironmentFetchError: Failed to fetch environment: 401 Unauthorized' },
+      );
+    });
+  });
+
+  describe('when the environment id read times out', () => {
+    it('should answer 504 upstream_timeout rather than a network error', async () => {
+      const timeout = new Error('The operation was aborted due to timeout');
+      timeout.name = 'TimeoutError';
+      const { app, query } = makeApp({
+        resolveEnvironmentId: async () => {
+          throw timeout;
+        },
+      });
+
+      const response = await request(app.callback()).post(AI_QUERY_ROUTE).send({ messages: [] });
+
+      expect(response.status).toBe(504);
+      expect(response.body.error.type).toBe('upstream_timeout');
       expect(query).not.toHaveBeenCalled();
     });
   });

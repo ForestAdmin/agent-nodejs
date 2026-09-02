@@ -32,7 +32,7 @@ import BODY_LIMIT, { AI_BODY_LIMIT } from './http/body-limit';
 import createErrorMiddleware from './http/error-middleware';
 import createHealthRoute from './http/health-route';
 import createVersionHeaderMiddleware from './http/version-header-middleware';
-import createEnvironmentIdResolver from './oauth/environment-id';
+import createEnvironmentIdResolver, { tolerateEnvironmentIdFailure } from './oauth/environment-id';
 import ForestServerClient from './oauth/forest-server-client';
 import createOAuthRoutes from './oauth/oauth-routes';
 import createInMemorySessionStore from './oauth/session-store';
@@ -345,31 +345,6 @@ function buildAiMiddlewares(config: BFFConfig, oauth: OAuthEdge, logger: Logger)
   ];
 }
 
-/**
- * The context payload carries the environment id when there is one, and drops it when the Forest
- * server cannot be reached — the route itself must keep answering either way.
- */
-function toleratedEnvironmentId(
-  oauth: OAuthEdge,
-  logger: Logger,
-): (() => Promise<number | undefined>) | undefined {
-  const { resolveEnvironmentId } = oauth;
-
-  if (!resolveEnvironmentId) return undefined;
-
-  return async function resolveOrForget(): Promise<number | undefined> {
-    try {
-      return await resolveEnvironmentId();
-    } catch (error) {
-      logger('Warn', 'Serving the context without an environment id', {
-        cause: error instanceof Error ? error.message : String(error),
-      });
-
-      return undefined;
-    }
-  };
-}
-
 function buildAgentMiddlewares(
   config: BFFConfig,
   logger: Logger,
@@ -404,7 +379,9 @@ function buildAgentMiddlewares(
       ? [
           createContextRoutesMiddleware({
             store: bundle.store,
-            resolveEnvironmentId: toleratedEnvironmentId(oauth, logger),
+            resolveEnvironmentId: oauth.resolveEnvironmentId
+              ? tolerateEnvironmentIdFailure(oauth.resolveEnvironmentId, logger)
+              : undefined,
           }),
         ]
       : []),

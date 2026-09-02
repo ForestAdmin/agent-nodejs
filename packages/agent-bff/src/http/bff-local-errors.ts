@@ -89,3 +89,11 @@ export function actionRequiresApproval(
 ): BffHttpError {
   return new BffHttpError(403, 'action_requires_approval', message, { details });
 }
+
+export function environmentUnresolved(): BffHttpError {
+  return new BffHttpError(
+    502,
+    'environment_unresolved',
+    'The Forest environment could not be resolved',
+  );
+}
