@@ -17,26 +17,27 @@ export interface PerKeyOriginMiddlewareOptions {
 // and the browser drops a response the BFF answered normally — no rejection anywhere, no trace. The
 // misconfiguration belongs to the key, not to the request, so it is reported once per key rather
 // than once per request; the cap keeps the seen set bounded on a rotating key population.
-const MAX_REPORTED_KEYS = 1000;
+const MAX_ASSESSED_KEYS = 1000;
 
 export default function createPerKeyOriginMiddleware({
   logger,
   serverAllowedOrigins,
 }: PerKeyOriginMiddlewareOptions): Middleware {
-  const reportedKeys = new Set<string>();
+  const assessedKeys = new Map<string, boolean>();
 
   function reportOriginsThatCanNeverPass(allowedOrigins: string[], keyHash: string): void {
-    if (serverAllowedOrigins.length === 0) return;
-    if (allowedOrigins.some(entry => originAllowed(entry, serverAllowedOrigins))) return;
-    if (reportedKeys.has(keyHash)) return;
+    if (serverAllowedOrigins.length === 0 || assessedKeys.has(keyHash)) return;
 
-    if (reportedKeys.size >= MAX_REPORTED_KEYS) reportedKeys.clear();
-    reportedKeys.add(keyHash);
+    const canNeverPass = !allowedOrigins.some(entry => originAllowed(entry, serverAllowedOrigins));
+    if (assessedKeys.size >= MAX_ASSESSED_KEYS) assessedKeys.clear();
+    assessedKeys.set(keyHash, canNeverPass);
 
-    logger('Warn', 'BFF key origins are all outside BFF_ALLOWED_ORIGINS', {
-      keyHash,
-      keyOrigins: allowedOrigins.map(loggableOrigin),
-    });
+    if (canNeverPass) {
+      logger('Warn', 'BFF key origins are all outside BFF_ALLOWED_ORIGINS', {
+        keyHash,
+        keyOrigins: allowedOrigins.map(loggableOrigin),
+      });
+    }
   }
 
   return async function perKeyOriginMiddleware(ctx, next) {
@@ -44,15 +45,20 @@ export default function createPerKeyOriginMiddleware({
     const identity = ctx.state.apiKeyIdentity as ResolvedApiKeyIdentity | undefined;
     const allowedOrigins = identity?.allowedOrigins ?? [];
 
-    if (identity && allowedOrigins.length > 0) {
-      reportOriginsThatCanNeverPass(allowedOrigins, fingerprintApiKey(ctx.get(BFF_KEY_HEADER)));
+    if (!identity || allowedOrigins.length === 0) {
+      await next();
+
+      return;
     }
 
-    if (identity && allowedOrigins.length > 0 && !originAllowed(origin, allowedOrigins)) {
+    const keyHash = fingerprintApiKey(ctx.get(BFF_KEY_HEADER));
+    reportOriginsThatCanNeverPass(allowedOrigins, keyHash);
+
+    if (!originAllowed(origin, allowedOrigins)) {
       logger('Warn', 'BFF per-key origin rejected', {
         origin: loggableOrigin(origin),
         path: ctx.path,
-        keyHash: fingerprintApiKey(ctx.get(BFF_KEY_HEADER)),
+        keyHash,
         renderingId: identity.renderingId,
       });
 
