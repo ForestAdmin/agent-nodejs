@@ -597,6 +597,7 @@ describe('the documented transport failures', () => {
 
     expect(list['502'].description).toContain('refused the connection');
     expect(list['502'].description).toContain('rather than running out of time');
+    expect(list['502'].description).toContain('connection reset mid-flight');
   });
 
   it('should say the 504 deadline starts with the request, and where that stops holding', () => {
