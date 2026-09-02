@@ -348,11 +348,14 @@ describe('parseConfig', () => {
         parseConfig({ ...VALID_ENV, BFF_PUBLIC_URL: 'https://bff.example.com/' }).publicUrl,
       ).toBe('https://bff.example.com');
       expect(
-        parseConfig({ ...VALID_ENV, BFF_PUBLIC_URL: 'HTTPS://BFF.Example.COM' }).publicUrl,
-      ).toBe('https://bff.example.com');
-      expect(
         parseConfig({ ...VALID_ENV, BFF_PUBLIC_URL: 'https://bff.example.com/bff//' }).publicUrl,
       ).toBe('https://bff.example.com/bff');
+    });
+
+    it('should normalise scheme and host case through the URL parser', () => {
+      expect(
+        parseConfig({ ...VALID_ENV, BFF_PUBLIC_URL: 'HTTPS://BFF.Example.COM' }).publicUrl,
+      ).toBe('https://bff.example.com');
     });
 
     it.each(['/', 'bff.example.com', 'ftp://bff.example.com', 'https://bff example.com'])(
