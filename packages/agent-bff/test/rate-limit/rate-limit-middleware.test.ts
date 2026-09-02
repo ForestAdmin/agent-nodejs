@@ -73,6 +73,7 @@ describe('rate limit middleware', () => {
     expect(second.status).toBe(200);
     expect(third.status).toBe(429);
     expect(third.body.error).toMatchObject({ type: 'too_many_requests', status: 429 });
+    expect(third.body.error.details).toEqual({ cause: 'limit_exceeded' });
     expect(third.headers['retry-after']).toBe('60');
   });
 
@@ -220,6 +221,7 @@ describe('rate limit middleware', () => {
     expect(resident.status).toBe(200);
     expect(overflow.status).toBe(429);
     expect(overflow.body.error).toMatchObject({ type: 'too_many_requests', status: 429 });
+    expect(overflow.body.error.details).toEqual({ cause: 'limiter_saturated' });
     expect(overflow.headers['retry-after']).toBe('60');
   });
 

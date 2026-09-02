@@ -432,6 +432,15 @@ describe('generateOpenApiDocument', () => {
     expect(list['429'].description).toContain('the limiter is saturated');
   });
 
+  it('should distinguish the two 429 causes through details.cause, not message text', () => {
+    const list = responsesOf(`${ROUTE_PREFIX}/{collection}/list`);
+
+    expect(list['429'].description).toContain('`details.cause`');
+    expect(list['429'].description).toContain('`limit_exceeded`');
+    expect(list['429'].description).toContain('`limiter_saturated`');
+    expect(list['429'].description).not.toContain('message distinguishes');
+  });
+
   it('should call the saturation Retry-After a lower bound, not the caller own window', () => {
     const list = responsesOf(`${ROUTE_PREFIX}/{collection}/list`);
     const header = list['429'].headers?.['Retry-After'] as { description: string };

@@ -82,6 +82,7 @@ export default function createRateLimitMiddleware({
         throw tooManyRequests(
           retryAfterSeconds(earliestReset, current),
           'Too many requests: the rate limiter is saturated',
+          { cause: 'limiter_saturated' },
         );
       }
 
@@ -97,6 +98,7 @@ export default function createRateLimitMiddleware({
         `Too many requests: the limit is ${maxRequests} per ${Math.round(
           windowMs / MS_PER_SECOND,
         )}s per identity`,
+        { cause: 'limit_exceeded' },
       );
     }
 

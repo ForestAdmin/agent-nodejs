@@ -83,8 +83,12 @@ export function permissionsUnavailable(
   return new BffHttpError(503, 'permissions_unavailable', message, { retryAfter });
 }
 
-export function tooManyRequests(retryAfter: number, message = 'Too many requests'): BffHttpError {
-  return new BffHttpError(429, 'too_many_requests', message, { retryAfter });
+export function tooManyRequests(
+  retryAfter: number,
+  message = 'Too many requests',
+  details?: unknown,
+): BffHttpError {
+  return new BffHttpError(429, 'too_many_requests', message, { details, retryAfter });
 }
 
 export function actionRequiresApproval(

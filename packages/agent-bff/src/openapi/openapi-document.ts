@@ -37,7 +37,7 @@ const ERROR_STATUSES: Record<string, string> = {
   413: `The request body exceeds the BFF limit of ${BODY_LIMIT}`,
   415: 'The request declares a character set the server cannot decode. Other content types are NOT rejected: a form-urlencoded body is parsed and validated like JSON (its values arrive as strings, so typed fields such as page.limit fail with 400), while any other non-JSON content type is read as an absent body, silently dropping filters and pagination',
   422: 'A field is unknown, not filterable, or is a nested relation path',
-  429: 'The BFF rate-limited the request, for one of two reasons: the caller identity exceeded its per-window budget, or the limiter is saturated and cannot open a window for a new identity. The message distinguishes them, and Retry-After carries the seconds to wait. On data and action routes the agent may also rate-limit the request itself',
+  429: 'The BFF rate-limited the request, for one of two reasons: the caller identity exceeded its per-window budget, or the limiter is saturated and cannot open a window for a new identity. The `details.cause` field of the error body distinguishes them (`limit_exceeded` or `limiter_saturated`), and Retry-After carries the seconds to wait. On data and action routes the agent may also rate-limit the request itself',
   500: 'The agent payload could not be mapped to the BFF contract, or the BFF hit an unexpected error',
   501: 'The BFF is running without an agent configured, so the proxy is not implemented',
   502: 'The agent could not be reached',
