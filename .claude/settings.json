@@ -25,8 +25,7 @@
     "feature-dev@claude-code-plugins": true,
     "pr-review-toolkit@claude-code-plugins": true,
     "document-skills@anthropic-agent-skills": true,
-    "example-skills@anthropic-agent-skills": true,
-    "forest@forest": true
+    "example-skills@anthropic-agent-skills": true
   },
   "permissions": {
     "deny": [
