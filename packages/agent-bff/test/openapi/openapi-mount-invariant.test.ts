@@ -8,7 +8,7 @@ const SRC_DIR = path.join(__dirname, '..', '..', 'src');
 const OPENAPI_MODULE_PREFIX = 'openapi/';
 
 const ALLOWED_OPENAPI_IMPORTS: Record<string, string[]> = {
-  'cli-core.ts': ['openapi/openapi-routes', 'openapi/unfolded-document'],
+  'build-bff.ts': ['openapi/openapi-routes', 'openapi/unfolded-document'],
   'cli-dispatch.ts': ['openapi/openapi-document', 'openapi/unfolded-document', 'openapi/unfolding'],
 };
 

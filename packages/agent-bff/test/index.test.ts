@@ -7,6 +7,7 @@ describe('package index', () => {
       expect(bff.parseConfig).toBeDefined();
       expect(bff.REQUIRED_KEYS).toBeDefined();
       expect(bff.runCli).toBeDefined();
+      expect(bff.buildBff).toBeDefined();
       expect(bff.ConfigurationError).toBeDefined();
       expect(bff.DEFAULT_BFF_PORT).toBeDefined();
       expect(bff.createConsoleLogger).toBeDefined();
