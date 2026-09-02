@@ -57,8 +57,8 @@ const OPTIONS: sanitizeHtml.IOptions = {
   },
 };
 
-function sanitize(html: unknown, logger: Logger): string {
-  if (typeof html !== 'string') return '';
+function sanitize(html: unknown, logger: Logger): string | null {
+  if (typeof html !== 'string') return null;
 
   if (html.length > MAX_HTML_CHARACTERS) {
     logger('Warn', 'Action html dropped: longer than the sanitizable size', {
@@ -66,20 +66,20 @@ function sanitize(html: unknown, logger: Logger): string {
       limit: MAX_HTML_CHARACTERS,
     });
 
-    return '';
+    return null;
   }
 
   try {
-    return sanitizeHtml(html, OPTIONS);
+    return sanitizeHtml(html, OPTIONS) || null;
   } catch (error) {
     logger('Error', 'Action html dropped: sanitization failed', { cause: String(error) });
 
-    return '';
+    return null;
   }
 }
 
 export default function sanitizeActionHtml(html: unknown, logger: Logger): string | null {
-  return sanitize(html, logger) || null;
+  return sanitize(html, logger);
 }
 
 export function sanitizeActionLayout(
@@ -89,7 +89,7 @@ export function sanitizeActionLayout(
 ): ForestServerActionFormLayoutElement[] {
   return layout.map(element => {
     if (element?.component === 'htmlBlock') {
-      return { ...element, content: sanitize(element.content, logger) };
+      return { ...element, content: sanitize(element.content, logger) ?? '' };
     }
 
     if (element?.component === 'page' && Array.isArray(element.elements)) {
