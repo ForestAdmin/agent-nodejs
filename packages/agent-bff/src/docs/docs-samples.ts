@@ -13,9 +13,13 @@ const SESSION_VARIABLE = 'BFF_SESSION';
  * In the page rather than in the document, deliberately. Three samples per operation weigh ~73 KB on
  * a 16-collection schema and several hundred KB on a large one, which every consumer of
  * `/agent/openapi.json` would pay for an extension only a viewer reads — where this costs one
- * function whatever the operation count. It also lets a sample carry the REAL origin: the document
- * declares `servers: [{ url: '/' }]`, so a sample built into it could only hold a placeholder host,
- * while the page knows where it is served from and emits a command that runs as pasted.
+ * function whatever the operation count. It also lets a sample carry the REAL origin: the document's
+ * `servers` entry is a mount prefix, never a host, so a sample built into it could only hold a
+ * placeholder host, while the page knows the origin it was served from.
+ *
+ * The two halves therefore compose — origin from the page, prefix from the document — rather than
+ * either one alone: a BFF mounted under `/bff` answers on the page's origin, but at `/bff/agent/...`,
+ * and a sample that skipped the prefix would 404, or worse reach whatever owns the origin root.
  *
  * The key is never inlined: each language reads it from the environment, so a copied sample cannot
  * carry a credential into a shell history or a paste.
@@ -293,7 +297,7 @@ const SAMPLES_SCRIPT = `
           return lines.join('\\n');
         }
 
-        function decorateWithSamples(spec, origin) {
+        function decorateWithSamples(spec, base) {
           var paths = spec.paths || {};
 
           Object.keys(paths).forEach(function (path) {
@@ -306,7 +310,7 @@ const SAMPLES_SCRIPT = `
 
               var body = exampleBody(spec, operation);
               var headers = headersOf(spec, operation, body);
-              var url = origin + samplePath(spec, item, operation, path);
+              var url = base + samplePath(spec, item, operation, path);
               var verb = method.toUpperCase();
 
               operation['x-codeSamples'] = [
@@ -321,13 +325,29 @@ const SAMPLES_SCRIPT = `
         }
 
         /**
+         * The base every sample is built on, read off the document's own \`servers\` entry so the
+         * snippets and the generated clients cannot disagree. An entry that already carries a scheme
+         * and a host is the base as it stands; a bare prefix is appended to the origin the page was
+         * served from, and \`/\` means the BFF owns that origin root.
+         */
+        function sampleBase(spec) {
+          var mount = (((spec.servers || [])[0]) || {}).url || '/';
+
+          while (mount.length > 1 && mount.slice(-1) === '/') mount = mount.slice(0, -1);
+
+          if (mount.indexOf('//') === 0 || mount.indexOf('://') !== -1) return mount;
+
+          return mount === '/' ? window.location.origin : window.location.origin + mount;
+        }
+
+        /**
          * Samples are a convenience; the document is the point. A shape the generator cannot walk
          * costs the reader its snippets, never the page — and reporting it as a Redoc render failure
          * would send them looking in the wrong place.
          */
         function withSamples(spec) {
           try {
-            return decorateWithSamples(spec, window.location.origin);
+            return decorateWithSamples(spec, sampleBase(spec));
           } catch (samplesError) {
             return spec;
           }

@@ -349,6 +349,33 @@ describe('the code samples the docs page injects', () => {
     );
   });
 
+  it('should target the mount prefix the document declares, not the origin root', async () => {
+    const page = await render({ ...API_KEY_SPEC, servers: [{ url: '/bff' }] });
+
+    expect(page.sourceOf(RELATION, 'cURL')).toContain(
+      `curl -X POST '${ORIGIN}/bff/agent/v1/My%20Coll/relations/orders/list'`,
+    );
+  });
+
+  it('should build on the origin alone when the document declares the root', async () => {
+    const page = await render({ ...API_KEY_SPEC, servers: [{ url: '/' }] });
+
+    expect(page.sourceOf(LIST, 'cURL')).toContain(
+      `curl -X POST '${ORIGIN}/agent/v1/My%20Coll/list'`,
+    );
+  });
+
+  it('should keep a server url that already carries a host, rather than prefix the page origin', async () => {
+    const page = await render({
+      ...API_KEY_SPEC,
+      servers: [{ url: 'https://public.example.com/bff/' }],
+    });
+
+    expect(page.sourceOf(RELATION, 'JavaScript')).toContain(
+      'https://public.example.com/bff/agent/v1/My%20Coll/relations/orders/list',
+    );
+  });
+
   it('should double-quote the secret header, since single quotes stop the shell expanding it', async () => {
     const page = await render(API_KEY_SPEC);
     const curl = page.sourceOf(RELATION, 'cURL');

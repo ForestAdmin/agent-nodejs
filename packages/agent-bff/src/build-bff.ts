@@ -22,6 +22,7 @@ import ApiKeyClient from './api-key/api-key-client';
 import createApiKeyMiddleware from './api-key/api-key-middleware';
 import createResolveCache from './api-key/resolve-cache';
 import createAuthModeMiddleware from './auth/auth-mode-middleware';
+import normalizeBasePath from './base-path';
 import warnMissingConfig from './config/missing-config-warning';
 import createContextRoutesMiddleware from './context/context-routes-middleware';
 import createCorsMiddleware from './cors/cors-middleware';
@@ -58,6 +59,9 @@ export interface BuildBffOptions {
    * Prefix the host serves this BFF under, `/bff` for an embedded one. Routing is the host's job —
    * it strips the prefix before the request lands here — but the paths the BFF *emits* (the OpenAPI
    * `servers` entry, the docs page's asset and document urls) must carry it.
+   *
+   * A plain path prefix, with or without its leading slash; `'/'` and `''` both mean the BFF owns the
+   * origin root. Normalized by `normalizeBasePath`, which throws on anything else.
    */
   basePath?: string;
 }
@@ -416,8 +420,12 @@ function buildAgentMiddlewares(
 export default async function buildBff({
   config,
   logger = createConsoleLogger(),
-  basePath = '',
+  basePath,
 }: BuildBffOptions): Promise<Bff> {
+  // Before anything is assembled: a mount the host does not serve must fail at boot, not surface as
+  // a docs page that cannot load itself.
+  const mountPath = normalizeBasePath(basePath);
+
   if (config.invalidAllowedOrigins.length > 0) {
     logger('Warn', 'Ignoring malformed BFF_ALLOWED_ORIGINS entries', {
       entries: config.invalidAllowedOrigins,
@@ -428,7 +436,7 @@ export default async function buildBff({
 
   const oauth = buildOAuthMiddlewares(config, logger);
   const aiMiddlewares = buildAiMiddlewares(config, oauth, logger);
-  const agentMiddlewares = buildAgentMiddlewares(config, logger, oauth, aiMiddlewares, basePath);
+  const agentMiddlewares = buildAgentMiddlewares(config, logger, oauth, aiMiddlewares, mountPath);
   const agentErrorMiddleware =
     agentMiddlewares.length > 0 ? [agentScoped(createErrorMiddleware({ logger }))] : [];
 
@@ -445,7 +453,7 @@ export default async function buildBff({
     createDocsRoutes({
       enabled: config.openapiEnabled && agentMiddlewares.length > 0,
       documentPath: OPENAPI_PATH,
-      basePath,
+      basePath: mountPath,
       logger,
     }),
     ...agentMiddlewares,

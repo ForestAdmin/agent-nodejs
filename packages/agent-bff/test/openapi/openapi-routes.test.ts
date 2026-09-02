@@ -115,6 +115,44 @@ async function withServer(
   }
 }
 
+function readContext() {
+  return {
+    path: OPENAPI_PATH,
+    method: 'GET',
+    state: { agentToken: 'agent-jwt' },
+    status: 404,
+    body: undefined as unknown,
+    type: undefined,
+    set: () => undefined,
+  } as unknown as Parameters<Middleware>[0];
+}
+
+function storeOf(generations: ReadModel[]) {
+  const last = generations[generations.length - 1];
+
+  return {
+    getReadModel: jest.fn(async () => generations.shift() ?? last),
+    getCapabilities: async (name: string, fetcher: (collection: string) => Promise<unknown>) => ({
+      capabilities: await fetcher(name),
+      readModel: last,
+    }),
+  } as unknown as ReadModelStore;
+}
+
+function routesFor(store: ReadModelStore, basePath?: string): Middleware {
+  return createOpenApiRoutes({
+    version: '1.2.3',
+    enabled: true,
+    hasAiQueryRoute: false,
+    basePath,
+    source: {
+      store,
+      transport: createHttpTransport({ agentUrl: 'https://agent.example.com' }),
+      logger: noopLogger,
+    },
+  });
+}
+
 describe('GET /agent/openapi.json', () => {
   beforeEach(() => {
     fetchSchema.mockClear().mockResolvedValue(SCHEMA);
@@ -369,46 +407,6 @@ describe('GET /agent/openapi.json', () => {
   });
 
   describe('when the schema refreshes while the document is being built', () => {
-    function readContext() {
-      return {
-        path: OPENAPI_PATH,
-        method: 'GET',
-        state: { agentToken: 'agent-jwt' },
-        status: 404,
-        body: undefined as unknown,
-        type: undefined,
-        set: () => undefined,
-      } as unknown as Parameters<Middleware>[0];
-    }
-
-    function storeOf(generations: ReadModel[]) {
-      const last = generations[generations.length - 1];
-
-      return {
-        getReadModel: jest.fn(async () => generations.shift() ?? last),
-        getCapabilities: async (
-          name: string,
-          fetcher: (collection: string) => Promise<unknown>,
-        ) => ({
-          capabilities: await fetcher(name),
-          readModel: last,
-        }),
-      } as unknown as ReadModelStore;
-    }
-
-    function routesFor(store: ReadModelStore): Middleware {
-      return createOpenApiRoutes({
-        version: '1.2.3',
-        enabled: true,
-        hasAiQueryRoute: false,
-        source: {
-          store,
-          transport: createHttpTransport({ agentUrl: 'https://agent.example.com' }),
-          logger: noopLogger,
-        },
-      });
-    }
-
     const oldGeneration = new ReadModel([collection('users', [column('id')])]);
     const newGeneration = new ReadModel([collection('orders', [column('id')])]);
 
@@ -442,6 +440,44 @@ describe('GET /agent/openapi.json', () => {
       await expect(routesFor(store)(readContext(), async () => undefined)).rejects.toThrow(
         /kept changing/,
       );
+    });
+  });
+
+  describe('when the host serves the BFF under a prefix', () => {
+    const generation = new ReadModel([collection('users', [column('id')])]);
+
+    it('should carry it in the servers entry of the served unfolded document', async () => {
+      const ctx = readContext();
+
+      await routesFor(storeOf([generation]), '/bff')(ctx, async () => undefined);
+
+      expect(JSON.parse(ctx.body as string).servers).toEqual([{ url: '/bff' }]);
+    });
+
+    it('should carry it in the servers entry of the served generic document', async () => {
+      const genericRoutes = createOpenApiRoutes({
+        version: '1.2.3',
+        enabled: true,
+        hasAiQueryRoute: false,
+        basePath: '/bff',
+      });
+      const ctx = readContext();
+
+      await genericRoutes(ctx, async () => undefined);
+
+      expect(JSON.parse(ctx.body as string).servers).toEqual([{ url: '/bff' }]);
+    });
+
+    it('should leave the operation paths unprefixed, since the host strips before dispatching', async () => {
+      const ctx = readContext();
+
+      await routesFor(storeOf([generation]), '/bff')(ctx, async () => undefined);
+
+      expect(Object.keys(JSON.parse(ctx.body as string).paths)).toEqual([
+        '/agent/v1/context',
+        '/agent/v1/users/list',
+        '/agent/v1/users/count',
+      ]);
     });
   });
 
