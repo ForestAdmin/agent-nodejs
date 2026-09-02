@@ -546,6 +546,25 @@ describe('the documented search inputs', () => {
   });
 });
 
+describe('the documented pagination inputs', () => {
+  it('should publish the default page applied when page is absent', () => {
+    expect(schemas.Page.description).toContain('the object itself is optional');
+    expect(schemas.Page.description).toContain('the first page (offset 0)');
+    expect(schemas.Page.description).toContain('a limit of 15 records on the Node agent');
+    expect(schemas.Page.description).toContain('silently missing');
+  });
+
+  it('should require both limit and offset once page is sent', () => {
+    expect(schemas.Page.required).toEqual(['limit', 'offset']);
+  });
+
+  it('should warn on the response that a page-less list is one page, not the collection', () => {
+    expect(schemas.ListResponse.description).toContain('not guaranteed to be the whole collection');
+    expect(schemas.ListResponse.description).toContain('up to 15 records from the start');
+    expect(schemas.ListResponse.description).toContain('probably truncated');
+  });
+});
+
 describe('serializeOpenApi', () => {
   it('should produce indented JSON that parses back to the same document', () => {
     const serialized = serializeOpenApi(document);

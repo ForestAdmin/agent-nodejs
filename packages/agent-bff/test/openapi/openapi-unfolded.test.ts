@@ -210,6 +210,16 @@ describe('the unfolded document', () => {
     expect(request.properties.sort.items?.$ref).toBe('#/components/schemas/SortClause_My_Coll');
   });
 
+  it('should leave page optional here too, pointing at the shared Page component', () => {
+    const request = requestSchema('My%20Coll/list') as unknown as {
+      required?: string[];
+      properties: Record<string, { $ref?: string }>;
+    };
+
+    expect(request.required ?? []).not.toContain('page');
+    expect(request.properties.page.$ref).toBe('#/components/schemas/Page');
+  });
+
   it('should make every leaf and the branch mutually exclusive, which the runtime enforces', () => {
     const branch = branchOf('Filter_My_Coll') as unknown as { not: { required: string[] } };
 
