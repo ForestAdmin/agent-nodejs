@@ -32,12 +32,6 @@ const ID_SCHEMA: SchemaObject = {
 };
 
 /**
- * The schema of one field, under the key the response carries it as. Several fields can collapse to
- * the same key — the transform is lossy, `first_name` and `firstName` both yield `firstName` — and
- * which one wins depends on the order the agent serialized them in, so the type is left open rather
- * than picked.
- */
-/**
  * Every published field is nullable. The capabilities report a column type and never its
  * nullability, so a nullable column answers `null` against a type this schema would otherwise
  * declare non-null — a generated client validating the response would reject what the runtime
@@ -49,6 +43,12 @@ function nullable(schema: SchemaObject): SchemaObject {
   return { ...schema, type: [schema.type, 'null'] };
 }
 
+/**
+ * The schema of one field, under the key the response carries it as. Several fields can collapse to
+ * the same key — the transform is lossy, `first_name` and `firstName` both yield `firstName` — and
+ * which one wins depends on the order the agent serialized them in, so the type is left open rather
+ * than picked.
+ */
 function propertySchema(key: string, fields: ProjectableField[]): SchemaObject {
   const names = fields.map(field => quoted(field.name)).join(', ');
 
