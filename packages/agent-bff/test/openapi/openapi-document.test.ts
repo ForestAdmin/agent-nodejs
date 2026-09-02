@@ -635,8 +635,11 @@ describe('generateOpenApiDocument', () => {
   it('should say which live routes it deliberately leaves out, since a consumer cannot guess', () => {
     expect(Object.keys(document.paths ?? {})).not.toContain('/health');
     expect(document.info.description).toContain('deliberately absent');
-    expect(document.info.description).toContain('GET /health');
+    expect(document.info.description).toContain('`/health` probe (`GET` and `HEAD`)');
     expect(document.info.description).toContain('/oauth/*');
+    expect(document.info.description).toContain('`/docs` viewer');
+    expect(document.info.description).toContain('`redoc.standalone.js` bundle');
+    expect(document.info.description).toContain('The package README documents all three');
   });
 
   it('should carry the package license, which the OpenAPI recommended ruleset requires', () => {

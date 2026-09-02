@@ -340,10 +340,11 @@ const SHARED_DESCRIPTION =
 
 const SURFACE_DESCRIPTION =
   'Only the auth-gated `/agent` surface is described here. Three live route families are ' +
-  'deliberately absent because they sit outside that surface and outside its auth edge: ' +
-  '`GET /health`, which answers 200 `ok` or 503 `degraded` to an unauthenticated probe; the ' +
-  '`/oauth/*` login routes; and `GET /docs`, the unauthenticated viewer that renders this very ' +
-  'document. The package README documents all three.';
+  'deliberately absent because they sit outside that surface and outside its auth edge: the ' +
+  '`/health` probe (`GET` and `HEAD`), which answers 200 `ok` or 503 `degraded` to an ' +
+  'unauthenticated request; the `/oauth/*` login routes; and the unauthenticated `/docs` viewer ' +
+  'that renders this very document — `GET` and `HEAD` on the page and on its public ' +
+  '`redoc.standalone.js` bundle. The package README documents all three.';
 
 const GENERIC_DESCRIPTION =
   'Paths are generic: one per operation, with the collection, relation and action passed as path ' +
