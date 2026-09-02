@@ -14,7 +14,7 @@ const RAW_KEY = 'forest-bff-key-under-test';
 function buildApp(
   allowedOrigins?: string[],
   logger: Logger = () => undefined,
-  serverAllowedOrigins?: string[],
+  serverAllowedOrigins: string[] = [],
 ) {
   const app = new Koa();
   app.silent = true;

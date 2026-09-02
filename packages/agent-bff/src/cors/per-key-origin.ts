@@ -9,7 +9,7 @@ import { originNotAllowed } from '../http/bff-http-error';
 
 export interface PerKeyOriginMiddlewareOptions {
   logger: Logger;
-  serverAllowedOrigins?: string[];
+  serverAllowedOrigins: string[];
 }
 
 // A key whose allowedOrigins share nothing with BFF_ALLOWED_ORIGINS can never serve a browser: this
@@ -21,7 +21,7 @@ const MAX_REPORTED_KEYS = 1000;
 
 export default function createPerKeyOriginMiddleware({
   logger,
-  serverAllowedOrigins = [],
+  serverAllowedOrigins,
 }: PerKeyOriginMiddlewareOptions): Middleware {
   const reportedKeys = new Set<string>();
 
