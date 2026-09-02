@@ -184,7 +184,7 @@ describe('action routes middleware', () => {
     expect(createClient).toHaveBeenCalledWith(expect.objectContaining({ transport: TRANSPORT }));
   });
 
-  it('leaves the agent token on the client options for every call', async () => {
+  it('rebuilds the client on every call, with that call own agent token', async () => {
     const createClient = jest.fn(
       () => clientOf(makeAction({ fields: [], layout: [], skipped: [] })) as AgentActionClient,
     );
@@ -194,7 +194,7 @@ describe('action routes middleware', () => {
     app.use(bodyParser());
     app.use(async (ctx, next) => {
       ctx.state.timezone = TIMEZONE;
-      ctx.state.agentToken = 'agent-jwt';
+      ctx.state.agentToken = ctx.get('x-agent-token');
       await next();
     });
     app.use(
@@ -208,9 +208,22 @@ describe('action routes middleware', () => {
 
     await request(app.callback())
       .post('/agent/v1/users/actions/approve/form')
+      .set('x-agent-token', 'jwt-1')
+      .send({ recordIds: ['42'], values: {} });
+    await request(app.callback())
+      .post('/agent/v1/users/actions/approve/form')
+      .set('x-agent-token', 'jwt-2')
       .send({ recordIds: ['42'], values: {} });
 
-    expect(createClient).toHaveBeenCalledWith(expect.objectContaining({ token: 'agent-jwt' }));
+    expect(createClient).toHaveBeenCalledTimes(2);
+    expect(createClient).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ token: 'jwt-1', transport: TRANSPORT }),
+    );
+    expect(createClient).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ token: 'jwt-2', transport: TRANSPORT }),
+    );
   });
 
   it('returns the full form shape with fields, canExecute, requiredFields, skippedFields and layout', async () => {
