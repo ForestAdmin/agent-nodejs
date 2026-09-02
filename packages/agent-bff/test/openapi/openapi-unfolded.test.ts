@@ -247,8 +247,6 @@ describe('the unfolded document', () => {
     path => expectSearchInputsOn(path),
   );
 
-
-
   it('should share one search component across collections rather than unfold one each', () => {
     const searchNames = Object.keys(schemas).filter(name => name.startsWith('Search'));
 
@@ -259,8 +257,6 @@ describe('the unfolded document', () => {
     'should still expose the search inputs on %s, whose capabilities failed',
     path => expectSearchInputsOn(path),
   );
-
-
 
   it.each([['My%20Coll/relations/orders/list'], ['My%20Coll/relations/orders/count']])(
     'should carry the search inputs to %s through the foreign collection request',
@@ -287,8 +283,6 @@ describe('the unfolded document', () => {
       Object.keys(generic.CountRequest.properties ?? {}),
     );
   });
-
-
 
   it('should make every leaf and the branch mutually exclusive, which the runtime enforces', () => {
     const branch = branchOf('Filter_My_Coll') as unknown as { not: { required: string[] } };
