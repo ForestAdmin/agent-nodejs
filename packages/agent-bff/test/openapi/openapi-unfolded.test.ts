@@ -221,12 +221,15 @@ describe('the unfolded document', () => {
     ['My%20Coll/count'],
     ['My%20Coll/relations/orders/list'],
     ['My%20Coll/relations/orders/count'],
-  ])('should say on %s that an undeclared key is rejected, in the body and the tree alike', path => {
-    const request = requestSchema(path) as unknown as { description: string };
+  ])(
+    'should say on %s that an undeclared key is rejected, in the body and the tree alike',
+    path => {
+      const request = requestSchema(path) as unknown as { description: string };
 
-    expect(request.description).toContain('undeclared key with 400 invalid_request');
-    expect(request.description).toContain('`valu` instead of `value` is rejected');
-  });
+      expect(request.description).toContain('undeclared key with 400 invalid_request');
+      expect(request.description).toContain('`valu` instead of `value` is rejected');
+    },
+  );
 
   it('should close a per-collection sort clause, so a misspelled direction is not silently kept', () => {
     const sort = schemas.SortClause_My_Coll as unknown as { additionalProperties: boolean };
