@@ -560,11 +560,35 @@ describe('the documented action responses', () => {
     expect(form.description).toContain('a null or absent value counts as missing');
   });
 
+  it('should say a null success message means the agent omitted success entirely', () => {
+    const success = schemas.ActionResultSuccess as { description: string };
+
+    expect(success.description).toContain('an agent-nodejs success with no message serializes');
+    expect(success.description).toContain('null means the agent omitted `success` entirely');
+  });
+
   it('should warn that the action_error details html is untrusted, like the success html', () => {
     const error = schemas.ErrorResponse as { description: string };
 
     expect(error.description).toContain('`{ html }` on action_error');
     expect(error.description).toContain('sanitize it before rendering');
+  });
+
+  it('should say the approval and action_error details are conditional on the agent supplying them', () => {
+    const error = schemas.ErrorResponse as { description: string };
+
+    expect(error.description).toContain('when the agent supplies them');
+    expect(error.description).toContain(
+      '`{ roleIdsAllowedToApprove }` on action_requires_approval',
+    );
+  });
+
+  it('should splice the untrusted-html note into a well-formed sentence', () => {
+    const error = schemas.ErrorResponse as { description: string };
+
+    expect(error.description).toContain(
+      '(stored/reflected XSS risk), exactly like the execute success html',
+    );
   });
 
   it('should discriminate the result union on type with exactly the three 200 branches', () => {

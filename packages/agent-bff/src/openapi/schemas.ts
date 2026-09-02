@@ -145,7 +145,7 @@ export const ActionRequestSchema = z
       'targets no record. Every id is coerced to a string before reaching the agent.',
   });
 
-const UNTRUSTED_HTML_NOTE = 'sanitize it before rendering (stored/reflected XSS risk).';
+const UNTRUSTED_HTML_NOTE = 'sanitize it before rendering (stored/reflected XSS risk)';
 
 const ActionFormResponseFieldSchema = z
   .object({
@@ -191,7 +191,7 @@ const ActionResultSuccessSchema = z
     html: z
       .union([z.string(), z.null()])
       .describe(
-        `Untrusted HTML relayed verbatim from the agent result: ${UNTRUSTED_HTML_NOTE} Null ` +
+        `Untrusted HTML relayed verbatim from the agent result: ${UNTRUSTED_HTML_NOTE}. Null ` +
           'when the result carries none.',
       ),
   })
@@ -200,7 +200,9 @@ const ActionResultSuccessSchema = z
       'The action ran. `invalidated` names the relations of the acted-on collection whose ' +
       'Related Data should be re-fetched — the agent fills it from ' +
       '`resultBuilder.success(message, { invalidated })` and the BFF relays it from the agent ' +
-      '`refresh.relationships`. `message` is the agent wording, null when the result carries none.',
+      '`refresh.relationships`. `message` is the agent wording: an agent-nodejs success with ' +
+      'no message serializes the empty string, so null means the agent omitted `success` ' +
+      'entirely.',
   });
 
 const ActionResultWebhookSchema = z
@@ -408,11 +410,11 @@ export const ErrorResponseSchema = z
       'The error envelope. `details` is left untyped because its shape depends on `type`: ' +
       '`{ field }` on unknown_field and field_not_filterable, `{ field, validOperators }` on ' +
       'invalid_filter_operator, `{ maxDepth }` on filter_too_deep, `{ fields }` on ' +
-      'relation_field_not_supported, `{ roleIdsAllowedToApprove }` on ' +
-      'action_requires_approval, and `{ html }` on action_error. An error forwarded from the ' +
-      'agent carries the agent own payload instead, and any other type carries no `details` at ' +
-      `all. The action_error html is untrusted agent output relayed verbatim: ${UNTRUSTED_HTML_NOTE} ` +
-      'exactly like the execute success html.',
+      'relation_field_not_supported, and, when the agent supplies them, ' +
+      '`{ roleIdsAllowedToApprove }` on action_requires_approval and `{ html }` on action_error. ' +
+      'An error forwarded from the agent carries the agent own payload instead, and any other ' +
+      'type carries no `details` at all. The action_error html is untrusted agent output relayed ' +
+      `verbatim: ${UNTRUSTED_HTML_NOTE}, exactly like the execute success html.`,
   });
 
 export const MessagelessErrorResponseSchema = z
