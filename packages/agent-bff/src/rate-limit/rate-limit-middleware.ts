@@ -63,7 +63,7 @@ export default function createRateLimitMiddleware({
 
     const key = bucketKeyOf(ctx.state as AuthEdgeState);
 
-    if (key === undefined) throw unauthorized();
+    if (key === undefined) throw unauthorized('No caller identity for this request');
 
     const current = now();
     let entry = buckets.get(key);

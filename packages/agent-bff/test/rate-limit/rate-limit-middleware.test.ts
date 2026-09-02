@@ -271,6 +271,7 @@ describe('rate limit middleware', () => {
     const second = await request(edge).get('/agent/v1/users/list');
 
     expect(first.status).toBe(401);
+    expect(first.body.error.message).toBe('No caller identity for this request');
     expect(second.status).toBe(401);
   });
 });
