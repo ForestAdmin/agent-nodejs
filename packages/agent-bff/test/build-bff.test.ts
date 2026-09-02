@@ -121,8 +121,8 @@ describe('buildBff', () => {
       const response = await request(callback).get('/docs');
 
       expect(response.status).toBe(200);
-      expect(response.text).toContain('/bff/agent/openapi.json');
-      expect(response.text).toContain('/bff/docs/redoc.standalone.js');
+      expect(response.text).toContain('"/bff/agent/openapi.json"');
+      expect(response.text).toContain('src="/bff/docs/redoc.standalone.js"');
     });
 
     it('should leave the routes themselves unprefixed, since the host strips before dispatching', async () => {
@@ -146,6 +146,32 @@ describe('buildBff', () => {
 
       expect(response.text).toContain('"/agent/openapi.json"');
       expect(response.text).toContain('src="/docs/redoc.standalone.js"');
+    });
+
+    it('should emit the same paths for the root basePath, not a // that names a host', async () => {
+      const { callback } = await buildBff({
+        config: parseConfig(VALID_ENV),
+        logger: noopLogger,
+        basePath: '/',
+      });
+
+      const response = await request(callback).get('/docs');
+
+      expect(response.text).toContain('"/agent/openapi.json"');
+      expect(response.text).toContain('src="/docs/redoc.standalone.js"');
+      expect(response.text).not.toContain('//agent/openapi.json');
+    });
+  });
+
+  describe('when the basePath is not a plain path prefix', () => {
+    it('should refuse to build rather than publish a mount nobody serves', async () => {
+      await expect(
+        buildBff({
+          config: parseConfig(VALID_ENV),
+          logger: noopLogger,
+          basePath: 'https://bff.example.com',
+        }),
+      ).rejects.toThrow('Invalid BFF base path "https://bff.example.com"');
     });
   });
 
