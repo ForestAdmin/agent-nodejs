@@ -1,0 +1,324 @@
+name: Publish agent-bff Docker image
+
+on:
+  # Releases publish via workflow_dispatch from build.yml's `release` job, not a
+  # tag-push trigger — the release commit's `[skip ci]` would suppress it.
+  pull_request:
+    # Validate on any change to the BFF or to a dependency package's manifest — a
+    # dep bump in one of the 4 source packages can drift the image's dedicated
+    # lockfile (see packages/agent-bff/docker/).
+    paths:
+      - 'packages/agent-bff/**'
+      - 'packages/agent-client/package.json'
+      - 'packages/agent-toolkit/package.json'
+      - 'packages/datasource-toolkit/package.json'
+      - 'packages/forestadmin-client/package.json'
+      # The builder runs `yarn install --frozen-lockfile` from the repo root, so a
+      # lockfile-only change can alter the build (build.yml installs without
+      # --frozen-lockfile and wouldn't catch an inconsistency).
+      - 'yarn.lock'
+      - '.github/workflows/docker-publish-bff.yml'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag to publish (e.g. 1.20.2)'
+        required: true
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  # Include the dispatch version so two manual runs for different versions from the
+  # same branch don't cancel each other mid-release. Two versions therefore CAN publish
+  # concurrently and finish out of order; the merge job re-decides latest-stable against
+  # the tags as they are then, so the finishing order cannot regress the mutable tags.
+  group: docker-publish-bff-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version || '' }}
+  cancel-in-progress: true
+
+jobs:
+  # On PRs: build the image (no push) to catch Dockerfile breakage before release.
+  validate:
+    name: Validate Dockerfile build
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Check @forestadmin dependency closure
+        run: node packages/agent-bff/docker/check-deps-closure.js
+
+      - uses: docker/setup-buildx-action@v3
+      - name: Build (no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: packages/agent-bff/Dockerfile
+          platforms: linux/amd64
+          push: false
+          load: true
+          tags: agent-bff:pr
+          cache-from: type=gha,scope=bff-amd64
+
+      # The build only proves the image compiles. Run it to catch entrypoint
+      # breakage, a missing module (e.g. an un-copied @forestadmin package), a
+      # missing Redoc bundle, or a startup crash — none of which a build-only step
+      # would surface.
+      - name: Smoke test (CLI + module graph + boot)
+        run: sh packages/agent-bff/docker/smoke-test.sh agent-bff:pr
+
+      # Gate by ORIGIN, not severity. OS packages can only be fixed here, so they
+      # BLOCK; the BFF's npm deps are already shipped via the package, so blocking
+      # the image would just desync GHCR from npm — those are report-only (fixed at
+      # the source).
+      - name: Scan OS packages (blocking)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: agent-bff:pr
+          vuln-type: os
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: '1'
+      - name: Scan libraries (report)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: agent-bff:pr
+          vuln-type: library
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: '0'
+          format: json
+          output: trivy-libs.json
+      - name: Report npm deps
+        run: node packages/agent-bff/docker/scan-gate.js trivy-libs.json
+
+  extract-version:
+    name: Extract version
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      full: ${{ steps.version.outputs.full }}
+      minor: ${{ steps.version.outputs.minor }}
+      major: ${{ steps.version.outputs.major }}
+    # No checkout: splitting a version string needs no repository. Whether this is
+    # the latest stable version is decided once, in the merge job, against the tags
+    # as they are at that moment (see there).
+    steps:
+      - name: Parse version from input
+        id: version
+        # The dispatch input reaches the shell through `env`, never interpolated into
+        # the script: `${{ }}` is substituted as raw text before bash sees it, so a
+        # crafted version would run as commands with this job's packages:write token.
+        # It is then validated as a semver before anything is done with it — the
+        # `ref:` the build job checks out is built from the same value.
+        env:
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+        run: |
+          VERSION="$INPUT_VERSION"
+          if ! printf '%s' "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then
+            echo "::error::Invalid version input: expected MAJOR.MINOR.PATCH[-prerelease]."
+            exit 1
+          fi
+          echo "full=$VERSION" >> $GITHUB_OUTPUT
+          echo "minor=${VERSION%.*}" >> $GITHUB_OUTPUT
+          echo "major=${VERSION%%.*}" >> $GITHUB_OUTPUT
+
+  build:
+    name: Build (${{ matrix.arch }})
+    if: github.event_name != 'pull_request'
+    needs: extract-version
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            platform: linux/amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Build from the requested version's tag, not the default branch. Taken from
+          # extract-version rather than the raw input, so only a validated semver ever
+          # reaches a ref.
+          ref: ${{ format('@forestadmin/agent-bff@{0}', needs.extract-version.outputs.full) }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+
+      # Also run here, not only in the PR job: a dependency change can reach main
+      # through a path the `paths:` filter above does not cover, and would then hit
+      # the release build unchecked. The failure mode is a container that dies on
+      # `Cannot find module`, which no other step in this job would catch.
+      - name: Check @forestadmin dependency closure
+        run: node packages/agent-bff/docker/check-deps-closure.js
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Build and LOAD locally first (no push) so we can smoke-test and scan the
+      # exact image before it reaches the registry. Nothing is published until
+      # both gates pass — otherwise a vulnerable/broken image would be pullable
+      # by digest even when the gate "fails".
+      - name: Build (load for gating)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: packages/agent-bff/Dockerfile
+          platforms: ${{ matrix.platform }}
+          load: true
+          tags: agent-bff:${{ matrix.arch }}
+          cache-from: type=gha,scope=bff-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=bff-${{ matrix.arch }}
+
+      - name: Smoke test (CLI + module graph + boot)
+        run: sh packages/agent-bff/docker/smoke-test.sh agent-bff:${{ matrix.arch }}
+
+      # Gate by origin (see the validate job): OS packages block; the BFF's npm
+      # deps are report-only.
+      - name: Scan OS packages (blocking)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: agent-bff:${{ matrix.arch }}
+          vuln-type: os
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: '1'
+      - name: Scan libraries (report)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: agent-bff:${{ matrix.arch }}
+          vuln-type: library
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: '0'
+          format: json
+          output: trivy-libs.json
+      - name: Report npm deps
+        run: node packages/agent-bff/docker/scan-gate.js trivy-libs.json
+
+      # All gates passed (smoke + OS scan). Publish by digest.
+      #
+      # This is a SECOND build, not a push of the image the steps above scanned: the
+      # docker driver cannot load a push-by-digest result, and push-by-digest is what
+      # the multi-arch manifest below is assembled from. It is the same context and
+      # the same Dockerfile, and the gating build wrote every layer to the cache this
+      # one reads, so buildx reuses them — but that is a cache hit, not a checked
+      # identity. What the gate really buys is that a build which fails smoke or scan
+      # never reaches the registry at all.
+      - name: Push by digest
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: packages/agent-bff/Dockerfile
+          platforms: ${{ matrix.platform }}
+          outputs: type=image,name=ghcr.io/forestadmin/agent-bff,push-by-digest=true,name-canonical=true,push=true
+          sbom: true
+          cache-from: type=gha,scope=bff-${{ matrix.arch }}
+
+      - name: Export digest
+        run: |
+          mkdir -p /tmp/digests
+          touch "/tmp/digests/${DIGEST#sha256:}"
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+
+      - name: Upload digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: digest-bff-${{ matrix.arch }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    name: Publish multi-arch manifest
+    if: github.event_name != 'pull_request'
+    needs: [extract-version, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Tags only — this job builds nothing, it re-reads the release history below.
+          fetch-depth: 0
+
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          pattern: digest-bff-*
+          merge-multiple: true
+          path: /tmp/digests
+
+      # The mutable tags (:latest, :major, :minor) move only for the highest STABLE
+      # version of this package. Deciding it HERE rather than at the start of the run
+      # is what makes it safe: two dispatches for different versions run concurrently
+      # (their concurrency groups differ by version), and an older one finishing last
+      # would otherwise move :latest back onto a stale image.
+      #
+      # Comparing against stable-only tags covers the other two cases for free — a
+      # prerelease never matches the pattern, and neither does a rebuild of an older
+      # version. We look at this package's tags specifically: the repo-wide GitHub
+      # "latest release" belongs to whichever monorepo package shipped last.
+      - name: Decide latest-stable against current tags
+        id: recheck
+        env:
+          FULL: ${{ needs.extract-version.outputs.full }}
+        run: |
+          PREFIX="@forestadmin/agent-bff@"
+          LATEST_STABLE=$(git tag --list "${PREFIX}*" \
+            | sed "s|^${PREFIX}||" \
+            | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' \
+            | sort -V | tail -n1)
+          if [ "$FULL" = "$LATEST_STABLE" ]; then
+            echo "is_latest=true" >> $GITHUB_OUTPUT
+          else
+            echo "::notice::${FULL} is no longer the latest stable version (${LATEST_STABLE}); leaving the mutable tags alone."
+            echo "is_latest=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create and push multi-arch manifest
+        working-directory: /tmp/digests
+        env:
+          IMAGE: ghcr.io/forestadmin/agent-bff
+          FULL: ${{ needs.extract-version.outputs.full }}
+          MINOR: ${{ needs.extract-version.outputs.minor }}
+          MAJOR: ${{ needs.extract-version.outputs.major }}
+          IS_LATEST: ${{ steps.recheck.outputs.is_latest }}
+        run: |
+          # Always publish the immutable full-version tag. The mutable tags
+          # (minor, major, latest) only move when this is the latest stable
+          # version, so neither a prerelease nor a rebuild of an older version
+          # ever overwrites the current stable :latest / :1 images.
+          TAGS="-t $IMAGE:$FULL"
+          if [ "$IS_LATEST" = "true" ]; then
+            TAGS="$TAGS -t $IMAGE:$MINOR -t $IMAGE:$MAJOR -t $IMAGE:latest"
+          fi
+          docker buildx imagetools create $TAGS \
+            $(printf "$IMAGE@sha256:%s " *)
+
+      - name: Inspect manifest
+        run: docker buildx imagetools inspect ghcr.io/forestadmin/agent-bff:${{ needs.extract-version.outputs.full }}

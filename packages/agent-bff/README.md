@@ -31,6 +31,61 @@ dropped collection reachable.
 
 ## Usage
 
+### Docker (recommended)
+
+```bash
+cp .env.example .env   # then fill in the secrets
+docker compose up
+```
+
+The template targets a local, non-containerised run, so one value has to change for Docker:
+set `AGENT_URL=http://host.docker.internal:3351`. Left at `localhost`, it resolves to the BFF
+container itself and every agent call fails (see the note below).
+
+The `docker-compose.yml` at the root of this package starts a single BFF instance. See
+`.env.example` for the full list of environment variables and their descriptions.
+
+Or run the image directly:
+
+```bash
+docker run -d \
+  -p 3450:3450 \
+  --stop-timeout 15 \
+  --add-host host.docker.internal:host-gateway \
+  -e FOREST_AUTH_SECRET="..." \
+  -e FOREST_ENV_SECRET="..." \
+  -e FOREST_SERVER_URL="https://api.forestadmin.com" \
+  -e FOREST_APP_URL="https://app.forestadmin.com" \
+  -e AGENT_URL="http://host.docker.internal:3351" \
+  -e BFF_TOKEN_ENCRYPTION_KEY="$(openssl rand -base64 32)" \
+  ghcr.io/forestadmin/agent-bff:latest
+```
+
+> **Note:** When the BFF runs in Docker and your agent runs on the host machine, use
+> `host.docker.internal` instead of `localhost` in `AGENT_URL`. Docker Desktop resolves that
+> name natively; on Docker Engine for Linux it does not exist unless you map it, hence the
+> `--add-host` above (the Compose setup does the same through `extra_hosts`).
+
+The image's entry point is the CLI, so the subcommands below work the same way:
+
+```bash
+docker run --rm ghcr.io/forestadmin/agent-bff:latest openapi > openapi.json
+```
+
+Tags follow the npm package: `:latest`, `:1`, `:1.20` and the immutable `:1.20.2`.
+
+On `SIGTERM` or `SIGINT` the BFF stops accepting connections and gives the requests already in
+flight 10 seconds to finish before cutting their sockets, then exits 0. A second signal gives up on
+the wait and exits 1.
+
+Allow for that in your orchestrator's grace period. The whole budget is up to 11 seconds — the 10
+second deadline plus a 1 second fallback for the exit itself — and `docker stop` defaults to 10,
+so under load it would SIGKILL exactly when the shutdown is doing its job. Hence `--stop-timeout 15`
+above and `stop_grace_period: 15s` in the Compose file; on Kubernetes the default
+`terminationGracePeriodSeconds` of 30 already covers it.
+
+### Without Docker
+
 Packaged / production — run the bin:
 
 ```bash
@@ -90,7 +145,7 @@ yarn start:dev         # node --env-file=.env dist/cli.js
 | `FOREST_APP_URL`     | yes      | Forest front base URL, used to build the OAuth front-channel redirect (`src/oauth/oauth-routes.ts`). |
 | `AGENT_URL`          | yes      | The customer agent base URL the BFF calls via agent-client.          |
 | `BFF_TOKEN_ENCRYPTION_KEY`| for OAuth | Base64-encoded 32-byte AES-256 key encrypting stored refresh tokens. Until it is set, the `/oauth/*` token-issuance routes are disabled and `/health` reports `degraded`; already-issued `bff_access` tokens still authenticate on `/agent/*` whenever `FOREST_AUTH_SECRET` is present. |
-| `HTTP_PORT`          | no       | Server port, integer 0–65535. Defaults to `3450`. `0` binds an OS-assigned ephemeral port. |
+| `HTTP_PORT`          | no       | Server port, integer 0–65535. Defaults to `3450`. `0` binds an OS-assigned ephemeral port — useful for a local run, unusable in the Docker image, where nothing outside the process learns which port it got: it can be neither published nor probed, and the image's healthcheck would report the container unhealthy forever. |
 | `BFF_ALLOWED_ORIGINS`| no       | Comma-separated CORS allow-list of exact origins (scheme + host + port). No wildcard. Empty ⇒ no cross-origin browser access. |
 | `BFF_DEFAULT_TIMEZONE`| no      | Fallback IANA timezone used when a request carries neither an `X-Forest-Timezone` header nor a body `timezone`. |
 | `BFF_AI_TIMEOUT_MS`  | no       | How long `POST /agent/v1/ai/query` waits for the Forest server on the relay itself, in milliseconds. Defaults to `120000` — an AI generation is slow, and neither the app nor the Forest server bounds it. Past it the route answers `504`. It is not the route's end-to-end cap: an expired session is refreshed first, under a separate hard-coded 60 s ceiling that answers `502`, so a request can exceed this value. A malformed value (non-integer, `0`, or above 2147483647) fails the boot, unlike an absent one which takes the default. |
