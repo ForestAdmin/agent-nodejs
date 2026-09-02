@@ -7,7 +7,7 @@ const MAX_HTML_CHARACTERS = 256 * 1024;
 
 const MAX_LAYOUT_DEPTH = 10;
 
-const SAFE_STYLE_VALUE = /^[^;{}()]*$/;
+const SAFE_STYLE_VALUE = /^(?![^;{}\\]*(?:url|expression|image-set|element|-moz-binding)\s*\()[^;{}\\]*$/i;
 
 const ALLOWED_STYLE_PROPERTIES = [
   'background',

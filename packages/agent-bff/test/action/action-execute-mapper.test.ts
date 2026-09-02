@@ -79,6 +79,40 @@ describe('mapActionExecuteResult', () => {
     });
   });
 
+  it('keeps parenthesised css values such as rgb(), calc() and var() on the success html', () => {
+    expect(
+      mapResult({
+        success: 'ok',
+        html:
+          '<div style="color:rgb(22, 163, 74);width:calc(100% - 12px);background:var(--fa-brand)">x</div>',
+        refresh: { relationships: [] },
+      }).body,
+    ).toEqual({
+      type: 'success',
+      message: 'ok',
+      invalidated: [],
+      html:
+        '<div style="color:rgb(22, 163, 74);width:calc(100% - 12px);background:var(--fa-brand)">x</div>',
+    });
+  });
+
+  it('drops a style value spelling url with case or a css escape on the success html', () => {
+    expect(
+      mapResult({
+        success: 'ok',
+        html:
+          '<div style="background:URL(https://e.test/p.gif)">x</div>' +
+          '<div style="background:\\75rl(https://e.test/p.gif)">y</div>',
+        refresh: { relationships: [] },
+      }).body,
+    ).toEqual({
+      type: 'success',
+      message: 'ok',
+      invalidated: [],
+      html: '<div>x</div><div>y</div>',
+    });
+  });
+
   it('maps an html that is entirely active markup to null rather than an empty string', () => {
     expect(
       mapResult({
