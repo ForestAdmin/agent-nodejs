@@ -177,13 +177,17 @@ function collectActions(readModel: ReadModel, collection: string): UnfoldedActio
       // literally called "undefined".
       fields: (byName[name].fields ?? [])
         .filter(field => typeof field?.field === 'string')
-        .map(field => ({
-          name: field.field,
-          type: normalizeFieldType(field.type),
-          isRequired: field.isRequired === true,
-          enums: field.enums ?? null,
-          reference: (field as { reference?: string | null }).reference ?? null,
-        })),
+        .map(field => {
+          const { reference } = field as { reference?: unknown };
+
+          return {
+            name: field.field,
+            type: normalizeFieldType(field.type),
+            isRequired: field.isRequired === true,
+            enums: field.enums ?? null,
+            reference: typeof reference === 'string' ? reference : null,
+          };
+        }),
     }));
 }
 

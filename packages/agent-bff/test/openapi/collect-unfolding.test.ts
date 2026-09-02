@@ -270,6 +270,22 @@ describe('collectUnfolding', () => {
       expect(collections[0].actions[0].fields.map(field => field.name)).toEqual(['reason']);
     });
 
+    it('should publish a malformed reference as null, not as a record picker', async () => {
+      const malformed = action('Ban', '/forest/users/actions/ban');
+      malformed.fields = [
+        { field: 'reason', type: 'String', reference: false },
+        { field: 'owner', type: 'String', reference: 'users.id' },
+      ] as unknown as typeof malformed.fields;
+      const readModel = new ReadModel([collection('users', [column('id')], [malformed])]);
+
+      const { collections } = await collect(readModel);
+
+      expect(collections[0].actions[0].fields).toEqual([
+        { name: 'reason', type: 'String', isRequired: false, enums: null, reference: null },
+        { name: 'owner', type: 'String', isRequired: false, enums: null, reference: 'users.id' },
+      ]);
+    });
+
     it('should treat an action with no fields key as a form with no field', async () => {
       const fieldless = action('Ban', '/forest/users/actions/ban');
       delete (fieldless as { fields?: unknown }).fields;

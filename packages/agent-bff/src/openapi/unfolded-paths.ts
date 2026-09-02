@@ -397,6 +397,7 @@ function actionValuesSchema(action: UnfoldedAction): SchemaObject {
     // No property is required and no additional one is forbidden on purpose: a load or change hook
     // rebuilds the form at call time, so the schema's static fields are an indication, not the
     // contract — and the read-model cannot tell a hookless action from a legacy schema that simply
+    // omitted its hooks, so "static" is never certain.
     description:
       'The submitted action fields. These are the fields the schema declares statically; a load ' +
       'or change hook can add, drop or require others at call time. On execute the values are ' +
