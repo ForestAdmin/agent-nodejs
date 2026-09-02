@@ -184,11 +184,9 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
     // (FieldNotFoundError, RelationNotFoundError, ActionNotFoundError) — this one used to be the
     // exception. A value that is present but null still counts as not met, per the spec.
     if (resolved.found === false) {
-      throw new ConditionSourceNotLoadedError(
-        condition.fieldName,
-        condition.sourceStepId,
-        resolved.sourceStepIndex,
-      );
+      throw new ConditionSourceNotLoadedError(condition.fieldName, condition.sourceStepId, {
+        errorSourceStepIndex: resolved.sourceStepIndex,
+      });
     }
 
     return evaluateOperator(condition.operator, resolved.value, condition.value);

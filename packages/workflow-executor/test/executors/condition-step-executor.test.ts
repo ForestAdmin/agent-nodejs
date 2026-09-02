@@ -502,7 +502,9 @@ describe('ConditionStepExecutor', () => {
         ...overrides,
       });
 
-      return { context, mockModel, runStore };
+      // The override wins in the context, so returning the local store would hand back one the
+      // executor never received — every assertion on it would pass vacuously.
+      return { context, mockModel, runStore: (overrides.runStore ?? runStore) as typeof runStore };
     }
 
     it('evaluates a manual condition instead of awaiting input, with no incomingPendingData', async () => {
@@ -765,7 +767,7 @@ describe('ConditionStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toContain('did not load that field');
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
-      // Same contract as SourceRecordMissingError: the Get Data step is the one implicated.
+      // Same contract as SourceRecordMissingError.
       expect(result.stepOutcome.errorSourceStepIndex).toBe(1);
       expect(result.stepOutcome).not.toHaveProperty('errorKind');
     });
@@ -780,6 +782,7 @@ describe('ConditionStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toContain('did not load that field');
       expect(result.stepOutcome.errorSourceStepIndex).toBe(1);
+      expect(result.stepOutcome).not.toHaveProperty('errorKind');
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
 
@@ -951,6 +954,29 @@ describe('ConditionStepExecutor', () => {
       }).execute();
 
       expect(result.stepOutcome.status).toBe('error');
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
+
+    it('names the most recent occurrence of a repeated source step id when it did not load', async () => {
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest
+          .fn()
+          .mockResolvedValue([
+            makeReadRecordExecution(1, [{ name: 'amount', displayName: 'Amount', value: 150 }]),
+            makeReadRecordExecution(2, [{ name: 'other', displayName: 'Other', value: 1 }]),
+          ]),
+      });
+      const context = makeContext({
+        model: makeMockModel().model,
+        runStore,
+        stepDefinition: makeDeterministicStep(amountArgs),
+        previousSteps: [makeGetDataStep('get-1', 1), makeGetDataStep('get-1', 2)],
+      });
+
+      const result = await new ConditionStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.errorSourceStepIndex).toBe(2);
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
 
