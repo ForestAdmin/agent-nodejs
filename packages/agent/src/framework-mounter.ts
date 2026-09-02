@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { HttpCallback, McpRouteMatcher } from './types';
+import type { HttpCallback, RootHandler } from './types';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 import type net from 'net';
 
@@ -10,7 +10,6 @@ import path from 'path';
 
 import FastifyAdapter from './fastify-adapter';
 import InProcessDispatcher from './mcp-in-process-dispatcher';
-import isMcpRoute from './mcp-routes';
 import RootMiddleware from './root-middleware';
 
 export default class FrameworkMounter {
@@ -38,15 +37,17 @@ export default class FrameworkMounter {
     this.prefix = prefix;
     this.logger = logger;
     this.fastifyAdapter = new FastifyAdapter(logger);
-    this.rootMiddleware = new RootMiddleware();
+    this.rootMiddleware = new RootMiddleware(logger);
     this.inProcessDispatcher = new InProcessDispatcher(logger);
   }
 
   /**
-   * Set the MCP HTTP callback. Call this before mount() or remount().
+   * Register the MCP server at the root of the host application, or `null` to unregister it. The
+   * matcher comes with the callback: there is no default pattern set, so nothing can claim host
+   * urls by accident. Call this before mount() or remount().
    */
-  protected setMcpCallback(callback: HttpCallback | null, routeMatcher?: McpRouteMatcher): void {
-    this.rootMiddleware.set('mcp', callback, routeMatcher ?? isMcpRoute);
+  protected setMcpCallback(handler: RootHandler | null): void {
+    this.rootMiddleware.set('mcp', handler);
   }
 
   /**
