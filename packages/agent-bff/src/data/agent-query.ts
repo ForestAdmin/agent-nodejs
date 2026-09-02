@@ -62,10 +62,7 @@ function assertFilterNode(node: unknown, logger: Logger, depth = 0): void {
   const readableAsBranch = isBranch(node);
 
   if (isLeaf(node) && readableAsBranch) {
-    rejectBody(
-      logger,
-      invalidRequest('A filter node cannot carry both "field" and "conditions"'),
-    );
+    rejectBody(logger, invalidRequest('A filter node cannot carry both "field" and "conditions"'));
   }
 
   if (readableAsBranch) {
