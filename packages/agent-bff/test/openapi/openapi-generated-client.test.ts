@@ -141,6 +141,7 @@ function makeAction(): Action {
       {
         getName: () => 'tags',
         getType: () => ['String'],
+        getReference: () => null,
         getValue: () => undefined,
         isRequired: () => false,
       },
