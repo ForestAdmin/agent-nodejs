@@ -1,40 +1,33 @@
-import type { ZodType } from 'zod';
+import type { PageInput, SortClauseInput } from './request-schemas';
+import type { Logger } from '../ports/logger-port';
+import type { ZodType, z } from 'zod';
 
-import { CountFlatInputs, ListFlatInputs } from './request-schemas';
+import {
+  CountFlatInputs,
+  ListFlatInputs,
+  RelationCountFlatInputs,
+  RelationListFlatInputs,
+} from './request-schemas';
+import { BffHttpError } from '../http/bff-http-error';
 import { invalidRequest } from '../http/bff-local-errors';
 import { MAX_FILTER_DEPTH, isBranch, isLeaf } from '../validation/capabilities-validator';
 import { filterTooDeep } from '../validation/validation-errors';
 
 export { MAX_FILTER_DEPTH as MAX_PARSED_FILTER_DEPTH };
 
-export interface BffSortClause {
-  field: string;
-  direction?: 'asc' | 'desc';
-}
+export type BffSortClause = z.infer<typeof SortClauseInput>;
 
-export interface BffPage {
-  limit: number;
-  offset: number;
-}
+export type BffPage = z.infer<typeof PageInput>;
 
-export interface ListRequestBody {
-  filter?: unknown;
-  projection?: string[];
-  sort?: BffSortClause[];
-  page?: BffPage;
-  search?: string;
-  searchExtended?: boolean;
-}
+export type ListRequestBody = z.infer<typeof ListFlatInputs>;
 
-export interface CountRequestBody {
-  filter?: unknown;
-  search?: string;
-  searchExtended?: boolean;
-}
+export type CountRequestBody = z.infer<typeof CountFlatInputs>;
 
-export type RelationListRequestBody = ListRequestBody & { parentId: string };
+export type RelationListRequestBody = z.infer<typeof RelationListFlatInputs> & { parentId: string };
 
-export type RelationCountRequestBody = CountRequestBody & { parentId: string };
+export type RelationCountRequestBody = z.infer<typeof RelationCountFlatInputs> & {
+  parentId: string;
+};
 
 export type AgentQuery = Record<string, unknown> & { timezone: string };
 
@@ -42,9 +35,35 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function assertNoNodeReadableAsBothLeafAndBranch(node: unknown, depth = 0): void {
+const LEAF_KEYS = ['field', 'operator', 'value'];
+const BRANCH_KEYS = ['aggregator', 'conditions'];
+
+function loggingRejections<T>(logger: Logger, parse: () => T): T {
+  try {
+    return parse();
+  } catch (error) {
+    if (error instanceof BffHttpError) {
+      logger('Warn', 'Request body rejected', { reason: error.message });
+    }
+
+    throw error;
+  }
+}
+
+// The tree is closed like the flat body is: a leaf carrying `valu` instead of `value` builds a
+// condition with `value: undefined`, which the agent reads as null and runs — a typo must not
+// silently change the returned rows.
+function assertNoStrayKey(node: Record<string, unknown>, allowed: string[]): void {
+  const stray = Object.keys(node).find(key => !allowed.includes(key));
+
+  if (stray !== undefined) {
+    throw invalidRequest(`A filter node cannot carry "${stray}"`);
+  }
+}
+
+function assertFilterNode(node: unknown, depth = 0): void {
   if (depth > MAX_FILTER_DEPTH) throw filterTooDeep(MAX_FILTER_DEPTH);
-  if (typeof node !== 'object' || node === null) return;
+  if (!isPlainObject(node)) return;
 
   const readableAsBranch = isBranch(node);
 
@@ -53,53 +72,59 @@ function assertNoNodeReadableAsBothLeafAndBranch(node: unknown, depth = 0): void
   }
 
   if (readableAsBranch) {
-    node.conditions.forEach(condition =>
-      assertNoNodeReadableAsBothLeafAndBranch(condition, depth + 1),
-    );
+    assertNoStrayKey(node, BRANCH_KEYS);
+    node.conditions.forEach(condition => assertFilterNode(condition, depth + 1));
+
+    return;
   }
+
+  if (isLeaf(node)) {
+    assertNoStrayKey(node, LEAF_KEYS);
+
+    return;
+  }
+
+  // Neither readable as a leaf nor as a branch: `feild` instead of `field` reaches the agent as a
+  // node it cannot act on. An empty object stays allowed — it is how an absent filter is spelled.
+  assertNoStrayKey(node, []);
 }
 
-/**
- * Checks the flat inputs against the shared schema and reports the first failure as
- * 400 invalid_request, so a malformed shape (`projection` as a string, a fractional `page.limit`)
- * surfaces as a client error rather than a 500 from an array method blowing up downstream.
- *
- * Unknown keys are left alone: the object schemas ignore them, so `filter`, `timezone` and
- * `parentId` travel through untouched and the body is returned by reference, not rebuilt.
- */
 function assertFlatInputs(schema: ZodType, body: Record<string, unknown>): void {
   const result = schema.safeParse(body);
   if (result.success) return;
 
-  const [issue] = result.error.issues;
+  const { issues } = result.error;
+  const issue = issues.find(candidate => candidate.code === 'unrecognized_keys') ?? issues[0];
   const path = issue.path.join('.');
+  const reason = path ? `${path}: ${issue.message}` : issue.message;
 
-  throw invalidRequest(path ? `${path}: ${issue.message}` : issue.message);
+  throw invalidRequest(reason);
 }
 
 function assertFilter(filter: unknown): void {
   if (filter === undefined) return;
   if (!isPlainObject(filter)) throw invalidRequest('filter must be an object');
 
-  assertNoNodeReadableAsBothLeafAndBranch(filter);
+  assertFilterNode(filter);
 }
 
-export function parseListRequest(body: unknown): ListRequestBody {
-  if (!isPlainObject(body)) throw invalidRequest('Request body must be an object');
+function parseRequest<S extends ZodType>(schema: S, body: unknown): z.output<S> {
+  if (!isPlainObject(body)) {
+    throw invalidRequest('Request body must be an object');
+  }
 
-  assertFlatInputs(ListFlatInputs, body);
+  assertFlatInputs(schema, body);
   assertFilter(body.filter);
 
-  return body as ListRequestBody;
+  return body as z.output<S>;
 }
 
-export function parseCountRequest(body: unknown): CountRequestBody {
-  if (!isPlainObject(body)) throw invalidRequest('Request body must be an object');
+export function parseListRequest(body: unknown, logger: Logger): ListRequestBody {
+  return loggingRejections(logger, () => parseRequest(ListFlatInputs, body));
+}
 
-  assertFlatInputs(CountFlatInputs, body);
-  assertFilter(body.filter);
-
-  return body as CountRequestBody;
+export function parseCountRequest(body: unknown, logger: Logger): CountRequestBody {
+  return loggingRejections(logger, () => parseRequest(CountFlatInputs, body));
 }
 
 function collectFilterFields(filter: unknown, acc: string[]): void {
@@ -114,9 +139,6 @@ function serializeSort(sort: BffSortClause[]): string {
   return sort.map(({ field, direction }) => (direction === 'desc' ? `-${field}` : field)).join(',');
 }
 
-// `parseListRequest` guarantees `limit` > 0 and `offset` >= 0 are integers; this only enforces the
-// page-model rule. The agent paginates by page number/size, so an arbitrary offset that is not a
-// whole multiple of the limit cannot be expressed — reject it rather than return a shifted window.
 function serializePage(page: BffPage): Record<string, number> {
   const { limit, offset } = page;
 
@@ -188,9 +210,11 @@ export function collectListFieldPaths(body: ListRequestBody): string[] {
 // The parent record id is opaque: a packed/composite id must survive unchanged, so its content is
 // never inspected — only presence and primitive type. A finite number (single numeric pk) is
 // coerced to string; anything else is a BFF-local 400 with no agent call.
-export function parseParentId(parentId: unknown): string {
+function readParentId(parentId: unknown): string {
   if (typeof parentId === 'string') {
-    if (parentId.trim() === '') throw invalidRequest('parentId must not be empty');
+    if (parentId.trim() === '') {
+      throw invalidRequest('parentId must not be empty');
+    }
 
     return parentId;
   }
@@ -202,16 +226,24 @@ export function parseParentId(parentId: unknown): string {
   throw invalidRequest('parentId is required and must be a non-empty string or a number');
 }
 
-export function parseRelationListRequest(body: unknown): RelationListRequestBody {
-  const parentId = parseParentId((body as { parentId?: unknown } | null)?.parentId);
-
-  return { ...parseListRequest(body), parentId };
+export function parseParentId(parentId: unknown, logger: Logger): string {
+  return loggingRejections(logger, () => readParentId(parentId));
 }
 
-export function parseRelationCountRequest(body: unknown): RelationCountRequestBody {
-  const parentId = parseParentId((body as { parentId?: unknown } | null)?.parentId);
+function parseRelationRequest<T>(schema: ZodType, body: unknown, logger: Logger): T {
+  return loggingRejections(logger, () => {
+    const parentId = readParentId((body as { parentId?: unknown } | null)?.parentId);
 
-  return { ...parseCountRequest(body), parentId };
+    return { ...(parseRequest(schema, body) as object), parentId } as T;
+  });
+}
+
+export function parseRelationListRequest(body: unknown, logger: Logger): RelationListRequestBody {
+  return parseRelationRequest(RelationListFlatInputs, body, logger);
+}
+
+export function parseRelationCountRequest(body: unknown, logger: Logger): RelationCountRequestBody {
+  return parseRelationRequest(RelationCountFlatInputs, body, logger);
 }
 
 export function collectCountFieldPaths(body: CountRequestBody): string[] {

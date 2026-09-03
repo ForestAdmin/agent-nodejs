@@ -202,6 +202,28 @@ describe('GET /agent/openapi.json', () => {
       });
     });
 
+    it('should serve the root-relative server when BFF_PUBLIC_URL is unset', async () => {
+      await withServer(VALID_ENV, async server => {
+        const response = await request(server.callback)
+          .get(OPENAPI_PATH)
+          .set('Authorization', `Bearer ${sessionToken()}`);
+
+        expect(response.body.servers[0].url).toBe('/');
+      });
+    });
+
+    it('should publish BFF_PUBLIC_URL as the server of the unfolded document', async () => {
+      const env = { ...VALID_ENV, BFF_PUBLIC_URL: 'https://bff.example.com/' };
+
+      await withServer(env, async server => {
+        const response = await request(server.callback)
+          .get(OPENAPI_PATH)
+          .set('Authorization', `Bearer ${sessionToken()}`);
+
+        expect(response.body.servers[0].url).toBe('https://bff.example.com');
+      });
+    });
+
     it('should forbid caching, matching the no-store the api key path already sets', async () => {
       await withServer(VALID_ENV, async server => {
         const response = await request(server.callback)

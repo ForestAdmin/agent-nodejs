@@ -382,6 +382,7 @@ function buildAgentMiddlewares(
       enabled: config.openapiEnabled,
       source,
       hasAiQueryRoute: aiMiddlewares.length > 0,
+      publicUrl: config.publicUrl,
     }),
     ...(bundle ? [createContextRoutesMiddleware({ store: bundle.store, environmentId })] : []),
     ...aiMiddlewares,

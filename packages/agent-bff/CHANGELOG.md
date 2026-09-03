@@ -1,3 +1,24 @@
+## @forestadmin/agent-bff [1.23.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.23.6...@forestadmin/agent-bff@1.23.7) (2026-09-03)
+
+
+### Bug Fixes
+
+* **agent-bff:** enforce the action input contract on execute ([#1860](https://github.com/ForestAdmin/agent-nodejs/issues/1860)) ([8e6d6f0](https://github.com/ForestAdmin/agent-nodejs/commit/8e6d6f0a8d0ff54f4321f5c150a8bcabaab85d53))
+* **agent-bff:** expose search on unfolded request schemas ([#1863](https://github.com/ForestAdmin/agent-nodejs/issues/1863)) ([1ee5e64](https://github.com/ForestAdmin/agent-nodejs/commit/1ee5e640ee0dc1a8101845255de66397b6a11ee9))
+* **agent-bff:** reject unknown keys on list and count bodies ([#1855](https://github.com/ForestAdmin/agent-nodejs/issues/1855)) ([8b2bad3](https://github.com/ForestAdmin/agent-nodejs/commit/8b2bad3e9d0ebf9fcc0c6057d9c2d867b322c1b4))
+* **agent-bff:** report an agent timeout as 504 agent_timeout ([#1864](https://github.com/ForestAdmin/agent-nodejs/issues/1864)) ([46ec485](https://github.com/ForestAdmin/agent-nodejs/commit/46ec485d88c9f9548d6aa0dc8ae6c3a485a4a1b9))
+* **agent-bff:** type the action form and execute 200 responses ([#1857](https://github.com/ForestAdmin/agent-nodejs/issues/1857)) ([32b3024](https://github.com/ForestAdmin/agent-nodejs/commit/32b3024f70b54f88318c285c82e6ccab7e3912e7))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.15.2
+* **@forestadmin/agent:** upgraded to 1.98.6
+* **@forestadmin/agent-testing:** upgraded to 1.2.10
+
 ## @forestadmin/agent-bff [1.23.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.23.5...@forestadmin/agent-bff@1.23.6) (2026-09-02)
 
 

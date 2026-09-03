@@ -79,6 +79,33 @@ function leafOperators(): string[] {
 }
 
 describe('generateOpenApiDocument', () => {
+  describe('servers', () => {
+    it('should publish the configured public URL as an absolute base URL', () => {
+      expect(
+        generateOpenApiDocument('9.9.9', { publicUrl: 'https://bff.example.com' }).servers,
+      ).toEqual([
+        { url: 'https://bff.example.com', description: expect.stringContaining('public base URL') },
+      ]);
+    });
+
+    it('should fall back to a root-relative url with no template variable, which a generator cannot resolve', () => {
+      const [server] = generateOpenApiDocument('9.9.9').servers ?? [];
+
+      expect(server.url).toBe('/');
+      expect(server.description).toContain('BFF_PUBLIC_URL');
+      expect(server.variables).toBeUndefined();
+    });
+
+    it('should carry the public URL into the unfolded document too', () => {
+      const unfolded = generateOpenApiDocument('9.9.9', {
+        unfolding: { collections: [] },
+        publicUrl: 'https://bff.example.com',
+      });
+
+      expect(unfolded.servers?.[0].url).toBe('https://bff.example.com');
+    });
+  });
+
   it('should emit OpenAPI 3.1.0 with the package version', () => {
     expect(document.openapi).toBe(OPENAPI_VERSION);
     expect(document.info.version).toBe('9.9.9');
@@ -217,6 +244,16 @@ describe('generateOpenApiDocument', () => {
     expect(session.description).toContain('every data and action route');
   });
 
+  it('should say in the api key scheme that allowedOrigins gates browsers only', () => {
+    const apiKey = (document.components?.securitySchemes as Record<string, { description: string }>)
+      .bffApiKey;
+
+    expect(apiKey.description).toContain('restricts browser callers only');
+    expect(apiKey.description).toContain('a request with no Origin at all');
+    expect(apiKey.description).toContain('an empty Origin header counting as none');
+    expect(apiKey.description).toContain('opaque Origin null is a present origin and is rejected');
+  });
+
   it('should require a body where parentId or recordIds is mandatory', () => {
     const requiredByPath = Object.fromEntries(
       Object.entries(document.paths ?? {})
@@ -293,22 +330,6 @@ describe('generateOpenApiDocument', () => {
     };
 
     expect(messageless.properties.error.required).toEqual(['type', 'status']);
-  });
-
-  it('should say on the form response that htmlBlock layout content is sanitized server-side', () => {
-    const form = responsesOf(`${ROUTE_PREFIX}/{collection}/actions/{action}/form`);
-
-    expect(form['200'].description).toContain(
-      'htmlBlock layout content is sanitized server-side against an allowlist',
-    );
-  });
-
-  it('should say on the execute response that a success html is sanitized server-side', () => {
-    const execute = responsesOf(`${ROUTE_PREFIX}/{collection}/actions/{action}/execute`);
-
-    expect(execute['200'].description).toContain(
-      'html field is sanitized server-side against an allowlist',
-    );
   });
 
   it('should keep a plain error body for the 501 the agent stub returns on other routes', () => {
@@ -468,6 +489,10 @@ describe('generateOpenApiDocument', () => {
 
   it('should accept a timezone on an action body, which the middleware reads there too', () => {
     expect(Object.keys(schemas.ActionRequest.properties as object)).toContain('timezone');
+  });
+
+  it('should publish the blank-timezone rejection in the schema, not only at runtime', () => {
+    expect(schemas.Timezone).toEqual(expect.objectContaining({ type: 'string', pattern: '\\S' }));
   });
 
   it('should declare Retry-After on 503, the only status that sets it', () => {
@@ -707,6 +732,46 @@ describe('generateOpenApiDocument', () => {
       url: 'https://www.gnu.org/licenses/gpl-3.0.html',
     });
   });
+});
+
+describe('the closed request bodies', () => {
+  it.each([
+    ['ListRequest'],
+    ['CountRequest'],
+    ['RelationListRequest'],
+    ['RelationCountRequest'],
+    ['SortClause'],
+    ['Page'],
+  ])('should forbid an undeclared key on %s', name => {
+    expect(schemas[name].additionalProperties).toBe(false);
+  });
+
+  it('should forbid an undeclared key on both shapes of a condition tree node', () => {
+    const { anyOf } = schemas.ConditionTree as unknown as { anyOf: unknown[] };
+    const [leaf, branch] = anyOf;
+
+    expect(leaf).toEqual({ $ref: '#/components/schemas/ConditionTreeLeaf' });
+    expect(branch).toEqual(expect.objectContaining({ additionalProperties: false }));
+    expect(schemas.ConditionTreeLeaf.additionalProperties).toBe(false);
+  });
+
+  it('should publish the empty filter the runtime accepts, so a client can send it', () => {
+    const { anyOf } = schemas.ConditionTree as unknown as { anyOf: Record<string, unknown>[] };
+
+    expect(anyOf).toContainEqual(
+      expect.objectContaining({ type: 'object', additionalProperties: false, properties: {} }),
+    );
+  });
+
+  it.each([['RelationListRequest'], ['RelationCountRequest']])(
+    'should publish %s flat rather than as an allOf of a closed base',
+    name => {
+      expect(schemas[name].allOf).toBeUndefined();
+      expect(
+        (schemas[name] as { properties: Record<string, unknown> }).properties.parentId,
+      ).toEqual({ $ref: '#/components/schemas/ParentId' });
+    },
+  );
 });
 
 describe('the documented ai query path', () => {
