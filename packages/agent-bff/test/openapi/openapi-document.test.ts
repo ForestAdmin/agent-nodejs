@@ -24,7 +24,10 @@ const responseComponents = (document.components?.responses ?? {}) as unknown as 
   ResolvedResponse
 >;
 
-function responsesOf(path: string, method?: 'head'): Record<string, ResolvedResponse> {
+function responsesOf(
+  path: string,
+  method?: 'get' | 'post' | 'head',
+): Record<string, ResolvedResponse> {
   const item = document.paths?.[path] as {
     post?: { responses: Record<string, unknown> };
     get?: { responses: Record<string, unknown> };
@@ -667,7 +670,9 @@ describe('generateOpenApiDocument', () => {
     const ai = (document.paths ?? {})[AI_QUERY_PATH] as { post: { security: unknown } };
 
     expect(ai.post.security).toEqual([{ bffSession: [] }]);
-    expect(path.get.description).toContain('the AI-query relay is the one exception');
+    expect(path.get.description).toContain(
+      'the AI-query relay, where it is published, is the one exception',
+    );
     expect(path.get.description).not.toContain('the same credentials as every other');
   });
 
@@ -713,7 +718,10 @@ describe('generateOpenApiDocument', () => {
   it('should tell a HEAD caller to read the status rather than the type it cannot see', () => {
     const path = (document.paths ?? {})[DOCUMENT_PATH] as { head: { description: string } };
 
+    expect(path.head.description).toContain('The five error statuses below reuse the GET wording');
     expect(path.head.description).toContain('read the status, not the type');
+    expect(path.head.description).toContain('The 200 and the 404 carry their own');
+    expect(path.head.description).not.toContain('Every status below reuses');
   });
 
   it('should say which live routes it deliberately leaves out, since a consumer cannot guess', () => {

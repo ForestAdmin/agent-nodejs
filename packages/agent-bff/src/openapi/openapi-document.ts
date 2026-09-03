@@ -453,7 +453,8 @@ function registerDocumentPath(registry: OpenAPIRegistry, errorRefs: ErrorRespons
       'Serves this very document behind credentials, like every other `/agent` route: without ' +
       'them the schema it describes is not readable. Both auth modes reach it — a session or an ' +
       'API key — as they do on every data, action, context and permissions route; the AI-query ' +
-      'relay is the one exception, and takes a session only. `HEAD` is served identically. The ' +
+      'relay, where it is published, is the one exception and takes a session only. `HEAD` is ' +
+      'served identically. The ' +
       'answer is never cached (`Cache-Control: no-store`) and is regenerated when the BFF ' +
       'refreshes its schema, so a client can re-fetch it to pick up a new collection or field.',
     security: SECURITY,
@@ -479,9 +480,9 @@ function registerDocumentPath(registry: OpenAPIRegistry, errorRefs: ErrorRespons
     summary: 'Probe this document without fetching it',
     description:
       'Same route as `GET`, answering the same statuses and headers with no body, so a client can ' +
-      'probe whether the document is enabled and reachable before re-fetching it. Every status ' +
-      'below reuses the GET wording, which describes a JSON body no HEAD ever returns: read the ' +
-      'status, not the type.',
+      'probe whether the document is enabled and reachable before re-fetching it. The five error ' +
+      'statuses below reuse the GET wording, which describes a JSON body no HEAD ever returns: ' +
+      'read the status, not the type. The 200 and the 404 carry their own.',
     security: SECURITY,
     request: {},
     responses: HEAD_DOCUMENT_RESPONSES,
