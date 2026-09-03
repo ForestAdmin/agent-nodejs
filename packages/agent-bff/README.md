@@ -302,5 +302,12 @@ called second throws on the spot, at the builder call and not from `start()`, ra
 the MCP server quietly claim `/bff/oauth` and `/bff/mcp`. Any `basePath` landing inside `/bff`
 counts (`bff`, `/bff/`, `/bff/ai`), so mount the MCP server elsewhere.
 
+**One security control does not apply to the embedded mode.** If the environment has Forest's IP
+whitelist enabled, requests served under `/bff` are not subject to it: they reach the agent
+in-process, over what the whitelist treats as a trusted loopback caller. This is deliberate —
+applying it would filter the browsers a third-party UI is made of, and the standalone deployment
+never filtered the end user either, only the BFF's own host. A resolved API key or a valid OAuth
+session is still required, and the agent still logs a warning at startup naming the exemption.
+
 When to prefer which: embedded for a single deployment, which is most of them. Standalone when
 several agents share one BFF, or when the BFF and the agent have to scale separately.
