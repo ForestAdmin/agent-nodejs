@@ -13,6 +13,7 @@ import type ReadModelStore from '../read-model/read-model-store';
 import type { Operator } from '@forestadmin/datasource-toolkit';
 
 import { extractErrorMessage } from '../errors';
+import { normalizeFieldType } from '../read-model/field-type';
 import { normalizeOperator, toCanonicalOperatorSet } from '../validation/operator-normalizer';
 
 // A cold document costs one capabilities call per collection. They are capped rather than fired all
@@ -176,12 +177,17 @@ function collectActions(readModel: ReadModel, collection: string): UnfoldedActio
       // literally called "undefined".
       fields: (byName[name].fields ?? [])
         .filter(field => typeof field?.field === 'string')
-        .map(field => ({
-          name: field.field,
-          type: field.type,
-          isRequired: field.isRequired === true,
-          enums: field.enums ?? null,
-        })),
+        .map(field => {
+          const { reference } = field as { reference?: unknown };
+
+          return {
+            name: field.field,
+            type: normalizeFieldType(field.type),
+            isRequired: field.isRequired === true,
+            enums: field.enums ?? null,
+            reference: typeof reference === 'string' ? reference : null,
+          };
+        }),
     }));
 }
 

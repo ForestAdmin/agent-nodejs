@@ -95,3 +95,9 @@ export function relationFieldNotSupported(fields: string[]): BffHttpError {
     { details: { fields } },
   );
 }
+
+export function unsupportedMediaType(
+  message = 'Only application/json request bodies are supported on agent routes',
+): BffHttpError {
+  return new BffHttpError(415, 'unsupported_media_type', message);
+}

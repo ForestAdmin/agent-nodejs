@@ -7,7 +7,7 @@ import type {
 } from '../types/step-execution-data';
 import type { ActionSchema, CollectionSchema, RecordRef } from '../types/validated/collection';
 import type { TriggerActionStepDefinition } from '../types/validated/step-definition';
-import type { RecordStepStatus } from '../types/validated/step-outcome';
+import type { ErrorKind, RecordStepStatus } from '../types/validated/step-outcome';
 
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 import { z } from 'zod';
@@ -17,6 +17,7 @@ import {
   ActionNotFoundError,
   ActionRequiresApprovalError,
   NoActionsError,
+  PinnedArgNotFoundError,
   StepStateError,
 } from '../errors';
 import RecordStepExecutor from './record-step-executor';
@@ -51,6 +52,8 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
   protected override buildOutcomeResult(outcome: {
     status: RecordStepStatus;
     error?: string;
+    errorKind?: ErrorKind;
+    errorSourceStepIndex?: number;
     approvalRequest?: { id: string };
   }): StepExecutionResult {
     return super.buildOutcomeResult(outcome);
@@ -137,19 +140,25 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
 
     // "On record" pins the source by stable step id (revise-safe); legacy steps without it fall
     // back to AI record selection among the available source records.
-    const selectedRecordRef = preRecordedArgs?.selectedRecordStepId
-      ? await this.resolveSourceRecordRef(preRecordedArgs.selectedRecordStepId)
-      : await this.resolveRecordRef(await this.getAvailableRecordRefs(), step.prompt);
+    const selectedRecordRef =
+      preRecordedArgs?.selectedRecordStepId !== undefined
+        ? await this.resolveSourceRecordRef(preRecordedArgs.selectedRecordStepId)
+        : await this.resolveRecordRef(await this.getAvailableRecordRefs(), step.prompt);
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
     const recordedAction = preRecordedArgs?.actionName;
-    const selection = recordedAction
-      ? { actionName: recordedAction }
-      : await this.selectAction(schema, step.prompt);
+    const selection =
+      recordedAction !== undefined
+        ? { actionName: recordedAction }
+        : await this.selectAction(schema, step.prompt);
     const { actionName } = selection;
     const action = this.findActionByTechnicalName(schema, actionName);
 
     if (!action) {
-      throw new ActionNotFoundError(actionName, schema.collectionName);
+      // A pinned action that stopped resolving is a workflow edit -- an admin renamed or removed it.
+      // Only a name the AI chose can be reached by rephrasing the prompt.
+      throw recordedAction !== undefined
+        ? new PinnedArgNotFoundError('action', actionName, schema.collectionName)
+        : new ActionNotFoundError(actionName, schema.collectionName);
     }
 
     const approvalMessage = ('reasoning' in selection && selection.reasoning) || step.prompt;

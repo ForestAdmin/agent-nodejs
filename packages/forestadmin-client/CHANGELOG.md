@@ -1,3 +1,10 @@
+## @forestadmin/forestadmin-client [1.43.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.43.2...@forestadmin/forestadmin-client@1.43.3) (2026-09-01)
+
+
+### Bug Fixes
+
+* **mcp-server:** accept file uploads on v1 String fields carrying the file picker widget ([#1869](https://github.com/ForestAdmin/agent-nodejs/issues/1869)) ([09d5899](https://github.com/ForestAdmin/agent-nodejs/commit/09d5899962f5db55f0da927018c4448092d34b4f))
+
 ## @forestadmin/forestadmin-client [1.43.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.43.1...@forestadmin/forestadmin-client@1.43.2) (2026-08-25)
 
 

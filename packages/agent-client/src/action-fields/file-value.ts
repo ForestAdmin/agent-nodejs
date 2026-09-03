@@ -2,6 +2,8 @@ import type { File } from '@forestadmin/datasource-toolkit';
 
 import { makeDataUri } from '@forestadmin/datasource-toolkit';
 
+import { InvalidActionFileValueError } from '../errors';
+
 function isFileType(type: string): boolean {
   return type === 'File';
 }
@@ -23,11 +25,13 @@ function isFile(value: unknown): value is File {
 }
 
 function fileError(fieldName: string, detail: string): Error {
-  return new Error(`Field "${fieldName}" ${detail}`);
+  return new InvalidActionFileValueError(`Field "${fieldName}" ${detail}`);
 }
 
-function encodeFileValue(value: unknown, fieldName: string): unknown {
-  if (value === null || value === undefined) return value;
+function encodeFileValue(value: unknown, fieldName: string): string | null | undefined {
+  if (value === null) return null;
+
+  if (value === undefined) return undefined;
 
   // Callers that address the file indirectly (mcp-server upload handles) keep their sentinel:
   // validating strings here would break them, and the agent owns the final validation.
@@ -41,11 +45,13 @@ function encodeFileValue(value: unknown, fieldName: string): unknown {
   );
 }
 
-export default function encodeFileFieldValue(
+export type EncodedFileValue = string | null | undefined;
+
+export default function encodeFileFieldValue<T>(
   type: string,
-  value: unknown,
+  value: T,
   fieldName: string,
-): unknown {
+): T | EncodedFileValue | EncodedFileValue[] {
   if (isFileListType(type)) {
     if (value === null || value === undefined) return value;
 
@@ -59,9 +65,15 @@ export default function encodeFileFieldValue(
   if (isFileType(type)) return encodeFileValue(value, fieldName);
 
   // A file reaching a field that is not declared as one is never intentional, and it would be
-  // JSON-serialized into the column as {"buffer":{"type":"Buffer",...}} without any error.
-  if (isFile(value)) {
-    throw fileError(fieldName, `is a ${type} field and cannot hold a file.`);
+  // JSON-serialized into the column as {"buffer":{"type":"Buffer",...}} without any error. A list
+  // field (['String'], or a Json column holding an array) takes the same path through an array.
+  if (isFile(value) || (Array.isArray(value) && value.some(isFile))) {
+    throw fileError(
+      fieldName,
+      `takes ${type}, not a file: send the file to a File field instead. If this field is ` +
+        'meant to take one, the action must declare it as type File or carry the ' +
+        '"file picker" widget.',
+    );
   }
 
   return value;

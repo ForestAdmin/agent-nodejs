@@ -14,6 +14,15 @@ export type RecordStepStatus = z.infer<typeof RecordStepStatusSchema>;
 export const AwaitingInputReasonSchema = z.enum(['needs-oauth-reauth']);
 export type AwaitingInputReason = z.infer<typeof AwaitingInputReasonSchema>;
 
+// What kind of failure a step error is. All three cross the wire even though only 'operator' drives
+// a UI branch today: widening an enum is cheap, changing a cross-service contract is not.
+export const ErrorKindSchema = z.enum(['operator', 'configuration', 'system']);
+export type ErrorKind = z.infer<typeof ErrorKindSchema>;
+
+// Identifies the step an error is about by index rather than by step id: a LinkTo loop repeats ids,
+// so only the index says which iteration the error came from.
+export const ErrorSourceStepIndexSchema = z.number().int().nonnegative();
+
 export type StepStatus = BaseStepStatus | RecordStepStatus;
 
 /**
@@ -26,6 +35,10 @@ const baseOutcomeFields = {
   stepIndex: z.number().int().nonnegative(),
   /** Present when status is 'error'. */
   error: z.string().optional(),
+  /** Present when the error has been classified. Absent leaves the error framed as it is today. */
+  errorKind: ErrorKindSchema.optional(),
+  /** Present when the error is about another step, e.g. a source step that loaded no record. */
+  errorSourceStepIndex: ErrorSourceStepIndexSchema.optional(),
 };
 
 export const ConditionStepOutcomeSchema = z

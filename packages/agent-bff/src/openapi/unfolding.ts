@@ -1,4 +1,4 @@
-import type { FieldType } from '../read-model/capabilities-cache';
+import type { FieldType } from '../read-model/field-type';
 import type { PrimaryKeyField } from '../read-model/read-model';
 import type { Operator } from '@forestadmin/datasource-toolkit';
 
@@ -87,6 +87,7 @@ export interface UnfoldedActionField {
   type: FieldType;
   isRequired: boolean;
   enums: string[] | null;
+  reference: string | null;
 }
 
 export type { FieldType };
