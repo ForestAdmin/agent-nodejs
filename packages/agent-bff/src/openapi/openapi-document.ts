@@ -58,6 +58,9 @@ const UNSUPPORTED_ACTION_RESULT_COMPONENT = 'UnsupportedActionResult';
 
 const OPENAPI_DISABLED_COMPONENT = 'Error404OpenapiDisabled';
 
+const OPENAPI_DISABLED_DESCRIPTION =
+  'The deployment runs with `BFF_OPENAPI_ENABLED=false`, so the document is not served over HTTP.';
+
 const RETRY_AFTER_HEADER = {
   'Retry-After': {
     description:
@@ -66,6 +69,16 @@ const RETRY_AFTER_HEADER = {
     required: false,
     schema: { type: 'integer' as const },
   },
+};
+
+const HEAD_DOCUMENT_RESPONSES = {
+  200: { description: 'The document exists and is readable; no body is returned for HEAD' },
+  400: { description: ERROR_STATUSES['400'] },
+  401: { description: ERROR_STATUSES['401'] },
+  403: { description: ERROR_STATUSES['403'] },
+  404: { description: `${OPENAPI_DISABLED_DESCRIPTION} The status is the same as the GET one.` },
+  500: { description: ERROR_STATUSES['500'] },
+  503: { description: ERROR_STATUSES['503'], headers: RETRY_AFTER_HEADER },
 };
 
 type ResponseRef = { $ref: string };
@@ -106,10 +119,7 @@ function registerErrorResponses(
 
   const byStatus: Record<string, ResponseRef> = {};
   const openapiDisabled = registerErrorComponent(registry, OPENAPI_DISABLED_COMPONENT, {
-    description:
-      'The deployment runs with `BFF_OPENAPI_ENABLED=false`, so the document is not served over ' +
-      'HTTP. The body is typed `openapi_disabled`; a bare 404 with no typed body means the agent ' +
-      'edge is not mounted at all.',
+    description: `${OPENAPI_DISABLED_DESCRIPTION} The body is typed \`openapi_disabled\`; a bare 404 with no typed body means the agent edge is not mounted at all.`,
     schema: { $ref: ERROR_RESPONSE_REF },
   });
 
@@ -382,14 +392,17 @@ function registerPermissionsPath(
       '`instantCacheRefresh` by default, so its own cache has no meaningful expiry — about a year — ' +
       'and freshness rides on the Forest event stream: as long as those events reach it, the agent ' +
       'enforces the new permission while these hints are still stale. If the stream is cut — a ' +
-      'reverse proxy that swallows it, which the agent logs — the agent can hold the old permission ' +
-      'far longer than these hints, and the hints are then the fresher of the two. An agent ' +
+      'reverse proxy that swallows it, which the agent logs once at subscribe time when the first ' +
+      'heartbeat never arrives — the agent can hold the old permission far longer than these ' +
+      'hints, and the hints are then the fresher of the two. An agent ' +
       'explicitly configured with `instantCacheRefresh: false` caches for ' +
       '`permissionsCacheDurationInSeconds` — 15 minutes by default, configurable with a 60-second ' +
-      'floor — independently of these hints, and the two can then disagree in either direction ' +
-      'until both expire. A 503 here is `permissions_unavailable` or ' +
+      'floor — independently of these hints. That agent refetches on a denial, so a newly GRANTED ' +
+      'permission lands on the next call while these hints still hide it; only a REVOKED one ' +
+      'lingers agent-side until the cache expires. A 503 here is `permissions_unavailable` or ' +
       '`key_resolution_unavailable`, which always carry Retry-After, or `schema_unavailable`, ' +
-      'which does not. Unlike the context, document and AI-query routes, this one sits behind the ' +
+      'which does not. Unlike the context and document routes, and the AI-query relay where it is ' +
+      'published, this one sits behind the ' +
       'timezone middleware even though it reads no timezone, so a deployment with no configured ' +
       'default answers 400 `missing_timezone` unless `X-Forest-Timezone` is sent.',
     security: SECURITY,
@@ -424,26 +437,7 @@ function registerPermissionsPath(
   });
 }
 
-function headDocumentResponses(): Record<string, { description: string }> {
-  return {
-    200: { description: 'The document exists and is readable; no body is returned for HEAD' },
-    400: { description: ERROR_STATUSES['400'] },
-    401: { description: ERROR_STATUSES['401'] },
-    403: { description: ERROR_STATUSES['403'] },
-    404: {
-      description:
-        'The deployment runs with `BFF_OPENAPI_ENABLED=false`, so the document is not served ' +
-        'over HTTP. The status is the same as the GET one, but the typed `openapi_disabled` body ' +
-        'never comes back on a HEAD: read the status, not the type.',
-    },
-    500: { description: ERROR_STATUSES['500'] },
-    503: { description: ERROR_STATUSES['503'] },
-  };
-}
-
 function registerDocumentPath(registry: OpenAPIRegistry, errorRefs: ErrorResponseRefs): void {
-  const disabled = errorRefs.openapiDisabled;
-
   registry.registerPath({
     method: 'get',
     path: DOCUMENT_PATH,
@@ -464,7 +458,7 @@ function registerDocumentPath(registry: OpenAPIRegistry, errorRefs: ErrorRespons
       400: errorRefs.byStatus['400'],
       401: errorRefs.byStatus['401'],
       403: errorRefs.byStatus['403'],
-      404: disabled,
+      404: errorRefs.openapiDisabled,
       500: errorRefs.byStatus['500'],
       503: errorRefs.byStatus['503'],
     },
@@ -477,10 +471,12 @@ function registerDocumentPath(registry: OpenAPIRegistry, errorRefs: ErrorRespons
     summary: 'Probe this document without fetching it',
     description:
       'Same route as `GET`, answering the same statuses and headers with no body, so a client can ' +
-      'probe whether the document is enabled and reachable before re-fetching it.',
+      'probe whether the document is enabled and reachable before re-fetching it. Every status ' +
+      'below reuses the GET wording, which describes a JSON body no HEAD ever returns: read the ' +
+      'status, not the type.',
     security: SECURITY,
     request: {},
-    responses: headDocumentResponses(),
+    responses: HEAD_DOCUMENT_RESPONSES,
   });
 }
 

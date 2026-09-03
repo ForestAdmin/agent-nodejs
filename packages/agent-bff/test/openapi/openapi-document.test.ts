@@ -24,12 +24,15 @@ const responseComponents = (document.components?.responses ?? {}) as unknown as 
   ResolvedResponse
 >;
 
-function responsesOf(path: string): Record<string, ResolvedResponse> {
+function responsesOf(path: string, method?: 'head'): Record<string, ResolvedResponse> {
   const item = document.paths?.[path] as {
     post?: { responses: Record<string, unknown> };
     get?: { responses: Record<string, unknown> };
+    head?: { responses: Record<string, unknown> };
   };
-  const { responses } = (item.post ?? item.get) as { responses: Record<string, unknown> };
+  const { responses } = (method ? item[method] : item.post ?? item.get) as {
+    responses: Record<string, unknown>;
+  };
 
   return Object.fromEntries(
     Object.entries(responses).map(([status, response]) => {
@@ -497,9 +500,8 @@ describe('generateOpenApiDocument', () => {
     expect(description).toContain('the hints are then the fresher of the two');
     expect(description).toContain('`permissionsCacheDurationInSeconds`');
     expect(description).toContain('60-second floor');
-    expect(description).toContain('disagree in either direction');
-    expect(description).toContain('Unlike the context, document and AI-query routes');
-    expect(description).not.toContain('Unlike the context and document routes');
+    expect(description).toContain('only a REVOKED one lingers agent-side');
+    expect(description).toContain('the AI-query relay where it is published');
     expect(description).not.toContain('Like every route under');
   });
 
@@ -602,7 +604,6 @@ describe('generateOpenApiDocument', () => {
 
   it('should document HEAD on the document path, so a generated client can probe before fetching', () => {
     const path = (document.paths ?? {})[DOCUMENT_PATH] as {
-      get: { responses: Record<string, unknown> };
       head: {
         operationId: string;
         security: unknown;
@@ -623,15 +624,27 @@ describe('generateOpenApiDocument', () => {
     ]);
     expect(path.head.responses['200'].content).toBeUndefined();
     expect(path.head.responses['200'].description).toContain('no body');
+  });
 
-    for (const status of ['400', '401', '403', '404', '500', '503']) {
-      expect(path.head.responses[status].content).toBeUndefined();
-      expect(path.head.responses[status].$ref).toBeUndefined();
-      expect(path.head.responses[status].description).toBeTruthy();
-    }
+  it('should answer HEAD with the same statuses, wording and headers as GET, minus the bodies', () => {
+    const head = responsesOf(DOCUMENT_PATH, 'head');
+    const get = responsesOf(DOCUMENT_PATH);
 
-    expect(path.head.responses['404'].description).toContain('`openapi_disabled` body');
-    expect(path.head.responses['404'].description).toContain('never comes back on a HEAD');
+    ['400', '401', '403', '500', '503'].forEach(status => {
+      expect(head[status].content).toBeUndefined();
+      expect(head[status].description).toBe(get[status].description);
+      expect(head[status].headers).toEqual(get[status].headers);
+    });
+
+    expect(head['404'].content).toBeUndefined();
+    expect(head['404'].description).toContain('`BFF_OPENAPI_ENABLED=false`');
+    expect(head['404'].description).not.toContain('typed `openapi_disabled`');
+  });
+
+  it('should tell a HEAD caller to read the status rather than the type it cannot see', () => {
+    const path = (document.paths ?? {})[DOCUMENT_PATH] as { head: { description: string } };
+
+    expect(path.head.description).toContain('read the status, not the type');
   });
 
   it('should say which live routes it deliberately leaves out, since a consumer cannot guess', () => {
