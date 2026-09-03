@@ -5,7 +5,9 @@ import { OpenAPIRegistry, OpenApiGeneratorV31 } from '@asteasolutions/zod-to-ope
 
 import ComponentPool from './component-pool';
 import {
+  ActionFormResponseSchema,
   ActionRequestSchema,
+  ActionResultSchema,
   AiQueryRequestSchema,
   ContextResponseSchema,
   CountRequestSchema,
@@ -30,18 +32,19 @@ const API_KEY_SCHEME = 'bffApiKey';
 const SECURITY = [{ [SESSION_SCHEME]: [] }, { [API_KEY_SCHEME]: [] }];
 
 const ERROR_STATUSES: Record<string, string> = {
-  400: 'Malformed body, a malformed URL-encoded path segment, an invalid filter operator, a filter nested too deep, ambiguous credentials, an unsupported page, a missing or invalid timezone, an unknown submitted action field, or a rejected action form (type action_error)',
+  400: 'Malformed body, a malformed URL-encoded path segment, an invalid filter operator, a filter nested too deep, ambiguous credentials, an unsupported page, a missing or invalid timezone, an unknown submitted action field, a required action field left empty or a malformed file value at execute, or a rejected action form (type action_error)',
   401: 'Missing, invalid, or expired credentials',
   403: 'The action needs approval before it runs (the body carries the approving roles), the Forest identity behind the API key is not allowed, the origin is not allowed for this key, or the agent refused the collection, relation, or action',
   404: 'Unknown collection, relation, or action',
   413: `The request body exceeds the BFF limit of ${BODY_LIMIT}`,
   415: 'The request Content-Type is neither application/json nor an application/*+json type, including form-urlencoded, and is rejected with 415 instead of being silently dropped; a request carrying a body with no Content-Type at all is rejected the same way; or the declared character set cannot be decoded',
-  422: 'A field is unknown, not filterable, or is a nested relation path',
+  422: 'A field is unknown, not filterable, is a nested relation path, or an action value at execute is outside its enum or of the wrong type',
   429: 'The agent rate-limited the request',
   500: 'The agent payload could not be mapped to the BFF contract, or the BFF hit an unexpected error',
   501: 'The BFF is running without an agent configured, so the proxy is not implemented',
-  502: 'The agent could not be reached',
+  502: 'The agent refused the connection, its host could not be resolved, or the transport failed another way (a connection reset mid-flight, a socket hang up, a TLS failure) — it failed outright rather than running out of time',
   503: 'The agent schema is unavailable, the agent returned a 5xx, or the API key could not be resolved',
+  504: 'The agent did not answer before the BFF timeout (BFF_AGENT_TIMEOUT_MS, 10s by default). The deadline is armed when the request starts, so at the default it also covers a host that accepts nothing and never resets the connection — raise the timeout past the OS connect timeout and that case reverts to 502',
 };
 
 const UNSUPPORTED_RESULT_DESCRIPTION =
@@ -152,6 +155,7 @@ const DATA_ERRORS = [
   '501',
   '502',
   '503',
+  '504',
 ];
 
 const AI_RELAYED_OR_ENVELOPE =
@@ -267,7 +271,7 @@ const ROUTES: RouteDefinition[] = [
     operationId: 'getActionForm',
     summary: 'Load the form of a custom action',
     request: ActionRequestSchema,
-    response: z.unknown(),
+    response: ActionFormResponseSchema,
     responseDescription:
       'The action form fields; htmlBlock layout content is sanitized server-side against an allowlist before relaying',
     params: ['collection', 'action'],
@@ -278,7 +282,7 @@ const ROUTES: RouteDefinition[] = [
     operationId: 'executeAction',
     summary: 'Execute a custom action',
     request: ActionRequestSchema,
-    response: z.unknown(),
+    response: ActionResultSchema,
     responseDescription:
       'The normalized action result; a success result html field is sanitized server-side against an allowlist before relaying',
     params: ['collection', 'action'],

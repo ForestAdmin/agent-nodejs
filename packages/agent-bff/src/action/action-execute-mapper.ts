@@ -11,15 +11,15 @@ export interface ActionExecuteSuccessBody {
 
 export interface ActionExecuteWebhookBody {
   type: 'webhook';
-  url: unknown;
-  method: unknown;
+  url: string;
+  method: string;
   headers: unknown;
   body: unknown;
 }
 
 export interface ActionExecuteRedirectBody {
   type: 'redirect';
-  path: unknown;
+  path: string;
 }
 
 export interface ActionExecuteUnsupportedBody {

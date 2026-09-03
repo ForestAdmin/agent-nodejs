@@ -30,7 +30,7 @@ describe('createAgentCapabilitiesFetcher', () => {
     expect(createRemoteAgentClientMock).toHaveBeenCalledWith({
       url: 'https://agent',
       token: 'tok',
-      httpRequester: expect.objectContaining({ query }),
+      httpRequester: expect.objectContaining({ query: expect.any(Function) }),
     });
     expect(collection).toHaveBeenCalledWith('users');
     expect(capabilities).toHaveBeenCalledTimes(1);

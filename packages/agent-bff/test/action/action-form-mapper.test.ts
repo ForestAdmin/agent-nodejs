@@ -19,6 +19,7 @@ function fieldStub(f: FakeField): ActionFormField {
   return {
     getName: () => f.name,
     getType: () => f.type,
+    getReference: () => null,
     getValue: () => f.value,
     isRequired: () => f.isRequired,
   };
@@ -64,6 +65,16 @@ describe('mapActionForm', () => {
 
     expect(result.fields[0]).not.toHaveProperty('enumValues');
     expect(result.fields[1]).toMatchObject({ name: 'status', enumValues: ['a', 'b'] });
+  });
+
+  it('emits enumValues for a legacy EnumList field, which the execute validator checks', () => {
+    const action = actionWith([
+      { name: 'tiers', type: 'EnumList', value: null, isRequired: false, enumValues: ['a', 'b'] },
+    ]);
+
+    const result = mapForm(action, [], []);
+
+    expect(result.fields[0]).toMatchObject({ name: 'tiers', enumValues: ['a', 'b'] });
   });
 
   it('sets enumValues to null when an Enum field has no options', () => {

@@ -16,6 +16,8 @@ import type { ReferenceObject, SchemaObject } from 'openapi3-ts/oas31';
 import toFieldSchema from './field-schemas';
 import createNamer from './names';
 import {
+  ActionFormResponseSchema,
+  ActionResultSchema,
   CLOSED_BODY_NOTE,
   CountResponseSchema,
   ListResponseSchema,
@@ -29,6 +31,7 @@ import {
 } from './schemas';
 import { PACKED_ID_SEPARATOR } from '../data/pack-id';
 import { NON_BLANK_PATTERN } from '../data/request-schemas';
+import { enumOptionsOf } from '../read-model/field-type';
 
 const AGGREGATORS = ['And', 'Or'];
 
@@ -280,10 +283,13 @@ function requestProperties(deps: Deps, plan: Pick<CollectionPlan, 'key' | 'colle
   return {
     count,
     list: {
-      ...count,
+      filter: refs.filter,
       projection: { type: 'array', items: refs.projectable },
       sort: { type: 'array', items: refs.sort },
       page: pool.reuse('Page', PageSchema),
+      search,
+      searchExtended,
+      timezone,
     } satisfies BodyProperties,
   };
 }
@@ -301,7 +307,7 @@ function registerRequests(
       type: 'object',
       description: requestDescription(
         collection,
-        `Filter, sort and project records of ${quoted(collection.name)}.`,
+        `Filter, search, sort and project records of ${quoted(collection.name)}.`,
       ),
       properties: properties.list,
       additionalProperties: false,
@@ -310,7 +316,8 @@ function registerRequests(
       type: 'object',
       description: requestDescription(
         collection,
-        `Count records of ${quoted(collection.name)} matching a filter.`,
+        `Count records of ${quoted(collection.name)}. Accepts the same search inputs as list, so ` +
+          'a client can count exactly the rows its search returns.',
       ),
       properties: properties.count,
       additionalProperties: false,
@@ -391,14 +398,31 @@ function registerRelationRequests(
   };
 }
 
-function actionFieldSchema(field: UnfoldedAction['fields'][number]): SchemaObject {
-  const base = field.enums
-    ? { type: 'string' as const, enum: field.enums }
-    : toFieldSchema(field.type);
+function actionFieldBaseSchema(field: UnfoldedAction['fields'][number]): SchemaObject {
+  if (field.reference !== null) {
+    return { type: 'string', description: `A packed record id for ${field.reference}.` };
+  }
 
-  return field.isRequired
-    ? { ...base, description: 'The agent declares this field required on the static form.' }
-    : base;
+  const options = enumOptionsOf(field.type, field.enums);
+
+  if (options === undefined) return toFieldSchema(field.type);
+
+  return Array.isArray(field.type)
+    ? { type: 'array', items: { type: 'string', enum: options } }
+    : { type: 'string', enum: options };
+}
+
+function actionFieldSchema(field: UnfoldedAction['fields'][number]): SchemaObject {
+  const base = actionFieldBaseSchema(field);
+
+  if (!field.isRequired) return base;
+
+  const required = 'The agent declares this field required on the static form.';
+
+  return {
+    ...base,
+    description: base.description === undefined ? required : `${base.description} ${required}`,
+  };
 }
 
 function actionValuesSchema(action: UnfoldedAction): SchemaObject {
@@ -410,7 +434,10 @@ function actionValuesSchema(action: UnfoldedAction): SchemaObject {
     // omitted its hooks, so "static" is never certain.
     description:
       'The submitted action fields. These are the fields the schema declares statically; a load ' +
-      'or change hook can add, drop or require others at call time.',
+      'or change hook can add, drop or require others at call time. On execute the values are ' +
+      'validated against that live form: a required field left empty answers 400, an out-of-enum ' +
+      "or wrongly typed value 422. Only the JSON type and an Enum field's options are checked " +
+      "there: a declared string format (date-time, uuid) and a widget's own option list are not.",
     properties: Object.fromEntries(
       action.fields.map(field => [field.name, actionFieldSchema(field)]),
     ),
@@ -437,6 +464,7 @@ function registerActionRequest(
       timezone: pool.reuse('Timezone', TimezoneSchema),
     },
     required: ['recordIds'],
+    additionalProperties: false,
   });
 }
 
@@ -563,6 +591,8 @@ function registerRelationOperations(
 }
 
 function registerActionOperations(deps: Deps, plan: CollectionPlan, namer: Namer): void {
+  const { pool } = deps;
+
   plan.collection.actions.forEach(action => {
     const actionKey = namer(`${plan.key}_${action.name}`);
     const request = registerActionRequest(deps, plan, action, actionKey);
@@ -578,7 +608,7 @@ function registerActionOperations(deps: Deps, plan: CollectionPlan, namer: Namer
       summary: `Load the form of ${action.name} on ${plan.collection.name}`,
       description: `Loads the form of the custom action. ${identity} An unknown submitted field is skipped here, not rejected.`,
       request,
-      response: {},
+      response: pool.reuse('ActionFormResponse', ActionFormResponseSchema),
       responseDescription:
         'The action form fields; htmlBlock layout content is sanitized server-side against an allowlist before relaying',
       bodyRequired: true,
@@ -591,7 +621,7 @@ function registerActionOperations(deps: Deps, plan: CollectionPlan, namer: Namer
       summary: `Execute ${action.name} on ${plan.collection.name}`,
       description: `Executes the custom action. ${identity} A submitted field the loaded form does not carry is rejected with 400.`,
       request,
-      response: {},
+      response: pool.reuse('ActionResult', ActionResultSchema),
       responseDescription:
         'The normalized action result; a success result html field is sanitized server-side against an allowlist before relaying',
       bodyRequired: true,
