@@ -1,28 +1,21 @@
-import type { FieldType } from '../read-model/capabilities-cache';
+import type { FieldType } from '../read-model/field-type';
 import type { SchemaObject } from 'openapi3-ts/oas31';
 
-// Forest primitives, mapped to the closest JSON Schema shape. `Json` maps to no constraint at all,
-// which is honest: any JSON value is accepted there.
-const PRIMITIVE_SCHEMAS: Record<string, SchemaObject> = {
-  Binary: { type: 'string' },
-  Boolean: { type: 'boolean' },
-  Date: { type: 'string', format: 'date-time' },
-  Dateonly: { type: 'string', format: 'date' },
-  Enum: { type: 'string' },
-  File: { type: 'string', description: 'A data URI.' },
-  Json: {},
-  Number: { type: 'number' },
-  Point: { type: 'string' },
-  String: { type: 'string' },
-  Time: { type: 'string' },
-  Timeonly: { type: 'string' },
-  Uuid: { type: 'string', format: 'uuid' },
-};
+import { primitiveShapeOf } from '../read-model/field-type';
+
+const FORMATS = new Map([
+  ['Date', 'date-time'],
+  ['Dateonly', 'date'],
+  ['Uuid', 'uuid'],
+]);
+
+const DESCRIPTIONS = new Map([['File', 'A data URI.']]);
 
 /**
- * Turns a Forest column type into a JSON Schema. Anything unrecognized — a relation marker such as
- * `ManyToOne`, or a type a newer agent introduced — maps to an unconstrained schema rather than a
- * guess, so the document never rejects a value the runtime accepts.
+ * Turns a Forest column type into a JSON Schema, off the shared primitive table in
+ * `read-model/field-type`. Anything unrecognized — a relation marker such as `ManyToOne`, or a type
+ * a newer agent introduced — maps to an unconstrained schema rather than a guess, so the document
+ * never rejects a value the runtime accepts.
  */
 export default function toFieldSchema(type: FieldType): SchemaObject {
   if (Array.isArray(type)) {
@@ -45,5 +38,18 @@ export default function toFieldSchema(type: FieldType): SchemaObject {
     };
   }
 
-  return typeof type === 'string' ? PRIMITIVE_SCHEMAS[type] ?? {} : {};
+  if (typeof type !== 'string') return {};
+
+  const shape = primitiveShapeOf(type);
+
+  if (shape === 'any') return {};
+
+  const format = FORMATS.get(type);
+  const description = DESCRIPTIONS.get(type);
+
+  return {
+    type: shape,
+    ...(format !== undefined && { format }),
+    ...(description !== undefined && { description }),
+  };
 }

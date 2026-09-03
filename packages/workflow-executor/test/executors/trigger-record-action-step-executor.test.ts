@@ -3,7 +3,10 @@ import type { AgentPort } from '../../src/ports/agent-port';
 import type { RunStore } from '../../src/ports/run-store';
 import type { WorkflowPort } from '../../src/ports/workflow-port';
 import type { ExecutionContext } from '../../src/types/execution-context';
-import type { TriggerRecordActionStepExecutionData } from '../../src/types/step-execution-data';
+import type {
+  LoadRelatedRecordStepExecutionData,
+  TriggerRecordActionStepExecutionData,
+} from '../../src/types/step-execution-data';
 import type { CollectionSchema, RecordRef } from '../../src/types/validated/collection';
 import type { Step } from '../../src/types/validated/execution';
 import type { TriggerActionStepDefinition } from '../../src/types/validated/step-definition';
@@ -1715,6 +1718,71 @@ describe('TriggerRecordActionStepExecutor', () => {
       );
     });
 
+    // An empty id is a pin that lost its target, not an absent pin: falling back to AI selection
+    // would silently run the action on a different record than the workflow was configured to run it on.
+    // The reachable case: the editor pinned a real action and an admin later renamed or removed it.
+    // Telling the operator to rephrase the prompt sends them after a name no prompt ever chose.
+    it('names the step, not the prompt, when a pinned actionName no longer resolves', async () => {
+      const mockModel = makeMockModel();
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort: makeMockAgentPort(),
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          preRecordedArgs: { actionName: 'renamed_away' },
+        }),
+      });
+
+      const result = await new TriggerRecordActionStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.errorKind).toBe('configuration');
+      expect(result.stepOutcome.error).toBe(
+        'The action pinned on this step no longer exists on this record. Edit the step to pick another one.',
+      );
+      // The pin was never the AI's to make, so it must not fall back to choosing an action.
+      expect(mockModel.bindTools).not.toHaveBeenCalled();
+    });
+
+    it('rejects an empty actionName instead of letting the AI choose an action to execute', async () => {
+      const mockModel = makeMockModel();
+      const agentPort = makeMockAgentPort();
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort,
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          preRecordedArgs: { actionName: '' },
+        }),
+      });
+
+      const result = await new TriggerRecordActionStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.errorKind).toBe('configuration');
+      expect(mockModel.bindTools).not.toHaveBeenCalled();
+      expect(agentPort.executeAction).not.toHaveBeenCalled();
+    });
+
+    it('rejects an empty selectedRecordStepId instead of selecting a record with AI', async () => {
+      const mockModel = makeMockModel();
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort: makeMockAgentPort(),
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          preRecordedArgs: { selectedRecordStepId: '', actionName: 'send-welcome-email' },
+        }),
+      });
+
+      const result = await new TriggerRecordActionStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe('The pre-configured step parameters are invalid');
+      expect(result.stepOutcome.errorKind).toBe('configuration');
+      expect(mockModel.bindTools).not.toHaveBeenCalled();
+    });
+
     it('falls back to the step prompt as approvalMessage when the action is pre-recorded', async () => {
       const agentPort = makeMockAgentPort();
       (agentPort.executeAction as jest.Mock).mockResolvedValue({ result: { ok: true } });
@@ -1989,27 +2057,209 @@ describe('TriggerRecordActionStepExecutor', () => {
       );
     });
 
-    it('errors when the pinned source step (a Load Related Record) loaded no record', async () => {
-      const agentPort = makeMockAgentPort();
-      // The source Load Related Record step is on the live path but has no execution record stored
-      // (it loaded nothing) → SourceRecordMissingError, no action triggered.
-      const runStore = makeMockRunStore({ getStepExecutions: jest.fn().mockResolvedValue([]) });
-      const context = makeContext({
-        agentPort,
-        runStore,
-        previousSteps: [makeLoadRelatedPreviousStep(2)],
-        stepDefinition: makeStep({
-          executionType: StepExecutionMode.FullyAutomated,
-          preRecordedArgs: { selectedRecordStepId: 'load-2', actionName: 'send-welcome-email' },
-        }),
+    describe('a source step that loaded no record', () => {
+      const relation = { name: 'orders', displayName: 'Orders' };
+      const oneCandidate = [{ recordId: [99], referenceFieldValue: 'Order #99' }];
+
+      // Every case here pins the action to the same Load Related Record source (step id 'load-2' at
+      // index 2) and varies only what that step left behind in the run store.
+      async function runPinnedToSource({
+        executions = [],
+        executionType = StepExecutionMode.FullyAutomated,
+        selectedRecordStepId = 'load-2',
+      }: {
+        executions?: LoadRelatedRecordStepExecutionData[];
+        executionType?: StepExecutionMode;
+        selectedRecordStepId?: string;
+      } = {}) {
+        const agentPort = makeMockAgentPort();
+        const runStore = makeMockRunStore({
+          getStepExecutions: jest.fn().mockResolvedValue(executions),
+        });
+        const context = makeContext({
+          agentPort,
+          runStore,
+          previousSteps: [makeLoadRelatedPreviousStep(2)],
+          stepDefinition: makeStep({
+            executionType,
+            preRecordedArgs: { selectedRecordStepId, actionName: 'send-welcome-email' },
+          }),
+        });
+
+        const { stepOutcome } = await new TriggerRecordActionStepExecutor(context).execute();
+
+        return { stepOutcome, agentPort };
+      }
+
+      it('errors without triggering the action when no execution record was stored', async () => {
+        const { stepOutcome, agentPort } = await runPinnedToSource();
+
+        expect(stepOutcome.status).toBe('error');
+        expect(stepOutcome.error).toContain("didn't load any record");
+        expect(agentPort.executeAction).not.toHaveBeenCalled();
+        // As likely our own missing run-store entry as anything the operator did, so it names nobody
+        // — but which step is implicated is known regardless.
+        expect(stepOutcome).not.toHaveProperty('errorKind');
+        expect(stepOutcome.errorSourceStepIndex).toBe(2);
       });
-      const executor = new TriggerRecordActionStepExecutor(context);
 
-      const result = await executor.execute();
+      it('classifies a manually completed source as an operator error', async () => {
+        // Paused (pendingData saved, no executionResult), then completed out of band, which never
+        // comes back through the executor. A candidate was on the table and they passed on it.
+        const { stepOutcome, agentPort } = await runPinnedToSource({
+          executions: [
+            {
+              type: 'load-related-record',
+              stepIndex: 2,
+              pendingData: {
+                availableFields: [relation],
+                suggestedField: relation,
+                availableRecordIds: oneCandidate,
+                suggestNoRecord: true,
+              },
+            },
+          ],
+        });
 
-      expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toContain("didn't load any record");
-      expect(agentPort.executeAction).not.toHaveBeenCalled();
+        expect(stepOutcome.status).toBe('error');
+        expect(stepOutcome.errorKind).toBe('operator');
+        // A LinkTo loop repeats step ids, so the index is the only thing that identifies which
+        // iteration lost its record.
+        expect(stepOutcome.errorSourceStepIndex).toBe(2);
+        expect(agentPort.executeAction).not.toHaveBeenCalled();
+      });
+
+      it('classifies a source that offered candidates with no AI suggestion as operator', async () => {
+        // A Manual source pause populates the candidate list and never sets suggestNoRecord, so the
+        // list is what says the operator had a choice — reading the flag would miss this.
+        const { stepOutcome } = await runPinnedToSource({
+          executionType: StepExecutionMode.Manual,
+          executions: [
+            {
+              type: 'load-related-record',
+              stepIndex: 2,
+              pendingData: {
+                availableFields: [relation],
+                suggestedField: relation,
+                availableRecordIds: oneCandidate,
+              },
+            },
+          ],
+        });
+
+        expect(stepOutcome.status).toBe('error');
+        expect(stepOutcome.errorKind).toBe('operator');
+        expect(stepOutcome.errorSourceStepIndex).toBe(2);
+      });
+
+      it('classifies a declined confirmation with candidates as an operator error', async () => {
+        // The confirmation flow records a decline as a skipped result while keeping the candidate
+        // list, so the result shape alone would read this as nobody's choice.
+        const { stepOutcome } = await runPinnedToSource({
+          executions: [
+            {
+              type: 'load-related-record',
+              stepIndex: 2,
+              pendingData: {
+                availableFields: [relation],
+                suggestedField: relation,
+                availableRecordIds: oneCandidate,
+              },
+              userConfirmation: { userConfirmed: false },
+              executionResult: { skipped: true },
+            },
+          ],
+        });
+
+        expect(stepOutcome.status).toBe('error');
+        expect(stepOutcome.errorKind).toBe('operator');
+        expect(stepOutcome.errorSourceStepIndex).toBe(2);
+      });
+
+      it('classifies a source step id that matches no step as a configuration error', async () => {
+        const { stepOutcome, agentPort } = await runPinnedToSource({
+          selectedRecordStepId: 'load-9',
+        });
+
+        expect(stepOutcome.status).toBe('error');
+        expect(stepOutcome.errorKind).toBe('configuration');
+        // Nothing resolved, so there is no history entry to name.
+        expect(stepOutcome).not.toHaveProperty('errorSourceStepIndex');
+        expect(agentPort.executeAction).not.toHaveBeenCalled();
+      });
+
+      // The next two are the same empty relation seen from the two execution modes that reach it.
+      // They must agree: who has to act does not depend on which mode ran the source step.
+      it('classifies a relation the executor skipped with no candidates as configuration', async () => {
+        // Full AI found nothing to offer and continued on its own judgment (persistSkip). Nobody was
+        // there to decide, and the workflow routes a record-consuming step off an emptiable relation.
+        const { stepOutcome } = await runPinnedToSource({
+          executions: [
+            {
+              type: 'load-related-record',
+              stepIndex: 2,
+              executionParams: relation,
+              executionResult: { skipped: true },
+            },
+          ],
+        });
+
+        expect(stepOutcome.status).toBe('error');
+        expect(stepOutcome.error).toContain("didn't load any record");
+        expect(stepOutcome.errorKind).toBe('configuration');
+      });
+
+      it('classifies an acknowledged empty relation as configuration', async () => {
+        // Same empty relation, AI-assisted: the step paused with nothing to offer and the operator
+        // acknowledged it. They decided, but never had an alternative to decide between.
+        const { stepOutcome } = await runPinnedToSource({
+          executionType: StepExecutionMode.AutomatedWithConfirmation,
+          executions: [
+            {
+              type: 'load-related-record',
+              stepIndex: 2,
+              pendingData: {
+                availableFields: [relation],
+                suggestedField: relation,
+                availableRecordIds: [],
+                suggestNoRecord: true,
+              },
+            },
+          ],
+        });
+
+        expect(stepOutcome.status).toBe('error');
+        expect(stepOutcome.errorKind).toBe('configuration');
+        expect(stepOutcome.errorSourceStepIndex).toBe(2);
+      });
+
+      it('leaves a source with neither a result nor a candidate list unclassified', async () => {
+        // Nothing to read the situation from: it neither finished nor recorded what it offered.
+        const { stepOutcome } = await runPinnedToSource({
+          executions: [{ type: 'load-related-record', stepIndex: 2 }],
+        });
+
+        expect(stepOutcome.status).toBe('error');
+        expect(stepOutcome).not.toHaveProperty('errorKind');
+        expect(stepOutcome.errorSourceStepIndex).toBe(2);
+      });
+
+      it('leaves a source with an unreadable result shape unclassified', async () => {
+        // A result the guard cannot read is as likely our own shape mismatch as anything that
+        // happened in the run, so it must not name a culprit.
+        const { stepOutcome } = await runPinnedToSource({
+          executions: [
+            {
+              type: 'load-related-record',
+              stepIndex: 2,
+              executionResult: { relation },
+            } as unknown as LoadRelatedRecordStepExecutionData,
+          ],
+        });
+
+        expect(stepOutcome.status).toBe('error');
+        expect(stepOutcome).not.toHaveProperty('errorKind');
+      });
     });
   });
 

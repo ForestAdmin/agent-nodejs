@@ -55,7 +55,12 @@ export const PageSchema = PageInput.openapi('Page', {
   description:
     'The agent paginates by page number, so `offset` must be a whole multiple of `limit`. ' +
     `Any other offset is rejected with 400 invalid_request, as is a \`limit\` above \`${MAX_PAGE_LIMIT}\` ` +
-    '(the maximum is not clamped silently).',
+    '(the maximum is not clamped silently). `limit` and `offset` are both ' +
+    'required once `page` is sent, but the object itself is optional on every list — and ' +
+    'omitting it is not a request for the whole collection. The BFF then forwards no ' +
+    'pagination, so the agent applies its own default: the first page (offset 0), a limit ' +
+    'of 15 records on the Node agent. Anything past that page is silently missing. Send ' +
+    '`page` and walk it to read a collection in full.',
 });
 
 export const TimezoneSchema = TimezoneInput.openapi('Timezone', {
@@ -131,7 +136,7 @@ export const RelationCountRequestSchema = CountRequestSchema.extend({
 }).openapi('RelationCountRequest');
 
 export const ActionRequestSchema = z
-  .object({
+  .strictObject({
     recordIds: z.array(z.union([z.string(), z.number()])),
     values: z.record(z.string(), z.unknown()).optional(),
     timezone: TimezoneSchema.optional(),
@@ -139,7 +144,107 @@ export const ActionRequestSchema = z
   .openapi('ActionRequest', {
     description:
       '`recordIds` is required, even on a global action: send an empty array when the action ' +
-      'targets no record. Every id is coerced to a string before reaching the agent.',
+      'targets no record. Every id is coerced to a string before reaching the agent. On execute ' +
+      'the submitted values are validated against the live form: a required field left empty ' +
+      'answers 400, an out-of-enum or wrongly typed value 422. Only the JSON type and an Enum ' +
+      "field's options are checked there: a declared string format (date-time, uuid) and a " +
+      "widget's own option list are not.",
+  });
+
+const UNTRUSTED_HTML_NOTE = 'sanitize it before rendering (stored/reflected XSS risk)';
+
+const ActionFormResponseFieldSchema = z
+  .object({
+    name: z.string(),
+    type: z.union([z.string(), z.array(z.string()).min(1).max(1)]),
+    value: z.unknown().optional(),
+    isRequired: z.boolean(),
+    enumValues: z.union([z.array(z.string()), z.null()]).optional(),
+  })
+  .openapi('ActionFormResponseField', {
+    description:
+      'A form field with its current value. `value` is the resolved value at load time: absent ' +
+      'when the field carries none (the resolved value was undefined), an explicit null is ' +
+      'serialized as null. `enumValues` is present only on an Enum field, and null when the ' +
+      'agent declares no options.',
+  });
+
+export const ActionFormResponseSchema = z
+  .object({
+    fields: z.array(ActionFormResponseFieldSchema),
+    canExecute: z.boolean(),
+    requiredFields: z.array(z.string()),
+    skippedFields: z.array(z.string()),
+    layout: z.array(z.unknown()),
+  })
+  .openapi('ActionFormResponse', {
+    description:
+      'The loaded form. `canExecute` is true only when every required field already carries a ' +
+      'value: a null or absent value counts as missing, an explicit empty string or 0 as ' +
+      'present. ' +
+      '`requiredFields` names the required fields still missing a value. `skippedFields` names ' +
+      'the submitted fields the static form does not carry; the same names are rejected with 400 ' +
+      'on execute. `layout` is the agent layout tree relayed verbatim (pages, rows, separators, ' +
+      'HTML blocks and field references, discriminated by `component`); it is the agent own ' +
+      'contract, so it is left untyped here.',
+  });
+
+const ActionResultSuccessSchema = z
+  .object({
+    type: z.literal('success'),
+    message: z.union([z.string(), z.null()]),
+    invalidated: z.array(z.string()),
+    html: z
+      .union([z.string(), z.null()])
+      .describe(
+        `Untrusted HTML relayed verbatim from the agent result: ${UNTRUSTED_HTML_NOTE}. Null ` +
+          'when the result carries none.',
+      ),
+  })
+  .openapi('ActionResultSuccess', {
+    description:
+      'The action ran. `invalidated` names the relations of the acted-on collection whose ' +
+      'Related Data should be re-fetched — the agent fills it from ' +
+      '`resultBuilder.success(message, { invalidated })` and the BFF relays it from the agent ' +
+      '`refresh.relationships`. `message` is the agent wording: an agent-nodejs success with ' +
+      'no message serializes the empty string, so null means the agent omitted `success` ' +
+      'entirely.',
+  });
+
+const ActionResultWebhookSchema = z
+  .object({
+    type: z.literal('webhook'),
+    url: z.string(),
+    method: z.string(),
+    headers: z.unknown().optional(),
+    body: z.unknown().optional(),
+  })
+  .openapi('ActionResultWebhook', {
+    description:
+      'The action asks the caller to fire an HTTP request. `headers` and `body` are relayed ' +
+      'from the agent payload: absent when it omitted them, an explicit null relayed as null.',
+  });
+
+const ActionResultRedirectSchema = z
+  .object({
+    type: z.literal('redirect'),
+    path: z.string(),
+  })
+  .openapi('ActionResultRedirect', {
+    description: 'The action asks the caller to navigate to `path`, relayed verbatim.',
+  });
+
+export const ActionResultSchema = z
+  .discriminatedUnion('type', [
+    ActionResultSuccessSchema,
+    ActionResultWebhookSchema,
+    ActionResultRedirectSchema,
+  ])
+  .openapi('ActionResult', {
+    description:
+      'The normalized execute result, discriminated by `type`. These three are the only 200 ' +
+      'bodies: a result the BFF cannot normalize answers 501 instead (see the execute 501 ' +
+      'response), and a form the agent rejects answers 400 action_error.',
   });
 
 const ForestRecordMetaSchema = z
@@ -163,7 +268,12 @@ export const ListResponseSchema = z
   .openapi('ListResponse', {
     description:
       'Records are flat, each carrying a `__forest` envelope. The list never carries a total: ' +
-      'call the count endpoint for that, which is why `countStatus` is always `not_requested`.',
+      'call the count endpoint for that, which is why `countStatus` is always `not_requested`. ' +
+      'It is always one page, not guaranteed to be the whole collection: a request that omitted ' +
+      "`page` still gets a page, the agent's default (up to 15 records from the start on the " +
+      'Node agent), so a response of exactly that default length is probably truncated, and ' +
+      'nothing in the body says so. Send `page` and walk it. Count gives the total unless the ' +
+      'collection disables it.',
   });
 
 export const CountResponseSchema = z
@@ -301,7 +411,17 @@ export const ErrorResponseSchema = z
       details: z.unknown().optional(),
     }),
   })
-  .openapi('ErrorResponse');
+  .openapi('ErrorResponse', {
+    description:
+      'The error envelope. `details` is left untyped because its shape depends on `type`: ' +
+      '`{ field }` on unknown_field and field_not_filterable, `{ field, validOperators }` on ' +
+      'invalid_filter_operator, `{ maxDepth }` on filter_too_deep, `{ fields }` on ' +
+      'relation_field_not_supported, and, when the agent supplies them, ' +
+      '`{ roleIdsAllowedToApprove }` on action_requires_approval and `{ html }` on action_error. ' +
+      'An error forwarded from the agent carries the agent own payload instead, and any other ' +
+      'type carries no `details` at all. The action_error html is untrusted agent output relayed ' +
+      `verbatim: ${UNTRUSTED_HTML_NOTE}, exactly like the execute success html.`,
+  });
 
 export const MessagelessErrorResponseSchema = z
   .object({

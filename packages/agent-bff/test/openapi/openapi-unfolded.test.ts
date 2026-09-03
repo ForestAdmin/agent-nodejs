@@ -42,6 +42,28 @@ function dereference(ref: string): Record<string, unknown> {
   return schemas[ref.replace('#/components/schemas/', '')];
 }
 
+function propertiesOf(path: string): Record<string, { $ref?: string }> {
+  const schema = requestSchema(path) as unknown as {
+    properties?: Record<string, { $ref?: string }>;
+    allOf?: [{ $ref: string }, unknown];
+  };
+
+  if (schema.properties) return schema.properties;
+
+  const foreign = dereference(schema.allOf?.[0].$ref ?? '') as unknown as {
+    properties: Record<string, { $ref?: string }>;
+  };
+
+  return foreign.properties;
+}
+
+function expectSearchInputsOn(path: string): void {
+  const properties = propertiesOf(path);
+
+  expect(properties.search).toEqual({ $ref: '#/components/schemas/Search' });
+  expect(properties.searchExtended).toEqual({ $ref: '#/components/schemas/SearchExtended' });
+}
+
 // The leaf alternatives of a filter tree are its `$ref` ones; the branch alternative is inlined.
 function leavesOf(treeName: string): { fields: string[]; operators: string[] }[] {
   const { anyOf } = schemas[treeName] as unknown as { anyOf: { $ref?: string }[] };
@@ -140,6 +162,24 @@ describe('the unfolded document', () => {
     );
   });
 
+  it('should say on the form response that htmlBlock layout content is sanitized server-side', () => {
+    const response = operation('My%20Coll/actions/Mark%20as%20paid%2Fdone/form')
+      .responses as Record<string, { description: string }>;
+
+    expect(response['200'].description).toContain(
+      'htmlBlock layout content is sanitized server-side against an allowlist',
+    );
+  });
+
+  it('should say on the execute response that a success html is sanitized server-side', () => {
+    const response = operation('My%20Coll/actions/Mark%20as%20paid%2Fdone/execute')
+      .responses as Record<string, { description: string }>;
+
+    expect(response['200'].description).toContain(
+      'html field is sanitized server-side against an allowlist',
+    );
+  });
+
   it('should name the exact action in prose, since the operationId cannot carry it', () => {
     expect(operation('My%20Coll/actions/Mark%20as%20paid%2Fdone/form').description).toContain(
       'exactly "Mark as paid/done"',
@@ -192,6 +232,58 @@ describe('the unfolded document', () => {
     expect(request.properties.sort.items?.$ref).toBe('#/components/schemas/SortClause_My_Coll');
   });
 
+  it('should leave page optional here too, pointing at the shared Page component', () => {
+    const request = requestSchema('My%20Coll/list') as unknown as {
+      required?: string[];
+      properties: Record<string, { $ref?: string }>;
+    };
+
+    expect(request.required ?? []).not.toContain('page');
+    expect(request.properties.page.$ref).toBe('#/components/schemas/Page');
+  });
+
+  it.each([['My%20Coll/list'], ['My%20Coll/count']])(
+    'should expose the search inputs on %s, which the runtime honours',
+    path => expectSearchInputsOn(path),
+  );
+
+  it('should share one search component across collections rather than unfold one each', () => {
+    const searchNames = Object.keys(schemas).filter(name => name.startsWith('Search'));
+
+    expect(searchNames.sort()).toEqual(['Search', 'SearchExtended']);
+  });
+
+  it.each([['orders/list'], ['orders/count']])(
+    'should still expose the search inputs on %s, whose capabilities failed',
+    path => expectSearchInputsOn(path),
+  );
+
+  it.each([['My%20Coll/relations/orders/list'], ['My%20Coll/relations/orders/count']])(
+    'should carry the search inputs to %s through the foreign collection request',
+    path => expectSearchInputsOn(path),
+  );
+
+  it('should tell a count caller its search inputs match list, not that a search is required', () => {
+    const { description } = requestSchema('My%20Coll/count') as unknown as { description: string };
+
+    expect(description).toContain('Accepts the same search inputs as list');
+    expect(description).not.toContain('matching a filter and a search');
+  });
+
+  it('should mirror the generic list and count inputs, so an input never lands on one document only', () => {
+    const generic = generateOpenApiDocument('9.9.9').components?.schemas as Record<
+      string,
+      { properties?: Record<string, unknown> }
+    >;
+
+    expect(Object.keys(propertiesOf('My%20Coll/list'))).toEqual(
+      Object.keys(generic.ListRequest.properties ?? {}),
+    );
+    expect(Object.keys(propertiesOf('My%20Coll/count'))).toEqual(
+      Object.keys(generic.CountRequest.properties ?? {}),
+    );
+  });
+
   it('should make every leaf and the branch mutually exclusive, which the runtime enforces', () => {
     const branch = branchOf('Filter_My_Coll') as unknown as { not: { required: string[] } };
 
@@ -229,6 +321,24 @@ describe('the unfolded document', () => {
     };
 
     expect(request.allOf[0].$ref).toBe('#/components/schemas/ListRequest_orders');
+  });
+
+  it('should say search applies to the foreign collection too, like filter, sort and projection', () => {
+    const { description } = requestSchema('My%20Coll/relations/orders/list') as unknown as {
+      description: string;
+    };
+
+    expect(description).toContain('Filter, sort, projection and search apply to "orders"');
+  });
+
+  it('should not promise sort or projection on a relation count, which carries neither', () => {
+    const { description } = requestSchema('My%20Coll/relations/orders/count') as unknown as {
+      description: string;
+    };
+
+    expect(description).toContain('Filter and search apply to "orders"');
+    expect(description).not.toContain('projection');
+    expect(description).not.toContain('sort');
   });
 
   it('should require parentId on a relation request and name the parent key it belongs to', () => {
@@ -316,9 +426,58 @@ describe('the unfolded document', () => {
       kind: { type: 'string', enum: ['refund', 'gift'] },
       files: { type: 'array', items: { type: 'string', description: 'A data URI.' } },
       payload: {},
+      tiers: { type: 'array', items: { type: 'string', enum: ['gold', 'silver'] } },
+      flags: { type: 'string' },
+      assignee: { type: 'string', description: 'A packed record id for users.id.' },
+      levels: { type: 'array', items: { type: 'number' } },
+      owner: {
+        type: 'string',
+        description:
+          'A packed record id for users.id. The agent declares this field required on the ' +
+          'static form.',
+      },
     });
     expect(request.properties.values.required).toBeUndefined();
     expect(request.required).toEqual(['recordIds']);
+  });
+
+  it('should reference the shared action response components rather than an empty schema', () => {
+    const form = operation('My%20Coll/actions/Mark%20as%20paid%2Fdone/form') as unknown as {
+      responses: Record<string, { content: Record<string, { schema: { $ref: string } }> }>;
+    };
+    const execute = operation('My%20Coll/actions/Mark%20as%20paid%2Fdone/execute') as unknown as {
+      responses: Record<string, { content: Record<string, { schema: { $ref: string } }> }>;
+    };
+
+    expect(form.responses['200'].content['application/json'].schema.$ref).toBe(
+      '#/components/schemas/ActionFormResponse',
+    );
+    expect(execute.responses['200'].content['application/json'].schema.$ref).toBe(
+      '#/components/schemas/ActionResult',
+    );
+  });
+
+  it('should share one response schema per verb across every unfolded action', () => {
+    const refsOf = (prefix: string) =>
+      Object.values(paths)
+        .map(
+          path =>
+            path.post as unknown as {
+              operationId?: string;
+              responses?: Record<string, { content: Record<string, { schema: { $ref: string } }> }>;
+            },
+        )
+        .filter(item => item.operationId?.startsWith(prefix))
+        .map(item => item.responses?.['200'].content['application/json'].schema.$ref);
+
+    expect(refsOf('getActionForm')).toEqual([
+      '#/components/schemas/ActionFormResponse',
+      '#/components/schemas/ActionFormResponse',
+    ]);
+    expect(refsOf('executeAction')).toEqual([
+      '#/components/schemas/ActionResult',
+      '#/components/schemas/ActionResult',
+    ]);
   });
 
   it('should share one response component per error status across every unfolded path', () => {
@@ -328,7 +487,7 @@ describe('the unfolded document', () => {
       ),
     );
 
-    expect(errors).toHaveLength(16 * 12);
+    expect(errors).toHaveLength(16 * 13);
     errors.forEach(([, response]) => {
       expect(response).toEqual({ $ref: expect.stringContaining('#/components/responses/') });
     });
@@ -525,8 +684,16 @@ describe('an unfolded document with no action', () => {
     expect(Object.keys(withoutActions.components?.responses ?? {})).not.toContain(
       'UnsupportedActionResult',
     );
-    expect(Object.keys(withoutActions.components?.schemas ?? {})).not.toContain(
+    [
       'MessagelessErrorResponse',
+      'ActionFormResponse',
+      'ActionFormResponseField',
+      'ActionResult',
+      'ActionResultSuccess',
+      'ActionResultWebhook',
+      'ActionResultRedirect',
+    ].forEach(name =>
+      expect(Object.keys(withoutActions.components?.schemas ?? {})).not.toContain(name),
     );
   });
 });

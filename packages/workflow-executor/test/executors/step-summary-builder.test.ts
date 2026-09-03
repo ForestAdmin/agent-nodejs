@@ -80,6 +80,26 @@ describe('StepSummaryBuilder', () => {
       expect(result).not.toContain('"type"');
     });
 
+    // A step that errored and was then completed manually reaches this branch, so the classification
+    // would otherwise land in the model's context. `error` already says the record is absent.
+    it('keeps the error classification out of History', () => {
+      const step = makeConditionStep('Pick one');
+      const outcome = makeConditionOutcome('cond-1', 0, {
+        status: 'error',
+        error: 'that step did not load any record',
+        errorKind: 'operator',
+        errorSourceStepIndex: 2,
+      });
+
+      const result = StepSummaryBuilder.build(step, outcome, undefined);
+
+      expect(result).toContain(
+        'History: {"status":"error","error":"that step did not load any record"}',
+      );
+      expect(result).not.toContain('errorKind');
+      expect(result).not.toContain('errorSourceStepIndex');
+    });
+
     it('includes selectedOption in History for condition steps', () => {
       const step = makeConditionStep('Approved?');
       const outcome = makeConditionOutcome('cond-approval', 0, { selectedOption: 'Yes' });

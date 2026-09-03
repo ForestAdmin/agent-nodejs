@@ -134,7 +134,15 @@ function makeAction(): Action {
       {
         getName: () => 'comment',
         getType: () => 'String',
+        getReference: () => null,
         getValue: () => null,
+        isRequired: () => false,
+      },
+      {
+        getName: () => 'tags',
+        getType: () => ['String'],
+        getReference: () => null,
+        getValue: () => undefined,
         isRequired: () => false,
       },
     ],
@@ -316,6 +324,19 @@ describe('a client generated from the emitted OpenAPI document', () => {
       expect(operators).toEqual([DOCUMENTED_OPERATOR]);
       expect(operators.filter(operator => !types.includes(`'${operator}'`))).toEqual([]);
     });
+
+    it('should expose the typed action form and result the document declares', () => {
+      const types = readFileSync(path.join(CLIENT_DIR, 'types.gen.ts'), 'utf8');
+
+      [
+        'ActionFormResponse',
+        'ActionFormResponseField',
+        'ActionResult',
+        'ActionResultSuccess',
+        'ActionResultWebhook',
+        'ActionResultRedirect',
+      ].forEach(name => expect(types).toMatch(new RegExp(`export type ${name}\\b`)));
+    });
   });
 
   describe('when the generated client lists and counts a collection', () => {
@@ -412,7 +433,10 @@ describe('a client generated from the emitted OpenAPI document', () => {
       expect({ status: response.status, data }).toEqual({
         status: 200,
         data: {
-          fields: [{ name: 'comment', type: 'String', value: null, isRequired: false }],
+          fields: [
+            { name: 'comment', type: 'String', value: null, isRequired: false },
+            { name: 'tags', type: ['String'], isRequired: false },
+          ],
           canExecute: true,
           requiredFields: [],
           skippedFields: [],

@@ -1,5 +1,6 @@
 import { AgentHttpError } from '@forestadmin/agent-client';
 
+import { AgentTimeoutError } from '../../src/agent/create-agent-http-requester';
 import { mapAgentError } from '../../src/http/agent-error-mapper';
 import { BffHttpError } from '../../src/http/bff-http-error';
 
@@ -145,6 +146,32 @@ describe('mapAgentError', () => {
       expect.any(String),
       expect.objectContaining({ cause: 'connect ECONNREFUSED 10.0.4.23:8080' }),
     );
+  });
+
+  it('maps a typed agent timeout to agent_timeout (504) with a generic message and logs the cause', () => {
+    const result = mapAgentError(new AgentTimeoutError('Timeout of 1500ms exceeded'), { logger });
+
+    expect(result).toMatchObject({
+      type: 'agent_timeout',
+      status: 504,
+      message: 'The agent did not respond in time',
+    });
+    expect(logger).toHaveBeenCalledWith(
+      'Warn',
+      'Agent timeout mapped to agent_timeout',
+      expect.objectContaining({ cause: 'Timeout of 1500ms exceeded' }),
+    );
+  });
+
+  it('keeps a connect timeout on network_error, since the agent never accepted the connection', () => {
+    const connectTimeout = Object.assign(new Error('connect ETIMEDOUT 10.0.4.23:8080'), {
+      code: 'ETIMEDOUT',
+    });
+
+    expect(mapAgentError(connectTimeout, { logger })).toMatchObject({
+      type: 'network_error',
+      status: 502,
+    });
   });
 
   it('maps valid JSON without an errors array to network_error and logs it', () => {

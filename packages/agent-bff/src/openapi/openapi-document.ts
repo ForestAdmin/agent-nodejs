@@ -5,7 +5,9 @@ import { OpenAPIRegistry, OpenApiGeneratorV31 } from '@asteasolutions/zod-to-ope
 
 import ComponentPool from './component-pool';
 import {
+  ActionFormResponseSchema,
   ActionRequestSchema,
+  ActionResultSchema,
   AiQueryRequestSchema,
   ContextResponseSchema,
   CountRequestSchema,
@@ -31,18 +33,19 @@ const API_KEY_SCHEME = 'bffApiKey';
 const SECURITY = [{ [SESSION_SCHEME]: [] }, { [API_KEY_SCHEME]: [] }];
 
 const ERROR_STATUSES: Record<string, string> = {
-  400: 'Malformed body, a malformed URL-encoded path segment, an invalid filter operator, a filter nested too deep, ambiguous credentials, an unsupported page, a missing or invalid timezone, an unknown submitted action field, or a rejected action form (type action_error)',
+  400: 'Malformed body, a malformed URL-encoded path segment, an invalid filter operator, a filter nested too deep, ambiguous credentials, an unsupported page, a missing or invalid timezone, an unknown submitted action field, a required action field left empty or a malformed file value at execute, or a rejected action form (type action_error)',
   401: 'Missing, invalid, or expired credentials',
   403: 'The action needs approval before it runs (the body carries the approving roles), the Forest identity behind the API key is not allowed, the origin is not allowed for this key, or the agent refused the collection, relation, or action',
   404: 'Unknown collection, relation, or action',
   413: `The request body exceeds the BFF limit of ${BODY_LIMIT}`,
-  415: 'The request declares a character set the server cannot decode. Other content types are NOT rejected: a form-urlencoded body is parsed and validated like JSON (its values arrive as strings, so typed fields such as page.limit fail with 400), while any other non-JSON content type is read as an absent body, silently dropping filters and pagination',
-  422: 'A field is unknown, not filterable, or is a nested relation path',
+  415: 'The request Content-Type is neither application/json nor an application/*+json type, including form-urlencoded, and is rejected with 415 instead of being silently dropped; a request carrying a body with no Content-Type at all is rejected the same way; or the declared character set cannot be decoded',
+  422: 'A field is unknown, not filterable, is a nested relation path, or an action value at execute is outside its enum or of the wrong type',
   429: `The BFF rate-limited the request, for one of two reasons: the caller identity exceeded its per-window budget, or the limiter is saturated and cannot open a window for a new identity. The \`details.cause\` field of the error body distinguishes them (\`${RATE_LIMIT_CAUSES.limitExceeded}\` or \`${RATE_LIMIT_CAUSES.limiterSaturated}\`), and Retry-After carries the seconds to wait. On data and action routes the agent may also rate-limit the request itself; that 429 is relayed with the agent's own payload as \`details\`, so it carries neither \`cause\` nor Retry-After — read them only when they are present rather than branching on their value`,
   500: 'The agent payload could not be mapped to the BFF contract, or the BFF hit an unexpected error',
   501: 'The BFF is running without an agent configured, so the proxy is not implemented',
-  502: 'The agent could not be reached',
+  502: 'The agent refused the connection, its host could not be resolved, or the transport failed another way (a connection reset mid-flight, a socket hang up, a TLS failure) — it failed outright rather than running out of time',
   503: 'The agent schema is unavailable, the agent returned a 5xx, or the API key could not be resolved',
+  504: 'The agent did not answer before the BFF timeout (BFF_AGENT_TIMEOUT_MS, 10s by default). The deadline is armed when the request starts, so at the default it also covers a host that accepts nothing and never resets the connection — raise the timeout past the OS connect timeout and that case reverts to 502',
 };
 
 const UNSUPPORTED_RESULT_DESCRIPTION =
@@ -172,6 +175,7 @@ const DATA_ERRORS = [
   '501',
   '502',
   '503',
+  '504',
 ];
 
 const AI_RELAYED_OR_ENVELOPE =
@@ -185,7 +189,7 @@ const AI_DUAL_SHAPED_ERRORS: Record<string, string> = {
   401: `The BFF session is missing, invalid or expired, or the Forest server refused the access token this route forwards. ${AI_RELAYED_OR_ENVELOPE}`,
   403: `The request presented an API key instead of a session (type oauth_required), or the Forest server refused the query. ${AI_RELAYED_OR_ENVELOPE}`,
   413: `The request body exceeds the AI query limit of ${AI_BODY_LIMIT}, or the Forest AI proxy refused it as too large. ${AI_RELAYED_OR_ENVELOPE}`,
-  415: `The request declares a character set the BFF cannot decode. ${AI_RELAYED_OR_ENVELOPE}`,
+  415: `The request Content-Type is neither application/json nor an application/*+json type, or the request carries a body with no Content-Type at all, or it declares a character set the BFF cannot decode. ${AI_RELAYED_OR_ENVELOPE}`,
   429: `The BFF rate-limited the request (its own envelope, with Retry-After), or the Forest AI proxy rate-limited the query. ${AI_RELAYED_OR_ENVELOPE}`,
 };
 
@@ -288,8 +292,9 @@ const ROUTES: RouteDefinition[] = [
     operationId: 'getActionForm',
     summary: 'Load the form of a custom action',
     request: ActionRequestSchema,
-    response: z.unknown(),
-    responseDescription: 'The action form fields',
+    response: ActionFormResponseSchema,
+    responseDescription:
+      'The action form fields; htmlBlock layout content is sanitized server-side against an allowlist before relaying',
     params: ['collection', 'action'],
     bodyRequired: true,
   },
@@ -298,8 +303,9 @@ const ROUTES: RouteDefinition[] = [
     operationId: 'executeAction',
     summary: 'Execute a custom action',
     request: ActionRequestSchema,
-    response: z.unknown(),
-    responseDescription: 'The normalized action result',
+    response: ActionResultSchema,
+    responseDescription:
+      'The normalized action result; a success result html field is sanitized server-side against an allowlist before relaying',
     params: ['collection', 'action'],
     bodyRequired: true,
     executeResults: true,
@@ -337,10 +343,10 @@ const TIMEZONE_HEADER = z
 const SHARED_DESCRIPTION =
   'The timezone is resolved from the `X-Forest-Timezone` header first, then a `timezone` body ' +
   'field, then the BFF default when one is configured. A deployment without a default rejects a ' +
-  'request carrying neither with 400 missing_timezone, so send one of the two to be safe. Sending ' +
-  'a content type other than application/json is not an error: a form-urlencoded body is parsed ' +
-  'like JSON, while any other content type is read as absent, which silently drops any filter, ' +
-  'sort, or page.';
+  'request carrying neither with 400 missing_timezone, so send one of the two to be safe. Agent ' +
+  'routes read application/json (and application/*+json) bodies only: any other Content-Type, ' +
+  'form-urlencoded included, is rejected with 415 instead of being read as an absent body, and ' +
+  'so is a body sent with no Content-Type at all. A bodyless POST needs no Content-Type.';
 
 const GENERIC_DESCRIPTION =
   'Paths are generic: one per operation, with the collection, relation and action passed as path ' +
@@ -374,10 +380,10 @@ function registerAiQueryPath(
       'because only the OAuth flow yields the Forest access token this route forwards. The ' +
       'environment and rendering are derived server-side, so sending forest-* headers has no ' +
       `effect. The body limit is ${AI_BODY_LIMIT} here rather than the ${BODY_LIMIT} of every ` +
-      'other route, and only application/json is parsed: any other content type arrives as an ' +
-      'empty body, is relayed as {} and the Forest server rejects the query. This path is ' +
-      'published only by a ' +
-      'deployment whose OAuth configuration is complete, since the relay needs a session.',
+      'other route, and only application/json and application/*+json are read: any other ' +
+      'content type, and a body sent with none at all, is rejected with 415 before the relay. ' +
+      'This path is published only by a deployment whose OAuth configuration is complete, ' +
+      'since the relay needs a session.',
     security: [{ [SESSION_SCHEME]: [] }],
     request: {
       body: { required: true, content: { 'application/json': { schema: AiQueryRequestSchema } } },

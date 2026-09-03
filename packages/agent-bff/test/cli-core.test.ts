@@ -185,7 +185,159 @@ describe('runCli', () => {
       }
     });
 
-    it('should leave a form body unparsed rather than let the generic parser cap it at its form limit', async () => {
+    it('should return 415 unsupported_media_type when a data route body arrives as text/plain', async () => {
+      const server = await runCli(OAUTH_ENV, noopLogger);
+
+      try {
+        const response = await request(server.callback)
+          .post('/agent/v1/books/list')
+          .set('Content-Type', 'text/plain')
+          .send(JSON.stringify({ page: { limit: 5 } }));
+
+        expect(response.status).toBe(415);
+        expect(response.body.error).toMatchObject({ type: 'unsupported_media_type', status: 415 });
+      } finally {
+        await server.stop();
+      }
+    });
+
+    it('should reject a form body on a data route with 415, not parse it as JSON', async () => {
+      const server = await runCli(OAUTH_ENV, noopLogger);
+
+      try {
+        const response = await request(server.callback)
+          .post('/agent/v1/books/list')
+          .type('form')
+          .send('page.limit=5');
+
+        expect(response.status).toBe(415);
+        expect(response.body.error).toMatchObject({ type: 'unsupported_media_type', status: 415 });
+      } finally {
+        await server.stop();
+      }
+    });
+
+    it('should return 415 on the ai route for a non-JSON content type, before auth', async () => {
+      const server = await runCli(OAUTH_ENV, noopLogger);
+
+      try {
+        const response = await request(server.callback)
+          .post('/agent/v1/ai/query')
+          .set('Authorization', `Bearer ${sessionToken()}`)
+          .set('Content-Type', 'text/plain')
+          .send(JSON.stringify({ messages: [] }));
+
+        expect(response.status).toBe(415);
+        expect(response.body.error).toMatchObject({ type: 'unsupported_media_type', status: 415 });
+      } finally {
+        await server.stop();
+      }
+    });
+
+    it.each([
+      ['application/vnd.api+json', 'a +json type the parser knows'],
+      ['application/ld+json', 'a +json type only the wildcard covers'],
+      ['application/json; charset=utf-8', 'a charset parameter'],
+      ['application/json ; charset=utf-8', 'a space before the parameter separator'],
+    ])(
+      'should parse a data-route body declared as %s (%s), proven by the size limit firing',
+      async contentType => {
+        const server = await runCli(OAUTH_ENV, noopLogger);
+
+        try {
+          const response = await request(server.callback)
+            .post('/agent/v1/books/list')
+            .set('Content-Type', contentType)
+            .send(JSON.stringify({ filler: 'x'.repeat(20_000) }));
+
+          expect(response.status).toBe(413);
+        } finally {
+          await server.stop();
+        }
+      },
+    );
+
+    it.each([
+      ['application/json; charset', 'a parameter with no value'],
+      ['application/json;;', 'a dangling separator'],
+      ['text/plain', 'a type the parser would skip'],
+    ])(
+      'should reject a data-route body declared as %s (%s) instead of dropping it',
+      async contentType => {
+        const server = await runCli(OAUTH_ENV, noopLogger);
+
+        try {
+          const response = await request(server.callback)
+            .post('/agent/v1/books/list')
+            .set('Content-Type', contentType)
+            .send(JSON.stringify({ page: { limit: 5 } }));
+
+          expect(response.status).toBe(415);
+        } finally {
+          await server.stop();
+        }
+      },
+    );
+
+    it('should let a bodyless POST through whatever Content-Type it declares', async () => {
+      const server = await runCli(OAUTH_ENV, noopLogger);
+
+      try {
+        const response = await request(server.callback)
+          .post('/agent/v1/books/list')
+          .set('Content-Type', 'text/plain')
+          .set('Content-Length', '0')
+          .send();
+
+        expect(response.status).not.toBe(415);
+      } finally {
+        await server.stop();
+      }
+    });
+
+    it('should reject a body sent with no Content-Type at all, the last silent-drop path', async () => {
+      const server = await runCli(OAUTH_ENV, noopLogger);
+
+      try {
+        const response = await request(server.callback)
+          .post('/agent/v1/books/list')
+          .send(JSON.stringify({ page: { limit: 5 } }))
+          .unset('Content-Type');
+
+        expect(response.status).toBe(415);
+        expect(response.body.error).toMatchObject({ type: 'unsupported_media_type', status: 415 });
+      } finally {
+        await server.stop();
+      }
+    });
+
+    it('should not reject a bodyless POST that carries no Content-Type', async () => {
+      const server = await runCli(OAUTH_ENV, noopLogger);
+
+      try {
+        const response = await request(server.callback).post('/agent/v1/books/list');
+
+        expect(response.status).toBe(401);
+      } finally {
+        await server.stop();
+      }
+    });
+
+    it('should never guard a GET request, whatever its Content-Type', async () => {
+      const server = await runCli(OAUTH_ENV, noopLogger);
+
+      try {
+        const response = await request(server.callback)
+          .get('/agent/v1/permissions')
+          .set('Content-Type', 'text/plain');
+
+        expect(response.status).not.toBe(415);
+      } finally {
+        await server.stop();
+      }
+    });
+
+    it('should reject a form body on the ai route with 415 before auth, not parse or cap it', async () => {
       const server = await runCli(OAUTH_ENV, noopLogger);
 
       try {
@@ -196,7 +348,8 @@ describe('runCli', () => {
           .send(`messages=${'x'.repeat(100_000)}`);
 
         expect(response.status).not.toBe(413);
-        expect(response.status).toBe(401);
+        expect(response.status).toBe(415);
+        expect(response.body.error).toMatchObject({ type: 'unsupported_media_type', status: 415 });
       } finally {
         await server.stop();
       }
@@ -345,6 +498,21 @@ describe('runCli', () => {
 
       try {
         expect(logs).toContain('Agent edge disabled: FOREST_AUTH_SECRET is missing');
+      } finally {
+        await server.stop();
+      }
+    });
+
+    it('should answer 404 on a non-json agent body instead of an unrendered 415', async () => {
+      const server = await runCli({ ...VALID_ENV, FOREST_AUTH_SECRET: undefined }, noopLogger);
+
+      try {
+        const response = await request(server.callback)
+          .post('/agent/v1/books/list')
+          .set('Content-Type', 'text/plain')
+          .send(JSON.stringify({ page: { limit: 5 } }));
+
+        expect(response.status).toBe(404);
       } finally {
         await server.stop();
       }
