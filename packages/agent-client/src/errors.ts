@@ -32,6 +32,13 @@ export class UnknownActionFieldError extends Error {
   }
 }
 
+export class InvalidActionFileValueError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'InvalidActionFileValueError';
+  }
+}
+
 // The action is approval-gated, but filing the approval request failed — distinct from the action
 // itself failing, so the caller can tell the two apart.
 export class ApprovalRequestCreationError extends Error {

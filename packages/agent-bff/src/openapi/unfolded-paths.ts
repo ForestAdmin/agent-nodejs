@@ -16,15 +16,22 @@ import type { ReferenceObject, SchemaObject } from 'openapi3-ts/oas31';
 import toFieldSchema from './field-schemas';
 import createNamer from './names';
 import {
+  ActionFormResponseSchema,
+  ActionResultSchema,
+  CLOSED_BODY_NOTE,
   CountResponseSchema,
   ListResponseSchema,
   OPERATORS,
   PageSchema,
   ParentIdSchema,
+  SearchExtendedSchema,
+  SearchSchema,
   SortClauseSchema,
   TimezoneSchema,
 } from './schemas';
 import { PACKED_ID_SEPARATOR } from '../data/pack-id';
+import { NON_BLANK_PATTERN } from '../data/request-schemas';
+import { enumOptionsOf } from '../read-model/field-type';
 
 const AGGREGATORS = ['And', 'Or'];
 
@@ -44,10 +51,18 @@ interface RequestRefs {
   count: ReferenceObject;
 }
 
+type BodyProperties = Record<string, ReferenceObject | SchemaObject>;
+
+interface RequestProperties {
+  list: BodyProperties;
+  count: BodyProperties;
+}
+
 interface CollectionPlan {
   collection: UnfoldedCollection;
   key: string;
   requests: RequestRefs;
+  properties: RequestProperties;
 }
 
 interface Deps {
@@ -116,12 +131,6 @@ function groupByOperators(filterable: FilterableField[]): OperatorGroup[] {
   return [...groups.values()];
 }
 
-// A node readable as BOTH a leaf and a branch is rejected with 400 (`agent-query.ts`
-// `assertNoNodeReadableAsBothLeafAndBranch`), so each alternative excludes the other's discriminator.
-// The exclusion carries the TYPE the runtime looks for — `isBranch` needs an ARRAY `conditions` and
-// `isLeaf` a STRING `field` — because `{field, operator, conditions: "x"}` is a plain leaf the runtime
-// accepts. Expressed as `not: { required }` rather than `additionalProperties: false`, which would
-// also forbid an unknown extra key the runtime strips.
 function leafShape(
   field: ReferenceObject | SchemaObject,
   operators: string[],
@@ -136,7 +145,7 @@ function leafShape(
       value: {},
     },
     required: ['field', 'operator'],
-    not: { properties: { conditions: { type: 'array' } }, required: ['conditions'] },
+    additionalProperties: false,
   };
 }
 
@@ -197,8 +206,9 @@ function filterSchema(
 
   return pool.add(treeName, {
     description:
-      `A filter on ${quoted(name)}: either a leaf condition or a branch nesting more ` +
-      'conditions. A branch must carry its aggregator. A node carrying both `field` and ' +
+      `A filter on ${quoted(name)}: either a leaf condition, a branch nesting more ` +
+      'conditions, or the empty object, which is how an absent filter is spelled. A branch must ' +
+      'carry its aggregator. A node carrying both `field` and ' +
       `\`conditions\` is rejected with 400, so the two shapes are mutually exclusive.${pairing}`,
     anyOf: [
       ...leaves,
@@ -209,8 +219,9 @@ function filterSchema(
           conditions: { type: 'array', items: treeRef },
         },
         required: ['aggregator', 'conditions'],
-        not: { properties: { field: { type: 'string' } }, required: ['field'] },
+        additionalProperties: false,
       },
+      { type: 'object', additionalProperties: false },
     ],
   });
 }
@@ -250,6 +261,7 @@ function fieldRefs(deps: Deps, plan: Pick<CollectionPlan, 'key' | 'collection'>)
               direction: { type: 'string', enum: ['asc', 'desc'] },
             },
             required: ['field'],
+            additionalProperties: false,
           }),
   };
 }
@@ -257,43 +269,64 @@ function fieldRefs(deps: Deps, plan: Pick<CollectionPlan, 'key' | 'collection'>)
 function requestDescription(collection: UnfoldedCollection, subject: string): string {
   const note = collection.fields.degraded ? ` ${DEGRADED_NOTE[collection.fields.degraded]}` : '';
 
-  return `${subject}${note}`;
+  return `${subject}${note} ${CLOSED_BODY_NOTE}`;
 }
 
-function registerRequests(deps: Deps, plan: Omit<CollectionPlan, 'requests'>): RequestRefs {
+function requestProperties(deps: Deps, plan: Pick<CollectionPlan, 'key' | 'collection'>) {
   const { pool } = deps;
-  const { collection, key } = plan;
   const refs = fieldRefs(deps, plan);
   const timezone = pool.reuse('Timezone', TimezoneSchema);
+  const search = pool.reuse('Search', SearchSchema);
+  const searchExtended = pool.reuse('SearchExtended', SearchExtendedSchema);
+  const count: BodyProperties = { filter: refs.filter, search, searchExtended, timezone };
+
+  return {
+    count,
+    list: {
+      filter: refs.filter,
+      projection: { type: 'array', items: refs.projectable },
+      sort: { type: 'array', items: refs.sort },
+      page: pool.reuse('Page', PageSchema),
+      search,
+      searchExtended,
+      timezone,
+    } satisfies BodyProperties,
+  };
+}
+
+function registerRequests(
+  deps: Deps,
+  plan: Pick<CollectionPlan, 'key' | 'collection'>,
+  properties: RequestProperties,
+): RequestRefs {
+  const { pool } = deps;
+  const { collection, key } = plan;
 
   return {
     list: pool.add(`ListRequest_${key}`, {
       type: 'object',
       description: requestDescription(
         collection,
-        `Filter, sort and project records of ${quoted(collection.name)}.`,
+        `Filter, search, sort and project records of ${quoted(collection.name)}.`,
       ),
-      properties: {
-        filter: refs.filter,
-        projection: { type: 'array', items: refs.projectable },
-        sort: { type: 'array', items: refs.sort },
-        page: pool.reuse('Page', PageSchema),
-        timezone,
-      },
+      properties: properties.list,
+      additionalProperties: false,
     }),
     count: pool.add(`CountRequest_${key}`, {
       type: 'object',
       description: requestDescription(
         collection,
-        `Count records of ${quoted(collection.name)} matching a filter.`,
+        `Count records of ${quoted(collection.name)}. Accepts the same search inputs as list, so ` +
+          'a client can count exactly the rows its search returns.',
       ),
-      properties: { filter: refs.filter, timezone },
+      properties: properties.count,
+      additionalProperties: false,
     }),
   };
 }
 
 const PARENT_ID_SHAPE = {
-  anyOf: [{ type: 'string' as const, pattern: '\\S' }, { type: 'number' as const }],
+  anyOf: [{ type: 'string' as const, pattern: NON_BLANK_PATTERN }, { type: 'number' as const }],
 };
 
 /**
@@ -314,7 +347,7 @@ function parentIdSchema(
     return {
       // A composite id only works as its packed string: a number could never carry the separator.
       type: 'string',
-      pattern: '\\S',
+      pattern: NON_BLANK_PATTERN,
       description:
         `The composite id of the parent ${quoted(parent)} record: the values of ` +
         `${primaryKeys.map(key => key.name).join(', ')} joined by ` +
@@ -341,36 +374,55 @@ function registerRelationRequests(
 ): RequestRefs {
   const { pool } = deps;
   const parentId = parentIdSchema(pool, plan.collection.name, plan.collection.primaryKeys);
-  const parentProperties = {
-    type: 'object' as const,
-    properties: { parentId },
+  const { degraded } = foreign.collection.fields;
+  const foreignNote = degraded ? ` ${DEGRADED_NOTE[degraded]}` : '';
+  const appliesTo =
+    `apply to ${quoted(foreign.collection.name)}, the foreign collection of ` +
+    `${quoted(plan.collection.name)}.${quoted(relation.name)}; the parent only resolves which ` +
+    'records are related.';
+
+  const body = (inputs: 'list' | 'count', subject: string): SchemaObject => ({
+    type: 'object',
+    description: `${subject} ${appliesTo}${foreignNote} ${CLOSED_BODY_NOTE}`,
+    properties: { ...foreign.properties[inputs], parentId },
     required: ['parentId'],
-  };
-  const description =
-    `Filter, sort and projection apply to ${quoted(foreign.collection.name)}, the foreign ` +
-    `collection of ${quoted(plan.collection.name)}.${quoted(relation.name)}; the parent only ` +
-    'resolves which records are related.';
+    additionalProperties: false,
+  });
 
   return {
-    list: pool.add(`RelationListRequest_${relationKey}`, {
-      description,
-      allOf: [foreign.requests.list, parentProperties],
-    }),
-    count: pool.add(`RelationCountRequest_${relationKey}`, {
-      description,
-      allOf: [foreign.requests.count, parentProperties],
-    }),
+    list: pool.add(
+      `RelationListRequest_${relationKey}`,
+      body('list', 'Filter, sort, projection and search'),
+    ),
+    count: pool.add(`RelationCountRequest_${relationKey}`, body('count', 'Filter and search')),
   };
 }
 
-function actionFieldSchema(field: UnfoldedAction['fields'][number]): SchemaObject {
-  const base = field.enums
-    ? { type: 'string' as const, enum: field.enums }
-    : toFieldSchema(field.type);
+function actionFieldBaseSchema(field: UnfoldedAction['fields'][number]): SchemaObject {
+  if (field.reference !== null) {
+    return { type: 'string', description: `A packed record id for ${field.reference}.` };
+  }
 
-  return field.isRequired
-    ? { ...base, description: 'The agent declares this field required on the static form.' }
-    : base;
+  const options = enumOptionsOf(field.type, field.enums);
+
+  if (options === undefined) return toFieldSchema(field.type);
+
+  return Array.isArray(field.type)
+    ? { type: 'array', items: { type: 'string', enum: options } }
+    : { type: 'string', enum: options };
+}
+
+function actionFieldSchema(field: UnfoldedAction['fields'][number]): SchemaObject {
+  const base = actionFieldBaseSchema(field);
+
+  if (!field.isRequired) return base;
+
+  const required = 'The agent declares this field required on the static form.';
+
+  return {
+    ...base,
+    description: base.description === undefined ? required : `${base.description} ${required}`,
+  };
 }
 
 function actionValuesSchema(action: UnfoldedAction): SchemaObject {
@@ -382,7 +434,10 @@ function actionValuesSchema(action: UnfoldedAction): SchemaObject {
     // omitted its hooks, so "static" is never certain.
     description:
       'The submitted action fields. These are the fields the schema declares statically; a load ' +
-      'or change hook can add, drop or require others at call time.',
+      'or change hook can add, drop or require others at call time. On execute the values are ' +
+      'validated against that live form: a required field left empty answers 400, an out-of-enum ' +
+      "or wrongly typed value 422. Only the JSON type and an Enum field's options are checked " +
+      "there: a declared string format (date-time, uuid) and a widget's own option list are not.",
     properties: Object.fromEntries(
       action.fields.map(field => [field.name, actionFieldSchema(field)]),
     ),
@@ -409,6 +464,7 @@ function registerActionRequest(
       timezone: pool.reuse('Timezone', TimezoneSchema),
     },
     required: ['recordIds'],
+    additionalProperties: false,
   });
 }
 
@@ -535,6 +591,8 @@ function registerRelationOperations(
 }
 
 function registerActionOperations(deps: Deps, plan: CollectionPlan, namer: Namer): void {
+  const { pool } = deps;
+
   plan.collection.actions.forEach(action => {
     const actionKey = namer(`${plan.key}_${action.name}`);
     const request = registerActionRequest(deps, plan, action, actionKey);
@@ -550,8 +608,9 @@ function registerActionOperations(deps: Deps, plan: CollectionPlan, namer: Namer
       summary: `Load the form of ${action.name} on ${plan.collection.name}`,
       description: `Loads the form of the custom action. ${identity} An unknown submitted field is skipped here, not rejected.`,
       request,
-      response: {},
-      responseDescription: 'The action form fields',
+      response: pool.reuse('ActionFormResponse', ActionFormResponseSchema),
+      responseDescription:
+        'The action form fields; htmlBlock layout content is sanitized server-side against an allowlist before relaying',
       bodyRequired: true,
     });
 
@@ -562,8 +621,9 @@ function registerActionOperations(deps: Deps, plan: CollectionPlan, namer: Namer
       summary: `Execute ${action.name} on ${plan.collection.name}`,
       description: `Executes the custom action. ${identity} A submitted field the loaded form does not carry is rejected with 400.`,
       request,
-      response: {},
-      responseDescription: 'The normalized action result',
+      response: pool.reuse('ActionResult', ActionResultSchema),
+      responseDescription:
+        'The normalized action result; a success result html field is sanitized server-side against an allowlist before relaying',
       bodyRequired: true,
       executeResults: true,
     });
@@ -586,7 +646,14 @@ export default function registerUnfoldedPaths(deps: Deps, unfolding: Unfolding):
   const plans = unfolding.collections.map(collection => {
     const key = collections(collection.name);
 
-    return { collection, key, requests: registerRequests(deps, { collection, key }) };
+    const properties = requestProperties(deps, { collection, key });
+
+    return {
+      collection,
+      key,
+      properties,
+      requests: registerRequests(deps, { collection, key }, properties),
+    };
   });
   const plansByName = new Map(plans.map(plan => [plan.collection.name, plan]));
 

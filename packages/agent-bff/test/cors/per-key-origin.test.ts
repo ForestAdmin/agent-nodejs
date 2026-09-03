@@ -35,6 +35,17 @@ function buildApp(
   return app;
 }
 
+function expectOriginForbidden(response: request.Response) {
+  expect(response.status).toBe(403);
+  expect(response.body).toEqual({
+    error: {
+      type: 'origin_not_allowed',
+      status: 403,
+      message: 'Origin is not allowed for this key',
+    },
+  });
+}
+
 describe('per-key origin middleware (layer 2)', () => {
   it('proceeds when the origin is in the per-key list', async () => {
     const response = await request(buildApp(['https://a.com']).callback())
@@ -50,10 +61,7 @@ describe('per-key origin middleware (layer 2)', () => {
       .get('/agent/x')
       .set('Origin', 'https://b.com');
 
-    expect(response.status).toBe(403);
-    expect(response.body).toEqual({
-      error: { type: 'origin_not_allowed', status: 403, message: expect.any(String) },
-    });
+    expectOriginForbidden(response);
   });
 
   it('matches a per-key origin returned by SaaS in a non-normalized form', async () => {
@@ -72,11 +80,36 @@ describe('per-key origin middleware (layer 2)', () => {
     expect(response.status).toBe(200);
   });
 
-  it('returns 403 when the per-key list is non-empty and the request has no Origin', async () => {
+  it('proceeds when the per-key list is non-empty and the request has no Origin', async () => {
     const response = await request(buildApp(['https://a.com']).callback()).get('/agent/x');
 
-    expect(response.status).toBe(403);
-    expect(response.body.error.type).toBe('origin_not_allowed');
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ reached: true });
+  });
+
+  it('returns 403 when the per-key list is non-empty and the Origin is the opaque null', async () => {
+    const response = await request(buildApp(['https://a.com']).callback())
+      .get('/agent/x')
+      .set('Origin', 'null');
+
+    expectOriginForbidden(response);
+  });
+
+  it('returns 403 when the per-key list is non-empty and the Origin is present but not a parseable origin', async () => {
+    const response = await request(buildApp(['https://a.com']).callback())
+      .get('/agent/x')
+      .set('Origin', 'garbage');
+
+    expectOriginForbidden(response);
+  });
+
+  it('treats an empty Origin header like an absent one and proceeds', async () => {
+    const response = await request(buildApp(['https://a.com']).callback())
+      .get('/agent/x')
+      .set('Origin', '');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ reached: true });
   });
 
   it('does not restrict an oauth request, which carries no per-key identity', async () => {
@@ -107,21 +140,19 @@ describe('per-key origin middleware (layer 2)', () => {
       });
     });
 
-    it('logs the absent origin as an empty string when a restricted key sends none', async () => {
+    it('logs nothing when a restricted key sends no origin, which is not a browser', async () => {
       const logger = jest.fn();
 
       const response = await request(buildApp(['https://a.com'], logger).callback())
         .get('/agent/x')
         .set(BFF_KEY_HEADER, RAW_KEY);
 
-      expect(response.status).toBe(403);
-      expect(logger).toHaveBeenCalledTimes(1);
-      expect(logger).toHaveBeenCalledWith('Warn', 'BFF per-key origin rejected', {
-        origin: '',
-        path: '/agent/x',
-        keyHash: fingerprintApiKey(RAW_KEY),
-        renderingId: RENDERING_ID,
-      });
+      expect(response.status).toBe(200);
+      expect(logger).not.toHaveBeenCalledWith(
+        'Warn',
+        'BFF per-key origin rejected',
+        expect.anything(),
+      );
     });
 
     it('truncates an oversized origin, which a caller controls and nothing rate-limits', async () => {

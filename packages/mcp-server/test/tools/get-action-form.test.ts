@@ -318,6 +318,7 @@ describe('declareGetActionFormTool', () => {
             getName: () => 'Document',
             getType: () => 'File',
             getTypeName: () => 'File',
+            getEffectiveTypeName: () => 'File',
             getValue: () => undefined,
             isRequired: () => true,
             getPlainField: () => ({}),
@@ -355,6 +356,7 @@ describe('declareGetActionFormTool', () => {
             getName: () => 'Attachments',
             getType: () => ['File'],
             getTypeName: () => 'FileList',
+            getEffectiveTypeName: () => 'FileList',
             getValue: () => undefined,
             isRequired: () => true,
             getPlainField: () => ({}),
@@ -383,6 +385,171 @@ describe('declareGetActionFormTool', () => {
       expect(payload.fields[0].value).toEqual(['$uploadedFile:a', '$uploadedFile:b']);
     });
 
+    it('reports a v1 String field carrying the file picker widget as a File, and leaves its neighbours alone', async () => {
+      const mockGetEnumField = jest.fn().mockReturnValue({
+        getOptions: () => ['Passport', 'Driving licence'],
+      });
+      const mockAction = jest.fn().mockResolvedValue({
+        getFields: jest.fn().mockReturnValue([
+          {
+            getName: () => 'doc_type_0',
+            getType: () => 'Enum',
+            getTypeName: () => 'Enum',
+            getEffectiveTypeName: () => 'Enum',
+            getValue: () => undefined,
+            isRequired: () => true,
+            getPlainField: () => ({ hook: 'onFieldChanged' }),
+            getMultipleChoiceField: () => ({ getOptions: () => null }),
+          },
+          {
+            getName: () => 'file_0',
+            getType: () => 'String',
+            getTypeName: () => 'String',
+            getEffectiveTypeName: () => 'File',
+            getValue: () => undefined,
+            isRequired: () => true,
+            getPlainField: () => ({ hook: 'onFieldChanged' }),
+            getMultipleChoiceField: () => ({ getOptions: () => null }),
+          },
+          {
+            getName: () => 'comments_0',
+            getType: () => 'String',
+            getTypeName: () => 'String',
+            getEffectiveTypeName: () => 'String',
+            getValue: () => undefined,
+            isRequired: () => false,
+            getPlainField: () => ({ hook: 'onFieldChanged' }),
+            getMultipleChoiceField: () => ({ getOptions: () => null }),
+          },
+        ]),
+        tryToSetFields: jest.fn().mockResolvedValue([]),
+        getEnumField: mockGetEnumField,
+      });
+      mockBuildClientWithActions.mockResolvedValue({
+        rpcClient: { collection: jest.fn().mockReturnValue({ action: mockAction }) },
+        authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+      } as unknown as ReturnType<typeof buildClientWithActions>);
+
+      const result = await registeredToolHandler(
+        { collectionName: 'users', actionName: 'KYC - Upload doc.', recordIds: [1] },
+        mockExtra,
+      );
+      const payload = JSON.parse((result as { content: { text: string }[] }).content[0].text);
+
+      expect(payload.fields).toEqual([
+        {
+          name: 'doc_type_0',
+          type: 'Enum',
+          value: undefined,
+          isRequired: true,
+          enumValues: ['Passport', 'Driving licence'],
+        },
+        { name: 'file_0', type: 'File', value: undefined, isRequired: true },
+        { name: 'comments_0', type: 'String', value: undefined, isRequired: false },
+      ]);
+      expect(mockGetEnumField).toHaveBeenCalledWith('doc_type_0');
+    });
+
+    it('reports a v1 list of Strings carrying the file picker widget as a FileList, and a native File as a File', async () => {
+      const mockAction = jest.fn().mockResolvedValue({
+        getFields: jest.fn().mockReturnValue([
+          {
+            getName: () => 'files_0',
+            getType: () => ['String'],
+            getTypeName: () => 'StringList',
+            getEffectiveTypeName: () => 'FileList',
+            getValue: () => undefined,
+            isRequired: () => true,
+            getPlainField: () => ({}),
+            getMultipleChoiceField: () => ({ getOptions: () => null }),
+          },
+          {
+            getName: () => 'Document',
+            getType: () => 'File',
+            getTypeName: () => 'File',
+            getEffectiveTypeName: () => 'File',
+            getValue: () => undefined,
+            isRequired: () => false,
+            getPlainField: () => ({}),
+            getMultipleChoiceField: () => ({ getOptions: () => null }),
+          },
+        ]),
+        tryToSetFields: jest.fn().mockResolvedValue([]),
+      });
+      mockBuildClientWithActions.mockResolvedValue({
+        rpcClient: { collection: jest.fn().mockReturnValue({ action: mockAction }) },
+        authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+      } as unknown as ReturnType<typeof buildClientWithActions>);
+
+      const result = await registeredToolHandler(
+        { collectionName: 'users', actionName: 'KYC - Upload doc.', recordIds: [1] },
+        mockExtra,
+      );
+      const payload = JSON.parse((result as { content: { text: string }[] }).content[0].text);
+
+      expect(payload.fields).toEqual([
+        { name: 'files_0', type: 'FileList', value: undefined, isRequired: true },
+        { name: 'Document', type: 'File', value: undefined, isRequired: false },
+      ]);
+    });
+
+    it('withholds and echoes a handle sent to a v1 String file picker field, still reported as a File', async () => {
+      const mockTryToSetFields = jest.fn().mockResolvedValue([]);
+      const mockAction = jest.fn().mockResolvedValue({
+        getFields: jest.fn().mockReturnValue([
+          {
+            getName: () => 'file_0',
+            getType: () => 'String',
+            getTypeName: () => 'String',
+            getEffectiveTypeName: () => 'File',
+            getValue: () => undefined,
+            isRequired: () => true,
+            getPlainField: () => ({ hook: 'onFieldChanged' }),
+            getMultipleChoiceField: () => ({ getOptions: () => null }),
+          },
+          {
+            getName: () => 'comments_0',
+            getType: () => 'String',
+            getTypeName: () => 'String',
+            getEffectiveTypeName: () => 'String',
+            getValue: () => 'signed today',
+            isRequired: () => false,
+            getPlainField: () => ({ hook: 'onFieldChanged' }),
+            getMultipleChoiceField: () => ({ getOptions: () => null }),
+          },
+        ]),
+        tryToSetFields: mockTryToSetFields,
+      });
+      mockBuildClientWithActions.mockResolvedValue({
+        rpcClient: { collection: jest.fn().mockReturnValue({ action: mockAction }) },
+        authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+      } as unknown as ReturnType<typeof buildClientWithActions>);
+
+      const result = await registeredToolHandler(
+        {
+          collectionName: 'users',
+          actionName: 'KYC - Upload doc.',
+          recordIds: [1],
+          values: { file_0: '$uploadedFile:kyc-token', comments_0: 'signed today' },
+        },
+        mockExtra,
+      );
+      const payload = JSON.parse((result as { content: { text: string }[] }).content[0].text);
+
+      expect(mockTryToSetFields).toHaveBeenCalledWith({ comments_0: 'signed today' });
+      expect(payload.fields).toEqual([
+        {
+          name: 'file_0',
+          type: 'File',
+          value: '$uploadedFile:kyc-token',
+          isRequired: true,
+        },
+        { name: 'comments_0', type: 'String', value: 'signed today', isRequired: false },
+      ]);
+      expect(payload.canExecute).toBe(true);
+      expect(payload.requiredFields).toEqual([]);
+    });
+
     // `in` would walk the prototype chain: a field literally named toString would read as filled
     // by Object.prototype.toString — a function — and canExecute would come back true on an empty
     // form.
@@ -393,6 +560,7 @@ describe('declareGetActionFormTool', () => {
             getName: () => 'toString',
             getType: () => 'String',
             getTypeName: () => 'String',
+            getEffectiveTypeName: () => 'String',
             getValue: () => undefined,
             isRequired: () => true,
             getPlainField: () => ({}),
@@ -448,6 +616,7 @@ describe('declareGetActionFormTool', () => {
           getName: () => 'subject',
           getType: () => 'String',
           getTypeName: () => 'String',
+          getEffectiveTypeName: () => 'String',
           getValue: () => undefined,
           isRequired: () => true,
           getPlainField: () => ({}),
@@ -457,6 +626,7 @@ describe('declareGetActionFormTool', () => {
           getName: () => 'message',
           getType: () => 'String',
           getTypeName: () => 'String',
+          getEffectiveTypeName: () => 'String',
           getValue: () => 'Default message',
           isRequired: () => false,
           getPlainField: () => ({}),
@@ -501,6 +671,7 @@ describe('declareGetActionFormTool', () => {
           getName: () => 'subject',
           getType: () => 'String',
           getTypeName: () => 'String',
+          getEffectiveTypeName: () => 'String',
           getValue: () => 'Test Subject',
           isRequired: () => true,
           getPlainField: () => ({}),
@@ -510,6 +681,7 @@ describe('declareGetActionFormTool', () => {
           getName: () => 'message',
           getType: () => 'String',
           getTypeName: () => 'String',
+          getEffectiveTypeName: () => 'String',
           getValue: () => 'Test Message',
           isRequired: () => true,
           getPlainField: () => ({}),
@@ -545,6 +717,7 @@ describe('declareGetActionFormTool', () => {
           getName: () => 'subject',
           getType: () => 'String',
           getTypeName: () => 'String',
+          getEffectiveTypeName: () => 'String',
           getValue: () => undefined,
           isRequired: () => true,
           getPlainField: () => ({}),
@@ -554,6 +727,7 @@ describe('declareGetActionFormTool', () => {
           getName: () => 'message',
           getType: () => 'String',
           getTypeName: () => 'String',
+          getEffectiveTypeName: () => 'String',
           getValue: () => 'Test Message',
           isRequired: () => false,
           getPlainField: () => ({}),
@@ -589,6 +763,7 @@ describe('declareGetActionFormTool', () => {
           getName: () => 'quantity',
           getType: () => 'Number',
           getTypeName: () => 'Number',
+          getEffectiveTypeName: () => 'Number',
           getValue: () => 0,
           isRequired: () => true,
           getPlainField: () => ({}),
@@ -624,6 +799,7 @@ describe('declareGetActionFormTool', () => {
           getName: () => 'isActive',
           getType: () => 'Boolean',
           getTypeName: () => 'Boolean',
+          getEffectiveTypeName: () => 'Boolean',
           getValue: () => false,
           isRequired: () => true,
           getPlainField: () => ({}),
@@ -659,6 +835,7 @@ describe('declareGetActionFormTool', () => {
           getName: () => 'notes',
           getType: () => 'String',
           getTypeName: () => 'String',
+          getEffectiveTypeName: () => 'String',
           getValue: () => '',
           isRequired: () => true,
           getPlainField: () => ({}),
@@ -694,6 +871,7 @@ describe('declareGetActionFormTool', () => {
           getName: () => 'subject',
           getType: () => 'String',
           getTypeName: () => 'String',
+          getEffectiveTypeName: () => 'String',
           getValue: () => null,
           isRequired: () => true,
           getPlainField: () => ({}),
@@ -729,6 +907,7 @@ describe('declareGetActionFormTool', () => {
           getName: () => 'optionalField',
           getType: () => 'String',
           getTypeName: () => 'String',
+          getEffectiveTypeName: () => 'String',
           getValue: () => undefined,
           isRequired: () => false,
           getPlainField: () => ({}),
@@ -764,6 +943,7 @@ describe('declareGetActionFormTool', () => {
           getName: () => 'status',
           getType: () => 'Enum',
           getTypeName: () => 'Enum',
+          getEffectiveTypeName: () => 'Enum',
           getValue: () => undefined,
           isRequired: () => true,
           getPlainField: () => ({}),
@@ -773,6 +953,7 @@ describe('declareGetActionFormTool', () => {
           getName: () => 'message',
           getType: () => 'String',
           getTypeName: () => 'String',
+          getEffectiveTypeName: () => 'String',
           getValue: () => undefined,
           isRequired: () => false,
           getPlainField: () => ({}),
@@ -820,6 +1001,7 @@ describe('declareGetActionFormTool', () => {
           getName: () => 'plan',
           getType: () => 'String',
           getTypeName: () => 'String',
+          getEffectiveTypeName: () => 'String',
           getValue: () => undefined,
           isRequired: () => true,
           getPlainField: () => ({ description: 'Subscription plan' }),
@@ -834,6 +1016,7 @@ describe('declareGetActionFormTool', () => {
           getName: () => 'priority',
           getType: () => 'String',
           getTypeName: () => 'String',
+          getEffectiveTypeName: () => 'String',
           getValue: () => undefined,
           isRequired: () => false,
           getPlainField: () => ({}),
@@ -919,6 +1102,7 @@ describe('declareGetActionFormTool', () => {
           getName: () => 'subject',
           getType: () => 'String',
           getTypeName: () => 'String',
+          getEffectiveTypeName: () => 'String',
           getValue: () => 'Test Subject',
           isRequired: () => true,
           getPlainField: () => ({}),
@@ -961,6 +1145,7 @@ describe('declareGetActionFormTool', () => {
           getName: () => 'subject',
           getType: () => 'String',
           getTypeName: () => 'String',
+          getEffectiveTypeName: () => 'String',
           getValue: () => undefined,
           isRequired: () => true,
           getPlainField: () => ({}),

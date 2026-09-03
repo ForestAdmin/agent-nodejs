@@ -25,6 +25,7 @@ export interface BFFConfig {
   forestServerUrl?: string;
   forestAppUrl?: string;
   agentUrl?: string;
+  publicUrl?: string;
   tokenEncryptionKey?: string;
   allowedOrigins: string[];
   invalidAllowedOrigins: string[];
@@ -67,6 +68,34 @@ function parsePort(raw?: string): number {
 
 function isHttpUrl(value: string): boolean {
   return !/\s/.test(value) && HTTP_URL_SCHEMA.safeParse(value).success;
+}
+
+export function parsePublicUrl(raw?: string): string | undefined {
+  const value = normalize(raw);
+
+  if (value === undefined) return undefined;
+
+  if (!isHttpUrl(value)) {
+    throw new ConfigurationError(
+      'Invalid configuration: BFF_PUBLIC_URL must be a valid http(s) URL.',
+    );
+  }
+
+  if (value.includes('?') || value.includes('#')) {
+    throw new ConfigurationError(
+      'Invalid configuration: BFF_PUBLIC_URL must not carry a query string or fragment.',
+    );
+  }
+
+  const url = new URL(value);
+
+  if (url.username !== '' || url.password !== '') {
+    throw new ConfigurationError(
+      'Invalid configuration: BFF_PUBLIC_URL must not carry credentials.',
+    );
+  }
+
+  return url.href.replace(/\/+$/, '');
 }
 
 function isValidEncryptionKey(value: string): boolean {
@@ -151,6 +180,7 @@ export function parseConfig(env: NodeJS.ProcessEnv): BFFConfig {
     forestServerUrl: normalized.FOREST_SERVER_URL,
     forestAppUrl: normalized.FOREST_APP_URL,
     agentUrl: normalized.AGENT_URL,
+    publicUrl: parsePublicUrl(env.BFF_PUBLIC_URL),
     tokenEncryptionKey,
     allowedOrigins,
     invalidAllowedOrigins,

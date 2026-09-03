@@ -2,7 +2,7 @@ import type { ResolvedApiKeyIdentity } from '../api-key/api-key-client';
 import type { Logger } from '../ports/logger-port';
 import type { Middleware } from 'koa';
 
-import { loggableOrigin, originAllowed } from './origin';
+import { hasOrigin, loggableOrigin, originAllowed } from './origin';
 import { fingerprintApiKey } from '../api-key/api-key';
 import { BFF_KEY_HEADER } from '../api-key/api-key-middleware';
 import { originNotAllowed } from '../http/bff-http-error';
@@ -41,9 +41,9 @@ export default function createPerKeyOriginMiddleware({
   }
 
   return async function perKeyOriginMiddleware(ctx, next) {
-    const origin = ctx.get('Origin');
     const identity = ctx.state.apiKeyIdentity as ResolvedApiKeyIdentity | undefined;
     const allowedOrigins = identity?.allowedOrigins ?? [];
+    const origin = ctx.get('Origin');
 
     if (!identity || allowedOrigins.length === 0) {
       await next();
@@ -54,7 +54,7 @@ export default function createPerKeyOriginMiddleware({
     const keyHash = fingerprintApiKey(ctx.get(BFF_KEY_HEADER));
     reportOriginsThatCanNeverPass(allowedOrigins, keyHash);
 
-    if (!originAllowed(origin, allowedOrigins)) {
+    if (hasOrigin(origin) && !originAllowed(origin, allowedOrigins)) {
       logger('Warn', 'BFF per-key origin rejected', {
         origin: loggableOrigin(origin),
         path: ctx.path,

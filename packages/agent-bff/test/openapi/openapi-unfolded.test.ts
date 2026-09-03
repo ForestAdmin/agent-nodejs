@@ -42,6 +42,28 @@ function dereference(ref: string): Record<string, unknown> {
   return schemas[ref.replace('#/components/schemas/', '')];
 }
 
+function propertiesOf(path: string): Record<string, { $ref?: string }> {
+  const schema = requestSchema(path) as unknown as {
+    properties?: Record<string, { $ref?: string }>;
+    allOf?: [{ $ref: string }, unknown];
+  };
+
+  if (schema.properties) return schema.properties;
+
+  const foreign = dereference(schema.allOf?.[0].$ref ?? '') as unknown as {
+    properties: Record<string, { $ref?: string }>;
+  };
+
+  return foreign.properties;
+}
+
+function expectSearchInputsOn(path: string): void {
+  const properties = propertiesOf(path);
+
+  expect(properties.search).toEqual({ $ref: '#/components/schemas/Search' });
+  expect(properties.searchExtended).toEqual({ $ref: '#/components/schemas/SearchExtended' });
+}
+
 // The leaf alternatives of a filter tree are its `$ref` ones; the branch alternative is inlined.
 function leavesOf(treeName: string): { fields: string[]; operators: string[] }[] {
   const { anyOf } = schemas[treeName] as unknown as { anyOf: { $ref?: string }[] };
@@ -62,9 +84,26 @@ function filterableFieldsOf(treeName: string): string[] {
 }
 
 function branchOf(treeName: string): Record<string, never> {
-  const { anyOf } = schemas[treeName] as unknown as { anyOf: Record<string, never>[] };
+  const { anyOf } = schemas[treeName] as unknown as {
+    anyOf: { properties?: Record<string, unknown> }[];
+  };
+  const branch = anyOf.find(member => member.properties?.aggregator !== undefined);
 
-  return anyOf[anyOf.length - 1];
+  return branch as unknown as Record<string, never>;
+}
+
+function emptyNodeOf(treeName: string): Record<string, unknown> {
+  const { anyOf } = schemas[treeName] as unknown as {
+    anyOf: { $ref?: string; type?: string; properties?: Record<string, unknown> }[];
+  };
+  const empty = anyOf.find(
+    member =>
+      member.$ref === undefined &&
+      member.type === 'object' &&
+      Object.keys(member.properties ?? {}).length === 0,
+  );
+
+  return empty as unknown as Record<string, unknown>;
 }
 
 function collectionOf(
@@ -81,10 +120,9 @@ function collectionOf(
   };
 }
 
-// A relation request composes the foreign collection request, so its filter sits one hop further.
+// A relation request spreads the foreign collection properties, so its filter sits on the body.
 function relationFilterOf(path: string): string {
-  const { allOf } = requestSchema(path) as unknown as { allOf: [{ $ref: string }, unknown] };
-  const { properties } = dereference(allOf[0].$ref) as unknown as {
+  const { properties } = requestSchema(path) as unknown as {
     properties: { filter: { $ref: string } };
   };
 
@@ -192,60 +230,213 @@ describe('the unfolded document', () => {
     expect(request.properties.sort.items?.$ref).toBe('#/components/schemas/SortClause_My_Coll');
   });
 
+  it('should leave page optional here too, pointing at the shared Page component', () => {
+    const request = requestSchema('My%20Coll/list') as unknown as {
+      required?: string[];
+      properties: Record<string, { $ref?: string }>;
+    };
+
+    expect(request.required ?? []).not.toContain('page');
+    expect(request.properties.page.$ref).toBe('#/components/schemas/Page');
+  });
+
+  it.each([['My%20Coll/list'], ['My%20Coll/count']])(
+    'should expose the search inputs on %s, which the runtime honours',
+    path => expectSearchInputsOn(path),
+  );
+
+  it('should share one search component across collections rather than unfold one each', () => {
+    const searchNames = Object.keys(schemas).filter(name => name.startsWith('Search'));
+
+    expect(searchNames.sort()).toEqual(['Search', 'SearchExtended']);
+  });
+
+  it.each([['orders/list'], ['orders/count']])(
+    'should still expose the search inputs on %s, whose capabilities failed',
+    path => expectSearchInputsOn(path),
+  );
+
+  it.each([['My%20Coll/relations/orders/list'], ['My%20Coll/relations/orders/count']])(
+    'should carry the search inputs to %s through the foreign collection request',
+    path => expectSearchInputsOn(path),
+  );
+
+  it('should tell a count caller its search inputs match list, not that a search is required', () => {
+    const { description } = requestSchema('My%20Coll/count') as unknown as { description: string };
+
+    expect(description).toContain('Accepts the same search inputs as list');
+    expect(description).not.toContain('matching a filter and a search');
+  });
+
+  it('should mirror the generic list and count inputs, so an input never lands on one document only', () => {
+    const generic = generateOpenApiDocument('9.9.9').components?.schemas as Record<
+      string,
+      { properties?: Record<string, unknown> }
+    >;
+
+    expect(Object.keys(propertiesOf('My%20Coll/list'))).toEqual(
+      Object.keys(generic.ListRequest.properties ?? {}),
+    );
+    expect(Object.keys(propertiesOf('My%20Coll/count'))).toEqual(
+      Object.keys(generic.CountRequest.properties ?? {}),
+    );
+  });
+
   it('should make every leaf and the branch mutually exclusive, which the runtime enforces', () => {
-    const branch = branchOf('Filter_My_Coll') as unknown as { not: { required: string[] } };
+    const branch = branchOf('Filter_My_Coll') as unknown as {
+      properties: Record<string, unknown>;
+      additionalProperties: boolean;
+    };
 
     ['FilterLeaf_My_Coll-1', 'FilterLeaf_My_Coll-2'].forEach(name => {
-      const leaf = schemas[name] as unknown as { not: { required: string[] } };
+      const leaf = schemas[name] as unknown as {
+        properties: Record<string, unknown>;
+        additionalProperties: boolean;
+      };
 
-      expect(leaf.not.required).toEqual(['conditions']);
+      expect(leaf.additionalProperties).toBe(false);
+      expect(leaf.properties).not.toHaveProperty('conditions');
     });
-    expect(branch.not.required).toEqual(['field']);
+    expect(branch.additionalProperties).toBe(false);
+    expect(branch.properties).not.toHaveProperty('field');
   });
 
-  it('should exclude only the type the runtime reads as the other shape', () => {
-    // `isBranch` needs an ARRAY `conditions` and `isLeaf` a STRING `field`, so a leaf carrying
-    // `conditions: "x"` is a plain leaf the runtime accepts and the document must not refuse.
-    const leaf = schemas['FilterLeaf_My_Coll-1'] as unknown as {
-      not: { properties: { conditions: { type: string } } };
-    };
-    const branch = branchOf('Filter_My_Coll') as unknown as {
-      not: { properties: { field: { type: string } } };
-    };
-
-    expect(leaf.not.properties.conditions.type).toBe('array');
-    expect(branch.not.properties.field.type).toBe('string');
+  it('should close every leaf and the branch of a filter tree, so a stray key is refused before it leaves', () => {
+    ['FilterLeaf_My_Coll-1', 'FilterLeaf_My_Coll-2', 'FilterLeaf_orders'].forEach(name => {
+      expect((schemas[name] as { additionalProperties?: boolean }).additionalProperties).toBe(
+        false,
+      );
+    });
+    expect(
+      (branchOf('Filter_My_Coll') as { additionalProperties?: boolean }).additionalProperties,
+    ).toBe(false);
   });
 
-  it('should not forbid an unknown extra key on a filter node, which the runtime strips', () => {
-    const leaf = schemas['FilterLeaf_My_Coll-1'] as { additionalProperties?: unknown };
+  it('should publish the empty filter the runtime accepts, alongside the leaves and the branch', () => {
+    expect(emptyNodeOf('Filter_My_Coll')).toEqual(
+      expect.objectContaining({ type: 'object', additionalProperties: false }),
+    );
+  });
 
-    expect(leaf.additionalProperties).toBeUndefined();
+  it.each([
+    ['My%20Coll/list'],
+    ['My%20Coll/count'],
+    ['My%20Coll/relations/orders/list'],
+    ['My%20Coll/relations/orders/count'],
+  ])(
+    'should say on %s that an undeclared key is rejected, in the body and the tree alike',
+    path => {
+      const request = requestSchema(path) as unknown as { description: string };
+
+      expect(request.description).toContain('undeclared key with 400 invalid_request');
+      expect(request.description).toContain('`valu` instead of `value` is rejected');
+    },
+  );
+
+  it('should close a per-collection sort clause, so a misspelled direction is not silently kept', () => {
+    const sort = schemas.SortClause_My_Coll as unknown as { additionalProperties: boolean };
+
+    expect(sort.additionalProperties).toBe(false);
+  });
+
+  it('should close the per-collection list and count bodies structurally', () => {
+    const list = requestSchema('My%20Coll/list') as unknown as { additionalProperties: boolean };
+    const count = requestSchema('My%20Coll/count') as unknown as { additionalProperties: boolean };
+
+    expect(list.additionalProperties).toBe(false);
+    expect(count.additionalProperties).toBe(false);
   });
 
   it('should describe a relation request with the FOREIGN collection fields, not the parent ones', () => {
+    const foreign = dereference('#/components/schemas/ListRequest_orders') as unknown as {
+      properties: Record<string, unknown>;
+    };
     const request = requestSchema('My%20Coll/relations/orders/list') as unknown as {
-      allOf: [{ $ref: string }, Record<string, unknown>];
+      properties: Record<string, unknown>;
     };
 
-    expect(request.allOf[0].$ref).toBe('#/components/schemas/ListRequest_orders');
+    expect(Object.keys(request.properties).sort()).toEqual(
+      [...Object.keys(foreign.properties), 'parentId'].sort(),
+    );
+    expect(request.properties.filter).toEqual(foreign.properties.filter);
+  });
+
+  it('should carry the foreign degraded note on a relation request, like the collection body', () => {
+    const relation = requestSchema('My%20Coll/relations/orders/list') as unknown as {
+      description: string;
+    };
+    const foreign = requestSchema('orders/list') as unknown as { description: string };
+    const note = 'The field names are NOT enumerated here';
+
+    expect(foreign.description).toContain(note);
+    expect(relation.description).toContain(note);
+  });
+
+  it('should not advertise list-only keys on the relation count body or its description', () => {
+    const list = requestSchema('My%20Coll/relations/orders/list') as unknown as {
+      description: string;
+    };
+    const count = requestSchema('My%20Coll/relations/orders/count') as unknown as {
+      description: string;
+      properties: Record<string, unknown>;
+    };
+
+    expect(list.description).toContain('Filter, sort, projection and search');
+    expect(count.description).toContain('Filter and search');
+    expect(Object.keys(count.properties).sort()).toEqual([
+      'filter',
+      'parentId',
+      'search',
+      'searchExtended',
+      'timezone',
+    ]);
+  });
+
+  it('should close a relation request structurally, not only in prose', () => {
+    const request = requestSchema('My%20Coll/relations/orders/list') as unknown as {
+      additionalProperties: boolean;
+      description: string;
+    };
+
+    expect(request.additionalProperties).toBe(false);
+    expect(request.description).toContain('undeclared key with 400 invalid_request');
+    expect(request.description).not.toContain('does not say so structurally');
+  });
+
+  it('should say search applies to the foreign collection too, like filter, sort and projection', () => {
+    const { description } = requestSchema('My%20Coll/relations/orders/list') as unknown as {
+      description: string;
+    };
+
+    expect(description).toContain('Filter, sort, projection and search apply to "orders"');
+  });
+
+  it('should not promise sort or projection on a relation count, which carries neither', () => {
+    const { description } = requestSchema('My%20Coll/relations/orders/count') as unknown as {
+      description: string;
+    };
+
+    expect(description).toContain('Filter and search apply to "orders"');
+    expect(description).not.toContain('projection');
+    expect(description).not.toContain('sort');
   });
 
   it('should require parentId on a relation request and name the parent key it belongs to', () => {
     const request = requestSchema('My%20Coll/relations/orders/list') as unknown as {
-      allOf: [unknown, { properties: { parentId: { description: string } }; required: string[] }];
+      properties: { parentId: { description: string } };
+      required: string[];
     };
 
-    expect(request.allOf[1].required).toEqual(['parentId']);
-    expect(request.allOf[1].properties.parentId.description).toContain('(id, Number)');
+    expect(request.required).toEqual(['parentId']);
+    expect(request.properties.parentId.description).toContain('(id, Number)');
   });
 
   it('should accept a numeric parent id as a number or its string form, like the runtime', () => {
     const request = requestSchema('My%20Coll/relations/orders/list') as unknown as {
-      allOf: [unknown, { properties: { parentId: { anyOf: unknown[] } } }];
+      properties: { parentId: { anyOf: unknown[] } };
     };
 
-    expect(request.allOf[1].properties.parentId.anyOf).toEqual([
+    expect(request.properties.parentId.anyOf).toEqual([
       { type: 'string', pattern: '\\S' },
       { type: 'number' },
     ]);
@@ -253,21 +444,19 @@ describe('the unfolded document', () => {
 
   it('should document a composite parent key as its packed string form', () => {
     const request = requestSchema('orders/relations/buyers/list') as unknown as {
-      allOf: [unknown, { properties: { parentId: { type: string; description: string } } }];
+      properties: { parentId: { type: string; description: string } };
     };
 
-    expect(request.allOf[1].properties.parentId.type).toBe('string');
-    expect(request.allOf[1].properties.parentId.description).toContain(
-      'shop, number joined by "|"',
-    );
+    expect(request.properties.parentId.type).toBe('string');
+    expect(request.properties.parentId.description).toContain('shop, number joined by "|"');
   });
 
   it('should fall back to the opaque parent id when the parent exposes no key metadata', () => {
     const request = requestSchema('users.address/relations/orders/list') as unknown as {
-      allOf: [unknown, { properties: { parentId: { $ref?: string } } }];
+      properties: { parentId: { $ref?: string } };
     };
 
-    expect(request.allOf[1].properties.parentId.$ref).toBe('#/components/schemas/ParentId');
+    expect(request.properties.parentId.$ref).toBe('#/components/schemas/ParentId');
   });
 
   it('should keep the paths of a collection whose capabilities failed, with free-form fields', () => {
@@ -316,9 +505,58 @@ describe('the unfolded document', () => {
       kind: { type: 'string', enum: ['refund', 'gift'] },
       files: { type: 'array', items: { type: 'string', description: 'A data URI.' } },
       payload: {},
+      tiers: { type: 'array', items: { type: 'string', enum: ['gold', 'silver'] } },
+      flags: { type: 'string' },
+      assignee: { type: 'string', description: 'A packed record id for users.id.' },
+      levels: { type: 'array', items: { type: 'number' } },
+      owner: {
+        type: 'string',
+        description:
+          'A packed record id for users.id. The agent declares this field required on the ' +
+          'static form.',
+      },
     });
     expect(request.properties.values.required).toBeUndefined();
     expect(request.required).toEqual(['recordIds']);
+  });
+
+  it('should reference the shared action response components rather than an empty schema', () => {
+    const form = operation('My%20Coll/actions/Mark%20as%20paid%2Fdone/form') as unknown as {
+      responses: Record<string, { content: Record<string, { schema: { $ref: string } }> }>;
+    };
+    const execute = operation('My%20Coll/actions/Mark%20as%20paid%2Fdone/execute') as unknown as {
+      responses: Record<string, { content: Record<string, { schema: { $ref: string } }> }>;
+    };
+
+    expect(form.responses['200'].content['application/json'].schema.$ref).toBe(
+      '#/components/schemas/ActionFormResponse',
+    );
+    expect(execute.responses['200'].content['application/json'].schema.$ref).toBe(
+      '#/components/schemas/ActionResult',
+    );
+  });
+
+  it('should share one response schema per verb across every unfolded action', () => {
+    const refsOf = (prefix: string) =>
+      Object.values(paths)
+        .map(
+          path =>
+            path.post as unknown as {
+              operationId?: string;
+              responses?: Record<string, { content: Record<string, { schema: { $ref: string } }> }>;
+            },
+        )
+        .filter(item => item.operationId?.startsWith(prefix))
+        .map(item => item.responses?.['200'].content['application/json'].schema.$ref);
+
+    expect(refsOf('getActionForm')).toEqual([
+      '#/components/schemas/ActionFormResponse',
+      '#/components/schemas/ActionFormResponse',
+    ]);
+    expect(refsOf('executeAction')).toEqual([
+      '#/components/schemas/ActionResult',
+      '#/components/schemas/ActionResult',
+    ]);
   });
 
   it('should share one response component per error status across every unfolded path', () => {
@@ -328,7 +566,7 @@ describe('the unfolded document', () => {
       ),
     );
 
-    expect(errors).toHaveLength(16 * 12);
+    expect(errors).toHaveLength(16 * 13);
     errors.forEach(([, response]) => {
       expect(response).toEqual({ $ref: expect.stringContaining('#/components/responses/') });
     });
@@ -525,8 +763,16 @@ describe('an unfolded document with no action', () => {
     expect(Object.keys(withoutActions.components?.responses ?? {})).not.toContain(
       'UnsupportedActionResult',
     );
-    expect(Object.keys(withoutActions.components?.schemas ?? {})).not.toContain(
+    [
       'MessagelessErrorResponse',
+      'ActionFormResponse',
+      'ActionFormResponseField',
+      'ActionResult',
+      'ActionResultSuccess',
+      'ActionResultWebhook',
+      'ActionResultRedirect',
+    ].forEach(name =>
+      expect(Object.keys(withoutActions.components?.schemas ?? {})).not.toContain(name),
     );
   });
 });

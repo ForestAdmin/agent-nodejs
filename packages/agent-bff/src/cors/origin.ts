@@ -9,11 +9,15 @@ export function loggableOrigin(raw: string): string {
   return raw.length > MAX_LOGGED_ORIGIN_LENGTH ? `${raw.slice(0, MAX_LOGGED_ORIGIN_LENGTH)}…` : raw;
 }
 
+export function hasOrigin(raw: string | undefined | null): raw is string {
+  return raw !== undefined && raw !== null && raw.trim() !== '';
+}
+
 export function normalizeOrigin(raw: string | undefined | null): string | null {
-  if (raw === undefined || raw === null) return null;
+  if (!hasOrigin(raw)) return null;
 
   const trimmed = raw.trim();
-  if (trimmed === '' || trimmed === 'null') return null;
+  if (trimmed === 'null') return null;
 
   let url: URL;
 

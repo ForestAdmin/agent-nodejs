@@ -65,6 +65,33 @@ function leafOperators(): string[] {
 }
 
 describe('generateOpenApiDocument', () => {
+  describe('servers', () => {
+    it('should publish the configured public URL as an absolute base URL', () => {
+      expect(
+        generateOpenApiDocument('9.9.9', { publicUrl: 'https://bff.example.com' }).servers,
+      ).toEqual([
+        { url: 'https://bff.example.com', description: expect.stringContaining('public base URL') },
+      ]);
+    });
+
+    it('should fall back to a root-relative url with no template variable, which a generator cannot resolve', () => {
+      const [server] = generateOpenApiDocument('9.9.9').servers ?? [];
+
+      expect(server.url).toBe('/');
+      expect(server.description).toContain('BFF_PUBLIC_URL');
+      expect(server.variables).toBeUndefined();
+    });
+
+    it('should carry the public URL into the unfolded document too', () => {
+      const unfolded = generateOpenApiDocument('9.9.9', {
+        unfolding: { collections: [] },
+        publicUrl: 'https://bff.example.com',
+      });
+
+      expect(unfolded.servers?.[0].url).toBe('https://bff.example.com');
+    });
+  });
+
   it('should emit OpenAPI 3.1.0 with the package version', () => {
     expect(document.openapi).toBe(OPENAPI_VERSION);
     expect(document.info.version).toBe('9.9.9');
@@ -197,6 +224,16 @@ describe('generateOpenApiDocument', () => {
     expect(session.description).toContain('every data and action route');
   });
 
+  it('should say in the api key scheme that allowedOrigins gates browsers only', () => {
+    const apiKey = (document.components?.securitySchemes as Record<string, { description: string }>)
+      .bffApiKey;
+
+    expect(apiKey.description).toContain('restricts browser callers only');
+    expect(apiKey.description).toContain('a request with no Origin at all');
+    expect(apiKey.description).toContain('an empty Origin header counting as none');
+    expect(apiKey.description).toContain('opaque Origin null is a present origin and is rejected');
+  });
+
   it('should require a body where parentId or recordIds is mandatory', () => {
     const requiredByPath = Object.fromEntries(
       Object.entries(document.paths ?? {})
@@ -238,6 +275,7 @@ describe('generateOpenApiDocument', () => {
       '501',
       '502',
       '503',
+      '504',
     ]);
   });
 
@@ -285,7 +323,7 @@ describe('generateOpenApiDocument', () => {
       Object.entries(operation.responses).filter(([status]) => status !== '200'),
     );
 
-    expect(errors).toHaveLength(72);
+    expect(errors).toHaveLength(78);
     errors.forEach(([, response]) => {
       expect(response).toEqual({ $ref: expect.stringContaining('#/components/responses/') });
     });
@@ -311,19 +349,33 @@ describe('generateOpenApiDocument', () => {
       'Error502AiQuery',
       'Error503',
       'Error503AiQuery',
+      'Error504',
       'Error504AiQuery',
       'ErrorDefaultAiQuery',
       'UnsupportedActionResult',
     ]);
   });
 
-  it('should keep the ai query body limit and timeout out of every data route', () => {
-    const statuses = dataOperations().flatMap(operation => Object.keys(operation.responses));
+  it('should document 504 on every data route, since an agent timeout is not a network error', () => {
+    dataOperations().forEach(operation => {
+      expect((operation.responses as Record<string, { $ref: string }>)['504'].$ref).toBe(
+        '#/components/responses/Error504',
+      );
+    });
+  });
+
+  it('should keep the ai query body limit and timeout components out of every data route', () => {
+    const refs = dataOperations().flatMap(operation =>
+      Object.values(operation.responses as Record<string, { $ref?: string }>).map(
+        response => response.$ref,
+      ),
+    );
     const aiOperation = (document.paths ?? {})[AI_QUERY_PATH] as {
       post: { responses: Record<string, { $ref: string }> };
     };
 
-    expect(statuses).not.toContain('504');
+    expect(refs).not.toContain('#/components/responses/Error504AiQuery');
+    expect(refs).not.toContain('#/components/responses/Error413AiQuery');
     expect(aiOperation.post.responses['413'].$ref).toContain('Error413AiQuery');
     expect(aiOperation.post.responses['504'].$ref).toContain('Error504AiQuery');
   });
@@ -393,13 +445,13 @@ describe('generateOpenApiDocument', () => {
     expect(list['422'].description).not.toContain('operator');
   });
 
-  it('should distinguish a form body, which is parsed, from other non-JSON bodies, which drop', () => {
+  it('should reject every non-JSON body with 415, form-urlencoded included', () => {
     const list = listResponses();
 
-    expect(list['415'].description).toContain('NOT rejected');
     expect(list['415'].description).toContain('form-urlencoded');
-    expect(document.info.description).toContain('form-urlencoded');
-    expect(document.info.description).toContain('silently');
+    expect(list['415'].description).toContain('415');
+    expect(document.info.description).toContain('415');
+    expect(document.info.description).not.toContain('silently');
   });
 
   it('should name the 403s the BFF itself emits, not only the agent passthrough', () => {
@@ -416,6 +468,10 @@ describe('generateOpenApiDocument', () => {
 
   it('should accept a timezone on an action body, which the middleware reads there too', () => {
     expect(Object.keys(schemas.ActionRequest.properties as object)).toContain('timezone');
+  });
+
+  it('should publish the blank-timezone rejection in the schema, not only at runtime', () => {
+    expect(schemas.Timezone).toEqual(expect.objectContaining({ type: 'string', pattern: '\\S' }));
   });
 
   it('should declare Retry-After on 503, the only status that sets it', () => {
@@ -442,6 +498,10 @@ describe('generateOpenApiDocument', () => {
     expect(schemas.ActionRequest.required).toEqual(['recordIds']);
   });
 
+  it('should close the action body, since the middleware rejects an unknown key', () => {
+    expect(schemas.ActionRequest.additionalProperties).toBe(false);
+  });
+
   it('should type a primary key value as a string or a number, matching the record mapper', () => {
     const meta = schemas.ForestRecordMeta as {
       properties: { primaryKey: { additionalProperties: { anyOf: unknown[] } } };
@@ -458,6 +518,217 @@ describe('generateOpenApiDocument', () => {
       name: 'GPL-3.0',
       url: 'https://www.gnu.org/licenses/gpl-3.0.html',
     });
+  });
+});
+
+describe('the closed request bodies', () => {
+  it.each([
+    ['ListRequest'],
+    ['CountRequest'],
+    ['RelationListRequest'],
+    ['RelationCountRequest'],
+    ['SortClause'],
+    ['Page'],
+  ])('should forbid an undeclared key on %s', name => {
+    expect(schemas[name].additionalProperties).toBe(false);
+  });
+
+  it('should forbid an undeclared key on both shapes of a condition tree node', () => {
+    const { anyOf } = schemas.ConditionTree as unknown as { anyOf: unknown[] };
+    const [leaf, branch] = anyOf;
+
+    expect(leaf).toEqual({ $ref: '#/components/schemas/ConditionTreeLeaf' });
+    expect(branch).toEqual(expect.objectContaining({ additionalProperties: false }));
+    expect(schemas.ConditionTreeLeaf.additionalProperties).toBe(false);
+  });
+
+  it('should publish the empty filter the runtime accepts, so a client can send it', () => {
+    const { anyOf } = schemas.ConditionTree as unknown as { anyOf: Record<string, unknown>[] };
+
+    expect(anyOf).toContainEqual(
+      expect.objectContaining({ type: 'object', additionalProperties: false, properties: {} }),
+    );
+  });
+
+  it.each([['RelationListRequest'], ['RelationCountRequest']])(
+    'should publish %s flat rather than as an allOf of a closed base',
+    name => {
+      expect(schemas[name].allOf).toBeUndefined();
+      expect(
+        (schemas[name] as { properties: Record<string, unknown> }).properties.parentId,
+      ).toEqual({ $ref: '#/components/schemas/ParentId' });
+    },
+  );
+});
+
+describe('the documented ai query path', () => {
+  it('should say a non-json body is rejected here, matching the 415 the guard raises', () => {
+    const { description } = document.paths[`${ROUTE_PREFIX}/ai/query`].post as {
+      description: string;
+    };
+
+    expect(description).toContain('rejected with 415 before the relay');
+    expect(description).not.toContain('relayed as {}');
+  });
+});
+
+describe('the documented action responses', () => {
+  it('should type the form 200 response rather than leave it free-form', () => {
+    const form = responsesOf(`${ROUTE_PREFIX}/{collection}/actions/{action}/form`);
+
+    expect(form['200'].content?.['application/json'].schema).toEqual({
+      $ref: '#/components/schemas/ActionFormResponse',
+    });
+  });
+
+  it('should type the execute 200 response as the discriminated result union', () => {
+    const execute = responsesOf(`${ROUTE_PREFIX}/{collection}/actions/{action}/execute`);
+
+    expect(execute['200'].content?.['application/json'].schema).toEqual({
+      $ref: '#/components/schemas/ActionResult',
+    });
+  });
+
+  it('should carry a field type that is a string or the one-element list form, verbatim from the agent', () => {
+    const field = schemas.ActionFormResponseField as unknown as {
+      properties: { type: { anyOf: unknown[] } };
+    };
+
+    expect(field.properties.type.anyOf).toEqual([
+      { type: 'string' },
+      { type: 'array', items: { type: 'string' }, minItems: 1, maxItems: 1 },
+    ]);
+  });
+
+  it('should require exactly the keys the form mappers always assign', () => {
+    const field = schemas.ActionFormResponseField as { required: string[] };
+    const form = schemas.ActionFormResponse as { required: string[] };
+
+    expect([...field.required].sort()).toEqual(['isRequired', 'name', 'type']);
+    expect([...form.required].sort()).toEqual([
+      'canExecute',
+      'fields',
+      'layout',
+      'requiredFields',
+      'skippedFields',
+    ]);
+  });
+
+  it('should leave value unconstrained, since an unresolved one is absent from the body', () => {
+    const field = schemas.ActionFormResponseField as unknown as { properties: { value: unknown } };
+
+    expect(field.properties.value).toEqual({});
+  });
+
+  it('should type enumValues as a string list or null, null when the agent declares none', () => {
+    const field = schemas.ActionFormResponseField as unknown as {
+      properties: { enumValues: { anyOf: unknown[] } };
+    };
+
+    expect(field.properties.enumValues.anyOf).toEqual([
+      { type: 'array', items: { type: 'string' } },
+      { type: 'null' },
+    ]);
+  });
+
+  it('should say invalidated names relations, not collections', () => {
+    const success = schemas.ActionResultSuccess as { description: string };
+
+    expect(success.description).toContain('names the relations of the acted-on collection');
+    expect(success.description).not.toContain('lists the collections');
+  });
+
+  it('should say a null value counts as missing for canExecute, like an absent one', () => {
+    const form = schemas.ActionFormResponse as { description: string };
+
+    expect(form.description).toContain('a null or absent value counts as missing');
+  });
+
+  it('should say a null success message means the agent omitted success entirely', () => {
+    const success = schemas.ActionResultSuccess as { description: string };
+
+    expect(success.description).toContain('an agent-nodejs success with no message serializes');
+    expect(success.description).toContain('null means the agent omitted `success` entirely');
+  });
+
+  it('should warn that the action_error details html is untrusted, like the success html', () => {
+    const error = schemas.ErrorResponse as { description: string };
+
+    expect(error.description).toContain('`{ html }` on action_error');
+    expect(error.description).toContain('sanitize it before rendering');
+  });
+
+  it('should say the approval and action_error details are conditional on the agent supplying them', () => {
+    const error = schemas.ErrorResponse as { description: string };
+
+    expect(error.description).toContain('when the agent supplies them');
+    expect(error.description).toContain(
+      '`{ roleIdsAllowedToApprove }` on action_requires_approval',
+    );
+  });
+
+  it('should splice the untrusted-html note into a well-formed sentence', () => {
+    const error = schemas.ErrorResponse as { description: string };
+
+    expect(error.description).toContain(
+      '(stored/reflected XSS risk), exactly like the execute success html',
+    );
+  });
+
+  it('should discriminate the result union on type with exactly the three 200 branches', () => {
+    const result = schemas.ActionResult as unknown as {
+      oneOf: { $ref: string }[];
+      discriminator: { propertyName: string; mapping: Record<string, string> };
+    };
+
+    expect(result.oneOf).toEqual([
+      { $ref: '#/components/schemas/ActionResultSuccess' },
+      { $ref: '#/components/schemas/ActionResultWebhook' },
+      { $ref: '#/components/schemas/ActionResultRedirect' },
+    ]);
+    expect(result.discriminator.propertyName).toBe('type');
+    expect(result.discriminator.mapping).toEqual({
+      success: '#/components/schemas/ActionResultSuccess',
+      webhook: '#/components/schemas/ActionResultWebhook',
+      redirect: '#/components/schemas/ActionResultRedirect',
+    });
+  });
+
+  it('should require the nullable message and html on success, which the mapper always assigns', () => {
+    const success = schemas.ActionResultSuccess as unknown as {
+      properties: { message: { anyOf: unknown[] }; html: { anyOf: unknown[] } };
+      required: string[];
+    };
+
+    expect(success.properties.message.anyOf).toEqual([{ type: 'string' }, { type: 'null' }]);
+    expect(success.properties.html.anyOf).toEqual([{ type: 'string' }, { type: 'null' }]);
+    expect([...success.required].sort()).toEqual(['html', 'invalidated', 'message', 'type']);
+  });
+
+  it('should mark the webhook headers and body optional, which the agent payload can omit', () => {
+    const webhook = schemas.ActionResultWebhook as unknown as {
+      properties: { headers: unknown; body: unknown };
+      required: string[];
+    };
+
+    expect(webhook.properties.headers).toEqual({});
+    expect(webhook.properties.body).toEqual({});
+    expect([...webhook.required].sort()).toEqual(['method', 'type', 'url']);
+  });
+
+  it('should require the redirect path', () => {
+    const redirect = schemas.ActionResultRedirect as { required: string[] };
+
+    expect([...redirect.required].sort()).toEqual(['path', 'type']);
+  });
+
+  it('should carry the untrusted-html warning on success.html (PRD-1095)', () => {
+    const success = schemas.ActionResultSuccess as unknown as {
+      properties: { html: { description: string } };
+    };
+
+    expect(success.properties.html.description).toContain('Untrusted HTML');
+    expect(success.properties.html.description).toContain('sanitize');
   });
 });
 
@@ -527,6 +798,43 @@ describe('the documented search inputs', () => {
 
   it('should warn that a search query can filter on a collection the BFF does not expose', () => {
     expect(schemas.Search.description).toContain('does not expose');
+  });
+});
+
+describe('the documented pagination inputs', () => {
+  it('should publish the default page applied when page is absent', () => {
+    expect(schemas.Page.description).toContain('the object itself is optional');
+    expect(schemas.Page.description).toContain('the first page (offset 0)');
+    expect(schemas.Page.description).toContain('a limit of 15 records on the Node agent');
+    expect(schemas.Page.description).toContain('silently missing');
+  });
+
+  it('should require both limit and offset once page is sent', () => {
+    expect(schemas.Page.required).toEqual(['limit', 'offset']);
+  });
+
+  it('should warn on the response that a page-less list is one page, not the collection', () => {
+    expect(schemas.ListResponse.description).toContain('not guaranteed to be the whole collection');
+    expect(schemas.ListResponse.description).toContain('up to 15 records from the start');
+    expect(schemas.ListResponse.description).toContain('probably truncated');
+  });
+});
+
+describe('the documented transport failures', () => {
+  it('should split 502 and 504 by cause, since they mean different failures', () => {
+    const list = responsesOf(`${ROUTE_PREFIX}/{collection}/list`);
+
+    expect(list['502'].description).toContain('refused the connection');
+    expect(list['502'].description).toContain('rather than running out of time');
+    expect(list['502'].description).toContain('connection reset mid-flight');
+  });
+
+  it('should say the 504 deadline starts with the request, and where that stops holding', () => {
+    const list = responsesOf(`${ROUTE_PREFIX}/{collection}/list`);
+
+    expect(list['504'].description).toContain('BFF_AGENT_TIMEOUT_MS');
+    expect(list['504'].description).toContain('armed when the request starts');
+    expect(list['504'].description).toContain('past the OS connect timeout and that case reverts');
   });
 });
 

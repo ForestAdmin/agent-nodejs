@@ -22,8 +22,16 @@ export default abstract class ActionField {
     return this.field?.getType();
   }
 
+  getReference(): PlainField['reference'] {
+    return this.field?.getPlainField().reference;
+  }
+
   getTypeName(): string {
     return this.field?.getTypeName();
+  }
+
+  getEffectiveTypeName(): string {
+    return this.field?.getEffectiveTypeName();
   }
 
   getValue() {
