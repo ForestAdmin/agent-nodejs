@@ -1,4 +1,4 @@
-import type { AgentDataClient } from '../../src/data/agent-data-client';
+import type { AgentDataClient, AgentDataClientOptions } from '../../src/data/agent-data-client';
 import type { Logger } from '../../src/ports/logger-port';
 import type { CapabilitiesResult } from '../../src/read-model/capabilities-cache';
 import type ReadModelStore from '../../src/read-model/read-model-store';
@@ -8,11 +8,14 @@ import { bodyParser } from '@koa/bodyparser';
 import Koa from 'koa';
 import request from 'supertest';
 
+import { createHttpTransport } from '../../src/agent/agent-transport';
 import createDataRoutesMiddleware from '../../src/data/data-routes-middleware';
 import createErrorMiddleware from '../../src/http/error-middleware';
 import SchemaUnavailableError from '../../src/read-model/errors';
 import ReadModel from '../../src/read-model/read-model';
 import { collection, column, polymorphic, relation } from '../read-model/fixtures';
+
+const TRANSPORT = createHttpTransport({ agentUrl: 'https://agent.example.com' });
 
 const TIMEZONE = 'Europe/Paris';
 
@@ -51,8 +54,6 @@ function storeOf(
   } as unknown as ReadModelStore;
 }
 
-const AGENT_URL = 'https://agent.example.com';
-
 function buildApp(
   store: ReadModelStore,
   client: Partial<AgentDataClient>,
@@ -62,7 +63,7 @@ function buildApp(
     logger = noopLogger,
   }: {
     agentToken?: string | null;
-    createClient?: (options: { agentUrl: string; token: string }) => AgentDataClient;
+    createClient?: (options: AgentDataClientOptions) => AgentDataClient;
     logger?: Logger;
   } = {},
 ) {
@@ -78,7 +79,7 @@ function buildApp(
   app.use(
     createDataRoutesMiddleware({
       store,
-      agentUrl: AGENT_URL,
+      transport: TRANSPORT,
       logger,
       createClient,
     }),
@@ -133,20 +134,16 @@ describe('data routes middleware', () => {
       expect(list).not.toHaveBeenCalled();
     });
 
-    it('should forward the agent url and resolved token to the data client', async () => {
+    it('should forward the transport and resolved token to the data client', async () => {
       const createClient = jest.fn(() => ({ list: async () => [] } as unknown as AgentDataClient));
       const app = buildApp(storeOf(usersReadModel), {}, { agentToken: 'jwt-123', createClient });
 
       await request(app.callback()).post('/agent/v1/users/list').send({});
 
-      expect(createClient).toHaveBeenCalledWith({
-        agentUrl: AGENT_URL,
-        token: 'jwt-123',
-        timeoutMs: undefined,
-      });
+      expect(createClient).toHaveBeenCalledWith({ transport: TRANSPORT, token: 'jwt-123' });
     });
 
-    it('should forward the configured agent timeout to the data client', async () => {
+    it('should build one client per request, each bound to that request token', async () => {
       const createClient = jest.fn(() => ({ list: async () => [] } as unknown as AgentDataClient));
       const app = new Koa();
       app.silent = true;
@@ -154,22 +151,30 @@ describe('data routes middleware', () => {
       app.use(bodyParser());
       app.use(async (ctx, next) => {
         ctx.state.timezone = TIMEZONE;
-        ctx.state.agentToken = 'agent-jwt';
+        ctx.state.agentToken = ctx.get('x-agent-token');
         await next();
       });
       app.use(
         createDataRoutesMiddleware({
           store: storeOf(usersReadModel),
-          agentUrl: AGENT_URL,
-          timeoutMs: 2500,
+          transport: TRANSPORT,
           logger: noopLogger,
           createClient,
         }),
       );
 
-      await request(app.callback()).post('/agent/v1/users/list').send({});
+      await request(app.callback())
+        .post('/agent/v1/users/list')
+        .set('x-agent-token', 'jwt-1')
+        .send({});
+      await request(app.callback())
+        .post('/agent/v1/users/list')
+        .set('x-agent-token', 'jwt-2')
+        .send({});
 
-      expect(createClient).toHaveBeenCalledWith(expect.objectContaining({ timeoutMs: 2500 }));
+      expect(createClient).toHaveBeenCalledTimes(2);
+      expect(createClient).toHaveBeenNthCalledWith(1, { transport: TRANSPORT, token: 'jwt-1' });
+      expect(createClient).toHaveBeenNthCalledWith(2, { transport: TRANSPORT, token: 'jwt-2' });
     });
   });
 

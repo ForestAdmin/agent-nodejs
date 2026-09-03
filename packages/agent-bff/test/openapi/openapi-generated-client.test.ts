@@ -11,6 +11,7 @@ import Koa from 'koa';
 import path from 'path';
 
 import createActionRoutesMiddleware from '../../src/action/action-routes-middleware';
+import { createHttpTransport } from '../../src/agent/agent-transport';
 import { BFF_KEY_HEADER } from '../../src/api-key/api-key-middleware';
 import dispatchCli from '../../src/cli-dispatch';
 import createDataRoutesMiddleware from '../../src/data/data-routes-middleware';
@@ -178,7 +179,7 @@ function buildApp(): Koa {
   app.use(
     createDataRoutesMiddleware({
       store,
-      agentUrl: ENV.AGENT_URL,
+      transport: createHttpTransport({ agentUrl: ENV.AGENT_URL }),
       logger: noopLogger,
       createClient: () => dataClient,
     }),
@@ -186,7 +187,7 @@ function buildApp(): Koa {
   app.use(
     createActionRoutesMiddleware({
       store,
-      agentUrl: ENV.AGENT_URL,
+      transport: createHttpTransport({ agentUrl: ENV.AGENT_URL }),
       logger: noopLogger,
       createClient: () => actionClient,
     }),

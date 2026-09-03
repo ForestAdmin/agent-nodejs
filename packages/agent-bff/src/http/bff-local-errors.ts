@@ -40,6 +40,12 @@ export function unsupportedActionResult(message = 'Unsupported action result'): 
   return new BffHttpError(501, 'unsupported_action_result', message);
 }
 
+export function streamingUnsupported(
+  message = 'Streaming is not supported over this transport',
+): BffHttpError {
+  return new BffHttpError(501, 'streaming_unsupported', message);
+}
+
 export function actionError(message = 'The action failed', details?: unknown): BffHttpError {
   return new BffHttpError(400, 'action_error', message, { details });
 }

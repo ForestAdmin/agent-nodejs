@@ -1,9 +1,8 @@
+import type { AgentTransport } from '../agent/agent-transport';
 import type { ActionEndpointsByCollection } from '@forestadmin/agent-client';
 import type { ForestServerActionFormLayoutElement } from '@forestadmin/forestadmin-client';
 
 import { createRemoteAgentClient } from '@forestadmin/agent-client';
-
-import createAgentHttpRequester from '../agent/create-agent-http-requester';
 
 export interface ActionFormField {
   getName(): string;
@@ -41,10 +40,9 @@ export interface AgentActionClient {
 }
 
 export interface AgentActionClientOptions {
-  agentUrl: string;
+  transport: AgentTransport;
   token: string;
   actionEndpoints: ActionEndpointsByCollection;
-  timeoutMs?: number;
 }
 
 // The raw layout must be read AFTER tryToSetFields: a change hook rebuilds fields+layout in place.
@@ -64,16 +62,15 @@ export function extractRawLayout(action: ActionForm): ForestServerActionFormLayo
  * than reimplementing it. The endpoint map from the read-model is the action allow-list.
  */
 export default function createAgentActionClient({
-  agentUrl,
+  transport,
   token,
   actionEndpoints,
-  timeoutMs,
 }: AgentActionClientOptions): AgentActionClient {
   const client = createRemoteAgentClient({
-    url: agentUrl,
+    url: transport.url,
     token,
     actionEndpoints,
-    httpRequester: createAgentHttpRequester(token, agentUrl, timeoutMs),
+    httpRequester: transport.createRequester(token),
   });
 
   return {

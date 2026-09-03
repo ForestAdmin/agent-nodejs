@@ -14,6 +14,7 @@ import Koa from 'koa';
 import createActionRoutesMiddleware from './action/action-routes-middleware';
 import createConsoleLogger from './adapters/console-logger';
 import createAgentStubMiddleware from './agent/agent-stub';
+import { createHttpTransport } from './agent/agent-transport';
 import AiProxyClient from './ai/ai-proxy-client';
 import createAiRoutesMiddleware, { AI_QUERY_ROUTE } from './ai/ai-routes-middleware';
 import createApiKeyAuthenticator from './api-key/api-key-authenticator';
@@ -261,8 +262,10 @@ function toUnfoldSource(
 
   return {
     store: bundle.store,
-    agentUrl: config.agentUrl,
-    timeoutMs: config.agentTimeoutMs,
+    transport: createHttpTransport({
+      agentUrl: config.agentUrl,
+      timeoutMs: config.agentTimeoutMs,
+    }),
     logger,
   };
 }
@@ -313,10 +316,12 @@ function buildAgentRouteMiddlewares(
     return [permissionsMiddleware, createAgentStubMiddleware()];
   }
 
+  const transport = createHttpTransport({ agentUrl, timeoutMs });
+
   return [
     permissionsMiddleware,
-    createDataRoutesMiddleware({ store, agentUrl, timeoutMs, logger }),
-    createActionRoutesMiddleware({ store, agentUrl, timeoutMs, logger }),
+    createDataRoutesMiddleware({ store, transport, logger }),
+    createActionRoutesMiddleware({ store, transport, logger }),
   ];
 }
 

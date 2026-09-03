@@ -6,6 +6,7 @@ import {
   openapiDisabled,
   relationNotAllowed,
   schemaUnavailable,
+  streamingUnsupported,
   unknownAction,
   unknownCollection,
   unknownRelation,
@@ -25,6 +26,7 @@ describe('bff local errors', () => {
     [schemaUnavailable, 'schema_unavailable', 503],
     [unsupportedActionResult, 'unsupported_action_result', 501],
     [openapiDisabled, 'openapi_disabled', 404],
+    [streamingUnsupported, 'streaming_unsupported', 501],
   ])('%p builds a %s error with status %d', (factory, type, status) => {
     expect(factory()).toMatchObject({ type, status });
   });
