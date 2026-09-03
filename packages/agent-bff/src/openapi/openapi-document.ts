@@ -94,6 +94,7 @@ const HEAD_DOCUMENT_RESPONSES = {
   401: { description: ERROR_STATUSES['401'] },
   403: { description: ERROR_STATUSES['403'] },
   404: { description: `${OPENAPI_DISABLED_DESCRIPTION} The status is the same as the GET one.` },
+  429: { description: ERROR_STATUSES['429'], headers: RETRY_AFTER_RATE_LIMIT_HEADER },
   500: { description: ERROR_STATUSES['500'] },
   503: { description: ERROR_STATUSES['503'], headers: RETRY_AFTER_HEADER },
 };
@@ -459,6 +460,7 @@ function registerPermissionsPath(
       400: errorRefs.byStatus['400'],
       401: errorRefs.byStatus['401'],
       403: errorRefs.byStatus['403'],
+      429: errorRefs.byStatus['429'],
       500: errorRefs.byStatus['500'],
       501: errorRefs.byStatus['501'],
       503: errorRefs.byStatus['503'],
@@ -491,6 +493,7 @@ function registerDocumentPath(registry: OpenAPIRegistry, errorRefs: ErrorRespons
       401: errorRefs.byStatus['401'],
       403: errorRefs.byStatus['403'],
       404: errorRefs.openapiDisabled,
+      429: errorRefs.byStatus['429'],
       500: errorRefs.byStatus['500'],
       503: errorRefs.byStatus['503'],
     },
@@ -503,7 +506,7 @@ function registerDocumentPath(registry: OpenAPIRegistry, errorRefs: ErrorRespons
     summary: 'Probe this document without fetching it',
     description:
       'Same route as `GET`, answering the same statuses and headers with no body, so a client can ' +
-      'probe whether the document is enabled and reachable before re-fetching it. The five error ' +
+      'probe whether the document is enabled and reachable before re-fetching it. The six error ' +
       'statuses below reuse the GET wording, which describes a JSON body no HEAD ever returns: ' +
       'read the status, not the type. The 200 and the 404 carry their own.',
     security: SECURITY,

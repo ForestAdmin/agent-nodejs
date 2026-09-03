@@ -715,11 +715,15 @@ describe('generateOpenApiDocument', () => {
       '400',
       '401',
       '403',
+      '429',
       '500',
       '501',
       '503',
     ]);
     expect(responses['503'].headers).toEqual(
+      expect.objectContaining({ 'Retry-After': expect.anything() }),
+    );
+    expect(responses['429'].headers).toEqual(
       expect.objectContaining({ 'Retry-After': expect.anything() }),
     );
   });
@@ -733,6 +737,7 @@ describe('generateOpenApiDocument', () => {
       '401',
       '403',
       '404',
+      '429',
       '500',
       '503',
     ]);
@@ -777,6 +782,7 @@ describe('generateOpenApiDocument', () => {
       '401',
       '403',
       '404',
+      '429',
       '500',
       '503',
     ]);
@@ -788,7 +794,7 @@ describe('generateOpenApiDocument', () => {
     const head = responsesOf(DOCUMENT_PATH, 'head');
     const get = responsesOf(DOCUMENT_PATH);
 
-    ['400', '401', '403', '500', '503'].forEach(status => {
+    ['400', '401', '403', '429', '500', '503'].forEach(status => {
       expect(head[status].content).toBeUndefined();
       expect(head[status].description).toBe(get[status].description);
       expect(head[status].headers).toEqual(get[status].headers);
@@ -802,7 +808,7 @@ describe('generateOpenApiDocument', () => {
   it('should tell a HEAD caller to read the status rather than the type it cannot see', () => {
     const path = (document.paths ?? {})[DOCUMENT_PATH] as { head: { description: string } };
 
-    expect(path.head.description).toContain('The five error statuses below reuse the GET wording');
+    expect(path.head.description).toContain('The six error statuses below reuse the GET wording');
     expect(path.head.description).toContain('read the status, not the type');
     expect(path.head.description).toContain('The 200 and the 404 carry their own');
     expect(path.head.description).not.toContain('Every status below reuses');
