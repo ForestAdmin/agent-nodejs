@@ -378,7 +378,7 @@ function buildAgentMiddlewares(
       maxRequests: config.rateLimitMaxRequests,
       windowMs: config.rateLimitWindowMs,
     }),
-    createPerKeyOriginMiddleware(),
+    createPerKeyOriginMiddleware({ logger, serverAllowedOrigins: config.allowedOrigins }),
     createOpenApiRoutes({
       version,
       enabled: config.openapiEnabled,
@@ -414,7 +414,7 @@ export default async function runCli(
   const agentErrorMiddleware = hasAgentEdge ? [agentScoped(createErrorMiddleware({ logger }))] : [];
   const agentJsonOnlyGuard = hasAgentEdge ? [agentScoped(createJsonOnlyGuard())] : [];
   const middlewares = [
-    createCorsMiddleware({ allowedOrigins: config.allowedOrigins }),
+    createCorsMiddleware({ allowedOrigins: config.allowedOrigins, logger }),
     ...agentErrorMiddleware,
     ...agentJsonOnlyGuard,
     createBodyParser(aiMiddlewares.length > 0),

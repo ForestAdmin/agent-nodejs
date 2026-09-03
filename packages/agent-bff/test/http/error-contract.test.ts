@@ -48,7 +48,7 @@ function buildEdge(authenticate: ApiKeyAuthenticator['authenticate']) {
   app.use(createErrorMiddleware({ logger }));
   app.use(createAuthModeMiddleware({ authSecret: AUTH_SECRET }));
   app.use(createApiKeyMiddleware({ authenticator: { authenticate }, logger }));
-  app.use(createPerKeyOriginMiddleware());
+  app.use(createPerKeyOriginMiddleware({ logger, serverAllowedOrigins: [] }));
   app.use(createTimezoneMiddleware({ defaultTimezone: undefined }));
   app.use(createAgentStubMiddleware());
 

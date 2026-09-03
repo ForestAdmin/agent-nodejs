@@ -72,7 +72,7 @@ function makeFullAgentEdge(fetchSchema: jest.Mock, allowedOrigins: string[] = []
       logger,
     }),
   );
-  app.use(createPerKeyOriginMiddleware());
+  app.use(createPerKeyOriginMiddleware({ logger, serverAllowedOrigins: [] }));
   app.use(createContextRoutesMiddleware({ store }));
 
   return app.callback();
