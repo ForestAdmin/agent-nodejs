@@ -4,7 +4,7 @@ import type { Middleware } from 'koa';
 
 import isAgentPath from './agent-path';
 import { unauthorized } from '../http/bff-http-error';
-import { tooManyRequests } from '../http/bff-local-errors';
+import { RATE_LIMIT_CAUSES, tooManyRequests } from '../http/bff-local-errors';
 
 export interface RateLimitMiddlewareOptions {
   windowMs: number;
@@ -82,7 +82,7 @@ export default function createRateLimitMiddleware({
         throw tooManyRequests(
           retryAfterSeconds(earliestReset, current),
           'Too many requests: the rate limiter is saturated',
-          { cause: 'limiter_saturated' },
+          RATE_LIMIT_CAUSES.limiterSaturated,
         );
       }
 
@@ -98,7 +98,7 @@ export default function createRateLimitMiddleware({
         `Too many requests: the limit is ${maxRequests} per ${Math.round(
           windowMs / MS_PER_SECOND,
         )}s per identity`,
-        { cause: 'limit_exceeded' },
+        RATE_LIMIT_CAUSES.limitExceeded,
       );
     }
 

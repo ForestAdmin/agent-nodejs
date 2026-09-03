@@ -83,12 +83,22 @@ export function permissionsUnavailable(
   return new BffHttpError(503, 'permissions_unavailable', message, { retryAfter });
 }
 
+export const RATE_LIMIT_CAUSES = {
+  limitExceeded: 'limit_exceeded',
+  limiterSaturated: 'limiter_saturated',
+} as const;
+
+export type RateLimitCause = (typeof RATE_LIMIT_CAUSES)[keyof typeof RATE_LIMIT_CAUSES];
+
 export function tooManyRequests(
   retryAfter: number,
-  message = 'Too many requests',
-  details?: unknown,
+  message: string,
+  cause: RateLimitCause,
 ): BffHttpError {
-  return new BffHttpError(429, 'too_many_requests', message, { details, retryAfter });
+  return new BffHttpError(429, 'too_many_requests', message, {
+    details: { cause },
+    retryAfter,
+  });
 }
 
 export function actionRequiresApproval(

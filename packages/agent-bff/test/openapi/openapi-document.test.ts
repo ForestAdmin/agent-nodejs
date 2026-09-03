@@ -441,6 +441,12 @@ describe('generateOpenApiDocument', () => {
     expect(list['429'].description).not.toContain('message distinguishes');
   });
 
+  it('should warn that a relayed agent 429 carries neither cause nor Retry-After', () => {
+    const list = responsesOf(`${ROUTE_PREFIX}/{collection}/list`);
+
+    expect(list['429'].description).toContain('carries neither `cause` nor Retry-After');
+  });
+
   it('should call the saturation Retry-After a lower bound, not the caller own window', () => {
     const list = responsesOf(`${ROUTE_PREFIX}/{collection}/list`);
     const header = list['429'].headers?.['Retry-After'] as { description: string };
