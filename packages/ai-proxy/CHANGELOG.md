@@ -1,3 +1,10 @@
+## @forestadmin/ai-proxy [1.12.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.12.7...@forestadmin/ai-proxy@1.12.8) (2026-09-03)
+
+
+### Bug Fixes
+
+* **ai-proxy:** exclude the whole claude-fable-5 line from tool support ([#1878](https://github.com/ForestAdmin/agent-nodejs/issues/1878)) ([3ca8372](https://github.com/ForestAdmin/agent-nodejs/commit/3ca8372c905fa96122e77ee98e33c8d00ac2cad7))
+
 ## @forestadmin/ai-proxy [1.12.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.12.6...@forestadmin/ai-proxy@1.12.7) (2026-08-25)
 
 
