@@ -295,12 +295,12 @@ async function handleRelation(
   const relationDeps: RelationHandlerDeps = { ...deps, relation, foreignCollection };
 
   if (operation === 'list') {
-    await handleRelationList(ctx, parseRelationListRequest(rawBody), {
+    await handleRelationList(ctx, parseRelationListRequest(rawBody, deps.logger), {
       ...relationDeps,
       primaryKeys: readModel.getPrimaryKeys(foreignCollection),
     });
   } else {
-    await handleRelationCount(ctx, parseRelationCountRequest(rawBody), relationDeps);
+    await handleRelationCount(ctx, parseRelationCountRequest(rawBody, deps.logger), relationDeps);
   }
 }
 
@@ -355,10 +355,10 @@ export default function createDataRoutesMiddleware({
     const operation = match[2] as 'list' | 'count';
 
     if (operation === 'list') {
-      const body = parseListRequest(rawBody);
+      const body = parseListRequest(rawBody, logger);
       await handleList(ctx, body, { ...deps, primaryKeys: readModel.getPrimaryKeys(collection) });
     } else {
-      const body = parseCountRequest(rawBody);
+      const body = parseCountRequest(rawBody, logger);
       await handleCount(ctx, body, deps);
     }
   };
