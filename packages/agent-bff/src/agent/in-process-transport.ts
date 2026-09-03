@@ -125,7 +125,7 @@ class InProcessRequester extends HttpRequester {
     query: Record<string, string>;
   } {
     const normalized = path.startsWith('/') ? path : `/${path}`;
-    const url = new URL(`${IN_PROCESS_URL}${HttpRequester.escapeUrlSlug(normalized)}`);
+    const url = new URL(`${IN_PROCESS_AGENT_URL}${HttpRequester.escapeUrlSlug(normalized)}`);
 
     return { path: url.pathname, query: Object.fromEntries(url.searchParams) };
   }
