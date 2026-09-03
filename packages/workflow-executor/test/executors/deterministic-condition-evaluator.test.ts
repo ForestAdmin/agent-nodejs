@@ -214,6 +214,43 @@ describe('evaluateOperator', () => {
     });
   });
 
+  // A bigint column comes back as a string while its threshold is a JSON number, so Number() would
+  // round the column and let it satisfy a condition the data does not meet. Reported by Macroscope
+  // on PR #1837.
+  describe('whole numbers beyond 2^53', () => {
+    const justAbove = '9007199254740993';
+    const twoPow53 = 9007199254740992;
+
+    it('does not read a bigint string as equal to the number it rounds to', () => {
+      expect(evaluateOperator('equal', justAbove, twoPow53)).toBe(false);
+      expect(evaluateOperator('not_equal', justAbove, twoPow53)).toBe(true);
+    });
+
+    it('orders a bigint string against a threshold it exceeds by one', () => {
+      expect(evaluateOperator('greater_than', justAbove, twoPow53)).toBe(true);
+      expect(evaluateOperator('less_than', justAbove, twoPow53)).toBe(false);
+      expect(evaluateOperator('greater_than_or_equal', justAbove, twoPow53)).toBe(true);
+    });
+
+    it('excludes it from a list it rounds into', () => {
+      expect(evaluateOperator('in', justAbove, [twoPow53])).toBe(false);
+      expect(evaluateOperator('not_in', justAbove, [twoPow53])).toBe(true);
+    });
+
+    // Decimals have no BigInt to be read as, so they keep the Number path.
+    it('leaves decimals on the number path', () => {
+      expect(evaluateOperator('equal', '150.00', 150)).toBe(true);
+      expect(evaluateOperator('greater_than', '150.50', 150)).toBe(true);
+      expect(evaluateOperator('equal', 1.5, 1.5)).toBe(true);
+    });
+
+    it('still compares ordinary whole numbers', () => {
+      expect(evaluateOperator('equal', '150', 150)).toBe(true);
+      expect(evaluateOperator('greater_than', 150, 100)).toBe(true);
+      expect(evaluateOperator('less_than', '-20', 0)).toBe(true);
+    });
+  });
+
   describe('in', () => {
     it('matches when the value is in the list', () => {
       expect(evaluateOperator('in', 'b', ['a', 'b'])).toBe(true);

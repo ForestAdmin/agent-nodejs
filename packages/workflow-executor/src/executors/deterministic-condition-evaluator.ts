@@ -7,6 +7,7 @@ const TIMEZONE_SUFFIX = /(Z|[+-]\d{2}:?\d{2})$/i;
 // Sequelize hands back numeric/decimal/bigint columns as strings although datasource-sequelize
 // maps them to the Number primitive, so the builder's JSON number meets a string at runtime.
 const NUMERIC_STRING = /^-?\d+(\.\d+)?$/;
+const INTEGER_STRING = /^-?\d+$/;
 
 // Date.parse rolls an out-of-range day over ("2026-02-30" becomes 2026-03-02), which would make a
 // nonsensical config compare equal to a real date instead of being inert.
@@ -45,8 +46,33 @@ function toNumberPair(actual: unknown, expected: unknown): [number, number] | nu
   return actualNumber !== null && expectedNumber !== null ? [actualNumber, expectedNumber] : null;
 }
 
+function toInteger(value: unknown): bigint | null {
+  if (typeof value === 'number') return Number.isInteger(value) ? BigInt(value) : null;
+
+  return typeof value === 'string' && INTEGER_STRING.test(value) ? BigInt(value) : null;
+}
+
+// A bigint column arrives as a string (Sequelize) while its threshold arrives as a JSON number, so
+// Number() would round the column past 2^53 and make 9007199254740993 compare equal to
+// 9007199254740992 — silently satisfying a condition the data does not meet. Whole numbers are
+// therefore compared exactly. Only whole ones: a decimal has no BigInt to be read as.
+function compareIntegers(actual: unknown, expected: unknown): number | null {
+  if (typeof actual !== 'number' && typeof expected !== 'number') return null;
+
+  const actualInteger = toInteger(actual);
+  const expectedInteger = toInteger(expected);
+  if (actualInteger === null || expectedInteger === null) return null;
+
+  if (actualInteger === expectedInteger) return 0;
+
+  return actualInteger > expectedInteger ? 1 : -1;
+}
+
 function scalarEqual(actual: unknown, expected: unknown): boolean | null {
   if (actual === expected) return true;
+
+  const integers = compareIntegers(actual, expected);
+  if (integers !== null) return integers === 0;
 
   const numbers = toNumberPair(actual, expected);
   if (numbers) return numbers[0] === numbers[1];
@@ -72,6 +98,9 @@ function isEqual(actual: unknown, expected: unknown): boolean | null {
 }
 
 function compare(actual: unknown, expected: unknown): number | null {
+  const integers = compareIntegers(actual, expected);
+  if (integers !== null) return integers;
+
   const numbers = toNumberPair(actual, expected);
   if (numbers) return numbers[0] - numbers[1];
 
