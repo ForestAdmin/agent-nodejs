@@ -57,12 +57,6 @@ describe('buildListAgentQuery', () => {
 
     expect(query.sort).toBe('name,-age');
   });
-
-  it('should reject an offset that is not a multiple of the limit', () => {
-    expect(() =>
-      buildListAgentQuery('users', 'Europe/Paris', { page: { limit: 20, offset: 15 } }),
-    ).toThrow(expect.objectContaining({ type: 'invalid_request', status: 400 }));
-  });
 });
 
 describe('buildCountAgentQuery', () => {
@@ -523,10 +517,26 @@ describe('unknown keys', () => {
   it.each(FLAT_PARSERS)(
     'should reject a blank timezone on %s rather than silently resolve another one',
     (_label, parse) => {
-      expect(() => parse({ timezone: '' })).toThrow(REJECTED);
-      expect(() => parse({ timezone: '   ' })).toThrow(REJECTED);
+      const namesTimezone = expect.objectContaining({
+        type: 'invalid_request',
+        status: 400,
+        message: expect.stringContaining('timezone'),
+      });
+
+      expect(() => parse({ timezone: '' })).toThrow(namesTimezone);
+      expect(() => parse({ timezone: '   ' })).toThrow(namesTimezone);
     },
   );
+
+  it('should reject an offset that is not a multiple of the limit, and log it', () => {
+    logger.mockClear();
+    expect(() => parseListRequest({ page: { limit: 20, offset: 15 } }, logger)).toThrow(
+      expect.objectContaining({ type: 'invalid_request', status: 400 }),
+    );
+    expect(logger).toHaveBeenCalledWith('Warn', 'Request body rejected', {
+      reason: 'page: offset (15) must be a multiple of limit (20)',
+    });
+  });
 
   it.each(FLAT_PARSERS)('should log the rejected key on %s, never the value', (_label, parse) => {
     logger.mockClear();

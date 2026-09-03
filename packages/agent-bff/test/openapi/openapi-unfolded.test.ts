@@ -191,7 +191,6 @@ describe('the unfolded document', () => {
     expect(request.properties.sort.items?.$ref).toBe('#/components/schemas/SortClause_My_Coll');
   });
 
-
   it('should leave page optional here too, pointing at the shared Page component', () => {
     const request = requestSchema('My%20Coll/list') as unknown as {
       required?: string[];

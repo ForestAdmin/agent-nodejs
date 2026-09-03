@@ -486,6 +486,14 @@ describe('the closed request bodies', () => {
     expect(schemas.ConditionTreeLeaf.additionalProperties).toBe(false);
   });
 
+  it('should publish the empty filter the runtime accepts, so a client can send it', () => {
+    const { anyOf } = schemas.ConditionTree as unknown as { anyOf: Record<string, unknown>[] };
+
+    expect(anyOf).toContainEqual(
+      expect.objectContaining({ type: 'object', additionalProperties: false, properties: {} }),
+    );
+  });
+
   it.each([['RelationListRequest'], ['RelationCountRequest']])(
     'should publish %s flat rather than as an allOf of a closed base',
     name => {
@@ -496,7 +504,6 @@ describe('the closed request bodies', () => {
     },
   );
 });
-
 
 describe('the documented ai query path', () => {
   it('should say a non-json body is rejected here, matching the 415 the guard raises', () => {

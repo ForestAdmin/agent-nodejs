@@ -38,11 +38,13 @@ const ConditionTreeSchema: z.ZodType = z
         aggregator: z.enum(['And', 'Or']),
         conditions: z.array(ConditionTreeSchema),
       }),
+      z.strictObject({}),
     ]),
   )
   .openapi('ConditionTree', {
     description:
-      'Either a leaf condition or a branch nesting more conditions. A branch must carry its ' +
+      'Either a leaf condition, a branch nesting more conditions, or the empty object, which is ' +
+      'how an absent filter is spelled. A branch must carry its ' +
       '`aggregator`: the BFF forwards a branch without one, but the agent then parses it as ' +
       'neither leaf nor branch and answers 400. On top-level list and count, nesting deeper ' +
       `than ${MAX_FILTER_DEPTH} levels is rejected and each field is checked against the ` +
@@ -66,10 +68,12 @@ export const PageSchema = PageInput.openapi('Page', {
 
 export const TimezoneSchema = TimezoneInput.openapi('Timezone', {
   description:
-    'Used when the X-Forest-Timezone header is absent. The header wins when both are sent. A ' +
-    'blank or whitespace-only string is rejected with 400 rather than silently resolving from ' +
-    'the header or the default. A deployment with no configured default rejects a request ' +
-    'carrying neither with 400 missing_timezone.',
+    'Used when the X-Forest-Timezone header is absent. The header wins when both are sent, but ' +
+    'the key is still validated: on a list or count body a blank or whitespace-only string is ' +
+    'rejected with 400 even when the header carries a usable zone. An action body is read ' +
+    'without that validation, so a blank one there falls back to the header or the default ' +
+    'instead. A deployment with no configured default rejects a request carrying neither with ' +
+    '400 missing_timezone.',
 });
 
 export const SearchSchema = SearchInput.openapi('Search', {

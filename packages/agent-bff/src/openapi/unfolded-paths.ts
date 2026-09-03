@@ -28,6 +28,7 @@ import {
   TimezoneSchema,
 } from './schemas';
 import { PACKED_ID_SEPARATOR } from '../data/pack-id';
+import { NON_BLANK_PATTERN } from '../data/request-schemas';
 
 const AGGREGATORS = ['And', 'Or'];
 
@@ -202,8 +203,9 @@ function filterSchema(
 
   return pool.add(treeName, {
     description:
-      `A filter on ${quoted(name)}: either a leaf condition or a branch nesting more ` +
-      'conditions. A branch must carry its aggregator. A node carrying both `field` and ' +
+      `A filter on ${quoted(name)}: either a leaf condition, a branch nesting more ` +
+      'conditions, or the empty object, which is how an absent filter is spelled. A branch must ' +
+      'carry its aggregator. A node carrying both `field` and ' +
       `\`conditions\` is rejected with 400, so the two shapes are mutually exclusive.${pairing}`,
     anyOf: [
       ...leaves,
@@ -216,6 +218,7 @@ function filterSchema(
         required: ['aggregator', 'conditions'],
         additionalProperties: false,
       },
+      { type: 'object', additionalProperties: false },
     ],
   });
 }
@@ -316,7 +319,7 @@ function registerRequests(
 }
 
 const PARENT_ID_SHAPE = {
-  anyOf: [{ type: 'string' as const, pattern: '\\S' }, { type: 'number' as const }],
+  anyOf: [{ type: 'string' as const, pattern: NON_BLANK_PATTERN }, { type: 'number' as const }],
 };
 
 /**
@@ -337,7 +340,7 @@ function parentIdSchema(
     return {
       // A composite id only works as its packed string: a number could never carry the separator.
       type: 'string',
-      pattern: '\\S',
+      pattern: NON_BLANK_PATTERN,
       description:
         `The composite id of the parent ${quoted(parent)} record: the values of ` +
         `${primaryKeys.map(key => key.name).join(', ')} joined by ` +
