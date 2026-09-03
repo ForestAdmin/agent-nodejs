@@ -27,9 +27,34 @@ export interface WithUserConfirmation<T extends Record<string, unknown> = Record
 
 // -- Condition --
 
+// A code rather than a sentence: executionParams is replayed into the AI context of later steps,
+// and the run view is what words this for the operator.
+export type ConditionNotLoadedReason = 'source-step-not-reached' | 'field-not-loaded';
+
+export interface ConditionEvaluation {
+  option: string;
+  outcome: 'matched' | 'not-matched' | 'not-evaluated';
+  /**
+   * Absent when outcome is 'not-evaluated'. `met: null` = the value could not be evaluated.
+   * `reason` accompanies `met: null` only when nothing was read at all: a value read as null
+   * carries none, which is how the run view tells the two apart.
+   */
+  conditions?: Array<{ index: number; met: boolean | null; reason?: ConditionNotLoadedReason }>;
+}
+
+// Deterministic evaluation trace read by the run view (PRD-472 contract shape). The fallback
+// never appears in `evaluations` — the front derives its display from `usedFallback`.
+export interface DeterministicConditionExecutionParams {
+  evaluations: ConditionEvaluation[];
+  selectedOption: string;
+  usedFallback: boolean;
+}
+
 export interface ConditionStepExecutionData extends BaseStepExecutionData {
   type: 'condition';
-  executionParams: { answer: string | null; reasoning?: string };
+  executionParams:
+    | { answer: string | null; reasoning?: string }
+    | DeterministicConditionExecutionParams;
   executionResult?: { answer: string };
 }
 

@@ -40,16 +40,80 @@ const sharedFields = {
 // Use z.enum(EnumObject), not z.nativeEnum — the latter is deprecated in zod 4.
 const { Manual, AutomatedWithConfirmation, FullyAutomated } = StepExecutionMode;
 
+// Wire-final operator names (PRD-472 cross-repo contract). An unknown operator is rejected here,
+// at the schema boundary, so a run never reaches evaluation with a comparison it cannot honor.
+export const CONDITION_OPERATORS = [
+  'equal',
+  'not_equal',
+  'present',
+  'blank',
+  'greater_than',
+  'less_than',
+  'greater_than_or_equal',
+  'less_than_or_equal',
+  'in',
+  'not_in',
+  'contains',
+  'not_contains',
+] as const;
+export type ConditionOperator = (typeof CONDITION_OPERATORS)[number];
+
+const VALUE_LESS_OPERATORS: readonly ConditionOperator[] = ['present', 'blank'];
+
+const DeterministicConditionSchema = z
+  .object({
+    /** Stable BPMN id of the upstream Get Data step whose output holds the value. */
+    sourceStepId: z.string().min(1),
+    fieldName: z.string().min(1),
+    operator: z.enum(CONDITION_OPERATORS),
+    /** Absent for `present`/`blank`. */
+    value: z.unknown().optional(),
+  })
+  // A value-bearing operator without its value compares against `undefined`: it can never be met,
+  // so the step would silently route to the fallback instead of reporting the broken config.
+  .superRefine((condition, ctx) => {
+    if (!VALUE_LESS_OPERATORS.includes(condition.operator) && condition.value === undefined) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['value'],
+        message: `value is required for the "${condition.operator}" operator`,
+      });
+    }
+  });
+export type DeterministicCondition = z.infer<typeof DeterministicConditionSchema>;
+
+const OptionConditionsSchema = z.object({
+  option: z.string().min(1),
+  aggregator: z.enum(['and', 'or']),
+  conditions: z.array(DeterministicConditionSchema).min(1),
+});
+export type OptionConditions = z.infer<typeof OptionConditionsSchema>;
+
 export const ConditionStepDefinitionSchema = z.object({
   ...sharedFields,
   type: z.literal(StepType.Condition),
-  // NO `.catch` — coercing an unknown mode (e.g. a future `deterministic` from a newer
-  // orchestrator) to FullyAutomated would silently let the AI decide instead of the conditions
-  // the builder configured precisely because they don't trust the AI.
+  // NO `.catch` — coercing an unknown mode to FullyAutomated would turn a gateway the builder made
+  // manual into an AI decision.
   executionType: z.enum([Manual, FullyAutomated]).default(FullyAutomated),
   options: z.array(z.string()).min(2),
+  // A malformed config is rejected here rather than dropped, so it can never degrade to a
+  // manual/AI decision.
+  preRecordedArgs: z
+    .object({
+      optionConditions: z.array(OptionConditionsSchema).min(1),
+      fallbackOption: z.string().min(1),
+    })
+    .optional(),
 });
 export type ConditionStepDefinition = z.infer<typeof ConditionStepDefinitionSchema>;
+
+export type DeterministicConditionStep = ConditionStepDefinition &
+  Required<Pick<ConditionStepDefinition, 'preRecordedArgs'>>;
+
+// Carrying the conditions *is* the deterministic mode — no executionType says so.
+export const isDeterministicConditionStep = (
+  step: ConditionStepDefinition,
+): step is DeterministicConditionStep => step.preRecordedArgs !== undefined;
 
 export const ReadRecordStepDefinitionSchema = z.object({
   ...sharedFields,

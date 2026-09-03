@@ -1,14 +1,28 @@
 import type { StepExecutionResult } from '../types/execution-context';
-import type { ConditionStepDefinition } from '../types/validated/step-definition';
+import type {
+  ConditionEvaluation,
+  ConditionNotLoadedReason,
+  StepExecutionData,
+} from '../types/step-execution-data';
+import type {
+  ConditionStepDefinition,
+  DeterministicCondition,
+  DeterministicConditionStep,
+} from '../types/validated/step-definition';
 import type { ConditionStepOutcome, ErrorKind } from '../types/validated/step-outcome';
 
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 import { z } from 'zod';
 
-import { StepStateError } from '../errors';
+import { InvalidStepDefinitionError, StepStateError } from '../errors';
 import BaseStepExecutor from './base-step-executor';
+import evaluateOperator from './deterministic-condition-evaluator';
 import patchBodySchemas from '../http/pending-data-validators';
-import { StepExecutionMode } from '../types/validated/step-definition';
+import {
+  StepExecutionMode,
+  StepType,
+  isDeterministicConditionStep,
+} from '../types/validated/step-definition';
 
 interface GatewayToolArgs {
   option: string | null;
@@ -64,6 +78,20 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
   protected async doExecute(): Promise<StepExecutionResult> {
     const { stepDefinition: step, incomingPendingData } = this.context;
 
+    if (isDeterministicConditionStep(step)) {
+      // The config wins over an explicit human action, so say so: a mixed-version fleet can pause
+      // the step on an args-blind instance, and the user's click would otherwise vanish untraced.
+      if (incomingPendingData !== undefined) {
+        this.context.logger(
+          'Warn',
+          'Ignoring a submitted option: this decision is evaluated from its conditions',
+          this.logCtx,
+        );
+      }
+
+      return this.evaluateDeterministically(step);
+    }
+
     // Manual mode: the user picks the option from the frontend. Wait for their input
     // without ever calling the AI.
     const isManual = step.executionType === StepExecutionMode.Manual;
@@ -92,6 +120,104 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
     }
 
     return this.buildOutcomeResult({ status: 'success', selectedOption });
+  }
+
+  private async evaluateDeterministically(
+    step: DeterministicConditionStep,
+  ): Promise<StepExecutionResult> {
+    const { optionConditions, fallbackOption } = step.preRecordedArgs;
+    const stepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
+
+    let matchedOption: string | undefined;
+    const evaluations = optionConditions.map(({ option, aggregator, conditions }) => {
+      if (matchedOption !== undefined) {
+        return { option, outcome: 'not-evaluated' } satisfies ConditionEvaluation;
+      }
+
+      const results = conditions.map((condition, index) => {
+        const { met, reason } = this.evaluateCondition(condition, stepExecutions);
+
+        return { index, met, ...(reason && { reason }) };
+      });
+      const matched =
+        aggregator === 'or'
+          ? results.some(result => result.met === true)
+          : results.every(result => result.met === true);
+      if (matched) matchedOption = option;
+
+      return {
+        option,
+        outcome: matched ? 'matched' : 'not-matched',
+        conditions: results,
+      } satisfies ConditionEvaluation;
+    });
+
+    const usedFallback = matchedOption === undefined;
+    const selectedOption = matchedOption ?? fallbackOption;
+
+    // optionConditions and options come from two different server-side derivations; an option the
+    // orchestrator cannot route must fail here, not silently succeed and break the run downstream.
+    if (!step.options.includes(selectedOption)) {
+      const allowed = step.options.join(', ');
+      throw new InvalidStepDefinitionError(
+        `deterministic option "${selectedOption}" is not a valid choice (expected one of: ${allowed})`,
+      );
+    }
+
+    await this.context.runStore.saveStepExecution(this.context.runId, {
+      type: 'condition',
+      stepIndex: this.context.stepIndex,
+      executionParams: { evaluations, selectedOption, usedFallback },
+      executionResult: { answer: selectedOption },
+    });
+
+    return this.buildOutcomeResult({ status: 'success', selectedOption });
+  }
+
+  private evaluateCondition(
+    condition: DeterministicCondition,
+    stepExecutions: StepExecutionData[],
+  ): { met: boolean | null; reason?: ConditionNotLoadedReason } {
+    const resolved = this.resolveConditionValue(condition, stepExecutions);
+
+    // The reason is what keeps the fallback from passing for a decision the data took: the run view
+    // words it instead of showing a bare cross. Returning here also means "never read" is not
+    // "read and empty", so present and blank get no answer out of it either.
+    if (resolved.found === false) {
+      this.context.logger('Warn', 'Condition value could not be resolved, counting it as not met', {
+        ...this.logCtx,
+        sourceStepId: condition.sourceStepId,
+        fieldName: condition.fieldName,
+        reason: resolved.reason,
+      });
+
+      return { met: null, reason: resolved.reason };
+    }
+
+    return { met: evaluateOperator(condition.operator, resolved.value, condition.value) };
+  }
+
+  // Same live-path + most-recent-occurrence resolution as resolveSourceRecordRef: previousSteps
+  // are already restricted to the live path, and in a loop the same step id repeats.
+  private resolveConditionValue(
+    condition: DeterministicCondition,
+    stepExecutions: StepExecutionData[],
+  ): { found: true; value: unknown } | { found: false; reason: ConditionNotLoadedReason } {
+    const matches = this.context.previousSteps.filter(
+      step =>
+        step.stepDefinition.type === StepType.ReadRecord &&
+        step.stepOutcome.stepId === condition.sourceStepId,
+    );
+    const sourceStep = matches[matches.length - 1];
+    if (!sourceStep) return { found: false, reason: 'source-step-not-reached' };
+
+    const execution = this.resolveStepExecution(sourceStep, stepExecutions);
+    if (execution?.type !== 'read-record') return { found: false, reason: 'field-not-loaded' };
+
+    const field = execution.executionResult.fields.find(f => f.name === condition.fieldName);
+    if (!field || !('value' in field)) return { found: false, reason: 'field-not-loaded' };
+
+    return { found: true, value: field.value };
   }
 
   private readUserChoice(

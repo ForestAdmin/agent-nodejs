@@ -587,6 +587,15 @@ export class InvalidStepDefinitionError extends WorkflowExecutorError {
   }
 }
 
+export class HydrationFailedError extends WorkflowExecutorError {
+  constructor(detail: string) {
+    super(
+      `Failed to hydrate run: ${detail}`,
+      'This workflow run could not be prepared for execution. Please contact support.',
+    );
+  }
+}
+
 // Thrown when zod validation fails on a domain object produced internally (e.g. by the
 // run-to-pending-step mapper). Distinct from InvalidStepDefinitionError (which flags wire-format
 // bugs coming from the orchestrator) so the two can be triaged separately in Sentry.
