@@ -154,8 +154,9 @@ export default class EmbeddedBff {
         `The embedded BFF requires the \`@forestadmin/agent-bff\` package, which failed to ` +
           `load: ${message}. Install it with \`npm install @forestadmin/agent-bff\`.`,
       );
-      // Assigned rather than passed to the constructor: the repo targets ES2020, whose lib has no
-      // options bag on Error, though the declared engines guarantee a runtime that reads it.
+      // Assigned rather than passed to the constructor: the repo targets ES2020, whose lib types no
+      // options bag on Error. A plain assignment carries the cause on every runtime, and the reason
+      // is in the message regardless of what reads it.
       (wrapped as Error & { cause?: unknown }).cause = error;
 
       throw wrapped;
