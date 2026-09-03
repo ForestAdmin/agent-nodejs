@@ -142,6 +142,10 @@ function serializeSort(sort: BffSortClause[]): string {
 function serializePage(page: BffPage): Record<string, number> {
   const { limit, offset } = page;
 
+  if (offset % limit !== 0) {
+    throw invalidRequest(`page.offset (${offset}) must be a multiple of page.limit (${limit})`);
+  }
+
   return { 'page[size]': limit, 'page[number]': offset / limit + 1 };
 }
 

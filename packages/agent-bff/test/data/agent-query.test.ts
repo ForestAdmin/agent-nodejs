@@ -57,6 +57,12 @@ describe('buildListAgentQuery', () => {
 
     expect(query.sort).toBe('name,-age');
   });
+
+  it('should refuse an unrepresentable offset rather than emit a fractional page number', () => {
+    expect(() =>
+      buildListAgentQuery('users', 'Europe/Paris', { page: { limit: 20, offset: 15 } }),
+    ).toThrow(expect.objectContaining({ type: 'invalid_request', status: 400 }));
+  });
 });
 
 describe('buildCountAgentQuery', () => {
