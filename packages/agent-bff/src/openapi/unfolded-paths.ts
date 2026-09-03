@@ -16,6 +16,8 @@ import type { ReferenceObject, SchemaObject } from 'openapi3-ts/oas31';
 import toFieldSchema from './field-schemas';
 import createNamer from './names';
 import {
+  ActionFormResponseSchema,
+  ActionResultSchema,
   CountResponseSchema,
   ListResponseSchema,
   OPERATORS,
@@ -542,6 +544,8 @@ function registerRelationOperations(
 }
 
 function registerActionOperations(deps: Deps, plan: CollectionPlan, namer: Namer): void {
+  const { pool } = deps;
+
   plan.collection.actions.forEach(action => {
     const actionKey = namer(`${plan.key}_${action.name}`);
     const request = registerActionRequest(deps, plan, action, actionKey);
@@ -557,7 +561,7 @@ function registerActionOperations(deps: Deps, plan: CollectionPlan, namer: Namer
       summary: `Load the form of ${action.name} on ${plan.collection.name}`,
       description: `Loads the form of the custom action. ${identity} An unknown submitted field is skipped here, not rejected.`,
       request,
-      response: {},
+      response: pool.reuse('ActionFormResponse', ActionFormResponseSchema),
       responseDescription:
         'The action form fields; htmlBlock layout content is sanitized server-side against an allowlist before relaying',
       bodyRequired: true,
@@ -570,7 +574,7 @@ function registerActionOperations(deps: Deps, plan: CollectionPlan, namer: Namer
       summary: `Execute ${action.name} on ${plan.collection.name}`,
       description: `Executes the custom action. ${identity} A submitted field the loaded form does not carry is rejected with 400.`,
       request,
-      response: {},
+      response: pool.reuse('ActionResult', ActionResultSchema),
       responseDescription:
         'The normalized action result; a success result html field is sanitized server-side against an allowlist before relaying',
       bodyRequired: true,
