@@ -374,11 +374,13 @@ function registerAiQueryPath(
 export interface GenerateOpenApiDocumentOptions {
   unfolding?: Unfolding;
   hasAiQueryRoute?: boolean;
+  /** Where the BFF answers from the caller's point of view. Empty when it owns the origin root. */
+  basePath?: string;
 }
 
 export function generateOpenApiDocument(
   version: string,
-  { unfolding, hasAiQueryRoute = false }: GenerateOpenApiDocumentOptions = {},
+  { unfolding, hasAiQueryRoute = false, basePath = '' }: GenerateOpenApiDocumentOptions = {},
 ): OpenAPIObject {
   const registry = new OpenAPIRegistry();
   const hasActions =
@@ -485,7 +487,7 @@ export function generateOpenApiDocument(
         unfolding ? UNFOLDED_DESCRIPTION : GENERIC_DESCRIPTION
       } ${SHARED_DESCRIPTION}`,
     },
-    servers: [{ url: '/' }],
+    servers: [{ url: basePath || '/' }],
   });
 }
 
