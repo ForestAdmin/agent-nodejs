@@ -23,14 +23,14 @@ export default function createPerKeyOriginMiddleware({
   logger,
   serverAllowedOrigins,
 }: PerKeyOriginMiddlewareOptions): Middleware {
-  const assessedKeys = new Map<string, boolean>();
+  const assessedKeys = new Set<string>();
 
   function reportOriginsThatCanNeverPass(allowedOrigins: string[], keyHash: string): void {
     if (serverAllowedOrigins.length === 0 || assessedKeys.has(keyHash)) return;
 
     const canNeverPass = !allowedOrigins.some(entry => originAllowed(entry, serverAllowedOrigins));
     if (assessedKeys.size >= MAX_ASSESSED_KEYS) assessedKeys.clear();
-    assessedKeys.set(keyHash, canNeverPass);
+    assessedKeys.add(keyHash);
 
     if (canNeverPass) {
       logger('Warn', 'BFF key origins are all outside BFF_ALLOWED_ORIGINS', {
