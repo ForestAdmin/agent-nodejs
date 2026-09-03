@@ -577,14 +577,14 @@ describe('embedded BFF', () => {
     }
 
     function preflightListBooks(hostApp: express.Express) {
-      return supertest(hostApp)
+      return request(hostApp)
         .options('/bff/agent/v1/books/list')
         .set('Origin', FOREIGN_ORIGIN)
         .set('Access-Control-Request-Method', 'POST');
     }
 
     function listBooks(hostApp: express.Express) {
-      return supertest(hostApp)
+      return request(hostApp)
         .post('/bff/agent/v1/books/list')
         .set('Authorization', `Bearer ${sessionToken()}`)
         .set('X-Forest-Timezone', 'Europe/Paris')
