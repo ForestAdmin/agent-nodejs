@@ -1,3 +1,21 @@
+## @forestadmin/agent-bff [1.23.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.23.7...@forestadmin/agent-bff@1.23.8) (2026-09-03)
+
+
+### Bug Fixes
+
+* **agent-bff:** publish BFF_PUBLIC_URL as the openapi server url ([#1866](https://github.com/ForestAdmin/agent-nodejs/issues/1866)) ([0f94120](https://github.com/ForestAdmin/agent-nodejs/commit/0f941200b26480a315518ccde143699a9bed6f36))
+* **bff:** cap page.limit and rate-limit agent requests ([#1858](https://github.com/ForestAdmin/agent-nodejs/issues/1858)) ([b48ef61](https://github.com/ForestAdmin/agent-nodejs/commit/b48ef61c43831989471e8229241857b7bd1040cb))
+* **bff:** let a key with allowedOrigins serve non-browser clients ([#1861](https://github.com/ForestAdmin/agent-nodejs/issues/1861)) ([c87ea11](https://github.com/ForestAdmin/agent-nodejs/commit/c87ea117d087250d8596251af670ba6f72b4ff5a))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.98.7
+* **@forestadmin/agent-testing:** upgraded to 1.2.11
+
 ## @forestadmin/agent-bff [1.23.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.23.6...@forestadmin/agent-bff@1.23.7) (2026-09-03)
 
 
