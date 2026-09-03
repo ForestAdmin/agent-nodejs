@@ -75,6 +75,10 @@ describe('ApiKeyClient.resolveApiKey', () => {
       'user missing email',
       { user: { ...IDENTITY.user, email: undefined }, renderingId: 17, allowedOrigins: [] },
     ],
+    [
+      'allowedOrigins holding a non-string entry',
+      { user: IDENTITY.user, renderingId: 17, allowedOrigins: ['https://x.com', null] },
+    ],
     ['empty object', {}],
   ])(
     'should mark the error unreachable when a 200 body is incomplete (%s)',

@@ -95,6 +95,7 @@ export default class ApiKeyClient {
     return (
       typeof candidate.renderingId === 'number' &&
       Array.isArray(candidate.allowedOrigins) &&
+      candidate.allowedOrigins.every(entry => typeof entry === 'string') &&
       ApiKeyClient.isIdentityUser(candidate.user)
     );
   }
