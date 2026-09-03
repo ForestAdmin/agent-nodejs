@@ -21,7 +21,9 @@ Everything the agent proxy exposes lives under `/agent/v1`. The data and action 
 | `/agent/v1/permissions`                                       | `GET`        | what the caller may see and do, **as display hints** for graying out UI — never an authorization decision |
 | `/agent/openapi.json`                                         | `GET`/`HEAD` | the unfolded document, auth-gated, when `BFF_OPENAPI_ENABLED` is on                                       |
 
-`/health` and `/oauth/*` sit outside the prefix and outside the auth edge.
+`/health`, the `/oauth/*` login routes and the `/docs` viewer (page and `redoc.standalone.js`
+bundle) sit outside the prefix and outside the auth edge; `/health` and `/docs` answer `HEAD` as
+well as `GET`.
 
 **The agent enforces permissions and scopes, not the BFF.** Each proxied call carries a
 short-lived agent token the BFF mints for the caller, so a request reaches the agent as that

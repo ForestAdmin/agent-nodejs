@@ -16,6 +16,8 @@ import {
   ListRequestSchema,
   ListResponseSchema,
   MessagelessErrorResponseSchema,
+  OpenapiDisabledErrorResponseSchema,
+  PermissionHintsSchema,
   RelationCountRequestSchema,
   RelationListRequestSchema,
 } from './schemas';
@@ -23,9 +25,11 @@ import registerUnfoldedPaths from './unfolded-paths';
 import { z } from './zod-openapi';
 import { RATE_LIMIT_CAUSES } from '../http/bff-local-errors';
 import BODY_LIMIT, { AI_BODY_LIMIT } from '../http/body-limit';
+import { PERMISSIONS_CACHE_TTL_MS } from '../permissions/permissions-cache';
 
 export const OPENAPI_VERSION = '3.1.0';
 export const ROUTE_PREFIX = '/agent/v1';
+export const DOCUMENT_PATH = '/agent/openapi.json';
 
 const SESSION_SCHEME = 'bffSession';
 const API_KEY_SCHEME = 'bffApiKey';
@@ -44,7 +48,7 @@ const ERROR_STATUSES: Record<string, string> = {
   500: 'The agent payload could not be mapped to the BFF contract, or the BFF hit an unexpected error',
   501: 'The BFF is running without an agent configured, so the proxy is not implemented',
   502: 'The agent refused the connection, its host could not be resolved, or the transport failed another way (a connection reset mid-flight, a socket hang up, a TLS failure) — it failed outright rather than running out of time',
-  503: 'The agent schema is unavailable, the agent returned a 5xx, or the API key could not be resolved',
+  503: 'The agent schema is unavailable, the agent returned a 5xx, the API key could not be resolved, or the Forest permissions could not be fetched and no fresh cache was left (type permissions_unavailable)',
   504: 'The agent did not answer before the BFF timeout (BFF_AGENT_TIMEOUT_MS, 10s by default). The deadline is armed when the request starts, so at the default it also covers a host that accepts nothing and never resets the connection — raise the timeout past the OS connect timeout and that case reverts to 502',
 };
 
@@ -54,8 +58,14 @@ const UNSUPPORTED_RESULT_DESCRIPTION =
 
 const ERROR_RESPONSE_REF = '#/components/schemas/ErrorResponse';
 const MESSAGELESS_ERROR_RESPONSE_REF = '#/components/schemas/MessagelessErrorResponse';
+const OPENAPI_DISABLED_RESPONSE_REF = '#/components/schemas/OpenapiDisabledErrorResponse';
 
 const UNSUPPORTED_ACTION_RESULT_COMPONENT = 'UnsupportedActionResult';
+
+const OPENAPI_DISABLED_COMPONENT = 'Error404OpenapiDisabled';
+
+const OPENAPI_DISABLED_DESCRIPTION =
+  'The deployment runs with `BFF_OPENAPI_ENABLED=false`, so the document is not served over HTTP.';
 
 const retryAfterHeader = (description: string) => ({
   'Retry-After': {
@@ -66,7 +76,8 @@ const retryAfterHeader = (description: string) => ({
 });
 
 const RETRY_AFTER_HEADER = retryAfterHeader(
-  'Seconds to wait before retrying. Set when the API key could not be resolved.',
+  'Seconds to wait before retrying. Set when the BFF could not reach the Forest server — an ' +
+    'unresolvable API key, or permissions it could not fetch.',
 );
 
 const RETRY_AFTER_RATE_LIMIT_HEADER = retryAfterHeader(
@@ -77,11 +88,23 @@ const RETRY_AFTER_RATE_LIMIT_HEADER = retryAfterHeader(
     'carries no header.',
 );
 
+const HEAD_DOCUMENT_RESPONSES = {
+  200: { description: 'The document exists and is readable; no body is returned for HEAD' },
+  400: { description: ERROR_STATUSES['400'] },
+  401: { description: ERROR_STATUSES['401'] },
+  403: { description: ERROR_STATUSES['403'] },
+  404: { description: `${OPENAPI_DISABLED_DESCRIPTION} The status is the same as the GET one.` },
+  429: { description: ERROR_STATUSES['429'], headers: RETRY_AFTER_RATE_LIMIT_HEADER },
+  500: { description: ERROR_STATUSES['500'] },
+  503: { description: ERROR_STATUSES['503'], headers: RETRY_AFTER_HEADER },
+};
+
 type ResponseRef = { $ref: string };
 
 interface ErrorResponseRefs {
   byStatus: Record<string, ResponseRef>;
   unsupportedActionResult: ResponseRef;
+  openapiDisabled: ResponseRef;
 }
 
 interface ErrorComponent {
@@ -118,8 +141,13 @@ function registerErrorResponses(
   withActionResults: boolean,
 ): ErrorResponseRefs {
   registry.register('ErrorResponse', ErrorResponseSchema);
+  registry.register('OpenapiDisabledErrorResponse', OpenapiDisabledErrorResponseSchema);
 
   const byStatus: Record<string, ResponseRef> = {};
+  const openapiDisabled = registerErrorComponent(registry, OPENAPI_DISABLED_COMPONENT, {
+    description: `${OPENAPI_DISABLED_DESCRIPTION} The body is typed \`openapi_disabled\`, and the schema pins that value so a generated client can tell this 404 from any other; a bare 404 with no typed body means the agent edge is not mounted at all.`,
+    schema: { $ref: OPENAPI_DISABLED_RESPONSE_REF },
+  });
 
   statuses.forEach(status => {
     const description = ERROR_STATUSES[status];
@@ -135,7 +163,9 @@ function registerErrorResponses(
 
   // A document with no action path must not carry this response, nor the messageless body it
   // references: an unreferenced component trips redocly's unused-component rule.
-  if (!withActionResults) return { byStatus, unsupportedActionResult: byStatus['501'] };
+  if (!withActionResults) {
+    return { byStatus, openapiDisabled, unsupportedActionResult: byStatus['501'] };
+  }
 
   registry.register('MessagelessErrorResponse', MessagelessErrorResponseSchema);
 
@@ -150,7 +180,7 @@ function registerErrorResponses(
     },
   );
 
-  return { byStatus, unsupportedActionResult };
+  return { byStatus, openapiDisabled, unsupportedActionResult };
 }
 
 function errorResponses(
@@ -348,6 +378,14 @@ const SHARED_DESCRIPTION =
   'form-urlencoded included, is rejected with 415 instead of being read as an absent body, and ' +
   'so is a body sent with no Content-Type at all. A bodyless POST needs no Content-Type.';
 
+const SURFACE_DESCRIPTION =
+  'Only the auth-gated `/agent` surface is described here. Three live route families are ' +
+  'deliberately absent because they sit outside that surface and outside its auth edge: the ' +
+  '`/health` probe (`GET` and `HEAD`), which answers 200 `ok` or 503 `degraded` to an ' +
+  'unauthenticated request; the `/oauth/*` login routes; and the unauthenticated `/docs` viewer ' +
+  'that renders this very document — `GET` and `HEAD` on the page and on its public ' +
+  '`redoc.standalone.js` bundle. The package README documents all three.';
+
 const GENERIC_DESCRIPTION =
   'Paths are generic: one per operation, with the collection, relation and action passed as path ' +
   'segments, and no field enumerated. This is the fallback form — a deployment configured to ' +
@@ -364,6 +402,118 @@ const UNFOLDED_DESCRIPTION =
   "collection's capabilities. Only to-many relations appear; a to-one or polymorphic relation has " +
   'no list or count route. This document describes the whole exposed schema regardless of the ' +
   'caller: it is not filtered by the permissions of whoever fetched it.';
+
+function registerPermissionsPath(
+  registry: OpenAPIRegistry,
+  errorRefs: ErrorResponseRefs,
+  timezoneHeader: ReturnType<OpenAPIRegistry['registerParameter']>[],
+): void {
+  registry.registerPath({
+    method: 'get',
+    path: `${ROUTE_PREFIX}/permissions`,
+    operationId: 'getPermissionHints',
+    summary: 'Read what the caller may see and do, as display hints',
+    description:
+      'Answers for the caller behind the credentials, so two callers get two different payloads. ' +
+      'The hints come from the Forest permissions, cached for ' +
+      `${
+        PERMISSIONS_CACHE_TTL_MS / 60_000
+      } minutes, so they lag a change made in Forest. The agent runs with ` +
+      '`instantCacheRefresh` by default, so its own cache has no meaningful expiry — about a year — ' +
+      'and freshness rides on the Forest event stream: as long as those events reach it, the agent ' +
+      'enforces the new permission while these hints are still stale. If the stream is cut — a ' +
+      'reverse proxy that swallows it, which the agent logs once at subscribe time when the first ' +
+      'heartbeat never arrives — the agent can hold the old permission far longer than these ' +
+      'hints, and the hints are then the fresher of the two. An agent ' +
+      'explicitly configured with `instantCacheRefresh: false` caches for ' +
+      '`permissionsCacheDurationInSeconds` — 15 minutes by default, configurable with a 60-second ' +
+      'floor — independently of these hints. That agent refetches on a denial, so a newly GRANTED ' +
+      'permission lands on the next call while these hints still hide it; only a REVOKED one ' +
+      'lingers agent-side until the cache expires. A 503 here is `permissions_unavailable` or ' +
+      '`key_resolution_unavailable`, which always carry Retry-After, or `schema_unavailable`, ' +
+      'which does not. Unlike the context and document routes, and the AI-query relay where it is ' +
+      'published, this one sits behind the ' +
+      'timezone middleware even though it reads no timezone, so a deployment with no configured ' +
+      'default answers 400 `missing_timezone` unless `X-Forest-Timezone` is sent.',
+    security: SECURITY,
+    request: {
+      query: z.object({
+        collections: z
+          .union([z.string(), z.array(z.string())])
+          .optional()
+          .openapi({
+            description:
+              'Comma-separated collection names to restrict the answer to, repeatable — a ' +
+              'repeated parameter is joined with commas before being split again, so both forms ' +
+              'behave the same. Absent means every exposed collection. Entries are trimmed and ' +
+              'deduplicated, and a name the schema does not expose is dropped silently rather ' +
+              'than rejected — so an empty `collections` object means none of the names matched.',
+          }),
+      }),
+      headers: timezoneHeader,
+    },
+    responses: {
+      200: {
+        description: 'The display hints for the caller role',
+        content: { 'application/json': { schema: PermissionHintsSchema } },
+      },
+      400: errorRefs.byStatus['400'],
+      401: errorRefs.byStatus['401'],
+      403: errorRefs.byStatus['403'],
+      429: errorRefs.byStatus['429'],
+      500: errorRefs.byStatus['500'],
+      501: errorRefs.byStatus['501'],
+      503: errorRefs.byStatus['503'],
+    },
+  });
+}
+
+function registerDocumentPath(registry: OpenAPIRegistry, errorRefs: ErrorResponseRefs): void {
+  registry.registerPath({
+    method: 'get',
+    path: DOCUMENT_PATH,
+    operationId: 'getOpenApiDocument',
+    summary: 'Read this document',
+    description:
+      'Serves this very document behind credentials, like every other `/agent` route: without ' +
+      'them the schema it describes is not readable. Both auth modes reach it — a session or an ' +
+      'API key — as they do on every data, action, context and permissions route; the AI-query ' +
+      'relay, where it is published, is the one exception and takes a session only. `HEAD` is ' +
+      'served identically. The ' +
+      'answer is never cached (`Cache-Control: no-store`) and is regenerated when the BFF ' +
+      'refreshes its schema, so a client can re-fetch it to pick up a new collection or field.',
+    security: SECURITY,
+    request: {},
+    responses: {
+      200: {
+        description: 'The OpenAPI document of this BFF',
+        content: { 'application/json': { schema: z.unknown() } },
+      },
+      400: errorRefs.byStatus['400'],
+      401: errorRefs.byStatus['401'],
+      403: errorRefs.byStatus['403'],
+      404: errorRefs.openapiDisabled,
+      429: errorRefs.byStatus['429'],
+      500: errorRefs.byStatus['500'],
+      503: errorRefs.byStatus['503'],
+    },
+  });
+
+  registry.registerPath({
+    method: 'head',
+    path: DOCUMENT_PATH,
+    operationId: 'headOpenApiDocument',
+    summary: 'Probe this document without fetching it',
+    description:
+      'Same route as `GET`, answering the same statuses and headers with no body, so a client can ' +
+      'probe whether the document is enabled and reachable before re-fetching it. The six error ' +
+      'statuses below reuse the GET wording, which describes a JSON body no HEAD ever returns: ' +
+      'read the status, not the type. The 200 and the 404 carry their own.',
+    security: SECURITY,
+    request: {},
+    responses: HEAD_DOCUMENT_RESPONSES,
+  });
+}
 
 function registerAiQueryPath(
   registry: OpenAPIRegistry,
@@ -472,6 +622,9 @@ export function generateOpenApiDocument(
     },
   });
 
+  registerPermissionsPath(registry, errorRefs, timezoneHeader);
+  registerDocumentPath(registry, errorRefs);
+
   if (aiErrorRefs) registerAiQueryPath(registry, aiErrorRefs);
 
   if (unfolding) {
@@ -530,7 +683,7 @@ export function generateOpenApiDocument(
       license: { name: 'GPL-3.0', url: 'https://www.gnu.org/licenses/gpl-3.0.html' },
       description: `${
         unfolding ? UNFOLDED_DESCRIPTION : GENERIC_DESCRIPTION
-      } ${SHARED_DESCRIPTION}`,
+      } ${SHARED_DESCRIPTION} ${SURFACE_DESCRIPTION}`,
     },
     servers: [
       publicUrl

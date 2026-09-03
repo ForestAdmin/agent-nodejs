@@ -2,11 +2,14 @@ import { allOperators } from '@forestadmin/datasource-toolkit';
 
 import { MAX_PAGE_LIMIT } from '../../src/data/request-schemas';
 import {
+  DOCUMENT_PATH,
   OPENAPI_VERSION,
   ROUTE_PREFIX,
   generateOpenApiDocument,
   serializeOpenApi,
 } from '../../src/openapi/openapi-document';
+import { OPENAPI_PATH } from '../../src/openapi/openapi-routes';
+import { DISPLAY_HINT_FINALITY } from '../../src/permissions/build-permission-hints';
 
 const document = generateOpenApiDocument('9.9.9', { hasAiQueryRoute: true });
 const schemas = document.components?.schemas as Record<string, Record<string, unknown>>;
@@ -22,12 +25,18 @@ const responseComponents = (document.components?.responses ?? {}) as unknown as 
   ResolvedResponse
 >;
 
-function responsesOf(path: string): Record<string, ResolvedResponse> {
+function responsesOf(
+  path: string,
+  method?: 'get' | 'post' | 'head',
+): Record<string, ResolvedResponse> {
   const item = document.paths?.[path] as {
     post?: { responses: Record<string, unknown> };
     get?: { responses: Record<string, unknown> };
+    head?: { responses: Record<string, unknown> };
   };
-  const { responses } = (item.post ?? item.get) as { responses: Record<string, unknown> };
+  const { responses } = (method ? item[method] : item.post ?? item.get) as {
+    responses: Record<string, unknown>;
+  };
 
   return Object.fromEntries(
     Object.entries(responses).map(([status, response]) => {
@@ -46,6 +55,14 @@ function listResponses(): Record<string, ResolvedResponse> {
 }
 
 const AI_QUERY_PATH = `${ROUTE_PREFIX}/ai/query`;
+
+function permissionsParameters(): unknown[] {
+  const permissions = document.paths?.[`${ROUTE_PREFIX}/permissions`] as {
+    get: { parameters: unknown[] };
+  };
+
+  return permissions.get.parameters;
+}
 
 function dataOperations(): { security: unknown; responses: Record<string, unknown> }[] {
   return Object.entries(document.paths ?? {})
@@ -98,17 +115,23 @@ describe('generateOpenApiDocument', () => {
     expect(document.info.version).toBe('9.9.9');
   });
 
-  it('should serve every path under the /agent/v1 prefix', () => {
+  it('should serve every path under the /agent prefix, which is what the auth chain covers', () => {
     const paths = Object.keys(document.paths ?? {});
 
-    expect(paths).toHaveLength(8);
-    expect(paths.every(path => path.startsWith(`${ROUTE_PREFIX}/`))).toBe(true);
+    expect(paths).toHaveLength(10);
+    expect(paths.every(path => path.startsWith('/agent/'))).toBe(true);
   });
 
-  it('should expose the six generic runtime routes plus the context contract and the ai relay', () => {
+  it('should document the served path of this very document, not a stale copy of it', () => {
+    expect(DOCUMENT_PATH).toBe(OPENAPI_PATH);
+  });
+
+  it('should expose the six generic runtime routes plus the context, permissions, document and ai paths', () => {
     expect(Object.keys(document.paths ?? {}).sort()).toEqual([
+      DOCUMENT_PATH,
       `${ROUTE_PREFIX}/ai/query`,
       `${ROUTE_PREFIX}/context`,
+      `${ROUTE_PREFIX}/permissions`,
       `${ROUTE_PREFIX}/{collection}/actions/{action}/execute`,
       `${ROUTE_PREFIX}/{collection}/actions/{action}/form`,
       `${ROUTE_PREFIX}/{collection}/count`,
@@ -319,6 +342,26 @@ describe('generateOpenApiDocument', () => {
     expect(messageless.properties.error.required).toEqual(['type', 'status']);
   });
 
+  it('should pin the error type on the openapi-disabled 404, which has a single cause', () => {
+    const disabled = responseComponents.Error404OpenapiDisabled;
+
+    expect(disabled.content?.['application/json'].schema).toEqual({
+      $ref: '#/components/schemas/OpenapiDisabledErrorResponse',
+    });
+
+    const schema = schemas.OpenapiDisabledErrorResponse as {
+      properties: { error: { properties: Record<string, unknown>; required: string[] } };
+    };
+
+    expect(schema.properties.error.properties.type).toEqual({
+      type: 'string',
+      enum: ['openapi_disabled'],
+    });
+    expect(schema.properties.error.properties.status).toEqual({ type: 'number', enum: [404] });
+    expect(schema.properties.error.required).toEqual(['type', 'status', 'message']);
+    expect(Object.keys(schema.properties.error.properties)).toEqual(['type', 'status', 'message']);
+  });
+
   it('should keep a plain error body for the 501 the agent stub returns on other routes', () => {
     expect(listResponses()['501'].content?.['application/json'].schema.$ref).toBe(
       '#/components/schemas/ErrorResponse',
@@ -342,6 +385,7 @@ describe('generateOpenApiDocument', () => {
       'Error403',
       'Error403AiQuery',
       'Error404',
+      'Error404OpenapiDisabled',
       'Error413',
       'Error413AiQuery',
       'Error415',
@@ -576,6 +620,209 @@ describe('generateOpenApiDocument', () => {
       { type: 'string' },
       { type: 'number' },
     ]);
+  });
+
+  it('should document the permission hints path, which a client needs to gray out its buttons', () => {
+    const permissions = (document.paths ?? {})[`${ROUTE_PREFIX}/permissions`] as {
+      get: {
+        security: unknown;
+        parameters: unknown[];
+        responses: Record<string, { content: Record<string, { schema: { $ref: string } }> }>;
+      };
+    };
+
+    expect(permissions.get.security).toEqual([{ bffSession: [] }, { bffApiKey: [] }]);
+    expect(permissions.get.responses['200'].content['application/json'].schema).toEqual({
+      $ref: '#/components/schemas/PermissionHints',
+    });
+  });
+
+  it('should say the agent enforces first by default, and when its event stream is cut it does not', () => {
+    const { description } = (
+      document.paths?.[`${ROUTE_PREFIX}/permissions`] as { get: { description: string } }
+    ).get;
+
+    expect(description).toContain('`instantCacheRefresh` by default');
+    expect(description).toContain('enforces the new permission while these hints are still stale');
+    expect(description).toContain('freshness rides on the Forest event stream');
+    expect(description).toContain('the hints are then the fresher of the two');
+    expect(description).toContain('`permissionsCacheDurationInSeconds`');
+    expect(description).toContain('60-second floor');
+    expect(description).toContain('only a REVOKED one lingers agent-side');
+    expect(description).toContain('the AI-query relay where it is published');
+    expect(description).not.toContain('Like every route under');
+  });
+
+  it('should warn that a development environment reports every crud right true', () => {
+    const crud = schemas.CrudHints as { description: string };
+
+    expect(crud.description).toContain('development environment all six are true');
+  });
+
+  it('should promise Retry-After on exactly two of the three 503 types the hints route answers', () => {
+    const { description } = (
+      document.paths?.[`${ROUTE_PREFIX}/permissions`] as { get: { description: string } }
+    ).get;
+
+    expect(description).toContain(
+      '`permissions_unavailable` or `key_resolution_unavailable`, which always carry Retry-After',
+    );
+    expect(description).toContain('`schema_unavailable`, which does not');
+  });
+
+  it('should declare the collections query filter, the only way to narrow the hints', () => {
+    const parameters = permissionsParameters();
+    const collections = parameters.find(
+      parameter => (parameter as { name?: string }).name === 'collections',
+    ) as { in: string; required?: boolean; description: string; schema: { anyOf?: unknown[] } };
+
+    expect(collections.in).toBe('query');
+    expect(collections.required).toBeFalsy();
+    expect(collections.description).toContain('Comma-separated');
+    expect(collections.description).toContain('repeatable');
+    expect(collections.schema.anyOf).toEqual([
+      { type: 'string' },
+      { type: 'array', items: { type: 'string' } },
+    ]);
+    expect(collections.description).toContain('dropped silently');
+  });
+
+  it('should declare the timezone header on the hints path, which 400s without it on some deployments', () => {
+    expect(permissionsParameters()).toContainEqual({
+      $ref: '#/components/parameters/XForestTimezone',
+    });
+  });
+
+  it('should say the hints are display advice, never an authorization decision', () => {
+    const hints = schemas.PermissionHints as { description: string };
+
+    expect(hints.description).toContain('display hints only');
+    expect(hints.description).toContain('Never an authorization decision');
+  });
+
+  it('should pin the action finality to display_hint, the value the builder always sets', () => {
+    const action = schemas.ActionHints as {
+      properties: { finality: { enum: string[] } };
+    };
+
+    expect(action.properties.finality.enum).toEqual([DISPLAY_HINT_FINALITY]);
+  });
+
+  it('should document the permissions 503 as retryable, since it carries Retry-After', () => {
+    const responses = responsesOf(`${ROUTE_PREFIX}/permissions`);
+
+    expect(Object.keys(responses).sort()).toEqual([
+      '200',
+      '400',
+      '401',
+      '403',
+      '429',
+      '500',
+      '501',
+      '503',
+    ]);
+    expect(responses['503'].headers).toEqual(
+      expect.objectContaining({ 'Retry-After': expect.anything() }),
+    );
+    expect(responses['429'].headers).toEqual(
+      expect.objectContaining({ 'Retry-After': expect.anything() }),
+    );
+  });
+
+  it('should self-document the document path, so a consumer can re-fetch the contract', () => {
+    const responses = responsesOf(DOCUMENT_PATH);
+
+    expect(Object.keys(responses).sort()).toEqual([
+      '200',
+      '400',
+      '401',
+      '403',
+      '404',
+      '429',
+      '500',
+      '503',
+    ]);
+    expect(responses['404'].description).toContain('openapi_disabled');
+    expect(responses['404'].description).not.toContain('Unknown collection');
+  });
+
+  it('should keep the document path behind both credentials, like the schema it describes', () => {
+    const path = (document.paths ?? {})[DOCUMENT_PATH] as {
+      get: { security: unknown; description: string };
+    };
+
+    expect(path.get.security).toEqual([{ bffSession: [] }, { bffApiKey: [] }]);
+    expect(path.get.description).toContain('`HEAD` is served identically');
+  });
+
+  it('should name the AI-query relay as the one route an API key cannot reach', () => {
+    const path = (document.paths ?? {})[DOCUMENT_PATH] as { get: { description: string } };
+    const ai = (document.paths ?? {})[AI_QUERY_PATH] as { post: { security: unknown } };
+
+    expect(ai.post.security).toEqual([{ bffSession: [] }]);
+    expect(path.get.description).toContain(
+      'the AI-query relay, where it is published, is the one exception',
+    );
+    expect(path.get.description).not.toContain('the same credentials as every other');
+  });
+
+  it('should document HEAD on the document path, so a generated client can probe before fetching', () => {
+    const path = (document.paths ?? {})[DOCUMENT_PATH] as {
+      head: {
+        operationId: string;
+        security: unknown;
+        responses: Record<string, { $ref?: string; description?: string; content?: unknown }>;
+      };
+    };
+
+    expect(path.head.operationId).toBe('headOpenApiDocument');
+    expect(path.head.security).toEqual([{ bffSession: [] }, { bffApiKey: [] }]);
+    expect(Object.keys(path.head.responses).sort()).toEqual([
+      '200',
+      '400',
+      '401',
+      '403',
+      '404',
+      '429',
+      '500',
+      '503',
+    ]);
+    expect(path.head.responses['200'].content).toBeUndefined();
+    expect(path.head.responses['200'].description).toContain('no body');
+  });
+
+  it('should answer HEAD with the same statuses, wording and headers as GET, minus the bodies', () => {
+    const head = responsesOf(DOCUMENT_PATH, 'head');
+    const get = responsesOf(DOCUMENT_PATH);
+
+    ['400', '401', '403', '429', '500', '503'].forEach(status => {
+      expect(head[status].content).toBeUndefined();
+      expect(head[status].description).toBe(get[status].description);
+      expect(head[status].headers).toEqual(get[status].headers);
+    });
+
+    expect(head['404'].content).toBeUndefined();
+    expect(head['404'].description).toContain('`BFF_OPENAPI_ENABLED=false`');
+    expect(head['404'].description).not.toContain('typed `openapi_disabled`');
+  });
+
+  it('should tell a HEAD caller to read the status rather than the type it cannot see', () => {
+    const path = (document.paths ?? {})[DOCUMENT_PATH] as { head: { description: string } };
+
+    expect(path.head.description).toContain('The six error statuses below reuse the GET wording');
+    expect(path.head.description).toContain('read the status, not the type');
+    expect(path.head.description).toContain('The 200 and the 404 carry their own');
+    expect(path.head.description).not.toContain('Every status below reuses');
+  });
+
+  it('should say which live routes it deliberately leaves out, since a consumer cannot guess', () => {
+    expect(Object.keys(document.paths ?? {})).not.toContain('/health');
+    expect(document.info.description).toContain('deliberately absent');
+    expect(document.info.description).toContain('`/health` probe (`GET` and `HEAD`)');
+    expect(document.info.description).toContain('/oauth/*');
+    expect(document.info.description).toContain('`/docs` viewer');
+    expect(document.info.description).toContain('`redoc.standalone.js` bundle');
+    expect(document.info.description).toContain('The package README documents all three');
   });
 
   it('should carry the package license, which the OpenAPI recommended ruleset requires', () => {

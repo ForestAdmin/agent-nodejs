@@ -8,14 +8,23 @@ import type {
 import { allOperators } from '@forestadmin/datasource-toolkit';
 
 import unfoldingFixture from './fixtures';
-import { ROUTE_PREFIX, generateOpenApiDocument } from '../../src/openapi/openapi-document';
+import {
+  DOCUMENT_PATH,
+  ROUTE_PREFIX,
+  generateOpenApiDocument,
+} from '../../src/openapi/openapi-document';
 
 function unfoldedDocument(unfolding: Unfolding) {
   return generateOpenApiDocument('9.9.9', { unfolding, hasAiQueryRoute: true });
 }
 
 const document = unfoldedDocument(unfoldingFixture());
-const NON_UNFOLDED_PATHS = [`${ROUTE_PREFIX}/context`, `${ROUTE_PREFIX}/ai/query`];
+const NON_UNFOLDED_PATHS = [
+  `${ROUTE_PREFIX}/context`,
+  `${ROUTE_PREFIX}/permissions`,
+  `${ROUTE_PREFIX}/ai/query`,
+  DOCUMENT_PATH,
+];
 
 const paths = Object.fromEntries(
   Object.entries(document.paths ?? {}).filter(([path]) => !NON_UNFOLDED_PATHS.includes(path)),
@@ -815,6 +824,8 @@ describe('an unfolding naming a collection it does not carry', () => {
 
     expect(Object.keys(orphaned.paths ?? {})).toEqual([
       '/agent/v1/context',
+      '/agent/v1/permissions',
+      '/agent/openapi.json',
       '/agent/v1/ai/query',
       '/agent/v1/users/list',
       '/agent/v1/users/count',

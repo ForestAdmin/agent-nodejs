@@ -15,6 +15,7 @@ import {
   SortClauseInput,
   TimezoneInput,
 } from '../data/request-schemas';
+import { DISPLAY_HINT_FINALITY } from '../permissions/build-permission-hints';
 import { RELATIONSHIP_TYPES } from '../read-model/read-model';
 import { MAX_FILTER_DEPTH } from '../validation/capabilities-validator';
 
@@ -422,6 +423,64 @@ export const ContextResponseSchema = z
       'deployment runs without the OAuth configuration.',
   });
 
+const CrudHintsSchema = z
+  .object({
+    browse: z.boolean(),
+    read: z.boolean(),
+    edit: z.boolean(),
+    add: z.boolean(),
+    delete: z.boolean(),
+    export: z.boolean(),
+  })
+  .openapi('CrudHints', {
+    description:
+      'The six collection-level rights of the caller role, as Forest states them. `browse` false ' +
+      'does not remove the collection from this response, nor from the schema contract. On a ' +
+      'development environment all six are true whatever the role, so an all-true block is not a ' +
+      'statement about the role.',
+  });
+
+const ActionHintsSchema = z
+  .object({
+    collection: z.string(),
+    name: z.string(),
+    visible: z.boolean(),
+    requiresApprovalHint: z.boolean(),
+    canApproveHint: z.boolean(),
+    canSelfApproveHint: z.boolean(),
+    finality: z.literal(DISPLAY_HINT_FINALITY),
+  })
+  .openapi('ActionHints', {
+    description:
+      'Display hints for one action. `visible` is the trigger right, so it is what gates showing ' +
+      'the button; `requiresApprovalHint` says a trigger by this role opens an approval request ' +
+      'instead of running, and the two approval flags say whether this role may approve such a ' +
+      'request, and its own. `collection` and `name` repeat the keys of the enclosing objects, so ' +
+      'a flattened list stays self-describing. On a development environment every exposed action ' +
+      'is visible with all three approval flags false, whatever the role. `finality` is always ' +
+      `\`${DISPLAY_HINT_FINALITY}\`: it marks the whole payload as UI advice.`,
+  });
+
+export const PermissionHintsSchema = z
+  .object({
+    collections: z.record(
+      z.string(),
+      z.object({ crud: CrudHintsSchema, actions: z.record(z.string(), ActionHintsSchema) }),
+    ),
+    visibleActions: z.array(z.object({ collection: z.string(), name: z.string() })),
+  })
+  .openapi('PermissionHints', {
+    description:
+      'What the caller may see and do, **as display hints only** — gray out a button, hide a ' +
+      'column. Never an authorization decision: the agent re-checks the caller on every proxied ' +
+      'call, so a hint reading true grants nothing and a client must still handle 403. ' +
+      '`collections` is keyed by the exact schema collection name, and `actions` by the exact ' +
+      'action name — only the actions the schema exposes with an endpoint, so an action absent ' +
+      'here is not a permission answer. `visibleActions` flattens the actions whose `visible` is ' +
+      'true, so a client can build its menu without walking `collections`. The hints describe the ' +
+      'caller role alone, and say nothing about record-level scopes.',
+  });
+
 export const AiQueryRequestSchema = z.unknown().openapi('AiQueryRequest', {
   description:
     'Passed through to the Forest AI proxy without validation or rewriting, so the authority on ' +
@@ -464,6 +523,23 @@ export const MessagelessErrorResponseSchema = z
   .openapi('MessagelessErrorResponse', {
     description:
       'The unsupported-action-result body, which carries no message field unlike every other error.',
+  });
+
+export const OpenapiDisabledErrorResponseSchema = z
+  .object({
+    error: z.object({
+      type: z.literal('openapi_disabled'),
+      status: z.literal(404),
+      message: z.string(),
+    }),
+  })
+  .openapi('OpenapiDisabledErrorResponse', {
+    description:
+      'The one error body whose `type` is pinned here: this 404 has a single cause, where the ' +
+      'shared statuses cover several. A generated client can branch on it, which is what the ' +
+      'README asks of a consumer — never on the message text. It carries no `details`, unlike ' +
+      'the shared envelope: the thrower passes none, so declaring the field would send a client ' +
+      'looking for something the runtime never emits.',
   });
 
 export { ConditionTreeSchema, ParentIdSchema, OPERATORS };
