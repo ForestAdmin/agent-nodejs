@@ -288,13 +288,13 @@ describe('embedded BFF', () => {
   }
 
   describe('/bff/health', () => {
-    it('should report ok with the features this deployment switched on', async () => {
+    it('should report ok with the surfaces this deployment was configured for', async () => {
       const response = await request(app).get('/bff/health');
 
       expect(response.status).toBe(200);
       expect(response.body).toMatchObject({
         status: 'ok',
-        features: { oauth: false, ai: false, cors: true, openapi: false },
+        configured: { oauth: false, ai: false, cors: true, openapi: false },
       });
     });
   });
@@ -342,6 +342,145 @@ describe('embedded BFF', () => {
           .set('Authorization', `Bearer ${sessionToken()}`)
           .set('X-Forest-Timezone', 'Europe/Paris')
           .send(body as object),
+    );
+  });
+
+  describe('the allow-list against a host that answers the preflight itself', () => {
+    /** A permissive host CORS, the kind an Express app registers without thinking about it. */
+    function permissiveHostCors(): express.RequestHandler {
+      return (req, res, next) => {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+
+        if (req.method === 'OPTIONS') {
+          res.statusCode = 204;
+          res.end();
+
+          return;
+        }
+
+        next();
+      };
+    }
+
+    async function hostWithPermissiveCorsInFront() {
+      const hosted = new Agent(agentOptions('host-cors'))
+        .addDataSource(async () => new SearchDataSource())
+        .addBff({ allowedOrigins: ['https://my-app.com'] });
+      const hostApp = express();
+      hostApp.use(permissiveHostCors());
+      hosted.mountOnExpress(hostApp);
+      await hosted.start();
+
+      return { hosted, hostApp };
+    }
+
+    // The preflight is lost to the host — nothing downstream can take it back — so the allow-list
+    // has to hold on the request that follows, which is the one with the side effects.
+    it(
+      'should refuse the request a permissive host preflight let through',
+      async () => {
+        const { hosted, hostApp } = await hostWithPermissiveCorsInFront();
+
+        try {
+          const preflight = await request(hostApp)
+            .options('/bff/agent/v1/books/list')
+            .set('Origin', 'https://forbidden.example.com')
+            .set('Access-Control-Request-Method', 'POST');
+
+          const actual = await request(hostApp)
+            .post('/bff/agent/v1/books/list')
+            .set('Origin', 'https://forbidden.example.com')
+            .set('Authorization', `Bearer ${sessionToken()}`)
+            .set('X-Forest-Timezone', 'Europe/Paris')
+            .send({ projection: ['id', 'title'] });
+
+          // The host did answer the preflight, permissively: that part is out of our hands.
+          expect(preflight.headers['access-control-allow-origin']).toBe('*');
+          // What is in our hands: the collection is never read for that origin.
+          expect(actual.status).toBe(403);
+          expect(actual.body.error).toMatchObject({ type: 'origin_not_allowed' });
+        } finally {
+          await hosted.stop();
+        }
+      },
+      BOOT_TIMEOUT_MS,
+    );
+
+    it(
+      'should still serve an allow-listed origin through the same host',
+      async () => {
+        const { hosted, hostApp } = await hostWithPermissiveCorsInFront();
+
+        try {
+          const response = await request(hostApp)
+            .post('/bff/agent/v1/books/list')
+            .set('Origin', 'https://my-app.com')
+            .set('Authorization', `Bearer ${sessionToken()}`)
+            .set('X-Forest-Timezone', 'Europe/Paris')
+            .send({ projection: ['id', 'title'] });
+
+          expect(response.status).toBe(200);
+        } finally {
+          await hosted.stop();
+        }
+      },
+      BOOT_TIMEOUT_MS,
+    );
+  });
+
+  describe('when the host serves the agent under a sub-path of its own', () => {
+    async function hostWithSubPath() {
+      const hosted = new Agent(agentOptions('sub-path'))
+        .addDataSource(async () => new SearchDataSource())
+        .addBff({ allowedOrigins: ['https://my-app.com'], openapiEnabled: true });
+      const mounted = express();
+      hosted.mountOnExpress(mounted);
+      const hostApp = express();
+      hostApp.use('/api', mounted);
+      await hosted.start();
+
+      return { hosted, hostApp };
+    }
+
+    it(
+      'should answer under the host prefix and nowhere else',
+      async () => {
+        const { hosted, hostApp } = await hostWithSubPath();
+
+        try {
+          expect((await request(hostApp).get('/api/bff/health')).status).toBe(200);
+          expect((await request(hostApp).get('/bff/health')).status).toBe(404);
+        } finally {
+          await hosted.stop();
+        }
+      },
+      BOOT_TIMEOUT_MS,
+    );
+
+    // Routing works either way — Express strips its own prefix. What breaks without deriving the
+    // prefix per request is everything the BFF *emits*: a generated client and the docs viewer both
+    // aim at `/bff/...`, which the host does not serve.
+    it(
+      'should carry the host prefix into the document and the docs page',
+      async () => {
+        const { hosted, hostApp } = await hostWithSubPath();
+
+        try {
+          const document = await request(hostApp)
+            .get('/api/bff/agent/openapi.json')
+            .set('Authorization', `Bearer ${sessionToken()}`);
+          const page = await request(hostApp).get('/api/bff/docs');
+
+          expect(document.status).toBe(200);
+          expect(document.body.servers).toEqual([{ url: '/api/bff' }]);
+          expect(page.status).toBe(200);
+          expect(page.text).toContain('/api/bff/agent/openapi.json');
+          expect(page.text).toContain('/api/bff/docs/redoc.standalone.js');
+        } finally {
+          await hosted.stop();
+        }
+      },
+      BOOT_TIMEOUT_MS,
     );
   });
 

@@ -62,7 +62,7 @@ describe('buildBff', () => {
       expect(response.body).toEqual({
         status: 'ok',
         version,
-        features: { oauth: true, ai: true, cors: false, openapi: true },
+        configured: { oauth: true, ai: true, cors: false, openapi: true },
       });
     });
 
@@ -85,7 +85,7 @@ describe('buildBff', () => {
       expect(response.body).toEqual({
         status: 'degraded',
         version,
-        features: { oauth: false, ai: false, cors: false, openapi: true },
+        configured: { oauth: false, ai: false, cors: false, openapi: true },
       });
     });
 

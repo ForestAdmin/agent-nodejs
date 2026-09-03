@@ -2,8 +2,13 @@ import type { Middleware } from 'koa';
 
 export const HEALTH_PATH = '/health';
 
-/** What the deployment actually serves, and therefore what its configuration switched on. */
-export interface HealthFeatures {
+/**
+ * Which optional surfaces this deployment was CONFIGURED to serve. Deliberately not a statement
+ * that they work: OAuth is `true` as soon as an encryption key is set, whether or not the Forest
+ * server ever answers. Naming it `configured` is the whole point — a reader who takes `oauth: true`
+ * for "OAuth is functional" will believe a misconfigured deployment is healthy.
+ */
+export interface HealthConfigured {
   oauth: boolean;
   ai: boolean;
   cors: boolean;
@@ -14,13 +19,13 @@ export interface HealthRouteOptions {
   version: string;
   /** Whether everything this deployment needs is configured. Embedded, it always is. */
   healthy: boolean;
-  features: HealthFeatures;
+  configured: HealthConfigured;
 }
 
 export default function createHealthRoute({
   version,
   healthy,
-  features,
+  configured,
 }: HealthRouteOptions): Middleware {
   return async function health(ctx, next) {
     const isHealthRequest =
@@ -33,6 +38,6 @@ export default function createHealthRoute({
     }
 
     ctx.status = healthy ? 200 : 503;
-    ctx.body = { status: healthy ? 'ok' : 'degraded', version, features };
+    ctx.body = { status: healthy ? 'ok' : 'degraded', version, configured };
   };
 }

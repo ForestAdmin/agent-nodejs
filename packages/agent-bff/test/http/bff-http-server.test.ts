@@ -79,7 +79,7 @@ function closeServer(server: Server): Promise<void> {
 
 describe('BFFHttpServer', () => {
   describe('when config is complete', () => {
-    it('should answer GET /health with 200 ok, the version and the features it serves', async () => {
+    it('should answer GET /health with 200 ok, the version and the surfaces it was configured for', async () => {
       const server = createServer({ ...VALID_ENV });
 
       const response = await request(server.callback).get('/health');
@@ -88,11 +88,11 @@ describe('BFFHttpServer', () => {
       expect(response.body).toEqual({
         status: 'ok',
         version: VERSION,
-        features: { oauth: true, ai: true, cors: false, openapi: true },
+        configured: { oauth: true, ai: true, cors: false, openapi: true },
       });
     });
 
-    it('should report the features a partial configuration leaves off', async () => {
+    it('should report the surfaces a partial configuration leaves off', async () => {
       const server = createServer({
         ...VALID_ENV,
         BFF_TOKEN_ENCRYPTION_KEY: undefined,
@@ -102,7 +102,7 @@ describe('BFFHttpServer', () => {
 
       const response = await request(server.callback).get('/health');
 
-      expect(response.body.features).toEqual({
+      expect(response.body.configured).toEqual({
         oauth: false,
         ai: false,
         cors: true,

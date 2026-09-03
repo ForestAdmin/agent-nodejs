@@ -516,7 +516,7 @@ export default async function buildBff({
       // can be served, which is exactly what a probe must see.
       healthy:
         (dispatcher !== undefined && Boolean(config.forestAuthSecret)) || config.hasAllRequired,
-      features: {
+      configured: {
         oauth: oauth.middlewares.length > 0,
         ai: aiMiddlewares.length > 0,
         cors: config.allowedOrigins.length > 0,

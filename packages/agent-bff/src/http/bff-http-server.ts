@@ -71,7 +71,7 @@ export default class BFFHttpServer {
       createHealthRoute({
         version,
         healthy: config.hasAllRequired,
-        features: {
+        configured: {
           oauth: Boolean(config.tokenEncryptionKey),
           ai: Boolean(config.tokenEncryptionKey),
           cors: config.allowedOrigins.length > 0,

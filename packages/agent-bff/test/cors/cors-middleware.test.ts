@@ -47,15 +47,27 @@ describe('cors middleware (layer 1)', () => {
       expect(response.headers['access-control-allow-origin']).toBe(`${ALLOWED}:443`);
     });
 
-    it('sends no CORS origin header for a disallowed origin but still proceeds', async () => {
+    it('refuses a disallowed origin instead of running the request', async () => {
       const { app, terminal } = buildApp();
 
       const response = await request(app.callback())
         .get('/agent/x')
         .set('Origin', 'https://evil.example.com');
 
-      expect(response.status).toBe(200);
+      expect(response.status).toBe(403);
+      expect(response.body.error).toMatchObject({ type: 'origin_not_allowed', status: 403 });
       expect(response.headers['access-control-allow-origin']).toBeUndefined();
+      // Le point du refus : sans lui la requête s'exécutait, et seul le navigateur jetait la
+      // réponse — donc une liste était lue et une action exécutée pour une origine non autorisée.
+      expect(terminal).not.toHaveBeenCalled();
+    });
+
+    it('leaves a caller with no Origin alone, which is every server-to-server call', async () => {
+      const { app, terminal } = buildApp();
+
+      const response = await request(app.callback()).get('/agent/x');
+
+      expect(response.status).toBe(200);
       expect(terminal).toHaveBeenCalled();
     });
   });
