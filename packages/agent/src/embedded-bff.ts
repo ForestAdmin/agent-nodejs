@@ -94,6 +94,47 @@ export default class EmbeddedBff {
     this.stopped = false;
 
     this.options.logger('Info', formatLog(`Embedded BFF mounted on ${BFF_PREFIX}`));
+
+    await this.warnIfExemptFromIpWhitelist();
+  }
+
+  /**
+   * The whitelist exempts a caller arriving over a loopback socket with no proxy hop, which is
+   * exactly what the in-process transport looks like — so every BFF request escapes it. That is the
+   * decision, not an oversight: propagating the caller's ip would make the embedded mode stricter
+   * than the standalone one, where the whitelist only ever sees the BFF's own host, and would refuse
+   * the browsers a third-party UI is made of. What it must not be is silent — an operator who turned
+   * the whitelist on to close a door has no other way to learn this door is not part of it.
+   *
+   * Reads the configuration itself rather than borrowing the one `IpWhitelist` already fetched: that
+   * route keeps it private, and reaching into it would put BFF concerns in an unrelated part of the
+   * agent. Costs one round-trip at boot. Never fails the boot: a warning is not worth refusing to
+   * serve over, and this is the same posture as the rest of the BFF's startup.
+   */
+  private async warnIfExemptFromIpWhitelist(): Promise<void> {
+    try {
+      const { isFeatureEnabled } =
+        await this.options.forestAdminClient.getIpWhitelistConfiguration();
+
+      if (!isFeatureEnabled) return;
+
+      this.options.logger(
+        'Warn',
+        formatLog(
+          `The IP whitelist is enabled for this environment, but requests served under ` +
+            `${BFF_PREFIX} are not subject to it: they reach the agent in-process, which the ` +
+            `whitelist exempts as a trusted loopback caller. A resolved API key or a valid OAuth ` +
+            `session is still required.`,
+        ),
+      );
+    } catch (error) {
+      this.options.logger(
+        'Debug',
+        formatLog('Could not read the IP whitelist configuration', {
+          cause: error instanceof Error ? error.message : String(error),
+        }),
+      );
+    }
   }
 
   /** Drop what the BFF read from the SaaS. Called on a restart, which means the schema moved. */
