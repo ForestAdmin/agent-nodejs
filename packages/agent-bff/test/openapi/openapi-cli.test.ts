@@ -201,6 +201,38 @@ describe('renderOpenApi', () => {
       /HTTP_PORT/,
     );
   });
+
+  it('should fail on a bad BFF_PUBLIC_URL before warning about an unrelated omitted route', async () => {
+    const logger = jest.fn();
+
+    await expect(
+      renderOpenApi({ BFF_PUBLIC_URL: 'https://bff.example.com?tenant=1' }, logger),
+    ).rejects.toThrow(/BFF_PUBLIC_URL/);
+
+    expect(logger).not.toHaveBeenCalled();
+  });
+
+  it('should publish BFF_PUBLIC_URL in the generic export, which has no retrieval url to resolve against', async () => {
+    const document = JSON.parse(
+      await renderOpenApi({ BFF_PUBLIC_URL: 'https://bff.example.com/' }, noopLogger),
+    );
+
+    expect(document.servers[0].url).toBe('https://bff.example.com');
+  });
+
+  it('should publish BFF_PUBLIC_URL in the unfolded export', async () => {
+    const document = JSON.parse(
+      await renderOpenApi({ ...VALID_ENV, BFF_PUBLIC_URL: 'https://bff.example.com' }, noopLogger),
+    );
+
+    expect(document.servers[0].url).toBe('https://bff.example.com');
+  });
+
+  it('should reject a malformed BFF_PUBLIC_URL rather than export an unusable server', async () => {
+    await expect(renderOpenApi({ BFF_PUBLIC_URL: 'bff.example.com' }, noopLogger)).rejects.toThrow(
+      /BFF_PUBLIC_URL/,
+    );
+  });
 });
 
 describe('dispatchCli', () => {

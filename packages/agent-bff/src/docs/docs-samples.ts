@@ -14,8 +14,9 @@ const SESSION_VARIABLE = 'BFF_SESSION';
  * a 16-collection schema and several hundred KB on a large one, which every consumer of
  * `/agent/openapi.json` would pay for an extension only a viewer reads — where this costs one
  * function whatever the operation count. It also lets a sample carry the REAL origin: the document
- * declares `servers: [{ url: '/' }]`, so a sample built into it could only hold a placeholder host,
- * while the page knows where it is served from and emits a command that runs as pasted.
+ * declares `servers` root-relative unless `BFF_PUBLIC_URL` is set, so a sample built into it could
+ * only hold a placeholder host, while the page knows where it is served from and emits a command
+ * that runs as pasted.
  *
  * The key is never inlined: each language reads it from the environment, so a copied sample cannot
  * carry a credential into a shell history or a paste.
