@@ -232,8 +232,8 @@ The body still never discloses which config *keys* are present or missing — th
 internal config surface to an unauthenticated probe. It reports what is served, not how it was
 configured. Missing keys are logged once at startup (`Warn`) for operators. Every response the BFF
 itself produces carries the `X-Forest-Bff-Version` header, read from `package.json`. The one
-exception is the embedded `503 bff_not_started` below: the agent writes it before there is a BFF to
-read a version from.
+exception is the embedded `503 bff_not_started` / `bff_stopped` below: the agent writes those
+itself, with no BFF to read a version from.
 
 ## Embedded in an agent
 
@@ -292,13 +292,15 @@ NestJS needs no special handling as long as you mount before `listen()`: `NestFa
 does not install its body parser, `init()` does, and `listen()` is what triggers `init()` — so the
 middleware `mountOnNestJs()` registers is already ahead of it.
 
-**`/bff/*` answers `503 bff_not_started`** between `addBff()` and the end of `start()`, and again
-after `stop()` — the agent claims the prefix as soon as it is mounted, and a 404 there would read as
-"wrong url" rather than "not ready yet". A host restarting an agent under traffic will see it.
+**`/bff/*` answers `503` while the BFF is not serving**, and the two ends of the lifecycle are told
+apart: `bff_not_started` between `addBff()` and the end of `start()`, `bff_stopped` after `stop()`.
+The agent claims the prefix as soon as it is mounted, and a 404 there would read as "wrong url"
+rather than "not available". A probe should wait on the first and drain on the second.
 
-**`addBff()` and `mountAiMcpServer({ basePath: '/bff' })` are mutually exclusive** and throw at
-startup rather than letting the MCP server quietly claim `/bff/oauth` and `/bff/mcp`. Mount the MCP
-server elsewhere.
+**`addBff()` and `mountAiMcpServer({ basePath: '/bff' })` are mutually exclusive** — whichever is
+called second throws on the spot, at the builder call and not from `start()`, rather than letting
+the MCP server quietly claim `/bff/oauth` and `/bff/mcp`. Any `basePath` landing inside `/bff`
+counts (`bff`, `/bff/`, `/bff/ai`), so mount the MCP server elsewhere.
 
 When to prefer which: embedded for a single deployment, which is most of them. Standalone when
 several agents share one BFF, or when the BFF and the agent have to scale separately.

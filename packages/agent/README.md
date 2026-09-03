@@ -53,8 +53,8 @@ action cut at the timeout still applies its mutation, so a client that retries a
 Size the timeout above your slowest action, and make actions idempotent if you intend to retry them.
 
 **`addBff()` cannot be combined with `mountAiMcpServer({ basePath: '/bff' })`** — the MCP server
-would claim `/bff/oauth` and `/bff/mcp`. The agent throws at startup rather than letting the two
-overlap.
+would claim `/bff/oauth` and `/bff/mcp`. Whichever you call second throws on the spot, at the
+builder call and not from `start()`.
 
 See [`@forestadmin/agent-bff`](../agent-bff/README.md) for the routes, the auth modes and the
 differences with the standalone deployment.
