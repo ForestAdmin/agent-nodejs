@@ -11,6 +11,7 @@ import {
   FieldTypeMissingError,
   InvalidPreRecordedArgsError,
   NoWritableFieldsError,
+  PinnedArgNotFoundError,
   StepStateError,
 } from '../errors';
 import RecordStepExecutor from './record-step-executor';
@@ -202,13 +203,14 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     const { stepDefinition: step } = this.context;
     const { preRecordedArgs } = step;
 
-    const selectedRecordRef = preRecordedArgs?.selectedRecordStepId
-      ? await this.resolveSourceRecordRef(preRecordedArgs.selectedRecordStepId)
-      : await this.resolveRecordRef(
-          await this.getAvailableRecordRefs(),
-          step.prompt,
-          preRecordedArgs?.selectedRecordStepIndex,
-        );
+    const selectedRecordRef =
+      preRecordedArgs?.selectedRecordStepId !== undefined
+        ? await this.resolveSourceRecordRef(preRecordedArgs.selectedRecordStepId)
+        : await this.resolveRecordRef(
+            await this.getAvailableRecordRefs(),
+            step.prompt,
+            preRecordedArgs?.selectedRecordStepIndex,
+          );
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
 
     // A value without a field is meaningless (nothing to write it to).
@@ -229,7 +231,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
       value = preRecordedArgs.value;
     } else if (recordedField !== undefined) {
       const field = this.findFieldByTechnicalName(schema, recordedField);
-      if (!field) throw new FieldNotFoundError(recordedField, schema.collectionName);
+      if (!field) throw new PinnedArgNotFoundError('field', recordedField, schema.collectionName);
       fieldName = recordedField;
       value = await this.selectValueForField(schema, field, step.prompt);
     } else {
@@ -239,7 +241,11 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     const field = this.findFieldByTechnicalName(schema, fieldName);
 
     if (!field) {
-      throw new FieldNotFoundError(fieldName, schema.collectionName);
+      // Reached with a pinned name only when field and value were both pre-recorded; the
+      // pinned-name-only branch above resolves the field before it gets here.
+      throw recordedField !== undefined
+        ? new PinnedArgNotFoundError('field', fieldName, schema.collectionName)
+        : new FieldNotFoundError(fieldName, schema.collectionName);
     }
 
     const target: UpdateTarget = {

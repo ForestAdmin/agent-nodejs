@@ -125,7 +125,7 @@ The response includes:
                 const description = field.getPlainField()?.description;
                 const baseField = {
                   name: field.getName(),
-                  type: field.getTypeName(),
+                  type: field.getEffectiveTypeName(),
                   value: valueOf(field),
                   isRequired: field.isRequired() ?? false,
                   ...(description ? { description } : {}),

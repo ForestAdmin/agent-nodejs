@@ -1,6 +1,6 @@
 import type { StepExecutionResult } from '../types/execution-context';
 import type { ConditionStepDefinition } from '../types/validated/step-definition';
-import type { ConditionStepOutcome } from '../types/validated/step-outcome';
+import type { ConditionStepOutcome, ErrorKind } from '../types/validated/step-outcome';
 
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 import { z } from 'zod';
@@ -47,6 +47,8 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
   protected buildOutcomeResult(outcome: {
     status: ConditionStepOutcome['status'];
     error?: string;
+    errorKind?: ErrorKind;
+    errorSourceStepIndex?: number;
     selectedOption?: string;
   }): StepExecutionResult {
     return {

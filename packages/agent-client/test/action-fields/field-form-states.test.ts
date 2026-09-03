@@ -699,4 +699,144 @@ describe('FieldFormStates', () => {
       expect(httpRequester.query).not.toHaveBeenCalled();
     });
   });
+
+  describe('on a v1 form declaring its file field as a String with the file picker widget', () => {
+    const pdf = { mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4'), name: 'kyc.pdf' };
+    const pdfDataUri = `data:application/pdf;name=kyc.pdf;base64,${Buffer.from('%PDF-1.4').toString(
+      'base64',
+    )}`;
+    const filePicker = { name: 'file picker', parameters: {} };
+
+    const loadedFields = [
+      {
+        field: 'doc_type_0',
+        type: 'Enum',
+        isRequired: true,
+        isReadOnly: false,
+        value: null,
+        hook: 'onFieldChanged',
+        widgetEdit: null,
+        enums: ['passport', 'id_card'],
+      },
+      {
+        field: 'file_0',
+        type: 'String',
+        isRequired: true,
+        isReadOnly: false,
+        value: null,
+        hook: 'onFieldChanged',
+        widgetEdit: filePicker,
+      },
+      {
+        field: 'comments_0',
+        type: 'String',
+        isRequired: false,
+        isReadOnly: false,
+        value: null,
+        hook: 'onFieldChanged',
+        widgetEdit: null,
+      },
+    ];
+
+    const buildFormStates = (
+      options: Partial<ConstructorParameters<typeof FieldFormStates>[0]> = {},
+    ) =>
+      new FieldFormStates({
+        actionName: 'KYC - Upload doc.',
+        actionPath: '/forest/actions/kyc-upload-doc',
+        collectionName: 'users',
+        httpRequester,
+        ids: ['1', '2'],
+        ...options,
+      });
+
+    const loadForm = async () => {
+      const formStates = buildFormStates({ hooks: { load: true, change: ['onFieldChanged'] } });
+      httpRequester.query.mockResolvedValue({ fields: loadedFields, layout: [] });
+      await formStates.loadInitialState();
+      httpRequester.query.mockReset();
+
+      return formStates;
+    };
+
+    it('sends the data uri to the change hook and keeps what the agent answers', async () => {
+      const formStates = await loadForm();
+      httpRequester.query.mockResolvedValue({
+        fields: [
+          { ...loadedFields[0], value: 'passport' },
+          { ...loadedFields[1], value: pdfDataUri },
+          { ...loadedFields[2], value: 'Passport received, expires 2031' },
+        ],
+        layout: [],
+      });
+
+      await formStates.setFieldValue('file_0', pdf);
+
+      expect(httpRequester.query).toHaveBeenLastCalledWith({
+        method: 'post',
+        path: '/forest/actions/kyc-upload-doc/hooks/change',
+        body: {
+          data: {
+            attributes: {
+              collection_name: 'users',
+              changed_field: 'file_0',
+              ids: ['1', '2'],
+              fields: [
+                expect.objectContaining({ field: 'doc_type_0', value: null }),
+                expect.objectContaining({
+                  field: 'file_0',
+                  type: 'String',
+                  value: pdfDataUri,
+                  widgetEdit: filePicker,
+                }),
+                expect.objectContaining({ field: 'comments_0', value: null }),
+              ],
+            },
+            type: 'custom-action-hook-requests',
+          },
+        },
+      });
+
+      expect(formStates.getFieldValues()).toEqual({
+        doc_type_0: 'passport',
+        file_0: pdfDataUri,
+        comments_0: 'Passport received, expires 2031',
+      });
+      expect(formStates.getField('file_0')?.getEffectiveTypeName()).toBe('File');
+    });
+
+    it('keeps the file picker widget on the ruby static-form path', async () => {
+      const formStates = buildFormStates({
+        hooks: { load: false, change: ['onFieldChanged'] },
+        fallbackFields: [
+          {
+            field: 'doc_type_0',
+            type: 'Enum',
+            isRequired: true,
+            hook: 'onFieldChanged',
+            enums: ['passport', 'id_card'],
+          },
+          {
+            field: 'file_0',
+            type: 'String',
+            isRequired: true,
+            hook: 'onFieldChanged',
+            widgetEdit: { name: 'file picker', parameters: {} },
+          },
+          { field: 'comments_0', type: 'String', hook: 'onFieldChanged' },
+        ],
+      });
+
+      await formStates.loadInitialState();
+
+      expect(httpRequester.query).not.toHaveBeenCalled();
+      expect(formStates.getField('file_0')?.getPlainField().widgetEdit).toEqual({
+        name: 'file picker',
+        parameters: {},
+      });
+      expect(formStates.getField('file_0')?.getEffectiveTypeName()).toBe('File');
+      expect(formStates.getField('doc_type_0')?.getEffectiveTypeName()).toBe('Enum');
+      expect(formStates.getField('comments_0')?.getEffectiveTypeName()).toBe('String');
+    });
+  });
 });

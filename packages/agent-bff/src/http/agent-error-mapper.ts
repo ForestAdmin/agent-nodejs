@@ -3,6 +3,7 @@ import type { Logger } from '../ports/logger-port';
 import { AgentHttpError } from '@forestadmin/agent-client';
 
 import { BffHttpError } from './bff-http-error';
+import { AgentTimeoutError } from '../agent/create-agent-http-requester';
 
 const TYPE_INVALID_REQUEST = 'invalid_request';
 const TYPE_VALIDATION_ERROR = 'validation_error';
@@ -12,6 +13,7 @@ const TYPE_NOT_FOUND = 'not_found';
 const TYPE_UNPROCESSABLE = 'unprocessable_entity';
 const TYPE_TOO_MANY_REQUESTS = 'too_many_requests';
 const TYPE_NETWORK_ERROR = 'network_error';
+const TYPE_AGENT_TIMEOUT = 'agent_timeout';
 const TYPE_AGENT_UNAVAILABLE = 'agent_unavailable';
 
 type BffErrorType =
@@ -23,9 +25,11 @@ type BffErrorType =
   | typeof TYPE_UNPROCESSABLE
   | typeof TYPE_TOO_MANY_REQUESTS
   | typeof TYPE_NETWORK_ERROR
+  | typeof TYPE_AGENT_TIMEOUT
   | typeof TYPE_AGENT_UNAVAILABLE;
 
 const DEFAULT_NETWORK_MESSAGE = 'The agent could not be reached';
+const DEFAULT_TIMEOUT_MESSAGE = 'The agent did not respond in time';
 const DEFAULT_UNAVAILABLE_MESSAGE = 'The agent is unavailable';
 const DEFAULT_ERROR_MESSAGE = 'Unexpected error';
 
@@ -150,6 +154,12 @@ export function mapAgentError(error: unknown, { logger }: { logger: Logger }): B
   if (error instanceof BffHttpError) return error;
 
   if (!(error instanceof AgentHttpError)) {
+    if (error instanceof AgentTimeoutError) {
+      logger('Warn', 'Agent timeout mapped to agent_timeout', { cause: error.message });
+
+      return new BffHttpError(504, TYPE_AGENT_TIMEOUT, DEFAULT_TIMEOUT_MESSAGE);
+    }
+
     const agentError = parseJsonApiFromMessage(error);
     if (agentError) return mapJsonApiError(agentError, 400, logger);
 

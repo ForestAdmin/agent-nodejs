@@ -5,6 +5,7 @@ import type {
   ServerWorkflowCondition,
   ServerWorkflowTask,
 } from '../../src/adapters/server-types';
+import type { StepOutcome } from '../../src/types/validated/step-outcome';
 
 import { z } from 'zod';
 
@@ -15,6 +16,7 @@ import {
   ServerTaskTypeEnum,
   ServerWorkflowTriggerType,
 } from '../../src/adapters/server-types';
+import toUpdateStepRequest from '../../src/adapters/step-outcome-to-update-step-mapper';
 import { DomainValidationError, InvalidStepDefinitionError } from '../../src/errors';
 import { TriggerType } from '../../src/types/validated/execution';
 import { StepType } from '../../src/types/validated/step-definition';
@@ -526,6 +528,119 @@ describe('toAvailableStepExecution', () => {
       });
 
       expect(() => toAvailableStepExecution(run)).toThrow(InvalidStepDefinitionError);
+    });
+
+    describe('errorKind', () => {
+      it('should read errorKind back from the step context', () => {
+        const run = makeRun({
+          workflowHistory: [
+            makeStepHistory({
+              stepName: 's0',
+              stepIndex: 0,
+              done: true,
+              context: { status: 'error', error: 'No records available', errorKind: 'operator' },
+            }),
+            makeStepHistory({ stepName: 's1', stepIndex: 1, done: false }),
+          ],
+        });
+
+        const result = toAvailableStepExecution(run);
+
+        expect(result?.previousSteps[0].stepOutcome).toEqual({
+          type: 'record',
+          stepId: 's0',
+          stepIndex: 0,
+          status: 'error',
+          error: 'No records available',
+          errorKind: 'operator',
+        });
+      });
+
+      // `context` is free-form on the wire and this mapper zod-parses what it builds, so an
+      // off-vocabulary kind must be dropped rather than fail the whole run.
+      it.each(['user', 42, null])(
+        'should drop the errorKind %p instead of failing the run',
+        badKind => {
+          const run = makeRun({
+            workflowHistory: [
+              makeStepHistory({
+                stepName: 's0',
+                stepIndex: 0,
+                done: true,
+                context: { status: 'error', error: 'No records available', errorKind: badKind },
+              }),
+              makeStepHistory({ stepName: 's1', stepIndex: 1, done: false }),
+            ],
+          });
+
+          const result = toAvailableStepExecution(run);
+
+          expect(result?.previousSteps[0].stepOutcome).not.toHaveProperty('errorKind');
+          expect(result?.previousSteps[0].stepOutcome.status).toBe('error');
+        },
+      );
+
+      it.each(['2', -1, 1.5, null])(
+        'should drop the errorSourceStepIndex %p instead of failing the run',
+        badIndex => {
+          const run = makeRun({
+            workflowHistory: [
+              makeStepHistory({
+                stepName: 's0',
+                stepIndex: 0,
+                done: true,
+                context: {
+                  status: 'error',
+                  error: 'No records available',
+                  errorSourceStepIndex: badIndex,
+                },
+              }),
+              makeStepHistory({ stepName: 's1', stepIndex: 1, done: false }),
+            ],
+          });
+
+          const result = toAvailableStepExecution(run);
+
+          expect(result?.previousSteps[0].stepOutcome).not.toHaveProperty('errorSourceStepIndex');
+          expect(result?.previousSteps[0].stepOutcome.status).toBe('error');
+        },
+      );
+
+      // The two mappers are each other's inverse over `context`, and source index 0 is the case a
+      // falsy-value check on either side would silently drop.
+      it('should round trip errorKind and errorSourceStepIndex written by the forward mapper', () => {
+        const reported: StepOutcome = {
+          type: 'record',
+          stepId: 's1',
+          stepIndex: 1,
+          status: 'error',
+          error: 'The record no longer exists. It may have been deleted.',
+          errorKind: 'operator',
+          errorSourceStepIndex: 0,
+        };
+        const { stepUpdate } = toUpdateStepRequest('42', reported);
+        const run = makeRun({
+          workflowHistory: [
+            makeStepHistory({
+              stepName: 's0',
+              stepIndex: 0,
+              done: true,
+              context: { status: 'success' },
+            }),
+            makeStepHistory({
+              stepName: 's1',
+              stepIndex: 1,
+              done: true,
+              context: stepUpdate.attributes.context,
+            }),
+            makeStepHistory({ stepName: 's2', stepIndex: 2, done: false }),
+          ],
+        });
+
+        const result = toAvailableStepExecution(run);
+
+        expect(result?.previousSteps[1].stepOutcome).toEqual(reported);
+      });
     });
   });
 
