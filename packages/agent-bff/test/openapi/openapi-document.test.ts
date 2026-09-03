@@ -66,6 +66,33 @@ function leafOperators(): string[] {
 }
 
 describe('generateOpenApiDocument', () => {
+  describe('servers', () => {
+    it('should publish the configured public URL as an absolute base URL', () => {
+      expect(
+        generateOpenApiDocument('9.9.9', { publicUrl: 'https://bff.example.com' }).servers,
+      ).toEqual([
+        { url: 'https://bff.example.com', description: expect.stringContaining('public base URL') },
+      ]);
+    });
+
+    it('should fall back to a root-relative url with no template variable, which a generator cannot resolve', () => {
+      const [server] = generateOpenApiDocument('9.9.9').servers ?? [];
+
+      expect(server.url).toBe('/');
+      expect(server.description).toContain('BFF_PUBLIC_URL');
+      expect(server.variables).toBeUndefined();
+    });
+
+    it('should carry the public URL into the unfolded document too', () => {
+      const unfolded = generateOpenApiDocument('9.9.9', {
+        unfolding: { collections: [] },
+        publicUrl: 'https://bff.example.com',
+      });
+
+      expect(unfolded.servers?.[0].url).toBe('https://bff.example.com');
+    });
+  });
+
   it('should emit OpenAPI 3.1.0 with the package version', () => {
     expect(document.openapi).toBe(OPENAPI_VERSION);
     expect(document.info.version).toBe('9.9.9');
@@ -202,6 +229,16 @@ describe('generateOpenApiDocument', () => {
 
     expect(session.description).toContain('Accepted on the context contract');
     expect(session.description).toContain('every data and action route');
+  });
+
+  it('should say in the api key scheme that allowedOrigins gates browsers only', () => {
+    const apiKey = (document.components?.securitySchemes as Record<string, { description: string }>)
+      .bffApiKey;
+
+    expect(apiKey.description).toContain('restricts browser callers only');
+    expect(apiKey.description).toContain('a request with no Origin at all');
+    expect(apiKey.description).toContain('an empty Origin header counting as none');
+    expect(apiKey.description).toContain('opaque Origin null is a present origin and is rejected');
   });
 
   it('should require a body where parentId or recordIds is mandatory', () => {
