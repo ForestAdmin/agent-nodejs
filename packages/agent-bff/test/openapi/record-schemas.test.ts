@@ -103,6 +103,36 @@ describe('recordSchema', () => {
       streetName: { type: ['string', 'null'] },
     });
   });
+
+  it('should name both nested members when they collapse onto one key, rather than dropping one', () => {
+    const schema = recordSchema(
+      {
+        ...PEOPLE,
+        fields: {
+          ...PEOPLE.fields,
+          projectable: [
+            {
+              name: 'address',
+              type: {
+                fields: [
+                  { field: 'postal_code', type: 'String' },
+                  { field: 'postalCode', type: 'Number' },
+                ],
+              },
+            },
+          ],
+        },
+      },
+      { $ref: '#/components/schemas/ForestRecordMeta' },
+    ) as { properties: Record<string, { properties?: Record<string, unknown> }> };
+
+    expect(Object.keys(schema.properties.address.properties ?? {})).toEqual(['postalCode']);
+    expect(schema.properties.address.properties?.postalCode).toEqual({
+      description:
+        '"postal_code", "postalCode" all reach the response under this single key, so which one ' +
+        'it holds is not determined here.',
+    });
+  });
 });
 
 describe('recordKey', () => {

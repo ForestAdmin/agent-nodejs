@@ -35,50 +35,57 @@ function isReference(schema: SchemaObject | ReferenceObject): schema is Referenc
   return '$ref' in schema;
 }
 
-/**
- * Every published field is nullable. The capabilities report a column type and never its
- * nullability, so a nullable column answers `null` against a type this schema would otherwise
- * declare non-null — a generated client validating the response would reject what the runtime
- * really sends. An unconstrained schema already accepts null and is left alone.
- */
-function nullable(schema: SchemaObject): SchemaObject {
-  if (typeof schema.type !== 'string') return schema;
-
-  const widened: SchemaObject = { ...schema, type: [schema.type, 'null'] };
-
-  if (schema.items !== undefined && !isReference(schema.items)) {
-    widened.items = nullable(schema.items);
-  }
-
-  if (schema.properties !== undefined) {
-    widened.properties = Object.fromEntries(
-      Object.entries(schema.properties).map(([key, nested]) => [
-        key,
-        isReference(nested) ? nested : nullable(nested),
-      ]),
-    );
-  }
-
-  return widened;
+function collapsedSchema(names: string[], tail: string): SchemaObject {
+  return {
+    description:
+      `${names.join(', ')} all reach the response under this single key, so which one it holds ` +
+      `is not determined here.${tail}`,
+  };
 }
 
-function withRecordKeys(schema: SchemaObject): SchemaObject {
-  const mapped: SchemaObject = { ...schema };
+/**
+ * One published field, at every depth: renamed to the key the response carries it under, and
+ * widened to accept null. The capabilities report a column type and never its nullability, so a
+ * nullable column answers `null` against a type this schema would otherwise declare non-null — a
+ * generated client validating the response would reject what the runtime really sends. An
+ * unconstrained schema already accepts null and keeps its type as it is. Renaming and widening are
+ * one traversal because they visit the same structure. The rename is as lossy one level down as it
+ * is at the top: two members collapsing onto one key would silently drop one, so that key is
+ * published unconstrained and names them all instead.
+ */
+function publishedSchema(schema: SchemaObject): SchemaObject {
+  const published: SchemaObject =
+    typeof schema.type === 'string' ? { ...schema, type: [schema.type, 'null'] } : { ...schema };
 
   if (schema.items !== undefined && !isReference(schema.items)) {
-    mapped.items = withRecordKeys(schema.items);
+    published.items = publishedSchema(schema.items);
   }
 
-  if (schema.properties !== undefined) {
-    mapped.properties = Object.fromEntries(
-      Object.entries(schema.properties).map(([key, nested]) => [
-        recordKey(key),
-        isReference(nested) ? nested : withRecordKeys(nested),
-      ]),
+  const { properties } = schema;
+
+  if (properties !== undefined) {
+    const byKey = new Map<string, string[]>();
+
+    Object.keys(properties).forEach(name => {
+      const key = recordKey(name);
+      const collapsed = byKey.get(key);
+
+      if (collapsed) collapsed.push(name);
+      else byKey.set(key, [name]);
+    });
+
+    published.properties = Object.fromEntries(
+      [...byKey].map(([key, names]) => {
+        if (names.length > 1) return [key, collapsedSchema(names.map(quoted), '')];
+
+        const nested = properties[names[0]];
+
+        return [key, isReference(nested) ? nested : publishedSchema(nested)];
+      }),
     );
   }
 
-  return mapped;
+  return published;
 }
 
 /**
@@ -88,22 +95,20 @@ function withRecordKeys(schema: SchemaObject): SchemaObject {
  * than picked.
  */
 function propertySchema(key: string, fields: ProjectableField[]): SchemaObject {
-  const names = fields.map(field => quoted(field.name)).join(', ');
+  const names = fields.map(field => quoted(field.name));
 
   if (fields.length > 1) {
-    return {
-      description:
-        `${names} all reach the response under this single key, so which one it holds is not ` +
-        'determined here. Project one of them at a time to know.',
-    };
+    return collapsedSchema(names, ' Project one of them at a time to know.');
   }
 
   const [field] = fields;
-  const schema = nullable(withRecordKeys(toFieldSchema(field.type)));
+  const schema = publishedSchema(toFieldSchema(field.type));
 
   if (field.name === key) return schema;
 
-  const description = [schema.description, `The ${names} field.`].filter(Boolean).join(' ');
+  const description = [schema.description, `The ${names.join(', ')} field.`]
+    .filter(Boolean)
+    .join(' ');
 
   return { ...schema, description };
 }
