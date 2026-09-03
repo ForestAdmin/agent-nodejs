@@ -1120,6 +1120,35 @@ describe('LoadRelatedRecordStepExecutor', () => {
       fields: [{ fieldName: 'city', displayName: 'City', isRelationship: false }],
     });
 
+    // An empty pin used to leave the candidate list unfiltered, so the step followed whichever
+    // relation came first instead of reporting that its configured one is unusable.
+    it('rejects an empty relationName instead of following an arbitrary relation', async () => {
+      const agentPort = makeMockAgentPort([
+        { collectionName: 'addresses', recordId: [1], values: { city: 'Paris' } },
+      ]);
+      const bindTools = jest.fn();
+      const context = makeContext({
+        model: { bindTools } as unknown as ExecutionContext['model'],
+        agentPort,
+        runStore: makeMockRunStore(),
+        workflowPort: makeMockWorkflowPort({
+          customers: customersWithAddress,
+          addresses: addressSchema,
+        }),
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.Manual,
+          preRecordedArgs: { relationName: '' },
+        }),
+      });
+
+      const result = await new LoadRelatedRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.errorKind).toBe('configuration');
+      expect(result.stepOutcome.error).toBe('The pre-configured step parameters are invalid');
+      expect(bindTools).not.toHaveBeenCalled();
+    });
+
     it('lists the narrowed candidates with no suggestion and never invokes the AI model', async () => {
       const relatedData: RecordData[] = [
         { collectionName: 'addresses', recordId: [1], values: { city: 'Paris' } },

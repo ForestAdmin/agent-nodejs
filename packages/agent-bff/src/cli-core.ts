@@ -25,7 +25,7 @@ import createPerKeyOriginMiddleware from './cors/per-key-origin';
 import createDataRoutesMiddleware from './data/data-routes-middleware';
 import createDocsRoutes from './docs/docs-routes';
 import { extractErrorMessage } from './errors';
-import { unauthorized } from './http/bff-http-error';
+import { unauthorized, unsupportedMediaType } from './http/bff-http-error';
 import BFFHttpServer from './http/bff-http-server';
 import BODY_LIMIT, { AI_BODY_LIMIT } from './http/body-limit';
 import createErrorMiddleware from './http/error-middleware';
@@ -47,6 +47,24 @@ function isAgentPath(path: string): boolean {
   return path === '/agent' || path.startsWith('/agent/');
 }
 
+const BODY_METHODS = new Set(['POST', 'PUT', 'PATCH']);
+
+const JSON_BODY_TYPES = ['application/json', 'application/*+json'];
+
+function hasBody(ctx: Parameters<Middleware>[0]): boolean {
+  return (ctx.request.length ?? 0) > 0 || ctx.get('transfer-encoding') !== '';
+}
+
+function createJsonOnlyGuard(): Middleware {
+  return async function jsonOnlyGuard(ctx, next) {
+    if (BODY_METHODS.has(ctx.method) && hasBody(ctx) && !ctx.is(JSON_BODY_TYPES)) {
+      throw unsupportedMediaType();
+    }
+
+    await next();
+  };
+}
+
 function agentScoped(middleware: Middleware): Middleware {
   return async function scoped(ctx, next) {
     if (!isAgentPath(ctx.path)) {
@@ -60,11 +78,16 @@ function agentScoped(middleware: Middleware): Middleware {
 }
 
 function createBodyParser(hasAiQueryRoute: boolean): Middleware {
-  const parseBody = bodyParser({ jsonLimit: BODY_LIMIT });
+  const extendTypes = { json: JSON_BODY_TYPES };
+  const parseBody = bodyParser({ jsonLimit: BODY_LIMIT, extendTypes });
 
   if (!hasAiQueryRoute) return parseBody;
 
-  const parseAiBody = bodyParser({ jsonLimit: AI_BODY_LIMIT, enableTypes: ['json'] });
+  const parseAiBody = bodyParser({
+    jsonLimit: AI_BODY_LIMIT,
+    enableTypes: ['json'],
+    extendTypes,
+  });
 
   return async function selectedBodyParser(ctx, next) {
     if (ctx.path === AI_QUERY_ROUTE) {
@@ -384,11 +407,13 @@ export default async function runCli(
   const oauth = await buildOAuthMiddlewares(config, logger);
   const aiMiddlewares = buildAiMiddlewares(config, oauth, logger);
   const agentMiddlewares = buildAgentMiddlewares(config, logger, oauth, aiMiddlewares);
-  const agentErrorMiddleware =
-    agentMiddlewares.length > 0 ? [agentScoped(createErrorMiddleware({ logger }))] : [];
+  const hasAgentEdge = agentMiddlewares.length > 0;
+  const agentErrorMiddleware = hasAgentEdge ? [agentScoped(createErrorMiddleware({ logger }))] : [];
+  const agentJsonOnlyGuard = hasAgentEdge ? [agentScoped(createJsonOnlyGuard())] : [];
   const middlewares = [
     createCorsMiddleware({ allowedOrigins: config.allowedOrigins }),
     ...agentErrorMiddleware,
+    ...agentJsonOnlyGuard,
     createBodyParser(aiMiddlewares.length > 0),
     ...oauth.middlewares,
     // Outside the agent-scoped chain on purpose: the viewer is a public page, the document it fetches

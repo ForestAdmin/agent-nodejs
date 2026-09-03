@@ -320,6 +320,8 @@ describe('ReadRecordStepExecutor', () => {
       expect(result.stepOutcome.error).toBe(
         "The AI selected fields that don't exist on this record. Try rephrasing the step's prompt.",
       );
+      // The AI picking a name that doesn't exist is its own miss, not a workflow edit.
+      expect(result.stepOutcome).not.toHaveProperty('errorKind');
       expect(agentPort.getRecord).not.toHaveBeenCalled();
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
@@ -1084,7 +1086,7 @@ describe('ReadRecordStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('error');
     });
 
-    it('returns error when all pre-recorded fieldNames are invalid', async () => {
+    it('classifies invalid pre-recorded fieldNames as a configuration error', async () => {
       const mockModel = makeMockModel();
       const context = makeContext({
         model: mockModel.model,
@@ -1097,6 +1099,12 @@ describe('ReadRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.errorKind).toBe('configuration');
+      // Names the pin, not the prompt: the operator cannot rephrase their way to a field the
+      // workflow fixed in preRecordedArgs. Same wording Update Data gives for the same rename.
+      expect(result.stepOutcome.error).toBe(
+        'The field pinned on this step no longer exists on this record. Edit the step to pick another one.',
+      );
     });
 
     it('resolves a pre-recorded technical fieldName to its own field, not another whose displayName collides', async () => {
@@ -1221,6 +1229,23 @@ describe('ReadRecordStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe('The pre-configured step parameters are invalid');
+    });
+
+    // An empty id is a pin that lost its target, not an absent pin: falling back to AI selection
+    // would silently read a different record than the workflow was configured to read.
+    it('rejects an empty selectedRecordStepId instead of selecting a record with AI', async () => {
+      const mockModel = makeMockModel();
+      const context = makeContext({
+        model: mockModel.model,
+        stepDefinition: makeStep({ preRecordedArgs: { selectedRecordStepId: '' } }),
+      });
+
+      const result = await new ReadRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe('The pre-configured step parameters are invalid');
+      expect(result.stepOutcome.errorKind).toBe('configuration');
+      expect(mockModel.bindTools).not.toHaveBeenCalled();
     });
 
     it('returns SourceRecordMissingError when the pinned source step loaded no record', async () => {

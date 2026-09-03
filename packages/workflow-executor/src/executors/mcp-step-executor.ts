@@ -1,7 +1,11 @@
 import type { ExecutionContext, StepExecutionResult } from '../types/execution-context';
 import type { McpStepExecutionData, McpToolCall } from '../types/step-execution-data';
 import type { McpStepDefinition } from '../types/validated/step-definition';
-import type { AwaitingInputReason, RecordStepStatus } from '../types/validated/step-outcome';
+import type {
+  AwaitingInputReason,
+  ErrorKind,
+  RecordStepStatus,
+} from '../types/validated/step-outcome';
 import type { RemoteTool } from '@forestadmin/ai-proxy';
 
 import {
@@ -58,6 +62,8 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
   protected buildOutcomeResult(outcome: {
     status: RecordStepStatus;
     error?: string;
+    errorKind?: ErrorKind;
+    errorSourceStepIndex?: number;
     awaitingInputReason?: AwaitingInputReason;
   }): StepExecutionResult {
     return {

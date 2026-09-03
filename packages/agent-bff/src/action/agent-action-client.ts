@@ -9,6 +9,7 @@ export interface ActionFormField {
   getName(): string;
   /** A list type is the array the agent sent, `['String']`, not `'StringList'`. */
   getType(): string | [string];
+  getReference(): string | null | undefined;
   getValue(): unknown;
   isRequired(): boolean | undefined;
 }
@@ -55,7 +56,7 @@ export interface AgentActionClientOptions {
 export function extractRawLayout(action: ActionForm): ForestServerActionFormLayoutElement[] {
   const root = action.getLayout() as { layout?: ForestServerActionFormLayoutElement[] };
 
-  return root.layout ?? [];
+  return Array.isArray(root.layout) ? root.layout : [];
 }
 
 /**
