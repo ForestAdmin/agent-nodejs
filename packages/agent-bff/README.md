@@ -46,6 +46,10 @@ forest-bff openapi --output                # writes ./openapi.json
 forest-bff openapi --output docs/api.json  # writes that path
 ```
 
+Set `BFF_PUBLIC_URL` for this command in particular. A document fetched over HTTP resolves its
+relative `servers[0].url` against the URL it came from; an exported file has no such origin, so
+without it a client generated from the export has no base URL at all.
+
 The document comes in two forms, and the command picks one from the environment:
 
 - **Unfolded** when `FOREST_SERVER_URL`, `FOREST_ENV_SECRET`, `FOREST_AUTH_SECRET` and `AGENT_URL`
@@ -93,6 +97,7 @@ yarn start:dev         # node --env-file=.env dist/cli.js
 | `HTTP_PORT`          | no       | Server port, integer 0–65535. Defaults to `3450`. `0` binds an OS-assigned ephemeral port. |
 | `BFF_ALLOWED_ORIGINS`| no       | Comma-separated CORS allow-list of exact origins (scheme + host + port). No wildcard. Empty ⇒ no cross-origin browser access. |
 | `BFF_DEFAULT_TIMEZONE`| no      | Fallback IANA timezone used when a request carries neither an `X-Forest-Timezone` header nor a body `timezone`. |
+| `BFF_PUBLIC_URL`     | no       | The BFF's own external base URL, published as `servers[0].url` in the OpenAPI document so a generated client resolves endpoints without being configured by hand. Absent, `servers[0].url` stays `/`, which a consumer that fetched the document over HTTP resolves against that URL — but which leaves a client generated from an offline `forest-bff openapi` export with no base URL at all. Trailing slashes are stripped. A malformed value fails the boot, and so does one carrying credentials, a query string or a fragment: credentials would be published to every reader of the document, and anything behind a `?` or `#` swallows the path a generated client appends. |
 | `BFF_AGENT_TIMEOUT_MS`| no      | How long the BFF waits for the customer agent on any data or action call, in milliseconds. Defaults to `10000`. Past it the route answers `504 agent_timeout`; any outright transport failure — a refused connection, an unresolvable host, a connection reset, a TLS failure — answers `502 network_error` instead. Surrounding whitespace is trimmed, then a malformed value (non-integer, `0`, or above 2147483647) fails the boot; an unset, empty, or whitespace-only value counts as absent and takes the default. |
 | `BFF_AI_TIMEOUT_MS`  | no       | How long `POST /agent/v1/ai/query` waits for the Forest server on the relay itself, in milliseconds. Defaults to `120000` — an AI generation is slow, and neither the app nor the Forest server bounds it. Past it the route answers `504`. It is not the route's end-to-end cap: an expired session is refreshed first, under a separate hard-coded 60 s ceiling that answers `502`, so a request can exceed this value. Surrounding whitespace is trimmed, then a malformed value (non-integer, `0`, or above 2147483647) fails the boot; an unset, empty, or whitespace-only value counts as absent and takes the default. |
 | `BFF_OPENAPI_ENABLED` | no       | Serve `GET/HEAD /agent/openapi.json` (auth-gated) when `true`. Defaults to `true`. Set to `false` for customers who do not want the HTTP surface exposed: an authenticated `GET`/`HEAD` then gets `404 openapi_disabled`, other methods fall through to the agent routes exactly as they do when enabled, and `forest-bff openapi` keeps working either way. Accepted values: `true`/`false`. **The served document is unfolded and is not filtered per caller**: any authenticated caller, whatever their role, reads the name of every exposed collection, relation and field. Set this to `false` if that surface must not be reachable over HTTP. |
