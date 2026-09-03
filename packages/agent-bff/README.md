@@ -93,7 +93,8 @@ yarn start:dev         # node --env-file=.env dist/cli.js
 | `HTTP_PORT`          | no       | Server port, integer 0–65535. Defaults to `3450`. `0` binds an OS-assigned ephemeral port. |
 | `BFF_ALLOWED_ORIGINS`| no       | Comma-separated CORS allow-list of exact origins (scheme + host + port). No wildcard. Empty ⇒ no cross-origin browser access. |
 | `BFF_DEFAULT_TIMEZONE`| no      | Fallback IANA timezone used when a request carries neither an `X-Forest-Timezone` header nor a body `timezone`. |
-| `BFF_AI_TIMEOUT_MS`  | no       | How long `POST /agent/v1/ai/query` waits for the Forest server on the relay itself, in milliseconds. Defaults to `120000` — an AI generation is slow, and neither the app nor the Forest server bounds it. Past it the route answers `504`. It is not the route's end-to-end cap: an expired session is refreshed first, under a separate hard-coded 60 s ceiling that answers `502`, so a request can exceed this value. A malformed value (non-integer, `0`, or above 2147483647) fails the boot, unlike an absent one which takes the default. |
+| `BFF_AGENT_TIMEOUT_MS`| no      | How long the BFF waits for the customer agent on any data or action call, in milliseconds. Defaults to `10000`. Past it the route answers `504 agent_timeout`; any outright transport failure — a refused connection, an unresolvable host, a connection reset, a TLS failure — answers `502 network_error` instead. Surrounding whitespace is trimmed, then a malformed value (non-integer, `0`, or above 2147483647) fails the boot; an unset, empty, or whitespace-only value counts as absent and takes the default. |
+| `BFF_AI_TIMEOUT_MS`  | no       | How long `POST /agent/v1/ai/query` waits for the Forest server on the relay itself, in milliseconds. Defaults to `120000` — an AI generation is slow, and neither the app nor the Forest server bounds it. Past it the route answers `504`. It is not the route's end-to-end cap: an expired session is refreshed first, under a separate hard-coded 60 s ceiling that answers `502`, so a request can exceed this value. Surrounding whitespace is trimmed, then a malformed value (non-integer, `0`, or above 2147483647) fails the boot; an unset, empty, or whitespace-only value counts as absent and takes the default. |
 | `BFF_OPENAPI_ENABLED` | no       | Serve `GET/HEAD /agent/openapi.json` (auth-gated) when `true`. Defaults to `true`. Set to `false` for customers who do not want the HTTP surface exposed: an authenticated `GET`/`HEAD` then gets `404 openapi_disabled`, other methods fall through to the agent routes exactly as they do when enabled, and `forest-bff openapi` keeps working either way. Accepted values: `true`/`false`. **The served document is unfolded and is not filtered per caller**: any authenticated caller, whatever their role, reads the name of every exposed collection, relation and field. Set this to `false` if that surface must not be reachable over HTTP. |
 
 ### Config validation
@@ -111,6 +112,16 @@ yarn start:dev         # node --env-file=.env dist/cli.js
 Every agent call flows through a request edge that enforces three cross-cutting concerns before the
 call is proxied to the agent. Errors use a structured, type-first contract — `{ error: { type, status,
 message, details? } }` — so consumers branch on `error.type`, never on message text.
+
+Two of those types split what used to be one failure. An agent that accepts the connection and then
+does not answer within `BFF_AGENT_TIMEOUT_MS` answers `504 agent_timeout`; an agent that refuses the
+connection or whose host does not resolve answers `502 network_error`, and so does any other
+outright transport failure — a connection reset mid-flight, a socket hang up, a TLS failure —
+because `502` is the catch-all for everything that is not a timeout. The deadline is armed when the
+request starts, so at the default a host that accepts nothing and never resets is a `504` too:
+`502` means the transport failed outright, not that it ran out of time. Raise
+`BFF_AGENT_TIMEOUT_MS` past the OS connect timeout (~75 s) and that last case reverts to `502`,
+because the kernel gives up first and reports `ETIMEDOUT` rather than superagent's deadline.
 
 Two paths sit before the timezone layer and so skip it: `/agent/v1/context`, and the AI relay
 described below. Neither reaches an agent, so neither has a timezone to resolve. This holds only

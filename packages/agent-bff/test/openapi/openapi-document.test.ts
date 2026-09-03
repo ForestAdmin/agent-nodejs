@@ -238,6 +238,7 @@ describe('generateOpenApiDocument', () => {
       '501',
       '502',
       '503',
+      '504',
     ]);
   });
 
@@ -301,7 +302,7 @@ describe('generateOpenApiDocument', () => {
       Object.entries(operation.responses).filter(([status]) => status !== '200'),
     );
 
-    expect(errors).toHaveLength(72);
+    expect(errors).toHaveLength(78);
     errors.forEach(([, response]) => {
       expect(response).toEqual({ $ref: expect.stringContaining('#/components/responses/') });
     });
@@ -327,19 +328,33 @@ describe('generateOpenApiDocument', () => {
       'Error502AiQuery',
       'Error503',
       'Error503AiQuery',
+      'Error504',
       'Error504AiQuery',
       'ErrorDefaultAiQuery',
       'UnsupportedActionResult',
     ]);
   });
 
-  it('should keep the ai query body limit and timeout out of every data route', () => {
-    const statuses = dataOperations().flatMap(operation => Object.keys(operation.responses));
+  it('should document 504 on every data route, since an agent timeout is not a network error', () => {
+    dataOperations().forEach(operation => {
+      expect((operation.responses as Record<string, { $ref: string }>)['504'].$ref).toBe(
+        '#/components/responses/Error504',
+      );
+    });
+  });
+
+  it('should keep the ai query body limit and timeout components out of every data route', () => {
+    const refs = dataOperations().flatMap(operation =>
+      Object.values(operation.responses as Record<string, { $ref?: string }>).map(
+        response => response.$ref,
+      ),
+    );
     const aiOperation = (document.paths ?? {})[AI_QUERY_PATH] as {
       post: { responses: Record<string, { $ref: string }> };
     };
 
-    expect(statuses).not.toContain('504');
+    expect(refs).not.toContain('#/components/responses/Error504AiQuery');
+    expect(refs).not.toContain('#/components/responses/Error413AiQuery');
     expect(aiOperation.post.responses['413'].$ref).toContain('Error413AiQuery');
     expect(aiOperation.post.responses['504'].$ref).toContain('Error504AiQuery');
   });
@@ -573,6 +588,24 @@ describe('the documented pagination inputs', () => {
     expect(schemas.ListResponse.description).toContain('not guaranteed to be the whole collection');
     expect(schemas.ListResponse.description).toContain('up to 15 records from the start');
     expect(schemas.ListResponse.description).toContain('probably truncated');
+  });
+});
+
+describe('the documented transport failures', () => {
+  it('should split 502 and 504 by cause, since they mean different failures', () => {
+    const list = responsesOf(`${ROUTE_PREFIX}/{collection}/list`);
+
+    expect(list['502'].description).toContain('refused the connection');
+    expect(list['502'].description).toContain('rather than running out of time');
+    expect(list['502'].description).toContain('connection reset mid-flight');
+  });
+
+  it('should say the 504 deadline starts with the request, and where that stops holding', () => {
+    const list = responsesOf(`${ROUTE_PREFIX}/{collection}/list`);
+
+    expect(list['504'].description).toContain('BFF_AGENT_TIMEOUT_MS');
+    expect(list['504'].description).toContain('armed when the request starts');
+    expect(list['504'].description).toContain('past the OS connect timeout and that case reverts');
   });
 });
 

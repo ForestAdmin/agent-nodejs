@@ -40,8 +40,9 @@ const ERROR_STATUSES: Record<string, string> = {
   429: 'The agent rate-limited the request',
   500: 'The agent payload could not be mapped to the BFF contract, or the BFF hit an unexpected error',
   501: 'The BFF is running without an agent configured, so the proxy is not implemented',
-  502: 'The agent could not be reached',
+  502: 'The agent refused the connection, its host could not be resolved, or the transport failed another way (a connection reset mid-flight, a socket hang up, a TLS failure) — it failed outright rather than running out of time',
   503: 'The agent schema is unavailable, the agent returned a 5xx, or the API key could not be resolved',
+  504: 'The agent did not answer before the BFF timeout (BFF_AGENT_TIMEOUT_MS, 10s by default). The deadline is armed when the request starts, so at the default it also covers a host that accepts nothing and never resets the connection — raise the timeout past the OS connect timeout and that case reverts to 502',
 };
 
 const UNSUPPORTED_RESULT_DESCRIPTION =
@@ -152,6 +153,7 @@ const DATA_ERRORS = [
   '501',
   '502',
   '503',
+  '504',
 ];
 
 const AI_RELAYED_OR_ENVELOPE =
