@@ -1,3 +1,11 @@
+# @forestadmin/agent-bff [1.25.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.24.0...@forestadmin/agent-bff@1.25.0) (2026-09-03)
+
+
+### Features
+
+* **agent-bff:** document permissions and openapi routes ([#1862](https://github.com/ForestAdmin/agent-nodejs/issues/1862)) ([43d6d7b](https://github.com/ForestAdmin/agent-nodejs/commit/43d6d7b30e6ab690b153dff4ac6990b840ae66d8))
+* **agent-bff:** log origin guard rejections ([#1868](https://github.com/ForestAdmin/agent-nodejs/issues/1868)) ([5c7a70c](https://github.com/ForestAdmin/agent-nodejs/commit/5c7a70ca0f4bd6c7026baeda9952c9aa9ce393d1))
+
 # @forestadmin/agent-bff [1.24.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.23.8...@forestadmin/agent-bff@1.24.0) (2026-09-03)
 
 
