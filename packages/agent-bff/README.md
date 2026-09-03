@@ -11,7 +11,7 @@ document.
 ## The routes it serves
 
 Everything the agent proxy exposes lives under `/agent/v1`. The data and action routes are `POST`
-— the filter, projection and paging all travel in the body, never in the query string:
+— the filter, projection, sort, search and paging all travel in the body, never in the query string:
 
 | Route | Method | What it does |
 | --- | --- | --- |
