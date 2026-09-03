@@ -10,7 +10,7 @@ import { BFF_PREFIX, stripBffPrefix } from './bff-routes';
  * value worth logging into `{}`. Never throws — logging must not break a request.
  */
 function formatLog(message: string, context?: Record<string, unknown>): string {
-  if (!context || Object.keys(context).length === 0) return `[bff] ${message}`;
+  if (!context || Object.keys(context).length === 0) return `[BFF] ${message}`;
 
   try {
     const serialized = JSON.stringify(context, (_key, value) =>
@@ -19,9 +19,9 @@ function formatLog(message: string, context?: Record<string, unknown>): string {
         : value,
     );
 
-    return `[bff] ${message} ${serialized}`;
+    return `[BFF] ${message} ${serialized}`;
   } catch {
-    return `[bff] ${message} [unserializable context]`;
+    return `[BFF] ${message} [unserializable context]`;
   }
 }
 

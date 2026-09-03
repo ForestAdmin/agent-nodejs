@@ -178,7 +178,7 @@ describe('the embedded BFF lifecycle', () => {
 
       mockBuildBff.mock.calls[0][0].metrics.increment('schema_cache_refresh_error');
 
-      expect(logger).toHaveBeenCalledWith('Warn', '[bff] metric schema_cache_refresh_error');
+      expect(logger).toHaveBeenCalledWith('Warn', '[BFF] metric schema_cache_refresh_error');
     });
 
     it('should drop gauges, which the default sink reports at Info on every read', async () => {
