@@ -384,6 +384,20 @@ describe('data routes middleware', () => {
       expect(list).not.toHaveBeenCalled();
     });
 
+    it('should return 400 when page.limit exceeds the maximum instead of fetching the whole collection', async () => {
+      const list = jest.fn(async () => []);
+      const app = buildApp(storeOf(usersReadModel), { list });
+
+      const response = await request(app.callback())
+        .post('/agent/v1/users/list')
+        .send({ page: { limit: 1_000_000_000, offset: 0 } });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toMatchObject({ type: 'invalid_request', status: 400 });
+      expect(response.body.error.message).toContain('page.limit');
+      expect(list).not.toHaveBeenCalled();
+    });
+
     it('should return 400 for a misspelled filter instead of listing every record', async () => {
       const list = jest.fn();
       const app = buildApp(storeOf(usersReadModel), { list });

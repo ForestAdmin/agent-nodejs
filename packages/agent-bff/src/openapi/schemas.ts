@@ -4,6 +4,7 @@ import { z } from './zod-openapi';
 import {
   CountFlatInputs,
   ListFlatInputs,
+  MAX_PAGE_LIMIT,
   PageInput,
   ParentIdInput,
   RelationCountFlatInputs,
@@ -59,7 +60,8 @@ export const SortClauseSchema = SortClauseInput.openapi('SortClause', {
 export const PageSchema = PageInput.openapi('Page', {
   description:
     'The agent paginates by page number, so `offset` must be a whole multiple of `limit`. ' +
-    'Any other offset is rejected with 400 invalid_request. `limit` and `offset` are both ' +
+    `Any other offset is rejected with 400 invalid_request, as is a \`limit\` above \`${MAX_PAGE_LIMIT}\` ` +
+    '(the maximum is not clamped silently). `limit` and `offset` are both ' +
     'required once `page` is sent, but the object itself is optional on every list — and ' +
     'omitting it is not a request for the whole collection. The BFF then forwards no ' +
     'pagination, so the agent applies its own default: the first page (offset 0), a limit ' +
