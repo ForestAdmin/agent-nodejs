@@ -517,4 +517,20 @@ export const MessagelessErrorResponseSchema = z
       'The unsupported-action-result body, which carries no message field unlike every other error.',
   });
 
+export const OpenapiDisabledErrorResponseSchema = z
+  .object({
+    error: z.object({
+      type: z.literal('openapi_disabled'),
+      status: z.literal(404),
+      message: z.string(),
+      details: z.unknown().optional(),
+    }),
+  })
+  .openapi('OpenapiDisabledErrorResponse', {
+    description:
+      'The one error body whose `type` is pinned here: this 404 has a single cause, where the ' +
+      'shared statuses cover several. A generated client can branch on it, which is what the ' +
+      'README asks of a consumer — never on the message text.',
+  });
+
 export { ConditionTreeSchema, ParentIdSchema, OPERATORS };

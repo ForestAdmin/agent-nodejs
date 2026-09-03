@@ -16,6 +16,7 @@ import {
   ListRequestSchema,
   ListResponseSchema,
   MessagelessErrorResponseSchema,
+  OpenapiDisabledErrorResponseSchema,
   PermissionHintsSchema,
   RelationCountRequestSchema,
   RelationListRequestSchema,
@@ -56,6 +57,7 @@ const UNSUPPORTED_RESULT_DESCRIPTION =
 
 const ERROR_RESPONSE_REF = '#/components/schemas/ErrorResponse';
 const MESSAGELESS_ERROR_RESPONSE_REF = '#/components/schemas/MessagelessErrorResponse';
+const OPENAPI_DISABLED_RESPONSE_REF = '#/components/schemas/OpenapiDisabledErrorResponse';
 
 const UNSUPPORTED_ACTION_RESULT_COMPONENT = 'UnsupportedActionResult';
 
@@ -119,11 +121,12 @@ function registerErrorResponses(
   withActionResults: boolean,
 ): ErrorResponseRefs {
   registry.register('ErrorResponse', ErrorResponseSchema);
+  registry.register('OpenapiDisabledErrorResponse', OpenapiDisabledErrorResponseSchema);
 
   const byStatus: Record<string, ResponseRef> = {};
   const openapiDisabled = registerErrorComponent(registry, OPENAPI_DISABLED_COMPONENT, {
-    description: `${OPENAPI_DISABLED_DESCRIPTION} The body is typed \`openapi_disabled\`; a bare 404 with no typed body means the agent edge is not mounted at all.`,
-    schema: { $ref: ERROR_RESPONSE_REF },
+    description: `${OPENAPI_DISABLED_DESCRIPTION} The body is typed \`openapi_disabled\`, and the schema pins that value so a generated client can tell this 404 from any other; a bare 404 with no typed body means the agent edge is not mounted at all.`,
+    schema: { $ref: OPENAPI_DISABLED_RESPONSE_REF },
   });
 
   statuses.forEach(status => {

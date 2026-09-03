@@ -335,6 +335,25 @@ describe('generateOpenApiDocument', () => {
     expect(messageless.properties.error.required).toEqual(['type', 'status']);
   });
 
+  it('should pin the error type on the openapi-disabled 404, which has a single cause', () => {
+    const disabled = responseComponents.Error404OpenapiDisabled;
+
+    expect(disabled.content?.['application/json'].schema).toEqual({
+      $ref: '#/components/schemas/OpenapiDisabledErrorResponse',
+    });
+
+    const schema = schemas.OpenapiDisabledErrorResponse as {
+      properties: { error: { properties: Record<string, unknown>; required: string[] } };
+    };
+
+    expect(schema.properties.error.properties.type).toEqual({
+      type: 'string',
+      enum: ['openapi_disabled'],
+    });
+    expect(schema.properties.error.properties.status).toEqual({ type: 'number', enum: [404] });
+    expect(schema.properties.error.required).toEqual(['type', 'status', 'message']);
+  });
+
   it('should keep a plain error body for the 501 the agent stub returns on other routes', () => {
     expect(listResponses()['501'].content?.['application/json'].schema.$ref).toBe(
       '#/components/schemas/ErrorResponse',
