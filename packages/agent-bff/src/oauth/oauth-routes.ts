@@ -1,3 +1,4 @@
+import type { EnvironmentIdResolver } from './environment-id';
 import type ForestServerClient from './forest-server-client';
 import type { ServerTokens } from './forest-server-client';
 import type { SessionStore } from './session-store';
@@ -16,6 +17,7 @@ import {
   invalidClient,
   invalidGrant,
   invalidRequest,
+  serverError,
   sessionExpired,
   sessionInvalidated,
   toErrorBody,
@@ -32,7 +34,7 @@ export interface OAuthRoutesOptions {
   sessionStore: SessionStore;
   forestAppUrl: string;
   authSecret: string;
-  environmentId: number;
+  resolveEnvironmentId: EnvironmentIdResolver;
   logger: Logger;
 }
 
@@ -110,6 +112,24 @@ function mapIdentityError(error: unknown): OAuthRequestError {
   return new OAuthRequestError(502, 'identity_resolution_failed', 'Failed to resolve identity');
 }
 
+/**
+ * The id is only needed once the redirect_uri is trusted, so a resolution failure travels back to
+ * the client as `server_error` (RFC 6749 §4.1.2.1) instead of a bare 500. Logged at `Error` whatever
+ * the cause: the route still answers 302, so no status-code alert can fire, and every login is
+ * broken until the id resolves.
+ */
+async function resolveEnvironmentId(options: OAuthRoutesOptions): Promise<number> {
+  try {
+    return await options.resolveEnvironmentId();
+  } catch (error) {
+    options.logger('Error', 'Could not resolve the Forest environment id', {
+      cause: error instanceof Error ? error.message : String(error),
+    });
+
+    throw serverError('Could not resolve the Forest environment', error);
+  }
+}
+
 function redirectAuthorizeError(
   ctx: Context,
   redirectUri: string,
@@ -181,7 +201,7 @@ async function handleAuthorize(ctx: Context, options: OAuthRoutesOptions): Promi
     authorizeUrl.searchParams.set('code_challenge', codeChallenge);
     authorizeUrl.searchParams.set('code_challenge_method', 'S256');
     authorizeUrl.searchParams.set('state', state);
-    authorizeUrl.searchParams.set('environmentId', String(options.environmentId));
+    authorizeUrl.searchParams.set('environmentId', String(await resolveEnvironmentId(options)));
 
     ctx.redirect(authorizeUrl.toString());
   } catch (error) {

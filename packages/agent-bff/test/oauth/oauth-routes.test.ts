@@ -85,6 +85,7 @@ function buildApp(
   serverClient: ForestServerClient,
   forestAppUrl: string = APP_URL,
   onTokenRequest?: () => void,
+  resolveEnvironmentId: () => Promise<number> = async () => 99,
 ) {
   const logs: LogLine[] = [];
 
@@ -115,7 +116,7 @@ function buildApp(
       sessionStore,
       forestAppUrl,
       authSecret: AUTH_SECRET,
-      environmentId: 99,
+      resolveEnvironmentId,
       logger,
     }),
   );
@@ -154,6 +155,25 @@ describe('oauth-routes GET /oauth/authorize', () => {
       expect(location.searchParams.get('code_challenge')).toBe(CODE_CHALLENGE);
       expect(location.searchParams.get('environmentId')).toBe('99');
       expect(location.searchParams.get('state')).toBe('state-xyz');
+    });
+
+    it('should redirect server_error to the client when the environment id cannot be resolved', async () => {
+      const { app, logs } = buildApp(stubServerClient(), APP_URL, undefined, async () => {
+        throw new Error('forest server unreachable');
+      });
+
+      const response = await request(app.callback()).get('/oauth/authorize').query(AUTHORIZE_QUERY);
+
+      expect(response.status).toBe(302);
+      const location = new URL(response.headers.location);
+      expect(location.origin + location.pathname).toBe(REDIRECT_URI);
+      expect(location.searchParams.get('error')).toBe('server_error');
+      expect(location.searchParams.get('state')).toBe('state-xyz');
+      expect(logs).toContainEqual({
+        level: 'Error',
+        message: 'Could not resolve the Forest environment id',
+        context: { cause: 'forest server unreachable' },
+      });
     });
 
     it('should preserve a path prefix already present in the Forest app url', async () => {
@@ -610,7 +630,7 @@ describe('oauth-routes POST /oauth/token', () => {
           sessionStore,
           forestAppUrl: APP_URL,
           authSecret: AUTH_SECRET,
-          environmentId: 99,
+          resolveEnvironmentId: async () => 99,
           logger: () => undefined,
         }),
       );

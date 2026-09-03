@@ -1,6 +1,7 @@
 import type AiProxyClient from './ai-proxy-client';
 import type { AiProxyResponse } from './ai-proxy-client';
 import type { BffAccessTokenPayload } from '../oauth/bff-token';
+import type { EnvironmentIdResolver } from '../oauth/environment-id';
 import type ForestServerClient from '../oauth/forest-server-client';
 import type { SessionStore } from '../oauth/session-store';
 import type { Logger } from '../ports/logger-port';
@@ -10,11 +11,13 @@ import { AiProxyTimeoutError } from './ai-proxy-client';
 import { requireRenderingId } from '../auth/auth-mode';
 import { unauthorized } from '../http/bff-http-error';
 import {
+  environmentUnresolved,
   oauthRequired,
   upstreamError,
   upstreamTimeout,
   upstreamUnreachable,
 } from '../http/bff-local-errors';
+import { environmentFailureLevel } from '../oauth/environment-fetch-error';
 import { OAuthRequestError } from '../oauth/oauth-error';
 import ensureFreshServerAccess from '../oauth/session-lifecycle';
 
@@ -28,7 +31,7 @@ export interface AiRoutesMiddlewareOptions {
   client: AiProxyClient;
   sessionStore: SessionStore;
   serverClient: ForestServerClient;
-  environmentId?: number;
+  resolveEnvironmentId?: EnvironmentIdResolver;
   logger: Logger;
 }
 
@@ -53,6 +56,32 @@ function describeFailure(error: unknown, depthLeft = MAX_CAUSE_DEPTH): string {
   const tail = walkable ? ` (cause: ${describeFailure(cause, depthLeft - 1)})` : '';
 
   return `${error.name}: ${clamp(error.message)}${tail}`;
+}
+
+/**
+ * Resolved outside the `try` that maps AI proxy failures: a Forest server refusing the environment
+ * read is not the AI proxy being unreachable, and telling the operator otherwise sends them
+ * debugging a component that was never contacted.
+ */
+async function resolveEnvironmentIdOrRefuse(
+  resolveEnvironmentId: EnvironmentIdResolver | undefined,
+  logger: Logger,
+): Promise<number | undefined> {
+  if (!resolveEnvironmentId) return undefined;
+
+  try {
+    return await resolveEnvironmentId();
+  } catch (error) {
+    logger(
+      environmentFailureLevel(error),
+      'AI query refused: the Forest environment id could not be resolved',
+      { cause: describeFailure(error) },
+    );
+
+    if (error instanceof Error && error.name === 'TimeoutError') throw upstreamTimeout();
+
+    throw environmentUnresolved();
+  }
 }
 
 async function resolveSessionAccessToken(
@@ -104,7 +133,7 @@ export default function createAiRoutesMiddleware({
   client,
   sessionStore,
   serverClient,
-  environmentId,
+  resolveEnvironmentId,
   logger,
 }: AiRoutesMiddlewareOptions): Middleware {
   return async function aiRoutesMiddleware(ctx, next) {
@@ -123,6 +152,8 @@ export default function createAiRoutesMiddleware({
       serverClient,
       logger,
     );
+
+    const environmentId = await resolveEnvironmentIdOrRefuse(resolveEnvironmentId, logger);
 
     let response: AiProxyResponse;
 
