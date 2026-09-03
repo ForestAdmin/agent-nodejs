@@ -1,3 +1,10 @@
+# @forestadmin/workflow-executor [1.27.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.26.2...@forestadmin/workflow-executor@1.27.0) (2026-09-03)
+
+
+### Features
+
+* **workflow-executor:** evaluate deterministic condition steps without AI ([#1837](https://github.com/ForestAdmin/agent-nodejs/issues/1837)) ([f9334cb](https://github.com/ForestAdmin/agent-nodejs/commit/f9334cb68b7166db6c6ccdb4cbfbb6afa9f247f0))
+
 ## @forestadmin/workflow-executor [1.26.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.26.1...@forestadmin/workflow-executor@1.26.2) (2026-09-03)
 
 
