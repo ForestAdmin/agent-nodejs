@@ -10,6 +10,7 @@ import {
   parseRelationCountRequest,
   parseRelationListRequest,
 } from '../../src/data/agent-query';
+import { MAX_PAGE_LIMIT } from '../../src/data/request-schemas';
 
 type Parser = [string, (body: unknown) => unknown];
 
@@ -56,6 +57,14 @@ describe('buildListAgentQuery', () => {
     });
 
     expect(query.sort).toBe('name,-age');
+  });
+
+  it('should accept a page.limit at the maximum and forward it as page[size]', () => {
+    expect(
+      buildListAgentQuery('users', 'Europe/Paris', {
+        page: { limit: MAX_PAGE_LIMIT, offset: 2 * MAX_PAGE_LIMIT },
+      }),
+    ).toMatchObject({ 'page[size]': MAX_PAGE_LIMIT, 'page[number]': 3 });
   });
 
   it('should refuse an unrepresentable offset rather than emit a fractional page number', () => {
@@ -203,6 +212,8 @@ describe('parseListRequest', () => {
     ['a string page', { page: '10' }],
     ['a non-positive page.limit', { page: { limit: 0, offset: 0 } }],
     ['a non-integer page.limit', { page: { limit: 2.5, offset: 0 } }],
+    ['a page.limit above the maximum', { page: { limit: MAX_PAGE_LIMIT + 1, offset: 0 } }],
+    ['the unbounded repro limit', { page: { limit: 1_000_000_000, offset: 0 } }],
     ['a negative page.offset', { page: { limit: 10, offset: -10 } }],
   ])('should reject %s with 400 invalid_request', (_label, body) => {
     expect(() => parseListRequest(body, logger)).toThrow(
@@ -220,6 +231,7 @@ describe('parseListRequest', () => {
   it.each([
     ['sort.0.direction', { sort: [{ field: 'a', direction: 'up' }] }],
     ['page.limit', { page: { limit: 0, offset: 0 } }],
+    ['page.limit', { page: { limit: MAX_PAGE_LIMIT + 1, offset: 0 } }],
     ['projection.0', { projection: [1] }],
     ['searchExtended', { searchExtended: 'true' }],
   ])('should name %s in the rejection message', (path, body) => {

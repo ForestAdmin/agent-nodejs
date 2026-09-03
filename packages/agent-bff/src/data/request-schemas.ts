@@ -9,9 +9,11 @@ export const SortClauseInput = z.strictObject({
   direction: z.enum(['asc', 'desc']).optional(),
 });
 
+export const MAX_PAGE_LIMIT = 1000;
+
 export const PageInput = z
   .strictObject({
-    limit: z.number().int().positive(),
+    limit: z.number().int().positive().max(MAX_PAGE_LIMIT),
     offset: z.number().int().nonnegative(),
   })
   .refine(({ limit, offset }) => offset % limit === 0, {

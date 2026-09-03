@@ -21,6 +21,7 @@ import {
 } from './schemas';
 import registerUnfoldedPaths from './unfolded-paths';
 import { z } from './zod-openapi';
+import { RATE_LIMIT_CAUSES } from '../http/bff-local-errors';
 import BODY_LIMIT, { AI_BODY_LIMIT } from '../http/body-limit';
 
 export const OPENAPI_VERSION = '3.1.0';
@@ -39,7 +40,7 @@ const ERROR_STATUSES: Record<string, string> = {
   413: `The request body exceeds the BFF limit of ${BODY_LIMIT}`,
   415: 'The request Content-Type is neither application/json nor an application/*+json type, including form-urlencoded, and is rejected with 415 instead of being silently dropped; a request carrying a body with no Content-Type at all is rejected the same way; or the declared character set cannot be decoded',
   422: 'A field is unknown, not filterable, is a nested relation path, or an action value at execute is outside its enum or of the wrong type',
-  429: 'The agent rate-limited the request',
+  429: `The BFF rate-limited the request, for one of two reasons: the caller identity exceeded its per-window budget, or the limiter is saturated and cannot open a window for a new identity. The \`details.cause\` field of the error body distinguishes them (\`${RATE_LIMIT_CAUSES.limitExceeded}\` or \`${RATE_LIMIT_CAUSES.limiterSaturated}\`), and Retry-After carries the seconds to wait. On data and action routes the agent may also rate-limit the request itself; that 429 is relayed with the agent's own payload as \`details\`, so it carries neither \`cause\` nor Retry-After — read them only when they are present rather than branching on their value`,
   500: 'The agent payload could not be mapped to the BFF contract, or the BFF hit an unexpected error',
   501: 'The BFF is running without an agent configured, so the proxy is not implemented',
   502: 'The agent refused the connection, its host could not be resolved, or the transport failed another way (a connection reset mid-flight, a socket hang up, a TLS failure) — it failed outright rather than running out of time',
@@ -56,13 +57,25 @@ const MESSAGELESS_ERROR_RESPONSE_REF = '#/components/schemas/MessagelessErrorRes
 
 const UNSUPPORTED_ACTION_RESULT_COMPONENT = 'UnsupportedActionResult';
 
-const RETRY_AFTER_HEADER = {
+const retryAfterHeader = (description: string) => ({
   'Retry-After': {
-    description: 'Seconds to wait before retrying. Set when the API key could not be resolved.',
+    description,
     required: false,
     schema: { type: 'integer' as const },
   },
-};
+});
+
+const RETRY_AFTER_HEADER = retryAfterHeader(
+  'Seconds to wait before retrying. Set when the API key could not be resolved.',
+);
+
+const RETRY_AFTER_RATE_LIMIT_HEADER = retryAfterHeader(
+  'Seconds until the BFF rate-limit window of the caller resets. When the limiter is ' +
+    'saturated the caller has no window yet, so the value is a lower bound instead: the ' +
+    'earliest reset among the identities currently holding one, after which a slot may free ' +
+    'up. Present when the BFF itself emitted this 429; an agent 429 relayed from upstream ' +
+    'carries no header.',
+);
 
 type ResponseRef = { $ref: string };
 
@@ -92,6 +105,13 @@ function registerErrorComponent(
 // Every error body is identical across paths, and their descriptions are long: inlining them costs
 // ~2.8kB per path, which the unfolded document multiplies by every collection, relation and action.
 // Registering them once as components keeps a path's error block to a dozen refs.
+function retryAfterHeaders(status: string): { headers?: typeof RETRY_AFTER_HEADER } {
+  if (status === '503') return { headers: RETRY_AFTER_HEADER };
+  if (status === '429') return { headers: RETRY_AFTER_RATE_LIMIT_HEADER };
+
+  return {};
+}
+
 function registerErrorResponses(
   registry: OpenAPIRegistry,
   statuses: string[],
@@ -109,7 +129,7 @@ function registerErrorResponses(
     byStatus[status] = registerErrorComponent(registry, `Error${status}`, {
       description,
       schema: { $ref: ERROR_RESPONSE_REF },
-      ...(status === '503' ? { headers: RETRY_AFTER_HEADER } : {}),
+      ...retryAfterHeaders(status),
     });
   });
 
@@ -170,7 +190,7 @@ const AI_DUAL_SHAPED_ERRORS: Record<string, string> = {
   403: `The request presented an API key instead of a session (type oauth_required), or the Forest server refused the query. ${AI_RELAYED_OR_ENVELOPE}`,
   413: `The request body exceeds the AI query limit of ${AI_BODY_LIMIT}, or the Forest AI proxy refused it as too large. ${AI_RELAYED_OR_ENVELOPE}`,
   415: `The request Content-Type is neither application/json nor an application/*+json type, or the request carries a body with no Content-Type at all, or it declares a character set the BFF cannot decode. ${AI_RELAYED_OR_ENVELOPE}`,
-  429: `The Forest AI proxy rate-limited the query. ${AI_RELAYED_OR_ENVELOPE}`,
+  429: `The BFF rate-limited the request (its own envelope, with Retry-After), or the Forest AI proxy rate-limited the query. ${AI_RELAYED_OR_ENVELOPE}`,
 };
 
 const AI_ENVELOPE_ERRORS: Record<string, string> = {
@@ -195,6 +215,7 @@ function registerAiQueryErrorResponses(registry: OpenAPIRegistry): Record<string
     registerErrorComponent(registry, `Error${status}${AI_COMPONENT_SUFFIX}`, {
       description,
       schema: {},
+      headers: status === '429' ? RETRY_AFTER_RATE_LIMIT_HEADER : undefined,
     }),
   ]);
 
@@ -444,6 +465,7 @@ export function generateOpenApiDocument(
       400: errorRefs.byStatus['400'],
       401: errorRefs.byStatus['401'],
       403: errorRefs.byStatus['403'],
+      429: errorRefs.byStatus['429'],
       500: errorRefs.byStatus['500'],
       501: errorRefs.byStatus['501'],
       503: errorRefs.byStatus['503'],

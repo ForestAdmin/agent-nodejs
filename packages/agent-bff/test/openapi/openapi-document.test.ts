@@ -1,5 +1,6 @@
 import { allOperators } from '@forestadmin/datasource-toolkit';
 
+import { MAX_PAGE_LIMIT } from '../../src/data/request-schemas';
 import {
   OPENAPI_VERSION,
   ROUTE_PREFIX,
@@ -131,6 +132,12 @@ describe('generateOpenApiDocument', () => {
 
   it('should make sort direction optional, since omitting it sorts ascending', () => {
     expect(schemas.SortClause.required).toEqual(['field']);
+  });
+
+  it('should publish the page.limit maximum the runtime enforces', () => {
+    const page = schemas.Page as { properties?: Record<string, { maximum?: number }> };
+
+    expect(page.properties?.limit?.maximum).toBe(MAX_PAGE_LIMIT);
   });
 
   it('should accept a parent id as a non-blank string or a number', () => {
@@ -470,19 +477,77 @@ describe('generateOpenApiDocument', () => {
     expect(Object.keys(schemas.ActionRequest.properties as object)).toContain('timezone');
   });
 
+  it('should name both 429 causes, since a saturation 429 blames a caller that exceeded nothing', () => {
+    const list = responsesOf(`${ROUTE_PREFIX}/{collection}/list`);
+
+    expect(list['429'].description).toContain('exceeded its per-window budget');
+    expect(list['429'].description).toContain('the limiter is saturated');
+  });
+
+  it('should distinguish the two 429 causes through details.cause, not message text', () => {
+    const list = responsesOf(`${ROUTE_PREFIX}/{collection}/list`);
+
+    expect(list['429'].description).toContain('`details.cause`');
+    expect(list['429'].description).toContain('`limit_exceeded`');
+    expect(list['429'].description).toContain('`limiter_saturated`');
+    expect(list['429'].description).not.toContain('message distinguishes');
+  });
+
+  it('should warn that a relayed agent 429 carries neither cause nor Retry-After', () => {
+    const list = responsesOf(`${ROUTE_PREFIX}/{collection}/list`);
+
+    expect(list['429'].description).toContain('carries neither `cause` nor Retry-After');
+  });
+
+  it('should call the saturation Retry-After a lower bound, not the caller own window', () => {
+    const list = responsesOf(`${ROUTE_PREFIX}/{collection}/list`);
+    const header = list['429'].headers?.['Retry-After'] as { description: string };
+
+    expect(header.description).toContain('lower bound');
+    expect(header.description).toContain('earliest reset among the identities');
+  });
+
   it('should publish the blank-timezone rejection in the schema, not only at runtime', () => {
     expect(schemas.Timezone).toEqual(expect.objectContaining({ type: 'string', pattern: '\\S' }));
   });
 
-  it('should declare Retry-After on 503, the only status that sets it', () => {
+  it('should declare Retry-After on 503 and on 429, the two statuses that set it', () => {
     const list = listResponses();
 
     expect(Object.keys(list['503'].headers ?? {})).toEqual(['Retry-After']);
-    expect(list['429'].headers).toBeUndefined();
+    expect(Object.keys(list['429'].headers ?? {})).toEqual(['Retry-After']);
   });
 
-  it('should not promise a Retry-After on 429, where no code path sets one', () => {
-    expect(listResponses()['429'].description).not.toContain('Retry-After');
+  it('should describe the Retry-After on 429 as the BFF rate-limit window reset', () => {
+    const list = listResponses();
+    const header = (list['429'].headers ?? {}) as {
+      'Retry-After'?: { description?: string };
+    };
+
+    expect(header['Retry-After']?.description).toContain('rate-limit');
+    expect(header['Retry-After']?.description).not.toContain('could not be resolved');
+  });
+
+  it('should credit the BFF itself with the 429, not only the agent', () => {
+    expect(listResponses()['429'].description).toContain('BFF rate-limited');
+  });
+
+  it('should declare the 429 on the context route, which the same limiter answers', () => {
+    const context = responsesOf(`${ROUTE_PREFIX}/context`);
+
+    expect(context['429'].description).toContain('BFF rate-limited');
+    expect(Object.keys(context['429'].headers ?? {})).toEqual(['Retry-After']);
+  });
+
+  it('should also set Retry-After on the AI query 429, which the same limiter answers', () => {
+    const ai = responsesOf(`${ROUTE_PREFIX}/ai/query`);
+    const header = (ai['429'].headers ?? {}) as {
+      'Retry-After'?: { description?: string };
+    };
+
+    expect(Object.keys(ai['429'].headers ?? {})).toEqual(['Retry-After']);
+    expect(ai['429'].description).toContain('BFF rate-limited');
+    expect(header['Retry-After']?.description).toContain('rate-limit');
   });
 
   it('should give every response a description, which the OpenAPI struct rule requires', () => {

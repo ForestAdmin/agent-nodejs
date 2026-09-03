@@ -33,6 +33,8 @@ export interface BFFConfig {
   agentTimeoutMs?: number;
   aiTimeoutMs: number;
   openapiEnabled: boolean;
+  rateLimitMaxRequests: number;
+  rateLimitWindowMs: number;
   httpPort: number;
   presence: PresenceMap;
   hasAllRequired: boolean;
@@ -42,6 +44,10 @@ const DECIMAL_INTEGER = /^\d+$/;
 export const DEFAULT_AGENT_TIMEOUT_MS = 10_000;
 export const DEFAULT_AI_TIMEOUT_MS = 120_000;
 export const MAX_TIMEOUT_MS = 2_147_483_647;
+export const DEFAULT_RATE_LIMIT_MAX_REQUESTS = 300;
+export const DEFAULT_RATE_LIMIT_WINDOW_MS = 60_000;
+export const MAX_RATE_LIMIT_REQUESTS = 10_000;
+export const MIN_RATE_LIMIT_WINDOW_MS = 1_000;
 const MAX_PORT = 65535;
 const ENCRYPTION_KEY_BYTES = 32;
 const BASE64_PATTERN = /^[A-Za-z0-9+/]+={0,2}$/;
@@ -51,19 +57,31 @@ function normalize(value: string | undefined): string | undefined {
   return value === undefined || value.trim() === '' ? undefined : value;
 }
 
-function parsePort(raw?: string): number {
-  const trimmed = raw?.trim();
-  if (trimmed === undefined || trimmed === '') return DEFAULT_BFF_PORT;
+function parseBoundedInteger(
+  raw: string | undefined,
+  envName: string,
+  { min, max, fallback }: { min: number; max: number; fallback: number },
+): number {
+  const value = normalize(raw);
+  if (value === undefined) return fallback;
 
-  const port = DECIMAL_INTEGER.test(trimmed) ? Number(trimmed) : NaN;
+  const parsed = DECIMAL_INTEGER.test(value.trim()) ? Number(value.trim()) : NaN;
 
-  if (Number.isNaN(port) || port > MAX_PORT) {
+  if (Number.isNaN(parsed) || parsed < min || parsed > max) {
     throw new ConfigurationError(
-      `Invalid configuration: HTTP_PORT must be an integer between 0 and ${MAX_PORT}.`,
+      `Invalid configuration: ${envName} must be an integer between ${min} and ${max}.`,
     );
   }
 
-  return port;
+  return parsed;
+}
+
+function parsePort(raw?: string): number {
+  return parseBoundedInteger(raw, 'HTTP_PORT', {
+    min: 0,
+    max: MAX_PORT,
+    fallback: DEFAULT_BFF_PORT,
+  });
 }
 
 function isHttpUrl(value: string): boolean {
@@ -115,18 +133,7 @@ function parseEncryptionKey(raw?: string): string | undefined {
 }
 
 function parseTimeoutMs(raw: string | undefined, envName: string, defaultMs: number): number {
-  const value = normalize(raw);
-  if (value === undefined) return defaultMs;
-
-  const timeout = DECIMAL_INTEGER.test(value.trim()) ? Number(value.trim()) : NaN;
-
-  if (Number.isNaN(timeout) || timeout === 0 || timeout > MAX_TIMEOUT_MS) {
-    throw new ConfigurationError(
-      `Invalid configuration: ${envName} must be a positive integer of at most ${MAX_TIMEOUT_MS} milliseconds.`,
-    );
-  }
-
-  return timeout;
+  return parseBoundedInteger(raw, envName, { min: 1, max: MAX_TIMEOUT_MS, fallback: defaultMs });
 }
 
 function parseDefaultTimezone(raw?: string): string | undefined {
@@ -192,6 +199,24 @@ export function parseConfig(env: NodeJS.ProcessEnv): BFFConfig {
     ),
     aiTimeoutMs: parseTimeoutMs(env.BFF_AI_TIMEOUT_MS, 'BFF_AI_TIMEOUT_MS', DEFAULT_AI_TIMEOUT_MS),
     openapiEnabled: parseOpenApiEnabled(env.BFF_OPENAPI_ENABLED),
+    rateLimitMaxRequests: parseBoundedInteger(
+      env.BFF_RATE_LIMIT_MAX_REQUESTS,
+      'BFF_RATE_LIMIT_MAX_REQUESTS',
+      {
+        min: 1,
+        max: MAX_RATE_LIMIT_REQUESTS,
+        fallback: DEFAULT_RATE_LIMIT_MAX_REQUESTS,
+      },
+    ),
+    rateLimitWindowMs: parseBoundedInteger(
+      env.BFF_RATE_LIMIT_WINDOW_MS,
+      'BFF_RATE_LIMIT_WINDOW_MS',
+      {
+        min: MIN_RATE_LIMIT_WINDOW_MS,
+        max: MAX_TIMEOUT_MS,
+        fallback: DEFAULT_RATE_LIMIT_WINDOW_MS,
+      },
+    ),
     httpPort: parsePort(env.HTTP_PORT),
     presence,
     hasAllRequired: REQUIRED_KEYS.every(key => presence[key]) && tokenEncryptionKey !== undefined,
