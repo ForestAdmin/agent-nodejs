@@ -444,8 +444,10 @@ function registerDocumentPath(registry: OpenAPIRegistry, errorRefs: ErrorRespons
     operationId: 'getOpenApiDocument',
     summary: 'Read this document',
     description:
-      'Serves this very document, behind the same credentials as every other `/agent` route: ' +
-      'without them the schema it describes is not readable. `HEAD` is served identically. The ' +
+      'Serves this very document behind credentials, like every other `/agent` route: without ' +
+      'them the schema it describes is not readable. Both auth modes reach it — a session or an ' +
+      'API key — as they do on every data, action, context and permissions route; the AI-query ' +
+      'relay is the one exception, and takes a session only. `HEAD` is served identically. The ' +
       'answer is never cached (`Cache-Control: no-store`) and is regenerated when the BFF ' +
       'refreshes its schema, so a client can re-fetch it to pick up a new collection or field.',
     security: SECURITY,

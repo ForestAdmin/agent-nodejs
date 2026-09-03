@@ -602,6 +602,15 @@ describe('generateOpenApiDocument', () => {
     expect(path.get.description).toContain('`HEAD` is served identically');
   });
 
+  it('should name the AI-query relay as the one route an API key cannot reach', () => {
+    const path = (document.paths ?? {})[DOCUMENT_PATH] as { get: { description: string } };
+    const ai = (document.paths ?? {})[AI_QUERY_PATH] as { post: { security: unknown } };
+
+    expect(ai.post.security).toEqual([{ bffSession: [] }]);
+    expect(path.get.description).toContain('the AI-query relay is the one exception');
+    expect(path.get.description).not.toContain('the same credentials as every other');
+  });
+
   it('should document HEAD on the document path, so a generated client can probe before fetching', () => {
     const path = (document.paths ?? {})[DOCUMENT_PATH] as {
       head: {
