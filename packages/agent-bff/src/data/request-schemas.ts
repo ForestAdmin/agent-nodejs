@@ -1,25 +1,28 @@
 import { z } from '../zod';
 
-/**
- * The validation rules of a request body, declared once. `src/openapi/schemas.ts` decorates these
- * with names and descriptions to publish them, and the parsers below check bodies against them, so
- * the document and the runtime cannot drift apart.
- *
- * `filter` is deliberately absent: its operators are checked against the collection capabilities
- * (`capabilities-validator`), and a node readable as both leaf and branch has no schema equivalent,
- * so it keeps its own path in `agent-query.ts`.
- */
-export const SortClauseInput = z.object({
+export const NON_BLANK_PATTERN = '\\S';
+
+const NonBlankString = z.string().regex(new RegExp(NON_BLANK_PATTERN));
+
+export const SortClauseInput = z.strictObject({
   field: z.string(),
   direction: z.enum(['asc', 'desc']).optional(),
 });
 
 export const MAX_PAGE_LIMIT = 1000;
 
-export const PageInput = z.object({
-  limit: z.number().int().positive().max(MAX_PAGE_LIMIT),
-  offset: z.number().int().nonnegative(),
-});
+export const PageInput = z
+  .strictObject({
+    limit: z.number().int().positive().max(MAX_PAGE_LIMIT),
+    offset: z.number().int().nonnegative(),
+  })
+  .refine(({ limit, offset }) => offset % limit === 0, {
+    error: ({ input }) => {
+      const { limit, offset } = input as { limit: number; offset: number };
+
+      return `offset (${offset}) must be a multiple of limit (${limit})`;
+    },
+  });
 
 export const ProjectionInput = z.array(z.string());
 
@@ -27,21 +30,30 @@ export const SearchInput = z.string();
 
 export const SearchExtendedInput = z.boolean();
 
-export const TimezoneInput = z.string();
+export const TimezoneInput = NonBlankString;
 
-export const ParentIdInput = z.union([z.string().regex(/\S/), z.number()]);
+export const ParentIdInput = z.union([NonBlankString, z.number()]);
 
-/** Everything a list body carries except `filter`, which is validated separately. */
-export const ListFlatInputs = z.object({
+const validatedElsewhere = z.unknown().optional();
+
+export const ListFlatInputs = z.strictObject({
+  filter: validatedElsewhere,
   projection: ProjectionInput.optional(),
   sort: z.array(SortClauseInput).optional(),
   page: PageInput.optional(),
   search: SearchInput.optional(),
   searchExtended: SearchExtendedInput.optional(),
+  timezone: TimezoneInput.optional(),
 });
 
 /** A count body carries no projection, sort or page. */
-export const CountFlatInputs = z.object({
+export const CountFlatInputs = z.strictObject({
+  filter: validatedElsewhere,
   search: SearchInput.optional(),
   searchExtended: SearchExtendedInput.optional(),
+  timezone: TimezoneInput.optional(),
 });
+
+export const RelationListFlatInputs = ListFlatInputs.extend({ parentId: validatedElsewhere });
+
+export const RelationCountFlatInputs = CountFlatInputs.extend({ parentId: validatedElsewhere });

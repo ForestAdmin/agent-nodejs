@@ -2,10 +2,13 @@ import { allOperators } from '@forestadmin/datasource-toolkit';
 
 import { z } from './zod-openapi';
 import {
+  CountFlatInputs,
+  ListFlatInputs,
   MAX_PAGE_LIMIT,
   PageInput,
   ParentIdInput,
-  ProjectionInput,
+  RelationCountFlatInputs,
+  RelationListFlatInputs,
   SearchExtendedInput,
   SearchInput,
   SortClauseInput,
@@ -17,7 +20,7 @@ import { MAX_FILTER_DEPTH } from '../validation/capabilities-validator';
 const OPERATORS = [...allOperators] as [string, ...string[]];
 
 const ConditionTreeLeafSchema = z
-  .object({
+  .strictObject({
     field: z.string(),
     operator: z.enum(OPERATORS),
     value: z.unknown().optional(),
@@ -32,15 +35,17 @@ const ConditionTreeSchema: z.ZodType = z
   .lazy(() =>
     z.union([
       ConditionTreeLeafSchema,
-      z.object({
+      z.strictObject({
         aggregator: z.enum(['And', 'Or']),
         conditions: z.array(ConditionTreeSchema),
       }),
+      z.strictObject({}),
     ]),
   )
   .openapi('ConditionTree', {
     description:
-      'Either a leaf condition or a branch nesting more conditions. A branch must carry its ' +
+      'Either a leaf condition, a branch nesting more conditions, or the empty object, which is ' +
+      'how an absent filter is spelled. A branch must carry its ' +
       '`aggregator`: the BFF forwards a branch without one, but the agent then parses it as ' +
       'neither leaf nor branch and answers 400. On top-level list and count, nesting deeper ' +
       `than ${MAX_FILTER_DEPTH} levels is rejected and each field is checked against the ` +
@@ -65,9 +70,12 @@ export const PageSchema = PageInput.openapi('Page', {
 
 export const TimezoneSchema = TimezoneInput.openapi('Timezone', {
   description:
-    'Used when the X-Forest-Timezone header is absent. The header wins when both are sent. A ' +
-    'deployment with no configured default rejects a request carrying neither with 400 ' +
-    'missing_timezone.',
+    'Used when the X-Forest-Timezone header is absent. The header wins when both are sent, but ' +
+    'the key is still validated: on a list or count body a blank or whitespace-only string is ' +
+    'rejected with 400 even when the header carries a usable zone. An action body is read ' +
+    'without that validation, so a blank one there falls back to the header or the default ' +
+    'instead. A deployment with no configured default rejects a request carrying neither with ' +
+    '400 missing_timezone.',
 });
 
 export const SearchSchema = SearchInput.openapi('Search', {
@@ -92,48 +100,64 @@ export const SearchExtendedSchema = SearchExtendedInput.openapi('SearchExtended'
     '`relation.column:value` syntax, which does so without this flag.',
 });
 
-export const ListRequestSchema = z
-  .object({
-    filter: ConditionTreeSchema.optional(),
-    projection: ProjectionInput.optional(),
-    sort: z.array(SortClauseSchema).optional(),
-    page: PageSchema.optional(),
-    search: SearchSchema.optional(),
-    searchExtended: SearchExtendedSchema.optional(),
-    timezone: TimezoneSchema.optional(),
-  })
-  .openapi('ListRequest');
-
-export const CountRequestSchema = z
-  .object({
-    filter: ConditionTreeSchema.optional(),
-    search: SearchSchema.optional(),
-    searchExtended: SearchExtendedSchema.optional(),
-    timezone: TimezoneSchema.optional(),
-  })
-  .openapi('CountRequest', {
-    description:
-      'Accepts the same search inputs as list, so a client can count exactly the rows its search ' +
-      'returns.',
-  });
-
 const ParentIdSchema = ParentIdInput.openapi('ParentId', {
   description:
     'The parent record id, opaque: a composite or packed id must be passed unchanged. A ' +
     'blank string is rejected.',
 });
 
-export const RelationListRequestSchema = ListRequestSchema.extend({
-  parentId: ParentIdSchema,
-}).openapi('RelationListRequest', {
-  description:
-    'Filter, sort, projection and search apply to the FOREIGN collection; the parent only resolves ' +
-    'which records are related.',
+export const CLOSED_BODY_NOTE =
+  'The runtime rejects an undeclared key with 400 invalid_request, at the top level and inside ' +
+  'the filter tree alike: `filters` instead of `filter` is an error rather than a silently ' +
+  'unfiltered result, and a leaf carrying `valu` instead of `value` is rejected rather than run ' +
+  'with its value dropped.';
+
+type OverridesOf<S extends { shape: object }> = Partial<Record<keyof S['shape'], z.ZodType>>;
+
+const countOverrides = {
+  filter: ConditionTreeSchema.optional(),
+  search: SearchSchema.optional(),
+  searchExtended: SearchExtendedSchema.optional(),
+  timezone: TimezoneSchema.optional(),
+} satisfies OverridesOf<typeof CountFlatInputs>;
+
+const listOverrides = {
+  ...countOverrides,
+  sort: z.array(SortClauseSchema).optional(),
+  page: PageSchema.optional(),
+} satisfies OverridesOf<typeof ListFlatInputs>;
+
+export const ListRequestSchema = ListFlatInputs.extend(listOverrides).openapi('ListRequest', {
+  description: CLOSED_BODY_NOTE,
 });
 
-export const RelationCountRequestSchema = CountRequestSchema.extend({
+export const CountRequestSchema = CountFlatInputs.extend(countOverrides).openapi('CountRequest', {
+  description:
+    'Accepts the same search inputs as list, so a client can count exactly the rows its search ' +
+    `returns. ${CLOSED_BODY_NOTE}`,
+});
+
+const relationListOverrides = {
+  ...listOverrides,
   parentId: ParentIdSchema,
-}).openapi('RelationCountRequest');
+} satisfies OverridesOf<typeof RelationListFlatInputs>;
+
+const relationCountOverrides = {
+  ...countOverrides,
+  parentId: ParentIdSchema,
+} satisfies OverridesOf<typeof RelationCountFlatInputs>;
+
+export const RelationListRequestSchema = RelationListFlatInputs.extend(
+  relationListOverrides,
+).openapi('RelationListRequest', {
+  description:
+    'Filter, sort, projection and search apply to the FOREIGN collection; the parent only ' +
+    `resolves which records are related. ${CLOSED_BODY_NOTE}`,
+});
+
+export const RelationCountRequestSchema = RelationCountFlatInputs.extend(
+  relationCountOverrides,
+).openapi('RelationCountRequest', { description: CLOSED_BODY_NOTE });
 
 export const ActionRequestSchema = z
   .strictObject({

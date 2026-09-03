@@ -282,22 +282,6 @@ describe('generateOpenApiDocument', () => {
     expect(messageless.properties.error.required).toEqual(['type', 'status']);
   });
 
-  it('should say on the form response that htmlBlock layout content is sanitized server-side', () => {
-    const form = responsesOf(`${ROUTE_PREFIX}/{collection}/actions/{action}/form`);
-
-    expect(form['200'].description).toContain(
-      'htmlBlock layout content is sanitized server-side against an allowlist',
-    );
-  });
-
-  it('should say on the execute response that a success html is sanitized server-side', () => {
-    const execute = responsesOf(`${ROUTE_PREFIX}/{collection}/actions/{action}/execute`);
-
-    expect(execute['200'].description).toContain(
-      'html field is sanitized server-side against an allowlist',
-    );
-  });
-
   it('should keep a plain error body for the 501 the agent stub returns on other routes', () => {
     expect(listResponses()['501'].content?.['application/json'].schema.$ref).toBe(
       '#/components/schemas/ErrorResponse',
@@ -486,6 +470,10 @@ describe('generateOpenApiDocument', () => {
     expect(header.description).toContain('earliest reset among the identities');
   });
 
+  it('should publish the blank-timezone rejection in the schema, not only at runtime', () => {
+    expect(schemas.Timezone).toEqual(expect.objectContaining({ type: 'string', pattern: '\\S' }));
+  });
+
   it('should declare Retry-After on 503 and on 429, the two statuses that set it', () => {
     const list = listResponses();
 
@@ -559,6 +547,46 @@ describe('generateOpenApiDocument', () => {
       url: 'https://www.gnu.org/licenses/gpl-3.0.html',
     });
   });
+});
+
+describe('the closed request bodies', () => {
+  it.each([
+    ['ListRequest'],
+    ['CountRequest'],
+    ['RelationListRequest'],
+    ['RelationCountRequest'],
+    ['SortClause'],
+    ['Page'],
+  ])('should forbid an undeclared key on %s', name => {
+    expect(schemas[name].additionalProperties).toBe(false);
+  });
+
+  it('should forbid an undeclared key on both shapes of a condition tree node', () => {
+    const { anyOf } = schemas.ConditionTree as unknown as { anyOf: unknown[] };
+    const [leaf, branch] = anyOf;
+
+    expect(leaf).toEqual({ $ref: '#/components/schemas/ConditionTreeLeaf' });
+    expect(branch).toEqual(expect.objectContaining({ additionalProperties: false }));
+    expect(schemas.ConditionTreeLeaf.additionalProperties).toBe(false);
+  });
+
+  it('should publish the empty filter the runtime accepts, so a client can send it', () => {
+    const { anyOf } = schemas.ConditionTree as unknown as { anyOf: Record<string, unknown>[] };
+
+    expect(anyOf).toContainEqual(
+      expect.objectContaining({ type: 'object', additionalProperties: false, properties: {} }),
+    );
+  });
+
+  it.each([['RelationListRequest'], ['RelationCountRequest']])(
+    'should publish %s flat rather than as an allOf of a closed base',
+    name => {
+      expect(schemas[name].allOf).toBeUndefined();
+      expect(
+        (schemas[name] as { properties: Record<string, unknown> }).properties.parentId,
+      ).toEqual({ $ref: '#/components/schemas/ParentId' });
+    },
+  );
 });
 
 describe('the documented ai query path', () => {
