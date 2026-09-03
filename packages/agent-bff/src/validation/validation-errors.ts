@@ -29,3 +29,27 @@ export function invalidFilterOperator(field: string, validOperators: string[]): 
     { details: { field, validOperators } },
   );
 }
+
+export function missingRequiredActionFields(fields: string[]): BffHttpError {
+  return new BffHttpError(
+    400,
+    'missing_required_fields',
+    `Required action fields are missing: ${fields.join(', ')}`,
+    { details: { fields } },
+  );
+}
+
+export interface ActionValueViolation {
+  field: string;
+  expected: string;
+}
+
+export function invalidActionValue(violations: ActionValueViolation[]): BffHttpError {
+  const listing = violations
+    .map(violation => `${violation.field} (expected ${violation.expected})`)
+    .join(', ');
+
+  return new BffHttpError(422, 'invalid_action_value', `Invalid action field values: ${listing}`, {
+    details: { fields: violations },
+  });
+}

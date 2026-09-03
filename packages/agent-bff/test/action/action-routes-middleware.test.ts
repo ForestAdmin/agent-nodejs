@@ -1,11 +1,11 @@
-import type { Action, AgentActionClient } from '../../src/action/agent-action-client';
+import type { AgentActionClient } from '../../src/action/agent-action-client';
 import type { Logger } from '../../src/ports/logger-port';
-import type ReadModelStore from '../../src/read-model/read-model-store';
 
 import {
   ActionFormValidationError,
   ActionRequiresApprovalError,
   AgentHttpError,
+  InvalidActionFileValueError,
   UnknownActionFieldError,
 } from '@forestadmin/agent-client';
 import { bodyParser } from '@koa/bodyparser';
@@ -15,141 +15,16 @@ import request from 'supertest';
 import createActionRoutesMiddleware from '../../src/action/action-routes-middleware';
 import createErrorMiddleware from '../../src/http/error-middleware';
 import SchemaUnavailableError from '../../src/read-model/errors';
-import ReadModel from '../../src/read-model/read-model';
-import { action, collection, column } from '../read-model/fixtures';
-
-const TIMEZONE = 'Europe/Paris';
-
-const noopLogger: Logger = () => {};
-
-function storeOf(readModel: ReadModel | Error): ReadModelStore {
-  return {
-    getReadModel: async () => {
-      if (readModel instanceof Error) throw readModel;
-
-      return readModel;
-    },
-  } as unknown as ReadModelStore;
-}
-
-interface FakeField {
-  name: string;
-  type: string;
-  value: unknown;
-  isRequired: boolean;
-  enumValues?: string[];
-}
-
-function makeAction({
-  fields = [],
-  layout = [],
-  skipped = [],
-  postChange,
-  execute = jest.fn(),
-  setFields = jest.fn(async () => {}),
-}: {
-  fields?: FakeField[];
-  layout?: unknown[];
-  skipped?: string[];
-  postChange?: { fields?: FakeField[]; layout?: unknown[] };
-  execute?: jest.Mock;
-  setFields?: jest.Mock;
-} = {}) {
-  const state = { fields: [...fields], layout: [...layout] };
-  const tryToSetFields = jest.fn(async () => {
-    if (postChange) {
-      state.fields = postChange.fields ?? state.fields;
-      state.layout = postChange.layout ?? state.layout;
-    }
-
-    return skipped;
-  });
-
-  const form: Action & { tryToSetFields: jest.Mock; execute: jest.Mock; setFields: jest.Mock } = {
-    execute,
-    setFields,
-    tryToSetFields,
-    getFields: () =>
-      state.fields.map(f => ({
-        getName: () => f.name,
-        getType: () => f.type,
-        getValue: () => f.value,
-        isRequired: () => f.isRequired,
-      })),
-    getEnumField: (name: string) => ({
-      getOptions: () => state.fields.find(f => f.name === name)?.enumValues,
-    }),
-    getLayout: () => ({ layout: state.layout }),
-  };
-
-  return form;
-}
-
-function clientOf(
-  form: Action,
-  loadAction: jest.Mock = jest.fn(async () => form),
-): AgentActionClient & { loadAction: jest.Mock } {
-  return { loadAction };
-}
-
-function buildApp(
-  store: ReadModelStore,
-  client: AgentActionClient,
-  {
-    agentToken = 'agent-jwt',
-    logger = noopLogger,
-    timezone = TIMEZONE,
-  }: { agentToken?: string | null; logger?: Logger; timezone?: string } = {},
-) {
-  const app = new Koa();
-  app.silent = true;
-  app.use(createErrorMiddleware({ logger: noopLogger }));
-  app.use(bodyParser());
-  app.use(async (ctx, next) => {
-    ctx.state.timezone = timezone;
-    if (agentToken !== null) ctx.state.agentToken = agentToken;
-    await next();
-  });
-  app.use(
-    createActionRoutesMiddleware({
-      store,
-      agentUrl: 'https://agent.example.com',
-      logger,
-      createClient: () => client,
-    }),
-  );
-
-  return app;
-}
-
-const readModel = new ReadModel([
-  collection('users', [column('id')], [action('approve', '/forest/_actions/users/0/approve')]),
-]);
-
-function buildAppWithTerminal(client: AgentActionClient) {
-  const app = new Koa();
-  app.silent = true;
-  app.use(createErrorMiddleware({ logger: noopLogger }));
-  app.use(bodyParser());
-  app.use(async (ctx, next) => {
-    ctx.state.timezone = TIMEZONE;
-    ctx.state.agentToken = 'agent-jwt';
-    await next();
-  });
-  app.use(
-    createActionRoutesMiddleware({
-      store: storeOf(readModel),
-      agentUrl: 'https://agent.example.com',
-      logger: noopLogger,
-      createClient: () => client,
-    }),
-  );
-  app.use(async ctx => {
-    ctx.status = 204;
-  });
-
-  return app;
-}
+import {
+  TIMEZONE,
+  buildApp,
+  buildAppWithTerminal,
+  clientOf,
+  makeAction,
+  noopLogger,
+  readModel,
+  storeOf,
+} from '../helpers/action-routes';
 
 describe('action routes middleware', () => {
   it('forwards the configured agent timeout to the action client', async () => {
@@ -398,6 +273,23 @@ describe('action routes middleware', () => {
       .send({ recordIds: ['42'], values: 'nope' });
 
     expect(response.status).toBe(400);
+    expect(loadAction).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 invalid_request when the body carries a misspelled values, with no agent call', async () => {
+    const loadAction = jest.fn();
+    const app = buildApp(storeOf(readModel), clientOf(makeAction(), loadAction));
+
+    const response = await request(app.callback())
+      .post('/agent/v1/users/actions/approve/form')
+      .send({ recordIds: ['42'], valeus: { amount: 1 } });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toMatchObject({
+      type: 'invalid_request',
+      status: 400,
+      message: 'Request body cannot carry "valeus"',
+    });
     expect(loadAction).not.toHaveBeenCalled();
   });
 
@@ -783,6 +675,40 @@ describe('action execute', () => {
 
     expect(response.status).toBe(422);
     expect(response.body.error).toMatchObject({ type: 'unprocessable_entity', status: 422 });
+    expect(execute).not.toHaveBeenCalled();
+  });
+
+  it('maps a malformed file value from setFields to 400 invalid_request, not a 502', async () => {
+    const setFields = jest.fn(async () => {
+      throw new InvalidActionFileValueError(
+        'Field "doc" expects a file: pass { buffer, mimeType, name }.',
+      );
+    });
+    const execute = jest.fn();
+    const form = makeAction({ setFields, execute });
+
+    const response = await request(execApp(clientOf(form)).callback())
+      .post('/agent/v1/users/actions/approve/execute')
+      .send({ recordIds: ['42'], values: { doc: 42 } });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toMatchObject({ type: 'invalid_request', status: 400 });
+    expect(execute).not.toHaveBeenCalled();
+  });
+
+  it('maps a raw network failure from setFields to 502, never to a 400', async () => {
+    const setFields = jest.fn(async () => {
+      throw new TypeError('fetch failed');
+    });
+    const execute = jest.fn();
+    const form = makeAction({ setFields, execute });
+
+    const response = await request(execApp(clientOf(form)).callback())
+      .post('/agent/v1/users/actions/approve/execute')
+      .send({ recordIds: ['42'], values: { reason: 'x' } });
+
+    expect(response.status).toBe(502);
+    expect(response.body.error).toMatchObject({ type: 'network_error', status: 502 });
     expect(execute).not.toHaveBeenCalled();
   });
 

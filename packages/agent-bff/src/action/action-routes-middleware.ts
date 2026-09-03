@@ -11,11 +11,13 @@ import type { Context, Middleware } from 'koa';
 import {
   ActionFormValidationError,
   ActionRequiresApprovalError,
+  InvalidActionFileValueError,
   UnknownActionFieldError,
 } from '@forestadmin/agent-client';
 
 import { mapActionExecuteResult } from './action-execute-mapper';
 import { mapActionForm } from './action-form-mapper';
+import assertActionValuesExecutable from './action-values-validator';
 import defaultCreateAgentActionClient, { extractRawLayout } from './agent-action-client';
 import sanitizeActionHtml from './sanitize-action-html';
 import { mapAgentError } from '../http/agent-error-mapper';
@@ -50,6 +52,18 @@ function parseRecordIds(raw: unknown): string[] {
   }
 
   return raw.map(id => String(id));
+}
+
+const ACTION_BODY_KEYS = ['recordIds', 'values', 'timezone'];
+
+// The body is closed like the data bodies are: a misspelled `values` used to execute the action
+// with no value at all, and answer 200 as if every field had been filled.
+function assertKnownBodyKeys(body: Record<string, unknown>): void {
+  const stray = Object.keys(body).find(key => !ACTION_BODY_KEYS.includes(key));
+
+  if (stray !== undefined) {
+    throw invalidRequest(`Request body cannot carry "${stray}"`);
+  }
 }
 
 function parseValues(raw: unknown): Record<string, unknown> {
@@ -111,14 +125,17 @@ async function handleExecute({
   values,
   logger,
 }: ActionHandlerArgs<Action>): Promise<void> {
-  // setFields is strict: an unknown submitted field is a client error (400), not a 500. A transport
-  // failure from the change-hook it triggers is a genuine agent error, so it goes to the mapper.
   try {
     await action.setFields(values);
   } catch (error) {
-    if (error instanceof UnknownActionFieldError) throw invalidRequest(error.message);
+    if (error instanceof UnknownActionFieldError || error instanceof InvalidActionFileValueError) {
+      throw invalidRequest(error.message);
+    }
+
     throw mapAgentError(error, { logger });
   }
+
+  assertActionValuesExecutable(action, logger);
 
   // execute() cannot go through the generic callAgent: agent-client turns the native action Error
   // (HTTP 400) into ActionFormValidationError, a non-AgentHttpError the mapper would mislabel as a
@@ -192,6 +209,7 @@ export default function createActionRoutesMiddleware({
     }
 
     const body = (ctx.request.body ?? {}) as ActionRequestBody;
+    assertKnownBodyKeys(body as Record<string, unknown>);
     const recordIds = parseRecordIds(body.recordIds);
     const values = parseValues(body.values);
 

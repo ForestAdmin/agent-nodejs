@@ -14,6 +14,7 @@ export type PlainField = {
   field: string;
   // Agents emit list types as a single-element array, e.g. ['File'] or ['String'].
   type: string | [string];
+  reference?: string | null;
   description?: string;
   value?: unknown;
   isRequired: boolean;

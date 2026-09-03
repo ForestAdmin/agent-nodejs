@@ -29,6 +29,7 @@ import {
   TimezoneSchema,
 } from './schemas';
 import { PACKED_ID_SEPARATOR } from '../data/pack-id';
+import { enumOptionsOf } from '../read-model/field-type';
 
 const AGGREGATORS = ['And', 'Or'];
 
@@ -372,14 +373,31 @@ function registerRelationRequests(
   };
 }
 
-function actionFieldSchema(field: UnfoldedAction['fields'][number]): SchemaObject {
-  const base = field.enums
-    ? { type: 'string' as const, enum: field.enums }
-    : toFieldSchema(field.type);
+function actionFieldBaseSchema(field: UnfoldedAction['fields'][number]): SchemaObject {
+  if (field.reference !== null) {
+    return { type: 'string', description: `A packed record id for ${field.reference}.` };
+  }
 
-  return field.isRequired
-    ? { ...base, description: 'The agent declares this field required on the static form.' }
-    : base;
+  const options = enumOptionsOf(field.type, field.enums);
+
+  if (options === undefined) return toFieldSchema(field.type);
+
+  return Array.isArray(field.type)
+    ? { type: 'array', items: { type: 'string', enum: options } }
+    : { type: 'string', enum: options };
+}
+
+function actionFieldSchema(field: UnfoldedAction['fields'][number]): SchemaObject {
+  const base = actionFieldBaseSchema(field);
+
+  if (!field.isRequired) return base;
+
+  const required = 'The agent declares this field required on the static form.';
+
+  return {
+    ...base,
+    description: base.description === undefined ? required : `${base.description} ${required}`,
+  };
 }
 
 function actionValuesSchema(action: UnfoldedAction): SchemaObject {
@@ -391,7 +409,10 @@ function actionValuesSchema(action: UnfoldedAction): SchemaObject {
     // omitted its hooks, so "static" is never certain.
     description:
       'The submitted action fields. These are the fields the schema declares statically; a load ' +
-      'or change hook can add, drop or require others at call time.',
+      'or change hook can add, drop or require others at call time. On execute the values are ' +
+      'validated against that live form: a required field left empty answers 400, an out-of-enum ' +
+      "or wrongly typed value 422. Only the JSON type and an Enum field's options are checked " +
+      "there: a declared string format (date-time, uuid) and a widget's own option list are not.",
     properties: Object.fromEntries(
       action.fields.map(field => [field.name, actionFieldSchema(field)]),
     ),
@@ -418,6 +439,7 @@ function registerActionRequest(
       timezone: pool.reuse('Timezone', TimezoneSchema),
     },
     required: ['recordIds'],
+    additionalProperties: false,
   });
 }
 

@@ -473,6 +473,10 @@ describe('generateOpenApiDocument', () => {
     expect(schemas.ActionRequest.required).toEqual(['recordIds']);
   });
 
+  it('should close the action body, since the middleware rejects an unknown key', () => {
+    expect(schemas.ActionRequest.additionalProperties).toBe(false);
+  });
+
   it('should type a primary key value as a string or a number, matching the record mapper', () => {
     const meta = schemas.ForestRecordMeta as {
       properties: { primaryKey: { additionalProperties: { anyOf: unknown[] } } };

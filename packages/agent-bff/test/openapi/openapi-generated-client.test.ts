@@ -134,6 +134,7 @@ function makeAction(): Action {
       {
         getName: () => 'comment',
         getType: () => 'String',
+        getReference: () => null,
         getValue: () => null,
         isRequired: () => false,
       },

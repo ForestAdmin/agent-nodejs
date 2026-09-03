@@ -426,6 +426,16 @@ describe('the unfolded document', () => {
       kind: { type: 'string', enum: ['refund', 'gift'] },
       files: { type: 'array', items: { type: 'string', description: 'A data URI.' } },
       payload: {},
+      tiers: { type: 'array', items: { type: 'string', enum: ['gold', 'silver'] } },
+      flags: { type: 'string' },
+      assignee: { type: 'string', description: 'A packed record id for users.id.' },
+      levels: { type: 'array', items: { type: 'number' } },
+      owner: {
+        type: 'string',
+        description:
+          'A packed record id for users.id. The agent declares this field required on the ' +
+          'static form.',
+      },
     });
     expect(request.properties.values.required).toBeUndefined();
     expect(request.required).toEqual(['recordIds']);

@@ -2,6 +2,7 @@ import type { PlainField } from '../../src/action-fields/types';
 import type HttpRequester from '../../src/http-requester';
 
 import FieldFormStates from '../../src/action-fields/field-form-states';
+import { InvalidActionFileValueError } from '../../src/errors';
 
 jest.mock('../../src/http-requester', () => {
   const actual = jest.requireActual('../../src/http-requester');
@@ -110,6 +111,14 @@ describe('file values in action forms', () => {
           'or a string holding a data uri.',
       );
     });
+
+    it('rejects with the typed InvalidActionFileValueError, not a plain Error', async () => {
+      await setupFields([{ field: 'document', type: 'File' }]);
+
+      await expect(fieldFormStates.setFieldValue('document', { foo: 1 })).rejects.toBeInstanceOf(
+        InvalidActionFileValueError,
+      );
+    });
   });
 
   describe('on a file list field', () => {
@@ -167,6 +176,30 @@ describe('file values in action forms', () => {
           'If this field is meant to take one, the action must declare it as type File or ' +
           'carry the "file picker" widget.',
       );
+    });
+
+    it('rejects an array carrying a file on a list field', async () => {
+      await setupFields([{ field: 'tags', type: ['String'] }]);
+
+      await expect(fieldFormStates.setFieldValue('tags', ['a', pdf])).rejects.toThrow(
+        'Field "tags" takes StringList, not a file',
+      );
+    });
+
+    it('rejects an array carrying a file on a Json field', async () => {
+      await setupFields([{ field: 'payload', type: 'Json' }]);
+
+      await expect(fieldFormStates.setFieldValue('payload', [pdf])).rejects.toThrow(
+        'Field "payload" takes Json, not a file',
+      );
+    });
+
+    it('still accepts an array of plain values on a list field', async () => {
+      await setupFields([{ field: 'tags', type: ['String'] }]);
+
+      await fieldFormStates.setFieldValue('tags', ['a', 'b']);
+
+      expect(fieldFormStates.getFieldValues()).toEqual({ tags: ['a', 'b'] });
     });
   });
 

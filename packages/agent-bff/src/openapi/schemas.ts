@@ -134,7 +134,7 @@ export const RelationCountRequestSchema = CountRequestSchema.extend({
 }).openapi('RelationCountRequest');
 
 export const ActionRequestSchema = z
-  .object({
+  .strictObject({
     recordIds: z.array(z.union([z.string(), z.number()])),
     values: z.record(z.string(), z.unknown()).optional(),
     timezone: TimezoneSchema.optional(),
@@ -142,7 +142,11 @@ export const ActionRequestSchema = z
   .openapi('ActionRequest', {
     description:
       '`recordIds` is required, even on a global action: send an empty array when the action ' +
-      'targets no record. Every id is coerced to a string before reaching the agent.',
+      'targets no record. Every id is coerced to a string before reaching the agent. On execute ' +
+      'the submitted values are validated against the live form: a required field left empty ' +
+      'answers 400, an out-of-enum or wrongly typed value 422. Only the JSON type and an Enum ' +
+      "field's options are checked there: a declared string format (date-time, uuid) and a " +
+      "widget's own option list are not.",
   });
 
 const UNTRUSTED_HTML_NOTE = 'sanitize it before rendering (stored/reflected XSS risk)';
