@@ -5,6 +5,7 @@ import { existsSync, readFileSync } from 'fs';
 import path from 'path';
 
 import renderDocsPage from './docs-page';
+import { emittedBaseOf } from '../base-path';
 
 export const DOCS_PATH = '/docs';
 export const DOCS_BUNDLE_PATH = '/docs/redoc.standalone.js';
@@ -72,9 +73,20 @@ export default function createDocsRoutes({
     logger('Warn', `API documentation page disabled: ${BUNDLE_FILE} is missing from this install`);
   }
 
-  const page = bundle
-    ? renderDocsPage(`${basePath}${documentPath}`, `${basePath}${DOCS_BUNDLE_PATH}`)
-    : undefined;
+  // Rendered per request rather than once: the prefix depends on where the host serves the BFF,
+  // which only the request knows. Memoized per prefix, of which a deployment has one in practice.
+  const pages = new Map<string, string>();
+
+  const pageFor = (base: string): string => {
+    const cached = pages.get(base);
+    if (cached !== undefined) return cached;
+
+    const rendered = renderDocsPage(`${base}${documentPath}`, `${base}${DOCS_BUNDLE_PATH}`);
+    pages.set(base, rendered);
+
+    return rendered;
+  };
+
   let script: string | undefined;
 
   return async function docsRoutes(ctx, next) {
@@ -112,6 +124,6 @@ export default function createDocsRoutes({
     ctx.status = 200;
     ctx.type = 'text/html';
     ctx.set('Cache-Control', 'no-store');
-    ctx.body = page;
+    ctx.body = pageFor(emittedBaseOf(ctx, basePath));
   };
 }
