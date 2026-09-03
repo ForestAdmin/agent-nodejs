@@ -359,6 +359,7 @@ describe('generateOpenApiDocument', () => {
     });
     expect(schema.properties.error.properties.status).toEqual({ type: 'number', enum: [404] });
     expect(schema.properties.error.required).toEqual(['type', 'status', 'message']);
+    expect(Object.keys(schema.properties.error.properties)).toEqual(['type', 'status', 'message']);
   });
 
   it('should keep a plain error body for the 501 the agent stub returns on other routes', () => {

@@ -525,14 +525,15 @@ export const OpenapiDisabledErrorResponseSchema = z
       type: z.literal('openapi_disabled'),
       status: z.literal(404),
       message: z.string(),
-      details: z.unknown().optional(),
     }),
   })
   .openapi('OpenapiDisabledErrorResponse', {
     description:
       'The one error body whose `type` is pinned here: this 404 has a single cause, where the ' +
       'shared statuses cover several. A generated client can branch on it, which is what the ' +
-      'README asks of a consumer — never on the message text.',
+      'README asks of a consumer — never on the message text. It carries no `details`, unlike ' +
+      'the shared envelope: the thrower passes none, so declaring the field would send a client ' +
+      'looking for something the runtime never emits.',
   });
 
 export { ConditionTreeSchema, ParentIdSchema, OPERATORS };
