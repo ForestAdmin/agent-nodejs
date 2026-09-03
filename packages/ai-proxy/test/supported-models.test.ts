@@ -20,8 +20,17 @@ describe('isModelSupportingTools', () => {
     },
   );
 
-  it('should return false for claude-fable-5 (always-on thinking incompatible with proxy)', () => {
-    expect(isModelSupportingTools('claude-fable-5', 'anthropic')).toBe(false);
+  // claude-fable-5-1 broke the integration suite on its release day; the whole line shares the
+  // always-on thinking the proxy cannot carry, so point releases must be excluded on arrival.
+  it.each(['claude-fable-5', 'claude-fable-5-1', 'claude-fable-5-20260101'])(
+    'should return false for %s (always-on thinking incompatible with proxy)',
+    model => {
+      expect(isModelSupportingTools(model, 'anthropic')).toBe(false);
+    },
+  );
+
+  it('should not exclude a model merely prefixed by an unsupported family name', () => {
+    expect(isModelSupportingTools('claude-fable-50', 'anthropic')).toBe(true);
   });
 
   it('should return true for other anthropic models', () => {

@@ -83,11 +83,22 @@ const ANTHROPIC_UNSUPPORTED_MODELS = [
   'claude-3-7-sonnet-20250219', // EOL 2026-02-19
   'claude-opus-4-20250514', // Requires streaming (non-streaming times out)
   'claude-opus-4-1-20250805', // Requires streaming (non-streaming times out)
-  'claude-fable-5', // Always-on thinking (rejects 'disabled'; proxy drops required thinking blocks)
+];
+
+// Matched as families, not ids: always-on thinking is a property of the line, so every point
+// release inherits it and would otherwise turn main red on its own release day.
+const ANTHROPIC_UNSUPPORTED_PREFIXES = [
+  // Rejects thinking.type 'disabled', and the proxy drops the thinking blocks a reply must carry
+  // back for the next turn.
+  'claude-fable-5',
 ];
 
 function isAnthropicModelSupported(model: string): boolean {
-  return !ANTHROPIC_UNSUPPORTED_MODELS.includes(model);
+  if (ANTHROPIC_UNSUPPORTED_MODELS.includes(model)) return false;
+
+  return !ANTHROPIC_UNSUPPORTED_PREFIXES.some(
+    prefix => model === prefix || model.startsWith(`${prefix}-`),
+  );
 }
 
 // ─── Public API ──────────────────────────────────────────────────────────────
