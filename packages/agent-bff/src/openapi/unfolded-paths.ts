@@ -14,12 +14,14 @@ import type { OpenAPIRegistry } from '@asteasolutions/zod-to-openapi';
 import type { ReferenceObject, SchemaObject } from 'openapi3-ts/oas31';
 
 import toFieldSchema from './field-schemas';
-import createNamer from './names';
+import createNamer, { quoted } from './names';
+import recordSchema, { listResponseSchema } from './record-schemas';
 import {
   ActionFormResponseSchema,
   ActionResultSchema,
   CLOSED_BODY_NOTE,
   CountResponseSchema,
+  ForestRecordMetaSchema,
   ListResponseSchema,
   OPERATORS,
   PageSchema,
@@ -62,6 +64,8 @@ interface CollectionPlan {
   collection: UnfoldedCollection;
   key: string;
   requests: RequestRefs;
+  /** Carried on the plan so a relation list answers with the FOREIGN collection's own shape. */
+  response: ReferenceObject;
   properties: RequestProperties;
 }
 
@@ -72,10 +76,6 @@ interface Deps {
   security: Record<string, string[]>[];
   timezoneHeader: z.ZodType[];
   errorResponses: (executeResults: boolean) => Record<string, ReferenceObject>;
-}
-
-function quoted(name: string): string {
-  return JSON.stringify(name);
 }
 
 // A name reaches the runtime through decodeURIComponent, so the document must carry it encoded —
@@ -239,7 +239,7 @@ function fieldRefs(deps: Deps, plan: Pick<CollectionPlan, 'key' | 'collection'>)
   const projectable = fieldsEnum(
     pool,
     `Fields_${plan.key}`,
-    fields.projectable,
+    fields.projectable.map(field => field.name),
     `A field of ${quoted(name)}.`,
   );
 
@@ -323,6 +323,29 @@ function registerRequests(
       additionalProperties: false,
     }),
   };
+}
+
+/**
+ * A collection whose field set could not be read keeps the shared untyped response: a record schema
+ * built from an empty projectable set would claim the record holds nothing but `id` and `__forest`.
+ */
+function registerListResponse(
+  deps: Deps,
+  plan: Pick<CollectionPlan, 'collection' | 'key'>,
+): ReferenceObject {
+  const { pool } = deps;
+  const { collection, key } = plan;
+
+  if (collection.fields.projectable.length === 0) {
+    return pool.reuse('ListResponse', ListResponseSchema);
+  }
+
+  const record = pool.add(
+    `Record_${key}`,
+    recordSchema(collection, pool.reuse('ForestRecordMeta', ForestRecordMetaSchema)),
+  );
+
+  return pool.add(`ListResponse_${key}`, listResponseSchema(collection, record));
 }
 
 const PARENT_ID_SHAPE = {
@@ -516,7 +539,6 @@ function registerOperation(deps: Deps, options: OperationOptions): void {
 function registerCollectionOperations(deps: Deps, plan: CollectionPlan): void {
   const { pool } = deps;
   const { name } = plan.collection;
-  const listResponse = pool.reuse('ListResponse', ListResponseSchema);
   const countResponse = pool.reuse('CountResponse', CountResponseSchema);
 
   registerOperation(deps, {
@@ -526,7 +548,7 @@ function registerCollectionOperations(deps: Deps, plan: CollectionPlan): void {
     summary: `List records of ${name}`,
     description: `Lists records of the ${quoted(name)} collection.`,
     request: plan.requests.list,
-    response: listResponse,
+    response: plan.response,
     responseDescription: `A page of ${quoted(name)} records`,
     bodyRequired: false,
   });
@@ -569,7 +591,7 @@ function registerRelationOperations(
         plan.collection.name,
       )} record through ${parent}.`,
       request: requests.list,
-      response: pool.reuse('ListResponse', ListResponseSchema),
+      response: foreign.response,
       responseDescription: `A page of related ${quoted(foreign.collection.name)} records`,
       bodyRequired: true,
     });
@@ -653,6 +675,7 @@ export default function registerUnfoldedPaths(deps: Deps, unfolding: Unfolding):
       key,
       properties,
       requests: registerRequests(deps, { collection, key }, properties),
+      response: registerListResponse(deps, { collection, key }),
     };
   });
   const plansByName = new Map(plans.map(plan => [plan.collection.name, plan]));

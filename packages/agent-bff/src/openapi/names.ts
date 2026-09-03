@@ -34,3 +34,8 @@ export default function createNamer(): Namer {
     return candidate;
   };
 }
+
+/** A customer name inside prose. Quoted rather than bare: a name can carry spaces or punctuation. */
+export function quoted(name: string): string {
+  return JSON.stringify(name);
+}

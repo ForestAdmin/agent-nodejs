@@ -1,6 +1,7 @@
 import { allOperators } from '@forestadmin/datasource-toolkit';
 
 import { z } from './zod-openapi';
+import { PACKED_ID_SEPARATOR } from '../data/pack-id';
 import {
   CountFlatInputs,
   ListFlatInputs,
@@ -271,7 +272,7 @@ export const ActionResultSchema = z
       'response), and a form the agent rejects answers 400 action_error.',
   });
 
-const ForestRecordMetaSchema = z
+export const ForestRecordMetaSchema = z
   .object({
     collection: z.string(),
     primaryKey: z.record(z.string(), z.union([z.string(), z.number()])),
@@ -279,7 +280,9 @@ const ForestRecordMetaSchema = z
   .openapi('ForestRecordMeta', {
     description:
       'The record identity, unpacked from the agent id. A composite primary key carries one ' +
-      'entry per column.',
+      'entry per column. The values are TYPED here — a Number key column is a number — whereas ' +
+      'the record carries the same id as a string under `id`, so comparing the two forms ' +
+      'without coercion fails.',
   });
 
 export const ListResponseSchema = z
@@ -291,8 +294,11 @@ export const ListResponseSchema = z
   })
   .openapi('ListResponse', {
     description:
-      'Records are flat, each carrying a `__forest` envelope. The list never carries a total: ' +
-      'call the count endpoint for that, which is why `countStatus` is always `not_requested`. ' +
+      'Records are flat, each carrying a `__forest` envelope. A record always holds `id`, the ' +
+      `agent id as a string — a composite key is its values joined by \`${PACKED_ID_SEPARATOR}\` — ` +
+      'while `__forest.primaryKey` holds that same id typed and split per column. The list never ' +
+      'carries a total: call the count endpoint for that, which is why `countStatus` is always ' +
+      '`not_requested`. ' +
       'It is always one page, not guaranteed to be the whole collection: a request that omitted ' +
       "`page` still gets a page, the agent's default (up to 15 records from the start on the " +
       'Node agent), so a response of exactly that default length is probably truncated, and ' +
