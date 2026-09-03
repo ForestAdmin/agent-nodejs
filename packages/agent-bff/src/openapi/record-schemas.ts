@@ -62,6 +62,25 @@ function nullable(schema: SchemaObject): SchemaObject {
   return widened;
 }
 
+function withRecordKeys(schema: SchemaObject): SchemaObject {
+  const mapped: SchemaObject = { ...schema };
+
+  if (schema.items !== undefined && !isReference(schema.items)) {
+    mapped.items = withRecordKeys(schema.items);
+  }
+
+  if (schema.properties !== undefined) {
+    mapped.properties = Object.fromEntries(
+      Object.entries(schema.properties).map(([key, nested]) => [
+        recordKey(key),
+        isReference(nested) ? nested : withRecordKeys(nested),
+      ]),
+    );
+  }
+
+  return mapped;
+}
+
 /**
  * The schema of one field, under the key the response carries it as. Several fields can collapse to
  * the same key — the transform is lossy, `first_name` and `firstName` both yield `firstName` — and
@@ -80,7 +99,7 @@ function propertySchema(key: string, fields: ProjectableField[]): SchemaObject {
   }
 
   const [field] = fields;
-  const schema = nullable(toFieldSchema(field.type));
+  const schema = nullable(withRecordKeys(toFieldSchema(field.type)));
 
   if (field.name === key) return schema;
 

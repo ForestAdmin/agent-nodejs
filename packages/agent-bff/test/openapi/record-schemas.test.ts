@@ -74,6 +74,35 @@ describe('recordSchema', () => {
       properties: { city: { type: ['string', 'null'] } },
     });
   });
+
+  it('should camelize a nested member name, which the deserializer rewrites too', () => {
+    const schema = recordSchema(
+      {
+        ...PEOPLE,
+        fields: {
+          ...PEOPLE.fields,
+          projectable: [
+            {
+              name: 'address',
+              type: { fields: [{ field: 'postal_code', type: 'String' }] },
+            },
+            {
+              name: 'places',
+              type: [{ fields: [{ field: 'street_name', type: 'String' }] }],
+            },
+          ],
+        },
+      },
+      { $ref: '#/components/schemas/ForestRecordMeta' },
+    ) as { properties: Record<string, { properties?: object; items?: { properties?: object } }> };
+
+    expect(schema.properties.address.properties).toEqual({
+      postalCode: { type: ['string', 'null'] },
+    });
+    expect(schema.properties.places.items?.properties).toEqual({
+      streetName: { type: ['string', 'null'] },
+    });
+  });
 });
 
 describe('recordKey', () => {
