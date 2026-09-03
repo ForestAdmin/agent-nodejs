@@ -82,6 +82,13 @@ function fetcherOf(
   };
 }
 
+function seed(cache: PermissionsCache, users: UserPermissionV4[]): void {
+  cache.set(
+    { actionPermissions: generateActionsFromPermissions(NORMAL_MODE), users },
+    cache.generation,
+  );
+}
+
 function principalMiddleware(id: number | null): Middleware {
   return async (ctx, next) => {
     if (id !== null) {
@@ -203,10 +210,7 @@ describe('createPermissionsRoutesMiddleware', () => {
   describe('when a caller absent from the cached users payload calls in', () => {
     it('should refetch once and serve them rather than returning a stale 403', async () => {
       const cache = new PermissionsCache();
-      cache.set({
-        actionPermissions: generateActionsFromPermissions(NORMAL_MODE),
-        users: [{ id: CALLER_ID, roleId: ADMIN_ROLE } as UserPermissionV4],
-      });
+      seed(cache, [{ id: CALLER_ID, roleId: ADMIN_ROLE } as UserPermissionV4]);
       const client = fetcherOf({ environmentPermissions: NORMAL_MODE, users: USERS });
 
       const response = await request(appOf({ client, cache, callerId: VIEWER_ID }).callback())
@@ -239,10 +243,7 @@ describe('createPermissionsRoutesMiddleware', () => {
       const app = appOf({ client, cache, callerId: VIEWER_ID });
 
       await request(app.callback()).get(ROUTE);
-      cache.set({
-        actionPermissions: generateActionsFromPermissions(NORMAL_MODE),
-        users: USERS,
-      });
+      seed(cache, USERS);
       const afterRefresh = await request(app.callback()).get(ROUTE);
 
       expect(afterRefresh.status).toBe(200);
@@ -293,10 +294,7 @@ describe('createPermissionsRoutesMiddleware', () => {
   describe('when the SaaS is down and the stale cache does not cover the caller', () => {
     it('should keep refetching rather than recording a rejection it never confirmed', async () => {
       const cache = new PermissionsCache();
-      cache.set({
-        actionPermissions: generateActionsFromPermissions(NORMAL_MODE),
-        users: [{ id: CALLER_ID, roleId: ADMIN_ROLE } as UserPermissionV4],
-      });
+      seed(cache, [{ id: CALLER_ID, roleId: ADMIN_ROLE } as UserPermissionV4]);
       const client = fetcherOf(new Error('SaaS down'));
       const app = appOf({ client, cache, callerId: VIEWER_ID });
 
@@ -311,10 +309,7 @@ describe('createPermissionsRoutesMiddleware', () => {
   describe('when the refetch triggered by an unknown caller fails', () => {
     it('should keep serving the cached permissions to the callers they cover', async () => {
       const cache = new PermissionsCache();
-      cache.set({
-        actionPermissions: generateActionsFromPermissions(NORMAL_MODE),
-        users: [{ id: CALLER_ID, roleId: ADMIN_ROLE } as UserPermissionV4],
-      });
+      seed(cache, [{ id: CALLER_ID, roleId: ADMIN_ROLE } as UserPermissionV4]);
       const client = fetcherOf(new Error('SaaS down'));
 
       const unknown = await request(appOf({ client, cache, callerId: VIEWER_ID }).callback())
@@ -415,10 +410,7 @@ describe('createPermissionsRoutesMiddleware', () => {
       const cache = new PermissionsCache();
       const client: PermissionsFetcher = {
         fetchPermissions: jest.fn(async () => {
-          cache.set({
-            actionPermissions: generateActionsFromPermissions(NORMAL_MODE),
-            users: USERS,
-          });
+          seed(cache, USERS);
 
           throw new Error('SaaS down');
         }),
@@ -556,7 +548,7 @@ describe('createPermissionsRoutesMiddleware', () => {
   });
 
   describe('when the schema is refreshed while the permissions are being fetched', () => {
-    it('should answer from the refreshed read model, not the superseded one', async () => {
+    function invalidatedMidFetch() {
       const cache = new PermissionsCache();
       const refreshed = new ReadModel([
         collection('orders', [column('id')], [action('Refund order', '/refund')]),
@@ -574,11 +566,24 @@ describe('createPermissionsRoutesMiddleware', () => {
         }),
       };
 
+      return { cache, client, store };
+    }
+
+    it('should answer from the refreshed read model, not the superseded one', async () => {
+      const { cache, client, store } = invalidatedMidFetch();
+
       const response = await request(appOf({ client, cache, store }).callback()).get(ROUTE);
 
       expect(response.status).toBe(200);
       expect(Object.keys(response.body.collections)).toEqual(['orders']);
-      expect(cache.size).toBe(1);
+    });
+
+    it('should not repopulate the shared cache with what that fetch read', async () => {
+      const { cache, client, store } = invalidatedMidFetch();
+
+      await request(appOf({ client, cache, store }).callback()).get(ROUTE);
+
+      expect(cache.size).toBe(0);
     });
   });
 
