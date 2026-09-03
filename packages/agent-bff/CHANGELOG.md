@@ -1,3 +1,19 @@
+# @forestadmin/agent-bff [1.24.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.23.8...@forestadmin/agent-bff@1.24.0) (2026-09-03)
+
+
+### Features
+
+* **agent-bff:** publish typed record schemas in the openapi document ([#1867](https://github.com/ForestAdmin/agent-nodejs/issues/1867)) ([d267712](https://github.com/ForestAdmin/agent-nodejs/commit/d2677125c1eb9f99d57e30c3624f104ff551af55))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.98.8
+* **@forestadmin/agent-testing:** upgraded to 1.2.12
+
 ## @forestadmin/agent-bff [1.23.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.23.7...@forestadmin/agent-bff@1.23.8) (2026-09-03)
 
 
