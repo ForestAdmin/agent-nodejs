@@ -85,14 +85,25 @@ describe('the embedded BFF lifecycle', () => {
     });
   });
 
-  describe('when addBff is called after start()', () => {
+  describe('when addBff is called once startup has begun', () => {
     it('should refuse, rather than register a BFF nothing will ever start', async () => {
       const agent = buildAgent();
       await agent.start();
 
       expect(() => agent.addBff()).toThrow(
-        'addBff must be called before start(): the agent is already started.',
+        'addBff must be called before start(): the agent is already starting.',
       );
+    });
+
+    it('should refuse while start() is still in flight, which is just as late', async () => {
+      const agent = buildAgent();
+      const starting = agent.start();
+
+      expect(() => agent.addBff()).toThrow(
+        'addBff must be called before start(): the agent is already starting.',
+      );
+
+      await starting;
     });
 
     it('should still accept it after a start() that failed', async () => {

@@ -20,11 +20,21 @@ import { originAllowed } from './origin';
 function isSameOrigin(origin: string, host: string): boolean {
   if (host === '') return false;
 
+  let url: URL;
+
   try {
-    return new URL(origin).host === host;
+    url = new URL(origin);
   } catch {
     return false;
   }
+
+  // Both spellings are accepted because the two sides normalize differently: `new URL()` drops a
+  // port that is the default for the scheme, while `ctx.host` is the raw `Host` header, which a
+  // proxy is free to spell out. Without this, `Host: app.example.com:443` against
+  // `Origin: https://app.example.com` reads as cross-origin.
+  const defaultPort = url.protocol === 'https:' ? '443' : '80';
+
+  return host === url.host || host === `${url.host}:${defaultPort}`;
 }
 
 export const ALLOWED_METHODS = 'GET, POST, PUT, PATCH, DELETE, OPTIONS';
