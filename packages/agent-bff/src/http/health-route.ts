@@ -1,14 +1,32 @@
-import type { BFFConfig } from '../config/env-config';
 import type { Middleware } from 'koa';
 
 export const HEALTH_PATH = '/health';
 
-export interface HealthRouteOptions {
-  config: BFFConfig;
-  version: string;
+/**
+ * Which optional surfaces this deployment was CONFIGURED to serve. Deliberately not a statement
+ * that they work: OAuth is `true` as soon as an encryption key is set, whether or not the Forest
+ * server ever answers. Naming it `configured` is the whole point — a reader who takes `oauth: true`
+ * for "OAuth is functional" will believe a misconfigured deployment is healthy.
+ */
+export interface HealthConfigured {
+  oauth: boolean;
+  ai: boolean;
+  cors: boolean;
+  openapi: boolean;
 }
 
-export default function createHealthRoute({ config, version }: HealthRouteOptions): Middleware {
+export interface HealthRouteOptions {
+  version: string;
+  /** Whether everything this deployment needs is configured. Embedded, it always is. */
+  healthy: boolean;
+  configured: HealthConfigured;
+}
+
+export default function createHealthRoute({
+  version,
+  healthy,
+  configured,
+}: HealthRouteOptions): Middleware {
   return async function health(ctx, next) {
     const isHealthRequest =
       (ctx.method === 'GET' || ctx.method === 'HEAD') && ctx.path === HEALTH_PATH;
@@ -19,7 +37,7 @@ export default function createHealthRoute({ config, version }: HealthRouteOption
       return;
     }
 
-    ctx.status = config.hasAllRequired ? 200 : 503;
-    ctx.body = { status: config.hasAllRequired ? 'ok' : 'degraded', version };
+    ctx.status = healthy ? 200 : 503;
+    ctx.body = { status: healthy ? 'ok' : 'degraded', version, configured };
   };
 }

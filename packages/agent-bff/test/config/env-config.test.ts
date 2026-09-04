@@ -124,12 +124,12 @@ describe('parseConfig', () => {
       expect(REQUIRED_KEYS).not.toContain('BFF_TOKEN_ENCRYPTION_KEY');
     });
 
-    it('should leave the key undefined and mark hasAllRequired false when absent', () => {
+    it('should leave the key undefined but keep hasAllRequired true when absent', () => {
       const { BFF_TOKEN_ENCRYPTION_KEY, ...envWithoutKey } = VALID_ENV;
       const config = parseConfig(envWithoutKey);
 
       expect(config.tokenEncryptionKey).toBeUndefined();
-      expect(config.hasAllRequired).toBe(false);
+      expect(config.hasAllRequired).toBe(true);
     });
 
     it('should expose the key when a valid base64 32-byte value is provided', () => {

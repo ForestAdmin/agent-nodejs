@@ -139,6 +139,48 @@ export type WorkflowExecutorEmbedOptions = Omit<WorkflowExecutorTuningOptions, '
   encryptionKey?: string;
 };
 
+/**
+ * Options of an embedded BFF. Everything the BFF shares with the agent — the secrets, the Forest
+ * urls, the logger — is inherited rather than repeated: a divergent `authSecret` would make the
+ * agent reject the very tokens the BFF mints, as an opaque 401.
+ */
+export type BffEmbedOptions = {
+  /**
+   * Base64-encoded 32-byte AES-256 key encrypting stored refresh tokens. Gates the OAuth
+   * login/refresh flow (mode 1) and, with it, the AI relay.
+   *
+   * It is not an access control. The data routes accept a `bff_access` bearer whether or not this
+   * is set, because that token is verified against the agent's `authSecret` alone. Omitting it
+   * closes the login flow, not the session-bearer path — what protects that path is `authSecret`.
+   */
+  tokenEncryptionKey?: string;
+  /**
+   * Exact origins (scheme + host + port) allowed to call the BFF from a browser. No wildcard.
+   * Empty means no cross-origin browser access at all, which for a backend-for-frontend is
+   * almost always a mistake — the BFF warns about it at startup.
+   */
+  allowedOrigins?: string[];
+  /** Fallback IANA timezone for a request that carries none. */
+  defaultTimezone?: string;
+  /**
+   * How long a call to the agent may take. Defaults to 10s.
+   *
+   * It bounds how long the BFF waits, and cancels nothing: an action or a write cut off at the
+   * deadline keeps running inside the agent and still commits, so a client retrying on the timeout
+   * can double the mutation. Raise it rather than relying on a retry for operations that are not
+   * idempotent.
+   */
+  agentTimeoutMs?: number;
+  /** How long the AI relay waits for the Forest server. Defaults to 120s. */
+  aiTimeoutMs?: number;
+  /**
+   * Serve `/bff/docs` and `/bff/agent/openapi.json`. Defaults to `false` when embedded: the
+   * document is not filtered per caller, so any authenticated caller reads the name of every
+   * exposed collection, relation and field.
+   */
+  openapiEnabled?: boolean;
+};
+
 // Runtime view of `auditTrail`: the validator has built the SQL store from the connection string.
 export type AuditTrailRuntime = AuditTrailConfig & {
   store: AuditStore;

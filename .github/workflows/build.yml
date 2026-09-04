@@ -111,7 +111,7 @@ jobs:
       # broadly: most packages keep genuine unit tests under `test/integration*/`, and a wide
       # pattern would silently stop running hundreds of them.
       - name: Test code (excluding integration suites with their own job)
-        run: cd packages/${{ matrix.package }} && yarn test --coverage --testPathIgnorePatterns='llm.integration|search-agent.integration' && cd -
+        run: cd packages/${{ matrix.package }} && yarn test --coverage --testPathIgnorePatterns='llm.integration|embedded-bff.e2e' && cd -
       - name: Upload coverage
         uses: actions/upload-artifact@v4
         with:
@@ -150,10 +150,12 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
-  # Boots a real agent on a local HTTP port, so it stays out of the unit job. Unlike the LLM suite
-  # it reaches no third party and is deterministic, hence no continue-on-error: it must gate.
+  # Boots a real agent on a local HTTP port, so it stays out of the unit job (which ignores this
+  # path). Gates both transports: the in-process dispatcher an embedded BFF uses and the socket a
+  # standalone one uses. Unlike the LLM suite it reaches no third party and is deterministic, hence
+  # no continue-on-error: it must gate.
   bff-integration-tests:
-    name: BFF Integration Tests (agent-bff)
+    name: BFF Integration Tests (embedded and http transports)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: [build]
@@ -177,7 +179,7 @@ jobs:
           key: ${{ runner.os }}-build-${{ github.sha }}
           fail-on-cache-miss: true
       - name: Run BFF integration tests
-        run: yarn workspace @forestadmin/agent-bff test --testPathPattern='search-agent.integration'
+        run: yarn workspace @forestadmin/agent test --testPathPattern='bff/embedded-bff.e2e'
 
   send-coverage:
     name: Send Coverage

@@ -67,7 +67,18 @@ export default class BFFHttpServer {
     const app = new Koa();
 
     app.use(createVersionHeaderMiddleware(version));
-    app.use(createHealthRoute({ config, version }));
+    app.use(
+      createHealthRoute({
+        version,
+        healthy: config.hasAllRequired,
+        configured: {
+          oauth: Boolean(config.tokenEncryptionKey),
+          ai: Boolean(config.tokenEncryptionKey),
+          cors: config.allowedOrigins.length > 0,
+          openapi: config.openapiEnabled,
+        },
+      }),
+    );
 
     for (const middleware of options.middlewares ?? []) {
       app.use(middleware);

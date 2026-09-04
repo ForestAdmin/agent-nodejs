@@ -89,7 +89,7 @@ yarn start:dev         # node --env-file=.env dist/cli.js
 | `FOREST_SERVER_URL`  | yes      | Forest SaaS API base URL.                                            |
 | `FOREST_APP_URL`     | yes      | Forest front base URL, used to build the OAuth front-channel redirect (`src/oauth/oauth-routes.ts`). |
 | `AGENT_URL`          | yes      | The customer agent base URL the BFF calls via agent-client.          |
-| `BFF_TOKEN_ENCRYPTION_KEY`| for OAuth | Base64-encoded 32-byte AES-256 key encrypting stored refresh tokens. Until it is set, the `/oauth/*` token-issuance routes are disabled and `/health` reports `degraded`; already-issued `bff_access` tokens still authenticate on `/agent/*` whenever `FOREST_AUTH_SECRET` is present. |
+| `BFF_TOKEN_ENCRYPTION_KEY`| for OAuth | Base64-encoded 32-byte AES-256 key encrypting stored refresh tokens. Until it is set, the `/oauth/*` token-issuance routes are disabled and `/health` reports `configured.oauth: false` — but it stays `ok`, since the key gates OAuth and not boot; already-issued `bff_access` tokens still authenticate on `/agent/*` whenever `FOREST_AUTH_SECRET` is present. |
 | `HTTP_PORT`          | no       | Server port, integer 0–65535. Defaults to `3450`. `0` binds an OS-assigned ephemeral port. |
 | `BFF_ALLOWED_ORIGINS`| no       | Comma-separated CORS allow-list of exact origins (scheme + host + port). No wildcard. Empty ⇒ no cross-origin browser access. |
 | `BFF_DEFAULT_TIMEZONE`| no      | Fallback IANA timezone used when a request carries neither an `X-Forest-Timezone` header nor a body `timezone`. |

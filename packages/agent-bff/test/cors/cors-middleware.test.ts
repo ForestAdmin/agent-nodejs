@@ -47,16 +47,113 @@ describe('cors middleware (layer 1)', () => {
       expect(response.headers['access-control-allow-origin']).toBe(`${ALLOWED}:443`);
     });
 
-    it('sends no CORS origin header for a disallowed origin but still proceeds', async () => {
+    it('refuses a disallowed origin instead of running the request', async () => {
       const { app, terminal } = buildApp();
 
       const response = await request(app.callback())
         .get('/agent/x')
         .set('Origin', 'https://evil.example.com');
 
-      expect(response.status).toBe(200);
+      expect(response.status).toBe(403);
+      expect(response.body.error).toMatchObject({ type: 'origin_not_allowed', status: 403 });
       expect(response.headers['access-control-allow-origin']).toBeUndefined();
+      // Le point du refus : sans lui la requête s'exécutait, et seul le navigateur jetait la
+      // réponse — donc une liste était lue et une action exécutée pour une origine non autorisée.
+      expect(terminal).not.toHaveBeenCalled();
+    });
+
+    it('leaves a caller with no Origin alone, which is every server-to-server call', async () => {
+      const { app, terminal } = buildApp();
+
+      const response = await request(app.callback()).get('/agent/x');
+
+      expect(response.status).toBe(200);
       expect(terminal).toHaveBeenCalled();
+    });
+  });
+
+  describe('the application serving this BFF', () => {
+    it('serves its own page without it having to allow-list itself', async () => {
+      const { app, terminal } = buildApp();
+
+      const response = await request(app.callback())
+        .post('/agent/x')
+        .set('Host', 'self.example.com')
+        .set('Origin', 'https://self.example.com');
+
+      expect(response.status).toBe(200);
+      expect(terminal).toHaveBeenCalled();
+    });
+
+    it('matches on host, so a proxy terminating TLS does not turn it into a refusal', async () => {
+      const { app, terminal } = buildApp();
+
+      const response = await request(app.callback())
+        .post('/agent/x')
+        .set('Host', 'self.example.com')
+        .set('Origin', 'http://self.example.com');
+
+      expect(response.status).toBe(200);
+      expect(terminal).toHaveBeenCalled();
+    });
+
+    it('serves it when a proxy spells out the default https port in Host', async () => {
+      const { app, terminal } = buildApp();
+
+      const response = await request(app.callback())
+        .post('/agent/x')
+        .set('Host', 'self.example.com:443')
+        .set('Origin', 'https://self.example.com');
+
+      expect(response.status).toBe(200);
+      expect(terminal).toHaveBeenCalled();
+    });
+
+    it('serves it when a proxy spells out the default http port in Host', async () => {
+      const { app, terminal } = buildApp();
+
+      const response = await request(app.callback())
+        .post('/agent/x')
+        .set('Host', 'self.example.com:80')
+        .set('Origin', 'http://self.example.com');
+
+      expect(response.status).toBe(200);
+      expect(terminal).toHaveBeenCalled();
+    });
+
+    it('serves it whatever the case of the Host header, since hostnames are case-insensitive', async () => {
+      const { app, terminal } = buildApp();
+
+      const response = await request(app.callback())
+        .post('/agent/x')
+        .set('Host', 'SELF.EXAMPLE.COM')
+        .set('Origin', 'https://self.example.com');
+
+      expect(response.status).toBe(200);
+      expect(terminal).toHaveBeenCalled();
+    });
+
+    it('still refuses the same hostname on another port, which is another origin', async () => {
+      const { app, terminal } = buildApp();
+
+      const response = await request(app.callback())
+        .post('/agent/x')
+        .set('Host', 'self.example.com')
+        .set('Origin', 'https://self.example.com:8443');
+
+      expect(response.status).toBe(403);
+      expect(terminal).not.toHaveBeenCalled();
+    });
+
+    it('sends no Access-Control-Allow-Origin, which same-origin never needs', async () => {
+      const { app } = buildApp();
+
+      const response = await request(app.callback())
+        .post('/agent/x')
+        .set('Host', 'self.example.com')
+        .set('Origin', 'https://self.example.com');
+
+      expect(response.headers['access-control-allow-origin']).toBeUndefined();
     });
   });
 

@@ -79,16 +79,49 @@ function closeServer(server: Server): Promise<void> {
 
 describe('BFFHttpServer', () => {
   describe('when config is complete', () => {
-    it('should answer GET /health with 200 ok and the version only', async () => {
+    it('should answer GET /health with 200 ok, the version and the surfaces it was configured for', async () => {
       const server = createServer({ ...VALID_ENV });
 
       const response = await request(server.callback).get('/health');
 
       expect(response.status).toBe(200);
-      expect(response.body).toEqual({ status: 'ok', version: VERSION });
+      expect(response.body).toEqual({
+        status: 'ok',
+        version: VERSION,
+        configured: { oauth: true, ai: true, cors: false, openapi: true },
+      });
     });
 
-    it('should never expose config presence or secret values in the response body', async () => {
+    it('should report the surfaces a partial configuration leaves off', async () => {
+      const server = createServer({
+        ...VALID_ENV,
+        BFF_TOKEN_ENCRYPTION_KEY: undefined,
+        BFF_ALLOWED_ORIGINS: 'https://my-app.com',
+        BFF_OPENAPI_ENABLED: 'false',
+      });
+
+      const response = await request(server.callback).get('/health');
+
+      expect(response.body.configured).toEqual({
+        oauth: false,
+        ai: false,
+        cors: true,
+        openapi: false,
+      });
+    });
+
+    it('should stay healthy without an encryption key, which gates OAuth and not boot', async () => {
+      const server = createServer({ ...VALID_ENV, BFF_TOKEN_ENCRYPTION_KEY: undefined });
+
+      const response = await request(server.callback).get('/health');
+
+      expect(response.status).toBe(200);
+      expect(response.body.status).toBe('ok');
+    });
+
+    // The features block names capabilities, never values: an anonymous caller learns that OAuth is
+    // configured, not what any secret holds.
+    it('should never expose secret values or the config itself in the response body', async () => {
       const server = createServer({ ...VALID_ENV });
 
       const response = await request(server.callback).get('/health');
@@ -116,7 +149,7 @@ describe('BFFHttpServer', () => {
       const response = await request(server.callback).get('/health');
 
       expect(response.status).toBe(503);
-      expect(response.body).toEqual({ status: 'degraded', version: VERSION });
+      expect(response.body).toMatchObject({ status: 'degraded', version: VERSION });
     });
 
     it('should answer HEAD /health with 503', async () => {
