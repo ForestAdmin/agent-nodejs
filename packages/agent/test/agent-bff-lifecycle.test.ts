@@ -85,6 +85,28 @@ describe('the embedded BFF lifecycle', () => {
     });
   });
 
+  describe('when addBff is called after start()', () => {
+    it('should refuse, rather than register a BFF nothing will ever start', async () => {
+      const agent = buildAgent();
+      await agent.start();
+
+      expect(() => agent.addBff()).toThrow(
+        'addBff must be called before start(): the agent is already started.',
+      );
+    });
+
+    it('should still accept it after a start() that failed', async () => {
+      const options = factories.forestAdminHttpDriverOptions.build({ skipSchemaUpdate: true });
+      jest
+        .mocked(options.forestAdminClient.subscribeToServerEvents)
+        .mockRejectedValueOnce(new Error('SaaS unreachable'));
+      const agent = new Agent(options);
+      await expect(agent.start()).rejects.toThrow('SaaS unreachable');
+
+      expect(() => agent.addBff()).not.toThrow();
+    });
+  });
+
   describe('when the caller options are invalid', () => {
     it('should reject start() before anything is mounted or subscribed', async () => {
       mockParseConfig.mockImplementation(() => {
@@ -179,6 +201,26 @@ describe('the embedded BFF lifecycle', () => {
       mockBuildBff.mock.calls[0][0].metrics.increment('schema_cache_refresh_error');
 
       expect(logger).toHaveBeenCalledWith('Warn', '[BFF] metric schema_cache_refresh_error');
+    });
+
+    it('should carry the tags naming what failed, not just the metric name', async () => {
+      const logger = jest.fn();
+      const agent = new Agent(
+        factories.forestAdminHttpDriverOptions.build({ skipSchemaUpdate: true, logger }),
+      ).addBff();
+      await agent.start();
+
+      mockBuildBff.mock.calls[0][0].metrics.increment('action_endpoint_miss', {
+        rendering: '1',
+        collection: 'books',
+        action: 'Mark as read',
+      });
+
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        '[BFF] metric action_endpoint_miss ' +
+          '{"rendering":"1","collection":"books","action":"Mark as read"}',
+      );
     });
 
     it('should drop gauges, which the default sink reports at Info on every read', async () => {

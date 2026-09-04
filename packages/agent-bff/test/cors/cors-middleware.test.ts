@@ -72,6 +72,55 @@ describe('cors middleware (layer 1)', () => {
     });
   });
 
+  describe('the application serving this BFF', () => {
+    it('serves its own page without it having to allow-list itself', async () => {
+      const { app, terminal } = buildApp();
+
+      const response = await request(app.callback())
+        .post('/agent/x')
+        .set('Host', 'self.example.com')
+        .set('Origin', 'https://self.example.com');
+
+      expect(response.status).toBe(200);
+      expect(terminal).toHaveBeenCalled();
+    });
+
+    it('matches on host, so a proxy terminating TLS does not turn it into a refusal', async () => {
+      const { app, terminal } = buildApp();
+
+      const response = await request(app.callback())
+        .post('/agent/x')
+        .set('Host', 'self.example.com')
+        .set('Origin', 'http://self.example.com');
+
+      expect(response.status).toBe(200);
+      expect(terminal).toHaveBeenCalled();
+    });
+
+    it('still refuses the same hostname on another port, which is another origin', async () => {
+      const { app, terminal } = buildApp();
+
+      const response = await request(app.callback())
+        .post('/agent/x')
+        .set('Host', 'self.example.com')
+        .set('Origin', 'https://self.example.com:8443');
+
+      expect(response.status).toBe(403);
+      expect(terminal).not.toHaveBeenCalled();
+    });
+
+    it('sends no Access-Control-Allow-Origin, which same-origin never needs', async () => {
+      const { app } = buildApp();
+
+      const response = await request(app.callback())
+        .post('/agent/x')
+        .set('Host', 'self.example.com')
+        .set('Origin', 'https://self.example.com');
+
+      expect(response.headers['access-control-allow-origin']).toBeUndefined();
+    });
+  });
+
   describe('preflight', () => {
     it('answers an allow-listed OPTIONS with 204, methods, the allowed headers and max-age', async () => {
       const { app, terminal } = buildApp();

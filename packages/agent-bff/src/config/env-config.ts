@@ -164,6 +164,10 @@ export function parseConfig(env: NodeJS.ProcessEnv): BFFConfig {
     openapiEnabled: parseOpenApiEnabled(env.BFF_OPENAPI_ENABLED),
     httpPort: parsePort(env.HTTP_PORT),
     presence,
-    hasAllRequired: REQUIRED_KEYS.every(key => presence[key]) && tokenEncryptionKey !== undefined,
+    // The encryption key is deliberately not part of this: it gates OAuth, not boot, so a
+    // key-only deployment is fully operational and must not report degraded — `/health` would
+    // otherwise have a load balancer restart a process that serves its api-key and bearer traffic
+    // fine. Which optional surfaces are on is what `configured` reports.
+    hasAllRequired: REQUIRED_KEYS.every(key => presence[key]),
   };
 }

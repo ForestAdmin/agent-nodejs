@@ -2,6 +2,31 @@ import type { Middleware } from 'koa';
 
 import { originAllowed } from './origin';
 
+/**
+ * Whether the caller is the very application serving this BFF. A same-origin request carries
+ * `Origin` too — the Fetch spec sends it on everything but GET and HEAD, and every BFF data route
+ * is a POST — so without this exemption a host serving its own UI next to a `/bff` mount would be
+ * refused on every request under the default empty allow-list, for an origin it has no reason to
+ * think it must name.
+ *
+ * Compared on host rather than on the full origin: a TLS-terminating proxy leaves `ctx.protocol` at
+ * `http` while the browser reports `https`, so matching the scheme would work in development and
+ * silently fail in production. The scheme is also the part a same-host attacker already controls.
+ *
+ * Forging the header buys nothing: a caller that can set `Origin` can simply omit it, which the
+ * allow-list lets through by design. What this cannot be reached by is the cross-site request the
+ * allow-list exists for — there the browser sets `Origin` to the attacking page, never to this host.
+ */
+function isSameOrigin(origin: string, host: string): boolean {
+  if (host === '') return false;
+
+  try {
+    return new URL(origin).host === host;
+  } catch {
+    return false;
+  }
+}
+
 export const ALLOWED_METHODS = 'GET, POST, PUT, PATCH, DELETE, OPTIONS';
 export const ALLOWED_HEADERS =
   'Authorization, Content-Type, X-Forest-Timezone, X-Forest-Bff-Key, X-Request-Id, Forest-Projection';
@@ -52,7 +77,8 @@ export default function createCorsMiddleware({
     // theoretical once a host sits in front of this app — a permissive `cors()` of its own answers
     // the preflight with `*`, and the real request arrives here regardless.
     // A caller with no `Origin` at all is untouched: that is every server-to-server api-key call.
-    if (origin && !allowed) {
+    // Nor is the host's own application, which the allow-list has nothing to say about.
+    if (origin && !allowed && !isSameOrigin(origin, ctx.host)) {
       ctx.status = ORIGIN_NOT_ALLOWED.status;
       ctx.body = { error: ORIGIN_NOT_ALLOWED };
 
