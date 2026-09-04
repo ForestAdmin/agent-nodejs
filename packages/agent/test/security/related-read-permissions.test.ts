@@ -105,7 +105,10 @@ describe('read permissions on related collections', () => {
       }),
     ]);
 
-  const buildServices = (readableCollections: string[] = []) => {
+  const buildServices = (
+    readableCollections: string[] = [],
+    skipRelationReadPermissions = false,
+  ) => {
     const forestAdminClient = factories.forestAdminClient.build();
 
     (forestAdminClient.permissionService.canOnCollection as jest.Mock).mockImplementation(
@@ -115,7 +118,10 @@ describe('read permissions on related collections', () => {
     );
 
     const services = factories.forestAdminHttpDriverServices.build();
-    services.authorization = new AuthorizationService(forestAdminClient);
+    services.authorization = new AuthorizationService(
+      forestAdminClient,
+      skipRelationReadPermissions,
+    );
     services.serializer.serialize = jest.fn();
     services.serializer.serializeWithSearchMetadata = jest.fn();
 
@@ -831,6 +837,109 @@ describe('read permissions on related collections', () => {
         userId: 35,
         event: CollectionActionEvent.Browse,
         collectionName: 'cards',
+      });
+    });
+  });
+
+  describe('options.skipRelationReadPermissions', () => {
+    const unsafeOptions = factories.forestAdminHttpDriverOptions.build({
+      skipRelationReadPermissions: true,
+    });
+    const unsafeServices = () => buildServices([], true);
+
+    it('should serve a named field of a collection the caller cannot read', async () => {
+      const dataSource = buildDataSource();
+      const services = unsafeServices();
+      const list = jest.spyOn(dataSource.getCollection('cards'), 'list').mockResolvedValue([]);
+
+      await new List(services, unsafeOptions, dataSource, 'cards').handleList(
+        buildContext({}, { 'forest-projection': 'id,holder:nationalId' }),
+      );
+
+      expect([...list.mock.calls[0][2]].sort()).toEqual(['holder:id', 'holder:nationalId', 'id']);
+    });
+
+    it('should keep an unnamed projection whole instead of redacting it', async () => {
+      const dataSource = buildDataSource();
+      const services = unsafeServices();
+      const list = jest.spyOn(dataSource.getCollection('cards'), 'list').mockResolvedValue([]);
+
+      await new List(services, unsafeOptions, dataSource, 'cards').handleList(buildContext({}));
+
+      expect([...list.mock.calls[0][2]]).toContain('holder:nationalId');
+    });
+
+    it('should serve a filter on a collection the caller cannot read', async () => {
+      const dataSource = buildDataSource();
+      const services = unsafeServices();
+      const list = jest.spyOn(dataSource.getCollection('cards'), 'list').mockResolvedValue([]);
+
+      await new List(services, unsafeOptions, dataSource, 'cards').handleList(
+        buildContext({
+          query: {
+            filters: JSON.stringify({
+              field: 'holder:nationalId',
+              operator: 'starts_with',
+              value: '1850',
+            }),
+          },
+        }),
+      );
+
+      expect(list.mock.calls[0][1].conditionTree).toMatchObject({
+        field: 'holder:nationalId',
+        operator: 'StartsWith',
+        value: '1850',
+      });
+    });
+
+    it('should serve a sort on a collection the caller cannot read', async () => {
+      const dataSource = buildDataSource();
+      const services = unsafeServices();
+      const list = jest.spyOn(dataSource.getCollection('cards'), 'list').mockResolvedValue([]);
+
+      await new List(services, unsafeOptions, dataSource, 'cards').handleList(
+        buildContext({ query: { sort: '-account.balance' } }),
+      );
+
+      expect(list.mock.calls[0][1].sort).toEqual([{ field: 'account:balance', ascending: false }]);
+    });
+
+    it('should serve an extended search the stack cannot describe', async () => {
+      const dataSource = buildDataSource();
+      const services = unsafeServices();
+      const cards = dataSource.getCollection('cards') as CollectionDecorator;
+      const list = jest.spyOn(cards, 'list').mockResolvedValue([]);
+
+      cards.getSearchedFields = () => null;
+
+      await new List(services, unsafeOptions, dataSource, 'cards').handleList(
+        buildContext({ query: { search: 'martin', searchExtended: '1' } }),
+      );
+
+      expect(list.mock.calls[0][1]).toMatchObject({ search: 'martin', searchExtended: true });
+    });
+
+    it('should serve a chart grouping by a collection the caller cannot read', async () => {
+      const dataSource = buildDataSource();
+      const services = unsafeServices();
+      const aggregate = jest
+        .spyOn(dataSource.getCollection('cards'), 'aggregate')
+        .mockResolvedValue([]);
+      const body = {
+        type: 'Pie',
+        aggregator: 'Count',
+        groupByFieldName: 'holder:fullName',
+      };
+
+      (services.chartHandler.getChartWithContextInjected as jest.Mock).mockResolvedValue(body);
+
+      await new Chart(services, unsafeOptions, dataSource, 'cards').handleChart(
+        buildContext({}, {}, body),
+      );
+
+      expect(aggregate.mock.calls[0][2]).toMatchObject({
+        groups: [{ field: 'holder:fullName' }],
       });
     });
   });

@@ -27,7 +27,10 @@ export type QueryComponent = 'filter' | 'sort' | 'search';
 const ALL_QUERY_COMPONENTS: QueryComponent[] = ['filter', 'sort', 'search'];
 
 export default class AuthorizationService {
-  constructor(private readonly forestAdminClient: ForestAdminClient) {}
+  constructor(
+    private readonly forestAdminClient: ForestAdminClient,
+    private readonly skipRelationReadPermissions = false,
+  ) {}
 
   public async assertCanBrowse(context: Context, collectionName: string) {
     await this.assertCanOnCollection(CollectionActionEvent.Browse, context, collectionName);
@@ -72,6 +75,9 @@ export default class AuthorizationService {
     requested: RequestedProjection,
   ): Promise<Projection> {
     const { projection, namedByCaller } = requested;
+
+    if (this.skipRelationReadPermissions) return new Projection(...projection);
+
     const owners = projection.map(path => FieldPathUtils.getLeafCollection(collection, path).name);
     const permissions = await this.getReadPermissions(context, collection.name, owners);
     const isReadable = (index: number) => permissions.get(owners[index]);
@@ -107,6 +113,8 @@ export default class AuthorizationService {
     collection: Collection,
     consumes: QueryComponent[] = ALL_QUERY_COMPONENTS,
   ): Promise<void> {
+    if (this.skipRelationReadPermissions) return;
+
     const usages: FieldUsage[] = [];
     const push = (action: string, path: string) =>
       usages.push({
@@ -162,6 +170,8 @@ export default class AuthorizationService {
     rootCollectionName: string,
     usages: FieldUsage[],
   ): Promise<void> {
+    if (this.skipRelationReadPermissions) return;
+
     const permissions = await this.getReadPermissions(
       context,
       rootCollectionName,
