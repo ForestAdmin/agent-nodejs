@@ -211,6 +211,15 @@ describe('evaluateOperator', () => {
         expect(ev('greater_than', '2026-01-01T12:00:00', '2026-01-01T11:00:00Z')).toBe(true);
         expect(ev('less_than', '2026-01-01T10:00:00', '2026-01-01T11:00:00+00:00')).toBe(true);
       });
+
+      // Date.parse falls back to a host-local legacy parser on the SQL form, which only a non-UTC
+      // host tells apart from the pinning.
+      it('reads the SQL datetime forms Postgres emits', () => {
+        expect(ev('equal', '2026-09-04 08:00:00', '2026-09-04T08:00:00Z')).toBe(true);
+        expect(ev('equal', '2026-09-04 08:00:00+02', '2026-09-04T06:00:00Z')).toBe(true);
+        expect(ev('equal', '2026-09-04 08:00:00 +02:00', '2026-09-04T06:00:00Z')).toBe(true);
+        expect(ev('equal', '2026-09-04 08:00:00.123', '2026-09-04T08:00:00.123Z')).toBe(true);
+      });
     });
   });
 
@@ -308,6 +317,7 @@ describe('evaluateOperator', () => {
     // 'é' ILIKE '%e%' does not. Case is folded, accents are letters of their own.
     it('i_contains folds case but keeps accents, like Postgres ILIKE', () => {
       expect(ev('i_contains', 'ACTIVE', 'act')).toBe(true);
+      expect(ev('i_contains', 'active', 'ACT')).toBe(true);
       expect(ev('i_contains', 'É', 'é')).toBe(true);
       expect(ev('i_contains', 'é', 'e')).toBe(false);
     });
@@ -347,6 +357,18 @@ describe('evaluateOperator', () => {
     it('orders two calendar dates', () => {
       expect(ev('before', '2026-03-01', '2026-03-02')).toBe(true);
       expect(ev('after', '2026-03-01', '2026-03-02')).toBe(false);
+    });
+
+    // Honolulu is UTC-10: its 1 March starts at 10:00Z, so a calendar date read as UTC midnight
+    // would sit before that instant instead of after it.
+    it('reads a calendar date in the clock timezone when compared to an instant', () => {
+      const honolulu: Clock = {
+        now: new Date('2026-09-04T05:00:00Z'),
+        timezone: 'Pacific/Honolulu',
+      };
+
+      expect(ev('after', '2026-03-01', '2026-03-01T05:00:00Z', honolulu)).toBe(true);
+      expect(ev('before', '2026-03-01', '2026-03-01T05:00:00Z', honolulu)).toBe(false);
     });
 
     it('is not met on a non-date or an impossible date', () => {
@@ -414,11 +436,6 @@ describe('evaluateOperator', () => {
       expect(ev('yesterday', '2026-09-03')).toBe(true);
     });
 
-    it('reads the SQL datetime form with a space as UTC too', () => {
-      expect(ev('today', '2026-09-04 08:00:00')).toBe(true);
-      expect(ev('today', '2026-09-04 23:00:00')).toBe(false);
-    });
-
     // Paris switched to summer time on 2026-03-29 at 02:00: that day is 23 hours long, and a
     // window built from wall-clock arithmetic instead of zone-aware startOf would drift by an hour.
     it('keeps the day bounds right across a DST change', () => {
@@ -431,19 +448,28 @@ describe('evaluateOperator', () => {
       expect(ev('yesterday', '2026-03-28T22:59:59Z', undefined, afterSwitch)).toBe(false);
       expect(ev('yesterday', '2026-03-29T21:59:59Z', undefined, afterSwitch)).toBe(true);
       expect(ev('yesterday', '2026-03-29T22:00:00Z', undefined, afterSwitch)).toBe(false);
+
+      const onSwitchDay: Clock = {
+        now: new Date('2026-03-29T12:00:00Z'),
+        timezone: 'Europe/Paris',
+      };
+      expect(ev('today', '2026-03-29T21:59:59Z', undefined, onSwitchDay)).toBe(true);
+      expect(ev('today', '2026-03-29T22:00:00Z', undefined, onSwitchDay)).toBe(false);
+      expect(ev('today', '2026-03-29T22:30:00Z', undefined, onSwitchDay)).toBe(false);
     });
 
     it('previous_x_days excludes today, previous_x_days_to_date includes it up to the instant', () => {
       expect(ev('previous_x_days', '2026-09-01T12:00:00Z', 7)).toBe(true);
       expect(ev('previous_x_days', '2026-09-04T09:00:00Z', 7)).toBe(false);
-      expect(ev('previous_x_days', '2026-08-27T21:00:00Z', 7)).toBe(false);
+      expect(ev('previous_x_days', '2026-08-27T22:00:01Z', 7)).toBe(true);
+      expect(ev('previous_x_days', '2026-08-27T21:59:59Z', 7)).toBe(false);
       expect(ev('previous_x_days_to_date', '2026-09-04T09:00:00Z', 7)).toBe(true);
       expect(ev('previous_x_days_to_date', '2026-09-04T11:00:00Z', 7)).toBe(false);
     });
 
     it('is not met on a count that is not a positive whole number', () => {
       expect(ev('previous_x_days', '2026-09-01T12:00:00Z', 0)).toBe(false);
-      expect(ev('previous_x_days', '2026-09-01T12:00:00Z', 1.5)).toBe(false);
+      expect(ev('previous_x_days', '2026-09-03T06:00:00Z', 1.5)).toBe(false);
       expect(ev('previous_x_days', '2026-09-01T12:00:00Z', 'seven')).toBe(false);
     });
 
@@ -463,6 +489,20 @@ describe('evaluateOperator', () => {
     it('is not met on a value that is not a date', () => {
       expect(ev('today', 'now')).toBe(false);
       expect(ev('today', 150)).toBe(false);
+    });
+
+    // The list filter compares a Dateonly column to the bound's calendar date, so a record dated
+    // today is neither "in the past" nor "before 2 hours ago" nor within the days to date.
+    it('reads a mid-day bound at the start of its day for a calendar date, like the list filter', () => {
+      expect(ev('past', '2026-09-04')).toBe(false);
+      expect(ev('past', '2026-09-03')).toBe(true);
+      expect(ev('future', '2026-09-04')).toBe(false);
+      expect(ev('future', '2026-09-05')).toBe(true);
+      expect(ev('before_x_hours_ago', '2026-09-04', 2)).toBe(false);
+      expect(ev('before_x_hours_ago', '2026-09-03', 2)).toBe(true);
+      expect(ev('previous_x_days_to_date', '2026-09-04', 7)).toBe(false);
+      expect(ev('previous_x_days_to_date', '2026-09-03', 7)).toBe(true);
+      expect(ev('previous_x_days_to_date', '2026-09-04T09:00:00Z', 7)).toBe(true);
     });
   });
 });

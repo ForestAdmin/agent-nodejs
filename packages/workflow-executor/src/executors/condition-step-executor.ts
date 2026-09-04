@@ -127,8 +127,7 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
   ): Promise<StepExecutionResult> {
     const { optionConditions, fallbackOption } = step.preRecordedArgs;
     const stepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
-    // One clock for the whole step: every condition of every option reads the same instant, so
-    // "today" cannot flip between two rows evaluated a millisecond apart.
+    // One clock per step, so "today" cannot flip between the first and the last condition.
     const clock: Clock = { now: new Date(), timezone: this.context.timezone };
 
     let matchedOption: string | undefined;

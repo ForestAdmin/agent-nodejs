@@ -86,7 +86,6 @@ const DeterministicConditionSchema = z
     sourceStepId: z.string().min(1),
     fieldName: z.string().min(1),
     operator: z.enum(CONDITION_OPERATORS),
-    /** Absent for the value-less operators (present, blank, and the relative dates without a count). */
     value: z.unknown().optional(),
   })
   // A value-bearing operator without its value compares against `undefined`: it can never be met,

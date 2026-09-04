@@ -90,27 +90,29 @@ describe('ConditionStepDefinitionSchema deterministic conditions', () => {
   });
 
   // value supplied so the failure is the operator enum, not the value-less-operator refinement.
-  it('rejects an unknown operator at the schema boundary', () => {
-    const result = ConditionStepDefinitionSchema.safeParse({
-      ...base,
-      executionType: 'manual',
-      preRecordedArgs: {
-        ...preRecordedArgs,
-        optionConditions: [
-          {
-            option: 'High value',
-            aggregator: 'and',
-            conditions: [
-              { sourceStepId: 'get-data-1', fieldName: 'amount', operator: 'ilike', value: '%x%' },
-            ],
-          },
-        ],
-      },
-    });
+  // The last three were in the contract before PRD-1147 and are refused since.
+  it.each(['ilike', 'not_in', 'greater_than_or_equal', 'less_than_or_equal'])(
+    'rejects the unknown operator "%s" at the schema boundary',
+    operator => {
+      const result = ConditionStepDefinitionSchema.safeParse({
+        ...base,
+        executionType: 'manual',
+        preRecordedArgs: {
+          ...preRecordedArgs,
+          optionConditions: [
+            {
+              option: 'High value',
+              aggregator: 'and',
+              conditions: [{ sourceStepId: 'get-data-1', fieldName: 'amount', operator, value: 1 }],
+            },
+          ],
+        },
+      });
 
-    expect(result.success).toBe(false);
-    expect(JSON.stringify(!result.success && result.error.issues)).toContain('operator');
-  });
+      expect(result.success).toBe(false);
+      expect(JSON.stringify(!result.success && result.error.issues)).toContain('operator');
+    },
+  );
 
   // An empty reference resolves to "not found" → met: null → not met → the step routes to the
   // fallback. Same silent-fallback failure the value-less-operator refinement exists to prevent.
@@ -210,8 +212,45 @@ describe('ConditionStepDefinitionSchema deterministic conditions', () => {
     expect(JSON.stringify(!result.success && result.error.issues)).toContain('optionConditions');
   });
 
-  it.each(['equal', 'not_equal', 'greater_than', 'in', 'contains'])(
-    'rejects a "%s" condition with no value',
+  it.each([
+    'equal',
+    'not_equal',
+    'greater_than',
+    'less_than',
+    'in',
+    'includes_all',
+    'contains',
+    'not_contains',
+    'starts_with',
+    'ends_with',
+    'i_contains',
+    'before',
+    'after',
+    'previous_x_days',
+    'previous_x_days_to_date',
+    'before_x_hours_ago',
+    'after_x_hours_ago',
+  ])('rejects a "%s" condition with no value', operator => {
+    const result = ConditionStepDefinitionSchema.safeParse({
+      ...base,
+      executionType: 'manual',
+      preRecordedArgs: {
+        ...preRecordedArgs,
+        optionConditions: [
+          {
+            option: 'High value',
+            aggregator: 'and',
+            conditions: [{ sourceStepId: 'get-data-1', fieldName: 'amount', operator }],
+          },
+        ],
+      },
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it.each(['present', 'blank', 'past', 'future', 'today', 'yesterday'])(
+    'accepts a value-less "%s" condition',
     operator => {
       const result = ConditionStepDefinitionSchema.safeParse({
         ...base,
@@ -221,35 +260,16 @@ describe('ConditionStepDefinitionSchema deterministic conditions', () => {
           optionConditions: [
             {
               option: 'High value',
-              aggregator: 'and',
+              aggregator: 'or',
               conditions: [{ sourceStepId: 'get-data-1', fieldName: 'amount', operator }],
             },
           ],
         },
       });
 
-      expect(result.success).toBe(false);
+      expect(result.success).toBe(true);
     },
   );
-
-  it('accepts a value-less condition for present/blank operators', () => {
-    const result = ConditionStepDefinitionSchema.safeParse({
-      ...base,
-      executionType: 'manual',
-      preRecordedArgs: {
-        ...preRecordedArgs,
-        optionConditions: [
-          {
-            option: 'High value',
-            aggregator: 'or',
-            conditions: [{ sourceStepId: 'get-data-1', fieldName: 'amount', operator: 'present' }],
-          },
-        ],
-      },
-    });
-
-    expect(result.success).toBe(true);
-  });
 
   it('still accepts a condition with no preRecordedArgs at all', () => {
     expect(

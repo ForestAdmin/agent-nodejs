@@ -1139,8 +1139,8 @@ describe('ConditionStepExecutor', () => {
     });
 
     // 2026-09-04T23:00Z is still 4 September in UTC but already 5 September in Paris. A record
-    // stamped 5 September 00:30 Paris is "today" only if the project zone, not UTC nor the
-    // machine's, is what the evaluator was handed.
+    // stamped 2026-09-05T00:30Z is "today" in Paris and tomorrow in UTC, so the option is taken
+    // only if the project zone is what the evaluator was handed.
     it('reads relative dates in the context timezone and records the instant it used', async () => {
       const todayInParis: ConditionPreRecordedArgs = {
         optionConditions: [
@@ -1154,7 +1154,7 @@ describe('ConditionStepExecutor', () => {
       };
       const { context, runStore } = makeDeterministicContext(
         todayInParis,
-        [{ name: 'signedAt', displayName: 'Signed at', value: '2026-09-04T22:30:00Z' }],
+        [{ name: 'signedAt', displayName: 'Signed at', value: '2026-09-05T00:30:00Z' }],
         { timezone: 'Europe/Paris' },
       );
 
