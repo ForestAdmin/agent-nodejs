@@ -121,6 +121,18 @@ describe('cors middleware (layer 1)', () => {
       expect(terminal).toHaveBeenCalled();
     });
 
+    it('serves it whatever the case of the Host header, since hostnames are case-insensitive', async () => {
+      const { app, terminal } = buildApp();
+
+      const response = await request(app.callback())
+        .post('/agent/x')
+        .set('Host', 'SELF.EXAMPLE.COM')
+        .set('Origin', 'https://self.example.com');
+
+      expect(response.status).toBe(200);
+      expect(terminal).toHaveBeenCalled();
+    });
+
     it('still refuses the same hostname on another port, which is another origin', async () => {
       const { app, terminal } = buildApp();
 

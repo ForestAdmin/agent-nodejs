@@ -28,13 +28,15 @@ function isSameOrigin(origin: string, host: string): boolean {
     return false;
   }
 
-  // Both spellings are accepted because the two sides normalize differently: `new URL()` drops a
-  // port that is the default for the scheme, while `ctx.host` is the raw `Host` header, which a
-  // proxy is free to spell out. Without this, `Host: app.example.com:443` against
-  // `Origin: https://app.example.com` reads as cross-origin.
+  // `url.host` is already normalized by `new URL()` — lowercased, and stripped of a port that is
+  // the default for the scheme — while `ctx.host` is the raw `Host` header, which a client or proxy
+  // spells however it likes. Both differences have to be absorbed here, or the exemption refuses
+  // the very requests it exists for: `Host: APP.EXAMPLE.COM` or `Host: app.example.com:443` against
+  // `Origin: https://app.example.com`. A non-default port still has to match exactly.
+  const normalizedHost = host.toLowerCase();
   const defaultPort = url.protocol === 'https:' ? '443' : '80';
 
-  return host === url.host || host === `${url.host}:${defaultPort}`;
+  return normalizedHost === url.host || normalizedHost === `${url.host}:${defaultPort}`;
 }
 
 export const ALLOWED_METHODS = 'GET, POST, PUT, PATCH, DELETE, OPTIONS';
