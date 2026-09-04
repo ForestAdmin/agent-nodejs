@@ -31,6 +31,9 @@ dropped collection reachable.
 
 ## Usage
 
+Two ways to run it: embedded in a Forest agent (`agent.addBff()`, see
+[Embedded in an agent](#embedded-in-an-agent)) or standalone, described here.
+
 Packaged / production — run the bin:
 
 ```bash
@@ -138,9 +141,12 @@ Two layers, both driven by exact-origin matching (case-insensitive scheme/host, 
 normalized away, no trailing slash, no wildcard, no subdomain matching):
 
 - **Layer 1 (transport)** — the only layer that sets `Access-Control-Allow-Origin`. An origin in
-  `BFF_ALLOWED_ORIGINS` is echoed back exactly; anything else gets no CORS headers (the browser
-  blocks). Applies to `POST /oauth/token` too. Preflight `OPTIONS` from an allow-listed origin gets
-  the allowed methods + headers; credentials are never enabled.
+  `BFF_ALLOWED_ORIGINS` is echoed back exactly; any other `Origin` is refused outright with
+  `403 origin_not_allowed`, rather than served without the header and left for the browser to
+  discard — omitting the header only stops the caller from *reading* the answer, and the request
+  would already have run. A request with no `Origin` at all is untouched, which is every
+  server-to-server api-key call. Applies to `POST /oauth/token` too. Preflight `OPTIONS` from an
+  allow-listed origin gets the allowed methods + headers; credentials are never enabled.
 - **Layer 2 (per-key authorization, Mode 2 only)** — when the resolved key has a non-empty
   `allowedOrigins`, the request `Origin` must also be in that list (a missing `Origin` is rejected),
   else `403 origin_not_allowed`. An empty per-key list is a no-op.
@@ -206,11 +212,112 @@ with `session_expired`. Horizontal scaling requires both a shared session store 
 
 ```jsonc
 // 200 — all required config present
-{ "status": "ok", "version": "<package version>" }
+{
+  "status": "ok",
+  "version": "<package version>",
+  "configured": { "oauth": true, "ai": true, "cors": true, "openapi": true }
+}
 // 503 — one or more required keys missing
-{ "status": "degraded", "version": "<package version>" }
+{ "status": "degraded", "version": "<package version>", "configured": { /* … */ } }
 ```
 
-The body never discloses which config keys are present or missing — that would leak the internal
-config surface to an unauthenticated probe. Missing keys are logged once at startup (`Warn`) for
-operators. Every response carries the `X-Forest-Bff-Version` header, read from `package.json`.
+`configured` says which optional surfaces this deployment was set up to serve — deliberately not
+that they work: `oauth` is `true` as soon as a key is set, whether or not the Forest server ever
+answers. They form a chain, not four independent switches:
+
+| Surface | Switched on by |
+| --- | --- |
+| `oauth` | `BFF_TOKEN_ENCRYPTION_KEY` **and** `FOREST_SERVER_URL`, `FOREST_ENV_SECRET`, `FOREST_APP_URL`, `FOREST_AUTH_SECRET` — the routes need a Forest server to talk to as much as a key. Embedded, only `tokenEncryptionKey` is yours to set: the other four are inherited |
+| `ai` | `oauth` — the relay needs a session, and only the OAuth flow creates one |
+| `cors` | a non-empty `BFF_ALLOWED_ORIGINS` (`allowedOrigins`) |
+| `openapi` | `BFF_OPENAPI_ENABLED` (`openapiEnabled`), and a mounted agent edge |
+
+The body still never discloses which config *keys* are present or missing — that would leak the
+internal config surface to an unauthenticated probe. It names the surfaces, never the values behind
+them. Missing keys are logged once at startup (`Warn`) for operators. Every response the BFF
+itself produces carries the `X-Forest-Bff-Version` header, read from `package.json`. The one
+exception is the embedded `503 bff_not_started` / `bff_stopped` below: the agent writes those
+itself, with no BFF to read a version from.
+
+## Embedded in an agent
+
+The same BFF runs inside a Forest agent, with no second deployment and no second port:
+
+```ts
+await createAgent(options)
+  .addDataSource(/* … */)
+  .addBff({ allowedOrigins: ['https://my-app.com'] })
+  .mountOnStandaloneServer(3351)
+  .start();
+```
+
+A mount is what opens a socket — `start()` only builds the agent's router, so without a
+`mountOn*` call nothing is served, BFF included.
+
+It answers under `/bff` on whatever port the agent is mounted on — `/bff/agent/v1/{collection}/list`,
+`/bff/health`, `/bff/oauth/*` — so the REST contract is the one documented above and only the base
+url changes.
+
+A host serving the agent under a sub-path of its own is supported: `app.use('/api', mounted)` puts
+the BFF at `/api/bff`, and the emitted prefix is derived per request from `originalUrl`
+(`base-path.ts`), so the `servers` entry and the docs page carry `/api/bff` rather than the
+configured `/bff`.
+
+The *served* OpenAPI document carries the prefix in its `servers` entry, so a client generated from
+`GET /bff/agent/openapi.json` is correct as-is. The *exported* one does not: `forest-bff openapi`
+has no way to be told about a prefix and always emits `servers: [{ "url": "/" }]`. Generating a
+client from the export against an embedded BFF means pointing its base url at `/bff` yourself.
+
+What differs from the standalone deployment:
+
+| | Standalone | Embedded |
+| --- | --- | --- |
+| Configuration | environment variables | `addBff()` options; the secrets, the Forest urls and the logger are inherited from the agent and cannot be overridden |
+| `AGENT_URL` | required, an http(s) url | gone — the BFF reaches the agent in the same process, without a socket |
+| `HTTP_PORT` | its own listener | gone — the agent's port serves it |
+| `openapiEnabled` | `true` | `false`. The document is not filtered per caller, so adding a BFF must not silently publish every collection and field name on an already-open port |
+| `/health` | 503 until every required key is set | always 200: an in-process dispatcher short-circuits the readiness check, since a 503 here would let a load balancer restart a process that serves api-key traffic fine. It stays 200 with no `tokenEncryptionKey`, which is *not* inherited — read `configured` to know what is on |
+
+**Registration order matters on Express and Connect-style hosts.** Mount the agent *before* any
+body parser of your own:
+
+```ts
+const app = express();
+agent.mountOnExpress(app);  // first
+app.use(express.json());    // then yours
+await agent.start();
+```
+
+A body parser that runs first has already consumed the request stream, and nothing downstream can
+put it back: every BFF `POST` then answers `500 stream.not.readable`.
+
+A permissive `cors()` registered ahead of the mount costs the preflight, not the allow-list. The
+host answers `OPTIONS` with its own policy and that is unrecoverable, but the request that follows
+still reaches this app, where an `Origin` outside `BFF_ALLOWED_ORIGINS` is refused with
+`403 origin_not_allowed` — the browser reads the wrong preflight, and the collection is still never
+read for that origin. A caller sending no `Origin` at all is untouched, which is every
+server-to-server api-key call.
+
+NestJS needs no special handling as long as you mount before `listen()`: `NestFactory.create()`
+does not install its body parser, `init()` does, and `listen()` is what triggers `init()` — so the
+middleware `mountOnNestJs()` registers is already ahead of it.
+
+**`/bff/*` answers `503` while the BFF is not serving**, and the two ends of the lifecycle are told
+apart: `bff_not_started` between `addBff()` and the end of `start()`, `bff_stopped` after `stop()`.
+The agent claims the prefix as soon as it is mounted, and a 404 there would read as "wrong url"
+rather than "not available". A probe should wait on the first and drain on the second.
+
+**`addBff()` and `mountAiMcpServer({ basePath: '/bff' })` are mutually exclusive** — whichever is
+called second throws on the spot, at the builder call and not from `start()`, rather than letting
+the MCP server quietly claim `/bff/oauth` and `/bff/mcp`. Any `basePath` landing inside `/bff`
+counts (`bff`, `/bff/`, `/bff/ai`), so mount the MCP server elsewhere.
+
+**One security control does not apply to the embedded mode.** If the environment has Forest's IP
+whitelist enabled, requests served under `/bff` are not subject to it: they reach the agent
+in-process, over what the whitelist treats as a trusted loopback caller. This is deliberate —
+applying it would filter the browsers a third-party UI is made of, and the standalone deployment
+never filtered the end user either, only the BFF's own host. A resolved API key or a valid OAuth
+session is still required, and the agent still logs a warning at startup naming the exemption.
+
+When to prefer which: embedded for a single deployment, which is most of them. Standalone when
+several agents share one BFF, or when the BFF and the agent have to scale separately.

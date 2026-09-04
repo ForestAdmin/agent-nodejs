@@ -6,6 +6,7 @@
   "dependencies": {
     "@faker-js/faker": "^7.6.0",
     "@forestadmin/agent": "*",
+    "@forestadmin/agent-bff": "*",
     "@forestadmin/datasource-dummy": "*",
     "@forestadmin/datasource-mongo": "*",
     "@forestadmin/datasource-mongoose": "*",
