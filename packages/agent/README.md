@@ -36,16 +36,20 @@ logger are inherited.
 
 Everything `addBff()` takes is a feature it switches on: `tokenEncryptionKey` enables OAuth (and
 with it the AI relay), `allowedOrigins` enables browser access, `openapiEnabled` serves the docs
-(off by default when embedded). `GET /bff/health` reports which of them are on.
+(off by default when embedded). `GET /bff/health` reports which of them are on, under `configured`.
 
 **Mount the agent before any body parser of your own** — a parser that runs first consumes the
-request stream, and every BFF `POST` then answers `500 stream.not.readable`. A permissive `cors()`
-registered ahead of the mount is the quieter version of the same mistake: it answers the preflight
-with its own policy, and the BFF's exact-origin allow-list never gets a say.
+request stream, and every BFF `POST` then answers `500 stream.not.readable`.
 
-**Mount the agent on the root application, not on a sub-router.** The `/bff` prefix is fixed and
-resolved against the url the host hands the agent, so an agent mounted on an express router at
-`/api` answers at `/api/bff` while the OpenAPI document still advertises `/bff`.
+A permissive `cors()` registered ahead of the mount costs you the preflight but not the allow-list:
+the host answers `OPTIONS` with its own policy, and nothing downstream can take that back, so the
+request that follows arrives here anyway — and is refused with `403 origin_not_allowed` unless its
+`Origin` is one you listed. The browser sees the wrong preflight; the collection is still never read
+for that origin.
+
+Mounting under a sub-path of your own works: `app.use('/api', mounted)` serves the BFF at
+`/api/bff`, and the prefix is derived per request, so the OpenAPI `servers` entry and the docs page
+carry `/api/bff` too.
 
 **`agentTimeoutMs` bounds the wait, not the work.** When a call to the agent exceeds it the BFF
 answers with an error, but nothing is cancelled: the in-process request runs to completion. An
