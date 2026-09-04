@@ -49,6 +49,7 @@ export const AvailableStepExecutionSchema = z
     stepDefinition: StepDefinitionSchema,
     previousSteps: z.array(StepSchema),
     user: StepUserSchema,
+    timezone: z.string().min(1),
   })
   .strict();
 export type AvailableStepExecution = z.infer<typeof AvailableStepExecutionSchema>;

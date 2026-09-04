@@ -180,6 +180,7 @@ export default class StepExecutorFactory {
       stepDefinition: step.stepDefinition,
       previousSteps: step.previousSteps,
       user: step.user,
+      timezone: step.timezone,
       model: cfg.aiModelPort.getModel({
         aiConfigName: step.stepDefinition.aiConfigName,
         userId: step.user.id,

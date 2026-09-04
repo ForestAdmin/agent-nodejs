@@ -48,6 +48,9 @@ export interface DeterministicConditionExecutionParams {
   evaluations: ConditionEvaluation[];
   selectedOption: string;
   usedFallback: boolean;
+  // Without the instant, a check on "previous 7 days" cannot be explained a day later.
+  evaluatedAt: string;
+  timezone: string;
 }
 
 export interface ConditionStepExecutionData extends BaseStepExecutionData {
