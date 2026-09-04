@@ -71,7 +71,7 @@ export const CONDITION_OPERATORS = [
 ] as const;
 export type ConditionOperator = (typeof CONDITION_OPERATORS)[number];
 
-export const VALUE_LESS_OPERATORS: readonly ConditionOperator[] = [
+const VALUE_LESS_OPERATORS: readonly ConditionOperator[] = [
   'present',
   'blank',
   'past',

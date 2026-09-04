@@ -11,6 +11,7 @@ import type {
   StepOutcome,
 } from '../types/validated/step-outcome';
 
+import { IANAZone } from 'luxon';
 import { z } from 'zod';
 
 import { deserializeRecordId } from './record-id-serializer';
@@ -178,10 +179,11 @@ export default function toAvailableStepExecution(
     stepDefinition: toStepDefinition(pending.stepDefinition),
     previousSteps: toPreviousSteps(run.workflowHistory, pending.stepIndex),
     user: toStepUser(run.id, run.userProfile),
-    // UTC when the project has none set, and when the orchestrator is too old to send one: a
-    // relative date must resolve the same on every executor instance, so the machine's zone is
-    // never the fallback.
-    timezone: run.timezone || 'UTC',
+    // UTC when the project has none set, when the orchestrator is too old to send one, and when
+    // the name is not a zone Luxon knows: a relative date must resolve the same on every executor
+    // instance, so the machine's zone is never the fallback. The zone actually used is persisted
+    // with the evaluation, so the run view shows UTC rather than the name it fell back from.
+    timezone: run.timezone && IANAZone.isValidZone(run.timezone) ? run.timezone : 'UTC',
   };
 
   // Defense against mapper bugs: zod asserts the shape we produce is what the domain expects,

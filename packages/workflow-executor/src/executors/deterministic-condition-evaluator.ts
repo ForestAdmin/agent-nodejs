@@ -33,8 +33,11 @@ function toTimestamp(value: unknown): number | null {
   if (!isRealCalendarDate(value.slice(0, 10))) return null;
 
   // Date.parse reads an offset-less datetime as host-local (date-only as UTC), which would route
-  // the same run differently per machine — pin every offset-less datetime to UTC.
-  const absolute = value.includes('T') && !TIMEZONE_SUFFIX.test(value) ? `${value}Z` : value;
+  // the same run differently per machine — pin every offset-less datetime to UTC. The SQL form
+  // with a space separator is a datetime too.
+  const datetime = value.replace(' ', 'T');
+  const absolute =
+    datetime.includes('T') && !TIMEZONE_SUFFIX.test(datetime) ? `${datetime}Z` : datetime;
   const parsed = Date.parse(absolute);
 
   return Number.isNaN(parsed) ? null : parsed;
@@ -150,7 +153,7 @@ function includesAll(actual: unknown, expected: unknown): boolean {
   if (!Array.isArray(actual)) return false;
   const wanted = Array.isArray(expected) ? expected : [expected];
 
-  return wanted.every(item => isMemberOf(actual, item));
+  return wanted.length > 0 && wanted.every(item => isMemberOf(actual, item));
 }
 
 // Strings only: no coercion of a number into text, so a broken config can never accidentally
@@ -184,9 +187,10 @@ function dateOrdering(satisfies: (actual: DateTime, expected: DateTime) => boole
   };
 }
 
-// Relative to the clock. A window is half open, [start, end): a value at the very start of today
-// is today, a value at the very start of tomorrow is not. Mirrors datasource-toolkit's time
-// transforms, which is what the list filter runs on, so both agree on what "today" covers.
+// Relative to the clock. The end of a window is always excluded; its start is included for a
+// calendar date and excluded for a datetime. That asymmetry is datasource-toolkit's (its time
+// transforms emit GreaterThanOrEqual for a Dateonly column, GreaterThan otherwise), and the list
+// filter runs on it, so the same record answers "today" the same way in both places.
 type Window = (now: DateTime, value: unknown) => [start: DateTime, end: DateTime] | null;
 
 function days(value: unknown): number | null {
@@ -222,8 +226,9 @@ function within(name: keyof typeof WINDOWS) {
     if (window === null) return false;
 
     const [start, end] = window;
+    const afterStart = DATE_ONLY.test(actual as string) ? instant >= start : instant > start;
 
-    return instant >= start && instant < end;
+    return afterStart && instant < end;
   };
 }
 

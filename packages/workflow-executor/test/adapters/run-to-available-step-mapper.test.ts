@@ -138,11 +138,14 @@ describe('toAvailableStepExecution', () => {
 
   // A relative date must resolve the same on every executor instance, so the machine's zone is
   // never what an unset or absent value falls back to.
-  it.each([null, undefined, ''])('should fall back to UTC when the timezone is %p', timezone => {
-    const result = toAvailableStepExecution(makeRun({ timezone }));
+  it.each([null, undefined, '', 'Mars/Olympus'])(
+    'should fall back to UTC when the timezone is %p',
+    timezone => {
+      const result = toAvailableStepExecution(makeRun({ timezone }));
 
-    expect(result?.timezone).toBe('UTC');
-  });
+      expect(result?.timezone).toBe('UTC');
+    },
+  );
 
   it('should forward the run triggerType', () => {
     const run = makeRun({ triggerType: ServerWorkflowTriggerType.webhook });
