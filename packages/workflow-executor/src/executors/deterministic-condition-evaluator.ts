@@ -2,9 +2,7 @@ import type { ConditionOperator } from '../types/validated/step-definition';
 
 import { DateTime } from 'luxon';
 
-// The instant and zone a relative condition is read against. Injected by the step executor rather
-// than read here, so the evaluator stays a pure function of its inputs: two runs handed the same
-// clock answer the same, and a test can pin any moment it likes.
+// Injected rather than read here so the evaluator stays a pure function of its inputs.
 export interface Clock {
   now: Date;
   timezone: string;
@@ -33,9 +31,14 @@ function toTimestamp(value: unknown): number | null {
   if (!isRealCalendarDate(value.slice(0, 10))) return null;
 
   // Date.parse reads an offset-less datetime as host-local (date-only as UTC), which would route
-  // the same run differently per machine — pin every offset-less datetime to UTC. The SQL form
-  // with a space separator is a datetime too.
-  const datetime = value.replace(' ', 'T');
+  // the same run differently per machine — pin every offset-less datetime to UTC. Postgres emits
+  // the SQL form ("2026-09-04 08:00:00+02"): space separator, bare-hour offset that Date.parse
+  // only accepts as hh:mm once the separator is a T.
+  const datetime = value
+    .trim()
+    .replace(/\s+/, 'T')
+    .replace(/\s+/g, '')
+    .replace(/(:\d{2}(?:\.\d+)?)([+-]\d{2})$/, '$1$2:00');
   const absolute =
     datetime.includes('T') && !TIMEZONE_SUFFIX.test(datetime) ? `${datetime}Z` : datetime;
   const parsed = Date.parse(absolute);
@@ -45,14 +48,23 @@ function toTimestamp(value: unknown): number | null {
 
 // A calendar date has no instant of its own, so it is read at midnight in the project's zone: that
 // is what makes "today" the project's today for a Dateonly column, whatever the machine's or UTC's
-// day is at that moment. A datetime is an instant already and keeps the UTC pinning above.
+// day is at that moment. A datetime is an absolute instant already (the UTC pinning above).
 function toInstant(value: unknown, timezone: string): DateTime | null {
   if (typeof value !== 'string' || !isRealCalendarDate(value.slice(0, 10))) return null;
   if (DATE_ONLY.test(value)) return DateTime.fromISO(value, { zone: timezone });
 
   const timestamp = toTimestamp(value);
 
-  return timestamp === null ? null : DateTime.fromMillis(timestamp);
+  return timestamp === null ? null : DateTime.fromMillis(timestamp, { zone: timezone });
+}
+
+// The toolkit compares a Dateonly column against the bound's calendar date (its time transforms
+// format the bound with toISODate for that column type), so a bound falling mid-day is read at the
+// start of its day when the value is a calendar date: "past" on a Dateonly excludes today, as the
+// list filter does. The kind is told from the value's shape where the toolkit reads the column
+// type, so parity holds as long as a Dateonly serialises as a bare YYYY-MM-DD.
+function alignToValueKind(actual: unknown, bound: DateTime): DateTime {
+  return DATE_ONLY.test(actual as string) ? bound.startOf('day') : bound;
 }
 
 function toNumber(value: unknown): number | null {
@@ -156,8 +168,6 @@ function includesAll(actual: unknown, expected: unknown): boolean {
   return wanted.length > 0 && wanted.every(item => isMemberOf(actual, item));
 }
 
-// Strings only: no coercion of a number into text, so a broken config can never accidentally
-// satisfy a text operator.
 function stringTest(satisfies: (actual: string, expected: string) => boolean) {
   return (actual: unknown, expected: unknown): boolean =>
     typeof actual === 'string' && typeof expected === 'string' && satisfies(actual, expected);
@@ -172,8 +182,8 @@ function ordering(satisfies: (diff: number) => boolean) {
 }
 
 // The builder pins a datetime for a Date column and a calendar date for a Dateonly one, so both
-// sides share a kind and both go through toInstant: a calendar date is read in the project's zone
-// on either side, which keeps "before 2026-03-01" meaning the same day the author had in mind.
+// sides share a kind and a calendar date is read in the project's zone on either side. The toolkit
+// reads a bare date in the server's zone here; the project's is the deliberate choice.
 function dateOrdering(satisfies: (actual: DateTime, expected: DateTime) => boolean) {
   return (actual: unknown, expected: unknown, clock: Clock): boolean => {
     const actualInstant = toInstant(actual, clock.timezone);
@@ -225,7 +235,7 @@ function within(name: keyof typeof WINDOWS) {
     const window = WINDOWS[name](DateTime.fromJSDate(clock.now).setZone(clock.timezone), expected);
     if (window === null) return false;
 
-    const [start, end] = window;
+    const [start, end] = window.map(bound => alignToValueKind(actual, bound));
     const afterStart = DATE_ONLY.test(actual as string) ? instant >= start : instant > start;
 
     return afterStart && instant < end;
@@ -242,7 +252,7 @@ function relativeTo(
 
     const reference = bound(DateTime.fromJSDate(clock.now).setZone(clock.timezone), expected);
 
-    return reference !== null && satisfies(instant, reference);
+    return reference !== null && satisfies(instant, alignToValueKind(actual, reference));
   };
 }
 
@@ -266,8 +276,8 @@ const EVALUATORS: Record<
   not_contains: stringTest((actual, expected) => !actual.includes(expected)),
   starts_with: stringTest((actual, expected) => actual.startsWith(expected)),
   ends_with: stringTest((actual, expected) => actual.endsWith(expected)),
-  // Case folded, accents kept: what Postgres ILIKE does ('É' ILIKE '%é%' holds, 'é' ILIKE '%e%'
-  // does not), which is the behaviour the list filter shows on the reference database.
+  // Case folded, accents kept: the Postgres ILIKE path of the list filter ('É' ILIKE '%é%' holds,
+  // 'é' ILIKE '%e%' does not). MySQL and SQLite collations diverge; Postgres is the contract.
   i_contains: stringTest((actual, expected) =>
     actual.toLowerCase().includes(expected.toLowerCase()),
   ),
@@ -294,7 +304,6 @@ const EVALUATORS: Record<
  * - `null` = not evaluable (the resolved value is null/missing) — treated as "not met";
  * - a type-mismatched comparison (including for negated operators) is "not met" (`false`),
  *   so a broken config can never accidentally satisfy a condition.
- * Relative date operators read the injected clock, never the machine's.
  */
 export default function evaluateOperator(
   operator: ConditionOperator,
