@@ -328,6 +328,12 @@ describe('evaluateOperator', () => {
       expect(ev('includes_all', ['a'], ['a', 'b'])).toBe(false);
       expect(ev('includes_all', 'a', ['a'])).toBe(false);
     });
+
+    // every() on an empty list is vacuously true, which would make a blank widget match every
+    // record instead of none.
+    it('is not met on an empty wanted list', () => {
+      expect(ev('includes_all', ['a'], [])).toBe(false);
+    });
   });
 
   describe('before / after', () => {
@@ -371,6 +377,13 @@ describe('evaluateOperator', () => {
       expect(ev('after_x_hours_ago', '2026-09-04T08:00:00Z', 2)).toBe(false);
     });
 
+    it('accepts zero and fractional hours, like the list filter widget', () => {
+      expect(ev('before_x_hours_ago', '2026-09-04T10:00:00Z', 0)).toBe(true);
+      expect(ev('before_x_hours_ago', '2026-09-04T11:00:00Z', 0)).toBe(false);
+      expect(ev('before_x_hours_ago', '2026-09-04T08:59:00Z', 1.5)).toBe(true);
+      expect(ev('before_x_hours_ago', '2026-09-04T09:01:00Z', 1.5)).toBe(false);
+    });
+
     it('is not met on a count that is not a non-negative number', () => {
       expect(ev('before_x_hours_ago', '2026-09-04T08:00:00Z', -1)).toBe(false);
       expect(ev('before_x_hours_ago', '2026-09-04T08:00:00Z', 'two')).toBe(false);
@@ -389,6 +402,35 @@ describe('evaluateOperator', () => {
     it('reads "yesterday" as the previous project day', () => {
       expect(ev('yesterday', '2026-09-03T21:00:00Z')).toBe(true);
       expect(ev('yesterday', '2026-09-03T23:00:00Z')).toBe(false);
+    });
+
+    // The toolkit's transforms emit GreaterThan for a datetime and GreaterThanOrEqual for a
+    // calendar date: a record stamped exactly at midnight is "today" in a list filter only when
+    // the column is a Dateonly, and the Decision must not say otherwise.
+    it('treats the very start of the window like the list filter does', () => {
+      expect(ev('today', '2026-09-03T22:00:00Z')).toBe(false);
+      expect(ev('today', '2026-09-03T22:00:00.001Z')).toBe(true);
+      expect(ev('today', '2026-09-04')).toBe(true);
+      expect(ev('yesterday', '2026-09-03')).toBe(true);
+    });
+
+    it('reads the SQL datetime form with a space as UTC too', () => {
+      expect(ev('today', '2026-09-04 08:00:00')).toBe(true);
+      expect(ev('today', '2026-09-04 23:00:00')).toBe(false);
+    });
+
+    // Paris switched to summer time on 2026-03-29 at 02:00: that day is 23 hours long, and a
+    // window built from wall-clock arithmetic instead of zone-aware startOf would drift by an hour.
+    it('keeps the day bounds right across a DST change', () => {
+      const afterSwitch: Clock = {
+        now: new Date('2026-03-30T08:00:00Z'),
+        timezone: 'Europe/Paris',
+      };
+
+      expect(ev('yesterday', '2026-03-28T23:00:01Z', undefined, afterSwitch)).toBe(true);
+      expect(ev('yesterday', '2026-03-28T22:59:59Z', undefined, afterSwitch)).toBe(false);
+      expect(ev('yesterday', '2026-03-29T21:59:59Z', undefined, afterSwitch)).toBe(true);
+      expect(ev('yesterday', '2026-03-29T22:00:00Z', undefined, afterSwitch)).toBe(false);
     });
 
     it('previous_x_days excludes today, previous_x_days_to_date includes it up to the instant', () => {

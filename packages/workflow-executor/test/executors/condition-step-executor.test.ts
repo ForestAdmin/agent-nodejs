@@ -1142,7 +1142,6 @@ describe('ConditionStepExecutor', () => {
     // stamped 5 September 00:30 Paris is "today" only if the project zone, not UTC nor the
     // machine's, is what the evaluator was handed.
     it('reads relative dates in the context timezone and records the instant it used', async () => {
-      jest.useFakeTimers().setSystemTime(new Date('2026-09-04T23:00:00Z'));
       const todayInParis: ConditionPreRecordedArgs = {
         optionConditions: [
           {
@@ -1160,6 +1159,7 @@ describe('ConditionStepExecutor', () => {
       );
 
       try {
+        jest.useFakeTimers().setSystemTime(new Date('2026-09-04T23:00:00Z'));
         const result = await new ConditionStepExecutor(context).execute();
 
         expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('Today');
@@ -1178,7 +1178,6 @@ describe('ConditionStepExecutor', () => {
     });
 
     it('does not read a record from the next UTC day as today when the project zone is UTC', async () => {
-      jest.useFakeTimers().setSystemTime(new Date('2026-09-04T23:00:00Z'));
       const todayArgs: ConditionPreRecordedArgs = {
         optionConditions: [
           {
@@ -1194,6 +1193,7 @@ describe('ConditionStepExecutor', () => {
       ]);
 
       try {
+        jest.useFakeTimers().setSystemTime(new Date('2026-09-04T23:00:00Z'));
         const result = await new ConditionStepExecutor(context).execute();
 
         expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('Other');
