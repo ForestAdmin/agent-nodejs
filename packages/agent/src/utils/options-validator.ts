@@ -44,6 +44,7 @@ export default class OptionsValidator {
     copyOptions.instantCacheRefresh = copyOptions.instantCacheRefresh ?? true;
     copyOptions.workflowExecutorUrl = copyOptions.workflowExecutorUrl ?? null;
     copyOptions.auditTrail = copyOptions.auditTrail ?? null;
+    copyOptions.skipRelationReadPermissions = copyOptions.skipRelationReadPermissions ?? false;
     // Number.isFinite so NaN (e.g. Number() on an unset env var) also gets the default.
     copyOptions.maxRecordsForApproval = Number.isFinite(copyOptions.maxRecordsForApproval)
       ? copyOptions.maxRecordsForApproval
