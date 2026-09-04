@@ -178,6 +178,10 @@ export default function toAvailableStepExecution(
     stepDefinition: toStepDefinition(pending.stepDefinition),
     previousSteps: toPreviousSteps(run.workflowHistory, pending.stepIndex),
     user: toStepUser(run.id, run.userProfile),
+    // UTC when the project has none set, and when the orchestrator is too old to send one: a
+    // relative date must resolve the same on every executor instance, so the machine's zone is
+    // never the fallback.
+    timezone: run.timezone || 'UTC',
   };
 
   // Defense against mapper bugs: zod asserts the shape we produce is what the domain expects,

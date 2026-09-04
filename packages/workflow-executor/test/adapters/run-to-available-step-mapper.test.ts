@@ -126,7 +126,22 @@ describe('toAvailableStepExecution', () => {
       },
       previousSteps: [],
       user: expect.objectContaining({ id: 7, email: 'alban@forestadmin.com' }),
+      timezone: 'UTC',
     });
+  });
+
+  it('should forward the project timezone', () => {
+    const result = toAvailableStepExecution(makeRun({ timezone: 'Europe/Paris' }));
+
+    expect(result?.timezone).toBe('Europe/Paris');
+  });
+
+  // A relative date must resolve the same on every executor instance, so the machine's zone is
+  // never what an unset or absent value falls back to.
+  it.each([null, undefined, ''])('should fall back to UTC when the timezone is %p', timezone => {
+    const result = toAvailableStepExecution(makeRun({ timezone }));
+
+    expect(result?.timezone).toBe('UTC');
   });
 
   it('should forward the run triggerType', () => {

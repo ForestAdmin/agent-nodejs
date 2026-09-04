@@ -42,6 +42,8 @@ const { Manual, AutomatedWithConfirmation, FullyAutomated } = StepExecutionMode;
 
 // Wire-final operator names (PRD-472 cross-repo contract). An unknown operator is rejected here,
 // at the schema boundary, so a run never reaches evaluation with a comparison it cannot honor.
+// The set a list view filter offers, no more: every name here has a Filters operator in the front
+// (which is what the builder can render) and a translation in the orchestrator's parser.
 export const CONDITION_OPERATORS = [
   'equal',
   'not_equal',
@@ -49,16 +51,34 @@ export const CONDITION_OPERATORS = [
   'blank',
   'greater_than',
   'less_than',
-  'greater_than_or_equal',
-  'less_than_or_equal',
   'in',
-  'not_in',
+  'includes_all',
   'contains',
   'not_contains',
+  'starts_with',
+  'ends_with',
+  'i_contains',
+  'before',
+  'after',
+  'past',
+  'future',
+  'today',
+  'yesterday',
+  'previous_x_days',
+  'previous_x_days_to_date',
+  'before_x_hours_ago',
+  'after_x_hours_ago',
 ] as const;
 export type ConditionOperator = (typeof CONDITION_OPERATORS)[number];
 
-const VALUE_LESS_OPERATORS: readonly ConditionOperator[] = ['present', 'blank'];
+export const VALUE_LESS_OPERATORS: readonly ConditionOperator[] = [
+  'present',
+  'blank',
+  'past',
+  'future',
+  'today',
+  'yesterday',
+];
 
 const DeterministicConditionSchema = z
   .object({
@@ -66,7 +86,7 @@ const DeterministicConditionSchema = z
     sourceStepId: z.string().min(1),
     fieldName: z.string().min(1),
     operator: z.enum(CONDITION_OPERATORS),
-    /** Absent for `present`/`blank`. */
+    /** Absent for the value-less operators (present, blank, and the relative dates without a count). */
     value: z.unknown().optional(),
   })
   // A value-bearing operator without its value compares against `undefined`: it can never be met,

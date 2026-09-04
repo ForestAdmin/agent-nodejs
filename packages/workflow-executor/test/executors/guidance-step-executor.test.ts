@@ -80,6 +80,7 @@ function makeContext(
     },
     schemaResolver: new SchemaResolver(schemaCache, workflowPort, runId, 1),
     previousSteps: [],
+    timezone: 'UTC',
     logger: jest.fn(),
     ...overrides,
   };

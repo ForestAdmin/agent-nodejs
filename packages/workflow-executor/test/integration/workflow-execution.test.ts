@@ -254,6 +254,7 @@ function buildPendingStep(
     runId: 'run-1',
     stepId: 'step-1',
     stepIndex: 0,
+    timezone: 'UTC',
     collectionId: 'col-1',
     triggerType: TriggerType.Manual,
     baseRecordRef: BASE_RECORD_REF,

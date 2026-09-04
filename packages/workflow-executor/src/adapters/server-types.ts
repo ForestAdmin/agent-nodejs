@@ -226,6 +226,8 @@ export interface ServerHydratedWorkflowRun {
   renderingId: number;
   lockedAt?: string | null;
   userProfile: ServerUserProfile;
+  /** The project's IANA zone. Absent from an orchestrator that predates it, null when unset. */
+  timezone?: string | null;
 }
 
 // --- Update step request (POST /api/workflow-orchestrator/update-step) ---

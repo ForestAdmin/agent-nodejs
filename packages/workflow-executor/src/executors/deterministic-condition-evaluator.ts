@@ -1,8 +1,19 @@
 import type { ConditionOperator } from '../types/validated/step-definition';
 
+import { DateTime } from 'luxon';
+
+// The instant and zone a relative condition is read against. Injected by the step executor rather
+// than read here, so the evaluator stays a pure function of its inputs: two runs handed the same
+// clock answer the same, and a test can pin any moment it likes.
+export interface Clock {
+  now: Date;
+  timezone: string;
+}
+
 // Guard against Date.parse's laxity ("5" parses as a year in some engines): only strings that
 // start like an ISO date are treated as dates.
 const ISO_DATE_PREFIX = /^\d{4}-\d{2}-\d{2}/;
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 const TIMEZONE_SUFFIX = /(Z|[+-]\d{2}:?\d{2})$/i;
 // Sequelize hands back numeric/decimal/bigint columns as strings although datasource-sequelize
 // maps them to the Number primitive, so the builder's JSON number meets a string at runtime.
@@ -27,6 +38,18 @@ function toTimestamp(value: unknown): number | null {
   const parsed = Date.parse(absolute);
 
   return Number.isNaN(parsed) ? null : parsed;
+}
+
+// A calendar date has no instant of its own, so it is read at midnight in the project's zone: that
+// is what makes "today" the project's today for a Dateonly column, whatever the machine's or UTC's
+// day is at that moment. A datetime is an instant already and keeps the UTC pinning above.
+function toInstant(value: unknown, timezone: string): DateTime | null {
+  if (typeof value !== 'string' || !isRealCalendarDate(value.slice(0, 10))) return null;
+  if (DATE_ONLY.test(value)) return DateTime.fromISO(value, { zone: timezone });
+
+  const timestamp = toTimestamp(value);
+
+  return timestamp === null ? null : DateTime.fromMillis(timestamp);
 }
 
 function toNumber(value: unknown): number | null {
@@ -119,16 +142,22 @@ function isPresent(value: unknown): boolean {
   return true;
 }
 
-// Tri-state like scalarEqual: null = the candidate could not be compared to any member, so a
-// negated membership test cannot claim "not a member" about a comparison it never managed to make.
-// An empty list compares nothing and mismatches nothing, so it stays a plain false.
-function memberOf(list: unknown, candidate: unknown): boolean | null {
-  if (!Array.isArray(list)) return null;
+function isMemberOf(list: unknown, candidate: unknown): boolean {
+  return Array.isArray(list) && list.some(item => scalarEqual(item, candidate) === true);
+}
 
-  const results = list.map(item => scalarEqual(item, candidate));
-  if (results.includes(true)) return true;
+function includesAll(actual: unknown, expected: unknown): boolean {
+  if (!Array.isArray(actual)) return false;
+  const wanted = Array.isArray(expected) ? expected : [expected];
 
-  return results.includes(null) ? null : false;
+  return wanted.every(item => isMemberOf(actual, item));
+}
+
+// Strings only: no coercion of a number into text, so a broken config can never accidentally
+// satisfy a text operator.
+function stringTest(satisfies: (actual: string, expected: string) => boolean) {
+  return (actual: unknown, expected: unknown): boolean =>
+    typeof actual === 'string' && typeof expected === 'string' && satisfies(actual, expected);
 }
 
 function ordering(satisfies: (diff: number) => boolean) {
@@ -139,22 +168,120 @@ function ordering(satisfies: (diff: number) => boolean) {
   };
 }
 
+// The builder pins a datetime for a Date column and a calendar date for a Dateonly one, so both
+// sides share a kind and both go through toInstant: a calendar date is read in the project's zone
+// on either side, which keeps "before 2026-03-01" meaning the same day the author had in mind.
+function dateOrdering(satisfies: (actual: DateTime, expected: DateTime) => boolean) {
+  return (actual: unknown, expected: unknown, clock: Clock): boolean => {
+    const actualInstant = toInstant(actual, clock.timezone);
+    const expectedInstant = toInstant(expected, clock.timezone);
+
+    return (
+      actualInstant !== null &&
+      expectedInstant !== null &&
+      satisfies(actualInstant, expectedInstant)
+    );
+  };
+}
+
+// Relative to the clock. A window is half open, [start, end): a value at the very start of today
+// is today, a value at the very start of tomorrow is not. Mirrors datasource-toolkit's time
+// transforms, which is what the list filter runs on, so both agree on what "today" covers.
+type Window = (now: DateTime, value: unknown) => [start: DateTime, end: DateTime] | null;
+
+function days(value: unknown): number | null {
+  const count = toNumber(value);
+
+  return count !== null && Number.isInteger(count) && count > 0 ? count : null;
+}
+
+const WINDOWS: Record<
+  'today' | 'yesterday' | 'previous_x_days' | 'previous_x_days_to_date',
+  Window
+> = {
+  today: now => [now.startOf('day'), now.plus({ days: 1 }).startOf('day')],
+  yesterday: now => [now.minus({ days: 1 }).startOf('day'), now.startOf('day')],
+  previous_x_days: (now, value) => {
+    const count = days(value);
+
+    return count === null ? null : [now.minus({ days: count }).startOf('day'), now.startOf('day')];
+  },
+  previous_x_days_to_date: (now, value) => {
+    const count = days(value);
+
+    return count === null ? null : [now.minus({ days: count }).startOf('day'), now];
+  },
+};
+
+function within(name: keyof typeof WINDOWS) {
+  return (actual: unknown, expected: unknown, clock: Clock): boolean => {
+    const instant = toInstant(actual, clock.timezone);
+    if (instant === null) return false;
+
+    const window = WINDOWS[name](DateTime.fromJSDate(clock.now).setZone(clock.timezone), expected);
+    if (window === null) return false;
+
+    const [start, end] = window;
+
+    return instant >= start && instant < end;
+  };
+}
+
+function relativeTo(
+  bound: (now: DateTime, value: unknown) => DateTime | null,
+  satisfies: (actual: DateTime, bound: DateTime) => boolean,
+) {
+  return (actual: unknown, expected: unknown, clock: Clock): boolean => {
+    const instant = toInstant(actual, clock.timezone);
+    if (instant === null) return false;
+
+    const reference = bound(DateTime.fromJSDate(clock.now).setZone(clock.timezone), expected);
+
+    return reference !== null && satisfies(instant, reference);
+  };
+}
+
+function hoursAgo(now: DateTime, value: unknown): DateTime | null {
+  const count = toNumber(value);
+
+  return count !== null && count >= 0 ? now.minus({ hours: count }) : null;
+}
+
 const EVALUATORS: Record<
   Exclude<ConditionOperator, 'present' | 'blank'>,
-  (actual: unknown, expected: unknown) => boolean
+  (actual: unknown, expected: unknown, clock: Clock) => boolean
 > = {
   equal: (actual, expected) => isEqual(actual, expected) === true,
   not_equal: (actual, expected) => isEqual(actual, expected) === false,
   greater_than: ordering(diff => diff > 0),
   less_than: ordering(diff => diff < 0),
-  greater_than_or_equal: ordering(diff => diff >= 0),
-  less_than_or_equal: ordering(diff => diff <= 0),
-  in: (actual, expected) => memberOf(expected, actual) === true,
-  not_in: (actual, expected) => memberOf(expected, actual) === false,
-  contains: (actual, expected) =>
-    typeof actual === 'string' && typeof expected === 'string' && actual.includes(expected),
-  not_contains: (actual, expected) =>
-    typeof actual === 'string' && typeof expected === 'string' && !actual.includes(expected),
+  in: (actual, expected) => isMemberOf(expected, actual),
+  includes_all: includesAll,
+  contains: stringTest((actual, expected) => actual.includes(expected)),
+  not_contains: stringTest((actual, expected) => !actual.includes(expected)),
+  starts_with: stringTest((actual, expected) => actual.startsWith(expected)),
+  ends_with: stringTest((actual, expected) => actual.endsWith(expected)),
+  // Case folded, accents kept: what Postgres ILIKE does ('É' ILIKE '%é%' holds, 'é' ILIKE '%e%'
+  // does not), which is the behaviour the list filter shows on the reference database.
+  i_contains: stringTest((actual, expected) =>
+    actual.toLowerCase().includes(expected.toLowerCase()),
+  ),
+  before: dateOrdering((actual, expected) => actual < expected),
+  after: dateOrdering((actual, expected) => actual > expected),
+  past: relativeTo(
+    now => now,
+    (actual, bound) => actual < bound,
+  ),
+  future: relativeTo(
+    now => now,
+    (actual, bound) => actual > bound,
+  ),
+  before_x_hours_ago: relativeTo(hoursAgo, (actual, bound) => actual < bound),
+  after_x_hours_ago: relativeTo(hoursAgo, (actual, bound) => actual > bound),
+  today: within('today'),
+  yesterday: within('yesterday'),
+  previous_x_days: within('previous_x_days'),
+  previous_x_days_to_date: within('previous_x_days_to_date'),
 };
 
 /**
@@ -162,15 +289,17 @@ const EVALUATORS: Record<
  * - `null` = not evaluable (the resolved value is null/missing) — treated as "not met";
  * - a type-mismatched comparison (including for negated operators) is "not met" (`false`),
  *   so a broken config can never accidentally satisfy a condition.
+ * Relative date operators read the injected clock, never the machine's.
  */
 export default function evaluateOperator(
   operator: ConditionOperator,
   actual: unknown,
   expected: unknown,
+  clock: Clock,
 ): boolean | null {
   if (operator === 'present') return isPresent(actual);
   if (operator === 'blank') return !isPresent(actual);
   if (actual === null || actual === undefined) return null;
 
-  return EVALUATORS[operator](actual, expected);
+  return EVALUATORS[operator](actual, expected, clock);
 }

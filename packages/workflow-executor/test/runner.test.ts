@@ -168,6 +168,7 @@ function makePendingStep(
     runId: 'run-1',
     stepId: 'step-1',
     stepIndex: 0,
+    timezone: 'UTC',
     collectionId: 'col-1',
     triggerType: TriggerType.Manual,
     baseRecordRef: { collectionName: 'customers', recordId: ['1'], stepIndex: 0 },
