@@ -37,6 +37,7 @@ function makeStep(): AvailableStepExecution {
       permissionLevel: 'admin',
       tags: {},
     },
+    timezone: 'UTC',
   } as unknown as AvailableStepExecution;
 }
 

@@ -49,6 +49,8 @@ export const AvailableStepExecutionSchema = z
     stepDefinition: StepDefinitionSchema,
     previousSteps: z.array(StepSchema),
     user: StepUserSchema,
+    /** IANA zone the run's relative dates are read in: the project's, never the machine's. */
+    timezone: z.string().min(1),
   })
   .strict();
 export type AvailableStepExecution = z.infer<typeof AvailableStepExecutionSchema>;

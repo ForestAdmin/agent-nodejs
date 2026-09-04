@@ -48,6 +48,13 @@ export interface DeterministicConditionExecutionParams {
   evaluations: ConditionEvaluation[];
   selectedOption: string;
   usedFallback: boolean;
+  /**
+   * The instant and zone the conditions were read against. A relative date makes the routing
+   * depend on the clock, so without these a check on "previous 7 days" cannot be explained a day
+   * later.
+   */
+  evaluatedAt: string;
+  timezone: string;
 }
 
 export interface ConditionStepExecutionData extends BaseStepExecutionData {

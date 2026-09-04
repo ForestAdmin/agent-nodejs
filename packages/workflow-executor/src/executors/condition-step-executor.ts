@@ -16,7 +16,7 @@ import { z } from 'zod';
 
 import { InvalidStepDefinitionError, StepStateError } from '../errors';
 import BaseStepExecutor from './base-step-executor';
-import evaluateOperator from './deterministic-condition-evaluator';
+import evaluateOperator, { type Clock } from './deterministic-condition-evaluator';
 import patchBodySchemas from '../http/pending-data-validators';
 import {
   StepExecutionMode,
@@ -127,6 +127,9 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
   ): Promise<StepExecutionResult> {
     const { optionConditions, fallbackOption } = step.preRecordedArgs;
     const stepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
+    // One clock for the whole step: every condition of every option reads the same instant, so
+    // "today" cannot flip between two rows evaluated a millisecond apart.
+    const clock: Clock = { now: new Date(), timezone: this.context.timezone };
 
     let matchedOption: string | undefined;
     const evaluations = optionConditions.map(({ option, aggregator, conditions }) => {
@@ -135,7 +138,7 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
       }
 
       const results = conditions.map((condition, index) => {
-        const { met, reason } = this.evaluateCondition(condition, stepExecutions);
+        const { met, reason } = this.evaluateCondition(condition, stepExecutions, clock);
 
         return { index, met, ...(reason && { reason }) };
       });
@@ -167,7 +170,13 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
     await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'condition',
       stepIndex: this.context.stepIndex,
-      executionParams: { evaluations, selectedOption, usedFallback },
+      executionParams: {
+        evaluations,
+        selectedOption,
+        usedFallback,
+        evaluatedAt: clock.now.toISOString(),
+        timezone: clock.timezone,
+      },
       executionResult: { answer: selectedOption },
     });
 
@@ -177,6 +186,7 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
   private evaluateCondition(
     condition: DeterministicCondition,
     stepExecutions: StepExecutionData[],
+    clock: Clock,
   ): { met: boolean | null; reason?: ConditionNotLoadedReason } {
     const resolved = this.resolveConditionValue(condition, stepExecutions);
 
@@ -194,7 +204,7 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
       return { met: null, reason: resolved.reason };
     }
 
-    return { met: evaluateOperator(condition.operator, resolved.value, condition.value) };
+    return { met: evaluateOperator(condition.operator, resolved.value, condition.value, clock) };
   }
 
   // Same live-path + most-recent-occurrence resolution as resolveSourceRecordRef: previousSteps

@@ -33,6 +33,7 @@ export interface ExecutionContext<TStep extends StepDefinition = StepDefinition>
   readonly activityLog: ActivityLog;
   readonly runStore: RunStore;
   readonly user: StepUser;
+  readonly timezone: string;
   readonly schemaResolver: SchemaResolver;
   readonly previousSteps: ReadonlyArray<Readonly<Step>>;
   readonly logger: Logger;
