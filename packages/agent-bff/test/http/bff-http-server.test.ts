@@ -110,6 +110,15 @@ describe('BFFHttpServer', () => {
       });
     });
 
+    it('should stay healthy without an encryption key, which gates OAuth and not boot', async () => {
+      const server = createServer({ ...VALID_ENV, BFF_TOKEN_ENCRYPTION_KEY: undefined });
+
+      const response = await request(server.callback).get('/health');
+
+      expect(response.status).toBe(200);
+      expect(response.body.status).toBe('ok');
+    });
+
     // The features block names capabilities, never values: an anonymous caller learns that OAuth is
     // configured, not what any secret holds.
     it('should never expose secret values or the config itself in the response body', async () => {

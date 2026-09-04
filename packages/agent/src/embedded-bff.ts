@@ -86,7 +86,10 @@ export default class EmbeddedBff {
       // do not: they are periodic cache sizes, and the default console sink reports them at Info,
       // which would flood a host that only asked for a BFF.
       metrics: {
-        increment: name => this.options.logger('Warn', formatLog(`metric ${name}`)),
+        // Tags carried through: `action_endpoint_error` and `action_endpoint_miss` name the
+        // rendering, collection and action that failed, which is the whole of what makes the line
+        // actionable — the metric name alone says only that something, somewhere, did not resolve.
+        increment: (name, tags) => this.options.logger('Warn', formatLog(`metric ${name}`, tags)),
         gauge: () => undefined,
       },
       logger: (level, message, context) => this.options.logger(level, formatLog(message, context)),

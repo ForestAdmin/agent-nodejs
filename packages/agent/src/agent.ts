@@ -79,6 +79,9 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
 
   private isRestarting = false;
 
+  /** Set once start() has completed, so a builder call made too late can say so. */
+  private started = false;
+
   /**
    * Create a new Agent Builder.
    * If any options are missing, the default will be applied:
@@ -133,6 +136,8 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
       await this.embeddedExecutor?.start(this.standaloneServerHost, this.standaloneServerPort);
       // Same reason, without the socket: the dispatcher injects into the stack mount() just built.
       await this.embeddedBff?.start(this.getInProcessDispatcher());
+
+      this.started = true;
     } catch (error) {
       const { message } = error as Error;
       this.options.logger('Error', `Forest Admin agent startup failure: ${message}`);
@@ -419,6 +424,13 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   addBff(options: BffEmbedOptions = {}): this {
     if (this.embeddedBff) {
       throw new Error('addBff can only be called once.');
+    }
+
+    // Refused rather than accepted and left dark: after start() the dispatcher hook has no mount to
+    // attach to and nothing calls the BFF's own start(), so `/bff` would answer 503 for the rest of
+    // the process while every other route works. A throw on the line the developer wrote instead.
+    if (this.started) {
+      throw new Error('addBff must be called before start(): the agent is already started.');
     }
 
     if (collidesWithBff(this.mcpBasePath)) {
