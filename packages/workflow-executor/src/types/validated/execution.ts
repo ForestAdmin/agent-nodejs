@@ -1,3 +1,4 @@
+import { IANAZone } from 'luxon';
 import { z } from 'zod';
 
 import { RecordRefSchema } from './collection';
@@ -49,7 +50,10 @@ export const AvailableStepExecutionSchema = z
     stepDefinition: StepDefinitionSchema,
     previousSteps: z.array(StepSchema),
     user: StepUserSchema,
-    timezone: z.string().min(1),
+    // Refused rather than trusted: Luxon reads an unknown zone as invalid and every relative
+    // condition would then quietly not match. The mapper normalises to UTC, so this only ever
+    // fires on a mapper bug.
+    timezone: z.string().refine(IANAZone.isValidZone),
   })
   .strict();
 export type AvailableStepExecution = z.infer<typeof AvailableStepExecutionSchema>;
