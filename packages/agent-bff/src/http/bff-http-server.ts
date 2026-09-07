@@ -16,6 +16,11 @@ interface BFFHttpServerBaseOptions {
   port: number;
   config: BFFConfig;
   logger?: Logger;
+  /**
+   * Waits for the work no connection holds: the activity-log status transitions are fired without
+   * `await`, so `close()` does not cover them and a shutdown would leave entries `pending`.
+   */
+  drainActivityLogs?: () => Promise<void>;
 }
 
 /** The server assembles its own Koa app around `/health` and the version header. */
@@ -116,6 +121,11 @@ export default class BFFHttpServer {
   }
 
   async stop(): Promise<void> {
+    await this.closeConnections();
+    await this.options.drainActivityLogs?.();
+  }
+
+  private async closeConnections(): Promise<void> {
     return new Promise((resolve, reject) => {
       if (!this.server) {
         resolve();

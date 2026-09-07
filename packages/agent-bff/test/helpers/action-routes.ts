@@ -5,6 +5,7 @@ import type ReadModelStore from '../../src/read-model/read-model-store';
 import { bodyParser } from '@koa/bodyparser';
 import Koa from 'koa';
 
+import { passthroughActivityLogs } from './activity-log';
 import createActionRoutesMiddleware from '../../src/action/action-routes-middleware';
 import { createHttpTransport } from '../../src/agent/agent-transport';
 import createErrorMiddleware from '../../src/http/error-middleware';
@@ -125,6 +126,7 @@ export function buildApp(
       store,
       transport: createHttpTransport({ agentUrl: 'https://agent.example.com' }),
       logger,
+      activityLogs: passthroughActivityLogs(),
       createClient: () => client,
     }),
   );
@@ -151,6 +153,7 @@ export function buildAppWithTerminal(client: AgentActionClient) {
       store: storeOf(readModel),
       transport: createHttpTransport({ agentUrl: 'https://agent.example.com' }),
       logger: noopLogger,
+      activityLogs: passthroughActivityLogs(),
       createClient: () => client,
     }),
   );

@@ -1,5 +1,7 @@
 import {
   actionNotAllowed,
+  auditNotAuthorized,
+  auditUnavailable,
   collectionNotAllowed,
   invalidRequest,
   mappingError,
@@ -27,8 +29,17 @@ describe('bff local errors', () => {
     [unsupportedActionResult, 'unsupported_action_result', 501],
     [openapiDisabled, 'openapi_disabled', 404],
     [streamingUnsupported, 'streaming_unsupported', 501],
+    [auditNotAuthorized, 'audit_not_authorized', 403],
   ])('%p builds a %s error with status %d', (factory, type, status) => {
     expect(factory()).toMatchObject({ type, status });
+  });
+
+  it('carries the retry delay on auditUnavailable', () => {
+    expect(auditUnavailable(5)).toMatchObject({
+      type: 'audit_unavailable',
+      status: 503,
+      retryAfter: 5,
+    });
   });
 
   it('carries details on invalidRequest', () => {

@@ -5,6 +5,8 @@ import type {
   RelationCountRequestBody,
   RelationListRequestBody,
 } from './agent-query';
+import type { ActivityLogWriter } from '../activity-log/activity-log-writer';
+import type { BffActivityLogAction } from '../activity-log/activity-logs-creator';
 import type { AgentTransport } from '../agent/agent-transport';
 import type { Logger } from '../ports/logger-port';
 import type { CapabilitiesResult } from '../read-model/capabilities-cache';
@@ -46,6 +48,7 @@ export interface DataRoutesMiddlewareOptions {
   store: ReadModelStore;
   transport: AgentTransport;
   logger: Logger;
+  activityLogs: ActivityLogWriter;
   createClient?: (options: AgentDataClientOptions) => AgentDataClient;
 }
 
@@ -57,6 +60,7 @@ interface RequestHandlerDeps {
   token: string;
   timezone: string;
   logger: Logger;
+  activityLogs: ActivityLogWriter;
 }
 
 type ListHandlerDeps = RequestHandlerDeps & { primaryKeys: PrimaryKeyField[] };
@@ -139,7 +143,14 @@ async function resolveOwnCapabilities(
   return result;
 }
 
-async function handleList(ctx: Context, body: ListRequestBody, deps: ListHandlerDeps) {
+function selectListAction(body: ListRequestBody): BffActivityLogAction {
+  if (body.search) return 'search';
+  if (body.filter) return 'filter';
+
+  return 'index';
+}
+
+async function listRecords(ctx: Context, body: ListRequestBody, deps: ListHandlerDeps) {
   assertNoRelationFieldPaths(collectListFieldPaths(body));
 
   const validationInput = toValidationInput(body);
@@ -160,6 +171,15 @@ async function handleList(ctx: Context, body: ListRequestBody, deps: ListHandler
 
   ctx.status = 200;
   ctx.body = mapListResponse(deps.collection, records, primaryKeys);
+}
+
+async function handleList(ctx: Context, body: ListRequestBody, deps: ListHandlerDeps) {
+  await deps.activityLogs.record({
+    ctx,
+    action: selectListAction(body),
+    context: { collectionName: deps.collection },
+    operation: () => listRecords(ctx, body, deps),
+  });
 }
 
 async function handleCount(ctx: Context, body: CountRequestBody, deps: RequestHandlerDeps) {
@@ -217,7 +237,18 @@ async function resolveExposedRelationCapabilities(
   return result;
 }
 
-async function handleRelationList(
+function relationListLabel(relation: string, body: RelationListRequestBody): string {
+  const refinements: string[] = [];
+
+  if (body.search) refinements.push('search');
+  if (body.filter) refinements.push('filter');
+
+  const suffix = refinements.length > 0 ? ` with ${refinements.join(' and ')}` : '';
+
+  return `list relation "${relation}"${suffix}`;
+}
+
+async function listRelatedRecords(
   ctx: Context,
   body: RelationListRequestBody,
   deps: RelationListHandlerDeps,
@@ -242,6 +273,23 @@ async function handleRelationList(
 
   ctx.status = 200;
   ctx.body = mapListResponse(deps.foreignCollection, records, primaryKeys);
+}
+
+async function handleRelationList(
+  ctx: Context,
+  body: RelationListRequestBody,
+  deps: RelationListHandlerDeps,
+) {
+  await deps.activityLogs.record({
+    ctx,
+    action: 'listRelatedData',
+    context: {
+      collectionName: deps.collection,
+      recordId: body.parentId,
+      label: relationListLabel(deps.relation, body),
+    },
+    operation: () => listRelatedRecords(ctx, body, deps),
+  });
 }
 
 async function handleRelationCount(
@@ -308,6 +356,7 @@ export default function createDataRoutesMiddleware({
   store,
   transport,
   logger,
+  activityLogs,
   createClient = defaultCreateAgentDataClient,
 }: DataRoutesMiddlewareOptions): Middleware {
   return async function dataRoutesMiddleware(ctx, next) {
@@ -341,6 +390,7 @@ export default function createDataRoutesMiddleware({
       token,
       timezone: ctx.state.timezone as string,
       logger,
+      activityLogs,
     };
     const rawBody = ctx.request.body ?? {};
 

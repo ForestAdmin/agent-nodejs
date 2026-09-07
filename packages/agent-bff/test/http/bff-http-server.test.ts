@@ -26,10 +26,15 @@ const teapot: BffCallback = (req, res) => {
   res.end();
 };
 
-function createServer(env: NodeJS.ProcessEnv, port = 0, logger: Logger = noopLogger) {
+function createServer(
+  env: NodeJS.ProcessEnv,
+  port = 0,
+  logger: Logger = noopLogger,
+  drainActivityLogs?: () => Promise<void>,
+) {
   const config = parseConfig(env);
 
-  return new BFFHttpServer({ port, version: VERSION, config, logger });
+  return new BFFHttpServer({ port, version: VERSION, config, logger, drainActivityLogs });
 }
 
 function createPrebuiltServer(env: NodeJS.ProcessEnv, logger: Logger = noopLogger) {
@@ -265,6 +270,42 @@ describe('BFFHttpServer', () => {
       const server = createServer({ ...VALID_ENV });
 
       await expect(server.stop()).resolves.toBeUndefined();
+    });
+  });
+
+  describe('when stopping a server that writes activity logs', () => {
+    it('should drain the pending status transitions after closing the connections', async () => {
+      const events: string[] = [];
+      const server = createServer({ ...VALID_ENV }, 0, noopLogger, async () => {
+        events.push('drain');
+      });
+      await server.start();
+      (server as unknown as { server: Server }).server.on('close', () => events.push('close'));
+
+      await server.stop();
+
+      expect(events).toEqual(['close', 'drain']);
+    });
+
+    it('should not drain when the connections could not be closed', async () => {
+      const drain = jest.fn(async () => undefined);
+      const server = createServer({ ...VALID_ENV }, 0, noopLogger, drain);
+      await server.start();
+
+      const closeError = new Error('close failed');
+      const internal = (server as unknown as { server: Server }).server;
+      jest.spyOn(internal, 'close').mockImplementation(((cb: (err?: Error) => void) => {
+        cb(closeError);
+
+        return internal;
+      }) as Server['close']);
+
+      await expect(server.stop()).rejects.toBe(closeError);
+
+      expect(drain).not.toHaveBeenCalled();
+
+      jest.restoreAllMocks();
+      await closeServer(internal);
     });
   });
 

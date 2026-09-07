@@ -50,6 +50,7 @@ export default function createApiKeyMiddleware({
 
     ctx.state.agentToken = authenticated.agentToken;
     ctx.state.apiKeyIdentity = authenticated.identity;
+    ctx.state.forestServerToken = authenticated.forestServerToken;
     ctx.set('Cache-Control', 'no-store');
     logger('Info', 'Resolved BFF API key', {
       keyHash: fingerprintApiKey(rawKey),
