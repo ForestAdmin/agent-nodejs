@@ -190,6 +190,22 @@ describe('evaluateOperator', () => {
       expect(ev('greater_than', '08:31', '08:30:59')).toBe(true);
     });
 
+    // Text comparison would order "08:30:00.10" before "08:30:00.1", the same instant written twice.
+    it('reads the fraction of a second as a value, not as text', () => {
+      expect(ev('less_than', '08:30:00.1', '08:30:00.10')).toBe(false);
+      expect(ev('greater_than', '08:30:00.1', '08:30:00.10')).toBe(false);
+      expect(ev('equal', '08:30:00.1', '08:30:00.100')).toBe(true);
+      expect(ev('less_than', '08:30:00.09', '08:30:00.1')).toBe(true);
+      expect(ev('greater_than', '08:30:00.2', '08:30:00.19')).toBe(true);
+    });
+
+    it('is not met on a time nobody can be at', () => {
+      expect(ev('equal', '24:00:00', '24:00:00')).toBe(true);
+      expect(ev('greater_than', '25:00:00', '08:00:00')).toBe(false);
+      expect(ev('greater_than', '08:70:00', '08:00:00')).toBe(false);
+      expect(ev('greater_than', '08:30:70', '08:00:00')).toBe(false);
+    });
+
     it('is not met against something that is not a time of day', () => {
       expect(ev('greater_than', '08:30:00', 7)).toBe(false);
       expect(ev('greater_than', '08:30:00', 'morning')).toBe(false);
