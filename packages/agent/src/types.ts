@@ -77,8 +77,9 @@ export type AgentOptions = {
   /**
    * Serve columns of collections the caller has no `read` permission on when they are reached
    * through a relation path (`holder:nationalId`) in a projection, a filter, a sort, a search or a
-   * chart. The route's own `browse`/`read`/`export` check on the collection being queried is
-   * unaffected.
+   * chart, and drop the `browse` a `Count` leaderboard requires on the collection it counts. No
+   * check on the collection being queried is affected: the route's own `browse`/`read`/`export`
+   * still runs.
    * @default false
    */
   skipRelationReadPermissions?: boolean;

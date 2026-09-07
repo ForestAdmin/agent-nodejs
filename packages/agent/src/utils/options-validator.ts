@@ -62,6 +62,14 @@ export default class OptionsValidator {
       );
     }
 
+    if (copyOptions.skipRelationReadPermissions) {
+      copyOptions.logger(
+        'Warn',
+        'options.skipRelationReadPermissions=true: columns of collections the caller has no ' +
+          'read permission on are served when a relation path reaches them',
+      );
+    }
+
     if (copyOptions.skipSchemaUpdate && copyOptions.experimental) {
       copyOptions.logger(
         'Warn',

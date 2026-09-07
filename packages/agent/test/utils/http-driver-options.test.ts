@@ -19,6 +19,43 @@ describe('OptionsValidator', () => {
       expect(options).toHaveProperty('instantCacheRefresh', true);
       expect(options).toHaveProperty('permissionsCacheDurationInSeconds', 31560000);
       expect(options).toHaveProperty('skipSchemaUpdate', false);
+      expect(options).toHaveProperty('skipRelationReadPermissions', false);
+    });
+
+    describe('skipRelationReadPermissions', () => {
+      test('keeps a configured value', () => {
+        const options = OptionsValidator.withDefaults({
+          ...mandatoryOptions,
+          skipRelationReadPermissions: true,
+          logger: jest.fn(),
+        });
+
+        expect(options).toHaveProperty('skipRelationReadPermissions', true);
+      });
+
+      test('warns on boot so the weakened posture shows in the logs', () => {
+        const logger = jest.fn();
+
+        OptionsValidator.withDefaults({
+          ...mandatoryOptions,
+          skipRelationReadPermissions: true,
+          logger,
+        });
+
+        expect(logger).toHaveBeenCalledWith(
+          'Warn',
+          'options.skipRelationReadPermissions=true: columns of collections the caller has no ' +
+            'read permission on are served when a relation path reaches them',
+        );
+      });
+
+      test('stays quiet when the option is left off', () => {
+        const logger = jest.fn();
+
+        OptionsValidator.withDefaults({ ...mandatoryOptions, logger });
+
+        expect(logger).not.toHaveBeenCalledWith('Warn', expect.stringContaining('skipRelation'));
+      });
     });
 
     describe('maxRecordsForApproval', () => {

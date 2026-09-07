@@ -16,6 +16,7 @@ import ListRelated from '../../src/routes/access/list-related';
 import Update from '../../src/routes/modification/update';
 import AuthorizationService from '../../src/services/authorization/authorization';
 import Serializer from '../../src/services/serializer';
+import { HttpCode } from '../../src/types';
 import * as factories from '../__factories__';
 
 describe('read permissions on related collections', () => {
@@ -940,6 +941,107 @@ describe('read permissions on related collections', () => {
 
       expect(aggregate.mock.calls[0][2]).toMatchObject({
         groups: [{ field: 'holder:fullName' }],
+      });
+    });
+
+    // The `browse` a `Count` leaderboard asserts on the collection it counts came in with the
+    // related-read checks, so the option drops it too — a leaderboard that worked before them
+    // works again.
+    it('should serve a leaderboard counting a collection the caller cannot browse', async () => {
+      const dataSource = buildDataSource();
+      const forestAdminClient = factories.forestAdminClient.build();
+      const services = factories.forestAdminHttpDriverServices.build();
+      services.authorization = new AuthorizationService(forestAdminClient, true);
+      const body = {
+        type: 'Leaderboard',
+        aggregator: 'Count',
+        relationshipFieldName: 'cards',
+        labelFieldName: 'fullName',
+        limit: 5,
+      };
+
+      const aggregate = jest
+        .spyOn(dataSource.getCollection('cards'), 'aggregate')
+        .mockResolvedValue([]);
+
+      (forestAdminClient.permissionService.canOnCollection as jest.Mock).mockImplementation(
+        ({ collectionName }) => collectionName === 'holders',
+      );
+      (forestAdminClient.permissionService.canExecuteChart as jest.Mock).mockResolvedValue(true);
+      (services.chartHandler.getChartWithContextInjected as jest.Mock).mockResolvedValue(body);
+
+      const context = buildContext({}, {}, body);
+
+      await new Chart(services, unsafeOptions, dataSource, 'holders').handleChart(context);
+
+      expect(forestAdminClient.permissionService.canOnCollection).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          event: CollectionActionEvent.Browse,
+          collectionName: 'cards',
+        }),
+      );
+      expect(context.throw).not.toHaveBeenCalled();
+      expect(aggregate.mock.calls[0][2]).toMatchObject({ operation: 'Count' });
+    });
+
+    // The option widens what a permitted request may reach; it must not make an unpermitted one
+    // permitted. The route's own check on the collection being queried is the boundary, and
+    // nothing above exercises it: `buildServices` allows every event on `cards`.
+    describe('the check on the collection being queried', () => {
+      const denyEverything = () => {
+        const forestAdminClient = factories.forestAdminClient.build();
+
+        (forestAdminClient.permissionService.canOnCollection as jest.Mock).mockResolvedValue(false);
+
+        const services = factories.forestAdminHttpDriverServices.build();
+        services.authorization = new AuthorizationService(forestAdminClient, true);
+        services.serializer.serialize = jest.fn();
+        services.serializer.serializeWithSearchMetadata = jest.fn();
+
+        return services;
+      };
+
+      it('should still refuse a listing when browse is denied on the root collection', async () => {
+        const dataSource = buildDataSource();
+        const services = denyEverything();
+        jest.spyOn(dataSource.getCollection('cards'), 'list').mockResolvedValue([]);
+        const context = buildContext({});
+
+        await new List(services, unsafeOptions, dataSource, 'cards').handleList(context);
+
+        expect(context.throw).toHaveBeenCalledWith(HttpCode.Forbidden, 'Forbidden');
+      });
+
+      it('should still refuse a get-one when read is denied on the root collection', async () => {
+        const dataSource = buildDataSource();
+        const services = denyEverything();
+        jest.spyOn(dataSource.getCollection('cards'), 'list').mockResolvedValue([{ id: 'card-1' }]);
+        const context = buildContext({
+          params: { id: '2d162303-78bf-599e-b197-93590ac3d315' },
+        });
+
+        await new Get(services, unsafeOptions, dataSource, 'cards').handleGet(context);
+
+        expect(context.throw).toHaveBeenCalledWith(HttpCode.Forbidden, 'Forbidden');
+      });
+
+      it('should still refuse a related export when export is denied on the foreign collection', async () => {
+        const dataSource = buildDataSource();
+        const services = denyEverything();
+        const context = buildContext({
+          params: { parentId: '2d162303-78bf-599e-b197-93590ac3d315' },
+          query: { 'fields[cards]': 'id,panLast4', header: 'Id,Pan' },
+        });
+
+        await new CsvRelated(
+          services,
+          unsafeOptions,
+          dataSource,
+          'holders',
+          'cards',
+        ).handleRelatedCsv(context);
+
+        expect(context.throw).toHaveBeenCalledWith(HttpCode.Forbidden, 'Forbidden');
       });
     });
   });
