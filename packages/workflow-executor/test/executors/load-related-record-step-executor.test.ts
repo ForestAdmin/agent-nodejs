@@ -4344,9 +4344,9 @@ describe('LoadRelatedRecordStepExecutor', () => {
       );
     });
 
-    // Regression: a Rails/Express reference smart field reaches the executor as a plain BelongsTo
-    // now that the server derives the relation from `reference` alone. Pinning it must follow it,
-    // where it used to fail as an invalid pre-recorded arg because the field was not a relation.
+    // Regression: a forest-rails smart field reaches the executor as a plain BelongsTo now that the
+    // server derives the relation from a `reference` whose target is in the apimap. Pinning it must
+    // follow it, where it used to fail as an invalid pre-recorded arg — the field was not a relation.
     it('follows a pinned reference-only BelongsTo', async () => {
       const { model, bindTools } = makeMockModel();
       const runStore = makeMockRunStore();
@@ -4382,7 +4382,11 @@ describe('LoadRelatedRecordStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('success');
       expect(bindTools).not.toHaveBeenCalled();
       expect(agentPort.getSingleRelatedData).toHaveBeenCalledWith(
-        expect.objectContaining({ relation: 'card' }),
+        expect.objectContaining({
+          collection: 'customers',
+          relation: 'card',
+          relatedSchema: expect.objectContaining({ collectionName: 'cards' }),
+        }),
         expect.anything(),
       );
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(

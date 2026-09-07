@@ -847,8 +847,6 @@ describe('AgentClientAgentPort', () => {
       expect(result?.recordId).toEqual(['acme', '7']);
     });
 
-    // Rails/Express reference smart fields are serialized as plain attributes: the projected value
-    // is the related id itself, with no linkage object to unpack.
     it('reads the target by id when the projected value is a scalar', async () => {
       mockCollection.getOne
         .mockResolvedValueOnce({ card: 'uuid-1' })
@@ -895,10 +893,34 @@ describe('AgentClientAgentPort', () => {
       });
     });
 
-    it('splits a composite packed id carried by a scalar attribute', async () => {
+    it('splits a scalar attribute only when the target key is composite', async () => {
       mockCollection.getOne
         .mockResolvedValueOnce({ card: 'acme|7' })
         .mockResolvedValueOnce({ id: 'acme|7' });
+
+      const result = await port.getSingleRelatedData(
+        {
+          collection: 'claims',
+          id: [42],
+          relation: 'card',
+          relatedSchema: {
+            ...ordersSchema,
+            collectionName: 'cards',
+            primaryKeyFields: ['tenantId', 'cardId'],
+          },
+        },
+        user,
+      );
+
+      expect(mockCollection.getOne).toHaveBeenNthCalledWith(2, ['acme', '7'], {});
+      expect(result?.recordId).toEqual(['acme', '7']);
+    });
+
+    // The value is produced by client-written code, so a pipe in it is data, not packing.
+    it('keeps a pipe in a scalar attribute intact when the target key is single', async () => {
+      mockCollection.getOne
+        .mockResolvedValueOnce({ card: 'acme|corp' })
+        .mockResolvedValueOnce({ id: 'acme|corp' });
 
       const result = await port.getSingleRelatedData(
         {
@@ -910,12 +932,31 @@ describe('AgentClientAgentPort', () => {
         user,
       );
 
-      expect(mockCollection.getOne).toHaveBeenNthCalledWith(2, ['acme', '7'], {});
-      expect(result?.recordId).toEqual(['acme', '7']);
+      expect(mockCollection.getOne).toHaveBeenNthCalledWith(2, ['acme|corp'], {});
+      expect(result?.recordId).toEqual(['acme|corp']);
     });
 
-    it('returns null when the scalar attribute is empty, without reading the target', async () => {
+    it('returns null when the scalar attribute is null, without reading the target', async () => {
       mockCollection.getOne.mockResolvedValue({ card: null });
+
+      const result = await port.getSingleRelatedData(
+        {
+          collection: 'claims',
+          id: [42],
+          relation: 'card',
+          relatedSchema: { ...ordersSchema, collectionName: 'cards' },
+        },
+        user,
+      );
+
+      expect(result).toBeNull();
+      expect(mockCollection.getOne).toHaveBeenCalledTimes(1);
+    });
+
+    // `object.card&.id.to_s` is the idiomatic Ruby getter, and it answers "" for an unset
+    // association. Reading it as an id would build an id-less URL that agents route to the index.
+    it('returns null when the scalar attribute is an empty string, without reading the target', async () => {
+      mockCollection.getOne.mockResolvedValue({ card: '' });
 
       const result = await port.getSingleRelatedData(
         {

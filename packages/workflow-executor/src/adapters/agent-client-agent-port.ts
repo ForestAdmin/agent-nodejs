@@ -246,13 +246,20 @@ export default class AgentClientAgentPort implements AgentPort {
 
       const raw = parent.values[toCamelCase(relation)];
 
-      // Rails/Express reference smart fields are serialized as plain attributes, so the value IS
-      // the related id, with no linkage object to unpack.
-      if (raw != null && typeof raw !== 'object') {
+      // A forest-rails smart field declared with `field ... reference:` serializes as a plain
+      // attribute, so the value IS the related id. The same apimap shape coming from the
+      // `belongs_to` DSL, and every forest-express reference field, still arrives as a linkage —
+      // hence a check on the runtime shape rather than on the schema.
+      // An empty string is the idiomatic Ruby answer for an unset association (`&.id.to_s`), and it
+      // would serialize to an id-less by-id URL, which agents route to the index action instead.
+      if (raw != null && raw !== '' && typeof raw !== 'object') {
         return this.getRecord(
           {
             collection: relatedSchema.collectionName,
-            id: String(raw).split('|'),
+            // Only a composite key is pipe-packed. The value of a smart field is written by the
+            // client, so splitting a single-key id would tear a legitimate "a|b" in two.
+            id:
+              relatedSchema.primaryKeyFields.length > 1 ? String(raw).split('|') : [raw as string],
             ...(fields?.length ? { fields } : {}),
           },
           user,
