@@ -16,6 +16,8 @@ const TIMEZONE_SUFFIX = /(Z|[+-]\d{2}:?\d{2})$/i;
 // Sequelize hands back numeric/decimal/bigint columns as strings although datasource-sequelize
 // maps them to the Number primitive, so the builder's JSON number meets a string at runtime.
 const NUMERIC_STRING = /^-?\d+(\.\d+)?$/;
+// A Time column holds a zero-padded time of day, which nothing else in this file can order.
+const TIME_OF_DAY = /^\d{2}:\d{2}(:\d{2}(\.\d+)?)?$/;
 const INTEGER_STRING = /^-?\d+$/;
 
 // Date.parse rolls an out-of-range day over ("2026-02-30" becomes 2026-03-02), which would make a
@@ -135,6 +137,14 @@ function isEqual(actual: unknown, expected: unknown): boolean | null {
   return scalarEqual(actual, expected);
 }
 
+// Zero padding makes a time of day sort chronologically as text, so the seconds are filled in
+// rather than parsed: "08:30" and "08:30:00" are the same instant of the day and must compare equal.
+function toTimeOfDay(value: unknown): string | null {
+  if (typeof value !== 'string' || !TIME_OF_DAY.test(value)) return null;
+
+  return value.length === 5 ? `${value}:00` : value;
+}
+
 function compare(actual: unknown, expected: unknown): number | null {
   const integers = compareIntegers(actual, expected);
   if (integers !== null) return integers;
@@ -145,6 +155,17 @@ function compare(actual: unknown, expected: unknown): number | null {
   const actualTs = toTimestamp(actual);
   const expectedTs = toTimestamp(expected);
   if (actualTs !== null && expectedTs !== null) return actualTs - expectedTs;
+
+  // Without this, "is greater than" on a Time column can never be met: the builder offers the
+  // operator, and the step would route to the fallback on every record without saying why.
+  const actualTime = toTimeOfDay(actual);
+  const expectedTime = toTimeOfDay(expected);
+
+  if (actualTime !== null && expectedTime !== null) {
+    if (actualTime === expectedTime) return 0;
+
+    return actualTime > expectedTime ? 1 : -1;
+  }
 
   return null;
 }

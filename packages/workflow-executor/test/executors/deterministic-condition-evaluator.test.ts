@@ -169,6 +169,29 @@ describe('evaluateOperator', () => {
     });
   });
 
+  describe('times of day (Time columns)', () => {
+    // The builder offers "is greater than" on a Time column, so an unordered time of day would
+    // route every record to the fallback with nothing in the trace to explain it.
+    it('orders a time of day', () => {
+      expect(ev('greater_than', '08:30:00', '07:00:00')).toBe(true);
+      expect(ev('greater_than', '08:30:00', '09:00:00')).toBe(false);
+      expect(ev('less_than', '08:30:00', '09:00:00')).toBe(true);
+      expect(ev('less_than', '23:59:59', '00:00:00')).toBe(false);
+    });
+
+    it('fills in the seconds rather than parsing, so 08:30 and 08:30:00 are one instant', () => {
+      expect(ev('greater_than', '08:30', '08:30:00')).toBe(false);
+      expect(ev('less_than', '08:30', '08:30:00')).toBe(false);
+      expect(ev('greater_than', '08:31', '08:30:59')).toBe(true);
+    });
+
+    it('is not met against something that is not a time of day', () => {
+      expect(ev('greater_than', '08:30:00', 7)).toBe(false);
+      expect(ev('greater_than', '08:30:00', 'morning')).toBe(false);
+      expect(ev('greater_than', '2026-09-04T08:30:00Z', '07:00:00')).toBe(false);
+    });
+  });
+
   describe('date comparisons', () => {
     it('compares ISO strings as timestamps when both sides parse', () => {
       expect(ev('greater_than', '2026-02-01', '2026-01-01')).toBe(true);
