@@ -25,6 +25,8 @@ export interface ApiKeyAuthenticatorOptions {
 export interface AuthenticatedApiKey {
   agentToken: string;
   identity: ResolvedApiKeyIdentity;
+  /** The Forest server token the resolve response carried, cached with the identity. */
+  forestServerToken?: string;
 }
 
 export interface ApiKeyAuthenticator {
@@ -54,7 +56,11 @@ export default function createApiKeyAuthenticator({
   authSecret,
 }: ApiKeyAuthenticatorOptions): ApiKeyAuthenticator {
   function mint(identity: ResolvedApiKeyIdentity): AuthenticatedApiKey {
-    return { agentToken: issueAgentToken({ identity, authSecret }), identity };
+    return {
+      agentToken: issueAgentToken({ identity, authSecret }),
+      identity,
+      forestServerToken: identity.saasAccessToken,
+    };
   }
 
   return {

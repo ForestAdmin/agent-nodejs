@@ -39,7 +39,7 @@ const SECURITY = [{ [SESSION_SCHEME]: [] }, { [API_KEY_SCHEME]: [] }];
 const ERROR_STATUSES: Record<string, string> = {
   400: 'Malformed body, a malformed URL-encoded path segment, an invalid filter operator, a filter nested too deep, ambiguous credentials, an unsupported page, a missing or invalid timezone, an unknown submitted action field, a required action field left empty or a malformed file value at execute, or a rejected action form (type action_error)',
   401: 'Missing, invalid, or expired credentials',
-  403: 'The action needs approval before it runs (the body carries the approving roles), the Forest identity behind the API key is not allowed, the origin is not allowed for this key, or the agent refused the collection, relation, or action',
+  403: 'The action needs approval before it runs (the body carries the approving roles), the Forest identity behind the API key is not allowed, the origin is not allowed for this key, the Forest server refused to write the activity log the request needs (type audit_not_authorized), or the agent refused the collection, relation, or action',
   404: 'Unknown collection, relation, or action',
   413: `The request body exceeds the BFF limit of ${BODY_LIMIT}`,
   415: 'The request Content-Type is neither application/json nor an application/*+json type, including form-urlencoded, and is rejected with 415 instead of being silently dropped; a request carrying a body with no Content-Type at all is rejected the same way; or the declared character set cannot be decoded',
@@ -48,7 +48,7 @@ const ERROR_STATUSES: Record<string, string> = {
   500: 'The agent payload could not be mapped to the BFF contract, or the BFF hit an unexpected error',
   501: 'The BFF is running without an agent configured, so the proxy is not implemented',
   502: 'The agent refused the connection, its host could not be resolved, or the transport failed another way (a connection reset mid-flight, a socket hang up, a TLS failure) — it failed outright rather than running out of time',
-  503: 'The agent schema is unavailable, the agent returned a 5xx, the API key could not be resolved, or the Forest permissions could not be fetched and no fresh cache was left (type permissions_unavailable)',
+  503: 'The agent schema is unavailable, the agent returned a 5xx, the API key could not be resolved, the activity log an action execution must be recorded in could not be written, so the action was not run (type audit_unavailable), or the Forest permissions could not be fetched and no fresh cache was left (type permissions_unavailable)',
   504: 'The agent did not answer before the BFF timeout (BFF_AGENT_TIMEOUT_MS, 10s by default). The deadline is armed when the request starts, so at the default it also covers a host that accepts nothing and never resets the connection — raise the timeout past the OS connect timeout and that case reverts to 502',
 };
 

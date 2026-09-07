@@ -18,6 +18,7 @@ import createDataRoutesMiddleware from '../../src/data/data-routes-middleware';
 import createErrorMiddleware from '../../src/http/error-middleware';
 import ReadModel from '../../src/read-model/read-model';
 import createTimezoneMiddleware, { TIMEZONE_HEADER } from '../../src/timezone/timezone-middleware';
+import { passthroughActivityLogs } from '../helpers/activity-log';
 import { action, collection, column, relation } from '../read-model/fixtures';
 
 const MARK_AS_PAID = 'Mark as paid';
@@ -189,6 +190,7 @@ function buildApp(): Koa {
       store,
       transport: createHttpTransport({ agentUrl: ENV.AGENT_URL }),
       logger: noopLogger,
+      activityLogs: passthroughActivityLogs(),
       createClient: () => dataClient,
     }),
   );
@@ -197,6 +199,7 @@ function buildApp(): Koa {
       store,
       transport: createHttpTransport({ agentUrl: ENV.AGENT_URL }),
       logger: noopLogger,
+      activityLogs: passthroughActivityLogs(),
       createClient: () => actionClient,
     }),
   );

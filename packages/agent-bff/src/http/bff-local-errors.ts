@@ -107,11 +107,28 @@ export function tooManyRequests(
   });
 }
 
+export const ACTION_REQUIRES_APPROVAL_TYPE = 'action_requires_approval';
+
 export function actionRequiresApproval(
   message = 'This action requires an approval before it can run',
   details?: unknown,
 ): BffHttpError {
-  return new BffHttpError(403, 'action_requires_approval', message, { details });
+  return new BffHttpError(403, ACTION_REQUIRES_APPROVAL_TYPE, message, { details });
+}
+
+export const AUDIT_RETRY_AFTER_SECONDS = 5;
+
+export function auditUnavailable(
+  retryAfter: number,
+  message = 'The activity log could not be written, so the operation was not performed',
+): BffHttpError {
+  return new BffHttpError(503, 'audit_unavailable', message, { retryAfter });
+}
+
+export function auditNotAuthorized(
+  message = 'Not authorized to write the activity log for this request',
+): BffHttpError {
+  return new BffHttpError(403, 'audit_not_authorized', message);
 }
 
 export function environmentUnresolved(): BffHttpError {
