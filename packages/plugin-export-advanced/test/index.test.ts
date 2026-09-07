@@ -129,6 +129,27 @@ describe('plugin-export-advanced', () => {
       expect((result as FileResult).mimeType).toStrictEqual(mimeType);
       expect((result as FileResult).name).toStrictEqual(`file${format}`);
     });
+
+    test('the xlsx export should be a non-empty workbook', async () => {
+      const result = await dataSource.getCollection('books').execute(
+        factories.caller.build(),
+        'Export books (advanced)',
+        {
+          Format: '.xlsx',
+          Filename: 'file',
+          Fields: ['id', 'title', 'isPublished', 'publishedAt', 'author:id', 'author:fullname'],
+        },
+        factories.filter.build(),
+      );
+
+      const chunks: Uint8Array[] = [];
+      for await (const chunk of (result as FileResult).stream) chunks.push(chunk as Uint8Array);
+      const buffer = Buffer.concat(chunks);
+
+      expect(buffer.length).toBeGreaterThan(0);
+      // xlsx is a zip archive: it must start with the "PK" local-file-header magic bytes.
+      expect(buffer.subarray(0, 2).toString('latin1')).toStrictEqual('PK');
+    });
   });
 
   describe('When providing settings (on datasource)', () => {
