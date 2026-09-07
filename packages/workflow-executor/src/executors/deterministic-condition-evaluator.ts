@@ -108,6 +108,14 @@ function compareIntegers(actual: unknown, expected: unknown): number | null {
   return actualInteger > expectedInteger ? 1 : -1;
 }
 
+// Zero padding makes a time of day sort chronologically as text, so the seconds are filled in
+// rather than parsed: "08:30" and "08:30:00" are the same instant of the day and must compare equal.
+function toTimeOfDay(value: unknown): string | null {
+  if (typeof value !== 'string' || !TIME_OF_DAY.test(value)) return null;
+
+  return value.length === 5 ? `${value}:00` : value;
+}
+
 function scalarEqual(actual: unknown, expected: unknown): boolean | null {
   if (actual === expected) return true;
 
@@ -120,6 +128,11 @@ function scalarEqual(actual: unknown, expected: unknown): boolean | null {
   const actualTs = toTimestamp(actual);
   const expectedTs = toTimestamp(expected);
   if (actualTs !== null && expectedTs !== null) return actualTs === expectedTs;
+
+  // The builder's time widget writes "08:30" while the column holds "08:30:00".
+  const actualTime = toTimeOfDay(actual);
+  const expectedTime = toTimeOfDay(expected);
+  if (actualTime !== null && expectedTime !== null) return actualTime === expectedTime;
 
   return typeof actual === typeof expected ? false : null;
 }
@@ -135,14 +148,6 @@ function isEqual(actual: unknown, expected: unknown): boolean | null {
   if (Array.isArray(actual) || Array.isArray(expected)) return null;
 
   return scalarEqual(actual, expected);
-}
-
-// Zero padding makes a time of day sort chronologically as text, so the seconds are filled in
-// rather than parsed: "08:30" and "08:30:00" are the same instant of the day and must compare equal.
-function toTimeOfDay(value: unknown): string | null {
-  if (typeof value !== 'string' || !TIME_OF_DAY.test(value)) return null;
-
-  return value.length === 5 ? `${value}:00` : value;
 }
 
 function compare(actual: unknown, expected: unknown): number | null {

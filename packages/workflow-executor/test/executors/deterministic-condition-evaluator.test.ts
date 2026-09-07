@@ -179,7 +179,12 @@ describe('evaluateOperator', () => {
       expect(ev('less_than', '23:59:59', '00:00:00')).toBe(false);
     });
 
+    // The builder's time widget writes "08:30" while the column holds "08:30:00": without the
+    // seconds filled in, "is" on a Time column could never be met from the editor.
     it('fills in the seconds rather than parsing, so 08:30 and 08:30:00 are one instant', () => {
+      expect(ev('equal', '08:30:00', '08:30')).toBe(true);
+      expect(ev('not_equal', '08:30:00', '08:30')).toBe(false);
+      expect(ev('in', '08:30:00', ['07:00', '08:30'])).toBe(true);
       expect(ev('greater_than', '08:30', '08:30:00')).toBe(false);
       expect(ev('less_than', '08:30', '08:30:00')).toBe(false);
       expect(ev('greater_than', '08:31', '08:30:59')).toBe(true);
