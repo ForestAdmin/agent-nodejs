@@ -4,7 +4,7 @@ import writeXlsxFile from 'write-excel-file/node';
 
 import getFieldValue from '../utils/get-field-value';
 
-function toCell(value: unknown): Cell {
+export function toCell(value: unknown): Cell {
   if (value === null || value === undefined) return null;
   if (typeof value === 'boolean') return { type: Boolean, value };
   if (typeof value === 'number') return { type: Number, value };
