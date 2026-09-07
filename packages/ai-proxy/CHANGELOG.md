@@ -1,3 +1,10 @@
+## @forestadmin/ai-proxy [1.12.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.12.8...@forestadmin/ai-proxy@1.12.9) (2026-09-07)
+
+
+### Bug Fixes
+
+* **ai-proxy:** exclude gpt-6-astra from tool support ([#1882](https://github.com/ForestAdmin/agent-nodejs/issues/1882)) ([52c8c42](https://github.com/ForestAdmin/agent-nodejs/commit/52c8c4286ed3917ebbb415f0c092e9c9fdc64f51))
+
 ## @forestadmin/ai-proxy [1.12.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.12.7...@forestadmin/ai-proxy@1.12.8) (2026-09-03)
 
 
