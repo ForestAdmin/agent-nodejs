@@ -29,6 +29,7 @@ export default Factory.define<AgentOptionsWithDefaults>(() => ({
   },
   ignoreMissingSchemaElementErrors: false,
   useUnsafeActionEndpoint: false,
+  skipRelationReadPermissions: false,
   maxRecordsForApproval: 500,
   workflowExecutorUrl: null,
   auditTrail: null,

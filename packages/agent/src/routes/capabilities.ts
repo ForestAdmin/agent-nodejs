@@ -46,6 +46,7 @@ export default class Capabilities extends BaseRoute {
         // `x-forest-correlation-id` is emitted on every response regardless — the frontend must
         // gate the History tab on this flag rather than inferring the feature from that header.
         canUseAuditTrail: this.options.auditTrail !== null,
+        checksRelationReadPermissions: !this.options.skipRelationReadPermissions,
       },
       collections:
         collections?.map(collection => {

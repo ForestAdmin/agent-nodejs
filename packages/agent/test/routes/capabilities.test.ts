@@ -81,6 +81,7 @@ describe('Capabilities', () => {
             canUseProjectionViaHeaderOnList: true,
             canUseMultipleFieldsProjectionOnRelation: true,
             canUseAuditTrail: false,
+            checksRelationReadPermissions: true,
           },
           collections: [],
         });
@@ -106,6 +107,7 @@ describe('Capabilities', () => {
             canUseProjectionViaHeaderOnList: true,
             canUseMultipleFieldsProjectionOnRelation: true,
             canUseAuditTrail: false,
+            checksRelationReadPermissions: true,
           },
           collections: [],
         });
@@ -129,8 +131,33 @@ describe('Capabilities', () => {
             canUseProjectionViaHeaderOnList: true,
             canUseMultipleFieldsProjectionOnRelation: true,
             canUseAuditTrail: false,
+            checksRelationReadPermissions: true,
           },
           collections: [],
+        });
+      });
+    });
+
+    describe('when skipRelationReadPermissions is set', () => {
+      test('reports checksRelationReadPermissions: false so the front stops pruning related columns', async () => {
+        const unsafeOptions = factories.forestAdminHttpDriverOptions.build({
+          skipRelationReadPermissions: true,
+        });
+        const dataSource = factories.dataSource.buildWithCollection(
+          factories.collection.build({ name: 'books' }),
+        );
+        const unsafeRoute = new Capabilities(services, unsafeOptions, dataSource);
+        const context = createMockContext({
+          ...defaultContext,
+          requestBody: { collectionNames: [] },
+        });
+
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        await unsafeRoute.fetchCapabilities(context);
+
+        expect(context.response.body).toMatchObject({
+          agentCapabilities: { checksRelationReadPermissions: false },
         });
       });
     });
@@ -178,6 +205,7 @@ describe('Capabilities', () => {
             canUseProjectionViaHeaderOnList: true,
             canUseMultipleFieldsProjectionOnRelation: true,
             canUseAuditTrail: false,
+            checksRelationReadPermissions: true,
           },
           collections: [
             {

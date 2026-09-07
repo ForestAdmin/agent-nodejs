@@ -258,8 +258,8 @@ export default class ChartRoute extends CollectionRoute {
       ]);
 
       // A count exposes the cardinality of the relation, which `/relationships/<name>/count` puts
-      // behind `browse`.
-      if (!aggregation.field) {
+      // behind `browse`. Added with the related-read checks, so it goes away with them.
+      if (!aggregation.field && !this.options.skipRelationReadPermissions) {
         await this.services.authorization.assertCanBrowse(context, field.foreignCollection);
       }
 

@@ -44,6 +44,7 @@ export default class OptionsValidator {
     copyOptions.instantCacheRefresh = copyOptions.instantCacheRefresh ?? true;
     copyOptions.workflowExecutorUrl = copyOptions.workflowExecutorUrl ?? null;
     copyOptions.auditTrail = copyOptions.auditTrail ?? null;
+    copyOptions.skipRelationReadPermissions = copyOptions.skipRelationReadPermissions ?? false;
     // Number.isFinite so NaN (e.g. Number() on an unset env var) also gets the default.
     copyOptions.maxRecordsForApproval = Number.isFinite(copyOptions.maxRecordsForApproval)
       ? copyOptions.maxRecordsForApproval
@@ -58,6 +59,14 @@ export default class OptionsValidator {
         'Warn',
         'ignoring options.permissionsCacheDurationInSeconds: when using ' +
           'options.instantCacheRefresh=true permissions caches are instantly refreshed',
+      );
+    }
+
+    if (copyOptions.skipRelationReadPermissions) {
+      copyOptions.logger(
+        'Warn',
+        'options.skipRelationReadPermissions=true: columns of collections the caller has no ' +
+          'read permission on are served when a relation path reaches them',
       );
     }
 

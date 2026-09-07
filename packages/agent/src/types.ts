@@ -75,6 +75,15 @@ export type AgentOptions = {
   ignoreMissingSchemaElementErrors?: boolean;
   useUnsafeActionEndpoint?: boolean;
   /**
+   * Serve columns of collections the caller has no `read` permission on when they are reached
+   * through a relation path (`holder:nationalId`) in a projection, a filter, a sort, a search or a
+   * chart, and drop the `browse` a `Count` leaderboard requires on the collection it counts. No
+   * check on the collection being queried is affected: the route's own `browse`/`read`/`export`
+   * still runs.
+   * @default false
+   */
+  skipRelationReadPermissions?: boolean;
+  /**
    * Max number of records a "select all" approval-required action may target.
    * Must not exceed the Forest server's own cap (500).
    * @default 500
