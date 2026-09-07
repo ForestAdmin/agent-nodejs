@@ -4344,6 +4344,53 @@ describe('LoadRelatedRecordStepExecutor', () => {
       );
     });
 
+    // Regression: a Rails/Express reference smart field reaches the executor as a plain BelongsTo
+    // now that the server derives the relation from `reference` alone. Pinning it must follow it,
+    // where it used to fail as an invalid pre-recorded arg because the field was not a relation.
+    it('follows a pinned reference-only BelongsTo', async () => {
+      const { model, bindTools } = makeMockModel();
+      const runStore = makeMockRunStore();
+      const agentPort = makeMockAgentPort([
+        makeRelatedRecordData({ collectionName: 'cards', recordId: ['card-1'], values: {} }),
+      ]);
+      const context = makeContext({
+        model,
+        runStore,
+        agentPort,
+        workflowPort: makeMockWorkflowPort({
+          customers: makeCollectionSchema({
+            fields: [
+              { fieldName: 'email', displayName: 'Email', isRelationship: false },
+              {
+                fieldName: 'card',
+                displayName: 'Card',
+                isRelationship: true,
+                relationType: 'BelongsTo',
+                relatedCollectionName: 'cards',
+              },
+            ],
+          }),
+        }),
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          preRecordedArgs: { relationName: 'card' },
+        }),
+      });
+
+      const result = await new LoadRelatedRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(bindTools).not.toHaveBeenCalled();
+      expect(agentPort.getSingleRelatedData).toHaveBeenCalledWith(
+        expect.objectContaining({ relation: 'card' }),
+        expect.anything(),
+      );
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({ executionParams: { displayName: 'Card', name: 'card' } }),
+      );
+    });
+
     it('pins the source record via selectedRecordStepId (among several records)', async () => {
       // Base customers #42 (step 0) + a loaded order #99 (step 1) are both available;
       // pinning step 1 must make the relation follow the ORDER, not the base customer.

@@ -112,6 +112,7 @@ describe('AgentClientAgentPort', () => {
   let mockCollection: ReturnType<typeof createMockClient>['mockCollection'];
   let mockRelation: ReturnType<typeof createMockClient>['mockRelation'];
   let mockAction: ReturnType<typeof createMockClient>['mockAction'];
+  let mockClient: ReturnType<typeof createMockClient>['client'];
   let user: StepUser;
   let port: AgentClientAgentPort;
 
@@ -119,7 +120,7 @@ describe('AgentClientAgentPort', () => {
     jest.clearAllMocks();
 
     const mocks = createMockClient();
-    ({ mockCollection, mockRelation, mockAction } = mocks);
+    ({ mockCollection, mockRelation, mockAction, client: mockClient } = mocks);
     mockedCreateRemoteAgentClient.mockReturnValue(mocks.client as any);
 
     const schemaCache = new SchemaCache();
@@ -844,6 +845,90 @@ describe('AgentClientAgentPort', () => {
       );
 
       expect(result?.recordId).toEqual(['acme', '7']);
+    });
+
+    // Rails/Express reference smart fields are serialized as plain attributes: the projected value
+    // is the related id itself, with no linkage object to unpack.
+    it('reads the target by id when the projected value is a scalar', async () => {
+      mockCollection.getOne
+        .mockResolvedValueOnce({ card: 'uuid-1' })
+        .mockResolvedValueOnce({ id: 'uuid-1', reference: 'CARD-1' });
+
+      const result = await port.getSingleRelatedData(
+        {
+          collection: 'claims',
+          id: [42],
+          relation: 'card',
+          relatedSchema: { ...ordersSchema, collectionName: 'cards' },
+        },
+        user,
+      );
+
+      expect(mockCollection.getOne).toHaveBeenNthCalledWith(1, [42], { fields: ['card@@@id'] });
+      expect(mockCollection.getOne).toHaveBeenNthCalledWith(2, ['uuid-1'], {});
+      expect(mockClient.collection).toHaveBeenCalledWith('cards');
+      expect(result).toEqual({
+        collectionName: 'cards',
+        recordId: ['uuid-1'],
+        values: { id: 'uuid-1', reference: 'CARD-1' },
+      });
+    });
+
+    it('passes the caller fields to the scalar target read', async () => {
+      mockCollection.getOne
+        .mockResolvedValueOnce({ card: 'uuid-1' })
+        .mockResolvedValueOnce({ reference: 'CARD-1' });
+
+      await port.getSingleRelatedData(
+        {
+          collection: 'claims',
+          id: [42],
+          relation: 'card',
+          relatedSchema: { ...ordersSchema, collectionName: 'cards' },
+          fields: ['reference'],
+        },
+        user,
+      );
+
+      expect(mockCollection.getOne).toHaveBeenNthCalledWith(2, ['uuid-1'], {
+        fields: ['reference'],
+      });
+    });
+
+    it('splits a composite packed id carried by a scalar attribute', async () => {
+      mockCollection.getOne
+        .mockResolvedValueOnce({ card: 'acme|7' })
+        .mockResolvedValueOnce({ id: 'acme|7' });
+
+      const result = await port.getSingleRelatedData(
+        {
+          collection: 'claims',
+          id: [42],
+          relation: 'card',
+          relatedSchema: { ...ordersSchema, collectionName: 'cards' },
+        },
+        user,
+      );
+
+      expect(mockCollection.getOne).toHaveBeenNthCalledWith(2, ['acme', '7'], {});
+      expect(result?.recordId).toEqual(['acme', '7']);
+    });
+
+    it('returns null when the scalar attribute is empty, without reading the target', async () => {
+      mockCollection.getOne.mockResolvedValue({ card: null });
+
+      const result = await port.getSingleRelatedData(
+        {
+          collection: 'claims',
+          id: [42],
+          relation: 'card',
+          relatedSchema: { ...ordersSchema, collectionName: 'cards' },
+        },
+        user,
+      );
+
+      expect(result).toBeNull();
+      expect(mockCollection.getOne).toHaveBeenCalledTimes(1);
     });
 
     it('returns null when the parent has no linkage to the xToOne relation', async () => {

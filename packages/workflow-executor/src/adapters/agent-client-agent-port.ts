@@ -244,10 +244,22 @@ export default class AgentClientAgentPort implements AgentPort {
         user,
       );
 
-      const linkage = parent.values[toCamelCase(relation)] as
-        | Record<string, unknown>
-        | null
-        | undefined;
+      const raw = parent.values[toCamelCase(relation)];
+
+      // Rails/Express reference smart fields are serialized as plain attributes, so the value IS
+      // the related id, with no linkage object to unpack.
+      if (raw != null && typeof raw !== 'object') {
+        return this.getRecord(
+          {
+            collection: relatedSchema.collectionName,
+            id: String(raw).split('|'),
+            ...(fields?.length ? { fields } : {}),
+          },
+          user,
+        );
+      }
+
+      const linkage = raw as Record<string, unknown> | null | undefined;
       const packedId = linkage?.id as string | undefined;
 
       if (!linkage || !packedId) return null;
