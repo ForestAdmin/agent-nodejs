@@ -13,7 +13,7 @@ describe('isModelSupportingTools', () => {
     expect(isModelSupportingTools('gpt-4')).toBe(false);
   });
 
-  it.each(['gpt-5.6-luna', 'gpt-5.6-sol', 'gpt-5.6-terra'])(
+  it.each(['gpt-5.6-luna', 'gpt-5.6-sol', 'gpt-5.6-terra', 'gpt-6-astra'])(
     'should return false for %s (v1/responses only)',
     model => {
       expect(isModelSupportingTools(model)).toBe(false);
