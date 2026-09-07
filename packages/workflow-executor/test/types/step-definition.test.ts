@@ -90,8 +90,9 @@ describe('ConditionStepDefinitionSchema deterministic conditions', () => {
   });
 
   // value supplied so the failure is the operator enum, not the value-less-operator refinement.
-  // The last three were in the contract before PRD-1147 and are refused since.
-  it.each(['ilike', 'not_in', 'greater_than_or_equal', 'less_than_or_equal'])(
+  // The last two were in the contract before PRD-1147 and are refused since, having no Filters
+  // operator for the builder to render.
+  it.each(['ilike', 'greater_than_or_equal', 'less_than_or_equal'])(
     'rejects the unknown operator "%s" at the schema boundary',
     operator => {
       const result = ConditionStepDefinitionSchema.safeParse({
@@ -218,6 +219,7 @@ describe('ConditionStepDefinitionSchema deterministic conditions', () => {
     'greater_than',
     'less_than',
     'in',
+    'not_in',
     'includes_all',
     'contains',
     'not_contains',

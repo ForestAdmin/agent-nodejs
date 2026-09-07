@@ -307,6 +307,29 @@ describe('evaluateOperator', () => {
     });
   });
 
+  describe('not_in', () => {
+    it('is met when the value is comparable to the members and absent from them', () => {
+      expect(ev('not_in', 'closed', ['active', 'pending'])).toBe(true);
+      expect(ev('not_in', 'active', ['active', 'pending'])).toBe(false);
+      expect(ev('not_in', 50, [150, 250])).toBe(true);
+      expect(ev('not_in', '150', [150, 250])).toBe(false);
+    });
+
+    // The whole reason membership is tri-state: "not a member" must not be claimed about a
+    // comparison that never happened, or a broken config would satisfy the negated operator.
+    it('is not met when the value cannot be compared to the members', () => {
+      expect(ev('not_in', 150, ['active', 'pending'])).toBe(false);
+      expect(ev('not_in', 'active', [150, 250])).toBe(false);
+      expect(ev('not_in', 'active', 'active')).toBe(false);
+    });
+
+    // An empty list compares nothing and mismatches nothing, so nothing is a member of it.
+    it('is met against an empty list', () => {
+      expect(ev('not_in', 'active', [])).toBe(true);
+      expect(ev('in', 'active', [])).toBe(false);
+    });
+  });
+
   describe('contains', () => {
     it('matches a substring on strings', () => {
       expect(ev('contains', 'hello world', 'world')).toBe(true);

@@ -52,6 +52,7 @@ export const CONDITION_OPERATORS = [
   'greater_than',
   'less_than',
   'in',
+  'not_in',
   'includes_all',
   'contains',
   'not_contains',
