@@ -1,3 +1,10 @@
+# @forestadmin/agent [1.99.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.98.9...@forestadmin/agent@1.99.0) (2026-09-07)
+
+
+### Features
+
+* add option to skip rbac ([#1879](https://github.com/ForestAdmin/agent-nodejs/issues/1879)) ([9b51ebc](https://github.com/ForestAdmin/agent-nodejs/commit/9b51ebc60662312294854dafa5804d2e300aaf84))
+
 ## @forestadmin/agent [1.98.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.98.8...@forestadmin/agent@1.98.9) (2026-09-07)
 
 
