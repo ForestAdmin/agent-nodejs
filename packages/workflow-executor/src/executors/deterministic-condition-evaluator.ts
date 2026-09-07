@@ -235,12 +235,43 @@ function days(value: unknown): number | null {
   return count !== null && Number.isInteger(count) && count > 0 ? count : null;
 }
 
+// A calendar period: the whole previous one, or this one up to the clock. Luxon's week starts on
+// Monday, like the toolkit's, so both agree on which week a Sunday belongs to.
+const previousPeriod =
+  (unit: 'week' | 'month' | 'quarter' | 'year'): Window =>
+  now =>
+    [now.minus({ [unit]: 1 }).startOf(unit), now.startOf(unit)];
+
+const periodToDate =
+  (unit: 'week' | 'month' | 'quarter' | 'year'): Window =>
+  now =>
+    [now.startOf(unit), now];
+
 const WINDOWS: Record<
-  'today' | 'yesterday' | 'previous_x_days' | 'previous_x_days_to_date',
+  | 'today'
+  | 'yesterday'
+  | 'previous_x_days'
+  | 'previous_x_days_to_date'
+  | 'previous_week'
+  | 'previous_month'
+  | 'previous_quarter'
+  | 'previous_year'
+  | 'previous_week_to_date'
+  | 'previous_month_to_date'
+  | 'previous_quarter_to_date'
+  | 'previous_year_to_date',
   Window
 > = {
   today: now => [now.startOf('day'), now.plus({ days: 1 }).startOf('day')],
   yesterday: now => [now.minus({ days: 1 }).startOf('day'), now.startOf('day')],
+  previous_week: previousPeriod('week'),
+  previous_month: previousPeriod('month'),
+  previous_quarter: previousPeriod('quarter'),
+  previous_year: previousPeriod('year'),
+  previous_week_to_date: periodToDate('week'),
+  previous_month_to_date: periodToDate('month'),
+  previous_quarter_to_date: periodToDate('quarter'),
+  previous_year_to_date: periodToDate('year'),
   previous_x_days: (now, value) => {
     const count = days(value);
 
@@ -323,6 +354,14 @@ const EVALUATORS: Record<
   yesterday: within('yesterday'),
   previous_x_days: within('previous_x_days'),
   previous_x_days_to_date: within('previous_x_days_to_date'),
+  previous_week: within('previous_week'),
+  previous_month: within('previous_month'),
+  previous_quarter: within('previous_quarter'),
+  previous_year: within('previous_year'),
+  previous_week_to_date: within('previous_week_to_date'),
+  previous_month_to_date: within('previous_month_to_date'),
+  previous_quarter_to_date: within('previous_quarter_to_date'),
+  previous_year_to_date: within('previous_year_to_date'),
 };
 
 /**

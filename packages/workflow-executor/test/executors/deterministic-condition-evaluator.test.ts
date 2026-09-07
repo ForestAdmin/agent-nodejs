@@ -501,6 +501,43 @@ describe('evaluateOperator', () => {
       expect(ev('previous_x_days', '2026-09-01T12:00:00Z', 'seven')).toBe(false);
     });
 
+    // Whole calendar periods, and the current one up to the clock. The clock is Friday 4 September
+    // 2026, 12:30 in Paris: that week starts Monday 31 August, the quarter on 1 July.
+    it('reads the previous calendar period, end excluded', () => {
+      expect(ev('previous_week', '2026-08-28T12:00:00Z')).toBe(true);
+      expect(ev('previous_week', '2026-08-31T12:00:00Z')).toBe(false);
+      expect(ev('previous_month', '2026-08-15T12:00:00Z')).toBe(true);
+      expect(ev('previous_month', '2026-09-01T12:00:00Z')).toBe(false);
+      expect(ev('previous_quarter', '2026-05-15T12:00:00Z')).toBe(true);
+      expect(ev('previous_quarter', '2026-07-01T12:00:00Z')).toBe(false);
+      expect(ev('previous_year', '2025-06-15T12:00:00Z')).toBe(true);
+      expect(ev('previous_year', '2026-01-01T12:00:00Z')).toBe(false);
+    });
+
+    it('reads the current calendar period up to the clock, not past it', () => {
+      expect(ev('previous_week_to_date', '2026-08-31T12:00:00Z')).toBe(true);
+      expect(ev('previous_week_to_date', '2026-08-30T12:00:00Z')).toBe(false);
+      expect(ev('previous_week_to_date', '2026-09-04T11:00:00Z')).toBe(false);
+      expect(ev('previous_month_to_date', '2026-09-02T12:00:00Z')).toBe(true);
+      expect(ev('previous_month_to_date', '2026-08-31T12:00:00Z')).toBe(false);
+      expect(ev('previous_quarter_to_date', '2026-07-01T12:00:00Z')).toBe(true);
+      expect(ev('previous_quarter_to_date', '2026-06-30T12:00:00Z')).toBe(false);
+      expect(ev('previous_year_to_date', '2026-02-01T12:00:00Z')).toBe(true);
+      expect(ev('previous_year_to_date', '2025-12-31T12:00:00Z')).toBe(false);
+    });
+
+    // Monday, like the toolkit: a Sunday belongs to the week that started six days earlier.
+    it('starts a week on Monday', () => {
+      expect(ev('previous_week', '2026-08-30T12:00:00Z')).toBe(true);
+      expect(ev('previous_week_to_date', '2026-08-31T00:00:01Z')).toBe(true);
+    });
+
+    it('reads a calendar date in a period window too', () => {
+      expect(ev('previous_month', '2026-08-15')).toBe(true);
+      expect(ev('previous_month', '2026-09-01')).toBe(false);
+      expect(ev('previous_month_to_date', '2026-09-01')).toBe(true);
+    });
+
     // A calendar date has no instant: read as UTC midnight it would fall before Honolulu's day
     // even started, and the record's own "today" would be counted as yesterday.
     it('reads a calendar date in the clock timezone', () => {

@@ -68,6 +68,14 @@ export const CONDITION_OPERATORS = [
   'previous_x_days_to_date',
   'before_x_hours_ago',
   'after_x_hours_ago',
+  'previous_week',
+  'previous_month',
+  'previous_quarter',
+  'previous_year',
+  'previous_week_to_date',
+  'previous_month_to_date',
+  'previous_quarter_to_date',
+  'previous_year_to_date',
 ] as const;
 export type ConditionOperator = (typeof CONDITION_OPERATORS)[number];
 
@@ -78,6 +86,14 @@ const VALUE_LESS_OPERATORS: readonly ConditionOperator[] = [
   'future',
   'today',
   'yesterday',
+  'previous_week',
+  'previous_month',
+  'previous_quarter',
+  'previous_year',
+  'previous_week_to_date',
+  'previous_month_to_date',
+  'previous_quarter_to_date',
+  'previous_year_to_date',
 ];
 
 const DeterministicConditionSchema = z
