@@ -1,23 +1,10 @@
 import type { ProjectableField, UnfoldedCollection } from './unfolding';
 import type { ReferenceObject, SchemaObject } from 'openapi3-ts/oas31';
 
-import Inflector from 'inflected';
-
 import toFieldSchema from './field-schemas';
 import { quoted } from './names';
 import { PACKED_ID_SEPARATOR } from '../data/pack-id';
-
-/**
- * The key a field really carries in a response record. `agent-client` deserializes the agent's
- * JSON:API with `keyForAttribute: 'camelCase'` (`http-requester.ts`), which is exactly this pair of
- * `inflected` calls (`jsonapi-serializer/lib/inflector.js`), so a `first_name` column is PROJECTED
- * under that name and RETURNED as `firstName`. The same library rather than a transcription: the
- * transform handles acronyms and non-ASCII, and a mirror would drift from the deserializer without
- * anything failing.
- */
-export function recordKey(field: string): string {
-  return Inflector.camelize(Inflector.underscore(field), false);
-}
+import recordKey from '../data/record-key';
 
 // The flat id is the JSON:API resource id, which is a string by specification whatever the key
 // column holds. `__forest.primaryKey` is the same id unpacked and typed, so the two forms of one

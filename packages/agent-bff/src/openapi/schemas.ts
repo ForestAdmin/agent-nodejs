@@ -359,6 +359,7 @@ const ContextValidationSchema = z
 
 const ContextFieldSchema = z.object({
   field: z.string(),
+  recordKey: z.string().optional(),
   type: ContextFieldTypeSchema,
   relationship: z.enum(RELATIONSHIP_TYPES).optional(),
   reference: z.string().optional(),
@@ -412,6 +413,12 @@ export const ContextResponseSchema = z
       'collection this document does not expose. Cross a target against `collections[]` before ' +
       'following it — unlike the per-collection route documents, nothing here is dropped for ' +
       'pointing outside the served set. ' +
+      '`field` is the technical name the agent declares, and the one to send back in a filter, ' +
+      'a sort or a projection. It is NOT always the key the record carries: a snake_case agent ' +
+      '(Rails, Django) declares `created_at` and the response returns `createdAt`. When the two ' +
+      'differ, `recordKey` names the response key — read a record value under `recordKey ?? ' +
+      'field`, and keep using `field` on the request side. Sub-fields of a composite `type` are ' +
+      'not covered: they carry no `recordKey` and the same transform applies to them. ' +
       'The document carries no rendering, project or team identity, and the only environment ' +
       'datum is `meta.environmentId` below. It is served to both auth modes — an OAuth session ' +
       'and a BFF API key get the same document. It is NOT filtered by the caller permissions: ' +

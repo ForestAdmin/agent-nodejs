@@ -88,6 +88,51 @@ describe('buildContext', () => {
     });
   });
 
+  describe('when the agent declares its fields in snake_case', () => {
+    const snakeCaseSchema = [
+      {
+        name: 'people',
+        fields: [
+          { field: 'id', type: 'Number', isPrimaryKey: true },
+          { field: 'created_at', type: 'Date' },
+          { field: 'email', type: 'String' },
+        ],
+        actions: [],
+      },
+    ] as unknown as Parameters<typeof buildContext>[0];
+
+    function peopleFields() {
+      const context = buildContext(snakeCaseSchema, new ReadModel(snakeCaseSchema), {
+        schemaRevision: 1,
+      });
+
+      return context.collections[0].fields;
+    }
+
+    it('should name the key the record carries, which agent-client camelCases', () => {
+      expect(peopleFields().find(entry => entry.field === 'created_at')?.recordKey).toBe(
+        'createdAt',
+      );
+    });
+
+    it('should keep field as the agent technical name, which the request path sends back', () => {
+      expect(peopleFields().map(entry => entry.field)).toEqual(['id', 'created_at', 'email']);
+    });
+
+    it('should omit recordKey on a field the deserializer leaves untouched', () => {
+      expect(peopleFields().find(entry => entry.field === 'email')).not.toHaveProperty('recordKey');
+      expect(peopleFields().find(entry => entry.field === 'id')).not.toHaveProperty('recordKey');
+    });
+
+    it('should survive the published schema, which would drop an undeclared key', () => {
+      const context = buildContext(snakeCaseSchema, new ReadModel(snakeCaseSchema), {
+        schemaRevision: 1,
+      });
+
+      expect(ContextResponseSchema.parse(context)).toStrictEqual(context);
+    });
+  });
+
   describe('when a schema field is not an object', () => {
     it('should skip it rather than serialize a field with neither name nor type', () => {
       const context = buildContext(schema, readModel, { schemaRevision: 1 });
