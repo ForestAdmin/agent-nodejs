@@ -1,3 +1,10 @@
+## @forestadmin/plugin-export-advanced [1.1.50](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-export-advanced@1.1.49...@forestadmin/plugin-export-advanced@1.1.50) (2026-09-08)
+
+
+### Bug Fixes
+
+* **security:** replace excel4node with write-excel-file to remove vulnerability ([#1883](https://github.com/ForestAdmin/agent-nodejs/issues/1883)) ([a9dbd1d](https://github.com/ForestAdmin/agent-nodejs/commit/a9dbd1df7d08e7c0d8907a4dba8d06f2adaca2a2))
+
 ## @forestadmin/plugin-export-advanced [1.1.49](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-export-advanced@1.1.48...@forestadmin/plugin-export-advanced@1.1.49) (2026-08-27)
 
 
