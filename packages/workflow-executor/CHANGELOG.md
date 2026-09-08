@@ -1,3 +1,10 @@
+## @forestadmin/workflow-executor [1.27.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.27.1...@forestadmin/workflow-executor@1.27.2) (2026-09-08)
+
+
+### Bug Fixes
+
+* **workflow-executor:** follow a reference smart field whose value is the related id ([#1884](https://github.com/ForestAdmin/agent-nodejs/issues/1884)) ([fe5df80](https://github.com/ForestAdmin/agent-nodejs/commit/fe5df80740bcd6ae942b3c75aa64c71368dd5880))
+
 ## @forestadmin/workflow-executor [1.27.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.27.0...@forestadmin/workflow-executor@1.27.1) (2026-09-07)
 
 
