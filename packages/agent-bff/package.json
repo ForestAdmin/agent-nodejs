@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/agent-bff",
-  "version": "1.25.2",
+  "version": "1.25.3",
   "main": "dist/index.js",
   "bin": {
     "forest-bff": "dist/cli.js"
@@ -44,8 +44,8 @@
     "zod": "4.3.6"
   },
   "devDependencies": {
-    "@forestadmin/agent": "1.99.0",
-    "@forestadmin/agent-testing": "1.2.14",
+    "@forestadmin/agent": "1.99.1",
+    "@forestadmin/agent-testing": "1.2.15",
     "@hey-api/openapi-ts": "0.99.0",
     "@redocly/cli": "2.35.1",
     "@types/inflected": "^1.1.29",
