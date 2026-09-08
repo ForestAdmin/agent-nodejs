@@ -89,7 +89,7 @@ export async function addExportAdvanced(
 
         const renderer = renderers[format];
         const records = await context.collection.list(context.filter, fields);
-        const output = renderer.handler(records, fields);
+        const output = await renderer.handler(records, fields);
 
         return resultBuilder.file(output, `${filename}${format}`, renderer.mimeType);
       },

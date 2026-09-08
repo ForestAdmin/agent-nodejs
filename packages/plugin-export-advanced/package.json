@@ -12,7 +12,7 @@
     "directory": "packages/plugin-export-advanced"
   },
   "dependencies": {
-    "excel4node": "^1.8.0"
+    "write-excel-file": "^4.1.1"
   },
   "devDependencies": {
     "@forestadmin/datasource-customizer": "1.71.3",
