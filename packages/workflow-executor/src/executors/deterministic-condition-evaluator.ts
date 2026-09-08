@@ -119,12 +119,15 @@ function toMillisOfDay(value: unknown): number | null {
   if (!parts) return null;
 
   const [, hours, minutes, seconds = '0', fraction = '.0'] = parts;
-  if (Number(hours) > 23 || Number(minutes) > 59 || Number(seconds) > 59) return null;
+  if (Number(minutes) > 59 || Number(seconds) > 59) return null;
 
-  return (
+  const millis =
     ((Number(hours) * 60 + Number(minutes)) * 60 + Number(seconds)) * 1000 +
-    Math.round(Number(`0${fraction}`) * 1000)
-  );
+    Math.round(Number(`0${fraction}`) * 1000);
+
+  // Postgres's `time` tops out at 24:00:00, which it stores and returns for the end of a day, so
+  // the bound is that instant rather than hour 23: 24:00:00 is a time, 24:00:00.001 is not.
+  return millis > 24 * 60 * 60 * 1000 ? null : millis;
 }
 
 function scalarEqual(actual: unknown, expected: unknown): boolean | null {

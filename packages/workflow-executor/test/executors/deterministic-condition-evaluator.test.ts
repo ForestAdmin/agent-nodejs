@@ -199,8 +199,16 @@ describe('evaluateOperator', () => {
       expect(ev('greater_than', '08:30:00.2', '08:30:00.19')).toBe(true);
     });
 
+    // Postgres accepts and returns 24:00:00 for the end of a day, and the list view filter orders
+    // it above every other time; refusing it here left such a column matching no operator at all.
+    it('reads 24:00:00 as the end of the day, the way Postgres stores it', () => {
+      expect(ev('greater_than', '24:00:00', '08:00:00')).toBe(true);
+      expect(ev('less_than', '24:00:00', '08:00:00')).toBe(false);
+      expect(ev('equal', '24:00:00', '24:00')).toBe(true);
+      expect(ev('greater_than', '24:00:00.001', '08:00:00')).toBe(false);
+    });
+
     it('is not met on a time nobody can be at', () => {
-      expect(ev('equal', '24:00:00', '24:00:00')).toBe(true);
       expect(ev('greater_than', '25:00:00', '08:00:00')).toBe(false);
       expect(ev('greater_than', '08:70:00', '08:00:00')).toBe(false);
       expect(ev('greater_than', '08:30:70', '08:00:00')).toBe(false);
