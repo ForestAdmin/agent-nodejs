@@ -415,7 +415,7 @@ export const ContextResponseSchema = z
       'pointing outside the served set. ' +
       '`field` is the technical name the agent declares, and the one to send back in a filter, ' +
       'a sort or a projection. It is NOT always the key the record carries: a snake_case agent ' +
-      '(Rails, Django) declares `created_at` and the response returns `createdAt`. When the two ' +
+      '(Rails) declares `created_at` and the response returns `createdAt`. When the two ' +
       'differ, `recordKey` names the response key — read a record value under `recordKey ?? ' +
       'field`, and keep using `field` on the request side. Sub-fields of a composite `type` are ' +
       'not covered: they carry no `recordKey` and the same transform applies to them. ' +
