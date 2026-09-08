@@ -82,11 +82,8 @@ function toContextValidations(validations: unknown[] | null | undefined): Contex
 function toContextField(field: FieldWithWireEnums): ContextField {
   const serialized: ContextField = { field: field.field, type: field.type };
 
-  if (typeof field.field === 'string') {
-    const key = recordKey(field.field);
-
-    if (key !== field.field) serialized.recordKey = key;
-  }
+  const key = recordKey(field.field);
+  if (key !== field.field) serialized.recordKey = key;
 
   if (field.relationship) serialized.relationship = field.relationship;
   if (field.reference) serialized.reference = field.reference;
