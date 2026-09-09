@@ -32,7 +32,7 @@ export default function createReadModel({
   // Wrap once so a throwing metrics backend can never break business logic anywhere in the bundle.
   const resolvedMetrics = safeMetrics(metrics ?? createConsoleMetrics(logger));
   const fetcher = new ForestSchemaClient({ forestServerUrl, envSecret });
-  const schemaCache = new SchemaCache({ fetcher, metrics: resolvedMetrics, now });
+  const schemaCache = new SchemaCache({ fetcher, metrics: resolvedMetrics, logger, now });
   const capabilitiesCache = new CapabilitiesCache({ now });
   const store = new ReadModelStore(schemaCache, capabilitiesCache);
   const actionEndpointResolver = new ActionEndpointResolver(

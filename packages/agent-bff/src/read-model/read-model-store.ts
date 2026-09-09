@@ -34,6 +34,18 @@ export default class ReadModelStore {
     return (await this.getSchemaSnapshot()).readModel;
   }
 
+  /**
+   * Forget the cached schema and the capabilities that belong to it, then force the read-model to be
+   * rebuilt. The capabilities are dropped here rather than left to the next revision change: a
+   * `clear()` also drops a schema write that was in flight, and a dropped write moves nothing the
+   * snapshot can notice, so inferring the invalidation from the revision would miss it.
+   */
+  invalidate(): void {
+    this.schemaCache.clear();
+    this.capabilitiesCache.clear();
+    this.builtRevision = -1;
+  }
+
   async getSchemaSnapshot(): Promise<SchemaSnapshot> {
     const collections = await this.schemaCache.get();
     const { revision } = this.schemaCache;

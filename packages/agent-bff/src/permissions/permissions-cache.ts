@@ -31,6 +31,7 @@ export default class PermissionsCache {
   private readonly ttlMs: number;
 
   private entry: CacheEntry | undefined;
+  private generationValue = 0;
 
   constructor({ now = Date.now, ttlMs = PERMISSIONS_CACHE_TTL_MS }: PermissionsCacheOptions = {}) {
     this.now = now;
@@ -49,7 +50,22 @@ export default class PermissionsCache {
     return this.getFreshEntry()?.permissions;
   }
 
-  set(permissions: EvaluatedPermissions): void {
+  /**
+   * The generation a fetch must be started against. Read it before the fetch and hand it back to
+   * `set`, so a response that crossed a `clear()` cannot become the shared entry.
+   */
+  get generation(): number {
+    return this.generationValue;
+  }
+
+  /**
+   * Store a fetched payload, unless a `clear()` landed while the fetch was in flight: it read the
+   * permissions the invalidation declared stale, and with a single shared entry one late write would
+   * hand a revoked access to every caller for a full TTL.
+   */
+  set(permissions: EvaluatedPermissions, generation: number): void {
+    if (generation !== this.generationValue) return;
+
     const previous = this.getFreshEntry();
     const carriesTheSameUsers =
       previous !== undefined && sameUsers(previous.permissions.users, permissions.users);
@@ -67,6 +83,7 @@ export default class PermissionsCache {
 
   clear(): void {
     this.entry = undefined;
+    this.generationValue += 1;
   }
 
   private getFreshEntry(): CacheEntry | undefined {
