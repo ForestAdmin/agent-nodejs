@@ -271,7 +271,17 @@ export default class AgentClientAgentPort implements AgentPort {
       // covers a forest-rails `field ... reference:`, whose value IS the related id.
       // An empty string is the idiomatic Ruby answer for an unset association (`&.id.to_s`), and it
       // would serialize to an id-less by-id URL, which agents route to the index action instead.
-      const raw = node?.relationships?.[relation]?.data?.id ?? node?.attributes?.[relation];
+      const linkageId = node.relationships?.[relation]?.data?.id;
+      const attribute = node.attributes?.[relation];
+
+      // A `field ... reference:` block that returns the record instead of its id serializes the
+      // whole record under the attribute — captured from forest-rails, not assumed — so the id sits
+      // one level in. Any other scalar IS the id.
+      const raw =
+        linkageId ??
+        (attribute && typeof attribute === 'object'
+          ? (attribute as { id?: unknown }).id
+          : attribute);
 
       if (raw == null || raw === '') return null;
 

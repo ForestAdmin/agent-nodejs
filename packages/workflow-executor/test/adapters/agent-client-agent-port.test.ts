@@ -685,6 +685,30 @@ describe('AgentClientAgentPort', () => {
       expect(result?.recordId).toEqual(['uuid-1']);
     });
 
+    // Captured from forest-rails: a `field ... reference:` block returning the record — not its id
+    // — serializes the whole record under the attribute.
+    it('follows an attribute holding the record itself, reading its id', async () => {
+      mockCollection.getOne
+        .mockResolvedValueOnce(
+          parentWithAttribute('card', { id: 2, name: 'Unrelated', title: null }),
+        )
+        .mockResolvedValueOnce({ reference: 'CARD-1' });
+
+      const result = await port.getSingleRelatedData(
+        {
+          collection: 'claims',
+          id: [42],
+          relation: 'card',
+          relatedSchema: { ...ordersSchema, collectionName: 'cards' },
+          fields: ['reference'],
+        },
+        user,
+      );
+
+      expect(mockCollection.getOne).toHaveBeenNthCalledWith(2, ['2'], { fields: ['reference'] });
+      expect(result?.recordId).toEqual(['2']);
+    });
+
     // The caller reads `values` only for the reference field it asked for, so with nothing to
     // project the linkage id is the whole answer and the target read would fetch a record to
     // discard it.
