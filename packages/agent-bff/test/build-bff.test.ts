@@ -2,10 +2,17 @@ import type { Logger } from '../src/ports/logger-port';
 
 import request from 'supertest';
 
+import { createHttpTransport } from '../src/agent/agent-transport';
 import buildBff from '../src/build-bff';
 import { parseConfig } from '../src/config/env-config';
 import version from '../src/version';
 import { restoreFetchAfterEach, stubEnvironmentIdFetch } from './helpers/fetch-stub';
+
+jest.mock('../src/agent/agent-transport', () => {
+  const actual = jest.requireActual('../src/agent/agent-transport');
+
+  return { ...actual, createHttpTransport: jest.fn(actual.createHttpTransport) };
+});
 
 const VALID_ENV = {
   FOREST_AUTH_SECRET: 'auth-secret',
@@ -28,7 +35,21 @@ describe('buildBff', () => {
   restoreFetchAfterEach();
 
   beforeEach(() => {
+    jest.mocked(createHttpTransport).mockClear();
     stubEnvironmentIdFetch();
+  });
+
+  it('should cap every transport it builds with the configured BFF_AGENT_TIMEOUT_MS', async () => {
+    await buildBff({
+      config: parseConfig({ ...VALID_ENV, BFF_AGENT_TIMEOUT_MS: '2500' }),
+      logger: noopLogger,
+    });
+
+    const built = jest.mocked(createHttpTransport).mock.calls.map(([options]) => options);
+    const capped = { agentUrl: VALID_ENV.AGENT_URL, timeoutMs: 2500 };
+
+    expect(built).not.toHaveLength(0);
+    expect(built).toEqual(built.map(() => capped));
   });
 
   describe('when every required key is present', () => {

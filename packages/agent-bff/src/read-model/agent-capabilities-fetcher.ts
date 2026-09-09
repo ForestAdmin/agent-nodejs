@@ -1,14 +1,12 @@
 import type { CapabilitiesFetcher } from './capabilities-cache';
+import type { AgentTransport } from '../agent/agent-transport';
 
 import { createRemoteAgentClient } from '@forestadmin/agent-client';
 
-import createAgentHttpRequester from '../agent/create-agent-http-requester';
-
 export interface AgentCapabilitiesFetcherOptions {
-  agentUrl: string;
+  transport: AgentTransport;
   /** A borrowed request token, or a factory when the caller can mint one per fetch. */
   token: string | (() => string);
-  timeoutMs?: number;
 }
 
 /**
@@ -20,15 +18,14 @@ export interface AgentCapabilitiesFetcherOptions {
  * expired token. A request can only borrow its caller's, so it passes the string.
  */
 export default function createAgentCapabilitiesFetcher({
-  agentUrl,
+  transport,
   token,
-  timeoutMs,
 }: AgentCapabilitiesFetcherOptions): CapabilitiesFetcher {
   const clientFor = (bearer: string) =>
     createRemoteAgentClient({
-      url: agentUrl,
+      url: transport.url,
       token: bearer,
-      httpRequester: createAgentHttpRequester(bearer, agentUrl, timeoutMs),
+      httpRequester: transport.createRequester(bearer),
     });
 
   if (typeof token === 'string') {

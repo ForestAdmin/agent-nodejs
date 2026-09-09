@@ -5,6 +5,7 @@ import type {
   RelationCountRequestBody,
   RelationListRequestBody,
 } from './agent-query';
+import type { AgentTransport } from '../agent/agent-transport';
 import type { Logger } from '../ports/logger-port';
 import type { CapabilitiesResult } from '../read-model/capabilities-cache';
 import type ReadModel from '../read-model/read-model';
@@ -43,8 +44,7 @@ const RELATION_ROUTE = /^\/agent\/v1\/([^/]+)\/relations\/([^/]+)\/(list|count)$
 
 export interface DataRoutesMiddlewareOptions {
   store: ReadModelStore;
-  agentUrl: string;
-  timeoutMs?: number;
+  transport: AgentTransport;
   logger: Logger;
   createClient?: (options: AgentDataClientOptions) => AgentDataClient;
 }
@@ -53,8 +53,7 @@ interface RequestHandlerDeps {
   collection: string;
   client: AgentDataClient;
   store: ReadModelStore;
-  agentUrl: string;
-  timeoutMs?: number;
+  transport: AgentTransport;
   token: string;
   timezone: string;
   logger: Logger;
@@ -86,11 +85,7 @@ function resolveCapabilities(
     () =>
       deps.store.getCapabilities(
         collection,
-        createAgentCapabilitiesFetcher({
-          agentUrl: deps.agentUrl,
-          token: deps.token,
-          timeoutMs: deps.timeoutMs,
-        }),
+        createAgentCapabilitiesFetcher({ transport: deps.transport, token: deps.token }),
       ),
     deps.logger,
   );
@@ -306,8 +301,7 @@ async function handleRelation(
 
 export default function createDataRoutesMiddleware({
   store,
-  agentUrl,
-  timeoutMs,
+  transport,
   logger,
   createClient = defaultCreateAgentDataClient,
 }: DataRoutesMiddlewareOptions): Middleware {
@@ -336,10 +330,9 @@ export default function createDataRoutesMiddleware({
 
     const deps: RequestHandlerDeps = {
       collection,
-      client: createClient({ agentUrl, token, timeoutMs }),
+      client: createClient({ transport, token }),
       store,
-      agentUrl,
-      timeoutMs,
+      transport,
       token,
       timezone: ctx.state.timezone as string,
       logger,

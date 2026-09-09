@@ -1,9 +1,8 @@
-import createAgentHttpRequester from '../agent/create-agent-http-requester';
+import type { AgentTransport } from '../agent/agent-transport';
 
 export interface AgentDataClientOptions {
-  agentUrl: string;
+  transport: AgentTransport;
   token: string;
-  timeoutMs?: number;
 }
 
 export interface AgentDataClient {
@@ -29,11 +28,10 @@ export interface AgentDataClient {
  * endpoint's raw payload, which `collection.count()` coerces through `Number()` and loses.
  */
 export default function createAgentDataClient({
-  agentUrl,
+  transport,
   token,
-  timeoutMs,
 }: AgentDataClientOptions): AgentDataClient {
-  const requester = createAgentHttpRequester(token, agentUrl, timeoutMs);
+  const requester = transport.createRequester(token);
 
   // Segments are passed raw: HttpRequester.buildUrl already runs the whole path through
   // escapeUrlSlug/encodeURI, so pre-encoding here would double-encode (`|` -> `%257C`).
