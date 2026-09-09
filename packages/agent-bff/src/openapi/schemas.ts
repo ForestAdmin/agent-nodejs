@@ -417,8 +417,12 @@ export const ContextResponseSchema = z
       'a sort or a projection. It is NOT always the key the record carries: a snake_case agent ' +
       '(Rails) declares `created_at` and the response returns `createdAt`. When the two ' +
       'differ, `recordKey` names the response key — read a record value under `recordKey ?? ' +
-      'field`, and keep using `field` on the request side. Sub-fields of a composite `type` are ' +
-      'not covered: they carry no `recordKey` and the same transform applies to them. ' +
+      'field`, and keep using `field` on the request side. It is omitted when the key would be ' +
+      'ambiguous, so its presence is a promise: two fields differing only by casing collapse onto ' +
+      'one key, and a field named `Id` collapses onto the resource identifier, whose value ' +
+      'overwrites the attribute — in both cases no `recordKey` is published and that field is ' +
+      'simply not readable by name. Sub-fields of a composite `type` are ' +
+      'not covered either: they carry no `recordKey` and the same transform applies to them. ' +
       'The document carries no rendering, project or team identity, and the only environment ' +
       'datum is `meta.environmentId` below. It is served to both auth modes — an OAuth session ' +
       'and a BFF API key get the same document. It is NOT filtered by the caller permissions: ' +

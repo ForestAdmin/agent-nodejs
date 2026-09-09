@@ -124,6 +124,62 @@ describe('buildContext', () => {
       expect(peopleFields().find(entry => entry.field === 'id')).not.toHaveProperty('recordKey');
     });
 
+    it('should omit recordKey when another field claims the same key, which collapses', () => {
+      const collidingSchema = [
+        {
+          name: 'people',
+          fields: [
+            { field: 'id', type: 'Number', isPrimaryKey: true },
+            { field: 'first_name', type: 'String' },
+            { field: 'firstName', type: 'String' },
+          ],
+          actions: [],
+        },
+      ] as unknown as Parameters<typeof buildContext>[0];
+
+      const [{ fields }] = buildContext(collidingSchema, new ReadModel(collidingSchema), {
+        schemaRevision: 1,
+      }).collections;
+
+      expect(fields.find(entry => entry.field === 'first_name')).not.toHaveProperty('recordKey');
+      expect(fields.find(entry => entry.field === 'firstName')).not.toHaveProperty('recordKey');
+    });
+
+    it('should omit recordKey on a non-key field named Id, which the resource id overwrites', () => {
+      const idSchema = [
+        {
+          name: 'people',
+          fields: [
+            { field: 'reference', type: 'String', isPrimaryKey: true },
+            { field: 'Id', type: 'String' },
+          ],
+          actions: [],
+        },
+      ] as unknown as Parameters<typeof buildContext>[0];
+
+      const [{ fields }] = buildContext(idSchema, new ReadModel(idSchema), {
+        schemaRevision: 1,
+      }).collections;
+
+      expect(fields.find(entry => entry.field === 'Id')).not.toHaveProperty('recordKey');
+    });
+
+    it('should still name the key of a primary key the deserializer does rename', () => {
+      const pascalKeySchema = [
+        {
+          name: 'people',
+          fields: [{ field: 'Id', type: 'Number', isPrimaryKey: true }],
+          actions: [],
+        },
+      ] as unknown as Parameters<typeof buildContext>[0];
+
+      const [{ fields }] = buildContext(pascalKeySchema, new ReadModel(pascalKeySchema), {
+        schemaRevision: 1,
+      }).collections;
+
+      expect(fields.find(entry => entry.field === 'Id')?.recordKey).toBe('id');
+    });
+
     it('should survive the published schema, which would drop an undeclared key', () => {
       const context = buildContext(snakeCaseSchema, new ReadModel(snakeCaseSchema), {
         schemaRevision: 1,

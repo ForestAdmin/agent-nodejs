@@ -66,6 +66,43 @@ function toArray<T>(value: T[] | null | undefined): T[] {
 
 type FieldWithWireEnums = ForestSchemaField & { enums?: string[] };
 
+/** The deserializer writes the JSON:API resource identifier under this key, always. */
+const RESOURCE_ID_KEY = 'id';
+
+/**
+ * The record keys this collection cannot promise, because more than one thing lands on them.
+ *
+ * Two fields whose technical names differ only by casing collapse onto one key (`first_name` and
+ * `firstName` both reach the response as `firstName`), and a field named `Id` or `ID` collapses onto
+ * the resource identifier, whose value the deserializer writes over the projected attribute — so
+ * reading that field under `id` yields the record's id rather than the field's value. Publishing a
+ * `recordKey` in either case would point a consumer at a value that is not the field's, which is
+ * worse than publishing nothing: `recordKey` is absent, the caller falls back to `field`, and the
+ * ambiguity stays visible instead of being papered over.
+ */
+function ambiguousRecordKeys(fields: FieldWithWireEnums[]): Set<string> {
+  const claimants = new Map<string, number>();
+
+  for (const field of fields) {
+    const key = recordKey(field.field);
+    claimants.set(key, (claimants.get(key) ?? 0) + 1);
+  }
+
+  const ambiguous = new Set<string>();
+
+  for (const [key, count] of claimants) {
+    if (count > 1) ambiguous.add(key);
+  }
+
+  const idClaimedByAnotherField = fields.some(
+    field => !field.isPrimaryKey && recordKey(field.field) === RESOURCE_ID_KEY,
+  );
+
+  if (idClaimedByAnotherField) ambiguous.add(RESOURCE_ID_KEY);
+
+  return ambiguous;
+}
+
 function toContextValidations(validations: unknown[] | null | undefined): ContextValidation[] {
   return toArray(validations)
     .filter(
@@ -79,11 +116,14 @@ function toContextValidations(validations: unknown[] | null | undefined): Contex
     );
 }
 
-function toContextField(field: FieldWithWireEnums): ContextField {
+function toContextField(
+  field: FieldWithWireEnums,
+  ambiguousKeys: ReadonlySet<string>,
+): ContextField {
   const serialized: ContextField = { field: field.field, type: field.type };
 
   const key = recordKey(field.field);
-  if (key !== field.field) serialized.recordKey = key;
+  if (key !== field.field && !ambiguousKeys.has(key)) serialized.recordKey = key;
 
   if (field.relationship) serialized.relationship = field.relationship;
   if (field.reference) serialized.reference = field.reference;
@@ -130,12 +170,14 @@ function toContextCollection(
   readModel: ReadModel,
 ): ContextCollection {
   const allowedActions = readModel.getActionEndpoints()[collection.name] ?? {};
+  const fields = toArray(collection.fields).filter(
+    field => typeof field === 'object' && field !== null,
+  );
+  const ambiguousKeys = ambiguousRecordKeys(fields);
 
   return {
     name: collection.name,
-    fields: toArray(collection.fields)
-      .filter(field => typeof field === 'object' && field !== null)
-      .map(toContextField),
+    fields: fields.map(field => toContextField(field, ambiguousKeys)),
     actions: toArray(collection.actions)
       .filter(action => {
         const allowed = allowedActions[action?.name];
