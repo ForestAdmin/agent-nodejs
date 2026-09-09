@@ -1,3 +1,10 @@
+# @forestadmin/agent-bff [1.26.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.25.5...@forestadmin/agent-bff@1.26.0) (2026-09-09)
+
+
+### Features
+
+* **agent-bff:** let the agent transport be injected ([#1872](https://github.com/ForestAdmin/agent-nodejs/issues/1872)) ([f3c6abf](https://github.com/ForestAdmin/agent-nodejs/commit/f3c6abfe5135a9fa76fde924ba432aa243d028de))
+
 ## @forestadmin/agent-bff [1.25.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.25.4...@forestadmin/agent-bff@1.25.5) (2026-09-09)
 
 
