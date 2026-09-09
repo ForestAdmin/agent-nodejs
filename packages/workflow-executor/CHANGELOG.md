@@ -1,3 +1,10 @@
+# @forestadmin/workflow-executor [1.28.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.27.2...@forestadmin/workflow-executor@1.28.0) (2026-09-09)
+
+
+### Features
+
+* **workflow-executor:** evaluate the operators a list view filter offers, relative dates included ([#1880](https://github.com/ForestAdmin/agent-nodejs/issues/1880)) ([2b8d51f](https://github.com/ForestAdmin/agent-nodejs/commit/2b8d51f40da446d6f9f3b19c92b8464f51984638))
+
 ## @forestadmin/workflow-executor [1.27.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.27.1...@forestadmin/workflow-executor@1.27.2) (2026-09-08)
 
 
