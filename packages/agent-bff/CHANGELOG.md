@@ -1,3 +1,10 @@
+# @forestadmin/agent-bff [1.28.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.27.0...@forestadmin/agent-bff@1.28.0) (2026-09-09)
+
+
+### Features
+
+* **agent-bff:** let a host drop what was read from the SaaS ([#1874](https://github.com/ForestAdmin/agent-nodejs/issues/1874)) ([e312f3b](https://github.com/ForestAdmin/agent-nodejs/commit/e312f3b055cc0f71f1e5fa0d71f62496d147b13e))
+
 # @forestadmin/agent-bff [1.27.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.26.0...@forestadmin/agent-bff@1.27.0) (2026-09-09)
 
 
