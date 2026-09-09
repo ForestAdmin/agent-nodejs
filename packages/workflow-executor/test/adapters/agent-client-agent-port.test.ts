@@ -632,7 +632,7 @@ describe('AgentClientAgentPort', () => {
     it('follows a linkage that has no included entry', async () => {
       mockCollection.getOne
         .mockResolvedValueOnce(parentWithLinkage('card', { id: 'uuid-1' }))
-        .mockResolvedValueOnce({ id: 'uuid-1', reference: 'CARD-1' });
+        .mockResolvedValueOnce({ reference: 'CARD-1' });
 
       const result = await port.getSingleRelatedData(
         {
@@ -640,6 +640,7 @@ describe('AgentClientAgentPort', () => {
           id: [42],
           relation: 'card',
           relatedSchema: { ...ordersSchema, collectionName: 'cards' },
+          fields: ['reference'],
         },
         user,
       );
@@ -647,15 +648,17 @@ describe('AgentClientAgentPort', () => {
       expect(mockCollection.getOne).toHaveBeenNthCalledWith(
         1,
         [42],
-        { fields: ['card@@@id'] },
+        { fields: ['card@@@reference'] },
         { skipDeserialization: true },
       );
-      expect(mockCollection.getOne).toHaveBeenNthCalledWith(2, ['uuid-1'], {});
+      expect(mockCollection.getOne).toHaveBeenNthCalledWith(2, ['uuid-1'], {
+        fields: ['reference'],
+      });
       expect(mockClient.collection).toHaveBeenCalledWith('cards');
       expect(result).toEqual({
         collectionName: 'cards',
         recordId: ['uuid-1'],
-        values: { id: 'uuid-1', reference: 'CARD-1' },
+        values: { reference: 'CARD-1' },
       });
     });
 
@@ -663,7 +666,30 @@ describe('AgentClientAgentPort', () => {
     it('follows an attribute whose value is the related id', async () => {
       mockCollection.getOne
         .mockResolvedValueOnce(parentWithAttribute('card', 'uuid-1'))
-        .mockResolvedValueOnce({ id: 'uuid-1' });
+        .mockResolvedValueOnce({ reference: 'CARD-1' });
+
+      const result = await port.getSingleRelatedData(
+        {
+          collection: 'claims',
+          id: [42],
+          relation: 'card',
+          relatedSchema: { ...ordersSchema, collectionName: 'cards' },
+          fields: ['reference'],
+        },
+        user,
+      );
+
+      expect(mockCollection.getOne).toHaveBeenNthCalledWith(2, ['uuid-1'], {
+        fields: ['reference'],
+      });
+      expect(result?.recordId).toEqual(['uuid-1']);
+    });
+
+    // The caller reads `values` only for the reference field it asked for, so with nothing to
+    // project the linkage id is the whole answer and the target read would fetch a record to
+    // discard it.
+    it('returns the linkage id without reading the target when no field is projected', async () => {
+      mockCollection.getOne.mockResolvedValue(parentWithLinkage('card', { id: 'uuid-1' }));
 
       const result = await port.getSingleRelatedData(
         {
@@ -675,8 +701,60 @@ describe('AgentClientAgentPort', () => {
         user,
       );
 
-      expect(mockCollection.getOne).toHaveBeenNthCalledWith(2, ['uuid-1'], {});
-      expect(result?.recordId).toEqual(['uuid-1']);
+      expect(mockCollection.getOne).toHaveBeenCalledTimes(1);
+      expect(mockCollection.getOne).toHaveBeenCalledWith(
+        [42],
+        { fields: ['card@@@id'] },
+        { skipDeserialization: true },
+      );
+      expect(result).toEqual({
+        collectionName: 'cards',
+        recordId: ['uuid-1'],
+        values: {},
+      });
+    });
+
+    // The by-id route intersects the caller's scope; the relation projected on the parent does not.
+    // A linkage to a record this caller cannot see is "no related record", not a broken run.
+    it('returns null when the target is unreadable, instead of failing the step', async () => {
+      mockedIs404Error.mockReturnValue(true);
+      mockCollection.getOne
+        .mockResolvedValueOnce(parentWithLinkage('card', { id: 'uuid-1' }))
+        .mockRejectedValueOnce(new Error('not found'));
+
+      const result = await port.getSingleRelatedData(
+        {
+          collection: 'claims',
+          id: [42],
+          relation: 'card',
+          relatedSchema: { ...ordersSchema, collectionName: 'cards' },
+          fields: ['reference'],
+        },
+        user,
+      );
+
+      expect(result).toBeNull();
+      expect(mockCollection.getOne).toHaveBeenCalledTimes(2);
+    });
+
+    it('rethrows a non-404 on the target read', async () => {
+      mockedIs404Error.mockReturnValue(false);
+      mockCollection.getOne
+        .mockResolvedValueOnce(parentWithLinkage('card', { id: 'uuid-1' }))
+        .mockRejectedValueOnce(new Error('boom'));
+
+      await expect(
+        port.getSingleRelatedData(
+          {
+            collection: 'claims',
+            id: [42],
+            relation: 'card',
+            relatedSchema: { ...ordersSchema, collectionName: 'cards' },
+            fields: ['reference'],
+          },
+          user,
+        ),
+      ).rejects.toThrow(AgentPortError);
     });
 
     it('projects the caller field, not the PK, and passes it to the target read', async () => {
@@ -763,7 +841,7 @@ describe('AgentClientAgentPort', () => {
     it('splits the packed id when the target key is composite', async () => {
       mockCollection.getOne
         .mockResolvedValueOnce(parentWithLinkage('order', { id: 'acme|7' }))
-        .mockResolvedValueOnce({ tenantId: 'acme', orderId: 7 });
+        .mockResolvedValueOnce({ reference: 'ORD-1' });
 
       const result = await port.getSingleRelatedData(
         {
@@ -771,11 +849,14 @@ describe('AgentClientAgentPort', () => {
           id: [42],
           relation: 'order',
           relatedSchema: { ...ordersSchema, primaryKeyFields: ['tenantId', 'orderId'] },
+          fields: ['reference'],
         },
         user,
       );
 
-      expect(mockCollection.getOne).toHaveBeenNthCalledWith(2, ['acme', '7'], {});
+      expect(mockCollection.getOne).toHaveBeenNthCalledWith(2, ['acme', '7'], {
+        fields: ['reference'],
+      });
       expect(result?.recordId).toEqual(['acme', '7']);
     });
 
@@ -783,7 +864,7 @@ describe('AgentClientAgentPort', () => {
     it('keeps a pipe intact when the target key is single', async () => {
       mockCollection.getOne
         .mockResolvedValueOnce(parentWithAttribute('card', 'acme|corp'))
-        .mockResolvedValueOnce({ id: 'acme|corp' });
+        .mockResolvedValueOnce({ reference: 'CARD-1' });
 
       const result = await port.getSingleRelatedData(
         {
@@ -791,11 +872,14 @@ describe('AgentClientAgentPort', () => {
           id: [42],
           relation: 'card',
           relatedSchema: { ...ordersSchema, collectionName: 'cards' },
+          fields: ['reference'],
         },
         user,
       );
 
-      expect(mockCollection.getOne).toHaveBeenNthCalledWith(2, ['acme|corp'], {});
+      expect(mockCollection.getOne).toHaveBeenNthCalledWith(2, ['acme|corp'], {
+        fields: ['reference'],
+      });
       expect(result?.recordId).toEqual(['acme|corp']);
     });
 
@@ -823,6 +907,23 @@ describe('AgentClientAgentPort', () => {
       expect(result).toBeNull();
       expect(mockCollection.getOne).toHaveBeenCalledTimes(1);
     });
+
+    // Some agents answer a missing composite-key record with a 200 + empty body. Returning null
+    // there would report "no record to load" for a parent nobody read.
+    it.each([{}, { data: null }])(
+      'treats a 200 with an empty parent body (%j) as RecordNotFoundError',
+      async body => {
+        mockCollection.getOne.mockResolvedValue(body);
+
+        await expect(
+          port.getSingleRelatedData(
+            { collection: 'claims', id: [42], relation: 'card', relatedSchema: ordersSchema },
+            user,
+          ),
+        ).rejects.toThrow(RecordNotFoundError);
+        expect(mockCollection.getOne).toHaveBeenCalledTimes(1);
+      },
+    );
 
     it('maps a 404 on the parent to RecordNotFoundError', async () => {
       mockedIs404Error.mockReturnValue(true);

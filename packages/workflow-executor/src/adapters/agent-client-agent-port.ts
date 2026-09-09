@@ -260,7 +260,12 @@ export default class AgentClientAgentPort implements AgentPort {
         throw error;
       }
 
-      const node = body?.data;
+      // Some agents answer a missing composite-key record with a 200 + empty body instead of 404,
+      // like getRecord above. Reading that as an unset relation would report "nothing to load" for
+      // a parent that was never read — the exact confusion this method exists to remove.
+      if (!body?.data) throw new RecordNotFoundError(collection, id);
+
+      const node = body.data;
       // Raw keys are the agent's own field names, so no inflection to second-guess. A linkage
       // covers the Rails `belongs_to` DSL, forest-express references and v2 agents; the attribute
       // covers a forest-rails `field ... reference:`, whose value IS the related id.
@@ -270,16 +275,32 @@ export default class AgentClientAgentPort implements AgentPort {
 
       if (raw == null || raw === '') return null;
 
-      return this.getRecord(
-        {
-          collection: relatedSchema.collectionName,
-          // Only a composite key is pipe-packed. A single-key value can legitimately hold a pipe —
-          // a smart field's value is written by the client — so splitting it would tear it in two.
-          id: relatedSchema.primaryKeyFields.length > 1 ? String(raw).split('|') : [String(raw)],
-          ...(fields?.length ? { fields } : {}),
-        },
-        user,
-      );
+      // Only a composite key is pipe-packed. A single-key value can legitimately hold a pipe —
+      // a smart field's value is written by the client — so splitting it would tear it in two.
+      const recordId =
+        relatedSchema.primaryKeyFields.length > 1 ? String(raw).split('|') : [String(raw)];
+
+      // Nothing to project: the caller wants the linkage id alone (it reads `values` only for the
+      // reference field it asked for), so reading the target would fetch a whole record to discard.
+      if (!fields?.length) {
+        return { collectionName: relatedSchema.collectionName, recordId, values: {} };
+      }
+
+      try {
+        return await this.getRecord(
+          { collection: relatedSchema.collectionName, id: recordId, fields },
+          user,
+        );
+      } catch (error) {
+        // A target the caller cannot read — scoped out, segmented out, or a dangling link — is not
+        // a broken run: the by-id route intersects the caller's scope while the relation projected
+        // on the parent does not, so a valid linkage to an invisible record is reachable. "No
+        // related record" is the true answer from this caller's vantage. The parent above is the
+        // opposite case: it is the step's own source record, so failing to read it stays an error.
+        if (error instanceof RecordNotFoundError) return null;
+
+        throw error;
+      }
     });
   }
 
