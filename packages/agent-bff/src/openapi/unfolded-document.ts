@@ -26,13 +26,14 @@ export interface UnfoldOptions {
   version: string;
   hasAiQueryRoute: boolean;
   publicUrl?: string;
+  basePath?: string;
 }
 
 export default async function buildUnfoldedDocument(
   source: UnfoldSource,
   readModel: ReadModel,
   token: string | (() => string),
-  { version, hasAiQueryRoute, publicUrl }: UnfoldOptions,
+  { version, hasAiQueryRoute, publicUrl, basePath }: UnfoldOptions,
 ): Promise<UnfoldedDocument> {
   const unfolding = await collectUnfolding({
     readModel,
@@ -43,7 +44,7 @@ export default async function buildUnfoldedDocument(
 
   return {
     document: serializeOpenApi(
-      generateOpenApiDocument(version, { unfolding, hasAiQueryRoute, publicUrl }),
+      generateOpenApiDocument(version, { unfolding, hasAiQueryRoute, publicUrl, basePath }),
     ),
     unfolding,
   };

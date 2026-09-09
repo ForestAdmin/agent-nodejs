@@ -5,6 +5,7 @@ import type { Middleware } from 'koa';
 import { generateOpenApiDocument, serializeOpenApi } from './openapi-document';
 import buildUnfoldedDocument from './unfolded-document';
 import { hasDegradedCollection } from './unfolding';
+import { emittedBaseOf } from '../base-path';
 import { requireAgentToken, resolveReadModel } from '../http/agent-route-helpers';
 import { openapiDisabled } from '../http/bff-local-errors';
 
@@ -19,6 +20,8 @@ export interface OpenApiRoutesOptions {
   enabled: boolean;
   hasAiQueryRoute: boolean;
   publicUrl?: string;
+  /** Prefix the host serves the BFF under, so a generated client targets the right base url. */
+  basePath?: string;
   /** Absent (no agent or no read-model configuration) serves the generic document. */
   source?: UnfoldSource;
 }
@@ -29,21 +32,34 @@ export default function createOpenApiRoutes({
   source,
   hasAiQueryRoute,
   publicUrl,
+  basePath,
 }: OpenApiRoutesOptions): Middleware {
-  const generic =
-    enabled && !source
-      ? serializeOpenApi(generateOpenApiDocument(version, { hasAiQueryRoute, publicUrl }))
-      : undefined;
+  // Both documents carry the prefix the caller reached the BFF under, which only the request knows,
+  // so both are memoized per prefix instead of built once. A deployment has one prefix in practice.
+  const generics = new Map<string, string>();
+
+  const genericFor = (base: string): string => {
+    const cached = generics.get(base);
+    if (cached !== undefined) return cached;
+
+    const document = serializeOpenApi(
+      generateOpenApiDocument(version, { hasAiQueryRoute, publicUrl, basePath: base }),
+    );
+    generics.set(base, document);
+
+    return document;
+  };
 
   // Memoized on the read-model identity: the store builds a new one per schema generation, so the
   // document is rebuilt exactly when the schema it describes changed.
-  let unfolded: { readModel: ReadModel; document: string } | undefined;
+  const unfoldedByBase = new Map<string, { readModel: ReadModel; document: string }>();
 
   async function resolveDocument(
     ctx: Parameters<Middleware>[0],
+    base: string,
     attemptsLeft = MAX_GENERATION_RETRIES,
   ): Promise<string> {
-    if (!source) return generic as string;
+    if (!source) return genericFor(base);
 
     if (attemptsLeft <= 0) {
       throw new Error('Schema generation kept changing while building the OpenAPI document');
@@ -54,12 +70,14 @@ export default function createOpenApiRoutes({
     const token = requireAgentToken(ctx);
     const readModel = await resolveReadModel(source.store);
 
-    if (unfolded?.readModel === readModel) return unfolded.document;
+    const memoized = unfoldedByBase.get(base);
+    if (memoized?.readModel === readModel) return memoized.document;
 
     const { document, unfolding } = await buildUnfoldedDocument(source, readModel, token, {
       version,
       hasAiQueryRoute,
       publicUrl,
+      basePath: base,
     });
 
     // A schema refresh landing during the capabilities fan-out mixes the new generation's field sets
@@ -67,7 +85,7 @@ export default function createOpenApiRoutes({
     // nor cached — a consumer would generate a client from a self-contradictory schema. Bounded like
     // `ReadModelStore.getCapabilities`, and driven by the 24h schema TTL rather than request volume.
     if ((await resolveReadModel(source.store)) !== readModel) {
-      return resolveDocument(ctx, attemptsLeft - 1);
+      return resolveDocument(ctx, base, attemptsLeft - 1);
     }
 
     // Only a complete document is memoized. The memo key is the schema generation, which moves on a
@@ -76,7 +94,7 @@ export default function createOpenApiRoutes({
     // the revision. `CapabilitiesCache` deliberately caches successes only; this keeps that true
     // end to end, at the cost of re-running the fan-out until the agent answers again.
     if (!hasDegradedCollection(unfolding)) {
-      unfolded = { readModel, document };
+      unfoldedByBase.set(base, { readModel, document });
     }
 
     return document;
@@ -93,7 +111,7 @@ export default function createOpenApiRoutes({
       throw openapiDisabled();
     }
 
-    const document = await resolveDocument(ctx);
+    const document = await resolveDocument(ctx, emittedBaseOf(ctx, basePath ?? ''));
 
     ctx.status = 200;
     ctx.type = 'application/json';
