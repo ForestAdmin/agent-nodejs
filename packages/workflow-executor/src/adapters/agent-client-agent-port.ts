@@ -285,8 +285,11 @@ export default class AgentClientAgentPort implements AgentPort {
 
       if (raw == null || raw === '') return null;
 
-      // Only a composite key is pipe-packed. A single-key value can legitimately hold a pipe —
-      // a smart field's value is written by the client — so splitting it would tear it in two.
+      // Only a composite key is pipe-packed, so a single-key value is never split — a smart field's
+      // value is written by the client and splitting it would tear it in two. Such a value cannot
+      // hold a pipe either way: `serializeRecordId` refuses one rather than emit an id the agent
+      // would unpack into the wrong number of key parts. That surfaces as an AgentPortError naming
+      // the value, which is cryptic but loud; naming the relation too would need a domain error.
       const recordId =
         relatedSchema.primaryKeyFields.length > 1 ? String(raw).split('|') : [String(raw)];
 

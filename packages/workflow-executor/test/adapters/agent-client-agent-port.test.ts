@@ -884,8 +884,10 @@ describe('AgentClientAgentPort', () => {
       expect(result?.recordId).toEqual(['acme', '7']);
     });
 
-    // The value of a smart field is written by the client, so a pipe in it is data, not packing.
-    it('keeps a pipe intact when the target key is single', async () => {
+    // A single-key value is never split — the pipe is data, not packing. It is not loadable either:
+    // agent-client's serializeRecordId refuses a pipe in a key part (covered in its own suite), and
+    // an agent would unpack it into the wrong number of parts. This pins the no-split, not a load.
+    it('does not split a single-key value on the pipe', async () => {
       mockCollection.getOne
         .mockResolvedValueOnce(parentWithAttribute('card', 'acme|corp'))
         .mockResolvedValueOnce({ reference: 'CARD-1' });
