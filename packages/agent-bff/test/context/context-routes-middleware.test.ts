@@ -11,6 +11,7 @@ import createAuthModeMiddleware from '../../src/auth/auth-mode-middleware';
 import createContextRoutesMiddleware from '../../src/context/context-routes-middleware';
 import createPerKeyOriginMiddleware from '../../src/cors/per-key-origin';
 import createErrorMiddleware from '../../src/http/error-middleware';
+import { tolerateEnvironmentIdFailure } from '../../src/oauth/environment-id';
 import CapabilitiesCache from '../../src/read-model/capabilities-cache';
 import ReadModelStore from '../../src/read-model/read-model-store';
 import SchemaCache, { ONE_DAY_MS } from '../../src/read-model/schema-cache';
@@ -32,7 +33,9 @@ function makeRouteOnlyApp(fetchSchema: jest.Mock, environmentId?: number, now?: 
 
   const app = new Koa();
   app.use(createErrorMiddleware({ logger: () => {} }));
-  app.use(createContextRoutesMiddleware({ store, environmentId }));
+  app.use(
+    createContextRoutesMiddleware({ store, resolveEnvironmentId: async () => environmentId }),
+  );
 
   return { app, schemaCache };
 }
@@ -102,7 +105,7 @@ describe('contextRoutesMiddleware', () => {
       expect(response.body.meta).toEqual({ schemaRevision: 1 });
     });
 
-    it('should carry the environment id the deployment resolved at boot', async () => {
+    it('should carry the environment id the resolver returns', async () => {
       const { app } = makeRouteOnlyApp(jest.fn().mockResolvedValue(schema), 42);
 
       const response = await request(app.callback()).get(ROUTE);
@@ -110,12 +113,44 @@ describe('contextRoutesMiddleware', () => {
       expect(response.body.meta).toEqual({ schemaRevision: 1, environmentId: 42 });
     });
 
-    it('should omit the environment id when the deployment resolved none', async () => {
+    it('should omit the environment id when the resolver returns none', async () => {
       const { app } = makeRouteOnlyApp(jest.fn().mockResolvedValue(schema));
 
       const response = await request(app.callback()).get(ROUTE);
 
       expect(response.body.meta).toEqual({ schemaRevision: 1 });
+    });
+
+    it('should still answer the contract when the environment id cannot be resolved', async () => {
+      const logs: { level: string; message: string; context?: unknown }[] = [];
+      const { store } = makeStore(jest.fn().mockResolvedValue(schema));
+
+      const app = new Koa();
+      app.use(createErrorMiddleware({ logger: () => {} }));
+      app.use(
+        createContextRoutesMiddleware({
+          store,
+          resolveEnvironmentId: tolerateEnvironmentIdFailure(
+            async () => {
+              throw new Error('forest server unreachable');
+            },
+            (level, message, context) => logs.push({ level, message, context }),
+          ),
+        }),
+      );
+
+      const response = await request(app.callback()).get(ROUTE);
+
+      expect(response.status).toBe(200);
+      expect(response.body.meta).toEqual({ schemaRevision: 1 });
+      expect(response.body.collections).toHaveLength(4);
+      expect(logs).toEqual([
+        {
+          level: 'Warn',
+          message: 'Serving the context without an environment id',
+          context: { cause: 'forest server unreachable' },
+        },
+      ]);
     });
 
     it('should fetch the schema once on a cold cache and never again while it stays warm', async () => {
