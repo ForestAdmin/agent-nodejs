@@ -1,3 +1,10 @@
+## @forestadmin/agent-bff [1.25.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.25.4...@forestadmin/agent-bff@1.25.5) (2026-09-09)
+
+
+### Bug Fixes
+
+* **agent-bff:** resolve the environment id on demand, not at boot ([#1871](https://github.com/ForestAdmin/agent-nodejs/issues/1871)) ([f824dec](https://github.com/ForestAdmin/agent-nodejs/commit/f824dec64275088ee0daca39ba4595ec253a1238))
+
 ## @forestadmin/agent-bff [1.25.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.25.3...@forestadmin/agent-bff@1.25.4) (2026-09-09)
 
 
