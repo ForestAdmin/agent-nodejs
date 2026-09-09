@@ -27,6 +27,18 @@ jest.mock('@forestadmin/agent-bff', () => ({
   buildBff: (options: unknown) => mockBuildBff(options),
 }));
 
+const mockExecutorStart = jest.fn();
+const mockExecutorStop = jest.fn();
+
+jest.mock('@forestadmin/workflow-executor', () => ({
+  __esModule: true,
+  buildInMemoryExecutor: () => ({
+    start: mockExecutorStart,
+    stop: mockExecutorStop,
+    state: 'idle',
+  }),
+}));
+
 function responseSpy() {
   const response = {
     statusCode: 200,
@@ -106,6 +118,19 @@ describe('the embedded BFF lifecycle', () => {
       await starting;
     });
 
+    it('should still refuse after a start() that failed once mounted, which stays serving', async () => {
+      mockExecutorStart.mockRejectedValueOnce(new Error('database unreachable'));
+      const agent = buildAgent().addWorkflowExecutor({
+        agentUrl: 'http://localhost:3310',
+        inMemory: true,
+      });
+      await expect(agent.start()).rejects.toThrow('database unreachable');
+
+      expect(() => agent.addBff()).toThrow(
+        'addBff must be called before start(): the agent is already starting.',
+      );
+    });
+
     it('should still accept it after a start() that failed', async () => {
       const options = factories.forestAdminHttpDriverOptions.build({ skipSchemaUpdate: true });
       jest
@@ -165,6 +190,52 @@ describe('the embedded BFF lifecycle', () => {
         status: 503,
         message: 'The embedded BFF was stopped with the agent.',
       });
+    });
+  });
+
+  describe('when stop() lands while the BFF is still being built', () => {
+    it('should answer 503 bff_stopped rather than serve the stack the agent tore down', async () => {
+      let release: (bff: unknown) => void = () => undefined;
+      let building: () => void = () => undefined;
+      const entered = new Promise<void>(resolve => {
+        building = resolve;
+      });
+      mockBuildBff.mockImplementationOnce(
+        () =>
+          new Promise(resolve => {
+            release = resolve;
+            building();
+          }),
+      );
+      const agent = buildAgent().addBff();
+
+      const starting = agent.start();
+      await entered;
+      await agent.stop();
+      release({ callback: mockBffCallback, invalidate: mockInvalidate });
+      await starting;
+
+      const response = responseSpy();
+      bffHandlerOf(agent)(requestFor('/bff/agent/v1/books/list'), response);
+
+      expect(response.statusCode).toBe(503);
+      expect(bodyOf(response).error).toMatchObject({ type: 'bff_stopped' });
+      expect(mockBffCallback).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('when start() follows a stop()', () => {
+    it('should serve again, rather than keep the previous shutdown flag', async () => {
+      const agent = buildAgent().addBff();
+      await agent.start();
+      await agent.stop();
+
+      await agent.start();
+
+      const response = responseSpy();
+      bffHandlerOf(agent)(requestFor('/bff/agent/v1/books/list'), response);
+
+      expect(mockBffCallback).toHaveBeenCalledTimes(1);
     });
   });
 

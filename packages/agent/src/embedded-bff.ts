@@ -75,9 +75,13 @@ export default class EmbeddedBff {
   async start(dispatcher: AgentDispatcher): Promise<void> {
     if (!this.config) await this.prepare();
 
+    // Cleared before the await, not after it: a start() following a stop() has to drop the previous
+    // shutdown's flag, while a stop() landing DURING the await must still be seen by the guard below.
+    this.stopped = false;
+
     const { buildBff } = await this.importPackage();
 
-    this.bff = await buildBff({
+    const bff = await buildBff({
       config: this.config as BFFConfig,
       dispatcher,
       basePath: BFF_PREFIX,
@@ -94,7 +98,12 @@ export default class EmbeddedBff {
       },
       logger: (level, message, context) => this.options.logger(level, formatLog(message, context)),
     });
-    this.stopped = false;
+
+    // stop() may have landed while buildBff() was in flight. Assigning anyway would resurrect a
+    // stopped agent's /bff — dispatching into the stack it just tore down instead of answering 503.
+    if (this.stopped) return;
+
+    this.bff = bff;
 
     this.options.logger('Info', formatLog(`Embedded BFF mounted on ${BFF_PREFIX}`));
 

@@ -142,7 +142,11 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
       // Same reason, without the socket: the dispatcher injects into the stack mount() just built.
       await this.embeddedBff?.start(this.getInProcessDispatcher());
     } catch (error) {
-      this.startupBegun = false;
+      // Only when nothing was mounted. Past mount() the host framework is already serving this
+      // agent, so it is not configurable again: clearing the flag would let a later addBff() past
+      // its guard and register a BFF whose start() nothing calls — /bff would answer 503 for the
+      // rest of the process, and restart() only invalidates, it never starts it.
+      if (!mounted) this.startupBegun = false;
       const { message } = error as Error;
       this.options.logger('Error', `Forest Admin agent startup failure: ${message}`);
 
