@@ -3,8 +3,7 @@ import type { ForestAdminHttpDriverServices } from './services';
 import type {
   AgentOptions,
   AgentOptionsWithDefaults,
-  HttpCallback,
-  McpRouteMatcher,
+  RootHandler,
   WorkflowExecutorEmbedOptions,
 } from './types';
 import type {
@@ -101,12 +100,12 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     let mounted = false;
 
     try {
-      const { router, mcpHttpCallback, mcpIsMcpRoute } = await this.buildRouterAndSendSchema();
+      const { router, mcp } = await this.buildRouterAndSendSchema();
 
       await this.options.forestAdminClient.subscribeToServerEvents();
       this.options.forestAdminClient.onRefreshCustomizations(this.restart.bind(this));
 
-      this.setMcpCallback(mcpHttpCallback ?? null, mcpIsMcpRoute);
+      this.setMcpCallback(mcp ?? null);
       await this.mount(router);
       mounted = true;
 
@@ -180,9 +179,9 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
 
     try {
       // We force sending schema when restarting
-      const { router, mcpHttpCallback, mcpIsMcpRoute } = await this.buildRouterAndSendSchema();
+      const { router, mcp } = await this.buildRouterAndSendSchema();
 
-      this.setMcpCallback(mcpHttpCallback ?? null, mcpIsMcpRoute);
+      this.setMcpCallback(mcp ?? null);
       await this.remount(router);
     } finally {
       this.isRestarting = false;
@@ -373,8 +372,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    */
   private async getRouter(dataSource: DataSource): Promise<{
     router: Router;
-    mcpHttpCallback?: HttpCallback;
-    mcpIsMcpRoute?: McpRouteMatcher;
+    mcp?: RootHandler;
   }> {
     // Bootstrap app
     const services = makeServices(this.options);
@@ -383,12 +381,10 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     await Promise.all(routes.map(route => route.bootstrap()));
 
     // Initialize MCP server if enabled via mountAiMcpServer()
-    let mcpHttpCallback: HttpCallback | undefined;
-    let mcpIsMcpRoute: McpRouteMatcher | undefined;
+    let mcp: RootHandler | undefined;
 
     if (this.mcpEnabled) {
-      ({ httpCallback: mcpHttpCallback, isMcpRoute: mcpIsMcpRoute } =
-        await this.initializeMcpServer());
+      mcp = await this.initializeMcpServer();
     }
 
     // Build main router
@@ -413,7 +409,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     router.use(correlationIdMiddleware);
     routes.forEach(route => route.setupRoutes(router));
 
-    return { router, mcpHttpCallback, mcpIsMcpRoute };
+    return { router, mcp };
   }
 
   /**
@@ -421,10 +417,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * Uses dynamic import to defer loading until mountAiMcpServer() is actually used.
    * This avoids loading the mcp-server dependency at startup for users who don't use MCP.
    */
-  private async initializeMcpServer(): Promise<{
-    httpCallback: HttpCallback;
-    isMcpRoute: McpRouteMatcher;
-  }> {
+  private async initializeMcpServer(): Promise<RootHandler> {
     const mcpLogger = (level, message) => this.options.logger(level, `[MCP] ${message}`);
 
     try {
@@ -455,8 +448,8 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
         agentDispatcher: this.getInProcessDispatcher(),
       });
 
-      const httpCallback = await mcpServer.getHttpCallback();
-      const isMcpRoute = makeIsMcpRoute(this.mcpBasePath);
+      const callback = await mcpServer.getHttpCallback();
+      const matches = makeIsMcpRoute(this.mcpBasePath);
 
       mcpLogger('Info', 'Server initialized successfully');
       mcpLogger(
@@ -464,7 +457,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
         'Tool calls dispatch in-process and skip any middleware mounted in front of the agent',
       );
 
-      return { httpCallback, isMcpRoute };
+      return { callback, matches };
     } catch (error) {
       const { message } = error as Error;
       mcpLogger('Error', `Failed to initialize MCP server: ${message}`);
@@ -503,8 +496,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
 
   private async buildRouterAndSendSchema(): Promise<{
     router: Router;
-    mcpHttpCallback?: HttpCallback;
-    mcpIsMcpRoute?: McpRouteMatcher;
+    mcp?: RootHandler;
   }> {
     const { isProduction, logger, typingsPath, typingsMaxDepth } = this.options;
 

@@ -762,7 +762,7 @@ describe('Agent', () => {
     test('threads a basePath-scoped route matcher to the MCP middleware', async () => {
       const options = factories.forestAdminHttpDriverOptions.build();
       const agent = new Agent(options);
-      type SetMcpCallback = (cb: unknown, matcher?: (url: string) => boolean) => void;
+      type SetMcpCallback = (handler: { matches: (url: string) => boolean } | null) => void;
       const setMcpCallbackSpy = jest.spyOn(
         agent as unknown as { setMcpCallback: SetMcpCallback },
         'setMcpCallback',
@@ -771,7 +771,7 @@ describe('Agent', () => {
       agent.mountAiMcpServer({ basePath: '/ai' });
       await agent.start();
 
-      const matcher = setMcpCallbackSpy.mock.calls.at(-1)?.[1];
+      const matcher = setMcpCallbackSpy.mock.calls.at(-1)?.[0]?.matches;
       expect(matcher?.('/ai/mcp')).toBe(true);
       expect(matcher?.('/oauth/token')).toBe(false);
     });
