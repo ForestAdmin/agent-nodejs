@@ -37,6 +37,7 @@
     "jsonwebtoken": "^9.0.3",
     "koa": "^3.0.1",
     "koa-jwt": "^4.0.4",
+    "luxon": "^3.2.1",
     "pg": "^8.8.0",
     "picocolors": "^1.1.1",
     "sequelize": "^6.37.8",
@@ -47,6 +48,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/koa": "^2.13.5",
     "@types/koa__router": "^12.0.4",
+    "@types/luxon": "^3.2.0",
     "@types/sequelize": "^6.12.0",
     "sqlite3": "^6.0.1",
     "supertest": "^7.1.3"

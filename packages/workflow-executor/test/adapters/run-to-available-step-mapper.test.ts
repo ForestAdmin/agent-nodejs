@@ -126,8 +126,24 @@ describe('toAvailableStepExecution', () => {
       },
       previousSteps: [],
       user: expect.objectContaining({ id: 7, email: 'alban@forestadmin.com' }),
+      timezone: 'UTC',
     });
   });
+
+  it('should forward the project timezone', () => {
+    const result = toAvailableStepExecution(makeRun({ timezone: 'Europe/Paris' }));
+
+    expect(result?.timezone).toBe('Europe/Paris');
+  });
+
+  it.each([null, undefined, '', 'Mars/Olympus'])(
+    'should fall back to UTC when the timezone is %p',
+    timezone => {
+      const result = toAvailableStepExecution(makeRun({ timezone }));
+
+      expect(result?.timezone).toBe('UTC');
+    },
+  );
 
   it('should forward the run triggerType', () => {
     const run = makeRun({ triggerType: ServerWorkflowTriggerType.webhook });

@@ -122,6 +122,7 @@ function makeContext(
       permissionLevel: 'admin',
       tags: {},
     },
+    timezone: 'UTC',
     schemaResolver: new SchemaResolver(schemaCache, workflowPort, runId, 1),
     previousSteps: [],
     logger: jest.fn(),
@@ -476,8 +477,8 @@ describe('ConditionStepExecutor', () => {
             {
               sourceStepId: 'get-1',
               fieldName: 'amount',
-              operator: 'less_than_or_equal',
-              value: 100,
+              operator: 'less_than',
+              value: 101,
             },
           ],
         },
@@ -576,6 +577,8 @@ describe('ConditionStepExecutor', () => {
           ],
           selectedOption: 'High',
           usedFallback: false,
+          evaluatedAt: expect.any(String),
+          timezone: 'UTC',
         },
         executionResult: { answer: 'High' },
       });
@@ -655,6 +658,8 @@ describe('ConditionStepExecutor', () => {
           ],
           selectedOption: 'Other',
           usedFallback: true,
+          evaluatedAt: expect.any(String),
+          timezone: 'UTC',
         },
         executionResult: { answer: 'Other' },
       });
@@ -724,6 +729,8 @@ describe('ConditionStepExecutor', () => {
             ],
             selectedOption: 'Other',
             usedFallback: true,
+            evaluatedAt: expect.any(String),
+            timezone: 'UTC',
           },
           executionResult: { answer: 'Other' },
         },
@@ -774,6 +781,8 @@ describe('ConditionStepExecutor', () => {
           ],
           selectedOption: 'Other',
           usedFallback: true,
+          evaluatedAt: expect.any(String),
+          timezone: 'UTC',
         },
         executionResult: { answer: 'Other' },
       });
@@ -947,6 +956,8 @@ describe('ConditionStepExecutor', () => {
           ],
           selectedOption: 'Other',
           usedFallback: true,
+          evaluatedAt: expect.any(String),
+          timezone: 'UTC',
         },
         executionResult: { answer: 'Other' },
       });
@@ -1125,6 +1136,70 @@ describe('ConditionStepExecutor', () => {
           }),
         }),
       );
+    });
+
+    // 2026-09-04T23:00Z is still 4 September in UTC but already 5 September in Paris. A record
+    // stamped 2026-09-05T00:30Z is "today" in Paris and tomorrow in UTC, so the option is taken
+    // only if the project zone is what the evaluator was handed.
+    it('reads relative dates in the context timezone and records the instant it used', async () => {
+      const todayInParis: ConditionPreRecordedArgs = {
+        optionConditions: [
+          {
+            option: 'Today',
+            aggregator: 'and',
+            conditions: [{ sourceStepId: 'get-1', fieldName: 'signedAt', operator: 'today' }],
+          },
+        ],
+        fallbackOption: 'Other',
+      };
+      const { context, runStore } = makeDeterministicContext(
+        todayInParis,
+        [{ name: 'signedAt', displayName: 'Signed at', value: '2026-09-05T00:30:00Z' }],
+        { timezone: 'Europe/Paris' },
+      );
+
+      try {
+        jest.useFakeTimers().setSystemTime(new Date('2026-09-04T23:00:00Z'));
+        const result = await new ConditionStepExecutor(context).execute();
+
+        expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('Today');
+        expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+          'run-1',
+          expect.objectContaining({
+            executionParams: expect.objectContaining({
+              evaluatedAt: '2026-09-04T23:00:00.000Z',
+              timezone: 'Europe/Paris',
+            }),
+          }),
+        );
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    it('does not read a record from the next UTC day as today when the project zone is UTC', async () => {
+      const todayArgs: ConditionPreRecordedArgs = {
+        optionConditions: [
+          {
+            option: 'Today',
+            aggregator: 'and',
+            conditions: [{ sourceStepId: 'get-1', fieldName: 'signedAt', operator: 'today' }],
+          },
+        ],
+        fallbackOption: 'Other',
+      };
+      const { context } = makeDeterministicContext(todayArgs, [
+        { name: 'signedAt', displayName: 'Signed at', value: '2026-09-05T00:30:00Z' },
+      ]);
+
+      try {
+        jest.useFakeTimers().setSystemTime(new Date('2026-09-04T23:00:00Z'));
+        const result = await new ConditionStepExecutor(context).execute();
+
+        expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('Other');
+      } finally {
+        jest.useRealTimers();
+      }
     });
 
     it('uses the most recent occurrence of a repeated source step id (loop)', async () => {

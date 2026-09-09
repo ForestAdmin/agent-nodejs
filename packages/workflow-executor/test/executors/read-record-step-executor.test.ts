@@ -160,6 +160,7 @@ function makeContext(
     },
     schemaResolver,
     previousSteps: [],
+    timezone: 'UTC',
     logger: jest.fn(),
     ...overrides,
   };

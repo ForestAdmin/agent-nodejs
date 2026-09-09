@@ -130,3 +130,11 @@ labels: ["bug"]  # optional
 - `sub epic` - Smaller parts of epics
 
 The response includes a `gitBranchName` field with a suggested branch name containing the issue identifier.
+
+<!-- ADR:INDEX:START -->
+## Architecture Decision Records
+
+Decisions live in `docs/adr/`. Run `/adr` to record one.
+
+- [A case-insensitive Decision follows Postgres's ILIKE, whatever the datasource](docs/adr/2026-09-09-a-case-insensitive-decision-follows-postgres-s-ilike-whatever-the-data.md) — 2026-09-09-a-case-insensitive-decision-follows-postgres-s-ilike-whatever-the-data [accepted]
+<!-- ADR:INDEX:END -->
