@@ -1,3 +1,10 @@
+# @forestadmin/agent-bff [1.27.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.26.0...@forestadmin/agent-bff@1.27.0) (2026-09-09)
+
+
+### Features
+
+* **agent-bff:** let the emitted paths carry a mount prefix ([#1873](https://github.com/ForestAdmin/agent-nodejs/issues/1873)) ([6a109c7](https://github.com/ForestAdmin/agent-nodejs/commit/6a109c7e7c9d6b813100871774137112020f9ef6))
+
 # @forestadmin/agent-bff [1.26.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.25.5...@forestadmin/agent-bff@1.26.0) (2026-09-09)
 
 
