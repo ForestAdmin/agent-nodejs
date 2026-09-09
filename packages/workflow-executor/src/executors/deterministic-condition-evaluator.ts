@@ -110,9 +110,11 @@ function compareIntegers(actual: unknown, expected: unknown): number | null {
   return actualInteger > expectedInteger ? 1 : -1;
 }
 
-// Milliseconds since midnight rather than text: comparing the strings would order "08:30:00.10"
-// before "08:30:00.1", which is the same instant written twice.
-function toMillisOfDay(value: unknown): number | null {
+// A count since midnight rather than text: comparing the strings would order "08:30:00.10" before
+// "08:30:00.1", which is the same instant written twice. Microseconds, the precision Postgres's
+// `time` keeps, and read as six exact digits rather than scaled by a float: rounding to
+// milliseconds made 08:30:00.0001 equal 08:30:00, and carried .9999 into the next second.
+function toMicrosOfDay(value: unknown): number | null {
   if (typeof value !== 'string') return null;
 
   const parts = TIME_OF_DAY.exec(value);
@@ -121,13 +123,13 @@ function toMillisOfDay(value: unknown): number | null {
   const [, hours, minutes, seconds = '0', fraction = '.0'] = parts;
   if (Number(minutes) > 59 || Number(seconds) > 59) return null;
 
-  const millis =
-    ((Number(hours) * 60 + Number(minutes)) * 60 + Number(seconds)) * 1000 +
-    Math.round(Number(`0${fraction}`) * 1000);
+  const micros =
+    ((Number(hours) * 60 + Number(minutes)) * 60 + Number(seconds)) * 1_000_000 +
+    Number(`${fraction.slice(1)}000000`.slice(0, 6));
 
   // Postgres's `time` tops out at 24:00:00, which it stores and returns for the end of a day, so
   // the bound is that instant rather than hour 23: 24:00:00 is a time, 24:00:00.001 is not.
-  return millis > 24 * 60 * 60 * 1000 ? null : millis;
+  return micros > 24 * 60 * 60 * 1_000_000 ? null : micros;
 }
 
 function scalarEqual(actual: unknown, expected: unknown): boolean | null {
@@ -143,8 +145,8 @@ function scalarEqual(actual: unknown, expected: unknown): boolean | null {
   const expectedTs = toTimestamp(expected);
   if (actualTs !== null && expectedTs !== null) return actualTs === expectedTs;
 
-  const actualTime = toMillisOfDay(actual);
-  const expectedTime = toMillisOfDay(expected);
+  const actualTime = toMicrosOfDay(actual);
+  const expectedTime = toMicrosOfDay(expected);
   if (actualTime !== null && expectedTime !== null) return actualTime === expectedTime;
 
   return typeof actual === typeof expected ? false : null;
@@ -176,8 +178,8 @@ function compare(actual: unknown, expected: unknown): number | null {
 
   // Without this, "is greater than" on a Time column can never be met: the builder offers the
   // operator, and the step would route to the fallback on every record without saying why.
-  const actualTime = toMillisOfDay(actual);
-  const expectedTime = toMillisOfDay(expected);
+  const actualTime = toMicrosOfDay(actual);
+  const expectedTime = toMicrosOfDay(expected);
   if (actualTime !== null && expectedTime !== null) return actualTime - expectedTime;
 
   return null;

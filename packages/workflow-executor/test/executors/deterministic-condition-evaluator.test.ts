@@ -199,6 +199,16 @@ describe('evaluateOperator', () => {
       expect(ev('greater_than', '08:30:00.2', '08:30:00.19')).toBe(true);
     });
 
+    // Postgres's `time` keeps microseconds, so a fraction below a millisecond is a real distinct
+    // value; rounding to milliseconds collapsed it onto the second and carried .9999 past it.
+    it('keeps a fraction below a millisecond apart', () => {
+      expect(ev('equal', '08:30:00.0001', '08:30:00')).toBe(false);
+      expect(ev('greater_than', '08:30:00.0001', '08:30:00')).toBe(true);
+      expect(ev('less_than', '08:30:00.9999', '08:30:01')).toBe(true);
+      expect(ev('equal', '08:30:00.9999', '08:30:01')).toBe(false);
+      expect(ev('equal', '08:30:00.000001', '08:30:00')).toBe(false);
+    });
+
     // Postgres accepts and returns 24:00:00 for the end of a day, and the list view filter orders
     // it above every other time; refusing it here left such a column matching no operator at all.
     it('reads 24:00:00 as the end of the day, the way Postgres stores it', () => {
