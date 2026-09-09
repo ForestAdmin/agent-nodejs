@@ -4,15 +4,13 @@ import type { ToolProvider } from './tool-provider';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 
 import { AIBadRequestError } from './errors';
-import getKolarTools, { type KolarConfig } from './integrations/kolar/tools';
-import { validateKolarConfig } from './integrations/kolar/utils';
 import getSnowflakeTools, { type SnowflakeConfig } from './integrations/snowflake/tools';
 import { validateSnowflakeConfig } from './integrations/snowflake/utils';
 import getZendeskTools, { type ZendeskConfig } from './integrations/zendesk/tools';
 import { validateZendeskConfig } from './integrations/zendesk/utils';
 
-export type CustomConfig = ZendeskConfig | KolarConfig | SnowflakeConfig;
-export const FOREST_INTEGRATION_NAMES = ['Zendesk', 'Kolar', 'Snowflake'] as const;
+export type CustomConfig = ZendeskConfig | SnowflakeConfig;
+export const FOREST_INTEGRATION_NAMES = ['Zendesk', 'Snowflake'] as const;
 export type ForestIntegrationName = (typeof FOREST_INTEGRATION_NAMES)[number];
 
 export interface ForestIntegrationConfig {
@@ -51,9 +49,6 @@ export default class ForestIntegrationClient implements ToolProvider {
         case 'Zendesk':
           tools.push(...getZendeskTools(config as ZendeskConfig, mcpServerId));
           break;
-        case 'Kolar':
-          tools.push(...getKolarTools(config as KolarConfig, mcpServerId));
-          break;
         case 'Snowflake':
           tools.push(...getSnowflakeTools(config as SnowflakeConfig, mcpServerId));
           break;
@@ -83,8 +78,6 @@ export default class ForestIntegrationClient implements ToolProvider {
         switch (integrationName) {
           case 'Zendesk':
             return validateZendeskConfig(config as ZendeskConfig);
-          case 'Kolar':
-            return validateKolarConfig(config as KolarConfig);
           case 'Snowflake':
             return validateSnowflakeConfig(config as SnowflakeConfig);
           default:
