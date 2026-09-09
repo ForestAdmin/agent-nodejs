@@ -58,6 +58,13 @@ function mapActionExecutionError(action: string, cause: unknown): unknown {
   return cause;
 }
 
+type RawRecordBody = {
+  data?: {
+    attributes?: Record<string, unknown>;
+    relationships?: Record<string, { data?: { id?: string } | null }>;
+  };
+};
+
 // Transcribes inflected's `underscore` + `camelize(_, false)` — the inflection agent-client's
 // jsonapi-serializer deserializer applies to every response key. Divergence = silent lookup miss.
 function toCamelCase(name: string): string {
@@ -220,10 +227,11 @@ export default class AgentClientAgentPort implements AgentPort {
     });
   }
 
-  // xToOne relations have no /relationships/<relation> route on the agent. We read the
-  // parent record with a `<relation>@@@<field>` projection and unpack the relation linkage
-  // jsonapi-serializer emits as a nested object on the parent (with the related PK packed
-  // under "id" when composite).
+  // xToOne relations have no /relationships/<relation> route on the agent, so the relation is read
+  // off the parent record — from the RAW JSON:API body. jsonapi-serializer drops a relationship key
+  // whose linkage has no matching `included` entry, and forest-rails only compounds real
+  // ActiveRecord associations, so a Rails smart belongs_to reached us as "no relation at all".
+  // resolvePolymorphicType reads raw for the same reason.
   async getSingleRelatedData(
     { collection, id, relation, relatedSchema, fields }: GetSingleRelatedDataQuery,
     user: StepUser,
@@ -232,52 +240,46 @@ export default class AgentClientAgentPort implements AgentPort {
       // The agent can't parse multiple sub-fields on one relation in a single projection
       // (`fields[store]=id,name` is read as a single field name → ValidationError). The linkage
       // `id` carries the (packed) related PK regardless of projection, so project at most ONE
-      // field: the requested reference field for display, else a single PK field just to pull the
-      // relation into the response.
+      // field: the requested reference field, else a single PK field just to pull the relation
+      // into the response.
       const projectedField = fields?.[0] ?? relatedSchema.primaryKeyFields[0];
-      const parent = await this.getRecord(
+
+      let body: RawRecordBody;
+
+      try {
+        body = await this.createClient(user)
+          .collection(collection)
+          .getOne<RawRecordBody>(
+            id,
+            { fields: [`${relation}@@@${projectedField}`] },
+            { skipDeserialization: true },
+          );
+      } catch (error) {
+        if (HttpRequester.is404Error(error)) throw new RecordNotFoundError(collection, id);
+
+        throw error;
+      }
+
+      const node = body?.data;
+      // Raw keys are the agent's own field names, so no inflection to second-guess. A linkage
+      // covers the Rails `belongs_to` DSL, forest-express references and v2 agents; the attribute
+      // covers a forest-rails `field ... reference:`, whose value IS the related id.
+      // An empty string is the idiomatic Ruby answer for an unset association (`&.id.to_s`), and it
+      // would serialize to an id-less by-id URL, which agents route to the index action instead.
+      const raw = node?.relationships?.[relation]?.data?.id ?? node?.attributes?.[relation];
+
+      if (raw == null || raw === '') return null;
+
+      return this.getRecord(
         {
-          collection,
-          id,
-          fields: [`${relation}@@@${projectedField}`],
+          collection: relatedSchema.collectionName,
+          // Only a composite key is pipe-packed. A single-key value can legitimately hold a pipe —
+          // a smart field's value is written by the client — so splitting it would tear it in two.
+          id: relatedSchema.primaryKeyFields.length > 1 ? String(raw).split('|') : [String(raw)],
+          ...(fields?.length ? { fields } : {}),
         },
         user,
       );
-
-      const raw = parent.values[toCamelCase(relation)];
-
-      // A forest-rails smart field declared with `field ... reference:` serializes as a plain
-      // attribute, so the value IS the related id. The same apimap shape coming from the
-      // `belongs_to` DSL, and every forest-express reference field, still arrives as a linkage —
-      // hence a check on the runtime shape rather than on the schema.
-      // An empty string is the idiomatic Ruby answer for an unset association (`&.id.to_s`), and it
-      // would serialize to an id-less by-id URL, which agents route to the index action instead.
-      if (raw != null && raw !== '' && typeof raw !== 'object') {
-        return this.getRecord(
-          {
-            collection: relatedSchema.collectionName,
-            // Only a composite key is pipe-packed. The value of a smart field is written by the
-            // client, so splitting a single-key id would tear a legitimate "a|b" in two.
-            id:
-              relatedSchema.primaryKeyFields.length > 1 ? String(raw).split('|') : [raw as string],
-            ...(fields?.length ? { fields } : {}),
-          },
-          user,
-        );
-      }
-
-      const linkage = raw as Record<string, unknown> | null | undefined;
-      const packedId = linkage?.id as string | undefined;
-
-      if (!linkage || !packedId) return null;
-
-      const restored = restoreFieldNames(linkage, [projectedField]);
-
-      return {
-        collectionName: relatedSchema.collectionName,
-        recordId: packedId.split('|'),
-        values: restored,
-      };
     });
   }
 
