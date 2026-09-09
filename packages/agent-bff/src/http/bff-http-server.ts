@@ -1,3 +1,4 @@
+import type { BffCallback } from '../build-bff';
 import type { BFFConfig } from '../config/env-config';
 import type { Logger } from '../ports/logger-port';
 import type { Server } from 'http';
@@ -6,18 +7,43 @@ import type { Middleware } from 'koa';
 import http from 'http';
 import Koa from 'koa';
 
+import createHealthRoute from './health-route';
+import createVersionHeaderMiddleware from './version-header-middleware';
 import createConsoleLogger from '../adapters/console-logger';
+import warnMissingConfig from '../config/missing-config-warning';
 
-export interface BFFHttpServerOptions {
+interface BFFHttpServerBaseOptions {
   port: number;
-  version: string;
   config: BFFConfig;
   logger?: Logger;
+}
+
+/** The server assembles its own Koa app around `/health` and the version header. */
+interface AssembledOptions extends BFFHttpServerBaseOptions {
+  version: string;
   middlewares?: Middleware[];
+  callback?: never;
+}
+
+/**
+ * The server only listens: `buildBff` already assembled the handler, `/health` and the version
+ * header included. `version` and `middlewares` are forbidden here rather than ignored — a host
+ * passing them would otherwise boot fine and 404 every one of its own routes.
+ */
+interface PrebuiltOptions extends BFFHttpServerBaseOptions {
+  callback: BffCallback;
+  version?: never;
+  middlewares?: never;
+}
+
+export type BFFHttpServerOptions = AssembledOptions | PrebuiltOptions;
+
+function isPrebuilt(options: BFFHttpServerOptions): options is PrebuiltOptions {
+  return options.callback !== undefined;
 }
 
 export default class BFFHttpServer {
-  private readonly app: Koa;
+  private readonly handler: BffCallback;
   private readonly options: BFFHttpServerOptions;
   private readonly logger: Logger;
   private server: Server | null = null;
@@ -25,35 +51,36 @@ export default class BFFHttpServer {
   constructor(options: BFFHttpServerOptions) {
     this.options = options;
     this.logger = options.logger ?? createConsoleLogger();
-    this.app = new Koa();
 
-    this.app.use(async (ctx, next) => {
-      ctx.set('X-Forest-Bff-Version', this.options.version);
-      await next();
-    });
+    if (isPrebuilt(options)) {
+      this.handler = options.callback;
 
-    this.app.use(async (ctx, next) => {
-      if ((ctx.method === 'GET' || ctx.method === 'HEAD') && ctx.path === '/health') {
-        const { config, version } = this.options;
-        ctx.status = config.hasAllRequired ? 200 : 503;
-        ctx.body = { status: config.hasAllRequired ? 'ok' : 'degraded', version };
-
-        return;
-      }
-
-      await next();
-    });
-
-    for (const middleware of this.options.middlewares ?? []) {
-      this.app.use(middleware);
+      return;
     }
+
+    this.handler = BFFHttpServer.buildHandler(options);
+    warnMissingConfig(options.config, this.logger);
+  }
+
+  private static buildHandler(options: AssembledOptions): BffCallback {
+    const { config, version } = options;
+    const app = new Koa();
+
+    app.use(createVersionHeaderMiddleware(version));
+    app.use(createHealthRoute({ config, version }));
+
+    for (const middleware of options.middlewares ?? []) {
+      app.use(middleware);
+    }
+
+    return app.callback();
   }
 
   async start(): Promise<void> {
     if (this.server) throw new Error('Server already started');
 
     return new Promise((resolve, reject) => {
-      const server = http.createServer(this.app.callback());
+      const server = http.createServer(this.handler);
       this.server = server;
       let onError: (error: Error) => void;
 
@@ -62,16 +89,6 @@ export default class BFFHttpServer {
         const address = server.address();
         const port = typeof address === 'object' && address ? address.port : this.options.port;
         this.logger('Info', 'Forest BFF started', { port });
-
-        const missing = Object.entries(this.options.config.presence)
-          .filter(([, present]) => !present)
-          .map(([key]) => key);
-
-        if (missing.length > 0) {
-          this.logger('Warn', 'Missing required configuration; /health will report degraded', {
-            missing,
-          });
-        }
 
         resolve();
       };
@@ -107,6 +124,6 @@ export default class BFFHttpServer {
   }
 
   get callback() {
-    return this.app.callback();
+    return this.handler;
   }
 }
