@@ -134,18 +134,28 @@ function parseJsonApiFromMessage(error: unknown): AgentJsonApiError | undefined 
   }
 }
 
-function mapFlatBody(status: number, body: unknown, responseText?: string): BffHttpError {
+function mapFlatBody(error: AgentHttpError, logger: Logger): BffHttpError {
+  const { status, body, responseText } = error;
   const flat = (typeof body === 'object' && body !== null ? body : {}) as {
     error?: unknown;
     message?: unknown;
   };
   const message =
     (typeof flat.error === 'string' ? flat.error : undefined) ??
-    (typeof flat.message === 'string' ? flat.message : undefined) ??
-    (typeof responseText === 'string' && responseText !== '' ? responseText : undefined) ??
-    DEFAULT_ERROR_MESSAGE;
+    (typeof flat.message === 'string' ? flat.message : undefined);
 
-  return new BffHttpError(status, fallbackTypeByStatus(status), message);
+  // An unstructured 4xx body is whatever the agent's host framework emitted: an HTML error page, a
+  // proxy notice, a stack trace. It is not a message for the client, and it leaks the agent's
+  // internals, so it is logged as the cause and answered generically -- the same treatment the 5xx
+  // path already gives.
+  if (message === undefined) {
+    logger('Warn', 'Agent 4xx carried no structured error; client message is generic', {
+      status,
+      cause: typeof responseText === 'string' && responseText !== '' ? responseText : undefined,
+    });
+  }
+
+  return new BffHttpError(status, fallbackTypeByStatus(status), message ?? DEFAULT_ERROR_MESSAGE);
 }
 
 export function mapAgentError(error: unknown, { logger }: { logger: Logger }): BffHttpError {
@@ -187,5 +197,5 @@ export function mapAgentError(error: unknown, { logger }: { logger: Logger }): B
   const agentError = firstJsonApiError(error.body);
   if (agentError) return mapJsonApiError(agentError, error.status, logger);
 
-  return mapFlatBody(error.status, error.body, error.responseText);
+  return mapFlatBody(error, logger);
 }
