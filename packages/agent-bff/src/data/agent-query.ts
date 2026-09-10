@@ -183,6 +183,15 @@ export function hasSearch(body: Pick<CountRequestBody, 'search'>): boolean {
   return (body.search?.trim() ?? '') !== '';
 }
 
+/**
+ * Whether the request actually filters. An empty object is how an absent filter is spelled — see
+ * `assertFilterNode`, which accepts a node carrying no key — so the audit trail must not record a
+ * plain page load as a filtered read.
+ */
+export function hasFilter(body: Pick<CountRequestBody, 'filter'>): boolean {
+  return isPlainObject(body.filter) && Object.keys(body.filter).length > 0;
+}
+
 export function buildListAgentQuery(
   collection: string,
   timezone: string,

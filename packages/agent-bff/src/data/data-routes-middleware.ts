@@ -21,6 +21,7 @@ import {
   buildListAgentQuery,
   collectCountFieldPaths,
   collectListFieldPaths,
+  hasFilter,
   hasSearch,
   parseCountRequest,
   parseListRequest,
@@ -141,7 +142,7 @@ async function resolveOwnCapabilities(
 
 function selectListAction(body: ListRequestBody): BffActivityLogAction {
   if (hasSearch(body)) return 'search';
-  if (body.filter) return 'filter';
+  if (hasFilter(body)) return 'filter';
 
   return 'index';
 }
@@ -237,7 +238,7 @@ function relationListLabel(relation: string, body: RelationListRequestBody): str
   const refinements: string[] = [];
 
   if (hasSearch(body)) refinements.push('search');
-  if (body.filter) refinements.push('filter');
+  if (hasFilter(body)) refinements.push('filter');
 
   const suffix = refinements.length > 0 ? ` with ${refinements.join(' and ')}` : '';
 

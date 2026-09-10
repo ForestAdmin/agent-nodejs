@@ -85,8 +85,12 @@ export function oauthCredentials(): Middleware {
   };
 }
 
-export function forestServerTokenStep(saasAccessToken?: string): Middleware {
+export function forestServerTokenStep(
+  saasAccessToken?: string,
+  logger: Logger = () => undefined,
+): Middleware {
   return createForestServerTokenMiddleware({
     session: { store: sessionStoreOf(saasAccessToken), serverClient: unusedServerClient },
+    logger,
   });
 }

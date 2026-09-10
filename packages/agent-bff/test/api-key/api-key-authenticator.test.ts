@@ -47,6 +47,43 @@ describe('api key authenticator', () => {
     mintMock.mockClear();
   });
 
+  describe('invalidation', () => {
+    it('should resolve the key again on the next request', async () => {
+      const resolve = jest.fn(async () => IDENTITY);
+      const authenticator = buildAuthenticator(resolve, nowRef);
+      await authenticator.authenticate(RAW);
+
+      authenticator.invalidate(RAW);
+      await authenticator.authenticate(RAW);
+
+      expect(resolve).toHaveBeenCalledTimes(2);
+    });
+
+    it('should keep serving another key from the cache', async () => {
+      const resolve = jest.fn(async () => IDENTITY);
+      const authenticator = buildAuthenticator(resolve, nowRef);
+      const otherKey = `fbff_${'c'.repeat(16)}_${'d'.repeat(64)}`;
+      await authenticator.authenticate(RAW);
+      await authenticator.authenticate(otherKey);
+
+      authenticator.invalidate(RAW);
+      await authenticator.authenticate(otherKey);
+
+      expect(resolve).toHaveBeenCalledTimes(2);
+    });
+
+    it('should ignore a key it could never have cached', async () => {
+      const resolve = jest.fn(async () => IDENTITY);
+      const authenticator = buildAuthenticator(resolve, nowRef);
+      await authenticator.authenticate(RAW);
+
+      authenticator.invalidate('not-a-key');
+      await authenticator.authenticate(RAW);
+
+      expect(resolve).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('valid key', () => {
     it('should resolve the key and mint an agent token from the identity', async () => {
       const resolve = jest.fn(async () => IDENTITY);

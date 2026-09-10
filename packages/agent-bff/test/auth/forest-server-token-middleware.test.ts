@@ -1,5 +1,6 @@
 import type ForestServerClient from '../../src/oauth/forest-server-client';
 import type { SessionStore } from '../../src/oauth/session-store';
+import type { Logger } from '../../src/ports/logger-port';
 import type { Context } from 'koa';
 
 import jsonwebtoken from 'jsonwebtoken';
@@ -34,9 +35,14 @@ function storeOf(saasAccessToken: string | undefined, get = jest.fn()) {
   return { store, get };
 }
 
-async function landResolver(ctx: Context, store?: SessionStore): Promise<() => Promise<string>> {
+async function landResolver(
+  ctx: Context,
+  store?: SessionStore,
+  logger: Logger = () => undefined,
+): Promise<() => Promise<string>> {
   const middleware = createForestServerTokenMiddleware({
     session: store ? { store, serverClient: unusedServerClient } : undefined,
+    logger,
   });
 
   await middleware(ctx, async () => undefined);
@@ -58,7 +64,7 @@ describe('forest server token middleware', () => {
       await expect(resolve()).resolves.toBe(API_KEY_SERVER_TOKEN);
     });
 
-    it('should refuse with audit_unavailable when the resolution carried no token', async () => {
+    it('should refuse without advertising a retry when the resolution carried no token', async () => {
       const ctx = contextOf({ authMode: 'api-key', apiKeyIdentity: { renderingId: RENDERING_ID } });
 
       const resolve = await landResolver(ctx);
@@ -66,7 +72,10 @@ describe('forest server token middleware', () => {
       await expect(resolve()).rejects.toMatchObject({
         status: 503,
         type: 'audit_unavailable',
-        retryAfter: 5,
+        retryAfter: undefined,
+        message:
+          'The Forest server does not provide the credential the activity log is written with, ' +
+          'so the operation was not performed',
       });
     });
   });
@@ -115,13 +124,38 @@ describe('forest server token middleware', () => {
         principal: { sid: SESSION_ID, rendering_id: String(RENDERING_ID) },
       });
 
-      const middleware = createForestServerTokenMiddleware({ session: { store, serverClient } });
+      const middleware = createForestServerTokenMiddleware({
+        session: { store, serverClient },
+        logger: () => undefined,
+      });
       await middleware(ctx, async () => undefined);
 
       await expect(resolveForestServerToken(ctx)).rejects.toMatchObject({
         status: 503,
         type: 'audit_unavailable',
       });
+    });
+
+    it('should report the original failure, which the mapped error drops', async () => {
+      const store = {
+        get: () => {
+          throw new TypeError('sessions.get is not a function');
+        },
+      } as unknown as SessionStore;
+      const logger = jest.fn();
+      const ctx = contextOf({
+        authMode: 'oauth',
+        principal: { sid: SESSION_ID, rendering_id: String(RENDERING_ID) },
+      });
+
+      const resolve = await landResolver(ctx, store, logger);
+
+      await expect(resolve()).rejects.toMatchObject({ status: 503, type: 'audit_unavailable' });
+      expect(logger).toHaveBeenCalledWith(
+        'Error',
+        'Could not resolve the Forest server access of this session',
+        { renderingId: RENDERING_ID, cause: 'sessions.get is not a function' },
+      );
     });
 
     it('should refuse with session_expired when the Forest server rejects the refresh token', async () => {
@@ -139,13 +173,22 @@ describe('forest server token middleware', () => {
         principal: { sid: SESSION_ID, rendering_id: String(RENDERING_ID) },
       });
 
-      const middleware = createForestServerTokenMiddleware({ session: { store, serverClient } });
+      const logger = jest.fn();
+      const middleware = createForestServerTokenMiddleware({
+        session: { store, serverClient },
+        logger,
+      });
       await middleware(ctx, async () => undefined);
 
       await expect(resolveForestServerToken(ctx)).rejects.toMatchObject({
         status: 401,
         type: 'session_expired',
       });
+      expect(logger).toHaveBeenCalledWith(
+        'Error',
+        'Could not resolve the Forest server access of this session',
+        { renderingId: RENDERING_ID, cause: 'The Forest server rejected the refresh token' },
+      );
     });
 
     it('should refuse with session_expired when the deployment carries no session store', async () => {

@@ -21,6 +21,8 @@ const VALID_ENV = {
 
 const noopLogger = () => undefined;
 
+const SHUTDOWN_DEADLINE_MS = 20;
+
 const teapot: BffCallback = (req, res) => {
   res.statusCode = 418;
   res.end();
@@ -31,10 +33,18 @@ function createServer(
   port = 0,
   logger: Logger = noopLogger,
   drainActivityLogs?: () => Promise<void>,
+  shutdownTimeoutMs?: number,
 ) {
   const config = parseConfig(env);
 
-  return new BFFHttpServer({ port, version: VERSION, config, logger, drainActivityLogs });
+  return new BFFHttpServer({
+    port,
+    version: VERSION,
+    config,
+    logger,
+    drainActivityLogs,
+    shutdownTimeoutMs,
+  });
 }
 
 function createPrebuiltServer(env: NodeJS.ProcessEnv, logger: Logger = noopLogger) {
@@ -285,6 +295,32 @@ describe('BFFHttpServer', () => {
       await server.stop();
 
       expect(events).toEqual(['close', 'drain']);
+    });
+
+    it('should destroy the connections outliving the deadline and still drain', async () => {
+      const drain = jest.fn(async () => undefined);
+      const logger = jest.fn();
+      const server = createServer({ ...VALID_ENV }, 0, logger, drain, SHUTDOWN_DEADLINE_MS);
+      await server.start();
+
+      const internal = (server as unknown as { server: Server }).server;
+      const closeIdleConnections = jest.spyOn(internal, 'closeIdleConnections');
+      const closeAllConnections = jest.spyOn(internal, 'closeAllConnections');
+      jest.spyOn(internal, 'close').mockImplementation((() => internal) as Server['close']);
+
+      await expect(server.stop()).resolves.toBeUndefined();
+
+      expect(closeIdleConnections).toHaveBeenCalledTimes(1);
+      expect(closeAllConnections).toHaveBeenCalledTimes(1);
+      expect(drain).toHaveBeenCalledTimes(1);
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        'Forcing the Forest BFF shutdown: connections were still open',
+        { timeoutMs: SHUTDOWN_DEADLINE_MS },
+      );
+
+      jest.restoreAllMocks();
+      await closeServer(internal);
     });
 
     it('should not drain when the connections could not be closed', async () => {

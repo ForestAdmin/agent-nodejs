@@ -5,7 +5,10 @@ import Koa from 'koa';
 import request from 'supertest';
 
 import { invalidApiKey, keyResolutionUnavailable } from '../../src/api-key/api-key-error';
-import createApiKeyMiddleware, { BFF_KEY_HEADER } from '../../src/api-key/api-key-middleware';
+import createApiKeyMiddleware, {
+  BFF_KEY_HEADER,
+  invalidateApiKeyIdentity,
+} from '../../src/api-key/api-key-middleware';
 import createErrorMiddleware from '../../src/http/error-middleware';
 
 const KEY_ID = 'a'.repeat(16);
@@ -33,6 +36,8 @@ interface LogLine {
 }
 
 function buildApp(authenticate: ApiKeyAuthenticator['authenticate']) {
+  const invalidate = () => undefined;
+
   const logs: LogLine[] = [];
 
   const logger = (level: LoggerLevel, message: string, context?: Record<string, unknown>) => {
@@ -42,7 +47,7 @@ function buildApp(authenticate: ApiKeyAuthenticator['authenticate']) {
   const app = new Koa();
   app.silent = true;
   app.use(createErrorMiddleware({ logger }));
-  app.use(createApiKeyMiddleware({ authenticator: { authenticate }, logger }));
+  app.use(createApiKeyMiddleware({ authenticator: { authenticate, invalidate }, logger }));
   app.use(async ctx => {
     ctx.status = 200;
     ctx.body = {
@@ -166,7 +171,12 @@ describe('api key middleware', () => {
       const app = new Koa();
       app.silent = true;
       app.use(createErrorMiddleware({ logger }));
-      app.use(createApiKeyMiddleware({ authenticator: { authenticate }, logger }));
+      app.use(
+        createApiKeyMiddleware({
+          authenticator: { authenticate, invalidate: () => undefined },
+          logger,
+        }),
+      );
       app.use(async () => {
         throw new Error('downstream boom');
       });
@@ -190,6 +200,53 @@ describe('api key middleware', () => {
       expect(authenticate).not.toHaveBeenCalled();
       expect(response.status).toBe(200);
       expect(response.body).toEqual({ agentToken: null, identity: null });
+    });
+  });
+
+  describe('when a downstream middleware refuses the resolved identity', () => {
+    it('should drop the cached resolution of the key it was authenticated with', async () => {
+      const authenticate = jest.fn(async () => ({
+        agentToken: 'minted-token',
+        identity: IDENTITY,
+      }));
+      const invalidate = jest.fn();
+      const logger = () => undefined;
+
+      const app = new Koa();
+      app.silent = true;
+      app.use(createErrorMiddleware({ logger }));
+      app.use(createApiKeyMiddleware({ authenticator: { authenticate, invalidate }, logger }));
+      app.use(async ctx => {
+        invalidateApiKeyIdentity(ctx);
+        ctx.status = 204;
+      });
+
+      await request(app.callback()).get('/').set(BFF_KEY_HEADER, RAW);
+
+      expect(invalidate).toHaveBeenCalledWith(RAW);
+    });
+
+    it('should do nothing when the request carried no api key', async () => {
+      const invalidate = jest.fn();
+      const logger = () => undefined;
+
+      const app = new Koa();
+      app.silent = true;
+      app.use(createErrorMiddleware({ logger }));
+      app.use(
+        createApiKeyMiddleware({
+          authenticator: { authenticate: jest.fn(), invalidate },
+          logger,
+        }),
+      );
+      app.use(async ctx => {
+        invalidateApiKeyIdentity(ctx);
+        ctx.status = 204;
+      });
+
+      await request(app.callback()).get('/');
+
+      expect(invalidate).not.toHaveBeenCalled();
     });
   });
 });

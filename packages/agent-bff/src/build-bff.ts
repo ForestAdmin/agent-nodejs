@@ -471,7 +471,7 @@ function buildAgentMiddlewares(
     createAuthModeMiddleware({ authSecret: forestAuthSecret }),
     apiKeyStep,
     // After both auth middlewares: the resolver it lands reads what they put on the context.
-    createForestServerTokenMiddleware({ session: oauth.session }),
+    createForestServerTokenMiddleware({ session: oauth.session, logger }),
     createRateLimitMiddleware({
       maxRequests: config.rateLimitMaxRequests,
       windowMs: config.rateLimitWindowMs,

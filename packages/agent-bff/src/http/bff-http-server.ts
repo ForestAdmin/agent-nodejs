@@ -12,10 +12,15 @@ import createVersionHeaderMiddleware from './version-header-middleware';
 import createConsoleLogger from '../adapters/console-logger';
 import warnMissingConfig from '../config/missing-config-warning';
 
+/** How long `stop()` waits for the open connections before it destroys them and drains anyway. */
+export const SHUTDOWN_TIMEOUT_MS = 10_000;
+
 interface BFFHttpServerBaseOptions {
   port: number;
   config: BFFConfig;
   logger?: Logger;
+  /** Overrides `SHUTDOWN_TIMEOUT_MS`, for a host whose orchestrator grants a different grace. */
+  shutdownTimeoutMs?: number;
   /**
    * Waits for the work no connection holds: the activity-log status transitions are fired without
    * `await`, so `close()` does not cover them and a shutdown would leave entries `pending`.
@@ -125,15 +130,37 @@ export default class BFFHttpServer {
     await this.options.drainActivityLogs?.();
   }
 
+  /**
+   * Bounded on purpose: `close()` resolves only once the last connection is gone, so a single busy
+   * one would hold the shutdown until the orchestrator sends SIGKILL and the drain would never
+   * run. Idle keep-alive connections go first, the rest get the deadline and are then destroyed.
+   */
   private async closeConnections(): Promise<void> {
+    const { server } = this;
+
+    if (!server) return;
+
+    const timeoutMs = this.options.shutdownTimeoutMs ?? SHUTDOWN_TIMEOUT_MS;
+
     return new Promise((resolve, reject) => {
-      if (!this.server) {
+      let settled = false;
+
+      const timer = setTimeout(() => {
+        settled = true;
+        this.logger('Warn', 'Forcing the Forest BFF shutdown: connections were still open', {
+          timeoutMs,
+        });
+        server.closeAllConnections();
+        this.server = null;
         resolve();
+      }, timeoutMs);
 
-        return;
-      }
+      server.close(err => {
+        if (settled) return;
 
-      this.server.close(err => {
+        settled = true;
+        clearTimeout(timer);
+
         if (err) {
           reject(err);
         } else {
@@ -141,6 +168,8 @@ export default class BFFHttpServer {
           resolve();
         }
       });
+
+      server.closeIdleConnections();
     });
   }
 
