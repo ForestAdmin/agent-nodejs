@@ -1,9 +1,13 @@
+import type ForestServerClient from '../../src/oauth/forest-server-client';
 import type { SessionStore } from '../../src/oauth/session-store';
 import type { Context } from 'koa';
+
+import jsonwebtoken from 'jsonwebtoken';
 
 import createForestServerTokenMiddleware, {
   resolveForestServerToken,
 } from '../../src/auth/forest-server-token-middleware';
+import OAuthExchangeError from '../../src/oauth/oauth-exchange-error';
 import {
   API_KEY_SERVER_TOKEN,
   RENDERING_ID,
@@ -14,6 +18,10 @@ import {
 
 function contextOf(state: Record<string, unknown>): Context {
   return { state } as unknown as Context;
+}
+
+function expiredAccessToken(): string {
+  return jsonwebtoken.sign({ scope: 'forest' }, 'session-secret', { expiresIn: '-1s' });
 }
 
 function storeOf(saasAccessToken: string | undefined, get = jest.fn()) {
@@ -87,6 +95,54 @@ describe('forest server token middleware', () => {
       const resolve = await landResolver(ctx, store);
 
       await expect(resolve()).rejects.toMatchObject({
+        status: 401,
+        type: 'session_expired',
+      });
+    });
+
+    it('should refuse with audit_unavailable when the Forest server cannot be reached', async () => {
+      const store = {
+        get: () => ({ saasAccessToken: expiredAccessToken() }),
+        getSaasRefreshToken: () => 'refresh-token',
+      } as unknown as SessionStore;
+      const serverClient = {
+        refreshServerToken: async () => {
+          throw new Error('connect ECONNREFUSED');
+        },
+      } as unknown as ForestServerClient;
+      const ctx = contextOf({
+        authMode: 'oauth',
+        principal: { sid: SESSION_ID, rendering_id: String(RENDERING_ID) },
+      });
+
+      const middleware = createForestServerTokenMiddleware({ session: { store, serverClient } });
+      await middleware(ctx, async () => undefined);
+
+      await expect(resolveForestServerToken(ctx)).rejects.toMatchObject({
+        status: 503,
+        type: 'audit_unavailable',
+      });
+    });
+
+    it('should refuse with session_expired when the Forest server rejects the refresh token', async () => {
+      const store = {
+        get: () => ({ saasAccessToken: expiredAccessToken() }),
+        getSaasRefreshToken: () => 'refresh-token',
+      } as unknown as SessionStore;
+      const serverClient = {
+        refreshServerToken: async () => {
+          throw new OAuthExchangeError('invalid_grant', 'the refresh token was revoked');
+        },
+      } as unknown as ForestServerClient;
+      const ctx = contextOf({
+        authMode: 'oauth',
+        principal: { sid: SESSION_ID, rendering_id: String(RENDERING_ID) },
+      });
+
+      const middleware = createForestServerTokenMiddleware({ session: { store, serverClient } });
+      await middleware(ctx, async () => undefined);
+
+      await expect(resolveForestServerToken(ctx)).rejects.toMatchObject({
         status: 401,
         type: 'session_expired',
       });

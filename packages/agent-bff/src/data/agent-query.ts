@@ -174,6 +174,15 @@ function applySearch(
   if (body.searchExtended !== undefined) query.searchExtended = body.searchExtended;
 }
 
+/**
+ * Whether the request actually searches, by the same rule `applySearch` forwards on. The audit trail
+ * names the operation it audits, so it has to answer this question the way the outgoing query does:
+ * a whitespace-only search must not be recorded as a search the agent never performed.
+ */
+export function hasSearch(body: Pick<CountRequestBody, 'search'>): boolean {
+  return (body.search?.trim() ?? '') !== '';
+}
+
 export function buildListAgentQuery(
   collection: string,
   timezone: string,
