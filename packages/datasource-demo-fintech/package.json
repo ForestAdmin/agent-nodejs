@@ -12,7 +12,7 @@
     "directory": "packages/datasource-demo-fintech"
   },
   "dependencies": {
-    "@faker-js/faker": "^10.5.0",
+    "@faker-js/faker": "^9.0.0",
     "@forestadmin/datasource-customizer": "1.71.3",
     "@forestadmin/datasource-sql": "1.17.14",
     "@forestadmin/datasource-toolkit": "1.55.1",
