@@ -10,7 +10,9 @@ import {
   HttpRequester,
   createRemoteAgentClient,
 } from '@forestadmin/agent-client';
+import { readFileSync } from 'fs';
 import jsonwebtoken from 'jsonwebtoken';
+import { join } from 'path';
 
 import AgentClientAgentPort from '../../src/adapters/agent-client-agent-port';
 import {
@@ -22,6 +24,12 @@ import {
   RecordNotFoundError,
 } from '../../src/errors';
 import SchemaCache from '../../src/schema-cache';
+
+// Read rather than imported: enabling resolveJsonModule for one fixture would change the
+// package's build config for every consumer.
+const railsBody = JSON.parse(
+  readFileSync(join(__dirname, 'fixtures/forest-rails-smart-relation.json'), 'utf8'),
+) as { data: unknown; included: { id: string }[] };
 
 jest.mock('@forestadmin/agent-client', () => {
   // Real class so `instanceof AgentHttpError` in the adapter matches errors built by these tests.
@@ -624,6 +632,42 @@ describe('AgentClientAgentPort', () => {
 
     const parentWithAttribute = (relation: string, value: unknown) => ({
       data: { type: 'users', id: '42', attributes: { [relation]: value }, relationships: {} },
+    });
+
+    // Captured from a live forest-rails 9.17.3 agent, verbatim: `spec/dummy` with a smart
+    // `belongs_to` and two `field ... reference:` declarations pointing at a User no real
+    // ActiveRecord association reaches. Every other test here builds its body by hand, which is
+    // what let the deserializer drop go unnoticed three times. This one pins the wire.
+    describe.each([
+      ['a linkage with no included entry', 'smart_owner'],
+      ['a reference attribute holding the id', 'owner_ref_id'],
+      ['a reference attribute holding the record', 'owner_ref_record'],
+    ])('against the captured forest-rails body, %s', (_label, relation) => {
+      it('resolves the related id and reads the target', async () => {
+        mockCollection.getOne
+          .mockResolvedValueOnce(railsBody)
+          .mockResolvedValueOnce({ name: 'Unrelated' });
+
+        const result = await port.getSingleRelatedData(
+          {
+            collection: 'Tree',
+            id: [3],
+            relation,
+            relatedSchema: { ...ordersSchema, collectionName: 'User' },
+            fields: ['name'],
+          },
+          user,
+        );
+
+        // User 7 is the smart target; `included` carries only User 6, the real association.
+        expect(railsBody.included.map(i => i.id)).toEqual(['6']);
+        expect(mockCollection.getOne).toHaveBeenNthCalledWith(2, ['7'], { fields: ['name'] });
+        expect(result).toEqual({
+          collectionName: 'User',
+          recordId: ['7'],
+          values: { name: 'Unrelated' },
+        });
+      });
     });
 
     // The Qonto shape: a forest-rails smart `belongs_to` emits the linkage but never lands in
