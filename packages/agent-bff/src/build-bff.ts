@@ -32,6 +32,7 @@ import createCorsMiddleware from './cors/cors-middleware';
 import createPerKeyOriginMiddleware from './cors/per-key-origin';
 import createDataRoutesMiddleware from './data/data-routes-middleware';
 import createDocsRoutes from './docs/docs-routes';
+import createAccessLogMiddleware from './http/access-log-middleware';
 import { unauthorized, unsupportedMediaType } from './http/bff-http-error';
 import BODY_LIMIT, { AI_BODY_LIMIT } from './http/body-limit';
 import createErrorMiddleware from './http/error-middleware';
@@ -534,6 +535,7 @@ export default async function buildBff({
   const agentJsonOnlyGuard = hasAgentEdge ? [agentScoped(createJsonOnlyGuard())] : [];
 
   const middlewares = [
+    createAccessLogMiddleware({ logger, basePath: mountPath }),
     createVersionHeaderMiddleware(version),
     createHealthRoute({
       version,
