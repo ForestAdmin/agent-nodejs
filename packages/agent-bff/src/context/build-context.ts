@@ -113,6 +113,7 @@ function toContextValidations(validations: unknown[] | null | undefined): Contex
 function toContextField(
   field: FieldWithWireEnums,
   ambiguousKeys: ReadonlySet<string>,
+  derivedPrimaryKeys: ReadonlySet<string>,
 ): ContextField {
   const serialized: ContextField = { field: field.field, type: field.type };
 
@@ -126,7 +127,10 @@ function toContextField(
   const polymorphicTargets = toArray(field.polymorphicReferencedModels);
   if (polymorphicTargets.length > 0) serialized.polymorphicTargets = [...polymorphicTargets];
 
-  if (field.isPrimaryKey) serialized.isPrimaryKey = true;
+  // The read-model derives a key when the schema declares none, and the BFF builds record
+  // identifiers from it. Publishing only the schema's flag would leave a client unable to name the
+  // key the BFF is actually using.
+  if (field.isPrimaryKey || derivedPrimaryKeys.has(field.field)) serialized.isPrimaryKey = true;
   if (field.isRequired) serialized.isRequired = true;
   if (field.isReadOnly) serialized.isReadOnly = true;
 
@@ -168,10 +172,13 @@ function toContextCollection(
     field => typeof field === 'object' && field !== null,
   );
   const ambiguousKeys = ambiguousRecordKeys(fields);
+  const derivedPrimaryKeys = new Set(
+    readModel.getPrimaryKeys(collection.name).map(key => key.name),
+  );
 
   return {
     name: collection.name,
-    fields: fields.map(field => toContextField(field, ambiguousKeys)),
+    fields: fields.map(field => toContextField(field, ambiguousKeys, derivedPrimaryKeys)),
     actions: toArray(collection.actions)
       .filter(action => {
         const allowed = allowedActions[action?.name];

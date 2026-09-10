@@ -131,11 +131,31 @@ export default class ReadModel {
     }
   }
 
+  /**
+   * A schema that declares no primary key at all gets one derived from its `id` field.
+   *
+   * `forest_liana` only started publishing `isPrimaryKey` in 9.17.6 (2026-06-04), and an older one
+   * leaves every collection without a key — which makes `unpackPrimaryKey` reject every record the
+   * agent returns, so a plain list answers `500 mapping_error`. The record id is there regardless:
+   * the agent serialises it as the JSON:API `id`, and 257 of the 269 collections in the schema this
+   * was measured against carry a field literally named `id`.
+   *
+   * Keyed on the shape of the schema, not on the liana: a collection that declares a key keeps it,
+   * and every v2 agent declares one, so this only fires where the alternative is a 500. `String`
+   * when no `id` field is declared, because the packed id survives a string round-trip untouched
+   * while a wrong numeric cast would not.
+   */
   private buildPrimaryKeys(collection: ForestSchemaCollection): void {
     const keys: PrimaryKeyField[] = [];
 
     for (const field of collection.fields ?? []) {
       if (field.isPrimaryKey) keys.push({ name: field.field, type: field.type });
+    }
+
+    if (keys.length === 0) {
+      const declaredId = (collection.fields ?? []).find(field => field.field === 'id');
+
+      keys.push({ name: 'id', type: declaredId?.type ?? 'String' });
     }
 
     this.primaryKeys.set(collection.name, keys);
