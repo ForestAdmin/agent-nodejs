@@ -46,6 +46,11 @@ export default function makeAgent() {
         .filter(Boolean)
     : undefined;
 
+  const bffAllowedOrigins = (process.env.BFF_ALLOWED_ORIGINS ?? '')
+    .split(',')
+    .map(origin => origin.trim())
+    .filter(Boolean);
+
   return createAgent<Schema>(envOptions)
     .addDataSource(createSqlDataSource({ dialect: 'sqlite', storage: './assets/db.sqlite' }))
 
@@ -95,6 +100,14 @@ export default function makeAgent() {
     })
     .mountAiMcpServer({
       ...(allowedOAuthClients && { allowedOAuthClients }),
+    })
+
+    // Serves the BFF at /bff on every port this agent is mounted on, in-process. Without
+    // `allowedOrigins` no browser can call it, which for a backend-for-frontend is a mistake the
+    // BFF warns about at startup.
+    .addBff({
+      allowedOrigins: bffAllowedOrigins,
+      tokenEncryptionKey: process.env.BFF_TOKEN_ENCRYPTION_KEY,
     })
 
     .customizeCollection('card', customizeCard)
