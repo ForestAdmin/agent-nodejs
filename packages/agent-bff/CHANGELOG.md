@@ -1,3 +1,10 @@
+## @forestadmin/agent-bff [1.28.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.28.0...@forestadmin/agent-bff@1.28.1) (2026-09-10)
+
+
+### Bug Fixes
+
+* **agent-bff:** publish recordKey on context fields the agent renames ([#1887](https://github.com/ForestAdmin/agent-nodejs/issues/1887)) ([cdfc6af](https://github.com/ForestAdmin/agent-nodejs/commit/cdfc6af50b4b030e98f0b3f58e76f78257bd3590))
+
 # @forestadmin/agent-bff [1.28.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.27.0...@forestadmin/agent-bff@1.28.0) (2026-09-09)
 
 
