@@ -1,13 +1,10 @@
 import ForestIntegrationClient from '../src/forest-integration-client';
-import getKolarTools from '../src/integrations/kolar/tools';
-import { validateKolarConfig } from '../src/integrations/kolar/utils';
 import getSnowflakeTools from '../src/integrations/snowflake/tools';
 import { validateSnowflakeConfig } from '../src/integrations/snowflake/utils';
 import getZendeskTools from '../src/integrations/zendesk/tools';
 import { validateZendeskConfig } from '../src/integrations/zendesk/utils';
 
 const mockZendeskTools = [{ name: 'zendesk_get_tickets' }, { name: 'zendesk_get_ticket' }];
-const mockKolarTools = [{ name: 'kolar_screen_transaction' }, { name: 'kolar_get_result' }];
 const mockSnowflakeTools = [
   { name: 'snowflake_cortex_search' },
   { name: 'snowflake_cortex_analyst' },
@@ -19,18 +16,12 @@ jest.mock('../src/integrations/zendesk/tools', () => ({
   default: jest.fn(() => mockZendeskTools),
 }));
 
-jest.mock('../src/integrations/kolar/tools', () => ({
-  __esModule: true,
-  default: jest.fn(() => mockKolarTools),
-}));
-
 jest.mock('../src/integrations/snowflake/tools', () => ({
   __esModule: true,
   default: jest.fn(() => mockSnowflakeTools),
 }));
 
 jest.mock('../src/integrations/zendesk/utils');
-jest.mock('../src/integrations/kolar/utils');
 jest.mock('../src/integrations/snowflake/utils');
 
 describe('ForestIntegrationClient', () => {
@@ -63,21 +54,6 @@ describe('ForestIntegrationClient', () => {
       await client.loadTools();
 
       expect(logger).toHaveBeenCalledWith('Warn', 'Unsupported integration: unknown');
-    });
-
-    it('should load kolar tools when integration is Kolar', async () => {
-      const client = new ForestIntegrationClient([
-        {
-          id: '1',
-          integrationName: 'Kolar',
-          config: { apiKey: 'key' },
-          isForestConnector: true,
-        },
-      ]);
-
-      const tools = await client.loadTools();
-
-      expect(tools).toEqual(mockKolarTools);
     });
 
     it('should load snowflake tools when integration is Snowflake', async () => {
@@ -210,17 +186,6 @@ describe('ForestIntegrationClient', () => {
       expect(result).toBe(true);
     });
 
-    it('should call validateKolarConfig for Kolar integration', async () => {
-      const kolarConfig = { apiKey: 'key' };
-      const client = new ForestIntegrationClient([
-        { id: '1', integrationName: 'Kolar', config: kolarConfig, isForestConnector: true },
-      ]);
-
-      await client.checkConnection();
-
-      expect(validateKolarConfig).toHaveBeenCalledWith(kolarConfig);
-    });
-
     it('should call validateSnowflakeConfig for Snowflake integration', async () => {
       const snowflakeConfig = {
         accountIdentifier: 'a',
@@ -269,24 +234,6 @@ describe('ForestIntegrationClient', () => {
       expect(getZendeskTools).toHaveBeenCalledWith(
         expect.objectContaining({ subdomain: 'test' }),
         'forest-zendesk-42',
-      );
-    });
-
-    it('passes the config id to getKolarTools', async () => {
-      const client = new ForestIntegrationClient([
-        {
-          id: 'forest-kolar-7',
-          integrationName: 'Kolar',
-          config: { apiKey: 'key' },
-          isForestConnector: true,
-        },
-      ]);
-
-      await client.loadTools();
-
-      expect(getKolarTools).toHaveBeenCalledWith(
-        expect.objectContaining({ apiKey: 'key' }),
-        'forest-kolar-7',
       );
     });
 
