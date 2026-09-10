@@ -131,6 +131,34 @@ describe('data routes activity log', () => {
       );
     });
 
+    it('should record a filter when the search is blank, which the agent never receives', async () => {
+      const service = fakeActivityLogsService();
+      const { app } = buildApp({ service, client: { list: async () => [] } });
+
+      const response = await request(app.callback())
+        .post('/agent/v1/users/list')
+        .send({ search: '   ', filter: EMAIL_FILTER });
+
+      expect(response.status).toBe(200);
+      expect(service.createMcpActivityLog).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'filter' }),
+      );
+    });
+
+    it('should record an index when the search is blank and nothing else refines the list', async () => {
+      const service = fakeActivityLogsService();
+      const { app } = buildApp({ service, client: { list: async () => [] } });
+
+      const response = await request(app.callback())
+        .post('/agent/v1/users/list')
+        .send({ search: '   ' });
+
+      expect(response.status).toBe(200);
+      expect(service.createMcpActivityLog).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'index' }),
+      );
+    });
+
     it('should record an index when the body carries neither a search nor a filter', async () => {
       const service = fakeActivityLogsService();
       const { app } = buildApp({ service, client: { list: async () => [] } });
@@ -279,6 +307,19 @@ describe('data routes activity log', () => {
 
       expect(service.createMcpActivityLog).toHaveBeenCalledWith(
         expect.objectContaining({ label: 'list relation "posts" with search' }),
+      );
+    });
+
+    it('should leave a blank search out of the label, like the outgoing query does', async () => {
+      const service = fakeActivityLogsService();
+      const { app } = buildApp({ service, client: { listRelation: async () => [] } });
+
+      await request(app.callback())
+        .post('/agent/v1/users/relations/posts/list')
+        .send({ parentId: 'users-1', search: '   ', filter: TITLE_FILTER });
+
+      expect(service.createMcpActivityLog).toHaveBeenCalledWith(
+        expect.objectContaining({ label: 'list relation "posts" with filter' }),
       );
     });
 

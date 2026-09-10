@@ -16,7 +16,10 @@ export interface RecordActivityLogOptions<T> {
 
 export interface ActivityLogWriter {
   record<T>(options: RecordActivityLogOptions<T>): Promise<T>;
-  /** Waits for the status transitions no connection holds. Called when the server stops. */
+  /**
+   * Waits for the audited requests still running and for the status transitions no connection
+   * holds. Called when the server stops.
+   */
   drain(): Promise<void>;
 }
 
@@ -33,7 +36,7 @@ export default function createActivityLogWriter({
 
   return {
     record<T>(options: RecordActivityLogOptions<T>): Promise<T> {
-      return withActivityLog({ ...options, service, drainer, logger });
+      return drainer.track(() => withActivityLog({ ...options, service, drainer, logger }));
     },
 
     drain(): Promise<void> {

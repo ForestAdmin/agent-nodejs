@@ -42,4 +42,31 @@ describe('activity log drainer', () => {
 
     await expect(drainer.track(async () => 'done')).resolves.toBe('done');
   });
+
+  it('should wait for work registered by an operation that was already in flight', async () => {
+    const drainer = new ActivityLogDrainer();
+    let transitionSettled = false;
+
+    drainer.track(
+      () =>
+        new Promise<void>(resolveRequest => {
+          setTimeout(() => {
+            drainer.track(
+              () =>
+                new Promise<void>(resolveTransition => {
+                  setTimeout(() => {
+                    transitionSettled = true;
+                    resolveTransition();
+                  }, 10);
+                }),
+            );
+            resolveRequest();
+          }, 10);
+        }),
+    );
+
+    await drainer.drain();
+
+    expect(transitionSettled).toBe(true);
+  });
 });

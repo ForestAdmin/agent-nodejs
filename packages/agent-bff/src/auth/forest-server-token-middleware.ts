@@ -7,6 +7,7 @@ import type { Context, Middleware } from 'koa';
 import { readRenderingId } from './auth-mode';
 import { sessionExpired } from '../http/bff-http-error';
 import { AUDIT_RETRY_AFTER_SECONDS, auditUnavailable } from '../http/bff-local-errors';
+import { OAuthRequestError } from '../oauth/oauth-error';
 import ensureFreshServerAccess from '../oauth/session-lifecycle';
 
 export type ForestServerTokenResolver = () => Promise<string>;
@@ -22,6 +23,7 @@ export interface ForestServerTokenMiddlewareOptions {
 
 const NO_SESSION_MESSAGE = 'The session behind this request could not be resolved';
 const NO_RESOLVER_MESSAGE = 'This request carries no Forest server credentials';
+const UNAUTHORIZED = 401;
 
 async function resolveToken(ctx: Context, session?: OAuthSessionAccess): Promise<string> {
   if (ctx.state.authMode === 'api-key') {
@@ -42,8 +44,15 @@ async function resolveToken(ctx: Context, session?: OAuthSessionAccess): Promise
       store: session.store,
       serverClient: session.serverClient,
     });
-  } catch {
-    throw sessionExpired(NO_SESSION_MESSAGE);
+  } catch (error) {
+    // Only a session the Forest server rejected, or one that vanished, makes re-authenticating the
+    // answer. Everything else — the server being unreachable, above all — is retryable, and a 401
+    // would log every user out over a blip instead of failing the audit write alone.
+    if (error instanceof OAuthRequestError && error.status === UNAUTHORIZED) {
+      throw sessionExpired(NO_SESSION_MESSAGE);
+    }
+
+    throw auditUnavailable(AUDIT_RETRY_AFTER_SECONDS);
   }
 }
 
