@@ -130,6 +130,54 @@ describe('access log middleware', () => {
     expect(lines).toHaveLength(1);
   });
 
+  it('serves the response the route computed when the host logger throws', async () => {
+    const app = new Koa();
+    app.silent = true;
+    app.use(
+      createAccessLogMiddleware({
+        logger: () => {
+          throw new Error('sink is down');
+        },
+        basePath: '',
+      }),
+    );
+    app.use(respond(200));
+
+    const res = await request(app.callback()).get('/health');
+
+    expect(res.status).toBe(200);
+  });
+
+  it('propagates the original exception when the host logger throws on the error path', async () => {
+    const app = new Koa();
+    app.silent = true;
+    let propagated: unknown;
+    app.use(async (ctx, next) => {
+      try {
+        await next();
+      } catch (error) {
+        propagated = error;
+        ctx.status = 500;
+      }
+    });
+    app.use(
+      createAccessLogMiddleware({
+        logger: () => {
+          throw new Error('sink is down');
+        },
+        basePath: '',
+      }),
+    );
+    app.use(async () => {
+      throw new TypeError('the real cause');
+    });
+
+    await request(app.callback()).get('/agent/v1/collections/companies');
+
+    expect(propagated).toBeInstanceOf(TypeError);
+    expect((propagated as Error).message).toBe('the real cause');
+  });
+
   it('prefixes the path with the base path the host serves the BFF under', async () => {
     const { callback, lines } = buildApp(respond(200), '/bff');
 

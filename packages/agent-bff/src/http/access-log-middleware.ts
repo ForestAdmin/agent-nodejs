@@ -43,6 +43,12 @@ function statusOf(error: unknown): number {
  *
  * The query string is deliberately absent. Nothing routed today needs it, and a line that carries it
  * would leak whatever a future route accepts there without anyone revisiting this decision.
+ *
+ * Carries no cause either, so that a host logger which cannot take structured fields still reads as
+ * one line per request. The detail is not lost where it matters: `createErrorMiddleware` already
+ * reports it for everything under `/agent`. Outside it — a body parser rejection on an OAuth POST is
+ * the only route there today — the stack reaches stderr through Koa's own handler, as it did before
+ * this middleware existed.
  */
 export default function createAccessLogMiddleware({
   logger,
@@ -54,7 +60,14 @@ export default function createAccessLogMiddleware({
     const write = (status: number) => {
       const path = `${emittedBaseOf(ctx, basePath)}${ctx.path}`;
 
-      logger(levelOf(status), `[${status}] ${ctx.method} ${path} - ${Date.now() - startedAt}ms`);
+      try {
+        logger(levelOf(status), `[${status}] ${ctx.method} ${path} - ${Date.now() - startedAt}ms`);
+      } catch {
+        // The logger belongs to the host and nothing in the port forbids it from throwing. Left
+        // unguarded, a throw here would answer 500 to a request the route served, and on the error
+        // path it would replace the exception being reported with its own. There is nowhere to
+        // report this: the only sink available is the logger that just failed.
+      }
     };
 
     try {
