@@ -21,9 +21,11 @@ export type GetRelatedDataQuery = {
 } & Limit;
 
 // xToOne relations (BelongsTo / HasOne) — the agent does not serve
-// /forest/<collection>/<id>/relationships/<relation> for these; the port instead reads
-// the parent record with a `<relation>@@@<field>` projection, then unpacks the relation
-// linkage embedded on the parent.
+// /forest/<collection>/<id>/relationships/<relation> for these; the port instead reads the parent's
+// raw JSON:API body with a `<relation>@@@<field>` projection, takes the related id from the
+// relationship linkage or from the reference attribute, then reads the target by id. Deserializing
+// the parent would lose the linkage: a key whose linkage has no matching `included` entry is
+// dropped outright, which no agent emits for a smart relation.
 export type GetSingleRelatedDataQuery = {
   collection: string;
   id: Id[];

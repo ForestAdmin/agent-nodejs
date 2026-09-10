@@ -1,0 +1,111 @@
+{
+  "data": {
+    "type": "Tree",
+    "id": "3",
+    "attributes": {
+      "id": 3,
+      "name": "Lemon Tree",
+      "created_at": "2026-09-09T16:01:55.895Z",
+      "updated_at": "2026-09-09T16:01:55.895Z",
+      "age": null,
+      "owner_ref_id": "7",
+      "owner_ref_record": {
+        "id": 7,
+        "name": "Unrelated",
+        "created_at": "2026-09-09T16:01:55.888Z",
+        "updated_at": "2026-09-09T16:01:55.888Z",
+        "title": null
+      }
+    },
+    "links": {
+      "self": "/forest/tree/3"
+    },
+    "relationships": {
+      "owner": {
+        "links": {
+          "related": {}
+        },
+        "data": {
+          "type": "User",
+          "id": "6"
+        }
+      },
+      "cutter": {
+        "links": {
+          "related": {}
+        },
+        "data": {
+          "type": "User",
+          "id": "6"
+        }
+      },
+      "island": {
+        "links": {
+          "related": {}
+        },
+        "data": null
+      },
+      "eponymous_island": {
+        "links": {
+          "related": {}
+        },
+        "data": null
+      },
+      "location": {
+        "links": {
+          "related": {}
+        },
+        "data": null
+      },
+      "smart_owner": {
+        "links": {
+          "related": {}
+        },
+        "data": {
+          "type": "User",
+          "id": "7"
+        }
+      }
+    }
+  },
+  "included": [
+    {
+      "type": "User",
+      "id": "6",
+      "attributes": {
+        "id": 6,
+        "name": "Michel",
+        "created_at": "2026-09-09T16:01:55.886Z",
+        "updated_at": "2026-09-09T16:01:55.886Z",
+        "title": null,
+        "cap_name": "MICHEL"
+      },
+      "links": {
+        "self": "/forest/user/6"
+      },
+      "relationships": {
+        "trees_owned": {
+          "links": {
+            "related": {
+              "href": "/forest/User/6/relationships/trees_owned"
+            }
+          }
+        },
+        "trees_cut": {
+          "links": {
+            "related": {
+              "href": "/forest/User/6/relationships/trees_cut"
+            }
+          }
+        },
+        "addresses": {
+          "links": {
+            "related": {
+              "href": "/forest/User/6/relationships/addresses"
+            }
+          }
+        }
+      }
+    }
+  ]
+}
