@@ -157,10 +157,17 @@ export default class EmbeddedBff {
   /**
    * Stop answering. The host application keeps whatever middleware it registered, so without this
    * a stopped agent would go on serving BFF data through a dispatcher pointing at a dead stack.
+   *
+   * Drains before returning: the activity-log status transitions are fired without `await`, so
+   * nothing else holds them and a shutdown would leave the entries `pending`.
    */
-  stop(): void {
+  async stop(): Promise<void> {
+    const { bff } = this;
+
     this.bff = null;
     this.stopped = true;
+
+    await bff?.drainActivityLogs?.();
   }
 
   /**
