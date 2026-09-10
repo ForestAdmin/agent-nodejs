@@ -43,6 +43,27 @@ describe('resolve cache', () => {
     });
   });
 
+  describe('invalidation', () => {
+    it('should forget a positive entry before its TTL', () => {
+      const cache = createResolveCache({ now, positiveTtlSeconds: 60 });
+      cache.setPositive('hash', IDENTITY);
+
+      cache.invalidate('hash');
+
+      expect(cache.getPositive('hash')).toBeUndefined();
+    });
+
+    it('should leave the other entries alone', () => {
+      const cache = createResolveCache({ now, positiveTtlSeconds: 60 });
+      cache.setPositive('hash', IDENTITY);
+      cache.setPositive('other-hash', IDENTITY);
+
+      cache.invalidate('hash');
+
+      expect(cache.getPositive('other-hash')).toEqual(IDENTITY);
+    });
+  });
+
   describe('negative entries', () => {
     it('should return the cached error within the negative TTL', () => {
       const cache = createResolveCache({ now, negativeTtlSeconds: 10 });

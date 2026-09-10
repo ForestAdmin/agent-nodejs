@@ -6,6 +6,7 @@ export interface ResolveCache {
   getNegative(hash: string): ApiKeyError | undefined;
   setPositive(hash: string, identity: ResolvedApiKeyIdentity): void;
   setNegative(hash: string, error: ApiKeyError): void;
+  invalidate(hash: string): void;
   size(): number;
 }
 
@@ -93,6 +94,10 @@ export default function createResolveCache({
 
     setNegative(hash, error) {
       store(hash, { kind: 'negative', error, expiresAt: now() + negativeTtlSeconds * 1000 });
+    },
+
+    invalidate(hash) {
+      entries.delete(hash);
     },
 
     size() {

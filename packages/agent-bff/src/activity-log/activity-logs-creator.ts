@@ -10,6 +10,7 @@ import type { Context } from 'koa';
 
 import { HttpError, NotFoundError } from '@forestadmin/forestadmin-client';
 
+import { invalidateApiKeyIdentity } from '../api-key/api-key-middleware';
 import {
   resolveForestServerToken,
   resolveRenderingId,
@@ -32,8 +33,8 @@ export type BffActivityLogAction = Extract<
  * created is blocked (no unaudited side effect), while a read proceeds with a warning (an audit
  * store outage must not take down the read surface).
  *
- * One case is arbitrated by the cause instead of the action type: an authorization refusal
- * (401/403) propagates for reads too — the read itself is not authorized either.
+ * One case is arbitrated by the cause instead of the action type: an authorization refusal (403)
+ * propagates for reads too — the read itself is not authorized either.
  */
 const ACTION_TO_TYPE: Record<BffActivityLogAction, ActivityLogType> = {
   index: 'read',
@@ -81,8 +82,48 @@ function describeCause(error: unknown): string {
   return error instanceof Error ? `${error.name}: ${error.message}` : String(error);
 }
 
+const FORBIDDEN = 403;
+const UNAUTHORIZED = 401;
+
+/**
+ * A 403 only. A 401 is not the caller being refused: the bearer the BFF audits with is minted by
+ * the Forest server and cached, so a 401 says that token expired — answering the caller with
+ * `audit_not_authorized` would refuse a read the fail-open policy lets through.
+ */
 function isAuthorizationRefusal(error: unknown): boolean {
-  return error instanceof HttpError && (error.status === 401 || error.status === 403);
+  return error instanceof HttpError && error.status === FORBIDDEN;
+}
+
+function isExpiredAuditCredential(error: unknown): boolean {
+  return error instanceof HttpError && error.status === UNAUTHORIZED;
+}
+
+/**
+ * What locates the failure for support, and nothing else: the credential, the record ids and the
+ * label are the payload this must never carry.
+ */
+function auditIdentifiers(
+  ctx: Context,
+  context?: ActivityLogContext,
+): Record<string, string | number> {
+  const renderingId = resolveRenderingId(ctx);
+
+  return {
+    ...(renderingId === undefined ? {} : { renderingId }),
+    ...(context?.collectionName === undefined ? {} : { collectionName: context.collectionName }),
+  };
+}
+
+function isPresent(value: string | undefined | null): boolean {
+  return value !== null && value !== undefined;
+}
+
+/**
+ * The status transition reads both the id and the index, so an answer carrying only an id strands
+ * the entry `pending`: the fail-closed policy has to engage here, not asynchronously afterwards.
+ */
+function isTransitionable(activityLog: ActivityLogResponse): boolean {
+  return isPresent(activityLog?.id) && isPresent(activityLog?.attributes?.index);
 }
 
 async function resolveCredentials(ctx: Context): Promise<AuditCredentials> {
@@ -111,6 +152,7 @@ export default async function createPendingActivityLog({
     credentials = await resolveCredentials(ctx);
   } catch (error) {
     logger('Error', `Activity log for '${action}' has no credentials to be created with`, {
+      ...auditIdentifiers(ctx, context),
       cause: describeCause(error),
     });
 
@@ -136,23 +178,26 @@ export default async function createPendingActivityLog({
     });
   } catch (error) {
     logger('Error', `Activity log for '${action}' could not be created`, {
+      ...auditIdentifiers(ctx, context),
       cause: describeCause(error),
     });
 
     if (isAuthorizationRefusal(error)) throw auditNotAuthorized();
+    if (isExpiredAuditCredential(error)) invalidateApiKeyIdentity(ctx);
     if (type === 'write') throw auditUnavailable(AUDIT_RETRY_AFTER_SECONDS);
 
     return null;
   }
 
-  if (activityLog?.id === null || activityLog?.id === undefined) {
-    if (type === 'write') throw auditUnavailable(AUDIT_RETRY_AFTER_SECONDS);
-
+  if (!isTransitionable(activityLog)) {
     logger(
       'Error',
       `Activity log for '${action}' could not be created: the server answered with no activity ` +
-        'log id, so the audit store dropped the write',
+        'log id or index, so the audit store dropped the write',
+      auditIdentifiers(ctx, context),
     );
+
+    if (type === 'write') throw auditUnavailable(AUDIT_RETRY_AFTER_SECONDS);
 
     return null;
   }
@@ -210,6 +255,8 @@ export function markActivityLog(options: MarkActivityLogOptions): void {
     .track(() => updateStatus(options))
     .catch(error => {
       logger('Error', `Failed to mark the activity log as '${status}'`, {
+        activityLogId: options.pending.activityLog.id,
+        index: options.pending.activityLog.attributes?.index,
         cause: describeCause(error),
       });
     });

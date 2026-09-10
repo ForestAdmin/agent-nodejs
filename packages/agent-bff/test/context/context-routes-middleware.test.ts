@@ -71,6 +71,7 @@ function makeFullAgentEdge(fetchSchema: jest.Mock, allowedOrigins: string[] = []
           agentToken: 'agent-token',
           identity: apiKeyIdentity(allowedOrigins),
         }),
+        invalidate: () => undefined,
       },
       logger,
     }),

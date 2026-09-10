@@ -118,8 +118,12 @@ export function actionRequiresApproval(
 
 export const AUDIT_RETRY_AFTER_SECONDS = 5;
 
+/**
+ * `retryAfter` is optional: a retry only helps while the audit store is expected to answer soon.
+ * A deployment whose Forest server cannot write the log at all must not advertise one.
+ */
 export function auditUnavailable(
-  retryAfter: number,
+  retryAfter?: number,
   message = 'The activity log could not be written, so the operation was not performed',
 ): BffHttpError {
   return new BffHttpError(503, 'audit_unavailable', message, { retryAfter });

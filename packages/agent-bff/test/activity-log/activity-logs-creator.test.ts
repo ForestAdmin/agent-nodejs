@@ -18,14 +18,35 @@ import {
 const RETRY_DELAY_MS = 500;
 const MAX_ATTEMPTS = 5;
 
-function ctxOf(): Context {
+function ctxOf(invalidateApiKeyIdentity: () => void = () => undefined): Context {
   return {
     state: {
       authMode: 'api-key',
       apiKeyIdentity: { renderingId: RENDERING_ID },
       resolveForestServerToken: async () => API_KEY_SERVER_TOKEN,
+      invalidateApiKeyIdentity,
     },
   } as unknown as Context;
+}
+
+function ctxWithoutCredentials(): Context {
+  return {
+    state: {
+      authMode: 'api-key',
+      apiKeyIdentity: { renderingId: RENDERING_ID },
+      resolveForestServerToken: async () => {
+        throw new Error('no token on this request');
+      },
+    },
+  } as unknown as Context;
+}
+
+function rejectingService(error: unknown) {
+  return fakeActivityLogsService({
+    createMcpActivityLog: jest.fn(async () => {
+      throw error;
+    }),
+  });
 }
 
 function loggerSpy(): jest.MockedFunction<Logger> {
@@ -40,6 +61,30 @@ function pendingLog() {
 }
 
 describe('activity logs creator', () => {
+  describe('when the credentials cannot be resolved', () => {
+    it('should name the rendering the request carries', async () => {
+      const logger = loggerSpy();
+
+      await createPendingActivityLog({
+        ctx: ctxWithoutCredentials(),
+        service: fakeActivityLogsService(),
+        action: 'index',
+        context: { collectionName: 'books' },
+        logger,
+      });
+
+      expect(logger).toHaveBeenCalledWith(
+        'Error',
+        "Activity log for 'index' has no credentials to be created with",
+        {
+          renderingId: RENDERING_ID,
+          collectionName: 'books',
+          cause: 'Error: no token on this request',
+        },
+      );
+    });
+  });
+
   describe('when the server accepts the creation but returns no id', () => {
     it('should serve a read unaudited and say the audit store dropped the write', async () => {
       const logger = loggerSpy();
@@ -51,6 +96,7 @@ describe('activity logs creator', () => {
         ctx: ctxOf(),
         service,
         action: 'index',
+        context: { collectionName: 'books' },
         logger,
       });
 
@@ -58,10 +104,12 @@ describe('activity logs creator', () => {
       expect(logger).toHaveBeenCalledWith(
         'Error',
         expect.stringContaining('the audit store dropped the write'),
+        { renderingId: RENDERING_ID, collectionName: 'books' },
       );
     });
 
-    it('should block an action, which must not run unaudited', async () => {
+    it('should block an action, which must not run unaudited, and record why', async () => {
+      const logger = loggerSpy();
       const service = fakeActivityLogsService({
         createMcpActivityLog: jest.fn(async () => ({ id: null })),
       });
@@ -71,10 +119,121 @@ describe('activity logs creator', () => {
           ctx: ctxOf(),
           service,
           action: 'action',
-          context: { label: 'triggered the action "Refund"' },
+          context: { collectionName: 'books', label: 'triggered the action "Refund"' },
+          logger,
+        }),
+      ).rejects.toMatchObject({ status: 503, type: 'audit_unavailable' });
+
+      expect(logger).toHaveBeenCalledWith(
+        'Error',
+        expect.stringContaining('the audit store dropped the write'),
+        { renderingId: RENDERING_ID, collectionName: 'books' },
+      );
+    });
+  });
+
+  describe('when the server accepts the creation but returns no index', () => {
+    it('should serve a read unaudited, since the status transition could never land', async () => {
+      const service = fakeActivityLogsService({
+        createMcpActivityLog: jest.fn(async () => ({ id: ACTIVITY_LOG_ID })),
+      });
+
+      const pending = await createPendingActivityLog({
+        ctx: ctxOf(),
+        service,
+        action: 'index',
+        logger: loggerSpy(),
+      });
+
+      expect(pending).toBeNull();
+    });
+
+    it('should block an action instead of stranding its entry pending', async () => {
+      const service = fakeActivityLogsService({
+        createMcpActivityLog: jest.fn(async () => ({ id: ACTIVITY_LOG_ID })),
+      });
+
+      await expect(
+        createPendingActivityLog({
+          ctx: ctxOf(),
+          service,
+          action: 'action',
           logger: loggerSpy(),
         }),
       ).rejects.toMatchObject({ status: 503, type: 'audit_unavailable' });
+    });
+  });
+
+  describe('when the server refuses the creation with a 403', () => {
+    it('should refuse a read too, which is not authorized either', async () => {
+      const service = rejectingService(new HttpError('forbidden', 403));
+
+      await expect(
+        createPendingActivityLog({
+          ctx: ctxOf(),
+          service,
+          action: 'index',
+          logger: loggerSpy(),
+        }),
+      ).rejects.toMatchObject({ status: 403, type: 'audit_not_authorized' });
+    });
+  });
+
+  describe('when the server refuses the creation with a 401', () => {
+    it('should serve a read unaudited rather than refuse it', async () => {
+      const service = rejectingService(new HttpError('expired', 401));
+
+      const pending = await createPendingActivityLog({
+        ctx: ctxOf(),
+        service,
+        action: 'index',
+        logger: loggerSpy(),
+      });
+
+      expect(pending).toBeNull();
+    });
+
+    it('should block an action with audit_unavailable, not audit_not_authorized', async () => {
+      const service = rejectingService(new HttpError('expired', 401));
+      const logger = loggerSpy();
+
+      await expect(
+        createPendingActivityLog({ ctx: ctxOf(), service, action: 'action', logger }),
+      ).rejects.toMatchObject({ status: 503, type: 'audit_unavailable' });
+
+      expect(logger).toHaveBeenCalledWith(
+        'Error',
+        "Activity log for 'action' could not be created",
+        { renderingId: RENDERING_ID, cause: 'HttpError: expired' },
+      );
+    });
+
+    it('should drop the cached identity so the next request re-resolves the key', async () => {
+      const invalidateApiKeyIdentity = jest.fn();
+      const service = rejectingService(new HttpError('expired', 401));
+
+      await createPendingActivityLog({
+        ctx: ctxOf(invalidateApiKeyIdentity),
+        service,
+        action: 'index',
+        logger: loggerSpy(),
+      });
+
+      expect(invalidateApiKeyIdentity).toHaveBeenCalledTimes(1);
+    });
+
+    it('should keep the cached identity when the refusal is a 403', async () => {
+      const invalidateApiKeyIdentity = jest.fn();
+      const service = rejectingService(new HttpError('forbidden', 403));
+
+      await createPendingActivityLog({
+        ctx: ctxOf(invalidateApiKeyIdentity),
+        service,
+        action: 'index',
+        logger: loggerSpy(),
+      }).catch(() => undefined);
+
+      expect(invalidateApiKeyIdentity).not.toHaveBeenCalled();
     });
   });
 
@@ -132,11 +291,11 @@ describe('activity logs creator', () => {
       await drainer.drain();
 
       expect(updateActivityLogStatus).toHaveBeenCalledTimes(MAX_ATTEMPTS);
-      expect(logger).toHaveBeenCalledWith(
-        'Error',
-        "Failed to mark the activity log as 'failed'",
-        expect.objectContaining({ cause: 'NotFoundError: Not found' }),
-      );
+      expect(logger).toHaveBeenCalledWith('Error', "Failed to mark the activity log as 'failed'", {
+        activityLogId: ACTIVITY_LOG_ID,
+        index: ACTIVITY_LOG_INDEX,
+        cause: 'NotFoundError: Not found',
+      });
     });
   });
 
@@ -163,7 +322,11 @@ describe('activity logs creator', () => {
       expect(logger).toHaveBeenCalledWith(
         'Error',
         "Failed to mark the activity log as 'completed'",
-        expect.objectContaining({ cause: 'HttpError: the audit store is down' }),
+        {
+          activityLogId: ACTIVITY_LOG_ID,
+          index: ACTIVITY_LOG_INDEX,
+          cause: 'HttpError: the audit store is down',
+        },
       );
     });
   });

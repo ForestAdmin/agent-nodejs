@@ -159,6 +159,20 @@ describe('data routes activity log', () => {
       );
     });
 
+    it('should record an index when the filter is empty, which refines nothing', async () => {
+      const service = fakeActivityLogsService();
+      const { app } = buildApp({ service, client: { list: async () => [] } });
+
+      const response = await request(app.callback())
+        .post('/agent/v1/users/list')
+        .send({ filter: {} });
+
+      expect(response.status).toBe(200);
+      expect(service.createMcpActivityLog).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'index', type: 'read' }),
+      );
+    });
+
     it('should record an index when the body carries neither a search nor a filter', async () => {
       const service = fakeActivityLogsService();
       const { app } = buildApp({ service, client: { list: async () => [] } });
@@ -320,6 +334,19 @@ describe('data routes activity log', () => {
 
       expect(service.createMcpActivityLog).toHaveBeenCalledWith(
         expect.objectContaining({ label: 'list relation "posts" with filter' }),
+      );
+    });
+
+    it('should leave an empty filter out of the label, like the outgoing query does', async () => {
+      const service = fakeActivityLogsService();
+      const { app } = buildApp({ service, client: { listRelation: async () => [] } });
+
+      await request(app.callback())
+        .post('/agent/v1/users/relations/posts/list')
+        .send({ parentId: 'users-1', filter: {} });
+
+      expect(service.createMcpActivityLog).toHaveBeenCalledWith(
+        expect.objectContaining({ label: 'list relation "posts"' }),
       );
     });
 
