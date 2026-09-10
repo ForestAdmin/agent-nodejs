@@ -1,3 +1,18 @@
+# @forestadmin/agent [1.100.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.99.2...@forestadmin/agent@1.100.0) (2026-09-10)
+
+
+### Features
+
+* **agent:** serve a BFF in-process with addBff() ([#1876](https://github.com/ForestAdmin/agent-nodejs/issues/1876)) ([7f9c1a6](https://github.com/ForestAdmin/agent-nodejs/commit/7f9c1a685862eade59009f5f71779d861f5700c7))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-bff:** upgraded to 1.29.0
+
 ## @forestadmin/agent [1.99.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.99.1...@forestadmin/agent@1.99.2) (2026-09-09)
 
 
