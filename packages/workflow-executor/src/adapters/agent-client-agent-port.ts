@@ -293,15 +293,16 @@ export default class AgentClientAgentPort implements AgentPort {
       const recordId =
         relatedSchema.primaryKeyFields.length > 1 ? String(raw).split('|') : [String(raw)];
 
-      // Nothing to project: the caller wants the linkage id alone (it reads `values` only for the
-      // reference field it asked for), so reading the target would fetch a whole record to discard.
-      if (!fields?.length) {
-        return { collectionName: relatedSchema.collectionName, recordId, values: {} };
-      }
+      // The target is read even when the caller projected nothing, on its first PK alone. Skipping
+      // the read to save the round trip also skipped the readability check below, so a relation
+      // whose collection happens to carry no reference field would load a record the caller cannot
+      // open, while the same relation with one reported no record — the outcome turning on a
+      // schema detail rather than on what the caller can see.
+      const projection = fields?.length ? fields : [relatedSchema.primaryKeyFields[0]];
 
       try {
         return await this.getRecord(
-          { collection: relatedSchema.collectionName, id: recordId, fields },
+          { collection: relatedSchema.collectionName, id: recordId, fields: projection },
           user,
         );
       } catch (error) {

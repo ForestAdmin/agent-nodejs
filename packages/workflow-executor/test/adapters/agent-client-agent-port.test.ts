@@ -709,11 +709,12 @@ describe('AgentClientAgentPort', () => {
       expect(result?.recordId).toEqual(['2']);
     });
 
-    // The caller reads `values` only for the reference field it asked for, so with nothing to
-    // project the linkage id is the whole answer and the target read would fetch a record to
-    // discard it.
-    it('returns the linkage id without reading the target when no field is projected', async () => {
-      mockCollection.getOne.mockResolvedValue(parentWithLinkage('card', { id: 'uuid-1' }));
+    // Reading the target on its first PK alone still runs the readability check, so the outcome
+    // does not turn on whether the related collection happens to carry a reference field.
+    it('reads the target on its primary key when no field is projected', async () => {
+      mockCollection.getOne
+        .mockResolvedValueOnce(parentWithLinkage('card', { id: 'uuid-1' }))
+        .mockResolvedValueOnce({ id: 'uuid-1' });
 
       const result = await port.getSingleRelatedData(
         {
@@ -725,17 +726,41 @@ describe('AgentClientAgentPort', () => {
         user,
       );
 
-      expect(mockCollection.getOne).toHaveBeenCalledTimes(1);
-      expect(mockCollection.getOne).toHaveBeenCalledWith(
+      expect(mockCollection.getOne).toHaveBeenNthCalledWith(
+        1,
         [42],
         { fields: ['card@@@id'] },
         { skipDeserialization: true },
       );
+      expect(mockCollection.getOne).toHaveBeenNthCalledWith(2, ['uuid-1'], { fields: ['id'] });
       expect(result).toEqual({
         collectionName: 'cards',
         recordId: ['uuid-1'],
-        values: {},
+        values: { id: 'uuid-1' },
       });
+    });
+
+    // The gap this closes: without a projected field the target read used to be skipped, so an
+    // unreadable target loaded anyway — the same relation reporting no record once its collection
+    // gained a reference field.
+    it('returns null when the target is unreadable and no field is projected', async () => {
+      mockedIs404Error.mockReturnValue(true);
+      mockCollection.getOne
+        .mockResolvedValueOnce(parentWithLinkage('card', { id: 'uuid-1' }))
+        .mockRejectedValueOnce(new Error('not found'));
+
+      const result = await port.getSingleRelatedData(
+        {
+          collection: 'claims',
+          id: [42],
+          relation: 'card',
+          relatedSchema: { ...ordersSchema, collectionName: 'cards' },
+        },
+        user,
+      );
+
+      expect(result).toBeNull();
+      expect(mockCollection.getOne).toHaveBeenCalledTimes(2);
     });
 
     // The by-id route intersects the caller's scope; the relation projected on the parent does not.
