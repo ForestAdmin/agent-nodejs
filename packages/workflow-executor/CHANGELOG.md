@@ -1,3 +1,18 @@
+## @forestadmin/workflow-executor [1.28.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.28.0...@forestadmin/workflow-executor@1.28.1) (2026-09-10)
+
+
+### Bug Fixes
+
+* **workflow-executor:** read an xToOne linkage from the raw JSON:API body ([#1889](https://github.com/ForestAdmin/agent-nodejs/issues/1889)) ([66a28d9](https://github.com/ForestAdmin/agent-nodejs/commit/66a28d992a6a6f9f1d6a427f64ae1ab446f603d3))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/ai-proxy:** upgraded to 1.13.0
+
 # @forestadmin/workflow-executor [1.28.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.27.2...@forestadmin/workflow-executor@1.28.0) (2026-09-09)
 
 
