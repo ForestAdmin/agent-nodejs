@@ -1,3 +1,10 @@
+# @forestadmin/ai-proxy [1.13.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.12.9...@forestadmin/ai-proxy@1.13.0) (2026-09-10)
+
+
+### Features
+
+* **ai-proxy:** remove the Forest-built Kolar integration ([#1888](https://github.com/ForestAdmin/agent-nodejs/issues/1888)) ([725c762](https://github.com/ForestAdmin/agent-nodejs/commit/725c76227224e0b9e06ec9f11e8c327e90e31e21))
+
 ## @forestadmin/ai-proxy [1.12.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.12.8...@forestadmin/ai-proxy@1.12.9) (2026-09-07)
 
 
