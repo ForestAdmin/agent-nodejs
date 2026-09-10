@@ -59,7 +59,11 @@ describe('buildBff', () => {
       const response = await request(callback).get('/health');
 
       expect(response.status).toBe(200);
-      expect(response.body).toEqual({ status: 'ok', version });
+      expect(response.body).toEqual({
+        status: 'ok',
+        version,
+        configured: { oauth: true, ai: true, cors: false, openapi: true },
+      });
     });
 
     it('should set the version header on /health, which only holds if it is mounted first', async () => {
@@ -78,7 +82,11 @@ describe('buildBff', () => {
       const response = await request(callback).get('/health');
 
       expect(response.status).toBe(503);
-      expect(response.body).toEqual({ status: 'degraded', version });
+      expect(response.body).toEqual({
+        status: 'degraded',
+        version,
+        configured: { oauth: false, ai: false, cors: false, openapi: true },
+      });
     });
 
     it('should warn naming the missing keys', async () => {
