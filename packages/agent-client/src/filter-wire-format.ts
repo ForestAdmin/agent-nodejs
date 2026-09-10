@@ -13,11 +13,13 @@ export function toWireOperator(operator: string): string {
 }
 
 function isBranch(node: unknown): node is { aggregator?: string; conditions: unknown[] } {
-  return (
-    typeof node === 'object' &&
-    node !== null &&
-    Array.isArray((node as { conditions?: unknown }).conditions)
-  );
+  if (typeof node !== 'object' || node === null) return false;
+
+  const { aggregator, conditions } = node as { aggregator?: unknown; conditions?: unknown };
+
+  // The aggregator is lowercased below, so a non-string one would throw a TypeError from inside the
+  // walk instead of being reported as the malformed filter it is.
+  return Array.isArray(conditions) && (aggregator === undefined || typeof aggregator === 'string');
 }
 
 function isLeaf(node: unknown): node is { field: string; operator?: string; value?: unknown } {

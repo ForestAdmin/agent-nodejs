@@ -1,12 +1,19 @@
 import type { CapabilitiesFetcher } from './capabilities-cache';
+import type ReadModelStore from './read-model-store';
 import type { AgentTransport } from '../agent/agent-transport';
+import type { Logger } from '../ports/logger-port';
 
-import { createRemoteAgentClient } from '@forestadmin/agent-client';
+import { AgentHttpError, createRemoteAgentClient } from '@forestadmin/agent-client';
+
+import synthesizeCapabilities, { LEGACY_LIANAS } from './synthesize-capabilities';
 
 export interface AgentCapabilitiesFetcherOptions {
   transport: AgentTransport;
   /** A borrowed request token, or a factory when the caller can mint one per fetch. */
   token: string | (() => string);
+  /** Holds the schema snapshot a 404 is answered from when a legacy liana published it. */
+  store: ReadModelStore;
+  logger: Logger;
 }
 
 /**
@@ -20,6 +27,8 @@ export interface AgentCapabilitiesFetcherOptions {
 export default function createAgentCapabilitiesFetcher({
   transport,
   token,
+  store,
+  logger,
 }: AgentCapabilitiesFetcherOptions): CapabilitiesFetcher {
   const clientFor = (bearer: string) =>
     createRemoteAgentClient({
@@ -28,11 +37,53 @@ export default function createAgentCapabilitiesFetcher({
       httpRequester: transport.createRequester(bearer),
     });
 
-  if (typeof token === 'string') {
-    const client = clientFor(token);
+  // A borrowed token cannot be renewed, so its client is built once; a factory mints one per fetch.
+  function createFetch(): CapabilitiesFetcher {
+    if (typeof token === 'string') {
+      const client = clientFor(token);
 
-    return collection => client.collection(collection).capabilities();
+      return collection => client.collection(collection).capabilities();
+    }
+
+    return collection => clientFor(token()).collection(collection).capabilities();
   }
 
-  return collection => clientFor(token()).collection(collection).capabilities();
+  const fetch = createFetch();
+
+  // A 404 alone does not say the agent is legacy — a proxy blocking the internal route answers the
+  // same way — so the liana that published the schema decides. It is read from the cached snapshot,
+  // so it lags a migration by at most a schema generation; the synthesis is returned like a normal
+  // result, letting the cache stop the doomed POST from repeating on every constrained request.
+  return async (collection: string) => {
+    try {
+      return await fetch(collection);
+    } catch (error) {
+      if (!(error instanceof AgentHttpError) || error.status !== 404) throw error;
+
+      const { collections, meta } = await store.getSchemaSnapshot();
+      const schema = collections.find(entry => entry.name === collection);
+      if (!schema) throw error;
+
+      if (!meta.liana || !LEGACY_LIANAS.has(meta.liana)) {
+        logger('Error', 'Agent serves no capabilities route, and its liana is not a legacy one', {
+          agentUrl: transport.url,
+          collection,
+          liana: meta.liana ?? 'absent from the published schema',
+          lianaVersion: meta.liana_version ?? 'unknown',
+          causes: 'a proxy blocking /forest/_internal, or a collection the agent no longer serves',
+        });
+
+        throw error;
+      }
+
+      logger('Warn', 'Legacy liana: synthesizing the capabilities from the apimap', {
+        agentUrl: transport.url,
+        collection,
+        liana: meta.liana,
+        lianaVersion: meta.liana_version ?? 'unknown',
+      });
+
+      return synthesizeCapabilities(schema, logger);
+    }
+  };
 }

@@ -273,7 +273,7 @@ describe('data routes middleware', () => {
 
       expect(list).toHaveBeenCalledWith('users', {
         timezone: TIMEZONE,
-        filters: JSON.stringify({ field: 'email', operator: 'Present' }),
+        filters: JSON.stringify({ field: 'email', operator: 'present', value: null }),
         search: 'ada',
       });
     });
@@ -996,7 +996,7 @@ describe('data routes middleware', () => {
         'posts',
         expect.objectContaining({
           'fields[posts]': 'id,title',
-          filters: JSON.stringify({ field: 'title', operator: 'Present' }),
+          filters: JSON.stringify({ field: 'title', operator: 'present', value: null }),
           sort: '-title',
         }),
       );
@@ -1276,7 +1276,9 @@ describe('data routes middleware', () => {
         'users',
         '7',
         'posts',
-        expect.objectContaining({ filters: JSON.stringify(filter) }),
+        expect.objectContaining({
+          filters: JSON.stringify({ field: 'title', operator: 'present', value: null }),
+        }),
       );
     });
 

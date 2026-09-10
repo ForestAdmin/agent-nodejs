@@ -12,6 +12,12 @@ export function fieldNotFilterable(field: string): BffHttpError {
   });
 }
 
+export function fieldNotSortable(field: string): BffHttpError {
+  return new BffHttpError(422, 'field_not_sortable', `Field is not sortable: ${field}`, {
+    details: { field },
+  });
+}
+
 export function filterTooDeep(maxDepth: number): BffHttpError {
   return new BffHttpError(
     400,

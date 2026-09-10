@@ -2,6 +2,8 @@ import type { PageInput, SortClauseInput } from './request-schemas';
 import type { Logger } from '../ports/logger-port';
 import type { ZodType, z } from 'zod';
 
+import { toWireFilter } from '@forestadmin/agent-client';
+
 import {
   CountFlatInputs,
   ListFlatInputs,
@@ -181,7 +183,7 @@ export function buildListAgentQuery(
 ): AgentQuery {
   const query: AgentQuery = { timezone };
 
-  if (body.filter !== undefined) query.filters = JSON.stringify(body.filter);
+  if (body.filter !== undefined) query.filters = JSON.stringify(toWireFilter(body.filter));
   if (body.projection?.length) query[`fields[${collection}]`] = body.projection.join(',');
   if (body.sort?.length) query.sort = serializeSort(body.sort);
   if (body.page) Object.assign(query, serializePage(body.page));
@@ -193,7 +195,7 @@ export function buildListAgentQuery(
 export function buildCountAgentQuery(timezone: string, body: CountRequestBody): AgentQuery {
   const query: AgentQuery = { timezone };
 
-  if (body.filter !== undefined) query.filters = JSON.stringify(body.filter);
+  if (body.filter !== undefined) query.filters = JSON.stringify(toWireFilter(body.filter));
   applySearch(query, body);
 
   return query;
