@@ -1,4 +1,8 @@
-import type { ForestAdminServerInterface, ForestSchemaCollection } from '../types';
+import type {
+  ForestAdminServerInterface,
+  ForestSchemaCollection,
+  ForestSchemaWithMeta,
+} from '../types';
 import type { ForestSchema } from './types';
 
 import crypto from 'crypto';
@@ -43,6 +47,10 @@ export default class SchemaService {
 
   async getSchema(): Promise<ForestSchemaCollection[]> {
     return this.forestAdminServerInterface.getSchema(toHttpOptions(this.options));
+  }
+
+  async getSchemaWithMeta(): Promise<ForestSchemaWithMeta> {
+    return this.forestAdminServerInterface.getSchemaWithMeta(toHttpOptions(this.options));
   }
 
   static serialize(schema: ForestSchema): SerializedSchema {

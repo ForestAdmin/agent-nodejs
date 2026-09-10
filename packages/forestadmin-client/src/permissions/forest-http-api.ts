@@ -8,6 +8,8 @@ import type {
   ForestAdminClientOptions,
   ForestAdminServerInterface,
   ForestSchemaCollection,
+  ForestSchemaMeta,
+  ForestSchemaWithMeta,
   HydratedWorkflowRun,
   IpWhitelistRulesResponse,
   McpWorkflow,
@@ -123,9 +125,14 @@ export default class ForestHttpApi implements ForestAdminServerInterface {
   }
 
   async getSchema(options: HttpOptions): Promise<ForestSchemaCollection[]> {
+    return (await this.getSchemaWithMeta(options)).collections;
+  }
+
+  async getSchemaWithMeta(options: HttpOptions): Promise<ForestSchemaWithMeta> {
     const response = await ServerUtils.query<{
       data: Array<{ id: string; type: string; attributes: Record<string, unknown> }>;
       included?: Array<{ id: string; type: string; attributes: Record<string, unknown> }>;
+      meta?: ForestSchemaMeta & Record<string, unknown>;
     }>(options, 'get', '/liana/forest-schema');
 
     const serializer = new JSONAPISerializer();
@@ -144,7 +151,10 @@ export default class ForestHttpApi implements ForestAdminServerInterface {
     });
     serializer.register('segments', {});
 
-    return serializer.deserialize('collections', response) as ForestSchemaCollection[];
+    return {
+      collections: serializer.deserialize('collections', response) as ForestSchemaCollection[],
+      meta: response.meta ?? {},
+    };
   }
 
   async postSchema(options: HttpOptions, schema: object): Promise<void> {
