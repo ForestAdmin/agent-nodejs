@@ -11,3 +11,25 @@ import Inflector from 'inflected';
 export default function recordKey(field: string): string {
   return Inflector.camelize(Inflector.underscore(field), false);
 }
+
+/**
+ * The same names grouped by the key they reach the response under. A group of more than one is the
+ * transform being lossy: those names collapse onto one key and which of them it holds is not
+ * knowable from here.
+ */
+export function groupByRecordKey<T>(
+  items: readonly T[],
+  name: (item: T) => string,
+): Map<string, T[]> {
+  const byKey = new Map<string, T[]>();
+
+  for (const item of items) {
+    const key = recordKey(name(item));
+    const group = byKey.get(key);
+
+    if (group) group.push(item);
+    else byKey.set(key, [item]);
+  }
+
+  return byKey;
+}

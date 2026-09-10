@@ -7,7 +7,7 @@ import type {
   ForestSchemaField,
 } from '@forestadmin/forestadmin-client';
 
-import recordKey from '../data/record-key';
+import recordKey, { groupByRecordKey } from '../data/record-key';
 
 export interface ContextActionField {
   field: string;
@@ -66,39 +66,33 @@ function toArray<T>(value: T[] | null | undefined): T[] {
 
 type FieldWithWireEnums = ForestSchemaField & { enums?: string[] };
 
-/** The deserializer writes the JSON:API resource identifier under this key, always. */
+/**
+ * The deserializer writes the JSON:API resource identifier under this key, always, over whatever
+ * attribute landed there. The resource id is a string whatever the column type says, and a
+ * composite key reaches it packed, so it is never the value of the field that camelizes to `id` —
+ * a primary key named `Id` included.
+ */
 const RESOURCE_ID_KEY = 'id';
 
 /**
  * The record keys this collection cannot promise, because more than one thing lands on them.
  *
  * Two fields whose technical names differ only by casing collapse onto one key (`first_name` and
- * `firstName` both reach the response as `firstName`), and a field named `Id` or `ID` collapses onto
- * the resource identifier, whose value the deserializer writes over the projected attribute — so
- * reading that field under `id` yields the record's id rather than the field's value. Publishing a
- * `recordKey` in either case would point a consumer at a value that is not the field's, which is
- * worse than publishing nothing: `recordKey` is absent, the caller falls back to `field`, and the
- * ambiguity stays visible instead of being papered over.
+ * `firstName` both reach the response as `firstName`), and `id` always belongs to the resource
+ * identifier. Publishing a `recordKey` in either case would point a consumer at a value that is not
+ * the field's, which is worse than publishing nothing: `recordKey` is absent, the caller falls back
+ * to `field`, and the ambiguity stays visible instead of being papered over.
+ *
+ * Not covered: the deserializer also writes `meta` from the resource meta, so a field named `Meta`
+ * on an agent that emits one is shadowed the same way. agent-nodejs emits no per-resource meta, and
+ * reserving the key would drop a working `recordKey` on every agent that emits none.
  */
 function ambiguousRecordKeys(fields: FieldWithWireEnums[]): Set<string> {
-  const claimants = new Map<string, number>();
+  const ambiguous = new Set<string>([RESOURCE_ID_KEY]);
 
-  for (const field of fields) {
-    const key = recordKey(field.field);
-    claimants.set(key, (claimants.get(key) ?? 0) + 1);
+  for (const [key, group] of groupByRecordKey(fields, field => field.field)) {
+    if (group.length > 1) ambiguous.add(key);
   }
-
-  const ambiguous = new Set<string>();
-
-  for (const [key, count] of claimants) {
-    if (count > 1) ambiguous.add(key);
-  }
-
-  const idClaimedByAnotherField = fields.some(
-    field => !field.isPrimaryKey && recordKey(field.field) === RESOURCE_ID_KEY,
-  );
-
-  if (idClaimedByAnotherField) ambiguous.add(RESOURCE_ID_KEY);
 
   return ambiguous;
 }

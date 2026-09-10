@@ -164,7 +164,7 @@ describe('buildContext', () => {
       expect(fields.find(entry => entry.field === 'Id')).not.toHaveProperty('recordKey');
     });
 
-    it('should still name the key of a primary key the deserializer does rename', () => {
+    it('should omit recordKey on a primary key named Id, whose record id is packed and a string', () => {
       const pascalKeySchema = [
         {
           name: 'people',
@@ -177,7 +177,7 @@ describe('buildContext', () => {
         schemaRevision: 1,
       }).collections;
 
-      expect(fields.find(entry => entry.field === 'Id')?.recordKey).toBe('id');
+      expect(fields.find(entry => entry.field === 'Id')).not.toHaveProperty('recordKey');
     });
 
     it('should survive the published schema, which would drop an undeclared key', () => {

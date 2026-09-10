@@ -4,7 +4,7 @@ import type { ReferenceObject, SchemaObject } from 'openapi3-ts/oas31';
 import toFieldSchema from './field-schemas';
 import { quoted } from './names';
 import { PACKED_ID_SEPARATOR } from '../data/pack-id';
-import recordKey from '../data/record-key';
+import { groupByRecordKey } from '../data/record-key';
 
 // The flat id is the JSON:API resource id, which is a string by specification whatever the key
 // column holds. `__forest.primaryKey` is the same id unpacked and typed, so the two forms of one
@@ -51,15 +51,7 @@ function publishedSchema(schema: SchemaObject): SchemaObject {
   const { properties } = schema;
 
   if (properties !== undefined) {
-    const byKey = new Map<string, string[]>();
-
-    Object.keys(properties).forEach(name => {
-      const key = recordKey(name);
-      const collapsed = byKey.get(key);
-
-      if (collapsed) collapsed.push(name);
-      else byKey.set(key, [name]);
-    });
+    const byKey = groupByRecordKey(Object.keys(properties), name => name);
 
     published.properties = Object.fromEntries(
       [...byKey].map(([key, names]) => {
@@ -101,15 +93,7 @@ function propertySchema(key: string, fields: ProjectableField[]): SchemaObject {
 }
 
 function fieldProperties(projectable: ProjectableField[]): Record<string, SchemaObject> {
-  const byKey = new Map<string, ProjectableField[]>();
-
-  projectable.forEach(field => {
-    const key = recordKey(field.name);
-    const collapsed = byKey.get(key);
-
-    if (collapsed) collapsed.push(field);
-    else byKey.set(key, [field]);
-  });
+  const byKey = groupByRecordKey(projectable, field => field.name);
 
   return Object.fromEntries([...byKey].map(([key, fields]) => [key, propertySchema(key, fields)]));
 }
