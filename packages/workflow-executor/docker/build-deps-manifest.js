@@ -42,10 +42,12 @@ const RESOLUTIONS = {
   '**/@opentelemetry/propagator-jaeger': '2.9.0',
   // Dependabot alert #452 — Hono ReDoS + memo() SSR retention + lang middleware DoS (patched in 4.12.34).
   '**/@modelcontextprotocol/sdk/hono': '^4.12.34',
-  // Dependabot alert #451 — fast-uri host confusion via backslash authority introducer (patched in 3.1.5).
-  '**/@fastify/ajv-compiler/fast-uri': '^3.1.5',
-  '**/fast-json-stringify/fast-uri': '^3.1.5',
-  '**/ajv/fast-uri': '^3.1.5',
+  // fast-uri host confusion + SSRF cluster (Dependabot #499-#502, patched in 3.1.6).
+  '**/@fastify/ajv-compiler/fast-uri': '^3.1.6',
+  '**/fast-json-stringify/fast-uri': '^3.1.6',
+  '**/ajv/fast-uri': '^3.1.6',
+  // qs DoS + array-limit bypass (Dependabot #488-#489, patched in 6.16.0).
+  '**/qs': '^6.16.0',
 };
 
 function generate(packagesDir, outFile) {
@@ -92,7 +94,11 @@ function generate(packagesDir, outFile) {
 
   Object.assign(deps, OTEL_DEPENDENCIES);
 
-  const sorted = Object.fromEntries(Object.keys(deps).sort().map(key => [key, deps[key]]));
+  const sorted = Object.fromEntries(
+    Object.keys(deps)
+      .sort()
+      .map(key => [key, deps[key]]),
+  );
 
   const manifest = { name: 'workflow-executor-docker-deps', private: true };
 
