@@ -7,6 +7,8 @@ import type {
   ForestSchemaField,
 } from '@forestadmin/forestadmin-client';
 
+import recordKey, { groupByRecordKey } from '../data/record-key';
+
 export interface ContextActionField {
   field: string;
   type: FieldType;
@@ -29,6 +31,7 @@ export interface ContextValidation {
 
 export interface ContextField {
   field: string;
+  recordKey?: string;
   type: FieldType;
   relationship?: RelationshipType;
   reference?: string;
@@ -63,6 +66,37 @@ function toArray<T>(value: T[] | null | undefined): T[] {
 
 type FieldWithWireEnums = ForestSchemaField & { enums?: string[] };
 
+/**
+ * The deserializer writes the JSON:API resource identifier under this key, always, over whatever
+ * attribute landed there. The resource id is a string whatever the column type says, and a
+ * composite key reaches it packed, so it is never the value of the field that camelizes to `id` —
+ * a primary key named `Id` included.
+ */
+const RESOURCE_ID_KEY = 'id';
+
+/**
+ * The record keys this collection cannot promise, because more than one thing lands on them.
+ *
+ * Two fields whose technical names differ only by casing collapse onto one key (`first_name` and
+ * `firstName` both reach the response as `firstName`), and `id` always belongs to the resource
+ * identifier. Publishing a `recordKey` in either case would point a consumer at a value that is not
+ * the field's, which is worse than publishing nothing: `recordKey` is absent, the caller falls back
+ * to `field`, and the ambiguity stays visible instead of being papered over.
+ *
+ * Not covered: the deserializer also writes `meta` from the resource meta, so a field named `Meta`
+ * on an agent that emits one is shadowed the same way. agent-nodejs emits no per-resource meta, and
+ * reserving the key would drop a working `recordKey` on every agent that emits none.
+ */
+function ambiguousRecordKeys(fields: FieldWithWireEnums[]): Set<string> {
+  const ambiguous = new Set<string>([RESOURCE_ID_KEY]);
+
+  for (const [key, group] of groupByRecordKey(fields, field => field.field)) {
+    if (group.length > 1) ambiguous.add(key);
+  }
+
+  return ambiguous;
+}
+
 function toContextValidations(validations: unknown[] | null | undefined): ContextValidation[] {
   return toArray(validations)
     .filter(
@@ -76,8 +110,14 @@ function toContextValidations(validations: unknown[] | null | undefined): Contex
     );
 }
 
-function toContextField(field: FieldWithWireEnums): ContextField {
+function toContextField(
+  field: FieldWithWireEnums,
+  ambiguousKeys: ReadonlySet<string>,
+): ContextField {
   const serialized: ContextField = { field: field.field, type: field.type };
+
+  const key = recordKey(field.field);
+  if (key !== field.field && !ambiguousKeys.has(key)) serialized.recordKey = key;
 
   if (field.relationship) serialized.relationship = field.relationship;
   if (field.reference) serialized.reference = field.reference;
@@ -124,12 +164,14 @@ function toContextCollection(
   readModel: ReadModel,
 ): ContextCollection {
   const allowedActions = readModel.getActionEndpoints()[collection.name] ?? {};
+  const fields = toArray(collection.fields).filter(
+    field => typeof field === 'object' && field !== null,
+  );
+  const ambiguousKeys = ambiguousRecordKeys(fields);
 
   return {
     name: collection.name,
-    fields: toArray(collection.fields)
-      .filter(field => typeof field === 'object' && field !== null)
-      .map(toContextField),
+    fields: fields.map(field => toContextField(field, ambiguousKeys)),
     actions: toArray(collection.actions)
       .filter(action => {
         const allowed = allowedActions[action?.name];

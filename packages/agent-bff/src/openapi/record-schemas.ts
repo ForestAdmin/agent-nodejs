@@ -1,23 +1,10 @@
 import type { ProjectableField, UnfoldedCollection } from './unfolding';
 import type { ReferenceObject, SchemaObject } from 'openapi3-ts/oas31';
 
-import Inflector from 'inflected';
-
 import toFieldSchema from './field-schemas';
 import { quoted } from './names';
 import { PACKED_ID_SEPARATOR } from '../data/pack-id';
-
-/**
- * The key a field really carries in a response record. `agent-client` deserializes the agent's
- * JSON:API with `keyForAttribute: 'camelCase'` (`http-requester.ts`), which is exactly this pair of
- * `inflected` calls (`jsonapi-serializer/lib/inflector.js`), so a `first_name` column is PROJECTED
- * under that name and RETURNED as `firstName`. The same library rather than a transcription: the
- * transform handles acronyms and non-ASCII, and a mirror would drift from the deserializer without
- * anything failing.
- */
-export function recordKey(field: string): string {
-  return Inflector.camelize(Inflector.underscore(field), false);
-}
+import { groupByRecordKey } from '../data/record-key';
 
 // The flat id is the JSON:API resource id, which is a string by specification whatever the key
 // column holds. `__forest.primaryKey` is the same id unpacked and typed, so the two forms of one
@@ -64,15 +51,7 @@ function publishedSchema(schema: SchemaObject): SchemaObject {
   const { properties } = schema;
 
   if (properties !== undefined) {
-    const byKey = new Map<string, string[]>();
-
-    Object.keys(properties).forEach(name => {
-      const key = recordKey(name);
-      const collapsed = byKey.get(key);
-
-      if (collapsed) collapsed.push(name);
-      else byKey.set(key, [name]);
-    });
+    const byKey = groupByRecordKey(Object.keys(properties), name => name);
 
     published.properties = Object.fromEntries(
       [...byKey].map(([key, names]) => {
@@ -114,15 +93,7 @@ function propertySchema(key: string, fields: ProjectableField[]): SchemaObject {
 }
 
 function fieldProperties(projectable: ProjectableField[]): Record<string, SchemaObject> {
-  const byKey = new Map<string, ProjectableField[]>();
-
-  projectable.forEach(field => {
-    const key = recordKey(field.name);
-    const collapsed = byKey.get(key);
-
-    if (collapsed) collapsed.push(field);
-    else byKey.set(key, [field]);
-  });
+  const byKey = groupByRecordKey(projectable, field => field.name);
 
   return Object.fromEntries([...byKey].map(([key, fields]) => [key, propertySchema(key, fields)]));
 }
