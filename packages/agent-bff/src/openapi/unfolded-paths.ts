@@ -98,6 +98,16 @@ function fieldsEnum(
   return pool.add(name, { type: 'string', enum: fields, description });
 }
 
+/**
+ * Whether the document knows which fields the collection exposes. Only `capabilities_unavailable`
+ * leaves it unknown — the agent could not be asked. `no_fields` is an ANSWER: capabilities were read
+ * and name none, so every field is rejected, and `null` carries the enumerated set. The difference
+ * decides whether an empty set means "do not constrain" or "nothing is valid here".
+ */
+function isFieldSetKnown(fields: CollectionFields): boolean {
+  return fields.degraded !== 'capabilities_unavailable';
+}
+
 interface OperatorGroup {
   fields: string[];
   operators: string[];
@@ -158,9 +168,15 @@ function filterLeaves(pool: ComponentPool, plan: Pick<CollectionPlan, 'key' | 'c
   const { name, fields } = plan.collection;
   const groups = groupByOperators(fields.filterable);
 
-  // No known filterable field: the field stays free-form and every operator stays allowed, because a
-  // collection whose capabilities could not be read still accepts whatever it really exposes.
+  // No filterable field, and the two reasons are not the same document. Capabilities that could not
+  // be read leave the field set UNKNOWN, so the leaf stays free-form: the collection still accepts
+  // whatever it really exposes, and the runtime is the one that rejects. Capabilities that were read
+  // and name nothing filterable leave no valid leaf at all — advertising a free-form one would offer
+  // a filter the validator answers 422 on for every field, so the tree keeps only its branch and
+  // empty-object alternatives.
   if (groups.length === 0) {
+    if (isFieldSetKnown(fields)) return [];
+
     return [
       pool.add(
         `FilterLeaf_${plan.key}`,
@@ -197,12 +213,24 @@ function filterSchema(
   const treeName = `Filter_${plan.key}`;
   const treeRef = { $ref: `#/components/schemas/${treeName}` };
   const leaves = filterLeaves(pool, plan);
-  const pairing =
-    fields.filterable.length > 0
-      ? ' There is one leaf alternative per operator set: a field accepts only the operators of ' +
+  const pairing = (() => {
+    if (fields.filterable.length > 0) {
+      return (
+        ' There is one leaf alternative per operator set: a field accepts only the operators of ' +
         'the alternative listing it, and an operator it does not support answers 400 ' +
         'invalid_filter_operator.'
-      : '';
+      );
+    }
+
+    if (isFieldSetKnown(fields)) {
+      return (
+        ' No field of this collection is filterable, so there is no leaf alternative at all: ' +
+        'send the empty object, or no filter.'
+      );
+    }
+
+    return '';
+  })();
 
   return pool.add(treeName, {
     description:
@@ -269,10 +297,10 @@ function fieldRefs(deps: Deps, plan: Pick<CollectionPlan, 'key' | 'collection'>)
   return {
     projectable,
     filter: filterSchema(deps, plan),
-    // An empty projectable set is an UNKNOWN field set, not a denial: the runtime is the one that
-    // rejects, so sort stays unconstrained there. Only a known set with every field denied is a
-    // collection that takes no clause.
-    anySortable: sortableNames.length > 0 || fields.projectable.length === 0,
+    // Same split as the filter leaves: an UNKNOWN field set leaves sort unconstrained, because the
+    // runtime is the one that rejects. A known set with nothing sortable — every field denied, or
+    // capabilities naming no field at all — is a collection that takes no clause.
+    anySortable: sortableNames.length > 0 || !isFieldSetKnown(fields),
     sort:
       sortableNames.length === 0
         ? pool.reuse('SortClause', SortClauseSchema)
