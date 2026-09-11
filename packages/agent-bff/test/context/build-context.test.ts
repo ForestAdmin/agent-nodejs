@@ -449,6 +449,28 @@ describe('buildContext', () => {
     });
   });
 
+  describe('when the schema declares no primary key at all', () => {
+    const keylessSchema = [
+      {
+        name: 'people',
+        fields: [
+          { field: 'id', type: 'Number' },
+          { field: 'email', type: 'String' },
+        ],
+        actions: [],
+      },
+    ] as unknown as Parameters<typeof buildContext>[0];
+
+    it('should flag the derived key, which a caller needs to build recordIds', () => {
+      const [{ fields }] = buildContext(keylessSchema, new ReadModel(keylessSchema), {
+        schemaRevision: 1,
+      }).collections;
+
+      expect(fields.find(entry => entry.field === 'id')?.isPrimaryKey).toBe(true);
+      expect(fields.find(entry => entry.field === 'email')).not.toHaveProperty('isPrimaryKey');
+    });
+  });
+
   describe('when the built context is validated against the published OpenAPI schema', () => {
     it('should round-trip through ContextResponseSchema for every shape the fixture covers', () => {
       const context = buildContext(schema, readModel, { schemaRevision: 3, environmentId: 42 });
