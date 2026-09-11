@@ -18,7 +18,8 @@ function parseJson(text: string | undefined): unknown {
 export default class HttpRequester {
   protected readonly deserializer: Deserializer;
 
-  private get timezone(): string {
+  // protected: the in-process subclasses override query()/stream() and need the same default.
+  protected get timezone(): string {
     return this.options.timezone ?? 'Europe/Paris';
   }
 
