@@ -18,14 +18,19 @@ export interface ActivityLogWriter {
   record<T>(options: RecordActivityLogOptions<T>): Promise<T>;
   /**
    * Waits for the audited requests still running and for the status transitions no connection
-   * holds. Called when the server stops.
+   * holds. Called when the server stops, which shares its deadline through `timeoutMs`; returns
+   * the operations that deadline left unfinished.
    */
-  drain(): Promise<void>;
+  drain(timeoutMs?: number): Promise<string[]>;
 }
 
 export interface ActivityLogWriterOptions {
   service: ActivityLogsWriter;
   logger: Logger;
+}
+
+function describeRequest(action: BffActivityLogAction, collectionName?: string): string {
+  return collectionName ? `'${action}' request on '${collectionName}'` : `'${action}' request`;
 }
 
 export default function createActivityLogWriter({
@@ -36,11 +41,14 @@ export default function createActivityLogWriter({
 
   return {
     record<T>(options: RecordActivityLogOptions<T>): Promise<T> {
-      return drainer.track(() => withActivityLog({ ...options, service, drainer, logger }));
+      return drainer.track(
+        () => withActivityLog({ ...options, service, drainer, logger }),
+        describeRequest(options.action, options.context?.collectionName),
+      );
     },
 
-    drain(): Promise<void> {
-      return drainer.drain();
+    drain(timeoutMs?: number): Promise<string[]> {
+      return drainer.drain(timeoutMs);
     },
   };
 }

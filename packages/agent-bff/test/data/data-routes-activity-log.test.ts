@@ -219,7 +219,7 @@ describe('data routes activity log', () => {
       );
     });
 
-    it('should serve the records and warn when the log cannot be created', async () => {
+    it('should serve the records and report once that the log could not be created', async () => {
       const service = fakeActivityLogsService({
         createMcpActivityLog: jest.fn(async () => {
           throw new Error('the audit store is down');
@@ -234,9 +234,11 @@ describe('data routes activity log', () => {
       expect(response.status).toBe(200);
       expect(list).toHaveBeenCalledTimes(1);
       expect(logger).toHaveBeenCalledWith(
-        'Warn',
-        expect.stringContaining("Activity log for 'index' was not created"),
+        'Error',
+        "Activity log for 'index' could not be created",
+        expect.objectContaining({ cause: 'Error: the audit store is down' }),
       );
+      expect(logger).not.toHaveBeenCalledWith('Warn', expect.stringContaining('Activity log'));
     });
 
     it('should refuse the list when the audit endpoint rejects the identity', async () => {

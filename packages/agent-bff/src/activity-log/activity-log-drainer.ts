@@ -1,3 +1,9 @@
+interface InFlightOperation {
+  promise: Promise<unknown>;
+  /** What the drain names when a deadline leaves this one unfinished. Carries no record payload. */
+  description: string;
+}
+
 /**
  * Holds the audited requests and the status transitions they fire without `await`. Nothing else
  * keeps the transitions alive: `server.close()` waits for connections, and one sent after the
@@ -8,26 +14,60 @@
  * transitions are not registered yet.
  */
 export default class ActivityLogDrainer {
-  private readonly inFlight = new Set<Promise<unknown>>();
+  private readonly inFlight = new Set<InFlightOperation>();
 
-  track<T>(operation: () => Promise<T>): Promise<T> {
+  track<T>(operation: () => Promise<T>, description: string): Promise<T> {
     const promise = operation();
-    this.inFlight.add(promise);
-    promise.finally(() => this.inFlight.delete(promise)).catch(() => {});
+    const entry: InFlightOperation = { promise, description };
+    this.inFlight.add(entry);
+    promise.finally(() => this.inFlight.delete(entry)).catch(() => {});
 
     return promise;
   }
 
   /**
    * Loops rather than settling one snapshot: a transition is registered only once the request it
-   * audits has finished, so a single pass would return before the work that outlives it. Bounded by
-   * the agent transport's own timeout, which is what keeps a stalled request from holding a
-   * shutdown open.
+   * audits has finished, so a single pass would return before the work that outlives it.
+   *
+   * `timeoutMs` is the shutdown deadline the caller shares: a stalled audit store would otherwise
+   * hold the process past the grace its orchestrator gives it, and be SIGKILLed mid-drain. Returns
+   * what the deadline left unfinished, empty when everything settled.
    */
-  async drain(): Promise<void> {
+  async drain(timeoutMs?: number): Promise<string[]> {
+    const deadline = timeoutMs === undefined ? undefined : Date.now() + timeoutMs;
+
     while (this.inFlight.size > 0) {
+      const remainingMs = deadline === undefined ? undefined : deadline - Date.now();
+
+      if (remainingMs !== undefined && remainingMs <= 0) break;
+
       // eslint-disable-next-line no-await-in-loop
-      await Promise.allSettled([...this.inFlight]);
+      await this.settle(remainingMs);
+    }
+
+    return [...this.inFlight].map(entry => entry.description);
+  }
+
+  private async settle(timeoutMs?: number): Promise<void> {
+    const settled = Promise.allSettled([...this.inFlight].map(entry => entry.promise));
+
+    if (timeoutMs === undefined) {
+      await settled;
+
+      return;
+    }
+
+    let timer: NodeJS.Timeout | undefined;
+
+    try {
+      await Promise.race([
+        settled,
+        new Promise<void>(resolve => {
+          timer = setTimeout(resolve, timeoutMs);
+        }),
+      ]);
+    } finally {
+      clearTimeout(timer);
     }
   }
 }

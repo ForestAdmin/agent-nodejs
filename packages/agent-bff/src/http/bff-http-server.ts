@@ -23,9 +23,10 @@ interface BFFHttpServerBaseOptions {
   shutdownTimeoutMs?: number;
   /**
    * Waits for the work no connection holds: the activity-log status transitions are fired without
-   * `await`, so `close()` does not cover them and a shutdown would leave entries `pending`.
+   * `await`, so `close()` does not cover them and a shutdown would leave entries `pending`. Takes
+   * what is left of the shutdown deadline and returns what that deadline cut short.
    */
-  drainActivityLogs?: () => Promise<void>;
+  drainActivityLogs?: (timeoutMs?: number) => Promise<string[]>;
 }
 
 /** The server assembles its own Koa app around `/health` and the version header. */
@@ -125,9 +126,32 @@ export default class BFFHttpServer {
     });
   }
 
+  /**
+   * The drain shares the connection deadline rather than getting one of its own: `stop()` as a
+   * whole has to fit the grace the orchestrator gives the process, and a status transition against
+   * a slow audit store retries long enough to outlast it on its own.
+   */
   async stop(): Promise<void> {
-    await this.closeConnections();
-    await this.options.drainActivityLogs?.();
+    const { drainActivityLogs } = this.options;
+    const timeoutMs = this.shutdownTimeoutMs;
+    const deadline = Date.now() + timeoutMs;
+
+    await this.closeConnections(timeoutMs);
+
+    if (!drainActivityLogs) return;
+
+    const unfinished = await drainActivityLogs(Math.max(deadline - Date.now(), 0));
+
+    if (unfinished.length === 0) return;
+
+    this.logger('Warn', 'Stopped the Forest BFF with activity logs still in flight', {
+      timeoutMs,
+      unfinished,
+    });
+  }
+
+  private get shutdownTimeoutMs(): number {
+    return this.options.shutdownTimeoutMs ?? SHUTDOWN_TIMEOUT_MS;
   }
 
   /**
@@ -135,12 +159,10 @@ export default class BFFHttpServer {
    * one would hold the shutdown until the orchestrator sends SIGKILL and the drain would never
    * run. Idle keep-alive connections go first, the rest get the deadline and are then destroyed.
    */
-  private async closeConnections(): Promise<void> {
+  private async closeConnections(timeoutMs: number): Promise<void> {
     const { server } = this;
 
     if (!server) return;
-
-    const timeoutMs = this.options.shutdownTimeoutMs ?? SHUTDOWN_TIMEOUT_MS;
 
     return new Promise((resolve, reject) => {
       let settled = false;

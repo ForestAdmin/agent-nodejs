@@ -6,6 +6,11 @@ export interface ResolveCache {
   getNegative(hash: string): ApiKeyError | undefined;
   setPositive(hash: string, identity: ResolvedApiKeyIdentity): void;
   setNegative(hash: string, error: ApiKeyError): void;
+  /**
+   * Forgets a key, at most once per positive TTL window. Bounded because the caller is a refusal
+   * the Forest server may repeat on every request: invalidating each time would defeat the cache
+   * and cost two round trips per request instead of one extra per window.
+   */
   invalidate(hash: string): void;
   size(): number;
 }
@@ -42,12 +47,18 @@ export default function createResolveCache({
   maxEntries = DEFAULT_MAX_ENTRIES,
 }: ResolveCacheOptions): ResolveCache {
   const entries = new Map<string, CacheEntry>();
+  /** Per key, when the window opened by its last invalidation ends. */
+  const invalidatedUntil = new Map<string, number>();
 
   function purgeExpired(): void {
     const current = now();
 
     for (const [hash, entry] of entries) {
       if (current >= entry.expiresAt) entries.delete(hash);
+    }
+
+    for (const [hash, until] of invalidatedUntil) {
+      if (current >= until) invalidatedUntil.delete(hash);
     }
   }
 
@@ -97,6 +108,12 @@ export default function createResolveCache({
     },
 
     invalidate(hash) {
+      const until = invalidatedUntil.get(hash);
+
+      if (until !== undefined && now() < until) return;
+
+      purgeExpired();
+      invalidatedUntil.set(hash, now() + positiveTtlSeconds * 1000);
       entries.delete(hash);
     },
 

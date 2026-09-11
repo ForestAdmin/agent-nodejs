@@ -47,8 +47,8 @@ export function passthroughActivityLogs(): ActivityLogWriter {
       return options.operation();
     },
 
-    drain(): Promise<void> {
-      return Promise.resolve();
+    drain(): Promise<string[]> {
+      return Promise.resolve([]);
     },
   };
 }

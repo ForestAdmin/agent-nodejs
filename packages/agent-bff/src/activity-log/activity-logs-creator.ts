@@ -20,6 +20,7 @@ import {
   AUDIT_RETRY_AFTER_SECONDS,
   auditNotAuthorized,
   auditUnavailable,
+  isUnretryableAuditFailure,
 } from '../http/bff-local-errors';
 
 /** The actions the BFF writes: its data routes read, and its action route writes. */
@@ -84,6 +85,11 @@ function describeCause(error: unknown): string {
 
 const FORBIDDEN = 403;
 const UNAUTHORIZED = 401;
+const AUDIT_ENDPOINT_ABSENT_STATUSES = new Set([404, 501]);
+
+const NO_AUDIT_ENDPOINT_MESSAGE =
+  'The Forest server does not expose the endpoint the activity log is written through, so the ' +
+  'operation was not performed';
 
 /**
  * A 403 only. A 401 is not the caller being refused: the bearer the BFF audits with is minted by
@@ -96,6 +102,15 @@ function isAuthorizationRefusal(error: unknown): boolean {
 
 function isExpiredAuditCredential(error: unknown): boolean {
   return error instanceof HttpError && error.status === UNAUTHORIZED;
+}
+
+/**
+ * A Forest server that does not serve the activity-log endpoint at all, rather than one failing to
+ * answer it. No retry can make the route appear, so the caller must not be handed a `Retry-After`
+ * it would keep honouring on every write.
+ */
+function isAuditEndpointAbsent(error: unknown): boolean {
+  return error instanceof HttpError && AUDIT_ENDPOINT_ABSENT_STATUSES.has(error.status);
 }
 
 /**
@@ -114,8 +129,9 @@ function auditIdentifiers(
   };
 }
 
+/** An empty string is an answer, not a value: it locates no document, so it fails the guard. */
 function isPresent(value: string | undefined | null): boolean {
-  return value !== null && value !== undefined;
+  return value !== null && value !== undefined && value !== '';
 }
 
 /**
@@ -124,6 +140,47 @@ function isPresent(value: string | undefined | null): boolean {
  */
 function isTransitionable(activityLog: ActivityLogResponse): boolean {
   return isPresent(activityLog?.id) && isPresent(activityLog?.attributes?.index);
+}
+
+interface UnresolvedCredentialsReport {
+  ctx: Context;
+  action: BffActivityLogAction;
+  context?: ActivityLogContext;
+  logger: Logger;
+  error: unknown;
+}
+
+/**
+ * A credential this deployment never mints is a degradation the Forest server declares by sending
+ * none (`api-key/api-key-client.ts`), so it warns; only a resolution that actually failed is an
+ * error. The single report for either: `with-activity-log` states nothing of its own, which used to
+ * double every line of the read path.
+ */
+function reportUnresolvedCredentials({
+  ctx,
+  action,
+  context,
+  logger,
+  error,
+}: UnresolvedCredentialsReport): void {
+  const identifiers = { ...auditIdentifiers(ctx, context), cause: describeCause(error) };
+
+  if (isUnretryableAuditFailure(error)) {
+    logger(
+      'Warn',
+      `Activity log for '${action}' was not created: this deployment has no credential to write ` +
+        'it with',
+      identifiers,
+    );
+
+    return;
+  }
+
+  logger(
+    'Error',
+    `Activity log for '${action}' has no credentials to be created with`,
+    identifiers,
+  );
 }
 
 async function resolveCredentials(ctx: Context): Promise<AuditCredentials> {
@@ -151,10 +208,7 @@ export default async function createPendingActivityLog({
   try {
     credentials = await resolveCredentials(ctx);
   } catch (error) {
-    logger('Error', `Activity log for '${action}' has no credentials to be created with`, {
-      ...auditIdentifiers(ctx, context),
-      cause: describeCause(error),
-    });
+    reportUnresolvedCredentials({ ctx, action, context, logger, error });
 
     if (type === 'write') throw error;
 
@@ -184,7 +238,12 @@ export default async function createPendingActivityLog({
 
     if (isAuthorizationRefusal(error)) throw auditNotAuthorized();
     if (isExpiredAuditCredential(error)) invalidateApiKeyIdentity(ctx);
-    if (type === 'write') throw auditUnavailable(AUDIT_RETRY_AFTER_SECONDS);
+
+    if (type === 'write') {
+      throw isAuditEndpointAbsent(error)
+        ? auditUnavailable(undefined, NO_AUDIT_ENDPOINT_MESSAGE)
+        : auditUnavailable(AUDIT_RETRY_AFTER_SECONDS);
+    }
 
     return null;
   }
@@ -252,7 +311,10 @@ export function markActivityLog(options: MarkActivityLogOptions): void {
   const { drainer, status, logger } = options;
 
   drainer
-    .track(() => updateStatus(options))
+    .track(
+      () => updateStatus(options),
+      `'${status}' transition of the activity log ${options.pending.activityLog.id}`,
+    )
     .catch(error => {
       logger('Error', `Failed to mark the activity log as '${status}'`, {
         activityLogId: options.pending.activityLog.id,

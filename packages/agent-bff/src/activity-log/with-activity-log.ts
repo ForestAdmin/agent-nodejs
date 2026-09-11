@@ -31,15 +31,9 @@ export interface WithActivityLogOptions<T> {
 export default async function withActivityLog<T>(options: WithActivityLogOptions<T>): Promise<T> {
   const { ctx, service, drainer, action, context, logger, operation, isCompletedDespite } = options;
 
+  // No log line of its own when nothing came back: the creator reports the case it hit, with the
+  // rendering and the collection this one could not name. A read proceeds unaudited from here.
   const pending = await createPendingActivityLog({ ctx, service, action, context, logger });
-
-  if (!pending) {
-    logger(
-      'Warn',
-      `Activity log for '${action}' was not created; proceeding without an audit trail for this ` +
-        'read operation',
-    );
-  }
 
   try {
     const result = await operation();
