@@ -28,14 +28,14 @@ function compare(operator: Operator, dateFn: DateCallback): Alternative {
 
 function interval(startFn: DateCallback, endFn: DateCallback): Alternative {
   return {
-    dependsOn: ['LessThan', 'GreaterThan', 'GreaterThanOrEqual'],
+    dependsOn: ['LessThan', 'GreaterThanOrEqual'],
     forTypes: ['Date', 'Dateonly'],
     replacer: (leaf, tz, isDateOnly) => {
       const now = DateTime.utc().setZone(tz);
 
       return ConditionTreeFactory.intersect(
         leaf.override({
-          operator: isDateOnly ? 'GreaterThanOrEqual' : 'GreaterThan',
+          operator: 'GreaterThanOrEqual',
           value: format(startFn(now, leaf.value), isDateOnly),
         }),
         leaf.override({ operator: 'LessThan', value: format(endFn(now, leaf.value), isDateOnly) }),
