@@ -284,9 +284,12 @@ export const ForestRecordMetaSchema = z
       'entry per column. The values are TYPED here — a Number key column is a number — whereas ' +
       'the record carries the same id as a string under `id`, so comparing the two forms ' +
       'without coercion fails. One exception to the per-column promise: against a schema that ' +
-      'declares no primary key at all and no `id` field either, this carries the opaque agent id ' +
-      'under the name `id`, which is then NOT a column of the collection and the context marks no ' +
-      'field as the key. Filter on a field the context lists, never on a key name read back here.',
+      'declares no primary key at all, this carries the agent id whole under the name `id`, ' +
+      'never split per column — the schema published no key, so its real shape is unknown and a ' +
+      'composite one would stay packed, separator included. That `id` is a real column only when ' +
+      'the schema declares a field of that name; otherwise it is not a column at all and the ' +
+      'context marks no field as the key. Filter on a field the context lists, never on a key ' +
+      'name read back here.',
   });
 
 export const ListResponseSchema = z

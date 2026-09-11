@@ -14,7 +14,7 @@ export type RelationTarget =
   | { type: RelationshipType; polymorphic: false; target: string }
   | { type: RelationshipType; polymorphic: true; targets: string[] };
 
-export type PrimaryKeyField = { name: string; type: string };
+export type PrimaryKeyField = { name: string; type: string; derived?: true };
 
 export type ListableRelation = { name: string; foreignCollection: string };
 
@@ -145,6 +145,11 @@ export default class ReadModel {
    * when no `id` field is declared, because the packed id survives a string round-trip untouched
    * while a wrong numeric cast would not.
    *
+   * The derived key is flagged, because its arity is a guess: the schema publishes no key, so a
+   * collection whose real one is composite packs `tenant|42` behind the same silence. Splitting
+   * that on the separator would find two values against one declared key and 500 the whole list,
+   * so `unpackPrimaryKey` passes a derived key through opaque instead of splitting it.
+   *
    * That last case names a column the collection does not declare, which `__forest.primaryKey`
    * otherwise promises is a real one. It is the deliberate trade: the 12 collections concerned are
    * ordinary listable ones carrying ordinary data columns, and the alternative is a 500 on a plain
@@ -163,7 +168,7 @@ export default class ReadModel {
     if (keys.length === 0) {
       const declaredId = (collection.fields ?? []).find(field => field.field === 'id');
 
-      keys.push({ name: 'id', type: declaredId?.type ?? 'String' });
+      keys.push({ name: 'id', type: declaredId?.type ?? 'String', derived: true });
     }
 
     this.primaryKeys.set(collection.name, keys);

@@ -325,13 +325,23 @@ describe('ReadModel', () => {
           ]),
         ]);
 
-        expect(model.getPrimaryKeys('users')).toEqual([{ name: 'id', type: 'Number' }]);
+        expect(model.getPrimaryKeys('users')).toEqual([
+          { name: 'id', type: 'Number', derived: true },
+        ]);
       });
 
       it('should fall back to a string id when the schema declares no id field either', () => {
         const model = new ReadModel([collection('audits', [column('label')])]);
 
-        expect(model.getPrimaryKeys('audits')).toEqual([{ name: 'id', type: 'String' }]);
+        expect(model.getPrimaryKeys('audits')).toEqual([
+          { name: 'id', type: 'String', derived: true },
+        ]);
+      });
+
+      it('should flag the key as derived, so unpacking does not split a packed composite id', () => {
+        const model = new ReadModel([collection('audits', [column('label')])]);
+
+        expect(model.getPrimaryKeys('audits')[0].derived).toBe(true);
       });
 
       it('should leave a declared key alone, so a v2 agent is untouched', () => {
