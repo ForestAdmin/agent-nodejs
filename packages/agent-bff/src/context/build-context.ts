@@ -38,6 +38,7 @@ export interface ContextField {
   inverseOf?: string;
   polymorphicTargets?: string[];
   isPrimaryKey?: boolean;
+  isPrimaryKeyDerived?: boolean;
   isRequired?: boolean;
   isReadOnly?: boolean;
   enums?: string[];
@@ -130,7 +131,18 @@ function toContextField(
   // The read-model derives a key when the schema declares none, and the BFF builds record
   // identifiers from it. Publishing only the schema's flag would leave a client unable to name the
   // key the BFF is actually using.
-  if (field.isPrimaryKey || derivedPrimaryKeys.has(field.field)) serialized.isPrimaryKey = true;
+  //
+  // A derived key is flagged as such, because it is a GUESS: the schema published nothing, so this
+  // field named `id` may not be the real key. Publishing it as a plain `isPrimaryKey` would send a
+  // client to filter on it, and a filter against a column that is not the key answers 200 with no
+  // row — a silence far worse than the 422 it would get on a field the collection does not expose.
+  if (!field.isPrimaryKey && derivedPrimaryKeys.has(field.field)) {
+    serialized.isPrimaryKey = true;
+    serialized.isPrimaryKeyDerived = true;
+  } else if (field.isPrimaryKey) {
+    serialized.isPrimaryKey = true;
+  }
+
   if (field.isRequired) serialized.isRequired = true;
   if (field.isReadOnly) serialized.isReadOnly = true;
 

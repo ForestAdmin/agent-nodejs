@@ -288,8 +288,9 @@ export const ForestRecordMetaSchema = z
       'never split per column — the schema published no key, so its real shape is unknown and a ' +
       'composite one would stay packed, separator included. That `id` is a real column only when ' +
       'the schema declares a field of that name; otherwise it is not a column at all and the ' +
-      'context marks no field as the key. Filter on a field the context lists, never on a key ' +
-      'name read back here.',
+      'context marks no field as the key. When it does declare one, the context flags it ' +
+      '`isPrimaryKeyDerived`, meaning the key is a guess and a filter on it may match nothing. ' +
+      'Filter on a field the context lists, never on a key name read back here.',
   });
 
 export const ListResponseSchema = z
@@ -374,6 +375,17 @@ const ContextFieldSchema = z.object({
   inverseOf: z.string().optional(),
   polymorphicTargets: z.array(z.string()).optional(),
   isPrimaryKey: z.boolean().optional(),
+  isPrimaryKeyDerived: z
+    .boolean()
+    .optional()
+    .openapi({
+      description:
+        'Set only alongside `isPrimaryKey`, when the schema declared no primary key at all and ' +
+        'the BFF derived one from a field named `id`. The key is then a GUESS: it is what ' +
+        '`__forest.primaryKey` carries, but nothing confirms it is the column the records are ' +
+        'really keyed on, so a filter on it can answer 200 with no row. Use it to read record ' +
+        'identities, not to filter by identity.',
+    }),
   isRequired: z.boolean().optional(),
   isReadOnly: z.boolean().optional(),
   enums: z.array(z.string()).optional(),

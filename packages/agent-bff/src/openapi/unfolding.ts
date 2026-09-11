@@ -32,11 +32,18 @@ export interface UnfoldedRelation {
  *
  * `degraded` is set when the field set could not be established. The collection keeps its paths, but
  * their field schemas stay free-form strings — an empty enum would forbid every valid call.
+ *
+ * `undocumentableFilter` marks a THIRD state for `filterable`, orthogonal to `degraded`: the
+ * capabilities were read and named filterable fields, but at least one was dropped because an
+ * operator of it has no canonical mapping. An empty `filterable` then means "the BFF cannot
+ * document what this collection filters on", not "it filters on nothing", and the filter schema
+ * must stay free-form rather than claim the collection refuses every filter.
  */
 export interface CollectionFields {
   projectable: ProjectableField[];
   filterable: FilterableField[];
   degraded: DegradedReason | null;
+  undocumentableFilter?: true;
 }
 
 /**
