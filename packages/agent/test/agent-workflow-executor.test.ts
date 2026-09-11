@@ -232,7 +232,11 @@ describe('Agent.addWorkflowExecutor', () => {
       agent.addWorkflowExecutor({
         agentUrl: 'http://my-agent',
         database: { uri: 'postgres://localhost/db' },
-        ai: { provider: 'bedrock', model: 'us.anthropic.claude-sonnet-4-6-v1:0', region: 'eu-west-3' },
+        ai: {
+          provider: 'bedrock',
+          model: 'us.anthropic.claude-sonnet-4-6-v1:0',
+          region: 'eu-west-3',
+        },
       });
 
       await agent.start();
