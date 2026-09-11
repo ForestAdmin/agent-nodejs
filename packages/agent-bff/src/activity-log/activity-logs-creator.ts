@@ -291,7 +291,8 @@ async function updateStatus(options: MarkActivityLogOptions, attempt = 1): Promi
       });
 
       await new Promise<void>(resolve => {
-        setTimeout(resolve, STATUS_RETRY_DELAY_MS);
+        // Unreferenced: a pending retry must not outlive the shutdown grace the drainer enforces.
+        setTimeout(resolve, STATUS_RETRY_DELAY_MS).unref();
       });
 
       await updateStatus(options, attempt + 1);

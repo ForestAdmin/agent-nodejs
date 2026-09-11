@@ -406,6 +406,7 @@ describe('activity logs creator', () => {
     });
 
     afterEach(() => {
+      jest.restoreAllMocks();
       jest.useRealTimers();
     });
 
@@ -434,6 +435,41 @@ describe('activity logs creator', () => {
         activityLog: { id: ACTIVITY_LOG_ID, attributes: { index: ACTIVITY_LOG_INDEX } },
         status: 'completed',
       });
+    });
+
+    it('should not let the wait it schedules keep the event loop alive', async () => {
+      const scheduleTimer = global.setTimeout;
+      const handles: Array<{ unref: jest.Mock }> = [];
+      const setTimeoutSpy = jest.spyOn(global, 'setTimeout').mockImplementation(((
+        callback: () => void,
+        delay: number,
+      ) => {
+        scheduleTimer(callback, delay);
+        const handle = { unref: jest.fn() };
+        handles.push(handle);
+
+        return handle;
+      }) as unknown as typeof global.setTimeout);
+      const updateActivityLogStatus = jest
+        .fn()
+        .mockRejectedValueOnce(new NotFoundError())
+        .mockResolvedValueOnce(undefined);
+      const service = fakeActivityLogsService({ updateActivityLogStatus });
+      const drainer = new ActivityLogDrainer();
+
+      markActivityLog({
+        service,
+        drainer,
+        pending: pendingLog(),
+        status: 'completed',
+        logger: loggerSpy(),
+      });
+
+      await jest.advanceTimersByTimeAsync(RETRY_DELAY_MS);
+      await drainer.drain();
+
+      expect(setTimeoutSpy).toHaveBeenCalledWith(expect.any(Function), RETRY_DELAY_MS);
+      expect(handles[0].unref).toHaveBeenCalledTimes(1);
     });
 
     it('should give up after the last attempt and report the entry it could not mark', async () => {
