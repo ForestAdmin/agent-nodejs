@@ -1,3 +1,10 @@
+# @forestadmin/agent-bff [1.30.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.29.0...@forestadmin/agent-bff@1.30.0) (2026-09-11)
+
+
+### Features
+
+* **agent-bff:** log one line per request ([#1891](https://github.com/ForestAdmin/agent-nodejs/issues/1891)) ([249cf5c](https://github.com/ForestAdmin/agent-nodejs/commit/249cf5c0e0dc4d5e23e4b78bd3f7094628d01f0c))
+
 # @forestadmin/agent-bff [1.29.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.28.1...@forestadmin/agent-bff@1.29.0) (2026-09-10)
 
 
