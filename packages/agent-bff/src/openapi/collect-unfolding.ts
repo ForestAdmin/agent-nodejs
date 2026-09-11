@@ -109,26 +109,22 @@ function collectFilterableFields(
   capabilities: CapabilitiesResult,
   logger: Logger,
 ): { fields: FilterableField[]; undocumentable: boolean } {
+  const fields: FilterableField[] = [];
   let undocumentable = false;
 
-  const fields = capabilities.fields.flatMap(field => {
-    if ((field.operators?.length ?? 0) === 0) return [];
+  for (const field of capabilities.fields) {
+    if ((field.operators?.length ?? 0) > 0) {
+      const operators = documentedOperators(
+        collection,
+        field.name,
+        field.operators as string[],
+        logger,
+      );
 
-    const operators = documentedOperators(
-      collection,
-      field.name,
-      field.operators as string[],
-      logger,
-    );
-
-    if (operators === null) {
-      undocumentable = true;
-
-      return [];
+      if (operators === null) undocumentable = true;
+      else fields.push({ name: field.name, operators });
     }
-
-    return [{ name: field.name, operators }];
-  });
+  }
 
   return { fields, undocumentable };
 }
