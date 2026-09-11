@@ -36,9 +36,11 @@ export default async function loadFileUploads(
   } catch (error) {
     // "cannot find it" and "it ran and failed" send the operator to different places, and only the
     // first is about the path they configured.
+    // The quoted name, not the whole message: a module whose own dependency is missing reports
+    // MODULE_NOT_FOUND too, with the resolved path in the require stack rather than as the subject.
     const absent =
       (error as NodeJS.ErrnoException)?.code === 'MODULE_NOT_FOUND' &&
-      String((error as Error)?.message).includes(resolved);
+      String((error as Error)?.message).includes(`'${resolved}'`);
 
     throw withCause(
       absent
