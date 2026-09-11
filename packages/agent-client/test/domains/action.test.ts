@@ -303,6 +303,40 @@ describe('Action', () => {
       });
     });
 
+    it('rejects with a validation error when the body nests an object under error', async () => {
+      httpRequester.query.mockRejectedValue(
+        new AgentHttpError(400, { error: { code: 'invalid_form' } }),
+      );
+
+      await expect(action.execute()).rejects.toMatchObject({
+        name: 'ActionFormValidationError',
+        message: 'The action form values were rejected.',
+      });
+    });
+
+    it('carries the agent error as unstructuredCause when no detail could be read', async () => {
+      const agentError = new AgentHttpError(422, {}, '<!DOCTYPE html><html></html>');
+
+      httpRequester.query.mockRejectedValue(agentError);
+
+      await expect(action.execute()).rejects.toMatchObject({
+        name: 'ActionFormValidationError',
+        unstructuredCause: agentError,
+      });
+    });
+
+    it('leaves unstructuredCause unset when the agent sent a readable detail', async () => {
+      httpRequester.query.mockRejectedValue(
+        new AgentHttpError(400, { errors: [{ detail: 'Amount is required' }] }),
+      );
+
+      await expect(action.execute()).rejects.toMatchObject({
+        name: 'ActionFormValidationError',
+        message: 'Amount is required',
+        unstructuredCause: undefined,
+      });
+    });
+
     it('falls back to a generic message only when the server sends nothing', async () => {
       httpRequester.query.mockRejectedValue(new AgentHttpError(400, {}));
 
