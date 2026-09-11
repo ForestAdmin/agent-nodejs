@@ -111,6 +111,18 @@ describe('ProviderDispatcher', () => {
       await expect(dispatcher.dispatch(buildBody())).rejects.toThrow('AI is not configured');
     });
 
+    // The front-facing proxy stays openai/anthropic only: bedrock is wired for the self-hosted
+    // executor, which goes through AiClient and never reaches this dispatcher.
+    it('should throw AIBadRequestError for a bedrock configuration', () => {
+      expect(
+        () =>
+          new ProviderDispatcher(
+            { provider: 'bedrock', name: 'test', model: 'us.anthropic.claude-sonnet-4-6-v1:0' },
+            new RemoteTools(),
+          ),
+      ).toThrow(new AIBadRequestError("Unsupported AI provider 'bedrock'."));
+    });
+
     it('should throw AIBadRequestError for unknown provider', () => {
       expect(
         () =>

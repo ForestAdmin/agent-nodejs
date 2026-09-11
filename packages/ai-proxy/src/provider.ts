@@ -1,5 +1,6 @@
 import type Anthropic from '@anthropic-ai/sdk';
 import type { AnthropicInput } from '@langchain/anthropic';
+import type { ChatBedrockConverseInput } from '@langchain/aws';
 import type { ChatOpenAIFields } from '@langchain/openai';
 import type OpenAI from 'openai';
 
@@ -10,7 +11,7 @@ export type ChatCompletionTool = OpenAI.Chat.Completions.ChatCompletionTool;
 export type ChatCompletionToolChoice = OpenAI.Chat.Completions.ChatCompletionToolChoiceOption;
 
 // AI Provider types
-export type AiProvider = 'openai' | 'anthropic';
+export type AiProvider = 'openai' | 'anthropic' | 'bedrock';
 
 /**
  * Base configuration common to all AI providers.
@@ -43,4 +44,15 @@ export type AnthropicConfiguration = Omit<BaseAiConfiguration, 'model'> &
     model: Anthropic.Messages.Model;
   };
 
-export type AiConfiguration = OpenAiConfiguration | AnthropicConfiguration;
+/**
+ * Amazon Bedrock configuration.
+ * No `apiKey`: credentials come from the AWS credential chain (IAM role, AWS_ACCESS_KEY_ID /
+ * AWS_SECRET_ACCESS_KEY, shared profile), resolved by @aws-sdk/credential-provider-node.
+ */
+export type BedrockConfiguration = Omit<BaseAiConfiguration, 'model' | 'apiKey'> &
+  Omit<ChatBedrockConverseInput, 'model'> & {
+    provider: 'bedrock';
+    model: string;
+  };
+
+export type AiConfiguration = OpenAiConfiguration | AnthropicConfiguration | BedrockConfiguration;
