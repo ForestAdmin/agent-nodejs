@@ -38,6 +38,7 @@ export interface ContextField {
   inverseOf?: string;
   polymorphicTargets?: string[];
   isPrimaryKey?: boolean;
+  isPrimaryKeyDerived?: boolean;
   isRequired?: boolean;
   isReadOnly?: boolean;
   enums?: string[];
@@ -113,6 +114,7 @@ function toContextValidations(validations: unknown[] | null | undefined): Contex
 function toContextField(
   field: FieldWithWireEnums,
   ambiguousKeys: ReadonlySet<string>,
+  derivedPrimaryKeys: ReadonlySet<string>,
 ): ContextField {
   const serialized: ContextField = { field: field.field, type: field.type };
 
@@ -126,7 +128,21 @@ function toContextField(
   const polymorphicTargets = toArray(field.polymorphicReferencedModels);
   if (polymorphicTargets.length > 0) serialized.polymorphicTargets = [...polymorphicTargets];
 
-  if (field.isPrimaryKey) serialized.isPrimaryKey = true;
+  // The read-model derives a key when the schema declares none, and the BFF builds record
+  // identifiers from it. Publishing only the schema's flag would leave a client unable to name the
+  // key the BFF is actually using.
+  //
+  // A derived key is flagged as such, because it is a GUESS: the schema published nothing, so this
+  // field named `id` may not be the real key. Publishing it as a plain `isPrimaryKey` would send a
+  // client to filter on it, and a filter against a column that is not the key answers 200 with no
+  // row — a silence far worse than the 422 it would get on a field the collection does not expose.
+  if (!field.isPrimaryKey && derivedPrimaryKeys.has(field.field)) {
+    serialized.isPrimaryKey = true;
+    serialized.isPrimaryKeyDerived = true;
+  } else if (field.isPrimaryKey) {
+    serialized.isPrimaryKey = true;
+  }
+
   if (field.isRequired) serialized.isRequired = true;
   if (field.isReadOnly) serialized.isReadOnly = true;
 
@@ -168,10 +184,13 @@ function toContextCollection(
     field => typeof field === 'object' && field !== null,
   );
   const ambiguousKeys = ambiguousRecordKeys(fields);
+  const derivedPrimaryKeys = new Set(
+    readModel.getPrimaryKeys(collection.name).map(key => key.name),
+  );
 
   return {
     name: collection.name,
-    fields: fields.map(field => toContextField(field, ambiguousKeys)),
+    fields: fields.map(field => toContextField(field, ambiguousKeys, derivedPrimaryKeys)),
     actions: toArray(collection.actions)
       .filter(action => {
         const allowed = allowedActions[action?.name];

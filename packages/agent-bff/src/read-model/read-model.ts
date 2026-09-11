@@ -14,7 +14,7 @@ export type RelationTarget =
   | { type: RelationshipType; polymorphic: false; target: string }
   | { type: RelationshipType; polymorphic: true; targets: string[] };
 
-export type PrimaryKeyField = { name: string; type: string };
+export type PrimaryKeyField = { name: string; type: string; derived?: true };
 
 export type ListableRelation = { name: string; foreignCollection: string };
 
@@ -131,11 +131,44 @@ export default class ReadModel {
     }
   }
 
+  /**
+   * A schema that declares no primary key at all gets one derived from its `id` field.
+   *
+   * `forest_liana` only started publishing `isPrimaryKey` in 9.17.6 (2026-06-04), and an older one
+   * leaves every collection without a key — which makes `unpackPrimaryKey` reject every record the
+   * agent returns, so a plain list answers `500 mapping_error`. The record id is there regardless:
+   * the agent serialises it as the JSON:API `id`, and 257 of the 269 collections in the schema this
+   * was measured against carry a field literally named `id`.
+   *
+   * Keyed on the shape of the schema, not on the liana: a collection that declares a key keeps it,
+   * and every v2 agent declares one, so this only fires where the alternative is a 500. `String`
+   * when no `id` field is declared, because the packed id survives a string round-trip untouched
+   * while a wrong numeric cast would not.
+   *
+   * The derived key is flagged, because its arity is a guess: the schema publishes no key, so a
+   * collection whose real one is composite packs `tenant|42` behind the same silence. Splitting
+   * that on the separator would find two values against one declared key and 500 the whole list,
+   * so `unpackPrimaryKey` passes a derived key through opaque instead of splitting it.
+   *
+   * That last case names a column the collection does not declare, which `__forest.primaryKey`
+   * otherwise promises is a real one. It is the deliberate trade: the 12 collections concerned are
+   * ordinary listable ones carrying ordinary data columns, and the alternative is a 500 on a plain
+   * list of them. Every route takes the id packed and opaque, so the invented name only misses for
+   * a consumer filtering ON the key — which a keyless collection could not do either way.
+   * `ForestRecordMeta` says so, and `buildContext` publishes no `isPrimaryKey` where there is no
+   * field to carry it.
+   */
   private buildPrimaryKeys(collection: ForestSchemaCollection): void {
     const keys: PrimaryKeyField[] = [];
 
     for (const field of collection.fields ?? []) {
       if (field.isPrimaryKey) keys.push({ name: field.field, type: field.type });
+    }
+
+    if (keys.length === 0) {
+      const declaredId = (collection.fields ?? []).find(field => field.field === 'id');
+
+      keys.push({ name: 'id', type: declaredId?.type ?? 'String', derived: true });
     }
 
     this.primaryKeys.set(collection.name, keys);

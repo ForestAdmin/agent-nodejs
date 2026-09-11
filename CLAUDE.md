@@ -137,4 +137,6 @@ The response includes a `gitBranchName` field with a suggested branch name conta
 Decisions live in `docs/adr/`. Run `/adr` to record one.
 
 - [A case-insensitive Decision follows Postgres's ILIKE, whatever the datasource](docs/adr/2026-09-09-a-case-insensitive-decision-follows-postgres-s-ilike-whatever-the-data.md) — 2026-09-09-a-case-insensitive-decision-follows-postgres-s-ilike-whatever-the-data [accepted]
+- [The liana name the schema already carries decides a v1 agent's capabilities](docs/adr/2026-09-11-the-liana-name-the-schema-already-carries-decides-a-v1-agent-s-capabi.md) — 2026-09-11-the-liana-name-the-schema-already-carries-decides-a-v1-agent-s-capabi [accepted]
+- [A schema declaring no primary key gets one derived from its `id` field](docs/adr/2026-09-11-a-schema-declaring-no-primary-key-gets-one-derived-from-its-id-field.md) — 2026-09-11-a-schema-declaring-no-primary-key-gets-one-derived-from-its-id-field [accepted]
 <!-- ADR:INDEX:END -->
