@@ -138,6 +138,19 @@ describe('SchemaService', () => {
       expect(result).toStrictEqual(withMeta);
     });
 
+    test('should throw when the transport does not implement getSchemaWithMeta', async () => {
+      const options = factories.forestAdminClientOptions.build();
+      const transport = {
+        ...mockForestAdminServerInterface,
+        getSchemaWithMeta: undefined,
+      };
+      const schemaService = new SchemaService(transport, options);
+
+      await expect(schemaService.getSchemaWithMeta()).rejects.toThrow(
+        'The configured Forest server transport does not support getSchemaWithMeta.',
+      );
+    });
+
     test('should propagate errors from the server', async () => {
       const networkError = new Error('Network error: connection refused');
       mockForestAdminServerInterface.getSchema.mockRejectedValue(networkError);

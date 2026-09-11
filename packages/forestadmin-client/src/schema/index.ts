@@ -50,7 +50,13 @@ export default class SchemaService {
   }
 
   async getSchemaWithMeta(): Promise<ForestSchemaWithMeta> {
-    return this.forestAdminServerInterface.getSchemaWithMeta(toHttpOptions(this.options));
+    const { getSchemaWithMeta } = this.forestAdminServerInterface;
+
+    if (!getSchemaWithMeta) {
+      throw new Error('The configured Forest server transport does not support getSchemaWithMeta.');
+    }
+
+    return getSchemaWithMeta.call(this.forestAdminServerInterface, toHttpOptions(this.options));
   }
 
   static serialize(schema: ForestSchema): SerializedSchema {
