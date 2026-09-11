@@ -18,6 +18,11 @@ function parseJson(text: string | undefined): unknown {
 export default class HttpRequester {
   protected readonly deserializer: Deserializer;
 
+  // protected: the in-process subclasses override query()/stream() and need the same default.
+  protected get timezone(): string {
+    return this.options.timezone ?? 'Europe/Paris';
+  }
+
   private get baseUrl() {
     const prefix = this.options.prefix ? `/${this.options.prefix}` : '';
 
@@ -26,7 +31,7 @@ export default class HttpRequester {
 
   constructor(
     private readonly token: string,
-    private readonly options: { prefix?: string; url: string },
+    private readonly options: { prefix?: string; url: string; timezone?: string },
   ) {
     this.deserializer = new Deserializer({ keyForAttribute: 'camelCase' });
   }
@@ -78,7 +83,7 @@ export default class HttpRequester {
         .set('Authorization', `Bearer ${this.token}`)
         .set('Content-Type', contentType ?? 'application/json')
         .set('Accept', contentType ?? 'application/json')
-        .query({ timezone: 'Europe/Paris', ...query });
+        .query({ timezone: this.timezone, ...query });
 
       if (body) req.send(body);
 
@@ -117,7 +122,7 @@ export default class HttpRequester {
         .timeout(maxTimeAllowed ?? 10_000)
         .set('Authorization', `Bearer ${this.token}`)
         .set('Accept', contentType)
-        .query({ timezone: 'Europe/Paris', ...query })
+        .query({ timezone: this.timezone, ...query })
 
         .pipe(stream)
         .on('finish', () => {
