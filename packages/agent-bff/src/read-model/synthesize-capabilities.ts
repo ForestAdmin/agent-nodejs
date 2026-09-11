@@ -80,13 +80,16 @@ const OPERATORS_BY_COLUMN_TYPE = new Map<string, readonly Operator[]>(
   Object.entries(allowedOperatorsForColumnType),
 );
 
+/**
+ * An array column has no name here on purpose. Unwrapping `['Number']` to `Number` would publish the
+ * scalar operator table on it -- `greater_than` on a Postgres array raises in the liana, which the
+ * BFF answers as 503 agent_unavailable. The v2 agent publishes no operator for such a column either
+ * (`allowedOperatorsForColumnType` is keyed by primitive names only), so the two generations agree.
+ */
 function primitiveNameOf(type: FieldType): string | undefined {
   const normalized = normalizeFieldType(type);
 
-  if (typeof normalized === 'string') return normalized;
-  if (Array.isArray(normalized) && typeof normalized[0] === 'string') return normalized[0];
-
-  return undefined;
+  return typeof normalized === 'string' ? normalized : undefined;
 }
 
 function operatorsFor(field: ForestSchemaField, collection: string, logger: Logger): string[] {

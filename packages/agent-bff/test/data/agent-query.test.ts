@@ -477,6 +477,44 @@ describe('a filter node readable as both a leaf and a branch', () => {
   });
 });
 
+describe('a branch carrying an aggregator the document does not enumerate', () => {
+  it.each([
+    ['a number', 5],
+    ['an unknown word', 'xor'],
+    ['null', null],
+  ])('should reject %s with 400 invalid_request', (_label, aggregator) => {
+    expect(() => parseCountRequest({ filter: { aggregator, conditions: [] } }, logger)).toThrow(
+      expect.objectContaining({
+        type: 'invalid_request',
+        status: 400,
+        message: 'A filter branch aggregator must be one of: And, Or',
+      }),
+    );
+  });
+
+  it.each([['And'], ['Or'], ['and'], ['or']])(
+    'should accept %s, which the agent parses once toWireFilter lowercases it',
+    aggregator => {
+      expect(() =>
+        parseCountRequest({ filter: { aggregator, conditions: [] } }, logger),
+      ).not.toThrow();
+    },
+  );
+
+  it('should reject it nested inside a legitimate branch', () => {
+    expect(() =>
+      parseListRequest(
+        { filter: { aggregator: 'And', conditions: [{ aggregator: 5, conditions: [] }] } },
+        logger,
+      ),
+    ).toThrow(expect.objectContaining({ type: 'invalid_request', status: 400 }));
+  });
+
+  it('should still accept a branch without any aggregator, which the document allows', () => {
+    expect(() => parseCountRequest({ filter: { conditions: [] } }, logger)).not.toThrow();
+  });
+});
+
 describe('a filter node carrying an unknown key', () => {
   it.each(FLAT_PARSERS)('should reject a misspelled leaf value in %s', (_label, parse) => {
     expect(() => parse({ filter: { field: 'title', operator: 'Equal', valu: 'x' } })).toThrow(

@@ -42,10 +42,15 @@ export interface CollectionFields {
 /**
  * A field the agent reports, with the column type it declares. The type is what turns the response
  * records into a typed schema; the name is what the request enums carry.
+ *
+ * `sortable` mirrors the capabilities field of the same name: only the v1 synthesis ever denies it,
+ * from the apimap's `isSortable`, and the sort enum drops the field so the document stops offering a
+ * sort the runtime answers 422 field_not_sortable on.
  */
 export interface ProjectableField {
   name: string;
   type: FieldType;
+  sortable?: false;
 }
 
 /**

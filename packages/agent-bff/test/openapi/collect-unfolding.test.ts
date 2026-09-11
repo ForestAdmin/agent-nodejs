@@ -155,6 +155,22 @@ describe('collectUnfolding', () => {
       );
     });
 
+    it('should carry the sortable denial the v1 synthesis states, so the sort enum can drop it', async () => {
+      const { collections } = await collect(readModel, {
+        capabilities: async () => ({
+          fields: [
+            { name: 'id', type: 'String', operators: ['equal'] },
+            { name: 'fullName', type: 'String', operators: [], sortable: false as const },
+          ],
+        }),
+      });
+
+      expect(collections[0].fields.projectable).toEqual([
+        { name: 'id', type: 'String' },
+        { name: 'fullName', type: 'String', sortable: false },
+      ]);
+    });
+
     it('should keep a skewed field projectable, since only filtering on it fails', async () => {
       const { collections } = await collect(readModel, {
         capabilities: async () => ({

@@ -108,6 +108,22 @@ describe('synthesizeCapabilities', () => {
     });
   });
 
+  describe('when the column holds an array', () => {
+    it.each([['NumberList'], [['Number']]])(
+      'should publish no operator for %p, since the scalar table would promise a filter that raises',
+      type => {
+        const collection = {
+          name: 'Odd',
+          fields: [{ field: 'tags', type, isFilterable: true }],
+        } as unknown as ForestSchemaCollection;
+
+        const result = synthesizeCapabilities(collection, logger);
+
+        expect(result.fields[0].operators).toEqual([]);
+      },
+    );
+  });
+
   describe('when a column type has no operator table', () => {
     it('should read as not filterable and log it, rather than forward a filter that would fail in SQL', () => {
       const collection = {

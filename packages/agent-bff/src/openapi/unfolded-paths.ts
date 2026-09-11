@@ -243,6 +243,24 @@ function fieldRefs(deps: Deps, plan: Pick<CollectionPlan, 'key' | 'collection'>)
     `A field of ${quoted(name)}.`,
   );
 
+  // Sortable is a subset of projectable too, but only the v1 synthesis ever narrows it: a field the
+  // apimap marks not sortable is projectable and filterable while a sort on it answers 422
+  // field_not_sortable. The enum is shared with projectable when nothing is denied, which is every
+  // v2 collection, so the common document gains no component.
+  const sortableNames = fields.projectable
+    .filter(field => field.sortable !== false)
+    .map(field => field.name);
+
+  const sortableField =
+    sortableNames.length === fields.projectable.length
+      ? projectable
+      : fieldsEnum(
+          pool,
+          `SortableFields_${plan.key}`,
+          sortableNames,
+          `A sortable field of ${quoted(name)}.`,
+        );
+
   // Filterable is a strict subset of projectable: the agent reports a ManyToOne without operators, so
   // projecting or sorting on it works while filtering on it answers 422 field_not_filterable. Which is
   // why the filterable fields are not enumerated here but inside the filter leaves, where each one
@@ -251,13 +269,13 @@ function fieldRefs(deps: Deps, plan: Pick<CollectionPlan, 'key' | 'collection'>)
     projectable,
     filter: filterSchema(deps, plan),
     sort:
-      fields.projectable.length === 0
+      sortableNames.length === 0
         ? pool.reuse('SortClause', SortClauseSchema)
         : pool.add(`SortClause_${plan.key}`, {
             type: 'object',
             description: 'Omitting `direction` sorts ascending.',
             properties: {
-              field: projectable,
+              field: sortableField,
               direction: { type: 'string', enum: ['asc', 'desc'] },
             },
             required: ['field'],
