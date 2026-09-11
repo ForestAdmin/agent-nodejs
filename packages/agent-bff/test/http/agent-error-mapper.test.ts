@@ -216,7 +216,7 @@ describe('mapAgentError', () => {
     expect(result).toMatchObject({ type: 'invalid_request', status: 400, message: 'from message' });
   });
 
-  it('falls back to responseText when the agent body is not a JSON error object', () => {
+  it('keeps responseText out of the client message when the agent body is not a JSON error object', () => {
     const result = mapAgentError(new AgentHttpError(400, 'oops', 'Bad things happened'), {
       logger,
     });
@@ -224,8 +224,28 @@ describe('mapAgentError', () => {
     expect(result).toMatchObject({
       type: 'invalid_request',
       status: 400,
-      message: 'Bad things happened',
+      message: 'Unexpected error',
     });
+    expect(logger).toHaveBeenCalledWith(
+      'Warn',
+      expect.any(String),
+      expect.objectContaining({ status: 400, cause: 'Bad things happened' }),
+    );
+  });
+
+  it('never surfaces an agent HTML error page, which is what a v1 liana answers on a missing route', () => {
+    const html =
+      '<!DOCTYPE html>\n<html lang="en">\n<pre>Cannot POST /forest/_internal/capabilities</pre>\n</html>';
+
+    const result = mapAgentError(new AgentHttpError(404, {}, html), { logger });
+
+    expect(result).toMatchObject({ type: 'not_found', status: 404, message: 'Unexpected error' });
+    expect(result.message).not.toContain('<!DOCTYPE');
+    expect(logger).toHaveBeenCalledWith(
+      'Warn',
+      expect.any(String),
+      expect.objectContaining({ status: 404, cause: html }),
+    );
   });
 
   it('maps an unmapped agent error name to the status-derived type (preserving status) and logs it', () => {

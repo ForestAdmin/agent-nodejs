@@ -155,6 +155,15 @@ async function handleExecute({
     }
 
     if (error instanceof ActionFormValidationError) {
+      const { unstructuredCause } = error;
+
+      if (unstructuredCause) {
+        logger('Warn', 'Agent action 4xx carried no structured error; client message is generic', {
+          status: unstructuredCause.status,
+          cause: unstructuredCause.responseText ?? unstructuredCause.body,
+        });
+      }
+
       const html = sanitizeActionHtml(error.html, logger);
 
       throw actionError(error.message, html === null ? undefined : { html });

@@ -19,7 +19,11 @@ export class ActionRequiresApprovalError extends Error {
 }
 
 export class ActionFormValidationError extends Error {
-  constructor(message: string, readonly html?: string) {
+  constructor(
+    message: string,
+    readonly html?: string,
+    readonly unstructuredCause?: AgentHttpError,
+  ) {
     super(message);
     this.name = 'ActionFormValidationError';
   }
