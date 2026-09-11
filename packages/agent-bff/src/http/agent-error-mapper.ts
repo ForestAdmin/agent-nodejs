@@ -134,15 +134,19 @@ function parseJsonApiFromMessage(error: unknown): AgentJsonApiError | undefined 
   }
 }
 
+function asNonEmptyString(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+
+  return value || undefined;
+}
+
 function mapFlatBody(error: AgentHttpError, logger: Logger): BffHttpError {
   const { status, body, responseText } = error;
   const flat = (typeof body === 'object' && body !== null ? body : {}) as {
     error?: unknown;
     message?: unknown;
   };
-  const message =
-    (typeof flat.error === 'string' ? flat.error : undefined) ??
-    (typeof flat.message === 'string' ? flat.message : undefined);
+  const message = asNonEmptyString(flat.error) ?? asNonEmptyString(flat.message);
 
   // An unstructured 4xx body is whatever the agent's host framework emitted: an HTML error page, a
   // proxy notice, a stack trace. It is not a message for the client, and it leaks the agent's
@@ -151,11 +155,34 @@ function mapFlatBody(error: AgentHttpError, logger: Logger): BffHttpError {
   if (message === undefined) {
     logger('Warn', 'Agent 4xx carried no structured error; client message is generic', {
       status,
-      cause: typeof responseText === 'string' && responseText !== '' ? responseText : undefined,
+      cause: asNonEmptyString(responseText),
     });
   }
 
   return new BffHttpError(status, fallbackTypeByStatus(status), message ?? DEFAULT_ERROR_MESSAGE);
+}
+
+function mapErrorWithoutHttpResponse(error: unknown, logger: Logger): BffHttpError {
+  if (error instanceof AgentTimeoutError) {
+    logger('Warn', 'Agent timeout mapped to agent_timeout', { cause: error.message });
+
+    return new BffHttpError(504, TYPE_AGENT_TIMEOUT, DEFAULT_TIMEOUT_MESSAGE);
+  }
+
+  const agentError = parseJsonApiFromMessage(error);
+  if (agentError) return mapJsonApiError(agentError, 400, logger);
+
+  // No HTTP response: treated as a transport failure reaching the agent. Log the real cause but
+  // return a generic message — transport errors embed internal topology (hostnames/IPs) that must
+  // not leak to the client. Semantic agent-client errors (action form validation / approval
+  // outcomes) are NOT transport failures: the action endpoint catches and maps those before this
+  // fallback. Callers must scope their try/catch to the agent call so a local BFF bug surfaces as
+  // a 500 through the error middleware rather than being mislabelled here.
+  logger('Warn', 'Agent transport failure mapped to network_error', {
+    cause: error instanceof Error ? error.message : String(error),
+  });
+
+  return new BffHttpError(502, TYPE_NETWORK_ERROR, DEFAULT_NETWORK_MESSAGE);
 }
 
 export function mapAgentError(error: unknown, { logger }: { logger: Logger }): BffHttpError {
@@ -163,28 +190,7 @@ export function mapAgentError(error: unknown, { logger }: { logger: Logger }): B
   // its own type — it must not be recategorized as a transport/agent error.
   if (error instanceof BffHttpError) return error;
 
-  if (!(error instanceof AgentHttpError)) {
-    if (error instanceof AgentTimeoutError) {
-      logger('Warn', 'Agent timeout mapped to agent_timeout', { cause: error.message });
-
-      return new BffHttpError(504, TYPE_AGENT_TIMEOUT, DEFAULT_TIMEOUT_MESSAGE);
-    }
-
-    const agentError = parseJsonApiFromMessage(error);
-    if (agentError) return mapJsonApiError(agentError, 400, logger);
-
-    // No HTTP response: treated as a transport failure reaching the agent. Log the real cause but
-    // return a generic message — transport errors embed internal topology (hostnames/IPs) that must
-    // not leak to the client. Semantic agent-client errors (action form validation / approval
-    // outcomes) are NOT transport failures: the action endpoint catches and maps those before this
-    // fallback. Callers must scope their try/catch to the agent call so a local BFF bug surfaces as
-    // a 500 through the error middleware rather than being mislabelled here.
-    logger('Warn', 'Agent transport failure mapped to network_error', {
-      cause: error instanceof Error ? error.message : String(error),
-    });
-
-    return new BffHttpError(502, TYPE_NETWORK_ERROR, DEFAULT_NETWORK_MESSAGE);
-  }
+  if (!(error instanceof AgentHttpError)) return mapErrorWithoutHttpResponse(error, logger);
 
   if (error.status >= 500) {
     return logCauseAndReturnAgentUnavailable(
