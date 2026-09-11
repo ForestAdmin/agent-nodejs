@@ -1,4 +1,4 @@
-import type { ForestSchemaCollection } from '@forestadmin/forestadmin-client';
+import type { ForestSchemaWithMeta } from '@forestadmin/forestadmin-client';
 
 import { ForestHttpApi, SchemaService } from '@forestadmin/forestadmin-client';
 
@@ -8,7 +8,7 @@ export interface ForestSchemaClientOptions {
 }
 
 export interface SchemaFetcher {
-  fetchSchema(): Promise<ForestSchemaCollection[]>;
+  fetchSchema(): Promise<ForestSchemaWithMeta>;
 }
 
 export default class ForestSchemaClient implements SchemaFetcher {
@@ -18,7 +18,7 @@ export default class ForestSchemaClient implements SchemaFetcher {
     this.schemaService = new SchemaService(new ForestHttpApi(), { forestServerUrl, envSecret });
   }
 
-  async fetchSchema(): Promise<ForestSchemaCollection[]> {
-    return this.schemaService.getSchema();
+  async fetchSchema(): Promise<ForestSchemaWithMeta> {
+    return this.schemaService.getSchemaWithMeta();
   }
 }

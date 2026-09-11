@@ -235,6 +235,21 @@ export interface ForestSchemaCollection {
 }
 
 /**
+ * Top-level metadata of a published schema: which agent produced it, and in which version. Both are
+ * optional because no server-side validation enforces them, so a consumer must handle their absence
+ * rather than assume the shape.
+ */
+export interface ForestSchemaMeta {
+  liana?: string;
+  liana_version?: string;
+}
+
+export interface ForestSchemaWithMeta {
+  collections: ForestSchemaCollection[];
+  meta: ForestSchemaMeta;
+}
+
+/**
  * Activity log response from the Forest Admin server.
  */
 export interface ActivityLogResponse {
@@ -475,6 +490,7 @@ export interface ForestAdminServerInterface {
 
   // Schema operations
   getSchema?: (options: HttpOptions) => Promise<ForestSchemaCollection[]>;
+  getSchemaWithMeta?: (options: HttpOptions) => Promise<ForestSchemaWithMeta>;
   postSchema?: (options: HttpOptions, schema: object) => Promise<void>;
   checkSchemaHash?: (options: HttpOptions, hash: string) => Promise<{ sendSchema: boolean }>;
 

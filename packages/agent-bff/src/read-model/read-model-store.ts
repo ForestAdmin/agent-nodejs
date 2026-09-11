@@ -1,7 +1,7 @@
 import type CapabilitiesCache from './capabilities-cache';
 import type { CapabilitiesFetcher, CapabilitiesResult } from './capabilities-cache';
 import type SchemaCache from './schema-cache';
-import type { ForestSchemaCollection } from '@forestadmin/forestadmin-client';
+import type { ForestSchemaCollection, ForestSchemaMeta } from '@forestadmin/forestadmin-client';
 
 import ReadModel from './read-model';
 
@@ -9,6 +9,7 @@ const MAX_GENERATION_RETRIES = 3;
 
 export interface SchemaSnapshot {
   collections: ForestSchemaCollection[];
+  meta: ForestSchemaMeta;
   readModel: ReadModel;
   revision: number;
 }
@@ -47,7 +48,7 @@ export default class ReadModelStore {
   }
 
   async getSchemaSnapshot(): Promise<SchemaSnapshot> {
-    const collections = await this.schemaCache.get();
+    const { collections, meta } = await this.schemaCache.getPayload();
     const { revision } = this.schemaCache;
 
     if (revision !== this.builtRevision || !this.readModel) {
@@ -56,7 +57,7 @@ export default class ReadModelStore {
       this.capabilitiesCache.clear();
     }
 
-    return { collections, readModel: this.readModel, revision };
+    return { collections, meta, readModel: this.readModel, revision };
   }
 
   /**

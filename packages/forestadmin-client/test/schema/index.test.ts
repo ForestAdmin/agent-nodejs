@@ -120,6 +120,37 @@ describe('SchemaService', () => {
       expect(result).toStrictEqual(mockCollections);
     });
 
+    test('should fetch the schema and its liana metadata together', async () => {
+      const withMeta = {
+        collections: [{ name: 'users', fields: [] }],
+        meta: { liana: 'forest-express-sequelize', liana_version: '9.6.10' },
+      };
+      mockForestAdminServerInterface.getSchemaWithMeta.mockResolvedValue(withMeta);
+
+      const options = factories.forestAdminClientOptions.build();
+      const schemaService = new SchemaService(mockForestAdminServerInterface, options);
+      const result = await schemaService.getSchemaWithMeta();
+
+      expect(mockForestAdminServerInterface.getSchemaWithMeta).toHaveBeenCalledWith({
+        envSecret: options.envSecret,
+        forestServerUrl: options.forestServerUrl,
+      });
+      expect(result).toStrictEqual(withMeta);
+    });
+
+    test('should throw when the transport does not implement getSchemaWithMeta', async () => {
+      const options = factories.forestAdminClientOptions.build();
+      const transport = {
+        ...mockForestAdminServerInterface,
+        getSchemaWithMeta: undefined,
+      };
+      const schemaService = new SchemaService(transport, options);
+
+      await expect(schemaService.getSchemaWithMeta()).rejects.toThrow(
+        'The configured Forest server transport does not support getSchemaWithMeta.',
+      );
+    });
+
     test('should propagate errors from the server', async () => {
       const networkError = new Error('Network error: connection refused');
       mockForestAdminServerInterface.getSchema.mockRejectedValue(networkError);

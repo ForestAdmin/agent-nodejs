@@ -30,7 +30,7 @@ const SCHEMA = [
 
 const CAPABILITIES = { fields: [{ name: 'id', type: 'Number', operators: ['equal'] }] };
 
-const fetchSchema = jest.fn().mockResolvedValue(SCHEMA);
+const fetchSchema = jest.fn().mockResolvedValue({ collections: SCHEMA, meta: {} });
 const fetchCapabilities = jest.fn().mockResolvedValue(CAPABILITIES);
 const mintedTokens: string[] = [];
 
@@ -75,7 +75,7 @@ const noopLogger: Logger = () => undefined;
 
 describe('renderOpenApi', () => {
   beforeEach(() => {
-    fetchSchema.mockReset().mockResolvedValue(SCHEMA);
+    fetchSchema.mockReset().mockResolvedValue({ collections: SCHEMA, meta: {} });
     fetchCapabilities.mockReset().mockResolvedValue(CAPABILITIES);
     mintedTokens.length = 0;
   });

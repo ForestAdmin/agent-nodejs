@@ -10,6 +10,7 @@ const forestAdminServerInterface = {
     makeAuthService: jest.fn(),
     // Schema operations
     getSchema: jest.fn(),
+    getSchemaWithMeta: jest.fn(),
     postSchema: jest.fn(),
     checkSchemaHash: jest.fn(),
     // IP whitelist operations

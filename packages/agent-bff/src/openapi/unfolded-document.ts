@@ -38,7 +38,12 @@ export default async function buildUnfoldedDocument(
   const unfolding = await collectUnfolding({
     readModel,
     store: source.store,
-    capabilitiesFetcher: createAgentCapabilitiesFetcher({ transport: source.transport, token }),
+    capabilitiesFetcher: createAgentCapabilitiesFetcher({
+      transport: source.transport,
+      token,
+      store: source.store,
+      logger: source.logger,
+    }),
     logger: source.logger,
   });
 

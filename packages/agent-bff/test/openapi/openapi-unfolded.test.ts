@@ -254,6 +254,15 @@ describe('the unfolded document', () => {
     expect(request.properties.sort.items?.$ref).toBe('#/components/schemas/SortClause_My_Coll');
   });
 
+  it('should sort on the projectable enum itself while no field denies it', () => {
+    const sort = schemas.SortClause_My_Coll as unknown as {
+      properties: { field: { $ref?: string } };
+    };
+
+    expect(sort.properties.field.$ref).toBe('#/components/schemas/Fields_My_Coll');
+    expect(Object.keys(schemas).filter(name => name.startsWith('SortableFields'))).toEqual([]);
+  });
+
   it('should leave page optional here too, pointing at the shared Page component', () => {
     const request = requestSchema('My%20Coll/list') as unknown as {
       required?: string[];
@@ -799,6 +808,67 @@ describe('an unfolding carrying a filterable field with no operator', () => {
     ]);
     expect(leaf.properties.field.enum).toBeUndefined();
     expect(leaf.properties.operator.enum).toEqual([...allOperators]);
+  });
+});
+
+describe('an unfolding whose apimap denies a sort', () => {
+  // Only the v1 synthesis states sortability. The document must not offer a sort the runtime then
+  // answers 422 field_not_sortable on.
+  function documentWithDeniedSort() {
+    return unfoldedDocument({
+      collections: [
+        {
+          name: 'users',
+          fields: {
+            projectable: [
+              { name: 'id', type: 'Number' },
+              { name: 'fullName', type: 'String', sortable: false },
+            ],
+            filterable: [{ name: 'id', operators: ['Equal'] }],
+            degraded: null,
+          },
+          primaryKeys: [{ name: 'id', type: 'Number' }],
+          relations: [],
+          actions: [],
+        },
+      ],
+    });
+  }
+
+  it('should leave the denied field out of the sort enum while keeping it projectable', () => {
+    const denied = documentWithDeniedSort();
+    const deniedSchemas = denied.components?.schemas as Record<string, Record<string, never>>;
+    const sortable = deniedSchemas.SortableFields_users as unknown as { enum: string[] };
+    const projectable = deniedSchemas.Fields_users as unknown as { enum: string[] };
+    const sort = deniedSchemas.SortClause_users as unknown as {
+      properties: { field: { $ref?: string } };
+    };
+
+    expect(projectable.enum).toEqual(['id', 'fullName']);
+    expect(sortable.enum).toEqual(['id']);
+    expect(sort.properties.field.$ref).toBe('#/components/schemas/SortableFields_users');
+  });
+
+  it('should fall back to the shared sort clause when every field denies it', () => {
+    const none = unfoldedDocument({
+      collections: [
+        {
+          name: 'users',
+          fields: {
+            projectable: [{ name: 'fullName', type: 'String', sortable: false }],
+            filterable: [],
+            degraded: null,
+          },
+          primaryKeys: [{ name: 'id', type: 'Number' }],
+          relations: [],
+          actions: [],
+        },
+      ],
+    });
+    const noneSchemas = none.components?.schemas as Record<string, Record<string, never>>;
+
+    expect(noneSchemas.SortClause_users).toBeUndefined();
+    expect(noneSchemas.SortClause).toBeDefined();
   });
 });
 

@@ -85,7 +85,12 @@ function resolveCapabilities(
     () =>
       deps.store.getCapabilities(
         collection,
-        createAgentCapabilitiesFetcher({ transport: deps.transport, token: deps.token }),
+        createAgentCapabilitiesFetcher({
+          transport: deps.transport,
+          token: deps.token,
+          store: deps.store,
+          logger: deps.logger,
+        }),
       ),
     deps.logger,
   );

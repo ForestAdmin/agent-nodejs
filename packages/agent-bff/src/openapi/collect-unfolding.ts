@@ -133,7 +133,9 @@ async function collectFields(
     }
 
     return {
-      projectable: capabilities.fields.map(({ name, type }) => ({ name, type })),
+      projectable: capabilities.fields.map(({ name, type, sortable }) =>
+        sortable === false ? { name, type, sortable } : { name, type },
+      ),
       filterable: collectFilterableFields(collection, capabilities, logger),
       degraded: null,
     };

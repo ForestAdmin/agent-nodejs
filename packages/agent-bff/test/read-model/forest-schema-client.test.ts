@@ -5,11 +5,11 @@ import ForestSchemaClient from '../../src/read-model/forest-schema-client';
 jest.mock('@forestadmin/forestadmin-client');
 
 describe('ForestSchemaClient', () => {
-  const getSchema = jest.fn();
+  const getSchemaWithMeta = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (SchemaService as unknown as jest.Mock).mockImplementation(() => ({ getSchema }));
+    (SchemaService as unknown as jest.Mock).mockImplementation(() => ({ getSchemaWithMeta }));
   });
 
   it('should construct a SchemaService with a ForestHttpApi and the server options', () => {
@@ -25,9 +25,12 @@ describe('ForestSchemaClient', () => {
     });
   });
 
-  it('should delegate fetchSchema to SchemaService.getSchema', async () => {
-    const collections = [{ name: 'users', fields: [], actions: [] }];
-    getSchema.mockResolvedValue(collections);
+  it('should delegate fetchSchema to SchemaService.getSchemaWithMeta, keeping the liana', async () => {
+    const published = {
+      collections: [{ name: 'users', fields: [], actions: [] }],
+      meta: { liana: 'forest-rails', liana_version: '9.21.0' },
+    };
+    getSchemaWithMeta.mockResolvedValue(published);
     const client = new ForestSchemaClient({
       forestServerUrl: 'https://api.test',
       envSecret: 'secret',
@@ -35,7 +38,7 @@ describe('ForestSchemaClient', () => {
 
     const result = await client.fetchSchema();
 
-    expect(getSchema).toHaveBeenCalledTimes(1);
-    expect(result).toBe(collections);
+    expect(getSchemaWithMeta).toHaveBeenCalledTimes(1);
+    expect(result).toBe(published);
   });
 });

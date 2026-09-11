@@ -4,6 +4,7 @@ import type { CapabilitiesResult } from '../read-model/capabilities-cache';
 import { normalizeOperator } from './operator-normalizer';
 import {
   fieldNotFilterable,
+  fieldNotSortable,
   filterTooDeep,
   invalidFilterOperator,
   unknownField,
@@ -16,12 +17,18 @@ export interface ValidateParams {
   projectionFields?: string[];
 }
 
-interface FilterLeaf {
+export interface FilterLeaf {
   field: string;
   operator?: string;
+  value?: unknown;
 }
 
-export function isBranch(node: unknown): node is { conditions: unknown[] } {
+export interface FilterBranch {
+  aggregator?: string;
+  conditions: unknown[];
+}
+
+export function isBranch(node: unknown): node is FilterBranch {
   return (
     typeof node === 'object' &&
     node !== null &&
@@ -100,6 +107,20 @@ function validateExistence(fields: string[], index: Map<string, string[]>): BffH
   return fields.filter(field => !index.has(field)).map(unknownField);
 }
 
+/**
+ * Only the v1 synthesis states sortability, from the apimap's `isSortable`; a real capabilities
+ * response says nothing about it, so an absent flag means "not stated" and skips the check. Without
+ * this, a sort on a legacy computed field reaches the liana and raises a database error naming the
+ * missing column.
+ */
+function validateSortable(fields: string[], capabilities: CapabilitiesResult): BffHttpError[] {
+  const notSortable = new Set(
+    capabilities.fields.filter(field => field.sortable === false).map(field => field.name),
+  );
+
+  return fields.filter(field => notSortable.has(field)).map(fieldNotSortable);
+}
+
 function dedupe(errors: BffHttpError[]): BffHttpError[] {
   const seen = new Set<string>();
   const result: BffHttpError[] = [];
@@ -143,6 +164,7 @@ export function validateAgainstCapabilities(
   return dedupe([
     ...validateFilter(params.filter, index),
     ...validateExistence(params.sortFields ?? [], index),
+    ...validateSortable(params.sortFields ?? [], capabilities),
     ...validateExistence(params.projectionFields ?? [], index),
   ]);
 }
