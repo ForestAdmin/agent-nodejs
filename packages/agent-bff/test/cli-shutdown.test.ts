@@ -36,6 +36,24 @@ describe('shutdown handlers', () => {
     expect(stop).toHaveBeenCalledTimes(1);
   });
 
+  it('should report a shutdown that failed, with what it failed on', async () => {
+    const logger = jest.fn();
+    const closeError = new Error('close failed');
+    const stop = jest.fn(async () => {
+      throw closeError;
+    });
+
+    installShutdownHandlers({ stop } as unknown as BFFHttpServer, logger as unknown as Logger);
+    installed = installedHandlers();
+    installed[0].handler();
+
+    await expect(stop.mock.results[0].value).rejects.toBe(closeError);
+
+    expect(logger).toHaveBeenCalledWith('Error', 'The Forest BFF did not stop cleanly', {
+      cause: 'close failed',
+    });
+  });
+
   it('should replace the handlers of a previous server instead of adding a pair', () => {
     const first = serverStub();
     const second = serverStub();

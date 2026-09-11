@@ -94,8 +94,10 @@ export interface Bff {
    * Waits for the activity-log status transitions still in flight. They are fired without `await`,
    * so nothing else holds them: a host that stops without calling this leaves entries `pending`.
    * Absent when the deployment writes no activity log.
+   *
+   * `timeoutMs` is the host's shutdown deadline; the returned descriptions name what it cut short.
    */
-  drainActivityLogs?: () => Promise<void>;
+  drainActivityLogs?: (timeoutMs?: number) => Promise<string[]>;
 }
 
 const SESSION_TTL_SECONDS = 24 * 60 * 60;
@@ -605,6 +607,6 @@ export default async function buildBff({
   return {
     callback: app.callback(),
     invalidate: agentEdge.invalidate,
-    drainActivityLogs: activityLogs && (() => activityLogs.drain()),
+    drainActivityLogs: activityLogs && (timeoutMs => activityLogs.drain(timeoutMs)),
   };
 }

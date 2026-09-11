@@ -7,6 +7,7 @@ import ActivityLogDrainer from '../../src/activity-log/activity-log-drainer';
 import createPendingActivityLog, {
   markActivityLog,
 } from '../../src/activity-log/activity-logs-creator';
+import { AUDIT_RETRY_AFTER_SECONDS, auditUnavailable } from '../../src/http/bff-local-errors';
 import {
   ACTIVITY_LOG_ID,
   ACTIVITY_LOG_INDEX,
@@ -29,13 +30,13 @@ function ctxOf(invalidateApiKeyIdentity: () => void = () => undefined): Context 
   } as unknown as Context;
 }
 
-function ctxWithoutCredentials(): Context {
+function ctxRejectingCredentials(error: unknown): Context {
   return {
     state: {
       authMode: 'api-key',
       apiKeyIdentity: { renderingId: RENDERING_ID },
       resolveForestServerToken: async () => {
-        throw new Error('no token on this request');
+        throw error;
       },
     },
   } as unknown as Context;
@@ -66,7 +67,7 @@ describe('activity logs creator', () => {
       const logger = loggerSpy();
 
       await createPendingActivityLog({
-        ctx: ctxWithoutCredentials(),
+        ctx: ctxRejectingCredentials(new Error('no token on this request')),
         service: fakeActivityLogsService(),
         action: 'index',
         context: { collectionName: 'books' },
@@ -81,6 +82,78 @@ describe('activity logs creator', () => {
           collectionName: 'books',
           cause: 'Error: no token on this request',
         },
+      );
+    });
+
+    it('should keep Error for a resolution that failed and may recover', async () => {
+      const logger = loggerSpy();
+
+      await createPendingActivityLog({
+        ctx: ctxRejectingCredentials(auditUnavailable(AUDIT_RETRY_AFTER_SECONDS)),
+        service: fakeActivityLogsService(),
+        action: 'index',
+        logger,
+      });
+
+      expect(logger).toHaveBeenCalledWith(
+        'Error',
+        "Activity log for 'index' has no credentials to be created with",
+        {
+          renderingId: RENDERING_ID,
+          cause:
+            'BffHttpError: The activity log could not be written, so the operation was not ' +
+            'performed',
+        },
+      );
+    });
+  });
+
+  describe('when the deployment mints no credential to write the log with', () => {
+    const noCredential = () => auditUnavailable(undefined, 'this server mints no audit token');
+
+    it('should report a read once, as a warning, and serve it unaudited', async () => {
+      const logger = loggerSpy();
+
+      const pending = await createPendingActivityLog({
+        ctx: ctxRejectingCredentials(noCredential()),
+        service: fakeActivityLogsService(),
+        action: 'index',
+        context: { collectionName: 'books' },
+        logger,
+      });
+
+      expect(pending).toBeNull();
+      expect(logger).toHaveBeenCalledTimes(1);
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        "Activity log for 'index' was not created: this deployment has no credential to write it " +
+          'with',
+        {
+          renderingId: RENDERING_ID,
+          collectionName: 'books',
+          cause: 'BffHttpError: this server mints no audit token',
+        },
+      );
+    });
+
+    it('should block an action, still reporting the supported degradation once', async () => {
+      const logger = loggerSpy();
+
+      await expect(
+        createPendingActivityLog({
+          ctx: ctxRejectingCredentials(noCredential()),
+          service: fakeActivityLogsService(),
+          action: 'action',
+          logger,
+        }),
+      ).rejects.toMatchObject({ status: 503, type: 'audit_unavailable', retryAfter: undefined });
+
+      expect(logger).toHaveBeenCalledTimes(1);
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        "Activity log for 'action' was not created: this deployment has no credential to write it " +
+          'with',
+        { renderingId: RENDERING_ID, cause: 'BffHttpError: this server mints no audit token' },
       );
     });
   });
@@ -161,6 +234,96 @@ describe('activity logs creator', () => {
           logger: loggerSpy(),
         }),
       ).rejects.toMatchObject({ status: 503, type: 'audit_unavailable' });
+    });
+  });
+
+  describe('when the server answers with an empty id or index', () => {
+    it('should block an action whose entry would strand pending on an empty id', async () => {
+      const service = fakeActivityLogsService({
+        createMcpActivityLog: jest.fn(async () => ({
+          id: '',
+          attributes: { index: ACTIVITY_LOG_INDEX },
+        })),
+      });
+
+      await expect(
+        createPendingActivityLog({ ctx: ctxOf(), service, action: 'action', logger: loggerSpy() }),
+      ).rejects.toMatchObject({ status: 503, type: 'audit_unavailable' });
+    });
+
+    it('should block an action on an empty index too', async () => {
+      const service = fakeActivityLogsService({
+        createMcpActivityLog: jest.fn(async () => ({
+          id: ACTIVITY_LOG_ID,
+          attributes: { index: '' },
+        })),
+      });
+
+      await expect(
+        createPendingActivityLog({ ctx: ctxOf(), service, action: 'action', logger: loggerSpy() }),
+      ).rejects.toMatchObject({ status: 503, type: 'audit_unavailable' });
+    });
+
+    it('should serve a read unaudited rather than track an entry it cannot transition', async () => {
+      const service = fakeActivityLogsService({
+        createMcpActivityLog: jest.fn(async () => ({ id: '', attributes: { index: '' } })),
+      });
+
+      await expect(
+        createPendingActivityLog({ ctx: ctxOf(), service, action: 'index', logger: loggerSpy() }),
+      ).resolves.toBeNull();
+    });
+  });
+
+  describe('when the server does not expose the activity log endpoint', () => {
+    const NO_ENDPOINT_MESSAGE =
+      'The Forest server does not expose the endpoint the activity log is written through, so ' +
+      'the operation was not performed';
+
+    it('should block an action without a retry hint on a 404', async () => {
+      const service = rejectingService(new NotFoundError());
+
+      await expect(
+        createPendingActivityLog({ ctx: ctxOf(), service, action: 'action', logger: loggerSpy() }),
+      ).rejects.toMatchObject({
+        status: 503,
+        type: 'audit_unavailable',
+        retryAfter: undefined,
+        message: NO_ENDPOINT_MESSAGE,
+      });
+    });
+
+    it('should block an action without a retry hint on a 501', async () => {
+      const service = rejectingService(new HttpError('not implemented', 501));
+
+      await expect(
+        createPendingActivityLog({ ctx: ctxOf(), service, action: 'action', logger: loggerSpy() }),
+      ).rejects.toMatchObject({
+        status: 503,
+        type: 'audit_unavailable',
+        retryAfter: undefined,
+        message: NO_ENDPOINT_MESSAGE,
+      });
+    });
+
+    it('should keep the retry hint when the endpoint answered with a failure', async () => {
+      const service = rejectingService(new HttpError('the audit store is down', 500));
+
+      await expect(
+        createPendingActivityLog({ ctx: ctxOf(), service, action: 'action', logger: loggerSpy() }),
+      ).rejects.toMatchObject({
+        status: 503,
+        type: 'audit_unavailable',
+        retryAfter: AUDIT_RETRY_AFTER_SECONDS,
+      });
+    });
+
+    it('should serve a read unaudited rather than refuse it', async () => {
+      const service = rejectingService(new NotFoundError());
+
+      await expect(
+        createPendingActivityLog({ ctx: ctxOf(), service, action: 'index', logger: loggerSpy() }),
+      ).resolves.toBeNull();
     });
   });
 
