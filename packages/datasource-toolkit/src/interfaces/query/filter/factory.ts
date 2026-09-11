@@ -22,7 +22,7 @@ export default class FilterFactory {
     endPeriod: DateTime,
   ): ConditionTree {
     return ConditionTreeFactory.intersect(
-      new ConditionTreeLeaf(field, 'GreaterThan', startPeriod.toISO()),
+      new ConditionTreeLeaf(field, 'GreaterThanOrEqual', startPeriod.toISO()),
       new ConditionTreeLeaf(field, 'LessThan', endPeriod.toISO()),
     );
   }
@@ -34,11 +34,9 @@ export default class FilterFactory {
   ): ConditionTree {
     const dayBeforeYesterday = now.minus({ [interval]: 2 });
 
-    return this.getPreviousConditionTree(
-      field,
-      dayBeforeYesterday.startOf(interval as DateTimeUnit),
-      dayBeforeYesterday.endOf(interval as DateTimeUnit),
-    );
+    const startPeriod = dayBeforeYesterday.startOf(interval as DateTimeUnit);
+
+    return this.getPreviousConditionTree(field, startPeriod, startPeriod.plus({ [interval]: 1 }));
   }
 
   static getPreviousPeriodFilter(filter: Filter, timezone: string): Filter {
