@@ -297,7 +297,11 @@ export const ListResponseSchema = z
     description:
       'Records are flat, each carrying a `__forest` envelope. A record always holds `id`, the ' +
       `agent id as a string — a composite key is its values joined by \`${PACKED_ID_SEPARATOR}\` — ` +
-      'while `__forest.primaryKey` holds that same id typed and split per column. The list never ' +
+      'while `__forest.primaryKey` holds that same id typed and split per column. One exception: ' +
+      'against a schema that declares no key at all and no `id` field either, `primaryKey` carries ' +
+      'the opaque id under the name `id`, which is then NOT a column of the collection — the ' +
+      'context marks no field as the key for that shape. Filter on a field the context lists, ' +
+      'never on a key name read back from here. The list never ' +
       'carries a total: call the count endpoint for that, which is why `countStatus` is always ' +
       '`not_requested`. ' +
       'It is always one page, not guaranteed to be the whole collection: a request that omitted ' +

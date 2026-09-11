@@ -144,6 +144,14 @@ export default class ReadModel {
    * and every v2 agent declares one, so this only fires where the alternative is a 500. `String`
    * when no `id` field is declared, because the packed id survives a string round-trip untouched
    * while a wrong numeric cast would not.
+   *
+   * That last case names a column the collection does not declare, which `__forest.primaryKey`
+   * otherwise promises is a real one. It is the deliberate trade: the 12 collections concerned are
+   * ordinary listable ones carrying ordinary data columns, and the alternative is a 500 on a plain
+   * list of them. Every route takes the id packed and opaque, so the invented name only misses for
+   * a consumer filtering ON the key — which a keyless collection could not do either way.
+   * `ListResponse` says so, and `buildContext` publishes no `isPrimaryKey` where there is no field
+   * to carry it.
    */
   private buildPrimaryKeys(collection: ForestSchemaCollection): void {
     const keys: PrimaryKeyField[] = [];
