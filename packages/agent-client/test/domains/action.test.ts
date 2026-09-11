@@ -283,14 +283,23 @@ describe('Action', () => {
       });
     });
 
-    it('preserves the server message from the raw responseText when the body has none', async () => {
-      httpRequester.query.mockRejectedValue(
-        new AgentHttpError(422, {}, 'Query with filter did not match any records'),
-      );
+    it('keeps an unstructured responseText out of the validation error message', async () => {
+      const html = '<!DOCTYPE html><html><pre>Cannot POST /forest/actions/refund</pre></html>';
+
+      httpRequester.query.mockRejectedValue(new AgentHttpError(422, {}, html));
 
       await expect(action.execute()).rejects.toMatchObject({
         name: 'ActionFormValidationError',
-        message: 'Query with filter did not match any records',
+        message: 'The action form values were rejected.',
+      });
+    });
+
+    it('keeps a raw string body out of the validation error message', async () => {
+      httpRequester.query.mockRejectedValue(new AgentHttpError(400, 'Internal Server Error'));
+
+      await expect(action.execute()).rejects.toMatchObject({
+        name: 'ActionFormValidationError',
+        message: 'The action form values were rejected.',
       });
     });
 

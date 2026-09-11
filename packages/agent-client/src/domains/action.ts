@@ -40,17 +40,13 @@ type ActionErrorBody = {
   data?: { roleIdsAllowedToApprove?: number[] };
 };
 
+// Only a recognised error shape yields a detail. A raw body or responseText is whatever the agent's
+// host emitted -- an HTML error page, a proxy notice, a stack trace -- and it would reach the client
+// verbatim as the action error message, so it is left out and callers use their own wording.
 function extractDetail(error: AgentHttpError): string | undefined {
   const body = (error.body ?? {}) as ActionErrorBody;
   const first = body.errors?.[0];
-  const message =
-    first?.detail ||
-    first?.message ||
-    first?.title ||
-    body.error ||
-    body.message ||
-    (typeof error.body === 'string' ? error.body : undefined) ||
-    error.responseText;
+  const message = first?.detail || first?.message || first?.title || body.error || body.message;
 
   return message?.trim() || undefined;
 }
