@@ -262,7 +262,14 @@ export function createSqlAuditStore(options: AuditStorageOptions): {
     sequelize = connection;
     bootstrap = (async () => {
       try {
-        await connection.authenticate();
+        // `Sequelize.useCLS(ns)` sets a class-level static shared by every Sequelize instance in
+        // the same loaded copy of the package — including this one, however unrelated its own
+        // connection is. A host that uses CLS for its own transactions would otherwise have every
+        // query below silently adopt its ambient transaction (and thus its connection) the moment
+        // that query omits `transaction`, since Sequelize reads `options.transaction === void 0`
+        // to decide whether to consult CLS. Passing `transaction: null` explicitly opts every
+        // query in this store out, so it always uses its own dedicated connection.
+        await connection.authenticate({ transaction: null });
         const model = await ensureAuditStorage(connection, { schema, tableName });
 
         return { model, connection };
@@ -291,7 +298,9 @@ export function createSqlAuditStore(options: AuditStorageOptions): {
       },
       async insertPending(record) {
         const { model } = await init();
-        const row = await model.create(toRow({ ...record, status: 'pending' }));
+        const row = await model.create(toRow({ ...record, status: 'pending' }), {
+          transaction: null,
+        });
 
         return Number(row.get('id'));
       },
@@ -305,13 +314,14 @@ export function createSqlAuditStore(options: AuditStorageOptions): {
         const { model } = await init();
         const rows = await model.bulkCreate(
           records.map(record => toRow({ ...record, status: 'pending' })),
+          { transaction: null },
         );
 
         return rows.map(row => Number(row.get('id')));
       },
       async confirm(id, patch) {
         const { model } = await init();
-        await model.update({ ...patch, status: 'done' }, { where: { id } });
+        await model.update({ ...patch, status: 'done' }, { where: { id }, transaction: null });
       },
       async listByRecord(query) {
         const { model, connection } = await init();
@@ -326,6 +336,7 @@ export function createSqlAuditStore(options: AuditStorageOptions): {
           ],
           offset: skip,
           limit,
+          transaction: null,
         });
 
         return rows.map(fromRow);
@@ -333,7 +344,10 @@ export function createSqlAuditStore(options: AuditStorageOptions): {
       async countByRecord(query) {
         const { model, connection } = await init();
 
-        return model.count({ where: buildHistoryWhereClause(query, connection) });
+        return model.count({
+          where: buildHistoryWhereClause(query, connection),
+          transaction: null,
+        });
       },
       async listDistinctUsers(query) {
         const { model, connection } = await init();
@@ -350,6 +364,7 @@ export function createSqlAuditStore(options: AuditStorageOptions): {
           ],
           group: ['userId'],
           raw: true,
+          transaction: null,
         })) as unknown as Array<{
           userId: number;
           userFirstName: string | null;
@@ -370,6 +385,7 @@ export function createSqlAuditStore(options: AuditStorageOptions): {
         const rows = await model.findAll({
           where: { collection, recordId, correlationKey },
           order: chronologicalOrder as never,
+          transaction: null,
         });
 
         return rows.map(fromRow);
@@ -382,6 +398,7 @@ export function createSqlAuditStore(options: AuditStorageOptions): {
         const rows = await model.findAll({
           where: { collection, recordId, correlationKey: { [Op.in]: correlationKeys } },
           order: chronologicalOrder as never,
+          transaction: null,
         });
 
         return rows.map(fromRow);
