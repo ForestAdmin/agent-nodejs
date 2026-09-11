@@ -102,10 +102,38 @@ function isAnthropicModelSupported(model: string): boolean {
   );
 }
 
+// ─── Bedrock ─────────────────────────────────────────────────────────────────
+// Bedrock resells other vendors' models, so an id carries a cross-region inference-profile prefix,
+// a vendor prefix and a Bedrock version suffix: `us.anthropic.claude-opus-4-20250514-v1:0`. Strip
+// those back to the vendor's own id before testing, otherwise the Anthropic denylist above never
+// matches and a model we already know is broken sails through.
+// If a model fails the bedrock.integration test, add it here (vendor-prefixed, no version suffix).
+
+const BEDROCK_INFERENCE_PROFILE_PREFIXES = ['us.', 'us-gov.', 'eu.', 'apac.', 'global.'];
+
+const BEDROCK_UNSUPPORTED_MODELS: string[] = [];
+
+const BEDROCK_VERSION_SUFFIX = /-v\d+:\d+$/;
+
+function isBedrockModelSupported(model: string): boolean {
+  const profilePrefix = BEDROCK_INFERENCE_PROFILE_PREFIXES.find(prefix => model.startsWith(prefix));
+  const vendorId = profilePrefix ? model.slice(profilePrefix.length) : model;
+  const separatorIndex = vendorId.indexOf('.');
+  const vendor = separatorIndex === -1 ? '' : vendorId.slice(0, separatorIndex);
+  const vendorModel = vendorId.slice(separatorIndex + 1).replace(BEDROCK_VERSION_SUFFIX, '');
+
+  if (BEDROCK_UNSUPPORTED_MODELS.includes(`${vendor}.${vendorModel}`)) return false;
+
+  if (vendor === 'anthropic') return isAnthropicModelSupported(vendorModel);
+
+  return true;
+}
+
 // ─── Public API ──────────────────────────────────────────────────────────────
 
 export default function isModelSupportingTools(model: string, provider?: AiProvider): boolean {
   if (provider === 'anthropic') return isAnthropicModelSupported(model);
+  if (provider === 'bedrock') return isBedrockModelSupported(model);
 
   return isOpenAIModelSupported(model);
 }

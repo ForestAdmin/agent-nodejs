@@ -64,10 +64,17 @@ export default class EmbeddedWorkflowExecutor {
 
     const { ai } = embedOptions;
 
-    if (ai && (!ai.provider || !ai.model || !ai.apiKey)) {
+    if (ai && (!ai.provider || !ai.model)) {
       throw new Error(
-        'addWorkflowExecutor: `ai` requires `provider`, `model` and `apiKey` together. ' +
+        'addWorkflowExecutor: `ai` requires `provider` and `model` together. ' +
           'Omit `ai` entirely to use Forest’s AI server.',
+      );
+    }
+
+    if (ai && ai.provider !== 'bedrock' && !ai.apiKey) {
+      throw new Error(
+        `addWorkflowExecutor: \`ai\` requires \`apiKey\` for provider '${ai.provider}'. ` +
+          'Only `bedrock` reads its credentials from the AWS credential chain.',
       );
     }
 

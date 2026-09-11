@@ -1,4 +1,5 @@
 import { ChatAnthropic } from '@langchain/anthropic';
+import { ChatBedrockConverse } from '@langchain/aws';
 import { ChatOpenAI } from '@langchain/openai';
 
 import { createBaseChatModel } from '../src/create-base-chat-model';
@@ -10,6 +11,10 @@ jest.mock('@langchain/openai', () => ({
 
 jest.mock('@langchain/anthropic', () => ({
   ChatAnthropic: jest.fn(),
+}));
+
+jest.mock('@langchain/aws', () => ({
+  ChatBedrockConverse: jest.fn(),
 }));
 
 describe('createBaseChatModel', () => {
@@ -100,6 +105,75 @@ describe('createBaseChatModel', () => {
       maxRetries: 0,
       apiKey: 'test-key',
       model: 'claude-3-5-sonnet-latest',
+    });
+  });
+
+  describe('bedrock', () => {
+    const OLD_ENV = process.env;
+
+    beforeEach(() => {
+      process.env = { ...OLD_ENV };
+      delete process.env.AWS_REGION;
+      delete process.env.AWS_DEFAULT_REGION;
+    });
+
+    afterAll(() => {
+      process.env = OLD_ENV;
+    });
+
+    it('creates a ChatBedrockConverse without an apiKey', () => {
+      createBaseChatModel({
+        name: 'bedrock',
+        provider: 'bedrock',
+        model: 'us.anthropic.claude-sonnet-4-6-v1:0',
+        region: 'eu-west-3',
+      });
+
+      expect(ChatBedrockConverse).toHaveBeenCalledWith({
+        maxRetries: 0,
+        supportsToolChoiceValues: ['auto', 'any', 'tool'],
+        model: 'us.anthropic.claude-sonnet-4-6-v1:0',
+        region: 'eu-west-3',
+      });
+    });
+
+    it('falls back to AWS_REGION, which LangChain itself ignores', () => {
+      process.env.AWS_REGION = 'us-east-1';
+
+      createBaseChatModel({ name: 'bedrock', provider: 'bedrock', model: 'amazon.nova-pro-v1:0' });
+
+      expect(ChatBedrockConverse).toHaveBeenCalledWith(
+        expect.objectContaining({ region: 'us-east-1' }),
+      );
+    });
+
+    it('prefers an explicit region over the environment', () => {
+      process.env.AWS_REGION = 'us-east-1';
+
+      createBaseChatModel({
+        name: 'bedrock',
+        provider: 'bedrock',
+        model: 'amazon.nova-pro-v1:0',
+        region: 'eu-west-3',
+      });
+
+      expect(ChatBedrockConverse).toHaveBeenCalledWith(
+        expect.objectContaining({ region: 'eu-west-3' }),
+      );
+    });
+
+    it('lets the caller override the inferred tool_choice support', () => {
+      createBaseChatModel({
+        name: 'bedrock',
+        provider: 'bedrock',
+        model: 'amazon.titan-text-express-v1',
+        region: 'eu-west-3',
+        supportsToolChoiceValues: [],
+      });
+
+      expect(ChatBedrockConverse).toHaveBeenCalledWith(
+        expect.objectContaining({ supportsToolChoiceValues: [] }),
+      );
     });
   });
 

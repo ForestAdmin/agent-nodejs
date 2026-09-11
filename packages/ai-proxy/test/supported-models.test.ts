@@ -33,6 +33,40 @@ describe('isModelSupportingTools', () => {
     expect(isModelSupportingTools('claude-fable-50', 'anthropic')).toBe(true);
   });
 
+  describe('bedrock', () => {
+    it('reuses the anthropic denylist through the inference-profile and version wrappers', () => {
+      expect(isModelSupportingTools('us.anthropic.claude-opus-4-20250514-v1:0', 'bedrock')).toBe(
+        false,
+      );
+      expect(isModelSupportingTools('anthropic.claude-opus-4-20250514-v1:0', 'bedrock')).toBe(
+        false,
+      );
+    });
+
+    it.each(['eu.', 'apac.', 'global.', 'us-gov.'])(
+      'strips the %s inference-profile prefix',
+      prefix => {
+        expect(isModelSupportingTools(`${prefix}anthropic.claude-fable-5-v1:0`, 'bedrock')).toBe(
+          false,
+        );
+      },
+    );
+
+    it('allows a supported anthropic model on bedrock', () => {
+      expect(isModelSupportingTools('us.anthropic.claude-sonnet-4-6-v1:0', 'bedrock')).toBe(true);
+    });
+
+    it('allows other vendors by default', () => {
+      expect(isModelSupportingTools('amazon.nova-pro-v1:0', 'bedrock')).toBe(true);
+      expect(isModelSupportingTools('meta.llama3-1-70b-instruct-v1:0', 'bedrock')).toBe(true);
+    });
+
+    it('does not apply the openai denylist to bedrock ids', () => {
+      expect(isModelSupportingTools('meta.llama3-1-70b-instruct-v1:0')).toBe(false);
+      expect(isModelSupportingTools('meta.llama3-1-70b-instruct-v1:0', 'bedrock')).toBe(true);
+    });
+  });
+
   it('should return true for other anthropic models', () => {
     expect(isModelSupportingTools('claude-opus-4-8', 'anthropic')).toBe(true);
   });

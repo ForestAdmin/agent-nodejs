@@ -164,29 +164,52 @@ export function pickLogger(
   return stdout.isTTY ? createPrettyLogger(level) : createConsoleLogger(level);
 }
 
+const AI_CONFIG_ALL_OR_NOTHING =
+  'AI config must be all-or-nothing: set AI_PROVIDER and AI_MODEL together (plus AI_API_KEY, ' +
+  'except for bedrock) or leave all unset.';
+
 function parseAiConfig(env: NodeJS.ProcessEnv): AiConfiguration[] | undefined {
   const { AI_PROVIDER, AI_MODEL, AI_API_KEY } = env;
-  const fields = [AI_PROVIDER, AI_MODEL, AI_API_KEY];
-  const setCount = fields.filter(Boolean).length;
 
-  if (setCount === 0) return undefined;
+  if (!AI_PROVIDER && !AI_MODEL && !AI_API_KEY) return undefined;
 
-  if (setCount !== fields.length) {
-    throw new Error(
-      'AI config must be all-or-nothing: set AI_PROVIDER, AI_MODEL and AI_API_KEY together or leave all unset.',
-    );
+  if (!AI_PROVIDER || !AI_MODEL) {
+    throw new Error(AI_CONFIG_ALL_OR_NOTHING);
+  }
+
+  if (AI_PROVIDER === 'bedrock') {
+    if (AI_API_KEY) {
+      throw new Error(
+        'AI_API_KEY is not used with bedrock: credentials come from the AWS credential chain ' +
+          '(IAM role, AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY, shared profile). Unset it.',
+      );
+    }
+
+    // Checked here rather than left to the AWS SDK, which would only fail on the first AI step of
+    // the first workflow run — long after a misconfigured executor reported itself healthy.
+    const region = env.AWS_REGION || env.AWS_DEFAULT_REGION;
+
+    if (!region) {
+      throw new Error('AI_PROVIDER=bedrock requires AWS_REGION (or AWS_DEFAULT_REGION).');
+    }
+
+    return [{ name: 'default', provider: 'bedrock', model: AI_MODEL, region }];
   }
 
   if (AI_PROVIDER !== 'anthropic' && AI_PROVIDER !== 'openai') {
-    throw new Error(`AI_PROVIDER must be "anthropic" or "openai", got "${AI_PROVIDER}"`);
+    throw new Error(`AI_PROVIDER must be "anthropic", "openai" or "bedrock", got "${AI_PROVIDER}"`);
+  }
+
+  if (!AI_API_KEY) {
+    throw new Error(AI_CONFIG_ALL_OR_NOTHING);
   }
 
   return [
     {
       name: 'default',
       provider: AI_PROVIDER,
-      model: AI_MODEL as string,
-      apiKey: AI_API_KEY as string,
+      model: AI_MODEL,
+      apiKey: AI_API_KEY,
     },
   ];
 }
