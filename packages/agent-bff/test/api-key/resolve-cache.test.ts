@@ -143,6 +143,32 @@ describe('resolve cache', () => {
       expect(cache.getPositive('c')).toEqual(IDENTITY);
     });
 
+    it('should evict the oldest invalidation window once maxEntries is reached', () => {
+      const cache = createResolveCache({ now, positiveTtlSeconds: 60, maxEntries: 2 });
+      cache.invalidate('a');
+      cache.invalidate('b');
+      cache.invalidate('c');
+      cache.setPositive('a', IDENTITY);
+
+      cache.invalidate('a');
+
+      expect(cache.getPositive('a')).toBeUndefined();
+    });
+
+    it('should drop an expired invalidation window rather than evict a live one', () => {
+      const cache = createResolveCache({ now, positiveTtlSeconds: 60, maxEntries: 2 });
+      cache.invalidate('a');
+      cache.invalidate('b');
+      nowMs += 61_000;
+      cache.invalidate('a');
+      cache.invalidate('c');
+      cache.setPositive('a', IDENTITY);
+
+      cache.invalidate('a');
+
+      expect(cache.getPositive('a')).toEqual(IDENTITY);
+    });
+
     it('should still overwrite an existing key when full', () => {
       const cache = createResolveCache({ now, maxEntries: 1 });
       cache.setPositive('a', IDENTITY);

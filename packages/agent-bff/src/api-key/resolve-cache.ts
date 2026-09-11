@@ -47,7 +47,10 @@ export default function createResolveCache({
   maxEntries = DEFAULT_MAX_ENTRIES,
 }: ResolveCacheOptions): ResolveCache {
   const entries = new Map<string, CacheEntry>();
-  /** Per key, when the window opened by its last invalidation ends. */
+  /**
+   * Per key, when the window opened by its last invalidation ends. Bounded by `maxEntries` like
+   * the entries it guards: invalidations of distinct keys would otherwise grow it without limit.
+   */
   const invalidatedUntil = new Map<string, number>();
 
   function purgeExpired(): void {
@@ -75,13 +78,16 @@ export default function createResolveCache({
     return entry;
   }
 
+  function evictOldestIfFull<T>(map: Map<string, T>, hash: string): void {
+    if (map.has(hash) || map.size < maxEntries) return;
+
+    const oldest = map.keys().next().value;
+    if (oldest !== undefined) map.delete(oldest);
+  }
+
   function store(hash: string, entry: CacheEntry): void {
     purgeExpired();
-
-    if (!entries.has(hash) && entries.size >= maxEntries) {
-      const oldest = entries.keys().next().value;
-      if (oldest !== undefined) entries.delete(oldest);
-    }
+    evictOldestIfFull(entries, hash);
 
     entries.set(hash, entry);
   }
@@ -113,6 +119,7 @@ export default function createResolveCache({
       if (until !== undefined && now() < until) return;
 
       purgeExpired();
+      evictOldestIfFull(invalidatedUntil, hash);
       invalidatedUntil.set(hash, now() + positiveTtlSeconds * 1000);
       entries.delete(hash);
     },
