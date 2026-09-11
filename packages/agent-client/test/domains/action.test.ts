@@ -337,6 +337,18 @@ describe('Action', () => {
       });
     });
 
+    it('drops the html when the body carries no recognised detail', async () => {
+      httpRequester.query.mockRejectedValue(
+        new AgentHttpError(400, { html: '<pre>at Model.findAll (sequelize.js:42)</pre>' }),
+      );
+
+      await expect(action.execute()).rejects.toMatchObject({
+        name: 'ActionFormValidationError',
+        message: 'The action form values were rejected.',
+        html: undefined,
+      });
+    });
+
     it('falls back to a generic message only when the server sends nothing', async () => {
       httpRequester.query.mockRejectedValue(new AgentHttpError(400, {}));
 
