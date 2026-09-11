@@ -191,6 +191,28 @@ describe('the embedded BFF lifecycle', () => {
         message: 'The embedded BFF was stopped with the agent.',
       });
     });
+
+    it('should drain the activity log transitions no connection holds', async () => {
+      const drainActivityLogs = jest.fn(async () => undefined);
+      mockBuildBff.mockResolvedValue({
+        callback: mockBffCallback,
+        invalidate: mockInvalidate,
+        drainActivityLogs,
+      });
+      const agent = buildAgent().addBff();
+      await agent.start();
+
+      await agent.stop();
+
+      expect(drainActivityLogs).toHaveBeenCalledTimes(1);
+    });
+
+    it('should stop cleanly when the deployment writes no activity log', async () => {
+      const agent = buildAgent().addBff();
+      await agent.start();
+
+      await expect(agent.stop()).resolves.toBeUndefined();
+    });
   });
 
   describe('when stop() lands while the BFF is still being built', () => {

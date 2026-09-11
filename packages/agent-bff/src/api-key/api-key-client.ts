@@ -17,6 +17,12 @@ export interface ResolvedApiKeyIdentity {
   user: ApiKeyIdentityUser;
   renderingId: number;
   allowedOrigins: string[];
+  /**
+   * Short-lived, user-scoped Forest server token, used to write the activity log. Optional so a
+   * Forest server that does not send one yet still resolves keys: the audit trail then degrades on
+   * its own terms (a read proceeds unaudited, a write is blocked) instead of taking auth down.
+   */
+  saasAccessToken?: string;
 }
 
 export interface ApiKeyClientOptions {
@@ -90,12 +96,18 @@ export default class ApiKeyClient {
   private static isResolvedIdentity(body: unknown): body is ResolvedApiKeyIdentity {
     if (typeof body !== 'object' || body === null) return false;
 
-    const candidate = body as { user?: unknown; renderingId?: unknown; allowedOrigins?: unknown };
+    const candidate = body as {
+      user?: unknown;
+      renderingId?: unknown;
+      allowedOrigins?: unknown;
+      saasAccessToken?: unknown;
+    };
 
     return (
       typeof candidate.renderingId === 'number' &&
       Array.isArray(candidate.allowedOrigins) &&
       candidate.allowedOrigins.every(entry => typeof entry === 'string') &&
+      (candidate.saasAccessToken === undefined || typeof candidate.saasAccessToken === 'string') &&
       ApiKeyClient.isIdentityUser(candidate.user)
     );
   }

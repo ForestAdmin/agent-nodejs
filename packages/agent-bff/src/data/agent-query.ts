@@ -174,6 +174,24 @@ function applySearch(
   if (body.searchExtended !== undefined) query.searchExtended = body.searchExtended;
 }
 
+/**
+ * Whether the request actually searches, by the same rule `applySearch` forwards on. The audit trail
+ * names the operation it audits, so it has to answer this question the way the outgoing query does:
+ * a whitespace-only search must not be recorded as a search the agent never performed.
+ */
+export function hasSearch(body: Pick<CountRequestBody, 'search'>): boolean {
+  return (body.search?.trim() ?? '') !== '';
+}
+
+/**
+ * Whether the request actually filters. An empty object is how an absent filter is spelled — see
+ * `assertFilterNode`, which accepts a node carrying no key — so the audit trail must not record a
+ * plain page load as a filtered read.
+ */
+export function hasFilter(body: Pick<CountRequestBody, 'filter'>): boolean {
+  return isPlainObject(body.filter) && Object.keys(body.filter).length > 0;
+}
+
 export function buildListAgentQuery(
   collection: string,
   timezone: string,

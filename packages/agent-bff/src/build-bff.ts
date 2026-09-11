@@ -1,3 +1,4 @@
+import type { ActivityLogWriter } from './activity-log/activity-log-writer';
 import type { AgentTransport } from './agent/agent-transport';
 import type { AgentDispatcher } from './agent/in-process-transport';
 import type { BFFConfig } from './config/env-config';
@@ -14,6 +15,8 @@ import { bodyParser } from '@koa/bodyparser';
 import Koa from 'koa';
 
 import createActionRoutesMiddleware from './action/action-routes-middleware';
+import createActivityLogWriter from './activity-log/activity-log-writer';
+import createBffActivityLogsService from './activity-log/activity-logs-service';
 import createConsoleLogger from './adapters/console-logger';
 import createAgentStubMiddleware from './agent/agent-stub';
 import { createHttpTransport } from './agent/agent-transport';
@@ -25,6 +28,7 @@ import ApiKeyClient from './api-key/api-key-client';
 import createApiKeyMiddleware from './api-key/api-key-middleware';
 import createResolveCache from './api-key/resolve-cache';
 import createAuthModeMiddleware from './auth/auth-mode-middleware';
+import createForestServerTokenMiddleware from './auth/forest-server-token-middleware';
 import normalizeBasePath from './base-path';
 import warnMissingConfig from './config/missing-config-warning';
 import createContextRoutesMiddleware from './context/context-routes-middleware';
@@ -87,6 +91,14 @@ export interface Bff {
    * restarting on a customization refresh — calls this instead of waiting out the 24h TTL.
    */
   invalidate(): void;
+  /**
+   * Waits for the activity-log status transitions still in flight. They are fired without `await`,
+   * so nothing else holds them: a host that stops without calling this leaves entries `pending`.
+   * Absent when the deployment writes no activity log.
+   *
+   * `timeoutMs` is the host's shutdown deadline; the returned descriptions name what it cut short.
+   */
+  drainActivityLogs?: (timeoutMs?: number) => Promise<string[]>;
 }
 
 const SESSION_TTL_SECONDS = 24 * 60 * 60;
@@ -346,20 +358,27 @@ export function resolveUnfoldSource(config: BFFConfig, logger: Logger): UnfoldSo
   );
 }
 
+// The routes that write an activity log come with the writer holding their pending transitions, so
+// the host can drain it when it stops.
+interface AgentRouteEdge {
+  middlewares: Middleware[];
+  activityLogs?: ActivityLogWriter;
+}
+
 // The data middleware falls through to the action middleware on a non-data path.
 function buildAgentRouteMiddlewares(
   bundle: ReadModelBundle | undefined,
   transport: AgentTransport | undefined,
   logger: Logger,
   permissionsCache: PermissionsCache,
-): Middleware[] {
+): AgentRouteEdge {
   if (!bundle) {
     logger(
       'Warn',
       'Data, action and permissions endpoints disabled: FOREST_SERVER_URL, FOREST_ENV_SECRET or FOREST_AUTH_SECRET is missing',
     );
 
-    return [createAgentStubMiddleware()];
+    return { middlewares: [createAgentStubMiddleware()] };
   }
 
   const { store, apiKeyConfig } = bundle;
@@ -377,14 +396,22 @@ function buildAgentRouteMiddlewares(
   if (!transport) {
     logger('Warn', 'Data and action endpoints disabled: AGENT_URL is missing');
 
-    return [permissionsMiddleware, createAgentStubMiddleware()];
+    return { middlewares: [permissionsMiddleware, createAgentStubMiddleware()] };
   }
 
-  return [
-    permissionsMiddleware,
-    createDataRoutesMiddleware({ store, transport, logger }),
-    createActionRoutesMiddleware({ store, transport, logger }),
-  ];
+  const activityLogs = createActivityLogWriter({
+    service: createBffActivityLogsService(apiKeyConfig.forestServerUrl),
+    logger,
+  });
+
+  return {
+    middlewares: [
+      permissionsMiddleware,
+      createDataRoutesMiddleware({ store, transport, logger, activityLogs }),
+      createActionRoutesMiddleware({ store, transport, logger, activityLogs }),
+    ],
+    activityLogs,
+  };
 }
 
 function buildAiMiddlewares(config: BFFConfig, oauth: OAuthEdge, logger: Logger): Middleware[] {
@@ -415,6 +442,7 @@ function buildAiMiddlewares(config: BFFConfig, oauth: OAuthEdge, logger: Logger)
 interface AgentEdge {
   middlewares: Middleware[];
   invalidate(): void;
+  activityLogs?: ActivityLogWriter;
 }
 
 function buildAgentMiddlewares(
@@ -440,10 +468,13 @@ function buildAgentMiddlewares(
   const bundle = resolveReadModelBundle(config, logger, metrics);
   const source = toUnfoldSource(bundle, transport, logger);
   const permissionsCache = new PermissionsCache();
+  const routeEdge = buildAgentRouteMiddlewares(bundle, transport, logger, permissionsCache);
 
   const chain: Middleware[] = [
     createAuthModeMiddleware({ authSecret: forestAuthSecret }),
     apiKeyStep,
+    // After both auth middlewares: the resolver it lands reads what they put on the context.
+    createForestServerTokenMiddleware({ session: oauth.session, logger }),
     createRateLimitMiddleware({
       maxRequests: config.rateLimitMaxRequests,
       windowMs: config.rateLimitWindowMs,
@@ -469,7 +500,7 @@ function buildAgentMiddlewares(
       : []),
     ...aiMiddlewares,
     createTimezoneMiddleware({ defaultTimezone }),
-    ...buildAgentRouteMiddlewares(bundle, transport, logger, permissionsCache),
+    ...routeEdge.middlewares,
   ];
 
   return {
@@ -481,6 +512,7 @@ function buildAgentMiddlewares(
       bundle?.store.invalidate();
       permissionsCache.clear();
     },
+    activityLogs: routeEdge.activityLogs,
   };
 }
 
@@ -572,5 +604,11 @@ export default async function buildBff({
   const app = new Koa();
   for (const middleware of middlewares) app.use(middleware);
 
-  return { callback: app.callback(), invalidate: agentEdge.invalidate };
+  const { activityLogs } = agentEdge;
+
+  return {
+    callback: app.callback(),
+    invalidate: agentEdge.invalidate,
+    drainActivityLogs: activityLogs && (timeoutMs => activityLogs.drain(timeoutMs)),
+  };
 }

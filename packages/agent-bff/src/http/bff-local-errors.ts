@@ -107,11 +107,47 @@ export function tooManyRequests(
   });
 }
 
+export const ACTION_REQUIRES_APPROVAL_TYPE = 'action_requires_approval';
+
 export function actionRequiresApproval(
   message = 'This action requires an approval before it can run',
   details?: unknown,
 ): BffHttpError {
-  return new BffHttpError(403, 'action_requires_approval', message, { details });
+  return new BffHttpError(403, ACTION_REQUIRES_APPROVAL_TYPE, message, { details });
+}
+
+export const AUDIT_RETRY_AFTER_SECONDS = 5;
+
+export const AUDIT_UNAVAILABLE_TYPE = 'audit_unavailable';
+
+/**
+ * `retryAfter` is optional: a retry only helps while the audit store is expected to answer soon.
+ * A deployment whose Forest server cannot write the log at all must not advertise one.
+ */
+export function auditUnavailable(
+  retryAfter?: number,
+  message = 'The activity log could not be written, so the operation was not performed',
+): BffHttpError {
+  return new BffHttpError(503, AUDIT_UNAVAILABLE_TYPE, message, { retryAfter });
+}
+
+/**
+ * The audit trail cannot be written in this deployment at all — no credential minted, no endpoint
+ * exposed — as opposed to an outage that a retry outlives. The missing `retryAfter` is the marker:
+ * it is what the callers above use to say a retry can never succeed.
+ */
+export function isUnretryableAuditFailure(error: unknown): boolean {
+  return (
+    error instanceof BffHttpError &&
+    error.type === AUDIT_UNAVAILABLE_TYPE &&
+    error.retryAfter === undefined
+  );
+}
+
+export function auditNotAuthorized(
+  message = 'Not authorized to write the activity log for this request',
+): BffHttpError {
+  return new BffHttpError(403, 'audit_not_authorized', message);
 }
 
 export function environmentUnresolved(): BffHttpError {

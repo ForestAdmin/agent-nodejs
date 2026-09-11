@@ -177,7 +177,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   override async stop(): Promise<void> {
     // Stop answering before the stack it dispatches into goes away: the host application keeps
     // whatever middleware it registered, so a stopped agent would otherwise still serve BFF data.
-    this.embeddedBff?.stop();
+    await this.embeddedBff?.stop();
     // Drain the embedded executor next, while the agent it depends on is still serving.
     await this.embeddedExecutor?.stop();
     // Close anything related to ForestAdmin client
