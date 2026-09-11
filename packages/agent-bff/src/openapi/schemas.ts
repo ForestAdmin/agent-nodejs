@@ -283,7 +283,10 @@ export const ForestRecordMetaSchema = z
       'The record identity, unpacked from the agent id. A composite primary key carries one ' +
       'entry per column. The values are TYPED here — a Number key column is a number — whereas ' +
       'the record carries the same id as a string under `id`, so comparing the two forms ' +
-      'without coercion fails.',
+      'without coercion fails. One exception to the per-column promise: against a schema that ' +
+      'declares no primary key at all and no `id` field either, this carries the opaque agent id ' +
+      'under the name `id`, which is then NOT a column of the collection and the context marks no ' +
+      'field as the key. Filter on a field the context lists, never on a key name read back here.',
   });
 
 export const ListResponseSchema = z
@@ -297,11 +300,9 @@ export const ListResponseSchema = z
     description:
       'Records are flat, each carrying a `__forest` envelope. A record always holds `id`, the ' +
       `agent id as a string — a composite key is its values joined by \`${PACKED_ID_SEPARATOR}\` — ` +
-      'while `__forest.primaryKey` holds that same id typed and split per column. One exception: ' +
-      'against a schema that declares no key at all and no `id` field either, `primaryKey` carries ' +
-      'the opaque id under the name `id`, which is then NOT a column of the collection — the ' +
-      'context marks no field as the key for that shape. Filter on a field the context lists, ' +
-      'never on a key name read back from here. The list never ' +
+      'while `__forest.primaryKey` holds that same id typed and split per column — with the one ' +
+      'exception `ForestRecordMeta` describes, where the name it carries is not a column. ' +
+      'The list never ' +
       'carries a total: call the count endpoint for that, which is why `countStatus` is always ' +
       '`not_requested`. ' +
       'It is always one page, not guaranteed to be the whole collection: a request that omitted ' +

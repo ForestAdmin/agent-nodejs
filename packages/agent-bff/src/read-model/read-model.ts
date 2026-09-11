@@ -150,8 +150,8 @@ export default class ReadModel {
    * ordinary listable ones carrying ordinary data columns, and the alternative is a 500 on a plain
    * list of them. Every route takes the id packed and opaque, so the invented name only misses for
    * a consumer filtering ON the key — which a keyless collection could not do either way.
-   * `ListResponse` says so, and `buildContext` publishes no `isPrimaryKey` where there is no field
-   * to carry it.
+   * `ForestRecordMeta` says so, and `buildContext` publishes no `isPrimaryKey` where there is no
+   * field to carry it.
    */
   private buildPrimaryKeys(collection: ForestSchemaCollection): void {
     const keys: PrimaryKeyField[] = [];
