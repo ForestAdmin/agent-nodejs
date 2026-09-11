@@ -108,7 +108,29 @@ describe('Agent.addWorkflowExecutor', () => {
           inMemory: true,
           ai: { provider: 'anthropic' },
         } as Parameters<typeof agent.addWorkflowExecutor>[0]),
-      ).toThrow('`ai` requires `provider`, `model` and `apiKey` together');
+      ).toThrow('`ai` requires `provider` and `model` together');
+    });
+
+    test('throws when a non-bedrock ai option has no apiKey', () => {
+      const agent = new Agent(buildOptions());
+
+      expect(() =>
+        agent.addWorkflowExecutor({
+          inMemory: true,
+          ai: { provider: 'openai', model: 'gpt-4.1' },
+        } as Parameters<typeof agent.addWorkflowExecutor>[0]),
+      ).toThrow("`ai` requires `apiKey` for provider 'openai'");
+    });
+
+    test('accepts a bedrock ai option without an apiKey', () => {
+      const agent = new Agent(buildOptions());
+
+      expect(() =>
+        agent.addWorkflowExecutor({
+          inMemory: true,
+          ai: { provider: 'bedrock', model: 'us.anthropic.claude-sonnet-4-6-v1:0' },
+        }),
+      ).not.toThrow();
     });
   });
 
@@ -199,6 +221,30 @@ describe('Agent.addWorkflowExecutor', () => {
               provider: 'anthropic',
               model: 'claude-sonnet-4-6',
               apiKey: 'sk-test',
+            },
+          ],
+        }),
+      );
+    });
+
+    test('maps a bedrock ai option without an apiKey', async () => {
+      const agent = new Agent(buildOptions());
+      agent.addWorkflowExecutor({
+        agentUrl: 'http://my-agent',
+        database: { uri: 'postgres://localhost/db' },
+        ai: { provider: 'bedrock', model: 'us.anthropic.claude-sonnet-4-6-v1:0', region: 'eu-west-3' },
+      });
+
+      await agent.start();
+
+      expect(mockBuildDatabaseExecutor).toHaveBeenCalledWith(
+        expect.objectContaining({
+          aiConfigurations: [
+            {
+              name: 'default',
+              provider: 'bedrock',
+              model: 'us.anthropic.claude-sonnet-4-6-v1:0',
+              region: 'eu-west-3',
             },
           ],
         }),

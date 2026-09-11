@@ -45,6 +45,38 @@ describe('Model validation', () => {
         }),
     ).not.toThrow();
   });
+
+  it('throws AIModelNotSupportedError for a denylisted model behind its bedrock id', () => {
+    expect(
+      () =>
+        new AiClient({
+          aiConfigurations: [
+            {
+              name: 'test',
+              provider: 'bedrock',
+              model: 'us.anthropic.claude-opus-4-20250514-v1:0',
+              region: 'eu-west-3',
+            },
+          ],
+        }),
+    ).toThrow(AIModelNotSupportedError);
+  });
+
+  it('accepts a supported bedrock model', () => {
+    expect(
+      () =>
+        new AiClient({
+          aiConfigurations: [
+            {
+              name: 'test',
+              provider: 'bedrock',
+              model: 'us.anthropic.claude-sonnet-4-6-v1:0',
+              region: 'eu-west-3',
+            },
+          ],
+        }),
+    ).not.toThrow();
+  });
 });
 
 describe('getModel', () => {

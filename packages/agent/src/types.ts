@@ -136,10 +136,14 @@ export type WorkflowExecutorEmbedOptions = Omit<WorkflowExecutorTuningOptions, '
    */
   port?: number;
   /**
-   * Bring your own AI provider instead of Forest's AI server. All three fields are required
-   * together; omit `ai` entirely to keep using Forest's server.
+   * Bring your own AI provider instead of Forest's AI server. Omit `ai` entirely to keep using
+   * Forest's server. `bedrock` takes no `apiKey`: credentials come from the AWS credential chain
+   * (IAM role, AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY, shared profile), and `region` falls back to
+   * AWS_REGION / AWS_DEFAULT_REGION.
    */
-  ai?: { provider: 'anthropic' | 'openai'; model: string; apiKey: string };
+  ai?:
+    | { provider: 'anthropic' | 'openai'; model: string; apiKey: string }
+    | { provider: 'bedrock'; model: string; region?: string };
   /**
    * HKDF secret encrypting OAuth-protected MCP connector credentials at rest. Only needed if you
    * use OAuth-protected MCP connectors; without it their credential deposits return 503. Embed-time
