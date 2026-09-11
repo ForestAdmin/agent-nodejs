@@ -179,6 +179,40 @@ describe('HttpRequester', () => {
       });
     });
 
+    it('should send the configured timezone instead of the default', async () => {
+      const requesterWithTimezone = new HttpRequester('test-token', {
+        url: 'https://api.example.com',
+        timezone: 'Asia/Tokyo',
+      });
+
+      mockRequest.then = jest.fn((onFulfilled: any) => {
+        return Promise.resolve(onFulfilled({ body: {} }));
+      });
+
+      await requesterWithTimezone.query({ method: 'get', path: '/forest/users' });
+
+      expect(mockRequest.query).toHaveBeenCalledWith({ timezone: 'Asia/Tokyo' });
+    });
+
+    it('should let an explicit query timezone override the configured one', async () => {
+      const requesterWithTimezone = new HttpRequester('test-token', {
+        url: 'https://api.example.com',
+        timezone: 'Asia/Tokyo',
+      });
+
+      mockRequest.then = jest.fn((onFulfilled: any) => {
+        return Promise.resolve(onFulfilled({ body: {} }));
+      });
+
+      await requesterWithTimezone.query({
+        method: 'get',
+        path: '/forest/users',
+        query: { timezone: 'America/New_York' },
+      });
+
+      expect(mockRequest.query).toHaveBeenCalledWith({ timezone: 'America/New_York' });
+    });
+
     it('should let an explicit query timezone override the default', async () => {
       mockRequest.then = jest.fn((onFulfilled: any) => {
         return Promise.resolve(onFulfilled({ body: {} }));
@@ -376,6 +410,51 @@ describe('HttpRequester', () => {
         timezone: 'Europe/Paris',
         filter: 'active',
       });
+    });
+
+    it('should send the default timezone when none is configured', async () => {
+      const mockStream = {} as any;
+
+      await requester.stream({
+        path: '/forest/users.csv',
+        contentType: 'text/csv',
+        stream: mockStream,
+      });
+
+      expect(mockRequest.query).toHaveBeenCalledWith({ timezone: 'Europe/Paris' });
+    });
+
+    it('should send the configured timezone instead of the default', async () => {
+      const requesterWithTimezone = new HttpRequester('test-token', {
+        url: 'https://api.example.com',
+        timezone: 'Asia/Tokyo',
+      });
+      const mockStream = {} as any;
+
+      await requesterWithTimezone.stream({
+        path: '/forest/users.csv',
+        contentType: 'text/csv',
+        stream: mockStream,
+      });
+
+      expect(mockRequest.query).toHaveBeenCalledWith({ timezone: 'Asia/Tokyo' });
+    });
+
+    it('should let an explicit query timezone override the configured one', async () => {
+      const requesterWithTimezone = new HttpRequester('test-token', {
+        url: 'https://api.example.com',
+        timezone: 'Asia/Tokyo',
+      });
+      const mockStream = {} as any;
+
+      await requesterWithTimezone.stream({
+        path: '/forest/users.csv',
+        contentType: 'text/csv',
+        stream: mockStream,
+        query: { timezone: 'America/New_York' },
+      });
+
+      expect(mockRequest.query).toHaveBeenCalledWith({ timezone: 'America/New_York' });
     });
 
     it('should reject on error', async () => {

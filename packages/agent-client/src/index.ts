@@ -50,10 +50,13 @@ export function createRemoteAgentClient(params: {
    * agent (e.g. tests). `serverUrl` is the Forest server, distinct from the agent `url` above.
    */
   forestServer?: { serverUrl: string; serverToken: string; renderingId: number | string };
+  /** Default timezone sent on every agent request. Defaults to `Europe/Paris`. */
+  timezone?: string;
   httpRequester?: HttpRequester;
 }) {
   const httpRequester =
-    params.httpRequester ?? new HttpRequester(params.token, { url: params.url });
+    params.httpRequester ??
+    new HttpRequester(params.token, { url: params.url, timezone: params.timezone });
 
   return new RemoteAgentClient({
     actionEndpoints: params.actionEndpoints,
