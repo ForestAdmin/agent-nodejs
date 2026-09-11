@@ -69,7 +69,9 @@ describe('the schema a pre-9.17.6 forest_liana publishes', () => {
     );
     const declared = (named?.fields ?? []).find(field => field.field === 'id');
 
-    expect(readModel.getPrimaryKeys(named!.name)).toEqual([{ name: 'id', type: declared?.type }]);
+    expect(readModel.getPrimaryKeys(named!.name)).toEqual([
+      { name: 'id', type: declared?.type, derived: true },
+    ]);
   });
 
   it('should invent a string key for a collection that declares no id field', () => {
@@ -78,7 +80,9 @@ describe('the schema a pre-9.17.6 forest_liana publishes', () => {
     );
 
     expect(anonymous).toBeDefined();
-    expect(readModel.getPrimaryKeys(anonymous!.name)).toEqual([{ name: 'id', type: 'String' }]);
+    expect(readModel.getPrimaryKeys(anonymous!.name)).toEqual([
+      { name: 'id', type: 'String', derived: true },
+    ]);
   });
 
   it('should synthesize capabilities for every collection without throwing', () => {

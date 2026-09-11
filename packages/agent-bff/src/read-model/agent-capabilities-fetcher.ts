@@ -16,6 +16,44 @@ export interface AgentCapabilitiesFetcherOptions {
   logger: Logger;
 }
 
+type LegacyDeps = Pick<AgentCapabilitiesFetcherOptions, 'transport' | 'store' | 'logger'>;
+
+/**
+ * The capabilities a legacy liana cannot serve, synthesized from the schema it published, or null
+ * when this agent is not one — a proxy blocking `/forest/_internal` answers 404 just the same, so
+ * the liana name decides, not the status.
+ */
+async function synthesizeForLegacyLiana(
+  collection: string,
+  { transport, store, logger }: LegacyDeps,
+): Promise<ReturnType<typeof synthesizeCapabilities> | null> {
+  const { collections, meta } = await store.getSchemaSnapshot();
+  const schema = collections.find(entry => entry.name === collection);
+
+  if (!schema) return null;
+
+  if (!meta.liana || !LEGACY_LIANAS.has(meta.liana)) {
+    logger('Error', 'Agent serves no capabilities route, and its liana is not a legacy one', {
+      agentUrl: transport.url,
+      collection,
+      liana: meta.liana ?? 'absent from the published schema',
+      lianaVersion: meta.liana_version ?? 'unknown',
+      causes: 'a proxy blocking /forest/_internal, or a collection the agent no longer serves',
+    });
+
+    return null;
+  }
+
+  logger('Warn', 'Legacy liana: synthesizing the capabilities from the apimap', {
+    agentUrl: transport.url,
+    collection,
+    liana: meta.liana,
+    lianaVersion: meta.liana_version ?? 'unknown',
+  });
+
+  return synthesizeCapabilities(schema, logger);
+}
+
 /**
  * Builds a capabilities fetcher bound to an agent token. The cache calls it only on a miss, so the
  * token of whichever request first populates a collection is the one used.
@@ -50,40 +88,20 @@ export default function createAgentCapabilitiesFetcher({
 
   const fetch = createFetch();
 
-  // A 404 alone does not say the agent is legacy — a proxy blocking the internal route answers the
-  // same way — so the liana that published the schema decides. It is read from the cached snapshot,
-  // so it lags a migration by at most a schema generation; the synthesis is returned like a normal
-  // result, letting the cache stop the doomed POST from repeating on every constrained request.
+  // The liana is read from the cached snapshot, so it lags a migration by at most a schema
+  // generation; the synthesis is returned like a normal result, letting the cache stop the doomed
+  // POST from repeating on every constrained request.
   return async (collection: string) => {
     try {
       return await fetch(collection);
     } catch (error) {
       if (!(error instanceof AgentHttpError) || error.status !== 404) throw error;
 
-      const { collections, meta } = await store.getSchemaSnapshot();
-      const schema = collections.find(entry => entry.name === collection);
-      if (!schema) throw error;
+      const synthesized = await synthesizeForLegacyLiana(collection, { transport, store, logger });
 
-      if (!meta.liana || !LEGACY_LIANAS.has(meta.liana)) {
-        logger('Error', 'Agent serves no capabilities route, and its liana is not a legacy one', {
-          agentUrl: transport.url,
-          collection,
-          liana: meta.liana ?? 'absent from the published schema',
-          lianaVersion: meta.liana_version ?? 'unknown',
-          causes: 'a proxy blocking /forest/_internal, or a collection the agent no longer serves',
-        });
+      if (!synthesized) throw error;
 
-        throw error;
-      }
-
-      logger('Warn', 'Legacy liana: synthesizing the capabilities from the apimap', {
-        agentUrl: transport.url,
-        collection,
-        liana: meta.liana,
-        lianaVersion: meta.liana_version ?? 'unknown',
-      });
-
-      return synthesizeCapabilities(schema, logger);
+      return synthesized;
     }
   };
 }

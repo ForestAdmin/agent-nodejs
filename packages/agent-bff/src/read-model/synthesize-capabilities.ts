@@ -116,12 +116,41 @@ function operatorsFor(field: ForestSchemaField, collection: string, logger: Logg
 }
 
 /**
+ * The one, none or zero capability entries a single apimap field becomes: a scalar carries its
+ * operators, a to-one relation is present without any (so a direct filter on it is
+ * `field_not_filterable`), and every other relation is dropped (so a filter on it is
+ * `unknown_field`).
+ */
+function toCapabilityFields(
+  field: ForestSchemaField,
+  collection: string,
+  logger: Logger,
+): CapabilitiesResult['fields'] {
+  if (field.relationship) {
+    if (field.relationship !== 'BelongsTo') return [];
+
+    // A relation carries no operators, but it is still sortable through its target, so a sort the
+    // liana denies has to be published as denied here too -- otherwise the BFF accepts the sort
+    // and forwards it instead of answering field_not_sortable.
+    const relation = { name: field.field, type: MANY_TO_ONE };
+
+    return [field.isSortable === false ? { ...relation, sortable: false } : relation];
+  }
+
+  const entry: CapabilitiesResult['fields'][number] = {
+    name: field.field,
+    type: field.type,
+    operators: operatorsFor(field, collection, logger),
+  };
+
+  return [field.isSortable === false ? { ...entry, sortable: false } : entry];
+}
+
+/**
  * Build the capabilities a v1 liana would have answered, from the apimap it already pushed.
  *
- * The three field classes mirror what the v2 agent's capabilities route emits, so the validator
- * produces the same error for the same input on both generations: a scalar carries its operators, a
- * to-one relation is present without any (so a direct filter on it is `field_not_filterable`), and
- * every other relation is omitted (so a filter on it is `unknown_field`).
+ * The field classes mirror what the v2 agent's capabilities route emits, so the validator produces
+ * the same error for the same input on both generations.
  */
 export default function synthesizeCapabilities(
   collection: ForestSchemaCollection,
@@ -132,26 +161,7 @@ export default function synthesizeCapabilities(
       typeof field === 'object' && field !== null && typeof field.field === 'string',
   );
 
-  const fields = declared.flatMap<CapabilitiesResult['fields'][number]>(field => {
-    if (field.relationship) {
-      if (field.relationship !== 'BelongsTo') return [];
-
-      // A relation carries no operators, but it is still sortable through its target, so a sort the
-      // liana denies has to be published as denied here too -- otherwise the BFF accepts the sort
-      // and forwards it instead of answering field_not_sortable.
-      const relation = { name: field.field, type: MANY_TO_ONE };
-
-      return [field.isSortable === false ? { ...relation, sortable: false } : relation];
-    }
-
-    const entry: CapabilitiesResult['fields'][number] = {
-      name: field.field,
-      type: field.type,
-      operators: operatorsFor(field, collection.name, logger),
-    };
-
-    return [field.isSortable === false ? { ...entry, sortable: false } : entry];
-  });
-
-  return { fields };
+  return {
+    fields: declared.flatMap(field => toCapabilityFields(field, collection.name, logger)),
+  };
 }

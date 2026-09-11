@@ -849,8 +849,8 @@ describe('an unfolding whose apimap denies a sort', () => {
     expect(sort.properties.field.$ref).toBe('#/components/schemas/SortableFields_users');
   });
 
-  it('should fall back to the shared sort clause when every field denies it', () => {
-    const none = unfoldedDocument({
+  function documentWithNoSortableField() {
+    return unfoldedDocument({
       collections: [
         {
           name: 'users',
@@ -865,10 +865,53 @@ describe('an unfolding whose apimap denies a sort', () => {
         },
       ],
     });
-    const noneSchemas = none.components?.schemas as Record<string, Record<string, never>>;
+  }
+
+  function listSortOf(built: ReturnType<typeof unfoldedDocument>) {
+    const builtSchemas = built.components?.schemas as Record<string, Record<string, never>>;
+    const list = builtSchemas.ListRequest_users as unknown as {
+      properties: { sort: { maxItems?: number } };
+    };
+
+    return list.properties.sort;
+  }
+
+  it('should register no sort enum when every field denies it', () => {
+    const noneSchemas = documentWithNoSortableField().components?.schemas as Record<
+      string,
+      Record<string, never>
+    >;
 
     expect(noneSchemas.SortClause_users).toBeUndefined();
-    expect(noneSchemas.SortClause).toBeDefined();
+    expect(noneSchemas.SortableFields_users).toBeUndefined();
+  });
+
+  // The shared SortClause leaves `field` an unrestricted string, so reusing it alone would advertise
+  // every field as sortable while each request answers 422 field_not_sortable.
+  it('should cap the sort array at zero when every field denies it', () => {
+    expect(listSortOf(documentWithNoSortableField()).maxItems).toBe(0);
+  });
+
+  it('should leave the sort array uncapped when a field allows it', () => {
+    expect(listSortOf(documentWithDeniedSort())).not.toHaveProperty('maxItems');
+  });
+
+  // An empty projectable set is an unknown field set, not a denial: the runtime rejects, not the
+  // document, so capping the array there would forbid a sort the agent accepts.
+  it('should leave the sort array uncapped when the field set is unknown', () => {
+    const unknown = unfoldedDocument({
+      collections: [
+        {
+          name: 'users',
+          fields: { projectable: [], filterable: [], degraded: null },
+          primaryKeys: [{ name: 'id', type: 'Number' }],
+          relations: [],
+          actions: [],
+        },
+      ],
+    });
+
+    expect(listSortOf(unknown)).not.toHaveProperty('maxItems');
   });
 });
 

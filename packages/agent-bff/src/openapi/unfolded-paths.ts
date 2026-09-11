@@ -230,6 +230,7 @@ interface FieldRefs {
   projectable: ReferenceObject | SchemaObject;
   filter: ReferenceObject;
   sort: ReferenceObject | SchemaObject;
+  anySortable: boolean;
 }
 
 function fieldRefs(deps: Deps, plan: Pick<CollectionPlan, 'key' | 'collection'>): FieldRefs {
@@ -268,6 +269,10 @@ function fieldRefs(deps: Deps, plan: Pick<CollectionPlan, 'key' | 'collection'>)
   return {
     projectable,
     filter: filterSchema(deps, plan),
+    // An empty projectable set is an UNKNOWN field set, not a denial: the runtime is the one that
+    // rejects, so sort stays unconstrained there. Only a known set with every field denied is a
+    // collection that takes no clause.
+    anySortable: sortableNames.length > 0 || fields.projectable.length === 0,
     sort:
       sortableNames.length === 0
         ? pool.reuse('SortClause', SortClauseSchema)
@@ -303,7 +308,19 @@ function requestProperties(deps: Deps, plan: Pick<CollectionPlan, 'key' | 'colle
     list: {
       filter: refs.filter,
       projection: { type: 'array', items: refs.projectable },
-      sort: { type: 'array', items: refs.sort },
+      // A collection whose every known field is denied sorting takes no clause at all: the shared
+      // SortClause leaves `field` an unrestricted string, which would advertise every field as
+      // sortable while each request answers 422 field_not_sortable. `maxItems: 0` says what the
+      // runtime does — an empty sort passes, any clause does not.
+      sort: refs.anySortable
+        ? { type: 'array', items: refs.sort }
+        : {
+            type: 'array',
+            items: refs.sort,
+            maxItems: 0,
+            description:
+              'No field of this collection is sortable: send an empty array, or omit it.',
+          },
       page: pool.reuse('Page', PageSchema),
       search,
       searchExtended,
