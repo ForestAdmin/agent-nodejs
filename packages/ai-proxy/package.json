@@ -38,6 +38,9 @@
     "build:watch": "tsc --watch",
     "clean": "rm -rf coverage dist",
     "lint": "eslint src",
-    "test": "jest"
+    "test": "jest",
+    "test:openai": "jest --testPathPattern='llm.integration' -t 'OpenAI'",
+    "test:anthropic": "jest --testPathPattern='llm.integration' -t 'Anthropic'",
+    "test:bedrock": "jest --testPathPattern='bedrock.integration'"
   }
 }
