@@ -1,3 +1,10 @@
+# @forestadmin/agent-client [1.16.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.15.3...@forestadmin/agent-client@1.16.0) (2026-09-14)
+
+
+### Features
+
+* **agent-client:** allow overriding the default request timezone ([#1896](https://github.com/ForestAdmin/agent-nodejs/issues/1896)) ([5d071fe](https://github.com/ForestAdmin/agent-nodejs/commit/5d071fecd33f427c31ecc26e64386a0e0a4ad5dd))
+
 ## @forestadmin/agent-client [1.15.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.15.2...@forestadmin/agent-client@1.15.3) (2026-09-14)
 
 
