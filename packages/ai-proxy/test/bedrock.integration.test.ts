@@ -21,9 +21,9 @@ import isModelSupportingTools from '../src/supported-models';
 const REGION = process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION;
 const describeWithBedrock = REGION ? describe : describe.skip;
 
-// Claude on Bedrock is the reason this provider exists; it is the one id the suite pins.
+// Claude on Bedrock is the whole supported surface; Haiku is the cheapest of the three lines.
 const DEFAULT_MODEL =
-  process.env.BEDROCK_TEST_MODEL ?? 'us.anthropic.claude-haiku-4-5-20251001-v1:0';
+  process.env.BEDROCK_TEST_MODEL ?? 'eu.anthropic.claude-haiku-4-5-20251001-v1:0';
 
 function bedrockConfig(model: string): AiConfiguration {
   return { name: 'test', provider: 'bedrock', model, region: REGION };
@@ -68,9 +68,11 @@ describeWithBedrock('Bedrock Integration (real API)', () => {
     await expect(model.invoke([{ role: 'user', content: 'hi' }])).rejects.toThrow();
   }, 60_000);
 
-  // Same contract as llm.integration.test.ts for OpenAI/Anthropic: every model the allow/deny list
-  // in supported-models.ts lets through must actually honour a forced tool call. A failure here is
-  // the signal to add that id to BEDROCK_UNSUPPORTED_MODELS — not to loosen the assertion.
+  // Same contract as llm.integration.test.ts for OpenAI/Anthropic: every model the allowlist in
+  // supported-models.ts lets through must actually honour a forced tool call. Bedrock's catalogue
+  // is walked in full on purpose, so a Claude release the allowlist admits but Bedrock cannot serve
+  // this way is caught here. A failure is the signal to narrow the allowlist, not to loosen the
+  // assertion.
   describe('Model tool support verification', () => {
     let modelsToTest: string[];
 

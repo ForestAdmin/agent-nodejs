@@ -104,15 +104,28 @@ function isAnthropicModelSupported(model: string): boolean {
 }
 
 // ─── Bedrock ─────────────────────────────────────────────────────────────────
-// Bedrock resells other vendors' models, so an id carries a cross-region inference-profile prefix,
-// a vendor prefix and a Bedrock version suffix: `us.anthropic.claude-opus-4-20250514-v1:0`. Strip
-// those back to the vendor's own id before testing, otherwise the Anthropic denylist above never
-// matches and a model we already know is broken sails through.
-// If a model fails the bedrock.integration test, add it here (vendor-prefixed, no version suffix).
+// Allowlist, unlike the two providers above: Bedrock resells hundreds of models and we vouch for
+// none of them beyond the Claude lines the integration test actually exercises. Nova, Llama,
+// Mistral and Titan are rejected on purpose — several cannot honour the forced tool call every AI
+// step makes, and a permissive default would surface that as a failure mid-run rather than a
+// refusal at startup.
+//
+// An id wraps the vendor's own id in an inference-profile prefix and a Bedrock version suffix
+// (`eu.anthropic.claude-sonnet-5-v1:0`), so it is unwrapped before matching, and the unwrapped id
+// then goes through the Anthropic rules above — that is what keeps the streaming-only and EOL
+// Claude releases rejected here too.
 
-const BEDROCK_INFERENCE_PROFILE_PREFIXES = ['us.', 'us-gov.', 'eu.', 'apac.', 'global.'];
+const BEDROCK_INFERENCE_PROFILE_PREFIXES = [
+  'us.',
+  'us-gov.',
+  'eu.',
+  'apac.',
+  'jp.',
+  'au.',
+  'global.',
+];
 
-const BEDROCK_UNSUPPORTED_MODELS: string[] = [];
+const BEDROCK_SUPPORTED_ANTHROPIC_FAMILIES = ['claude-sonnet', 'claude-haiku', 'claude-opus'];
 
 const BEDROCK_VERSION_SUFFIX = /-v\d+:\d+$/;
 
@@ -120,14 +133,19 @@ function isBedrockModelSupported(model: string): boolean {
   const profilePrefix = BEDROCK_INFERENCE_PROFILE_PREFIXES.find(prefix => model.startsWith(prefix));
   const vendorId = profilePrefix ? model.slice(profilePrefix.length) : model;
   const separatorIndex = vendorId.indexOf('.');
-  const vendor = separatorIndex === -1 ? '' : vendorId.slice(0, separatorIndex);
+
+  if (separatorIndex === -1) return false;
+
+  const vendor = vendorId.slice(0, separatorIndex);
   const vendorModel = vendorId.slice(separatorIndex + 1).replace(BEDROCK_VERSION_SUFFIX, '');
 
-  if (BEDROCK_UNSUPPORTED_MODELS.includes(`${vendor}.${vendorModel}`)) return false;
+  if (vendor !== 'anthropic') return false;
 
-  if (vendor === 'anthropic') return isAnthropicModelSupported(vendorModel);
+  const isSupportedFamily = BEDROCK_SUPPORTED_ANTHROPIC_FAMILIES.some(family =>
+    vendorModel.startsWith(`${family}-`),
+  );
 
-  return true;
+  return isSupportedFamily && isAnthropicModelSupported(vendorModel);
 }
 
 // ─── Public API ──────────────────────────────────────────────────────────────

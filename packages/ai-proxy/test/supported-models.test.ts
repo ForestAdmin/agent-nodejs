@@ -41,36 +41,51 @@ describe('isModelSupportingTools', () => {
   });
 
   describe('bedrock', () => {
-    it('reuses the anthropic denylist through the inference-profile and version wrappers', () => {
-      expect(isModelSupportingTools('us.anthropic.claude-opus-4-20250514-v1:0', 'bedrock')).toBe(
-        false,
-      );
-      expect(isModelSupportingTools('anthropic.claude-opus-4-20250514-v1:0', 'bedrock')).toBe(
-        false,
-      );
+    it.each([
+      'eu.anthropic.claude-sonnet-5-v1:0',
+      'us.anthropic.claude-opus-4-5-v1:0',
+      'eu.anthropic.claude-haiku-4-5-20251001-v1:0',
+      'anthropic.claude-sonnet-4-6-v1:0',
+    ])('allows the sonnet/haiku/opus lines: %s', model => {
+      expect(isModelSupportingTools(model, 'bedrock')).toBe(true);
     });
 
-    it.each(['eu.', 'apac.', 'global.', 'us-gov.'])(
-      'strips the %s inference-profile prefix',
+    it.each(['us.', 'eu.', 'apac.', 'jp.', 'au.', 'global.', 'us-gov.'])(
+      'unwraps the %s inference-profile prefix',
       prefix => {
-        expect(isModelSupportingTools(`${prefix}anthropic.claude-fable-5-v1:0`, 'bedrock')).toBe(
-          false,
+        expect(isModelSupportingTools(`${prefix}anthropic.claude-sonnet-5-v1:0`, 'bedrock')).toBe(
+          true,
         );
       },
     );
 
-    it('allows a supported anthropic model on bedrock', () => {
-      expect(isModelSupportingTools('us.anthropic.claude-sonnet-4-6-v1:0', 'bedrock')).toBe(true);
+    it.each([
+      'eu.amazon.nova-pro-v1:0',
+      'eu.amazon.nova-lite-v1:0',
+      'amazon.titan-text-express-v1',
+      'meta.llama3-3-70b-instruct-v1:0',
+      'mistral.mistral-large-2407-v1:0',
+      'cohere.command-r-plus-v1:0',
+    ])('rejects every non-Claude vendor: %s', model => {
+      expect(isModelSupportingTools(model, 'bedrock')).toBe(false);
     });
 
-    it('allows other vendors by default', () => {
-      expect(isModelSupportingTools('amazon.nova-pro-v1:0', 'bedrock')).toBe(true);
-      expect(isModelSupportingTools('meta.llama3-1-70b-instruct-v1:0', 'bedrock')).toBe(true);
+    it.each(['eu.anthropic.claude-fable-5-1-v1:0', 'us.anthropic.claude-mythos-5-v1:0'])(
+      'rejects Claude lines outside sonnet/haiku/opus: %s',
+      model => {
+        expect(isModelSupportingTools(model, 'bedrock')).toBe(false);
+      },
+    );
+
+    it.each([
+      'us.anthropic.claude-opus-4-20250514-v1:0',
+      'us.anthropic.claude-opus-4-1-20250805-v1:0',
+    ])('still applies the anthropic denylist through the wrapper: %s', model => {
+      expect(isModelSupportingTools(model, 'bedrock')).toBe(false);
     });
 
-    it('does not apply the openai denylist to bedrock ids', () => {
-      expect(isModelSupportingTools('meta.llama3-1-70b-instruct-v1:0')).toBe(false);
-      expect(isModelSupportingTools('meta.llama3-1-70b-instruct-v1:0', 'bedrock')).toBe(true);
+    it('rejects an id carrying no vendor prefix', () => {
+      expect(isModelSupportingTools('claude-sonnet-5', 'bedrock')).toBe(false);
     });
   });
 
