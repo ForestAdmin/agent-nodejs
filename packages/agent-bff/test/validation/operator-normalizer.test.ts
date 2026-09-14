@@ -1,9 +1,9 @@
+import { toWireOperator } from '@forestadmin/agent-client';
 import { allOperators } from '@forestadmin/datasource-toolkit';
 
 import {
   normalizeOperator,
   toCanonicalOperatorSet,
-  toSnakeCaseOperator,
 } from '../../src/validation/operator-normalizer';
 
 describe('operator-normalizer', () => {
@@ -29,7 +29,7 @@ describe('operator-normalizer', () => {
 
     it('round-trips every canonical operator through snake_case', () => {
       allOperators.forEach(operator => {
-        expect(normalizeOperator(toSnakeCaseOperator(operator))).toBe(operator);
+        expect(normalizeOperator(toWireOperator(operator))).toBe(operator);
       });
     });
 

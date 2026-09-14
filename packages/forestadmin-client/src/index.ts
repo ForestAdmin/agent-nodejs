@@ -23,6 +23,8 @@ export {
   ForestSchemaField,
   ForestSchemaAction,
   ForestSchemaCollection,
+  ForestSchemaMeta,
+  ForestSchemaWithMeta,
   ActivityLogResponse,
   ActivityLogAction,
   ActivityLogType,

@@ -283,14 +283,69 @@ describe('Action', () => {
       });
     });
 
-    it('preserves the server message from the raw responseText when the body has none', async () => {
+    it('keeps an unstructured responseText out of the validation error message', async () => {
+      const html = '<!DOCTYPE html><html><pre>Cannot POST /forest/actions/refund</pre></html>';
+
+      httpRequester.query.mockRejectedValue(new AgentHttpError(422, {}, html));
+
+      await expect(action.execute()).rejects.toMatchObject({
+        name: 'ActionFormValidationError',
+        message: 'The action form values were rejected.',
+      });
+    });
+
+    it('keeps a raw string body out of the validation error message', async () => {
+      httpRequester.query.mockRejectedValue(new AgentHttpError(400, 'Internal Server Error'));
+
+      await expect(action.execute()).rejects.toMatchObject({
+        name: 'ActionFormValidationError',
+        message: 'The action form values were rejected.',
+      });
+    });
+
+    it('rejects with a validation error when the body nests an object under error', async () => {
       httpRequester.query.mockRejectedValue(
-        new AgentHttpError(422, {}, 'Query with filter did not match any records'),
+        new AgentHttpError(400, { error: { code: 'invalid_form' } }),
       );
 
       await expect(action.execute()).rejects.toMatchObject({
         name: 'ActionFormValidationError',
-        message: 'Query with filter did not match any records',
+        message: 'The action form values were rejected.',
+      });
+    });
+
+    it('carries the agent error as unstructuredCause when no detail could be read', async () => {
+      const agentError = new AgentHttpError(422, {}, '<!DOCTYPE html><html></html>');
+
+      httpRequester.query.mockRejectedValue(agentError);
+
+      await expect(action.execute()).rejects.toMatchObject({
+        name: 'ActionFormValidationError',
+        unstructuredCause: agentError,
+      });
+    });
+
+    it('leaves unstructuredCause unset when the agent sent a readable detail', async () => {
+      httpRequester.query.mockRejectedValue(
+        new AgentHttpError(400, { errors: [{ detail: 'Amount is required' }] }),
+      );
+
+      await expect(action.execute()).rejects.toMatchObject({
+        name: 'ActionFormValidationError',
+        message: 'Amount is required',
+        unstructuredCause: undefined,
+      });
+    });
+
+    it('drops the html when the body carries no recognised detail', async () => {
+      httpRequester.query.mockRejectedValue(
+        new AgentHttpError(400, { html: '<pre>at Model.findAll (sequelize.js:42)</pre>' }),
+      );
+
+      await expect(action.execute()).rejects.toMatchObject({
+        name: 'ActionFormValidationError',
+        message: 'The action form values were rejected.',
+        html: undefined,
       });
     });
 

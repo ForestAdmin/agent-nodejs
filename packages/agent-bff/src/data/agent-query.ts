@@ -2,6 +2,8 @@ import type { PageInput, SortClauseInput } from './request-schemas';
 import type { Logger } from '../ports/logger-port';
 import type { ZodType, z } from 'zod';
 
+import { toWireFilter } from '@forestadmin/agent-client';
+
 import {
   CountFlatInputs,
   ListFlatInputs,
@@ -37,6 +39,7 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 
 const LEAF_KEYS = ['field', 'operator', 'value'];
 const BRANCH_KEYS = ['aggregator', 'conditions'];
+const AGGREGATORS = ['And', 'Or'];
 
 function loggingRejections<T>(logger: Logger, parse: () => T): T {
   try {
@@ -61,6 +64,27 @@ function assertNoStrayKey(node: Record<string, unknown>, allowed: string[]): voi
   }
 }
 
+// An absent aggregator stays allowed and is forwarded, as the document says. A present one must name
+// an aggregator that exists: anything else -- `5`, or `xor` -- passes every shape check, reaches the
+// agent and comes back as a 503 agent_unavailable, where the caller can act on a 400.
+//
+// The comparison is case-insensitive although the document enumerates PascalCase only:
+// `toWireFilter` lowercases the aggregator on the way out, so `and` already reaches the agent as the
+// `and` it parses, and rejecting it here would break a caller nothing else refuses.
+function assertAggregator(node: Record<string, unknown>): void {
+  const { aggregator } = node;
+
+  if (aggregator === undefined) return;
+
+  const named =
+    typeof aggregator === 'string' &&
+    AGGREGATORS.some(candidate => candidate.toLowerCase() === aggregator.toLowerCase());
+
+  if (!named) {
+    throw invalidRequest(`A filter branch aggregator must be one of: ${AGGREGATORS.join(', ')}`);
+  }
+}
+
 function assertFilterNode(node: unknown, depth = 0): void {
   if (depth > MAX_FILTER_DEPTH) throw filterTooDeep(MAX_FILTER_DEPTH);
   if (!isPlainObject(node)) return;
@@ -73,6 +97,7 @@ function assertFilterNode(node: unknown, depth = 0): void {
 
   if (readableAsBranch) {
     assertNoStrayKey(node, BRANCH_KEYS);
+    assertAggregator(node);
     node.conditions.forEach(condition => assertFilterNode(condition, depth + 1));
 
     return;
@@ -181,7 +206,7 @@ export function buildListAgentQuery(
 ): AgentQuery {
   const query: AgentQuery = { timezone };
 
-  if (body.filter !== undefined) query.filters = JSON.stringify(body.filter);
+  if (body.filter !== undefined) query.filters = JSON.stringify(toWireFilter(body.filter));
   if (body.projection?.length) query[`fields[${collection}]`] = body.projection.join(',');
   if (body.sort?.length) query.sort = serializeSort(body.sort);
   if (body.page) Object.assign(query, serializePage(body.page));
@@ -193,7 +218,7 @@ export function buildListAgentQuery(
 export function buildCountAgentQuery(timezone: string, body: CountRequestBody): AgentQuery {
   const query: AgentQuery = { timezone };
 
-  if (body.filter !== undefined) query.filters = JSON.stringify(body.filter);
+  if (body.filter !== undefined) query.filters = JSON.stringify(toWireFilter(body.filter));
   applySearch(query, body);
 
   return query;

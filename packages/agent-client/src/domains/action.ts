@@ -40,19 +40,28 @@ type ActionErrorBody = {
   data?: { roleIdsAllowedToApprove?: number[] };
 };
 
+function firstNonEmptyString(candidates: unknown[]): string | undefined {
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string' && candidate.trim() !== '') return candidate.trim();
+  }
+
+  return undefined;
+}
+
+// Only a recognised error shape yields a detail. A raw body or responseText is whatever the agent's
+// host emitted -- an HTML error page, a proxy notice, a stack trace -- and it would reach the client
+// verbatim as the action error message, so it is left out and callers use their own wording.
 function extractDetail(error: AgentHttpError): string | undefined {
   const body = (error.body ?? {}) as ActionErrorBody;
   const first = body.errors?.[0];
-  const message =
-    first?.detail ||
-    first?.message ||
-    first?.title ||
-    body.error ||
-    body.message ||
-    (typeof error.body === 'string' ? error.body : undefined) ||
-    error.responseText;
 
-  return message?.trim() || undefined;
+  return firstNonEmptyString([
+    first?.detail,
+    first?.message,
+    first?.title,
+    body.error,
+    body.message,
+  ]);
 }
 
 // Translate the transport AgentHttpError into a semantic action error so callers route on meaning.
@@ -76,7 +85,8 @@ function toActionError(error: unknown): unknown {
   if (error.status === 400 || error.status === 422) {
     return new ActionFormValidationError(
       detail ?? 'The action form values were rejected.',
-      body.html,
+      detail !== undefined && typeof body.html === 'string' ? body.html : undefined,
+      detail === undefined ? error : undefined,
     );
   }
 

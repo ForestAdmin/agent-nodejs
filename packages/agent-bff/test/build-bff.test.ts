@@ -4,9 +4,9 @@ import request from 'supertest';
 
 import { createHttpTransport } from '../src/agent/agent-transport';
 import buildBff from '../src/build-bff';
+import { restoreFetchAfterEach, stubEnvironmentIdFetch } from './helpers/fetch-stub';
 import { parseConfig } from '../src/config/env-config';
 import version from '../src/version';
-import { restoreFetchAfterEach, stubEnvironmentIdFetch } from './helpers/fetch-stub';
 
 jest.mock('../src/agent/agent-transport', () => {
   const actual = jest.requireActual('../src/agent/agent-transport');

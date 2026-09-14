@@ -2128,7 +2128,7 @@ describe('ForestMCPServer Instance', () => {
           const filters = JSON.parse(capturedQueryParams.filters as string);
           expect(filters).toEqual({
             aggregator: 'and',
-            conditions: [{ field: 'email', operator: 'present' }],
+            conditions: [{ field: 'email', operator: 'present', value: null }],
           });
         });
       });

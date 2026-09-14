@@ -34,7 +34,7 @@ export function mapListResponse(
       ...record,
       __forest: {
         collection,
-        primaryKey: unpackPrimaryKey(String(record.id), primaryKeys),
+        primaryKey: unpackPrimaryKey(String(record.id), primaryKeys, record),
       },
     };
   });

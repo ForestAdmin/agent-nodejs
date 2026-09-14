@@ -155,6 +155,22 @@ describe('collectUnfolding', () => {
       );
     });
 
+    it('should carry the sortable denial the v1 synthesis states, so the sort enum can drop it', async () => {
+      const { collections } = await collect(readModel, {
+        capabilities: async () => ({
+          fields: [
+            { name: 'id', type: 'String', operators: ['equal'] },
+            { name: 'fullName', type: 'String', operators: [], sortable: false as const },
+          ],
+        }),
+      });
+
+      expect(collections[0].fields.projectable).toEqual([
+        { name: 'id', type: 'String' },
+        { name: 'fullName', type: 'String', sortable: false },
+      ]);
+    });
+
     it('should keep a skewed field projectable, since only filtering on it fails', async () => {
       const { collections } = await collect(readModel, {
         capabilities: async () => ({
@@ -176,6 +192,28 @@ describe('collectUnfolding', () => {
       });
 
       expect(collections[0].fields.degraded).toBeNull();
+    });
+
+    // An empty `filterable` otherwise reads as "this collection filters on nothing", and the document
+    // then refuses, in a generated client, every filter the agent honours.
+    it('should mark the filterable set undocumentable when a field was dropped for skew', async () => {
+      const { collections } = await collect(readModel, {
+        capabilities: async () => ({
+          fields: [{ name: 'id', type: 'String', operators: ['equal', 'teleports_to'] }],
+        }),
+      });
+
+      expect(collections[0].fields.undocumentableFilter).toBe(true);
+    });
+
+    it('should leave the flag off when every field maps, even one carrying no operator', async () => {
+      const { collections } = await collect(readModel, {
+        capabilities: async () => ({
+          fields: [{ name: 'id', type: 'String', operators: [] }],
+        }),
+      });
+
+      expect(collections[0].fields).not.toHaveProperty('undocumentableFilter');
     });
 
     it('should degrade a collection whose capabilities call fails, and say so in the log', async () => {

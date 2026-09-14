@@ -7,14 +7,17 @@ import createReadModel from '../../src/read-model/create-read-model';
 jest.mock('@forestadmin/forestadmin-client');
 
 describe('createReadModel', () => {
-  const getSchema = jest.fn();
+  const getSchemaWithMeta = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (SchemaService as unknown as jest.Mock).mockImplementation(() => ({ getSchema }));
-    getSchema.mockResolvedValue([
-      collection('users', [column('id')], [action('ban', '/forest/users/actions/ban')]),
-    ]);
+    (SchemaService as unknown as jest.Mock).mockImplementation(() => ({ getSchemaWithMeta }));
+    getSchemaWithMeta.mockResolvedValue({
+      collections: [
+        collection('users', [column('id')], [action('ban', '/forest/users/actions/ban')]),
+      ],
+      meta: {},
+    });
   });
 
   it('should wire a store whose read-model reflects the fetched schema', async () => {

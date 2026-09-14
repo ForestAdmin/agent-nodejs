@@ -5,7 +5,10 @@ import { ONE_DAY_MS } from './schema-cache';
 export interface CapabilitiesResult {
   // `type` is the agent's raw `columnType`, so it is not always a plain name: an array-of-primitive
   // column arrives as `['String']`, and a relation entry arrives as the marker `ManyToOne`.
-  fields: { name: string; type: FieldType; operators?: string[] }[];
+  // `sortable` has no equivalent in a real capabilities response and is only set by the v1 synthesis
+  // (`synthesize-capabilities.ts`), which reads it from the apimap. It is `false` or absent, never
+  // `true`: the synthesis states a denial, and absent means "not stated", which sorts as before.
+  fields: { name: string; type: FieldType; operators?: string[]; sortable?: false }[];
 }
 
 export type CapabilitiesFetcher = (collection: string) => Promise<CapabilitiesResult>;

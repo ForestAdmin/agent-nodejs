@@ -651,6 +651,31 @@ describe('action execute', () => {
     expect(Object.keys(response.body.error)).not.toContain('details');
   });
 
+  it('logs the agent body as the cause when the action Error carries no structured detail', async () => {
+    const logger = jest.fn();
+    const agentError = new AgentHttpError(422, {}, '<!DOCTYPE html><html>Cannot POST</html>');
+    const form = makeAction({
+      execute: jest.fn(async () => {
+        throw new ActionFormValidationError(
+          'The action form values were rejected.',
+          undefined,
+          agentError,
+        );
+      }),
+    });
+
+    const response = await request(execApp(clientOf(form), logger).callback())
+      .post('/agent/v1/users/actions/approve/execute')
+      .send({ recordIds: ['42'] });
+
+    expect(response.body.error.message).toBe('The action form values were rejected.');
+    expect(logger).toHaveBeenCalledWith(
+      'Warn',
+      'Agent action 4xx carried no structured error; client message is generic',
+      { status: 422, cause: '<!DOCTYPE html><html>Cannot POST</html>' },
+    );
+  });
+
   it('keeps a successful action result flat, discriminated by body.type', async () => {
     const form = makeAction({ execute: jest.fn(async () => ({ success: 'Refunded' })) });
 

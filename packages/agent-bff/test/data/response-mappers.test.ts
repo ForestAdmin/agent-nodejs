@@ -38,6 +38,26 @@ describe('mapListResponse', () => {
     );
   });
 
+  it('should order the composite key from the record rather than from the key order', () => {
+    const result = mapListResponse(
+      'edgeCompositePk',
+      [{ id: 'acme|42', tenantId: 'acme', seq: 42, payload: 'x' }],
+      [
+        { name: 'seq', type: 'Number' },
+        { name: 'tenant_id', type: 'String' },
+      ],
+    );
+
+    expect(result.data[0]).toEqual(
+      expect.objectContaining({
+        __forest: {
+          collection: 'edgeCompositePk',
+          primaryKey: { seq: 42, tenant_id: 'acme' },
+        },
+      }),
+    );
+  });
+
   it('should throw a mapping error when a record has no id', () => {
     expect(() =>
       mapListResponse('users', [{ email: 'x' }], [{ name: 'id', type: 'Number' }]),

@@ -28,7 +28,7 @@ const CAPABILITIES = {
   ],
 };
 
-const fetchSchema = jest.fn().mockResolvedValue(SCHEMA);
+const fetchSchema = jest.fn().mockResolvedValue({ collections: SCHEMA, meta: {} });
 const fetchCapabilities = jest.fn().mockResolvedValue(CAPABILITIES);
 
 jest.mock('../../src/read-model/forest-schema-client', () => ({
@@ -155,7 +155,7 @@ function routesFor(store: ReadModelStore, basePath?: string): Middleware {
 
 describe('GET /agent/openapi.json', () => {
   beforeEach(() => {
-    fetchSchema.mockClear().mockResolvedValue(SCHEMA);
+    fetchSchema.mockClear().mockResolvedValue({ collections: SCHEMA, meta: {} });
     fetchCapabilities.mockClear().mockResolvedValue(CAPABILITIES);
   });
 

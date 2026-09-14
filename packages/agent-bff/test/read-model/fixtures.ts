@@ -3,6 +3,8 @@ import type {
   ForestSchemaAction,
   ForestSchemaCollection,
   ForestSchemaField,
+  ForestSchemaMeta,
+  ForestSchemaWithMeta,
 } from '@forestadmin/forestadmin-client';
 
 export function makeMetrics(): jest.Mocked<Metrics> {
@@ -55,4 +57,11 @@ export function collection(
 
 export function makeSchema(name: string): ForestSchemaCollection[] {
   return [collection(name, [])];
+}
+
+export function published(
+  collections: ForestSchemaCollection[],
+  meta: ForestSchemaMeta = {},
+): ForestSchemaWithMeta {
+  return { collections, meta };
 }
