@@ -11,6 +11,15 @@
 # Bump via Renovate/Dependabot.
 FROM node:22-bookworm-slim@sha256:813a7480f28fdadac1f7f5c824bcdad435b5bc1322a5968bbbdef8d058f9dff4 AS base
 
+# Debian ships security fixes faster than the upstream node image rebuilds, and the digest pin means
+# we would otherwise never receive them: the Trivy gate below went red on CVE-2026-86145 and
+# CVE-2026-89161 (libpcre2) while the newest node:22-bookworm-slim still carried the vulnerable
+# 10.42-1. Applying the security updates here keeps the pin reproducible and the image patched
+# without chasing a digest per advisory.
+RUN apt-get update \
+  && apt-get upgrade -y --no-install-recommends \
+  && rm -rf /var/lib/apt/lists/*
+
 # ── Stage 1: build ────────────────────────────────────────────────────────────
 FROM base AS builder
 WORKDIR /app
