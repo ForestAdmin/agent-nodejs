@@ -70,10 +70,13 @@ ENV NODE_ENV=production
 # its own restores the same cached layer.
 # In `runtime` rather than `base` so busting it rebuilds COPY layers, not yarn install and lerna.
 # DEBIAN_FRONTEND inline, never ENV: an ENV here would leak into the shipped image.
+# --with-new-pkgs because plain `upgrade` holds back any fix that pulls a new dependency, which
+# would leave the CVE in place while the scan still reports it; it stops short of dist-upgrade,
+# which may also remove packages.
 ARG APT_SECURITY_EPOCH=unset
 RUN echo "apt epoch ${APT_SECURITY_EPOCH}" \
   && DEBIAN_FRONTEND=noninteractive apt-get update \
-  && DEBIAN_FRONTEND=noninteractive apt-get upgrade -y -o Dpkg::Options::=--force-confold \
+  && DEBIAN_FRONTEND=noninteractive apt-get upgrade -y --with-new-pkgs -o Dpkg::Options::=--force-confold \
   && rm -rf /var/lib/apt/lists/*
 
 # External runtime deps (clean, reproducible install — no monorepo workspace noise).
