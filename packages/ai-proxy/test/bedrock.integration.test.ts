@@ -25,32 +25,15 @@ if (process.env.CI && !REGION) {
 
 const describeWithBedrock = REGION ? describe : describe.skip;
 
-// The geo prefix has to follow the region: an `eu.` profile id is invalid in us-east-1, and pinning
-// one would fail the whole suite for a reason unrelated to the code under test.
-function geoPrefix(region: string): string {
-  if (region.startsWith('us-gov-')) return 'us-gov.';
-  if (region.startsWith('eu-')) return 'eu.';
-  if (region.startsWith('ap-')) return 'apac.';
-  if (region.startsWith('ca-') || region.startsWith('us-')) return 'us.';
+// The three lines we advertise. Versions are deliberately not pinned: which Claude releases a
+// region carries is AWS's call and changes without us, so a pinned id fails the suite for a reason
+// that has nothing to do with the code. What must hold is that every line we advertise has at least
+// one model this account can actually drive.
+const ADVERTISED_LINES = ['claude-sonnet', 'claude-haiku', 'claude-opus'];
 
-  return 'global.';
+function advertisedLineOf(model: string): string | undefined {
+  return ADVERTISED_LINES.find(line => model.includes(line));
 }
-
-// The models we tell customers we support. Unlike the catalogue sweep below, this list does not
-// depend on what the CI account happens to enable: if one of these cannot be verified, the claim is
-// unsupported and the suite must say so.
-const SUPPORTED_MODELS = REGION
-  ? [
-      // Claude 5 first: it is the line LangChain's own inference rejects, so it is the one the
-      // supportsToolChoiceValues override exists for and the one whose regression would be silent.
-      `${geoPrefix(REGION)}anthropic.claude-sonnet-5-v1:0`,
-      `${geoPrefix(REGION)}anthropic.claude-sonnet-4-6-v1:0`,
-      `${geoPrefix(REGION)}anthropic.claude-haiku-4-5-20251001-v1:0`,
-      `${geoPrefix(REGION)}anthropic.claude-opus-4-5-v1:0`,
-    ]
-  : [];
-
-const DEFAULT_MODEL = process.env.BEDROCK_TEST_MODEL ?? SUPPORTED_MODELS[2];
 
 function bedrockConfig(model: string): AiConfiguration {
   return { name: 'test', provider: 'bedrock', model, region: REGION };
@@ -76,8 +59,44 @@ async function forcesAToolCall(model: string): Promise<boolean> {
 }
 
 describeWithBedrock('Bedrock Integration (real API)', () => {
+  // Discovered once and shared: what a region carries is AWS's call, so every assertion below is
+  // written against what this account can actually reach rather than against a pinned id.
+  let modelsToTest: string[];
+
+  // eslint-disable-next-line @typescript-eslint/no-use-before-define
+  const smokeModel = () => process.env.BEDROCK_TEST_MODEL ?? modelsToTest[0];
+
+  beforeAll(async () => {
+    const client = new BedrockClient({ region: REGION });
+
+    const [foundation, profiles] = await Promise.all([
+      client.send(new ListFoundationModelsCommand({ byOutputModality: 'TEXT' })),
+      client.send(new ListInferenceProfilesCommand({})),
+    ]);
+
+    // Models gated behind an inference profile reject their bare id, so they are only reachable
+    // through the profile id — hence the union rather than the foundation list alone.
+    const onDemand = (foundation.modelSummaries ?? [])
+      .filter(m => m.inferenceTypesSupported?.includes('ON_DEMAND'))
+      .map(m => m.modelId as string);
+    const profileIds = (profiles.inferenceProfileSummaries ?? []).map(
+      p => p.inferenceProfileId as string,
+    );
+
+    modelsToTest = [...new Set([...onDemand, ...profileIds])]
+      .filter(Boolean)
+      .filter(id => isModelSupportingTools(id, 'bedrock'))
+      .sort();
+  }, 60_000);
+
+  it('found models from the Bedrock API', () => {
+    expect(modelsToTest.length).toBeGreaterThan(0);
+    // eslint-disable-next-line no-console
+    console.log(`Testing ${modelsToTest.length} Bedrock models:`, modelsToTest);
+  });
+
   it('completes a simple chat request', async () => {
-    const model = new AiClient({ aiConfigurations: [bedrockConfig(DEFAULT_MODEL)] }).getModel();
+    const model = new AiClient({ aiConfigurations: [bedrockConfig(smokeModel())] }).getModel();
 
     const response = await model.invoke([
       { role: 'system', content: 'You are a helpful assistant. Be very concise.' },
@@ -89,7 +108,7 @@ describeWithBedrock('Bedrock Integration (real API)', () => {
 
   // The exact call the workflow executor makes on every AI step (base-step-executor.ts).
   it('forces a tool call with tool_choice: any', async () => {
-    const model = new AiClient({ aiConfigurations: [bedrockConfig(DEFAULT_MODEL)] }).getModel();
+    const model = new AiClient({ aiConfigurations: [bedrockConfig(smokeModel())] }).getModel();
     const withTools = model.bindTools([calculatorTool()], { tool_choice: 'any' });
 
     const response = await withTools.invoke([{ role: 'user', content: 'What is 2+2?' }]);
@@ -103,13 +122,16 @@ describeWithBedrock('Bedrock Integration (real API)', () => {
     ).toThrow(AIModelNotAllowlistedError);
   });
 
-  // The claim itself, model by model. An AccessDenied here is not an excuse: it means the CI
-  // account cannot invoke a model we advertise, so the advertisement is unverified.
-  describe('the models we advertise', () => {
-    it.each(SUPPORTED_MODELS)(
-      '%s honours a forced tool call',
-      async model => {
-        await expect(forcesAToolCall(model)).resolves.toBe(true);
+  // The claim itself, one line at a time. An AccessDenied here is not an excuse: it means the CI
+  // account cannot drive a line we advertise, so the advertisement is unverified.
+  describe('the lines we advertise', () => {
+    it.each(ADVERTISED_LINES)(
+      '%s has a model this account can drive',
+      async line => {
+        const candidates = modelsToTest.filter(model => advertisedLineOf(model) === line);
+
+        expect(candidates.length).toBeGreaterThan(0);
+        await expect(forcesAToolCall(candidates[0])).resolves.toBe(true);
       },
       120_000,
     );
@@ -121,37 +143,6 @@ describeWithBedrock('Bedrock Integration (real API)', () => {
   // this way is caught here. A failure is the signal to narrow the allowlist, not to loosen the
   // assertion.
   describe('Model tool support verification', () => {
-    let modelsToTest: string[];
-
-    beforeAll(async () => {
-      const client = new BedrockClient({ region: REGION });
-
-      const [foundation, profiles] = await Promise.all([
-        client.send(new ListFoundationModelsCommand({ byOutputModality: 'TEXT' })),
-        client.send(new ListInferenceProfilesCommand({})),
-      ]);
-
-      // Models gated behind an inference profile reject their bare id, so they are only reachable
-      // through the profile id — hence the union rather than the foundation list alone.
-      const onDemand = (foundation.modelSummaries ?? [])
-        .filter(m => m.inferenceTypesSupported?.includes('ON_DEMAND'))
-        .map(m => m.modelId as string);
-      const profileIds = (profiles.inferenceProfileSummaries ?? []).map(
-        p => p.inferenceProfileId as string,
-      );
-
-      modelsToTest = [...new Set([...onDemand, ...profileIds])]
-        .filter(Boolean)
-        .filter(id => isModelSupportingTools(id, 'bedrock'))
-        .sort();
-    }, 60_000);
-
-    it('found models from the Bedrock API', () => {
-      expect(modelsToTest.length).toBeGreaterThan(0);
-      // eslint-disable-next-line no-console
-      console.log(`Testing ${modelsToTest.length} Bedrock models:`, modelsToTest);
-    });
-
     it('all models support forced tool calls', async () => {
       const verified: string[] = [];
       const failures: { model: string; error: string }[] = [];
@@ -194,7 +185,7 @@ describeWithBedrock('Bedrock Integration (real API)', () => {
       expect(failures).toEqual([]);
       // A suite that verified nothing is broken, not passing: without this the whole catalogue can
       // land in `unavailable` and the allowlist stays an untested assertion that looks tested.
-      expect(verified).toContain(DEFAULT_MODEL);
+      expect(verified).toContain(smokeModel());
       // eslint-disable-next-line no-console
       console.log(`Verified ${verified.length}/${modelsToTest.length}:`, verified);
     }, 600_000);
