@@ -1,3 +1,19 @@
+## @forestadmin/mcp-server [1.24.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.24.3...@forestadmin/mcp-server@1.24.4) (2026-09-14)
+
+
+### Bug Fixes
+
+* **agent-bff:** serve legacy lianas, and stop leaking and overpromising ([#1894](https://github.com/ForestAdmin/agent-nodejs/issues/1894)) ([a215100](https://github.com/ForestAdmin/agent-nodejs/commit/a215100703672ce23023ab9a0f3ef8c0cf67a7e9))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.15.3
+* **@forestadmin/forestadmin-client:** upgraded to 1.43.4
+
 ## @forestadmin/mcp-server [1.24.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.24.2...@forestadmin/mcp-server@1.24.3) (2026-09-03)
 
 
