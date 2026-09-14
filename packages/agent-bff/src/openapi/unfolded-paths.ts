@@ -457,10 +457,15 @@ function parentIdSchema(
       // A composite id only works as its packed string: a number could never carry the separator.
       type: 'string',
       pattern: NON_BLANK_PATTERN,
+      // The order the keys are published in is not the order the agent packs them in, so naming one
+      // would send a client to build an id the agent unpacks onto the wrong columns.
       description:
-        `The composite id of the parent ${quoted(parent)} record: the values of ` +
-        `${primaryKeys.map(key => key.name).join(', ')} joined by ` +
-        `${quoted(PACKED_ID_SEPARATOR)}, in that order.`,
+        `The composite id of the parent ${quoted(parent)} record, taken verbatim from that ` +
+        `record's own id: the values of ${primaryKeys.map(key => key.name).join(', ')} joined by ` +
+        `${quoted(
+          PACKED_ID_SEPARATOR,
+        )}, in the order the agent packs them. Copy it from a listed ` +
+        `record rather than assembling it.`,
     };
   }
 
