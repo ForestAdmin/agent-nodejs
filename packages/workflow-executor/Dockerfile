@@ -60,22 +60,12 @@ FROM base AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 
-# The digest pin also freezes OS packages, so Debian security fixes can only land here, and CI's
-# blocking OS scan fails without them. Deliberately trades build reproducibility for a patched
-# image: versions resolve against the Debian archive at build time.
-# APT_SECURITY_EPOCH exists only to bound how long this layer may be served from cache — CI passes
-# the ISO week, so a cached layer expires on its own. Without it the layer keys on an unchanging
-# instruction and an unchanging pinned parent, and would never contact Debian again.
-# To force a rebuild before the week turns, bump docker/apt-refresh in a PR; re-running the job on
-# its own restores the same cached layer.
-# In `runtime` rather than `base` so busting it rebuilds COPY layers, not yarn install and lerna.
-# DEBIAN_FRONTEND inline, never ENV: an ENV here would leak into the shipped image.
-# --with-new-pkgs because plain `upgrade` holds back any fix that pulls a new dependency, which
-# would leave the CVE in place while the scan still reports it; it stops short of dist-upgrade,
-# which may also remove packages.
-ARG APT_SECURITY_EPOCH=unset
-RUN echo "apt epoch ${APT_SECURITY_EPOCH}" \
-  && DEBIAN_FRONTEND=noninteractive apt-get update \
+# The digest pin freezes Debian packages too, so security fixes can only land here. APT_EPOCH is
+# part of this layer's cache key: CI passes the run id so every run refetches; local builds reuse
+# the cached layer until --no-cache.
+ARG APT_EPOCH
+RUN echo "$APT_EPOCH" \
+  && apt-get update -o APT::Update::Error-Mode=any \
   && DEBIAN_FRONTEND=noninteractive apt-get upgrade -y --with-new-pkgs -o Dpkg::Options::=--force-confold \
   && rm -rf /var/lib/apt/lists/*
 
