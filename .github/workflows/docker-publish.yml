@@ -51,6 +51,10 @@ jobs:
         run: node packages/workflow-executor/docker/check-deps-closure.js
 
       - uses: docker/setup-buildx-action@v3
+      - name: Compute apt security epoch
+        id: apt
+        run: echo "epoch=$(date -u +%G-W%V)" >> "$GITHUB_OUTPUT"
+
       - name: Build (no push)
         uses: docker/build-push-action@v6
         with:
@@ -60,6 +64,7 @@ jobs:
           push: false
           load: true
           tags: workflow-executor:pr
+          build-args: APT_SECURITY_EPOCH=${{ steps.apt.outputs.epoch }}
           cache-from: type=gha,scope=amd64
 
       # The build only proves the image compiles. Run it to catch entrypoint
@@ -167,6 +172,10 @@ jobs:
       # exact image before it reaches the registry. Nothing is published until
       # both gates pass — otherwise a vulnerable/broken image would be pullable
       # by digest even when the gate "fails".
+      - name: Compute apt security epoch
+        id: apt
+        run: echo "epoch=$(date -u +%G-W%V)" >> "$GITHUB_OUTPUT"
+
       - name: Build (load for gating)
         uses: docker/build-push-action@v6
         with:
@@ -175,6 +184,7 @@ jobs:
           platforms: ${{ matrix.platform }}
           load: true
           tags: workflow-executor:${{ matrix.arch }}
+          build-args: APT_SECURITY_EPOCH=${{ steps.apt.outputs.epoch }}
           cache-from: type=gha,scope=${{ matrix.arch }}
           cache-to: type=gha,mode=max,scope=${{ matrix.arch }}
 
@@ -214,6 +224,9 @@ jobs:
           platforms: ${{ matrix.platform }}
           outputs: type=image,name=ghcr.io/forestadmin/workflow-executor,push-by-digest=true,name-canonical=true,push=true
           sbom: true
+          # Same epoch as the gated build above: a different value would rebuild the apt layer
+          # and push an image the scan never saw.
+          build-args: APT_SECURITY_EPOCH=${{ steps.apt.outputs.epoch }}
           cache-from: type=gha,scope=${{ matrix.arch }}
 
       - name: Export digest

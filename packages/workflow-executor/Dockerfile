@@ -7,18 +7,8 @@
 #
 # Configuration is passed entirely via environment variables — see README for the full list.
 
-# Base image pinned by digest for reproducible builds (node:22-bookworm-slim).
-# Bump via Renovate/Dependabot.
+# Base image pinned by digest (node:22-bookworm-slim). Bump via Renovate/Dependabot.
 FROM node:22-bookworm-slim@sha256:813a7480f28fdadac1f7f5c824bcdad435b5bc1322a5968bbbdef8d058f9dff4 AS base
-
-# Debian ships security fixes faster than the upstream node image rebuilds, and the digest pin means
-# we would otherwise never receive them: the Trivy gate below went red on CVE-2026-86145 and
-# CVE-2026-89161 (libpcre2) while the newest node:22-bookworm-slim still carried the vulnerable
-# 10.42-1. Applying the security updates here keeps the pin reproducible and the image patched
-# without chasing a digest per advisory.
-RUN apt-get update \
-  && apt-get upgrade -y --no-install-recommends \
-  && rm -rf /var/lib/apt/lists/*
 
 # ── Stage 1: build ────────────────────────────────────────────────────────────
 FROM base AS builder
@@ -69,6 +59,20 @@ RUN yarn install --frozen-lockfile --ignore-scripts
 FROM base AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
+
+# The digest pin also freezes OS packages, so Debian security fixes can only land here, and CI's
+# blocking OS scan fails without them. Deliberately trades build reproducibility for a patched
+# image: versions resolve against the Debian archive at build time.
+# APT_SECURITY_EPOCH exists only to bound how long this layer may be served from cache — CI passes
+# the ISO week, so a cached layer expires on its own. Without it the layer keys on an unchanging
+# instruction and an unchanging pinned parent, and would never contact Debian again.
+# In `runtime` rather than `base` so busting it rebuilds COPY layers, not yarn install and lerna.
+# DEBIAN_FRONTEND inline, never ENV: an ENV here would leak into the shipped image.
+ARG APT_SECURITY_EPOCH=unset
+RUN echo "apt epoch ${APT_SECURITY_EPOCH}" \
+  && DEBIAN_FRONTEND=noninteractive apt-get update \
+  && DEBIAN_FRONTEND=noninteractive apt-get upgrade -y -o Dpkg::Options::=--force-confold \
+  && rm -rf /var/lib/apt/lists/*
 
 # External runtime deps (clean, reproducible install — no monorepo workspace noise).
 COPY --from=prod-deps /deps/node_modules ./node_modules
