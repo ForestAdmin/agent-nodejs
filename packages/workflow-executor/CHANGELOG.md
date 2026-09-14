@@ -1,3 +1,10 @@
+## @forestadmin/workflow-executor [1.28.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.28.4...@forestadmin/workflow-executor@1.28.5) (2026-09-14)
+
+
+### Bug Fixes
+
+* **workflow-executor:** apply Debian security updates to the Docker image ([#1899](https://github.com/ForestAdmin/agent-nodejs/issues/1899)) ([9838ce7](https://github.com/ForestAdmin/agent-nodejs/commit/9838ce767012bac736b61630b06546d03e3a34f0))
+
 ## @forestadmin/workflow-executor [1.28.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.28.3...@forestadmin/workflow-executor@1.28.4) (2026-09-14)
 
 
