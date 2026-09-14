@@ -53,7 +53,12 @@ jobs:
       - uses: docker/setup-buildx-action@v3
       - name: Compute apt security epoch
         id: apt
-        run: echo "epoch=$(date -u +%G-W%V)" >> "$GITHUB_OUTPUT"
+        # Weekly by default. Bump the APT_SECURITY_SALT repository variable to force the Debian
+        # security layer to rebuild now — an advisory lands mid-week and re-running the job alone
+        # would restore the same cached layer.
+        env:
+          SALT: ${{ vars.APT_SECURITY_SALT }}
+        run: echo "epoch=$(date -u +%G-W%V)-${SALT:-0}" >> "$GITHUB_OUTPUT"
 
       - name: Build (no push)
         uses: docker/build-push-action@v6
@@ -174,7 +179,12 @@ jobs:
       # by digest even when the gate "fails".
       - name: Compute apt security epoch
         id: apt
-        run: echo "epoch=$(date -u +%G-W%V)" >> "$GITHUB_OUTPUT"
+        # Weekly by default. Bump the APT_SECURITY_SALT repository variable to force the Debian
+        # security layer to rebuild now — an advisory lands mid-week and re-running the job alone
+        # would restore the same cached layer.
+        env:
+          SALT: ${{ vars.APT_SECURITY_SALT }}
+        run: echo "epoch=$(date -u +%G-W%V)-${SALT:-0}" >> "$GITHUB_OUTPUT"
 
       - name: Build (load for gating)
         uses: docker/build-push-action@v6
