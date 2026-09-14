@@ -7,10 +7,17 @@ export const PACKED_ID_SEPARATOR = '|';
 // The only column type unpacked to a number, mirroring the agent's `IdUtils.unpackId`.
 const NUMBER_COLUMN_TYPE = 'Number';
 
-function toNumberIfWhole(value: string): string | number {
+/**
+ * The numeric form of an id, but only when it round-trips back to the exact same characters. A
+ * derived key carries the agent id opaque, so a cast that loses anything defeats its whole purpose:
+ * `9007199254740993` casts to `...992` and would name a different record, `Infinity` and `NaN`
+ * serialize as `null`, and `1e3` or `042` come back spelled differently from what the record's `id`
+ * holds. In every one of those the string is kept, which the contract already allows.
+ */
+function toNumberIfLossless(value: string): string | number {
   const numeric = Number(value);
 
-  return Number.isNaN(numeric) ? value : numeric;
+  return Number.isSafeInteger(numeric) && String(numeric) === value ? numeric : value;
 }
 
 /**
@@ -36,7 +43,7 @@ export default function unpackPrimaryKey(
 
   if (first.derived) {
     return {
-      [first.name]: first.type === NUMBER_COLUMN_TYPE ? toNumberIfWhole(packedId) : packedId,
+      [first.name]: first.type === NUMBER_COLUMN_TYPE ? toNumberIfLossless(packedId) : packedId,
     };
   }
 

@@ -57,5 +57,19 @@ describe('unpackPrimaryKey', () => {
         id: '7|ab',
       });
     });
+
+    // The derived key carries the agent id opaque, so a cast that loses anything names another
+    // record. Every one of these round-trips back to different characters than `record.id` holds.
+    it.each([
+      ['an integer past the safe range', '9007199254740993'],
+      ['a non-finite value', 'Infinity'],
+      ['an exponent form', '1e3'],
+      ['a leading zero', '042'],
+      ['a fractional value', '42.5'],
+    ])('should keep %s a string rather than cast it lossily', (_, packedId) => {
+      expect(unpackPrimaryKey(packedId, [{ name: 'id', type: 'Number', derived: true }])).toEqual({
+        id: packedId,
+      });
+    });
   });
 });
