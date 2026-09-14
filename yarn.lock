@@ -118,10 +118,10 @@
     "@smithy/util-utf8" "^2.0.0"
     tslib "^2.6.2"
 
-"@aws-sdk/client-bedrock-agent-runtime@^3.1059.0":
-  version "3.1130.0"
-  resolved "https://registry.yarnpkg.com/@aws-sdk/client-bedrock-agent-runtime/-/client-bedrock-agent-runtime-3.1130.0.tgz#aa64324aecfb069210c2f654cec93960d2e5b88d"
-  integrity sha512-Qb8QRvm8IVFOy8HQuz/yp2pq7UGD5B6zNbQUUr7BmSsDaGyDAJ3XAl4lTJwrOzSISMl6w23tZTmPvDzSrQoudw==
+"@aws-sdk/client-bedrock-agent-runtime@^3.1078.0":
+  version "3.1131.0"
+  resolved "https://registry.yarnpkg.com/@aws-sdk/client-bedrock-agent-runtime/-/client-bedrock-agent-runtime-3.1131.0.tgz#ebbcdeb40493358333767f036df7eba6277c1f81"
+  integrity sha512-GRXNVmp2/W/Wb/EeC4rVaMYJnu1MYw2VjUWeN2xaFgxxX/Oo3uyLp6uWojnG70DQ/mkFlsdW3Mgg4DMRL9qpFw==
   dependencies:
     "@aws-sdk/core" "^3.978.0"
     "@aws-sdk/credential-provider-node" "^3.972.83"
@@ -132,17 +132,17 @@
     "@smithy/types" "^4.17.2"
     tslib "^2.6.2"
 
-"@aws-sdk/client-bedrock-runtime@^3.1059.0":
-  version "3.1130.0"
-  resolved "https://registry.yarnpkg.com/@aws-sdk/client-bedrock-runtime/-/client-bedrock-runtime-3.1130.0.tgz#9e0ab2299d24e325e730cda4fd198ec39a44aa25"
-  integrity sha512-+PInS/B3O4ONObqLVVTZMtRylkOTFtHi6AOFhENYvkEHiQCngcPnmQxN+1eIFkWd4aVeiniqaG0fZgd+JAgqzA==
+"@aws-sdk/client-bedrock-runtime@^3.1078.0":
+  version "3.1131.0"
+  resolved "https://registry.yarnpkg.com/@aws-sdk/client-bedrock-runtime/-/client-bedrock-runtime-3.1131.0.tgz#42a907357c92d0eaafd8cd1e8ed711eb8714b810"
+  integrity sha512-q0MTJy3yknOJDt7RfX156CZ/RMkp9X0dWUNBkhEaPU3l+rLV5VYkjsbucF1397UD4eKu1AiMKfP62yE08zblBg==
   dependencies:
     "@aws-sdk/core" "^3.978.0"
     "@aws-sdk/credential-provider-node" "^3.972.83"
     "@aws-sdk/eventstream-handler-node" "^3.972.34"
     "@aws-sdk/middleware-eventstream" "^3.972.29"
     "@aws-sdk/middleware-websocket" "^3.972.53"
-    "@aws-sdk/token-providers" "3.1130.0"
+    "@aws-sdk/token-providers" "3.1131.0"
     "@aws-sdk/types" "^3.974.5"
     "@smithy/core" "^3.33.3"
     "@smithy/fetch-http-handler" "^5.7.2"
@@ -210,10 +210,10 @@
     "@smithy/util-utf8" "^4.2.1"
     tslib "^2.6.2"
 
-"@aws-sdk/client-kendra@^3.1059.0":
-  version "3.1130.0"
-  resolved "https://registry.yarnpkg.com/@aws-sdk/client-kendra/-/client-kendra-3.1130.0.tgz#32e571295622042ab17a882ab62f45e8f7a1cf55"
-  integrity sha512-/fF1FjG/I2GEEck5kCZJSQL1wpzAbWDJWE0bi9ESiiClokcvIiLmR6pqWw5eR0ew7dp0ZC/RVgWn1bVQ/snnJg==
+"@aws-sdk/client-kendra@^3.1078.0":
+  version "3.1131.0"
+  resolved "https://registry.yarnpkg.com/@aws-sdk/client-kendra/-/client-kendra-3.1131.0.tgz#b8d1556bc755635e2e65b39f2a45f649aadfc883"
+  integrity sha512-8ABypPT5eP5XYinpwRZyJ8b2DjrCcZgOPO2b4L+2Ul4wn/aQroE6rkNbWqRLf+XzC+CWBBYreSuadRePQb8feQ==
   dependencies:
     "@aws-sdk/core" "^3.978.0"
     "@aws-sdk/credential-provider-node" "^3.972.83"
@@ -471,7 +471,7 @@
     "@smithy/types" "^4.12.1"
     tslib "^2.6.2"
 
-"@aws-sdk/credential-provider-node@^3.972.49", "@aws-sdk/credential-provider-node@^3.972.83":
+"@aws-sdk/credential-provider-node@^3.972.61", "@aws-sdk/credential-provider-node@^3.972.83":
   version "3.972.83"
   resolved "https://registry.yarnpkg.com/@aws-sdk/credential-provider-node/-/credential-provider-node-3.972.83.tgz#f4e16b3a1d5d0237460c1b532de37eb6505985dc"
   integrity sha512-jdso7ejzfRnatxMUZK4S/U6KbaDPCvfIV4XL+IQAPFDBt5rj5Fq595euqlK8Le4lNCMFR9oUpt+1l0aMgaayOQ==
@@ -867,6 +867,18 @@
   version "3.1130.0"
   resolved "https://registry.yarnpkg.com/@aws-sdk/token-providers/-/token-providers-3.1130.0.tgz#a621155f8bec0369b43b152fbfeb1c7a58c13509"
   integrity sha512-JYWQa89/lGNUaw39eP1nfGctusq2fBcUEqjRawHRiU7CUebbwMOQI/BzEM3cLb0kdrVNILFUz5zlBfLwP21EoA==
+  dependencies:
+    "@aws-sdk/core" "^3.978.0"
+    "@aws-sdk/nested-clients" "^3.997.45"
+    "@aws-sdk/types" "^3.974.5"
+    "@smithy/core" "^3.33.3"
+    "@smithy/types" "^4.17.2"
+    tslib "^2.6.2"
+
+"@aws-sdk/token-providers@3.1131.0":
+  version "3.1131.0"
+  resolved "https://registry.yarnpkg.com/@aws-sdk/token-providers/-/token-providers-3.1131.0.tgz#2d9ae7cf94cbd61cca937a79651c0b2eedff4969"
+  integrity sha512-csUjJ+GsvyjPJhtTURYP2yzZKduVw7VA8L1OpTm39RiA1VYR1eiO7uihOcvXXVOgbaL2GoH4FTGx6X+6s1p6tA==
   dependencies:
     "@aws-sdk/core" "^3.978.0"
     "@aws-sdk/nested-clients" "^3.997.45"
@@ -2881,15 +2893,15 @@
     "@anthropic-ai/sdk" "^0.95.1"
     zod "^3.25.76 || ^4"
 
-"@langchain/aws@1.4.0":
-  version "1.4.0"
-  resolved "https://registry.yarnpkg.com/@langchain/aws/-/aws-1.4.0.tgz#e7d866aa5482bdc3cd1ae42b6bdd2f74352c03d0"
-  integrity sha512-i4xWnW4RNTNEk0L7jDKQpV8HdT1SMJ4tPl8R/42SWizEi/+kdapryPzsBBfaFVyIt909t1gE/ArN/83WAydwxw==
+"@langchain/aws@1.4.3":
+  version "1.4.3"
+  resolved "https://registry.yarnpkg.com/@langchain/aws/-/aws-1.4.3.tgz#7d159051d5fa3e73ce49bd7140ae6b33a7469073"
+  integrity sha512-X3oNXI1/pLizW6D4Wd1ojWTTPGnRgli8S+rm+CAhFAevIP3UdFfTDY6xih7xrQQ/0sO7po/eD0jHeZoLRKhhBg==
   dependencies:
-    "@aws-sdk/client-bedrock-agent-runtime" "^3.1059.0"
-    "@aws-sdk/client-bedrock-runtime" "^3.1059.0"
-    "@aws-sdk/client-kendra" "^3.1059.0"
-    "@aws-sdk/credential-provider-node" "^3.972.49"
+    "@aws-sdk/client-bedrock-agent-runtime" "^3.1078.0"
+    "@aws-sdk/client-bedrock-runtime" "^3.1078.0"
+    "@aws-sdk/client-kendra" "^3.1078.0"
+    "@aws-sdk/credential-provider-node" "^3.972.61"
 
 "@langchain/core@1.1.48":
   version "1.1.48"
