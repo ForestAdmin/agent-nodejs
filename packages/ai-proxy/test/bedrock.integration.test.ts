@@ -12,10 +12,45 @@ import { AIModelNotAllowlistedError, AiClient, DynamicStructuredTool } from '../
 import isModelSupportingTools from '../src/supported-models';
 
 const REGION = process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION;
+
+// Skipping is fine on a laptop and a lie in CI, where it turns "nobody configured the secrets" into
+// a green run that reads as "Bedrock is verified". This suite is the only evidence the allowlist is
+// anything but an assertion, so in CI a missing region is a failure.
+if (process.env.CI && !REGION) {
+  throw new Error(
+    'Bedrock integration tests cannot run: set the BEDROCK_AWS_REGION, BEDROCK_AWS_ACCESS_KEY_ID ' +
+      'and BEDROCK_AWS_SECRET_ACCESS_KEY repository secrets.',
+  );
+}
+
 const describeWithBedrock = REGION ? describe : describe.skip;
 
-const DEFAULT_MODEL =
-  process.env.BEDROCK_TEST_MODEL ?? 'eu.anthropic.claude-haiku-4-5-20251001-v1:0';
+// The geo prefix has to follow the region: an `eu.` profile id is invalid in us-east-1, and pinning
+// one would fail the whole suite for a reason unrelated to the code under test.
+function geoPrefix(region: string): string {
+  if (region.startsWith('us-gov-')) return 'us-gov.';
+  if (region.startsWith('eu-')) return 'eu.';
+  if (region.startsWith('ap-')) return 'apac.';
+  if (region.startsWith('ca-') || region.startsWith('us-')) return 'us.';
+
+  return 'global.';
+}
+
+// The models we tell customers we support. Unlike the catalogue sweep below, this list does not
+// depend on what the CI account happens to enable: if one of these cannot be verified, the claim is
+// unsupported and the suite must say so.
+const SUPPORTED_MODELS = REGION
+  ? [
+      // Claude 5 first: it is the line LangChain's own inference rejects, so it is the one the
+      // supportsToolChoiceValues override exists for and the one whose regression would be silent.
+      `${geoPrefix(REGION)}anthropic.claude-sonnet-5-v1:0`,
+      `${geoPrefix(REGION)}anthropic.claude-sonnet-4-6-v1:0`,
+      `${geoPrefix(REGION)}anthropic.claude-haiku-4-5-20251001-v1:0`,
+      `${geoPrefix(REGION)}anthropic.claude-opus-4-5-v1:0`,
+    ]
+  : [];
+
+const DEFAULT_MODEL = process.env.BEDROCK_TEST_MODEL ?? SUPPORTED_MODELS[2];
 
 function bedrockConfig(model: string): AiConfiguration {
   return { name: 'test', provider: 'bedrock', model, region: REGION };
@@ -28,6 +63,16 @@ function calculatorTool(): DynamicStructuredTool {
     schema: z.object({ result: z.number().describe('The result of the expression') }),
     func: async ({ result }: { result: number }) => String(result),
   });
+}
+
+async function forcesAToolCall(model: string): Promise<boolean> {
+  const withTools = new AiClient({ aiConfigurations: [bedrockConfig(model)] })
+    .getModel()
+    .bindTools([calculatorTool()], { tool_choice: 'any' });
+
+  const response = await withTools.invoke([{ role: 'user', content: 'What is 2+2?' }]);
+
+  return Boolean(response.tool_calls?.length);
 }
 
 describeWithBedrock('Bedrock Integration (real API)', () => {
@@ -56,6 +101,18 @@ describeWithBedrock('Bedrock Integration (real API)', () => {
     expect(
       () => new AiClient({ aiConfigurations: [bedrockConfig('anthropic.does-not-exist-v1:0')] }),
     ).toThrow(AIModelNotAllowlistedError);
+  });
+
+  // The claim itself, model by model. An AccessDenied here is not an excuse: it means the CI
+  // account cannot invoke a model we advertise, so the advertisement is unverified.
+  describe('the models we advertise', () => {
+    it.each(SUPPORTED_MODELS)(
+      '%s honours a forced tool call',
+      async model => {
+        await expect(forcesAToolCall(model)).resolves.toBe(true);
+      },
+      120_000,
+    );
   });
 
   // Same contract as llm.integration.test.ts for OpenAI/Anthropic: every model the allowlist in
