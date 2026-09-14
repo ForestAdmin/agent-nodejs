@@ -162,6 +162,39 @@ describe('createBaseChatModel', () => {
       );
     });
 
+    // Passing `credentials` here would pin the client to static keys and silently disable the AWS
+    // credential chain — which is how customers assume an IAM role (profile `role_arn`, or IRSA on
+    // EKS). Leaving it unset is the feature, not an omission.
+    it('never passes explicit credentials, so the AWS chain resolves them', () => {
+      createBaseChatModel({
+        name: 'bedrock',
+        provider: 'bedrock',
+        model: 'us.anthropic.claude-sonnet-4-6-v1:0',
+        region: 'eu-west-3',
+      });
+
+      const passedArgs = (ChatBedrockConverse as unknown as jest.Mock).mock.calls[0][0];
+      expect(passedArgs).not.toHaveProperty('credentials');
+      expect(passedArgs).not.toHaveProperty('bedrockApiKey');
+      expect(passedArgs).not.toHaveProperty('apiKey');
+    });
+
+    it('forwards an explicit role to the credential chain', () => {
+      createBaseChatModel({
+        name: 'bedrock',
+        provider: 'bedrock',
+        model: 'us.anthropic.claude-sonnet-4-6-v1:0',
+        region: 'eu-west-3',
+        roleArn: 'arn:aws:iam::123456789012:role/ForestRuntimeBedrock',
+      });
+
+      expect(ChatBedrockConverse).toHaveBeenCalledWith(
+        expect.objectContaining({
+          roleArn: 'arn:aws:iam::123456789012:role/ForestRuntimeBedrock',
+        }),
+      );
+    });
+
     it('lets the caller override the inferred tool_choice support', () => {
       createBaseChatModel({
         name: 'bedrock',
