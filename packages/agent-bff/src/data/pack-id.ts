@@ -62,12 +62,13 @@ function comparableValue(record: Record<string, unknown>, key: PrimaryKeyField):
  * `Date` or a Buffer key is the same story from the other side: their attribute form differs from
  * the packed one (ISO versus `String(date)`), they match nothing, and they keep their position.
  *
- * A key that matches nothing keeps its own positional segment whenever no match claimed it, and
- * moves only when a match did. A single unread key can be placed safely, since the one segment left
- * over is necessarily its own. Several cannot: as soon as one of them loses its segment to a match,
- * which of the remaining segments is whose is exactly the question the record failed to answer, and
- * placing them anyway hands back a wrong key under a 200 where the positional pairing would have
- * raised its numeric-cast error. The whole reordering is dropped there, errors included.
+ * One key the record cannot answer for is still placed: the single segment left over is necessarily
+ * its own, whatever the published order. Two are not. Which of the remaining segments is whose is
+ * exactly the question the record failed to answer, and placing them anyway hands back a wrong key
+ * under a 200 where the positional pairing would have raised its numeric-cast error. So the whole
+ * reordering is dropped as soon as a second key goes unread, errors included. Keeping an unread key
+ * on its own segment instead is not enough: with four keys, two read and two unread, both unread
+ * ones can sit on their published segment and both still be wrong.
  *
  * With no record, the values are returned whole and the pairing is the positional one.
  */
@@ -89,19 +90,11 @@ function segmentsByKey(
     return values[index];
   });
 
-  const unread = matched.filter(value => value === null).length;
-  const placed = matched.map((value, index) => {
-    if (value !== null || claimed[index]) return value;
-    claimed[index] = true;
-
-    return values[index];
-  });
-
-  if (unread > 1 && placed.some(value => value === null)) return values;
+  if (matched.filter(value => value === null).length > 1) return values;
 
   const leftovers = values.filter((_, index) => !claimed[index]);
 
-  return placed.map(value => value ?? (leftovers.shift() as string));
+  return matched.map(value => value ?? (leftovers.shift() as string));
 }
 
 /**

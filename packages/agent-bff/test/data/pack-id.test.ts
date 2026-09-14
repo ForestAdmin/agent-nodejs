@@ -152,6 +152,21 @@ describe('unpackPrimaryKey', () => {
       ).toEqual({ alpha: 'a', beta: 'b', gamma: 'g' });
     });
 
+    it('should keep the positional pairing when two unread keys each sit on a published segment', () => {
+      expect(() =>
+        unpackPrimaryKey(
+          '9|5|ab|7',
+          [
+            { name: 'id', type: 'Number' },
+            { name: 'owner_id', type: 'String', ambiguousRecordKey: true },
+            { name: 'seq', type: 'Number' },
+            { name: 'sku', type: 'String' },
+          ],
+          { seq: 7, sku: 'ab', ownerId: '5', id: '9|5|ab|7' },
+        ),
+      ).toThrow(expect.objectContaining({ type: 'mapping_error', status: 500 }));
+    });
+
     it('should keep the positional pairing, error included, when two displaced keys stay unread', () => {
       expect(() =>
         unpackPrimaryKey(
