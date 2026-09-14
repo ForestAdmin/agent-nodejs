@@ -35,6 +35,7 @@ const OPENAI_UNSUPPORTED_PATTERNS = [
   '-realtime',
   '-live',
   '-audio',
+  '-live',
   '-transcribe',
   '-tts',
   '-search',
@@ -120,12 +121,34 @@ const BEDROCK_INFERENCE_PROFILE_PREFIXES = [
   'global.',
 ];
 
-const BEDROCK_SUPPORTED_ANTHROPIC_FAMILIES = ['claude-sonnet', 'claude-haiku', 'claude-opus'];
+// Anthropic renamed its lines mid-Claude-4: `claude-3-5-sonnet` became `claude-sonnet-4-6`. Both
+// spellings are live on Bedrock, and matching only the new one silently excludes every Claude 3.x.
+const BEDROCK_SUPPORTED_ANTHROPIC_FAMILIES = [
+  'claude-sonnet',
+  'claude-haiku',
+  'claude-opus',
+  'claude-3-sonnet',
+  'claude-3-haiku',
+  'claude-3-opus',
+  'claude-3-5-sonnet',
+  'claude-3-5-haiku',
+  'claude-3-7-sonnet',
+];
 
 // `-v1:0`, and the context-window variants Bedrock appends to it: `-v1:0:200k`, `-v1:0:24k`.
 const BEDROCK_VERSION_SUFFIX = /-v\d+:\d+(:\w+)?$/;
 
+// `arn:aws:bedrock:<region>:<account>:inference-profile/<profile id>` is a documented modelId, and
+// the profile id is the tail — so the ARN form reduces to the id form. Application inference
+// profiles carry an opaque id instead and cannot be resolved without calling Bedrock, so they stay
+// out of the allowlist.
+const BEDROCK_INFERENCE_PROFILE_ARN = /^arn:aws[\w-]*:bedrock:[^:]*:[^:]*:inference-profile\/(.+)$/;
+
 function isBedrockModelSupported(model: string): boolean {
+  const arnMatch = BEDROCK_INFERENCE_PROFILE_ARN.exec(model);
+
+  if (arnMatch) return isBedrockModelSupported(arnMatch[1]);
+
   const profilePrefix = BEDROCK_INFERENCE_PROFILE_PREFIXES.find(prefix => model.startsWith(prefix));
   const vendorId = profilePrefix ? model.slice(profilePrefix.length) : model;
   const separatorIndex = vendorId.indexOf('.');
