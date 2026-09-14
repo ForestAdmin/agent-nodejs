@@ -33,6 +33,7 @@ const OPENAI_UNSUPPORTED_PREFIXES = [
 const OPENAI_UNSUPPORTED_PATTERNS = [
   // Non-chat model variants (can appear in the middle of model names)
   '-realtime',
+  '-live',
   '-audio',
   '-transcribe',
   '-tts',
