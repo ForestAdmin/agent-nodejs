@@ -151,7 +151,8 @@ jobs:
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          # The Bedrock suite skips itself when AWS_REGION is unset.
+          # The Bedrock suite fails the job when AWS_REGION is unset: a silent skip would let the
+          # provider rot untested. Set BEDROCK_AWS_* in the repository secrets.
           AWS_REGION: ${{ secrets.BEDROCK_AWS_REGION }}
           AWS_ACCESS_KEY_ID: ${{ secrets.BEDROCK_AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.BEDROCK_AWS_SECRET_ACCESS_KEY }}
