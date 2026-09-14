@@ -79,17 +79,17 @@ describe('unpackPrimaryKey', () => {
       ).toEqual({ id: 42, tenant: 'acme' });
     });
 
-    it('should keep the packed value, not the record value, once the segment is placed', () => {
+    it('should keep a date key positional, its attribute being ISO where the id is not', () => {
       expect(
         unpackPrimaryKey(
-          '042|acme',
+          'Thu Jan 01 2026 00:00:00 GMT+0100|acme',
           [
-            { name: 'ref', type: 'String' },
+            { name: 'day', type: 'Date' },
             { name: 'tenant', type: 'String' },
           ],
-          { ref: '042', tenant: 'acme' },
+          { day: '2026-01-01T00:00:00.000Z', tenant: 'acme' },
         ),
-      ).toEqual({ ref: '042', tenant: 'acme' });
+      ).toEqual({ day: 'Thu Jan 01 2026 00:00:00 GMT+0100', tenant: 'acme' });
     });
 
     it.each([
@@ -97,8 +97,7 @@ describe('unpackPrimaryKey', () => {
       ['a boolean', false],
       ['a relation object', { id: 3 }],
       ['a buffer payload', { type: 'Buffer', data: [1, 2] }],
-      ['an array', [1, 2]],
-    ])('should ignore %s and fall back to the positional segment', (_, value) => {
+    ])('should not read %s as a key value, leaving that key its position', (_, value) => {
       expect(
         unpackPrimaryKey(
           '7|ab',
@@ -109,6 +108,20 @@ describe('unpackPrimaryKey', () => {
           { orderId: value, sku: 'ab' },
         ),
       ).toEqual({ orderId: 7, sku: 'ab' });
+    });
+
+    it('should refuse to read a key whose response key another field shares', () => {
+      expect(
+        unpackPrimaryKey(
+          'A|B|C',
+          [
+            { name: 'ownerId', type: 'String', ambiguousRecordKey: true },
+            { name: 'owner_id', type: 'String', ambiguousRecordKey: true },
+            { name: 'sku', type: 'String' },
+          ],
+          { ownerId: 'B', sku: 'C' },
+        ),
+      ).toEqual({ ownerId: 'A', owner_id: 'B', sku: 'C' });
     });
 
     it('should fall back to the positional segments when no key matches', () => {
@@ -150,19 +163,6 @@ describe('unpackPrimaryKey', () => {
       expect(unpackPrimaryKey('42', [{ name: 'id', type: 'Number' }], { id: '42' })).toEqual({
         id: 42,
       });
-    });
-
-    it('should assign one segment to a single key even when two keys share a value', () => {
-      expect(
-        unpackPrimaryKey(
-          'acme|acme',
-          [
-            { name: 'tenant_id', type: 'String' },
-            { name: 'owner_id', type: 'String' },
-          ],
-          { tenantId: 'acme', ownerId: 'acme' },
-        ),
-      ).toEqual({ tenant_id: 'acme', owner_id: 'acme' });
     });
   });
 

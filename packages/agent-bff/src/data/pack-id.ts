@@ -27,8 +27,15 @@ function toNumberIfLossless(value: string): string | number {
  * (`agent-client/src/http-requester.ts`). Anything that is not a string or a finite number is
  * ignored: a record attribute can also be `null`, a boolean, a relation object written over the
  * same key, or the JSON of a Buffer, and none of those names a segment.
+ *
+ * A key whose response key is shared with another field is refused outright. The record then holds
+ * a single value under that key and which field wrote it is not knowable here, so reading it could
+ * claim the segment of a sibling key — worse than not matching at all.
  */
-function comparableValue(record: Record<string, unknown>, name: string): string | null {
+function comparableValue(record: Record<string, unknown>, key: PrimaryKeyField): string | null {
+  if (key.ambiguousRecordKey) return null;
+
+  const { name } = key;
   const declared = record[name];
   const value = declared === undefined || declared === null ? record[recordKey(name)] : declared;
 
@@ -47,11 +54,13 @@ function comparableValue(record: Record<string, unknown>, name: string): string 
  * answers 500.
  *
  * The record settles it. Its attributes hold the key values, so a segment equal to one of them
- * belongs to that key whatever the published order. The record is used for THAT and nothing else:
- * the value emitted is always the packed segment, never the record's own, because the two forms
- * differ on a Date (ISO in the attributes, `String(date)` in the id) and on a Buffer, and because a
- * key named `id` reads the whole packed id — `jsonapi-serializer` overwrites that attribute with
- * the resource id. Such a key simply matches nothing and takes the segment its siblings left.
+ * belongs to that key whatever the published order. The record is used for THAT and nothing else —
+ * the value emitted is always the packed segment, never the record's own. The case that forces it
+ * is a key named `id`: `jsonapi-serializer` overwrites that attribute with the resource id
+ * (`deserializer-utils.js`), so the record would hand back `acme|42` for it. Reading the segment
+ * instead keeps that key correct, and it matches nothing, so it takes what its siblings left. A
+ * `Date` or a Buffer key is the same story from the other side: their attribute form differs from
+ * the packed one (ISO versus `String(date)`), they match nothing, and they keep their position.
  *
  * A key that matches nothing keeps its positional segment, which is what this function returns
  * whole when no record is given.
@@ -64,8 +73,8 @@ function segmentsByKey(
   if (!record) return values;
 
   const claimed = values.map(() => false);
-  const matched = primaryKeys.map(({ name }) => {
-    const wanted = comparableValue(record, name);
+  const matched = primaryKeys.map(key => {
+    const wanted = comparableValue(record, key);
     const index = wanted === null ? -1 : values.findIndex((v, i) => !claimed[i] && v === wanted);
 
     if (index === -1) return null;
