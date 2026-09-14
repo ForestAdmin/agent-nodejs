@@ -131,9 +131,27 @@ describeWithBedrock('Bedrock Integration (real API)', () => {
         const candidates = modelsToTest.filter(model => advertisedLineOf(model) === line);
 
         expect(candidates.length).toBeGreaterThan(0);
-        await expect(forcesAToolCall(candidates[0])).resolves.toBe(true);
+
+        // "at least one" is the claim, so try until one answers rather than betting on the first:
+        // the list is sorted, so candidates[0] is the oldest release and the next to be retired.
+        const failures: string[] = [];
+
+        // eslint-disable-next-line no-restricted-syntax
+        for (const model of candidates) {
+          // eslint-disable-next-line no-await-in-loop
+          const outcome = await forcesAToolCall(model).then(
+            driven => (driven ? null : 'no tool call in the response'),
+            (error: Error) => `${error.name}: ${error.message}`,
+          );
+
+          if (outcome === null) return;
+
+          failures.push(`${model} (${outcome})`);
+        }
+
+        throw new Error(`No ${line} model could be driven.\n  ${failures.join('\n  ')}`);
       },
-      120_000,
+      300_000,
     );
   });
 

@@ -90,7 +90,6 @@ describe('isModelSupportingTools', () => {
 
     it.each([
       'anthropic.claude-3-5-sonnet-20241022-v2:0',
-      'anthropic.claude-3-sonnet-20240229-v1:0',
     ])('allows the legacy claude-3.x naming too: %s', model => {
       expect(isModelSupportingTools(model, 'bedrock')).toBe(true);
     });
@@ -112,6 +111,8 @@ describe('isModelSupportingTools', () => {
     it.each([
       'us.anthropic.claude-3-7-sonnet-20250219-v1:0',
       'us.anthropic.claude-3-5-haiku-20241022-v1:0',
+      // Bedrock's own words: "This model version has reached the end of its life."
+      'eu.anthropic.claude-3-sonnet-20240229-v1:0',
     ])('lets the EOL denylist fire after the family allowlist passes: %s', model => {
       expect(isModelSupportingTools(model, 'bedrock')).toBe(false);
     });
