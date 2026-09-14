@@ -140,7 +140,11 @@ describe('createBaseChatModel', () => {
     it('falls back to AWS_REGION, which LangChain itself ignores', () => {
       process.env.AWS_REGION = 'us-east-1';
 
-      createBaseChatModel({ name: 'bedrock', provider: 'bedrock', model: 'amazon.nova-pro-v1:0' });
+      createBaseChatModel({
+        name: 'bedrock',
+        provider: 'bedrock',
+        model: 'eu.anthropic.claude-sonnet-5-v1:0',
+      });
 
       expect(ChatBedrockConverse).toHaveBeenCalledWith(
         expect.objectContaining({ region: 'us-east-1' }),
@@ -153,7 +157,7 @@ describe('createBaseChatModel', () => {
       createBaseChatModel({
         name: 'bedrock',
         provider: 'bedrock',
-        model: 'amazon.nova-pro-v1:0',
+        model: 'eu.anthropic.claude-sonnet-5-v1:0',
         region: 'eu-west-3',
       });
 
@@ -195,11 +199,21 @@ describe('createBaseChatModel', () => {
       );
     });
 
+    it('refuses to build without any region rather than deferring to LangChain', () => {
+      expect(() =>
+        createBaseChatModel({
+          name: 'bedrock',
+          provider: 'bedrock',
+          model: 'eu.anthropic.claude-sonnet-5-v1:0',
+        }),
+      ).toThrow('Bedrock requires a region');
+    });
+
     it('lets the caller override the inferred tool_choice support', () => {
       createBaseChatModel({
         name: 'bedrock',
         provider: 'bedrock',
-        model: 'amazon.titan-text-express-v1',
+        model: 'eu.anthropic.claude-opus-4-5-v1:0',
         region: 'eu-west-3',
         supportsToolChoiceValues: [],
       });

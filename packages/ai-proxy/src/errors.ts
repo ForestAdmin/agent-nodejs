@@ -30,6 +30,17 @@ export class AIModelNotSupportedError extends AIBadRequestError {
   }
 }
 
+export class AIModelNotAllowlistedError extends AIBadRequestError {
+  constructor(model: string) {
+    super(
+      `Model '${model}' is not supported on Amazon Bedrock. Supported ids are the Claude sonnet, ` +
+        `haiku and opus lines, as a model id or a cross-region inference profile id ` +
+        `(e.g. 'eu.anthropic.claude-sonnet-4-6-v1:0'). Inference profile ARNs are not accepted.`,
+    );
+    this.name = 'AIModelNotAllowlistedError';
+  }
+}
+
 export class AINotFoundError extends NotFoundError {
   constructor(message: string) {
     super(message);

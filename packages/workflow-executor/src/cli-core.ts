@@ -203,7 +203,10 @@ function parseAiConfig(env: NodeJS.ProcessEnv): AiConfiguration[] | undefined {
   }
 
   if (!AI_API_KEY) {
-    throw new Error(AI_CONFIG_ALL_OR_NOTHING);
+    throw new Error(
+      `AI_API_KEY is required for AI_PROVIDER=${AI_PROVIDER}. Only bedrock reads its credentials ` +
+        'from the AWS credential chain.',
+    );
   }
 
   return [
@@ -339,9 +342,11 @@ Optional environment variables:
   FORCE_AI_ERROR         Set to "true" to make every AI call fail (dev only, to test error paths)
 
 AI configuration (all-or-nothing — falls back to server AI if any is missing):
-  AI_PROVIDER            'anthropic' | 'openai'
+  AI_PROVIDER            'anthropic' | 'openai' | 'bedrock'
   AI_MODEL               Model name (e.g. claude-sonnet-4-6)
-  AI_API_KEY             Provider API key
+  AI_API_KEY             Provider API key. Not used with bedrock, which reads the AWS
+                         credential chain; setting it alongside bedrock is an error.
+  AWS_REGION             Required with bedrock (or AWS_DEFAULT_REGION)
 
 Signals:
   SIGTERM / SIGINT  Graceful shutdown (drain in-flight, then exit)`);

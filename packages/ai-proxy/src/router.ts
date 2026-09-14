@@ -45,12 +45,25 @@ export class Router {
   // Extension point for server-side tool providers. Currently empty — the Brave Search provider
   // was removed (deprecated, unused). The `localToolsApiKeys` constructor param is kept so callers
   // don't break and future local tools can be wired here from those keys.
+  private static readonly DISPATCHABLE_PROVIDERS: string[] = ['openai', 'anthropic'];
+
   private static createLocalToolProviders(): ToolProvider[] {
     return [];
   }
 
   private validateConfigurations(): void {
     for (const config of this.aiConfigurations) {
+      // ProviderDispatcher only implements openai and anthropic. Without this, a bedrock config
+      // constructs cleanly, gets published in the provider metadata, and then fails every end-user
+      // query with a 400 — three green lights before the refusal.
+      if (!Router.DISPATCHABLE_PROVIDERS.includes(config.provider)) {
+        throw new AIBadRequestError(
+          `AI configuration '${config.name}' uses provider '${config.provider}', which the AI ` +
+            `proxy cannot serve. Bedrock is only available to the self-hosted workflow executor ` +
+            `(AI_PROVIDER=bedrock, or addWorkflowExecutor({ ai })).`,
+        );
+      }
+
       if (!isModelSupportingTools(config.model, config.provider)) {
         throw new AIModelNotSupportedError(config.model);
       }

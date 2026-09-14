@@ -2,7 +2,12 @@ import type { ToolProvider } from '../src/tool-provider';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
 
-import { AIModelNotSupportedError, AINotConfiguredError, AiClient } from '../src';
+import {
+  AIModelNotAllowlistedError,
+  AIModelNotSupportedError,
+  AINotConfiguredError,
+  AiClient,
+} from '../src';
 import { createToolProviders } from '../src/tool-provider-factory';
 
 jest.mock('../src/tool-provider-factory', () => ({
@@ -46,7 +51,7 @@ describe('Model validation', () => {
     ).not.toThrow();
   });
 
-  it('throws AIModelNotSupportedError for a denylisted model behind its bedrock id', () => {
+  it('throws AIModelNotAllowlistedError for a model outside the bedrock allowlist', () => {
     expect(
       () =>
         new AiClient({
@@ -59,7 +64,7 @@ describe('Model validation', () => {
             },
           ],
         }),
-    ).toThrow(AIModelNotSupportedError);
+    ).toThrow(AIModelNotAllowlistedError);
   });
 
   it('accepts a supported bedrock model', () => {

@@ -84,6 +84,13 @@ describe('isModelSupportingTools', () => {
       expect(isModelSupportingTools(model, 'bedrock')).toBe(false);
     });
 
+    it.each([
+      'us.anthropic.claude-opus-4-20250514-v1:0:200k',
+      'us.anthropic.claude-opus-4-1-20250805-v1:0:200k',
+    ])('applies the denylist through the context-window suffix too: %s', model => {
+      expect(isModelSupportingTools(model, 'bedrock')).toBe(false);
+    });
+
     it('rejects an id carrying no vendor prefix', () => {
       expect(isModelSupportingTools('claude-sonnet-5', 'bedrock')).toBe(false);
     });

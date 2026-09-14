@@ -1,11 +1,4 @@
-/**
- * End-to-end integration tests against the real Amazon Bedrock Converse API.
- *
- * Requires AWS credentials resolvable by the default chain (IAM role, AWS_ACCESS_KEY_ID /
- * AWS_SECRET_ACCESS_KEY, shared profile) and a region. Tests are skipped when no region is set.
- *
- * Run with: yarn workspace @forestadmin/ai-proxy test bedrock.integration
- */
+// Run with: yarn workspace @forestadmin/ai-proxy test bedrock.integration
 import type { AiConfiguration } from '../src';
 
 import {
@@ -15,13 +8,12 @@ import {
 } from '@aws-sdk/client-bedrock';
 import { z } from 'zod';
 
-import { AiClient, DynamicStructuredTool } from '../src';
+import { AIModelNotAllowlistedError, AiClient, DynamicStructuredTool } from '../src';
 import isModelSupportingTools from '../src/supported-models';
 
 const REGION = process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION;
 const describeWithBedrock = REGION ? describe : describe.skip;
 
-// Claude on Bedrock is the whole supported surface; Haiku is the cheapest of the three lines.
 const DEFAULT_MODEL =
   process.env.BEDROCK_TEST_MODEL ?? 'eu.anthropic.claude-haiku-4-5-20251001-v1:0';
 
@@ -60,13 +52,11 @@ describeWithBedrock('Bedrock Integration (real API)', () => {
     expect(response.tool_calls?.[0]?.name).toBe('calculate');
   }, 60_000);
 
-  it('surfaces an unknown model as a provider error rather than hanging', async () => {
-    const model = new AiClient({
-      aiConfigurations: [bedrockConfig('anthropic.does-not-exist-v1:0')],
-    }).getModel();
-
-    await expect(model.invoke([{ role: 'user', content: 'hi' }])).rejects.toThrow();
-  }, 60_000);
+  it('refuses an unknown model at construction, before any network call', () => {
+    expect(
+      () => new AiClient({ aiConfigurations: [bedrockConfig('anthropic.does-not-exist-v1:0')] }),
+    ).toThrow(AIModelNotAllowlistedError);
+  });
 
   // Same contract as llm.integration.test.ts for OpenAI/Anthropic: every model the allowlist in
   // supported-models.ts lets through must actually honour a forced tool call. Bedrock's catalogue
@@ -106,6 +96,7 @@ describeWithBedrock('Bedrock Integration (real API)', () => {
     });
 
     it('all models support forced tool calls', async () => {
+      const verified: string[] = [];
       const failures: { model: string; error: string }[] = [];
       const unavailable: { model: string; error: string }[] = [];
 
@@ -118,14 +109,16 @@ describeWithBedrock('Bedrock Integration (real API)', () => {
           // eslint-disable-next-line no-await-in-loop
           const response = await withTools.invoke([{ role: 'user', content: 'What is 2+2?' }]);
 
-          if (!response.tool_calls?.length) {
-            failures.push({ model, error: 'no tool call in the response' });
-          }
+          if (response.tool_calls?.length) verified.push(model);
+          else failures.push({ model, error: 'no tool call in the response' });
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
+          const name = (error as { name?: string }).name ?? '';
 
-          // Access to a model is granted per account, and throttling is not a capability verdict.
-          if (/AccessDenied|not authorized|ThrottlingException|don't have access/i.test(message)) {
+          // Keyed on the AWS error identity, not on message text: a broken InvokeModel policy makes
+          // every model raise "not authorized", which would file the whole catalogue under
+          // unavailable and leave failures empty.
+          if (name === 'AccessDeniedException' || name === 'ThrottlingException') {
             unavailable.push({ model, error: message });
           } else {
             failures.push({ model, error: message });
@@ -142,6 +135,11 @@ describeWithBedrock('Bedrock Integration (real API)', () => {
       }
 
       expect(failures).toEqual([]);
-    }, 900_000);
+      // A suite that verified nothing is broken, not passing: without this the whole catalogue can
+      // land in `unavailable` and the allowlist stays an untested assertion that looks tested.
+      expect(verified).toContain(DEFAULT_MODEL);
+      // eslint-disable-next-line no-console
+      console.log(`Verified ${verified.length}/${modelsToTest.length}:`, verified);
+    }, 600_000);
   });
 });

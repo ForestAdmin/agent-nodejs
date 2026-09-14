@@ -27,6 +27,7 @@ export type {
   AiProvider,
   AnthropicConfiguration,
   BaseAiConfiguration,
+  BedrockConfiguration,
   ChatCompletionMessage,
   ChatCompletionResponse,
   ChatCompletionTool,

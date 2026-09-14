@@ -41,6 +41,24 @@ function createMockToolProvider(overrides?: Partial<ToolProvider>): ToolProvider
   };
 }
 
+describe('provider gating', () => {
+  it('refuses a bedrock configuration at construction, not at the first query', () => {
+    expect(
+      () =>
+        new Router({
+          aiConfigurations: [
+            {
+              name: 'default',
+              provider: 'bedrock',
+              model: 'eu.anthropic.claude-sonnet-5-v1:0',
+              region: 'eu-west-3',
+            },
+          ],
+        }),
+    ).toThrow(/which the AI proxy cannot serve/);
+  });
+});
+
 describe('route', () => {
   beforeEach(() => {
     jest.clearAllMocks();

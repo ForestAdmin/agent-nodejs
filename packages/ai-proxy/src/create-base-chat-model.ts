@@ -7,16 +7,25 @@ import { ChatOpenAI } from '@langchain/openai';
 
 import { AIBadRequestError } from './errors';
 
-// LangChain only infers tool_choice support for a hardcoded list of model families (claude-3/4,
-// mistral-large) and throws client-side for anything else — Nova, Llama and any newer Claude would
-// be rejected before reaching AWS. Callers always bind tools with `tool_choice: 'any'`, so we let
-// Bedrock be the authority: a model that really cannot do it answers with a ValidationException,
-// and its id goes to the denylist in supported-models.ts.
+// LangChain infers tool_choice support from a hardcoded family list (claude-3/4, mistral-large)
+// and throws client-side for anything else, so every claude-5 id would be rejected before reaching
+// AWS. Let Bedrock be the authority instead: a model that truly cannot do it answers with a
+// ValidationException, and its id leaves the allowlist in supported-models.ts.
 const BEDROCK_TOOL_CHOICE_VALUES = ['auto', 'any', 'tool'] as const;
 
-// LangChain falls back to AWS_DEFAULT_REGION only, but ECS/EKS/Lambda set AWS_REGION.
-function resolveBedrockRegion(region?: string): string | undefined {
-  return region ?? process.env.AWS_REGION ?? process.env.AWS_DEFAULT_REGION;
+// LangChain reads AWS_DEFAULT_REGION only, and its own error names just that one — unhelpful to
+// anyone who set AWS_REGION, the variable the AWS SDK and CLI treat as primary.
+function resolveBedrockRegion(region?: string): string {
+  const resolved = region ?? process.env.AWS_REGION ?? process.env.AWS_DEFAULT_REGION;
+
+  if (!resolved) {
+    throw new AIBadRequestError(
+      'Bedrock requires a region: set `region` in the AI configuration, AWS_REGION or ' +
+        'AWS_DEFAULT_REGION.',
+    );
+  }
+
+  return resolved;
 }
 
 // eslint-disable-next-line import/prefer-default-export

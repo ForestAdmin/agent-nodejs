@@ -44,11 +44,6 @@ export type AnthropicConfiguration = Omit<BaseAiConfiguration, 'model'> &
     model: Anthropic.Messages.Model;
   };
 
-/**
- * Amazon Bedrock configuration.
- * No `apiKey`: credentials come from the AWS credential chain (IAM role, AWS_ACCESS_KEY_ID /
- * AWS_SECRET_ACCESS_KEY, shared profile), resolved by @aws-sdk/credential-provider-node.
- */
 export type BedrockConfiguration = Omit<BaseAiConfiguration, 'model' | 'apiKey'> &
   Omit<ChatBedrockConverseInput, 'model'> & {
     provider: 'bedrock';

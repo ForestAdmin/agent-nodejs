@@ -109,11 +109,6 @@ function isAnthropicModelSupported(model: string): boolean {
 // Mistral and Titan are rejected on purpose — several cannot honour the forced tool call every AI
 // step makes, and a permissive default would surface that as a failure mid-run rather than a
 // refusal at startup.
-//
-// An id wraps the vendor's own id in an inference-profile prefix and a Bedrock version suffix
-// (`eu.anthropic.claude-sonnet-5-v1:0`), so it is unwrapped before matching, and the unwrapped id
-// then goes through the Anthropic rules above — that is what keeps the streaming-only and EOL
-// Claude releases rejected here too.
 
 const BEDROCK_INFERENCE_PROFILE_PREFIXES = [
   'us.',
@@ -127,7 +122,8 @@ const BEDROCK_INFERENCE_PROFILE_PREFIXES = [
 
 const BEDROCK_SUPPORTED_ANTHROPIC_FAMILIES = ['claude-sonnet', 'claude-haiku', 'claude-opus'];
 
-const BEDROCK_VERSION_SUFFIX = /-v\d+:\d+$/;
+// `-v1:0`, and the context-window variants Bedrock appends to it: `-v1:0:200k`, `-v1:0:24k`.
+const BEDROCK_VERSION_SUFFIX = /-v\d+:\d+(:\w+)?$/;
 
 function isBedrockModelSupported(model: string): boolean {
   const profilePrefix = BEDROCK_INFERENCE_PROFILE_PREFIXES.find(prefix => model.startsWith(prefix));
@@ -150,7 +146,10 @@ function isBedrockModelSupported(model: string): boolean {
 
 // ─── Public API ──────────────────────────────────────────────────────────────
 
-export default function isModelSupportingTools(model: string, provider?: AiProvider): boolean {
+export default function isModelSupportingTools(
+  model: string,
+  provider: AiProvider = 'openai',
+): boolean {
   if (provider === 'anthropic') return isAnthropicModelSupported(model);
   if (provider === 'bedrock') return isBedrockModelSupported(model);
 

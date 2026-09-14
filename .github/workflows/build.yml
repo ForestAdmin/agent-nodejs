@@ -122,7 +122,9 @@ jobs:
   llm-integration-tests:
     name: LLM Integration Tests (ai-proxy)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # The Bedrock sweep walks the catalogue serially with maxRetries 0; 15 would cancel the job
+    # before its own budget expires, which reads as "cancelled" rather than as a result.
+    timeout-minutes: 30
     needs: [build]
     continue-on-error: true
     steps:

@@ -137,6 +137,22 @@ describe('Agent.addWorkflowExecutor', () => {
       ).not.toThrow();
     });
 
+    test('throws when a bedrock ai option carries an apiKey, like the CLI does', () => {
+      const agent = new Agent(buildOptions());
+
+      expect(() =>
+        agent.addWorkflowExecutor({
+          inMemory: true,
+          ai: {
+            provider: 'bedrock',
+            model: 'us.anthropic.claude-sonnet-4-6-v1:0',
+            region: 'eu-west-3',
+            apiKey: 'sk-dropped-silently',
+          },
+        } as Parameters<typeof agent.addWorkflowExecutor>[0]),
+      ).toThrow('`apiKey` is not used with provider `bedrock`');
+    });
+
     describe('bedrock region', () => {
       const OLD_ENV = process.env;
 

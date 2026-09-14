@@ -554,10 +554,20 @@ describe('readEnvConfig', () => {
     expect(config.executorOptions.forceAiError).toBeUndefined();
   });
 
-  it('throws when AI config is partially set', () => {
+  it('names the missing key rather than restating the whole rule', () => {
     expect(() =>
       readEnvConfig({ ...baseEnv, AI_PROVIDER: 'anthropic', AI_MODEL: 'claude' }, args),
-    ).toThrow('AI config must be all-or-nothing');
+    ).toThrow('AI_API_KEY is required for AI_PROVIDER=anthropic');
+  });
+
+  it.each([
+    ['AI_MODEL alone', { AI_MODEL: 'claude' }],
+    ['AI_API_KEY alone', { AI_API_KEY: 'sk-xxx' }],
+    ['AI_PROVIDER alone', { AI_PROVIDER: 'anthropic' }],
+  ])('throws the all-or-nothing rule for %s', (_, env) => {
+    expect(() => readEnvConfig({ ...baseEnv, ...env }, args)).toThrow(
+      'AI config must be all-or-nothing',
+    );
   });
 
   it('throws on invalid AI_PROVIDER', () => {
