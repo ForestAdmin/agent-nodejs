@@ -311,6 +311,32 @@ export class StepTimeoutError extends WorkflowExecutorError {
 // Thrown when the AI provider does not respond within the configured timeout — distinct from
 // StepTimeoutError so we can surface a provider-specific message and tune the AI timeout
 // independently of the step timeout (AI hangs are common; record fetches are not).
+// Bedrock rejects a model the region does not serve, one the account has not enabled, or one the
+// role cannot invoke. All three are configuration mistakes the operator can fix, but they only
+// surface on the first AI step, where the generic message sends them to look at the workflow rather
+// than at AI_MODEL and AWS_REGION. The provider's own sentence is the actionable part, so it is
+// carried through — these AWS messages name the model and the reason, never a credential.
+const AI_CONFIGURATION_ERROR_NAMES = [
+  'ValidationException',
+  'ResourceNotFoundException',
+  'AccessDeniedException',
+];
+
+export function isAiConfigurationError(error: unknown): boolean {
+  return AI_CONFIGURATION_ERROR_NAMES.includes((error as { name?: string })?.name ?? '');
+}
+
+export class AiModelUnusableError extends WorkflowExecutorError {
+  constructor(model: string, cause: Error) {
+    super(
+      `AI model "${model}" cannot be invoked: ${cause.message}`,
+      `The configured AI model "${model}" cannot be used: ${cause.message} ` +
+        'Check the model id and the region it is enabled in.',
+    );
+    this.cause = cause;
+  }
+}
+
 export class AiInvokeTimeoutError extends WorkflowExecutorError {
   constructor(timeoutS: number) {
     super(

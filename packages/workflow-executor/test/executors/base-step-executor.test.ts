@@ -20,6 +20,7 @@ import { HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 
 import {
   AiInvokeTimeoutError,
+  AiModelUnusableError,
   InvalidAiRequestError,
   MalformedToolCallError,
   MissingToolCallError,
@@ -932,6 +933,69 @@ describe('BaseStepExecutor', () => {
         await expect(executor.invokeWithTool(messages, dummyTool)).rejects.toThrow(
           /SystemMessage at position 2 appears after a non-system message/,
         );
+      });
+    });
+
+    describe('AI model rejected by the provider', () => {
+      function makeRejectingModelNamed(
+        error: unknown,
+        model = 'eu.anthropic.claude-opus-4-5-v1:0',
+      ) {
+        const invoke = jest.fn().mockRejectedValue(error);
+
+        return {
+          bindTools: jest.fn().mockReturnValue({ invoke }),
+          model,
+        } as unknown as ExecutionContext['model'];
+      }
+
+      it.each(['ValidationException', 'ResourceNotFoundException', 'AccessDeniedException'])(
+        'turns a %s into an actionable message naming the model and the reason',
+        async name => {
+          const providerErr = Object.assign(
+            new Error('The provided model identifier is invalid.'),
+            { name },
+          );
+          const executor = new TestableExecutor(
+            makeContext({ model: makeRejectingModelNamed(providerErr) }),
+          );
+
+          const err = await executor.invokeWithTool(dummyMessages, dummyTool).catch(e => e);
+
+          expect(err).toBeInstanceOf(AiModelUnusableError);
+          expect((err as AiModelUnusableError).userMessage).toContain(
+            'eu.anthropic.claude-opus-4-5-v1:0',
+          );
+          expect((err as AiModelUnusableError).userMessage).toContain(
+            'The provided model identifier is invalid.',
+          );
+        },
+      );
+
+      it('leaves an unrelated provider failure alone', async () => {
+        const providerErr = Object.assign(new Error('socket hang up'), { name: 'NetworkError' });
+        const executor = new TestableExecutor(
+          makeContext({ model: makeRejectingModelNamed(providerErr) }),
+        );
+
+        const err = await executor.invokeWithTool(dummyMessages, dummyTool).catch(e => e);
+
+        expect(err).not.toBeInstanceOf(AiModelUnusableError);
+        expect((err as Error).message).toBe('socket hang up');
+      });
+
+      it('says unknown rather than guessing when the model exposes no id', async () => {
+        const providerErr = Object.assign(new Error('nope'), { name: 'ValidationException' });
+        const model = {
+          bindTools: jest
+            .fn()
+            .mockReturnValue({ invoke: jest.fn().mockRejectedValue(providerErr) }),
+        } as unknown as ExecutionContext['model'];
+        const executor = new TestableExecutor(makeContext({ model }));
+
+        const err = await executor.invokeWithTool(dummyMessages, dummyTool).catch(e => e);
+
+        expect((err as AiModelUnusableError).userMessage).toContain('"unknown"');
       });
     });
 
