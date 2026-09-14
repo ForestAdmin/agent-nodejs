@@ -63,10 +63,11 @@ function comparableValue(record: Record<string, unknown>, key: PrimaryKeyField):
  * the packed one (ISO versus `String(date)`), they match nothing, and they keep their position.
  *
  * A key that matches nothing keeps its own positional segment whenever no match claimed it, and
- * only moves when a match did. That is what makes this a strict improvement over pairing by
- * position: a key the published order happened to get right can only lose its segment to a key
- * that proved the segment is its own, and a key that lost it was wrong by definition. Reordering
- * every unmatched key instead would trade a lucky-but-right key for an unproven guess.
+ * moves only when a match did. A single unread key can be placed safely, since the one segment left
+ * over is necessarily its own. Several cannot: as soon as one of them loses its segment to a match,
+ * which of the remaining segments is whose is exactly the question the record failed to answer, and
+ * placing them anyway hands back a wrong key under a 200 where the positional pairing would have
+ * raised its numeric-cast error. The whole reordering is dropped there, errors included.
  *
  * With no record, the values are returned whole and the pairing is the positional one.
  */
@@ -88,12 +89,15 @@ function segmentsByKey(
     return values[index];
   });
 
+  const unread = matched.filter(value => value === null).length;
   const placed = matched.map((value, index) => {
     if (value !== null || claimed[index]) return value;
     claimed[index] = true;
 
     return values[index];
   });
+
+  if (unread > 1 && placed.some(value => value === null)) return values;
 
   const leftovers = values.filter((_, index) => !claimed[index]);
 
