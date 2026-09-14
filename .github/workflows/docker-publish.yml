@@ -60,6 +60,7 @@ jobs:
           push: false
           load: true
           tags: workflow-executor:pr
+          build-args: APT_EPOCH=${{ github.run_id }}-${{ github.run_attempt }}
           cache-from: type=gha,scope=amd64
 
       # The build only proves the image compiles. Run it to catch entrypoint
@@ -175,6 +176,7 @@ jobs:
           platforms: ${{ matrix.platform }}
           load: true
           tags: workflow-executor:${{ matrix.arch }}
+          build-args: APT_EPOCH=${{ github.run_id }}-${{ github.run_attempt }}
           cache-from: type=gha,scope=${{ matrix.arch }}
           cache-to: type=gha,mode=max,scope=${{ matrix.arch }}
 
@@ -214,6 +216,7 @@ jobs:
           platforms: ${{ matrix.platform }}
           outputs: type=image,name=ghcr.io/forestadmin/workflow-executor,push-by-digest=true,name-canonical=true,push=true
           sbom: true
+          build-args: APT_EPOCH=${{ github.run_id }}-${{ github.run_attempt }}
           cache-from: type=gha,scope=${{ matrix.arch }}
 
       - name: Export digest

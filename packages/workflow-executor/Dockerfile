@@ -7,8 +7,7 @@
 #
 # Configuration is passed entirely via environment variables — see README for the full list.
 
-# Base image pinned by digest for reproducible builds (node:22-bookworm-slim).
-# Bump via Renovate/Dependabot.
+# Base image pinned by digest (node:22-bookworm-slim). Bump via Renovate/Dependabot.
 FROM node:22-bookworm-slim@sha256:813a7480f28fdadac1f7f5c824bcdad435b5bc1322a5968bbbdef8d058f9dff4 AS base
 
 # ── Stage 1: build ────────────────────────────────────────────────────────────
@@ -60,6 +59,15 @@ RUN yarn install --frozen-lockfile --ignore-scripts
 FROM base AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
+
+# The digest pin freezes Debian packages too, so security fixes can only land here. APT_EPOCH is
+# part of this layer's cache key: CI passes the run id so every run refetches; local builds reuse
+# the cached layer until --no-cache.
+ARG APT_EPOCH
+RUN echo "$APT_EPOCH" \
+  && apt-get update -o APT::Update::Error-Mode=any \
+  && DEBIAN_FRONTEND=noninteractive apt-get upgrade -y --with-new-pkgs -o Dpkg::Options::=--force-confold \
+  && rm -rf /var/lib/apt/lists/*
 
 # External runtime deps (clean, reproducible install — no monorepo workspace noise).
 COPY --from=prod-deps /deps/node_modules ./node_modules

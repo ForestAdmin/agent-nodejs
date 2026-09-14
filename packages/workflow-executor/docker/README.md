@@ -2,7 +2,7 @@
 
 The production image installs its runtime dependencies into an **isolated**
 `node_modules` (rather than shipping the whole monorepo's hoisted tree). This
-keeps the image small (~410 MB) while staying reproducible.
+keeps the image small (~435 MB) with a fully pinned dependency tree.
 
 ## How it works
 
