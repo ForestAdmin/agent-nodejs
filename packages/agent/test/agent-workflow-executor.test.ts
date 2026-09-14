@@ -128,9 +128,50 @@ describe('Agent.addWorkflowExecutor', () => {
       expect(() =>
         agent.addWorkflowExecutor({
           inMemory: true,
-          ai: { provider: 'bedrock', model: 'us.anthropic.claude-sonnet-4-6-v1:0' },
+          ai: {
+            provider: 'bedrock',
+            model: 'us.anthropic.claude-sonnet-4-6-v1:0',
+            region: 'eu-west-3',
+          },
         }),
       ).not.toThrow();
+    });
+
+    describe('bedrock region', () => {
+      const OLD_ENV = process.env;
+
+      beforeEach(() => {
+        process.env = { ...OLD_ENV };
+        delete process.env.AWS_REGION;
+        delete process.env.AWS_DEFAULT_REGION;
+      });
+
+      afterAll(() => {
+        process.env = OLD_ENV;
+      });
+
+      test('throws when no region is reachable', () => {
+        const agent = new Agent(buildOptions());
+
+        expect(() =>
+          agent.addWorkflowExecutor({
+            inMemory: true,
+            ai: { provider: 'bedrock', model: 'us.anthropic.claude-sonnet-4-6-v1:0' },
+          }),
+        ).toThrow('provider `bedrock` requires `region`, AWS_REGION or AWS_DEFAULT_REGION');
+      });
+
+      test.each(['AWS_REGION', 'AWS_DEFAULT_REGION'])('accepts %s from the environment', key => {
+        process.env[key] = 'eu-west-3';
+        const agent = new Agent(buildOptions());
+
+        expect(() =>
+          agent.addWorkflowExecutor({
+            inMemory: true,
+            ai: { provider: 'bedrock', model: 'us.anthropic.claude-sonnet-4-6-v1:0' },
+          }),
+        ).not.toThrow();
+      });
     });
   });
 

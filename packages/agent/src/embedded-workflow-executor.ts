@@ -78,6 +78,21 @@ export default class EmbeddedWorkflowExecutor {
       );
     }
 
+    // The Bedrock client resolves its region from AWS_DEFAULT_REGION only, never from the AWS
+    // profile, so an unset region is a hard failure — raised here rather than on the first AI step
+    // of the first run, which is what the standalone CLI does too.
+    if (
+      ai?.provider === 'bedrock' &&
+      !ai.region &&
+      !process.env.AWS_REGION &&
+      !process.env.AWS_DEFAULT_REGION
+    ) {
+      throw new Error(
+        'addWorkflowExecutor: `ai` with provider `bedrock` requires `region`, AWS_REGION or ' +
+          'AWS_DEFAULT_REGION.',
+      );
+    }
+
     const port = embedOptions.port ?? DEFAULT_EMBEDDED_EXECUTOR_PORT;
     this.config = { ...embedOptions, port };
 
