@@ -66,8 +66,8 @@ ENV NODE_ENV=production
 # APT_SECURITY_EPOCH exists only to bound how long this layer may be served from cache — CI passes
 # the ISO week, so a cached layer expires on its own. Without it the layer keys on an unchanging
 # instruction and an unchanging pinned parent, and would never contact Debian again.
-# To force a rebuild before the week turns, bump the APT_SECURITY_SALT repository variable;
-# re-running the job on its own restores the same cached layer.
+# To force a rebuild before the week turns, bump docker/apt-refresh in a PR; re-running the job on
+# its own restores the same cached layer.
 # In `runtime` rather than `base` so busting it rebuilds COPY layers, not yarn install and lerna.
 # DEBIAN_FRONTEND inline, never ENV: an ENV here would leak into the shipped image.
 ARG APT_SECURITY_EPOCH=unset
