@@ -1,3 +1,10 @@
+## @forestadmin/forestadmin-client [1.43.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.43.3...@forestadmin/forestadmin-client@1.43.4) (2026-09-14)
+
+
+### Bug Fixes
+
+* **agent-bff:** serve legacy lianas, and stop leaking and overpromising ([#1894](https://github.com/ForestAdmin/agent-nodejs/issues/1894)) ([a215100](https://github.com/ForestAdmin/agent-nodejs/commit/a215100703672ce23023ab9a0f3ef8c0cf67a7e9))
+
 ## @forestadmin/forestadmin-client [1.43.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.43.2...@forestadmin/forestadmin-client@1.43.3) (2026-09-01)
 
 
