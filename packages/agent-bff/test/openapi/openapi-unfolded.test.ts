@@ -482,6 +482,11 @@ describe('the unfolded document', () => {
 
     expect(request.properties.parentId.type).toBe('string');
     expect(request.properties.parentId.description).toContain('shop, number joined by "|"');
+    expect(request.properties.parentId.description).toContain('in the order the agent packs them');
+    expect(request.properties.parentId.description).toContain(
+      'Copy it from a listed record rather than assembling it',
+    );
+    expect(request.properties.parentId.description).not.toContain('in that order');
   });
 
   it('should fall back to the opaque parent id when the parent exposes no key metadata', () => {

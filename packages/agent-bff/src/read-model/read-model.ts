@@ -1,6 +1,8 @@
 import type { ActionEndpointsByCollection } from '@forestadmin/agent-client';
 import type { ForestSchemaCollection, ForestSchemaField } from '@forestadmin/forestadmin-client';
 
+import recordKey, { groupByRecordKey } from '../data/record-key';
+
 export const RELATIONSHIP_TYPES = [
   'BelongsTo',
   'HasOne',
@@ -14,7 +16,17 @@ export type RelationTarget =
   | { type: RelationshipType; polymorphic: false; target: string }
   | { type: RelationshipType; polymorphic: true; targets: string[] };
 
-export type PrimaryKeyField = { name: string; type: string; derived?: true };
+export type PrimaryKeyField = {
+  name: string;
+  type: string;
+  derived?: true;
+  /**
+   * Set when this key shares its response key with another field of the collection. The record then
+   * holds one value under that key and there is no telling whose, so the key cannot be read back
+   * from a record — see `unpackPrimaryKey`.
+   */
+  ambiguousRecordKey?: true;
+};
 
 export type ListableRelation = { name: string; foreignCollection: string };
 
@@ -160,9 +172,20 @@ export default class ReadModel {
    */
   private buildPrimaryKeys(collection: ForestSchemaCollection): void {
     const keys: PrimaryKeyField[] = [];
+    const fields = collection.fields ?? [];
+    const ambiguous = new Set<string>();
 
-    for (const field of collection.fields ?? []) {
-      if (field.isPrimaryKey) keys.push({ name: field.field, type: field.type });
+    groupByRecordKey(fields, field => field.field).forEach((group, key) => {
+      if (group.length > 1) ambiguous.add(key);
+    });
+
+    for (const field of fields) {
+      if (field.isPrimaryKey) {
+        const key: PrimaryKeyField = { name: field.field, type: field.type };
+        if (ambiguous.has(recordKey(field.field))) key.ambiguousRecordKey = true;
+
+        keys.push(key);
+      }
     }
 
     if (keys.length === 0) {

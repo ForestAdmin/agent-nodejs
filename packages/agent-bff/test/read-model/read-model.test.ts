@@ -314,6 +314,21 @@ describe('ReadModel', () => {
       expect(model.getPrimaryKeys('ghost')).toEqual([]);
     });
 
+    it('should flag a key whose response key another field of the collection shares', () => {
+      const model = new ReadModel([
+        collection('memberships', [
+          { ...column('owner_id'), isPrimaryKey: true },
+          { ...column('sku'), isPrimaryKey: true },
+          { ...column('ownerId'), isPrimaryKey: false },
+        ]),
+      ]);
+
+      expect(model.getPrimaryKeys('memberships')).toEqual([
+        { name: 'owner_id', type: 'String', ambiguousRecordKey: true },
+        { name: 'sku', type: 'String' },
+      ]);
+    });
+
     // A forest_liana older than 9.17.6 publishes no isPrimaryKey anywhere, which used to leave the
     // collection keyless and make every list answer 500 mapping_error.
     describe('when the schema declares no key', () => {
