@@ -283,7 +283,14 @@ export const ForestRecordMetaSchema = z
       'The record identity, unpacked from the agent id. A composite primary key carries one ' +
       'entry per column. The values are TYPED here — a Number key column is a number — whereas ' +
       'the record carries the same id as a string under `id`, so comparing the two forms ' +
-      'without coercion fails.',
+      'without coercion fails. One exception to the per-column promise: against a schema that ' +
+      'declares no primary key at all, this carries the agent id whole under the name `id`, ' +
+      'never split per column — the schema published no key, so its real shape is unknown and a ' +
+      'composite one would stay packed, separator included. That `id` is a real column only when ' +
+      'the schema declares a field of that name; otherwise it is not a column at all and the ' +
+      'context marks no field as the key. When it does declare one, the context flags it ' +
+      '`isPrimaryKeyDerived`, meaning the key is a guess and a filter on it may match nothing. ' +
+      'Filter on a field the context lists, never on a key name read back here.',
   });
 
 export const ListResponseSchema = z
@@ -297,7 +304,9 @@ export const ListResponseSchema = z
     description:
       'Records are flat, each carrying a `__forest` envelope. A record always holds `id`, the ' +
       `agent id as a string — a composite key is its values joined by \`${PACKED_ID_SEPARATOR}\` — ` +
-      'while `__forest.primaryKey` holds that same id typed and split per column. The list never ' +
+      'while `__forest.primaryKey` holds that same id typed and split per column — with the one ' +
+      'exception `ForestRecordMeta` describes, where the name it carries is not a column. ' +
+      'The list never ' +
       'carries a total: call the count endpoint for that, which is why `countStatus` is always ' +
       '`not_requested`. ' +
       'It is always one page, not guaranteed to be the whole collection: a request that omitted ' +
@@ -366,6 +375,17 @@ const ContextFieldSchema = z.object({
   inverseOf: z.string().optional(),
   polymorphicTargets: z.array(z.string()).optional(),
   isPrimaryKey: z.boolean().optional(),
+  isPrimaryKeyDerived: z
+    .boolean()
+    .optional()
+    .openapi({
+      description:
+        'Set only alongside `isPrimaryKey`, when the schema declared no primary key at all and ' +
+        'the BFF derived one from a field named `id`. The key is then a GUESS: it is what ' +
+        '`__forest.primaryKey` carries, but nothing confirms it is the column the records are ' +
+        'really keyed on, so a filter on it can answer 200 with no row. Use it to read record ' +
+        'identities, not to filter by identity.',
+    }),
   isRequired: z.boolean().optional(),
   isReadOnly: z.boolean().optional(),
   enums: z.array(z.string()).optional(),

@@ -449,6 +449,78 @@ describe('buildContext', () => {
     });
   });
 
+  describe('when the schema declares no primary key at all', () => {
+    const keylessSchema = [
+      {
+        name: 'people',
+        fields: [
+          { field: 'id', type: 'Number' },
+          { field: 'email', type: 'String' },
+        ],
+        actions: [],
+      },
+    ] as unknown as Parameters<typeof buildContext>[0];
+
+    it('should flag the derived key, which a caller needs to build recordIds', () => {
+      const [{ fields }] = buildContext(keylessSchema, new ReadModel(keylessSchema), {
+        schemaRevision: 1,
+      }).collections;
+
+      expect(fields.find(entry => entry.field === 'id')?.isPrimaryKey).toBe(true);
+      expect(fields.find(entry => entry.field === 'email')).not.toHaveProperty('isPrimaryKey');
+    });
+
+    it('should mark the derived key as derived, so a caller does not filter on a guess', () => {
+      const [{ fields }] = buildContext(keylessSchema, new ReadModel(keylessSchema), {
+        schemaRevision: 1,
+      }).collections;
+
+      expect(fields.find(entry => entry.field === 'id')?.isPrimaryKeyDerived).toBe(true);
+    });
+
+    it('should leave a declared key unflagged, since it is not a guess', () => {
+      const keyedSchema = [
+        {
+          name: 'people',
+          fields: [
+            { field: 'reference', type: 'String', isPrimaryKey: true },
+            { field: 'email', type: 'String' },
+          ],
+          actions: [],
+        },
+      ] as unknown as Parameters<typeof buildContext>[0];
+
+      const [{ fields }] = buildContext(keyedSchema, new ReadModel(keyedSchema), {
+        schemaRevision: 1,
+      }).collections;
+
+      expect(fields.find(entry => entry.field === 'reference')?.isPrimaryKey).toBe(true);
+      expect(fields.find(entry => entry.field === 'reference')).not.toHaveProperty(
+        'isPrimaryKeyDerived',
+      );
+    });
+
+    it('should mark no field at all when the collection declares no `id` field either', () => {
+      const noIdSchema = [
+        {
+          name: 'people',
+          fields: [
+            { field: 'birthdate', type: 'Date' },
+            { field: 'email', type: 'String' },
+          ],
+          actions: [],
+        },
+      ] as unknown as Parameters<typeof buildContext>[0];
+
+      const [{ fields }] = buildContext(noIdSchema, new ReadModel(noIdSchema), {
+        schemaRevision: 1,
+      }).collections;
+
+      expect(fields.some(entry => entry.isPrimaryKey)).toBe(false);
+      expect(fields.some(entry => entry.isPrimaryKeyDerived)).toBe(false);
+    });
+  });
+
   describe('when the built context is validated against the published OpenAPI schema', () => {
     it('should round-trip through ContextResponseSchema for every shape the fixture covers', () => {
       const context = buildContext(schema, readModel, { schemaRevision: 3, environmentId: 42 });

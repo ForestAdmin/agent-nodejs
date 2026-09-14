@@ -38,4 +38,24 @@ describe('unpackPrimaryKey', () => {
       ]),
     ).toThrow(expect.objectContaining({ type: 'mapping_error', status: 500 }));
   });
+
+  describe('when the key was derived, so its arity is a guess', () => {
+    it('should keep a packed composite id whole rather than 500 on the segment count', () => {
+      expect(
+        unpackPrimaryKey('tenant|42', [{ name: 'id', type: 'String', derived: true }]),
+      ).toEqual({ id: 'tenant|42' });
+    });
+
+    it('should still type a numeric id, which the declared id field says is a Number', () => {
+      expect(unpackPrimaryKey('42', [{ name: 'id', type: 'Number', derived: true }])).toEqual({
+        id: 42,
+      });
+    });
+
+    it('should leave a non-numeric id a string rather than throw on a Number field', () => {
+      expect(unpackPrimaryKey('7|ab', [{ name: 'id', type: 'Number', derived: true }])).toEqual({
+        id: '7|ab',
+      });
+    });
+  });
 });

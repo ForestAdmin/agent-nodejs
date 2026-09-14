@@ -254,6 +254,15 @@ describe('the unfolded document', () => {
     expect(request.properties.sort.items?.$ref).toBe('#/components/schemas/SortClause_My_Coll');
   });
 
+  it('should sort on the projectable enum itself while no field denies it', () => {
+    const sort = schemas.SortClause_My_Coll as unknown as {
+      properties: { field: { $ref?: string } };
+    };
+
+    expect(sort.properties.field.$ref).toBe('#/components/schemas/Fields_My_Coll');
+    expect(Object.keys(schemas).filter(name => name.startsWith('SortableFields'))).toEqual([]);
+  });
+
   it('should leave page optional here too, pointing at the shared Page component', () => {
     const request = requestSchema('My%20Coll/list') as unknown as {
       required?: string[];
@@ -783,22 +792,369 @@ describe('a collection whose key ends in an index-like suffix', () => {
 });
 
 describe('an unfolding carrying a filterable field with no operator', () => {
-  it('should leave it out rather than emit an enum no value satisfies', () => {
+  it('should register no leaf rather than emit an enum no value satisfies', () => {
     // An empty enum forbids every value, so the leaf would be unsatisfiable. `collectFilterableFields`
-    // cannot produce one, but the generator takes hand-constructible plain data.
+    // cannot produce one, but the generator takes hand-constructible plain data. The field set is
+    // known here, so dropping the only field leaves no valid leaf — not a free-form one, which would
+    // offer a filter every field answers 422 on.
     const empty = unfoldedDocument({
       collections: [collectionOf('E', [{ name: 'x', operators: [] }])],
     });
     const emptySchemas = empty.components?.schemas as Record<string, Record<string, never>>;
-    const leaf = emptySchemas.FilterLeaf_E as unknown as {
-      properties: { field: { enum?: string[] }; operator: { enum: string[] } };
+
+    expect(Object.keys(emptySchemas).filter(name => name.startsWith('FilterLeaf'))).toEqual([]);
+  });
+});
+
+describe('an unfolding whose apimap denies a sort', () => {
+  // Only the v1 synthesis states sortability. The document must not offer a sort the runtime then
+  // answers 422 field_not_sortable on.
+  function documentWithDeniedSort() {
+    return unfoldedDocument({
+      collections: [
+        {
+          name: 'users',
+          fields: {
+            projectable: [
+              { name: 'id', type: 'Number' },
+              { name: 'fullName', type: 'String', sortable: false },
+            ],
+            filterable: [{ name: 'id', operators: ['Equal'] }],
+            degraded: null,
+          },
+          primaryKeys: [{ name: 'id', type: 'Number' }],
+          relations: [],
+          actions: [],
+        },
+      ],
+    });
+  }
+
+  it('should leave the denied field out of the sort enum while keeping it projectable', () => {
+    const denied = documentWithDeniedSort();
+    const deniedSchemas = denied.components?.schemas as Record<string, Record<string, never>>;
+    const sortable = deniedSchemas.SortableFields_users as unknown as { enum: string[] };
+    const projectable = deniedSchemas.Fields_users as unknown as { enum: string[] };
+    const sort = deniedSchemas.SortClause_users as unknown as {
+      properties: { field: { $ref?: string } };
     };
 
-    expect(Object.keys(emptySchemas).filter(name => name.startsWith('FilterLeaf'))).toEqual([
-      'FilterLeaf_E',
-    ]);
-    expect(leaf.properties.field.enum).toBeUndefined();
-    expect(leaf.properties.operator.enum).toEqual([...allOperators]);
+    expect(projectable.enum).toEqual(['id', 'fullName']);
+    expect(sortable.enum).toEqual(['id']);
+    expect(sort.properties.field.$ref).toBe('#/components/schemas/SortableFields_users');
+  });
+
+  function documentWithNoSortableField() {
+    return unfoldedDocument({
+      collections: [
+        {
+          name: 'users',
+          fields: {
+            projectable: [{ name: 'fullName', type: 'String', sortable: false }],
+            filterable: [],
+            degraded: null,
+          },
+          primaryKeys: [{ name: 'id', type: 'Number' }],
+          relations: [],
+          actions: [],
+        },
+      ],
+    });
+  }
+
+  function listSortOf(built: ReturnType<typeof unfoldedDocument>) {
+    const builtSchemas = built.components?.schemas as Record<string, Record<string, never>>;
+    const list = builtSchemas.ListRequest_users as unknown as {
+      properties: { sort: { maxItems?: number } };
+    };
+
+    return list.properties.sort;
+  }
+
+  it('should register no sort enum when every field denies it', () => {
+    const noneSchemas = documentWithNoSortableField().components?.schemas as Record<
+      string,
+      Record<string, never>
+    >;
+
+    expect(noneSchemas.SortClause_users).toBeUndefined();
+    expect(noneSchemas.SortableFields_users).toBeUndefined();
+  });
+
+  // The shared SortClause leaves `field` an unrestricted string, so reusing it alone would advertise
+  // every field as sortable while each request answers 422 field_not_sortable.
+  it('should cap the sort array at zero when every field denies it', () => {
+    expect(listSortOf(documentWithNoSortableField()).maxItems).toBe(0);
+  });
+
+  it('should leave the sort array uncapped when a field allows it', () => {
+    expect(listSortOf(documentWithDeniedSort())).not.toHaveProperty('maxItems');
+  });
+
+  function documentDegradedAs(degraded: 'capabilities_unavailable' | 'no_fields') {
+    return unfoldedDocument({
+      collections: [
+        {
+          name: 'users',
+          fields: { projectable: [], filterable: [], degraded },
+          primaryKeys: [{ name: 'id', type: 'Number' }],
+          relations: [],
+          actions: [],
+        },
+      ],
+    });
+  }
+
+  // Capabilities that could not be read leave the field set unknown: the runtime rejects, not the
+  // document, so capping the array would forbid a sort the agent accepts.
+  it('should leave the sort array uncapped when capabilities could not be read', () => {
+    expect(listSortOf(documentDegradedAs('capabilities_unavailable'))).not.toHaveProperty(
+      'maxItems',
+    );
+  });
+
+  // Capabilities naming no field is an answer, not a gap: every field is rejected, sort included.
+  it('should cap the sort array when capabilities name no field at all', () => {
+    expect(listSortOf(documentDegradedAs('no_fields')).maxItems).toBe(0);
+  });
+});
+
+describe('an unfolding whose collection has no filterable field', () => {
+  function filterOf(built: ReturnType<typeof unfoldedDocument>) {
+    const builtSchemas = built.components?.schemas as Record<string, Record<string, never>>;
+
+    return {
+      tree: builtSchemas.Filter_users as unknown as { anyOf: { $ref?: string }[] },
+      leaf: builtSchemas.FilterLeaf_users,
+    };
+  }
+
+  function documentWith(
+    fields: Parameters<typeof unfoldedDocument>[0]['collections'][number]['fields'],
+  ) {
+    return unfoldedDocument({
+      collections: [
+        {
+          name: 'users',
+          fields,
+          primaryKeys: [{ name: 'id', type: 'Number' }],
+          relations: [],
+          actions: [],
+        },
+      ],
+    });
+  }
+
+  // A free-form leaf here would offer a filter the validator answers 422 field_not_filterable on,
+  // whatever field it carries.
+  it('should register no leaf when the field set is known and nothing is filterable', () => {
+    const { tree, leaf } = filterOf(
+      documentWith({
+        projectable: [{ name: 'fullName', type: 'String' }],
+        filterable: [],
+        degraded: null,
+      }),
+    );
+
+    expect(leaf).toBeUndefined();
+    expect(tree.anyOf).toHaveLength(2);
+  });
+
+  it('should register no leaf when capabilities name no field at all', () => {
+    expect(
+      filterOf(documentWith({ projectable: [], filterable: [], degraded: 'no_fields' })).leaf,
+    ).toBeUndefined();
+  });
+
+  // Unknown is not empty: the collection still accepts whatever it really exposes.
+  it('should keep the free-form leaf when capabilities could not be read', () => {
+    expect(
+      filterOf(
+        documentWith({ projectable: [], filterable: [], degraded: 'capabilities_unavailable' }),
+      ).leaf,
+    ).toBeDefined();
+  });
+});
+
+describe('an unfolding whose filterable set is incomplete rather than empty', () => {
+  // `collectFilterableFields` drops a field whose operator set it cannot map to canonical names, and
+  // leaves `degraded` null while doing it. Dropping every field that way empties `filterable` on a
+  // collection the agent filters fine, so the document must not state that nothing is filterable.
+  function documentWithSkew() {
+    return unfoldedDocument({
+      collections: [
+        {
+          name: 'users',
+          fields: {
+            projectable: [{ name: 'fullName', type: 'String' }],
+            filterable: [],
+            degraded: null,
+            undocumentableFilter: true,
+          },
+          primaryKeys: [{ name: 'id', type: 'Number' }],
+          relations: [],
+          actions: [],
+        },
+      ],
+    });
+  }
+
+  function schemasOf(built: ReturnType<typeof unfoldedDocument>) {
+    return built.components?.schemas as Record<string, Record<string, never>>;
+  }
+
+  it('should keep the free-form leaf when every field was dropped as undocumentable', () => {
+    expect(schemasOf(documentWithSkew()).FilterLeaf_users).toBeDefined();
+  });
+
+  it('should not claim no field is filterable when the set is merely undocumentable', () => {
+    const tree = schemasOf(documentWithSkew()).Filter_users as unknown as { description: string };
+
+    expect(tree.description).not.toContain('No field of this collection is filterable');
+  });
+});
+
+describe('an unfolding whose capabilities name no projectable field', () => {
+  function documentWith(degraded: DegradedReason) {
+    return unfoldedDocument({
+      collections: [
+        {
+          name: 'users',
+          fields: { projectable: [], filterable: [], degraded },
+          primaryKeys: [{ name: 'id', type: 'Number' }],
+          relations: [],
+          actions: [],
+        },
+      ],
+    });
+  }
+
+  function listProjectionOf(built: ReturnType<typeof unfoldedDocument>) {
+    const builtSchemas = built.components?.schemas as Record<string, Record<string, never>>;
+    const list = builtSchemas.ListRequest_users as unknown as {
+      properties: { projection: { maxItems?: number; description?: string } };
+    };
+
+    return list.properties.projection;
+  }
+
+  // `fieldsEnum` falls back to an unrestricted string for an empty list, so the document would offer
+  // every field name while each request answers 422 unknown_field.
+  it('should cap the projection array when capabilities name no field at all', () => {
+    expect(listProjectionOf(documentWith('no_fields')).maxItems).toBe(0);
+  });
+
+  it('should leave the projection array uncapped when capabilities could not be read', () => {
+    expect(listProjectionOf(documentWith('capabilities_unavailable'))).not.toHaveProperty(
+      'maxItems',
+    );
+  });
+});
+
+describe('the prose that states what a known-empty field set forbids', () => {
+  // Inverting `isFieldSetKnown` must fail a test rather than only contradict the schema in prose.
+  function documentWith(degraded: DegradedReason) {
+    return unfoldedDocument({
+      collections: [
+        {
+          name: 'users',
+          fields: { projectable: [], filterable: [], degraded },
+          primaryKeys: [{ name: 'id', type: 'Number' }],
+          relations: [],
+          actions: [],
+        },
+      ],
+    });
+  }
+
+  function listOf(built: ReturnType<typeof unfoldedDocument>) {
+    const builtSchemas = built.components?.schemas as Record<string, Record<string, never>>;
+
+    return {
+      request: builtSchemas.ListRequest_users as unknown as {
+        properties: {
+          sort: { description?: string };
+          projection: { description?: string };
+        };
+      },
+      tree: builtSchemas.Filter_users as unknown as { description: string },
+    };
+  }
+
+  it('should say the sort and projection arrays take nothing on a known-empty field set', () => {
+    const { request } = listOf(documentWith('no_fields'));
+
+    expect(request.properties.sort.description).toContain(
+      'No field of this collection is sortable',
+    );
+    expect(request.properties.projection.description).toContain('This collection exposes no field');
+  });
+
+  it('should say the filter tree carries no leaf on a known-empty field set', () => {
+    expect(listOf(documentWith('no_fields')).tree.description).toContain(
+      'No field of this collection is filterable, so there is no leaf alternative at all',
+    );
+  });
+
+  it('should state none of that when capabilities could not be read', () => {
+    const { request, tree } = listOf(documentWith('capabilities_unavailable'));
+
+    expect(request.properties.sort).not.toHaveProperty('description');
+    expect(request.properties.projection).not.toHaveProperty('description');
+    expect(tree.description).not.toContain('No field of this collection is filterable');
+  });
+});
+
+describe('an unfolding whose parent key was derived rather than declared', () => {
+  // The read-model flags a key it guessed from an `id` field. Naming it `(id, String)` the way a
+  // declared key is named would contradict `ForestRecordMeta` in the same document.
+  function documentWith(primaryKeys: { name: string; type: string; derived?: true }[]) {
+    return unfoldedDocument({
+      collections: [
+        {
+          name: 'users',
+          fields: {
+            projectable: [{ name: 'id', type: 'String' }],
+            filterable: [{ name: 'id', operators: ['Equal'] }],
+            degraded: null,
+          },
+          primaryKeys,
+          relations: [{ name: 'orders', foreignCollection: 'orders' }],
+          actions: [],
+        },
+        {
+          name: 'orders',
+          fields: {
+            projectable: [{ name: 'id', type: 'Number' }],
+            filterable: [{ name: 'id', operators: ['Equal'] }],
+            degraded: null,
+          },
+          primaryKeys: [{ name: 'id', type: 'Number' }],
+          relations: [],
+          actions: [],
+        },
+      ],
+    } as unknown as Unfolding);
+  }
+
+  function parentIdOf(built: ReturnType<typeof unfoldedDocument>) {
+    const builtSchemas = built.components?.schemas as Record<string, Record<string, never>>;
+    const request = builtSchemas.RelationListRequest_users_orders as unknown as {
+      properties: { parentId: { description: string } };
+    };
+
+    return request.properties.parentId.description;
+  }
+
+  it('should hedge the description instead of naming a column the schema never published', () => {
+    const description = parentIdOf(documentWith([{ name: 'id', type: 'String', derived: true }]));
+
+    expect(description).toContain('not published by the schema');
+    expect(description).not.toContain('(id, String)');
+  });
+
+  it('should name the column outright when the key was declared', () => {
+    expect(parentIdOf(documentWith([{ name: 'id', type: 'String' }]))).toContain('(id, String)');
   });
 });
 

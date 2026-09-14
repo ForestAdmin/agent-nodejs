@@ -98,23 +98,35 @@ function documentedOperators(
   return toCanonicalOperatorSet(normalized);
 }
 
+/**
+ * The filterable subset, plus whether a field was dropped as undocumentable rather than as genuinely
+ * not filterable. The caller needs the two apart: a field with no operator is an ANSWER the document
+ * can state, while a field dropped for operator skew leaves the filterable set incomplete, and an
+ * incomplete set that ends up empty must not be documented as "nothing is filterable".
+ */
 function collectFilterableFields(
   collection: string,
   capabilities: CapabilitiesResult,
   logger: Logger,
-): FilterableField[] {
-  return capabilities.fields.flatMap(field => {
-    if ((field.operators?.length ?? 0) === 0) return [];
+): { fields: FilterableField[]; undocumentable: boolean } {
+  const fields: FilterableField[] = [];
+  let undocumentable = false;
 
-    const operators = documentedOperators(
-      collection,
-      field.name,
-      field.operators as string[],
-      logger,
-    );
+  for (const field of capabilities.fields) {
+    if ((field.operators?.length ?? 0) > 0) {
+      const operators = documentedOperators(
+        collection,
+        field.name,
+        field.operators as string[],
+        logger,
+      );
 
-    return operators === null ? [] : [{ name: field.name, operators }];
-  });
+      if (operators === null) undocumentable = true;
+      else fields.push({ name: field.name, operators });
+    }
+  }
+
+  return { fields, undocumentable };
 }
 
 async function collectFields(
@@ -132,10 +144,15 @@ async function collectFields(
       return UNTYPED('no_fields');
     }
 
+    const filterable = collectFilterableFields(collection, capabilities, logger);
+
     return {
-      projectable: capabilities.fields.map(({ name, type }) => ({ name, type })),
-      filterable: collectFilterableFields(collection, capabilities, logger),
+      projectable: capabilities.fields.map(({ name, type, sortable }) =>
+        sortable === false ? { name, type, sortable } : { name, type },
+      ),
+      filterable: filterable.fields,
       degraded: null,
+      ...(filterable.undocumentable ? { undocumentableFilter: true as const } : {}),
     };
   } catch (error) {
     // A single unreachable collection must not cost the whole document: the collection keeps its

@@ -1,6 +1,6 @@
 import type { SchemaFetcher } from '../../src/read-model/forest-schema-client';
 
-import { makeMetrics, makeSchema } from './fixtures';
+import { makeMetrics, makeSchema, published } from './fixtures';
 import CapabilitiesCache from '../../src/read-model/capabilities-cache';
 import ReadModelStore from '../../src/read-model/read-model-store';
 import SchemaCache, { ONE_DAY_MS } from '../../src/read-model/schema-cache';
@@ -27,7 +27,7 @@ describe('ReadModelStore', () => {
 
   describe('getSchemaSnapshot', () => {
     it('should return a read-model derived from the very collections it returns', async () => {
-      const store = build(jest.fn().mockResolvedValue(makeSchema('users')));
+      const store = build(jest.fn().mockResolvedValue(published(makeSchema('users'))));
 
       const { collections, readModel, revision } = await store.getSchemaSnapshot();
 
@@ -42,7 +42,7 @@ describe('ReadModelStore', () => {
       const fetchSchema = jest.fn().mockImplementation(async () => {
         generation += 1;
 
-        return makeSchema(`generation-${generation}`);
+        return published(makeSchema(`generation-${generation}`));
       });
 
       const alwaysExpiredClock = () => {
@@ -62,7 +62,7 @@ describe('ReadModelStore', () => {
     });
 
     it('should read the cache revision once, so the triple cannot straddle two generations', async () => {
-      const store = build(jest.fn().mockResolvedValue(makeSchema('users')));
+      const store = build(jest.fn().mockResolvedValue(published(makeSchema('users'))));
       const cache = Reflect.get(store, 'schemaCache') as SchemaCache;
       let reads = 0;
       let bumped = 0;
@@ -83,8 +83,8 @@ describe('ReadModelStore', () => {
     it('should not label one generation of collections with another generation revision', async () => {
       const fetchSchema = jest
         .fn()
-        .mockResolvedValueOnce(makeSchema('first'))
-        .mockResolvedValueOnce(makeSchema('second'));
+        .mockResolvedValueOnce(published(makeSchema('first')))
+        .mockResolvedValueOnce(published(makeSchema('second')));
       const store = build(fetchSchema);
 
       const first = await store.getSchemaSnapshot();
@@ -101,7 +101,7 @@ describe('ReadModelStore', () => {
 
   describe('getReadModel', () => {
     it('should build the read-model from the fetched schema', async () => {
-      const store = build(jest.fn().mockResolvedValue(makeSchema('users')));
+      const store = build(jest.fn().mockResolvedValue(published(makeSchema('users'))));
 
       const model = await store.getReadModel();
 
@@ -109,7 +109,7 @@ describe('ReadModelStore', () => {
     });
 
     it('should reuse the same read-model instance on a cache hit', async () => {
-      const store = build(jest.fn().mockResolvedValue(makeSchema('users')));
+      const store = build(jest.fn().mockResolvedValue(published(makeSchema('users'))));
 
       const a = await store.getReadModel();
       const b = await store.getReadModel();
@@ -120,8 +120,8 @@ describe('ReadModelStore', () => {
     it('should rebuild the read-model after a schema refresh', async () => {
       const fetchSchema = jest
         .fn()
-        .mockResolvedValueOnce(makeSchema('users'))
-        .mockResolvedValueOnce(makeSchema('orders'));
+        .mockResolvedValueOnce(published(makeSchema('users')))
+        .mockResolvedValueOnce(published(makeSchema('orders')));
       const store = build(fetchSchema);
 
       const before = await store.getReadModel();
@@ -136,7 +136,7 @@ describe('ReadModelStore', () => {
 
   describe('capabilities coupling', () => {
     it('should fetch capabilities and cache them', async () => {
-      const store = build(jest.fn().mockResolvedValue(makeSchema('users')));
+      const store = build(jest.fn().mockResolvedValue(published(makeSchema('users'))));
       const capsFetcher = jest.fn().mockResolvedValue({ fields: [] });
 
       await store.getCapabilities('users', capsFetcher);
@@ -148,8 +148,8 @@ describe('ReadModelStore', () => {
     it('should invalidate capabilities when the schema refreshes', async () => {
       const fetchSchema = jest
         .fn()
-        .mockResolvedValueOnce(makeSchema('users'))
-        .mockResolvedValueOnce(makeSchema('users'));
+        .mockResolvedValueOnce(published(makeSchema('users')))
+        .mockResolvedValueOnce(published(makeSchema('users')));
       const store = build(fetchSchema);
       const capsFetcher = jest.fn().mockResolvedValue({ fields: [] });
 
@@ -171,13 +171,13 @@ describe('ReadModelStore', () => {
       });
       const fetchSchema = jest
         .fn()
-        .mockResolvedValueOnce(makeSchema('users'))
+        .mockResolvedValueOnce(published(makeSchema('users')))
         .mockImplementationOnce(async () => {
           await blocked;
 
-          return makeSchema('orders');
+          return published(makeSchema('orders'));
         })
-        .mockResolvedValue(makeSchema('orders'));
+        .mockResolvedValue(published(makeSchema('orders')));
       const store = build(fetchSchema);
       await store.getReadModel();
 
@@ -208,9 +208,9 @@ describe('ReadModelStore', () => {
     it('should pair capabilities and read-model from one generation when a refresh lands mid-fetch', async () => {
       const fetchSchema = jest
         .fn()
-        .mockResolvedValueOnce(makeSchema('users'))
-        .mockResolvedValueOnce(makeSchema('orders'))
-        .mockResolvedValue(makeSchema('orders'));
+        .mockResolvedValueOnce(published(makeSchema('users')))
+        .mockResolvedValueOnce(published(makeSchema('orders')))
+        .mockResolvedValue(published(makeSchema('orders')));
       const store = build(fetchSchema);
       const stale = await store.getReadModel();
 
@@ -239,7 +239,7 @@ describe('ReadModelStore', () => {
     it('should not rebuild the read-model or clear capabilities when a refresh fails', async () => {
       const fetchSchema = jest
         .fn()
-        .mockResolvedValueOnce(makeSchema('users'))
+        .mockResolvedValueOnce(published(makeSchema('users')))
         .mockRejectedValueOnce(new Error('boom'));
       // Capabilities TTL kept longer than the schema TTL so this asserts the *clear* (not a
       // capabilities TTL expiry) does not happen on a warm schema-refresh failure.
@@ -266,7 +266,7 @@ describe('ReadModelStore', () => {
 
   describe('ageSeconds', () => {
     it('should reflect the schema cache age of the last good schema', async () => {
-      const store = build(jest.fn().mockResolvedValue(makeSchema('users')));
+      const store = build(jest.fn().mockResolvedValue(published(makeSchema('users'))));
 
       await store.getReadModel();
       clock += 7_000;
@@ -277,7 +277,7 @@ describe('ReadModelStore', () => {
 
   describe('invalidate', () => {
     it('should re-read the schema on the next snapshot', async () => {
-      const fetchSchema = jest.fn().mockResolvedValue(makeSchema('users'));
+      const fetchSchema = jest.fn().mockResolvedValue(published(makeSchema('users')));
       const store = build(fetchSchema);
       await store.getSchemaSnapshot();
 
@@ -288,7 +288,7 @@ describe('ReadModelStore', () => {
     });
 
     it('should drop the capabilities with it, since they belong to the schema generation', async () => {
-      const fetchSchema = jest.fn().mockResolvedValue(makeSchema('users'));
+      const fetchSchema = jest.fn().mockResolvedValue(published(makeSchema('users')));
       const store = build(fetchSchema);
       const capabilities = jest.fn().mockResolvedValue({ fields: [] });
       await store.getCapabilities('users', capabilities);
@@ -302,7 +302,7 @@ describe('ReadModelStore', () => {
     it('should drop the capabilities even when the revision does not move', async () => {
       const fetchSchema = jest
         .fn()
-        .mockResolvedValueOnce(makeSchema('users'))
+        .mockResolvedValueOnce(published(makeSchema('users')))
         .mockRejectedValue(new Error('boom'));
       const store = build(fetchSchema);
       const capabilities = jest.fn().mockResolvedValue({ fields: [] });

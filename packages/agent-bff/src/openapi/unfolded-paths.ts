@@ -98,6 +98,26 @@ function fieldsEnum(
   return pool.add(name, { type: 'string', enum: fields, description });
 }
 
+/**
+ * Whether the document knows which fields the collection exposes. Only `capabilities_unavailable`
+ * leaves it unknown — the agent could not be asked. `no_fields` is an ANSWER: capabilities were read
+ * and name none, so every field is rejected, and `null` carries the enumerated set. The difference
+ * decides whether an empty set means "do not constrain" or "nothing is valid here".
+ */
+function isFieldSetKnown(fields: CollectionFields): boolean {
+  return fields.degraded !== 'capabilities_unavailable';
+}
+
+/**
+ * Whether an empty `filterable` is an answer. It is not enough that the field set is known: the
+ * collector also empties `filterable` by dropping every field whose operator set it cannot map, and
+ * that collection filters fine at runtime. Documenting it as filterable by nothing would refuse, at
+ * compile time in a generated client, a filter the agent honours.
+ */
+function isFilterSetKnown(fields: CollectionFields): boolean {
+  return isFieldSetKnown(fields) && !fields.undocumentableFilter;
+}
+
 interface OperatorGroup {
   fields: string[];
   operators: string[];
@@ -158,9 +178,15 @@ function filterLeaves(pool: ComponentPool, plan: Pick<CollectionPlan, 'key' | 'c
   const { name, fields } = plan.collection;
   const groups = groupByOperators(fields.filterable);
 
-  // No known filterable field: the field stays free-form and every operator stays allowed, because a
-  // collection whose capabilities could not be read still accepts whatever it really exposes.
+  // No filterable field, and the two reasons are not the same document. Capabilities that could not
+  // be read leave the field set UNKNOWN, so the leaf stays free-form: the collection still accepts
+  // whatever it really exposes, and the runtime is the one that rejects. Capabilities that were read
+  // and name nothing filterable leave no valid leaf at all — advertising a free-form one would offer
+  // a filter the validator answers 422 on for every field, so the tree keeps only its branch and
+  // empty-object alternatives.
   if (groups.length === 0) {
+    if (isFilterSetKnown(fields)) return [];
+
     return [
       pool.add(
         `FilterLeaf_${plan.key}`,
@@ -197,12 +223,24 @@ function filterSchema(
   const treeName = `Filter_${plan.key}`;
   const treeRef = { $ref: `#/components/schemas/${treeName}` };
   const leaves = filterLeaves(pool, plan);
-  const pairing =
-    fields.filterable.length > 0
-      ? ' There is one leaf alternative per operator set: a field accepts only the operators of ' +
+  const pairing = (() => {
+    if (fields.filterable.length > 0) {
+      return (
+        ' There is one leaf alternative per operator set: a field accepts only the operators of ' +
         'the alternative listing it, and an operator it does not support answers 400 ' +
         'invalid_filter_operator.'
-      : '';
+      );
+    }
+
+    if (isFilterSetKnown(fields)) {
+      return (
+        ' No field of this collection is filterable, so there is no leaf alternative at all: ' +
+        'send the empty object, or no filter.'
+      );
+    }
+
+    return '';
+  })();
 
   return pool.add(treeName, {
     description:
@@ -230,6 +268,8 @@ interface FieldRefs {
   projectable: ReferenceObject | SchemaObject;
   filter: ReferenceObject;
   sort: ReferenceObject | SchemaObject;
+  anySortable: boolean;
+  anyProjectable: boolean;
 }
 
 function fieldRefs(deps: Deps, plan: Pick<CollectionPlan, 'key' | 'collection'>): FieldRefs {
@@ -243,6 +283,24 @@ function fieldRefs(deps: Deps, plan: Pick<CollectionPlan, 'key' | 'collection'>)
     `A field of ${quoted(name)}.`,
   );
 
+  // Sortable is a subset of projectable too, but only the v1 synthesis ever narrows it: a field the
+  // apimap marks not sortable is projectable and filterable while a sort on it answers 422
+  // field_not_sortable. The enum is shared with projectable when nothing is denied, which is every
+  // v2 collection, so the common document gains no component.
+  const sortableNames = fields.projectable
+    .filter(field => field.sortable !== false)
+    .map(field => field.name);
+
+  const sortableField =
+    sortableNames.length === fields.projectable.length
+      ? projectable
+      : fieldsEnum(
+          pool,
+          `SortableFields_${plan.key}`,
+          sortableNames,
+          `A sortable field of ${quoted(name)}.`,
+        );
+
   // Filterable is a strict subset of projectable: the agent reports a ManyToOne without operators, so
   // projecting or sorting on it works while filtering on it answers 422 field_not_filterable. Which is
   // why the filterable fields are not enumerated here but inside the filter leaves, where each one
@@ -250,14 +308,19 @@ function fieldRefs(deps: Deps, plan: Pick<CollectionPlan, 'key' | 'collection'>)
   return {
     projectable,
     filter: filterSchema(deps, plan),
+    // Same split as the filter leaves: an UNKNOWN field set leaves sort unconstrained, because the
+    // runtime is the one that rejects. A known set with nothing sortable — every field denied, or
+    // capabilities naming no field at all — is a collection that takes no clause.
+    anySortable: sortableNames.length > 0 || !isFieldSetKnown(fields),
+    anyProjectable: fields.projectable.length > 0 || !isFieldSetKnown(fields),
     sort:
-      fields.projectable.length === 0
+      sortableNames.length === 0
         ? pool.reuse('SortClause', SortClauseSchema)
         : pool.add(`SortClause_${plan.key}`, {
             type: 'object',
             description: 'Omitting `direction` sorts ascending.',
             properties: {
-              field: projectable,
+              field: sortableField,
               direction: { type: 'string', enum: ['asc', 'desc'] },
             },
             required: ['field'],
@@ -284,8 +347,31 @@ function requestProperties(deps: Deps, plan: Pick<CollectionPlan, 'key' | 'colle
     count,
     list: {
       filter: refs.filter,
-      projection: { type: 'array', items: refs.projectable },
-      sort: { type: 'array', items: refs.sort },
+      // Same cap as sort, on the same split: capabilities that were READ and name no field leave
+      // nothing to project, and `fieldsEnum` falls back to an unrestricted string for an empty
+      // list, which would advertise every field while each request answers 422 unknown_field. An
+      // UNKNOWN field set stays uncapped — the collection still projects whatever it exposes.
+      projection: refs.anyProjectable
+        ? { type: 'array', items: refs.projectable }
+        : {
+            type: 'array',
+            items: refs.projectable,
+            maxItems: 0,
+            description: 'This collection exposes no field: send an empty array, or omit it.',
+          },
+      // A collection whose every known field is denied sorting takes no clause at all: the shared
+      // SortClause leaves `field` an unrestricted string, which would advertise every field as
+      // sortable while each request answers 422 field_not_sortable. `maxItems: 0` says what the
+      // runtime does — an empty sort passes, any clause does not.
+      sort: refs.anySortable
+        ? { type: 'array', items: refs.sort }
+        : {
+            type: 'array',
+            items: refs.sort,
+            maxItems: 0,
+            description:
+              'No field of this collection is sortable: send an empty array, or omit it.',
+          },
       page: pool.reuse('Page', PageSchema),
       search,
       searchExtended,
@@ -380,10 +466,20 @@ function parentIdSchema(
 
   const [key] = primaryKeys;
 
+  // A DERIVED key names no verified column: the schema published no key, so the read-model guessed
+  // one from an `id` field, or invented the name outright. Stating `(id, String)` the way a declared
+  // key is stated would contradict `ForestRecordMeta`, which warns in the same document that this
+  // `id` may not be a column at all. The shape is unaffected — the wire takes the id opaque either
+  // way — so only the description hedges.
+  const column = key.derived
+    ? 'its primary key is not published by the schema, so this is the opaque agent id, which is ' +
+      `NOT necessarily the value of a column named ${quoted(key.name)}`
+    : `${key.name}, ${key.type}`;
+
   return {
     ...PARENT_ID_SHAPE,
     description:
-      `The parent ${quoted(parent)} record id (${key.name}, ${key.type}). A number or its ` +
+      `The parent ${quoted(parent)} record id (${column}). A number or its ` +
       'string form are both accepted; the BFF forwards it to the agent as a string.',
   };
 }

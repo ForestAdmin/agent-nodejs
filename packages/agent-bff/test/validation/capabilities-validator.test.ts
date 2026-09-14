@@ -222,6 +222,43 @@ describe('validateAgainstCapabilities', () => {
     });
   });
 
+  // Only the v1 synthesis states sortability; a real capabilities response omits it, so a field
+  // without the flag must keep sorting exactly as before.
+  describe('sortability', () => {
+    it('rejects a sort on a field the capabilities mark not sortable', () => {
+      const errors = validateAgainstCapabilities(
+        { sortFields: ['computed'] },
+        { fields: [{ name: 'computed', type: 'String', operators: [], sortable: false }] },
+      );
+
+      expect(errors[0]).toEqual(
+        expect.objectContaining({
+          type: 'field_not_sortable',
+          status: 422,
+          details: { field: 'computed' },
+        }),
+      );
+    });
+
+    it('allows a sort when the flag is absent, which is every real capabilities response', () => {
+      expect(
+        validateAgainstCapabilities(
+          { sortFields: ['title'] },
+          { fields: [{ name: 'title', type: 'String', operators: [] }] },
+        ),
+      ).toEqual([]);
+    });
+
+    it('does not constrain a projection, which needs no ordering', () => {
+      expect(
+        validateAgainstCapabilities(
+          { projectionFields: ['computed'] },
+          { fields: [{ name: 'computed', type: 'String', operators: [], sortable: false }] },
+        ),
+      ).toEqual([]);
+    });
+  });
+
   it('passes a fully valid filter, sort, and projection', () => {
     expect(
       validateAgainstCapabilities(

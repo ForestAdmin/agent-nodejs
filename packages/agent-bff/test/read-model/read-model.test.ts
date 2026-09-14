@@ -313,5 +313,47 @@ describe('ReadModel', () => {
 
       expect(model.getPrimaryKeys('ghost')).toEqual([]);
     });
+
+    // A forest_liana older than 9.17.6 publishes no isPrimaryKey anywhere, which used to leave the
+    // collection keyless and make every list answer 500 mapping_error.
+    describe('when the schema declares no key', () => {
+      it('should fall back to the id field with the type the schema gives it', () => {
+        const model = new ReadModel([
+          collection('users', [
+            { ...column('id'), type: 'Number', isPrimaryKey: false },
+            column('email'),
+          ]),
+        ]);
+
+        expect(model.getPrimaryKeys('users')).toEqual([
+          { name: 'id', type: 'Number', derived: true },
+        ]);
+      });
+
+      it('should fall back to a string id when the schema declares no id field either', () => {
+        const model = new ReadModel([collection('audits', [column('label')])]);
+
+        expect(model.getPrimaryKeys('audits')).toEqual([
+          { name: 'id', type: 'String', derived: true },
+        ]);
+      });
+
+      it('should flag the key as derived, so unpacking does not split a packed composite id', () => {
+        const model = new ReadModel([collection('audits', [column('label')])]);
+
+        expect(model.getPrimaryKeys('audits')[0].derived).toBe(true);
+      });
+
+      it('should leave a declared key alone, so a v2 agent is untouched', () => {
+        const model = new ReadModel([
+          collection('users', [
+            { ...column('reference'), type: 'String', isPrimaryKey: true },
+            { ...column('id'), type: 'Number', isPrimaryKey: false },
+          ]),
+        ]);
+
+        expect(model.getPrimaryKeys('users')).toEqual([{ name: 'reference', type: 'String' }]);
+      });
+    });
   });
 });

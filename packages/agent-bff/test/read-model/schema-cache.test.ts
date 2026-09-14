@@ -1,9 +1,9 @@
 import type { Logger } from '../../src/ports/logger-port';
 import type { Metrics } from '../../src/ports/metrics-port';
 import type { SchemaFetcher } from '../../src/read-model/forest-schema-client';
-import type { ForestSchemaCollection } from '@forestadmin/forestadmin-client';
+import type { ForestSchemaWithMeta } from '@forestadmin/forestadmin-client';
 
-import { makeMetrics, makeSchema } from './fixtures';
+import { makeMetrics, makeSchema, published } from './fixtures';
 import SchemaUnavailableError from '../../src/read-model/errors';
 import SchemaCache, {
   ONE_DAY_MS,
@@ -14,7 +14,7 @@ import SchemaCache, {
 } from '../../src/read-model/schema-cache';
 
 describe('SchemaCache', () => {
-  let fetcher: { fetchSchema: jest.Mock<Promise<ForestSchemaCollection[]>, []> };
+  let fetcher: { fetchSchema: jest.Mock<Promise<ForestSchemaWithMeta>, []> };
   let metrics: jest.Mocked<Metrics>;
   let clock: number;
   const now = () => clock;
@@ -32,7 +32,7 @@ describe('SchemaCache', () => {
   describe('cold cache', () => {
     it('should fetch on first read and return the collections', async () => {
       const schema = makeSchema('users');
-      fetcher.fetchSchema.mockResolvedValue(schema);
+      fetcher.fetchSchema.mockResolvedValue(published(schema));
 
       const result = await build().get();
 
@@ -50,7 +50,9 @@ describe('SchemaCache', () => {
 
     it('should re-attempt the fetch on the next read after a cold failure (no poisoning)', async () => {
       const schema = makeSchema('users');
-      fetcher.fetchSchema.mockRejectedValueOnce(new Error('boom')).mockResolvedValueOnce(schema);
+      fetcher.fetchSchema
+        .mockRejectedValueOnce(new Error('boom'))
+        .mockResolvedValueOnce(published(schema));
       const cache = build();
 
       await expect(cache.get()).rejects.toBeInstanceOf(SchemaUnavailableError);
@@ -73,7 +75,7 @@ describe('SchemaCache', () => {
   describe('warm cache within TTL', () => {
     it('should serve from cache without re-fetching before 24h', async () => {
       const schema = makeSchema('users');
-      fetcher.fetchSchema.mockResolvedValue(schema);
+      fetcher.fetchSchema.mockResolvedValue(published(schema));
       const cache = build();
 
       await cache.get();
@@ -87,7 +89,9 @@ describe('SchemaCache', () => {
     it('should re-fetch after 24h', async () => {
       const first = makeSchema('users');
       const second = makeSchema('users-v2');
-      fetcher.fetchSchema.mockResolvedValueOnce(first).mockResolvedValueOnce(second);
+      fetcher.fetchSchema
+        .mockResolvedValueOnce(published(first))
+        .mockResolvedValueOnce(published(second));
       const cache = build();
 
       await cache.get();
@@ -100,7 +104,7 @@ describe('SchemaCache', () => {
 
     it('should return the same array reference on a cache hit', async () => {
       const schema = makeSchema('users');
-      fetcher.fetchSchema.mockResolvedValue(schema);
+      fetcher.fetchSchema.mockResolvedValue(published(schema));
       const cache = build();
 
       const a = await cache.get();
@@ -113,7 +117,9 @@ describe('SchemaCache', () => {
   describe('warm cache refresh failure', () => {
     it('should keep serving the last good schema and emit the error counter', async () => {
       const good = makeSchema('users');
-      fetcher.fetchSchema.mockResolvedValueOnce(good).mockRejectedValueOnce(new Error('boom'));
+      fetcher.fetchSchema
+        .mockResolvedValueOnce(published(good))
+        .mockRejectedValueOnce(new Error('boom'));
       const cache = build();
 
       await cache.get();
@@ -127,7 +133,7 @@ describe('SchemaCache', () => {
     it('should log the cause and that the stale schema was served', async () => {
       const logger = jest.fn();
       fetcher.fetchSchema
-        .mockResolvedValueOnce(makeSchema('users'))
+        .mockResolvedValueOnce(published(makeSchema('users')))
         .mockRejectedValueOnce(new Error('boom'));
       const cache = build(logger);
 
@@ -145,9 +151,9 @@ describe('SchemaCache', () => {
       const good = makeSchema('users');
       const fresh = makeSchema('users-v2');
       fetcher.fetchSchema
-        .mockResolvedValueOnce(good)
+        .mockResolvedValueOnce(published(good))
         .mockRejectedValueOnce(new Error('boom'))
-        .mockResolvedValueOnce(fresh);
+        .mockResolvedValueOnce(published(fresh));
       const cache = build();
 
       await cache.get();
@@ -163,9 +169,9 @@ describe('SchemaCache', () => {
   describe('concurrent reads', () => {
     it('should dedupe an in-flight fetch so concurrent cold reads fetch once', async () => {
       const schema = makeSchema('users');
-      let resolveFetch!: (value: ForestSchemaCollection[]) => void;
+      let resolveFetch!: (value: ForestSchemaWithMeta) => void;
       fetcher.fetchSchema.mockReturnValue(
-        new Promise<ForestSchemaCollection[]>(resolve => {
+        new Promise<ForestSchemaWithMeta>(resolve => {
           resolveFetch = resolve;
         }),
       );
@@ -173,7 +179,7 @@ describe('SchemaCache', () => {
 
       const a = cache.get();
       const b = cache.get();
-      resolveFetch(schema);
+      resolveFetch(published(schema));
 
       expect(await a).toBe(schema);
       expect(await b).toBe(schema);
@@ -181,10 +187,40 @@ describe('SchemaCache', () => {
     });
   });
 
+  describe('the publishing liana', () => {
+    it('should expose the meta of the schema currently served', async () => {
+      const meta = { liana: 'forest-rails', liana_version: '9.21.0' };
+      fetcher.fetchSchema.mockResolvedValue(published(makeSchema('users'), meta));
+      const cache = build();
+
+      await cache.get();
+
+      expect(cache.meta).toEqual(meta);
+    });
+
+    it('should report an empty meta before any schema has been fetched', () => {
+      expect(build().meta).toEqual({});
+    });
+
+    it('should keep the last good meta while a refresh keeps failing, like the collections', async () => {
+      const meta = { liana: 'forest-express-sequelize', liana_version: '9.6.10' };
+      fetcher.fetchSchema
+        .mockResolvedValueOnce(published(makeSchema('users'), meta))
+        .mockRejectedValue(new Error('boom'));
+      const cache = build();
+
+      await cache.get();
+      clock += ONE_DAY_MS + 1;
+      await cache.get();
+
+      expect(cache.meta).toEqual(meta);
+    });
+  });
+
   describe('age gauge', () => {
     it('should emit schema_cache_age_seconds reflecting the last good age on read', async () => {
       const schema = makeSchema('users');
-      fetcher.fetchSchema.mockResolvedValue(schema);
+      fetcher.fetchSchema.mockResolvedValue(published(schema));
       const cache = build();
 
       await cache.get();
@@ -198,7 +234,7 @@ describe('SchemaCache', () => {
 
   describe('empty schema', () => {
     it('should treat an empty schema as a failed fetch on a cold cache', async () => {
-      fetcher.fetchSchema.mockResolvedValue([]);
+      fetcher.fetchSchema.mockResolvedValue(published([]));
       const cache = build();
 
       await expect(cache.get()).rejects.toBeInstanceOf(SchemaUnavailableError);
@@ -208,7 +244,7 @@ describe('SchemaCache', () => {
 
     it('should log the empty schema as the cause, since the counter cannot tell it from an outage', async () => {
       const logger = jest.fn();
-      fetcher.fetchSchema.mockResolvedValue([]);
+      fetcher.fetchSchema.mockResolvedValue(published([]));
 
       await expect(build(logger).get()).rejects.toBeInstanceOf(SchemaUnavailableError);
 
@@ -220,7 +256,9 @@ describe('SchemaCache', () => {
 
     it('should keep serving the last good schema when a refresh returns empty', async () => {
       const good = makeSchema('users');
-      fetcher.fetchSchema.mockResolvedValueOnce(good).mockResolvedValueOnce([]);
+      fetcher.fetchSchema
+        .mockResolvedValueOnce(published(good))
+        .mockResolvedValueOnce(published([]));
       const cache = build();
 
       await cache.get();
@@ -239,8 +277,8 @@ describe('SchemaCache', () => {
 
     it('should increment on each successful refresh', async () => {
       fetcher.fetchSchema
-        .mockResolvedValueOnce(makeSchema('users'))
-        .mockResolvedValueOnce(makeSchema('users-v2'));
+        .mockResolvedValueOnce(published(makeSchema('users')))
+        .mockResolvedValueOnce(published(makeSchema('users-v2')));
       const cache = build();
 
       await cache.get();
@@ -252,7 +290,7 @@ describe('SchemaCache', () => {
     });
 
     it('should not increment on a cache hit', async () => {
-      fetcher.fetchSchema.mockResolvedValue(makeSchema('users'));
+      fetcher.fetchSchema.mockResolvedValue(published(makeSchema('users')));
       const cache = build();
 
       await cache.get();
@@ -263,7 +301,7 @@ describe('SchemaCache', () => {
 
     it('should not increment on a warm refresh failure', async () => {
       fetcher.fetchSchema
-        .mockResolvedValueOnce(makeSchema('users'))
+        .mockResolvedValueOnce(published(makeSchema('users')))
         .mockRejectedValueOnce(new Error('boom'));
       const cache = build();
 
@@ -278,7 +316,7 @@ describe('SchemaCache', () => {
   describe('clear', () => {
     it('should re-read the schema on the next get', async () => {
       const cache = build();
-      fetcher.fetchSchema.mockResolvedValue(makeSchema('users'));
+      fetcher.fetchSchema.mockResolvedValue(published(makeSchema('users')));
       await cache.get();
 
       cache.clear();
@@ -289,7 +327,7 @@ describe('SchemaCache', () => {
 
     it('should keep re-reading during the revalidation window, since the SaaS may still be catching up', async () => {
       const cache = build();
-      fetcher.fetchSchema.mockResolvedValue(makeSchema('users'));
+      fetcher.fetchSchema.mockResolvedValue(published(makeSchema('users')));
       await cache.get();
       cache.clear();
       await cache.get();
@@ -302,7 +340,7 @@ describe('SchemaCache', () => {
 
     it('should go back to the long TTL once the window is over', async () => {
       const cache = build();
-      fetcher.fetchSchema.mockResolvedValue(makeSchema('users'));
+      fetcher.fetchSchema.mockResolvedValue(published(makeSchema('users')));
       await cache.get();
       cache.clear();
       await cache.get();
@@ -319,7 +357,7 @@ describe('SchemaCache', () => {
     it('should not let a fetch started before the clear repopulate the cache', async () => {
       const cache = build();
       const stale = makeSchema('stale');
-      let releaseStale: (collections: ForestSchemaCollection[]) => void = () => undefined;
+      let releaseStale: (schema: ForestSchemaWithMeta) => void = () => undefined;
       fetcher.fetchSchema.mockReturnValueOnce(
         new Promise(resolve => {
           releaseStale = resolve;
@@ -328,11 +366,11 @@ describe('SchemaCache', () => {
 
       const pending = cache.get();
       cache.clear();
-      releaseStale(stale);
+      releaseStale(published(stale));
 
       await expect(pending).resolves.toEqual(stale);
 
-      fetcher.fetchSchema.mockResolvedValue(makeSchema('fresh'));
+      fetcher.fetchSchema.mockResolvedValue(published(makeSchema('fresh')));
       const result = await cache.get();
 
       expect(result).toEqual(makeSchema('fresh'));
@@ -342,7 +380,7 @@ describe('SchemaCache', () => {
     it('should start its own fetch for a read that lands after the clear, not join the invalidated one', async () => {
       const cache = build();
       const stale = makeSchema('stale');
-      let releaseStale: (collections: ForestSchemaCollection[]) => void = () => undefined;
+      let releaseStale: (schema: ForestSchemaWithMeta) => void = () => undefined;
       fetcher.fetchSchema.mockReturnValueOnce(
         new Promise(resolve => {
           releaseStale = resolve;
@@ -351,9 +389,9 @@ describe('SchemaCache', () => {
 
       const beforeClear = cache.get();
       cache.clear();
-      fetcher.fetchSchema.mockResolvedValue(makeSchema('fresh'));
+      fetcher.fetchSchema.mockResolvedValue(published(makeSchema('fresh')));
       const afterClear = cache.get();
-      releaseStale(stale);
+      releaseStale(published(stale));
 
       await expect(beforeClear).resolves.toEqual(stale);
       await expect(afterClear).resolves.toEqual(makeSchema('fresh'));
@@ -362,7 +400,7 @@ describe('SchemaCache', () => {
 
     it('should not promote a read taken inside the window to the long TTL once the window closes', async () => {
       const cache = build();
-      fetcher.fetchSchema.mockResolvedValue(makeSchema('users'));
+      fetcher.fetchSchema.mockResolvedValue(published(makeSchema('users')));
       await cache.get();
 
       cache.clear();
@@ -376,7 +414,9 @@ describe('SchemaCache', () => {
 
     it('should keep the last good schema as a fallback when the refresh after a clear fails', async () => {
       const good = makeSchema('users');
-      fetcher.fetchSchema.mockResolvedValueOnce(good).mockRejectedValue(new Error('boom'));
+      fetcher.fetchSchema
+        .mockResolvedValueOnce(published(good))
+        .mockRejectedValue(new Error('boom'));
       const cache = build();
       await cache.get();
 
@@ -391,9 +431,9 @@ describe('SchemaCache', () => {
       const good = makeSchema('users');
       const fresh = makeSchema('users-v2');
       fetcher.fetchSchema
-        .mockResolvedValueOnce(good)
+        .mockResolvedValueOnce(published(good))
         .mockRejectedValueOnce(new Error('boom'))
-        .mockResolvedValueOnce(fresh);
+        .mockResolvedValueOnce(published(fresh));
       const cache = build();
       await cache.get();
 
@@ -407,7 +447,7 @@ describe('SchemaCache', () => {
 
     it('should not bump the revision for a fetch the clear invalidated', async () => {
       const cache = build();
-      let releaseStale: (collections: ForestSchemaCollection[]) => void = () => undefined;
+      let releaseStale: (schema: ForestSchemaWithMeta) => void = () => undefined;
       fetcher.fetchSchema.mockReturnValueOnce(
         new Promise(resolve => {
           releaseStale = resolve;
@@ -416,10 +456,60 @@ describe('SchemaCache', () => {
 
       const pending = cache.get();
       cache.clear();
-      releaseStale(makeSchema('stale'));
+      releaseStale(published(makeSchema('stale')));
       await pending;
 
       expect(cache.revision).toBe(0);
+    });
+  });
+
+  describe('when a clear lands while a refresh is in flight', () => {
+    it("should hand the detached refresh its own meta, not the newer entry's", async () => {
+      let releaseFirst: (() => void) | undefined;
+      const first = new Promise<void>(resolve => {
+        releaseFirst = resolve;
+      });
+
+      let call = 0;
+      const generations = {
+        fetchSchema: async () => {
+          call += 1;
+
+          if (call === 1) {
+            await first;
+
+            return {
+              collections: [{ name: 'FromGenerationOne', fields: [] }],
+              meta: { liana: 'forest-rails' },
+            };
+          }
+
+          return {
+            collections: [{ name: 'FromGenerationTwo', fields: [] }],
+            meta: { liana: 'forest-express-sequelize' },
+          };
+        },
+      } as never;
+
+      const cache = new SchemaCache({ fetcher: generations, metrics: makeMetrics() });
+
+      const detached = cache.getPayload();
+
+      cache.clear();
+
+      const rewritten = await cache.getPayload();
+      releaseFirst?.();
+
+      const resolved = await detached;
+
+      // The pair has to be internally consistent: reading the collections from the detached refresh
+      // and the meta from the entry a newer refresh wrote would name a liana that never published
+      // those collections, and the legacy synthesis branches on exactly that name.
+      expect(resolved.collections.map(collection => collection.name)).toEqual([
+        'FromGenerationOne',
+      ]);
+      expect(resolved.meta).toEqual({ liana: 'forest-rails' });
+      expect(rewritten.meta).toEqual({ liana: 'forest-express-sequelize' });
     });
   });
 });

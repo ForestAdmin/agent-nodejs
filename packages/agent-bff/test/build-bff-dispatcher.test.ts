@@ -95,7 +95,10 @@ describe('buildBff with an in-process dispatcher', () => {
   beforeEach(() => {
     stubEnvironmentIdFetch();
     fetchSchema.mockReset();
-    fetchSchema.mockResolvedValue([collection('books', [column('id'), column('title')])]);
+    fetchSchema.mockResolvedValue({
+      collections: [collection('books', [column('id'), column('title')])],
+      meta: {},
+    });
   });
 
   it('should serve the records the dispatcher returns, without opening a socket', async () => {

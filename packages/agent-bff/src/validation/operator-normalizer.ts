@@ -1,21 +1,13 @@
 import type { Operator } from '@forestadmin/datasource-toolkit';
 
+import { toWireOperator } from '@forestadmin/agent-client';
 import { allOperators } from '@forestadmin/datasource-toolkit';
 
-/**
- * Mirrors the agent's capabilities serialization (`packages/agent/src/routes/capabilities.ts`),
- * which converts each PascalCase operator to snake_case before returning it. Kept identical so the
- * inverse map below round-trips every operator the agent can emit.
- */
-export function toSnakeCaseOperator(operator: string): string {
-  return operator
-    .split(/\.?(?=[A-Z])/)
-    .join('_')
-    .toLowerCase();
-}
-
+// `toWireOperator` is the one PascalCase -> snake_case mapping in the monorepo, and it is the same
+// spelling the agent's capabilities route emits, so the inverse map round-trips every operator the
+// agent can announce.
 const SNAKE_TO_PASCAL = new Map<string, Operator>(
-  allOperators.map(operator => [toSnakeCaseOperator(operator), operator]),
+  allOperators.map(operator => [toWireOperator(operator), operator]),
 );
 
 /**

@@ -90,6 +90,34 @@ describe('ForestHttpApi', () => {
     });
   });
 
+  describe('getSchemaWithMeta', () => {
+    it('should return the collections together with the liana that published them', async () => {
+      (ServerUtils.query as jest.Mock).mockResolvedValue({
+        data: [{ id: 'users', type: 'collections', attributes: { name: 'users' } }],
+        included: [],
+        meta: { liana: 'forest-rails', liana_version: '9.21.0' },
+      });
+
+      const result = await new ForestHttpApi().getSchemaWithMeta(options);
+
+      expect(ServerUtils.query).toHaveBeenCalledWith(options, 'get', '/liana/forest-schema');
+      expect(result.collections).toHaveLength(1);
+      expect(result.meta).toEqual({ liana: 'forest-rails', liana_version: '9.21.0' });
+    });
+
+    it('should answer an empty meta when the published schema carries none', async () => {
+      (ServerUtils.query as jest.Mock).mockResolvedValue({
+        data: [{ id: 'users', type: 'collections', attributes: { name: 'users' } }],
+        included: [],
+      });
+
+      const result = await new ForestHttpApi().getSchemaWithMeta(options);
+
+      expect(result.meta).toEqual({});
+      expect(result.collections[0].name).toBe('users');
+    });
+  });
+
   describe('postSchema', () => {
     it('should call the right endpoint with schema and a 30s timeout', async () => {
       const schema = { data: [], meta: { schemaFileHash: 'abc123' } };
