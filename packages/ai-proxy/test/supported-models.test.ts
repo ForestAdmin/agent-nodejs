@@ -13,6 +13,13 @@ describe('isModelSupportingTools', () => {
     expect(isModelSupportingTools('gpt-4')).toBe(false);
   });
 
+  it.each(['gpt-live-1', 'gpt-4o-realtime-preview', 'gpt-4o-audio-preview'])(
+    'should return false for %s (not a chat completions model)',
+    model => {
+      expect(isModelSupportingTools(model)).toBe(false);
+    },
+  );
+
   it.each(['gpt-5.6-luna', 'gpt-5.6-sol', 'gpt-5.6-terra', 'gpt-6-astra'])(
     'should return false for %s (v1/responses only)',
     model => {
