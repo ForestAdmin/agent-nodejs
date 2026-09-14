@@ -1,3 +1,10 @@
+## @forestadmin/ai-proxy [1.13.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.13.0...@forestadmin/ai-proxy@1.13.1) (2026-09-14)
+
+
+### Bug Fixes
+
+* **ai-proxy:** exclude OpenAI live models from tool-capable models ([#1900](https://github.com/ForestAdmin/agent-nodejs/issues/1900)) ([285ac64](https://github.com/ForestAdmin/agent-nodejs/commit/285ac64d8fc562b9b496eea75a70233980035055))
+
 # @forestadmin/ai-proxy [1.13.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.12.9...@forestadmin/ai-proxy@1.13.0) (2026-09-10)
 
 
