@@ -26,6 +26,7 @@ const OPENAI_UNSUPPORTED_PREFIXES = [
   'gpt-image', // gpt-image-1, gpt-image-1.5
   'gpt-realtime', // gpt-realtime, gpt-realtime-mini
   'gpt-audio', // gpt-audio
+  'gpt-live', // gpt-live-1: Realtime-family, v1/completions only
   'sora', // sora-2, sora-2-pro
   'codex', // codex-mini-latest
 ];

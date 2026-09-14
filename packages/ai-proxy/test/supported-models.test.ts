@@ -13,6 +13,10 @@ describe('isModelSupportingTools', () => {
     expect(isModelSupportingTools('gpt-4')).toBe(false);
   });
 
+  it('should return false for gpt-live-1 (Realtime-family, v1/completions only)', () => {
+    expect(isModelSupportingTools('gpt-live-1')).toBe(false);
+  });
+
   it.each(['gpt-5.6-luna', 'gpt-5.6-sol', 'gpt-5.6-terra', 'gpt-6-astra'])(
     'should return false for %s (v1/responses only)',
     model => {
