@@ -124,6 +124,34 @@ describe('unpackPrimaryKey', () => {
       ).toEqual({ ownerId: 'A', owner_id: 'B', sku: 'C' });
     });
 
+    it('should leave an unmatched key on its own segment when no match claimed it', () => {
+      expect(
+        unpackPrimaryKey(
+          '42|Thu Jan 01 2026 00:00:00 GMT+0100|7',
+          [
+            { name: 'ref', type: 'String' },
+            { name: 'day', type: 'String' },
+            { name: 'seq', type: 'Number' },
+          ],
+          { seq: 7, day: '2026-01-01T00:00:00.000Z', id: '42|Thu Jan 01 2026 00:00:00 GMT+0100|7' },
+        ),
+      ).toEqual({ ref: '42', day: 'Thu Jan 01 2026 00:00:00 GMT+0100', seq: 7 });
+    });
+
+    it('should move an unmatched key only when a matched key took its segment', () => {
+      expect(
+        unpackPrimaryKey(
+          'g|b|a',
+          [
+            { name: 'alpha', type: 'String' },
+            { name: 'beta', type: 'String' },
+            { name: 'gamma', type: 'String' },
+          ],
+          { alpha: 'a', beta: 'b' },
+        ),
+      ).toEqual({ alpha: 'a', beta: 'b', gamma: 'g' });
+    });
+
     it('should fall back to the positional segments when no key matches', () => {
       expect(
         unpackPrimaryKey(

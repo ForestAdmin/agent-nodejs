@@ -62,8 +62,13 @@ function comparableValue(record: Record<string, unknown>, key: PrimaryKeyField):
  * `Date` or a Buffer key is the same story from the other side: their attribute form differs from
  * the packed one (ISO versus `String(date)`), they match nothing, and they keep their position.
  *
- * A key that matches nothing keeps its positional segment, which is what this function returns
- * whole when no record is given.
+ * A key that matches nothing keeps its own positional segment whenever no match claimed it, and
+ * only moves when a match did. That is what makes this a strict improvement over pairing by
+ * position: a key the published order happened to get right can only lose its segment to a key
+ * that proved the segment is its own, and a key that lost it was wrong by definition. Reordering
+ * every unmatched key instead would trade a lucky-but-right key for an unproven guess.
+ *
+ * With no record, the values are returned whole and the pairing is the positional one.
  */
 function segmentsByKey(
   values: string[],
@@ -83,9 +88,16 @@ function segmentsByKey(
     return values[index];
   });
 
+  const placed = matched.map((value, index) => {
+    if (value !== null || claimed[index]) return value;
+    claimed[index] = true;
+
+    return values[index];
+  });
+
   const leftovers = values.filter((_, index) => !claimed[index]);
 
-  return matched.map(value => value ?? (leftovers.shift() as string));
+  return placed.map(value => value ?? (leftovers.shift() as string));
 }
 
 /**
