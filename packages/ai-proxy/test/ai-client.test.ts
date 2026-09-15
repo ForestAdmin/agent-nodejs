@@ -469,6 +469,22 @@ describe('probeCredentials', () => {
     expect(createBaseChatModelMock).not.toHaveBeenCalled();
   });
 
+  // The chain's STS legs set no timeout, so this cap is the only thing between a blackholed
+  // egress and a boot that never finishes. Expiry warns rather than fails: a slow chain is not a
+  // wrong one, and failing here would trade a rare misconfiguration for a flaky deploy.
+  it('warns and starts anyway when the chain does not answer in time', async () => {
+    jest.useFakeTimers();
+    mockBedrockModel(jest.fn().mockReturnValue(new Promise(() => {})));
+    const logger = jest.fn() as unknown as Logger;
+
+    const probe = new AiClient({ aiConfigurations: [bedrockConfig], logger }).probeCredentials();
+    jest.advanceTimersByTime(10_000);
+    await probe;
+
+    expect(logger).toHaveBeenCalledWith('Warn', expect.stringContaining('did not resolve within'));
+    jest.useRealTimers();
+  });
+
   // A Bedrock API key authenticates by bearer token, and LangChain builds the sigv4 provider beside
   // it — one that rejects by design. Probing it would refuse to boot a deployment that works.
   it('skips the probe when a bearer token is in use', async () => {

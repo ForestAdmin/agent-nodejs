@@ -203,4 +203,17 @@ describe('ServerAiAdapter', () => {
       expect(aiProxyLoggerGivenToLatestClient()).toBeUndefined();
     });
   });
+
+  // Required on the port, and this adapter has nothing to resolve: the Forest server holds the
+  // provider credentials. The no-op is explicit so a missing one is a compile error, not a skip.
+  describe('probeCredentials', () => {
+    it('resolves without error', async () => {
+      const adapter = new ServerAiAdapter({
+        forestServerUrl: 'https://api.forestadmin.com',
+        envSecret: ENV_SECRET,
+      });
+
+      await expect(adapter.probeCredentials()).resolves.toBeUndefined();
+    });
+  });
 });
