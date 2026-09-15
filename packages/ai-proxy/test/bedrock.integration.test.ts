@@ -14,8 +14,12 @@ import isModelSupportingTools from '../src/supported-models';
 const REGION = process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION;
 
 // Skipping is fine on a laptop and a lie in CI, where it turns "nobody configured the secrets" into
-// a green run that reads as "Bedrock is verified". This suite is the only evidence the allowlist is
-// anything but an assertion, so in CI a missing region is a failure.
+// a green suite that reads as "Bedrock is verified". This suite is the only evidence the allowlist
+// is anything but an assertion, so in CI a missing region fails it loudly instead.
+// It does not block the merge: llm-integration-tests carries continue-on-error and gates nothing,
+// because every suite in it reaches a third party and an outage there must not redden main. So
+// this raises a visible red job for a human to act on — it is not a gate, and removing the secrets
+// would not stop a release on its own.
 if (process.env.CI && !REGION) {
   throw new Error(
     'Bedrock integration tests cannot run: set the BEDROCK_AWS_REGION, BEDROCK_AWS_ACCESS_KEY_ID ' +
