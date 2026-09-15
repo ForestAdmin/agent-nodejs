@@ -35,7 +35,6 @@ const OPENAI_UNSUPPORTED_PATTERNS = [
   '-realtime',
   '-live',
   '-audio',
-  '-live',
   '-transcribe',
   '-tts',
   '-search',
