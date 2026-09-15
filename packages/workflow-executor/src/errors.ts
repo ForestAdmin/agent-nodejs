@@ -308,6 +308,46 @@ export class StepTimeoutError extends WorkflowExecutorError {
   }
 }
 
+// Bedrock rejects a model the region does not serve, or one the account/role cannot invoke. Both
+// are configuration mistakes the operator can fix, but they only surface on the first AI step,
+// where the generic message sends them to look at the workflow rather than at AI_MODEL and
+// AWS_REGION. The provider's own sentence is the actionable part, so it is carried through — these
+// AWS messages name the model and the reason, never a credential.
+const AI_CONFIGURATION_ERROR_NAMES = ['ResourceNotFoundException', 'AccessDeniedException'];
+
+// ValidationException is Bedrock's catch-all, and the exception object carries nothing to tell its
+// two causes apart: a model id it does not serve (configuration — an AI_MODEL typo the allowlist
+// cannot catch, since it validates the shape and not the existence) and a prompt too big for the
+// model (not configuration — a large record on a model that works). Only the sentence separates
+// them, so the match is narrow and the default is "not configuration": a reworded AWS message
+// costs one classification, while a loose pattern would push an oversized prompt down the
+// no-degrade path and stop a workflow a human could have finished by hand.
+// Pinned against the live API by ai-proxy's bedrock.integration.test.ts, which turns red if AWS
+// rewords this — the only way we learn before a customer does.
+const BEDROCK_MODEL_IDENTITY_SENTENCE = /model identifier/i;
+
+export function isAiConfigurationError(error: unknown): boolean {
+  const { name, message } = (error ?? {}) as { name?: string; message?: string };
+
+  if (name === 'ValidationException') return BEDROCK_MODEL_IDENTITY_SENTENCE.test(message ?? '');
+
+  return AI_CONFIGURATION_ERROR_NAMES.includes(name ?? '');
+}
+
+export class AiModelUnusableError extends WorkflowConfigurationError {
+  constructor(model: string, cause: Error) {
+    super(
+      `AI model "${model}" cannot be invoked: ${cause.message}`,
+      // The provider's sentence stays out of userMessage: an AccessDeniedException spells out the
+      // caller's IAM role ARN and AWS account id, which would then sit in the Forest UI and the
+      // audit trail for every reader of the run. It is in the technical message, for ops logs.
+      `The configured AI model "${model}" was refused by the provider (${cause.name}). ` +
+        'See the executor logs for the provider’s own message.',
+    );
+    this.cause = cause;
+  }
+}
+
 // Thrown when the AI provider does not respond within the configured timeout — distinct from
 // StepTimeoutError so we can surface a provider-specific message and tune the AI timeout
 // independently of the step timeout (AI hangs are common; record fetches are not).

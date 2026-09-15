@@ -164,29 +164,61 @@ export function pickLogger(
   return stdout.isTTY ? createPrettyLogger(level) : createConsoleLogger(level);
 }
 
-function parseAiConfig(env: NodeJS.ProcessEnv): AiConfiguration[] | undefined {
-  const { AI_PROVIDER, AI_MODEL, AI_API_KEY } = env;
-  const fields = [AI_PROVIDER, AI_MODEL, AI_API_KEY];
-  const setCount = fields.filter(Boolean).length;
+const AI_CONFIG_ALL_OR_NOTHING =
+  'AI config must be all-or-nothing: set AI_PROVIDER and AI_MODEL together (plus AI_API_KEY, ' +
+  'except for bedrock) or leave all unset.';
 
-  if (setCount === 0) return undefined;
-
-  if (setCount !== fields.length) {
-    throw new Error(
-      'AI config must be all-or-nothing: set AI_PROVIDER, AI_MODEL and AI_API_KEY together or leave all unset.',
+function parseBedrockConfig(env: NodeJS.ProcessEnv, model: string): AiConfiguration {
+  if (env.AI_API_KEY) {
+    throw new ConfigurationError(
+      'AI_API_KEY is not used with bedrock: credentials come from the AWS credential chain ' +
+        '(IAM role, AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY, shared profile). Unset it.',
     );
   }
 
+  // Checked here rather than left to the AWS SDK, which would only fail on the first AI step of
+  // the first workflow run — long after a misconfigured executor reported itself healthy.
+  const region = env.AWS_REGION || env.AWS_DEFAULT_REGION;
+
+  if (!region) {
+    throw new ConfigurationError(
+      'AI_PROVIDER=bedrock requires AWS_REGION (or AWS_DEFAULT_REGION).',
+    );
+  }
+
+  return { name: 'default', provider: 'bedrock', model, region };
+}
+
+function parseAiConfig(env: NodeJS.ProcessEnv): AiConfiguration[] | undefined {
+  const { AI_PROVIDER, AI_MODEL, AI_API_KEY } = env;
+
+  if (!AI_PROVIDER && !AI_MODEL && !AI_API_KEY) return undefined;
+
+  if (!AI_PROVIDER || !AI_MODEL) {
+    throw new ConfigurationError(AI_CONFIG_ALL_OR_NOTHING);
+  }
+
+  if (AI_PROVIDER === 'bedrock') return [parseBedrockConfig(env, AI_MODEL)];
+
   if (AI_PROVIDER !== 'anthropic' && AI_PROVIDER !== 'openai') {
-    throw new Error(`AI_PROVIDER must be "anthropic" or "openai", got "${AI_PROVIDER}"`);
+    throw new ConfigurationError(
+      `AI_PROVIDER must be "anthropic", "openai" or "bedrock", got "${AI_PROVIDER}"`,
+    );
+  }
+
+  if (!AI_API_KEY) {
+    throw new ConfigurationError(
+      `AI_API_KEY is required for AI_PROVIDER=${AI_PROVIDER}. Only bedrock reads its credentials ` +
+        'from the AWS credential chain.',
+    );
   }
 
   return [
     {
       name: 'default',
       provider: AI_PROVIDER,
-      model: AI_MODEL as string,
-      apiKey: AI_API_KEY as string,
+      model: AI_MODEL,
+      apiKey: AI_API_KEY,
     },
   ];
 }
@@ -314,9 +346,11 @@ Optional environment variables:
   FORCE_AI_ERROR         Set to "true" to make every AI call fail (dev only, to test error paths)
 
 AI configuration (all-or-nothing — falls back to server AI if any is missing):
-  AI_PROVIDER            'anthropic' | 'openai'
+  AI_PROVIDER            'anthropic' | 'openai' | 'bedrock'
   AI_MODEL               Model name (e.g. claude-sonnet-4-6)
-  AI_API_KEY             Provider API key
+  AI_API_KEY             Provider API key. Not used with bedrock, which reads the AWS
+                         credential chain; setting it alongside bedrock is an error.
+  AWS_REGION             Required with bedrock (or AWS_DEFAULT_REGION)
 
 Signals:
   SIGTERM / SIGINT  Graceful shutdown (drain in-flight, then exit)`);

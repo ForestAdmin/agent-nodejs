@@ -9,6 +9,10 @@ describe('isModelSupportingTools', () => {
     expect(isModelSupportingTools('unknown-future-model')).toBe(true);
   });
 
+  it('should return false for gpt-live-1 (not a chat model)', () => {
+    expect(isModelSupportingTools('gpt-live-1')).toBe(false);
+  });
+
   it('should return false for a blacklisted model', () => {
     expect(isModelSupportingTools('gpt-4')).toBe(false);
   });
@@ -38,6 +42,92 @@ describe('isModelSupportingTools', () => {
 
   it('should not exclude a model merely prefixed by an unsupported family name', () => {
     expect(isModelSupportingTools('claude-fable-50', 'anthropic')).toBe(true);
+  });
+
+  describe('bedrock', () => {
+    it.each([
+      'eu.anthropic.claude-sonnet-5-v1:0',
+      'us.anthropic.claude-opus-4-5-v1:0',
+      'eu.anthropic.claude-haiku-4-5-20251001-v1:0',
+      'anthropic.claude-sonnet-4-6-v1:0',
+    ])('allows the sonnet/haiku/opus lines: %s', model => {
+      expect(isModelSupportingTools(model, 'bedrock')).toBe(true);
+    });
+
+    it.each(['us.', 'eu.', 'apac.', 'jp.', 'au.', 'global.', 'us-gov.'])(
+      'unwraps the %s inference-profile prefix',
+      prefix => {
+        expect(isModelSupportingTools(`${prefix}anthropic.claude-sonnet-5-v1:0`, 'bedrock')).toBe(
+          true,
+        );
+      },
+    );
+
+    it.each([
+      'eu.amazon.nova-pro-v1:0',
+      'eu.amazon.nova-lite-v1:0',
+      'amazon.titan-text-express-v1',
+      'meta.llama3-3-70b-instruct-v1:0',
+      'mistral.mistral-large-2407-v1:0',
+      'cohere.command-r-plus-v1:0',
+    ])('rejects every non-Claude vendor: %s', model => {
+      expect(isModelSupportingTools(model, 'bedrock')).toBe(false);
+    });
+
+    it.each(['eu.anthropic.claude-fable-5-1-v1:0', 'us.anthropic.claude-mythos-5-v1:0'])(
+      'rejects Claude lines outside sonnet/haiku/opus: %s',
+      model => {
+        expect(isModelSupportingTools(model, 'bedrock')).toBe(false);
+      },
+    );
+
+    it.each([
+      'us.anthropic.claude-opus-4-20250514-v1:0',
+      'us.anthropic.claude-opus-4-1-20250805-v1:0',
+    ])('still applies the anthropic denylist through the wrapper: %s', model => {
+      expect(isModelSupportingTools(model, 'bedrock')).toBe(false);
+    });
+
+    it.each(['anthropic.claude-3-5-sonnet-20241022-v2:0'])(
+      'allows the legacy claude-3.x naming too: %s',
+      model => {
+        expect(isModelSupportingTools(model, 'bedrock')).toBe(true);
+      },
+    );
+
+    it.each([
+      'arn:aws:bedrock:eu-west-1:123456789012:inference-profile/eu.anthropic.claude-sonnet-5-v1:0',
+      'arn:aws-us-gov:bedrock:us-gov-west-1:123456789012:inference-profile/us-gov.anthropic.claude-opus-4-5-v1:0',
+    ])('resolves an inference-profile ARN to its profile id: %s', model => {
+      expect(isModelSupportingTools(model, 'bedrock')).toBe(true);
+    });
+
+    it.each([
+      'arn:aws:bedrock:eu-west-1:123456789012:inference-profile/amazon.nova-pro-v1:0',
+      'arn:aws:bedrock:eu-west-1:123456789012:application-inference-profile/abcdef123',
+    ])('still refuses what the ARN points at when it is unsupported: %s', model => {
+      expect(isModelSupportingTools(model, 'bedrock')).toBe(false);
+    });
+
+    it.each([
+      'us.anthropic.claude-3-7-sonnet-20250219-v1:0',
+      'us.anthropic.claude-3-5-haiku-20241022-v1:0',
+      // Bedrock's own words: "This model version has reached the end of its life."
+      'eu.anthropic.claude-3-sonnet-20240229-v1:0',
+    ])('lets the EOL denylist fire after the family allowlist passes: %s', model => {
+      expect(isModelSupportingTools(model, 'bedrock')).toBe(false);
+    });
+
+    it.each([
+      'us.anthropic.claude-opus-4-20250514-v1:0:200k',
+      'us.anthropic.claude-opus-4-1-20250805-v1:0:200k',
+    ])('applies the denylist through the context-window suffix too: %s', model => {
+      expect(isModelSupportingTools(model, 'bedrock')).toBe(false);
+    });
+
+    it('rejects an id carrying no vendor prefix', () => {
+      expect(isModelSupportingTools('claude-sonnet-5', 'bedrock')).toBe(false);
+    });
   });
 
   it('should return true for other anthropic models', () => {

@@ -1,4 +1,5 @@
 import { ChatAnthropic } from '@langchain/anthropic';
+import { ChatBedrockConverse } from '@langchain/aws';
 import { ChatOpenAI } from '@langchain/openai';
 
 import { createBaseChatModel } from '../src/create-base-chat-model';
@@ -10,6 +11,10 @@ jest.mock('@langchain/openai', () => ({
 
 jest.mock('@langchain/anthropic', () => ({
   ChatAnthropic: jest.fn(),
+}));
+
+jest.mock('@langchain/aws', () => ({
+  ChatBedrockConverse: jest.fn(),
 }));
 
 describe('createBaseChatModel', () => {
@@ -100,6 +105,154 @@ describe('createBaseChatModel', () => {
       maxRetries: 0,
       apiKey: 'test-key',
       model: 'claude-3-5-sonnet-latest',
+    });
+  });
+
+  describe('bedrock', () => {
+    const OLD_ENV = process.env;
+
+    beforeEach(() => {
+      process.env = { ...OLD_ENV };
+      delete process.env.AWS_REGION;
+      delete process.env.AWS_DEFAULT_REGION;
+    });
+
+    afterAll(() => {
+      process.env = OLD_ENV;
+    });
+
+    it('creates a ChatBedrockConverse without an apiKey', () => {
+      createBaseChatModel({
+        name: 'bedrock',
+        provider: 'bedrock',
+        model: 'us.anthropic.claude-sonnet-4-6-v1:0',
+        region: 'eu-west-3',
+      });
+
+      expect(ChatBedrockConverse).toHaveBeenCalledWith({
+        maxRetries: 0,
+        supportsToolChoiceValues: ['auto', 'any', 'tool'],
+        model: 'us.anthropic.claude-sonnet-4-6-v1:0',
+        region: 'eu-west-3',
+      });
+    });
+
+    it('falls back to AWS_REGION, which LangChain itself ignores', () => {
+      process.env.AWS_REGION = 'us-east-1';
+
+      createBaseChatModel({
+        name: 'bedrock',
+        provider: 'bedrock',
+        model: 'eu.anthropic.claude-sonnet-5-v1:0',
+      });
+
+      expect(ChatBedrockConverse).toHaveBeenCalledWith(
+        expect.objectContaining({ region: 'us-east-1' }),
+      );
+    });
+
+    it('falls back to AWS_DEFAULT_REGION when AWS_REGION is unset', () => {
+      process.env.AWS_DEFAULT_REGION = 'us-east-1';
+
+      createBaseChatModel({
+        name: 'bedrock',
+        provider: 'bedrock',
+        model: 'eu.anthropic.claude-sonnet-5-v1:0',
+      });
+
+      expect(ChatBedrockConverse).toHaveBeenCalledWith(
+        expect.objectContaining({ region: 'us-east-1' }),
+      );
+    });
+
+    // A container that declares AWS_REGION without filling it exports an empty string, which the
+    // embedded boot check reads as unset and lets through — so treating it as a value here would
+    // refuse the deployment at the first AI step, long after it reported itself healthy.
+    it('falls back to AWS_DEFAULT_REGION when AWS_REGION is set but empty', () => {
+      process.env.AWS_REGION = '';
+      process.env.AWS_DEFAULT_REGION = 'us-east-1';
+
+      createBaseChatModel({
+        name: 'bedrock',
+        provider: 'bedrock',
+        model: 'eu.anthropic.claude-sonnet-5-v1:0',
+      });
+
+      expect(ChatBedrockConverse).toHaveBeenCalledWith(
+        expect.objectContaining({ region: 'us-east-1' }),
+      );
+    });
+
+    it('prefers an explicit region over the environment', () => {
+      process.env.AWS_REGION = 'us-east-1';
+
+      createBaseChatModel({
+        name: 'bedrock',
+        provider: 'bedrock',
+        model: 'eu.anthropic.claude-sonnet-5-v1:0',
+        region: 'eu-west-3',
+      });
+
+      expect(ChatBedrockConverse).toHaveBeenCalledWith(
+        expect.objectContaining({ region: 'eu-west-3' }),
+      );
+    });
+
+    // Passing `credentials` here would pin the client to static keys and silently disable the AWS
+    // credential chain — which is how customers assume an IAM role (profile `role_arn`, or IRSA on
+    // EKS). Leaving it unset is the feature, not an omission.
+    it('never passes explicit credentials, so the AWS chain resolves them', () => {
+      createBaseChatModel({
+        name: 'bedrock',
+        provider: 'bedrock',
+        model: 'us.anthropic.claude-sonnet-4-6-v1:0',
+        region: 'eu-west-3',
+      });
+
+      const passedArgs = (ChatBedrockConverse as unknown as jest.Mock).mock.calls[0][0];
+      expect(passedArgs).not.toHaveProperty('credentials');
+      expect(passedArgs).not.toHaveProperty('bedrockApiKey');
+      expect(passedArgs).not.toHaveProperty('apiKey');
+    });
+
+    it('forwards an explicit role to the credential chain', () => {
+      createBaseChatModel({
+        name: 'bedrock',
+        provider: 'bedrock',
+        model: 'us.anthropic.claude-sonnet-4-6-v1:0',
+        region: 'eu-west-3',
+        roleArn: 'arn:aws:iam::123456789012:role/ForestRuntimeBedrock',
+      });
+
+      expect(ChatBedrockConverse).toHaveBeenCalledWith(
+        expect.objectContaining({
+          roleArn: 'arn:aws:iam::123456789012:role/ForestRuntimeBedrock',
+        }),
+      );
+    });
+
+    it('refuses to build without any region rather than deferring to LangChain', () => {
+      expect(() =>
+        createBaseChatModel({
+          name: 'bedrock',
+          provider: 'bedrock',
+          model: 'eu.anthropic.claude-sonnet-5-v1:0',
+        }),
+      ).toThrow('Bedrock requires a region');
+    });
+
+    it('lets the caller override the inferred tool_choice support', () => {
+      createBaseChatModel({
+        name: 'bedrock',
+        provider: 'bedrock',
+        model: 'eu.anthropic.claude-opus-4-5-v1:0',
+        region: 'eu-west-3',
+        supportsToolChoiceValues: [],
+      });
+
+      expect(ChatBedrockConverse).toHaveBeenCalledWith(
+        expect.objectContaining({ supportsToolChoiceValues: [] }),
+      );
     });
   });
 

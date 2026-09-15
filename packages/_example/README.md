@@ -98,6 +98,20 @@ Expected output (two prefixed streams):
 [executor] {"message":"Poll cycle completed","fetched":0,"dispatching":0}
 ```
 
+### Running against a specific AI provider
+
+By default the executor uses Forest's AI server. To drive it with your own provider instead:
+
+```bash
+yarn start:with-executor:with-openai      # needs OPENAI_API_KEY in .env
+yarn start:with-executor:with-anthropic   # needs ANTHROPIC_API_KEY in .env
+yarn start:with-executor:with-bedrock     # needs AWS credentials, no API key
+```
+
+Bedrock is the odd one out: it takes no `AI_API_KEY` and reads the standard AWS credential chain,
+so put `AWS_PROFILE` (or `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`) and `AWS_REGION` in `.env`.
+Override the model with `BEDROCK_MODEL`; it defaults to `eu.anthropic.claude-sonnet-5`.
+
 ### Teardown
 
 ```bash

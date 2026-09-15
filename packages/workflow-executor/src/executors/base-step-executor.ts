@@ -18,6 +18,7 @@ import { SystemMessage } from '@forestadmin/ai-proxy';
 import {
   AiAssistUnavailableError,
   AiInvokeTimeoutError,
+  AiModelUnusableError,
   InvalidAiRequestError,
   MalformedToolCallError,
   MissingToolCallError,
@@ -25,6 +26,7 @@ import {
   StepTimeoutError,
   WorkflowExecutorError,
   extractErrorMessage,
+  isAiConfigurationError,
 } from '../errors';
 import patchBodySchemas from '../http/pending-data-validators';
 import StepSummaryBuilder from './summary/step-summary-builder';
@@ -343,6 +345,14 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
       // Detect the timeout via our own signal, not the thrown error's name: providers wrap an
       // aborted request differently (AbortError, TimeoutError, APIUserAbortError, …).
       if (timeoutS !== undefined && signal?.aborted) throw new AiInvokeTimeoutError(timeoutS);
+
+      if (isAiConfigurationError(err)) {
+        throw new AiModelUnusableError(
+          BaseStepExecutor.modelName(this.context.model),
+          err as Error,
+        );
+      }
+
       throw err;
     }
 
@@ -368,6 +378,14 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     throw new MissingToolCallError();
   }
 
+  // LangChain exposes the id under a different field per provider; unknown is better than a wrong
+  // name in a message whose whole point is naming the model to fix.
+  private static modelName(model: BaseStepExecutor['context']['model']): string {
+    const named = model as unknown as { model?: string; modelName?: string };
+
+    return named.model ?? named.modelName ?? 'unknown';
+  }
+
   protected async invokeWithTool<T = Record<string, unknown>>(
     messages: BaseMessage[],
     tool: DynamicStructuredTool,
@@ -382,6 +400,11 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
       return await call();
     } catch (error) {
       if (error instanceof AiAssistUnavailableError) throw error;
+      // A model the provider refuses is a permanent configuration fault, not the transient
+      // unavailability this degrade path exists for: degrading hides it behind a manual step that
+      // never recovers, and the operator sees a workflow that silently stopped using the AI.
+      if (error instanceof AiModelUnusableError) throw error;
+
       throw new AiAssistUnavailableError(error);
     }
   }

@@ -64,10 +64,42 @@ export default class EmbeddedWorkflowExecutor {
 
     const { ai } = embedOptions;
 
-    if (ai && (!ai.provider || !ai.model || !ai.apiKey)) {
+    if (ai && (!ai.provider || !ai.model)) {
       throw new Error(
-        'addWorkflowExecutor: `ai` requires `provider`, `model` and `apiKey` together. ' +
+        'addWorkflowExecutor: `ai` requires `provider` and `model` together. ' +
           'Omit `ai` entirely to use Forest’s AI server.',
+      );
+    }
+
+    // The CLI refuses this outright; without the same check here a JS caller ships a key believing
+    // it authenticates, while ChatBedrockConverse drops it and falls back to the ambient IAM role.
+    if (ai?.provider === 'bedrock' && (ai as { apiKey?: string }).apiKey) {
+      throw new Error(
+        'addWorkflowExecutor: `apiKey` is not used with provider `bedrock`: credentials come from ' +
+          'the AWS credential chain (IAM role, AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY, shared ' +
+          'profile). Remove it.',
+      );
+    }
+
+    if (ai && ai.provider !== 'bedrock' && !ai.apiKey) {
+      throw new Error(
+        `addWorkflowExecutor: \`ai\` requires \`apiKey\` for provider '${ai.provider}'. ` +
+          'Only `bedrock` reads its credentials from the AWS credential chain.',
+      );
+    }
+
+    // ChatBedrockConverse demands a region at construction and reads AWS_DEFAULT_REGION only, so
+    // the AWS SDK below it never gets to resolve one from the shared profile — a deployment that
+    // sets the region the ordinary way still has none.
+    if (
+      ai?.provider === 'bedrock' &&
+      !ai.region &&
+      !process.env.AWS_REGION &&
+      !process.env.AWS_DEFAULT_REGION
+    ) {
+      throw new Error(
+        'addWorkflowExecutor: `ai` with provider `bedrock` requires `region`, AWS_REGION or ' +
+          'AWS_DEFAULT_REGION.',
       );
     }
 

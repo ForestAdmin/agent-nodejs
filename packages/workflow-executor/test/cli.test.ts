@@ -554,16 +554,73 @@ describe('readEnvConfig', () => {
     expect(config.executorOptions.forceAiError).toBeUndefined();
   });
 
-  it('throws when AI config is partially set', () => {
+  it('names the missing key rather than restating the whole rule', () => {
     expect(() =>
       readEnvConfig({ ...baseEnv, AI_PROVIDER: 'anthropic', AI_MODEL: 'claude' }, args),
-    ).toThrow('AI config must be all-or-nothing');
+    ).toThrow('AI_API_KEY is required for AI_PROVIDER=anthropic');
+  });
+
+  it.each([
+    ['AI_MODEL alone', { AI_MODEL: 'claude' }],
+    ['AI_API_KEY alone', { AI_API_KEY: 'sk-xxx' }],
+    ['AI_PROVIDER alone', { AI_PROVIDER: 'anthropic' }],
+  ])('throws the all-or-nothing rule for %s', (_, env) => {
+    expect(() => readEnvConfig({ ...baseEnv, ...env }, args)).toThrow(
+      'AI config must be all-or-nothing',
+    );
   });
 
   it('throws on invalid AI_PROVIDER', () => {
     expect(() =>
       readEnvConfig({ ...baseEnv, AI_PROVIDER: 'bogus', AI_MODEL: 'm', AI_API_KEY: 'k' }, args),
-    ).toThrow('AI_PROVIDER must be "anthropic" or "openai"');
+    ).toThrow('AI_PROVIDER must be "anthropic", "openai" or "bedrock"');
+  });
+
+  describe('AI_PROVIDER=bedrock', () => {
+    const bedrockEnv = {
+      ...baseEnv,
+      AI_PROVIDER: 'bedrock',
+      AI_MODEL: 'us.anthropic.claude-sonnet-4-6-v1:0',
+    };
+
+    it('builds a bedrock configuration without an API key', () => {
+      const config = readEnvConfig({ ...bedrockEnv, AWS_REGION: 'eu-west-3' }, args);
+
+      expect(config.executorOptions.aiConfigurations).toEqual([
+        {
+          name: 'default',
+          provider: 'bedrock',
+          model: 'us.anthropic.claude-sonnet-4-6-v1:0',
+          region: 'eu-west-3',
+        },
+      ]);
+    });
+
+    it('accepts AWS_DEFAULT_REGION as the region source', () => {
+      const config = readEnvConfig({ ...bedrockEnv, AWS_DEFAULT_REGION: 'us-east-1' }, args);
+
+      expect(config.executorOptions.aiConfigurations).toEqual([
+        expect.objectContaining({ region: 'us-east-1' }),
+      ]);
+    });
+
+    it('throws when no region is set', () => {
+      expect(() => readEnvConfig(bedrockEnv, args)).toThrow(
+        'AI_PROVIDER=bedrock requires AWS_REGION',
+      );
+    });
+
+    it('throws when AI_API_KEY is set, rather than silently ignoring it', () => {
+      expect(() =>
+        readEnvConfig({ ...bedrockEnv, AWS_REGION: 'eu-west-3', AI_API_KEY: 'sk-xxx' }, args),
+      ).toThrow('AI_API_KEY is not used with bedrock');
+    });
+
+    it('still requires AI_MODEL', () => {
+      expect(() =>
+        readEnvConfig({ ...baseEnv, AI_PROVIDER: 'bedrock', AWS_REGION: 'eu-west-3' }, args),
+      ).toThrow('AI config must be all-or-nothing');
+    });
   });
 
   it.each(['Debug', 'Info', 'Warn', 'Error'] as const)(

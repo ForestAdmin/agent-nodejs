@@ -2,7 +2,12 @@ import type { ToolProvider } from '../src/tool-provider';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
 
-import { AIModelNotSupportedError, AINotConfiguredError, AiClient } from '../src';
+import {
+  AIModelNotAllowlistedError,
+  AIModelNotSupportedError,
+  AINotConfiguredError,
+  AiClient,
+} from '../src';
 import { createToolProviders } from '../src/tool-provider-factory';
 
 jest.mock('../src/tool-provider-factory', () => ({
@@ -44,6 +49,58 @@ describe('Model validation', () => {
           aiConfigurations: [{ name: 'test', provider: 'openai', apiKey: 'dev', model: 'gpt-4o' }],
         }),
     ).not.toThrow();
+  });
+
+  it('throws AIModelNotAllowlistedError for a model outside the bedrock allowlist', () => {
+    expect(
+      () =>
+        new AiClient({
+          aiConfigurations: [
+            {
+              name: 'test',
+              provider: 'bedrock',
+              model: 'us.anthropic.claude-opus-4-20250514-v1:0',
+              region: 'eu-west-3',
+            },
+          ],
+        }),
+    ).toThrow(AIModelNotAllowlistedError);
+  });
+
+  it('accepts a supported bedrock model', () => {
+    expect(
+      () =>
+        new AiClient({
+          aiConfigurations: [
+            {
+              name: 'test',
+              provider: 'bedrock',
+              model: 'us.anthropic.claude-sonnet-4-6-v1:0',
+              region: 'eu-west-3',
+            },
+          ],
+        }),
+    ).not.toThrow();
+  });
+
+  // The CLI and the embedded option both refuse this earlier, so this guard is the only one a
+  // direct `new AiClient(...)` meets — and silence here is expensive: ChatBedrockConverse drops the
+  // key and authenticates with the ambient role instead, billing an account nobody chose.
+  it('refuses an apiKey on a bedrock configuration', () => {
+    expect(
+      () =>
+        new AiClient({
+          aiConfigurations: [
+            {
+              name: 'test',
+              provider: 'bedrock',
+              model: 'us.anthropic.claude-sonnet-4-6-v1:0',
+              region: 'eu-west-3',
+              apiKey: 'sk-should-not-be-here',
+            } as never,
+          ],
+        }),
+    ).toThrow('apiKey is not used with provider bedrock');
   });
 });
 

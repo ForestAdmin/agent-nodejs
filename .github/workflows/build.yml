@@ -111,7 +111,7 @@ jobs:
       # broadly: most packages keep genuine unit tests under `test/integration*/`, and a wide
       # pattern would silently stop running hundreds of them.
       - name: Test code (excluding integration suites with their own job)
-        run: cd packages/${{ matrix.package }} && yarn test --coverage --testPathIgnorePatterns='llm.integration|embedded-bff.e2e' && cd -
+        run: cd packages/${{ matrix.package }} && yarn test --coverage --testPathIgnorePatterns='llm.integration|bedrock.integration|embedded-bff.e2e' && cd -
       - name: Upload coverage
         uses: actions/upload-artifact@v4
         with:
@@ -122,7 +122,9 @@ jobs:
   llm-integration-tests:
     name: LLM Integration Tests (ai-proxy)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # The Bedrock sweep walks the catalogue serially with maxRetries 0; 15 would cancel the job
+    # before its own budget expires, which reads as "cancelled" rather than as a result.
+    timeout-minutes: 30
     needs: [build]
     continue-on-error: true
     steps:
@@ -145,10 +147,15 @@ jobs:
           key: ${{ runner.os }}-build-${{ github.sha }}
           fail-on-cache-miss: true
       - name: Run LLM integration tests
-        run: yarn workspace @forestadmin/ai-proxy test --testPathPattern='llm.integration'
+        run: yarn workspace @forestadmin/ai-proxy test --testPathPattern='llm.integration|bedrock.integration'
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # The Bedrock suite fails the job when AWS_REGION is unset: a silent skip would let the
+          # provider rot untested. Set BEDROCK_AWS_* in the repository secrets.
+          AWS_REGION: ${{ secrets.BEDROCK_AWS_REGION }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.BEDROCK_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.BEDROCK_AWS_SECRET_ACCESS_KEY }}
 
   # Boots a real agent on a local HTTP port, so it stays out of the unit job (which ignores this
   # path). Gates both transports: the in-process dispatcher an embedded BFF uses and the socket a

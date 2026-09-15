@@ -19,7 +19,9 @@ import type { BaseMessage, DynamicStructuredTool } from '@forestadmin/ai-proxy';
 import { HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 
 import {
+  AiAssistUnavailableError,
   AiInvokeTimeoutError,
+  AiModelUnusableError,
   InvalidAiRequestError,
   MalformedToolCallError,
   MissingToolCallError,
@@ -74,6 +76,10 @@ class TestableExecutor extends BaseStepExecutor {
 
   override buildContextMessage(): SystemMessage {
     return super.buildContextMessage();
+  }
+
+  override withAiAssist<T>(call: () => Promise<T>): Promise<T> {
+    return super.withAiAssist(call);
   }
 
   override invokeWithTool<T = Record<string, unknown>>(
@@ -932,6 +938,183 @@ describe('BaseStepExecutor', () => {
         await expect(executor.invokeWithTool(messages, dummyTool)).rejects.toThrow(
           /SystemMessage at position 2 appears after a non-system message/,
         );
+      });
+    });
+
+    describe('AI model rejected by the provider', () => {
+      function makeRejectingModelNamed(
+        error: unknown,
+        model = 'eu.anthropic.claude-opus-4-5-v1:0',
+      ) {
+        const invoke = jest.fn().mockRejectedValue(error);
+
+        return {
+          bindTools: jest.fn().mockReturnValue({ invoke }),
+          model,
+        } as unknown as ExecutionContext['model'];
+      }
+
+      it.each(['ResourceNotFoundException', 'AccessDeniedException'])(
+        'turns a %s into an actionable message naming the model and the reason',
+        async name => {
+          const providerErr = Object.assign(
+            new Error('The provided model identifier is invalid.'),
+            { name },
+          );
+          const executor = new TestableExecutor(
+            makeContext({ model: makeRejectingModelNamed(providerErr) }),
+          );
+
+          const err = await executor.invokeWithTool(dummyMessages, dummyTool).catch(e => e);
+
+          expect(err).toBeInstanceOf(AiModelUnusableError);
+          expect((err as AiModelUnusableError).userMessage).toContain(
+            'eu.anthropic.claude-opus-4-5-v1:0',
+          );
+          expect((err as AiModelUnusableError).userMessage).toContain(name);
+          // The provider's own sentence belongs in the technical message, not in the UI.
+          expect((err as AiModelUnusableError).message).toContain(
+            'The provided model identifier is invalid.',
+          );
+        },
+      );
+
+      // The allowlist validates the shape of a Bedrock id, never its existence, so a typo in
+      // AI_MODEL boots fine and only surfaces here. Condition and MCP steps call this directly,
+      // outside the degrade path, where an unclassified error reads as "unexpected" and sends the
+      // operator to the workflow rather than to AI_MODEL.
+      it('classifies a ValidationException that names the model identifier', async () => {
+        const providerErr = Object.assign(new Error('The provided model identifier is invalid.'), {
+          name: 'ValidationException',
+        });
+        const executor = new TestableExecutor(
+          makeContext({ model: makeRejectingModelNamed(providerErr) }),
+        );
+
+        const err = await executor.invokeWithTool(dummyMessages, dummyTool).catch(e => e);
+
+        expect(err).toBeInstanceOf(AiModelUnusableError);
+        expect((err as AiModelUnusableError).errorKind).toBe('configuration');
+      });
+
+      // Bedrock's catch-all: the same exception name covers a request the model configuration is
+      // innocent of, so it must not be read as "this model is unusable".
+      it('leaves an oversized prompt alone: ValidationException is not a model fault', async () => {
+        const providerErr = Object.assign(new Error('Input is too long for requested model.'), {
+          name: 'ValidationException',
+        });
+        const executor = new TestableExecutor(
+          makeContext({ model: makeRejectingModelNamed(providerErr) }),
+        );
+
+        const err = await executor.invokeWithTool(dummyMessages, dummyTool).catch(e => e);
+
+        expect(err).not.toBeInstanceOf(AiModelUnusableError);
+        expect((err as Error).message).toBe('Input is too long for requested model.');
+      });
+
+      it('leaves an unrelated provider failure alone', async () => {
+        const providerErr = Object.assign(new Error('socket hang up'), { name: 'NetworkError' });
+        const executor = new TestableExecutor(
+          makeContext({ model: makeRejectingModelNamed(providerErr) }),
+        );
+
+        const err = await executor.invokeWithTool(dummyMessages, dummyTool).catch(e => e);
+
+        expect(err).not.toBeInstanceOf(AiModelUnusableError);
+        expect((err as Error).message).toBe('socket hang up');
+      });
+
+      it('says unknown rather than guessing when the model exposes no id', async () => {
+        const providerErr = Object.assign(new Error('nope'), {
+          name: 'ResourceNotFoundException',
+        });
+        const model = {
+          bindTools: jest
+            .fn()
+            .mockReturnValue({ invoke: jest.fn().mockRejectedValue(providerErr) }),
+        } as unknown as ExecutionContext['model'];
+        const executor = new TestableExecutor(makeContext({ model }));
+
+        const err = await executor.invokeWithTool(dummyMessages, dummyTool).catch(e => e);
+
+        expect((err as AiModelUnusableError).userMessage).toContain('"unknown"');
+      });
+    });
+
+    describe('AI model rejected, through the degrade path', () => {
+      it('does not degrade to manual: a refused model is permanent, not transient', async () => {
+        const providerErr = Object.assign(new Error('The provided model identifier is invalid.'), {
+          name: 'ResourceNotFoundException',
+        });
+        const model = {
+          bindTools: jest
+            .fn()
+            .mockReturnValue({ invoke: jest.fn().mockRejectedValue(providerErr) }),
+          model: 'eu.anthropic.claude-opus-4-5-v1:0',
+        } as unknown as ExecutionContext['model'];
+        const executor = new TestableExecutor(makeContext({ model }));
+
+        const err = await executor
+          .withAiAssist(() => executor.invokeWithTool(dummyMessages, dummyTool))
+          .catch(e => e);
+
+        expect(err).toBeInstanceOf(AiModelUnusableError);
+        expect(err).not.toBeInstanceOf(AiAssistUnavailableError);
+      });
+
+      // The whole point of narrowing isAiConfigurationError: a prompt too big for the model is a
+      // step the operator can still complete by hand, not a workflow that must stop.
+      it('degrades to manual on an oversized prompt', async () => {
+        const model = {
+          bindTools: jest.fn().mockReturnValue({
+            invoke: jest.fn().mockRejectedValue(
+              Object.assign(new Error('Input is too long for requested model.'), {
+                name: 'ValidationException',
+              }),
+            ),
+          }),
+          model: 'eu.anthropic.claude-opus-4-5-v1:0',
+        } as unknown as ExecutionContext['model'];
+        const executor = new TestableExecutor(makeContext({ model }));
+
+        const err = await executor
+          .withAiAssist(() => executor.invokeWithTool(dummyMessages, dummyTool))
+          .catch(e => e);
+
+        expect(err).toBeInstanceOf(AiAssistUnavailableError);
+      });
+
+      it('still degrades on an unrelated AI failure', async () => {
+        const model = {
+          bindTools: jest.fn().mockReturnValue({
+            invoke: jest.fn().mockRejectedValue(new Error('socket hang up')),
+          }),
+        } as unknown as ExecutionContext['model'];
+        const executor = new TestableExecutor(makeContext({ model }));
+
+        const err = await executor
+          .withAiAssist(() => executor.invokeWithTool(dummyMessages, dummyTool))
+          .catch(e => e);
+
+        expect(err).toBeInstanceOf(AiAssistUnavailableError);
+      });
+
+      it('keeps the provider sentence out of the message shown to the workflow author', () => {
+        const denial = Object.assign(
+          new Error(
+            'User: arn:aws:iam::311698134084:user/forest-bedrock-test is not authorized to ' +
+              'perform: bedrock:InvokeModel on resource: arn:aws:bedrock:eu-west-1:311698134084:...',
+          ),
+          { name: 'AccessDeniedException' },
+        );
+        const err = new AiModelUnusableError('eu.anthropic.claude-opus-4-5-v1:0', denial);
+
+        expect(err.userMessage).not.toContain('311698134084');
+        expect(err.userMessage).not.toContain('arn:aws:iam');
+        expect(err.userMessage).toContain('AccessDeniedException');
+        expect(err.message).toContain('arn:aws:iam');
+        expect(err.errorKind).toBe('configuration');
       });
     });
 
