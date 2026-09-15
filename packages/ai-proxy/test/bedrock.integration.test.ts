@@ -35,8 +35,11 @@ function advertisedLineOf(model: string): string | undefined {
   return ADVERTISED_LINES.find(line => model.includes(line));
 }
 
+// maxRetries mirrors AiClientAdapter, which production goes through: createBaseChatModel defaults
+// to 0, so a test building AiClient directly would treat a single throttle as terminal where the
+// executor would have retried.
 function bedrockConfig(model: string): AiConfiguration {
-  return { name: 'test', provider: 'bedrock', model, region: REGION };
+  return { name: 'test', provider: 'bedrock', model, region: REGION, maxRetries: 2 };
 }
 
 function calculatorTool(): DynamicStructuredTool {
@@ -191,6 +194,7 @@ describeWithBedrock('Bedrock Integration (real API)', () => {
       const verified: string[] = [];
       const failures: { model: string; error: string }[] = [];
       const unavailable: { model: string; error: string }[] = [];
+      const throttled: { model: string; error: string }[] = [];
 
       for (const model of modelsToTest) {
         try {
@@ -210,8 +214,20 @@ describeWithBedrock('Bedrock Integration (real API)', () => {
           // Keyed on the AWS error identity, not on message text: a broken InvokeModel policy makes
           // every model raise "not authorized", which would file the whole catalogue under
           // unavailable and leave failures empty.
-          if (name === 'AccessDeniedException' || name === 'ThrottlingException') {
+          // Throttling is kept apart from entitlement: one says this account may not use the model,
+          // the other says we asked too fast. Sharing a bucket lets a throttled run report the same
+          // green as a fully verified one.
+          // A Legacy model AWS parks because *this account* has not called it in 30 days is an
+          // account state like entitlement, not a verdict on the model — it answers fine on an
+          // account that uses it. Read from the message because the exception name it shares with
+          // a genuine end-of-life is the same, and end-of-life must stay a failure: that one is
+          // how a retired id earns its place in the denylist.
+          const parkedAsLegacy = /Legacy/i.test(message) && /last 30 days/i.test(message);
+
+          if (name === 'AccessDeniedException' || parkedAsLegacy) {
             unavailable.push({ model, error: message });
+          } else if (name === 'ThrottlingException') {
+            throttled.push({ model, error: message });
           } else {
             failures.push({ model, error: message });
           }
@@ -226,12 +242,16 @@ describeWithBedrock('Bedrock Integration (real API)', () => {
         );
       }
 
+      // eslint-disable-next-line no-console
+      console.log(`Verified ${verified.length}/${modelsToTest.length}:`, verified);
+
       expect(failures).toEqual([]);
       // A suite that verified nothing is broken, not passing: without this the whole catalogue can
       // land in `unavailable` and the allowlist stays an untested assertion that looks tested.
       expect(verified.length).toBeGreaterThan(0);
-      // eslint-disable-next-line no-console
-      console.log(`Verified ${verified.length}/${modelsToTest.length}:`, verified);
+      // Throttling is our own doing — a serial walk with no backoff — so it is a broken run, not a
+      // verdict on a model. Failing here is what stops a mostly-throttled sweep reading as proof.
+      expect(throttled).toEqual([]);
     }, 600_000);
   });
 });
