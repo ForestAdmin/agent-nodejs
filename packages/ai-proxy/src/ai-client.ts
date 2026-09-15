@@ -7,10 +7,13 @@ import type { Logger } from '@forestadmin/datasource-toolkit';
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
 
 import { createBaseChatModel } from './create-base-chat-model';
-import { AINotConfiguredError } from './errors';
+import { AIBadRequestError, AINotConfiguredError } from './errors';
 import getAiConfiguration from './get-ai-configuration';
 import { createToolProviders } from './tool-provider-factory';
 import validateAiConfigurations from './validate-ai-configurations';
+
+// Bounds the boot probe: the chain ends in a metadata call on EC2/ECS, which can lag.
+const CREDENTIAL_PROBE_TIMEOUT_MS = 10_000;
 
 // eslint-disable-next-line import/prefer-default-export
 export class AiClient {
@@ -37,6 +40,63 @@ export class AiClient {
     this.modelCache.set(config.name, model);
 
     return model;
+  }
+
+  // Resolves the AWS credential chain once, at startup, for every bedrock configuration.
+  // Without it a container whose credentials never resolve — an AWS profile mounted where the
+  // image's user cannot read it is the common one — starts, answers its health check, and only
+  // fails on the first AI step of the first workflow. Same reasoning as the region check in the
+  // CLI, applied to the other half of the configuration.
+  // What it proves is narrow and worth stating: credentials were found, not that they may call
+  // Bedrock. An IAM policy missing bedrock:InvokeModel still surfaces on first use.
+  async probeCredentials(): Promise<void> {
+    const bedrockConfigs = this.aiConfigurations.filter(c => c.provider === 'bedrock');
+
+    await Promise.all(bedrockConfigs.map(config => this.probeBedrockCredentials(config)));
+  }
+
+  private async probeBedrockCredentials(config: AiConfiguration): Promise<void> {
+    // Reaching into the LangChain client: ChatBedrockConverse builds the AWS SDK client and its
+    // resolved credential provider, and re-deriving the chain here would test a different object
+    // than the one production calls.
+    const { client } = this.getModel(config.name) as unknown as {
+      client?: { config?: { credentials?: () => Promise<unknown> } };
+    };
+    const resolve = client?.config?.credentials;
+
+    if (typeof resolve !== 'function') return;
+
+    const timedOut = Symbol('timed-out');
+    let timer: NodeJS.Timeout | undefined;
+
+    try {
+      const outcome = await Promise.race([
+        resolve(),
+        new Promise(resolve_ => {
+          timer = setTimeout(() => resolve_(timedOut), CREDENTIAL_PROBE_TIMEOUT_MS);
+        }),
+      ]);
+
+      // A slow chain is not a wrong one — on EC2 and ECS it ends in a local metadata call that can
+      // lag. Failing the boot on that would trade a rare misconfiguration for a flaky deploy, so
+      // the probe gives up its verdict rather than the startup.
+      if (outcome === timedOut) {
+        this.logger?.(
+          'Warn',
+          `AI configuration "${config.name}": AWS credentials did not resolve within ` +
+            `${CREDENTIAL_PROBE_TIMEOUT_MS}ms, starting without verifying them.`,
+        );
+      }
+    } catch (cause) {
+      throw new AIBadRequestError(
+        `AI configuration "${config.name}" uses bedrock, but no AWS credentials could be ` +
+          'resolved: the standard chain (IAM role, AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY, ' +
+          'shared profile) found none. In Docker, a mounted profile must be readable by the ' +
+          `image's user. Cause: ${cause instanceof Error ? cause.message : String(cause)}`,
+      );
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   async loadRemoteTools(configs: Record<string, ToolConfig>): Promise<RemoteTool[]> {

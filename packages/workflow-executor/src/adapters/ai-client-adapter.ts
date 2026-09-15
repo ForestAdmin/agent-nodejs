@@ -45,6 +45,10 @@ export default class AiClientAdapter implements AiModelPort {
     );
   }
 
+  probeCredentials(): Promise<void> {
+    return this.callPort('probeCredentials', () => this.aiClient.probeCredentials());
+  }
+
   closeConnections(): Promise<void> {
     return this.callPort('closeConnections', () => this.aiClient.closeConnections());
   }

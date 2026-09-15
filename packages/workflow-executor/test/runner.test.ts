@@ -307,6 +307,30 @@ describe('start', () => {
     expect(runner.state).toBe('idle');
   });
 
+  // Credentials that resolve to nothing would otherwise surface on the first AI step of the first
+  // workflow, long after this instance answered its health check — the same reason the agent is
+  // probed above.
+  it('does not init the run store when the AI credential probe fails', async () => {
+    const config = createRunnerConfig();
+    config.aiModelPort.probeCredentials = jest
+      .fn()
+      .mockRejectedValue(new Error('no AWS credentials could be resolved'));
+    runner = new Runner(config);
+
+    await expect(runner.start()).rejects.toThrow('no AWS credentials could be resolved');
+    expect(config.runStore.init).not.toHaveBeenCalled();
+    expect(runner.state).toBe('idle');
+  });
+
+  it('starts normally when the AI port has no credentials to probe', async () => {
+    const config = createRunnerConfig();
+    delete config.aiModelPort.probeCredentials;
+    runner = new Runner(config);
+
+    await expect(runner.start()).resolves.toBeUndefined();
+    expect(runner.state).toBe('running');
+  });
+
   it('reports the executor version to the orchestrator on start', async () => {
     const config = createRunnerConfig();
     runner = new Runner(config);

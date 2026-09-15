@@ -94,6 +94,11 @@ export default class Runner {
     // Probe the agent first so we fail fast without opening DB connections when unreachable.
     await this.config.agentPort.probe();
     this.logger('Info', 'Agent probe passed', {});
+
+    // Same reason, for the AI provider's own credentials: a chain that resolves nothing would
+    // otherwise surface on the first AI step of the first workflow, long after this instance
+    // reported itself healthy. No-op unless a provider has credentials to resolve.
+    await this.config.aiModelPort.probeCredentials?.();
     await this.config.runStore.init(this.logger);
 
     this._state = 'running';

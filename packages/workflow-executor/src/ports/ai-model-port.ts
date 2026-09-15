@@ -18,5 +18,8 @@ export interface AiModelPort {
   loadRemoteToolsWithFailures(
     configs: Record<string, ToolConfig>,
   ): Promise<{ tools: RemoteTool[]; failures: McpServerLoadFailure[] }>;
+  // Optional so the 40-odd test doubles of this port stay valid: only the real adapter has a
+  // credential chain to resolve, and Runner treats its absence as "nothing to verify".
+  probeCredentials?(): Promise<void>;
   closeConnections(): Promise<void>;
 }
