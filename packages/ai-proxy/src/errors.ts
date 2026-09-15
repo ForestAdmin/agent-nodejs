@@ -35,7 +35,8 @@ export class AIModelNotAllowlistedError extends AIBadRequestError {
     super(
       `Model '${model}' is not supported on Amazon Bedrock. Supported ids are the Claude sonnet, ` +
         `haiku and opus lines, as a model id or a cross-region inference profile id ` +
-        `(e.g. 'eu.anthropic.claude-sonnet-4-6-v1:0'). Inference profile ARNs are not accepted.`,
+        `(e.g. 'eu.anthropic.claude-sonnet-4-6-v1:0') or its inference-profile ARN. Application ` +
+        `inference profiles carry an opaque id and are not accepted.`,
     );
     this.name = 'AIModelNotAllowlistedError';
   }

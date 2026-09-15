@@ -151,6 +151,20 @@ describe('createBaseChatModel', () => {
       );
     });
 
+    it('falls back to AWS_DEFAULT_REGION when AWS_REGION is unset', () => {
+      process.env.AWS_DEFAULT_REGION = 'us-east-1';
+
+      createBaseChatModel({
+        name: 'bedrock',
+        provider: 'bedrock',
+        model: 'eu.anthropic.claude-sonnet-5-v1:0',
+      });
+
+      expect(ChatBedrockConverse).toHaveBeenCalledWith(
+        expect.objectContaining({ region: 'us-east-1' }),
+      );
+    });
+
     it('prefers an explicit region over the environment', () => {
       process.env.AWS_REGION = 'us-east-1';
 

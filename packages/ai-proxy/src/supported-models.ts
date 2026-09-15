@@ -136,7 +136,6 @@ const BEDROCK_SUPPORTED_ANTHROPIC_FAMILIES = [
   'claude-3-7-sonnet',
 ];
 
-// `-v1:0`, and the context-window variants Bedrock appends to it: `-v1:0:200k`, `-v1:0:24k`.
 const BEDROCK_VERSION_SUFFIX = /-v\d+:\d+(:\w+)?$/;
 
 // `arn:aws:bedrock:<region>:<account>:inference-profile/<profile id>` is a documented modelId, and

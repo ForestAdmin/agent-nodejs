@@ -170,7 +170,7 @@ const AI_CONFIG_ALL_OR_NOTHING =
 
 function parseBedrockConfig(env: NodeJS.ProcessEnv, model: string): AiConfiguration {
   if (env.AI_API_KEY) {
-    throw new Error(
+    throw new ConfigurationError(
       'AI_API_KEY is not used with bedrock: credentials come from the AWS credential chain ' +
         '(IAM role, AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY, shared profile). Unset it.',
     );
@@ -181,7 +181,9 @@ function parseBedrockConfig(env: NodeJS.ProcessEnv, model: string): AiConfigurat
   const region = env.AWS_REGION || env.AWS_DEFAULT_REGION;
 
   if (!region) {
-    throw new Error('AI_PROVIDER=bedrock requires AWS_REGION (or AWS_DEFAULT_REGION).');
+    throw new ConfigurationError(
+      'AI_PROVIDER=bedrock requires AWS_REGION (or AWS_DEFAULT_REGION).',
+    );
   }
 
   return { name: 'default', provider: 'bedrock', model, region };
@@ -193,17 +195,19 @@ function parseAiConfig(env: NodeJS.ProcessEnv): AiConfiguration[] | undefined {
   if (!AI_PROVIDER && !AI_MODEL && !AI_API_KEY) return undefined;
 
   if (!AI_PROVIDER || !AI_MODEL) {
-    throw new Error(AI_CONFIG_ALL_OR_NOTHING);
+    throw new ConfigurationError(AI_CONFIG_ALL_OR_NOTHING);
   }
 
   if (AI_PROVIDER === 'bedrock') return [parseBedrockConfig(env, AI_MODEL)];
 
   if (AI_PROVIDER !== 'anthropic' && AI_PROVIDER !== 'openai') {
-    throw new Error(`AI_PROVIDER must be "anthropic", "openai" or "bedrock", got "${AI_PROVIDER}"`);
+    throw new ConfigurationError(
+      `AI_PROVIDER must be "anthropic", "openai" or "bedrock", got "${AI_PROVIDER}"`,
+    );
   }
 
   if (!AI_API_KEY) {
-    throw new Error(
+    throw new ConfigurationError(
       `AI_API_KEY is required for AI_PROVIDER=${AI_PROVIDER}. Only bedrock reads its credentials ` +
         'from the AWS credential chain.',
     );

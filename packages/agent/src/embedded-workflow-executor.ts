@@ -88,8 +88,9 @@ export default class EmbeddedWorkflowExecutor {
       );
     }
 
-    // The Bedrock client resolves its region from AWS_DEFAULT_REGION only, never from the AWS
-    // profile, so a deployment that sets the region the ordinary way still has none.
+    // ChatBedrockConverse demands a region at construction and reads AWS_DEFAULT_REGION only, so
+    // the AWS SDK below it never gets to resolve one from the shared profile — a deployment that
+    // sets the region the ordinary way still has none.
     if (
       ai?.provider === 'bedrock' &&
       !ai.region &&

@@ -20,6 +20,7 @@ import { HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 
 import {
   AiInvokeTimeoutError,
+  AiAssistUnavailableError,
   AiModelUnusableError,
   InvalidAiRequestError,
   MalformedToolCallError,
@@ -75,6 +76,10 @@ class TestableExecutor extends BaseStepExecutor {
 
   override buildContextMessage(): SystemMessage {
     return super.buildContextMessage();
+  }
+
+  override withAiAssist<T>(call: () => Promise<T>): Promise<T> {
+    return super.withAiAssist(call);
   }
 
   override invokeWithTool<T = Record<string, unknown>>(
@@ -966,7 +971,9 @@ describe('BaseStepExecutor', () => {
           expect((err as AiModelUnusableError).userMessage).toContain(
             'eu.anthropic.claude-opus-4-5-v1:0',
           );
-          expect((err as AiModelUnusableError).userMessage).toContain(
+          expect((err as AiModelUnusableError).userMessage).toContain(name);
+          // The provider's own sentence belongs in the technical message, not in the UI.
+          expect((err as AiModelUnusableError).message).toContain(
             'The provided model identifier is invalid.',
           );
         },
@@ -996,6 +1003,58 @@ describe('BaseStepExecutor', () => {
         const err = await executor.invokeWithTool(dummyMessages, dummyTool).catch(e => e);
 
         expect((err as AiModelUnusableError).userMessage).toContain('"unknown"');
+      });
+    });
+
+    describe('AI model rejected, through the degrade path', () => {
+      it('does not degrade to manual: a refused model is permanent, not transient', async () => {
+        const providerErr = Object.assign(new Error('The provided model identifier is invalid.'), {
+          name: 'ValidationException',
+        });
+        const model = {
+          bindTools: jest.fn().mockReturnValue({ invoke: jest.fn().mockRejectedValue(providerErr) }),
+          model: 'eu.anthropic.claude-opus-4-5-v1:0',
+        } as unknown as ExecutionContext['model'];
+        const executor = new TestableExecutor(makeContext({ model }));
+
+        const err = await executor
+          .withAiAssist(() => executor.invokeWithTool(dummyMessages, dummyTool))
+          .catch(e => e);
+
+        expect(err).toBeInstanceOf(AiModelUnusableError);
+        expect(err).not.toBeInstanceOf(AiAssistUnavailableError);
+      });
+
+      it('still degrades on an unrelated AI failure', async () => {
+        const model = {
+          bindTools: jest.fn().mockReturnValue({
+            invoke: jest.fn().mockRejectedValue(new Error('socket hang up')),
+          }),
+        } as unknown as ExecutionContext['model'];
+        const executor = new TestableExecutor(makeContext({ model }));
+
+        const err = await executor
+          .withAiAssist(() => executor.invokeWithTool(dummyMessages, dummyTool))
+          .catch(e => e);
+
+        expect(err).toBeInstanceOf(AiAssistUnavailableError);
+      });
+
+      it('keeps the provider sentence out of the message shown to the workflow author', () => {
+        const denial = Object.assign(
+          new Error(
+            'User: arn:aws:iam::311698134084:user/forest-bedrock-test is not authorized to ' +
+              'perform: bedrock:InvokeModel on resource: arn:aws:bedrock:eu-west-1:311698134084:...',
+          ),
+          { name: 'AccessDeniedException' },
+        );
+        const err = new AiModelUnusableError('eu.anthropic.claude-opus-4-5-v1:0', denial);
+
+        expect(err.userMessage).not.toContain('311698134084');
+        expect(err.userMessage).not.toContain('arn:aws:iam');
+        expect(err.userMessage).toContain('AccessDeniedException');
+        expect(err.message).toContain('arn:aws:iam');
+        expect(err.errorKind).toBe('configuration');
       });
     });
 

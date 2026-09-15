@@ -138,8 +138,8 @@ export type WorkflowExecutorEmbedOptions = Omit<WorkflowExecutorTuningOptions, '
   /**
    * Bring your own AI provider instead of Forest's AI server. Omit `ai` entirely to keep using
    * Forest's server. `bedrock` takes no `apiKey`: credentials come from the AWS credential chain
-   * (IAM role, AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY, shared profile), and `region` falls back to
-   * AWS_REGION / AWS_DEFAULT_REGION.
+   * (IAM role, AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY, shared profile). `region` falls back to
+   * AWS_REGION / AWS_DEFAULT_REGION, but never to the profile's own `region`.
    */
   ai?:
     | { provider: 'anthropic' | 'openai'; model: string; apiKey: string }

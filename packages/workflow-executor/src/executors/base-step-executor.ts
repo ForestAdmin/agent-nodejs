@@ -400,6 +400,11 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
       return await call();
     } catch (error) {
       if (error instanceof AiAssistUnavailableError) throw error;
+      // A model the provider refuses is a permanent configuration fault, not the transient
+      // unavailability this degrade path exists for: degrading hides it behind a manual step that
+      // never recovers, and the operator sees a workflow that silently stopped using the AI.
+      if (error instanceof AiModelUnusableError) throw error;
+
       throw new AiAssistUnavailableError(error);
     }
   }

@@ -159,8 +159,7 @@ describeWithBedrock('Bedrock Integration (real API)', () => {
 
         expect(candidates.length).toBeGreaterThan(0);
 
-        // "at least one" is the claim, so try until one answers rather than betting on the first:
-        // the list is sorted, so candidates[0] is the oldest release and the next to be retired.
+        // "at least one" is the claim, so try until one answers rather than betting on the first.
         const failures: string[] = [];
 
         // eslint-disable-next-line no-restricted-syntax
@@ -188,7 +187,7 @@ describeWithBedrock('Bedrock Integration (real API)', () => {
   // this way is caught here. A failure is the signal to narrow the allowlist, not to loosen the
   // assertion.
   describe('Model tool support verification', () => {
-    it('all models support forced tool calls', async () => {
+    it('every model this account can invoke honours a forced tool call', async () => {
       const verified: string[] = [];
       const failures: { model: string; error: string }[] = [];
       const unavailable: { model: string; error: string }[] = [];

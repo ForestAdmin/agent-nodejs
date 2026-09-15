@@ -308,9 +308,6 @@ export class StepTimeoutError extends WorkflowExecutorError {
   }
 }
 
-// Thrown when the AI provider does not respond within the configured timeout — distinct from
-// StepTimeoutError so we can surface a provider-specific message and tune the AI timeout
-// independently of the step timeout (AI hangs are common; record fetches are not).
 // Bedrock rejects a model the region does not serve, one the account has not enabled, or one the
 // role cannot invoke. All three are configuration mistakes the operator can fix, but they only
 // surface on the first AI step, where the generic message sends them to look at the workflow rather
@@ -326,17 +323,26 @@ export function isAiConfigurationError(error: unknown): boolean {
   return AI_CONFIGURATION_ERROR_NAMES.includes((error as { name?: string })?.name ?? '');
 }
 
-export class AiModelUnusableError extends WorkflowExecutorError {
+export class AiModelUnusableError extends WorkflowConfigurationError {
   constructor(model: string, cause: Error) {
     super(
       `AI model "${model}" cannot be invoked: ${cause.message}`,
-      `The configured AI model "${model}" cannot be used: ${cause.message} ` +
-        'Check the model id and the region it is enabled in.',
+      // The provider's sentence stays out of userMessage: an AccessDeniedException spells out the
+      // caller's IAM role ARN and AWS account id, which would then sit in the Forest UI and the
+      // audit trail for every reader of the run. It is in the technical message, for ops logs.
+      // No remedy asserted: ValidationException is Bedrock's catch-all for request shape too, so
+      // "check the model id and region" would send the operator after a correct configuration when
+      // the real cause is an oversized prompt.
+      `The configured AI model "${model}" was refused by the provider (${cause.name}). ` +
+        'See the executor logs for the provider’s own message.',
     );
     this.cause = cause;
   }
 }
 
+// Thrown when the AI provider does not respond within the configured timeout — distinct from
+// StepTimeoutError so we can surface a provider-specific message and tune the AI timeout
+// independently of the step timeout (AI hangs are common; record fetches are not).
 export class AiInvokeTimeoutError extends WorkflowExecutorError {
   constructor(timeoutS: number) {
     super(
