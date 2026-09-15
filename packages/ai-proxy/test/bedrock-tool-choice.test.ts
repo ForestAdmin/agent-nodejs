@@ -47,3 +47,34 @@ describe('bedrock tool_choice contract', () => {
     );
   });
 });
+
+// Same reasoning, for the other undocumented path this package reaches into: AiClient's boot probe
+// resolves `client.config.credentials`, and every test around it mocks @langchain/aws — so they
+// validate the probe against a shape the tests themselves invent. A release that moves `client`
+// would make the probe a silent no-op and the executor would go back to booting healthy and dying
+// on the first AI step. This is the only assertion that fails on the bump instead.
+describe('the credential provider the boot probe resolves', () => {
+  it('is exposed on the client @langchain/aws builds', () => {
+    const model = createBaseChatModel({
+      name: 'bedrock',
+      provider: 'bedrock',
+      model: 'eu.anthropic.claude-sonnet-5',
+      region: 'eu-west-3',
+    }) as ChatBedrockConverse;
+
+    expect(typeof model.client.config.credentials).toBe('function');
+  });
+
+  // The bearer-token discriminator: with no AWS_BEARER_TOKEN_BEDROCK set, `token` must stay absent,
+  // or the probe would skip every deployment it exists to check.
+  it('leaves token unset when no bearer token is configured', () => {
+    const model = createBaseChatModel({
+      name: 'bedrock',
+      provider: 'bedrock',
+      model: 'eu.anthropic.claude-sonnet-5',
+      region: 'eu-west-3',
+    }) as ChatBedrockConverse;
+
+    expect(typeof model.client.config.token).not.toBe('function');
+  });
+});

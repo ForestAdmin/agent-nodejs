@@ -95,10 +95,8 @@ export default class Runner {
     await this.config.agentPort.probe();
     this.logger('Info', 'Agent probe passed', {});
 
-    // Same reason, for the AI provider's own credentials: a chain that resolves nothing would
-    // otherwise surface on the first AI step of the first workflow, long after this instance
-    // reported itself healthy. No-op unless a provider has credentials to resolve.
-    await this.config.aiModelPort.probeCredentials?.();
+    await this.config.aiModelPort.probeCredentials();
+    this.logger('Info', 'AI credential probe passed', {});
     await this.config.runStore.init(this.logger);
 
     this._state = 'running';

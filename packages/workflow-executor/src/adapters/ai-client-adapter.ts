@@ -10,7 +10,7 @@ import type {
 
 import { AiClient } from '@forestadmin/ai-proxy';
 
-import { AiModelPortError, WorkflowExecutorError } from '../errors';
+import { AiCredentialProbeError, AiModelPortError, WorkflowExecutorError } from '../errors';
 import toAiProxyLogger from './to-ai-proxy-logger';
 
 export default class AiClientAdapter implements AiModelPort {
@@ -45,8 +45,17 @@ export default class AiClientAdapter implements AiModelPort {
     );
   }
 
-  probeCredentials(): Promise<void> {
-    return this.callPort('probeCredentials', () => this.aiClient.probeCredentials());
+  // Deliberately not through callPort: this runs at boot, so an AiModelPortError would reframe a
+  // container misconfiguration as a transient AI outage and bury the provider's own sentence —
+  // the only actionable part — behind "The AI service is unavailable. Please try again."
+  async probeCredentials(): Promise<void> {
+    try {
+      await this.aiClient.probeCredentials();
+    } catch (cause) {
+      throw new AiCredentialProbeError(cause instanceof Error ? cause.message : String(cause), {
+        cause,
+      });
+    }
   }
 
   closeConnections(): Promise<void> {

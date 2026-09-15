@@ -63,6 +63,7 @@ function createMockAiClient() {
     loadRemoteTools: jest.fn().mockResolvedValue([]),
     loadRemoteToolsWithFailures: jest.fn().mockResolvedValue({ tools: [], failures: [] }),
     closeConnections: jest.fn().mockResolvedValue(undefined),
+    probeCredentials: jest.fn().mockResolvedValue(undefined),
   };
 }
 
@@ -322,13 +323,16 @@ describe('start', () => {
     expect(runner.state).toBe('idle');
   });
 
-  it('starts normally when the AI port has no credentials to probe', async () => {
+  it('probes credentials before initialising the run store', async () => {
     const config = createRunnerConfig();
-    delete config.aiModelPort.probeCredentials;
     runner = new Runner(config);
 
-    await expect(runner.start()).resolves.toBeUndefined();
-    expect(runner.state).toBe('running');
+    await runner.start();
+
+    const probeOrder = (config.aiModelPort.probeCredentials as jest.Mock).mock
+      .invocationCallOrder[0];
+    const initOrder = (config.runStore.init as jest.Mock).mock.invocationCallOrder[0];
+    expect(probeOrder).toBeLessThan(initOrder);
   });
 
   it('reports the executor version to the orchestrator on start', async () => {

@@ -600,6 +600,20 @@ export class AgentProbeError extends Error {
   }
 }
 
+// Boundary error, like AgentProbeError above: it surfaces from Runner.start() and is caught at the
+// CLI/HTTP layer, never by a step executor. Extending WorkflowExecutorError would frame a container
+// misconfiguration as a transient AI-service failure and attach a "please try again" userMessage
+// that no retry can satisfy.
+export class AiCredentialProbeError extends Error {
+  readonly cause?: unknown;
+
+  constructor(message: string, options?: { cause?: unknown }) {
+    super(message);
+    this.name = 'AiCredentialProbeError';
+    if (options?.cause !== undefined) this.cause = options.cause;
+  }
+}
+
 export class UnsupportedStepTypeError extends WorkflowExecutorError {
   constructor(stepType: string) {
     super(
