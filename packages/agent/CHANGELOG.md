@@ -1,3 +1,18 @@
+# @forestadmin/agent [1.102.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.101.0...@forestadmin/agent@1.102.0) (2026-09-15)
+
+
+### Features
+
+* **workflow-executor:** support Amazon Bedrock as a self-hosted AI provider ([#1897](https://github.com/ForestAdmin/agent-nodejs/issues/1897)) ([53dfe75](https://github.com/ForestAdmin/agent-nodejs/commit/53dfe75a17efabcdf0b775709f690316d8b79412))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/workflow-executor:** upgraded to 1.29.0
+
 # @forestadmin/agent [1.101.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.100.7...@forestadmin/agent@1.101.0) (2026-09-15)
 
 
