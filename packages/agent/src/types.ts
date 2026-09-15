@@ -164,7 +164,12 @@ export type BffEmbedOptions = {
    */
   tokenEncryptionKey?: string;
   /**
-   * Exact origins (scheme + host + port) allowed to call the BFF from a browser. No wildcard.
+   * Origins (scheme + host + port) allowed to call the BFF from a browser. An entry may carry a
+   * single `*` as its leading host label — `https://*.apps.zdusercontent.com` — which matches
+   * exactly one DNS label there, and never the scheme or the port. The host left after `*.` must
+   * be at least two non-empty labels, so `https://*.com` is refused; a two-label public suffix
+   * such as `https://*.co.uk` is not, and would allow every site under it. Any other `*` shape is
+   * refused and warned about at startup.
    * Empty means no cross-origin browser access at all, which for a backend-for-frontend is
    * almost always a mistake — the BFF warns about it at startup.
    */

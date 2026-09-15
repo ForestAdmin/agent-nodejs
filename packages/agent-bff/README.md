@@ -194,9 +194,9 @@ The two layers:
   present origin and is rejected. An empty per-key list is a no-op.
 
 A wildcard in a key's `allowedOrigins` (layer 2) is matched the same way. Those entries come from
-the Forest SaaS and never pass through the boot-time parser, so an illegal pattern there is not
-warned about individually: it simply never matches, and the key-level `Warn` fires only when *every*
-origin of that key is outside `BFF_ALLOWED_ORIGINS`.
+the Forest SaaS and never pass through the boot-time parser, so an illegal pattern there gets no
+warning of its own; it counts as an origin that can never pass, and the key-level `Warn` names the
+key once when *every* one of its origins is outside `BFF_ALLOWED_ORIGINS` or illegal.
 
 **Local development:** browsers still enforce CORS against `localhost`, so add your dev origin(s) to
 `BFF_ALLOWED_ORIGINS` (e.g. `BFF_ALLOWED_ORIGINS=http://localhost:4200`) — there is no dev bypass.
