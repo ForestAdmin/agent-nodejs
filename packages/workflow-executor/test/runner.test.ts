@@ -335,6 +335,17 @@ describe('start', () => {
     expect(probeOrder).toBeLessThan(initOrder);
   });
 
+  // Runner and RunnerConfig are exported, so an untyped consumer can pass a port built before
+  // probeCredentials existed. TypeScript requires it; the call site must not crash without it.
+  it('starts when an untyped consumer supplies a port without probeCredentials', async () => {
+    const config = createRunnerConfig();
+    delete (config.aiModelPort as { probeCredentials?: unknown }).probeCredentials;
+    runner = new Runner(config);
+
+    await expect(runner.start()).resolves.toBeUndefined();
+    expect(runner.state).toBe('running');
+  });
+
   it('reports the executor version to the orchestrator on start', async () => {
     const config = createRunnerConfig();
     runner = new Runner(config);
