@@ -1,4 +1,5 @@
 import {
+  allowedEntriesIntersect,
   hasOrigin,
   normalizeOrigin,
   originAllowed,
@@ -172,9 +173,53 @@ describe('originAllowed', () => {
       expect(originAllowed('https://a.b.example.com', ['https://a.*.example.com'])).toBe(false);
     });
 
+    it('refuses a request origin that carries a star of its own', () => {
+      expect(originAllowed('https://app-*.example.com', ['https://*.example.com'])).toBe(false);
+      expect(originAllowed('https://*.example.com', ['https://*.example.com'])).toBe(false);
+    });
+
     it('leaves entries without a star on strict equality', () => {
       expect(originAllowed('https://x.a.com', ['https://a.com'])).toBe(false);
       expect(originAllowed('https://a.com', ['https://a.com'])).toBe(true);
     });
+  });
+});
+
+describe('allowedEntriesIntersect', () => {
+  it('is true when a wildcard covers an exact entry, whichever side it is on', () => {
+    const wildcard = 'https://*.apps.zdusercontent.com';
+    const exact = 'https://1231469.apps.zdusercontent.com';
+
+    expect(allowedEntriesIntersect(wildcard, exact)).toBe(true);
+    expect(allowedEntriesIntersect(exact, wildcard)).toBe(true);
+  });
+
+  it('is true for two entries that normalize to the same origin', () => {
+    expect(allowedEntriesIntersect('https://a.com', 'https://a.com:443')).toBe(true);
+    expect(allowedEntriesIntersect('https://*.a.com', 'HTTPS://*.A.COM')).toBe(true);
+  });
+
+  it('is false for two wildcards at different depths, whose hosts never overlap', () => {
+    expect(allowedEntriesIntersect('https://*.zendesk.com', 'https://*.app.zendesk.com')).toBe(
+      false,
+    );
+  });
+
+  it('is false when either side is a pattern the parser refuses', () => {
+    expect(allowedEntriesIntersect('https://app-*.zendesk.com', 'https://*.zendesk.com')).toBe(
+      false,
+    );
+    expect(allowedEntriesIntersect('https://*.com', 'https://evil.com')).toBe(false);
+    expect(allowedEntriesIntersect('garbage', 'https://a.com')).toBe(false);
+  });
+
+  it('is false when a wildcard would need more than one label', () => {
+    expect(allowedEntriesIntersect('https://*.zendesk.com', 'https://a.b.zendesk.com')).toBe(false);
+    expect(allowedEntriesIntersect('https://*.zendesk.com', 'https://zendesk.com')).toBe(false);
+  });
+
+  it('is false when the scheme or the port differ', () => {
+    expect(allowedEntriesIntersect('https://*.a.com', 'http://x.a.com')).toBe(false);
+    expect(allowedEntriesIntersect('https://*.a.com', 'https://x.a.com:8443')).toBe(false);
   });
 });

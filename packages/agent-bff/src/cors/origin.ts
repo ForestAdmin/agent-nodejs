@@ -52,8 +52,9 @@ function parseAllowedEntry(raw: string): AllowedEntry | null {
 
   const parentLabels = hostname.slice(WILDCARD_LABEL_PREFIX.length).split('.');
 
-  if (parentLabels.length < MIN_WILDCARD_HOST_LABELS) return null;
-  if (parentLabels.some(label => label === '')) return null;
+  if (parentLabels.length < MIN_WILDCARD_HOST_LABELS || parentLabels.some(label => label === '')) {
+    return null;
+  }
 
   return { origin, wildcard: true };
 }
@@ -98,6 +99,7 @@ export function originAllowed(requestOrigin: string | undefined, allowList: stri
   if (normalized === null) return false;
 
   const request = new URL(normalized);
+  if (request.hostname.includes('*')) return false;
 
   return allowList.some(raw => {
     const entry = parseAllowedEntry(raw);
@@ -107,4 +109,16 @@ export function originAllowed(requestOrigin: string | undefined, allowList: stri
 
     return matchesWildcard(new URL(entry.origin), request);
   });
+}
+
+export function allowedEntriesIntersect(left: string, right: string): boolean {
+  const a = parseAllowedEntry(left);
+  const b = parseAllowedEntry(right);
+
+  if (a === null || b === null) return false;
+  if (a.wildcard && b.wildcard) return a.origin === b.origin;
+  if (a.wildcard) return matchesWildcard(new URL(a.origin), new URL(b.origin));
+  if (b.wildcard) return matchesWildcard(new URL(b.origin), new URL(a.origin));
+
+  return a.origin === b.origin;
 }

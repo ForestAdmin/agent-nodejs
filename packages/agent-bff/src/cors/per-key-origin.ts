@@ -2,7 +2,7 @@ import type { ResolvedApiKeyIdentity } from '../api-key/api-key-client';
 import type { Logger } from '../ports/logger-port';
 import type { Middleware } from 'koa';
 
-import { hasOrigin, loggableOrigin, originAllowed } from './origin';
+import { allowedEntriesIntersect, hasOrigin, loggableOrigin, originAllowed } from './origin';
 import { fingerprintApiKey } from '../api-key/api-key';
 import { BFF_KEY_HEADER } from '../api-key/api-key-middleware';
 import { originNotAllowed } from '../http/bff-http-error';
@@ -25,13 +25,15 @@ export default function createPerKeyOriginMiddleware({
 }: PerKeyOriginMiddlewareOptions): Middleware {
   const assessedKeys = new Set<string>();
 
-  function reportOriginsThatCanNeverPass(allowedOrigins: string[], keyHash: string): void {
+  function reportOriginsThatCanNeverPass(
+    allowedOrigins: string[],
+    keyHash: string,
+    renderingId: number,
+  ): void {
     if (serverAllowedOrigins.length === 0 || assessedKeys.has(keyHash)) return;
 
-    const canNeverPass = !allowedOrigins.some(
-      entry =>
-        originAllowed(entry, serverAllowedOrigins) ||
-        serverAllowedOrigins.some(serverOrigin => originAllowed(serverOrigin, [entry])),
+    const canNeverPass = !allowedOrigins.some(entry =>
+      serverAllowedOrigins.some(serverOrigin => allowedEntriesIntersect(entry, serverOrigin)),
     );
     if (assessedKeys.size >= MAX_ASSESSED_KEYS) assessedKeys.clear();
     assessedKeys.add(keyHash);
@@ -39,6 +41,7 @@ export default function createPerKeyOriginMiddleware({
     if (canNeverPass) {
       logger('Warn', 'BFF key origins are all outside BFF_ALLOWED_ORIGINS', {
         keyHash,
+        renderingId,
         keyOrigins: allowedOrigins.map(loggableOrigin),
       });
     }
@@ -56,7 +59,7 @@ export default function createPerKeyOriginMiddleware({
     }
 
     const keyHash = fingerprintApiKey(ctx.get(BFF_KEY_HEADER));
-    reportOriginsThatCanNeverPass(allowedOrigins, keyHash);
+    reportOriginsThatCanNeverPass(allowedOrigins, keyHash, identity.renderingId);
 
     if (hasOrigin(origin) && !originAllowed(origin, allowedOrigins)) {
       logger('Warn', 'BFF per-key origin rejected', {
