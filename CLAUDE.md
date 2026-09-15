@@ -140,4 +140,5 @@ Decisions live in `docs/adr/`. Run `/adr` to record one.
 - [The liana name the schema already carries decides a v1 agent's capabilities](docs/adr/2026-09-11-the-liana-name-the-schema-already-carries-decides-a-v1-agent-s-capabi.md) — 2026-09-11-the-liana-name-the-schema-already-carries-decides-a-v1-agent-s-capabi [accepted]
 - [A schema declaring no primary key gets one derived from its `id` field](docs/adr/2026-09-11-a-schema-declaring-no-primary-key-gets-one-derived-from-its-id-field.md) — 2026-09-11-a-schema-declaring-no-primary-key-gets-one-derived-from-its-id-field [accepted]
 - [A CORS wildcard matches one label over a host of at least two](docs/adr/2026-09-15-a-cors-wildcard-matches-one-label-over-a-host-of-at-least-two.md) — 2026-09-15-a-cors-wildcard-matches-one-label-over-a-host-of-at-least-two [accepted]
+- [Bedrock is executor-only, and its models pass an allowlist](docs/adr/2026-09-15-bedrock-is-executor-only-and-its-models-pass-an-allowlist.md) — 2026-09-15-bedrock-is-executor-only-and-its-models-pass-an-allowlist [accepted]
 <!-- ADR:INDEX:END -->
