@@ -308,16 +308,18 @@ export class StepTimeoutError extends WorkflowExecutorError {
   }
 }
 
-// Bedrock rejects a model the region does not serve, one the account has not enabled, or one the
-// role cannot invoke. All three are configuration mistakes the operator can fix, but they only
-// surface on the first AI step, where the generic message sends them to look at the workflow rather
-// than at AI_MODEL and AWS_REGION. The provider's own sentence is the actionable part, so it is
-// carried through — these AWS messages name the model and the reason, never a credential.
-const AI_CONFIGURATION_ERROR_NAMES = [
-  'ValidationException',
-  'ResourceNotFoundException',
-  'AccessDeniedException',
-];
+// Bedrock rejects a model the region does not serve, or one the account/role cannot invoke. Both
+// are configuration mistakes the operator can fix, but they only surface on the first AI step,
+// where the generic message sends them to look at the workflow rather than at AI_MODEL and
+// AWS_REGION. The provider's own sentence is the actionable part, so it is carried through — these
+// AWS messages name the model and the reason, never a credential.
+// ValidationException is deliberately absent: Bedrock also raises it for request-level faults the
+// model configuration is innocent of — an oversized prompt above all, which a large record can
+// produce on a correctly configured model. Classifying those as configuration would send them down
+// the no-degrade path below and fail the step permanently instead of falling back to manual. The
+// cost is that a typo in AI_MODEL (also a ValidationException) degrades to manual rather than
+// naming itself; the warn log carries Bedrock's sentence.
+const AI_CONFIGURATION_ERROR_NAMES = ['ResourceNotFoundException', 'AccessDeniedException'];
 
 export function isAiConfigurationError(error: unknown): boolean {
   return AI_CONFIGURATION_ERROR_NAMES.includes((error as { name?: string })?.name ?? '');
@@ -330,9 +332,6 @@ export class AiModelUnusableError extends WorkflowConfigurationError {
       // The provider's sentence stays out of userMessage: an AccessDeniedException spells out the
       // caller's IAM role ARN and AWS account id, which would then sit in the Forest UI and the
       // audit trail for every reader of the run. It is in the technical message, for ops logs.
-      // No remedy asserted: ValidationException is Bedrock's catch-all for request shape too, so
-      // "check the model id and region" would send the operator after a correct configuration when
-      // the real cause is an oversized prompt.
       `The configured AI model "${model}" was refused by the provider (${cause.name}). ` +
         'See the executor logs for the provider’s own message.',
     );

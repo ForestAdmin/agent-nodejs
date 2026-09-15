@@ -954,7 +954,7 @@ describe('BaseStepExecutor', () => {
         } as unknown as ExecutionContext['model'];
       }
 
-      it.each(['ValidationException', 'ResourceNotFoundException', 'AccessDeniedException'])(
+      it.each(['ResourceNotFoundException', 'AccessDeniedException'])(
         'turns a %s into an actionable message naming the model and the reason',
         async name => {
           const providerErr = Object.assign(
@@ -979,6 +979,22 @@ describe('BaseStepExecutor', () => {
         },
       );
 
+      // Bedrock's catch-all: the same exception name covers a request the model configuration is
+      // innocent of, so it must not be read as "this model is unusable".
+      it('leaves an oversized prompt alone: ValidationException is not a model fault', async () => {
+        const providerErr = Object.assign(new Error('Input is too long for requested model.'), {
+          name: 'ValidationException',
+        });
+        const executor = new TestableExecutor(
+          makeContext({ model: makeRejectingModelNamed(providerErr) }),
+        );
+
+        const err = await executor.invokeWithTool(dummyMessages, dummyTool).catch(e => e);
+
+        expect(err).not.toBeInstanceOf(AiModelUnusableError);
+        expect((err as Error).message).toBe('Input is too long for requested model.');
+      });
+
       it('leaves an unrelated provider failure alone', async () => {
         const providerErr = Object.assign(new Error('socket hang up'), { name: 'NetworkError' });
         const executor = new TestableExecutor(
@@ -992,7 +1008,9 @@ describe('BaseStepExecutor', () => {
       });
 
       it('says unknown rather than guessing when the model exposes no id', async () => {
-        const providerErr = Object.assign(new Error('nope'), { name: 'ValidationException' });
+        const providerErr = Object.assign(new Error('nope'), {
+          name: 'ResourceNotFoundException',
+        });
         const model = {
           bindTools: jest
             .fn()
@@ -1009,7 +1027,7 @@ describe('BaseStepExecutor', () => {
     describe('AI model rejected, through the degrade path', () => {
       it('does not degrade to manual: a refused model is permanent, not transient', async () => {
         const providerErr = Object.assign(new Error('The provided model identifier is invalid.'), {
-          name: 'ValidationException',
+          name: 'ResourceNotFoundException',
         });
         const model = {
           bindTools: jest
@@ -1025,6 +1043,28 @@ describe('BaseStepExecutor', () => {
 
         expect(err).toBeInstanceOf(AiModelUnusableError);
         expect(err).not.toBeInstanceOf(AiAssistUnavailableError);
+      });
+
+      // The whole point of narrowing isAiConfigurationError: a prompt too big for the model is a
+      // step the operator can still complete by hand, not a workflow that must stop.
+      it('degrades to manual on an oversized prompt', async () => {
+        const model = {
+          bindTools: jest.fn().mockReturnValue({
+            invoke: jest.fn().mockRejectedValue(
+              Object.assign(new Error('Input is too long for requested model.'), {
+                name: 'ValidationException',
+              }),
+            ),
+          }),
+          model: 'eu.anthropic.claude-opus-4-5-v1:0',
+        } as unknown as ExecutionContext['model'];
+        const executor = new TestableExecutor(makeContext({ model }));
+
+        const err = await executor
+          .withAiAssist(() => executor.invokeWithTool(dummyMessages, dummyTool))
+          .catch(e => e);
+
+        expect(err).toBeInstanceOf(AiAssistUnavailableError);
       });
 
       it('still degrades on an unrelated AI failure', async () => {
