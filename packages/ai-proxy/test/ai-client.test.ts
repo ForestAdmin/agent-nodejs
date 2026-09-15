@@ -458,21 +458,6 @@ describe('probeCredentials', () => {
     ).resolves.toBeUndefined();
   });
 
-  // A metadata call that lags on EC2 must not cost a deployment: the probe drops its verdict, not
-  // the startup.
-  it('warns and starts anyway when the chain does not answer in time', async () => {
-    jest.useFakeTimers();
-    mockBedrockModel(jest.fn().mockReturnValue(new Promise(() => {})));
-    const logger = jest.fn() as unknown as Logger;
-
-    const probe = new AiClient({ aiConfigurations: [bedrockConfig], logger }).probeCredentials();
-    jest.advanceTimersByTime(10_000);
-    await probe;
-
-    expect(logger).toHaveBeenCalledWith('Warn', expect.stringContaining('did not resolve within'));
-    jest.useRealTimers();
-  });
-
   it('does nothing for providers with no credential chain', async () => {
     const credentials = jest.fn();
     createBaseChatModelMock.mockReturnValue({} as BaseChatModel);

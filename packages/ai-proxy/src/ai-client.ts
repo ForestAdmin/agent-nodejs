@@ -12,9 +12,6 @@ import getAiConfiguration from './get-ai-configuration';
 import { createToolProviders } from './tool-provider-factory';
 import validateAiConfigurations from './validate-ai-configurations';
 
-// Bounds the boot probe: the chain ends in a metadata call on EC2/ECS, which can lag.
-const CREDENTIAL_PROBE_TIMEOUT_MS = 10_000;
-
 // eslint-disable-next-line import/prefer-default-export
 export class AiClient {
   private readonly aiConfigurations: AiConfiguration[];
@@ -42,17 +39,18 @@ export class AiClient {
     return model;
   }
 
-  // Resolves the AWS credential chain once, at startup, for every bedrock configuration.
-  // Without it a container whose credentials never resolve — an AWS profile mounted where the
-  // image's user cannot read it is the common one — starts, answers its health check, and only
-  // fails on the first AI step of the first workflow. Same reasoning as the region check in the
-  // CLI, applied to the other half of the configuration.
+  // Resolves the AWS credential chain once, at startup, for every bedrock configuration. Without
+  // it a container whose credentials never resolve — an AWS profile mounted where the image's user
+  // cannot read it is the common one — starts, answers its health check, and only fails on the
+  // first AI step of the first workflow.
   // What it proves is narrow and worth stating: credentials were found, not that they may call
   // Bedrock. An IAM policy missing bedrock:InvokeModel still surfaces on first use.
   async probeCredentials(): Promise<void> {
-    const bedrockConfigs = this.aiConfigurations.filter(c => c.provider === 'bedrock');
-
-    await Promise.all(bedrockConfigs.map(config => this.probeBedrockCredentials(config)));
+    await Promise.all(
+      this.aiConfigurations
+        .filter(c => c.provider === 'bedrock')
+        .map(c => this.probeBedrockCredentials(c)),
+    );
   }
 
   private async probeBedrockCredentials(config: AiConfiguration): Promise<void> {
@@ -66,27 +64,10 @@ export class AiClient {
 
     if (typeof resolve !== 'function') return;
 
-    const timedOut = Symbol('timed-out');
-    let timer: NodeJS.Timeout | undefined;
-
     try {
-      const outcome = await Promise.race([
-        resolve(),
-        new Promise(resolve_ => {
-          timer = setTimeout(() => resolve_(timedOut), CREDENTIAL_PROBE_TIMEOUT_MS);
-        }),
-      ]);
-
-      // A slow chain is not a wrong one — on EC2 and ECS it ends in a local metadata call that can
-      // lag. Failing the boot on that would trade a rare misconfiguration for a flaky deploy, so
-      // the probe gives up its verdict rather than the startup.
-      if (outcome === timedOut) {
-        this.logger?.(
-          'Warn',
-          `AI configuration "${config.name}": AWS credentials did not resolve within ` +
-            `${CREDENTIAL_PROBE_TIMEOUT_MS}ms, starting without verifying them.`,
-        );
-      }
+      // Unbounded on purpose: every provider in the chain caps itself (IMDS at 1s, no retry), so
+      // the only way this hangs is a shared profile whose own credential_process hangs.
+      await resolve();
     } catch (cause) {
       throw new AIBadRequestError(
         `AI configuration "${config.name}" uses bedrock, but no AWS credentials could be ` +
@@ -94,8 +75,6 @@ export class AiClient {
           'shared profile) found none. In Docker, a mounted profile must be readable by the ' +
           `image's user. Cause: ${cause instanceof Error ? cause.message : String(cause)}`,
       );
-    } finally {
-      clearTimeout(timer);
     }
   }
 
