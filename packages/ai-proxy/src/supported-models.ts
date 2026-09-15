@@ -84,7 +84,7 @@ const ANTHROPIC_UNSUPPORTED_MODELS = [
   'claude-3-5-haiku-20241022', // EOL 2026-02-19
   'claude-3-5-haiku-latest', // Points to deprecated claude-3-5-haiku-20241022
   'claude-3-7-sonnet-20250219', // EOL 2026-02-19
-  'claude-3-sonnet-20240229', // EOL at Anthropic; Bedrock answers "reached the end of its life"
+  'claude-3-sonnet-20240229', // EOL 2025-07-21
   'claude-opus-4-20250514', // Requires streaming (non-streaming times out)
   'claude-opus-4-1-20250805', // Requires streaming (non-streaming times out)
 ];
