@@ -1,3 +1,10 @@
+## @forestadmin/agent [1.100.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.100.6...@forestadmin/agent@1.100.7) (2026-09-15)
+
+
+### Bug Fixes
+
+* **agent:** stop the audit store's queries from adopting a host's CLS transaction ([#1842](https://github.com/ForestAdmin/agent-nodejs/issues/1842)) ([5a39bf0](https://github.com/ForestAdmin/agent-nodejs/commit/5a39bf0af3a80f8d659c46d89903fed2d21f0253))
+
 ## @forestadmin/agent [1.100.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.100.5...@forestadmin/agent@1.100.6) (2026-09-14)
 
 
