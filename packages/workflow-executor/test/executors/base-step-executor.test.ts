@@ -19,8 +19,8 @@ import type { BaseMessage, DynamicStructuredTool } from '@forestadmin/ai-proxy';
 import { HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 
 import {
-  AiInvokeTimeoutError,
   AiAssistUnavailableError,
+  AiInvokeTimeoutError,
   AiModelUnusableError,
   InvalidAiRequestError,
   MalformedToolCallError,
@@ -1012,7 +1012,9 @@ describe('BaseStepExecutor', () => {
           name: 'ValidationException',
         });
         const model = {
-          bindTools: jest.fn().mockReturnValue({ invoke: jest.fn().mockRejectedValue(providerErr) }),
+          bindTools: jest
+            .fn()
+            .mockReturnValue({ invoke: jest.fn().mockRejectedValue(providerErr) }),
           model: 'eu.anthropic.claude-opus-4-5-v1:0',
         } as unknown as ExecutionContext['model'];
         const executor = new TestableExecutor(makeContext({ model }));
