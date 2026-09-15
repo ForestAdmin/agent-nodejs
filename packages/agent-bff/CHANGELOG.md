@@ -1,3 +1,10 @@
+# @forestadmin/agent-bff [1.31.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.30.2...@forestadmin/agent-bff@1.31.0) (2026-09-15)
+
+
+### Features
+
+* **agent-bff:** match a single-label subdomain wildcard in the CORS allow-list ([#1903](https://github.com/ForestAdmin/agent-nodejs/issues/1903)) ([c32aee9](https://github.com/ForestAdmin/agent-nodejs/commit/c32aee9d4feb0d226ac910cc1a66180d74b3134a))
+
 ## @forestadmin/agent-bff [1.30.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.30.1...@forestadmin/agent-bff@1.30.2) (2026-09-14)
 
 

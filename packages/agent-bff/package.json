@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/agent-bff",
-  "version": "1.30.2",
+  "version": "1.31.0",
   "main": "dist/index.js",
   "bin": {
     "forest-bff": "dist/cli.js"
