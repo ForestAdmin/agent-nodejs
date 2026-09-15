@@ -210,7 +210,11 @@ describe('per-key origin middleware (layer 2)', () => {
       expect(logger).toHaveBeenCalledWith(
         'Warn',
         'BFF key origins are all outside BFF_ALLOWED_ORIGINS',
-        { keyHash: fingerprintApiKey(RAW_KEY), keyOrigins: ['https://a.com'] },
+        {
+          keyHash: fingerprintApiKey(RAW_KEY),
+          renderingId: RENDERING_ID,
+          keyOrigins: ['https://a.com'],
+        },
       );
     });
 
@@ -222,6 +226,38 @@ describe('per-key origin middleware (layer 2)', () => {
       )
         .get('/agent/x')
         .set('Origin', 'https://c.com')
+        .set(BFF_KEY_HEADER, RAW_KEY);
+
+      expect(logger).not.toHaveBeenCalled();
+    });
+
+    it('reports a key whose wildcard the parser refuses, which no origin can ever match', async () => {
+      const logger = jest.fn();
+
+      await request(
+        buildApp(['https://app-*.zendesk.com'], logger, ['https://*.zendesk.com']).callback(),
+      )
+        .get('/agent/x')
+        .set('Origin', 'https://app-123.zendesk.com')
+        .set(BFF_KEY_HEADER, RAW_KEY);
+
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        'BFF key origins are all outside BFF_ALLOWED_ORIGINS',
+        expect.objectContaining({ keyOrigins: ['https://app-*.zendesk.com'] }),
+      );
+    });
+
+    it('stays silent when a wildcard key origin covers an exact server origin', async () => {
+      const logger = jest.fn();
+
+      await request(
+        buildApp(['https://*.apps.zdusercontent.com'], logger, [
+          'https://1231469.apps.zdusercontent.com',
+        ]).callback(),
+      )
+        .get('/agent/x')
+        .set('Origin', 'https://1231469.apps.zdusercontent.com')
         .set(BFF_KEY_HEADER, RAW_KEY);
 
       expect(logger).not.toHaveBeenCalled();
