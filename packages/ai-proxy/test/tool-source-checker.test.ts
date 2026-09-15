@@ -1,5 +1,5 @@
-import ToolSourceChecker from '../src/tool-source-checker';
 import { createToolProviders } from '../src/tool-provider-factory';
+import ToolSourceChecker from '../src/tool-source-checker';
 
 jest.mock('../src/tool-provider-factory');
 

@@ -313,16 +313,25 @@ export class StepTimeoutError extends WorkflowExecutorError {
 // where the generic message sends them to look at the workflow rather than at AI_MODEL and
 // AWS_REGION. The provider's own sentence is the actionable part, so it is carried through — these
 // AWS messages name the model and the reason, never a credential.
-// ValidationException is deliberately absent: Bedrock also raises it for request-level faults the
-// model configuration is innocent of — an oversized prompt above all, which a large record can
-// produce on a correctly configured model. Classifying those as configuration would send them down
-// the no-degrade path below and fail the step permanently instead of falling back to manual. The
-// cost is that a typo in AI_MODEL (also a ValidationException) degrades to manual rather than
-// naming itself; the warn log carries Bedrock's sentence.
 const AI_CONFIGURATION_ERROR_NAMES = ['ResourceNotFoundException', 'AccessDeniedException'];
 
+// ValidationException is Bedrock's catch-all, and the exception object carries nothing to tell its
+// two causes apart: a model id it does not serve (configuration — an AI_MODEL typo the allowlist
+// cannot catch, since it validates the shape and not the existence) and a prompt too big for the
+// model (not configuration — a large record on a model that works). Only the sentence separates
+// them, so the match is narrow and the default is "not configuration": a reworded AWS message
+// costs one classification, while a loose pattern would push an oversized prompt down the
+// no-degrade path and stop a workflow a human could have finished by hand.
+// Pinned against the live API by ai-proxy's bedrock.integration.test.ts, which turns red if AWS
+// rewords this — the only way we learn before a customer does.
+const BEDROCK_MODEL_IDENTITY_SENTENCE = /model identifier/i;
+
 export function isAiConfigurationError(error: unknown): boolean {
-  return AI_CONFIGURATION_ERROR_NAMES.includes((error as { name?: string })?.name ?? '');
+  const { name, message } = (error ?? {}) as { name?: string; message?: string };
+
+  if (name === 'ValidationException') return BEDROCK_MODEL_IDENTITY_SENTENCE.test(message ?? '');
+
+  return AI_CONFIGURATION_ERROR_NAMES.includes(name ?? '');
 }
 
 export class AiModelUnusableError extends WorkflowConfigurationError {

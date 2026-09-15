@@ -88,11 +88,12 @@ describe('isModelSupportingTools', () => {
       expect(isModelSupportingTools(model, 'bedrock')).toBe(false);
     });
 
-    it.each([
-      'anthropic.claude-3-5-sonnet-20241022-v2:0',
-    ])('allows the legacy claude-3.x naming too: %s', model => {
-      expect(isModelSupportingTools(model, 'bedrock')).toBe(true);
-    });
+    it.each(['anthropic.claude-3-5-sonnet-20241022-v2:0'])(
+      'allows the legacy claude-3.x naming too: %s',
+      model => {
+        expect(isModelSupportingTools(model, 'bedrock')).toBe(true);
+      },
+    );
 
     it.each([
       'arn:aws:bedrock:eu-west-1:123456789012:inference-profile/eu.anthropic.claude-sonnet-5-v1:0',

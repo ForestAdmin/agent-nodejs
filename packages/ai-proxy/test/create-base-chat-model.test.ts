@@ -165,6 +165,24 @@ describe('createBaseChatModel', () => {
       );
     });
 
+    // A container that declares AWS_REGION without filling it exports an empty string, which the
+    // embedded boot check reads as unset and lets through — so treating it as a value here would
+    // refuse the deployment at the first AI step, long after it reported itself healthy.
+    it('falls back to AWS_DEFAULT_REGION when AWS_REGION is set but empty', () => {
+      process.env.AWS_REGION = '';
+      process.env.AWS_DEFAULT_REGION = 'us-east-1';
+
+      createBaseChatModel({
+        name: 'bedrock',
+        provider: 'bedrock',
+        model: 'eu.anthropic.claude-sonnet-5-v1:0',
+      });
+
+      expect(ChatBedrockConverse).toHaveBeenCalledWith(
+        expect.objectContaining({ region: 'us-east-1' }),
+      );
+    });
+
     it('prefers an explicit region over the environment', () => {
       process.env.AWS_REGION = 'us-east-1';
 

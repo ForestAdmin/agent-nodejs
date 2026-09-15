@@ -85,8 +85,8 @@ describe('createCortexAnalystTool', () => {
 
     const tool = createCortexAnalystTool(headers, baseUrl);
 
-    await expect(
-      tool.invoke({ question: 'q', semantic_view: 'db.sc.v' }),
-    ).rejects.toThrow('Snowflake cortex analyst failed (429): Rate limited');
+    await expect(tool.invoke({ question: 'q', semantic_view: 'db.sc.v' })).rejects.toThrow(
+      'Snowflake cortex analyst failed (429): Rate limited',
+    );
   });
 });

@@ -82,6 +82,26 @@ describe('Model validation', () => {
         }),
     ).not.toThrow();
   });
+
+  // The CLI and the embedded option both refuse this earlier, so this guard is the only one a
+  // direct `new AiClient(...)` meets — and silence here is expensive: ChatBedrockConverse drops the
+  // key and authenticates with the ambient role instead, billing an account nobody chose.
+  it('refuses an apiKey on a bedrock configuration', () => {
+    expect(
+      () =>
+        new AiClient({
+          aiConfigurations: [
+            {
+              name: 'test',
+              provider: 'bedrock',
+              model: 'us.anthropic.claude-sonnet-4-6-v1:0',
+              region: 'eu-west-3',
+              apiKey: 'sk-should-not-be-here',
+            } as never,
+          ],
+        }),
+    ).toThrow('apiKey is not used with provider bedrock');
+  });
 });
 
 describe('getModel', () => {

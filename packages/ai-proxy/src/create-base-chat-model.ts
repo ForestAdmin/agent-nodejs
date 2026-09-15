@@ -15,8 +15,11 @@ const BEDROCK_TOOL_CHOICE_VALUES = ['auto', 'any', 'tool'] as const;
 
 // LangChain reads AWS_DEFAULT_REGION only, and its own error names just that one — unhelpful to
 // anyone who set AWS_REGION, the variable the AWS SDK and CLI treat as primary.
+// `||` rather than `??`: an exported-but-empty AWS_REGION is how a container ships a variable it
+// never filled, and `??` would keep that empty string and refuse a deployment whose
+// AWS_DEFAULT_REGION is perfectly good. Matches cli-core.ts, which the standalone path uses.
 function resolveBedrockRegion(region?: string): string {
-  const resolved = region ?? process.env.AWS_REGION ?? process.env.AWS_DEFAULT_REGION;
+  const resolved = region || process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION;
 
   if (!resolved) {
     throw new AIBadRequestError(

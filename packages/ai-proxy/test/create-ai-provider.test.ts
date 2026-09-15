@@ -122,9 +122,7 @@ describe('createAiProvider', () => {
 
       await aiRouter.route({ route: 'remote-tools' });
 
-      expect(routeMock).toHaveBeenCalledWith(
-        expect.objectContaining({ toolConfigs: undefined }),
-      );
+      expect(routeMock).toHaveBeenCalledWith(expect.objectContaining({ toolConfigs: undefined }));
     });
   });
 });

@@ -979,6 +979,24 @@ describe('BaseStepExecutor', () => {
         },
       );
 
+      // The allowlist validates the shape of a Bedrock id, never its existence, so a typo in
+      // AI_MODEL boots fine and only surfaces here. Condition and MCP steps call this directly,
+      // outside the degrade path, where an unclassified error reads as "unexpected" and sends the
+      // operator to the workflow rather than to AI_MODEL.
+      it('classifies a ValidationException that names the model identifier', async () => {
+        const providerErr = Object.assign(new Error('The provided model identifier is invalid.'), {
+          name: 'ValidationException',
+        });
+        const executor = new TestableExecutor(
+          makeContext({ model: makeRejectingModelNamed(providerErr) }),
+        );
+
+        const err = await executor.invokeWithTool(dummyMessages, dummyTool).catch(e => e);
+
+        expect(err).toBeInstanceOf(AiModelUnusableError);
+        expect((err as AiModelUnusableError).errorKind).toBe('configuration');
+      });
+
       // Bedrock's catch-all: the same exception name covers a request the model configuration is
       // innocent of, so it must not be read as "this model is unusable".
       it('leaves an oversized prompt alone: ValidationException is not a model fault', async () => {

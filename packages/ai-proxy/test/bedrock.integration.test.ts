@@ -152,6 +152,37 @@ describeWithBedrock('Bedrock Integration (real API)', () => {
     ).toThrow(AIModelNotAllowlistedError);
   });
 
+  // The allowlist checks the shape of an id, never its existence, so a typo in AI_MODEL boots fine
+  // and only fails on the first AI step. workflow-executor turns that failure into an actionable
+  // configuration error by reading the exception — by name, or for Bedrock's catch-all
+  // ValidationException by the sentence (see isAiConfigurationError in workflow-executor/errors.ts,
+  // which cannot be imported here: ai-proxy does not depend on it).
+  // This test is the pin on that sentence. Red here means AWS reworded it and a mistyped model id
+  // now reaches operators as "unexpected error" — worth learning from CI rather than from a
+  // customer.
+  it('reports a well-formed but nonexistent model in a way the executor can classify', async () => {
+    const error = await new AiClient({
+      aiConfigurations: [bedrockConfig('eu.anthropic.claude-sonnet-4-7-v1:0')],
+    })
+      .getModel()
+      .invoke([{ role: 'user', content: 'ping' }])
+      .then(
+        () => null,
+        (e: Error) => e,
+      );
+
+    expect(error).not.toBeNull();
+
+    const { name, message } = error as Error;
+    const classified =
+      name === 'ResourceNotFoundException' ||
+      name === 'AccessDeniedException' ||
+      (name === 'ValidationException' && /model identifier/i.test(message));
+
+    // Compared as a string so a reword prints the actual AWS sentence in the CI diff.
+    expect(classified ? 'classified' : `${name}: ${message}`).toBe('classified');
+  }, 60_000);
+
   // The claim itself, one line at a time. An AccessDenied here is not an excuse: it means the CI
   // account cannot drive a line we advertise, so the advertisement is unverified.
   describe('the lines we advertise', () => {
