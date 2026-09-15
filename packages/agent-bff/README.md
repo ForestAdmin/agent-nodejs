@@ -100,7 +100,7 @@ yarn start:dev         # node --env-file=.env dist/cli.js
 | `AGENT_URL`                   | yes       | The customer agent base URL the BFF calls via agent-client.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | `BFF_TOKEN_ENCRYPTION_KEY`    | for OAuth | Base64-encoded 32-byte AES-256 key encrypting stored refresh tokens. Until it is set, the `/oauth/*` token-issuance routes are disabled and `/health` reports `configured.oauth: false` — but it stays `ok`, since the key gates OAuth and not boot; already-issued `bff_access` tokens still authenticate on `/agent/*` whenever `FOREST_AUTH_SECRET` is present.                                                                                                                                                                                                                                                                                                                                                                                             |
 | `HTTP_PORT`                   | no        | Server port, integer 0–65535. Defaults to `3450`. `0` binds an OS-assigned ephemeral port.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| `BFF_ALLOWED_ORIGINS`         | no        | Comma-separated CORS allow-list of exact origins (scheme + host + port). No wildcard. Empty ⇒ no cross-origin browser access.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `BFF_ALLOWED_ORIGINS`         | no        | Comma-separated CORS allow-list of origins (scheme + host + port). An entry may carry a single `*` as the leading host label — `https://*.apps.zdusercontent.com` — which matches exactly one DNS label there, and nothing else: not two labels, not the apex, and never the scheme or the port. The host left after `*.` must be at least two non-empty labels, so `https://*.com` is refused; a two-label public suffix such as `https://*.co.uk` is not, and would allow every site under it. Any other `*` in the host is refused and warned about at boot; a `*` outside the host — in userinfo, a path or a query — is stripped along with the rest of the URL, so `https://*@example.com` is simply the exact origin `https://example.com`. Empty ⇒ no cross-origin browser access.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | `BFF_DEFAULT_TIMEZONE`        | no        | Fallback IANA timezone used when a request carries neither an `X-Forest-Timezone` header nor a body `timezone`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | `BFF_PUBLIC_URL`              | no        | The BFF's own external base URL, published as `servers[0].url` in the OpenAPI document so a generated client resolves endpoints without being configured by hand. Absent, `servers[0].url` stays `/`, which a consumer that fetched the document over HTTP resolves against that URL — but which leaves a client generated from an offline `forest-bff openapi` export with no base URL at all. Trailing slashes are stripped. A malformed value fails the boot, and so does one carrying credentials, a query string or a fragment: credentials would be published to every reader of the document, and anything behind a `?` or `#` swallows the path a generated client appends. |
 | `BFF_AGENT_TIMEOUT_MS`        | no        | How long the BFF waits for the customer agent on any data or action call, in milliseconds. Defaults to `10000`. Past it the route answers `504 agent_timeout`; any outright transport failure — a refused connection, an unresolvable host, a connection reset, a TLS failure — answers `502 network_error` instead. Surrounding whitespace is trimmed, then a malformed value (non-integer, `0`, or above 2147483647) fails the boot; an unset, empty, or whitespace-only value counts as absent and takes the default.                                                                                                                                                            |
@@ -117,8 +117,11 @@ yarn start:dev         # node --env-file=.env dist/cli.js
   fails fast at boot: the process exits with a clear error and never echoes the offending value.
 - A required var that is absent (or empty / whitespace-only) does not crash the server. It boots and
   reports the gap through `/health` (503 `degraded`).
-- Malformed `BFF_ALLOWED_ORIGINS` entries (including a literal `*`) are dropped and logged once at
-  boot (`Warn`); they never enter the allow-list, so a wildcard origin can never be served.
+- Malformed `BFF_ALLOWED_ORIGINS` entries are dropped and logged once at boot (`Warn`); they never
+  enter the allow-list. That covers a literal `*`, a `*` outside the leading host label
+  (`https://a.*.example.com`), several `*`, a host left with fewer than two non-empty labels
+  (`https://*.com`, `https://*.com.`, `https://*..com`, `https://*.localhost`), and a pattern on an
+  IP (`https://*.127.0.0.1`). Only the single leading-label form is served as a wildcard.
 
 ## Request edge (`/agent/*`)
 
@@ -158,8 +161,23 @@ a `POST /oauth/token` concern (`session_invalidated`, OAuth/RFC shape).
 
 ### CORS
 
-Two layers, both driven by exact-origin matching (case-insensitive scheme/host, default ports
-normalized away, no trailing slash, no wildcard, no subdomain matching):
+Two layers, both driven by the same matcher (case-insensitive scheme/host, default ports normalized
+away, no trailing slash). An entry with no `*` matches by strict equality. An entry whose leading
+host label is `*` — `https://*.apps.zdusercontent.com` — matches exactly one DNS label in its place:
+`https://1231469.apps.zdusercontent.com` passes, `https://a.b.apps.zdusercontent.com` and the apex
+`https://apps.zdusercontent.com` do not. Scheme and port are never wildcarded and must match
+exactly. The host left after `*.` must be at least two non-empty labels; every other `*` shape is
+refused at parse time and warned about at boot.
+
+The wildcard exists for hosts that serve an application under an opaque generated subdomain — an
+installed Zendesk app is served from `https://<app-id>.apps.zdusercontent.com` — where naming the
+exact origin means copying an id the operator does not choose. Understand what it grants: every app
+of every publisher on that domain is inside the allow-list. That is acceptable here because CORS is
+not the authentication boundary — a `bff_access` session or an API key is still required, and
+another origin cannot read this app's tokens — but it is a real widening, so keep the suffix as
+specific as the host allows.
+
+The two layers:
 
 - **Layer 1 (transport)** — the only layer that sets `Access-Control-Allow-Origin`. An origin in
   `BFF_ALLOWED_ORIGINS` is echoed back exactly; any other `Origin` is refused outright with
@@ -174,6 +192,11 @@ normalized away, no trailing slash, no wildcard, no subdomain matching):
   a Node backend or CI, an empty header counting as none — passes: there the API key is the
   boundary, not the origin. An opaque `Origin: null` (sandboxed iframe, cross-origin redirect) is a
   present origin and is rejected. An empty per-key list is a no-op.
+
+A wildcard in a key's `allowedOrigins` (layer 2) is matched the same way. Those entries come from
+the Forest SaaS and never pass through the boot-time parser, so an illegal pattern there is not
+warned about individually: it simply never matches, and the key-level `Warn` fires only when *every*
+origin of that key is outside `BFF_ALLOWED_ORIGINS`.
 
 **Local development:** browsers still enforce CORS against `localhost`, so add your dev origin(s) to
 `BFF_ALLOWED_ORIGINS` (e.g. `BFF_ALLOWED_ORIGINS=http://localhost:4200`) — there is no dev bypass.

@@ -28,7 +28,11 @@ export default function createPerKeyOriginMiddleware({
   function reportOriginsThatCanNeverPass(allowedOrigins: string[], keyHash: string): void {
     if (serverAllowedOrigins.length === 0 || assessedKeys.has(keyHash)) return;
 
-    const canNeverPass = !allowedOrigins.some(entry => originAllowed(entry, serverAllowedOrigins));
+    const canNeverPass = !allowedOrigins.some(
+      entry =>
+        originAllowed(entry, serverAllowedOrigins) ||
+        serverAllowedOrigins.some(serverOrigin => originAllowed(serverOrigin, [entry])),
+    );
     if (assessedKeys.size >= MAX_ASSESSED_KEYS) assessedKeys.clear();
     assessedKeys.add(keyHash);
 

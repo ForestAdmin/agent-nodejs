@@ -202,6 +202,26 @@ describe('parseConfig', () => {
       expect(config.allowedOrigins).toEqual(['https://app.example.com']);
       expect(config.invalidAllowedOrigins).toEqual(['*', 'garbage']);
     });
+
+    it('should keep a leading-label subdomain wildcard in the allow-list', () => {
+      const config = parseConfig({
+        ...VALID_ENV,
+        BFF_ALLOWED_ORIGINS: 'https://*.apps.zdusercontent.com',
+      });
+
+      expect(config.allowedOrigins).toEqual(['https://*.apps.zdusercontent.com']);
+      expect(config.invalidAllowedOrigins).toEqual([]);
+    });
+
+    it('should drop an illegal wildcard into invalidAllowedOrigins so boot warns', () => {
+      const config = parseConfig({
+        ...VALID_ENV,
+        BFF_ALLOWED_ORIGINS: 'https://a.*.example.com, https://*.com',
+      });
+
+      expect(config.allowedOrigins).toEqual([]);
+      expect(config.invalidAllowedOrigins).toEqual(['https://a.*.example.com', 'https://*.com']);
+    });
   });
 
   describe('when resolving BFF_DEFAULT_TIMEZONE', () => {

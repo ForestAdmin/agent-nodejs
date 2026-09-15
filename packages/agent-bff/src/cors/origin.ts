@@ -32,6 +32,43 @@ export function normalizeOrigin(raw: string | undefined | null): string | null {
   return url.origin;
 }
 
+const WILDCARD_LABEL_PREFIX = '*.';
+const MIN_WILDCARD_HOST_LABELS = 2;
+
+interface AllowedEntry {
+  origin: string;
+  wildcard: boolean;
+}
+
+function parseAllowedEntry(raw: string): AllowedEntry | null {
+  const origin = normalizeOrigin(raw);
+  if (origin === null) return null;
+
+  const { hostname } = new URL(origin);
+  const stars = hostname.split('*').length - 1;
+
+  if (stars === 0) return { origin, wildcard: false };
+  if (stars > 1 || !hostname.startsWith(WILDCARD_LABEL_PREFIX)) return null;
+
+  const parentLabels = hostname.slice(WILDCARD_LABEL_PREFIX.length).split('.');
+
+  if (parentLabels.length < MIN_WILDCARD_HOST_LABELS) return null;
+  if (parentLabels.some(label => label === '')) return null;
+
+  return { origin, wildcard: true };
+}
+
+function matchesWildcard(entry: URL, request: URL): boolean {
+  if (entry.protocol !== request.protocol || entry.port !== request.port) return false;
+
+  const suffixWithDot = entry.hostname.slice('*'.length);
+  if (!request.hostname.endsWith(suffixWithDot)) return false;
+
+  const head = request.hostname.slice(0, -suffixWithDot.length);
+
+  return head !== '' && !head.includes('.');
+}
+
 export function parseAllowedOrigins(raw: string | undefined): {
   origins: string[];
   invalid: string[];
@@ -47,10 +84,10 @@ export function parseAllowedOrigins(raw: string | undefined): {
     .filter(entry => entry !== '');
 
   for (const entry of entries) {
-    const normalized = normalizeOrigin(entry);
+    const parsed = parseAllowedEntry(entry);
 
-    if (normalized === null) invalid.push(entry);
-    else if (!origins.includes(normalized)) origins.push(normalized);
+    if (parsed === null) invalid.push(entry);
+    else if (!origins.includes(parsed.origin)) origins.push(parsed.origin);
   }
 
   return { origins, invalid };
@@ -60,5 +97,14 @@ export function originAllowed(requestOrigin: string | undefined, allowList: stri
   const normalized = normalizeOrigin(requestOrigin);
   if (normalized === null) return false;
 
-  return allowList.some(entry => normalizeOrigin(entry) === normalized);
+  const request = new URL(normalized);
+
+  return allowList.some(raw => {
+    const entry = parseAllowedEntry(raw);
+
+    if (entry === null) return false;
+    if (!entry.wildcard) return entry.origin === normalized;
+
+    return matchesWildcard(new URL(entry.origin), request);
+  });
 }

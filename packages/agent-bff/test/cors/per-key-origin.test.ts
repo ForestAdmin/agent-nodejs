@@ -227,6 +227,21 @@ describe('per-key origin middleware (layer 2)', () => {
       expect(logger).not.toHaveBeenCalled();
     });
 
+    it('stays silent when a wildcard key origin covers an exact server origin', async () => {
+      const logger = jest.fn();
+
+      await request(
+        buildApp(['https://*.apps.zdusercontent.com'], logger, [
+          'https://1231469.apps.zdusercontent.com',
+        ]).callback(),
+      )
+        .get('/agent/x')
+        .set('Origin', 'https://1231469.apps.zdusercontent.com')
+        .set(BFF_KEY_HEADER, RAW_KEY);
+
+      expect(logger).not.toHaveBeenCalled();
+    });
+
     it('stays silent when the server allow-list is empty, where no key is at fault', async () => {
       const logger = jest.fn();
 
