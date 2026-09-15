@@ -1,3 +1,10 @@
+# @forestadmin/ai-proxy [1.14.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.13.1...@forestadmin/ai-proxy@1.14.0) (2026-09-15)
+
+
+### Features
+
+* **workflow-executor:** support Amazon Bedrock as a self-hosted AI provider ([#1897](https://github.com/ForestAdmin/agent-nodejs/issues/1897)) ([53dfe75](https://github.com/ForestAdmin/agent-nodejs/commit/53dfe75a17efabcdf0b775709f690316d8b79412))
+
 ## @forestadmin/ai-proxy [1.13.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.13.0...@forestadmin/ai-proxy@1.13.1) (2026-09-14)
 
 
