@@ -1,11 +1,13 @@
 import type { ApiKeyAuthenticator, AuthenticatedApiKey } from './api-key-authenticator';
 import type { Logger } from '../ports/logger-port';
-import type { Middleware } from 'koa';
+import type { Context, Middleware } from 'koa';
 
 import { fingerprintApiKey } from './api-key';
 import { ApiKeyError } from './api-key-error';
 
 export const BFF_KEY_HEADER = 'X-Forest-Bff-Key';
+
+export type ApiKeyIdentityInvalidator = () => void;
 
 export interface ApiKeyMiddlewareOptions {
   authenticator: ApiKeyAuthenticator;
@@ -48,8 +50,12 @@ export default function createApiKeyMiddleware({
       throw error;
     }
 
+    const invalidateIdentity: ApiKeyIdentityInvalidator = () => authenticator.invalidate(rawKey);
+
+    ctx.state.invalidateApiKeyIdentity = invalidateIdentity;
     ctx.state.agentToken = authenticated.agentToken;
     ctx.state.apiKeyIdentity = authenticated.identity;
+    ctx.state.forestServerToken = authenticated.forestServerToken;
     ctx.set('Cache-Control', 'no-store');
     logger('Info', 'Resolved BFF API key', {
       keyHash: fingerprintApiKey(rawKey),
@@ -58,4 +64,17 @@ export default function createApiKeyMiddleware({
 
     await next();
   };
+}
+
+/**
+ * Forgets the identity this request was authenticated with. Called when the Forest server refuses
+ * the token that came with it: the token is cached with the identity, so the next request must
+ * resolve the key again instead of replaying the refused one for the rest of the cache window.
+ *
+ * A no-op outside api-key mode — nothing else lands an invalidator.
+ */
+export function invalidateApiKeyIdentity(ctx: Context): void {
+  const invalidate = ctx.state.invalidateApiKeyIdentity as ApiKeyIdentityInvalidator | undefined;
+
+  invalidate?.();
 }

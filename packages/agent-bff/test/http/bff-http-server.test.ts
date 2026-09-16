@@ -21,15 +21,30 @@ const VALID_ENV = {
 
 const noopLogger = () => undefined;
 
+const SHUTDOWN_DEADLINE_MS = 20;
+
 const teapot: BffCallback = (req, res) => {
   res.statusCode = 418;
   res.end();
 };
 
-function createServer(env: NodeJS.ProcessEnv, port = 0, logger: Logger = noopLogger) {
+function createServer(
+  env: NodeJS.ProcessEnv,
+  port = 0,
+  logger: Logger = noopLogger,
+  drainActivityLogs?: (timeoutMs?: number) => Promise<string[]>,
+  shutdownTimeoutMs?: number,
+) {
   const config = parseConfig(env);
 
-  return new BFFHttpServer({ port, version: VERSION, config, logger });
+  return new BFFHttpServer({
+    port,
+    version: VERSION,
+    config,
+    logger,
+    drainActivityLogs,
+    shutdownTimeoutMs,
+  });
 }
 
 function createPrebuiltServer(env: NodeJS.ProcessEnv, logger: Logger = noopLogger) {
@@ -265,6 +280,122 @@ describe('BFFHttpServer', () => {
       const server = createServer({ ...VALID_ENV });
 
       await expect(server.stop()).resolves.toBeUndefined();
+    });
+  });
+
+  describe('when stopping a server that writes activity logs', () => {
+    it('should drain the pending status transitions after closing the connections', async () => {
+      const events: string[] = [];
+      const server = createServer({ ...VALID_ENV }, 0, noopLogger, async () => {
+        events.push('drain');
+
+        return [];
+      });
+      await server.start();
+      (server as unknown as { server: Server }).server.on('close', () => events.push('close'));
+
+      await server.stop();
+
+      expect(events).toEqual(['close', 'drain']);
+    });
+
+    it('should destroy the connections outliving the deadline and still drain', async () => {
+      const drain = jest.fn(async () => [] as string[]);
+      const logger = jest.fn();
+      const server = createServer({ ...VALID_ENV }, 0, logger, drain, SHUTDOWN_DEADLINE_MS);
+      await server.start();
+
+      const internal = (server as unknown as { server: Server }).server;
+      const closeIdleConnections = jest.spyOn(internal, 'closeIdleConnections');
+      const closeAllConnections = jest.spyOn(internal, 'closeAllConnections');
+      jest.spyOn(internal, 'close').mockImplementation((() => internal) as Server['close']);
+
+      await expect(server.stop()).resolves.toBeUndefined();
+
+      expect(closeIdleConnections).toHaveBeenCalledTimes(1);
+      expect(closeAllConnections).toHaveBeenCalledTimes(1);
+      expect(drain).toHaveBeenCalledTimes(1);
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        'Forcing the Forest BFF shutdown: connections were still open',
+        { timeoutMs: SHUTDOWN_DEADLINE_MS },
+      );
+
+      jest.restoreAllMocks();
+      await closeServer(internal);
+    });
+
+    it('should hand the drain what the connections left of the shutdown deadline', async () => {
+      const drain = jest.fn(async () => [] as string[]);
+      const server = createServer({ ...VALID_ENV }, 0, noopLogger, drain, SHUTDOWN_DEADLINE_MS);
+      await server.start();
+
+      const internal = (server as unknown as { server: Server }).server;
+      jest.spyOn(internal, 'close').mockImplementation((() => internal) as Server['close']);
+
+      await server.stop();
+
+      expect(drain).toHaveBeenCalledWith(0);
+
+      jest.restoreAllMocks();
+      await closeServer(internal);
+    });
+
+    it('should name the activity logs the deadline left in flight', async () => {
+      const unfinished = ["'completed' transition of the activity log log-1"];
+      const drain = jest.fn(async () => unfinished);
+      const logger = jest.fn();
+      const server = createServer({ ...VALID_ENV }, 0, logger, drain, SHUTDOWN_DEADLINE_MS);
+      await server.start();
+
+      await server.stop();
+
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        'Stopped the Forest BFF with activity logs still in flight',
+        { timeoutMs: SHUTDOWN_DEADLINE_MS, unfinished },
+      );
+    });
+
+    it('should say nothing once everything drained', async () => {
+      const logger = jest.fn();
+      const server = createServer(
+        { ...VALID_ENV },
+        0,
+        logger,
+        async () => [],
+        SHUTDOWN_DEADLINE_MS,
+      );
+      await server.start();
+
+      await server.stop();
+
+      expect(logger).not.toHaveBeenCalledWith(
+        'Warn',
+        'Stopped the Forest BFF with activity logs still in flight',
+        expect.anything(),
+      );
+    });
+
+    it('should not drain when the connections could not be closed', async () => {
+      const drain = jest.fn(async () => [] as string[]);
+      const server = createServer({ ...VALID_ENV }, 0, noopLogger, drain);
+      await server.start();
+
+      const closeError = new Error('close failed');
+      const internal = (server as unknown as { server: Server }).server;
+      jest.spyOn(internal, 'close').mockImplementation(((cb: (err?: Error) => void) => {
+        cb(closeError);
+
+        return internal;
+      }) as Server['close']);
+
+      await expect(server.stop()).rejects.toBe(closeError);
+
+      expect(drain).not.toHaveBeenCalled();
+
+      jest.restoreAllMocks();
+      await closeServer(internal);
     });
   });
 

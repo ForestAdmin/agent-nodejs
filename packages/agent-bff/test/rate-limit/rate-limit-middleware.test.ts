@@ -48,7 +48,12 @@ function buildEdge(
   app.silent = true;
   app.use(createErrorMiddleware({ logger: () => undefined }));
   app.use(createAuthModeMiddleware({ authSecret: AUTH_SECRET }));
-  app.use(createApiKeyMiddleware({ authenticator: { authenticate }, logger: () => undefined }));
+  app.use(
+    createApiKeyMiddleware({
+      authenticator: { authenticate, invalidate: () => undefined },
+      logger: () => undefined,
+    }),
+  );
   app.use(limiter);
   app.use(async ctx => {
     ctx.status = 200;

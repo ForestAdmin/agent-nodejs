@@ -43,6 +43,65 @@ describe('resolve cache', () => {
     });
   });
 
+  describe('invalidation', () => {
+    it('should forget a positive entry before its TTL', () => {
+      const cache = createResolveCache({ now, positiveTtlSeconds: 60 });
+      cache.setPositive('hash', IDENTITY);
+
+      cache.invalidate('hash');
+
+      expect(cache.getPositive('hash')).toBeUndefined();
+    });
+
+    it('should leave the other entries alone', () => {
+      const cache = createResolveCache({ now, positiveTtlSeconds: 60 });
+      cache.setPositive('hash', IDENTITY);
+      cache.setPositive('other-hash', IDENTITY);
+
+      cache.invalidate('hash');
+
+      expect(cache.getPositive('other-hash')).toEqual(IDENTITY);
+    });
+
+    it('should ignore a second invalidation of the same key within the TTL window', () => {
+      const cache = createResolveCache({ now, positiveTtlSeconds: 60 });
+      cache.setPositive('hash', IDENTITY);
+      cache.invalidate('hash');
+      cache.setPositive('hash', IDENTITY);
+      nowMs += 59_000;
+
+      cache.invalidate('hash');
+
+      expect(cache.getPositive('hash')).toEqual(IDENTITY);
+    });
+
+    it('should still forget another key while one is within its window', () => {
+      const cache = createResolveCache({ now, positiveTtlSeconds: 60 });
+      cache.setPositive('hash', IDENTITY);
+      cache.setPositive('other-hash', IDENTITY);
+      cache.invalidate('hash');
+      cache.setPositive('hash', IDENTITY);
+
+      cache.invalidate('hash');
+      cache.invalidate('other-hash');
+
+      expect(cache.getPositive('hash')).toEqual(IDENTITY);
+      expect(cache.getPositive('other-hash')).toBeUndefined();
+    });
+
+    it('should invalidate again once the window has passed', () => {
+      const cache = createResolveCache({ now, positiveTtlSeconds: 60 });
+      cache.setPositive('hash', IDENTITY);
+      cache.invalidate('hash');
+      nowMs += 60_000;
+      cache.setPositive('hash', IDENTITY);
+
+      cache.invalidate('hash');
+
+      expect(cache.getPositive('hash')).toBeUndefined();
+    });
+  });
+
   describe('negative entries', () => {
     it('should return the cached error within the negative TTL', () => {
       const cache = createResolveCache({ now, negativeTtlSeconds: 10 });
@@ -82,6 +141,32 @@ describe('resolve cache', () => {
       expect(cache.getPositive('a')).toBeUndefined();
       expect(cache.getPositive('b')).toEqual(IDENTITY);
       expect(cache.getPositive('c')).toEqual(IDENTITY);
+    });
+
+    it('should evict the oldest invalidation window once maxEntries is reached', () => {
+      const cache = createResolveCache({ now, positiveTtlSeconds: 60, maxEntries: 2 });
+      cache.invalidate('a');
+      cache.invalidate('b');
+      cache.invalidate('c');
+      cache.setPositive('a', IDENTITY);
+
+      cache.invalidate('a');
+
+      expect(cache.getPositive('a')).toBeUndefined();
+    });
+
+    it('should drop an expired invalidation window rather than evict a live one', () => {
+      const cache = createResolveCache({ now, positiveTtlSeconds: 60, maxEntries: 2 });
+      cache.invalidate('a');
+      cache.invalidate('b');
+      nowMs += 61_000;
+      cache.invalidate('a');
+      cache.invalidate('c');
+      cache.setPositive('a', IDENTITY);
+
+      cache.invalidate('a');
+
+      expect(cache.getPositive('a')).toEqual(IDENTITY);
     });
 
     it('should still overwrite an existing key when full', () => {
