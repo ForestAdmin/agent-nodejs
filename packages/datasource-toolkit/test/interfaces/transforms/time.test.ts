@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import ConditionTreeLeaf from '../../../src/interfaces/query/condition-tree/nodes/leaf';
 import makeAlternatives from '../../../src/interfaces/query/condition-tree/transforms/time';
+import * as factories from '../../__factories__';
 
 describe('ConditionTreeOperators > Time', () => {
   const alternatives = makeAlternatives();
@@ -111,7 +112,7 @@ describe('ConditionTreeOperators > Time', () => {
       ).toEqual({
         aggregator: 'And',
         conditions: [
-          { field: 'column', operator: 'GreaterThan', value: '1985-10-01T07:00:00Z' },
+          { field: 'column', operator: 'GreaterThanOrEqual', value: '1985-10-01T07:00:00Z' },
           { field: 'column', operator: 'LessThan', value: '1985-10-26T09:22:00Z' },
         ],
       });
@@ -128,7 +129,7 @@ describe('ConditionTreeOperators > Time', () => {
       ).toEqual({
         aggregator: 'And',
         conditions: [
-          { field: 'column', operator: 'GreaterThan', value: '1985-09-01T07:00:00Z' },
+          { field: 'column', operator: 'GreaterThanOrEqual', value: '1985-09-01T07:00:00Z' },
           { field: 'column', operator: 'LessThan', value: '1985-10-01T07:00:00Z' },
         ],
       });
@@ -145,7 +146,7 @@ describe('ConditionTreeOperators > Time', () => {
       ).toEqual({
         aggregator: 'And',
         conditions: [
-          { field: 'column', operator: 'GreaterThan', value: '1985-10-01T07:00:00Z' },
+          { field: 'column', operator: 'GreaterThanOrEqual', value: '1985-10-01T07:00:00Z' },
           { field: 'column', operator: 'LessThan', value: '1985-10-26T09:22:00Z' },
         ],
       });
@@ -162,7 +163,7 @@ describe('ConditionTreeOperators > Time', () => {
       ).toEqual({
         aggregator: 'And',
         conditions: [
-          { field: 'column', operator: 'GreaterThan', value: '1985-07-01T07:00:00Z' },
+          { field: 'column', operator: 'GreaterThanOrEqual', value: '1985-07-01T07:00:00Z' },
           { field: 'column', operator: 'LessThan', value: '1985-10-01T07:00:00Z' },
         ],
       });
@@ -179,7 +180,7 @@ describe('ConditionTreeOperators > Time', () => {
       ).toEqual({
         aggregator: 'And',
         conditions: [
-          { field: 'column', operator: 'GreaterThan', value: '1985-10-21T07:00:00Z' },
+          { field: 'column', operator: 'GreaterThanOrEqual', value: '1985-10-21T07:00:00Z' },
           { field: 'column', operator: 'LessThan', value: '1985-10-26T09:22:00Z' },
         ],
       });
@@ -199,7 +200,7 @@ describe('ConditionTreeOperators > Time', () => {
       ).toEqual({
         aggregator: 'And',
         conditions: [
-          { field: 'column', operator: 'GreaterThan', value: '1985-10-14T07:00:00Z' },
+          { field: 'column', operator: 'GreaterThanOrEqual', value: '1985-10-14T07:00:00Z' },
           { field: 'column', operator: 'LessThan', value: '1985-10-21T07:00:00Z' },
         ],
       });
@@ -216,7 +217,7 @@ describe('ConditionTreeOperators > Time', () => {
       ).toEqual({
         aggregator: 'And',
         conditions: [
-          { field: 'column', operator: 'GreaterThan', value: '1985-10-12T07:00:00Z' },
+          { field: 'column', operator: 'GreaterThanOrEqual', value: '1985-10-12T07:00:00Z' },
           { field: 'column', operator: 'LessThan', value: '1985-10-26T09:22:00Z' },
         ],
       });
@@ -233,7 +234,7 @@ describe('ConditionTreeOperators > Time', () => {
       ).toEqual({
         aggregator: 'And',
         conditions: [
-          { field: 'column', operator: 'GreaterThan', value: '1985-10-12T07:00:00Z' },
+          { field: 'column', operator: 'GreaterThanOrEqual', value: '1985-10-12T07:00:00Z' },
           { field: 'column', operator: 'LessThan', value: '1985-10-26T07:00:00Z' },
         ],
       });
@@ -250,7 +251,7 @@ describe('ConditionTreeOperators > Time', () => {
       ).toEqual({
         aggregator: 'And',
         conditions: [
-          { field: 'column', operator: 'GreaterThan', value: '1985-01-01T08:00:00Z' },
+          { field: 'column', operator: 'GreaterThanOrEqual', value: '1985-01-01T08:00:00Z' },
           { field: 'column', operator: 'LessThan', value: '1985-10-26T09:22:00Z' },
         ],
       });
@@ -269,7 +270,7 @@ describe('ConditionTreeOperators > Time', () => {
       ).toEqual({
         aggregator: 'And',
         conditions: [
-          { field: 'column', operator: 'GreaterThan', value: '1984-01-01T08:00:00Z' },
+          { field: 'column', operator: 'GreaterThanOrEqual', value: '1984-01-01T08:00:00Z' },
           { field: 'column', operator: 'LessThan', value: '1985-01-01T08:00:00Z' },
         ],
       });
@@ -286,7 +287,7 @@ describe('ConditionTreeOperators > Time', () => {
       ).toEqual({
         aggregator: 'And',
         conditions: [
-          { field: 'column', operator: 'GreaterThan', value: '1985-10-26T07:00:00Z' },
+          { field: 'column', operator: 'GreaterThanOrEqual', value: '1985-10-26T07:00:00Z' },
           { field: 'column', operator: 'LessThan', value: '1985-10-27T07:00:00Z' },
         ],
       });
@@ -303,10 +304,29 @@ describe('ConditionTreeOperators > Time', () => {
       ).toEqual({
         aggregator: 'And',
         conditions: [
-          { field: 'column', operator: 'GreaterThan', value: '1985-10-25T07:00:00Z' },
+          { field: 'column', operator: 'GreaterThanOrEqual', value: '1985-10-25T07:00:00Z' },
           { field: 'column', operator: 'LessThan', value: '1985-10-26T07:00:00Z' },
         ],
       });
+    });
+  });
+
+  describe('the day boundary', () => {
+    const collection = factories.collection.build({
+      schema: factories.collectionSchema.build({
+        fields: { column: factories.columnSchema.build({ columnType: 'Date' }) },
+      }),
+    });
+
+    // 01:22 in Los_Angeles on 1985-10-26; local midnight that day is 07:00:00Z.
+    const midnight = '1985-10-26T07:00:00Z';
+
+    test('should place an instant at local midnight in Today and in no other day', () => {
+      const today = new ConditionTreeLeaf('column', 'Today');
+      const yesterday = new ConditionTreeLeaf('column', 'Yesterday');
+
+      expect(today.match({ column: midnight }, collection, 'America/Los_Angeles')).toBe(true);
+      expect(yesterday.match({ column: midnight }, collection, 'America/Los_Angeles')).toBe(false);
     });
   });
 });
