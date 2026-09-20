@@ -9,7 +9,7 @@ import type { ActionDefinition } from '../src/decorators/actions/types/actions';
 import type { WriteDefinition } from '../src/decorators/write/write-replace/types';
 import type { ColumnSchema } from '@forestadmin/datasource-toolkit';
 
-import { ConditionTreeLeaf, MissingFieldError, Sort } from '@forestadmin/datasource-toolkit';
+import { MissingFieldError, Sort } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import { CollectionCustomizer, DataSourceCustomizer } from '../src';
@@ -639,7 +639,7 @@ describe('Builder > Collection', () => {
     it('should add a segment', async () => {
       const { dsc, customizer } = await setup();
 
-      const generator = async () => new ConditionTreeLeaf('fieldName', 'Present');
+      const generator = async () => ({ field: 'fieldName', operator: 'Present' } as const);
 
       const self = customizer.addSegment('new segment', generator);
       await dsc.getDataSource(logger);
@@ -773,7 +773,8 @@ describe('Builder > Collection', () => {
     it('should replace operator on field', async () => {
       const { dsc, customizer } = await setup();
 
-      const replacer = async () => new ConditionTreeLeaf('fieldName', 'NotEqual', null);
+      const replacer = async () =>
+        ({ field: 'fieldName', operator: 'NotEqual', value: null } as const);
 
       const self = customizer.replaceFieldOperator('firstName', 'Present', replacer);
       await dsc.getDataSource(logger);

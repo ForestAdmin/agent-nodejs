@@ -178,7 +178,9 @@ export default class CollectionCustomizer<
    */
   addChart(name: string, definition: CollectionChartDefinition<S, N>): this {
     return this.pushCustomization(async () => {
-      this.stack.chart.getCollection(this.name).addChart(name, definition);
+      this.stack.chart
+        .getCollection(this.name)
+        .addChart(name, definition as unknown as CollectionChartDefinition);
     });
   }
 
@@ -228,7 +230,10 @@ export default class CollectionCustomizer<
         ? collectionBeforeRelations
         : collectionAfterRelations;
 
-      collection.registerComputed(name, mapDeprecated<S, N>(definition));
+      collection.registerComputed(
+        name,
+        mapDeprecated<S, N>(definition) as unknown as ComputedDefinition,
+      );
     });
   };
 
@@ -261,7 +266,7 @@ export default class CollectionCustomizer<
   addHook<P extends HookPosition, T extends HookType>(
     position: P,
     type: T,
-    handler: HookHandler<HooksContext<S, N>[P][T]>,
+    handler: HookHandler<HooksContext<S, N>[P][T], void, S, N>,
   ): this {
     return this.pushCustomization(async () => {
       this.stack.hook
@@ -570,7 +575,7 @@ export default class CollectionCustomizer<
         ? this.stack.earlyOpEmulate.getCollection(this.name)
         : this.stack.lateOpEmulate.getCollection(this.name);
 
-      collection.replaceFieldOperator(name, operator, replacer as OperatorDefinition);
+      collection.replaceFieldOperator(name, operator, replacer as unknown as OperatorDefinition);
     });
   }
 
@@ -590,7 +595,9 @@ export default class CollectionCustomizer<
     definition: WriteDefinition<S, N, C>,
   ): this {
     return this.pushCustomization(async () => {
-      this.stack.write.getCollection(this.name).replaceFieldWriting(name, definition);
+      this.stack.write
+        .getCollection(this.name)
+        .replaceFieldWriting(name, definition as unknown as WriteDefinition);
     });
   }
 
@@ -640,7 +647,9 @@ export default class CollectionCustomizer<
    */
   overrideCreate(handler: CreateOverrideHandler<S, N>): this {
     return this.pushCustomization(async () => {
-      this.stack.override.getCollection(this.name).addCreateHandler(handler);
+      this.stack.override
+        .getCollection(this.name)
+        .addCreateHandler(handler as unknown as CreateOverrideHandler);
     });
   }
 
@@ -656,7 +665,9 @@ export default class CollectionCustomizer<
    */
   overrideUpdate(handler: UpdateOverrideHandler<S, N>): this {
     return this.pushCustomization(async () => {
-      this.stack.override.getCollection(this.name).addUpdateHandler(handler);
+      this.stack.override
+        .getCollection(this.name)
+        .addUpdateHandler(handler as unknown as UpdateOverrideHandler);
     });
   }
 
@@ -672,7 +683,9 @@ export default class CollectionCustomizer<
    */
   overrideDelete(handler: DeleteOverrideHandler<S, N>): this {
     return this.pushCustomization(async () => {
-      this.stack.override.getCollection(this.name).addDeleteHandler(handler);
+      this.stack.override
+        .getCollection(this.name)
+        .addDeleteHandler(handler as unknown as DeleteOverrideHandler);
     });
   }
 
