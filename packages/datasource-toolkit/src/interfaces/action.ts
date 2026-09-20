@@ -28,6 +28,7 @@ export interface ActionFieldBase extends ActionFormElementBase {
   widget?: ActionFieldWidget;
   id: string;
   label: string;
+  name: string;
   description?: string;
   isRequired?: boolean;
   isReadOnly?: boolean;
