@@ -8,7 +8,7 @@ import type {
 } from '@forestadmin/forestadmin-client';
 import type { Context } from 'koa';
 
-import { HttpError, NotFoundError } from '@forestadmin/forestadmin-client';
+import { HttpError } from '@forestadmin/forestadmin-client';
 
 import { invalidateApiKeyIdentity } from '../api-key/api-key-middleware';
 import {
@@ -85,6 +85,9 @@ function describeCause(error: unknown): string {
 
 const FORBIDDEN = 403;
 const UNAUTHORIZED = 401;
+const SERVER_ERROR = 500;
+/** Not found: the document may not be visible yet. 0: unreachable. 408: timeout. 429: throttled. */
+const RETRYABLE_TRANSITION_STATUSES = new Set([0, 404, 408, 429]);
 const AUDIT_ENDPOINT_ABSENT_STATUSES = new Set([404, 501]);
 
 const NO_AUDIT_ENDPOINT_MESSAGE =
@@ -272,6 +275,19 @@ export interface MarkActivityLogOptions {
   logger: Logger;
 }
 
+/**
+ * The transition is fired after the response, so nothing retries it downstream: an entry whose
+ * transition is dropped stays `pending` for good and skews the action-failure statistics. Retried
+ * are the failures a later attempt can land — the document not existing yet, a timeout, a throttle,
+ * an unreachable server (status 0) and any 5xx — plus a transport failure the client rethrows raw,
+ * which carries no status at all. A refusal or a malformed request is left to fail at once.
+ */
+function isRetryableTransitionFailure(error: unknown): boolean {
+  if (!(error instanceof HttpError)) return true;
+
+  return error.status >= SERVER_ERROR || RETRYABLE_TRANSITION_STATUSES.has(error.status);
+}
+
 async function updateStatus(options: MarkActivityLogOptions, attempt = 1): Promise<void> {
   const { service, pending, status, logger } = options;
 
@@ -282,12 +298,11 @@ async function updateStatus(options: MarkActivityLogOptions, attempt = 1): Promi
       status,
     });
   } catch (error) {
-    // The document may not exist yet when the transition lands, and only then is a retry worth
-    // anything: a network failure loses the transition permanently.
-    if (error instanceof NotFoundError && attempt < MAX_STATUS_ATTEMPTS) {
-      logger('Debug', `Activity log not found, retrying its status transition`, {
+    if (isRetryableTransitionFailure(error) && attempt < MAX_STATUS_ATTEMPTS) {
+      logger('Debug', `Activity log status transition failed, retrying it`, {
         attempt,
         attempts: MAX_STATUS_ATTEMPTS,
+        cause: describeCause(error),
       });
 
       await new Promise<void>(resolve => {

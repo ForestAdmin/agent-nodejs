@@ -498,11 +498,102 @@ describe('activity logs creator', () => {
     });
   });
 
-  describe('when the status transition fails for any other reason', () => {
+  describe('when the status transition fails for a transient reason', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+      jest.useRealTimers();
+    });
+
+    it('should retry a 500 and succeed once the audit store answers', async () => {
+      const updateActivityLogStatus = jest
+        .fn()
+        .mockRejectedValueOnce(new HttpError('the audit store is down', 500))
+        .mockResolvedValueOnce(undefined);
+      const service = fakeActivityLogsService({ updateActivityLogStatus });
+      const drainer = new ActivityLogDrainer();
+
+      markActivityLog({
+        service,
+        drainer,
+        pending: pendingLog(),
+        status: 'completed',
+        logger: loggerSpy(),
+      });
+
+      await jest.advanceTimersByTimeAsync(RETRY_DELAY_MS);
+      await drainer.drain();
+
+      expect(updateActivityLogStatus).toHaveBeenCalledTimes(2);
+      expect(updateActivityLogStatus).toHaveBeenLastCalledWith({
+        forestServerToken: API_KEY_SERVER_TOKEN,
+        activityLog: { id: ACTIVITY_LOG_ID, attributes: { index: ACTIVITY_LOG_INDEX } },
+        status: 'completed',
+      });
+    });
+
+    it('should retry a transport failure carrying no status', async () => {
+      const updateActivityLogStatus = jest
+        .fn()
+        .mockRejectedValueOnce(new Error('connect ECONNREFUSED'))
+        .mockResolvedValueOnce(undefined);
+      const service = fakeActivityLogsService({ updateActivityLogStatus });
+      const drainer = new ActivityLogDrainer();
+
+      markActivityLog({
+        service,
+        drainer,
+        pending: pendingLog(),
+        status: 'failed',
+        logger: loggerSpy(),
+      });
+
+      await jest.advanceTimersByTimeAsync(RETRY_DELAY_MS);
+      await drainer.drain();
+
+      expect(updateActivityLogStatus).toHaveBeenCalledTimes(2);
+    });
+
+    it('should give up after the last attempt and report the entry it could not mark', async () => {
+      const updateActivityLogStatus = jest
+        .fn()
+        .mockRejectedValue(new HttpError('the audit store is down', 503));
+      const service = fakeActivityLogsService({ updateActivityLogStatus });
+      const drainer = new ActivityLogDrainer();
+      const logger = loggerSpy();
+
+      markActivityLog({
+        service,
+        drainer,
+        pending: pendingLog(),
+        status: 'completed',
+        logger,
+      });
+
+      await jest.advanceTimersByTimeAsync(RETRY_DELAY_MS * MAX_ATTEMPTS);
+      await drainer.drain();
+
+      expect(updateActivityLogStatus).toHaveBeenCalledTimes(MAX_ATTEMPTS);
+      expect(logger).toHaveBeenCalledWith(
+        'Error',
+        "Failed to mark the activity log as 'completed'",
+        {
+          activityLogId: ACTIVITY_LOG_ID,
+          index: ACTIVITY_LOG_INDEX,
+          cause: 'HttpError: the audit store is down',
+        },
+      );
+    });
+  });
+
+  describe('when the status transition is refused', () => {
     it('should report it without retrying, since a retry recovers nothing', async () => {
       const updateActivityLogStatus = jest
         .fn()
-        .mockRejectedValue(new HttpError('the audit store is down', 500));
+        .mockRejectedValue(new HttpError('this token may not write that log', 403));
       const service = fakeActivityLogsService({ updateActivityLogStatus });
       const drainer = new ActivityLogDrainer();
       const logger = loggerSpy();
@@ -524,7 +615,7 @@ describe('activity logs creator', () => {
         {
           activityLogId: ACTIVITY_LOG_ID,
           index: ACTIVITY_LOG_INDEX,
-          cause: 'HttpError: the audit store is down',
+          cause: 'HttpError: this token may not write that log',
         },
       );
     });
