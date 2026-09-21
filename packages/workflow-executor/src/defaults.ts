@@ -3,6 +3,9 @@ import type { LoggerLevel } from './ports/logger-port';
 export const DEFAULT_HTTP_PORT = 3400;
 export const DEFAULT_FOREST_SERVER_URL = 'https://api.forestadmin.com';
 export const DEFAULT_POLLING_INTERVAL_S = 30;
+// Automated inboxes are a background sweep, not a dispatch loop: each cycle costs a segment read
+// on the customer's database, so it runs an order of magnitude slower than the run poll.
+export const DEFAULT_AUTOMATION_POLL_INTERVAL_S = 300;
 export const DEFAULT_STEP_TIMEOUT_S = 5 * 60;
 export const DEFAULT_AI_INVOKE_TIMEOUT_S = 30;
 export const DEFAULT_STOP_TIMEOUT_S = 30;
