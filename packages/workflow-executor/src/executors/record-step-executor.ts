@@ -76,13 +76,36 @@ export default abstract class RecordStepExecutor<
   // trigger-action "On record"). The reference is a stable BPMN step id (or the
   // WORKFLOW_START_STEP_ID sentinel), not a runtime index — so it survives the index shifts a
   // revision causes (clones keep their step id) and is knowable by the editor at build time.
-  // previousSteps are already restricted to the live path; in a loop the same id can appear more
-  // than once, so we take the most recent occurrence.
   protected async resolveSourceRecordRef(stepId: string): Promise<RecordRef> {
-    if (stepId === WORKFLOW_START_STEP_ID) {
-      return this.context.baseRecordRef;
+    if (stepId !== WORKFLOW_START_STEP_ID) return (await this.resolveStepRecordRef(stepId)).record;
+
+    const { callScope, baseRecordRef } = this.context;
+    if (!callScope) return baseRecordRef;
+
+    // Inside a Sub-workflow call, "workflow start" means the record the calling step pinned; a
+    // call pinning none still starts from the record the run was launched on.
+    const { record, sourceTitle } = callScope.selectedRecordStepId
+      ? await this.resolveStepRecordRef(callScope.selectedRecordStepId)
+      : { record: baseRecordRef, sourceTitle: undefined };
+
+    // A record of another collection than the called workflow is not what its steps were built
+    // against, so the step reports no source record rather than acting on the caller's.
+    if (
+      callScope.calledWorkflowCollectionName !== undefined &&
+      record.collectionName !== callScope.calledWorkflowCollectionName
+    ) {
+      throw new SourceRecordMissingError(sourceTitle);
     }
 
+    return record;
+  }
+
+  // The record a Load Related Record step loaded, with that step's title for the messages about it.
+  // previousSteps are already restricted to the live path; in a loop the same id can appear more
+  // than once, so we take the most recent occurrence.
+  private async resolveStepRecordRef(
+    stepId: string,
+  ): Promise<{ record: RecordRef; sourceTitle?: string }> {
     const matches = this.context.previousSteps.filter(
       step =>
         step.stepDefinition.type === StepType.LoadRelatedRecord &&
@@ -99,7 +122,10 @@ export default abstract class RecordStepExecutor<
         execution.executionResult !== undefined &&
         'record' in execution.executionResult
       ) {
-        return execution.executionResult.record;
+        return {
+          record: execution.executionResult.record,
+          sourceTitle: sourceStep.stepDefinition.title,
+        };
       }
 
       // The source step exists but loaded nothing → clear "no source record" message,

@@ -154,6 +154,10 @@ export interface ServerStartSubWorkflow extends ServerWorkflowStepBase {
   executionType: ServerStepExecutionTypeEnum.Manual;
   outgoing: [ServerWorkflowTransition];
   workflowId: string;
+  /** The record handed to the called workflow: a stable BPMN step id, or WORKFLOW_START_STEP_ID. */
+  preRecordedArgs?: { selectedRecordStepId?: string };
+  /** The called workflow's collection. Absent from an orchestrator that predates the pin. */
+  calledWorkflowCollectionName?: string | null;
 }
 
 export interface ServerCloseSubWorkflow extends ServerWorkflowStepBase {

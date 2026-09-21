@@ -39,6 +39,17 @@ export enum TriggerType {
 }
 export const TriggerTypeSchema = z.nativeEnum(TriggerType);
 
+// The Sub-workflow call the pending step runs inside: the record the calling step pinned and the
+// collection the called workflow is built on. Both optional — a call sending neither behaves as
+// before. Grouped rather than loose, as both describe the same call.
+export const CallScopeSchema = z
+  .object({
+    selectedRecordStepId: z.string().min(1).optional(),
+    calledWorkflowCollectionName: z.string().min(1).optional(),
+  })
+  .strict();
+export type CallScope = z.infer<typeof CallScopeSchema>;
+
 export const AvailableStepExecutionSchema = z
   .object({
     runId: z.string().min(1),
@@ -54,6 +65,7 @@ export const AvailableStepExecutionSchema = z
     // condition would then quietly not match. The mapper normalises to UTC, so this only ever
     // fires on a mapper bug.
     timezone: z.string().refine(IANAZone.isValidZone),
+    callScope: CallScopeSchema.optional(),
   })
   .strict();
 export type AvailableStepExecution = z.infer<typeof AvailableStepExecutionSchema>;

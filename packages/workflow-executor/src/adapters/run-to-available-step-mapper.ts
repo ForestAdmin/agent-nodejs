@@ -1,5 +1,6 @@
 import type {
   ServerHydratedWorkflowRun,
+  ServerStartSubWorkflow,
   ServerStepHistory,
   ServerUserProfile,
 } from './server-types';
@@ -15,7 +16,7 @@ import { IANAZone } from 'luxon';
 import { z } from 'zod';
 
 import { deserializeRecordId } from './record-id-serializer';
-import { ServerWorkflowTriggerType } from './server-types';
+import { ServerStepTypeEnum, ServerWorkflowTriggerType } from './server-types';
 import toStepDefinition from './step-definition-mapper';
 import {
   DomainValidationError,
@@ -25,9 +26,11 @@ import {
 import {
   type AvailableStepExecution,
   AvailableStepExecutionSchema,
+  type CallScope,
   type Step,
   type StepUser,
 } from '../types/validated/execution';
+import { WORKFLOW_START_STEP_ID } from '../types/validated/step-definition';
 import {
   ErrorKindSchema,
   ErrorSourceStepIndexSchema,
@@ -116,6 +119,51 @@ function toPreviousSteps(
     .filter((s): s is Step => s !== null);
 }
 
+// A missing, empty or non-string wire value reads as absent: a call sending neither the pin nor the
+// called collection behaves as one that predates them.
+function toNonEmptyString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
+// The Sub-workflow call the pending step runs inside, if any. Reconstructed from the raw history
+// because previousSteps drops the navigation steps; revised and cancelled entries are skipped and
+// each call paired with its close, as the orchestrator reads its own stack.
+function toCallScope(
+  history: ServerStepHistory[],
+  pending: ServerStepHistory,
+): CallScope | undefined {
+  if (!pending.childrenWorkflowId) return undefined;
+
+  const openCalls: ServerStartSubWorkflow[] = [];
+
+  history.forEach(entry => {
+    if (entry.revised || entry.cancelled || entry.stepIndex >= pending.stepIndex) return;
+
+    if (entry.stepDefinition.type === ServerStepTypeEnum.StartSubWorkflow) {
+      openCalls.push(entry.stepDefinition);
+    } else if (entry.stepDefinition.type === ServerStepTypeEnum.CloseSubWorkflow) {
+      openCalls.pop();
+    }
+  });
+
+  const innermost = openCalls.at(-1);
+  if (!innermost) return undefined;
+
+  // A call pinning "workflow start" pins what that phrase means where it was written — the record
+  // its own caller pinned — so the pin resolves outwards, and ends on the run's record.
+  const selectedRecordStepId = openCalls
+    .map(call => toNonEmptyString(call.preRecordedArgs?.selectedRecordStepId))
+    .reverse()
+    .find(stepId => stepId !== WORKFLOW_START_STEP_ID);
+
+  const calledWorkflowCollectionName = toNonEmptyString(innermost.calledWorkflowCollectionName);
+
+  return {
+    ...(selectedRecordStepId !== undefined && { selectedRecordStepId }),
+    ...(calledWorkflowCollectionName !== undefined && { calledWorkflowCollectionName }),
+  };
+}
+
 function toStepUser(runId: number, profile: ServerUserProfile): StepUser {
   // renderingId is stringified into the activity-log payload — reject non-finite so we don't
   // silently post "undefined"/"NaN" to the audit trail.
@@ -165,6 +213,8 @@ export default function toAvailableStepExecution(
   const pending = run.workflowHistory.at(-1) ?? null;
   if (!pending || pending.done) return null;
 
+  const callScope = toCallScope(run.workflowHistory, pending);
+
   const result = {
     runId: String(run.id),
     stepId: pending.stepName,
@@ -188,6 +238,7 @@ export default function toAvailableStepExecution(
     // relative dates in UTC — an hour or two away from the day the list filter shows the same
     // user, since that one follows the browser.
     timezone: run.timezone && IANAZone.isValidZone(run.timezone) ? run.timezone : 'UTC',
+    ...(callScope && { callScope }),
   };
 
   // Defense against mapper bugs: zod asserts the shape we produce is what the domain expects,
