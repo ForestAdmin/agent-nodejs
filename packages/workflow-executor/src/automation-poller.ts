@@ -146,8 +146,12 @@ export default class AutomationPoller {
     try {
       const inboxes = await this.config.automationPort.listAutomatedInboxes(this.config.instanceId);
 
-      // Also what a non-holder of the poller lease is served, so it reads as standing by rather
-      // than as an environment with nothing configured.
+      // `stop()` may have run while that call was out. Dispatching now would read the customer's
+      // agent and start runs during a shutdown that is only waiting on this cycle to end.
+      if (this._state !== 'running') return;
+
+      // An empty list is also what a non-holder of the poller lease is served, so it reads as
+      // standing by rather than as an environment with nothing configured.
       if (inboxes.length === 0) {
         this.logger('Debug', 'No automated inbox to poll', { instanceId: this.config.instanceId });
 
