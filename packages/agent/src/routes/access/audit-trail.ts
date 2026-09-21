@@ -12,7 +12,7 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import { DateTime } from 'luxon';
 
-import { revertRecord } from '../../audit-trail';
+import { REDACTED, revertRecord } from '../../audit-trail';
 import checkRecordVisibility, { recordExists } from '../../audit-trail/scope';
 import { HttpCode } from '../../types';
 import IdUtils from '../../utils/id';
@@ -112,13 +112,13 @@ export default class AuditTrailRoute extends CollectionRoute {
       // `delete`'s previousValues and `create`'s newValues both capture every writable column
       // (see instrument.ts's pickColumns), so the scope can be evaluated against them directly.
       if (entry.operation === 'delete') {
-        if (scope.match(entry.previousValues, this.collection, timezone)) return entry;
+        if (this.matchesScope(entry, entry.previousValues, scope, timezone)) return entry;
 
         return { ...entry, previousValues: {} };
       }
 
       if (entry.operation === 'create') {
-        if (scope.match(entry.newValues, this.collection, timezone)) return entry;
+        if (this.matchesScope(entry, entry.newValues, scope, timezone)) return entry;
 
         return { ...entry, newValues: {} };
       }
@@ -134,6 +134,46 @@ export default class AuditTrailRoute extends CollectionRoute {
 
       return entry;
     });
+  }
+
+  // Only a snapshot that answers every field the scope asks about, with what was really stored, is
+  // worth matching. The capture keeps the writable columns, so a scope reaching for anything else —
+  // a read-only column, a relation — reads `undefined` there and would answer for a value the row
+  // never held: `status != 'private'` matches on the missing key and releases the row. A redacted
+  // value answers no better: the placeholder is not what was stored.
+  private matchesScope(
+    entry: AuditRecord,
+    values: Record<string, unknown>,
+    scope: ConditionTree,
+    timezone: string,
+  ): boolean {
+    const snapshot = this.withPrimaryKeys(entry, values);
+    const answered = scope.projection.every(
+      field => field in snapshot && snapshot[field] !== REDACTED,
+    );
+
+    return answered && scope.match(snapshot, this.collection, timezone);
+  }
+
+  // A read-only primary key never lands in the snapshot, so a scope on the id would blank a row
+  // that is squarely in scope. The row's own packed id carries those values — and an id the current
+  // schema can no longer unpack simply leaves them out, which withholds.
+  private withPrimaryKeys(
+    entry: AuditRecord,
+    values: Record<string, unknown>,
+  ): Record<string, unknown> {
+    const snapshot = values ?? {};
+
+    if (!entry.recordId) return snapshot;
+
+    try {
+      const names = SchemaUtils.getPrimaryKeys(this.collection.schema);
+      const ids = IdUtils.unpackId(this.collection.schema, entry.recordId);
+
+      return { ...Object.fromEntries(names.map((name, index) => [name, ids[index]])), ...snapshot };
+    } catch {
+      return snapshot;
+    }
   }
 
   // Only audited columns are returned; read-only/computed fields are not captured in the log.

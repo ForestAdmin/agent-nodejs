@@ -1,6 +1,7 @@
 import { ConditionTreeLeaf } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
+import { REDACTED } from '../../../src/audit-trail';
 import makeRoutes from '../../../src/routes';
 import AuditTrailRoute from '../../../src/routes/access/audit-trail';
 import * as factories from '../../__factories__';
@@ -904,6 +905,113 @@ describe('AuditTrailRoute', () => {
 
       expect(context.throw).not.toHaveBeenCalled();
       expect(store.listByRecord).toHaveBeenCalled();
+    });
+
+    describe('a snapshot that cannot answer the scope', () => {
+      // Mirrors what `instrument.ts` captures: writable columns only, so a read-only column is
+      // absent from the snapshot and a redacted one holds the placeholder rather than the value.
+      const setupUnanswerable = (history: unknown[]) => {
+        const services = factories.forestAdminHttpDriverServices.build();
+        const dataSource = factories.dataSource.buildWithCollections([
+          factories.collection.build({
+            name: 'books',
+            schema: factories.collectionSchema.build({
+              fields: {
+                id: factories.columnSchema.numericPrimaryKey().build(),
+                ownerId: factories.columnSchema.build({
+                  columnType: 'Number',
+                  filterOperators: new Set(['Equal', 'NotEqual']),
+                }),
+                status: factories.columnSchema.build({
+                  columnType: 'String',
+                  isReadOnly: true,
+                  filterOperators: new Set(['Equal', 'NotEqual']),
+                }),
+                secret: factories.columnSchema.build({
+                  columnType: 'String',
+                  filterOperators: new Set(['Equal', 'NotEqual']),
+                }),
+              },
+            }),
+          }),
+        ]);
+        const store = {
+          listByRecord: jest.fn().mockResolvedValue(history),
+          countByRecord: jest.fn().mockResolvedValue(history.length),
+          listDistinctUsers: jest.fn().mockResolvedValue([]),
+        };
+        const options = factories.forestAdminHttpDriverOptions.build({
+          auditTrail: { connectionString: 'sqlite::memory:', store } as never,
+        });
+
+        return { services, dataSource, options };
+      };
+
+      // The record is gone for good: empty in scope and empty without it.
+      const historyUnder = async (scope: ConditionTreeLeaf, history: unknown[]) => {
+        const { services, dataSource, options } = setupUnanswerable(history);
+        (services.authorization.getScope as jest.Mock).mockResolvedValue(scope);
+        jest.spyOn(dataSource.getCollection('books'), 'list').mockResolvedValue([]);
+        const route = new AuditTrailRoute(services, options, dataSource, 'books');
+        const context = createMockContext({
+          state: { user: { email: 'john.doe@domain.com' } },
+          customProperties: { query: { timezone: 'Europe/Paris' }, params: { id: '2' } },
+        });
+
+        await route.handleHistory(context);
+
+        return (context.response.body as { data: unknown[] }).data;
+      };
+
+      test('withholds a delete row when the scope reads a column the snapshot never captured', async () => {
+        const data = await historyUnder(new ConditionTreeLeaf('status', 'NotEqual', 'private'), [
+          { operation: 'delete', recordId: '2', previousValues: { ownerId: 1, secret: 'shh' } },
+        ]);
+
+        expect(data).toEqual([{ operation: 'delete', recordId: '2', previousValues: {} }]);
+      });
+
+      test('withholds a create row when the scope reads a column the snapshot never captured', async () => {
+        const data = await historyUnder(new ConditionTreeLeaf('status', 'NotEqual', 'private'), [
+          { operation: 'create', recordId: '2', newValues: { ownerId: 1, secret: 'shh' } },
+        ]);
+
+        expect(data).toEqual([{ operation: 'create', recordId: '2', newValues: {} }]);
+      });
+
+      test('withholds the values when the scoped field was stored redacted', async () => {
+        const data = await historyUnder(new ConditionTreeLeaf('secret', 'NotEqual', 'nope'), [
+          { operation: 'delete', recordId: '2', previousValues: { ownerId: 1, secret: REDACTED } },
+        ]);
+
+        expect(data).toEqual([{ operation: 'delete', recordId: '2', previousValues: {} }]);
+      });
+
+      test("keeps the values when the scope matches the row's own primary key", async () => {
+        const data = await historyUnder(new ConditionTreeLeaf('id', 'Equal', 2), [
+          { operation: 'delete', recordId: '2', previousValues: { ownerId: 9 } },
+        ]);
+
+        expect(data).toEqual([
+          { operation: 'delete', recordId: '2', previousValues: { ownerId: 9 } },
+        ]);
+      });
+
+      test('withholds the values when the scope names a different primary key', async () => {
+        const data = await historyUnder(new ConditionTreeLeaf('id', 'Equal', 3), [
+          { operation: 'delete', recordId: '2', previousValues: { ownerId: 9 } },
+        ]);
+
+        expect(data).toEqual([{ operation: 'delete', recordId: '2', previousValues: {} }]);
+      });
+
+      test('withholds the values when the row carries no record id to answer an id scope', async () => {
+        const data = await historyUnder(new ConditionTreeLeaf('id', 'Equal', 2), [
+          { operation: 'create', recordId: null, newValues: { ownerId: 9 } },
+        ]);
+
+        expect(data).toEqual([{ operation: 'create', recordId: null, newValues: {} }]);
+      });
     });
   });
 
