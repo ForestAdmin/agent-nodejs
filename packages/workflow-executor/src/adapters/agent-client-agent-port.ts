@@ -27,10 +27,9 @@ import {
   UnknownActionFieldError,
   createRemoteAgentClient,
   extractErrorDetail,
-  toAgentTokenClaims,
 } from '@forestadmin/agent-client';
-import jsonwebtoken from 'jsonwebtoken';
 
+import { mintStepToken } from './step-user';
 import {
   ActionFormValidationError,
   ActionRequiresApprovalError,
@@ -441,11 +440,7 @@ export default class AgentClientAgentPort implements AgentPort {
   }
 
   private mintToken(user: StepUser): string {
-    return jsonwebtoken.sign(
-      { ...toAgentTokenClaims(user), scope: 'step-execution' },
-      this.authSecret,
-      { expiresIn: '5m' },
-    );
+    return mintStepToken(user, this.authSecret);
   }
 
   private createClient(user: StepUser, forestServerToken?: string) {
