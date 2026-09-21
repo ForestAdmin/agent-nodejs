@@ -5,7 +5,12 @@ import type { SelectOptions } from '@forestadmin/agent-client';
 import { createRemoteAgentClient } from '@forestadmin/agent-client';
 
 import { mintStepToken, toStepUser } from './step-user';
-import { AgentPortError, SegmentRecordIdMissingError, WorkflowExecutorError } from '../errors';
+import {
+  AgentPortError,
+  CompositeRecordIdMismatchError,
+  SegmentRecordIdMissingError,
+  WorkflowExecutorError,
+} from '../errors';
 
 type AgentClient = ReturnType<typeof createRemoteAgentClient>;
 
@@ -55,7 +60,15 @@ export default class AgentClientSegmentReader implements SegmentReaderPort {
 
       return records.map(record => AgentClientSegmentReader.readRecordId(record, collectionName));
     } catch (cause) {
-      if (cause instanceof WorkflowExecutorError) throw cause;
+      // These three say the read itself is unusable, not that the agent failed; wrapping them would
+      // bury what the poller needs to log.
+      if (
+        cause instanceof WorkflowExecutorError ||
+        cause instanceof SegmentRecordIdMissingError ||
+        cause instanceof CompositeRecordIdMismatchError
+      ) {
+        throw cause;
+      }
 
       throw new AgentPortError('listSegmentRecordIds', cause);
     }
@@ -77,7 +90,7 @@ export default class AgentClientSegmentReader implements SegmentReaderPort {
       // hence the cast.
       return collection.liveQuerySegment({
         query: segment.query,
-        ...(segment.connectionName !== null ? { connectionName: segment.connectionName } : {}),
+        ...(segment.connectionName != null ? { connectionName: segment.connectionName } : {}),
       } as { connectionName: string; query: string });
     }
 
@@ -113,12 +126,25 @@ export default class AgentClientSegmentReader implements SegmentReaderPort {
 
     return {
       aggregator: 'or',
-      conditions: recordIds.map(recordId => ({
-        aggregator: 'and',
-        conditions: recordId
-          .split('|')
-          .map((part, index) => ({ field: primaryKeys[index], operator: 'equal', value: part })),
-      })),
+      conditions: recordIds.map(recordId => {
+        const parts = recordId.split('|');
+
+        // Same limitation as the agent's own `IdUtils.packId`: a key value containing the separator
+        // cannot be unpacked. Caught here, where the id is named, rather than sent as a leaf with
+        // no field for the agent to reject.
+        if (parts.length !== primaryKeys.length) {
+          throw new CompositeRecordIdMismatchError(recordId, primaryKeys.length);
+        }
+
+        return {
+          aggregator: 'and',
+          conditions: parts.map((part, index) => ({
+            field: primaryKeys[index],
+            operator: 'equal',
+            value: part,
+          })),
+        };
+      }),
     };
   }
 
