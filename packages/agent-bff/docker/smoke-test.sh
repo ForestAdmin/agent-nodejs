@@ -32,6 +32,12 @@ docker run --rm --entrypoint node "$IMAGE" \
 docker run --rm "$IMAGE" openapi > /tmp/bff-openapi.json
 grep -q '"openapi"' /tmp/bff-openapi.json
 
+# `--output` with no path writes ./openapi.json, which resolves to WORKDIR. That directory is
+# created root-owned while the image runs as `node`, so this fails with EACCES unless it was
+# chowned — and the failure only shows on this flag, never on the stdout form above.
+docker run --rm --entrypoint sh "$IMAGE" -c \
+  "node $CLI openapi --output && test -s /app/openapi.json"
+
 # Boot with everything the agent edge needs EXCEPT the token encryption key: the
 # whole middleware chain (permissions, data, action, OpenAPI, docs) is built and
 # nothing reaches the network, whereas a fully configured boot would fetch the

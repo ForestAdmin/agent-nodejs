@@ -91,6 +91,11 @@ COPY --from=builder /app/packages/forestadmin-client/package.json ./node_modules
 COPY --from=builder /app/packages/agent-bff/dist         ./packages/agent-bff/dist
 COPY --from=builder /app/packages/agent-bff/package.json ./packages/agent-bff/package.json
 
+# The working directory, and only it: `openapi --output` defaults to ./openapi.json, which
+# resolves here, and WORKDIR left /app root-owned. Not recursive on purpose — node_modules and
+# dist stay root-owned, so the process cannot rewrite the code it runs.
+RUN chown node:node /app
+
 USER node
 
 # HTTP server (GET /health, the /agent edge, GET /docs).
