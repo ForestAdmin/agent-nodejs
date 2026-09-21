@@ -76,12 +76,14 @@ export default class ForestServerAutomationPort implements AutomationPort {
       throw error;
     }
 
+    return this.parseConfigs(response);
+  }
+
+  private parseConfigs(response: unknown): ServerAutomatedInboxConfig[] {
     const envelope = ServerAutomatedInboxesResponseSchema.safeParse(response);
 
     if (!envelope.success) {
-      this.logger('Error', 'Unreadable automated inbox listing', {
-        error: envelope.error.message,
-      });
+      this.logger('Error', 'Unreadable automated inbox listing', { error: envelope.error.message });
 
       return [];
     }
