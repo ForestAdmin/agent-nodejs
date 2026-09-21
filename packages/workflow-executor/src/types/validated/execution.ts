@@ -41,10 +41,13 @@ export const TriggerTypeSchema = z.nativeEnum(TriggerType);
 
 // The Sub-workflow call the pending step runs inside: the record the calling step pinned and the
 // collection the called workflow is built on. Both optional — a call sending neither behaves as
-// before. Grouped rather than loose, as both describe the same call.
+// before. Grouped rather than loose, as both describe the same call. `pinnedAtStepIndex` is the
+// index of the call that wrote the pin, which bounds where the pinned step is looked for, and so
+// travels with the pin and never without it.
 export const CallScopeSchema = z
   .object({
     selectedRecordStepId: z.string().min(1).optional(),
+    pinnedAtStepIndex: z.number().int().nonnegative().optional(),
     calledWorkflowCollectionName: z.string().min(1).optional(),
   })
   .strict();

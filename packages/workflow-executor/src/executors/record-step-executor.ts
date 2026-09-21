@@ -85,7 +85,7 @@ export default abstract class RecordStepExecutor<
     // Inside a Sub-workflow call, "workflow start" means the record the calling step pinned; a
     // call pinning none still starts from the record the run was launched on.
     const { record, sourceTitle } = callScope.selectedRecordStepId
-      ? await this.resolveStepRecordRef(callScope.selectedRecordStepId)
+      ? await this.resolveStepRecordRef(callScope.selectedRecordStepId, callScope.pinnedAtStepIndex)
       : { record: baseRecordRef, sourceTitle: undefined };
 
     // A record of another collection than the called workflow is not what its steps were built
@@ -102,14 +102,19 @@ export default abstract class RecordStepExecutor<
 
   // The record a Load Related Record step loaded, with that step's title for the messages about it.
   // previousSteps are already restricted to the live path; in a loop the same id can appear more
-  // than once, so we take the most recent occurrence.
+  // than once, so we take the most recent occurrence. `beforeStepIndex` bounds that to what ran
+  // before a Sub-workflow call opened: previousSteps flattens every frame, and a step id is unique
+  // only inside its own workflow, so a called workflow repeating one would otherwise shadow the
+  // step its caller pinned. A step resolving an id it declared itself passes no bound.
   private async resolveStepRecordRef(
     stepId: string,
+    beforeStepIndex?: number,
   ): Promise<{ record: RecordRef; sourceTitle?: string }> {
     const matches = this.context.previousSteps.filter(
       step =>
         step.stepDefinition.type === StepType.LoadRelatedRecord &&
-        step.stepOutcome.stepId === stepId,
+        step.stepOutcome.stepId === stepId &&
+        (beforeStepIndex === undefined || step.stepOutcome.stepIndex < beforeStepIndex),
     );
     const sourceStep = matches[matches.length - 1];
 

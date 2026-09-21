@@ -1044,6 +1044,7 @@ describe('toAvailableStepExecution', () => {
 
       expect(callScopeOf(run)).toEqual({
         selectedRecordStepId: 'load-1',
+        pinnedAtStepIndex: 0,
         calledWorkflowCollectionName: 'orders',
       });
     });
@@ -1083,6 +1084,7 @@ describe('toAvailableStepExecution', () => {
 
       expect(callScopeOf(run)).toEqual({
         selectedRecordStepId: 'load-2',
+        pinnedAtStepIndex: 1,
         calledWorkflowCollectionName: 'invoices',
       });
     });
@@ -1106,6 +1108,7 @@ describe('toAvailableStepExecution', () => {
 
       expect(callScopeOf(run)).toEqual({
         selectedRecordStepId: 'load-1',
+        pinnedAtStepIndex: 0,
         calledWorkflowCollectionName: 'invoices',
       });
     });
@@ -1129,6 +1132,54 @@ describe('toAvailableStepExecution', () => {
 
       expect(callScope?.selectedRecordStepId).toBeUndefined();
       expect(callScope?.calledWorkflowCollectionName).toBe('invoices');
+    });
+
+    // The walk outwards stops at the first call that pins something, and a call pinning nothing
+    // pins the run's record — so it stops there too, rather than reaching past it to its caller.
+    it('stops the outward walk at an enclosing call that pins nothing', () => {
+      const run = makeRun({
+        workflowHistory: [
+          makeStartSubWorkflowHistory(
+            { stepName: 'call-1', stepIndex: 0 },
+            { selectedRecordStepId: 'load-1', calledWorkflowCollectionName: 'orders' },
+          ),
+          makeStartSubWorkflowHistory(
+            { stepName: 'call-2', stepIndex: 1 },
+            { calledWorkflowCollectionName: 'orders' },
+          ),
+          makeStartSubWorkflowHistory(
+            { stepName: 'call-3', stepIndex: 2 },
+            { selectedRecordStepId: 'workflow-start', calledWorkflowCollectionName: 'invoices' },
+          ),
+          makeChildStepHistory({ stepName: 'child-1', stepIndex: 3, done: false }),
+        ],
+      });
+
+      const callScope = callScopeOf(run);
+
+      expect(callScope?.selectedRecordStepId).toBeUndefined();
+      expect(callScope?.pinnedAtStepIndex).toBeUndefined();
+      expect(callScope?.calledWorkflowCollectionName).toBe('invoices');
+    });
+
+    // The pin names a step of the workflow that wrote it, so the frame it was written on is what
+    // bounds the lookup — the enclosing call here, not the inner one the pending step runs in.
+    it('bounds a pin resolved outwards to the call that wrote it', () => {
+      const run = makeRun({
+        workflowHistory: [
+          makeStartSubWorkflowHistory(
+            { stepName: 'call-1', stepIndex: 0 },
+            { selectedRecordStepId: 'load-1', calledWorkflowCollectionName: 'orders' },
+          ),
+          makeStartSubWorkflowHistory(
+            { stepName: 'call-2', stepIndex: 1 },
+            { selectedRecordStepId: 'workflow-start', calledWorkflowCollectionName: 'invoices' },
+          ),
+          makeChildStepHistory({ stepName: 'child-1', stepIndex: 2, done: false }),
+        ],
+      });
+
+      expect(callScopeOf(run)?.pinnedAtStepIndex).toBe(0);
     });
 
     it('pops back to the run record once the call is closed', () => {
@@ -1165,6 +1216,7 @@ describe('toAvailableStepExecution', () => {
 
       expect(callScopeOf(run)).toEqual({
         selectedRecordStepId: 'load-2',
+        pinnedAtStepIndex: 2,
         calledWorkflowCollectionName: 'invoices',
       });
     });
@@ -1206,6 +1258,7 @@ describe('toAvailableStepExecution', () => {
 
       expect(callScopeOf(run)).toEqual({
         selectedRecordStepId: 'load-2',
+        pinnedAtStepIndex: 1,
         calledWorkflowCollectionName: 'invoices',
       });
     });

@@ -1630,6 +1630,54 @@ describe('ReadRecordStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('success');
     });
 
+    // A step id is unique only inside its own workflow, so a called workflow that repeats one — a
+    // copy of its caller, or a call on itself — must not answer the pin its caller wrote.
+    it('resolves the call pin against the caller, not a step of the called workflow repeating its id', async () => {
+      const calleeStep = (stepIndex: number): Step => ({
+        stepDefinition: {
+          type: StepType.LoadRelatedRecord,
+          executionType: StepExecutionMode.FullyAutomated,
+          title: 'Load the order',
+          prompt: 'Load the order',
+        },
+        stepOutcome: { type: 'record', stepId: 'load-1', stepIndex, status: 'success' },
+      });
+      const execution = (stepIndex: number, recordId: number) => ({
+        type: 'load-related-record',
+        stepIndex,
+        executionResult: {
+          relation: { name: 'order', displayName: 'Order' },
+          record: makeRecordRef({ collectionName: 'orders', recordId: [recordId], stepIndex }),
+        },
+        selectedRecordRef: makeRecordRef(),
+      });
+      const agentPort = makeMockAgentPort({ orders: { values: { total: 100 } } });
+      const context = makeCalledContext(
+        {
+          selectedRecordStepId: 'load-1',
+          pinnedAtStepIndex: 2,
+          calledWorkflowCollectionName: 'orders',
+        },
+        {
+          agentPort,
+          runStore: makeMockRunStore({
+            getStepExecutions: jest.fn().mockResolvedValue([execution(1, 99), execution(3, 77)]),
+          }),
+          previousSteps: [calleeStep(1), calleeStep(3)],
+          workflowPort: makeOrdersWorkflowPort(),
+          stepDefinition: makeWorkflowStartStep(['total']),
+        },
+      );
+
+      const result = await new ReadRecordStepExecutor(context).execute();
+
+      expect(agentPort.getRecord).toHaveBeenCalledWith(
+        expect.objectContaining({ collection: 'orders', id: [99], fields: ['total'] }),
+        expect.objectContaining({ id: 1 }),
+      );
+      expect(result.stepOutcome.status).toBe('success');
+    });
+
     it('falls back to the run record when the call pins none', async () => {
       const agentPort = makeMockAgentPort();
       const context = makeCalledContext(

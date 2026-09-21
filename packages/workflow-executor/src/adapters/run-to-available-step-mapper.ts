@@ -134,13 +134,13 @@ function toCallScope(
 ): CallScope | undefined {
   if (!pending.childrenWorkflowId) return undefined;
 
-  const openCalls: ServerStartSubWorkflow[] = [];
+  const openCalls: Array<{ stepIndex: number; definition: ServerStartSubWorkflow }> = [];
 
   history.forEach(entry => {
     if (entry.revised || entry.cancelled || entry.stepIndex >= pending.stepIndex) return;
 
     if (entry.stepDefinition.type === ServerStepTypeEnum.StartSubWorkflow) {
-      openCalls.push(entry.stepDefinition);
+      openCalls.push({ stepIndex: entry.stepIndex, definition: entry.stepDefinition });
     } else if (entry.stepDefinition.type === ServerStepTypeEnum.CloseSubWorkflow) {
       openCalls.pop();
     }
@@ -151,15 +151,21 @@ function toCallScope(
 
   // A call pinning "workflow start" pins what that phrase means where it was written — the record
   // its own caller pinned — so the pin resolves outwards, and ends on the run's record.
-  const selectedRecordStepId = openCalls
-    .map(call => toNonEmptyString(call.preRecordedArgs?.selectedRecordStepId))
-    .reverse()
-    .find(stepId => stepId !== WORKFLOW_START_STEP_ID);
+  const pinOf = (call: (typeof openCalls)[number]) =>
+    toNonEmptyString(call.definition.preRecordedArgs?.selectedRecordStepId);
+  const pinnedBy = [...openCalls].reverse().find(call => pinOf(call) !== WORKFLOW_START_STEP_ID);
+  const pin = pinnedBy && pinOf(pinnedBy);
 
-  const calledWorkflowCollectionName = toNonEmptyString(innermost.calledWorkflowCollectionName);
+  const calledWorkflowCollectionName = toNonEmptyString(
+    innermost.definition.calledWorkflowCollectionName,
+  );
 
   return {
-    ...(selectedRecordStepId !== undefined && { selectedRecordStepId }),
+    // The pin names a step of the workflow that wrote it, so it resolves against what ran before
+    // that call opened. previousSteps flattens every frame, and a called workflow repeating a step
+    // id — a copy of its caller, or a call on itself — would otherwise answer with its own record.
+    ...(pinnedBy !== undefined &&
+      pin !== undefined && { selectedRecordStepId: pin, pinnedAtStepIndex: pinnedBy.stepIndex }),
     ...(calledWorkflowCollectionName !== undefined && { calledWorkflowCollectionName }),
   };
 }
