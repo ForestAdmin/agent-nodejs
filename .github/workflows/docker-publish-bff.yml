@@ -61,6 +61,7 @@ jobs:
           push: false
           load: true
           tags: agent-bff:pr
+          build-args: APT_EPOCH=${{ github.run_id }}-${{ github.run_attempt }}
           cache-from: type=gha,scope=bff-amd64
 
       # The build only proves the image compiles. Run it to catch entrypoint
@@ -181,6 +182,7 @@ jobs:
           platforms: ${{ matrix.platform }}
           load: true
           tags: agent-bff:${{ matrix.arch }}
+          build-args: APT_EPOCH=${{ github.run_id }}-${{ github.run_attempt }}
           cache-from: type=gha,scope=bff-${{ matrix.arch }}
           cache-to: type=gha,mode=max,scope=bff-${{ matrix.arch }}
 
@@ -228,6 +230,7 @@ jobs:
           platforms: ${{ matrix.platform }}
           outputs: type=image,name=ghcr.io/forestadmin/agent-bff,push-by-digest=true,name-canonical=true,push=true
           sbom: true
+          build-args: APT_EPOCH=${{ github.run_id }}-${{ github.run_attempt }}
           cache-from: type=gha,scope=bff-${{ matrix.arch }}
 
       - name: Export digest

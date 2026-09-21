@@ -2,7 +2,7 @@
 
 The production image installs its runtime dependencies into an **isolated**
 `node_modules` (rather than shipping the whole monorepo's hoisted tree). This
-keeps the image small while staying reproducible.
+keeps the image small with a fully pinned dependency tree.
 
 ## How it works
 

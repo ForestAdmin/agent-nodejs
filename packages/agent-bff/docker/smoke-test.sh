@@ -36,7 +36,7 @@ grep -q '"openapi"' /tmp/bff-openapi.json
 # whole middleware chain (permissions, data, action, OpenAPI, docs) is built and
 # nothing reaches the network, whereas a fully configured boot would fetch the
 # environment id from FOREST_SERVER_URL and die on an unreachable host.
-# /health therefore reports `degraded` — the point is that it answers at all.
+# The key gates OAuth, not boot, so this answers 200 with `configured.oauth: false`.
 CONTAINER=$(docker run -d -p "127.0.0.1:$PORT:3450" \
   -e FOREST_AUTH_SECRET=smoke-test \
   -e FOREST_ENV_SECRET="$(openssl rand -hex 32)" \
@@ -65,13 +65,13 @@ if ! echo "$logs" | grep -q "Forest BFF started"; then
   echo "::error::the BFF did not reach startup — boot failure"
   exit 1
 fi
-if [ "$status" != "503" ]; then
-  echo "::error::/health answered '$status', expected 503 (degraded: no BFF_TOKEN_ENCRYPTION_KEY)"
+if [ "$status" != "200" ]; then
+  echo "::error::/health answered '$status', expected 200"
   cat /tmp/bff-health.json 2>/dev/null || true
   exit 1
 fi
-if ! grep -q '"status":"degraded"' /tmp/bff-health.json; then
-  echo "::error::/health body is not the degraded payload"
+if ! grep -q '"oauth":false' /tmp/bff-health.json; then
+  echo "::error::/health does not report OAuth as unconfigured without BFF_TOKEN_ENCRYPTION_KEY"
   cat /tmp/bff-health.json
   exit 1
 fi
@@ -90,10 +90,10 @@ done
 docker rm -f "$CONTAINER" >/dev/null 2>&1 || true
 trap - EXIT
 
-# Second boot, fully configured, to reach /health 200. Nothing else proves that path:
-# the image's own HEALTHCHECK demands a 200, so a regression making `hasAllRequired`
-# always false would leave every published container permanently unhealthy with CI
-# still green.
+# Second boot, fully configured. The boot above already answers 200, so what this one
+# adds is the OAuth path: the encryption key makes the BFF fetch its environment id
+# from FOREST_SERVER_URL, and `configured.oauth` only turns true once that whole
+# configuration is in place.
 #
 # A complete configuration makes the BFF fetch its environment id from
 # FOREST_SERVER_URL at boot and die if that host is unreachable, so a stub answers
@@ -166,6 +166,11 @@ if [ "$status" != "200" ]; then
 fi
 if ! grep -q '"status":"ok"' /tmp/bff-health-ok.json; then
   echo "::error::/health body is not the ok payload"
+  cat /tmp/bff-health-ok.json
+  exit 1
+fi
+if ! grep -q '"oauth":true' /tmp/bff-health-ok.json; then
+  echo "::error::/health does not report OAuth as configured with a complete configuration"
   cat /tmp/bff-health-ok.json
   exit 1
 fi
