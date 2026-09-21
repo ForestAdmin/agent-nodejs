@@ -290,7 +290,7 @@ export const ServerAutomatedSegmentDescriptorSchema = z.discriminatedUnion('kind
     // Null on the lianas that run a bare `segmentQuery` themselves (forest-rails,
     // forest-express-sequelize). The server never emits a `sql` descriptor without one for a v2
     // agent — it degrades the inbox instead.
-    connectionName: z.string().nullable(),
+    connectionName: z.string().nullish(),
   }),
   z.object({ kind: z.literal('filter'), conditionTree: ServerPlainConditionTreeSchema }),
 ]);
@@ -316,16 +316,18 @@ export type ServerAutomatedInboxServiceAccountProfile = z.infer<
   typeof ServerAutomatedInboxServiceAccountProfileSchema
 >;
 
+// Only what the poller reads is required. A field it merely logs must never be the reason an inbox
+// is dropped from the sweep, and `.nullable()` alone would still reject an omitted key.
 export const ServerAutomatedInboxConfigSchema = z.object({
   inboxId: z.string().min(1),
   renderingId: z.number().int().nonnegative(),
-  teamId: z.number().int().nonnegative(),
-  workflowId: z.string().min(1),
-  collectionId: z.string().min(1),
+  teamId: z.number().int().nonnegative().optional(),
+  workflowId: z.string().min(1).optional(),
+  collectionId: z.string().min(1).optional(),
   collectionName: z.string().min(1),
   primaryKeys: z.array(z.string().min(1)).min(1),
   maxConcurrentRuns: z.number().int().positive(),
-  timezone: z.string().nullable(),
+  timezone: z.string().nullish(),
   segment: ServerAutomatedSegmentDescriptorSchema,
   serviceAccountProfile: ServerAutomatedInboxServiceAccountProfileSchema,
 });
@@ -343,11 +345,14 @@ export const SERVER_INBOX_ASSIGNMENT_STATES = [
   'auto-canceled',
 ] as const;
 
+// States are read as plain strings, not enums: the poller only ever tests set membership, and one
+// assignment in a state a newer orchestrator introduced must not take the whole inbox down. The
+// known values live in the constants above, for the poller to compare against.
 export const ServerAutomatedInboxAssignmentSchema = z.object({
   recordId: z.string(),
-  state: z.enum(SERVER_INBOX_ASSIGNMENT_STATES),
-  workflowRunId: z.number().nullable(),
-  runState: z.enum(['started', 'pending', 'loading', 'aborted', 'finished']).nullable().catch(null),
+  state: z.string(),
+  workflowRunId: z.number().nullish(),
+  runState: z.string().nullish(),
 });
 export type ServerAutomatedInboxAssignment = z.infer<typeof ServerAutomatedInboxAssignmentSchema>;
 
