@@ -541,6 +541,59 @@ describe('AutomationPoller', () => {
       expect(poller.state).toBe('stopped');
     });
 
+    it('should not dispatch inboxes fetched while stop() was already running', async () => {
+      const context = makeContext();
+
+      let release: () => void = () => {};
+
+      context.automationPort.listAutomatedInboxes.mockReturnValue(
+        new Promise(resolve => {
+          release = () => resolve([makeConfig()]);
+        }),
+      );
+
+      const poller = makePoller(context);
+      poller.start();
+      await jest.advanceTimersByTimeAsync(POLL_INTERVAL_S * 1000);
+
+      const stopped = poller.stop();
+      release();
+      await stopped;
+
+      // Reading the customer's agent and starting runs during a shutdown that is only waiting on
+      // this cycle would be work nobody asked for.
+      expect(context.automationPort.listAssignments).not.toHaveBeenCalled();
+      expect(context.automationPort.sync).not.toHaveBeenCalled();
+    });
+
+    it('should give up on a drain that outlives the stop timeout', async () => {
+      const context = makeContext();
+      context.automationPort.listAssignments.mockReturnValue(new Promise(() => {}));
+
+      const poller = new AutomationPoller({
+        automationPort: context.automationPort,
+        segmentReaderPort: context.segmentReaderPort,
+        pollingIntervalS: POLL_INTERVAL_S,
+        instanceId: 'host-1',
+        logger: context.logger,
+        stopTimeoutS: 5,
+      });
+
+      poller.start();
+      await jest.advanceTimersByTimeAsync(POLL_INTERVAL_S * 1000);
+
+      const stopped = poller.stop();
+      await jest.advanceTimersByTimeAsync(5_000);
+      await stopped;
+
+      expect(poller.state).toBe('stopped');
+      expect(context.logger).toHaveBeenCalledWith(
+        'Error',
+        'Automation poller drain timeout',
+        expect.objectContaining({ remainingInboxes: ['inbox-1'], timeoutS: 5 }),
+      );
+    });
+
     it('should stop scheduling new cycles', async () => {
       const context = makeContext();
       const poller = makePoller(context);
