@@ -254,6 +254,66 @@ describe('AutomationPoller', () => {
       expect(membershipCalls[1].pageSize).toBe(1);
     });
 
+    it('should reconcile a closed assignment that never had a run', async () => {
+      const context = makeContext({
+        assignments: [
+          makeAssignment({
+            recordId: 'never-ran',
+            state: 'auto-canceled',
+            workflowRunId: null,
+            runState: null,
+          }),
+        ],
+      });
+
+      // No run means nothing live to protect, so it is not the escalation case the gate exists for.
+      await runOneCycle(makePoller(context));
+
+      expect(context.automationPort.sync).toHaveBeenCalledWith(
+        'inbox-1',
+        expect.objectContaining({ closed: [{ recordId: 'never-ran', stillInSegment: false }] }),
+      );
+    });
+
+    it('should hold back a run state it does not recognise, and say so', async () => {
+      const context = makeContext({
+        assignments: [makeAssignment({ recordId: 'r1', runState: 'a-state-from-the-future' })],
+      });
+
+      await runOneCycle(makePoller(context));
+
+      expect(context.automationPort.sync).toHaveBeenCalledWith(
+        'inbox-1',
+        expect.objectContaining({ closed: [] }),
+      );
+      expect(context.logger).toHaveBeenCalledWith(
+        'Warn',
+        'Unknown workflow run state, leaving the record for a later poll',
+        expect.objectContaining({ inboxId: 'inbox-1', runState: 'a-state-from-the-future' }),
+      );
+    });
+
+    it('should report a record once even when it holds several closed assignments', async () => {
+      const context = makeContext({
+        assignments: [
+          makeAssignment({ recordId: 'same', workflowRunId: 1 }),
+          makeAssignment({
+            recordId: 'same',
+            workflowRunId: 2,
+            state: 'canceled',
+            runState: 'aborted',
+          }),
+        ],
+      });
+
+      await runOneCycle(makePoller(context));
+
+      expect(context.automationPort.sync).toHaveBeenCalledWith(
+        'inbox-1',
+        expect.objectContaining({ closed: [{ recordId: 'same', stillInSegment: false }] }),
+      );
+    });
+
     it('should not read the segment for membership when nothing is closed', async () => {
       const context = makeContext({
         assignments: [makeAssignment({ state: 'doing', runState: 'started' })],
@@ -278,6 +338,53 @@ describe('AutomationPoller', () => {
       expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
         closed: [],
         candidates: [],
+      });
+    });
+
+    it('should still report the closed records when the candidate read fails', async () => {
+      const context = makeContext({
+        assignments: [makeAssignment({ recordId: 'treated' })],
+      });
+      context.segmentReaderPort.listRecordIds.mockImplementation(
+        async ({ recordIds }: ListSegmentRecordIdsQuery) => {
+          if (recordIds === undefined) throw new Error('segment page timed out');
+
+          return [];
+        },
+      );
+
+      await runOneCycle(makePoller(context));
+
+      // Losing the reconciliation here would leave the assignment open, which makes the next page
+      // bigger, which makes the next timeout likelier.
+      expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
+        closed: [{ recordId: 'treated', stillInSegment: false }],
+        candidates: [],
+      });
+      expect(context.logger).toHaveBeenCalledWith(
+        'Error',
+        'Could not read new candidates of an automated inbox',
+        expect.objectContaining({ inboxId: 'inbox-1' }),
+      );
+    });
+
+    it('should still propose candidates when the membership read fails', async () => {
+      const context = makeContext({
+        assignments: [makeAssignment({ recordId: 'treated' })],
+      });
+      context.segmentReaderPort.listRecordIds.mockImplementation(
+        async ({ recordIds }: ListSegmentRecordIdsQuery) => {
+          if (recordIds !== undefined) throw new Error('membership read failed');
+
+          return ['fresh'];
+        },
+      );
+
+      await runOneCycle(makePoller(context));
+
+      expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
+        closed: [],
+        candidates: ['fresh'],
       });
     });
 
@@ -350,7 +457,7 @@ describe('AutomationPoller', () => {
       );
     });
 
-    it('should not start a second poll of an inbox still being polled', async () => {
+    it('should delay the next sweep rather than stack one on a slow inbox', async () => {
       const context = makeContext();
 
       let release: () => void = () => {};
@@ -363,9 +470,11 @@ describe('AutomationPoller', () => {
 
       const poller = makePoller(context);
       poller.start();
-      await jest.advanceTimersByTimeAsync(POLL_INTERVAL_S * 1000);
-      await jest.advanceTimersByTimeAsync(POLL_INTERVAL_S * 1000);
+      await jest.advanceTimersByTimeAsync(POLL_INTERVAL_S * 3000);
 
+      // Three intervals in, with the first cycle still reading: the next one is only scheduled once
+      // this one is done, so a slow segment never stacks a second sweep on the customer's database.
+      expect(context.automationPort.listAutomatedInboxes).toHaveBeenCalledTimes(1);
       expect(context.automationPort.listAssignments).toHaveBeenCalledTimes(1);
 
       release();
@@ -398,6 +507,38 @@ describe('AutomationPoller', () => {
 
       expect(poller.state).toBe('stopped');
       expect(context.automationPort.sync).toHaveBeenCalled();
+    });
+
+    it('should wait for a cycle that has not reached an inbox yet', async () => {
+      const context = makeContext();
+
+      let release: () => void = () => {};
+
+      context.automationPort.listAutomatedInboxes.mockReturnValue(
+        new Promise(resolve => {
+          release = () => resolve([makeConfig()]);
+        }),
+      );
+
+      const poller = makePoller(context);
+      poller.start();
+      await jest.advanceTimersByTimeAsync(POLL_INTERVAL_S * 1000);
+
+      // Nothing is registered yet: the cycle is still on the config route. Draining only the
+      // per-inbox registry would let it read the agent after the host was told it had stopped.
+      const stopped = poller.stop();
+      let settled = false;
+      void stopped.then(() => {
+        settled = true;
+      });
+      await Promise.resolve();
+
+      expect(settled).toBe(false);
+
+      release();
+      await stopped;
+
+      expect(poller.state).toBe('stopped');
     });
 
     it('should stop scheduling new cycles', async () => {

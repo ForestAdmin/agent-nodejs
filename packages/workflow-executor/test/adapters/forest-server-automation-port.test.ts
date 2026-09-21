@@ -90,6 +90,15 @@ describe('ForestServerAutomationPort', () => {
       expect(config.segment).toEqual(segment);
     });
 
+    it('should keep an inbox missing a field the poller never reads', async () => {
+      const { teamId, collectionId, workflowId, ...rest } = makeConfig();
+
+      mockQuery.mockResolvedValue({ inboxes: [rest] });
+
+      // Dropping it would stop the automation over a field that changes nothing about the sweep.
+      await expect(port.listAutomatedInboxes('w1')).resolves.toHaveLength(1);
+    });
+
     it('should skip one unreadable config and keep the rest', async () => {
       mockQuery.mockResolvedValue({
         inboxes: [
@@ -112,10 +121,26 @@ describe('ForestServerAutomationPort', () => {
       mockQuery.mockRejectedValue(httpError(404));
 
       await expect(port.listAutomatedInboxes('w1')).resolves.toEqual([]);
+    });
+
+    it('should say the route is missing once at Warn, then stay quiet', async () => {
+      mockQuery.mockRejectedValue(httpError(404));
+
+      await port.listAutomatedInboxes('w1');
+      await port.listAutomatedInboxes('w1');
+      await port.listAutomatedInboxes('w1');
+
+      // A wrong forestServerUrl looks identical and never resolves itself, so it has to be visible
+      // — but not as a line every cycle for the release window this is expected in.
+      const levels = logger.mock.calls
+        .filter(([, message]) => String(message).includes('does not serve automated inboxes'))
+        .map(([level]) => level);
+
+      expect(levels).toEqual(['Warn', 'Debug', 'Debug']);
       expect(logger).toHaveBeenCalledWith(
-        'Debug',
-        'Orchestrator does not serve automated inboxes',
-        { instanceId: 'w1' },
+        'Warn',
+        expect.stringContaining('check forestServerUrl if it persists'),
+        expect.objectContaining({ forestServerUrl: options.forestServerUrl }),
       );
     });
 
@@ -152,7 +177,7 @@ describe('ForestServerAutomationPort', () => {
       await expect(port.listAssignments('inbox-1')).rejects.toThrow(AutomatedInboxGoneError);
     });
 
-    it('should keep an assignment whose run state the executor does not know', async () => {
+    it('should keep a run state the executor does not know rather than blank it', async () => {
       mockQuery.mockResolvedValue({
         assignments: [
           {
@@ -164,9 +189,21 @@ describe('ForestServerAutomationPort', () => {
         ],
       });
 
+      // Blanking it would read as "still running" and strand the record silently.
       await expect(port.listAssignments('inbox-1')).resolves.toEqual([
-        { recordId: 'r1', state: 'doing', workflowRunId: 12, runState: null },
+        { recordId: 'r1', state: 'doing', workflowRunId: 12, runState: 'a-state-from-the-future' },
       ]);
+    });
+
+    it('should not lose a whole inbox to one assignment in an unknown state', async () => {
+      mockQuery.mockResolvedValue({
+        assignments: [
+          { recordId: 'r1', state: 'a-state-from-the-future', workflowRunId: 1, runState: null },
+          { recordId: 'r2', state: 'doing', workflowRunId: 2, runState: 'started' },
+        ],
+      });
+
+      await expect(port.listAssignments('inbox-1')).resolves.toHaveLength(2);
     });
   });
 
