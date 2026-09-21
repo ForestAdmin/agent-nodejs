@@ -7,11 +7,17 @@ export interface ResolveCache {
   setPositive(hash: string, identity: ResolvedApiKeyIdentity): void;
   setNegative(hash: string, error: ApiKeyError): void;
   /**
-   * Forgets a key, at most once per positive TTL window. Bounded because the caller is a refusal
-   * the Forest server may repeat on every request: invalidating each time would defeat the cache
-   * and cost two round trips per request instead of one extra per window.
+   * Forgets a key. Bounded because the caller is a refusal the Forest server may repeat on every
+   * request: invalidating each time would defeat the cache and cost two round trips per request
+   * instead of one extra per window.
+   *
+   * `credential` is the server token that was refused. A window opened by one token still lets a
+   * second, different one through: the re-resolution that followed the first refusal caches a
+   * fresh token, and suppressing its refusal too would replay a credential the server rejects for
+   * the rest of the window. Only the second is allowed, so the bound holds whatever the server
+   * hands back.
    */
-  invalidate(hash: string): void;
+  invalidate(hash: string, credential?: string): void;
   size(): number;
 }
 
@@ -36,6 +42,14 @@ interface NegativeEntry {
 
 type CacheEntry = PositiveEntry | NegativeEntry;
 
+interface InvalidationWindow {
+  until: number;
+  /** The server token whose refusal opened or reset the window. */
+  credential?: string;
+  /** Whether a second, different credential has already reset it. */
+  retried: boolean;
+}
+
 const DEFAULT_POSITIVE_TTL_SECONDS = 60;
 const DEFAULT_NEGATIVE_TTL_SECONDS = 10;
 const DEFAULT_MAX_ENTRIES = 10_000;
@@ -48,10 +62,10 @@ export default function createResolveCache({
 }: ResolveCacheOptions): ResolveCache {
   const entries = new Map<string, CacheEntry>();
   /**
-   * Per key, when the window opened by its last invalidation ends. Bounded by `maxEntries` like
-   * the entries it guards: invalidations of distinct keys would otherwise grow it without limit.
+   * Per key, the window opened by its last invalidation. Bounded by `maxEntries` like the entries
+   * it guards: invalidations of distinct keys would otherwise grow it without limit.
    */
-  const invalidatedUntil = new Map<string, number>();
+  const invalidatedUntil = new Map<string, InvalidationWindow>();
 
   function purgeExpired(): void {
     const current = now();
@@ -60,8 +74,8 @@ export default function createResolveCache({
       if (current >= entry.expiresAt) entries.delete(hash);
     }
 
-    for (const [hash, until] of invalidatedUntil) {
-      if (current >= until) invalidatedUntil.delete(hash);
+    for (const [hash, window] of invalidatedUntil) {
+      if (current >= window.until) invalidatedUntil.delete(hash);
     }
   }
 
@@ -113,14 +127,27 @@ export default function createResolveCache({
       store(hash, { kind: 'negative', error, expiresAt: now() + negativeTtlSeconds * 1000 });
     },
 
-    invalidate(hash) {
-      const until = invalidatedUntil.get(hash);
+    invalidate(hash, credential) {
+      const open = invalidatedUntil.get(hash);
+      const live = open !== undefined && now() < open.until;
 
-      if (until !== undefined && now() < until) return;
+      if (live) {
+        if (open.retried || open.credential === credential) return;
+
+        // The window is kept: a second refusal buys one more resolution, not a later deadline.
+        invalidatedUntil.set(hash, { ...open, credential, retried: true });
+        entries.delete(hash);
+
+        return;
+      }
 
       purgeExpired();
       evictOldestIfFull(invalidatedUntil, hash);
-      invalidatedUntil.set(hash, now() + positiveTtlSeconds * 1000);
+      invalidatedUntil.set(hash, {
+        until: now() + positiveTtlSeconds * 1000,
+        credential,
+        retried: false,
+      });
       entries.delete(hash);
     },
 

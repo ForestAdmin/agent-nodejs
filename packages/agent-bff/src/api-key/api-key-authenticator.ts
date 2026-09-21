@@ -35,8 +35,11 @@ export interface ApiKeyAuthenticator {
    * Forgets what a key resolved to, so the next request resolves it against the Forest server
    * again. The resolution carries a short-lived server token the BFF caches with the identity:
    * once that token is refused, the whole entry has to go.
+   *
+   * `credential` is the refused token, which tells a repeat refusal of the same one from the
+   * refusal of the token the previous invalidation went and fetched.
    */
-  invalidate(rawKey: string): void;
+  invalidate(rawKey: string, credential?: string): void;
 }
 
 function mapResolveError(error: ApiKeyResolveError): ApiKeyError {
@@ -104,12 +107,12 @@ export default function createApiKeyAuthenticator({
       return authenticated;
     },
 
-    invalidate(rawKey) {
+    invalidate(rawKey, credential) {
       const parsed = parseApiKey(rawKey);
 
       if (!parsed) return;
 
-      cache.invalidate(hashApiKey(parsed.keyId, parsed.secret));
+      cache.invalidate(hashApiKey(parsed.keyId, parsed.secret), credential);
     },
   };
 }

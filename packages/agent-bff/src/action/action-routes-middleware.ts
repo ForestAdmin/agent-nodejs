@@ -226,12 +226,16 @@ export default function createActionRoutesMiddleware({
 
     // The read-model's action map IS the allow-list, so an absent action cannot be told from a
     // known-but-disallowed one — every non-exposed action maps to 404 here; `action_not_allowed`
-    // (403) has no local trigger, mirroring `collection_not_allowed`/`relation_not_allowed`. The
-    // URL identity is resolved before the body, so a bad action 404s before its payload is read.
+    // (403) has no local trigger, mirroring `collection_not_allowed`/`relation_not_allowed`.
     // TODO(PRD-673): distinguish disallowed from unknown when a separate exposure source exists.
-    if (!readModel.isActionAllowed(collection, actionName)) {
+    const allowed = readModel.isActionAllowed(collection, actionName);
+
+    const refuseUnknownAction = () => {
       throw unknownAction(`Unknown action: ${collection}.${actionName}`);
-    }
+    };
+
+    // The form is unaudited, so it keeps refusing before the body is read.
+    if (!allowed && verb !== EXECUTE_VERB) refuseUnknownAction();
 
     const body = (ctx.request.body ?? {}) as ActionRequestBody;
     assertKnownBodyKeys(body as Record<string, unknown>);
@@ -267,7 +271,10 @@ export default function createActionRoutesMiddleware({
     }
 
     // The whole sequence is audited, loadAction and setFields included, so the intent is recorded
-    // even when the attempt never reaches the agent's execute.
+    // even when the attempt never reaches the agent's execute. The allow-list refusal is inside
+    // too, mirroring mcp-server, whose execute-action tool resolves the action within its own
+    // wrapper: an attempt on an action the caller may not trigger is exactly what the trail is
+    // for, and the record ids it names are only known once the body is read.
     await activityLogs.record({
       ctx,
       action: 'action',
@@ -278,6 +285,8 @@ export default function createActionRoutesMiddleware({
       },
       isCompletedDespite: isApprovalRequest,
       operation: async () => {
+        if (!allowed) refuseUnknownAction();
+
         const action = await loadAction();
 
         await handleExecute({ ctx, action, values, logger });

@@ -91,6 +91,53 @@ describe('action routes activity log', () => {
       });
     });
 
+    it('should record an attempt on an action the read model does not expose', async () => {
+      const service = fakeActivityLogsService();
+      const { app } = buildApp({ service, client: clientOf(executingAction()) });
+
+      const response = await request(app.callback())
+        .post('/agent/v1/users/actions/ghost/execute')
+        .send({ recordIds: ['42'] });
+
+      expect(response.status).toBe(404);
+      expect(service.createMcpActivityLog).toHaveBeenCalledWith({
+        forestServerToken: API_KEY_SERVER_TOKEN,
+        renderingId: String(RENDERING_ID),
+        action: 'action',
+        type: 'write',
+        collectionName: 'users',
+        recordId: undefined,
+        recordIds: ['42'],
+        label: 'triggered the action "ghost"',
+      });
+    });
+
+    it('should mark that attempt failed', async () => {
+      const service = fakeActivityLogsService();
+      const { app, activityLogs } = buildApp({ service, client: clientOf(executingAction()) });
+
+      await request(app.callback())
+        .post('/agent/v1/users/actions/ghost/execute')
+        .send({ recordIds: ['42'] });
+      await activityLogs.drain();
+
+      expect(service.updateActivityLogStatus).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'failed' }),
+      );
+    });
+
+    it('should leave the form of an unexposed action unaudited, like every other form', async () => {
+      const service = fakeActivityLogsService();
+      const { app } = buildApp({ service, client: clientOf(executingAction()) });
+
+      const response = await request(app.callback())
+        .post('/agent/v1/users/actions/ghost/form')
+        .send({ recordIds: ['42'] });
+
+      expect(response.status).toBe(404);
+      expect(service.createMcpActivityLog).not.toHaveBeenCalled();
+    });
+
     it('should mark the log completed once the action ran', async () => {
       const service = fakeActivityLogsService();
       const { app, activityLogs } = buildApp({ service, client: clientOf(executingAction()) });

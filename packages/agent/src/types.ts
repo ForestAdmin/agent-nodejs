@@ -188,6 +188,15 @@ export type BffEmbedOptions = {
    * exposed collection, relation and field.
    */
   openapiEnabled?: boolean;
+  /**
+   * How long `stop()` waits for the activity-log writes still in flight. Defaults to 10s.
+   *
+   * Embedded, the host owns the connections, so `stop()` is reached while audited requests are
+   * still running and their status transitions are not registered yet. Unbounded, one stalled
+   * audit store would hold the process until its orchestrator sends SIGKILL, which is worse than
+   * the entries the deadline leaves `pending` — those are logged by name when it expires.
+   */
+  shutdownTimeoutMs?: number;
 };
 
 // Runtime view of `auditTrail`: the validator has built the SQL store from the connection string.

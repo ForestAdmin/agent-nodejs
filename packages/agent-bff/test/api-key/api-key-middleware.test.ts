@@ -223,7 +223,30 @@ describe('api key middleware', () => {
 
       await request(app.callback()).get('/').set(BFF_KEY_HEADER, RAW);
 
-      expect(invalidate).toHaveBeenCalledWith(RAW);
+      expect(invalidate).toHaveBeenCalledWith(RAW, undefined);
+    });
+
+    it('should name the refused server token, so a second one is not suppressed as a repeat', async () => {
+      const authenticate = jest.fn(async () => ({
+        agentToken: 'minted-token',
+        identity: IDENTITY,
+        forestServerToken: 'saas-token',
+      }));
+      const invalidate = jest.fn();
+      const logger = () => undefined;
+
+      const app = new Koa();
+      app.silent = true;
+      app.use(createErrorMiddleware({ logger }));
+      app.use(createApiKeyMiddleware({ authenticator: { authenticate, invalidate }, logger }));
+      app.use(async ctx => {
+        invalidateApiKeyIdentity(ctx);
+        ctx.status = 204;
+      });
+
+      await request(app.callback()).get('/').set(BFF_KEY_HEADER, RAW);
+
+      expect(invalidate).toHaveBeenCalledWith(RAW, 'saas-token');
     });
 
     it('should do nothing when the request carried no api key', async () => {

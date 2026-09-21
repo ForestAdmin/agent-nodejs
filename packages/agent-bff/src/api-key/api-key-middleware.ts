@@ -50,7 +50,10 @@ export default function createApiKeyMiddleware({
       throw error;
     }
 
-    const invalidateIdentity: ApiKeyIdentityInvalidator = () => authenticator.invalidate(rawKey);
+    // Bound to the token this request was authenticated with: the cache uses it to tell a repeat
+    // refusal of the same credential from the refusal of the one it just went and fetched.
+    const invalidateIdentity: ApiKeyIdentityInvalidator = () =>
+      authenticator.invalidate(rawKey, authenticated.forestServerToken);
 
     ctx.state.invalidateApiKeyIdentity = invalidateIdentity;
     ctx.state.agentToken = authenticated.agentToken;

@@ -100,6 +100,54 @@ describe('resolve cache', () => {
 
       expect(cache.getPositive('hash')).toBeUndefined();
     });
+
+    it('should forget the entry when a second, different credential is refused in the window', () => {
+      const cache = createResolveCache({ now, positiveTtlSeconds: 60 });
+      cache.setPositive('hash', IDENTITY);
+      cache.invalidate('hash', 'first-token');
+      cache.setPositive('hash', IDENTITY);
+
+      cache.invalidate('hash', 'second-token');
+
+      expect(cache.getPositive('hash')).toBeUndefined();
+    });
+
+    it('should ignore a repeat refusal of the credential that opened the window', () => {
+      const cache = createResolveCache({ now, positiveTtlSeconds: 60 });
+      cache.setPositive('hash', IDENTITY);
+      cache.invalidate('hash', 'first-token');
+      cache.setPositive('hash', IDENTITY);
+
+      cache.invalidate('hash', 'first-token');
+
+      expect(cache.getPositive('hash')).toEqual(IDENTITY);
+    });
+
+    it('should allow only one such retry, so a server minting a new token each time cannot thrash it', () => {
+      const cache = createResolveCache({ now, positiveTtlSeconds: 60 });
+      cache.setPositive('hash', IDENTITY);
+      cache.invalidate('hash', 'first-token');
+      cache.setPositive('hash', IDENTITY);
+      cache.invalidate('hash', 'second-token');
+      cache.setPositive('hash', IDENTITY);
+
+      cache.invalidate('hash', 'third-token');
+
+      expect(cache.getPositive('hash')).toEqual(IDENTITY);
+    });
+
+    it('should not push the deadline back when a second credential resets it', () => {
+      const cache = createResolveCache({ now, positiveTtlSeconds: 60 });
+      cache.invalidate('hash', 'first-token');
+      nowMs += 59_000;
+      cache.invalidate('hash', 'second-token');
+      nowMs += 1_000;
+      cache.setPositive('hash', IDENTITY);
+
+      cache.invalidate('hash', 'third-token');
+
+      expect(cache.getPositive('hash')).toBeUndefined();
+    });
   });
 
   describe('negative entries', () => {

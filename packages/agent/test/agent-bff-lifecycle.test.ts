@@ -193,7 +193,7 @@ describe('the embedded BFF lifecycle', () => {
     });
 
     it('should drain the activity log transitions no connection holds', async () => {
-      const drainActivityLogs = jest.fn(async () => undefined);
+      const drainActivityLogs = jest.fn(async () => []);
       mockBuildBff.mockResolvedValue({
         callback: mockBffCallback,
         invalidate: mockInvalidate,
@@ -212,6 +212,58 @@ describe('the embedded BFF lifecycle', () => {
       await agent.start();
 
       await expect(agent.stop()).resolves.toBeUndefined();
+    });
+
+    it('should bound the drain, so a stalled audit store cannot hold the process', async () => {
+      const drainActivityLogs = jest.fn(async () => []);
+      mockBuildBff.mockResolvedValue({
+        callback: mockBffCallback,
+        invalidate: mockInvalidate,
+        drainActivityLogs,
+      });
+      const agent = buildAgent().addBff();
+      await agent.start();
+
+      await agent.stop();
+
+      expect(drainActivityLogs).toHaveBeenCalledWith(10_000);
+    });
+
+    it('should give the drain the deadline the host asked for', async () => {
+      const drainActivityLogs = jest.fn(async () => []);
+      mockBuildBff.mockResolvedValue({
+        callback: mockBffCallback,
+        invalidate: mockInvalidate,
+        drainActivityLogs,
+      });
+      const agent = buildAgent().addBff({ shutdownTimeoutMs: 2_000 });
+      await agent.start();
+
+      await agent.stop();
+
+      expect(drainActivityLogs).toHaveBeenCalledWith(2_000);
+    });
+
+    it('should name what the deadline left in flight, rather than drop it silently', async () => {
+      const logger = jest.fn();
+      const drainActivityLogs = jest.fn(async () => ["'action' request on 'books'"]);
+      mockBuildBff.mockResolvedValue({
+        callback: mockBffCallback,
+        invalidate: mockInvalidate,
+        drainActivityLogs,
+      });
+      const agent = new Agent(
+        factories.forestAdminHttpDriverOptions.build({ skipSchemaUpdate: true, logger }),
+      ).addBff();
+      await agent.start();
+
+      await agent.stop();
+
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        '[BFF] Stopped the embedded BFF with activity logs still in flight ' +
+          '{"timeoutMs":10000,"unfinished":["\'action\' request on \'books\'"]}',
+      );
     });
   });
 

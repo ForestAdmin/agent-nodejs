@@ -3,6 +3,9 @@ import type { AgentDispatcher, BFFConfig, Bff } from '@forestadmin/agent-bff';
 
 import { BFF_PREFIX, stripBffPrefix } from './bff-routes';
 
+/** How long `stop()` waits for the activity-log writes no connection holds. */
+export const SHUTDOWN_TIMEOUT_MS = 10_000;
+
 /**
  * Serialize the BFF's structured log context onto the message: the agent's logger only accepts an
  * Error as its third argument, so the context would be dropped otherwise. Errors are unfolded by
@@ -160,6 +163,11 @@ export default class EmbeddedBff {
    *
    * Drains before returning: the activity-log status transitions are fired without `await`, so
    * nothing else holds them and a shutdown would leave the entries `pending`.
+   *
+   * The drain is bounded, like the standalone server's. Here the host owns the connections, so
+   * there is no connection deadline to share and the budget is the caller's alone: unbounded, a
+   * stalled audit store would hold the process until its orchestrator sends SIGKILL, and the
+   * drain would not finish anyway. What the deadline leaves unfinished is logged by name.
    */
   async stop(): Promise<void> {
     const { bff } = this;
@@ -167,7 +175,20 @@ export default class EmbeddedBff {
     this.bff = null;
     this.stopped = true;
 
-    await bff?.drainActivityLogs?.();
+    if (!bff?.drainActivityLogs) return;
+
+    const timeoutMs = this.embedOptions.shutdownTimeoutMs ?? SHUTDOWN_TIMEOUT_MS;
+    const unfinished = await bff.drainActivityLogs(timeoutMs);
+
+    if (unfinished.length === 0) return;
+
+    this.options.logger(
+      'Warn',
+      formatLog('Stopped the embedded BFF with activity logs still in flight', {
+        timeoutMs,
+        unfinished,
+      }),
+    );
   }
 
   /**
