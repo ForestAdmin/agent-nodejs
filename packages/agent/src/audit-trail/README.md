@@ -256,6 +256,7 @@ Optional filters (all combine with `AND`; omitting them keeps the full history):
 | query param | format                                    | effect                                            |
 | ----------- | ------------------------------------------ | -------------------------------------------------- |
 | `userIds`   | comma-separated integers `12,45`           | keep only entries whose `userId` is in the list   |
+| `operation` | comma-separated operations `create,delete` | keep only entries recorded under one of them      |
 | `startDate` | `YYYY-MM-DD` or datetime (incl.)           | keep entries from this lower bound onward         |
 | `endDate`   | `YYYY-MM-DD` or datetime (incl.)           | keep entries up to this upper bound               |
 | `fields`    | comma-separated column names `city,street` | keep entries whose change touched at least one   |
@@ -299,6 +300,9 @@ Defensive parsing:
 
 - `userIds`: non-numeric tokens are dropped (`12,abc,45` → `12,45`); if nothing numeric remains the
   filter is ignored.
+- `operation`: the set is closed (`create`, `update`, `delete`, `action`, `action_failed`), and an
+  unrecognized value returns **HTTP 400** rather than being dropped — a silently ignored filter
+  returns unfiltered rows into a list the caller believes is filtered.
 - `startDate` / `endDate`: a value matching none of the accepted formats returns **HTTP 400**.
 
 **Pagination** follows JSON:API: `page[number]` is 1-based (default `1`) and `page[size]` defaults
