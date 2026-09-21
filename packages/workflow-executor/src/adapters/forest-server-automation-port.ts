@@ -33,6 +33,10 @@ const ROUTES = {
     `/api/workflow-orchestrator/automated-inboxes/${encodeURIComponent(inboxId)}/sync`,
 };
 
+const AUTOMATION_ROUTE_MISSING =
+  'The orchestrator does not serve automated inboxes. Expected while the executor runs ahead of ' +
+  'the server; check forestServerUrl if it persists.';
+
 function isNotFound(error: unknown): boolean {
   return (error as { status?: number })?.status === 404;
 }
@@ -40,6 +44,7 @@ function isNotFound(error: unknown): boolean {
 export default class ForestServerAutomationPort implements AutomationPort {
   private readonly options: HttpOptions;
   private readonly logger: Logger;
+  private reportedMissingRoute = false;
 
   constructor(params: { envSecret: string; forestServerUrl: string; logger?: Logger }) {
     this.options = { envSecret: params.envSecret, forestServerUrl: params.forestServerUrl };
@@ -54,11 +59,16 @@ export default class ForestServerAutomationPort implements AutomationPort {
         ServerUtils.query<unknown>(this.options, 'get', ROUTES.automatedInboxes(instanceId)),
       );
     } catch (error) {
-      // An orchestrator that predates automated inboxes has no such route. Reading that as "nothing
-      // to poll" keeps an executor released ahead of the server quiet instead of logging an error
-      // every cycle.
+      // An orchestrator that predates automated inboxes has no such route, so this is not an error
+      // — but a wrong `forestServerUrl` or a proxy that 404s unknown paths looks exactly the same,
+      // and that one never resolves itself. Said once at Warn so it is visible without becoming a
+      // line every cycle for the release window this is expected in.
       if (isNotFound(error)) {
-        this.logger('Debug', 'Orchestrator does not serve automated inboxes', { instanceId });
+        this.logger(this.reportedMissingRoute ? 'Debug' : 'Warn', AUTOMATION_ROUTE_MISSING, {
+          instanceId,
+          forestServerUrl: this.options.forestServerUrl,
+        });
+        this.reportedMissingRoute = true;
 
         return [];
       }

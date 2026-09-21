@@ -624,6 +624,16 @@ export class SegmentRecordIdMissingError extends Error {
   }
 }
 
+export class CompositeRecordIdMismatchError extends Error {
+  constructor(recordId: string, expectedParts: number) {
+    super(
+      `Record id "${recordId}" does not split into the ${expectedParts} primary key parts the ` +
+        `collection declares`,
+    );
+    this.name = 'CompositeRecordIdMismatchError';
+  }
+}
+
 export class UnsupportedStepTypeError extends WorkflowExecutorError {
   constructor(stepType: string) {
     super(
