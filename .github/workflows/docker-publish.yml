@@ -1,4 +1,4 @@
-name: Publish workflow-executor Docker image
+name: Publish runtime Docker image
 
 on:
   # Releases publish via workflow_dispatch from build.yml's `release` job, not a
@@ -59,7 +59,7 @@ jobs:
           platforms: linux/amd64
           push: false
           load: true
-          tags: workflow-executor:pr
+          tags: runtime:pr
           build-args: APT_EPOCH=${{ github.run_id }}-${{ github.run_attempt }}
           cache-from: type=gha,scope=amd64
 
@@ -67,7 +67,7 @@ jobs:
       # breakage, a missing module (e.g. an un-copied @forestadmin package or OTel
       # dep), or a startup crash — none of which a build-only step would surface.
       - name: Smoke test (entrypoint + module graph + boot)
-        run: sh packages/workflow-executor/docker/smoke-test.sh workflow-executor:pr
+        run: sh packages/workflow-executor/docker/smoke-test.sh runtime:pr
 
       # Gate by ORIGIN, not severity. OS packages and Docker-only @opentelemetry
       # deps can only be fixed here, so they BLOCK; the executor's npm deps are
@@ -76,7 +76,7 @@ jobs:
       - name: Scan OS packages (blocking)
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: workflow-executor:pr
+          image-ref: runtime:pr
           vuln-type: os
           severity: CRITICAL,HIGH
           ignore-unfixed: true
@@ -84,7 +84,7 @@ jobs:
       - name: Scan libraries (report; OTel blocks)
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: workflow-executor:pr
+          image-ref: runtime:pr
           vuln-type: library
           severity: CRITICAL,HIGH
           ignore-unfixed: true
@@ -175,20 +175,20 @@ jobs:
           file: packages/workflow-executor/Dockerfile
           platforms: ${{ matrix.platform }}
           load: true
-          tags: workflow-executor:${{ matrix.arch }}
+          tags: runtime:${{ matrix.arch }}
           build-args: APT_EPOCH=${{ github.run_id }}-${{ github.run_attempt }}
           cache-from: type=gha,scope=${{ matrix.arch }}
           cache-to: type=gha,mode=max,scope=${{ matrix.arch }}
 
       - name: Smoke test (entrypoint + module graph + boot)
-        run: sh packages/workflow-executor/docker/smoke-test.sh workflow-executor:${{ matrix.arch }}
+        run: sh packages/workflow-executor/docker/smoke-test.sh runtime:${{ matrix.arch }}
 
       # Gate by origin (see the validate job): OS + Docker-only OTel block; the
       # executor's npm deps are report-only.
       - name: Scan OS packages (blocking)
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: workflow-executor:${{ matrix.arch }}
+          image-ref: runtime:${{ matrix.arch }}
           vuln-type: os
           severity: CRITICAL,HIGH
           ignore-unfixed: true
@@ -196,7 +196,7 @@ jobs:
       - name: Scan libraries (report; OTel blocks)
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: workflow-executor:${{ matrix.arch }}
+          image-ref: runtime:${{ matrix.arch }}
           vuln-type: library
           severity: CRITICAL,HIGH
           ignore-unfixed: true
@@ -214,7 +214,7 @@ jobs:
           context: .
           file: packages/workflow-executor/Dockerfile
           platforms: ${{ matrix.platform }}
-          outputs: type=image,name=ghcr.io/forestadmin/workflow-executor,push-by-digest=true,name-canonical=true,push=true
+          outputs: type=image,name=ghcr.io/forestadmin/runtime,push-by-digest=true,name-canonical=true,push=true
           sbom: true
           build-args: APT_EPOCH=${{ github.run_id }}-${{ github.run_attempt }}
           cache-from: type=gha,scope=${{ matrix.arch }}
@@ -257,34 +257,46 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create and push multi-arch manifest
+      - name: Create and push multi-arch manifests
         working-directory: /tmp/digests
         env:
-          IMAGE: ghcr.io/forestadmin/workflow-executor
+          IMAGE: ghcr.io/forestadmin/runtime
+          LEGACY_IMAGE_ALIAS: ghcr.io/forestadmin/workflow-executor
           FULL: ${{ needs.extract-version.outputs.full }}
           MINOR: ${{ needs.extract-version.outputs.minor }}
           MAJOR: ${{ needs.extract-version.outputs.major }}
           IS_LATEST: ${{ needs.extract-version.outputs.is_latest }}
         run: |
-          # Always publish the immutable full-version tag. The mutable tags
-          # (minor, major, latest) only move when this is the latest stable
-          # version, so neither a prerelease nor a rebuild of an older version
-          # ever overwrites the current stable :latest / :1 images.
-          TAGS="-t $IMAGE:$FULL"
-          if [ "$IS_LATEST" = "true" ]; then
-            TAGS="$TAGS -t $IMAGE:$MINOR -t $IMAGE:$MAJOR -t $IMAGE:latest"
-          fi
-          docker buildx imagetools create $TAGS \
-            $(printf "$IMAGE@sha256:%s " *)
+          SOURCES=$(printf "$IMAGE@sha256:%s " *)
+          for NAME in $IMAGE $LEGACY_IMAGE_ALIAS; do
+            # Always publish the immutable full-version tag. The mutable tags
+            # (minor, major, latest) only move when this is the latest stable
+            # version, so neither a prerelease nor a rebuild of an older version
+            # ever overwrites the current stable :latest / :1 images.
+            TAGS="-t $NAME:$FULL"
+            if [ "$IS_LATEST" = "true" ]; then
+              TAGS="$TAGS -t $NAME:$MINOR -t $NAME:$MAJOR -t $NAME:latest"
+            fi
+            docker buildx imagetools create $TAGS $SOURCES
+          done
 
-      - name: Inspect manifest
-        run: docker buildx imagetools inspect ghcr.io/forestadmin/workflow-executor:${{ needs.extract-version.outputs.full }}
+      - name: Inspect manifests
+        env:
+          IMAGE: ghcr.io/forestadmin/runtime
+          LEGACY_IMAGE_ALIAS: ghcr.io/forestadmin/workflow-executor
+          FULL: ${{ needs.extract-version.outputs.full }}
+        run: |
+          for NAME in $IMAGE $LEGACY_IMAGE_ALIAS; do
+            docker buildx imagetools inspect "$NAME:$FULL"
+          done
 
   # Notify forestadmin-server so it auto-deploys the new image to production.
   # Only for the latest STABLE version (is_latest) — never a prerelease or a
   # rebuild of an older version, which must not regress production.
   # GITHUB_TOKEN can't dispatch into another repo, so this uses a dedicated token
   # (fine-grained PAT or GitHub App) with Contents:write on forestadmin-server.
+  # The event type keeps the old name: forestadmin-server listens for it, and
+  # renaming it here would silently stop the prod deploy.
   notify-server:
     name: Trigger forestadmin-server prod deploy
     if: github.event_name != 'pull_request' && needs.extract-version.outputs.is_latest == 'true'

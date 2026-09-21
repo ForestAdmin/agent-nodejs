@@ -3,7 +3,7 @@
 # Production image for @forestadmin/workflow-executor.
 # The build context MUST be the monorepo root (yarn workspaces + yarn.lock):
 #
-#   docker build -f packages/workflow-executor/Dockerfile -t ghcr.io/forestadmin/workflow-executor:latest .
+#   docker build -f packages/workflow-executor/Dockerfile -t ghcr.io/forestadmin/runtime:latest .
 #
 # Configuration is passed entirely via environment variables — see README for the full list.
 
@@ -101,7 +101,7 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
   CMD node -e "require('http').get('http://localhost:'+(process.env.HTTP_PORT||3400)+'/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
 
 # OCI image metadata (https://github.com/opencontainers/image-spec).
-LABEL org.opencontainers.image.title="forestadmin-workflow-executor" \
+LABEL org.opencontainers.image.title="forestadmin-runtime" \
       org.opencontainers.image.description="Run Forest Admin workflow steps on your own infrastructure." \
       org.opencontainers.image.source="https://github.com/ForestAdmin/agent-nodejs" \
       org.opencontainers.image.licenses="GPL-3.0"
