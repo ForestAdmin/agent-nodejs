@@ -187,13 +187,19 @@ function buildCommonDependencies(options: ExecutorOptions) {
   };
 }
 
-function createWorkflowExecutor(
-  runner: Runner,
-  automationPoller: AutomationPoller,
-  server: ExecutorHttpServer,
-  logger: Logger,
-  manageProcessSignals: boolean,
-): WorkflowExecutor {
+function createWorkflowExecutor({
+  runner,
+  automationPoller,
+  server,
+  logger,
+  manageProcessSignals,
+}: {
+  runner: Runner;
+  automationPoller: AutomationPoller;
+  server: ExecutorHttpServer;
+  logger: Logger;
+  manageProcessSignals: boolean;
+}): WorkflowExecutor {
   let shutdownPromise: Promise<void> | null = null;
 
   const shutdown = async () => {
@@ -325,13 +331,13 @@ export function buildInMemoryExecutor(options: ExecutorOptions): WorkflowExecuto
     oauthTokenService: mcpOAuthTokenService,
   });
 
-  return createWorkflowExecutor(
+  return createWorkflowExecutor({
     runner,
     automationPoller,
     server,
-    deps.logger,
-    options.manageProcessSignals ?? true,
-  );
+    logger: deps.logger,
+    manageProcessSignals: options.manageProcessSignals ?? true,
+  });
 }
 
 export function buildDatabaseExecutor(options: DatabaseExecutorOptions): WorkflowExecutor {
@@ -386,11 +392,11 @@ export function buildDatabaseExecutor(options: DatabaseExecutorOptions): Workflo
     oauthTokenService: mcpOAuthTokenService,
   });
 
-  return createWorkflowExecutor(
+  return createWorkflowExecutor({
     runner,
     automationPoller,
     server,
-    deps.logger,
-    options.manageProcessSignals ?? true,
-  );
+    logger: deps.logger,
+    manageProcessSignals: options.manageProcessSignals ?? true,
+  });
 }

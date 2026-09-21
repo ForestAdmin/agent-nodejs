@@ -117,6 +117,17 @@ describe('ForestServerAutomationPort', () => {
       );
     });
 
+    it('should report an envelope it cannot read rather than guess at it', async () => {
+      mockQuery.mockResolvedValue({ somethingElse: true });
+
+      await expect(port.listAutomatedInboxes('w1')).resolves.toEqual([]);
+      expect(logger).toHaveBeenCalledWith(
+        'Error',
+        'Unreadable automated inbox listing',
+        expect.objectContaining({ error: expect.any(String) }),
+      );
+    });
+
     it('should read a 404 as an orchestrator that has no such route', async () => {
       mockQuery.mockRejectedValue(httpError(404));
 
