@@ -4,18 +4,24 @@ import type { AiConfiguration } from '@forestadmin/ai-proxy';
 import type { Options as SequelizeOptions } from 'sequelize';
 
 import { ActivityLogsService, ForestHttpApi } from '@forestadmin/forestadmin-client';
+import { randomUUID } from 'crypto';
+import { hostname } from 'os';
 import { Sequelize } from 'sequelize';
 
 import AgentClientAgentPort from './adapters/agent-client-agent-port';
+import AgentClientSegmentReader from './adapters/agent-client-segment-reader';
 import AiClientAdapter from './adapters/ai-client-adapter';
 import AlwaysErrorAiModelPort from './adapters/always-error-ai-model-port';
 import createConsoleLogger from './adapters/console-logger';
+import ForestServerAutomationPort from './adapters/forest-server-automation-port';
 import ForestServerWorkflowPort from './adapters/forest-server-workflow-port';
 import ForestadminClientActivityLogPortFactory from './adapters/forestadmin-client-activity-log-port-factory';
 import ServerAiAdapter from './adapters/server-ai-adapter';
+import AutomationPoller from './automation-poller';
 import CredentialEncryption from './crypto/credential-encryption';
 import {
   DEFAULT_AI_INVOKE_TIMEOUT_S,
+  DEFAULT_AUTOMATION_POLL_INTERVAL_S,
   DEFAULT_FOREST_SERVER_URL,
   DEFAULT_LOGGER_LEVEL,
   DEFAULT_POLLING_INTERVAL_S,
@@ -43,6 +49,8 @@ export interface WorkflowExecutor {
 export interface WorkflowExecutorTuningOptions {
   /** Interval in seconds at which the executor polls the orchestrator for pending steps. */
   pollingIntervalS?: number;
+  /** Interval in seconds at which automated inboxes are swept. Defaults to 300. */
+  automationPollingIntervalS?: number;
   /** Per-step execution timeout in seconds. */
   stepTimeoutS?: number;
   /** Max duration in seconds of a single AI provider invocation. */
@@ -136,6 +144,17 @@ function buildCommonDependencies(options: ExecutorOptions) {
     forestServerUrl,
   });
 
+  const automationPort = new ForestServerAutomationPort({
+    envSecret: options.envSecret,
+    forestServerUrl,
+    logger,
+  });
+
+  const segmentReaderPort = new AgentClientSegmentReader({
+    agentUrl: options.agentUrl,
+    authSecret: options.authSecret,
+  });
+
   const activityLogsService = new ActivityLogsService(new ForestHttpApi(), {
     forestServerUrl,
     headers: { 'Forest-Application-Source': 'WorkflowExecutor' },
@@ -147,12 +166,18 @@ function buildCommonDependencies(options: ExecutorOptions) {
 
   return {
     agentPort,
+    automationPort,
+    segmentReaderPort,
     schemaCache,
     workflowPort,
     aiModelPort,
     activityLogPortFactory,
     logger,
     pollingIntervalS: positiveOrDefault(options.pollingIntervalS, DEFAULT_POLLING_INTERVAL_S),
+    automationPollingIntervalS: positiveOrDefault(
+      options.automationPollingIntervalS,
+      DEFAULT_AUTOMATION_POLL_INTERVAL_S,
+    ),
     envSecret: options.envSecret,
     authSecret: options.authSecret,
     stopTimeoutS: options.stopTimeoutS,
@@ -164,6 +189,7 @@ function buildCommonDependencies(options: ExecutorOptions) {
 
 function createWorkflowExecutor(
   runner: Runner,
+  automationPoller: AutomationPoller,
   server: ExecutorHttpServer,
   logger: Logger,
   manageProcessSignals: boolean,
@@ -179,6 +205,8 @@ function createWorkflowExecutor(
       });
     }
 
+    // Drained before the runner: its cycle only ever calls out, so it has nothing to hand over.
+    await automationPoller.stop();
     await runner.stop();
   };
 
@@ -221,6 +249,8 @@ function createWorkflowExecutor(
         throw err;
       }
 
+      automationPoller.start();
+
       // Only own the host's signals when explicitly allowed (the standalone CLI). When embedded,
       // the host process must keep control of SIGTERM/SIGINT and its own exit.
       if (manageProcessSignals) {
@@ -239,6 +269,19 @@ function createWorkflowExecutor(
       await shutdownPromise;
     },
   };
+}
+
+// One id per process, so the orchestrator's poller election can tell two instances apart and a
+// restart never inherits the lease of the process it replaced.
+function buildAutomationPoller(deps: ReturnType<typeof buildCommonDependencies>): AutomationPoller {
+  return new AutomationPoller({
+    automationPort: deps.automationPort,
+    segmentReaderPort: deps.segmentReaderPort,
+    pollingIntervalS: deps.automationPollingIntervalS,
+    instanceId: `${hostname()}-${process.pid}-${randomUUID().slice(0, 8)}`,
+    stopTimeoutS: deps.stopTimeoutS,
+    logger: deps.logger,
+  });
 }
 
 export function buildInMemoryExecutor(options: ExecutorOptions): WorkflowExecutor {
@@ -268,6 +311,8 @@ export function buildInMemoryExecutor(options: ExecutorOptions): WorkflowExecuto
     mcpOAuthTokenService,
   });
 
+  const automationPoller = buildAutomationPoller(deps);
+
   const server = new ExecutorHttpServer({
     port: options.httpPort,
     runner,
@@ -280,7 +325,13 @@ export function buildInMemoryExecutor(options: ExecutorOptions): WorkflowExecuto
     oauthTokenService: mcpOAuthTokenService,
   });
 
-  return createWorkflowExecutor(runner, server, deps.logger, options.manageProcessSignals ?? true);
+  return createWorkflowExecutor(
+    runner,
+    automationPoller,
+    server,
+    deps.logger,
+    options.manageProcessSignals ?? true,
+  );
 }
 
 export function buildDatabaseExecutor(options: DatabaseExecutorOptions): WorkflowExecutor {
@@ -321,6 +372,8 @@ export function buildDatabaseExecutor(options: DatabaseExecutorOptions): Workflo
     mcpOAuthTokenService,
   });
 
+  const automationPoller = buildAutomationPoller(deps);
+
   const server = new ExecutorHttpServer({
     port: options.httpPort,
     runner,
@@ -333,5 +386,11 @@ export function buildDatabaseExecutor(options: DatabaseExecutorOptions): Workflo
     oauthTokenService: mcpOAuthTokenService,
   });
 
-  return createWorkflowExecutor(runner, server, deps.logger, options.manageProcessSignals ?? true);
+  return createWorkflowExecutor(
+    runner,
+    automationPoller,
+    server,
+    deps.logger,
+    options.manageProcessSignals ?? true,
+  );
 }
