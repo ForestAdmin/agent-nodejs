@@ -23,6 +23,8 @@ const RECONCILABLE_ASSIGNMENT_STATES: ReadonlySet<string> = new Set([
 
 const TERMINAL_RUN_STATES: ReadonlySet<string> = new Set(['finished', 'aborted']);
 
+const LIVE_RUN_STATES: ReadonlySet<string> = new Set(['started', 'pending', 'loading']);
+
 export type AutomationPollerState = 'idle' | 'running' | 'draining' | 'stopped';
 
 export interface AutomationPollerConfig {
@@ -61,6 +63,10 @@ export default class AutomationPoller {
   private readonly logger: Logger;
   private readonly inFlightInboxes = new InFlightRunRegistry();
   private pollingTimer: NodeJS.Timeout | null = null;
+  // The cycle itself, not just the inbox polls it spawns: a cycle still waiting on the config route
+  // has registered nothing, and draining only the registry would let it read and write after the
+  // host was told the poller had stopped.
+  private currentCycle: Promise<void> | null = null;
   private _state: AutomationPollerState = 'idle';
 
   constructor(config: AutomationPollerConfig) {
@@ -98,27 +104,27 @@ export default class AutomationPoller {
     }
 
     try {
-      if (this.inFlightInboxes.size > 0) {
-        const timeoutS = this.config.stopTimeoutS ?? DEFAULT_STOP_TIMEOUT_S;
-        let drainTimer: NodeJS.Timeout | undefined;
+      const timeoutS = this.config.stopTimeoutS ?? DEFAULT_STOP_TIMEOUT_S;
+      let drainTimer: NodeJS.Timeout | undefined;
 
-        const outcome = await Promise.race([
-          this.inFlightInboxes.drain().then(() => {
-            if (drainTimer) clearTimeout(drainTimer);
+      const outcome = await Promise.race([
+        Promise.allSettled([this.currentCycle, this.inFlightInboxes.drain()]).then(() => {
+          if (drainTimer) clearTimeout(drainTimer);
 
-            return 'drained' as const;
-          }),
-          new Promise<'timeout'>(resolve => {
-            drainTimer = setTimeout(() => resolve('timeout'), timeoutS * 1000);
-          }),
-        ]);
+          return 'drained' as const;
+        }),
+        new Promise<'timeout'>(resolve => {
+          drainTimer = setTimeout(() => resolve('timeout'), timeoutS * 1000);
+          // The bound on a shutdown wait must not itself become a reason to stay up.
+          drainTimer.unref?.();
+        }),
+      ]);
 
-        if (outcome === 'timeout') {
-          this.logger('Error', 'Automation poller drain timeout', {
-            remainingInboxes: this.inFlightInboxes.keys(),
-            timeoutS,
-          });
-        }
+      if (outcome === 'timeout') {
+        this.logger('Error', 'Automation poller drain timeout', {
+          remainingInboxes: this.inFlightInboxes.keys(),
+          timeoutS,
+        });
       }
     } finally {
       this._state = 'stopped';
@@ -128,7 +134,9 @@ export default class AutomationPoller {
 
   private schedulePoll(): void {
     if (this._state !== 'running') return;
-    this.pollingTimer = setTimeout(() => this.runPollCycle(), this.config.pollingIntervalS * 1000);
+    this.pollingTimer = setTimeout(() => {
+      this.currentCycle = this.runPollCycle();
+    }, this.config.pollingIntervalS * 1000);
     // A background sweep must not be the reason a process stays alive: the host owns that, and an
     // interval this long would otherwise hold a shutdown open for minutes.
     this.pollingTimer.unref?.();
@@ -146,15 +154,13 @@ export default class AutomationPoller {
         return;
       }
 
-      const pollable = inboxes.filter(({ inboxId }) => !this.inFlightInboxes.has(inboxId));
+      this.logger('Debug', 'Automation poll cycle started', { fetched: inboxes.length });
 
-      this.logger('Debug', 'Automation poll cycle started', {
-        fetched: inboxes.length,
-        polling: pollable.length,
-      });
-
+      // Awaited, so the next cycle is only scheduled once this one is done: a slow segment read
+      // delays the sweep instead of stacking a second one on the customer's database. The registry
+      // is what `stop()` drains, not a concurrency guard — there is nothing to guard against.
       await Promise.all(
-        pollable.map(config => this.inFlightInboxes.track(config.inboxId, this.pollInbox(config))),
+        inboxes.map(config => this.inFlightInboxes.track(config.inboxId, this.pollInbox(config))),
       );
     } catch (error) {
       this.logger('Error', 'Automation poll cycle failed', {
@@ -177,8 +183,18 @@ export default class AutomationPoller {
 
     try {
       const assignments = await this.config.automationPort.listAssignments(config.inboxId);
-      const closed = await this.reconcileClosed(config, assignments);
-      const candidates = await this.readCandidates(config, assignments);
+
+      // Read independently, and neither is allowed to cost the other. Losing the reconciliation
+      // because the candidate page timed out would leave those assignments open, which makes the
+      // next page larger, which makes the next timeout likelier.
+      const [closed, candidates] = await Promise.all([
+        this.readOrEmpty(logContext, 'closed records', () =>
+          this.reconcileClosed(config, assignments),
+        ),
+        this.readOrEmpty(logContext, 'new candidates', () =>
+          this.readCandidates(config, assignments),
+        ),
+      ]);
 
       // Sent even when both lists are empty: this call is what tells the orchestrator the inbox is
       // still being polled, and an inbox with nothing to do must not read as an inbox nobody polls.
@@ -222,14 +238,34 @@ export default class AutomationPoller {
     config: ServerAutomatedInboxConfig,
     assignments: ServerAutomatedInboxAssignment[],
   ): Promise<{ recordId: string; stillInSegment: boolean }[]> {
-    const recordIds = assignments
-      .filter(
-        ({ state, runState }) =>
-          RECONCILABLE_ASSIGNMENT_STATES.has(state) &&
-          runState !== null &&
-          TERMINAL_RUN_STATES.has(runState),
-      )
-      .map(({ recordId }) => recordId);
+    const reconcilable = assignments.filter(({ state }) =>
+      RECONCILABLE_ASSIGNMENT_STATES.has(state),
+    );
+
+    for (const { runState } of reconcilable) {
+      if (
+        runState != null &&
+        !TERMINAL_RUN_STATES.has(runState) &&
+        !LIVE_RUN_STATES.has(runState)
+      ) {
+        this.logger('Warn', 'Unknown workflow run state, leaving the record for a later poll', {
+          inboxId: config.inboxId,
+          renderingId: config.renderingId,
+          runState,
+        });
+      }
+    }
+
+    // A closed assignment whose run is still going is an escalation in progress, and reporting it
+    // would hand a live run to a human twice. A closed assignment with no run at all is the
+    // opposite case: there is nothing to protect, so it reconciles like any other.
+    const recordIds = [
+      ...new Set(
+        reconcilable
+          .filter(({ runState }) => runState == null || TERMINAL_RUN_STATES.has(runState))
+          .map(({ recordId }) => recordId),
+      ),
+    ];
 
     if (recordIds.length === 0) return [];
 
@@ -250,6 +286,27 @@ export default class AutomationPoller {
       recordId,
       stillInSegment: stillInSegment.has(recordId),
     }));
+  }
+
+  /**
+   * Runs one of the two segment reads, turning a failure into an empty list. The other read, and the
+   * sync that carries both, still happen: an inbox that loses one of them must still make progress.
+   */
+  private async readOrEmpty<T>(
+    logContext: Record<string, unknown>,
+    what: string,
+    read: () => Promise<T[]>,
+  ): Promise<T[]> {
+    try {
+      return await read();
+    } catch (error) {
+      this.logger('Error', `Could not read ${what} of an automated inbox`, {
+        ...logContext,
+        error: extractErrorMessage(error),
+      });
+
+      return [];
+    }
   }
 
   private async readCandidates(
