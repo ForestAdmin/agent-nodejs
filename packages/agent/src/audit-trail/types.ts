@@ -73,6 +73,30 @@ export type AuditHistoryQuery = {
   order?: 'asc' | 'desc';
 };
 
+/**
+ * Cross-collection timeline, newest first. Paged by cursor rather than by offset: a project-wide
+ * feed keeps growing at the head, so an offset silently shifts rows across pages.
+ */
+export type AuditTimelineQuery = {
+  /** Collections the caller is allowed to see; an empty list must match nothing. */
+  collections: string[];
+  limit: number;
+  /**
+   * Inclusive upper bound on `timestamp`, from the previous page's cursor. Inclusive so rows
+   * sharing the boundary timestamp aren't skipped; `excludeIds` drops the ones already returned.
+   */
+  before?: string;
+  excludeIds?: number[];
+  userIds?: number[];
+  operations?: AuditOperation[];
+  /** Inclusive lower bound on `timestamp` as a UTC ISO instant. */
+  startTimestamp?: string;
+  /** Inclusive upper bound on `timestamp` as a UTC ISO instant. */
+  endTimestamp?: string;
+  /** Same free-text match as `AuditHistoryQuery.search`. */
+  search?: string;
+};
+
 export type AuditCorrelationQuery = {
   collection: string;
   recordId: string;
@@ -106,6 +130,11 @@ export interface AuditStore {
   listByCorrelation(query: AuditCorrelationQuery): AuditRecord[] | Promise<AuditRecord[]>;
   /** Flat list of entries recorded under any of `correlationKeys` for a record, oldest first. */
   listByCorrelations(query: AuditCorrelationsQuery): AuditRecord[] | Promise<AuditRecord[]>;
+  /**
+   * Cross-collection timeline, newest first (ties broken by descending `id`). Optional: a store
+   * written before this existed simply doesn't serve the project-level route.
+   */
+  listTimeline?(query: AuditTimelineQuery): AuditRecord[] | Promise<AuditRecord[]>;
   /** Distinct authors matching the query filters, independent of pagination. */
   listDistinctUsers(
     query: Omit<AuditHistoryQuery, 'skip' | 'limit' | 'order'>,

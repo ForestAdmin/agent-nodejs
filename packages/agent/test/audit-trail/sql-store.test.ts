@@ -254,6 +254,135 @@ describe('createSqlAuditStore (sqlite round-trip)', () => {
     await close();
   });
 
+  describe('listTimeline', () => {
+    const seedAcross = async (store: AuditStore) => {
+      await seed(
+        store,
+        record({ collection: 'accounts', recordId: '1', timestamp: '2026-01-01T00:00:00.000Z' }),
+      );
+      await seed(
+        store,
+        record({ collection: 'books', recordId: '7', timestamp: '2026-01-02T00:00:00.000Z' }),
+      );
+      await seed(
+        store,
+        record({ collection: 'secrets', recordId: '9', timestamp: '2026-01-03T00:00:00.000Z' }),
+      );
+    };
+
+    it('returns rows of the named collections only, newest first', async () => {
+      const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
+      await seedAcross(store);
+
+      const timeline = await store.listTimeline({
+        collections: ['accounts', 'books'],
+        limit: 10,
+      });
+
+      expect(timeline.map(entry => [entry.collection, entry.recordId])).toEqual([
+        ['books', '7'],
+        ['accounts', '1'],
+      ]);
+
+      await close();
+    });
+
+    it('matches nothing when no collection is allowed', async () => {
+      const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
+      await seedAcross(store);
+
+      expect(await store.listTimeline({ collections: [], limit: 10 })).toEqual([]);
+
+      await close();
+    });
+
+    it('treats the cursor bound as inclusive and skips the excluded ids', async () => {
+      const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
+      const boundary = '2026-01-02T00:00:00.000Z';
+      const first = await seed(store, record({ recordId: '1', timestamp: boundary }));
+      await seed(store, record({ recordId: '2', timestamp: boundary }));
+      await seed(store, record({ recordId: '3', timestamp: '2026-01-03T00:00:00.000Z' }));
+
+      const timeline = await store.listTimeline({
+        collections: ['accounts'],
+        limit: 10,
+        before: boundary,
+        excludeIds: [first],
+      });
+
+      expect(timeline.map(entry => entry.recordId)).toEqual(['2']);
+
+      await close();
+    });
+
+    it('breaks a timestamp tie by descending id', async () => {
+      const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
+      const tied = '2026-01-02T00:00:00.000Z';
+      await seed(store, record({ recordId: '1', timestamp: tied }));
+      await seed(store, record({ recordId: '2', timestamp: tied }));
+      await seed(store, record({ recordId: '3', timestamp: tied }));
+
+      const timeline = await store.listTimeline({ collections: ['accounts'], limit: 10 });
+
+      expect(timeline.map(entry => entry.recordId)).toEqual(['3', '2', '1']);
+
+      await close();
+    });
+
+    it('keeps the tighter of the cursor bound and the endDate filter', async () => {
+      const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
+      await seed(store, record({ recordId: '1', timestamp: '2026-01-01T00:00:00.000Z' }));
+      await seed(store, record({ recordId: '2', timestamp: '2026-01-02T00:00:00.000Z' }));
+
+      const timeline = await store.listTimeline({
+        collections: ['accounts'],
+        limit: 10,
+        before: '2026-01-02T00:00:00.000Z',
+        endTimestamp: '2026-01-01T00:00:00.000Z',
+      });
+
+      expect(timeline.map(entry => entry.recordId)).toEqual(['1']);
+
+      await close();
+    });
+
+    it('applies the operation, user and search filters', async () => {
+      const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
+      await seed(store, record({ recordId: '1', operation: 'create', userId: 1 }));
+      await seed(store, record({ recordId: '2', operation: 'delete', userId: 1 }));
+      await seed(store, record({ recordId: '3', operation: 'create', userId: 2 }));
+      await seed(
+        store,
+        record({ recordId: '4', operation: 'create', userId: 1, newValues: { status: 'other' } }),
+      );
+
+      const timeline = await store.listTimeline({
+        collections: ['accounts'],
+        limit: 10,
+        operations: ['create'],
+        userIds: [1],
+        search: 'closed',
+      });
+
+      expect(timeline.map(entry => entry.recordId)).toEqual(['1']);
+
+      await close();
+    });
+
+    it('honors the limit', async () => {
+      const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
+      await seed(store, record({ recordId: '1', timestamp: '2026-01-01T00:00:00.000Z' }));
+      await seed(store, record({ recordId: '2', timestamp: '2026-01-02T00:00:00.000Z' }));
+      await seed(store, record({ recordId: '3', timestamp: '2026-01-03T00:00:00.000Z' }));
+
+      const timeline = await store.listTimeline({ collections: ['accounts'], limit: 2 });
+
+      expect(timeline.map(entry => entry.recordId)).toEqual(['3', '2']);
+
+      await close();
+    });
+  });
+
   it('filters by operation at the query level', async () => {
     const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
 
