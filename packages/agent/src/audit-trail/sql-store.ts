@@ -194,6 +194,7 @@ function buildHistoryWhereClause(
     collection,
     recordId,
     userIds,
+    operations,
     startTimestamp,
     endTimestamp,
     fields,
@@ -204,6 +205,7 @@ function buildHistoryWhereClause(
   const where: Record<string | symbol, unknown> = { collection, recordId };
 
   if (userIds) where.userId = { [Op.in]: userIds };
+  if (operations?.length) where.operation = { [Op.in]: operations };
 
   const timestampRange: Record<symbol, Date> = {};
   if (startTimestamp) timestampRange[Op.gte] = new Date(startTimestamp);

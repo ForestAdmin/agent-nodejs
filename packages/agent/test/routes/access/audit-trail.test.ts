@@ -285,6 +285,98 @@ describe('AuditTrailRoute', () => {
     );
   });
 
+  test('forwards a single operation filter to the store', async () => {
+    const { services, dataSource, options, store } = setup();
+    const route = new AuditTrailRoute(services, options, dataSource, 'books');
+    const context = createMockContext({
+      state: { user: { email: 'john.doe@domain.com' } },
+      customProperties: {
+        query: { timezone: 'Europe/Paris', operation: 'delete' },
+        params: { id: '2' },
+      },
+    });
+
+    await route.handleHistory(context);
+
+    expect(store.listByRecord).toHaveBeenCalledWith(
+      expect.objectContaining({ operations: ['delete'] }),
+    );
+  });
+
+  test('forwards a comma-separated operation filter as a list', async () => {
+    const { services, dataSource, options, store } = setup();
+    const route = new AuditTrailRoute(services, options, dataSource, 'books');
+    const context = createMockContext({
+      state: { user: { email: 'john.doe@domain.com' } },
+      customProperties: {
+        query: { timezone: 'Europe/Paris', operation: 'create, action_failed' },
+        params: { id: '2' },
+      },
+    });
+
+    await route.handleHistory(context);
+
+    expect(store.listByRecord).toHaveBeenCalledWith(
+      expect.objectContaining({ operations: ['create', 'action_failed'] }),
+    );
+  });
+
+  test('applies the operation filter to the count and the author list too', async () => {
+    const { services, dataSource, options, store } = setup();
+    const route = new AuditTrailRoute(services, options, dataSource, 'books');
+    const context = createMockContext({
+      state: { user: { email: 'john.doe@domain.com' } },
+      customProperties: {
+        query: { timezone: 'Europe/Paris', operation: 'update' },
+        params: { id: '2' },
+      },
+    });
+
+    await route.handleHistory(context);
+
+    expect(store.countByRecord).toHaveBeenCalledWith(
+      expect.objectContaining({ operations: ['update'] }),
+    );
+    expect(store.listDistinctUsers).toHaveBeenCalledWith(
+      expect.objectContaining({ operations: ['update'] }),
+    );
+  });
+
+  test('rejects an unrecognized operation rather than ignoring the filter', async () => {
+    const { services, dataSource, options, store } = setup();
+    const route = new AuditTrailRoute(services, options, dataSource, 'books');
+    const context = createMockContext({
+      state: { user: { email: 'john.doe@domain.com' } },
+      customProperties: {
+        query: { timezone: 'Europe/Paris', operation: 'create,destroy' },
+        params: { id: '2' },
+      },
+    });
+
+    await expect(route.handleHistory(context)).rejects.toThrow(
+      'Invalid operation: "destroy" (expected one of create, update, delete, action, action_failed)',
+    );
+    expect(store.listByRecord).not.toHaveBeenCalled();
+  });
+
+  test('omits the operation filter when the parameter is empty', async () => {
+    const { services, dataSource, options, store } = setup();
+    const route = new AuditTrailRoute(services, options, dataSource, 'books');
+    const context = createMockContext({
+      state: { user: { email: 'john.doe@domain.com' } },
+      customProperties: {
+        query: { timezone: 'Europe/Paris', operation: '' },
+        params: { id: '2' },
+      },
+    });
+
+    await route.handleHistory(context);
+
+    expect(store.listByRecord).toHaveBeenCalledWith(
+      expect.not.objectContaining({ operations: expect.anything() }),
+    );
+  });
+
   test('converts startDate/endDate to inclusive UTC instants in the request timezone', async () => {
     const { services, dataSource, options, store } = setup();
     const route = new AuditTrailRoute(services, options, dataSource, 'books');
