@@ -6,6 +6,7 @@ import type { Context } from 'koa';
 
 import { ValidationError } from '@forestadmin/datasource-toolkit';
 
+import { withholdValuesFromNonAdmin } from '../../audit-trail/admin-gate';
 import checkRecordVisibility from '../../audit-trail/scope';
 import { HttpCode, RouteType } from '../../types';
 import BaseRoute from '../base-route';
@@ -43,7 +44,7 @@ export default class AuditTrailCorrelationRoute extends BaseRoute {
       correlationKey: context.params.correlationKey,
     });
 
-    context.response.body = { data: history };
+    context.response.body = { data: withholdValuesFromNonAdmin(history, context) };
   }
 
   public async handleBatch(context: Context): Promise<void> {
@@ -58,7 +59,7 @@ export default class AuditTrailCorrelationRoute extends BaseRoute {
       ? await store.listByCorrelations({ collection, recordId, correlationKeys })
       : [];
 
-    context.response.body = { data: history };
+    context.response.body = { data: withholdValuesFromNonAdmin(history, context) };
   }
 
   // Returns null (after issuing the 404) when a configured record-level scope excludes the id —

@@ -30,7 +30,7 @@ describe('AuditTrailCorrelationRoute', () => {
 
   const contextWith = (query: Record<string, unknown>, correlationKey = 'req-1') =>
     createMockContext({
-      state: { user: { email: 'john.doe@domain.com' } },
+      state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
       customProperties: { query, params: { correlationKey } },
     });
 
@@ -85,7 +85,7 @@ describe('AuditTrailCorrelationRoute', () => {
     const { services, dataSource, options, store } = setup(history);
     const route = new AuditTrailCorrelationRoute(services, options, dataSource);
     const context = createMockContext({
-      state: { user: { email: 'john.doe@domain.com' } },
+      state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
       customProperties: { query: { timezone: 'Europe/Paris' } },
       requestBody: { collection: 'books', recordId: '2', correlationKeys: ['a', 'b'] },
     });
@@ -234,7 +234,7 @@ describe('AuditTrailCorrelationRoute', () => {
         .mockResolvedValueOnce([{ id: 2 }]); // bare check: still exists
       const route = new AuditTrailCorrelationRoute(services, options, dataSource);
       const context = createMockContext({
-        state: { user: { email: 'john.doe@domain.com' } },
+        state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
         customProperties: { query: { timezone: 'Europe/Paris' } },
         requestBody: { collection: 'books', recordId: '2', correlationKeys: ['a'] },
       });
@@ -259,7 +259,7 @@ describe('AuditTrailCorrelationRoute', () => {
         .mockResolvedValueOnce([]); // bare check: genuinely gone, not just out of scope
       const route = new AuditTrailCorrelationRoute(services, options, dataSource);
       const context = createMockContext({
-        state: { user: { email: 'john.doe@domain.com' } },
+        state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
         customProperties: { query: { timezone: 'Europe/Paris' } },
         requestBody: { collection: 'books', recordId: '2', correlationKeys: ['req-1'] },
       });
@@ -340,6 +340,72 @@ describe('AuditTrailCorrelationRoute', () => {
       const routes = makeRoutes(dataSource, options, services);
 
       expect(routes.filter(route => route instanceof AuditTrailCorrelationRoute)).toHaveLength(0);
+    });
+  });
+
+  describe('admin permission level', () => {
+    const nonAdminContext = (query: Record<string, unknown>, correlationKey = 'req-1') =>
+      createMockContext({
+        state: { user: { email: 'jane.doe@domain.com', permissionLevel: 'editor' } },
+        customProperties: { query, params: { correlationKey } },
+      });
+
+    const history = [
+      {
+        operation: 'update',
+        recordId: '2',
+        correlationKey: 'req-1',
+        userId: 7,
+        previousValues: { title: 'Old' },
+        newValues: { title: 'New' },
+      },
+    ];
+
+    test('blanks the values of a single-correlation lookup for a non-admin caller', async () => {
+      const { services, dataSource, options } = setup(history);
+      const route = new AuditTrailCorrelationRoute(services, options, dataSource);
+      const context = nonAdminContext({ collection: 'books', recordId: '2' });
+
+      await route.handleHistory(context);
+
+      expect(context.response.body).toEqual({
+        data: [
+          {
+            operation: 'update',
+            recordId: '2',
+            correlationKey: 'req-1',
+            userId: 7,
+            previousValues: {},
+            newValues: {},
+          },
+        ],
+      });
+    });
+
+    test('blanks the values of the batch lookup for a non-admin caller', async () => {
+      const { services, dataSource, options } = setup(history);
+      const route = new AuditTrailCorrelationRoute(services, options, dataSource);
+      const context = nonAdminContext({
+        collection: 'books',
+        recordId: '2',
+        correlationKeys: 'req-1',
+      });
+
+      await route.handleBatch(context);
+
+      expect((context.response.body as { data: unknown[] }).data).toEqual([
+        { ...history[0], previousValues: {}, newValues: {} },
+      ]);
+    });
+
+    test('keeps the values for an admin caller', async () => {
+      const { services, dataSource, options } = setup(history);
+      const route = new AuditTrailCorrelationRoute(services, options, dataSource);
+      const context = contextWith({ collection: 'books', recordId: '2' });
+
+      await route.handleHistory(context);
+
+      expect(context.response.body).toEqual({ data: history });
     });
   });
 });

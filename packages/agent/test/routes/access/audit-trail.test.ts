@@ -1,4 +1,4 @@
-import { ConditionTreeLeaf } from '@forestadmin/datasource-toolkit';
+import { ConditionTreeLeaf, ForbiddenError } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import makeRoutes from '../../../src/routes';
@@ -57,7 +57,7 @@ describe('AuditTrailRoute', () => {
     const { services, dataSource, options, store } = setup(history);
     const route = new AuditTrailRoute(services, options, dataSource, 'books');
     const context = createMockContext({
-      state: { user: { email: 'john.doe@domain.com' } },
+      state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
       customProperties: { query: { timezone: 'Europe/Paris' }, params: { id: '2' } },
     });
 
@@ -80,7 +80,7 @@ describe('AuditTrailRoute', () => {
     const { services, dataSource, options, store } = setup();
     const route = new AuditTrailRoute(services, options, dataSource, 'books');
     const context = createMockContext({
-      state: { user: { email: 'john.doe@domain.com' } },
+      state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
       customProperties: {
         query: { timezone: 'Europe/Paris', 'page[size]': '10', 'page[number]': '3' },
         params: { id: '2' },
@@ -102,7 +102,7 @@ describe('AuditTrailRoute', () => {
     const { services, dataSource, options, store } = setup();
     const route = new AuditTrailRoute(services, options, dataSource, 'books');
     const context = createMockContext({
-      state: { user: { email: 'john.doe@domain.com' } },
+      state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
       customProperties: { query: { timezone: 'Europe/Paris' }, params: { id: '2' } },
     });
 
@@ -117,7 +117,7 @@ describe('AuditTrailRoute', () => {
     const { services, dataSource, options, store } = setup();
     const route = new AuditTrailRoute(services, options, dataSource, 'books');
     const context = createMockContext({
-      state: { user: { email: 'john.doe@domain.com' } },
+      state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
       customProperties: {
         query: { timezone: 'Europe/Paris', 'page[size]': '50', 'page[number]': '3' },
         params: { id: '2' },
@@ -135,7 +135,7 @@ describe('AuditTrailRoute', () => {
     const { services, dataSource, options, store } = setup();
     const route = new AuditTrailRoute(services, options, dataSource, 'books');
     const context = createMockContext({
-      state: { user: { email: 'john.doe@domain.com' } },
+      state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
       customProperties: {
         query: { timezone: 'Europe/Paris', 'page[size]': '500', 'page[number]': '1' },
         params: { id: '2' },
@@ -152,7 +152,7 @@ describe('AuditTrailRoute', () => {
     store.countByRecord.mockResolvedValue(137);
     const route = new AuditTrailRoute(services, options, dataSource, 'books');
     const context = createMockContext({
-      state: { user: { email: 'john.doe@domain.com' } },
+      state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
       customProperties: {
         query: { timezone: 'UTC', userIds: '7', 'page[size]': '20', 'page[number]': '2' },
         params: { id: '2' },
@@ -178,7 +178,7 @@ describe('AuditTrailRoute', () => {
       ]);
       const route = new AuditTrailRoute(services, options, dataSource, 'books');
       const context = createMockContext({
-        state: { user: { email: 'john.doe@domain.com' } },
+        state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
         customProperties: {
           query: { timezone: 'Europe/Paris', userIds: '1' },
           params: { id: '2' },
@@ -201,7 +201,7 @@ describe('AuditTrailRoute', () => {
       const { services, dataSource, options, store } = setup();
       const route = new AuditTrailRoute(services, options, dataSource, 'books');
       const context = createMockContext({
-        state: { user: { email: 'john.doe@domain.com' } },
+        state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
         customProperties: {
           query: { timezone: 'Europe/Paris', 'page[number]': '2' },
           params: { id: '2' },
@@ -220,7 +220,7 @@ describe('AuditTrailRoute', () => {
       const { services, dataSource, options, store } = setup();
       const route = new AuditTrailRoute(services, options, dataSource, 'books');
       const context = createMockContext({
-        state: { user: { email: 'john.doe@domain.com' } },
+        state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
         customProperties: {
           query: { timezone: 'Europe/Paris', 'page[number]': '1' },
           params: { id: '2' },
@@ -238,7 +238,7 @@ describe('AuditTrailRoute', () => {
     const { services, dataSource, options, store } = setup();
     const route = new AuditTrailRoute(services, options, dataSource, 'books');
     const context = createMockContext({
-      state: { user: { email: 'john.doe@domain.com' } },
+      state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
       customProperties: {
         query: { timezone: 'Europe/Paris', userIds: '12,45' },
         params: { id: '2' },
@@ -254,7 +254,7 @@ describe('AuditTrailRoute', () => {
     const { services, dataSource, options, store } = setup();
     const route = new AuditTrailRoute(services, options, dataSource, 'books');
     const context = createMockContext({
-      state: { user: { email: 'john.doe@domain.com' } },
+      state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
       customProperties: {
         query: { timezone: 'Europe/Paris', userIds: '12,abc,45' },
         params: { id: '2' },
@@ -270,7 +270,7 @@ describe('AuditTrailRoute', () => {
     const { services, dataSource, options, store } = setup();
     const route = new AuditTrailRoute(services, options, dataSource, 'books');
     const context = createMockContext({
-      state: { user: { email: 'john.doe@domain.com' } },
+      state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
       customProperties: {
         query: { timezone: 'Europe/Paris', userIds: 'abc,def' },
         params: { id: '2' },
@@ -288,7 +288,7 @@ describe('AuditTrailRoute', () => {
     const { services, dataSource, options, store } = setup();
     const route = new AuditTrailRoute(services, options, dataSource, 'books');
     const context = createMockContext({
-      state: { user: { email: 'john.doe@domain.com' } },
+      state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
       customProperties: {
         query: { timezone: 'Europe/Paris', startDate: '2026-06-17', endDate: '2026-06-17' },
         params: { id: '2' },
@@ -309,7 +309,7 @@ describe('AuditTrailRoute', () => {
     const { services, dataSource, options, store } = setup();
     const route = new AuditTrailRoute(services, options, dataSource, 'books');
     const context = createMockContext({
-      state: { user: { email: 'john.doe@domain.com' } },
+      state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
       customProperties: {
         query: {
           timezone: 'UTC',
@@ -336,7 +336,7 @@ describe('AuditTrailRoute', () => {
     const { services, dataSource, options, store } = setup();
     const route = new AuditTrailRoute(services, options, dataSource, 'books');
     const context = createMockContext({
-      state: { user: { email: 'john.doe@domain.com' } },
+      state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
       customProperties: {
         query: { timezone: 'Europe/Paris', fields: 'title,author' },
         params: { id: '2' },
@@ -357,7 +357,7 @@ describe('AuditTrailRoute', () => {
     const { services, dataSource, options, store } = setup();
     const route = new AuditTrailRoute(services, options, dataSource, 'books');
     const context = createMockContext({
-      state: { user: { email: 'john.doe@domain.com' } },
+      state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
       customProperties: {
         query: { timezone: 'Europe/Paris', fields: ' title , , author ' },
         params: { id: '2' },
@@ -375,7 +375,7 @@ describe('AuditTrailRoute', () => {
     const { services, dataSource, options, store } = setup();
     const route = new AuditTrailRoute(services, options, dataSource, 'books');
     const context = createMockContext({
-      state: { user: { email: 'john.doe@domain.com' } },
+      state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
       customProperties: {
         query: { timezone: 'Europe/Paris', fields: '' },
         params: { id: '2' },
@@ -393,7 +393,7 @@ describe('AuditTrailRoute', () => {
     const { services, dataSource, options, store } = setup();
     const route = new AuditTrailRoute(services, options, dataSource, 'books');
     const context = createMockContext({
-      state: { user: { email: 'john.doe@domain.com' } },
+      state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
       customProperties: {
         query: { timezone: 'Europe/Paris', fields: ' , , ' },
         params: { id: '2' },
@@ -411,7 +411,7 @@ describe('AuditTrailRoute', () => {
     const { services, dataSource, options, store } = setup();
     const route = new AuditTrailRoute(services, options, dataSource, 'books');
     const context = createMockContext({
-      state: { user: { email: 'john.doe@domain.com' } },
+      state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
       customProperties: {
         query: { timezone: 'Europe/Paris', search: '  Lyon  ' },
         params: { id: '2' },
@@ -428,7 +428,7 @@ describe('AuditTrailRoute', () => {
     const { services, dataSource, options, store } = setup();
     const route = new AuditTrailRoute(services, options, dataSource, 'books');
     const context = createMockContext({
-      state: { user: { email: 'john.doe@domain.com' } },
+      state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
       customProperties: {
         query: { timezone: 'Europe/Paris', search: '   ' },
         params: { id: '2' },
@@ -446,7 +446,7 @@ describe('AuditTrailRoute', () => {
     const { services, dataSource, options, store } = setup();
     const route = new AuditTrailRoute(services, options, dataSource, 'books');
     const context = createMockContext({
-      state: { user: { email: 'john.doe@domain.com' } },
+      state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
       customProperties: {
         query: {
           timezone: 'UTC',
@@ -475,7 +475,7 @@ describe('AuditTrailRoute', () => {
     const { services, dataSource, options, store } = setup();
     const route = new AuditTrailRoute(services, options, dataSource, 'books');
     const context = createMockContext({
-      state: { user: { email: 'john.doe@domain.com' } },
+      state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
       customProperties: { query: { timezone: 'Europe/Paris' }, params: { id: '2' } },
     });
 
@@ -494,7 +494,7 @@ describe('AuditTrailRoute', () => {
     const { services, dataSource, options, store } = setup();
     const route = new AuditTrailRoute(services, options, dataSource, 'books');
     const context = createMockContext({
-      state: { user: { email: 'john.doe@domain.com' } },
+      state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
       customProperties: { query: { timezone: 'Europe/Paris' }, params: { id: '2' } },
     });
 
@@ -507,7 +507,7 @@ describe('AuditTrailRoute', () => {
     const { services, dataSource, options, store } = setup();
     const route = new AuditTrailRoute(services, options, dataSource, 'books');
     const context = createMockContext({
-      state: { user: { email: 'john.doe@domain.com' } },
+      state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
       customProperties: {
         query: { timezone: 'Europe/Paris', sort: '-timestamp' },
         params: { id: '2' },
@@ -523,7 +523,7 @@ describe('AuditTrailRoute', () => {
     const { services, dataSource, options, store } = setup();
     const route = new AuditTrailRoute(services, options, dataSource, 'books');
     const context = createMockContext({
-      state: { user: { email: 'john.doe@domain.com' } },
+      state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
       customProperties: {
         query: { timezone: 'Europe/Paris', sort: 'timestamp' },
         params: { id: '2' },
@@ -539,7 +539,7 @@ describe('AuditTrailRoute', () => {
     const { services, dataSource, options, store } = setup();
     const route = new AuditTrailRoute(services, options, dataSource, 'books');
     const context = createMockContext({
-      state: { user: { email: 'john.doe@domain.com' } },
+      state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
       customProperties: {
         query: { timezone: 'Europe/Paris', startDate: '17-06-2026' },
         params: { id: '2' },
@@ -556,7 +556,7 @@ describe('AuditTrailRoute', () => {
     const { services, dataSource, options, store } = setup();
     const route = new AuditTrailRoute(services, options, dataSource, 'books');
     const context = createMockContext({
-      state: { user: { email: 'john.doe@domain.com' } },
+      state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
       customProperties: {
         query: {
           timezone: 'Europe/Paris',
@@ -581,7 +581,7 @@ describe('AuditTrailRoute', () => {
     const { services, dataSource, options, store } = setup();
     const route = new AuditTrailRoute(services, options, dataSource, 'books');
     const context = createMockContext({
-      state: { user: { email: 'john.doe@domain.com' } },
+      state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
       customProperties: {
         query: { timezone: 'UTC', startDate: '2026-06-18 11:48' },
         params: { id: '2' },
@@ -599,7 +599,7 @@ describe('AuditTrailRoute', () => {
     const { services, dataSource, options, store } = setup();
     const route = new AuditTrailRoute(services, options, dataSource, 'books');
     const context = createMockContext({
-      state: { user: { email: 'john.doe@domain.com' } },
+      state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
       customProperties: {
         query: {
           timezone: 'UTC',
@@ -624,7 +624,7 @@ describe('AuditTrailRoute', () => {
     const { services, dataSource, options, store } = setup();
     const route = new AuditTrailRoute(services, options, dataSource, 'books');
     const context = createMockContext({
-      state: { user: { email: 'john.doe@domain.com' } },
+      state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
       customProperties: {
         query: {
           timezone: 'America/New_York',
@@ -649,7 +649,7 @@ describe('AuditTrailRoute', () => {
     const { services, dataSource, options, store } = setup();
     const route = new AuditTrailRoute(services, options, dataSource, 'books');
     const context = createMockContext({
-      state: { user: { email: 'john.doe@domain.com' } },
+      state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
       customProperties: {
         query: { timezone: 'Europe/Paris', startDate: '2026-06-18T11' },
         params: { id: '2' },
@@ -666,7 +666,7 @@ describe('AuditTrailRoute', () => {
     const { services, dataSource, options } = setup();
     const route = new AuditTrailRoute(services, options, dataSource, 'books');
     const context = createMockContext({
-      state: { user: { email: 'john.doe@domain.com' } },
+      state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
       customProperties: { query: { timezone: 'Europe/Paris' }, params: { id: '2' } },
     });
 
@@ -681,7 +681,7 @@ describe('AuditTrailRoute', () => {
       const list = jest.spyOn(dataSource.getCollection('books'), 'list');
       const route = new AuditTrailRoute(services, options, dataSource, 'books');
       const context = createMockContext({
-        state: { user: { email: 'john.doe@domain.com' } },
+        state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
         customProperties: { query: { timezone: 'Europe/Paris' }, params: { id: '2' } },
       });
 
@@ -704,7 +704,7 @@ describe('AuditTrailRoute', () => {
         .mockResolvedValueOnce([{ id: 2 }]); // bare check: still exists
       const route = new AuditTrailRoute(services, options, dataSource, 'books');
       const context = createMockContext({
-        state: { user: { email: 'john.doe@domain.com' } },
+        state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
         customProperties: { query: { timezone: 'Europe/Paris' }, params: { id: '2' } },
       });
 
@@ -728,7 +728,7 @@ describe('AuditTrailRoute', () => {
         .mockResolvedValueOnce([]); // bare check: genuinely gone, not just out of scope
       const route = new AuditTrailRoute(services, options, dataSource, 'books');
       const context = createMockContext({
-        state: { user: { email: 'john.doe@domain.com' } },
+        state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
         customProperties: { query: { timezone: 'Europe/Paris' }, params: { id: '2' } },
       });
 
@@ -756,7 +756,7 @@ describe('AuditTrailRoute', () => {
         .mockResolvedValueOnce([]); // bare check: genuinely gone, not just out of scope
       const route = new AuditTrailRoute(services, options, dataSource, 'books');
       const context = createMockContext({
-        state: { user: { email: 'john.doe@domain.com' } },
+        state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
         customProperties: { query: { timezone: 'Europe/Paris' }, params: { id: '2' } },
       });
 
@@ -793,7 +793,7 @@ describe('AuditTrailRoute', () => {
         .mockResolvedValueOnce([]); // bare check: genuinely gone, not just out of scope
       const route = new AuditTrailRoute(services, options, dataSource, 'books');
       const context = createMockContext({
-        state: { user: { email: 'john.doe@domain.com' } },
+        state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
         customProperties: { query: { timezone: 'Europe/Paris' }, params: { id: '2' } },
       });
 
@@ -820,7 +820,7 @@ describe('AuditTrailRoute', () => {
         .mockResolvedValueOnce([]); // bare check: genuinely gone, not just out of scope
       const route = new AuditTrailRoute(services, options, dataSource, 'books');
       const context = createMockContext({
-        state: { user: { email: 'john.doe@domain.com' } },
+        state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
         customProperties: { query: { timezone: 'Europe/Paris' }, params: { id: '2' } },
       });
 
@@ -846,7 +846,7 @@ describe('AuditTrailRoute', () => {
         .mockResolvedValueOnce([]); // bare check: genuinely gone, not just out of scope
       const route = new AuditTrailRoute(services, options, dataSource, 'books');
       const context = createMockContext({
-        state: { user: { email: 'john.doe@domain.com' } },
+        state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
         customProperties: { query: { timezone: 'Europe/Paris' }, params: { id: '2' } },
       });
 
@@ -867,7 +867,7 @@ describe('AuditTrailRoute', () => {
         .mockResolvedValue([{ id: 2 }]);
       const route = new AuditTrailRoute(services, options, dataSource, 'books');
       const context = createMockContext({
-        state: { user: { email: 'john.doe@domain.com' } },
+        state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
         customProperties: { query: { timezone: 'Europe/Paris' }, params: { id: '2' } },
       });
 
@@ -896,7 +896,7 @@ describe('AuditTrailRoute', () => {
       jest.spyOn(dataSource.getCollection('books'), 'list').mockResolvedValue([{ id: 2 }]);
       const route = new AuditTrailRoute(services, options, dataSource, 'books');
       const context = createMockContext({
-        state: { user: { email: 'john.doe@domain.com' } },
+        state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
         customProperties: { query: { timezone: 'Europe/Paris' }, params: { id: '2' } },
       });
 
@@ -904,6 +904,110 @@ describe('AuditTrailRoute', () => {
 
       expect(context.throw).not.toHaveBeenCalled();
       expect(store.listByRecord).toHaveBeenCalled();
+    });
+  });
+
+  describe('admin permission level', () => {
+    const nonAdminContext = () =>
+      createMockContext({
+        state: { user: { email: 'jane.doe@domain.com', permissionLevel: 'editor' } },
+        customProperties: { query: { timezone: 'Europe/Paris' }, params: { id: '2' } },
+      });
+
+    test('blanks the values of every operation for a non-admin caller', async () => {
+      const history = [
+        { operation: 'create', recordId: '2', previousValues: {}, newValues: { title: 'New' } },
+        {
+          operation: 'update',
+          recordId: '2',
+          previousValues: { title: 'Old' },
+          newValues: { title: 'New' },
+        },
+        { operation: 'delete', recordId: '2', previousValues: { title: 'Old' }, newValues: {} },
+        { operation: 'action', recordId: '2', previousValues: { form: 1 }, newValues: { ok: 1 } },
+        {
+          operation: 'action_failed',
+          recordId: '2',
+          previousValues: { form: 1 },
+          newValues: { error: 'boom' },
+        },
+      ];
+      const { services, dataSource, options } = setup(history);
+      const route = new AuditTrailRoute(services, options, dataSource, 'books');
+      const context = nonAdminContext();
+
+      await route.handleHistory(context);
+
+      expect((context.response.body as { data: unknown[] }).data).toEqual(
+        history.map(entry => ({ ...entry, previousValues: {}, newValues: {} })),
+      );
+    });
+
+    test('keeps operation, author and timestamp visible to a non-admin caller', async () => {
+      const history = [
+        {
+          operation: 'update',
+          recordId: '2',
+          timestamp: '2026-01-02T10:00:00.000Z',
+          userId: 7,
+          userEmail: 'author@domain.com',
+          previousValues: { title: 'Old' },
+          newValues: { title: 'New' },
+        },
+      ];
+      const { services, dataSource, options } = setup(history);
+      const route = new AuditTrailRoute(services, options, dataSource, 'books');
+      const context = nonAdminContext();
+
+      await route.handleHistory(context);
+
+      expect(context.response.body).toEqual({
+        data: [
+          {
+            operation: 'update',
+            recordId: '2',
+            timestamp: '2026-01-02T10:00:00.000Z',
+            userId: 7,
+            userEmail: 'author@domain.com',
+            previousValues: {},
+            newValues: {},
+          },
+        ],
+        meta: { count: 1, availableUsers: [] },
+      });
+    });
+
+    test('keeps the values for an admin caller', async () => {
+      const history = [
+        {
+          operation: 'update',
+          recordId: '2',
+          previousValues: { title: 'Old' },
+          newValues: { title: 'New' },
+        },
+      ];
+      const { services, dataSource, options } = setup(history);
+      const route = new AuditTrailRoute(services, options, dataSource, 'books');
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
+        customProperties: { query: { timezone: 'Europe/Paris' }, params: { id: '2' } },
+      });
+
+      await route.handleHistory(context);
+
+      expect((context.response.body as { data: unknown[] }).data).toEqual(history);
+    });
+
+    test('refuses the state route to a non-admin caller', async () => {
+      const { services, dataSource, options, store } = setup();
+      const route = new AuditTrailRoute(services, options, dataSource, 'books');
+      const context = nonAdminContext();
+      context.request.query = { timezone: 'Europe/Paris', at: '2026-01-02T10:00:00.000Z' };
+
+      await expect(route.handleStateAt(context)).rejects.toThrow(
+        new ForbiddenError('Only an admin can read audit-trail values'),
+      );
+      expect(store.listByRecord).not.toHaveBeenCalled();
     });
   });
 
@@ -941,7 +1045,7 @@ describe('AuditTrailRoute', () => {
         .spyOn(dataSource.getCollection('books'), 'list')
         .mockResolvedValue([{ id: 2, status: 'closed', name: 'Acme' }]);
       const context = createMockContext({
-        state: { user: { email: 'john.doe@domain.com' } },
+        state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
         customProperties: {
           query: { timezone: 'Europe/Paris', at: '2026-06-18T12:00' },
           params: { id: '2' },
@@ -962,7 +1066,7 @@ describe('AuditTrailRoute', () => {
       const { dataSource, route } = setupBooks();
       jest.spyOn(dataSource.getCollection('books'), 'list').mockResolvedValue([]);
       const context = createMockContext({
-        state: { user: { email: 'john.doe@domain.com' } },
+        state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
         customProperties: { query: { timezone: 'Europe/Paris' }, params: { id: '2' } },
       });
 
@@ -973,7 +1077,7 @@ describe('AuditTrailRoute', () => {
       const { dataSource, route } = setupBooks();
       jest.spyOn(dataSource.getCollection('books'), 'list').mockResolvedValue([]);
       const context = createMockContext({
-        state: { user: { email: 'john.doe@domain.com' } },
+        state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
         customProperties: {
           query: { timezone: 'Europe/Paris', at: '17-06-2026' },
           params: { id: '2' },
@@ -991,7 +1095,7 @@ describe('AuditTrailRoute', () => {
         .spyOn(dataSource.getCollection('books'), 'list')
         .mockResolvedValue([{ id: 2, status: 'closed', name: 'Acme' }]);
       const context = createMockContext({
-        state: { user: { email: 'john.doe@domain.com' } },
+        state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
         customProperties: {
           query: { at: '2026-06-18T14:26:06.545Z' },
           params: { id: '2' },
@@ -1014,7 +1118,7 @@ describe('AuditTrailRoute', () => {
         .spyOn(dataSource.getCollection('books'), 'list')
         .mockResolvedValue([{ id: 2, status: 'closed', name: 'Acme' }]);
       const context = createMockContext({
-        state: { user: { email: 'john.doe@domain.com' } },
+        state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
         customProperties: {
           query: { timezone: 'Europe/Paris', at: '2026-06-18T14:26:06.545Z' },
           params: { id: '2' },
@@ -1037,7 +1141,7 @@ describe('AuditTrailRoute', () => {
         .spyOn(dataSource.getCollection('books'), 'list')
         .mockResolvedValue([{ id: 2, status: 'closed', name: 'Acme' }]);
       const context = createMockContext({
-        state: { user: { email: 'john.doe@domain.com' } },
+        state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
         customProperties: {
           query: { timezone: 'Europe/Paris', at: '2026-06-18' },
           params: { id: '2' },
@@ -1055,7 +1159,7 @@ describe('AuditTrailRoute', () => {
         .spyOn(dataSource.getCollection('books'), 'list')
         .mockResolvedValue([{ id: 2, status: 'closed', name: 'Acme' }]);
       const context = createMockContext({
-        state: { user: { email: 'john.doe@domain.com' } },
+        state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
         customProperties: {
           query: { timezone: 'Europe/Paris', at: '2026-06-18' },
           params: { id: '2' },
@@ -1077,7 +1181,7 @@ describe('AuditTrailRoute', () => {
         .spyOn(dataSource.getCollection('books'), 'list')
         .mockResolvedValue([{ id: 2, status: 'closed', name: 'Acme' }]);
       const context = createMockContext({
-        state: { user: { email: 'john.doe@domain.com' } },
+        state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
         customProperties: {
           query: { timezone: 'UTC', at: '2026-06-18T12:00' },
           params: { id: '2' },
@@ -1108,7 +1212,7 @@ describe('AuditTrailRoute', () => {
         .spyOn(dataSource.getCollection('books'), 'list')
         .mockResolvedValue([{ id: 2, status: 'closed', name: 'Acme' }]);
       const context = createMockContext({
-        state: { user: { email: 'john.doe@domain.com' } },
+        state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
         customProperties: {
           query: { timezone: 'UTC', at: '2026-06-18T11:00:00.000Z' },
           params: { id: '2' },
@@ -1140,7 +1244,7 @@ describe('AuditTrailRoute', () => {
         .spyOn(dataSource.getCollection('books'), 'list')
         .mockResolvedValue([{ id: 2, status: 'closed', name: 'Acme' }]);
       const context = createMockContext({
-        state: { user: { email: 'john.doe@domain.com' } },
+        state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
         customProperties: {
           query: { timezone: 'UTC', at: '2026-06-18T11:00:00.000Z' },
           params: { id: '2' },
@@ -1168,7 +1272,7 @@ describe('AuditTrailRoute', () => {
         .spyOn(dataSource.getCollection('books'), 'list')
         .mockResolvedValue([{ id: 2, status: 'closed', name: 'Acme' }]);
       const context = createMockContext({
-        state: { user: { email: 'john.doe@domain.com' } },
+        state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
         customProperties: {
           query: { at: '2026-06-18T12:00:00.000Z' },
           params: { id: '2' },
@@ -1200,7 +1304,7 @@ describe('AuditTrailRoute', () => {
         .spyOn(dataSource.getCollection('books'), 'list')
         .mockResolvedValue([{ id: 2, status: 'archived', name: 'Acme Inc.' }]);
       const context = createMockContext({
-        state: { user: { email: 'john.doe@domain.com' } },
+        state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
         customProperties: {
           query: { timezone: 'UTC', at: '2026-06-18' },
           params: { id: '2' },
@@ -1218,7 +1322,7 @@ describe('AuditTrailRoute', () => {
       const { dataSource, route } = setupBooks([]);
       jest.spyOn(dataSource.getCollection('books'), 'list').mockResolvedValue([]);
       const context = createMockContext({
-        state: { user: { email: 'john.doe@domain.com' } },
+        state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
         customProperties: {
           query: { timezone: 'UTC', at: '2026-06-18' },
           params: { id: '2' },
@@ -1239,7 +1343,7 @@ describe('AuditTrailRoute', () => {
         .spyOn(dataSource.getCollection('books'), 'list')
         .mockResolvedValue([{ id: 2, status: 'open', name: 'Acme' }]);
       const context = createMockContext({
-        state: { user: { email: 'john.doe@domain.com' } },
+        state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
         customProperties: {
           query: { timezone: 'UTC', at: '2026-06-18' },
           params: { id: '2' },
@@ -1262,7 +1366,7 @@ describe('AuditTrailRoute', () => {
       const { dataSource, route } = setupBooks(history);
       jest.spyOn(dataSource.getCollection('books'), 'list').mockResolvedValue([]);
       const context = createMockContext({
-        state: { user: { email: 'john.doe@domain.com' } },
+        state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
         customProperties: {
           query: { timezone: 'UTC', at: '2026-06-18' },
           params: { id: '2' },
@@ -1295,7 +1399,7 @@ describe('AuditTrailRoute', () => {
         .mockResolvedValueOnce([]) // scoped fetch: not found
         .mockResolvedValueOnce([{ id: 2 }]); // bare check: still exists
       const context = createMockContext({
-        state: { user: { email: 'john.doe@domain.com' } },
+        state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
         customProperties: {
           query: { timezone: 'UTC', at: '2026-06-18' },
           params: { id: '2' },
@@ -1327,7 +1431,7 @@ describe('AuditTrailRoute', () => {
         .mockResolvedValueOnce([]) // scoped fetch: not found
         .mockResolvedValueOnce([]); // bare check: genuinely gone, not just out of scope
       const context = createMockContext({
-        state: { user: { email: 'john.doe@domain.com' } },
+        state: { user: { email: 'john.doe@domain.com', permissionLevel: 'admin' } },
         customProperties: {
           query: { timezone: 'UTC', at: '2026-06-18' },
           params: { id: '2' },

@@ -190,6 +190,14 @@ no longer exists, so this only refuses a still-existing, out-of-scope id: once a
 deleted, anyone who can read the collection can see its history, reconstructed state, or correlated
 operations, scope aside — inspecting what was deleted is much of the point of an audit trail.
 
+**Detail values are admin-only.** Whatever the collection permissions say, `previousValues` and
+`newValues` only reach a caller whose permission level is `admin` — exactly that level, not a
+privileged set. Every other caller gets each row with both objects empty: what happened, by whom and
+when stays readable, the values do not. The `/state` route is nothing but reconstructed values, so it
+answers **HTTP 403** instead. The capabilities payload advertises this as
+`restrictsAuditTrailValuesToAdmins`, so a client can tell an agent that enforces the rule from an
+older one that merely hides the values in its UI.
+
 One exception: on the per-record history route, a `delete` row's `previousValues` is the record's
 full last known state — if that state itself would have failed the caller's scope (e.g. it belonged
 to a team the caller isn't scoped to), `previousValues` is withheld from that row (replaced with

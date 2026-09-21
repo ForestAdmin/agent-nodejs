@@ -13,6 +13,7 @@ import {
 import { DateTime } from 'luxon';
 
 import { revertRecord } from '../../audit-trail';
+import { assertCanReadAuditValues, withholdValuesFromNonAdmin } from '../../audit-trail/admin-gate';
 import checkRecordVisibility, { recordExists } from '../../audit-trail/scope';
 import { HttpCode } from '../../types';
 import IdUtils from '../../utils/id';
@@ -92,8 +93,9 @@ export default class AuditTrailRoute extends CollectionRoute {
     // when the record existed. If those values themselves would have failed the caller's scope,
     // withhold them while still surfacing that the row happened, by whom and when: that part
     // stays visible regardless.
-    const data =
+    const scoped =
       scope && goneEntirely ? this.withholdOutOfScopeValues(rawData, scope, context) : rawData;
+    const data = withholdValuesFromNonAdmin(scoped, context);
 
     context.response.body = {
       data,
@@ -139,6 +141,8 @@ export default class AuditTrailRoute extends CollectionRoute {
   // Only audited columns are returned; read-only/computed fields are not captured in the log.
   public async handleStateAt(context: Context): Promise<void> {
     await this.services.authorization.assertCanRead(context, this.collection.name);
+    // Nothing but reconstructed values, so there is no row left to hand back once they are withheld.
+    assertCanReadAuditValues(context);
 
     const at = AuditTrailRoute.parseAt(context);
     const auditedColumns = AuditTrailRoute.auditedColumns(this.collection.schema);

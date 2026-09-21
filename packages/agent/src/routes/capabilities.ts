@@ -46,6 +46,10 @@ export default class Capabilities extends BaseRoute {
         // `x-forest-correlation-id` is emitted on every response regardless — the frontend must
         // gate the History tab on this flag rather than inferring the feature from that header.
         canUseAuditTrail: this.options.auditTrail !== null,
+        // Constant, not config-driven: it states that this agent version enforces the admin-only
+        // rule on audit detail values itself, so the front can stop treating its own hidden
+        // expander as the guarantee. An older agent simply omits the flag.
+        restrictsAuditTrailValuesToAdmins: true,
         checksRelationReadPermissions: !this.options.skipRelationReadPermissions,
       },
       collections:
