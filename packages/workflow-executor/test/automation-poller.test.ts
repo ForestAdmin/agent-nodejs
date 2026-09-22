@@ -235,6 +235,22 @@ describe('AutomationPoller', () => {
       );
     });
 
+    it('should say when an assignment state means nothing to it', async () => {
+      const context = makeContext({
+        assignments: [makeAssignment({ recordId: 'r1', state: 'a-state-from-the-future' })],
+      });
+
+      await runOneCycle(makePoller(context));
+
+      // Held back like an unknown run state, and just as visibly — support has to be able to find
+      // out why records stopped moving.
+      expect(context.logger).toHaveBeenCalledWith(
+        'Warn',
+        'Unknown assignment state, leaving the record for a later poll',
+        expect.objectContaining({ inboxId: 'inbox-1', state: 'a-state-from-the-future' }),
+      );
+    });
+
     it('should ask for membership in chunks of fifty', async () => {
       const recordIds = Array.from({ length: 51 }, (_, index) => `r${index}`);
       const context = makeContext({
@@ -254,7 +270,7 @@ describe('AutomationPoller', () => {
       expect(membershipCalls[1].pageSize).toBe(1);
     });
 
-    it('should reconcile a closed assignment that never had a run', async () => {
+    it('should hold back a closed assignment that never had a run, and say so', async () => {
       const context = makeContext({
         assignments: [
           makeAssignment({
@@ -266,12 +282,18 @@ describe('AutomationPoller', () => {
         ],
       });
 
-      // No run means nothing live to protect, so it is not the escalation case the gate exists for.
+      // The orchestrator binds the run before the assignment, so this shape should not exist. It is
+      // surfaced rather than interpreted, either way.
       await runOneCycle(makePoller(context));
 
       expect(context.automationPort.sync).toHaveBeenCalledWith(
         'inbox-1',
-        expect.objectContaining({ closed: [{ recordId: 'never-ran', stillInSegment: false }] }),
+        expect.objectContaining({ closed: [] }),
+      );
+      expect(context.logger).toHaveBeenCalledWith(
+        'Warn',
+        'Unexpected workflow run state, leaving the record for a later poll',
+        expect.objectContaining({ inboxId: 'inbox-1', runState: null }),
       );
     });
 
@@ -288,7 +310,7 @@ describe('AutomationPoller', () => {
       );
       expect(context.logger).toHaveBeenCalledWith(
         'Warn',
-        'Unknown workflow run state, leaving the record for a later poll',
+        'Unexpected workflow run state, leaving the record for a later poll',
         expect.objectContaining({ inboxId: 'inbox-1', runState: 'a-state-from-the-future' }),
       );
     });
@@ -379,6 +401,36 @@ describe('AutomationPoller', () => {
           return ['fresh'];
         },
       );
+
+      await runOneCycle(makePoller(context));
+
+      expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
+        closed: [],
+        candidates: ['fresh'],
+      });
+    });
+
+    it('should report nothing when it could not reach the agent at all', async () => {
+      const context = makeContext({ assignments: [makeAssignment({ recordId: 'treated' })] });
+      context.segmentReaderPort.listRecordIds.mockRejectedValue(new Error('agent unreachable'));
+
+      await runOneCycle(makePoller(context));
+
+      // A sync here would tell the orchestrator this inbox is being swept while nothing is, which
+      // is exactly what a "no sync received" alert must never be lied to about.
+      expect(context.automationPort.sync).not.toHaveBeenCalled();
+      expect(context.logger).toHaveBeenCalledWith(
+        'Error',
+        'Could not reach the agent, reporting nothing for this inbox',
+        expect.objectContaining({ inboxId: 'inbox-1' }),
+      );
+    });
+
+    it('should still report when only the read that had nothing to ask was skipped', async () => {
+      // Nothing to reconcile, so that read never reaches the agent — but the candidate read did,
+      // and a successful poll must not be mistaken for an unreachable agent.
+      const context = makeContext();
+      context.segmentReaderPort.listRecordIds.mockResolvedValue(['fresh']);
 
       await runOneCycle(makePoller(context));
 
