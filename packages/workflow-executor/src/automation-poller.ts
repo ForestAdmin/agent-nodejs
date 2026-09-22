@@ -298,10 +298,17 @@ export default class AutomationPoller {
     }
 
     // A closed assignment whose run is still going is an escalation in progress, and reporting it
-    // would hand a live run to a human twice.
+    // would hand a live run to a human twice. Judged per record rather than per assignment: nothing
+    // in the contract says a record holds only one, and one terminal assignment must not speak for
+    // a sibling whose run is still alive.
+    const liveRecords = new Set(
+      assignments.filter(({ runState }) => !isTerminalRun(runState)).map(a => a.recordId),
+    );
     const recordIds = [
       ...new Set(
-        reconcilable.filter(({ runState }) => isTerminalRun(runState)).map(a => a.recordId),
+        reconcilable
+          .filter(({ recordId }) => !liveRecords.has(recordId))
+          .map(({ recordId }) => recordId),
       ),
     ];
 

@@ -112,6 +112,20 @@ describe('AgentClientSegmentReader', () => {
       expect(captured.query).not.toHaveProperty('connectionName');
     });
 
+    it('should omit a connection name the server sent empty', async () => {
+      const captured = interceptList();
+      const segment: ServerAutomatedSegmentDescriptor = {
+        kind: 'sql',
+        query: 'SELECT id FROM orders',
+        connectionName: '',
+      };
+
+      await reader.listRecordIds(makeQuery({ segment }));
+
+      // Same falsiness test the server applies before it decides a SQL segment is bare.
+      expect(captured.query).not.toHaveProperty('connectionName');
+    });
+
     it('should send a filter segment as the condition tree the agents parse', async () => {
       const captured = interceptList();
       const segment: ServerAutomatedSegmentDescriptor = {
@@ -284,6 +298,18 @@ describe('AgentClientSegmentReader', () => {
       await expect(
         reader.listRecordIds(makeQuery({ primaryKeys: ['tenantId', 'id'] })),
       ).resolves.toEqual(['t1|5']);
+    });
+
+    it('should refuse a record whose id came back empty', async () => {
+      nock(AGENT_URL)
+        .get('/forest/orders')
+        .query(true)
+        .reply(200, { data: [{ type: 'orders', id: '', attributes: {} }] });
+
+      // An empty string is no more an id than a missing one, and both would start a run on nothing.
+      await expect(reader.listRecordIds(makeQuery())).rejects.toThrow(
+        /returned a "orders" record with no id/,
+      );
     });
 
     it('should refuse a record with no id rather than run against the wrong one', async () => {

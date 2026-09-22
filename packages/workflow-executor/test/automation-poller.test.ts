@@ -251,6 +251,29 @@ describe('AutomationPoller', () => {
       );
     });
 
+    it('should hold back a record whose other assignment still has a live run', async () => {
+      const context = makeContext({
+        assignments: [
+          makeAssignment({
+            recordId: 'x',
+            workflowRunId: 1,
+            state: 'canceled',
+            runState: 'aborted',
+          }),
+          makeAssignment({ recordId: 'x', workflowRunId: 2, state: 'doing', runState: 'started' }),
+        ],
+      });
+
+      await runOneCycle(makePoller(context));
+
+      // One terminal assignment must not speak for a sibling whose workflow is still running: the
+      // record would be reported as finished while a run is live on it.
+      expect(context.automationPort.sync).toHaveBeenCalledWith(
+        'inbox-1',
+        expect.objectContaining({ closed: [] }),
+      );
+    });
+
     it('should ask for membership in chunks of fifty', async () => {
       const recordIds = Array.from({ length: 51 }, (_, index) => `r${index}`);
       const context = makeContext({

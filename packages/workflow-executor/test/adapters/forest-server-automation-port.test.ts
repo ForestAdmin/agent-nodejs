@@ -99,6 +99,27 @@ describe('ForestServerAutomationPort', () => {
       await expect(port.listAutomatedInboxes('w1')).resolves.toHaveLength(1);
     });
 
+    it('should keep the conditions of a node that also carries a field', async () => {
+      const conditionTree = {
+        field: 'status',
+        aggregator: 'and',
+        conditions: [{ field: 'status', operator: 'equal', value: 'new' }],
+      };
+
+      mockQuery.mockResolvedValue({
+        inboxes: [makeConfig({ segment: { kind: 'filter', conditionTree } as never })],
+      });
+
+      const [config] = await port.listAutomatedInboxes('w1');
+
+      // Reading it as a leaf would strip `conditions` and evaluate a different segment entirely.
+      expect(config.segment).toEqual(
+        expect.objectContaining({
+          conditionTree: expect.objectContaining({ conditions: [expect.anything()] }),
+        }),
+      );
+    });
+
     it('should skip one unreadable config and keep the rest', async () => {
       mockQuery.mockResolvedValue({
         inboxes: [
