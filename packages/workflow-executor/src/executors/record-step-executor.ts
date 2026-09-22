@@ -13,6 +13,7 @@ import {
   NoRecordsError,
   SourceRecordCollectionMismatchError,
   SourceRecordMissingError,
+  SourceRecordStepNotReachedError,
 } from '../errors';
 import BaseStepExecutor from './base-step-executor';
 import { StepType, WORKFLOW_START_STEP_ID } from '../types/validated/step-definition';
@@ -79,19 +80,32 @@ export default abstract class RecordStepExecutor<
   // WORKFLOW_START_STEP_ID sentinel), not a runtime index — so it survives the index shifts a
   // revision causes (clones keep their step id) and is knowable by the editor at build time.
   protected async resolveSourceRecordRef(stepId: string): Promise<RecordRef> {
-    if (stepId !== WORKFLOW_START_STEP_ID) return (await this.resolveStepRecordRef(stepId)).record;
+    if (stepId !== WORKFLOW_START_STEP_ID) {
+      const record = await this.resolveStepRecordRef(stepId);
+
+      if (!record) {
+        throw new InvalidPreRecordedArgsError(`No source record found for step "${stepId}"`);
+      }
+
+      return record;
+    }
 
     const { callScope, baseRecordRef } = this.context;
     if (!callScope) return baseRecordRef;
 
     // Inside a Sub-workflow call, "workflow start" means the record the calling step pinned; a
     // call pinning none still starts from the record the run was launched on.
-    const { record } = callScope.selectedRecordStepId
-      ? await this.resolveStepRecordRef(
-          callScope.selectedRecordStepId,
-          callScope.pinnedFrameStepIndexes,
-        )
-      : { record: baseRecordRef };
+    let record = baseRecordRef;
+
+    if (callScope.selectedRecordStepId) {
+      const pinned = await this.resolveStepRecordRef(
+        callScope.selectedRecordStepId,
+        callScope.pinnedFrameStepIndexes,
+      );
+      // The pin names a step of the calling workflow, so a miss is that Sub-workflow step's to fix.
+      if (!pinned) throw new SourceRecordStepNotReachedError(callScope.selectedRecordStepId);
+      record = pinned;
+    }
 
     // A record of another collection than the called workflow is not what its steps were built
     // against, so the step refuses it rather than acting on the caller's. It names both collections:
@@ -110,7 +124,8 @@ export default abstract class RecordStepExecutor<
     return record;
   }
 
-  // The record a Load Related Record step loaded, with that step's title for the messages about it.
+  // The record a Load Related Record step loaded, or undefined when no step with that id ran, so each
+  // caller names its own miss.
   // previousSteps are already restricted to the live path; in a loop the same id can appear more
   // than once, so we take the most recent occurrence. `frameStepIndexes` narrows that to the steps
   // of the frame that wrote a Sub-workflow call's pin: previousSteps flattens every frame, and a
@@ -120,7 +135,7 @@ export default abstract class RecordStepExecutor<
   private async resolveStepRecordRef(
     stepId: string,
     frameStepIndexes?: number[],
-  ): Promise<{ record: RecordRef; sourceTitle?: string }> {
+  ): Promise<RecordRef | undefined> {
     const matches = this.context.previousSteps.filter(
       step =>
         step.stepDefinition.type === StepType.LoadRelatedRecord &&
@@ -138,10 +153,7 @@ export default abstract class RecordStepExecutor<
         execution.executionResult !== undefined &&
         'record' in execution.executionResult
       ) {
-        return {
-          record: execution.executionResult.record,
-          sourceTitle: sourceStep.stepDefinition.title,
-        };
+        return execution.executionResult.record;
       }
 
       // The source step exists but loaded nothing → clear "no source record" message,
@@ -152,7 +164,7 @@ export default abstract class RecordStepExecutor<
       });
     }
 
-    throw new InvalidPreRecordedArgsError(`No source record found for step "${stepId}"`);
+    return undefined;
   }
 
   // Candidate sources for the AI: the base record plus the record each live prior

@@ -1823,7 +1823,9 @@ describe('ReadRecordStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('success');
     });
 
-    it('reports invalid parameters when the call pins a step the run never took', async () => {
+    // The called step pins workflow start correctly, so the message has to send the operator to the
+    // Sub-workflow step that set the pin rather than blame the step it is shown on.
+    it('points at the Sub-workflow step when the call pins a step the run never took', async () => {
       const context = makeCalledContext(
         { selectedRecordStepId: 'load-404', calledWorkflowCollectionName: 'orders' },
         {
@@ -1837,7 +1839,10 @@ describe('ReadRecordStepExecutor', () => {
       const result = await new ReadRecordStepExecutor(context).execute();
 
       expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toBe('The pre-configured step parameters are invalid');
+      expect(result.stepOutcome.error).toBe(
+        'The Sub-workflow step that called this workflow takes its record from a step that did ' +
+          'not run before it. Change the record on that Sub-workflow step.',
+      );
       expect(result.stepOutcome.errorKind).toBe('configuration');
     });
 

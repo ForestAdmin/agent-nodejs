@@ -601,6 +601,18 @@ export class SourceRecordCollectionMismatchError extends WorkflowConfigurationEr
   }
 }
 
+// A Sub-workflow step pins a step of its own workflow that did not run before the call, so the called
+// workflow has no record to start from. Raised on the called workflow's step, whose configuration is
+// correct, so the message points one level up at the Sub-workflow step that set the pin.
+export class SourceRecordStepNotReachedError extends WorkflowConfigurationError {
+  constructor(pinnedStepId: string) {
+    super(
+      `Sub-workflow call pins step "${pinnedStepId}", which did not run before the call`,
+      'The Sub-workflow step that called this workflow takes its record from a step that did not run before it. Change the record on that Sub-workflow step.',
+    );
+  }
+}
+
 // Boundary error — surfaces from Runner.start() and is caught at the CLI/HTTP layer, not by step executors.
 export class AgentProbeError extends Error {
   // Manual `cause` assignment: our ES2020 TS target doesn't type the native Error `cause` option.
