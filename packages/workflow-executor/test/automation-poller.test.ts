@@ -148,6 +148,32 @@ describe('AutomationPoller', () => {
     });
   });
 
+  describe('disabled', () => {
+    it('should never reach the orchestrator when the interval says the sweep is off', async () => {
+      const context = makeContext();
+      const poller = new AutomationPoller({
+        automationPort: context.automationPort,
+        segmentReaderPort: context.segmentReaderPort,
+        pollingIntervalS: 0,
+        instanceId: 'host-1-abcd',
+        logger: context.logger,
+      });
+
+      poller.start();
+      await jest.advanceTimersByTimeAsync(POLL_INTERVAL_S * 10 * 1000);
+
+      expect(context.automationPort.listAutomatedInboxes).not.toHaveBeenCalled();
+      expect(context.logger).toHaveBeenCalledWith(
+        'Info',
+        'Automation poller disabled by configuration',
+        expect.objectContaining({ instanceId: 'host-1-abcd' }),
+      );
+
+      // Still answers, so nothing downstream has to know an executor is running without a sweep.
+      await expect(poller.stop()).resolves.toBeUndefined();
+    });
+  });
+
   describe('candidates', () => {
     const excluding = makeConfig({ liana: 'forest-nodejs-agent' });
 
@@ -289,6 +315,60 @@ describe('AutomationPoller', () => {
     });
   });
 
+  describe('guards on what the orchestrator sends', () => {
+    it('should cap the padded page rather than ask for one the agent cannot serve', async () => {
+      // The padding grows with the backlog while the agent read is bounded by the client's ten
+      // second ceiling, so an uncapped page turns a large inbox into one that reads nothing at all.
+      const context = makeContext({
+        assignments: Array.from({ length: 900 }, (_, index) =>
+          makeAssignment({ recordId: `r${index}`, state: 'doing', runState: 'started' }),
+        ),
+      });
+
+      await runOneCycle(makePoller(context));
+
+      const [query] = context.segmentReaderPort.listRecordIds.mock.calls.find(
+        ([call]) => (call as ListSegmentRecordIdsQuery).recordIds === undefined,
+      ) as [ListSegmentRecordIdsQuery];
+
+      expect(query.pageSize).toBe(500);
+    });
+
+    it('should read a segment in UTC when the timezone is one the agent would refuse', async () => {
+      // The agent answers 400 on an unknown zone, so passing it on would fail every read of every
+      // sweep of that inbox with nothing saying why.
+      const context = makeContext({ inboxes: [makeConfig({ timezone: 'Mars/Olympus' })] });
+
+      await runOneCycle(makePoller(context));
+
+      expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledWith(
+        expect.objectContaining({ timezone: 'UTC' }),
+      );
+    });
+
+    it('should leave a record whose packed id it cannot split out of the reconciliation', async () => {
+      // Dropped one by one rather than failing the chunk, and never reported: telling the
+      // orchestrator it left the segment would retire its assignment and let it be launched again.
+      const context = makeContext({
+        inboxes: [makeConfig({ primaryKeys: ['tenantId', 'id'] })],
+        assignments: [makeAssignment({ recordId: 't1|a|5' }), makeAssignment({ recordId: 't2|9' })],
+      });
+      context.segmentReaderPort.listRecordIds.mockResolvedValue([]);
+
+      await runOneCycle(makePoller(context));
+
+      expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
+        closed: [{ recordId: 't2|9', stillInSegment: false }],
+        candidates: [],
+      });
+      expect(context.logger).toHaveBeenCalledWith(
+        'Warn',
+        'Unreadable record id, leaving the record out of the reconciliation',
+        expect.objectContaining({ inboxId: 'inbox-1', recordId: 't1|a|5' }),
+      );
+    });
+  });
+
   describe('reconciling closed assignments', () => {
     it('should ignore an assignment closed while its run is still going', async () => {
       // What an escalation leaves behind: the assignment is done, the run is not.
@@ -341,7 +421,7 @@ describe('AutomationPoller', () => {
       // out why records stopped moving.
       expect(context.logger).toHaveBeenCalledWith(
         'Warn',
-        'Unknown assignment state, leaving the record for a later poll',
+        'Unknown assignment state, leaving the record out of every sweep until this executor knows it',
         expect.objectContaining({ inboxId: 'inbox-1', state: 'a-state-from-the-future' }),
       );
     });
@@ -410,7 +490,7 @@ describe('AutomationPoller', () => {
       );
       expect(context.logger).toHaveBeenCalledWith(
         'Warn',
-        'Unexpected workflow run state, leaving the record for a later poll',
+        'Unexpected workflow run state, leaving the record out of every sweep until this executor knows it',
         expect.objectContaining({ inboxId: 'inbox-1', runState: null }),
       );
     });
@@ -428,7 +508,7 @@ describe('AutomationPoller', () => {
       );
       expect(context.logger).toHaveBeenCalledWith(
         'Warn',
-        'Unexpected workflow run state, leaving the record for a later poll',
+        'Unexpected workflow run state, leaving the record out of every sweep until this executor knows it',
         expect.objectContaining({ inboxId: 'inbox-1', runState: 'a-state-from-the-future' }),
       );
     });
@@ -596,7 +676,10 @@ describe('AutomationPoller', () => {
       await runOneCycle(makePoller(context));
 
       expect(context.automationPort.sync).toHaveBeenCalledTimes(1);
-      expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-2', expect.anything());
+      expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-2', {
+        closed: [],
+        candidates: [],
+      });
       expect(context.logger).toHaveBeenCalledWith(
         'Info',
         'Automated inbox no longer served, dropping it for this cycle',
@@ -616,7 +699,10 @@ describe('AutomationPoller', () => {
 
       await runOneCycle(makePoller(context));
 
-      expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-2', expect.anything());
+      expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-2', {
+        closed: [],
+        candidates: [],
+      });
       expect(context.logger).toHaveBeenCalledWith(
         'Error',
         'Automated inbox poll failed',
@@ -676,7 +762,10 @@ describe('AutomationPoller', () => {
       await stopped;
 
       expect(poller.state).toBe('stopped');
-      expect(context.automationPort.sync).toHaveBeenCalled();
+      expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
+        closed: [],
+        candidates: [],
+      });
     });
 
     it('should wait for a cycle that has not reached an inbox yet', async () => {
