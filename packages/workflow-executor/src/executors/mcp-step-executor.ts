@@ -351,11 +351,22 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
 
     const reasoningKeys = new Map<string, string>();
     const augmentedTools = tools.map(t => {
-      const { tool, reasoningKey } = McpStepExecutor.withReasoningField(t.base);
-      // The model answers with a name alone, and the tool behind it is the first of that name.
-      if (!reasoningKeys.has(t.base.name)) reasoningKeys.set(t.base.name, reasoningKey);
+      try {
+        const { tool, reasoningKey } = McpStepExecutor.withReasoningField(t.base);
+        // The model answers with a name alone, and the tool behind it is the first of that name.
+        if (!reasoningKeys.has(t.base.name)) reasoningKeys.set(t.base.name, reasoningKey);
 
-      return tool;
+        return tool;
+      } catch (cause) {
+        // Capturing a justification must never cost the step the tool it was going to run.
+        this.context.logger('Info', 'mcp: tool offered without a reasoning field', {
+          ...this.logCtx,
+          toolName: t.base.name,
+          cause: cause instanceof Error ? cause.message : String(cause),
+        });
+
+        return t.base;
+      }
     });
 
     const { toolName, args } = await this.invokeWithTools<Record<string, unknown>>(
@@ -367,9 +378,10 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     const toolSelectionReasoning = nonEmptyText(reasoning);
 
     if (toolSelectionReasoning === undefined) {
-      this.context.logger('Debug', 'mcp: the model selected a tool without justifying it', {
+      this.context.logger('Info', 'mcp: the model selected a tool without justifying it', {
         ...this.logCtx,
         toolName,
+        reasoningKey: reasoningKeys.get(toolName) ?? REASONING_FIELD,
       });
     }
 

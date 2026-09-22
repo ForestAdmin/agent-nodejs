@@ -1,6 +1,7 @@
 import type { StepExecutionResult } from '../types/execution-context';
 import type {
   LoadRelatedRecordAiRuling,
+  LoadRelatedRecordAiSuggestion,
   LoadRelatedRecordCandidate,
   LoadRelatedRecordStepExecutionData,
   RelationRef,
@@ -63,27 +64,23 @@ function clampFieldValue(value: unknown): unknown {
   return `${serialized.slice(0, MAX_FIELD_VALUE_LENGTH)}… (truncated)`;
 }
 
-interface AiSuggestionTrace {
-  suggestedFields?: string[];
-  fieldsReasoning?: string;
-  reasoning?: string;
-}
-
 // A confirmed id is a fresh array of strings, a suggested one holds whatever the agent returned.
 function sameRecordId(a: RecordId, b: RecordId): boolean {
   return a.length === b.length && a.every((part, index) => String(part) === String(b[index]));
 }
 
 // An empty field list means no field-selection pass ran, not that the AI compared nothing.
-function buildAiSuggestionTrace(
-  suggestedFields: string[] | undefined,
+function buildAiSuggestion(
+  field: RelationRef,
+  comparedFields: string[] | undefined,
   fieldsReasoning?: string,
-  reasoning?: string,
-): AiSuggestionTrace {
+  recordReasoning?: string,
+): LoadRelatedRecordAiSuggestion {
   return {
-    ...(suggestedFields !== undefined && suggestedFields.length > 0 && { suggestedFields }),
+    field,
+    ...(comparedFields !== undefined && comparedFields.length > 0 && { comparedFields }),
     ...(nonEmptyText(fieldsReasoning) !== undefined && { fieldsReasoning }),
-    ...(nonEmptyText(reasoning) !== undefined && { reasoning }),
+    ...(nonEmptyText(recordReasoning) !== undefined && { recordReasoning }),
   };
 }
 
@@ -156,11 +153,19 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       candidates = await this.collectCandidateIds(target, false);
     }
 
-    const { availableRecordIds, suggestedRecord, trace } = candidates;
+    const { availableRecordIds, suggestedRecord, aiSuggestion } = candidates;
 
     await this.context.runStore.saveStepExecution(this.context.runId, {
       ...execution,
       userConfirmation: undefined,
+      // The AI ranks records inside the relation the human asked to see, so its record reasoning is
+      // refreshed while `field` keeps naming the relation the AI chose on its own.
+      ...(aiSuggestion !== undefined && {
+        aiSuggestion: {
+          ...aiSuggestion,
+          field: execution.aiSuggestion?.field ?? aiSuggestion.field,
+        },
+      }),
       // Rebuild pendingData for the new relation from scratch (retain only the immutable field list)
       // so no stale suggestion state — suggestedRecord or suggestNoRecord — survives the field switch.
       pendingData: {
@@ -169,7 +174,6 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
         availableRecordIds,
         suggestedRecord,
         ...(aiSuggested && !suggestedRecord && { suggestNoRecord: true }),
-        ...trace,
       },
     });
 
@@ -343,7 +347,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     sourceSchema: CollectionSchema,
     suggestViaAi: boolean,
   ): Promise<StepExecutionResult> {
-    const { availableRecordIds, suggestedRecord, trace } = await this.collectCandidateIds(
+    const { availableRecordIds, suggestedRecord, aiSuggestion } = await this.collectCandidateIds(
       target,
       suggestViaAi,
     );
@@ -354,7 +358,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       // An AI pass that yields no record is a deliberate "nothing relevant" → pre-check "No X to load".
       // A Manual pass with no suggestion just means the user picks, so no pre-check.
       suggestNoRecord: suggestViaAi && !suggestedRecord,
-      trace,
+      aiSuggestion,
     });
   }
 
@@ -371,7 +375,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       availableRecordIds: LoadRelatedRecordCandidate[];
       suggestedRecord?: LoadRelatedRecordCandidate;
       suggestNoRecord: boolean;
-      trace?: AiSuggestionTrace;
+      aiSuggestion?: LoadRelatedRecordAiSuggestion;
     },
   ): Promise<StepExecutionResult> {
     const { selectedRecordRef, name, displayName } = target;
@@ -379,13 +383,13 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'load-related-record',
       stepIndex: this.context.stepIndex,
+      ...(pending.aiSuggestion !== undefined && { aiSuggestion: pending.aiSuggestion }),
       pendingData: {
         availableFields: this.followableRelationFields(sourceSchema),
         suggestedField: { name, displayName },
         availableRecordIds: pending.availableRecordIds,
         suggestedRecord: pending.suggestedRecord,
         ...(pending.suggestNoRecord && { suggestNoRecord: true }),
-        ...pending.trace,
       },
       selectedRecordRef,
     });
@@ -402,7 +406,8 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     // Full AI only: the AI returned a best guess but could not confidently single one out among
     // several viable candidates. Routes Full AI to a confirmation instead of an auto-load.
     ambiguous: boolean;
-    trace?: AiSuggestionTrace;
+    // An xToOne relation yields the only linked record, with no AI call and so no suggestion.
+    aiSuggestion?: LoadRelatedRecordAiSuggestion;
   }> {
     if (target.relationType === 'BelongsTo' || target.relationType === 'HasOne') {
       const candidate = await this.fetchXToOneCandidate(target);
@@ -446,9 +451,39 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       // -1 (none relevant) is not ambiguity; only a low-confidence positive pick is.
       ambiguous: bestIndex >= 0 && !confident,
       ...(suggestViaAi && {
-        trace: buildAiSuggestionTrace(suggestedFields, fieldsReasoning, reasoning),
+        aiSuggestion: this.buildLoggedAiSuggestion(
+          target,
+          suggestedFields,
+          fieldsReasoning,
+          reasoning,
+        ),
       }),
     };
+  }
+
+  private buildLoggedAiSuggestion(
+    target: RelationTarget,
+    comparedFields: string[] | undefined,
+    fieldsReasoning?: string,
+    recordReasoning?: string,
+  ): LoadRelatedRecordAiSuggestion {
+    if (nonEmptyText(recordReasoning) === undefined) {
+      this.context.logger(
+        'Info',
+        'load-related-record: the model suggested a record without justifying it',
+        {
+          ...this.logCtx,
+          relation: target.name,
+        },
+      );
+    }
+
+    return buildAiSuggestion(
+      { name: target.name, displayName: target.displayName },
+      comparedFields,
+      fieldsReasoning,
+      recordReasoning,
+    );
   }
 
   private extractReferenceFieldValue(
@@ -463,7 +498,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
   private async resolveAndLoadAutomatic(): Promise<StepExecutionResult> {
     // No source record throws (like Manual/AI-assisted) → the front offers "continue without".
     const target = await this.resolveTarget(true);
-    const { availableRecordIds, suggestedRecord, ambiguous, trace } =
+    const { availableRecordIds, suggestedRecord, ambiguous, aiSuggestion } =
       await this.collectCandidateIds(target, true);
 
     // Full AI with no candidate at all: a human couldn't pick one either, so continue without a
@@ -482,7 +517,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
         availableRecordIds,
         suggestedRecord,
         suggestNoRecord: !suggestedRecord,
-        trace,
+        aiSuggestion,
       });
     }
 
@@ -497,22 +532,17 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     // raw recordId (AI-assisted already carries this through its await-then-confirm execution).
     const sourceSchema = await this.getCollectionSchema(target.selectedRecordRef.collectionName);
 
-    return this.persistAndReturn(
-      record,
-      target,
-      {
-        type: 'load-related-record',
-        stepIndex: this.context.stepIndex,
-        pendingData: {
-          availableFields: this.followableRelationFields(sourceSchema),
-          suggestedField: { name: target.name, displayName: target.displayName },
-          availableRecordIds,
-          suggestedRecord,
-          ...trace,
-        },
+    return this.persistAndReturn(record, target, {
+      type: 'load-related-record',
+      stepIndex: this.context.stepIndex,
+      ...(aiSuggestion !== undefined && { aiSuggestion }),
+      pendingData: {
+        availableFields: this.followableRelationFields(sourceSchema),
+        suggestedField: { name: target.name, displayName: target.displayName },
+        availableRecordIds,
+        suggestedRecord,
       },
-      trace,
-    );
+    });
   }
 
   private async fetchXToOneCandidate(
@@ -586,22 +616,22 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       stepIndex: this.context.stepIndex,
     };
 
-    const { suggestedFields, fieldsReasoning, reasoning, suggestedRecord } = pendingData;
-    const aiSuggested = reasoning !== undefined && suggestedRecord !== undefined;
-    const ruling: LoadRelatedRecordAiRuling | undefined = aiSuggested
-      ? LoadRelatedRecordStepExecutor.ruleOnSuggestion(
-          name === pendingData.suggestedField.name,
-          sameRecordId(selectedRecordId, suggestedRecord!.recordId),
-        )
-      : undefined;
+    const { aiSuggestion } = execution;
+    const { suggestedRecord } = pendingData;
+    // A relation preview rewrites pendingData.suggestedField to what the human asked to see, so the
+    // relation the AI chose is read from its own suggestion.
+    const ruling: LoadRelatedRecordAiRuling | undefined =
+      aiSuggestion !== undefined && suggestedRecord !== undefined
+        ? LoadRelatedRecordStepExecutor.ruleOnSuggestion(
+            name === (aiSuggestion.field?.name ?? pendingData.suggestedField.name),
+            sameRecordId(selectedRecordId, suggestedRecord.recordId),
+          )
+        : undefined;
 
     return this.persistAndReturn(
       record,
       { selectedRecordRef, name, displayName },
-      ruling !== undefined ? { ...execution, aiSuggestionRuling: ruling } : execution,
-      ruling === 'kept'
-        ? buildAiSuggestionTrace(suggestedFields, fieldsReasoning, reasoning)
-        : undefined,
+      { ...execution, ...(ruling !== undefined && { aiSuggestionRuling: ruling }) },
     );
   }
 
@@ -722,7 +752,6 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     record: RecordRef,
     target: Pick<RelationTarget, 'selectedRecordRef' | 'name' | 'displayName'>,
     existingExecution: LoadRelatedRecordStepExecutionData | undefined,
-    trace?: AiSuggestionTrace,
   ): Promise<StepExecutionResult> {
     const { selectedRecordRef, name, displayName } = target;
 
@@ -731,7 +760,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       type: 'load-related-record',
       stepIndex: this.context.stepIndex,
       executionParams: { displayName, name },
-      executionResult: { relation: { name, displayName }, record, ...trace },
+      executionResult: { relation: { name, displayName }, record },
       selectedRecordRef,
     });
 

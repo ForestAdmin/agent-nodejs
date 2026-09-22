@@ -1702,6 +1702,37 @@ describe('McpStepExecutor — re-auth pause hardening', () => {
         );
       });
 
+      it('should offer a tool whose schema cannot be extended rather than fail the step', async () => {
+        const invokeFn = jest.fn().mockResolvedValue('sent');
+        const tool = new MockRemoteTool({
+          name: 'send_notification',
+          sourceId: 'mcp-server-1',
+          invoke: invokeFn,
+          schema: {
+            get extend() {
+              throw new Error('this schema refuses to be read');
+            },
+          } as unknown as Record<string, unknown>,
+        });
+        const { model } = makeMockModel('send_notification', { message: 'Hello' });
+        const logger = jest.fn();
+        const context = makeContext({
+          model,
+          logger,
+          stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+        });
+
+        const result = await new McpStepExecutor(context, [tool]).execute();
+
+        expect(result.stepOutcome.status).toBe('success');
+        expect(invokeFn).toHaveBeenCalledWith({ message: 'Hello' });
+        expect(logger).toHaveBeenCalledWith(
+          'Info',
+          'mcp: tool offered without a reasoning field',
+          expect.objectContaining({ toolName: 'send_notification' }),
+        );
+      });
+
       it('should offer a tool declaring no schema untouched instead of failing the step', async () => {
         const invokeFn = jest.fn().mockResolvedValue('pong');
         const tool = new MockRemoteTool({

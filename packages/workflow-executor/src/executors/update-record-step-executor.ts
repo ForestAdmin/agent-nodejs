@@ -2,6 +2,7 @@ import type { StepExecutionResult } from '../types/execution-context';
 import type {
   FieldWithValue,
   UpdateRecordAiRuling,
+  UpdateRecordAiSuggestion,
   UpdateRecordStepExecutionData,
 } from '../types/step-execution-data';
 import type { CollectionSchema, FieldSchema, RecordRef } from '../types/validated/collection';
@@ -144,7 +145,7 @@ function coerceFieldValue(
 
 interface UpdateTarget extends FieldWithValue {
   selectedRecordRef: RecordRef;
-  reasoning?: string;
+  aiSuggestion?: UpdateRecordAiSuggestion;
   aiSuggestionRuling?: UpdateRecordAiRuling;
 }
 
@@ -192,17 +193,17 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
         // The value comes from an `unknown` HTTP value (may be a boolean or array), so coerce
         // it to the field's native type before updating. Idempotent on already-typed values.
         const value = await this.coerceOverride(selectedRecordRef, pendingData, rawValue);
-        const aiReasoning = pendingData!.reasoning;
+        const { aiSuggestion } = exec;
         const keptAiValue =
-          aiReasoning !== undefined &&
+          aiSuggestion !== undefined &&
           (await this.userKeptAiValue(selectedRecordRef, pendingData, overrideValue, value));
 
         const target: UpdateTarget = {
           selectedRecordRef,
           ...pendingData!,
           value,
-          reasoning: keptAiValue ? aiReasoning : undefined,
-          ...(aiReasoning !== undefined && {
+          aiSuggestion,
+          ...(aiSuggestion !== undefined && {
             aiSuggestionRuling: keptAiValue ? ('kept' as const) : ('value-changed' as const),
           }),
         };
@@ -276,10 +277,12 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     let fieldName: string;
     let value: unknown;
     let reasoning: string | undefined;
+    let aiResolvedValue = true;
 
     if (recordedField !== undefined && preRecordedArgs?.value !== undefined) {
       fieldName = recordedField;
       value = preRecordedArgs.value;
+      aiResolvedValue = false;
     } else if (recordedField !== undefined) {
       const field = this.findFieldByTechnicalName(schema, recordedField);
       if (!field) throw new PinnedArgNotFoundError('field', recordedField, schema.collectionName);
@@ -299,12 +302,25 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
         : new FieldNotFoundError(fieldName, schema.collectionName);
     }
 
+    if (aiResolvedValue && nonEmptyText(reasoning) === undefined) {
+      this.context.logger(
+        'Info',
+        'update-record: the model proposed a value without justifying it',
+        {
+          ...this.logCtx,
+          field: field.fieldName,
+        },
+      );
+    }
+
     const target: UpdateTarget = {
       selectedRecordRef,
       displayName: field.displayName,
       name: field.fieldName,
       value,
-      reasoning,
+      ...(aiResolvedValue && {
+        aiSuggestion: { ...(nonEmptyText(reasoning) !== undefined && { reasoning }) },
+      }),
     };
 
     // Branch B -- fully automated execution
@@ -316,11 +332,11 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'update-record',
       stepIndex: this.context.stepIndex,
+      ...(target.aiSuggestion !== undefined && { aiSuggestion: target.aiSuggestion }),
       pendingData: {
         displayName: target.displayName,
         name: target.name,
         value: target.value,
-        ...(target.reasoning !== undefined && { reasoning: target.reasoning }),
       },
       selectedRecordRef: target.selectedRecordRef,
     });
@@ -333,7 +349,8 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     target: UpdateTarget,
     existingExecution?: UpdateRecordStepExecutionData,
   ): Promise<StepExecutionResult> {
-    const { selectedRecordRef, displayName, name, value, reasoning, aiSuggestionRuling } = target;
+    const { selectedRecordRef, displayName, name, value, aiSuggestion, aiSuggestionRuling } =
+      target;
 
     const updated = await this.context.agent.updateRecord(
       {
@@ -347,12 +364,8 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
             ...existingExecution,
             type: 'update-record',
             stepIndex: this.context.stepIndex,
-            executionParams: {
-              displayName,
-              name,
-              value,
-              ...(reasoning !== undefined && { reasoning }),
-            },
+            ...(aiSuggestion !== undefined && { aiSuggestion }),
+            executionParams: { displayName, name, value },
             selectedRecordRef,
             idempotencyPhase: 'executing',
           }),
@@ -363,8 +376,9 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
       ...existingExecution,
       type: 'update-record',
       stepIndex: this.context.stepIndex,
+      ...(aiSuggestion !== undefined && { aiSuggestion }),
       ...(aiSuggestionRuling !== undefined && { aiSuggestionRuling }),
-      executionParams: { displayName, name, value, ...(reasoning !== undefined && { reasoning }) },
+      executionParams: { displayName, name, value },
       executionResult: { updatedValues: updated.values },
       selectedRecordRef,
       idempotencyPhase: 'done',
