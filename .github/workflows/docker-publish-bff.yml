@@ -4,14 +4,20 @@ on:
   # Releases publish via workflow_dispatch from build.yml's `release` job, not a
   # tag-push trigger — the release commit's `[skip ci]` would suppress it.
   pull_request:
-    # Validate on any change to the BFF or to a dependency package's manifest — a
-    # dep bump in one of the 4 source packages can drift the image's dedicated
-    # lockfile (see packages/agent-bff/docker/).
+    # Validate on any change to what the image actually contains. The 4 dependency
+    # packages ship as `dist` inside it, so their `src` is image code and belongs
+    # here — a change there can break startup with nothing in this repo to catch it.
+    # Their manifests matter for a second reason: a dep bump in one of them drifts
+    # the image's dedicated lockfile (see packages/agent-bff/docker/).
     paths:
       - 'packages/agent-bff/**'
+      - 'packages/agent-client/src/**'
       - 'packages/agent-client/package.json'
+      - 'packages/agent-toolkit/src/**'
       - 'packages/agent-toolkit/package.json'
+      - 'packages/datasource-toolkit/src/**'
       - 'packages/datasource-toolkit/package.json'
+      - 'packages/forestadmin-client/src/**'
       - 'packages/forestadmin-client/package.json'
       # The builder runs `yarn install --frozen-lockfile` from the repo root, so a
       # lockfile-only change can alter the build (build.yml installs without
@@ -33,12 +39,20 @@ permissions:
   contents: read
 
 concurrency:
-  # Include the dispatch version so two manual runs for different versions from the
-  # same branch don't cancel each other mid-release. Two versions therefore CAN publish
-  # concurrently and finish out of order; the merge job re-decides latest-stable against
-  # the tags as they are then, so the finishing order cannot regress the mutable tags.
-  group: docker-publish-bff-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version || '' }}
-  cancel-in-progress: true
+  # A publish is keyed by the version alone, deliberately without the ref: two dispatches
+  # for the same version from different branches would otherwise run side by side, both
+  # find the version tag free, and both publish — the immutability check in the merge job
+  # only holds if same-version publishes are serialised. They queue instead of cancelling,
+  # so the second one runs that check against what the first actually published.
+  #
+  # Different versions still publish concurrently and can finish out of order; the merge
+  # job re-decides latest-stable against the tags as they are then, so the finishing order
+  # cannot regress the mutable tags.
+  #
+  # PRs keep the opposite behaviour, grouped by ref and cancelling: a superseded validation
+  # of an older push is waste, not a release.
+  group: docker-publish-bff-${{ github.event_name == 'workflow_dispatch' && format('publish-{0}', github.event.inputs.version) || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   # On PRs: build the image (no push) to catch Dockerfile breakage before release.
@@ -360,7 +374,7 @@ jobs:
           # died, or moving the mutable tags): let it through, imagetools rewrites the
           # same list. Different means the version was rebuilt, and the answer is a new
           # version, not a silently different 1.20.2.
-          if EXISTING=$(docker buildx imagetools inspect "$IMAGE:$FULL" --raw 2>/dev/null); then
+          if EXISTING=$(docker buildx imagetools inspect "$IMAGE:$FULL" --raw 2>/tmp/inspect.err); then
             HAVE=$(printf '%s' "$EXISTING" \
               | jq -r '.manifests[]? | select(.platform.architecture != "unknown") | .digest' | sort)
             WANT=$(printf 'sha256:%s\n' * | sort)
@@ -371,6 +385,16 @@ jobs:
               exit 1
             fi
             echo "::notice::$IMAGE:$FULL already points to these images; re-tagging is a no-op."
+          # Only an explicit not-found means the tag is free. Every other failure — a network
+          # blip, an expired token, a registry 5xx — resolves nothing, and reading it as "absent"
+          # would hand this run a tag it never checked. buildx says `<ref>: not found` for a tag
+          # that is not there, and `failed to authorize: ...` for a repository it cannot read.
+          elif grep -qiE 'not found|manifest unknown|name unknown' /tmp/inspect.err; then
+            echo "::notice::$IMAGE:$FULL does not exist yet."
+          else
+            cat /tmp/inspect.err >&2
+            echo "::error::Could not resolve $IMAGE:$FULL. Refusing to publish over a tag whose contents are unknown."
+            exit 1
           fi
 
           # Always publish the immutable full-version tag. The mutable tags
