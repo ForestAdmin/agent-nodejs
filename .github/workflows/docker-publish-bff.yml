@@ -352,6 +352,27 @@ jobs:
           MAJOR: ${{ needs.extract-version.outputs.major }}
           IS_LATEST: ${{ steps.recheck.outputs.is_latest }}
         run: |
+          # :$FULL is advertised as immutable, so a re-dispatch of a version that
+          # already shipped must not repoint it at the images this run just built.
+          # Compare what the tag resolves to against those digests — the attestation
+          # manifests the SBOM adds carry no architecture, so they are not part of the
+          # comparison. Identical means this is a replay (recovering a merge job that
+          # died, or moving the mutable tags): let it through, imagetools rewrites the
+          # same list. Different means the version was rebuilt, and the answer is a new
+          # version, not a silently different 1.20.2.
+          if EXISTING=$(docker buildx imagetools inspect "$IMAGE:$FULL" --raw 2>/dev/null); then
+            HAVE=$(printf '%s' "$EXISTING" \
+              | jq -r '.manifests[]? | select(.platform.architecture != "unknown") | .digest' | sort)
+            WANT=$(printf 'sha256:%s\n' * | sort)
+            if [ "$HAVE" != "$WANT" ]; then
+              echo "::error::$IMAGE:$FULL already exists and points to other images."
+              echo "published: $(echo $HAVE)" >&2
+              echo "this run:  $(echo $WANT)" >&2
+              exit 1
+            fi
+            echo "::notice::$IMAGE:$FULL already points to these images; re-tagging is a no-op."
+          fi
+
           # Always publish the immutable full-version tag. The mutable tags
           # (minor, major, latest) only move when this is the latest stable
           # version, so neither a prerelease nor a rebuild of an older version
