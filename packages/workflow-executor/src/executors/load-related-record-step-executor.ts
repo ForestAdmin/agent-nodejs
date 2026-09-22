@@ -585,16 +585,18 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     };
 
     const { suggestedFields, fieldsReasoning, reasoning, suggestedRecord } = pendingData;
+    // A suggested record is what says an AI proposed one at all, so without it there is no
+    // agreement or disagreement to record.
+    const aiSuggested = suggestedFields !== undefined && suggestedRecord !== undefined;
     const userKeptAiSuggestion =
-      suggestedFields !== undefined &&
-      suggestedRecord !== undefined &&
+      aiSuggested &&
       name === pendingData.suggestedField.name &&
-      sameRecordId(selectedRecordId, suggestedRecord.recordId);
+      sameRecordId(selectedRecordId, suggestedRecord!.recordId);
 
     return this.persistAndReturn(
       record,
       { selectedRecordRef, name, displayName },
-      execution,
+      aiSuggested ? { ...execution, aiSuggestionOverridden: !userKeptAiSuggestion } : execution,
       userKeptAiSuggestion
         ? buildAiSuggestionTrace(suggestedFields, fieldsReasoning, reasoning)
         : undefined,

@@ -2680,6 +2680,67 @@ describe('UpdateRecordStepExecutor', () => {
       });
     });
 
+    describe('when a human ruled on the AI proposal', () => {
+      function makeConfirmation(
+        pendingValue: unknown,
+        reasoning: string | undefined,
+        userValue: unknown,
+      ) {
+        const execution: UpdateRecordStepExecutionData = {
+          type: 'update-record',
+          stepIndex: 0,
+          pendingData: {
+            displayName: 'Status',
+            name: 'status',
+            value: pendingValue,
+            ...(reasoning !== undefined && { reasoning }),
+          },
+          selectedRecordRef: makeRecordRef(),
+        };
+        const runStore = makeMockRunStore({
+          getStepExecutions: jest.fn().mockResolvedValue([execution]),
+        });
+        const context = makeContext({
+          agentPort: makeMockAgentPort({ status: userValue }),
+          runStore,
+          incomingPendingData: { userConfirmed: true, value: userValue },
+        });
+
+        return { executor: new UpdateRecordStepExecutor(context), runStore };
+      }
+
+      it('should record the agreement when the human keeps the AI value', async () => {
+        const { executor, runStore } = makeConfirmation('active', 'The order shipped', 'active');
+
+        await executor.execute();
+
+        const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+        expect(finalSave.aiSuggestionOverridden).toBe(false);
+      });
+
+      it('should record the disagreement when the human writes another value', async () => {
+        const { executor, runStore } = makeConfirmation(
+          'inactive',
+          'The order was cancelled',
+          'active',
+        );
+
+        await executor.execute();
+
+        const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+        expect(finalSave.aiSuggestionOverridden).toBe(true);
+      });
+
+      it('should record nothing when no AI proposed the value', async () => {
+        const { executor, runStore } = makeConfirmation('inactive', undefined, 'active');
+
+        await executor.execute();
+
+        const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+        expect(finalSave).not.toHaveProperty('aiSuggestionOverridden');
+      });
+    });
+
     describe('when the field holds an array value', () => {
       const tagsField = {
         fieldName: 'tags',

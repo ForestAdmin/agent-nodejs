@@ -5032,6 +5032,63 @@ describe('LoadRelatedRecordStepExecutor', () => {
       });
     });
 
+    describe('when a human ruled on the AI suggestion (Branch A)', () => {
+      function makeRuling(selectedRecordId: string, aiSuggested = true) {
+        const execution = makePendingExecution({
+          pendingData: {
+            availableFields: [
+              { name: 'order', displayName: 'Order' },
+              { name: 'address', displayName: 'Address' },
+            ],
+            suggestedField: { name: 'order', displayName: 'Order' },
+            availableRecordIds: [cand([99]), cand([42])],
+            suggestedRecord: cand([99]),
+            ...(aiSuggested && {
+              suggestedFields: ['reference'],
+              reasoning: 'Order 99 is the pending one',
+            }),
+          },
+        });
+        const runStore = makeMockRunStore({
+          getStepExecutions: jest.fn().mockResolvedValue([execution]),
+        });
+        const context = makeContext({
+          agentPort: makeMockAgentPort(),
+          runStore,
+          incomingPendingData: { userConfirmed: true, selectedRecordId },
+        });
+
+        return { executor: new LoadRelatedRecordStepExecutor(context), runStore };
+      }
+
+      it('should record the agreement when the human keeps the AI record', async () => {
+        const { executor, runStore } = makeRuling('99');
+
+        await executor.execute();
+
+        const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+        expect(finalSave.aiSuggestionOverridden).toBe(false);
+      });
+
+      it('should record the disagreement when the human loads another record', async () => {
+        const { executor, runStore } = makeRuling('42');
+
+        await executor.execute();
+
+        const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+        expect(finalSave.aiSuggestionOverridden).toBe(true);
+      });
+
+      it('should record nothing when no AI suggested a record', async () => {
+        const { executor, runStore } = makeRuling('42', false);
+
+        await executor.execute();
+
+        const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+        expect(finalSave).not.toHaveProperty('aiSuggestionOverridden');
+      });
+    });
+
     describe('when the user picks another record than the suggested one (Branch A)', () => {
       it("should leave the loaded record unexplained — the choice is the user's, not the AI's", async () => {
         const execution = makePendingExecution({

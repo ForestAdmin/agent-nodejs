@@ -140,6 +140,7 @@ function coerceFieldValue(
 interface UpdateTarget extends FieldWithValue {
   selectedRecordRef: RecordRef;
   reasoning?: string;
+  aiSuggestionOverridden?: boolean;
 }
 
 // A field value is a primitive, a string, or an array of those (Json is stored as a string), so
@@ -186,17 +187,19 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
         // The value comes from an `unknown` HTTP value (may be a boolean or array), so coerce
         // it to the field's native type before updating. Idempotent on already-typed values.
         const value = await this.coerceOverride(selectedRecordRef, pendingData, rawValue);
+        // A reasoning is what says an AI proposed this value at all, so without one there is no
+        // agreement or disagreement to record.
         const aiReasoning = pendingData!.reasoning;
+        const keptAiValue =
+          aiReasoning !== undefined &&
+          (await this.userKeptAiValue(selectedRecordRef, pendingData, overrideValue, value));
 
         const target: UpdateTarget = {
           selectedRecordRef,
           ...pendingData!,
           value,
-          reasoning:
-            aiReasoning !== undefined &&
-            (await this.userKeptAiValue(selectedRecordRef, pendingData, overrideValue, value))
-              ? aiReasoning
-              : undefined,
+          reasoning: keptAiValue ? aiReasoning : undefined,
+          ...(aiReasoning !== undefined && { aiSuggestionOverridden: !keptAiValue }),
         };
 
         return this.resolveAndUpdate(target, exec);
@@ -326,7 +329,8 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     target: UpdateTarget,
     existingExecution?: UpdateRecordStepExecutionData,
   ): Promise<StepExecutionResult> {
-    const { selectedRecordRef, displayName, name, value, reasoning } = target;
+    const { selectedRecordRef, displayName, name, value, reasoning, aiSuggestionOverridden } =
+      target;
 
     const updated = await this.context.agent.updateRecord(
       {
@@ -356,6 +360,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
       ...existingExecution,
       type: 'update-record',
       stepIndex: this.context.stepIndex,
+      ...(aiSuggestionOverridden !== undefined && { aiSuggestionOverridden }),
       executionParams: { displayName, name, value, ...(reasoning !== undefined && { reasoning }) },
       executionResult: { updatedValues: updated.values },
       selectedRecordRef,

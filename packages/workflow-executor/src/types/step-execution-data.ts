@@ -95,6 +95,9 @@ export interface UpdateRecordStepExecutionData
   extends MutatingStepExecutionData,
     WithUserConfirmation<UpdateRecordConfirmation> {
   type: 'update-record';
+  // Whether the human wrote a value other than the one the AI proposed. Present only when an AI
+  // proposal was actually put to a human, so absent never means agreement.
+  aiSuggestionOverridden?: boolean;
   executionParams?: FieldWithValue & { reasoning?: string };
   // User confirmed → values returned by updateRecord. User rejected → skipped.
   executionResult?: { updatedValues: Record<string, unknown> } | { skipped: true };
@@ -218,6 +221,9 @@ export interface LoadRelatedRecordStepExecutionData
   extends BaseStepExecutionData,
     WithUserConfirmation<LoadRelatedRecordConfirmation> {
   type: 'load-related-record';
+  // Whether the human loaded a record other than the one the AI suggested. Present only when an AI
+  // suggestion was actually put to a human, so absent never means agreement.
+  aiSuggestionOverridden?: boolean;
   pendingData?: LoadRelatedRecordPendingData;
   // Set on every await/load path (and preserved through the user-initiated "continue without" skip).
   selectedRecordRef?: RecordRef;
