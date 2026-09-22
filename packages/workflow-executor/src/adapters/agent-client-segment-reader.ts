@@ -34,7 +34,8 @@ export default class AgentClientSegmentReader implements SegmentReaderPort {
   }
 
   async listRecordIds(query: ListSegmentRecordIdsQuery): Promise<string[]> {
-    const { collectionName, segment, primaryKeys, user, timezone, recordIds, pageSize } = query;
+    const { collectionName, segment, primaryKeys, user, timezone, pageSize } = query;
+    const { recordIds, excludedRecordIds } = query;
 
     try {
       const client = createRemoteAgentClient({
@@ -45,7 +46,12 @@ export default class AgentClientSegmentReader implements SegmentReaderPort {
         timezone,
       });
 
-      const filters = AgentClientSegmentReader.buildFilters(segment, primaryKeys, recordIds);
+      const filters = AgentClientSegmentReader.buildFilters(
+        segment,
+        primaryKeys,
+        recordIds,
+        excludedRecordIds,
+      );
       const options: SelectOptions = {
         fields: primaryKeys,
         ...(pageSize !== undefined ? { pagination: { size: pageSize, number: 1 } } : {}),
@@ -101,17 +107,26 @@ export default class AgentClientSegmentReader implements SegmentReaderPort {
     segment: ServerAutomatedSegmentDescriptor,
     primaryKeys: string[],
     recordIds: string[] | undefined,
+    excludedRecordIds: string[] | undefined,
   ): AgentFilter {
-    const segmentTree = segment.kind === 'filter' ? segment.conditionTree : null;
-    const idTree = recordIds?.length
-      ? AgentClientSegmentReader.buildRecordIdFilter(primaryKeys, recordIds)
-      : null;
+    const branches = [
+      segment.kind === 'filter' ? segment.conditionTree : null,
+      recordIds?.length
+        ? AgentClientSegmentReader.buildRecordIdFilter(primaryKeys, recordIds)
+        : null,
+      // Single-column keys only, as the port states: `not_in` takes a flat list of values, and the
+      // caller falls back to reading a wider page rather than negating a composite key.
+      excludedRecordIds?.length && primaryKeys.length === 1
+        ? { field: primaryKeys[0], operator: 'not_in', value: excludedRecordIds }
+        : null,
+    ].filter((tree): tree is ServerPlainConditionTree => tree !== null);
 
-    let tree: ServerPlainConditionTree | null = segmentTree ?? idTree;
+    if (branches.length === 0) return undefined;
 
-    if (segmentTree && idTree) tree = { aggregator: 'and', conditions: [segmentTree, idTree] };
+    const tree: ServerPlainConditionTree =
+      branches.length === 1 ? branches[0] : { aggregator: 'and', conditions: branches };
 
-    return tree === null ? undefined : (tree as AgentFilter);
+    return tree as AgentFilter;
   }
 
   private static buildRecordIdFilter(

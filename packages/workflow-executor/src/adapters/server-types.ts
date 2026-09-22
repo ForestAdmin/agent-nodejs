@@ -331,6 +331,9 @@ export const ServerAutomatedInboxConfigSchema = z.object({
   primaryKeys: z.array(z.string().min(1)).min(1),
   maxConcurrentRuns: z.number().int().positive(),
   timezone: z.string().nullish(),
+  // Absent on an orchestrator that predates the exclusion filter, which reads as "not supported":
+  // the poller then pads its page and subtracts afterwards, as it always did.
+  excludeKnownRecords: z.boolean().optional(),
   segment: ServerAutomatedSegmentDescriptorSchema,
   serviceAccountProfile: ServerAutomatedInboxServiceAccountProfileSchema,
 });
