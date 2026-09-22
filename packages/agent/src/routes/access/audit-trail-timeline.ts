@@ -93,12 +93,24 @@ export default class AuditTrailTimelineRoute extends BaseRoute {
   // over as `excludeIds` rather than being skipped — that is what keeps a tie from falling between
   // two pages. When the previous page ended on the same timestamp its exclusions still apply, so a
   // timestamp holding more rows than fit on one page walks forward instead of looping.
-  private static nextCursor(page: AuditRecord[], previous: Cursor): Cursor {
+  //
+  // Null when that walk makes no progress. Staying on the same timestamp must add at least the last
+  // row's id to the exclusions; if it doesn't, the ids this page named are not the ones the store
+  // matched and the next page would repeat this one forever. The one way that happens today is an
+  // id past 2^53, which `fromRow` rounds on its way through `Number()` — an audit table would need
+  // ~9e15 rows to reach it. Ending the walk is the safe answer at that point; the upgrade, if such
+  // a table ever exists, is to carry the id as a string through `AuditRecord`, the cursor and the
+  // SQL binding.
+  private static nextCursor(page: AuditRecord[], previous: Cursor): Cursor | null {
     const last = page[page.length - 1];
-    const carried = previous.before === last.timestamp ? previous.excludeIds : [];
+    const sameBoundary = previous.before === last.timestamp;
+    const carried = sameBoundary ? previous.excludeIds : [];
     const tied = page.filter(row => row.timestamp === last.timestamp).map(row => row.id);
+    const excludeIds = [...new Set([...carried, ...tied])];
 
-    return { before: last.timestamp, excludeIds: [...new Set([...carried, ...tied])] };
+    if (sameBoundary && excludeIds.length === carried.length) return null;
+
+    return { before: last.timestamp, excludeIds };
   }
 
   private static parseCursor(context: Context): Cursor {

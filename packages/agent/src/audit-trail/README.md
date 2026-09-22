@@ -359,6 +359,10 @@ pages, so they come back and `excludeIds` drops the ones already sent. Ties orde
 (insertion order), and a timestamp holding more rows than fit on one page accumulates its exclusions
 across pages rather than looping. Feed the two values back verbatim; don't synthesize them.
 
+`meta.cursor` is also `null` if the walk cannot move past the current timestamp — staying on one
+must always add at least the last row's id to the exclusions, so a cursor that would come back
+unchanged ends the walk instead of repeating the page forever.
+
 A custom `AuditStore` that doesn't implement `listTimeline` simply doesn't get this route mounted.
 
 ### `GET /forest/_audit-trail/correlation/{correlationKey}`
