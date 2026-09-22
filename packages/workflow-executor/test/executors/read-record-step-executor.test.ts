@@ -1713,7 +1713,7 @@ describe('ReadRecordStepExecutor', () => {
       );
     });
 
-    it('reports no source record when the pinned record is of another collection than the called workflow', async () => {
+    it('names both collections when the pinned record is of another collection than the called workflow', async () => {
       const agentPort = makeMockAgentPort();
       const context = makeCalledContext(
         { selectedRecordStepId: 'load-1', calledWorkflowCollectionName: 'invoices' },
@@ -1730,12 +1730,13 @@ describe('ReadRecordStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe(
-        'This step uses "Load the order" as its source, but that step didn\'t load any record.',
+        'This workflow runs on invoices, but the step that called it sent a record from orders. ' +
+          'Set the record on the Sub-workflow step in the calling workflow.',
       );
       expect(agentPort.getRecord).not.toHaveBeenCalled();
     });
 
-    it('reports no source record when the run record is of another collection than the called workflow', async () => {
+    it('names both collections when the run record is of another collection than the called workflow', async () => {
       const agentPort = makeMockAgentPort();
       const context = makeCalledContext(
         { calledWorkflowCollectionName: 'orders' },
@@ -1750,7 +1751,8 @@ describe('ReadRecordStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe(
-        "This step uses its source step as its source, but that step didn't load any record.",
+        'This workflow runs on orders, but the step that called it sent a record from customers. ' +
+          'Set the record on the Sub-workflow step in the calling workflow.',
       );
       expect(agentPort.getRecord).not.toHaveBeenCalled();
     });
@@ -1774,12 +1776,13 @@ describe('ReadRecordStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe(
-        'This step uses "Load the order" as its source, but that step didn\'t load any record.',
+        'This workflow runs on Orders, but the step that called it sent a record from orders. ' +
+          'Set the record on the Sub-workflow step in the calling workflow.',
       );
       expect(agentPort.getRecord).not.toHaveBeenCalled();
     });
 
-    it('leaves a collection mismatch unclassified rather than blaming a step', async () => {
+    it('classifies a collection mismatch as configuration and blames no step', async () => {
       const context = makeCalledContext(
         { selectedRecordStepId: 'load-1', calledWorkflowCollectionName: 'invoices' },
         {
@@ -1793,7 +1796,7 @@ describe('ReadRecordStepExecutor', () => {
       const result = await new ReadRecordStepExecutor(context).execute();
 
       expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.errorKind).toBeUndefined();
+      expect(result.stepOutcome.errorKind).toBe('configuration');
       expect(result.stepOutcome.errorSourceStepIndex).toBeUndefined();
     });
 

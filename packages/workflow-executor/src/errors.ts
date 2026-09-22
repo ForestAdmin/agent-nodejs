@@ -588,6 +588,19 @@ export class SourceRecordMissingError extends WorkflowExecutorError {
   }
 }
 
+// The record "workflow start" resolves to inside a Sub-workflow call belongs to another collection
+// than the called workflow, whose steps were built against fields and actions it does not have.
+// Distinct from a source that loaded nothing: a record was found, it is the wrong one, and the step
+// to change is the Sub-workflow step one level up rather than anything in this workflow.
+export class SourceRecordCollectionMismatchError extends WorkflowConfigurationError {
+  constructor(recordCollectionName: string, calledWorkflowCollectionName: string) {
+    super(
+      `Source record is from ${recordCollectionName}, but the called workflow runs on ${calledWorkflowCollectionName}`,
+      `This workflow runs on ${calledWorkflowCollectionName}, but the step that called it sent a record from ${recordCollectionName}. Set the record on the Sub-workflow step in the calling workflow.`,
+    );
+  }
+}
+
 // Boundary error — surfaces from Runner.start() and is caught at the CLI/HTTP layer, not by step executors.
 export class AgentProbeError extends Error {
   // Manual `cause` assignment: our ES2020 TS target doesn't type the native Error `cause` option.

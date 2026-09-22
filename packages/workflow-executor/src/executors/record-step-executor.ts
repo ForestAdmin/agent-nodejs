@@ -11,6 +11,7 @@ import {
   InvalidAIResponseError,
   InvalidPreRecordedArgsError,
   NoRecordsError,
+  SourceRecordCollectionMismatchError,
   SourceRecordMissingError,
 } from '../errors';
 import BaseStepExecutor from './base-step-executor';
@@ -85,17 +86,22 @@ export default abstract class RecordStepExecutor<
 
     // Inside a Sub-workflow call, "workflow start" means the record the calling step pinned; a
     // call pinning none still starts from the record the run was launched on.
-    const { record, sourceTitle } = callScope.selectedRecordStepId
+    const { record } = callScope.selectedRecordStepId
       ? await this.resolveStepRecordRef(callScope.selectedRecordStepId, callScope.pinnedAtStepIndex)
-      : { record: baseRecordRef, sourceTitle: undefined };
+      : { record: baseRecordRef };
 
     // A record of another collection than the called workflow is not what its steps were built
-    // against, so the step reports no source record rather than acting on the caller's.
+    // against, so the step refuses it rather than acting on the caller's. It names both collections:
+    // "loaded no record" would be untrue here, and on an unpinned call there is no source step to
+    // name at all.
     if (
       callScope.calledWorkflowCollectionName !== undefined &&
       record.collectionName !== callScope.calledWorkflowCollectionName
     ) {
-      throw new SourceRecordMissingError(sourceTitle);
+      throw new SourceRecordCollectionMismatchError(
+        record.collectionName,
+        callScope.calledWorkflowCollectionName,
+      );
     }
 
     return record;

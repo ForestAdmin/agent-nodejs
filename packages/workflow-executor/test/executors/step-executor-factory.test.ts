@@ -115,7 +115,8 @@ describe('StepExecutorFactory.create', () => {
 
     expect(result.stepOutcome.status).toBe('error');
     expect(result.stepOutcome.error).toBe(
-      "This step uses its source step as its source, but that step didn't load any record.",
+      'This workflow runs on orders, but the step that called it sent a record from customers. ' +
+        'Set the record on the Sub-workflow step in the calling workflow.',
     );
   });
 
