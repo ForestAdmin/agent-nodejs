@@ -283,10 +283,12 @@ export function readEnvConfig(env: NodeJS.ProcessEnv, args: CliArgs): CliConfig 
     httpPort: parsePositiveIntEnv('HTTP_PORT', env.HTTP_PORT) ?? DEFAULT_HTTP_PORT,
     forestServerUrl: env.FOREST_SERVER_URL,
     pollingIntervalS: parsePositiveIntEnv('POLLING_INTERVAL_S', env.POLLING_INTERVAL_S),
-    automationPollingIntervalS: parsePositiveIntEnv(
-      'AUTOMATION_POLL_INTERVAL_S',
-      env.AUTOMATION_POLL_INTERVAL_S,
-    ),
+    // Zero accepted here alone: an environment the orchestrator refuses logs an error on every
+    // cycle, and until now nothing let an operator stop it short of unsetting the secret.
+    automationPollingIntervalS:
+      env.AUTOMATION_POLL_INTERVAL_S?.trim() === '0'
+        ? 0
+        : parsePositiveIntEnv('AUTOMATION_POLL_INTERVAL_S', env.AUTOMATION_POLL_INTERVAL_S),
     stopTimeoutS: parsePositiveIntEnv('STOP_TIMEOUT_S', env.STOP_TIMEOUT_S),
     stepTimeoutS: parsePositiveIntEnv('STEP_TIMEOUT_S', env.STEP_TIMEOUT_S),
     aiInvokeTimeoutS: parsePositiveIntEnv('AI_INVOKE_TIMEOUT_S', env.AI_INVOKE_TIMEOUT_S),

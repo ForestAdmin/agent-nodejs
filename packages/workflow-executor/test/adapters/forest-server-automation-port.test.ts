@@ -120,6 +120,29 @@ describe('ForestServerAutomationPort', () => {
       );
     });
 
+    it.each([
+      ['an empty branch', { aggregator: 'and', conditions: [] }],
+      [
+        'a branch with no aggregator',
+        { conditions: [{ field: 'a', operator: 'equal', value: 1 }] },
+      ],
+      ['a leaf with no operator', { field: 'status', value: 'new' }],
+    ])('should refuse a filter segment carrying %s', async (_name, conditionTree) => {
+      // The agent reads `And` over nothing as matching every record, so a half-formed tree widens
+      // the segment to the whole collection rather than failing — the one outcome worth refusing
+      // the inbox over.
+      mockQuery.mockResolvedValue({
+        inboxes: [makeConfig({ segment: { kind: 'filter', conditionTree } as never })],
+      });
+
+      await expect(port.listAutomatedInboxes('w1')).resolves.toEqual([]);
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        'Skipping an automated inbox config the executor cannot read',
+        expect.objectContaining({ inboxId: 'inbox-1' }),
+      );
+    });
+
     it('should skip one unreadable config and keep the rest', async () => {
       mockQuery.mockResolvedValue({
         inboxes: [
@@ -145,7 +168,13 @@ describe('ForestServerAutomationPort', () => {
       expect(logger).toHaveBeenCalledWith(
         'Error',
         'Unreadable automated inbox listing',
-        expect.objectContaining({ error: expect.any(String) }),
+        // Named, like the 404 branch: an error nobody can tie to an environment or an instance
+        // cannot be acted on.
+        expect.objectContaining({
+          instanceId: 'w1',
+          forestServerUrl: options.forestServerUrl,
+          error: expect.any(String),
+        }),
       );
     });
 
@@ -270,6 +299,20 @@ describe('ForestServerAutomationPort', () => {
 
       await expect(port.sync('inbox-1', { closed: [], candidates: [] })).rejects.toThrow(
         AutomatedInboxGoneError,
+      );
+    });
+
+    it('should not report an unreadable answer as a sync that never landed', async () => {
+      // The runs it asked for have already started. Thrown, this would surface as
+      // `Automated inbox poll failed`, which an operator reads as the opposite of what happened.
+      mockQuery.mockResolvedValue({ results: 'not-a-list' });
+
+      await expect(port.sync('inbox-1', { closed: [], candidates: [] })).resolves.toEqual([]);
+
+      expect(logger).toHaveBeenCalledWith(
+        'Error',
+        'Unreadable automated inbox sync response, the sync itself landed',
+        expect.objectContaining({ inboxId: 'inbox-1' }),
       );
     });
   });
