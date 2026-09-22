@@ -36,6 +36,67 @@ dropped collection reachable.
 Two ways to run it: embedded in a Forest agent (`agent.addBff()`, see
 [Embedded in an agent](#embedded-in-an-agent)) or standalone, described here.
 
+### Docker (recommended)
+
+```bash
+cp .env.example .env   # then fill in the secrets
+docker compose up
+```
+
+The template targets a local, non-containerised run, so one value has to change for Docker:
+set `AGENT_URL=http://host.docker.internal:3351`. Left at `localhost`, it resolves to the BFF
+container itself and every agent call fails (see the note below).
+
+The `docker-compose.yml` at the root of this package starts a single BFF instance. See
+`.env.example` for the full list of environment variables and their descriptions.
+
+Or run the image directly:
+
+```bash
+docker run -d \
+  -p 3450:3450 \
+  --stop-timeout 15 \
+  --add-host host.docker.internal:host-gateway \
+  -e FOREST_AUTH_SECRET="..." \
+  -e FOREST_ENV_SECRET="..." \
+  -e FOREST_SERVER_URL="https://api.forestadmin.com" \
+  -e FOREST_APP_URL="https://app.forestadmin.com" \
+  -e AGENT_URL="http://host.docker.internal:3351" \
+  -e BFF_TOKEN_ENCRYPTION_KEY="$(openssl rand -base64 32)" \
+  ghcr.io/forestadmin/agent-bff:latest
+```
+
+> **Note:** When the BFF runs in Docker and your agent runs on the host machine, use
+> `host.docker.internal` instead of `localhost` in `AGENT_URL`. Docker Desktop resolves that
+> name natively; on Docker Engine for Linux it does not exist unless you map it, hence the
+> `--add-host` above (the Compose setup does the same through `extra_hosts`).
+
+The image's entry point is the CLI, so the subcommands below work the same way:
+
+```bash
+docker run --rm ghcr.io/forestadmin/agent-bff:latest openapi > openapi.json
+```
+
+Tags follow the npm package: `:latest`, `:1`, `:1.20` and the immutable `:1.20.2`.
+
+The package is public, so none of the commands above need a login. That visibility is set once,
+by hand, on the GHCR package: a package GHCR creates on its first push is private, and the
+workflow's `GITHUB_TOKEN` can push to it but not change what it is. Until someone flips it (the
+same step `workflow-executor` went through), pulls need
+`docker login ghcr.io -u <user> -p <token-with-read:packages>`.
+
+On `SIGTERM` or `SIGINT` the BFF stops accepting connections and gives the requests already in
+flight 10 seconds to finish before cutting their sockets, then exits 0. A second signal gives up on
+the wait and exits 1.
+
+Allow for that in your orchestrator's grace period. The whole budget is up to 11 seconds — the 10
+second deadline plus a 1 second fallback for the exit itself — and `docker stop` defaults to 10,
+so under load it would SIGKILL exactly when the shutdown is doing its job. Hence `--stop-timeout 15`
+above and `stop_grace_period: 15s` in the Compose file; on Kubernetes the default
+`terminationGracePeriodSeconds` of 30 already covers it.
+
+### Without Docker
+
 Packaged / production — run the bin:
 
 ```bash
@@ -99,7 +160,7 @@ yarn start:dev         # node --env-file=.env dist/cli.js
 | `FOREST_APP_URL`              | yes       | Forest front base URL, used to build the OAuth front-channel redirect (`src/oauth/oauth-routes.ts`).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | `AGENT_URL`                   | yes       | The customer agent base URL the BFF calls via agent-client.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | `BFF_TOKEN_ENCRYPTION_KEY`    | for OAuth | Base64-encoded 32-byte AES-256 key encrypting stored refresh tokens. Until it is set, the `/oauth/*` token-issuance routes are disabled and `/health` reports `configured.oauth: false` — but it stays `ok`, since the key gates OAuth and not boot; already-issued `bff_access` tokens still authenticate on `/agent/*` whenever `FOREST_AUTH_SECRET` is present.                                                                                                                                                                                                                                                                                                                                                                                             |
-| `HTTP_PORT`                   | no        | Server port, integer 0–65535. Defaults to `3450`. `0` binds an OS-assigned ephemeral port.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `HTTP_PORT`                   | no        | Server port, integer 0–65535. Defaults to `3450`. `0` binds an OS-assigned ephemeral port — useful for a local run, unusable in the Docker image, where nothing outside the process learns which port it got: it can be neither published nor probed, and the image's healthcheck would report the container unhealthy forever.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | `BFF_ALLOWED_ORIGINS`         | no        | Comma-separated CORS allow-list of origins (scheme + host + port). An entry may carry a single `*` as the leading host label — `https://*.apps.zdusercontent.com` — which matches exactly one DNS label there, and nothing else: not two labels, not the apex, and never the scheme or the port. The host left after `*.` must be at least two non-empty labels, so `https://*.com` is refused; a two-label public suffix such as `https://*.co.uk` is not, and would allow every site under it. Any other `*` in the host is refused and warned about at boot; a `*` outside the host — in userinfo, a path or a query — is stripped along with the rest of the URL, so `https://*@example.com` is simply the exact origin `https://example.com`. Empty ⇒ no cross-origin browser access.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | `BFF_DEFAULT_TIMEZONE`        | no        | Fallback IANA timezone used when a request carries neither an `X-Forest-Timezone` header nor a body `timezone`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | `BFF_PUBLIC_URL`              | no        | The BFF's own external base URL, published as `servers[0].url` in the OpenAPI document so a generated client resolves endpoints without being configured by hand. Absent, `servers[0].url` stays `/`, which a consumer that fetched the document over HTTP resolves against that URL — but which leaves a client generated from an offline `forest-bff openapi` export with no base URL at all. Trailing slashes are stripped. A malformed value fails the boot, and so does one carrying credentials, a query string or a fragment: credentials would be published to every reader of the document, and anything behind a `?` or `#` swallows the path a generated client appends. |
