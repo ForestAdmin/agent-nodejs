@@ -181,4 +181,27 @@ if ! grep -q '"oauth":true' /tmp/bff-health-ok.json; then
   exit 1
 fi
 
+# Stop this one rather than leave it to the trap. node runs as PID 1 here, and the kernel gives
+# PID 1 no default disposition for a signal it has no handler for: a container that does not
+# terminate itself waits out the orchestrator's grace and is SIGKILLed, dropping in-flight
+# requests. Nothing outside the image exercises that — the unit tests run as an ordinary pid.
+#
+# -t 30 so this measures the BFF rather than whatever `docker stop` defaults to locally.
+STOP_STARTED=$(date +%s)
+docker stop -t 30 "$CONTAINER" >/dev/null
+STOP_ELAPSED=$(( $(date +%s) - STOP_STARTED ))
+STOP_CODE=$(docker inspect "$CONTAINER" --format '{{.State.ExitCode}}')
+
+if [ "$STOP_CODE" != "0" ]; then
+  echo "::error::the container exited $STOP_CODE on docker stop, expected 0 (137 means it was SIGKILLed)"
+  docker logs "$CONTAINER" 2>&1 || true
+  exit 1
+fi
+if [ "$STOP_ELAPSED" -gt 8 ]; then
+  echo "::error::shutdown took ${STOP_ELAPSED}s; the connection close is no longer bounded"
+  docker logs "$CONTAINER" 2>&1 || true
+  exit 1
+fi
+
+echo "graceful shutdown: exit 0 in ${STOP_ELAPSED}s"
 echo "smoke test passed for $IMAGE"
