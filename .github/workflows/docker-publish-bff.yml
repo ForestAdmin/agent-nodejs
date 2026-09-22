@@ -79,6 +79,13 @@ jobs:
       # BLOCK; the BFF's npm deps are already shipped via the package, so blocking
       # the image would just desync GHCR from npm — those are report-only (fixed at
       # the source).
+      #
+      # The blocking scan keeps `ignore-unfixed`, because a finding with no fixed
+      # version is not actionable here: the apt upgrade above already pulls every
+      # patch Debian has published. On the current base that is the whole of the
+      # HIGH/CRITICAL OS surface — 0 fixed, 56 unfixed — so blocking on unfixed
+      # would block every build, forever, in exchange for an ignore file that grows
+      # to 56 entries. The report below keeps them visible instead.
       - name: Scan OS packages (blocking)
         uses: aquasecurity/trivy-action@v0.36.0
         with:
@@ -87,6 +94,14 @@ jobs:
           severity: CRITICAL,HIGH
           ignore-unfixed: true
           exit-code: '1'
+      - name: Scan OS packages, unfixed included (report)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: agent-bff:pr
+          vuln-type: os
+          severity: CRITICAL,HIGH
+          ignore-unfixed: false
+          exit-code: '0'
       - name: Scan libraries (report)
         uses: aquasecurity/trivy-action@v0.36.0
         with:
@@ -198,7 +213,7 @@ jobs:
         run: sh packages/agent-bff/docker/smoke-test.sh agent-bff:${{ matrix.arch }}
 
       # Gate by origin (see the validate job): OS packages block; the BFF's npm
-      # deps are report-only.
+      # deps are report-only, and unfixed OS findings are reported, not blocked.
       - name: Scan OS packages (blocking)
         uses: aquasecurity/trivy-action@v0.36.0
         with:
@@ -207,6 +222,14 @@ jobs:
           severity: CRITICAL,HIGH
           ignore-unfixed: true
           exit-code: '1'
+      - name: Scan OS packages, unfixed included (report)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: agent-bff:${{ matrix.arch }}
+          vuln-type: os
+          severity: CRITICAL,HIGH
+          ignore-unfixed: false
+          exit-code: '0'
       - name: Scan libraries (report)
         uses: aquasecurity/trivy-action@v0.36.0
         with:
