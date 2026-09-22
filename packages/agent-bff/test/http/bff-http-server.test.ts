@@ -159,7 +159,7 @@ describe('BFFHttpServer', () => {
 
   describe('when a required var is missing', () => {
     it('should answer GET /health with 503 degraded without disclosing which key is missing', async () => {
-      const server = createServer({ ...VALID_ENV, FOREST_SERVER_URL: undefined });
+      const server = createServer({ ...VALID_ENV, AGENT_URL: undefined });
 
       const response = await request(server.callback).get('/health');
 
@@ -168,7 +168,7 @@ describe('BFFHttpServer', () => {
     });
 
     it('should answer HEAD /health with 503', async () => {
-      const server = createServer({ ...VALID_ENV, FOREST_SERVER_URL: undefined });
+      const server = createServer({ ...VALID_ENV, AGENT_URL: undefined });
 
       const response = await request(server.callback).head('/health');
 

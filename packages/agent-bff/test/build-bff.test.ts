@@ -77,7 +77,7 @@ describe('buildBff', () => {
 
   describe('when a required key is missing', () => {
     it('should answer /health with degraded', async () => {
-      const callback = await buildCallback({ ...VALID_ENV, FOREST_SERVER_URL: undefined });
+      const callback = await buildCallback({ ...VALID_ENV, AGENT_URL: undefined });
 
       const response = await request(callback).get('/health');
 
@@ -85,7 +85,7 @@ describe('buildBff', () => {
       expect(response.body).toEqual({
         status: 'degraded',
         version,
-        configured: { oauth: false, ai: false, cors: false, openapi: true },
+        configured: { oauth: true, ai: true, cors: false, openapi: true },
       });
     });
 
