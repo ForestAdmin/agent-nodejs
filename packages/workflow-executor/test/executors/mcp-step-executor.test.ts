@@ -1635,6 +1635,51 @@ describe('McpStepExecutor — re-auth pause hardening', () => {
     });
 
     describe('when the candidate tools are offered to the AI', () => {
+      it('should keep the key of the first tool when two sources expose one name', async () => {
+        const invokeFn = jest.fn().mockResolvedValue('sent');
+        const first = new MockRemoteTool({
+          name: 'send_notification',
+          sourceId: 'mcp-server-1',
+          invoke: invokeFn,
+          schema: {
+            type: 'object',
+            properties: { message: { type: 'string' } },
+            required: ['message'],
+          },
+        });
+        // The later duplicate owns `reasoning`, so its own key is the reserved one.
+        const second = new MockRemoteTool({
+          name: 'send_notification',
+          sourceId: 'mcp-server-2',
+          schema: {
+            type: 'object',
+            properties: { reasoning: { type: 'string' } },
+            required: ['reasoning'],
+          },
+        });
+        const { model } = makeMockModel('send_notification', {
+          message: 'Hello',
+          reasoning: 'send_notification delivers the message',
+        });
+        const runStore = makeMockRunStore();
+        const context = makeContext({
+          model,
+          runStore,
+          stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+        });
+
+        const result = await new McpStepExecutor(context, [first, second]).execute();
+
+        expect(result.stepOutcome.status).toBe('success');
+        expect(invokeFn).toHaveBeenCalledWith({ message: 'Hello' });
+        expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+          'run-1',
+          expect.objectContaining({
+            toolSelectionReasoning: 'send_notification delivers the message',
+          }),
+        );
+      });
+
       it('should offer a tool declaring no schema untouched instead of failing the step', async () => {
         const invokeFn = jest.fn().mockResolvedValue('pong');
         const tool = new MockRemoteTool({

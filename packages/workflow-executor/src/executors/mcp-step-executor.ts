@@ -353,7 +353,9 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     const reasoningKeys = new Map<string, string>();
     const augmentedTools = tools.map(t => {
       const { tool, reasoningKey } = McpStepExecutor.withReasoningField(t.base);
-      reasoningKeys.set(t.base.name, reasoningKey);
+      // The model answers with a name alone, and the tool behind it is the first of that name, so
+      // two sources exposing one name must not have the second overwrite the first one's key.
+      if (!reasoningKeys.has(t.base.name)) reasoningKeys.set(t.base.name, reasoningKey);
 
       return tool;
     });
