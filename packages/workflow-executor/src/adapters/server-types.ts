@@ -272,13 +272,16 @@ export type ServerPlainConditionTree =
   | { field: string; operator?: string; value?: unknown }
   | { aggregator?: string; conditions: ServerPlainConditionTree[] };
 
+// Branch first, deliberately: a node carrying both `conditions` and `field` is ambiguous, and the
+// leaf schema would match it and strip the conditions, leaving a filter that reads a different
+// segment than the one configured. agent-client's own `toWireFilter` resolves it the same way.
 const ServerPlainConditionTreeSchema: z.ZodType<ServerPlainConditionTree> = z.lazy(() =>
   z.union([
-    z.object({ field: z.string(), operator: z.string().optional(), value: z.unknown() }),
     z.object({
       aggregator: z.string().optional(),
       conditions: z.array(ServerPlainConditionTreeSchema),
     }),
+    z.object({ field: z.string(), operator: z.string().optional(), value: z.unknown() }),
   ]),
 );
 
