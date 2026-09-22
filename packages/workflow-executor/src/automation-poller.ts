@@ -55,6 +55,12 @@ const isLiveRun = (runState: string | null | undefined): boolean =>
 
 export type AutomationPollerState = 'idle' | 'running' | 'draining' | 'stopped';
 
+type PaddedPageReason =
+  | 'unknown-liana'
+  | 'liana-without-not-in'
+  | 'composite-key'
+  | 'too-many-known-records';
+
 /**
  * `skipped` is a read that had nothing to ask and so never reached the agent. It is not a
  * failure, and it is not proof the agent answers either — which is the distinction the sync
@@ -63,6 +69,8 @@ export type AutomationPollerState = 'idle' | 'running' | 'draining' | 'stopped';
 interface SegmentRead<T> {
   outcome: 'ok' | 'failed' | 'skipped';
   items: T[];
+  paddedPageReason?: PaddedPageReason;
+  requestedPageSize?: number;
 }
 
 export interface AutomationPollerConfig {
@@ -268,6 +276,8 @@ export default class AutomationPoller {
         assignments: assignments.length,
         reconciled: closed.items.length,
         candidates: candidates.items.length,
+        candidatePageSize: candidates.requestedPageSize,
+        paddedPageReason: candidates.paddedPageReason,
         outcomes: results.reduce<Record<string, number>>(
           (counts, { outcome }) => ({ ...counts, [outcome]: (counts[outcome] ?? 0) + 1 }),
           {},
@@ -428,15 +438,16 @@ export default class AutomationPoller {
     assignments: ServerAutomatedInboxAssignment[],
   ): Promise<SegmentRead<string>> {
     const known = [...new Set(assignments.map(({ recordId }) => recordId))];
+    const paddedPageReason = AutomationPoller.paddedPageReason(config, known.length);
 
-    if (AutomationPoller.canExcludeKnownRecords(config, known)) {
+    if (!paddedPageReason) {
       const page = await this.config.segmentReaderPort.listRecordIds({
         ...AutomationPoller.segmentQuery(config),
         excludedRecordIds: known,
         pageSize: config.maxConcurrentRuns,
       });
 
-      return { outcome: 'ok', items: page };
+      return { outcome: 'ok', items: page, requestedPageSize: config.maxConcurrentRuns };
     }
 
     // Fallback for an agent whose filters have no `not_in`, a composite key, and a set too large
@@ -447,26 +458,35 @@ export default class AutomationPoller {
     // The padding is capped. It grows with the backlog, and the agent read it feeds is bounded by
     // the client's ten-second ceiling, so an uncapped page turns a large inbox into one that reads
     // nothing at all — worse than one that reads a partial page and finds fewer candidates.
+    const requestedPageSize = Math.min(
+      config.maxConcurrentRuns + assignments.length,
+      MAX_CANDIDATE_PAGE_SIZE,
+    );
     const page = await this.config.segmentReaderPort.listRecordIds({
       ...AutomationPoller.segmentQuery(config),
-      pageSize: Math.min(config.maxConcurrentRuns + assignments.length, MAX_CANDIDATE_PAGE_SIZE),
+      pageSize: requestedPageSize,
     });
 
     const knownSet = new Set(known);
 
-    return { outcome: 'ok', items: page.filter(recordId => !knownSet.has(recordId)) };
+    return {
+      outcome: 'ok',
+      items: page.filter(recordId => !knownSet.has(recordId)),
+      paddedPageReason,
+      requestedPageSize,
+    };
   }
 
-  private static canExcludeKnownRecords(
+  private static paddedPageReason(
     config: ServerAutomatedInboxConfig,
-    known: string[],
-  ): boolean {
-    return (
-      config.liana != null &&
-      !LIANAS_WITHOUT_NOT_IN.has(config.liana) &&
-      config.primaryKeys.length === 1 &&
-      known.length <= MAX_EXCLUDED_RECORDS
-    );
+    knownCount: number,
+  ): PaddedPageReason | undefined {
+    if (config.liana == null) return 'unknown-liana';
+    if (LIANAS_WITHOUT_NOT_IN.has(config.liana)) return 'liana-without-not-in';
+    if (config.primaryKeys.length !== 1) return 'composite-key';
+    if (knownCount > MAX_EXCLUDED_RECORDS) return 'too-many-known-records';
+
+    return undefined;
   }
 
   private static readTimezone(timezone: string | null | undefined): string {
