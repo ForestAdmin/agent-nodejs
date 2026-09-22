@@ -30,6 +30,14 @@ on:
         description: 'Version tag to publish (e.g. 1.20.2)'
         required: true
 
+# Every `uses:` below is pinned to a commit, with its release in the trailing comment. A tag is a
+# pointer the action's owner can move — tj-actions/changed-files was rewritten across all of its
+# tags in March 2025 — and the jobs here hold `packages: write` and a registry login, so a moved
+# tag would run under credentials that can publish to GHCR. A commit cannot be moved.
+#
+# The cost is that a pin does not receive the action's fixes by itself: bump these deliberately, the
+# way the Dockerfile's base digest is bumped.
+
 # The floor, for every job. `packages: write` is granted per job, to the two that push, and never
 # to `validate`: that one runs on pull_request, so it builds and executes code the PR controls —
 # its Dockerfile, its docker/*.js, its smoke test. A token that can write to GHCR has no business
@@ -61,17 +69,17 @@ jobs:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: ".nvmrc"
 
       - name: Check @forestadmin dependency closure
         run: node packages/agent-bff/docker/check-deps-closure.js
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
       - name: Build (no push)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
         with:
           context: .
           file: packages/agent-bff/Dockerfile
@@ -101,7 +109,7 @@ jobs:
       # would block every build, forever, in exchange for an ignore file that grows
       # to 56 entries. The report below keeps them visible instead.
       - name: Scan OS packages (blocking)
-        uses: aquasecurity/trivy-action@v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: agent-bff:pr
           vuln-type: os
@@ -109,7 +117,7 @@ jobs:
           ignore-unfixed: true
           exit-code: '1'
       - name: Scan OS packages, unfixed included (report)
-        uses: aquasecurity/trivy-action@v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: agent-bff:pr
           vuln-type: os
@@ -117,7 +125,7 @@ jobs:
           ignore-unfixed: false
           exit-code: '0'
       - name: Scan libraries (report)
-        uses: aquasecurity/trivy-action@v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: agent-bff:pr
           vuln-type: library
@@ -179,14 +187,14 @@ jobs:
             platform: linux/arm64
             runner: ubuntu-24.04-arm
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           # Build from the requested version's tag, not the default branch. Taken from
           # extract-version rather than the raw input, so only a validated semver ever
           # reaches a ref.
           ref: ${{ format('@forestadmin/agent-bff@{0}', needs.extract-version.outputs.full) }}
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: ".nvmrc"
 
@@ -198,10 +206,10 @@ jobs:
         run: node packages/agent-bff/docker/check-deps-closure.js
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
 
       - name: Log in to GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -212,7 +220,7 @@ jobs:
       # both gates pass — otherwise a vulnerable/broken image would be pullable
       # by digest even when the gate "fails".
       - name: Build (load for gating)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
         with:
           context: .
           file: packages/agent-bff/Dockerfile
@@ -229,7 +237,7 @@ jobs:
       # Gate by origin (see the validate job): OS packages block; the BFF's npm
       # deps are report-only, and unfixed OS findings are reported, not blocked.
       - name: Scan OS packages (blocking)
-        uses: aquasecurity/trivy-action@v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: agent-bff:${{ matrix.arch }}
           vuln-type: os
@@ -237,7 +245,7 @@ jobs:
           ignore-unfixed: true
           exit-code: '1'
       - name: Scan OS packages, unfixed included (report)
-        uses: aquasecurity/trivy-action@v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: agent-bff:${{ matrix.arch }}
           vuln-type: os
@@ -245,7 +253,7 @@ jobs:
           ignore-unfixed: false
           exit-code: '0'
       - name: Scan libraries (report)
-        uses: aquasecurity/trivy-action@v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: agent-bff:${{ matrix.arch }}
           vuln-type: library
@@ -273,7 +281,7 @@ jobs:
       # the README tells users to log in until that is done.
       - name: Push by digest
         id: build
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
         with:
           context: .
           file: packages/agent-bff/Dockerfile
@@ -291,7 +299,7 @@ jobs:
           DIGEST: ${{ steps.build.outputs.digest }}
 
       - name: Upload digest
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: digest-bff-${{ matrix.arch }}
           path: /tmp/digests/*
@@ -308,13 +316,13 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           # Tags only — this job builds nothing, it re-reads the release history below.
           fetch-depth: 0
 
       - name: Download digests
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           pattern: digest-bff-*
           merge-multiple: true
@@ -348,10 +356,10 @@ jobs:
           fi
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
 
       - name: Log in to GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
