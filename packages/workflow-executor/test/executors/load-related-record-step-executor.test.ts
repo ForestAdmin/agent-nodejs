@@ -5121,7 +5121,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         await executor.execute();
 
         const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
-        expect(finalSave.aiSuggestionOverridden).toBe(false);
+        expect(finalSave.aiSuggestionRuling).toBe('kept');
       });
 
       it('should record the disagreement when the human loads another record', async () => {
@@ -5130,7 +5130,42 @@ describe('LoadRelatedRecordStepExecutor', () => {
         await executor.execute();
 
         const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
-        expect(finalSave.aiSuggestionOverridden).toBe(true);
+        expect(finalSave.aiSuggestionRuling).toBe('record-changed');
+      });
+
+      it('should tell a relation change apart from a record change', async () => {
+        const execution = makePendingExecution({
+          pendingData: {
+            availableFields: [
+              { name: 'order', displayName: 'Order' },
+              { name: 'address', displayName: 'Address' },
+            ],
+            suggestedField: { name: 'order', displayName: 'Order' },
+            availableRecordIds: [cand([99])],
+            suggestedRecord: cand([99]),
+            suggestedFields: ['reference'],
+            reasoning: 'Order 99 is the pending one',
+          },
+        });
+        const runStore = makeMockRunStore({
+          getStepExecutions: jest.fn().mockResolvedValue([execution]),
+        });
+        // The user switches to Address and picks a record there, so the suggested record is moot.
+        const context = makeContext({
+          agentPort: makeMockAgentPort(),
+          runStore,
+          incomingPendingData: {
+            userConfirmed: true,
+            fieldName: 'address',
+            selectedRecordId: '99',
+          },
+        });
+
+        await new LoadRelatedRecordStepExecutor(context).execute();
+
+        const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+        expect(finalSave.aiSuggestionRuling).toBe('relation-changed');
+        expect(finalSave.executionResult).not.toHaveProperty('reasoning');
       });
 
       it('should record nothing when no AI suggested a record', async () => {
@@ -5139,7 +5174,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         await executor.execute();
 
         const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
-        expect(finalSave).not.toHaveProperty('aiSuggestionOverridden');
+        expect(finalSave).not.toHaveProperty('aiSuggestionRuling');
       });
     });
 

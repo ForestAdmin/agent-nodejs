@@ -91,13 +91,15 @@ export interface ReadRecordStepExecutionData extends BaseStepExecutionData {
 
 // -- Update Record --
 
+export type UpdateRecordAiRuling = 'kept' | 'value-changed';
+
 export interface UpdateRecordStepExecutionData
   extends MutatingStepExecutionData,
     WithUserConfirmation<UpdateRecordConfirmation> {
   type: 'update-record';
-  // Whether the human wrote a value other than the one the AI proposed. Present only when an AI
-  // proposal was actually put to a human, so absent never means agreement.
-  aiSuggestionOverridden?: boolean;
+  // How the human ruled on the AI's value. Present only when an AI proposal was actually put to a
+  // human, so absent never means agreement.
+  aiSuggestionRuling?: UpdateRecordAiRuling;
   executionParams?: FieldWithValue & { reasoning?: string };
   // User confirmed → values returned by updateRecord. User rejected → skipped.
   executionResult?: { updatedValues: Record<string, unknown> } | { skipped: true };
@@ -198,6 +200,10 @@ export interface RecordStepExecutionData extends BaseStepExecutionData {
 }
 
 // -- Load Related Record --
+
+// Following another relation and picking another record are different disagreements, and the second
+// has no meaning once the first happened: the suggested record belonged to the relation left behind.
+export type LoadRelatedRecordAiRuling = 'kept' | 'record-changed' | 'relation-changed';
 export interface LoadRelatedRecordCandidate {
   recordId: RecordId;
   referenceFieldValue: string | null;
@@ -221,9 +227,9 @@ export interface LoadRelatedRecordStepExecutionData
   extends BaseStepExecutionData,
     WithUserConfirmation<LoadRelatedRecordConfirmation> {
   type: 'load-related-record';
-  // Whether the human loaded a record other than the one the AI suggested. Present only when an AI
-  // suggestion was actually put to a human, so absent never means agreement.
-  aiSuggestionOverridden?: boolean;
+  // How the human ruled on the AI's suggestion. Present only when one was actually put to a human,
+  // so absent never means agreement.
+  aiSuggestionRuling?: LoadRelatedRecordAiRuling;
   pendingData?: LoadRelatedRecordPendingData;
   // Set on every await/load path (and preserved through the user-initiated "continue without" skip).
   selectedRecordRef?: RecordRef;

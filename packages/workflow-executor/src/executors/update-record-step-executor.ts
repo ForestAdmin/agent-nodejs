@@ -1,5 +1,9 @@
 import type { StepExecutionResult } from '../types/execution-context';
-import type { FieldWithValue, UpdateRecordStepExecutionData } from '../types/step-execution-data';
+import type {
+  FieldWithValue,
+  UpdateRecordAiRuling,
+  UpdateRecordStepExecutionData,
+} from '../types/step-execution-data';
 import type { CollectionSchema, FieldSchema, RecordRef } from '../types/validated/collection';
 import type { UpdateRecordStepDefinition } from '../types/validated/step-definition';
 
@@ -141,7 +145,7 @@ function coerceFieldValue(
 interface UpdateTarget extends FieldWithValue {
   selectedRecordRef: RecordRef;
   reasoning?: string;
-  aiSuggestionOverridden?: boolean;
+  aiSuggestionRuling?: UpdateRecordAiRuling;
 }
 
 // A field value is a primitive, a string, or an array of those (Json is stored as a string), so
@@ -200,7 +204,9 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
           ...pendingData!,
           value,
           reasoning: keptAiValue ? aiReasoning : undefined,
-          ...(aiReasoning !== undefined && { aiSuggestionOverridden: !keptAiValue }),
+          ...(aiReasoning !== undefined && {
+            aiSuggestionRuling: keptAiValue ? ('kept' as const) : ('value-changed' as const),
+          }),
         };
 
         return this.resolveAndUpdate(target, exec);
@@ -330,8 +336,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     target: UpdateTarget,
     existingExecution?: UpdateRecordStepExecutionData,
   ): Promise<StepExecutionResult> {
-    const { selectedRecordRef, displayName, name, value, reasoning, aiSuggestionOverridden } =
-      target;
+    const { selectedRecordRef, displayName, name, value, reasoning, aiSuggestionRuling } = target;
 
     const updated = await this.context.agent.updateRecord(
       {
@@ -361,7 +366,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
       ...existingExecution,
       type: 'update-record',
       stepIndex: this.context.stepIndex,
-      ...(aiSuggestionOverridden !== undefined && { aiSuggestionOverridden }),
+      ...(aiSuggestionRuling !== undefined && { aiSuggestionRuling }),
       executionParams: { displayName, name, value, ...(reasoning !== undefined && { reasoning }) },
       executionResult: { updatedValues: updated.values },
       selectedRecordRef,

@@ -1,5 +1,6 @@
 import type { StepExecutionResult } from '../types/execution-context';
 import type {
+  LoadRelatedRecordAiRuling,
   LoadRelatedRecordCandidate,
   LoadRelatedRecordStepExecutionData,
   RelationRef,
@@ -589,18 +590,20 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
 
     const { suggestedFields, fieldsReasoning, reasoning, suggestedRecord } = pendingData;
     // A suggested record is what says an AI proposed one at all, so without it there is no
-    // agreement or disagreement to record.
+    // ruling to record.
     const aiSuggested = reasoning !== undefined && suggestedRecord !== undefined;
-    const userKeptAiSuggestion =
-      aiSuggested &&
-      name === pendingData.suggestedField.name &&
-      sameRecordId(selectedRecordId, suggestedRecord!.recordId);
+    const ruling: LoadRelatedRecordAiRuling | undefined = aiSuggested
+      ? LoadRelatedRecordStepExecutor.ruleOnSuggestion(
+          name === pendingData.suggestedField.name,
+          sameRecordId(selectedRecordId, suggestedRecord!.recordId),
+        )
+      : undefined;
 
     return this.persistAndReturn(
       record,
       { selectedRecordRef, name, displayName },
-      aiSuggested ? { ...execution, aiSuggestionOverridden: !userKeptAiSuggestion } : execution,
-      userKeptAiSuggestion
+      ruling !== undefined ? { ...execution, aiSuggestionRuling: ruling } : execution,
+      ruling === 'kept'
         ? buildAiSuggestionTrace(suggestedFields, fieldsReasoning, reasoning)
         : undefined,
     );
@@ -708,6 +711,17 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     });
 
     return this.buildOutcomeResult({ status: 'success' });
+  }
+
+  // Following another relation and picking another record are different disagreements, and the
+  // record question is moot once the relation changed: the suggestion belonged to the other one.
+  private static ruleOnSuggestion(
+    followedSuggestedRelation: boolean,
+    loadedSuggestedRecord: boolean,
+  ): LoadRelatedRecordAiRuling {
+    if (!followedSuggestedRelation) return 'relation-changed';
+
+    return loadedSuggestedRecord ? 'kept' : 'record-changed';
   }
 
   private async persistAndReturn(

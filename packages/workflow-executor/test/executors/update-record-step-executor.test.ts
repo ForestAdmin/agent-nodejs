@@ -2715,7 +2715,7 @@ describe('UpdateRecordStepExecutor', () => {
         await executor.execute();
 
         const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
-        expect(finalSave.aiSuggestionOverridden).toBe(false);
+        expect(finalSave.aiSuggestionRuling).toBe('kept');
       });
 
       it('should record the disagreement when the human writes another value', async () => {
@@ -2728,7 +2728,7 @@ describe('UpdateRecordStepExecutor', () => {
         await executor.execute();
 
         const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
-        expect(finalSave.aiSuggestionOverridden).toBe(true);
+        expect(finalSave.aiSuggestionRuling).toBe('value-changed');
       });
 
       it('should record nothing when no AI proposed the value', async () => {
@@ -2737,7 +2737,7 @@ describe('UpdateRecordStepExecutor', () => {
         await executor.execute();
 
         const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
-        expect(finalSave).not.toHaveProperty('aiSuggestionOverridden');
+        expect(finalSave).not.toHaveProperty('aiSuggestionRuling');
       });
     });
 
