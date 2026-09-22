@@ -19,6 +19,16 @@ const MEMBERSHIP_CHUNK_SIZE = 50;
 // inbox long before this, so it is a belt on the URL length rather than the real ceiling.
 const MAX_EXCLUDED_RECORDS = 150;
 
+// `not_in` is not an operator every agent parses: the v1 lianas raise on any operator their filter
+// parser does not list, and none of them lists it. The front draws the same line — it only offers
+// "is not in" for a field whose agent declared the operator in its capabilities.
+const LIANAS_WITHOUT_NOT_IN: ReadonlySet<string> = new Set([
+  'forest-rails',
+  'forest-express-sequelize',
+  'forest-express-mongoose',
+  'django-forestadmin',
+]);
+
 const RECONCILABLE_ASSIGNMENT_STATES: ReadonlySet<string> = new Set([
   'done',
   'canceled',
@@ -383,8 +393,8 @@ export default class AutomationPoller {
       return { outcome: 'ok', items: page };
     }
 
-    // Fallback for an orchestrator that does not serve the flag, a composite key, and a set too
-    // large for a query string: pad the page instead, and subtract afterwards. No sort is imposed
+    // Fallback for an agent whose filters have no `not_in`, a composite key, and a set too large
+    // for a query string: pad the page instead, and subtract afterwards. No sort is imposed
     // and each agent orders as it likes, so a page that comes back mostly assigned simply yields
     // fewer candidates.
     const page = await this.config.segmentReaderPort.listRecordIds({
@@ -402,7 +412,8 @@ export default class AutomationPoller {
     known: string[],
   ): boolean {
     return (
-      Boolean(config.excludeKnownRecords) &&
+      config.liana != null &&
+      !LIANAS_WITHOUT_NOT_IN.has(config.liana) &&
       config.primaryKeys.length === 1 &&
       known.length <= MAX_EXCLUDED_RECORDS
     );

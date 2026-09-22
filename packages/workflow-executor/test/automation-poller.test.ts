@@ -149,7 +149,7 @@ describe('AutomationPoller', () => {
   });
 
   describe('candidates', () => {
-    const excluding = makeConfig({ excludeKnownRecords: true });
+    const excluding = makeConfig({ liana: 'forest-nodejs-agent' });
 
     it('should ask the agent to leave out the records it already has an assignment for', async () => {
       const context = makeContext({
@@ -204,8 +204,9 @@ describe('AutomationPoller', () => {
       );
     });
 
-    it('should pad the page instead when the orchestrator does not serve the exclusion', async () => {
+    it('should pad the page instead when the agent filters have no `not_in`', async () => {
       const context = makeContext({
+        inboxes: [makeConfig({ liana: 'forest-rails' })],
         assignments: [
           makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' }),
           makeAssignment({ recordId: 'b', state: 'doing', runState: 'started' }),
@@ -222,9 +223,21 @@ describe('AutomationPoller', () => {
       );
     });
 
+    it('should pad the page instead when the orchestrator names no agent', async () => {
+      const context = makeContext({
+        assignments: [makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' })],
+      });
+
+      await runOneCycle(makePoller(context));
+
+      expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledWith(
+        expect.objectContaining({ pageSize: 21 }),
+      );
+    });
+
     it('should pad the page instead when the collection has a composite key', async () => {
       const context = makeContext({
-        inboxes: [makeConfig({ excludeKnownRecords: true, primaryKeys: ['tenant', 'id'] })],
+        inboxes: [makeConfig({ liana: 'forest-nodejs-agent', primaryKeys: ['tenant', 'id'] })],
         assignments: [makeAssignment({ recordId: 't1|1', state: 'doing', runState: 'started' })],
       });
 
