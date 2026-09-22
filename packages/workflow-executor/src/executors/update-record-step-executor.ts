@@ -192,8 +192,6 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
         // The value comes from an `unknown` HTTP value (may be a boolean or array), so coerce
         // it to the field's native type before updating. Idempotent on already-typed values.
         const value = await this.coerceOverride(selectedRecordRef, pendingData, rawValue);
-        // A reasoning is what says an AI proposed this value at all, so without one there is no
-        // agreement or disagreement to record.
         const aiReasoning = pendingData!.reasoning;
         const keptAiValue =
           aiReasoning !== undefined &&
@@ -217,8 +215,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     return this.handleFirstCall();
   }
 
-  // A suggested value that no longer validates cannot be the value the user kept, and re-reading it
-  // must never abort the update the user did ask for.
+  // Re-reading the suggested value must never abort the update the user did ask for.
   private async userKeptAiValue(
     selectedRecordRef: RecordRef,
     pendingData: FieldWithValue | undefined,

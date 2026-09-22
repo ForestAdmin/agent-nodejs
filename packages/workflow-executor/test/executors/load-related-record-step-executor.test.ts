@@ -5010,7 +5010,6 @@ describe('LoadRelatedRecordStepExecutor', () => {
         const runStore = makeMockRunStore({
           getStepExecutions: jest.fn().mockResolvedValue([execution]),
         });
-        // The front posts the selected id on every confirm, including an unchanged suggestion.
         const context = makeContext({
           agentPort: makeMockAgentPort(),
           runStore,
@@ -5150,7 +5149,6 @@ describe('LoadRelatedRecordStepExecutor', () => {
         const runStore = makeMockRunStore({
           getStepExecutions: jest.fn().mockResolvedValue([execution]),
         });
-        // The user switches to Address and picks a record there, so the suggested record is moot.
         const context = makeContext({
           agentPort: makeMockAgentPort(),
           runStore,

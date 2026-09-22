@@ -69,14 +69,12 @@ interface AiSuggestionTrace {
   reasoning?: string;
 }
 
-// A record id read back from a confirmation is a fresh array of strings, while the suggested one
-// holds whatever the agent returned, so identity and element types both differ.
+// A confirmed id is a fresh array of strings, a suggested one holds whatever the agent returned.
 function sameRecordId(a: RecordId, b: RecordId): boolean {
   return a.length === b.length && a.every((part, index) => String(part) === String(b[index]));
 }
 
-// An empty field list means no field-selection pass ran, which is not the same as the AI having
-// compared nothing, so it is left out rather than recorded as an empty comparison.
+// An empty field list means no field-selection pass ran, not that the AI compared nothing.
 function buildAiSuggestionTrace(
   suggestedFields: string[] | undefined,
   fieldsReasoning?: string,
@@ -589,8 +587,6 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     };
 
     const { suggestedFields, fieldsReasoning, reasoning, suggestedRecord } = pendingData;
-    // A suggested record is what says an AI proposed one at all, so without it there is no
-    // ruling to record.
     const aiSuggested = reasoning !== undefined && suggestedRecord !== undefined;
     const ruling: LoadRelatedRecordAiRuling | undefined = aiSuggested
       ? LoadRelatedRecordStepExecutor.ruleOnSuggestion(
@@ -713,8 +709,6 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     return this.buildOutcomeResult({ status: 'success' });
   }
 
-  // Following another relation and picking another record are different disagreements, and the
-  // record question is moot once the relation changed: the suggestion belonged to the other one.
   private static ruleOnSuggestion(
     followedSuggestedRelation: boolean,
     loadedSuggestedRecord: boolean,

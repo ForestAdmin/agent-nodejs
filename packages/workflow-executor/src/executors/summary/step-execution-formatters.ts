@@ -71,8 +71,8 @@ export default class StepExecutionFormatters {
     return lines.join('\n');
   }
 
-  // Mirrors the generic Input/Output pair, minus the AI justification of the written value: a later
-  // step reading why the AI chose a value would treat that self-report as an established fact.
+  // The generic Input/Output pair, minus the justification: a later step would read the AI's
+  // self-report as an established fact.
   private static formatUpdateRecord(execution: UpdateRecordStepExecutionData): string | null {
     const { executionParams, executionResult } = execution;
     if (!executionResult || 'skipped' in executionResult) return null;

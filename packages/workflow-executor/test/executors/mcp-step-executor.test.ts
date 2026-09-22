@@ -1670,7 +1670,6 @@ describe('McpStepExecutor — re-auth pause hardening', () => {
             required: ['message'],
           },
         });
-        // The later duplicate owns `reasoning`, so its own key is the reserved one.
         const second = new MockRemoteTool({
           name: 'send_notification',
           sourceId: 'mcp-server-2',
@@ -1753,7 +1752,6 @@ describe('McpStepExecutor — re-auth pause hardening', () => {
         expect(boundTools[0].schema.required).toEqual(['message', 'reasoning']);
       });
 
-      // The reserved key the executor falls back to when the tool already owns `reasoning`.
       const fallbackKey = '__forest_tool_selection_reasoning';
 
       it('should leave a tool that declares its own reasoning argument untouched', async () => {

@@ -35,8 +35,7 @@ Important rules:
 - Final answer is definitive, you won't receive any other input from the user.`;
 
 const REASONING_FIELD = 'reasoning';
-// Tool schemas come from arbitrary customer MCP servers, so `reasoning` is not ours to reserve:
-// a tool declaring its own keeps it, and the justification is asked for under this name instead.
+// Tool schemas come from arbitrary customer MCP servers, so `reasoning` is not ours to reserve.
 const FALLBACK_REASONING_FIELD = '__forest_tool_selection_reasoning';
 const REASONING_FIELD_DESCRIPTION =
   'Concise explanation of why this tool was selected over the others, in passive voice.';
@@ -353,8 +352,7 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     const reasoningKeys = new Map<string, string>();
     const augmentedTools = tools.map(t => {
       const { tool, reasoningKey } = McpStepExecutor.withReasoningField(t.base);
-      // The model answers with a name alone, and the tool behind it is the first of that name, so
-      // two sources exposing one name must not have the second overwrite the first one's key.
+      // The model answers with a name alone, and the tool behind it is the first of that name.
       if (!reasoningKeys.has(t.base.name)) reasoningKeys.set(t.base.name, reasoningKey);
 
       return tool;
@@ -368,8 +366,6 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     const { [reasoningKeys.get(toolName) ?? REASONING_FIELD]: reasoning, ...input } = args;
     const toolSelectionReasoning = nonEmptyText(reasoning);
 
-    // The field is asked for and required, so an answer without one separates a silent model from
-    // an injection that never reached the provider.
     if (toolSelectionReasoning === undefined) {
       this.context.logger('Debug', 'mcp: the model selected a tool without justifying it', {
         ...this.logCtx,
@@ -389,8 +385,7 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
   } {
     const { schema } = tool;
 
-    // A tool declaring no schema, as a parameterless one may, has nothing to extend. It is offered
-    // to the model untouched rather than probed, and its selection goes unexplained.
+    // A parameterless tool may declare no schema at all, which has nothing to extend.
     if (schema === null || typeof schema !== 'object') {
       return { tool, reasoningKey: REASONING_FIELD };
     }
