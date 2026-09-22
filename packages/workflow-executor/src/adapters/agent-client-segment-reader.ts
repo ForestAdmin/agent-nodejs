@@ -90,7 +90,7 @@ export default class AgentClientSegmentReader implements SegmentReaderPort {
       // hence the cast.
       return collection.liveQuerySegment({
         query: segment.query,
-        ...(segment.connectionName != null ? { connectionName: segment.connectionName } : {}),
+        ...(segment.connectionName ? { connectionName: segment.connectionName } : {}),
       } as { connectionName: string; query: string });
     }
 
@@ -157,8 +157,9 @@ export default class AgentClientSegmentReader implements SegmentReaderPort {
   private static readRecordId(record: Record<string, unknown>, collectionName: string): string {
     const { id } = record;
 
-    // Guarded rather than coerced: a blank id here would start a run against the wrong record.
-    if (typeof id !== 'string' && typeof id !== 'number') {
+    // Guarded rather than coerced: an id the orchestrator cannot resolve would start a run against
+    // the wrong record, and an empty string is no more an id than a missing one.
+    if ((typeof id !== 'string' && typeof id !== 'number') || String(id) === '') {
       throw new SegmentRecordIdMissingError(collectionName);
     }
 
