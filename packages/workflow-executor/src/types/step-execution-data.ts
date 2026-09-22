@@ -208,6 +208,9 @@ export interface LoadRelatedRecordPendingData {
   // The AI actively judged no candidate relevant (incl. Full AI degrading to confirmation) → the front
   // pre-checks "No X to load". Distinct from a plain absent suggestedRecord (Manual: the user picks).
   suggestNoRecord?: boolean;
+  suggestedFields?: string[];
+  fieldsReasoning?: string;
+  reasoning?: string;
 }
 
 export interface LoadRelatedRecordStepExecutionData
@@ -218,7 +221,15 @@ export interface LoadRelatedRecordStepExecutionData
   // Set on every await/load path (and preserved through the user-initiated "continue without" skip).
   selectedRecordRef?: RecordRef;
   executionParams?: RelationRef;
-  executionResult?: { relation: RelationRef; record: RecordRef } | { skipped: true };
+  executionResult?:
+    | {
+        relation: RelationRef;
+        record: RecordRef;
+        suggestedFields?: string[];
+        fieldsReasoning?: string;
+        reasoning?: string;
+      }
+    | { skipped: true };
 }
 
 // -- Guidance --

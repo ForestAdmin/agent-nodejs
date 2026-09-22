@@ -1897,7 +1897,13 @@ describe('LoadRelatedRecordStepExecutor', () => {
           ],
         })
         .mockResolvedValueOnce({
-          tool_calls: [{ name: 'select-fields', args: { fieldNames: ['City'] }, id: 'c2' }],
+          tool_calls: [
+            {
+              name: 'select-fields',
+              args: { fieldNames: ['City'], reasoning: 'City identifies an address' },
+              id: 'c2',
+            },
+          ],
         })
         .mockResolvedValueOnce({
           tool_calls: [
@@ -1938,6 +1944,9 @@ describe('LoadRelatedRecordStepExecutor', () => {
             suggestedField: { name: 'address', displayName: 'Address' },
             availableRecordIds: [cand([1]), cand([2])],
             suggestedRecord: cand([2]), // record at index 1
+            suggestedFields: ['city'],
+            fieldsReasoning: 'City identifies an address',
+            reasoning: 'Lyon is best',
           },
         }),
       );
@@ -4808,6 +4817,220 @@ describe('LoadRelatedRecordStepExecutor', () => {
         }),
         expect.objectContaining({ id: 1 }),
       );
+    });
+  });
+
+  describe('AI reasoning trace', () => {
+    const customersWithAddresses = makeCollectionSchema({
+      fields: [
+        { fieldName: 'name', displayName: 'Name', isRelationship: false },
+        {
+          fieldName: 'address',
+          displayName: 'Address',
+          isRelationship: true,
+          relationType: 'HasMany',
+          relatedCollectionName: 'addresses',
+        },
+      ],
+    });
+
+    const addressesSchema = makeCollectionSchema({
+      collectionName: 'addresses',
+      collectionDisplayName: 'Addresses',
+      referenceField: 'city',
+      fields: [{ fieldName: 'city', displayName: 'City', isRelationship: false }],
+    });
+
+    function makeRankingModel(): ExecutionContext['model'] {
+      const invoke = jest
+        .fn()
+        .mockResolvedValueOnce({
+          tool_calls: [
+            {
+              name: 'select-fields',
+              args: { fieldNames: ['City'], reasoning: 'City tells the addresses apart' },
+              id: 'c1',
+            },
+          ],
+        })
+        .mockResolvedValueOnce({
+          tool_calls: [
+            {
+              name: 'select-record-by-content',
+              args: { recordIndex: 1, reasoning: 'Lyon matches the request', confident: true },
+              id: 'c2',
+            },
+          ],
+        });
+
+      return {
+        bindTools: jest.fn().mockReturnValue({ invoke }),
+      } as unknown as ExecutionContext['model'];
+    }
+
+    function makeRankingContext(
+      runStore: ReturnType<typeof makeMockRunStore>,
+      executionType: StepExecutionMode,
+    ) {
+      return makeContext({
+        model: makeRankingModel(),
+        agentPort: makeMockAgentPort([
+          { collectionName: 'addresses', recordId: [1], values: { city: 'Paris' } },
+          { collectionName: 'addresses', recordId: [2], values: { city: 'Lyon' } },
+        ]),
+        runStore,
+        workflowPort: makeMockWorkflowPort({
+          customers: customersWithAddresses,
+          addresses: addressesSchema,
+        }),
+        stepDefinition: makeStep({ executionType, preRecordedArgs: { relationName: 'address' } }),
+      });
+    }
+
+    describe('when the AI auto-loads a record (Full AI)', () => {
+      it('should record the compared fields and both justifications on the loaded record', async () => {
+        const runStore = makeMockRunStore();
+        const context = makeRankingContext(runStore, StepExecutionMode.FullyAutomated);
+
+        const result = await new LoadRelatedRecordStepExecutor(context).execute();
+
+        expect(result.stepOutcome.status).toBe('success');
+        expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+          'run-1',
+          expect.objectContaining({
+            executionResult: expect.objectContaining({
+              record: expect.objectContaining({ recordId: [2] }),
+              suggestedFields: ['city'],
+              fieldsReasoning: 'City tells the addresses apart',
+              reasoning: 'Lyon matches the request',
+            }),
+            pendingData: expect.objectContaining({
+              suggestedFields: ['city'],
+              fieldsReasoning: 'City tells the addresses apart',
+              reasoning: 'Lyon matches the request',
+            }),
+          }),
+        );
+      });
+    });
+
+    describe('when the AI suggests a record for confirmation (AI-assisted)', () => {
+      it('should record its justifications on the suggestion it awaits confirmation for', async () => {
+        const runStore = makeMockRunStore();
+        const context = makeRankingContext(runStore, StepExecutionMode.AutomatedWithConfirmation);
+
+        const result = await new LoadRelatedRecordStepExecutor(context).execute();
+
+        expect(result.stepOutcome.status).toBe('awaiting-input');
+        expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+          'run-1',
+          expect.objectContaining({
+            pendingData: expect.objectContaining({
+              suggestedRecord: { recordId: [2], referenceFieldValue: 'Lyon' },
+              suggestedFields: ['city'],
+              fieldsReasoning: 'City tells the addresses apart',
+              reasoning: 'Lyon matches the request',
+            }),
+          }),
+        );
+      });
+    });
+
+    describe('when no AI runs (Manual)', () => {
+      it('should leave the candidate list unexplained rather than claim a justification', async () => {
+        const runStore = makeMockRunStore();
+        const context = makeRankingContext(runStore, StepExecutionMode.Manual);
+
+        const result = await new LoadRelatedRecordStepExecutor(context).execute();
+
+        expect(result.stepOutcome.status).toBe('awaiting-input');
+
+        const { pendingData } = (runStore.saveStepExecution as jest.Mock).mock.calls[0][1];
+        expect(pendingData).not.toHaveProperty('suggestedFields');
+        expect(pendingData).not.toHaveProperty('fieldsReasoning');
+        expect(pendingData).not.toHaveProperty('reasoning');
+      });
+    });
+
+    describe('when the user confirms the suggested record (Branch A)', () => {
+      it('should carry the justifications from the suggestion to the loaded record', async () => {
+        const execution = makePendingExecution({
+          pendingData: {
+            availableFields: [
+              { name: 'order', displayName: 'Order' },
+              { name: 'address', displayName: 'Address' },
+            ],
+            suggestedField: { name: 'order', displayName: 'Order' },
+            availableRecordIds: [cand([99]), cand([42])],
+            suggestedRecord: cand([99]),
+            suggestedFields: ['reference'],
+            fieldsReasoning: 'The reference identifies an order',
+            reasoning: 'Order 99 is the pending one',
+          },
+          userConfirmation: { userConfirmed: true },
+        });
+        const runStore = makeMockRunStore({
+          getStepExecutions: jest.fn().mockResolvedValue([execution]),
+        });
+        const context = makeContext({ agentPort: makeMockAgentPort(), runStore });
+
+        const result = await new LoadRelatedRecordStepExecutor(context).execute();
+
+        expect(result.stepOutcome.status).toBe('success');
+        expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+          'run-1',
+          expect.objectContaining({
+            executionResult: expect.objectContaining({
+              record: expect.objectContaining({ recordId: [99] }),
+              suggestedFields: ['reference'],
+              fieldsReasoning: 'The reference identifies an order',
+              reasoning: 'Order 99 is the pending one',
+            }),
+          }),
+        );
+      });
+    });
+
+    describe('when the user picks another record than the suggested one (Branch A)', () => {
+      it("should leave the loaded record unexplained — the choice is the user's, not the AI's", async () => {
+        const execution = makePendingExecution({
+          pendingData: {
+            availableFields: [
+              { name: 'order', displayName: 'Order' },
+              { name: 'address', displayName: 'Address' },
+            ],
+            suggestedField: { name: 'order', displayName: 'Order' },
+            availableRecordIds: [cand([99]), cand([42])],
+            suggestedRecord: cand([99]),
+            suggestedFields: ['reference'],
+            fieldsReasoning: 'The reference identifies an order',
+            reasoning: 'Order 99 is the pending one',
+          },
+        });
+        const runStore = makeMockRunStore({
+          getStepExecutions: jest.fn().mockResolvedValue([execution]),
+        });
+        const context = makeContext({
+          agentPort: makeMockAgentPort(),
+          runStore,
+          incomingPendingData: { userConfirmed: true, selectedRecordId: '42' },
+        });
+
+        const result = await new LoadRelatedRecordStepExecutor(context).execute();
+
+        expect(result.stepOutcome.status).toBe('success');
+
+        const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+        expect(finalSave.executionResult.record).toEqual(
+          expect.objectContaining({ recordId: ['42'] }),
+        );
+        expect(finalSave.executionResult).not.toHaveProperty('reasoning');
+        expect(finalSave.executionResult).not.toHaveProperty('fieldsReasoning');
+        expect(finalSave.executionResult).not.toHaveProperty('suggestedFields');
+        expect(finalSave.pendingData).toEqual(
+          expect.objectContaining({ reasoning: 'Order 99 is the pending one' }),
+        );
+      });
     });
   });
 });

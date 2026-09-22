@@ -60,6 +60,24 @@ function clampFieldValue(value: unknown): unknown {
   return `${serialized.slice(0, MAX_FIELD_VALUE_LENGTH)}… (truncated)`;
 }
 
+interface AiSuggestionTrace {
+  suggestedFields: string[];
+  fieldsReasoning?: string;
+  reasoning?: string;
+}
+
+function buildAiSuggestionTrace(
+  suggestedFields: string[],
+  fieldsReasoning?: string,
+  reasoning?: string,
+): AiSuggestionTrace {
+  return {
+    suggestedFields,
+    ...(fieldsReasoning !== undefined && { fieldsReasoning }),
+    ...(reasoning !== undefined && { reasoning }),
+  };
+}
+
 interface RelationTarget extends RelationRef {
   selectedRecordRef: RecordRef;
   relationType?: 'BelongsTo' | 'HasMany' | 'HasOne' | 'BelongsToMany';
@@ -129,7 +147,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       candidates = await this.collectCandidateIds(target, false);
     }
 
-    const { availableRecordIds, suggestedRecord } = candidates;
+    const { availableRecordIds, suggestedRecord, trace } = candidates;
 
     await this.context.runStore.saveStepExecution(this.context.runId, {
       ...execution,
@@ -142,6 +160,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
         availableRecordIds,
         suggestedRecord,
         ...(aiSuggested && !suggestedRecord && { suggestNoRecord: true }),
+        ...trace,
       },
     });
 
@@ -315,7 +334,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     sourceSchema: CollectionSchema,
     suggestViaAi: boolean,
   ): Promise<StepExecutionResult> {
-    const { availableRecordIds, suggestedRecord } = await this.collectCandidateIds(
+    const { availableRecordIds, suggestedRecord, trace } = await this.collectCandidateIds(
       target,
       suggestViaAi,
     );
@@ -326,6 +345,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       // An AI pass that yields no record is a deliberate "nothing relevant" → pre-check "No X to load".
       // A Manual pass with no suggestion just means the user picks, so no pre-check.
       suggestNoRecord: suggestViaAi && !suggestedRecord,
+      trace,
     });
   }
 
@@ -342,6 +362,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       availableRecordIds: LoadRelatedRecordCandidate[];
       suggestedRecord?: LoadRelatedRecordCandidate;
       suggestNoRecord: boolean;
+      trace?: AiSuggestionTrace;
     },
   ): Promise<StepExecutionResult> {
     const { selectedRecordRef, name, displayName } = target;
@@ -355,6 +376,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
         availableRecordIds: pending.availableRecordIds,
         suggestedRecord: pending.suggestedRecord,
         ...(pending.suggestNoRecord && { suggestNoRecord: true }),
+        ...pending.trace,
       },
       selectedRecordRef,
     });
@@ -371,6 +393,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     // Full AI only: the AI returned a best guess but could not confidently single one out among
     // several viable candidates. Routes Full AI to a confirmation instead of an auto-load.
     ambiguous: boolean;
+    trace?: AiSuggestionTrace;
   }> {
     if (target.relationType === 'BelongsTo' || target.relationType === 'HasOne') {
       const candidate = await this.fetchXToOneCandidate(target);
@@ -380,14 +403,21 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
         : { availableRecordIds: [], ambiguous: false };
     }
 
-    const { relatedData, bestIndex, confident, relatedSchema } =
-      await this.selectBestFromRelatedData(
-        target,
-        50,
-        // allowNone: the AI may judge no candidate relevant (→ "No X to load"); only meaningful when
-        // ranking (Manual passes rank=false and never calls the AI).
-        suggestViaAi ? { rank: true, allowNone: true } : { rank: false },
-      );
+    const {
+      relatedData,
+      bestIndex,
+      confident,
+      suggestedFields,
+      fieldsReasoning,
+      reasoning,
+      relatedSchema,
+    } = await this.selectBestFromRelatedData(
+      target,
+      50,
+      // allowNone: the AI may judge no candidate relevant (→ "No X to load"); only meaningful when
+      // ranking (Manual passes rank=false and never calls the AI).
+      suggestViaAi ? { rank: true, allowNone: true } : { rank: false },
+    );
 
     if (relatedData.length === 0) {
       return { availableRecordIds: [], ambiguous: false };
@@ -406,6 +436,9 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       suggestedRecord: bestIndex >= 0 ? toCandidate(relatedData[bestIndex]) : undefined,
       // -1 (none relevant) is not ambiguity; only a low-confidence positive pick is.
       ambiguous: bestIndex >= 0 && !confident,
+      ...(suggestViaAi && {
+        trace: buildAiSuggestionTrace(suggestedFields, fieldsReasoning, reasoning),
+      }),
     };
   }
 
@@ -421,10 +454,8 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
   private async resolveAndLoadAutomatic(): Promise<StepExecutionResult> {
     // No source record throws (like Manual/AI-assisted) → the front offers "continue without".
     const target = await this.resolveTarget(true);
-    const { availableRecordIds, suggestedRecord, ambiguous } = await this.collectCandidateIds(
-      target,
-      true,
-    );
+    const { availableRecordIds, suggestedRecord, ambiguous, trace } =
+      await this.collectCandidateIds(target, true);
 
     // Full AI with no candidate at all: a human couldn't pick one either, so continue without a
     // record (skip) instead of handing off to AI-assisted (PRD-751 decision).
@@ -442,6 +473,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
         availableRecordIds,
         suggestedRecord,
         suggestNoRecord: !suggestedRecord,
+        trace,
       });
     }
 
@@ -456,16 +488,22 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     // raw recordId (AI-assisted already carries this through its await-then-confirm execution).
     const sourceSchema = await this.getCollectionSchema(target.selectedRecordRef.collectionName);
 
-    return this.persistAndReturn(record, target, {
-      type: 'load-related-record',
-      stepIndex: this.context.stepIndex,
-      pendingData: {
-        availableFields: this.followableRelationFields(sourceSchema),
-        suggestedField: { name: target.name, displayName: target.displayName },
-        availableRecordIds,
-        suggestedRecord,
+    return this.persistAndReturn(
+      record,
+      target,
+      {
+        type: 'load-related-record',
+        stepIndex: this.context.stepIndex,
+        pendingData: {
+          availableFields: this.followableRelationFields(sourceSchema),
+          suggestedField: { name: target.name, displayName: target.displayName },
+          availableRecordIds,
+          suggestedRecord,
+          ...trace,
+        },
       },
-    });
+      trace,
+    );
   }
 
   private async fetchXToOneCandidate(
@@ -539,7 +577,18 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       stepIndex: this.context.stepIndex,
     };
 
-    return this.persistAndReturn(record, { selectedRecordRef, name, displayName }, execution);
+    const { suggestedFields, fieldsReasoning, reasoning } = pendingData;
+    const userKeptAiSuggestion =
+      suggestedFields !== undefined && selectedRecordId === pendingData.suggestedRecord?.recordId;
+
+    return this.persistAndReturn(
+      record,
+      { selectedRecordRef, name, displayName },
+      execution,
+      userKeptAiSuggestion
+        ? buildAiSuggestionTrace(suggestedFields, fieldsReasoning, reasoning)
+        : undefined,
+    );
   }
 
   private async selectBestFromRelatedData(
@@ -554,6 +603,8 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     // candidate, no ranking) are confident by construction; the ranked path reflects the AI's flag.
     confident: boolean;
     suggestedFields: string[];
+    fieldsReasoning?: string;
+    reasoning?: string;
     relatedSchema: CollectionSchema;
   }> {
     const relatedSchema = await this.getCollectionSchema(target.relatedCollectionName);
@@ -581,10 +632,14 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
 
     // The final record stays AI-suggested + user-confirmed (or AI-decided in Full AI): only the
     // source and relation are pinned deterministically, not the record index (not revise-safe).
-    const suggestedFields = await this.withAiAssist(() =>
-      this.selectRelevantFields(relatedSchema, this.context.stepDefinition.prompt),
+    const { fieldNames: suggestedFields, reasoning: fieldsReasoning } = await this.withAiAssist(
+      () => this.selectRelevantFields(relatedSchema, this.context.stepDefinition.prompt),
     );
-    const { index: bestIndex, confident } = await this.withAiAssist(() =>
+    const {
+      index: bestIndex,
+      confident,
+      reasoning,
+    } = await this.withAiAssist(() =>
       this.selectBestRecordIndex(
         relatedData,
         suggestedFields,
@@ -593,7 +648,15 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       ),
     );
 
-    return { relatedData, bestIndex, confident, suggestedFields, relatedSchema };
+    return {
+      relatedData,
+      bestIndex,
+      confident,
+      suggestedFields,
+      fieldsReasoning,
+      reasoning,
+      relatedSchema,
+    };
   }
 
   private async fetchRelatedData(
@@ -636,6 +699,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     record: RecordRef,
     target: Pick<RelationTarget, 'selectedRecordRef' | 'name' | 'displayName'>,
     existingExecution: LoadRelatedRecordStepExecutionData | undefined,
+    trace?: AiSuggestionTrace,
   ): Promise<StepExecutionResult> {
     const { selectedRecordRef, name, displayName } = target;
 
@@ -644,7 +708,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       type: 'load-related-record',
       stepIndex: this.context.stepIndex,
       executionParams: { displayName, name },
-      executionResult: { relation: { name, displayName }, record },
+      executionResult: { relation: { name, displayName }, record, ...trace },
       selectedRecordRef,
     });
 
@@ -708,10 +772,10 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
   private async selectRelevantFields(
     schema: CollectionSchema,
     prompt: string | undefined,
-  ): Promise<string[]> {
+  ): Promise<{ fieldNames: string[]; reasoning?: string }> {
     const nonRelationFields = schema.fields.filter(f => !f.isRelationship);
 
-    if (nonRelationFields.length === 0) return [];
+    if (nonRelationFields.length === 0) return { fieldNames: [] };
 
     // Use displayName in both the enum and the prompt for consistency — the AI sees human-readable
     // names throughout. Results are mapped back to technical fieldNames before returning.
@@ -728,6 +792,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
           .describe(
             `The ${MAX_RELEVANT_FIELDS} fields most useful for identifying the relevant record`,
           ),
+        reasoning: z.string().describe('Why these fields identify the relevant record'),
       }),
       func: undefined,
     });
@@ -742,8 +807,9 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       new HumanMessage(`**Request**: ${prompt ?? 'Select the most relevant record.'}`),
     ];
 
-    const { fieldNames: selectedDisplayNames } = await this.invokeWithTool<{
+    const { fieldNames: selectedDisplayNames, reasoning } = await this.invokeWithTool<{
       fieldNames: string[];
+      reasoning?: string;
     }>(messages, tool);
 
     // Zod's .min(1) shapes the prompt but is NOT validated against the AI response.
@@ -756,9 +822,11 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
 
     // Map display names back to technical field names — values in RecordData are keyed by fieldName.
     // .max() shapes the prompt only (not validated against the response), so cap explicitly.
-    return selectedDisplayNames
+    const fieldNames = selectedDisplayNames
       .slice(0, MAX_RELEVANT_FIELDS)
       .map(dn => nonRelationFields.find(f => f.displayName === dn)?.fieldName ?? dn);
+
+    return { fieldNames, reasoning };
   }
 
   private async selectBestRecordIndex(
@@ -766,7 +834,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     fieldNames: string[],
     prompt: string | undefined,
     allowNone = false,
-  ): Promise<{ index: number; confident: boolean }> {
+  ): Promise<{ index: number; confident: boolean; reasoning?: string }> {
     const filteredCandidates = candidates.map((c, i) => {
       const entries = Object.entries(c.values).filter(
         ([k]) => fieldNames.length === 0 || fieldNames.includes(k),
@@ -840,10 +908,14 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       new HumanMessage(`**Request**: ${prompt ?? 'Select the most relevant record.'}`),
     ];
 
-    const { recordIndex, confident: rawConfident } = await this.invokeWithTool<{
+    const {
+      recordIndex,
+      confident: rawConfident,
+      reasoning,
+    } = await this.invokeWithTool<{
       recordIndex: number;
       confident?: boolean;
-      reasoning: string;
+      reasoning?: string;
     }>(messages, tool);
 
     // The Zod .min().max() shapes the tool prompt only — NOT validated against the AI response; this
@@ -858,6 +930,6 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     // confidence flag, defaulting to confident when omitted so a missing flag still auto-loads.
     const confident = recordIndex < 0 ? true : rawConfident !== false;
 
-    return { index: recordIndex, confident };
+    return { index: recordIndex, confident, reasoning };
   }
 }
