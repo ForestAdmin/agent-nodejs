@@ -77,6 +77,15 @@ describe('buildInMemoryExecutor', () => {
     );
   });
 
+  it('keeps a zero sweep interval rather than replacing it with the default', () => {
+    // Zero is how an operator turns the sweep off; folded into the default it would be unreachable.
+    buildInMemoryExecutor({ ...BASE_OPTIONS, automationPollingIntervalS: 0 });
+
+    expect(MockedAutomationPoller).toHaveBeenCalledWith(
+      expect.objectContaining({ pollingIntervalS: 0 }),
+    );
+  });
+
   it('creates an InMemoryStore as runStore', () => {
     buildInMemoryExecutor(BASE_OPTIONS);
 

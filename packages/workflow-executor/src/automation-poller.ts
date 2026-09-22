@@ -6,6 +6,8 @@ import type { AutomationPort } from './ports/automation-port';
 import type { Logger } from './ports/logger-port';
 import type { SegmentReaderPort } from './ports/segment-reader-port';
 
+import { IANAZone } from 'luxon';
+
 import createConsoleLogger from './adapters/console-logger';
 import { DEFAULT_STOP_TIMEOUT_S } from './defaults';
 import { AutomatedInboxGoneError, extractErrorMessage } from './errors';
@@ -14,6 +16,10 @@ import InFlightRunRegistry from './in-flight-run-registry';
 // One membership question per chunk, small enough that a `pk In (...)` stays a query an agent will
 // accept whatever its datasource.
 const MEMBERSHIP_CHUNK_SIZE = 50;
+
+// Ceiling on the padded fallback page. The padding grows with the backlog while the agent read is
+// bounded by the client's ten-second timeout, so past some size the page stops being served at all.
+const MAX_CANDIDATE_PAGE_SIZE = 500;
 
 // The exclusion filter travels in the query string of a GET. The orchestrator stops serving an
 // inbox long before this, so it is a belt on the URL length rather than the real ceiling.
@@ -116,6 +122,16 @@ export default class AutomationPoller {
     }
 
     if (this._state === 'running') return;
+
+    // `AUTOMATION_POLL_INTERVAL_S=0` turns the sweep off. The poller stays constructed and `stop()`
+    // still answers, so nothing downstream has to know an executor is running without it.
+    if (this.config.pollingIntervalS === 0) {
+      this.logger('Info', 'Automation poller disabled by configuration', {
+        instanceId: this.config.instanceId,
+      });
+
+      return;
+    }
 
     this._state = 'running';
     this.logger('Info', 'Automation poller started', {
@@ -289,10 +305,14 @@ export default class AutomationPoller {
 
     for (const { state } of assignments) {
       if (!RECONCILABLE_ASSIGNMENT_STATES.has(state) && !OPEN_ASSIGNMENT_STATES.has(state)) {
-        this.logger('Warn', 'Unknown assignment state, leaving the record for a later poll', {
-          ...logContext,
-          state,
-        });
+        this.logger(
+          'Warn',
+          'Unknown assignment state, leaving the record out of every sweep until this executor knows it',
+          {
+            ...logContext,
+            state,
+          },
+        );
       }
     }
 
@@ -304,10 +324,14 @@ export default class AutomationPoller {
       // Null belongs here too: the orchestrator binds the run before the assignment, so an
       // assignment with no run is not a shape this executor knows how to read either.
       if (!isTerminalRun(runState) && !isLiveRun(runState)) {
-        this.logger('Warn', 'Unexpected workflow run state, leaving the record for a later poll', {
-          ...logContext,
-          runState,
-        });
+        this.logger(
+          'Warn',
+          'Unexpected workflow run state, leaving the record out of every sweep until this executor knows it',
+          {
+            ...logContext,
+            runState,
+          },
+        );
       }
     }
 
@@ -326,11 +350,33 @@ export default class AutomationPoller {
       ),
     ];
 
-    if (recordIds.length === 0) return { outcome: 'skipped', items: [] };
+    // A packed id that does not split into as many parts as the key has columns cannot be asked
+    // about — the agent has the same limitation in `IdUtils.packId`. Dropped one by one rather than
+    // failing the chunk, which would end reconciliation for the whole inbox on every cycle, and
+    // left out of the report entirely: telling the orchestrator it is not in the segment would
+    // retire its assignment and let the record be launched again.
+    const readable = recordIds.filter(recordId => {
+      if (
+        config.primaryKeys.length === 1 ||
+        recordId.split('|').length === config.primaryKeys.length
+      ) {
+        return true;
+      }
+
+      this.logger('Warn', 'Unreadable record id, leaving the record out of the reconciliation', {
+        ...logContext,
+        recordId,
+        primaryKeyCount: config.primaryKeys.length,
+      });
+
+      return false;
+    });
+
+    if (readable.length === 0) return { outcome: 'skipped', items: [] };
 
     const stillInSegment = new Set<string>();
 
-    for (const batch of chunk(recordIds, MEMBERSHIP_CHUNK_SIZE)) {
+    for (const batch of chunk(readable, MEMBERSHIP_CHUNK_SIZE)) {
       // eslint-disable-next-line no-await-in-loop
       const found = await this.config.segmentReaderPort.listRecordIds({
         ...AutomationPoller.segmentQuery(config),
@@ -343,7 +389,7 @@ export default class AutomationPoller {
 
     return {
       outcome: 'ok',
-      items: recordIds.map(recordId => ({
+      items: readable.map(recordId => ({
         recordId,
         stillInSegment: stillInSegment.has(recordId),
       })),
@@ -397,9 +443,13 @@ export default class AutomationPoller {
     // for a query string: pad the page instead, and subtract afterwards. No sort is imposed
     // and each agent orders as it likes, so a page that comes back mostly assigned simply yields
     // fewer candidates.
+    //
+    // The padding is capped. It grows with the backlog, and the agent read it feeds is bounded by
+    // the client's ten-second ceiling, so an uncapped page turns a large inbox into one that reads
+    // nothing at all — worse than one that reads a partial page and finds fewer candidates.
     const page = await this.config.segmentReaderPort.listRecordIds({
       ...AutomationPoller.segmentQuery(config),
-      pageSize: config.maxConcurrentRuns + assignments.length,
+      pageSize: Math.min(config.maxConcurrentRuns + assignments.length, MAX_CANDIDATE_PAGE_SIZE),
     });
 
     const knownSet = new Set(known);
@@ -419,6 +469,10 @@ export default class AutomationPoller {
     );
   }
 
+  private static readTimezone(timezone: string | null | undefined): string {
+    return timezone != null && IANAZone.isValidZone(timezone) ? timezone : 'UTC';
+  }
+
   private static segmentQuery(config: ServerAutomatedInboxConfig) {
     return {
       collectionName: config.collectionName,
@@ -426,8 +480,9 @@ export default class AutomationPoller {
       primaryKeys: config.primaryKeys,
       user: config.serviceAccountProfile,
       // Every executor instance must read a relative date the same way, so the machine's zone is
-      // never the fallback.
-      timezone: config.timezone ?? 'UTC',
+      // never the fallback. A zone the agent would reject is treated as an absent one: it answers
+      // 400 on an unknown zone, which would fail every read of every sweep of that inbox.
+      timezone: AutomationPoller.readTimezone(config.timezone),
     };
   }
 }
