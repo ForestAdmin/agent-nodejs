@@ -79,6 +79,12 @@ docker run --rm ghcr.io/forestadmin/agent-bff:latest openapi > openapi.json
 
 Tags follow the npm package: `:latest`, `:1`, `:1.20` and the immutable `:1.20.2`.
 
+The package is public, so none of the commands above need a login. That visibility is set once,
+by hand, on the GHCR package: a package GHCR creates on its first push is private, and the
+workflow's `GITHUB_TOKEN` can push to it but not change what it is. Until someone flips it (the
+same step `workflow-executor` went through), pulls need
+`docker login ghcr.io -u <user> -p <token-with-read:packages>`.
+
 On `SIGTERM` or `SIGINT` the BFF stops accepting connections and gives the requests already in
 flight 10 seconds to finish before cutting their sockets, then exits 0. A second signal gives up on
 the wait and exits 1.

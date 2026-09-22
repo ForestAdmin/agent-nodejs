@@ -252,6 +252,11 @@ jobs:
       # one reads, so buildx reuses them — but that is a cache hit, not a checked
       # identity. What the gate really buys is that a build which fails smoke or scan
       # never reaches the registry at all.
+      #
+      # The first push CREATES the GHCR package, private. Nothing here can change that:
+      # visibility is a package setting, and `packages: write` on GITHUB_TOKEN grants the
+      # push, not the admin. Flip it to public once, by hand, in the package settings —
+      # the README tells users to log in until that is done.
       - name: Push by digest
         id: build
         uses: docker/build-push-action@v6
