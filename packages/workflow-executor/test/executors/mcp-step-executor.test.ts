@@ -6,7 +6,10 @@ import type { ExecutionContext } from '../../src/types/execution-context';
 import type { McpStepExecutionData } from '../../src/types/step-execution-data';
 import type { McpStepDefinition } from '../../src/types/validated/step-definition';
 
+import { DynamicStructuredTool } from '@forestadmin/ai-proxy';
 import RemoteTool from '@forestadmin/ai-proxy/src/remote-tool';
+import ServerRemoteTool from '@forestadmin/ai-proxy/src/server-remote-tool';
+import { z } from 'zod';
 
 import { OAuthReauthRequiredError, RunStorePortError, StepStateError } from '../../src/errors';
 import ActivityLog from '../../src/executors/activity-log';
@@ -1470,6 +1473,184 @@ describe('McpStepExecutor — re-auth pause hardening', () => {
       expect(activityLogPort.createPending).toHaveBeenCalledTimes(1);
       expect(activityLogPort.markFailed).toHaveBeenCalledTimes(1);
       expect(activityLogPort.markSucceeded).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('tool selection reasoning', () => {
+    describe('when the AI explains its choice', () => {
+      it('should persist the reasoning and keep it out of the tool input (Branch B)', async () => {
+        const invokeFn = jest.fn().mockResolvedValue('sent');
+        const tool = new MockRemoteTool({
+          name: 'send_notification',
+          sourceId: 'mcp-server-1',
+          invoke: invokeFn,
+        });
+        const { model } = makeMockModel('send_notification', {
+          message: 'Hello',
+          reasoning: 'send_notification is the only tool that delivers a message',
+        });
+        const runStore = makeMockRunStore();
+        const context = makeContext({
+          model,
+          runStore,
+          stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+        });
+
+        const result = await new McpStepExecutor(context, [tool]).execute();
+
+        expect(result.stepOutcome.status).toBe('success');
+        expect(invokeFn).toHaveBeenCalledWith({ message: 'Hello' });
+        expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+          'run-1',
+          expect.objectContaining({
+            toolSelectionReasoning: 'send_notification is the only tool that delivers a message',
+            executionParams: {
+              name: 'send_notification',
+              sourceId: 'mcp-server-1',
+              input: { message: 'Hello' },
+            },
+            idempotencyPhase: 'done',
+          }),
+        );
+      });
+
+      it('should persist the reasoning with the tool call awaiting confirmation (Branch C)', async () => {
+        const { model } = makeMockModel('send_notification', {
+          message: 'Hello',
+          reasoning: 'chosen because it notifies the user',
+        });
+        const runStore = makeMockRunStore();
+        const tool = new MockRemoteTool({ name: 'send_notification', sourceId: 'mcp-server-1' });
+        const context = makeContext({ model, runStore });
+
+        const result = await new McpStepExecutor(context, [tool]).execute();
+
+        expect(result.stepOutcome.status).toBe('awaiting-input');
+        expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+          'run-1',
+          expect.objectContaining({
+            toolSelectionReasoning: 'chosen because it notifies the user',
+            pendingData: {
+              name: 'send_notification',
+              sourceId: 'mcp-server-1',
+              input: { message: 'Hello' },
+            },
+          }),
+        );
+      });
+    });
+
+    describe('when the user confirms a tool call the AI explained (Branch A)', () => {
+      it('should keep the reasoning captured before the confirmation', async () => {
+        const tool = new MockRemoteTool({
+          name: 'send_notification',
+          sourceId: 'mcp-server-1',
+          invoke: jest.fn().mockResolvedValue('sent'),
+        });
+        const execution: McpStepExecutionData = {
+          type: 'mcp',
+          stepIndex: 0,
+          toolSelectionReasoning: 'reasoning recorded before confirmation',
+          pendingData: {
+            name: 'send_notification',
+            sourceId: 'mcp-server-1',
+            input: { message: 'Hello' },
+          },
+          userConfirmation: { userConfirmed: true },
+        };
+        const runStore = makeMockRunStore({
+          getStepExecutions: jest.fn().mockResolvedValue([execution]),
+        });
+        const context = makeContext({ runStore });
+
+        const result = await new McpStepExecutor(context, [tool]).execute();
+
+        expect(result.stepOutcome.status).toBe('success');
+        expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+          'run-1',
+          expect.objectContaining({
+            toolSelectionReasoning: 'reasoning recorded before confirmation',
+            executionResult: { success: true, toolResult: 'sent' },
+          }),
+        );
+      });
+    });
+
+    describe('when the AI omits the reasoning', () => {
+      it('should run the tool untouched and record no justification', async () => {
+        const invokeFn = jest.fn().mockResolvedValue('sent');
+        const tool = new MockRemoteTool({
+          name: 'send_notification',
+          sourceId: 'mcp-server-1',
+          invoke: invokeFn,
+        });
+        const { model } = makeMockModel('send_notification', { message: 'Hello' });
+        const runStore = makeMockRunStore();
+        const context = makeContext({
+          model,
+          runStore,
+          stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+        });
+
+        const result = await new McpStepExecutor(context, [tool]).execute();
+
+        expect(result.stepOutcome.status).toBe('success');
+        expect(invokeFn).toHaveBeenCalledWith({ message: 'Hello' });
+
+        const saved = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+        expect(saved).not.toHaveProperty('toolSelectionReasoning');
+        expect(saved.executionParams.input).toEqual({ message: 'Hello' });
+      });
+    });
+
+    describe('when the candidate tools are offered to the AI', () => {
+      it('should require a reasoning property on a JSON-Schema tool (MCP server)', async () => {
+        const tool = new MockRemoteTool({ name: 'send_notification', sourceId: 'mcp-server-1' });
+        const { model, bindTools } = makeMockModel('send_notification', { message: 'Hello' });
+        const context = makeContext({
+          model,
+          stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+        });
+
+        await new McpStepExecutor(context, [tool]).execute();
+
+        const boundTools = bindTools.mock.calls[0][0] as Array<{ schema: Record<string, unknown> }>;
+        const { schema } = boundTools[0];
+        expect((schema.properties as Record<string, unknown>).reasoning).toEqual({
+          type: 'string',
+          description: expect.any(String),
+        });
+        expect(schema.required).toContain('reasoning');
+      });
+
+      it('should extend a zod-schema tool (Forest connector) with a reasoning field', async () => {
+        const forestTool = new ServerRemoteTool({
+          tool: new DynamicStructuredTool({
+            name: 'zendesk_get_ticket',
+            description: 'Retrieve a Zendesk ticket',
+            schema: z.object({ ticket_id: z.number() }),
+            func: jest.fn().mockResolvedValue('ticket data'),
+          }),
+          sourceId: 'zendesk',
+        });
+        const { model, bindTools } = makeMockModel('zendesk_get_ticket', {
+          ticket_id: 7,
+          reasoning: 'the request asks to read a ticket',
+        });
+        const context = makeContext({
+          model,
+          stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+        });
+
+        await new McpStepExecutor(context, [forestTool]).execute();
+
+        const boundTools = bindTools.mock.calls[0][0] as Array<{
+          schema: z.ZodObject<z.ZodRawShape>;
+        }>;
+        const { shape } = boundTools[0].schema;
+        expect(shape.reasoning).toBeInstanceOf(z.ZodString);
+        expect(shape.ticket_id).toBeDefined();
+      });
     });
   });
 });

@@ -179,6 +179,7 @@ export interface McpStepExecutionData
   extends MutatingStepExecutionData,
     WithUserConfirmation<McpConfirmation> {
   type: 'mcp';
+  toolSelectionReasoning?: string;
   executionParams?: McpToolCall;
   executionResult?:
     | { success: true; toolResult: unknown; formattedResponse?: string }
