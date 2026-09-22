@@ -285,7 +285,14 @@ const ServerPlainConditionTreeSchema: z.ZodType<ServerPlainConditionTree> = z.la
       aggregator: z.string().min(1),
       conditions: z.array(ServerPlainConditionTreeSchema).min(1),
     }),
-    z.object({ field: z.string().min(1), operator: z.string().min(1), value: z.unknown() }),
+    // `value` is optional, not merely `unknown`: zod requires an `unknown` key to be present, and
+    // the operators the agent evaluates on its own — `present`, `blank`, `today`, every
+    // `previous_*` — are emitted as `{ field, operator }` with no value at all.
+    z.object({
+      field: z.string().min(1),
+      operator: z.string().min(1),
+      value: z.unknown().optional(),
+    }),
   ]),
 );
 
