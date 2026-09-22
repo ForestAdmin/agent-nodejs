@@ -209,6 +209,25 @@ describe('AuditTrailTimelineRoute', () => {
       });
     });
 
+    test('ends the walk rather than repeating a page the cursor cannot move past', async () => {
+      const tied = '2026-01-05T00:00:00.000Z';
+      // Every row is one the cursor already named: the exclusions cannot grow, so a further page
+      // would return this same one forever.
+      const { route } = setup([
+        row(7, { timestamp: tied }),
+        row(6, { timestamp: tied }),
+        row(5, { timestamp: tied }),
+      ]);
+      const context = contextWith({ 'page[size]': '2', before: tied, excludeIds: '7,6' });
+
+      await route.handleTimeline(context);
+
+      expect(context.response.body).toEqual({
+        data: [row(7, { timestamp: tied }), row(6, { timestamp: tied })],
+        meta: { cursor: null },
+      });
+    });
+
     test('forwards the incoming cursor to the store as an inclusive bound', async () => {
       const { store, route } = setup();
 
