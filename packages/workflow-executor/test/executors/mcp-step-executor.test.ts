@@ -37,10 +37,9 @@ class MockRemoteTool extends RemoteTool {
       tool: {
         name: options.name,
         description: `${options.name} description`,
-        schema: (options.schema ?? {
-          parse: jest.fn(),
-          _def: {},
-        }) as unknown as RemoteTool['base']['schema'],
+        schema: ('schema' in options
+          ? options.schema
+          : { parse: jest.fn(), _def: {} }) as unknown as RemoteTool['base']['schema'],
         invoke: invokeFn,
       } as unknown as RemoteTool['base'],
       sourceId: options.sourceId ?? 'mcp-server-1',
@@ -1636,6 +1635,31 @@ describe('McpStepExecutor — re-auth pause hardening', () => {
     });
 
     describe('when the candidate tools are offered to the AI', () => {
+      it('should offer a tool declaring no schema untouched instead of failing the step', async () => {
+        const invokeFn = jest.fn().mockResolvedValue('pong');
+        const tool = new MockRemoteTool({
+          name: 'ping',
+          sourceId: 'mcp-server-1',
+          invoke: invokeFn,
+          schema: undefined,
+        });
+        const { model, bindTools } = makeMockModel('ping', {});
+        const runStore = makeMockRunStore();
+        const context = makeContext({
+          model,
+          runStore,
+          stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+        });
+
+        const result = await new McpStepExecutor(context, [tool]).execute();
+
+        expect(result.stepOutcome.status).toBe('success');
+        expect(invokeFn).toHaveBeenCalledWith({});
+
+        const boundTools = bindTools.mock.calls[0][0] as Array<{ schema: unknown }>;
+        expect(boundTools[0].schema).toBeUndefined();
+      });
+
       it('should add reasoning to a JSON-Schema tool without dropping its own arguments', async () => {
         const tool = new MockRemoteTool({
           name: 'send_notification',

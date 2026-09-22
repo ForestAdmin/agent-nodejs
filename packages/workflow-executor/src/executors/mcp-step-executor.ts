@@ -376,10 +376,17 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
   // workflow-executor resolve different zod instances, and an MCP-server tool carries a plain
   // JSON Schema, which is valid at runtime but does not unify with langchain's static union.
   private static withReasoningField(tool: StructuredToolInterface): {
-    tool: DynamicStructuredTool;
+    tool: StructuredToolInterface;
     reasoningKey: string;
   } {
     const { schema } = tool;
+
+    // A tool declaring no schema, as a parameterless one may, has nothing to extend. It is offered
+    // to the model untouched rather than probed, and its selection goes unexplained.
+    if (schema === null || typeof schema !== 'object') {
+      return { tool, reasoningKey: REASONING_FIELD };
+    }
+
     const isZodObject = typeof (schema as { extend?: unknown }).extend === 'function';
     const declaredKeys = isZodObject
       ? Object.keys((schema as z.ZodObject<z.ZodRawShape>).shape)
