@@ -25,10 +25,21 @@ export interface ApiKeyAuthenticatorOptions {
 export interface AuthenticatedApiKey {
   agentToken: string;
   identity: ResolvedApiKeyIdentity;
+  /** The Forest server token the resolve response carried, cached with the identity. */
+  forestServerToken?: string;
 }
 
 export interface ApiKeyAuthenticator {
   authenticate(rawKey: string): Promise<AuthenticatedApiKey>;
+  /**
+   * Forgets what a key resolved to, so the next request resolves it against the Forest server
+   * again. The resolution carries a short-lived server token the BFF caches with the identity:
+   * once that token is refused, the whole entry has to go.
+   *
+   * `credential` is the refused token, which tells a repeat refusal of the same one from the
+   * refusal of the token the previous invalidation went and fetched.
+   */
+  invalidate(rawKey: string, credential?: string): void;
 }
 
 function mapResolveError(error: ApiKeyResolveError): ApiKeyError {
@@ -54,7 +65,11 @@ export default function createApiKeyAuthenticator({
   authSecret,
 }: ApiKeyAuthenticatorOptions): ApiKeyAuthenticator {
   function mint(identity: ResolvedApiKeyIdentity): AuthenticatedApiKey {
-    return { agentToken: issueAgentToken({ identity, authSecret }), identity };
+    return {
+      agentToken: issueAgentToken({ identity, authSecret }),
+      identity,
+      forestServerToken: identity.saasAccessToken,
+    };
   }
 
   return {
@@ -90,6 +105,14 @@ export default function createApiKeyAuthenticator({
       cache.setPositive(hash, identity);
 
       return authenticated;
+    },
+
+    invalidate(rawKey, credential) {
+      const parsed = parseApiKey(rawKey);
+
+      if (!parsed) return;
+
+      cache.invalidate(hashApiKey(parsed.keyId, parsed.secret), credential);
     },
   };
 }

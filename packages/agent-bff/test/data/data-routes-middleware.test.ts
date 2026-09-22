@@ -13,6 +13,7 @@ import createDataRoutesMiddleware from '../../src/data/data-routes-middleware';
 import createErrorMiddleware from '../../src/http/error-middleware';
 import SchemaUnavailableError from '../../src/read-model/errors';
 import ReadModel from '../../src/read-model/read-model';
+import { passthroughActivityLogs } from '../helpers/activity-log';
 import { collection, column, polymorphic, relation } from '../read-model/fixtures';
 
 const TRANSPORT = createHttpTransport({ agentUrl: 'https://agent.example.com' });
@@ -81,6 +82,7 @@ function buildApp(
       store,
       transport: TRANSPORT,
       logger,
+      activityLogs: passthroughActivityLogs(),
       createClient,
     }),
   );
@@ -159,6 +161,7 @@ describe('data routes middleware', () => {
           store: storeOf(usersReadModel),
           transport: TRANSPORT,
           logger: noopLogger,
+          activityLogs: passthroughActivityLogs(),
           createClient,
         }),
       );

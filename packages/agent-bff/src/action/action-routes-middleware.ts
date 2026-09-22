@@ -4,6 +4,7 @@ import type {
   AgentActionClient,
   AgentActionClientOptions,
 } from './agent-action-client';
+import type { ActivityLogWriter } from '../activity-log/activity-log-writer';
 import type { AgentTransport } from '../agent/agent-transport';
 import type { Logger } from '../ports/logger-port';
 import type ReadModelStore from '../read-model/read-model-store';
@@ -28,7 +29,9 @@ import {
   requireAgentToken,
   resolveReadModel,
 } from '../http/agent-route-helpers';
+import { BffHttpError } from '../http/bff-http-error';
 import {
+  ACTION_REQUIRES_APPROVAL_TYPE,
   actionError,
   actionRequiresApproval,
   invalidRequest,
@@ -36,6 +39,18 @@ import {
 } from '../http/bff-local-errors';
 
 const ACTION_ROUTE = /^\/agent\/v1\/([^/]+)\/actions\/([^/]+)\/(form|execute)$/;
+
+const EXECUTE_VERB = 'execute';
+
+/**
+ * An approval request is a business outcome, not a failure: the action was routed for review. The
+ * BFF answers it with a 403, but recording the entry as `failed` would make the same event count
+ * differently here and in mcp-server, which records it as a success — and action-failure statistics
+ * would mix refusals with runs that never happened.
+ */
+function isApprovalRequest(error: unknown): boolean {
+  return error instanceof BffHttpError && error.type === ACTION_REQUIRES_APPROVAL_TYPE;
+}
 
 interface ActionRequestBody {
   recordIds?: unknown;
@@ -94,6 +109,7 @@ export interface ActionRoutesMiddlewareOptions {
   store: ReadModelStore;
   transport: AgentTransport;
   logger: Logger;
+  activityLogs: ActivityLogWriter;
   createClient?: (options: AgentActionClientOptions) => AgentActionClient;
 }
 
@@ -190,6 +206,7 @@ export default function createActionRoutesMiddleware({
   store,
   transport,
   logger,
+  activityLogs,
   createClient = defaultCreateAgentActionClient,
 }: ActionRoutesMiddlewareOptions): Middleware {
   return async function actionRoutesMiddleware(ctx, next) {
@@ -209,12 +226,16 @@ export default function createActionRoutesMiddleware({
 
     // The read-model's action map IS the allow-list, so an absent action cannot be told from a
     // known-but-disallowed one — every non-exposed action maps to 404 here; `action_not_allowed`
-    // (403) has no local trigger, mirroring `collection_not_allowed`/`relation_not_allowed`. The
-    // URL identity is resolved before the body, so a bad action 404s before its payload is read.
+    // (403) has no local trigger, mirroring `collection_not_allowed`/`relation_not_allowed`.
     // TODO(PRD-673): distinguish disallowed from unknown when a separate exposure source exists.
-    if (!readModel.isActionAllowed(collection, actionName)) {
+    const allowed = readModel.isActionAllowed(collection, actionName);
+
+    const refuseUnknownAction = () => {
       throw unknownAction(`Unknown action: ${collection}.${actionName}`);
-    }
+    };
+
+    // The form is unaudited, so it keeps refusing before the body is read.
+    if (!allowed && verb !== EXECUTE_VERB) refuseUnknownAction();
 
     const body = (ctx.request.body ?? {}) as ActionRequestBody;
     assertKnownBodyKeys(body as Record<string, unknown>);
@@ -227,23 +248,49 @@ export default function createActionRoutesMiddleware({
       actionEndpoints: readModel.getActionEndpoints(),
     });
 
-    const action = await callAgent(
-      () =>
-        client.loadAction({
-          collection,
-          actionName,
-          recordIds,
-          timezone: ctx.state.timezone as string,
-        }),
-      logger,
-    );
+    const loadAction = () =>
+      callAgent(
+        () =>
+          client.loadAction({
+            collection,
+            actionName,
+            recordIds,
+            timezone: ctx.state.timezone as string,
+          }),
+        logger,
+      );
 
-    const handlerArgs = { ctx, action, values, logger };
+    // The form is not audited, mirroring mcp-server, whose get-action-form tool writes no log
+    // either: the record-touching event the trail records is the execution.
+    if (verb !== EXECUTE_VERB) {
+      const action = await loadAction();
 
-    if (verb === 'execute') {
-      await handleExecute(handlerArgs);
-    } else {
-      await handleForm(handlerArgs);
+      await handleForm({ ctx, action, values, logger });
+
+      return;
     }
+
+    // The whole sequence is audited, loadAction and setFields included, so the intent is recorded
+    // even when the attempt never reaches the agent's execute. The allow-list refusal is inside
+    // too, mirroring mcp-server, whose execute-action tool resolves the action within its own
+    // wrapper: an attempt on an action the caller may not trigger is exactly what the trail is
+    // for, and the record ids it names are only known once the body is read.
+    await activityLogs.record({
+      ctx,
+      action: 'action',
+      context: {
+        collectionName: collection,
+        recordIds,
+        label: `triggered the action "${actionName}"`,
+      },
+      isCompletedDespite: isApprovalRequest,
+      operation: async () => {
+        if (!allowed) refuseUnknownAction();
+
+        const action = await loadAction();
+
+        await handleExecute({ ctx, action, values, logger });
+      },
+    });
   };
 }
