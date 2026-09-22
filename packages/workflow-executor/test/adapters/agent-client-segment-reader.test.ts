@@ -326,7 +326,7 @@ describe('AgentClientSegmentReader', () => {
     });
 
     it('should authenticate as the service account', async () => {
-      let authorization: string | undefined;
+      let authorization = '';
 
       nock(AGENT_URL)
         .get('/forest/orders')
@@ -339,7 +339,17 @@ describe('AgentClientSegmentReader', () => {
 
       await reader.listRecordIds(makeQuery());
 
-      expect(authorization).toMatch(/^Bearer ey/);
+      // Decoded rather than shape-matched: any signed token matches `Bearer ey`, including one
+      // minted from the wrong profile, and the caller identity is what this read rests on.
+      const claims = JSON.parse(
+        Buffer.from(authorization.replace('Bearer ', '').split('.')[1], 'base64url').toString(),
+      );
+
+      expect(claims).toMatchObject({
+        id: profile.id,
+        email: profile.email,
+        rendering_id: profile.renderingId,
+      });
     });
   });
 
@@ -348,6 +358,17 @@ describe('AgentClientSegmentReader', () => {
       interceptList([{ id: '12' }, { id: '13' }]);
 
       await expect(reader.listRecordIds(makeQuery())).resolves.toEqual(['12', '13']);
+    });
+
+    it('should refuse a packed id that does not split into as many parts as the key has', async () => {
+      // The agent has the same limitation in `IdUtils.packId`: a key value containing the separator
+      // cannot be unpacked. Sending it as a leaf with no field would have the agent reject the
+      // whole read instead of naming the record.
+      interceptList();
+
+      await expect(
+        reader.listRecordIds(makeQuery({ primaryKeys: ['tenantId', 'id'], recordIds: ['t1|a|5'] })),
+      ).rejects.toThrow(/t1\|a\|5/);
     });
 
     it('should take a composite key from the packed resource id, not from the columns', async () => {

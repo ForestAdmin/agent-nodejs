@@ -269,19 +269,23 @@ export interface ServerUpdateStepRequest {
 // is stripped, never a reason to refuse the config (same rule as `CollectionSchemaSchema`).
 
 export type ServerPlainConditionTree =
-  | { field: string; operator?: string; value?: unknown }
-  | { aggregator?: string; conditions: ServerPlainConditionTree[] };
+  | { field: string; operator: string; value?: unknown }
+  | { aggregator: string; conditions: ServerPlainConditionTree[] };
 
 // Branch first, deliberately: a node carrying both `conditions` and `field` is ambiguous, and the
 // leaf schema would match it and strip the conditions, leaving a filter that reads a different
 // segment than the one configured. agent-client's own `toWireFilter` resolves it the same way.
+//
+// Both discriminators are required and a branch may not be empty. The agent reads `And` over
+// nothing as matching every record, so a tree this schema let through half-formed would widen the
+// segment to the whole collection rather than fail — the one failure mode worth a rejected inbox.
 const ServerPlainConditionTreeSchema: z.ZodType<ServerPlainConditionTree> = z.lazy(() =>
   z.union([
     z.object({
-      aggregator: z.string().optional(),
-      conditions: z.array(ServerPlainConditionTreeSchema),
+      aggregator: z.string().min(1),
+      conditions: z.array(ServerPlainConditionTreeSchema).min(1),
     }),
-    z.object({ field: z.string(), operator: z.string().optional(), value: z.unknown() }),
+    z.object({ field: z.string().min(1), operator: z.string().min(1), value: z.unknown() }),
   ]),
 );
 
@@ -330,6 +334,9 @@ export const ServerAutomatedInboxConfigSchema = z.object({
   collectionName: z.string().min(1),
   primaryKeys: z.array(z.string().min(1)).min(1),
   maxConcurrentRuns: z.number().int().positive(),
+  // Validated here rather than passed on: the agent answers 400 to an unknown zone, so an inbox
+  // carrying one would fail every read of every sweep with nothing saying why. An invalid zone
+  // falls back to UTC in `segmentQuery`, the same fallback as an absent one.
   timezone: z.string().nullish(),
   // Which agent answers the segment read. Absent on an orchestrator that predates the exclusion
   // filter, which reads as unknown: the poller then pads its page, as it always did.

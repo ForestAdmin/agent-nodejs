@@ -174,10 +174,11 @@ function buildCommonDependencies(options: ExecutorOptions) {
     activityLogPortFactory,
     logger,
     pollingIntervalS: positiveOrDefault(options.pollingIntervalS, DEFAULT_POLLING_INTERVAL_S),
-    automationPollingIntervalS: positiveOrDefault(
-      options.automationPollingIntervalS,
-      DEFAULT_AUTOMATION_POLL_INTERVAL_S,
-    ),
+    // Zero survives the default: it is how an operator turns the sweep off.
+    automationPollingIntervalS:
+      options.automationPollingIntervalS === 0
+        ? 0
+        : positiveOrDefault(options.automationPollingIntervalS, DEFAULT_AUTOMATION_POLL_INTERVAL_S),
     envSecret: options.envSecret,
     authSecret: options.authSecret,
     stopTimeoutS: options.stopTimeoutS,
