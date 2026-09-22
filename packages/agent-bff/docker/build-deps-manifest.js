@@ -1,7 +1,8 @@
 // Generates the package.json for the Docker image's isolated runtime deps.
 //
 // It merges the external (non-@forestadmin) runtime dependencies of the BFF and
-// its 4 workspace dependencies into a single manifest.
+// its 4 workspace dependencies into a single manifest, plus the OpenTelemetry
+// packages used for APM (Docker-only; not shipped to npm consumers of the CLI).
 //
 // The output is deterministic (sorted keys). A committed yarn.lock sits next to
 // the generated manifest; the Docker build regenerates the manifest and runs
@@ -23,6 +24,19 @@ const WORKSPACE_PACKAGES = [
   'forestadmin-client',
 ];
 
+// Pinned to exact versions — OTel ships only in the Docker image, so nothing else bumps them.
+// sdk-node drags in every OTLP exporter plus the Zipkin one, which is why the image can honour
+// OTEL_TRACES_EXPORTER and OTEL_EXPORTER_OTLP_PROTOCOL without naming an exporter here.
+// A fixable CRITICAL/HIGH in this tree blocks every publish of this image until someone raises a
+// pin here and refreshes deps/yarn.lock (see the propagator-jaeger resolution below for the shape
+// of that fix). Renovate does not watch this file — it is a plain object, not a manifest — so an
+// unrelated release will stall on it unless someone is looking.
+const OTEL_DEPENDENCIES = {
+  '@opentelemetry/sdk-node': '0.219.0',
+  '@opentelemetry/auto-instrumentations-node': '0.77.0',
+  '@opentelemetry/exporter-trace-otlp-http': '0.219.0',
+};
+
 // Security pins for transitive deps whose parents never ship a patched range.
 // They mirror the monorepo root's `resolutions` for the packages that actually
 // appear in this closure — the isolated install does not inherit the root ones.
@@ -31,6 +45,8 @@ const RESOLUTIONS = {
   '**/qs': '>=6.15.2',
   // jsonapi-serializer pins lodash ^4.17.x.
   '**/lodash': '^4.18.0',
+  // auto-instrumentations-node pins propagator-jaeger 2.8.0 (CVE-2026-59892, fixed in 2.9.0).
+  '**/@opentelemetry/propagator-jaeger': '2.9.0',
 };
 
 function generate(packagesDir, outFile) {
@@ -59,6 +75,8 @@ function generate(packagesDir, outFile) {
       declaredBy[name] = pkg;
     }
   }
+
+  Object.assign(deps, OTEL_DEPENDENCIES);
 
   const sorted = Object.fromEntries(Object.keys(deps).sort().map(key => [key, deps[key]]));
 

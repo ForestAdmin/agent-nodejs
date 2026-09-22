@@ -1,7 +1,8 @@
 #!/bin/sh
 # Smoke-test a built agent-bff image: prove the entrypoint works, the full module
 # graph loads (cli.js eagerly imports cli-core -> every @forestadmin + external
-# dep), the Redoc bundle shipped, and the server boots and answers.
+# dep), the Redoc bundle shipped, the OTel SDK initialises, and the server boots
+# and answers.
 # Run against a locally-loaded image before it is published.
 #
 # Usage: smoke-test.sh <image-ref>
@@ -43,12 +44,17 @@ docker run --rm --entrypoint sh "$IMAGE" -c \
 # nothing reaches the network, whereas a fully configured boot would fetch the
 # environment id from FOREST_SERVER_URL and die on an unreachable host.
 # The key gates OAuth, not boot, so this answers 200 with `configured.oauth: false`.
+#
+# OTEL_EXPORTER_OTLP_ENDPOINT is set so the SDK actually initialises: the packages
+# exist only in this image, so nothing else would prove they are loadable. The
+# receiver is unreachable on purpose — exporting is asynchronous and best-effort.
 CONTAINER=$(docker run -d -p "127.0.0.1:$PORT:3450" \
   -e FOREST_AUTH_SECRET=smoke-test \
   -e FOREST_ENV_SECRET="$(openssl rand -hex 32)" \
   -e FOREST_SERVER_URL=http://127.0.0.1:1 \
   -e FOREST_APP_URL=http://127.0.0.1:1 \
   -e AGENT_URL=http://127.0.0.1:1 \
+  -e OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318 \
   "$IMAGE")
 trap 'docker logs "$CONTAINER" 2>&1 || true; docker rm -f "$CONTAINER" >/dev/null 2>&1 || true' EXIT
 
@@ -69,6 +75,10 @@ if echo "$logs" | grep -qiE "Cannot find module|MODULE_NOT_FOUND"; then
 fi
 if ! echo "$logs" | grep -q "Forest BFF started"; then
   echo "::error::the BFF did not reach startup — boot failure"
+  exit 1
+fi
+if ! echo "$logs" | grep -q "OpenTelemetry tracing enabled"; then
+  echo "::error::the OTel SDK did not initialise — packages missing from the image?"
   exit 1
 fi
 if [ "$status" != "200" ]; then
@@ -153,6 +163,7 @@ CONTAINER=$(docker run -d -p "127.0.0.1:$PORT:3450" \
   -e FOREST_APP_URL=http://127.0.0.1:1 \
   -e AGENT_URL=http://127.0.0.1:1 \
   -e BFF_TOKEN_ENCRYPTION_KEY="$(openssl rand -base64 32)" \
+  -e OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318 \
   "$IMAGE")
 
 status=""
@@ -186,6 +197,9 @@ fi
 # terminate itself waits out the orchestrator's grace and is SIGKILLed, dropping in-flight
 # requests. Nothing outside the image exercises that — the unit tests run as an ordinary pid.
 #
+# Tracing is armed above against a collector that is not listening, so this also covers the case
+# that matters for the span flush: it must not hold the process past the grace period.
+#
 # -t 30 so this measures the BFF rather than whatever `docker stop` defaults to locally.
 STOP_STARTED=$(date +%s)
 docker stop -t 30 "$CONTAINER" >/dev/null
@@ -198,10 +212,10 @@ if [ "$STOP_CODE" != "0" ]; then
   exit 1
 fi
 if [ "$STOP_ELAPSED" -gt 8 ]; then
-  echo "::error::shutdown took ${STOP_ELAPSED}s; the connection close is no longer bounded"
+  echo "::error::shutdown took ${STOP_ELAPSED}s; the shutdown is no longer bounded"
   docker logs "$CONTAINER" 2>&1 || true
   exit 1
 fi
 
-echo "graceful shutdown: exit 0 in ${STOP_ELAPSED}s"
+echo "graceful shutdown with an unreachable collector: exit 0 in ${STOP_ELAPSED}s"
 echo "smoke test passed for $IMAGE"
