@@ -1030,6 +1030,16 @@ describe('AuditTrailRoute', () => {
         ]);
       });
 
+      test("withholds the values when the row's packed id no longer fits the schema", async () => {
+        // Two components against a single-column primary key: the collection was re-keyed since the
+        // row was written, so its id can no longer answer for the record it names.
+        const data = await historyUnder(new ConditionTreeLeaf('id', 'Equal', 2), [
+          { operation: 'delete', recordId: '2|7', previousValues: { ownerId: 9 } },
+        ]);
+
+        expect(data).toEqual([{ operation: 'delete', recordId: '2|7', previousValues: {} }]);
+      });
+
       test('withholds the values when the row carries no record id to answer an id scope', async () => {
         const data = await historyUnder(new ConditionTreeLeaf('id', 'Equal', 2), [
           { operation: 'create', recordId: null, newValues: { ownerId: 9 } },
