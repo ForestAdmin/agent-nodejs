@@ -23,7 +23,7 @@ import {
   OAuthReauthRequiredError,
   StepStateError,
 } from '../errors';
-import BaseStepExecutor from './base-step-executor';
+import BaseStepExecutor, { nonEmptyText } from './base-step-executor';
 import { StepExecutionMode } from '../types/validated/step-definition';
 
 const MCP_TASK_SYSTEM_PROMPT = `You are an AI agent selecting and executing a tool to fulfill a user request.
@@ -366,12 +366,18 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     );
 
     const { [reasoningKeys.get(toolName) ?? REASONING_FIELD]: reasoning, ...input } = args;
+    const toolSelectionReasoning = nonEmptyText(reasoning);
 
-    return {
-      toolName,
-      args: input,
-      reasoning: typeof reasoning === 'string' ? reasoning : undefined,
-    };
+    // The field is asked for and required, so an answer without one separates a silent model from
+    // an injection that never reached the provider.
+    if (toolSelectionReasoning === undefined) {
+      this.context.logger('Debug', 'mcp: the model selected a tool without justifying it', {
+        ...this.logCtx,
+        toolName,
+      });
+    }
+
+    return { toolName, args: input, reasoning: toolSelectionReasoning };
   }
 
   // A tool's schema is duck-typed rather than matched with `instanceof`: ai-proxy and

@@ -1579,6 +1579,29 @@ describe('McpStepExecutor — re-auth pause hardening', () => {
       });
     });
 
+    describe('when the AI answers with a blank reasoning', () => {
+      it('should record no justification rather than an empty one', async () => {
+        const tool = new MockRemoteTool({ name: 'send_notification', sourceId: 'mcp-server-1' });
+        const { model } = makeMockModel('send_notification', {
+          message: 'Hello',
+          reasoning: '   ',
+        });
+        const runStore = makeMockRunStore();
+        const context = makeContext({
+          model,
+          runStore,
+          stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+        });
+
+        const result = await new McpStepExecutor(context, [tool]).execute();
+
+        expect(result.stepOutcome.status).toBe('success');
+
+        const saved = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+        expect(saved).not.toHaveProperty('toolSelectionReasoning');
+      });
+    });
+
     describe('when the AI omits the reasoning', () => {
       it('should run the tool untouched and record no justification', async () => {
         const invokeFn = jest.fn().mockResolvedValue('sent');

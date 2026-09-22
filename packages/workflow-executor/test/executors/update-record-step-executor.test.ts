@@ -2741,6 +2741,24 @@ describe('UpdateRecordStepExecutor', () => {
       });
     });
 
+    describe('when the AI answers with a blank reasoning', () => {
+      it('should record no justification rather than an empty one', async () => {
+        const runStore = makeMockRunStore();
+        const context = makeContext({
+          agentPort: makeMockAgentPort({ status: 'active' }),
+          runStore,
+          model: makeMockModel({ input: { fieldName: 'Status', value: 'active', reasoning: '' } })
+            .model,
+          stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+        });
+
+        await new UpdateRecordStepExecutor(context).execute();
+
+        const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+        expect(finalSave.executionParams).not.toHaveProperty('reasoning');
+      });
+    });
+
     describe('when the field holds an array value', () => {
       const tagsField = {
         fieldName: 'tags',

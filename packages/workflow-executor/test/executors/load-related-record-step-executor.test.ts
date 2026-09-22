@@ -5032,6 +5032,60 @@ describe('LoadRelatedRecordStepExecutor', () => {
       });
     });
 
+    describe('when no field-selection pass ran', () => {
+      it('should record the record justification without claiming an empty field comparison', async () => {
+        const hasManySchema = makeCollectionSchema({
+          fields: [
+            {
+              fieldName: 'address',
+              displayName: 'Address',
+              isRelationship: true,
+              relationType: 'HasMany',
+              relatedCollectionName: 'addresses',
+            },
+          ],
+        });
+        const invoke = jest.fn().mockResolvedValueOnce({
+          tool_calls: [
+            {
+              name: 'select-record-by-content',
+              args: { recordIndex: 0, reasoning: 'First is best', confident: true },
+              id: 'c1',
+            },
+          ],
+        });
+        const runStore = makeMockRunStore();
+        const context = makeContext({
+          model: {
+            bindTools: jest.fn().mockReturnValue({ invoke }),
+          } as unknown as ExecutionContext['model'],
+          agentPort: makeMockAgentPort([
+            { collectionName: 'addresses', recordId: [1], values: {} },
+            { collectionName: 'addresses', recordId: [2], values: {} },
+          ]),
+          runStore,
+          workflowPort: makeMockWorkflowPort({
+            customers: hasManySchema,
+            addresses: makeCollectionSchema({
+              collectionName: 'addresses',
+              collectionDisplayName: 'Addresses',
+              fields: [],
+            }),
+          }),
+          stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+        });
+
+        const result = await new LoadRelatedRecordStepExecutor(context).execute();
+
+        expect(result.stepOutcome.status).toBe('success');
+
+        const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+        expect(finalSave.executionResult.reasoning).toBe('First is best');
+        expect(finalSave.executionResult).not.toHaveProperty('suggestedFields');
+        expect(finalSave.pendingData).not.toHaveProperty('suggestedFields');
+      });
+    });
+
     describe('when a human ruled on the AI suggestion (Branch A)', () => {
       function makeRuling(selectedRecordId: string, aiSuggested = true) {
         const execution = makePendingExecution({

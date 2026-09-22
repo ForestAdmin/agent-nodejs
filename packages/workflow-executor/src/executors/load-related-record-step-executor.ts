@@ -25,6 +25,7 @@ import {
   RelationNotFoundError,
   StepStateError,
 } from '../errors';
+import { nonEmptyText } from './base-step-executor';
 import RecordStepExecutor from './record-step-executor';
 import { StepExecutionMode } from '../types/validated/step-definition';
 
@@ -62,7 +63,7 @@ function clampFieldValue(value: unknown): unknown {
 }
 
 interface AiSuggestionTrace {
-  suggestedFields: string[];
+  suggestedFields?: string[];
   fieldsReasoning?: string;
   reasoning?: string;
 }
@@ -73,15 +74,17 @@ function sameRecordId(a: RecordId, b: RecordId): boolean {
   return a.length === b.length && a.every((part, index) => String(part) === String(b[index]));
 }
 
+// An empty field list means no field-selection pass ran, which is not the same as the AI having
+// compared nothing, so it is left out rather than recorded as an empty comparison.
 function buildAiSuggestionTrace(
-  suggestedFields: string[],
+  suggestedFields: string[] | undefined,
   fieldsReasoning?: string,
   reasoning?: string,
 ): AiSuggestionTrace {
   return {
-    suggestedFields,
-    ...(fieldsReasoning !== undefined && { fieldsReasoning }),
-    ...(reasoning !== undefined && { reasoning }),
+    ...(suggestedFields !== undefined && suggestedFields.length > 0 && { suggestedFields }),
+    ...(nonEmptyText(fieldsReasoning) !== undefined && { fieldsReasoning }),
+    ...(nonEmptyText(reasoning) !== undefined && { reasoning }),
   };
 }
 
@@ -587,7 +590,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     const { suggestedFields, fieldsReasoning, reasoning, suggestedRecord } = pendingData;
     // A suggested record is what says an AI proposed one at all, so without it there is no
     // agreement or disagreement to record.
-    const aiSuggested = suggestedFields !== undefined && suggestedRecord !== undefined;
+    const aiSuggested = reasoning !== undefined && suggestedRecord !== undefined;
     const userKeptAiSuggestion =
       aiSuggested &&
       name === pendingData.suggestedField.name &&

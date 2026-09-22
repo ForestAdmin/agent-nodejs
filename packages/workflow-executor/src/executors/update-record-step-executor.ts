@@ -14,6 +14,7 @@ import {
   PinnedArgNotFoundError,
   StepStateError,
 } from '../errors';
+import { nonEmptyText } from './base-step-executor';
 import RecordStepExecutor from './record-step-executor';
 import { StepExecutionMode } from '../types/validated/step-definition';
 
@@ -400,7 +401,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
         input.value,
         schema.collectionName,
       ),
-      reasoning: input.reasoning,
+      reasoning: nonEmptyText(input.reasoning),
     };
   }
 
@@ -442,7 +443,10 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
 
     // The AI tool schema is JSON-Schema-safe (plain z.boolean() for Boolean), so it does not coerce
     // a stray "true"/"42" string — coerceFieldValue normalizes the value to the field's native type.
-    return { value: coerceFieldValue(field, value, schema.collectionName), reasoning };
+    return {
+      value: coerceFieldValue(field, value, schema.collectionName),
+      reasoning: nonEmptyText(reasoning),
+    };
   }
 
   private buildUpdateFieldTool(schema: CollectionSchema): DynamicStructuredTool {

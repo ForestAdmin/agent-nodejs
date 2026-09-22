@@ -31,6 +31,12 @@ import {
 import patchBodySchemas from '../http/pending-data-validators';
 import StepSummaryBuilder from './summary/step-summary-builder';
 
+// A model asked for a justification can answer with an empty string or with something that is not
+// a string at all. Neither explains anything, so neither is persisted as one.
+export function nonEmptyText(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim() !== '' ? value : undefined;
+}
+
 export default abstract class BaseStepExecutor<TStep extends StepDefinition = StepDefinition>
   implements IStepExecutor
 {
