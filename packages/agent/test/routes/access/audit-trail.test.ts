@@ -931,6 +931,13 @@ describe('AuditTrailRoute', () => {
                   columnType: 'String',
                   filterOperators: new Set(['Equal', 'NotEqual']),
                 }),
+                // Named after an `Object.prototype` member on purpose: read-only, so it is never
+                // captured, and the answerability check must not find it on the prototype.
+                toString: factories.columnSchema.build({
+                  columnType: 'String',
+                  isReadOnly: true,
+                  filterOperators: new Set(['Equal', 'NotEqual']),
+                }),
               },
             }),
           }),
@@ -1003,6 +1010,24 @@ describe('AuditTrailRoute', () => {
         ]);
 
         expect(data).toEqual([{ operation: 'delete', recordId: '2', previousValues: {} }]);
+      });
+
+      test('withholds the values when the scope names an inherited property of the snapshot', async () => {
+        const data = await historyUnder(new ConditionTreeLeaf('toString', 'NotEqual', 'private'), [
+          { operation: 'delete', recordId: '2', previousValues: { ownerId: 1, secret: 'shh' } },
+        ]);
+
+        expect(data).toEqual([{ operation: 'delete', recordId: '2', previousValues: {} }]);
+      });
+
+      test('reads a redacted primary key back from the packed id rather than the snapshot', async () => {
+        const data = await historyUnder(new ConditionTreeLeaf('id', 'Equal', 2), [
+          { operation: 'delete', recordId: '2', previousValues: { id: REDACTED, ownerId: 9 } },
+        ]);
+
+        expect(data).toEqual([
+          { operation: 'delete', recordId: '2', previousValues: { id: REDACTED, ownerId: 9 } },
+        ]);
       });
 
       test('withholds the values when the row carries no record id to answer an id scope', async () => {

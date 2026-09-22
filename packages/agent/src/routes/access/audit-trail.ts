@@ -141,6 +141,10 @@ export default class AuditTrailRoute extends CollectionRoute {
   // a read-only column, a relation — reads `undefined` there and would answer for a value the row
   // never held: `status != 'private'` matches on the missing key and releases the row. A redacted
   // value answers no better: the placeholder is not what was stored.
+  //
+  // Own properties only: `'toString' in snapshot` is true of every object, so a scope on a column
+  // named after one of `Object.prototype`'s members would otherwise resolve against the prototype
+  // and release the row on a value no record ever held.
   private matchesScope(
     entry: AuditRecord,
     values: Record<string, unknown>,
@@ -149,7 +153,8 @@ export default class AuditTrailRoute extends CollectionRoute {
   ): boolean {
     const snapshot = this.withPrimaryKeys(entry, values);
     const answered = scope.projection.every(
-      field => field in snapshot && snapshot[field] !== REDACTED,
+      field =>
+        Object.prototype.hasOwnProperty.call(snapshot, field) && snapshot[field] !== REDACTED,
     );
 
     return answered && scope.match(snapshot, this.collection, timezone);
@@ -158,6 +163,10 @@ export default class AuditTrailRoute extends CollectionRoute {
   // A read-only primary key never lands in the snapshot, so a scope on the id would blank a row
   // that is squarely in scope. The row's own packed id carries those values — and an id the current
   // schema can no longer unpack simply leaves them out, which withholds.
+  //
+  // The decoded keys win over the snapshot's own copy of them: it is the same value, except when
+  // the primary key is writable and redacted, where the snapshot holds the placeholder while the
+  // packed id — which is never redacted — still names the record the row belongs to.
   private withPrimaryKeys(
     entry: AuditRecord,
     values: Record<string, unknown>,
@@ -170,7 +179,7 @@ export default class AuditTrailRoute extends CollectionRoute {
       const names = SchemaUtils.getPrimaryKeys(this.collection.schema);
       const ids = IdUtils.unpackId(this.collection.schema, entry.recordId);
 
-      return { ...Object.fromEntries(names.map((name, index) => [name, ids[index]])), ...snapshot };
+      return { ...snapshot, ...Object.fromEntries(names.map((name, index) => [name, ids[index]])) };
     } catch {
       return snapshot;
     }
