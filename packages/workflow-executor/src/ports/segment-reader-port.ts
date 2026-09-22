@@ -14,6 +14,11 @@ export interface ListSegmentRecordIdsQuery {
   timezone: string;
   /** Restricts the read to these packed record ids, on top of the segment. */
   recordIds?: string[];
+  /**
+   * Excludes these packed record ids from the read, on top of the segment. Honoured for a
+   * single-column primary key only: `not_in` takes a flat list of values.
+   */
+  excludedRecordIds?: string[];
   pageSize?: number;
 }
 
