@@ -1630,8 +1630,9 @@ describe('ReadRecordStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('success');
     });
 
-    // A step id is unique only inside its own workflow, so a called workflow that repeats one — a
-    // copy of its caller, or a call on itself — must not answer the pin its caller wrote.
+    // A step id is unique only inside its own workflow, so any other workflow repeating one — a
+    // copy of its caller, a call on itself, or a sibling call that already closed — must not answer
+    // the pin its caller wrote.
     it('resolves the call pin against the caller, not a step of the called workflow repeating its id', async () => {
       const calleeStep = (stepIndex: number): Step => ({
         stepDefinition: {
@@ -1655,7 +1656,7 @@ describe('ReadRecordStepExecutor', () => {
       const context = makeCalledContext(
         {
           selectedRecordStepId: 'load-1',
-          pinnedAtStepIndex: 2,
+          pinnedFrameStepIndexes: [1],
           calledWorkflowCollectionName: 'orders',
         },
         {

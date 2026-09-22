@@ -121,6 +121,9 @@ function toPreviousSteps(
 
 // A missing, empty or non-string wire value reads as absent: a call sending neither the pin nor the
 // called collection behaves as one that predates them.
+// The run's own frame, which no call opened.
+const ROOT_FRAME = -1;
+
 function toNonEmptyString(value: unknown): string | undefined {
   return typeof value === 'string' && value.length > 0 ? value : undefined;
 }
@@ -134,15 +137,30 @@ function toCallScope(
 ): CallScope | undefined {
   if (!pending.childrenWorkflowId) return undefined;
 
-  const openCalls: Array<{ stepIndex: number; definition: ServerStartSubWorkflow }> = [];
+  const openCalls: Array<{
+    stepIndex: number;
+    frameOpenedAt: number;
+    definition: ServerStartSubWorkflow;
+  }> = [];
+  // Which frame each step ran in, keyed by the index of the call that opened it, -1 for the run's
+  // own. A frame is not a span: its steps resume after each nested call closes.
+  const frameOfStep = new Map<number, number>();
 
   history.forEach(entry => {
     if (entry.revised || entry.cancelled || entry.stepIndex >= pending.stepIndex) return;
 
+    const frameOpenedAt = openCalls.at(-1)?.stepIndex ?? ROOT_FRAME;
+
     if (entry.stepDefinition.type === ServerStepTypeEnum.StartSubWorkflow) {
-      openCalls.push({ stepIndex: entry.stepIndex, definition: entry.stepDefinition });
+      openCalls.push({
+        stepIndex: entry.stepIndex,
+        frameOpenedAt,
+        definition: entry.stepDefinition,
+      });
     } else if (entry.stepDefinition.type === ServerStepTypeEnum.CloseSubWorkflow) {
       openCalls.pop();
+    } else {
+      frameOfStep.set(entry.stepIndex, frameOpenedAt);
     }
   });
 
@@ -160,12 +178,21 @@ function toCallScope(
     innermost.definition.calledWorkflowCollectionName,
   );
 
+  // The pin names a step of the workflow that wrote it, so it resolves only among that frame's own
+  // steps. previousSteps flattens every frame, and any workflow repeating a step id — a copy of its
+  // caller, a call on itself, or a sibling call that already closed — would otherwise answer with
+  // its own record.
+  const pinnedFrameStepIndexes =
+    pinnedBy &&
+    [...frameOfStep]
+      .filter(
+        ([stepIndex, frame]) => frame === pinnedBy.frameOpenedAt && stepIndex < pinnedBy.stepIndex,
+      )
+      .map(([stepIndex]) => stepIndex);
+
   return {
-    // The pin names a step of the workflow that wrote it, so it resolves against what ran before
-    // that call opened. previousSteps flattens every frame, and a called workflow repeating a step
-    // id — a copy of its caller, or a call on itself — would otherwise answer with its own record.
     ...(pinnedBy !== undefined &&
-      pin !== undefined && { selectedRecordStepId: pin, pinnedAtStepIndex: pinnedBy.stepIndex }),
+      pin !== undefined && { selectedRecordStepId: pin, pinnedFrameStepIndexes }),
     ...(calledWorkflowCollectionName !== undefined && { calledWorkflowCollectionName }),
   };
 }

@@ -1044,7 +1044,7 @@ describe('toAvailableStepExecution', () => {
 
       expect(callScopeOf(run)).toEqual({
         selectedRecordStepId: 'load-1',
-        pinnedAtStepIndex: 0,
+        pinnedFrameStepIndexes: [],
         calledWorkflowCollectionName: 'orders',
       });
     });
@@ -1084,7 +1084,7 @@ describe('toAvailableStepExecution', () => {
 
       expect(callScopeOf(run)).toEqual({
         selectedRecordStepId: 'load-2',
-        pinnedAtStepIndex: 1,
+        pinnedFrameStepIndexes: [],
         calledWorkflowCollectionName: 'invoices',
       });
     });
@@ -1108,7 +1108,7 @@ describe('toAvailableStepExecution', () => {
 
       expect(callScopeOf(run)).toEqual({
         selectedRecordStepId: 'load-1',
-        pinnedAtStepIndex: 0,
+        pinnedFrameStepIndexes: [],
         calledWorkflowCollectionName: 'invoices',
       });
     });
@@ -1158,28 +1158,53 @@ describe('toAvailableStepExecution', () => {
       const callScope = callScopeOf(run);
 
       expect(callScope?.selectedRecordStepId).toBeUndefined();
-      expect(callScope?.pinnedAtStepIndex).toBeUndefined();
+      expect(callScope?.pinnedFrameStepIndexes).toBeUndefined();
       expect(callScope?.calledWorkflowCollectionName).toBe('invoices');
     });
 
-    // The pin names a step of the workflow that wrote it, so the frame it was written on is what
-    // bounds the lookup — the enclosing call here, not the inner one the pending step runs in.
-    it('bounds a pin resolved outwards to the call that wrote it', () => {
+    // The pin names a step of the workflow that wrote it, so the frame it was written in is what
+    // the lookup runs over — the enclosing call here, not the inner one the pending step runs in.
+    it('scopes a pin resolved outwards to the frame of the call that wrote it', () => {
       const run = makeRun({
         workflowHistory: [
+          makeStepHistory({ stepName: 'load-1', stepIndex: 0, done: true }),
           makeStartSubWorkflowHistory(
-            { stepName: 'call-1', stepIndex: 0 },
+            { stepName: 'call-1', stepIndex: 1 },
             { selectedRecordStepId: 'load-1', calledWorkflowCollectionName: 'orders' },
           ),
+          makeChildStepHistory({ stepName: 'load-1', stepIndex: 2, done: true }),
           makeStartSubWorkflowHistory(
-            { stepName: 'call-2', stepIndex: 1 },
+            { stepName: 'call-2', stepIndex: 3 },
             { selectedRecordStepId: 'workflow-start', calledWorkflowCollectionName: 'invoices' },
           ),
-          makeChildStepHistory({ stepName: 'child-1', stepIndex: 2, done: false }),
+          makeChildStepHistory({ stepName: 'child-1', stepIndex: 4, done: false }),
         ],
       });
 
-      expect(callScopeOf(run)?.pinnedAtStepIndex).toBe(0);
+      expect(callScopeOf(run)?.pinnedFrameStepIndexes).toEqual([0]);
+    });
+
+    // A frame's steps are not a span: a call that opened and closed before the pin was written sits
+    // between them, and its own steps can repeat the id the caller pinned.
+    it('leaves the steps of a call that already closed out of the pinning frame', () => {
+      const run = makeRun({
+        workflowHistory: [
+          makeStepHistory({ stepName: 'load-1', stepIndex: 0, done: true }),
+          makeStartSubWorkflowHistory(
+            { stepName: 'call-1', stepIndex: 1 },
+            { calledWorkflowCollectionName: 'orders' },
+          ),
+          makeChildStepHistory({ stepName: 'load-1', stepIndex: 2, done: true }),
+          makeCloseSubWorkflowHistory({ stepName: 'close-1', stepIndex: 3 }),
+          makeStartSubWorkflowHistory(
+            { stepName: 'call-2', stepIndex: 4 },
+            { selectedRecordStepId: 'load-1', calledWorkflowCollectionName: 'orders' },
+          ),
+          makeChildStepHistory({ stepName: 'child-1', stepIndex: 5, done: false }),
+        ],
+      });
+
+      expect(callScopeOf(run)?.pinnedFrameStepIndexes).toEqual([0]);
     });
 
     it('pops back to the run record once the call is closed', () => {
@@ -1216,7 +1241,7 @@ describe('toAvailableStepExecution', () => {
 
       expect(callScopeOf(run)).toEqual({
         selectedRecordStepId: 'load-2',
-        pinnedAtStepIndex: 2,
+        pinnedFrameStepIndexes: [],
         calledWorkflowCollectionName: 'invoices',
       });
     });
@@ -1258,7 +1283,7 @@ describe('toAvailableStepExecution', () => {
 
       expect(callScopeOf(run)).toEqual({
         selectedRecordStepId: 'load-2',
-        pinnedAtStepIndex: 1,
+        pinnedFrameStepIndexes: [],
         calledWorkflowCollectionName: 'invoices',
       });
     });
