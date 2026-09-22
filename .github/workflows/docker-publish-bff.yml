@@ -24,9 +24,13 @@ on:
         description: 'Version tag to publish (e.g. 1.20.2)'
         required: true
 
+# The floor, for every job. `packages: write` is granted per job, to the two that push, and never
+# to `validate`: that one runs on pull_request, so it builds and executes code the PR controls —
+# its Dockerfile, its docker/*.js, its smoke test. A token that can write to GHCR has no business
+# being reachable from there, and validate needs none: it builds with `push: false` and never logs
+# in to the registry.
 permissions:
   contents: read
-  packages: write
 
 concurrency:
   # Include the dispatch version so two manual runs for different versions from the
@@ -132,6 +136,10 @@ jobs:
     if: github.event_name != 'pull_request'
     needs: extract-version
     runs-on: ${{ matrix.runner }}
+    # Pushes by digest, so it is one of the two jobs that needs the registry.
+    permissions:
+      contents: read
+      packages: write
     strategy:
       matrix:
         include:
@@ -253,6 +261,10 @@ jobs:
     if: github.event_name != 'pull_request'
     needs: [extract-version, build]
     runs-on: ubuntu-latest
+    # Assembles and pushes the multi-arch manifest.
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v4
         with:
