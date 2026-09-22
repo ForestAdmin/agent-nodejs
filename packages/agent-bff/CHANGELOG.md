@@ -1,3 +1,10 @@
+# @forestadmin/agent-bff [1.32.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.31.0...@forestadmin/agent-bff@1.32.0) (2026-09-22)
+
+
+### Features
+
+* **agent-bff:** audit reads and action executions ([#1885](https://github.com/ForestAdmin/agent-nodejs/issues/1885)) ([121d943](https://github.com/ForestAdmin/agent-nodejs/commit/121d943127b215e433ce703e9f8ef86a805bfc12))
+
 # @forestadmin/agent-bff [1.31.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.30.2...@forestadmin/agent-bff@1.31.0) (2026-09-15)
 
 
