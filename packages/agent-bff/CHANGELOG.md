@@ -1,3 +1,11 @@
+# @forestadmin/agent-bff [1.33.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.32.0...@forestadmin/agent-bff@1.33.0) (2026-09-22)
+
+
+### Features
+
+* **agent-bff:** bundle opentelemetry apm in the docker image ([#1849](https://github.com/ForestAdmin/agent-nodejs/issues/1849)) ([ef4377f](https://github.com/ForestAdmin/agent-nodejs/commit/ef4377f6f4dd4def0bfdf7b92661c8a6c5fef212))
+* **agent-bff:** publish a docker image to ghcr ([#1848](https://github.com/ForestAdmin/agent-nodejs/issues/1848)) ([4c162b1](https://github.com/ForestAdmin/agent-nodejs/commit/4c162b120bef175aa70c31e40e17767cb1684604)), closes [#1899](https://github.com/ForestAdmin/agent-nodejs/issues/1899)
+
 # @forestadmin/agent-bff [1.32.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.31.0...@forestadmin/agent-bff@1.32.0) (2026-09-22)
 
 
