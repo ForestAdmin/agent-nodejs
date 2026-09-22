@@ -18,6 +18,8 @@ import createConsoleLogger from './adapters/console-logger';
  *   OTEL_SERVICE_NAME             default: forestadmin-agent-bff
  *   OTEL_SDK_DISABLED             set to "true" to force-disable
  *   OTEL_RESOURCE_ATTRIBUTES      e.g. deployment.environment=production
+ *   OTEL_METRICS_EXPORTER         default: none (the SDK's own default is otlp)
+ *   OTEL_LOGS_EXPORTER            default: none (the SDK's own default is otlp)
  *
  * The OTel packages are installed only into the Docker image's isolated deps (see
  * `packages/agent-bff/docker/`), never shipped to npm consumers of the CLI — hence the dynamic
@@ -115,6 +117,10 @@ export function serviceNameFromEnv(env: NodeJS.ProcessEnv): string | undefined {
  * is a legitimate way to reach a collector behind basic auth, and container logs are the last place
  * that token should end up — this package does not echo a secret anywhere else either.
  *
+ * The query string goes with them, unread: collectors that take their key as `?api_key=` exist, and
+ * telling them apart from a harmless parameter means knowing every vendor's spelling. Nothing about
+ * the destination is lost — the host and path are what the line is for.
+ *
  * An endpoint that does not parse is dropped from the log entirely rather than passed through: it
  * cannot be redacted, so it cannot be shown. The SDK will fail on it soon enough on its own.
  */
@@ -122,10 +128,11 @@ export function redactEndpoint(endpoint: string): string | undefined {
   try {
     const url = new URL(endpoint);
 
-    if (!url.username && !url.password) return endpoint;
+    if (!url.username && !url.password && !url.search) return endpoint;
 
     url.username = '';
     url.password = '';
+    url.search = '';
 
     return url.toString();
   } catch {
@@ -165,6 +172,16 @@ export default function initTracing(options: TracingOptions = {}): OtelSdk | und
   // fill it in only when the environment names no service at all, and otherwise leave the SDK to
   // apply the spec's own precedence (OTEL_SERVICE_NAME first, then the resource attribute).
   const named = serviceNameFromEnv(env);
+
+  // NodeSDK reads OTEL_METRICS_EXPORTER and OTEL_LOGS_EXPORTER itself, and an unset one does not
+  // mean "off" — it means otlp. So arming traces alone also starts a metric reader and a log
+  // processor aimed at the OTLP default, http://localhost:4318. Under OTEL_TRACES_EXPORTER=console,
+  // which asks for no collector at all, that is a POST every minute to a port nobody named; where
+  // something else on the host does listen there, it is telemetry that install never opted into.
+  // This module arms tracing. The other two signals stay opt-in, through their own variable, which
+  // still works: we only fill in what the environment left blank.
+  env.OTEL_METRICS_EXPORTER = env.OTEL_METRICS_EXPORTER?.trim() || 'none';
+  env.OTEL_LOGS_EXPORTER = env.OTEL_LOGS_EXPORTER?.trim() || 'none';
 
   // No `traceExporter`, deliberately. Passing one puts NodeSDK on its manual-configuration path,
   // where it stops reading the environment — which is how OTEL_TRACES_EXPORTER, then

@@ -234,6 +234,41 @@ describe('initTracing', () => {
       expect(sdk).toEqual(expect.objectContaining({ shutdown: expect.any(Function) }));
     });
 
+    // Unset does not mean off for these two: the SDK reads them itself and falls back to otlp, so
+    // arming traces alone would also export metrics and logs to http://localhost:4318.
+    it.each([['OTEL_METRICS_EXPORTER'], ['OTEL_LOGS_EXPORTER']])(
+      'should turn %s off when the environment leaves it unset',
+      variable => {
+        const env: NodeJS.ProcessEnv = { OTEL_EXPORTER_OTLP_ENDPOINT: ENDPOINT };
+
+        setup({ env });
+
+        expect(env[variable]).toBe('none');
+      },
+    );
+
+    it.each([['OTEL_METRICS_EXPORTER'], ['OTEL_LOGS_EXPORTER']])(
+      'should keep the exporter %s names',
+      variable => {
+        const env: NodeJS.ProcessEnv = {
+          OTEL_EXPORTER_OTLP_ENDPOINT: ENDPOINT,
+          [variable]: 'otlp',
+        };
+
+        setup({ env });
+
+        expect(env[variable]).toBe('otlp');
+      },
+    );
+
+    it('should leave both signals alone when tracing never arms', () => {
+      const env: NodeJS.ProcessEnv = {};
+
+      setup({ env });
+
+      expect(env).toEqual({});
+    });
+
     // Arming one here would swallow a signal the CLI has not armed its own handler for yet, and
     // nothing would then terminate the process.
     it('should register no signal handler of its own', () => {
@@ -337,6 +372,19 @@ describe('redactEndpoint', () => {
     const redacted = redactEndpoint(endpoint);
 
     expect(redacted).toBe('https://collector.example/v1/traces');
+    expect(redacted).not.toContain('s3cret');
+  });
+
+  it.each([
+    ['https://collector.example/v1/traces?api_key=s3cret', 'https://collector.example/v1/traces'],
+    [
+      'https://user:s3cret@collector.example/v1/traces?k=s3cret',
+      'https://collector.example/v1/traces',
+    ],
+  ])('should drop the query string of %s, where a collector key can sit', (endpoint, expected) => {
+    const redacted = redactEndpoint(endpoint);
+
+    expect(redacted).toBe(expected);
     expect(redacted).not.toContain('s3cret');
   });
 

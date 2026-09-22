@@ -118,6 +118,7 @@ Configure it entirely through the standard OTel environment variables:
 | `OTEL_TRACES_EXPORTER` | Which exporter the SDK builds: `otlp` (the default), `console`, `zipkin`, `none`, or a list. Setting it alone turns tracing on without an OTLP endpoint, which is what makes `console` usable for debugging. `none` keeps instrumentation running with nothing exported, so trace context still propagates to the agent and the Forest SaaS. |
 | `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` | Per-signal endpoint, taking precedence over the generic one above. Setting either turns tracing on. |
 | `OTEL_EXPORTER_OTLP_PROTOCOL` | `http/protobuf` (the default), `http/json` or `grpc`, with `OTEL_EXPORTER_OTLP_TRACES_PROTOCOL` for traces alone. |
+| `OTEL_METRICS_EXPORTER` / `OTEL_LOGS_EXPORTER` | Default to `none` here, against the SDK's own `otlp`: this image arms tracing, and leaving them unset would otherwise export metrics and logs to `http://localhost:4318` on the side. Set either one (`otlp`, `console`, …) to opt that signal back in. |
 
 ```bash
 docker run -d \
