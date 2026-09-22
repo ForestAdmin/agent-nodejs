@@ -149,11 +149,14 @@ describe('AutomationPoller', () => {
   });
 
   describe('candidates', () => {
-    it('should ask for a page holding the run cap plus every current assignment', async () => {
+    const excluding = makeConfig({ excludeKnownRecords: true });
+
+    it('should ask the agent to leave out the records it already has an assignment for', async () => {
       const context = makeContext({
+        inboxes: [excluding],
         assignments: [
           makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' }),
-          makeAssignment({ recordId: 'b', state: 'doing', runState: 'started' }),
+          makeAssignment({ recordId: 'b' }),
         ],
       });
 
@@ -164,8 +167,87 @@ describe('AutomationPoller', () => {
           collectionName: 'orders',
           primaryKeys: ['id'],
           segment: { kind: 'smart', name: 'to-review' },
-          pageSize: 22,
+          excludedRecordIds: ['a', 'b'],
+          pageSize: 20,
         }),
+      );
+    });
+
+    it('should take an excluded page as candidates without filtering it again', async () => {
+      const context = makeContext({
+        inboxes: [excluding],
+        assignments: [makeAssignment({ recordId: 'known', state: 'doing', runState: 'started' })],
+      });
+      context.segmentReaderPort.listRecordIds.mockResolvedValue(['fresh-1', 'fresh-2']);
+
+      await runOneCycle(makePoller(context));
+
+      expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
+        closed: [],
+        candidates: ['fresh-1', 'fresh-2'],
+      });
+    });
+
+    it('should name a record once even when it holds several assignments', async () => {
+      const context = makeContext({
+        inboxes: [excluding],
+        assignments: [
+          makeAssignment({ recordId: 'dup', state: 'doing', runState: 'started' }),
+          makeAssignment({ recordId: 'dup' }),
+        ],
+      });
+
+      await runOneCycle(makePoller(context));
+
+      expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledWith(
+        expect.objectContaining({ excludedRecordIds: ['dup'], pageSize: 20 }),
+      );
+    });
+
+    it('should pad the page instead when the orchestrator does not serve the exclusion', async () => {
+      const context = makeContext({
+        assignments: [
+          makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' }),
+          makeAssignment({ recordId: 'b', state: 'doing', runState: 'started' }),
+        ],
+      });
+
+      await runOneCycle(makePoller(context));
+
+      expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledWith(
+        expect.objectContaining({ pageSize: 22 }),
+      );
+      expect(context.segmentReaderPort.listRecordIds).not.toHaveBeenCalledWith(
+        expect.objectContaining({ excludedRecordIds: expect.anything() }),
+      );
+    });
+
+    it('should pad the page instead when the collection has a composite key', async () => {
+      const context = makeContext({
+        inboxes: [makeConfig({ excludeKnownRecords: true, primaryKeys: ['tenant', 'id'] })],
+        assignments: [makeAssignment({ recordId: 't1|1', state: 'doing', runState: 'started' })],
+      });
+
+      await runOneCycle(makePoller(context));
+
+      expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledWith(
+        expect.objectContaining({ pageSize: 21 }),
+      );
+      expect(context.segmentReaderPort.listRecordIds).not.toHaveBeenCalledWith(
+        expect.objectContaining({ excludedRecordIds: expect.anything() }),
+      );
+    });
+
+    it('should pad the page instead when too many records would travel in the query string', async () => {
+      const assignments = Array.from({ length: 151 }, (_unused, index) =>
+        makeAssignment({ recordId: `r${index}`, state: 'doing', runState: 'started' }),
+      );
+      const context = makeContext({ inboxes: [excluding], assignments });
+
+      await runOneCycle(makePoller(context));
+
+      expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledWith(
+        expect.objectContaining({ pageSize: 171 }),
       );
     });
 

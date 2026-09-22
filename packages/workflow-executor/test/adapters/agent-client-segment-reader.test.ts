@@ -240,6 +240,66 @@ describe('AgentClientSegmentReader', () => {
     });
   });
 
+  describe('excluding known records', () => {
+    it('should leave out a single-column key with one `not_in`', async () => {
+      const captured = interceptList();
+
+      await reader.listRecordIds(makeQuery({ excludedRecordIds: ['1', '2'] }));
+
+      expect(JSON.parse(captured.query.filters)).toEqual({
+        field: 'id',
+        operator: 'not_in',
+        value: ['1', '2'],
+      });
+    });
+
+    it('should AND the exclusion with a filter segment rather than replace it', async () => {
+      const captured = interceptList();
+      const segment: ServerAutomatedSegmentDescriptor = {
+        kind: 'filter',
+        conditionTree: { field: 'status', operator: 'equal', value: 'new' },
+      };
+
+      await reader.listRecordIds(makeQuery({ segment, excludedRecordIds: ['1'] }));
+
+      expect(JSON.parse(captured.query.filters)).toEqual({
+        aggregator: 'and',
+        conditions: [
+          { field: 'status', operator: 'equal', value: 'new' },
+          { field: 'id', operator: 'not_in', value: ['1'] },
+        ],
+      });
+    });
+
+    it('should carry the exclusion next to a SQL segment', async () => {
+      const captured = interceptList();
+      const segment: ServerAutomatedSegmentDescriptor = {
+        kind: 'sql',
+        query: 'SELECT id FROM orders',
+        connectionName: null,
+      };
+
+      await reader.listRecordIds(makeQuery({ segment, excludedRecordIds: ['1'] }));
+
+      expect(JSON.parse(captured.query.filters)).toEqual({
+        field: 'id',
+        operator: 'not_in',
+        value: ['1'],
+      });
+      expect(captured.query.segmentQuery).toBe('SELECT id FROM orders');
+    });
+
+    it('should ignore the exclusion on a composite key, which `not_in` cannot express', async () => {
+      const captured = interceptList();
+
+      await reader.listRecordIds(
+        makeQuery({ primaryKeys: ['tenantId', 'id'], excludedRecordIds: ['t1|1'] }),
+      );
+
+      expect(captured.query).not.toHaveProperty('filters');
+    });
+  });
+
   describe('request shape', () => {
     it('should read only the primary key fields', async () => {
       const captured = interceptList();
