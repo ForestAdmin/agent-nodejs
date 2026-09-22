@@ -16,8 +16,9 @@ import {
 import BaseStepExecutor from './base-step-executor';
 import { StepType, WORKFLOW_START_STEP_ID } from '../types/validated/step-definition';
 
-// A source step that offered a candidate and was passed over is an operator situation; one that had
-// nothing to offer is a configuration one. An execution the guard cannot read stays unclassified.
+// A source step that offered a candidate and was passed over is an operator situation; one that ran
+// and found nothing is an empty source, which is the step the operator can go back to. Neither is a
+// configuration fault. An execution the guard cannot read stays unclassified.
 function classifyMissingSourceRecord(execution?: StepExecutionData): ErrorKind | undefined {
   if (execution?.type !== 'load-related-record') return undefined;
 
@@ -27,10 +28,10 @@ function classifyMissingSourceRecord(execution?: StepExecutionData): ErrorKind |
   if (executionResult !== undefined && !('skipped' in executionResult)) return undefined;
 
   // Nothing was ever offered: only Full AI continues without pausing, so there was no choice to make.
-  if (!pendingData) return executionResult !== undefined ? 'configuration' : undefined;
+  if (!pendingData) return executionResult !== undefined ? 'empty-source' : undefined;
 
   // Whether it paused or recorded a decline, the candidate list says whether there was a choice.
-  return pendingData.availableRecordIds.length > 0 ? 'operator' : 'configuration';
+  return pendingData.availableRecordIds.length > 0 ? 'operator' : 'empty-source';
 }
 
 export default abstract class RecordStepExecutor<
