@@ -76,14 +76,18 @@ export default class ForestServerAutomationPort implements AutomationPort {
       throw error;
     }
 
-    return this.parseConfigs(response);
+    return this.parseConfigs(response, instanceId);
   }
 
-  private parseConfigs(response: unknown): ServerAutomatedInboxConfig[] {
+  private parseConfigs(response: unknown, instanceId: string): ServerAutomatedInboxConfig[] {
     const envelope = ServerAutomatedInboxesResponseSchema.safeParse(response);
 
     if (!envelope.success) {
-      this.logger('Error', 'Unreadable automated inbox listing', { error: envelope.error.message });
+      this.logger('Error', 'Unreadable automated inbox listing', {
+        instanceId,
+        forestServerUrl: this.options.forestServerUrl,
+        error: envelope.error.message,
+      });
 
       return [];
     }
@@ -116,6 +120,8 @@ export default class ForestServerAutomationPort implements AutomationPort {
       inboxId,
     );
 
+    // Thrown, not swallowed: an empty list here is indistinguishable from an inbox with nothing
+    // assigned, and the sweep would propose every record in the segment as a fresh candidate.
     return ServerAutomatedInboxAssignmentsResponseSchema.parse(response).assignments;
   }
 
@@ -129,7 +135,21 @@ export default class ForestServerAutomationPort implements AutomationPort {
       inboxId,
     );
 
-    return ServerAutomatedInboxSyncResponseSchema.parse(response).results;
+    const envelope = ServerAutomatedInboxSyncResponseSchema.safeParse(response);
+
+    // The sync landed and the runs it asked for have already started; only the answer is unreadable.
+    // Thrown here it would surface as `Automated inbox poll failed`, which an operator reads as the
+    // sync never reaching the orchestrator — the opposite of what happened.
+    if (!envelope.success) {
+      this.logger('Error', 'Unreadable automated inbox sync response, the sync itself landed', {
+        inboxId,
+        error: envelope.error.message,
+      });
+
+      return [];
+    }
+
+    return envelope.data.results;
   }
 
   private async callPort<T>(operation: string, fn: () => Promise<T>, inboxId?: string): Promise<T> {
