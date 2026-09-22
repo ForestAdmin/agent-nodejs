@@ -15,6 +15,10 @@ import InFlightRunRegistry from './in-flight-run-registry';
 // accept whatever its datasource.
 const MEMBERSHIP_CHUNK_SIZE = 50;
 
+// The exclusion filter travels in the query string of a GET. The orchestrator stops serving an
+// inbox long before this, so it is a belt on the URL length rather than the real ceiling.
+const MAX_EXCLUDED_RECORDS = 150;
+
 const RECONCILABLE_ASSIGNMENT_STATES: ReadonlySet<string> = new Set([
   'done',
   'canceled',
@@ -358,22 +362,50 @@ export default class AutomationPoller {
     }
   }
 
+  /**
+   * Asks the agent for records the orchestrator has no assignment for. Excluding them in the query
+   * is what keeps the page at the run cap: a record already treated but still in the segment stays
+   * there for good, and left in the page it would take a slot on every poll from then on.
+   */
   private async readCandidates(
     config: ServerAutomatedInboxConfig,
     assignments: ServerAutomatedInboxAssignment[],
   ): Promise<SegmentRead<string>> {
-    // Sized so that the already-assigned records can fit inside the window alongside a full batch
-    // of new ones. No sort is imposed and each agent orders as it likes, so this is a best effort,
-    // not a guarantee: a page that comes back mostly assigned simply yields fewer candidates, and
-    // the rest are picked up by a later poll.
+    const known = [...new Set(assignments.map(({ recordId }) => recordId))];
+
+    if (AutomationPoller.canExcludeKnownRecords(config, known)) {
+      const page = await this.config.segmentReaderPort.listRecordIds({
+        ...AutomationPoller.segmentQuery(config),
+        excludedRecordIds: known,
+        pageSize: config.maxConcurrentRuns,
+      });
+
+      return { outcome: 'ok', items: page };
+    }
+
+    // Fallback for an orchestrator that does not serve the flag, a composite key, and a set too
+    // large for a query string: pad the page instead, and subtract afterwards. No sort is imposed
+    // and each agent orders as it likes, so a page that comes back mostly assigned simply yields
+    // fewer candidates.
     const page = await this.config.segmentReaderPort.listRecordIds({
       ...AutomationPoller.segmentQuery(config),
       pageSize: config.maxConcurrentRuns + assignments.length,
     });
 
-    const known = new Set(assignments.map(({ recordId }) => recordId));
+    const knownSet = new Set(known);
 
-    return { outcome: 'ok', items: page.filter(recordId => !known.has(recordId)) };
+    return { outcome: 'ok', items: page.filter(recordId => !knownSet.has(recordId)) };
+  }
+
+  private static canExcludeKnownRecords(
+    config: ServerAutomatedInboxConfig,
+    known: string[],
+  ): boolean {
+    return (
+      Boolean(config.excludeKnownRecords) &&
+      config.primaryKeys.length === 1 &&
+      known.length <= MAX_EXCLUDED_RECORDS
+    );
   }
 
   private static segmentQuery(config: ServerAutomatedInboxConfig) {
