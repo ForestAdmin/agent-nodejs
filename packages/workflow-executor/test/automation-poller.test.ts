@@ -197,6 +197,11 @@ describe('AutomationPoller', () => {
           pageSize: 20,
         }),
       );
+      expect(context.logger).toHaveBeenCalledWith(
+        'Info',
+        'Automated inbox polled',
+        expect.objectContaining({ candidatePageSize: 20, paddedPageReason: undefined }),
+      );
     });
 
     it('should take an excluded page as candidates without filtering it again', async () => {
@@ -247,6 +252,14 @@ describe('AutomationPoller', () => {
       expect(context.segmentReaderPort.listRecordIds).not.toHaveBeenCalledWith(
         expect.objectContaining({ excludedRecordIds: expect.anything() }),
       );
+      expect(context.logger).toHaveBeenCalledWith(
+        'Info',
+        'Automated inbox polled',
+        expect.objectContaining({
+          candidatePageSize: 22,
+          paddedPageReason: 'liana-without-not-in',
+        }),
+      );
     });
 
     it('should pad the page instead when the orchestrator names no agent', async () => {
@@ -258,6 +271,11 @@ describe('AutomationPoller', () => {
 
       expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledWith(
         expect.objectContaining({ pageSize: 21 }),
+      );
+      expect(context.logger).toHaveBeenCalledWith(
+        'Info',
+        'Automated inbox polled',
+        expect.objectContaining({ candidatePageSize: 21, paddedPageReason: 'unknown-liana' }),
       );
     });
 
@@ -275,6 +293,11 @@ describe('AutomationPoller', () => {
       expect(context.segmentReaderPort.listRecordIds).not.toHaveBeenCalledWith(
         expect.objectContaining({ excludedRecordIds: expect.anything() }),
       );
+      expect(context.logger).toHaveBeenCalledWith(
+        'Info',
+        'Automated inbox polled',
+        expect.objectContaining({ candidatePageSize: 21, paddedPageReason: 'composite-key' }),
+      );
     });
 
     it('should pad the page instead when too many records would travel in the query string', async () => {
@@ -287,6 +310,14 @@ describe('AutomationPoller', () => {
 
       expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledWith(
         expect.objectContaining({ pageSize: 171 }),
+      );
+      expect(context.logger).toHaveBeenCalledWith(
+        'Info',
+        'Automated inbox polled',
+        expect.objectContaining({
+          candidatePageSize: 171,
+          paddedPageReason: 'too-many-known-records',
+        }),
       );
     });
 
