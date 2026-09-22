@@ -86,6 +86,19 @@ describe('buildInMemoryExecutor', () => {
     );
   });
 
+  it('does not arm the sweep when it was stopped while still starting', async () => {
+    // `start()` awaits twice before arming it. Without the guard the shutdown reports itself
+    // complete and the suspended start arms a poller nobody will stop, which keeps launching runs.
+    const executor = buildInMemoryExecutor(BASE_OPTIONS);
+    const [poller] = MockedAutomationPoller.mock.instances as unknown as { start: jest.Mock }[];
+
+    const starting = executor.start();
+    await executor.stop();
+    await starting;
+
+    expect(poller.start).not.toHaveBeenCalled();
+  });
+
   it('creates an InMemoryStore as runStore', () => {
     buildInMemoryExecutor(BASE_OPTIONS);
 

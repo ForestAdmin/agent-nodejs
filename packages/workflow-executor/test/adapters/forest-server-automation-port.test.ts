@@ -75,6 +75,20 @@ describe('ForestServerAutomationPort', () => {
       ]);
     });
 
+    it('should keep a leaf whose operator the agent evaluates on its own, with no value', async () => {
+      // `present`, `blank`, `today` and every `previous_*` are emitted as `{ field, operator }`.
+      // Zod requires an `unknown` key to be present, so these inboxes were dropped from the sweep.
+      const conditionTree = { field: 'deletedAt', operator: 'blank' };
+
+      mockQuery.mockResolvedValue({
+        inboxes: [makeConfig({ segment: { kind: 'filter', conditionTree } as never })],
+      });
+
+      const [config] = await port.listAutomatedInboxes('w1');
+
+      expect(config.segment).toEqual({ kind: 'filter', conditionTree });
+    });
+
     it.each([
       ['smart', { kind: 'smart', name: 'to-review' }],
       ['sql', { kind: 'sql', query: 'SELECT id FROM orders', connectionName: null }],

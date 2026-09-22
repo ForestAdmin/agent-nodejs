@@ -202,6 +202,10 @@ function createWorkflowExecutor({
   manageProcessSignals: boolean;
 }): WorkflowExecutor {
   let shutdownPromise: Promise<void> | null = null;
+  // `start()` awaits twice before it arms the sweep, and `stop()` can land in either gap. Without
+  // this the shutdown reports itself complete and the suspended `start()` then arms a poller
+  // nobody will stop, which keeps syncing and launching runs after the executor is down.
+  let stopped = false;
 
   const shutdown = async () => {
     try {
@@ -256,6 +260,12 @@ function createWorkflowExecutor({
         throw err;
       }
 
+      if (stopped) {
+        logger('Info', 'Executor was stopped while starting, leaving the automation sweep off');
+
+        return;
+      }
+
       automationPoller.start();
 
       // Only own the host's signals when explicitly allowed (the standalone CLI). When embedded,
@@ -267,6 +277,8 @@ function createWorkflowExecutor({
     },
 
     async stop() {
+      stopped = true;
+
       if (manageProcessSignals) {
         process.removeListener('SIGTERM', onSignal);
         process.removeListener('SIGINT', onSignal);
