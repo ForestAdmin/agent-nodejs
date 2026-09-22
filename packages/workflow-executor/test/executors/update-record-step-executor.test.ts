@@ -230,8 +230,13 @@ describe('UpdateRecordStepExecutor', () => {
         expect.objectContaining({
           type: 'update-record',
           stepIndex: 0,
-          executionParams: { displayName: 'Status', name: 'status', value: 'active' },
-          executionResult: { updatedValues, reasoning: 'User requested status change' },
+          executionParams: {
+            displayName: 'Status',
+            name: 'status',
+            value: 'active',
+            reasoning: 'User requested status change',
+          },
+          executionResult: { updatedValues },
           selectedRecordRef: expect.objectContaining({
             collectionName: 'customers',
             recordId: [42],
@@ -2545,7 +2550,8 @@ describe('UpdateRecordStepExecutor', () => {
         expect(runStore.saveStepExecution).toHaveBeenCalledWith(
           'run-1',
           expect.objectContaining({
-            executionResult: { updatedValues, reasoning: 'The order shipped' },
+            executionParams: expect.objectContaining({ reasoning: 'The order shipped' }),
+            executionResult: { updatedValues },
           }),
         );
       });
@@ -2575,7 +2581,8 @@ describe('UpdateRecordStepExecutor', () => {
         expect(runStore.saveStepExecution).toHaveBeenCalledWith(
           'run-1',
           expect.objectContaining({
-            executionResult: { updatedValues, reasoning: 'The customer paid' },
+            executionParams: expect.objectContaining({ reasoning: 'The customer paid' }),
+            executionResult: { updatedValues },
           }),
         );
       });
@@ -2601,6 +2608,7 @@ describe('UpdateRecordStepExecutor', () => {
         expect(result.stepOutcome.status).toBe('success');
 
         const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+        expect(finalSave.executionParams).not.toHaveProperty('reasoning');
         expect(finalSave.executionResult).toEqual({ updatedValues });
       });
     });
@@ -2631,10 +2639,10 @@ describe('UpdateRecordStepExecutor', () => {
         await new UpdateRecordStepExecutor(context).execute();
 
         const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
-        expect(finalSave.executionResult).toEqual({
-          updatedValues,
-          reasoning: 'The order shipped',
-        });
+        expect(finalSave.executionParams).toEqual(
+          expect.objectContaining({ reasoning: 'The order shipped' }),
+        );
+        expect(finalSave.executionResult).toEqual({ updatedValues });
       });
     });
 
@@ -2664,9 +2672,132 @@ describe('UpdateRecordStepExecutor', () => {
         await new UpdateRecordStepExecutor(context).execute();
 
         const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+        expect(finalSave.executionParams).not.toHaveProperty('reasoning');
         expect(finalSave.executionResult).toEqual({ updatedValues });
         expect(finalSave.pendingData).toEqual(
           expect.objectContaining({ value: 'inactive', reasoning: 'The order was cancelled' }),
+        );
+      });
+    });
+
+    describe('when the field holds an array value', () => {
+      const tagsField = {
+        fieldName: 'tags',
+        displayName: 'Tags',
+        isRelationship: false,
+        type: ['String'] as unknown as CollectionSchema['fields'][number]['type'],
+      };
+
+      function makeArrayConfirmation(userValue: unknown) {
+        const execution: UpdateRecordStepExecutionData = {
+          type: 'update-record',
+          stepIndex: 0,
+          pendingData: {
+            displayName: 'Tags',
+            name: 'tags',
+            value: ['red', 'blue'],
+            reasoning: 'Both tags appear on the order',
+          },
+          selectedRecordRef: makeRecordRef(),
+        };
+        const runStore = makeMockRunStore({
+          getStepExecutions: jest.fn().mockResolvedValue([execution]),
+        });
+        const context = makeContext({
+          agentPort: makeMockAgentPort({ tags: userValue }),
+          runStore,
+          workflowPort: makeMockWorkflowPort({
+            customers: makeCollectionSchema({ fields: [tagsField] }),
+          }),
+          incomingPendingData: { userConfirmed: true, value: userValue },
+        });
+
+        return { executor: new UpdateRecordStepExecutor(context), runStore };
+      }
+
+      it('should keep the justification when the user re-submits the same array', async () => {
+        const { executor, runStore } = makeArrayConfirmation(['red', 'blue']);
+
+        await executor.execute();
+
+        const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+        expect(finalSave.executionParams).toEqual(
+          expect.objectContaining({ reasoning: 'Both tags appear on the order' }),
+        );
+      });
+
+      it('should drop the justification when the user submits a different array', async () => {
+        const { executor, runStore } = makeArrayConfirmation(['red']);
+
+        await executor.execute();
+
+        const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+        expect(finalSave.executionParams).not.toHaveProperty('reasoning');
+      });
+    });
+
+    describe('when the suggested value no longer validates', () => {
+      it('should write the value the user confirmed instead of erroring the step', async () => {
+        const execution: UpdateRecordStepExecutionData = {
+          type: 'update-record',
+          stepIndex: 0,
+          pendingData: {
+            displayName: 'Count',
+            name: 'count',
+            value: 'not a number',
+            reasoning: 'Counted from the order lines',
+          },
+          selectedRecordRef: makeRecordRef(),
+        };
+        const runStore = makeMockRunStore({
+          getStepExecutions: jest.fn().mockResolvedValue([execution]),
+        });
+        const agentPort = makeMockAgentPort({ count: 7 });
+        const context = makeContext({
+          agentPort,
+          runStore,
+          workflowPort: makeMockWorkflowPort({
+            customers: makeCollectionSchema({
+              fields: [
+                { fieldName: 'count', displayName: 'Count', isRelationship: false, type: 'Number' },
+              ],
+            }),
+          }),
+          incomingPendingData: { userConfirmed: true, value: 7 },
+        });
+
+        const result = await new UpdateRecordStepExecutor(context).execute();
+
+        expect(result.stepOutcome.status).toBe('success');
+        expect(agentPort.updateRecord).toHaveBeenCalledWith(
+          expect.objectContaining({ values: { count: 7 } }),
+          expect.objectContaining({ id: 1 }),
+        );
+
+        const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+        expect(finalSave.executionParams).not.toHaveProperty('reasoning');
+      });
+    });
+
+    describe('when the mutation is about to run', () => {
+      it('should record the justification before the call, not only after it', async () => {
+        const runStore = makeMockRunStore();
+        const context = makeContext({
+          agentPort: makeMockAgentPort({ status: 'active' }),
+          runStore,
+          model: makeMockModel({
+            input: { fieldName: 'Status', value: 'active', reasoning: 'The order shipped' },
+          }).model,
+          stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+        });
+
+        await new UpdateRecordStepExecutor(context).execute();
+
+        const marker = (runStore.saveStepExecution as jest.Mock).mock.calls.find(
+          call => call[1].idempotencyPhase === 'executing',
+        )?.[1];
+        expect(marker.executionParams).toEqual(
+          expect.objectContaining({ reasoning: 'The order shipped' }),
         );
       });
     });

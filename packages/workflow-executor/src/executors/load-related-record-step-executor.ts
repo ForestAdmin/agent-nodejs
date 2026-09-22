@@ -8,6 +8,7 @@ import type {
   CollectionSchema,
   FieldSchema,
   RecordData,
+  RecordId,
   RecordRef,
 } from '../types/validated/collection';
 import type { LoadRelatedRecordStepDefinition } from '../types/validated/step-definition';
@@ -64,6 +65,12 @@ interface AiSuggestionTrace {
   suggestedFields: string[];
   fieldsReasoning?: string;
   reasoning?: string;
+}
+
+// A record id read back from a confirmation is a fresh array of strings, while the suggested one
+// holds whatever the agent returned, so identity and element types both differ.
+function sameRecordId(a: RecordId, b: RecordId): boolean {
+  return a.length === b.length && a.every((part, index) => String(part) === String(b[index]));
 }
 
 function buildAiSuggestionTrace(
@@ -577,9 +584,12 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       stepIndex: this.context.stepIndex,
     };
 
-    const { suggestedFields, fieldsReasoning, reasoning } = pendingData;
+    const { suggestedFields, fieldsReasoning, reasoning, suggestedRecord } = pendingData;
     const userKeptAiSuggestion =
-      suggestedFields !== undefined && selectedRecordId === pendingData.suggestedRecord?.recordId;
+      suggestedFields !== undefined &&
+      suggestedRecord !== undefined &&
+      name === pendingData.suggestedField.name &&
+      sameRecordId(selectedRecordId, suggestedRecord.recordId);
 
     return this.persistAndReturn(
       record,

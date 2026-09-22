@@ -519,5 +519,41 @@ describe('StepSummaryBuilder', () => {
 
       expect(result).toContain('Prompt: (no prompt)');
     });
+
+    describe('update-record step', () => {
+      it('keeps the AI justification of the written value out of the later steps context', () => {
+        const step: StepDefinition = {
+          type: StepType.UpdateRecord,
+          executionType: StepExecutionMode.FullyAutomated,
+          prompt: 'Set the status',
+        } as StepDefinition;
+        const outcome = {
+          type: 'record',
+          stepId: 'update-1',
+          stepIndex: 0,
+          status: 'success',
+        } as StepOutcome;
+        const execution: StepExecutionData = {
+          type: 'update-record',
+          stepIndex: 0,
+          executionParams: {
+            displayName: 'Status',
+            name: 'status',
+            value: 'active',
+            reasoning: 'The order shipped',
+          },
+          executionResult: { updatedValues: { status: 'active' } },
+          selectedRecordRef: { collectionName: 'customers', recordId: [42], stepIndex: 0 },
+        };
+
+        const result = StepSummaryBuilder.build(step, outcome, execution);
+
+        expect(result).toContain(
+          'Input: {"displayName":"Status","name":"status","value":"active"}',
+        );
+        expect(result).toContain('Output: {"updatedValues":{"status":"active"}}');
+        expect(result).not.toContain('The order shipped');
+      });
+    });
   });
 });

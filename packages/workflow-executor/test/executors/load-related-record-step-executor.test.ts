@@ -4991,6 +4991,47 @@ describe('LoadRelatedRecordStepExecutor', () => {
       });
     });
 
+    describe('when the user confirms the suggested record by echoing its id (Branch A)', () => {
+      it("should carry the justifications, since the record loaded is still the AI's", async () => {
+        const execution = makePendingExecution({
+          pendingData: {
+            availableFields: [
+              { name: 'order', displayName: 'Order' },
+              { name: 'address', displayName: 'Address' },
+            ],
+            suggestedField: { name: 'order', displayName: 'Order' },
+            availableRecordIds: [cand([99]), cand([42])],
+            suggestedRecord: cand([99]),
+            suggestedFields: ['reference'],
+            fieldsReasoning: 'The reference identifies an order',
+            reasoning: 'Order 99 is the pending one',
+          },
+        });
+        const runStore = makeMockRunStore({
+          getStepExecutions: jest.fn().mockResolvedValue([execution]),
+        });
+        // The front posts the selected id on every confirm, including an unchanged suggestion.
+        const context = makeContext({
+          agentPort: makeMockAgentPort(),
+          runStore,
+          incomingPendingData: { userConfirmed: true, selectedRecordId: '99' },
+        });
+
+        const result = await new LoadRelatedRecordStepExecutor(context).execute();
+
+        expect(result.stepOutcome.status).toBe('success');
+
+        const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+        expect(finalSave.executionResult).toEqual(
+          expect.objectContaining({
+            suggestedFields: ['reference'],
+            fieldsReasoning: 'The reference identifies an order',
+            reasoning: 'Order 99 is the pending one',
+          }),
+        );
+      });
+    });
+
     describe('when the user picks another record than the suggested one (Branch A)', () => {
       it("should leave the loaded record unexplained — the choice is the user's, not the AI's", async () => {
         const execution = makePendingExecution({

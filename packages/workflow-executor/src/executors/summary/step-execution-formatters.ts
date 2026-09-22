@@ -4,6 +4,7 @@ import type {
   McpStepExecutionData,
   StepExecutionData,
   TriggerRecordActionStepExecutionData,
+  UpdateRecordStepExecutionData,
 } from '../../types/step-execution-data';
 
 export default class StepExecutionFormatters {
@@ -20,6 +21,10 @@ export default class StepExecutionFormatters {
       case 'trigger-action':
         return StepExecutionFormatters.formatTriggerAction(
           execution as TriggerRecordActionStepExecutionData,
+        );
+      case 'update-record':
+        return StepExecutionFormatters.formatUpdateRecord(
+          execution as UpdateRecordStepExecutionData,
         );
       default:
         return null;
@@ -62,6 +67,24 @@ export default class StepExecutionFormatters {
         }
       }
     }
+
+    return lines.join('\n');
+  }
+
+  // Mirrors the generic Input/Output pair, minus the AI justification of the written value: a later
+  // step reading why the AI chose a value would treat that self-report as an established fact.
+  private static formatUpdateRecord(execution: UpdateRecordStepExecutionData): string | null {
+    const { executionParams, executionResult } = execution;
+    if (!executionResult || 'skipped' in executionResult) return null;
+
+    const lines: string[] = [];
+
+    if (executionParams) {
+      const { displayName, name, value } = executionParams;
+      lines.push(`  Input: ${JSON.stringify({ displayName, name, value })}`);
+    }
+
+    lines.push(`  Output: ${JSON.stringify({ updatedValues: executionResult.updatedValues })}`);
 
     return lines.join('\n');
   }

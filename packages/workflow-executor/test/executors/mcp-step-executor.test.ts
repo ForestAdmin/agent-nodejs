@@ -30,13 +30,17 @@ class MockRemoteTool extends RemoteTool {
     sourceId?: string;
     mcpServerId?: string;
     invoke?: jest.Mock;
+    schema?: Record<string, unknown>;
   }) {
     const invokeFn = options.invoke ?? jest.fn().mockResolvedValue('tool-result');
     super({
       tool: {
         name: options.name,
         description: `${options.name} description`,
-        schema: { parse: jest.fn(), _def: {} } as unknown as RemoteTool['base']['schema'],
+        schema: (options.schema ?? {
+          parse: jest.fn(),
+          _def: {},
+        }) as unknown as RemoteTool['base']['schema'],
         invoke: invokeFn,
       } as unknown as RemoteTool['base'],
       sourceId: options.sourceId ?? 'mcp-server-1',
@@ -1603,9 +1607,45 @@ describe('McpStepExecutor — re-auth pause hardening', () => {
       });
     });
 
-    describe('when the candidate tools are offered to the AI', () => {
-      it('should require a reasoning property on a JSON-Schema tool (MCP server)', async () => {
+    describe('when the tool is about to run', () => {
+      it('should record the reasoning before the call, not only after it', async () => {
         const tool = new MockRemoteTool({ name: 'send_notification', sourceId: 'mcp-server-1' });
+        const { model } = makeMockModel('send_notification', {
+          message: 'Hello',
+          reasoning: 'send_notification is the only tool that delivers a message',
+        });
+        const runStore = makeMockRunStore();
+        const context = makeContext({
+          model,
+          runStore,
+          stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+        });
+
+        await new McpStepExecutor(context, [tool]).execute();
+
+        const marker = (runStore.saveStepExecution as jest.Mock).mock.calls.find(
+          call => call[1].idempotencyPhase === 'executing',
+        )?.[1];
+        expect(marker).toEqual(
+          expect.objectContaining({
+            toolSelectionReasoning: 'send_notification is the only tool that delivers a message',
+            executionParams: expect.objectContaining({ name: 'send_notification' }),
+          }),
+        );
+      });
+    });
+
+    describe('when the candidate tools are offered to the AI', () => {
+      it('should add reasoning to a JSON-Schema tool without dropping its own arguments', async () => {
+        const tool = new MockRemoteTool({
+          name: 'send_notification',
+          sourceId: 'mcp-server-1',
+          schema: {
+            type: 'object',
+            properties: { message: { type: 'string', description: 'The message to send' } },
+            required: ['message'],
+          },
+        });
         const { model, bindTools } = makeMockModel('send_notification', { message: 'Hello' });
         const context = makeContext({
           model,
@@ -1615,12 +1655,57 @@ describe('McpStepExecutor — re-auth pause hardening', () => {
         await new McpStepExecutor(context, [tool]).execute();
 
         const boundTools = bindTools.mock.calls[0][0] as Array<{ schema: Record<string, unknown> }>;
-        const { schema } = boundTools[0];
-        expect((schema.properties as Record<string, unknown>).reasoning).toEqual({
-          type: 'string',
-          description: expect.any(String),
+        const properties = boundTools[0].schema.properties as Record<string, unknown>;
+        expect(properties.message).toEqual({ type: 'string', description: 'The message to send' });
+        expect(properties.reasoning).toEqual({ type: 'string', description: expect.any(String) });
+        expect(boundTools[0].schema.required).toEqual(['message', 'reasoning']);
+      });
+
+      // The reserved key the executor falls back to when the tool already owns `reasoning`.
+      const fallbackKey = '__forest_tool_selection_reasoning';
+
+      it('should leave a tool that declares its own reasoning argument untouched', async () => {
+        const invokeFn = jest.fn().mockResolvedValue('reviewed');
+        const tool = new MockRemoteTool({
+          name: 'review_ticket',
+          sourceId: 'mcp-server-1',
+          invoke: invokeFn,
+          schema: {
+            type: 'object',
+            properties: {
+              reasoning: { type: 'string', description: 'Why the ticket was reviewed' },
+            },
+            required: ['reasoning'],
+          },
         });
-        expect(schema.required).toContain('reasoning');
+        const { model, bindTools } = makeMockModel('review_ticket', {
+          reasoning: 'the customer asked twice',
+          [fallbackKey]: 'review_ticket is the only reviewing tool',
+        });
+        const runStore = makeMockRunStore();
+        const context = makeContext({
+          model,
+          runStore,
+          stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+        });
+
+        await new McpStepExecutor(context, [tool]).execute();
+
+        const boundTools = bindTools.mock.calls[0][0] as Array<{ schema: Record<string, unknown> }>;
+        const properties = boundTools[0].schema.properties as Record<string, unknown>;
+        expect(properties.reasoning).toEqual({
+          type: 'string',
+          description: 'Why the ticket was reviewed',
+        });
+        expect(properties[fallbackKey]).toBeDefined();
+
+        expect(invokeFn).toHaveBeenCalledWith({ reasoning: 'the customer asked twice' });
+        expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+          'run-1',
+          expect.objectContaining({
+            toolSelectionReasoning: 'review_ticket is the only reviewing tool',
+          }),
+        );
       });
 
       it('should extend a zod-schema tool (Forest connector) with a reasoning field', async () => {

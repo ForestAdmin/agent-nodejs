@@ -186,17 +186,17 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
         // The value comes from an `unknown` HTTP value (may be a boolean or array), so coerce
         // it to the field's native type before updating. Idempotent on already-typed values.
         const value = await this.coerceOverride(selectedRecordRef, pendingData, rawValue);
-        const aiValue =
-          overrideValue === undefined
-            ? value
-            : await this.coerceOverride(selectedRecordRef, pendingData, pendingData!.value);
-        const userKeptAiValue = fieldValuesEqual(value, aiValue);
+        const aiReasoning = pendingData!.reasoning;
 
         const target: UpdateTarget = {
           selectedRecordRef,
           ...pendingData!,
           value,
-          reasoning: userKeptAiValue ? pendingData!.reasoning : undefined,
+          reasoning:
+            aiReasoning !== undefined &&
+            (await this.userKeptAiValue(selectedRecordRef, pendingData, overrideValue, value))
+              ? aiReasoning
+              : undefined,
         };
 
         return this.resolveAndUpdate(target, exec);
@@ -205,6 +205,30 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
 
     // Branches B & C -- First call
     return this.handleFirstCall();
+  }
+
+  // A suggested value that no longer validates cannot be the value the user kept, and re-reading it
+  // must never abort the update the user did ask for.
+  private async userKeptAiValue(
+    selectedRecordRef: RecordRef,
+    pendingData: FieldWithValue | undefined,
+    overrideValue: unknown,
+    writtenValue: unknown,
+  ): Promise<boolean> {
+    if (overrideValue === undefined) return true;
+
+    try {
+      const aiValue = await this.coerceOverride(selectedRecordRef, pendingData, pendingData?.value);
+
+      return fieldValuesEqual(writtenValue, aiValue);
+    } catch (cause) {
+      this.context.logger('Warn', 'update-record: the suggested value no longer validates', {
+        ...this.logCtx,
+        cause: cause instanceof Error ? cause.message : String(cause),
+      });
+
+      return false;
+    }
   }
 
   private async coerceOverride(
@@ -316,6 +340,12 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
             ...existingExecution,
             type: 'update-record',
             stepIndex: this.context.stepIndex,
+            executionParams: {
+              displayName,
+              name,
+              value,
+              ...(reasoning !== undefined && { reasoning }),
+            },
             selectedRecordRef,
             idempotencyPhase: 'executing',
           }),
@@ -326,11 +356,8 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
       ...existingExecution,
       type: 'update-record',
       stepIndex: this.context.stepIndex,
-      executionParams: { displayName, name, value },
-      executionResult: {
-        updatedValues: updated.values,
-        ...(reasoning !== undefined && { reasoning }),
-      },
+      executionParams: { displayName, name, value, ...(reasoning !== undefined && { reasoning }) },
+      executionResult: { updatedValues: updated.values },
       selectedRecordRef,
       idempotencyPhase: 'done',
     });

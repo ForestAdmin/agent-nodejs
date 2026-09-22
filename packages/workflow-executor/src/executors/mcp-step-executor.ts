@@ -35,6 +35,9 @@ Important rules:
 - Final answer is definitive, you won't receive any other input from the user.`;
 
 const REASONING_FIELD = 'reasoning';
+// Tool schemas come from arbitrary customer MCP servers, so `reasoning` is not ours to reserve:
+// a tool declaring its own keeps it, and the justification is asked for under this name instead.
+const FALLBACK_REASONING_FIELD = '__forest_tool_selection_reasoning';
 const REASONING_FIELD_DESCRIPTION =
   'Concise explanation of why this tool was selected over the others, in passive voice.';
 
@@ -191,6 +194,8 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
             ...existingExecution,
             type: 'mcp',
             stepIndex: this.context.stepIndex,
+            ...(reasoning !== undefined && { toolSelectionReasoning: reasoning }),
+            executionParams: { name: target.name, sourceId: target.sourceId, input: target.input },
             idempotencyPhase: 'executing',
           }),
       },
@@ -345,12 +350,20 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
       ),
     ];
 
+    const reasoningKeys = new Map<string, string>();
+    const augmentedTools = tools.map(t => {
+      const { tool, reasoningKey } = McpStepExecutor.withReasoningField(t.base);
+      reasoningKeys.set(t.base.name, reasoningKey);
+
+      return tool;
+    });
+
     const { toolName, args } = await this.invokeWithTools<Record<string, unknown>>(
       messages,
-      tools.map(t => McpStepExecutor.withReasoningField(t.base)),
+      augmentedTools,
     );
 
-    const { [REASONING_FIELD]: reasoning, ...input } = args;
+    const { [reasoningKeys.get(toolName) ?? REASONING_FIELD]: reasoning, ...input } = args;
 
     return {
       toolName,
@@ -362,33 +375,50 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
   // A tool's schema is duck-typed rather than matched with `instanceof`: ai-proxy and
   // workflow-executor resolve different zod instances, and an MCP-server tool carries a plain
   // JSON Schema, which is valid at runtime but does not unify with langchain's static union.
-  private static withReasoningField(tool: StructuredToolInterface): DynamicStructuredTool {
+  private static withReasoningField(tool: StructuredToolInterface): {
+    tool: DynamicStructuredTool;
+    reasoningKey: string;
+  } {
     const { schema } = tool;
     const isZodObject = typeof (schema as { extend?: unknown }).extend === 'function';
+    const declaredKeys = isZodObject
+      ? Object.keys((schema as z.ZodObject<z.ZodRawShape>).shape)
+      : Object.keys((schema as JsonSchemaObject).properties ?? {});
+    const reasoningKey = declaredKeys.includes(REASONING_FIELD)
+      ? FALLBACK_REASONING_FIELD
+      : REASONING_FIELD;
+
     const augmented: z.ZodTypeAny = isZodObject
       ? (schema as z.ZodObject<z.ZodRawShape>).extend({
-          [REASONING_FIELD]: z.string().describe(REASONING_FIELD_DESCRIPTION),
+          [reasoningKey]: z.string().describe(REASONING_FIELD_DESCRIPTION),
         })
       : (McpStepExecutor.injectReasoningIntoJsonSchema(
           schema as JsonSchemaObject,
+          reasoningKey,
         ) as unknown as z.ZodTypeAny);
 
-    return new DynamicStructuredTool({
-      name: tool.name,
-      description: tool.description,
-      schema: augmented,
-      func: undefined,
-    });
+    return {
+      tool: new DynamicStructuredTool({
+        name: tool.name,
+        description: tool.description,
+        schema: augmented,
+        func: undefined,
+      }),
+      reasoningKey,
+    };
   }
 
-  private static injectReasoningIntoJsonSchema(schema: JsonSchemaObject): JsonSchemaObject {
+  private static injectReasoningIntoJsonSchema(
+    schema: JsonSchemaObject,
+    reasoningKey: string,
+  ): JsonSchemaObject {
     return {
       ...schema,
       properties: {
         ...(schema.properties ?? {}),
-        [REASONING_FIELD]: { type: 'string', description: REASONING_FIELD_DESCRIPTION },
+        [reasoningKey]: { type: 'string', description: REASONING_FIELD_DESCRIPTION },
       },
-      required: Array.from(new Set([...(schema.required ?? []), REASONING_FIELD])),
+      required: Array.from(new Set([...(schema.required ?? []), reasoningKey])),
     };
   }
 
