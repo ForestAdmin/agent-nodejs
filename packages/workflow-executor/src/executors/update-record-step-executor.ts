@@ -139,6 +139,17 @@ function coerceFieldValue(
 
 interface UpdateTarget extends FieldWithValue {
   selectedRecordRef: RecordRef;
+  reasoning?: string;
+}
+
+// A field value is a primitive, a string, or an array of those (Json is stored as a string), so
+// there is never a plain object to deep-compare.
+function fieldValuesEqual(a: unknown, b: unknown): boolean {
+  if (Array.isArray(a) && Array.isArray(b)) {
+    return a.length === b.length && a.every((item, i) => fieldValuesEqual(item, b[i]));
+  }
+
+  return a === b;
 }
 
 export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateRecordStepDefinition> {
@@ -169,15 +180,23 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
         const { selectedRecordRef, pendingData, userConfirmation } = exec;
         // A user override of `null` (clearing the field) must win over the AI suggestion, so
         // distinguish "no override" (undefined) from "override to null".
-        const rawValue =
-          userConfirmation?.value !== undefined ? userConfirmation.value : pendingData!.value;
+        const overrideValue = userConfirmation?.value;
+        const rawValue = overrideValue !== undefined ? overrideValue : pendingData!.value;
+
+        // The value comes from an `unknown` HTTP value (may be a boolean or array), so coerce
+        // it to the field's native type before updating. Idempotent on already-typed values.
+        const value = await this.coerceOverride(selectedRecordRef, pendingData, rawValue);
+        const aiValue =
+          overrideValue === undefined
+            ? value
+            : await this.coerceOverride(selectedRecordRef, pendingData, pendingData!.value);
+        const userKeptAiValue = fieldValuesEqual(value, aiValue);
 
         const target: UpdateTarget = {
           selectedRecordRef,
           ...pendingData!,
-          // The value comes from an `unknown` HTTP value (may be a boolean or array), so coerce
-          // it to the field's native type before updating. Idempotent on already-typed values.
-          value: await this.coerceOverride(selectedRecordRef, pendingData, rawValue),
+          value,
+          reasoning: userKeptAiValue ? pendingData!.reasoning : undefined,
         };
 
         return this.resolveAndUpdate(target, exec);
@@ -225,6 +244,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     const recordedField = preRecordedArgs?.fieldName;
     let fieldName: string;
     let value: unknown;
+    let reasoning: string | undefined;
 
     if (recordedField !== undefined && preRecordedArgs?.value !== undefined) {
       fieldName = recordedField;
@@ -233,9 +253,9 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
       const field = this.findFieldByTechnicalName(schema, recordedField);
       if (!field) throw new PinnedArgNotFoundError('field', recordedField, schema.collectionName);
       fieldName = recordedField;
-      value = await this.selectValueForField(schema, field, step.prompt);
+      ({ value, reasoning } = await this.selectValueForField(schema, field, step.prompt));
     } else {
-      ({ fieldName, value } = await this.selectFieldAndValue(schema, step.prompt));
+      ({ fieldName, value, reasoning } = await this.selectFieldAndValue(schema, step.prompt));
     }
 
     const field = this.findFieldByTechnicalName(schema, fieldName);
@@ -253,6 +273,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
       displayName: field.displayName,
       name: field.fieldName,
       value,
+      reasoning,
     };
 
     // Branch B -- fully automated execution
@@ -268,6 +289,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
         displayName: target.displayName,
         name: target.name,
         value: target.value,
+        ...(target.reasoning !== undefined && { reasoning: target.reasoning }),
       },
       selectedRecordRef: target.selectedRecordRef,
     });
@@ -280,7 +302,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     target: UpdateTarget,
     existingExecution?: UpdateRecordStepExecutionData,
   ): Promise<StepExecutionResult> {
-    const { selectedRecordRef, displayName, name, value } = target;
+    const { selectedRecordRef, displayName, name, value, reasoning } = target;
 
     const updated = await this.context.agent.updateRecord(
       {
@@ -305,7 +327,10 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
       type: 'update-record',
       stepIndex: this.context.stepIndex,
       executionParams: { displayName, name, value },
-      executionResult: { updatedValues: updated.values },
+      executionResult: {
+        updatedValues: updated.values,
+        ...(reasoning !== undefined && { reasoning }),
+      },
       selectedRecordRef,
       idempotencyPhase: 'done',
     });
@@ -316,7 +341,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
   private async selectFieldAndValue(
     schema: CollectionSchema,
     prompt: string | undefined,
-  ): Promise<{ fieldName: string; value: unknown }> {
+  ): Promise<{ fieldName: string; value: unknown; reasoning?: string }> {
     const tool = this.buildUpdateFieldTool(schema);
     const messages = [
       this.buildContextMessage(),
@@ -329,7 +354,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     ];
 
     const { input } = await this.invokeWithTool<{
-      input: { fieldName: string; value: unknown; reasoning: string };
+      input: { fieldName: string; value: unknown; reasoning?: string };
     }>(messages, tool);
 
     const fieldName = this.resolveAiFieldName(schema, input.fieldName);
@@ -343,6 +368,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
         input.value,
         schema.collectionName,
       ),
+      reasoning: input.reasoning,
     };
   }
 
@@ -351,7 +377,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     schema: CollectionSchema,
     field: FieldSchema,
     prompt: string | undefined,
-  ): Promise<unknown> {
+  ): Promise<{ value: unknown; reasoning?: string }> {
     if (field.type == null) {
       throw new FieldTypeMissingError(field.fieldName, schema.collectionName);
     }
@@ -377,11 +403,14 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
       new HumanMessage(`**Request**: ${prompt ?? `Set the "${field.displayName}" field.`}`),
     ];
 
-    const { value } = await this.invokeWithTool<{ value: unknown }>(messages, tool);
+    const { value, reasoning } = await this.invokeWithTool<{
+      value: unknown;
+      reasoning?: string;
+    }>(messages, tool);
 
     // The AI tool schema is JSON-Schema-safe (plain z.boolean() for Boolean), so it does not coerce
     // a stray "true"/"42" string — coerceFieldValue normalizes the value to the field's native type.
-    return coerceFieldValue(field, value, schema.collectionName);
+    return { value: coerceFieldValue(field, value, schema.collectionName), reasoning };
   }
 
   private buildUpdateFieldTool(schema: CollectionSchema): DynamicStructuredTool {
