@@ -25,7 +25,25 @@ const TERMINAL_RUN_STATES: ReadonlySet<string> = new Set(['finished', 'aborted']
 
 const LIVE_RUN_STATES: ReadonlySet<string> = new Set(['started', 'pending', 'loading']);
 
+const OPEN_ASSIGNMENT_STATES: ReadonlySet<string> = new Set(['todo', 'doing']);
+
+const isTerminalRun = (runState: string | null | undefined): boolean =>
+  runState != null && TERMINAL_RUN_STATES.has(runState);
+
+const isLiveRun = (runState: string | null | undefined): boolean =>
+  runState != null && LIVE_RUN_STATES.has(runState);
+
 export type AutomationPollerState = 'idle' | 'running' | 'draining' | 'stopped';
+
+/**
+ * `skipped` is a read that had nothing to ask and so never reached the agent. It is not a
+ * failure, and it is not proof the agent answers either — which is the distinction the sync
+ * decision rests on.
+ */
+interface SegmentRead<T> {
+  outcome: 'ok' | 'failed' | 'skipped';
+  items: T[];
+}
 
 export interface AutomationPollerConfig {
   automationPort: AutomationPort;
@@ -192,23 +210,34 @@ export default class AutomationPoller {
       // because the candidate page timed out would leave those assignments open, which makes the
       // next page larger, which makes the next timeout likelier.
       const [closed, candidates] = await Promise.all([
-        this.readOrEmpty(logContext, 'closed records', () =>
-          this.reconcileClosed(config, assignments),
-        ),
-        this.readOrEmpty(logContext, 'new candidates', () =>
-          this.readCandidates(config, assignments),
-        ),
+        this.tryRead(logContext, 'closed records', () => this.reconcileClosed(config, assignments)),
+        this.tryRead(logContext, 'new candidates', () => this.readCandidates(config, assignments)),
       ]);
+
+      // Reaching the agent at all is what the sync attests to. Reporting an empty poll when every
+      // read failed would tell the orchestrator this inbox is being swept while nothing is, which
+      // is the one thing a "no sync received" alert must never be lied to about. A read that
+      // legitimately had nothing to ask is a success, not a failure.
+      if (closed.outcome !== 'ok' && candidates.outcome !== 'ok') {
+        this.logger('Error', 'Could not reach the agent, reporting nothing for this inbox', {
+          ...logContext,
+        });
+
+        return;
+      }
 
       // Sent even when both lists are empty: this call is what tells the orchestrator the inbox is
       // still being polled, and an inbox with nothing to do must not read as an inbox nobody polls.
-      const results = await this.config.automationPort.sync(config.inboxId, { closed, candidates });
+      const results = await this.config.automationPort.sync(config.inboxId, {
+        closed: closed.items,
+        candidates: candidates.items,
+      });
 
       this.logger('Info', 'Automated inbox polled', {
         ...logContext,
         assignments: assignments.length,
-        reconciled: closed.length,
-        candidates: candidates.length,
+        reconciled: closed.items.length,
+        candidates: candidates.items.length,
         outcomes: results.reduce<Record<string, number>>(
           (counts, { outcome }) => ({ ...counts, [outcome]: (counts[outcome] ?? 0) + 1 }),
           {},
@@ -241,37 +270,42 @@ export default class AutomationPoller {
   private async reconcileClosed(
     config: ServerAutomatedInboxConfig,
     assignments: ServerAutomatedInboxAssignment[],
-  ): Promise<{ recordId: string; stillInSegment: boolean }[]> {
+  ): Promise<SegmentRead<{ recordId: string; stillInSegment: boolean }>> {
+    const logContext = { inboxId: config.inboxId, renderingId: config.renderingId };
+
+    for (const { state } of assignments) {
+      if (!RECONCILABLE_ASSIGNMENT_STATES.has(state) && !OPEN_ASSIGNMENT_STATES.has(state)) {
+        this.logger('Warn', 'Unknown assignment state, leaving the record for a later poll', {
+          ...logContext,
+          state,
+        });
+      }
+    }
+
     const reconcilable = assignments.filter(({ state }) =>
       RECONCILABLE_ASSIGNMENT_STATES.has(state),
     );
 
     for (const { runState } of reconcilable) {
-      if (
-        runState != null &&
-        !TERMINAL_RUN_STATES.has(runState) &&
-        !LIVE_RUN_STATES.has(runState)
-      ) {
-        this.logger('Warn', 'Unknown workflow run state, leaving the record for a later poll', {
-          inboxId: config.inboxId,
-          renderingId: config.renderingId,
+      // Null belongs here too: the orchestrator binds the run before the assignment, so an
+      // assignment with no run is not a shape this executor knows how to read either.
+      if (!isTerminalRun(runState) && !isLiveRun(runState)) {
+        this.logger('Warn', 'Unexpected workflow run state, leaving the record for a later poll', {
+          ...logContext,
           runState,
         });
       }
     }
 
     // A closed assignment whose run is still going is an escalation in progress, and reporting it
-    // would hand a live run to a human twice. A closed assignment with no run at all is the
-    // opposite case: there is nothing to protect, so it reconciles like any other.
+    // would hand a live run to a human twice.
     const recordIds = [
       ...new Set(
-        reconcilable
-          .filter(({ runState }) => runState == null || TERMINAL_RUN_STATES.has(runState))
-          .map(({ recordId }) => recordId),
+        reconcilable.filter(({ runState }) => isTerminalRun(runState)).map(a => a.recordId),
       ),
     ];
 
-    if (recordIds.length === 0) return [];
+    if (recordIds.length === 0) return { outcome: 'skipped', items: [] };
 
     const stillInSegment = new Set<string>();
 
@@ -286,21 +320,25 @@ export default class AutomationPoller {
       found.forEach(recordId => stillInSegment.add(recordId));
     }
 
-    return recordIds.map(recordId => ({
-      recordId,
-      stillInSegment: stillInSegment.has(recordId),
-    }));
+    return {
+      outcome: 'ok',
+      items: recordIds.map(recordId => ({
+        recordId,
+        stillInSegment: stillInSegment.has(recordId),
+      })),
+    };
   }
 
   /**
-   * Runs one of the two segment reads, turning a failure into an empty list. The other read, and the
-   * sync that carries both, still happen: an inbox that loses one of them must still make progress.
+   * Runs one of the two segment reads. A failure yields an empty list rather than ending the poll,
+   * so the other read and the sync still happen — but it is reported as a failure, because "read
+   * nothing" and "could not read" must not look alike to the caller.
    */
-  private async readOrEmpty<T>(
+  private async tryRead<T>(
     logContext: Record<string, unknown>,
     what: string,
-    read: () => Promise<T[]>,
-  ): Promise<T[]> {
+    read: () => Promise<SegmentRead<T>>,
+  ): Promise<SegmentRead<T>> {
     try {
       return await read();
     } catch (error) {
@@ -309,16 +347,18 @@ export default class AutomationPoller {
         error: extractErrorMessage(error),
       });
 
-      return [];
+      return { outcome: 'failed', items: [] };
     }
   }
 
   private async readCandidates(
     config: ServerAutomatedInboxConfig,
     assignments: ServerAutomatedInboxAssignment[],
-  ): Promise<string[]> {
-    // The assigned records sit at the front of the same segment page, so the window has to cover
-    // them before it can hold a full batch of new ones.
+  ): Promise<SegmentRead<string>> {
+    // Sized so that the already-assigned records can fit inside the window alongside a full batch
+    // of new ones. No sort is imposed and each agent orders as it likes, so this is a best effort,
+    // not a guarantee: a page that comes back mostly assigned simply yields fewer candidates, and
+    // the rest are picked up by a later poll.
     const page = await this.config.segmentReaderPort.listRecordIds({
       ...AutomationPoller.segmentQuery(config),
       pageSize: config.maxConcurrentRuns + assignments.length,
@@ -326,7 +366,7 @@ export default class AutomationPoller {
 
     const known = new Set(assignments.map(({ recordId }) => recordId));
 
-    return page.filter(recordId => !known.has(recordId));
+    return { outcome: 'ok', items: page.filter(recordId => !known.has(recordId)) };
   }
 
   private static segmentQuery(config: ServerAutomatedInboxConfig) {
