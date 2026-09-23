@@ -25,6 +25,11 @@ const MAX_CANDIDATE_PAGE_SIZE = 500;
 // inbox long before this, so it is a belt on the URL length rather than the real ceiling.
 const MAX_EXCLUDED_RECORDS = 150;
 
+// Each inbox fires two to four segment reads on the customer's agent. An environment with thirty
+// inboxes swept at once lands a hundred reads on the customer's database, and agent-client's
+// ten-second timeout turns that burst into whole inboxes skipping their sync.
+const MAX_CONCURRENT_INBOX_POLLS = 5;
+
 // The agents that serve `POST /forest/_internal/capabilities`, the same list the front gates that
 // call on. Any other name is a v1 liana, which raises on `not_in`, or one this executor predates:
 // both pad rather than risk a candidate read that fails on every sweep.
@@ -220,9 +225,21 @@ export default class AutomationPoller {
 
       // Awaited, so the next cycle is only scheduled once this one is done: a slow segment read
       // delays the sweep instead of stacking a second one on the customer's database. The registry
-      // is what `stop()` drains, not a concurrency guard — there is nothing to guard against.
+      // is what `stop()` drains.
+      const queue = [...inboxes];
+
+      const sweepQueue = async (): Promise<void> => {
+        let config = queue.shift();
+
+        while (config && this._state === 'running') {
+          // eslint-disable-next-line no-await-in-loop
+          await this.inFlightInboxes.track(config.inboxId, this.pollInbox(config));
+          config = queue.shift();
+        }
+      };
+
       await Promise.all(
-        inboxes.map(config => this.inFlightInboxes.track(config.inboxId, this.pollInbox(config))),
+        Array.from({ length: Math.min(MAX_CONCURRENT_INBOX_POLLS, queue.length) }, sweepQueue),
       );
     } catch (error) {
       this.logger('Error', 'Automation poll cycle failed', {

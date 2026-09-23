@@ -91,6 +91,30 @@ async function runOneCycle(poller: AutomationPoller): Promise<void> {
   await poller.stop();
 }
 
+function makeInboxes(count: number): ServerAutomatedInboxConfig[] {
+  return Array.from({ length: count }, (_, index) => makeConfig({ inboxId: `inbox-${index + 1}` }));
+}
+
+const SLOW_INBOX_MS = 1000;
+
+function makeInboxesSlow(context: ReturnType<typeof makeContext>): () => number {
+  let open = 0;
+  let maxOpen = 0;
+
+  context.automationPort.listAssignments.mockImplementation(async () => {
+    open += 1;
+    maxOpen = Math.max(maxOpen, open);
+    await new Promise(resolve => {
+      setTimeout(resolve, SLOW_INBOX_MS);
+    });
+    open -= 1;
+
+    return [];
+  });
+
+  return () => maxOpen;
+}
+
 describe('AutomationPoller', () => {
   beforeEach(() => {
     jest.useFakeTimers();
@@ -966,7 +990,61 @@ describe('AutomationPoller', () => {
     });
   });
 
+  describe('bounded sweep', () => {
+    it('should read at most five inboxes at once and still sweep them all in the cycle', async () => {
+      const context = makeContext({ inboxes: makeInboxes(12) });
+      const maxOpen = makeInboxesSlow(context);
+
+      const poller = makePoller(context);
+      poller.start();
+      await jest.advanceTimersByTimeAsync(POLL_INTERVAL_S * 1000 + 3 * SLOW_INBOX_MS);
+      await poller.stop();
+
+      expect(maxOpen()).toBe(5);
+      expect(context.automationPort.listAutomatedInboxes).toHaveBeenCalledTimes(1);
+      expect(context.automationPort.sync).toHaveBeenCalledTimes(12);
+    });
+
+    it('should hand the slot of a failed inbox to the next one right away', async () => {
+      const context = makeContext({ inboxes: makeInboxes(6) });
+      makeInboxesSlow(context);
+      context.automationPort.listAssignments.mockRejectedValueOnce(new Error('agent unreachable'));
+
+      const poller = makePoller(context);
+      poller.start();
+      await jest.advanceTimersByTimeAsync(POLL_INTERVAL_S * 1000);
+
+      expect(context.automationPort.listAssignments).toHaveBeenCalledWith('inbox-6');
+
+      await jest.advanceTimersByTimeAsync(SLOW_INBOX_MS);
+      await poller.stop();
+
+      expect(context.automationPort.sync).toHaveBeenCalledTimes(5);
+      expect(context.automationPort.sync).not.toHaveBeenCalledWith('inbox-1', expect.anything());
+    });
+  });
+
   describe('stop', () => {
+    it('should finish the inboxes in flight but not start the queued ones', async () => {
+      const context = makeContext({ inboxes: makeInboxes(12) });
+      makeInboxesSlow(context);
+
+      const poller = makePoller(context);
+      poller.start();
+      await jest.advanceTimersByTimeAsync(POLL_INTERVAL_S * 1000);
+
+      const stopped = poller.stop();
+      await jest.advanceTimersByTimeAsync(SLOW_INBOX_MS);
+      await stopped;
+
+      const inFlight = ['inbox-1', 'inbox-2', 'inbox-3', 'inbox-4', 'inbox-5'];
+
+      expect(context.automationPort.listAssignments.mock.calls.map(([inboxId]) => inboxId)).toEqual(
+        inFlight,
+      );
+      expect(context.automationPort.sync.mock.calls.map(([inboxId]) => inboxId)).toEqual(inFlight);
+    });
+
     it('should wait for an in-flight inbox before reporting stopped', async () => {
       const context = makeContext();
 
