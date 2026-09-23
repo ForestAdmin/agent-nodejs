@@ -182,10 +182,12 @@ refuses an over-cap bulk write.
 
 ## HTTP routes
 
-When `auditTrail` is set, the agent exposes four routes (all behind Forest's auth, gated by
-`assertCanRead` on the target collection). When the caller's role has a record-level scope on that
-collection, every route below — including the correlation lookups — additionally requires the
-target id to currently exist and match that scope. A scope can't be evaluated against a record that
+When `auditTrail` is set, the agent exposes four routes, all behind Forest's auth. The three
+record-scoped ones are gated by `assertCanRead` on the collection they name; the cross-collection
+timeline has no target collection, so it checks `canRead` per collection and queries only the ones
+that pass. When the caller's role has a record-level scope on that collection, every record-scoped
+route below — including the correlation lookups — additionally requires the target id to currently
+exist and match that scope. A scope can't be evaluated against a record that
 no longer exists, so this only refuses a still-existing, out-of-scope id: once a record is genuinely
 deleted, anyone who can read the collection can see its history, reconstructed state, or correlated
 operations, scope aside — inspecting what was deleted is much of the point of an audit trail.
