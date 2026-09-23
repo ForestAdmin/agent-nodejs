@@ -25,9 +25,9 @@ Commands:
   (none)      Start the BFF server, configured from the environment.
   openapi     Write the OpenAPI document to stdout. Needs no configuration, but
               a deployment configured to reach its Forest schema and its agent
-              (FOREST_SERVER_URL, FOREST_ENV_SECRET, FOREST_AUTH_SECRET,
-              AGENT_URL) unfolds one path per collection, relation and action
-              instead of the generic ones.
+              (FOREST_ENV_SECRET, FOREST_AUTH_SECRET, AGENT_URL) unfolds one
+              path per collection, relation and action instead of the generic
+              ones.
               --output [file]  Write to a file instead of stdout, defaulting
                                to ${DEFAULT_OUTPUT_FILE} in the current directory.
 
@@ -45,12 +45,7 @@ export interface DispatchOutcome {
   server?: BFFHttpServer;
 }
 
-const UNFOLD_VARS = [
-  'FOREST_SERVER_URL',
-  'FOREST_ENV_SECRET',
-  'FOREST_AUTH_SECRET',
-  'AGENT_URL',
-] as const;
+const UNFOLD_VARS = ['FOREST_ENV_SECRET', 'FOREST_AUTH_SECRET', 'AGENT_URL'] as const;
 
 const NOTHING_TO_UNFOLD = `${UNFOLD_VARS.join(', ')} must all be set to unfold it`;
 
@@ -85,7 +80,7 @@ export async function renderOpenApi(env: NodeJS.ProcessEnv, logger: Logger): Pro
   // `parseConfig` validates the WHOLE server configuration, including settings the export has nothing
   // to do with (HTTP_PORT, the OAuth keys, the default timezone). A deployment that never asked for an
   // unfolded document must not see its export die on one of those, so the config is parsed only once
-  // the four variables unfolding needs are all present — and from there a bad value is a real failure.
+  // the variables unfolding needs are all present — and from there a bad value is a real failure.
   const unfoldable =
     authSecret && wantsUnfolding(env)
       ? { source: resolveUnfoldSource(parseConfig(env), logger), authSecret }

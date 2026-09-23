@@ -1,4 +1,5 @@
 import {
+  DEFAULTS,
   DEFAULT_AGENT_TIMEOUT_MS,
   DEFAULT_AI_TIMEOUT_MS,
   DEFAULT_RATE_LIMIT_MAX_REQUESTS,
@@ -37,8 +38,40 @@ describe('parseConfig', () => {
     });
   });
 
+  describe('when a defaulted URL var is unset, empty, or whitespace-only', () => {
+    for (const [key, field] of [
+      ['FOREST_SERVER_URL', 'forestServerUrl'],
+      ['FOREST_APP_URL', 'forestAppUrl'],
+    ] as const) {
+      for (const [label, value] of [
+        ['unset', undefined],
+        ['empty', ''],
+        ['whitespace', '   '],
+      ] as const) {
+        it(`should fall back to ${DEFAULTS[key]} and stay present when ${key} is ${label}`, () => {
+          const config = parseConfig({ ...VALID_ENV, [key]: value });
+
+          expect(config.presence[key]).toBe(true);
+          expect(config.hasAllRequired).toBe(true);
+          expect(config[field]).toBe(DEFAULTS[key]);
+        });
+      }
+    }
+
+    it('should keep an explicit value over the default', () => {
+      const config = parseConfig({
+        ...VALID_ENV,
+        FOREST_SERVER_URL: 'https://api.eu.forestadmin.com',
+        FOREST_APP_URL: 'https://app.eu.forestadmin.com',
+      });
+
+      expect(config.forestServerUrl).toBe('https://api.eu.forestadmin.com');
+      expect(config.forestAppUrl).toBe('https://app.eu.forestadmin.com');
+    });
+  });
+
   describe('when a required var is unset, empty, or whitespace-only', () => {
-    for (const key of REQUIRED_KEYS) {
+    for (const key of REQUIRED_KEYS.filter(candidate => !(candidate in DEFAULTS))) {
       for (const [label, value] of [
         ['unset', undefined],
         ['empty', ''],

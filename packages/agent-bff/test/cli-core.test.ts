@@ -77,7 +77,7 @@ describe('runCli', () => {
 
   describe('when a required var is absent but not malformed', () => {
     it('should still boot the server (model C, not fail-fast)', async () => {
-      const server = await runCli({ ...VALID_ENV, FOREST_SERVER_URL: undefined }, noopLogger);
+      const server = await runCli({ ...VALID_ENV, AGENT_URL: undefined }, noopLogger);
 
       try {
         expect(server).toBeDefined();

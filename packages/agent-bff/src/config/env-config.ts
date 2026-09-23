@@ -15,6 +15,11 @@ export const REQUIRED_KEYS = [
 
 export type RequiredKey = (typeof REQUIRED_KEYS)[number];
 
+export const DEFAULTS: Partial<Record<RequiredKey, string>> = {
+  FOREST_SERVER_URL: 'https://api.forestadmin.com',
+  FOREST_APP_URL: 'https://app.forestadmin.com',
+};
+
 const URL_KEYS = ['FOREST_SERVER_URL', 'FOREST_APP_URL', 'AGENT_URL'] as const;
 
 export type PresenceMap = Record<RequiredKey, boolean>;
@@ -160,7 +165,7 @@ function parseOpenApiEnabled(raw?: string): boolean {
 
 export function parseConfig(env: NodeJS.ProcessEnv): BFFConfig {
   const normalized = Object.fromEntries(
-    REQUIRED_KEYS.map(key => [key, normalize(env[key])]),
+    REQUIRED_KEYS.map(key => [key, normalize(env[key]) ?? DEFAULTS[key]]),
   ) as Record<RequiredKey, string | undefined>;
 
   for (const key of URL_KEYS) {
