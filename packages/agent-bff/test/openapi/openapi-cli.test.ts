@@ -33,10 +33,15 @@ const CAPABILITIES = { fields: [{ name: 'id', type: 'Number', operators: ['equal
 const fetchSchema = jest.fn().mockResolvedValue({ collections: SCHEMA, meta: {} });
 const fetchCapabilities = jest.fn().mockResolvedValue(CAPABILITIES);
 const mintedTokens: string[] = [];
+const schemaServerUrls: string[] = [];
 
 jest.mock('../../src/read-model/forest-schema-client', () => ({
   __esModule: true,
   default: class {
+    constructor({ forestServerUrl }: { forestServerUrl: string }) {
+      schemaServerUrls.push(forestServerUrl);
+    }
+
     // eslint-disable-next-line class-methods-use-this
     fetchSchema() {
       return fetchSchema();
@@ -78,6 +83,7 @@ describe('renderOpenApi', () => {
     fetchSchema.mockReset().mockResolvedValue({ collections: SCHEMA, meta: {} });
     fetchCapabilities.mockReset().mockResolvedValue(CAPABILITIES);
     mintedTokens.length = 0;
+    schemaServerUrls.length = 0;
   });
 
   it('should sign its own agent token, since a CLI has no caller to borrow one from', async () => {
@@ -153,6 +159,16 @@ describe('renderOpenApi', () => {
       '/agent/v1/users/relations/orders/count',
       '/agent/v1/users/relations/orders/list',
     ]);
+    expect(document.info.description).toContain('Paths are unfolded');
+  });
+
+  it('should unfold against the production server when FOREST_SERVER_URL is not set', async () => {
+    const document = JSON.parse(
+      await renderOpenApi({ ...VALID_ENV, FOREST_SERVER_URL: undefined }, noopLogger),
+    );
+
+    expect(schemaServerUrls).toEqual(['https://api.forestadmin.com']);
+    expect(Object.keys(document.paths)).toContain('/agent/v1/users/relations/orders/list');
     expect(document.info.description).toContain('Paths are unfolded');
   });
 
