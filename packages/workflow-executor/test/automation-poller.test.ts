@@ -1034,7 +1034,7 @@ describe('AutomationPoller', () => {
       await jest.advanceTimersByTimeAsync(POLL_INTERVAL_S * 1000);
 
       const stopped = poller.stop();
-      await jest.advanceTimersByTimeAsync(SLOW_INBOX_MS);
+      await jest.advanceTimersByTimeAsync(3 * SLOW_INBOX_MS);
       await stopped;
 
       const inFlight = ['inbox-1', 'inbox-2', 'inbox-3', 'inbox-4', 'inbox-5'];

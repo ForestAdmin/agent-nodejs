@@ -25,9 +25,9 @@ const MAX_CANDIDATE_PAGE_SIZE = 500;
 // inbox long before this, so it is a belt on the URL length rather than the real ceiling.
 const MAX_EXCLUDED_RECORDS = 150;
 
-// Each inbox fires two to four segment reads on the customer's agent. An environment with thirty
-// inboxes swept at once lands a hundred reads on the customer's database, and agent-client's
-// ten-second timeout turns that burst into whole inboxes skipping their sync.
+// Every inbox reads the customer's agent several times. Sweeping them all at once piles those reads
+// onto the customer's database, and agent-client's ten-second timeout turns the pile-up into inboxes
+// that skip their sync.
 const MAX_CONCURRENT_INBOX_POLLS = 5;
 
 // The agents that serve `POST /forest/_internal/capabilities`, the same list the front gates that
