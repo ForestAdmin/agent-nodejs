@@ -66,6 +66,7 @@ function makeContext(options?: {
 
   const segmentReaderPort: jest.Mocked<SegmentReaderPort> = {
     listRecordIds: jest.fn().mockResolvedValue([]),
+    listFieldOperators: jest.fn().mockResolvedValue(['equal', 'in', 'not_in']),
   };
 
   const logger = jest.fn();
@@ -204,19 +205,190 @@ describe('AutomationPoller', () => {
       );
     });
 
-    it('should take an excluded page as candidates without filtering it again', async () => {
+    it('should drop a known record an agent hands back despite the exclusion', async () => {
       const context = makeContext({
         inboxes: [excluding],
         assignments: [makeAssignment({ recordId: 'known', state: 'doing', runState: 'started' })],
       });
-      context.segmentReaderPort.listRecordIds.mockResolvedValue(['fresh-1', 'fresh-2']);
+      context.segmentReaderPort.listRecordIds.mockResolvedValue(['known', 'fresh-1']);
 
       await runOneCycle(makePoller(context));
 
       expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
         closed: [],
-        candidates: ['fresh-1', 'fresh-2'],
+        candidates: ['fresh-1'],
       });
+    });
+
+    it('should ask the agent which operators the primary key declares', async () => {
+      const context = makeContext({
+        inboxes: [excluding],
+        assignments: [makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' })],
+      });
+
+      await runOneCycle(makePoller(context));
+
+      expect(context.segmentReaderPort.listFieldOperators).toHaveBeenCalledWith({
+        collectionName: 'orders',
+        field: 'id',
+        user: excluding.serviceAccountProfile,
+        timezone: 'Europe/Paris',
+      });
+    });
+
+    it('should read the run cap without asking for capabilities when nothing is known yet', async () => {
+      const context = makeContext({ inboxes: [excluding] });
+
+      await runOneCycle(makePoller(context));
+
+      expect(context.segmentReaderPort.listFieldOperators).not.toHaveBeenCalled();
+      expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledWith(
+        expect.not.objectContaining({ excludedRecordIds: expect.anything() }),
+      );
+      expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledWith(
+        expect.objectContaining({ pageSize: 20 }),
+      );
+    });
+
+    it('should pad the page instead when the primary key does not declare `not_in`', async () => {
+      const context = makeContext({
+        inboxes: [excluding],
+        assignments: [makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' })],
+      });
+      context.segmentReaderPort.listFieldOperators.mockResolvedValue(['equal', 'in']);
+
+      await runOneCycle(makePoller(context));
+
+      expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledWith(
+        expect.not.objectContaining({ excludedRecordIds: expect.anything() }),
+      );
+      expect(context.logger).toHaveBeenCalledWith(
+        'Info',
+        'Automated inbox polled',
+        expect.objectContaining({
+          candidatePageSize: 21,
+          paddedPageReason: 'field-without-not-in',
+        }),
+      );
+    });
+
+    it('should pad the page and still sync when the capabilities cannot be read', async () => {
+      const context = makeContext({
+        inboxes: [excluding],
+        assignments: [makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' })],
+      });
+      context.segmentReaderPort.listFieldOperators.mockRejectedValue(new Error('HTTP 404'));
+      context.segmentReaderPort.listRecordIds.mockResolvedValue(['a', 'fresh']);
+
+      await runOneCycle(makePoller(context));
+
+      expect(context.logger).toHaveBeenCalledWith(
+        'Warn',
+        'Could not read the agent capabilities, padding the page instead',
+        expect.objectContaining({ inboxId: 'inbox-1', error: 'HTTP 404' }),
+      );
+      expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
+        closed: [],
+        candidates: ['fresh'],
+      });
+      expect(context.logger).toHaveBeenCalledWith(
+        'Info',
+        'Automated inbox polled',
+        expect.objectContaining({
+          candidatePageSize: 21,
+          paddedPageReason: 'capabilities-unreadable',
+        }),
+      );
+    });
+
+    it('should fall back to a padded page in the same cycle when the agent refuses `not_in`', async () => {
+      const context = makeContext({
+        inboxes: [excluding],
+        assignments: [makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' })],
+      });
+      context.segmentReaderPort.listRecordIds
+        .mockRejectedValueOnce(new Error('HTTP 500'))
+        .mockResolvedValueOnce(['a', 'fresh']);
+
+      await runOneCycle(makePoller(context));
+
+      expect(context.segmentReaderPort.listRecordIds).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({ excludedRecordIds: ['a'], pageSize: 20 }),
+      );
+      expect(context.segmentReaderPort.listRecordIds).toHaveBeenNthCalledWith(
+        2,
+        expect.not.objectContaining({ excludedRecordIds: expect.anything() }),
+      );
+      expect(context.logger).toHaveBeenCalledWith(
+        'Warn',
+        'The not_in candidate read failed, padding the page instead',
+        expect.objectContaining({ inboxId: 'inbox-1', error: 'HTTP 500' }),
+      );
+      expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
+        closed: [],
+        candidates: ['fresh'],
+      });
+      expect(context.logger).toHaveBeenCalledWith(
+        'Info',
+        'Automated inbox polled',
+        expect.objectContaining({ candidatePageSize: 21, paddedPageReason: 'not-in-refused' }),
+      );
+    });
+
+    it('should try `not_in` again on the next cycle after a refusal', async () => {
+      const context = makeContext({
+        inboxes: [excluding],
+        assignments: [makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' })],
+      });
+      context.segmentReaderPort.listRecordIds.mockRejectedValueOnce(new Error('HTTP 500'));
+      const poller = makePoller(context);
+
+      poller.start();
+      await jest.advanceTimersByTimeAsync(POLL_INTERVAL_S * 1000);
+      await jest.advanceTimersByTimeAsync(POLL_INTERVAL_S * 1000);
+      await poller.stop();
+
+      expect(context.segmentReaderPort.listRecordIds).toHaveBeenNthCalledWith(
+        3,
+        expect.objectContaining({ excludedRecordIds: ['a'] }),
+      );
+    });
+
+    it('should not fall back when a read with nothing to exclude fails', async () => {
+      const context = makeContext({ inboxes: [excluding] });
+      context.segmentReaderPort.listRecordIds.mockRejectedValue(new Error('HTTP 500'));
+
+      await runOneCycle(makePoller(context));
+
+      expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledTimes(1);
+      expect(context.logger).not.toHaveBeenCalledWith(
+        'Warn',
+        'The not_in candidate read failed, padding the page instead',
+        expect.anything(),
+      );
+      expect(context.logger).toHaveBeenCalledWith(
+        'Error',
+        'Could not read new candidates of an automated inbox',
+        expect.objectContaining({ inboxId: 'inbox-1', error: 'HTTP 500' }),
+      );
+    });
+
+    it('should report the candidate read failed when the padded fallback fails too', async () => {
+      const context = makeContext({
+        inboxes: [excluding],
+        assignments: [makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' })],
+      });
+      context.segmentReaderPort.listRecordIds.mockRejectedValue(new Error('HTTP 500'));
+
+      await runOneCycle(makePoller(context));
+
+      expect(context.automationPort.sync).not.toHaveBeenCalled();
+      expect(context.logger).toHaveBeenCalledWith(
+        'Error',
+        'Could not read new candidates of an automated inbox',
+        expect.objectContaining({ inboxId: 'inbox-1', error: 'HTTP 500' }),
+      );
     });
 
     it('should name a record once even when it holds several assignments', async () => {
@@ -235,32 +407,36 @@ describe('AutomationPoller', () => {
       );
     });
 
-    it('should pad the page instead when the agent filters have no `not_in`', async () => {
-      const context = makeContext({
-        inboxes: [makeConfig({ liana: 'forest-rails' })],
-        assignments: [
-          makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' }),
-          makeAssignment({ recordId: 'b', state: 'doing', runState: 'started' }),
-        ],
-      });
+    it.each(['forest-rails', 'forest-laravel', 'some-future-liana'])(
+      'should pad the page without asking for capabilities on %s',
+      async liana => {
+        const context = makeContext({
+          inboxes: [makeConfig({ liana })],
+          assignments: [
+            makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' }),
+            makeAssignment({ recordId: 'b', state: 'doing', runState: 'started' }),
+          ],
+        });
 
-      await runOneCycle(makePoller(context));
+        await runOneCycle(makePoller(context));
 
-      expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledWith(
-        expect.objectContaining({ pageSize: 22 }),
-      );
-      expect(context.segmentReaderPort.listRecordIds).not.toHaveBeenCalledWith(
-        expect.objectContaining({ excludedRecordIds: expect.anything() }),
-      );
-      expect(context.logger).toHaveBeenCalledWith(
-        'Info',
-        'Automated inbox polled',
-        expect.objectContaining({
-          candidatePageSize: 22,
-          paddedPageReason: 'liana-without-not-in',
-        }),
-      );
-    });
+        expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledWith(
+          expect.objectContaining({ pageSize: 22 }),
+        );
+        expect(context.segmentReaderPort.listRecordIds).not.toHaveBeenCalledWith(
+          expect.objectContaining({ excludedRecordIds: expect.anything() }),
+        );
+        expect(context.logger).toHaveBeenCalledWith(
+          'Info',
+          'Automated inbox polled',
+          expect.objectContaining({
+            candidatePageSize: 22,
+            paddedPageReason: 'unknown-liana',
+          }),
+        );
+        expect(context.segmentReaderPort.listFieldOperators).not.toHaveBeenCalled();
+      },
+    );
 
     it('should pad the page instead when the orchestrator names no agent', async () => {
       const context = makeContext({
@@ -297,6 +473,27 @@ describe('AutomationPoller', () => {
         'Info',
         'Automated inbox polled',
         expect.objectContaining({ candidatePageSize: 21, paddedPageReason: 'composite-key' }),
+      );
+    });
+
+    it('should still exclude when exactly the maximum number of records is known', async () => {
+      const assignments = Array.from({ length: 150 }, (_unused, index) =>
+        makeAssignment({ recordId: `r${index}`, state: 'doing', runState: 'started' }),
+      );
+      const context = makeContext({ inboxes: [excluding], assignments });
+
+      await runOneCycle(makePoller(context));
+
+      expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledWith(
+        expect.objectContaining({
+          excludedRecordIds: expect.arrayContaining(['r0', 'r149']),
+          pageSize: 20,
+        }),
+      );
+      expect(context.logger).toHaveBeenCalledWith(
+        'Info',
+        'Automated inbox polled',
+        expect.objectContaining({ candidatePageSize: 20, paddedPageReason: undefined }),
       );
     });
 
