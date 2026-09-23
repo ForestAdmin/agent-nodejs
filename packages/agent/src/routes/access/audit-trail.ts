@@ -12,8 +12,9 @@ import {
 } from '@forestadmin/datasource-toolkit';
 import { DateTime } from 'luxon';
 
-import { REDACTED, revertRecord } from '../../audit-trail';
+import { revertRecord } from '../../audit-trail';
 import checkRecordVisibility, { recordExists } from '../../audit-trail/scope';
+import withholdOutOfScopeValues, { scopeAccepts } from '../../audit-trail/withhold';
 import { HttpCode } from '../../types';
 import IdUtils from '../../utils/id';
 import QueryStringParser from '../../utils/query-string';
@@ -87,13 +88,36 @@ export default class AuditTrailRoute extends CollectionRoute {
       isFirstFetch ? store.listDistinctUsers(filters) : undefined,
     ]);
 
+    // The record can be deleted — or moved out of the caller's scope — between the check above and
+    // the audit read: the audit trail lives in its own database, often its own engine, so no single
+    // snapshot spans both. Ask again once the rows are in hand and let that answer decide, so a
+    // record that went away mid-request is treated as the request starting a moment later would
+    // have treated it. Only for a scoped caller: with no scope there is nothing to withhold.
+    let gone = goneEntirely;
+
+    if (scope && !goneEntirely) {
+      const after = await checkRecordVisibility(
+        this.services,
+        this.collection,
+        context.params.id,
+        context,
+      );
+
+      if (!after.visible) {
+        context.throw(HttpCode.NotFound, 'Record does not exists');
+
+        return;
+      }
+
+      gone = after.goneEntirely;
+    }
+
     // A genuinely deleted record bypasses the scope check above — there's nothing left to check
     // existence against — but create/update/delete rows still carry captured column values from
     // when the record existed. If those values themselves would have failed the caller's scope,
     // withhold them while still surfacing that the row happened, by whom and when: that part
     // stays visible regardless.
-    const data =
-      scope && goneEntirely ? this.withholdOutOfScopeValues(rawData, scope, context) : rawData;
+    const data = scope && gone ? this.withhold(rawData, scope, context) : rawData;
 
     context.response.body = {
       data,
@@ -101,88 +125,12 @@ export default class AuditTrailRoute extends CollectionRoute {
     };
   }
 
-  private withholdOutOfScopeValues(
-    entries: AuditRecord[],
-    scope: ConditionTree,
-    context: Context,
-  ): AuditRecord[] {
-    const { timezone } = QueryStringParser.parseCaller(context, { defaultTimezone: 'UTC' });
-
-    return entries.map(entry => {
-      // `delete`'s previousValues and `create`'s newValues both capture every writable column
-      // (see instrument.ts's pickColumns), so the scope can be evaluated against them directly.
-      if (entry.operation === 'delete') {
-        if (this.matchesScope(entry, entry.previousValues, scope, timezone)) return entry;
-
-        return { ...entry, previousValues: {} };
-      }
-
-      if (entry.operation === 'create') {
-        if (this.matchesScope(entry, entry.newValues, scope, timezone)) return entry;
-
-        return { ...entry, newValues: {} };
-      }
-
-      // `update`'s previousValues/newValues are a partial diff (only the columns that changed) —
-      // a scope condition referencing a column this particular update didn't touch can't be
-      // evaluated reliably against it, so withhold unconditionally rather than risk a false
-      // negative. `action`/`action_failed` rows hold a submitted form and a result summary, not
-      // column values, so the scope doesn't apply to them at all.
-      if (entry.operation === 'update') {
-        return { ...entry, previousValues: {}, newValues: {} };
-      }
-
-      return entry;
+  private withhold(entries: AuditRecord[], scope: ConditionTree, context: Context): AuditRecord[] {
+    return withholdOutOfScopeValues(entries, {
+      collection: this.collection,
+      scope,
+      timezone: QueryStringParser.parseCaller(context, { defaultTimezone: 'UTC' }).timezone,
     });
-  }
-
-  // Only a snapshot that answers every field the scope asks about, with what was really stored, is
-  // worth matching. The capture keeps the writable columns, so a scope reaching for anything else —
-  // a read-only column, a relation — reads `undefined` there and would answer for a value the row
-  // never held: `status != 'private'` matches on the missing key and releases the row. A redacted
-  // value answers no better: the placeholder is not what was stored.
-  //
-  // Own properties only: `'toString' in snapshot` is true of every object, so a scope on a column
-  // named after one of `Object.prototype`'s members would otherwise resolve against the prototype
-  // and release the row on a value no record ever held.
-  private matchesScope(
-    entry: AuditRecord,
-    values: Record<string, unknown>,
-    scope: ConditionTree,
-    timezone: string,
-  ): boolean {
-    const snapshot = this.withPrimaryKeys(entry, values);
-    const answered = scope.projection.every(
-      field =>
-        Object.prototype.hasOwnProperty.call(snapshot, field) && snapshot[field] !== REDACTED,
-    );
-
-    return answered && scope.match(snapshot, this.collection, timezone);
-  }
-
-  // A read-only primary key never lands in the snapshot, so a scope on the id would blank a row
-  // that is squarely in scope. The row's own packed id carries those values — and an id the current
-  // schema can no longer unpack simply leaves them out, which withholds.
-  //
-  // The decoded keys win over the snapshot's own copy of them: it is the same value, except when
-  // the primary key is writable and redacted, where the snapshot holds the placeholder while the
-  // packed id — which is never redacted — still names the record the row belongs to.
-  private withPrimaryKeys(
-    entry: AuditRecord,
-    values: Record<string, unknown>,
-  ): Record<string, unknown> {
-    const snapshot = values ?? {};
-
-    if (!entry.recordId) return snapshot;
-
-    try {
-      const names = SchemaUtils.getPrimaryKeys(this.collection.schema);
-      const ids = IdUtils.unpackId(this.collection.schema, entry.recordId);
-
-      return { ...snapshot, ...Object.fromEntries(names.map((name, index) => [name, ids[index]])) };
-    } catch {
-      return snapshot;
-    }
   }
 
   // Only audited columns are returned; read-only/computed fields are not captured in the log.
@@ -195,9 +143,11 @@ export default class AuditTrailRoute extends CollectionRoute {
     const current = await this.fetchCurrentRecord(context, auditedColumns, scope);
 
     // A missing current record is ambiguous (deleted vs. out-of-scope) once a scope applies; only
-    // deny when the id still exists outside that scope. If it's genuinely gone there's nothing
-    // left to evaluate the scope against, so the revert walk below proceeds — including, possibly,
-    // surfacing a delete entry's snapshot, which is the point once nothing exists to protect.
+    // deny when the id still exists outside that scope. If it's genuinely gone the revert walk
+    // below proceeds — the reconstruction is then tested against the scope in its own right, since
+    // this route hands back nothing but those values.
+    let goneEntirely = false;
+
     if (!current && scope) {
       const stillExists = await recordExists(this.collection, context.params.id, context, null);
 
@@ -206,6 +156,8 @@ export default class AuditTrailRoute extends CollectionRoute {
 
         return;
       }
+
+      goneEntirely = true;
     }
 
     const { store } = this.options.auditTrail;
@@ -240,7 +192,29 @@ export default class AuditTrailRoute extends CollectionRoute {
 
     const state = revertRecord(current, entries as Parameters<typeof revertRecord>[1]);
 
-    if (!state) context.throw(HttpCode.NotFound, 'Record did not exist at this timestamp');
+    if (!state) {
+      context.throw(HttpCode.NotFound, 'Record did not exist at this timestamp');
+
+      return;
+    }
+
+    // The history route withholds a gone record's captured values from a caller whose scope they
+    // fail; this route is nothing but those values, reassembled, so the same test applies to the
+    // reconstruction. Without it the withheld values are one request away for the same caller.
+    // A reconstruction the scope cannot answer — a scope on a column the capture never kept —
+    // withholds too: absent is not the same as passing, here as everywhere else.
+    if (
+      goneEntirely &&
+      !scopeAccepts(state, {
+        collection: this.collection,
+        scope,
+        timezone: QueryStringParser.parseCaller(context, { defaultTimezone: 'UTC' }).timezone,
+      })
+    ) {
+      context.response.body = { data: null };
+
+      return;
+    }
 
     context.response.body = { data: state };
   }

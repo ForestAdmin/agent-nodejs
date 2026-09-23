@@ -717,7 +717,12 @@ describe('AuditTrailRoute', () => {
 
     test("allows a deleted id through to the store, but withholds an out-of-scope delete row's previousValues", async () => {
       const history = [
-        { operation: 'delete', recordId: '2', previousValues: { ownerId: 2, title: 'Secret' } },
+        {
+          operation: 'delete',
+          recordId: '2',
+          previousValues: { ownerId: 2, title: 'Secret' },
+          newValues: {},
+        },
       ];
       const { services, dataSource, options, store } = setup(history);
       (services.authorization.getScope as jest.Mock).mockResolvedValue(
@@ -738,14 +743,19 @@ describe('AuditTrailRoute', () => {
       expect(context.throw).not.toHaveBeenCalled();
       expect(store.listByRecord).toHaveBeenCalled();
       expect(context.response.body).toEqual({
-        data: [{ operation: 'delete', recordId: '2', previousValues: {} }],
+        data: [{ operation: 'delete', recordId: '2', previousValues: {}, newValues: {} }],
         meta: { count: 1, availableUsers: [] },
       });
     });
 
     test("keeps a genuinely-deleted delete row's previousValues when they match the caller's scope", async () => {
       const history = [
-        { operation: 'delete', recordId: '2', previousValues: { ownerId: 1, title: 'Visible' } },
+        {
+          operation: 'delete',
+          recordId: '2',
+          previousValues: { ownerId: 1, title: 'Visible' },
+          newValues: {},
+        },
       ];
       const { services, dataSource, options, store } = setup(history);
       (services.authorization.getScope as jest.Mock).mockResolvedValue(
@@ -771,45 +781,76 @@ describe('AuditTrailRoute', () => {
       });
     });
 
-    test('unconditionally withholds an update row for a genuinely gone, scoped record — its values are a partial diff, not a full record', async () => {
-      // A scope condition can reference a column this particular update didn't even touch, so the
-      // match can't be evaluated reliably against a partial diff — withhold regardless, rather
-      // than risk a false negative that would leak column values the caller was never allowed to
-      // see (this is exactly the gap the create/delete-only version of this fix left open).
-      const history = [
-        {
+    // Each side of an update is tested against its own snapshot. A scope on a column this
+    // particular update never touched is simply unanswerable there, so it withholds by the same
+    // rule as everything else — no blanket case needed.
+    describe('an update row on a genuinely gone, scoped record', () => {
+      const updateUnderScope = async (previousValues, newValues) => {
+        const history = [{ operation: 'update', recordId: '2', previousValues, newValues }];
+        const { services, dataSource, options } = setup(history);
+        (services.authorization.getScope as jest.Mock).mockResolvedValue(
+          new ConditionTreeLeaf('ownerId', 'Equal', 1),
+        );
+        jest
+          .spyOn(dataSource.getCollection('books'), 'list')
+          .mockResolvedValueOnce([]) // scoped check: not found
+          .mockResolvedValueOnce([]); // bare check: genuinely gone
+        const route = new AuditTrailRoute(services, options, dataSource, 'books');
+        const context = createMockContext({
+          state: { user: { email: 'john.doe@domain.com' } },
+          customProperties: { query: { timezone: 'Europe/Paris' }, params: { id: '2' } },
+        });
+
+        await route.handleHistory(context);
+
+        return (context.response.body as { data: unknown[] }).data[0];
+      };
+
+      test('blanks only the side that falls outside the scope', async () => {
+        const row = await updateUnderScope({ ownerId: 2 }, { ownerId: 1 });
+
+        expect(row).toEqual({
           operation: 'update',
           recordId: '2',
-          previousValues: { title: 'Old' },
-          newValues: { title: 'New' },
-        },
-      ];
-      const { services, dataSource, options, store } = setup(history);
-      (services.authorization.getScope as jest.Mock).mockResolvedValue(
-        new ConditionTreeLeaf('ownerId', 'Equal', 1),
-      );
-      jest
-        .spyOn(dataSource.getCollection('books'), 'list')
-        .mockResolvedValueOnce([]) // scoped check: not found
-        .mockResolvedValueOnce([]); // bare check: genuinely gone, not just out of scope
-      const route = new AuditTrailRoute(services, options, dataSource, 'books');
-      const context = createMockContext({
-        state: { user: { email: 'john.doe@domain.com' } },
-        customProperties: { query: { timezone: 'Europe/Paris' }, params: { id: '2' } },
+          previousValues: {},
+          newValues: { ownerId: 1 },
+        });
       });
 
-      await route.handleHistory(context);
+      test('keeps both sides when both are in scope', async () => {
+        const row = await updateUnderScope(
+          { ownerId: 1, title: 'Old' },
+          { ownerId: 1, title: 'New' },
+        );
 
-      expect(store.listByRecord).toHaveBeenCalled();
-      expect(context.response.body).toEqual({
-        data: [{ operation: 'update', recordId: '2', previousValues: {}, newValues: {} }],
-        meta: { count: 1, availableUsers: [] },
+        expect(row).toEqual({
+          operation: 'update',
+          recordId: '2',
+          previousValues: { ownerId: 1, title: 'Old' },
+          newValues: { ownerId: 1, title: 'New' },
+        });
+      });
+
+      test('withholds both sides when the diff never touched the scoped column', async () => {
+        const row = await updateUnderScope({ title: 'Old' }, { title: 'New' });
+
+        expect(row).toEqual({
+          operation: 'update',
+          recordId: '2',
+          previousValues: {},
+          newValues: {},
+        });
       });
     });
 
     test("withholds an out-of-scope create row's newValues for a genuinely gone, scoped record", async () => {
       const history = [
-        { operation: 'create', recordId: '2', newValues: { ownerId: 2, title: 'Secret' } },
+        {
+          operation: 'create',
+          recordId: '2',
+          previousValues: {},
+          newValues: { ownerId: 2, title: 'Secret' },
+        },
       ];
       const { services, dataSource, options } = setup(history);
       (services.authorization.getScope as jest.Mock).mockResolvedValue(
@@ -828,14 +869,19 @@ describe('AuditTrailRoute', () => {
       await route.handleHistory(context);
 
       expect(context.response.body).toEqual({
-        data: [{ operation: 'create', recordId: '2', newValues: {} }],
+        data: [{ operation: 'create', recordId: '2', previousValues: {}, newValues: {} }],
         meta: { count: 1, availableUsers: [] },
       });
     });
 
     test("keeps a genuinely-gone create row's newValues when they match the caller's scope", async () => {
       const history = [
-        { operation: 'create', recordId: '2', newValues: { ownerId: 1, title: 'Visible' } },
+        {
+          operation: 'create',
+          recordId: '2',
+          previousValues: {},
+          newValues: { ownerId: 1, title: 'Visible' },
+        },
       ];
       const { services, dataSource, options } = setup(history);
       (services.authorization.getScope as jest.Mock).mockResolvedValue(
@@ -907,6 +953,59 @@ describe('AuditTrailRoute', () => {
       expect(store.listByRecord).toHaveBeenCalled();
     });
 
+    // The audit trail lives in its own database — often its own engine — so no single snapshot
+    // spans the visibility check and the audit read. The record can go away in between.
+    describe('the record changes between the visibility check and the audit read', () => {
+      const raceWith = async (...listAnswers: unknown[][]) => {
+        const history = [
+          {
+            operation: 'delete',
+            recordId: '2',
+            previousValues: { ownerId: 2, title: 'Secret' },
+            newValues: {},
+          },
+        ];
+        const { services, dataSource, options } = setup(history);
+        (services.authorization.getScope as jest.Mock).mockResolvedValue(
+          new ConditionTreeLeaf('ownerId', 'Equal', 1),
+        );
+        const list = jest.spyOn(dataSource.getCollection('books'), 'list');
+        listAnswers.forEach(answer => list.mockResolvedValueOnce(answer as never));
+        const route = new AuditTrailRoute(services, options, dataSource, 'books');
+        const context = createMockContext({
+          state: { user: { email: 'john.doe@domain.com' } },
+          customProperties: { query: { timezone: 'Europe/Paris' }, params: { id: '2' } },
+        });
+
+        await route.handleHistory(context);
+
+        return { context, list };
+      };
+
+      test('withholds the values when the record was deleted in between', async () => {
+        // present and in scope at the check, gone by the time the rows are in hand
+        const { context } = await raceWith([{ id: 2 }], [], []);
+
+        expect(context.throw).not.toHaveBeenCalled();
+        expect((context.response.body as { data: unknown[] }).data).toEqual([
+          { operation: 'delete', recordId: '2', previousValues: {}, newValues: {} },
+        ]);
+      });
+
+      test('refuses when the record moved out of the caller scope in between', async () => {
+        // gone from the scoped read, but still there without the scope: not deleted, reassigned
+        const { context } = await raceWith([{ id: 2 }], [], [{ id: 2 }]);
+
+        expect(context.throw).toHaveBeenCalledWith(404, 'Record does not exists');
+      });
+
+      test('does not ask again for a record that was already gone at the first check', async () => {
+        const { list } = await raceWith([], []);
+
+        expect(list).toHaveBeenCalledTimes(2);
+      });
+    });
+
     describe('a snapshot that cannot answer the scope', () => {
       // Mirrors what `instrument.ts` captures: writable columns only, so a read-only column is
       // absent from the snapshot and a redacted one holds the placeholder rather than the value.
@@ -975,7 +1074,9 @@ describe('AuditTrailRoute', () => {
           { operation: 'delete', recordId: '2', previousValues: { ownerId: 1, secret: 'shh' } },
         ]);
 
-        expect(data).toEqual([{ operation: 'delete', recordId: '2', previousValues: {} }]);
+        expect(data).toEqual([
+          { operation: 'delete', recordId: '2', previousValues: {}, newValues: {} },
+        ]);
       });
 
       test('withholds a create row when the scope reads a column the snapshot never captured', async () => {
@@ -983,7 +1084,9 @@ describe('AuditTrailRoute', () => {
           { operation: 'create', recordId: '2', newValues: { ownerId: 1, secret: 'shh' } },
         ]);
 
-        expect(data).toEqual([{ operation: 'create', recordId: '2', newValues: {} }]);
+        expect(data).toEqual([
+          { operation: 'create', recordId: '2', previousValues: {}, newValues: {} },
+        ]);
       });
 
       test('withholds the values when the scoped field was stored redacted', async () => {
@@ -991,7 +1094,9 @@ describe('AuditTrailRoute', () => {
           { operation: 'delete', recordId: '2', previousValues: { ownerId: 1, secret: REDACTED } },
         ]);
 
-        expect(data).toEqual([{ operation: 'delete', recordId: '2', previousValues: {} }]);
+        expect(data).toEqual([
+          { operation: 'delete', recordId: '2', previousValues: {}, newValues: {} },
+        ]);
       });
 
       test("keeps the values when the scope matches the row's own primary key", async () => {
@@ -1000,7 +1105,7 @@ describe('AuditTrailRoute', () => {
         ]);
 
         expect(data).toEqual([
-          { operation: 'delete', recordId: '2', previousValues: { ownerId: 9 } },
+          { operation: 'delete', recordId: '2', previousValues: { ownerId: 9 }, newValues: {} },
         ]);
       });
 
@@ -1009,7 +1114,9 @@ describe('AuditTrailRoute', () => {
           { operation: 'delete', recordId: '2', previousValues: { ownerId: 9 } },
         ]);
 
-        expect(data).toEqual([{ operation: 'delete', recordId: '2', previousValues: {} }]);
+        expect(data).toEqual([
+          { operation: 'delete', recordId: '2', previousValues: {}, newValues: {} },
+        ]);
       });
 
       test('withholds the values when the scope names an inherited property of the snapshot', async () => {
@@ -1017,16 +1124,28 @@ describe('AuditTrailRoute', () => {
           { operation: 'delete', recordId: '2', previousValues: { ownerId: 1, secret: 'shh' } },
         ]);
 
-        expect(data).toEqual([{ operation: 'delete', recordId: '2', previousValues: {} }]);
+        expect(data).toEqual([
+          { operation: 'delete', recordId: '2', previousValues: {}, newValues: {} },
+        ]);
       });
 
       test('reads a redacted primary key back from the packed id rather than the snapshot', async () => {
         const data = await historyUnder(new ConditionTreeLeaf('id', 'Equal', 2), [
-          { operation: 'delete', recordId: '2', previousValues: { id: REDACTED, ownerId: 9 } },
+          {
+            operation: 'delete',
+            recordId: '2',
+            previousValues: { id: REDACTED, ownerId: 9 },
+            newValues: {},
+          },
         ]);
 
         expect(data).toEqual([
-          { operation: 'delete', recordId: '2', previousValues: { id: REDACTED, ownerId: 9 } },
+          {
+            operation: 'delete',
+            recordId: '2',
+            previousValues: { id: REDACTED, ownerId: 9 },
+            newValues: {},
+          },
         ]);
       });
 
@@ -1037,7 +1156,9 @@ describe('AuditTrailRoute', () => {
           { operation: 'delete', recordId: '2|7', previousValues: { ownerId: 9 } },
         ]);
 
-        expect(data).toEqual([{ operation: 'delete', recordId: '2|7', previousValues: {} }]);
+        expect(data).toEqual([
+          { operation: 'delete', recordId: '2|7', previousValues: {}, newValues: {} },
+        ]);
       });
 
       test('withholds the values when the row carries no record id to answer an id scope', async () => {
@@ -1045,7 +1166,9 @@ describe('AuditTrailRoute', () => {
           { operation: 'create', recordId: null, newValues: { ownerId: 9 } },
         ]);
 
-        expect(data).toEqual([{ operation: 'create', recordId: null, newValues: {} }]);
+        expect(data).toEqual([
+          { operation: 'create', recordId: null, previousValues: {}, newValues: {} },
+        ]);
       });
     });
   });
@@ -1451,24 +1574,70 @@ describe('AuditTrailRoute', () => {
       expect(context.response.body).toBeUndefined();
     });
 
-    test('exposes the delete snapshot, scope aside, once the record is genuinely gone', async () => {
-      const history = [
-        {
-          operation: 'delete',
-          previousValues: { id: 2, status: 'closed', name: 'Acme' },
-          newValues: {},
-        },
-      ];
-      const { services, dataSource, route } = setupBooks(history);
-      (services.authorization.getScope as jest.Mock).mockResolvedValue({
-        field: 'ownerId',
-        operator: 'Equal',
-        value: 1,
+    // The history route withholds a gone record's captured values from a caller whose scope they
+    // fail; this route is those same values reassembled, so it has to answer the same way or the
+    // withheld values are one request away.
+    describe('a genuinely gone record, read by a scoped caller', () => {
+      const reconstructFor = async (scope: ConditionTreeLeaf) => {
+        const history = [
+          {
+            operation: 'delete',
+            previousValues: { id: 2, status: 'closed', name: 'Acme' },
+            newValues: {},
+          },
+        ];
+        const { services, dataSource, route } = setupBooks(history);
+        (services.authorization.getScope as jest.Mock).mockResolvedValue(scope);
+        jest
+          .spyOn(dataSource.getCollection('books'), 'list')
+          .mockResolvedValueOnce([]) // scoped fetch: not found
+          .mockResolvedValueOnce([]); // bare check: genuinely gone, not just out of scope
+        const context = createMockContext({
+          state: { user: { email: 'john.doe@domain.com' } },
+          customProperties: {
+            query: { timezone: 'UTC', at: '2026-06-18' },
+            params: { id: '2' },
+          },
+        });
+
+        await route.handleStateAt(context);
+
+        return context;
+      };
+
+      test('withholds the reconstruction when it fails the scope', async () => {
+        const context = await reconstructFor(new ConditionTreeLeaf('status', 'Equal', 'mine'));
+
+        expect(context.throw).not.toHaveBeenCalled();
+        expect(context.response.body).toEqual({ data: null });
       });
+
+      test('serves the reconstruction when it matches the scope', async () => {
+        const context = await reconstructFor(new ConditionTreeLeaf('status', 'Equal', 'closed'));
+
+        expect(context.throw).not.toHaveBeenCalled();
+        expect(context.response.body).toEqual({
+          data: { id: 2, status: 'closed', name: 'Acme' },
+        });
+      });
+
+      test('withholds the reconstruction when the scope reads a column the capture never kept', async () => {
+        const context = await reconstructFor(new ConditionTreeLeaf('displayName', 'Equal', 'Acme'));
+
+        expect(context.response.body).toEqual({ data: null });
+      });
+    });
+
+    test('does not test the reconstruction when the record still exists and is in scope', async () => {
+      const { services, dataSource, route } = setupBooks([]);
+      (services.authorization.getScope as jest.Mock).mockResolvedValue(
+        new ConditionTreeLeaf('status', 'Equal', 'open'),
+      );
+      // The scoped read found it, so the caller may read the record — its earlier states come with
+      // it, the same rule the history route applies to a record that still exists.
       jest
         .spyOn(dataSource.getCollection('books'), 'list')
-        .mockResolvedValueOnce([]) // scoped fetch: not found
-        .mockResolvedValueOnce([]); // bare check: genuinely gone, not just out of scope
+        .mockResolvedValue([{ id: 2, status: 'closed', name: 'Acme' }]);
       const context = createMockContext({
         state: { user: { email: 'john.doe@domain.com' } },
         customProperties: {
@@ -1479,7 +1648,6 @@ describe('AuditTrailRoute', () => {
 
       await route.handleStateAt(context);
 
-      expect(context.throw).not.toHaveBeenCalled();
       expect(context.response.body).toEqual({
         data: { id: 2, status: 'closed', name: 'Acme' },
       });

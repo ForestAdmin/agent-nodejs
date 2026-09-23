@@ -1,3 +1,4 @@
+import { ConditionTreeLeaf } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import makeRoutes from '../../../src/routes';
@@ -181,26 +182,66 @@ describe('AuditTrailCorrelationRoute', () => {
       expect(store.listByCorrelation).not.toHaveBeenCalled();
     });
 
-    test('allows a deleted id through to the store, scope aside', async () => {
-      const history = [{ operation: 'delete', correlationKey: 'req-1' }];
-      const { services, dataSource, options, store } = setup(history);
-      (services.authorization.getScope as jest.Mock).mockResolvedValue({
-        field: 'ownerId',
-        operator: 'Equal',
-        value: 1,
+    // Same rule as the per-record history route: a gone record's captured values are tested
+    // against the caller's scope here too, or they come back through a correlation lookup.
+    describe('a genuinely gone record, single lookup', () => {
+      const lookupUnder = async (scope: ConditionTreeLeaf) => {
+        const history = [
+          {
+            operation: 'delete',
+            recordId: '2',
+            correlationKey: 'req-1',
+            previousValues: { title: 'Secret' },
+            newValues: {},
+          },
+        ];
+        const { services, dataSource, options, store } = setup(history);
+        (services.authorization.getScope as jest.Mock).mockResolvedValue(scope);
+        jest
+          .spyOn(dataSource.getCollection('books'), 'list')
+          .mockResolvedValueOnce([]) // scoped check: not found
+          .mockResolvedValueOnce([]); // bare check: genuinely gone
+        const route = new AuditTrailCorrelationRoute(services, options, dataSource);
+        const context = contextWith({
+          timezone: 'Europe/Paris',
+          collection: 'books',
+          recordId: '2',
+        });
+
+        await route.handleHistory(context);
+
+        return { context, store };
+      };
+
+      test('withholds the values the scope does not cover', async () => {
+        const { context, store } = await lookupUnder(new ConditionTreeLeaf('id', 'Equal', 1));
+
+        expect(context.throw).not.toHaveBeenCalled();
+        expect(store.listByCorrelation).toHaveBeenCalled();
+        expect((context.response.body as { data: unknown[] }).data).toEqual([
+          {
+            operation: 'delete',
+            recordId: '2',
+            correlationKey: 'req-1',
+            previousValues: {},
+            newValues: {},
+          },
+        ]);
       });
-      jest
-        .spyOn(dataSource.getCollection('books'), 'list')
-        .mockResolvedValueOnce([]) // scoped check: not found
-        .mockResolvedValueOnce([]); // bare check: genuinely gone, not just out of scope
-      const route = new AuditTrailCorrelationRoute(services, options, dataSource);
-      const context = contextWith({ timezone: 'Europe/Paris', collection: 'books', recordId: '2' });
 
-      await route.handleHistory(context);
+      test('keeps the values when the row is in scope', async () => {
+        const { context } = await lookupUnder(new ConditionTreeLeaf('id', 'Equal', 2));
 
-      expect(context.throw).not.toHaveBeenCalled();
-      expect(store.listByCorrelation).toHaveBeenCalled();
-      expect(context.response.body).toEqual({ data: history });
+        expect((context.response.body as { data: unknown[] }).data).toEqual([
+          {
+            operation: 'delete',
+            recordId: '2',
+            correlationKey: 'req-1',
+            previousValues: { title: 'Secret' },
+            newValues: {},
+          },
+        ]);
+      });
     });
 
     test('allows an id inside a restrictive scope through to the store', async () => {
@@ -245,30 +286,67 @@ describe('AuditTrailCorrelationRoute', () => {
       expect(store.listByCorrelations).not.toHaveBeenCalled();
     });
 
-    test('allows a deleted id through the batch route, scope aside', async () => {
-      const history = [{ operation: 'delete', correlationKey: 'req-1' }];
-      const { services, dataSource, options, store } = setup(history);
-      (services.authorization.getScope as jest.Mock).mockResolvedValue({
-        field: 'ownerId',
-        operator: 'Equal',
-        value: 1,
-      });
-      jest
-        .spyOn(dataSource.getCollection('books'), 'list')
-        .mockResolvedValueOnce([]) // scoped check: not found
-        .mockResolvedValueOnce([]); // bare check: genuinely gone, not just out of scope
-      const route = new AuditTrailCorrelationRoute(services, options, dataSource);
-      const context = createMockContext({
-        state: { user: { email: 'john.doe@domain.com' } },
-        customProperties: { query: { timezone: 'Europe/Paris' } },
-        requestBody: { collection: 'books', recordId: '2', correlationKeys: ['req-1'] },
+    // Same rule as the per-record history route: a gone record's captured values are tested
+    // against the caller's scope here too, or they come back through a correlation lookup.
+    describe('a genuinely gone record, batch route', () => {
+      const lookupUnder = async (scope: ConditionTreeLeaf) => {
+        const history = [
+          {
+            operation: 'delete',
+            recordId: '2',
+            correlationKey: 'req-1',
+            previousValues: { title: 'Secret' },
+            newValues: {},
+          },
+        ];
+        const { services, dataSource, options, store } = setup(history);
+        (services.authorization.getScope as jest.Mock).mockResolvedValue(scope);
+        jest
+          .spyOn(dataSource.getCollection('books'), 'list')
+          .mockResolvedValueOnce([]) // scoped check: not found
+          .mockResolvedValueOnce([]); // bare check: genuinely gone
+        const route = new AuditTrailCorrelationRoute(services, options, dataSource);
+        const context = contextWith({
+          timezone: 'Europe/Paris',
+          collection: 'books',
+          recordId: '2',
+          correlationKeys: 'req-1',
+        });
+
+        await route.handleBatch(context);
+
+        return { context, store };
+      };
+
+      test('withholds the values the scope does not cover', async () => {
+        const { context, store } = await lookupUnder(new ConditionTreeLeaf('id', 'Equal', 1));
+
+        expect(context.throw).not.toHaveBeenCalled();
+        expect(store.listByCorrelations).toHaveBeenCalled();
+        expect((context.response.body as { data: unknown[] }).data).toEqual([
+          {
+            operation: 'delete',
+            recordId: '2',
+            correlationKey: 'req-1',
+            previousValues: {},
+            newValues: {},
+          },
+        ]);
       });
 
-      await route.handleBatch(context);
+      test('keeps the values when the row is in scope', async () => {
+        const { context } = await lookupUnder(new ConditionTreeLeaf('id', 'Equal', 2));
 
-      expect(context.throw).not.toHaveBeenCalled();
-      expect(store.listByCorrelations).toHaveBeenCalled();
-      expect(context.response.body).toEqual({ data: history });
+        expect((context.response.body as { data: unknown[] }).data).toEqual([
+          {
+            operation: 'delete',
+            recordId: '2',
+            correlationKey: 'req-1',
+            previousValues: { title: 'Secret' },
+            newValues: {},
+          },
+        ]);
+      });
     });
   });
 

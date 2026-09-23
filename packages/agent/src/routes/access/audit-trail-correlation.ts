@@ -1,14 +1,25 @@
+import type { AuditRecord } from '../../audit-trail';
 import type { ForestAdminHttpDriverServices } from '../../services';
 import type { AgentOptionsWithDefaults } from '../../types';
-import type { DataSource } from '@forestadmin/datasource-toolkit';
+import type { Collection, ConditionTree, DataSource } from '@forestadmin/datasource-toolkit';
 import type Router from '@koa/router';
 import type { Context } from 'koa';
 
 import { ValidationError } from '@forestadmin/datasource-toolkit';
 
 import checkRecordVisibility from '../../audit-trail/scope';
+import withholdOutOfScopeValues from '../../audit-trail/withhold';
 import { HttpCode, RouteType } from '../../types';
+import QueryStringParser from '../../utils/query-string';
 import BaseRoute from '../base-route';
+
+type Target = {
+  collection: string;
+  recordId: string;
+  collectionObject: Collection;
+  scope: ConditionTree | null;
+  goneEntirely: boolean;
+};
 
 export default class AuditTrailCorrelationRoute extends BaseRoute {
   readonly type = RouteType.PrivateRoute;
@@ -43,7 +54,7 @@ export default class AuditTrailCorrelationRoute extends BaseRoute {
       correlationKey: context.params.correlationKey,
     });
 
-    context.response.body = { data: history };
+    context.response.body = { data: this.withhold(history, target, context) };
   }
 
   public async handleBatch(context: Context): Promise<void> {
@@ -58,15 +69,26 @@ export default class AuditTrailCorrelationRoute extends BaseRoute {
       ? await store.listByCorrelations({ collection, recordId, correlationKeys })
       : [];
 
-    context.response.body = { data: history };
+    context.response.body = { data: this.withhold(history, target, context) };
+  }
+
+  // Same rule as the per-record history route: these routes return the same rows, so a gone
+  // record's captured values are tested against the caller's scope here too. Without it the
+  // values the history route withholds come back through a correlation lookup.
+  private withhold(entries: AuditRecord[], target: Target, context: Context): AuditRecord[] {
+    if (!target.scope || !target.goneEntirely) return entries;
+
+    return withholdOutOfScopeValues(entries, {
+      collection: target.collectionObject,
+      scope: target.scope,
+      timezone: QueryStringParser.parseCaller(context, { defaultTimezone: 'UTC' }).timezone,
+    });
   }
 
   // Returns null (after issuing the 404) when a configured record-level scope excludes the id —
   // same rule as the per-collection route: a scope can't be evaluated retroactively for a
   // now-deleted record, so a scoped caller cannot look up correlations for an out-of-scope id.
-  private async assertRecordReadable(
-    context: Context,
-  ): Promise<{ collection: string; recordId: string } | null> {
+  private async assertRecordReadable(context: Context): Promise<Target | null> {
     const query = context.request.query as Record<string, unknown>;
     const body = (context.request.body ?? {}) as Record<string, unknown>;
     const collectionName = (query.collection ?? body.collection)?.toString();
@@ -78,7 +100,13 @@ export default class AuditTrailCorrelationRoute extends BaseRoute {
     const collection = this.dataSource.getCollection(collectionName);
     await this.services.authorization.assertCanRead(context, collectionName);
 
-    const { visible } = await checkRecordVisibility(this.services, collection, recordId, context);
+    const scope = await this.services.authorization.getScope(collection, context);
+    const { visible, goneEntirely } = await checkRecordVisibility(
+      this.services,
+      collection,
+      recordId,
+      context,
+    );
 
     if (!visible) {
       context.throw(HttpCode.NotFound, 'Record does not exists');
@@ -86,7 +114,13 @@ export default class AuditTrailCorrelationRoute extends BaseRoute {
       return null;
     }
 
-    return { collection: collectionName, recordId };
+    return {
+      collection: collectionName,
+      recordId,
+      collectionObject: collection,
+      scope,
+      goneEntirely,
+    };
   }
 
   // Body array (POST) takes precedence over the comma-separated query param (GET).

@@ -190,12 +190,24 @@ no longer exists, so this only refuses a still-existing, out-of-scope id: once a
 deleted, anyone who can read the collection can see its history, reconstructed state, or correlated
 operations, scope aside — inspecting what was deleted is much of the point of an audit trail.
 
-One exception: on the per-record history route, a `delete` row's `previousValues` is the record's
-full last known state — if that state itself would have failed the caller's scope (e.g. it belonged
-to a team the caller isn't scoped to), `previousValues` is withheld from that row (replaced with
-`{}`) while the row itself — that a deletion happened, by whom and when — stays visible. This
-doesn't yet extend to the `/state` route's reconstructed value for the same case; closing that
-consistently is a separate, larger decision.
+One exception: once a record is gone, the values its rows captured while it existed are still tested
+against the caller's scope. A `delete` row's `previousValues` is the record's full last known state —
+if that state itself would have failed the scope (e.g. it belonged to a team the caller isn't scoped
+to), it is withheld (replaced with `{}`) while the row itself — that a deletion happened, by whom and
+when — stays visible. **Each side of a row is tested against its own values**, so an `update` keeps
+the side that is in scope and loses the one that isn't. `action` / `action_failed` rows hold a
+submitted form and a result summary rather than column values, so the scope doesn't apply to them.
+
+The same test covers **every route that serves those values**: the history route, the two
+correlation lookups, and `/state`, whose whole answer is the reconstruction — it returns
+`{ "data": null }` when the reconstructed record fails the scope, rather than handing back through
+one route what another withheld.
+
+The record is re-checked once the audit rows are in hand. The audit trail lives in its own database,
+often its own engine, so no single snapshot spans the permission check and the audit read; a record
+deleted in between is treated as a request starting a moment later would have treated it, and one
+moved out of the caller's scope in between is refused. The extra read only happens for a scoped
+caller — with no scope there is nothing to withhold.
 
 That test only runs when the snapshot can actually answer it. The capture keeps the writable columns
 (plus the packed record id), so a scope reaching for anything else — a read-only column, a relation,
