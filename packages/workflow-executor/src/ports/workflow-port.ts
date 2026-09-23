@@ -25,7 +25,7 @@ export interface AvailableRunsBatch {
 }
 
 export interface WorkflowPort {
-  getAvailableRuns(): Promise<AvailableRunsBatch>;
+  getAvailableRuns(count: number): Promise<AvailableRunsBatch>;
   // Throws MalformedRunError on mapping failure.
   getAvailableRun(runId: string): Promise<AvailableRunDispatch | null>;
   // Returns the next step to chain when the orchestrator has one ready, or null when the run is
