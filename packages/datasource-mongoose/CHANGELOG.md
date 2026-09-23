@@ -1,3 +1,10 @@
+## @forestadmin/datasource-mongoose [1.14.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.14.2...@forestadmin/datasource-mongoose@1.14.3) (2026-09-23)
+
+
+### Bug Fixes
+
+* **datasource-mongoose:** support the NotIn operator it already declares ([#1918](https://github.com/ForestAdmin/agent-nodejs/issues/1918)) ([b7142f4](https://github.com/ForestAdmin/agent-nodejs/commit/b7142f4a50b2c43e44ef00f3e975a4e7508073c6))
+
 ## @forestadmin/datasource-mongoose [1.14.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.14.1...@forestadmin/datasource-mongoose@1.14.2) (2026-08-25)
 
 
