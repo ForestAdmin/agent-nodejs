@@ -54,6 +54,27 @@ describe('FilterGenerator', () => {
         ]);
       });
 
+      it('filter should generate a $nin for NotIn', () => {
+        const filter = new PaginatedFilter({
+          conditionTree: new ConditionTreeLeaf('title', 'NotIn', ['Foundation', 'Dune']),
+        });
+
+        const pipeline = FilterGenerator.filter(model, stack, filter);
+        expect(pipeline).toStrictEqual([{ $match: { title: { $nin: ['Foundation', 'Dune'] } } }]);
+      });
+
+      it('filter should cast the ObjectIds of a NotIn', () => {
+        const id = '5a934e000102030405000000';
+        const filter = new PaginatedFilter({
+          conditionTree: new ConditionTreeLeaf('author:identifier', 'NotIn', [id]),
+        });
+
+        const pipeline = FilterGenerator.filter(model, stack, filter);
+        expect(pipeline).toStrictEqual([
+          { $match: { 'author.identifier': { $nin: [new mongoose.Types.ObjectId(id)] } } },
+        ]);
+      });
+
       it('filter should generate a $match stage with $and and $or nodes', () => {
         const filter = new PaginatedFilter({
           conditionTree: new ConditionTreeBranch('And', [
