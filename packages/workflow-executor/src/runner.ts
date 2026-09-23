@@ -256,14 +256,21 @@ export default class Runner {
       }
 
       const { pending, malformed } = await this.config.workflowPort.getAvailableRuns(freeSlots);
-
-      // stop() may have drained and closed the stores while this call was out; the orchestrator
-      // releases the runs it just claimed after its lock expires.
-      if (this._state !== 'running') return;
       // Each reportMalformedRun has its own try/catch, no individual failure poisons the cycle.
       await Promise.allSettled(malformed.map(info => this.reportMalformedRun(info)));
 
       const dispatchable = pending.filter(d => !this.inFlightRuns.has(d.step.runId));
+
+      if (this._state !== 'running') {
+        this.logger('Info', 'Poll answered after stop began, leaving the claimed runs to expire', {
+          runIds: pending.map(d => d.step.runId),
+        });
+
+        return;
+      }
+
+      dispatchable.forEach(d => this.dispatchDetached(d.step, d.auth.forestServerToken));
+
       const logLevel = Runner.getPollingLogLevel({
         pending: pending.length,
         dispatched: dispatchable.length,
@@ -274,10 +281,10 @@ export default class Runner {
         fetched: pending.length,
         dispatching: dispatchable.length,
         malformed: malformed.length,
+        ...(dispatchable.length < pending.length && {
+          alreadyInFlight: pending.filter(d => !dispatchable.includes(d)).map(d => d.step.runId),
+        }),
       });
-      // Not awaited: a slow chain must not hold the next poll back from the slots still free.
-      // stop() drains them through inFlightRuns.
-      dispatchable.forEach(d => this.dispatchDetached(d.step, d.auth.forestServerToken));
     } catch (error) {
       this.logger('Error', 'Poll cycle failed', {
         error: extractErrorMessage(error),

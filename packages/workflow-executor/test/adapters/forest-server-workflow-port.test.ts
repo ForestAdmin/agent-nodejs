@@ -99,6 +99,18 @@ describe('ForestServerWorkflowPort', () => {
   });
 
   describe('getAvailableRuns', () => {
+    it('asks the orchestrator for the number of runs it was given', async () => {
+      mockQuery.mockResolvedValue([]);
+
+      await port.getAvailableRuns(3);
+
+      expect(mockQuery).toHaveBeenCalledWith(
+        options,
+        'get',
+        '/api/workflow-orchestrator/pending-run?count=3',
+      );
+    });
+
     it('calls the pending-run route and returns pending + malformed buckets', async () => {
       mockQuery.mockResolvedValue([makeRun()]);
 

@@ -720,9 +720,10 @@ describe('polling loop', () => {
 
     it('polls again while earlier runs are still executing, for the slots left free', async () => {
       const workflowPort = createMockWorkflowPort();
+      const logger = createMockLogger();
       const releases = blockExecutions(3);
       workflowPort.getAvailableRuns.mockResolvedValueOnce({ pending: batchOf(3), malformed: [] });
-      runner = new Runner(createRunnerConfig({ workflowPort }));
+      runner = new Runner(createRunnerConfig({ workflowPort, logger }));
       await runner.start();
 
       jest.advanceTimersByTime(POLLING_INTERVAL_MS);
@@ -732,6 +733,11 @@ describe('polling loop', () => {
       await flushPromises();
 
       expect(workflowPort.getAvailableRuns).toHaveBeenNthCalledWith(2, 7);
+      expect(logger).toHaveBeenCalledWith(
+        'Debug',
+        'Poll cycle completed',
+        expect.objectContaining({ requested: 7, fetched: 0 }),
+      );
 
       releases.forEach(release => release());
       await drainRuns(runner);
@@ -793,13 +799,14 @@ describe('polling loop', () => {
       );
     });
 
-    it('does not start a second copy of a run already executing', async () => {
+    it('does not start a second copy of a run already executing, and names it', async () => {
       const workflowPort = createMockWorkflowPort();
+      const logger = createMockLogger();
       const [release] = blockExecutions(1);
       workflowPort.getAvailableRuns
         .mockResolvedValueOnce({ pending: batchOf(1), malformed: [] })
         .mockResolvedValueOnce({ pending: batchOf(1), malformed: [] });
-      runner = new Runner(createRunnerConfig({ workflowPort }));
+      runner = new Runner(createRunnerConfig({ workflowPort, logger }));
       await runner.start();
 
       jest.advanceTimersByTime(POLLING_INTERVAL_MS);
@@ -811,12 +818,17 @@ describe('polling loop', () => {
 
       expect(workflowPort.getAvailableRuns).toHaveBeenNthCalledWith(2, 9);
       expect(executeSpy).toHaveBeenCalledTimes(1);
+      expect(logger).toHaveBeenCalledWith(
+        'Info',
+        'Poll cycle completed',
+        expect.objectContaining({ dispatching: 0, alreadyInFlight: ['run-0'] }),
+      );
 
       release();
       await drainRuns(runner);
     });
 
-    it('does not start runs a poll brought back after stop() began', async () => {
+    it('reports but does not start what a poll brought back after stop() began', async () => {
       const workflowPort = createMockWorkflowPort();
       const runStore = createMockRunStore();
 
@@ -833,12 +845,121 @@ describe('polling loop', () => {
       jest.advanceTimersByTime(POLLING_INTERVAL_MS);
       await flushPromises();
       await runner.stop();
-      answer({ pending: batchOf(1), malformed: [] });
+      answer({
+        pending: batchOf(1),
+        malformed: [
+          {
+            runId: '99',
+            stepId: 'broken-step',
+            stepIndex: 0,
+            userMessage: 'The workflow step configuration is invalid.',
+            technicalMessage: 'Invalid step definition',
+          },
+        ],
+      });
       await flushPromises();
       await flushPromises();
 
       expect(runStore.close).toHaveBeenCalled();
       expect(executeSpy).not.toHaveBeenCalled();
+      expect(workflowPort.updateStepExecution).toHaveBeenCalledWith(
+        '99',
+        expect.objectContaining({ stepId: 'broken-step', status: 'error' }),
+      );
+    });
+
+    it('logs FATAL instead of an unhandled rejection when a polled chain rejects', async () => {
+      const workflowPort = createMockWorkflowPort();
+      const logger = createMockLogger();
+      logger.mockImplementation((_level, message, context) => {
+        if (message !== 'FATAL: in-flight chain rejected' && context?.runId === 'run-0') {
+          throw new Error('host logger exploded');
+        }
+      });
+      const unhandled: unknown[] = [];
+      const collect = (reason: unknown) => unhandled.push(reason);
+      process.on('unhandledRejection', collect);
+      workflowPort.getAvailableRuns.mockResolvedValueOnce({ pending: batchOf(1), malformed: [] });
+      runner = new Runner(createRunnerConfig({ workflowPort, logger }));
+      await runner.start();
+
+      try {
+        jest.advanceTimersByTime(POLLING_INTERVAL_MS);
+        await flushPromises();
+        await drainRuns(runner);
+        await flushPromises();
+
+        expect(logger).toHaveBeenCalledWith(
+          'Error',
+          'FATAL: in-flight chain rejected',
+          expect.objectContaining({ runId: 'run-0', error: 'host logger exploded' }),
+        );
+        expect(unhandled).toEqual([]);
+      } finally {
+        process.off('unhandledRejection', collect);
+      }
+    });
+
+    it('counts a run started from the front as a busy slot', async () => {
+      const workflowPort = createMockWorkflowPort();
+      const [release] = blockExecutions(1);
+      workflowPort.getAvailableRun.mockResolvedValue(makePendingDispatch({ runId: 'run-x' }));
+      runner = new Runner(createRunnerConfig({ workflowPort }));
+      await runner.start();
+      await runner.triggerPoll('run-x');
+
+      jest.advanceTimersByTime(POLLING_INTERVAL_MS);
+      await flushPromises();
+
+      expect(workflowPort.getAvailableRuns).toHaveBeenCalledWith(9);
+
+      release();
+      await drainRuns(runner);
+    });
+
+    it('does not start runs when stop() lands while a malformed run is being reported', async () => {
+      const workflowPort = createMockWorkflowPort();
+      const logger = createMockLogger();
+
+      let finishReport: () => void = () => {};
+
+      workflowPort.updateStepExecution.mockReturnValueOnce(
+        new Promise(resolve => {
+          finishReport = () => resolve(null);
+        }),
+      );
+      workflowPort.getAvailableRuns.mockResolvedValueOnce({
+        pending: batchOf(2),
+        malformed: [
+          {
+            runId: '99',
+            stepId: 'broken-step',
+            stepIndex: 0,
+            userMessage: 'The workflow step configuration is invalid.',
+            technicalMessage: 'Invalid step definition',
+          },
+        ],
+      });
+      runner = new Runner(createRunnerConfig({ workflowPort, logger }));
+      await runner.start();
+
+      jest.advanceTimersByTime(POLLING_INTERVAL_MS);
+      await flushPromises();
+      await runner.stop();
+      finishReport();
+      await flushPromises();
+      await flushPromises();
+
+      expect(executeSpy).not.toHaveBeenCalled();
+      expect(workflowPort.updateStepExecution).toHaveBeenCalledWith(
+        '99',
+        expect.objectContaining({ stepId: 'broken-step', status: 'error' }),
+      );
+      expect(logger).toHaveBeenCalledWith(
+        'Info',
+        'Poll answered after stop began, leaving the claimed runs to expire',
+        { runIds: ['run-0', 'run-1'] },
+      );
     });
   });
 });
