@@ -1,3 +1,10 @@
+# @forestadmin/agent-bff [1.34.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.33.0...@forestadmin/agent-bff@1.34.0) (2026-09-23)
+
+
+### Features
+
+* **agent-bff:** default forest server and app urls to production ([#1917](https://github.com/ForestAdmin/agent-nodejs/issues/1917)) ([56c0756](https://github.com/ForestAdmin/agent-nodejs/commit/56c07563bd46eb4edd9a5be83a0f0951b772e7be))
+
 # @forestadmin/agent-bff [1.33.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.32.0...@forestadmin/agent-bff@1.33.0) (2026-09-22)
 
 
