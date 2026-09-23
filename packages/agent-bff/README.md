@@ -59,8 +59,6 @@ docker run -d \
   --add-host host.docker.internal:host-gateway \
   -e FOREST_AUTH_SECRET="..." \
   -e FOREST_ENV_SECRET="..." \
-  -e FOREST_SERVER_URL="https://api.forestadmin.com" \
-  -e FOREST_APP_URL="https://app.forestadmin.com" \
   -e AGENT_URL="http://host.docker.internal:3351" \
   -e BFF_TOKEN_ENCRYPTION_KEY="$(openssl rand -base64 32)" \
   ghcr.io/forestadmin/agent-bff:latest
@@ -127,8 +125,6 @@ docker run -d \
   --add-host host.docker.internal:host-gateway \
   -e FOREST_AUTH_SECRET="..." \
   -e FOREST_ENV_SECRET="..." \
-  -e FOREST_SERVER_URL="https://api.forestadmin.com" \
-  -e FOREST_APP_URL="https://app.forestadmin.com" \
   -e AGENT_URL="http://host.docker.internal:3351" \
   -e BFF_TOKEN_ENCRYPTION_KEY="$(openssl rand -base64 32)" \
   -e OTEL_EXPORTER_OTLP_ENDPOINT="http://collector:4318" \
@@ -380,7 +376,7 @@ answers. They form a chain, not four independent switches:
 
 | Surface | Switched on by |
 | --- | --- |
-| `oauth` | `BFF_TOKEN_ENCRYPTION_KEY` **and** `FOREST_SERVER_URL`, `FOREST_ENV_SECRET`, `FOREST_APP_URL`, `FOREST_AUTH_SECRET` — the routes need a Forest server to talk to as much as a key. Embedded, only `tokenEncryptionKey` is yours to set: the other four are inherited |
+| `oauth` | `BFF_TOKEN_ENCRYPTION_KEY` **and** `FOREST_SERVER_URL`, `FOREST_ENV_SECRET`, `FOREST_APP_URL`, `FOREST_AUTH_SECRET` — the routes need a Forest server to talk to as much as a key. The two urls default to production, so standalone only the two secrets and the key are yours to set. Embedded, only `tokenEncryptionKey` is yours to set: the other four are inherited |
 | `ai` | `oauth` — the relay needs a session, and only the OAuth flow creates one |
 | `cors` | a non-empty `BFF_ALLOWED_ORIGINS` (`allowedOrigins`) |
 | `openapi` | `BFF_OPENAPI_ENABLED` (`openapiEnabled`), and a mounted agent edge |
