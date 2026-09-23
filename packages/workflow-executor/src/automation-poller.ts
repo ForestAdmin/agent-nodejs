@@ -25,14 +25,14 @@ const MAX_CANDIDATE_PAGE_SIZE = 500;
 // inbox long before this, so it is a belt on the URL length rather than the real ceiling.
 const MAX_EXCLUDED_RECORDS = 150;
 
-// `not_in` is not an operator every agent parses: the v1 lianas raise on any operator their filter
-// parser does not list, and none of them lists it. The front draws the same line — it only offers
-// "is not in" for a field whose agent declared the operator in its capabilities.
-const LIANAS_WITHOUT_NOT_IN: ReadonlySet<string> = new Set([
-  'forest-rails',
-  'forest-express-sequelize',
-  'forest-express-mongoose',
-  'django-forestadmin',
+// The agents that serve `POST /forest/_internal/capabilities`, the same list the front gates that
+// call on. Any other name is a v1 liana, which raises on `not_in`, or one this executor predates:
+// both pad rather than risk a candidate read that fails on every sweep.
+const LIANAS_WITH_CAPABILITIES: ReadonlySet<string> = new Set([
+  'forest-nodejs-agent',
+  'agent-ruby',
+  'agent-python',
+  'agent-php',
 ]);
 
 const RECONCILABLE_ASSIGNMENT_STATES: ReadonlySet<string> = new Set([
@@ -56,10 +56,12 @@ const isLiveRun = (runState: string | null | undefined): boolean =>
 export type AutomationPollerState = 'idle' | 'running' | 'draining' | 'stopped';
 
 type PaddedPageReason =
-  | 'unknown-liana'
-  | 'liana-without-not-in'
   | 'composite-key'
-  | 'too-many-known-records';
+  | 'too-many-known-records'
+  | 'unknown-liana'
+  | 'capabilities-unreadable'
+  | 'field-without-not-in'
+  | 'not-in-refused';
 
 /**
  * `skipped` is a read that had nothing to ask and so never reached the agent. It is not a
@@ -249,13 +251,14 @@ export default class AutomationPoller {
       // next page larger, which makes the next timeout likelier.
       const [closed, candidates] = await Promise.all([
         this.tryRead(logContext, 'closed records', () => this.reconcileClosed(config, assignments)),
-        this.tryRead(logContext, 'new candidates', () => this.readCandidates(config, assignments)),
+        this.tryRead(logContext, 'new candidates', () =>
+          this.readCandidates(logContext, config, assignments),
+        ),
       ]);
 
       // Reaching the agent at all is what the sync attests to. Reporting an empty poll when every
       // read failed would tell the orchestrator this inbox is being swept while nothing is, which
-      // is the one thing a "no sync received" alert must never be lied to about. A read that
-      // legitimately had nothing to ask is a success, not a failure.
+      // is the one thing a "no sync received" alert must never be lied to about.
       if (closed.outcome !== 'ok' && candidates.outcome !== 'ok') {
         this.logger('Error', 'Could not reach the agent, reporting nothing for this inbox', {
           ...logContext,
@@ -434,30 +437,57 @@ export default class AutomationPoller {
    * there for good, and left in the page it would take a slot on every poll from then on.
    */
   private async readCandidates(
+    logContext: Record<string, unknown>,
     config: ServerAutomatedInboxConfig,
     assignments: ServerAutomatedInboxAssignment[],
   ): Promise<SegmentRead<string>> {
     const known = [...new Set(assignments.map(({ recordId }) => recordId))];
-    const paddedPageReason = AutomationPoller.paddedPageReason(config, known.length);
+    const knownSet = new Set(known);
+    const paddedPageReason = await this.paddedPageReason(logContext, config, known);
 
     if (!paddedPageReason) {
-      const page = await this.config.segmentReaderPort.listRecordIds({
-        ...AutomationPoller.segmentQuery(config),
-        excludedRecordIds: known,
-        pageSize: config.maxConcurrentRuns,
-      });
+      try {
+        const page = await this.config.segmentReaderPort.listRecordIds({
+          ...AutomationPoller.segmentQuery(config),
+          ...(known.length ? { excludedRecordIds: known } : {}),
+          pageSize: config.maxConcurrentRuns,
+        });
 
-      return { outcome: 'ok', items: page, requestedPageSize: config.maxConcurrentRuns };
+        // An agent that ignores an operator it does not know would hand known records back.
+        return {
+          outcome: 'ok',
+          items: page.filter(recordId => !knownSet.has(recordId)),
+          requestedPageSize: config.maxConcurrentRuns,
+        };
+      } catch (error) {
+        if (!known.length) throw error;
+
+        // Declared is not implemented: a datasource can list `not_in` and still refuse it. A timeout
+        // lands here too, and pays for one more read before the inbox gives up on this cycle.
+        this.logger('Warn', 'The not_in candidate read failed, padding the page instead', {
+          ...logContext,
+          error: extractErrorMessage(error),
+        });
+
+        return this.readPaddedCandidates(config, assignments, knownSet, 'not-in-refused');
+      }
     }
 
-    // Fallback for an agent whose filters have no `not_in`, a composite key, and a set too large
-    // for a query string: pad the page instead, and subtract afterwards. No sort is imposed
-    // and each agent orders as it likes, so a page that comes back mostly assigned simply yields
-    // fewer candidates.
-    //
-    // The padding is capped. It grows with the backlog, and the agent read it feeds is bounded by
-    // the client's ten-second ceiling, so an uncapped page turns a large inbox into one that reads
-    // nothing at all — worse than one that reads a partial page and finds fewer candidates.
+    return this.readPaddedCandidates(config, assignments, knownSet, paddedPageReason);
+  }
+
+  // No sort is imposed and each agent orders as it likes, so a page that comes back mostly
+  // assigned simply yields fewer candidates.
+  //
+  // The padding is capped. It grows with the backlog, and the agent read it feeds is bounded by
+  // the client's ten-second ceiling, so an uncapped page turns a large inbox into one that reads
+  // nothing at all — worse than one that reads a partial page and finds fewer candidates.
+  private async readPaddedCandidates(
+    config: ServerAutomatedInboxConfig,
+    assignments: ServerAutomatedInboxAssignment[],
+    knownSet: ReadonlySet<string>,
+    paddedPageReason: PaddedPageReason,
+  ): Promise<SegmentRead<string>> {
     const requestedPageSize = Math.min(
       config.maxConcurrentRuns + assignments.length,
       MAX_CANDIDATE_PAGE_SIZE,
@@ -467,8 +497,6 @@ export default class AutomationPoller {
       pageSize: requestedPageSize,
     });
 
-    const knownSet = new Set(known);
-
     return {
       outcome: 'ok',
       items: page.filter(recordId => !knownSet.has(recordId)),
@@ -477,16 +505,39 @@ export default class AutomationPoller {
     };
   }
 
-  private static paddedPageReason(
+  private async paddedPageReason(
+    logContext: Record<string, unknown>,
     config: ServerAutomatedInboxConfig,
-    knownCount: number,
-  ): PaddedPageReason | undefined {
-    if (config.liana == null) return 'unknown-liana';
-    if (LIANAS_WITHOUT_NOT_IN.has(config.liana)) return 'liana-without-not-in';
+    known: string[],
+  ): Promise<PaddedPageReason | undefined> {
     if (config.primaryKeys.length !== 1) return 'composite-key';
-    if (knownCount > MAX_EXCLUDED_RECORDS) return 'too-many-known-records';
+    if (known.length > MAX_EXCLUDED_RECORDS) return 'too-many-known-records';
+    if (!known.length) return undefined;
 
-    return undefined;
+    if (config.liana == null || !LIANAS_WITH_CAPABILITIES.has(config.liana)) {
+      return 'unknown-liana';
+    }
+
+    let operators: string[];
+
+    try {
+      const { collectionName, user, timezone } = AutomationPoller.segmentQuery(config);
+      operators = await this.config.segmentReaderPort.listFieldOperators({
+        collectionName,
+        user,
+        timezone,
+        field: config.primaryKeys[0],
+      });
+    } catch (error) {
+      this.logger('Warn', 'Could not read the agent capabilities, padding the page instead', {
+        ...logContext,
+        error: extractErrorMessage(error),
+      });
+
+      return 'capabilities-unreadable';
+    }
+
+    return operators.includes('not_in') ? undefined : 'field-without-not-in';
   }
 
   private static readTimezone(timezone: string | null | undefined): string {
