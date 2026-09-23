@@ -1,3 +1,10 @@
+## @forestadmin/agent-bff [1.34.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.34.0...@forestadmin/agent-bff@1.34.1) (2026-09-23)
+
+
+### Bug Fixes
+
+* **agent-bff:** keep the text of a textarea or option in action html ([#1920](https://github.com/ForestAdmin/agent-nodejs/issues/1920)) ([9e43d00](https://github.com/ForestAdmin/agent-nodejs/commit/9e43d003ba141236d48cfd48093ca04857bec444))
+
 # @forestadmin/agent-bff [1.34.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.33.0...@forestadmin/agent-bff@1.34.0) (2026-09-23)
 
 
