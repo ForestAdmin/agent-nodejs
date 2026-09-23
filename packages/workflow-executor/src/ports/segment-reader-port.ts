@@ -29,4 +29,11 @@ export interface ListSegmentRecordIdsQuery {
 export interface SegmentReaderPort {
   /** Packed record ids (`a|b` for a composite key), in the agent's own order. */
   listRecordIds(query: ListSegmentRecordIdsQuery): Promise<string[]>;
+  /** Filter operators the agent declares for one field, snake_case; empty when it lists none. */
+  listFieldOperators(query: ListFieldOperatorsQuery): Promise<string[]>;
 }
+
+export type ListFieldOperatorsQuery = Pick<
+  ListSegmentRecordIdsQuery,
+  'collectionName' | 'user' | 'timezone'
+> & { field: string };

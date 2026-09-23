@@ -413,4 +413,78 @@ describe('AgentClientSegmentReader', () => {
       await expect(reader.listRecordIds(makeQuery())).rejects.toThrow(AgentPortError);
     });
   });
+
+  describe('field operators', () => {
+    const query = { collectionName: 'orders', field: 'id', user: profile, timezone: 'UTC' };
+
+    function interceptCapabilities(status: number, body: unknown) {
+      const captured: { body?: unknown; authorization?: string } = {};
+
+      nock(AGENT_URL)
+        .post('/forest/_internal/capabilities', requestBody => {
+          captured.body = requestBody;
+
+          return true;
+        })
+        .query({ timezone: 'UTC' })
+        .reply(status, function reply() {
+          captured.authorization = this.req.headers.authorization;
+
+          return body;
+        });
+
+      return captured;
+    }
+
+    it('should ask the capabilities of the collection as the service account', async () => {
+      const captured = interceptCapabilities(200, {
+        collections: [{ name: 'orders', fields: [{ name: 'id', type: 'Number', operators: [] }] }],
+      });
+
+      await reader.listFieldOperators(query);
+
+      const payload = JSON.parse(
+        Buffer.from(
+          (captured.authorization ?? '').replace('Bearer ', '').split('.')[1],
+          'base64url',
+        ).toString(),
+      );
+      expect(captured.body).toEqual({ collectionNames: ['orders'] });
+      expect(payload).toEqual(
+        expect.objectContaining({ id: 99, email: 'bot@forestadmin.com', rendering_id: 7 }),
+      );
+    });
+
+    it('should return the operators the field declares', async () => {
+      interceptCapabilities(200, {
+        collections: [
+          {
+            name: 'orders',
+            fields: [
+              { name: 'status', type: 'String', operators: ['equal'] },
+              { name: 'id', type: 'Number', operators: ['equal', 'in', 'not_in'] },
+            ],
+          },
+        ],
+      });
+
+      await expect(reader.listFieldOperators(query)).resolves.toEqual(['equal', 'in', 'not_in']);
+    });
+
+    it('should return no operator for a field the agent does not list', async () => {
+      interceptCapabilities(200, {
+        collections: [
+          { name: 'orders', fields: [{ name: 'status', type: 'String', operators: [] }] },
+        ],
+      });
+
+      await expect(reader.listFieldOperators(query)).resolves.toEqual([]);
+    });
+
+    it('should reject when the agent has no capabilities route', async () => {
+      interceptCapabilities(404, {});
+
+      await expect(reader.listFieldOperators(query)).rejects.toThrow(AgentPortError);
+    });
+  });
 });
