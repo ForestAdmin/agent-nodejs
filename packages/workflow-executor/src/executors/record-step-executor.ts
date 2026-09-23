@@ -96,14 +96,20 @@ export default abstract class RecordStepExecutor<
     // Inside a Sub-workflow call, "workflow start" means the record the calling step pinned. A call
     // pinning none behaves exactly as before the pin existed: it starts from the record the run was
     // launched on, whatever collection the called workflow is on, until the Editor sets one.
-    if (!callScope.selectedRecordStepId) return baseRecordRef;
+    if (!callScope.selectedRecordStepId && !callScope.isPinned) return baseRecordRef;
 
-    const record = await this.resolveStepRecordRef(
-      callScope.selectedRecordStepId,
-      callScope.pinnedFrameStepIndexes,
-    );
-    // The pin names a step of the calling workflow, so a miss is that Sub-workflow step's to fix.
-    if (!record) throw new SourceRecordStepNotReachedError(callScope.selectedRecordStepId);
+    // A call pinning "workflow start" all the way out pins the run's record, and is still checked.
+    let record = baseRecordRef;
+
+    if (callScope.selectedRecordStepId) {
+      const pinned = await this.resolveStepRecordRef(
+        callScope.selectedRecordStepId,
+        callScope.pinnedFrameStepIndexes,
+      );
+      // The pin names a step of the calling workflow, so a miss is that Sub-workflow step's to fix.
+      if (!pinned) throw new SourceRecordStepNotReachedError(callScope.selectedRecordStepId);
+      record = pinned;
+    }
 
     // A pinned record of another collection than the called workflow is not what its steps were
     // built against, so the step refuses it rather than acting on it, naming both collections.

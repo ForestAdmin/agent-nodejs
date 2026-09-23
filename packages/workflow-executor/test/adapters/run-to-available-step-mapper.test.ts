@@ -1046,6 +1046,7 @@ describe('toAvailableStepExecution', () => {
         selectedRecordStepId: 'load-1',
         pinnedFrameStepIndexes: [],
         calledWorkflowCollectionName: 'orders',
+        isPinned: true,
       });
     });
 
@@ -1086,6 +1087,7 @@ describe('toAvailableStepExecution', () => {
         selectedRecordStepId: 'load-2',
         pinnedFrameStepIndexes: [],
         calledWorkflowCollectionName: 'invoices',
+        isPinned: true,
       });
     });
 
@@ -1110,6 +1112,7 @@ describe('toAvailableStepExecution', () => {
         selectedRecordStepId: 'load-1',
         pinnedFrameStepIndexes: [],
         calledWorkflowCollectionName: 'invoices',
+        isPinned: true,
       });
     });
 
@@ -1132,6 +1135,22 @@ describe('toAvailableStepExecution', () => {
 
       expect(callScope?.selectedRecordStepId).toBeUndefined();
       expect(callScope?.calledWorkflowCollectionName).toBe('invoices');
+      expect(callScope?.isPinned).toBe(true);
+    });
+
+    // An unpinned call sends no flag, which is what keeps it on today's behaviour.
+    it('flags no pin on a call that pins nothing', () => {
+      const run = makeRun({
+        workflowHistory: [
+          makeStartSubWorkflowHistory(
+            { stepName: 'call-1', stepIndex: 0 },
+            { calledWorkflowCollectionName: 'orders' },
+          ),
+          makeChildStepHistory({ stepName: 'child-1', stepIndex: 1, done: false }),
+        ],
+      });
+
+      expect(callScopeOf(run)).toEqual({ calledWorkflowCollectionName: 'orders' });
     });
 
     // The walk outwards stops at the first call that pins something, and a call pinning nothing
@@ -1243,6 +1262,7 @@ describe('toAvailableStepExecution', () => {
         selectedRecordStepId: 'load-2',
         pinnedFrameStepIndexes: [],
         calledWorkflowCollectionName: 'invoices',
+        isPinned: true,
       });
     });
 
@@ -1285,6 +1305,7 @@ describe('toAvailableStepExecution', () => {
         selectedRecordStepId: 'load-2',
         pinnedFrameStepIndexes: [],
         calledWorkflowCollectionName: 'invoices',
+        isPinned: true,
       });
     });
 

@@ -1755,6 +1755,41 @@ describe('ReadRecordStepExecutor', () => {
       );
     });
 
+    // A call pinning "workflow start" at the top of the run sends no step to resolve, but it is
+    // pinned: the run's record is what it pins, and it is checked like any other pinned record.
+    it('refuses the run record for a call pinning workflow-start whose called workflow is on another collection', async () => {
+      const agentPort = makeMockAgentPort();
+      const context = makeCalledContext(
+        { isPinned: true, calledWorkflowCollectionName: 'orders' },
+        { agentPort, stepDefinition: makeWorkflowStartStep(['email']) },
+      );
+
+      const result = await new ReadRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        'This workflow runs on orders, but the step that called it sent a record from customers. ' +
+          'Set the record on the Sub-workflow step in the calling workflow.',
+      );
+      expect(agentPort.getRecord).not.toHaveBeenCalled();
+    });
+
+    it('uses the run record for a call pinning workflow-start whose called workflow is on its collection', async () => {
+      const agentPort = makeMockAgentPort();
+      const context = makeCalledContext(
+        { isPinned: true, calledWorkflowCollectionName: 'customers' },
+        { agentPort, stepDefinition: makeWorkflowStartStep(['email']) },
+      );
+
+      const result = await new ReadRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(agentPort.getRecord).toHaveBeenCalledWith(
+        expect.objectContaining({ collection: 'customers', id: [42], fields: ['email'] }),
+        expect.objectContaining({ id: 1 }),
+      );
+    });
+
     // Collection names are compared as they are written: two names differing only in case are two
     // collections, here as everywhere else in this package.
     it('treats a called collection differing from the record only in case as a mismatch', async () => {

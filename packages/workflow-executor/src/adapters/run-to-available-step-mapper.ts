@@ -194,6 +194,7 @@ function toCallScope(
     ...(pinnedBy !== undefined &&
       pin !== undefined && { selectedRecordStepId: pin, pinnedFrameStepIndexes }),
     ...(calledWorkflowCollectionName !== undefined && { calledWorkflowCollectionName }),
+    ...(pinOf(innermost) !== undefined && { isPinned: true as const }),
   };
 }
 
