@@ -391,6 +391,7 @@ export const SERVER_AUTOMATED_INBOX_SYNC_OUTCOMES = [
   'skipped-assigned',
   'skipped-cap',
   'escalated',
+  'already-escalated',
   'cleaned',
 ] as const;
 export type ServerAutomatedInboxSyncOutcome = (typeof SERVER_AUTOMATED_INBOX_SYNC_OUTCOMES)[number];
