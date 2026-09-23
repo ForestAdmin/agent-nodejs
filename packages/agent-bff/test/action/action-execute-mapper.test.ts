@@ -48,6 +48,38 @@ describe('mapActionExecuteResult', () => {
     });
   });
 
+  it('keeps the text of a textarea, which the default allowlist drops together with its tag', () => {
+    expect(
+      mapResult({
+        success: '',
+        html:
+          '<textarea class="c-beta-input" rows="10" disabled>' +
+          'https://app.forestadmin.com/update-password/token</textarea>',
+        refresh: { relationships: [] },
+      }).body,
+    ).toEqual({
+      type: 'success',
+      message: '',
+      invalidated: [],
+      html: 'https://app.forestadmin.com/update-password/token',
+    });
+  });
+
+  it('escapes the markup a kept textarea or option carries, and still drops xmp content', () => {
+    expect(
+      mapResult({
+        success: '',
+        html:
+          '<textarea><img src=x onerror="alert(1)"></textarea>' +
+          '<select><option>&lt;img src=x onerror=alert(2)&gt;</option></select>' +
+          '<xmp><img src=x onerror="alert(3)"></xmp>',
+        refresh: { relationships: [] },
+      }).body,
+    ).toMatchObject({
+      html: '&lt;img src=x onerror="alert(1)"&gt;&lt;img src=x onerror=alert(2)&gt;',
+    });
+  });
+
   it('truncates an html longer than the sanitizable size instead of dropping it', () => {
     const html = `${'a'.repeat(262143)}<script>alert(1)</script>${'b'.repeat(100)}`;
 

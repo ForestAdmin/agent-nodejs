@@ -135,6 +135,19 @@ describe('mapActionForm', () => {
     ]);
   });
 
+  it('keeps the text of a textarea in htmlBlock content', () => {
+    const layout = [
+      {
+        component: 'htmlBlock',
+        content: '<textarea rows="3" disabled>https://example.com</textarea>',
+      },
+    ] as never;
+
+    const result = mapForm(actionWith([]), [], layout);
+
+    expect(result.layout).toEqual([{ component: 'htmlBlock', content: 'https://example.com' }]);
+  });
+
   it('sanitizes htmlBlock content nested inside a page', () => {
     const layout = [
       {
