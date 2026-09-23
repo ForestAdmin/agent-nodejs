@@ -264,10 +264,15 @@ describe('ForestServerAutomationPort', () => {
         ],
       });
 
-      // Blanking it would read as "still running" and strand the record silently.
       await expect(port.listAssignments('inbox-1')).resolves.toEqual([
         { recordId: 'r1', state: 'doing', workflowRunId: 12, runState: 'a-state-from-the-future' },
       ]);
+    });
+
+    it('should throw rather than read an unreadable answer as an inbox with nothing assigned', async () => {
+      mockQuery.mockResolvedValue({ assignments: 'not-a-list' });
+
+      await expect(port.listAssignments('inbox-1')).rejects.toThrow();
     });
 
     it('should not lose a whole inbox to one assignment in an unknown state', async () => {
@@ -306,6 +311,14 @@ describe('ForestServerAutomationPort', () => {
         {},
         body,
       );
+    });
+
+    it('should keep an outcome from a newer orchestrator rather than refuse the answer', async () => {
+      mockQuery.mockResolvedValue({ results: [{ recordId: 'r1', outcome: 'a-future-outcome' }] });
+
+      await expect(port.sync('inbox-1', { closed: [], candidates: [] })).resolves.toEqual([
+        { recordId: 'r1', outcome: 'a-future-outcome' },
+      ]);
     });
 
     it('should report an inbox the orchestrator no longer serves', async () => {
