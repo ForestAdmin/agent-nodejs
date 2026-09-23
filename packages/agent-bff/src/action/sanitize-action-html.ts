@@ -54,6 +54,7 @@ const ALLOWED_STYLE_PROPERTIES = [
 const OPTIONS: sanitizeHtml.IOptions = {
   allowedAttributes: { ...sanitizeHtml.defaults.allowedAttributes, '*': ['style'] },
   allowedClasses: { '*': ['c-*', 'l-*'] },
+  nonTextTags: ['script', 'style', 'xmp'],
   allowedStyles: {
     '*': Object.fromEntries(ALLOWED_STYLE_PROPERTIES.map(name => [name, [SAFE_STYLE_VALUE]])),
   },
