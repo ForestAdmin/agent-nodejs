@@ -334,16 +334,13 @@ export type ServerAutomatedInboxServiceAccountProfile = z.infer<
 // is dropped from the sweep, and `.nullable()` alone would still reject an omitted key.
 export const ServerAutomatedInboxConfigSchema = z.object({
   inboxId: z.string().min(1),
-  renderingId: z.number().int().nonnegative(),
+  renderingId: z.number().int().nonnegative().optional(),
   teamId: z.number().int().nonnegative().optional(),
   workflowId: z.string().min(1).optional(),
   collectionId: z.string().min(1).optional(),
   collectionName: z.string().min(1),
   primaryKeys: z.array(z.string().min(1)).min(1),
   maxConcurrentRuns: z.number().int().positive(),
-  // Validated here rather than passed on: the agent answers 400 to an unknown zone, so an inbox
-  // carrying one would fail every read of every sweep with nothing saying why. An invalid zone
-  // falls back to UTC in `segmentQuery`, the same fallback as an absent one.
   timezone: z.string().nullish(),
   // Which agent answers the segment read. Absent on an orchestrator that predates the exclusion
   // filter, which reads as unknown: the poller then pads its page, as it always did.
@@ -357,17 +354,8 @@ export const ServerAutomatedInboxesResponseSchema = z.object({
   inboxes: z.array(z.unknown()),
 });
 
-export const SERVER_INBOX_ASSIGNMENT_STATES = [
-  'todo',
-  'doing',
-  'done',
-  'canceled',
-  'auto-canceled',
-] as const;
-
 // States are read as plain strings, not enums: the poller only ever tests set membership, and one
-// assignment in a state a newer orchestrator introduced must not take the whole inbox down. The
-// known values live in the constants above, for the poller to compare against.
+// assignment in a state a newer orchestrator introduced must not take the whole inbox down.
 export const ServerAutomatedInboxAssignmentSchema = z.object({
   recordId: z.string(),
   state: z.string(),
