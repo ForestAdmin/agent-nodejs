@@ -211,6 +211,11 @@ describe('MongooseCollection', () => {
         [{ rating: 10 }, { rating: 5 }],
       ],
       [
+        { value: [10], operator: 'NotIn', field: 'rating' },
+        new Projection('rating'),
+        [{ rating: 5 }],
+      ],
+      [
         { value: ['A', 'B'], operator: 'IncludesAll', field: 'tags' },
         new Projection('tags'),
         [{ tags: ['A', 'B'] }],
@@ -431,6 +436,32 @@ describe('MongooseCollection', () => {
       );
 
       expect(records).toEqual([{ authorId: targetedId }]);
+    });
+
+    it('supports NotIn when an [objectId] as string is given', async () => {
+      connection = await setupReview('collection_review_list');
+      const dataSource = new MongooseDatasource(connection);
+      const review = dataSource.getCollection('review');
+      const excludedId = new Types.ObjectId().toString();
+      const keptId = new Types.ObjectId().toString();
+      await review.create(factories.caller.build(), [
+        { authorId: excludedId },
+        { authorId: keptId },
+      ]);
+
+      const records = await review.list(
+        factories.caller.build(),
+        factories.filter.build({
+          conditionTree: factories.conditionTreeLeaf.build({
+            value: [excludedId],
+            operator: 'NotIn',
+            field: 'authorId',
+          }),
+        }),
+        new Projection('authorId'),
+      );
+
+      expect(records).toEqual([{ authorId: keptId }]);
     });
 
     describe('when only a leaf condition is given', () => {

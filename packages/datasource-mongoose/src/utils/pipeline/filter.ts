@@ -189,6 +189,8 @@ export default class FilterGenerator {
         return { $ne: formattedLeafValue };
       case 'In':
         return { $in: formattedLeafValue };
+      case 'NotIn':
+        return { $nin: formattedLeafValue };
       case 'IncludesAll':
         return { $all: formattedLeafValue };
       case 'IncludesNone':
