@@ -1,6 +1,6 @@
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
-import checkRecordVisibility, { recordExists } from '../../src/audit-trail/scope';
+import checkRecordVisibility, { recordExists } from '../../src/audit-trail/record-visibility';
 import * as factories from '../__factories__';
 
 describe('audit-trail scope', () => {

@@ -7,8 +7,8 @@ import type { Context } from 'koa';
 
 import { ValidationError } from '@forestadmin/datasource-toolkit';
 
-import checkRecordVisibility from '../../audit-trail/scope';
-import withholdOutOfScopeValues from '../../audit-trail/withhold';
+import checkRecordVisibility from '../../audit-trail/record-visibility';
+import withholdOutsidePermissionScope from '../../audit-trail/withhold';
 import { HttpCode, RouteType } from '../../types';
 import QueryStringParser from '../../utils/query-string';
 import BaseRoute from '../base-route';
@@ -17,7 +17,7 @@ type Target = {
   collection: string;
   recordId: string;
   collectionObject: Collection;
-  scope: ConditionTree | null;
+  permissionScope: ConditionTree | null;
   goneEntirely: boolean;
 };
 
@@ -73,19 +73,19 @@ export default class AuditTrailCorrelationRoute extends BaseRoute {
   }
 
   // Same rule as the per-record history route: these routes return the same rows, so a gone
-  // record's captured values are tested against the caller's scope here too. Without it the
+  // record's captured values are tested against the caller's permission scope here too. Without it the
   // values the history route withholds come back through a correlation lookup.
   private withhold(entries: AuditRecord[], target: Target, context: Context): AuditRecord[] {
-    if (!target.scope || !target.goneEntirely) return entries;
+    if (!target.permissionScope || !target.goneEntirely) return entries;
 
-    return withholdOutOfScopeValues(entries, {
+    return withholdOutsidePermissionScope(entries, {
       collection: target.collectionObject,
-      scope: target.scope,
+      permissionScope: target.permissionScope,
       timezone: QueryStringParser.parseCaller(context, { defaultTimezone: 'UTC' }).timezone,
     });
   }
 
-  // Returns null (after issuing the 404) when a configured record-level scope excludes the id —
+  // Returns null (after issuing the 404) when a configured record-level permission scope excludes the id —
   // same rule as the per-collection route: a scope can't be evaluated retroactively for a
   // now-deleted record, so a scoped caller cannot look up correlations for an out-of-scope id.
   private async assertRecordReadable(context: Context): Promise<Target | null> {
@@ -100,7 +100,7 @@ export default class AuditTrailCorrelationRoute extends BaseRoute {
     const collection = this.dataSource.getCollection(collectionName);
     await this.services.authorization.assertCanRead(context, collectionName);
 
-    const scope = await this.services.authorization.getScope(collection, context);
+    const permissionScope = await this.services.authorization.getScope(collection, context);
     const { visible, goneEntirely } = await checkRecordVisibility(
       this.services,
       collection,
@@ -118,7 +118,7 @@ export default class AuditTrailCorrelationRoute extends BaseRoute {
       collection: collectionName,
       recordId,
       collectionObject: collection,
-      scope,
+      permissionScope,
       goneEntirely,
     };
   }

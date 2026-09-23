@@ -13,8 +13,8 @@ import {
 import { DateTime } from 'luxon';
 
 import { revertRecord } from '../../audit-trail';
-import checkRecordVisibility, { recordExists } from '../../audit-trail/scope';
-import withholdOutOfScopeValues, { scopeAccepts } from '../../audit-trail/withhold';
+import checkRecordVisibility, { recordExists } from '../../audit-trail/record-visibility';
+import withholdOutsidePermissionScope, { permissionScopeAccepts } from '../../audit-trail/withhold';
 import { HttpCode } from '../../types';
 import IdUtils from '../../utils/id';
 import QueryStringParser from '../../utils/query-string';
@@ -45,7 +45,7 @@ export default class AuditTrailRoute extends CollectionRoute {
   public async handleHistory(context: Context): Promise<void> {
     await this.services.authorization.assertCanRead(context, this.collection.name);
 
-    const scope = await this.services.authorization.getScope(this.collection, context);
+    const permissionScope = await this.services.authorization.getScope(this.collection, context);
     const { visible, goneEntirely } = await checkRecordVisibility(
       this.services,
       this.collection,
@@ -88,14 +88,14 @@ export default class AuditTrailRoute extends CollectionRoute {
       isFirstFetch ? store.listDistinctUsers(filters) : undefined,
     ]);
 
-    // The record can be deleted — or moved out of the caller's scope — between the check above and
+    // The record can be deleted — or moved out of the caller's permission scope — between the check above and
     // the audit read: the audit trail lives in its own database, often its own engine, so no single
     // snapshot spans both. Ask again once the rows are in hand and let that answer decide, so a
     // record that went away mid-request is treated as the request starting a moment later would
-    // have treated it. Only for a scoped caller: with no scope there is nothing to withhold.
+    // have treated it. Only for a scoped caller: with no permission scope there is nothing to withhold.
     let gone = goneEntirely;
 
-    if (scope && !goneEntirely) {
+    if (permissionScope && !goneEntirely) {
       const after = await checkRecordVisibility(
         this.services,
         this.collection,
@@ -112,12 +112,13 @@ export default class AuditTrailRoute extends CollectionRoute {
       gone = after.goneEntirely;
     }
 
-    // A genuinely deleted record bypasses the scope check above — there's nothing left to check
+    // A genuinely deleted record bypasses the permission-scope check above — there's nothing left to check
     // existence against — but create/update/delete rows still carry captured column values from
-    // when the record existed. If those values themselves would have failed the caller's scope,
+    // when the record existed. If those values themselves would have failed the caller's permission scope,
     // withhold them while still surfacing that the row happened, by whom and when: that part
     // stays visible regardless.
-    const data = scope && gone ? this.withhold(rawData, scope, context) : rawData;
+    const data =
+      permissionScope && gone ? this.withhold(rawData, permissionScope, context) : rawData;
 
     context.response.body = {
       data,
@@ -125,10 +126,14 @@ export default class AuditTrailRoute extends CollectionRoute {
     };
   }
 
-  private withhold(entries: AuditRecord[], scope: ConditionTree, context: Context): AuditRecord[] {
-    return withholdOutOfScopeValues(entries, {
+  private withhold(
+    entries: AuditRecord[],
+    permissionScope: ConditionTree,
+    context: Context,
+  ): AuditRecord[] {
+    return withholdOutsidePermissionScope(entries, {
       collection: this.collection,
-      scope,
+      permissionScope,
       timezone: QueryStringParser.parseCaller(context, { defaultTimezone: 'UTC' }).timezone,
     });
   }
@@ -139,16 +144,16 @@ export default class AuditTrailRoute extends CollectionRoute {
 
     const at = AuditTrailRoute.parseAt(context);
     const auditedColumns = AuditTrailRoute.auditedColumns(this.collection.schema);
-    const scope = await this.services.authorization.getScope(this.collection, context);
-    const current = await this.fetchCurrentRecord(context, auditedColumns, scope);
+    const permissionScope = await this.services.authorization.getScope(this.collection, context);
+    const current = await this.fetchCurrentRecord(context, auditedColumns, permissionScope);
 
-    // A missing current record is ambiguous (deleted vs. out-of-scope) once a scope applies; only
+    // A missing current record is ambiguous (deleted vs. out-of-scope) once a permission scope applies; only
     // deny when the id still exists outside that scope. If it's genuinely gone the revert walk
     // below proceeds — the reconstruction is then tested against the scope in its own right, since
     // this route hands back nothing but those values.
     let goneEntirely = false;
 
-    if (!current && scope) {
+    if (!current && permissionScope) {
       const stillExists = await recordExists(this.collection, context.params.id, context, null);
 
       if (stillExists) {
@@ -198,16 +203,16 @@ export default class AuditTrailRoute extends CollectionRoute {
       return;
     }
 
-    // The history route withholds a gone record's captured values from a caller whose scope they
+    // The history route withholds a gone record's captured values from a caller whose permission scope they
     // fail; this route is nothing but those values, reassembled, so the same test applies to the
     // reconstruction. Without it the withheld values are one request away for the same caller.
-    // A reconstruction the scope cannot answer — a scope on a column the capture never kept —
+    // A reconstruction the permission scope cannot answer — a scope on a column the capture never kept —
     // withholds too: absent is not the same as passing, here as everywhere else.
     if (
       goneEntirely &&
-      !scopeAccepts(state, {
+      !permissionScopeAccepts(state, {
         collection: this.collection,
-        scope,
+        permissionScope,
         timezone: QueryStringParser.parseCaller(context, { defaultTimezone: 'UTC' }).timezone,
       })
     ) {
@@ -222,13 +227,13 @@ export default class AuditTrailRoute extends CollectionRoute {
   private async fetchCurrentRecord(
     context: Context,
     auditedColumns: string[],
-    scope: ConditionTree | null,
+    permissionScope: ConditionTree | null,
   ): Promise<Record<string, unknown> | null> {
     const id = IdUtils.unpackId(this.collection.schema, context.params.id);
     const filter = new PaginatedFilter({
       conditionTree: ConditionTreeFactory.intersect(
         ConditionTreeFactory.matchIds(this.collection.schema, [id]),
-        scope,
+        permissionScope,
       ),
     });
 

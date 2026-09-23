@@ -6,29 +6,33 @@ import { SchemaUtils } from '@forestadmin/datasource-toolkit';
 import { REDACTED } from './instrument';
 import IdUtils from '../utils/id';
 
-export type Withholding = { collection: Collection; scope: ConditionTree; timezone: string };
+export type Withholding = {
+  collection: Collection;
+  permissionScope: ConditionTree;
+  timezone: string;
+};
 
-// Only a snapshot that answers every field the scope asks about, with what was really stored, is
-// worth matching. The capture keeps the writable columns, so a scope reaching for anything else —
+// Only a snapshot that answers every field the permission scope asks about, with what was really stored, is
+// worth matching. The capture keeps the writable columns, so a permission scope reaching for anything else —
 // a read-only column, a relation — reads `undefined` there and would answer for a value the row
 // never held: `status != 'private'` matches on the missing key and releases it. A redacted value
 // answers no better: the placeholder is not what was stored.
 //
-// Own properties only: `'toString' in snapshot` is true of every object, so a scope on a column
+// Own properties only: `'toString' in snapshot` is true of every object, so a permission scope on a column
 // named after one of `Object.prototype`'s members would otherwise resolve against the prototype.
-export function scopeAccepts(
+export function permissionScopeAccepts(
   snapshot: Record<string, unknown>,
-  { collection, scope, timezone }: Withholding,
+  { collection, permissionScope, timezone }: Withholding,
 ): boolean {
   const values = snapshot ?? {};
-  const answered = scope.projection.every(
+  const answered = permissionScope.projection.every(
     field => Object.prototype.hasOwnProperty.call(values, field) && values[field] !== REDACTED,
   );
 
-  return answered && scope.match(values, collection, timezone);
+  return answered && permissionScope.match(values, collection, timezone);
 }
 
-// A read-only primary key never lands in the snapshot, so a scope on the id would blank a row that
+// A read-only primary key never lands in the snapshot, so a permission scope on the id would blank a row that
 // is squarely in scope. The row's own packed id carries those values — and an id the current schema
 // can no longer unpack simply leaves them out, which withholds.
 //
@@ -55,20 +59,20 @@ function withPrimaryKeys(
 }
 
 /**
- * Blanks the captured values a caller's record-level scope does not cover, keeping the row itself:
+ * Blanks the captured values a caller's record-level permission scope does not cover, keeping the row itself:
  * that it happened, by whom and when stays visible either way.
  *
- * Each side is tested against its own snapshot. An `update` carries a partial diff, so a scope on a
+ * Each side is tested against its own snapshot. An `update` carries a partial diff, so a permission scope on a
  * column it never touched is simply unanswerable there and withheld by the same rule as everything
  * else — which is why this needs no special case beyond `action` rows, whose two columns hold a
  * submitted form and a result summary rather than column values.
  */
-export default function withholdOutOfScopeValues(
+export default function withholdOutsidePermissionScope(
   entries: AuditRecord[],
   withholding: Withholding,
 ): AuditRecord[] {
   const accepts = (entry: AuditRecord, values: Record<string, unknown>) =>
-    scopeAccepts(withPrimaryKeys(entry, values, withholding.collection), withholding);
+    permissionScopeAccepts(withPrimaryKeys(entry, values, withholding.collection), withholding);
 
   const side = (entry: AuditRecord, values: Record<string, unknown>) =>
     accepts(entry, values) ? values ?? {} : {};
