@@ -1,5 +1,9 @@
 import type { ServerAutomatedSegmentDescriptor, ServerPlainConditionTree } from './server-types';
-import type { ListSegmentRecordIdsQuery, SegmentReaderPort } from '../ports/segment-reader-port';
+import type {
+  ListFieldOperatorsQuery,
+  ListSegmentRecordIdsQuery,
+  SegmentReaderPort,
+} from '../ports/segment-reader-port';
 import type { SelectOptions } from '@forestadmin/agent-client';
 
 import { createRemoteAgentClient } from '@forestadmin/agent-client';
@@ -38,13 +42,7 @@ export default class AgentClientSegmentReader implements SegmentReaderPort {
     const { recordIds, excludedRecordIds } = query;
 
     try {
-      const client = createRemoteAgentClient({
-        url: this.agentUrl,
-        token: mintStepToken(toStepUser(user), this.authSecret),
-        // Left out, agent-client sends Europe/Paris, and every relative-date condition in the
-        // segment would resolve against a day the project never asked for.
-        timezone,
-      });
+      const client = this.createClient(user, timezone);
 
       const filters = AgentClientSegmentReader.buildFilters(
         segment,
@@ -78,6 +76,30 @@ export default class AgentClientSegmentReader implements SegmentReaderPort {
 
       throw new AgentPortError('listSegmentRecordIds', cause);
     }
+  }
+
+  async listFieldOperators(query: ListFieldOperatorsQuery): Promise<string[]> {
+    const { collectionName, field, user, timezone } = query;
+
+    try {
+      const { fields } = await this.createClient(user, timezone)
+        .collection(collectionName)
+        .capabilities();
+
+      return fields.find(({ name }) => name === field)?.operators ?? [];
+    } catch (cause) {
+      throw new AgentPortError('listFieldOperators', cause);
+    }
+  }
+
+  private createClient(user: ListSegmentRecordIdsQuery['user'], timezone: string): AgentClient {
+    return createRemoteAgentClient({
+      url: this.agentUrl,
+      token: mintStepToken(toStepUser(user), this.authSecret),
+      // Left out, agent-client sends Europe/Paris, and every relative-date condition in the
+      // segment would resolve against a day the project never asked for.
+      timezone,
+    });
   }
 
   private static resolveLister(
