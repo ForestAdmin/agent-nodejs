@@ -54,6 +54,8 @@ const OPENAI_UNSUPPORTED_MODELS = [
   'gpt-5.6-sol',
   'gpt-5.6-terra',
   'gpt-6-astra',
+  'gpt-6-luna',
+  'gpt-6-sol',
 ];
 
 const OPENAI_SUPPORTED_OVERRIDES = ['gpt-4-turbo', 'gpt-4o', 'gpt-4.1'];
@@ -94,6 +96,11 @@ const ANTHROPIC_UNSUPPORTED_PREFIXES = [
   // Rejects thinking.type 'disabled', and the proxy drops the thinking blocks a reply must carry
   // back for the next turn.
   'claude-fable-5',
+  // Same rejection, pointing at the newer spelling: "Use thinking.type.adaptive and
+  // output_config.effort to control thinking behavior". Not `claude-opus-5`, which is a different
+  // line and still answers with thinking disabled — a prefix also matches the id exactly, so the
+  // shorter one would exclude it too.
+  'claude-opus-5-5',
 ];
 
 function isAnthropicModelSupported(model: string): boolean {
