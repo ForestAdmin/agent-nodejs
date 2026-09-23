@@ -24,7 +24,7 @@ describe('isModelSupportingTools', () => {
     },
   );
 
-  it.each(['gpt-5.6-luna', 'gpt-5.6-sol', 'gpt-5.6-terra', 'gpt-6-astra'])(
+  it.each(['gpt-5.6-luna', 'gpt-5.6-sol', 'gpt-5.6-terra', 'gpt-6-astra', 'gpt-6-luna', 'gpt-6-sol'])(
     'should return false for %s (v1/responses only)',
     model => {
       expect(isModelSupportingTools(model)).toBe(false);
@@ -40,8 +40,22 @@ describe('isModelSupportingTools', () => {
     },
   );
 
+  it.each(['claude-opus-5-5', 'claude-opus-5-5-20260214'])(
+    'should return false for %s (always-on thinking incompatible with proxy)',
+    model => {
+      expect(isModelSupportingTools(model, 'anthropic')).toBe(false);
+    },
+  );
+
   it('should not exclude a model merely prefixed by an unsupported family name', () => {
     expect(isModelSupportingTools('claude-fable-50', 'anthropic')).toBe(true);
+  });
+
+  // `claude-opus-5-5` is excluded, `claude-opus-5` is not: a prefix matches the id exactly as well
+  // as its point releases, so the shorter spelling would have taken a working line down with it.
+  it('should keep the neighbouring claude-opus-5 line supported', () => {
+    expect(isModelSupportingTools('claude-opus-5', 'anthropic')).toBe(true);
+    expect(isModelSupportingTools('claude-opus-5-20260101', 'anthropic')).toBe(true);
   });
 
   describe('bedrock', () => {
