@@ -94,7 +94,7 @@ describe('StepExecutorFactory.create', () => {
   });
 
   // The only seam between the mapper that builds the call scope and the executor that reads it: a
-  // step of the called workflow's collection resolves, and one of another collection does not.
+  // pin the executor can see is one it resolves, and here it names a step the run never took.
   it('hands the sub-workflow call scope to the executor it builds', async () => {
     const step = makeStep({
       stepDefinition: {
@@ -102,7 +102,7 @@ describe('StepExecutorFactory.create', () => {
         executionType: StepExecutionMode.FullyAutomated,
         preRecordedArgs: { selectedRecordStepId: WORKFLOW_START_STEP_ID, fieldNames: ['email'] },
       },
-      callScope: { calledWorkflowCollectionName: 'orders' },
+      callScope: { selectedRecordStepId: 'load-1', calledWorkflowCollectionName: 'orders' },
     } as unknown as Partial<AvailableStepExecution>);
 
     const executor = await StepExecutorFactory.create(
@@ -115,8 +115,7 @@ describe('StepExecutorFactory.create', () => {
 
     expect(result.stepOutcome.status).toBe('error');
     expect(result.stepOutcome.error).toBe(
-      'This workflow runs on orders, but the step that called it sent a record from customers. ' +
-        'Set the record on the Sub-workflow step in the calling workflow.',
+      'The Sub-workflow step that called this workflow takes its record from a step that did not run before it. Change the record on that Sub-workflow step.',
     );
   });
 

@@ -1737,25 +1737,22 @@ describe('ReadRecordStepExecutor', () => {
       expect(agentPort.getRecord).not.toHaveBeenCalled();
     });
 
-    it('names both collections when the run record is of another collection than the called workflow', async () => {
+    // An unpinned call is a step built before the pin existed: it keeps today's behaviour until the
+    // Editor sets "On record", even across collections.
+    it('keeps the run record on an unpinned call whose called workflow is on another collection', async () => {
       const agentPort = makeMockAgentPort();
       const context = makeCalledContext(
         { calledWorkflowCollectionName: 'orders' },
-        {
-          agentPort,
-          workflowPort: makeOrdersWorkflowPort(),
-          stepDefinition: makeWorkflowStartStep(['email']),
-        },
+        { agentPort, stepDefinition: makeWorkflowStartStep(['email']) },
       );
 
       const result = await new ReadRecordStepExecutor(context).execute();
 
-      expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toBe(
-        'This workflow runs on orders, but the step that called it sent a record from customers. ' +
-          'Set the record on the Sub-workflow step in the calling workflow.',
+      expect(result.stepOutcome.status).toBe('success');
+      expect(agentPort.getRecord).toHaveBeenCalledWith(
+        expect.objectContaining({ collection: 'customers', id: [42], fields: ['email'] }),
+        expect.objectContaining({ id: 1 }),
       );
-      expect(agentPort.getRecord).not.toHaveBeenCalled();
     });
 
     // Collection names are compared as they are written: two names differing only in case are two

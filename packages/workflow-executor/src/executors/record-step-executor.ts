@@ -93,24 +93,20 @@ export default abstract class RecordStepExecutor<
     const { callScope, baseRecordRef } = this.context;
     if (!callScope) return baseRecordRef;
 
-    // Inside a Sub-workflow call, "workflow start" means the record the calling step pinned; a
-    // call pinning none still starts from the record the run was launched on.
-    let record = baseRecordRef;
+    // Inside a Sub-workflow call, "workflow start" means the record the calling step pinned. A call
+    // pinning none behaves exactly as before the pin existed: it starts from the record the run was
+    // launched on, whatever collection the called workflow is on, until the Editor sets one.
+    if (!callScope.selectedRecordStepId) return baseRecordRef;
 
-    if (callScope.selectedRecordStepId) {
-      const pinned = await this.resolveStepRecordRef(
-        callScope.selectedRecordStepId,
-        callScope.pinnedFrameStepIndexes,
-      );
-      // The pin names a step of the calling workflow, so a miss is that Sub-workflow step's to fix.
-      if (!pinned) throw new SourceRecordStepNotReachedError(callScope.selectedRecordStepId);
-      record = pinned;
-    }
+    const record = await this.resolveStepRecordRef(
+      callScope.selectedRecordStepId,
+      callScope.pinnedFrameStepIndexes,
+    );
+    // The pin names a step of the calling workflow, so a miss is that Sub-workflow step's to fix.
+    if (!record) throw new SourceRecordStepNotReachedError(callScope.selectedRecordStepId);
 
-    // A record of another collection than the called workflow is not what its steps were built
-    // against, so the step refuses it rather than acting on the caller's. It names both collections:
-    // "loaded no record" would be untrue here, and on an unpinned call there is no source step to
-    // name at all.
+    // A pinned record of another collection than the called workflow is not what its steps were
+    // built against, so the step refuses it rather than acting on it, naming both collections.
     if (
       callScope.calledWorkflowCollectionName !== undefined &&
       record.collectionName !== callScope.calledWorkflowCollectionName
