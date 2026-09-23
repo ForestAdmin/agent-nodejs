@@ -444,7 +444,10 @@ describe('MongooseCollection', () => {
       const review = dataSource.getCollection('review');
       const excludedId = new Types.ObjectId().toString();
       const keptId = new Types.ObjectId().toString();
-      await review.create(factories.caller.build(), [{ authorId: excludedId }, { authorId: keptId }]);
+      await review.create(factories.caller.build(), [
+        { authorId: excludedId },
+        { authorId: keptId },
+      ]);
 
       const records = await review.list(
         factories.caller.build(),
