@@ -69,9 +69,9 @@ export default class AuditTrailTimelineRoute extends BaseRoute {
     };
   }
 
-  // Collections whose rows this caller may see at all. A record-level scope can't be evaluated
+  // Collections whose rows this caller may see at all. A record-level permission scope can't be evaluated
   // across a whole timeline without fetching every record it mentions, so a collection the caller
-  // only sees through a scope is left out entirely rather than surfaced unfiltered: the row alone
+  // only sees through a permission scope is left out entirely rather than surfaced unfiltered: the row alone
   // would reveal that a record it cannot read exists and was touched.
   private async readableCollections(context: Context): Promise<string[]> {
     const names = await Promise.all(
