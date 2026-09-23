@@ -13,8 +13,14 @@ import {
 import { DateTime } from 'luxon';
 
 import { revertRecord } from '../../audit-trail';
-import checkRecordVisibility, { recordExists } from '../../audit-trail/record-visibility';
-import withholdOutsidePermissionScope, { permissionScopeAccepts } from '../../audit-trail/withhold';
+import checkRecordVisibility, {
+  recheckRecordVisibility,
+  recordExists,
+} from '../../audit-trail/record-visibility';
+import withholdOutsidePermissionScope, {
+  permissionScopeAccepts,
+  withPackedPrimaryKeys,
+} from '../../audit-trail/withhold';
 import { HttpCode } from '../../types';
 import IdUtils from '../../utils/id';
 import QueryStringParser from '../../utils/query-string';
@@ -47,10 +53,10 @@ export default class AuditTrailRoute extends CollectionRoute {
 
     const permissionScope = await this.services.authorization.getScope(this.collection, context);
     const { visible, goneEntirely } = await checkRecordVisibility(
-      this.services,
       this.collection,
       context.params.id,
       context,
+      permissionScope,
     );
 
     if (!visible) {
@@ -93,24 +99,21 @@ export default class AuditTrailRoute extends CollectionRoute {
     // snapshot spans both. Ask again once the rows are in hand and let that answer decide, so a
     // record that went away mid-request is treated as the request starting a moment later would
     // have treated it. Only for a scoped caller: with no permission scope there is nothing to withhold.
-    let gone = goneEntirely;
+    const after = await recheckRecordVisibility(
+      this.collection,
+      context.params.id,
+      context,
+      permissionScope,
+      goneEntirely,
+    );
 
-    if (permissionScope && !goneEntirely) {
-      const after = await checkRecordVisibility(
-        this.services,
-        this.collection,
-        context.params.id,
-        context,
-      );
+    if (after && !after.visible) {
+      context.throw(HttpCode.NotFound, 'Record does not exists');
 
-      if (!after.visible) {
-        context.throw(HttpCode.NotFound, 'Record does not exists');
-
-        return;
-      }
-
-      gone = after.goneEntirely;
+      return;
     }
+
+    const gone = after ? after.goneEntirely : goneEntirely;
 
     // A genuinely deleted record bypasses the permission-scope check above — there's nothing left to check
     // existence against — but create/update/delete rows still carry captured column values from
@@ -206,11 +209,13 @@ export default class AuditTrailRoute extends CollectionRoute {
     // The history route withholds a gone record's captured values from a caller whose permission scope they
     // fail; this route is nothing but those values, reassembled, so the same test applies to the
     // reconstruction. Without it the withheld values are one request away for the same caller.
-    // A reconstruction the permission scope cannot answer — a scope on a column the capture never kept —
-    // withholds too: absent is not the same as passing, here as everywhere else.
+    // A reconstruction the permission scope cannot answer — a scope on a column the capture never
+    // kept — withholds too: absent is not the same as passing, here as everywhere else. The packed
+    // id is merged in first for the same reason it is on a row: a read-only primary key never lands
+    // in the capture, so a scope on the id would blank the very record it names.
     if (
       goneEntirely &&
-      !permissionScopeAccepts(state, {
+      !permissionScopeAccepts(withPackedPrimaryKeys(state, context.params.id, this.collection), {
         collection: this.collection,
         permissionScope,
         timezone: QueryStringParser.parseCaller(context, { defaultTimezone: 'UTC' }).timezone,

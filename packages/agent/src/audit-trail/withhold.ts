@@ -39,18 +39,18 @@ export function permissionScopeAccepts(
 // The decoded keys win over the snapshot's own copy of them: it is the same value, except when the
 // primary key is writable and redacted, where the snapshot holds the placeholder while the packed
 // id — which is never redacted — still names the record the row belongs to.
-function withPrimaryKeys(
-  entry: AuditRecord,
+export function withPackedPrimaryKeys(
   values: Record<string, unknown>,
+  packedId: string | null,
   collection: Collection,
 ): Record<string, unknown> {
   const snapshot = values ?? {};
 
-  if (!entry.recordId) return snapshot;
+  if (!packedId) return snapshot;
 
   try {
     const names = SchemaUtils.getPrimaryKeys(collection.schema);
-    const ids = IdUtils.unpackId(collection.schema, entry.recordId);
+    const ids = IdUtils.unpackId(collection.schema, packedId);
 
     return { ...snapshot, ...Object.fromEntries(names.map((name, index) => [name, ids[index]])) };
   } catch {
@@ -72,7 +72,10 @@ export default function withholdOutsidePermissionScope(
   withholding: Withholding,
 ): AuditRecord[] {
   const accepts = (entry: AuditRecord, values: Record<string, unknown>) =>
-    permissionScopeAccepts(withPrimaryKeys(entry, values, withholding.collection), withholding);
+    permissionScopeAccepts(
+      withPackedPrimaryKeys(values, entry.recordId, withholding.collection),
+      withholding,
+    );
 
   const side = (entry: AuditRecord, values: Record<string, unknown>) =>
     accepts(entry, values) ? values ?? {} : {};

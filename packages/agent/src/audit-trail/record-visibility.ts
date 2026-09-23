@@ -1,4 +1,3 @@
-import type { ForestAdminHttpDriverServices } from '../services';
 import type { Collection, ConditionTree } from '@forestadmin/datasource-toolkit';
 import type { Context } from 'koa';
 
@@ -54,14 +53,15 @@ export type RecordVisibility = {
 // access is scoped down is only denied when the id currently exists and fails that permission scope — once it's
 // genuinely gone there is nothing left to scope against, and showing that it existed (including that
 // it was deleted, by whom and when) is much of the point of an audit trail.
+// The caller passes the permission scope it will also withhold with, rather than this reading its
+// own: two lookups can disagree if the scope cache turns over between them, and the answer here
+// decides what that scope is then applied to.
 export default async function checkRecordVisibility(
-  services: ForestAdminHttpDriverServices,
   collection: Collection,
   packedId: string,
   context: Context,
+  permissionScope: ConditionTree | null,
 ): Promise<RecordVisibility> {
-  const permissionScope = await services.authorization.getScope(collection, context);
-
   if (!permissionScope) return { visible: true, goneEntirely: false };
 
   if (await recordExists(collection, packedId, context, permissionScope)) {
@@ -71,4 +71,23 @@ export default async function checkRecordVisibility(
   const existsOutsidePermissionScope = await recordExists(collection, packedId, context, null);
 
   return { visible: !existsOutsidePermissionScope, goneEntirely: !existsOutsidePermissionScope };
+}
+
+/**
+ * The record can be deleted — or moved out of the caller's permission scope — between the check
+ * that authorized the request and the audit read that answers it: the audit trail lives in its own
+ * database, often its own engine, so no single snapshot spans both. Re-reads once the rows are in
+ * hand, and returns null when there is nothing to re-read: a caller with no scope has nothing to
+ * withhold, and a record already gone at the first check cannot come back.
+ */
+export async function recheckRecordVisibility(
+  collection: Collection,
+  packedId: string,
+  context: Context,
+  permissionScope: ConditionTree | null,
+  wasGoneEntirely: boolean,
+): Promise<RecordVisibility | null> {
+  if (!permissionScope || wasGoneEntirely) return null;
+
+  return checkRecordVisibility(collection, packedId, context, permissionScope);
 }

@@ -979,7 +979,7 @@ describe('AuditTrailRoute', () => {
 
         await route.handleHistory(context);
 
-        return { context, list };
+        return { context, list, services };
       };
 
       test('withholds the values when the record was deleted in between', async () => {
@@ -997,6 +997,15 @@ describe('AuditTrailRoute', () => {
         const { context } = await raceWith([{ id: 2 }], [], [{ id: 2 }]);
 
         expect(context.throw).toHaveBeenCalledWith(404, 'Record does not exists');
+      });
+
+      // One lookup for the whole request: the visibility answer and the withholding have to be
+      // taken against the same scope, or a cache turning over between them decides one with a
+      // scope and the other without.
+      test('reads the permission scope once and re-uses it', async () => {
+        const { services } = await raceWith([{ id: 2 }], [], []);
+
+        expect(services.authorization.getScope).toHaveBeenCalledTimes(1);
       });
 
       test('does not ask again for a record that was already gone at the first check', async () => {
@@ -1626,6 +1635,34 @@ describe('AuditTrailRoute', () => {
 
         expect(context.response.body).toEqual({ data: null });
       });
+    });
+
+    // A read-only primary key never lands in the capture, so the reconstruction of a gone record
+    // has no `id` of its own — the packed id from the request supplies it, exactly as a row's own
+    // `recordId` does on the history route.
+    test('answers an id scope from the packed id the reconstruction is missing', async () => {
+      const history = [
+        { operation: 'delete', previousValues: { status: 'closed', name: 'Acme' }, newValues: {} },
+      ];
+      const { services, dataSource, route } = setupBooks(history);
+      (services.authorization.getScope as jest.Mock).mockResolvedValue(
+        new ConditionTreeLeaf('id', 'Equal', 2),
+      );
+      jest
+        .spyOn(dataSource.getCollection('books'), 'list')
+        .mockResolvedValueOnce([]) // scoped fetch: not found
+        .mockResolvedValueOnce([]); // bare check: genuinely gone
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: {
+          query: { timezone: 'UTC', at: '2026-06-18' },
+          params: { id: '2' },
+        },
+      });
+
+      await route.handleStateAt(context);
+
+      expect(context.response.body).toEqual({ data: { status: 'closed', name: 'Acme' } });
     });
 
     test('does not test the reconstruction when the record still exists and is in scope', async () => {

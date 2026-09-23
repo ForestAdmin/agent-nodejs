@@ -1,3 +1,4 @@
+import { ConditionTreeLeaf } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import checkRecordVisibility, { recordExists } from '../../src/audit-trail/record-visibility';
@@ -55,38 +56,28 @@ describe('audit-trail scope', () => {
 
   describe('checkRecordVisibility', () => {
     test('is visible without querying anything when no scope is configured', async () => {
-      const services = factories.forestAdminHttpDriverServices.build();
       const collection = buildCollection();
       const list = jest.spyOn(collection, 'list');
 
-      await expect(
-        checkRecordVisibility(services, collection, '2', buildContext()),
-      ).resolves.toEqual({ visible: true, goneEntirely: false });
+      await expect(checkRecordVisibility(collection, '2', buildContext(), null)).resolves.toEqual({
+        visible: true,
+        goneEntirely: false,
+      });
       expect(list).not.toHaveBeenCalled();
     });
 
     test('is visible when the id matches the scope', async () => {
-      const services = factories.forestAdminHttpDriverServices.build();
-      (services.authorization.getScope as jest.Mock).mockResolvedValue({
-        field: 'ownerId',
-        operator: 'Equal',
-        value: 1,
-      });
+      const permissionScope = new ConditionTreeLeaf('ownerId', 'Equal', 1);
       const collection = buildCollection();
       jest.spyOn(collection, 'list').mockResolvedValueOnce([{ id: 2 }]);
 
       await expect(
-        checkRecordVisibility(services, collection, '2', buildContext()),
+        checkRecordVisibility(collection, '2', buildContext(), permissionScope),
       ).resolves.toEqual({ visible: true, goneEntirely: false });
     });
 
     test('is not visible when the id still exists but fails the scope', async () => {
-      const services = factories.forestAdminHttpDriverServices.build();
-      (services.authorization.getScope as jest.Mock).mockResolvedValue({
-        field: 'ownerId',
-        operator: 'Equal',
-        value: 1,
-      });
+      const permissionScope = new ConditionTreeLeaf('ownerId', 'Equal', 1);
       const collection = buildCollection();
       jest
         .spyOn(collection, 'list')
@@ -94,17 +85,12 @@ describe('audit-trail scope', () => {
         .mockResolvedValueOnce([{ id: 2 }]); // bare: still exists
 
       await expect(
-        checkRecordVisibility(services, collection, '2', buildContext()),
+        checkRecordVisibility(collection, '2', buildContext(), permissionScope),
       ).resolves.toEqual({ visible: false, goneEntirely: false });
     });
 
     test('is visible, and reports goneEntirely, when the id no longer exists at all, scope aside', async () => {
-      const services = factories.forestAdminHttpDriverServices.build();
-      (services.authorization.getScope as jest.Mock).mockResolvedValue({
-        field: 'ownerId',
-        operator: 'Equal',
-        value: 1,
-      });
+      const permissionScope = new ConditionTreeLeaf('ownerId', 'Equal', 1);
       const collection = buildCollection();
       const list = jest
         .spyOn(collection, 'list')
@@ -112,7 +98,7 @@ describe('audit-trail scope', () => {
         .mockResolvedValueOnce([]); // bare: genuinely gone
 
       await expect(
-        checkRecordVisibility(services, collection, '2', buildContext()),
+        checkRecordVisibility(collection, '2', buildContext(), permissionScope),
       ).resolves.toEqual({ visible: true, goneEntirely: true });
       expect(list).toHaveBeenCalledTimes(2);
     });

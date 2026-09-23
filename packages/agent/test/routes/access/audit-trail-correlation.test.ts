@@ -381,6 +381,56 @@ describe('AuditTrailCorrelationRoute', () => {
     expect(store.listByCorrelation).not.toHaveBeenCalled();
   });
 
+  // The record can go away while the audit read is in flight; the decision is taken again on the
+  // way out rather than reused from the check that authorized the request.
+  describe('the record changes between the visibility check and the audit read', () => {
+    const raceWith = async (...listAnswers: unknown[][]) => {
+      const history = [
+        {
+          operation: 'delete',
+          recordId: '2',
+          correlationKey: 'req-1',
+          previousValues: { title: 'Secret' },
+          newValues: {},
+        },
+      ];
+      const { services, dataSource, options } = setup(history);
+      (services.authorization.getScope as jest.Mock).mockResolvedValue(
+        new ConditionTreeLeaf('id', 'Equal', 1),
+      );
+      const list = jest.spyOn(dataSource.getCollection('books'), 'list');
+      listAnswers.forEach(answer => list.mockResolvedValueOnce(answer as never));
+      const route = new AuditTrailCorrelationRoute(services, options, dataSource);
+      const context = contextWith({ timezone: 'Europe/Paris', collection: 'books', recordId: '2' });
+
+      await route.handleHistory(context);
+
+      return context;
+    };
+
+    test('withholds the values when the record was deleted in between', async () => {
+      const context = await raceWith([{ id: 2 }], [], []);
+
+      expect(context.throw).not.toHaveBeenCalled();
+      expect((context.response.body as { data: unknown[] }).data).toEqual([
+        {
+          operation: 'delete',
+          recordId: '2',
+          correlationKey: 'req-1',
+          previousValues: {},
+          newValues: {},
+        },
+      ]);
+    });
+
+    test('refuses when the record moved out of the caller scope in between', async () => {
+      const context = await raceWith([{ id: 2 }], [], [{ id: 2 }]);
+
+      expect(context.throw).toHaveBeenCalledWith(404, 'Record does not exists');
+      expect(context.response.body).toBeUndefined();
+    });
+  });
+
   describe('conditional mounting', () => {
     const buildDataSource = () =>
       factories.dataSource.buildWithCollections([

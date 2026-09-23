@@ -7,7 +7,9 @@ import type { Context } from 'koa';
 
 import { ValidationError } from '@forestadmin/datasource-toolkit';
 
-import checkRecordVisibility from '../../audit-trail/record-visibility';
+import checkRecordVisibility, {
+  recheckRecordVisibility,
+} from '../../audit-trail/record-visibility';
 import withholdOutsidePermissionScope from '../../audit-trail/withhold';
 import { HttpCode, RouteType } from '../../types';
 import QueryStringParser from '../../utils/query-string';
@@ -54,7 +56,10 @@ export default class AuditTrailCorrelationRoute extends BaseRoute {
       correlationKey: context.params.correlationKey,
     });
 
-    context.response.body = { data: this.withhold(history, target, context) };
+    const data = await this.withhold(history, target, context);
+    if (!data) return;
+
+    context.response.body = { data };
   }
 
   public async handleBatch(context: Context): Promise<void> {
@@ -69,14 +74,40 @@ export default class AuditTrailCorrelationRoute extends BaseRoute {
       ? await store.listByCorrelations({ collection, recordId, correlationKeys })
       : [];
 
-    context.response.body = { data: this.withhold(history, target, context) };
+    const data = await this.withhold(history, target, context);
+    if (!data) return;
+
+    context.response.body = { data };
   }
 
   // Same rule as the per-record history route: these routes return the same rows, so a gone
   // record's captured values are tested against the caller's permission scope here too. Without it the
   // values the history route withholds come back through a correlation lookup.
-  private withhold(entries: AuditRecord[], target: Target, context: Context): AuditRecord[] {
-    if (!target.permissionScope || !target.goneEntirely) return entries;
+  // The record can go away — or move out of the caller's permission scope — while the audit read is
+  // in flight, so the decision is taken again on the way out rather than reused from the check that
+  // authorized the request. Returns null once it has issued the 404.
+  private async withhold(
+    entries: AuditRecord[],
+    target: Target,
+    context: Context,
+  ): Promise<AuditRecord[] | null> {
+    const after = await recheckRecordVisibility(
+      target.collectionObject,
+      target.recordId,
+      context,
+      target.permissionScope,
+      target.goneEntirely,
+    );
+
+    if (after && !after.visible) {
+      context.throw(HttpCode.NotFound, 'Record does not exists');
+
+      return null;
+    }
+
+    const gone = after ? after.goneEntirely : target.goneEntirely;
+
+    if (!target.permissionScope || !gone) return entries;
 
     return withholdOutsidePermissionScope(entries, {
       collection: target.collectionObject,
@@ -102,10 +133,10 @@ export default class AuditTrailCorrelationRoute extends BaseRoute {
 
     const permissionScope = await this.services.authorization.getScope(collection, context);
     const { visible, goneEntirely } = await checkRecordVisibility(
-      this.services,
       collection,
       recordId,
       context,
+      permissionScope,
     );
 
     if (!visible) {
