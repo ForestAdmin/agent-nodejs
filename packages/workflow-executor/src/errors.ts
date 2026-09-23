@@ -65,6 +65,13 @@ export abstract class WorkflowOperatorError extends WorkflowExecutorError {
   static override readonly defaultErrorKind: ErrorKind = 'operator';
 }
 
+// A fault in the Sub-workflow step that called this workflow. Kept apart from configuration because
+// its members name that step as the remedy, where most configuration errors name a fix only an Admin
+// can make.
+export abstract class WorkflowCallSiteError extends WorkflowExecutorError {
+  static override readonly defaultErrorKind: ErrorKind = 'call-site';
+}
+
 export class MissingToolCallError extends WorkflowExecutorError {
   constructor() {
     super(
@@ -592,7 +599,7 @@ export class SourceRecordMissingError extends WorkflowExecutorError {
 // than the called workflow, whose steps were built against fields and actions it does not have.
 // Distinct from a source that loaded nothing: a record was found, it is the wrong one, and the step
 // to change is the Sub-workflow step one level up rather than anything in this workflow.
-export class SourceRecordCollectionMismatchError extends WorkflowConfigurationError {
+export class SourceRecordCollectionMismatchError extends WorkflowCallSiteError {
   constructor(recordCollectionName: string, calledWorkflowCollectionName: string) {
     super(
       `Source record is from ${recordCollectionName}, but the called workflow runs on ${calledWorkflowCollectionName}`,
@@ -604,7 +611,7 @@ export class SourceRecordCollectionMismatchError extends WorkflowConfigurationEr
 // A Sub-workflow step pins a step of its own workflow that did not run before the call, so the called
 // workflow has no record to start from. Raised on the called workflow's step, whose configuration is
 // correct, so the message points one level up at the Sub-workflow step that set the pin.
-export class SourceRecordStepNotReachedError extends WorkflowConfigurationError {
+export class SourceRecordStepNotReachedError extends WorkflowCallSiteError {
   constructor(pinnedStepId: string) {
     super(
       `Sub-workflow call pins step "${pinnedStepId}", which did not run before the call`,

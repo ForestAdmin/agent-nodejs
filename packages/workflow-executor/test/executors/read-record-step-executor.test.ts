@@ -1783,7 +1783,7 @@ describe('ReadRecordStepExecutor', () => {
       expect(agentPort.getRecord).not.toHaveBeenCalled();
     });
 
-    it('classifies a collection mismatch as configuration and blames no step', async () => {
+    it('classifies a collection mismatch as call-site and blames no step', async () => {
       const context = makeCalledContext(
         { selectedRecordStepId: 'load-1', calledWorkflowCollectionName: 'invoices' },
         {
@@ -1797,7 +1797,7 @@ describe('ReadRecordStepExecutor', () => {
       const result = await new ReadRecordStepExecutor(context).execute();
 
       expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.errorKind).toBe('configuration');
+      expect(result.stepOutcome.errorKind).toBe('call-site');
       expect(result.stepOutcome.errorSourceStepIndex).toBeUndefined();
     });
 
@@ -1843,7 +1843,7 @@ describe('ReadRecordStepExecutor', () => {
         'The Sub-workflow step that called this workflow takes its record from a step that did ' +
           'not run before it. Change the record on that Sub-workflow step.',
       );
-      expect(result.stepOutcome.errorKind).toBe('configuration');
+      expect(result.stepOutcome.errorKind).toBe('call-site');
     });
 
     it('leaves a step pinned to a load-related step unguarded by the called collection', async () => {

@@ -26,7 +26,9 @@ import {
   RecordNotFoundError,
   RelatedRecordNotFoundError,
   RelationNotFoundError,
+  SourceRecordCollectionMismatchError,
   SourceRecordMissingError,
+  SourceRecordStepNotReachedError,
   StepStateError,
   StepTimeoutError,
   causeMessage,
@@ -249,6 +251,17 @@ describe('errorKind classification', () => {
     ['InvalidPreRecordedArgsError', new InvalidPreRecordedArgsError('no record at step index 4')],
   ])('classifies %s as configuration', (_, error) => {
     expect(error.errorKind).toBe('configuration');
+  });
+
+  // The fault is in the calling workflow's Sub-workflow step, and each message names that step.
+  it.each<[string, WorkflowExecutorError]>([
+    [
+      'SourceRecordCollectionMismatchError',
+      new SourceRecordCollectionMismatchError('customers', 'rentals'),
+    ],
+    ['SourceRecordStepNotReachedError', new SourceRecordStepNotReachedError('load-1')],
+  ])('classifies %s as call-site', (_, error) => {
+    expect(error.errorKind).toBe('call-site');
   });
 
   // Unclassified is the starting default: an error nobody has triaged keeps today's framing. The

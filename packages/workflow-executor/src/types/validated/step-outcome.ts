@@ -14,11 +14,19 @@ export type RecordStepStatus = z.infer<typeof RecordStepStatusSchema>;
 export const AwaitingInputReasonSchema = z.enum(['needs-oauth-reauth']);
 export type AwaitingInputReason = z.infer<typeof AwaitingInputReasonSchema>;
 
-// What kind of failure a step error is. All four cross the wire even though only 'operator' drives
-// a UI branch today: widening an enum is cheap, changing a cross-service contract is not.
+// What kind of failure a step error is. Every value crosses the wire even where no consumer branches
+// on it yet: widening an enum is cheap, changing a cross-service contract is not.
 // 'empty-source' separates a source step that ran and loaded nothing from a step the workflow is
 // misconfigured to reach — the run card can name the step to go back to only for the first.
-export const ErrorKindSchema = z.enum(['operator', 'configuration', 'system', 'empty-source']);
+// 'call-site' is a configuration fault that lives in the calling workflow's Sub-workflow step, whose
+// message names that step, so the step it is shown on is not the one to change.
+export const ErrorKindSchema = z.enum([
+  'operator',
+  'configuration',
+  'system',
+  'empty-source',
+  'call-site',
+]);
 export type ErrorKind = z.infer<typeof ErrorKindSchema>;
 
 // Identifies the step an error is about by index rather than by step id: a LinkTo loop repeats ids,
