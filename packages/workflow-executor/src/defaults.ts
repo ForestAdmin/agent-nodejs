@@ -10,6 +10,9 @@ export const DEFAULT_STEP_TIMEOUT_S = 5 * 60;
 export const DEFAULT_AI_INVOKE_TIMEOUT_S = 30;
 export const DEFAULT_STOP_TIMEOUT_S = 30;
 export const DEFAULT_MAX_CHAIN_DEPTH = 50;
+// The orchestrator refuses a `count` above 10 on `pending-run`: a higher value would fail every poll
+// with a 400 and stop the executor from claiming anything.
+export const MAX_CONCURRENT_RUNS = 10;
 export const DEFAULT_SCHEMA_CACHE_TTL_S = 10 * 60;
 export const DEFAULT_LOGGER_LEVEL: LoggerLevel = 'Info';
 // Refresh an OAuth access token this many seconds before it actually expires, so a token never
