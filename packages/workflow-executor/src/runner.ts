@@ -12,7 +12,7 @@ import type { StepExecutionData } from './types/step-execution-data';
 import type { StepOutcome } from './types/validated/step-outcome';
 
 import createConsoleLogger from './adapters/console-logger';
-import { DEFAULT_MAX_CHAIN_DEPTH, DEFAULT_STOP_TIMEOUT_S } from './defaults';
+import { DEFAULT_MAX_CHAIN_DEPTH, DEFAULT_STOP_TIMEOUT_S, MAX_CONCURRENT_RUNS } from './defaults';
 import {
   MalformedRunError,
   RunAlreadyInFlightError,
@@ -202,9 +202,17 @@ export default class Runner {
 
     // Not awaited: the chain's outcome travels through updateStepExecution, never through this
     // response.
-    void this.executeStep(step, auth.forestServerToken, options?.pendingData).catch(error => {
+    this.dispatchDetached(step, auth.forestServerToken, options?.pendingData);
+  }
+
+  private dispatchDetached(
+    step: AvailableStepExecution,
+    forestServerToken: string,
+    incomingPendingData?: unknown,
+  ): void {
+    void this.executeStep(step, forestServerToken, incomingPendingData).catch(error => {
       const context = {
-        runId,
+        runId: step.runId,
         stepId: step.stepId,
         stepIndex: step.stepIndex,
         error: extractErrorMessage(error),
@@ -237,24 +245,46 @@ export default class Runner {
 
   private async runPollCycle(): Promise<void> {
     try {
-      const { pending, malformed } = await this.config.workflowPort.getAvailableRuns();
+      const freeSlots = MAX_CONCURRENT_RUNS - this.inFlightRuns.size;
+
+      if (freeSlots <= 0) {
+        this.logger('Debug', 'Poll cycle skipped, every run slot is busy', {
+          inFlight: this.inFlightRuns.size,
+        });
+
+        return;
+      }
+
+      const { pending, malformed } = await this.config.workflowPort.getAvailableRuns(freeSlots);
       // Each reportMalformedRun has its own try/catch, no individual failure poisons the cycle.
       await Promise.allSettled(malformed.map(info => this.reportMalformedRun(info)));
 
       const dispatchable = pending.filter(d => !this.inFlightRuns.has(d.step.runId));
+
+      if (this._state !== 'running') {
+        this.logger('Info', 'Poll answered after stop began, leaving the claimed runs to expire', {
+          runIds: pending.map(d => d.step.runId),
+        });
+
+        return;
+      }
+
+      dispatchable.forEach(d => this.dispatchDetached(d.step, d.auth.forestServerToken));
+
       const logLevel = Runner.getPollingLogLevel({
         pending: pending.length,
         dispatched: dispatchable.length,
         malformed: malformed.length,
       });
       this.logger(logLevel, 'Poll cycle completed', {
+        requested: freeSlots,
         fetched: pending.length,
         dispatching: dispatchable.length,
         malformed: malformed.length,
+        ...(dispatchable.length < pending.length && {
+          alreadyInFlight: pending.filter(d => !dispatchable.includes(d)).map(d => d.step.runId),
+        }),
       });
-      await Promise.allSettled(
-        dispatchable.map(d => this.executeStep(d.step, d.auth.forestServerToken)),
-      );
     } catch (error) {
       this.logger('Error', 'Poll cycle failed', {
         error: extractErrorMessage(error),

@@ -30,7 +30,7 @@ import {
 import { CollectionSchemaSchema } from '../types/validated/collection';
 
 const ROUTES = {
-  pendingRuns: '/api/workflow-orchestrator/pending-run',
+  pendingRuns: (count: number) => `/api/workflow-orchestrator/pending-run?count=${count}`,
   availableRun: (runId: string) =>
     `/api/workflow-orchestrator/available-run/${encodeURIComponent(runId)}`,
   updateStep: '/api/workflow-orchestrator/update-step',
@@ -59,9 +59,13 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
     this.logger = params.logger ?? createConsoleLogger();
   }
 
-  async getAvailableRuns(): Promise<AvailableRunsBatch> {
+  async getAvailableRuns(count: number): Promise<AvailableRunsBatch> {
     const runs = await this.callPort('getAvailableRuns', () =>
-      ServerUtils.query<ServerHydratedWorkflowRun[]>(this.options, 'get', ROUTES.pendingRuns),
+      ServerUtils.query<ServerHydratedWorkflowRun[]>(
+        this.options,
+        'get',
+        ROUTES.pendingRuns(count),
+      ),
     );
 
     const pending: AvailableRunDispatch[] = [];
