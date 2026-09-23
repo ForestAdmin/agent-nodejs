@@ -683,6 +683,164 @@ describe('polling loop', () => {
 
     expect(workflowPort.getAvailableRuns).toHaveBeenCalledTimes(1);
   });
+
+  describe('parallel runs', () => {
+    function blockExecutions(count: number): Array<() => void> {
+      return Array.from({ length: count }, () => {
+        const release = { fn: (): void => {} };
+        executeSpy.mockReturnValueOnce(
+          new Promise(resolve => {
+            release.fn = () =>
+              resolve({
+                stepOutcome: { type: 'record', stepId: 'step-1', stepIndex: 0, status: 'success' },
+              });
+          }),
+        );
+
+        return () => release.fn();
+      });
+    }
+
+    function batchOf(count: number, prefix = 'run') {
+      return Array.from({ length: count }, (_unused, index) =>
+        makePendingDispatch({ runId: `${prefix}-${index}` }),
+      );
+    }
+
+    it('asks for every run slot on the first poll', async () => {
+      const workflowPort = createMockWorkflowPort();
+      runner = new Runner(createRunnerConfig({ workflowPort }));
+      await runner.start();
+
+      jest.advanceTimersByTime(POLLING_INTERVAL_MS);
+      await flushPromises();
+
+      expect(workflowPort.getAvailableRuns).toHaveBeenCalledWith(10);
+    });
+
+    it('polls again while earlier runs are still executing, for the slots left free', async () => {
+      const workflowPort = createMockWorkflowPort();
+      const releases = blockExecutions(3);
+      workflowPort.getAvailableRuns.mockResolvedValueOnce({ pending: batchOf(3), malformed: [] });
+      runner = new Runner(createRunnerConfig({ workflowPort }));
+      await runner.start();
+
+      jest.advanceTimersByTime(POLLING_INTERVAL_MS);
+      await flushPromises();
+      await flushPromises();
+      jest.advanceTimersByTime(POLLING_INTERVAL_MS);
+      await flushPromises();
+
+      expect(workflowPort.getAvailableRuns).toHaveBeenNthCalledWith(2, 7);
+
+      releases.forEach(release => release());
+      await drainRuns(runner);
+    });
+
+    it('does not call the orchestrator while every slot is busy, and polls again later', async () => {
+      const workflowPort = createMockWorkflowPort();
+      const logger = createMockLogger();
+      const releases = blockExecutions(10);
+      workflowPort.getAvailableRuns.mockResolvedValueOnce({ pending: batchOf(10), malformed: [] });
+      runner = new Runner(createRunnerConfig({ workflowPort, logger }));
+      await runner.start();
+
+      jest.advanceTimersByTime(POLLING_INTERVAL_MS);
+      await flushPromises();
+      await flushPromises();
+      jest.advanceTimersByTime(POLLING_INTERVAL_MS);
+      await flushPromises();
+
+      expect(workflowPort.getAvailableRuns).toHaveBeenCalledTimes(1);
+      expect(logger).toHaveBeenCalledWith('Debug', 'Poll cycle skipped, every run slot is busy', {
+        inFlight: 10,
+      });
+
+      releases.forEach(release => release());
+      await drainRuns(runner);
+      jest.advanceTimersByTime(POLLING_INTERVAL_MS);
+      await flushPromises();
+
+      expect(workflowPort.getAvailableRuns).toHaveBeenNthCalledWith(2, 10);
+    });
+
+    it('waits for runs started by a poll when stopping', async () => {
+      const workflowPort = createMockWorkflowPort();
+      const [release] = blockExecutions(1);
+      workflowPort.getAvailableRuns.mockResolvedValueOnce({ pending: batchOf(1), malformed: [] });
+      runner = new Runner(createRunnerConfig({ workflowPort }));
+      await runner.start();
+
+      jest.advanceTimersByTime(POLLING_INTERVAL_MS);
+      await flushPromises();
+      await flushPromises();
+
+      let stopped = false;
+      const stopping = runner.stop().then(() => {
+        stopped = true;
+      });
+      await flushPromises();
+
+      expect(stopped).toBe(false);
+
+      release();
+      await stopping;
+
+      expect(stopped).toBe(true);
+      expect(workflowPort.updateStepExecution).toHaveBeenCalledWith(
+        'run-0',
+        expect.objectContaining({ status: 'success' }),
+      );
+    });
+
+    it('does not start a second copy of a run already executing', async () => {
+      const workflowPort = createMockWorkflowPort();
+      const [release] = blockExecutions(1);
+      workflowPort.getAvailableRuns
+        .mockResolvedValueOnce({ pending: batchOf(1), malformed: [] })
+        .mockResolvedValueOnce({ pending: batchOf(1), malformed: [] });
+      runner = new Runner(createRunnerConfig({ workflowPort }));
+      await runner.start();
+
+      jest.advanceTimersByTime(POLLING_INTERVAL_MS);
+      await flushPromises();
+      await flushPromises();
+      jest.advanceTimersByTime(POLLING_INTERVAL_MS);
+      await flushPromises();
+      await flushPromises();
+
+      expect(workflowPort.getAvailableRuns).toHaveBeenNthCalledWith(2, 9);
+      expect(executeSpy).toHaveBeenCalledTimes(1);
+
+      release();
+      await drainRuns(runner);
+    });
+
+    it('does not start runs a poll brought back after stop() began', async () => {
+      const workflowPort = createMockWorkflowPort();
+      const runStore = createMockRunStore();
+
+      let answer: (value: Awaited<ReturnType<WorkflowPort['getAvailableRuns']>>) => void = () => {};
+
+      workflowPort.getAvailableRuns.mockReturnValueOnce(
+        new Promise(resolve => {
+          answer = resolve;
+        }),
+      );
+      runner = new Runner(createRunnerConfig({ workflowPort, runStore }));
+      await runner.start();
+
+      jest.advanceTimersByTime(POLLING_INTERVAL_MS);
+      await flushPromises();
+      await runner.stop();
+      answer({ pending: batchOf(1), malformed: [] });
+      await flushPromises();
+      await flushPromises();
+
+      expect(runStore.close).toHaveBeenCalled();
+      expect(executeSpy).not.toHaveBeenCalled();
+    });
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -2373,6 +2531,7 @@ describe('error handling', () => {
     await flushPromises();
 
     expect(mockLogger).toHaveBeenCalledWith('Debug', 'Poll cycle completed', {
+      requested: 10,
       fetched: 0,
       dispatching: 0,
       malformed: 0,

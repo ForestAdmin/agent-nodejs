@@ -10,6 +10,10 @@ export const DEFAULT_STEP_TIMEOUT_S = 5 * 60;
 export const DEFAULT_AI_INVOKE_TIMEOUT_S = 30;
 export const DEFAULT_STOP_TIMEOUT_S = 30;
 export const DEFAULT_MAX_CHAIN_DEPTH = 50;
+// Runs executed in parallel by one executor. Not configurable on purpose: raising it multiplies the
+// load on the customer's agent and AI quota, so it stays ours until that load is measured. Equal to
+// the orchestrator's cap on `pending-run?count`, so one poll can fill every free slot.
+export const MAX_CONCURRENT_RUNS = 10;
 export const DEFAULT_SCHEMA_CACHE_TTL_S = 10 * 60;
 export const DEFAULT_LOGGER_LEVEL: LoggerLevel = 'Info';
 // Refresh an OAuth access token this many seconds before it actually expires, so a token never

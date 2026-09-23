@@ -102,12 +102,12 @@ describe('ForestServerWorkflowPort', () => {
     it('calls the pending-run route and returns pending + malformed buckets', async () => {
       mockQuery.mockResolvedValue([makeRun()]);
 
-      const result = await port.getAvailableRuns();
+      const result = await port.getAvailableRuns(10);
 
       expect(mockQuery).toHaveBeenCalledWith(
         options,
         'get',
-        '/api/workflow-orchestrator/pending-run',
+        '/api/workflow-orchestrator/pending-run?count=10',
       );
       expect(result.pending).toHaveLength(1);
       expect(result.pending[0].step.runId).toBe('42');
@@ -133,7 +133,7 @@ describe('ForestServerWorkflowPort', () => {
       });
       mockQuery.mockResolvedValue([terminalRun]);
 
-      const result = await port.getAvailableRuns();
+      const result = await port.getAvailableRuns(10);
 
       expect(result.pending).toEqual([]);
       expect(result.malformed).toEqual([]);
@@ -144,7 +144,7 @@ describe('ForestServerWorkflowPort', () => {
       const malformedRun = makeRun({ id: 99, collectionName: null });
       mockQuery.mockResolvedValue([malformedRun, validRun]);
 
-      const result = await port.getAvailableRuns();
+      const result = await port.getAvailableRuns(10);
 
       expect(result.pending).toHaveLength(1);
       expect(result.pending[0].step.runId).toBe('42');
@@ -192,7 +192,7 @@ describe('ForestServerWorkflowPort', () => {
       });
       mockQuery.mockResolvedValue([malformedRun]);
 
-      const result = await port.getAvailableRuns();
+      const result = await port.getAvailableRuns(10);
 
       expect(result.malformed[0]).toEqual(
         expect.objectContaining({ stepId: 'pending-step', stepIndex: 1 }),
@@ -203,7 +203,7 @@ describe('ForestServerWorkflowPort', () => {
       const malformedRun = makeRun({ id: 88, collectionName: null, workflowHistory: [] });
       mockQuery.mockResolvedValue([malformedRun]);
 
-      const result = await port.getAvailableRuns();
+      const result = await port.getAvailableRuns(10);
 
       expect(result.malformed[0]).toEqual(
         expect.objectContaining({ runId: '88', stepId: null, stepIndex: null }),
@@ -224,7 +224,7 @@ describe('ForestServerWorkflowPort', () => {
       });
       mockQuery.mockResolvedValue([unsupportedRun]);
 
-      const result = await port.getAvailableRuns();
+      const result = await port.getAvailableRuns(10);
 
       expect(result.pending).toEqual([]);
       expect(result.malformed).toHaveLength(1);
@@ -251,7 +251,7 @@ describe('ForestServerWorkflowPort', () => {
       });
       mockQuery.mockResolvedValue([malformedRun]);
 
-      const result = await port.getAvailableRuns();
+      const result = await port.getAvailableRuns(10);
 
       expect(result.pending).toEqual([]);
       expect(result.malformed[0]).toEqual(
@@ -269,7 +269,7 @@ describe('ForestServerWorkflowPort', () => {
       });
       mockQuery.mockResolvedValue([malformedRun]);
 
-      const result = await port.getAvailableRuns();
+      const result = await port.getAvailableRuns(10);
 
       expect(result.pending).toEqual([]);
       expect(result.malformed[0]).toEqual(
@@ -302,7 +302,7 @@ describe('ForestServerWorkflowPort', () => {
       });
       mockQuery.mockResolvedValue([malformedRun]);
 
-      const result = await port.getAvailableRuns();
+      const result = await port.getAvailableRuns(10);
 
       expect(result.pending).toEqual([]);
       expect(result.malformed[0]).toEqual(
@@ -321,7 +321,7 @@ describe('ForestServerWorkflowPort', () => {
       const brokenRun = { ...makeRun({ id: 111 }), selectedRecordId: 42 as never };
       mockQuery.mockResolvedValue([brokenRun]);
 
-      const result = await portWithLogger.getAvailableRuns();
+      const result = await portWithLogger.getAvailableRuns(10);
 
       expect(result.pending).toEqual([]);
       expect(result.malformed).toEqual([
@@ -1106,7 +1106,7 @@ describe('ForestServerWorkflowPort', () => {
     it('propagates errors from ServerUtils.query on getAvailableRuns', async () => {
       mockQuery.mockRejectedValue(new Error('Network error'));
 
-      await expect(port.getAvailableRuns()).rejects.toThrow('Network error');
+      await expect(port.getAvailableRuns(10)).rejects.toThrow('Network error');
     });
 
     it('propagates errors from getAvailableRun', async () => {
