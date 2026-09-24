@@ -91,6 +91,9 @@ export default class AuditTrailCorrelationRoute extends BaseRoute {
     target: Target,
     context: Context,
   ): Promise<AuditRecord[] | null> {
+    // An empty answer has nothing to withhold, so it does not earn a second read of the record.
+    if (!entries.length) return entries;
+
     const after = await recheckRecordVisibility(
       target.collectionObject,
       target.recordId,

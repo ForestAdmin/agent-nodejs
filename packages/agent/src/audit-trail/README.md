@@ -212,9 +212,16 @@ happens for a scoped caller — with no scope there is nothing to withhold.
 That test only runs when the snapshot can actually answer it. The capture keeps the writable columns
 (plus the packed record id), so a scope reaching for anything else — a read-only column, a relation,
 a field stored redacted — has no honest answer in the snapshot and the values are withheld rather
-than matched against a missing key: absent is not the same as passing. Primary keys are the
-exception, read back from the row's own id, so a scope on the id still matches the record it belongs
-to.
+than matched against a missing key: absent is not the same as passing.
+
+Primary keys are the exception, read back from the row's own id — but only for the side that id
+speaks for. A row is filed under the identity the record ended up with, so its id answers for a
+`create`, a `delete` and the new side of an `update`, never for what an update moved away from. A
+key the snapshot never carried is read-only and cannot have moved, so it is filled on either side; a
+key the trail **redacts** is writable and can have moved, so it is filled only where the row's id is
+authoritative. The cost is that an update's previous side is withheld whenever its primary key is
+redacted, even when the key never moved — the same direction as everything else here, and it is what
+carrying the id it moved from would buy back.
 
 ### `GET /forest/_audit-trail/{collection}/{recordId}` — per-record history
 

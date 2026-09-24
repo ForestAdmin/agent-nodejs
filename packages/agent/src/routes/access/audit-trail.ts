@@ -19,7 +19,7 @@ import checkRecordVisibility, {
 } from '../../audit-trail/record-visibility';
 import withholdOutsidePermissionScope, {
   permissionScopeAccepts,
-  withPackedPrimaryKeys,
+  snapshotFor,
 } from '../../audit-trail/withhold';
 import { HttpCode } from '../../types';
 import IdUtils from '../../utils/id';
@@ -236,7 +236,14 @@ export default class AuditTrailRoute extends CollectionRoute {
     if (
       goneNow &&
       !permissionScopeAccepts(
-        withPackedPrimaryKeys(state, context.params.id, this.collection, this.options.logger),
+        // `false`: the reconstruction may sit on the far side of a primary-key move this route
+        // cannot see, so the requested id does not answer for a key the trail redacted.
+        snapshotFor(
+          state,
+          context.params.id,
+          { collection: this.collection, logger: this.options.logger },
+          false,
+        ),
         {
           collection: this.collection,
           permissionScope,

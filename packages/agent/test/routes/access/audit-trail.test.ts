@@ -1018,6 +1018,8 @@ describe('AuditTrailRoute', () => {
     describe('a snapshot that cannot answer the scope', () => {
       // Mirrors what `instrument.ts` captures: writable columns only, so a read-only column is
       // absent from the snapshot and a redacted one holds the placeholder rather than the value.
+      let lastLogger: jest.Mock;
+
       const setupUnanswerable = (history: unknown[]) => {
         const services = factories.forestAdminHttpDriverServices.build();
         const dataSource = factories.dataSource.buildWithCollections([
@@ -1065,6 +1067,9 @@ describe('AuditTrailRoute', () => {
       // The record is gone for good: empty in scope and empty without it.
       const historyUnder = async (scope: ConditionTreeLeaf, history: unknown[]) => {
         const { services, dataSource, options } = setupUnanswerable(history);
+        const logger = jest.fn();
+        (options as { logger: unknown }).logger = logger;
+        lastLogger = logger;
         (services.authorization.getScope as jest.Mock).mockResolvedValue(scope);
         jest.spyOn(dataSource.getCollection('books'), 'list').mockResolvedValue([]);
         const route = new AuditTrailRoute(services, options, dataSource, 'books');
@@ -1148,6 +1153,42 @@ describe('AuditTrailRoute', () => {
           expect(data).toEqual([row]);
         },
       );
+
+      // The row is filed under the identity the record ended up with. When the key is redacted, the
+      // snapshot cannot say what it was, and the row's id speaks only for the side it was filed
+      // under — so the previous side of an update has nothing left to answer with and is withheld.
+      // Filling it would let the new id decide whether the old state was in scope.
+      test('withholds an update side whose redacted primary key the row id cannot answer for', async () => {
+        const data = await historyUnder(new ConditionTreeLeaf('id', 'Equal', 9), [
+          {
+            operation: 'update',
+            recordId: '9',
+            previousValues: { id: REDACTED, secret: 'captured while it was out of scope' },
+            newValues: { id: REDACTED, secret: 'public now' },
+          },
+        ]);
+
+        expect(data).toEqual([
+          {
+            operation: 'update',
+            recordId: '9',
+            previousValues: {},
+            newValues: { id: REDACTED, secret: 'public now' },
+          },
+        ]);
+      });
+
+      test('says so when a row id cannot be unpacked, rather than withholding silently', async () => {
+        await historyUnder(new ConditionTreeLeaf('id', 'Equal', 2), [
+          { operation: 'delete', recordId: '2|7', previousValues: { ownerId: 9 } },
+        ]);
+
+        expect(lastLogger).toHaveBeenCalledTimes(1);
+        expect(lastLogger).toHaveBeenCalledWith(
+          'Warn',
+          expect.stringContaining('cannot unpack record id "2|7"'),
+        );
+      });
 
       test('tests each side of a key move against the id that side carried', async () => {
         const data = await historyUnder(new ConditionTreeLeaf('id', 'Equal', 9), [
