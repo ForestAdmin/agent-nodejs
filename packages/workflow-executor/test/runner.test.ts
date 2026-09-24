@@ -63,6 +63,7 @@ function createMockAiClient() {
     loadRemoteTools: jest.fn().mockResolvedValue([]),
     loadRemoteToolsWithFailures: jest.fn().mockResolvedValue({ tools: [], failures: [] }),
     closeConnections: jest.fn().mockResolvedValue(undefined),
+    probeCredentials: jest.fn().mockResolvedValue(undefined),
   };
 }
 
@@ -305,6 +306,44 @@ describe('start', () => {
     await expect(runner.start()).rejects.toThrow('cannot reach agent');
     expect(config.runStore.init).not.toHaveBeenCalled();
     expect(runner.state).toBe('idle');
+  });
+
+  // Credentials that resolve to nothing would otherwise surface on the first AI step of the first
+  // workflow, long after this instance answered its health check — the same reason the agent is
+  // probed above.
+  it('does not init the run store when the AI credential probe fails', async () => {
+    const config = createRunnerConfig();
+    config.aiModelPort.probeCredentials = jest
+      .fn()
+      .mockRejectedValue(new Error('no AWS credentials could be resolved'));
+    runner = new Runner(config);
+
+    await expect(runner.start()).rejects.toThrow('no AWS credentials could be resolved');
+    expect(config.runStore.init).not.toHaveBeenCalled();
+    expect(runner.state).toBe('idle');
+  });
+
+  it('probes credentials before initialising the run store', async () => {
+    const config = createRunnerConfig();
+    runner = new Runner(config);
+
+    await runner.start();
+
+    const probeOrder = (config.aiModelPort.probeCredentials as jest.Mock).mock
+      .invocationCallOrder[0];
+    const initOrder = (config.runStore.init as jest.Mock).mock.invocationCallOrder[0];
+    expect(probeOrder).toBeLessThan(initOrder);
+  });
+
+  // Runner and RunnerConfig are exported, so an untyped consumer can pass a port built before
+  // probeCredentials existed. TypeScript requires it; the call site must not crash without it.
+  it('starts when an untyped consumer supplies a port without probeCredentials', async () => {
+    const config = createRunnerConfig();
+    delete (config.aiModelPort as { probeCredentials?: unknown }).probeCredentials;
+    runner = new Runner(config);
+
+    await expect(runner.start()).resolves.toBeUndefined();
+    expect(runner.state).toBe('running');
   });
 
   it('reports the executor version to the orchestrator on start', async () => {

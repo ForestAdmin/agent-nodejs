@@ -18,5 +18,8 @@ export interface AiModelPort {
   loadRemoteToolsWithFailures(
     configs: Record<string, ToolConfig>,
   ): Promise<{ tools: RemoteTool[]; failures: McpServerLoadFailure[] }>;
+  // Boot gate, resolved before the executor reports itself ready. An implementation with no
+  // credentials to check returns immediately — explicitly, so a missing one is a compile error.
+  probeCredentials(): Promise<void>;
   closeConnections(): Promise<void>;
 }

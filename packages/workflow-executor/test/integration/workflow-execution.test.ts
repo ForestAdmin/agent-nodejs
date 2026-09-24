@@ -142,6 +142,7 @@ function createMockAiClient(model: BaseChatModel): AiModelPort {
     loadRemoteTools: jest.fn().mockResolvedValue([]),
     loadRemoteToolsWithFailures: jest.fn().mockResolvedValue({ tools: [], failures: [] }),
     closeConnections: jest.fn().mockResolvedValue(undefined),
+    probeCredentials: jest.fn().mockResolvedValue(undefined),
   } as unknown as AiModelPort;
 }
 
