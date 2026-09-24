@@ -39,12 +39,8 @@ export enum TriggerType {
 }
 export const TriggerTypeSchema = z.nativeEnum(TriggerType);
 
-// The Sub-workflow call the pending step runs inside: the record the calling step pinned and the
-// collection the called workflow is built on. Both optional — a call sending neither behaves as
-// before. Grouped rather than loose, as both describe the same call. `pinnedFrameStepIndexes` holds
-// the steps of the frame that wrote the pin, which is where the pinned step is looked for, and so
-// travels with the pin and never without it. A frame's steps are not a range: a nested call's body
-// sits between them, and a closed sibling call repeating a step id is what an upper bound admits.
+// Grouped because every field describes the same call. The frame is a set of steps rather than an
+// upper bound, because a nested call's body sits between a frame's steps.
 export const CallScopeSchema = z
   .object({
     selectedRecordStepId: z.string().min(1).optional(),

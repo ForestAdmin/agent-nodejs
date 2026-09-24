@@ -1549,9 +1549,7 @@ describe('ReadRecordStepExecutor', () => {
     });
   });
 
-  // A step inside a called workflow reads "workflow start" as the record the calling step pinned,
-  // not the record the run was launched on, and refuses a record of another collection than the
-  // called workflow's.
+  // The calling step's pin wins over the run's record, and another collection's record is refused.
   describe('workflow-start inside a sub-workflow call', () => {
     const pinnedOrderRef = makeRecordRef({
       collectionName: 'orders',
@@ -1630,9 +1628,8 @@ describe('ReadRecordStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('success');
     });
 
-    // A step id is unique only inside its own workflow, so any other workflow repeating one — a
-    // copy of its caller, a call on itself, or a sibling call that already closed — must not answer
-    // the pin its caller wrote.
+    // Step ids are unique only per workflow, so a copy, a self-call or a closed sibling must not
+    // answer the pin its caller wrote.
     it('resolves the call pin against the caller, not a step of the called workflow repeating its id', async () => {
       const calleeStep = (stepIndex: number): Step => ({
         stepDefinition: {
@@ -1951,8 +1948,7 @@ describe('ReadRecordStepExecutor', () => {
       );
     });
 
-    // The editor keeps its own copy of this literal in
-    // app/features/workflow-editor/configuration.ts (WORKFLOW_START_STEP_ID). The two
+    // The editor mirrors this literal in app/features/workflow-editor/configuration.ts, and the two
     // repositories share no code, so the literal is the whole agreement.
     it('keeps the workflow-start sentinel the editor mirrors in app/features/workflow-editor/configuration.ts', () => {
       expect(WORKFLOW_START_STEP_ID).toBe('workflow-start');

@@ -121,16 +121,14 @@ function toPreviousSteps(
 
 // A missing, empty or non-string wire value reads as absent: a call sending neither the pin nor the
 // called collection behaves as one that predates them.
-// The run's own frame, which no call opened.
 const ROOT_FRAME = -1;
 
 function toNonEmptyString(value: unknown): string | undefined {
   return typeof value === 'string' && value.length > 0 ? value : undefined;
 }
 
-// The Sub-workflow call the pending step runs inside, if any. Reconstructed from the raw history
-// because previousSteps drops the navigation steps; revised and cancelled entries are skipped and
-// each call paired with its close, as the orchestrator reads its own stack.
+// Rebuilt from the raw history because previousSteps drops the navigation steps, and read the way
+// the orchestrator reads its own call stack so the two agree on which call is open.
 function toCallScope(
   history: ServerStepHistory[],
   pending: ServerStepHistory,
@@ -142,8 +140,7 @@ function toCallScope(
     frameOpenedAt: number;
     definition: ServerStartSubWorkflow;
   }> = [];
-  // Which frame each step ran in, keyed by the index of the call that opened it, -1 for the run's
-  // own. A frame is not a span: its steps resume after each nested call closes.
+  // Tracked per step rather than as a range, because a frame's steps resume after each nested call.
   const frameOfStep = new Map<number, number>();
 
   history.forEach(entry => {
@@ -178,10 +175,8 @@ function toCallScope(
     innermost.definition.calledWorkflowCollectionName,
   );
 
-  // The pin names a step of the workflow that wrote it, so it resolves only among that frame's own
-  // steps. previousSteps flattens every frame, and any workflow repeating a step id — a copy of its
-  // caller, a call on itself, or a sibling call that already closed — would otherwise answer with
-  // its own record.
+  // Step ids are unique only per workflow, so outside the frame that wrote the pin a copy, a
+  // self-call or an already closed sibling would answer with its own record.
   const pinnedFrameStepIndexes =
     pinnedBy &&
     [...frameOfStep]

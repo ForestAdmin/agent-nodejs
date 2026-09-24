@@ -65,9 +65,8 @@ export abstract class WorkflowOperatorError extends WorkflowExecutorError {
   static override readonly defaultErrorKind: ErrorKind = 'operator';
 }
 
-// A fault in the Sub-workflow step that called this workflow. Kept apart from configuration because
-// its members name that step as the remedy, where most configuration errors name a fix only an Admin
-// can make.
+// Kept apart from configuration because its members name the calling Sub-workflow step as the
+// remedy, where most configuration errors name a fix only an Admin can make.
 export abstract class WorkflowCallSiteError extends WorkflowExecutorError {
   static override readonly defaultErrorKind: ErrorKind = 'call-site';
 }
@@ -595,10 +594,8 @@ export class SourceRecordMissingError extends WorkflowExecutorError {
   }
 }
 
-// The record "workflow start" resolves to inside a Sub-workflow call belongs to another collection
-// than the called workflow, whose steps were built against fields and actions it does not have.
-// Distinct from a source that loaded nothing: a record was found, it is the wrong one, and the step
-// to change is the Sub-workflow step one level up rather than anything in this workflow.
+// Not SourceRecordMissingError: a record was found and it is the wrong one, so the remedy is the
+// calling Sub-workflow step rather than anything in this workflow.
 export class SourceRecordCollectionMismatchError extends WorkflowCallSiteError {
   constructor(recordCollectionName: string, calledWorkflowCollectionName: string) {
     super(
@@ -608,9 +605,8 @@ export class SourceRecordCollectionMismatchError extends WorkflowCallSiteError {
   }
 }
 
-// A Sub-workflow step pins a step of its own workflow that did not run before the call, so the called
-// workflow has no record to start from. Raised on the called workflow's step, whose configuration is
-// correct, so the message points one level up at the Sub-workflow step that set the pin.
+// Raised on the called workflow's step, whose configuration is correct, so the message points at
+// the Sub-workflow step that set the pin instead.
 export class SourceRecordStepNotReachedError extends WorkflowCallSiteError {
   constructor(pinnedStepId: string) {
     super(

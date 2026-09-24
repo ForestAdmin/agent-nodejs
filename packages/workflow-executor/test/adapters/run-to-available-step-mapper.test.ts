@@ -981,9 +981,8 @@ describe('toAvailableStepExecution', () => {
     });
   });
 
-  // A step running inside a Sub-workflow call reads "workflow start" as the record the calling
-  // step pinned. The mapper is a pure function of the run payload, so it carries the pin and the
-  // called workflow's collection; the record behind the pin is resolved by the executor.
+  // The mapper is a pure function of the payload, so it carries the pin and leaves the record
+  // behind it to the executor, which has the run store.
   describe('sub-workflow call scope', () => {
     function makeStartSubWorkflowHistory(
       entry: Partial<ServerStepHistory>,

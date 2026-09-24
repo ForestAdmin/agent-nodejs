@@ -18,9 +18,8 @@ import {
 import BaseStepExecutor from './base-step-executor';
 import { StepType, WORKFLOW_START_STEP_ID } from '../types/validated/step-definition';
 
-// A source step that offered a candidate and was passed over is an operator situation; one that ran
-// and found nothing is an empty source, which is the step the operator can go back to. Neither is a
-// configuration fault. An execution the guard cannot read stays unclassified.
+// Candidates passed over are the operator's call, and none at all is a source the operator can go
+// back to. Neither is a configuration fault, so neither is classified as one.
 function classifyMissingSourceRecord(execution?: StepExecutionData): ErrorKind | undefined {
   if (execution?.type !== 'load-related-record') return undefined;
 
@@ -93,9 +92,8 @@ export default abstract class RecordStepExecutor<
     const { callScope, baseRecordRef } = this.context;
     if (!callScope) return baseRecordRef;
 
-    // Inside a Sub-workflow call, "workflow start" means the record the calling step pinned. A call
-    // pinning none behaves exactly as before the pin existed: it starts from the record the run was
-    // launched on, whatever collection the called workflow is on, until the Editor sets one.
+    // A call pinning nothing keeps the behaviour it had before the pin existed, whatever
+    // collection the called workflow is on, until the Editor sets one.
     if (!callScope.selectedRecordStepId && !callScope.isPinned) return baseRecordRef;
 
     // A call pinning "workflow start" all the way out pins the run's record, and is still checked.
@@ -111,8 +109,8 @@ export default abstract class RecordStepExecutor<
       record = pinned;
     }
 
-    // A pinned record of another collection than the called workflow is not what its steps were
-    // built against, so the step refuses it rather than acting on it, naming both collections.
+    // The called workflow's steps were built against its own collection, so a record of another one
+    // is refused rather than acted on.
     if (
       callScope.calledWorkflowCollectionName !== undefined &&
       record.collectionName !== callScope.calledWorkflowCollectionName
@@ -126,14 +124,8 @@ export default abstract class RecordStepExecutor<
     return record;
   }
 
-  // The record a Load Related Record step loaded, or undefined when no step with that id ran, so each
-  // caller names its own miss.
-  // previousSteps are already restricted to the live path; in a loop the same id can appear more
-  // than once, so we take the most recent occurrence. `frameStepIndexes` narrows that to the steps
-  // of the frame that wrote a Sub-workflow call's pin: previousSteps flattens every frame, and a
-  // step id is unique only inside its own workflow, so any other workflow repeating one — a copy of
-  // the caller, a call on itself, a sibling call that already closed — would otherwise shadow the
-  // step its caller pinned. A step resolving an id it declared itself passes no frame.
+  // Undefined on a miss so each caller names its own error, and the latest match because a loop
+  // repeats ids. A call's pin passes its frame, since step ids are unique only per workflow.
   private async resolveStepRecordRef(
     stepId: string,
     frameStepIndexes?: number[],
