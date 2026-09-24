@@ -28,6 +28,11 @@ const MAX_EXCLUDED_RECORDS = 150;
 // Every inbox reads the customer's agent several times. Sweeping them all at once piles those reads
 // onto the customer's database, and agent-client's ten-second timeout turns the pile-up into inboxes
 // that skip their sync.
+//
+// The cost is cycle duration, and the orchestrator's poller lease is renewed by the config call
+// that opens a cycle — so an environment whose cycle outlasts the lease TTL can have a second
+// instance win the election and sweep alongside this one. Duplicate sweeps are absorbed by the
+// assignment and run unique indexes, so this costs reads rather than correctness.
 const MAX_CONCURRENT_INBOX_POLLS = 5;
 
 // The agents that serve `POST /forest/_internal/capabilities`, the same list the front gates that
