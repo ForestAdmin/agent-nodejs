@@ -292,7 +292,7 @@ describe('ForestServerAutomationPort', () => {
       mockQuery.mockResolvedValue({
         results: [
           { recordId: 'r1', outcome: 'started' },
-          { recordId: 'r2', outcome: 'escalated' },
+          { recordId: 'r2', outcome: 'untreated' },
         ],
       });
       const body = {
@@ -302,7 +302,7 @@ describe('ForestServerAutomationPort', () => {
 
       await expect(port.sync('inbox-1', body)).resolves.toEqual([
         { recordId: 'r1', outcome: 'started' },
-        { recordId: 'r2', outcome: 'escalated' },
+        { recordId: 'r2', outcome: 'untreated' },
       ]);
       expect(mockQuery).toHaveBeenCalledWith(
         options,
