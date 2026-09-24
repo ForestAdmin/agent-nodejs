@@ -1,3 +1,10 @@
+## @forestadmin/agent [1.103.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.103.3...@forestadmin/agent@1.103.4) (2026-09-24)
+
+
+### Bug Fixes
+
+* **audit-trail:** withhold the values a caller's permission scope does not cover [PRD-1265] ([#1909](https://github.com/ForestAdmin/agent-nodejs/issues/1909)) ([2633e58](https://github.com/ForestAdmin/agent-nodejs/commit/2633e581464bc5dbcaed98b9f09d5e59a88e8859)), closes [agent-ruby#393](https://github.com/agent-ruby/issues/393) [agent-ruby#393](https://github.com/agent-ruby/issues/393)
+
 ## @forestadmin/agent [1.103.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.103.2...@forestadmin/agent@1.103.3) (2026-09-23)
 
 
