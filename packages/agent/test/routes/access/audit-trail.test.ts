@@ -1190,6 +1190,52 @@ describe('AuditTrailRoute', () => {
         );
       });
 
+      // `''` is a legal value for a string primary key: it packs and unpacks like any other, so it
+      // is an id the row has, not an id the row lacks.
+      test('answers a scope on a primary key whose value is the empty string', async () => {
+        const services = factories.forestAdminHttpDriverServices.build();
+        const dataSource = factories.dataSource.buildWithCollections([
+          factories.collection.build({
+            name: 'books',
+            schema: factories.collectionSchema.build({
+              fields: {
+                code: factories.columnSchema.build({
+                  columnType: 'String',
+                  isPrimaryKey: true,
+                  filterOperators: new Set(['Equal', 'In']),
+                }),
+                // Read-only, so the capture never keeps it and only the packed id can answer.
+                title: factories.columnSchema.build({ columnType: 'String', isReadOnly: true }),
+              },
+            }),
+          }),
+        ]);
+        const history = [{ operation: 'delete', recordId: '', previousValues: { secret: 'kept' } }];
+        const store = {
+          listByRecord: jest.fn().mockResolvedValue(history),
+          countByRecord: jest.fn().mockResolvedValue(1),
+          listDistinctUsers: jest.fn().mockResolvedValue([]),
+        };
+        const options = factories.forestAdminHttpDriverOptions.build({
+          auditTrail: { connectionString: 'sqlite::memory:', store } as never,
+        });
+        (services.authorization.getScope as jest.Mock).mockResolvedValue(
+          new ConditionTreeLeaf('code', 'Equal', ''),
+        );
+        jest.spyOn(dataSource.getCollection('books'), 'list').mockResolvedValue([]);
+        const route = new AuditTrailRoute(services, options, dataSource, 'books');
+        const context = createMockContext({
+          state: { user: { email: 'john.doe@domain.com' } },
+          customProperties: { query: { timezone: 'Europe/Paris' }, params: { id: '' } },
+        });
+
+        await route.handleHistory(context);
+
+        expect((context.response.body as { data: unknown[] }).data).toEqual([
+          { operation: 'delete', recordId: '', previousValues: { secret: 'kept' }, newValues: {} },
+        ]);
+      });
+
       test('tests each side of a key move against the id that side carried', async () => {
         const data = await historyUnder(new ConditionTreeLeaf('id', 'Equal', 9), [
           {

@@ -88,13 +88,17 @@ function answerableSnapshot(
 /**
  * The row's packed id as a `{ key: value }` map, or null when there is none to read — no id at all
  * (a pending create), or one the current schema can no longer unpack.
+ *
+ * Absence is `null`, not falsiness: `''` is a legal value for a string primary key, and it packs
+ * and unpacks like any other. Reading it as "no id" would leave the key unanswered and blank the
+ * values of a record whose id genuinely is the empty string.
  */
 export function decodePrimaryKeys(
   packedId: string | null,
   collection: Collection,
   logger?: Logger,
 ): Record<string, unknown> | null {
-  if (!packedId) return null;
+  if (packedId === null || packedId === undefined) return null;
 
   try {
     const names = SchemaUtils.getPrimaryKeys(collection.schema);
