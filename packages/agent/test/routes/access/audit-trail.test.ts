@@ -1128,6 +1128,29 @@ describe('AuditTrailRoute', () => {
         ]);
       });
 
+      // A row is filed under ONE id, but an update carries TWO states. When the key itself moves,
+      // the row is filed under the id it moved to — so judging both sides by that id asks the
+      // previous side to answer for an id it never had.
+      test('tests each side of a key move against the id that side carried', async () => {
+        const data = await historyUnder(new ConditionTreeLeaf('id', 'Equal', 9), [
+          {
+            operation: 'update',
+            recordId: '9',
+            previousValues: { id: 2, ownerId: 9 },
+            newValues: { id: 9, ownerId: 4 },
+          },
+        ]);
+
+        expect(data).toEqual([
+          {
+            operation: 'update',
+            recordId: '9',
+            previousValues: {},
+            newValues: { id: 9, ownerId: 4 },
+          },
+        ]);
+      });
+
       test('withholds the values when the scope names an inherited property of the snapshot', async () => {
         const data = await historyUnder(new ConditionTreeLeaf('toString', 'NotEqual', 'private'), [
           { operation: 'delete', recordId: '2', previousValues: { ownerId: 1, secret: 'shh' } },

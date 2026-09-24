@@ -32,29 +32,36 @@ export function permissionScopeAccepts(
   return answered && permissionScope.match(values, collection, timezone);
 }
 
-// A read-only primary key never lands in the snapshot, so a permission scope on the id would blank a row that
-// is squarely in scope. The row's own packed id carries those values — and an id the current schema
-// can no longer unpack simply leaves them out, which withholds.
+// A read-only primary key never lands in the snapshot, so a permission scope on the id would blank a
+// row that is squarely in scope. The row's own packed id carries those values — and an id the
+// current schema can no longer unpack simply leaves them out, which withholds.
 //
-// The decoded keys win over the snapshot's own copy of them: it is the same value, except when the
-// primary key is writable and redacted, where the snapshot holds the placeholder while the packed
-// id — which is never redacted — still names the record the row belongs to.
+// A redacted value answers nothing, so it is dropped rather than matched against the placeholder:
+// the field then reads as unanswered, which withholds. The packed id then fills in only what is
+// left — a read-only key the snapshot never carried, or a writable one just dropped as redacted.
+//
+// It fills only what the side cannot answer, because a row is filed under ONE id while an `update`
+// carries TWO states. When the key itself moves, the row is filed under the id it moved to, so
+// letting the decoded keys win would judge the previous side by an id that side never had — and a
+// permission scope on the new id would release values captured under the old one.
 export function withPackedPrimaryKeys(
   values: Record<string, unknown>,
   packedId: string | null,
   collection: Collection,
 ): Record<string, unknown> {
-  const snapshot = values ?? {};
+  const answered = Object.fromEntries(
+    Object.entries(values ?? {}).filter(([, value]) => value !== REDACTED),
+  );
 
-  if (!packedId) return snapshot;
+  if (!packedId) return answered;
 
   try {
     const names = SchemaUtils.getPrimaryKeys(collection.schema);
     const ids = IdUtils.unpackId(collection.schema, packedId);
 
-    return { ...snapshot, ...Object.fromEntries(names.map((name, index) => [name, ids[index]])) };
+    return { ...Object.fromEntries(names.map((name, index) => [name, ids[index]])), ...answered };
   } catch {
-    return snapshot;
+    return answered;
   }
 }
 
