@@ -623,9 +623,9 @@ describe('AutomationPoller', () => {
 
   describe('reconciling closed assignments', () => {
     it('should ignore an assignment closed while its run is still going', async () => {
-      // What an escalation leaves behind: the assignment is done, the run is not.
+      // Still in the segment now proves nothing: the run has not yet had its chance to take it out.
       const context = makeContext({
-        assignments: [makeAssignment({ recordId: 'escalated', runState: 'started' })],
+        assignments: [makeAssignment({ recordId: 'run-going', runState: 'started' })],
       });
 
       await runOneCycle(makePoller(context));
@@ -659,6 +659,105 @@ describe('AutomationPoller', () => {
             { recordId: 'stuck', stillInSegment: true },
           ],
         }),
+      );
+    });
+
+    it('should report a doing record whose run finished as gone from the segment', async () => {
+      const context = makeContext({
+        assignments: [makeAssignment({ recordId: 'left', state: 'doing', runState: 'finished' })],
+      });
+
+      await runOneCycle(makePoller(context));
+
+      expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledWith(
+        expect.objectContaining({ recordIds: ['left'] }),
+      );
+      expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
+        closed: [{ recordId: 'left', stillInSegment: false }],
+        candidates: [],
+      });
+    });
+
+    it('should report a doing record whose run finished as still in the segment', async () => {
+      const context = makeContext({
+        assignments: [makeAssignment({ recordId: 'stays', state: 'doing', runState: 'finished' })],
+      });
+      context.segmentReaderPort.listRecordIds.mockImplementation(
+        async ({ recordIds }: ListSegmentRecordIdsQuery) => recordIds ?? [],
+      );
+
+      await runOneCycle(makePoller(context));
+
+      expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
+        closed: [{ recordId: 'stays', stillInSegment: true }],
+        candidates: [],
+      });
+    });
+
+    it('should report a doing record whose run was aborted like one whose run finished', async () => {
+      const context = makeContext({
+        assignments: [
+          makeAssignment({ recordId: 'finished-doing', state: 'doing', runState: 'finished' }),
+          makeAssignment({ recordId: 'aborted-doing', state: 'doing', runState: 'aborted' }),
+        ],
+      });
+      context.segmentReaderPort.listRecordIds.mockImplementation(
+        async ({ recordIds }: ListSegmentRecordIdsQuery) => recordIds ?? [],
+      );
+
+      await runOneCycle(makePoller(context));
+
+      expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledWith(
+        expect.objectContaining({ recordIds: ['finished-doing', 'aborted-doing'] }),
+      );
+      expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
+        closed: [
+          { recordId: 'finished-doing', stillInSegment: true },
+          { recordId: 'aborted-doing', stillInSegment: true },
+        ],
+        candidates: [],
+      });
+    });
+
+    it('should not read the membership of a doing record whose run is still going', async () => {
+      const context = makeContext({
+        assignments: [makeAssignment({ recordId: 'running', state: 'doing', runState: 'started' })],
+      });
+
+      await runOneCycle(makePoller(context));
+
+      expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledTimes(1);
+      expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledWith(
+        expect.not.objectContaining({ recordIds: expect.anything() }),
+      );
+      expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
+        closed: [],
+        candidates: [],
+      });
+    });
+
+    it('should leave a doing assignment with no run out of the reconciliation without a warning', async () => {
+      const context = makeContext({
+        assignments: [
+          makeAssignment({
+            recordId: 'human',
+            state: 'doing',
+            workflowRunId: null,
+            runState: null,
+          }),
+        ],
+      });
+
+      await runOneCycle(makePoller(context));
+
+      expect(context.automationPort.sync).toHaveBeenCalledWith(
+        'inbox-1',
+        expect.objectContaining({ closed: [] }),
+      );
+      expect(context.logger).not.toHaveBeenCalledWith(
+        'Warn',
+        'Unexpected workflow run state, leaving the record out of every sweep until this executor knows it',
+        expect.anything(),
       );
     });
 

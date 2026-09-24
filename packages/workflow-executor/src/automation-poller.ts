@@ -329,8 +329,8 @@ export default class AutomationPoller {
 
   /**
    * A record whose run is over is only treated once it has left the segment. Reading the assignment
-   * state alone is not enough: an escalation closes the automation's assignment while its run is
-   * still going, and reporting that record would hand a live run to a human a second time.
+   * state alone is not enough: a record reported still in the segment while its run is going would
+   * be judged untreated before the run had a chance to take it out.
    */
   private async reconcileClosed(
     config: ServerAutomatedInboxConfig,
@@ -351,8 +351,11 @@ export default class AutomationPoller {
       }
     }
 
-    const reconcilable = assignments.filter(({ state }) =>
-      RECONCILABLE_ASSIGNMENT_STATES.has(state),
+    // The orchestrator keeps the row of an ended run `doing` while its record is still in the
+    // segment, so that record is only released once it is seen leaving.
+    const reconcilable = assignments.filter(
+      ({ state, runState }) =>
+        RECONCILABLE_ASSIGNMENT_STATES.has(state) || (state === 'doing' && isTerminalRun(runState)),
     );
 
     for (const { runState } of reconcilable) {
@@ -370,10 +373,9 @@ export default class AutomationPoller {
       }
     }
 
-    // A closed assignment whose run is still going is an escalation in progress, and reporting it
-    // would hand a live run to a human twice. Judged per record rather than per assignment: nothing
-    // in the contract says a record holds only one, and one terminal assignment must not speak for
-    // a sibling whose run is still alive.
+    // A record whose run is still going is not judged yet, whatever its assignments say. Judged per
+    // record rather than per assignment: nothing in the contract says a record holds only one, and
+    // one terminal assignment must not speak for a sibling whose run is still alive.
     const liveRecords = new Set(
       assignments.filter(({ runState }) => !isTerminalRun(runState)).map(a => a.recordId),
     );

@@ -378,8 +378,7 @@ export const SERVER_AUTOMATED_INBOX_SYNC_OUTCOMES = [
   'skipped-active-run',
   'skipped-assigned',
   'skipped-cap',
-  'escalated',
-  'already-escalated',
+  'untreated',
   'cleaned',
 ] as const;
 export type ServerAutomatedInboxSyncOutcome = (typeof SERVER_AUTOMATED_INBOX_SYNC_OUTCOMES)[number];
