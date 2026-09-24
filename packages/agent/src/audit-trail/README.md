@@ -190,12 +190,48 @@ no longer exists, so this only refuses a still-existing, out-of-scope id: once a
 deleted, anyone who can read the collection can see its history, reconstructed state, or correlated
 operations, scope aside — inspecting what was deleted is much of the point of an audit trail.
 
-One exception: on the per-record history route, a `delete` row's `previousValues` is the record's
-full last known state — if that state itself would have failed the caller's scope (e.g. it belonged
-to a team the caller isn't scoped to), `previousValues` is withheld from that row (replaced with
-`{}`) while the row itself — that a deletion happened, by whom and when — stays visible. This
-doesn't yet extend to the `/state` route's reconstructed value for the same case; closing that
-consistently is a separate, larger decision.
+One exception: once a record is gone, the values its rows captured while it existed are still tested
+against the caller's scope. A `delete` row's `previousValues` is the record's full last known state —
+if that state itself would have failed the scope (e.g. it belonged to a team the caller isn't scoped
+to), it is withheld (replaced with `{}`) while the row itself — that a deletion happened, by whom and
+when — stays visible. **Each side of a row is tested against its own values**, so an `update` keeps
+the side that is in scope and loses the one that isn't. `action` / `action_failed` rows hold a
+submitted form and a result summary rather than column values, so the scope doesn't apply to them.
+
+The same test covers **every route that serves those values**: the history route, the two
+correlation lookups, and `/state`, whose whole answer is the reconstruction — it returns
+`{ "data": null }` when the reconstructed record fails the scope, rather than handing back through
+one route what another withheld.
+
+The record is re-checked once the audit rows are in hand, on all three routes. The audit trail lives
+in its own database, often its own engine, so no single snapshot spans the permission check and the
+audit read; a record deleted in between is treated as a request starting a moment later would have
+treated it, and one moved out of the caller's scope in between is refused. The extra read only
+happens for a scoped caller — with no scope there is nothing to withhold.
+
+That test only runs when the snapshot can actually answer it. The capture keeps the writable columns
+(plus the packed record id), so a scope reaching for anything else — a read-only column, a relation,
+a field stored redacted — has no honest answer in the snapshot and the values are withheld rather
+than matched against a missing key: absent is not the same as passing.
+
+Primary keys are the exception, read back from the row's own id — but only for the side that id
+speaks for. A row is filed under the identity the record ended up with, so its id answers for a
+`create`, a `delete` and the new side of an `update`, never for what an update moved away from. A
+key the snapshot never carried is read-only and cannot have moved, so it is filled on either side; a
+key the trail **redacts** is writable and can have moved, so it is filled only where the row's id is
+authoritative.
+
+What that costs depends on what the row holds, because only a confirmed `update` stores a diff:
+
+- **a confirmed `update`** carries a column only when it changed, so a redacted primary key is
+  present exactly when the key moved. The previous side is withheld on real moves and nowhere else.
+- **a pending `update`** carries the whole writable column set, so a redacted primary key is present
+  whether or not the key moved. Its previous side is withheld either way, until the row is confirmed.
+- **`/state`** reconstructs a gone record from a `delete` row, which also carries the whole column
+  set — so any gone record whose writable primary key is redacted is withheld there, move or no move.
+
+Carrying the id the key moved from is what would buy that precision back; until then the loss is
+values withheld from a caller entitled to them, never the reverse.
 
 ### `GET /forest/_audit-trail/{collection}/{recordId}` — per-record history
 

@@ -13,7 +13,14 @@ import {
 import { DateTime } from 'luxon';
 
 import { revertRecord } from '../../audit-trail';
-import checkRecordVisibility, { recordExists } from '../../audit-trail/scope';
+import checkRecordVisibility, {
+  recheckRecordVisibility,
+  recordExists,
+} from '../../audit-trail/record-visibility';
+import withholdOutsidePermissionScope, {
+  permissionScopeAccepts,
+  snapshotFor,
+} from '../../audit-trail/withhold';
 import { HttpCode } from '../../types';
 import IdUtils from '../../utils/id';
 import QueryStringParser from '../../utils/query-string';
@@ -44,12 +51,12 @@ export default class AuditTrailRoute extends CollectionRoute {
   public async handleHistory(context: Context): Promise<void> {
     await this.services.authorization.assertCanRead(context, this.collection.name);
 
-    const scope = await this.services.authorization.getScope(this.collection, context);
+    const permissionScope = await this.services.authorization.getScope(this.collection, context);
     const { visible, goneEntirely } = await checkRecordVisibility(
-      this.services,
       this.collection,
       context.params.id,
       context,
+      permissionScope,
     );
 
     if (!visible) {
@@ -87,13 +94,34 @@ export default class AuditTrailRoute extends CollectionRoute {
       isFirstFetch ? store.listDistinctUsers(filters) : undefined,
     ]);
 
-    // A genuinely deleted record bypasses the scope check above — there's nothing left to check
+    // The record can be deleted — or moved out of the caller's permission scope — between the check above and
+    // the audit read: the audit trail lives in its own database, often its own engine, so no single
+    // snapshot spans both. Ask again once the rows are in hand and let that answer decide, so a
+    // record that went away mid-request is treated as the request starting a moment later would
+    // have treated it. Only for a scoped caller: with no permission scope there is nothing to withhold.
+    const after = await recheckRecordVisibility(
+      this.collection,
+      context.params.id,
+      context,
+      permissionScope,
+      goneEntirely,
+    );
+
+    if (after && !after.visible) {
+      context.throw(HttpCode.NotFound, 'Record does not exists');
+
+      return;
+    }
+
+    const gone = after ? after.goneEntirely : goneEntirely;
+
+    // A genuinely deleted record bypasses the permission-scope check above — there's nothing left to check
     // existence against — but create/update/delete rows still carry captured column values from
-    // when the record existed. If those values themselves would have failed the caller's scope,
+    // when the record existed. If those values themselves would have failed the caller's permission scope,
     // withhold them while still surfacing that the row happened, by whom and when: that part
     // stays visible regardless.
     const data =
-      scope && goneEntirely ? this.withholdOutOfScopeValues(rawData, scope, context) : rawData;
+      permissionScope && gone ? this.withhold(rawData, permissionScope, context) : rawData;
 
     context.response.body = {
       data,
@@ -101,38 +129,16 @@ export default class AuditTrailRoute extends CollectionRoute {
     };
   }
 
-  private withholdOutOfScopeValues(
+  private withhold(
     entries: AuditRecord[],
-    scope: ConditionTree,
+    permissionScope: ConditionTree,
     context: Context,
   ): AuditRecord[] {
-    const { timezone } = QueryStringParser.parseCaller(context, { defaultTimezone: 'UTC' });
-
-    return entries.map(entry => {
-      // `delete`'s previousValues and `create`'s newValues both capture every writable column
-      // (see instrument.ts's pickColumns), so the scope can be evaluated against them directly.
-      if (entry.operation === 'delete') {
-        if (scope.match(entry.previousValues, this.collection, timezone)) return entry;
-
-        return { ...entry, previousValues: {} };
-      }
-
-      if (entry.operation === 'create') {
-        if (scope.match(entry.newValues, this.collection, timezone)) return entry;
-
-        return { ...entry, newValues: {} };
-      }
-
-      // `update`'s previousValues/newValues are a partial diff (only the columns that changed) —
-      // a scope condition referencing a column this particular update didn't touch can't be
-      // evaluated reliably against it, so withhold unconditionally rather than risk a false
-      // negative. `action`/`action_failed` rows hold a submitted form and a result summary, not
-      // column values, so the scope doesn't apply to them at all.
-      if (entry.operation === 'update') {
-        return { ...entry, previousValues: {}, newValues: {} };
-      }
-
-      return entry;
+    return withholdOutsidePermissionScope(entries, {
+      collection: this.collection,
+      permissionScope,
+      timezone: QueryStringParser.parseCaller(context, { defaultTimezone: 'UTC' }).timezone,
+      logger: this.options.logger,
     });
   }
 
@@ -142,14 +148,16 @@ export default class AuditTrailRoute extends CollectionRoute {
 
     const at = AuditTrailRoute.parseAt(context);
     const auditedColumns = AuditTrailRoute.auditedColumns(this.collection.schema);
-    const scope = await this.services.authorization.getScope(this.collection, context);
-    const current = await this.fetchCurrentRecord(context, auditedColumns, scope);
+    const permissionScope = await this.services.authorization.getScope(this.collection, context);
+    const current = await this.fetchCurrentRecord(context, auditedColumns, permissionScope);
 
-    // A missing current record is ambiguous (deleted vs. out-of-scope) once a scope applies; only
-    // deny when the id still exists outside that scope. If it's genuinely gone there's nothing
-    // left to evaluate the scope against, so the revert walk below proceeds — including, possibly,
-    // surfacing a delete entry's snapshot, which is the point once nothing exists to protect.
-    if (!current && scope) {
+    // A missing current record is ambiguous (deleted vs. out-of-scope) once a permission scope applies; only
+    // deny when the id still exists outside that scope. If it's genuinely gone the revert walk
+    // below proceeds — the reconstruction is then tested against the scope in its own right, since
+    // this route hands back nothing but those values.
+    let goneEntirely = false;
+
+    if (!current && permissionScope) {
       const stillExists = await recordExists(this.collection, context.params.id, context, null);
 
       if (stillExists) {
@@ -157,6 +165,8 @@ export default class AuditTrailRoute extends CollectionRoute {
 
         return;
       }
+
+      goneEntirely = true;
     }
 
     const { store } = this.options.auditTrail;
@@ -166,6 +176,25 @@ export default class AuditTrailRoute extends CollectionRoute {
       startTimestamp: at,
       order: 'desc',
     });
+
+    // Same re-read as the history route: the record can be deleted — or moved out of the caller's
+    // permission scope — while the audit read is in flight, and without asking again the gate below
+    // never runs for a record that was still there at the first check.
+    const after = await recheckRecordVisibility(
+      this.collection,
+      context.params.id,
+      context,
+      permissionScope,
+      goneEntirely,
+    );
+
+    if (after && !after.visible) {
+      context.throw(HttpCode.NotFound, 'Record did not exist at this timestamp');
+
+      return;
+    }
+
+    const goneNow = after ? after.goneEntirely : goneEntirely;
 
     // `startTimestamp` is an inclusive lower bound, so an entry timestamped exactly `at` comes
     // back too — but the record already reflects that entry's change at instant `at`, so it must
@@ -191,7 +220,41 @@ export default class AuditTrailRoute extends CollectionRoute {
 
     const state = revertRecord(current, entries as Parameters<typeof revertRecord>[1]);
 
-    if (!state) context.throw(HttpCode.NotFound, 'Record did not exist at this timestamp');
+    if (!state) {
+      context.throw(HttpCode.NotFound, 'Record did not exist at this timestamp');
+
+      return;
+    }
+
+    // The history route withholds a gone record's captured values from a caller whose permission scope they
+    // fail; this route is nothing but those values, reassembled, so the same test applies to the
+    // reconstruction. Without it the withheld values are one request away for the same caller.
+    // A reconstruction the permission scope cannot answer — a scope on a column the capture never
+    // kept — withholds too: absent is not the same as passing, here as everywhere else. The packed
+    // id is merged in first for the same reason it is on a row: a read-only primary key never lands
+    // in the capture, so a scope on the id would blank the very record it names.
+    if (
+      goneNow &&
+      !permissionScopeAccepts(
+        // `false`: the reconstruction may sit on the far side of a primary-key move this route
+        // cannot see, so the requested id does not answer for a key the trail redacted.
+        snapshotFor(
+          state,
+          context.params.id,
+          { collection: this.collection, logger: this.options.logger },
+          false,
+        ),
+        {
+          collection: this.collection,
+          permissionScope,
+          timezone: QueryStringParser.parseCaller(context, { defaultTimezone: 'UTC' }).timezone,
+        },
+      )
+    ) {
+      context.response.body = { data: null };
+
+      return;
+    }
 
     context.response.body = { data: state };
   }
@@ -199,13 +262,13 @@ export default class AuditTrailRoute extends CollectionRoute {
   private async fetchCurrentRecord(
     context: Context,
     auditedColumns: string[],
-    scope: ConditionTree | null,
+    permissionScope: ConditionTree | null,
   ): Promise<Record<string, unknown> | null> {
     const id = IdUtils.unpackId(this.collection.schema, context.params.id);
     const filter = new PaginatedFilter({
       conditionTree: ConditionTreeFactory.intersect(
         ConditionTreeFactory.matchIds(this.collection.schema, [id]),
-        scope,
+        permissionScope,
       ),
     });
 

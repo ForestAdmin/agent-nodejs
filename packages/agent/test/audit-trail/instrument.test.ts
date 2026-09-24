@@ -1206,6 +1206,25 @@ describe('auditTrail plugin', () => {
       });
     });
 
+    // `'toString' in result` is true of every object, so a config naming an `Object.prototype`
+    // member used to write a placeholder for a column the row never had — corrupting the capture,
+    // and the write-side twin of the read-side check in `withhold.ts`.
+    it('does not invent a redacted column the record never had', async () => {
+      const sink = jest.fn();
+      const accounts = fakeCollection('accounts');
+      register([accounts], { sink, redact: { accounts: ['toString'] } });
+
+      await runCreate(accounts, {
+        caller: makeCaller(),
+        records: [{ id: 1, status: 'open', name: 'Acme', amount: 10 }],
+      });
+
+      const { newValues } = sink.mock.calls[0][0] as AuditRecord;
+
+      expect(Object.prototype.hasOwnProperty.call(newValues, 'toString')).toBe(false);
+      expect(newValues).toEqual({ id: 1, status: 'open', name: 'Acme', amount: 10 });
+    });
+
     it('still records that a redacted field changed, but masks both values', async () => {
       const sink = jest.fn();
       const accounts = fakeCollection('accounts', [

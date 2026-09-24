@@ -221,7 +221,12 @@ const redactValues = (
   if (!redactedFields.length) return values;
 
   const result = { ...values };
-  for (const field of redactedFields) if (field in result) result[field] = REDACTED;
+
+  // Own properties only: `'toString' in result` is true of every object, so a `redact` config
+  // naming an `Object.prototype` member would write a placeholder for a column the row never had.
+  for (const field of redactedFields) {
+    if (Object.prototype.hasOwnProperty.call(result, field)) result[field] = REDACTED;
+  }
 
   return result;
 };
