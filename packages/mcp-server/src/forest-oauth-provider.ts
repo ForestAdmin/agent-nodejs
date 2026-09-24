@@ -39,6 +39,16 @@ const DecodedRefreshTokenSchema = z.object({
   iat: z.number().optional(),
 });
 
+const DecodedAccessTokenSchema = z.object({
+  type: z.undefined(),
+  id: z.number(),
+  email: z.string(),
+  renderingId: z.number(),
+  serverToken: z.string(),
+  scopes: z.array(z.string()),
+  exp: z.number(),
+});
+
 // `sessionStartedAt` is required on the write side so dropping or renaming it — in the schema or in
 // the signed payload — is a compile error, not a silent fallback to `iat`, which is re-stamped on
 // every rotation and would slide the window forever.
@@ -544,29 +554,29 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
 
   async verifyAccessToken(token: string): Promise<AuthInfo> {
     try {
-      const decoded = jsonwebtoken.verify(token, this.authSecret) as {
-        id: number;
-        email: string;
-        renderingId: number;
-        serverToken: string;
-        scopes?: string[];
-        exp: number;
-        iat: number;
-      };
+      const verified = jsonwebtoken.verify(token, this.authSecret, { algorithms: ['HS256'] });
 
-      // Ensure this is an access token (not a refresh token)
-      if ('type' in decoded && (decoded as { type?: string }).type === 'refresh') {
+      if ((verified as { type?: unknown }).type === 'refresh') {
         throw new UnsupportedTokenTypeError('Cannot use refresh token as access token');
       }
 
-      // Use scopes from token if available, otherwise fall back to defaults
-      const scopes = decoded.scopes || ['mcp:read', 'mcp:write', 'mcp:action'];
+      const parsed = DecodedAccessTokenSchema.safeParse(verified);
+
+      if (!parsed.success) {
+        this.logger(
+          'Error',
+          `[ForestOAuthProvider] Not an MCP access token: ${parsed.error.message}`,
+        );
+        throw new InvalidTokenError('Invalid access token');
+      }
+
+      const decoded = parsed.data;
 
       return {
         token,
         clientId: decoded.id.toString(),
         expiresAt: decoded.exp,
-        scopes,
+        scopes: decoded.scopes,
         extra: {
           userId: decoded.id,
           email: decoded.email,

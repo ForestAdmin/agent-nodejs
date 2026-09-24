@@ -4,7 +4,10 @@ import type { OAuthClientInformationFull } from '@modelcontextprotocol/sdk/share
 import type { Response } from 'express';
 
 import createForestAdminClient from '@forestadmin/forestadmin-client';
-import { InvalidClientError } from '@modelcontextprotocol/sdk/server/auth/errors.js';
+import {
+  InvalidClientError,
+  InvalidTokenError,
+} from '@modelcontextprotocol/sdk/server/auth/errors.js';
 import jsonwebtoken from 'jsonwebtoken';
 
 import MockServer from './test-utils/mock-server';
@@ -822,6 +825,7 @@ describe('ForestOAuthProvider', () => {
         email: 'user@example.com',
         renderingId: 456,
         serverToken: 'forest-server-token',
+        scopes: ['mcp:read'],
         exp: Math.floor(Date.now() / 1000) + 3600,
         iat: Math.floor(Date.now() / 1000),
       };
@@ -835,7 +839,7 @@ describe('ForestOAuthProvider', () => {
       expect(result.token).toBe('valid-access-token');
       expect(result.clientId).toBe('123');
       expect(result.expiresAt).toBe(mockDecoded.exp);
-      expect(result.scopes).toEqual(['mcp:read', 'mcp:write', 'mcp:action']);
+      expect(result.scopes).toEqual(['mcp:read']);
       expect(result.extra).toEqual({
         userId: 123,
         email: 'user@example.com',
@@ -851,6 +855,7 @@ describe('ForestOAuthProvider', () => {
         email: 'user@example.com',
         renderingId: 2,
         serverToken: 'forest-server-token',
+        scopes: ['mcp:read'],
         exp: Math.floor(Date.now() / 1000) + 3600,
         iat: Math.floor(Date.now() / 1000),
       });
@@ -877,6 +882,7 @@ describe('ForestOAuthProvider', () => {
         email: 'user@example.com',
         renderingId: 2,
         serverToken: 'forest-server-token',
+        scopes: ['mcp:read'],
         exp: Math.floor(Date.now() / 1000) + 3600,
         iat: Math.floor(Date.now() / 1000),
       });
@@ -927,6 +933,50 @@ describe('ForestOAuthProvider', () => {
       );
     });
 
+    it('should only accept HS256-signed tokens', async () => {
+      (jsonwebtoken.verify as jest.Mock).mockReturnValue({
+        id: 123,
+        email: 'user@example.com',
+        renderingId: 456,
+        serverToken: 'forest-server-token',
+        scopes: ['mcp:read'],
+        exp: Math.floor(Date.now() / 1000) + 3600,
+      });
+
+      const provider = createProvider();
+      await provider.verifyAccessToken('valid-access-token');
+
+      expect(jsonwebtoken.verify).toHaveBeenCalledWith('valid-access-token', TEST_AUTH_SECRET, {
+        algorithms: ['HS256'],
+      });
+    });
+
+    describe('when the token is not an MCP access token', () => {
+      const validClaims = {
+        id: 123,
+        email: 'user@example.com',
+        renderingId: 456,
+        serverToken: 'forest-server-token',
+        scopes: ['mcp:read'],
+        exp: Math.floor(Date.now() / 1000) + 3600,
+      };
+
+      it.each([
+        ['it carries a foreign type', { ...validClaims, type: 'bff_access' }],
+        ['it has no serverToken', { ...validClaims, serverToken: undefined }],
+        ['it has no scopes', { ...validClaims, scopes: undefined }],
+        ['its renderingId is not a number', { ...validClaims, renderingId: '456' }],
+      ])('should reject it as an invalid token when %s', async (_label, claims) => {
+        (jsonwebtoken.verify as jest.Mock).mockReturnValue(claims);
+
+        const provider = createProvider();
+
+        await expect(provider.verifyAccessToken('foreign-token')).rejects.toThrow(
+          new InvalidTokenError('Invalid access token'),
+        );
+      });
+    });
+
     it('should include environmentApiEndpoint after initialize is called', async () => {
       mockServer.get('/liana/environment', {
         data: {
@@ -942,6 +992,7 @@ describe('ForestOAuthProvider', () => {
         email: 'user@example.com',
         renderingId: 456,
         serverToken: 'forest-server-token',
+        scopes: ['mcp:read'],
         exp: Math.floor(Date.now() / 1000) + 3600,
         iat: Math.floor(Date.now() / 1000),
       };

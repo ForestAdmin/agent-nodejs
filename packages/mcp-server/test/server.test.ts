@@ -11,6 +11,9 @@ import MockServer from './test-utils/mock-server';
 import ForestMCPServer, { LOGO_URL } from '../src/server';
 import { clearSchemaCache } from '../src/utils/schema-fetcher';
 
+const MCP_SCOPES = ['mcp:read', 'mcp:write', 'mcp:action'];
+const MCP_ACCESS_CLAIMS = { serverToken: 'forest-server-token', scopes: MCP_SCOPES };
+
 function shutDownHttpServer(server: http.Server | undefined): Promise<void> {
   if (!server) return Promise.resolve();
 
@@ -753,6 +756,37 @@ describe('ForestMCPServer Instance', () => {
       });
     });
 
+    it('should accept the access token it issued as a bearer on /mcp', async () => {
+      mcpMockServer.clear();
+
+      const tokenResponse = await request(mcpHttpServer).post('/oauth/token').type('form').send({
+        grant_type: 'authorization_code',
+        code: 'valid-auth-code',
+        redirect_uri: 'https://example.com/callback',
+        client_id: 'registered-client',
+        code_verifier: 'test-code-verifier',
+      });
+
+      const response = await request(mcpHttpServer)
+        .post('/mcp')
+        .set('Authorization', `Bearer ${tokenResponse.body.access_token}`)
+        .set('Content-Type', 'application/json')
+        .set('Accept', 'application/json, text/event-stream')
+        .send({
+          jsonrpc: '2.0',
+          method: 'initialize',
+          params: {
+            protocolVersion: '2025-06-18',
+            capabilities: {},
+            clientInfo: { name: 'test', version: '0' },
+          },
+          id: 1,
+        });
+
+      expect(tokenResponse.status).toBe(200);
+      expect(response.status).toBe(200);
+    });
+
     it('should exchange refresh token for new tokens', async () => {
       mcpMockServer.clear();
 
@@ -1172,6 +1206,48 @@ describe('ForestMCPServer Instance', () => {
       expect(response.status).toBe(401);
     });
 
+    describe('when the bearer is signed with authSecret but is not an MCP access token', () => {
+      const foreignTokens: Array<[string, Record<string, unknown>]> = [
+        [
+          'a BFF session token',
+          {
+            type: 'bff_access',
+            sid: 'session-1',
+            id: 123,
+            email: 'user@example.com',
+            rendering_id: '456',
+            permission_level: 'admin',
+          },
+        ],
+        [
+          'an agent session token',
+          { id: 123, email: 'user@example.com', renderingId: 456, permissionLevel: 'admin' },
+        ],
+        [
+          'a BFF api-key agent token',
+          { id: 123, email: 'user@example.com', renderingId: 456, rendering_id: 456 },
+        ],
+        [
+          'an MCP-shaped token without scopes',
+          { id: 123, email: 'user@example.com', renderingId: 456, serverToken: 'server-token' },
+        ],
+      ];
+
+      it.each(foreignTokens)('should reject %s with 401', async (_label, claims) => {
+        const token = jsonwebtoken.sign(claims, 'test-auth-secret', { expiresIn: '1h' });
+
+        const response = await request(listHttpServer)
+          .post('/mcp')
+          .set('Authorization', `Bearer ${token}`)
+          .set('Content-Type', 'application/json')
+          .set('Accept', 'application/json, text/event-stream')
+          .send({ jsonrpc: '2.0', method: 'tools/list', id: 1 });
+
+        expect(response.status).toBe(401);
+        expect(response.body).toEqual(expect.objectContaining({ error: 'invalid_token' }));
+      });
+    });
+
     it('should accept requests with valid bearer token and list available tools', async () => {
       // Create a valid JWT token
       const authSecret = process.env.FOREST_AUTH_SECRET || 'test-auth-secret';
@@ -1180,6 +1256,7 @@ describe('ForestMCPServer Instance', () => {
           id: 123,
           email: 'user@example.com',
           renderingId: 456,
+          ...MCP_ACCESS_CLAIMS,
         },
         authSecret,
         { expiresIn: '1h' },
@@ -1275,6 +1352,7 @@ describe('ForestMCPServer Instance', () => {
           email: 'user@example.com',
           renderingId: 456,
           serverToken: forestServerToken,
+          scopes: MCP_SCOPES,
         },
         authSecret,
         { expiresIn: '1h' },
@@ -1321,6 +1399,7 @@ describe('ForestMCPServer Instance', () => {
           id: 123,
           email: 'user@example.com',
           renderingId: 456,
+          ...MCP_ACCESS_CLAIMS,
         },
         authSecret,
         { expiresIn: '1h' },
@@ -1401,6 +1480,7 @@ describe('ForestMCPServer Instance', () => {
             email: 'user@example.com',
             renderingId: 456,
             serverToken: 'forest-server-token',
+            scopes: MCP_SCOPES,
           },
           authSecret,
           { expiresIn: '1h' },
@@ -2206,7 +2286,7 @@ describe('ForestMCPServer Instance', () => {
     it('should log incoming request at the start of /mcp processing', async () => {
       const authSecret = process.env.FOREST_AUTH_SECRET || 'test-auth-secret';
       const validToken = jsonwebtoken.sign(
-        { id: 123, email: 'user@example.com', renderingId: 456 },
+        { id: 123, email: 'user@example.com', renderingId: 456, ...MCP_ACCESS_CLAIMS },
         authSecret,
         { expiresIn: '1h' },
       );
@@ -2224,7 +2304,13 @@ describe('ForestMCPServer Instance', () => {
     it('should log tool calls with safe parameters', async () => {
       const authSecret = process.env.FOREST_AUTH_SECRET || 'test-auth-secret';
       const validToken = jsonwebtoken.sign(
-        { id: 123, email: 'user@example.com', renderingId: 456, serverToken: 'test-token' },
+        {
+          id: 123,
+          email: 'user@example.com',
+          renderingId: 456,
+          serverToken: 'test-token',
+          scopes: MCP_SCOPES,
+        },
         authSecret,
         { expiresIn: '1h' },
       );
@@ -2257,7 +2343,13 @@ describe('ForestMCPServer Instance', () => {
     it('should log tool errors from SSE response', async () => {
       const authSecret = process.env.FOREST_AUTH_SECRET || 'test-auth-secret';
       const validToken = jsonwebtoken.sign(
-        { id: 123, email: 'user@example.com', renderingId: 456, serverToken: 'test-token' },
+        {
+          id: 123,
+          email: 'user@example.com',
+          renderingId: 456,
+          serverToken: 'test-token',
+          scopes: MCP_SCOPES,
+        },
         authSecret,
         { expiresIn: '1h' },
       );
@@ -2288,7 +2380,7 @@ describe('ForestMCPServer Instance', () => {
     it('should log HTTP response at the end with status and duration', async () => {
       const authSecret = process.env.FOREST_AUTH_SECRET || 'test-auth-secret';
       const validToken = jsonwebtoken.sign(
-        { id: 123, email: 'user@example.com', renderingId: 456 },
+        { id: 123, email: 'user@example.com', renderingId: 456, ...MCP_ACCESS_CLAIMS },
         authSecret,
         { expiresIn: '1h' },
       );
@@ -2323,7 +2415,7 @@ describe('ForestMCPServer Instance', () => {
     it('should log MCP error with method name and stack trace when handleMcpRequest fails', async () => {
       const authSecret = process.env.FOREST_AUTH_SECRET || 'test-auth-secret';
       const validToken = jsonwebtoken.sign(
-        { id: 123, email: 'user@example.com', renderingId: 456 },
+        { id: 123, email: 'user@example.com', renderingId: 456, ...MCP_ACCESS_CLAIMS },
         authSecret,
         { expiresIn: '1h' },
       );
@@ -2356,7 +2448,7 @@ describe('ForestMCPServer Instance', () => {
     it('should log warning when headersSent prevents MCP error response', async () => {
       const authSecret = process.env.FOREST_AUTH_SECRET || 'test-auth-secret';
       const validToken = jsonwebtoken.sign(
-        { id: 123, email: 'user@example.com', renderingId: 456 },
+        { id: 123, email: 'user@example.com', renderingId: 456, ...MCP_ACCESS_CLAIMS },
         authSecret,
         { expiresIn: '1h' },
       );
@@ -2393,7 +2485,7 @@ describe('ForestMCPServer Instance', () => {
     it('should log when transport silently returns HTTP 500', async () => {
       const authSecret = process.env.FOREST_AUTH_SECRET || 'test-auth-secret';
       const validToken = jsonwebtoken.sign(
-        { id: 123, email: 'user@example.com', renderingId: 456 },
+        { id: 123, email: 'user@example.com', renderingId: 456, ...MCP_ACCESS_CLAIMS },
         authSecret,
         { expiresIn: '1h' },
       );
@@ -2442,7 +2534,13 @@ describe('ForestMCPServer Instance', () => {
     it('should log in correct order: incoming, tool call, response', async () => {
       const authSecret = process.env.FOREST_AUTH_SECRET || 'test-auth-secret';
       const validToken = jsonwebtoken.sign(
-        { id: 123, email: 'user@example.com', renderingId: 456, serverToken: 'test-token' },
+        {
+          id: 123,
+          email: 'user@example.com',
+          renderingId: 456,
+          serverToken: 'test-token',
+          scopes: MCP_SCOPES,
+        },
         authSecret,
         { expiresIn: '1h' },
       );
@@ -2952,6 +3050,7 @@ describe('agentUrl option', () => {
           email: 'user@example.com',
           renderingId: 456,
           serverToken: 'forest-server-token',
+          scopes: MCP_SCOPES,
         },
         'test-auth-secret',
         { expiresIn: '1h' },
@@ -3339,7 +3438,7 @@ describe('handleMcpRequest cleanup', () => {
   it('should log warning when cleanup fails after response has ended', async () => {
     const authSecret = 'test-auth-secret';
     const validToken = jsonwebtoken.sign(
-      { id: 123, email: 'user@example.com', renderingId: 456 },
+      { id: 123, email: 'user@example.com', renderingId: 456, ...MCP_ACCESS_CLAIMS },
       authSecret,
       { expiresIn: '1h' },
     );
@@ -3390,7 +3489,7 @@ describe('handleMcpRequest cleanup', () => {
   it('should log error when transport silently returns HTTP 500', async () => {
     const authSecret = 'test-auth-secret';
     const validToken = jsonwebtoken.sign(
-      { id: 123, email: 'user@example.com', renderingId: 456 },
+      { id: 123, email: 'user@example.com', renderingId: 456, ...MCP_ACCESS_CLAIMS },
       authSecret,
       { expiresIn: '1h' },
     );
@@ -3547,7 +3646,7 @@ describe('enabledTools', () => {
 
   it('should only expose enabled tools plus describeCollection', async () => {
     const validToken = jsonwebtoken.sign(
-      { id: 123, email: 'user@example.com', renderingId: 456 },
+      { id: 123, email: 'user@example.com', renderingId: 456, ...MCP_ACCESS_CLAIMS },
       'test-auth-secret',
       { expiresIn: '1h' },
     );
@@ -3715,7 +3814,7 @@ describe('enabledTools', () => {
     });
 
     const validToken = jsonwebtoken.sign(
-      { id: 123, email: 'user@example.com', renderingId: 456 },
+      { id: 123, email: 'user@example.com', renderingId: 456, ...MCP_ACCESS_CLAIMS },
       'test-auth-secret',
       { expiresIn: '1h' },
     );
@@ -3808,7 +3907,7 @@ describe('enabledTools', () => {
     });
 
     const validToken = jsonwebtoken.sign(
-      { id: 123, email: 'user@example.com', renderingId: 456 },
+      { id: 123, email: 'user@example.com', renderingId: 456, ...MCP_ACCESS_CLAIMS },
       'test-auth-secret',
       { expiresIn: '1h' },
     );
