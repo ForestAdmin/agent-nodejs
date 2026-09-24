@@ -138,6 +138,7 @@ export default class AuditTrailRoute extends CollectionRoute {
       collection: this.collection,
       permissionScope,
       timezone: QueryStringParser.parseCaller(context, { defaultTimezone: 'UTC' }).timezone,
+      logger: this.options.logger,
     });
   }
 
@@ -175,6 +176,25 @@ export default class AuditTrailRoute extends CollectionRoute {
       startTimestamp: at,
       order: 'desc',
     });
+
+    // Same re-read as the history route: the record can be deleted — or moved out of the caller's
+    // permission scope — while the audit read is in flight, and without asking again the gate below
+    // never runs for a record that was still there at the first check.
+    const after = await recheckRecordVisibility(
+      this.collection,
+      context.params.id,
+      context,
+      permissionScope,
+      goneEntirely,
+    );
+
+    if (after && !after.visible) {
+      context.throw(HttpCode.NotFound, 'Record did not exist at this timestamp');
+
+      return;
+    }
+
+    const goneNow = after ? after.goneEntirely : goneEntirely;
 
     // `startTimestamp` is an inclusive lower bound, so an entry timestamped exactly `at` comes
     // back too — but the record already reflects that entry's change at instant `at`, so it must
@@ -214,12 +234,15 @@ export default class AuditTrailRoute extends CollectionRoute {
     // id is merged in first for the same reason it is on a row: a read-only primary key never lands
     // in the capture, so a scope on the id would blank the very record it names.
     if (
-      goneEntirely &&
-      !permissionScopeAccepts(withPackedPrimaryKeys(state, context.params.id, this.collection), {
-        collection: this.collection,
-        permissionScope,
-        timezone: QueryStringParser.parseCaller(context, { defaultTimezone: 'UTC' }).timezone,
-      })
+      goneNow &&
+      !permissionScopeAccepts(
+        withPackedPrimaryKeys(state, context.params.id, this.collection, this.options.logger),
+        {
+          collection: this.collection,
+          permissionScope,
+          timezone: QueryStringParser.parseCaller(context, { defaultTimezone: 'UTC' }).timezone,
+        },
+      )
     ) {
       context.response.body = { data: null };
 

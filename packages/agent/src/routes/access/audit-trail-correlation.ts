@@ -113,6 +113,7 @@ export default class AuditTrailCorrelationRoute extends BaseRoute {
       collection: target.collectionObject,
       permissionScope: target.permissionScope,
       timezone: QueryStringParser.parseCaller(context, { defaultTimezone: 'UTC' }).timezone,
+      logger: this.options.logger,
     });
   }
 

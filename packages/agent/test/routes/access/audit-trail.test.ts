@@ -1131,6 +1131,24 @@ describe('AuditTrailRoute', () => {
       // A row is filed under ONE id, but an update carries TWO states. When the key itself moves,
       // the row is filed under the id it moved to — so judging both sides by that id asks the
       // previous side to answer for an id it never had.
+      // An action row's two columns hold a submitted form and a result summary, not column values,
+      // so no permission scope applies to them and they pass through whole.
+      test.each(['action', 'action_failed'])(
+        'passes a %s row through untouched, values and all',
+        async operation => {
+          const row = {
+            operation,
+            recordId: '2',
+            actionName: 'Refund',
+            previousValues: { amount: 12 },
+            newValues: { message: 'done' },
+          };
+          const data = await historyUnder(new ConditionTreeLeaf('ownerId', 'Equal', 1), [row]);
+
+          expect(data).toEqual([row]);
+        },
+      );
+
       test('tests each side of a key move against the id that side carried', async () => {
         const data = await historyUnder(new ConditionTreeLeaf('id', 'Equal', 9), [
           {
@@ -1663,6 +1681,57 @@ describe('AuditTrailRoute', () => {
     // A read-only primary key never lands in the capture, so the reconstruction of a gone record
     // has no `id` of its own — the packed id from the request supplies it, exactly as a row's own
     // `recordId` does on the history route.
+    // Same window the history route closes: in scope at the check, gone by the time the rows are in
+    // hand. Without the re-read the gate below never runs and the reconstruction goes out whole.
+    test('withholds a reconstruction for a record deleted while the audit read was in flight', async () => {
+      const history = [
+        { operation: 'delete', previousValues: { status: 'closed', name: 'Acme' }, newValues: {} },
+      ];
+      const { services, dataSource, route } = setupBooks(history);
+      (services.authorization.getScope as jest.Mock).mockResolvedValue(
+        new ConditionTreeLeaf('status', 'Equal', 'mine'),
+      );
+      jest
+        .spyOn(dataSource.getCollection('books'), 'list')
+        .mockResolvedValueOnce([{ id: 2, status: 'closed', name: 'Acme' }]) // present and in scope
+        .mockResolvedValueOnce([]) // re-read, scoped: gone
+        .mockResolvedValueOnce([]); // re-read, bare: genuinely gone
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: {
+          query: { timezone: 'UTC', at: '2026-06-18' },
+          params: { id: '2' },
+        },
+      });
+
+      await route.handleStateAt(context);
+
+      expect(context.response.body).toEqual({ data: null });
+    });
+
+    test('refuses a reconstruction for a record moved out of scope while the audit read was in flight', async () => {
+      const { services, dataSource, route } = setupBooks([]);
+      (services.authorization.getScope as jest.Mock).mockResolvedValue(
+        new ConditionTreeLeaf('status', 'Equal', 'mine'),
+      );
+      jest
+        .spyOn(dataSource.getCollection('books'), 'list')
+        .mockResolvedValueOnce([{ id: 2, status: 'closed', name: 'Acme' }]) // present and in scope
+        .mockResolvedValueOnce([]) // re-read, scoped: no longer in scope
+        .mockResolvedValueOnce([{ id: 2 }]); // re-read, bare: still exists
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: {
+          query: { timezone: 'UTC', at: '2026-06-18' },
+          params: { id: '2' },
+        },
+      });
+
+      await route.handleStateAt(context);
+
+      expect(context.throw).toHaveBeenCalledWith(404, 'Record did not exist at this timestamp');
+    });
+
     test('answers an id scope from the packed id the reconstruction is missing', async () => {
       const history = [
         { operation: 'delete', previousValues: { status: 'closed', name: 'Acme' }, newValues: {} },

@@ -203,11 +203,11 @@ correlation lookups, and `/state`, whose whole answer is the reconstruction — 
 `{ "data": null }` when the reconstructed record fails the scope, rather than handing back through
 one route what another withheld.
 
-The record is re-checked once the audit rows are in hand. The audit trail lives in its own database,
-often its own engine, so no single snapshot spans the permission check and the audit read; a record
-deleted in between is treated as a request starting a moment later would have treated it, and one
-moved out of the caller's scope in between is refused. The extra read only happens for a scoped
-caller — with no scope there is nothing to withhold.
+The record is re-checked once the audit rows are in hand, on all three routes. The audit trail lives
+in its own database, often its own engine, so no single snapshot spans the permission check and the
+audit read; a record deleted in between is treated as a request starting a moment later would have
+treated it, and one moved out of the caller's scope in between is refused. The extra read only
+happens for a scoped caller — with no scope there is nothing to withhold.
 
 That test only runs when the snapshot can actually answer it. The capture keeps the writable columns
 (plus the packed record id), so a scope reaching for anything else — a read-only column, a relation,

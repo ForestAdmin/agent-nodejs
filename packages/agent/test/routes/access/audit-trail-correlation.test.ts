@@ -383,6 +383,49 @@ describe('AuditTrailCorrelationRoute', () => {
 
   // The record can go away while the audit read is in flight; the decision is taken again on the
   // way out rather than reused from the check that authorized the request.
+  // The batch returns every row under the given keys, so one response can carry sides that answer
+  // the scope and sides that cannot. Each is decided on its own, not as a batch.
+  test('decides each row of a batch on its own values', async () => {
+    const history = [
+      {
+        operation: 'delete',
+        recordId: '2',
+        correlationKey: 'req-1',
+        previousValues: { title: 'In scope, no id of its own' },
+        newValues: {},
+      },
+      {
+        // The key moved to 2, so this row is filed under 2 while its previous side was still 7.
+        operation: 'update',
+        recordId: '2',
+        correlationKey: 'req-2',
+        previousValues: { id: 7, title: 'Captured while out of scope' },
+        newValues: { id: 2, title: 'In scope' },
+      },
+    ];
+    const { services, dataSource, options } = setup(history);
+    (services.authorization.getScope as jest.Mock).mockResolvedValue(
+      new ConditionTreeLeaf('id', 'Equal', 2),
+    );
+    jest.spyOn(dataSource.getCollection('books'), 'list').mockResolvedValue([] as never);
+    const route = new AuditTrailCorrelationRoute(services, options, dataSource);
+    const context = contextWith({
+      timezone: 'Europe/Paris',
+      collection: 'books',
+      recordId: '2',
+      correlationKeys: 'req-1,req-2',
+    });
+
+    await route.handleBatch(context);
+
+    expect((context.response.body as { data: unknown[] }).data).toEqual([
+      // no id captured, so the packed id answers and it matches
+      { ...history[0] },
+      // the previous side carried id 7 and answers for itself: withheld, new side kept
+      { ...history[1], previousValues: {} },
+    ]);
+  });
+
   describe('the record changes between the visibility check and the audit read', () => {
     const raceWith = async (...listAnswers: unknown[][]) => {
       const history = [

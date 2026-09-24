@@ -78,7 +78,8 @@ export default async function checkRecordVisibility(
  * that authorized the request and the audit read that answers it: the audit trail lives in its own
  * database, often its own engine, so no single snapshot spans both. Re-reads once the rows are in
  * hand, and returns null when there is nothing to re-read: a caller with no scope has nothing to
- * withhold, and a record already gone at the first check cannot come back.
+ * withhold, and a record already gone at the first check has already had the withholding applied —
+ * an id recreated in the meantime would only widen what is served, never what is hidden.
  */
 export async function recheckRecordVisibility(
   collection: Collection,

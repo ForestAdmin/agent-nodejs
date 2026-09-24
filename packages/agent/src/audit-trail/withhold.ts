@@ -1,5 +1,5 @@
 import type { AuditRecord } from './types';
-import type { Collection, ConditionTree } from '@forestadmin/datasource-toolkit';
+import type { Collection, ConditionTree, Logger } from '@forestadmin/datasource-toolkit';
 
 import { SchemaUtils } from '@forestadmin/datasource-toolkit';
 
@@ -10,6 +10,7 @@ export type Withholding = {
   collection: Collection;
   permissionScope: ConditionTree;
   timezone: string;
+  logger?: Logger;
 };
 
 // Only a snapshot that answers every field the permission scope asks about, with what was really stored, is
@@ -48,6 +49,7 @@ export function withPackedPrimaryKeys(
   values: Record<string, unknown>,
   packedId: string | null,
   collection: Collection,
+  logger?: Logger,
 ): Record<string, unknown> {
   const answered = Object.fromEntries(
     Object.entries(values ?? {}).filter(([, value]) => value !== REDACTED),
@@ -60,7 +62,12 @@ export function withPackedPrimaryKeys(
     const ids = IdUtils.unpackId(collection.schema, packedId);
 
     return { ...Object.fromEntries(names.map((name, index) => [name, ids[index]])), ...answered };
-  } catch {
+  } catch (error) {
+    // The id the row was filed under no longer fits the collection's key: a renamed or retyped
+    // primary key, or a corrupted row. Withholding is the safe answer and the caller gets it
+    // either way, but a live audit read failing to decode its own ids is worth saying out loud.
+    logger?.('Warn', `Audit trail: cannot unpack record id "${packedId}" (${error.message})`);
+
     return answered;
   }
 }
@@ -80,7 +87,7 @@ export default function withholdOutsidePermissionScope(
 ): AuditRecord[] {
   const accepts = (entry: AuditRecord, values: Record<string, unknown>) =>
     permissionScopeAccepts(
-      withPackedPrimaryKeys(values, entry.recordId, withholding.collection),
+      withPackedPrimaryKeys(values, entry.recordId, withholding.collection, withholding.logger),
       withholding,
     );
 
