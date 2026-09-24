@@ -1819,6 +1819,39 @@ describe('AuditTrailRoute', () => {
       expect(context.throw).toHaveBeenCalledWith(404, 'Record did not exist at this timestamp');
     });
 
+    // The reconstruction of a gone record can sit on the far side of a primary-key move this route
+    // cannot see, so the requested id does not answer for a key the trail redacted. A read-only key
+    // is different — it cannot move — which is why the fixture's key has to be writable to reach
+    // this at all.
+    test('withholds a reconstruction whose writable primary key is redacted', async () => {
+      const history = [
+        {
+          operation: 'delete',
+          previousValues: { id: REDACTED, status: 'closed', name: 'Acme' },
+          newValues: {},
+        },
+      ];
+      const { services, dataSource, route } = setupBooks(history);
+      (services.authorization.getScope as jest.Mock).mockResolvedValue(
+        new ConditionTreeLeaf('id', 'Equal', 2),
+      );
+      jest
+        .spyOn(dataSource.getCollection('books'), 'list')
+        .mockResolvedValueOnce([]) // scoped fetch: not found
+        .mockResolvedValueOnce([]); // bare check: genuinely gone
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: {
+          query: { timezone: 'UTC', at: '2026-06-18' },
+          params: { id: '2' },
+        },
+      });
+
+      await route.handleStateAt(context);
+
+      expect(context.response.body).toEqual({ data: null });
+    });
+
     test('answers an id scope from the packed id the reconstruction is missing', async () => {
       const history = [
         { operation: 'delete', previousValues: { status: 'closed', name: 'Acme' }, newValues: {} },

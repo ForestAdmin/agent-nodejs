@@ -219,9 +219,19 @@ speaks for. A row is filed under the identity the record ended up with, so its i
 `create`, a `delete` and the new side of an `update`, never for what an update moved away from. A
 key the snapshot never carried is read-only and cannot have moved, so it is filled on either side; a
 key the trail **redacts** is writable and can have moved, so it is filled only where the row's id is
-authoritative. The cost is that an update's previous side is withheld whenever its primary key is
-redacted, even when the key never moved — the same direction as everything else here, and it is what
-carrying the id it moved from would buy back.
+authoritative.
+
+What that costs depends on what the row holds, because only a confirmed `update` stores a diff:
+
+- **a confirmed `update`** carries a column only when it changed, so a redacted primary key is
+  present exactly when the key moved. The previous side is withheld on real moves and nowhere else.
+- **a pending `update`** carries the whole writable column set, so a redacted primary key is present
+  whether or not the key moved. Its previous side is withheld either way, until the row is confirmed.
+- **`/state`** reconstructs a gone record from a `delete` row, which also carries the whole column
+  set — so any gone record whose writable primary key is redacted is withheld there, move or no move.
+
+Carrying the id the key moved from is what would buy that precision back; until then the loss is
+values withheld from a caller entitled to them, never the reverse.
 
 ### `GET /forest/_audit-trail/{collection}/{recordId}` — per-record history
 
