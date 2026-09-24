@@ -1,3 +1,10 @@
+## @forestadmin/mcp-server [1.24.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.24.5...@forestadmin/mcp-server@1.24.6) (2026-09-24)
+
+
+### Bug Fixes
+
+* **mcp-server:** reject jwts that are not mcp access tokens ([#1924](https://github.com/ForestAdmin/agent-nodejs/issues/1924)) ([a0f9e26](https://github.com/ForestAdmin/agent-nodejs/commit/a0f9e2653564e402fb18313b951a3a6396281be1))
+
 ## @forestadmin/mcp-server [1.24.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.24.4...@forestadmin/mcp-server@1.24.5) (2026-09-14)
 
 
