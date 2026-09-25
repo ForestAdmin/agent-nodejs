@@ -34,8 +34,9 @@ const MAX_CONCURRENT_INBOX_POLLS = 5;
 // minute. Kept apart from the sweep interval: a sweep can last longer than the lease.
 const LEASE_HEARTBEAT_INTERVAL_S = 15;
 
-// Past this without a confirmed beat, the lease may have expired and gone to another instance. Kept
-// below the 45 s lease minus one beat, so this instance stops dispatching before that can happen.
+// Past this without a confirmed beat, the lease may have expired and gone to another instance.
+// Judged at each dispatch rather than when a beat fails: a timed-out beat only fails 5 s late, and
+// the next one 15 s after that, which would land past the 45 s lease.
 const LEASE_TRUSTED_FOR_MS = 30_000;
 
 // The agents that serve `POST /forest/_internal/capabilities`, the same list the front gates that
@@ -131,6 +132,7 @@ export default class AutomationPoller {
   private currentCycle: Promise<void> | null = null;
   private holdsLease: boolean | undefined;
   private leaseConfirmedAt = 0;
+  private sweepCutShort = false;
   private nextSweepAt = 0;
   private _state: AutomationPollerState = 'idle';
 
@@ -247,10 +249,14 @@ export default class AutomationPoller {
       }
 
       if (this.currentCycle === null && Date.now() >= this.nextSweepAt) {
+        this.sweepCutShort = false;
         // Not awaited: the heartbeat has to keep the lease through a sweep that outlasts it.
         this.currentCycle = this.runPollCycle().finally(() => {
           this.currentCycle = null;
-          this.nextSweepAt = this.holdsLease ? Date.now() + this.config.pollingIntervalS * 1000 : 0;
+          // The inboxes a lost lease left undispatched are owed as soon as the lease is back.
+          this.nextSweepAt = this.sweepCutShort
+            ? 0
+            : Date.now() + this.config.pollingIntervalS * 1000;
         });
       }
     } catch (error) {
@@ -269,6 +275,10 @@ export default class AutomationPoller {
     } finally {
       this.scheduleTick(LEASE_HEARTBEAT_INTERVAL_S * 1000);
     }
+  }
+
+  private leaseIsTrusted(): boolean {
+    return this.holdsLease === true && Date.now() - this.leaseConfirmedAt < LEASE_TRUSTED_FOR_MS;
   }
 
   private async runPollCycle(): Promise<void> {
@@ -296,11 +306,13 @@ export default class AutomationPoller {
         let config = queue.shift();
 
         // A lost lease means another instance may already be sweeping these inboxes.
-        while (config && this._state === 'running' && this.holdsLease) {
+        while (config && this._state === 'running' && this.leaseIsTrusted()) {
           // eslint-disable-next-line no-await-in-loop
           await this.inFlightInboxes.track(config.inboxId, this.pollInbox(config));
           config = queue.shift();
         }
+
+        if (config && this._state === 'running') this.sweepCutShort = true;
       };
 
       await Promise.all(

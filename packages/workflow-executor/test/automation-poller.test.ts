@@ -399,27 +399,6 @@ describe('AutomationPoller', () => {
       expect(context.automationPort.listAutomatedInboxes).toHaveBeenCalledTimes(2);
     });
 
-    it('should sweep right away when it wins back a lease it lost in the middle of a sweep', async () => {
-      const context = makeContext();
-      context.automationPort.holdLease
-        .mockResolvedValueOnce(true)
-        .mockResolvedValueOnce(false)
-        .mockResolvedValue(true);
-      context.automationPort.listAssignments.mockImplementationOnce(
-        () =>
-          new Promise(resolve => {
-            setTimeout(() => resolve([]), 20_000);
-          }),
-      );
-      const poller = makePoller(context);
-
-      poller.start();
-      await jest.advanceTimersByTimeAsync(30_000);
-      await poller.stop();
-
-      expect(context.automationPort.listAutomatedInboxes).toHaveBeenCalledTimes(2);
-    });
-
     it('should finish a sweep through a heartbeat that fails', async () => {
       const context = makeContext({ inboxes: makeInboxes(12) });
       context.automationPort.holdLease
@@ -464,6 +443,77 @@ describe('AutomationPoller', () => {
         'No heartbeat landed for too long, standing by until one does',
         expect.objectContaining({ instanceId: 'host-1-abcd' }),
       );
+    });
+
+    it('should dispatch nothing 30 s after its last confirmed beat, even while slow beats are still failing', async () => {
+      const context = makeContext({ inboxes: makeInboxes(12) });
+      context.automationPort.holdLease.mockResolvedValueOnce(true).mockImplementation(
+        () =>
+          new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('timeout of 5000ms exceeded')), 5_000);
+          }),
+      );
+      context.automationPort.listAssignments.mockImplementation(
+        () =>
+          new Promise(resolve => {
+            setTimeout(() => resolve([]), 17_000);
+          }),
+      );
+      const poller = makePoller(context);
+
+      poller.start();
+      await jest.advanceTimersByTimeAsync(80_000);
+      await poller.stop();
+
+      expect(context.automationPort.listAssignments).toHaveBeenCalledTimes(10);
+    });
+
+    it('should sweep right away once it wins back a lease that cut its last sweep short', async () => {
+      const context = makeContext({ inboxes: makeInboxes(12) });
+      context.automationPort.holdLease
+        .mockResolvedValueOnce(true)
+        .mockResolvedValueOnce(false)
+        .mockResolvedValueOnce(false)
+        .mockResolvedValue(true);
+      context.automationPort.listAssignments.mockImplementation(
+        () =>
+          new Promise(resolve => {
+            setTimeout(() => resolve([]), 40_000);
+          }),
+      );
+      const poller = makePoller(context);
+
+      poller.start();
+      await jest.advanceTimersByTimeAsync(45_000);
+
+      expect(context.automationPort.listAssignments).toHaveBeenCalledTimes(10);
+      expect(context.automationPort.listAutomatedInboxes).toHaveBeenCalledTimes(2);
+
+      const stopped = poller.stop();
+      await jest.advanceTimersByTimeAsync(40_000);
+      await stopped;
+    });
+
+    it('should wait the full interval after a sweep the lease came back in time to finish', async () => {
+      const context = makeContext({ inboxes: makeInboxes(12) });
+      context.automationPort.holdLease
+        .mockResolvedValueOnce(true)
+        .mockResolvedValueOnce(false)
+        .mockResolvedValue(true);
+      context.automationPort.listAssignments.mockImplementation(
+        () =>
+          new Promise(resolve => {
+            setTimeout(() => resolve([]), 40_000);
+          }),
+      );
+      const poller = makePoller(context);
+
+      poller.start();
+      await jest.advanceTimersByTimeAsync(150_000);
+      await poller.stop();
+
+      expect(context.automationPort.listAssignments).toHaveBeenCalledTimes(12);
+      expect(context.automationPort.listAutomatedInboxes).toHaveBeenCalledTimes(1);
     });
 
     it('should keep its role and try again on the next beat when a heartbeat fails', async () => {
