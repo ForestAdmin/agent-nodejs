@@ -91,10 +91,23 @@ export interface ReadRecordStepExecutionData extends BaseStepExecutionData {
 
 // -- Update Record --
 
+export type UpdateRecordAiRuling = 'kept' | 'value-changed';
+
+// Present whenever an AI produced the value, which is what makes a ruling meaningful. Its own
+// fields carry only what the AI explained, so an unexplained suggestion is `{}`, never absent.
+export interface UpdateRecordAiSuggestion {
+  reasoning?: string;
+}
+
 export interface UpdateRecordStepExecutionData
   extends MutatingStepExecutionData,
     WithUserConfirmation<UpdateRecordConfirmation> {
   type: 'update-record';
+  // Kept out of pendingData and executionParams, which the step summary replays into the prompt
+  // of every later step.
+  aiSuggestion?: UpdateRecordAiSuggestion;
+  // Absent when no AI proposal was put to a human, so absent never means agreement.
+  aiSuggestionRuling?: UpdateRecordAiRuling;
   executionParams?: FieldWithValue;
   // User confirmed → values returned by updateRecord. User rejected → skipped.
   executionResult?: { updatedValues: Record<string, unknown> } | { skipped: true };
@@ -177,6 +190,7 @@ export interface McpStepExecutionData
   extends MutatingStepExecutionData,
     WithUserConfirmation<McpConfirmation> {
   type: 'mcp';
+  toolSelectionReasoning?: string;
   executionParams?: McpToolCall;
   executionResult?:
     | { success: true; toolResult: unknown; formattedResponse?: string }
@@ -194,6 +208,19 @@ export interface RecordStepExecutionData extends BaseStepExecutionData {
 }
 
 // -- Load Related Record --
+
+export type LoadRelatedRecordAiRuling = 'kept' | 'record-changed' | 'relation-changed';
+
+// Present whenever an AI produced the suggestion, which is what makes a ruling meaningful. Its own
+// fields carry only what the AI explained, so an unexplained suggestion is `{}`, never absent.
+export interface LoadRelatedRecordAiSuggestion {
+  // The relation the AI chose, kept apart from pendingData.suggestedField, which a relation
+  // preview rewrites to whatever the human asked to see.
+  field?: RelationRef;
+  comparedFields?: string[];
+  fieldsReasoning?: string;
+  recordReasoning?: string;
+}
 export interface LoadRelatedRecordCandidate {
   recordId: RecordId;
   referenceFieldValue: string | null;
@@ -214,6 +241,11 @@ export interface LoadRelatedRecordStepExecutionData
   extends BaseStepExecutionData,
     WithUserConfirmation<LoadRelatedRecordConfirmation> {
   type: 'load-related-record';
+  // Kept out of pendingData and executionResult, which the step summary replays into the prompt
+  // of every later step.
+  aiSuggestion?: LoadRelatedRecordAiSuggestion;
+  // Absent when no AI suggestion was put to a human, so absent never means agreement.
+  aiSuggestionRuling?: LoadRelatedRecordAiRuling;
   pendingData?: LoadRelatedRecordPendingData;
   // Set on every await/load path (and preserved through the user-initiated "continue without" skip).
   selectedRecordRef?: RecordRef;

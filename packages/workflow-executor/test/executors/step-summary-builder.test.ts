@@ -519,5 +519,80 @@ describe('StepSummaryBuilder', () => {
 
       expect(result).toContain('Prompt: (no prompt)');
     });
+
+    describe('a step whose AI justification was recorded', () => {
+      const updateStep = {
+        type: StepType.UpdateRecord,
+        executionType: StepExecutionMode.FullyAutomated,
+        prompt: 'Set the status',
+      } as StepDefinition;
+      const updateOutcome = {
+        type: 'record',
+        stepId: 'update-1',
+        stepIndex: 0,
+        status: 'success',
+      } as StepOutcome;
+
+      it('keeps it out of the context when the step completed', () => {
+        const execution: StepExecutionData = {
+          type: 'update-record',
+          stepIndex: 0,
+          aiSuggestion: { reasoning: 'The order shipped' },
+          executionParams: { displayName: 'Status', name: 'status', value: 'active' },
+          executionResult: { updatedValues: { status: 'active' } },
+          selectedRecordRef: { collectionName: 'customers', recordId: [42], stepIndex: 0 },
+        };
+
+        const result = StepSummaryBuilder.build(updateStep, updateOutcome, execution);
+
+        expect(result).toContain(
+          'Input: {"displayName":"Status","name":"status","value":"active"}',
+        );
+        expect(result).toContain('Output: {"updatedValues":{"status":"active"}}');
+        expect(result).not.toContain('The order shipped');
+      });
+
+      it('keeps it out of the context when the human rejected the proposal', () => {
+        const execution: StepExecutionData = {
+          type: 'update-record',
+          stepIndex: 0,
+          aiSuggestion: { reasoning: 'The order shipped' },
+          pendingData: { displayName: 'Status', name: 'status', value: 'active' },
+          executionResult: { skipped: true },
+          selectedRecordRef: { collectionName: 'customers', recordId: [42], stepIndex: 0 },
+        };
+
+        const result = StepSummaryBuilder.build(updateStep, updateOutcome, execution);
+
+        expect(result).not.toContain('The order shipped');
+      });
+
+      it('keeps it out of the context when the human handled the step themselves', () => {
+        const execution: StepExecutionData = {
+          type: 'load-related-record',
+          stepIndex: 0,
+          aiSuggestion: {
+            field: { name: 'order', displayName: 'Order' },
+            recordReasoning: 'Order 99 is the pending one',
+          },
+          pendingData: {
+            availableFields: [{ name: 'order', displayName: 'Order' }],
+            suggestedField: { name: 'order', displayName: 'Order' },
+            availableRecordIds: [{ recordId: [99], referenceFieldValue: 'REF-99' }],
+            suggestedRecord: { recordId: [99], referenceFieldValue: 'REF-99' },
+          },
+          selectedRecordRef: { collectionName: 'customers', recordId: [42], stepIndex: 0 },
+        };
+
+        const result = StepSummaryBuilder.build(
+          updateStep,
+          { type: 'record', stepId: 'load-1', stepIndex: 0, status: 'success' } as StepOutcome,
+          execution,
+        );
+
+        expect(result).toContain('Proposed:');
+        expect(result).not.toContain('Order 99 is the pending one');
+      });
+    });
   });
 });

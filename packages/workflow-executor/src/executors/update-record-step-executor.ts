@@ -1,5 +1,10 @@
 import type { StepExecutionResult } from '../types/execution-context';
-import type { FieldWithValue, UpdateRecordStepExecutionData } from '../types/step-execution-data';
+import type {
+  FieldWithValue,
+  UpdateRecordAiRuling,
+  UpdateRecordAiSuggestion,
+  UpdateRecordStepExecutionData,
+} from '../types/step-execution-data';
 import type { CollectionSchema, FieldSchema, RecordRef } from '../types/validated/collection';
 import type { UpdateRecordStepDefinition } from '../types/validated/step-definition';
 
@@ -14,6 +19,7 @@ import {
   PinnedArgNotFoundError,
   StepStateError,
 } from '../errors';
+import { nonEmptyText } from './base-step-executor';
 import RecordStepExecutor from './record-step-executor';
 import { StepExecutionMode } from '../types/validated/step-definition';
 
@@ -139,6 +145,18 @@ function coerceFieldValue(
 
 interface UpdateTarget extends FieldWithValue {
   selectedRecordRef: RecordRef;
+  aiSuggestion?: UpdateRecordAiSuggestion;
+  aiSuggestionRuling?: UpdateRecordAiRuling;
+}
+
+// A field value is a primitive, a string, or an array of those (Json is stored as a string), so
+// there is never a plain object to deep-compare.
+function fieldValuesEqual(a: unknown, b: unknown): boolean {
+  if (Array.isArray(a) && Array.isArray(b)) {
+    return a.length === b.length && a.every((item, i) => fieldValuesEqual(item, b[i]));
+  }
+
+  return a === b;
 }
 
 export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateRecordStepDefinition> {
@@ -169,15 +187,25 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
         const { selectedRecordRef, pendingData, userConfirmation } = exec;
         // A user override of `null` (clearing the field) must win over the AI suggestion, so
         // distinguish "no override" (undefined) from "override to null".
-        const rawValue =
-          userConfirmation?.value !== undefined ? userConfirmation.value : pendingData!.value;
+        const overrideValue = userConfirmation?.value;
+        const rawValue = overrideValue !== undefined ? overrideValue : pendingData!.value;
+
+        // The value comes from an `unknown` HTTP value (may be a boolean or array), so coerce
+        // it to the field's native type before updating. Idempotent on already-typed values.
+        const value = await this.coerceOverride(selectedRecordRef, pendingData, rawValue);
+        const { aiSuggestion } = exec;
+        const keptAiValue =
+          aiSuggestion !== undefined &&
+          (await this.userKeptAiValue(selectedRecordRef, pendingData, overrideValue, value));
 
         const target: UpdateTarget = {
           selectedRecordRef,
           ...pendingData!,
-          // The value comes from an `unknown` HTTP value (may be a boolean or array), so coerce
-          // it to the field's native type before updating. Idempotent on already-typed values.
-          value: await this.coerceOverride(selectedRecordRef, pendingData, rawValue),
+          value,
+          aiSuggestion,
+          ...(aiSuggestion !== undefined && {
+            aiSuggestionRuling: keptAiValue ? ('kept' as const) : ('value-changed' as const),
+          }),
         };
 
         return this.resolveAndUpdate(target, exec);
@@ -186,6 +214,29 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
 
     // Branches B & C -- First call
     return this.handleFirstCall();
+  }
+
+  // Re-reading the suggested value must never abort the update the user did ask for.
+  private async userKeptAiValue(
+    selectedRecordRef: RecordRef,
+    pendingData: FieldWithValue | undefined,
+    overrideValue: unknown,
+    writtenValue: unknown,
+  ): Promise<boolean> {
+    if (overrideValue === undefined) return true;
+
+    try {
+      const aiValue = await this.coerceOverride(selectedRecordRef, pendingData, pendingData?.value);
+
+      return fieldValuesEqual(writtenValue, aiValue);
+    } catch (cause) {
+      this.context.logger('Warn', 'update-record: the suggested value no longer validates', {
+        ...this.logCtx,
+        cause: cause instanceof Error ? cause.message : String(cause),
+      });
+
+      return false;
+    }
   }
 
   private async coerceOverride(
@@ -225,17 +276,20 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     const recordedField = preRecordedArgs?.fieldName;
     let fieldName: string;
     let value: unknown;
+    let reasoning: string | undefined;
+    let aiResolvedValue = true;
 
     if (recordedField !== undefined && preRecordedArgs?.value !== undefined) {
       fieldName = recordedField;
       value = preRecordedArgs.value;
+      aiResolvedValue = false;
     } else if (recordedField !== undefined) {
       const field = this.findFieldByTechnicalName(schema, recordedField);
       if (!field) throw new PinnedArgNotFoundError('field', recordedField, schema.collectionName);
       fieldName = recordedField;
-      value = await this.selectValueForField(schema, field, step.prompt);
+      ({ value, reasoning } = await this.selectValueForField(schema, field, step.prompt));
     } else {
-      ({ fieldName, value } = await this.selectFieldAndValue(schema, step.prompt));
+      ({ fieldName, value, reasoning } = await this.selectFieldAndValue(schema, step.prompt));
     }
 
     const field = this.findFieldByTechnicalName(schema, fieldName);
@@ -248,11 +302,25 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
         : new FieldNotFoundError(fieldName, schema.collectionName);
     }
 
+    if (aiResolvedValue && nonEmptyText(reasoning) === undefined) {
+      this.context.logger(
+        'Info',
+        'update-record: the model proposed a value without justifying it',
+        {
+          ...this.logCtx,
+          field: field.fieldName,
+        },
+      );
+    }
+
     const target: UpdateTarget = {
       selectedRecordRef,
       displayName: field.displayName,
       name: field.fieldName,
       value,
+      ...(aiResolvedValue && {
+        aiSuggestion: { ...(nonEmptyText(reasoning) !== undefined && { reasoning }) },
+      }),
     };
 
     // Branch B -- fully automated execution
@@ -264,6 +332,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'update-record',
       stepIndex: this.context.stepIndex,
+      ...(target.aiSuggestion !== undefined && { aiSuggestion: target.aiSuggestion }),
       pendingData: {
         displayName: target.displayName,
         name: target.name,
@@ -280,7 +349,8 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     target: UpdateTarget,
     existingExecution?: UpdateRecordStepExecutionData,
   ): Promise<StepExecutionResult> {
-    const { selectedRecordRef, displayName, name, value } = target;
+    const { selectedRecordRef, displayName, name, value, aiSuggestion, aiSuggestionRuling } =
+      target;
 
     const updated = await this.context.agent.updateRecord(
       {
@@ -294,6 +364,8 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
             ...existingExecution,
             type: 'update-record',
             stepIndex: this.context.stepIndex,
+            ...(aiSuggestion !== undefined && { aiSuggestion }),
+            executionParams: { displayName, name, value },
             selectedRecordRef,
             idempotencyPhase: 'executing',
           }),
@@ -304,6 +376,8 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
       ...existingExecution,
       type: 'update-record',
       stepIndex: this.context.stepIndex,
+      ...(aiSuggestion !== undefined && { aiSuggestion }),
+      ...(aiSuggestionRuling !== undefined && { aiSuggestionRuling }),
       executionParams: { displayName, name, value },
       executionResult: { updatedValues: updated.values },
       selectedRecordRef,
@@ -316,7 +390,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
   private async selectFieldAndValue(
     schema: CollectionSchema,
     prompt: string | undefined,
-  ): Promise<{ fieldName: string; value: unknown }> {
+  ): Promise<{ fieldName: string; value: unknown; reasoning?: string }> {
     const tool = this.buildUpdateFieldTool(schema);
     const messages = [
       this.buildContextMessage(),
@@ -329,7 +403,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     ];
 
     const { input } = await this.invokeWithTool<{
-      input: { fieldName: string; value: unknown; reasoning: string };
+      input: { fieldName: string; value: unknown; reasoning?: string };
     }>(messages, tool);
 
     const fieldName = this.resolveAiFieldName(schema, input.fieldName);
@@ -343,6 +417,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
         input.value,
         schema.collectionName,
       ),
+      reasoning: nonEmptyText(input.reasoning),
     };
   }
 
@@ -351,7 +426,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     schema: CollectionSchema,
     field: FieldSchema,
     prompt: string | undefined,
-  ): Promise<unknown> {
+  ): Promise<{ value: unknown; reasoning?: string }> {
     if (field.type == null) {
       throw new FieldTypeMissingError(field.fieldName, schema.collectionName);
     }
@@ -377,11 +452,17 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
       new HumanMessage(`**Request**: ${prompt ?? `Set the "${field.displayName}" field.`}`),
     ];
 
-    const { value } = await this.invokeWithTool<{ value: unknown }>(messages, tool);
+    const { value, reasoning } = await this.invokeWithTool<{
+      value: unknown;
+      reasoning?: string;
+    }>(messages, tool);
 
     // The AI tool schema is JSON-Schema-safe (plain z.boolean() for Boolean), so it does not coerce
     // a stray "true"/"42" string — coerceFieldValue normalizes the value to the field's native type.
-    return coerceFieldValue(field, value, schema.collectionName);
+    return {
+      value: coerceFieldValue(field, value, schema.collectionName),
+      reasoning: nonEmptyText(reasoning),
+    };
   }
 
   private buildUpdateFieldTool(schema: CollectionSchema): DynamicStructuredTool {

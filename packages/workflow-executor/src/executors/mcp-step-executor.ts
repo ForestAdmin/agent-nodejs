@@ -6,7 +6,7 @@ import type {
   ErrorKind,
   RecordStepStatus,
 } from '../types/validated/step-outcome';
-import type { RemoteTool } from '@forestadmin/ai-proxy';
+import type { RemoteTool, StructuredToolInterface } from '@forestadmin/ai-proxy';
 
 import {
   DynamicStructuredTool,
@@ -23,7 +23,7 @@ import {
   OAuthReauthRequiredError,
   StepStateError,
 } from '../errors';
-import BaseStepExecutor from './base-step-executor';
+import BaseStepExecutor, { nonEmptyText } from './base-step-executor';
 import { StepExecutionMode } from '../types/validated/step-definition';
 
 const MCP_TASK_SYSTEM_PROMPT = `You are an AI agent selecting and executing a tool to fulfill a user request.
@@ -31,7 +31,20 @@ Select the most appropriate tool and fill in its parameters precisely.
 
 Important rules:
 - Select only the tool directly relevant to the request.
+- Always populate the "reasoning" field, explaining in passive voice why the chosen tool fits the request better than the alternatives.
 - Final answer is definitive, you won't receive any other input from the user.`;
+
+const REASONING_FIELD = 'reasoning';
+// Tool schemas come from arbitrary customer MCP servers, so `reasoning` is not ours to reserve.
+const FALLBACK_REASONING_FIELD = '__forest_tool_selection_reasoning';
+const REASONING_FIELD_DESCRIPTION =
+  'Concise explanation of why this tool was selected over the others, in passive voice.';
+
+type JsonSchemaObject = {
+  properties?: Record<string, unknown>;
+  required?: string[];
+  [key: string]: unknown;
+};
 
 export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition> {
   private readonly remoteTools: readonly RemoteTool[];
@@ -137,19 +150,20 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     }
 
     const tools = this.requireTools();
-    const { toolName, args } = await this.selectTool(tools);
+    const { toolName, args, reasoning } = await this.selectTool(tools);
     const selectedTool = tools.find(t => t.base.name === toolName);
     if (!selectedTool) throw new McpToolNotFoundError(toolName);
     const target: McpToolCall = { name: toolName, sourceId: selectedTool.sourceId, input: args };
 
     if (this.context.stepDefinition.executionType === StepExecutionMode.FullyAutomated) {
-      return this.executeToolAndPersist(target);
+      return this.executeToolAndPersist(target, undefined, reasoning);
     }
 
     await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'mcp',
       stepIndex: this.context.stepIndex,
       pendingData: target,
+      ...(reasoning !== undefined && { toolSelectionReasoning: reasoning }),
     });
 
     return this.buildOutcomeResult({ status: 'awaiting-input' });
@@ -158,6 +172,7 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
   private async executeToolAndPersist(
     target: McpToolCall,
     existingExecution?: McpStepExecutionData,
+    reasoning?: string,
   ): Promise<StepExecutionResult> {
     const tools = this.requireTools();
     const tool = tools.find(t => t.base.name === target.name && t.sourceId === target.sourceId);
@@ -178,6 +193,8 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
             ...existingExecution,
             type: 'mcp',
             stepIndex: this.context.stepIndex,
+            ...(reasoning !== undefined && { toolSelectionReasoning: reasoning }),
+            executionParams: { name: target.name, sourceId: target.sourceId, input: target.input },
             idempotencyPhase: 'executing',
           }),
       },
@@ -185,10 +202,12 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
 
     // 1. Persist raw result immediately — safe state before any further network calls
     const baseExecutionResult = { success: true as const, toolResult };
+    const toolSelectionReasoning = reasoning ?? existingExecution?.toolSelectionReasoning;
     const baseData: McpStepExecutionData = {
       ...existingExecution,
       type: 'mcp',
       stepIndex: this.context.stepIndex,
+      ...(toolSelectionReasoning !== undefined && { toolSelectionReasoning }),
       executionParams: { name: target.name, sourceId: target.sourceId, input: target.input },
       executionResult: baseExecutionResult,
       idempotencyPhase: 'done',
@@ -330,10 +349,99 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
       ),
     ];
 
-    return this.invokeWithTools(
+    const reasoningKeys = new Map<string, string>();
+    const augmentedTools = tools.map(t => {
+      try {
+        const { tool, reasoningKey } = McpStepExecutor.withReasoningField(t.base);
+        // The model answers with a name alone, and the tool behind it is the first of that name.
+        if (!reasoningKeys.has(t.base.name)) reasoningKeys.set(t.base.name, reasoningKey);
+
+        return tool;
+      } catch (cause) {
+        // Capturing a justification must never cost the step the tool it was going to run.
+        this.context.logger('Info', 'mcp: tool offered without a reasoning field', {
+          ...this.logCtx,
+          toolName: t.base.name,
+          cause: cause instanceof Error ? cause.message : String(cause),
+        });
+
+        return t.base;
+      }
+    });
+
+    const { toolName, args } = await this.invokeWithTools<Record<string, unknown>>(
       messages,
-      tools.map(t => t.base),
+      augmentedTools,
     );
+
+    const { [reasoningKeys.get(toolName) ?? REASONING_FIELD]: reasoning, ...input } = args;
+    const toolSelectionReasoning = nonEmptyText(reasoning);
+
+    if (toolSelectionReasoning === undefined) {
+      this.context.logger('Info', 'mcp: the model selected a tool without justifying it', {
+        ...this.logCtx,
+        toolName,
+        reasoningKey: reasoningKeys.get(toolName) ?? REASONING_FIELD,
+      });
+    }
+
+    return { toolName, args: input, reasoning: toolSelectionReasoning };
+  }
+
+  // A tool's schema is duck-typed rather than matched with `instanceof`: ai-proxy and
+  // workflow-executor resolve different zod instances, and an MCP-server tool carries a plain
+  // JSON Schema, which is valid at runtime but does not unify with langchain's static union.
+  private static withReasoningField(tool: StructuredToolInterface): {
+    tool: StructuredToolInterface;
+    reasoningKey: string;
+  } {
+    const { schema } = tool;
+
+    // A parameterless tool may declare no schema at all, which has nothing to extend.
+    if (schema === null || typeof schema !== 'object') {
+      return { tool, reasoningKey: REASONING_FIELD };
+    }
+
+    const isZodObject = typeof (schema as { extend?: unknown }).extend === 'function';
+    const declaredKeys = isZodObject
+      ? Object.keys((schema as z.ZodObject<z.ZodRawShape>).shape)
+      : Object.keys((schema as JsonSchemaObject).properties ?? {});
+    const reasoningKey = declaredKeys.includes(REASONING_FIELD)
+      ? FALLBACK_REASONING_FIELD
+      : REASONING_FIELD;
+
+    const augmented: z.ZodTypeAny = isZodObject
+      ? (schema as z.ZodObject<z.ZodRawShape>).extend({
+          [reasoningKey]: z.string().describe(REASONING_FIELD_DESCRIPTION),
+        })
+      : (McpStepExecutor.injectReasoningIntoJsonSchema(
+          schema as JsonSchemaObject,
+          reasoningKey,
+        ) as unknown as z.ZodTypeAny);
+
+    return {
+      tool: new DynamicStructuredTool({
+        name: tool.name,
+        description: tool.description,
+        schema: augmented,
+        func: undefined,
+      }),
+      reasoningKey,
+    };
+  }
+
+  private static injectReasoningIntoJsonSchema(
+    schema: JsonSchemaObject,
+    reasoningKey: string,
+  ): JsonSchemaObject {
+    return {
+      ...schema,
+      properties: {
+        ...(schema.properties ?? {}),
+        [reasoningKey]: { type: 'string', description: REASONING_FIELD_DESCRIPTION },
+      },
+      required: Array.from(new Set([...(schema.required ?? []), reasoningKey])),
+    };
   }
 
   // Tools are pre-scoped to step.mcpServerId upstream. An empty list means either no config
