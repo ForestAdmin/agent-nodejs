@@ -7,7 +7,7 @@
 
 services:
   workflow-executor:
-    image: ghcr.io/forestadmin/workflow-executor:latest
+    image: ghcr.io/forestadmin/runtime:latest
     restart: unless-stopped
     # Forward the whole .env into the container (see .env.example for the full
     # list of knobs). Unset optional vars fall back to the image's built-in

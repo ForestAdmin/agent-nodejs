@@ -25,6 +25,11 @@ Drive it from an environment variable (`WORKFLOW_EXECUTOR_URL` above) so each de
 
 ## Docker (recommended)
 
+The image is published as `ghcr.io/forestadmin/runtime`. It was previously named
+`ghcr.io/forestadmin/workflow-executor`, which is still published from the exact
+same builds — existing deployments keep working, but new ones should use
+`runtime`.
+
 ### Quick start
 
 ```bash
@@ -43,7 +48,7 @@ docker run -d \
   -e AGENT_URL="http://host.docker.internal:3351" \
   -e DATABASE_URL="postgres://user:pass@host.docker.internal:5432/mydb" \
   -p 3400:3400 \
-  ghcr.io/forestadmin/workflow-executor:latest
+  ghcr.io/forestadmin/runtime:latest
 ```
 
 > **Note:** When the executor runs in Docker and your agent runs on the host machine, use `host.docker.internal` instead of `localhost` in `AGENT_URL` and `DATABASE_URL`.
@@ -69,7 +74,7 @@ docker run -d \
   -e DATABASE_URL="postgres://user:pass@host.docker.internal:5432/mydb" \
   -e OTEL_EXPORTER_OTLP_ENDPOINT="http://collector:4318" \
   -p 3400:3400 \
-  ghcr.io/forestadmin/workflow-executor:latest
+  ghcr.io/forestadmin/runtime:latest
 ```
 
 > **Note:** OpenTelemetry is bundled only in the Docker image. It is not shipped with the npm package (`npx @forestadmin/workflow-executor`).
@@ -206,7 +211,7 @@ docker run --rm \
   -e FOREST_AUTH_SECRET="your-auth-secret" \
   -e AGENT_URL="http://host.docker.internal:3351" \
   -p 3400:3400 \
-  ghcr.io/forestadmin/workflow-executor:latest \
+  ghcr.io/forestadmin/runtime:latest \
   node packages/workflow-executor/dist/cli.js --in-memory --json
 ```
 
