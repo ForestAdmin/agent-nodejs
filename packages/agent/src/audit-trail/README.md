@@ -256,6 +256,7 @@ Optional filters (all combine with `AND`; omitting them keeps the full history):
 | query param | format                                    | effect                                            |
 | ----------- | ------------------------------------------ | -------------------------------------------------- |
 | `userIds`   | comma-separated integers `12,45`           | keep only entries whose `userId` is in the list   |
+| `operation` | comma-separated operations `create,delete` | keep only entries recorded under one of them      |
 | `startDate` | `YYYY-MM-DD` or datetime (incl.)           | keep entries from this lower bound onward         |
 | `endDate`   | `YYYY-MM-DD` or datetime (incl.)           | keep entries up to this upper bound               |
 | `fields`    | comma-separated column names `city,street` | keep entries whose change touched at least one   |
@@ -288,6 +289,13 @@ rows, so it composes with pagination and `meta.count` the same way every other f
 redacted value can never match a search for the real value: `redact` replaces it before the row is
 ever written, so the real value was never in the database to find.
 
+Nor can a search confirm a value the scope withholding hides. On a record gone for good under a
+caller's permission scope, `search` and `fields` are matched against the values as served, never as
+captured — in SQL, which rows come back, `meta.count` and `availableUsers` would each say whether a
+withheld value holds the term. The rows are read without those two filters, in batches of 500, and
+matched and paged in memory, keeping only the requested page and the authors. That holds too for a
+record deleted while the request was in flight, whose SQL-matched answer is discarded and re-read.
+
 Matching the *serialized* text rather than a structural walk of the parsed value is cheap and still
 correct for "keys and scalar values" — but two things follow from it. A punctuation-only term (`,`,
 `:`, `{`) matches almost any row whose diff has more than one key, since those characters are JSON
@@ -299,6 +307,9 @@ Defensive parsing:
 
 - `userIds`: non-numeric tokens are dropped (`12,abc,45` → `12,45`); if nothing numeric remains the
   filter is ignored.
+- `operation`: the set is closed (`create`, `update`, `delete`, `action`, `action_failed`), and an
+  unrecognized value returns **HTTP 400** rather than being dropped — a silently ignored filter
+  returns unfiltered rows into a list the caller believes is filtered.
 - `startDate` / `endDate`: a value matching none of the accepted formats returns **HTTP 400**.
 
 **Pagination** follows JSON:API: `page[number]` is 1-based (default `1`) and `page[size]` defaults

@@ -1,4 +1,9 @@
-import type { AuditRecord } from '../../audit-trail';
+import type {
+  AuditHistoryQuery,
+  AuditOperation,
+  AuditRecord,
+  AuditUserSummary,
+} from '../../audit-trail';
 import type { CollectionSchema, ConditionTree } from '@forestadmin/datasource-toolkit';
 import type Router from '@koa/router';
 import type { Context } from 'koa';
@@ -33,13 +38,31 @@ const ISO_INSTANT = /[Zz]$|[+-]\d{2}:?\d{2}$/;
 
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 100;
+const SERVED_MATCH_BATCH_SIZE = 500;
+
+const AUDIT_OPERATIONS: readonly AuditOperation[] = [
+  'create',
+  'update',
+  'delete',
+  'action',
+  'action_failed',
+];
 
 type AuditHistoryFilters = {
   userIds?: number[];
+  operations?: AuditOperation[];
   startTimestamp?: string;
   endTimestamp?: string;
   fields?: string[];
   search?: string;
+};
+
+type ServedMatchQuery = Pick<AuditHistoryFilters, 'fields' | 'search'> & {
+  rowFilters: AuditHistoryQuery;
+  order: 'asc' | 'desc';
+  skip: number;
+  limit: number;
+  isFirstFetch: boolean;
 };
 
 export default class AuditTrailRoute extends CollectionRoute {
@@ -68,24 +91,40 @@ export default class AuditTrailRoute extends CollectionRoute {
     const { store } = this.options.auditTrail;
     const { skip, limit } = AuditTrailRoute.parsePagination(context);
     const order = AuditTrailRoute.parseSort(context);
-    const { userIds, startTimestamp, endTimestamp, fields, search } =
+    const { userIds, operations, startTimestamp, endTimestamp, fields, search } =
       AuditTrailRoute.parseFilters(context);
 
-    const filters = {
+    const rowFilters = {
       collection: this.collection.name,
       recordId: context.params.id,
       ...(userIds && { userIds }),
+      ...(operations && { operations }),
       ...(startTimestamp && { startTimestamp }),
       ...(endTimestamp && { endTimestamp }),
-      ...(fields && { fields }),
-      ...(search && { search }),
     };
+    const filters = { ...rowFilters, ...(fields && { fields }), ...(search && { search }) };
 
     // Distinct authors are scoped to the active filters but independent of the page — returned
     // only on the first fetch (no explicit page[number]) so the front keeps the list it already
     // saw rather than it silently drifting across pages, mirroring Forest's activity-logs route.
     const isFirstFetch =
       (context.request.query as Record<string, unknown>)['page[number]'] === undefined;
+
+    // Matched in SQL, `search` and `fields` test the values as captured, so which rows come back,
+    // the count and the authors would still say what the withholding below hides — one probe per
+    // character. For a gone record they are matched against the values served instead.
+    const filtersOnValues = Boolean(fields || search);
+    const servedMatchQuery = { rowFilters, order, fields, search, skip, limit, isFirstFetch };
+
+    if (permissionScope && filtersOnValues && goneEntirely) {
+      context.response.body = await this.listServedMatches(
+        servedMatchQuery,
+        permissionScope,
+        context,
+      );
+
+      return;
+    }
 
     // `count` reflects the active filters and is independent of the page.
     const [rawData, count, availableUsers] = await Promise.all([
@@ -115,6 +154,17 @@ export default class AuditTrailRoute extends CollectionRoute {
 
     const gone = after ? after.goneEntirely : goneEntirely;
 
+    // Gone between the check and the read: the rows, count and authors above were matched in SQL.
+    if (permissionScope && filtersOnValues && gone) {
+      context.response.body = await this.listServedMatches(
+        servedMatchQuery,
+        permissionScope,
+        context,
+      );
+
+      return;
+    }
+
     // A genuinely deleted record bypasses the permission-scope check above — there's nothing left to check
     // existence against — but create/update/delete rows still carry captured column values from
     // when the record existed. If those values themselves would have failed the caller's permission scope,
@@ -127,6 +177,82 @@ export default class AuditTrailRoute extends CollectionRoute {
       data,
       meta: { count, ...(availableUsers && { availableUsers }) },
     };
+  }
+
+  // Read in batches so a gone record's history never sits in memory whole: only the requested
+  // page and the distinct authors are kept while the count runs over every match.
+  private async listServedMatches(
+    { rowFilters, order, fields, search, skip, limit, isFirstFetch }: ServedMatchQuery,
+    permissionScope: ConditionTree,
+    context: Context,
+  ): Promise<{
+    data: AuditRecord[];
+    meta: { count: number; availableUsers?: AuditUserSummary[] };
+  }> {
+    const { store } = this.options.auditTrail;
+    const page: AuditRecord[] = [];
+    const authors = new Map<number, AuditUserSummary>();
+    let count = 0;
+
+    for (let offset = 0; ; offset += SERVED_MATCH_BATCH_SIZE) {
+      // Sequential on purpose: batches are held one at a time.
+      // eslint-disable-next-line no-await-in-loop
+      const batch = await store.listByRecord({
+        ...rowFilters,
+        order,
+        skip: offset,
+        limit: SERVED_MATCH_BATCH_SIZE,
+      });
+
+      const matched = this.withhold(batch, permissionScope, context).filter(entry =>
+        AuditTrailRoute.matchesServedValues(entry, fields, search),
+      );
+      const pageStart = Math.max(0, skip - count);
+
+      page.push(...matched.slice(pageStart, pageStart + limit - page.length));
+      matched.forEach(entry => {
+        if (authors.has(entry.userId)) return;
+
+        authors.set(entry.userId, {
+          id: entry.userId,
+          firstName: entry.userFirstName,
+          lastName: entry.userLastName,
+          email: entry.userEmail,
+        });
+      });
+      count += matched.length;
+
+      if (batch.length < SERVED_MATCH_BATCH_SIZE) break;
+    }
+
+    return {
+      data: page,
+      meta: { count, ...(isFirstFetch && { availableUsers: [...authors.values()] }) },
+    };
+  }
+
+  // The SQL store's `fieldsChangedCondition` and `searchCondition`, run on the values as served.
+  private static matchesServedValues(
+    entry: AuditRecord,
+    fields?: string[],
+    search?: string,
+  ): boolean {
+    const sides = [entry.previousValues ?? {}, entry.newValues ?? {}];
+    const term = search?.toLowerCase();
+    const touchesField =
+      !fields ||
+      sides.some(values =>
+        fields.some(field => Object.prototype.hasOwnProperty.call(values, field)),
+      );
+    const texts = [
+      entry.actionName,
+      entry.userFirstName,
+      entry.userLastName,
+      entry.userEmail,
+      ...sides.map(values => JSON.stringify(values)),
+    ];
+
+    return touchesField && (!term || texts.some(text => text?.toLowerCase().includes(term)));
   }
 
   private withhold(
@@ -341,6 +467,7 @@ export default class AuditTrailRoute extends CollectionRoute {
 
     return {
       userIds: AuditTrailRoute.parseUserIds(query.userIds?.toString()),
+      operations: AuditTrailRoute.parseOperations(query.operation?.toString()),
       startTimestamp: AuditTrailRoute.parseDateBoundary(
         query.startDate?.toString(),
         timezone,
@@ -363,6 +490,28 @@ export default class AuditTrailRoute extends CollectionRoute {
       .map(token => Number.parseInt(token, 10));
 
     return ids.length > 0 ? ids : undefined;
+  }
+
+  // Comma-separated, from a closed set. An unrecognized value is rejected rather than dropped: a
+  // silently ignored filter returns unfiltered rows into a list the caller believes is filtered,
+  // which is worse than an error.
+  private static parseOperations(raw?: string): AuditOperation[] | undefined {
+    if (!raw) return undefined;
+
+    const tokens = raw
+      .split(',')
+      .map(token => token.trim())
+      .filter(token => token.length > 0);
+
+    const unknown = tokens.find(token => !AUDIT_OPERATIONS.includes(token as AuditOperation));
+
+    if (unknown) {
+      throw new ValidationError(
+        `Invalid operation: "${unknown}" (expected one of ${AUDIT_OPERATIONS.join(', ')})`,
+      );
+    }
+
+    return tokens.length > 0 ? (tokens as AuditOperation[]) : undefined;
   }
 
   private static parseFields(raw?: string): string[] | undefined {

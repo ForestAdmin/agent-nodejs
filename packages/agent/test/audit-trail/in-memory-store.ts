@@ -111,6 +111,7 @@ export default class InMemoryAuditStore implements AuditStore {
     collection,
     recordId,
     userIds,
+    operations,
     startTimestamp,
     endTimestamp,
     order = 'asc',
@@ -122,6 +123,7 @@ export default class InMemoryAuditStore implements AuditStore {
     return this.records
       .filter(record => record.collection === collection && record.recordId === recordId)
       .filter(record => !userIds || userIds.includes(record.userId))
+      .filter(record => !operations?.length || operations.includes(record.operation))
       .filter(record => !startTimestamp || record.timestamp >= startTimestamp)
       .filter(record => !endTimestamp || record.timestamp <= endTimestamp)
       .sort((a, b) => direction * a.timestamp.localeCompare(b.timestamp));

@@ -285,6 +285,98 @@ describe('AuditTrailRoute', () => {
     );
   });
 
+  test('forwards a single operation filter to the store', async () => {
+    const { services, dataSource, options, store } = setup();
+    const route = new AuditTrailRoute(services, options, dataSource, 'books');
+    const context = createMockContext({
+      state: { user: { email: 'john.doe@domain.com' } },
+      customProperties: {
+        query: { timezone: 'Europe/Paris', operation: 'delete' },
+        params: { id: '2' },
+      },
+    });
+
+    await route.handleHistory(context);
+
+    expect(store.listByRecord).toHaveBeenCalledWith(
+      expect.objectContaining({ operations: ['delete'] }),
+    );
+  });
+
+  test('forwards a comma-separated operation filter as a list', async () => {
+    const { services, dataSource, options, store } = setup();
+    const route = new AuditTrailRoute(services, options, dataSource, 'books');
+    const context = createMockContext({
+      state: { user: { email: 'john.doe@domain.com' } },
+      customProperties: {
+        query: { timezone: 'Europe/Paris', operation: 'create, action_failed' },
+        params: { id: '2' },
+      },
+    });
+
+    await route.handleHistory(context);
+
+    expect(store.listByRecord).toHaveBeenCalledWith(
+      expect.objectContaining({ operations: ['create', 'action_failed'] }),
+    );
+  });
+
+  test('applies the operation filter to the count and the author list too', async () => {
+    const { services, dataSource, options, store } = setup();
+    const route = new AuditTrailRoute(services, options, dataSource, 'books');
+    const context = createMockContext({
+      state: { user: { email: 'john.doe@domain.com' } },
+      customProperties: {
+        query: { timezone: 'Europe/Paris', operation: 'update' },
+        params: { id: '2' },
+      },
+    });
+
+    await route.handleHistory(context);
+
+    expect(store.countByRecord).toHaveBeenCalledWith(
+      expect.objectContaining({ operations: ['update'] }),
+    );
+    expect(store.listDistinctUsers).toHaveBeenCalledWith(
+      expect.objectContaining({ operations: ['update'] }),
+    );
+  });
+
+  test('rejects an unrecognized operation rather than ignoring the filter', async () => {
+    const { services, dataSource, options, store } = setup();
+    const route = new AuditTrailRoute(services, options, dataSource, 'books');
+    const context = createMockContext({
+      state: { user: { email: 'john.doe@domain.com' } },
+      customProperties: {
+        query: { timezone: 'Europe/Paris', operation: 'create,destroy' },
+        params: { id: '2' },
+      },
+    });
+
+    await expect(route.handleHistory(context)).rejects.toThrow(
+      'Invalid operation: "destroy" (expected one of create, update, delete, action, action_failed)',
+    );
+    expect(store.listByRecord).not.toHaveBeenCalled();
+  });
+
+  test('omits the operation filter when the parameter is empty', async () => {
+    const { services, dataSource, options, store } = setup();
+    const route = new AuditTrailRoute(services, options, dataSource, 'books');
+    const context = createMockContext({
+      state: { user: { email: 'john.doe@domain.com' } },
+      customProperties: {
+        query: { timezone: 'Europe/Paris', operation: '' },
+        params: { id: '2' },
+      },
+    });
+
+    await route.handleHistory(context);
+
+    expect(store.listByRecord).toHaveBeenCalledWith(
+      expect.not.objectContaining({ operations: expect.anything() }),
+    );
+  });
+
   test('converts startDate/endDate to inclusive UTC instants in the request timezone', async () => {
     const { services, dataSource, options, store } = setup();
     const route = new AuditTrailRoute(services, options, dataSource, 'books');
@@ -745,6 +837,171 @@ describe('AuditTrailRoute', () => {
       expect(context.response.body).toEqual({
         data: [{ operation: 'delete', recordId: '2', previousValues: {}, newValues: {} }],
         meta: { count: 1, availableUsers: [] },
+      });
+    });
+
+    // Matched in SQL, a search would still answer what the withholding hides: whether the row comes
+    // back, and the count, say whether the withheld value holds the term.
+    describe('a genuinely gone, scoped record searched or filtered by field', () => {
+      const secretDelete = (userEmail = 'jane@acme.io') => ({
+        operation: 'delete',
+        recordId: '2',
+        userId: 7,
+        userFirstName: null,
+        userLastName: null,
+        userEmail,
+        actionName: null,
+        previousValues: { ownerId: 2, title: 'Secret' },
+        newValues: {},
+      });
+
+      const searched = async (history: unknown[], query: Record<string, string>) => {
+        const { services, dataSource, options, store } = setup(history);
+        (services.authorization.getScope as jest.Mock).mockResolvedValue(
+          new ConditionTreeLeaf('ownerId', 'Equal', 1),
+        );
+        jest.spyOn(dataSource.getCollection('books'), 'list').mockResolvedValue([]);
+        const route = new AuditTrailRoute(services, options, dataSource, 'books');
+        const context = createMockContext({
+          state: { user: { email: 'john.doe@domain.com' } },
+          customProperties: { query: { timezone: 'Europe/Paris', ...query }, params: { id: '2' } },
+        });
+
+        await route.handleHistory(context);
+
+        return { body: context.response.body as { data: unknown[]; meta: unknown }, store };
+      };
+
+      test('finds nothing in a withheld value, and counts nothing', async () => {
+        const { body } = await searched([secretDelete()], { search: 'secret' });
+
+        expect(body).toEqual({ data: [], meta: { count: 0, availableUsers: [] } });
+      });
+
+      test('matches the values it serves', async () => {
+        const kept = { ...secretDelete(), previousValues: { ownerId: 1, title: 'Mine' } };
+
+        const { body } = await searched([kept], { search: 'MINE' });
+
+        expect(body.data).toEqual([kept]);
+      });
+
+      test('still matches what stays visible on a withheld row, such as its author', async () => {
+        const { body } = await searched([secretDelete()], { search: 'acme' });
+
+        expect(body).toEqual({
+          data: [{ ...secretDelete(), previousValues: {} }],
+          meta: {
+            count: 1,
+            availableUsers: [{ id: 7, firstName: null, lastName: null, email: 'jane@acme.io' }],
+          },
+        });
+      });
+
+      test('lists an author once even when their rows carry different identities', async () => {
+        const { body } = await searched([secretDelete(), secretDelete('jane@acme.com')], {
+          search: 'acme',
+        });
+
+        expect(body.meta).toEqual({
+          count: 2,
+          availableUsers: [{ id: 7, firstName: null, lastName: null, email: 'jane@acme.io' }],
+        });
+      });
+
+      test('does not match a field only a withheld side touched', async () => {
+        const { body } = await searched([secretDelete()], { fields: 'title' });
+
+        expect(body.data).toEqual([]);
+      });
+
+      test('reads the rows without the value filters and pages what matched', async () => {
+        const kept = { ...secretDelete(), previousValues: { ownerId: 1, title: 'Mine' } };
+
+        const { body, store } = await searched([kept, { ...kept, operation: 'update' }], {
+          search: 'mine',
+          userIds: '12',
+          'page[size]': '1',
+          'page[number]': '2',
+        });
+
+        expect(store.listByRecord).toHaveBeenCalledWith({
+          collection: 'books',
+          recordId: '2',
+          userIds: [12],
+          order: 'desc',
+          skip: 0,
+          limit: 500,
+        });
+        expect(store.countByRecord).not.toHaveBeenCalled();
+        expect(body).toEqual({ data: [{ ...kept, operation: 'update' }], meta: { count: 2 } });
+      });
+
+      test('reads the history in batches and counts every match across them', async () => {
+        const kept = { ...secretDelete(), previousValues: { ownerId: 1, title: 'Mine' } };
+        const { services, dataSource, options, store } = setup();
+        store.listByRecord
+          .mockResolvedValueOnce(Array.from({ length: 500 }, () => kept))
+          .mockResolvedValueOnce([kept]);
+        (services.authorization.getScope as jest.Mock).mockResolvedValue(
+          new ConditionTreeLeaf('ownerId', 'Equal', 1),
+        );
+        jest.spyOn(dataSource.getCollection('books'), 'list').mockResolvedValue([]);
+        const route = new AuditTrailRoute(services, options, dataSource, 'books');
+        const context = createMockContext({
+          state: { user: { email: 'john.doe@domain.com' } },
+          customProperties: {
+            query: { timezone: 'Europe/Paris', search: 'mine', 'page[size]': '1' },
+            params: { id: '2' },
+          },
+        });
+
+        await route.handleHistory(context);
+
+        expect(store.listByRecord).toHaveBeenNthCalledWith(
+          2,
+          expect.objectContaining({ skip: 500, limit: 500 }),
+        );
+        expect(context.response.body).toEqual({
+          data: [kept],
+          meta: {
+            count: 501,
+            availableUsers: [{ id: 7, firstName: null, lastName: null, email: 'jane@acme.io' }],
+          },
+        });
+      });
+
+      test('matches served values for a record deleted while the audit read was in flight', async () => {
+        const { services, dataSource, options, store } = setup([secretDelete()]);
+        (services.authorization.getScope as jest.Mock).mockResolvedValue(
+          new ConditionTreeLeaf('ownerId', 'Equal', 1),
+        );
+        jest
+          .spyOn(dataSource.getCollection('books'), 'list')
+          .mockResolvedValueOnce([{ id: 2, ownerId: 1 }]) // present and in scope
+          .mockResolvedValue([]); // re-read, scoped and bare: genuinely gone
+        const route = new AuditTrailRoute(services, options, dataSource, 'books');
+        const context = createMockContext({
+          state: { user: { email: 'john.doe@domain.com' } },
+          customProperties: {
+            query: { timezone: 'Europe/Paris', search: 'secret' },
+            params: { id: '2' },
+          },
+        });
+
+        await route.handleHistory(context);
+
+        expect(store.listByRecord).toHaveBeenLastCalledWith({
+          collection: 'books',
+          recordId: '2',
+          order: 'desc',
+          skip: 0,
+          limit: 500,
+        });
+        expect(context.response.body).toEqual({
+          data: [],
+          meta: { count: 0, availableUsers: [] },
+        });
       });
     });
 
