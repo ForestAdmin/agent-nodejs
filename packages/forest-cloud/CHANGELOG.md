@@ -1,3 +1,13 @@
+## @forestadmin/forest-cloud [1.12.213](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.212...@forestadmin/forest-cloud@1.12.213) (2026-09-25)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.103.6
+
 ## @forestadmin/forest-cloud [1.12.212](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.211...@forestadmin/forest-cloud@1.12.212) (2026-09-24)
 
 
