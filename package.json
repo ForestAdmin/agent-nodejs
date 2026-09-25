@@ -57,14 +57,15 @@
   "resolutions": {
     "tar": ">=7.5.16",
     "lerna/**/glob": ">=10.5.0",
-    "**/lerna/js-yaml": "^4.3.1",
-    "**/cosmiconfig/js-yaml": "^4.3.1",
-    "**/eslint/js-yaml": "^4.3.1",
-    "**/@eslint/eslintrc/js-yaml": "^4.3.1",
-    "**/@semrel-extra/topo/js-yaml": "^4.3.1",
-    "**/@hey-api/json-schema-ref-parser/js-yaml": "^4.3.1",
-    "**/@oclif/core/js-yaml": "^3.15.1",
-    "**/@istanbuljs/load-nyc-config/js-yaml": "^3.15.1",
+    "**/lerna/js-yaml": "^4.3.2",
+    "**/cosmiconfig/js-yaml": "^4.3.2",
+    "**/eslint/js-yaml": "^4.3.2",
+    "**/@eslint/eslintrc/js-yaml": "^4.3.2",
+    "**/@semrel-extra/topo/js-yaml": "^4.3.2",
+    "**/@hey-api/json-schema-ref-parser/js-yaml": "^4.3.2",
+    "**/@redocly/openapi-core/js-yaml": "^4.3.2",
+    "**/@oclif/core/js-yaml": "^3.15.2",
+    "**/@istanbuljs/load-nyc-config/js-yaml": "^3.15.2",
     "semantic-release": "^25.0.0",
     "qs": "^6.16.0",
     "lodash": "^4.18.0",
@@ -86,7 +87,7 @@
     "**/@oclif/core/minimatch/brace-expansion": "^2.1.4",
     "**/filelist/minimatch/brace-expansion": "^2.1.4",
     "**/concurrently/shell-quote": "^1.8.4",
-    "**/forest-cli/joi": "^17.13.4",
+    "**/forest-cli/joi": "^17.13.6",
     "axios": "^1.18.0",
     "zod": "4.3.6",
     "**/@forestadmin/agent/express/body-parser": "^1.20.6",
@@ -96,6 +97,9 @@
     "**/@forestadmin/ai-proxy/express/body-parser": "^2.3.0",
     "**/@modelcontextprotocol/sdk/express/body-parser": "^2.3.0",
     "**/@nestjs/platform-express/express/body-parser": "^2.3.0",
-    "**/@nestjs/platform-fastify/find-my-way": "^9.7.0"
+    "**/@nestjs/platform-fastify/find-my-way": "^9.7.0",
+    "**/@nestjs/platform-express/multer": "^2.3.0",
+    "**/nx/smol-toml": "^1.7.1",
+    "**/@modelcontextprotocol/sdk/hono": "^4.13.5"
   }
 }
