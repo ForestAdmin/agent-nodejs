@@ -1,5 +1,7 @@
 import type { WorkflowExecutorError } from '../src/errors';
 
+import { AgentHttpError } from '@forestadmin/agent-client';
+
 import {
   ActionFormValidationError,
   ActionNotFoundError,
@@ -159,6 +161,84 @@ describe('AiModelPortError', () => {
     const err = new AiModelPortError('invoke', cause);
 
     expect(err.cause).toBe(cause);
+  });
+});
+
+describe('AgentPortError', () => {
+  it('keeps the technical message unchanged when the cause carries no HTTP response', () => {
+    const err = new AgentPortError('getRecord', new Error('ECONNREFUSED'));
+
+    expect(err.message).toBe('Agent port "getRecord" failed: ECONNREFUSED');
+  });
+
+  it("appends the agent's raw response text to the technical message", () => {
+    const cause = new AgentHttpError(500, { error: 'hook crashed' }, '{"error":"hook crashed"}');
+
+    const err = new AgentPortError('getActionForm', cause);
+
+    expect(err.message).toBe(
+      'Agent port "getActionForm" failed: Agent responded with HTTP 500 | response: {"error":"hook crashed"}',
+    );
+  });
+
+  it('falls back to the serialized body when the agent sent no response text', () => {
+    const cause = new AgentHttpError(422, { errors: [{ detail: 'invalid value' }] });
+
+    const err = new AgentPortError('executeAction', cause);
+
+    expect(err.message).toBe(
+      'Agent port "executeAction" failed: Agent responded with HTTP 422 | response: {"errors":[{"detail":"invalid value"}]}',
+    );
+  });
+
+  it('falls back to the serialized body when the response text is empty', () => {
+    const cause = new AgentHttpError(500, { error: 'hook crashed' }, '');
+
+    const err = new AgentPortError('getActionForm', cause);
+
+    expect(err.message).toBe(
+      'Agent port "getActionForm" failed: Agent responded with HTTP 500 | response: {"error":"hook crashed"}',
+    );
+  });
+
+  it('flattens line breaks and control characters of the response onto one line', () => {
+    const cause = new AgentHttpError(
+      500,
+      null,
+      '<html>\n  <body>\tInternal\r\nError\u0007</body>\n</html>',
+    );
+
+    const err = new AgentPortError('getActionForm', cause);
+
+    expect(err.message).toBe(
+      'Agent port "getActionForm" failed: Agent responded with HTTP 500 | response: <html> <body> Internal Error </body> </html>',
+    );
+  });
+
+  it('truncates a response longer than 500 characters', () => {
+    const cause = new AgentHttpError(500, null, 'x'.repeat(600));
+
+    const err = new AgentPortError('getActionForm', cause);
+
+    expect(err.message).toBe(
+      `Agent port "getActionForm" failed: Agent responded with HTTP 500 | response: ${'x'.repeat(
+        500,
+      )}…`,
+    );
+  });
+
+  it('adds nothing when the agent answered with an empty response', () => {
+    const err = new AgentPortError('getActionForm', new AgentHttpError(500, null, ''));
+
+    expect(err.message).toBe('Agent port "getActionForm" failed: Agent responded with HTTP 500');
+  });
+
+  it('keeps the generic user-facing message whatever the agent answered', () => {
+    const cause = new AgentHttpError(500, null, 'stack trace with record data');
+
+    const err = new AgentPortError('getActionForm', cause);
+
+    expect(err.userMessage).toBe('An error occurred while accessing your data. Please try again.');
   });
 });
 

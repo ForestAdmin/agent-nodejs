@@ -2,6 +2,7 @@
 import type { MalformedRunInfo } from './ports/workflow-port';
 import type { RecordId } from './types/validated/collection';
 import type { AwaitingInputReason, ErrorKind } from './types/validated/step-outcome';
+import type { AgentHttpError } from '@forestadmin/agent-client';
 import type { z } from 'zod';
 
 export function causeMessage(error: unknown): string | undefined {
@@ -389,10 +390,52 @@ export class McpToolNotFoundError extends WorkflowExecutorError {
   }
 }
 
+const AGENT_RESPONSE_EXCERPT_MAX_LENGTH = 500;
+
+type AgentHttpResponse = Pick<AgentHttpError, 'status' | 'body' | 'responseText'>;
+
+function isAgentHttpResponse(cause: unknown): cause is AgentHttpResponse {
+  return cause instanceof Error && typeof (cause as Partial<AgentHttpResponse>).status === 'number';
+}
+
+function serializeBody(body: unknown): string | undefined {
+  if (body === undefined || body === null) return undefined;
+  if (typeof body === 'string') return body;
+
+  try {
+    return JSON.stringify(body);
+  } catch {
+    return String(body);
+  }
+}
+
+function agentResponseExcerpt(cause: unknown): string | undefined {
+  if (!isAgentHttpResponse(cause)) return undefined;
+
+  const raw = cause.responseText || serializeBody(cause.body);
+  if (!raw) return undefined;
+
+  const head = raw.slice(0, AGENT_RESPONSE_EXCERPT_MAX_LENGTH * 4);
+  const flat = Array.from(head, char =>
+    char < ' ' || (char >= '\u007f' && char <= '\u009f') ? ' ' : char,
+  )
+    .join('')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!flat) return undefined;
+
+  return flat.length > AGENT_RESPONSE_EXCERPT_MAX_LENGTH
+    ? `${flat.slice(0, AGENT_RESPONSE_EXCERPT_MAX_LENGTH)}…`
+    : flat;
+}
+
 export class AgentPortError extends WorkflowExecutorError {
   constructor(operation: string, cause: unknown) {
+    const causeText = cause instanceof Error ? cause.message : String(cause);
+    const excerpt = agentResponseExcerpt(cause);
+
     super(
-      `Agent port "${operation}" failed: ${cause instanceof Error ? cause.message : String(cause)}`,
+      `Agent port "${operation}" failed: ${causeText}${excerpt ? ` | response: ${excerpt}` : ''}`,
       'An error occurred while accessing your data. Please try again.',
     );
     this.cause = cause;

@@ -1310,6 +1310,21 @@ describe('AgentClientAgentPort', () => {
       };
     }
 
+    it("keeps the agent's response in the error when the form fails to load", async () => {
+      mockCollection.action.mockRejectedValue(
+        new AgentHttpError(500, null, '{"error":"hook must return an array of fields"}'),
+      );
+
+      const error = await port
+        .getActionForm({ collection: 'users', action: 'refund', id: [1] }, user)
+        .catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(AgentPortError);
+      expect((error as AgentPortError).message).toBe(
+        'Agent port "getActionForm" failed: Agent responded with HTTP 500 | response: {"error":"hook must return an array of fields"}',
+      );
+    });
+
     it('returns the field list, completeness and skipped fields', async () => {
       mockAction.tryToSetFields.mockResolvedValue(['ghost']);
       mockAction.getFields.mockReturnValue([
