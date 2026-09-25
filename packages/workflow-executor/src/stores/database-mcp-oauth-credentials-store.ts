@@ -19,6 +19,61 @@ import {
 
 const TABLE_NAME = 'ai_mcp_oauth_credentials';
 
+// The table as 002 created it. 003 rebuilds it from this on SQLite, so the two must stay in step.
+const CREDENTIAL_COLUMNS = {
+  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  userId: { type: DataTypes.INTEGER, allowNull: false, field: 'user_id' },
+  mcpServerId: {
+    type: DataTypes.STRING(255),
+    allowNull: false,
+    field: 'mcp_server_id',
+  },
+  refreshTokenEnc: {
+    type: DataTypes.BLOB,
+    allowNull: false,
+    field: 'refresh_token_enc',
+  },
+  clientId: { type: DataTypes.STRING(255), allowNull: true, field: 'client_id' },
+  clientSecretEnc: {
+    type: DataTypes.BLOB,
+    allowNull: true,
+    field: 'client_secret_enc',
+  },
+  clientSecretExpiresAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    field: 'client_secret_expires_at',
+  },
+  tokenEndpoint: {
+    type: DataTypes.STRING(2048),
+    allowNull: false,
+    field: 'token_endpoint',
+  },
+  tokenEndpointAuthMethod: {
+    type: DataTypes.STRING(64),
+    allowNull: true,
+    field: 'token_endpoint_auth_method',
+  },
+  scopes: { type: DataTypes.STRING(2048), allowNull: true, field: 'scopes' },
+  createdAt: {
+    type: DataTypes.DATE,
+    allowNull: false,
+    defaultValue: DataTypes.NOW,
+    field: 'created_at',
+  },
+  updatedAt: {
+    type: DataTypes.DATE,
+    allowNull: false,
+    defaultValue: DataTypes.NOW,
+    field: 'updated_at',
+  },
+};
+
+const NULLABLE_BLOB = { type: DataTypes.BLOB, allowNull: true };
+
+const UNIQUE_KEY = ['user_id', 'mcp_server_id'];
+const UNIQUE_INDEX = { unique: true, name: 'idx_user_id_mcp_server_id' };
+
 export interface DatabaseMcpOAuthCredentialsStoreOptions {
   sequelize: Sequelize;
   schema?: string;
@@ -28,7 +83,8 @@ interface CredentialRow {
   id: number;
   user_id: number;
   mcp_server_id: string;
-  refresh_token_enc: Buffer;
+  refresh_token_enc: Buffer | null;
+  access_token_enc?: Buffer | null;
   client_id: string | null;
   client_secret_enc: Buffer | null;
   client_secret_expires_at: string | Date | null;
@@ -69,68 +125,57 @@ export default class DatabaseMcpOAuthCredentialsStore implements McpOAuthCredent
             await context.sequelize.transaction(async transaction => {
               if (await context.tableExists(tableId, { transaction })) return;
 
-              await context.createTable(
-                tableId,
-                {
-                  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-                  userId: { type: DataTypes.INTEGER, allowNull: false, field: 'user_id' },
-                  mcpServerId: {
-                    type: DataTypes.STRING(255),
-                    allowNull: false,
-                    field: 'mcp_server_id',
-                  },
-                  refreshTokenEnc: {
-                    type: DataTypes.BLOB,
-                    allowNull: false,
-                    field: 'refresh_token_enc',
-                  },
-                  clientId: { type: DataTypes.STRING(255), allowNull: true, field: 'client_id' },
-                  clientSecretEnc: {
-                    type: DataTypes.BLOB,
-                    allowNull: true,
-                    field: 'client_secret_enc',
-                  },
-                  clientSecretExpiresAt: {
-                    type: DataTypes.DATE,
-                    allowNull: true,
-                    field: 'client_secret_expires_at',
-                  },
-                  tokenEndpoint: {
-                    type: DataTypes.STRING(2048),
-                    allowNull: false,
-                    field: 'token_endpoint',
-                  },
-                  tokenEndpointAuthMethod: {
-                    type: DataTypes.STRING(64),
-                    allowNull: true,
-                    field: 'token_endpoint_auth_method',
-                  },
-                  scopes: { type: DataTypes.STRING(2048), allowNull: true, field: 'scopes' },
-                  createdAt: {
-                    type: DataTypes.DATE,
-                    allowNull: false,
-                    defaultValue: DataTypes.NOW,
-                    field: 'created_at',
-                  },
-                  updatedAt: {
-                    type: DataTypes.DATE,
-                    allowNull: false,
-                    defaultValue: DataTypes.NOW,
-                    field: 'updated_at',
-                  },
-                },
-                { transaction },
-              );
+              await context.createTable(tableId, CREDENTIAL_COLUMNS, { transaction });
 
-              await context.addIndex(tableId, ['user_id', 'mcp_server_id'], {
-                unique: true,
-                name: 'idx_user_id_mcp_server_id',
-                transaction,
-              });
+              await context.addIndex(tableId, UNIQUE_KEY, { ...UNIQUE_INDEX, transaction });
             });
           },
           down: async ({ context }: { context: QueryInterface }) => {
             await context.dropTable(tableId);
+          },
+        },
+        {
+          name: '003_add_mcp_oauth_access_token',
+          up: async ({ context }: { context: QueryInterface }) => {
+            // Atomic and idempotent, like 002: a half-applied run rolls back, a re-run finds the column.
+            const columns = await context.describeTable(tableId);
+            if (columns.access_token_enc) return;
+
+            await context.sequelize.transaction(async transaction => {
+              if (context.sequelize.getDialect() !== 'sqlite') {
+                await context.changeColumn(tableId, 'refresh_token_enc', NULLABLE_BLOB, {
+                  transaction,
+                });
+                await context.addColumn(tableId, 'access_token_enc', NULLABLE_BLOB, {
+                  transaction,
+                });
+
+                return;
+              }
+
+              // SQLite cannot drop NOT NULL in place, and changeColumn's own rebuild loses
+              // AUTOINCREMENT and splits the composite unique index, so rebuild by hand.
+              const legacyTable = `${TABLE_NAME}_002`;
+              await context.renameTable(tableId, legacyTable, { transaction });
+              await context.createTable(
+                tableId,
+                {
+                  ...CREDENTIAL_COLUMNS,
+                  refreshTokenEnc: { ...NULLABLE_BLOB, field: 'refresh_token_enc' },
+                  accessTokenEnc: { ...NULLABLE_BLOB, field: 'access_token_enc' },
+                },
+                { transaction },
+              );
+              const copied = Object.entries(CREDENTIAL_COLUMNS)
+                .map(([name, definition]) => ('field' in definition ? definition.field : name))
+                .join(', ');
+              await context.sequelize.query(
+                `INSERT INTO "${TABLE_NAME}" (${copied}) SELECT ${copied} FROM "${legacyTable}"`,
+                { transaction },
+              );
+              await context.dropTable(legacyTable, { transaction });
+              await context.addIndex(tableId, UNIQUE_KEY, { ...UNIQUE_INDEX, transaction });
+            });
           },
         },
       ],
@@ -169,6 +214,7 @@ export default class DatabaseMcpOAuthCredentialsStore implements McpOAuthCredent
         userId: credential.userId,
         mcpServerId: credential.mcpServerId,
         refreshTokenEnc: credential.refreshTokenEnc,
+        accessTokenEnc: credential.accessTokenEnc ?? null,
         clientId: credential.clientId ?? null,
         clientSecretEnc: credential.clientSecretEnc ?? null,
         clientSecretExpiresAt: credential.clientSecretExpiresAt ?? null,
@@ -185,10 +231,10 @@ export default class DatabaseMcpOAuthCredentialsStore implements McpOAuthCredent
       );
       await this.sequelize.query(
         `INSERT INTO ${this.tableReference} ` +
-          '(user_id, mcp_server_id, refresh_token_enc, client_id, client_secret_enc, ' +
-          'client_secret_expires_at, token_endpoint, token_endpoint_auth_method, scopes, ' +
-          'created_at, updated_at) VALUES ' +
-          '(:userId, :mcpServerId, :refreshTokenEnc, :clientId, :clientSecretEnc, ' +
+          '(user_id, mcp_server_id, refresh_token_enc, access_token_enc, client_id, ' +
+          'client_secret_enc, client_secret_expires_at, token_endpoint, ' +
+          'token_endpoint_auth_method, scopes, created_at, updated_at) VALUES ' +
+          '(:userId, :mcpServerId, :refreshTokenEnc, :accessTokenEnc, :clientId, :clientSecretEnc, ' +
           ':clientSecretExpiresAt, :tokenEndpoint, :tokenEndpointAuthMethod, :scopes, ' +
           ':now, :now)',
         { replacements, transaction },
@@ -200,7 +246,8 @@ export default class DatabaseMcpOAuthCredentialsStore implements McpOAuthCredent
     // Single atomic UPDATE … WHERE id — affects zero rows if that row was deleted or re-created.
     await this.sequelize.query(
       `UPDATE ${this.tableReference} SET ` +
-        'refresh_token_enc = :refreshTokenEnc, client_id = :clientId, ' +
+        'refresh_token_enc = :refreshTokenEnc, access_token_enc = :accessTokenEnc, ' +
+        'client_id = :clientId, ' +
         'client_secret_enc = :clientSecretEnc, client_secret_expires_at = :clientSecretExpiresAt, ' +
         'token_endpoint = :tokenEndpoint, token_endpoint_auth_method = :tokenEndpointAuthMethod, ' +
         'scopes = :scopes, updated_at = :now ' +
@@ -209,6 +256,7 @@ export default class DatabaseMcpOAuthCredentialsStore implements McpOAuthCredent
         replacements: {
           id,
           refreshTokenEnc: credential.refreshTokenEnc,
+          accessTokenEnc: credential.accessTokenEnc ?? null,
           clientId: credential.clientId ?? null,
           clientSecretEnc: credential.clientSecretEnc ?? null,
           clientSecretExpiresAt: credential.clientSecretExpiresAt ?? null,
@@ -243,7 +291,8 @@ export default class DatabaseMcpOAuthCredentialsStore implements McpOAuthCredent
       id: Number(row.id),
       userId: Number(row.user_id),
       mcpServerId: row.mcp_server_id,
-      refreshTokenEnc: row.refresh_token_enc,
+      refreshTokenEnc: row.refresh_token_enc ?? null,
+      accessTokenEnc: row.access_token_enc ?? null,
       clientId: row.client_id ?? null,
       clientSecretEnc: row.client_secret_enc ?? null,
       clientSecretExpiresAt:
