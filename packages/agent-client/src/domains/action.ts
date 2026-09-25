@@ -51,7 +51,7 @@ function firstNonEmptyString(candidates: unknown[]): string | undefined {
 // Only a recognised error shape yields a detail. A raw body or responseText is whatever the agent's
 // host emitted -- an HTML error page, a proxy notice, a stack trace -- and it would reach the client
 // verbatim as the action error message, so it is left out and callers use their own wording.
-function extractDetail(error: AgentHttpError): string | undefined {
+export function extractErrorDetail(error: Pick<AgentHttpError, 'body'>): string | undefined {
   const body = (error.body ?? {}) as ActionErrorBody;
   const first = body.errors?.[0];
 
@@ -70,7 +70,7 @@ function toActionError(error: unknown): unknown {
   if (!(error instanceof AgentHttpError)) return error;
 
   const body = (error.body ?? {}) as ActionErrorBody;
-  const detail = extractDetail(error);
+  const detail = extractErrorDetail(error);
   const isApproval =
     body.errors?.[0]?.name === 'CustomActionRequiresApprovalError' ||
     !!error.responseText?.includes('CustomActionRequiresApprovalError');
