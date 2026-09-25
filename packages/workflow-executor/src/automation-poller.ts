@@ -28,12 +28,16 @@ const MAX_EXCLUDED_RECORDS = 150;
 // Every inbox reads the customer's agent several times. Sweeping them all at once piles those reads
 // onto the customer's database, and agent-client's ten-second timeout turns the pile-up into inboxes
 // that skip their sync.
-//
-// The cost is cycle duration, and the orchestrator's poller lease is renewed by the config call
-// that opens a cycle — so an environment whose cycle outlasts the lease TTL can have a second
-// instance win the election and sweep alongside this one. Duplicate sweeps are absorbed by the
-// assignment and run unique indexes, so this costs reads rather than correctness.
 const MAX_CONCURRENT_INBOX_POLLS = 5;
+
+// The orchestrator's poller lease lives three of these, so a dead holder is replaced within a
+// minute. Kept apart from the sweep interval: a sweep can last longer than the lease.
+const LEASE_HEARTBEAT_INTERVAL_S = 15;
+
+// Past this without a confirmed beat, the lease may have expired and gone to another instance.
+// Judged at each dispatch rather than when a beat fails: a timed-out beat only fails 5 s late, and
+// the next one 15 s after that, which would land past the 45 s lease.
+const LEASE_TRUSTED_FOR_MS = 30_000;
 
 // The agents that serve `POST /forest/_internal/capabilities`, the same list the front gates that
 // call on. Any other name is a v1 liana, which raises on `not_in`, or one this executor predates:
@@ -120,11 +124,16 @@ export default class AutomationPoller {
   private readonly config: AutomationPollerConfig;
   private readonly logger: Logger;
   private readonly inFlightInboxes = new InFlightRunRegistry();
-  private pollingTimer: NodeJS.Timeout | null = null;
+  private tickTimer: NodeJS.Timeout | null = null;
+  private currentTick: Promise<void> | null = null;
   // The cycle itself, not just the inbox polls it spawns: a cycle still waiting on the config route
   // has registered nothing, and draining only the registry would let it read and write after the
   // host was told the poller had stopped.
   private currentCycle: Promise<void> | null = null;
+  private holdsLease: boolean | undefined;
+  private leaseConfirmedAt = 0;
+  private sweepCutShort = false;
+  private nextSweepAt = 0;
   private _state: AutomationPollerState = 'idle';
 
   constructor(config: AutomationPollerConfig) {
@@ -158,7 +167,7 @@ export default class AutomationPoller {
       instanceId: this.config.instanceId,
       pollingIntervalS: this.config.pollingIntervalS,
     });
-    this.schedulePoll();
+    this.scheduleTick(0);
   }
 
   async stop(): Promise<void> {
@@ -166,9 +175,9 @@ export default class AutomationPoller {
 
     this._state = 'draining';
 
-    if (this.pollingTimer !== null) {
-      clearTimeout(this.pollingTimer);
-      this.pollingTimer = null;
+    if (this.tickTimer !== null) {
+      clearTimeout(this.tickTimer);
+      this.tickTimer = null;
     }
 
     try {
@@ -176,7 +185,11 @@ export default class AutomationPoller {
       let drainTimer: NodeJS.Timeout | undefined;
 
       const outcome = await Promise.race([
-        Promise.allSettled([this.currentCycle, this.inFlightInboxes.drain()]).then(() => {
+        Promise.allSettled([
+          this.currentTick,
+          this.currentCycle,
+          this.inFlightInboxes.drain(),
+        ]).then(() => {
           if (drainTimer) clearTimeout(drainTimer);
 
           return 'drained' as const;
@@ -200,14 +213,72 @@ export default class AutomationPoller {
     }
   }
 
-  private schedulePoll(): void {
+  private scheduleTick(delayMs: number): void {
     if (this._state !== 'running') return;
-    this.pollingTimer = setTimeout(() => {
-      this.currentCycle = this.runPollCycle();
-    }, this.config.pollingIntervalS * 1000);
-    // A background sweep must not be the reason a process stays alive: the host owns that, and an
-    // interval this long would otherwise hold a shutdown open for minutes.
-    this.pollingTimer.unref?.();
+    this.tickTimer = setTimeout(() => {
+      this.currentTick = this.tick();
+    }, delayMs);
+    // A background heartbeat must not be the reason a process stays alive: the host owns that.
+    this.tickTimer.unref?.();
+  }
+
+  private async tick(): Promise<void> {
+    try {
+      const held = await this.config.automationPort.holdLease(this.config.instanceId);
+
+      if (this._state !== 'running') return;
+
+      if (held !== this.holdsLease) {
+        this.logger(
+          'Info',
+          held
+            ? 'Holding the automation poller lease, this instance sweeps the automated inboxes'
+            : 'Standing by, another instance sweeps the automated inboxes',
+          { instanceId: this.config.instanceId },
+        );
+      }
+
+      this.holdsLease = held;
+
+      if (held) this.leaseConfirmedAt = Date.now();
+
+      if (!held) {
+        this.nextSweepAt = 0;
+
+        return;
+      }
+
+      if (this.currentCycle === null && Date.now() >= this.nextSweepAt) {
+        this.sweepCutShort = false;
+        // Not awaited: the heartbeat has to keep the lease through a sweep that outlasts it.
+        this.currentCycle = this.runPollCycle().finally(() => {
+          this.currentCycle = null;
+          // The inboxes a lost lease left undispatched are owed as soon as the lease is back.
+          this.nextSweepAt = this.sweepCutShort
+            ? 0
+            : Date.now() + this.config.pollingIntervalS * 1000;
+        });
+      }
+    } catch (error) {
+      this.logger('Error', 'Automation poller lease heartbeat failed', {
+        instanceId: this.config.instanceId,
+        error: extractErrorMessage(error),
+      });
+
+      if (this.holdsLease && Date.now() - this.leaseConfirmedAt >= LEASE_TRUSTED_FOR_MS) {
+        this.logger('Warn', 'No heartbeat landed for too long, standing by until one does', {
+          instanceId: this.config.instanceId,
+        });
+        this.holdsLease = false;
+        this.nextSweepAt = 0;
+      }
+    } finally {
+      this.scheduleTick(LEASE_HEARTBEAT_INTERVAL_S * 1000);
+    }
+  }
+
+  private leaseIsTrusted(): boolean {
+    return this.holdsLease === true && Date.now() - this.leaseConfirmedAt < LEASE_TRUSTED_FOR_MS;
   }
 
   private async runPollCycle(): Promise<void> {
@@ -218,8 +289,6 @@ export default class AutomationPoller {
       // agent and start runs during a shutdown that is only waiting on this cycle to end.
       if (this._state !== 'running') return;
 
-      // An empty list is also what a non-holder of the poller lease is served, so it reads as
-      // standing by rather than as an environment with nothing configured.
       if (inboxes.length === 0) {
         this.logger('Debug', 'No automated inbox to poll', { instanceId: this.config.instanceId });
 
@@ -228,19 +297,22 @@ export default class AutomationPoller {
 
       this.logger('Debug', 'Automation poll cycle started', { fetched: inboxes.length });
 
-      // Awaited, so the next cycle is only scheduled once this one is done: a slow segment read
-      // delays the sweep instead of stacking a second one on the customer's database. The registry
-      // is what `stop()` drains.
+      // Awaited, so no other cycle starts before this one is done: a slow segment read delays the
+      // sweep instead of stacking a second one on the customer's database. The registry is what
+      // `stop()` drains.
       const queue = [...inboxes];
 
       const sweepQueue = async (): Promise<void> => {
         let config = queue.shift();
 
-        while (config && this._state === 'running') {
+        // A lost lease means another instance may already be sweeping these inboxes.
+        while (config && this._state === 'running' && this.leaseIsTrusted()) {
           // eslint-disable-next-line no-await-in-loop
           await this.inFlightInboxes.track(config.inboxId, this.pollInbox(config));
           config = queue.shift();
         }
+
+        if (config && this._state === 'running') this.sweepCutShort = true;
       };
 
       await Promise.all(
@@ -252,8 +324,6 @@ export default class AutomationPoller {
         error: extractErrorMessage(error),
         stack: error instanceof Error ? error.stack : undefined,
       });
-    } finally {
-      this.schedulePoll();
     }
   }
 
