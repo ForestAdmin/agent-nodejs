@@ -5,6 +5,8 @@ import type { AwaitingInputReason, ErrorKind } from './types/validated/step-outc
 import type { AgentHttpError } from '@forestadmin/agent-client';
 import type { z } from 'zod';
 
+import { extractErrorDetail } from '@forestadmin/agent-client';
+
 export function causeMessage(error: unknown): string | undefined {
   const { cause } = (error ?? {}) as { cause?: unknown };
 
@@ -394,28 +396,16 @@ const AGENT_ERROR_MESSAGE_MAX_LENGTH = 500;
 
 type AgentHttpResponse = Pick<AgentHttpError, 'status' | 'body'>;
 
-type AgentErrorBody = {
-  errors?: { detail?: unknown; message?: unknown; title?: unknown }[];
-  error?: unknown;
-  message?: unknown;
-};
-
 function isAgentHttpResponse(cause: unknown): cause is AgentHttpResponse {
   return cause instanceof Error && typeof (cause as Partial<AgentHttpResponse>).status === 'number';
 }
 
 function agentErrorMessage(cause: unknown): string | undefined {
   if (!isAgentHttpResponse(cause) || cause.status < 500) return undefined;
-  if (!cause.body || typeof cause.body !== 'object') return undefined;
+  const detail = extractErrorDetail(cause);
+  if (!detail) return undefined;
 
-  const { errors, error, message } = cause.body as AgentErrorBody;
-  const first = Array.isArray(errors) ? errors[0] : undefined;
-  const candidate = [first?.detail, first?.message, first?.title, error, message].find(
-    (value): value is string => typeof value === 'string' && value.trim() !== '',
-  );
-  if (!candidate) return undefined;
-
-  const flat = Array.from(candidate.slice(0, AGENT_ERROR_MESSAGE_MAX_LENGTH * 4), char =>
+  const flat = Array.from(detail.slice(0, AGENT_ERROR_MESSAGE_MAX_LENGTH * 4), char =>
     char < ' ' || (char >= '\u007f' && char <= '\u009f') ? ' ' : char,
   )
     .join('')

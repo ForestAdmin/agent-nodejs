@@ -82,6 +82,7 @@ jest.mock('@forestadmin/agent-client', () => {
     UnknownActionFieldError: MockUnknownActionFieldError,
     createRemoteAgentClient: jest.fn(),
     HttpRequester: { is404Error: jest.fn() },
+    extractErrorDetail: jest.requireActual('@forestadmin/agent-client').extractErrorDetail,
   };
 });
 
