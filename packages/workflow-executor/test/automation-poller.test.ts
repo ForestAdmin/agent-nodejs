@@ -441,6 +441,31 @@ describe('AutomationPoller', () => {
       expect(context.automationPort.listAssignments).toHaveBeenCalledTimes(12);
     });
 
+    it('should stop dispatching once its heartbeats have failed long enough for the lease to be gone', async () => {
+      const context = makeContext({ inboxes: makeInboxes(12) });
+      context.automationPort.holdLease
+        .mockResolvedValueOnce(true)
+        .mockRejectedValue(new Error('orchestrator unreachable'));
+      context.automationPort.listAssignments.mockImplementation(
+        () =>
+          new Promise(resolve => {
+            setTimeout(() => resolve([]), 20_000);
+          }),
+      );
+      const poller = makePoller(context);
+
+      poller.start();
+      await jest.advanceTimersByTimeAsync(80_000);
+      await poller.stop();
+
+      expect(context.automationPort.listAssignments).toHaveBeenCalledTimes(10);
+      expect(context.logger).toHaveBeenCalledWith(
+        'Warn',
+        'No heartbeat landed for too long, standing by until one does',
+        expect.objectContaining({ instanceId: 'host-1-abcd' }),
+      );
+    });
+
     it('should keep its role and try again on the next beat when a heartbeat fails', async () => {
       const context = makeContext();
       context.automationPort.holdLease

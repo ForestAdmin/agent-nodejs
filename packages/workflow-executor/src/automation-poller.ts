@@ -34,6 +34,10 @@ const MAX_CONCURRENT_INBOX_POLLS = 5;
 // minute. Kept apart from the sweep interval: a sweep can last longer than the lease.
 const LEASE_HEARTBEAT_INTERVAL_S = 15;
 
+// Past this without a confirmed beat, the lease may have expired and gone to another instance. Kept
+// below the 45 s lease minus one beat, so this instance stops dispatching before that can happen.
+const LEASE_TRUSTED_FOR_MS = 30_000;
+
 // The agents that serve `POST /forest/_internal/capabilities`, the same list the front gates that
 // call on. Any other name is a v1 liana, which raises on `not_in`, or one this executor predates:
 // both pad rather than risk a candidate read that fails on every sweep.
@@ -126,6 +130,7 @@ export default class AutomationPoller {
   // host was told the poller had stopped.
   private currentCycle: Promise<void> | null = null;
   private holdsLease: boolean | undefined;
+  private leaseConfirmedAt = 0;
   private nextSweepAt = 0;
   private _state: AutomationPollerState = 'idle';
 
@@ -233,6 +238,8 @@ export default class AutomationPoller {
 
       this.holdsLease = held;
 
+      if (held) this.leaseConfirmedAt = Date.now();
+
       if (!held) {
         this.nextSweepAt = 0;
 
@@ -251,6 +258,14 @@ export default class AutomationPoller {
         instanceId: this.config.instanceId,
         error: extractErrorMessage(error),
       });
+
+      if (this.holdsLease && Date.now() - this.leaseConfirmedAt >= LEASE_TRUSTED_FOR_MS) {
+        this.logger('Warn', 'No heartbeat landed for too long, standing by until one does', {
+          instanceId: this.config.instanceId,
+        });
+        this.holdsLease = false;
+        this.nextSweepAt = 0;
+      }
     } finally {
       this.scheduleTick(LEASE_HEARTBEAT_INTERVAL_S * 1000);
     }
