@@ -292,8 +292,9 @@ ever written, so the real value was never in the database to find.
 Nor can a search confirm a value the scope withholding hides. On a record gone for good under a
 caller's permission scope, `search` and `fields` are matched against the values as served, never as
 captured — in SQL, which rows come back, `meta.count` and `availableUsers` would each say whether a
-withheld value holds the term. The rows are read without those two filters and matched and paged in
-memory, which only a gone record's history pays for.
+withheld value holds the term. The rows are read without those two filters, in batches of 500, and
+matched and paged in memory, keeping only the requested page and the authors. That holds too for a
+record deleted while the request was in flight, whose SQL-matched answer is discarded and re-read.
 
 Matching the *serialized* text rather than a structural walk of the parsed value is cheap and still
 correct for "keys and scalar values" — but two things follow from it. A punctuation-only term (`,`,

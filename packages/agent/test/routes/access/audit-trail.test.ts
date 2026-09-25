@@ -930,9 +930,78 @@ describe('AuditTrailRoute', () => {
           recordId: '2',
           userIds: [12],
           order: 'desc',
+          skip: 0,
+          limit: 500,
         });
         expect(store.countByRecord).not.toHaveBeenCalled();
         expect(body).toEqual({ data: [{ ...kept, operation: 'update' }], meta: { count: 2 } });
+      });
+
+      test('reads the history in batches and counts every match across them', async () => {
+        const kept = { ...secretDelete(), previousValues: { ownerId: 1, title: 'Mine' } };
+        const { services, dataSource, options, store } = setup();
+        store.listByRecord
+          .mockResolvedValueOnce(Array.from({ length: 500 }, () => kept))
+          .mockResolvedValueOnce([kept]);
+        (services.authorization.getScope as jest.Mock).mockResolvedValue(
+          new ConditionTreeLeaf('ownerId', 'Equal', 1),
+        );
+        jest.spyOn(dataSource.getCollection('books'), 'list').mockResolvedValue([]);
+        const route = new AuditTrailRoute(services, options, dataSource, 'books');
+        const context = createMockContext({
+          state: { user: { email: 'john.doe@domain.com' } },
+          customProperties: {
+            query: { timezone: 'Europe/Paris', search: 'mine', 'page[size]': '1' },
+            params: { id: '2' },
+          },
+        });
+
+        await route.handleHistory(context);
+
+        expect(store.listByRecord).toHaveBeenNthCalledWith(
+          2,
+          expect.objectContaining({ skip: 500, limit: 500 }),
+        );
+        expect(context.response.body).toEqual({
+          data: [kept],
+          meta: {
+            count: 501,
+            availableUsers: [{ id: 7, firstName: null, lastName: null, email: 'jane@acme.io' }],
+          },
+        });
+      });
+
+      test('matches served values for a record deleted while the audit read was in flight', async () => {
+        const { services, dataSource, options, store } = setup([secretDelete()]);
+        (services.authorization.getScope as jest.Mock).mockResolvedValue(
+          new ConditionTreeLeaf('ownerId', 'Equal', 1),
+        );
+        jest
+          .spyOn(dataSource.getCollection('books'), 'list')
+          .mockResolvedValueOnce([{ id: 2, ownerId: 1 }]) // present and in scope
+          .mockResolvedValue([]); // re-read, scoped and bare: genuinely gone
+        const route = new AuditTrailRoute(services, options, dataSource, 'books');
+        const context = createMockContext({
+          state: { user: { email: 'john.doe@domain.com' } },
+          customProperties: {
+            query: { timezone: 'Europe/Paris', search: 'secret' },
+            params: { id: '2' },
+          },
+        });
+
+        await route.handleHistory(context);
+
+        expect(store.listByRecord).toHaveBeenLastCalledWith({
+          collection: 'books',
+          recordId: '2',
+          order: 'desc',
+          skip: 0,
+          limit: 500,
+        });
+        expect(context.response.body).toEqual({
+          data: [],
+          meta: { count: 0, availableUsers: [] },
+        });
       });
     });
 
