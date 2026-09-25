@@ -3,8 +3,8 @@
 Demo data source for Forest Admin, themed around a fintech / compliance back
 office (customers, cards, KYC, AML alerts, chargebacks…).
 
-On boot it generates a throwaway SQLite database with [faker](https://fakerjs.dev/),
-seeds it via [Knex](https://knexjs.org/), and exposes it through
+On boot it generates a throwaway SQLite database of random data, seeds it via
+[Knex](https://knexjs.org/), and exposes it through
 `@forestadmin/datasource-sql`. The schema, column types and primary keys are
 introspected from the freshly-created tables. It is used by `forest create demo`
 to bootstrap a project with realistic sample data.
@@ -25,9 +25,9 @@ re-rolled each time), under the OS temp directory. The seed lives in `src/seed`:
 - one file per domain (`customers`, `cards`, `kyc`, `aml`, `refunds`,
   `chargebacks`) — each creates its table(s) and inserts rows.
 - `pools.ts` / `utils.ts` — curated reference data (kept hand-written so
-  geography stays internally consistent) and faker-backed random helpers.
+  geography stays internally consistent) and `Math.random`-backed random helpers.
 
-Business coherence is enforced in the builders, not by faker: sanctioned
+Business coherence is enforced in the builders, not by the random helpers: sanctioned
 customers never clear onboarding, alerts are weighted by customer risk, a filed
 SAR escalates its source alert, chargebacks link back to the right card and
 refund request, etc.

@@ -3,20 +3,36 @@
 // coherence rules live in the entity builders, not here.
 import type { Knex } from 'knex';
 
-import { faker } from '@faker-js/faker';
+export const randint = (lo: number, hi: number): number =>
+  lo + Math.floor(Math.random() * (hi - lo + 1));
+export const uniform = (lo: number, hi: number): number => lo + Math.random() * (hi - lo);
+export const chance = (p: number): boolean => Math.random() < p;
 
-export const randint = (lo: number, hi: number): number => faker.number.int({ min: lo, max: hi });
-export const uniform = (lo: number, hi: number): number => faker.number.float({ min: lo, max: hi });
-export const chance = (p: number): boolean => faker.number.float() < p;
-export const pick = <T>(arr: T[]): T => faker.helpers.arrayElement(arr);
-export const sample = <T>(arr: T[], k: number): T[] => faker.helpers.arrayElements(arr, k);
-export const shuffle = <T>(arr: T[]): T[] => faker.helpers.shuffle(arr);
+export function pick<T>(arr: T[]): T {
+  if (!arr.length) throw new Error('Cannot pick from an empty array');
+
+  return arr[randint(0, arr.length - 1)];
+}
+
+/** Fisher-Yates on a copy, so pools shared across seeders are never mutated. */
+export function shuffle<T>(arr: T[]): T[] {
+  const copy = [...arr];
+
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const j = randint(0, i);
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+
+  return copy;
+}
+
+export const sample = <T>(arr: T[], k: number): T[] => shuffle(arr).slice(0, k);
 export const round2 = (n: number): number => Math.round(n * 100) / 100;
 
 /** Weighted pick mirroring the original generator (tolerates zero weights). */
 export function choices<T>(items: T[], weights: number[]): T {
   const total = weights.reduce((a, b) => a + b, 0);
-  let r = faker.number.float({ min: 0, max: total });
+  let r = uniform(0, total);
 
   for (let i = 0; i < items.length; i += 1) {
     r -= weights[i];
