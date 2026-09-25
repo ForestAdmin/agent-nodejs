@@ -1,6 +1,7 @@
 import type { ServerAutomatedInboxConfig } from '../../src/adapters/server-types';
 
 import { ServerUtils } from '@forestadmin/forestadmin-client';
+import { ZodError } from 'zod';
 
 import ForestServerAutomationPort from '../../src/adapters/forest-server-automation-port';
 import { AutomatedInboxGoneError, WorkflowPortError } from '../../src/errors';
@@ -223,6 +224,62 @@ describe('ForestServerAutomationPort', () => {
       mockQuery.mockRejectedValue(httpError(500));
 
       await expect(port.listAutomatedInboxes('w1')).rejects.toThrow(WorkflowPortError);
+    });
+  });
+
+  describe('holdLease', () => {
+    it('should put the instance id on the lease route', async () => {
+      mockQuery.mockResolvedValue({ held: true });
+
+      await port.holdLease('worker 42');
+
+      expect(mockQuery).toHaveBeenCalledWith(
+        options,
+        'put',
+        '/api/workflow-orchestrator/automated-inboxes/lease?instanceId=worker%2042',
+        {},
+        undefined,
+        5_000,
+      );
+    });
+
+    it.each([true, false])('should answer held: %s as the orchestrator does', async held => {
+      mockQuery.mockResolvedValue({ held });
+
+      await expect(port.holdLease('w1')).resolves.toBe(held);
+    });
+
+    it('should leave the election to the listing on an orchestrator without the route', async () => {
+      mockQuery.mockRejectedValue(httpError(404));
+
+      await expect(port.holdLease('w1')).resolves.toBe(true);
+    });
+
+    it('should say the route is missing once, whichever call found out first', async () => {
+      mockQuery.mockRejectedValue(httpError(404));
+
+      await port.holdLease('w1');
+      await port.listAutomatedInboxes('w1');
+      await port.holdLease('w1');
+
+      const levels = logger.mock.calls
+        .filter(([, message]) => String(message).includes('does not serve automated inboxes'))
+        .map(([level]) => level);
+
+      expect(levels).toEqual(['Warn', 'Debug', 'Debug']);
+    });
+
+    it('should not retry a failed heartbeat, the next one is the retry', async () => {
+      mockQuery.mockRejectedValue(httpError(503));
+
+      await expect(port.holdLease('w1')).rejects.toMatchObject({ status: 503 });
+      expect(mockQuery).toHaveBeenCalledTimes(1);
+    });
+
+    it('should throw on an answer it cannot read rather than guess who holds the lease', async () => {
+      mockQuery.mockResolvedValue({ inboxes: [] });
+
+      await expect(port.holdLease('w1')).rejects.toBeInstanceOf(ZodError);
     });
   });
 

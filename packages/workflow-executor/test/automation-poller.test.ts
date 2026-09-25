@@ -60,6 +60,7 @@ function makeContext(options?: {
 }) {
   const automationPort: jest.Mocked<AutomationPort> = {
     listAutomatedInboxes: jest.fn().mockResolvedValue(options?.inboxes ?? [makeConfig()]),
+    holdLease: jest.fn().mockResolvedValue(true),
     listAssignments: jest.fn().mockResolvedValue(options?.assignments ?? []),
     sync: jest.fn().mockResolvedValue([]),
   };
@@ -87,7 +88,7 @@ function makePoller(context: ReturnType<typeof makeContext>, instanceId = 'host-
 /** Starts the poller, lets exactly one cycle fire, then stops it. */
 async function runOneCycle(poller: AutomationPoller): Promise<void> {
   poller.start();
-  await jest.advanceTimersByTimeAsync(POLL_INTERVAL_S * 1000);
+  await jest.advanceTimersByTimeAsync(0);
   await poller.stop();
 }
 
@@ -131,6 +132,7 @@ describe('AutomationPoller', () => {
 
       await runOneCycle(makePoller(context, 'worker-42'));
 
+      expect(context.automationPort.holdLease).toHaveBeenCalledWith('worker-42');
       expect(context.automationPort.listAutomatedInboxes).toHaveBeenCalledWith('worker-42');
     });
 
@@ -152,8 +154,8 @@ describe('AutomationPoller', () => {
 
       const poller = makePoller(context);
       poller.start();
-      await jest.advanceTimersByTimeAsync(POLL_INTERVAL_S * 1000);
-      await jest.advanceTimersByTimeAsync(POLL_INTERVAL_S * 1000);
+      await jest.advanceTimersByTimeAsync(0);
+      await jest.advanceTimersByTimeAsync(POLL_INTERVAL_S * 1000 + 15_000);
       await poller.stop();
 
       expect(context.automationPort.listAutomatedInboxes).toHaveBeenCalledTimes(2);
@@ -187,6 +189,7 @@ describe('AutomationPoller', () => {
       poller.start();
       await jest.advanceTimersByTimeAsync(POLL_INTERVAL_S * 10 * 1000);
 
+      expect(context.automationPort.holdLease).not.toHaveBeenCalled();
       expect(context.automationPort.listAutomatedInboxes).not.toHaveBeenCalled();
       expect(context.logger).toHaveBeenCalledWith(
         'Info',
@@ -196,6 +199,379 @@ describe('AutomationPoller', () => {
 
       // Still answers, so nothing downstream has to know an executor is running without a sweep.
       await expect(poller.stop()).resolves.toBeUndefined();
+    });
+  });
+
+  describe('lease heartbeat', () => {
+    const LEASE_TTL_MS = 45_000;
+
+    function makeSharedLease() {
+      let holder: string | null = null;
+      let expiresAt = 0;
+
+      return async (instanceId: string): Promise<boolean> => {
+        if (holder !== null && holder !== instanceId && Date.now() < expiresAt) return false;
+
+        holder = instanceId;
+        expiresAt = Date.now() + LEASE_TTL_MS;
+
+        return true;
+      };
+    }
+
+    const standingBy = (context: ReturnType<typeof makeContext>) =>
+      context.logger.mock.calls.filter(
+        ([level, message]) =>
+          level === 'Info' &&
+          message === 'Standing by, another instance sweeps the automated inboxes',
+      );
+
+    it('should replace a holder that stopped beating within a minute of its last renewal', async () => {
+      const lease = makeSharedLease();
+      const holder = makeContext();
+      const standby = makeContext();
+      let lastRenewalAt = 0;
+      let dying = false;
+
+      holder.automationPort.holdLease.mockImplementation(async instanceId => {
+        if (dying && lastRenewalAt > 0) return new Promise<boolean>(() => {});
+
+        const held = await lease(instanceId);
+        if (dying) lastRenewalAt = Date.now();
+
+        return held;
+      });
+      standby.automationPort.holdLease.mockImplementation(lease);
+
+      const first = makePoller(holder, 'host-a');
+      const second = makePoller(standby, 'host-b');
+      first.start();
+      await jest.advanceTimersByTimeAsync(1_000);
+      second.start();
+      await jest.advanceTimersByTimeAsync(100_000);
+
+      expect(standby.automationPort.listAutomatedInboxes).not.toHaveBeenCalled();
+
+      dying = true;
+      await jest.advanceTimersByTimeAsync(15_000);
+
+      expect(lastRenewalAt).toBeGreaterThan(0);
+
+      let takeoverAt = 0;
+      standby.automationPort.listAutomatedInboxes.mockImplementation(async () => {
+        takeoverAt = Date.now();
+
+        return [makeConfig()];
+      });
+      await jest.advanceTimersByTimeAsync(120_000);
+
+      expect(takeoverAt).toBeGreaterThan(0);
+      expect(takeoverAt - lastRenewalAt).toBeLessThanOrEqual(60_000);
+
+      await second.stop();
+    });
+
+    it('should keep renewing the lease through a sweep that outlasts it', async () => {
+      const lease = makeSharedLease();
+      const holder = makeContext();
+      const standby = makeContext();
+      holder.automationPort.holdLease.mockImplementation(lease);
+      standby.automationPort.holdLease.mockImplementation(lease);
+      holder.automationPort.listAssignments.mockImplementation(
+        () =>
+          new Promise(resolve => {
+            setTimeout(() => resolve([]), 120_000);
+          }),
+      );
+
+      const first = makePoller(holder, 'host-a');
+      const second = makePoller(standby, 'host-b');
+      first.start();
+      await jest.advanceTimersByTimeAsync(0);
+      second.start();
+      await jest.advanceTimersByTimeAsync(120_000);
+
+      expect(holder.automationPort.holdLease.mock.calls.length).toBeGreaterThanOrEqual(8);
+      expect(standby.automationPort.listAutomatedInboxes).not.toHaveBeenCalled();
+
+      await Promise.all([first.stop(), second.stop()]);
+    });
+
+    it('should stand by without ever asking for the inboxes while another instance holds the lease', async () => {
+      const context = makeContext();
+      context.automationPort.holdLease.mockResolvedValue(false);
+      const poller = makePoller(context);
+
+      poller.start();
+      await jest.advanceTimersByTimeAsync(POLL_INTERVAL_S * 2 * 1000);
+      await poller.stop();
+
+      expect(context.automationPort.listAutomatedInboxes).not.toHaveBeenCalled();
+      expect(standingBy(context)).toHaveLength(1);
+    });
+
+    it('should tell nothing configured apart from standing by', async () => {
+      const context = makeContext({ inboxes: [] });
+
+      await runOneCycle(makePoller(context));
+
+      expect(context.automationPort.listAutomatedInboxes).toHaveBeenCalledTimes(1);
+      expect(context.logger).toHaveBeenCalledWith(
+        'Debug',
+        'No automated inbox to poll',
+        expect.anything(),
+      );
+      expect(standingBy(context)).toHaveLength(0);
+      expect(context.logger).toHaveBeenCalledWith(
+        'Info',
+        'Holding the automation poller lease, this instance sweeps the automated inboxes',
+        expect.objectContaining({ instanceId: 'host-1-abcd' }),
+      );
+    });
+
+    it('should sweep again only once the interval has passed since the previous sweep ended', async () => {
+      const context = makeContext();
+      context.automationPort.listAssignments.mockImplementation(
+        () =>
+          new Promise(resolve => {
+            setTimeout(() => resolve([]), 100_000);
+          }),
+      );
+      const poller = makePoller(context);
+
+      poller.start();
+      await jest.advanceTimersByTimeAsync((100 + POLL_INTERVAL_S) * 1000 - 1);
+
+      expect(context.automationPort.listAutomatedInboxes).toHaveBeenCalledTimes(1);
+
+      await jest.advanceTimersByTimeAsync(15_000);
+
+      expect(context.automationPort.listAutomatedInboxes).toHaveBeenCalledTimes(2);
+
+      await jest.advanceTimersByTimeAsync(100_000);
+      await poller.stop();
+    });
+
+    it('should drop back to standing by once the lease is refused', async () => {
+      const context = makeContext();
+      context.automationPort.holdLease.mockResolvedValueOnce(true).mockResolvedValue(false);
+      const poller = makePoller(context);
+
+      poller.start();
+      await jest.advanceTimersByTimeAsync(POLL_INTERVAL_S * 3 * 1000);
+      await poller.stop();
+
+      expect(context.automationPort.listAutomatedInboxes).toHaveBeenCalledTimes(1);
+      expect(standingBy(context)).toHaveLength(1);
+    });
+
+    it('should stop dispatching the rest of a sweep once the lease is refused', async () => {
+      const context = makeContext({ inboxes: makeInboxes(12) });
+      context.automationPort.holdLease.mockResolvedValueOnce(true).mockResolvedValue(false);
+      context.automationPort.listAssignments.mockImplementation(
+        () =>
+          new Promise(resolve => {
+            setTimeout(() => resolve([]), 20_000);
+          }),
+      );
+      const poller = makePoller(context);
+
+      poller.start();
+      await jest.advanceTimersByTimeAsync(60_000);
+      await poller.stop();
+
+      expect(context.automationPort.listAssignments).toHaveBeenCalledTimes(5);
+      expect(context.automationPort.sync).toHaveBeenCalledTimes(5);
+    });
+
+    it('should sweep right away when it wins the lease back', async () => {
+      const context = makeContext();
+      context.automationPort.holdLease
+        .mockResolvedValueOnce(true)
+        .mockResolvedValueOnce(false)
+        .mockResolvedValue(true);
+      const poller = makePoller(context);
+
+      poller.start();
+      await jest.advanceTimersByTimeAsync(30_000);
+      await poller.stop();
+
+      expect(context.automationPort.listAutomatedInboxes).toHaveBeenCalledTimes(2);
+    });
+
+    it('should finish a sweep through a heartbeat that fails', async () => {
+      const context = makeContext({ inboxes: makeInboxes(12) });
+      context.automationPort.holdLease
+        .mockResolvedValueOnce(true)
+        .mockRejectedValueOnce(new Error('orchestrator unreachable'))
+        .mockResolvedValue(true);
+      context.automationPort.listAssignments.mockImplementation(
+        () =>
+          new Promise(resolve => {
+            setTimeout(() => resolve([]), 20_000);
+          }),
+      );
+      const poller = makePoller(context);
+
+      poller.start();
+      await jest.advanceTimersByTimeAsync(60_000);
+      await poller.stop();
+
+      expect(context.automationPort.listAssignments).toHaveBeenCalledTimes(12);
+    });
+
+    it('should stop dispatching once its heartbeats have failed long enough for the lease to be gone', async () => {
+      const context = makeContext({ inboxes: makeInboxes(12) });
+      context.automationPort.holdLease
+        .mockResolvedValueOnce(true)
+        .mockRejectedValue(new Error('orchestrator unreachable'));
+      context.automationPort.listAssignments.mockImplementation(
+        () =>
+          new Promise(resolve => {
+            setTimeout(() => resolve([]), 20_000);
+          }),
+      );
+      const poller = makePoller(context);
+
+      poller.start();
+      await jest.advanceTimersByTimeAsync(80_000);
+      await poller.stop();
+
+      expect(context.automationPort.listAssignments).toHaveBeenCalledTimes(10);
+      expect(context.logger).toHaveBeenCalledWith(
+        'Warn',
+        'No heartbeat landed for too long, standing by until one does',
+        expect.objectContaining({ instanceId: 'host-1-abcd' }),
+      );
+    });
+
+    it('should dispatch nothing 30 s after its last confirmed beat, even while slow beats are still failing', async () => {
+      const context = makeContext({ inboxes: makeInboxes(12) });
+      context.automationPort.holdLease.mockResolvedValueOnce(true).mockImplementation(
+        () =>
+          new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('timeout of 5000ms exceeded')), 5_000);
+          }),
+      );
+      context.automationPort.listAssignments.mockImplementation(
+        () =>
+          new Promise(resolve => {
+            setTimeout(() => resolve([]), 17_000);
+          }),
+      );
+      const poller = makePoller(context);
+
+      poller.start();
+      await jest.advanceTimersByTimeAsync(80_000);
+      await poller.stop();
+
+      expect(context.automationPort.listAssignments).toHaveBeenCalledTimes(10);
+    });
+
+    it('should sweep right away once it wins back a lease that cut its last sweep short', async () => {
+      const context = makeContext({ inboxes: makeInboxes(12) });
+      context.automationPort.holdLease
+        .mockResolvedValueOnce(true)
+        .mockResolvedValueOnce(false)
+        .mockResolvedValueOnce(false)
+        .mockResolvedValue(true);
+      context.automationPort.listAssignments.mockImplementation(
+        () =>
+          new Promise(resolve => {
+            setTimeout(() => resolve([]), 40_000);
+          }),
+      );
+      const poller = makePoller(context);
+
+      poller.start();
+      await jest.advanceTimersByTimeAsync(45_000);
+
+      expect(context.automationPort.listAssignments).toHaveBeenCalledTimes(10);
+      expect(context.automationPort.listAutomatedInboxes).toHaveBeenCalledTimes(2);
+
+      const stopped = poller.stop();
+      await jest.advanceTimersByTimeAsync(40_000);
+      await stopped;
+    });
+
+    it('should wait the full interval after a sweep the lease came back in time to finish', async () => {
+      const context = makeContext({ inboxes: makeInboxes(12) });
+      context.automationPort.holdLease
+        .mockResolvedValueOnce(true)
+        .mockResolvedValueOnce(false)
+        .mockResolvedValue(true);
+      context.automationPort.listAssignments.mockImplementation(
+        () =>
+          new Promise(resolve => {
+            setTimeout(() => resolve([]), 40_000);
+          }),
+      );
+      const poller = makePoller(context);
+
+      poller.start();
+      await jest.advanceTimersByTimeAsync(150_000);
+      await poller.stop();
+
+      expect(context.automationPort.listAssignments).toHaveBeenCalledTimes(12);
+      expect(context.automationPort.listAutomatedInboxes).toHaveBeenCalledTimes(1);
+    });
+
+    it('should keep its role and try again on the next beat when a heartbeat fails', async () => {
+      const context = makeContext();
+      context.automationPort.holdLease
+        .mockResolvedValueOnce(true)
+        .mockRejectedValueOnce(new Error('orchestrator unreachable'))
+        .mockResolvedValue(true);
+      const poller = makePoller(context);
+
+      poller.start();
+      await jest.advanceTimersByTimeAsync(45_000);
+
+      expect(context.automationPort.holdLease).toHaveBeenCalledTimes(4);
+      expect(context.automationPort.listAutomatedInboxes).toHaveBeenCalledTimes(1);
+      expect(context.logger).toHaveBeenCalledWith(
+        'Error',
+        'Automation poller lease heartbeat failed',
+        expect.objectContaining({ error: expect.stringContaining('orchestrator unreachable') }),
+      );
+      expect(standingBy(context)).toHaveLength(0);
+
+      await jest.advanceTimersByTimeAsync(POLL_INTERVAL_S * 1000);
+      await poller.stop();
+
+      expect(context.automationPort.listAutomatedInboxes).toHaveBeenCalledTimes(2);
+    });
+
+    it('should wait for a heartbeat in flight and start nothing from it once stopped', async () => {
+      const context = makeContext();
+
+      let answer: (held: boolean) => void = () => {};
+
+      context.automationPort.holdLease.mockReturnValue(
+        new Promise(resolve => {
+          answer = resolve;
+        }),
+      );
+      const poller = makePoller(context);
+
+      poller.start();
+      await jest.advanceTimersByTimeAsync(0);
+
+      const stopped = poller.stop();
+      let settled = false;
+      void stopped.then(() => {
+        settled = true;
+      });
+      await jest.advanceTimersByTimeAsync(1_000);
+
+      expect(settled).toBe(false);
+
+      answer(true);
+      await stopped;
+      await jest.advanceTimersByTimeAsync(POLL_INTERVAL_S * 1000);
+
+      expect(context.automationPort.listAutomatedInboxes).not.toHaveBeenCalled();
+      expect(context.automationPort.holdLease).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -369,8 +745,8 @@ describe('AutomationPoller', () => {
       const poller = makePoller(context);
 
       poller.start();
-      await jest.advanceTimersByTimeAsync(POLL_INTERVAL_S * 1000);
-      await jest.advanceTimersByTimeAsync(POLL_INTERVAL_S * 1000);
+      await jest.advanceTimersByTimeAsync(0);
+      await jest.advanceTimersByTimeAsync(POLL_INTERVAL_S * 1000 + 15_000);
       await poller.stop();
 
       expect(context.segmentReaderPort.listRecordIds).toHaveBeenNthCalledWith(
@@ -1096,7 +1472,7 @@ describe('AutomationPoller', () => {
 
       const poller = makePoller(context);
       poller.start();
-      await jest.advanceTimersByTimeAsync(POLL_INTERVAL_S * 1000 + 3 * SLOW_INBOX_MS);
+      await jest.advanceTimersByTimeAsync(3 * SLOW_INBOX_MS);
       await poller.stop();
 
       expect(maxOpen()).toBe(5);
@@ -1111,7 +1487,7 @@ describe('AutomationPoller', () => {
 
       const poller = makePoller(context);
       poller.start();
-      await jest.advanceTimersByTimeAsync(POLL_INTERVAL_S * 1000);
+      await jest.advanceTimersByTimeAsync(0);
 
       expect(context.automationPort.listAssignments).toHaveBeenCalledWith('inbox-6');
 
@@ -1130,7 +1506,7 @@ describe('AutomationPoller', () => {
 
       const poller = makePoller(context);
       poller.start();
-      await jest.advanceTimersByTimeAsync(POLL_INTERVAL_S * 1000);
+      await jest.advanceTimersByTimeAsync(0);
 
       const stopped = poller.stop();
       await jest.advanceTimersByTimeAsync(3 * SLOW_INBOX_MS);
@@ -1157,7 +1533,7 @@ describe('AutomationPoller', () => {
 
       const poller = makePoller(context);
       poller.start();
-      await jest.advanceTimersByTimeAsync(POLL_INTERVAL_S * 1000);
+      await jest.advanceTimersByTimeAsync(0);
 
       const stopped = poller.stop();
 
@@ -1186,7 +1562,7 @@ describe('AutomationPoller', () => {
 
       const poller = makePoller(context);
       poller.start();
-      await jest.advanceTimersByTimeAsync(POLL_INTERVAL_S * 1000);
+      await jest.advanceTimersByTimeAsync(0);
 
       // Nothing is registered yet: the cycle is still on the config route. Draining only the
       // per-inbox registry would let it read the agent after the host was told it had stopped.
@@ -1218,7 +1594,7 @@ describe('AutomationPoller', () => {
 
       const poller = makePoller(context);
       poller.start();
-      await jest.advanceTimersByTimeAsync(POLL_INTERVAL_S * 1000);
+      await jest.advanceTimersByTimeAsync(0);
 
       const stopped = poller.stop();
       release();
@@ -1244,7 +1620,7 @@ describe('AutomationPoller', () => {
       });
 
       poller.start();
-      await jest.advanceTimersByTimeAsync(POLL_INTERVAL_S * 1000);
+      await jest.advanceTimersByTimeAsync(0);
 
       const stopped = poller.stop();
       await jest.advanceTimersByTimeAsync(5_000);
@@ -1263,7 +1639,7 @@ describe('AutomationPoller', () => {
       const poller = makePoller(context);
 
       poller.start();
-      await jest.advanceTimersByTimeAsync(POLL_INTERVAL_S * 1000);
+      await jest.advanceTimersByTimeAsync(0);
       await poller.stop();
       await jest.advanceTimersByTimeAsync(POLL_INTERVAL_S * 3000);
 
