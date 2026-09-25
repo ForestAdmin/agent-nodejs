@@ -1,4 +1,9 @@
-import type { AuditOperation, AuditRecord, AuditUserSummary } from '../../audit-trail';
+import type {
+  AuditHistoryQuery,
+  AuditOperation,
+  AuditRecord,
+  AuditUserSummary,
+} from '../../audit-trail';
 import type { CollectionSchema, ConditionTree } from '@forestadmin/datasource-toolkit';
 import type Router from '@koa/router';
 import type { Context } from 'koa';
@@ -33,6 +38,7 @@ const ISO_INSTANT = /[Zz]$|[+-]\d{2}:?\d{2}$/;
 
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 100;
+const SERVED_MATCH_BATCH_SIZE = 500;
 
 const AUDIT_OPERATIONS: readonly AuditOperation[] = [
   'create',
@@ -49,6 +55,14 @@ type AuditHistoryFilters = {
   endTimestamp?: string;
   fields?: string[];
   search?: string;
+};
+
+type ServedMatchQuery = Pick<AuditHistoryFilters, 'fields' | 'search'> & {
+  rowFilters: AuditHistoryQuery;
+  order: 'asc' | 'desc';
+  skip: number;
+  limit: number;
+  isFirstFetch: boolean;
 };
 
 export default class AuditTrailRoute extends CollectionRoute {
@@ -98,18 +112,26 @@ export default class AuditTrailRoute extends CollectionRoute {
 
     // Matched in SQL, `search` and `fields` test the values as captured, so which rows come back,
     // the count and the authors would still say what the withholding below hides — one probe per
-    // character. For a record gone at the check they are matched against the values served instead,
-    // which means paging the whole history here. One in scope then was the caller's to read whole.
-    const matchServedValues = Boolean(permissionScope && goneEntirely && (fields || search));
+    // character. For a gone record they are matched against the values served instead.
+    const filtersOnValues = Boolean(fields || search);
+    const servedMatchQuery = { rowFilters, order, fields, search, skip, limit, isFirstFetch };
+
+    if (permissionScope && filtersOnValues && goneEntirely) {
+      context.response.body = await this.listServedMatches(
+        servedMatchQuery,
+        permissionScope,
+        context,
+      );
+
+      return;
+    }
 
     // `count` reflects the active filters and is independent of the page.
-    const [rawData, count, availableUsers] = matchServedValues
-      ? [await store.listByRecord({ ...rowFilters, order }), undefined, undefined]
-      : await Promise.all([
-          store.listByRecord({ ...filters, skip, limit, order }),
-          store.countByRecord(filters),
-          isFirstFetch ? store.listDistinctUsers(filters) : undefined,
-        ]);
+    const [rawData, count, availableUsers] = await Promise.all([
+      store.listByRecord({ ...filters, skip, limit, order }),
+      store.countByRecord(filters),
+      isFirstFetch ? store.listDistinctUsers(filters) : undefined,
+    ]);
 
     // The record can be deleted — or moved out of the caller's permission scope — between the check above and
     // the audit read: the audit trail lives in its own database, often its own engine, so no single
@@ -132,6 +154,17 @@ export default class AuditTrailRoute extends CollectionRoute {
 
     const gone = after ? after.goneEntirely : goneEntirely;
 
+    // Gone between the check and the read: the rows, count and authors above were matched in SQL.
+    if (permissionScope && filtersOnValues && gone) {
+      context.response.body = await this.listServedMatches(
+        servedMatchQuery,
+        permissionScope,
+        context,
+      );
+
+      return;
+    }
+
     // A genuinely deleted record bypasses the permission-scope check above — there's nothing left to check
     // existence against — but create/update/delete rows still carry captured column values from
     // when the record existed. If those values themselves would have failed the caller's permission scope,
@@ -140,25 +173,61 @@ export default class AuditTrailRoute extends CollectionRoute {
     const data =
       permissionScope && gone ? this.withhold(rawData, permissionScope, context) : rawData;
 
-    if (matchServedValues) {
-      const matched = data.filter(entry =>
-        AuditTrailRoute.matchesServedValues(entry, fields, search),
-      );
-
-      context.response.body = {
-        data: matched.slice(skip, skip + limit),
-        meta: {
-          count: matched.length,
-          ...(isFirstFetch && { availableUsers: AuditTrailRoute.authorsOf(matched) }),
-        },
-      };
-
-      return;
-    }
-
     context.response.body = {
       data,
       meta: { count, ...(availableUsers && { availableUsers }) },
+    };
+  }
+
+  // Read in batches so a gone record's history never sits in memory whole: only the requested
+  // page and the distinct authors are kept while the count runs over every match.
+  private async listServedMatches(
+    { rowFilters, order, fields, search, skip, limit, isFirstFetch }: ServedMatchQuery,
+    permissionScope: ConditionTree,
+    context: Context,
+  ): Promise<{
+    data: AuditRecord[];
+    meta: { count: number; availableUsers?: AuditUserSummary[] };
+  }> {
+    const { store } = this.options.auditTrail;
+    const page: AuditRecord[] = [];
+    const authors = new Map<number, AuditUserSummary>();
+    let count = 0;
+
+    for (let offset = 0; ; offset += SERVED_MATCH_BATCH_SIZE) {
+      // Sequential on purpose: batches are held one at a time.
+      // eslint-disable-next-line no-await-in-loop
+      const batch = await store.listByRecord({
+        ...rowFilters,
+        order,
+        skip: offset,
+        limit: SERVED_MATCH_BATCH_SIZE,
+      });
+
+      const matched = this.withhold(batch, permissionScope, context).filter(entry =>
+        AuditTrailRoute.matchesServedValues(entry, fields, search),
+      );
+      const pageStart = Math.max(0, skip - count);
+
+      page.push(...matched.slice(pageStart, pageStart + limit - page.length));
+      matched.forEach(entry => {
+        if (authors.has(entry.userId)) return;
+
+        authors.set(entry.userId, {
+          id: entry.userId,
+          firstName: entry.userFirstName,
+          lastName: entry.userLastName,
+          email: entry.userEmail,
+        });
+      });
+      count += matched.length;
+
+      if (batch.length < SERVED_MATCH_BATCH_SIZE) break;
+    }
+
+    return {
+      data: page,
+      meta: { count, ...(isFirstFetch && { availableUsers: [...authors.values()] }) },
     };
   }
 
@@ -184,23 +253,6 @@ export default class AuditTrailRoute extends CollectionRoute {
     ];
 
     return touchesField && (!term || texts.some(text => text?.toLowerCase().includes(term)));
-  }
-
-  private static authorsOf(entries: AuditRecord[]): AuditUserSummary[] {
-    const byUser = new Map<number, AuditUserSummary>();
-
-    entries.forEach(entry => {
-      if (byUser.has(entry.userId)) return;
-
-      byUser.set(entry.userId, {
-        id: entry.userId,
-        firstName: entry.userFirstName,
-        lastName: entry.userLastName,
-        email: entry.userEmail,
-      });
-    });
-
-    return [...byUser.values()];
   }
 
   private withhold(
