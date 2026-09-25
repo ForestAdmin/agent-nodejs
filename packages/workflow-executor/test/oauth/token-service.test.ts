@@ -401,6 +401,72 @@ describe('OAuthTokenService.getAccessToken', () => {
   });
 });
 
+describe('OAuthTokenService — access-token-only credential', () => {
+  const accessTokenOnly = () =>
+    makeCredential({ refreshTokenEnc: null, accessTokenEnc: Buffer.from('enc-at') });
+
+  it('returns the stored access token, decrypted, without running the refresh grant', async () => {
+    const { service, refresh, decrypt } = setup({ credential: accessTokenOnly() });
+
+    const token = await service.getAccessToken(USER_ID, SERVER_ID);
+
+    expect(token).toBe('decrypted:enc-at');
+    expect(decrypt).toHaveBeenCalledWith(Buffer.from('enc-at'));
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
+  it('raises OAuthReauthRequiredError on a forced refresh and never runs the refresh grant', async () => {
+    const { service, refresh } = setup({ credential: accessTokenOnly() });
+
+    await expect(
+      service.getAccessToken(USER_ID, SERVER_ID, { forceRefresh: true }),
+    ).rejects.toBeInstanceOf(OAuthReauthRequiredError);
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
+  it('re-reads the store on every call, so a disconnect takes effect at once', async () => {
+    const { service, get } = setup({ credential: accessTokenOnly() });
+
+    await service.getAccessToken(USER_ID, SERVER_ID);
+    await service.getAccessToken(USER_ID, SERVER_ID);
+
+    expect(get).toHaveBeenCalledTimes(2);
+  });
+
+  it('surfaces a decrypt failure with the key present as needs-oauth-reauth', async () => {
+    const { service, decrypt } = setup({ credential: accessTokenOnly() });
+    decrypt.mockImplementation(() => {
+      throw new Error('Unsupported state or unable to authenticate data');
+    });
+
+    await expect(service.getAccessToken(USER_ID, SERVER_ID)).rejects.toBeInstanceOf(
+      OAuthReauthRequiredError,
+    );
+  });
+
+  it('rethrows a missing-key error as terminal', async () => {
+    const { service, decrypt } = setup({ credential: accessTokenOnly() });
+    decrypt.mockImplementation(() => {
+      throw new ExecutorEncryptionKeyMissingError();
+    });
+
+    await expect(service.getAccessToken(USER_ID, SERVER_ID)).rejects.toBeInstanceOf(
+      ExecutorEncryptionKeyMissingError,
+    );
+  });
+
+  it('raises OAuthReauthRequiredError when a refresh-token credential is re-deposited as access-token-only mid-grant', async () => {
+    const refresh = jest.fn().mockRejectedValue(new OAuthInvalidGrantError());
+    const { service, get } = setup({ refresh });
+    get.mockResolvedValueOnce(makeCredential()).mockResolvedValueOnce(accessTokenOnly());
+
+    await expect(service.getAccessToken(USER_ID, SERVER_ID)).rejects.toBeInstanceOf(
+      OAuthReauthRequiredError,
+    );
+    expect(refresh).toHaveBeenCalledTimes(1);
+  });
+});
+
 // A disconnect (DELETE) landing between the grant read and the write-back must not re-create the
 // row: the atomic update-only path leaves a deleted credential deleted, not silently resurrected.
 describe('OAuthTokenService — concurrent disconnect during refresh write-back', () => {

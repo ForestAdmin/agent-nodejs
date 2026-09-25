@@ -11,7 +11,8 @@ import assertSafeTokenEndpoint from '../oauth/token-endpoint-url';
 export const depositCredentialsBodySchema = z
   .object({
     mcpServerId: z.string().min(1).max(255),
-    refreshToken: z.string().min(1),
+    refreshToken: z.string().min(1).optional(),
+    accessToken: z.string().min(1).optional(),
     clientId: z.string().min(1).max(255).optional(),
     clientSecret: z.string().min(1).optional(),
     clientSecretExpiresAt: z
@@ -43,6 +44,16 @@ export const depositCredentialsBodySchema = z
   })
   .strict()
   .superRefine((body, ctx) => {
+    // A refresh token is optional in OAuth 2.0 (RFC 6749 §5.1): a provider that issues none leaves
+    // only its access token to store.
+    if (!body.refreshToken === !body.accessToken) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['refreshToken'],
+        message: 'exactly one of refreshToken or accessToken is required',
+      });
+    }
+
     // RFC 6749 requires client_id alongside client_secret; a secret with no id can never
     // authenticate, so reject it here instead of persisting an unusable credential.
     if (body.clientSecret && !body.clientId) {
@@ -56,7 +67,7 @@ export const depositCredentialsBodySchema = z
 
 export type DepositCredentialsBody = z.infer<typeof depositCredentialsBodySchema>;
 
-// Translates a validated deposit body into the at-rest record: encrypts the refresh token (and
+// Translates a validated deposit body into the at-rest record: encrypts the deposited token (and
 // client secret when present) and maps optional fields to their nullable columns. encrypt() throws
 // ExecutorEncryptionKeyMissingError when the key is unset; the caller maps that to a 503.
 export function buildMcpOAuthCredentialInput({
@@ -68,13 +79,15 @@ export function buildMcpOAuthCredentialInput({
   userId: number;
   encryption: CredentialEncryption;
 }): McpOAuthCredentialInput {
-  const refreshToken = encryption.encrypt(body.refreshToken);
+  const refreshToken = body.refreshToken ? encryption.encrypt(body.refreshToken) : null;
+  const accessToken = body.accessToken ? encryption.encrypt(body.accessToken) : null;
   const clientSecret = body.clientSecret ? encryption.encrypt(body.clientSecret) : null;
 
   return {
     userId,
     mcpServerId: body.mcpServerId,
-    refreshTokenEnc: refreshToken.ciphertext,
+    refreshTokenEnc: refreshToken?.ciphertext ?? null,
+    accessTokenEnc: accessToken?.ciphertext ?? null,
     clientId: body.clientId ?? null,
     clientSecretEnc: clientSecret?.ciphertext ?? null,
     clientSecretExpiresAt: body.clientSecretExpiresAt ? new Date(body.clientSecretExpiresAt) : null,
