@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/datasource-demo-fintech",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "publishConfig": {

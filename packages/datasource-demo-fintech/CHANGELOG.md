@@ -1,3 +1,10 @@
+## @forestadmin/datasource-demo-fintech [1.0.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-demo-fintech@1.0.8...@forestadmin/datasource-demo-fintech@1.0.9) (2026-09-25)
+
+
+### Bug Fixes
+
+* **datasource-demo-fintech:** drop @faker-js/faker to close CVE-2026-73231 ([#1929](https://github.com/ForestAdmin/agent-nodejs/issues/1929)) ([2d8030a](https://github.com/ForestAdmin/agent-nodejs/commit/2d8030aadad7ebab1bb04d174fd762d911aba0a2)), closes [#1890](https://github.com/ForestAdmin/agent-nodejs/issues/1890) [#1923](https://github.com/ForestAdmin/agent-nodejs/issues/1923)
+
 ## @forestadmin/datasource-demo-fintech [1.0.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-demo-fintech@1.0.7...@forestadmin/datasource-demo-fintech@1.0.8) (2026-08-27)
 
 
