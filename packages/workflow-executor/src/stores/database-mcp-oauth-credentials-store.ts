@@ -20,7 +20,8 @@ import {
 const TABLE_NAME = 'ai_mcp_oauth_credentials';
 
 // The table as 002 created it. 003 rebuilds it from this on SQLite, so the two must stay in step.
-const CREDENTIAL_COLUMNS = {
+// A function, not a constant: DataTypes is read on call, never at import.
+const credentialColumns = () => ({
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
   userId: { type: DataTypes.INTEGER, allowNull: false, field: 'user_id' },
   mcpServerId: {
@@ -67,12 +68,58 @@ const CREDENTIAL_COLUMNS = {
     defaultValue: DataTypes.NOW,
     field: 'updated_at',
   },
-};
+});
 
-const NULLABLE_BLOB = { type: DataTypes.BLOB, allowNull: true };
+const nullableBlob = () => ({ type: DataTypes.BLOB, allowNull: true });
 
 const UNIQUE_KEY = ['user_id', 'mcp_server_id'];
 const UNIQUE_INDEX = { unique: true, name: 'idx_user_id_mcp_server_id' };
+
+// 003: a provider that issues no refresh token leaves an access token to store instead.
+async function addAccessTokenColumn(
+  context: QueryInterface,
+  tableId: ReturnType<typeof toTableId>,
+): Promise<void> {
+  // Atomic and idempotent, like 002: a half-applied run rolls back, a re-run finds the column.
+  const columns = await context.describeTable(tableId);
+  if (columns.access_token_enc) return;
+
+  await context.sequelize.transaction(async transaction => {
+    if (context.sequelize.getDialect() !== 'sqlite') {
+      await context.changeColumn(tableId, 'refresh_token_enc', nullableBlob(), {
+        transaction,
+      });
+      await context.addColumn(tableId, 'access_token_enc', nullableBlob(), {
+        transaction,
+      });
+
+      return;
+    }
+
+    // SQLite cannot drop NOT NULL in place, and changeColumn's own rebuild loses
+    // AUTOINCREMENT and splits the composite unique index, so rebuild by hand.
+    const legacyTable = `${TABLE_NAME}_002`;
+    await context.renameTable(tableId, legacyTable, { transaction });
+    await context.createTable(
+      tableId,
+      {
+        ...credentialColumns(),
+        refreshTokenEnc: { ...nullableBlob(), field: 'refresh_token_enc' },
+        accessTokenEnc: { ...nullableBlob(), field: 'access_token_enc' },
+      },
+      { transaction },
+    );
+    const copied = Object.entries(credentialColumns())
+      .map(([name, definition]) => ('field' in definition ? definition.field : name))
+      .join(', ');
+    await context.sequelize.query(
+      `INSERT INTO "${TABLE_NAME}" (${copied}) SELECT ${copied} FROM "${legacyTable}"`,
+      { transaction },
+    );
+    await context.dropTable(legacyTable, { transaction });
+    await context.addIndex(tableId, UNIQUE_KEY, { ...UNIQUE_INDEX, transaction });
+  });
+}
 
 export interface DatabaseMcpOAuthCredentialsStoreOptions {
   sequelize: Sequelize;
@@ -125,7 +172,7 @@ export default class DatabaseMcpOAuthCredentialsStore implements McpOAuthCredent
             await context.sequelize.transaction(async transaction => {
               if (await context.tableExists(tableId, { transaction })) return;
 
-              await context.createTable(tableId, CREDENTIAL_COLUMNS, { transaction });
+              await context.createTable(tableId, credentialColumns(), { transaction });
 
               await context.addIndex(tableId, UNIQUE_KEY, { ...UNIQUE_INDEX, transaction });
             });
@@ -136,47 +183,8 @@ export default class DatabaseMcpOAuthCredentialsStore implements McpOAuthCredent
         },
         {
           name: '003_add_mcp_oauth_access_token',
-          up: async ({ context }: { context: QueryInterface }) => {
-            // Atomic and idempotent, like 002: a half-applied run rolls back, a re-run finds the column.
-            const columns = await context.describeTable(tableId);
-            if (columns.access_token_enc) return;
-
-            await context.sequelize.transaction(async transaction => {
-              if (context.sequelize.getDialect() !== 'sqlite') {
-                await context.changeColumn(tableId, 'refresh_token_enc', NULLABLE_BLOB, {
-                  transaction,
-                });
-                await context.addColumn(tableId, 'access_token_enc', NULLABLE_BLOB, {
-                  transaction,
-                });
-
-                return;
-              }
-
-              // SQLite cannot drop NOT NULL in place, and changeColumn's own rebuild loses
-              // AUTOINCREMENT and splits the composite unique index, so rebuild by hand.
-              const legacyTable = `${TABLE_NAME}_002`;
-              await context.renameTable(tableId, legacyTable, { transaction });
-              await context.createTable(
-                tableId,
-                {
-                  ...CREDENTIAL_COLUMNS,
-                  refreshTokenEnc: { ...NULLABLE_BLOB, field: 'refresh_token_enc' },
-                  accessTokenEnc: { ...NULLABLE_BLOB, field: 'access_token_enc' },
-                },
-                { transaction },
-              );
-              const copied = Object.entries(CREDENTIAL_COLUMNS)
-                .map(([name, definition]) => ('field' in definition ? definition.field : name))
-                .join(', ');
-              await context.sequelize.query(
-                `INSERT INTO "${TABLE_NAME}" (${copied}) SELECT ${copied} FROM "${legacyTable}"`,
-                { transaction },
-              );
-              await context.dropTable(legacyTable, { transaction });
-              await context.addIndex(tableId, UNIQUE_KEY, { ...UNIQUE_INDEX, transaction });
-            });
-          },
+          up: async ({ context }: { context: QueryInterface }) =>
+            addAccessTokenColumn(context, tableId),
         },
       ],
       context: this.sequelize.getQueryInterface(),

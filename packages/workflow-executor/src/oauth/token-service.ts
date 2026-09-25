@@ -76,7 +76,7 @@ export default class OAuthTokenService {
         if (cached) return cached;
       }
 
-      return this.refreshAndCache(userId, mcpServerId, key, forceRefresh);
+      return this.refreshAndCache(userId, mcpServerId, forceRefresh);
     });
   }
 
@@ -105,9 +105,9 @@ export default class OAuthTokenService {
   private async refreshAndCache(
     userId: number,
     mcpServerId: string,
-    key: string,
     forceRefresh: boolean,
   ): Promise<string> {
+    const key = `${userId}:${mcpServerId}`;
     const epochAtStart = this.evictionEpoch.get(key) ?? 0;
     const credential = await this.store.get(userId, mcpServerId);
     if (!credential) throw new OAuthReauthRequiredError(mcpServerId);
