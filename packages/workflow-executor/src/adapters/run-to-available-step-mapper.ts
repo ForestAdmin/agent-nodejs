@@ -1,5 +1,6 @@
 import type {
   ServerHydratedWorkflowRun,
+  ServerStartSubWorkflow,
   ServerStepHistory,
   ServerUserProfile,
 } from './server-types';
@@ -15,7 +16,7 @@ import { IANAZone } from 'luxon';
 import { z } from 'zod';
 
 import { deserializeRecordId } from './record-id-serializer';
-import { ServerWorkflowTriggerType } from './server-types';
+import { ServerStepTypeEnum, ServerWorkflowTriggerType } from './server-types';
 import toStepDefinition from './step-definition-mapper';
 import {
   DomainValidationError,
@@ -25,9 +26,11 @@ import {
 import {
   type AvailableStepExecution,
   AvailableStepExecutionSchema,
+  type CallScope,
   type Step,
   type StepUser,
 } from '../types/validated/execution';
+import { WORKFLOW_START_STEP_ID } from '../types/validated/step-definition';
 import {
   ErrorKindSchema,
   ErrorSourceStepIndexSchema,
@@ -116,6 +119,80 @@ function toPreviousSteps(
     .filter((s): s is Step => s !== null);
 }
 
+// A missing, empty or non-string wire value reads as absent: a call sending neither the pin nor the
+// called collection behaves as one that predates them.
+const ROOT_FRAME = -1;
+
+function toNonEmptyString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
+// Rebuilt from the raw history because previousSteps drops the navigation steps, and read the way
+// the orchestrator reads its own call stack so the two agree on which call is open.
+function toCallScope(
+  history: ServerStepHistory[],
+  pending: ServerStepHistory,
+): CallScope | undefined {
+  if (!pending.childrenWorkflowId) return undefined;
+
+  const openCalls: Array<{
+    stepIndex: number;
+    frameOpenedAt: number;
+    definition: ServerStartSubWorkflow;
+  }> = [];
+  // Tracked per step rather than as a range, because a frame's steps resume after each nested call.
+  const frameOfStep = new Map<number, number>();
+
+  history.forEach(entry => {
+    if (entry.revised || entry.cancelled || entry.stepIndex >= pending.stepIndex) return;
+
+    const frameOpenedAt = openCalls.at(-1)?.stepIndex ?? ROOT_FRAME;
+
+    if (entry.stepDefinition.type === ServerStepTypeEnum.StartSubWorkflow) {
+      openCalls.push({
+        stepIndex: entry.stepIndex,
+        frameOpenedAt,
+        definition: entry.stepDefinition,
+      });
+    } else if (entry.stepDefinition.type === ServerStepTypeEnum.CloseSubWorkflow) {
+      openCalls.pop();
+    } else {
+      frameOfStep.set(entry.stepIndex, frameOpenedAt);
+    }
+  });
+
+  const innermost = openCalls.at(-1);
+  if (!innermost) return undefined;
+
+  // A call pinning "workflow start" pins what that phrase means where it was written — the record
+  // its own caller pinned — so the pin resolves outwards, and ends on the run's record.
+  const pinOf = (call: (typeof openCalls)[number]) =>
+    toNonEmptyString(call.definition.preRecordedArgs?.selectedRecordStepId);
+  const pinnedBy = [...openCalls].reverse().find(call => pinOf(call) !== WORKFLOW_START_STEP_ID);
+  const pin = pinnedBy && pinOf(pinnedBy);
+
+  const calledWorkflowCollectionName = toNonEmptyString(
+    innermost.definition.calledWorkflowCollectionName,
+  );
+
+  // Step ids are unique only per workflow, so outside the frame that wrote the pin a copy, a
+  // self-call or an already closed sibling would answer with its own record.
+  const pinnedFrameStepIndexes =
+    pinnedBy &&
+    [...frameOfStep]
+      .filter(
+        ([stepIndex, frame]) => frame === pinnedBy.frameOpenedAt && stepIndex < pinnedBy.stepIndex,
+      )
+      .map(([stepIndex]) => stepIndex);
+
+  return {
+    ...(pinnedBy !== undefined &&
+      pin !== undefined && { selectedRecordStepId: pin, pinnedFrameStepIndexes }),
+    ...(calledWorkflowCollectionName !== undefined && { calledWorkflowCollectionName }),
+    ...(pinOf(innermost) !== undefined && { isPinned: true as const }),
+  };
+}
+
 function toStepUser(runId: number, profile: ServerUserProfile): StepUser {
   // renderingId is stringified into the activity-log payload — reject non-finite so we don't
   // silently post "undefined"/"NaN" to the audit trail.
@@ -165,6 +242,8 @@ export default function toAvailableStepExecution(
   const pending = run.workflowHistory.at(-1) ?? null;
   if (!pending || pending.done) return null;
 
+  const callScope = toCallScope(run.workflowHistory, pending);
+
   const result = {
     runId: String(run.id),
     stepId: pending.stepName,
@@ -188,6 +267,7 @@ export default function toAvailableStepExecution(
     // relative dates in UTC — an hour or two away from the day the list filter shows the same
     // user, since that one follows the browser.
     timezone: run.timezone && IANAZone.isValidZone(run.timezone) ? run.timezone : 'UTC',
+    ...(callScope && { callScope }),
   };
 
   // Defense against mapper bugs: zod asserts the shape we produce is what the domain expects,

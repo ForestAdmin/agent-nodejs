@@ -83,12 +83,14 @@ describe('McpStepOutcomeSchema — awaitingInputReason', () => {
 });
 
 describe('ErrorKindSchema', () => {
-  // All three kinds cross the wire even though only 'operator' drives a UI branch — the vocabulary
-  // is a cross-service contract, so it is pinned here rather than by server-side validation.
-  it('accepts the three kinds of the classification vocabulary', () => {
+  // Every kind crosses the wire whether or not a consumer branches on it yet — the vocabulary is a
+  // cross-service contract, so it is pinned here rather than by server-side validation.
+  it('accepts the five kinds of the classification vocabulary', () => {
     expect(ErrorKindSchema.parse('operator')).toBe('operator');
     expect(ErrorKindSchema.parse('configuration')).toBe('configuration');
     expect(ErrorKindSchema.parse('system')).toBe('system');
+    expect(ErrorKindSchema.parse('empty-source')).toBe('empty-source');
+    expect(ErrorKindSchema.parse('call-site')).toBe('call-site');
   });
 
   it('rejects a kind outside the vocabulary', () => {

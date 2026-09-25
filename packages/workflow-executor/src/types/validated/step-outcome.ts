@@ -14,9 +14,15 @@ export type RecordStepStatus = z.infer<typeof RecordStepStatusSchema>;
 export const AwaitingInputReasonSchema = z.enum(['needs-oauth-reauth']);
 export type AwaitingInputReason = z.infer<typeof AwaitingInputReasonSchema>;
 
-// What kind of failure a step error is. All three cross the wire even though only 'operator' drives
-// a UI branch today: widening an enum is cheap, changing a cross-service contract is not.
-export const ErrorKindSchema = z.enum(['operator', 'configuration', 'system']);
+// Every value crosses the wire before any consumer branches on it, since widening it is cheap.
+// 'empty-source' and 'call-site' are split from configuration because each names the step to fix.
+export const ErrorKindSchema = z.enum([
+  'operator',
+  'configuration',
+  'system',
+  'empty-source',
+  'call-site',
+]);
 export type ErrorKind = z.infer<typeof ErrorKindSchema>;
 
 // Identifies the step an error is about by index rather than by step id: a LinkTo loop repeats ids,

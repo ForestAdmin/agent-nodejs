@@ -4,7 +4,7 @@ import type { RunStore } from '../../src/ports/run-store';
 import type { WorkflowPort } from '../../src/ports/workflow-port';
 import type { ExecutionContext } from '../../src/types/execution-context';
 import type { CollectionSchema, RecordRef } from '../../src/types/validated/collection';
-import type { Step } from '../../src/types/validated/execution';
+import type { CallScope, Step } from '../../src/types/validated/execution';
 import type { ReadRecordStepDefinition } from '../../src/types/validated/step-definition';
 
 import { AgentPortError, NoRecordsError, RecordNotFoundError } from '../../src/errors';
@@ -1546,6 +1546,412 @@ describe('ReadRecordStepExecutor', () => {
         'Step 2 - Orders #77',
       ]);
       expect(result.stepOutcome.status).toBe('success');
+    });
+  });
+
+  // The calling step's pin wins over the run's record, and another collection's record is refused.
+  describe('workflow-start inside a sub-workflow call', () => {
+    const pinnedOrderRef = makeRecordRef({
+      collectionName: 'orders',
+      recordId: [99],
+      stepIndex: 1,
+    });
+
+    function makeCalledContext(
+      callScope: CallScope,
+      overrides: Parameters<typeof makeContext>[0] = {},
+    ): ExecutionContext<ReadRecordStepDefinition> {
+      return makeContext({ callScope, ...overrides });
+    }
+
+    function makePinnedSourceStep(title: string): Step {
+      return {
+        stepDefinition: {
+          type: StepType.LoadRelatedRecord,
+          executionType: StepExecutionMode.FullyAutomated,
+          title,
+          prompt: 'Load the order',
+        },
+        stepOutcome: { type: 'record', stepId: 'load-1', stepIndex: 1, status: 'success' },
+      };
+    }
+
+    function makeSourceRunStore(record: RecordRef = pinnedOrderRef): RunStore {
+      return makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([
+          {
+            type: 'load-related-record',
+            stepIndex: 1,
+            executionResult: { relation: { name: 'order', displayName: 'Order' }, record },
+            selectedRecordRef: makeRecordRef(),
+          },
+        ]),
+      });
+    }
+
+    function makeOrdersWorkflowPort(): WorkflowPort {
+      return makeMockWorkflowPort({
+        customers: makeCollectionSchema(),
+        orders: makeCollectionSchema({
+          collectionName: 'orders',
+          collectionDisplayName: 'Orders',
+          fields: [{ fieldName: 'total', displayName: 'Total', isRelationship: false }],
+        }),
+      });
+    }
+
+    function makeWorkflowStartStep(fieldNames: string[]) {
+      return makeStep({
+        preRecordedArgs: { selectedRecordStepId: WORKFLOW_START_STEP_ID, fieldNames },
+      });
+    }
+
+    it('resolves workflow-start to the record the call pinned, not the run record', async () => {
+      const agentPort = makeMockAgentPort({ orders: { values: { total: 100 } } });
+      const context = makeCalledContext(
+        { selectedRecordStepId: 'load-1', calledWorkflowCollectionName: 'orders' },
+        {
+          agentPort,
+          runStore: makeSourceRunStore(),
+          previousSteps: [makePinnedSourceStep('Load the order')],
+          workflowPort: makeOrdersWorkflowPort(),
+          stepDefinition: makeWorkflowStartStep(['total']),
+        },
+      );
+
+      const result = await new ReadRecordStepExecutor(context).execute();
+
+      expect(agentPort.getRecord).toHaveBeenCalledWith(
+        expect.objectContaining({ collection: 'orders', id: [99], fields: ['total'] }),
+        expect.objectContaining({ id: 1 }),
+      );
+      expect(result.stepOutcome.status).toBe('success');
+    });
+
+    // Step ids are unique only per workflow, so a copy, a self-call or a closed sibling must not
+    // answer the pin its caller wrote.
+    it('resolves the call pin against the caller, not a step of the called workflow repeating its id', async () => {
+      const calleeStep = (stepIndex: number): Step => ({
+        stepDefinition: {
+          type: StepType.LoadRelatedRecord,
+          executionType: StepExecutionMode.FullyAutomated,
+          title: 'Load the order',
+          prompt: 'Load the order',
+        },
+        stepOutcome: { type: 'record', stepId: 'load-1', stepIndex, status: 'success' },
+      });
+      const execution = (stepIndex: number, recordId: number) => ({
+        type: 'load-related-record',
+        stepIndex,
+        executionResult: {
+          relation: { name: 'order', displayName: 'Order' },
+          record: makeRecordRef({ collectionName: 'orders', recordId: [recordId], stepIndex }),
+        },
+        selectedRecordRef: makeRecordRef(),
+      });
+      const agentPort = makeMockAgentPort({ orders: { values: { total: 100 } } });
+      const context = makeCalledContext(
+        {
+          selectedRecordStepId: 'load-1',
+          pinnedFrameStepIndexes: [1],
+          calledWorkflowCollectionName: 'orders',
+        },
+        {
+          agentPort,
+          runStore: makeMockRunStore({
+            getStepExecutions: jest.fn().mockResolvedValue([execution(1, 99), execution(3, 77)]),
+          }),
+          previousSteps: [calleeStep(1), calleeStep(3)],
+          workflowPort: makeOrdersWorkflowPort(),
+          stepDefinition: makeWorkflowStartStep(['total']),
+        },
+      );
+
+      const result = await new ReadRecordStepExecutor(context).execute();
+
+      expect(agentPort.getRecord).toHaveBeenCalledWith(
+        expect.objectContaining({ collection: 'orders', id: [99], fields: ['total'] }),
+        expect.objectContaining({ id: 1 }),
+      );
+      expect(result.stepOutcome.status).toBe('success');
+    });
+
+    it('falls back to the run record when the call pins none', async () => {
+      const agentPort = makeMockAgentPort();
+      const context = makeCalledContext(
+        { calledWorkflowCollectionName: 'customers' },
+        { agentPort, stepDefinition: makeWorkflowStartStep(['email']) },
+      );
+
+      const result = await new ReadRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(agentPort.getRecord).toHaveBeenCalledWith(
+        expect.objectContaining({ collection: 'customers', id: [42], fields: ['email'] }),
+        expect.objectContaining({ id: 1 }),
+      );
+    });
+
+    it('resolves workflow-start to the run record for a call that sends neither value', async () => {
+      const agentPort = makeMockAgentPort();
+      const context = makeCalledContext(
+        {},
+        {
+          agentPort,
+          stepDefinition: makeWorkflowStartStep(['email']),
+        },
+      );
+
+      const result = await new ReadRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(agentPort.getRecord).toHaveBeenCalledWith(
+        expect.objectContaining({ collection: 'customers', id: [42], fields: ['email'] }),
+        expect.objectContaining({ id: 1 }),
+      );
+    });
+
+    it('names both collections when the pinned record is of another collection than the called workflow', async () => {
+      const agentPort = makeMockAgentPort();
+      const context = makeCalledContext(
+        { selectedRecordStepId: 'load-1', calledWorkflowCollectionName: 'invoices' },
+        {
+          agentPort,
+          runStore: makeSourceRunStore(),
+          previousSteps: [makePinnedSourceStep('Load the order')],
+          workflowPort: makeOrdersWorkflowPort(),
+          stepDefinition: makeWorkflowStartStep(['email']),
+        },
+      );
+
+      const result = await new ReadRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        'This workflow runs on invoices, but the step that called it sent a record from orders. ' +
+          'Set the record on the Sub-workflow step in the calling workflow.',
+      );
+      expect(agentPort.getRecord).not.toHaveBeenCalled();
+    });
+
+    // An unpinned call is a step built before the pin existed: it keeps today's behaviour until the
+    // Editor sets "On record", even across collections.
+    it('keeps the run record on an unpinned call whose called workflow is on another collection', async () => {
+      const agentPort = makeMockAgentPort();
+      const context = makeCalledContext(
+        { calledWorkflowCollectionName: 'orders' },
+        { agentPort, stepDefinition: makeWorkflowStartStep(['email']) },
+      );
+
+      const result = await new ReadRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(agentPort.getRecord).toHaveBeenCalledWith(
+        expect.objectContaining({ collection: 'customers', id: [42], fields: ['email'] }),
+        expect.objectContaining({ id: 1 }),
+      );
+    });
+
+    // A call pinning "workflow start" at the top of the run sends no step to resolve, but it is
+    // pinned: the run's record is what it pins, and it is checked like any other pinned record.
+    it('refuses the run record for a call pinning workflow-start whose called workflow is on another collection', async () => {
+      const agentPort = makeMockAgentPort();
+      const context = makeCalledContext(
+        { isPinned: true, calledWorkflowCollectionName: 'orders' },
+        { agentPort, stepDefinition: makeWorkflowStartStep(['email']) },
+      );
+
+      const result = await new ReadRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        'This workflow runs on orders, but the step that called it sent a record from customers. ' +
+          'Set the record on the Sub-workflow step in the calling workflow.',
+      );
+      expect(agentPort.getRecord).not.toHaveBeenCalled();
+    });
+
+    it('uses the run record for a call pinning workflow-start whose called workflow is on its collection', async () => {
+      const agentPort = makeMockAgentPort();
+      const context = makeCalledContext(
+        { isPinned: true, calledWorkflowCollectionName: 'customers' },
+        { agentPort, stepDefinition: makeWorkflowStartStep(['email']) },
+      );
+
+      const result = await new ReadRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(agentPort.getRecord).toHaveBeenCalledWith(
+        expect.objectContaining({ collection: 'customers', id: [42], fields: ['email'] }),
+        expect.objectContaining({ id: 1 }),
+      );
+    });
+
+    // Collection names are compared as they are written: two names differing only in case are two
+    // collections, here as everywhere else in this package.
+    it('treats a called collection differing from the record only in case as a mismatch', async () => {
+      const agentPort = makeMockAgentPort();
+      const context = makeCalledContext(
+        { selectedRecordStepId: 'load-1', calledWorkflowCollectionName: 'Orders' },
+        {
+          agentPort,
+          runStore: makeSourceRunStore(),
+          previousSteps: [makePinnedSourceStep('Load the order')],
+          workflowPort: makeOrdersWorkflowPort(),
+          stepDefinition: makeWorkflowStartStep(['email']),
+        },
+      );
+
+      const result = await new ReadRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        'This workflow runs on Orders, but the step that called it sent a record from orders. ' +
+          'Set the record on the Sub-workflow step in the calling workflow.',
+      );
+      expect(agentPort.getRecord).not.toHaveBeenCalled();
+    });
+
+    it('classifies a collection mismatch as call-site and blames no step', async () => {
+      const context = makeCalledContext(
+        { selectedRecordStepId: 'load-1', calledWorkflowCollectionName: 'invoices' },
+        {
+          runStore: makeSourceRunStore(),
+          previousSteps: [makePinnedSourceStep('Load the order')],
+          workflowPort: makeOrdersWorkflowPort(),
+          stepDefinition: makeWorkflowStartStep(['email']),
+        },
+      );
+
+      const result = await new ReadRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.errorKind).toBe('call-site');
+      expect(result.stepOutcome.errorSourceStepIndex).toBeUndefined();
+    });
+
+    it('uses the pinned record when the call sends no called collection', async () => {
+      const agentPort = makeMockAgentPort({ orders: { values: { total: 100 } } });
+      const context = makeCalledContext(
+        { selectedRecordStepId: 'load-1' },
+        {
+          agentPort,
+          runStore: makeSourceRunStore(),
+          previousSteps: [makePinnedSourceStep('Load the order')],
+          workflowPort: makeOrdersWorkflowPort(),
+          stepDefinition: makeWorkflowStartStep(['total']),
+        },
+      );
+
+      const result = await new ReadRecordStepExecutor(context).execute();
+
+      expect(agentPort.getRecord).toHaveBeenCalledWith(
+        expect.objectContaining({ collection: 'orders', id: [99] }),
+        expect.objectContaining({ id: 1 }),
+      );
+      expect(result.stepOutcome.status).toBe('success');
+    });
+
+    // The called step pins workflow start correctly, so the message has to send the operator to the
+    // Sub-workflow step that set the pin rather than blame the step it is shown on.
+    it('points at the Sub-workflow step when the call pins a step the run never took', async () => {
+      const context = makeCalledContext(
+        { selectedRecordStepId: 'load-404', calledWorkflowCollectionName: 'orders' },
+        {
+          runStore: makeSourceRunStore(),
+          previousSteps: [makePinnedSourceStep('Load the order')],
+          workflowPort: makeOrdersWorkflowPort(),
+          stepDefinition: makeWorkflowStartStep(['email']),
+        },
+      );
+
+      const result = await new ReadRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        'The Sub-workflow step that called this workflow takes its record from a step that did ' +
+          'not run before it. Change the record on that Sub-workflow step.',
+      );
+      expect(result.stepOutcome.errorKind).toBe('call-site');
+    });
+
+    it('leaves a step pinned to a load-related step unguarded by the called collection', async () => {
+      const agentPort = makeMockAgentPort({ orders: { values: { total: 100 } } });
+      const context = makeCalledContext(
+        { selectedRecordStepId: 'load-1', calledWorkflowCollectionName: 'invoices' },
+        {
+          agentPort,
+          runStore: makeSourceRunStore(),
+          previousSteps: [makePinnedSourceStep('Load the order')],
+          workflowPort: makeOrdersWorkflowPort(),
+          stepDefinition: makeStep({
+            preRecordedArgs: { selectedRecordStepId: 'load-1', fieldNames: ['total'] },
+          }),
+        },
+      );
+
+      const result = await new ReadRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(agentPort.getRecord).toHaveBeenCalledWith(
+        expect.objectContaining({ collection: 'orders', id: [99] }),
+        expect.objectContaining({ id: 1 }),
+      );
+    });
+
+    it('keeps the run record in the pool the AI picks from inside a call', async () => {
+      const agentPort = makeMockAgentPort();
+      const context = makeCalledContext(
+        { selectedRecordStepId: 'load-1', calledWorkflowCollectionName: 'invoices' },
+        {
+          agentPort,
+          runStore: makeSourceRunStore(),
+          workflowPort: makeOrdersWorkflowPort(),
+          stepDefinition: makeStep({ preRecordedArgs: { fieldNames: ['email'] } }),
+        },
+      );
+
+      const result = await new ReadRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(agentPort.getRecord).toHaveBeenCalledWith(
+        expect.objectContaining({ collection: 'customers', id: [42] }),
+        expect.objectContaining({ id: 1 }),
+      );
+    });
+
+    it('resolves the same pinned record on a repeated execution of the step', async () => {
+      const agentPort = makeMockAgentPort({ orders: { values: { total: 100 } } });
+      const context = makeCalledContext(
+        { selectedRecordStepId: 'load-1', calledWorkflowCollectionName: 'orders' },
+        {
+          agentPort,
+          runStore: makeSourceRunStore(),
+          previousSteps: [makePinnedSourceStep('Load the order')],
+          workflowPort: makeOrdersWorkflowPort(),
+          stepDefinition: makeWorkflowStartStep(['total']),
+        },
+      );
+
+      await new ReadRecordStepExecutor(context).execute();
+      await new ReadRecordStepExecutor(context).execute();
+
+      expect(agentPort.getRecord).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({ collection: 'orders', id: [99] }),
+        expect.objectContaining({ id: 1 }),
+      );
+      expect(agentPort.getRecord).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({ collection: 'orders', id: [99] }),
+        expect.objectContaining({ id: 1 }),
+      );
+    });
+
+    // The editor mirrors this literal in app/features/workflow-editor/configuration.ts, and the two
+    // repositories share no code, so the literal is the whole agreement.
+    it('keeps the workflow-start sentinel the editor mirrors in app/features/workflow-editor/configuration.ts', () => {
+      expect(WORKFLOW_START_STEP_ID).toBe('workflow-start');
     });
   });
 });

@@ -65,6 +65,12 @@ export abstract class WorkflowOperatorError extends WorkflowExecutorError {
   static override readonly defaultErrorKind: ErrorKind = 'operator';
 }
 
+// Kept apart from configuration because its members name the calling Sub-workflow step as the
+// remedy, where most configuration errors name a fix only an Admin can make.
+export abstract class WorkflowCallSiteError extends WorkflowExecutorError {
+  static override readonly defaultErrorKind: ErrorKind = 'call-site';
+}
+
 export class MissingToolCallError extends WorkflowExecutorError {
   constructor() {
     super(
@@ -585,6 +591,28 @@ export class SourceRecordMissingError extends WorkflowExecutorError {
     );
     this.errorKind = options.errorKind ?? this.errorKind;
     this.errorSourceStepIndex = options.errorSourceStepIndex;
+  }
+}
+
+// Not SourceRecordMissingError: a record was found and it is the wrong one, so the remedy is the
+// calling Sub-workflow step rather than anything in this workflow.
+export class SourceRecordCollectionMismatchError extends WorkflowCallSiteError {
+  constructor(recordCollectionName: string, calledWorkflowCollectionName: string) {
+    super(
+      `Source record is from ${recordCollectionName}, but the called workflow runs on ${calledWorkflowCollectionName}`,
+      `This workflow runs on ${calledWorkflowCollectionName}, but the step that called it sent a record from ${recordCollectionName}. Set the record on the Sub-workflow step in the calling workflow.`,
+    );
+  }
+}
+
+// Raised on the called workflow's step, whose configuration is correct, so the message points at
+// the Sub-workflow step that set the pin instead.
+export class SourceRecordStepNotReachedError extends WorkflowCallSiteError {
+  constructor(pinnedStepId: string) {
+    super(
+      `Sub-workflow call pins step "${pinnedStepId}", which did not run before the call`,
+      'The Sub-workflow step that called this workflow takes its record from a step that did not run before it. Change the record on that Sub-workflow step.',
+    );
   }
 }
 

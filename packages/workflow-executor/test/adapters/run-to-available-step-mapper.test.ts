@@ -5,6 +5,7 @@ import type {
   ServerWorkflowCondition,
   ServerWorkflowTask,
 } from '../../src/adapters/server-types';
+import type { CallScope } from '../../src/types/validated/execution';
 import type { StepOutcome } from '../../src/types/validated/step-outcome';
 
 import { z } from 'zod';
@@ -977,6 +978,428 @@ describe('toAvailableStepExecution', () => {
       });
       expect(err.message).toContain('runId: Expected string, received number');
       expect(err.userMessage).toMatch(/Internal validation error/);
+    });
+  });
+
+  // The mapper is a pure function of the payload, so it carries the pin and leaves the record
+  // behind it to the executor, which has the run store.
+  describe('sub-workflow call scope', () => {
+    function makeStartSubWorkflowHistory(
+      entry: Partial<ServerStepHistory>,
+      call: { selectedRecordStepId?: unknown; calledWorkflowCollectionName?: unknown } = {},
+    ): ServerStepHistory {
+      const { selectedRecordStepId, calledWorkflowCollectionName } = call;
+
+      return makeStepHistory({
+        done: true,
+        childrenWorkflowId: 'wf-child',
+        ...entry,
+        stepDefinition: {
+          type: ServerStepTypeEnum.StartSubWorkflow,
+          title: 'Call the sub-workflow',
+          executionType: ServerStepExecutionTypeEnum.Manual,
+          automaticCompletion: false,
+          outgoing: [{ stepId: 'next', buttonText: null }],
+          workflowId: 'wf-child',
+          ...('selectedRecordStepId' in call && { preRecordedArgs: { selectedRecordStepId } }),
+          ...('calledWorkflowCollectionName' in call && { calledWorkflowCollectionName }),
+        } as never,
+      });
+    }
+
+    function makeCloseSubWorkflowHistory(entry: Partial<ServerStepHistory>): ServerStepHistory {
+      return makeStepHistory({
+        done: true,
+        ...entry,
+        stepDefinition: {
+          type: ServerStepTypeEnum.CloseSubWorkflow,
+          title: 'Close the sub-workflow',
+          executionType: ServerStepExecutionTypeEnum.Manual,
+          automaticCompletion: false,
+          outgoing: [{ stepId: 'next', buttonText: null }],
+          parentWorkflowId: 'wf-1',
+        } as never,
+      });
+    }
+
+    function makeChildStepHistory(overrides: Partial<ServerStepHistory> = {}): ServerStepHistory {
+      return makeStepHistory({ childrenWorkflowId: 'wf-child', ...overrides });
+    }
+
+    function callScopeOf(run: ServerHydratedWorkflowRun): CallScope | undefined {
+      return toAvailableStepExecution(run)?.callScope;
+    }
+
+    it('carries the pin and the called collection of the call the pending step runs inside', () => {
+      const run = makeRun({
+        workflowHistory: [
+          makeStartSubWorkflowHistory(
+            { stepName: 'call-1', stepIndex: 0 },
+            { selectedRecordStepId: 'load-1', calledWorkflowCollectionName: 'orders' },
+          ),
+          makeChildStepHistory({ stepName: 'child-1', stepIndex: 1, done: false }),
+        ],
+      });
+
+      expect(callScopeOf(run)).toEqual({
+        selectedRecordStepId: 'load-1',
+        pinnedFrameStepIndexes: [],
+        calledWorkflowCollectionName: 'orders',
+        isPinned: true,
+      });
+    });
+
+    it('leaves a run with no sub-workflow call unscoped', () => {
+      expect(callScopeOf(makeRun())).toBeUndefined();
+    });
+
+    it('leaves the pending step unscoped when its history entry carries no childrenWorkflowId', () => {
+      const run = makeRun({
+        workflowHistory: [
+          makeStartSubWorkflowHistory(
+            { stepName: 'call-1', stepIndex: 0 },
+            { selectedRecordStepId: 'load-1', calledWorkflowCollectionName: 'orders' },
+          ),
+          makeStepHistory({ stepName: 'parent-2', stepIndex: 1, done: false }),
+        ],
+      });
+
+      expect(callScopeOf(run)).toBeUndefined();
+    });
+
+    it('takes the innermost open call when calls nest', () => {
+      const run = makeRun({
+        workflowHistory: [
+          makeStartSubWorkflowHistory(
+            { stepName: 'call-1', stepIndex: 0 },
+            { selectedRecordStepId: 'load-1', calledWorkflowCollectionName: 'orders' },
+          ),
+          makeStartSubWorkflowHistory(
+            { stepName: 'call-2', stepIndex: 1 },
+            { selectedRecordStepId: 'load-2', calledWorkflowCollectionName: 'invoices' },
+          ),
+          makeChildStepHistory({ stepName: 'child-1', stepIndex: 2, done: false }),
+        ],
+      });
+
+      expect(callScopeOf(run)).toEqual({
+        selectedRecordStepId: 'load-2',
+        pinnedFrameStepIndexes: [],
+        calledWorkflowCollectionName: 'invoices',
+        isPinned: true,
+      });
+    });
+
+    // The inner call pins "workflow start", which in its own frame means the record the outer call
+    // pinned — so the pin resolves one frame out while the guard stays on the inner collection.
+    it('resolves a nested workflow-start pin against the enclosing call', () => {
+      const run = makeRun({
+        workflowHistory: [
+          makeStartSubWorkflowHistory(
+            { stepName: 'call-1', stepIndex: 0 },
+            { selectedRecordStepId: 'load-1', calledWorkflowCollectionName: 'orders' },
+          ),
+          makeStartSubWorkflowHistory(
+            { stepName: 'call-2', stepIndex: 1 },
+            { selectedRecordStepId: 'workflow-start', calledWorkflowCollectionName: 'invoices' },
+          ),
+          makeChildStepHistory({ stepName: 'child-1', stepIndex: 2, done: false }),
+        ],
+      });
+
+      expect(callScopeOf(run)).toEqual({
+        selectedRecordStepId: 'load-1',
+        pinnedFrameStepIndexes: [],
+        calledWorkflowCollectionName: 'invoices',
+        isPinned: true,
+      });
+    });
+
+    it('leaves the pin absent when every enclosing call pins workflow-start', () => {
+      const run = makeRun({
+        workflowHistory: [
+          makeStartSubWorkflowHistory(
+            { stepName: 'call-1', stepIndex: 0 },
+            { selectedRecordStepId: 'workflow-start', calledWorkflowCollectionName: 'orders' },
+          ),
+          makeStartSubWorkflowHistory(
+            { stepName: 'call-2', stepIndex: 1 },
+            { selectedRecordStepId: 'workflow-start', calledWorkflowCollectionName: 'invoices' },
+          ),
+          makeChildStepHistory({ stepName: 'child-1', stepIndex: 2, done: false }),
+        ],
+      });
+
+      const callScope = callScopeOf(run);
+
+      expect(callScope?.selectedRecordStepId).toBeUndefined();
+      expect(callScope?.calledWorkflowCollectionName).toBe('invoices');
+      expect(callScope?.isPinned).toBe(true);
+    });
+
+    // An unpinned call sends no flag, which is what keeps it on today's behaviour.
+    it('flags no pin on a call that pins nothing', () => {
+      const run = makeRun({
+        workflowHistory: [
+          makeStartSubWorkflowHistory(
+            { stepName: 'call-1', stepIndex: 0 },
+            { calledWorkflowCollectionName: 'orders' },
+          ),
+          makeChildStepHistory({ stepName: 'child-1', stepIndex: 1, done: false }),
+        ],
+      });
+
+      expect(callScopeOf(run)).toEqual({ calledWorkflowCollectionName: 'orders' });
+    });
+
+    // The walk outwards stops at the first call that pins something, and a call pinning nothing
+    // pins the run's record — so it stops there too, rather than reaching past it to its caller.
+    it('stops the outward walk at an enclosing call that pins nothing', () => {
+      const run = makeRun({
+        workflowHistory: [
+          makeStartSubWorkflowHistory(
+            { stepName: 'call-1', stepIndex: 0 },
+            { selectedRecordStepId: 'load-1', calledWorkflowCollectionName: 'orders' },
+          ),
+          makeStartSubWorkflowHistory(
+            { stepName: 'call-2', stepIndex: 1 },
+            { calledWorkflowCollectionName: 'orders' },
+          ),
+          makeStartSubWorkflowHistory(
+            { stepName: 'call-3', stepIndex: 2 },
+            { selectedRecordStepId: 'workflow-start', calledWorkflowCollectionName: 'invoices' },
+          ),
+          makeChildStepHistory({ stepName: 'child-1', stepIndex: 3, done: false }),
+        ],
+      });
+
+      const callScope = callScopeOf(run);
+
+      expect(callScope?.selectedRecordStepId).toBeUndefined();
+      expect(callScope?.pinnedFrameStepIndexes).toBeUndefined();
+      expect(callScope?.calledWorkflowCollectionName).toBe('invoices');
+    });
+
+    // The pin names a step of the workflow that wrote it, so the frame it was written in is what
+    // the lookup runs over — the enclosing call here, not the inner one the pending step runs in.
+    it('scopes a pin resolved outwards to the frame of the call that wrote it', () => {
+      const run = makeRun({
+        workflowHistory: [
+          makeStepHistory({ stepName: 'load-1', stepIndex: 0, done: true }),
+          makeStartSubWorkflowHistory(
+            { stepName: 'call-1', stepIndex: 1 },
+            { selectedRecordStepId: 'load-1', calledWorkflowCollectionName: 'orders' },
+          ),
+          makeChildStepHistory({ stepName: 'load-1', stepIndex: 2, done: true }),
+          makeStartSubWorkflowHistory(
+            { stepName: 'call-2', stepIndex: 3 },
+            { selectedRecordStepId: 'workflow-start', calledWorkflowCollectionName: 'invoices' },
+          ),
+          makeChildStepHistory({ stepName: 'child-1', stepIndex: 4, done: false }),
+        ],
+      });
+
+      expect(callScopeOf(run)?.pinnedFrameStepIndexes).toEqual([0]);
+    });
+
+    // A frame's steps are not a span: a call that opened and closed before the pin was written sits
+    // between them, and its own steps can repeat the id the caller pinned.
+    it('leaves the steps of a call that already closed out of the pinning frame', () => {
+      const run = makeRun({
+        workflowHistory: [
+          makeStepHistory({ stepName: 'load-1', stepIndex: 0, done: true }),
+          makeStartSubWorkflowHistory(
+            { stepName: 'call-1', stepIndex: 1 },
+            { calledWorkflowCollectionName: 'orders' },
+          ),
+          makeChildStepHistory({ stepName: 'load-1', stepIndex: 2, done: true }),
+          makeCloseSubWorkflowHistory({ stepName: 'close-1', stepIndex: 3 }),
+          makeStartSubWorkflowHistory(
+            { stepName: 'call-2', stepIndex: 4 },
+            { selectedRecordStepId: 'load-1', calledWorkflowCollectionName: 'orders' },
+          ),
+          makeChildStepHistory({ stepName: 'child-1', stepIndex: 5, done: false }),
+        ],
+      });
+
+      expect(callScopeOf(run)?.pinnedFrameStepIndexes).toEqual([0]);
+    });
+
+    it('pops back to the run record once the call is closed', () => {
+      const run = makeRun({
+        workflowHistory: [
+          makeStartSubWorkflowHistory(
+            { stepName: 'call-1', stepIndex: 0 },
+            { selectedRecordStepId: 'load-1', calledWorkflowCollectionName: 'orders' },
+          ),
+          makeChildStepHistory({ stepName: 'child-1', stepIndex: 1, done: true }),
+          makeCloseSubWorkflowHistory({ stepName: 'close-1', stepIndex: 2 }),
+          makeStepHistory({ stepName: 'parent-2', stepIndex: 3, done: false }),
+        ],
+      });
+
+      expect(callScopeOf(run)).toBeUndefined();
+    });
+
+    it('takes the second call when an earlier one already closed', () => {
+      const run = makeRun({
+        workflowHistory: [
+          makeStartSubWorkflowHistory(
+            { stepName: 'call-1', stepIndex: 0 },
+            { selectedRecordStepId: 'load-1', calledWorkflowCollectionName: 'orders' },
+          ),
+          makeCloseSubWorkflowHistory({ stepName: 'close-1', stepIndex: 1 }),
+          makeStartSubWorkflowHistory(
+            { stepName: 'call-2', stepIndex: 2 },
+            { selectedRecordStepId: 'load-2', calledWorkflowCollectionName: 'invoices' },
+          ),
+          makeChildStepHistory({ stepName: 'child-1', stepIndex: 3, done: false }),
+        ],
+      });
+
+      expect(callScopeOf(run)).toEqual({
+        selectedRecordStepId: 'load-2',
+        pinnedFrameStepIndexes: [],
+        calledWorkflowCollectionName: 'invoices',
+        isPinned: true,
+      });
+    });
+
+    it.each([
+      ['revised', { revised: true }],
+      ['cancelled', { cancelled: true }],
+    ])(
+      'ignores a %s call frame rather than scoping the pending step to it',
+      (_flag, flagged: Partial<ServerStepHistory>) => {
+        const run = makeRun({
+          workflowHistory: [
+            makeStartSubWorkflowHistory(
+              { stepName: 'call-1', stepIndex: 0, ...flagged },
+              { selectedRecordStepId: 'load-1', calledWorkflowCollectionName: 'orders' },
+            ),
+            makeChildStepHistory({ stepName: 'child-1', stepIndex: 1, done: false }),
+          ],
+        });
+
+        expect(callScopeOf(run)).toBeUndefined();
+      },
+    );
+
+    it('takes the replayed call frame over the revised one it replaces', () => {
+      const run = makeRun({
+        workflowHistory: [
+          makeStartSubWorkflowHistory(
+            { stepName: 'call-1', stepIndex: 0, revised: true },
+            { selectedRecordStepId: 'load-1', calledWorkflowCollectionName: 'orders' },
+          ),
+          makeStartSubWorkflowHistory(
+            { stepName: 'call-1', stepIndex: 1 },
+            { selectedRecordStepId: 'load-2', calledWorkflowCollectionName: 'invoices' },
+          ),
+          makeChildStepHistory({ stepName: 'child-1', stepIndex: 2, done: false }),
+        ],
+      });
+
+      expect(callScopeOf(run)).toEqual({
+        selectedRecordStepId: 'load-2',
+        pinnedFrameStepIndexes: [],
+        calledWorkflowCollectionName: 'invoices',
+        isPinned: true,
+      });
+    });
+
+    it.each([null, '', undefined])(
+      'treats a calledWorkflowCollectionName of %p as no collection guard',
+      calledWorkflowCollectionName => {
+        const run = makeRun({
+          workflowHistory: [
+            makeStartSubWorkflowHistory(
+              { stepName: 'call-1', stepIndex: 0 },
+              { selectedRecordStepId: 'load-1', calledWorkflowCollectionName },
+            ),
+            makeChildStepHistory({ stepName: 'child-1', stepIndex: 1, done: false }),
+          ],
+        });
+
+        const callScope = callScopeOf(run);
+
+        expect(callScope?.calledWorkflowCollectionName).toBeUndefined();
+        expect(callScope?.selectedRecordStepId).toBe('load-1');
+      },
+    );
+
+    it.each([null, '', 42, undefined])(
+      'treats a selectedRecordStepId of %p as a call that pins no record',
+      selectedRecordStepId => {
+        const run = makeRun({
+          workflowHistory: [
+            makeStartSubWorkflowHistory(
+              { stepName: 'call-1', stepIndex: 0 },
+              { selectedRecordStepId, calledWorkflowCollectionName: 'orders' },
+            ),
+            makeChildStepHistory({ stepName: 'child-1', stepIndex: 1, done: false }),
+          ],
+        });
+
+        const callScope = callScopeOf(run);
+
+        expect(callScope?.selectedRecordStepId).toBeUndefined();
+        expect(callScope?.calledWorkflowCollectionName).toBe('orders');
+      },
+    );
+
+    // A call from an orchestrator that sends neither field: the pending step is scoped to it and
+    // both values are absent, which resolves and guards exactly as a run outside any call.
+    it('carries neither value for a call that sends neither', () => {
+      const run = makeRun({
+        workflowHistory: [
+          makeStartSubWorkflowHistory({ stepName: 'call-1', stepIndex: 0 }),
+          makeChildStepHistory({ stepName: 'child-1', stepIndex: 1, done: false }),
+        ],
+      });
+
+      expect(callScopeOf(run)).toEqual({});
+    });
+
+    it('keeps baseRecordRef on the record the run was launched with inside a call', () => {
+      const run = makeRun({
+        workflowHistory: [
+          makeStartSubWorkflowHistory(
+            { stepName: 'call-1', stepIndex: 0 },
+            { selectedRecordStepId: 'load-1', calledWorkflowCollectionName: 'orders' },
+          ),
+          makeChildStepHistory({ stepName: 'child-1', stepIndex: 1, done: false }),
+        ],
+      });
+
+      expect(toAvailableStepExecution(run)?.baseRecordRef).toEqual({
+        collectionName: 'customers',
+        recordId: ['123'],
+        stepIndex: 0,
+      });
+    });
+
+    it('keeps the call navigation steps out of previousSteps', () => {
+      const run = makeRun({
+        workflowHistory: [
+          makeStartSubWorkflowHistory(
+            { stepName: 'call-1', stepIndex: 0 },
+            { selectedRecordStepId: 'load-1', calledWorkflowCollectionName: 'orders' },
+          ),
+          makeChildStepHistory({
+            stepName: 'child-1',
+            stepIndex: 1,
+            done: true,
+            context: { status: 'success' },
+          }),
+          makeChildStepHistory({ stepName: 'child-2', stepIndex: 2, done: false }),
+        ],
+      });
+
+      const result = toAvailableStepExecution(run);
+
+      expect(result?.previousSteps).toHaveLength(1);
+      expect(result?.previousSteps[0].stepOutcome.stepId).toBe('child-1');
     });
   });
 });
