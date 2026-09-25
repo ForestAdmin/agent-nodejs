@@ -390,52 +390,52 @@ export class McpToolNotFoundError extends WorkflowExecutorError {
   }
 }
 
-const AGENT_RESPONSE_EXCERPT_MAX_LENGTH = 500;
+const AGENT_ERROR_MESSAGE_MAX_LENGTH = 500;
 
-type AgentHttpResponse = Pick<AgentHttpError, 'status' | 'body' | 'responseText'>;
+type AgentHttpResponse = Pick<AgentHttpError, 'status' | 'body'>;
+
+type AgentErrorBody = {
+  errors?: { detail?: unknown; message?: unknown; title?: unknown }[];
+  error?: unknown;
+  message?: unknown;
+};
 
 function isAgentHttpResponse(cause: unknown): cause is AgentHttpResponse {
   return cause instanceof Error && typeof (cause as Partial<AgentHttpResponse>).status === 'number';
 }
 
-function serializeBody(body: unknown): string | undefined {
-  if (body === undefined || body === null) return undefined;
-  if (typeof body === 'string') return body;
-
-  try {
-    return JSON.stringify(body);
-  } catch {
-    return undefined;
-  }
-}
-
-function agentResponseExcerpt(cause: unknown): string | undefined {
+function agentErrorMessage(cause: unknown): string | undefined {
   if (!isAgentHttpResponse(cause) || cause.status < 500) return undefined;
+  if (!cause.body || typeof cause.body !== 'object') return undefined;
 
-  const raw = cause.responseText || serializeBody(cause.body);
-  if (!raw) return undefined;
+  const { errors, error, message } = cause.body as AgentErrorBody;
+  const first = Array.isArray(errors) ? errors[0] : undefined;
+  const candidate = [first?.detail, first?.message, first?.title, error, message].find(
+    (value): value is string => typeof value === 'string' && value.trim() !== '',
+  );
+  if (!candidate) return undefined;
 
-  const head = raw.slice(0, AGENT_RESPONSE_EXCERPT_MAX_LENGTH * 4);
-  const flat = Array.from(head, char =>
+  const flat = Array.from(candidate.slice(0, AGENT_ERROR_MESSAGE_MAX_LENGTH * 4), char =>
     char < ' ' || (char >= '\u007f' && char <= '\u009f') ? ' ' : char,
   )
     .join('')
     .replace(/\s+/g, ' ')
     .trim();
-  if (!flat) return undefined;
 
-  return flat.length > AGENT_RESPONSE_EXCERPT_MAX_LENGTH
-    ? `${flat.slice(0, AGENT_RESPONSE_EXCERPT_MAX_LENGTH)}…`
+  return flat.length > AGENT_ERROR_MESSAGE_MAX_LENGTH
+    ? `${flat.slice(0, AGENT_ERROR_MESSAGE_MAX_LENGTH)}…`
     : flat;
 }
 
 export class AgentPortError extends WorkflowExecutorError {
   constructor(operation: string, cause: unknown) {
     const causeText = cause instanceof Error ? cause.message : String(cause);
-    const excerpt = agentResponseExcerpt(cause);
+    const agentMessage = agentErrorMessage(cause);
 
     super(
-      `Agent port "${operation}" failed: ${causeText}${excerpt ? ` | response: ${excerpt}` : ''}`,
+      `Agent port "${operation}" failed: ${causeText}${
+        agentMessage ? ` | agent error: ${agentMessage}` : ''
+      }`,
       'An error occurred while accessing your data. Please try again.',
     );
     this.cause = cause;
