@@ -182,10 +182,12 @@ refuses an over-cap bulk write.
 
 ## HTTP routes
 
-When `auditTrail` is set, the agent exposes three routes (all behind Forest's auth, gated by
-`assertCanRead` on the target collection). When the caller's role has a record-level scope on that
-collection, every route below — including the correlation lookups — additionally requires the
-target id to currently exist and match that scope. A scope can't be evaluated against a record that
+When `auditTrail` is set, the agent exposes four routes, all behind Forest's auth. The three
+record-scoped ones are gated by `assertCanRead` on the collection they name; the cross-collection
+timeline has no target collection, so it checks `canRead` per collection and queries only the ones
+that pass. When the caller's role has a record-level scope on that collection, every record-scoped
+route below — including the correlation lookups — additionally requires the target id to currently
+exist and match that scope. A scope can't be evaluated against a record that
 no longer exists, so this only refuses a still-existing, out-of-scope id: once a record is genuinely
 deleted, anyone who can read the collection can see its history, reconstructed state, or correlated
 operations, scope aside — inspecting what was deleted is much of the point of an audit trail.
@@ -321,6 +323,55 @@ to `20`, capped at `100`. Out-of-bound or non-numeric values fall back to the de
 
 Ties on equal timestamps fall back to insertion order (the auto-increment `id`), so the order is
 deterministic and stable across pages whatever the direction and filters.
+
+### `GET /forest/_audit-trail` — cross-collection timeline
+
+The project-level feed: every collection at once, newest first, for the page that shows what
+happened across the project rather than to one record. Each row carries its own `collection` and
+`recordId`, so the client can name and link the record it belongs to.
+
+```json
+{ "data": [ /* rows */ ], "meta": { "cursor": { "before": "…", "excludeIds": [12, 11] } } }
+```
+
+**Detail values are admin-only here, and only here.** `previousValues` and `newValues` reach a caller
+whose permission level is `admin` — exactly that level, not a privileged set. Every other caller gets
+each row with both objects empty: what happened, by whom and when stays readable, the values do not.
+The per-record routes above are deliberately *not* gated — someone who can read the collection can
+already read the record, so its before/after values tell them nothing the record itself doesn't. What
+stays admin-only is the aggregate: every collection at once, with no record to know in advance. The
+capabilities payload advertises this as `restrictsProjectAuditValuesToAdmins`, so a client can tell an
+agent that enforces the rule from an older one that merely hides the values in its UI.
+
+**Permissions.** Only the collections the caller can read are queried. A collection the caller sees
+only through a **record-level scope is left out entirely**: a scope can't be evaluated across a whole
+timeline without fetching every record it mentions, and the row alone would already reveal that a
+record the caller cannot read exists and was touched. A caller scoped on every collection therefore
+gets an empty timeline.
+
+**Filters** are the per-record route's, minus `fields` (a column name means nothing across
+collections): `userIds`, `operation`, `startDate` / `endDate` / `timezone`, `search`, parsed exactly
+the same way — including the 400 on an unrecognized `operation`.
+
+**Paging is by cursor, not offset.** A project-wide feed keeps growing at the head, so an offset
+silently shifts rows across pages. `page[size]` still applies (default `20`, capped at `100`), and
+`meta.cursor` carries the next page's position — `null` once the last row has been served:
+
+| query param   | format                          | effect                                              |
+| ------------- | ------------------------------- | --------------------------------------------------- |
+| `before`      | ISO instant                     | **inclusive** upper bound on `timestamp`            |
+| `excludeIds`  | comma-separated integers        | row ids already served at that boundary             |
+
+The bound is inclusive on purpose: rows sharing the boundary timestamp must not fall between two
+pages, so they come back and `excludeIds` drops the ones already sent. Ties order by descending `id`
+(insertion order), and a timestamp holding more rows than fit on one page accumulates its exclusions
+across pages rather than looping. Feed the two values back verbatim; don't synthesize them.
+
+`meta.cursor` is also `null` if the walk cannot move past the current timestamp — staying on one
+must always add at least the last row's id to the exclusions, so a cursor that would come back
+unchanged ends the walk instead of repeating the page forever.
+
+A custom `AuditStore` that doesn't implement `listTimeline` simply doesn't get this route mounted.
 
 ### `GET /forest/_audit-trail/correlation/{correlationKey}`
 

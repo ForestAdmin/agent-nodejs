@@ -10,9 +10,16 @@ import {
   SchemaUtils,
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
-import { DateTime } from 'luxon';
 
 import { revertRecord } from '../../audit-trail';
+import {
+  parseDateBoundary,
+  parseFields,
+  parseOperations,
+  parsePageSize,
+  parseSearch,
+  parseUserIds,
+} from '../../audit-trail/query-params';
 import checkRecordVisibility, {
   recheckRecordVisibility,
   recordExists,
@@ -25,22 +32,6 @@ import { HttpCode } from '../../types';
 import IdUtils from '../../utils/id';
 import QueryStringParser from '../../utils/query-string';
 import CollectionRoute from '../collection-route';
-
-const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
-const DATE_TIME = /^(\d{4}-\d{2}-\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?$/;
-// ISO 8601 instant: carries its own timezone designator (`Z` or `±HH:mm` / `±HHMM`).
-const ISO_INSTANT = /[Zz]$|[+-]\d{2}:?\d{2}$/;
-
-const DEFAULT_PAGE_SIZE = 20;
-const MAX_PAGE_SIZE = 100;
-
-const AUDIT_OPERATIONS: readonly AuditOperation[] = [
-  'create',
-  'update',
-  'delete',
-  'action',
-  'action_failed',
-];
 
 type AuditHistoryFilters = {
   userIds?: number[];
@@ -375,7 +366,7 @@ export default class AuditTrailRoute extends CollectionRoute {
 
     const timezone = query.timezone?.toString() || 'UTC';
 
-    return AuditTrailRoute.parseDateBoundary(raw, timezone, 'start') as string;
+    return parseDateBoundary(raw, timezone, 'start') as string;
   }
 
   // JSON:API `sort=timestamp` → oldest first, anything else (or absent) → newest first.
@@ -389,18 +380,10 @@ export default class AuditTrailRoute extends CollectionRoute {
   // fall back to the defaults rather than erroring.
   private static parsePagination(context: Context): { skip: number; limit: number } {
     const query = context.request.query as Record<string, unknown>;
-    const size = AuditTrailRoute.parsePageSize(query['page[size]']?.toString());
+    const size = parsePageSize(query['page[size]']?.toString());
     const number = AuditTrailRoute.parsePageNumber(query['page[number]']?.toString());
 
     return { skip: (number - 1) * size, limit: size };
-  }
-
-  private static parsePageSize(raw?: string): number {
-    const size = Number.parseInt(raw ?? '', 10);
-
-    if (Number.isNaN(size) || size < 1) return DEFAULT_PAGE_SIZE;
-
-    return Math.min(size, MAX_PAGE_SIZE);
   }
 
   private static parsePageNumber(raw?: string): number {
@@ -414,120 +397,12 @@ export default class AuditTrailRoute extends CollectionRoute {
     const timezone = query.timezone?.toString() || 'UTC';
 
     return {
-      userIds: AuditTrailRoute.parseUserIds(query.userIds?.toString()),
-      operations: AuditTrailRoute.parseOperations(query.operation?.toString()),
-      startTimestamp: AuditTrailRoute.parseDateBoundary(
-        query.startDate?.toString(),
-        timezone,
-        'start',
-      ),
-      endTimestamp: AuditTrailRoute.parseDateBoundary(query.endDate?.toString(), timezone, 'end'),
-      fields: AuditTrailRoute.parseFields(query.fields?.toString()),
-      search: AuditTrailRoute.parseSearch(query.search?.toString()),
+      userIds: parseUserIds(query.userIds?.toString()),
+      operations: parseOperations(query.operation?.toString()),
+      startTimestamp: parseDateBoundary(query.startDate?.toString(), timezone, 'start'),
+      endTimestamp: parseDateBoundary(query.endDate?.toString(), timezone, 'end'),
+      fields: parseFields(query.fields?.toString()),
+      search: parseSearch(query.search?.toString()),
     };
-  }
-
-  // Comma-separated integer ids; non-numeric tokens are dropped. Empty after parsing → no filter.
-  private static parseUserIds(raw?: string): number[] | undefined {
-    if (!raw) return undefined;
-
-    const ids = raw
-      .split(',')
-      .map(token => token.trim())
-      .filter(token => /^\d+$/.test(token))
-      .map(token => Number.parseInt(token, 10));
-
-    return ids.length > 0 ? ids : undefined;
-  }
-
-  // Comma-separated, from a closed set. An unrecognized value is rejected rather than dropped: a
-  // silently ignored filter returns unfiltered rows into a list the caller believes is filtered,
-  // which is worse than an error.
-  private static parseOperations(raw?: string): AuditOperation[] | undefined {
-    if (!raw) return undefined;
-
-    const tokens = raw
-      .split(',')
-      .map(token => token.trim())
-      .filter(token => token.length > 0);
-
-    const unknown = tokens.find(token => !AUDIT_OPERATIONS.includes(token as AuditOperation));
-
-    if (unknown) {
-      throw new ValidationError(
-        `Invalid operation: "${unknown}" (expected one of ${AUDIT_OPERATIONS.join(', ')})`,
-      );
-    }
-
-    return tokens.length > 0 ? (tokens as AuditOperation[]) : undefined;
-  }
-
-  private static parseFields(raw?: string): string[] | undefined {
-    if (!raw) return undefined;
-
-    const fields = raw
-      .split(',')
-      .map(token => token.trim())
-      .filter(token => token.length > 0);
-
-    return fields.length > 0 ? fields : undefined;
-  }
-
-  // Trimmed; empty after trimming is treated the same as absent.
-  private static parseSearch(raw?: string): string | undefined {
-    const trimmed = raw?.trim();
-
-    return trimmed || undefined;
-  }
-
-  // Bare day (`YYYY-MM-DD`) or wall-clock datetime (`YYYY-MM-DD[T| ]HH:mm[:ss]`), interpreted as
-  // local time in the request timezone and returned as a UTC instant so the store can compare it
-  // to stored timestamps.
-  private static parseDateBoundary(
-    raw: string | undefined,
-    timezone: string,
-    boundary: 'start' | 'end',
-  ): string | undefined {
-    if (!raw) return undefined;
-
-    const instant = AuditTrailRoute.toLocalInstant(raw, timezone, boundary);
-
-    if (!instant.isValid) {
-      throw new ValidationError(
-        instant.invalidReason === 'unsupported zone'
-          ? `Invalid timezone: "${timezone}"`
-          : `Invalid date: "${raw}" (expected YYYY-MM-DD, YYYY-MM-DDTHH:mm, or an ISO 8601 instant)`,
-      );
-    }
-
-    return instant.toUTC().toISO() ?? undefined;
-  }
-
-  private static toLocalInstant(
-    raw: string,
-    timezone: string,
-    boundary: 'start' | 'end',
-  ): DateTime {
-    // An embedded offset already pins the instant — the request timezone and start/end boundary
-    // don't apply.
-    if (ISO_INSTANT.test(raw)) return DateTime.fromISO(raw, { setZone: true });
-
-    if (DATE_ONLY.test(raw)) {
-      const day = DateTime.fromISO(raw, { zone: timezone });
-
-      return boundary === 'end' ? day.endOf('day') : day.startOf('day');
-    }
-
-    const match = DATE_TIME.exec(raw);
-
-    if (!match) return DateTime.invalid('unparsable');
-
-    const [, date, hours, minutes, seconds] = match;
-    const base = DateTime.fromISO(`${date}T${hours}:${minutes}`, { zone: timezone });
-
-    if (seconds !== undefined) return base.set({ second: Number(seconds), millisecond: 0 });
-
-    // Minutes-only: end snaps to :59.999 to stay inclusive; start stays at :00.000.
-    return boundary === 'end' ? base.set({ second: 59, millisecond: 999 }) : base;
   }
 }

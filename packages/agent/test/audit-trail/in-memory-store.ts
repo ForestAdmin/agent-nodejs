@@ -5,6 +5,7 @@ import type {
   AuditRecord,
   AuditRecordConfirmation,
   AuditStore,
+  AuditTimelineQuery,
   AuditUserSummary,
   PendingAuditRecord,
 } from '../../src/audit-trail/types';
@@ -87,6 +88,28 @@ export default class InMemoryAuditStore implements AuditStore {
           keys.has(record.correlationKey),
       )
       .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+  }
+
+  listTimeline({
+    collections,
+    limit,
+    before,
+    excludeIds,
+    userIds,
+    operations,
+    startTimestamp,
+    endTimestamp,
+  }: AuditTimelineQuery): AuditRecord[] {
+    return this.records
+      .filter(record => collections.includes(record.collection))
+      .filter(record => !before || record.timestamp <= before)
+      .filter(record => !excludeIds?.includes(record.id))
+      .filter(record => !userIds || userIds.includes(record.userId))
+      .filter(record => !operations?.length || operations.includes(record.operation))
+      .filter(record => !startTimestamp || record.timestamp >= startTimestamp)
+      .filter(record => !endTimestamp || record.timestamp <= endTimestamp)
+      .sort((a, b) => b.timestamp.localeCompare(a.timestamp) || b.id - a.id)
+      .slice(0, limit);
   }
 
   listDistinctUsers(
