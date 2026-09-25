@@ -1,3 +1,10 @@
+## @forestadmin/agent-client [1.16.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.16.0...@forestadmin/agent-client@1.16.1) (2026-09-25)
+
+
+### Bug Fixes
+
+* send smart_action_id on action form hooks and keep the agent's response in executor logs ([#1926](https://github.com/ForestAdmin/agent-nodejs/issues/1926)) ([c3a3a0d](https://github.com/ForestAdmin/agent-nodejs/commit/c3a3a0d23ebfa02c8a9939c0b5ef33e8b28d58f7))
+
 # @forestadmin/agent-client [1.16.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.15.3...@forestadmin/agent-client@1.16.0) (2026-09-14)
 
 
