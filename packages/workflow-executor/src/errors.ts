@@ -2,7 +2,10 @@
 import type { MalformedRunInfo } from './ports/workflow-port';
 import type { RecordId } from './types/validated/collection';
 import type { AwaitingInputReason, ErrorKind } from './types/validated/step-outcome';
+import type { AgentHttpError } from '@forestadmin/agent-client';
 import type { z } from 'zod';
+
+import { extractErrorDetail } from '@forestadmin/agent-client';
 
 export function causeMessage(error: unknown): string | undefined {
   const { cause } = (error ?? {}) as { cause?: unknown };
@@ -389,10 +392,40 @@ export class McpToolNotFoundError extends WorkflowExecutorError {
   }
 }
 
+const AGENT_ERROR_MESSAGE_MAX_LENGTH = 500;
+
+type AgentHttpResponse = Pick<AgentHttpError, 'status' | 'body'>;
+
+function isAgentHttpResponse(cause: unknown): cause is AgentHttpResponse {
+  return cause instanceof Error && typeof (cause as Partial<AgentHttpResponse>).status === 'number';
+}
+
+function agentErrorMessage(cause: unknown): string | undefined {
+  if (!isAgentHttpResponse(cause) || cause.status < 500) return undefined;
+  const detail = extractErrorDetail(cause);
+  if (!detail) return undefined;
+
+  const flat = Array.from(detail.slice(0, AGENT_ERROR_MESSAGE_MAX_LENGTH * 4), char =>
+    char < ' ' || (char >= '\u007f' && char <= '\u009f') ? ' ' : char,
+  )
+    .join('')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  return flat.length > AGENT_ERROR_MESSAGE_MAX_LENGTH
+    ? `${flat.slice(0, AGENT_ERROR_MESSAGE_MAX_LENGTH)}…`
+    : flat;
+}
+
 export class AgentPortError extends WorkflowExecutorError {
   constructor(operation: string, cause: unknown) {
+    const causeText = cause instanceof Error ? cause.message : String(cause);
+    const agentMessage = agentErrorMessage(cause);
+
     super(
-      `Agent port "${operation}" failed: ${cause instanceof Error ? cause.message : String(cause)}`,
+      `Agent port "${operation}" failed: ${causeText}${
+        agentMessage ? ` | agent error: ${agentMessage}` : ''
+      }`,
       'An error occurred while accessing your data. Please try again.',
     );
     this.cause = cause;

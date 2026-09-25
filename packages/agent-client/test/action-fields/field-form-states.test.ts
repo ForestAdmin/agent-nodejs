@@ -367,6 +367,83 @@ describe('FieldFormStates', () => {
     });
   });
 
+  describe('smart_action_id', () => {
+    const withActionId = (actionId: string) =>
+      new FieldFormStates({
+        actionName: 'testAction',
+        actionPath: '/forest/actions/test-action',
+        collectionName: 'users',
+        httpRequester,
+        ids: ['1'],
+        actionId,
+      });
+
+    const loadFormWithHookedField = async (formStates: FieldFormStates) => {
+      httpRequester.query.mockResolvedValue({
+        fields: [
+          {
+            field: 'name',
+            type: 'String',
+            isRequired: false,
+            isReadOnly: false,
+            value: 'initial',
+            hook: 'changeHook',
+          },
+        ],
+        layout: [],
+      });
+      await formStates.loadInitialState();
+    };
+
+    it('should send smart_action_id in the load hook body when an action id is provided', async () => {
+      httpRequester.query.mockResolvedValue({ fields: [], layout: [] });
+
+      await withActionId('users-0-test-action').loadInitialState();
+
+      expect(httpRequester.query).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: '/forest/actions/test-action/hooks/load',
+          body: {
+            data: {
+              attributes: {
+                collection_name: 'users',
+                ids: ['1'],
+                values: {},
+                smart_action_id: 'users-0-test-action',
+              },
+              type: 'action-requests',
+            },
+          },
+        }),
+      );
+    });
+
+    it('should send smart_action_id in the change hook body when an action id is provided', async () => {
+      const formStates = withActionId('users-0-test-action');
+      await loadFormWithHookedField(formStates);
+
+      await formStates.setFieldValue('name', 'updated');
+
+      expect(httpRequester.query).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          path: '/forest/actions/test-action/hooks/change',
+          body: {
+            data: {
+              attributes: {
+                collection_name: 'users',
+                changed_field: 'name',
+                ids: ['1'],
+                fields: expect.any(Array),
+                smart_action_id: 'users-0-test-action',
+              },
+              type: 'custom-action-hook-requests',
+            },
+          },
+        }),
+      );
+    });
+  });
+
   describe('hooks configuration', () => {
     it('should not throw when hooks.load is false and server returns 404', async () => {
       const formStates = new FieldFormStates({

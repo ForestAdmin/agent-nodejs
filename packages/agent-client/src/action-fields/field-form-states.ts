@@ -19,6 +19,7 @@ export interface FieldFormStatesOptions {
   fallbackFields?: ForestSchemaAction['fields'];
   fallbackLayout?: ForestSchemaAction['layout'];
   timezone?: string;
+  actionId?: string;
 }
 
 export default class FieldFormStates {
@@ -33,6 +34,7 @@ export default class FieldFormStates {
   private readonly fallbackFields?: ForestSchemaAction['fields'];
   private readonly fallbackLayout?: ForestSchemaAction['layout'];
   private readonly timezone?: string;
+  private readonly actionId?: string;
 
   constructor({
     actionName,
@@ -44,6 +46,7 @@ export default class FieldFormStates {
     fallbackFields,
     fallbackLayout,
     timezone,
+    actionId,
   }: FieldFormStatesOptions) {
     this.fields = [];
     this.actionName = actionName;
@@ -56,6 +59,7 @@ export default class FieldFormStates {
     this.fallbackFields = fallbackFields;
     this.fallbackLayout = fallbackLayout;
     this.timezone = timezone;
+    this.actionId = actionId;
   }
 
   getFieldValues(): Record<string, unknown> {
@@ -113,6 +117,7 @@ export default class FieldFormStates {
           collection_name: this.collectionName,
           ids: this.ids,
           values: {},
+          ...this.smartActionIdAttribute(),
         },
         type: 'action-requests',
       },
@@ -176,6 +181,10 @@ export default class FieldFormStates {
     this.fields.splice(0, this.fields.length);
   }
 
+  private smartActionIdAttribute(): { smart_action_id?: string } {
+    return this.actionId !== undefined ? { smart_action_id: this.actionId } : {};
+  }
+
   private async loadChanges(fieldName: string): Promise<void> {
     const requestBody = {
       data: {
@@ -184,6 +193,7 @@ export default class FieldFormStates {
           changed_field: fieldName,
           ids: this.ids,
           fields: this.fields.map(f => f.getPlainField()),
+          ...this.smartActionIdAttribute(),
         },
         type: 'custom-action-hook-requests',
       },

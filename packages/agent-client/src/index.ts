@@ -72,6 +72,7 @@ export function createRemoteAgentClient(params: {
   });
 }
 
+export { extractErrorDetail } from './domains/action';
 export { default as toWireFilter, toWireOperator } from './filter-wire-format';
 export type { RecordId, SelectOptions } from './types';
 export type { File } from '@forestadmin/datasource-toolkit';

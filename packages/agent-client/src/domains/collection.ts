@@ -47,6 +47,7 @@ export default class Collection extends CollectionChart {
       fallbackFields: actionInfo.fields,
       fallbackLayout: actionInfo.layout,
       timezone: actionContext?.timezone,
+      actionId: actionInfo.id,
     });
 
     const action = new Action(

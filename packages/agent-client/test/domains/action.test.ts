@@ -1,7 +1,7 @@
 import type FieldFormStates from '../../src/action-fields/field-form-states';
 import type HttpRequester from '../../src/http-requester';
 
-import Action from '../../src/domains/action';
+import Action, { extractErrorDetail } from '../../src/domains/action';
 import AgentHttpError from '../../src/errors';
 
 jest.mock('../../src/http-requester');
@@ -676,5 +676,26 @@ describe('Action', () => {
 
       expect(action.doesFieldExist('nonexistent')).toBe(false);
     });
+  });
+});
+
+describe('extractErrorDetail', () => {
+  it('returns the first non-empty message of a JSON:API error body', () => {
+    const error = new AgentHttpError(500, {
+      errors: [{ detail: '  ', message: 'hook crashed' }],
+      error: 'ignored',
+    });
+
+    expect(extractErrorDetail(error)).toBe('hook crashed');
+  });
+
+  it('falls back to the top-level error of a flat body', () => {
+    expect(extractErrorDetail(new AgentHttpError(500, { error: 'hook crashed' }))).toBe(
+      'hook crashed',
+    );
+  });
+
+  it('returns nothing for a body that is not a JSON error, such as an HTML page', () => {
+    expect(extractErrorDetail(new AgentHttpError(502, '<html>bad gateway</html>'))).toBeUndefined();
   });
 });

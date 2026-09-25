@@ -418,6 +418,7 @@ describe('Collection', () => {
         fallbackFields: [],
         fallbackLayout: undefined,
         timezone: 'America/New_York',
+        actionId: 'Send@@@Email',
       });
     });
 
@@ -434,6 +435,7 @@ describe('Collection', () => {
         fallbackFields: [],
         fallbackLayout: undefined,
         timezone: undefined,
+        actionId: 'Send@@@Email',
       });
     });
 
