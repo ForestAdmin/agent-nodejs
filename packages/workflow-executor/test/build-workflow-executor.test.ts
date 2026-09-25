@@ -1,6 +1,8 @@
+import ForestServerAutomationPort from '../src/adapters/forest-server-automation-port';
 import ForestServerWorkflowPort from '../src/adapters/forest-server-workflow-port';
+import AutomationPoller from '../src/automation-poller';
 import { buildDatabaseExecutor, buildInMemoryExecutor } from '../src/build-workflow-executor';
-import { DEFAULT_SCHEMA_CACHE_TTL_S } from '../src/defaults';
+import { DEFAULT_AUTOMATION_POLL_INTERVAL_S, DEFAULT_SCHEMA_CACHE_TTL_S } from '../src/defaults';
 import ExecutorHttpServer from '../src/http/executor-http-server';
 import OAuthTokenService from '../src/oauth/token-service';
 import Runner from '../src/runner';
@@ -16,6 +18,9 @@ jest.mock('../src/stores/database-store');
 jest.mock('../src/adapters/agent-client-agent-port');
 jest.mock('../src/schema-cache');
 jest.mock('../src/adapters/forest-server-workflow-port');
+jest.mock('../src/adapters/forest-server-automation-port');
+jest.mock('../src/adapters/agent-client-segment-reader');
+jest.mock('../src/automation-poller');
 jest.mock('../src/http/executor-http-server');
 jest.mock('../src/adapters/ai-client-adapter');
 jest.mock('../src/adapters/always-error-ai-model-port');
@@ -26,6 +31,7 @@ jest.mock('sequelize', () => ({
 }));
 
 const MockedRunner = Runner as jest.MockedClass<typeof Runner>;
+const MockedAutomationPoller = AutomationPoller as jest.MockedClass<typeof AutomationPoller>;
 const MockedSchemaCache = SchemaCache as jest.MockedClass<typeof SchemaCache>;
 
 const BASE_OPTIONS = {
@@ -49,6 +55,48 @@ describe('buildInMemoryExecutor', () => {
     expect(executor).toHaveProperty('start');
     expect(executor).toHaveProperty('stop');
     expect(executor).toHaveProperty('state');
+  });
+
+  it('wires the automation poller with its own interval and the automation ports', () => {
+    buildInMemoryExecutor({ ...BASE_OPTIONS, automationPollingIntervalS: 45 });
+
+    expect(MockedAutomationPoller).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pollingIntervalS: 45,
+        automationPort: expect.any(ForestServerAutomationPort),
+        instanceId: expect.stringContaining(String(process.pid)),
+      }),
+    );
+  });
+
+  it('defaults the automation sweep to five minutes', () => {
+    buildInMemoryExecutor(BASE_OPTIONS);
+
+    expect(MockedAutomationPoller).toHaveBeenCalledWith(
+      expect.objectContaining({ pollingIntervalS: DEFAULT_AUTOMATION_POLL_INTERVAL_S }),
+    );
+  });
+
+  it('keeps a zero sweep interval rather than replacing it with the default', () => {
+    // Zero is how an operator turns the sweep off; folded into the default it would be unreachable.
+    buildInMemoryExecutor({ ...BASE_OPTIONS, automationPollingIntervalS: 0 });
+
+    expect(MockedAutomationPoller).toHaveBeenCalledWith(
+      expect.objectContaining({ pollingIntervalS: 0 }),
+    );
+  });
+
+  it('does not arm the sweep when it was stopped while still starting', async () => {
+    // `start()` awaits twice before arming it. Without the guard the shutdown reports itself
+    // complete and the suspended start arms a poller nobody will stop, which keeps launching runs.
+    const executor = buildInMemoryExecutor(BASE_OPTIONS);
+    const [poller] = MockedAutomationPoller.mock.instances as unknown as { start: jest.Mock }[];
+
+    const starting = executor.start();
+    await executor.stop();
+    await starting;
+
+    expect(poller.start).not.toHaveBeenCalled();
   });
 
   it('creates an InMemoryStore as runStore', () => {
@@ -487,6 +535,28 @@ describe('WorkflowExecutor lifecycle', () => {
 
     expect(removeSpy).not.toHaveBeenCalledWith('SIGTERM', expect.any(Function));
     expect(MockedRunner.prototype.stop).toHaveBeenCalled();
+  });
+
+  it('starts the automation poller once the HTTP server is up', async () => {
+    await executor.start();
+
+    expect(MockedAutomationPoller.prototype.start).toHaveBeenCalledTimes(1);
+  });
+
+  it('drains the automation poller before the runner', async () => {
+    const order: string[] = [];
+    MockedAutomationPoller.prototype.stop.mockImplementation(async () => {
+      order.push('poller');
+    });
+    MockedRunner.prototype.stop.mockImplementation(async () => {
+      order.push('runner');
+    });
+
+    await executor.start();
+    await executor.stop();
+
+    // The poller only ever calls out, so it has nothing to hand over to the runner.
+    expect(order).toEqual(['poller', 'runner']);
   });
 
   it('stop() calls runner.stop', async () => {

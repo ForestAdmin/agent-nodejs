@@ -633,6 +633,40 @@ export class AgentProbeError extends Error {
   }
 }
 
+// Boundary error — the automation poller drops the inbox for this cycle; never reaches a step
+// executor. The server answers 404 both for an inbox that is gone and for one it currently refuses
+// to serve (disabled, or degraded), so the poller must not treat it as permanent: the next config
+// poll is what decides whether the inbox comes back.
+export class AutomatedInboxGoneError extends Error {
+  readonly inboxId: string;
+
+  constructor(inboxId: string) {
+    super(`Automated inbox "${inboxId}" is no longer served by the orchestrator`);
+    this.name = 'AutomatedInboxGoneError';
+    this.inboxId = inboxId;
+  }
+}
+
+export class SegmentRecordIdMissingError extends Error {
+  constructor(collectionName: string) {
+    super(
+      `The agent returned a "${collectionName}" record with no id while reading an automated ` +
+        `inbox's segment`,
+    );
+    this.name = 'SegmentRecordIdMissingError';
+  }
+}
+
+export class CompositeRecordIdMismatchError extends Error {
+  constructor(recordId: string, expectedParts: number) {
+    super(
+      `Record id "${recordId}" does not split into the ${expectedParts} primary key parts the ` +
+        `collection declares`,
+    );
+    this.name = 'CompositeRecordIdMismatchError';
+  }
+}
+
 export class UnsupportedStepTypeError extends WorkflowExecutorError {
   constructor(stepType: string) {
     super(

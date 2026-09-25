@@ -1,0 +1,403 @@
+import type { ServerAutomatedInboxConfig } from '../../src/adapters/server-types';
+
+import { ServerUtils } from '@forestadmin/forestadmin-client';
+import { ZodError } from 'zod';
+
+import ForestServerAutomationPort from '../../src/adapters/forest-server-automation-port';
+import { AutomatedInboxGoneError, WorkflowPortError } from '../../src/errors';
+
+jest.mock('@forestadmin/forestadmin-client', () => ({
+  ServerUtils: { query: jest.fn() },
+}));
+
+const mockQuery = ServerUtils.query as jest.Mock;
+
+const options = { envSecret: 'env-secret-123', forestServerUrl: 'https://api.forestadmin.com' };
+
+function httpError(status: number): Error & { status: number } {
+  return Object.assign(new Error(`HTTP ${status}`), { status });
+}
+
+function makeConfig(overrides: Partial<ServerAutomatedInboxConfig> = {}) {
+  return {
+    inboxId: 'inbox-1',
+    renderingId: 7,
+    teamId: 3,
+    workflowId: 'wf-1',
+    collectionId: 'col-1',
+    collectionName: 'orders',
+    primaryKeys: ['id'],
+    maxConcurrentRuns: 20,
+    timezone: 'Europe/Paris',
+    segment: { kind: 'smart', name: 'to-review' },
+    serviceAccountProfile: {
+      id: 99,
+      email: 'bot@forestadmin.com',
+      firstName: null,
+      lastName: null,
+      team: null,
+      renderingId: 7,
+      role: null,
+      permissionLevel: null,
+      tags: {},
+    },
+    ...overrides,
+  };
+}
+
+describe('ForestServerAutomationPort', () => {
+  let logger: jest.Mock;
+  let port: ForestServerAutomationPort;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    logger = jest.fn();
+    port = new ForestServerAutomationPort({ ...options, logger });
+  });
+
+  describe('listAutomatedInboxes', () => {
+    it('should carry the instance id on the config route', async () => {
+      mockQuery.mockResolvedValue({ inboxes: [] });
+
+      await port.listAutomatedInboxes('worker 42');
+
+      expect(mockQuery).toHaveBeenCalledWith(
+        options,
+        'get',
+        '/api/workflow-orchestrator/automated-inboxes?instanceId=worker%2042',
+      );
+    });
+
+    it('should return the configs the orchestrator serves', async () => {
+      mockQuery.mockResolvedValue({ inboxes: [makeConfig()] });
+
+      await expect(port.listAutomatedInboxes('w1')).resolves.toEqual([
+        expect.objectContaining({ inboxId: 'inbox-1', maxConcurrentRuns: 20 }),
+      ]);
+    });
+
+    it('should keep a leaf whose operator the agent evaluates on its own, with no value', async () => {
+      // `present`, `blank`, `today` and every `previous_*` are emitted as `{ field, operator }`.
+      // Zod requires an `unknown` key to be present, so these inboxes were dropped from the sweep.
+      const conditionTree = { field: 'deletedAt', operator: 'blank' };
+
+      mockQuery.mockResolvedValue({
+        inboxes: [makeConfig({ segment: { kind: 'filter', conditionTree } as never })],
+      });
+
+      const [config] = await port.listAutomatedInboxes('w1');
+
+      expect(config.segment).toEqual({ kind: 'filter', conditionTree });
+    });
+
+    it.each([
+      ['smart', { kind: 'smart', name: 'to-review' }],
+      ['sql', { kind: 'sql', query: 'SELECT id FROM orders', connectionName: null }],
+      [
+        'filter',
+        { kind: 'filter', conditionTree: { field: 'status', operator: 'equal', value: 'new' } },
+      ],
+    ])('should accept a %s segment descriptor', async (_kind, segment) => {
+      mockQuery.mockResolvedValue({ inboxes: [makeConfig({ segment: segment as never })] });
+
+      const [config] = await port.listAutomatedInboxes('w1');
+
+      expect(config.segment).toEqual(segment);
+    });
+
+    it('should keep an inbox missing a field the poller never reads', async () => {
+      const { teamId, collectionId, workflowId, ...rest } = makeConfig();
+
+      mockQuery.mockResolvedValue({ inboxes: [rest] });
+
+      // Dropping it would stop the automation over a field that changes nothing about the sweep.
+      await expect(port.listAutomatedInboxes('w1')).resolves.toHaveLength(1);
+    });
+
+    it('should keep the conditions of a node that also carries a field', async () => {
+      const conditionTree = {
+        field: 'status',
+        aggregator: 'and',
+        conditions: [{ field: 'status', operator: 'equal', value: 'new' }],
+      };
+
+      mockQuery.mockResolvedValue({
+        inboxes: [makeConfig({ segment: { kind: 'filter', conditionTree } as never })],
+      });
+
+      const [config] = await port.listAutomatedInboxes('w1');
+
+      // Reading it as a leaf would strip `conditions` and evaluate a different segment entirely.
+      expect(config.segment).toEqual(
+        expect.objectContaining({
+          conditionTree: expect.objectContaining({ conditions: [expect.anything()] }),
+        }),
+      );
+    });
+
+    it.each([
+      ['an empty branch', { aggregator: 'and', conditions: [] }],
+      [
+        'a branch with no aggregator',
+        { conditions: [{ field: 'a', operator: 'equal', value: 1 }] },
+      ],
+      ['a leaf with no operator', { field: 'status', value: 'new' }],
+    ])('should refuse a filter segment carrying %s', async (_name, conditionTree) => {
+      // The agent reads `And` over nothing as matching every record, so a half-formed tree widens
+      // the segment to the whole collection rather than failing — the one outcome worth refusing
+      // the inbox over.
+      mockQuery.mockResolvedValue({
+        inboxes: [makeConfig({ segment: { kind: 'filter', conditionTree } as never })],
+      });
+
+      await expect(port.listAutomatedInboxes('w1')).resolves.toEqual([]);
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        'Skipping an automated inbox config the executor cannot read',
+        expect.objectContaining({ inboxId: 'inbox-1' }),
+      );
+    });
+
+    it('should skip one unreadable config and keep the rest', async () => {
+      mockQuery.mockResolvedValue({
+        inboxes: [
+          makeConfig({ inboxId: 'good' }),
+          { inboxId: 'bad', segment: { kind: 'unknown-to-this-executor' } },
+        ],
+      });
+
+      const configs = await port.listAutomatedInboxes('w1');
+
+      expect(configs.map(({ inboxId }) => inboxId)).toEqual(['good']);
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        'Skipping an automated inbox config the executor cannot read',
+        expect.objectContaining({ inboxId: 'bad', index: 1 }),
+      );
+    });
+
+    it('should report an envelope it cannot read rather than guess at it', async () => {
+      mockQuery.mockResolvedValue({ somethingElse: true });
+
+      await expect(port.listAutomatedInboxes('w1')).resolves.toEqual([]);
+      expect(logger).toHaveBeenCalledWith(
+        'Error',
+        'Unreadable automated inbox listing',
+        // Named, like the 404 branch: an error nobody can tie to an environment or an instance
+        // cannot be acted on.
+        expect.objectContaining({
+          instanceId: 'w1',
+          forestServerUrl: options.forestServerUrl,
+          error: expect.any(String),
+        }),
+      );
+    });
+
+    it('should read a 404 as an orchestrator that has no such route', async () => {
+      mockQuery.mockRejectedValue(httpError(404));
+
+      await expect(port.listAutomatedInboxes('w1')).resolves.toEqual([]);
+    });
+
+    it('should say the route is missing once at Warn, then stay quiet', async () => {
+      mockQuery.mockRejectedValue(httpError(404));
+
+      await port.listAutomatedInboxes('w1');
+      await port.listAutomatedInboxes('w1');
+      await port.listAutomatedInboxes('w1');
+
+      // A wrong forestServerUrl looks identical and never resolves itself, so it has to be visible
+      // — but not as a line every cycle for the release window this is expected in.
+      const levels = logger.mock.calls
+        .filter(([, message]) => String(message).includes('does not serve automated inboxes'))
+        .map(([level]) => level);
+
+      expect(levels).toEqual(['Warn', 'Debug', 'Debug']);
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        expect.stringContaining('check forestServerUrl if it persists'),
+        expect.objectContaining({ forestServerUrl: options.forestServerUrl }),
+      );
+    });
+
+    it('should surface a server failure rather than reporting an empty environment', async () => {
+      mockQuery.mockRejectedValue(httpError(500));
+
+      await expect(port.listAutomatedInboxes('w1')).rejects.toThrow(WorkflowPortError);
+    });
+  });
+
+  describe('holdLease', () => {
+    it('should put the instance id on the lease route', async () => {
+      mockQuery.mockResolvedValue({ held: true });
+
+      await port.holdLease('worker 42');
+
+      expect(mockQuery).toHaveBeenCalledWith(
+        options,
+        'put',
+        '/api/workflow-orchestrator/automated-inboxes/lease?instanceId=worker%2042',
+        {},
+        undefined,
+        5_000,
+      );
+    });
+
+    it.each([true, false])('should answer held: %s as the orchestrator does', async held => {
+      mockQuery.mockResolvedValue({ held });
+
+      await expect(port.holdLease('w1')).resolves.toBe(held);
+    });
+
+    it('should leave the election to the listing on an orchestrator without the route', async () => {
+      mockQuery.mockRejectedValue(httpError(404));
+
+      await expect(port.holdLease('w1')).resolves.toBe(true);
+    });
+
+    it('should say the route is missing once, whichever call found out first', async () => {
+      mockQuery.mockRejectedValue(httpError(404));
+
+      await port.holdLease('w1');
+      await port.listAutomatedInboxes('w1');
+      await port.holdLease('w1');
+
+      const levels = logger.mock.calls
+        .filter(([, message]) => String(message).includes('does not serve automated inboxes'))
+        .map(([level]) => level);
+
+      expect(levels).toEqual(['Warn', 'Debug', 'Debug']);
+    });
+
+    it('should not retry a failed heartbeat, the next one is the retry', async () => {
+      mockQuery.mockRejectedValue(httpError(503));
+
+      await expect(port.holdLease('w1')).rejects.toMatchObject({ status: 503 });
+      expect(mockQuery).toHaveBeenCalledTimes(1);
+    });
+
+    it('should throw on an answer it cannot read rather than guess who holds the lease', async () => {
+      mockQuery.mockResolvedValue({ inboxes: [] });
+
+      await expect(port.holdLease('w1')).rejects.toBeInstanceOf(ZodError);
+    });
+  });
+
+  describe('listAssignments', () => {
+    it('should return the assignments with their bound run state', async () => {
+      mockQuery.mockResolvedValue({
+        assignments: [
+          { recordId: 'r1', state: 'doing', workflowRunId: 12, runState: 'started' },
+          { recordId: 'r2', state: 'done', workflowRunId: 13, runState: 'finished' },
+        ],
+      });
+
+      await expect(port.listAssignments('inbox-1')).resolves.toEqual([
+        { recordId: 'r1', state: 'doing', workflowRunId: 12, runState: 'started' },
+        { recordId: 'r2', state: 'done', workflowRunId: 13, runState: 'finished' },
+      ]);
+      expect(mockQuery).toHaveBeenCalledWith(
+        options,
+        'get',
+        '/api/workflow-orchestrator/automated-inboxes/inbox-1/assignments',
+      );
+    });
+
+    it('should report an inbox the orchestrator no longer serves', async () => {
+      mockQuery.mockRejectedValue(httpError(404));
+
+      await expect(port.listAssignments('inbox-1')).rejects.toThrow(AutomatedInboxGoneError);
+    });
+
+    it('should keep a run state the executor does not know rather than blank it', async () => {
+      mockQuery.mockResolvedValue({
+        assignments: [
+          {
+            recordId: 'r1',
+            state: 'doing',
+            workflowRunId: 12,
+            runState: 'a-state-from-the-future',
+          },
+        ],
+      });
+
+      await expect(port.listAssignments('inbox-1')).resolves.toEqual([
+        { recordId: 'r1', state: 'doing', workflowRunId: 12, runState: 'a-state-from-the-future' },
+      ]);
+    });
+
+    it('should throw rather than read an unreadable answer as an inbox with nothing assigned', async () => {
+      mockQuery.mockResolvedValue({ assignments: 'not-a-list' });
+
+      await expect(port.listAssignments('inbox-1')).rejects.toThrow();
+    });
+
+    it('should not lose a whole inbox to one assignment in an unknown state', async () => {
+      mockQuery.mockResolvedValue({
+        assignments: [
+          { recordId: 'r1', state: 'a-state-from-the-future', workflowRunId: 1, runState: null },
+          { recordId: 'r2', state: 'doing', workflowRunId: 2, runState: 'started' },
+        ],
+      });
+
+      await expect(port.listAssignments('inbox-1')).resolves.toHaveLength(2);
+    });
+  });
+
+  describe('sync', () => {
+    it('should post both lists and return the per-record outcomes', async () => {
+      mockQuery.mockResolvedValue({
+        results: [
+          { recordId: 'r1', outcome: 'started' },
+          { recordId: 'r2', outcome: 'untreated' },
+        ],
+      });
+      const body = {
+        closed: [{ recordId: 'r2', stillInSegment: true }],
+        candidates: ['r1'],
+      };
+
+      await expect(port.sync('inbox-1', body)).resolves.toEqual([
+        { recordId: 'r1', outcome: 'started' },
+        { recordId: 'r2', outcome: 'untreated' },
+      ]);
+      expect(mockQuery).toHaveBeenCalledWith(
+        options,
+        'post',
+        '/api/workflow-orchestrator/automated-inboxes/inbox-1/sync',
+        {},
+        body,
+      );
+    });
+
+    it('should keep an outcome from a newer orchestrator rather than refuse the answer', async () => {
+      mockQuery.mockResolvedValue({ results: [{ recordId: 'r1', outcome: 'a-future-outcome' }] });
+
+      await expect(port.sync('inbox-1', { closed: [], candidates: [] })).resolves.toEqual([
+        { recordId: 'r1', outcome: 'a-future-outcome' },
+      ]);
+    });
+
+    it('should report an inbox the orchestrator no longer serves', async () => {
+      mockQuery.mockRejectedValue(httpError(404));
+
+      await expect(port.sync('inbox-1', { closed: [], candidates: [] })).rejects.toThrow(
+        AutomatedInboxGoneError,
+      );
+    });
+
+    it('should not report an unreadable answer as a sync that never landed', async () => {
+      // The runs it asked for have already started. Thrown, this would surface as
+      // `Automated inbox poll failed`, which an operator reads as the opposite of what happened.
+      mockQuery.mockResolvedValue({ results: 'not-a-list' });
+
+      await expect(port.sync('inbox-1', { closed: [], candidates: [] })).resolves.toEqual([]);
+
+      expect(logger).toHaveBeenCalledWith(
+        'Error',
+        'Unreadable automated inbox sync response, the sync itself landed',
+        expect.objectContaining({ inboxId: 'inbox-1' }),
+      );
+    });
+  });
+});

@@ -6,6 +6,8 @@
  * (HydratedWorkflowRun + user profile + step history).
  */
 
+import { z } from 'zod';
+
 export interface ServerWorkflowTransition {
   stepId: string;
   buttonText: string | null;
@@ -207,6 +209,7 @@ export enum ServerWorkflowTriggerType {
   manual = 'manual',
   webhook = 'webhook',
   mcp = 'mcp',
+  dataChange = 'dataChange',
 }
 
 export interface ServerHydratedWorkflowRun {
@@ -257,3 +260,141 @@ export interface ServerUpdateStepRequest {
   stepUpdate: ServerStepUpdate;
   executionStatus: ServerExecutionStatus;
 }
+
+// --- Automated inboxes (executor routes, PRD-1177 "Step 0" contract) ---
+//
+// Zod-validated rather than cast: these payloads drive workflow runs on the customer's data, and
+// the orchestrator ships independently, so a shape the executor cannot read must be dropped with a
+// log instead of being walked blindly. Schemas are non-strict on purpose — a field the server adds
+// is stripped, never a reason to refuse the config (same rule as `CollectionSchemaSchema`).
+
+export type ServerPlainConditionTree =
+  | { field: string; operator: string; value?: unknown }
+  | { aggregator: string; conditions: ServerPlainConditionTree[] };
+
+// Branch first, deliberately: a node carrying both `conditions` and `field` is ambiguous, and the
+// leaf schema would match it and strip the conditions, leaving a filter that reads a different
+// segment than the one configured. agent-client's own `toWireFilter` resolves it the same way.
+//
+// Both discriminators are required and a branch may not be empty. The agent reads `And` over
+// nothing as matching every record, so a tree this schema let through half-formed would widen the
+// segment to the whole collection rather than fail — the one failure mode worth a rejected inbox.
+const ServerPlainConditionTreeSchema: z.ZodType<ServerPlainConditionTree> = z.lazy(() =>
+  z.union([
+    z.object({
+      aggregator: z.string().min(1),
+      conditions: z.array(ServerPlainConditionTreeSchema).min(1),
+    }),
+    // `value` is optional, not merely `unknown`: zod requires an `unknown` key to be present, and
+    // the operators the agent evaluates on its own — `present`, `blank`, `today`, every
+    // `previous_*` — are emitted as `{ field, operator }` with no value at all.
+    z.object({
+      field: z.string().min(1),
+      operator: z.string().min(1),
+      value: z.unknown().optional(),
+    }),
+  ]),
+);
+
+export const ServerAutomatedSegmentDescriptorSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('smart'), name: z.string().min(1) }),
+  z.object({
+    kind: z.literal('sql'),
+    query: z.string().min(1),
+    // Null on the lianas that run a bare `segmentQuery` themselves (forest-rails,
+    // forest-express-sequelize). The server never emits a `sql` descriptor without one for a v2
+    // agent — it degrades the inbox instead.
+    connectionName: z.string().nullish(),
+  }),
+  z.object({ kind: z.literal('filter'), conditionTree: ServerPlainConditionTreeSchema }),
+]);
+export type ServerAutomatedSegmentDescriptor = z.infer<
+  typeof ServerAutomatedSegmentDescriptorSchema
+>;
+
+// `ServerUserProfile` without `serverToken`: there is no run yet, and the poller only reaches the
+// SaaS with the environment secret. The executor mints its agent JWT from this profile, through the
+// same `toStepUser` the run envelope goes through — which is what keeps the two shapes tied.
+export const ServerAutomatedInboxServiceAccountProfileSchema = z.object({
+  id: z.number(),
+  email: z.string(),
+  firstName: z.string().nullable(),
+  lastName: z.string().nullable(),
+  team: z.string().nullable(),
+  renderingId: z.number().int().nonnegative(),
+  role: z.string().nullable(),
+  permissionLevel: z.string().nullable(),
+  tags: z.record(z.string(), z.string()),
+});
+export type ServerAutomatedInboxServiceAccountProfile = z.infer<
+  typeof ServerAutomatedInboxServiceAccountProfileSchema
+>;
+
+// Only what the poller reads is required. A field it merely logs must never be the reason an inbox
+// is dropped from the sweep, and `.nullable()` alone would still reject an omitted key.
+export const ServerAutomatedInboxConfigSchema = z.object({
+  inboxId: z.string().min(1),
+  renderingId: z.number().int().nonnegative().optional(),
+  teamId: z.number().int().nonnegative().optional(),
+  workflowId: z.string().min(1).optional(),
+  collectionId: z.string().min(1).optional(),
+  collectionName: z.string().min(1),
+  primaryKeys: z.array(z.string().min(1)).min(1),
+  maxConcurrentRuns: z.number().int().positive(),
+  timezone: z.string().nullish(),
+  // Which agent answers the segment read. Absent on an orchestrator that predates the exclusion
+  // filter, which reads as unknown: the poller then pads its page, as it always did.
+  liana: z.string().nullish(),
+  segment: ServerAutomatedSegmentDescriptorSchema,
+  serviceAccountProfile: ServerAutomatedInboxServiceAccountProfileSchema,
+});
+export type ServerAutomatedInboxConfig = z.infer<typeof ServerAutomatedInboxConfigSchema>;
+
+export const ServerAutomatedInboxesResponseSchema = z.object({
+  inboxes: z.array(z.unknown()),
+});
+
+export const ServerAutomationLeaseResponseSchema = z.object({ held: z.boolean() });
+
+// States are read as plain strings, not enums: the poller only ever tests set membership, and one
+// assignment in a state a newer orchestrator introduced must not take the whole inbox down.
+export const ServerAutomatedInboxAssignmentSchema = z.object({
+  recordId: z.string(),
+  state: z.string(),
+  workflowRunId: z.number().nullish(),
+  runState: z.string().nullish(),
+});
+export type ServerAutomatedInboxAssignment = z.infer<typeof ServerAutomatedInboxAssignmentSchema>;
+
+export const ServerAutomatedInboxAssignmentsResponseSchema = z.object({
+  assignments: z.array(ServerAutomatedInboxAssignmentSchema),
+});
+
+export interface ServerAutomatedInboxSyncRequest {
+  closed: { recordId: string; stillInSegment: boolean }[];
+  candidates: string[];
+}
+
+export const SERVER_AUTOMATED_INBOX_SYNC_OUTCOMES = [
+  'started',
+  'skipped-active-run',
+  'skipped-assigned',
+  'skipped-cap',
+  'untreated',
+  'cleaned',
+] as const;
+export type ServerAutomatedInboxSyncOutcome = (typeof SERVER_AUTOMATED_INBOX_SYNC_OUTCOMES)[number];
+
+export const ServerAutomatedInboxSyncResponseSchema = z.object({
+  results: z.array(
+    z.object({
+      recordId: z.string(),
+      // Unknown outcomes are kept as-is: the poller only counts them for logs, and refusing the
+      // whole response would stop a sync the server already applied.
+      outcome: z.string(),
+    }),
+  ),
+});
+export type ServerAutomatedInboxSyncResponse = z.infer<
+  typeof ServerAutomatedInboxSyncResponseSchema
+>;

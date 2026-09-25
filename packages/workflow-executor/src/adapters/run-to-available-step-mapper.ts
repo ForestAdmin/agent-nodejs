@@ -17,6 +17,7 @@ import { z } from 'zod';
 import { deserializeRecordId } from './record-id-serializer';
 import { ServerWorkflowTriggerType } from './server-types';
 import toStepDefinition from './step-definition-mapper';
+import { toStepUser as toSharedStepUser } from './step-user';
 import {
   DomainValidationError,
   InvalidStepDefinitionError,
@@ -125,17 +126,7 @@ function toStepUser(runId: number, profile: ServerUserProfile): StepUser {
     );
   }
 
-  return {
-    id: profile.id,
-    email: profile.email,
-    firstName: profile.firstName ?? '',
-    lastName: profile.lastName ?? '',
-    team: profile.team ?? '',
-    renderingId: profile.renderingId,
-    role: profile.role ?? '',
-    permissionLevel: profile.permissionLevel ?? '',
-    tags: profile.tags,
-  };
+  return toSharedStepUser(profile);
 }
 
 // Returns null when the run has no available step (terminal state or all done/cancelled).
