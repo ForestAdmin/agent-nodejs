@@ -20,6 +20,8 @@ export interface AutomationPort {
    * the environment's inboxes, everyone else gets an empty list.
    */
   listAutomatedInboxes(instanceId: string): Promise<ServerAutomatedInboxConfig[]>;
+  /** Resolves true on an orchestrator without the lease route: the listing still elects there. */
+  holdLease(instanceId: string): Promise<boolean>;
   /** Throws AutomatedInboxGoneError when the orchestrator no longer serves this inbox. */
   listAssignments(inboxId: string): Promise<ServerAutomatedInboxAssignment[]>;
   /** Throws AutomatedInboxGoneError when the orchestrator no longer serves this inbox. */

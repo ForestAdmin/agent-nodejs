@@ -22,16 +22,25 @@ import {
   ServerAutomatedInboxConfigSchema,
   ServerAutomatedInboxSyncResponseSchema,
   ServerAutomatedInboxesResponseSchema,
+  ServerAutomationLeaseResponseSchema,
 } from './server-types';
 
 const ROUTES = {
   automatedInboxes: (instanceId: string) =>
     `/api/workflow-orchestrator/automated-inboxes?instanceId=${encodeURIComponent(instanceId)}`,
+  lease: (instanceId: string) =>
+    `/api/workflow-orchestrator/automated-inboxes/lease?instanceId=${encodeURIComponent(
+      instanceId,
+    )}`,
   assignments: (inboxId: string) =>
     `/api/workflow-orchestrator/automated-inboxes/${encodeURIComponent(inboxId)}/assignments`,
   sync: (inboxId: string) =>
     `/api/workflow-orchestrator/automated-inboxes/${encodeURIComponent(inboxId)}/sync`,
 };
+
+// The next heartbeat leaves 15 s after this one ends, and the lease lives 45 s: a heartbeat allowed
+// the default 10 s would leave the one after it under 5 s to land.
+const HEARTBEAT_TIMEOUT_MS = 5_000;
 
 const AUTOMATION_ROUTE_MISSING =
   'The orchestrator does not serve automated inboxes. Expected while the executor runs ahead of ' +
@@ -61,14 +70,9 @@ export default class ForestServerAutomationPort implements AutomationPort {
     } catch (error) {
       // An orchestrator that predates automated inboxes has no such route, so this is not an error
       // — but a wrong `forestServerUrl` or a proxy that 404s unknown paths looks exactly the same,
-      // and that one never resolves itself. Said once at Warn so it is visible without becoming a
-      // line every cycle for the release window this is expected in.
+      // and that one never resolves itself.
       if (isNotFound(error)) {
-        this.logger(this.reportedMissingRoute ? 'Debug' : 'Warn', AUTOMATION_ROUTE_MISSING, {
-          instanceId,
-          forestServerUrl: this.options.forestServerUrl,
-        });
-        this.reportedMissingRoute = true;
+        this.reportMissingRoute(instanceId);
 
         return [];
       }
@@ -77,6 +81,45 @@ export default class ForestServerAutomationPort implements AutomationPort {
     }
 
     return this.parseConfigs(response, instanceId);
+  }
+
+  // Not retried: the poller's next heartbeat is the retry, and backing off here would only widen
+  // the gap between two renewals of a lease that lives three heartbeats.
+  async holdLease(instanceId: string): Promise<boolean> {
+    let response: unknown;
+
+    try {
+      response = await ServerUtils.query<unknown>(
+        this.options,
+        'put',
+        ROUTES.lease(instanceId),
+        {},
+        undefined,
+        HEARTBEAT_TIMEOUT_MS,
+      );
+    } catch (error) {
+      // An orchestrator without the heartbeat route still elects on the listing, so the listing
+      // decides, as it did before this route existed.
+      if (isNotFound(error)) {
+        this.reportMissingRoute(instanceId);
+
+        return true;
+      }
+
+      throw error;
+    }
+
+    return ServerAutomationLeaseResponseSchema.parse(response).held;
+  }
+
+  // Said once at Warn so it is visible without becoming a line every heartbeat for the release
+  // window this is expected in.
+  private reportMissingRoute(instanceId: string): void {
+    this.logger(this.reportedMissingRoute ? 'Debug' : 'Warn', AUTOMATION_ROUTE_MISSING, {
+      instanceId,
+      forestServerUrl: this.options.forestServerUrl,
+    });
+    this.reportedMissingRoute = true;
   }
 
   private parseConfigs(response: unknown, instanceId: string): ServerAutomatedInboxConfig[] {
