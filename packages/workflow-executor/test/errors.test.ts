@@ -182,14 +182,31 @@ describe('AgentPortError', () => {
   });
 
   it('falls back to the serialized body when the agent sent no response text', () => {
-    const cause = new AgentHttpError(422, { errors: [{ detail: 'invalid value' }] });
+    const cause = new AgentHttpError(502, { errors: [{ detail: 'upstream unavailable' }] });
 
     const err = new AgentPortError('executeAction', cause);
 
     expect(err.message).toBe(
-      'Agent port "executeAction" failed: Agent responded with HTTP 422 | response: {"errors":[{"detail":"invalid value"}]}',
+      'Agent port "executeAction" failed: Agent responded with HTTP 502 | response: {"errors":[{"detail":"upstream unavailable"}]}',
     );
   });
+
+  it.each([400, 401, 403, 422])(
+    'keeps a %i response out of the technical message, since its detail can quote the refused input',
+    status => {
+      const cause = new AgentHttpError(
+        status,
+        null,
+        '{"errors":[{"detail":"email a@b.co is taken"}]}',
+      );
+
+      const err = new AgentPortError('updateRecord', cause);
+
+      expect(err.message).toBe(
+        `Agent port "updateRecord" failed: Agent responded with HTTP ${status}`,
+      );
+    },
+  );
 
   it('falls back to the serialized body when the response text is empty', () => {
     const cause = new AgentHttpError(500, { error: 'hook crashed' }, '');

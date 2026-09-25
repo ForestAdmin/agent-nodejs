@@ -410,7 +410,7 @@ function serializeBody(body: unknown): string | undefined {
 }
 
 function agentResponseExcerpt(cause: unknown): string | undefined {
-  if (!isAgentHttpResponse(cause)) return undefined;
+  if (!isAgentHttpResponse(cause) || cause.status < 500) return undefined;
 
   const raw = cause.responseText || serializeBody(cause.body);
   if (!raw) return undefined;
