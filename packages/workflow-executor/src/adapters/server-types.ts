@@ -354,6 +354,8 @@ export const ServerAutomatedInboxesResponseSchema = z.object({
   inboxes: z.array(z.unknown()),
 });
 
+export const ServerAutomationLeaseResponseSchema = z.object({ held: z.boolean() });
+
 // States are read as plain strings, not enums: the poller only ever tests set membership, and one
 // assignment in a state a newer orchestrator introduced must not take the whole inbox down.
 export const ServerAutomatedInboxAssignmentSchema = z.object({
