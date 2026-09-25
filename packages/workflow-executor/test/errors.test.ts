@@ -244,6 +244,15 @@ describe('AgentPortError', () => {
     );
   });
 
+  it('adds nothing when the response body cannot be serialized', () => {
+    const body: Record<string, unknown> = {};
+    body.self = body;
+
+    const err = new AgentPortError('getActionForm', new AgentHttpError(500, body));
+
+    expect(err.message).toBe('Agent port "getActionForm" failed: Agent responded with HTTP 500');
+  });
+
   it('adds nothing when the agent answered with an empty response', () => {
     const err = new AgentPortError('getActionForm', new AgentHttpError(500, null, ''));
 

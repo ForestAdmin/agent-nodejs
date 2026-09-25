@@ -405,7 +405,7 @@ function serializeBody(body: unknown): string | undefined {
   try {
     return JSON.stringify(body);
   } catch {
-    return String(body);
+    return undefined;
   }
 }
 
