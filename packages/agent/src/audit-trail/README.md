@@ -289,6 +289,12 @@ rows, so it composes with pagination and `meta.count` the same way every other f
 redacted value can never match a search for the real value: `redact` replaces it before the row is
 ever written, so the real value was never in the database to find.
 
+Nor can a search confirm a value the scope withholding hides. On a record gone for good under a
+caller's permission scope, `search` and `fields` are matched against the values as served, never as
+captured — in SQL, which rows come back, `meta.count` and `availableUsers` would each say whether a
+withheld value holds the term. The rows are read without those two filters and matched and paged in
+memory, which only a gone record's history pays for.
+
 Matching the *serialized* text rather than a structural walk of the parsed value is cheap and still
 correct for "keys and scalar values" — but two things follow from it. A punctuation-only term (`,`,
 `:`, `{`) matches almost any row whose diff has more than one key, since those characters are JSON
