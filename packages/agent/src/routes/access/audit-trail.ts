@@ -1,4 +1,4 @@
-import type { AuditRecord } from '../../audit-trail';
+import type { AuditOperation, AuditRecord, AuditUserSummary } from '../../audit-trail';
 import type { CollectionSchema, ConditionTree } from '@forestadmin/datasource-toolkit';
 import type Router from '@koa/router';
 import type { Context } from 'koa';
@@ -34,8 +34,17 @@ const ISO_INSTANT = /[Zz]$|[+-]\d{2}:?\d{2}$/;
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 100;
 
+const AUDIT_OPERATIONS: readonly AuditOperation[] = [
+  'create',
+  'update',
+  'delete',
+  'action',
+  'action_failed',
+];
+
 type AuditHistoryFilters = {
   userIds?: number[];
+  operations?: AuditOperation[];
   startTimestamp?: string;
   endTimestamp?: string;
   fields?: string[];
@@ -68,18 +77,18 @@ export default class AuditTrailRoute extends CollectionRoute {
     const { store } = this.options.auditTrail;
     const { skip, limit } = AuditTrailRoute.parsePagination(context);
     const order = AuditTrailRoute.parseSort(context);
-    const { userIds, startTimestamp, endTimestamp, fields, search } =
+    const { userIds, operations, startTimestamp, endTimestamp, fields, search } =
       AuditTrailRoute.parseFilters(context);
 
-    const filters = {
+    const rowFilters = {
       collection: this.collection.name,
       recordId: context.params.id,
       ...(userIds && { userIds }),
+      ...(operations && { operations }),
       ...(startTimestamp && { startTimestamp }),
       ...(endTimestamp && { endTimestamp }),
-      ...(fields && { fields }),
-      ...(search && { search }),
     };
+    const filters = { ...rowFilters, ...(fields && { fields }), ...(search && { search }) };
 
     // Distinct authors are scoped to the active filters but independent of the page — returned
     // only on the first fetch (no explicit page[number]) so the front keeps the list it already
@@ -87,12 +96,20 @@ export default class AuditTrailRoute extends CollectionRoute {
     const isFirstFetch =
       (context.request.query as Record<string, unknown>)['page[number]'] === undefined;
 
+    // Matched in SQL, `search` and `fields` test the values as captured, so which rows come back,
+    // the count and the authors would still say what the withholding below hides — one probe per
+    // character. For a record gone at the check they are matched against the values served instead,
+    // which means paging the whole history here. One in scope then was the caller's to read whole.
+    const matchServedValues = Boolean(permissionScope && goneEntirely && (fields || search));
+
     // `count` reflects the active filters and is independent of the page.
-    const [rawData, count, availableUsers] = await Promise.all([
-      store.listByRecord({ ...filters, skip, limit, order }),
-      store.countByRecord(filters),
-      isFirstFetch ? store.listDistinctUsers(filters) : undefined,
-    ]);
+    const [rawData, count, availableUsers] = matchServedValues
+      ? [await store.listByRecord({ ...rowFilters, order }), undefined, undefined]
+      : await Promise.all([
+          store.listByRecord({ ...filters, skip, limit, order }),
+          store.countByRecord(filters),
+          isFirstFetch ? store.listDistinctUsers(filters) : undefined,
+        ]);
 
     // The record can be deleted — or moved out of the caller's permission scope — between the check above and
     // the audit read: the audit trail lives in its own database, often its own engine, so no single
@@ -123,10 +140,67 @@ export default class AuditTrailRoute extends CollectionRoute {
     const data =
       permissionScope && gone ? this.withhold(rawData, permissionScope, context) : rawData;
 
+    if (matchServedValues) {
+      const matched = data.filter(entry =>
+        AuditTrailRoute.matchesServedValues(entry, fields, search),
+      );
+
+      context.response.body = {
+        data: matched.slice(skip, skip + limit),
+        meta: {
+          count: matched.length,
+          ...(isFirstFetch && { availableUsers: AuditTrailRoute.authorsOf(matched) }),
+        },
+      };
+
+      return;
+    }
+
     context.response.body = {
       data,
       meta: { count, ...(availableUsers && { availableUsers }) },
     };
+  }
+
+  // The SQL store's `fieldsChangedCondition` and `searchCondition`, run on the values as served.
+  private static matchesServedValues(
+    entry: AuditRecord,
+    fields?: string[],
+    search?: string,
+  ): boolean {
+    const sides = [entry.previousValues ?? {}, entry.newValues ?? {}];
+    const term = search?.toLowerCase();
+    const touchesField =
+      !fields ||
+      sides.some(values =>
+        fields.some(field => Object.prototype.hasOwnProperty.call(values, field)),
+      );
+    const texts = [
+      entry.actionName,
+      entry.userFirstName,
+      entry.userLastName,
+      entry.userEmail,
+      ...sides.map(values => JSON.stringify(values)),
+    ];
+
+    return touchesField && (!term || texts.some(text => text?.toLowerCase().includes(term)));
+  }
+
+  private static authorsOf(entries: AuditRecord[]): AuditUserSummary[] {
+    const byUser = new Map<number, AuditUserSummary>();
+
+    entries.forEach(entry => {
+      if (byUser.has(entry.userId)) return;
+
+      byUser.set(entry.userId, {
+        id: entry.userId,
+        firstName: entry.userFirstName,
+        lastName: entry.userLastName,
+        email: entry.userEmail,
+      });
+    });
+
+    return [...byUser.values()];
   }
 
   private withhold(
@@ -341,6 +415,7 @@ export default class AuditTrailRoute extends CollectionRoute {
 
     return {
       userIds: AuditTrailRoute.parseUserIds(query.userIds?.toString()),
+      operations: AuditTrailRoute.parseOperations(query.operation?.toString()),
       startTimestamp: AuditTrailRoute.parseDateBoundary(
         query.startDate?.toString(),
         timezone,
@@ -363,6 +438,28 @@ export default class AuditTrailRoute extends CollectionRoute {
       .map(token => Number.parseInt(token, 10));
 
     return ids.length > 0 ? ids : undefined;
+  }
+
+  // Comma-separated, from a closed set. An unrecognized value is rejected rather than dropped: a
+  // silently ignored filter returns unfiltered rows into a list the caller believes is filtered,
+  // which is worse than an error.
+  private static parseOperations(raw?: string): AuditOperation[] | undefined {
+    if (!raw) return undefined;
+
+    const tokens = raw
+      .split(',')
+      .map(token => token.trim())
+      .filter(token => token.length > 0);
+
+    const unknown = tokens.find(token => !AUDIT_OPERATIONS.includes(token as AuditOperation));
+
+    if (unknown) {
+      throw new ValidationError(
+        `Invalid operation: "${unknown}" (expected one of ${AUDIT_OPERATIONS.join(', ')})`,
+      );
+    }
+
+    return tokens.length > 0 ? (tokens as AuditOperation[]) : undefined;
   }
 
   private static parseFields(raw?: string): string[] | undefined {
