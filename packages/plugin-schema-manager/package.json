@@ -1,0 +1,52 @@
+{
+  "name": "@forestadmin/plugin-schema-manager",
+  "version": "0.1.0",
+  "description": "Forest Admin plugin for live schema management (DDL operations)",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "license": "GPL-3.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ForestAdmin/agent-nodejs.git",
+    "directory": "packages/plugin-schema-manager"
+  },
+  "keywords": [
+    "forest",
+    "forestadmin",
+    "plugin",
+    "schema",
+    "ddl",
+    "migration",
+    "database"
+  ],
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "clean": "rm -rf coverage dist",
+    "lint": "eslint src test",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
+  },
+  "dependencies": {
+    "@forestadmin/datasource-toolkit": "1.50.0"
+  },
+  "devDependencies": {
+    "@forestadmin/datasource-customizer": "1.67.1",
+    "@forestadmin/datasource-sequelize": "1.13.0",
+    "@forestadmin/datasource-mongo": "^1.0.0",
+    "@types/node": "^18.11.18",
+    "sequelize": "^6.37.5",
+    "mongodb": "^6.0.0"
+  },
+  "peerDependencies": {
+    "@forestadmin/datasource-customizer": "^1.0.0"
+  }
+}

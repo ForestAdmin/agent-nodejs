@@ -1,0 +1,19 @@
+{
+  "name": "test-veterinary",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Test project for plugin-schema-manager with veterinary service database",
+  "main": "index.js",
+  "scripts": {
+    "test": "ts-node test-schema.ts"
+  },
+  "dependencies": {
+    "sequelize": "^6.37.5",
+    "sqlite3": "^5.1.7"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  }
+}
