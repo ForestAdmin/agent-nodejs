@@ -2,7 +2,7 @@ name: Notify CI Failure on Main
 
 on:
   workflow_run:
-    workflows: ['Lint, Build, Test and Doc']
+    workflows: ['Lint, Build, Test and Doc', 'LLM Integration Tests']
     types: [completed]
     branches: [main]
 
