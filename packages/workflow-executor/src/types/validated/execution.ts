@@ -45,6 +45,8 @@ export const CallScopeSchema = z
   .object({
     selectedRecordStepId: z.string().min(1).optional(),
     pinnedFrameStepIndexes: z.array(z.number().int().nonnegative()).optional(),
+    // The steps of the frame the pending step runs in, where a pin to a real step id is looked for.
+    currentFrameStepIndexes: z.array(z.number().int().nonnegative()).optional(),
     calledWorkflowCollectionName: z.string().min(1).optional(),
     // The call itself carries a pin, "workflow start" included. A pin resolving outwards to the run's
     // record sends no selectedRecordStepId, and this is what still tells it from an unpinned call.

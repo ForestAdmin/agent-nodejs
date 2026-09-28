@@ -80,7 +80,11 @@ export default abstract class RecordStepExecutor<
   // revision causes (clones keep their step id) and is knowable by the editor at build time.
   protected async resolveSourceRecordRef(stepId: string): Promise<RecordRef> {
     if (stepId !== WORKFLOW_START_STEP_ID) {
-      const record = await this.resolveStepRecordRef(stepId);
+      // Inside a call, only this call's own steps: a closed call repeating the id is not a source.
+      const record = await this.resolveStepRecordRef(
+        stepId,
+        this.context.callScope?.currentFrameStepIndexes,
+      );
 
       if (!record) {
         throw new InvalidPreRecordedArgsError(`No source record found for step "${stepId}"`);

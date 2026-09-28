@@ -1630,6 +1630,47 @@ describe('ReadRecordStepExecutor', () => {
 
     // Step ids are unique only per workflow, so a copy, a self-call or a closed sibling must not
     // answer the pin its caller wrote.
+    it("resolves a step pinned inside a call against that call's own frame, not a closed call repeating its id", async () => {
+      const loadStep = (stepIndex: number): Step => ({
+        stepDefinition: {
+          type: StepType.LoadRelatedRecord,
+          executionType: StepExecutionMode.FullyAutomated,
+          title: 'Load the order',
+          prompt: 'Load the order',
+        },
+        stepOutcome: { type: 'record', stepId: 'load-1', stepIndex, status: 'success' },
+      });
+      const execution = (stepIndex: number, recordId: number) => ({
+        type: 'load-related-record',
+        stepIndex,
+        executionResult: {
+          relation: { name: 'order', displayName: 'Order' },
+          record: makeRecordRef({ collectionName: 'orders', recordId: [recordId], stepIndex }),
+        },
+        selectedRecordRef: makeRecordRef(),
+      });
+      const agentPort = makeMockAgentPort({ orders: { values: { total: 100 } } });
+      const context = makeCalledContext(
+        { currentFrameStepIndexes: [], calledWorkflowCollectionName: 'orders' },
+        {
+          agentPort,
+          runStore: makeMockRunStore({
+            getStepExecutions: jest.fn().mockResolvedValue([execution(1, 99)]),
+          }),
+          previousSteps: [loadStep(1)],
+          workflowPort: makeOrdersWorkflowPort(),
+          stepDefinition: makeStep({
+            preRecordedArgs: { selectedRecordStepId: 'load-1', fieldNames: ['total'] },
+          }),
+        },
+      );
+
+      const result = await new ReadRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(agentPort.getRecord).not.toHaveBeenCalled();
+    });
+
     it('resolves the call pin against the caller, not a step of the called workflow repeating its id', async () => {
       const calleeStep = (stepIndex: number): Step => ({
         stepDefinition: {

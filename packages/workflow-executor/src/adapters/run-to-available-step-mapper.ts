@@ -185,7 +185,12 @@ function toCallScope(
       )
       .map(([stepIndex]) => stepIndex);
 
+  const currentFrameStepIndexes = [...frameOfStep]
+    .filter(([, frame]) => frame === innermost.stepIndex)
+    .map(([stepIndex]) => stepIndex);
+
   return {
+    currentFrameStepIndexes,
     ...(pinnedBy !== undefined &&
       pin !== undefined && { selectedRecordStepId: pin, pinnedFrameStepIndexes }),
     ...(calledWorkflowCollectionName !== undefined && { calledWorkflowCollectionName }),
