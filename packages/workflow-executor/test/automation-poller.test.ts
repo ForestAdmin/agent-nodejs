@@ -991,7 +991,31 @@ describe('AutomationPoller', () => {
 
         await runOneCycle(makePoller(context));
 
-        expect(context.automationPort.sync).not.toHaveBeenCalled();
+        expect(context.logger).toHaveBeenCalledWith(
+          'Error',
+          'Could not read new candidates of an automated inbox',
+          expect.objectContaining({ error: 'agent down' }),
+        );
+      });
+
+      it('should report the candidate read failed when a later page fails before any candidate', async () => {
+        const context = makeContext({ assignments: waitingOnAPerson(1000) });
+        context.segmentReaderPort.listRecordIds
+          .mockResolvedValueOnce(pageOf('w'))
+          .mockRejectedValueOnce(new Error('timeout of 10000ms exceeded'));
+
+        await runOneCycle(makePoller(context));
+
+        expect(context.logger).toHaveBeenCalledWith(
+          'Error',
+          'Could not read new candidates of an automated inbox',
+          expect.objectContaining({ error: 'timeout of 10000ms exceeded' }),
+        );
+        expect(context.logger).not.toHaveBeenCalledWith(
+          'Warn',
+          'The padded candidate read found no new record within its page cap',
+          expect.anything(),
+        );
       });
 
       it('should read at most five pages, then warn with what it knows', async () => {

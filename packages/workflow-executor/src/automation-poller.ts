@@ -618,7 +618,7 @@ export default class AutomationPoller {
           sortByPrimaryKey: true,
         });
       } catch (error) {
-        if (pagesRead === 1) throw error;
+        if (candidates.size === 0) throw error;
 
         // The candidates the earlier pages found are still good: dropping them would send an empty
         // sync on every sweep of a slow agent.
