@@ -20,6 +20,9 @@ export interface ListSegmentRecordIdsQuery {
    */
   excludedRecordIds?: string[];
   pageSize?: number;
+  pageNumber?: number;
+  /** Orders by the first primary key column, so consecutive pages neither overlap nor skip. */
+  sortByPrimaryKey?: boolean;
 }
 
 /**

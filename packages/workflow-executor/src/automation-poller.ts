@@ -21,6 +21,11 @@ const MEMBERSHIP_CHUNK_SIZE = 50;
 // bounded by the client's ten-second timeout, so past some size the page stops being served at all.
 const MAX_CANDIDATE_PAGE_SIZE = 500;
 
+// Records waiting on a person stay known for as long as nobody handles them, so one padded page can
+// hold nothing but them. Paging on bounds the reads on the customer's agent: past this many pages,
+// the inbox is warned about instead of read further.
+const MAX_PADDED_PAGES = 5;
+
 // The exclusion filter travels in the query string of a GET. The orchestrator's untreated cap does
 // not bound it: records waiting on a person in the fallback inbox stay excluded, as many as there
 // are, so past this the page is padded instead.
@@ -88,6 +93,7 @@ interface SegmentRead<T> {
   items: T[];
   paddedPageReason?: PaddedPageReason;
   requestedPageSize?: number;
+  pagesRead?: number;
 }
 
 export interface AutomationPollerConfig {
@@ -373,6 +379,7 @@ export default class AutomationPoller {
         reconciled: closed.items.length,
         candidates: candidates.items.length,
         candidatePageSize: candidates.requestedPageSize,
+        candidatePagesRead: candidates.pagesRead,
         paddedPageReason: candidates.paddedPageReason,
         outcomes: results.reduce<Record<string, number>>(
           (counts, { outcome }) => ({ ...counts, [outcome]: (counts[outcome] ?? 0) + 1 }),
@@ -564,20 +571,24 @@ export default class AutomationPoller {
           error: extractErrorMessage(error),
         });
 
-        return this.readPaddedCandidates(config, assignments, knownSet, 'not-in-refused');
+        return this.readPaddedCandidates(
+          logContext,
+          config,
+          assignments,
+          knownSet,
+          'not-in-refused',
+        );
       }
     }
 
-    return this.readPaddedCandidates(config, assignments, knownSet, paddedPageReason);
+    return this.readPaddedCandidates(logContext, config, assignments, knownSet, paddedPageReason);
   }
 
-  // No sort is imposed and each agent orders as it likes, so a page that comes back mostly
-  // assigned simply yields fewer candidates.
-  //
   // The padding is capped. It grows with the backlog, and the agent read it feeds is bounded by
   // the client's ten-second ceiling, so an uncapped page turns a large inbox into one that reads
   // nothing at all — worse than one that reads a partial page and finds fewer candidates.
   private async readPaddedCandidates(
+    logContext: Record<string, unknown>,
     config: ServerAutomatedInboxConfig,
     assignments: ServerAutomatedInboxAssignment[],
     knownSet: ReadonlySet<string>,
@@ -587,16 +598,43 @@ export default class AutomationPoller {
       config.maxConcurrentRuns + assignments.length,
       MAX_CANDIDATE_PAGE_SIZE,
     );
-    const page = await this.config.segmentReaderPort.listRecordIds({
-      ...AutomationPoller.segmentQuery(config),
-      pageSize: requestedPageSize,
-    });
+    const candidates = new Set<string>();
+    let pagesRead = 0;
+    let reachedEnd = false;
+
+    while (
+      pagesRead < MAX_PADDED_PAGES &&
+      candidates.size < config.maxConcurrentRuns &&
+      !reachedEnd
+    ) {
+      pagesRead += 1;
+      // eslint-disable-next-line no-await-in-loop
+      const page = await this.config.segmentReaderPort.listRecordIds({
+        ...AutomationPoller.segmentQuery(config),
+        pageSize: requestedPageSize,
+        pageNumber: pagesRead,
+        sortByPrimaryKey: true,
+      });
+
+      page.filter(recordId => !knownSet.has(recordId)).forEach(id => candidates.add(id));
+      reachedEnd = page.length < requestedPageSize;
+    }
+
+    if (candidates.size === 0 && !reachedEnd) {
+      this.logger('Warn', 'The padded candidate read found no new record within its page cap', {
+        ...logContext,
+        known: knownSet.size,
+        pagesRead,
+        paddedPageReason,
+      });
+    }
 
     return {
       outcome: 'ok',
-      items: page.filter(recordId => !knownSet.has(recordId)),
+      items: [...candidates],
       paddedPageReason,
       requestedPageSize,
+      pagesRead,
     };
   }
 
