@@ -384,6 +384,7 @@ export const SERVER_AUTOMATED_INBOX_SYNC_OUTCOMES = [
   'skipped-active-run',
   'skipped-assigned',
   'skipped-cap',
+  'skipped-breaker',
   'untreated',
   'cleaned',
 ] as const;
