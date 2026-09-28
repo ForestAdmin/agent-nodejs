@@ -597,15 +597,15 @@ export default class AutomationPoller {
       config.maxConcurrentRuns + assignments.length,
       MAX_CANDIDATE_PAGE_SIZE,
     );
+    // agent-client sorts on one field: a composite key tied on its first column has no stable order
+    // across offset pages, so it keeps the single unsorted page.
+    const pageable = config.primaryKeys.length === 1;
+    const maxPages = pageable ? MAX_PADDED_PAGES : 1;
     const candidates = new Set<string>();
     let pagesRead = 0;
     let reachedEnd = false;
 
-    while (
-      pagesRead < MAX_PADDED_PAGES &&
-      candidates.size < config.maxConcurrentRuns &&
-      !reachedEnd
-    ) {
+    while (pagesRead < maxPages && candidates.size < config.maxConcurrentRuns && !reachedEnd) {
       pagesRead += 1;
       let page: string[];
 
@@ -615,7 +615,7 @@ export default class AutomationPoller {
           ...AutomationPoller.segmentQuery(config),
           pageSize: requestedPageSize,
           pageNumber: pagesRead,
-          sortByPrimaryKey: true,
+          sortByPrimaryKey: pageable,
         });
       } catch (error) {
         if (candidates.size === 0) throw error;
@@ -634,7 +634,10 @@ export default class AutomationPoller {
         break;
       }
 
-      page.filter(recordId => !knownSet.has(recordId)).forEach(id => candidates.add(id));
+      page
+        .filter(recordId => !knownSet.has(recordId))
+        .slice(0, config.maxConcurrentRuns - candidates.size)
+        .forEach(id => candidates.add(id));
       reachedEnd = page.length < requestedPageSize;
     }
 
