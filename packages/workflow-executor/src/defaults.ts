@@ -6,6 +6,8 @@ export const DEFAULT_POLLING_INTERVAL_S = 30;
 // Automated inboxes are a background sweep, not a dispatch loop: each cycle costs a segment read
 // on the customer's database, so it runs an order of magnitude slower than the run poll.
 export const DEFAULT_AUTOMATION_POLL_INTERVAL_S = 300;
+// The orchestrator hands a run whose step has not reported for 7 minutes to another executor, and
+// that budget also covers MCP loading and update-step retries: raising this can run a step twice.
 export const DEFAULT_STEP_TIMEOUT_S = 5 * 60;
 export const DEFAULT_AI_INVOKE_TIMEOUT_S = 30;
 export const DEFAULT_STOP_TIMEOUT_S = 30;
