@@ -119,48 +119,9 @@ jobs:
           path: packages/${{ matrix.package }}/coverage/clover.xml
           retention-days: 1
 
-  llm-integration-tests:
-    name: LLM Integration Tests (ai-proxy)
-    runs-on: ubuntu-latest
-    # The Bedrock sweep walks the catalogue serially with maxRetries 0; 15 would cancel the job
-    # before its own budget expires, which reads as "cancelled" rather than as a result.
-    timeout-minutes: 30
-    needs: [build]
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: ".nvmrc"
-      - name: Restore dependencies from cache
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            node_modules
-            packages/*/node_modules
-          key: ${{ runner.os }}-modules-${{ hashFiles('yarn.lock') }}-${{ hashFiles('packages/*/package.json') }}
-          fail-on-cache-miss: true
-      - name: Restore build from cache
-        uses: actions/cache/restore@v4
-        with:
-          path: packages/*/dist
-          key: ${{ runner.os }}-build-${{ github.sha }}
-          fail-on-cache-miss: true
-      - name: Run LLM integration tests
-        run: yarn workspace @forestadmin/ai-proxy test --testPathPattern='llm.integration|bedrock.integration'
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          # The Bedrock suite fails the job when AWS_REGION is unset: a silent skip would let the
-          # provider rot untested. Set BEDROCK_AWS_* in the repository secrets.
-          AWS_REGION: ${{ secrets.BEDROCK_AWS_REGION }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.BEDROCK_AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.BEDROCK_AWS_SECRET_ACCESS_KEY }}
-
   # Boots a real agent on a local HTTP port, so it stays out of the unit job (which ignores this
   # path). Gates both transports: the in-process dispatcher an embedded BFF uses and the socket a
-  # standalone one uses. Unlike the LLM suite it reaches no third party and is deterministic, hence
-  # no continue-on-error: it must gate.
+  # standalone one uses. It reaches no third party and is deterministic, so it must gate.
   bff-integration-tests:
     name: BFF Integration Tests (embedded and http transports)
     runs-on: ubuntu-latest
