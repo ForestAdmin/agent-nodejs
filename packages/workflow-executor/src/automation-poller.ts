@@ -22,8 +22,7 @@ const MEMBERSHIP_CHUNK_SIZE = 50;
 const MAX_CANDIDATE_PAGE_SIZE = 500;
 
 // Records waiting on a person stay known for as long as nobody handles them, so one padded page can
-// hold nothing but them. Paging on bounds the reads on the customer's agent: past this many pages,
-// the inbox is warned about instead of read further.
+// hold nothing but them. Bounds the reads a sweep makes on the customer's agent to walk past them.
 const MAX_PADDED_PAGES = 5;
 
 // The exclusion filter travels in the query string of a GET. The orchestrator's untreated cap does
@@ -608,13 +607,32 @@ export default class AutomationPoller {
       !reachedEnd
     ) {
       pagesRead += 1;
-      // eslint-disable-next-line no-await-in-loop
-      const page = await this.config.segmentReaderPort.listRecordIds({
-        ...AutomationPoller.segmentQuery(config),
-        pageSize: requestedPageSize,
-        pageNumber: pagesRead,
-        sortByPrimaryKey: true,
-      });
+      let page: string[];
+
+      try {
+        // eslint-disable-next-line no-await-in-loop
+        page = await this.config.segmentReaderPort.listRecordIds({
+          ...AutomationPoller.segmentQuery(config),
+          pageSize: requestedPageSize,
+          pageNumber: pagesRead,
+          sortByPrimaryKey: true,
+        });
+      } catch (error) {
+        if (pagesRead === 1) throw error;
+
+        // The candidates the earlier pages found are still good: dropping them would send an empty
+        // sync on every sweep of a slow agent.
+        this.logger(
+          'Warn',
+          'A later padded candidate page failed, keeping what earlier pages found',
+          {
+            ...logContext,
+            pagesRead,
+            error: extractErrorMessage(error),
+          },
+        );
+        break;
+      }
 
       page.filter(recordId => !knownSet.has(recordId)).forEach(id => candidates.add(id));
       reachedEnd = page.length < requestedPageSize;

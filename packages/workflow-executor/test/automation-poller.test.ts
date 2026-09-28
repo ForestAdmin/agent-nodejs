@@ -971,6 +971,29 @@ describe('AutomationPoller', () => {
         );
       });
 
+      it('should keep the candidates of earlier pages when a later page fails', async () => {
+        const context = makeContext({ assignments: waitingOnAPerson(1000) });
+        context.segmentReaderPort.listRecordIds
+          .mockResolvedValueOnce([...pageOf('w').slice(0, 493), ...pageOf('fresh-', 7)])
+          .mockRejectedValueOnce(new Error('timeout of 10000ms exceeded'));
+
+        await runOneCycle(makePoller(context));
+
+        expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
+          closed: [],
+          candidates: pageOf('fresh-', 7),
+        });
+      });
+
+      it('should report the candidate read failed when the first page fails', async () => {
+        const context = makeContext({ assignments: waitingOnAPerson(1000) });
+        context.segmentReaderPort.listRecordIds.mockRejectedValue(new Error('agent down'));
+
+        await runOneCycle(makePoller(context));
+
+        expect(context.automationPort.sync).not.toHaveBeenCalled();
+      });
+
       it('should read at most five pages, then warn with what it knows', async () => {
         const context = makeContext({ assignments: waitingOnAPerson(3000) });
         context.segmentReaderPort.listRecordIds.mockImplementation(async ({ pageNumber }) =>
