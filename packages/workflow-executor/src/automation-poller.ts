@@ -21,8 +21,9 @@ const MEMBERSHIP_CHUNK_SIZE = 50;
 // bounded by the client's ten-second timeout, so past some size the page stops being served at all.
 const MAX_CANDIDATE_PAGE_SIZE = 500;
 
-// The exclusion filter travels in the query string of a GET. The orchestrator stops serving an
-// inbox long before this, so it is a belt on the URL length rather than the real ceiling.
+// The exclusion filter travels in the query string of a GET. The orchestrator's untreated cap does
+// not bound it: records waiting on a person in the fallback inbox stay excluded, as many as there
+// are, so past this the page is padded instead.
 const MAX_EXCLUDED_RECORDS = 150;
 
 // Every inbox reads the customer's agent several times. Sweeping them all at once piles those reads
