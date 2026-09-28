@@ -197,6 +197,42 @@ describe('api key authenticator', () => {
     });
   });
 
+  describe('plan without the Gateway API', () => {
+    it('should map a SaaS 403 plan_feature_missing to its own error and negatively cache it', async () => {
+      const resolve = jest.fn(async () => {
+        throw new ApiKeyResolveError({ status: 403, code: 'plan_feature_missing' });
+      });
+      const authenticator = buildAuthenticator(resolve, nowRef);
+
+      const error = await authenticator.authenticate(RAW).catch((caught: unknown) => caught);
+
+      expect(error).toMatchObject({
+        type: 'plan_feature_missing',
+        status: 403,
+        message: "The project's plan does not include the Gateway API.",
+        retryAfter: undefined,
+      });
+
+      nowRef.ms += 9_000;
+      await expect(authenticator.authenticate(RAW)).rejects.toMatchObject({
+        type: 'plan_feature_missing',
+      });
+      expect(resolve).toHaveBeenCalledTimes(1);
+    });
+
+    it('should keep mapping any other SaaS 403 code to forest_identity_not_allowed', async () => {
+      const resolve = jest.fn(async () => {
+        throw new ApiKeyResolveError({ status: 403, code: 'forest_identity_not_allowed' });
+      });
+      const authenticator = buildAuthenticator(resolve, nowRef);
+
+      await expect(authenticator.authenticate(RAW)).rejects.toMatchObject({
+        type: 'forest_identity_not_allowed',
+        status: 403,
+      });
+    });
+  });
+
   describe('SaaS unavailable', () => {
     it('should map an unreachable resolver to a non-cached 503 with Retry-After 5', async () => {
       const resolve = jest.fn(async () => {

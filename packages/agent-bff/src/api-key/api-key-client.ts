@@ -57,7 +57,7 @@ export default class ApiKeyClient {
       response = await fetch(this.url(RESOLVE_PATH), {
         method: 'POST',
         headers: { ...DEFAULT_HEADERS, 'forest-secret-key': this.envSecret },
-        body: JSON.stringify({ keyId: parsedKey.keyId, secret: parsedKey.secret }),
+        body: JSON.stringify({ keyId: parsedKey.keyId, secret: parsedKey.secret, service: 'api' }),
         signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       });
     } catch {

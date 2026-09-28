@@ -39,7 +39,7 @@ const SECURITY = [{ [SESSION_SCHEME]: [] }, { [API_KEY_SCHEME]: [] }];
 const ERROR_STATUSES: Record<string, string> = {
   400: 'Malformed body, a malformed URL-encoded path segment, an invalid filter operator, a filter nested too deep, ambiguous credentials, an unsupported page, a missing or invalid timezone, an unknown submitted action field, a required action field left empty or a malformed file value at execute, or a rejected action form (type action_error)',
   401: 'Missing, invalid, or expired credentials',
-  403: 'The action needs approval before it runs (the body carries the approving roles), the Forest identity behind the API key is not allowed, the origin is not allowed for this key, the Forest server refused to write the activity log the request needs (type audit_not_authorized), or the agent refused the collection, relation, or action',
+  403: 'The action needs approval before it runs (the body carries the approving roles), the Forest identity behind the API key is not allowed, the plan of the project does not include the Gateway API (type plan_feature_missing), the origin is not allowed for this key, the Forest server refused to write the activity log the request needs (type audit_not_authorized), or the agent refused the collection, relation, or action',
   404: 'Unknown collection, relation, or action',
   413: `The request body exceeds the BFF limit of ${BODY_LIMIT}`,
   415: 'The request Content-Type is neither application/json nor an application/*+json type, including form-urlencoded, and is rejected with 415 instead of being silently dropped; a request carrying a body with no Content-Type at all is rejected the same way; or the declared character set cannot be decoded',
