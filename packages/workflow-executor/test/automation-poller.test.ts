@@ -1444,6 +1444,29 @@ describe('AutomationPoller', () => {
       );
     });
 
+    it('should still warn for an automated assignment whose run state is unavailable', async () => {
+      const context = makeContext({
+        assignments: [
+          makeAssignment({
+            recordId: 'automated',
+            state: 'done',
+            workflowRunId: 7,
+            runState: null,
+          }),
+        ],
+      });
+
+      await runOneCycle(makePoller(context));
+
+      // A workflowRunId means the orchestrator bound a run: a null state is one this executor cannot
+      // read yet, not a human assignment, so it stays held and visible until a later fetch resolves it.
+      expect(context.logger).toHaveBeenCalledWith(
+        'Warn',
+        'Unexpected workflow run state, leaving the record out of every sweep until this executor knows it',
+        expect.objectContaining({ inboxId: 'inbox-1', runState: null }),
+      );
+    });
+
     it('should hold back a run state it does not recognise, and say so', async () => {
       const context = makeContext({
         assignments: [makeAssignment({ recordId: 'r1', runState: 'a-state-from-the-future' })],
