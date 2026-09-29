@@ -429,15 +429,21 @@ export default class AutomationPoller {
     }
 
     // The orchestrator keeps the row of an ended run `doing` while its record is still in the
-    // segment, so that record is only released once it is seen leaving.
+    // segment, so that record is only released once it is seen leaving. An assignment with no run
+    // was made by a person, not the orchestrator, which binds the run first: there is nothing to
+    // reconcile, so it stays out of the report — the record stays known, and no automated run is
+    // ever started over the human's work.
     const reconcilable = assignments.filter(
       ({ state, runState }) =>
-        RECONCILABLE_ASSIGNMENT_STATES.has(state) || (state === 'doing' && isTerminalRun(runState)),
+        runState != null &&
+        (RECONCILABLE_ASSIGNMENT_STATES.has(state) ||
+          (state === 'doing' && isTerminalRun(runState))),
     );
 
     for (const { runState } of reconcilable) {
-      // Null belongs here too: the orchestrator binds the run before the assignment, so an
-      // assignment with no run is not a shape this executor knows how to read either.
+      // A run state this executor predates: a later deploy will know it, so the warning is worth
+      // repeating until then. The runless human assignment never reaches here — it has no run to
+      // wait on, so warning forever would be noise it could never resolve.
       if (!isTerminalRun(runState) && !isLiveRun(runState)) {
         this.logger(
           'Warn',

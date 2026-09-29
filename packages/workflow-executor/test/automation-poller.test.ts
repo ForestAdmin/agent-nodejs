@@ -1413,30 +1413,34 @@ describe('AutomationPoller', () => {
       expect(membershipCalls[1].pageSize).toBe(1);
     });
 
-    it('should hold back a closed assignment that never had a run, and say so', async () => {
+    it('should leave a closed assignment that never had a run to the human, without a warning', async () => {
       const context = makeContext({
         assignments: [
           makeAssignment({
-            recordId: 'never-ran',
+            recordId: 'human-closed',
             state: 'auto-canceled',
             workflowRunId: null,
             runState: null,
           }),
         ],
       });
+      // Still in the segment: the executor must leave it to the human, not turn it into a candidate.
+      context.segmentReaderPort.listRecordIds.mockResolvedValue(['human-closed']);
 
-      // The orchestrator binds the run before the assignment, so this shape should not exist. It is
-      // surfaced rather than interpreted, either way.
+      // A person, not the orchestrator, made this assignment: the orchestrator binds the run first,
+      // so a runless one is the human's. There is nothing to reconcile, and the old warning promised
+      // "until this executor knows it" while no run would ever appear — repeating on every sweep
+      // forever is the noise this fixes.
       await runOneCycle(makePoller(context));
 
-      expect(context.automationPort.sync).toHaveBeenCalledWith(
-        'inbox-1',
-        expect.objectContaining({ closed: [] }),
-      );
-      expect(context.logger).toHaveBeenCalledWith(
+      expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
+        closed: [],
+        candidates: [],
+      });
+      expect(context.logger).not.toHaveBeenCalledWith(
         'Warn',
         'Unexpected workflow run state, leaving the record out of every sweep until this executor knows it',
-        expect.objectContaining({ inboxId: 'inbox-1', runState: null }),
+        expect.anything(),
       );
     });
 
