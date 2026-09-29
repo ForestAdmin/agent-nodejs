@@ -635,7 +635,7 @@ export default class AutomationPoller {
       }
 
       page
-        .filter(recordId => !knownSet.has(recordId))
+        .filter(recordId => !knownSet.has(recordId) && !candidates.has(recordId))
         .slice(0, config.maxConcurrentRuns - candidates.size)
         .forEach(id => candidates.add(id));
       reachedEnd = page.length < requestedPageSize;

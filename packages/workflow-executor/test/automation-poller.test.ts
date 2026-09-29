@@ -985,6 +985,51 @@ describe('AutomationPoller', () => {
         });
       });
 
+      it('should not spend the run budget on a record an earlier page already brought', async () => {
+        const context = makeContext({ assignments: waitingOnAPerson(1000) });
+        context.segmentReaderPort.listRecordIds
+          .mockResolvedValueOnce([...pageOf('w', 485), ...pageOf('fresh-', 15)])
+          .mockResolvedValueOnce([
+            'fresh-14',
+            ...Array.from({ length: 484 }, (_unused, index) => `w${index + 485}`),
+            ...pageOf('late-', 15),
+          ]);
+
+        await runOneCycle(makePoller(context));
+
+        expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
+          closed: [],
+          candidates: [...pageOf('fresh-', 15), ...pageOf('late-', 5)],
+        });
+      });
+
+      it('should page the same way when the fallback comes from a refused `not_in`', async () => {
+        const context = makeContext({
+          inboxes: [makeConfig({ liana: 'forest-nodejs-agent', maxConcurrentRuns: 480 })],
+          assignments: waitingOnAPerson(30),
+        });
+        context.segmentReaderPort.listRecordIds
+          .mockRejectedValueOnce(new Error('HTTP 500'))
+          .mockResolvedValueOnce([...pageOf('w', 30), ...pageOf('fresh-', 470)])
+          .mockResolvedValueOnce(pageOf('late-', 10));
+
+        await runOneCycle(makePoller(context));
+
+        expect(context.segmentReaderPort.listRecordIds).toHaveBeenNthCalledWith(
+          3,
+          expect.objectContaining({ pageSize: 500, pageNumber: 2, sortByPrimaryKey: true }),
+        );
+        expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
+          closed: [],
+          candidates: [...pageOf('fresh-', 470), ...pageOf('late-', 10)],
+        });
+        expect(context.logger).toHaveBeenCalledWith(
+          'Info',
+          'Automated inbox polled',
+          expect.objectContaining({ paddedPageReason: 'not-in-refused', candidatePagesRead: 2 }),
+        );
+      });
+
       it('should stop at the end of the segment without warning', async () => {
         const context = makeContext({ assignments: waitingOnAPerson(1000) });
         context.segmentReaderPort.listRecordIds
