@@ -918,6 +918,224 @@ describe('AutomationPoller', () => {
       );
     });
 
+    describe('when one padded page holds nothing but known records', () => {
+      const waitingOnAPerson = (count: number) =>
+        Array.from({ length: count }, (_unused, index) =>
+          makeAssignment({ recordId: `w${index}`, state: 'doing', runState: 'started' }),
+        );
+      const pageOf = (prefix: string, size = 500) =>
+        Array.from({ length: size }, (_unused, index) => `${prefix}${index}`);
+
+      it('should read the next pages, sorted by key, until it finds new records', async () => {
+        const context = makeContext({ assignments: waitingOnAPerson(1000) });
+        context.segmentReaderPort.listRecordIds
+          .mockResolvedValueOnce(pageOf('w').slice(0, 500))
+          .mockResolvedValueOnce(pageOf('w').map((_id, index) => `w${index + 500}`))
+          .mockResolvedValueOnce(['fresh-1', 'fresh-2']);
+
+        await runOneCycle(makePoller(context));
+
+        expect(context.segmentReaderPort.listRecordIds.mock.calls.map(([query]) => query)).toEqual(
+          [1, 2, 3].map(pageNumber =>
+            expect.objectContaining({ pageSize: 500, pageNumber, sortByPrimaryKey: true }),
+          ),
+        );
+        expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
+          closed: [],
+          candidates: ['fresh-1', 'fresh-2'],
+        });
+      });
+
+      it('should stop reading as soon as a page yields enough candidates', async () => {
+        const context = makeContext({ assignments: waitingOnAPerson(1000) });
+        context.segmentReaderPort.listRecordIds.mockResolvedValue(pageOf('fresh-'));
+
+        await runOneCycle(makePoller(context));
+
+        expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledTimes(1);
+      });
+
+      it('should send no more candidates than the inbox can start runs for', async () => {
+        const context = makeContext({ assignments: waitingOnAPerson(1000) });
+        context.segmentReaderPort.listRecordIds.mockResolvedValue(pageOf('fresh-'));
+
+        await runOneCycle(makePoller(context));
+
+        expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
+          closed: [],
+          candidates: pageOf('fresh-', 20),
+        });
+      });
+
+      it('should take from a later page only what the earlier pages left of the run budget', async () => {
+        const context = makeContext({ assignments: waitingOnAPerson(1000) });
+        context.segmentReaderPort.listRecordIds
+          .mockResolvedValueOnce([...pageOf('w', 485), ...pageOf('fresh-', 15)])
+          .mockResolvedValueOnce([
+            ...Array.from({ length: 485 }, (_unused, index) => `w${index + 485}`),
+            ...pageOf('late-', 15),
+          ]);
+
+        await runOneCycle(makePoller(context));
+
+        expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledTimes(2);
+        expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
+          closed: [],
+          candidates: [...pageOf('fresh-', 15), ...pageOf('late-', 5)],
+        });
+      });
+
+      it('should not spend the run budget on a record an earlier page already brought', async () => {
+        const context = makeContext({ assignments: waitingOnAPerson(1000) });
+        context.segmentReaderPort.listRecordIds
+          .mockResolvedValueOnce([...pageOf('w', 485), ...pageOf('fresh-', 15)])
+          .mockResolvedValueOnce([
+            'fresh-14',
+            ...Array.from({ length: 484 }, (_unused, index) => `w${index + 485}`),
+            ...pageOf('late-', 15),
+          ]);
+
+        await runOneCycle(makePoller(context));
+
+        expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
+          closed: [],
+          candidates: [...pageOf('fresh-', 15), ...pageOf('late-', 5)],
+        });
+      });
+
+      it('should page the same way when the fallback comes from a refused `not_in`', async () => {
+        const context = makeContext({
+          inboxes: [makeConfig({ liana: 'forest-nodejs-agent', maxConcurrentRuns: 480 })],
+          assignments: waitingOnAPerson(30),
+        });
+        context.segmentReaderPort.listRecordIds
+          .mockRejectedValueOnce(new Error('HTTP 500'))
+          .mockResolvedValueOnce([...pageOf('w', 30), ...pageOf('fresh-', 470)])
+          .mockResolvedValueOnce(pageOf('late-', 10));
+
+        await runOneCycle(makePoller(context));
+
+        expect(context.segmentReaderPort.listRecordIds).toHaveBeenNthCalledWith(
+          3,
+          expect.objectContaining({ pageSize: 500, pageNumber: 2, sortByPrimaryKey: true }),
+        );
+        expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
+          closed: [],
+          candidates: [...pageOf('fresh-', 470), ...pageOf('late-', 10)],
+        });
+        expect(context.logger).toHaveBeenCalledWith(
+          'Info',
+          'Automated inbox polled',
+          expect.objectContaining({ paddedPageReason: 'not-in-refused', candidatePagesRead: 2 }),
+        );
+      });
+
+      it('should stop at the end of the segment without warning', async () => {
+        const context = makeContext({ assignments: waitingOnAPerson(1000) });
+        context.segmentReaderPort.listRecordIds
+          .mockResolvedValueOnce(pageOf('w'))
+          .mockResolvedValueOnce(['w500']);
+
+        await runOneCycle(makePoller(context));
+
+        expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledTimes(2);
+        expect(context.logger).not.toHaveBeenCalledWith(
+          'Warn',
+          expect.stringContaining('found no new record'),
+          expect.anything(),
+        );
+      });
+
+      it('should keep the candidates of earlier pages when a later page fails', async () => {
+        const context = makeContext({ assignments: waitingOnAPerson(1000) });
+        context.segmentReaderPort.listRecordIds
+          .mockResolvedValueOnce([...pageOf('w').slice(0, 493), ...pageOf('fresh-', 7)])
+          .mockRejectedValueOnce(new Error('timeout of 10000ms exceeded'));
+
+        await runOneCycle(makePoller(context));
+
+        expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
+          closed: [],
+          candidates: pageOf('fresh-', 7),
+        });
+      });
+
+      it('should report the candidate read failed when the first page fails', async () => {
+        const context = makeContext({ assignments: waitingOnAPerson(1000) });
+        context.segmentReaderPort.listRecordIds.mockRejectedValue(new Error('agent down'));
+
+        await runOneCycle(makePoller(context));
+
+        expect(context.logger).toHaveBeenCalledWith(
+          'Error',
+          'Could not read new candidates of an automated inbox',
+          expect.objectContaining({ error: 'agent down' }),
+        );
+      });
+
+      it('should report the candidate read failed when a later page fails before any candidate', async () => {
+        const context = makeContext({ assignments: waitingOnAPerson(1000) });
+        context.segmentReaderPort.listRecordIds
+          .mockResolvedValueOnce(pageOf('w'))
+          .mockRejectedValueOnce(new Error('timeout of 10000ms exceeded'));
+
+        await runOneCycle(makePoller(context));
+
+        expect(context.logger).toHaveBeenCalledWith(
+          'Error',
+          'Could not read new candidates of an automated inbox',
+          expect.objectContaining({ error: 'timeout of 10000ms exceeded' }),
+        );
+        expect(context.logger).not.toHaveBeenCalledWith(
+          'Warn',
+          'The padded candidate read found no new record within its page cap',
+          expect.anything(),
+        );
+      });
+
+      it('should read a composite key in one unsorted page, which offset paging cannot walk', async () => {
+        const context = makeContext({
+          inboxes: [makeConfig({ primaryKeys: ['tenantId', 'id'] })],
+          assignments: waitingOnAPerson(1000).map(assignment => ({
+            ...assignment,
+            recordId: `t|${assignment.recordId}`,
+          })),
+        });
+        context.segmentReaderPort.listRecordIds.mockResolvedValue(pageOf('w').map(id => `t|${id}`));
+
+        await runOneCycle(makePoller(context));
+
+        expect(context.segmentReaderPort.listRecordIds.mock.calls.map(([query]) => query)).toEqual([
+          expect.objectContaining({ pageNumber: 1, sortByPrimaryKey: false }),
+        ]);
+      });
+
+      it('should read at most five pages, then warn with what it knows', async () => {
+        const context = makeContext({ assignments: waitingOnAPerson(3000) });
+        context.segmentReaderPort.listRecordIds.mockImplementation(async ({ pageNumber }) =>
+          pageOf('w').map((_id, index) => `w${((pageNumber ?? 1) - 1) * 500 + index}`),
+        );
+
+        await runOneCycle(makePoller(context));
+
+        expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledTimes(5);
+        expect(context.logger).toHaveBeenCalledWith(
+          'Warn',
+          'The padded candidate read found no new record within its page cap',
+          expect.objectContaining({
+            known: 3000,
+            pagesRead: 5,
+            paddedPageReason: 'too-many-known-records',
+          }),
+        );
+        expect(context.logger).toHaveBeenCalledWith(
+          'Info',
+          'Automated inbox polled',
+          expect.objectContaining({ candidatePagesRead: 5 }),
+        );
+      });
+    });
+
     it('should report only the segment records that have no assignment yet', async () => {
       const context = makeContext({
         assignments: [makeAssignment({ recordId: 'known', state: 'doing', runState: 'started' })],
