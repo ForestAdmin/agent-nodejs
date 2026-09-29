@@ -967,6 +967,24 @@ describe('AutomationPoller', () => {
         });
       });
 
+      it('should take from a later page only what the earlier pages left of the run budget', async () => {
+        const context = makeContext({ assignments: waitingOnAPerson(1000) });
+        context.segmentReaderPort.listRecordIds
+          .mockResolvedValueOnce([...pageOf('w', 485), ...pageOf('fresh-', 15)])
+          .mockResolvedValueOnce([
+            ...Array.from({ length: 485 }, (_unused, index) => `w${index + 485}`),
+            ...pageOf('late-', 15),
+          ]);
+
+        await runOneCycle(makePoller(context));
+
+        expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledTimes(2);
+        expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
+          closed: [],
+          candidates: [...pageOf('fresh-', 15), ...pageOf('late-', 5)],
+        });
+      });
+
       it('should stop at the end of the segment without warning', async () => {
         const context = makeContext({ assignments: waitingOnAPerson(1000) });
         context.segmentReaderPort.listRecordIds
