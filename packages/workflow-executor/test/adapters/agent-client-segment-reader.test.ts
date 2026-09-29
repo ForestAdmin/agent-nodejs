@@ -325,6 +325,32 @@ describe('AgentClientSegmentReader', () => {
       expect(captured.query).toMatchObject({ 'page[size]': '22', 'page[number]': '1' });
     });
 
+    it('should ask for the requested page', async () => {
+      const captured = interceptList();
+
+      await reader.listRecordIds(makeQuery({ pageSize: 500, pageNumber: 3 }));
+
+      expect(captured.query).toMatchObject({ 'page[size]': '500', 'page[number]': '3' });
+    });
+
+    it('should sort by the first primary key column when asked to', async () => {
+      const captured = interceptList();
+
+      await reader.listRecordIds(
+        makeQuery({ primaryKeys: ['tenantId', 'id'], sortByPrimaryKey: true }),
+      );
+
+      expect(captured.query).toMatchObject({ sort: 'tenantId' });
+    });
+
+    it('should impose no sort by default', async () => {
+      const captured = interceptList();
+
+      await reader.listRecordIds(makeQuery());
+
+      expect(captured.query).not.toHaveProperty('sort');
+    });
+
     it('should authenticate as the service account', async () => {
       let authorization = '';
 
