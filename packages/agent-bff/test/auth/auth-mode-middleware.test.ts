@@ -6,7 +6,7 @@ import createAuthModeMiddleware, { BFF_KEY_HEADER } from '../../src/auth/auth-mo
 import createErrorMiddleware from '../../src/http/error-middleware';
 
 const AUTH_SECRET = 'test-secret';
-const RAW_KEY = `fbff_${'a'.repeat(16)}_${'b'.repeat(64)}`;
+const RAW_KEY = `fgw_${'a'.repeat(16)}_${'b'.repeat(64)}`;
 
 const PRINCIPAL = {
   sid: 's1',

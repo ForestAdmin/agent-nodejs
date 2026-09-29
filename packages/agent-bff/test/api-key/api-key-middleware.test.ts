@@ -13,7 +13,7 @@ import createErrorMiddleware from '../../src/http/error-middleware';
 
 const KEY_ID = 'a'.repeat(16);
 const SECRET = 'b'.repeat(64);
-const RAW = `fbff_${KEY_ID}_${SECRET}`;
+const RAW = `fgw_${KEY_ID}_${SECRET}`;
 
 const IDENTITY = {
   user: {

@@ -16,7 +16,7 @@ const mintMock = issueAgentToken as jest.Mock;
 const AUTH_SECRET = 'auth-secret';
 const KEY_ID = 'a'.repeat(16);
 const SECRET = 'b'.repeat(64);
-const RAW = `fbff_${KEY_ID}_${SECRET}`;
+const RAW = `fgw_${KEY_ID}_${SECRET}`;
 
 const IDENTITY: ResolvedApiKeyIdentity = {
   user: {
@@ -62,7 +62,7 @@ describe('api key authenticator', () => {
     it('should keep serving another key from the cache', async () => {
       const resolve = jest.fn(async () => IDENTITY);
       const authenticator = buildAuthenticator(resolve, nowRef);
-      const otherKey = `fbff_${'c'.repeat(16)}_${'d'.repeat(64)}`;
+      const otherKey = `fgw_${'c'.repeat(16)}_${'d'.repeat(64)}`;
       await authenticator.authenticate(RAW);
       await authenticator.authenticate(otherKey);
 
@@ -93,6 +93,29 @@ describe('api key authenticator', () => {
 
       expect(result).toEqual({ agentToken: 'minted-token', identity: IDENTITY });
       expect(mintMock).toHaveBeenCalledWith({ identity: IDENTITY, authSecret: AUTH_SECRET });
+    });
+
+    it.each([
+      ['fgw_', `fgw_${KEY_ID}_${SECRET}`],
+      ['fbff_', `fbff_${KEY_ID}_${SECRET}`],
+    ])('should resolve a %s key with its keyId and secret', async (_prefix, raw) => {
+      const resolve = jest.fn(async () => IDENTITY);
+      const authenticator = buildAuthenticator(resolve, nowRef);
+
+      const result = await authenticator.authenticate(raw);
+
+      expect(resolve).toHaveBeenCalledWith({ keyId: KEY_ID, secret: SECRET });
+      expect(result).toEqual({ agentToken: 'minted-token', identity: IDENTITY });
+    });
+
+    it('should serve the same key from cache whichever prefix it comes with', async () => {
+      const resolve = jest.fn(async () => IDENTITY);
+      const authenticator = buildAuthenticator(resolve, nowRef);
+
+      await authenticator.authenticate(`fbff_${KEY_ID}_${SECRET}`);
+      await authenticator.authenticate(`fgw_${KEY_ID}_${SECRET}`);
+
+      expect(resolve).toHaveBeenCalledTimes(1);
     });
 
     it('should serve from cache without re-calling the SaaS within 60s', async () => {
@@ -141,6 +164,17 @@ describe('api key authenticator', () => {
       expect(resolve).not.toHaveBeenCalled();
       expect(mintMock).not.toHaveBeenCalled();
     });
+
+    it('should reject a well-formed key with an unknown prefix without calling the SaaS', async () => {
+      const resolve = jest.fn(async () => IDENTITY);
+      const authenticator = buildAuthenticator(resolve, nowRef);
+
+      await expect(authenticator.authenticate(`fbf_${KEY_ID}_${SECRET}`)).rejects.toMatchObject({
+        type: 'invalid_api_key',
+        status: 401,
+      });
+      expect(resolve).not.toHaveBeenCalled();
+    });
   });
 
   describe('invalid / revoked / expired / wrong-environment key', () => {
@@ -167,7 +201,7 @@ describe('api key authenticator', () => {
     it('should not hit the positive cache entry of a previously valid key', async () => {
       const resolve = jest.fn(async () => IDENTITY);
       const authenticator = buildAuthenticator(resolve, nowRef);
-      const wrongSecretKey = `fbff_${KEY_ID}_${'c'.repeat(64)}`;
+      const wrongSecretKey = `fgw_${KEY_ID}_${'c'.repeat(64)}`;
 
       await authenticator.authenticate(RAW);
       await authenticator.authenticate(wrongSecretKey);

@@ -19,7 +19,7 @@ import { makeMetrics, published } from '../read-model/fixtures';
 
 const ROUTE = '/agent/v1/context';
 const AUTH_SECRET = 'context-secret';
-const RAW_KEY = `fbff_${'a'.repeat(16)}_${'b'.repeat(64)}`;
+const RAW_KEY = `fgw_${'a'.repeat(16)}_${'b'.repeat(64)}`;
 
 function makeStore(fetchSchema: jest.Mock, now?: () => number) {
   const fetcher: SchemaFetcher = { fetchSchema };
