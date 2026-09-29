@@ -34,7 +34,7 @@ const MAX_EXCLUDED_RECORDS = 150;
 
 // Every inbox reads the customer's agent several times. Sweeping them all at once piles those reads
 // onto the customer's database, and agent-client's ten-second timeout turns the pile-up into inboxes
-// that skip their sync.
+// whose reads time out.
 const MAX_CONCURRENT_INBOX_POLLS = 5;
 
 // The orchestrator's poller lease lives three of these, so a dead holder is replaced within a
@@ -71,18 +71,48 @@ const OPEN_ASSIGNMENT_STATES: ReadonlySet<string> = new Set(['todo', 'doing']);
 const isTerminalRun = (runState: string | null | undefined): boolean =>
   runState != null && TERMINAL_RUN_STATES.has(runState);
 
+const isLiveRun = (runState: string | null | undefined): boolean =>
+  runState != null && LIVE_RUN_STATES.has(runState);
+
+const FORBIDDEN_AGENT_STATUSES: ReadonlySet<number> = new Set([401, 403]);
+
 const UNREACHABLE_AGENT_STATUSES: ReadonlySet<number> = new Set([502, 503, 504]);
 
-// What the settings panel tells the admin to fix. A read with no HTTP answer (refused
-// connection, timeout) is an agent that could not be reached; an error raised before any request
-// is a segment the executor cannot read.
+// Superagent's own timeout is ECONNABORTED. Any other failure without an HTTP answer (a JWT that
+// cannot be signed, a malformed agent URL) is a fault on our side, not an agent to go and restart.
+const UNREACHABLE_AGENT_ERROR_CODES: ReadonlySet<string> = new Set([
+  'ECONNABORTED',
+  'ECONNREFUSED',
+  'ECONNRESET',
+  'EAI_AGAIN',
+  'EHOSTUNREACH',
+  'ENETUNREACH',
+  'ENOTFOUND',
+  'EPIPE',
+  'ETIMEDOUT',
+]);
+
+// The server refuses the whole sync for a status outside this range, and agent-client falls back
+// to 0 when a response carries none.
+const isHttpStatus = (status: number): boolean => status >= 100 && status <= 599;
+
 function classifyReadFailure(error: unknown): ServerAutomatedInboxReadFailure {
   if (!(error instanceof AgentPortError)) return { reason: 'segment-read-failed' };
-  if (!(error.cause instanceof AgentHttpError)) return { reason: 'agent-unreachable' };
 
-  const httpStatus = error.cause.status;
+  const { cause } = error;
 
-  if (httpStatus === 401 || httpStatus === 403) return { reason: 'agent-forbidden', httpStatus };
+  if (!(cause instanceof AgentHttpError)) {
+    const code = (cause as { code?: unknown } | null)?.code;
+
+    return typeof code === 'string' && UNREACHABLE_AGENT_ERROR_CODES.has(code)
+      ? { reason: 'agent-unreachable' }
+      : { reason: 'segment-read-failed' };
+  }
+
+  const httpStatus = cause.status;
+
+  if (!isHttpStatus(httpStatus)) return { reason: 'agent-unreachable' };
+  if (FORBIDDEN_AGENT_STATUSES.has(httpStatus)) return { reason: 'agent-forbidden', httpStatus };
 
   if (UNREACHABLE_AGENT_STATUSES.has(httpStatus)) {
     return { reason: 'agent-unreachable', httpStatus };
@@ -90,9 +120,6 @@ function classifyReadFailure(error: unknown): ServerAutomatedInboxReadFailure {
 
   return { reason: 'segment-read-failed', httpStatus };
 }
-
-const isLiveRun = (runState: string | null | undefined): boolean =>
-  runState != null && LIVE_RUN_STATES.has(runState);
 
 export type AutomationPollerState = 'idle' | 'running' | 'draining' | 'stopped';
 
@@ -374,8 +401,9 @@ export default class AutomationPoller {
       // The candidate read is the one that starts runs, so its failure is the one worth fixing.
       const readFailure = candidates.failure ?? closed.failure;
 
-      // Sent even when both lists are empty or both reads failed: this call is what tells the
-      // orchestrator the inbox is still being polled, and what shows the admin why a read failed.
+      // Sent even when both lists are empty or both reads failed: the orchestrator keeps the last
+      // read failure until a sync comes without one, so a skipped sync would leave the settings
+      // panel with a stale warning, or none at all.
       const results = await this.config.automationPort.sync(config.inboxId, {
         closed: closed.items,
         candidates: candidates.items,

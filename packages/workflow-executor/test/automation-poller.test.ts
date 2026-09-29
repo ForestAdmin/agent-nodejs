@@ -11,9 +11,21 @@ import type {
 import { AgentHttpError } from '@forestadmin/agent-client';
 
 import AutomationPoller from '../src/automation-poller';
-import { AgentPortError, AutomatedInboxGoneError } from '../src/errors';
+import {
+  AgentPortError,
+  AutomatedInboxGoneError,
+  CompositeRecordIdMismatchError,
+  SegmentRecordIdMissingError,
+} from '../src/errors';
 
 const POLL_INTERVAL_S = 300;
+
+function agentUnreachable(code: string): AgentPortError {
+  return new AgentPortError(
+    'listSegmentRecordIds',
+    Object.assign(new Error(`agent unreachable: ${code}`), { code }),
+  );
+}
 
 function makeConfig(
   overrides: Partial<ServerAutomatedInboxConfig> = {},
@@ -1077,6 +1089,10 @@ describe('AutomationPoller', () => {
           'Could not read new candidates of an automated inbox',
           expect.objectContaining({ error: 'agent down' }),
         );
+        expect(context.automationPort.sync).toHaveBeenCalledWith(
+          'inbox-1',
+          expect.objectContaining({ readFailure: { reason: 'segment-read-failed' } }),
+        );
       });
 
       it('should report the candidate read failed when a later page fails before any candidate', async () => {
@@ -1518,7 +1534,7 @@ describe('AutomationPoller', () => {
       });
       context.segmentReaderPort.listRecordIds.mockImplementation(
         async ({ recordIds }: ListSegmentRecordIdsQuery) => {
-          if (recordIds === undefined) throw new Error('segment page timed out');
+          if (recordIds === undefined) throw agentUnreachable('ECONNABORTED');
 
           return [];
         },
@@ -1531,7 +1547,7 @@ describe('AutomationPoller', () => {
       expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
         closed: [{ recordId: 'treated', stillInSegment: false }],
         candidates: [],
-        readFailure: { reason: 'segment-read-failed' },
+        readFailure: { reason: 'agent-unreachable' },
       });
       expect(context.logger).toHaveBeenCalledWith(
         'Error',
@@ -1563,9 +1579,7 @@ describe('AutomationPoller', () => {
 
     it('should still sync, with the failure, when it could not reach the agent at all', async () => {
       const context = makeContext({ assignments: [makeAssignment({ recordId: 'treated' })] });
-      context.segmentReaderPort.listRecordIds.mockRejectedValue(
-        new AgentPortError('listSegmentRecordIds', new Error('connect ECONNREFUSED')),
-      );
+      context.segmentReaderPort.listRecordIds.mockRejectedValue(agentUnreachable('ECONNREFUSED'));
 
       await runOneCycle(makePoller(context));
 
@@ -1600,14 +1614,26 @@ describe('AutomationPoller', () => {
         ['a 504', agentAnswered(504), { reason: 'agent-unreachable', httpStatus: 504 }],
         ['a 500', agentAnswered(500), { reason: 'segment-read-failed', httpStatus: 500 }],
         ['a 400', agentAnswered(400), { reason: 'segment-read-failed', httpStatus: 400 }],
+        ['a timeout', agentUnreachable('ECONNABORTED'), { reason: 'agent-unreachable' }],
+        ['a refused connection', agentUnreachable('ECONNREFUSED'), { reason: 'agent-unreachable' }],
+        ['an unknown host', agentUnreachable('ENOTFOUND'), { reason: 'agent-unreachable' }],
+        ['a response without a status', agentAnswered(0), { reason: 'agent-unreachable' }],
         [
-          'no HTTP answer',
-          new AgentPortError('listSegmentRecordIds', new Error('timeout of 10000ms exceeded')),
-          { reason: 'agent-unreachable' },
+          'an error of its own before any answer',
+          new AgentPortError(
+            'listSegmentRecordIds',
+            new Error('secretOrPrivateKey must have a value'),
+          ),
+          { reason: 'segment-read-failed' },
         ],
         [
-          'an error raised before any request',
-          new Error('The segment record lacks its primary key'),
+          'a record without an id',
+          new SegmentRecordIdMissingError('orders'),
+          { reason: 'segment-read-failed' },
+        ],
+        [
+          'a record id it cannot split',
+          new CompositeRecordIdMismatchError('1', 2),
           { reason: 'segment-read-failed' },
         ],
       ])('should name the failure of a candidate read that got %s', async (_, error, expected) => {
