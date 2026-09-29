@@ -38,7 +38,7 @@ export default class AgentClientSegmentReader implements SegmentReaderPort {
   }
 
   async listRecordIds(query: ListSegmentRecordIdsQuery): Promise<string[]> {
-    const { collectionName, segment, primaryKeys, user, timezone, pageSize } = query;
+    const { collectionName, segment, primaryKeys, user, timezone, pageSize, pageNumber } = query;
     const { recordIds, excludedRecordIds } = query;
 
     try {
@@ -52,7 +52,10 @@ export default class AgentClientSegmentReader implements SegmentReaderPort {
       );
       const options: SelectOptions = {
         fields: primaryKeys,
-        ...(pageSize !== undefined ? { pagination: { size: pageSize, number: 1 } } : {}),
+        ...(pageSize !== undefined
+          ? { pagination: { size: pageSize, number: pageNumber ?? 1 } }
+          : {}),
+        ...(query.sortByPrimaryKey ? { sort: { field: primaryKeys[0], ascending: true } } : {}),
         ...(filters !== undefined ? { filters } : {}),
       };
 

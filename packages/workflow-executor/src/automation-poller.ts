@@ -21,6 +21,10 @@ const MEMBERSHIP_CHUNK_SIZE = 50;
 // bounded by the client's ten-second timeout, so past some size the page stops being served at all.
 const MAX_CANDIDATE_PAGE_SIZE = 500;
 
+// Records waiting on a person stay known for as long as nobody handles them, so one padded page can
+// hold nothing but them. Bounds the reads a sweep makes on the customer's agent to walk past them.
+const MAX_PADDED_PAGES = 5;
+
 // The exclusion filter travels in the query string of a GET. The orchestrator's untreated cap does
 // not bound it: records waiting on a person in the fallback inbox stay excluded, as many as there
 // are, so past this the page is padded instead.
@@ -88,6 +92,7 @@ interface SegmentRead<T> {
   items: T[];
   paddedPageReason?: PaddedPageReason;
   requestedPageSize?: number;
+  pagesRead?: number;
 }
 
 export interface AutomationPollerConfig {
@@ -373,6 +378,7 @@ export default class AutomationPoller {
         reconciled: closed.items.length,
         candidates: candidates.items.length,
         candidatePageSize: candidates.requestedPageSize,
+        candidatePagesRead: candidates.pagesRead,
         paddedPageReason: candidates.paddedPageReason,
         outcomes: results.reduce<Record<string, number>>(
           (counts, { outcome }) => ({ ...counts, [outcome]: (counts[outcome] ?? 0) + 1 }),
@@ -564,20 +570,24 @@ export default class AutomationPoller {
           error: extractErrorMessage(error),
         });
 
-        return this.readPaddedCandidates(config, assignments, knownSet, 'not-in-refused');
+        return this.readPaddedCandidates(
+          logContext,
+          config,
+          assignments,
+          knownSet,
+          'not-in-refused',
+        );
       }
     }
 
-    return this.readPaddedCandidates(config, assignments, knownSet, paddedPageReason);
+    return this.readPaddedCandidates(logContext, config, assignments, knownSet, paddedPageReason);
   }
 
-  // No sort is imposed and each agent orders as it likes, so a page that comes back mostly
-  // assigned simply yields fewer candidates.
-  //
   // The padding is capped. It grows with the backlog, and the agent read it feeds is bounded by
   // the client's ten-second ceiling, so an uncapped page turns a large inbox into one that reads
   // nothing at all — worse than one that reads a partial page and finds fewer candidates.
   private async readPaddedCandidates(
+    logContext: Record<string, unknown>,
     config: ServerAutomatedInboxConfig,
     assignments: ServerAutomatedInboxAssignment[],
     knownSet: ReadonlySet<string>,
@@ -587,16 +597,65 @@ export default class AutomationPoller {
       config.maxConcurrentRuns + assignments.length,
       MAX_CANDIDATE_PAGE_SIZE,
     );
-    const page = await this.config.segmentReaderPort.listRecordIds({
-      ...AutomationPoller.segmentQuery(config),
-      pageSize: requestedPageSize,
-    });
+    // agent-client sorts on one field: a composite key tied on its first column has no stable order
+    // across offset pages, so it keeps the single unsorted page.
+    const pageable = config.primaryKeys.length === 1;
+    const maxPages = pageable ? MAX_PADDED_PAGES : 1;
+    const candidates = new Set<string>();
+    let pagesRead = 0;
+    let reachedEnd = false;
+
+    while (pagesRead < maxPages && candidates.size < config.maxConcurrentRuns && !reachedEnd) {
+      pagesRead += 1;
+      let page: string[];
+
+      try {
+        // eslint-disable-next-line no-await-in-loop
+        page = await this.config.segmentReaderPort.listRecordIds({
+          ...AutomationPoller.segmentQuery(config),
+          pageSize: requestedPageSize,
+          pageNumber: pagesRead,
+          sortByPrimaryKey: pageable,
+        });
+      } catch (error) {
+        if (candidates.size === 0) throw error;
+
+        // The candidates the earlier pages found are still good: dropping them would send an empty
+        // sync on every sweep of a slow agent.
+        this.logger(
+          'Warn',
+          'A later padded candidate page failed, keeping what earlier pages found',
+          {
+            ...logContext,
+            pagesRead,
+            error: extractErrorMessage(error),
+          },
+        );
+        break;
+      }
+
+      page
+        .filter(recordId => !knownSet.has(recordId) && !candidates.has(recordId))
+        .slice(0, config.maxConcurrentRuns - candidates.size)
+        .forEach(id => candidates.add(id));
+      reachedEnd = page.length < requestedPageSize;
+    }
+
+    if (candidates.size === 0 && !reachedEnd) {
+      this.logger('Warn', 'The padded candidate read found no new record within its page cap', {
+        ...logContext,
+        known: knownSet.size,
+        pagesRead,
+        paddedPageReason,
+      });
+    }
 
     return {
       outcome: 'ok',
-      items: page.filter(recordId => !knownSet.has(recordId)),
+      items: [...candidates],
       paddedPageReason,
       requestedPageSize,
+      pagesRead,
     };
   }
 
