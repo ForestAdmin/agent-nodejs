@@ -821,6 +821,18 @@ describe('AuditTrailRoute', () => {
         });
       });
 
+      test('lists an author as their latest identity when sorted oldest first', async () => {
+        const { body } = await searched(
+          [secretDelete(), secretDelete({ id: 2, userEmail: 'jane@acme.com' })],
+          { search: 'acme', sort: 'timestamp' },
+        );
+
+        expect(body.meta).toEqual({
+          count: 2,
+          availableUsers: [{ id: 7, firstName: null, lastName: null, email: 'jane@acme.com' }],
+        });
+      });
+
       test('does not match a field only a withheld side touched', async () => {
         const { body } = await searched([secretDelete()], { fields: 'title' });
 

@@ -196,7 +196,8 @@ export default class AuditTrailRoute extends CollectionRoute {
         if (count >= skip && page.length < limit) page.push(entry);
         count += 1;
 
-        if (!authors.has(entry.userId)) {
+        // An author reads as their latest identity whichever way the history is sorted.
+        if (order === 'asc' || !authors.has(entry.userId)) {
           authors.set(entry.userId, {
             id: entry.userId,
             firstName: entry.userFirstName,
