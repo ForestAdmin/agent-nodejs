@@ -6,7 +6,13 @@ on:
     types: [completed]
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   check-and-notify:
-    uses: 'ForestAdmin/github-workflows/.github/workflows/notify-ci-failure.yml@main'
-    secrets: inherit
+    uses: forestadmin/.github/.github/workflows/notify-ci-failure.yml@main
+    with:
+      slack_channel_id: GAZF5Q5RV
+    secrets:
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
