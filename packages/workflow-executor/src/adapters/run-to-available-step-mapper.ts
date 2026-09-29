@@ -133,8 +133,6 @@ function toCallScope(
   history: ServerStepHistory[],
   pending: ServerStepHistory,
 ): CallScope | undefined {
-  if (!pending.childrenWorkflowId) return undefined;
-
   const openCalls: Array<{
     stepIndex: number;
     frameOpenedAt: number;
@@ -160,6 +158,18 @@ function toCallScope(
       frameOfStep.set(entry.stepIndex, frameOpenedAt);
     }
   });
+
+  // A root step needs its frame too once a call has run: a closed call repeating a step id would
+  // otherwise answer a root pin with its own record.
+  if (!pending.childrenWorkflowId) {
+    const rootStepIndexes = [...frameOfStep]
+      .filter(([, frame]) => frame === ROOT_FRAME)
+      .map(([stepIndex]) => stepIndex);
+
+    return rootStepIndexes.length < frameOfStep.size
+      ? { currentFrameStepIndexes: rootStepIndexes }
+      : undefined;
+  }
 
   const innermost = openCalls.at(-1);
   if (!innermost) return undefined;

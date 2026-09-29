@@ -1244,7 +1244,21 @@ describe('toAvailableStepExecution', () => {
         ],
       });
 
-      expect(callScopeOf(run)).toBeUndefined();
+      expect(callScopeOf(run)).toEqual({ currentFrameStepIndexes: [] });
+    });
+
+    it("lists the root frame's own steps once a call has closed, so its steps are not a source", () => {
+      const run = makeRun({
+        workflowHistory: [
+          makeStepHistory({ stepName: 'load-x', stepIndex: 0, done: true }),
+          makeStartSubWorkflowHistory({ stepName: 'call-1', stepIndex: 1 }),
+          makeChildStepHistory({ stepName: 'load-x', stepIndex: 2, done: true }),
+          makeCloseSubWorkflowHistory({ stepName: 'close-1', stepIndex: 3 }),
+          makeStepHistory({ stepName: 'read-x', stepIndex: 4, done: false }),
+        ],
+      });
+
+      expect(callScopeOf(run)).toEqual({ currentFrameStepIndexes: [0] });
     });
 
     it('takes the second call when an earlier one already closed', () => {
