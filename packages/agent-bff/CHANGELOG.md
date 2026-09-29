@@ -1,3 +1,10 @@
+# @forestadmin/agent-bff [1.35.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.34.2...@forestadmin/agent-bff@1.35.0) (2026-09-29)
+
+
+### Features
+
+* **agent-bff:** accept the fgw_ API key prefix ([#1937](https://github.com/ForestAdmin/agent-nodejs/issues/1937)) ([4981383](https://github.com/ForestAdmin/agent-nodejs/commit/4981383e23c33e658d26154aefad3b13c795e4af))
+
 ## @forestadmin/agent-bff [1.34.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.34.1...@forestadmin/agent-bff@1.34.2) (2026-09-25)
 
 
