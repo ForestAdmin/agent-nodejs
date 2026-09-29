@@ -1,3 +1,10 @@
+# @forestadmin/workflow-executor [1.30.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.29.2...@forestadmin/workflow-executor@1.30.0) (2026-09-29)
+
+
+### Features
+
+* **workflow-executor:** scope workflow start to the sub-workflow call ([#1912](https://github.com/ForestAdmin/agent-nodejs/issues/1912)) ([cfb7d74](https://github.com/ForestAdmin/agent-nodejs/commit/cfb7d7491a5addb62ba37bc578712b1438e3b0e9))
+
 ## @forestadmin/workflow-executor [1.29.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.29.1...@forestadmin/workflow-executor@1.29.2) (2026-09-25)
 
 
