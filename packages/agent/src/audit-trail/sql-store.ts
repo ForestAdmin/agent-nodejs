@@ -198,6 +198,8 @@ function buildHistoryWhereClause(
     endTimestamp,
     fields,
     search,
+    order,
+    after,
   }: AuditHistoryQuery,
   sequelize: Sequelize,
 ): Record<string | symbol, unknown> {
@@ -213,6 +215,16 @@ function buildHistoryWhereClause(
   const andConditions = [];
   if (fields?.length) andConditions.push(fieldsChangedCondition(sequelize, fields));
   if (search) andConditions.push(searchCondition(sequelize, search));
+
+  if (after) {
+    const past = order === 'desc' ? Op.lt : Op.gt;
+    const at = new Date(after.timestamp);
+
+    andConditions.push({
+      [Op.or]: [{ timestamp: { [past]: at } }, { timestamp: at, id: { [past]: after.id } }],
+    });
+  }
+
   if (andConditions.length) where[Op.and] = andConditions;
 
   return where;

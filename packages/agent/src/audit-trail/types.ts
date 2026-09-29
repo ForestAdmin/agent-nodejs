@@ -69,6 +69,11 @@ export type AuditHistoryQuery = {
   search?: string;
   /** Sort direction on `timestamp` (ties broken by insertion order). Defaults to `'asc'`. */
   order?: 'asc' | 'desc';
+  /**
+   * Keep only the rows strictly past this one in `order`, so a scan keyed on the last row it read
+   * neither repeats nor skips one when entries are written between its reads, as `skip` would.
+   */
+  after?: Pick<AuditRecord, 'timestamp' | 'id'>;
 };
 
 export type AuditCorrelationQuery = {

@@ -496,6 +496,28 @@ describe('createSqlAuditStore (sqlite round-trip)', () => {
     await close();
   });
 
+  // A cursor survives writes between reads that would shift an offset: nothing repeats, nothing is
+  // skipped.
+  it('continues past a given row in either order, whatever was written since', async () => {
+    const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
+    const query = { collection: 'accounts', recordId: '1' };
+
+    await seed(store, record({ timestamp: '2026-01-01T00:00:00.000Z', correlationKey: 'a' }));
+    await seed(store, record({ timestamp: '2026-01-02T00:00:00.000Z', correlationKey: 'b' }));
+    await seed(store, record({ timestamp: '2026-01-01T00:00:00.000Z', correlationKey: 'a2' }));
+
+    const newest = await store.listByRecord({ ...query, order: 'desc', limit: 2 });
+    await seed(store, record({ timestamp: '2026-01-03T00:00:00.000Z', correlationKey: 'late' }));
+    const rest = await store.listByRecord({ ...query, order: 'desc', after: newest[1] });
+    const oldest = await store.listByRecord({ ...query, limit: 1 });
+    const later = await store.listByRecord({ ...query, after: oldest[0] });
+
+    expect([...newest, ...rest].map(r => r.correlationKey)).toEqual(['b', 'a2', 'a']);
+    expect([...oldest, ...later].map(r => r.correlationKey)).toEqual(['a', 'a2', 'b', 'late']);
+
+    await close();
+  });
+
   it('returns rows recorded under a correlationKey for a record, scoped and oldest first', async () => {
     const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
 
