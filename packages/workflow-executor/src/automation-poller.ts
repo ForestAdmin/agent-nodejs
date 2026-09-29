@@ -1,16 +1,18 @@
 import type {
   ServerAutomatedInboxAssignment,
   ServerAutomatedInboxConfig,
+  ServerAutomatedInboxReadFailure,
 } from './adapters/server-types';
 import type { AutomationPort } from './ports/automation-port';
 import type { Logger } from './ports/logger-port';
 import type { SegmentReaderPort } from './ports/segment-reader-port';
 
+import { AgentHttpError } from '@forestadmin/agent-client';
 import { IANAZone } from 'luxon';
 
 import createConsoleLogger from './adapters/console-logger';
 import { DEFAULT_STOP_TIMEOUT_S } from './defaults';
-import { AutomatedInboxGoneError, extractErrorMessage } from './errors';
+import { AgentPortError, AutomatedInboxGoneError, extractErrorMessage } from './errors';
 import InFlightRunRegistry from './in-flight-run-registry';
 
 // One membership question per chunk, small enough that a `pk In (...)` stays a query an agent will
@@ -69,6 +71,26 @@ const OPEN_ASSIGNMENT_STATES: ReadonlySet<string> = new Set(['todo', 'doing']);
 const isTerminalRun = (runState: string | null | undefined): boolean =>
   runState != null && TERMINAL_RUN_STATES.has(runState);
 
+const UNREACHABLE_AGENT_STATUSES: ReadonlySet<number> = new Set([502, 503, 504]);
+
+// What the settings panel tells the admin to fix. A read with no HTTP answer (refused
+// connection, timeout) is an agent that could not be reached; an error raised before any request
+// is a segment the executor cannot read.
+function classifyReadFailure(error: unknown): ServerAutomatedInboxReadFailure {
+  if (!(error instanceof AgentPortError)) return { reason: 'segment-read-failed' };
+  if (!(error.cause instanceof AgentHttpError)) return { reason: 'agent-unreachable' };
+
+  const httpStatus = error.cause.status;
+
+  if (httpStatus === 401 || httpStatus === 403) return { reason: 'agent-forbidden', httpStatus };
+
+  if (UNREACHABLE_AGENT_STATUSES.has(httpStatus)) {
+    return { reason: 'agent-unreachable', httpStatus };
+  }
+
+  return { reason: 'segment-read-failed', httpStatus };
+}
+
 const isLiveRun = (runState: string | null | undefined): boolean =>
   runState != null && LIVE_RUN_STATES.has(runState);
 
@@ -82,17 +104,12 @@ type PaddedPageReason =
   | 'field-without-not-in'
   | 'not-in-refused';
 
-/**
- * `skipped` is a read that had nothing to ask and so never reached the agent. It is not a
- * failure, and it is not proof the agent answers either — which is the distinction the sync
- * decision rests on.
- */
 interface SegmentRead<T> {
-  outcome: 'ok' | 'failed' | 'skipped';
   items: T[];
   paddedPageReason?: PaddedPageReason;
   requestedPageSize?: number;
   pagesRead?: number;
+  failure?: ServerAutomatedInboxReadFailure;
 }
 
 export interface AutomationPollerConfig {
@@ -354,22 +371,15 @@ export default class AutomationPoller {
         ),
       ]);
 
-      // Reaching the agent at all is what the sync attests to. Reporting an empty poll when every
-      // read failed would tell the orchestrator this inbox is being swept while nothing is, which
-      // is the one thing a "no sync received" alert must never be lied to about.
-      if (closed.outcome !== 'ok' && candidates.outcome !== 'ok') {
-        this.logger('Error', 'Could not reach the agent, reporting nothing for this inbox', {
-          ...logContext,
-        });
+      // The candidate read is the one that starts runs, so its failure is the one worth fixing.
+      const readFailure = candidates.failure ?? closed.failure;
 
-        return;
-      }
-
-      // Sent even when both lists are empty: this call is what tells the orchestrator the inbox is
-      // still being polled, and an inbox with nothing to do must not read as an inbox nobody polls.
+      // Sent even when both lists are empty or both reads failed: this call is what tells the
+      // orchestrator the inbox is still being polled, and what shows the admin why a read failed.
       const results = await this.config.automationPort.sync(config.inboxId, {
         closed: closed.items,
         candidates: candidates.items,
+        readFailure,
       });
 
       this.logger('Info', 'Automated inbox polled', {
@@ -380,6 +390,7 @@ export default class AutomationPoller {
         candidatePageSize: candidates.requestedPageSize,
         candidatePagesRead: candidates.pagesRead,
         paddedPageReason: candidates.paddedPageReason,
+        readFailure: readFailure?.reason,
         outcomes: results.reduce<Record<string, number>>(
           (counts, { outcome }) => ({ ...counts, [outcome]: (counts[outcome] ?? 0) + 1 }),
           {},
@@ -486,7 +497,7 @@ export default class AutomationPoller {
       return false;
     });
 
-    if (readable.length === 0) return { outcome: 'skipped', items: [] };
+    if (readable.length === 0) return { items: [] };
 
     const stillInSegment = new Set<string>();
 
@@ -502,7 +513,6 @@ export default class AutomationPoller {
     }
 
     return {
-      outcome: 'ok',
       items: readable.map(recordId => ({
         recordId,
         stillInSegment: stillInSegment.has(recordId),
@@ -528,7 +538,7 @@ export default class AutomationPoller {
         error: extractErrorMessage(error),
       });
 
-      return { outcome: 'failed', items: [] };
+      return { items: [], failure: classifyReadFailure(error) };
     }
   }
 
@@ -556,7 +566,6 @@ export default class AutomationPoller {
 
         // An agent that ignores an operator it does not know would hand known records back.
         return {
-          outcome: 'ok',
           items: page.filter(recordId => !knownSet.has(recordId)),
           requestedPageSize: config.maxConcurrentRuns,
         };
@@ -651,7 +660,6 @@ export default class AutomationPoller {
     }
 
     return {
-      outcome: 'ok',
       items: [...candidates],
       paddedPageReason,
       requestedPageSize,

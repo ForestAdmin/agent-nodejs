@@ -8,8 +8,10 @@ import type {
   SegmentReaderPort,
 } from '../src/ports/segment-reader-port';
 
+import { AgentHttpError } from '@forestadmin/agent-client';
+
 import AutomationPoller from '../src/automation-poller';
-import { AutomatedInboxGoneError } from '../src/errors';
+import { AgentPortError, AutomatedInboxGoneError } from '../src/errors';
 
 const POLL_INTERVAL_S = 300;
 
@@ -783,7 +785,11 @@ describe('AutomationPoller', () => {
 
       await runOneCycle(makePoller(context));
 
-      expect(context.automationPort.sync).not.toHaveBeenCalled();
+      expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
+        closed: [],
+        candidates: [],
+        readFailure: { reason: 'segment-read-failed' },
+      });
       expect(context.logger).toHaveBeenCalledWith(
         'Error',
         'Could not read new candidates of an automated inbox',
@@ -1525,6 +1531,7 @@ describe('AutomationPoller', () => {
       expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
         closed: [{ recordId: 'treated', stillInSegment: false }],
         candidates: [],
+        readFailure: { reason: 'segment-read-failed' },
       });
       expect(context.logger).toHaveBeenCalledWith(
         'Error',
@@ -1550,36 +1557,121 @@ describe('AutomationPoller', () => {
       expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
         closed: [],
         candidates: ['fresh'],
+        readFailure: { reason: 'segment-read-failed' },
       });
     });
 
-    it('should report nothing when it could not reach the agent at all', async () => {
+    it('should still sync, with the failure, when it could not reach the agent at all', async () => {
       const context = makeContext({ assignments: [makeAssignment({ recordId: 'treated' })] });
-      context.segmentReaderPort.listRecordIds.mockRejectedValue(new Error('agent unreachable'));
-
-      await runOneCycle(makePoller(context));
-
-      // A sync here would tell the orchestrator this inbox is being swept while nothing is, which
-      // is exactly what a "no sync received" alert must never be lied to about.
-      expect(context.automationPort.sync).not.toHaveBeenCalled();
-      expect(context.logger).toHaveBeenCalledWith(
-        'Error',
-        'Could not reach the agent, reporting nothing for this inbox',
-        expect.objectContaining({ inboxId: 'inbox-1' }),
+      context.segmentReaderPort.listRecordIds.mockRejectedValue(
+        new AgentPortError('listSegmentRecordIds', new Error('connect ECONNREFUSED')),
       );
-    });
-
-    it('should still report when only the read that had nothing to ask was skipped', async () => {
-      // Nothing to reconcile, so that read never reaches the agent — but the candidate read did,
-      // and a successful poll must not be mistaken for an unreachable agent.
-      const context = makeContext();
-      context.segmentReaderPort.listRecordIds.mockResolvedValue(['fresh']);
 
       await runOneCycle(makePoller(context));
 
       expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
         closed: [],
-        candidates: ['fresh'],
+        candidates: [],
+        readFailure: { reason: 'agent-unreachable' },
+      });
+    });
+
+    it('should send no read failure when every read succeeded', async () => {
+      const context = makeContext({ assignments: [makeAssignment({ recordId: 'treated' })] });
+      context.segmentReaderPort.listRecordIds.mockResolvedValue([]);
+
+      await runOneCycle(makePoller(context));
+
+      expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
+        closed: [{ recordId: 'treated', stillInSegment: false }],
+        candidates: [],
+      });
+    });
+
+    describe('read failure reported with the sync', () => {
+      const agentAnswered = (status: number) =>
+        new AgentPortError('listSegmentRecordIds', new AgentHttpError(status, {}, ''));
+
+      it.each([
+        ['a 401', agentAnswered(401), { reason: 'agent-forbidden', httpStatus: 401 }],
+        ['a 403', agentAnswered(403), { reason: 'agent-forbidden', httpStatus: 403 }],
+        ['a 502', agentAnswered(502), { reason: 'agent-unreachable', httpStatus: 502 }],
+        ['a 503', agentAnswered(503), { reason: 'agent-unreachable', httpStatus: 503 }],
+        ['a 504', agentAnswered(504), { reason: 'agent-unreachable', httpStatus: 504 }],
+        ['a 500', agentAnswered(500), { reason: 'segment-read-failed', httpStatus: 500 }],
+        ['a 400', agentAnswered(400), { reason: 'segment-read-failed', httpStatus: 400 }],
+        [
+          'no HTTP answer',
+          new AgentPortError('listSegmentRecordIds', new Error('timeout of 10000ms exceeded')),
+          { reason: 'agent-unreachable' },
+        ],
+        [
+          'an error raised before any request',
+          new Error('The segment record lacks its primary key'),
+          { reason: 'segment-read-failed' },
+        ],
+      ])('should name the failure of a candidate read that got %s', async (_, error, expected) => {
+        const context = makeContext();
+        context.segmentReaderPort.listRecordIds.mockRejectedValue(error);
+
+        await runOneCycle(makePoller(context));
+
+        expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
+          closed: [],
+          candidates: [],
+          readFailure: expected,
+        });
+      });
+
+      it('should report the candidate read failure over the membership one', async () => {
+        const context = makeContext({ assignments: [makeAssignment({ recordId: 'treated' })] });
+        context.segmentReaderPort.listRecordIds.mockImplementation(
+          async ({ recordIds }: ListSegmentRecordIdsQuery) => {
+            throw agentAnswered(recordIds === undefined ? 500 : 403);
+          },
+        );
+
+        await runOneCycle(makePoller(context));
+
+        expect(context.automationPort.sync).toHaveBeenCalledWith(
+          'inbox-1',
+          expect.objectContaining({
+            readFailure: { reason: 'segment-read-failed', httpStatus: 500 },
+          }),
+        );
+      });
+
+      it('should report a membership read failure when the candidate read worked', async () => {
+        const context = makeContext({ assignments: [makeAssignment({ recordId: 'treated' })] });
+        context.segmentReaderPort.listRecordIds.mockImplementation(
+          async ({ recordIds }: ListSegmentRecordIdsQuery) => {
+            if (recordIds !== undefined) throw agentAnswered(403);
+
+            return [];
+          },
+        );
+
+        await runOneCycle(makePoller(context));
+
+        expect(context.automationPort.sync).toHaveBeenCalledWith(
+          'inbox-1',
+          expect.objectContaining({
+            readFailure: { reason: 'agent-forbidden', httpStatus: 403 },
+          }),
+        );
+      });
+
+      it('should name the failure in the poll log line', async () => {
+        const context = makeContext();
+        context.segmentReaderPort.listRecordIds.mockRejectedValue(agentAnswered(403));
+
+        await runOneCycle(makePoller(context));
+
+        expect(context.logger).toHaveBeenCalledWith(
+          'Info',
+          'Automated inbox polled',
+          expect.objectContaining({ inboxId: 'inbox-1', readFailure: 'agent-forbidden' }),
+        );
       });
     });
 
