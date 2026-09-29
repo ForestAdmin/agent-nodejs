@@ -15,7 +15,7 @@ import { sessionInvalidated, toErrorBody } from '../../src/oauth/oauth-error';
 import createTimezoneMiddleware from '../../src/timezone/timezone-middleware';
 
 const AUTH_SECRET = 'contract-secret';
-const RAW_KEY = `fbff_${'a'.repeat(16)}_${'b'.repeat(64)}`;
+const RAW_KEY = `fgw_${'a'.repeat(16)}_${'b'.repeat(64)}`;
 
 function identity(allowedOrigins: string[] = []) {
   return {

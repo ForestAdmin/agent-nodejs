@@ -10,8 +10,8 @@ import createErrorMiddleware from '../../src/http/error-middleware';
 import createRateLimitMiddleware from '../../src/rate-limit/rate-limit-middleware';
 
 const AUTH_SECRET = 'secret';
-const RAW_KEY = `fbff_${'a'.repeat(16)}_${'b'.repeat(64)}`;
-const OTHER_KEY = `fbff_${'c'.repeat(16)}_${'d'.repeat(64)}`;
+const RAW_KEY = `fgw_${'a'.repeat(16)}_${'b'.repeat(64)}`;
+const OTHER_KEY = `fgw_${'c'.repeat(16)}_${'d'.repeat(64)}`;
 
 function identity(userId: number, renderingId = 1) {
   return {

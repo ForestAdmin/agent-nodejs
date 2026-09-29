@@ -57,7 +57,7 @@ const VALID_ENV = {
 
 const noopLogger: Logger = () => undefined;
 
-const API_KEY = `fbff_${'a'.repeat(16)}_${'b'.repeat(64)}`;
+const API_KEY = `fgw_${'a'.repeat(16)}_${'b'.repeat(64)}`;
 
 const RESOLVED_IDENTITY = {
   user: {

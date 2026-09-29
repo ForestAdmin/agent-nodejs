@@ -558,7 +558,7 @@ describe('runCli', () => {
       try {
         const response = await request(server.callback)
           .get('/agent/records')
-          .set('X-Forest-Bff-Key', 'fbff_anything');
+          .set('X-Forest-Bff-Key', 'fgw_anything');
 
         expect(response.status).toBe(401);
         expect(response.body.error.type).toBe('unauthorized');
