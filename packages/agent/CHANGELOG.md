@@ -1,3 +1,10 @@
+# @forestadmin/agent [1.104.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.103.9...@forestadmin/agent@1.104.0) (2026-09-30)
+
+
+### Features
+
+* **audit-trail:** filter the per-record history by operation [PRD-1256] ([#1910](https://github.com/ForestAdmin/agent-nodejs/issues/1910)) ([92cd2f6](https://github.com/ForestAdmin/agent-nodejs/commit/92cd2f621bab9e74b940c3c62c5e92fcc3955c2d))
+
 ## @forestadmin/agent [1.103.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.103.8...@forestadmin/agent@1.103.9) (2026-09-30)
 
 
