@@ -361,6 +361,30 @@ describe('ConditionStepExecutor', () => {
     });
   });
 
+  describe('AI option outside step.options', () => {
+    it('returns error outcome without sending the off-list option to the orchestrator', async () => {
+      const mockModel = makeMockModel({
+        option: 'Approv\u0000ed',
+        reasoning: 'Looks fine',
+        question: 'Approve?',
+      });
+      const runStore = makeMockRunStore();
+      const context = makeContext({ model: mockModel.model, runStore });
+      const executor = new ConditionStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome).toEqual({
+        type: 'condition',
+        stepId: 'cond-1',
+        stepIndex: 0,
+        status: 'error',
+        error: "The AI returned an unexpected response. Try rephrasing the step's prompt.",
+      });
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
+  });
+
   describe('error propagation', () => {
     it('returns error outcome for infrastructure errors', async () => {
       const invoke = jest.fn().mockRejectedValue(new Error('API timeout'));
