@@ -86,6 +86,7 @@ The `forest.audit_logs` table has one row per audited change:
 | `operation`          | `create` / `update` / `delete` / `action` / `action_failed`        |
 | `collection`         | audited collection name                                            |
 | `record_id`          | packed record id (primary keys joined with `\|`); `null` for a `create` row still `pending` (the record's id isn't assigned yet) |
+| `previous_record_id` | the id the row was filed under before a confirmed `update`, set whether or not the key moved; `null` on every other operation and on any row written before this column existed. Internal: never served to a client |
 | `user_id`            | id of the Forest user who made the change                          |
 | `user_first_name`    | that user's first name, denormalized at write time                 |
 | `user_last_name`     | that user's last name, denormalized at write time                  |

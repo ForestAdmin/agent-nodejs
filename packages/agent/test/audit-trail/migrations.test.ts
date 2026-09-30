@@ -43,6 +43,7 @@ describe('runAuditMigrations (sqlite)', () => {
       'id',
       'new_values',
       'operation',
+      'previous_record_id',
       'previous_values',
       'record_id',
       'status',
@@ -71,6 +72,7 @@ describe('runAuditMigrations (sqlite)', () => {
     expect(applied).toEqual([
       { name: 'forest.audit_logs:001-create-audit-logs' },
       { name: 'forest.audit_logs:002-index-timestamp-id' },
+      { name: 'forest.audit_logs:003-add-previous-record-id' },
     ]);
 
     await sequelize.close();
@@ -85,6 +87,7 @@ describe('runAuditMigrations (sqlite)', () => {
     expect(applied).toEqual([
       { name: 'audit_logs:001-create-audit-logs' },
       { name: 'audit_logs:002-index-timestamp-id' },
+      { name: 'audit_logs:003-add-previous-record-id' },
     ]);
 
     await sequelize.close();
@@ -169,7 +172,7 @@ describe('runAuditMigrations (sqlite)', () => {
     ).resolves.toBeUndefined();
 
     const [applied] = await sequelize.query('SELECT name FROM "audit_logs_migration"');
-    expect(applied).toHaveLength(2);
+    expect(applied).toHaveLength(3);
 
     await sequelize.close();
   });
@@ -255,7 +258,7 @@ describe('runAuditMigrations (sqlite)', () => {
       const umzug = buildUmzug(sequelize, { tableName: 'audit_logs' });
       await umzug.up();
 
-      await umzug.down();
+      await umzug.down({ step: 2 });
 
       expect(await indexOf(sequelize)).toBeUndefined();
 

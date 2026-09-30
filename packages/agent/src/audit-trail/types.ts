@@ -11,6 +11,13 @@ export type AuditRecord = {
   collection: string;
   /** Null for a pending create — the record's primary key isn't assigned yet. */
   recordId: string | null;
+  /**
+   * The id this record was filed under before a confirmed update, written whether or not the key
+   * moved. Null therefore means "written before this column existed", not "the key held still": a
+   * row from an earlier agent cannot claim its id answers for the previous side of an update.
+   * Internal — it is how the agent follows a record across a rename, never served to a client.
+   */
+  previousRecordId: string | null;
   userId: number;
   /** Denormalised from the caller at write time: who acted then, not who holds that id today. */
   userFirstName: string | null;
@@ -30,13 +37,18 @@ export type AuditRecord = {
 };
 
 /** The subset known before the write runs, when the pending row is first inserted. */
-export type PendingAuditRecord = Omit<AuditRecord, 'id' | 'status'>;
+export type PendingAuditRecord = Omit<AuditRecord, 'id' | 'status' | 'previousRecordId'> &
+  Partial<Pick<AuditRecord, 'previousRecordId'>>;
 
-/** What `confirm` updates once the write (or action) has resolved. */
+/**
+ * What `confirm` updates once the write (or action) has resolved. `previousRecordId` is optional
+ * because only an update has a previous side to file under an id of its own.
+ */
 export type AuditRecordConfirmation = Pick<
   AuditRecord,
   'operation' | 'recordId' | 'previousValues' | 'newValues'
->;
+> &
+  Partial<Pick<AuditRecord, 'previousRecordId'>>;
 
 export type AuditHistoryQuery = {
   collection: string;

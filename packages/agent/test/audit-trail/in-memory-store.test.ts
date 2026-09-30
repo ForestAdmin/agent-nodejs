@@ -9,6 +9,7 @@ const record = (
   operation: 'update',
   collection: 'accounts',
   recordId: '1',
+  previousRecordId: null,
   userId: 1,
   userFirstName: null,
   userLastName: null,

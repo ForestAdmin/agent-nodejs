@@ -31,7 +31,7 @@ export default class InMemoryAuditStore implements AuditStore {
   async insertPending(record: PendingAuditRecord): Promise<number> {
     const id = this.nextId;
     this.nextId += 1;
-    this.records.push({ ...record, id, status: 'pending' });
+    this.records.push({ previousRecordId: null, ...record, id, status: 'pending' });
 
     return id;
   }

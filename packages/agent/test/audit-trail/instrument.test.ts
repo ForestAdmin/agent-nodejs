@@ -702,9 +702,29 @@ describe('auditTrail plugin', () => {
       expect(sink).toHaveBeenCalledWith(
         expect.objectContaining({
           recordId: 'new-slug',
+          // What the route needs to judge the previous side by the identity it actually had.
+          previousRecordId: 'old-slug',
           previousValues: { slug: 'old-slug' },
           newValues: { slug: 'new-slug' },
         }),
+      );
+    });
+
+    it('records where a row came from even when the key held still', async () => {
+      const sink = jest.fn();
+      const accounts = fakeCollection('accounts', [{ id: 1, name: 'Acme', amount: 10 }]);
+      register([accounts], { sink });
+
+      await runUpdate(accounts, {
+        caller: makeCaller(),
+        patch: { name: 'Acme Inc' },
+        after: [{ id: 1, name: 'Acme Inc', amount: 10 }],
+      });
+
+      // Not only on a move: a null has to keep meaning "written before this column existed", or a
+      // row from an older agent whose key did move would be judged by the id it moved to.
+      expect(sink).toHaveBeenCalledWith(
+        expect.objectContaining({ recordId: '1', previousRecordId: '1' }),
       );
     });
 
