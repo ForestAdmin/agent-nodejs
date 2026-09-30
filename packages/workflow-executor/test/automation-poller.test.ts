@@ -1444,7 +1444,7 @@ describe('AutomationPoller', () => {
       );
     });
 
-    it('should still warn for an automated assignment whose run state is unavailable', async () => {
+    it('should warn when a bound run reports no state, a contract break', async () => {
       const context = makeContext({
         assignments: [
           makeAssignment({
@@ -1458,8 +1458,9 @@ describe('AutomationPoller', () => {
 
       await runOneCycle(makePoller(context));
 
-      // A workflowRunId means the orchestrator bound a run: a null state is one this executor cannot
-      // read yet, not a human assignment, so it stays held and visible until a later fetch resolves it.
+      // A workflowRunId means the orchestrator bound a run, whose state is NOT NULL server-side: a
+      // null state here is a contract break, not a human assignment, so it stays held and visible
+      // under the warning rather than being dropped.
       expect(context.logger).toHaveBeenCalledWith(
         'Warn',
         'Unexpected workflow run state, leaving the record out of every sweep until this executor knows it',
