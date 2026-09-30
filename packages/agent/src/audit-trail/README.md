@@ -256,7 +256,7 @@ Optional filters (all combine with `AND`; omitting them keeps the full history):
 | query param | format                                    | effect                                            |
 | ----------- | ------------------------------------------ | -------------------------------------------------- |
 | `userIds`   | comma-separated integers `12,45`           | keep only entries whose `userId` is in the list   |
-| `operation` | comma-separated operations `create,delete` | keep only entries recorded under one of them      |
+| `operations` | comma-separated operations `create,delete` | keep only entries recorded under one of them   |
 | `startDate` | `YYYY-MM-DD` or datetime (incl.)           | keep entries from this lower bound onward         |
 | `endDate`   | `YYYY-MM-DD` or datetime (incl.)           | keep entries up to this upper bound               |
 | `fields`    | comma-separated column names `city,street` | keep entries whose change touched at least one   |

@@ -467,7 +467,7 @@ export default class AuditTrailRoute extends CollectionRoute {
 
     return {
       userIds: AuditTrailRoute.parseUserIds(query.userIds?.toString()),
-      operations: AuditTrailRoute.parseOperations(query.operation?.toString()),
+      operations: AuditTrailRoute.parseOperations(query.operations?.toString()),
       startTimestamp: AuditTrailRoute.parseDateBoundary(
         query.startDate?.toString(),
         timezone,

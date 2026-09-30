@@ -291,7 +291,7 @@ describe('AuditTrailRoute', () => {
     const context = createMockContext({
       state: { user: { email: 'john.doe@domain.com' } },
       customProperties: {
-        query: { timezone: 'Europe/Paris', operation: 'delete' },
+        query: { timezone: 'Europe/Paris', operations: 'delete' },
         params: { id: '2' },
       },
     });
@@ -309,7 +309,7 @@ describe('AuditTrailRoute', () => {
     const context = createMockContext({
       state: { user: { email: 'john.doe@domain.com' } },
       customProperties: {
-        query: { timezone: 'Europe/Paris', operation: 'create, action_failed' },
+        query: { timezone: 'Europe/Paris', operations: 'create, action_failed' },
         params: { id: '2' },
       },
     });
@@ -327,7 +327,7 @@ describe('AuditTrailRoute', () => {
     const context = createMockContext({
       state: { user: { email: 'john.doe@domain.com' } },
       customProperties: {
-        query: { timezone: 'Europe/Paris', operation: 'update' },
+        query: { timezone: 'Europe/Paris', operations: 'update' },
         params: { id: '2' },
       },
     });
@@ -348,7 +348,7 @@ describe('AuditTrailRoute', () => {
     const context = createMockContext({
       state: { user: { email: 'john.doe@domain.com' } },
       customProperties: {
-        query: { timezone: 'Europe/Paris', operation: 'create,destroy' },
+        query: { timezone: 'Europe/Paris', operations: 'create,destroy' },
         params: { id: '2' },
       },
     });
@@ -365,7 +365,7 @@ describe('AuditTrailRoute', () => {
     const context = createMockContext({
       state: { user: { email: 'john.doe@domain.com' } },
       customProperties: {
-        query: { timezone: 'Europe/Paris', operation: '' },
+        query: { timezone: 'Europe/Paris', operations: '' },
         params: { id: '2' },
       },
     });
