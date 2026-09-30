@@ -77,8 +77,8 @@ export class GatewayApiKeyClient {
         }),
         signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       });
-    } catch {
-      throw new GatewayApiKeyResolveError({ unreachable: true });
+    } catch (error) {
+      throw new GatewayApiKeyResolveError({ unreachable: true, cause: error });
     }
 
     if (!response.ok) {
@@ -97,12 +97,15 @@ export class GatewayApiKeyClient {
 
     try {
       body = await response.json();
-    } catch {
-      throw new GatewayApiKeyResolveError({ unreachable: true });
+    } catch (error) {
+      throw new GatewayApiKeyResolveError({ unreachable: true, cause: error });
     }
 
     if (!GatewayApiKeyClient.isResolvedIdentity(body)) {
-      throw new GatewayApiKeyResolveError({ unreachable: true });
+      throw new GatewayApiKeyResolveError({
+        unreachable: true,
+        cause: new Error('the resolve answered 200 without a valid identity'),
+      });
     }
 
     return {

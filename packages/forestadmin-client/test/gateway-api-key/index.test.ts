@@ -126,6 +126,8 @@ describe('GatewayApiKeyClient.resolve', () => {
 
     await expect(new GatewayApiKeyClient(OPTS).resolve(PARSED)).rejects.toMatchObject({
       unreachable: true,
+      message:
+        'Gateway API key resolve failed (unreachable: the resolve answered 200 without a valid identity)',
     });
   });
 
@@ -146,13 +148,18 @@ describe('GatewayApiKeyClient.resolve', () => {
 
     await expect(new GatewayApiKeyClient(OPTS).resolve(PARSED)).rejects.toMatchObject({
       unreachable: true,
+      cause: expect.any(SyntaxError),
+      message: 'Gateway API key resolve failed (unreachable: Unexpected token)',
     });
   });
 
-  it('should throw an unreachable error when fetch rejects', async () => {
+  it('should keep the fetch failure and its cause when fetch rejects', async () => {
+    const failure = Object.assign(new TypeError('fetch failed'), {
+      cause: new Error('connect ECONNREFUSED 127.0.0.1:443'),
+    });
     mockFetch(
       jest.fn(async () => {
-        throw new Error('ECONNREFUSED');
+        throw failure;
       }),
     );
 
@@ -160,6 +167,26 @@ describe('GatewayApiKeyClient.resolve', () => {
 
     expect(error).toBeInstanceOf(GatewayApiKeyResolveError);
     expect(error.unreachable).toBe(true);
+    expect(error.cause).toBe(failure);
+    expect(error.message).toBe(
+      'Gateway API key resolve failed (unreachable: fetch failed: connect ECONNREFUSED 127.0.0.1:443)',
+    );
+  });
+
+  it('should keep a timeout as the cause', async () => {
+    const timeout = new DOMException('The operation was aborted due to timeout', 'TimeoutError');
+    mockFetch(
+      jest.fn(async () => {
+        throw timeout;
+      }),
+    );
+
+    const error = await new GatewayApiKeyClient(OPTS).resolve(PARSED).catch(e => e);
+
+    expect(error.cause).toBe(timeout);
+    expect(error.message).toBe(
+      'Gateway API key resolve failed (unreachable: TimeoutError: The operation was aborted due to timeout)',
+    );
   });
 
   it('should carry the status, code and name of a refusal', async () => {
@@ -227,6 +254,10 @@ describe('GatewayApiKeyResolveError', () => {
     ],
     [{ status: 500 }, 'Gateway API key resolve failed (status 500)'],
     [{ unreachable: true }, 'Gateway API key resolve failed (unreachable)'],
+    [
+      { unreachable: true, cause: 'socket hang up' },
+      'Gateway API key resolve failed (unreachable: socket hang up)',
+    ],
     [{}, 'Gateway API key resolve failed'],
   ])('should describe %j in its message', (params, message) => {
     expect(new GatewayApiKeyResolveError(params).message).toBe(message);
