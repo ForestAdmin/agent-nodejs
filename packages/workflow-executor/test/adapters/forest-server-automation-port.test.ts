@@ -14,8 +14,8 @@ const mockQuery = ServerUtils.query as jest.Mock;
 
 const options = { envSecret: 'env-secret-123', forestServerUrl: 'https://api.forestadmin.com' };
 
-function httpError(status: number): Error & { status: number } {
-  return Object.assign(new Error(`HTTP ${status}`), { status });
+function httpError(status: number, message = `HTTP ${status}`): Error & { status: number } {
+  return Object.assign(new Error(message), { status });
 }
 
 function makeConfig(overrides: Partial<ServerAutomatedInboxConfig> = {}) {
@@ -176,20 +176,11 @@ describe('ForestServerAutomationPort', () => {
       );
     });
 
-    it('should report an envelope it cannot read rather than guess at it', async () => {
-      mockQuery.mockResolvedValue({ somethingElse: true });
+    it('should throw on an envelope it cannot read rather than report no inbox at all', async () => {
+      mockQuery.mockResolvedValue({ data: { inboxes: [] } });
 
-      await expect(port.listAutomatedInboxes('w1')).resolves.toEqual([]);
-      expect(logger).toHaveBeenCalledWith(
-        'Error',
-        'Unreadable automated inbox listing',
-        // Named, like the 404 branch: an error nobody can tie to an environment or an instance
-        // cannot be acted on.
-        expect.objectContaining({
-          instanceId: 'w1',
-          forestServerUrl: options.forestServerUrl,
-          error: expect.any(String),
-        }),
+      await expect(port.listAutomatedInboxes('w1')).rejects.toThrow(
+        `Unreadable automated inbox listing from ${options.forestServerUrl}`,
       );
     });
 
@@ -303,10 +294,15 @@ describe('ForestServerAutomationPort', () => {
       );
     });
 
-    it('should report an inbox the orchestrator no longer serves', async () => {
-      mockQuery.mockRejectedValue(httpError(404));
+    it('should report an inbox the orchestrator no longer serves, with its operation and cause', async () => {
+      mockQuery.mockRejectedValue(httpError(404, 'Inbox not found'));
 
-      await expect(port.listAssignments('inbox-1')).rejects.toThrow(AutomatedInboxGoneError);
+      await expect(port.listAssignments('inbox-1')).rejects.toMatchObject({
+        constructor: AutomatedInboxGoneError,
+        inboxId: 'inbox-1',
+        operation: 'listAutomatedInboxAssignments',
+        detail: 'Inbox not found',
+      });
     });
 
     it('should keep a run state the executor does not know rather than blank it', async () => {
@@ -378,12 +374,15 @@ describe('ForestServerAutomationPort', () => {
       ]);
     });
 
-    it('should report an inbox the orchestrator no longer serves', async () => {
-      mockQuery.mockRejectedValue(httpError(404));
+    it('should report an inbox the orchestrator no longer serves, with its operation and cause', async () => {
+      mockQuery.mockRejectedValue(httpError(404, 'Inbox not found'));
 
-      await expect(port.sync('inbox-1', { closed: [], candidates: [] })).rejects.toThrow(
-        AutomatedInboxGoneError,
-      );
+      await expect(port.sync('inbox-1', { closed: [], candidates: [] })).rejects.toMatchObject({
+        constructor: AutomatedInboxGoneError,
+        inboxId: 'inbox-1',
+        operation: 'syncAutomatedInbox',
+        detail: 'Inbox not found',
+      });
     });
 
     it('should not report an unreadable answer as a sync that never landed', async () => {
