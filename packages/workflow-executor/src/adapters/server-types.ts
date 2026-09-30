@@ -370,9 +370,23 @@ export const ServerAutomatedInboxAssignmentsResponseSchema = z.object({
   assignments: z.array(ServerAutomatedInboxAssignmentSchema),
 });
 
+export const SERVER_AUTOMATED_INBOX_READ_FAILURE_REASONS = [
+  'agent-forbidden',
+  'agent-unreachable',
+  'segment-read-failed',
+] as const;
+export type ServerAutomatedInboxReadFailureReason =
+  (typeof SERVER_AUTOMATED_INBOX_READ_FAILURE_REASONS)[number];
+
+export interface ServerAutomatedInboxReadFailure {
+  reason: ServerAutomatedInboxReadFailureReason;
+  httpStatus?: number;
+}
+
 export interface ServerAutomatedInboxSyncRequest {
   closed: { recordId: string; stillInSegment: boolean }[];
   candidates: string[];
+  readFailure?: ServerAutomatedInboxReadFailure;
 }
 
 export const SERVER_AUTOMATED_INBOX_SYNC_OUTCOMES = [
