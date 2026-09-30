@@ -80,7 +80,7 @@ export default class ForestServerAutomationPort implements AutomationPort {
       throw error;
     }
 
-    return this.parseConfigs(response, instanceId);
+    return this.parseConfigs(response);
   }
 
   // Not retried: the poller's next heartbeat is the retry, and backing off here would only widen
@@ -122,17 +122,13 @@ export default class ForestServerAutomationPort implements AutomationPort {
     this.reportedMissingRoute = true;
   }
 
-  private parseConfigs(response: unknown, instanceId: string): ServerAutomatedInboxConfig[] {
+  private parseConfigs(response: unknown): ServerAutomatedInboxConfig[] {
     const envelope = ServerAutomatedInboxesResponseSchema.safeParse(response);
 
     if (!envelope.success) {
-      this.logger('Error', 'Unreadable automated inbox listing', {
-        instanceId,
-        forestServerUrl: this.options.forestServerUrl,
-        error: envelope.error.message,
-      });
-
-      return [];
+      throw new Error(
+        `Unreadable automated inbox listing from ${this.options.forestServerUrl}: ${envelope.error.message}`,
+      );
     }
 
     const configs: ServerAutomatedInboxConfig[] = [];
@@ -202,7 +198,9 @@ export default class ForestServerAutomationPort implements AutomationPort {
       // A 404 means two different things here, so it is never wrapped: on an inbox route the
       // orchestrator has stopped serving that inbox, on the listing it has no such route at all.
       if (isNotFound(cause)) {
-        if (inboxId !== undefined) throw new AutomatedInboxGoneError(inboxId);
+        if (inboxId !== undefined) {
+          throw new AutomatedInboxGoneError(inboxId, operation, extractErrorMessage(cause));
+        }
 
         throw cause;
       }

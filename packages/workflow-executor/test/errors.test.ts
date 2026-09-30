@@ -31,6 +31,7 @@ import {
   SourceRecordMissingError,
   StepStateError,
   StepTimeoutError,
+  agentErrorDetail,
   causeMessage,
   extractErrorMessage,
 } from '../src/errors';
@@ -261,6 +262,36 @@ describe('AgentPortError', () => {
     const err = new AgentPortError('getActionForm', cause);
 
     expect(err.userMessage).toBe('An error occurred while accessing your data. Please try again.');
+  });
+});
+
+describe('agentErrorDetail', () => {
+  it("reads the agent's error message of a 4xx through the AgentPortError wrapping it", () => {
+    const cause = new AgentHttpError(400, { errors: [{ detail: 'Unknown segment\nto-review' }] });
+
+    expect(agentErrorDetail(new AgentPortError('listSegmentRecordIds', cause))).toBe(
+      'Unknown segment to-review',
+    );
+  });
+
+  it('truncates an error message longer than 500 characters', () => {
+    const cause = new AgentHttpError(400, { error: 'x'.repeat(600) });
+
+    expect(agentErrorDetail(cause)).toBe(`${'x'.repeat(500)}…`);
+  });
+
+  it('never falls back to the raw response text', () => {
+    const cause = new AgentHttpError(400, undefined, '<html>record jane@acme.com</html>');
+
+    expect(agentErrorDetail(cause)).toBeUndefined();
+  });
+
+  it('keeps the agent message of a 4xx out of the AgentPortError message', () => {
+    const cause = new AgentHttpError(400, { error: 'value jane@acme.com refused' });
+
+    expect(new AgentPortError('listSegmentRecordIds', cause).message).toBe(
+      'Agent port "listSegmentRecordIds" failed: Agent responded with HTTP 400',
+    );
   });
 });
 

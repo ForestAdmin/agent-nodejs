@@ -12,7 +12,12 @@ import { IANAZone } from 'luxon';
 
 import createConsoleLogger from './adapters/console-logger';
 import { DEFAULT_STOP_TIMEOUT_S } from './defaults';
-import { AgentPortError, AutomatedInboxGoneError, extractErrorMessage } from './errors';
+import {
+  AgentPortError,
+  AutomatedInboxGoneError,
+  agentErrorDetail,
+  extractErrorMessage,
+} from './errors';
 import InFlightRunRegistry from './in-flight-run-registry';
 
 // One membership question per chunk, small enough that a `pk In (...)` stays a query an agent will
@@ -121,6 +126,14 @@ function classifyReadFailure(error: unknown): ServerAutomatedInboxReadFailure {
   return { reason: 'segment-read-failed', httpStatus };
 }
 
+function describeAgentFailure(error: unknown) {
+  return {
+    error: extractErrorMessage(error),
+    httpStatus: classifyReadFailure(error).httpStatus,
+    agentError: agentErrorDetail(error),
+  };
+}
+
 export type AutomationPollerState = 'idle' | 'running' | 'draining' | 'stopped';
 
 type PaddedPageReason =
@@ -137,6 +150,15 @@ interface SegmentRead<T> {
   requestedPageSize?: number;
   pagesRead?: number;
   failure?: ServerAutomatedInboxReadFailure;
+}
+
+interface ReadAttempt {
+  membershipChunk?: number;
+  membershipChunks?: number;
+  requestedPageSize?: number;
+  pageNumber?: number;
+  paddedPageReason?: PaddedPageReason;
+  notIn?: boolean;
 }
 
 export interface AutomationPollerConfig {
@@ -392,9 +414,11 @@ export default class AutomationPoller {
       // because the candidate page timed out would leave those assignments open, which makes the
       // next page larger, which makes the next timeout likelier.
       const [closed, candidates] = await Promise.all([
-        this.tryRead(logContext, 'closed records', () => this.reconcileClosed(config, assignments)),
-        this.tryRead(logContext, 'new candidates', () =>
-          this.readCandidates(logContext, config, assignments),
+        this.tryRead(logContext, 'closed records', attempt =>
+          this.reconcileClosed(config, assignments, attempt),
+        ),
+        this.tryRead(logContext, 'new candidates', attempt =>
+          this.readCandidates(logContext, config, assignments, attempt),
         ),
       ]);
 
@@ -425,12 +449,15 @@ export default class AutomationPoller {
         ),
       });
     } catch (error) {
-      // The orchestrator refuses this inbox for now — disabled, or degraded. The next config poll
-      // decides whether it comes back, so this is not an error.
+      // Legitimate only if the inbox was disabled or degraded since this cycle's listing served it.
+      // Otherwise its route is missing behind a proxy, a path prefix or a version skew, and the inbox
+      // is never swept again.
       if (error instanceof AutomatedInboxGoneError) {
-        this.logger('Info', 'Automated inbox no longer served, dropping it for this cycle', {
-          ...logContext,
-        });
+        this.logger(
+          'Warn',
+          'Automated inbox listed this cycle but its route answered 404, dropping it for this cycle',
+          { ...logContext, operation: error.operation, detail: error.detail },
+        );
 
         return;
       }
@@ -451,6 +478,7 @@ export default class AutomationPoller {
   private async reconcileClosed(
     config: ServerAutomatedInboxConfig,
     assignments: ServerAutomatedInboxAssignment[],
+    attempt: ReadAttempt,
   ): Promise<SegmentRead<{ recordId: string; stillInSegment: boolean }>> {
     const logContext = { inboxId: config.inboxId, renderingId: config.renderingId };
 
@@ -539,8 +567,10 @@ export default class AutomationPoller {
     if (readable.length === 0) return { items: [] };
 
     const stillInSegment = new Set<string>();
+    const batches = chunk(readable, MEMBERSHIP_CHUNK_SIZE);
 
-    for (const batch of chunk(readable, MEMBERSHIP_CHUNK_SIZE)) {
+    for (const [index, batch] of batches.entries()) {
+      Object.assign(attempt, { membershipChunk: index + 1, membershipChunks: batches.length });
       // eslint-disable-next-line no-await-in-loop
       const found = await this.config.segmentReaderPort.listRecordIds({
         ...AutomationPoller.segmentQuery(config),
@@ -567,14 +597,17 @@ export default class AutomationPoller {
   private async tryRead<T>(
     logContext: Record<string, unknown>,
     what: string,
-    read: () => Promise<SegmentRead<T>>,
+    read: (attempt: ReadAttempt) => Promise<SegmentRead<T>>,
   ): Promise<SegmentRead<T>> {
+    const attempt: ReadAttempt = {};
+
     try {
-      return await read();
+      return await read(attempt);
     } catch (error) {
       this.logger('Error', `Could not read ${what} of an automated inbox`, {
         ...logContext,
-        error: extractErrorMessage(error),
+        ...attempt,
+        ...describeAgentFailure(error),
       });
 
       return { items: [], failure: classifyReadFailure(error) };
@@ -590,12 +623,18 @@ export default class AutomationPoller {
     logContext: Record<string, unknown>,
     config: ServerAutomatedInboxConfig,
     assignments: ServerAutomatedInboxAssignment[],
+    attempt: ReadAttempt,
   ): Promise<SegmentRead<string>> {
     const known = [...new Set(assignments.map(({ recordId }) => recordId))];
     const knownSet = new Set(known);
     const paddedPageReason = await this.paddedPageReason(logContext, config, known);
 
     if (!paddedPageReason) {
+      Object.assign(attempt, {
+        requestedPageSize: config.maxConcurrentRuns,
+        notIn: known.length > 0,
+      });
+
       try {
         const page = await this.config.segmentReaderPort.listRecordIds({
           ...AutomationPoller.segmentQuery(config),
@@ -615,7 +654,8 @@ export default class AutomationPoller {
         // lands here too, and pays for one more read before the inbox gives up on this cycle.
         this.logger('Warn', 'The not_in candidate read failed, padding the page instead', {
           ...logContext,
-          error: extractErrorMessage(error),
+          ...attempt,
+          ...describeAgentFailure(error),
         });
 
         return this.readPaddedCandidates(
@@ -624,11 +664,19 @@ export default class AutomationPoller {
           assignments,
           knownSet,
           'not-in-refused',
+          attempt,
         );
       }
     }
 
-    return this.readPaddedCandidates(logContext, config, assignments, knownSet, paddedPageReason);
+    return this.readPaddedCandidates(
+      logContext,
+      config,
+      assignments,
+      knownSet,
+      paddedPageReason,
+      attempt,
+    );
   }
 
   // The padding is capped. It grows with the backlog, and the agent read it feeds is bounded by
@@ -640,6 +688,7 @@ export default class AutomationPoller {
     assignments: ServerAutomatedInboxAssignment[],
     knownSet: ReadonlySet<string>,
     paddedPageReason: PaddedPageReason,
+    attempt: ReadAttempt,
   ): Promise<SegmentRead<string>> {
     const requestedPageSize = Math.min(
       config.maxConcurrentRuns + assignments.length,
@@ -655,6 +704,12 @@ export default class AutomationPoller {
 
     while (pagesRead < maxPages && candidates.size < config.maxConcurrentRuns && !reachedEnd) {
       pagesRead += 1;
+      Object.assign(attempt, {
+        requestedPageSize,
+        pageNumber: pagesRead,
+        paddedPageReason,
+        notIn: false,
+      });
       let page: string[];
 
       try {
@@ -675,8 +730,9 @@ export default class AutomationPoller {
           'A later padded candidate page failed, keeping what earlier pages found',
           {
             ...logContext,
+            ...attempt,
             pagesRead,
-            error: extractErrorMessage(error),
+            ...describeAgentFailure(error),
           },
         );
         break;
@@ -732,7 +788,7 @@ export default class AutomationPoller {
     } catch (error) {
       this.logger('Warn', 'Could not read the agent capabilities, padding the page instead', {
         ...logContext,
-        error: extractErrorMessage(error),
+        ...describeAgentFailure(error),
       });
 
       return 'capabilities-unreadable';
