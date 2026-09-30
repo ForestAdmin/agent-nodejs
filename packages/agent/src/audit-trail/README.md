@@ -296,7 +296,9 @@ withheld value holds the term. The rows are read without those two filters, in b
 each continue past the last row read, never at an offset, and bounded at the instant the scan
 starts. They are matched and paged as they go, keeping only the page asked for. Only a gone
 record's history pays that scan, and it is one record's history — the same rows the SQL search
-would have scanned without an index.
+would have scanned without an index. That holds too for a record deleted while the request was in flight:
+the second read of the record decides the withholding, so the SQL-matched answer is discarded and
+the history scanned the same way.
 
 Matching the *serialized* text rather than a structural walk of the parsed value is cheap and still
 correct for "keys and scalar values" — but two things follow from it. A punctuation-only term (`,`,

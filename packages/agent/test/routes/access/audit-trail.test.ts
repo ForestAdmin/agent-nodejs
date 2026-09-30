@@ -957,6 +957,39 @@ describe('AuditTrailRoute', () => {
         );
       });
 
+      test('matches served values for a record deleted while the audit read was in flight', async () => {
+        const { services, dataSource, options, store } = setup([secretDelete()]);
+        (services.authorization.getScope as jest.Mock).mockResolvedValue(
+          new ConditionTreeLeaf('ownerId', 'Equal', 1),
+        );
+        jest
+          .spyOn(dataSource.getCollection('books'), 'list')
+          .mockResolvedValueOnce([{ id: 2, ownerId: 1 }]) // present and in scope
+          .mockResolvedValue([]); // re-read, scoped and bare: genuinely gone
+        const route = new AuditTrailRoute(services, options, dataSource, 'books');
+        const context = createMockContext({
+          state: { user: { email: 'john.doe@domain.com' } },
+          customProperties: {
+            query: { timezone: 'Europe/Paris', search: 'secret' },
+            params: { id: '2' },
+          },
+        });
+
+        await route.handleHistory(context);
+
+        expect(store.listByRecord).toHaveBeenLastCalledWith({
+          collection: 'books',
+          recordId: '2',
+          order: 'desc',
+          limit: 500,
+          endTimestamp: expect.any(String),
+        });
+        expect(context.response.body).toEqual({
+          data: [],
+          meta: { count: 0, availableUsers: [] },
+        });
+      });
+
       // The page cap bounds what is served, not what is scanned: the history is read in batches,
       // each continuing past the last row read, so a long one is never held in memory whole.
       test('scans in batches past the last row read, counting across them and keeping only the page', async () => {

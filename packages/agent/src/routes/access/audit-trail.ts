@@ -102,8 +102,10 @@ export default class AuditTrailRoute extends CollectionRoute {
     const isFirstFetch =
       (context.request.query as Record<string, unknown>)['page[number]'] === undefined;
 
-    if (permissionScope && goneEntirely && (fields || search)) {
-      const matched = await this.scanServedValues(context, permissionScope, rowFilters, {
+    const filtersOnValues = Boolean(fields || search);
+
+    const serveMatchedValues = async (scope: ConditionTree) => {
+      const matched = await this.scanServedValues(context, scope, rowFilters, {
         fields,
         search,
         order,
@@ -118,6 +120,10 @@ export default class AuditTrailRoute extends CollectionRoute {
           ...(isFirstFetch && { availableUsers: [...matched.authors.values()] }),
         },
       };
+    };
+
+    if (permissionScope && goneEntirely && filtersOnValues) {
+      await serveMatchedValues(permissionScope);
 
       return;
     }
@@ -150,6 +156,14 @@ export default class AuditTrailRoute extends CollectionRoute {
 
     const gone = after ? after.goneEntirely : goneEntirely;
 
+    // Gone between the check and the read: this answer withholds, so the rows, count and authors
+    // matched in SQL above must not decide what is served either.
+    if (permissionScope && gone && filtersOnValues) {
+      await serveMatchedValues(permissionScope);
+
+      return;
+    }
+
     // A genuinely deleted record bypasses the permission-scope check above — there's nothing left to check
     // existence against — but create/update/delete rows still carry captured column values from
     // when the record existed. If those values themselves would have failed the caller's permission scope,
@@ -166,11 +180,10 @@ export default class AuditTrailRoute extends CollectionRoute {
 
   // Matched in SQL, `search` and `fields` test the values as captured, so which rows come back, the
   // count and the authors would still say what the withholding hides — one probe per character. For
-  // a record gone at the check they are matched against the values served instead, which means
+  // a gone record they are matched against the values served instead, which means
   // scanning the whole history: in batches, keeping only the page asked for, each continuing past
   // the last row read rather than at an offset that entries written in between would shift, and
-  // bounded at the instant the scan starts so an id taken since cannot keep it chasing new rows. A
-  // record in scope at the check was the caller's to read whole.
+  // bounded at the instant the scan starts so an id taken since cannot keep it chasing new rows.
   private async scanServedValues(
     context: Context,
     permissionScope: ConditionTree,
