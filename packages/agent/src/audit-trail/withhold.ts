@@ -145,22 +145,40 @@ export default function withholdOutsidePermissionScope(
   return entries.map(entry => {
     if (entry.operation === 'action' || entry.operation === 'action_failed') return entry;
 
-    // Decoded once per row rather than once per side: the two sides read the same id, and a row
-    // whose id no longer decodes should say so once.
-    const decoded = decodePrimaryKeys(entry.recordId, withholding.collection, withholding.logger);
-
-    const side = (values: Record<string, unknown>, idAnswersForSide: IdAnswersForSide) =>
+    const side = (
+      values: Record<string, unknown>,
+      decoded: ReturnType<typeof decodePrimaryKeys>,
+      idAnswersForSide: IdAnswersForSide,
+    ) =>
       permissionScopeAccepts(answerableSnapshot(values, decoded, idAnswersForSide), withholding)
         ? values ?? {}
         : {};
 
+    // An update that recorded where it came from is judged side by side: the previous state
+    // against the id it was filed under then, the new state against the id it ended up with. A row
+    // without that column is older than it, so its id still answers for the new side alone.
+    // `?? null` first: the column is optional on the write types, so an absent one has to read as
+    // unknown exactly like a null, or a row that never recorded it would answer from the id it
+    // ended up with.
+    const previousRecordId = entry.previousRecordId ?? null;
+    const previousIsKnown = entry.operation !== 'update' || previousRecordId !== null;
+
+    // Decoded once per distinct id, not once per side: a row whose id no longer decodes should say
+    // so once, and the two sides read the same id unless the key actually moved.
+    const decoded = decodePrimaryKeys(entry.recordId, withholding.collection, withholding.logger);
+    const decodedPrevious =
+      previousRecordId === null
+        ? decoded
+        : decodePrimaryKeys(previousRecordId, withholding.collection, withholding.logger);
+
+    // A pending update is filed under the id the record had before the write, which says nothing
+    // about the state it was moving to, so the new side answers only with what it captured.
+    const newIsKnown = entry.status !== 'pending';
+
     return {
       ...entry,
-      // The row is filed under the identity the record ended up with, so its id answers for the
-      // new side of an update and for a create or a delete — never for what an update moved away
-      // from.
-      previousValues: side(entry.previousValues, entry.operation !== 'update'),
-      newValues: side(entry.newValues, true),
+      previousValues: side(entry.previousValues, decodedPrevious, previousIsKnown),
+      newValues: side(entry.newValues, decoded, newIsKnown),
     };
   });
 }

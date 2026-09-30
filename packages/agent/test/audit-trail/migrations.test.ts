@@ -43,6 +43,7 @@ describe('runAuditMigrations (sqlite)', () => {
       'id',
       'new_values',
       'operation',
+      'previous_record_id',
       'previous_values',
       'record_id',
       'status',
@@ -68,7 +69,10 @@ describe('runAuditMigrations (sqlite)', () => {
     // sqlite has no real schema/catalog separation: Sequelize represents a schema-qualified table
     // as a single literal identifier joining schema and table name with a dot.
     const [applied] = await sequelize.query('SELECT name FROM "forest.audit_logs_migration"');
-    expect(applied).toEqual([{ name: 'forest.audit_logs:001-create-audit-logs' }]);
+    expect(applied).toEqual([
+      { name: 'forest.audit_logs:001-create-audit-logs' },
+      { name: 'forest.audit_logs:002-add-previous-record-id' },
+    ]);
 
     await sequelize.close();
   });
@@ -79,7 +83,10 @@ describe('runAuditMigrations (sqlite)', () => {
     await runAuditMigrations(sequelize, { tableName: 'audit_logs' });
 
     const [applied] = await sequelize.query('SELECT name FROM "audit_logs_migration"');
-    expect(applied).toEqual([{ name: 'audit_logs:001-create-audit-logs' }]);
+    expect(applied).toEqual([
+      { name: 'audit_logs:001-create-audit-logs' },
+      { name: 'audit_logs:002-add-previous-record-id' },
+    ]);
 
     await sequelize.close();
   });
@@ -163,7 +170,7 @@ describe('runAuditMigrations (sqlite)', () => {
     ).resolves.toBeUndefined();
 
     const [applied] = await sequelize.query('SELECT name FROM "audit_logs_migration"');
-    expect(applied).toHaveLength(1);
+    expect(applied).toHaveLength(2);
 
     await sequelize.close();
   });
