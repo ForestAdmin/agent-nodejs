@@ -289,6 +289,113 @@ describe('WorkflowExecutorProxyRoute', () => {
     });
   });
 
+  describe('handleProxy — request body', () => {
+    // What @koa/bodyparser leaves when the host app parsed the body first: a parsed body, no raw one.
+    const withoutRawBody = (context: ReturnType<typeof createMockContext>) => {
+      (context.request as unknown as { rawBody?: string }).rawBody = undefined;
+
+      return context;
+    };
+
+    test('forwards the raw body as received even when a parsed body is also set', async () => {
+      const route = buildRoute(`http://localhost:${executorPort}`);
+      const rawBody = '{ "pendingData" : { "answer" : "yes" } }';
+      const context = buildContext('runs/run-456/trigger', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'content-length': `${rawBody.length}` },
+        requestBody: { pendingData: { answer: 'yes' } },
+        rawBody,
+      });
+
+      await callHandleProxy(route, context);
+
+      expect(receivedBody).toBe(rawBody);
+    });
+
+    test('forwards the parsed body as JSON when a JSON request has no raw body', async () => {
+      const route = buildRoute(`http://localhost:${executorPort}`);
+      const credentials = { mcpServerId: 'server-1', refreshToken: 'refresh-1' };
+      const context = withoutRawBody(
+        buildContext('mcp-oauth-credentials', {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            'content-length': `${JSON.stringify(credentials).length}`,
+          },
+          requestBody: credentials,
+        }),
+      );
+
+      await callHandleProxy(route, context);
+
+      expect(receivedBody).toBe(JSON.stringify(credentials));
+      expect(receivedHeaders['content-type']).toBe('application/json');
+    });
+
+    test('forwards no body when a request without one has a parsed empty body', async () => {
+      const route = buildRoute(`http://localhost:${executorPort}`);
+      const context = withoutRawBody(
+        buildContext('runs/run-456/trigger', { method: 'POST', requestBody: {} }),
+      );
+
+      await callHandleProxy(route, context);
+
+      expect(receivedMethod).toBe('POST');
+      expect(receivedBody).toBe('');
+    });
+
+    test('forwards no body when a non-JSON request has no raw body', async () => {
+      const route = buildRoute(`http://localhost:${executorPort}`);
+      const context = withoutRawBody(
+        buildContext('runs/run-456/trigger', {
+          method: 'POST',
+          headers: { 'content-type': 'text/plain', 'content-length': '5' },
+          requestBody: 'hello',
+        }),
+      );
+
+      await callHandleProxy(route, context);
+
+      expect(receivedBody).toBe('');
+    });
+
+    test('forwards no body when a JSON request declares an empty one', async () => {
+      const route = buildRoute(`http://localhost:${executorPort}`);
+      const context = withoutRawBody(
+        buildContext('runs/run-456/trigger', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'content-length': '0' },
+          requestBody: {},
+        }),
+      );
+
+      await callHandleProxy(route, context);
+
+      expect(receivedMethod).toBe('POST');
+      expect(receivedBody).toBe('');
+    });
+
+    test('forwards the parsed body as JSON for a +json media type with no raw body', async () => {
+      const route = buildRoute(`http://localhost:${executorPort}`);
+      const pendingData = { pendingData: { answer: 'yes' } };
+      const context = withoutRawBody(
+        buildContext('runs/run-456/trigger', {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/vnd.api+json',
+            'content-length': `${JSON.stringify(pendingData).length}`,
+          },
+          requestBody: pendingData,
+        }),
+      );
+
+      await callHandleProxy(route, context);
+
+      expect(receivedBody).toBe(JSON.stringify(pendingData));
+      expect(receivedHeaders['content-type']).toBe('application/vnd.api+json');
+    });
+  });
+
   describe('handleProxy — headers', () => {
     test('forwards all client headers except hop-by-hop / host / content-length', async () => {
       const route = buildRoute(`http://localhost:${executorPort}`);

@@ -2191,7 +2191,7 @@ describe('TriggerRecordActionStepExecutor', () => {
 
       // The next two are the same empty relation seen from the two execution modes that reach it.
       // They must agree: who has to act does not depend on which mode ran the source step.
-      it('classifies a relation the executor skipped with no candidates as configuration', async () => {
+      it('classifies a relation the executor skipped with no candidates as an empty source', async () => {
         // Full AI found nothing to offer and continued on its own judgment (persistSkip). Nobody was
         // there to decide, and the workflow routes a record-consuming step off an emptiable relation.
         const { stepOutcome } = await runPinnedToSource({
@@ -2207,10 +2207,10 @@ describe('TriggerRecordActionStepExecutor', () => {
 
         expect(stepOutcome.status).toBe('error');
         expect(stepOutcome.error).toContain("didn't load any record");
-        expect(stepOutcome.errorKind).toBe('configuration');
+        expect(stepOutcome.errorKind).toBe('empty-source');
       });
 
-      it('classifies an acknowledged empty relation as configuration', async () => {
+      it('classifies an acknowledged empty relation as an empty source', async () => {
         // Same empty relation, AI-assisted: the step paused with nothing to offer and the operator
         // acknowledged it. They decided, but never had an alternative to decide between.
         const { stepOutcome } = await runPinnedToSource({
@@ -2230,7 +2230,7 @@ describe('TriggerRecordActionStepExecutor', () => {
         });
 
         expect(stepOutcome.status).toBe('error');
-        expect(stepOutcome.errorKind).toBe('configuration');
+        expect(stepOutcome.errorKind).toBe('empty-source');
         expect(stepOutcome.errorSourceStepIndex).toBe(2);
       });
 

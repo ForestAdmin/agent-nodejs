@@ -1,3 +1,47 @@
+# @forestadmin/agent [1.104.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.103.9...@forestadmin/agent@1.104.0) (2026-09-30)
+
+
+### Features
+
+* **audit-trail:** filter the per-record history by operation [PRD-1256] ([#1910](https://github.com/ForestAdmin/agent-nodejs/issues/1910)) ([92cd2f6](https://github.com/ForestAdmin/agent-nodejs/commit/92cd2f621bab9e74b940c3c62c5e92fcc3955c2d))
+
+## @forestadmin/agent [1.103.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.103.8...@forestadmin/agent@1.103.9) (2026-09-30)
+
+
+### Bug Fixes
+
+* **agent:** relay the parsed JSON body when the host app parsed it first ([#1939](https://github.com/ForestAdmin/agent-nodejs/issues/1939)) ([fd3fc96](https://github.com/ForestAdmin/agent-nodejs/commit/fd3fc96196b390d2c061aab9ee17ed4b5072fe26))
+
+## @forestadmin/agent [1.103.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.103.7...@forestadmin/agent@1.103.8) (2026-09-30)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/workflow-executor:** upgraded to 1.30.1
+
+## @forestadmin/agent [1.103.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.103.6...@forestadmin/agent@1.103.7) (2026-09-29)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/workflow-executor:** upgraded to 1.30.0
+
+## @forestadmin/agent [1.103.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.103.6...@forestadmin/agent@1.103.7) (2026-09-29)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-bff:** upgraded to 1.35.0
+
 ## @forestadmin/agent [1.103.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.103.5...@forestadmin/agent@1.103.6) (2026-09-25)
 
 

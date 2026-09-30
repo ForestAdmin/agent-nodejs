@@ -254,6 +254,31 @@ describe('createSqlAuditStore (sqlite round-trip)', () => {
     await close();
   });
 
+  it('filters by operation at the query level', async () => {
+    const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
+
+    await seed(store, record({ recordId: '1', operation: 'create' }));
+    await seed(store, record({ recordId: '1', operation: 'update' }));
+    await seed(store, record({ recordId: '1', operation: 'delete' }));
+
+    const history = await store.listByRecord({
+      collection: 'accounts',
+      recordId: '1',
+      operations: ['create', 'delete'],
+    });
+
+    expect(history.map(r => r.operation)).toEqual(['create', 'delete']);
+    expect(
+      await store.countByRecord({
+        collection: 'accounts',
+        recordId: '1',
+        operations: ['create', 'delete'],
+      }),
+    ).toBe(2);
+
+    await close();
+  });
+
   it('filters by the inclusive startTimestamp/endTimestamp range at the query level', async () => {
     const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
 

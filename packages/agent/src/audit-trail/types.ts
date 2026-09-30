@@ -44,6 +44,8 @@ export type AuditHistoryQuery = {
   skip?: number;
   limit?: number;
   userIds?: number[];
+  /** Keep only entries recorded under one of these operations. */
+  operations?: AuditOperation[];
   /** Inclusive lower bound on `timestamp` as a UTC ISO instant. */
   startTimestamp?: string;
   /** Inclusive upper bound on `timestamp` as a UTC ISO instant. */

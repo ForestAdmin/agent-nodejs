@@ -1,3 +1,17 @@
+## @forestadmin/workflow-executor [1.30.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.30.0...@forestadmin/workflow-executor@1.30.1) (2026-09-30)
+
+
+### Bug Fixes
+
+* **workflow-executor:** reject an AI decision option that is not one of the step's options ([#1943](https://github.com/ForestAdmin/agent-nodejs/issues/1943)) ([c4ed760](https://github.com/ForestAdmin/agent-nodejs/commit/c4ed76065de7ddd94c45be06d1d409db6e32406b))
+
+# @forestadmin/workflow-executor [1.30.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.29.2...@forestadmin/workflow-executor@1.30.0) (2026-09-29)
+
+
+### Features
+
+* **workflow-executor:** scope workflow start to the sub-workflow call ([#1912](https://github.com/ForestAdmin/agent-nodejs/issues/1912)) ([cfb7d74](https://github.com/ForestAdmin/agent-nodejs/commit/cfb7d7491a5addb62ba37bc578712b1438e3b0e9))
+
 ## @forestadmin/workflow-executor [1.29.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.29.1...@forestadmin/workflow-executor@1.29.2) (2026-09-25)
 
 

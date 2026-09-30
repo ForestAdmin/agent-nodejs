@@ -469,9 +469,9 @@ describe('the code samples the docs page injects', () => {
   });
 
   it('should never carry the key the reader typed, whatever the language', async () => {
-    const page = await render(API_KEY_SPEC, 'fbff_deadbeef_cafe');
+    const page = await render(API_KEY_SPEC, 'fgw_deadbeef_cafe');
 
-    page.allSources().forEach(source => expect(source).not.toContain('fbff_deadbeef_cafe'));
+    page.allSources().forEach(source => expect(source).not.toContain('fgw_deadbeef_cafe'));
   });
 
   it('should still render a document whose schema references itself', async () => {

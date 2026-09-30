@@ -4,13 +4,13 @@ import type { Logger } from '../ports/logger-port';
 import type { RunStore } from '../ports/run-store';
 import type SchemaResolver from '../schema-resolver';
 import type { RecordRef } from './validated/collection';
-import type { AvailableStepExecution, Step, StepUser } from './validated/execution';
+import type { AvailableStepExecution, CallScope, Step, StepUser } from './validated/execution';
 import type { StepDefinition } from './validated/step-definition';
 import type { StepOutcome } from './validated/step-outcome';
 import type { BaseChatModel } from '@forestadmin/ai-proxy';
 
 // Re-export the runtime result types alongside the context they flow with.
-export type { AvailableStepExecution, Step, StepUser };
+export type { AvailableStepExecution, CallScope, Step, StepUser };
 
 export interface StepExecutionResult {
   stepOutcome: StepOutcome;
@@ -37,6 +37,8 @@ export interface ExecutionContext<TStep extends StepDefinition = StepDefinition>
   readonly schemaResolver: SchemaResolver;
   readonly previousSteps: ReadonlyArray<Readonly<Step>>;
   readonly logger: Logger;
+  // Set only while the step runs inside a Sub-workflow call.
+  readonly callScope?: CallScope;
   readonly incomingPendingData?: unknown;
   readonly stepTimeoutS?: number;
   readonly aiInvokeTimeoutS?: number;

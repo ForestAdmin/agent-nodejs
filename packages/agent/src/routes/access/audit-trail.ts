@@ -1,4 +1,9 @@
-import type { AuditHistoryQuery, AuditRecord, AuditUserSummary } from '../../audit-trail';
+import type {
+  AuditHistoryQuery,
+  AuditOperation,
+  AuditRecord,
+  AuditUserSummary,
+} from '../../audit-trail';
 import type { CollectionSchema, ConditionTree } from '@forestadmin/datasource-toolkit';
 import type Router from '@koa/router';
 import type { Context } from 'koa';
@@ -35,8 +40,17 @@ const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 100;
 const SCAN_BATCH_SIZE = 500;
 
+const AUDIT_OPERATIONS: readonly AuditOperation[] = [
+  'create',
+  'update',
+  'delete',
+  'action',
+  'action_failed',
+];
+
 type AuditHistoryFilters = {
   userIds?: number[];
+  operations?: AuditOperation[];
   startTimestamp?: string;
   endTimestamp?: string;
   fields?: string[];
@@ -69,13 +83,14 @@ export default class AuditTrailRoute extends CollectionRoute {
     const { store } = this.options.auditTrail;
     const { skip, limit } = AuditTrailRoute.parsePagination(context);
     const order = AuditTrailRoute.parseSort(context);
-    const { userIds, startTimestamp, endTimestamp, fields, search } =
+    const { userIds, operations, startTimestamp, endTimestamp, fields, search } =
       AuditTrailRoute.parseFilters(context);
 
     const rowFilters = {
       collection: this.collection.name,
       recordId: context.params.id,
       ...(userIds && { userIds }),
+      ...(operations && { operations }),
       ...(startTimestamp && { startTimestamp }),
       ...(endTimestamp && { endTimestamp }),
     };
@@ -449,6 +464,7 @@ export default class AuditTrailRoute extends CollectionRoute {
 
     return {
       userIds: AuditTrailRoute.parseUserIds(query.userIds?.toString()),
+      operations: AuditTrailRoute.parseOperations(query.operations?.toString()),
       startTimestamp: AuditTrailRoute.parseDateBoundary(
         query.startDate?.toString(),
         timezone,
@@ -471,6 +487,28 @@ export default class AuditTrailRoute extends CollectionRoute {
       .map(token => Number.parseInt(token, 10));
 
     return ids.length > 0 ? ids : undefined;
+  }
+
+  // Comma-separated, from a closed set. An unrecognized value is rejected rather than dropped: a
+  // silently ignored filter returns unfiltered rows into a list the caller believes is filtered,
+  // which is worse than an error.
+  private static parseOperations(raw?: string): AuditOperation[] | undefined {
+    if (!raw) return undefined;
+
+    const tokens = raw
+      .split(',')
+      .map(token => token.trim())
+      .filter(token => token.length > 0);
+
+    const unknown = tokens.find(token => !AUDIT_OPERATIONS.includes(token as AuditOperation));
+
+    if (unknown) {
+      throw new ValidationError(
+        `Invalid operation: "${unknown}" (expected one of ${AUDIT_OPERATIONS.join(', ')})`,
+      );
+    }
+
+    return tokens.length > 0 ? (tokens as AuditOperation[]) : undefined;
   }
 
   private static parseFields(raw?: string): string[] | undefined {

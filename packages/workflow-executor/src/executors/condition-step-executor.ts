@@ -14,7 +14,7 @@ import type { ConditionStepOutcome, ErrorKind } from '../types/validated/step-ou
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 import { z } from 'zod';
 
-import { InvalidStepDefinitionError, StepStateError } from '../errors';
+import { InvalidStepDefinitionError, MalformedToolCallError, StepStateError } from '../errors';
 import BaseStepExecutor from './base-step-executor';
 import evaluateOperator, { type Clock } from './deterministic-condition-evaluator';
 import patchBodySchemas from '../http/pending-data-validators';
@@ -279,6 +279,14 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
     ];
 
     const args = await this.invokeWithTool<GatewayToolArgs>(messages, tool);
+
+    // The enum only steers the model: tool-call args are never parsed against the schema.
+    if (args.option !== null && !step.options.includes(args.option)) {
+      throw new MalformedToolCallError(
+        tool.name,
+        `option ${JSON.stringify(args.option)} is not one of the step's options`,
+      );
+    }
 
     return { selectedOption: args.option, reasoning: args.reasoning };
   }

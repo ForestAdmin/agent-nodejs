@@ -2,12 +2,15 @@ import { fingerprintApiKey, hashApiKey, parseApiKey } from '../../src/api-key/ap
 
 const KEY_ID = 'a'.repeat(16);
 const SECRET = 'b'.repeat(64);
-const VALID = `fbff_${KEY_ID}_${SECRET}`;
+const VALID = `fgw_${KEY_ID}_${SECRET}`;
 
 describe('parseApiKey', () => {
-  describe('when the key matches fbff_<keyId>_<secret>', () => {
-    it('should split into keyId and secret', () => {
-      expect(parseApiKey(VALID)).toEqual({ keyId: KEY_ID, secret: SECRET });
+  describe('when the key matches <prefix>_<keyId>_<secret>', () => {
+    it.each(['fgw', 'fbff'])('should split a %s_ key into keyId and secret', prefix => {
+      expect(parseApiKey(`${prefix}_${KEY_ID}_${SECRET}`)).toEqual({
+        keyId: KEY_ID,
+        secret: SECRET,
+      });
     });
   });
 
@@ -15,9 +18,12 @@ describe('parseApiKey', () => {
     it.each([
       ['missing prefix', `${KEY_ID}_${SECRET}`],
       ['wrong prefix', `fbf_${KEY_ID}_${SECRET}`],
-      ['keyId too short', `fbff_${'a'.repeat(15)}_${SECRET}`],
-      ['secret too short', `fbff_${KEY_ID}_${'b'.repeat(63)}`],
-      ['uppercase hex', `fbff_${'A'.repeat(16)}_${SECRET}`],
+      ['prefix without separator', `fgw${KEY_ID}_${SECRET}`],
+      ['prefix with extra letter', `fgww_${KEY_ID}_${SECRET}`],
+      ['uppercase prefix', `FGW_${KEY_ID}_${SECRET}`],
+      ['keyId too short', `fgw_${'a'.repeat(15)}_${SECRET}`],
+      ['secret too short', `fgw_${KEY_ID}_${'b'.repeat(63)}`],
+      ['uppercase hex', `fgw_${'A'.repeat(16)}_${SECRET}`],
       ['empty string', ''],
       ['extra segment', `${VALID}_extra`],
     ])('should return null (%s)', (_label, raw) => {

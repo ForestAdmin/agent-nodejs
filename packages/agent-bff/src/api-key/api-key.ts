@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 
-const API_KEY_PATTERN = /^fbff_([0-9a-f]{16})_([0-9a-f]{64})$/;
+const API_KEY_PATTERN = /^(?:fgw|fbff)_([0-9a-f]{16})_([0-9a-f]{64})$/;
 
 export interface ParsedApiKey {
   keyId: string;
