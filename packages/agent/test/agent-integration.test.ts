@@ -1,7 +1,9 @@
 /* eslint-disable max-classes-per-file */
 
 import type { SqliteSetupResult } from './__helper__/sqlite-setup';
+import type { AgentOptions } from '../src/types';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
+import type { AddressInfo } from 'net';
 
 import { createSqlDataSource } from '@forestadmin/datasource-sql';
 import { Module } from '@nestjs/common';
@@ -11,6 +13,7 @@ import express from 'express';
 import Fastify3 from 'fastify';
 import Fastify2 from 'fastify2';
 import Fastify4 from 'fastify4';
+import http from 'http';
 import jsonwebtoken from 'jsonwebtoken';
 import Koa from 'koa';
 import { tmpdir } from 'os';
@@ -72,6 +75,27 @@ const setupStandalone: FrameworkSetup = async (agent, port) => {
  */
 const setupExpress: FrameworkSetup = async (agent, port) => {
   const app = express();
+  agent.mountOnExpress(app);
+
+  const server = app.listen(port);
+
+  return {
+    baseUrl: `http://localhost:${port}`,
+    cleanup: async () => {
+      await agent.stop();
+      await new Promise<void>((resolve, reject) => {
+        server.close(err => (err ? reject(err) : resolve()));
+      });
+    },
+  };
+};
+
+/**
+ * Setup Express server whose own JSON parser runs before the agent
+ */
+const setupExpressBehindJsonParser: FrameworkSetup = async (agent, port) => {
+  const app = express();
+  app.use(express.json());
   agent.mountOnExpress(app);
 
   const server = app.listen(port);
@@ -183,6 +207,28 @@ const setupNestExpress: FrameworkSetup = async (agent, port) => {
 };
 
 /**
+ * Setup NestJS with Express adapter, the host registering its own JSON parser before the agent
+ */
+const setupNestExpressBehindJsonParser: FrameworkSetup = async (agent, port) => {
+  @Module({ imports: [], controllers: [], providers: [] })
+  class AppModule {}
+
+  const app = await NestFactory.create(AppModule, { logger: false });
+  app.use(express.json());
+  agent.mountOnNestJs(app);
+
+  await app.listen(port);
+
+  return {
+    baseUrl: `http://localhost:${port}`,
+    cleanup: async () => {
+      await agent.stop();
+      await app.close();
+    },
+  };
+};
+
+/**
  * Setup NestJS with Fastify adapter
  */
 const setupNestFastify: FrameworkSetup = async (agent, port) => {
@@ -243,7 +289,13 @@ describe('Agent Integration Tests', () => {
   /**
    * Create a test agent with SQLite datasource
    */
-  const createTestAgent = (options: { withMcp?: boolean } = {}) => {
+  const createTestAgent = (
+    options: {
+      withMcp?: boolean;
+      workflowExecutorUrl?: string;
+      bodyParserOptions?: AgentOptions['bodyParserOptions'];
+    } = {},
+  ) => {
     const schemaPath = path.join(
       tmpdir(),
       `.forestadmin-schema-${Date.now()}-${Math.random().toString(36).slice(2)}.json`,
@@ -256,6 +308,8 @@ describe('Agent Integration Tests', () => {
       forestAppUrl: 'https://app.forestadmin.com',
       isProduction: false,
       schemaPath,
+      workflowExecutorUrl: options.workflowExecutorUrl,
+      bodyParserOptions: options.bodyParserOptions,
     }).addDataSource(createSqlDataSource(sqliteSetup.uri));
 
     if (options.withMcp) {
@@ -782,6 +836,163 @@ describe('Agent Integration Tests', () => {
           .catch(err => err);
 
         expect(error.status).toBe(404);
+      });
+    });
+  });
+
+  describe('Workflow executor relay', () => {
+    interface RuntimeRequest {
+      method?: string;
+      url?: string;
+      contentType?: string;
+      body: string;
+    }
+
+    let runtime: http.Server;
+    let runtimeUrl: string;
+    let runtimeRequests: RuntimeRequest[] = [];
+
+    beforeAll(async () => {
+      runtime = http.createServer((req, res) => {
+        const chunks: Uint8Array[] = [];
+        req.on('data', chunk => chunks.push(chunk));
+        req.on('end', () => {
+          runtimeRequests.push({
+            method: req.method,
+            url: req.url,
+            contentType: req.headers['content-type'],
+            body: Buffer.concat(chunks).toString('utf-8'),
+          });
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end('{}');
+        });
+      });
+
+      await new Promise<void>(resolve => {
+        runtime.listen(0, 'localhost', resolve);
+      });
+      runtimeUrl = `http://localhost:${(runtime.address() as AddressInfo).port}`;
+    });
+
+    afterAll(async () => {
+      await new Promise<void>(resolve => {
+        runtime.close(() => resolve());
+      });
+    });
+
+    beforeEach(() => {
+      runtimeRequests = [];
+    });
+
+    const credentials = {
+      mcpServerId: 'server-1',
+      refreshToken: 'refresh-1',
+      tokenEndpoint: 'https://provider.example.com/token',
+    };
+    const confirmation = { pendingData: { userConfirmed: true } };
+    const formattedCredentials = '{ "mcpServerId" : "server-1" }';
+
+    describe.each([
+      ['standalone', setupStandalone, undefined, 'verbatim'],
+      [
+        'express behind express.json()',
+        setupExpressBehindJsonParser,
+        { enableRawChecking: true },
+        're-serialised',
+      ],
+      [
+        'nestjs-express behind app.use(json())',
+        setupNestExpressBehindJsonParser,
+        { enableRawChecking: true },
+        're-serialised',
+      ],
+    ] as const)('%s', (_name, setupFramework, bodyParserOptions, formattedBodyForwarding) => {
+      let baseUrl: string;
+      let cleanup: () => Promise<void>;
+
+      beforeAll(async () => {
+        const agent = createTestAgent({ workflowExecutorUrl: runtimeUrl, bodyParserOptions });
+        ({ baseUrl, cleanup } = await setupFramework(agent, getNextPort()));
+
+        await agent.start();
+      }, 30000);
+
+      afterAll(async () => {
+        await cleanup?.();
+      });
+
+      const relay = (method: 'get' | 'post' | 'delete', subPath: string) =>
+        superagent[method](`${baseUrl}/forest/_internal/executor/${subPath}`).set(
+          'Authorization',
+          `Bearer ${createTestToken()}`,
+        );
+      // Sent as a string: the bytes on the wire are what the Runtime assertions compare against.
+      const postJson = (subPath: string, body: string) =>
+        relay('post', subPath).set('Content-Type', 'application/json').send(body);
+
+      it('relays an OAuth credentials POST with its JSON body', async () => {
+        await postJson('mcp-oauth-credentials', JSON.stringify(credentials));
+
+        expect(runtimeRequests).toEqual([
+          {
+            method: 'POST',
+            url: '/mcp-oauth-credentials',
+            contentType: 'application/json',
+            body: JSON.stringify(credentials),
+          },
+        ]);
+      });
+
+      it('relays a trigger POST with its pendingData', async () => {
+        await postJson('runs/run-1/trigger', JSON.stringify(confirmation));
+
+        expect(runtimeRequests).toEqual([
+          {
+            method: 'POST',
+            url: '/runs/run-1/trigger',
+            contentType: 'application/json',
+            body: JSON.stringify(confirmation),
+          },
+        ]);
+      });
+
+      it(`relays a formatted JSON body ${formattedBodyForwarding}`, async () => {
+        await postJson('mcp-oauth-credentials', formattedCredentials);
+
+        const expectedBody =
+          formattedBodyForwarding === 'verbatim'
+            ? formattedCredentials
+            : JSON.stringify(JSON.parse(formattedCredentials));
+        expect(runtimeRequests).toEqual([expect.objectContaining({ body: expectedBody })]);
+      });
+
+      it('relays a trigger POST sent without a body without one', async () => {
+        await relay('post', 'runs/run-1/trigger');
+
+        expect(runtimeRequests).toEqual([
+          { method: 'POST', url: '/runs/run-1/trigger', contentType: undefined, body: '' },
+        ]);
+      });
+
+      it('relays an OAuth credentials DELETE without a body', async () => {
+        await relay('delete', 'mcp-oauth-credentials/server-1');
+
+        expect(runtimeRequests).toEqual([
+          {
+            method: 'DELETE',
+            url: '/mcp-oauth-credentials/server-1',
+            contentType: undefined,
+            body: '',
+          },
+        ]);
+      });
+
+      it('relays a run GET without a body', async () => {
+        await relay('get', 'runs/run-1');
+
+        expect(runtimeRequests).toEqual([
+          { method: 'GET', url: '/runs/run-1', contentType: undefined, body: '' },
+        ]);
       });
     });
   });

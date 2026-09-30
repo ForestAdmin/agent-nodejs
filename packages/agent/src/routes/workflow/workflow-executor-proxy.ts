@@ -54,8 +54,7 @@ export default class WorkflowExecutorProxyRoute extends BaseRoute {
     const response = await this.forwardRequest({
       method: context.method,
       url: targetUrl,
-      // Raw body forwarded verbatim (set by @koa/bodyparser); undefined for GET.
-      body: context.method === 'GET' ? undefined : context.request.rawBody,
+      body: this.forwardedBody(context),
       headers: this.forwardedHeaders(context),
     });
 
@@ -96,6 +95,16 @@ export default class WorkflowExecutorProxyRoute extends BaseRoute {
     if (unsafe) throw new NotFoundError('Invalid workflow executor path');
 
     return `/${wildcard}`;
+  }
+
+  // The agent's own @koa/bodyparser records the raw body, which is forwarded verbatim. Under
+  // enableRawChecking, a host parser that ran first leaves only the parsed body to re-serialise.
+  private forwardedBody(context: Context): string | undefined {
+    if (context.method === 'GET') return undefined;
+    if (context.request.rawBody !== undefined) return context.request.rawBody;
+    if (context.request.length === 0) return undefined;
+
+    return context.request.is('json', '+json') ? JSON.stringify(context.request.body) : undefined;
   }
 
   private forwardedHeaders(context: Context): OutgoingHttpHeaders {
