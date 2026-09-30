@@ -27,6 +27,13 @@ function agentUnreachable(code: string): AgentPortError {
   );
 }
 
+function agentRefusal(status: number, detail: string): AgentPortError {
+  return new AgentPortError(
+    'listSegmentRecordIds',
+    new AgentHttpError(status, { errors: [{ detail }] }),
+  );
+}
+
 function makeConfig(
   overrides: Partial<ServerAutomatedInboxConfig> = {},
 ): ServerAutomatedInboxConfig {
@@ -806,6 +813,61 @@ describe('AutomationPoller', () => {
         'Error',
         'Could not read new candidates of an automated inbox',
         expect.objectContaining({ inboxId: 'inbox-1', error: 'HTTP 500' }),
+      );
+    });
+
+    it("should log the agent's refusal and the read that got it at each fallback step", async () => {
+      const context = makeContext({
+        inboxes: [excluding],
+        assignments: [makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' })],
+      });
+      context.segmentReaderPort.listRecordIds
+        .mockRejectedValueOnce(agentRefusal(400, 'Unsupported operator not_in'))
+        .mockRejectedValueOnce(agentRefusal(400, 'Segment to-review not found'));
+
+      await runOneCycle(makePoller(context));
+
+      expect(context.logger).toHaveBeenCalledWith(
+        'Warn',
+        'The not_in candidate read failed, padding the page instead',
+        expect.objectContaining({
+          httpStatus: 400,
+          agentError: 'Unsupported operator not_in',
+          requestedPageSize: 20,
+          notIn: true,
+        }),
+      );
+      expect(context.logger).toHaveBeenCalledWith(
+        'Error',
+        'Could not read new candidates of an automated inbox',
+        expect.objectContaining({
+          httpStatus: 400,
+          agentError: 'Segment to-review not found',
+          requestedPageSize: 21,
+          pageNumber: 1,
+          paddedPageReason: 'not-in-refused',
+          notIn: false,
+        }),
+      );
+    });
+
+    it('should log the page size of a refused read that excluded nothing', async () => {
+      const context = makeContext({ inboxes: [excluding] });
+      context.segmentReaderPort.listRecordIds.mockRejectedValue(
+        agentRefusal(403, 'Forbidden segment'),
+      );
+
+      await runOneCycle(makePoller(context));
+
+      expect(context.logger).toHaveBeenCalledWith(
+        'Error',
+        'Could not read new candidates of an automated inbox',
+        expect.objectContaining({
+          httpStatus: 403,
+          agentError: 'Forbidden segment',
+          requestedPageSize: 20,
+          notIn: false,
+        }),
       );
     });
 
@@ -1808,7 +1870,13 @@ describe('AutomationPoller', () => {
         inboxes: [makeConfig(), makeConfig({ inboxId: 'inbox-2' })],
       });
       context.automationPort.listAssignments.mockImplementation(async (inboxId: string) => {
-        if (inboxId === 'inbox-1') throw new AutomatedInboxGoneError(inboxId);
+        if (inboxId === 'inbox-1') {
+          throw new AutomatedInboxGoneError(
+            inboxId,
+            'listAutomatedInboxAssignments',
+            'Inbox not found',
+          );
+        }
 
         return [];
       });
@@ -1821,9 +1889,87 @@ describe('AutomationPoller', () => {
         candidates: [],
       });
       expect(context.logger).toHaveBeenCalledWith(
-        'Info',
-        'Automated inbox no longer served, dropping it for this cycle',
-        expect.objectContaining({ inboxId: 'inbox-1' }),
+        'Warn',
+        'Automated inbox listed this cycle but its route answered 404, dropping it for this cycle',
+        expect.objectContaining({
+          inboxId: 'inbox-1',
+          operation: 'listAutomatedInboxAssignments',
+          detail: 'Inbox not found',
+        }),
+      );
+    });
+
+    it('should log which membership chunk the agent refused', async () => {
+      const context = makeContext({
+        assignments: Array.from({ length: 51 }, (_, index) =>
+          makeAssignment({ recordId: `r${index}`, workflowRunId: index + 1 }),
+        ),
+      });
+      context.segmentReaderPort.listRecordIds.mockImplementation(async query => {
+        if (query.recordIds?.includes('r50')) throw agentRefusal(400, 'Too many values');
+
+        return [];
+      });
+
+      await runOneCycle(makePoller(context));
+
+      expect(context.logger).toHaveBeenCalledWith(
+        'Error',
+        'Could not read closed records of an automated inbox',
+        expect.objectContaining({
+          httpStatus: 400,
+          agentError: 'Too many values',
+          membershipChunk: 2,
+          membershipChunks: 2,
+        }),
+      );
+    });
+
+    it("should log the agent's refusal of a later padded page", async () => {
+      const context = makeContext({
+        inboxes: [makeConfig({ maxConcurrentRuns: 2 })],
+        assignments: [
+          makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' }),
+          makeAssignment({ recordId: 'b', state: 'doing', runState: 'started' }),
+        ],
+      });
+      context.segmentReaderPort.listRecordIds
+        .mockResolvedValueOnce(['a', 'b', 'n1', 'a'])
+        .mockRejectedValueOnce(agentRefusal(504, 'Query timed out'));
+
+      await runOneCycle(makePoller(context));
+
+      expect(context.logger).toHaveBeenCalledWith(
+        'Warn',
+        'A later padded candidate page failed, keeping what earlier pages found',
+        expect.objectContaining({
+          pagesRead: 2,
+          requestedPageSize: 4,
+          paddedPageReason: 'unknown-liana',
+          httpStatus: 504,
+          agentError: 'Query timed out',
+        }),
+      );
+    });
+
+    it("should log the agent's refusal of the capabilities read", async () => {
+      const context = makeContext({
+        inboxes: [makeConfig({ liana: 'forest-nodejs-agent' })],
+        assignments: [makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' })],
+      });
+      context.segmentReaderPort.listFieldOperators.mockRejectedValue(
+        new AgentPortError(
+          'listFieldOperators',
+          new AgentHttpError(403, { errors: [{ detail: 'Missing permission' }] }),
+        ),
+      );
+
+      await runOneCycle(makePoller(context));
+
+      expect(context.logger).toHaveBeenCalledWith(
+        'Warn',
+        'Could not read the agent capabilities, padding the page instead',
+        expect.objectContaining({ httpStatus: 403, agentError: 'Missing permission' }),
       );
     });
 
