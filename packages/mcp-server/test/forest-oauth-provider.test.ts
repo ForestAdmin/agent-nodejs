@@ -11,6 +11,7 @@ import {
   InsufficientScopeError,
   InvalidClientError,
   InvalidTokenError,
+  ServerError,
 } from '@modelcontextprotocol/sdk/server/auth/errors.js';
 import jsonwebtoken from 'jsonwebtoken';
 
@@ -1136,6 +1137,28 @@ describe('ForestOAuthProvider', () => {
       expect(logger).toHaveBeenCalledWith(
         'Error',
         expect.stringContaining(`Service account credential ${PARSED.keyId} refused`),
+      );
+    });
+
+    it('should log the cause of a refusal', async () => {
+      const refusal = Object.assign(
+        new ServerError('Unable to resolve the service account credential'),
+        {
+          cause: new Error('Gateway API key resolve failed (status 404)'),
+        },
+      );
+      mockAuthenticate.mockRejectedValue(refusal);
+      const logger = jest.fn();
+
+      await createProvider('https://api.forestadmin.com', undefined, undefined, logger)
+        .verifyAccessToken(CREDENTIAL)
+        .catch(() => undefined);
+
+      expect(logger).toHaveBeenCalledWith(
+        'Error',
+        expect.stringContaining(
+          'Unable to resolve the service account credential (Error: Gateway API key resolve failed (status 404))',
+        ),
       );
     });
 

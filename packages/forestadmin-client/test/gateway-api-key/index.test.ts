@@ -114,9 +114,35 @@ describe('GatewayApiKeyClient.resolve', () => {
     ['user missing tags', { user: { ...USER, tags: undefined }, renderingId: 17 }],
     ['user missing email', { user: { ...USER, email: undefined }, renderingId: 17 }],
     ['a non-string saasAccessToken', { user: USER, renderingId: 17, saasAccessToken: 1 }],
+    ['a null tag', { user: { ...USER, tags: [null] }, renderingId: 17 }],
+    ['a tag without value', { user: { ...USER, tags: [{ key: 'k' }] }, renderingId: 17 }],
+    [
+      'a tag with a non-string key',
+      { user: { ...USER, tags: [{ key: 1, value: 'v' }] }, renderingId: 17 },
+    ],
     ['null', null],
   ])('should throw an unreachable error on a 200 with %s', async (_, body) => {
     mockFetch(jest.fn(async () => fakeResponse(200, body)));
+
+    await expect(new GatewayApiKeyClient(OPTS).resolve(PARSED)).rejects.toMatchObject({
+      unreachable: true,
+    });
+  });
+
+  it('should throw an unreachable error on a 200 whose body is not JSON', async () => {
+    mockFetch(
+      jest.fn(
+        async () =>
+          ({
+            ok: true,
+            status: 200,
+            headers: { get: () => null },
+            json: async () => {
+              throw new SyntaxError('Unexpected token');
+            },
+          } as unknown as Response),
+      ),
+    );
 
     await expect(new GatewayApiKeyClient(OPTS).resolve(PARSED)).rejects.toMatchObject({
       unreachable: true,
@@ -190,5 +216,19 @@ describe('GatewayApiKeyClient.resolve', () => {
       status: 500,
       code: undefined,
     });
+  });
+});
+
+describe('GatewayApiKeyResolveError', () => {
+  it.each([
+    [
+      { status: 403, code: 'plan_feature_missing' },
+      'Gateway API key resolve failed (status 403, code plan_feature_missing)',
+    ],
+    [{ status: 500 }, 'Gateway API key resolve failed (status 500)'],
+    [{ unreachable: true }, 'Gateway API key resolve failed (unreachable)'],
+    [{}, 'Gateway API key resolve failed'],
+  ])('should describe %j in its message', (params, message) => {
+    expect(new GatewayApiKeyResolveError(params).message).toBe(message);
   });
 });

@@ -216,6 +216,16 @@ describe('GatewayApiKeyAuthenticator', () => {
     expect(result.identity).toEqual(IDENTITY);
   });
 
+  it.each([401, 403, 500])('should keep the resolve error of a %s as the cause', async status => {
+    const { resolve, authenticator } = setup();
+    const resolveError = new GatewayApiKeyResolveError({ status, code: 'some_code' });
+    resolve.mockRejectedValue(resolveError);
+
+    const error = await authenticator.authenticate(PARSED).catch(e => e);
+
+    expect(error.cause).toBe(resolveError);
+  });
+
   it('should rethrow an error that is not a resolve refusal', async () => {
     const { resolve, authenticator } = setup();
     const unexpected = new TypeError('boom');

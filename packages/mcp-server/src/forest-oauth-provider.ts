@@ -638,9 +638,13 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
         },
       };
     } catch (error) {
+      const { cause } = error as { cause?: unknown };
+
       this.logger(
         'Error',
-        `[ForestOAuthProvider] Service account credential ${parsedApiKey.keyId} refused: ${error}`,
+        `[ForestOAuthProvider] Service account credential ${parsedApiKey.keyId} refused: ${error}${
+          cause ? ` (${cause})` : ''
+        }`,
       );
 
       throw error;

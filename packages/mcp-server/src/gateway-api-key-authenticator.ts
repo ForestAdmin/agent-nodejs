@@ -39,7 +39,7 @@ type CacheEntry =
   | { kind: 'positive'; identity: AuthenticatedGatewayApiKey['identity']; expiresAt: number }
   | { kind: 'negative'; error: OAuthError; expiresAt: number };
 
-function mapResolveError(error: GatewayApiKeyResolveError): OAuthError {
+function toOAuthError(error: GatewayApiKeyResolveError): OAuthError {
   if (error.status === 401) {
     return new InvalidTokenError('Invalid or revoked service account credential');
   }
@@ -53,6 +53,10 @@ function mapResolveError(error: GatewayApiKeyResolveError): OAuthError {
   }
 
   return new ServerError('Unable to resolve the service account credential');
+}
+
+function mapResolveError(error: GatewayApiKeyResolveError): OAuthError {
+  return Object.assign(toOAuthError(error), { cause: error });
 }
 
 export default class GatewayApiKeyAuthenticator {

@@ -138,8 +138,17 @@ export class GatewayApiKeyClient {
       typeof candidate.email === 'string' &&
       typeof candidate.team === 'string' &&
       typeof candidate.permissionLevel === 'string' &&
-      Array.isArray(candidate.tags)
+      Array.isArray(candidate.tags) &&
+      candidate.tags.every(GatewayApiKeyClient.isTag)
     );
+  }
+
+  private static isTag(tag: unknown): tag is { key: string; value: string } {
+    if (typeof tag !== 'object' || tag === null) return false;
+
+    const candidate = tag as Record<string, unknown>;
+
+    return typeof candidate.key === 'string' && typeof candidate.value === 'string';
   }
 
   private static parseRetryAfter(header: string | null): number | undefined {

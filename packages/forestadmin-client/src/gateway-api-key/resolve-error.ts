@@ -6,6 +6,14 @@ export interface GatewayApiKeyResolveErrorParams {
   unreachable?: boolean;
 }
 
+function describe({ status, code, unreachable }: GatewayApiKeyResolveErrorParams): string {
+  if (unreachable) return ' (unreachable)';
+
+  const details = [status && `status ${status}`, code && `code ${code}`].filter(Boolean);
+
+  return details.length ? ` (${details.join(', ')})` : '';
+}
+
 export default class GatewayApiKeyResolveError extends Error {
   readonly status?: number;
   readonly code?: string;
@@ -14,7 +22,7 @@ export default class GatewayApiKeyResolveError extends Error {
   readonly unreachable: boolean;
 
   constructor(params: GatewayApiKeyResolveErrorParams) {
-    super(`Gateway API key resolve failed${params.status ? ` (${params.status})` : ''}`);
+    super(`Gateway API key resolve failed${describe(params)}`);
     this.name = 'GatewayApiKeyResolveError';
     this.status = params.status;
     this.code = params.code;
