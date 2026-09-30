@@ -480,6 +480,10 @@ function instrumentCollection(
         return recorder.confirm(pendingId, {
           operation: 'update',
           recordId: toPackedRecordId(updated, primaryKeys),
+          // Written whether or not the key moved. Only a value here lets the route trust that the
+          // previous side's id is known: a null has to keep meaning "this row predates the column",
+          // or an old row whose key did move would be judged by the id it moved to.
+          previousRecordId: toPackedRecordId(record, primaryKeys),
           previousValues: redactValues(previousValues, redactedFields),
           newValues: redactValues(newValues, redactedFields),
         });

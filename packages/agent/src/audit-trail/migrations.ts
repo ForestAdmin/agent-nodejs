@@ -35,6 +35,12 @@ function qualifiedMigrationName002(schema: string | undefined, tableName: string
     : `${tableName}:002-index-timestamp-id`;
 }
 
+function qualifiedMigrationName003(schema: string | undefined, tableName: string): string {
+  return schema
+    ? `${schema}.${tableName}:003-add-previous-record-id`
+    : `${tableName}:003-add-previous-record-id`;
+}
+
 // Every table name claimed by an audit-trail store configured in this process, keyed by
 // `schema\0name` — both its own data table and the migration table Umzug derives from it.
 // A second store's data table can otherwise land on the exact name a first store's migration
@@ -236,6 +242,32 @@ function buildMigrations(schema: string | undefined, tableName: string) {
         await context.queryInterface.removeIndex(
           { tableName: context.tableName, schema: context.schema },
           `${context.tableName}_timestamp_id`,
+          { transaction: context.transaction },
+        );
+      },
+    },
+    {
+      // Its own migration rather than a column added to 001: the table has shipped, so a database
+      // out there has already recorded 001 as applied and would never see the edit.
+      name: qualifiedMigrationName003(schema, tableName),
+      up: async ({ context }: { context: MigrationContext }) => {
+        const table = { tableName: context.tableName, schema: context.schema };
+        const existing = await columnNames(context.queryInterface, table, context.transaction);
+
+        // Idempotent for the same reason 001 is: a process losing a concurrent-boot race retries.
+        if (existing.has('previous_record_id')) return;
+
+        await context.queryInterface.addColumn(
+          table,
+          'previous_record_id',
+          { type: DataTypes.TEXT, allowNull: true },
+          { transaction: context.transaction },
+        );
+      },
+      down: async ({ context }: { context: MigrationContext }) => {
+        await context.queryInterface.removeColumn(
+          { tableName: context.tableName, schema: context.schema },
+          'previous_record_id',
           { transaction: context.transaction },
         );
       },

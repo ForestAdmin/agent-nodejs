@@ -1628,6 +1628,65 @@ describe('AuditTrailRoute', () => {
         ]);
       });
 
+      // What PRD-1321 buys back: with the id the row was filed under before the move recorded, the
+      // previous side is judged by that id instead of being withheld for want of an answer.
+      test('judges a moved key against the id the previous side carried', async () => {
+        const data = await historyUnder(new ConditionTreeLeaf('id', 'Equal', 2), [
+          {
+            operation: 'update',
+            recordId: '9',
+            previousRecordId: '2',
+            previousValues: { id: REDACTED, secret: 'was in scope then' },
+            newValues: { id: REDACTED, secret: 'out of scope now' },
+          },
+        ]);
+
+        expect(data).toEqual([
+          {
+            operation: 'update',
+            recordId: '9',
+            previousValues: { id: REDACTED, secret: 'was in scope then' },
+            newValues: {},
+          },
+        ]);
+      });
+
+      test("never serves the id a move came from, which is the agent's own bookkeeping", async () => {
+        const data = await historyUnder(new ConditionTreeLeaf('id', 'Equal', 2), [
+          {
+            operation: 'update',
+            recordId: '9',
+            previousRecordId: '2',
+            previousValues: { ownerId: 2 },
+            newValues: { ownerId: 2 },
+          },
+        ]);
+
+        expect(data[0]).not.toHaveProperty('previousRecordId');
+      });
+
+      test("withholds a pending update's new side, which its id cannot speak for", async () => {
+        const data = await historyUnder(new ConditionTreeLeaf('id', 'Equal', 2), [
+          {
+            operation: 'update',
+            recordId: '2',
+            status: 'pending',
+            previousValues: { id: 2, secret: 'before' },
+            newValues: { id: REDACTED, secret: 'after' },
+          },
+        ]);
+
+        expect(data).toEqual([
+          {
+            operation: 'update',
+            recordId: '2',
+            status: 'pending',
+            previousValues: { id: 2, secret: 'before' },
+            newValues: {},
+          },
+        ]);
+      });
+
       test('withholds the values when the scope names an inherited property of the snapshot', async () => {
         const data = await historyUnder(new ConditionTreeLeaf('toString', 'NotEqual', 'private'), [
           { operation: 'delete', recordId: '2', previousValues: { ownerId: 1, secret: 'shh' } },
