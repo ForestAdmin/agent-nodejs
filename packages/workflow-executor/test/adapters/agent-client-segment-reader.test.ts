@@ -438,6 +438,25 @@ describe('AgentClientSegmentReader', () => {
 
       await expect(reader.listRecordIds(makeQuery())).rejects.toThrow(AgentPortError);
     });
+
+    it('should keep the HTTP status of the agent answer on the port error', async () => {
+      nock(AGENT_URL).get('/forest/orders').query(true).reply(403, {});
+
+      await expect(reader.listRecordIds(makeQuery())).rejects.toMatchObject({
+        cause: expect.objectContaining({ name: 'AgentHttpError', status: 403 }),
+      });
+    });
+
+    it('should keep the network error code when the agent does not answer', async () => {
+      nock(AGENT_URL)
+        .get('/forest/orders')
+        .query(true)
+        .replyWithError({ code: 'ECONNREFUSED', message: 'connect ECONNREFUSED' });
+
+      await expect(reader.listRecordIds(makeQuery())).rejects.toMatchObject({
+        cause: expect.objectContaining({ code: 'ECONNREFUSED' }),
+      });
+    });
   });
 
   describe('field operators', () => {
