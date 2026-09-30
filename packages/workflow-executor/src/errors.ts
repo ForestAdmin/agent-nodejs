@@ -414,6 +414,15 @@ function isAgentHttpResponse(cause: unknown): cause is AgentHttpResponse {
   return cause instanceof Error && typeof (cause as Partial<AgentHttpResponse>).status === 'number';
 }
 
+export function agentErrorDetail(error: unknown): string | undefined {
+  const response = isAgentHttpResponse(error) ? error : (error as { cause?: unknown })?.cause;
+  if (!isAgentHttpResponse(response)) return undefined;
+  const detail = extractErrorDetail(response);
+  if (!detail) return undefined;
+
+  return flattenAgentMessage(detail);
+}
+
 export function flattenAgentMessage(detail: string): string {
   const flat = Array.from(detail.slice(0, AGENT_ERROR_MESSAGE_MAX_LENGTH * 4), char =>
     char < ' ' || (char >= '\u007f' && char <= '\u009f') ? ' ' : char,
@@ -428,10 +437,7 @@ export function flattenAgentMessage(detail: string): string {
 }
 
 function agentErrorMessage(cause: unknown): string | undefined {
-  if (!isAgentHttpResponse(cause) || cause.status < 500) return undefined;
-  const detail = extractErrorDetail(cause);
-
-  return detail ? flattenAgentMessage(detail) : undefined;
+  return isAgentHttpResponse(cause) && cause.status >= 500 ? agentErrorDetail(cause) : undefined;
 }
 
 export class AgentPortError extends WorkflowExecutorError {
@@ -678,11 +684,15 @@ export class AgentProbeError extends Error {
 // poll is what decides whether the inbox comes back.
 export class AutomatedInboxGoneError extends Error {
   readonly inboxId: string;
+  readonly operation: string;
+  readonly detail?: string;
 
-  constructor(inboxId: string) {
+  constructor(inboxId: string, operation: string, detail?: string) {
     super(`Automated inbox "${inboxId}" is no longer served by the orchestrator`);
     this.name = 'AutomatedInboxGoneError';
     this.inboxId = inboxId;
+    this.operation = operation;
+    this.detail = detail;
   }
 }
 
