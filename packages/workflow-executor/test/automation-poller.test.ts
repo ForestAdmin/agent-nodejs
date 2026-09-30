@@ -1389,7 +1389,12 @@ describe('AutomationPoller', () => {
       expect(context.logger).toHaveBeenCalledWith(
         'Warn',
         'Unknown assignment state, leaving the record out of every sweep until this executor knows it',
-        expect.objectContaining({ inboxId: 'inbox-1', state: 'a-state-from-the-future' }),
+        expect.objectContaining({
+          inboxId: 'inbox-1',
+          state: 'a-state-from-the-future',
+          recordId: 'r1',
+          workflowRunId: 1,
+        }),
       );
     });
 
@@ -1486,7 +1491,12 @@ describe('AutomationPoller', () => {
       expect(context.logger).toHaveBeenCalledWith(
         'Warn',
         'Unexpected workflow run state, leaving the record out of every sweep until this executor knows it',
-        expect.objectContaining({ inboxId: 'inbox-1', runState: null }),
+        expect.objectContaining({
+          inboxId: 'inbox-1',
+          runState: null,
+          recordId: 'automated',
+          workflowRunId: 7,
+        }),
       );
     });
 
@@ -1504,7 +1514,12 @@ describe('AutomationPoller', () => {
       expect(context.logger).toHaveBeenCalledWith(
         'Warn',
         'Unexpected workflow run state, leaving the record out of every sweep until this executor knows it',
-        expect.objectContaining({ inboxId: 'inbox-1', runState: 'a-state-from-the-future' }),
+        expect.objectContaining({
+          inboxId: 'inbox-1',
+          runState: 'a-state-from-the-future',
+          recordId: 'r1',
+          workflowRunId: 1,
+        }),
       );
     });
 
