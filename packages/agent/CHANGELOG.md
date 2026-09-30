@@ -1,3 +1,10 @@
+## @forestadmin/agent [1.103.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.103.8...@forestadmin/agent@1.103.9) (2026-09-30)
+
+
+### Bug Fixes
+
+* **agent:** relay the parsed JSON body when the host app parsed it first ([#1939](https://github.com/ForestAdmin/agent-nodejs/issues/1939)) ([fd3fc96](https://github.com/ForestAdmin/agent-nodejs/commit/fd3fc96196b390d2c061aab9ee17ed4b5072fe26))
+
 ## @forestadmin/agent [1.103.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.103.7...@forestadmin/agent@1.103.8) (2026-09-30)
 
 
