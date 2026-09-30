@@ -1617,6 +1617,16 @@ describe('AutomationPoller', () => {
         ['a timeout', agentUnreachable('ECONNABORTED'), { reason: 'agent-unreachable' }],
         ['a refused connection', agentUnreachable('ECONNREFUSED'), { reason: 'agent-unreachable' }],
         ['an unknown host', agentUnreachable('ENOTFOUND'), { reason: 'agent-unreachable' }],
+        ['a reset connection', agentUnreachable('ECONNRESET'), { reason: 'agent-unreachable' }],
+        ['a temporary DNS failure', agentUnreachable('EAI_AGAIN'), { reason: 'agent-unreachable' }],
+        ['an unreachable host', agentUnreachable('EHOSTUNREACH'), { reason: 'agent-unreachable' }],
+        [
+          'an unreachable network',
+          agentUnreachable('ENETUNREACH'),
+          { reason: 'agent-unreachable' },
+        ],
+        ['a broken pipe', agentUnreachable('EPIPE'), { reason: 'agent-unreachable' }],
+        ['a socket timeout', agentUnreachable('ETIMEDOUT'), { reason: 'agent-unreachable' }],
         ['a response without a status', agentAnswered(0), { reason: 'agent-unreachable' }],
         [
           'an error of its own before any answer',
@@ -1685,6 +1695,30 @@ describe('AutomationPoller', () => {
             readFailure: { reason: 'agent-forbidden', httpStatus: 403 },
           }),
         );
+      });
+
+      it('should fail the whole membership read when a later chunk fails', async () => {
+        const recordIds = Array.from({ length: 51 }, (_, index) => `r${index}`);
+        const context = makeContext({
+          assignments: recordIds.map(recordId => makeAssignment({ recordId })),
+        });
+        context.segmentReaderPort.listRecordIds.mockImplementation(
+          async ({ recordIds: batch }: ListSegmentRecordIdsQuery) => {
+            if (batch === undefined) return [];
+            if (batch.includes('r50')) throw agentAnswered(503);
+
+            return [];
+          },
+        );
+
+        await runOneCycle(makePoller(context));
+
+        // All-or-nothing: the first chunk's results are dropped, and the read reports the failure.
+        expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
+          closed: [],
+          candidates: [],
+          readFailure: { reason: 'agent-unreachable', httpStatus: 503 },
+        });
       });
 
       it('should name the failure in the poll log line', async () => {

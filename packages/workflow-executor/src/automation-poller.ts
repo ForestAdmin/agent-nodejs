@@ -92,8 +92,8 @@ const UNREACHABLE_AGENT_ERROR_CODES: ReadonlySet<string> = new Set([
   'ETIMEDOUT',
 ]);
 
-// The server refuses the whole sync for a status outside this range, and agent-client falls back
-// to 0 when a response carries none.
+// agent-client reports status 0 when a response carries none. 0 is not a real HTTP status, so a
+// read that lands there reached no answer worth classifying by code: treat it as unreachable.
 const isHttpStatus = (status: number): boolean => status >= 100 && status <= 599;
 
 function classifyReadFailure(error: unknown): ServerAutomatedInboxReadFailure {
@@ -102,7 +102,7 @@ function classifyReadFailure(error: unknown): ServerAutomatedInboxReadFailure {
   const { cause } = error;
 
   if (!(cause instanceof AgentHttpError)) {
-    const code = (cause as { code?: unknown } | null)?.code;
+    const code = (cause as { code?: unknown })?.code;
 
     return typeof code === 'string' && UNREACHABLE_AGENT_ERROR_CODES.has(code)
       ? { reason: 'agent-unreachable' }
