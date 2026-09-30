@@ -468,15 +468,26 @@ export default class AutomationPoller {
     }
 
     // The orchestrator keeps the row of an ended run `doing` while its record is still in the
-    // segment, so that record is only released once it is seen leaving.
+    // segment, so that record is only released once it is seen leaving. An assignment with no
+    // workflowRunId was made by a person, not the orchestrator, which binds the run first: there is
+    // nothing to reconcile, so it stays out of the report — the record stays known, and no automated
+    // run is ever started over the human's work. Keyed on the run's presence, not its state: the
+    // orchestrator binds a run before an automated assignment and its `runState` is NOT NULL, so a
+    // bound run with a null state is a contract break, not a human assignment — it belongs here so
+    // the warning below surfaces it instead of dropping it silently.
     const reconcilable = assignments.filter(
-      ({ state, runState }) =>
-        RECONCILABLE_ASSIGNMENT_STATES.has(state) || (state === 'doing' && isTerminalRun(runState)),
+      ({ state, runState, workflowRunId }) =>
+        workflowRunId != null &&
+        (RECONCILABLE_ASSIGNMENT_STATES.has(state) ||
+          (state === 'doing' && isTerminalRun(runState))),
     );
 
     for (const { runState } of reconcilable) {
-      // Null belongs here too: the orchestrator binds the run before the assignment, so an
-      // assignment with no run is not a shape this executor knows how to read either.
+      // A run state this executor cannot place: a non-null one it predates, or null on a bound run —
+      // which the orchestrator's schema (NOT NULL runState behind a cascading FK) should never emit,
+      // so it is a contract break worth surfacing until a fix lands. The human assignment never
+      // reaches here — it has no workflowRunId, so warning forever would be noise it could never
+      // resolve.
       if (!isTerminalRun(runState) && !isLiveRun(runState)) {
         this.logger(
           'Warn',
