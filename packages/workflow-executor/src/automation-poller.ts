@@ -454,7 +454,7 @@ export default class AutomationPoller {
   ): Promise<SegmentRead<{ recordId: string; stillInSegment: boolean }>> {
     const logContext = { inboxId: config.inboxId, renderingId: config.renderingId };
 
-    for (const { state } of assignments) {
+    for (const { state, recordId, workflowRunId } of assignments) {
       if (!RECONCILABLE_ASSIGNMENT_STATES.has(state) && !OPEN_ASSIGNMENT_STATES.has(state)) {
         this.logger(
           'Warn',
@@ -462,6 +462,8 @@ export default class AutomationPoller {
           {
             ...logContext,
             state,
+            recordId,
+            workflowRunId,
           },
         );
       }
@@ -482,7 +484,7 @@ export default class AutomationPoller {
           (state === 'doing' && isTerminalRun(runState))),
     );
 
-    for (const { runState } of reconcilable) {
+    for (const { runState, recordId, workflowRunId } of reconcilable) {
       // A run state this executor cannot place: a non-null one it predates, or null on a bound run —
       // which the orchestrator's schema (NOT NULL runState behind a cascading FK) should never emit,
       // so it is a contract break worth surfacing until a fix lands. The human assignment never
@@ -495,6 +497,8 @@ export default class AutomationPoller {
           {
             ...logContext,
             runState,
+            recordId,
+            workflowRunId,
           },
         );
       }
