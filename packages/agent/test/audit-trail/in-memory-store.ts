@@ -115,17 +115,19 @@ export default class InMemoryAuditStore implements AuditStore {
     startTimestamp,
     endTimestamp,
     order = 'asc',
+    after,
   }: AuditHistoryQuery): AuditRecord[] {
     const direction = order === 'desc' ? -1 : 1;
+    const compare = (a: Pick<AuditRecord, 'timestamp' | 'id'>, b: typeof a) =>
+      direction * (a.timestamp.localeCompare(b.timestamp) || a.id - b.id);
 
-    // Ties on equal timestamps fall back to insertion order (the stable sort keeps it), which is
-    // the in-memory equivalent of the SQL store's auto-increment id — deterministic and chronological.
     return this.records
       .filter(record => record.collection === collection && record.recordId === recordId)
       .filter(record => !userIds || userIds.includes(record.userId))
       .filter(record => !operations?.length || operations.includes(record.operation))
       .filter(record => !startTimestamp || record.timestamp >= startTimestamp)
       .filter(record => !endTimestamp || record.timestamp <= endTimestamp)
-      .sort((a, b) => direction * a.timestamp.localeCompare(b.timestamp));
+      .filter(record => !after || compare(record, after) > 0)
+      .sort(compare);
   }
 }
