@@ -1,6 +1,6 @@
 import type { Logger } from './server';
 import type { TokenTtlOptions } from './utils/token-ttl';
-import type { ForestAdminClient } from '@forestadmin/forestadmin-client';
+import type { ForestAdminClient, ParsedGatewayApiKey } from '@forestadmin/forestadmin-client';
 import type { OAuthRegisteredClientsStore } from '@modelcontextprotocol/sdk/server/auth/clients.js';
 import type {
   AuthorizationParams,
@@ -15,7 +15,10 @@ import type {
 import type { Response } from 'express';
 
 import { toAgentTokenClaims } from '@forestadmin/agent-client';
-import createForestAdminClient from '@forestadmin/forestadmin-client';
+import createForestAdminClient, {
+  GatewayApiKeyClient,
+  parseGatewayApiKey,
+} from '@forestadmin/forestadmin-client';
 import {
   CustomOAuthError,
   InvalidClientError,
@@ -28,6 +31,9 @@ import {
 import jsonwebtoken from 'jsonwebtoken';
 import { z } from 'zod';
 
+import GatewayApiKeyAuthenticator, {
+  SERVICE_ACCOUNT_SCOPES,
+} from './gateway-api-key-authenticator';
 import { sessionRemainingSeconds } from './utils/token-ttl';
 
 const DecodedRefreshTokenSchema = z.object({
@@ -77,6 +83,7 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
   private envSecret: string;
   private authSecret: string;
   private forestClient: ForestAdminClient;
+  private gatewayApiKeyAuthenticator: GatewayApiKeyAuthenticator;
   private environmentId?: number;
   private environmentApiEndpoint?: string;
   private agentUrl?: string;
@@ -106,6 +113,14 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
     this.forestClient = createForestAdminClient({
       forestServerUrl: this.forestServerUrl,
       envSecret: this.envSecret,
+    });
+    this.gatewayApiKeyAuthenticator = new GatewayApiKeyAuthenticator({
+      client: new GatewayApiKeyClient({
+        forestServerUrl: this.forestServerUrl,
+        envSecret: this.envSecret,
+        service: 'mcp',
+      }),
+      authSecret: this.authSecret,
     });
   }
 
@@ -551,6 +566,10 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
   }
 
   async verifyAccessToken(token: string): Promise<AuthInfo> {
+    const parsedApiKey = parseGatewayApiKey(token);
+
+    if (parsedApiKey) return this.verifyGatewayApiKey(parsedApiKey);
+
     try {
       const verified = jsonwebtoken.verify(token, this.authSecret, { algorithms: ['HS256'] });
 
@@ -595,6 +614,34 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
       if (error instanceof jsonwebtoken.JsonWebTokenError) {
         throw new InvalidTokenError('Invalid access token');
       }
+
+      throw error;
+    }
+  }
+
+  private async verifyGatewayApiKey(parsedApiKey: ParsedGatewayApiKey): Promise<AuthInfo> {
+    try {
+      const { identity, agentToken, expiresAt } =
+        await this.gatewayApiKeyAuthenticator.authenticate(parsedApiKey);
+
+      return {
+        token: agentToken,
+        clientId: `service-account-key:${parsedApiKey.keyId}`,
+        expiresAt,
+        scopes: [...SERVICE_ACCOUNT_SCOPES],
+        extra: {
+          userId: identity.user.id,
+          email: identity.user.email,
+          renderingId: identity.renderingId,
+          environmentApiEndpoint: this.agentUrl ?? this.environmentApiEndpoint,
+          forestServerToken: identity.saasAccessToken,
+        },
+      };
+    } catch (error) {
+      this.logger(
+        'Error',
+        `[ForestOAuthProvider] Service account credential ${parsedApiKey.keyId} refused: ${error}`,
+      );
 
       throw error;
     }
