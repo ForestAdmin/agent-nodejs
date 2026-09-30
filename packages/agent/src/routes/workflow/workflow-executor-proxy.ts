@@ -97,13 +97,14 @@ export default class WorkflowExecutorProxyRoute extends BaseRoute {
     return `/${wildcard}`;
   }
 
-  // The agent's own @koa/bodyparser records the raw body, which is forwarded verbatim. Whichever
-  // parser a host app runs first leaves only the parsed body, so a JSON one is re-serialised.
+  // The agent's own @koa/bodyparser records the raw body, which is forwarded verbatim. Under
+  // enableRawChecking, a host parser that ran first leaves only the parsed body to re-serialise.
   private forwardedBody(context: Context): string | undefined {
     if (context.method === 'GET') return undefined;
     if (context.request.rawBody !== undefined) return context.request.rawBody;
+    if (context.request.length === 0) return undefined;
 
-    return context.request.is('json') ? JSON.stringify(context.request.body) : undefined;
+    return context.request.is('json', '+json') ? JSON.stringify(context.request.body) : undefined;
   }
 
   private forwardedHeaders(context: Context): OutgoingHttpHeaders {

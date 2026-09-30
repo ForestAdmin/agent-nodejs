@@ -358,6 +358,42 @@ describe('WorkflowExecutorProxyRoute', () => {
 
       expect(receivedBody).toBe('');
     });
+
+    test('forwards no body when a JSON request declares an empty one', async () => {
+      const route = buildRoute(`http://localhost:${executorPort}`);
+      const context = withoutRawBody(
+        buildContext('runs/run-456/trigger', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'content-length': '0' },
+          requestBody: {},
+        }),
+      );
+
+      await callHandleProxy(route, context);
+
+      expect(receivedMethod).toBe('POST');
+      expect(receivedBody).toBe('');
+    });
+
+    test('forwards the parsed body as JSON for a +json media type with no raw body', async () => {
+      const route = buildRoute(`http://localhost:${executorPort}`);
+      const pendingData = { pendingData: { answer: 'yes' } };
+      const context = withoutRawBody(
+        buildContext('runs/run-456/trigger', {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/vnd.api+json',
+            'content-length': `${JSON.stringify(pendingData).length}`,
+          },
+          requestBody: pendingData,
+        }),
+      );
+
+      await callHandleProxy(route, context);
+
+      expect(receivedBody).toBe(JSON.stringify(pendingData));
+      expect(receivedHeaders['content-type']).toBe('application/vnd.api+json');
+    });
   });
 
   describe('handleProxy — headers', () => {
