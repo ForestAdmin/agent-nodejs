@@ -8,9 +8,9 @@ import type { SelectOptions } from '@forestadmin/agent-client';
 
 import { createRemoteAgentClient } from '@forestadmin/agent-client';
 
+import { segmentReadError } from './agent-errors';
 import { mintStepToken, toStepUser } from './step-user';
 import {
-  AgentPortError,
   CompositeRecordIdMismatchError,
   SegmentRecordIdMissingError,
   WorkflowExecutorError,
@@ -78,7 +78,7 @@ export default class AgentClientSegmentReader implements SegmentReaderPort {
         throw cause;
       }
 
-      throw new AgentPortError('listSegmentRecordIds', cause);
+      throw segmentReadError('listSegmentRecordIds', cause);
     }
   }
 
@@ -92,7 +92,7 @@ export default class AgentClientSegmentReader implements SegmentReaderPort {
 
       return fields.find(({ name }) => name === field)?.operators ?? [];
     } catch (cause) {
-      throw new AgentPortError('listFieldOperators', cause);
+      throw segmentReadError('listFieldOperators', cause);
     }
   }
 

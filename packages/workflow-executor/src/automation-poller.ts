@@ -2,22 +2,17 @@ import type {
   ServerAutomatedInboxAssignment,
   ServerAutomatedInboxConfig,
   ServerAutomatedInboxReadFailure,
+  ServerAutomatedInboxReadFailureReason,
 } from './adapters/server-types';
+import type { SegmentReadFailureKind } from './errors';
 import type { AutomationPort } from './ports/automation-port';
 import type { Logger } from './ports/logger-port';
 import type { SegmentReaderPort } from './ports/segment-reader-port';
 
-import { AgentHttpError } from '@forestadmin/agent-client';
-
 import createConsoleLogger from './adapters/console-logger';
 import toProjectTimezone from './adapters/project-timezone';
 import { DEFAULT_STOP_TIMEOUT_S } from './defaults';
-import {
-  AgentPortError,
-  AutomatedInboxGoneError,
-  agentErrorDetail,
-  extractErrorMessage,
-} from './errors';
+import { AutomatedInboxGoneError, SegmentReadError, extractErrorMessage } from './errors';
 import InFlightRunRegistry from './in-flight-run-registry';
 import { deserializeRecordId } from './record-id';
 
@@ -80,53 +75,21 @@ const isTerminalRun = (runState: string | null | undefined): boolean =>
 const isLiveRun = (runState: string | null | undefined): boolean =>
   runState != null && LIVE_RUN_STATES.has(runState);
 
-const FORBIDDEN_AGENT_STATUSES: ReadonlySet<number> = new Set([401, 403]);
-
-const UNREACHABLE_AGENT_STATUSES: ReadonlySet<number> = new Set([502, 503, 504]);
-
-const OVERLOADED_AGENT_STATUSES: ReadonlySet<number> = new Set([408, 429]);
-
-// Superagent's own timeout is ECONNABORTED. Any other failure without an HTTP answer (a JWT that
-// cannot be signed, a malformed agent URL) is a fault on our side, not an agent to go and restart.
-const UNREACHABLE_AGENT_ERROR_CODES: ReadonlySet<string> = new Set([
-  'ECONNABORTED',
-  'ECONNREFUSED',
-  'ECONNRESET',
-  'EAI_AGAIN',
-  'EHOSTUNREACH',
-  'ENETUNREACH',
-  'ENOTFOUND',
-  'EPIPE',
-  'ETIMEDOUT',
-]);
-
-// agent-client reports status 0 when a response carries none. 0 is not a real HTTP status, so a
-// read that lands there reached no answer worth classifying by code: treat it as unreachable.
-const isHttpStatus = (status: number): boolean => status >= 100 && status <= 599;
+const READ_FAILURE_REASONS: Record<SegmentReadFailureKind, ServerAutomatedInboxReadFailureReason> =
+  {
+    forbidden: 'agent-forbidden',
+    unreachable: 'agent-unreachable',
+    overloaded: 'segment-read-failed',
+    failed: 'segment-read-failed',
+  };
 
 function classifyReadFailure(error: unknown): ServerAutomatedInboxReadFailure {
-  if (!(error instanceof AgentPortError)) return { reason: 'segment-read-failed' };
+  if (!(error instanceof SegmentReadError)) return { reason: 'segment-read-failed' };
 
-  const { cause } = error;
+  const { failure, httpStatus } = error;
+  const reason = READ_FAILURE_REASONS[failure];
 
-  if (!(cause instanceof AgentHttpError)) {
-    const code = (cause as { code?: unknown })?.code;
-
-    return typeof code === 'string' && UNREACHABLE_AGENT_ERROR_CODES.has(code)
-      ? { reason: 'agent-unreachable' }
-      : { reason: 'segment-read-failed' };
-  }
-
-  const httpStatus = cause.status;
-
-  if (!isHttpStatus(httpStatus)) return { reason: 'agent-unreachable' };
-  if (FORBIDDEN_AGENT_STATUSES.has(httpStatus)) return { reason: 'agent-forbidden', httpStatus };
-
-  if (UNREACHABLE_AGENT_STATUSES.has(httpStatus)) {
-    return { reason: 'agent-unreachable', httpStatus };
-  }
-
-  return { reason: 'segment-read-failed', httpStatus };
+  return httpStatus === undefined ? { reason } : { reason, httpStatus };
 }
 
 // A refused `not_in` comes back as a 4xx or a 500 depending on the agent (PHP answers 500 even for
@@ -134,18 +97,14 @@ function classifyReadFailure(error: unknown): ServerAutomatedInboxReadFailure {
 // padding then would evaluate the segment again on top of the read the agent may still be running.
 // A 401 or 403 would refuse the padded read just the same.
 function mayBeOperatorRefusal(error: unknown): boolean {
-  const { reason, httpStatus } = classifyReadFailure(error);
-
-  if (reason === 'agent-unreachable' || reason === 'agent-forbidden') return false;
-
-  return httpStatus === undefined || !OVERLOADED_AGENT_STATUSES.has(httpStatus);
+  return !(error instanceof SegmentReadError) || error.failure === 'failed';
 }
 
 function describeAgentFailure(error: unknown) {
   return {
     error: extractErrorMessage(error),
     httpStatus: classifyReadFailure(error).httpStatus,
-    agentError: agentErrorDetail(error),
+    agentError: error instanceof SegmentReadError ? error.agentDetail : undefined,
   };
 }
 

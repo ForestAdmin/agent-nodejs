@@ -2,35 +2,41 @@ import type {
   ServerAutomatedInboxAssignment,
   ServerAutomatedInboxConfig,
 } from '../src/adapters/server-types';
+import type { SegmentReadFailureKind } from '../src/errors';
 import type { AutomationPort } from '../src/ports/automation-port';
 import type {
   ListSegmentRecordIdsQuery,
   SegmentReaderPort,
 } from '../src/ports/segment-reader-port';
 
-import { AgentHttpError } from '@forestadmin/agent-client';
-
 import AutomationPoller from '../src/automation-poller';
 import {
-  AgentPortError,
   AutomatedInboxGoneError,
   CompositeRecordIdMismatchError,
+  SegmentReadError,
   SegmentRecordIdMissingError,
 } from '../src/errors';
 
 const POLL_INTERVAL_S = 300;
 
-function agentUnreachable(code: string): AgentPortError {
-  return new AgentPortError(
-    'listSegmentRecordIds',
-    Object.assign(new Error(`agent unreachable: ${code}`), { code }),
-  );
-}
+function segmentReadFailure(
+  failure: SegmentReadFailureKind,
+  {
+    httpStatus,
+    agentDetail,
+    operation = 'listSegmentRecordIds',
+  }: { httpStatus?: number; agentDetail?: string; operation?: string } = {},
+): SegmentReadError {
+  // SegmentReadError reads its agentDetail off the status and body of its cause.
+  const answer =
+    agentDetail === undefined
+      ? {}
+      : { status: httpStatus, body: { errors: [{ detail: agentDetail }] } };
 
-function agentRefusal(status: number, detail: string): AgentPortError {
-  return new AgentPortError(
-    'listSegmentRecordIds',
-    new AgentHttpError(status, { errors: [{ detail }] }),
+  return new SegmentReadError(
+    operation,
+    Object.assign(new Error(`segment read ${failure}`), answer),
+    { failure, httpStatus },
   );
 }
 
@@ -728,7 +734,12 @@ describe('AutomationPoller', () => {
         assignments: [makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' })],
       });
       context.segmentReaderPort.listRecordIds
-        .mockRejectedValueOnce(agentRefusal(400, 'Unsupported operator not_in'))
+        .mockRejectedValueOnce(
+          segmentReadFailure('failed', {
+            httpStatus: 400,
+            agentDetail: 'Unsupported operator not_in',
+          }),
+        )
         .mockResolvedValueOnce(['a', 'fresh']);
 
       await runOneCycle(makePoller(context));
@@ -763,7 +774,10 @@ describe('AutomationPoller', () => {
         assignments: [makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' })],
       });
       context.segmentReaderPort.listRecordIds.mockRejectedValueOnce(
-        agentRefusal(400, 'Unsupported operator not_in'),
+        segmentReadFailure('failed', {
+          httpStatus: 400,
+          agentDetail: 'Unsupported operator not_in',
+        }),
       );
       const poller = makePoller(context);
 
@@ -779,18 +793,22 @@ describe('AutomationPoller', () => {
     });
 
     it.each([
-      ['a timeout', agentUnreachable('ECONNABORTED'), { reason: 'agent-unreachable' }],
+      ['an unreachable agent', segmentReadFailure('unreachable'), { reason: 'agent-unreachable' }],
       [
-        'a 503',
-        agentRefusal(503, 'Service unavailable'),
+        'an unreachable agent answering 503',
+        segmentReadFailure('unreachable', { httpStatus: 503 }),
         { reason: 'agent-unreachable', httpStatus: 503 },
       ],
       [
-        'a 429',
-        agentRefusal(429, 'Too many requests'),
+        'an overloaded agent',
+        segmentReadFailure('overloaded', { httpStatus: 429 }),
         { reason: 'segment-read-failed', httpStatus: 429 },
       ],
-      ['a 403', agentRefusal(403, 'Forbidden'), { reason: 'agent-forbidden', httpStatus: 403 }],
+      [
+        'a forbidden read',
+        segmentReadFailure('forbidden', { httpStatus: 403 }),
+        { reason: 'agent-forbidden', httpStatus: 403 },
+      ],
     ])(
       'should not read the segment again in this cycle when the `not_in` read fails with %s',
       async (_, error, readFailure) => {
@@ -822,8 +840,9 @@ describe('AutomationPoller', () => {
     );
 
     it.each([
-      ['a 400', agentRefusal(400, 'Unsupported operator not_in')],
-      ['a 500', agentRefusal(500, "The given operator 'not_in' is not supported by the column")],
+      ['a failed read answering 400', segmentReadFailure('failed', { httpStatus: 400 })],
+      ['a failed read answering 500', segmentReadFailure('failed', { httpStatus: 500 })],
+      ['an error that is no segment read', new Error('HTTP 500')],
     ])(
       'should fall back to a padded page when the `not_in` read fails with %s',
       async (_, error) => {
@@ -870,7 +889,12 @@ describe('AutomationPoller', () => {
         assignments: [makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' })],
       });
       context.segmentReaderPort.listRecordIds
-        .mockRejectedValueOnce(agentRefusal(400, 'Unsupported operator not_in'))
+        .mockRejectedValueOnce(
+          segmentReadFailure('failed', {
+            httpStatus: 400,
+            agentDetail: 'Unsupported operator not_in',
+          }),
+        )
         .mockRejectedValueOnce(new Error('HTTP 500'));
 
       await runOneCycle(makePoller(context));
@@ -893,8 +917,18 @@ describe('AutomationPoller', () => {
         assignments: [makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' })],
       });
       context.segmentReaderPort.listRecordIds
-        .mockRejectedValueOnce(agentRefusal(400, 'Unsupported operator not_in'))
-        .mockRejectedValueOnce(agentRefusal(400, 'Segment to-review not found'));
+        .mockRejectedValueOnce(
+          segmentReadFailure('failed', {
+            httpStatus: 400,
+            agentDetail: 'Unsupported operator not_in',
+          }),
+        )
+        .mockRejectedValueOnce(
+          segmentReadFailure('failed', {
+            httpStatus: 400,
+            agentDetail: 'Segment to-review not found',
+          }),
+        );
 
       await runOneCycle(makePoller(context));
 
@@ -925,7 +959,7 @@ describe('AutomationPoller', () => {
     it('should log the page size of a refused read that excluded nothing', async () => {
       const context = makeContext({ inboxes: [excluding] });
       context.segmentReaderPort.listRecordIds.mockRejectedValue(
-        agentRefusal(403, 'Forbidden segment'),
+        segmentReadFailure('forbidden', { httpStatus: 403, agentDetail: 'Forbidden segment' }),
       );
 
       await runOneCycle(makePoller(context));
@@ -1160,7 +1194,12 @@ describe('AutomationPoller', () => {
           assignments: waitingOnAPerson(30),
         });
         context.segmentReaderPort.listRecordIds
-          .mockRejectedValueOnce(agentRefusal(400, 'Unsupported operator not_in'))
+          .mockRejectedValueOnce(
+            segmentReadFailure('failed', {
+              httpStatus: 400,
+              agentDetail: 'Unsupported operator not_in',
+            }),
+          )
           .mockResolvedValueOnce([...pageOf('w', 30), ...pageOf('fresh-', 470)])
           .mockResolvedValueOnce(pageOf('late-', 10));
 
@@ -1710,7 +1749,7 @@ describe('AutomationPoller', () => {
       });
       context.segmentReaderPort.listRecordIds.mockImplementation(
         async ({ recordIds }: ListSegmentRecordIdsQuery) => {
-          if (recordIds === undefined) throw agentUnreachable('ECONNABORTED');
+          if (recordIds === undefined) throw segmentReadFailure('unreachable');
 
           return [];
         },
@@ -1755,7 +1794,7 @@ describe('AutomationPoller', () => {
 
     it('should still sync, with the failure, when it could not reach the agent at all', async () => {
       const context = makeContext({ assignments: [makeAssignment({ recordId: 'treated' })] });
-      context.segmentReaderPort.listRecordIds.mockRejectedValue(agentUnreachable('ECONNREFUSED'));
+      context.segmentReaderPort.listRecordIds.mockRejectedValue(segmentReadFailure('unreachable'));
 
       await runOneCycle(makePoller(context));
 
@@ -1779,39 +1818,43 @@ describe('AutomationPoller', () => {
     });
 
     describe('read failure reported with the sync', () => {
-      const agentAnswered = (status: number) =>
-        new AgentPortError('listSegmentRecordIds', new AgentHttpError(status, {}, ''));
-
       it.each([
-        ['a 401', agentAnswered(401), { reason: 'agent-forbidden', httpStatus: 401 }],
-        ['a 403', agentAnswered(403), { reason: 'agent-forbidden', httpStatus: 403 }],
-        ['a 502', agentAnswered(502), { reason: 'agent-unreachable', httpStatus: 502 }],
-        ['a 503', agentAnswered(503), { reason: 'agent-unreachable', httpStatus: 503 }],
-        ['a 504', agentAnswered(504), { reason: 'agent-unreachable', httpStatus: 504 }],
-        ['a 500', agentAnswered(500), { reason: 'segment-read-failed', httpStatus: 500 }],
-        ['a 400', agentAnswered(400), { reason: 'segment-read-failed', httpStatus: 400 }],
-        ['a timeout', agentUnreachable('ECONNABORTED'), { reason: 'agent-unreachable' }],
-        ['a refused connection', agentUnreachable('ECONNREFUSED'), { reason: 'agent-unreachable' }],
-        ['an unknown host', agentUnreachable('ENOTFOUND'), { reason: 'agent-unreachable' }],
-        ['a reset connection', agentUnreachable('ECONNRESET'), { reason: 'agent-unreachable' }],
-        ['a temporary DNS failure', agentUnreachable('EAI_AGAIN'), { reason: 'agent-unreachable' }],
-        ['an unreachable host', agentUnreachable('EHOSTUNREACH'), { reason: 'agent-unreachable' }],
         [
-          'an unreachable network',
-          agentUnreachable('ENETUNREACH'),
+          'a forbidden read answering 403',
+          segmentReadFailure('forbidden', { httpStatus: 403 }),
+          { reason: 'agent-forbidden', httpStatus: 403 },
+        ],
+        [
+          'a forbidden read answering 401',
+          segmentReadFailure('forbidden', { httpStatus: 401 }),
+          { reason: 'agent-forbidden', httpStatus: 401 },
+        ],
+        [
+          'an unreachable agent answering 503',
+          segmentReadFailure('unreachable', { httpStatus: 503 }),
+          { reason: 'agent-unreachable', httpStatus: 503 },
+        ],
+        [
+          'an unreachable agent',
+          segmentReadFailure('unreachable'),
           { reason: 'agent-unreachable' },
         ],
-        ['a broken pipe', agentUnreachable('EPIPE'), { reason: 'agent-unreachable' }],
-        ['a socket timeout', agentUnreachable('ETIMEDOUT'), { reason: 'agent-unreachable' }],
-        ['a response without a status', agentAnswered(0), { reason: 'agent-unreachable' }],
         [
-          'an error of its own before any answer',
-          new AgentPortError(
-            'listSegmentRecordIds',
-            new Error('secretOrPrivateKey must have a value'),
-          ),
-          { reason: 'segment-read-failed' },
+          'an overloaded agent',
+          segmentReadFailure('overloaded', { httpStatus: 429 }),
+          { reason: 'segment-read-failed', httpStatus: 429 },
         ],
+        [
+          'a failed read answering 400',
+          segmentReadFailure('failed', { httpStatus: 400 }),
+          { reason: 'segment-read-failed', httpStatus: 400 },
+        ],
+        [
+          'a failed read answering 500',
+          segmentReadFailure('failed', { httpStatus: 500 }),
+          { reason: 'segment-read-failed', httpStatus: 500 },
+        ],
+        ['a failed read', segmentReadFailure('failed'), { reason: 'segment-read-failed' }],
         [
           'a record without an id',
           new SegmentRecordIdMissingError('orders'),
@@ -1822,6 +1865,7 @@ describe('AutomationPoller', () => {
           new CompositeRecordIdMismatchError('1', 2),
           { reason: 'segment-read-failed' },
         ],
+        ['an error that is no segment read', new Error('boom'), { reason: 'segment-read-failed' }],
       ])('should name the failure of a candidate read that got %s', async (_, error, expected) => {
         const context = makeContext();
         context.segmentReaderPort.listRecordIds.mockRejectedValue(error);
@@ -1839,7 +1883,9 @@ describe('AutomationPoller', () => {
         const context = makeContext({ assignments: [makeAssignment({ recordId: 'treated' })] });
         context.segmentReaderPort.listRecordIds.mockImplementation(
           async ({ recordIds }: ListSegmentRecordIdsQuery) => {
-            throw agentAnswered(recordIds === undefined ? 500 : 403);
+            throw recordIds === undefined
+              ? segmentReadFailure('failed', { httpStatus: 500 })
+              : segmentReadFailure('forbidden', { httpStatus: 403 });
           },
         );
 
@@ -1857,7 +1903,7 @@ describe('AutomationPoller', () => {
         const context = makeContext({ assignments: [makeAssignment({ recordId: 'treated' })] });
         context.segmentReaderPort.listRecordIds.mockImplementation(
           async ({ recordIds }: ListSegmentRecordIdsQuery) => {
-            if (recordIds !== undefined) throw agentAnswered(403);
+            if (recordIds !== undefined) throw segmentReadFailure('forbidden', { httpStatus: 403 });
 
             return [];
           },
@@ -1881,7 +1927,7 @@ describe('AutomationPoller', () => {
         context.segmentReaderPort.listRecordIds.mockImplementation(
           async ({ recordIds: batch }: ListSegmentRecordIdsQuery) => {
             if (batch === undefined) return [];
-            if (batch.includes('r50')) throw agentAnswered(503);
+            if (batch.includes('r50')) throw segmentReadFailure('unreachable', { httpStatus: 503 });
 
             return [];
           },
@@ -1899,7 +1945,9 @@ describe('AutomationPoller', () => {
 
       it('should name the failure in the poll log line', async () => {
         const context = makeContext();
-        context.segmentReaderPort.listRecordIds.mockRejectedValue(agentAnswered(403));
+        context.segmentReaderPort.listRecordIds.mockRejectedValue(
+          segmentReadFailure('forbidden', { httpStatus: 403 }),
+        );
 
         await runOneCycle(makePoller(context));
 
@@ -1977,7 +2025,9 @@ describe('AutomationPoller', () => {
         ),
       });
       context.segmentReaderPort.listRecordIds.mockImplementation(async query => {
-        if (query.recordIds?.includes('r50')) throw agentRefusal(400, 'Too many values');
+        if (query.recordIds?.includes('r50')) {
+          throw segmentReadFailure('failed', { httpStatus: 400, agentDetail: 'Too many values' });
+        }
 
         return [];
       });
@@ -2006,7 +2056,9 @@ describe('AutomationPoller', () => {
       });
       context.segmentReaderPort.listRecordIds
         .mockResolvedValueOnce(['a', 'b', 'n1', 'a'])
-        .mockRejectedValueOnce(agentRefusal(504, 'Query timed out'));
+        .mockRejectedValueOnce(
+          segmentReadFailure('unreachable', { httpStatus: 504, agentDetail: 'Query timed out' }),
+        );
 
       await runOneCycle(makePoller(context));
 
@@ -2029,10 +2081,11 @@ describe('AutomationPoller', () => {
         assignments: [makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' })],
       });
       context.segmentReaderPort.listFieldOperators.mockRejectedValue(
-        new AgentPortError(
-          'listFieldOperators',
-          new AgentHttpError(403, { errors: [{ detail: 'Missing permission' }] }),
-        ),
+        segmentReadFailure('forbidden', {
+          httpStatus: 403,
+          agentDetail: 'Missing permission',
+          operation: 'listFieldOperators',
+        }),
       );
 
       await runOneCycle(makePoller(context));

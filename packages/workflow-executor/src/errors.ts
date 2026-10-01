@@ -437,6 +437,25 @@ export class AgentPortError extends WorkflowExecutorError {
   }
 }
 
+export type SegmentReadFailureKind = 'forbidden' | 'unreachable' | 'overloaded' | 'failed';
+
+export class SegmentReadError extends AgentPortError {
+  readonly failure: SegmentReadFailureKind;
+  readonly httpStatus?: number;
+  readonly agentDetail?: string;
+
+  constructor(
+    operation: string,
+    cause: unknown,
+    { failure, httpStatus }: { failure: SegmentReadFailureKind; httpStatus?: number },
+  ) {
+    super(operation, cause);
+    this.failure = failure;
+    this.httpStatus = httpStatus;
+    this.agentDetail = agentErrorDetail(this);
+  }
+}
+
 // Invariant guard: the agent port reads a collection's schema (for its primary keys) from the
 // cache, which the executor must populate via getCollectionSchema before any record access.
 export class SchemaNotCachedError extends WorkflowExecutorError {
