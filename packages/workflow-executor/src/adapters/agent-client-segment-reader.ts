@@ -15,6 +15,7 @@ import {
   SegmentRecordIdMissingError,
   WorkflowExecutorError,
 } from '../errors';
+import { deserializeRecordId } from '../record-id';
 
 type AgentClient = ReturnType<typeof createRemoteAgentClient>;
 
@@ -167,7 +168,7 @@ export default class AgentClientSegmentReader implements SegmentReaderPort {
     return {
       aggregator: 'or',
       conditions: recordIds.map(recordId => {
-        const parts = recordId.split('|');
+        const parts = deserializeRecordId(recordId);
 
         // Same limitation as the agent's own `IdUtils.packId`: a key value containing the separator
         // cannot be unpacked. Caught here, where the id is named, rather than sent as a leaf with

@@ -19,6 +19,7 @@ import {
   extractErrorMessage,
 } from './errors';
 import InFlightRunRegistry from './in-flight-run-registry';
+import { deserializeRecordId } from './record-id';
 
 // One membership question per chunk, small enough that a `pk In (...)` stays a query an agent will
 // accept whatever its datasource.
@@ -568,7 +569,7 @@ export default class AutomationPoller {
     const readable = recordIds.filter(recordId => {
       if (
         config.primaryKeys.length === 1 ||
-        recordId.split('|').length === config.primaryKeys.length
+        deserializeRecordId(recordId).length === config.primaryKeys.length
       ) {
         return true;
       }

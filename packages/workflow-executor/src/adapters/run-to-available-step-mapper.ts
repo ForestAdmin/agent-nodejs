@@ -14,7 +14,7 @@ import type {
 import { IANAZone } from 'luxon';
 import { z } from 'zod';
 
-import { deserializeRecordId } from './record-id-serializer';
+import { deserializeRecordId } from '../record-id';
 import { ServerWorkflowTriggerType } from './server-types';
 import toStepDefinition from './step-definition-mapper';
 import { toStepUser as toSharedStepUser } from './step-user';
