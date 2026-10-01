@@ -1,5 +1,11 @@
 import type { AuditRecord } from './types';
-import type { Collection, ConditionTree, Logger } from '@forestadmin/datasource-toolkit';
+import type {
+  Collection,
+  ConditionTree,
+  ConditionTreeBranch,
+  ConditionTreeLeaf,
+  Logger,
+} from '@forestadmin/datasource-toolkit';
 
 import { SchemaUtils } from '@forestadmin/datasource-toolkit';
 
@@ -23,6 +29,50 @@ export type Withholding = {
  */
 type IdAnswersForSide = boolean;
 
+function asksForNull({ operator, value }: ConditionTreeLeaf): boolean {
+  switch (operator) {
+    case 'Blank':
+    case 'Missing':
+      return true;
+    case 'Equal':
+      return value === null || value === undefined;
+    case 'In':
+      return Array.isArray(value) && value.some(item => item === null || item === undefined);
+    default:
+      return false;
+  }
+}
+
+// `ConditionTree.match`, except that a null answers only a condition asking for the null itself, as
+// the database tests it. In memory `status != 'private'` holds for a null status and `null < 5`
+// coerces to `0 < 5`, while the scoped read that guarded the live record left that NULL out: a record
+// the caller could never read alive would become readable once deleted. Stricter than a datasource
+// that matches NULL there (Mongo's `$ne`), never looser.
+function matchesAsStored(
+  tree: ConditionTree,
+  values: Record<string, unknown>,
+  collection: Collection,
+  timezone: string,
+): boolean {
+  // By shape, not `instanceof`: a scope can be built by another copy of the toolkit.
+  if ('aggregator' in tree) {
+    const branch = tree as ConditionTreeBranch;
+    const evaluate = (condition: ConditionTree) =>
+      matchesAsStored(condition, values, collection, timezone);
+
+    return branch.aggregator === 'And'
+      ? branch.conditions.every(evaluate)
+      : branch.conditions.some(evaluate);
+  }
+
+  const leaf = tree as ConditionTreeLeaf;
+  const value = values[leaf.field];
+
+  return value === null || value === undefined
+    ? asksForNull(leaf)
+    : leaf.match(values, collection, timezone);
+}
+
 // Only a snapshot that answers every field the permission scope asks about is worth matching. The
 // capture keeps the writable columns, so a permission scope reaching for anything else — a
 // read-only column, a relation — reads `undefined` there and would answer for a value the row never
@@ -43,7 +93,7 @@ export function permissionScopeAccepts(
     Object.prototype.hasOwnProperty.call(values, field),
   );
 
-  return answered && permissionScope.match(values, collection, timezone);
+  return answered && matchesAsStored(permissionScope, values, collection, timezone);
 }
 
 /**

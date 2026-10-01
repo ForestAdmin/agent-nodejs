@@ -1,4 +1,4 @@
-import { ConditionTreeLeaf } from '@forestadmin/datasource-toolkit';
+import { ConditionTreeBranch, ConditionTreeLeaf } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import { REDACTED } from '../../../src/audit-trail';
@@ -1359,6 +1359,89 @@ describe('AuditTrailRoute', () => {
         return (context.response.body as { data: unknown[] }).data;
       };
 
+      // In memory `!=` holds for a null and `null < 5` coerces to `0 < 5`, while the database leaves a
+      // NULL out of both: a record the caller could never read alive must not become readable once
+      // deleted.
+      describe('a captured null', () => {
+        const nullSecret = [
+          {
+            operation: 'delete',
+            recordId: '2',
+            previousValues: { ownerId: null, secret: null },
+            newValues: {},
+          },
+        ];
+        const withheld = [
+          { operation: 'delete', recordId: '2', previousValues: {}, newValues: {} },
+        ];
+
+        test('withholds the values under a negated scope, as the database would have left the record out', async () => {
+          const notEqual = await historyUnder(
+            new ConditionTreeLeaf('secret', 'NotEqual', 'private'),
+            nullSecret,
+          );
+          const notIn = await historyUnder(
+            new ConditionTreeLeaf('secret', 'NotIn', ['private']),
+            nullSecret,
+          );
+
+          expect([notEqual, notIn]).toEqual([withheld, withheld]);
+        });
+
+        test('withholds the values under an ordered scope a null would coerce through', async () => {
+          const data = await historyUnder(
+            new ConditionTreeLeaf('ownerId', 'LessThan', 5),
+            nullSecret,
+          );
+
+          expect(data).toEqual(withheld);
+        });
+
+        test('withholds when the negation sits inside a branch', async () => {
+          const scope = new ConditionTreeBranch('And', [
+            new ConditionTreeLeaf('ownerId', 'Equal', 1),
+            new ConditionTreeLeaf('secret', 'NotEqual', 'private'),
+          ]);
+
+          const data = await historyUnder(scope as unknown as ConditionTreeLeaf, [
+            { operation: 'delete', recordId: '2', previousValues: { ownerId: 1, secret: null } },
+          ]);
+
+          expect(data).toEqual(withheld);
+        });
+
+        test('keeps the values a scope asking for the null itself covers', async () => {
+          const missing = await historyUnder(
+            new ConditionTreeLeaf('secret', 'Missing'),
+            nullSecret,
+          );
+          const equalNull = await historyUnder(
+            new ConditionTreeLeaf('secret', 'Equal', null),
+            nullSecret,
+          );
+
+          expect([missing, equalNull]).toEqual([nullSecret, nullSecret]);
+        });
+
+        test('keeps a non-null value the negation covers', async () => {
+          const history = [
+            {
+              operation: 'delete',
+              recordId: '2',
+              previousValues: { ownerId: 1, secret: 'open' },
+              newValues: {},
+            },
+          ];
+
+          const data = await historyUnder(
+            new ConditionTreeLeaf('secret', 'NotEqual', 'private'),
+            history,
+          );
+
+          expect(data).toEqual(history);
+        });
+      });
+
       test('withholds a delete row when the scope reads a column the snapshot never captured', async () => {
         const data = await historyUnder(new ConditionTreeLeaf('status', 'NotEqual', 'private'), [
           { operation: 'delete', recordId: '2', previousValues: { ownerId: 1, secret: 'shh' } },
@@ -1991,11 +2074,11 @@ describe('AuditTrailRoute', () => {
     // fail; this route is those same values reassembled, so it has to answer the same way or the
     // withheld values are one request away.
     describe('a genuinely gone record, read by a scoped caller', () => {
-      const reconstructFor = async (scope: ConditionTreeLeaf) => {
+      const reconstructFor = async (scope: ConditionTreeLeaf, status: string | null = 'closed') => {
         const history = [
           {
             operation: 'delete',
-            previousValues: { id: 2, status: 'closed', name: 'Acme' },
+            previousValues: { id: 2, status, name: 'Acme' },
             newValues: {},
           },
         ];
@@ -2022,6 +2105,15 @@ describe('AuditTrailRoute', () => {
         const context = await reconstructFor(new ConditionTreeLeaf('status', 'Equal', 'mine'));
 
         expect(context.throw).not.toHaveBeenCalled();
+        expect(context.response.body).toEqual({ data: null });
+      });
+
+      test('withholds a reconstruction whose NULL the scope negates, as the database would have refused the record', async () => {
+        const context = await reconstructFor(
+          new ConditionTreeLeaf('status', 'NotEqual', 'private'),
+          null,
+        );
+
         expect(context.response.body).toEqual({ data: null });
       });
 

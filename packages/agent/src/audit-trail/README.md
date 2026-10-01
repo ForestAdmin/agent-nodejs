@@ -214,6 +214,13 @@ That test only runs when the snapshot can actually answer it. The capture keeps 
 a field stored redacted — has no honest answer in the snapshot and the values are withheld rather
 than matched against a missing key: absent is not the same as passing.
 
+A captured `null` is tested the way the database tests a `NULL`: it answers only a condition asking
+for the null itself (`Blank`, `Missing`, `Equal` null, an `In` list holding null), never a negated or
+ordered one. In memory `status != 'private'` holds for a null status and `null < 5` coerces to
+`0 < 5`, while the scoped read that guarded the live record left that record out — without this, a
+record the caller could never read alive would become readable once deleted. On a datasource whose
+own `!=` keeps a NULL (Mongo's `$ne`), this is stricter than the live read, never looser.
+
 Primary keys are the exception, read back from the row's own id — but only for the side that id
 speaks for. A row is filed under the identity the record ended up with, so its id answers for a
 `create`, a `delete` and the new side of an `update`, never for what an update moved away from. A
