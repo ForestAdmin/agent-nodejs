@@ -1,6 +1,7 @@
 import type { ResolvedApiKeyIdentity } from './api-key-client';
 import type { BffAccessTokenPayload } from '../oauth/bff-token';
 
+import { toAgentTokenClaims } from '@forestadmin/agent-client';
 import jsonwebtoken from 'jsonwebtoken';
 
 import { requireRenderingId } from '../auth/auth-mode';
@@ -37,19 +38,12 @@ function signWithSnakeCaseAliasesForRubyAndPythonAgents(
   claims: AgentCallerClaims,
   authSecret: string,
 ): string {
-  const firstName = claims.firstName ?? '';
-  const lastName = claims.lastName ?? '';
-
   return jsonwebtoken.sign(
-    {
+    toAgentTokenClaims({
       ...claims,
-      firstName,
-      lastName,
-      first_name: firstName,
-      last_name: lastName,
-      rendering_id: claims.renderingId,
-      permission_level: claims.permissionLevel,
-    },
+      firstName: claims.firstName ?? '',
+      lastName: claims.lastName ?? '',
+    }),
     authSecret,
     { algorithm: 'HS256', expiresIn: AGENT_TOKEN_EXPIRES_IN },
   );
