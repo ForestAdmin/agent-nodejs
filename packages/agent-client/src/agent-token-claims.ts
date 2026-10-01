@@ -3,7 +3,7 @@ export interface AgentTokenUser {
   lastName: string;
   renderingId: number;
   permissionLevel: string;
-  tags: Record<string, string>;
+  tags?: Record<string, string>;
 }
 
 export type AgentTokenClaims<User extends AgentTokenUser> = Omit<User, 'tags'> & {
@@ -25,6 +25,6 @@ export default function toAgentTokenClaims<User extends AgentTokenUser>(
     last_name: user.lastName,
     rendering_id: String(user.renderingId),
     permission_level: user.permissionLevel,
-    tags: Object.entries(user.tags).map(([key, value]) => ({ key, value })),
+    tags: Object.entries(user.tags ?? {}).map(([key, value]) => ({ key, value })),
   };
 }

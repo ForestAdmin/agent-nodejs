@@ -39,4 +39,8 @@ describe('toAgentTokenClaims', () => {
   it('signs an empty array when the user has no tags', () => {
     expect(toAgentTokenClaims({ ...user, tags: {} }).tags).toEqual([]);
   });
+
+  it('signs an empty array when the server sent no tags at all', () => {
+    expect(toAgentTokenClaims({ ...user, tags: undefined }).tags).toEqual([]);
+  });
 });
