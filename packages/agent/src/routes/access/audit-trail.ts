@@ -185,12 +185,19 @@ export default class AuditTrailRoute extends CollectionRoute {
     const page: AuditRecord[] = [];
     const authors = new Map<number, AuditUserSummary>();
     let count = 0;
+    // Rows inserted mid-scan would shift every later offset and could keep the batches full forever.
+    const scanStartedAt = new Date().toISOString();
+    const endTimestamp =
+      rowFilters.endTimestamp && rowFilters.endTimestamp < scanStartedAt
+        ? rowFilters.endTimestamp
+        : scanStartedAt;
 
     for (let offset = 0; ; offset += SERVED_MATCH_BATCH_SIZE) {
       // Sequential on purpose: batches are held one at a time.
       // eslint-disable-next-line no-await-in-loop
       const batch = await store.listByRecord({
         ...rowFilters,
+        endTimestamp,
         order,
         skip: offset,
         limit: SERVED_MATCH_BATCH_SIZE,

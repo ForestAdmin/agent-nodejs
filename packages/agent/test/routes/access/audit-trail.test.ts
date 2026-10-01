@@ -929,12 +929,42 @@ describe('AuditTrailRoute', () => {
           collection: 'books',
           recordId: '2',
           userIds: [12],
+          endTimestamp: expect.any(String),
           order: 'desc',
           skip: 0,
           limit: 500,
         });
         expect(store.countByRecord).not.toHaveBeenCalled();
         expect(body).toEqual({ data: [{ ...kept, operation: 'update' }], meta: { count: 2 } });
+      });
+
+      describe('bounding the scan at the moment it started', () => {
+        beforeEach(() => {
+          jest.useFakeTimers().setSystemTime(new Date('2026-10-01T12:00:00.000Z'));
+        });
+
+        afterEach(() => {
+          jest.useRealTimers();
+        });
+
+        test('excludes rows inserted while the batches are being read', async () => {
+          const { store } = await searched([secretDelete()], { search: 'acme' });
+
+          expect(store.listByRecord).toHaveBeenCalledWith(
+            expect.objectContaining({ endTimestamp: '2026-10-01T12:00:00.000Z' }),
+          );
+        });
+
+        test('keeps an end date that is earlier than the scan start', async () => {
+          const { store } = await searched([secretDelete()], {
+            search: 'acme',
+            endDate: '2026-09-15',
+          });
+
+          expect(store.listByRecord).toHaveBeenCalledWith(
+            expect.objectContaining({ endTimestamp: '2026-09-15T21:59:59.999Z' }),
+          );
+        });
       });
 
       test('reads the history in batches and counts every match across them', async () => {
@@ -994,6 +1024,7 @@ describe('AuditTrailRoute', () => {
         expect(store.listByRecord).toHaveBeenLastCalledWith({
           collection: 'books',
           recordId: '2',
+          endTimestamp: expect.any(String),
           order: 'desc',
           skip: 0,
           limit: 500,
