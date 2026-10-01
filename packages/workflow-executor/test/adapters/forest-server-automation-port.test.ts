@@ -366,6 +366,26 @@ describe('ForestServerAutomationPort', () => {
       );
     });
 
+    it.each([
+      ['with its HTTP status', { reason: 'agent-forbidden', httpStatus: 403 } as const],
+      ['without an HTTP status', { reason: 'agent-unreachable' } as const],
+    ])('should send the read failure %s exactly as given', async (_case, readFailure) => {
+      mockQuery.mockResolvedValue({ results: [] });
+      const body = { closed: [], candidates: [], readFailure };
+
+      await port.sync('inbox-1', body);
+
+      expect(JSON.parse(JSON.stringify(mockQuery.mock.calls))).toStrictEqual([
+        [
+          options,
+          'post',
+          '/api/workflow-orchestrator/automated-inboxes/inbox-1/sync',
+          {},
+          { closed: [], candidates: [], readFailure },
+        ],
+      ]);
+    });
+
     it('should keep an outcome from a newer orchestrator rather than refuse the answer', async () => {
       mockQuery.mockResolvedValue({ results: [{ recordId: 'r1', outcome: 'a-future-outcome' }] });
 
