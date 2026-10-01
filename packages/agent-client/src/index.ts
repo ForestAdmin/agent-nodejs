@@ -72,6 +72,8 @@ export function createRemoteAgentClient(params: {
   });
 }
 
+export { default as toAgentTokenClaims } from './agent-token-claims';
+export type { AgentTokenClaims, AgentTokenUser } from './agent-token-claims';
 export { extractErrorDetail } from './domains/action';
 export { default as toWireFilter, toWireOperator } from './filter-wire-format';
 export type { RecordId, SelectOptions } from './types';

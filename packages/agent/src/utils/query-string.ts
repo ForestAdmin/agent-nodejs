@@ -196,8 +196,14 @@ export default class QueryStringParser {
       // Just like in v1, Forest-Context-Url is not always available.
     }
 
+    const tags = context.state.user?.tags;
+
     return {
       ...context.state.user,
+      // mcp-server and the workflow executor sign tags as the {key, value} array Ruby agents read.
+      ...(Array.isArray(tags) && {
+        tags: Object.fromEntries(tags.map(({ key, value }) => [key, value])),
+      }),
       timezone,
       requestId: getRequestId(context),
       project,

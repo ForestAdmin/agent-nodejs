@@ -26,6 +26,7 @@ import {
   HttpRequester,
   UnknownActionFieldError,
   createRemoteAgentClient,
+  toAgentTokenClaims,
 } from '@forestadmin/agent-client';
 import jsonwebtoken from 'jsonwebtoken';
 
@@ -422,16 +423,8 @@ export default class AgentClientAgentPort implements AgentPort {
   }
 
   private mintToken(user: StepUser): string {
-    // snake_case aliases: Ruby/Python agents splat JWT claims into Caller.new (snake_case kwargs).
     return jsonwebtoken.sign(
-      {
-        ...user,
-        first_name: user.firstName,
-        last_name: user.lastName,
-        rendering_id: user.renderingId,
-        permission_level: user.permissionLevel,
-        scope: 'step-execution',
-      },
+      { ...toAgentTokenClaims(user), scope: 'step-execution' },
       this.authSecret,
       { expiresIn: '5m' },
     );
