@@ -330,7 +330,9 @@ describe('DatabaseMcpOAuthCredentialsStore (SQLite)', () => {
   });
 
   describe('migration 003 over a table created by 002', () => {
-    it('keeps a row stored before the migration readable and accepts access-token-only rows after it', async () => {
+    // A database as 002 left it: the registry records 002 only, and the table has a NOT NULL
+    // refresh_token_enc and no access_token_enc.
+    async function legacy002Store(serverIds: string[]) {
       const legacy = new Sequelize({ dialect: 'sqlite', storage: ':memory:', logging: false });
       await legacy.query('CREATE TABLE "SequelizeMeta" (name VARCHAR(255) NOT NULL PRIMARY KEY)');
       await legacy.query(
@@ -348,19 +350,28 @@ describe('DatabaseMcpOAuthCredentialsStore (SQLite)', () => {
         'CREATE UNIQUE INDEX idx_user_id_mcp_server_id ON ai_mcp_oauth_credentials ' +
           '(user_id, mcp_server_id)',
       );
-      await legacy.query(
-        'INSERT INTO ai_mcp_oauth_credentials ' +
-          '(user_id, mcp_server_id, refresh_token_enc, token_endpoint, created_at, updated_at) ' +
-          "VALUES (42, 'legacy-server', :blob, 'https://auth.example.com/token', :now, :now)",
-        { replacements: { blob: Buffer.from('legacy-rt'), now: new Date() } },
-      );
-      const legacyStore = new DatabaseMcpOAuthCredentialsStore({ sequelize: legacy });
+
+      for (const serverId of serverIds) {
+        // eslint-disable-next-line no-await-in-loop
+        await legacy.query(
+          'INSERT INTO ai_mcp_oauth_credentials ' +
+            '(user_id, mcp_server_id, refresh_token_enc, token_endpoint, created_at, updated_at) ' +
+            "VALUES (42, :serverId, :blob, 'https://auth.example.com/token', :now, :now)",
+          { replacements: { serverId, blob: Buffer.from(`${serverId}-rt`), now: new Date() } },
+        );
+      }
+
+      return { legacy, legacyStore: new DatabaseMcpOAuthCredentialsStore({ sequelize: legacy }) };
+    }
+
+    it('keeps a row stored before the migration readable and accepts access-token-only rows after it', async () => {
+      const { legacy, legacyStore } = await legacy002Store(['legacy-server']);
 
       try {
         await legacyStore.init();
 
         const legacyRow = unwrap(await legacyStore.get(42, 'legacy-server'));
-        expect(legacyRow.refreshTokenEnc?.toString()).toBe('legacy-rt');
+        expect(legacyRow.refreshTokenEnc?.toString()).toBe('legacy-server-rt');
         expect(legacyRow.accessTokenEnc).toBeNull();
 
         await legacyStore.upsert(
@@ -384,12 +395,37 @@ describe('DatabaseMcpOAuthCredentialsStore (SQLite)', () => {
       }
     });
 
-    it('runs 003 idempotently when init is called again', async () => {
-      await expect(store.init()).resolves.toBeUndefined();
+    it('never hands out the id of a row deleted before the migration', async () => {
+      const { legacy, legacyStore } = await legacy002Store(['server-a', 'server-b', 'server-c']);
+      const deletedId = unwrap(
+        (
+          (await legacy.query(
+            "SELECT id FROM ai_mcp_oauth_credentials WHERE mcp_server_id = 'server-c'",
+          )) as [Array<{ id: number }>, unknown]
+        )[0][0],
+      ).id;
+      await legacy.query(`DELETE FROM ai_mcp_oauth_credentials WHERE id = ${deletedId}`);
 
+      try {
+        await legacyStore.init();
+        await legacyStore.upsert(makeCredential({ mcpServerId: 'server-d' }));
+
+        expect(unwrap(await legacyStore.get(42, 'server-d')).id).toBeGreaterThan(deletedId);
+      } finally {
+        await legacyStore.close();
+      }
+    });
+
+    it('keeps a stored access token when 003 runs again over a table that already has the column', async () => {
       await store.upsert(
         makeCredential({ refreshTokenEnc: null, accessTokenEnc: Buffer.from('at') }),
       );
+      await sequelize.query(
+        'DELETE FROM "SequelizeMeta" WHERE name = \'003_add_mcp_oauth_access_token\'',
+      );
+
+      await expect(store.init()).resolves.toBeUndefined();
+
       expect(unwrap(await store.get(42, 'mcp-server-1')).accessTokenEnc?.toString()).toBe('at');
     });
   });

@@ -116,6 +116,16 @@ async function addAccessTokenColumn(
       `INSERT INTO "${TABLE_NAME}" (${copied}) SELECT ${copied} FROM "${legacyTable}"`,
       { transaction },
     );
+    // The copy only advances the sequence to the highest surviving id, so carry the old one over:
+    // updateIfPresent relies on a deleted row's id never being handed out again.
+    await context.sequelize.query(`DELETE FROM sqlite_sequence WHERE name = '${TABLE_NAME}'`, {
+      transaction,
+    });
+    await context.sequelize.query(
+      `INSERT INTO sqlite_sequence (name, seq) ` +
+        `SELECT '${TABLE_NAME}', seq FROM sqlite_sequence WHERE name = '${legacyTable}'`,
+      { transaction },
+    );
     await context.dropTable(legacyTable, { transaction });
     await context.addIndex(tableId, UNIQUE_KEY, { ...UNIQUE_INDEX, transaction });
   });
