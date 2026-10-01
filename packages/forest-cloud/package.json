@@ -10,7 +10,7 @@
     "@forestadmin/datasource-sequelize": "1.13.12",
     "@forestadmin/datasource-sql": "1.17.14",
     "@forestadmin/datasource-toolkit": "1.55.1",
-    "adm-zip": "^0.6.0",
+    "adm-zip": "^0.6.1",
     "apollo-cache-inmemory": "^1.6.6",
     "apollo-client": "^2.6.10",
     "apollo-link-ws": "^1.0.20",
