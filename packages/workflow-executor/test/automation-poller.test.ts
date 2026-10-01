@@ -781,11 +781,6 @@ describe('AutomationPoller', () => {
     it.each([
       ['a timeout', agentUnreachable('ECONNABORTED'), { reason: 'agent-unreachable' }],
       [
-        'a 500',
-        agentRefusal(500, 'Internal error'),
-        { reason: 'segment-read-failed', httpStatus: 500 },
-      ],
-      [
         'a 503',
         agentRefusal(503, 'Service unavailable'),
         { reason: 'agent-unreachable', httpStatus: 503 },
@@ -823,6 +818,30 @@ describe('AutomationPoller', () => {
           'Could not read new candidates of an automated inbox',
           expect.objectContaining({ inboxId: 'inbox-1', notIn: true }),
         );
+      },
+    );
+
+    it.each([
+      ['a 400', agentRefusal(400, 'Unsupported operator not_in')],
+      ['a 500', agentRefusal(500, "The given operator 'not_in' is not supported by the column")],
+    ])(
+      'should fall back to a padded page when the `not_in` read fails with %s',
+      async (_, error) => {
+        const context = makeContext({
+          inboxes: [excluding],
+          assignments: [makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' })],
+        });
+        context.segmentReaderPort.listRecordIds
+          .mockRejectedValueOnce(error)
+          .mockResolvedValueOnce(['a', 'fresh']);
+
+        await runOneCycle(makePoller(context));
+
+        expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledTimes(2);
+        expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
+          closed: [],
+          candidates: ['fresh'],
+        });
       },
     );
 

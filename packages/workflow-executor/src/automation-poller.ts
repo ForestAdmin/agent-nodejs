@@ -128,18 +128,16 @@ function classifyReadFailure(error: unknown): ServerAutomatedInboxReadFailure {
   return { reason: 'segment-read-failed', httpStatus };
 }
 
-// A timeout, a 5xx or a throttle means the agent is struggling: a padded read would evaluate the
-// segment again on top of the one it may still be running. A 401 or 403 would refuse it just the same.
-function isOperatorRefusal(error: unknown): boolean {
+// A refused `not_in` comes back as a 4xx or a 500 depending on the agent (PHP answers 500 even for
+// an undeclared operator). Only a timeout, an unreachable agent or a throttle rules it out, and
+// padding then would evaluate the segment again on top of the read the agent may still be running.
+// A 401 or 403 would refuse the padded read just the same.
+function mayBeOperatorRefusal(error: unknown): boolean {
   const { reason, httpStatus } = classifyReadFailure(error);
 
-  return (
-    reason === 'segment-read-failed' &&
-    httpStatus !== undefined &&
-    httpStatus >= 400 &&
-    httpStatus < 500 &&
-    !OVERLOADED_AGENT_STATUSES.has(httpStatus)
-  );
+  if (reason === 'agent-unreachable' || reason === 'agent-forbidden') return false;
+
+  return httpStatus === undefined || !OVERLOADED_AGENT_STATUSES.has(httpStatus);
 }
 
 function describeAgentFailure(error: unknown) {
@@ -668,7 +666,7 @@ export default class AutomationPoller {
           requestedPageSize: config.maxConcurrentRuns,
         };
       } catch (error) {
-        if (!known.length || !isOperatorRefusal(error)) throw error;
+        if (!known.length || !mayBeOperatorRefusal(error)) throw error;
 
         // Declared is not implemented: a datasource can list `not_in` and still refuse it.
         this.logger('Warn', 'The not_in candidate read failed, padding the page instead', {
