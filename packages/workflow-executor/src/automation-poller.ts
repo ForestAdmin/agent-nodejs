@@ -83,6 +83,8 @@ const FORBIDDEN_AGENT_STATUSES: ReadonlySet<number> = new Set([401, 403]);
 
 const UNREACHABLE_AGENT_STATUSES: ReadonlySet<number> = new Set([502, 503, 504]);
 
+const OVERLOADED_AGENT_STATUSES: ReadonlySet<number> = new Set([408, 429]);
+
 // Superagent's own timeout is ECONNABORTED. Any other failure without an HTTP answer (a JWT that
 // cannot be signed, a malformed agent URL) is a fault on our side, not an agent to go and restart.
 const UNREACHABLE_AGENT_ERROR_CODES: ReadonlySet<string> = new Set([
@@ -124,6 +126,18 @@ function classifyReadFailure(error: unknown): ServerAutomatedInboxReadFailure {
   }
 
   return { reason: 'segment-read-failed', httpStatus };
+}
+
+// A refused `not_in` comes back as a 4xx or a 500 depending on the agent (PHP answers 500 even for
+// an undeclared operator). Only a timeout, an unreachable agent or a throttle rules it out, and
+// padding then would evaluate the segment again on top of the read the agent may still be running.
+// A 401 or 403 would refuse the padded read just the same.
+function mayBeOperatorRefusal(error: unknown): boolean {
+  const { reason, httpStatus } = classifyReadFailure(error);
+
+  if (reason === 'agent-unreachable' || reason === 'agent-forbidden') return false;
+
+  return httpStatus === undefined || !OVERLOADED_AGENT_STATUSES.has(httpStatus);
 }
 
 function describeAgentFailure(error: unknown) {
@@ -652,10 +666,9 @@ export default class AutomationPoller {
           requestedPageSize: config.maxConcurrentRuns,
         };
       } catch (error) {
-        if (!known.length) throw error;
+        if (!known.length || !mayBeOperatorRefusal(error)) throw error;
 
-        // Declared is not implemented: a datasource can list `not_in` and still refuse it. A timeout
-        // lands here too, and pays for one more read before the inbox gives up on this cycle.
+        // Declared is not implemented: a datasource can list `not_in` and still refuse it.
         this.logger('Warn', 'The not_in candidate read failed, padding the page instead', {
           ...logContext,
           ...attempt,
