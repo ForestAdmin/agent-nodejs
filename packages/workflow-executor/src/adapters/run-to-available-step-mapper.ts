@@ -11,9 +11,9 @@ import type {
   StepOutcome,
 } from '../types/validated/step-outcome';
 
-import { IANAZone } from 'luxon';
 import { z } from 'zod';
 
+import toProjectTimezone from './project-timezone';
 import { deserializeRecordId } from '../record-id';
 import { ServerWorkflowTriggerType } from './server-types';
 import toStepDefinition from './step-definition-mapper';
@@ -178,7 +178,7 @@ export default function toAvailableStepExecution(
     // (0.7%, measured on production in September 2026), so almost every Decision reads its
     // relative dates in UTC — an hour or two away from the day the list filter shows the same
     // user, since that one follows the browser.
-    timezone: run.timezone && IANAZone.isValidZone(run.timezone) ? run.timezone : 'UTC',
+    timezone: toProjectTimezone(run.timezone),
   };
 
   // Defense against mapper bugs: zod asserts the shape we produce is what the domain expects,

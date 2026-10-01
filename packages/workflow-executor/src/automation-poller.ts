@@ -8,9 +8,9 @@ import type { Logger } from './ports/logger-port';
 import type { SegmentReaderPort } from './ports/segment-reader-port';
 
 import { AgentHttpError } from '@forestadmin/agent-client';
-import { IANAZone } from 'luxon';
 
 import createConsoleLogger from './adapters/console-logger';
+import toProjectTimezone from './adapters/project-timezone';
 import { DEFAULT_STOP_TIMEOUT_S } from './defaults';
 import {
   AgentPortError,
@@ -815,10 +815,6 @@ export default class AutomationPoller {
     return operators.includes('not_in') ? undefined : 'field-without-not-in';
   }
 
-  private static readTimezone(timezone: string | null | undefined): string {
-    return timezone != null && IANAZone.isValidZone(timezone) ? timezone : 'UTC';
-  }
-
   private static segmentQuery(config: ServerAutomatedInboxConfig) {
     return {
       collectionName: config.collectionName,
@@ -828,7 +824,7 @@ export default class AutomationPoller {
       // Every executor instance must read a relative date the same way, so the machine's zone is
       // never the fallback. A zone the agent would reject is treated as an absent one: it answers
       // 400 on an unknown zone, which would fail every read of every sweep of that inbox.
-      timezone: AutomationPoller.readTimezone(config.timezone),
+      timezone: toProjectTimezone(config.timezone),
     };
   }
 }
