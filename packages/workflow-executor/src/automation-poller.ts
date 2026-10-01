@@ -1,16 +1,15 @@
-import type {
-  ServerAutomatedInboxAssignment,
-  ServerAutomatedInboxConfig,
-  ServerAutomatedInboxReadFailure,
-  ServerAutomatedInboxReadFailureReason,
-} from './adapters/server-types';
 import type { SegmentReadFailureKind } from './errors';
 import type { AutomationPort } from './ports/automation-port';
 import type { Logger } from './ports/logger-port';
 import type { ExclusionUnavailableReason, SegmentReaderPort } from './ports/segment-reader-port';
+import type {
+  AutomatedInbox,
+  InboxAssignment,
+  SegmentReadFailure,
+  SegmentReadFailureReason,
+} from './types/automation';
 
 import createConsoleLogger from './adapters/console-logger';
-import toProjectTimezone from './adapters/project-timezone';
 import { DEFAULT_STOP_TIMEOUT_S } from './defaults';
 import { AutomatedInboxGoneError, SegmentReadError, extractErrorMessage } from './errors';
 import InFlightRunRegistry from './in-flight-run-registry';
@@ -60,15 +59,14 @@ const isTerminalRun = (runState: string | null | undefined): boolean =>
 const isLiveRun = (runState: string | null | undefined): boolean =>
   runState != null && LIVE_RUN_STATES.has(runState);
 
-const READ_FAILURE_REASONS: Record<SegmentReadFailureKind, ServerAutomatedInboxReadFailureReason> =
-  {
-    forbidden: 'agent-forbidden',
-    unreachable: 'agent-unreachable',
-    overloaded: 'segment-read-failed',
-    failed: 'segment-read-failed',
-  };
+const READ_FAILURE_REASONS: Record<SegmentReadFailureKind, SegmentReadFailureReason> = {
+  forbidden: 'agent-forbidden',
+  unreachable: 'agent-unreachable',
+  overloaded: 'segment-read-failed',
+  failed: 'segment-read-failed',
+};
 
-function classifyReadFailure(error: unknown): ServerAutomatedInboxReadFailure {
+function classifyReadFailure(error: unknown): SegmentReadFailure {
   if (!(error instanceof SegmentReadError)) return { reason: 'segment-read-failed' };
 
   const { failure, httpStatus } = error;
@@ -102,7 +100,7 @@ interface SegmentRead<T> {
   paddedPageReason?: PaddedPageReason;
   requestedPageSize?: number;
   pagesRead?: number;
-  failure?: ServerAutomatedInboxReadFailure;
+  failure?: SegmentReadFailure;
 }
 
 interface ReadAttempt {
@@ -352,7 +350,7 @@ export default class AutomationPoller {
     }
   }
 
-  private async pollInbox(config: ServerAutomatedInboxConfig): Promise<void> {
+  private async pollInbox(config: AutomatedInbox): Promise<void> {
     const logContext = {
       inboxId: config.inboxId,
       renderingId: config.renderingId,
@@ -429,8 +427,8 @@ export default class AutomationPoller {
    * be judged untreated before the run had a chance to take it out.
    */
   private async reconcileClosed(
-    config: ServerAutomatedInboxConfig,
-    assignments: ServerAutomatedInboxAssignment[],
+    config: AutomatedInbox,
+    assignments: InboxAssignment[],
     attempt: ReadAttempt,
   ): Promise<SegmentRead<{ recordId: string; stillInSegment: boolean }>> {
     const logContext = { inboxId: config.inboxId, renderingId: config.renderingId };
@@ -578,8 +576,8 @@ export default class AutomationPoller {
    */
   private async readCandidates(
     logContext: Record<string, unknown>,
-    config: ServerAutomatedInboxConfig,
-    assignments: ServerAutomatedInboxAssignment[],
+    config: AutomatedInbox,
+    assignments: InboxAssignment[],
     attempt: ReadAttempt,
   ): Promise<SegmentRead<string>> {
     const known = [...new Set(assignments.map(({ recordId }) => recordId))];
@@ -640,8 +638,8 @@ export default class AutomationPoller {
   // nothing at all — worse than one that reads a partial page and finds fewer candidates.
   private async readPaddedCandidates(
     logContext: Record<string, unknown>,
-    config: ServerAutomatedInboxConfig,
-    assignments: ServerAutomatedInboxAssignment[],
+    config: AutomatedInbox,
+    assignments: InboxAssignment[],
     knownSet: ReadonlySet<string>,
     paddedPageReason: PaddedPageReason,
     attempt: ReadAttempt,
@@ -720,7 +718,7 @@ export default class AutomationPoller {
 
   private async paddedPageReason(
     logContext: Record<string, unknown>,
-    config: ServerAutomatedInboxConfig,
+    config: AutomatedInbox,
     known: string[],
   ): Promise<PaddedPageReason | undefined> {
     try {
@@ -744,16 +742,13 @@ export default class AutomationPoller {
     }
   }
 
-  private static segmentQuery(config: ServerAutomatedInboxConfig) {
+  private static segmentQuery(config: AutomatedInbox) {
     return {
       collectionName: config.collectionName,
       segment: config.segment,
       primaryKeys: config.primaryKeys,
-      user: config.serviceAccountProfile,
-      // Every executor instance must read a relative date the same way, so the machine's zone is
-      // never the fallback. A zone the agent would reject is treated as an absent one: it answers
-      // 400 on an unknown zone, which would fail every read of every sweep of that inbox.
-      timezone: toProjectTimezone(config.timezone),
+      user: config.user,
+      timezone: config.timezone,
     };
   }
 }

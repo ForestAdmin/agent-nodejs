@@ -1,8 +1,9 @@
-import type { ServerAutomatedSegmentDescriptor } from '../../src/adapters/server-types';
 import type {
   ExclusionQuery,
   ListSegmentRecordIdsQuery,
 } from '../../src/ports/segment-reader-port';
+import type { SegmentDescriptor } from '../../src/types/automation';
+import type { StepUser } from '../../src/types/execution-context';
 
 import nock from 'nock';
 
@@ -12,15 +13,15 @@ import { AgentPortError, SegmentReadError } from '../../src/errors';
 const AGENT_URL = 'https://agent.example.com';
 const AUTH_SECRET = 'auth-secret';
 
-const profile = {
+const profile: StepUser = {
   id: 99,
   email: 'bot@forestadmin.com',
-  firstName: null,
-  lastName: null,
-  team: null,
+  firstName: '',
+  lastName: '',
+  team: '',
   renderingId: 7,
-  role: null,
-  permissionLevel: null,
+  role: '',
+  permissionLevel: '',
   tags: {},
 };
 
@@ -86,7 +87,7 @@ describe('AgentClientSegmentReader', () => {
 
     it('should send a SQL segment with its connection name', async () => {
       const captured = interceptList();
-      const segment: ServerAutomatedSegmentDescriptor = {
+      const segment: SegmentDescriptor = {
         kind: 'sql',
         query: 'SELECT id FROM orders WHERE status = 1',
         connectionName: 'primary',
@@ -102,7 +103,7 @@ describe('AgentClientSegmentReader', () => {
 
     it('should omit the connection name a bare-SQL liana does not use', async () => {
       const captured = interceptList();
-      const segment: ServerAutomatedSegmentDescriptor = {
+      const segment: SegmentDescriptor = {
         kind: 'sql',
         query: 'SELECT id FROM orders',
         connectionName: null,
@@ -117,7 +118,7 @@ describe('AgentClientSegmentReader', () => {
 
     it('should omit a connection name the server sent empty', async () => {
       const captured = interceptList();
-      const segment: ServerAutomatedSegmentDescriptor = {
+      const segment: SegmentDescriptor = {
         kind: 'sql',
         query: 'SELECT id FROM orders',
         connectionName: '',
@@ -131,7 +132,7 @@ describe('AgentClientSegmentReader', () => {
 
     it('should send a filter segment as the condition tree the agents parse', async () => {
       const captured = interceptList();
-      const segment: ServerAutomatedSegmentDescriptor = {
+      const segment: SegmentDescriptor = {
         kind: 'filter',
         conditionTree: { field: 'status', operator: 'equal', value: 'new' },
       };
@@ -148,7 +149,7 @@ describe('AgentClientSegmentReader', () => {
 
     it('should leave an already snake_cased operator untouched', async () => {
       const captured = interceptList();
-      const segment: ServerAutomatedSegmentDescriptor = {
+      const segment: SegmentDescriptor = {
         kind: 'filter',
         conditionTree: {
           aggregator: 'and',
@@ -180,7 +181,7 @@ describe('AgentClientSegmentReader', () => {
 
     it('should AND the record filter with a filter segment rather than replace it', async () => {
       const captured = interceptList();
-      const segment: ServerAutomatedSegmentDescriptor = {
+      const segment: SegmentDescriptor = {
         kind: 'filter',
         conditionTree: { field: 'status', operator: 'equal', value: 'new' },
       };
@@ -198,7 +199,7 @@ describe('AgentClientSegmentReader', () => {
 
     it('should carry the record filter next to a SQL segment', async () => {
       const captured = interceptList();
-      const segment: ServerAutomatedSegmentDescriptor = {
+      const segment: SegmentDescriptor = {
         kind: 'sql',
         query: 'SELECT id FROM orders',
         connectionName: null,
@@ -258,7 +259,7 @@ describe('AgentClientSegmentReader', () => {
 
     it('should AND the exclusion with a filter segment rather than replace it', async () => {
       const captured = interceptList();
-      const segment: ServerAutomatedSegmentDescriptor = {
+      const segment: SegmentDescriptor = {
         kind: 'filter',
         conditionTree: { field: 'status', operator: 'equal', value: 'new' },
       };
@@ -276,7 +277,7 @@ describe('AgentClientSegmentReader', () => {
 
     it('should carry the exclusion next to a SQL segment', async () => {
       const captured = interceptList();
-      const segment: ServerAutomatedSegmentDescriptor = {
+      const segment: SegmentDescriptor = {
         kind: 'sql',
         query: 'SELECT id FROM orders',
         connectionName: null,

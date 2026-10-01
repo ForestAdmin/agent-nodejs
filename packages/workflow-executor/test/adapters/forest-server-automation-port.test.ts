@@ -45,6 +45,35 @@ function makeConfig(overrides: Partial<ServerAutomatedInboxConfig> = {}) {
   };
 }
 
+const SERVICE_ACCOUNT_USER = {
+  id: 99,
+  email: 'bot@forestadmin.com',
+  firstName: '',
+  lastName: '',
+  team: '',
+  renderingId: 7,
+  role: '',
+  permissionLevel: '',
+  tags: {},
+};
+
+function makeInbox(overrides: Record<string, unknown> = {}) {
+  return {
+    inboxId: 'inbox-1',
+    renderingId: 7,
+    teamId: 3,
+    workflowId: 'wf-1',
+    collectionId: 'col-1',
+    collectionName: 'orders',
+    primaryKeys: ['id'],
+    maxConcurrentRuns: 20,
+    timezone: 'Europe/Paris',
+    segment: { kind: 'smart', name: 'to-review' },
+    user: SERVICE_ACCOUNT_USER,
+    ...overrides,
+  };
+}
+
 describe('ForestServerAutomationPort', () => {
   let logger: jest.Mock;
   let port: ForestServerAutomationPort;
@@ -68,11 +97,83 @@ describe('ForestServerAutomationPort', () => {
       );
     });
 
-    it('should return the configs the orchestrator serves', async () => {
-      mockQuery.mockResolvedValue({ inboxes: [makeConfig()] });
+    it('should return the configs the orchestrator serves as domain inboxes', async () => {
+      mockQuery.mockResolvedValue({ inboxes: [makeConfig({ liana: 'agent-ruby' })] });
 
-      await expect(port.listAutomatedInboxes('w1')).resolves.toEqual([
-        expect.objectContaining({ inboxId: 'inbox-1', maxConcurrentRuns: 20 }),
+      await expect(port.listAutomatedInboxes('w1')).resolves.toStrictEqual([
+        makeInbox({ liana: 'agent-ruby' }),
+      ]);
+    });
+
+    it('should carry the profile strings of the service account into its user', async () => {
+      const serviceAccountProfile = {
+        id: 12,
+        email: 'ops@acme.com',
+        firstName: 'Ops',
+        lastName: 'Bot',
+        team: 'Operations',
+        renderingId: 4,
+        role: 'Admin',
+        permissionLevel: 'admin',
+        tags: { region: 'eu' },
+      };
+      mockQuery.mockResolvedValue({ inboxes: [makeConfig({ serviceAccountProfile })] });
+
+      await expect(port.listAutomatedInboxes('w1')).resolves.toStrictEqual([
+        makeInbox({ user: serviceAccountProfile }),
+      ]);
+    });
+
+    it.each([
+      ['no timezone', { timezone: null }],
+      ['a timezone the agent would refuse', { timezone: 'Mars/Olympus' }],
+    ])('should read relative dates in UTC for a project with %s', async (_, overrides) => {
+      mockQuery.mockResolvedValue({ inboxes: [makeConfig(overrides)] });
+
+      await expect(port.listAutomatedInboxes('w1')).resolves.toStrictEqual([
+        makeInbox({ timezone: 'UTC' }),
+      ]);
+    });
+
+    it('should read relative dates in UTC when the orchestrator sends no timezone at all', async () => {
+      const { timezone, ...config } = makeConfig();
+      mockQuery.mockResolvedValue({ inboxes: [config] });
+
+      await expect(port.listAutomatedInboxes('w1')).resolves.toStrictEqual([
+        makeInbox({ timezone: 'UTC' }),
+      ]);
+    });
+
+    it('should keep the project timezone when the agent knows it', async () => {
+      mockQuery.mockResolvedValue({ inboxes: [makeConfig({ timezone: 'Pacific/Honolulu' })] });
+
+      await expect(port.listAutomatedInboxes('w1')).resolves.toStrictEqual([
+        makeInbox({ timezone: 'Pacific/Honolulu' }),
+      ]);
+    });
+
+    it('should keep a liana the orchestrator sends as null', async () => {
+      mockQuery.mockResolvedValue({ inboxes: [makeConfig({ liana: null })] });
+
+      await expect(port.listAutomatedInboxes('w1')).resolves.toStrictEqual([
+        makeInbox({ liana: null }),
+      ]);
+    });
+
+    it('should leave out the optional fields the orchestrator does not send', async () => {
+      const { renderingId, teamId, workflowId, collectionId, ...config } = makeConfig();
+      mockQuery.mockResolvedValue({ inboxes: [config] });
+
+      await expect(port.listAutomatedInboxes('w1')).resolves.toStrictEqual([
+        {
+          inboxId: 'inbox-1',
+          collectionName: 'orders',
+          primaryKeys: ['id'],
+          maxConcurrentRuns: 20,
+          timezone: 'Europe/Paris',
+          segment: { kind: 'smart', name: 'to-review' },
+          user: SERVICE_ACCOUNT_USER,
+        },
       ]);
     });
 
@@ -166,9 +267,9 @@ describe('ForestServerAutomationPort', () => {
         ],
       });
 
-      const configs = await port.listAutomatedInboxes('w1');
-
-      expect(configs.map(({ inboxId }) => inboxId)).toEqual(['good']);
+      await expect(port.listAutomatedInboxes('w1')).resolves.toStrictEqual([
+        makeInbox({ inboxId: 'good' }),
+      ]);
       expect(logger).toHaveBeenCalledWith(
         'Warn',
         'Skipping an automated inbox config the executor cannot read',

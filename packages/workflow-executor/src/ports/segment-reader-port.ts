@@ -1,15 +1,13 @@
-import type {
-  ServerAutomatedInboxServiceAccountProfile,
-  ServerAutomatedSegmentDescriptor,
-} from '../adapters/server-types';
+import type { SegmentDescriptor } from '../types/automation';
+import type { StepUser } from '../types/execution-context';
 
 export interface ListSegmentRecordIdsQuery {
   /** Agent-side collection name, as used in `/forest/:collectionName`. */
   collectionName: string;
-  segment: ServerAutomatedSegmentDescriptor;
+  segment: SegmentDescriptor;
   /** Field names of the collection's primary key, in the order the packed record id uses. */
   primaryKeys: string[];
-  user: ServerAutomatedInboxServiceAccountProfile;
+  user: StepUser;
   /** IANA zone the agent evaluates relative-date conditions in. */
   timezone: string;
   /** Restricts the read to these packed record ids, on top of the segment. */

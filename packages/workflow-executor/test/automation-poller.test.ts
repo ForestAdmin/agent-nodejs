@@ -1,7 +1,3 @@
-import type {
-  ServerAutomatedInboxAssignment,
-  ServerAutomatedInboxConfig,
-} from '../src/adapters/server-types';
 import type { SegmentReadFailureKind } from '../src/errors';
 import type { AutomationPort } from '../src/ports/automation-port';
 import type {
@@ -9,6 +5,8 @@ import type {
   ListSegmentRecordIdsQuery,
   SegmentReaderPort,
 } from '../src/ports/segment-reader-port';
+import type { AutomatedInbox, InboxAssignment } from '../src/types/automation';
+import type { StepUser } from '../src/types/execution-context';
 
 import AutomationPoller from '../src/automation-poller';
 import {
@@ -35,9 +33,19 @@ function segmentReadFailure(
   });
 }
 
-function makeConfig(
-  overrides: Partial<ServerAutomatedInboxConfig> = {},
-): ServerAutomatedInboxConfig {
+const SERVICE_ACCOUNT: StepUser = {
+  id: 99,
+  email: 'bot@forestadmin.com',
+  firstName: '',
+  lastName: '',
+  team: '',
+  renderingId: 7,
+  role: '',
+  permissionLevel: '',
+  tags: {},
+};
+
+function makeConfig(overrides: Partial<AutomatedInbox> = {}): AutomatedInbox {
   return {
     inboxId: 'inbox-1',
     renderingId: 7,
@@ -49,24 +57,12 @@ function makeConfig(
     maxConcurrentRuns: 20,
     timezone: 'Europe/Paris',
     segment: { kind: 'smart', name: 'to-review' },
-    serviceAccountProfile: {
-      id: 99,
-      email: 'bot@forestadmin.com',
-      firstName: null,
-      lastName: null,
-      team: null,
-      renderingId: 7,
-      role: null,
-      permissionLevel: null,
-      tags: {},
-    },
+    user: SERVICE_ACCOUNT,
     ...overrides,
   };
 }
 
-function makeAssignment(
-  overrides: Partial<ServerAutomatedInboxAssignment> = {},
-): ServerAutomatedInboxAssignment {
+function makeAssignment(overrides: Partial<InboxAssignment> = {}): InboxAssignment {
   return {
     recordId: 'r1',
     state: 'done',
@@ -76,10 +72,7 @@ function makeAssignment(
   };
 }
 
-function makeContext(options?: {
-  inboxes?: ServerAutomatedInboxConfig[];
-  assignments?: ServerAutomatedInboxAssignment[];
-}) {
+function makeContext(options?: { inboxes?: AutomatedInbox[]; assignments?: InboxAssignment[] }) {
   const automationPort: jest.Mocked<AutomationPort> = {
     listAutomatedInboxes: jest.fn().mockResolvedValue(options?.inboxes ?? [makeConfig()]),
     holdLease: jest.fn().mockResolvedValue(true),
@@ -118,7 +111,7 @@ async function runOneCycle(poller: AutomationPoller): Promise<void> {
   await poller.stop();
 }
 
-function makeInboxes(count: number): ServerAutomatedInboxConfig[] {
+function makeInboxes(count: number): AutomatedInbox[] {
   return Array.from({ length: count }, (_, index) => makeConfig({ inboxId: `inbox-${index + 1}` }));
 }
 
@@ -661,7 +654,7 @@ describe('AutomationPoller', () => {
       expect(context.segmentReaderPort.exclusionUnavailableReason).toHaveBeenCalledWith({
         collectionName: 'orders',
         primaryKeys: ['id'],
-        user: excluding.serviceAccountProfile,
+        user: SERVICE_ACCOUNT,
         timezone: 'Europe/Paris',
         liana: 'forest-nodejs-agent',
         knownRecordCount: 1,
@@ -1307,13 +1300,13 @@ describe('AutomationPoller', () => {
       });
     });
 
-    it('should read relative dates in UTC when the project has no timezone', async () => {
-      const context = makeContext({ inboxes: [makeConfig({ timezone: null })] });
+    it("should read the segment as the inbox's service account, in the inbox's timezone", async () => {
+      const context = makeContext({ inboxes: [makeConfig({ timezone: 'Pacific/Honolulu' })] });
 
       await runOneCycle(makePoller(context));
 
       expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledWith(
-        expect.objectContaining({ timezone: 'UTC' }),
+        expect.objectContaining({ user: SERVICE_ACCOUNT, timezone: 'Pacific/Honolulu' }),
       );
     });
   });
@@ -1335,18 +1328,6 @@ describe('AutomationPoller', () => {
       ) as [ListSegmentRecordIdsQuery];
 
       expect(query.pageSize).toBe(500);
-    });
-
-    it('should read a segment in UTC when the timezone is one the agent would refuse', async () => {
-      // The agent answers 400 on an unknown zone, so passing it on would fail every read of every
-      // sweep of that inbox with nothing saying why.
-      const context = makeContext({ inboxes: [makeConfig({ timezone: 'Mars/Olympus' })] });
-
-      await runOneCycle(makePoller(context));
-
-      expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledWith(
-        expect.objectContaining({ timezone: 'UTC' }),
-      );
     });
 
     it('should leave a record whose packed id it cannot split out of the reconciliation', async () => {

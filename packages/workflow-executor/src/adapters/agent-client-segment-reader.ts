@@ -1,16 +1,16 @@
-import type { ServerAutomatedSegmentDescriptor, ServerPlainConditionTree } from './server-types';
 import type {
   ExclusionQuery,
   ExclusionUnavailableReason,
   ListSegmentRecordIdsQuery,
   SegmentReaderPort,
 } from '../ports/segment-reader-port';
+import type { SegmentConditionTree, SegmentDescriptor } from '../types/automation';
 import type { SelectOptions } from '@forestadmin/agent-client';
 
 import { createRemoteAgentClient } from '@forestadmin/agent-client';
 
 import { segmentReadError } from './agent-errors';
-import { mintStepToken, toStepUser } from './step-user';
+import { mintStepToken } from './step-user';
 import {
   CompositeRecordIdMismatchError,
   SegmentRecordIdMissingError,
@@ -126,7 +126,7 @@ export default class AgentClientSegmentReader implements SegmentReaderPort {
   private createClient(user: ListSegmentRecordIdsQuery['user'], timezone: string): AgentClient {
     return createRemoteAgentClient({
       url: this.agentUrl,
-      token: mintStepToken(toStepUser(user), this.authSecret),
+      token: mintStepToken(user, this.authSecret),
       // Left out, agent-client sends Europe/Paris, and every relative-date condition in the
       // segment would resolve against a day the project never asked for.
       timezone,
@@ -136,7 +136,7 @@ export default class AgentClientSegmentReader implements SegmentReaderPort {
   private static resolveLister(
     client: AgentClient,
     collectionName: string,
-    segment: ServerAutomatedSegmentDescriptor,
+    segment: SegmentDescriptor,
   ): RecordLister {
     const collection = client.collection(collectionName);
 
@@ -157,7 +157,7 @@ export default class AgentClientSegmentReader implements SegmentReaderPort {
   }
 
   private static buildFilters(
-    segment: ServerAutomatedSegmentDescriptor,
+    segment: SegmentDescriptor,
     primaryKeys: string[],
     recordIds: string[] | undefined,
     excludedRecordIds: string[] | undefined,
@@ -172,11 +172,11 @@ export default class AgentClientSegmentReader implements SegmentReaderPort {
       excludedRecordIds?.length && primaryKeys.length === 1
         ? { field: primaryKeys[0], operator: 'not_in', value: excludedRecordIds }
         : null,
-    ].filter((tree): tree is ServerPlainConditionTree => tree !== null);
+    ].filter((tree): tree is SegmentConditionTree => tree !== null);
 
     if (branches.length === 0) return undefined;
 
-    const tree: ServerPlainConditionTree =
+    const tree: SegmentConditionTree =
       branches.length === 1 ? branches[0] : { aggregator: 'and', conditions: branches };
 
     return tree as AgentFilter;
@@ -185,7 +185,7 @@ export default class AgentClientSegmentReader implements SegmentReaderPort {
   private static buildRecordIdFilter(
     primaryKeys: string[],
     recordIds: string[],
-  ): ServerPlainConditionTree {
+  ): SegmentConditionTree {
     // `in` takes a flat list of values, so it only ever addresses a single-column key. A composite
     // key is asked for as one branch per record, each ANDing the parts of its packed id.
     if (primaryKeys.length === 1) {
