@@ -1,11 +1,5 @@
-import type { SegmentReadFailureKind } from '../errors';
-import type {
-  InboxAssignment,
-  SegmentReadFailure,
-  SegmentReadFailureReason,
-} from '../types/automation';
+import type { InboxAssignment } from '../types/automation';
 
-import { SegmentReadError } from '../errors';
 import { deserializeRecordId } from '../record-id';
 
 // One membership question per chunk, small enough that a `pk In (...)` stays a query an agent will
@@ -13,8 +7,9 @@ import { deserializeRecordId } from '../record-id';
 export const MEMBERSHIP_CHUNK_SIZE = 50;
 
 // Ceiling on the padded fallback page. The padding grows with the backlog while the agent read is
-// bounded by the client's ten-second timeout, so past some size the page stops being served at all.
-export const MAX_CANDIDATE_PAGE_SIZE = 500;
+// bounded by the client's ten-second timeout, so past some size the page stops being served at all —
+// worse than a partial page that finds fewer candidates.
+const MAX_CANDIDATE_PAGE_SIZE = 500;
 
 // Records waiting on a person stay known for as long as nobody handles them, so one padded page can
 // hold nothing but them. Bounds the reads a sweep makes on the customer's agent to walk past them.
@@ -37,30 +32,6 @@ const isTerminalRun = (runState: string | null | undefined): boolean =>
 
 const isLiveRun = (runState: string | null | undefined): boolean =>
   runState != null && LIVE_RUN_STATES.has(runState);
-
-const READ_FAILURE_REASONS: Record<SegmentReadFailureKind, SegmentReadFailureReason> = {
-  forbidden: 'agent-forbidden',
-  unreachable: 'agent-unreachable',
-  overloaded: 'segment-read-failed',
-  failed: 'segment-read-failed',
-};
-
-export function toReadFailure(error: unknown): SegmentReadFailure {
-  if (!(error instanceof SegmentReadError)) return { reason: 'segment-read-failed' };
-
-  const { failure, httpStatus } = error;
-  const reason = READ_FAILURE_REASONS[failure];
-
-  return httpStatus === undefined ? { reason } : { reason, httpStatus };
-}
-
-// A refused `not_in` comes back as a 4xx or a 500 depending on the agent (PHP answers 500 even for
-// an undeclared operator). Only a timeout, an unreachable agent or a throttle rules it out, and
-// padding then would evaluate the segment again on top of the read the agent may still be running.
-// A 401 or 403 would refuse the padded read just the same.
-export function mayBeOperatorRefusal(error: unknown): boolean {
-  return !(error instanceof SegmentReadError) || error.failure === 'failed';
-}
 
 export function withUnknownState(assignments: InboxAssignment[]): InboxAssignment[] {
   return assignments.filter(

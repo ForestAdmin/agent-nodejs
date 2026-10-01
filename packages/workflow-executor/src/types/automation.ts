@@ -12,9 +12,7 @@ export type SegmentDescriptor =
 export interface AutomatedInbox {
   inboxId: string;
   renderingId?: number;
-  teamId?: number;
   workflowId?: string;
-  collectionId?: string;
   collectionName: string;
   primaryKeys: string[];
   maxConcurrentRuns: number;

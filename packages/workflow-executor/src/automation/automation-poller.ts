@@ -154,7 +154,7 @@ export default class AutomationPoller {
 
       if (this._state !== 'running') return;
 
-      if (this.lease.record(held, Date.now())) {
+      if (this.lease.recordBeat(held, Date.now()).roleChanged) {
         this.logger(
           'Info',
           held
@@ -187,7 +187,7 @@ export default class AutomationPoller {
         error: extractErrorMessage(error),
       });
 
-      if (this.lease.recordFailure(Date.now())) {
+      if (this.lease.recordFailedBeat(Date.now()).trustLost) {
         this.logger('Warn', 'No heartbeat landed for too long, standing by until one does', {
           instanceId: this.config.instanceId,
         });
@@ -220,16 +220,16 @@ export default class AutomationPoller {
       const queue = [...inboxes];
 
       const sweepQueue = async (): Promise<void> => {
-        let config = queue.shift();
+        let inbox = queue.shift();
 
         // A lost lease means another instance may already be sweeping these inboxes.
-        while (config && this._state === 'running' && this.lease.isTrusted(Date.now())) {
+        while (inbox && this._state === 'running' && this.lease.isTrusted(Date.now())) {
           // eslint-disable-next-line no-await-in-loop
-          await this.inFlightInboxes.track(config.inboxId, this.inboxPoll.poll(config));
-          config = queue.shift();
+          await this.inFlightInboxes.track(inbox.inboxId, this.inboxPoll.poll(inbox));
+          inbox = queue.shift();
         }
 
-        if (config && this._state === 'running') this.sweepCutShort = true;
+        if (inbox && this._state === 'running') this.sweepCutShort = true;
       };
 
       await Promise.all(

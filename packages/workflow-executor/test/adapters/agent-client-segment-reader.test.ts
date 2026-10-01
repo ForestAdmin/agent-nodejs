@@ -560,6 +560,17 @@ describe('AgentClientSegmentReader', () => {
       );
     });
 
+    it('should let a capabilities answer it cannot read escape as it is, not as a segment read error', async () => {
+      interceptCapabilities(200, {
+        collections: [{ name: 'orders', fields: [{ name: 'id', type: 'Number', operators: 42 }] }],
+      });
+
+      const error = await reader.exclusionUnavailableReason(makeExclusionQuery()).catch(e => e);
+
+      expect(error).toBeInstanceOf(TypeError);
+      expect(error).not.toBeInstanceOf(SegmentReadError);
+    });
+
     it.each([
       [403, 'forbidden'],
       [404, 'failed'],

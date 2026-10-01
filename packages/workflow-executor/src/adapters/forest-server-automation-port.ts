@@ -1,4 +1,4 @@
-import type { ServerAutomatedInboxConfig } from './server-types';
+import type { ServerAutomatedInboxConfig, ServerAutomatedInboxSyncRequest } from './server-types';
 import type { AutomationPort } from '../ports/automation-port';
 import type { Logger } from '../ports/logger-port';
 import type {
@@ -6,7 +6,6 @@ import type {
   InboxAssignment,
   InboxSyncReport,
   InboxSyncResult,
-  SegmentDescriptor,
 } from '../types/automation';
 import type { HttpOptions } from '@forestadmin/forestadmin-client';
 
@@ -51,21 +50,18 @@ const AUTOMATION_ROUTE_MISSING =
   'The orchestrator does not serve automated inboxes. Expected while the executor runs ahead of ' +
   'the server; check forestServerUrl if it persists.';
 
-function toAutomatedInbox({
-  serviceAccountProfile,
-  timezone,
-  segment,
-  ...inbox
-}: ServerAutomatedInboxConfig): AutomatedInbox {
+function toAutomatedInbox(config: ServerAutomatedInboxConfig): AutomatedInbox {
   return {
-    ...inbox,
-    // The recursive condition tree schema makes zod infer `segment` optional; the parse requires it.
-    segment: segment as SegmentDescriptor,
-    // Every executor instance must read a relative date the same way, so the machine's zone is
-    // never the fallback. A zone the agent would reject is treated as an absent one: it answers
-    // 400 on an unknown zone, which would fail every read of every sweep of that inbox.
-    timezone: toProjectTimezone(timezone),
-    user: toStepUser(serviceAccountProfile),
+    inboxId: config.inboxId,
+    renderingId: config.renderingId,
+    workflowId: config.workflowId,
+    collectionName: config.collectionName,
+    primaryKeys: config.primaryKeys,
+    maxConcurrentRuns: config.maxConcurrentRuns,
+    timezone: toProjectTimezone(config.timezone),
+    liana: config.liana,
+    segment: config.segment,
+    user: toStepUser(config.serviceAccountProfile),
   };
 }
 
@@ -190,7 +186,11 @@ export default class ForestServerAutomationPort implements AutomationPort {
   async sync(inboxId: string, report: InboxSyncReport): Promise<InboxSyncResult[]> {
     const response = await this.callPort(
       'syncAutomatedInbox',
-      () => ServerUtils.query<unknown>(this.options, 'post', ROUTES.sync(inboxId), {}, report),
+      () => {
+        const body: ServerAutomatedInboxSyncRequest = report;
+
+        return ServerUtils.query<unknown>(this.options, 'post', ROUTES.sync(inboxId), {}, body);
+      },
       inboxId,
     );
 

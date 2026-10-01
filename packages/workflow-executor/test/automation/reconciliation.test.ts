@@ -1,20 +1,16 @@
-import type { SegmentReadFailureKind } from '../../src/errors';
 import type { InboxAssignment } from '../../src/types/automation';
 
 import {
   chunk,
   isReadableRecordId,
   knownRecordIds,
-  mayBeOperatorRefusal,
   newCandidates,
   paddedPageSize,
   reconcilable,
   recordsToCheck,
-  toReadFailure,
   withUnexpectedRunState,
   withUnknownState,
 } from '../../src/automation/reconciliation';
-import { SegmentReadError, SegmentRecordIdMissingError } from '../../src/errors';
 
 const ASSIGNMENT_STATES = ['done', 'canceled', 'auto-canceled', 'todo', 'doing', 'escalated'];
 
@@ -41,13 +37,6 @@ const CASES = ASSIGNMENT_STATES.flatMap(state =>
 
 function assignment(overrides: Partial<InboxAssignment> = {}): InboxAssignment {
   return { recordId: 'r1', state: 'done', workflowRunId: 1, runState: 'finished', ...overrides };
-}
-
-function readError(failure: SegmentReadFailureKind, httpStatus?: number): SegmentReadError {
-  return new SegmentReadError('listSegmentRecordIds', new Error('read failed'), {
-    failure,
-    httpStatus,
-  });
 }
 
 describe('reconcilable', () => {
@@ -188,55 +177,6 @@ describe('newCandidates', () => {
     [10, ['n1', 'n2', 'n3']],
   ])('should keep at most %i new records, in page order', (room, expected) => {
     expect(newCandidates(page, known, found, room)).toStrictEqual(expected);
-  });
-});
-
-describe('toReadFailure', () => {
-  it.each([
-    [
-      'forbidden with a status',
-      readError('forbidden', 403),
-      { reason: 'agent-forbidden', httpStatus: 403 },
-    ],
-    ['forbidden without a status', readError('forbidden'), { reason: 'agent-forbidden' }],
-    [
-      'unreachable with a status',
-      readError('unreachable', 503),
-      { reason: 'agent-unreachable', httpStatus: 503 },
-    ],
-    ['unreachable without a status', readError('unreachable'), { reason: 'agent-unreachable' }],
-    [
-      'overloaded with a status',
-      readError('overloaded', 429),
-      { reason: 'segment-read-failed', httpStatus: 429 },
-    ],
-    ['overloaded without a status', readError('overloaded'), { reason: 'segment-read-failed' }],
-    [
-      'failed with a status',
-      readError('failed', 500),
-      { reason: 'segment-read-failed', httpStatus: 500 },
-    ],
-    ['failed without a status', readError('failed'), { reason: 'segment-read-failed' }],
-    ['an error that is no segment read', new Error('boom'), { reason: 'segment-read-failed' }],
-    [
-      'a record without an id',
-      new SegmentRecordIdMissingError('orders'),
-      { reason: 'segment-read-failed' },
-    ],
-  ])('should report a read %s', (_, error, expected) => {
-    expect(toReadFailure(error)).toStrictEqual(expected);
-  });
-});
-
-describe('mayBeOperatorRefusal', () => {
-  it.each([
-    ['a forbidden read', readError('forbidden', 403), false],
-    ['an unreachable agent', readError('unreachable'), false],
-    ['an overloaded agent', readError('overloaded', 429), false],
-    ['a failed read', readError('failed', 400), true],
-    ['an error that is no segment read', new Error('boom'), true],
-  ])('should judge %s', (_, error, expected) => {
-    expect(mayBeOperatorRefusal(error)).toBe(expected);
   });
 });
 

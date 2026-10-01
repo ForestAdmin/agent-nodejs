@@ -61,13 +61,12 @@ function makeInbox(overrides: Record<string, unknown> = {}) {
   return {
     inboxId: 'inbox-1',
     renderingId: 7,
-    teamId: 3,
     workflowId: 'wf-1',
-    collectionId: 'col-1',
     collectionName: 'orders',
     primaryKeys: ['id'],
     maxConcurrentRuns: 20,
     timezone: 'Europe/Paris',
+    liana: undefined,
     segment: { kind: 'smart', name: 'to-review' },
     user: SERVICE_ACCOUNT_USER,
     ...overrides,
@@ -160,17 +159,20 @@ describe('ForestServerAutomationPort', () => {
       ]);
     });
 
-    it('should leave out the optional fields the orchestrator does not send', async () => {
+    it('should leave undefined the optional fields the orchestrator does not send', async () => {
       const { renderingId, teamId, workflowId, collectionId, ...config } = makeConfig();
       mockQuery.mockResolvedValue({ inboxes: [config] });
 
       await expect(port.listAutomatedInboxes('w1')).resolves.toStrictEqual([
         {
           inboxId: 'inbox-1',
+          renderingId: undefined,
+          workflowId: undefined,
           collectionName: 'orders',
           primaryKeys: ['id'],
           maxConcurrentRuns: 20,
           timezone: 'Europe/Paris',
+          liana: undefined,
           segment: { kind: 'smart', name: 'to-review' },
           user: SERVICE_ACCOUNT_USER,
         },

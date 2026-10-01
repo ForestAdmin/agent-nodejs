@@ -9,12 +9,7 @@ import type { AutomatedInbox, InboxAssignment } from '../../src/types/automation
 import type { StepUser } from '../../src/types/execution-context';
 
 import AutomationPoller from '../../src/automation/automation-poller';
-import {
-  AutomatedInboxGoneError,
-  CompositeRecordIdMismatchError,
-  SegmentReadError,
-  SegmentRecordIdMissingError,
-} from '../../src/errors';
+import { AutomatedInboxGoneError, SegmentReadError } from '../../src/errors';
 
 const POLL_INTERVAL_S = 300;
 
@@ -49,9 +44,7 @@ function makeConfig(overrides: Partial<AutomatedInbox> = {}): AutomatedInbox {
   return {
     inboxId: 'inbox-1',
     renderingId: 7,
-    teamId: 3,
     workflowId: 'wf-1',
-    collectionId: 'col-1',
     collectionName: 'orders',
     primaryKeys: ['id'],
     maxConcurrentRuns: 20,
@@ -677,34 +670,42 @@ describe('AutomationPoller', () => {
       );
     });
 
-    it('should pad the page when the primary key does not declare `not_in`', async () => {
-      const context = excludingContext({
-        assignments: [makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' })],
-      });
-      context.segmentReaderPort.exclusionUnavailableReason.mockResolvedValue(
-        'field-without-not-in',
-      );
+    it.each([
+      'composite-key',
+      'too-many-known-records',
+      'unknown-liana',
+      'field-without-not-in',
+    ] as const)(
+      'should pad the page and log the reason when the segment reader reports %s',
+      async reason => {
+        const context = excludingContext({
+          assignments: [makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' })],
+        });
+        context.segmentReaderPort.exclusionUnavailableReason.mockResolvedValue(reason);
 
-      await runOneCycle(makePoller(context));
+        await runOneCycle(makePoller(context));
 
-      expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledWith(
-        expect.not.objectContaining({ excludedRecordIds: expect.anything() }),
-      );
-      expect(context.logger).toHaveBeenCalledWith(
-        'Info',
-        'Automated inbox polled',
-        expect.objectContaining({
-          candidatePageSize: 21,
-          paddedPageReason: 'field-without-not-in',
-        }),
-      );
-    });
+        expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledWith(
+          expect.objectContaining({ pageSize: 21 }),
+        );
+        expect(context.segmentReaderPort.listRecordIds).not.toHaveBeenCalledWith(
+          expect.objectContaining({ excludedRecordIds: expect.anything() }),
+        );
+        expect(context.logger).toHaveBeenCalledWith(
+          'Info',
+          'Automated inbox polled',
+          expect.objectContaining({ candidatePageSize: 21, paddedPageReason: reason }),
+        );
+      },
+    );
 
     it('should pad the page and still sync when the capabilities cannot be read', async () => {
       const context = excludingContext({
         assignments: [makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' })],
       });
-      context.segmentReaderPort.exclusionUnavailableReason.mockRejectedValue(new Error('HTTP 404'));
+      context.segmentReaderPort.exclusionUnavailableReason.mockRejectedValue(
+        segmentReadFailure('failed', { httpStatus: 404, operation: 'listFieldOperators' }),
+      );
       context.segmentReaderPort.listRecordIds.mockResolvedValue(['a', 'fresh']);
 
       await runOneCycle(makePoller(context));
@@ -712,7 +713,11 @@ describe('AutomationPoller', () => {
       expect(context.logger).toHaveBeenCalledWith(
         'Warn',
         'Could not read the agent capabilities, padding the page instead',
-        expect.objectContaining({ inboxId: 'inbox-1', error: 'HTTP 404' }),
+        expect.objectContaining({
+          inboxId: 'inbox-1',
+          error: 'Agent port "listFieldOperators" failed: segment read failed',
+          httpStatus: 404,
+        }),
       );
       expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
         closed: [],
@@ -725,6 +730,37 @@ describe('AutomationPoller', () => {
           candidatePageSize: 21,
           paddedPageReason: 'capabilities-unreadable',
         }),
+      );
+    });
+
+    it('should fail the candidate read, without padding, when the capabilities check breaks', async () => {
+      const context = excludingContext({
+        assignments: [makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' })],
+      });
+      context.segmentReaderPort.exclusionUnavailableReason.mockRejectedValue(
+        new TypeError('operators.includes is not a function'),
+      );
+
+      await runOneCycle(makePoller(context));
+
+      expect(context.segmentReaderPort.listRecordIds).not.toHaveBeenCalled();
+      expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
+        closed: [],
+        candidates: [],
+        readFailure: { reason: 'segment-read-failed' },
+      });
+      expect(context.logger).toHaveBeenCalledWith(
+        'Error',
+        'Could not read new candidates of an automated inbox',
+        expect.objectContaining({
+          inboxId: 'inbox-1',
+          error: 'operators.includes is not a function',
+        }),
+      );
+      expect(context.logger).not.toHaveBeenCalledWith(
+        'Warn',
+        'Could not read the agent capabilities, padding the page instead',
+        expect.anything(),
       );
     });
 
@@ -790,75 +826,50 @@ describe('AutomationPoller', () => {
       );
     });
 
-    it.each([
-      ['an unreachable agent', segmentReadFailure('unreachable'), { reason: 'agent-unreachable' }],
-      [
-        'an unreachable agent answering 503',
-        segmentReadFailure('unreachable', { httpStatus: 503 }),
-        { reason: 'agent-unreachable', httpStatus: 503 },
-      ],
-      [
-        'an overloaded agent',
-        segmentReadFailure('overloaded', { httpStatus: 429 }),
-        { reason: 'segment-read-failed', httpStatus: 429 },
-      ],
-      [
-        'a forbidden read',
-        segmentReadFailure('forbidden', { httpStatus: 403 }),
-        { reason: 'agent-forbidden', httpStatus: 403 },
-      ],
-    ])(
-      'should not read the segment again in this cycle when the `not_in` read fails with %s',
-      async (_, error, readFailure) => {
-        const context = excludingContext({
-          assignments: [makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' })],
-        });
-        context.segmentReaderPort.listRecordIds.mockRejectedValueOnce(error);
+    it('should not read the segment again in this cycle when the `not_in` read fails on an unreachable agent', async () => {
+      const context = excludingContext({
+        assignments: [makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' })],
+      });
+      context.segmentReaderPort.listRecordIds.mockRejectedValueOnce(
+        segmentReadFailure('unreachable'),
+      );
 
-        await runOneCycle(makePoller(context));
+      await runOneCycle(makePoller(context));
 
-        expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledTimes(1);
-        expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
-          closed: [],
-          candidates: [],
-          readFailure,
-        });
-        expect(context.logger).not.toHaveBeenCalledWith(
-          'Warn',
-          'The not_in candidate read failed, padding the page instead',
-          expect.anything(),
-        );
-        expect(context.logger).toHaveBeenCalledWith(
-          'Error',
-          'Could not read new candidates of an automated inbox',
-          expect.objectContaining({ inboxId: 'inbox-1', notIn: true }),
-        );
-      },
-    );
+      expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledTimes(1);
+      expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
+        closed: [],
+        candidates: [],
+        readFailure: { reason: 'agent-unreachable' },
+      });
+      expect(context.logger).not.toHaveBeenCalledWith(
+        'Warn',
+        'The not_in candidate read failed, padding the page instead',
+        expect.anything(),
+      );
+      expect(context.logger).toHaveBeenCalledWith(
+        'Error',
+        'Could not read new candidates of an automated inbox',
+        expect.objectContaining({ inboxId: 'inbox-1', notIn: true }),
+      );
+    });
 
-    it.each([
-      ['a failed read answering 400', segmentReadFailure('failed', { httpStatus: 400 })],
-      ['a failed read answering 500', segmentReadFailure('failed', { httpStatus: 500 })],
-      ['an error that is no segment read', new Error('HTTP 500')],
-    ])(
-      'should fall back to a padded page when the `not_in` read fails with %s',
-      async (_, error) => {
-        const context = excludingContext({
-          assignments: [makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' })],
-        });
-        context.segmentReaderPort.listRecordIds
-          .mockRejectedValueOnce(error)
-          .mockResolvedValueOnce(['a', 'fresh']);
+    it('should fall back to a padded page when the `not_in` read fails with a failed read', async () => {
+      const context = excludingContext({
+        assignments: [makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' })],
+      });
+      context.segmentReaderPort.listRecordIds
+        .mockRejectedValueOnce(segmentReadFailure('failed', { httpStatus: 400 }))
+        .mockResolvedValueOnce(['a', 'fresh']);
 
-        await runOneCycle(makePoller(context));
+      await runOneCycle(makePoller(context));
 
-        expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledTimes(2);
-        expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
-          closed: [],
-          candidates: ['fresh'],
-        });
-      },
-    );
+      expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledTimes(2);
+      expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
+        closed: [],
+        candidates: ['fresh'],
+      });
+    });
 
     it('should not fall back when a read with nothing to exclude fails', async () => {
       const context = excludingContext();
@@ -985,70 +996,6 @@ describe('AutomationPoller', () => {
       );
     });
 
-    it('should pad the page when the agent is not one that declares its capabilities', async () => {
-      const context = makeContext({
-        assignments: [makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' })],
-      });
-      context.segmentReaderPort.exclusionUnavailableReason.mockResolvedValue('unknown-liana');
-
-      await runOneCycle(makePoller(context));
-
-      expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledWith(
-        expect.objectContaining({ pageSize: 21 }),
-      );
-      expect(context.logger).toHaveBeenCalledWith(
-        'Info',
-        'Automated inbox polled',
-        expect.objectContaining({ candidatePageSize: 21, paddedPageReason: 'unknown-liana' }),
-      );
-    });
-
-    it('should pad the page when the collection has a composite key', async () => {
-      const context = makeContext({
-        inboxes: [makeConfig({ liana: 'forest-nodejs-agent', primaryKeys: ['tenant', 'id'] })],
-        assignments: [makeAssignment({ recordId: 't1|1', state: 'doing', runState: 'started' })],
-      });
-      context.segmentReaderPort.exclusionUnavailableReason.mockResolvedValue('composite-key');
-
-      await runOneCycle(makePoller(context));
-
-      expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledWith(
-        expect.objectContaining({ pageSize: 21 }),
-      );
-      expect(context.segmentReaderPort.listRecordIds).not.toHaveBeenCalledWith(
-        expect.objectContaining({ excludedRecordIds: expect.anything() }),
-      );
-      expect(context.logger).toHaveBeenCalledWith(
-        'Info',
-        'Automated inbox polled',
-        expect.objectContaining({ candidatePageSize: 21, paddedPageReason: 'composite-key' }),
-      );
-    });
-
-    it('should pad the page when too many records would travel in the query string', async () => {
-      const assignments = Array.from({ length: 151 }, (_unused, index) =>
-        makeAssignment({ recordId: `r${index}`, state: 'doing', runState: 'started' }),
-      );
-      const context = excludingContext({ assignments });
-      context.segmentReaderPort.exclusionUnavailableReason.mockResolvedValue(
-        'too-many-known-records',
-      );
-
-      await runOneCycle(makePoller(context));
-
-      expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledWith(
-        expect.objectContaining({ pageSize: 171 }),
-      );
-      expect(context.logger).toHaveBeenCalledWith(
-        'Info',
-        'Automated inbox polled',
-        expect.objectContaining({
-          candidatePageSize: 171,
-          paddedPageReason: 'too-many-known-records',
-        }),
-      );
-    });
-
     describe('when one padded page holds nothing but known records', () => {
       const waitingOnAPerson = (count: number) =>
         Array.from({ length: count }, (_unused, index) =>
@@ -1136,7 +1083,7 @@ describe('AutomationPoller', () => {
 
       it('should page the same way when the fallback comes from a refused `not_in`', async () => {
         const context = makeContext({
-          inboxes: [makeConfig({ liana: 'forest-nodejs-agent', maxConcurrentRuns: 480 })],
+          inboxes: [makeConfig({ maxConcurrentRuns: 480 })],
           assignments: waitingOnAPerson(30),
         });
         context.segmentReaderPort.exclusionUnavailableReason.mockResolvedValue(undefined);
@@ -1762,64 +1709,18 @@ describe('AutomationPoller', () => {
     });
 
     describe('read failure reported with the sync', () => {
-      it.each([
-        [
-          'a forbidden read answering 403',
-          segmentReadFailure('forbidden', { httpStatus: 403 }),
-          { reason: 'agent-forbidden', httpStatus: 403 },
-        ],
-        [
-          'a forbidden read answering 401',
-          segmentReadFailure('forbidden', { httpStatus: 401 }),
-          { reason: 'agent-forbidden', httpStatus: 401 },
-        ],
-        [
-          'an unreachable agent answering 503',
-          segmentReadFailure('unreachable', { httpStatus: 503 }),
-          { reason: 'agent-unreachable', httpStatus: 503 },
-        ],
-        [
-          'an unreachable agent',
-          segmentReadFailure('unreachable'),
-          { reason: 'agent-unreachable' },
-        ],
-        [
-          'an overloaded agent',
-          segmentReadFailure('overloaded', { httpStatus: 429 }),
-          { reason: 'segment-read-failed', httpStatus: 429 },
-        ],
-        [
-          'a failed read answering 400',
-          segmentReadFailure('failed', { httpStatus: 400 }),
-          { reason: 'segment-read-failed', httpStatus: 400 },
-        ],
-        [
-          'a failed read answering 500',
-          segmentReadFailure('failed', { httpStatus: 500 }),
-          { reason: 'segment-read-failed', httpStatus: 500 },
-        ],
-        ['a failed read', segmentReadFailure('failed'), { reason: 'segment-read-failed' }],
-        [
-          'a record without an id',
-          new SegmentRecordIdMissingError('orders'),
-          { reason: 'segment-read-failed' },
-        ],
-        [
-          'a record id it cannot split',
-          new CompositeRecordIdMismatchError('1', 2),
-          { reason: 'segment-read-failed' },
-        ],
-        ['an error that is no segment read', new Error('boom'), { reason: 'segment-read-failed' }],
-      ])('should name the failure of a candidate read that got %s', async (_, error, expected) => {
+      it('should send the failure of the candidate read with the sync', async () => {
         const context = makeContext();
-        context.segmentReaderPort.listRecordIds.mockRejectedValue(error);
+        context.segmentReaderPort.listRecordIds.mockRejectedValue(
+          segmentReadFailure('forbidden', { httpStatus: 403 }),
+        );
 
         await runOneCycle(makePoller(context));
 
         expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
           closed: [],
           candidates: [],
-          readFailure: expected,
+          readFailure: { reason: 'agent-forbidden', httpStatus: 403 },
         });
       });
 

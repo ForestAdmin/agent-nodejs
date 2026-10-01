@@ -3,18 +3,17 @@ import type { Logger } from '../ports/logger-port';
 import type { ExclusionUnavailableReason, SegmentReaderPort } from '../ports/segment-reader-port';
 import type { AutomatedInbox, InboxAssignment, SegmentReadFailure } from '../types/automation';
 
+import { mayBeOperatorRefusal, toReadFailure } from './read-failure';
 import {
   MAX_PADDED_PAGES,
   MEMBERSHIP_CHUNK_SIZE,
   chunk,
   isReadableRecordId,
   knownRecordIds,
-  mayBeOperatorRefusal,
   newCandidates,
   paddedPageSize,
   reconcilable,
   recordsToCheck,
-  toReadFailure,
   withUnexpectedRunState,
   withUnknownState,
 } from './reconciliation';
@@ -42,7 +41,7 @@ interface ReadAttempt {
 function describeAgentFailure(error: unknown) {
   return {
     error: extractErrorMessage(error),
-    httpStatus: toReadFailure(error).httpStatus,
+    httpStatus: error instanceof SegmentReadError ? error.httpStatus : undefined,
     agentError: error instanceof SegmentReadError ? error.agentDetail : undefined,
   };
 }
@@ -307,9 +306,6 @@ export default class InboxPoll {
     );
   }
 
-  // The padding is capped. It grows with the backlog, and the agent read it feeds is bounded by
-  // the client's ten-second ceiling, so an uncapped page turns a large inbox into one that reads
-  // nothing at all — worse than one that reads a partial page and finds fewer candidates.
   private async readPaddedCandidates(
     logContext: Record<string, unknown>,
     inbox: AutomatedInbox,
@@ -392,17 +388,17 @@ export default class InboxPoll {
     known: string[],
   ): Promise<PaddedPageReason | undefined> {
     try {
-      const { collectionName, primaryKeys, user, timezone } = segmentQuery(inbox);
-
       return await this.segmentReaderPort.exclusionUnavailableReason({
-        collectionName,
-        primaryKeys,
-        user,
-        timezone,
+        collectionName: inbox.collectionName,
+        primaryKeys: inbox.primaryKeys,
+        user: inbox.user,
+        timezone: inbox.timezone,
         liana: inbox.liana,
         knownRecordCount: known.length,
       });
     } catch (error) {
+      if (!(error instanceof SegmentReadError)) throw error;
+
       this.logger('Warn', 'Could not read the agent capabilities, padding the page instead', {
         ...logContext,
         ...describeAgentFailure(error),

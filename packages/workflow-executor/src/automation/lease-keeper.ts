@@ -7,23 +7,23 @@ export default class LeaseKeeper {
   private holdsLease: boolean | undefined;
   private leaseConfirmedAt = 0;
 
-  /** Returns whether this beat changed who sweeps. */
-  record(held: boolean, now: number): boolean {
-    const changed = held !== this.holdsLease;
+  recordBeat(held: boolean, now: number): { roleChanged: boolean } {
+    const roleChanged = held !== this.holdsLease;
     this.holdsLease = held;
 
     if (held) this.leaseConfirmedAt = now;
 
-    return changed;
+    return { roleChanged };
   }
 
-  /** Returns whether the failed beat made the lease untrusted, so this instance stands by. */
-  recordFailure(now: number): boolean {
-    if (!this.holdsLease || now - this.leaseConfirmedAt < LEASE_TRUSTED_FOR_MS) return false;
+  recordFailedBeat(now: number): { trustLost: boolean } {
+    if (!this.holdsLease || now - this.leaseConfirmedAt < LEASE_TRUSTED_FOR_MS) {
+      return { trustLost: false };
+    }
 
     this.holdsLease = false;
 
-    return true;
+    return { trustLost: true };
   }
 
   isTrusted(now: number): boolean {
