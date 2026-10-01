@@ -265,6 +265,11 @@ export interface ServerUpdateStepRequest {
   executionStatus: ServerExecutionStatus;
 }
 
+export interface ServerReleaseRunRequest {
+  runId: number;
+  lockedAt: string;
+}
+
 // --- Automated inboxes (executor routes, PRD-1177 "Step 0" contract) ---
 //
 // Zod-validated rather than cast: these payloads drive workflow runs on the customer's data, and

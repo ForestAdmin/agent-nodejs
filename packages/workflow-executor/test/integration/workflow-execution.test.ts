@@ -155,6 +155,7 @@ function createMockWorkflowPort(overrides: Partial<WorkflowPort> = {}): jest.Moc
     getMcpServerConfigs: jest.fn().mockResolvedValue({}),
     hasRunAccess: jest.fn().mockResolvedValue(true),
     reportExecutorMetadata: jest.fn().mockResolvedValue(undefined),
+    releaseRun: jest.fn().mockResolvedValue(undefined),
     ...overrides,
   } as jest.Mocked<WorkflowPort>;
 }
@@ -286,6 +287,7 @@ describe('workflow execution (integration)', () => {
           user: STEP_USER,
         },
         auth: { forestServerToken: 'test-forest-token' },
+        lockedAt: null,
       }),
     });
 
@@ -360,9 +362,11 @@ describe('workflow execution (integration)', () => {
     });
 
     const workflowPort = createMockWorkflowPort({
-      getAvailableRun: jest
-        .fn()
-        .mockResolvedValue({ step, auth: { forestServerToken: 'test-forest-token' } }),
+      getAvailableRun: jest.fn().mockResolvedValue({
+        step,
+        auth: { forestServerToken: 'test-forest-token' },
+        lockedAt: null,
+      }),
     });
 
     const { server, runStore } = createIntegrationSetup({ workflowPort, model });
@@ -407,9 +411,11 @@ describe('workflow execution (integration)', () => {
     });
 
     const workflowPort = createMockWorkflowPort({
-      getAvailableRun: jest
-        .fn()
-        .mockResolvedValue({ step, auth: { forestServerToken: 'test-forest-token' } }),
+      getAvailableRun: jest.fn().mockResolvedValue({
+        step,
+        auth: { forestServerToken: 'test-forest-token' },
+        lockedAt: null,
+      }),
       getCollectionSchema: jest.fn().mockResolvedValue(COLLECTION_SCHEMA_WITH_STATUS),
     });
 
@@ -470,9 +476,11 @@ describe('workflow execution (integration)', () => {
     });
 
     const workflowPort = createMockWorkflowPort({
-      getAvailableRun: jest
-        .fn()
-        .mockResolvedValue({ step, auth: { forestServerToken: 'test-forest-token' } }),
+      getAvailableRun: jest.fn().mockResolvedValue({
+        step,
+        auth: { forestServerToken: 'test-forest-token' },
+        lockedAt: null,
+      }),
       getCollectionSchema: jest.fn().mockResolvedValue(COLLECTION_SCHEMA_WITH_ACTIONS),
     });
 
@@ -595,9 +603,11 @@ describe('workflow execution (integration)', () => {
     });
 
     const workflowPort = createMockWorkflowPort({
-      getAvailableRun: jest
-        .fn()
-        .mockResolvedValue({ step, auth: { forestServerToken: 'test-forest-token' } }),
+      getAvailableRun: jest.fn().mockResolvedValue({
+        step,
+        auth: { forestServerToken: 'test-forest-token' },
+        lockedAt: null,
+      }),
       getCollectionSchema: jest.fn().mockImplementation(async (collectionName: string) => {
         if (collectionName === 'orders') return ORDERS_SCHEMA;
 
@@ -700,9 +710,11 @@ describe('workflow execution (integration)', () => {
     });
 
     const workflowPort = createMockWorkflowPort({
-      getAvailableRun: jest
-        .fn()
-        .mockResolvedValue({ step, auth: { forestServerToken: 'test-forest-token' } }),
+      getAvailableRun: jest.fn().mockResolvedValue({
+        step,
+        auth: { forestServerToken: 'test-forest-token' },
+        lockedAt: null,
+      }),
       // Two configs but only one matches step.mcpServerId — the assertion below proves
       // RemoteToolFetcher actually scopes the Record before loading tools.
       getMcpServerConfigs: jest.fn().mockResolvedValue({
@@ -765,9 +777,11 @@ describe('workflow execution (integration)', () => {
     });
 
     const workflowPort = createMockWorkflowPort({
-      getAvailableRun: jest
-        .fn()
-        .mockResolvedValue({ step, auth: { forestServerToken: 'test-forest-token' } }),
+      getAvailableRun: jest.fn().mockResolvedValue({
+        step,
+        auth: { forestServerToken: 'test-forest-token' },
+        lockedAt: null,
+      }),
     });
 
     const { server, runStore } = createIntegrationSetup({ workflowPort });
@@ -800,9 +814,11 @@ describe('workflow execution (integration)', () => {
     });
 
     const workflowPort = createMockWorkflowPort({
-      getAvailableRun: jest
-        .fn()
-        .mockResolvedValue({ step, auth: { forestServerToken: 'test-forest-token' } }),
+      getAvailableRun: jest.fn().mockResolvedValue({
+        step,
+        auth: { forestServerToken: 'test-forest-token' },
+        lockedAt: null,
+      }),
     });
 
     const { server, runStore } = createIntegrationSetup({ workflowPort });
@@ -871,9 +887,11 @@ describe('workflow execution (integration)', () => {
     });
 
     const workflowPort = createMockWorkflowPort({
-      getAvailableRun: jest
-        .fn()
-        .mockResolvedValue({ step, auth: { forestServerToken: 'test-forest-token' } }),
+      getAvailableRun: jest.fn().mockResolvedValue({
+        step,
+        auth: { forestServerToken: 'test-forest-token' },
+        lockedAt: null,
+      }),
       getCollectionSchema: jest.fn().mockResolvedValue(COLLECTION_SCHEMA_WITH_STATUS),
     });
 
@@ -925,7 +943,9 @@ describe('workflow execution (integration)', () => {
       getAvailableRuns: jest
         .fn()
         .mockResolvedValueOnce({
-          pending: [{ step: pendingStep, auth: { forestServerToken: 'test-forest-token' } }],
+          pending: [
+            { step: pendingStep, auth: { forestServerToken: 'test-forest-token' }, lockedAt: null },
+          ],
           malformed: [],
         })
         .mockResolvedValue({ pending: [], malformed: [] }),
