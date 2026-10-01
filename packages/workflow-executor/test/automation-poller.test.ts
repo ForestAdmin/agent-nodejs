@@ -728,7 +728,7 @@ describe('AutomationPoller', () => {
         assignments: [makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' })],
       });
       context.segmentReaderPort.listRecordIds
-        .mockRejectedValueOnce(new Error('HTTP 500'))
+        .mockRejectedValueOnce(agentRefusal(400, 'Unsupported operator not_in'))
         .mockResolvedValueOnce(['a', 'fresh']);
 
       await runOneCycle(makePoller(context));
@@ -744,7 +744,7 @@ describe('AutomationPoller', () => {
       expect(context.logger).toHaveBeenCalledWith(
         'Warn',
         'The not_in candidate read failed, padding the page instead',
-        expect.objectContaining({ inboxId: 'inbox-1', error: 'HTTP 500' }),
+        expect.objectContaining({ inboxId: 'inbox-1', httpStatus: 400 }),
       );
       expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
         closed: [],
@@ -762,7 +762,9 @@ describe('AutomationPoller', () => {
         inboxes: [excluding],
         assignments: [makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' })],
       });
-      context.segmentReaderPort.listRecordIds.mockRejectedValueOnce(new Error('HTTP 500'));
+      context.segmentReaderPort.listRecordIds.mockRejectedValueOnce(
+        agentRefusal(400, 'Unsupported operator not_in'),
+      );
       const poller = makePoller(context);
 
       poller.start();
@@ -775,6 +777,73 @@ describe('AutomationPoller', () => {
         expect.objectContaining({ excludedRecordIds: ['a'] }),
       );
     });
+
+    it.each([
+      ['a timeout', agentUnreachable('ECONNABORTED'), { reason: 'agent-unreachable' }],
+      [
+        'a 503',
+        agentRefusal(503, 'Service unavailable'),
+        { reason: 'agent-unreachable', httpStatus: 503 },
+      ],
+      [
+        'a 429',
+        agentRefusal(429, 'Too many requests'),
+        { reason: 'segment-read-failed', httpStatus: 429 },
+      ],
+      ['a 403', agentRefusal(403, 'Forbidden'), { reason: 'agent-forbidden', httpStatus: 403 }],
+    ])(
+      'should not read the segment again in this cycle when the `not_in` read fails with %s',
+      async (_, error, readFailure) => {
+        const context = makeContext({
+          inboxes: [excluding],
+          assignments: [makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' })],
+        });
+        context.segmentReaderPort.listRecordIds.mockRejectedValueOnce(error);
+
+        await runOneCycle(makePoller(context));
+
+        expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledTimes(1);
+        expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
+          closed: [],
+          candidates: [],
+          readFailure,
+        });
+        expect(context.logger).not.toHaveBeenCalledWith(
+          'Warn',
+          'The not_in candidate read failed, padding the page instead',
+          expect.anything(),
+        );
+        expect(context.logger).toHaveBeenCalledWith(
+          'Error',
+          'Could not read new candidates of an automated inbox',
+          expect.objectContaining({ inboxId: 'inbox-1', notIn: true }),
+        );
+      },
+    );
+
+    it.each([
+      ['a 400', agentRefusal(400, 'Unsupported operator not_in')],
+      ['a 500', agentRefusal(500, "The given operator 'not_in' is not supported by the column")],
+    ])(
+      'should fall back to a padded page when the `not_in` read fails with %s',
+      async (_, error) => {
+        const context = makeContext({
+          inboxes: [excluding],
+          assignments: [makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' })],
+        });
+        context.segmentReaderPort.listRecordIds
+          .mockRejectedValueOnce(error)
+          .mockResolvedValueOnce(['a', 'fresh']);
+
+        await runOneCycle(makePoller(context));
+
+        expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledTimes(2);
+        expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
+          closed: [],
+          candidates: ['fresh'],
+        });
+      },
+    );
 
     it('should not fall back when a read with nothing to exclude fails', async () => {
       const context = makeContext({ inboxes: [excluding] });
@@ -800,7 +869,9 @@ describe('AutomationPoller', () => {
         inboxes: [excluding],
         assignments: [makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' })],
       });
-      context.segmentReaderPort.listRecordIds.mockRejectedValue(new Error('HTTP 500'));
+      context.segmentReaderPort.listRecordIds
+        .mockRejectedValueOnce(agentRefusal(400, 'Unsupported operator not_in'))
+        .mockRejectedValueOnce(new Error('HTTP 500'));
 
       await runOneCycle(makePoller(context));
 
@@ -1089,7 +1160,7 @@ describe('AutomationPoller', () => {
           assignments: waitingOnAPerson(30),
         });
         context.segmentReaderPort.listRecordIds
-          .mockRejectedValueOnce(new Error('HTTP 500'))
+          .mockRejectedValueOnce(agentRefusal(400, 'Unsupported operator not_in'))
           .mockResolvedValueOnce([...pageOf('w', 30), ...pageOf('fresh-', 470)])
           .mockResolvedValueOnce(pageOf('late-', 10));
 
