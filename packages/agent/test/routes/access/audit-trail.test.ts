@@ -1419,8 +1419,21 @@ describe('AuditTrailRoute', () => {
             new ConditionTreeLeaf('secret', 'Equal', null),
             nullSecret,
           );
+          const inWithNull = await historyUnder(
+            new ConditionTreeLeaf('secret', 'In', ['open', null]),
+            nullSecret,
+          );
 
-          expect([missing, equalNull]).toEqual([nullSecret, nullSecret]);
+          expect([missing, equalNull, inWithNull]).toEqual([nullSecret, nullSecret, nullSecret]);
+        });
+
+        test('withholds the values under an In list that does not hold null', async () => {
+          const data = await historyUnder(
+            new ConditionTreeLeaf('secret', 'In', ['open']),
+            nullSecret,
+          );
+
+          expect(data).toEqual(withheld);
         });
 
         test('keeps a non-null value the negation covers', async () => {
