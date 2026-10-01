@@ -83,6 +83,8 @@ const FORBIDDEN_AGENT_STATUSES: ReadonlySet<number> = new Set([401, 403]);
 
 const UNREACHABLE_AGENT_STATUSES: ReadonlySet<number> = new Set([502, 503, 504]);
 
+const OVERLOADED_AGENT_STATUSES: ReadonlySet<number> = new Set([408, 429]);
+
 // Superagent's own timeout is ECONNABORTED. Any other failure without an HTTP answer (a JWT that
 // cannot be signed, a malformed agent URL) is a fault on our side, not an agent to go and restart.
 const UNREACHABLE_AGENT_ERROR_CODES: ReadonlySet<string> = new Set([
@@ -124,6 +126,20 @@ function classifyReadFailure(error: unknown): ServerAutomatedInboxReadFailure {
   }
 
   return { reason: 'segment-read-failed', httpStatus };
+}
+
+// A timeout, a 5xx or a throttle means the agent is struggling: a padded read would evaluate the
+// segment again on top of the one it may still be running. A 401 or 403 would refuse it just the same.
+function isOperatorRefusal(error: unknown): boolean {
+  const { reason, httpStatus } = classifyReadFailure(error);
+
+  return (
+    reason === 'segment-read-failed' &&
+    httpStatus !== undefined &&
+    httpStatus >= 400 &&
+    httpStatus < 500 &&
+    !OVERLOADED_AGENT_STATUSES.has(httpStatus)
+  );
 }
 
 function describeAgentFailure(error: unknown) {
@@ -652,10 +668,9 @@ export default class AutomationPoller {
           requestedPageSize: config.maxConcurrentRuns,
         };
       } catch (error) {
-        if (!known.length) throw error;
+        if (!known.length || !isOperatorRefusal(error)) throw error;
 
-        // Declared is not implemented: a datasource can list `not_in` and still refuse it. A timeout
-        // lands here too, and pays for one more read before the inbox gives up on this cycle.
+        // Declared is not implemented: a datasource can list `not_in` and still refuse it.
         this.logger('Warn', 'The not_in candidate read failed, padding the page instead', {
           ...logContext,
           ...attempt,
