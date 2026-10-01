@@ -101,7 +101,7 @@ describe('auth mode middleware', () => {
       team: 'Ops',
       permissionLevel: 'admin',
       role: 'Support agent',
-      tags: { seat: 'a1' },
+      tags: [{ key: 'seat', value: 'a1' }],
       first_name: 'Jane',
       last_name: 'Doe',
       permission_level: 'admin',
@@ -133,7 +133,7 @@ describe('auth mode middleware', () => {
     expect((claims.exp as number) - (claims.iat as number)).toBe(5 * 60);
   });
 
-  it('sends rendering_id to the agent as a number, matching Caller.renderingId', async () => {
+  it('sends renderingId as a number and rendering_id as the string Ruby agents sign', async () => {
     const response = await request(buildApp())
       .get('/agent/x')
       .set('Authorization', `Bearer ${bffAccess('15m')}`);
@@ -141,7 +141,7 @@ describe('auth mode middleware', () => {
     const claims = decodeAgentToken(response.body.agentToken);
 
     expect(claims.renderingId).toBe(42);
-    expect(claims.rendering_id).toBe(42);
+    expect(claims.rendering_id).toBe('42');
   });
 
   it('marks an oauth response no-store, mirroring the api-key branch', async () => {

@@ -33,8 +33,9 @@ describe('issueOpenApiAgentToken', () => {
       expect.objectContaining({
         first_name: 'Forest',
         last_name: 'BFF',
-        rendering_id: 0,
+        rendering_id: '0',
         permission_level: 'admin',
+        tags: [],
       }),
     );
   });

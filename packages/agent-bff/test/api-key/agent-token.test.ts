@@ -60,7 +60,14 @@ describe('issueAgentToken', () => {
       team: 'Support',
       renderingId: 17,
       permissionLevel: 'admin',
-      tags: { region: 'eu' },
+    });
+  });
+
+  it('should sign tags as the key/value array Ruby agents read', () => {
+    const token = issueAgentToken({ identity: IDENTITY, authSecret: AUTH_SECRET });
+
+    expect(jsonwebtoken.verify(token, AUTH_SECRET)).toMatchObject({
+      tags: [{ key: 'region', value: 'eu' }],
     });
   });
 
@@ -70,7 +77,7 @@ describe('issueAgentToken', () => {
     expect(jsonwebtoken.verify(token, AUTH_SECRET)).toMatchObject({
       first_name: 'Ada',
       last_name: 'Lovelace',
-      rendering_id: 17,
+      rendering_id: '17',
       permission_level: 'admin',
     });
   });
@@ -98,12 +105,20 @@ describe('issueAgentTokenFromPrincipal', () => {
     expect(decoded.exp - decoded.iat).toBe(300);
   });
 
-  it('should send rendering_id as a number, since Caller.renderingId is numeric', () => {
+  it('should send renderingId as a number and rendering_id as the string Ruby agents sign', () => {
     const token = issueAgentTokenFromPrincipal({ principal: PRINCIPAL, authSecret: AUTH_SECRET });
 
     expect(jsonwebtoken.verify(token, AUTH_SECRET)).toMatchObject({
       renderingId: 17,
-      rendering_id: 17,
+      rendering_id: '17',
+    });
+  });
+
+  it('should sign the principal tags as the key/value array Ruby agents read', () => {
+    const token = issueAgentTokenFromPrincipal({ principal: PRINCIPAL, authSecret: AUTH_SECRET });
+
+    expect(jsonwebtoken.verify(token, AUTH_SECRET)).toMatchObject({
+      tags: [{ key: 'region', value: 'eu' }],
     });
   });
 
@@ -174,7 +189,7 @@ describe('issueAgentTokenFromPrincipal', () => {
       lastName: '',
       first_name: '',
       last_name: '',
-      tags: {},
+      tags: [],
     });
   });
 });
