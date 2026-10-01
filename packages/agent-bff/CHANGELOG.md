@@ -1,3 +1,10 @@
+## @forestadmin/agent-bff [1.35.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.35.1...@forestadmin/agent-bff@1.35.2) (2026-10-01)
+
+
+### Bug Fixes
+
+* **agent-bff:** sign agent tokens in the shape ruby agents read ([#1948](https://github.com/ForestAdmin/agent-nodejs/issues/1948)) ([6a049f2](https://github.com/ForestAdmin/agent-nodejs/commit/6a049f23a98be48c54dfe610f5573b23b138635b))
+
 ## @forestadmin/agent-bff [1.35.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.35.0...@forestadmin/agent-bff@1.35.1) (2026-10-01)
 
 
