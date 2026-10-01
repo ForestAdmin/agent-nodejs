@@ -1,3 +1,10 @@
+## @forestadmin/agent-client [1.16.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.16.1...@forestadmin/agent-client@1.16.2) (2026-10-01)
+
+
+### Bug Fixes
+
+* sign agent tokens in the shape Ruby agents read, and read both in the Node agent ([#1947](https://github.com/ForestAdmin/agent-nodejs/issues/1947)) ([4bae0d6](https://github.com/ForestAdmin/agent-nodejs/commit/4bae0d674f2357b15ed70d54d7c3908b1afb8cde))
+
 ## @forestadmin/agent-client [1.16.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.16.0...@forestadmin/agent-client@1.16.1) (2026-09-25)
 
 
