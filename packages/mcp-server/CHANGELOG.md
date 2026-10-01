@@ -1,3 +1,18 @@
+## @forestadmin/mcp-server [1.24.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.24.7...@forestadmin/mcp-server@1.24.8) (2026-10-01)
+
+
+### Bug Fixes
+
+* sign agent tokens in the shape Ruby agents read, and read both in the Node agent ([#1947](https://github.com/ForestAdmin/agent-nodejs/issues/1947)) ([4bae0d6](https://github.com/ForestAdmin/agent-nodejs/commit/4bae0d674f2357b15ed70d54d7c3908b1afb8cde))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.16.2
+
 ## @forestadmin/mcp-server [1.24.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.24.6...@forestadmin/mcp-server@1.24.7) (2026-09-25)
 
 
