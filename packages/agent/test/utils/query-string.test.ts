@@ -699,6 +699,26 @@ describe('QueryStringParser', () => {
       });
     });
 
+    test('should turn tags signed as a key/value array into an object', () => {
+      const context = createMockContext({
+        state: {
+          user: { email: 'john.doe@domain.com', tags: [{ key: 'department', value: 'sales' }] },
+        },
+        customProperties: { query: { timezone: 'America/Los_Angeles' } },
+      });
+
+      expect(QueryStringParser.parseCaller(context).tags).toEqual({ department: 'sales' });
+    });
+
+    test('should keep tags signed as an object', () => {
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com', tags: { department: 'sales' } } },
+        customProperties: { query: { timezone: 'America/Los_Angeles' } },
+      });
+
+      expect(QueryStringParser.parseCaller(context).tags).toEqual({ department: 'sales' });
+    });
+
     test('should reuse the same requestId across calls within one request', () => {
       const context = createMockContext({
         state: { user: { email: 'john.doe@domain.com' } },

@@ -83,6 +83,7 @@ jest.mock('@forestadmin/agent-client', () => {
     createRemoteAgentClient: jest.fn(),
     HttpRequester: { is404Error: jest.fn() },
     extractErrorDetail: jest.requireActual('@forestadmin/agent-client').extractErrorDetail,
+    toAgentTokenClaims: jest.requireActual('@forestadmin/agent-client').toAgentTokenClaims,
   };
 });
 
@@ -298,7 +299,10 @@ describe('AgentClientAgentPort', () => {
     it('signs both camelCase and snake_case identity claims for cross-runtime agents', async () => {
       mockCollection.getOne.mockResolvedValue({ id: 42 });
 
-      await port.getRecord({ collection: 'users', id: [42] }, user);
+      await port.getRecord(
+        { collection: 'users', id: [42] },
+        { ...user, tags: { department: 'sales' } },
+      );
 
       const { token } = mockedCreateRemoteAgentClient.mock.calls[0][0];
       const payload = jsonwebtoken.verify(token, 'test-secret') as Record<string, unknown>;
@@ -310,8 +314,9 @@ describe('AgentClientAgentPort', () => {
         permissionLevel: 'admin',
         first_name: 'Test',
         last_name: 'User',
-        rendering_id: 1,
+        rendering_id: '1',
         permission_level: 'admin',
+        tags: [{ key: 'department', value: 'sales' }],
         scope: 'step-execution',
       });
     });
