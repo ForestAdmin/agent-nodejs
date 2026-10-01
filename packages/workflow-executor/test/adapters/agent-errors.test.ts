@@ -13,33 +13,35 @@ const answered = (status: number) => new AgentHttpError(status, {}, '');
 const withCode = (code: string) => Object.assign(new Error(`agent unreachable: ${code}`), { code });
 
 describe('classifyAgentFailure', () => {
-  it.each([
-    ['a 401', answered(401), { failure: 'forbidden', httpStatus: 401 }],
-    ['a 403', answered(403), { failure: 'forbidden', httpStatus: 403 }],
-    ['a 502', answered(502), { failure: 'unreachable', httpStatus: 502 }],
-    ['a 503', answered(503), { failure: 'unreachable', httpStatus: 503 }],
-    ['a 504', answered(504), { failure: 'unreachable', httpStatus: 504 }],
-    ['a 408', answered(408), { failure: 'overloaded', httpStatus: 408 }],
-    ['a 429', answered(429), { failure: 'overloaded', httpStatus: 429 }],
-    ['a 500', answered(500), { failure: 'failed', httpStatus: 500 }],
-    ['a 400', answered(400), { failure: 'failed', httpStatus: 400 }],
-    ['a response without a status', answered(0), { failure: 'unreachable' }],
-    ['a status past the HTTP range', answered(600), { failure: 'unreachable' }],
-    ['a timeout', withCode('ECONNABORTED'), { failure: 'unreachable' }],
-    ['a refused connection', withCode('ECONNREFUSED'), { failure: 'unreachable' }],
-    ['an unknown host', withCode('ENOTFOUND'), { failure: 'unreachable' }],
-    ['a reset connection', withCode('ECONNRESET'), { failure: 'unreachable' }],
-    ['a temporary DNS failure', withCode('EAI_AGAIN'), { failure: 'unreachable' }],
-    ['an unreachable host', withCode('EHOSTUNREACH'), { failure: 'unreachable' }],
-    ['an unreachable network', withCode('ENETUNREACH'), { failure: 'unreachable' }],
-    ['a broken pipe', withCode('EPIPE'), { failure: 'unreachable' }],
-    ['a socket timeout', withCode('ETIMEDOUT'), { failure: 'unreachable' }],
+  it.each(
     [
-      'an error of its own before any answer',
-      new Error('secretOrPrivateKey must have a value'),
-      { failure: 'failed' },
-    ],
-  ])('should classify %s', (_, cause, expected) => {
+      ['a 401', answered(401), { failure: 'forbidden', httpStatus: 401 }],
+      ['a 403', answered(403), { failure: 'forbidden', httpStatus: 403 }],
+      ['a 502', answered(502), { failure: 'unreachable', httpStatus: 502 }],
+      ['a 503', answered(503), { failure: 'unreachable', httpStatus: 503 }],
+      ['a 504', answered(504), { failure: 'unreachable', httpStatus: 504 }],
+      ['a 408', answered(408), { failure: 'overloaded', httpStatus: 408 }],
+      ['a 429', answered(429), { failure: 'overloaded', httpStatus: 429 }],
+      ['a 500', answered(500), { failure: 'failed', httpStatus: 500 }],
+      ['a 400', answered(400), { failure: 'failed', httpStatus: 400 }],
+      ['a response without a status', answered(0), { failure: 'unreachable' }],
+      ['a status past the HTTP range', answered(600), { failure: 'unreachable' }],
+      ['a timeout', withCode('ECONNABORTED'), { failure: 'unreachable' }],
+      ['a refused connection', withCode('ECONNREFUSED'), { failure: 'unreachable' }],
+      ['an unknown host', withCode('ENOTFOUND'), { failure: 'unreachable' }],
+      ['a reset connection', withCode('ECONNRESET'), { failure: 'unreachable' }],
+      ['a temporary DNS failure', withCode('EAI_AGAIN'), { failure: 'unreachable' }],
+      ['an unreachable host', withCode('EHOSTUNREACH'), { failure: 'unreachable' }],
+      ['an unreachable network', withCode('ENETUNREACH'), { failure: 'unreachable' }],
+      ['a broken pipe', withCode('EPIPE'), { failure: 'unreachable' }],
+      ['a socket timeout', withCode('ETIMEDOUT'), { failure: 'unreachable' }],
+      [
+        'an error of its own before any answer',
+        new Error('secretOrPrivateKey must have a value'),
+        { failure: 'failed' },
+      ],
+    ].map(([label, cause, expected]) => [label, expected, cause]),
+  )('should classify %s as %j', (_, expected, cause) => {
     expect(classifyAgentFailure(cause)).toStrictEqual(expected);
   });
 });
