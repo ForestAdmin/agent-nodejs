@@ -6,7 +6,7 @@ import nock from 'nock';
 
 import AgentClientSegmentReader from '../../src/adapters/agent-client-segment-reader';
 import ForestServerAutomationPort from '../../src/adapters/forest-server-automation-port';
-import AutomationPoller from '../../src/automation-poller';
+import AutomationPoller from '../../src/automation/automation-poller';
 
 jest.mock('@forestadmin/forestadmin-client', () => ({
   ServerUtils: { query: jest.fn() },

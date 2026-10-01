@@ -1,20 +1,20 @@
-import type { SegmentReadFailureKind } from '../src/errors';
-import type { AutomationPort } from '../src/ports/automation-port';
+import type { SegmentReadFailureKind } from '../../src/errors';
+import type { AutomationPort } from '../../src/ports/automation-port';
 import type {
   ExclusionQuery,
   ListSegmentRecordIdsQuery,
   SegmentReaderPort,
-} from '../src/ports/segment-reader-port';
-import type { AutomatedInbox, InboxAssignment } from '../src/types/automation';
-import type { StepUser } from '../src/types/execution-context';
+} from '../../src/ports/segment-reader-port';
+import type { AutomatedInbox, InboxAssignment } from '../../src/types/automation';
+import type { StepUser } from '../../src/types/execution-context';
 
-import AutomationPoller from '../src/automation-poller';
+import AutomationPoller from '../../src/automation/automation-poller';
 import {
   AutomatedInboxGoneError,
   CompositeRecordIdMismatchError,
   SegmentReadError,
   SegmentRecordIdMissingError,
-} from '../src/errors';
+} from '../../src/errors';
 
 const POLL_INTERVAL_S = 300;
 
