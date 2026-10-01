@@ -1,3 +1,18 @@
+## @forestadmin/workflow-executor [1.30.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.30.1...@forestadmin/workflow-executor@1.30.2) (2026-10-01)
+
+
+### Bug Fixes
+
+* sign agent tokens in the shape Ruby agents read, and read both in the Node agent ([#1947](https://github.com/ForestAdmin/agent-nodejs/issues/1947)) ([4bae0d6](https://github.com/ForestAdmin/agent-nodejs/commit/4bae0d674f2357b15ed70d54d7c3908b1afb8cde))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.16.2
+
 ## @forestadmin/workflow-executor [1.30.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.30.0...@forestadmin/workflow-executor@1.30.1) (2026-09-30)
 
 
