@@ -1,4 +1,4 @@
-import type { ServerHydratedWorkflowRun } from './server-types';
+import type { ServerHydratedWorkflowRun, ServerReleaseRunRequest } from './server-types';
 import type { Logger } from '../ports/logger-port';
 import type {
   AvailableRunDispatch,
@@ -207,13 +207,8 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
     if (!lockedAt) return;
 
     try {
-      await ServerUtils.query<void>(
-        this.options,
-        'post',
-        ROUTES.releaseRun,
-        {},
-        { runId: Number(runId), lockedAt },
-      );
+      const body: ServerReleaseRunRequest = { runId: Number(runId), lockedAt };
+      await ServerUtils.query<void>(this.options, 'post', ROUTES.releaseRun, {}, body);
     } catch (error) {
       if ((error as { status?: number })?.status === 404) {
         this.logger(this.reportedMissingReleaseRoute ? 'Debug' : 'Warn', RELEASE_ROUTE_MISSING, {

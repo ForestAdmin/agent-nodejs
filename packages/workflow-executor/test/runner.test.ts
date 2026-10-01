@@ -588,7 +588,7 @@ describe('graceful shutdown', () => {
     await stopping;
 
     expect(runner.state).toBe('stopped');
-    expect(runStore.close).toHaveBeenCalled();
+    expect(runStore.close).toHaveBeenCalledWith(logger);
     expect(logger).toHaveBeenCalledWith(
       'Error',
       'Drain timeout — runs still in flight',
@@ -853,6 +853,7 @@ describe('polling loop', () => {
     });
 
     it('hands back, without starting, what a poll brought back after stop() began', async () => {
+      const logger = createMockLogger();
       const workflowPort = createMockWorkflowPort();
       const runStore = createMockRunStore();
 
@@ -863,7 +864,7 @@ describe('polling loop', () => {
           answer = resolve;
         }),
       );
-      runner = new Runner(createRunnerConfig({ workflowPort, runStore }));
+      runner = new Runner(createRunnerConfig({ workflowPort, runStore, logger }));
       await runner.start();
 
       jest.advanceTimersByTime(POLLING_INTERVAL_MS);
@@ -887,7 +888,7 @@ describe('polling loop', () => {
       });
       await stopping;
 
-      expect(runStore.close).toHaveBeenCalled();
+      expect(runStore.close).toHaveBeenCalledWith(logger);
       expect(workflowPort.releaseRun).toHaveBeenCalledWith('run-0', '2026-09-30T10:00:00.123Z');
       expect(executeSpy).not.toHaveBeenCalled();
       expect(workflowPort.updateStepExecution).toHaveBeenCalledWith(
@@ -1043,6 +1044,7 @@ describe('polling loop', () => {
       });
 
       it('stop() waits for the claims to be handed back before closing', async () => {
+        const logger = createMockLogger();
         const workflowPort = createMockWorkflowPort();
         const runStore = createMockRunStore();
 
@@ -1054,7 +1056,7 @@ describe('polling loop', () => {
           }),
         );
         const answerPoll = answerPollLater(workflowPort);
-        runner = new Runner(createRunnerConfig({ workflowPort, runStore }));
+        runner = new Runner(createRunnerConfig({ workflowPort, runStore, logger }));
         await runner.start();
 
         jest.advanceTimersByTime(POLLING_INTERVAL_MS);
@@ -1073,7 +1075,7 @@ describe('polling loop', () => {
         finishRelease();
         await stopping;
 
-        expect(runStore.close).toHaveBeenCalled();
+        expect(runStore.close).toHaveBeenCalledWith(logger);
       });
 
       it('still shuts down when handing a claim back rejects', async () => {
@@ -1092,7 +1094,7 @@ describe('polling loop', () => {
         await stopping;
 
         expect(runner.state).toBe('stopped');
-        expect(runStore.close).toHaveBeenCalled();
+        expect(runStore.close).toHaveBeenCalledWith(logger);
         expect(logger).toHaveBeenCalledWith(
           'Error',
           'Poll cycle failed',
@@ -2034,6 +2036,7 @@ describe('chain', () => {
     }
 
     it('hands back the step stop() keeps from running, and stop() waits for it', async () => {
+      const logger = createMockLogger();
       const workflowPort = createMockWorkflowPort();
       const runStore = createMockRunStore();
       const initial = makePendingStep({ runId: 'run-1', stepId: 'step-0', stepIndex: 0 });
@@ -2048,7 +2051,7 @@ describe('chain', () => {
       );
       pollOnce(workflowPort, lockedDispatch(initial, 'lock-0'));
       const answerUpdate = answerUpdateLater(workflowPort);
-      runner = new Runner(createRunnerConfig({ workflowPort, runStore }));
+      runner = new Runner(createRunnerConfig({ workflowPort, runStore, logger }));
       await runner.start();
       jest.advanceTimersByTime(POLLING_INTERVAL_MS);
       await flushPromises();
@@ -2069,7 +2072,7 @@ describe('chain', () => {
       await stopping;
 
       expect(stopped).toBe(true);
-      expect(runStore.close).toHaveBeenCalled();
+      expect(runStore.close).toHaveBeenCalledWith(logger);
     });
 
     it('hands back the step past the depth cap under its own lock', async () => {
@@ -2125,6 +2128,7 @@ describe('chain', () => {
     });
 
     it('hands back the next step when a drain timeout stopped the runner mid-step', async () => {
+      const logger = createMockLogger();
       const workflowPort = createMockWorkflowPort();
       const runStore = createMockRunStore();
 
@@ -2144,7 +2148,9 @@ describe('chain', () => {
       workflowPort.updateStepExecution.mockResolvedValueOnce(
         lockedDispatch(makePendingStep({ runId: 'run-1', stepIndex: 1 }), 'lock-2'),
       );
-      runner = new Runner(createRunnerConfig({ workflowPort, runStore, stopTimeoutS: 0.05 }));
+      runner = new Runner(
+        createRunnerConfig({ workflowPort, runStore, logger, stopTimeoutS: 0.05 }),
+      );
       await runner.start();
       await runner.triggerPoll('run-1');
 
@@ -2153,7 +2159,7 @@ describe('chain', () => {
       await stopping;
 
       expect(runner.state).toBe('stopped');
-      expect(runStore.close).toHaveBeenCalled();
+      expect(runStore.close).toHaveBeenCalledWith(logger);
 
       finishStep();
       await drainRuns(runner);
@@ -2210,7 +2216,7 @@ describe('chain', () => {
       await stopping;
 
       expect(runner.state).toBe('stopped');
-      expect(runStore.close).toHaveBeenCalled();
+      expect(runStore.close).toHaveBeenCalledWith(logger);
       expect(logger).toHaveBeenCalledWith(
         'Error',
         'FATAL: in-flight chain rejected',
