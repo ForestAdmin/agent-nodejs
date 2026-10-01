@@ -62,6 +62,7 @@ const { version: EXECUTOR_VERSION } = require('../package.json') as { version: s
 export default class Runner {
   private readonly config: RunnerConfig;
   private pollingTimer: NodeJS.Timeout | null = null;
+  private pollCycle: Promise<void> | null = null;
   private readonly inFlightRuns = new InFlightRunRegistry();
   private readonly logger: Logger;
   private readonly remoteToolFetcher: RemoteToolFetcher;
@@ -114,8 +115,9 @@ export default class Runner {
     }
 
     try {
-      // Drain in-flight runs (each entry may cover a whole auto-chain).
-      if (this.inFlightRuns.size > 0) {
+      // Drain in-flight runs (each entry may cover a whole auto-chain), and the poll in progress,
+      // which hands back whatever it claims now that nothing will run it.
+      if (this.inFlightRuns.size > 0 || this.pollCycle) {
         this.logger('Info', 'Draining in-flight runs', {
           count: this.inFlightRuns.size,
           runs: [...this.inFlightRuns.keys()],
@@ -124,7 +126,7 @@ export default class Runner {
         const timeoutS = this.config.stopTimeoutS ?? DEFAULT_STOP_TIMEOUT_S;
         let drainTimer: NodeJS.Timeout | undefined;
         const drainResult = await Promise.race([
-          this.inFlightRuns.drain().then(() => {
+          Promise.all([this.pollCycle, this.inFlightRuns.drain()]).then(() => {
             if (drainTimer) clearTimeout(drainTimer);
 
             return 'drained' as const;
@@ -137,6 +139,7 @@ export default class Runner {
         if (drainResult === 'timeout') {
           this.logger('Error', 'Drain timeout — runs still in flight', {
             remainingRuns: [...this.inFlightRuns.keys()],
+            pollInProgress: this.pollCycle !== null,
             timeoutS,
           });
         } else {
@@ -240,7 +243,11 @@ export default class Runner {
 
   private schedulePoll(): void {
     if (this._state !== 'running') return;
-    this.pollingTimer = setTimeout(() => this.runPollCycle(), this.config.pollingIntervalS * 1000);
+    this.pollingTimer = setTimeout(() => {
+      this.pollCycle = this.runPollCycle().finally(() => {
+        this.pollCycle = null;
+      });
+    }, this.config.pollingIntervalS * 1000);
   }
 
   private async runPollCycle(): Promise<void> {
@@ -262,9 +269,10 @@ export default class Runner {
       const dispatchable = pending.filter(d => !this.inFlightRuns.has(d.step.runId));
 
       if (this._state !== 'running') {
-        this.logger('Info', 'Poll answered after stop began, leaving the claimed runs to expire', {
-          runIds: pending.map(d => d.step.runId),
+        this.logger('Info', 'Poll answered after stop began, handing the claimed runs back', {
+          runIds: dispatchable.map(d => d.step.runId),
         });
+        await Promise.all(dispatchable.map(d => this.handBack(d)));
 
         return;
       }
@@ -457,6 +465,8 @@ export default class Runner {
           returnedRunId: nextDispatch.step.runId,
           returnedStepIndex: nextDispatch.step.stepIndex,
         });
+        // Another run's lock may be held by another chain or instance still executing it.
+        if (nextDispatch.step.runId === currentStep.runId) await this.handBack(nextDispatch);
 
         return;
       }
@@ -469,16 +479,19 @@ export default class Runner {
           stepIndex: currentStep.stepIndex,
           maxDepth,
         });
+        await this.handBack(nextDispatch);
 
         return;
       }
 
-      // Graceful stop: finish the current step, then yield instead of chaining further.
-      if (this._state === 'draining') {
+      // Graceful stop: finish the current step, then yield instead of chaining further. Also once
+      // a drain timeout has marked the runner stopped while this step was still running.
+      if (this._state === 'draining' || this._state === 'stopped') {
         this.logger('Info', 'Chain interrupted by stop() — yielding', {
           runId: currentStep.runId,
           stepIndex: currentStep.stepIndex,
         });
+        await this.handBack(nextDispatch);
 
         return;
       }
@@ -489,6 +502,10 @@ export default class Runner {
       currentIncomingData = undefined; // chained steps never carry pending data
     }
     /* eslint-enable no-await-in-loop, no-constant-condition */
+  }
+
+  private handBack(dispatch: AvailableRunDispatch): Promise<void> {
+    return this.config.workflowPort.releaseRun(dispatch.step.runId, dispatch.lockedAt);
   }
 
   private get contextConfig(): StepContextConfig {
