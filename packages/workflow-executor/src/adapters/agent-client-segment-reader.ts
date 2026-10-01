@@ -1,6 +1,7 @@
 import type { ServerAutomatedSegmentDescriptor, ServerPlainConditionTree } from './server-types';
 import type {
-  ListFieldOperatorsQuery,
+  ExclusionQuery,
+  ExclusionUnavailableReason,
   ListSegmentRecordIdsQuery,
   SegmentReaderPort,
 } from '../ports/segment-reader-port';
@@ -18,6 +19,21 @@ import {
 import { deserializeRecordId } from '../record-id';
 
 type AgentClient = ReturnType<typeof createRemoteAgentClient>;
+
+// The exclusion filter travels in the query string of a GET. The orchestrator's untreated cap does
+// not bound it: records waiting on a person in the fallback inbox stay excluded, as many as there
+// are, so past this the page is padded instead.
+const MAX_EXCLUDED_RECORDS = 150;
+
+// The agents that serve `POST /forest/_internal/capabilities`, the same list the front gates that
+// call on. Any other name is a v1 liana, which raises on `not_in`, or one this executor predates:
+// both pad rather than risk a candidate read that fails on every sweep.
+const LIANAS_WITH_CAPABILITIES: ReadonlySet<string> = new Set([
+  'forest-nodejs-agent',
+  'agent-ruby',
+  'agent-python',
+  'agent-php',
+]);
 
 // Both a collection and a segment expose the same read; the descriptor decides which one answers.
 interface RecordLister {
@@ -82,18 +98,29 @@ export default class AgentClientSegmentReader implements SegmentReaderPort {
     }
   }
 
-  async listFieldOperators(query: ListFieldOperatorsQuery): Promise<string[]> {
-    const { collectionName, field, user, timezone } = query;
+  async exclusionUnavailableReason(
+    query: ExclusionQuery,
+  ): Promise<ExclusionUnavailableReason | undefined> {
+    const { collectionName, primaryKeys, user, timezone, liana, knownRecordCount } = query;
+
+    if (primaryKeys.length !== 1) return 'composite-key';
+    if (knownRecordCount > MAX_EXCLUDED_RECORDS) return 'too-many-known-records';
+    if (!knownRecordCount) return undefined;
+    if (liana == null || !LIANAS_WITH_CAPABILITIES.has(liana)) return 'unknown-liana';
+
+    let operators: string[];
 
     try {
       const { fields } = await this.createClient(user, timezone)
         .collection(collectionName)
         .capabilities();
 
-      return fields.find(({ name }) => name === field)?.operators ?? [];
+      operators = fields.find(({ name }) => name === primaryKeys[0])?.operators ?? [];
     } catch (cause) {
       throw segmentReadError('listFieldOperators', cause);
     }
+
+    return operators.includes('not_in') ? undefined : 'field-without-not-in';
   }
 
   private createClient(user: ListSegmentRecordIdsQuery['user'], timezone: string): AgentClient {

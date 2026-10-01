@@ -32,11 +32,26 @@ export interface ListSegmentRecordIdsQuery {
 export interface SegmentReaderPort {
   /** Packed record ids (`a|b` for a composite key), in the agent's own order. */
   listRecordIds(query: ListSegmentRecordIdsQuery): Promise<string[]>;
-  /** Filter operators the agent declares for one field, snake_case; empty when it lists none. */
-  listFieldOperators(query: ListFieldOperatorsQuery): Promise<string[]>;
+  /**
+   * Why `excludedRecordIds` cannot be used for these known records, or undefined when it can. Reads
+   * the agent's capabilities only when there is something to exclude; throws when that read fails.
+   */
+  exclusionUnavailableReason(
+    query: ExclusionQuery,
+  ): Promise<ExclusionUnavailableReason | undefined>;
 }
 
-export type ListFieldOperatorsQuery = Pick<
+export type ExclusionUnavailableReason =
+  | 'composite-key'
+  | 'too-many-known-records'
+  | 'unknown-liana'
+  | 'field-without-not-in';
+
+export type ExclusionQuery = Pick<
   ListSegmentRecordIdsQuery,
-  'collectionName' | 'user' | 'timezone'
-> & { field: string };
+  'collectionName' | 'primaryKeys' | 'user' | 'timezone'
+> & {
+  /** Which agent answers the read, as the orchestrator names it; null when it does not say. */
+  liana: string | null | undefined;
+  knownRecordCount: number;
+};

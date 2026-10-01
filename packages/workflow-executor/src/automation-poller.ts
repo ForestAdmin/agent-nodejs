@@ -7,7 +7,7 @@ import type {
 import type { SegmentReadFailureKind } from './errors';
 import type { AutomationPort } from './ports/automation-port';
 import type { Logger } from './ports/logger-port';
-import type { SegmentReaderPort } from './ports/segment-reader-port';
+import type { ExclusionUnavailableReason, SegmentReaderPort } from './ports/segment-reader-port';
 
 import createConsoleLogger from './adapters/console-logger';
 import toProjectTimezone from './adapters/project-timezone';
@@ -28,11 +28,6 @@ const MAX_CANDIDATE_PAGE_SIZE = 500;
 // hold nothing but them. Bounds the reads a sweep makes on the customer's agent to walk past them.
 const MAX_PADDED_PAGES = 5;
 
-// The exclusion filter travels in the query string of a GET. The orchestrator's untreated cap does
-// not bound it: records waiting on a person in the fallback inbox stay excluded, as many as there
-// are, so past this the page is padded instead.
-const MAX_EXCLUDED_RECORDS = 150;
-
 // Every inbox reads the customer's agent several times. Sweeping them all at once piles those reads
 // onto the customer's database, and agent-client's ten-second timeout turns the pile-up into inboxes
 // whose reads time out.
@@ -46,16 +41,6 @@ const LEASE_HEARTBEAT_INTERVAL_S = 15;
 // Judged at each dispatch rather than when a beat fails: a timed-out beat only fails 5 s late, and
 // the next one 15 s after that, which would land past the 45 s lease.
 const LEASE_TRUSTED_FOR_MS = 30_000;
-
-// The agents that serve `POST /forest/_internal/capabilities`, the same list the front gates that
-// call on. Any other name is a v1 liana, which raises on `not_in`, or one this executor predates:
-// both pad rather than risk a candidate read that fails on every sweep.
-const LIANAS_WITH_CAPABILITIES: ReadonlySet<string> = new Set([
-  'forest-nodejs-agent',
-  'agent-ruby',
-  'agent-python',
-  'agent-php',
-]);
 
 const RECONCILABLE_ASSIGNMENT_STATES: ReadonlySet<string> = new Set([
   'done',
@@ -110,13 +95,7 @@ function describeAgentFailure(error: unknown) {
 
 export type AutomationPollerState = 'idle' | 'running' | 'draining' | 'stopped';
 
-type PaddedPageReason =
-  | 'composite-key'
-  | 'too-many-known-records'
-  | 'unknown-liana'
-  | 'capabilities-unreadable'
-  | 'field-without-not-in'
-  | 'not-in-refused';
+type PaddedPageReason = ExclusionUnavailableReason | 'capabilities-unreadable' | 'not-in-refused';
 
 interface SegmentRead<T> {
   items: T[];
@@ -744,23 +723,16 @@ export default class AutomationPoller {
     config: ServerAutomatedInboxConfig,
     known: string[],
   ): Promise<PaddedPageReason | undefined> {
-    if (config.primaryKeys.length !== 1) return 'composite-key';
-    if (known.length > MAX_EXCLUDED_RECORDS) return 'too-many-known-records';
-    if (!known.length) return undefined;
-
-    if (config.liana == null || !LIANAS_WITH_CAPABILITIES.has(config.liana)) {
-      return 'unknown-liana';
-    }
-
-    let operators: string[];
-
     try {
-      const { collectionName, user, timezone } = AutomationPoller.segmentQuery(config);
-      operators = await this.config.segmentReaderPort.listFieldOperators({
+      const { collectionName, primaryKeys, user, timezone } = AutomationPoller.segmentQuery(config);
+
+      return await this.config.segmentReaderPort.exclusionUnavailableReason({
         collectionName,
+        primaryKeys,
         user,
         timezone,
-        field: config.primaryKeys[0],
+        liana: config.liana,
+        knownRecordCount: known.length,
       });
     } catch (error) {
       this.logger('Warn', 'Could not read the agent capabilities, padding the page instead', {
@@ -770,8 +742,6 @@ export default class AutomationPoller {
 
       return 'capabilities-unreadable';
     }
-
-    return operators.includes('not_in') ? undefined : 'field-without-not-in';
   }
 
   private static segmentQuery(config: ServerAutomatedInboxConfig) {
