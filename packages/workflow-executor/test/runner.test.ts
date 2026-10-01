@@ -4,7 +4,7 @@ import type { AgentPort } from '../src/ports/agent-port';
 import type { AiModelPort } from '../src/ports/ai-model-port';
 import type { Logger } from '../src/ports/logger-port';
 import type { RunStore } from '../src/ports/run-store';
-import type { WorkflowPort } from '../src/ports/workflow-port';
+import type { AvailableRunDispatch, WorkflowPort } from '../src/ports/workflow-port';
 import type { AvailableStepExecution } from '../src/types/execution-context';
 import type { StepDefinition } from '../src/types/validated/step-definition';
 import type { BaseChatModel } from '@forestadmin/ai-proxy';
@@ -54,6 +54,7 @@ function createMockWorkflowPort(): jest.Mocked<WorkflowPort> {
     getMcpServerConfigs: jest.fn().mockResolvedValue({}),
     hasRunAccess: jest.fn().mockResolvedValue(true),
     reportExecutorMetadata: jest.fn().mockResolvedValue(undefined),
+    releaseRun: jest.fn().mockResolvedValue(undefined),
   };
 }
 
@@ -193,7 +194,7 @@ function makePendingDispatch(
   overrides: Partial<AvailableStepExecution> & { stepType?: StepType } = {},
   forestServerToken = 'test-forest-token',
 ) {
-  return { step: makePendingStep(overrides), auth: { forestServerToken } };
+  return { step: makePendingStep(overrides), auth: { forestServerToken }, lockedAt: null };
 }
 
 // ---------------------------------------------------------------------------
@@ -572,6 +573,29 @@ describe('graceful shutdown', () => {
     expect(callOrder.slice(1).sort()).toEqual(['aiClose', 'runStoreClose']);
   });
 
+  it('stops after the drain timeout while a poll never answers, and says the poll was pending', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const runStore = createMockRunStore();
+    const logger = createMockLogger();
+    workflowPort.getAvailableRuns.mockReturnValueOnce(new Promise(() => {}));
+    runner = new Runner(createRunnerConfig({ workflowPort, runStore, logger, stopTimeoutS: 0.05 }));
+    await runner.start();
+
+    jest.advanceTimersByTime(POLLING_INTERVAL_MS);
+    await flushPromises();
+    const stopping = runner.stop();
+    await jest.advanceTimersByTimeAsync(50);
+    await stopping;
+
+    expect(runner.state).toBe('stopped');
+    expect(runStore.close).toHaveBeenCalledWith(logger);
+    expect(logger).toHaveBeenCalledWith(
+      'Error',
+      'Drain timeout — runs still in flight',
+      expect.objectContaining({ remainingRuns: [], pollInProgress: true, timeoutS: 0.05 }),
+    );
+  });
+
   it('logs drain info when steps are in flight', async () => {
     let resolveStep!: () => void;
     const stepPromise = new Promise<void>(resolve => {
@@ -828,7 +852,8 @@ describe('polling loop', () => {
       await drainRuns(runner);
     });
 
-    it('reports but does not start what a poll brought back after stop() began', async () => {
+    it('hands back, without starting, what a poll brought back after stop() began', async () => {
+      const logger = createMockLogger();
       const workflowPort = createMockWorkflowPort();
       const runStore = createMockRunStore();
 
@@ -839,14 +864,18 @@ describe('polling loop', () => {
           answer = resolve;
         }),
       );
-      runner = new Runner(createRunnerConfig({ workflowPort, runStore }));
+      runner = new Runner(createRunnerConfig({ workflowPort, runStore, logger }));
       await runner.start();
 
       jest.advanceTimersByTime(POLLING_INTERVAL_MS);
       await flushPromises();
-      await runner.stop();
+      const stopping = runner.stop();
+      await flushPromises();
+      expect(runStore.close).not.toHaveBeenCalled();
       answer({
-        pending: batchOf(1),
+        pending: [
+          { ...makePendingDispatch({ runId: 'run-0' }), lockedAt: '2026-09-30T10:00:00.123Z' },
+        ],
         malformed: [
           {
             runId: '99',
@@ -857,10 +886,10 @@ describe('polling loop', () => {
           },
         ],
       });
-      await flushPromises();
-      await flushPromises();
+      await stopping;
 
-      expect(runStore.close).toHaveBeenCalled();
+      expect(runStore.close).toHaveBeenCalledWith(logger);
+      expect(workflowPort.releaseRun).toHaveBeenCalledWith('run-0', '2026-09-30T10:00:00.123Z');
       expect(executeSpy).not.toHaveBeenCalled();
       expect(workflowPort.updateStepExecution).toHaveBeenCalledWith(
         '99',
@@ -929,7 +958,10 @@ describe('polling loop', () => {
         }),
       );
       workflowPort.getAvailableRuns.mockResolvedValueOnce({
-        pending: batchOf(2),
+        pending: batchOf(2).map((dispatch, index) => ({
+          ...dispatch,
+          lockedAt: `2026-09-30T10:00:00.00${index}Z`,
+        })),
         malformed: [
           {
             runId: '99',
@@ -945,10 +977,9 @@ describe('polling loop', () => {
 
       jest.advanceTimersByTime(POLLING_INTERVAL_MS);
       await flushPromises();
-      await runner.stop();
+      const stopping = runner.stop();
       finishReport();
-      await flushPromises();
-      await flushPromises();
+      await stopping;
 
       expect(executeSpy).not.toHaveBeenCalled();
       expect(workflowPort.updateStepExecution).toHaveBeenCalledWith(
@@ -957,9 +988,119 @@ describe('polling loop', () => {
       );
       expect(logger).toHaveBeenCalledWith(
         'Info',
-        'Poll answered after stop began, leaving the claimed runs to expire',
+        'Poll answered after stop began, handing the claimed runs back',
         { runIds: ['run-0', 'run-1'] },
       );
+      expect(workflowPort.releaseRun.mock.calls).toEqual([
+        ['run-0', '2026-09-30T10:00:00.000Z'],
+        ['run-1', '2026-09-30T10:00:00.001Z'],
+      ]);
+    });
+
+    describe('when a poll answers after stop() began', () => {
+      type PollAnswer = Awaited<ReturnType<WorkflowPort['getAvailableRuns']>>;
+
+      function answerPollLater(workflowPort: jest.Mocked<WorkflowPort>) {
+        let answer: (value: PollAnswer) => void = () => {};
+
+        workflowPort.getAvailableRuns.mockReturnValueOnce(
+          new Promise(resolve => {
+            answer = resolve;
+          }),
+        );
+
+        return (value: PollAnswer) => answer(value);
+      }
+
+      function claimed(runId: string, lockedAt: string) {
+        return { ...makePendingDispatch({ runId }), lockedAt };
+      }
+
+      it('does not hand back a claim this executor is already running', async () => {
+        const workflowPort = createMockWorkflowPort();
+        const [release] = blockExecutions(1);
+        workflowPort.getAvailableRuns.mockResolvedValueOnce({ pending: batchOf(1), malformed: [] });
+        const answerPoll = answerPollLater(workflowPort);
+        runner = new Runner(createRunnerConfig({ workflowPort }));
+        await runner.start();
+
+        jest.advanceTimersByTime(POLLING_INTERVAL_MS);
+        await flushPromises();
+        await flushPromises();
+        jest.advanceTimersByTime(POLLING_INTERVAL_MS);
+        await flushPromises();
+        const stopping = runner.stop();
+        answerPoll({
+          pending: [claimed('run-0', 'lock-0'), claimed('run-1', 'lock-1')],
+          malformed: [],
+        });
+        await flushPromises();
+        release();
+        await stopping;
+
+        expect(workflowPort.getAvailableRuns).toHaveBeenNthCalledWith(2, 9);
+        expect(workflowPort.releaseRun.mock.calls).toEqual([['run-1', 'lock-1']]);
+        expect(executeSpy).toHaveBeenCalledTimes(1);
+      });
+
+      it('stop() waits for the claims to be handed back before closing', async () => {
+        const logger = createMockLogger();
+        const workflowPort = createMockWorkflowPort();
+        const runStore = createMockRunStore();
+
+        let finishRelease: () => void = () => {};
+
+        workflowPort.releaseRun.mockReturnValueOnce(
+          new Promise(resolve => {
+            finishRelease = resolve;
+          }),
+        );
+        const answerPoll = answerPollLater(workflowPort);
+        runner = new Runner(createRunnerConfig({ workflowPort, runStore, logger }));
+        await runner.start();
+
+        jest.advanceTimersByTime(POLLING_INTERVAL_MS);
+        await flushPromises();
+        let stopped = false;
+        const stopping = runner.stop().then(() => {
+          stopped = true;
+        });
+        answerPoll({ pending: [claimed('run-0', 'lock-0')], malformed: [] });
+        await jest.advanceTimersByTimeAsync(0);
+
+        expect(workflowPort.releaseRun).toHaveBeenCalledWith('run-0', 'lock-0');
+        expect(stopped).toBe(false);
+        expect(runStore.close).not.toHaveBeenCalled();
+
+        finishRelease();
+        await stopping;
+
+        expect(runStore.close).toHaveBeenCalledWith(logger);
+      });
+
+      it('still shuts down when handing a claim back rejects', async () => {
+        const workflowPort = createMockWorkflowPort();
+        const runStore = createMockRunStore();
+        const logger = createMockLogger();
+        workflowPort.releaseRun.mockRejectedValueOnce(new Error('orchestrator unreachable'));
+        const answerPoll = answerPollLater(workflowPort);
+        runner = new Runner(createRunnerConfig({ workflowPort, runStore, logger }));
+        await runner.start();
+
+        jest.advanceTimersByTime(POLLING_INTERVAL_MS);
+        await flushPromises();
+        const stopping = runner.stop();
+        answerPoll({ pending: [claimed('run-0', 'lock-0')], malformed: [] });
+        await stopping;
+
+        expect(runner.state).toBe('stopped');
+        expect(runStore.close).toHaveBeenCalledWith(logger);
+        expect(logger).toHaveBeenCalledWith(
+          'Error',
+          'Poll cycle failed',
+          expect.objectContaining({ error: 'orchestrator unreachable' }),
+        );
+      });
     });
   });
 });
@@ -975,6 +1116,7 @@ describe('trigger acknowledgement', () => {
     workflowPort.getAvailableRun.mockResolvedValue({
       step,
       auth: { forestServerToken: 'test-forest-token' },
+      lockedAt: null,
     });
 
     const unblockRef = { fn: (): void => {} };
@@ -1013,6 +1155,7 @@ describe('trigger acknowledgement', () => {
     workflowPort.getAvailableRun.mockResolvedValue({
       step,
       auth: { forestServerToken: 'test-forest-token' },
+      lockedAt: null,
     });
 
     const unblockRef = { fn: (): void => {} };
@@ -1054,6 +1197,7 @@ describe('trigger acknowledgement', () => {
     workflowPort.getAvailableRun.mockResolvedValue({
       step,
       auth: { forestServerToken: 'test-forest-token' },
+      lockedAt: null,
     });
     jest.spyOn(StepExecutorFactory, 'create').mockResolvedValueOnce({
       execute: jest.fn().mockRejectedValueOnce(new Error('contract violated')),
@@ -1087,6 +1231,7 @@ describe('trigger acknowledgement', () => {
     workflowPort.getAvailableRun.mockResolvedValue({
       step,
       auth: { forestServerToken: 'test-forest-token' },
+      lockedAt: null,
     });
     mockLogger.mockImplementationOnce(() => {
       throw new Error('host logger exploded');
@@ -1112,6 +1257,7 @@ describe('trigger acknowledgement', () => {
     workflowPort.getAvailableRun.mockResolvedValue({
       step,
       auth: { forestServerToken: 'test-forest-token' },
+      lockedAt: null,
     });
 
     runner = new Runner(createRunnerConfig({ workflowPort, logger: alwaysThrows }));
@@ -1147,6 +1293,7 @@ describe('trigger acknowledgement', () => {
     workflowPort.getAvailableRun.mockResolvedValue({
       step,
       auth: { forestServerToken: 'test-forest-token' },
+      lockedAt: null,
     });
 
     runner = new Runner(createRunnerConfig({ workflowPort }));
@@ -1170,6 +1317,7 @@ describe('deduplication', () => {
     workflowPort.getAvailableRun.mockResolvedValue({
       step,
       auth: { forestServerToken: 'test-forest-token' },
+      lockedAt: null,
     });
 
     // Block the first execution so the key stays in-flight
@@ -1208,6 +1356,7 @@ describe('deduplication', () => {
     workflowPort.getAvailableRun.mockResolvedValue({
       step,
       auth: { forestServerToken: 'test-forest-token' },
+      lockedAt: null,
     });
 
     runner = new Runner(createRunnerConfig({ workflowPort }));
@@ -1225,6 +1374,7 @@ describe('deduplication', () => {
     workflowPort.getAvailableRun.mockResolvedValue({
       step,
       auth: { forestServerToken: 'test-forest-token' },
+      lockedAt: null,
     });
     aiClient.getModel.mockImplementationOnce(() => {
       throw new Error('construction error');
@@ -1257,7 +1407,11 @@ describe('PRD-468 concurrent duplicate triggers', () => {
     const workflowPort = createMockWorkflowPort();
     const step = makePendingStep({ runId: 'run-1', stepId: 'step-concurrent' });
     workflowPort.getAvailableRun
-      .mockResolvedValueOnce({ step, auth: { forestServerToken: 'test-forest-token' } })
+      .mockResolvedValueOnce({
+        step,
+        auth: { forestServerToken: 'test-forest-token' },
+        lockedAt: null,
+      })
       .mockResolvedValueOnce(null);
 
     runner = new Runner(createRunnerConfig({ workflowPort }));
@@ -1282,6 +1436,7 @@ describe('PRD-468 concurrent duplicate triggers', () => {
     workflowPort.getAvailableRun.mockResolvedValue({
       step,
       auth: { forestServerToken: 'test-forest-token' },
+      lockedAt: null,
     });
 
     const unblockRef = { fn: (): void => {} };
@@ -1320,6 +1475,7 @@ describe('PRD-468 concurrent duplicate triggers', () => {
     workflowPort.getAvailableRun.mockResolvedValue({
       step,
       auth: { forestServerToken: 'test-forest-token' },
+      lockedAt: null,
     });
 
     const unblockRef = { fn: (): void => {} };
@@ -1361,6 +1517,7 @@ describe('triggerPoll', () => {
     workflowPort.getAvailableRun.mockResolvedValue({
       step,
       auth: { forestServerToken: 'test-forest-token' },
+      lockedAt: null,
     });
 
     runner = new Runner(createRunnerConfig({ workflowPort }));
@@ -1378,6 +1535,7 @@ describe('triggerPoll', () => {
     workflowPort.getAvailableRun.mockResolvedValue({
       step,
       auth: { forestServerToken: 'test-forest-token' },
+      lockedAt: null,
     });
 
     const unblockRef = { fn: (): void => {} };
@@ -1415,6 +1573,7 @@ describe('triggerPoll', () => {
     workflowPort.getAvailableRun.mockResolvedValue({
       step,
       auth: { forestServerToken: 'test-forest-token' },
+      lockedAt: null,
     });
 
     runner = new Runner(createRunnerConfig({ workflowPort }));
@@ -1454,9 +1613,14 @@ describe('chain', () => {
     workflowPort.getAvailableRun.mockResolvedValueOnce({
       step: initial,
       auth: { forestServerToken: 'token-0' },
+      lockedAt: null,
     });
     workflowPort.updateStepExecution
-      .mockResolvedValueOnce({ step: chained, auth: { forestServerToken: 'token-1' } })
+      .mockResolvedValueOnce({
+        step: chained,
+        auth: { forestServerToken: 'token-1' },
+        lockedAt: null,
+      })
       .mockResolvedValueOnce(null);
 
     runner = new Runner(createRunnerConfig({ workflowPort }));
@@ -1475,9 +1639,14 @@ describe('chain', () => {
     workflowPort.getAvailableRun.mockResolvedValueOnce({
       step: initial,
       auth: { forestServerToken: 'token-initial' },
+      lockedAt: null,
     });
     workflowPort.updateStepExecution
-      .mockResolvedValueOnce({ step: chained, auth: { forestServerToken: 'token-chained' } })
+      .mockResolvedValueOnce({
+        step: chained,
+        auth: { forestServerToken: 'token-chained' },
+        lockedAt: null,
+      })
       .mockResolvedValueOnce(null);
 
     const config = createRunnerConfig({ workflowPort });
@@ -1497,10 +1666,12 @@ describe('chain', () => {
     workflowPort.getAvailableRun.mockResolvedValueOnce({
       step: initial,
       auth: { forestServerToken: 'token-0' },
+      lockedAt: null,
     });
     workflowPort.updateStepExecution.mockResolvedValueOnce({
       step: regression,
       auth: { forestServerToken: 'token-regression' },
+      lockedAt: null,
     });
 
     runner = new Runner(createRunnerConfig({ workflowPort, logger: mockLogger }));
@@ -1530,10 +1701,12 @@ describe('chain', () => {
     workflowPort.getAvailableRun.mockResolvedValueOnce({
       step: initial,
       auth: { forestServerToken: 'token-0' },
+      lockedAt: null,
     });
     workflowPort.updateStepExecution.mockResolvedValueOnce({
       step: foreign,
       auth: { forestServerToken: 'token-foreign' },
+      lockedAt: null,
     });
 
     runner = new Runner(createRunnerConfig({ workflowPort, logger: mockLogger }));
@@ -1554,6 +1727,7 @@ describe('chain', () => {
     workflowPort.getAvailableRun.mockResolvedValueOnce({
       step: initial,
       auth: { forestServerToken: 'token-0' },
+      lockedAt: null,
     });
     // Always return a progressing next step — the cap must stop us.
     let i = 0;
@@ -1563,6 +1737,7 @@ describe('chain', () => {
       return {
         step: makePendingStep({ runId: 'run-1', stepId: `step-${i}`, stepIndex: i }),
         auth: { forestServerToken: `token-${i}` },
+        lockedAt: null,
       };
     });
 
@@ -1585,10 +1760,12 @@ describe('chain', () => {
     workflowPort.getAvailableRun.mockResolvedValueOnce({
       step: initial,
       auth: { forestServerToken: 'token-0' },
+      lockedAt: null,
     });
     workflowPort.updateStepExecution.mockResolvedValueOnce({
       step: chained,
       auth: { forestServerToken: 'token-1' },
+      lockedAt: null,
     });
 
     runner = new Runner(createRunnerConfig({ maxChainDepth: 0, workflowPort }));
@@ -1604,6 +1781,7 @@ describe('chain', () => {
     workflowPort.getAvailableRun.mockResolvedValue({
       step: initial,
       auth: { forestServerToken: 'token-0' },
+      lockedAt: null,
     });
 
     // Block the first step so the chain is in progress when the second triggerPoll arrives.
@@ -1618,7 +1796,11 @@ describe('chain', () => {
         }),
     );
     workflowPort.updateStepExecution
-      .mockResolvedValueOnce({ step: chained, auth: { forestServerToken: 'token-1' } })
+      .mockResolvedValueOnce({
+        step: chained,
+        auth: { forestServerToken: 'token-1' },
+        lockedAt: null,
+      })
       .mockResolvedValueOnce(null);
 
     runner = new Runner(createRunnerConfig({ workflowPort }));
@@ -1649,15 +1831,21 @@ describe('chain', () => {
     workflowPort.getAvailableRun.mockResolvedValueOnce({
       step: initial,
       auth: { forestServerToken: 'token-0' },
+      lockedAt: null,
     });
     // A second triggerPoll will re-dispatch the same initial — we expect it to actually run,
     // proving the run entry was released (not leaked in inFlightRuns).
     workflowPort.getAvailableRun.mockResolvedValueOnce({
       step: initial,
       auth: { forestServerToken: 'token-0' },
+      lockedAt: null,
     });
     workflowPort.updateStepExecution
-      .mockResolvedValueOnce({ step: chained, auth: { forestServerToken: 'token-1' } })
+      .mockResolvedValueOnce({
+        step: chained,
+        auth: { forestServerToken: 'token-1' },
+        lockedAt: null,
+      })
       .mockRejectedValueOnce(new Error('orchestrator down'))
       // Second triggerPoll's update returns null (end of chain).
       .mockResolvedValueOnce(null);
@@ -1690,10 +1878,12 @@ describe('chain', () => {
     workflowPort.getAvailableRun.mockResolvedValueOnce({
       step: initial,
       auth: { forestServerToken: 'token-0' },
+      lockedAt: null,
     });
     workflowPort.updateStepExecution.mockResolvedValueOnce({
       step: chained,
       auth: { forestServerToken: 'token-1' },
+      lockedAt: null,
     });
 
     // Initial step executes normally via BaseStepExecutor.execute mock (see beforeEach). The
@@ -1742,9 +1932,14 @@ describe('chain', () => {
     workflowPort.getAvailableRun.mockResolvedValueOnce({
       step: initial,
       auth: { forestServerToken: 'token-0' },
+      lockedAt: null,
     });
     workflowPort.updateStepExecution
-      .mockResolvedValueOnce({ step: chained, auth: { forestServerToken: 'token-1' } })
+      .mockResolvedValueOnce({
+        step: chained,
+        auth: { forestServerToken: 'token-1' },
+        lockedAt: null,
+      })
       .mockResolvedValueOnce(null);
 
     const createSpy = jest.spyOn(StepExecutorFactory, 'create');
@@ -1784,7 +1979,7 @@ describe('chain', () => {
 
     // Poll cycle dispatches the initial step.
     workflowPort.getAvailableRuns.mockResolvedValueOnce({
-      pending: [{ step: initial, auth: { forestServerToken: 'token-0' } }],
+      pending: [{ step: initial, auth: { forestServerToken: 'token-0' }, lockedAt: null }],
       malformed: [],
     });
 
@@ -1795,7 +1990,7 @@ describe('chain', () => {
     workflowPort.updateStepExecution.mockImplementationOnce(async () => {
       void runner.stop();
 
-      return { step: chained, auth: { forestServerToken: 'token-1' } };
+      return { step: chained, auth: { forestServerToken: 'token-1' }, lockedAt: null };
     });
 
     runner = new Runner(createRunnerConfig({ workflowPort, logger: mockLogger }));
@@ -1815,6 +2010,220 @@ describe('chain', () => {
       expect.objectContaining({ runId: 'run-1' }),
     );
   });
+
+  describe('handing the run back', () => {
+    function lockedDispatch(
+      step: AvailableStepExecution,
+      lockedAt: string | null,
+    ): AvailableRunDispatch {
+      return { step, auth: { forestServerToken: `token-${step.stepIndex}` }, lockedAt };
+    }
+
+    function pollOnce(workflowPort: jest.Mocked<WorkflowPort>, dispatch: AvailableRunDispatch) {
+      workflowPort.getAvailableRuns.mockResolvedValueOnce({ pending: [dispatch], malformed: [] });
+    }
+
+    function answerUpdateLater(workflowPort: jest.Mocked<WorkflowPort>) {
+      let answer: (next: AvailableRunDispatch | null) => void = () => {};
+
+      workflowPort.updateStepExecution.mockReturnValueOnce(
+        new Promise(resolve => {
+          answer = resolve;
+        }),
+      );
+
+      return (next: AvailableRunDispatch | null) => answer(next);
+    }
+
+    it('hands back the step stop() keeps from running, and stop() waits for it', async () => {
+      const logger = createMockLogger();
+      const workflowPort = createMockWorkflowPort();
+      const runStore = createMockRunStore();
+      const initial = makePendingStep({ runId: 'run-1', stepId: 'step-0', stepIndex: 0 });
+      const chained = makePendingStep({ runId: 'run-1', stepId: 'step-1', stepIndex: 1 });
+
+      let finishRelease: () => void = () => {};
+
+      workflowPort.releaseRun.mockReturnValueOnce(
+        new Promise(resolve => {
+          finishRelease = resolve;
+        }),
+      );
+      pollOnce(workflowPort, lockedDispatch(initial, 'lock-0'));
+      const answerUpdate = answerUpdateLater(workflowPort);
+      runner = new Runner(createRunnerConfig({ workflowPort, runStore, logger }));
+      await runner.start();
+      jest.advanceTimersByTime(POLLING_INTERVAL_MS);
+      await flushPromises();
+
+      let stopped = false;
+      const stopping = runner.stop().then(() => {
+        stopped = true;
+      });
+      answerUpdate(lockedDispatch(chained, 'lock-1'));
+      await jest.advanceTimersByTimeAsync(0);
+
+      expect(workflowPort.releaseRun.mock.calls).toEqual([['run-1', 'lock-1']]);
+      expect(executeSpy).toHaveBeenCalledTimes(1);
+      expect(stopped).toBe(false);
+      expect(runStore.close).not.toHaveBeenCalled();
+
+      finishRelease();
+      await stopping;
+
+      expect(stopped).toBe(true);
+      expect(runStore.close).toHaveBeenCalledWith(logger);
+    });
+
+    it('hands back the step past the depth cap under its own lock', async () => {
+      const workflowPort = createMockWorkflowPort();
+      workflowPort.getAvailableRun.mockResolvedValueOnce(
+        lockedDispatch(makePendingStep({ runId: 'run-1', stepIndex: 0 }), 'lock-0'),
+      );
+      workflowPort.updateStepExecution
+        .mockResolvedValueOnce(
+          lockedDispatch(makePendingStep({ runId: 'run-1', stepIndex: 1 }), 'lock-1'),
+        )
+        .mockResolvedValueOnce(
+          lockedDispatch(makePendingStep({ runId: 'run-1', stepIndex: 2 }), 'lock-2'),
+        );
+
+      runner = new Runner(createRunnerConfig({ workflowPort, maxChainDepth: 1 }));
+      await triggerAndDrain(runner, 'run-1');
+
+      expect(executeSpy).toHaveBeenCalledTimes(2);
+      expect(workflowPort.releaseRun.mock.calls).toEqual([['run-1', 'lock-2']]);
+    });
+
+    it('hands back an earlier step of the same run, returned as the next step, under its own lock', async () => {
+      const workflowPort = createMockWorkflowPort();
+      workflowPort.getAvailableRun.mockResolvedValueOnce(
+        lockedDispatch(makePendingStep({ runId: 'run-1', stepIndex: 5 }), 'lock-initial'),
+      );
+      workflowPort.updateStepExecution.mockResolvedValueOnce(
+        lockedDispatch(makePendingStep({ runId: 'run-1', stepIndex: 3 }), 'lock-returned'),
+      );
+
+      runner = new Runner(createRunnerConfig({ workflowPort }));
+      await triggerAndDrain(runner, 'run-1');
+
+      expect(executeSpy).toHaveBeenCalledTimes(1);
+      expect(workflowPort.releaseRun.mock.calls).toEqual([['run-1', 'lock-returned']]);
+    });
+
+    it('does not hand back a step of another run returned as the next step', async () => {
+      const workflowPort = createMockWorkflowPort();
+      workflowPort.getAvailableRun.mockResolvedValueOnce(
+        lockedDispatch(makePendingStep({ runId: 'run-1', stepIndex: 5 }), 'lock-initial'),
+      );
+      workflowPort.updateStepExecution.mockResolvedValueOnce(
+        lockedDispatch(makePendingStep({ runId: 'run-other', stepIndex: 6 }), 'lock-returned'),
+      );
+
+      runner = new Runner(createRunnerConfig({ workflowPort }));
+      await triggerAndDrain(runner, 'run-1');
+
+      expect(executeSpy).toHaveBeenCalledTimes(1);
+      expect(workflowPort.releaseRun).not.toHaveBeenCalled();
+    });
+
+    it('hands back the next step when a drain timeout stopped the runner mid-step', async () => {
+      const logger = createMockLogger();
+      const workflowPort = createMockWorkflowPort();
+      const runStore = createMockRunStore();
+
+      let finishStep: () => void = () => {};
+
+      executeSpy.mockReturnValueOnce(
+        new Promise(resolve => {
+          finishStep = () =>
+            resolve({
+              stepOutcome: { type: 'record', stepId: 'step-1', stepIndex: 0, status: 'success' },
+            });
+        }),
+      );
+      workflowPort.getAvailableRun.mockResolvedValueOnce(
+        lockedDispatch(makePendingStep({ runId: 'run-1', stepIndex: 0 }), 'lock-0'),
+      );
+      workflowPort.updateStepExecution.mockResolvedValueOnce(
+        lockedDispatch(makePendingStep({ runId: 'run-1', stepIndex: 1 }), 'lock-2'),
+      );
+      runner = new Runner(
+        createRunnerConfig({ workflowPort, runStore, logger, stopTimeoutS: 0.05 }),
+      );
+      await runner.start();
+      await runner.triggerPoll('run-1');
+
+      const stopping = runner.stop();
+      await jest.advanceTimersByTimeAsync(50);
+      await stopping;
+
+      expect(runner.state).toBe('stopped');
+      expect(runStore.close).toHaveBeenCalledWith(logger);
+
+      finishStep();
+      await drainRuns(runner);
+
+      expect(workflowPort.releaseRun.mock.calls).toEqual([['run-1', 'lock-2']]);
+      expect(executeSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('hands nothing back when the orchestrator ends the chain', async () => {
+      const workflowPort = createMockWorkflowPort();
+      workflowPort.getAvailableRun.mockResolvedValueOnce(
+        lockedDispatch(makePendingStep({ runId: 'run-1', stepIndex: 0 }), 'lock-0'),
+      );
+
+      runner = new Runner(createRunnerConfig({ workflowPort }));
+      await triggerAndDrain(runner, 'run-1');
+
+      expect(executeSpy).toHaveBeenCalledTimes(1);
+      expect(workflowPort.releaseRun).not.toHaveBeenCalled();
+    });
+
+    it('hands nothing back while the chain runs every step it is given', async () => {
+      const workflowPort = createMockWorkflowPort();
+      workflowPort.getAvailableRun.mockResolvedValueOnce(
+        lockedDispatch(makePendingStep({ runId: 'run-1', stepIndex: 0 }), 'lock-0'),
+      );
+      workflowPort.updateStepExecution
+        .mockResolvedValueOnce(
+          lockedDispatch(makePendingStep({ runId: 'run-1', stepIndex: 1 }), 'lock-1'),
+        )
+        .mockResolvedValueOnce(null);
+
+      runner = new Runner(createRunnerConfig({ workflowPort }));
+      await triggerAndDrain(runner, 'run-1');
+
+      expect(executeSpy).toHaveBeenCalledTimes(2);
+      expect(workflowPort.releaseRun).not.toHaveBeenCalled();
+    });
+
+    it('still shuts down when handing the interrupted chain back rejects', async () => {
+      const workflowPort = createMockWorkflowPort();
+      const runStore = createMockRunStore();
+      const logger = createMockLogger();
+      workflowPort.releaseRun.mockRejectedValueOnce(new Error('orchestrator unreachable'));
+      pollOnce(workflowPort, lockedDispatch(makePendingStep({ runId: 'run-1' }), 'lock-0'));
+      const answerUpdate = answerUpdateLater(workflowPort);
+      runner = new Runner(createRunnerConfig({ workflowPort, runStore, logger }));
+      await runner.start();
+      jest.advanceTimersByTime(POLLING_INTERVAL_MS);
+      await flushPromises();
+
+      const stopping = runner.stop();
+      answerUpdate(lockedDispatch(makePendingStep({ runId: 'run-1', stepIndex: 1 }), 'lock-1'));
+      await stopping;
+
+      expect(runner.state).toBe('stopped');
+      expect(runStore.close).toHaveBeenCalledWith(logger);
+      expect(logger).toHaveBeenCalledWith(
+        'Error',
+        'FATAL: in-flight chain rejected',
+        expect.objectContaining({ runId: 'run-1', error: 'orchestrator unreachable' }),
+      );
+    });
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -1829,6 +2238,7 @@ describe('MCP lazy loading (via once thunk)', () => {
     workflowPort.getAvailableRun.mockResolvedValue({
       step,
       auth: { forestServerToken: 'test-forest-token' },
+      lockedAt: null,
     });
 
     runner = new Runner(
@@ -1851,6 +2261,7 @@ describe('MCP lazy loading (via once thunk)', () => {
     workflowPort.getAvailableRun.mockResolvedValue({
       step,
       auth: { forestServerToken: 'test-forest-token' },
+      lockedAt: null,
     });
     workflowPort.getMcpServerConfigs.mockResolvedValue({});
 
@@ -1887,6 +2298,7 @@ describe('MCP fetch scoping', () => {
     workflowPort.getAvailableRun.mockResolvedValue({
       step,
       auth: { forestServerToken: 'test-forest-token' },
+      lockedAt: null,
     });
     workflowPort.getMcpServerConfigs.mockResolvedValue({
       'server-A': { id: 'id-A', url: 'https://a.example', type: 'http', headers: {} },
@@ -1922,6 +2334,7 @@ describe('MCP fetch scoping', () => {
     workflowPort.getAvailableRun.mockResolvedValue({
       step,
       auth: { forestServerToken: 'test-forest-token' },
+      lockedAt: null,
     });
     workflowPort.getMcpServerConfigs.mockResolvedValue({
       'server-A': { id: 'id-A', url: 'https://a.example', type: 'http', headers: {} },
@@ -1955,6 +2368,7 @@ describe('MCP fetch scoping', () => {
     workflowPort.getAvailableRun.mockResolvedValue({
       step,
       auth: { forestServerToken: 'test-forest-token' },
+      lockedAt: null,
     });
     workflowPort.getMcpServerConfigs.mockResolvedValue({
       'server-A': { id: 'id-A', url: 'https://a.example', type: 'http', headers: {} },
@@ -2000,6 +2414,7 @@ describe('MCP fetch scoping', () => {
     workflowPort.getAvailableRun.mockResolvedValue({
       step,
       auth: { forestServerToken: 'test-forest-token' },
+      lockedAt: null,
     });
     workflowPort.getMcpServerConfigs.mockResolvedValue({});
 
@@ -2045,6 +2460,7 @@ describe('MCP fetch scoping', () => {
     workflowPort.getAvailableRun.mockResolvedValue({
       step,
       auth: { forestServerToken: 'test-forest-token' },
+      lockedAt: null,
     });
     workflowPort.getMcpServerConfigs.mockResolvedValue({
       'server-A': { id: 'id-A', url: 'https://a.example', type: 'http', headers: {} },
@@ -2102,9 +2518,14 @@ describe('MCP fetch scoping', () => {
     workflowPort.getAvailableRun.mockResolvedValueOnce({
       step: initial,
       auth: { forestServerToken: 'token-0' },
+      lockedAt: null,
     });
     workflowPort.updateStepExecution
-      .mockResolvedValueOnce({ step: chained, auth: { forestServerToken: 'token-1' } })
+      .mockResolvedValueOnce({
+        step: chained,
+        auth: { forestServerToken: 'token-1' },
+        lockedAt: null,
+      })
       .mockResolvedValueOnce(null);
     workflowPort.getMcpServerConfigs.mockResolvedValue({
       'server-A': { id: 'id-A', url: 'https://a.example', type: 'http', headers: {} },
@@ -2369,6 +2790,7 @@ describe('error handling', () => {
     workflowPort.getAvailableRun.mockResolvedValue({
       step,
       auth: { forestServerToken: 'test-forest-token' },
+      lockedAt: null,
     });
     aiClient.getModel.mockImplementationOnce(() => {
       throw new Error('AI not configured');
@@ -2413,6 +2835,7 @@ describe('error handling', () => {
     workflowPort.getAvailableRun.mockResolvedValue({
       step,
       auth: { forestServerToken: 'test-forest-token' },
+      lockedAt: null,
     });
     aiClient.getModel.mockImplementationOnce(() => {
       throw new Error('AI not configured');
@@ -2438,6 +2861,7 @@ describe('error handling', () => {
     workflowPort.getAvailableRun.mockResolvedValue({
       step,
       auth: { forestServerToken: 'test-forest-token' },
+      lockedAt: null,
     });
     aiClient.getModel.mockImplementationOnce(() => {
       throw error;
@@ -2473,6 +2897,7 @@ describe('error handling', () => {
     workflowPort.getAvailableRun.mockResolvedValue({
       step,
       auth: { forestServerToken: 'test-forest-token' },
+      lockedAt: null,
     });
     aiClient.getModel.mockImplementationOnce(() => {
       throw new Error('construction error');
@@ -2507,6 +2932,7 @@ describe('error handling', () => {
     workflowPort.getAvailableRun.mockResolvedValue({
       step,
       auth: { forestServerToken: 'test-forest-token' },
+      lockedAt: null,
     });
 
     // Simulate a broken executor that violates the never-throw contract
@@ -2552,6 +2978,7 @@ describe('error handling', () => {
       workflowPort.getAvailableRun.mockResolvedValue({
         step,
         auth: { forestServerToken: 'test-forest-token' },
+        lockedAt: null,
       });
       jest.spyOn(StepExecutorFactory, 'create').mockResolvedValueOnce({
         execute: jest.fn().mockRejectedValueOnce(new Error('boom')),
@@ -2574,6 +3001,7 @@ describe('error handling', () => {
     workflowPort.getAvailableRun.mockResolvedValue({
       step,
       auth: { forestServerToken: 'test-forest-token' },
+      lockedAt: null,
     });
     jest.spyOn(StepExecutorFactory, 'create').mockResolvedValueOnce({
       execute: jest.fn().mockRejectedValueOnce(new Error('contract violated')),
@@ -2600,6 +3028,7 @@ describe('error handling', () => {
     workflowPort.getAvailableRun.mockResolvedValue({
       step,
       auth: { forestServerToken: 'test-forest-token' },
+      lockedAt: null,
     });
     // Only the FIRST call fails the contract — second call runs normally via BaseStepExecutor
     // mock from beforeEach.
@@ -2623,6 +3052,7 @@ describe('error handling', () => {
     workflowPort.getAvailableRun.mockResolvedValue({
       step,
       auth: { forestServerToken: 'test-forest-token' },
+      lockedAt: null,
     });
     aiClient.getModel.mockImplementationOnce(() => {
       // eslint-disable-next-line @typescript-eslint/no-throw-literal
@@ -2811,6 +3241,7 @@ describe('triggerPoll with options', () => {
     workflowPort.getAvailableRun.mockResolvedValue({
       step,
       auth: { forestServerToken: 'test-forest-token' },
+      lockedAt: null,
     });
 
     runner = new Runner(createRunnerConfig({ workflowPort }));
@@ -2825,6 +3256,7 @@ describe('triggerPoll with options', () => {
     workflowPort.getAvailableRun.mockResolvedValue({
       step,
       auth: { forestServerToken: 'test-forest-token' },
+      lockedAt: null,
     });
 
     runner = new Runner(createRunnerConfig({ workflowPort }));
@@ -2841,6 +3273,7 @@ describe('triggerPoll with options', () => {
     workflowPort.getAvailableRun.mockResolvedValue({
       step,
       auth: { forestServerToken: 'test-forest-token' },
+      lockedAt: null,
     });
 
     runner = new Runner(createRunnerConfig({ workflowPort }));
@@ -2855,6 +3288,7 @@ describe('triggerPoll with options', () => {
     workflowPort.getAvailableRun.mockResolvedValue({
       step,
       auth: { forestServerToken: 'test-forest-token' },
+      lockedAt: null,
     });
 
     const createSpy = jest.spyOn(StepExecutorFactory, 'create').mockResolvedValueOnce({
@@ -2885,6 +3319,7 @@ describe('triggerPoll with options', () => {
     workflowPort.getAvailableRun.mockResolvedValue({
       step,
       auth: { forestServerToken: 'test-forest-token' },
+      lockedAt: null,
     });
 
     const createSpy = jest.spyOn(StepExecutorFactory, 'create').mockResolvedValueOnce({
