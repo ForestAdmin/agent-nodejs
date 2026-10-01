@@ -28,11 +28,11 @@ import {
   createRemoteAgentClient,
 } from '@forestadmin/agent-client';
 
+import { agentPortError } from './agent-errors';
 import { mintStepToken } from './step-user';
 import {
   ActionFormValidationError,
   ActionRequiresApprovalError,
-  AgentPortError,
   AgentProbeError,
   ApprovalRequestCreationError,
   RecordNotFoundError,
@@ -417,7 +417,7 @@ export default class AgentClientAgentPort implements AgentPort {
       return await fn();
     } catch (cause) {
       if (cause instanceof WorkflowExecutorError) throw cause;
-      throw new AgentPortError(operation, cause);
+      throw agentPortError(operation, cause);
     }
   }
 

@@ -27,17 +27,11 @@ function segmentReadFailure(
     operation = 'listSegmentRecordIds',
   }: { httpStatus?: number; agentDetail?: string; operation?: string } = {},
 ): SegmentReadError {
-  // SegmentReadError reads its agentDetail off the status and body of its cause.
-  const answer =
-    agentDetail === undefined
-      ? {}
-      : { status: httpStatus, body: { errors: [{ detail: agentDetail }] } };
-
-  return new SegmentReadError(
-    operation,
-    Object.assign(new Error(`segment read ${failure}`), answer),
-    { failure, httpStatus },
-  );
+  return new SegmentReadError(operation, new Error(`segment read ${failure}`), {
+    failure,
+    httpStatus,
+    agentDetail,
+  });
 }
 
 function makeConfig(
