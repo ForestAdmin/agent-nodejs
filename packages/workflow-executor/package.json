@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/workflow-executor",
-  "version": "1.30.2",
+  "version": "1.31.0",
   "main": "dist/index.js",
   "bin": {
     "forest-workflow-executor": "dist/cli.js"

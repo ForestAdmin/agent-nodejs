@@ -1,3 +1,10 @@
+# @forestadmin/workflow-executor [1.31.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.30.2...@forestadmin/workflow-executor@1.31.0) (2026-10-02)
+
+
+### Features
+
+* **workflow-executor:** accept an oauth grant with an access token and no refresh token ([#1925](https://github.com/ForestAdmin/agent-nodejs/issues/1925)) ([6e606d1](https://github.com/ForestAdmin/agent-nodejs/commit/6e606d16d196b77ea6482052f26270958b43ef78))
+
 ## @forestadmin/workflow-executor [1.30.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.30.1...@forestadmin/workflow-executor@1.30.2) (2026-10-01)
 
 
