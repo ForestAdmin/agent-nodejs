@@ -526,6 +526,7 @@ describe('generateOpenApiDocument', () => {
 
     expect(list['403'].description).toContain('needs approval');
     expect(list['403'].description).toContain('Forest identity');
+    expect(list['403'].description).toContain('plan_feature_missing');
   });
 
   it('should warn that a missing timezone is a 400 when no default is configured', () => {

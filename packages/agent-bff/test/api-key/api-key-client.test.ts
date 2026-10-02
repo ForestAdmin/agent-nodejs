@@ -41,7 +41,7 @@ describe('ApiKeyClient.resolveApiKey', () => {
     global.fetch = originalFetch;
   });
 
-  it('should POST to the resolve endpoint with the env secret header and key body', async () => {
+  it('should POST to the resolve endpoint with the env secret header, key body and api service', async () => {
     const fetchMock = jest.fn(async () => fakeResponse(200, IDENTITY));
     mockFetch(fetchMock);
 
@@ -52,7 +52,7 @@ describe('ApiKeyClient.resolveApiKey', () => {
       expect.objectContaining({
         method: 'POST',
         headers: expect.objectContaining({ 'forest-secret-key': 'env-secret' }),
-        body: JSON.stringify({ keyId: PARSED.keyId, secret: PARSED.secret }),
+        body: JSON.stringify({ keyId: PARSED.keyId, secret: PARSED.secret, service: 'api' }),
       }),
     );
   });
@@ -108,6 +108,28 @@ describe('ApiKeyClient.resolveApiKey', () => {
       });
     },
   );
+
+  it('should carry the plan_feature_missing code of a Forest server plan refusal', async () => {
+    mockFetch(
+      jest.fn(async () =>
+        fakeResponse(403, {
+          errors: [
+            {
+              status: 403,
+              name: 'ForbiddenError',
+              detail: 'Plan feature missing',
+              meta: { code: 'plan_feature_missing' },
+            },
+          ],
+        }),
+      ),
+    );
+
+    await expect(new ApiKeyClient(OPTS).resolveApiKey(PARSED)).rejects.toMatchObject({
+      status: 403,
+      code: 'plan_feature_missing',
+    });
+  });
 
   it('should capture the Retry-After header on 429', async () => {
     mockFetch(jest.fn(async () => fakeResponse(429, { errors: [] }, { 'retry-after': '7' })));
