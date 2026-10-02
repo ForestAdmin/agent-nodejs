@@ -49,7 +49,7 @@ describe('GatewayApiKeyAuthenticator', () => {
     expect(result.identity).toEqual(IDENTITY);
   });
 
-  it('should mint an agent token signed with the auth secret for five minutes', async () => {
+  it('should mint an agent token in the shape Ruby and Node agents read, signed for five minutes', async () => {
     const { resolve, authenticator } = setup();
     resolve.mockResolvedValue(IDENTITY);
 
@@ -64,11 +64,11 @@ describe('GatewayApiKeyAuthenticator', () => {
         lastName: '',
         team: 'Operations',
         renderingId: 7,
-        tags: { region: 'eu' },
+        tags: [{ key: 'region', value: 'eu' }],
         permissionLevel: 'user',
         first_name: 'Bot',
         last_name: '',
-        rendering_id: 7,
+        rendering_id: '7',
         permission_level: 'user',
         exp: NOW / 1000 + 300,
       }),

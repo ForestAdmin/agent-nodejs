@@ -5,6 +5,7 @@ import type {
 } from '@forestadmin/forestadmin-client';
 import type { OAuthError } from '@modelcontextprotocol/sdk/server/auth/errors.js';
 
+import { toAgentTokenClaims } from '@forestadmin/agent-client';
 import { GatewayApiKeyResolveError } from '@forestadmin/forestadmin-client';
 import {
   InsufficientScopeError,
@@ -118,22 +119,18 @@ export default class GatewayApiKeyAuthenticator {
   private mint(identity: AuthenticatedGatewayApiKey['identity']): AuthenticatedGatewayApiKey {
     const { user, renderingId } = identity;
     const expiresAt = Math.floor(this.now() / 1000) + AGENT_TOKEN_TTL_SECONDS;
-    const firstName = user.firstName ?? '';
-    const lastName = user.lastName ?? '';
     const agentToken = jsonwebtoken.sign(
       {
-        id: user.id,
-        email: user.email,
-        firstName,
-        lastName,
-        team: user.team,
-        renderingId,
-        tags: Object.fromEntries(user.tags.map(({ key, value }) => [key, value])),
-        permissionLevel: user.permissionLevel,
-        first_name: firstName,
-        last_name: lastName,
-        rendering_id: renderingId,
-        permission_level: user.permissionLevel,
+        ...toAgentTokenClaims({
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName ?? '',
+          lastName: user.lastName ?? '',
+          team: user.team,
+          renderingId,
+          tags: Object.fromEntries(user.tags.map(({ key, value }) => [key, value])),
+          permissionLevel: user.permissionLevel,
+        }),
         exp: expiresAt,
       },
       this.authSecret,
