@@ -76,7 +76,7 @@ export default class OAuthTokenService {
         if (cached) return cached;
       }
 
-      return this.refreshAndCache(userId, mcpServerId, key);
+      return this.refreshAndCache(userId, mcpServerId, forceRefresh);
     });
   }
 
@@ -102,10 +102,24 @@ export default class OAuthTokenService {
     return entry.accessToken;
   }
 
-  private async refreshAndCache(userId: number, mcpServerId: string, key: string): Promise<string> {
+  private async refreshAndCache(
+    userId: number,
+    mcpServerId: string,
+    forceRefresh: boolean,
+  ): Promise<string> {
+    const key = `${userId}:${mcpServerId}`;
     const epochAtStart = this.evictionEpoch.get(key) ?? 0;
     const credential = await this.store.get(userId, mcpServerId);
     if (!credential) throw new OAuthReauthRequiredError(mcpServerId);
+
+    // No refresh token means nothing to renew with: the stored access token is used as is, and a
+    // forced refresh (the provider rejected it) can only be answered by re-authenticating. It has no
+    // known expiry, so it is never cached.
+    if (credential.accessTokenEnc) {
+      if (forceRefresh) throw new OAuthReauthRequiredError(mcpServerId);
+
+      return this.decryptOrReauth(credential, credential.accessTokenEnc);
+    }
 
     const { result, credential: grantedCredential } = await this.runGrantWithRotationRetry(
       credential,
@@ -152,8 +166,9 @@ export default class OAuthTokenService {
       // A peer rotated the refresh token iff the stored value changed since we read it.
       const latest = await this.store.get(userId, mcpServerId);
       const wasRotated =
-        latest !== null &&
-        latest.refreshTokenEnc.toString('base64') !== credential.refreshTokenEnc.toString('base64');
+        latest?.refreshTokenEnc != null &&
+        latest.refreshTokenEnc.toString('base64') !==
+          credential.refreshTokenEnc?.toString('base64');
 
       if (!latest || !wasRotated) {
         throw new OAuthReauthRequiredError(mcpServerId);
@@ -173,23 +188,29 @@ export default class OAuthTokenService {
     }
   }
 
-  // Decrypt happens here. A decrypt failure with the key PRESENT (auth-tag mismatch — the row was
+  private toGrantParams(credential: StoredMcpOAuthCredential): RefreshGrantParams {
+    if (!credential.refreshTokenEnc) throw new OAuthReauthRequiredError(credential.mcpServerId);
+
+    return {
+      tokenEndpoint: credential.tokenEndpoint,
+      refreshToken: this.decryptOrReauth(credential, credential.refreshTokenEnc),
+      clientId: credential.clientId,
+      clientSecret: credential.clientSecretEnc
+        ? this.decryptOrReauth(credential, credential.clientSecretEnc)
+        : null,
+      tokenEndpointAuthMethod: credential.tokenEndpointAuthMethod,
+      scopes: credential.scopes,
+    };
+  }
+
+  // A decrypt failure with the key PRESENT (auth-tag mismatch — the row was
   // encrypted under a since-rotated/hard-swapped key, or is corrupt) is recoverable: re-consent
   // re-deposits under the current key, so surface it as needs-oauth-reauth. A missing key
   // (ExecutorEncryptionKeyMissingError) is an operator misconfig, not re-consent-resolvable, so it
   // propagates as a terminal error (a re-deposit would just 503 at the deposit endpoint).
-  private toGrantParams(credential: StoredMcpOAuthCredential): RefreshGrantParams {
+  private decryptOrReauth(credential: StoredMcpOAuthCredential, ciphertext: Buffer): string {
     try {
-      return {
-        tokenEndpoint: credential.tokenEndpoint,
-        refreshToken: this.encryption.decrypt(credential.refreshTokenEnc),
-        clientId: credential.clientId,
-        clientSecret: credential.clientSecretEnc
-          ? this.encryption.decrypt(credential.clientSecretEnc)
-          : null,
-        tokenEndpointAuthMethod: credential.tokenEndpointAuthMethod,
-        scopes: credential.scopes,
-      };
+      return this.encryption.decrypt(ciphertext);
     } catch (error) {
       if (error instanceof ExecutorEncryptionKeyMissingError) throw error;
 
@@ -210,6 +231,7 @@ export default class OAuthTokenService {
         userId: credential.userId,
         mcpServerId: credential.mcpServerId,
         refreshTokenEnc: encrypted.ciphertext,
+        accessTokenEnc: null,
         clientId: credential.clientId,
         clientSecretEnc: credential.clientSecretEnc,
         clientSecretExpiresAt: credential.clientSecretExpiresAt,

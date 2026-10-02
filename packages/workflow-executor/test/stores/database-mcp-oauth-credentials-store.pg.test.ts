@@ -55,9 +55,9 @@ describePg('DatabaseMcpOAuthCredentialsStore — Postgres shared-schema integrat
            WHERE table_schema = 'public' AND table_name = '${TABLE}'`,
         ),
       ).toBe(0);
-      // The umzug registry lives in forest too, with 002 recorded.
+      // The umzug registry lives in forest too, with 002 and 003 recorded.
       expect(await count(admin, `SELECT count(*)::int AS n FROM "${SCHEMA}"."SequelizeMeta"`)).toBe(
-        1,
+        2,
       );
     } finally {
       await store.close();
@@ -84,7 +84,30 @@ describePg('DatabaseMcpOAuthCredentialsStore — Postgres shared-schema integrat
       });
 
       const row = await store.get(7, 'mcp-server-1');
-      expect(row?.refreshTokenEnc.toString('hex')).toBe(refreshTokenEnc.toString('hex'));
+      expect(row?.refreshTokenEnc?.toString('hex')).toBe(refreshTokenEnc.toString('hex'));
+    } finally {
+      await store.close();
+    }
+  });
+
+  it('stores an access-token-only credential once 003 has made the refresh token nullable', async () => {
+    const store = new DatabaseMcpOAuthCredentialsStore({ sequelize: makeSequelize() });
+
+    try {
+      await store.init();
+      const accessTokenEnc = Buffer.from([0x0a, 0x0b, 0xff]);
+
+      await store.upsert({
+        userId: 7,
+        mcpServerId: 'mcp-server-1',
+        refreshTokenEnc: null,
+        accessTokenEnc,
+        tokenEndpoint: 'https://auth.example.com/token',
+      });
+
+      const row = await store.get(7, 'mcp-server-1');
+      expect(row?.refreshTokenEnc).toBeNull();
+      expect(row?.accessTokenEnc?.toString('hex')).toBe(accessTokenEnc.toString('hex'));
     } finally {
       await store.close();
     }

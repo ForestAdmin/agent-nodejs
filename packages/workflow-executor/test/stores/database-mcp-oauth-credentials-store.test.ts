@@ -30,7 +30,8 @@ import DatabaseMcpOAuthCredentialsStore from '../../src/stores/database-mcp-oaut
 interface CredentialInput {
   userId: number;
   mcpServerId: string;
-  refreshTokenEnc: Buffer;
+  refreshTokenEnc: Buffer | null;
+  accessTokenEnc?: Buffer | null;
   clientId?: string | null;
   clientSecretEnc?: Buffer | null;
   clientSecretExpiresAt?: Date | null;
@@ -169,6 +170,36 @@ describe('DatabaseMcpOAuthCredentialsStore (SQLite)', () => {
     });
   });
 
+  describe('access-token-only credential', () => {
+    it('stores an access token with a null refresh token and reads both back', async () => {
+      const accessTokenEnc = Buffer.from([0x0a, 0x0b, 0xff]);
+
+      await store.upsert(makeCredential({ refreshTokenEnc: null, accessTokenEnc }));
+      const row = unwrap(await store.get(42, 'mcp-server-1'));
+
+      expect(row.refreshTokenEnc).toBeNull();
+      expect(unwrap(row.accessTokenEnc).toString('hex')).toBe(accessTokenEnc.toString('hex'));
+    });
+
+    it('reads a null access token back for a refresh-token credential', async () => {
+      await store.upsert(makeCredential());
+      const row = unwrap(await store.get(42, 'mcp-server-1'));
+
+      expect(row.accessTokenEnc).toBeNull();
+    });
+
+    it('clears the access token when a refresh-token credential replaces it', async () => {
+      await store.upsert(
+        makeCredential({ refreshTokenEnc: null, accessTokenEnc: Buffer.from('at') }),
+      );
+      await store.upsert(makeCredential({ refreshTokenEnc: Buffer.from('rt') }));
+      const row = unwrap(await store.get(42, 'mcp-server-1'));
+
+      expect(row.refreshTokenEnc?.toString()).toBe('rt');
+      expect(row.accessTokenEnc).toBeNull();
+    });
+  });
+
   describe('updateIfPresent', () => {
     it('updates the row matching the given id in place', async () => {
       await store.upsert(makeCredential({ refreshTokenEnc: Buffer.from('old') }));
@@ -295,6 +326,107 @@ describe('DatabaseMcpOAuthCredentialsStore (SQLite)', () => {
           },
         ),
       ).rejects.toThrow();
+    });
+  });
+
+  describe('migration 003 over a table created by 002', () => {
+    // A database as 002 left it: the registry records 002 only, and the table has a NOT NULL
+    // refresh_token_enc and no access_token_enc.
+    async function legacy002Store(serverIds: string[]) {
+      const legacy = new Sequelize({ dialect: 'sqlite', storage: ':memory:', logging: false });
+      await legacy.query('CREATE TABLE "SequelizeMeta" (name VARCHAR(255) NOT NULL PRIMARY KEY)');
+      await legacy.query(
+        'INSERT INTO "SequelizeMeta" (name) VALUES (\'002_create_mcp_oauth_credentials\')',
+      );
+      await legacy.query(
+        'CREATE TABLE ai_mcp_oauth_credentials (' +
+          'id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, ' +
+          'mcp_server_id VARCHAR(255) NOT NULL, refresh_token_enc BLOB NOT NULL, ' +
+          'client_id VARCHAR(255), client_secret_enc BLOB, client_secret_expires_at DATETIME, ' +
+          'token_endpoint VARCHAR(2048) NOT NULL, token_endpoint_auth_method VARCHAR(64), ' +
+          'scopes VARCHAR(2048), created_at DATETIME NOT NULL, updated_at DATETIME NOT NULL)',
+      );
+      await legacy.query(
+        'CREATE UNIQUE INDEX idx_user_id_mcp_server_id ON ai_mcp_oauth_credentials ' +
+          '(user_id, mcp_server_id)',
+      );
+
+      for (const serverId of serverIds) {
+        // eslint-disable-next-line no-await-in-loop
+        await legacy.query(
+          'INSERT INTO ai_mcp_oauth_credentials ' +
+            '(user_id, mcp_server_id, refresh_token_enc, token_endpoint, created_at, updated_at) ' +
+            "VALUES (42, :serverId, :blob, 'https://auth.example.com/token', :now, :now)",
+          { replacements: { serverId, blob: Buffer.from(`${serverId}-rt`), now: new Date() } },
+        );
+      }
+
+      return { legacy, legacyStore: new DatabaseMcpOAuthCredentialsStore({ sequelize: legacy }) };
+    }
+
+    it('keeps a row stored before the migration readable and accepts access-token-only rows after it', async () => {
+      const { legacy, legacyStore } = await legacy002Store(['legacy-server']);
+
+      try {
+        await legacyStore.init();
+
+        const legacyRow = unwrap(await legacyStore.get(42, 'legacy-server'));
+        expect(legacyRow.refreshTokenEnc?.toString()).toBe('legacy-server-rt');
+        expect(legacyRow.accessTokenEnc).toBeNull();
+
+        await legacyStore.upsert(
+          makeCredential({ refreshTokenEnc: null, accessTokenEnc: Buffer.from('at') }),
+        );
+        expect(unwrap(await legacyStore.get(42, 'mcp-server-1')).accessTokenEnc?.toString()).toBe(
+          'at',
+        );
+
+        // The unique index survives the column change.
+        await expect(
+          legacy.query(
+            'INSERT INTO ai_mcp_oauth_credentials ' +
+              '(user_id, mcp_server_id, token_endpoint, created_at, updated_at) ' +
+              "VALUES (42, 'legacy-server', 'https://auth.example.com/token', :now, :now)",
+            { replacements: { now: new Date() } },
+          ),
+        ).rejects.toThrow();
+      } finally {
+        await legacyStore.close();
+      }
+    });
+
+    it('never hands out the id of a row deleted before the migration', async () => {
+      const { legacy, legacyStore } = await legacy002Store(['server-a', 'server-b', 'server-c']);
+      const deletedId = unwrap(
+        (
+          (await legacy.query(
+            "SELECT id FROM ai_mcp_oauth_credentials WHERE mcp_server_id = 'server-c'",
+          )) as [Array<{ id: number }>, unknown]
+        )[0][0],
+      ).id;
+      await legacy.query(`DELETE FROM ai_mcp_oauth_credentials WHERE id = ${deletedId}`);
+
+      try {
+        await legacyStore.init();
+        await legacyStore.upsert(makeCredential({ mcpServerId: 'server-d' }));
+
+        expect(unwrap(await legacyStore.get(42, 'server-d')).id).toBeGreaterThan(deletedId);
+      } finally {
+        await legacyStore.close();
+      }
+    });
+
+    it('keeps a stored access token when 003 runs again over a table that already has the column', async () => {
+      await store.upsert(
+        makeCredential({ refreshTokenEnc: null, accessTokenEnc: Buffer.from('at') }),
+      );
+      await sequelize.query(
+        'DELETE FROM "SequelizeMeta" WHERE name = \'003_add_mcp_oauth_access_token\'',
+      );
+
+      await expect(store.init()).resolves.toBeUndefined();
+
+      expect(unwrap(await store.get(42, 'mcp-server-1')).accessTokenEnc?.toString()).toBe('at');
     });
   });
 

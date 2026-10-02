@@ -255,6 +255,31 @@ describe('POST /mcp-oauth-credentials', () => {
     });
   });
 
+  describe('access-token-only deposit', () => {
+    it('stores the encrypted access token and no refresh token', async () => {
+      const store = createMockStore();
+      const encryption = createMockEncryption();
+      const server = createServer({
+        mcpOAuthCredentialsStore: store,
+        credentialEncryption: encryption,
+      });
+      const token = signToken({ id: 1 });
+      const { refreshToken, ...noRefresh } = validBody;
+
+      const response = await request(server.callback)
+        .post('/mcp-oauth-credentials')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ ...noRefresh, accessToken: 'access-token-abc' });
+
+      expect(response.status).toBeLessThan(300);
+      expect(encryption.encrypt).toHaveBeenCalledWith('access-token-abc');
+      const persisted = store.upsert.mock.calls[0][0];
+      expect(persisted.refreshTokenEnc).toBeNull();
+      expect(persisted.accessTokenEnc.toString()).toBe('enc(access-token-abc)');
+      expect(JSON.stringify(persisted)).not.toContain('access-token-abc');
+    });
+  });
+
   describe('fail closed when the encryption key is missing', () => {
     it('returns 503 with a typed executor_encryption_key_missing code', async () => {
       const encryption = createMockEncryption();
@@ -297,7 +322,7 @@ describe('POST /mcp-oauth-credentials', () => {
   });
 
   describe('body validation', () => {
-    it('returns 400 when the refresh token is missing', async () => {
+    it('returns 400 when neither a refresh token nor an access token is sent', async () => {
       const store = createMockStore();
       const server = createServer({ mcpOAuthCredentialsStore: store });
       const token = signToken({ id: 1 });
@@ -307,6 +332,35 @@ describe('POST /mcp-oauth-credentials', () => {
         .post('/mcp-oauth-credentials')
         .set('Authorization', `Bearer ${token}`)
         .send(noRefresh);
+
+      expect(response.status).toBe(400);
+      expect(store.upsert).not.toHaveBeenCalled();
+    });
+
+    it('returns 400 when both a refresh token and an access token are sent', async () => {
+      const store = createMockStore();
+      const server = createServer({ mcpOAuthCredentialsStore: store });
+      const token = signToken({ id: 1 });
+
+      const response = await request(server.callback)
+        .post('/mcp-oauth-credentials')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ ...validBody, accessToken: 'access-token-abc' });
+
+      expect(response.status).toBe(400);
+      expect(store.upsert).not.toHaveBeenCalled();
+    });
+
+    it('returns 400 when the access token is an empty string', async () => {
+      const store = createMockStore();
+      const server = createServer({ mcpOAuthCredentialsStore: store });
+      const token = signToken({ id: 1 });
+      const { refreshToken, ...noRefresh } = validBody;
+
+      const response = await request(server.callback)
+        .post('/mcp-oauth-credentials')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ ...noRefresh, accessToken: '' });
 
       expect(response.status).toBe(400);
       expect(store.upsert).not.toHaveBeenCalled();

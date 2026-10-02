@@ -70,6 +70,31 @@ describe('buildMcpOAuthCredentialInput', () => {
     expect(input.scopes).toBeNull();
   });
 
+  it('encrypts an access token and leaves the refresh token null when only an access token is sent', () => {
+    const encryption = createEncryption();
+    const { refreshToken, ...noRefresh } = fullBody;
+
+    const input = buildMcpOAuthCredentialInput({
+      body: { ...noRefresh, accessToken: 'access-token-abc' },
+      userId: 7,
+      encryption,
+    });
+
+    expect(encryption.encrypt).toHaveBeenCalledWith('access-token-abc');
+    expect(input.refreshTokenEnc).toBeNull();
+    expect(input.accessTokenEnc?.toString()).toBe('enc(access-token-abc)');
+  });
+
+  it('leaves the access token null for a refresh-token deposit', () => {
+    const input = buildMcpOAuthCredentialInput({
+      body: fullBody,
+      userId: 7,
+      encryption: createEncryption(),
+    });
+
+    expect(input.accessTokenEnc).toBeNull();
+  });
+
   it('propagates ExecutorEncryptionKeyMissingError so the caller can fail closed', () => {
     const encryption = createEncryption();
     (encryption.encrypt as jest.Mock).mockImplementation(() => {
@@ -109,6 +134,40 @@ describe('depositCredentialsBodySchema', () => {
     });
 
     expect(result.success).toBe(true);
+  });
+
+  it('accepts an access token in place of a refresh token', () => {
+    const { refreshToken, ...noRefresh } = validBody;
+
+    const result = depositCredentialsBodySchema.safeParse({
+      ...noRefresh,
+      accessToken: 'access-token-abc',
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects a body carrying both a refresh token and an access token', () => {
+    const result = depositCredentialsBodySchema.safeParse({
+      ...validBody,
+      accessToken: 'access-token-abc',
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects a body carrying neither a refresh token nor an access token', () => {
+    const { refreshToken, ...noRefresh } = validBody;
+
+    expect(depositCredentialsBodySchema.safeParse(noRefresh).success).toBe(false);
+  });
+
+  it('rejects an empty-string access token', () => {
+    const { refreshToken, ...noRefresh } = validBody;
+
+    expect(depositCredentialsBodySchema.safeParse({ ...noRefresh, accessToken: '' }).success).toBe(
+      false,
+    );
   });
 
   it('rejects an unsupported tokenEndpointAuthMethod', () => {

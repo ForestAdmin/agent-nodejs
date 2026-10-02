@@ -3,7 +3,10 @@ import type { Logger } from './logger-port';
 export interface McpOAuthCredentialInput {
   userId: number;
   mcpServerId: string;
-  refreshTokenEnc: Buffer;
+  // Exactly one of the two is set: a provider that issues no refresh token leaves an access token,
+  // used as is until the provider rejects it.
+  refreshTokenEnc: Buffer | null;
+  accessTokenEnc?: Buffer | null;
   clientId?: string | null;
   clientSecretEnc?: Buffer | null;
   clientSecretExpiresAt?: Date | null;
