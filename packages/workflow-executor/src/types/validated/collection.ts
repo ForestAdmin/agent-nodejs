@@ -52,7 +52,10 @@ export const FieldSchemaSchema = z.object({
   // Polymorphic relations: discriminator column + candidate target collections, resolved per record.
   polymorphicTypeField: z.string().optional(),
   polymorphicReferencedModels: z.array(z.string()).optional(),
-  type: ColumnTypeSchema.nullable().optional(),
+  // forest-rails apimaps carry field types this contract can't model — hand-authored smart-field
+  // type strings, and `[null]` from array columns the liana fails to map. They must not fail the
+  // whole collection schema; an unparseable type normalizes to null (consumers already guard on it).
+  type: ColumnTypeSchema.nullable().optional().catch(null),
   enumValues: z.array(z.string()).min(1).optional(),
 });
 export type FieldSchema = z.infer<typeof FieldSchemaSchema>;
