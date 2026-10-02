@@ -7,7 +7,7 @@ import type {
 import type { Logger } from '../ports/logger-port';
 import type { ActivityLogsServiceInterface } from '@forestadmin/forestadmin-client';
 
-import { serializeRecordId } from './record-id-serializer';
+import { serializeRecordId } from '../record-id';
 import withRetry from './with-retry';
 import { ActivityLogCreationError, extractErrorMessage } from '../errors';
 

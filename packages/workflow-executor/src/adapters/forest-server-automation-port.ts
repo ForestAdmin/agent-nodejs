@@ -1,15 +1,19 @@
-import type {
-  ServerAutomatedInboxAssignment,
-  ServerAutomatedInboxConfig,
-  ServerAutomatedInboxSyncRequest,
-} from './server-types';
-import type { AutomatedInboxSyncResult, AutomationPort } from '../ports/automation-port';
+import type { ServerAutomatedInboxConfig, ServerAutomatedInboxSyncRequest } from './server-types';
+import type { AutomationPort } from '../ports/automation-port';
 import type { Logger } from '../ports/logger-port';
+import type {
+  AutomatedInbox,
+  InboxAssignment,
+  InboxSyncReport,
+  InboxSyncResult,
+} from '../types/automation';
 import type { HttpOptions } from '@forestadmin/forestadmin-client';
 
 import { ServerUtils } from '@forestadmin/forestadmin-client';
 
 import createConsoleLogger from './console-logger';
+import toProjectTimezone from './project-timezone';
+import { toStepUser } from './step-user';
 import withRetry from './with-retry';
 import {
   AutomatedInboxGoneError,
@@ -46,6 +50,21 @@ const AUTOMATION_ROUTE_MISSING =
   'The orchestrator does not serve automated inboxes. Expected while the executor runs ahead of ' +
   'the server; check forestServerUrl if it persists.';
 
+function toAutomatedInbox(config: ServerAutomatedInboxConfig): AutomatedInbox {
+  return {
+    inboxId: config.inboxId,
+    renderingId: config.renderingId,
+    workflowId: config.workflowId,
+    collectionName: config.collectionName,
+    primaryKeys: config.primaryKeys,
+    maxConcurrentRuns: config.maxConcurrentRuns,
+    timezone: toProjectTimezone(config.timezone),
+    liana: config.liana,
+    segment: config.segment,
+    user: toStepUser(config.serviceAccountProfile),
+  };
+}
+
 function isNotFound(error: unknown): boolean {
   return (error as { status?: number })?.status === 404;
 }
@@ -60,7 +79,7 @@ export default class ForestServerAutomationPort implements AutomationPort {
     this.logger = params.logger ?? createConsoleLogger();
   }
 
-  async listAutomatedInboxes(instanceId: string): Promise<ServerAutomatedInboxConfig[]> {
+  async listAutomatedInboxes(instanceId: string): Promise<AutomatedInbox[]> {
     let response: unknown;
 
     try {
@@ -122,7 +141,7 @@ export default class ForestServerAutomationPort implements AutomationPort {
     this.reportedMissingRoute = true;
   }
 
-  private parseConfigs(response: unknown): ServerAutomatedInboxConfig[] {
+  private parseConfigs(response: unknown): AutomatedInbox[] {
     const envelope = ServerAutomatedInboxesResponseSchema.safeParse(response);
 
     if (!envelope.success) {
@@ -131,7 +150,7 @@ export default class ForestServerAutomationPort implements AutomationPort {
       );
     }
 
-    const configs: ServerAutomatedInboxConfig[] = [];
+    const configs: AutomatedInbox[] = [];
 
     for (const [index, raw] of envelope.data.inboxes.entries()) {
       const parsed = ServerAutomatedInboxConfigSchema.safeParse(raw);
@@ -139,7 +158,7 @@ export default class ForestServerAutomationPort implements AutomationPort {
       // One unreadable config must not blind the poller to the others: a contract the executor is
       // too old to understand is the expected reason, and the rest of the environment still runs.
       if (parsed.success) {
-        configs.push(parsed.data);
+        configs.push(toAutomatedInbox(parsed.data));
       } else {
         this.logger('Warn', 'Skipping an automated inbox config the executor cannot read', {
           index,
@@ -152,7 +171,7 @@ export default class ForestServerAutomationPort implements AutomationPort {
     return configs;
   }
 
-  async listAssignments(inboxId: string): Promise<ServerAutomatedInboxAssignment[]> {
+  async listAssignments(inboxId: string): Promise<InboxAssignment[]> {
     const response = await this.callPort(
       'listAutomatedInboxAssignments',
       () => ServerUtils.query<unknown>(this.options, 'get', ROUTES.assignments(inboxId)),
@@ -164,13 +183,14 @@ export default class ForestServerAutomationPort implements AutomationPort {
     return ServerAutomatedInboxAssignmentsResponseSchema.parse(response).assignments;
   }
 
-  async sync(
-    inboxId: string,
-    body: ServerAutomatedInboxSyncRequest,
-  ): Promise<AutomatedInboxSyncResult[]> {
+  async sync(inboxId: string, report: InboxSyncReport): Promise<InboxSyncResult[]> {
     const response = await this.callPort(
       'syncAutomatedInbox',
-      () => ServerUtils.query<unknown>(this.options, 'post', ROUTES.sync(inboxId), {}, body),
+      () => {
+        const body: ServerAutomatedInboxSyncRequest = report;
+
+        return ServerUtils.query<unknown>(this.options, 'post', ROUTES.sync(inboxId), {}, body);
+      },
       inboxId,
     );
 
