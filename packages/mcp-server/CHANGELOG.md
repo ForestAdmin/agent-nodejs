@@ -1,3 +1,10 @@
+## @forestadmin/mcp-server [1.24.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.24.8...@forestadmin/mcp-server@1.24.9) (2026-10-02)
+
+
+### Bug Fixes
+
+* **mcp-server:** blame the missing dependency, not the configured path ([#1834](https://github.com/ForestAdmin/agent-nodejs/issues/1834)) ([cefda1f](https://github.com/ForestAdmin/agent-nodejs/commit/cefda1f87f92a8145528d5d623587bf232385648))
+
 ## @forestadmin/mcp-server [1.24.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.24.7...@forestadmin/mcp-server@1.24.8) (2026-10-01)
 
 
