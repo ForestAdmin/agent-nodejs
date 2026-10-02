@@ -1,7 +1,7 @@
 import type { StepExecutionData } from '../types/step-execution-data';
 import type { RecordRef } from '../types/validated/collection';
 
-import { serializeRecordId } from '../adapters/record-id-serializer';
+import { serializeRecordId } from '../record-id';
 
 function serializeRecordRef(ref: RecordRef): unknown {
   return { ...ref, recordId: serializeRecordId(ref.recordId) };

@@ -2,10 +2,7 @@
 import type { MalformedRunInfo } from './ports/workflow-port';
 import type { RecordId } from './types/validated/collection';
 import type { AwaitingInputReason, ErrorKind } from './types/validated/step-outcome';
-import type { AgentHttpError } from '@forestadmin/agent-client';
 import type { z } from 'zod';
-
-import { extractErrorDetail } from '@forestadmin/agent-client';
 
 export function causeMessage(error: unknown): string | undefined {
   const { cause } = (error ?? {}) as { cause?: unknown };
@@ -398,40 +395,9 @@ export class McpToolNotFoundError extends WorkflowExecutorError {
   }
 }
 
-const AGENT_ERROR_MESSAGE_MAX_LENGTH = 500;
-
-type AgentHttpResponse = Pick<AgentHttpError, 'status' | 'body'>;
-
-function isAgentHttpResponse(cause: unknown): cause is AgentHttpResponse {
-  return cause instanceof Error && typeof (cause as Partial<AgentHttpResponse>).status === 'number';
-}
-
-export function agentErrorDetail(error: unknown): string | undefined {
-  const response = isAgentHttpResponse(error) ? error : (error as { cause?: unknown })?.cause;
-  if (!isAgentHttpResponse(response)) return undefined;
-  const detail = extractErrorDetail(response);
-  if (!detail) return undefined;
-
-  const flat = Array.from(detail.slice(0, AGENT_ERROR_MESSAGE_MAX_LENGTH * 4), char =>
-    char < ' ' || (char >= '\u007f' && char <= '\u009f') ? ' ' : char,
-  )
-    .join('')
-    .replace(/\s+/g, ' ')
-    .trim();
-
-  return flat.length > AGENT_ERROR_MESSAGE_MAX_LENGTH
-    ? `${flat.slice(0, AGENT_ERROR_MESSAGE_MAX_LENGTH)}…`
-    : flat;
-}
-
-function agentErrorMessage(cause: unknown): string | undefined {
-  return isAgentHttpResponse(cause) && cause.status >= 500 ? agentErrorDetail(cause) : undefined;
-}
-
 export class AgentPortError extends WorkflowExecutorError {
-  constructor(operation: string, cause: unknown) {
+  constructor(operation: string, cause: unknown, agentMessage?: string) {
     const causeText = cause instanceof Error ? cause.message : String(cause);
-    const agentMessage = agentErrorMessage(cause);
 
     super(
       `Agent port "${operation}" failed: ${causeText}${
@@ -440,6 +406,30 @@ export class AgentPortError extends WorkflowExecutorError {
       'An error occurred while accessing your data. Please try again.',
     );
     this.cause = cause;
+  }
+}
+
+export type SegmentReadFailureKind = 'forbidden' | 'unreachable' | 'overloaded' | 'failed';
+
+export class SegmentReadError extends AgentPortError {
+  readonly failure: SegmentReadFailureKind;
+  readonly httpStatus?: number;
+  readonly agentDetail?: string;
+
+  constructor(
+    operation: string,
+    cause: unknown,
+    details: {
+      failure: SegmentReadFailureKind;
+      httpStatus?: number;
+      agentDetail?: string;
+      agentMessage?: string;
+    },
+  ) {
+    super(operation, cause, details.agentMessage);
+    this.failure = details.failure;
+    this.httpStatus = details.httpStatus;
+    this.agentDetail = details.agentDetail;
   }
 }
 

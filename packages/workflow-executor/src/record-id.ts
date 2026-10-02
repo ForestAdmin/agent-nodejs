@@ -1,6 +1,6 @@
-import type { RecordId } from '../types/validated/collection';
+import type { RecordId } from './types/validated/collection';
 
-import { RecordIdSerializationError } from '../errors';
+import { RecordIdSerializationError } from './errors';
 
 export function serializeRecordId(recordId: RecordId): string {
   return recordId
