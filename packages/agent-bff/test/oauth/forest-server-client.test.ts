@@ -91,7 +91,7 @@ describe('ForestServerClient', () => {
       });
 
       const client = new ForestServerClient({ forestServerUrl: SERVER_URL, envSecret: ENV_SECRET });
-      const tokens = await client.refreshServerToken('R1');
+      const tokens = await client.refreshServerToken({ refreshToken: 'R1', clientId: 'client-1' });
 
       expect(tokens.saasAccessToken).toBe(newAccess);
       expect(tokens.saasRefreshToken).toBe('R2');
@@ -103,7 +103,9 @@ describe('ForestServerClient', () => {
 
       const client = new ForestServerClient({ forestServerUrl: SERVER_URL, envSecret: ENV_SECRET });
 
-      await expect(client.refreshServerToken('R1')).rejects.toBeInstanceOf(OAuthExchangeError);
+      await expect(
+        client.refreshServerToken({ refreshToken: 'R1', clientId: 'client-1' }),
+      ).rejects.toBeInstanceOf(OAuthExchangeError);
     });
 
     it('should not require renderingId in the refresh-grant access token', async () => {
@@ -118,7 +120,9 @@ describe('ForestServerClient', () => {
 
       const client = new ForestServerClient({ forestServerUrl: SERVER_URL, envSecret: ENV_SECRET });
 
-      await expect(client.refreshServerToken('R1')).resolves.toMatchObject({
+      await expect(
+        client.refreshServerToken({ refreshToken: 'R1', clientId: 'client-1' }),
+      ).resolves.toMatchObject({
         saasRefreshToken: 'R2',
       });
     });
@@ -202,7 +206,9 @@ describe('ForestServerClient', () => {
 
       const client = new ForestServerClient({ forestServerUrl: SERVER_URL, envSecret: ENV_SECRET });
 
-      await expect(client.refreshServerToken('R1')).resolves.toMatchObject({ renderingId: 0 });
+      await expect(
+        client.refreshServerToken({ refreshToken: 'R1', clientId: 'client-1' }),
+      ).resolves.toMatchObject({ renderingId: 0 });
     });
   });
 

@@ -23,6 +23,7 @@ export type {
   ServerTokens,
   RegisteredClient,
   ExchangeCodeParams,
+  RefreshServerTokenParams,
 } from './oauth/forest-server-client';
 export { default as createOAuthRoutes } from './oauth/oauth-routes';
 export { default as createInMemorySessionStore } from './oauth/session-store';

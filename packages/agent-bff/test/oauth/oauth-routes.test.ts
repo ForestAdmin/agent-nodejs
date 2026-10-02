@@ -370,6 +370,15 @@ describe('oauth-routes POST /oauth/token', () => {
       expect(JSON.stringify(logs)).not.toContain(SENTINEL_ACCESS);
       expect(JSON.stringify(logs)).not.toContain(SENTINEL_REFRESH);
     });
+
+    it('should store the exchanged client id in the session for later refreshes', async () => {
+      const { app, sessionStore } = buildApp(stubServerClient());
+
+      const response = await request(app.callback()).post('/oauth/token').send(TOKEN_BODY);
+      const { sid } = jsonwebtoken.decode(response.body.access_token) as { sid: string };
+
+      expect(sessionStore.get(sid)?.clientId).toBe(CLIENT_ID);
+    });
   });
 
   describe('when the redirect_uri does not match the registered client', () => {
