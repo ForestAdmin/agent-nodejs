@@ -637,6 +637,54 @@ describe('AutomationPoller', () => {
       });
     });
 
+    it('should pad the page when the agent hands back nothing but known records despite the exclusion', async () => {
+      const context = excludingContext({
+        assignments: [makeAssignment({ recordId: 'known', state: 'doing', runState: 'started' })],
+      });
+      context.segmentReaderPort.listRecordIds
+        .mockResolvedValueOnce(['known'])
+        .mockResolvedValueOnce(['known', 'fresh-1']);
+
+      await runOneCycle(makePoller(context));
+
+      expect(context.segmentReaderPort.listRecordIds.mock.calls.map(([query]) => query)).toEqual([
+        expect.objectContaining({ excludedRecordIds: ['known'], pageSize: 20 }),
+        expect.objectContaining({ pageSize: 21, pageNumber: 1, sortByPrimaryKey: true }),
+      ]);
+      expect(context.segmentReaderPort.listRecordIds.mock.calls[1][0]).not.toHaveProperty(
+        'excludedRecordIds',
+      );
+      expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
+        closed: [],
+        candidates: ['fresh-1'],
+      });
+      expect(context.logger).toHaveBeenCalledWith(
+        'Warn',
+        'The not_in candidate read returned only known records, padding the page instead',
+        expect.objectContaining({ inboxId: 'inbox-1', requestedPageSize: 20, notIn: true }),
+      );
+      expect(context.logger).toHaveBeenCalledWith(
+        'Info',
+        'Automated inbox polled',
+        expect.objectContaining({ paddedPageReason: 'not-in-ignored', candidates: 1 }),
+      );
+    });
+
+    it('should not pad the page when the excluding read finds nothing at all', async () => {
+      const context = excludingContext({
+        assignments: [makeAssignment({ recordId: 'known', state: 'doing', runState: 'started' })],
+      });
+      context.segmentReaderPort.listRecordIds.mockResolvedValue([]);
+
+      await runOneCycle(makePoller(context));
+
+      expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledTimes(1);
+      expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
+        closed: [],
+        candidates: [],
+      });
+    });
+
     it('should ask the segment reader whether the known records can be excluded', async () => {
       const context = excludingContext({
         assignments: [makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' })],

@@ -19,7 +19,11 @@ import {
 } from './reconciliation';
 import { AutomatedInboxGoneError, SegmentReadError, extractErrorMessage } from '../errors';
 
-type PaddedPageReason = ExclusionUnavailableReason | 'capabilities-unreadable' | 'not-in-refused';
+type PaddedPageReason =
+  | ExclusionUnavailableReason
+  | 'capabilities-unreadable'
+  | 'not-in-refused'
+  | 'not-in-ignored';
 
 interface SegmentRead<T> {
   items: T[];
@@ -263,18 +267,14 @@ export default class InboxPoll {
         notIn: known.length > 0,
       });
 
+      let page: string[];
+
       try {
-        const page = await this.segmentReaderPort.listRecordIds({
+        page = await this.segmentReaderPort.listRecordIds({
           ...segmentQuery(inbox),
           ...(known.length ? { excludedRecordIds: known } : {}),
           pageSize: inbox.maxConcurrentRuns,
         });
-
-        // An agent that ignores an operator it does not know would hand known records back.
-        return {
-          items: page.filter(recordId => !knownSet.has(recordId)),
-          requestedPageSize: inbox.maxConcurrentRuns,
-        };
       } catch (error) {
         if (!known.length || !mayBeOperatorRefusal(error)) throw error;
 
@@ -294,6 +294,32 @@ export default class InboxPoll {
           attempt,
         );
       }
+
+      const fresh = page.filter(recordId => !knownSet.has(recordId));
+
+      // An agent that ignores an operator it does not know hands known records back. A page of
+      // nothing else would starve the inbox on every sweep, so it is padded like a refused read.
+      if (page.length > 0 && fresh.length === 0) {
+        this.logger(
+          'Warn',
+          'The not_in candidate read returned only known records, padding the page instead',
+          {
+            ...logContext,
+            ...attempt,
+          },
+        );
+
+        return this.readPaddedCandidates(
+          logContext,
+          inbox,
+          assignments,
+          knownSet,
+          'not-in-ignored',
+          attempt,
+        );
+      }
+
+      return { items: fresh, requestedPageSize: inbox.maxConcurrentRuns };
     }
 
     return this.readPaddedCandidates(
