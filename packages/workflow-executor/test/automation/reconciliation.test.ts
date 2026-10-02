@@ -40,13 +40,18 @@ function assignment(overrides: Partial<InboxAssignment> = {}): InboxAssignment {
 }
 
 describe('reconcilable', () => {
-  it.each(CASES)(
-    'should judge an assignment in state $state with run state $runState and run $workflowRunId',
-    ({ state, runState, workflowRunId }) => {
+  it.each(
+    CASES.map(row => ({
+      ...row,
+      reconciled:
+        row.workflowRunId !== null && RECONCILED_RUN_STATES[row.state].includes(row.runState),
+    })),
+  )(
+    'should reconcile an assignment in state $state with run state $runState and run $workflowRunId: $reconciled',
+    ({ state, runState, workflowRunId, reconciled }) => {
       const subject = assignment({ state, runState, workflowRunId });
-      const expected = workflowRunId !== null && RECONCILED_RUN_STATES[state].includes(runState);
 
-      expect(reconcilable([subject])).toStrictEqual(expected ? [subject] : []);
+      expect(reconcilable([subject])).toStrictEqual(reconciled ? [subject] : []);
     },
   );
 
@@ -60,25 +65,23 @@ describe('reconcilable', () => {
 });
 
 describe('withUnknownState', () => {
-  it.each(CASES)(
-    'should judge an assignment in state $state with run state $runState and run $workflowRunId',
-    ({ state, runState, workflowRunId }) => {
+  it.each(CASES.map(row => ({ ...row, unknown: UNKNOWN_ASSIGNMENT_STATES.includes(row.state) })))(
+    'should flag an assignment in state $state with run state $runState and run $workflowRunId as an unknown state: $unknown',
+    ({ state, runState, workflowRunId, unknown }) => {
       const subject = assignment({ state, runState, workflowRunId });
-      const expected = UNKNOWN_ASSIGNMENT_STATES.includes(state);
 
-      expect(withUnknownState([subject])).toStrictEqual(expected ? [subject] : []);
+      expect(withUnknownState([subject])).toStrictEqual(unknown ? [subject] : []);
     },
   );
 });
 
 describe('withUnexpectedRunState', () => {
-  it.each(CASES)(
-    'should judge an assignment in state $state with run state $runState and run $workflowRunId',
-    ({ state, runState, workflowRunId }) => {
+  it.each(CASES.map(row => ({ ...row, unexpected: UNEXPECTED_RUN_STATES.includes(row.runState) })))(
+    'should flag an assignment in state $state with run state $runState and run $workflowRunId as an unexpected run state: $unexpected',
+    ({ state, runState, workflowRunId, unexpected }) => {
       const subject = assignment({ state, runState, workflowRunId });
-      const expected = UNEXPECTED_RUN_STATES.includes(runState);
 
-      expect(withUnexpectedRunState([subject])).toStrictEqual(expected ? [subject] : []);
+      expect(withUnexpectedRunState([subject])).toStrictEqual(unexpected ? [subject] : []);
     },
   );
 
