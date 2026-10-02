@@ -22,6 +22,10 @@ export default class AlwaysErrorAiModelPort implements AiModelPort {
     } as unknown as BaseChatModel;
   }
 
+  probeCredentials(): Promise<void> {
+    return Promise.resolve();
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   loadRemoteTools(_configs: Record<string, ToolConfig>): Promise<RemoteTool[]> {
     return Promise.resolve([]);

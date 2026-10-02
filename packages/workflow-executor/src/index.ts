@@ -102,6 +102,7 @@ export {
   RunStorePortError,
   AiModelPortError,
   AgentProbeError,
+  AiCredentialProbeError,
   ConfigurationError,
   ExecutorEncryptionKeyMissingError,
   InvalidPreRecordedArgsError,
