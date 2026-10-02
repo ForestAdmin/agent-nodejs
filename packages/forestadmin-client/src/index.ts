@@ -128,6 +128,17 @@ export { default as ServerUtils } from './utils/server';
 export { default as SchemaService, SchemaServiceOptions } from './schema';
 export { default as ActivityLogsService, ActivityLogsOptions } from './activity-logs';
 export { default as WorkflowsService, WorkflowsServiceOptions } from './workflows';
+export {
+  GatewayApiKeyClient,
+  GatewayApiKeyClientOptions,
+  GatewayApiKeyIdentityUser,
+  GatewayApiKeyResolveError,
+  GatewayApiKeyResolveErrorParams,
+  GatewayService,
+  ParsedGatewayApiKey,
+  ResolvedGatewayApiKeyIdentity,
+  parseGatewayApiKey,
+} from './gateway-api-key';
 
 export * from './auth/errors';
 export * from './utils/errors';
