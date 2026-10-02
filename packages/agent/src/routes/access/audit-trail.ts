@@ -174,7 +174,8 @@ export default class AuditTrailRoute extends CollectionRoute {
       permissionScope && gone ? this.withhold(rawData, permissionScope, context) : rawData;
 
     context.response.body = {
-      data,
+      // `previousRecordId` stays out here too: the served shape is the same whichever path built it.
+      data: data.map(({ previousRecordId, ...served }) => served),
       meta: { count, ...(availableUsers && { availableUsers }) },
     };
   }
@@ -186,7 +187,7 @@ export default class AuditTrailRoute extends CollectionRoute {
     permissionScope: ConditionTree,
     context: Context,
   ): Promise<{
-    data: AuditRecord[];
+    data: Array<Omit<AuditRecord, 'previousRecordId'>>;
     meta: { count: number; availableUsers?: AuditUserSummary[] };
   }> {
     const { store } = this.options.auditTrail;
@@ -226,7 +227,9 @@ export default class AuditTrailRoute extends CollectionRoute {
     }
 
     return {
-      data: page,
+      // `previousRecordId` stays out: it is how the agent follows a record across a rename, not
+      // something a client reads.
+      data: page.map(({ previousRecordId, ...served }) => served),
       meta: { count, ...(isFirstFetch && { availableUsers: [...authors.values()] }) },
     };
   }

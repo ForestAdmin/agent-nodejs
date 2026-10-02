@@ -37,6 +37,9 @@ export function defineAuditLogModel(
       // migration creates the column as such — this must match. Nullable: a pending create's row
       // has no id yet, since the record doesn't exist until the write resolves.
       recordId: { type: DataTypes.TEXT, allowNull: true },
+      // Set on every confirmed update, so a null distinguishes a row older than the column from
+      // one whose key held still. TEXT for the same reason as `recordId`.
+      previousRecordId: { type: DataTypes.TEXT, allowNull: true },
       userId: { type: DataTypes.INTEGER, allowNull: true },
       // Denormalised from the caller at write time — who acted then, not who holds that id today.
       userFirstName: { type: DataTypes.TEXT, allowNull: true },
@@ -230,6 +233,7 @@ export function fromRow(row: Model): AuditRecord {
     operation: plain.operation as AuditRecord['operation'],
     collection: plain.collection as string,
     recordId: (plain.recordId as string) ?? null,
+    previousRecordId: (plain.previousRecordId as string) ?? null,
     userId: plain.userId as number,
     userFirstName: (plain.userFirstName as string) ?? null,
     userLastName: (plain.userLastName as string) ?? null,
