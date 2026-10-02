@@ -349,6 +349,7 @@ async function handleAuthorizationCodeGrant(
     saasRefreshToken: serverTokens.saasRefreshToken,
     renderingId: serverTokens.renderingId,
     userId: user.id,
+    clientId: request.clientId,
   });
 
   const accessToken = issueBffAccessToken({
@@ -404,6 +405,7 @@ async function issueAccessForSession(
     sid,
     store: options.sessionStore,
     serverClient: options.serverClient,
+    logger: options.logger,
   });
 
   const expiresInSeconds = expiresInFromAccessToken(saasAccessToken);

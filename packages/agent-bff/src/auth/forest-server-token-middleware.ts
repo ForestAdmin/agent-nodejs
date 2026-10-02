@@ -57,6 +57,7 @@ async function resolveToken(
       sid: principal.sid,
       store: session.store,
       serverClient: session.serverClient,
+      logger,
     });
   } catch (error) {
     // The errors below carry neither the cause nor a `cause` field, so this line is the only place

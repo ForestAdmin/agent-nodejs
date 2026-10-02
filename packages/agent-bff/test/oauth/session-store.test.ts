@@ -14,6 +14,7 @@ const SESSION_INPUT = {
   saasRefreshToken: 'SAAS-REFRESH-SENTINEL',
   renderingId: 17,
   userId: 42,
+  clientId: 'client-1',
 };
 
 describe('session-store', () => {
