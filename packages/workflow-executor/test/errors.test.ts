@@ -173,94 +173,36 @@ describe('AgentPortError', () => {
     expect(err.message).toBe('Agent port "getRecord" failed: ECONNREFUSED');
   });
 
-  it("appends the error message of the agent's 5xx body to the technical message", () => {
+  it('appends the agent message it is given to the technical message', () => {
+    const err = new AgentPortError(
+      'getActionForm',
+      new Error('Agent responded with HTTP 500'),
+      'hook crashed',
+    );
+
+    expect(err.message).toBe(
+      'Agent port "getActionForm" failed: Agent responded with HTTP 500 | agent error: hook crashed',
+    );
+  });
+
+  it("leaves the agent's answer out of the message when given no agent message", () => {
     const cause = new AgentHttpError(500, { error: 'hook crashed' }, '{"error":"hook crashed"}');
-
-    const err = new AgentPortError('getActionForm', cause);
-
-    expect(err.message).toBe(
-      'Agent port "getActionForm" failed: Agent responded with HTTP 500 | agent error: hook crashed',
-    );
-  });
-
-  it('reads the detail of a JSON:API error body', () => {
-    const cause = new AgentHttpError(502, { errors: [{ detail: 'upstream unavailable' }] });
-
-    const err = new AgentPortError('executeAction', cause);
-
-    expect(err.message).toBe(
-      'Agent port "executeAction" failed: Agent responded with HTTP 502 | agent error: upstream unavailable',
-    );
-  });
-
-  it('leaves out everything in the body but the error message', () => {
-    const cause = new AgentHttpError(500, {
-      errors: [{ detail: 'hook crashed', meta: { stack: 'at record 42 a@b.co' } }],
-      data: { email: 'a@b.co' },
-    });
-
-    const err = new AgentPortError('getActionForm', cause);
-
-    expect(err.message).toBe(
-      'Agent port "getActionForm" failed: Agent responded with HTTP 500 | agent error: hook crashed',
-    );
-  });
-
-  it('adds nothing for a body that is not a JSON error, such as an HTML error page', () => {
-    const page = '<html><body>Internal Error at record 42</body></html>';
-
-    const err = new AgentPortError('getActionForm', new AgentHttpError(502, page, page));
-
-    expect(err.message).toBe('Agent port "getActionForm" failed: Agent responded with HTTP 502');
-  });
-
-  it.each([400, 401, 403, 422])(
-    'keeps a %i response out of the technical message, since its detail can quote the refused input',
-    status => {
-      const cause = new AgentHttpError(status, { errors: [{ detail: 'email a@b.co is taken' }] });
-
-      const err = new AgentPortError('updateRecord', cause);
-
-      expect(err.message).toBe(
-        `Agent port "updateRecord" failed: Agent responded with HTTP ${status}`,
-      );
-    },
-  );
-
-  it('flattens line breaks and control characters of the error message onto one line', () => {
-    const cause = new AgentHttpError(500, { error: 'hook\n  crashed\ton\r\nload\u0007' });
-
-    const err = new AgentPortError('getActionForm', cause);
-
-    expect(err.message).toBe(
-      'Agent port "getActionForm" failed: Agent responded with HTTP 500 | agent error: hook crashed on load',
-    );
-  });
-
-  it('truncates an error message longer than 500 characters', () => {
-    const cause = new AgentHttpError(500, { error: 'x'.repeat(600) });
-
-    const err = new AgentPortError('getActionForm', cause);
-
-    expect(err.message).toBe(
-      `Agent port "getActionForm" failed: Agent responded with HTTP 500 | agent error: ${'x'.repeat(
-        500,
-      )}…`,
-    );
-  });
-
-  it('adds nothing when the error body carries no usable message', () => {
-    const cause = new AgentHttpError(500, { errors: [{ detail: '   ' }], error: 42 });
 
     const err = new AgentPortError('getActionForm', cause);
 
     expect(err.message).toBe('Agent port "getActionForm" failed: Agent responded with HTTP 500');
   });
 
+  it('keeps its cause', () => {
+    const cause = new Error('ECONNREFUSED');
+
+    expect(new AgentPortError('getRecord', cause, 'agent down').cause).toBe(cause);
+  });
+
   it('keeps the generic user-facing message whatever the agent answered', () => {
     const cause = new AgentHttpError(500, { error: 'stack trace with record data' });
 
-    const err = new AgentPortError('getActionForm', cause);
+    const err = new AgentPortError('getActionForm', cause, 'stack trace with record data');
 
     expect(err.userMessage).toBe('An error occurred while accessing your data. Please try again.');
   });

@@ -12,7 +12,7 @@ import type { StepExecutionData } from './types/step-execution-data';
 import type { StepOutcome } from './types/validated/step-outcome';
 
 import createConsoleLogger from './adapters/console-logger';
-import { DEFAULT_MAX_CHAIN_DEPTH, DEFAULT_STOP_TIMEOUT_S } from './defaults';
+import { DEFAULT_MAX_CHAIN_DEPTH, DEFAULT_STOP_TIMEOUT_S, MAX_CONCURRENT_RUNS } from './defaults';
 import {
   MalformedRunError,
   RunAlreadyInFlightError,
@@ -62,6 +62,7 @@ const { version: EXECUTOR_VERSION } = require('../package.json') as { version: s
 export default class Runner {
   private readonly config: RunnerConfig;
   private pollingTimer: NodeJS.Timeout | null = null;
+  private pollCycle: Promise<void> | null = null;
   private readonly inFlightRuns = new InFlightRunRegistry();
   private readonly logger: Logger;
   private readonly remoteToolFetcher: RemoteToolFetcher;
@@ -114,8 +115,9 @@ export default class Runner {
     }
 
     try {
-      // Drain in-flight runs (each entry may cover a whole auto-chain).
-      if (this.inFlightRuns.size > 0) {
+      // Drain in-flight runs (each entry may cover a whole auto-chain), and the poll in progress,
+      // which hands back whatever it claims now that nothing will run it.
+      if (this.inFlightRuns.size > 0 || this.pollCycle) {
         this.logger('Info', 'Draining in-flight runs', {
           count: this.inFlightRuns.size,
           runs: [...this.inFlightRuns.keys()],
@@ -124,7 +126,7 @@ export default class Runner {
         const timeoutS = this.config.stopTimeoutS ?? DEFAULT_STOP_TIMEOUT_S;
         let drainTimer: NodeJS.Timeout | undefined;
         const drainResult = await Promise.race([
-          this.inFlightRuns.drain().then(() => {
+          Promise.all([this.pollCycle, this.inFlightRuns.drain()]).then(() => {
             if (drainTimer) clearTimeout(drainTimer);
 
             return 'drained' as const;
@@ -137,6 +139,7 @@ export default class Runner {
         if (drainResult === 'timeout') {
           this.logger('Error', 'Drain timeout — runs still in flight', {
             remainingRuns: [...this.inFlightRuns.keys()],
+            pollInProgress: this.pollCycle !== null,
             timeoutS,
           });
         } else {
@@ -202,9 +205,17 @@ export default class Runner {
 
     // Not awaited: the chain's outcome travels through updateStepExecution, never through this
     // response.
-    void this.executeStep(step, auth.forestServerToken, options?.pendingData).catch(error => {
+    this.dispatchDetached(step, auth.forestServerToken, options?.pendingData);
+  }
+
+  private dispatchDetached(
+    step: AvailableStepExecution,
+    forestServerToken: string,
+    incomingPendingData?: unknown,
+  ): void {
+    void this.executeStep(step, forestServerToken, incomingPendingData).catch(error => {
       const context = {
-        runId,
+        runId: step.runId,
         stepId: step.stepId,
         stepIndex: step.stepIndex,
         error: extractErrorMessage(error),
@@ -232,29 +243,56 @@ export default class Runner {
 
   private schedulePoll(): void {
     if (this._state !== 'running') return;
-    this.pollingTimer = setTimeout(() => this.runPollCycle(), this.config.pollingIntervalS * 1000);
+    this.pollingTimer = setTimeout(() => {
+      this.pollCycle = this.runPollCycle().finally(() => {
+        this.pollCycle = null;
+      });
+    }, this.config.pollingIntervalS * 1000);
   }
 
   private async runPollCycle(): Promise<void> {
     try {
-      const { pending, malformed } = await this.config.workflowPort.getAvailableRuns();
+      const freeSlots = MAX_CONCURRENT_RUNS - this.inFlightRuns.size;
+
+      if (freeSlots <= 0) {
+        this.logger('Debug', 'Poll cycle skipped, every run slot is busy', {
+          inFlight: this.inFlightRuns.size,
+        });
+
+        return;
+      }
+
+      const { pending, malformed } = await this.config.workflowPort.getAvailableRuns(freeSlots);
       // Each reportMalformedRun has its own try/catch, no individual failure poisons the cycle.
       await Promise.allSettled(malformed.map(info => this.reportMalformedRun(info)));
 
       const dispatchable = pending.filter(d => !this.inFlightRuns.has(d.step.runId));
+
+      if (this._state !== 'running') {
+        this.logger('Info', 'Poll answered after stop began, handing the claimed runs back', {
+          runIds: dispatchable.map(d => d.step.runId),
+        });
+        await Promise.all(dispatchable.map(d => this.handBack(d)));
+
+        return;
+      }
+
+      dispatchable.forEach(d => this.dispatchDetached(d.step, d.auth.forestServerToken));
+
       const logLevel = Runner.getPollingLogLevel({
         pending: pending.length,
         dispatched: dispatchable.length,
         malformed: malformed.length,
       });
       this.logger(logLevel, 'Poll cycle completed', {
+        requested: freeSlots,
         fetched: pending.length,
         dispatching: dispatchable.length,
         malformed: malformed.length,
+        ...(dispatchable.length < pending.length && {
+          alreadyInFlight: pending.filter(d => !dispatchable.includes(d)).map(d => d.step.runId),
+        }),
       });
-      await Promise.allSettled(
-        dispatchable.map(d => this.executeStep(d.step, d.auth.forestServerToken)),
-      );
     } catch (error) {
       this.logger('Error', 'Poll cycle failed', {
         error: extractErrorMessage(error),
@@ -427,6 +465,8 @@ export default class Runner {
           returnedRunId: nextDispatch.step.runId,
           returnedStepIndex: nextDispatch.step.stepIndex,
         });
+        // Another run's lock may be held by another chain or instance still executing it.
+        if (nextDispatch.step.runId === currentStep.runId) await this.handBack(nextDispatch);
 
         return;
       }
@@ -439,16 +479,19 @@ export default class Runner {
           stepIndex: currentStep.stepIndex,
           maxDepth,
         });
+        await this.handBack(nextDispatch);
 
         return;
       }
 
-      // Graceful stop: finish the current step, then yield instead of chaining further.
-      if (this._state === 'draining') {
+      // Graceful stop: finish the current step, then yield instead of chaining further. Also once
+      // a drain timeout has marked the runner stopped while this step was still running.
+      if (this._state === 'draining' || this._state === 'stopped') {
         this.logger('Info', 'Chain interrupted by stop() — yielding', {
           runId: currentStep.runId,
           stepIndex: currentStep.stepIndex,
         });
+        await this.handBack(nextDispatch);
 
         return;
       }
@@ -459,6 +502,10 @@ export default class Runner {
       currentIncomingData = undefined; // chained steps never carry pending data
     }
     /* eslint-enable no-await-in-loop, no-constant-condition */
+  }
+
+  private handBack(dispatch: AvailableRunDispatch): Promise<void> {
+    return this.config.workflowPort.releaseRun(dispatch.step.runId, dispatch.lockedAt);
   }
 
   private get contextConfig(): StepContextConfig {

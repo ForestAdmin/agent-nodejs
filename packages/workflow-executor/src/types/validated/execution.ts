@@ -36,6 +36,7 @@ export enum TriggerType {
   Manual = 'manual',
   Webhook = 'webhook',
   Mcp = 'mcp',
+  DataChange = 'dataChange',
 }
 export const TriggerTypeSchema = z.nativeEnum(TriggerType);
 
