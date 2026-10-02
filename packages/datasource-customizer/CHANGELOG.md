@@ -1,3 +1,10 @@
+# @forestadmin/datasource-customizer [1.72.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.71.3...@forestadmin/datasource-customizer@1.72.0) (2026-10-02)
+
+
+### Features
+
+* add disable field filtering option ([#1952](https://github.com/ForestAdmin/agent-nodejs/issues/1952)) ([b31ee98](https://github.com/ForestAdmin/agent-nodejs/commit/b31ee98aa7c5ff013e7ba96f9a030b2faf37dde7))
+
 ## @forestadmin/datasource-customizer [1.71.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.71.2...@forestadmin/datasource-customizer@1.71.3) (2026-08-27)
 
 
