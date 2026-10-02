@@ -214,6 +214,13 @@ That test only runs when the snapshot can actually answer it. The capture keeps 
 a field stored redacted — has no honest answer in the snapshot and the values are withheld rather
 than matched against a missing key: absent is not the same as passing.
 
+A captured `null` is tested the way the database tests a `NULL`: it answers only a condition asking
+for the null itself (`Blank`, `Missing`, `Equal` null, an `In` list holding null), never a negated or
+ordered one. In memory `status != 'private'` holds for a null status and `null < 5` coerces to
+`0 < 5`, while the scoped read that guarded the live record left that record out — without this, a
+record the caller could never read alive would become readable once deleted. On a datasource whose
+own `!=` keeps a NULL (Mongo's `$ne`), this is stricter than the live read, never looser.
+
 Primary keys are the exception, read back from the row's own id — but only for the side that id
 speaks for. A row is filed under the identity the record ended up with, so its id answers for a
 `create`, a `delete` and the new side of an `update`, never for what an update moved away from. A
@@ -292,9 +299,13 @@ ever written, so the real value was never in the database to find.
 Nor can a search confirm a value the scope withholding hides. On a record gone for good under a
 caller's permission scope, `search` and `fields` are matched against the values as served, never as
 captured — in SQL, which rows come back, `meta.count` and `availableUsers` would each say whether a
-withheld value holds the term. The rows are read without those two filters, in batches of 500, and
-matched and paged in memory, keeping only the requested page and the authors. That holds too for a
-record deleted while the request was in flight, whose SQL-matched answer is discarded and re-read.
+withheld value holds the term. The rows are read without those two filters, in batches of 500 that
+each continue past the last row read, never at an offset, and bounded at the instant the scan
+starts. They are matched and paged as they go, keeping only the page asked for. Only a gone
+record's history pays that scan, and it is one record's history — the same rows the SQL search
+would have scanned without an index. That holds too for a record deleted while the request was in flight:
+the second read of the record decides the withholding, so the SQL-matched answer is discarded and
+the history scanned the same way.
 
 Matching the *serialized* text rather than a structural walk of the parsed value is cheap and still
 correct for "keys and scalar values" — but two things follow from it. A punctuation-only term (`,`,
