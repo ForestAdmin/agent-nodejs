@@ -132,6 +132,53 @@ describe('Builder > Collection', () => {
     });
   });
 
+  describe('disableFieldFiltering', () => {
+    it('should remove the operators of the field from the schema', async () => {
+      const { dsc, customizer } = await setup();
+
+      const self = customizer.disableFieldFiltering('firstName');
+      await dsc.getDataSource(logger);
+
+      expect(self.schema.fields.firstName).toEqual(
+        expect.objectContaining({ filterOperators: new Set() }),
+      );
+      expect(self).toEqual(customizer);
+    });
+
+    it('should still allow the field to be the key of a custom one to one', async () => {
+      const { dsc, customizer, bookCustomizer } = await setup();
+
+      customizer.emulateFieldOperator('firstName', 'In').disableFieldFiltering('firstName');
+      bookCustomizer
+        .emulateFieldOperator('title', 'In')
+        .addOneToOneRelation('myAuthor', 'authors', {
+          originKey: 'firstName',
+          originKeyTarget: 'title',
+        });
+      await dsc.getDataSource(logger);
+
+      expect(bookCustomizer.schema.fields.myAuthor).toEqual({
+        type: 'OneToOne',
+        foreignCollection: 'authors',
+        originKey: 'firstName',
+        originKeyTarget: 'title',
+      });
+      expect(customizer.schema.fields.firstName).toEqual(
+        expect.objectContaining({ filterOperators: new Set() }),
+      );
+    });
+
+    it('should throw on a primary key', async () => {
+      const { dsc, customizer } = await setup();
+
+      customizer.disableFieldFiltering('authorId');
+
+      await expect(dsc.getDataSource(logger)).rejects.toThrow(
+        "Cannot disable filtering on primary key 'authors.authorId'",
+      );
+    });
+  });
+
   describe('disableSearch', () => {
     it('should edit the schema', async () => {
       const { dsc, customizer } = await setup();

@@ -438,6 +438,20 @@ export default class CollectionCustomizer<
   }
 
   /**
+   * Disable filtering on a specific field for the end-user.
+   * Operators stay available to the customizations, so the field can still be used
+   * as the key of a custom relation.
+   * @param name the name of the field with filtering to be disabled
+   * @example
+   * .disableFieldFiltering('authorId');
+   */
+  disableFieldFiltering(name: TColumnName<S, N>): this {
+    return this.pushCustomization(async () => {
+      this.stack.schema.getCollection(this.name).disableFieldFiltering(name);
+    });
+  }
+
+  /**
    * Enable sorting on a specific field using emulation.
    * As for all the emulation method, the field sorting will be done in-memory.
    * @param name the name of the field to enable emulation on
