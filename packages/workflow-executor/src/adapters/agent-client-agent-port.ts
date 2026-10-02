@@ -29,17 +29,16 @@ import {
   extractErrorDetail,
 } from '@forestadmin/agent-client';
 
+import { agentPortError, flattenAgentMessage } from './agent-errors';
 import { mintStepToken } from './step-user';
 import {
   ActionFormValidationError,
   ActionRequiresApprovalError,
-  AgentPortError,
   AgentProbeError,
   ApprovalRequestCreationError,
   RecordNotFoundError,
   WorkflowExecutorError,
   extractErrorMessage,
-  flattenAgentMessage,
 } from '../errors';
 
 // agent-client keeps the agent's own wording as the message only when the body had one; otherwise
@@ -435,7 +434,7 @@ export default class AgentClientAgentPort implements AgentPort {
       return await fn();
     } catch (cause) {
       if (cause instanceof WorkflowExecutorError) throw cause;
-      throw new AgentPortError(operation, cause);
+      throw agentPortError(operation, cause);
     }
   }
 

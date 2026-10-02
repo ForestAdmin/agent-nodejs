@@ -12,10 +12,10 @@ import type {
   StepOutcome,
 } from '../types/validated/step-outcome';
 
-import { IANAZone } from 'luxon';
 import { z } from 'zod';
 
-import { deserializeRecordId } from './record-id-serializer';
+import toProjectTimezone from './project-timezone';
+import { deserializeRecordId } from '../record-id';
 import { ServerStepTypeEnum, ServerWorkflowTriggerType } from './server-types';
 import toStepDefinition from './step-definition-mapper';
 import { toStepUser as toSharedStepUser } from './step-user';
@@ -272,7 +272,7 @@ export default function toAvailableStepExecution(
     // (0.7%, measured on production in September 2026), so almost every Decision reads its
     // relative dates in UTC — an hour or two away from the day the list filter shows the same
     // user, since that one follows the browser.
-    timezone: run.timezone && IANAZone.isValidZone(run.timezone) ? run.timezone : 'UTC',
+    timezone: toProjectTimezone(run.timezone),
     ...(callScope && { callScope }),
   };
 

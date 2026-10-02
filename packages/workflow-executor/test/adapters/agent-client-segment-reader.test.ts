@@ -1,23 +1,27 @@
-import type { ServerAutomatedSegmentDescriptor } from '../../src/adapters/server-types';
-import type { ListSegmentRecordIdsQuery } from '../../src/ports/segment-reader-port';
+import type {
+  ExclusionQuery,
+  ListSegmentRecordIdsQuery,
+} from '../../src/ports/segment-reader-port';
+import type { SegmentDescriptor } from '../../src/types/automation';
+import type { StepUser } from '../../src/types/execution-context';
 
 import nock from 'nock';
 
 import AgentClientSegmentReader from '../../src/adapters/agent-client-segment-reader';
-import { AgentPortError } from '../../src/errors';
+import { AgentPortError, SegmentReadError } from '../../src/errors';
 
 const AGENT_URL = 'https://agent.example.com';
 const AUTH_SECRET = 'auth-secret';
 
-const profile = {
+const profile: StepUser = {
   id: 99,
   email: 'bot@forestadmin.com',
-  firstName: null,
-  lastName: null,
-  team: null,
+  firstName: '',
+  lastName: '',
+  team: '',
   renderingId: 7,
-  role: null,
-  permissionLevel: null,
+  role: '',
+  permissionLevel: '',
   tags: {},
 };
 
@@ -83,7 +87,7 @@ describe('AgentClientSegmentReader', () => {
 
     it('should send a SQL segment with its connection name', async () => {
       const captured = interceptList();
-      const segment: ServerAutomatedSegmentDescriptor = {
+      const segment: SegmentDescriptor = {
         kind: 'sql',
         query: 'SELECT id FROM orders WHERE status = 1',
         connectionName: 'primary',
@@ -99,7 +103,7 @@ describe('AgentClientSegmentReader', () => {
 
     it('should omit the connection name a bare-SQL liana does not use', async () => {
       const captured = interceptList();
-      const segment: ServerAutomatedSegmentDescriptor = {
+      const segment: SegmentDescriptor = {
         kind: 'sql',
         query: 'SELECT id FROM orders',
         connectionName: null,
@@ -114,7 +118,7 @@ describe('AgentClientSegmentReader', () => {
 
     it('should omit a connection name the server sent empty', async () => {
       const captured = interceptList();
-      const segment: ServerAutomatedSegmentDescriptor = {
+      const segment: SegmentDescriptor = {
         kind: 'sql',
         query: 'SELECT id FROM orders',
         connectionName: '',
@@ -128,7 +132,7 @@ describe('AgentClientSegmentReader', () => {
 
     it('should send a filter segment as the condition tree the agents parse', async () => {
       const captured = interceptList();
-      const segment: ServerAutomatedSegmentDescriptor = {
+      const segment: SegmentDescriptor = {
         kind: 'filter',
         conditionTree: { field: 'status', operator: 'equal', value: 'new' },
       };
@@ -145,7 +149,7 @@ describe('AgentClientSegmentReader', () => {
 
     it('should leave an already snake_cased operator untouched', async () => {
       const captured = interceptList();
-      const segment: ServerAutomatedSegmentDescriptor = {
+      const segment: SegmentDescriptor = {
         kind: 'filter',
         conditionTree: {
           aggregator: 'and',
@@ -177,7 +181,7 @@ describe('AgentClientSegmentReader', () => {
 
     it('should AND the record filter with a filter segment rather than replace it', async () => {
       const captured = interceptList();
-      const segment: ServerAutomatedSegmentDescriptor = {
+      const segment: SegmentDescriptor = {
         kind: 'filter',
         conditionTree: { field: 'status', operator: 'equal', value: 'new' },
       };
@@ -195,7 +199,7 @@ describe('AgentClientSegmentReader', () => {
 
     it('should carry the record filter next to a SQL segment', async () => {
       const captured = interceptList();
-      const segment: ServerAutomatedSegmentDescriptor = {
+      const segment: SegmentDescriptor = {
         kind: 'sql',
         query: 'SELECT id FROM orders',
         connectionName: null,
@@ -255,7 +259,7 @@ describe('AgentClientSegmentReader', () => {
 
     it('should AND the exclusion with a filter segment rather than replace it', async () => {
       const captured = interceptList();
-      const segment: ServerAutomatedSegmentDescriptor = {
+      const segment: SegmentDescriptor = {
         kind: 'filter',
         conditionTree: { field: 'status', operator: 'equal', value: 'new' },
       };
@@ -273,7 +277,7 @@ describe('AgentClientSegmentReader', () => {
 
     it('should carry the exclusion next to a SQL segment', async () => {
       const captured = interceptList();
-      const segment: ServerAutomatedSegmentDescriptor = {
+      const segment: SegmentDescriptor = {
         kind: 'sql',
         query: 'SELECT id FROM orders',
         connectionName: null,
@@ -459,14 +463,39 @@ describe('AgentClientSegmentReader', () => {
     });
   });
 
-  describe('field operators', () => {
-    const query = { collectionName: 'orders', field: 'id', user: profile, timezone: 'UTC' };
+  describe('exclusion availability', () => {
+    const DECLARES_NOT_IN = {
+      collections: [
+        {
+          name: 'orders',
+          fields: [
+            { name: 'status', type: 'String', operators: ['equal'] },
+            { name: 'id', type: 'Number', operators: ['equal', 'in', 'not_in'] },
+          ],
+        },
+      ],
+    };
+
+    function makeExclusionQuery(overrides: Partial<ExclusionQuery> = {}): ExclusionQuery {
+      return {
+        collectionName: 'orders',
+        primaryKeys: ['id'],
+        user: profile,
+        timezone: 'UTC',
+        liana: 'forest-nodejs-agent',
+        knownRecordCount: 1,
+        ...overrides,
+      };
+    }
 
     function interceptCapabilities(status: number, body: unknown) {
-      const captured: { body?: unknown; authorization?: string } = {};
+      const captured: { called: boolean; body?: unknown; authorization?: string } = {
+        called: false,
+      };
 
       nock(AGENT_URL)
         .post('/forest/_internal/capabilities', requestBody => {
+          captured.called = true;
           captured.body = requestBody;
 
           return true;
@@ -482,11 +511,9 @@ describe('AgentClientSegmentReader', () => {
     }
 
     it('should ask the capabilities of the collection as the service account', async () => {
-      const captured = interceptCapabilities(200, {
-        collections: [{ name: 'orders', fields: [{ name: 'id', type: 'Number', operators: [] }] }],
-      });
+      const captured = interceptCapabilities(200, DECLARES_NOT_IN);
 
-      await reader.listFieldOperators(query);
+      await reader.exclusionUnavailableReason(makeExclusionQuery());
 
       const payload = JSON.parse(
         Buffer.from(
@@ -500,36 +527,132 @@ describe('AgentClientSegmentReader', () => {
       );
     });
 
-    it('should return the operators the field declares', async () => {
+    it('should allow the exclusion when the primary key declares `not_in`', async () => {
+      const captured = interceptCapabilities(200, DECLARES_NOT_IN);
+
+      await expect(
+        reader.exclusionUnavailableReason(makeExclusionQuery()),
+      ).resolves.toBeUndefined();
+      expect(captured.called).toBe(true);
+    });
+
+    it('should refuse the exclusion when the primary key does not declare `not_in`', async () => {
       interceptCapabilities(200, {
         collections: [
-          {
-            name: 'orders',
-            fields: [
-              { name: 'status', type: 'String', operators: ['equal'] },
-              { name: 'id', type: 'Number', operators: ['equal', 'in', 'not_in'] },
-            ],
-          },
+          { name: 'orders', fields: [{ name: 'id', type: 'Number', operators: ['equal', 'in'] }] },
         ],
       });
 
-      await expect(reader.listFieldOperators(query)).resolves.toEqual(['equal', 'in', 'not_in']);
+      await expect(reader.exclusionUnavailableReason(makeExclusionQuery())).resolves.toBe(
+        'field-without-not-in',
+      );
     });
 
-    it('should return no operator for a field the agent does not list', async () => {
+    it('should refuse the exclusion when the agent does not list the primary key', async () => {
       interceptCapabilities(200, {
         collections: [
-          { name: 'orders', fields: [{ name: 'status', type: 'String', operators: [] }] },
+          { name: 'orders', fields: [{ name: 'status', type: 'String', operators: ['not_in'] }] },
         ],
       });
 
-      await expect(reader.listFieldOperators(query)).resolves.toEqual([]);
+      await expect(reader.exclusionUnavailableReason(makeExclusionQuery())).resolves.toBe(
+        'field-without-not-in',
+      );
     });
 
-    it('should reject when the agent has no capabilities route', async () => {
-      interceptCapabilities(404, {});
+    it('should let a capabilities answer it cannot read escape as it is, not as a segment read error', async () => {
+      interceptCapabilities(200, {
+        collections: [{ name: 'orders', fields: [{ name: 'id', type: 'Number', operators: 42 }] }],
+      });
 
-      await expect(reader.listFieldOperators(query)).rejects.toThrow(AgentPortError);
+      const error = await reader.exclusionUnavailableReason(makeExclusionQuery()).catch(e => e);
+
+      expect(error).toBeInstanceOf(TypeError);
+      expect(error).not.toBeInstanceOf(SegmentReadError);
     });
+
+    it.each([
+      [403, 'forbidden'],
+      [404, 'failed'],
+    ])(
+      'should reject with a segment read error when the capabilities read gets a %i',
+      async (status, failure) => {
+        interceptCapabilities(status, {});
+
+        const error = await reader.exclusionUnavailableReason(makeExclusionQuery()).catch(e => e);
+
+        expect(error).toBeInstanceOf(SegmentReadError);
+        expect(error.message).toBe(
+          `Agent port "listFieldOperators" failed: Agent responded with HTTP ${status}`,
+        );
+        expect(error.failure).toBe(failure);
+        expect(error.httpStatus).toBe(status);
+      },
+    );
+
+    it.each([0, 3])(
+      'should refuse the exclusion for a composite key with %i known records, without asking the agent',
+      async knownRecordCount => {
+        const captured = interceptCapabilities(200, DECLARES_NOT_IN);
+
+        await expect(
+          reader.exclusionUnavailableReason(
+            makeExclusionQuery({ primaryKeys: ['tenant', 'id'], knownRecordCount }),
+          ),
+        ).resolves.toBe('composite-key');
+        expect(captured.called).toBe(false);
+      },
+    );
+
+    it('should refuse the exclusion past 150 known records, without asking the agent', async () => {
+      const captured = interceptCapabilities(200, DECLARES_NOT_IN);
+
+      await expect(
+        reader.exclusionUnavailableReason(makeExclusionQuery({ knownRecordCount: 151 })),
+      ).resolves.toBe('too-many-known-records');
+      expect(captured.called).toBe(false);
+    });
+
+    it('should still ask the agent with exactly 150 known records', async () => {
+      const captured = interceptCapabilities(200, DECLARES_NOT_IN);
+
+      await expect(
+        reader.exclusionUnavailableReason(makeExclusionQuery({ knownRecordCount: 150 })),
+      ).resolves.toBeUndefined();
+      expect(captured.called).toBe(true);
+    });
+
+    it('should have nothing to exclude, without asking the agent, when no record is known', async () => {
+      const captured = interceptCapabilities(200, DECLARES_NOT_IN);
+
+      await expect(
+        reader.exclusionUnavailableReason(makeExclusionQuery({ knownRecordCount: 0 })),
+      ).resolves.toBeUndefined();
+      expect(captured.called).toBe(false);
+    });
+
+    it.each([null, undefined, 'forest-rails', 'forest-laravel', 'some-future-liana'])(
+      'should refuse the exclusion on liana %s, without asking the agent',
+      async liana => {
+        const captured = interceptCapabilities(200, DECLARES_NOT_IN);
+
+        await expect(
+          reader.exclusionUnavailableReason(makeExclusionQuery({ liana })),
+        ).resolves.toBe('unknown-liana');
+        expect(captured.called).toBe(false);
+      },
+    );
+
+    it.each(['forest-nodejs-agent', 'agent-ruby', 'agent-python', 'agent-php'])(
+      'should ask the capabilities of %s',
+      async liana => {
+        const captured = interceptCapabilities(200, DECLARES_NOT_IN);
+
+        await expect(
+          reader.exclusionUnavailableReason(makeExclusionQuery({ liana })),
+        ).resolves.toBeUndefined();
+        expect(captured.called).toBe(true);
+      },
+    );
   });
 });

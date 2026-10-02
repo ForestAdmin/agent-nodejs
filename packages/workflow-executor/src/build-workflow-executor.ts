@@ -17,7 +17,7 @@ import ForestServerAutomationPort from './adapters/forest-server-automation-port
 import ForestServerWorkflowPort from './adapters/forest-server-workflow-port';
 import ForestadminClientActivityLogPortFactory from './adapters/forestadmin-client-activity-log-port-factory';
 import ServerAiAdapter from './adapters/server-ai-adapter';
-import AutomationPoller from './automation-poller';
+import AutomationPoller from './automation/automation-poller';
 import CredentialEncryption from './crypto/credential-encryption';
 import {
   DEFAULT_AI_INVOKE_TIMEOUT_S,

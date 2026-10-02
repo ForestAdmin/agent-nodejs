@@ -1,71 +1,61 @@
+import type { SegmentReadFailureKind } from '../../src/errors';
+import type { AutomationPort } from '../../src/ports/automation-port';
 import type {
-  ServerAutomatedInboxAssignment,
-  ServerAutomatedInboxConfig,
-} from '../src/adapters/server-types';
-import type { AutomationPort } from '../src/ports/automation-port';
-import type {
+  ExclusionQuery,
   ListSegmentRecordIdsQuery,
   SegmentReaderPort,
-} from '../src/ports/segment-reader-port';
+} from '../../src/ports/segment-reader-port';
+import type { AutomatedInbox, InboxAssignment } from '../../src/types/automation';
+import type { StepUser } from '../../src/types/execution-context';
 
-import { AgentHttpError } from '@forestadmin/agent-client';
-
-import AutomationPoller from '../src/automation-poller';
-import {
-  AgentPortError,
-  AutomatedInboxGoneError,
-  CompositeRecordIdMismatchError,
-  SegmentRecordIdMissingError,
-} from '../src/errors';
+import AutomationPoller from '../../src/automation/automation-poller';
+import { AutomatedInboxGoneError, SegmentReadError } from '../../src/errors';
 
 const POLL_INTERVAL_S = 300;
 
-function agentUnreachable(code: string): AgentPortError {
-  return new AgentPortError(
-    'listSegmentRecordIds',
-    Object.assign(new Error(`agent unreachable: ${code}`), { code }),
-  );
+function segmentReadFailure(
+  failure: SegmentReadFailureKind,
+  {
+    httpStatus,
+    agentDetail,
+    operation = 'listSegmentRecordIds',
+  }: { httpStatus?: number; agentDetail?: string; operation?: string } = {},
+): SegmentReadError {
+  return new SegmentReadError(operation, new Error(`segment read ${failure}`), {
+    failure,
+    httpStatus,
+    agentDetail,
+  });
 }
 
-function agentRefusal(status: number, detail: string): AgentPortError {
-  return new AgentPortError(
-    'listSegmentRecordIds',
-    new AgentHttpError(status, { errors: [{ detail }] }),
-  );
-}
+const SERVICE_ACCOUNT: StepUser = {
+  id: 99,
+  email: 'bot@forestadmin.com',
+  firstName: '',
+  lastName: '',
+  team: '',
+  renderingId: 7,
+  role: '',
+  permissionLevel: '',
+  tags: {},
+};
 
-function makeConfig(
-  overrides: Partial<ServerAutomatedInboxConfig> = {},
-): ServerAutomatedInboxConfig {
+function makeConfig(overrides: Partial<AutomatedInbox> = {}): AutomatedInbox {
   return {
     inboxId: 'inbox-1',
     renderingId: 7,
-    teamId: 3,
     workflowId: 'wf-1',
-    collectionId: 'col-1',
     collectionName: 'orders',
     primaryKeys: ['id'],
     maxConcurrentRuns: 20,
     timezone: 'Europe/Paris',
     segment: { kind: 'smart', name: 'to-review' },
-    serviceAccountProfile: {
-      id: 99,
-      email: 'bot@forestadmin.com',
-      firstName: null,
-      lastName: null,
-      team: null,
-      renderingId: 7,
-      role: null,
-      permissionLevel: null,
-      tags: {},
-    },
+    user: SERVICE_ACCOUNT,
     ...overrides,
   };
 }
 
-function makeAssignment(
-  overrides: Partial<ServerAutomatedInboxAssignment> = {},
-): ServerAutomatedInboxAssignment {
+function makeAssignment(overrides: Partial<InboxAssignment> = {}): InboxAssignment {
   return {
     recordId: 'r1',
     state: 'done',
@@ -75,10 +65,7 @@ function makeAssignment(
   };
 }
 
-function makeContext(options?: {
-  inboxes?: ServerAutomatedInboxConfig[];
-  assignments?: ServerAutomatedInboxAssignment[];
-}) {
+function makeContext(options?: { inboxes?: AutomatedInbox[]; assignments?: InboxAssignment[] }) {
   const automationPort: jest.Mocked<AutomationPort> = {
     listAutomatedInboxes: jest.fn().mockResolvedValue(options?.inboxes ?? [makeConfig()]),
     holdLease: jest.fn().mockResolvedValue(true),
@@ -88,7 +75,11 @@ function makeContext(options?: {
 
   const segmentReaderPort: jest.Mocked<SegmentReaderPort> = {
     listRecordIds: jest.fn().mockResolvedValue([]),
-    listFieldOperators: jest.fn().mockResolvedValue(['equal', 'in', 'not_in']),
+    exclusionUnavailableReason: jest
+      .fn()
+      .mockImplementation(async ({ knownRecordCount }: ExclusionQuery) =>
+        knownRecordCount ? 'unknown-liana' : undefined,
+      ),
   };
 
   const logger = jest.fn();
@@ -113,7 +104,7 @@ async function runOneCycle(poller: AutomationPoller): Promise<void> {
   await poller.stop();
 }
 
-function makeInboxes(count: number): ServerAutomatedInboxConfig[] {
+function makeInboxes(count: number): AutomatedInbox[] {
   return Array.from({ length: count }, (_, index) => makeConfig({ inboxId: `inbox-${index + 1}` }));
 }
 
@@ -599,9 +590,15 @@ describe('AutomationPoller', () => {
   describe('candidates', () => {
     const excluding = makeConfig({ liana: 'forest-nodejs-agent' });
 
+    function excludingContext(options: Parameters<typeof makeContext>[0] = {}) {
+      const context = makeContext({ inboxes: [excluding], ...options });
+      context.segmentReaderPort.exclusionUnavailableReason.mockResolvedValue(undefined);
+
+      return context;
+    }
+
     it('should ask the agent to leave out the records it already has an assignment for', async () => {
-      const context = makeContext({
-        inboxes: [excluding],
+      const context = excludingContext({
         assignments: [
           makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' }),
           makeAssignment({ recordId: 'b' }),
@@ -627,8 +624,7 @@ describe('AutomationPoller', () => {
     });
 
     it('should drop a known record an agent hands back despite the exclusion', async () => {
-      const context = makeContext({
-        inboxes: [excluding],
+      const context = excludingContext({
         assignments: [makeAssignment({ recordId: 'known', state: 'doing', runState: 'started' })],
       });
       context.segmentReaderPort.listRecordIds.mockResolvedValue(['known', 'fresh-1']);
@@ -641,28 +637,31 @@ describe('AutomationPoller', () => {
       });
     });
 
-    it('should ask the agent which operators the primary key declares', async () => {
-      const context = makeContext({
-        inboxes: [excluding],
+    it('should ask the segment reader whether the known records can be excluded', async () => {
+      const context = excludingContext({
         assignments: [makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' })],
       });
 
       await runOneCycle(makePoller(context));
 
-      expect(context.segmentReaderPort.listFieldOperators).toHaveBeenCalledWith({
+      expect(context.segmentReaderPort.exclusionUnavailableReason).toHaveBeenCalledWith({
         collectionName: 'orders',
-        field: 'id',
-        user: excluding.serviceAccountProfile,
+        primaryKeys: ['id'],
+        user: SERVICE_ACCOUNT,
         timezone: 'Europe/Paris',
+        liana: 'forest-nodejs-agent',
+        knownRecordCount: 1,
       });
     });
 
-    it('should read the run cap without asking for capabilities when nothing is known yet', async () => {
-      const context = makeContext({ inboxes: [excluding] });
+    it('should read the run cap, excluding nothing, when nothing is known yet', async () => {
+      const context = excludingContext();
 
       await runOneCycle(makePoller(context));
 
-      expect(context.segmentReaderPort.listFieldOperators).not.toHaveBeenCalled();
+      expect(context.segmentReaderPort.exclusionUnavailableReason).toHaveBeenCalledWith(
+        expect.objectContaining({ knownRecordCount: 0 }),
+      );
       expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledWith(
         expect.not.objectContaining({ excludedRecordIds: expect.anything() }),
       );
@@ -671,34 +670,42 @@ describe('AutomationPoller', () => {
       );
     });
 
-    it('should pad the page instead when the primary key does not declare `not_in`', async () => {
-      const context = makeContext({
-        inboxes: [excluding],
-        assignments: [makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' })],
-      });
-      context.segmentReaderPort.listFieldOperators.mockResolvedValue(['equal', 'in']);
+    it.each([
+      'composite-key',
+      'too-many-known-records',
+      'unknown-liana',
+      'field-without-not-in',
+    ] as const)(
+      'should pad the page and log the reason when the segment reader reports %s',
+      async reason => {
+        const context = excludingContext({
+          assignments: [makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' })],
+        });
+        context.segmentReaderPort.exclusionUnavailableReason.mockResolvedValue(reason);
 
-      await runOneCycle(makePoller(context));
+        await runOneCycle(makePoller(context));
 
-      expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledWith(
-        expect.not.objectContaining({ excludedRecordIds: expect.anything() }),
-      );
-      expect(context.logger).toHaveBeenCalledWith(
-        'Info',
-        'Automated inbox polled',
-        expect.objectContaining({
-          candidatePageSize: 21,
-          paddedPageReason: 'field-without-not-in',
-        }),
-      );
-    });
+        expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledWith(
+          expect.objectContaining({ pageSize: 21 }),
+        );
+        expect(context.segmentReaderPort.listRecordIds).not.toHaveBeenCalledWith(
+          expect.objectContaining({ excludedRecordIds: expect.anything() }),
+        );
+        expect(context.logger).toHaveBeenCalledWith(
+          'Info',
+          'Automated inbox polled',
+          expect.objectContaining({ candidatePageSize: 21, paddedPageReason: reason }),
+        );
+      },
+    );
 
     it('should pad the page and still sync when the capabilities cannot be read', async () => {
-      const context = makeContext({
-        inboxes: [excluding],
+      const context = excludingContext({
         assignments: [makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' })],
       });
-      context.segmentReaderPort.listFieldOperators.mockRejectedValue(new Error('HTTP 404'));
+      context.segmentReaderPort.exclusionUnavailableReason.mockRejectedValue(
+        segmentReadFailure('failed', { httpStatus: 404, operation: 'listFieldOperators' }),
+      );
       context.segmentReaderPort.listRecordIds.mockResolvedValue(['a', 'fresh']);
 
       await runOneCycle(makePoller(context));
@@ -706,7 +713,11 @@ describe('AutomationPoller', () => {
       expect(context.logger).toHaveBeenCalledWith(
         'Warn',
         'Could not read the agent capabilities, padding the page instead',
-        expect.objectContaining({ inboxId: 'inbox-1', error: 'HTTP 404' }),
+        expect.objectContaining({
+          inboxId: 'inbox-1',
+          error: 'Agent port "listFieldOperators" failed: segment read failed',
+          httpStatus: 404,
+        }),
       );
       expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
         closed: [],
@@ -722,13 +733,48 @@ describe('AutomationPoller', () => {
       );
     });
 
+    it('should fail the candidate read, without padding, when the capabilities check breaks', async () => {
+      const context = excludingContext({
+        assignments: [makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' })],
+      });
+      context.segmentReaderPort.exclusionUnavailableReason.mockRejectedValue(
+        new TypeError('operators.includes is not a function'),
+      );
+
+      await runOneCycle(makePoller(context));
+
+      expect(context.segmentReaderPort.listRecordIds).not.toHaveBeenCalled();
+      expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
+        closed: [],
+        candidates: [],
+        readFailure: { reason: 'segment-read-failed' },
+      });
+      expect(context.logger).toHaveBeenCalledWith(
+        'Error',
+        'Could not read new candidates of an automated inbox',
+        expect.objectContaining({
+          inboxId: 'inbox-1',
+          error: 'operators.includes is not a function',
+        }),
+      );
+      expect(context.logger).not.toHaveBeenCalledWith(
+        'Warn',
+        'Could not read the agent capabilities, padding the page instead',
+        expect.anything(),
+      );
+    });
+
     it('should fall back to a padded page in the same cycle when the agent refuses `not_in`', async () => {
-      const context = makeContext({
-        inboxes: [excluding],
+      const context = excludingContext({
         assignments: [makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' })],
       });
       context.segmentReaderPort.listRecordIds
-        .mockRejectedValueOnce(agentRefusal(400, 'Unsupported operator not_in'))
+        .mockRejectedValueOnce(
+          segmentReadFailure('failed', {
+            httpStatus: 400,
+            agentDetail: 'Unsupported operator not_in',
+          }),
+        )
         .mockResolvedValueOnce(['a', 'fresh']);
 
       await runOneCycle(makePoller(context));
@@ -758,12 +804,14 @@ describe('AutomationPoller', () => {
     });
 
     it('should try `not_in` again on the next cycle after a refusal', async () => {
-      const context = makeContext({
-        inboxes: [excluding],
+      const context = excludingContext({
         assignments: [makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' })],
       });
       context.segmentReaderPort.listRecordIds.mockRejectedValueOnce(
-        agentRefusal(400, 'Unsupported operator not_in'),
+        segmentReadFailure('failed', {
+          httpStatus: 400,
+          agentDetail: 'Unsupported operator not_in',
+        }),
       );
       const poller = makePoller(context);
 
@@ -778,75 +826,53 @@ describe('AutomationPoller', () => {
       );
     });
 
-    it.each([
-      ['a timeout', agentUnreachable('ECONNABORTED'), { reason: 'agent-unreachable' }],
-      [
-        'a 503',
-        agentRefusal(503, 'Service unavailable'),
-        { reason: 'agent-unreachable', httpStatus: 503 },
-      ],
-      [
-        'a 429',
-        agentRefusal(429, 'Too many requests'),
-        { reason: 'segment-read-failed', httpStatus: 429 },
-      ],
-      ['a 403', agentRefusal(403, 'Forbidden'), { reason: 'agent-forbidden', httpStatus: 403 }],
-    ])(
-      'should not read the segment again in this cycle when the `not_in` read fails with %s',
-      async (_, error, readFailure) => {
-        const context = makeContext({
-          inboxes: [excluding],
-          assignments: [makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' })],
-        });
-        context.segmentReaderPort.listRecordIds.mockRejectedValueOnce(error);
+    it('should not read the segment again in this cycle when the `not_in` read fails on an unreachable agent', async () => {
+      const context = excludingContext({
+        assignments: [makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' })],
+      });
+      context.segmentReaderPort.listRecordIds.mockRejectedValueOnce(
+        segmentReadFailure('unreachable'),
+      );
 
-        await runOneCycle(makePoller(context));
+      await runOneCycle(makePoller(context));
 
-        expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledTimes(1);
-        expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
-          closed: [],
-          candidates: [],
-          readFailure,
-        });
-        expect(context.logger).not.toHaveBeenCalledWith(
-          'Warn',
-          'The not_in candidate read failed, padding the page instead',
-          expect.anything(),
-        );
-        expect(context.logger).toHaveBeenCalledWith(
-          'Error',
-          'Could not read new candidates of an automated inbox',
-          expect.objectContaining({ inboxId: 'inbox-1', notIn: true }),
-        );
-      },
-    );
+      expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledTimes(1);
+      expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
+        closed: [],
+        candidates: [],
+        readFailure: { reason: 'agent-unreachable' },
+      });
+      expect(context.logger).not.toHaveBeenCalledWith(
+        'Warn',
+        'The not_in candidate read failed, padding the page instead',
+        expect.anything(),
+      );
+      expect(context.logger).toHaveBeenCalledWith(
+        'Error',
+        'Could not read new candidates of an automated inbox',
+        expect.objectContaining({ inboxId: 'inbox-1', notIn: true }),
+      );
+    });
 
-    it.each([
-      ['a 400', agentRefusal(400, 'Unsupported operator not_in')],
-      ['a 500', agentRefusal(500, "The given operator 'not_in' is not supported by the column")],
-    ])(
-      'should fall back to a padded page when the `not_in` read fails with %s',
-      async (_, error) => {
-        const context = makeContext({
-          inboxes: [excluding],
-          assignments: [makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' })],
-        });
-        context.segmentReaderPort.listRecordIds
-          .mockRejectedValueOnce(error)
-          .mockResolvedValueOnce(['a', 'fresh']);
+    it('should fall back to a padded page when the `not_in` read fails with a failed read', async () => {
+      const context = excludingContext({
+        assignments: [makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' })],
+      });
+      context.segmentReaderPort.listRecordIds
+        .mockRejectedValueOnce(segmentReadFailure('failed', { httpStatus: 400 }))
+        .mockResolvedValueOnce(['a', 'fresh']);
 
-        await runOneCycle(makePoller(context));
+      await runOneCycle(makePoller(context));
 
-        expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledTimes(2);
-        expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
-          closed: [],
-          candidates: ['fresh'],
-        });
-      },
-    );
+      expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledTimes(2);
+      expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
+        closed: [],
+        candidates: ['fresh'],
+      });
+    });
 
     it('should not fall back when a read with nothing to exclude fails', async () => {
-      const context = makeContext({ inboxes: [excluding] });
+      const context = excludingContext();
       context.segmentReaderPort.listRecordIds.mockRejectedValue(new Error('HTTP 500'));
 
       await runOneCycle(makePoller(context));
@@ -865,12 +891,16 @@ describe('AutomationPoller', () => {
     });
 
     it('should report the candidate read failed when the padded fallback fails too', async () => {
-      const context = makeContext({
-        inboxes: [excluding],
+      const context = excludingContext({
         assignments: [makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' })],
       });
       context.segmentReaderPort.listRecordIds
-        .mockRejectedValueOnce(agentRefusal(400, 'Unsupported operator not_in'))
+        .mockRejectedValueOnce(
+          segmentReadFailure('failed', {
+            httpStatus: 400,
+            agentDetail: 'Unsupported operator not_in',
+          }),
+        )
         .mockRejectedValueOnce(new Error('HTTP 500'));
 
       await runOneCycle(makePoller(context));
@@ -888,13 +918,22 @@ describe('AutomationPoller', () => {
     });
 
     it("should log the agent's refusal and the read that got it at each fallback step", async () => {
-      const context = makeContext({
-        inboxes: [excluding],
+      const context = excludingContext({
         assignments: [makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' })],
       });
       context.segmentReaderPort.listRecordIds
-        .mockRejectedValueOnce(agentRefusal(400, 'Unsupported operator not_in'))
-        .mockRejectedValueOnce(agentRefusal(400, 'Segment to-review not found'));
+        .mockRejectedValueOnce(
+          segmentReadFailure('failed', {
+            httpStatus: 400,
+            agentDetail: 'Unsupported operator not_in',
+          }),
+        )
+        .mockRejectedValueOnce(
+          segmentReadFailure('failed', {
+            httpStatus: 400,
+            agentDetail: 'Segment to-review not found',
+          }),
+        );
 
       await runOneCycle(makePoller(context));
 
@@ -923,9 +962,9 @@ describe('AutomationPoller', () => {
     });
 
     it('should log the page size of a refused read that excluded nothing', async () => {
-      const context = makeContext({ inboxes: [excluding] });
+      const context = excludingContext();
       context.segmentReaderPort.listRecordIds.mockRejectedValue(
-        agentRefusal(403, 'Forbidden segment'),
+        segmentReadFailure('forbidden', { httpStatus: 403, agentDetail: 'Forbidden segment' }),
       );
 
       await runOneCycle(makePoller(context));
@@ -943,8 +982,7 @@ describe('AutomationPoller', () => {
     });
 
     it('should name a record once even when it holds several assignments', async () => {
-      const context = makeContext({
-        inboxes: [excluding],
+      const context = excludingContext({
         assignments: [
           makeAssignment({ recordId: 'dup', state: 'doing', runState: 'started' }),
           makeAssignment({ recordId: 'dup' }),
@@ -955,117 +993,6 @@ describe('AutomationPoller', () => {
 
       expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledWith(
         expect.objectContaining({ excludedRecordIds: ['dup'], pageSize: 20 }),
-      );
-    });
-
-    it.each(['forest-rails', 'forest-laravel', 'some-future-liana'])(
-      'should pad the page without asking for capabilities on %s',
-      async liana => {
-        const context = makeContext({
-          inboxes: [makeConfig({ liana })],
-          assignments: [
-            makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' }),
-            makeAssignment({ recordId: 'b', state: 'doing', runState: 'started' }),
-          ],
-        });
-
-        await runOneCycle(makePoller(context));
-
-        expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledWith(
-          expect.objectContaining({ pageSize: 22 }),
-        );
-        expect(context.segmentReaderPort.listRecordIds).not.toHaveBeenCalledWith(
-          expect.objectContaining({ excludedRecordIds: expect.anything() }),
-        );
-        expect(context.logger).toHaveBeenCalledWith(
-          'Info',
-          'Automated inbox polled',
-          expect.objectContaining({
-            candidatePageSize: 22,
-            paddedPageReason: 'unknown-liana',
-          }),
-        );
-        expect(context.segmentReaderPort.listFieldOperators).not.toHaveBeenCalled();
-      },
-    );
-
-    it('should pad the page instead when the orchestrator names no agent', async () => {
-      const context = makeContext({
-        assignments: [makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' })],
-      });
-
-      await runOneCycle(makePoller(context));
-
-      expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledWith(
-        expect.objectContaining({ pageSize: 21 }),
-      );
-      expect(context.logger).toHaveBeenCalledWith(
-        'Info',
-        'Automated inbox polled',
-        expect.objectContaining({ candidatePageSize: 21, paddedPageReason: 'unknown-liana' }),
-      );
-    });
-
-    it('should pad the page instead when the collection has a composite key', async () => {
-      const context = makeContext({
-        inboxes: [makeConfig({ liana: 'forest-nodejs-agent', primaryKeys: ['tenant', 'id'] })],
-        assignments: [makeAssignment({ recordId: 't1|1', state: 'doing', runState: 'started' })],
-      });
-
-      await runOneCycle(makePoller(context));
-
-      expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledWith(
-        expect.objectContaining({ pageSize: 21 }),
-      );
-      expect(context.segmentReaderPort.listRecordIds).not.toHaveBeenCalledWith(
-        expect.objectContaining({ excludedRecordIds: expect.anything() }),
-      );
-      expect(context.logger).toHaveBeenCalledWith(
-        'Info',
-        'Automated inbox polled',
-        expect.objectContaining({ candidatePageSize: 21, paddedPageReason: 'composite-key' }),
-      );
-    });
-
-    it('should still exclude when exactly the maximum number of records is known', async () => {
-      const assignments = Array.from({ length: 150 }, (_unused, index) =>
-        makeAssignment({ recordId: `r${index}`, state: 'doing', runState: 'started' }),
-      );
-      const context = makeContext({ inboxes: [excluding], assignments });
-
-      await runOneCycle(makePoller(context));
-
-      expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledWith(
-        expect.objectContaining({
-          excludedRecordIds: expect.arrayContaining(['r0', 'r149']),
-          pageSize: 20,
-        }),
-      );
-      expect(context.logger).toHaveBeenCalledWith(
-        'Info',
-        'Automated inbox polled',
-        expect.objectContaining({ candidatePageSize: 20, paddedPageReason: undefined }),
-      );
-    });
-
-    it('should pad the page instead when too many records would travel in the query string', async () => {
-      const assignments = Array.from({ length: 151 }, (_unused, index) =>
-        makeAssignment({ recordId: `r${index}`, state: 'doing', runState: 'started' }),
-      );
-      const context = makeContext({ inboxes: [excluding], assignments });
-
-      await runOneCycle(makePoller(context));
-
-      expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledWith(
-        expect.objectContaining({ pageSize: 171 }),
-      );
-      expect(context.logger).toHaveBeenCalledWith(
-        'Info',
-        'Automated inbox polled',
-        expect.objectContaining({
-          candidatePageSize: 171,
-          paddedPageReason: 'too-many-known-records',
-        }),
       );
     });
 
@@ -1156,11 +1083,17 @@ describe('AutomationPoller', () => {
 
       it('should page the same way when the fallback comes from a refused `not_in`', async () => {
         const context = makeContext({
-          inboxes: [makeConfig({ liana: 'forest-nodejs-agent', maxConcurrentRuns: 480 })],
+          inboxes: [makeConfig({ maxConcurrentRuns: 480 })],
           assignments: waitingOnAPerson(30),
         });
+        context.segmentReaderPort.exclusionUnavailableReason.mockResolvedValue(undefined);
         context.segmentReaderPort.listRecordIds
-          .mockRejectedValueOnce(agentRefusal(400, 'Unsupported operator not_in'))
+          .mockRejectedValueOnce(
+            segmentReadFailure('failed', {
+              httpStatus: 400,
+              agentDetail: 'Unsupported operator not_in',
+            }),
+          )
           .mockResolvedValueOnce([...pageOf('w', 30), ...pageOf('fresh-', 470)])
           .mockResolvedValueOnce(pageOf('late-', 10));
 
@@ -1256,6 +1189,7 @@ describe('AutomationPoller', () => {
             recordId: `t|${assignment.recordId}`,
           })),
         });
+        context.segmentReaderPort.exclusionUnavailableReason.mockResolvedValue('composite-key');
         context.segmentReaderPort.listRecordIds.mockResolvedValue(pageOf('w').map(id => `t|${id}`));
 
         await runOneCycle(makePoller(context));
@@ -1263,10 +1197,18 @@ describe('AutomationPoller', () => {
         expect(context.segmentReaderPort.listRecordIds.mock.calls.map(([query]) => query)).toEqual([
           expect.objectContaining({ pageNumber: 1, sortByPrimaryKey: false }),
         ]);
+        expect(context.logger).toHaveBeenCalledWith(
+          'Info',
+          'Automated inbox polled',
+          expect.objectContaining({ paddedPageReason: 'composite-key' }),
+        );
       });
 
       it('should read at most five pages, then warn with what it knows', async () => {
         const context = makeContext({ assignments: waitingOnAPerson(3000) });
+        context.segmentReaderPort.exclusionUnavailableReason.mockResolvedValue(
+          'too-many-known-records',
+        );
         context.segmentReaderPort.listRecordIds.mockImplementation(async ({ pageNumber }) =>
           pageOf('w').map((_id, index) => `w${((pageNumber ?? 1) - 1) * 500 + index}`),
         );
@@ -1305,13 +1247,13 @@ describe('AutomationPoller', () => {
       });
     });
 
-    it('should read relative dates in UTC when the project has no timezone', async () => {
-      const context = makeContext({ inboxes: [makeConfig({ timezone: null })] });
+    it("should read the segment as the inbox's service account, in the inbox's timezone", async () => {
+      const context = makeContext({ inboxes: [makeConfig({ timezone: 'Pacific/Honolulu' })] });
 
       await runOneCycle(makePoller(context));
 
       expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledWith(
-        expect.objectContaining({ timezone: 'UTC' }),
+        expect.objectContaining({ user: SERVICE_ACCOUNT, timezone: 'Pacific/Honolulu' }),
       );
     });
   });
@@ -1333,18 +1275,6 @@ describe('AutomationPoller', () => {
       ) as [ListSegmentRecordIdsQuery];
 
       expect(query.pageSize).toBe(500);
-    });
-
-    it('should read a segment in UTC when the timezone is one the agent would refuse', async () => {
-      // The agent answers 400 on an unknown zone, so passing it on would fail every read of every
-      // sweep of that inbox with nothing saying why.
-      const context = makeContext({ inboxes: [makeConfig({ timezone: 'Mars/Olympus' })] });
-
-      await runOneCycle(makePoller(context));
-
-      expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledWith(
-        expect.objectContaining({ timezone: 'UTC' }),
-      );
     });
 
     it('should leave a record whose packed id it cannot split out of the reconciliation', async () => {
@@ -1710,7 +1640,7 @@ describe('AutomationPoller', () => {
       });
       context.segmentReaderPort.listRecordIds.mockImplementation(
         async ({ recordIds }: ListSegmentRecordIdsQuery) => {
-          if (recordIds === undefined) throw agentUnreachable('ECONNABORTED');
+          if (recordIds === undefined) throw segmentReadFailure('unreachable');
 
           return [];
         },
@@ -1755,7 +1685,7 @@ describe('AutomationPoller', () => {
 
     it('should still sync, with the failure, when it could not reach the agent at all', async () => {
       const context = makeContext({ assignments: [makeAssignment({ recordId: 'treated' })] });
-      context.segmentReaderPort.listRecordIds.mockRejectedValue(agentUnreachable('ECONNREFUSED'));
+      context.segmentReaderPort.listRecordIds.mockRejectedValue(segmentReadFailure('unreachable'));
 
       await runOneCycle(makePoller(context));
 
@@ -1779,59 +1709,18 @@ describe('AutomationPoller', () => {
     });
 
     describe('read failure reported with the sync', () => {
-      const agentAnswered = (status: number) =>
-        new AgentPortError('listSegmentRecordIds', new AgentHttpError(status, {}, ''));
-
-      it.each([
-        ['a 401', agentAnswered(401), { reason: 'agent-forbidden', httpStatus: 401 }],
-        ['a 403', agentAnswered(403), { reason: 'agent-forbidden', httpStatus: 403 }],
-        ['a 502', agentAnswered(502), { reason: 'agent-unreachable', httpStatus: 502 }],
-        ['a 503', agentAnswered(503), { reason: 'agent-unreachable', httpStatus: 503 }],
-        ['a 504', agentAnswered(504), { reason: 'agent-unreachable', httpStatus: 504 }],
-        ['a 500', agentAnswered(500), { reason: 'segment-read-failed', httpStatus: 500 }],
-        ['a 400', agentAnswered(400), { reason: 'segment-read-failed', httpStatus: 400 }],
-        ['a timeout', agentUnreachable('ECONNABORTED'), { reason: 'agent-unreachable' }],
-        ['a refused connection', agentUnreachable('ECONNREFUSED'), { reason: 'agent-unreachable' }],
-        ['an unknown host', agentUnreachable('ENOTFOUND'), { reason: 'agent-unreachable' }],
-        ['a reset connection', agentUnreachable('ECONNRESET'), { reason: 'agent-unreachable' }],
-        ['a temporary DNS failure', agentUnreachable('EAI_AGAIN'), { reason: 'agent-unreachable' }],
-        ['an unreachable host', agentUnreachable('EHOSTUNREACH'), { reason: 'agent-unreachable' }],
-        [
-          'an unreachable network',
-          agentUnreachable('ENETUNREACH'),
-          { reason: 'agent-unreachable' },
-        ],
-        ['a broken pipe', agentUnreachable('EPIPE'), { reason: 'agent-unreachable' }],
-        ['a socket timeout', agentUnreachable('ETIMEDOUT'), { reason: 'agent-unreachable' }],
-        ['a response without a status', agentAnswered(0), { reason: 'agent-unreachable' }],
-        [
-          'an error of its own before any answer',
-          new AgentPortError(
-            'listSegmentRecordIds',
-            new Error('secretOrPrivateKey must have a value'),
-          ),
-          { reason: 'segment-read-failed' },
-        ],
-        [
-          'a record without an id',
-          new SegmentRecordIdMissingError('orders'),
-          { reason: 'segment-read-failed' },
-        ],
-        [
-          'a record id it cannot split',
-          new CompositeRecordIdMismatchError('1', 2),
-          { reason: 'segment-read-failed' },
-        ],
-      ])('should name the failure of a candidate read that got %s', async (_, error, expected) => {
+      it('should send the failure of the candidate read with the sync', async () => {
         const context = makeContext();
-        context.segmentReaderPort.listRecordIds.mockRejectedValue(error);
+        context.segmentReaderPort.listRecordIds.mockRejectedValue(
+          segmentReadFailure('forbidden', { httpStatus: 403 }),
+        );
 
         await runOneCycle(makePoller(context));
 
         expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
           closed: [],
           candidates: [],
-          readFailure: expected,
+          readFailure: { reason: 'agent-forbidden', httpStatus: 403 },
         });
       });
 
@@ -1839,7 +1728,9 @@ describe('AutomationPoller', () => {
         const context = makeContext({ assignments: [makeAssignment({ recordId: 'treated' })] });
         context.segmentReaderPort.listRecordIds.mockImplementation(
           async ({ recordIds }: ListSegmentRecordIdsQuery) => {
-            throw agentAnswered(recordIds === undefined ? 500 : 403);
+            throw recordIds === undefined
+              ? segmentReadFailure('failed', { httpStatus: 500 })
+              : segmentReadFailure('forbidden', { httpStatus: 403 });
           },
         );
 
@@ -1857,7 +1748,7 @@ describe('AutomationPoller', () => {
         const context = makeContext({ assignments: [makeAssignment({ recordId: 'treated' })] });
         context.segmentReaderPort.listRecordIds.mockImplementation(
           async ({ recordIds }: ListSegmentRecordIdsQuery) => {
-            if (recordIds !== undefined) throw agentAnswered(403);
+            if (recordIds !== undefined) throw segmentReadFailure('forbidden', { httpStatus: 403 });
 
             return [];
           },
@@ -1881,7 +1772,7 @@ describe('AutomationPoller', () => {
         context.segmentReaderPort.listRecordIds.mockImplementation(
           async ({ recordIds: batch }: ListSegmentRecordIdsQuery) => {
             if (batch === undefined) return [];
-            if (batch.includes('r50')) throw agentAnswered(503);
+            if (batch.includes('r50')) throw segmentReadFailure('unreachable', { httpStatus: 503 });
 
             return [];
           },
@@ -1899,7 +1790,9 @@ describe('AutomationPoller', () => {
 
       it('should name the failure in the poll log line', async () => {
         const context = makeContext();
-        context.segmentReaderPort.listRecordIds.mockRejectedValue(agentAnswered(403));
+        context.segmentReaderPort.listRecordIds.mockRejectedValue(
+          segmentReadFailure('forbidden', { httpStatus: 403 }),
+        );
 
         await runOneCycle(makePoller(context));
 
@@ -1977,7 +1870,9 @@ describe('AutomationPoller', () => {
         ),
       });
       context.segmentReaderPort.listRecordIds.mockImplementation(async query => {
-        if (query.recordIds?.includes('r50')) throw agentRefusal(400, 'Too many values');
+        if (query.recordIds?.includes('r50')) {
+          throw segmentReadFailure('failed', { httpStatus: 400, agentDetail: 'Too many values' });
+        }
 
         return [];
       });
@@ -2006,7 +1901,9 @@ describe('AutomationPoller', () => {
       });
       context.segmentReaderPort.listRecordIds
         .mockResolvedValueOnce(['a', 'b', 'n1', 'a'])
-        .mockRejectedValueOnce(agentRefusal(504, 'Query timed out'));
+        .mockRejectedValueOnce(
+          segmentReadFailure('unreachable', { httpStatus: 504, agentDetail: 'Query timed out' }),
+        );
 
       await runOneCycle(makePoller(context));
 
@@ -2028,11 +1925,12 @@ describe('AutomationPoller', () => {
         inboxes: [makeConfig({ liana: 'forest-nodejs-agent' })],
         assignments: [makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' })],
       });
-      context.segmentReaderPort.listFieldOperators.mockRejectedValue(
-        new AgentPortError(
-          'listFieldOperators',
-          new AgentHttpError(403, { errors: [{ detail: 'Missing permission' }] }),
-        ),
+      context.segmentReaderPort.exclusionUnavailableReason.mockRejectedValue(
+        segmentReadFailure('forbidden', {
+          httpStatus: 403,
+          agentDetail: 'Missing permission',
+          operation: 'listFieldOperators',
+        }),
       );
 
       await runOneCycle(makePoller(context));

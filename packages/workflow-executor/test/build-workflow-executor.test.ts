@@ -1,6 +1,6 @@
 import ForestServerAutomationPort from '../src/adapters/forest-server-automation-port';
 import ForestServerWorkflowPort from '../src/adapters/forest-server-workflow-port';
-import AutomationPoller from '../src/automation-poller';
+import AutomationPoller from '../src/automation/automation-poller';
 import { buildDatabaseExecutor, buildInMemoryExecutor } from '../src/build-workflow-executor';
 import { DEFAULT_AUTOMATION_POLL_INTERVAL_S, DEFAULT_SCHEMA_CACHE_TTL_S } from '../src/defaults';
 import ExecutorHttpServer from '../src/http/executor-http-server';
@@ -20,7 +20,7 @@ jest.mock('../src/schema-cache');
 jest.mock('../src/adapters/forest-server-workflow-port');
 jest.mock('../src/adapters/forest-server-automation-port');
 jest.mock('../src/adapters/agent-client-segment-reader');
-jest.mock('../src/automation-poller');
+jest.mock('../src/automation/automation-poller');
 jest.mock('../src/http/executor-http-server');
 jest.mock('../src/adapters/ai-client-adapter');
 jest.mock('../src/adapters/always-error-ai-model-port');

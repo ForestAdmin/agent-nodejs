@@ -1,14 +1,9 @@
 import type {
-  ServerAutomatedInboxAssignment,
-  ServerAutomatedInboxConfig,
-  ServerAutomatedInboxSyncOutcome,
-  ServerAutomatedInboxSyncRequest,
-} from '../adapters/server-types';
-
-export interface AutomatedInboxSyncResult {
-  recordId: string;
-  outcome: ServerAutomatedInboxSyncOutcome | string;
-}
+  AutomatedInbox,
+  InboxAssignment,
+  InboxSyncReport,
+  InboxSyncResult,
+} from '../types/automation';
 
 /**
  * The orchestrator's automated-inbox endpoints, kept apart from `WorkflowPort`, which is scoped to
@@ -19,11 +14,11 @@ export interface AutomationPort {
    * `instanceId` opts this process into the single-poller election: only the lease holder is served
    * the environment's inboxes, everyone else gets an empty list.
    */
-  listAutomatedInboxes(instanceId: string): Promise<ServerAutomatedInboxConfig[]>;
+  listAutomatedInboxes(instanceId: string): Promise<AutomatedInbox[]>;
   /** Resolves true on an orchestrator without the lease route: the listing still elects there. */
   holdLease(instanceId: string): Promise<boolean>;
   /** Throws AutomatedInboxGoneError when the orchestrator no longer serves this inbox. */
-  listAssignments(inboxId: string): Promise<ServerAutomatedInboxAssignment[]>;
+  listAssignments(inboxId: string): Promise<InboxAssignment[]>;
   /** Throws AutomatedInboxGoneError when the orchestrator no longer serves this inbox. */
-  sync(inboxId: string, body: ServerAutomatedInboxSyncRequest): Promise<AutomatedInboxSyncResult[]>;
+  sync(inboxId: string, report: InboxSyncReport): Promise<InboxSyncResult[]>;
 }
