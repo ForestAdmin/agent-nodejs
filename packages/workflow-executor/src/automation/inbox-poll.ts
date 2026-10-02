@@ -285,14 +285,7 @@ export default class InboxPoll {
           ...describeAgentFailure(error),
         });
 
-        return this.readPaddedCandidates(
-          logContext,
-          inbox,
-          assignments,
-          knownSet,
-          'not-in-refused',
-          attempt,
-        );
+        return this.readPaddedCandidates(logContext, inbox, knownSet, 'not-in-refused', attempt);
       }
 
       const fresh = page.filter(recordId => !knownSet.has(recordId));
@@ -309,38 +302,23 @@ export default class InboxPoll {
           },
         );
 
-        return this.readPaddedCandidates(
-          logContext,
-          inbox,
-          assignments,
-          knownSet,
-          'not-in-ignored',
-          attempt,
-        );
+        return this.readPaddedCandidates(logContext, inbox, knownSet, 'not-in-ignored', attempt);
       }
 
       return { items: fresh, requestedPageSize: inbox.maxConcurrentRuns };
     }
 
-    return this.readPaddedCandidates(
-      logContext,
-      inbox,
-      assignments,
-      knownSet,
-      paddedPageReason,
-      attempt,
-    );
+    return this.readPaddedCandidates(logContext, inbox, knownSet, paddedPageReason, attempt);
   }
 
   private async readPaddedCandidates(
     logContext: Record<string, unknown>,
     inbox: AutomatedInbox,
-    assignments: InboxAssignment[],
     knownSet: ReadonlySet<string>,
     paddedPageReason: PaddedPageReason,
     attempt: ReadAttempt,
   ): Promise<SegmentRead<string>> {
-    const requestedPageSize = paddedPageSize(inbox.maxConcurrentRuns, assignments.length);
+    const requestedPageSize = paddedPageSize(inbox.maxConcurrentRuns, knownSet.size);
     // agent-client sorts on one field: a composite key tied on its first column has no stable order
     // across offset pages, so it keeps the single unsorted page.
     const pageable = inbox.primaryKeys.length === 1;
