@@ -1,3 +1,10 @@
+# @forestadmin/agent-bff [1.36.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.35.2...@forestadmin/agent-bff@1.36.0) (2026-10-02)
+
+
+### Features
+
+* **agent-bff:** report a missing gateway plan feature on resolve ([#1930](https://github.com/ForestAdmin/agent-nodejs/issues/1930)) ([0b9809b](https://github.com/ForestAdmin/agent-nodejs/commit/0b9809babc54099fe727afa991de16c8f0d1a089))
+
 ## @forestadmin/agent-bff [1.35.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.35.1...@forestadmin/agent-bff@1.35.2) (2026-10-01)
 
 
