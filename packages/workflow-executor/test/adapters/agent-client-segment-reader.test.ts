@@ -378,7 +378,7 @@ describe('AgentClientSegmentReader', () => {
       expect(claims).toMatchObject({
         id: profile.id,
         email: profile.email,
-        rendering_id: profile.renderingId,
+        rendering_id: String(profile.renderingId),
       });
     });
   });
@@ -523,7 +523,7 @@ describe('AgentClientSegmentReader', () => {
       );
       expect(captured.body).toEqual({ collectionNames: ['orders'] });
       expect(payload).toEqual(
-        expect.objectContaining({ id: 99, email: 'bot@forestadmin.com', rendering_id: 7 }),
+        expect.objectContaining({ id: 99, email: 'bot@forestadmin.com', rendering_id: '7' }),
       );
     });
 
