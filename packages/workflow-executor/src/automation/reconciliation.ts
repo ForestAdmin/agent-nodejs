@@ -93,8 +93,8 @@ export function knownRecordIds(assignments: InboxAssignment[]): string[] {
   return [...new Set(assignments.map(({ recordId }) => recordId))];
 }
 
-export function paddedPageSize(maxConcurrentRuns: number, assignmentCount: number): number {
-  return Math.min(maxConcurrentRuns + assignmentCount, MAX_CANDIDATE_PAGE_SIZE);
+export function paddedPageSize(maxConcurrentRuns: number, knownRecordCount: number): number {
+  return Math.min(maxConcurrentRuns + knownRecordCount, MAX_CANDIDATE_PAGE_SIZE);
 }
 
 export function newCandidates(

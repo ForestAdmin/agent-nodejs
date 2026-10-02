@@ -1325,6 +1325,24 @@ describe('AutomationPoller', () => {
       expect(query.pageSize).toBe(500);
     });
 
+    it('should size the padded page from the known records, not from their assignments', async () => {
+      const context = makeContext({
+        assignments: [
+          makeAssignment({ recordId: 'r1', state: 'canceled', workflowRunId: 1 }),
+          makeAssignment({ recordId: 'r1', state: 'auto-canceled', workflowRunId: 2 }),
+          makeAssignment({ recordId: 'r1', state: 'doing', runState: 'started', workflowRunId: 3 }),
+        ],
+      });
+
+      await runOneCycle(makePoller(context));
+
+      const [query] = context.segmentReaderPort.listRecordIds.mock.calls.find(
+        ([call]) => (call as ListSegmentRecordIdsQuery).recordIds === undefined,
+      ) as [ListSegmentRecordIdsQuery];
+
+      expect(query.pageSize).toBe(21);
+    });
+
     it('should leave a record whose packed id it cannot split out of the reconciliation', async () => {
       // Dropped one by one rather than failing the chunk, and never reported: telling the
       // orchestrator it left the segment would retire its assignment and let it be launched again.
