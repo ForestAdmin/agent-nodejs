@@ -1,3 +1,10 @@
+## @forestadmin/agent-bff [1.36.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.36.0...@forestadmin/agent-bff@1.36.1) (2026-10-05)
+
+
+### Bug Fixes
+
+* **agent-bff:** send client_id on the Forest refresh grant ([#1953](https://github.com/ForestAdmin/agent-nodejs/issues/1953)) ([11760d7](https://github.com/ForestAdmin/agent-nodejs/commit/11760d714a49b8a9181b6173dd12f3990e76d938))
+
 # @forestadmin/agent-bff [1.36.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.35.2...@forestadmin/agent-bff@1.36.0) (2026-10-02)
 
 
