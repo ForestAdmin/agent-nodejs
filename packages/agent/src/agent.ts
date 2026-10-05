@@ -1,9 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import type { GatewayServices } from './gateway';
 import type { ForestAdminHttpDriverServices } from './services';
 import type {
   AgentOptions,
   AgentOptionsWithDefaults,
   BffEmbedOptions,
+  GatewayOptions,
+  McpEmbedOptions,
   RootHandler,
   WorkflowExecutorEmbedOptions,
 } from './types';
@@ -31,6 +34,7 @@ import { BFF_PREFIX, collidesWithBff } from './bff-routes';
 import EmbeddedBff from './embedded-bff';
 import EmbeddedWorkflowExecutor from './embedded-workflow-executor';
 import FrameworkMounter from './framework-mounter';
+import { assertNoGatewayOverlap, describeGatewayRoutes, resolveGatewayServices } from './gateway';
 import makeRoutes from './routes';
 import makeServices from './services';
 import CustomizationService from './services/model-customizations/customization';
@@ -48,6 +52,10 @@ const bffMcpCollision = (mcpBasePath: string) =>
   `Cannot use addBff together with mountAiMcpServer({ basePath: '${mcpBasePath}' }): the MCP ` +
   `server would claim ${BFF_PREFIX} paths the embedded BFF answers on (${BFF_PREFIX}/oauth, ` +
   `${BFF_PREFIX}/mcp). Mount the MCP server elsewhere.`;
+
+const GATEWAY_MIXING =
+  'addGateway() cannot be combined with mountAiMcpServer() or addBff(): configure every ' +
+  'service through addGateway({ mcp, api }), or keep both aliases.';
 
 /**
  * Allow to create a new Forest Admin agent from scratch.
@@ -79,6 +87,8 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
 
   /** In-process BFF, created only when addBff() is called. */
   private embeddedBff: EmbeddedBff | null = null;
+
+  private gateway: { basePath: string; services: GatewayServices } | null = null;
 
   private isRestarting = false;
 
@@ -128,14 +138,17 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
       // First, before anything is mounted or subscribed: everything it validates is what the caller
       // handed to addBff(), so a mistyped key must fail on that line rather than leave the host
       // serving /forest with a permanently bricked /bff.
+      await this.prepareGateway();
       await this.embeddedBff?.prepare();
+
+      this.warnIfMcpAliasUsed();
 
       const { router, mcp } = await this.buildRouterAndSendSchema();
 
       await this.options.forestAdminClient.subscribeToServerEvents();
       this.options.forestAdminClient.onRefreshCustomizations(this.restart.bind(this));
 
-      this.setMcpCallback(mcp ?? null);
+      this.setMcpCallback(this.mcpRootHandler(mcp));
       await this.mount(router);
       mounted = true;
 
@@ -143,7 +156,9 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
       // standalone server's host/port (used to derive that URL) are only known once mounted.
       await this.embeddedExecutor?.start(this.standaloneServerHost, this.standaloneServerPort);
       // Same reason, without the socket: the dispatcher injects into the stack mount() just built.
-      await this.embeddedBff?.start(this.getInProcessDispatcher());
+      if (!this.gateway) await this.embeddedBff?.start(this.getInProcessDispatcher());
+
+      this.logGatewayRoutes();
       // Here rather than in initializeMcpServer(): that one reruns on every restart() and each run
       // would cost a SaaS round-trip for a warning already given.
       if (this.mcpEnabled) await this.warnIfMcpExemptFromIpWhitelist();
@@ -224,7 +239,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
       // We force sending schema when restarting
       const { router, mcp } = await this.buildRouterAndSendSchema();
 
-      this.setMcpCallback(mcp ?? null);
+      this.setMcpCallback(this.mcpRootHandler(mcp));
       await this.remount(router);
       // A restart means the customizations changed, so the schema the BFF read is stale.
       this.embeddedBff?.invalidate();
@@ -322,7 +337,37 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     return this;
   }
 
+  addGateway(options: GatewayOptions): this {
+    if (this.gateway) throw new Error('addGateway can only be called once.');
+
+    if (this.startupBegun) {
+      throw new Error('addGateway must be called before start(): the agent is already starting.');
+    }
+
+    if (this.mcpEnabled || this.embeddedBff) throw new Error(GATEWAY_MIXING);
+
+    const services = resolveGatewayServices(options);
+    this.gateway = { basePath: options.basePath ?? '', services };
+
+    if (services.mcp) {
+      this.mcpEnabled = true;
+      this.mcpEnabledTools = services.mcp.enabledTools;
+      this.mcpTokenTtl = services.mcp.tokenTtl;
+      this.mcpAllowedOAuthClients = options.allowedOAuthClients;
+      this.mcpFileUploads = services.mcp.fileUploads;
+    }
+
+    if (services.api) {
+      this.embeddedBff = new EmbeddedBff(this.options, services.api, 'The Gateway API');
+      this.getInProcessDispatcher();
+    }
+
+    return this;
+  }
+
   /**
+   * @deprecated Use `addGateway({ mcp })`. Keeps its current paths and semantics.
+   *
    * Enable MCP (Model Context Protocol) server support.
    * This allows AI assistants to interact with your Forest Admin data.
    *
@@ -352,13 +397,9 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * agent.mountAiMcpServer({ fileUploads: { storage } });
    * agent.mountAiMcpServer({ fileUploads: false });
    */
-  mountAiMcpServer(options?: {
-    enabledTools?: ToolName[];
-    basePath?: string;
-    tokenTtl?: TokenTtlOptions;
-    allowedOAuthClients?: string[];
-    fileUploads?: false | FileUploadsOptions;
-  }): this {
+  mountAiMcpServer(options?: McpEmbedOptions): this {
+    if (this.gateway) throw new Error(GATEWAY_MIXING);
+
     if (this.embeddedBff && collidesWithBff(options?.basePath)) {
       throw new Error(bffMcpCollision(options?.basePath as string));
     }
@@ -412,6 +453,8 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   }
 
   /**
+   * @deprecated Use `addGateway({ api })`. Keeps serving on `/bff`.
+   *
    * Serve a BFF in-process, alongside the agent, at `/bff` — no second deployment, no second port.
    * The agent builds it on start(), stops it on stop(), and hands it a dispatcher that reaches its
    * own stack without a socket, so this works the same on every mount target.
@@ -440,6 +483,8 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    *   .start();
    */
   addBff(options: BffEmbedOptions = {}): this {
+    if (this.gateway) throw new Error(GATEWAY_MIXING);
+
     if (this.embeddedBff) {
       throw new Error('addBff can only be called once.');
     }
@@ -466,6 +511,49 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     this.setBffCallback(bff.handle);
 
     return this;
+  }
+
+  private async prepareGateway(): Promise<void> {
+    if (!this.gateway) return;
+
+    const { services } = this.gateway;
+
+    if (!services.mcp && !services.api) {
+      throw new Error(
+        'addGateway() enables no service: pass mcp, api, or both, e.g. addGateway({ mcp: true }).',
+      );
+    }
+
+    const { normalizeMountPath } = await import('@forestadmin/mcp-server');
+    const basePath = normalizeMountPath(this.gateway.basePath, 'basePath');
+
+    assertNoGatewayOverlap(basePath, this.completeMountPrefix, services);
+    this.gateway.basePath = basePath;
+    if (services.mcp) this.mcpBasePath = basePath || undefined;
+  }
+
+  private warnIfMcpAliasUsed(): void {
+    if (!this.mcpEnabled || this.gateway) return;
+
+    this.options.logger(
+      'Warn',
+      '[MCP] mountAiMcpServer() is deprecated: use addGateway({ mcp }) instead. ' +
+        'It keeps serving on its current paths.',
+    );
+  }
+
+  private mcpRootHandler(mcp?: RootHandler): RootHandler | null {
+    if (this.gateway) return null;
+
+    return mcp ?? null;
+  }
+
+  private logGatewayRoutes(): void {
+    if (!this.gateway) return;
+
+    describeGatewayRoutes(this.gateway.basePath, this.gateway.services).forEach(line =>
+      this.options.logger('Info', line),
+    );
   }
 
   protected getRoutes(dataSource: DataSource, services: ForestAdminHttpDriverServices) {

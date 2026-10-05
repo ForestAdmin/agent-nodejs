@@ -30,7 +30,7 @@ export default class FrameworkMounter {
   private inProcessHookRegistered = false;
 
   /** Compute the prefix that the main router should be mounted at in the client's application */
-  private get completeMountPrefix(): string {
+  protected get completeMountPrefix(): string {
     return path.posix.join('/', this.prefix, 'forest');
   }
 

@@ -2905,6 +2905,19 @@ describe('basePath prefix', () => {
         /requires the agent to be served at the domain root/,
       );
     });
+
+    it('names the basePath and the agent path in the rejection, not an MCP-only option', async () => {
+      const server = new ForestMCPServer({
+        envSecret: 'ENV_SECRET',
+        authSecret: 'AUTH_SECRET',
+        forestServerClient: createMockForestServerClient(),
+        basePath: '/ai',
+      });
+
+      await expect(server.buildExpressApp(new URL('https://host/app'))).rejects.toThrow(
+        /^basePath "\/ai" requires the agent to be served at the domain root, .*\("\/app"\)/,
+      );
+    });
   });
 
   describe('getHttpCallback route filtering under /mcp', () => {

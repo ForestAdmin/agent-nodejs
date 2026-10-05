@@ -41,6 +41,7 @@ export default class EmbeddedBff {
   constructor(
     private readonly options: AgentOptionsWithDefaults,
     private readonly embedOptions: BffEmbedOptions,
+    private readonly name = 'The embedded BFF',
   ) {}
 
   /**
@@ -232,7 +233,7 @@ export default class EmbeddedBff {
       // throw during the package's own evaluation — none of which "install it" would fix.
       const { message } = error as Error;
       const wrapped = new Error(
-        `The embedded BFF requires the \`@forestadmin/agent-bff\` package, which failed to ` +
+        `${this.name} requires the \`@forestadmin/agent-bff\` package, which failed to ` +
           `load: ${message}. Install it with \`npm install @forestadmin/agent-bff\`.`,
       );
       // Assigned rather than passed to the constructor: the repo targets ES2020, whose lib types no
