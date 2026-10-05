@@ -1209,10 +1209,11 @@ describe('TriggerRecordActionStepExecutor', () => {
         skippedFields: [],
       });
       // AI returns no values → loop makes no progress → required field unfilled.
+      const runStore = makeMockRunStore();
       const context = makeContext({
         model: makeMockModel({ values: {} }, 'fill_action_form').model,
         agentPort,
-        runStore: makeMockRunStore(),
+        runStore,
         stepDefinition: makeStep({
           executionType: StepExecutionMode.FullyAutomated,
           preRecordedArgs: {
@@ -1226,6 +1227,14 @@ describe('TriggerRecordActionStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('awaiting-input');
       expect(agentPort.executeAction).not.toHaveBeenCalled();
+      expect(runStore.saveStepExecution).toHaveBeenLastCalledWith(
+        'run-1',
+        expect.objectContaining({
+          pendingData: expect.objectContaining({
+            fullAiFallback: { reason: 'required-fields-missing' },
+          }),
+        }),
+      );
     });
 
     it('falls back to AI-assisted when the action requires an approval', async () => {
@@ -1246,6 +1255,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       const lastSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
       expect(lastSave).toHaveProperty('pendingData');
       expect(lastSave).not.toHaveProperty('idempotencyPhase');
+      expect(lastSave.pendingData.fullAiFallback).toEqual({ reason: 'approval-required' });
     });
 
     it('falls back to AI-assisted when the submission is rejected by validation', async () => {
@@ -1254,11 +1264,60 @@ describe('TriggerRecordActionStepExecutor', () => {
       (agentPort.executeAction as jest.Mock).mockRejectedValue(
         new ActionFormValidationError('send-welcome-email'),
       );
+      const runStore = makeMockRunStore();
+      const result = await new TriggerRecordActionStepExecutor(
+        fullAiContext(agentPort, runStore),
+      ).execute();
+
+      expect(result.stepOutcome.status).toBe('awaiting-input');
+      const lastSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+      expect(lastSave.pendingData.fullAiFallback).toEqual({ reason: 'backend-refused' });
+    });
+
+    it('keeps the backend refusal message in pendingData and out of the step outcome', async () => {
+      const agentPort = makeMockAgentPort();
+      mockFillThenComplete(agentPort);
+      (agentPort.executeAction as jest.Mock).mockRejectedValue(
+        new ActionFormValidationError(
+          'send-welcome-email',
+          undefined,
+          'Account cannot be closed: 2 cards still active',
+        ),
+      );
+      const runStore = makeMockRunStore();
+      const result = await new TriggerRecordActionStepExecutor(
+        fullAiContext(agentPort, runStore),
+      ).execute();
+
+      expect(result.stepOutcome.status).toBe('awaiting-input');
+      const lastSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+      expect(lastSave.pendingData.fullAiFallback).toEqual({
+        reason: 'backend-refused',
+        backendMessage: 'Account cannot be closed: 2 cards still active',
+      });
+    });
+
+    it('keeps the backend refusal message off the error outcome of a formless action', async () => {
+      const agentPort = makeMockAgentPort();
+      (agentPort.executeAction as jest.Mock).mockRejectedValue(
+        new ActionFormValidationError(
+          'send-welcome-email',
+          undefined,
+          'Account cannot be closed: 2 cards still active',
+        ),
+      );
       const result = await new TriggerRecordActionStepExecutor(
         fullAiContext(agentPort, makeMockRunStore()),
       ).execute();
 
-      expect(result.stepOutcome.status).toBe('awaiting-input');
+      expect(result.stepOutcome).toEqual(
+        expect.objectContaining({
+          status: 'error',
+          error: 'The backend refused this action.',
+          errorKind: 'operator',
+        }),
+      );
+      expect(JSON.stringify(result.stepOutcome)).not.toContain('cards still active');
     });
 
     it('surfaces a plain permission/infra error as a step error (no fallback)', async () => {

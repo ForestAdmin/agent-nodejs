@@ -3,6 +3,7 @@ import type { StepExecutionResult } from '../types/execution-context';
 import type {
   ActionRef,
   AiFilledFormValue,
+  FullAiFallback,
   TriggerRecordActionStepExecutionData,
 } from '../types/step-execution-data';
 import type { ActionSchema, CollectionSchema, RecordRef } from '../types/validated/collection';
@@ -209,7 +210,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
 
     // Full AI: submit if all required fields are filled, else fallback (pause) with what was filled.
     if (!filledForm.canExecute) {
-      return this.pauseForConfirmation(target, reviewState);
+      return this.pauseForConfirmation(target, reviewState, { reason: 'required-fields-missing' });
     }
 
     const values = Object.fromEntries(aiFilledValues.map(v => [v.field, v.value]));
@@ -220,11 +221,15 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       // Validation rejection or an approval-gated action → not a hard failure: pause as
       // AI-assisted so a human can finish/submit natively. Plain permission 403, infra errors,
       // etc. propagate as a real step error (a reviewing human couldn't fix those).
-      if (
-        error instanceof ActionFormValidationError ||
-        error instanceof ActionRequiresApprovalError
-      ) {
-        return this.pauseForConfirmation(target, reviewState);
+      if (error instanceof ActionFormValidationError) {
+        return this.pauseForConfirmation(target, reviewState, {
+          reason: 'backend-refused',
+          ...(error.backendMessage && { backendMessage: error.backendMessage }),
+        });
+      }
+
+      if (error instanceof ActionRequiresApprovalError) {
+        return this.pauseForConfirmation(target, reviewState, { reason: 'approval-required' });
       }
 
       throw error;
@@ -236,11 +241,17 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
   private async pauseForConfirmation(
     target: ActionTarget,
     form?: { fields: ActionFormField[]; aiFilledValues: AiFilledFormValue[] },
+    fullAiFallback?: FullAiFallback,
   ): Promise<StepExecutionResult> {
     await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'trigger-action',
       stepIndex: this.context.stepIndex,
-      pendingData: { displayName: target.displayName, name: target.name, ...(form && { form }) },
+      pendingData: {
+        displayName: target.displayName,
+        name: target.name,
+        ...(form && { form }),
+        ...(fullAiFallback && { fullAiFallback }),
+      },
       selectedRecordRef: target.selectedRecordRef,
     });
 
