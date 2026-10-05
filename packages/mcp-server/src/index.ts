@@ -3,6 +3,9 @@ export { default as ForestMCPServer } from './server';
 export type { ForestMCPServerOptions, HttpCallback, ToolName } from './server';
 export { default as createGatewaySwitch } from './gateway-switch';
 export type { GatewayHandler, GatewaySwitchOptions } from './gateway-switch';
+export { default as parseMcpEnv } from './mcp-env';
+export type { McpEnv, McpEnvLabels, McpListenerSettings, ParsedMcpEnv } from './mcp-env';
+export { default as loadFileUploads } from './utils/load-file-uploads';
 export type { TokenTtlOptions } from './utils/token-ttl';
 export type { FileUploadsOptions, UploadStorage } from './file-uploads/types';
 export type {

@@ -199,6 +199,32 @@ describe('ForestMCPServer Instance', () => {
       await expect(server.run()).rejects.toThrow(/MCP_SERVER_PORT=0 binds a port chosen by the OS/);
     });
 
+    it('ignores the ambient option variables when given constructor options', async () => {
+      process.env.MCP_SERVER_PORT = '0';
+      process.env.FOREST_MCP_SERVER_URL = 'https://mcp.example.com';
+      process.env.FOREST_MCP_FILE_UPLOADS = 'invalid';
+      process.env.FOREST_MCP_ACCESS_TOKEN_TTL_SECONDS = 'invalid';
+
+      try {
+        server = new ForestMCPServer({
+          authSecret: 'AUTH_SECRET',
+          envSecret: 'ENV_SECRET',
+          fileUploads: false,
+          forestServerClient: createMockForestServerClient(),
+        });
+
+        await expect(server.run()).resolves.toBeUndefined();
+        await new Promise(resolve => {
+          setTimeout(resolve, 500);
+        });
+
+        expect((server.httpServer as http.Server).listening).toBe(true);
+      } finally {
+        delete process.env.FOREST_MCP_FILE_UPLOADS;
+        delete process.env.FOREST_MCP_ACCESS_TOKEN_TTL_SECONDS;
+      }
+    });
+
     it('binds an ephemeral port on MCP_SERVER_PORT=0 rather than falling back to 3931', async () => {
       process.env.MCP_SERVER_PORT = '0';
       process.env.FOREST_MCP_SERVER_URL = 'https://mcp.example.com';

@@ -28,6 +28,12 @@ describe('loadFileUploads', () => {
     await expect(loadFileUploads('')).resolves.toBeUndefined();
   });
 
+  it('names the module through the label map', async () => {
+    await expect(
+      loadFileUploads('./does-not-exist.js', { uploadStorageModule: 'UPLOADS_MODULE' }),
+    ).rejects.toThrow('UPLOADS_MODULE "./does-not-exist.js" was not found');
+  });
+
   it('loads options exported directly', async () => {
     const file = writeModule(`module.exports = { storage: ${storageSource}, maxBytes: 4242 };`);
 
