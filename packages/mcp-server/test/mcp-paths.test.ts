@@ -47,14 +47,19 @@ describe('mcp-paths', () => {
   });
 
   describe('buildMcpPaths', () => {
-    it('claims the root well-known namespace by default', () => {
-      expect(buildMcpPaths('')).toEqual(['/.well-known/', '/oauth/', '/mcp']);
+    it('claims only the RFC 8414/9728 discovery documents at the root', () => {
+      expect(buildMcpPaths('')).toEqual([
+        '/.well-known/oauth-authorization-server',
+        '/.well-known/oauth-protected-resource/mcp',
+        '/oauth/',
+        '/mcp',
+      ]);
     });
 
-    it('claims prefix-suffixed well-known paths under a prefix', () => {
+    it('claims prefix-suffixed well-known documents under a prefix', () => {
       expect(buildMcpPaths('/mcp')).toEqual([
         '/.well-known/oauth-authorization-server/mcp',
-        '/.well-known/oauth-protected-resource/mcp',
+        '/.well-known/oauth-protected-resource/mcp/mcp',
         '/mcp/oauth/',
         '/mcp/mcp',
       ]);
@@ -63,7 +68,7 @@ describe('mcp-paths', () => {
     it('claims nested prefix paths', () => {
       expect(buildMcpPaths('/api/mcp')).toEqual([
         '/.well-known/oauth-authorization-server/api/mcp',
-        '/.well-known/oauth-protected-resource/api/mcp',
+        '/.well-known/oauth-protected-resource/api/mcp/mcp',
         '/api/mcp/oauth/',
         '/api/mcp/mcp',
       ]);
@@ -75,19 +80,45 @@ describe('mcp-paths', () => {
   });
 
   describe('default exports (root)', () => {
-    it('MCP_PATHS matches the historical root paths', () => {
-      expect(MCP_PATHS).toEqual(['/.well-known/', '/oauth/', '/mcp']);
+    it('MCP_PATHS is the root path set', () => {
+      expect(MCP_PATHS).toEqual(buildMcpPaths(''));
     });
 
-    it.each(['/.well-known/oauth-authorization-server', '/oauth/token', '/mcp', '/mcp?foo=1'])(
-      'isMcpRoute claims %p',
-      url => {
-        expect(isMcpRoute(url)).toBe(true);
-      },
-    );
+    it.each(['/oauth/token', '/mcp', '/mcp?foo=1'])('isMcpRoute claims %p', url => {
+      expect(isMcpRoute(url)).toBe(true);
+    });
 
     it.each(['/api/other', '/mcp-dashboard'])('isMcpRoute passes through %p', url => {
       expect(isMcpRoute(url)).toBe(false);
+    });
+  });
+
+  describe.each(['', '/ai'])('.well-known claims with prefix %p', P => {
+    const matches = makeIsMcpRoute(P);
+
+    it.each([
+      `/.well-known/oauth-authorization-server${P}`,
+      `/.well-known/oauth-authorization-server${P}/`,
+      `/.well-known/oauth-authorization-server${P}?x=1`,
+      `/.well-known/oauth-protected-resource${P}/mcp`,
+      `/.well-known/oauth-protected-resource${P}/mcp/`,
+    ])('claims the MCP discovery document %p', url => {
+      expect(matches(url)).toBe(true);
+    });
+
+    it.each([
+      '/.well-known/acme-challenge/tok123',
+      '/.well-known/security.txt',
+      '/.well-known/openid-configuration',
+      '/.well-known/oauth-protected-resource',
+      `/.well-known/oauth-protected-resource${P}`,
+      `/.well-known/oauth-protected-resource${P}/extra`,
+      `/.well-known/oauth-protected-resource${P}/mcp/extra`,
+      `/.well-known/oauth-protected-resource${P}/mcp//`,
+      `/.well-known/oauth-authorization-server${P}/extra`,
+      `/.well-known/oauth-authorization-server${P}-x`,
+    ])('leaves %p to the host', url => {
+      expect(matches(url)).toBe(false);
     });
   });
 
