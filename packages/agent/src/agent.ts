@@ -161,6 +161,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
       await this.options.forestAdminClient.subscribeToServerEvents();
       this.options.forestAdminClient.onRefreshCustomizations(this.restart.bind(this));
 
+      if (this.isStopped) return;
       this.setRootHandlers(mcp);
       await this.mount(router);
       mounted = true;
@@ -168,6 +169,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
       // Boot after mount(): the embedded executor reaches the agent over HTTP, and the
       // standalone server's host/port (used to derive that URL) are only known once mounted.
       await this.embeddedExecutor?.start(this.standaloneServerHost, this.standaloneServerPort);
+      if (this.isStopped) return;
       // Same reason, without the socket: the dispatcher injects into the stack mount() just built.
       await this.embeddedBff?.start(this.getInProcessDispatcher());
 
