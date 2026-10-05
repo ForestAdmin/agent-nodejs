@@ -1,3 +1,18 @@
+# @forestadmin/agent-bff [1.38.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.37.0...@forestadmin/agent-bff@1.38.0) (2026-10-05)
+
+
+### Features
+
+* **mcp-server:** tell the model which record key holds each schema field ([#1961](https://github.com/ForestAdmin/agent-nodejs/issues/1961)) ([cba8a29](https://github.com/ForestAdmin/agent-nodejs/commit/cba8a299a4733713f0c487e3d2a9e07cb9ab371f))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.17.0
+
 # @forestadmin/agent-bff [1.37.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.36.1...@forestadmin/agent-bff@1.37.0) (2026-10-05)
 
 
