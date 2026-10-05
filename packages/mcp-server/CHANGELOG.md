@@ -1,3 +1,10 @@
+## @forestadmin/mcp-server [1.24.10](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.24.9...@forestadmin/mcp-server@1.24.10) (2026-10-05)
+
+
+### Bug Fixes
+
+* **mcp-server:** send scope instead of scopes on the forest refresh [PRD-1385] ([#1955](https://github.com/ForestAdmin/agent-nodejs/issues/1955)) ([75535b3](https://github.com/ForestAdmin/agent-nodejs/commit/75535b379662e119338e2127361ed8f7171b5e20))
+
 ## @forestadmin/mcp-server [1.24.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.24.8...@forestadmin/mcp-server@1.24.9) (2026-10-02)
 
 
