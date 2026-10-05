@@ -7,6 +7,7 @@ import {
   fieldNotSortable,
   filterTooDeep,
   invalidFilterOperator,
+  multiFieldSortNotSupported,
   unknownField,
 } from './validation-errors';
 import { mappingError } from '../http/bff-local-errors';
@@ -121,6 +122,12 @@ function validateSortable(fields: string[], capabilities: CapabilitiesResult): B
   return fields.filter(field => notSortable.has(field)).map(fieldNotSortable);
 }
 
+function validateSortCount(fields: string[], capabilities: CapabilitiesResult): BffHttpError[] {
+  if (capabilities.multiFieldSort !== false || fields.length <= 1) return [];
+
+  return [multiFieldSortNotSupported(fields.length)];
+}
+
 function dedupe(errors: BffHttpError[]): BffHttpError[] {
   const seen = new Set<string>();
   const result: BffHttpError[] = [];
@@ -165,6 +172,7 @@ export function validateAgainstCapabilities(
     ...validateFilter(params.filter, index),
     ...validateExistence(params.sortFields ?? [], index),
     ...validateSortable(params.sortFields ?? [], capabilities),
+    ...validateSortCount(params.sortFields ?? [], capabilities),
     ...validateExistence(params.projectionFields ?? [], index),
   ]);
 }

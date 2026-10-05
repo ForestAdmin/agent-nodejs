@@ -88,6 +88,24 @@ describe('synthesizeCapabilities', () => {
     });
   });
 
+  describe('the multi-field sort', () => {
+    it.each(['forest-express-sequelize', 'forest-express-mongoose'])(
+      'should deny it for %s, which reads the whole sort string as one column',
+      liana => {
+        expect(synthesizeCapabilities(v1Apimap(), logger, liana).multiFieldSort).toBe(false);
+      },
+    );
+
+    it.each([['forest-rails'], [undefined]])(
+      'should leave it unstated for %s, which reads a comma-separated sort',
+      liana => {
+        expect(synthesizeCapabilities(v1Apimap(), logger, liana)).not.toHaveProperty(
+          'multiFieldSort',
+        );
+      },
+    );
+  });
+
   describe('when the apimap denies a capability', () => {
     it('should publish no operator, so a filter on it is field_not_filterable and not a 500', () => {
       expect(fieldNamed('fullName')?.operators).toEqual([]);

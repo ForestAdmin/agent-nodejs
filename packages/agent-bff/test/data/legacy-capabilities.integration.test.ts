@@ -158,3 +158,86 @@ describe('the same reads when the schema was not published by a legacy liana', (
     expect(response.status).toBe(200);
   });
 });
+
+describe('a multi-field sort in front of each legacy liana', () => {
+  let agent: LegacyAgent;
+
+  beforeAll(async () => {
+    agent = await startLegacyAgent();
+  });
+
+  afterAll(async () => {
+    await agent?.stop();
+  });
+
+  const multiSort = [
+    { field: 'title', direction: 'asc' },
+    { field: 'createdAt', direction: 'desc' },
+  ];
+
+  function agentListCalls(path: string): number {
+    return agent.seen.filter(entry => entry.path.startsWith(path)).length;
+  }
+
+  describe.each(['forest-express-sequelize', 'forest-express-mongoose'])(
+    'when the liana is %s',
+    liana => {
+      it('should answer 422 multi_field_sort_not_supported on a list, without calling the agent', async () => {
+        const before = agentListCalls('/forest/Article');
+
+        const response = await request(buildLegacyApp(agent.url, { liana }).callback())
+          .post('/agent/v1/Article/list')
+          .send({ sort: multiSort });
+
+        expect(response.status).toBe(422);
+        expect(response.body.error).toEqual({
+          type: 'multi_field_sort_not_supported',
+          status: 422,
+          message: 'This agent sorts on a single field: send one sort clause, not 2',
+          details: { maxSortFields: 1 },
+        });
+        expect(agentListCalls('/forest/Article') - before).toBe(0);
+      });
+
+      it('should answer 422 multi_field_sort_not_supported on a relation list, without calling the agent', async () => {
+        const before = agentListCalls('/forest/Article/1');
+
+        const response = await request(buildLegacyApp(agent.url, { liana }).callback())
+          .post('/agent/v1/Article/relations/comments/list')
+          .send({
+            parentId: '1',
+            sort: [
+              { field: 'body', direction: 'asc' },
+              { field: 'id', direction: 'asc' },
+            ],
+          });
+
+        expect(response.status).toBe(422);
+        expect(response.body.error.type).toBe('multi_field_sort_not_supported');
+        expect(agentListCalls('/forest/Article/1') - before).toBe(0);
+      });
+
+      it('should still pass a single-field sort to the agent', async () => {
+        const response = await request(buildLegacyApp(agent.url, { liana }).callback())
+          .post('/agent/v1/Article/list')
+          .send({ sort: [{ field: 'createdAt', direction: 'desc' }] });
+
+        expect(response.status).toBe(200);
+
+        const listCall = agent.seen.filter(entry => entry.path === '/forest/Article').pop();
+        expect(listCall?.query.get('sort')).toBe('-createdAt');
+      });
+    },
+  );
+
+  it('should pass a multi-field sort to forest-rails as the comma list it reads', async () => {
+    const response = await request(buildLegacyApp(agent.url, { liana: 'forest-rails' }).callback())
+      .post('/agent/v1/Article/list')
+      .send({ sort: multiSort });
+
+    expect(response.status).toBe(200);
+
+    const listCall = agent.seen.filter(entry => entry.path === '/forest/Article').pop();
+    expect(listCall?.query.get('sort')).toBe('title,-createdAt');
+  });
+});

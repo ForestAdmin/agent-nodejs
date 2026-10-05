@@ -9,6 +9,7 @@ export interface CapabilitiesResult {
   // (`synthesize-capabilities.ts`), which reads it from the apimap. It is `false` or absent, never
   // `true`: the synthesis states a denial, and absent means "not stated", which sorts as before.
   fields: { name: string; type: FieldType; operators?: string[]; sortable?: false }[];
+  multiFieldSort?: false;
 }
 
 export type CapabilitiesFetcher = (collection: string) => Promise<CapabilitiesResult>;

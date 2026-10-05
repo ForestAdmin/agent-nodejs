@@ -44,6 +44,7 @@ export interface CollectionFields {
   filterable: FilterableField[];
   degraded: DegradedReason | null;
   undocumentableFilter?: true;
+  singleFieldSort?: true;
 }
 
 /**

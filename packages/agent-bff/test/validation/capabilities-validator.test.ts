@@ -259,6 +259,45 @@ describe('validateAgainstCapabilities', () => {
     });
   });
 
+  describe('multi-field sort', () => {
+    const singleFieldSort: CapabilitiesResult = {
+      fields: [
+        { name: 'seq', type: 'Number', operators: [] },
+        { name: 'tenant_id', type: 'String', operators: [] },
+      ],
+      multiFieldSort: false,
+    };
+
+    it('rejects two sort fields when the capabilities deny a multi-field sort, naming the limit', () => {
+      const errors = validateAgainstCapabilities(
+        { sortFields: ['seq', 'tenant_id'] },
+        singleFieldSort,
+      );
+
+      expect(errors).toEqual([
+        expect.objectContaining({
+          type: 'multi_field_sort_not_supported',
+          status: 422,
+          message: 'This agent sorts on a single field: send one sort clause, not 2',
+          details: { maxSortFields: 1 },
+        }),
+      ]);
+    });
+
+    it('allows a single sort field when the capabilities deny a multi-field sort', () => {
+      expect(validateAgainstCapabilities({ sortFields: ['seq'] }, singleFieldSort)).toEqual([]);
+    });
+
+    it('allows two sort fields when the flag is absent, which is every real capabilities response', () => {
+      expect(
+        validateAgainstCapabilities(
+          { sortFields: ['seq', 'tenant_id'] },
+          { fields: singleFieldSort.fields },
+        ),
+      ).toEqual([]);
+    });
+  });
+
   it('passes a fully valid filter, sort, and projection', () => {
     expect(
       validateAgainstCapabilities(

@@ -171,6 +171,27 @@ describe('collectUnfolding', () => {
       ]);
     });
 
+    it('should carry the multi-field sort denial the v1 synthesis states', async () => {
+      const { collections } = await collect(readModel, {
+        capabilities: async () => ({
+          fields: [{ name: 'id', type: 'String', operators: ['equal'] }],
+          multiFieldSort: false as const,
+        }),
+      });
+
+      expect(collections[0].fields.singleFieldSort).toBe(true);
+    });
+
+    it('should leave the single-field sort unstated when the capabilities do not deny it', async () => {
+      const { collections } = await collect(readModel, {
+        capabilities: async () => ({
+          fields: [{ name: 'id', type: 'String', operators: ['equal'] }],
+        }),
+      });
+
+      expect(collections[0].fields).not.toHaveProperty('singleFieldSort');
+    });
+
     it('should keep a skewed field projectable, since only filtering on it fails', async () => {
       const { collections } = await collect(readModel, {
         capabilities: async () => ({

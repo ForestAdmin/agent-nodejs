@@ -43,7 +43,7 @@ const ERROR_STATUSES: Record<string, string> = {
   404: 'Unknown collection, relation, or action',
   413: `The request body exceeds the BFF limit of ${BODY_LIMIT}`,
   415: 'The request Content-Type is neither application/json nor an application/*+json type, including form-urlencoded, and is rejected with 415 instead of being silently dropped; a request carrying a body with no Content-Type at all is rejected the same way; or the declared character set cannot be decoded',
-  422: 'A field is unknown, not filterable, is a nested relation path, or an action value at execute is outside its enum or of the wrong type',
+  422: 'A field is unknown, not filterable, not sortable, is a nested relation path, a sort carries more than one clause on an agent that sorts on a single field (type multi_field_sort_not_supported), or an action value at execute is outside its enum or of the wrong type',
   429: `The BFF rate-limited the request, for one of two reasons: the caller identity exceeded its per-window budget, or the limiter is saturated and cannot open a window for a new identity. The \`details.cause\` field of the error body distinguishes them (\`${RATE_LIMIT_CAUSES.limitExceeded}\` or \`${RATE_LIMIT_CAUSES.limiterSaturated}\`), and Retry-After carries the seconds to wait. On data and action routes the agent may also rate-limit the request itself; that 429 is relayed with the agent's own payload as \`details\`, so it carries neither \`cause\` nor Retry-After — read them only when they are present rather than branching on their value`,
   500: 'The agent payload could not be mapped to the BFF contract, or the BFF hit an unexpected error',
   501: 'The BFF is running without an agent configured, so the proxy is not implemented',

@@ -18,6 +18,15 @@ export function fieldNotSortable(field: string): BffHttpError {
   });
 }
 
+export function multiFieldSortNotSupported(sortFieldCount: number): BffHttpError {
+  return new BffHttpError(
+    422,
+    'multi_field_sort_not_supported',
+    `This agent sorts on a single field: send one sort clause, not ${sortFieldCount}`,
+    { details: { maxSortFields: 1 } },
+  );
+}
+
 export function filterTooDeep(maxDepth: number): BffHttpError {
   return new BffHttpError(
     400,

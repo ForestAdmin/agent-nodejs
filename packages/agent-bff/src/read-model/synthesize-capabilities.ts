@@ -69,6 +69,11 @@ export const LEGACY_LIANAS: ReadonlySet<string> = new Set([
   'forest-rails',
 ]);
 
+export const SINGLE_FIELD_SORT_LIANAS: ReadonlySet<string> = new Set([
+  'forest-express-sequelize',
+  'forest-express-mongoose',
+]);
+
 const MANY_TO_ONE = 'ManyToOne';
 
 /**
@@ -155,13 +160,16 @@ function toCapabilityFields(
 export default function synthesizeCapabilities(
   collection: ForestSchemaCollection,
   logger: Logger,
+  liana?: string,
 ): CapabilitiesResult {
   const declared = (collection.fields ?? []).filter(
     (field): field is ForestSchemaField =>
       typeof field === 'object' && field !== null && typeof field.field === 'string',
   );
 
-  return {
-    fields: declared.flatMap(field => toCapabilityFields(field, collection.name, logger)),
-  };
+  const fields = declared.flatMap(field => toCapabilityFields(field, collection.name, logger));
+
+  return liana && SINGLE_FIELD_SORT_LIANAS.has(liana)
+    ? { fields, multiFieldSort: false }
+    : { fields };
 }

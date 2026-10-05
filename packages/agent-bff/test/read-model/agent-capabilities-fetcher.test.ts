@@ -191,6 +191,7 @@ describe('createAgentCapabilitiesFetcher', () => {
 
       expect(result).toEqual({
         fields: [{ name: 'name', type: 'String', operators: expect.arrayContaining(['equal']) }],
+        multiFieldSort: false,
       });
     });
 

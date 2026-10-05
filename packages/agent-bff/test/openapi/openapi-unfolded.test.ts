@@ -896,6 +896,38 @@ describe('an unfolding whose apimap denies a sort', () => {
     expect(listSortOf(documentWithDeniedSort())).not.toHaveProperty('maxItems');
   });
 
+  function documentWithSingleFieldSort() {
+    return unfoldedDocument({
+      collections: [
+        {
+          name: 'users',
+          fields: {
+            projectable: [
+              { name: 'id', type: 'Number' },
+              { name: 'email', type: 'String' },
+            ],
+            filterable: [{ name: 'id', operators: ['Equal'] }],
+            degraded: null,
+            singleFieldSort: true,
+          },
+          primaryKeys: [{ name: 'id', type: 'Number' }],
+          relations: [],
+          actions: [],
+        },
+      ],
+    });
+  }
+
+  it('should cap the sort array at one clause when the agent sorts on a single field', () => {
+    expect(listSortOf(documentWithSingleFieldSort())).toEqual(
+      expect.objectContaining({
+        maxItems: 1,
+        description:
+          'This agent sorts on a single field: more than one clause answers 422 multi_field_sort_not_supported.',
+      }),
+    );
+  });
+
   function documentDegradedAs(degraded: 'capabilities_unavailable' | 'no_fields') {
     return unfoldedDocument({
       collections: [

@@ -153,6 +153,7 @@ async function collectFields(
       filterable: filterable.fields,
       degraded: null,
       ...(filterable.undocumentable ? { undocumentableFilter: true as const } : {}),
+      ...(capabilities.multiFieldSort === false ? { singleFieldSort: true as const } : {}),
     };
   } catch (error) {
     // A single unreachable collection must not cost the whole document: the collection keeps its

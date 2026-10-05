@@ -51,7 +51,7 @@ async function synthesizeForLegacyLiana(
     lianaVersion: meta.liana_version ?? 'unknown',
   });
 
-  return synthesizeCapabilities(schema, logger);
+  return synthesizeCapabilities(schema, logger, meta.liana);
 }
 
 /**

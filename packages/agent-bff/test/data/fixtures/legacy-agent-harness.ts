@@ -47,6 +47,13 @@ export const LEGACY_SCHEMA = [
       { field: 'comments', type: ['Number'], relationship: 'HasMany', reference: 'Comment.id' },
     ],
   },
+  {
+    name: 'Comment',
+    fields: [
+      { field: 'id', type: 'Number', isPrimaryKey: true, isFilterable: true, isSortable: true },
+      { field: 'body', type: 'String', isFilterable: true, isSortable: true },
+    ],
+  },
 ] as unknown as ForestSchemaCollection[];
 
 export interface LegacyAgent {

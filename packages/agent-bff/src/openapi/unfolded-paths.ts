@@ -270,6 +270,7 @@ interface FieldRefs {
   sort: ReferenceObject | SchemaObject;
   anySortable: boolean;
   anyProjectable: boolean;
+  singleFieldSort: boolean;
 }
 
 function fieldRefs(deps: Deps, plan: Pick<CollectionPlan, 'key' | 'collection'>): FieldRefs {
@@ -313,6 +314,7 @@ function fieldRefs(deps: Deps, plan: Pick<CollectionPlan, 'key' | 'collection'>)
     // capabilities naming no field at all — is a collection that takes no clause.
     anySortable: sortableNames.length > 0 || !isFieldSetKnown(fields),
     anyProjectable: fields.projectable.length > 0 || !isFieldSetKnown(fields),
+    singleFieldSort: fields.singleFieldSort === true,
     sort:
       sortableNames.length === 0
         ? pool.reuse('SortClause', SortClauseSchema)
@@ -327,6 +329,15 @@ function fieldRefs(deps: Deps, plan: Pick<CollectionPlan, 'key' | 'collection'>)
             additionalProperties: false,
           }),
   };
+}
+
+const SINGLE_FIELD_SORT_NOTE =
+  'This agent sorts on a single field: more than one clause answers 422 multi_field_sort_not_supported.';
+
+function sortArray(refs: FieldRefs): SchemaObject {
+  if (!refs.singleFieldSort) return { type: 'array', items: refs.sort };
+
+  return { type: 'array', items: refs.sort, maxItems: 1, description: SINGLE_FIELD_SORT_NOTE };
 }
 
 function requestDescription(collection: UnfoldedCollection, subject: string): string {
@@ -364,7 +375,7 @@ function requestProperties(deps: Deps, plan: Pick<CollectionPlan, 'key' | 'colle
       // sortable while each request answers 422 field_not_sortable. `maxItems: 0` says what the
       // runtime does — an empty sort passes, any clause does not.
       sort: refs.anySortable
-        ? { type: 'array', items: refs.sort }
+        ? sortArray(refs)
         : {
             type: 'array',
             items: refs.sort,
