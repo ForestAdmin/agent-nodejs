@@ -1,7 +1,9 @@
 import type { Logger } from '../server';
 import type { ToolContext } from '../tool-context';
+import type { ForestField } from '../utils/schema-fetcher';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
+import { groupByRecordKey, recordKey } from '@forestadmin/agent-client';
 import { z } from 'zod';
 
 import buildClient from '../utils/agent-caller';
@@ -60,6 +62,22 @@ async function tryFetchCapabilities(
   }
 }
 
+const RESOURCE_ID_RECORD_KEY = 'id';
+
+function recordKeyPublisher(schemaFields: ForestField[]) {
+  const ambiguousKeys = new Set([RESOURCE_ID_RECORD_KEY]);
+
+  groupByRecordKey(schemaFields, field => field.field).forEach((group, key) => {
+    if (group.length > 1) ambiguousKeys.add(key);
+  });
+
+  return (name: string): { recordKey?: string } => {
+    const key = recordKey(name);
+
+    return key !== name && !ambiguousKeys.has(key) ? { recordKey: key } : {};
+  };
+}
+
 /**
  * Maps Forest Admin relationship types to simpler relation type names.
  */
@@ -98,6 +116,8 @@ Actions properties:
 - hasForm: true if action requires form input (use getActionForm to see fields)
 - download: true if action returns a file download (not executable via AI)
 
+Field names: every field name you send (filters, sort, \`fields\`, \`relation:field\`, \`relation@@@field\`, create/update attributes) is the schema name; the published key only says where to read a value in a returned record. A field or relation carrying \`recordKey\` comes back under that key in records (e.g. schema \`created_at\` is read as \`createdAt\`).
+
 Polymorphic relations (isPolymorphic=true) point to multiple collections. When creating/updating, you must set both the _id and _type fields (e.g. commentable_id and commentable_type).
 
 Check \`_meta\` for data availability context.`,
@@ -116,6 +136,7 @@ Check \`_meta\` for data availability context.`,
           // Get schema from forest server (relations, isFilterable, isSortable, etc.)
           const schema = await fetchForestSchema(forestServerClient);
           const schemaFields = getFieldsOfCollection(schema, options.collectionName);
+          const publishedRecordKey = recordKeyPublisher(schemaFields);
 
           // Try to get capabilities from agent (may be unavailable on older versions)
           const collectionCapabilities = await tryFetchCapabilities(
@@ -131,6 +152,7 @@ Check \`_meta\` for data availability context.`,
 
                 return {
                   name: capField.name,
+                  ...publishedRecordKey(capField.name),
                   type: capField.type,
                   operators: capField.operators,
                   isPrimaryKey: schemaField?.isPrimaryKey || false,
@@ -143,6 +165,7 @@ Check \`_meta\` for data availability context.`,
                 .filter(f => !f.relationship) // Only non-relation fields
                 .map(schemaField => ({
                   name: schemaField.field,
+                  ...publishedRecordKey(schemaField.field),
                   type: schemaField.type,
                   operators: null, // Not available without capabilities route
                   isPrimaryKey: schemaField.isPrimaryKey,
@@ -161,6 +184,7 @@ Check \`_meta\` for data availability context.`,
 
               return {
                 name: f.field,
+                ...publishedRecordKey(f.field),
                 type: mapRelationType(f.relationship),
                 targetCollection: isPolymorphic ? null : f.reference?.split('.')[0] || null,
                 ...(isPolymorphic && { isPolymorphic: true, polymorphicTargets }),

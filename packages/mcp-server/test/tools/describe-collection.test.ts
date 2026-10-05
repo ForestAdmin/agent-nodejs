@@ -85,6 +85,18 @@ describe('declareDescribeCollectionTool', () => {
       expect(registeredToolConfig.description).toContain('download:');
     });
 
+    it('should tell the model to send schema names and read values under recordKey', () => {
+      declareDescribeCollectionTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: [],
+      });
+
+      expect(registeredToolConfig.description).toContain(
+        'every field name you send (filters, sort, `fields`, `relation:field`, `relation@@@field`, create/update attributes) is the schema name; the published key only says where to read a value in a returned record.',
+      );
+    });
+
     it('should be annotated as read-only', () => {
       declareDescribeCollectionTool(mcpServer, {
         forestServerClient: mockForestServerClient,
@@ -1053,6 +1065,135 @@ describe('declareDescribeCollectionTool', () => {
         expect(meta.note).toBe(
           'Operators unavailable (older agent version). Fields have operators: null.',
         );
+      });
+    });
+
+    describe('record keys', () => {
+      const field = (
+        name: string,
+        overrides: Partial<schemaFetcher.ForestField> = {},
+      ): schemaFetcher.ForestField => ({
+        field: name,
+        type: 'String',
+        isSortable: true,
+        isPrimaryKey: false,
+        isReadOnly: false,
+        isRequired: false,
+        enums: null,
+        reference: null,
+        ...overrides,
+      });
+
+      const describeWith = async (
+        schemaFields: schemaFetcher.ForestField[],
+        capabilityNames?: string[],
+      ) => {
+        const mockCapabilities = capabilityNames
+          ? jest.fn().mockResolvedValue({
+              fields: capabilityNames.map(name => ({ name, type: 'String', operators: [] })),
+            })
+          : jest.fn().mockRejectedValue(new Error('404 Not Found'));
+        mockBuildClient.mockReturnValue({
+          rpcClient: { collection: jest.fn().mockReturnValue({ capabilities: mockCapabilities }) },
+          authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+        } as unknown as ReturnType<typeof buildClient>);
+        mockFetchForestSchema.mockResolvedValue({
+          collections: [{ name: 'articles', fields: schemaFields }],
+        });
+        mockGetFieldsOfCollection.mockReturnValue(schemaFields);
+
+        const result = (await registeredToolHandler({ collectionName: 'articles' }, mockExtra)) as {
+          content: { type: string; text: string }[];
+        };
+
+        return JSON.parse(result.content[0].text) as {
+          fields: { name: string; recordKey?: string }[];
+          relations: { name: string; recordKey?: string }[];
+        };
+      };
+
+      const byName = (entries: { name: string }[], name: string) =>
+        entries.find(entry => entry.name === name);
+
+      it('should publish the camelCase record key of a snake_case field in the schema fallback', async () => {
+        const { fields } = await describeWith([field('id'), field('created_at')]);
+
+        expect(byName(fields, 'created_at')).toEqual(
+          expect.objectContaining({ name: 'created_at', recordKey: 'createdAt' }),
+        );
+      });
+
+      it('should publish the camelCase record key of a snake_case field from capabilities', async () => {
+        const { fields } = await describeWith(
+          [field('id'), field('created_at')],
+          ['id', 'created_at'],
+        );
+
+        expect(byName(fields, 'created_at')).toEqual(
+          expect.objectContaining({ name: 'created_at', recordKey: 'createdAt' }),
+        );
+      });
+
+      it('should publish no record key on fields already named like their record key', async () => {
+        const { fields } = await describeWith(
+          [field('id'), field('email'), field('createdAt')],
+          ['id', 'email', 'createdAt'],
+        );
+
+        fields.forEach(entry => expect(entry).not.toHaveProperty('recordKey'));
+      });
+
+      it('should publish no record key on two fields that collapse onto one key', async () => {
+        const { fields } = await describeWith([field('first_name'), field('firstName')]);
+
+        expect(byName(fields, 'first_name')).not.toHaveProperty('recordKey');
+        expect(byName(fields, 'firstName')).not.toHaveProperty('recordKey');
+      });
+
+      it('should count relations of the schema collection when detecting a collision', async () => {
+        const { fields, relations } = await describeWith(
+          [
+            field('user_name'),
+            field('userName', { relationship: 'BelongsTo', reference: 'users.id' }),
+          ],
+          ['user_name'],
+        );
+
+        expect(byName(fields, 'user_name')).not.toHaveProperty('recordKey');
+        expect(byName(relations, 'userName')).not.toHaveProperty('recordKey');
+      });
+
+      it('should publish Id as the record key of a Mongo _id', async () => {
+        const { fields } = await describeWith([field('_id', { isPrimaryKey: true })]);
+
+        expect(byName(fields, '_id')).toEqual(
+          expect.objectContaining({ name: '_id', recordKey: 'Id' }),
+        );
+      });
+
+      it('should publish Id on _id and nothing on Id, which maps to the reserved id', async () => {
+        const { fields } = await describeWith([field('_id', { isPrimaryKey: true }), field('Id')]);
+
+        expect(byName(fields, '_id')).toEqual(
+          expect.objectContaining({ name: '_id', recordKey: 'Id' }),
+        );
+        expect(byName(fields, 'Id')).not.toHaveProperty('recordKey');
+      });
+
+      it('should publish the camelCase record key of a snake_case belongs_to relation', async () => {
+        const { relations } = await describeWith([
+          field('id'),
+          field('blog_author', { relationship: 'BelongsTo', reference: 'authors.id' }),
+        ]);
+
+        expect(relations).toEqual([
+          {
+            name: 'blog_author',
+            recordKey: 'blogAuthor',
+            type: 'many-to-one',
+            targetCollection: 'authors',
+          },
+        ]);
       });
     });
   });

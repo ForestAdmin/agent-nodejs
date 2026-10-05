@@ -81,7 +81,8 @@ export default function declareListRelatedTool(mcpServer: McpServer, ctx: ToolCo
     {
       annotations: { readOnlyHint: true },
       title: 'List records from a relation',
-      description: 'Retrieve a list of records from a one-to-many or many-to-many relation.',
+      description:
+        'Retrieve a list of records from a one-to-many or many-to-many relation. Field names follow the rule in describeCollection: send schema names, read values under the published recordKey.',
       inputSchema: listArgumentShape,
     },
     async (options: HasManyArgument, extra) => {
