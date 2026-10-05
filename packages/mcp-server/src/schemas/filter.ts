@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-const operatorEnum = z.enum([
+export const operatorEnum = z.enum([
   'Equal',
   'NotEqual',
   'LessThan',

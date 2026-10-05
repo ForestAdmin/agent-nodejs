@@ -2,8 +2,10 @@ import type { Logger } from '../server';
 import type { ToolContext } from '../tool-context';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
+import { toWireOperator } from '@forestadmin/agent-client';
 import { z } from 'zod';
 
+import { operatorEnum } from '../schemas/filter';
 import buildClient from '../utils/agent-caller';
 import {
   fetchForestSchema,
@@ -18,7 +20,34 @@ interface DescribeCollectionArgument {
 }
 
 interface CollectionCapabilities {
-  fields: { name: string; type: string; operators: string[] }[];
+  fields: { name: string; type: string; operators?: string[] }[];
+}
+
+const SNAKE_TO_PASCAL = new Map<string, string>(
+  operatorEnum.options.map(operator => [toWireOperator(operator), operator]),
+);
+
+function toListOperators(
+  operators: string[] | undefined,
+  context: { collectionName: string; fieldName: string },
+  logger: Logger,
+): string[] | undefined {
+  if (!operators) return undefined;
+
+  return operators.flatMap(operator => {
+    const listOperator = SNAKE_TO_PASCAL.get(operator);
+
+    if (!listOperator) {
+      logger(
+        'Debug',
+        `Operator ${operator} of ${context.collectionName}.${context.fieldName} is unknown to the list tool, not announced`,
+      );
+
+      return [];
+    }
+
+    return [listOperator];
+  });
 }
 
 function createDescribeCollectionArgumentShape(collectionNames: string[]) {
@@ -132,7 +161,11 @@ Check \`_meta\` for data availability context.`,
                 return {
                   name: capField.name,
                   type: capField.type,
-                  operators: capField.operators,
+                  operators: toListOperators(
+                    capField.operators,
+                    { collectionName: options.collectionName, fieldName: capField.name },
+                    logger,
+                  ),
                   isPrimaryKey: schemaField?.isPrimaryKey || false,
                   isReadOnly: schemaField?.isReadOnly || false,
                   isRequired: schemaField?.isRequired || false,
