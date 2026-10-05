@@ -86,6 +86,18 @@ describe('declareDescribeCollectionTool', () => {
       expect(registeredToolConfig.description).toContain('download:');
     });
 
+    it('should tell the model to send schema names and read values under recordKey', () => {
+      declareDescribeCollectionTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: [],
+      });
+
+      expect(registeredToolConfig.description).toContain(
+        'create/update attributes) is the schema `name`. A field or relation with a `recordKey` comes back under that key in a returned record',
+      );
+    });
+
     it('should be annotated as read-only', () => {
       declareDescribeCollectionTool(mcpServer, {
         forestServerClient: mockForestServerClient,
@@ -826,6 +838,195 @@ describe('declareDescribeCollectionTool', () => {
         expect(relation.targetCollection).toBe('commentable');
         expect(relation.isPolymorphic).toBeUndefined();
         expect(relation.polymorphicTargets).toBeUndefined();
+      });
+    });
+
+    describe('record keys', () => {
+      function schemaField(
+        field: string,
+        overrides: Partial<schemaFetcher.ForestField> = {},
+      ): schemaFetcher.ForestField {
+        return {
+          field,
+          type: 'String',
+          isSortable: true,
+          isPrimaryKey: false,
+          isReadOnly: false,
+          isRequired: false,
+          enums: null,
+          reference: null,
+          ...overrides,
+        };
+      }
+
+      function mockAgent(capabilities: () => Promise<unknown>) {
+        const mockCollection = jest
+          .fn()
+          .mockReturnValue({ capabilities: jest.fn().mockImplementation(capabilities) });
+        mockBuildClient.mockReturnValue({
+          rpcClient: { collection: mockCollection },
+          authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+        } as unknown as ReturnType<typeof buildClient>);
+      }
+
+      async function describeWith(
+        fields: schemaFetcher.ForestField[],
+        capabilities: () => Promise<unknown>,
+      ) {
+        mockAgent(capabilities);
+        mockFetchForestSchema.mockResolvedValue({ collections: [{ name: 'articles', fields }] });
+        mockGetFieldsOfCollection.mockReturnValue(fields);
+
+        const result = (await registeredToolHandler({ collectionName: 'articles' }, mockExtra)) as {
+          content: { type: string; text: string }[];
+        };
+
+        return JSON.parse(result.content[0].text) as {
+          fields: { name: string; recordKey?: string }[];
+          relations: { name: string; recordKey?: string }[];
+        };
+      }
+
+      const withoutCapabilities = () => Promise.reject(new Error('404 Not Found'));
+      const withCapabilities = (names: string[]) => () =>
+        Promise.resolve({
+          fields: names.map(name => ({ name, type: 'String', operators: ['Equal'] })),
+        });
+
+      it('should publish the camelCase record key of a snake_case field on a v1 schema', async () => {
+        const parsed = await describeWith(
+          [schemaField('id', { isPrimaryKey: true }), schemaField('created_at')],
+          withoutCapabilities,
+        );
+
+        expect(parsed.fields.find(f => f.name === 'created_at')).toHaveProperty(
+          'recordKey',
+          'createdAt',
+        );
+      });
+
+      it('should publish the record key of a snake_case field from capabilities', async () => {
+        const parsed = await describeWith(
+          [schemaField('id', { isPrimaryKey: true }), schemaField('created_at')],
+          withCapabilities(['id', 'created_at']),
+        );
+
+        expect(parsed.fields.find(f => f.name === 'created_at')).toHaveProperty(
+          'recordKey',
+          'createdAt',
+        );
+      });
+
+      it('should publish no record key when every name is already camelCase', async () => {
+        const parsed = await describeWith(
+          [schemaField('id', { isPrimaryKey: true }), schemaField('createdAt')],
+          withCapabilities(['id', 'createdAt']),
+        );
+
+        expect(parsed.fields).toEqual([
+          expect.not.objectContaining({ recordKey: expect.anything() }),
+          expect.not.objectContaining({ recordKey: expect.anything() }),
+        ]);
+      });
+
+      it('should publish no record key on fields that collide on one key', async () => {
+        const parsed = await describeWith(
+          [schemaField('first_name'), schemaField('firstName')],
+          withoutCapabilities,
+        );
+
+        expect(parsed.fields.find(f => f.name === 'first_name')).not.toHaveProperty('recordKey');
+        expect(parsed.fields.find(f => f.name === 'firstName')).not.toHaveProperty('recordKey');
+      });
+
+      it('should detect a collision with a relation the fields list leaves out', async () => {
+        const parsed = await describeWith(
+          [
+            schemaField('author_id', { type: 'Number' }),
+            schemaField('authorId', {
+              type: 'Number',
+              reference: 'users.id',
+              relationship: 'BelongsTo',
+            }),
+          ],
+          withoutCapabilities,
+        );
+
+        expect(parsed.fields.find(f => f.name === 'author_id')).not.toHaveProperty('recordKey');
+      });
+
+      it('should detect a collision with a capability field absent from the schema', async () => {
+        const parsed = await describeWith(
+          [schemaField('first_name')],
+          withCapabilities(['first_name', 'firstName']),
+        );
+
+        expect(parsed.fields.find(f => f.name === 'first_name')).not.toHaveProperty('recordKey');
+      });
+
+      it('should publish Id as the record key of a Mongo _id', async () => {
+        const parsed = await describeWith(
+          [schemaField('_id', { isPrimaryKey: true })],
+          withoutCapabilities,
+        );
+
+        expect(parsed.fields.find(f => f.name === '_id')).toHaveProperty('recordKey', 'Id');
+      });
+
+      it('should publish Id for _id and nothing for Id, which maps to the reserved id', async () => {
+        const parsed = await describeWith(
+          [schemaField('_id', { isPrimaryKey: true }), schemaField('Id')],
+          withoutCapabilities,
+        );
+
+        expect(parsed.fields.find(f => f.name === '_id')).toHaveProperty('recordKey', 'Id');
+        expect(parsed.fields.find(f => f.name === 'Id')).not.toHaveProperty('recordKey');
+      });
+
+      it('should publish the record key of a snake_case relation', async () => {
+        const parsed = await describeWith(
+          [
+            schemaField('id', { isPrimaryKey: true }),
+            schemaField('blog_author', {
+              type: 'Number',
+              reference: 'users.id',
+              relationship: 'BelongsTo',
+            }),
+          ],
+          withoutCapabilities,
+        );
+
+        expect(parsed.relations).toEqual([
+          {
+            name: 'blog_author',
+            recordKey: 'blogAuthor',
+            type: 'many-to-one',
+            targetCollection: 'users',
+          },
+        ]);
+      });
+
+      it('should publish the same record key on a many-to-one listed in both fields and relations', async () => {
+        const parsed = await describeWith(
+          [
+            schemaField('id', { isPrimaryKey: true }),
+            schemaField('blog_author', {
+              type: 'Number',
+              reference: 'users.id',
+              relationship: 'BelongsTo',
+            }),
+          ],
+          withCapabilities(['id', 'blog_author']),
+        );
+
+        expect(parsed.fields.find(f => f.name === 'blog_author')).toHaveProperty(
+          'recordKey',
+          'blogAuthor',
+        );
+        expect(parsed.relations.find(r => r.name === 'blog_author')).toHaveProperty(
+          'recordKey',
+          'blogAuthor',
+        );
       });
     });
 

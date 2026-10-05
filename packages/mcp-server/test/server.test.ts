@@ -1317,7 +1317,7 @@ describe('ForestMCPServer Instance', () => {
       );
       expect(listTool).toBeDefined();
       expect(listTool.description).toBe(
-        'Retrieve a list of records from the specified collection.',
+        'Retrieve a list of records from the specified collection. Send schema field names; read each value under its `recordKey` when describeCollection publishes one.',
       );
       expect(listTool.inputSchema).toBeDefined();
       expect(listTool.inputSchema.properties).toHaveProperty('collectionName');
