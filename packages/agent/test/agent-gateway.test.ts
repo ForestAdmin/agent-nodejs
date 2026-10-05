@@ -120,7 +120,7 @@ describe('Agent.addGateway', () => {
       await agent.start();
 
       expect(gatewayLog(logger, 'MCP')).toBe(
-        '[Gateway] MCP: /mcp, /mcp/uploads, /oauth/*, /.well-known/*',
+        '[Gateway] MCP: /mcp, /mcp/uploads, /oauth/*, /.well-known/oauth-authorization-server, /.well-known/oauth-protected-resource/mcp',
       );
       expect(gatewayLog(logger, 'API')).toBe(
         '[Gateway] API: /api/agent/*, /api/health, /oauth/*?service=api',
@@ -174,7 +174,9 @@ describe('Agent.addGateway', () => {
 
       await agent.start();
 
-      expect(gatewayLog(logger, 'MCP')).toBe('[Gateway] MCP: /mcp, /oauth/*, /.well-known/*');
+      expect(gatewayLog(logger, 'MCP')).toBe(
+        '[Gateway] MCP: /mcp, /oauth/*, /.well-known/oauth-authorization-server, /.well-known/oauth-protected-resource/mcp',
+      );
     });
 
     it('should log only the enabled service', async () => {
@@ -184,7 +186,7 @@ describe('Agent.addGateway', () => {
       await agent.start();
 
       expect(gatewayLog(logger, 'MCP')).toBe(
-        '[Gateway] MCP: /mcp, /mcp/uploads, /oauth/*, /.well-known/*',
+        '[Gateway] MCP: /mcp, /mcp/uploads, /oauth/*, /.well-known/oauth-authorization-server, /.well-known/oauth-protected-resource/mcp',
       );
       expect(() => gatewayLog(logger, 'API')).toThrow();
     });

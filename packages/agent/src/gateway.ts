@@ -106,17 +106,12 @@ export function describeGatewayRoutes(basePath: string, { mcp, api }: GatewaySer
   const lines: string[] = [];
 
   if (mcp) {
-    const discovery = basePath
-      ? [
-          `/.well-known/oauth-authorization-server${basePath}`,
-          `/.well-known/oauth-protected-resource${basePath}/mcp`,
-        ]
-      : ['/.well-known/*'];
     const routes = [
       `${basePath}/mcp`,
       ...(servesInMemoryUploads(mcp) ? [`${basePath}/mcp/uploads`] : []),
       `${basePath}/oauth/*`,
-      ...discovery,
+      `/.well-known/oauth-authorization-server${basePath}`,
+      `/.well-known/oauth-protected-resource${basePath}/mcp`,
     ];
 
     lines.push(`[Gateway] MCP: ${routes.join(', ')}`);
