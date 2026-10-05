@@ -141,6 +141,9 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
       await this.embeddedExecutor?.start(this.standaloneServerHost, this.standaloneServerPort);
       // Same reason, without the socket: the dispatcher injects into the stack mount() just built.
       await this.embeddedBff?.start(this.getInProcessDispatcher());
+      // Here rather than in initializeMcpServer(): that one reruns on every restart() and each run
+      // would cost a SaaS round-trip for a warning already given.
+      if (this.mcpEnabled) await this.warnIfMcpExemptFromIpWhitelist();
     } catch (error) {
       // Only when nothing was mounted. Past mount() the host framework is already serving this
       // agent, so it is not configurable again: clearing the flag would let a later addBff() past
@@ -510,6 +513,28 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     routes.forEach(route => route.setupRoutes(router));
 
     return { router, mcp };
+  }
+
+  private async warnIfMcpExemptFromIpWhitelist(): Promise<void> {
+    try {
+      const { isFeatureEnabled } =
+        await this.options.forestAdminClient.getIpWhitelistConfiguration();
+
+      if (!isFeatureEnabled) return;
+
+      this.options.logger(
+        'Warn',
+        '[MCP] The IP whitelist is enabled for this environment, but it filters none of the MCP ' +
+          'routes (/mcp, /mcp/uploads, /oauth/*, /.well-known/*): the MCP server is mounted ' +
+          'in-process, which the whitelist exempts as a trusted loopback caller. Tool calls on ' +
+          '/mcp still require a valid MCP OAuth token.',
+      );
+    } catch (error) {
+      this.options.logger(
+        'Debug',
+        `[MCP] Could not read the IP whitelist configuration: ${(error as Error).message}`,
+      );
+    }
   }
 
   /**

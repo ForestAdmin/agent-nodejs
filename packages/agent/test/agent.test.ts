@@ -792,5 +792,76 @@ describe('Agent', () => {
         expect.stringContaining('Failed to initialize MCP server'),
       );
     });
+
+    describe('IP whitelist warning', () => {
+      const warning = expect.stringContaining('[MCP] The IP whitelist is enabled');
+
+      const build = (getIpWhitelistConfiguration: jest.Mock) => {
+        const logger = jest.fn();
+        const forestAdminClient = factories.forestAdminClient.build({
+          getIpWhitelistConfiguration,
+        });
+        const agent = new Agent(
+          factories.forestAdminHttpDriverOptions.build({ logger, forestAdminClient }),
+        );
+
+        return { agent, logger };
+      };
+
+      test('warns once when the whitelist is enabled', async () => {
+        const { agent, logger } = build(jest.fn().mockResolvedValue({ isFeatureEnabled: true }));
+
+        agent.mountAiMcpServer();
+        await agent.start();
+
+        expect(logger.mock.calls.filter(([level]) => level === 'Warn')).toEqual([
+          ['Warn', warning],
+        ]);
+      });
+
+      test('does not warn when the whitelist is disabled', async () => {
+        const { agent, logger } = build(jest.fn().mockResolvedValue({ isFeatureEnabled: false }));
+
+        agent.mountAiMcpServer();
+        await agent.start();
+
+        expect(logger).not.toHaveBeenCalledWith('Warn', warning);
+      });
+
+      test('does not warn when the MCP server is not mounted', async () => {
+        const getConfiguration = jest.fn().mockResolvedValue({ isFeatureEnabled: true });
+        const { agent, logger } = build(getConfiguration);
+
+        await agent.start();
+
+        expect(logger).not.toHaveBeenCalledWith('Warn', warning);
+      });
+
+      test('does not warn again on restart', async () => {
+        const getConfiguration = jest.fn().mockResolvedValue({ isFeatureEnabled: true });
+        const { agent, logger } = build(getConfiguration);
+
+        agent.mountAiMcpServer();
+        await agent.start();
+        await agent.restart();
+
+        expect(
+          logger.mock.calls.filter(([, message]) => /IP whitelist is enabled/.test(message)),
+        ).toHaveLength(1);
+        expect(getConfiguration).toHaveBeenCalledTimes(1);
+      });
+
+      test('keeps booting and logs at Debug when the configuration cannot be read', async () => {
+        const { agent, logger } = build(jest.fn().mockRejectedValue(new Error('saas down')));
+
+        agent.mountAiMcpServer();
+        await expect(agent.start()).resolves.toBeUndefined();
+
+        expect(logger).toHaveBeenCalledWith(
+          'Debug',
+          '[MCP] Could not read the IP whitelist configuration: saas down',
+        );
+      });
+    });
   });
 });
