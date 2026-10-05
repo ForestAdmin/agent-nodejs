@@ -23,6 +23,8 @@ function v1Apimap(): ForestSchemaCollection {
   } as unknown as ForestSchemaCollection;
 }
 
+const LIANA = 'forest-express-sequelize';
+
 describe('synthesizeCapabilities', () => {
   let logger: Logger;
 
@@ -31,7 +33,9 @@ describe('synthesizeCapabilities', () => {
   });
 
   function fieldNamed(name: string) {
-    return synthesizeCapabilities(v1Apimap(), logger).fields.find(field => field.name === name);
+    return synthesizeCapabilities(v1Apimap(), logger, LIANA).fields.find(
+      field => field.name === name,
+    );
   }
 
   describe('the operator set', () => {
@@ -96,14 +100,11 @@ describe('synthesizeCapabilities', () => {
       },
     );
 
-    it.each([['forest-rails'], [undefined]])(
-      'should leave it unstated for %s, which reads a comma-separated sort',
-      liana => {
-        expect(synthesizeCapabilities(v1Apimap(), logger, liana)).not.toHaveProperty(
-          'multiFieldSort',
-        );
-      },
-    );
+    it('should leave it unstated for forest-rails, which reads a comma-separated sort', () => {
+      expect(synthesizeCapabilities(v1Apimap(), logger, 'forest-rails')).not.toHaveProperty(
+        'multiFieldSort',
+      );
+    });
   });
 
   describe('when the apimap denies a capability', () => {
@@ -135,7 +136,7 @@ describe('synthesizeCapabilities', () => {
           fields: [{ field: 'tags', type, isFilterable: true }],
         } as unknown as ForestSchemaCollection;
 
-        const result = synthesizeCapabilities(collection, logger);
+        const result = synthesizeCapabilities(collection, logger, LIANA);
 
         expect(result.fields[0].operators).toEqual([]);
       },
@@ -149,7 +150,7 @@ describe('synthesizeCapabilities', () => {
         fields: [{ field: 'weird', type: 'SomethingElse', isFilterable: true }],
       } as unknown as ForestSchemaCollection;
 
-      const result = synthesizeCapabilities(collection, logger);
+      const result = synthesizeCapabilities(collection, logger, LIANA);
 
       expect(result.fields[0].operators).toEqual([]);
       expect(logger).toHaveBeenCalledWith(

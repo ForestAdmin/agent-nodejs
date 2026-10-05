@@ -86,7 +86,9 @@ describe('the schema a pre-9.17.6 forest_liana publishes', () => {
   });
 
   it('should synthesize capabilities for every collection without throwing', () => {
-    const results = collections.map(collection => synthesizeCapabilities(collection, noopLogger));
+    const results = collections.map(collection =>
+      synthesizeCapabilities(collection, noopLogger, 'forest-rails'),
+    );
 
     expect(results).toHaveLength(collections.length);
     expect(results.every(result => Array.isArray(result.fields))).toBe(true);
@@ -96,7 +98,7 @@ describe('the schema a pre-9.17.6 forest_liana publishes', () => {
     const withRelations = collections.find(collection =>
       (collection.fields ?? []).some(field => field.relationship === 'BelongsTo'),
     );
-    const capabilities = synthesizeCapabilities(withRelations!, noopLogger);
+    const capabilities = synthesizeCapabilities(withRelations!, noopLogger, 'forest-rails');
     const toOne = (withRelations?.fields ?? []).find(
       field => field.relationship === 'BelongsTo',
     )?.field;
@@ -125,7 +127,7 @@ describe('the schema a pre-9.17.6 forest_liana publishes', () => {
     expect(denied.length).toBeGreaterThan(0);
 
     const leaked = denied.filter(({ collection, name }) => {
-      const published = synthesizeCapabilities(collection, noopLogger).fields.find(
+      const published = synthesizeCapabilities(collection, noopLogger, 'forest-rails').fields.find(
         entry => entry.name === name,
       );
 
@@ -145,7 +147,7 @@ describe('the schema a pre-9.17.6 forest_liana publishes', () => {
     expect(denied.length).toBeGreaterThan(0);
 
     const sortable = denied.filter(({ collection, name }) => {
-      const published = synthesizeCapabilities(collection, noopLogger).fields.find(
+      const published = synthesizeCapabilities(collection, noopLogger, 'forest-rails').fields.find(
         entry => entry.name === name,
       );
 
@@ -174,7 +176,7 @@ describe('the schema a pre-9.17.6 forest_liana publishes', () => {
       ],
     } as unknown as ForestSchemaCollection;
 
-    const published = synthesizeCapabilities(collection, noopLogger).fields.find(
+    const published = synthesizeCapabilities(collection, noopLogger, 'forest-rails').fields.find(
       entry => entry.name === 'author',
     );
 
