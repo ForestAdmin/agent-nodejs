@@ -5,6 +5,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
 
+import filterSchema from '../../src/schemas/filter';
 import declareDescribeCollectionTool from '../../src/tools/describe-collection';
 import buildClient from '../../src/utils/agent-caller';
 import * as schemaFetcher from '../../src/utils/schema-fetcher';
@@ -215,8 +216,8 @@ describe('declareDescribeCollectionTool', () => {
       it('should return fields from capabilities with schema metadata', async () => {
         const mockCapabilities = jest.fn().mockResolvedValue({
           fields: [
-            { name: 'id', type: 'Number', operators: ['Equal', 'NotEqual'] },
-            { name: 'name', type: 'String', operators: ['Equal', 'Contains'] },
+            { name: 'id', type: 'Number', operators: ['equal', 'not_equal'] },
+            { name: 'name', type: 'String', operators: ['equal', 'contains'] },
           ],
         });
         const mockCollection = jest.fn().mockReturnValue({ capabilities: mockCapabilities });
@@ -283,6 +284,99 @@ describe('declareDescribeCollectionTool', () => {
             isSortable: true,
           },
         ]);
+      });
+    });
+
+    describe('operator vocabulary', () => {
+      const SERVED_BY_AGENTS = [
+        'equal',
+        'not_equal',
+        'less_than',
+        'greater_than',
+        'less_than_or_equal',
+        'greater_than_or_equal',
+        'match',
+        'like',
+        'i_like',
+        'not_contains',
+        'contains',
+        'i_contains',
+        'not_i_contains',
+        'longer_than',
+        'shorter_than',
+        'includes_all',
+        'present',
+        'blank',
+        'in',
+        'not_in',
+        'starts_with',
+        'i_starts_with',
+        'ends_with',
+        'i_ends_with',
+        'missing',
+        'before',
+        'after',
+        'after_x_hours_ago',
+        'before_x_hours_ago',
+        'future',
+        'past',
+        'today',
+        'yesterday',
+        'previous_week',
+        'previous_month',
+        'previous_quarter',
+        'previous_year',
+        'previous_week_to_date',
+        'previous_month_to_date',
+        'previous_quarter_to_date',
+        'previous_year_to_date',
+        'previous_x_days',
+        'previous_x_days_to_date',
+      ];
+
+      async function describeWith(fields: unknown[]) {
+        const mockCapabilities = jest.fn().mockResolvedValue({ fields });
+        mockBuildClient.mockReturnValue({
+          rpcClient: { collection: jest.fn().mockReturnValue({ capabilities: mockCapabilities }) },
+          authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+        } as unknown as ReturnType<typeof buildClient>);
+        mockFetchForestSchema.mockResolvedValue({ collections: [{ name: 'users', fields: [] }] });
+        mockGetFieldsOfCollection.mockReturnValue([]);
+
+        const result = (await registeredToolHandler({ collectionName: 'users' }, mockExtra)) as {
+          content: { text: string }[];
+        };
+
+        return JSON.parse(result.content[0].text).fields;
+      }
+
+      it('announces every operator agent-ruby serves in a value the list tool accepts', async () => {
+        const [field] = await describeWith([
+          { name: 'price', type: 'Number', operators: SERVED_BY_AGENTS },
+        ]);
+
+        field.operators.forEach((operator: string) => {
+          expect(filterSchema.safeParse({ field: 'price', operator, value: 50 }).success).toBe(
+            true,
+          );
+        });
+        expect(field.operators).toHaveLength(SERVED_BY_AGENTS.length);
+        expect(field.operators.slice(0, 3)).toEqual(['Equal', 'NotEqual', 'LessThan']);
+      });
+
+      it('drops an operator the list tool does not know and logs it at Debug', async () => {
+        const [field] = await describeWith([
+          { name: 'price', type: 'Number', operators: ['less_than', 'fuzzy_match'] },
+        ]);
+
+        expect(field.operators).toEqual(['LessThan']);
+        expect(mockLogger).toHaveBeenCalledWith('Debug', expect.stringContaining('fuzzy_match'));
+      });
+
+      it('leaves a field without operators (ManyToOne) without operators', async () => {
+        const [field] = await describeWith([{ name: 'owner', type: 'Number' }]);
+
+        expect(field).not.toHaveProperty('operators');
       });
     });
 
