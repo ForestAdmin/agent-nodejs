@@ -1,3 +1,10 @@
+## @forestadmin/workflow-executor [1.31.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.31.1...@forestadmin/workflow-executor@1.31.2) (2026-10-05)
+
+
+### Bug Fixes
+
+* **workflow-executor,mcp-server:** let the AI fill the form fields a change hook reveals ([#1959](https://github.com/ForestAdmin/agent-nodejs/issues/1959)) ([f9c0bcb](https://github.com/ForestAdmin/agent-nodejs/commit/f9c0bcb00f81b5d27404545cc5c053a8c63990dd))
+
 ## @forestadmin/workflow-executor [1.31.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.31.0...@forestadmin/workflow-executor@1.31.1) (2026-10-05)
 
 
