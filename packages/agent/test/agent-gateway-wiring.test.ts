@@ -303,6 +303,29 @@ describe.each([
     expect(mockBuildBff).not.toHaveBeenCalled();
   });
 
+  it('should answer stopped on the MCP when stop() lands while the gateway is preparing', async () => {
+    const { agent } = buildAgent();
+    agent.addGateway({ mcp: true });
+    const app = mount(agent);
+    const preparing = deferred<void>();
+    const prepare = (agent as any).prepareGateway.bind(agent);
+    jest.spyOn(agent as any, 'prepareGateway').mockImplementation(async () => {
+      await preparing.promise;
+      await prepare();
+    });
+    const prepareCalls = jest.mocked((agent as any).prepareGateway).mock.calls;
+
+    const starting = agent.start();
+    await until(() => prepareCalls.length > 0);
+    await agent.stop();
+    preparing.resolve();
+    await starting;
+
+    const mcp = await request(app).post('/mcp');
+    expect(mcp.status).toBe(503);
+    expect(mcp.body.error_description).toBe('The MCP server was stopped with the agent.');
+  });
+
   it('should not build the API when stop() lands after mount() but before its build', async () => {
     const executorStart = deferred<void>();
     const { agent } = buildAgent();

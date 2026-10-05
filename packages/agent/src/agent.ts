@@ -152,7 +152,14 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
       // serving /forest with a permanently bricked /bff.
       await this.prepareGateway();
       await this.embeddedBff?.prepare();
-      if (this.gateway) this.setRootHandlers();
+
+      if (this.gateway) {
+        this.setRootHandlers(
+          this.isStopped && this.gateway.services.mcp
+            ? mcpUnavailable(this.gateway.basePath, 'stopped')
+            : undefined,
+        );
+      }
 
       this.warnIfMcpAliasUsed();
 
