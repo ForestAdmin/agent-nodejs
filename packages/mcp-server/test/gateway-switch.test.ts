@@ -268,7 +268,7 @@ describe('createGatewaySwitch', () => {
       next,
     );
 
-    expect(next).toHaveBeenCalledTimes(1);
+    expect(next.mock.calls).toEqual([[]]);
     expect(seen).toEqual([]);
   });
 
