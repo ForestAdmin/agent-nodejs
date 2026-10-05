@@ -1,3 +1,10 @@
+# @forestadmin/agent-bff [1.37.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.36.1...@forestadmin/agent-bff@1.37.0) (2026-10-05)
+
+
+### Features
+
+* **mcp-server:** add gateway switch for mcp and api routing ([#1958](https://github.com/ForestAdmin/agent-nodejs/issues/1958)) ([1cb907e](https://github.com/ForestAdmin/agent-nodejs/commit/1cb907e8eb0374da4e851a405083345dbaecdf10))
+
 ## @forestadmin/agent-bff [1.36.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.36.0...@forestadmin/agent-bff@1.36.1) (2026-10-05)
 
 
