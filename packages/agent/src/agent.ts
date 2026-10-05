@@ -141,20 +141,14 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
       await this.prepareGateway();
       await this.embeddedBff?.prepare();
 
-      if (this.mcpEnabled && !this.gateway) {
-        this.options.logger(
-          'Warn',
-          '[MCP] mountAiMcpServer() is deprecated: use addGateway({ mcp }) instead. ' +
-            'It keeps serving on its current paths.',
-        );
-      }
+      this.warnIfMcpAliasUsed();
 
       const { router, mcp } = await this.buildRouterAndSendSchema();
 
       await this.options.forestAdminClient.subscribeToServerEvents();
       this.options.forestAdminClient.onRefreshCustomizations(this.restart.bind(this));
 
-      this.setMcpCallback(this.gateway ? null : mcp ?? null);
+      this.setMcpCallback(this.mcpRootHandler(mcp));
       await this.mount(router);
       mounted = true;
 
@@ -245,7 +239,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
       // We force sending schema when restarting
       const { router, mcp } = await this.buildRouterAndSendSchema();
 
-      this.setMcpCallback(this.gateway ? null : mcp ?? null);
+      this.setMcpCallback(this.mcpRootHandler(mcp));
       await this.remount(router);
       // A restart means the customizations changed, so the schema the BFF read is stale.
       this.embeddedBff?.invalidate();
@@ -536,6 +530,22 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     assertNoGatewayOverlap(basePath, this.completeMountPrefix, services);
     this.gateway.basePath = basePath;
     if (services.mcp) this.mcpBasePath = basePath || undefined;
+  }
+
+  private warnIfMcpAliasUsed(): void {
+    if (!this.mcpEnabled || this.gateway) return;
+
+    this.options.logger(
+      'Warn',
+      '[MCP] mountAiMcpServer() is deprecated: use addGateway({ mcp }) instead. ' +
+        'It keeps serving on its current paths.',
+    );
+  }
+
+  private mcpRootHandler(mcp?: RootHandler): RootHandler | null {
+    if (this.gateway) return null;
+
+    return mcp ?? null;
   }
 
   private logGatewayRoutes(): void {
