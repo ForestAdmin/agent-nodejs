@@ -388,7 +388,7 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
           grant_type: 'refresh_token',
           refresh_token: decoded.serverRefreshToken,
           client_id: client.client_id,
-          scopes,
+          scope: scopes?.join(' ') || undefined,
         },
         sessionStartedAt,
       );
