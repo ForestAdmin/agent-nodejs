@@ -1,6 +1,7 @@
 import type { PrimaryKeyField } from '../read-model/read-model';
 
-import recordKey from './record-key';
+import { recordKey } from '@forestadmin/agent-client';
+
 import { mappingError } from '../http/bff-local-errors';
 
 export const PACKED_ID_SEPARATOR = '|';

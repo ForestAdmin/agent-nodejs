@@ -1,4 +1,4 @@
-import recordKey from '../../src/data/record-key';
+import recordKey from '../src/record-key';
 
 describe('recordKey', () => {
   it('should leave an already-clean name untouched', () => {

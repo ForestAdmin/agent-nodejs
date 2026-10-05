@@ -7,7 +7,7 @@ import type {
   ForestSchemaField,
 } from '@forestadmin/forestadmin-client';
 
-import recordKey, { groupByRecordKey } from '../data/record-key';
+import { groupByRecordKey, recordKey } from '@forestadmin/agent-client';
 
 export interface ContextActionField {
   field: string;
