@@ -320,10 +320,39 @@ describe('unpackPrimaryKey', () => {
       });
     });
 
-    it('should throw on a pipe id that happens to parse as a JSON array the record does not back', () => {
-      expect(() =>
-        unpackPrimaryKey('["a|b",1]', LIANA_KEYS, { tenantId: '["a', seq: 'b",1]' }),
-      ).toThrow(MAPPING_ERROR);
+    describe('when the id reads both as a JSON array and as pipe segments', () => {
+      const STRING_KEYS = [
+        { name: 'k1', type: 'String' },
+        { name: 'k2', type: 'String' },
+      ];
+
+      it('should keep the pipe reading when the record backs every segment', () => {
+        expect(unpackPrimaryKey('[")a|b",1]', STRING_KEYS, { k1: '[")a', k2: 'b",1]' })).toEqual({
+          k1: '[")a',
+          k2: 'b",1]',
+        });
+      });
+
+      it('should keep the pipe reading over a JSON reading the record only partly backs', () => {
+        const packedId = '["a|b","[\\"a"]';
+
+        expect(unpackPrimaryKey(packedId, STRING_KEYS, { k1: '["a', k2: 'b","[\\"a"]' })).toEqual({
+          k1: '["a',
+          k2: 'b","[\\"a"]',
+        });
+      });
+
+      it('should throw rather than give a key the leftover value when neither reading is fully backed', () => {
+        expect(() => unpackPrimaryKey('["a|b",1]', STRING_KEYS, { k1: '["a' })).toThrow(
+          MAPPING_ERROR,
+        );
+      });
+
+      it('should throw when only a JSON reading with an unread key is left', () => {
+        expect(() => unpackPrimaryKey('["a|b",1]', LIANA_KEYS, { tenantId: 'a|b' })).toThrow(
+          MAPPING_ERROR,
+        );
+      });
     });
 
     it('should leave a pipe id on the pipe path', () => {

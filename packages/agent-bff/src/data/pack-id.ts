@@ -77,6 +77,7 @@ function matchedByRecord(
   values: string[],
   primaryKeys: PrimaryKeyField[],
   record: Record<string, unknown>,
+  unreadAllowed = 1,
 ): string[] | null {
   const claimed = values.map(() => false);
   const matched = primaryKeys.map(key => {
@@ -88,7 +89,7 @@ function matchedByRecord(
     return index === -1 ? null : values[index];
   });
 
-  if (matched.filter(value => value === null).length > 1) return null;
+  if (matched.filter(value => value === null).length > unreadAllowed) return null;
 
   const leftovers = values.filter((_, index) => !claimed[index]);
 
@@ -117,22 +118,42 @@ function parseJsonArrayId(packedId: string, keyCount: number): unknown[] | null 
   }
 }
 
-function jsonArrayValue(element: unknown): string {
-  if (typeof element === 'string') return element;
-  if (typeof element === 'number' && Number.isSafeInteger(element)) return String(element);
+function jsonArrayValues(elements: unknown[]): string[] | null {
+  const values = elements.map(element => {
+    if (typeof element === 'string') return element;
 
-  const kind = element === null ? 'null' : typeof element;
+    return typeof element === 'number' && Number.isSafeInteger(element) ? String(element) : null;
+  });
 
-  throw mappingError(`Cannot build primary key: unsupported ${kind} value in a composite id`);
+  return values.every((value): value is string => value !== null) ? values : null;
+}
+
+function recordBackedSegments(
+  packedId: string,
+  elements: unknown[],
+  primaryKeys: PrimaryKeyField[],
+  record: Record<string, unknown>,
+): string[] | null {
+  const values = jsonArrayValues(elements);
+  const pipeValues = packedId.split(PACKED_ID_SEPARATOR);
+
+  if (pipeValues.length !== primaryKeys.length) {
+    return values && matchedByRecord(values, primaryKeys, record);
+  }
+
+  return (
+    matchedByRecord(pipeValues, primaryKeys, record, 0) ??
+    (values && matchedByRecord(values, primaryKeys, record, 0))
+  );
 }
 
 function jsonArraySegments(
+  packedId: string,
   elements: unknown[],
   primaryKeys: PrimaryKeyField[],
   record?: Record<string, unknown>,
 ): string[] {
-  const values = elements.map(jsonArrayValue);
-  const segments = record ? matchedByRecord(values, primaryKeys, record) : null;
+  const segments = record ? recordBackedSegments(packedId, elements, primaryKeys, record) : null;
 
   if (!segments) {
     throw mappingError(
@@ -190,7 +211,7 @@ export default function unpackPrimaryKey(
 
   const elements = parseJsonArrayId(packedId, primaryKeys.length);
   const segments = elements
-    ? jsonArraySegments(elements, primaryKeys, record)
+    ? jsonArraySegments(packedId, elements, primaryKeys, record)
     : pipeSegments(packedId, primaryKeys, record);
   const result: Record<string, string | number> = {};
 
