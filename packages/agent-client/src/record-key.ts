@@ -33,3 +33,18 @@ export function groupByRecordKey<T>(
 
   return byKey;
 }
+
+const RESOURCE_ID_KEY = 'id';
+
+export function publishedRecordKeys(namesOfEveryField: readonly string[]): Map<string, string> {
+  const published = new Map<string, string>();
+
+  for (const [key, group] of groupByRecordKey(namesOfEveryField, name => name)) {
+    const [name] = group;
+    const isUnambiguous = group.length === 1 && key !== RESOURCE_ID_KEY;
+
+    if (isUnambiguous && key !== name) published.set(name, key);
+  }
+
+  return published;
+}

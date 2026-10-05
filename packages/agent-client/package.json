@@ -14,6 +14,7 @@
   "dependencies": {
     "@forestadmin/datasource-toolkit": "1.55.1",
     "@forestadmin/forestadmin-client": "1.43.4",
+    "inflected": "^1.1.6",
     "jsonapi-serializer": "^3.6.9",
     "superagent": "^10.3.0"
   },
@@ -29,6 +30,7 @@
     "test": "jest"
   },
   "devDependencies": {
+    "@types/inflected": "^1.1.29",
     "@types/superagent": "^8.1.9"
   }
 }

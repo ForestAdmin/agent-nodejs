@@ -1,10 +1,11 @@
 import type { ProjectableField, UnfoldedCollection } from './unfolding';
 import type { ReferenceObject, SchemaObject } from 'openapi3-ts/oas31';
 
+import { groupByRecordKey } from '@forestadmin/agent-client';
+
 import toFieldSchema from './field-schemas';
 import { quoted } from './names';
 import { PACKED_ID_SEPARATOR } from '../data/pack-id';
-import { groupByRecordKey } from '../data/record-key';
 
 // The flat id is the JSON:API resource id, which is a string by specification whatever the key
 // column holds. `__forest.primaryKey` is the same id unpacked and typed, so the two forms of one

@@ -103,7 +103,7 @@ describe('declareListRelatedTool', () => {
 
       expect(registeredToolConfig.title).toBe('List records from a relation');
       expect(registeredToolConfig.description).toBe(
-        'Retrieve a list of records from a one-to-many or many-to-many relation.',
+        'Retrieve a list of records from a one-to-many or many-to-many relation. Send schema field names; read each value under its `recordKey` when describeCollection publishes one.',
       );
     });
 

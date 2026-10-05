@@ -84,7 +84,8 @@ export default function declareListTool(mcpServer: McpServer, ctx: ToolContext):
     {
       annotations: { readOnlyHint: true },
       title: 'List records from a collection',
-      description: 'Retrieve a list of records from the specified collection.',
+      description:
+        'Retrieve a list of records from the specified collection. Send schema field names; read each value under its `recordKey` when describeCollection publishes one.',
       inputSchema: listArgumentShape,
     },
     async (options: ListArgument, extra) => {
