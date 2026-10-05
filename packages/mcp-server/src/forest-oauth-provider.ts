@@ -41,7 +41,7 @@ const DecodedRefreshTokenSchema = z.object({
 });
 
 const DecodedAccessTokenSchema = z.object({
-  type: z.undefined(),
+  type: z.undefined().optional(),
   id: z.number(),
   email: z.string(),
   renderingId: z.number(),
