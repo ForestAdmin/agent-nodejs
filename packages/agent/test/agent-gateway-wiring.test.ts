@@ -318,6 +318,7 @@ describe.each([
     expect((await request(app).get('/api/health')).body.error.type).toBe('bff_stopped');
     expect((await request(app).post('/mcp')).status).toBe(503);
     expect(mockBuildBff).not.toHaveBeenCalled();
+    expect((agent as any).options.forestAdminClient.subscribeToServerEvents).not.toHaveBeenCalled();
   });
 
   it('should answer stopped on the MCP when stop() lands while the gateway is preparing', async () => {

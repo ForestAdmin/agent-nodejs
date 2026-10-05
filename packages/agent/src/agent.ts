@@ -160,10 +160,11 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
 
       const { router, mcp } = await this.buildRouterAndSendSchema();
 
+      if (this.isStopped) return;
+
       await this.options.forestAdminClient.subscribeToServerEvents();
       this.options.forestAdminClient.onRefreshCustomizations(this.restart.bind(this));
 
-      if (this.isStopped) return;
       this.setRootHandlers(mcp);
       await this.mount(router);
       mounted = true;
