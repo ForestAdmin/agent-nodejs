@@ -1,10 +1,4 @@
-import {
-  MCP_PATHS,
-  buildMcpPaths,
-  isMcpRoute,
-  makeIsMcpRoute,
-  normalizeMountPath,
-} from '../src/mcp-paths';
+import { buildMcpPaths, isMcpRoute, makeIsMcpRoute, normalizeMountPath } from '../src/mcp-paths';
 
 describe('mcp-paths', () => {
   describe('normalizeMountPath', () => {
@@ -80,10 +74,6 @@ describe('mcp-paths', () => {
   });
 
   describe('default exports (root)', () => {
-    it('MCP_PATHS is the root path set', () => {
-      expect(MCP_PATHS).toEqual(buildMcpPaths(''));
-    });
-
     it.each(['/oauth/token', '/mcp', '/mcp?foo=1'])('isMcpRoute claims %p', url => {
       expect(isMcpRoute(url)).toBe(true);
     });
