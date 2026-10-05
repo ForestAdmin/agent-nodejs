@@ -575,7 +575,7 @@ export default class ForestMCPServer {
     // agent itself is at the domain root. Fail loudly rather than advertise URLs we can't serve.
     if (prefix && effectiveBaseUrl.pathname !== '/') {
       throw new Error(
-        `MCP basePath "${prefix}" requires the agent to be served at the domain root, but its ` +
+        `basePath "${prefix}" requires the agent to be served at the domain root, but its ` +
           `base URL has a path ("${effectiveBaseUrl.pathname}"). Remove the basePath or mount ` +
           `the agent at the root.`,
       );
