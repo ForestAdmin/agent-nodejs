@@ -556,16 +556,12 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   }
 
   private gatewayApi(basePath: string, options: BffEmbedOptions): EmbeddedBff {
-    this.embeddedBff ??= new EmbeddedBff(
-      this.options,
-      options,
-      {
-        prefix: `${basePath}/api`,
-        requiredVersion: AGENT_BFF_PEER_VERSION,
-        skipIpWhitelistWarning: Boolean(this.gateway?.services.mcp),
-      },
-      'The Gateway API',
-    );
+    this.embeddedBff ??= new EmbeddedBff(this.options, options, {
+      prefix: `${basePath}/api`,
+      name: 'The Gateway API',
+      requiredVersion: AGENT_BFF_PEER_VERSION,
+      skipIpWhitelistWarning: Boolean(this.gateway?.services.mcp),
+    });
 
     return this.embeddedBff;
   }

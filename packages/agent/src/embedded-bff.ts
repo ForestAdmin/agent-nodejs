@@ -5,6 +5,7 @@ const BFF_PACKAGE = '@forestadmin/agent-bff';
 
 export type EmbeddedBffMount = {
   prefix: string;
+  name?: string;
   requiredVersion?: string;
   skipIpWhitelistWarning?: boolean;
 };
@@ -49,8 +50,11 @@ export default class EmbeddedBff {
     private readonly options: AgentOptionsWithDefaults,
     private readonly embedOptions: BffEmbedOptions,
     private readonly mount: EmbeddedBffMount,
-    private readonly name = 'The embedded BFF',
   ) {}
+
+  private get name(): string {
+    return this.mount.name ?? 'The embedded BFF';
+  }
 
   /**
    * Load the package and validate the options the caller handed to `addBff()`. Called before the
