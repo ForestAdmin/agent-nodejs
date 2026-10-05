@@ -81,7 +81,13 @@ function routeMcp({ mcp }: Services, url: string): HandlerRoute | null {
 function route(services: Services, url: string): Route | null {
   const [pathname] = url.split(/[?#]/, 1);
 
-  if (pathname.startsWith(`${services.prefix}/oauth/`)) return routeOAuth(services, url, pathname);
+  const oauthPrefix = `${services.prefix}/oauth/`;
+
+  if (pathname.startsWith(oauthPrefix)) {
+    const hasFirstSegment = /^[^/]/.test(pathname.slice(oauthPrefix.length));
+
+    return hasFirstSegment ? routeOAuth(services, url, pathname) : null;
+  }
 
   return routeApi(services, pathname) ?? routeMcp(services, url);
 }
