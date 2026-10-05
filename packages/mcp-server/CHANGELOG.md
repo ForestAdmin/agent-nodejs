@@ -1,3 +1,10 @@
+## @forestadmin/mcp-server [1.25.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.25.0...@forestadmin/mcp-server@1.25.1) (2026-10-05)
+
+
+### Bug Fixes
+
+* **mcp-server:** announce list-accepted filter operators ([#1960](https://github.com/ForestAdmin/agent-nodejs/issues/1960)) ([9338362](https://github.com/ForestAdmin/agent-nodejs/commit/9338362673ff57e497e2ac0bab3bd79b9456801e))
+
 # @forestadmin/mcp-server [1.25.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.24.10...@forestadmin/mcp-server@1.25.0) (2026-10-05)
 
 
