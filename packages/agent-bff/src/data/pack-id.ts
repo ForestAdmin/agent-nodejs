@@ -83,10 +83,9 @@ function matchedByRecord(
     const wanted = comparableValue(record, key);
     const index = wanted === null ? -1 : values.findIndex((v, i) => !claimed[i] && v === wanted);
 
-    if (index === -1) return null;
-    claimed[index] = true;
+    if (index !== -1) claimed[index] = true;
 
-    return values[index];
+    return index === -1 ? null : values[index];
   });
 
   if (matched.filter(value => value === null).length > 1) return null;
