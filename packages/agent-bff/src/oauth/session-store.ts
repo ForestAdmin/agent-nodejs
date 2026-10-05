@@ -7,6 +7,7 @@ export interface CreateSessionInput {
   saasRefreshToken: string;
   renderingId: number;
   userId: number;
+  clientId: string;
 }
 
 export interface StoredSession {
@@ -15,6 +16,7 @@ export interface StoredSession {
   refreshTokenHash: string;
   renderingId: number;
   userId: number;
+  clientId: string;
   expiresAt: number;
 }
 
@@ -145,6 +147,7 @@ export default function createInMemorySessionStore({
         refreshTokenHash,
         renderingId: input.renderingId,
         userId: input.userId,
+        clientId: input.clientId,
         expiresAt: now() + sessionTtlSeconds * 1000,
       });
       activeRefreshHashToSid.set(refreshTokenHash, sid);

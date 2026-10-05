@@ -111,7 +111,7 @@ describe('forest server token middleware', () => {
 
     it('should refuse with audit_unavailable when the Forest server cannot be reached', async () => {
       const store = {
-        get: () => ({ saasAccessToken: expiredAccessToken() }),
+        get: () => ({ saasAccessToken: expiredAccessToken(), clientId: 'client-1' }),
         getSaasRefreshToken: () => 'refresh-token',
       } as unknown as SessionStore;
       const serverClient = {
@@ -160,7 +160,7 @@ describe('forest server token middleware', () => {
 
     it('should refuse with session_expired when the Forest server rejects the refresh token', async () => {
       const store = {
-        get: () => ({ saasAccessToken: expiredAccessToken() }),
+        get: () => ({ saasAccessToken: expiredAccessToken(), clientId: 'client-1' }),
         getSaasRefreshToken: () => 'refresh-token',
       } as unknown as SessionStore;
       const serverClient = {
