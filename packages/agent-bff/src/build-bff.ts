@@ -617,6 +617,6 @@ export default async function buildBff({
     callback: app.callback(),
     invalidate: agentEdge.invalidate,
     drainActivityLogs: activityLogs && (timeoutMs => activityLogs.drain(timeoutMs)),
-    health: () => health,
+    health: () => ({ status: health.status, configured: { ...health.configured } }),
   };
 }

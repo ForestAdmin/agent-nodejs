@@ -138,6 +138,21 @@ describe('prebuilt listener surface of the package entry point', () => {
     );
   });
 
+  describe('buildBff health() result', () => {
+    it('should not let a caller change what /health answers', async () => {
+      const bff = await buildBff({ config: parseConfig(VALID_ENV), logger: noopLogger });
+
+      const exposed = bff.health();
+      exposed.status = 'degraded';
+      exposed.configured.oauth = false;
+      const response = await request(bff.callback).get('/health');
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual(expect.objectContaining({ status: 'ok' }));
+      expect(response.body.configured.oauth).toBe(true);
+    });
+  });
+
   describe('installShutdownHandlers', () => {
     let installed: { signal: NodeJS.Signals; handler: () => void }[] = [];
 
