@@ -822,12 +822,31 @@ describe('Agent', () => {
       test('prefixes the warned routes with the MCP basePath', async () => {
         const { agent, logger } = build(jest.fn().mockResolvedValue({ isFeatureEnabled: true }));
 
-        agent.mountAiMcpServer({ basePath: '/ai' });
+        agent.mountAiMcpServer({ basePath: 'ai/' });
         await agent.start();
 
         expect(logger).toHaveBeenCalledWith(
           'Warn',
-          expect.stringContaining('(/ai/mcp, /ai/mcp/uploads, /ai/oauth/*, /.well-known/*)'),
+          expect.stringContaining(
+            '(/ai/mcp, /ai/mcp/uploads, /ai/oauth/*, ' +
+              '/.well-known/oauth-authorization-server/ai, ' +
+              '/.well-known/oauth-protected-resource/ai/mcp)',
+          ),
+        );
+      });
+
+      test('warns with root routes when no basePath is set', async () => {
+        const { agent, logger } = build(jest.fn().mockResolvedValue({ isFeatureEnabled: true }));
+
+        agent.mountAiMcpServer();
+        await agent.start();
+
+        expect(logger).toHaveBeenCalledWith(
+          'Warn',
+          expect.stringContaining(
+            '(/mcp, /mcp/uploads, /oauth/*, /.well-known/oauth-authorization-server, ' +
+              '/.well-known/oauth-protected-resource/mcp)',
+          ),
         );
       });
 

@@ -41,6 +41,9 @@ import OptionsValidator from './utils/options-validator';
 // Whichever is registered second raises it. `addBff()` registers at builder time and the MCP
 // server only at start(), and the root middleware answers with the first handler whose matcher
 // claims the url — so the BFF wins and the whole MCP surface would go silently dark.
+const normalizeMcpBasePath = (basePath?: string): string =>
+  `/${(basePath ?? '').trim()}`.replace(/\/+/g, '/').replace(/\/$/, '');
+
 const bffMcpCollision = (mcpBasePath: string) =>
   `Cannot use addBff together with mountAiMcpServer({ basePath: '${mcpBasePath}' }): the MCP ` +
   `server would claim ${BFF_PREFIX} paths the embedded BFF answers on (${BFF_PREFIX}/oauth, ` +
@@ -522,19 +525,23 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
 
       if (!isFeatureEnabled) return;
 
-      const base = this.mcpBasePath ?? '';
+      const base = normalizeMcpBasePath(this.mcpBasePath);
 
       this.options.logger(
         'Warn',
         '[MCP] The IP whitelist is enabled for this environment, but it filters none of the MCP ' +
-          `routes (${base}/mcp, ${base}/mcp/uploads, ${base}/oauth/*, /.well-known/*): the MCP ` +
-          'server is mounted in-process, which the whitelist exempts as a trusted loopback ' +
-          `caller. Tool calls on ${base}/mcp still require a valid MCP OAuth token.`,
+          `routes (${base}/mcp, ${base}/mcp/uploads, ${base}/oauth/*, ` +
+          `/.well-known/oauth-authorization-server${base}, ` +
+          `/.well-known/oauth-protected-resource${base}/mcp): its middleware is mounted on the ` +
+          `/forest router only, so these routes escape it for any caller. Tool calls on ${base}/mcp ` +
+          'still require a valid MCP OAuth token.',
       );
     } catch (error) {
       this.options.logger(
         'Debug',
-        `[MCP] Could not read the IP whitelist configuration: ${(error as Error).message}`,
+        `[MCP] Could not read the IP whitelist configuration: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
       );
     }
   }
