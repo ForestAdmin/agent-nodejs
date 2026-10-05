@@ -118,6 +118,20 @@ describe('parseMcpEnv', () => {
     );
   });
 
+  it('falls back to the default label for an undefined entry', () => {
+    const labels = { port: undefined, publicUrl: undefined, fileUploads: undefined };
+
+    expect(() => parseMcpEnv({ FOREST_MCP_FILE_UPLOADS: 'no' }, labels)).toThrow(
+      'Invalid FOREST_MCP_FILE_UPLOADS "no"',
+    );
+    expect(() => parseMcpEnv({ MCP_SERVER_PORT: 'x' }, labels)).toThrow(
+      'Invalid MCP_SERVER_PORT "x"',
+    );
+    expect(() => parseMcpEnv({ FOREST_MCP_SERVER_URL: 'mcp.example.com' }, labels)).toThrow(
+      'Invalid FOREST_MCP_SERVER_URL',
+    );
+  });
+
   it('logs nothing', () => {
     const spies = (['log', 'info', 'warn', 'error'] as const).map(method =>
       jest.spyOn(console, method).mockImplementation(),

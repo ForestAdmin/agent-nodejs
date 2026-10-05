@@ -49,6 +49,15 @@ export const DEFAULT_MCP_ENV_LABELS: McpEnvLabels = {
 };
 
 const MAX_PORT = 65535;
+
+function resolveLabels(labels: Partial<McpEnvLabels>): McpEnvLabels {
+  const keys = Object.keys(DEFAULT_MCP_ENV_LABELS) as (keyof McpEnvLabels)[];
+
+  return Object.fromEntries(
+    keys.map(key => [key, labels[key] ?? DEFAULT_MCP_ENV_LABELS[key]]),
+  ) as McpEnvLabels;
+}
+
 const FILE_UPLOADS_FLAGS = ['true', 'false'];
 const HTTP_PROTOCOLS = ['http:', 'https:'];
 
@@ -111,7 +120,7 @@ export function parseMcpListenerEnv(
   env: McpEnv,
   labels: Partial<McpEnvLabels> = {},
 ): McpListenerSettings {
-  const { port, publicUrl } = { ...DEFAULT_MCP_ENV_LABELS, ...labels };
+  const { port, publicUrl } = resolveLabels(labels);
 
   return {
     port: parsePort(env.MCP_SERVER_PORT, port),
@@ -120,7 +129,7 @@ export function parseMcpListenerEnv(
 }
 
 export default function parseMcpEnv(env: McpEnv, labels: Partial<McpEnvLabels> = {}): ParsedMcpEnv {
-  const label = { ...DEFAULT_MCP_ENV_LABELS, ...labels };
+  const label = resolveLabels(labels);
   const fileUploadsOff = parseFileUploadsOff(env.FOREST_MCP_FILE_UPLOADS, label.fileUploads);
 
   normalizeAgentUrl(env.FOREST_AGENT_URL, label.agentUrl);
