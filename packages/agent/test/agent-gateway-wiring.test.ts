@@ -284,6 +284,44 @@ describe.each([
     expect(mcp.body.error_description).toBe('The MCP server was stopped with the agent.');
   });
 
+  it('should stay stopped when stop() lands before start() has mounted', async () => {
+    const dataSource = deferred<ReturnType<typeof factories.dataSource.build>>();
+    const getDataSource = jest.mocked(DataSourceCustomizer.prototype.getDataSource);
+    getDataSource.mockReturnValue(dataSource.promise);
+    const { agent } = buildAgent();
+    agent.addGateway({ mcp: true, api: {} });
+    const app = mount(agent);
+
+    const starting = agent.start();
+    await until(() => getDataSource.mock.calls.length > 0);
+    await agent.stop();
+    dataSource.resolve(factories.dataSource.build());
+    await starting;
+
+    expect((await request(app).get('/api/health')).body.error.type).toBe('bff_stopped');
+    expect((await request(app).post('/mcp')).status).toBe(503);
+    expect(mockBuildBff).not.toHaveBeenCalled();
+  });
+
+  it('should not build the API when stop() lands after mount() but before its build', async () => {
+    const executorStart = deferred<void>();
+    const { agent } = buildAgent();
+    agent.addGateway({ mcp: true, api: {} });
+    const start = jest.fn(() => executorStart.promise);
+    (agent as any).embeddedExecutor = { start, stop: jest.fn() };
+    const app = mount(agent);
+
+    const starting = agent.start();
+    await until(() => start.mock.calls.length > 0);
+    await agent.stop();
+    executorStart.resolve();
+    await starting;
+
+    expect((await request(app).get('/api/health')).body.error.type).toBe('bff_stopped');
+    expect((await request(app).post('/mcp')).status).toBe(503);
+    expect(mockBuildBff).not.toHaveBeenCalled();
+  });
+
   it('should keep the MCP stopped when a restart in flight completes after stop()', async () => {
     const { agent } = buildAgent();
     agent.addGateway({ mcp: true, api: {} });
@@ -412,12 +450,13 @@ describe('addBff() deprecated alias', () => {
     await agent.stop();
   });
 
-  it('should append its Link to the one the host already set', async () => {
+  it('should append its Link and exposed headers to the ones the host already set', async () => {
     const { agent } = buildAgent();
     agent.addBff();
     const app = express();
     app.use((_req, res, next) => {
       res.setHeader('Link', '<https://host.example/app.css>; rel="preload"');
+      res.setHeader('Access-Control-Expose-Headers', 'X-Request-Id, Link');
       next();
     });
     agent.mountOnExpress(app);
@@ -427,6 +466,9 @@ describe('addBff() deprecated alias', () => {
 
     expect(response.headers.link).toBe(
       `<https://host.example/app.css>; rel="preload", <${BFF_DEPRECATION_LINK}>; rel="deprecation"`,
+    );
+    expect(response.headers['access-control-expose-headers']).toBe(
+      'X-Request-Id, Link, Deprecation',
     );
     await agent.stop();
   });
