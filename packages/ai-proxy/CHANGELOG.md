@@ -1,3 +1,10 @@
+## @forestadmin/ai-proxy [1.14.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.14.1...@forestadmin/ai-proxy@1.14.2) (2026-10-05)
+
+
+### Bug Fixes
+
+* **ai-proxy:** exclude the model releases that broke the integration suite ([#1956](https://github.com/ForestAdmin/agent-nodejs/issues/1956)) ([10bcff5](https://github.com/ForestAdmin/agent-nodejs/commit/10bcff52e6038a6936c4f645035f66feb557b5b5))
+
 ## @forestadmin/ai-proxy [1.14.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.14.0...@forestadmin/ai-proxy@1.14.1) (2026-09-23)
 
 
