@@ -1,7 +1,13 @@
 import type { AgentOptionsWithDefaults, BffEmbedOptions, HttpCallback } from './types';
-import type { AgentDispatcher, BFFConfig, Bff } from '@forestadmin/agent-bff';
+import type { AgentDispatcher, BFFConfig, Bff, claimsBffPath } from '@forestadmin/agent-bff';
 
-import { BFF_PREFIX, stripBffPrefix } from './bff-routes';
+const BFF_PACKAGE = '@forestadmin/agent-bff';
+
+export type EmbeddedBffMount = {
+  prefix: string;
+  requiredVersion?: string;
+  skipIpWhitelistWarning?: boolean;
+};
 
 /** How long `stop()` waits for the activity-log writes no connection holds. */
 export const SHUTDOWN_TIMEOUT_MS = 10_000;
@@ -30,17 +36,19 @@ function formatLog(message: string, context?: Record<string, unknown>): string {
 
 /**
  * Owns the lifecycle of a BFF embedded in the agent process: configuration, dynamic loading of the
- * optional package, build, and the request handler the agent mounts at `/bff`. The agent only wires
- * the callback and delegates start/stop.
+ * optional package, build, and the request handler the agent mounts under its prefix. The agent
+ * only wires the callback and delegates start/stop.
  */
 export default class EmbeddedBff {
   private config: BFFConfig | null = null;
   private bff: Bff | null = null;
   private stopped = false;
+  private claimsBffPath: typeof claimsBffPath | null = null;
 
   constructor(
     private readonly options: AgentOptionsWithDefaults,
     private readonly embedOptions: BffEmbedOptions,
+    private readonly mount: EmbeddedBffMount,
     private readonly name = 'The embedded BFF',
   ) {}
 
@@ -51,8 +59,12 @@ export default class EmbeddedBff {
    * where failing after mount() would leave the host with a live `/forest` and a bricked `/bff`.
    */
   async prepare(): Promise<void> {
-    const { parseConfig, IN_PROCESS_AGENT_URL } = await this.importPackage();
+    const bffPackage = await this.importPackage();
+    const { parseConfig, IN_PROCESS_AGENT_URL } = bffPackage;
     const { embedOptions } = this;
+
+    this.assertRequiredVersion(bffPackage.version);
+    this.claimsBffPath = bffPackage.claimsBffPath;
 
     this.config = parseConfig({
       FOREST_AUTH_SECRET: this.options.authSecret,
@@ -72,6 +84,23 @@ export default class EmbeddedBff {
     });
   }
 
+  private assertRequiredVersion(installed: string): void {
+    const { requiredVersion } = this.mount;
+
+    if (!requiredVersion || installed === requiredVersion) return;
+
+    throw new Error(
+      `addGateway({ api }) requires ${BFF_PACKAGE} ${requiredVersion}, found ${installed}. ` +
+        `Install it with \`npm install ${BFF_PACKAGE}@${requiredVersion}\`.`,
+    );
+  }
+
+  claims(pathname: string): boolean {
+    if (!this.claimsBffPath) throw new Error(`${this.name} must be prepared before it routes.`);
+
+    return this.claimsBffPath(pathname, { docs: this.embedOptions.openapiEnabled ?? false });
+  }
+
   /**
    * Build the BFF. Called from agent.start() after mount(), because the dispatcher only reaches the
    * agent's own stack once that stack is mounted.
@@ -88,7 +117,7 @@ export default class EmbeddedBff {
     const bff = await buildBff({
       config: this.config as BFFConfig,
       dispatcher,
-      basePath: BFF_PREFIX,
+      basePath: this.mount.prefix,
       // Counters are the schema cache's and the action-endpoint resolver's only channel — they take
       // no logger — and every one of them reports a failure, so they go to the host's logs. Gauges
       // do not: they are periodic cache sizes, and the default console sink reports them at Info,
@@ -109,9 +138,9 @@ export default class EmbeddedBff {
 
     this.bff = bff;
 
-    this.options.logger('Info', formatLog(`Embedded BFF mounted on ${BFF_PREFIX}`));
+    this.options.logger('Info', formatLog(`Embedded BFF mounted on ${this.mount.prefix}`));
 
-    await this.warnIfExemptFromIpWhitelist();
+    if (!this.mount.skipIpWhitelistWarning) await this.warnIfExemptFromIpWhitelist();
   }
 
   /**
@@ -138,7 +167,7 @@ export default class EmbeddedBff {
         'Warn',
         formatLog(
           `The IP whitelist is enabled for this environment, but requests served under ` +
-            `${BFF_PREFIX} are not subject to it: they reach the agent in-process, which the ` +
+            `${this.mount.prefix} are not subject to it: they reach the agent in-process, which the ` +
             `whitelist exempts as a trusted loopback caller. A resolved API key or a valid OAuth ` +
             `session is still required.`,
         ),
@@ -193,8 +222,10 @@ export default class EmbeddedBff {
   }
 
   /**
-   * The callback the agent registers at `/bff`. Answers 503 rather than falling through while the
-   * BFF is not serving: a 404 from the host would read as "wrong url" instead of "not available".
+   * The callback the agent registers under the mount prefix, handed requests already stripped of
+   * it: terminal, it never strips nor calls `next`. Answers 503 rather than falling through while
+   * the BFF is not serving: a 404 from the host would read as "wrong url" instead of "not
+   * available".
    * Boot and shutdown are told apart, because a probe should wait on the first and drain on the
    * second.
    */
@@ -212,11 +243,6 @@ export default class EmbeddedBff {
       return;
     }
 
-    // The BFF knows nothing of the prefix it is served under. `originalUrl` is claimed before the
-    // rewrite so a host logger reading it still reports the url the client asked for.
-    const bffReq = req as typeof req & { originalUrl?: string };
-    bffReq.originalUrl ??= bffReq.url;
-    req.url = stripBffPrefix(req.url ?? BFF_PREFIX);
     this.bff.callback(req, res);
   };
 

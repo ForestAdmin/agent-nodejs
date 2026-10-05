@@ -30,11 +30,17 @@ import { readFile, writeFile } from 'fs/promises';
 import stringify from 'json-stringify-pretty-compact';
 
 import { installAuditTrailHooks } from './audit-trail';
-import { BFF_PREFIX, collidesWithBff } from './bff-routes';
+import { BFF_PREFIX, collidesWithBff, createBffAliasCallback } from './bff-routes';
 import EmbeddedBff from './embedded-bff';
 import EmbeddedWorkflowExecutor from './embedded-workflow-executor';
 import FrameworkMounter from './framework-mounter';
-import { assertNoGatewayOverlap, describeGatewayRoutes, resolveGatewayServices } from './gateway';
+import {
+  AGENT_BFF_PEER_VERSION,
+  assertNoGatewayOverlap,
+  describeGatewayRoutes,
+  mcpUnavailable,
+  resolveGatewayServices,
+} from './gateway';
 import makeRoutes from './routes';
 import makeServices from './services';
 import CustomizationService from './services/model-customizations/customization';
@@ -88,7 +94,11 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   /** In-process BFF, created only when addBff() is called. */
   private embeddedBff: EmbeddedBff | null = null;
 
-  private gateway: { basePath: string; services: GatewayServices } | null = null;
+  private gateway: {
+    basePath: string;
+    services: GatewayServices;
+    build?: (mcp?: RootHandler) => RootHandler;
+  } | null = null;
 
   private isRestarting = false;
 
@@ -140,6 +150,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
       // serving /forest with a permanently bricked /bff.
       await this.prepareGateway();
       await this.embeddedBff?.prepare();
+      if (this.gateway) this.setRootHandlers();
 
       this.warnIfMcpAliasUsed();
 
@@ -148,7 +159,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
       await this.options.forestAdminClient.subscribeToServerEvents();
       this.options.forestAdminClient.onRefreshCustomizations(this.restart.bind(this));
 
-      this.setMcpCallback(this.mcpRootHandler(mcp));
+      this.setRootHandlers(mcp);
       await this.mount(router);
       mounted = true;
 
@@ -156,7 +167,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
       // standalone server's host/port (used to derive that URL) are only known once mounted.
       await this.embeddedExecutor?.start(this.standaloneServerHost, this.standaloneServerPort);
       // Same reason, without the socket: the dispatcher injects into the stack mount() just built.
-      if (!this.gateway) await this.embeddedBff?.start(this.getInProcessDispatcher());
+      await this.embeddedBff?.start(this.getInProcessDispatcher());
 
       this.logGatewayRoutes();
       // Here rather than in initializeMcpServer(): that one reruns on every restart() and each run
@@ -196,6 +207,10 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * Stop the agent.
    */
   override async stop(): Promise<void> {
+    if (this.gateway?.build && this.gateway.services.mcp) {
+      this.setRootHandlers(mcpUnavailable(this.gateway.basePath, 'stopped'));
+    }
+
     // Stop answering before the stack it dispatches into goes away: the host application keeps
     // whatever middleware it registered, so a stopped agent would otherwise still serve BFF data.
     await this.embeddedBff?.stop();
@@ -239,7 +254,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
       // We force sending schema when restarting
       const { router, mcp } = await this.buildRouterAndSendSchema();
 
-      this.setMcpCallback(this.mcpRootHandler(mcp));
+      this.setRootHandlers(mcp);
       await this.remount(router);
       // A restart means the customizations changed, so the schema the BFF read is stale.
       this.embeddedBff?.invalidate();
@@ -357,10 +372,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
       this.mcpFileUploads = services.mcp.fileUploads;
     }
 
-    if (services.api) {
-      this.embeddedBff = new EmbeddedBff(this.options, services.api, 'The Gateway API');
-      this.getInProcessDispatcher();
-    }
+    if (services.api) this.getInProcessDispatcher();
 
     return this;
   }
@@ -502,13 +514,13 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
       throw new Error(bffMcpCollision(this.mcpBasePath as string));
     }
 
-    const bff = new EmbeddedBff(this.options, options);
+    const bff = new EmbeddedBff(this.options, options, { prefix: BFF_PREFIX });
     this.embeddedBff = bff;
     // Registered now rather than at start(): getInProcessDispatcher() pushes its hook the first
     // time it is called, and mount() only runs the hooks registered before it — asked for later,
     // the dispatcher would have no handler until the first restart.
     this.getInProcessDispatcher();
-    this.setBffCallback(bff.handle);
+    this.setBffCallback(createBffAliasCallback(bff.handle, this.options.logger));
 
     return this;
   }
@@ -524,12 +536,38 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
       );
     }
 
-    const { normalizeMountPath } = await import('@forestadmin/mcp-server');
+    const { createGatewaySwitch, normalizeMountPath } = await import('@forestadmin/mcp-server');
     const basePath = normalizeMountPath(this.gateway.basePath, 'basePath');
 
     assertNoGatewayOverlap(basePath, this.completeMountPrefix, services);
     this.gateway.basePath = basePath;
     if (services.mcp) this.mcpBasePath = basePath || undefined;
+
+    const bff = services.api ? this.gatewayApi(basePath, services.api) : null;
+    const api = bff ? { matches: (path: string) => bff.claims(path), callback: bff.handle } : null;
+    const mcpStarting = services.mcp ? mcpUnavailable(basePath, 'starting') : null;
+
+    this.gateway.build = mcp =>
+      createGatewaySwitch({
+        basePath,
+        mcp: mcp ?? mcpStarting ?? undefined,
+        api: api ?? undefined,
+      });
+  }
+
+  private gatewayApi(basePath: string, options: BffEmbedOptions): EmbeddedBff {
+    this.embeddedBff ??= new EmbeddedBff(
+      this.options,
+      options,
+      {
+        prefix: `${basePath}/api`,
+        requiredVersion: AGENT_BFF_PEER_VERSION,
+        skipIpWhitelistWarning: Boolean(this.gateway?.services.mcp),
+      },
+      'The Gateway API',
+    );
+
+    return this.embeddedBff;
   }
 
   private warnIfMcpAliasUsed(): void {
@@ -542,10 +580,9 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     );
   }
 
-  private mcpRootHandler(mcp?: RootHandler): RootHandler | null {
-    if (this.gateway) return null;
-
-    return mcp ?? null;
+  private setRootHandlers(mcp?: RootHandler): void {
+    if (this.gateway?.build) this.setGatewayCallback(this.gateway.build(mcp));
+    else this.setMcpCallback(mcp ?? null);
   }
 
   private logGatewayRoutes(): void {

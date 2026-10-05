@@ -1,3 +1,7 @@
+import type { HttpCallback } from './types';
+import type { Logger } from '@forestadmin/datasource-toolkit';
+import type { ServerResponse } from 'http';
+
 /**
  * Where an embedded BFF answers, at the root of the host application. Fixed: the BFF serves its own
  * `/oauth/*` and `/docs`, which would otherwise collide with the MCP server's root paths and with
@@ -20,11 +24,64 @@ export function isBffRoute(url: string): boolean {
  * as a malformed request rather than as the root.
  */
 export function stripBffPrefix(url: string): string {
+  if (!isBffRoute(url)) return url;
+
   const remainder = url.slice(BFF_PREFIX.length);
 
   if (remainder === '') return '/';
 
   return remainder.startsWith('/') ? remainder : `/${remainder}`;
+}
+
+export const BFF_DEPRECATION_TIMESTAMP = Date.UTC(2026, 9, 5) / 1000;
+export const BFF_DEPRECATION_LINK = 'https://docs.forestadmin.com/product/embed/bff';
+export const BFF_DEPRECATION_LOG_INTERVAL_MS = 60 * 60 * 1000;
+
+const EXPOSE_HEADERS = 'Access-Control-Expose-Headers';
+const DEPRECATION_HEADERS = ['Deprecation', 'Link'];
+
+function markDeprecated(res: ServerResponse): void {
+  const exposed = String(res.getHeader(EXPOSE_HEADERS) ?? '')
+    .split(',')
+    .map(name => name.trim())
+    .filter(Boolean);
+
+  res.setHeader('Deprecation', `@${BFF_DEPRECATION_TIMESTAMP}`);
+  res.setHeader('Link', `<${BFF_DEPRECATION_LINK}>; rel="deprecation"`);
+  res.setHeader(EXPOSE_HEADERS, [...new Set([...exposed, ...DEPRECATION_HEADERS])].join(', '));
+}
+
+function markDeprecatedOnWriteHead(res: ServerResponse): void {
+  const { writeHead } = res;
+
+  res.writeHead = ((...args: Parameters<typeof writeHead>) => {
+    markDeprecated(res);
+
+    return writeHead.apply(res, args);
+  }) as typeof writeHead;
+}
+
+export function createBffAliasCallback(handle: HttpCallback, logger: Logger): HttpCallback {
+  let lastWarnedAt: number | null = null;
+
+  return (req, res, next) => {
+    const now = Date.now();
+
+    if (lastWarnedAt === null || now - lastWarnedAt >= BFF_DEPRECATION_LOG_INTERVAL_MS) {
+      lastWarnedAt = now;
+      logger(
+        'Warn',
+        `[BFF] ${BFF_PREFIX}/* is deprecated and was called: use addGateway({ api }), ` +
+          `which serves the same routes under /api. See ${BFF_DEPRECATION_LINK}`,
+      );
+    }
+
+    const aliasReq = req as typeof req & { originalUrl?: string };
+    aliasReq.originalUrl ??= req.url;
+    req.url = stripBffPrefix(req.url ?? BFF_PREFIX);
+    markDeprecatedOnWriteHead(res);
+    handle(req, res, next);
+  };
 }
 
 /**

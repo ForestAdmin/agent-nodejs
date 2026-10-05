@@ -26,6 +26,8 @@ jest.mock('@forestadmin/agent-bff', () => ({
   IN_PROCESS_AGENT_URL: 'http://in-process.agent',
   parseConfig: (env: unknown) => mockParseConfig(env),
   buildBff: (options: unknown) => mockBuildBff(options),
+  claimsBffPath: () => true,
+  version: jest.requireActual('../package.json').peerDependencies['@forestadmin/agent-bff'],
 }));
 
 let mcpServerSpy: jest.SpyInstance;
@@ -231,18 +233,6 @@ describe('Agent.addGateway', () => {
       await agent.start();
 
       expect(mcpServerSpy).not.toHaveBeenCalled();
-    });
-
-    it('should leave every Gateway path to the host: the Gateway routing ships separately', async () => {
-      const { agent } = buildAgent();
-      mockGetHttpCallback.mockResolvedValue(answeringWith('mcp'));
-      agent.addGateway({ mcp: true, api: {} });
-
-      const request = await startOnPort(agent);
-
-      expect((await request('/mcp')).status).toBe(404);
-      expect((await request('/oauth/token')).status).toBe(404);
-      expect((await request('/api/health')).status).toBe(404);
     });
 
     it('should surface the MCP domain-root rejection from start()', async () => {

@@ -31,6 +31,13 @@ describe('stripBffPrefix', () => {
   it('should never yield an empty url, which Koa would read as malformed', () => {
     expect(stripBffPrefix('/bff')).not.toBe('');
   });
+
+  it.each(['/health', '/agent/v1/books/list', '/oauth/token', '/docs', '/bffalo'])(
+    'should leave %s untouched, so a stripped url is never stripped again',
+    url => {
+      expect(stripBffPrefix(url)).toBe(url);
+    },
+  );
 });
 
 describe('collidesWithBff', () => {
