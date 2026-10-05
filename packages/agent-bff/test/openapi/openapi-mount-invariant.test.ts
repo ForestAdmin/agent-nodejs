@@ -57,8 +57,10 @@ describe('the OpenAPI document mount point', () => {
   });
 
   describe('when the package public surface is read', () => {
-    it('should expose nothing OpenAPI-related, since a consumer could mount it off /agent', () => {
-      expect(Object.keys(publicApi).filter(name => /openapi/i.test(name))).toEqual([]);
+    it('should expose only the string renderer, nothing a consumer could mount off /agent', () => {
+      expect(Object.keys(publicApi).filter(name => /openapi/i.test(name))).toEqual([
+        'renderOpenApi',
+      ]);
     });
   });
 });

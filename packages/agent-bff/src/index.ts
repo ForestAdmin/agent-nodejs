@@ -1,7 +1,8 @@
 export { default as BFFHttpServer } from './http/bff-http-server';
 export { parseConfig, REQUIRED_KEYS } from './config/env-config';
 export type { BFFConfig, PresenceMap, RequiredKey } from './config/env-config';
-export { default as runCli } from './cli-core';
+export { default as runCli, installShutdownHandlers } from './cli-core';
+export { renderOpenApi } from './cli-dispatch';
 export { default as buildBff } from './build-bff';
 export {
   default as createInProcessTransport,
@@ -13,6 +14,7 @@ export type {
   AgentDispatchResponse,
 } from './agent/in-process-transport';
 export type { Bff, BuildBffOptions, BffCallback } from './build-bff';
+export type { BffHealth, HealthConfigured } from './http/health-route';
 export { ConfigurationError } from './errors';
 export { default as DEFAULT_BFF_PORT } from './defaults';
 export { default as createConsoleLogger } from './adapters/console-logger';

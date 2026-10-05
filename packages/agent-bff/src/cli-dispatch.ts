@@ -6,6 +6,7 @@ import path from 'path';
 
 import createConsoleLogger from './adapters/console-logger';
 import { AI_QUERY_ROUTE } from './ai/ai-routes-middleware';
+import normalizeBasePath from './base-path';
 import { resolveOAuthConfig, resolveUnfoldSource } from './build-bff';
 import runCli from './cli-core';
 import { parseConfig, parsePublicUrl } from './config/env-config';
@@ -74,7 +75,12 @@ function publishesAiQuery(env: NodeJS.ProcessEnv, logger: Logger): boolean {
  * configured but whose schema cannot be read fails instead of quietly degrading: it asked for the
  * unfolded document, and a generic one would look like a complete answer.
  */
-export async function renderOpenApi(env: NodeJS.ProcessEnv, logger: Logger): Promise<string> {
+export async function renderOpenApi(
+  env: NodeJS.ProcessEnv,
+  logger: Logger,
+  options: { basePath?: string } = {},
+): Promise<string> {
+  const basePath = normalizeBasePath(options.basePath);
   const authSecret = env.FOREST_AUTH_SECRET;
 
   // `parseConfig` validates the WHOLE server configuration, including settings the export has nothing
@@ -93,7 +99,7 @@ export async function renderOpenApi(env: NodeJS.ProcessEnv, logger: Logger): Pro
     logger('Warn', `Emitting the generic OpenAPI document: ${NOTHING_TO_UNFOLD}`);
 
     return `${serializeOpenApi(
-      generateOpenApiDocument(version, { hasAiQueryRoute, publicUrl }),
+      generateOpenApiDocument(version, { hasAiQueryRoute, publicUrl, basePath }),
     )}\n`;
   }
 
@@ -103,7 +109,7 @@ export async function renderOpenApi(env: NodeJS.ProcessEnv, logger: Logger): Pro
     source,
     readModel,
     () => issueOpenApiAgentToken(unfoldable.authSecret),
-    { version, hasAiQueryRoute, publicUrl },
+    { version, hasAiQueryRoute, publicUrl, basePath },
   );
 
   // Not one collection came back with its field set, so the agent was unreachable throughout. The

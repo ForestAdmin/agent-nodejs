@@ -15,19 +15,22 @@ export interface HealthConfigured {
   openapi: boolean;
 }
 
-export interface HealthRouteOptions {
-  version: string;
-  /** Whether everything this deployment needs is configured. Embedded, it always is. */
-  healthy: boolean;
+export interface BffHealth {
+  status: 'ok' | 'degraded';
   configured: HealthConfigured;
 }
 
-export default function createHealthRoute({
-  version,
-  healthy,
-  configured,
-}: HealthRouteOptions): Middleware {
-  return async function health(ctx, next) {
+export function describeHealth(healthy: boolean, configured: HealthConfigured): BffHealth {
+  return { status: healthy ? 'ok' : 'degraded', configured };
+}
+
+export interface HealthRouteOptions {
+  version: string;
+  health: BffHealth;
+}
+
+export default function createHealthRoute({ version, health }: HealthRouteOptions): Middleware {
+  return async function healthRoute(ctx, next) {
     const isHealthRequest =
       (ctx.method === 'GET' || ctx.method === 'HEAD') && ctx.path === HEALTH_PATH;
 
@@ -37,7 +40,7 @@ export default function createHealthRoute({
       return;
     }
 
-    ctx.status = healthy ? 200 : 503;
-    ctx.body = { status: healthy ? 'ok' : 'degraded', version, configured };
+    ctx.status = health.status === 'ok' ? 200 : 503;
+    ctx.body = { status: health.status, version, configured: health.configured };
   };
 }

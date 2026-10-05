@@ -7,7 +7,7 @@ import type { Middleware } from 'koa';
 import http from 'http';
 import Koa from 'koa';
 
-import createHealthRoute from './health-route';
+import createHealthRoute, { describeHealth } from './health-route';
 import createVersionHeaderMiddleware from './version-header-middleware';
 import createConsoleLogger from '../adapters/console-logger';
 import warnMissingConfig from '../config/missing-config-warning';
@@ -15,10 +15,12 @@ import warnMissingConfig from '../config/missing-config-warning';
 /** How long `stop()` waits for the open connections before it destroys them and drains anyway. */
 export const SHUTDOWN_TIMEOUT_MS = 10_000;
 
+export const DEFAULT_SERVER_NAME = 'Forest BFF';
+
 interface BFFHttpServerBaseOptions {
   port: number;
-  config: BFFConfig;
   logger?: Logger;
+  name?: string;
   /** Overrides `SHUTDOWN_TIMEOUT_MS`, for a host whose orchestrator grants a different grace. */
   shutdownTimeoutMs?: number;
   /**
@@ -31,6 +33,7 @@ interface BFFHttpServerBaseOptions {
 
 /** The server assembles its own Koa app around `/health` and the version header. */
 interface AssembledOptions extends BFFHttpServerBaseOptions {
+  config: BFFConfig;
   version: string;
   middlewares?: Middleware[];
   callback?: never;
@@ -42,6 +45,7 @@ interface AssembledOptions extends BFFHttpServerBaseOptions {
  * passing them would otherwise boot fine and 404 every one of its own routes.
  */
 interface PrebuiltOptions extends BFFHttpServerBaseOptions {
+  config?: BFFConfig;
   callback: BffCallback;
   version?: never;
   middlewares?: never;
@@ -57,11 +61,13 @@ export default class BFFHttpServer {
   private readonly handler: BffCallback;
   private readonly options: BFFHttpServerOptions;
   private readonly logger: Logger;
+  private readonly name: string;
   private server: Server | null = null;
 
   constructor(options: BFFHttpServerOptions) {
     this.options = options;
     this.logger = options.logger ?? createConsoleLogger();
+    this.name = options.name ?? DEFAULT_SERVER_NAME;
 
     if (isPrebuilt(options)) {
       this.handler = options.callback;
@@ -81,13 +87,12 @@ export default class BFFHttpServer {
     app.use(
       createHealthRoute({
         version,
-        healthy: config.hasAllRequired,
-        configured: {
+        health: describeHealth(config.hasAllRequired, {
           oauth: Boolean(config.tokenEncryptionKey),
           ai: Boolean(config.tokenEncryptionKey),
           cors: config.allowedOrigins.length > 0,
           openapi: config.openapiEnabled,
-        },
+        }),
       }),
     );
 
@@ -110,7 +115,7 @@ export default class BFFHttpServer {
         server.removeListener('error', onError);
         const address = server.address();
         const port = typeof address === 'object' && address ? address.port : this.options.port;
-        this.logger('Info', 'Forest BFF started', { port });
+        this.logger('Info', `${this.name} started`, { port });
 
         resolve();
       };
@@ -144,7 +149,7 @@ export default class BFFHttpServer {
 
     if (unfinished.length === 0) return;
 
-    this.logger('Warn', 'Stopped the Forest BFF with activity logs still in flight', {
+    this.logger('Warn', `Stopped the ${this.name} with activity logs still in flight`, {
       timeoutMs,
       unfinished,
     });
@@ -169,7 +174,7 @@ export default class BFFHttpServer {
 
       const timer = setTimeout(() => {
         settled = true;
-        this.logger('Warn', 'Forcing the Forest BFF shutdown: connections were still open', {
+        this.logger('Warn', `Forcing the ${this.name} shutdown: connections were still open`, {
           timeoutMs,
         });
         server.closeAllConnections();
