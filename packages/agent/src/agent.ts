@@ -152,14 +152,9 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
       // serving /forest with a permanently bricked /bff.
       await this.prepareGateway();
       await this.embeddedBff?.prepare();
-
-      if (this.gateway) {
-        this.setRootHandlers(
-          this.isStopped && this.gateway.services.mcp
-            ? mcpUnavailable(this.gateway.basePath, 'stopped')
-            : undefined,
-        );
-      }
+      if (this.isStopped) await this.embeddedBff?.stop();
+      if (this.gateway) this.setRootHandlers();
+      if (this.isStopped) return;
 
       this.warnIfMcpAliasUsed();
 
@@ -220,9 +215,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   override async stop(): Promise<void> {
     this.isStopped = true;
 
-    if (this.gateway?.build && this.gateway.services.mcp) {
-      this.setRootHandlers(mcpUnavailable(this.gateway.basePath, 'stopped'));
-    }
+    if (this.gateway?.build) this.setRootHandlers();
 
     // Stop answering before the stack it dispatches into goes away: the host application keeps
     // whatever middleware it registered, so a stopped agent would otherwise still serve BFF data.
@@ -592,8 +585,18 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   }
 
   private setRootHandlers(mcp?: RootHandler): void {
-    if (this.gateway?.build) this.setGatewayCallback(this.gateway.build(mcp));
-    else this.setMcpCallback(mcp ?? null);
+    if (!this.gateway?.build) {
+      this.setMcpCallback(mcp ?? null);
+
+      return;
+    }
+
+    const stopped =
+      this.isStopped && this.gateway.services.mcp
+        ? mcpUnavailable(this.gateway.basePath, 'stopped')
+        : undefined;
+
+    this.setGatewayCallback(this.gateway.build(stopped ?? mcp));
   }
 
   private logGatewayRoutes(): void {

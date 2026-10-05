@@ -284,6 +284,23 @@ describe.each([
     expect(mcp.body.error_description).toBe('The MCP server was stopped with the agent.');
   });
 
+  it('should report the stopped state when stop() lands while start() prepares', async () => {
+    const getDataSource = jest.mocked(DataSourceCustomizer.prototype.getDataSource);
+    const { agent } = buildAgent();
+    agent.addGateway({ mcp: true, api: {} });
+    const app = mount(agent);
+
+    const starting = agent.start();
+    await agent.stop();
+    await starting;
+
+    const mcp = await request(app).post('/oauth/token');
+    expect(mcp.status).toBe(503);
+    expect(mcp.body.error_description).toBe('The MCP server was stopped with the agent.');
+    expect((await request(app).get('/api/health')).body.error.type).toBe('bff_stopped');
+    expect(getDataSource).not.toHaveBeenCalled();
+  });
+
   it('should stay stopped when stop() lands before start() has mounted', async () => {
     const dataSource = deferred<ReturnType<typeof factories.dataSource.build>>();
     const getDataSource = jest.mocked(DataSourceCustomizer.prototype.getDataSource);
