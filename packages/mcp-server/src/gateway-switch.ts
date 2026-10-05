@@ -16,10 +16,14 @@ const API_SERVICE = 'api';
 const HTTP_BAD_REQUEST = 400;
 const HTTP_NOT_FOUND = 404;
 
-type ErrorStatus = typeof HTTP_BAD_REQUEST | typeof HTTP_NOT_FOUND;
-
-type ErrorRoute = { status: ErrorStatus; error: string; description: string };
-type Route = { handler: GatewayHandler; strip?: string } | ErrorRoute;
+type ErrorRoute = {
+  status: typeof HTTP_BAD_REQUEST | typeof HTTP_NOT_FOUND;
+  error: string;
+  description: string;
+};
+type HandlerRoute = { handler: GatewayHandler; strip?: string };
+type Route = HandlerRoute | ErrorRoute;
+type Services = { prefix: string; mcp?: GatewayHandler; api?: GatewayHandler };
 
 const UNSUPPORTED_SERVICE: ErrorRoute = {
   status: HTTP_BAD_REQUEST,
@@ -33,6 +37,12 @@ const API_DISABLED: ErrorRoute = {
   description: 'The API service is not enabled on this Gateway.',
 };
 
+const UNCLAIMED: ErrorRoute = {
+  status: HTTP_NOT_FOUND,
+  error: 'not_found',
+  description: 'No Gateway service serves this path.',
+};
+
 function isUnder(pathname: string, prefix: string): boolean {
   return pathname === prefix || pathname.startsWith(`${prefix}/`);
 }
@@ -43,16 +53,51 @@ function readServices(url: string, pathname: string): string[] {
   return new URLSearchParams(query).getAll(SERVICE_PARAM);
 }
 
-function stripPrefix(url: string, prefix: string): string {
-  const stripped = url.slice(prefix.length);
+function routeOAuth({ prefix, mcp, api }: Services, url: string, pathname: string): Route | null {
+  const services = readServices(url, pathname);
 
-  return stripped.startsWith('/') ? stripped : `/${stripped}`;
+  if (services.length === 1 && services[0] === API_SERVICE) {
+    return api ? { handler: api, strip: prefix } : API_DISABLED;
+  }
+
+  if (!mcp?.matches(url)) return null;
+
+  return services.length === 0 ? { handler: mcp } : UNSUPPORTED_SERVICE;
 }
 
-function answerError(res: ServerResponse, status: ErrorStatus, error: string, description: string) {
+function routeApi({ prefix, api }: Services, pathname: string): HandlerRoute | null {
+  const apiPrefix = `${prefix}/api`;
+  if (!api || !isUnder(pathname, apiPrefix)) return null;
+
+  return api.matches(pathname.slice(apiPrefix.length) || '/')
+    ? { handler: api, strip: apiPrefix }
+    : null;
+}
+
+function routeMcp({ mcp }: Services, url: string): HandlerRoute | null {
+  return mcp?.matches(url) ? { handler: mcp } : null;
+}
+
+function route(services: Services, url: string): Route | null {
+  const [pathname] = url.split(/[?#]/, 1);
+
+  if (pathname.startsWith(`${services.prefix}/oauth/`)) return routeOAuth(services, url, pathname);
+
+  return routeApi(services, pathname) ?? routeMcp(services, url);
+}
+
+function answerError(res: ServerResponse, { status, error, description }: ErrorRoute): void {
   res.statusCode = status;
   res.setHeader('Content-Type', 'application/json');
   res.end(JSON.stringify({ error, error_description: description }));
+}
+
+function stripUrl(req: IncomingMessage, url: string, prefix: string): void {
+  const stripped = url.slice(prefix.length);
+  const strippedReq = req as IncomingMessage & { originalUrl?: string };
+
+  strippedReq.originalUrl ??= url;
+  req.url = stripped.startsWith('/') ? stripped : `/${stripped}`;
 }
 
 export default function createGatewaySwitch({
@@ -60,62 +105,21 @@ export default function createGatewaySwitch({
   mcp,
   api,
 }: GatewaySwitchOptions): GatewayHandler {
-  const prefix = normalizeMountPath(basePath, 'basePath');
-  const oauthPrefix = `${prefix}/oauth/`;
-  const apiPrefix = `${prefix}/api`;
+  const services: Services = { prefix: normalizeMountPath(basePath, 'basePath'), mcp, api };
 
-  const routeOAuth = (url: string, pathname: string): Route | null => {
-    const services = readServices(url, pathname);
-
-    if (services.length === 1 && services[0] === API_SERVICE) {
-      return api ? { handler: api, strip: prefix } : API_DISABLED;
-    }
-
-    if (!mcp?.matches(url)) return null;
-
-    return services.length === 0 ? { handler: mcp } : UNSUPPORTED_SERVICE;
-  };
-
-  const route = (url: string): Route | null => {
-    const [pathname] = url.split(/[?#]/, 1);
-
-    if (pathname.startsWith(oauthPrefix)) return routeOAuth(url, pathname);
-
-    if (api && isUnder(pathname, apiPrefix)) {
-      const apiPathname = pathname.slice(apiPrefix.length) || '/';
-      if (api.matches(apiPathname)) return { handler: api, strip: apiPrefix };
-    }
-
-    if (mcp?.matches(url)) return { handler: mcp };
-
-    return null;
-  };
-
-  const callback: HttpCallback = (req: IncomingMessage, res: ServerResponse, next) => {
+  const callback: HttpCallback = (req, res, next) => {
     const url = req.url ?? '/';
-    const found = route(url);
+    const found = route(services, url) ?? (next ? null : UNCLAIMED);
 
     if (!found) {
-      if (next) next();
-      else answerError(res, HTTP_NOT_FOUND, 'not_found', 'No Gateway service serves this path.');
-
-      return;
+      next?.();
+    } else if ('handler' in found) {
+      if (found.strip !== undefined) stripUrl(req, url, found.strip);
+      found.handler.callback(req, res, next);
+    } else {
+      answerError(res, found);
     }
-
-    if (!('handler' in found)) {
-      answerError(res, found.status, found.error, found.description);
-
-      return;
-    }
-
-    if (found.strip !== undefined) {
-      const strippedReq = req as IncomingMessage & { originalUrl?: string };
-      strippedReq.originalUrl ??= url;
-      req.url = stripPrefix(url, found.strip);
-    }
-
-    found.handler.callback(req, res, next);
   };
 
-  return { matches: url => route(url) !== null, callback };
+  return { matches: url => route(services, url) !== null, callback };
 }
