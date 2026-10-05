@@ -3,7 +3,9 @@ import {
   ForestServerClientImpl,
   MCP_PATHS,
   createForestServerClient,
+  createGatewaySwitch,
   isMcpRoute,
+  normalizeMountPath,
 } from '../src';
 
 describe('mcp-server exports', () => {
@@ -25,5 +27,10 @@ describe('mcp-server exports', () => {
   it('should export createForestServerClient', () => {
     expect(createForestServerClient).toBeDefined();
     expect(typeof createForestServerClient).toBe('function');
+  });
+
+  it('should export createGatewaySwitch and normalizeMountPath', () => {
+    expect(createGatewaySwitch({ basePath: '/ai' }).matches('/ai/mcp')).toBe(false);
+    expect(normalizeMountPath('ai/', 'basePath')).toBe('/ai');
   });
 });
