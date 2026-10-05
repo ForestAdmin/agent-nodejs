@@ -236,6 +236,18 @@ describe('prebuilt listener surface of the package entry point', () => {
       }
     });
 
+    it('should set no X-Forest-Gateway-Version for an empty gatewayVersion', async () => {
+      const { callback } = await buildBff({
+        config: parseConfig(VALID_ENV),
+        logger: noopLogger,
+        gatewayVersion: '',
+      });
+
+      const response = await request(callback).get('/health');
+
+      expect(response.headers).not.toHaveProperty('x-forest-gateway-version');
+    });
+
     it('should set no X-Forest-Gateway-Version without the option', async () => {
       const { callback } = await buildBff({ config: parseConfig(VALID_ENV), logger: noopLogger });
 
@@ -253,12 +265,18 @@ describe('prebuilt listener surface of the package entry point', () => {
       expect(document.servers[0].url).toBe('/api');
     });
 
-    it('should emit the same document as before when given no option', async () => {
-      const without = await renderOpenApi({}, noopLogger);
-      const withEmpty = await renderOpenApi({}, noopLogger, {});
+    it('should emit the root-relative server forest-bff openapi emits when given no option', async () => {
+      const document = JSON.parse(await renderOpenApi({}, noopLogger));
 
-      expect(JSON.parse(without).servers[0].url).toBe('/');
-      expect(withEmpty).toBe(without);
+      expect(document.servers).toEqual([
+        {
+          url: '/',
+          description:
+            'Resolved against the URL this document was fetched from. Set BFF_PUBLIC_URL on the ' +
+            'deployment to publish its absolute base URL here instead, which a client generated ' +
+            'from an offline export needs.',
+        },
+      ]);
     });
   });
 });

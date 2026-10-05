@@ -83,6 +83,10 @@ export interface BuildBffOptions {
    * standalone deployment wants; an embedding host passes its own, or a no-op.
    */
   metrics?: Metrics;
+  /**
+   * Sent as `X-Forest-Gateway-Version` on every response, next to agent-bff's own
+   * `X-Forest-Bff-Version`. Unset or empty, the header is not sent: `forest-bff` keeps today's headers.
+   */
   gatewayVersion?: string;
 }
 

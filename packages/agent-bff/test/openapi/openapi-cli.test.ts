@@ -242,6 +242,13 @@ describe('renderOpenApi', () => {
     expect(document.servers[0].url).toBe('https://bff.example.com');
   });
 
+  it('should carry basePath in the unfolded export', async () => {
+    const document = JSON.parse(await renderOpenApi(VALID_ENV, noopLogger, { basePath: '/api' }));
+
+    expect(document.info.description).toContain('Paths are unfolded');
+    expect(document.servers[0].url).toBe('/api');
+  });
+
   it('should reject a malformed BFF_PUBLIC_URL rather than export an unusable server', async () => {
     await expect(renderOpenApi({ BFF_PUBLIC_URL: 'bff.example.com' }, noopLogger)).rejects.toThrow(
       /BFF_PUBLIC_URL/,

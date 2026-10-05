@@ -10,7 +10,7 @@ export default function createVersionHeaderMiddleware(
 ): Middleware {
   return async function versionHeader(ctx, next) {
     ctx.set(BFF_VERSION_HEADER, version);
-    if (gatewayVersion !== undefined) ctx.set(GATEWAY_VERSION_HEADER, gatewayVersion);
+    if (gatewayVersion) ctx.set(GATEWAY_VERSION_HEADER, gatewayVersion);
 
     await next();
   };
