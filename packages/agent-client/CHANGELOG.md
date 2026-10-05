@@ -1,3 +1,10 @@
+# @forestadmin/agent-client [1.17.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.16.2...@forestadmin/agent-client@1.17.0) (2026-10-05)
+
+
+### Features
+
+* **mcp-server:** tell the model which record key holds each schema field ([#1961](https://github.com/ForestAdmin/agent-nodejs/issues/1961)) ([cba8a29](https://github.com/ForestAdmin/agent-nodejs/commit/cba8a299a4733713f0c487e3d2a9e07cb9ab371f))
+
 ## @forestadmin/agent-client [1.16.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.16.1...@forestadmin/agent-client@1.16.2) (2026-10-01)
 
 
