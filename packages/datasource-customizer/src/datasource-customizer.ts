@@ -104,7 +104,7 @@ export default class DataSourceCustomizer<S extends TSchema = TSchema> {
    */
   addChart(name: string, definition: DataSourceChartDefinition<S>): this {
     this.stack.queueCustomization(async () => {
-      this.stack.chart.addChart(name, definition);
+      this.stack.chart.addChart(name, definition as unknown as DataSourceChartDefinition);
     });
 
     return this;
