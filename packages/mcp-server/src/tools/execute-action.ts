@@ -40,7 +40,8 @@ export default function declareExecuteActionTool(mcpServer: McpServer, ctx: Tool
 Required workflow:
 1. Call getActionForm to retrieve the form fields and check if the form is valid
 2. If getActionForm returns "canExecute": false, call it again with values until "canExecute": true
-3. Only then call executeAction with the same values used in the last getActionForm call
+3. If a call revealed fields the user's request covers, fill them with another getActionForm call, even when "canExecute" is already true
+4. Only then call executeAction with the same values used in the last getActionForm call
 
 If you call executeAction with missing required fields, it will return an error with the missing fields instead of executing the action.${
         ctx.fileUploads

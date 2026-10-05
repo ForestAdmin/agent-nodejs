@@ -1078,6 +1078,128 @@ describe('TriggerRecordActionStepExecutor', () => {
       expect(prompt).toContain('allowed: low, high');
     });
 
+    it('lets the AI fill the optional fields a change hook reveals once the required ones are set', async () => {
+      const agentPort = makeMockAgentPort();
+      (agentPort.getActionForm as jest.Mock)
+        .mockResolvedValueOnce({
+          fields: [{ name: 'closing_notice_type', type: 'Enum', isRequired: true }],
+          canExecute: false,
+          requiredFields: ['closing_notice_type'],
+          skippedFields: [],
+        })
+        .mockResolvedValue({
+          fields: [
+            {
+              name: 'closing_notice_type',
+              type: 'Enum',
+              isRequired: true,
+              value: 'immediate',
+            },
+            { name: 'block_fx', type: 'Boolean', isRequired: false },
+          ],
+          canExecute: true,
+          requiredFields: [],
+          skippedFields: [],
+        });
+      (agentPort.executeAction as jest.Mock).mockResolvedValue({ result: { success: 'ok' } });
+      const mockModel = makeMockModel(undefined, 'fill_action_form');
+      mockModel.invoke
+        .mockResolvedValueOnce({
+          tool_calls: [
+            {
+              name: 'fill_action_form',
+              args: { values: { closing_notice_type: 'immediate' } },
+              id: 'call_1',
+            },
+          ],
+        })
+        .mockResolvedValue({
+          tool_calls: [
+            {
+              name: 'fill_action_form',
+              args: { values: { closing_notice_type: 'immediate', block_fx: true } },
+              id: 'call_2',
+            },
+          ],
+        });
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort,
+        runStore: makeMockRunStore(),
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          prompt: 'Close the account immediately and block FX',
+          preRecordedArgs: {
+            selectedRecordStepId: 'workflow-start',
+            actionName: 'send-welcome-email',
+          },
+        }),
+      });
+
+      await new TriggerRecordActionStepExecutor(context).execute();
+
+      expect(agentPort.executeAction).toHaveBeenCalledWith(
+        expect.objectContaining({
+          values: { closing_notice_type: 'immediate', block_fx: true },
+        }),
+        expect.anything(),
+      );
+    });
+
+    it('submits without the revealed optional fields when the AI has nothing to put in them', async () => {
+      const agentPort = makeMockAgentPort();
+      (agentPort.getActionForm as jest.Mock)
+        .mockResolvedValueOnce({
+          fields: [{ name: 'closing_notice_type', type: 'Enum', isRequired: true }],
+          canExecute: false,
+          requiredFields: ['closing_notice_type'],
+          skippedFields: [],
+        })
+        .mockResolvedValue({
+          fields: [
+            {
+              name: 'closing_notice_type',
+              type: 'Enum',
+              isRequired: true,
+              value: 'immediate',
+            },
+            { name: 'block_fx', type: 'Boolean', isRequired: false },
+          ],
+          canExecute: true,
+          requiredFields: [],
+          skippedFields: [],
+        });
+      (agentPort.executeAction as jest.Mock).mockResolvedValue({ result: { success: 'ok' } });
+      const mockModel = makeMockModel(
+        { values: { closing_notice_type: 'immediate' } },
+        'fill_action_form',
+      );
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort,
+        runStore: makeMockRunStore(),
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          prompt: 'Close the account immediately',
+          preRecordedArgs: {
+            selectedRecordStepId: 'workflow-start',
+            actionName: 'send-welcome-email',
+          },
+        }),
+      });
+
+      await new TriggerRecordActionStepExecutor(context).execute();
+
+      const secondPrompt = (mockModel.invoke.mock.calls[1][0] as { content: unknown }[])
+        .map(m => m.content)
+        .join('\n');
+      expect(secondPrompt).toContain('- block_fx (Boolean)');
+      expect(agentPort.executeAction).toHaveBeenCalledWith(
+        expect.objectContaining({ values: { closing_notice_type: 'immediate' } }),
+        expect.anything(),
+      );
+    });
+
     it('falls back to the AI-assisted review state when a required field stays empty', async () => {
       const agentPort = makeMockAgentPort();
       (agentPort.getActionForm as jest.Mock).mockResolvedValue({
@@ -1968,6 +2090,71 @@ describe('TriggerRecordActionStepExecutor', () => {
         expect.objectContaining({
           pendingData: expect.objectContaining({
             form: expect.objectContaining({ aiFilledValues: [{ field: 'amount', value: 50 }] }),
+          }),
+        }),
+      );
+    });
+
+    it('records a re-returned multi-select once so replaying the prefill keeps the revealed field', async () => {
+      const agentPort = makeMockAgentPort();
+      (agentPort.getActionForm as jest.Mock)
+        .mockResolvedValueOnce({
+          fields: [{ name: 'tags', type: ['String'], isRequired: true }],
+          canExecute: false,
+          requiredFields: ['tags'],
+          skippedFields: [],
+        })
+        .mockResolvedValue({
+          fields: [
+            { name: 'tags', type: ['String'], isRequired: true, value: ['a'] },
+            { name: 'block_fx', type: 'Boolean', isRequired: false },
+          ],
+          canExecute: true,
+          requiredFields: [],
+          skippedFields: [],
+        });
+      const mockModel = makeMockModel(undefined, 'fill_action_form');
+      mockModel.invoke
+        .mockResolvedValueOnce({
+          tool_calls: [
+            { name: 'fill_action_form', args: { values: { tags: ['a'] } }, id: 'call_1' },
+          ],
+        })
+        .mockResolvedValue({
+          tool_calls: [
+            {
+              name: 'fill_action_form',
+              args: { values: { tags: ['a'], block_fx: true } },
+              id: 'call_2',
+            },
+          ],
+        });
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort,
+        runStore,
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.AutomatedWithConfirmation,
+          preRecordedArgs: {
+            selectedRecordStepId: 'workflow-start',
+            actionName: 'send-welcome-email',
+          },
+        }),
+      });
+
+      await new TriggerRecordActionStepExecutor(context).execute();
+
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          pendingData: expect.objectContaining({
+            form: expect.objectContaining({
+              aiFilledValues: [
+                { field: 'tags', value: ['a'] },
+                { field: 'block_fx', value: true },
+              ],
+            }),
           }),
         }),
       );

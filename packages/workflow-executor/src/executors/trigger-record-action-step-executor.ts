@@ -10,6 +10,7 @@ import type { TriggerActionStepDefinition } from '../types/validated/step-defini
 import type { ErrorKind, RecordStepStatus } from '../types/validated/step-outcome';
 
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
+import { isDeepStrictEqual } from 'util';
 import { z } from 'zod';
 
 import {
@@ -269,7 +270,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       for (const [field, value] of Object.entries(aiValues)) {
         const isEmpty = value === undefined || value === null || value === '';
         const exists = form.fields.some(f => f.name === field);
-        const isNew = accumulator[field] !== value;
+        const isNew = !isDeepStrictEqual(accumulator[field], value);
 
         // Keep only non-empty values for fields that still exist and weren't already set.
         if (!isEmpty && exists && isNew) {
@@ -282,6 +283,8 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       // No-progress guard: the AI added nothing new this pass → it has no more context to offer.
       if (!progressed) break;
 
+      const fieldsShownToAi = new Set(form.fields.map(f => f.name));
+
       // Re-apply so change hooks reveal/adjust dependent fields for the next pass.
       // eslint-disable-next-line no-await-in-loop
       form = await this.context.agent.getActionForm({
@@ -291,7 +294,8 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
         values: accumulator,
       });
 
-      if (form.canExecute) break;
+      const revealedFields = form.fields.some(f => !fieldsShownToAi.has(f.name));
+      if (form.canExecute && !revealedFields) break;
     }
 
     // Drop any value whose field no longer exists after the hooks (state drift) — fail-safe.

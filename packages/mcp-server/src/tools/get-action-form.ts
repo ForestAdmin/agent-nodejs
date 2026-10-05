@@ -63,7 +63,8 @@ Workflow:
 2. Check the "canExecute" field in the response - if false, required fields are missing
 3. Call getActionForm again with the "values" parameter to fill in the missing required fields
 4. Repeat step 2-3 until "canExecute" is true
-5. Only then call executeAction with the same values
+5. After each call, look for fields that were not in the previous response: setting a value can reveal new fields. Fill the ones the user's request covers with another getActionForm call, since "canExecute" only means the required fields are filled
+6. Only then call executeAction with the same values
 
 The response includes:
 - fields: Array of form fields with name, type, current value, isRequired flag, description (hint), enumValues (Enum fields), and allowedValues (choice widgets — submit the value, not the label)

@@ -81,6 +81,18 @@ describe('declareExecuteActionTool', () => {
       expect(registeredToolConfig.description).toContain('MUST call getActionForm first');
     });
 
+    it('tells the model to fill revealed fields before executing', () => {
+      declareExecuteActionTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: [],
+      });
+
+      expect(registeredToolConfig.description).toContain(
+        "If a call revealed fields the user's request covers",
+      );
+    });
+
     it('should not be annotated as read-only', () => {
       declareExecuteActionTool(mcpServer, {
         forestServerClient: mockForestServerClient,
