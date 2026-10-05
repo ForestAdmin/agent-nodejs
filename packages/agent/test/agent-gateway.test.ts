@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { GatewayOptions } from '../src/types';
+import type { UploadStorage } from '@forestadmin/mcp-server';
+import type { IncomingMessage, ServerResponse } from 'http';
 
 import { DataSourceCustomizer } from '@forestadmin/datasource-customizer';
 import * as McpServer from '@forestadmin/mcp-server';
@@ -45,7 +47,12 @@ beforeEach(() => {
     .mockImplementation(() => ({ getHttpCallback: mockGetHttpCallback } as any));
 });
 
-afterEach(() => mcpServerSpy.mockRestore());
+const runningAgents: Agent[] = [];
+
+afterEach(async () => {
+  mcpServerSpy.mockRestore();
+  await Promise.all(runningAgents.splice(0).map(agent => agent.stop()));
+});
 
 function buildAgent(prefix = '') {
   const logger = jest.fn();
@@ -56,10 +63,20 @@ function buildAgent(prefix = '') {
   return { agent, logger };
 }
 
-function rootHandlerFor(agent: Agent, url: string): string | null {
-  const entry = (agent as any).rootMiddleware.entryFor(url);
+function answeringWith(body: string) {
+  return (_req: IncomingMessage, res: ServerResponse) => res.end(body);
+}
 
-  return entry ? entry[0] : null;
+async function startOnPort(agent: Agent) {
+  runningAgents.push(agent);
+  agent.mountOnStandaloneServer(0, '127.0.0.1');
+  await agent.start();
+
+  return async (path: string) => {
+    const response = await fetch(`http://127.0.0.1:${agent.standaloneServerPort}${path}`);
+
+    return { status: response.status, body: await response.text() };
+  };
 }
 
 function gatewayLog(logger: jest.Mock, service: 'MCP' | 'API'): string {
@@ -80,15 +97,16 @@ describe('Agent.addGateway', () => {
   });
 
   describe('when neither addGateway() nor an alias is called', () => {
-    it('should start with no error, no Gateway log and no root handler', async () => {
+    it('should start with no error, no Gateway log and no Gateway route', async () => {
       const { agent, logger } = buildAgent();
 
-      await agent.start();
+      const request = await startOnPort(agent);
 
       expect(mcpServerSpy).not.toHaveBeenCalled();
       expect(mockParseConfig).not.toHaveBeenCalled();
       expect(logger).not.toHaveBeenCalledWith('Info', expect.stringContaining('[Gateway]'));
-      expect((agent as any).rootMiddleware.getCallback()).toBeNull();
+      expect((await request('/mcp')).status).toBe(404);
+      expect((await request('/api/health')).status).toBe(404);
     });
   });
 
@@ -144,9 +162,13 @@ describe('Agent.addGateway', () => {
       );
     });
 
-    it('should not list the uploads route when file uploads are off or stored elsewhere', async () => {
+    it.each<[string, Exclude<GatewayOptions['mcp'], boolean | undefined>]>([
+      ['are off', { fileUploads: false }],
+      ['go to an external storage', { fileUploads: { storage: {} as UploadStorage } }],
+      ['are left out of enabledTools', { enabledTools: ['list'] }],
+    ])('should not list the uploads route when file uploads %s', async (_case, mcp) => {
       const { agent, logger } = buildAgent();
-      agent.addGateway({ mcp: { fileUploads: false } });
+      agent.addGateway({ mcp });
 
       await agent.start();
 
@@ -159,6 +181,9 @@ describe('Agent.addGateway', () => {
 
       await agent.start();
 
+      expect(gatewayLog(logger, 'MCP')).toBe(
+        '[Gateway] MCP: /mcp, /mcp/uploads, /oauth/*, /.well-known/*',
+      );
       expect(() => gatewayLog(logger, 'API')).toThrow();
     });
   });
@@ -208,13 +233,16 @@ describe('Agent.addGateway', () => {
       expect(mcpServerSpy).not.toHaveBeenCalled();
     });
 
-    it('should register no root handler: the Gateway routing ships separately', async () => {
+    it('should leave every Gateway path to the host: the Gateway routing ships separately', async () => {
       const { agent } = buildAgent();
+      mockGetHttpCallback.mockResolvedValue(answeringWith('mcp'));
       agent.addGateway({ mcp: true, api: {} });
 
-      await agent.start();
+      const request = await startOnPort(agent);
 
-      expect((agent as any).rootMiddleware.getCallback()).toBeNull();
+      expect((await request('/mcp')).status).toBe(404);
+      expect((await request('/oauth/token')).status).toBe(404);
+      expect((await request('/api/health')).status).toBe(404);
     });
 
     it('should surface the MCP domain-root rejection from start()', async () => {
@@ -246,14 +274,14 @@ describe('Agent.addGateway', () => {
 
     it('should refuse an invalid basePath at start(), naming basePath and the format, before mounting', async () => {
       const { agent } = buildAgent();
-      const mount = jest.spyOn(agent as any, 'mount');
-      agent.addGateway({ basePath: 'a b', mcp: true });
+      agent.addGateway({ basePath: 'a b', mcp: true }).mountOnStandaloneServer(0, '127.0.0.1');
 
       await expect(agent.start()).rejects.toThrow(
         'Invalid basePath "a b": use a plain path prefix like "/mcp" ' +
           '(letters, digits, "-" and "_" only).',
       );
-      expect(mount).not.toHaveBeenCalled();
+      expect(agent.standaloneServerPort).toBeUndefined();
+      expect(mcpServerSpy).not.toHaveBeenCalled();
     });
 
     it.each([{}, { mcp: false, api: false }])(
@@ -356,16 +384,17 @@ describe('Agent.addGateway', () => {
 describe('Agent.mountAiMcpServer (deprecated alias)', () => {
   it('should keep the last configuration when called twice, at the root', async () => {
     const { agent } = buildAgent();
+    mockGetHttpCallback.mockResolvedValue(answeringWith('mcp'));
     agent.mountAiMcpServer({ enabledTools: ['list'] });
     agent.mountAiMcpServer({ enabledTools: ['describeCollection'] });
 
-    await agent.start();
+    const request = await startOnPort(agent);
 
     expect(mcpServerSpy).toHaveBeenCalledTimes(1);
     expect(mcpServerSpy).toHaveBeenCalledWith(
       expect.objectContaining({ enabledTools: ['describeCollection'], basePath: undefined }),
     );
-    expect(rootHandlerFor(agent, '/mcp')).toBe('mcp');
+    expect(await request('/mcp')).toEqual({ status: 200, body: 'mcp' });
   });
 
   it('should log a deprecation warning naming addGateway() on start', async () => {
@@ -384,12 +413,13 @@ describe('Agent.mountAiMcpServer (deprecated alias)', () => {
 describe('Agent.addBff (deprecated alias)', () => {
   it('should keep serving on /bff and claim nothing on /api', async () => {
     const { agent } = buildAgent();
+    mockBuildBff.mockResolvedValue({ callback: answeringWith('bff'), invalidate: jest.fn() });
     agent.addBff();
 
-    await agent.start();
+    const request = await startOnPort(agent);
 
-    expect(rootHandlerFor(agent, '/bff/agent/v1/books/list')).toBe('bff');
-    expect(rootHandlerFor(agent, '/api/agent/v1/books/list')).toBeNull();
-    expect(rootHandlerFor(agent, '/api/health')).toBeNull();
+    expect(await request('/bff/agent/v1/books/list')).toEqual({ status: 200, body: 'bff' });
+    expect((await request('/api/agent/v1/books/list')).status).toBe(404);
+    expect((await request('/api/health')).status).toBe(404);
   });
 });
