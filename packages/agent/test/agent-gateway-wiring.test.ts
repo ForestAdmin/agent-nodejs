@@ -284,6 +284,24 @@ describe.each([
     expect(mcp.body.error_description).toBe('The MCP server was stopped with the agent.');
   });
 
+  it('should keep the MCP stopped when a restart in flight completes after stop()', async () => {
+    const { agent } = buildAgent();
+    agent.addGateway({ mcp: true, api: {} });
+    const app = mount(agent);
+    await agent.start();
+    const rebuilt = deferred<ReturnType<typeof echo>>();
+    mockGetHttpCallback.mockReturnValue(rebuilt.promise);
+
+    const restarting = agent.restart();
+    await until(() => mockGetHttpCallback.mock.calls.length === 2);
+    await agent.stop();
+    rebuilt.resolve(echo('mcp-restarted'));
+    await restarting;
+
+    expect((await request(app).post('/mcp')).status).toBe(503);
+    expect((await request(app).get('/api/health')).status).toBe(503);
+  });
+
   it('should leave /.well-known to the host in every window the MCP is not built', async () => {
     const dataSource = deferred<ReturnType<typeof factories.dataSource.build>>();
     const getDataSource = jest.mocked(DataSourceCustomizer.prototype.getDataSource);
@@ -391,6 +409,25 @@ describe('addBff() deprecated alias', () => {
     expect(response.headers.link).toBe(`<${BFF_DEPRECATION_LINK}>; rel="deprecation"`);
     expect(response.headers['access-control-expose-headers']).toBe('Deprecation, Link');
     expect((await request(app).get('/api/health')).status).toBe(404);
+    await agent.stop();
+  });
+
+  it('should append its Link to the one the host already set', async () => {
+    const { agent } = buildAgent();
+    agent.addBff();
+    const app = express();
+    app.use((_req, res, next) => {
+      res.setHeader('Link', '<https://host.example/app.css>; rel="preload"');
+      next();
+    });
+    agent.mountOnExpress(app);
+    await agent.start();
+
+    const response = await request(app).get('/bff/health');
+
+    expect(response.headers.link).toBe(
+      `<https://host.example/app.css>; rel="preload", <${BFF_DEPRECATION_LINK}>; rel="deprecation"`,
+    );
     await agent.stop();
   });
 

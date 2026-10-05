@@ -39,15 +39,27 @@ export const BFF_DEPRECATION_LOG_INTERVAL_MS = 60 * 60 * 1000;
 
 const EXPOSE_HEADERS = 'Access-Control-Expose-Headers';
 const DEPRECATION_HEADERS = ['Deprecation', 'Link'];
+const DEPRECATION_LINK = `<${BFF_DEPRECATION_LINK}>; rel="deprecation"`;
+
+function headerValues(res: ServerResponse, name: string): string[] {
+  const value = res.getHeader(name);
+
+  return value === undefined ? [] : [value].flat().map(String);
+}
 
 function markDeprecated(res: ServerResponse): void {
-  const exposed = String(res.getHeader(EXPOSE_HEADERS) ?? '')
-    .split(',')
+  const exposed = headerValues(res, EXPOSE_HEADERS)
+    .flatMap(value => value.split(','))
     .map(name => name.trim())
     .filter(Boolean);
+  const links = headerValues(res, 'Link');
 
   res.setHeader('Deprecation', `@${BFF_DEPRECATION_TIMESTAMP}`);
-  res.setHeader('Link', `<${BFF_DEPRECATION_LINK}>; rel="deprecation"`);
+
+  if (!links.includes(DEPRECATION_LINK)) {
+    res.setHeader('Link', [...links, DEPRECATION_LINK].join(', '));
+  }
+
   res.setHeader(EXPOSE_HEADERS, [...new Set([...exposed, ...DEPRECATION_HEADERS])].join(', '));
 }
 
@@ -72,7 +84,8 @@ export function createBffAliasCallback(handle: HttpCallback, logger: Logger): Ht
       logger(
         'Warn',
         `[BFF] ${BFF_PREFIX}/* is deprecated and was called: use addGateway({ api }), ` +
-          `which serves the same routes under /api. See ${BFF_DEPRECATION_LINK}`,
+          `which serves the same routes under <basePath>/api (/api by default). ` +
+          `See ${BFF_DEPRECATION_LINK}`,
       );
     }
 

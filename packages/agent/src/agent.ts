@@ -101,6 +101,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   } | null = null;
 
   private isRestarting = false;
+  private isStopped = false;
 
   /**
    * Set as soon as start() begins, not once it finishes: mount() drains the `onFirstStart` hooks
@@ -143,6 +144,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   async start(): Promise<void> {
     let mounted = false;
     this.startupBegun = true;
+    this.isStopped = false;
 
     try {
       // First, before anything is mounted or subscribed: everything it validates is what the caller
@@ -207,6 +209,8 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * Stop the agent.
    */
   override async stop(): Promise<void> {
+    this.isStopped = true;
+
     if (this.gateway?.build && this.gateway.services.mcp) {
       this.setRootHandlers(mcpUnavailable(this.gateway.basePath, 'stopped'));
     }
@@ -253,6 +257,8 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     try {
       // We force sending schema when restarting
       const { router, mcp } = await this.buildRouterAndSendSchema();
+
+      if (this.isStopped) return;
 
       this.setRootHandlers(mcp);
       await this.remount(router);
