@@ -24,6 +24,8 @@ import sequelizeMsSql from '../connections/sequelize-mssql';
 import sequelizeMySql from '../connections/sequelize-mysql';
 import sequelizePostgres from '../connections/sequelize-postgres';
 
+const ZENDESK_OAUTH_DOMAIN = 'forestadmin.com';
+
 export default function makeAgent() {
   const envOptions: AgentOptions = {
     authSecret: process.env.FOREST_AUTH_SECRET,
@@ -37,19 +39,15 @@ export default function makeAgent() {
   };
 
   const rawAllowedOAuthClients = process.env.FOREST_MCP_ALLOWED_OAUTH_CLIENTS;
-  // Unset or '' means not configured. A set value covers both Gateway services, so it always
-  // keeps forestadmin.com, which the Zendesk app signs in through.
-  const allowedOAuthClients = rawAllowedOAuthClients
-    ? [
-        ...new Set([
-          ...rawAllowedOAuthClients
-            .split(',')
-            .map(domain => domain.trim())
-            .filter(Boolean),
-          'forestadmin.com',
-        ]),
-      ]
+  const configuredOAuthClients = rawAllowedOAuthClients
+    ? rawAllowedOAuthClients
+        .split(',')
+        .map(domain => domain.trim())
+        .filter(Boolean)
     : undefined;
+  const allowedOAuthClients = configuredOAuthClients?.length
+    ? [...new Set([...configuredOAuthClients, ZENDESK_OAUTH_DOMAIN])]
+    : configuredOAuthClients;
 
   const bffAllowedOrigins = (process.env.BFF_ALLOWED_ORIGINS ?? '')
     .split(',')
