@@ -44,7 +44,9 @@ export function installShutdownHandlers(
       stopping = true;
       logger('Info', `Stopping the ${name}`, { signal });
 
-      target.stop().catch(error => {
+      new Promise<void>(resolve => {
+        resolve(target.stop());
+      }).catch(error => {
         logger('Error', `The ${name} did not stop cleanly`, {
           cause: extractErrorMessage(error),
         });

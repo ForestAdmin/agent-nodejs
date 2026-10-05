@@ -200,6 +200,20 @@ describe('prebuilt listener surface of the package entry point', () => {
       expect(stop).toHaveBeenCalledTimes(1);
     });
 
+    it('should log a stop() that throws synchronously instead of letting it escape', async () => {
+      const logger = jest.fn();
+
+      install(() => {
+        throw new Error('boom');
+      }, logger as unknown as Logger);
+
+      expect(() => send('SIGTERM')).not.toThrow();
+      await new Promise(setImmediate);
+      expect(logger).toHaveBeenCalledWith('Error', 'The Forest BFF did not stop cleanly', {
+        cause: 'boom',
+      });
+    });
+
     it('should log the signal it ignores while stopping', () => {
       const logger = jest.fn();
 
