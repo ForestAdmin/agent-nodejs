@@ -5,7 +5,9 @@ import {
   createForestServerClient,
   createGatewaySwitch,
   isMcpRoute,
+  loadFileUploads,
   normalizeMountPath,
+  parseMcpEnv,
 } from '../src';
 
 describe('mcp-server exports', () => {
@@ -32,5 +34,13 @@ describe('mcp-server exports', () => {
   it('should export createGatewaySwitch and normalizeMountPath', () => {
     expect(createGatewaySwitch({ basePath: '/ai' }).matches('/ai/mcp')).toBe(false);
     expect(normalizeMountPath('ai/', 'basePath')).toBe('/ai');
+  });
+
+  it('should export parseMcpEnv and loadFileUploads', async () => {
+    expect(parseMcpEnv({ MCP_SERVER_PORT: '4000' }).listener).toEqual({
+      port: 4000,
+      publicUrl: undefined,
+    });
+    await expect(loadFileUploads(undefined)).resolves.toBeUndefined();
   });
 });
