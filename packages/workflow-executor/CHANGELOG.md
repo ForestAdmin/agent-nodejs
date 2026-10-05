@@ -1,3 +1,10 @@
+## @forestadmin/workflow-executor [1.31.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.31.2...@forestadmin/workflow-executor@1.31.3) (2026-10-05)
+
+
+### Bug Fixes
+
+* **workflow-executor:** ask to reconnect when a token endpoint rejects a refresh as invalid_request ([fcf316c](https://github.com/ForestAdmin/agent-nodejs/commit/fcf316c8994665527ececbf877bfaa3efb90d964))
+
 ## @forestadmin/workflow-executor [1.31.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.31.1...@forestadmin/workflow-executor@1.31.2) (2026-10-05)
 
 
