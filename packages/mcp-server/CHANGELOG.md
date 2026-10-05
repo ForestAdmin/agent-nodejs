@@ -1,3 +1,15 @@
+# @forestadmin/mcp-server [1.25.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.24.10...@forestadmin/mcp-server@1.25.0) (2026-10-05)
+
+
+### Bug Fixes
+
+* **workflow-executor,mcp-server:** let the AI fill the form fields a change hook reveals ([#1959](https://github.com/ForestAdmin/agent-nodejs/issues/1959)) ([f9c0bcb](https://github.com/ForestAdmin/agent-nodejs/commit/f9c0bcb00f81b5d27404545cc5c053a8c63990dd))
+
+
+### Features
+
+* **mcp-server:** add gateway switch for mcp and api routing ([#1958](https://github.com/ForestAdmin/agent-nodejs/issues/1958)) ([1cb907e](https://github.com/ForestAdmin/agent-nodejs/commit/1cb907e8eb0374da4e851a405083345dbaecdf10))
+
 ## @forestadmin/mcp-server [1.24.10](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.24.9...@forestadmin/mcp-server@1.24.10) (2026-10-05)
 
 
