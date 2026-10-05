@@ -77,8 +77,7 @@ function matchedByRecord(
   values: string[],
   primaryKeys: PrimaryKeyField[],
   record: Record<string, unknown>,
-  unreadAllowed = 1,
-): string[] | null {
+): { segments: string[]; unread: number } {
   const claimed = values.map(() => false);
   const matched = primaryKeys.map(key => {
     const wanted = comparableValue(record, key);
@@ -89,11 +88,12 @@ function matchedByRecord(
     return index === -1 ? null : values[index];
   });
 
-  if (matched.filter(value => value === null).length > unreadAllowed) return null;
-
   const leftovers = values.filter((_, index) => !claimed[index]);
 
-  return matched.map(value => value ?? (leftovers.shift() as string));
+  return {
+    segments: matched.map(value => value ?? (leftovers.shift() as string)),
+    unread: matched.filter(value => value === null).length,
+  };
 }
 
 function segmentsByKey(
@@ -103,7 +103,9 @@ function segmentsByKey(
 ): string[] {
   if (!record) return values;
 
-  return matchedByRecord(values, primaryKeys, record) ?? values;
+  const { segments, unread } = matchedByRecord(values, primaryKeys, record);
+
+  return unread > 1 ? values : segments;
 }
 
 function parseJsonArrayId(packedId: string, keyCount: number): unknown[] | null {
@@ -128,32 +130,26 @@ function jsonArrayValues(elements: unknown[]): string[] | null {
   return values.every((value): value is string => value !== null) ? values : null;
 }
 
-function recordBackedSegments(
-  packedId: string,
-  elements: unknown[],
-  primaryKeys: PrimaryKeyField[],
-  record: Record<string, unknown>,
-): string[] | null {
-  const values = jsonArrayValues(elements);
-  const pipeValues = packedId.split(PACKED_ID_SEPARATOR);
-
-  if (pipeValues.length !== primaryKeys.length) {
-    return values && matchedByRecord(values, primaryKeys, record);
-  }
-
-  return (
-    matchedByRecord(pipeValues, primaryKeys, record, 0) ??
-    (values && matchedByRecord(values, primaryKeys, record, 0))
-  );
-}
-
 function jsonArraySegments(
   packedId: string,
-  elements: unknown[],
   primaryKeys: PrimaryKeyField[],
   record?: Record<string, unknown>,
 ): string[] {
-  const segments = record ? recordBackedSegments(packedId, elements, primaryKeys, record) : null;
+  const values = jsonArrayValues(parseJsonArrayId(packedId, primaryKeys.length) ?? []);
+  const pipeValues = packedId.split(PACKED_ID_SEPARATOR);
+
+  const read = (candidate: string[] | null, unreadAllowed: number): string[] | null => {
+    if (!candidate || !record) return null;
+
+    const { segments, unread } = matchedByRecord(candidate, primaryKeys, record);
+
+    return unread <= unreadAllowed ? segments : null;
+  };
+
+  const segments =
+    pipeValues.length === primaryKeys.length
+      ? read(pipeValues, 0) ?? read(values, 0)
+      : read(values, 1);
 
   if (!segments) {
     throw mappingError(
@@ -209,9 +205,8 @@ export default function unpackPrimaryKey(
     };
   }
 
-  const elements = parseJsonArrayId(packedId, primaryKeys.length);
-  const segments = elements
-    ? jsonArraySegments(packedId, elements, primaryKeys, record)
+  const segments = parseJsonArrayId(packedId, primaryKeys.length)
+    ? jsonArraySegments(packedId, primaryKeys, record)
     : pipeSegments(packedId, primaryKeys, record);
   const result: Record<string, string | number> = {};
 
