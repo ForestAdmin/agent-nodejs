@@ -975,11 +975,16 @@ describe('TriggerRecordActionStepExecutor', () => {
         });
     }
 
-    function fullAiContext(agentPort: AgentPort, runStore: ReturnType<typeof makeMockRunStore>) {
+    function fullAiContext(
+      agentPort: AgentPort,
+      runStore: ReturnType<typeof makeMockRunStore>,
+      logger: jest.Mock = jest.fn(),
+    ) {
       return makeContext({
         model: makeMockModel({ values: { amount: 50 } }, 'fill_action_form').model,
         agentPort,
         runStore,
+        logger,
         stepDefinition: makeStep({
           executionType: StepExecutionMode.FullyAutomated,
           preRecordedArgs: {
@@ -1244,18 +1249,25 @@ describe('TriggerRecordActionStepExecutor', () => {
         new ActionRequiresApprovalError('send-welcome-email', [7]),
       );
       const runStore = makeMockRunStore();
+      const logger = jest.fn();
       const result = await new TriggerRecordActionStepExecutor(
-        fullAiContext(agentPort, runStore),
+        fullAiContext(agentPort, runStore, logger),
       ).execute();
 
       expect(result.stepOutcome.status).toBe('awaiting-input');
       // The execute attempt wrote an `executing` write-ahead marker; the fallback pause must
       // overwrite it with a clean awaiting-input record — otherwise a re-dispatch would think the
       // step is stuck (StepStateError) instead of resumable.
-      const lastSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+      const [runId, lastSave] = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1);
+      expect(runId).toBe('run-1');
       expect(lastSave).toHaveProperty('pendingData');
       expect(lastSave).not.toHaveProperty('idempotencyPhase');
       expect(lastSave.pendingData.fullAiFallback).toEqual({ reason: 'approval-required' });
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        'Action "send-welcome-email" requires an approval and cannot be submitted programmatically',
+        expect.objectContaining({ runId: 'run-1', stepIndex: 0 }),
+      );
     });
 
     it('falls back to AI-assisted when the submission is rejected by validation', async () => {
@@ -1270,11 +1282,15 @@ describe('TriggerRecordActionStepExecutor', () => {
       ).execute();
 
       expect(result.stepOutcome.status).toBe('awaiting-input');
-      const lastSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
-      expect(lastSave.pendingData.fullAiFallback).toEqual({ reason: 'backend-refused' });
+      expect(runStore.saveStepExecution).toHaveBeenLastCalledWith(
+        'run-1',
+        expect.objectContaining({
+          pendingData: expect.objectContaining({ fullAiFallback: { reason: 'backend-refused' } }),
+        }),
+      );
     });
 
-    it('keeps the backend refusal message in pendingData and out of the step outcome', async () => {
+    it('keeps the backend refusal message in pendingData and logs it', async () => {
       const agentPort = makeMockAgentPort();
       mockFillThenComplete(agentPort);
       (agentPort.executeAction as jest.Mock).mockRejectedValue(
@@ -1285,16 +1301,28 @@ describe('TriggerRecordActionStepExecutor', () => {
         ),
       );
       const runStore = makeMockRunStore();
+      const logger = jest.fn();
       const result = await new TriggerRecordActionStepExecutor(
-        fullAiContext(agentPort, runStore),
+        fullAiContext(agentPort, runStore, logger),
       ).execute();
 
       expect(result.stepOutcome.status).toBe('awaiting-input');
-      const lastSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
-      expect(lastSave.pendingData.fullAiFallback).toEqual({
-        reason: 'backend-refused',
-        backendMessage: 'Account cannot be closed: 2 cards still active',
-      });
+      expect(runStore.saveStepExecution).toHaveBeenLastCalledWith(
+        'run-1',
+        expect.objectContaining({
+          pendingData: expect.objectContaining({
+            fullAiFallback: {
+              reason: 'backend-refused',
+              backendMessage: 'Account cannot be closed: 2 cards still active',
+            },
+          }),
+        }),
+      );
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        'Action "send-welcome-email" was refused by the backend: Account cannot be closed: 2 cards still active',
+        expect.objectContaining({ runId: 'run-1', stepIndex: 0 }),
+      );
     });
 
     it('keeps the backend refusal message off the error outcome of a formless action', async () => {

@@ -222,6 +222,8 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       // AI-assisted so a human can finish/submit natively. Plain permission 403, infra errors,
       // etc. propagate as a real step error (a reviewing human couldn't fix those).
       if (error instanceof ActionFormValidationError) {
+        this.context.logger('Warn', error.message, this.logCtx);
+
         return this.pauseForConfirmation(target, reviewState, {
           reason: 'backend-refused',
           ...(error.backendMessage && { backendMessage: error.backendMessage }),
@@ -229,6 +231,8 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       }
 
       if (error instanceof ActionRequiresApprovalError) {
+        this.context.logger('Warn', error.message, this.logCtx);
+
         return this.pauseForConfirmation(target, reviewState, { reason: 'approval-required' });
       }
 
