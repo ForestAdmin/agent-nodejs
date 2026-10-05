@@ -10,6 +10,10 @@ const SHUTDOWN_SIGNALS: NodeJS.Signals[] = ['SIGTERM', 'SIGINT'];
 
 let installedShutdownHandlers: { signal: NodeJS.Signals; handler: () => void }[] = [];
 
+export interface Stoppable {
+  stop(): Promise<void>;
+}
+
 /**
  * Routes a termination signal to `stop()`, which drains the activity-log transitions no connection
  * holds. Registered here rather than in the server: an embedded deployment does not own the process
@@ -18,10 +22,6 @@ let installedShutdownHandlers: { signal: NodeJS.Signals; handler: () => void }[]
  * A process runs one BFF, so a second call replaces the handlers instead of adding a pair: the
  * signal must reach the server that is listening, and nothing else.
  */
-export interface Stoppable {
-  stop(): Promise<void>;
-}
-
 export function installShutdownHandlers(
   target: Stoppable,
   logger: Logger,

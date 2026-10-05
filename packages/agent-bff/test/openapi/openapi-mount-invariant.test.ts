@@ -52,7 +52,7 @@ describe('the OpenAPI document mount point', () => {
   });
 
   describe('when a module outside src/openapi reaches into it', () => {
-    it('should only be the two known mount points, since any other one could serve the document off /agent', () => {
+    it('should only be the known mount points, since any other one could serve the document off /agent', () => {
       expect(openapiImportsOutsideTheOpenapiDir()).toEqual(ALLOWED_OPENAPI_IMPORTS);
     });
   });
