@@ -121,11 +121,13 @@ export default async function refreshAccessToken(
 
   if (!response.ok) {
     // invalid_client / unauthorized_client mean the client credential itself is dead (e.g. an expired
-    // secret) — non-retryable like invalid_grant, so route to re-consent instead of a doomed retry.
+    // secret), and invalid_request a malformed grant that resending never fixes (RFC 6749 §5.2) — all
+    // non-retryable like invalid_grant, so route to re-consent instead of a doomed retry.
     if (
       payload.error === 'invalid_grant' ||
       payload.error === 'invalid_client' ||
-      payload.error === 'unauthorized_client'
+      payload.error === 'unauthorized_client' ||
+      payload.error === 'invalid_request'
     ) {
       throw new OAuthInvalidGrantError(
         typeof payload.error_description === 'string' ? payload.error_description : undefined,
