@@ -59,15 +59,11 @@ describe('a (tenant_id, seq) composite primary key, per agent stack', () => {
     ]);
   });
 
-  it('should fail the whole list on the JSON array id forest_liana serializes for a composite model key', () => {
-    expect(() =>
-      listKeys(['seq', 'tenant_id'], row => JSON.stringify([row.tenantId, row.seq])),
-    ).toThrow(
-      expect.objectContaining({
-        type: 'mapping_error',
-        status: 500,
-        message: 'Cannot build primary key: expected 2 values, found 1',
-      }),
-    );
+  it('should unfold both columns on forest_liana, which serializes a composite key as a JSON array', () => {
+    expect(listKeys(['seq', 'tenant_id'], row => JSON.stringify([row.tenantId, row.seq]))).toEqual([
+      { seq: 1, tenant_id: 'acme' },
+      { seq: 2, tenant_id: 'acme' },
+      { seq: 1, tenant_id: 'globex' },
+    ]);
   });
 });

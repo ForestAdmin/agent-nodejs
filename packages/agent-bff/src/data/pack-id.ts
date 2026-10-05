@@ -4,7 +4,7 @@ import { recordKey } from '@forestadmin/agent-client';
 
 import { mappingError } from '../http/bff-local-errors';
 
-export const PACKED_ID_SEPARATOR = '|';
+const PACKED_ID_SEPARATOR = '|';
 
 // The only column type unpacked to a number, mirroring the agent's `IdUtils.unpackId`.
 const NUMBER_COLUMN_TYPE = 'Number';
@@ -73,13 +73,11 @@ function comparableValue(record: Record<string, unknown>, key: PrimaryKeyField):
  *
  * With no record, the values are returned whole and the pairing is the positional one.
  */
-function segmentsByKey(
+function matchedByRecord(
   values: string[],
   primaryKeys: PrimaryKeyField[],
-  record?: Record<string, unknown>,
-): string[] {
-  if (!record) return values;
-
+  record: Record<string, unknown>,
+): string[] | null {
   const claimed = values.map(() => false);
   const matched = primaryKeys.map(key => {
     const wanted = comparableValue(record, key);
@@ -91,16 +89,81 @@ function segmentsByKey(
     return values[index];
   });
 
-  if (matched.filter(value => value === null).length > 1) return values;
+  if (matched.filter(value => value === null).length > 1) return null;
 
   const leftovers = values.filter((_, index) => !claimed[index]);
 
   return matched.map(value => value ?? (leftovers.shift() as string));
 }
 
+function segmentsByKey(
+  values: string[],
+  primaryKeys: PrimaryKeyField[],
+  record?: Record<string, unknown>,
+): string[] {
+  if (!record) return values;
+
+  return matchedByRecord(values, primaryKeys, record) ?? values;
+}
+
+function parseJsonArrayId(packedId: string, keyCount: number): unknown[] | null {
+  if (keyCount < 2 || !packedId.startsWith('[') || !packedId.endsWith(']')) return null;
+
+  try {
+    const parsed: unknown = JSON.parse(packedId);
+
+    return Array.isArray(parsed) && parsed.length === keyCount ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function jsonArrayValue(element: unknown): string {
+  if (typeof element === 'string') return element;
+  if (typeof element === 'number' && Number.isSafeInteger(element)) return String(element);
+
+  const kind = element === null ? 'null' : typeof element;
+
+  throw mappingError(`Cannot build primary key: unsupported ${kind} value in a composite id`);
+}
+
+function jsonArraySegments(
+  elements: unknown[],
+  primaryKeys: PrimaryKeyField[],
+  record?: Record<string, unknown>,
+): string[] {
+  const values = elements.map(jsonArrayValue);
+  const segments = record ? matchedByRecord(values, primaryKeys, record) : null;
+
+  if (!segments) {
+    throw mappingError(
+      'Cannot build primary key: the record does not say which composite id value is whose',
+    );
+  }
+
+  return segments;
+}
+
+function pipeSegments(
+  packedId: string,
+  primaryKeys: PrimaryKeyField[],
+  record?: Record<string, unknown>,
+): string[] {
+  const values = packedId.split(PACKED_ID_SEPARATOR);
+
+  if (values.length !== primaryKeys.length) {
+    throw mappingError(
+      `Cannot build primary key: expected ${primaryKeys.length} values, found ${values.length}`,
+    );
+  }
+
+  return segmentsByKey(values, primaryKeys, record);
+}
+
 /**
  * Rebuild the structured primary key of a record from its opaque packed id, mirroring the agent's
- * `IdUtils.packId`/`unpackId` (`|`-joined values, `Number` columns cast back to numbers). Returns a
+ * `IdUtils.packId`/`unpackId` (`|`-joined values, `Number` columns cast back to numbers), or the
+ * JSON array `forest_liana` serializes a composite key as, paired by the record only. Returns a
  * `{ pkField: value }` map for `__forest.primaryKey`. Throws a mapping error rather than emitting a
  * malformed key when the schema lacks key metadata or the packed id shape does not match it.
  *
@@ -126,15 +189,10 @@ export default function unpackPrimaryKey(
     };
   }
 
-  const values = packedId.split(PACKED_ID_SEPARATOR);
-
-  if (values.length !== primaryKeys.length) {
-    throw mappingError(
-      `Cannot build primary key: expected ${primaryKeys.length} values, found ${values.length}`,
-    );
-  }
-
-  const segments = segmentsByKey(values, primaryKeys, record);
+  const elements = parseJsonArrayId(packedId, primaryKeys.length);
+  const segments = elements
+    ? jsonArraySegments(elements, primaryKeys, record)
+    : pipeSegments(packedId, primaryKeys, record);
   const result: Record<string, string | number> = {};
 
   primaryKeys.forEach(({ name, type }, index) => {
