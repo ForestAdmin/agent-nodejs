@@ -1,3 +1,10 @@
+# @forestadmin/agent [1.105.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.104.7...@forestadmin/agent@1.105.0) (2026-10-05)
+
+
+### Features
+
+* **agent:** warn when embedded mcp escapes ip whitelist ([#1957](https://github.com/ForestAdmin/agent-nodejs/issues/1957)) ([b12a77d](https://github.com/ForestAdmin/agent-nodejs/commit/b12a77d4ea78dc8b29681431486b1ec081c45b4d))
+
 ## @forestadmin/agent [1.104.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.104.6...@forestadmin/agent@1.104.7) (2026-10-05)
 
 
