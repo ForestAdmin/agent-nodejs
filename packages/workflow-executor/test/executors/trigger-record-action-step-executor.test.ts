@@ -1190,7 +1190,10 @@ describe('TriggerRecordActionStepExecutor', () => {
 
       await new TriggerRecordActionStepExecutor(context).execute();
 
-      expect(mockModel.invoke).toHaveBeenCalledTimes(2);
+      const secondPrompt = (mockModel.invoke.mock.calls[1][0] as { content: unknown }[])
+        .map(m => m.content)
+        .join('\n');
+      expect(secondPrompt).toContain('- block_fx (Boolean)');
       expect(agentPort.executeAction).toHaveBeenCalledWith(
         expect.objectContaining({ values: { closing_notice_type: 'immediate' } }),
         expect.anything(),
