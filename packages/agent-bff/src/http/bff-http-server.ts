@@ -31,10 +31,16 @@ interface BFFHttpServerBaseOptions {
   drainActivityLogs?: (timeoutMs?: number) => Promise<string[]>;
 }
 
-/** The server assembles its own Koa app around `/health` and the version header. */
+/**
+ * The server assembles its own Koa app around `/health` and the version header.
+ *
+ * @deprecated Pass a `callback` from `buildBff` instead. Removed at the next major.
+ */
 interface AssembledOptions extends BFFHttpServerBaseOptions {
   config: BFFConfig;
+  /** @deprecated Pass a `callback` from `buildBff` instead. Removed at the next major. */
   version: string;
+  /** @deprecated Pass a `callback` from `buildBff` instead. Removed at the next major. */
   middlewares?: Middleware[];
   callback?: never;
 }

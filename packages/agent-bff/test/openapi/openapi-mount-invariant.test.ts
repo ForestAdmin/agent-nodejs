@@ -9,7 +9,8 @@ const OPENAPI_MODULE_PREFIX = 'openapi/';
 
 const ALLOWED_OPENAPI_IMPORTS: Record<string, string[]> = {
   'build-bff.ts': ['openapi/openapi-routes', 'openapi/unfolded-document'],
-  'cli-dispatch.ts': ['openapi/openapi-document', 'openapi/unfolded-document', 'openapi/unfolding'],
+  'cli-dispatch.ts': ['openapi/render-openapi'],
+  'index.ts': ['openapi/render-openapi'],
 };
 
 function sourceFiles(): string[] {

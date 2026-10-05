@@ -142,7 +142,7 @@ describe('prebuilt listener surface of the package entry point', () => {
     let installed: { signal: NodeJS.Signals; handler: () => void }[] = [];
 
     function install(stop: () => Promise<void>, logger: Logger = noopLogger): void {
-      installShutdownHandlers({ stop } as unknown as BFFHttpServer, logger);
+      installShutdownHandlers({ stop }, logger);
       installed = SIGNALS.map(signal => ({
         signal,
         handler: process.listeners(signal).at(-1) as () => void,
@@ -203,7 +203,7 @@ describe('prebuilt listener surface of the package entry point', () => {
       const logger = jest.fn();
 
       installShutdownHandlers(
-        { stop: () => new Promise<void>(jest.fn()) } as unknown as BFFHttpServer,
+        { stop: () => new Promise<void>(jest.fn()) },
         logger as unknown as Logger,
         { name: 'Forest Gateway' },
       );
@@ -219,12 +219,12 @@ describe('prebuilt listener surface of the package entry point', () => {
     });
   });
 
-  describe('buildBff version', () => {
+  describe('buildBff gatewayVersion', () => {
     it('should set X-Forest-Gateway-Version once and leave X-Forest-Bff-Version alone', async () => {
       const { callback } = await buildBff({
         config: parseConfig(VALID_ENV),
         logger: noopLogger,
-        version: GATEWAY_VERSION,
+        gatewayVersion: GATEWAY_VERSION,
       });
 
       for (const path of ['/health', '/unknown-path', '/agent/v1/companies/list']) {

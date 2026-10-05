@@ -18,8 +18,12 @@ let installedShutdownHandlers: { signal: NodeJS.Signals; handler: () => void }[]
  * A process runs one BFF, so a second call replaces the handlers instead of adding a pair: the
  * signal must reach the server that is listening, and nothing else.
  */
+export interface Stoppable {
+  stop(): Promise<void>;
+}
+
 export function installShutdownHandlers(
-  server: BFFHttpServer,
+  target: Stoppable,
   logger: Logger,
   { name = DEFAULT_SERVER_NAME }: { name?: string } = {},
 ): void {
@@ -40,7 +44,7 @@ export function installShutdownHandlers(
       stopping = true;
       logger('Info', `Stopping the ${name}`, { signal });
 
-      server.stop().catch(error => {
+      target.stop().catch(error => {
         logger('Error', `The ${name} did not stop cleanly`, {
           cause: extractErrorMessage(error),
         });

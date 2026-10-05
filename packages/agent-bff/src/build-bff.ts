@@ -83,7 +83,7 @@ export interface BuildBffOptions {
    * standalone deployment wants; an embedding host passes its own, or a no-op.
    */
   metrics?: Metrics;
-  version?: string;
+  gatewayVersion?: string;
 }
 
 export interface Bff {
@@ -532,7 +532,7 @@ export default async function buildBff({
   basePath,
   dispatcher,
   metrics,
-  version: gatewayVersion,
+  gatewayVersion,
 }: BuildBffOptions): Promise<Bff> {
   // Before anything is assembled: a mount the host does not serve must fail at boot, not surface as
   // a docs page that cannot load itself.
