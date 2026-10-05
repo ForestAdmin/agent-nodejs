@@ -330,11 +330,15 @@ describe.each([
     const rebuilt = deferred<ReturnType<typeof echo>>();
     mockGetHttpCallback.mockReturnValue(rebuilt.promise);
 
+    const remount = jest.spyOn(agent as any, 'remount');
+
     const restarting = agent.restart();
     await until(() => mockGetHttpCallback.mock.calls.length === 2);
     await agent.stop();
     rebuilt.resolve(echo('mcp-restarted'));
     await restarting;
+
+    expect(remount).not.toHaveBeenCalled();
 
     expect((await request(app).post('/mcp')).status).toBe(503);
     expect((await request(app).get('/api/health')).status).toBe(503);
