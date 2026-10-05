@@ -522,12 +522,14 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
 
       if (!isFeatureEnabled) return;
 
+      const base = this.mcpBasePath ?? '';
+
       this.options.logger(
         'Warn',
         '[MCP] The IP whitelist is enabled for this environment, but it filters none of the MCP ' +
-          'routes (/mcp, /mcp/uploads, /oauth/*, /.well-known/*): the MCP server is mounted ' +
-          'in-process, which the whitelist exempts as a trusted loopback caller. Tool calls on ' +
-          '/mcp still require a valid MCP OAuth token.',
+          `routes (${base}/mcp, ${base}/mcp/uploads, ${base}/oauth/*, /.well-known/*): the MCP ` +
+          'server is mounted in-process, which the whitelist exempts as a trusted loopback ' +
+          `caller. Tool calls on ${base}/mcp still require a valid MCP OAuth token.`,
       );
     } catch (error) {
       this.options.logger(

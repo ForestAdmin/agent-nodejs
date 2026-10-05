@@ -819,6 +819,18 @@ describe('Agent', () => {
         ]);
       });
 
+      test('prefixes the warned routes with the MCP basePath', async () => {
+        const { agent, logger } = build(jest.fn().mockResolvedValue({ isFeatureEnabled: true }));
+
+        agent.mountAiMcpServer({ basePath: '/ai' });
+        await agent.start();
+
+        expect(logger).toHaveBeenCalledWith(
+          'Warn',
+          expect.stringContaining('(/ai/mcp, /ai/mcp/uploads, /ai/oauth/*, /.well-known/*)'),
+        );
+      });
+
       test('does not warn when the whitelist is disabled', async () => {
         const { agent, logger } = build(jest.fn().mockResolvedValue({ isFeatureEnabled: false }));
 
