@@ -22,6 +22,7 @@ describe('package index', () => {
       expect(bff.BFF_ACCESS_TOKEN_TYPE).toBeDefined();
       expect(bff.createPkcePair).toBeDefined();
       expect(bff.OAuthRequestError).toBeDefined();
+      expect(bff.claimsBffPath('/health', { docs: false })).toBe(true);
     });
   });
 });

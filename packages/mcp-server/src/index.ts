@@ -1,6 +1,8 @@
 // Library exports only - no side effects
 export { default as ForestMCPServer } from './server';
 export type { ForestMCPServerOptions, HttpCallback, ToolName } from './server';
+export { default as createGatewaySwitch } from './gateway-switch';
+export type { GatewayHandler, GatewaySwitchOptions } from './gateway-switch';
 export type { TokenTtlOptions } from './utils/token-ttl';
 export type { FileUploadsOptions, UploadStorage } from './file-uploads/types';
 export type {
@@ -8,7 +10,7 @@ export type {
   InProcessDispatchRequest,
   InProcessDispatchResponse,
 } from './in-process-agent-dispatcher';
-export { MCP_PATHS, isMcpRoute, makeIsMcpRoute } from './mcp-paths';
+export { MCP_PATHS, isMcpRoute, makeIsMcpRoute, normalizeMountPath } from './mcp-paths';
 export { ForestServerClientImpl, createForestServerClient } from './http-client';
 export type {
   ForestServerClient,

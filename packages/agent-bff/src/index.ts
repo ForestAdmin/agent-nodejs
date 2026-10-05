@@ -60,3 +60,5 @@ export {
   toErrorBody as toApiKeyErrorBody,
 } from './api-key/api-key-error';
 export type { ApiKeyErrorType, ApiKeyErrorBody } from './api-key/api-key-error';
+export { default as claimsBffPath } from './claims-bff-path';
+export type { ClaimsBffPathOptions } from './claims-bff-path';

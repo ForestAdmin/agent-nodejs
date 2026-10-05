@@ -1,6 +1,6 @@
 export type McpRouteMatcher = (url: string) => boolean;
 
-export function normalizeMountPath(input?: string): string {
+export function normalizeMountPath(input?: string, label = 'MCP mount path'): string {
   if (!input) return '';
 
   const trimmed = input.trim();
@@ -14,7 +14,7 @@ export function normalizeMountPath(input?: string): string {
   // metadata; an allowlist keeps those two interpretations identical and future-proof.
   if (!/^(\/[A-Za-z0-9_-]+)+$/.test(collapsed)) {
     throw new Error(
-      `Invalid MCP mount path "${input}": use a plain path prefix like "/mcp" ` +
+      `Invalid ${label} "${input}": use a plain path prefix like "/mcp" ` +
         `(letters, digits, "-" and "_" only).`,
     );
   }

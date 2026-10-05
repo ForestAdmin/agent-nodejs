@@ -38,6 +38,12 @@ describe('mcp-paths', () => {
     ])('throws for %p (would desync routes from advertised metadata)', input => {
       expect(() => normalizeMountPath(input)).toThrow(/Invalid MCP mount path/);
     });
+
+    it('names the caller option in the error when given a label', () => {
+      expect(() => normalizeMountPath('/a/../b', 'basePath')).toThrow(
+        'Invalid basePath "/a/../b": use a plain path prefix',
+      );
+    });
   });
 
   describe('buildMcpPaths', () => {
