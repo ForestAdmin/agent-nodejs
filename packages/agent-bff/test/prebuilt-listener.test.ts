@@ -132,6 +132,8 @@ describe('prebuilt listener surface of the package entry point', () => {
         const head = await request(bff.callback).head('/health');
 
         expect(bff.health()).toEqual(get.body);
+        expect(Object.keys(get.body)).toEqual(['status', 'version', 'configured']);
+        expect(get.text).toBe(JSON.stringify(bff.health()));
         expect(get.status).toBe(httpStatus);
         expect(head.status).toBe(httpStatus);
       },
