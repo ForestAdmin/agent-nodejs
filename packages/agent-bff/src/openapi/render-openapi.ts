@@ -56,7 +56,7 @@ export default async function renderOpenApi(
       ? { source: resolveUnfoldSource(parseConfig(env), logger), authSecret }
       : undefined;
 
-  const publicUrl = parsePublicUrl(env.BFF_PUBLIC_URL);
+  const publicUrl = parsePublicUrl(env.BFF_PUBLIC_URL, 'BFF_PUBLIC_URL');
   const hasAiQueryRoute = publishesAiQuery(env, logger);
 
   if (!unfoldable?.source) {

@@ -1,3 +1,5 @@
+import type { ConfigLabels } from '../../src/config/env-config';
+
 import {
   DEFAULTS,
   DEFAULT_AGENT_TIMEOUT_MS,
@@ -522,6 +524,89 @@ describe('parseConfig', () => {
     it('should not echo the offending value', () => {
       expect(() => parseConfig({ ...VALID_ENV, BFF_PUBLIC_URL: 'not-a-url-secret' })).not.toThrow(
         /not-a-url-secret/,
+      );
+    });
+  });
+
+  describe('with a label map (addGateway({ api }) option labels)', () => {
+    const LABELS: ConfigLabels = {
+      FOREST_AUTH_SECRET: 'authSecret',
+      FOREST_ENV_SECRET: 'envSecret',
+      FOREST_SERVER_URL: 'forestServerUrl',
+      FOREST_APP_URL: 'forestAppUrl',
+      BFF_TOKEN_ENCRYPTION_KEY: 'api.tokenEncryptionKey',
+      BFF_ALLOWED_ORIGINS: 'api.allowedOrigins',
+      BFF_DEFAULT_TIMEZONE: 'api.defaultTimezone',
+      BFF_AGENT_TIMEOUT_MS: 'api.agentTimeoutMs',
+      BFF_AI_TIMEOUT_MS: 'api.aiTimeoutMs',
+      BFF_OPENAPI_ENABLED: 'api.openapiEnabled',
+      BFF_PUBLIC_URL: 'api.publicUrl',
+      BFF_RATE_LIMIT_MAX_REQUESTS: 'api.rateLimitMaxRequests',
+      HTTP_PORT: 'api.port',
+    };
+
+    it('should name api.tokenEncryptionKey on an invalid key', () => {
+      expect(() => parseConfig({ ...VALID_ENV, BFF_TOKEN_ENCRYPTION_KEY: 'zz' }, LABELS)).toThrow(
+        'Invalid configuration: api.tokenEncryptionKey must be base64-encoded and exactly 32 bytes (AES-256).',
+      );
+    });
+
+    it('should name api.defaultTimezone on an invalid timezone', () => {
+      expect(() =>
+        parseConfig({ ...VALID_ENV, BFF_DEFAULT_TIMEZONE: 'Nowhere/None' }, LABELS),
+      ).toThrow('Invalid configuration: api.defaultTimezone must be a valid IANA timezone.');
+    });
+
+    it('should name api.agentTimeoutMs on an invalid timeout', () => {
+      expect(() => parseConfig({ ...VALID_ENV, BFF_AGENT_TIMEOUT_MS: 'abc' }, LABELS)).toThrow(
+        'Invalid configuration: api.agentTimeoutMs must be an integer between 1 and 2147483647.',
+      );
+    });
+
+    it('should name api.aiTimeoutMs on an invalid timeout', () => {
+      expect(() => parseConfig({ ...VALID_ENV, BFF_AI_TIMEOUT_MS: 'abc' }, LABELS)).toThrow(
+        'Invalid configuration: api.aiTimeoutMs must be an integer between 1 and 2147483647.',
+      );
+    });
+
+    it('should name api.openapiEnabled on an invalid boolean', () => {
+      expect(() => parseConfig({ ...VALID_ENV, BFF_OPENAPI_ENABLED: 'maybe' }, LABELS)).toThrow(
+        'Invalid configuration: api.openapiEnabled must be a boolean (true/false).',
+      );
+    });
+
+    it('should name forestServerUrl on an invalid url', () => {
+      expect(() => parseConfig({ ...VALID_ENV, FOREST_SERVER_URL: 'not-a-url' }, LABELS)).toThrow(
+        'Invalid configuration: forestServerUrl must be a valid http(s) URL.',
+      );
+    });
+
+    it('should name api.publicUrl on an invalid url', () => {
+      expect(() => parseConfig({ ...VALID_ENV, BFF_PUBLIC_URL: 'not-a-url' }, LABELS)).toThrow(
+        'Invalid configuration: api.publicUrl must be a valid http(s) URL.',
+      );
+    });
+
+    it('should name api.rateLimitMaxRequests on an invalid value', () => {
+      expect(() =>
+        parseConfig({ ...VALID_ENV, BFF_RATE_LIMIT_MAX_REQUESTS: 'abc' }, LABELS),
+      ).toThrow(
+        'Invalid configuration: api.rateLimitMaxRequests must be an integer between 1 and 10000.',
+      );
+    });
+
+    it('should name api.port on an invalid port', () => {
+      expect(() => parseConfig({ ...VALID_ENV, HTTP_PORT: '99999' }, LABELS)).toThrow(
+        'Invalid configuration: api.port must be an integer between 0 and 65535.',
+      );
+    });
+
+    it('should keep the env key in every message when no map is given', () => {
+      expect(() => parseConfig({ ...VALID_ENV, BFF_TOKEN_ENCRYPTION_KEY: 'zz' })).toThrow(
+        'Invalid configuration: BFF_TOKEN_ENCRYPTION_KEY must be base64-encoded and exactly 32 bytes (AES-256).',
+      );
+      expect(() => parseConfig({ ...VALID_ENV, HTTP_PORT: '99999' })).toThrow(
+        'Invalid configuration: HTTP_PORT must be an integer between 0 and 65535.',
       );
     });
   });

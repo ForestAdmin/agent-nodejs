@@ -485,7 +485,7 @@ function parentIdSchema(
     ...PARENT_ID_SHAPE,
     description:
       `The parent ${quoted(parent)} record id (${column}). A number or its ` +
-      'string form are both accepted; the BFF forwards it to the agent as a string.',
+      'string form are both accepted; the Gateway API forwards it to the agent as a string.',
   };
 }
 

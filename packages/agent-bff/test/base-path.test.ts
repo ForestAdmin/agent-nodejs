@@ -35,7 +35,7 @@ describe('normalizeBasePath', () => {
       ['a traversal', '/bff/../admin'],
     ])('should reject %s rather than publish a mount nobody serves', (_, input) => {
       expect(() => normalizeBasePath(input)).toThrow(ConfigurationError);
-      expect(() => normalizeBasePath(input)).toThrow(`Invalid BFF base path "${input}"`);
+      expect(() => normalizeBasePath(input)).toThrow(`Invalid Gateway API base path "${input}"`);
     });
   });
 });

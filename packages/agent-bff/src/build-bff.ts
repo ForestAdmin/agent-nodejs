@@ -1,7 +1,7 @@
 import type { ActivityLogWriter } from './activity-log/activity-log-writer';
 import type { AgentTransport } from './agent/agent-transport';
 import type { AgentDispatcher } from './agent/in-process-transport';
-import type { BFFConfig } from './config/env-config';
+import type { BFFConfig, ConfigKey, ConfigLabels } from './config/env-config';
 import type { BffHealth } from './http/health-route';
 import type { EnvironmentIdResolver } from './oauth/environment-id';
 import type { SessionStore } from './oauth/session-store';
@@ -32,6 +32,7 @@ import createResolveCache from './api-key/resolve-cache';
 import createAuthModeMiddleware from './auth/auth-mode-middleware';
 import createForestServerTokenMiddleware from './auth/forest-server-token-middleware';
 import normalizeBasePath from './base-path';
+import { labeler } from './config/env-config';
 import warnMissingConfig from './config/missing-config-warning';
 import createContextRoutesMiddleware from './context/context-routes-middleware';
 import createCorsMiddleware from './cors/cors-middleware';
@@ -95,6 +96,8 @@ export interface BuildBffOptions {
    * `X-Forest-Bff-Version`. Unset or empty, the header is not sent: `forest-bff` keeps today's headers.
    */
   gatewayVersion?: string;
+  labels?: ConfigLabels;
+  name?: string;
 }
 
 export interface Bff {
@@ -390,11 +393,14 @@ function buildAgentRouteMiddlewares(
   transport: AgentTransport | undefined,
   logger: Logger,
   permissionsCache: PermissionsCache,
+  label: (key: ConfigKey) => string,
 ): AgentRouteEdge {
   if (!bundle) {
     logger(
       'Warn',
-      'Data, action and permissions endpoints disabled: FOREST_SERVER_URL, FOREST_ENV_SECRET or FOREST_AUTH_SECRET is missing',
+      `Data, action and permissions endpoints disabled: ${label('FOREST_SERVER_URL')}, ${label(
+        'FOREST_ENV_SECRET',
+      )} or ${label('FOREST_AUTH_SECRET')} is missing`,
     );
 
     return { middlewares: [createAgentStubMiddleware()] };
@@ -413,7 +419,7 @@ function buildAgentRouteMiddlewares(
   });
 
   if (!transport) {
-    logger('Warn', 'Data and action endpoints disabled: AGENT_URL is missing');
+    logger('Warn', `Data and action endpoints disabled: ${label('AGENT_URL')} is missing`);
 
     return { middlewares: [permissionsMiddleware, createAgentStubMiddleware()] };
   }
@@ -472,11 +478,12 @@ function buildAgentMiddlewares(
   basePath: string,
   transport: AgentTransport | undefined,
   metrics: Metrics | undefined,
+  label: (key: ConfigKey) => string,
 ): AgentEdge {
   const { forestAuthSecret, defaultTimezone } = config;
 
   if (!forestAuthSecret) {
-    logger('Warn', 'Agent edge disabled: FOREST_AUTH_SECRET is missing');
+    logger('Warn', `Agent edge disabled: ${label('FOREST_AUTH_SECRET')} is missing`);
 
     return { middlewares: [], invalidate: () => undefined };
   }
@@ -487,7 +494,7 @@ function buildAgentMiddlewares(
   const bundle = resolveReadModelBundle(config, logger, metrics);
   const source = toUnfoldSource(bundle, transport, logger);
   const permissionsCache = new PermissionsCache();
-  const routeEdge = buildAgentRouteMiddlewares(bundle, transport, logger, permissionsCache);
+  const routeEdge = buildAgentRouteMiddlewares(bundle, transport, logger, permissionsCache, label);
 
   const chain: Middleware[] = [
     createAuthModeMiddleware({ authSecret: forestAuthSecret }),
@@ -550,24 +557,31 @@ export default async function buildBff({
   metrics,
   allowedOAuthClients,
   gatewayVersion,
+  labels = {},
+  name,
 }: BuildBffOptions): Promise<Bff> {
+  const label = labeler(labels);
   // Before anything is assembled: a mount the host does not serve must fail at boot, not surface as
   // a docs page that cannot load itself.
   const mountPath = normalizeBasePath(basePath);
   const allowedClientDomains = normalizeDomainList(allowedOAuthClients);
 
   if (config.invalidAllowedOrigins.length > 0) {
-    logger('Warn', 'Ignoring malformed BFF_ALLOWED_ORIGINS entries', {
+    logger('Warn', `Ignoring malformed ${label('BFF_ALLOWED_ORIGINS')} entries`, {
       entries: config.invalidAllowedOrigins,
     });
   }
 
-  warnMissingConfig(config, logger);
+  warnMissingConfig(config, logger, labels);
 
   if (config.allowedOrigins.length === 0) {
     logger(
       'Warn',
-      'No allowed origin: no browser can call this BFF. Set BFF_ALLOWED_ORIGINS, or `allowedOrigins`.',
+      name
+        ? `No allowed origin: no browser can call this ${name}. Set \`${label(
+            'BFF_ALLOWED_ORIGINS',
+          )}\`.`
+        : 'No allowed origin: no browser can call this BFF. Set BFF_ALLOWED_ORIGINS, or `allowedOrigins`.',
     );
   }
 
@@ -582,6 +596,7 @@ export default async function buildBff({
     mountPath,
     transport,
     metrics,
+    label,
   );
   const agentMiddlewares = agentEdge.middlewares;
   const hasAgentEdge = agentMiddlewares.length > 0;

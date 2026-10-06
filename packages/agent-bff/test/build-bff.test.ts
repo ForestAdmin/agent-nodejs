@@ -179,7 +179,7 @@ describe('buildBff', () => {
           logger: noopLogger,
           basePath: 'https://bff.example.com',
         }),
-      ).rejects.toThrow('Invalid BFF base path "https://bff.example.com"');
+      ).rejects.toThrow('Invalid Gateway API base path "https://bff.example.com"');
     });
   });
 
@@ -283,6 +283,65 @@ describe('buildBff', () => {
         'Warn',
         'Ignoring malformed BFF_ALLOWED_ORIGINS entries',
         { entries: ['*'] },
+      );
+    });
+
+    it('should name the label the caller passed instead of the env key', async () => {
+      const logger = jest.fn();
+
+      await buildBff({
+        config: parseConfig({ ...VALID_ENV, BFF_ALLOWED_ORIGINS: 'https://ok.example.com,*' }),
+        logger,
+        labels: { BFF_ALLOWED_ORIGINS: 'api.allowedOrigins' },
+      });
+
+      expect(logger).toHaveBeenCalledWith('Warn', 'Ignoring malformed api.allowedOrigins entries', {
+        entries: ['*'],
+      });
+    });
+  });
+
+  describe('boot warnings under a label map', () => {
+    it('should warn with the Gateway API noun and the option label when no origin is allowed', async () => {
+      const logger = jest.fn();
+
+      await buildBff({
+        config: parseConfig(VALID_ENV),
+        logger,
+        labels: { BFF_ALLOWED_ORIGINS: 'api.allowedOrigins' },
+        name: 'Gateway API',
+      });
+
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        'No allowed origin: no browser can call this Gateway API. Set `api.allowedOrigins`.',
+      );
+    });
+
+    it('should keep the standalone wording when no name is given', async () => {
+      const logger = jest.fn();
+
+      await buildBff({ config: parseConfig(VALID_ENV), logger });
+
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        'No allowed origin: no browser can call this BFF. Set BFF_ALLOWED_ORIGINS, or `allowedOrigins`.',
+      );
+    });
+
+    it('should name the labeled key in the missing-configuration warning', async () => {
+      const logger = jest.fn();
+
+      await buildBff({
+        config: parseConfig({ ...VALID_ENV, FOREST_AUTH_SECRET: undefined }),
+        logger,
+        labels: { FOREST_AUTH_SECRET: 'authSecret' },
+      });
+
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        'Missing required configuration; /health will report degraded',
+        { missing: ['authSecret'] },
       );
     });
   });
