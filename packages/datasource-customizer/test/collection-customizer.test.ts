@@ -177,6 +177,28 @@ describe('Builder > Collection', () => {
         "Cannot disable filtering on primary key 'authors.authorId'",
       );
     });
+
+    it('should mark a custom one to one as not filterable', async () => {
+      const { dsc, customizer, bookCustomizer } = await setup();
+
+      customizer.emulateFieldOperator('firstName', 'In');
+      bookCustomizer
+        .emulateFieldOperator('title', 'In')
+        .addOneToOneRelation('myAuthor', 'authors', {
+          originKey: 'firstName',
+          originKeyTarget: 'title',
+        })
+        .disableFieldFiltering('myAuthor');
+      await dsc.getDataSource(logger);
+
+      expect(bookCustomizer.schema.fields.myAuthor).toEqual({
+        type: 'OneToOne',
+        foreignCollection: 'authors',
+        originKey: 'firstName',
+        originKeyTarget: 'title',
+        isFilterable: false,
+      });
+    });
   });
 
   describe('disableSearch', () => {

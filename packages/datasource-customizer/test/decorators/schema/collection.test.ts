@@ -32,6 +32,14 @@ describe('SchemaCollectionDecorator', () => {
               foreignCollection: 'authors',
               foreignKey: 'authorId',
             }),
+            cover: factories.oneToOneSchema.build({
+              foreignCollection: 'covers',
+              originKey: 'bookId',
+            }),
+            reviews: factories.oneToManySchema.build({
+              foreignCollection: 'reviews',
+              originKey: 'bookId',
+            }),
           },
         }),
       });
@@ -69,6 +77,17 @@ describe('SchemaCollectionDecorator', () => {
       );
     });
 
+    it('should apply on top of overridden fields', () => {
+      const { collection, decorator } = buildDecorator();
+
+      decorator.overrideSchema({ fields: { ...collection.schema.fields } });
+      decorator.disableFieldFiltering('authorId');
+
+      expect(decorator.schema.fields.authorId).toEqual(
+        expect.objectContaining({ filterOperators: new Set() }),
+      );
+    });
+
     it('should throw on a primary key', () => {
       const { decorator } = buildDecorator();
 
@@ -77,11 +96,22 @@ describe('SchemaCollectionDecorator', () => {
       );
     });
 
-    it('should throw on a relation', () => {
+    it.each(['author', 'cover'])('should mark the %s relation as not filterable', name => {
+      const { collection, decorator } = buildDecorator();
+
+      decorator.disableFieldFiltering(name);
+
+      expect(decorator.schema.fields[name]).toEqual({
+        ...collection.schema.fields[name],
+        isFilterable: false,
+      });
+    });
+
+    it('should throw on a one to many relation', () => {
       const { decorator } = buildDecorator();
 
-      expect(() => decorator.disableFieldFiltering('author')).toThrow(
-        "Unexpected field type: 'books.author' (found 'ManyToOne' expected 'Column')",
+      expect(() => decorator.disableFieldFiltering('reviews')).toThrow(
+        "Unexpected field type: 'books.reviews' (found 'OneToMany' expected 'Column', 'ManyToOne' or 'OneToOne')",
       );
     });
 
