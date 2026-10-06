@@ -42,7 +42,7 @@
     "picocolors": "^1.1.1",
     "sequelize": "^6.37.8",
     "umzug": "^3.8.2",
-    "zod": "4.3.6"
+    "zod": "4.6.5"
   },
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.10",
