@@ -1,3 +1,18 @@
+# @forestadmin/agent [1.106.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.105.6...@forestadmin/agent@1.106.0) (2026-10-06)
+
+
+### Features
+
+* **mcp-server:** claim only the mcp discovery documents under .well-known ([#1969](https://github.com/ForestAdmin/agent-nodejs/issues/1969)) ([fb8f000](https://github.com/ForestAdmin/agent-nodejs/commit/fb8f0008cbef212ee1c3584c38c203ac501624be))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/mcp-server:** upgraded to 1.27.0
+
 ## @forestadmin/agent [1.105.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.105.5...@forestadmin/agent@1.105.6) (2026-10-06)
 
 
