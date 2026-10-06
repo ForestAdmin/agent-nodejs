@@ -1,3 +1,10 @@
+## @forestadmin/workflow-executor [1.31.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.31.4...@forestadmin/workflow-executor@1.31.5) (2026-10-06)
+
+
+### Bug Fixes
+
+* **workflow-executor:** keep the backend refusal message when a Full AI step pauses ([#1963](https://github.com/ForestAdmin/agent-nodejs/issues/1963)) ([5d5bce6](https://github.com/ForestAdmin/agent-nodejs/commit/5d5bce67ac5424e47eea4cd5d90c97a08d05f6ea))
+
 ## @forestadmin/workflow-executor [1.31.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.31.3...@forestadmin/workflow-executor@1.31.4) (2026-10-05)
 
 
