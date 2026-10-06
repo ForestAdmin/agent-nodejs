@@ -1,3 +1,10 @@
+## @forestadmin/agent-bff [1.38.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.38.0...@forestadmin/agent-bff@1.38.1) (2026-10-06)
+
+
+### Bug Fixes
+
+* **agent-bff:** read the json array composite id forest_liana serializes ([#1968](https://github.com/ForestAdmin/agent-nodejs/issues/1968)) ([a62e137](https://github.com/ForestAdmin/agent-nodejs/commit/a62e137f965e271fc72aa505668a5defec81b2ea))
+
 # @forestadmin/agent-bff [1.38.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.37.0...@forestadmin/agent-bff@1.38.0) (2026-10-05)
 
 
