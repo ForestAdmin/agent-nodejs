@@ -31,7 +31,6 @@ import {
   SortClauseSchema,
   TimezoneSchema,
 } from './schemas';
-import { PACKED_ID_SEPARATOR } from '../data/pack-id';
 import { NON_BLANK_PATTERN } from '../data/request-schemas';
 import { enumOptionsOf } from '../read-model/field-type';
 
@@ -443,7 +442,7 @@ const PARENT_ID_SHAPE = {
  * whatever the key's type is, and forwards it to the agent as a string. So the SHAPE stays that
  * union — narrowing a numeric key to `number` would make a generated client reject `"123"`, which
  * the endpoint accepts. What the read-model knows goes in the description: which column the id
- * belongs to, and, for a composite key, the `|`-joined order `unpackPrimaryKey` expects.
+ * belongs to, and, for a composite key, that it is packed in the agent's own format.
  */
 function parentIdSchema(
   pool: ComponentPool,
@@ -461,11 +460,9 @@ function parentIdSchema(
       // would send a client to build an id the agent unpacks onto the wrong columns.
       description:
         `The composite id of the parent ${quoted(parent)} record, taken verbatim from that ` +
-        `record's own id: the values of ${primaryKeys.map(key => key.name).join(', ')} joined by ` +
-        `${quoted(
-          PACKED_ID_SEPARATOR,
-        )}, in the order the agent packs them. Copy it from a listed ` +
-        `record rather than assembling it.`,
+        `record's own id: the values of ${primaryKeys.map(key => key.name).join(', ')} packed ` +
+        `in the agent's own format and order. Copy it from a listed record rather than ` +
+        `assembling it.`,
     };
   }
 

@@ -1,7 +1,6 @@
 import { allOperators } from '@forestadmin/datasource-toolkit';
 
 import { z } from './zod-openapi';
-import { PACKED_ID_SEPARATOR } from '../data/pack-id';
 import {
   CountFlatInputs,
   ListFlatInputs,
@@ -303,7 +302,7 @@ export const ListResponseSchema = z
   .openapi('ListResponse', {
     description:
       'Records are flat, each carrying a `__forest` envelope. A record always holds `id`, the ' +
-      `agent id as a string — a composite key is its values joined by \`${PACKED_ID_SEPARATOR}\` — ` +
+      "agent id as a string — a composite key packed in the agent's own format — " +
       'while `__forest.primaryKey` holds that same id typed and split per column — with the one ' +
       'exception `ForestRecordMeta` describes, where the name it carries is not a column. ' +
       'The list never ' +

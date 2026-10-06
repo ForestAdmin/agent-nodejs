@@ -5,7 +5,6 @@ import { groupByRecordKey } from '@forestadmin/agent-client';
 
 import toFieldSchema from './field-schemas';
 import { quoted } from './names';
-import { PACKED_ID_SEPARATOR } from '../data/pack-id';
 
 // The flat id is the JSON:API resource id, which is a string by specification whatever the key
 // column holds. `__forest.primaryKey` is the same id unpacked and typed, so the two forms of one
@@ -15,8 +14,8 @@ const ID_SCHEMA: SchemaObject = {
   description:
     'The record id, always a string — the agent serializes it as the JSON:API resource id, even ' +
     'when the key column is a Number. `__forest.primaryKey` carries the same id TYPED, so ' +
-    `comparing the two without coercion fails. A composite key is its values joined by ` +
-    `${quoted(PACKED_ID_SEPARATOR)}.`,
+    "comparing the two without coercion fails. A composite key is packed in the agent's own " +
+    'format, so pass it back as is rather than splitting it.',
 };
 
 function isReference(schema: SchemaObject | ReferenceObject): schema is ReferenceObject {
