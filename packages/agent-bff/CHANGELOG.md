@@ -1,3 +1,10 @@
+# @forestadmin/agent-bff [1.39.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.38.1...@forestadmin/agent-bff@1.39.0) (2026-10-06)
+
+
+### Features
+
+* **agent-bff:** prepare a prebuilt listener for the gateway ([#1966](https://github.com/ForestAdmin/agent-nodejs/issues/1966)) ([43fc771](https://github.com/ForestAdmin/agent-nodejs/commit/43fc771d2e1d57350855c591f55b645ac3c08b0e))
+
 ## @forestadmin/agent-bff [1.38.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.38.0...@forestadmin/agent-bff@1.38.1) (2026-10-06)
 
 
