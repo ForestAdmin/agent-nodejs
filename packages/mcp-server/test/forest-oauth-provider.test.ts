@@ -876,6 +876,39 @@ describe('ForestOAuthProvider', () => {
   });
 
   describe('verifyAccessToken', () => {
+    it('accepts a signed access token without a type claim', async () => {
+      const jwt = jest.requireActual<typeof jsonwebtoken>('jsonwebtoken');
+      const claims = {
+        id: 123,
+        email: 'user@example.com',
+        renderingId: 456,
+        serverToken: 'forest-server-token',
+        scopes: ['mcp:read'],
+      };
+      const token = jwt.sign(claims, TEST_AUTH_SECRET, { expiresIn: 3600 });
+
+      (jsonwebtoken.verify as jest.Mock).mockImplementation(jwt.verify);
+
+      const decoded = jwt.decode(token) as jsonwebtoken.JwtPayload;
+      expect(decoded).not.toHaveProperty('type');
+
+      const provider = createProvider();
+
+      await expect(provider.verifyAccessToken(token)).resolves.toEqual({
+        token,
+        clientId: '123',
+        expiresAt: decoded.exp,
+        scopes: ['mcp:read'],
+        extra: {
+          userId: 123,
+          email: 'user@example.com',
+          renderingId: 456,
+          environmentApiEndpoint: undefined,
+          forestServerToken: 'forest-server-token',
+        },
+      });
+    });
+
     it('should verify and decode a valid access token', async () => {
       const mockDecoded = {
         id: 123,
