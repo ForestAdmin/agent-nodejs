@@ -281,8 +281,14 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       // eslint-disable-next-line no-await-in-loop
       const aiValues = await this.askAiToFillForm(form);
       let progressed = false;
+      const formOrder = form.fields.map(f => f.name);
+      // A change hook can clear a value set before the field it depends on, and the values are
+      // replayed in fill order, so each pass is recorded in the form's order, not the AI's.
+      const valuesInFormOrder = Object.entries(aiValues).sort(
+        ([a], [b]) => formOrder.indexOf(a) - formOrder.indexOf(b),
+      );
 
-      for (const [field, value] of Object.entries(aiValues)) {
+      for (const [field, value] of valuesInFormOrder) {
         const isEmpty = value === undefined || value === null || value === '';
         const exists = form.fields.some(f => f.name === field);
         const isNew = !isDeepStrictEqual(accumulator[field], value);
