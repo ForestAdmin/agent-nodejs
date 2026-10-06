@@ -30,11 +30,17 @@ import { readFile, writeFile } from 'fs/promises';
 import stringify from 'json-stringify-pretty-compact';
 
 import { installAuditTrailHooks } from './audit-trail';
-import { BFF_PREFIX, collidesWithBff } from './bff-routes';
+import { BFF_PREFIX, collidesWithBff, createBffAliasCallback } from './bff-routes';
 import EmbeddedBff from './embedded-bff';
 import EmbeddedWorkflowExecutor from './embedded-workflow-executor';
 import FrameworkMounter from './framework-mounter';
-import { assertNoGatewayOverlap, describeGatewayRoutes, resolveGatewayServices } from './gateway';
+import {
+  AGENT_BFF_PEER_VERSION,
+  assertNoGatewayOverlap,
+  describeGatewayRoutes,
+  mcpUnavailable,
+  resolveGatewayServices,
+} from './gateway';
 import makeRoutes from './routes';
 import makeServices from './services';
 import CustomizationService from './services/model-customizations/customization';
@@ -88,9 +94,14 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   /** In-process BFF, created only when addBff() is called. */
   private embeddedBff: EmbeddedBff | null = null;
 
-  private gateway: { basePath: string; services: GatewayServices } | null = null;
+  private gateway: {
+    basePath: string;
+    services: GatewayServices;
+    build?: (mcp?: RootHandler) => RootHandler;
+  } | null = null;
 
   private isRestarting = false;
+  private isStopped = false;
 
   /**
    * Set as soon as start() begins, not once it finishes: mount() drains the `onFirstStart` hooks
@@ -133,6 +144,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   async start(): Promise<void> {
     let mounted = false;
     this.startupBegun = true;
+    this.isStopped = false;
 
     try {
       // First, before anything is mounted or subscribed: everything it validates is what the caller
@@ -140,23 +152,29 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
       // serving /forest with a permanently bricked /bff.
       await this.prepareGateway();
       await this.embeddedBff?.prepare();
+      if (this.isStopped) await this.embeddedBff?.stop();
+      if (this.gateway) this.setRootHandlers();
+      if (this.isStopped) return;
 
       this.warnIfMcpAliasUsed();
 
       const { router, mcp } = await this.buildRouterAndSendSchema();
 
+      if (this.isStopped) return;
+
       await this.options.forestAdminClient.subscribeToServerEvents();
       this.options.forestAdminClient.onRefreshCustomizations(this.restart.bind(this));
 
-      this.setMcpCallback(this.mcpRootHandler(mcp));
+      this.setRootHandlers(mcp);
       await this.mount(router);
       mounted = true;
 
       // Boot after mount(): the embedded executor reaches the agent over HTTP, and the
       // standalone server's host/port (used to derive that URL) are only known once mounted.
       await this.embeddedExecutor?.start(this.standaloneServerHost, this.standaloneServerPort);
+      if (this.isStopped) return;
       // Same reason, without the socket: the dispatcher injects into the stack mount() just built.
-      if (!this.gateway) await this.embeddedBff?.start(this.getInProcessDispatcher());
+      await this.embeddedBff?.start(this.getInProcessDispatcher());
 
       this.logGatewayRoutes();
       // Here rather than in initializeMcpServer(): that one reruns on every restart() and each run
@@ -196,6 +214,10 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * Stop the agent.
    */
   override async stop(): Promise<void> {
+    this.isStopped = true;
+
+    if (this.gateway?.build) this.setRootHandlers();
+
     // Stop answering before the stack it dispatches into goes away: the host application keeps
     // whatever middleware it registered, so a stopped agent would otherwise still serve BFF data.
     await this.embeddedBff?.stop();
@@ -239,7 +261,9 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
       // We force sending schema when restarting
       const { router, mcp } = await this.buildRouterAndSendSchema();
 
-      this.setMcpCallback(this.mcpRootHandler(mcp));
+      if (this.isStopped) return;
+
+      this.setRootHandlers(mcp);
       await this.remount(router);
       // A restart means the customizations changed, so the schema the BFF read is stale.
       this.embeddedBff?.invalidate();
@@ -357,10 +381,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
       this.mcpFileUploads = services.mcp.fileUploads;
     }
 
-    if (services.api) {
-      this.embeddedBff = new EmbeddedBff(this.options, services.api, 'The Gateway API');
-      this.getInProcessDispatcher();
-    }
+    if (services.api) this.getInProcessDispatcher();
 
     return this;
   }
@@ -502,13 +523,13 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
       throw new Error(bffMcpCollision(this.mcpBasePath as string));
     }
 
-    const bff = new EmbeddedBff(this.options, options);
+    const bff = new EmbeddedBff(this.options, options, { prefix: BFF_PREFIX });
     this.embeddedBff = bff;
     // Registered now rather than at start(): getInProcessDispatcher() pushes its hook the first
     // time it is called, and mount() only runs the hooks registered before it — asked for later,
     // the dispatcher would have no handler until the first restart.
     this.getInProcessDispatcher();
-    this.setBffCallback(bff.handle);
+    this.setBffCallback(createBffAliasCallback(bff.handle, this.options.logger));
 
     return this;
   }
@@ -524,12 +545,34 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
       );
     }
 
-    const { normalizeMountPath } = await import('@forestadmin/mcp-server');
+    const { createGatewaySwitch, normalizeMountPath } = await import('@forestadmin/mcp-server');
     const basePath = normalizeMountPath(this.gateway.basePath, 'basePath');
 
     assertNoGatewayOverlap(basePath, this.completeMountPrefix, services);
     this.gateway.basePath = basePath;
     if (services.mcp) this.mcpBasePath = basePath || undefined;
+
+    const bff = services.api ? this.gatewayApi(basePath, services.api) : null;
+    const api = bff ? { matches: (path: string) => bff.claims(path), callback: bff.handle } : null;
+    const mcpStarting = services.mcp ? mcpUnavailable(basePath, 'starting') : null;
+
+    this.gateway.build = mcp =>
+      createGatewaySwitch({
+        basePath,
+        mcp: mcp ?? mcpStarting ?? undefined,
+        api: api ?? undefined,
+      });
+  }
+
+  private gatewayApi(basePath: string, options: BffEmbedOptions): EmbeddedBff {
+    this.embeddedBff ??= new EmbeddedBff(this.options, options, {
+      prefix: `${basePath}/api`,
+      name: 'The Gateway API',
+      requiredVersion: AGENT_BFF_PEER_VERSION,
+      skipIpWhitelistWarning: Boolean(this.gateway?.services.mcp),
+    });
+
+    return this.embeddedBff;
   }
 
   private warnIfMcpAliasUsed(): void {
@@ -542,10 +585,19 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     );
   }
 
-  private mcpRootHandler(mcp?: RootHandler): RootHandler | null {
-    if (this.gateway) return null;
+  private setRootHandlers(mcp?: RootHandler): void {
+    if (!this.gateway?.build) {
+      this.setMcpCallback(mcp ?? null);
 
-    return mcp ?? null;
+      return;
+    }
+
+    const stopped =
+      this.isStopped && this.gateway.services.mcp
+        ? mcpUnavailable(this.gateway.basePath, 'stopped')
+        : undefined;
+
+    this.setGatewayCallback(this.gateway.build(stopped ?? mcp));
   }
 
   private logGatewayRoutes(): void {
@@ -614,6 +666,11 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
       if (!isFeatureEnabled) return;
 
       const base = normalizeMcpBasePath(this.mcpBasePath);
+      const apiNote = this.gateway?.services.api
+        ? ` The Gateway API on ${base}/api/* escapes it too: it reaches the agent in-process, ` +
+          'which the whitelist exempts as a trusted loopback caller. API calls still require an ' +
+          'API key or an OAuth session.'
+        : '';
 
       this.options.logger(
         'Warn',
@@ -622,7 +679,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
           `/.well-known/oauth-authorization-server${base}, ` +
           `/.well-known/oauth-protected-resource${base}/mcp): its middleware is mounted on the ` +
           `/forest router only, so these routes escape it for any caller. Tool calls on ${base}/mcp ` +
-          'still require a valid MCP OAuth token.',
+          `still require a valid MCP OAuth token.${apiNote}`,
       );
     } catch (error) {
       this.options.logger(

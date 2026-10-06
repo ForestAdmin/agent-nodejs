@@ -1,4 +1,43 @@
-import type { BffEmbedOptions, GatewayOptions, McpEmbedOptions } from './types';
+import type { BffEmbedOptions, GatewayOptions, McpEmbedOptions, RootHandler } from './types';
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires, import/no-dynamic-require, global-require
+const { peerDependencies } = require('../package.json') as {
+  peerDependencies: Record<string, string>;
+};
+
+export const AGENT_BFF_PEER_VERSION = peerDependencies['@forestadmin/agent-bff'];
+
+const isWithin = (path: string, root: string) => path === root || path.startsWith(`${root}/`);
+
+const HTTP_SERVICE_UNAVAILABLE = 503;
+
+const MCP_UNAVAILABLE = {
+  starting: 'The MCP server is not started yet.',
+  stopped: 'The MCP server was stopped with the agent.',
+};
+
+export function mcpUnavailable(basePath: string, state: keyof typeof MCP_UNAVAILABLE): RootHandler {
+  const mcpPath = `${basePath}/mcp`;
+  const oauthPrefix = `${basePath}/oauth/`;
+
+  return {
+    matches: url => {
+      const [pathname] = url.split(/[?#]/, 1);
+
+      return isWithin(pathname, mcpPath) || pathname.startsWith(oauthPrefix);
+    },
+    callback: (_req, res) => {
+      res.statusCode = HTTP_SERVICE_UNAVAILABLE;
+      res.setHeader('Content-Type', 'application/json');
+      res.end(
+        JSON.stringify({
+          error: 'temporarily_unavailable',
+          error_description: MCP_UNAVAILABLE[state],
+        }),
+      );
+    },
+  };
+}
 
 export type GatewayMcpOptions = Omit<McpEmbedOptions, 'basePath' | 'allowedOAuthClients'>;
 
@@ -25,8 +64,6 @@ export function resolveGatewayServices({ mcp, api }: GatewayOptions): GatewaySer
 
   return { mcp: mcpOptions, api: resolveService(api) };
 }
-
-const isWithin = (path: string, root: string) => path === root || path.startsWith(`${root}/`);
 
 export function assertNoGatewayOverlap(
   basePath: string,
@@ -69,17 +106,12 @@ export function describeGatewayRoutes(basePath: string, { mcp, api }: GatewaySer
   const lines: string[] = [];
 
   if (mcp) {
-    const discovery = basePath
-      ? [
-          `/.well-known/oauth-authorization-server${basePath}`,
-          `/.well-known/oauth-protected-resource${basePath}/mcp`,
-        ]
-      : ['/.well-known/*'];
     const routes = [
       `${basePath}/mcp`,
       ...(servesInMemoryUploads(mcp) ? [`${basePath}/mcp/uploads`] : []),
       `${basePath}/oauth/*`,
-      ...discovery,
+      `/.well-known/oauth-authorization-server${basePath}`,
+      `/.well-known/oauth-protected-resource${basePath}/mcp`,
     ];
 
     lines.push(`[Gateway] MCP: ${routes.join(', ')}`);

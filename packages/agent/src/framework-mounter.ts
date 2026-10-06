@@ -52,6 +52,10 @@ export default class FrameworkMounter {
   }
 
   /** Serve an embedded BFF at `/bff`. Pass null to stop answering there. */
+  protected setGatewayCallback(handler: RootHandler): void {
+    this.rootMiddleware.set('gateway', handler);
+  }
+
   protected setBffCallback(callback: HttpCallback | null): void {
     this.rootMiddleware.set('bff', callback && { callback, matches: isBffRoute });
   }

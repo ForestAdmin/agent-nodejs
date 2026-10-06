@@ -26,6 +26,8 @@ jest.mock('@forestadmin/agent-bff', () => ({
   IN_PROCESS_AGENT_URL: 'http://in-process.agent',
   parseConfig: (env: unknown) => mockParseConfig(env),
   buildBff: (options: unknown) => mockBuildBff(options),
+  claimsBffPath: () => true,
+  version: jest.requireActual('../package.json').peerDependencies['@forestadmin/agent-bff'],
 }));
 
 let mcpServerSpy: jest.SpyInstance;
@@ -118,7 +120,7 @@ describe('Agent.addGateway', () => {
       await agent.start();
 
       expect(gatewayLog(logger, 'MCP')).toBe(
-        '[Gateway] MCP: /mcp, /mcp/uploads, /oauth/*, /.well-known/*',
+        '[Gateway] MCP: /mcp, /mcp/uploads, /oauth/*, /.well-known/oauth-authorization-server, /.well-known/oauth-protected-resource/mcp',
       );
       expect(gatewayLog(logger, 'API')).toBe(
         '[Gateway] API: /api/agent/*, /api/health, /oauth/*?service=api',
@@ -172,7 +174,9 @@ describe('Agent.addGateway', () => {
 
       await agent.start();
 
-      expect(gatewayLog(logger, 'MCP')).toBe('[Gateway] MCP: /mcp, /oauth/*, /.well-known/*');
+      expect(gatewayLog(logger, 'MCP')).toBe(
+        '[Gateway] MCP: /mcp, /oauth/*, /.well-known/oauth-authorization-server, /.well-known/oauth-protected-resource/mcp',
+      );
     });
 
     it('should log only the enabled service', async () => {
@@ -182,7 +186,7 @@ describe('Agent.addGateway', () => {
       await agent.start();
 
       expect(gatewayLog(logger, 'MCP')).toBe(
-        '[Gateway] MCP: /mcp, /mcp/uploads, /oauth/*, /.well-known/*',
+        '[Gateway] MCP: /mcp, /mcp/uploads, /oauth/*, /.well-known/oauth-authorization-server, /.well-known/oauth-protected-resource/mcp',
       );
       expect(() => gatewayLog(logger, 'API')).toThrow();
     });
@@ -231,18 +235,6 @@ describe('Agent.addGateway', () => {
       await agent.start();
 
       expect(mcpServerSpy).not.toHaveBeenCalled();
-    });
-
-    it('should leave every Gateway path to the host: the Gateway routing ships separately', async () => {
-      const { agent } = buildAgent();
-      mockGetHttpCallback.mockResolvedValue(answeringWith('mcp'));
-      agent.addGateway({ mcp: true, api: {} });
-
-      const request = await startOnPort(agent);
-
-      expect((await request('/mcp')).status).toBe(404);
-      expect((await request('/oauth/token')).status).toBe(404);
-      expect((await request('/api/health')).status).toBe(404);
     });
 
     it('should surface the MCP domain-root rejection from start()', async () => {
