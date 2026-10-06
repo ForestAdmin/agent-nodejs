@@ -1,4 +1,4 @@
-import { ConditionTreeLeaf } from '@forestadmin/datasource-toolkit';
+import { ConditionTreeBranch, ConditionTreeLeaf } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import { REDACTED } from '../../../src/audit-trail';
@@ -843,17 +843,22 @@ describe('AuditTrailRoute', () => {
     // Matched in SQL, a search would still answer what the withholding hides: whether the row comes
     // back, and the count, say whether the withheld value holds the term.
     describe('a genuinely gone, scoped record searched or filtered by field', () => {
-      const secretDelete = (userEmail = 'jane@acme.io') => ({
+      const secretDelete = (over: Record<string, unknown> = {}) => ({
+        id: 1,
+        timestamp: '2026-01-01T00:00:00.000Z',
         operation: 'delete',
         recordId: '2',
         userId: 7,
         userFirstName: null,
         userLastName: null,
-        userEmail,
+        userEmail: 'jane@acme.io',
         actionName: null,
         previousValues: { ownerId: 2, title: 'Secret' },
         newValues: {},
+        ...over,
       });
+      const kept = (over: Record<string, unknown> = {}) =>
+        secretDelete({ previousValues: { ownerId: 1, title: 'Mine' }, ...over });
 
       const searched = async (history: unknown[], query: Record<string, string>) => {
         const { services, dataSource, options, store } = setup(history);
@@ -879,18 +884,16 @@ describe('AuditTrailRoute', () => {
       });
 
       test('matches the values it serves', async () => {
-        const kept = { ...secretDelete(), previousValues: { ownerId: 1, title: 'Mine' } };
+        const { body } = await searched([kept()], { search: 'MINE' });
 
-        const { body } = await searched([kept], { search: 'MINE' });
-
-        expect(body.data).toEqual([kept]);
+        expect(body.data).toEqual([kept()]);
       });
 
       test('still matches what stays visible on a withheld row, such as its author', async () => {
         const { body } = await searched([secretDelete()], { search: 'acme' });
 
         expect(body).toEqual({
-          data: [{ ...secretDelete(), previousValues: {} }],
+          data: [secretDelete({ previousValues: {} })],
           meta: {
             count: 1,
             availableUsers: [{ id: 7, firstName: null, lastName: null, email: 'jane@acme.io' }],
@@ -899,13 +902,26 @@ describe('AuditTrailRoute', () => {
       });
 
       test('lists an author once even when their rows carry different identities', async () => {
-        const { body } = await searched([secretDelete(), secretDelete('jane@acme.com')], {
-          search: 'acme',
-        });
+        const { body } = await searched(
+          [secretDelete(), secretDelete({ id: 2, userEmail: 'jane@acme.com' })],
+          { search: 'acme' },
+        );
 
         expect(body.meta).toEqual({
           count: 2,
           availableUsers: [{ id: 7, firstName: null, lastName: null, email: 'jane@acme.io' }],
+        });
+      });
+
+      test('lists an author as their latest identity when sorted oldest first', async () => {
+        const { body } = await searched(
+          [secretDelete(), secretDelete({ id: 2, userEmail: 'jane@acme.com' })],
+          { search: 'acme', sort: 'timestamp' },
+        );
+
+        expect(body.meta).toEqual({
+          count: 2,
+          availableUsers: [{ id: 7, firstName: null, lastName: null, email: 'jane@acme.com' }],
         });
       });
 
@@ -915,60 +931,30 @@ describe('AuditTrailRoute', () => {
         expect(body.data).toEqual([]);
       });
 
-      test('reads the rows without the value filters and pages what matched', async () => {
-        const kept = { ...secretDelete(), previousValues: { ownerId: 1, title: 'Mine' } };
+      test('reads the rows without the value filters, bounded at the instant the scan starts', async () => {
+        const before = new Date().toISOString();
 
-        const { body, store } = await searched([kept, { ...kept, operation: 'update' }], {
-          search: 'mine',
-          userIds: '12',
-          'page[size]': '1',
-          'page[number]': '2',
-        });
+        const { store } = await searched([kept()], { search: 'mine', userIds: '12' });
 
-        expect(store.listByRecord).toHaveBeenCalledWith({
+        const [query] = (store.listByRecord as jest.Mock).mock.calls[0];
+        expect(query).toEqual({
           collection: 'books',
           recordId: '2',
           userIds: [12],
           order: 'desc',
-          skip: 0,
           limit: 500,
+          endTimestamp: expect.any(String),
         });
+        expect(query.endTimestamp >= before).toBe(true);
         expect(store.countByRecord).not.toHaveBeenCalled();
-        expect(body).toEqual({ data: [{ ...kept, operation: 'update' }], meta: { count: 2 } });
       });
 
-      test('reads the history in batches and counts every match across them', async () => {
-        const kept = { ...secretDelete(), previousValues: { ownerId: 1, title: 'Mine' } };
-        const { services, dataSource, options, store } = setup();
-        store.listByRecord
-          .mockResolvedValueOnce(Array.from({ length: 500 }, () => kept))
-          .mockResolvedValueOnce([kept]);
-        (services.authorization.getScope as jest.Mock).mockResolvedValue(
-          new ConditionTreeLeaf('ownerId', 'Equal', 1),
-        );
-        jest.spyOn(dataSource.getCollection('books'), 'list').mockResolvedValue([]);
-        const route = new AuditTrailRoute(services, options, dataSource, 'books');
-        const context = createMockContext({
-          state: { user: { email: 'john.doe@domain.com' } },
-          customProperties: {
-            query: { timezone: 'Europe/Paris', search: 'mine', 'page[size]': '1' },
-            params: { id: '2' },
-          },
-        });
+      test('keeps an end date the caller asked for when it is earlier', async () => {
+        const { store } = await searched([], { search: 'mine', endDate: '2020-01-01' });
 
-        await route.handleHistory(context);
-
-        expect(store.listByRecord).toHaveBeenNthCalledWith(
-          2,
-          expect.objectContaining({ skip: 500, limit: 500 }),
+        expect(store.listByRecord).toHaveBeenCalledWith(
+          expect.objectContaining({ endTimestamp: expect.stringMatching(/^2020-01-01T/) }),
         );
-        expect(context.response.body).toEqual({
-          data: [kept],
-          meta: {
-            count: 501,
-            availableUsers: [{ id: 7, firstName: null, lastName: null, email: 'jane@acme.io' }],
-          },
-        });
       });
 
       test('matches served values for a record deleted while the audit read was in flight', async () => {
@@ -995,12 +981,45 @@ describe('AuditTrailRoute', () => {
           collection: 'books',
           recordId: '2',
           order: 'desc',
-          skip: 0,
           limit: 500,
+          endTimestamp: expect.any(String),
         });
         expect(context.response.body).toEqual({
           data: [],
           meta: { count: 0, availableUsers: [] },
+        });
+      });
+
+      // The page cap bounds what is served, not what is scanned: the history is read in batches,
+      // each continuing past the last row read, so a long one is never held in memory whole.
+      test('scans in batches past the last row read, counting across them and keeping only the page', async () => {
+        const rows = Array.from({ length: 1001 }, (_, index) => kept({ id: index + 1 }));
+        const { services, dataSource, options, store } = setup();
+        store.listByRecord.mockImplementation(
+          async ({ after, limit }: { after?: { id: number }; limit: number }) =>
+            rows.filter(row => !after || row.id > after.id).slice(0, limit),
+        );
+        (services.authorization.getScope as jest.Mock).mockResolvedValue(
+          new ConditionTreeLeaf('ownerId', 'Equal', 1),
+        );
+        jest.spyOn(dataSource.getCollection('books'), 'list').mockResolvedValue([]);
+        const route = new AuditTrailRoute(services, options, dataSource, 'books');
+        const context = createMockContext({
+          state: { user: { email: 'john.doe@domain.com' } },
+          customProperties: {
+            query: { search: 'mine', 'page[size]': '2', 'page[number]': '251' },
+            params: { id: '2' },
+          },
+        });
+
+        await route.handleHistory(context);
+
+        const calls = (store.listByRecord as jest.Mock).mock.calls.map(([query]) => query);
+        expect(calls.map(query => query.after?.id)).toEqual([undefined, 500, 1000]);
+        expect(calls.every(query => query.skip === undefined)).toBe(true);
+        expect(context.response.body).toEqual({
+          data: [rows[500], rows[501]],
+          meta: { count: 1001 },
         });
       });
     });
@@ -1339,6 +1358,102 @@ describe('AuditTrailRoute', () => {
 
         return (context.response.body as { data: unknown[] }).data;
       };
+
+      // In memory `!=` holds for a null and `null < 5` coerces to `0 < 5`, while the database leaves a
+      // NULL out of both: a record the caller could never read alive must not become readable once
+      // deleted.
+      describe('a captured null', () => {
+        const nullSecret = [
+          {
+            operation: 'delete',
+            recordId: '2',
+            previousValues: { ownerId: null, secret: null },
+            newValues: {},
+          },
+        ];
+        const withheld = [
+          { operation: 'delete', recordId: '2', previousValues: {}, newValues: {} },
+        ];
+
+        test('withholds the values under a negated scope, as the database would have left the record out', async () => {
+          const notEqual = await historyUnder(
+            new ConditionTreeLeaf('secret', 'NotEqual', 'private'),
+            nullSecret,
+          );
+          const notIn = await historyUnder(
+            new ConditionTreeLeaf('secret', 'NotIn', ['private']),
+            nullSecret,
+          );
+
+          expect([notEqual, notIn]).toEqual([withheld, withheld]);
+        });
+
+        test('withholds the values under an ordered scope a null would coerce through', async () => {
+          const data = await historyUnder(
+            new ConditionTreeLeaf('ownerId', 'LessThan', 5),
+            nullSecret,
+          );
+
+          expect(data).toEqual(withheld);
+        });
+
+        test('withholds when the negation sits inside a branch', async () => {
+          const scope = new ConditionTreeBranch('And', [
+            new ConditionTreeLeaf('ownerId', 'Equal', 1),
+            new ConditionTreeLeaf('secret', 'NotEqual', 'private'),
+          ]);
+
+          const data = await historyUnder(scope as unknown as ConditionTreeLeaf, [
+            { operation: 'delete', recordId: '2', previousValues: { ownerId: 1, secret: null } },
+          ]);
+
+          expect(data).toEqual(withheld);
+        });
+
+        test('keeps the values a scope asking for the null itself covers', async () => {
+          const missing = await historyUnder(
+            new ConditionTreeLeaf('secret', 'Missing'),
+            nullSecret,
+          );
+          const equalNull = await historyUnder(
+            new ConditionTreeLeaf('secret', 'Equal', null),
+            nullSecret,
+          );
+          const inWithNull = await historyUnder(
+            new ConditionTreeLeaf('secret', 'In', ['open', null]),
+            nullSecret,
+          );
+
+          expect([missing, equalNull, inWithNull]).toEqual([nullSecret, nullSecret, nullSecret]);
+        });
+
+        test('withholds the values under an In list that does not hold null', async () => {
+          const data = await historyUnder(
+            new ConditionTreeLeaf('secret', 'In', ['open']),
+            nullSecret,
+          );
+
+          expect(data).toEqual(withheld);
+        });
+
+        test('keeps a non-null value the negation covers', async () => {
+          const history = [
+            {
+              operation: 'delete',
+              recordId: '2',
+              previousValues: { ownerId: 1, secret: 'open' },
+              newValues: {},
+            },
+          ];
+
+          const data = await historyUnder(
+            new ConditionTreeLeaf('secret', 'NotEqual', 'private'),
+            history,
+          );
+
+          expect(data).toEqual(history);
+        });
+      });
 
       test('withholds a delete row when the scope reads a column the snapshot never captured', async () => {
         const data = await historyUnder(new ConditionTreeLeaf('status', 'NotEqual', 'private'), [
@@ -1972,11 +2087,11 @@ describe('AuditTrailRoute', () => {
     // fail; this route is those same values reassembled, so it has to answer the same way or the
     // withheld values are one request away.
     describe('a genuinely gone record, read by a scoped caller', () => {
-      const reconstructFor = async (scope: ConditionTreeLeaf) => {
+      const reconstructFor = async (scope: ConditionTreeLeaf, status: string | null = 'closed') => {
         const history = [
           {
             operation: 'delete',
-            previousValues: { id: 2, status: 'closed', name: 'Acme' },
+            previousValues: { id: 2, status, name: 'Acme' },
             newValues: {},
           },
         ];
@@ -2003,6 +2118,15 @@ describe('AuditTrailRoute', () => {
         const context = await reconstructFor(new ConditionTreeLeaf('status', 'Equal', 'mine'));
 
         expect(context.throw).not.toHaveBeenCalled();
+        expect(context.response.body).toEqual({ data: null });
+      });
+
+      test('withholds a reconstruction whose NULL the scope negates, as the database would have refused the record', async () => {
+        const context = await reconstructFor(
+          new ConditionTreeLeaf('status', 'NotEqual', 'private'),
+          null,
+        );
+
         expect(context.response.body).toEqual({ data: null });
       });
 
