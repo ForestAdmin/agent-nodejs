@@ -38,6 +38,13 @@ jest.mock('@forestadmin/agent-bff', () => ({
   },
 }));
 
+const mockExecutorStart = jest.fn();
+
+jest.mock('@forestadmin/workflow-executor', () => ({
+  __esModule: true,
+  buildInMemoryExecutor: () => ({ start: mockExecutorStart, stop: jest.fn(), state: 'idle' }),
+}));
+
 type Req = IncomingMessage & { originalUrl?: string };
 
 function echo(service: string) {
@@ -210,20 +217,18 @@ describe('the API callback behind the switch', () => {
   it('should serve an already stripped request as-is, without ever calling next', async () => {
     const { agent } = buildAgent();
     agent.addGateway({ api: {} });
-    onExpress(agent);
+    const app = onExpress(agent);
+    const reachedHost: string[] = [];
+    app.use((req: Req, res: ServerResponse) => {
+      reachedHost.push(req.url ?? '');
+      res.end();
+    });
     await agent.start();
-    const bffCallback = jest.fn();
-    (agent as any).embeddedBff.bff.callback = bffCallback;
-    const next = jest.fn();
-    const req = { url: '/api/health', headers: {} } as Req;
 
-    (agent as any).rootMiddleware.handlers.get('gateway').callback(req, {}, next);
+    const response = await request(app).get('/api/health');
 
-    expect(bffCallback).toHaveBeenCalledWith(
-      expect.objectContaining({ url: '/health', originalUrl: '/api/health' }),
-      {},
-    );
-    expect(next).not.toHaveBeenCalled();
+    expect(response.body).toEqual({ service: 'api', url: '/health', originalUrl: '/api/health' });
+    expect(reachedHost).toEqual([]);
     await agent.stop();
   });
 });
@@ -305,7 +310,8 @@ describe.each([
     const dataSource = deferred<ReturnType<typeof factories.dataSource.build>>();
     const getDataSource = jest.mocked(DataSourceCustomizer.prototype.getDataSource);
     getDataSource.mockReturnValue(dataSource.promise);
-    const { agent } = buildAgent();
+    const forestAdminClient = factories.forestAdminClient.build();
+    const { agent } = buildAgent({ forestAdminClient });
     agent.addGateway({ mcp: true, api: {} });
     const app = mount(agent);
 
@@ -318,7 +324,7 @@ describe.each([
     expect((await request(app).get('/api/health')).body.error.type).toBe('bff_stopped');
     expect((await request(app).post('/mcp')).status).toBe(503);
     expect(mockBuildBff).not.toHaveBeenCalled();
-    expect((agent as any).options.forestAdminClient.subscribeToServerEvents).not.toHaveBeenCalled();
+    expect(forestAdminClient.subscribeToServerEvents).not.toHaveBeenCalled();
   });
 
   it('should answer stopped on the MCP when stop() lands while the gateway is preparing', async () => {
@@ -346,14 +352,15 @@ describe.each([
 
   it('should not build the API when stop() lands after mount() but before its build', async () => {
     const executorStart = deferred<void>();
+    mockExecutorStart.mockReturnValue(executorStart.promise);
     const { agent } = buildAgent();
-    agent.addGateway({ mcp: true, api: {} });
-    const start = jest.fn(() => executorStart.promise);
-    (agent as any).embeddedExecutor = { start, stop: jest.fn() };
+    agent
+      .addGateway({ mcp: true, api: {} })
+      .addWorkflowExecutor({ agentUrl: 'http://localhost:3310', inMemory: true });
     const app = mount(agent);
 
     const starting = agent.start();
-    await until(() => start.mock.calls.length > 0);
+    await until(() => mockExecutorStart.mock.calls.length > 0);
     await agent.stop();
     executorStart.resolve();
     await starting;
@@ -367,11 +374,24 @@ describe.each([
     const { agent } = buildAgent();
     agent.addGateway({ mcp: true, api: {} });
     const app = mount(agent);
+    let routerVersion = 0;
+    mockMakeRoutes.mockImplementation(() => {
+      routerVersion += 1;
+      const version = routerVersion;
+
+      return [
+        {
+          bootstrap: jest.fn(),
+          setupRoutes: (router: { get: (...args: unknown[]) => void }) =>
+            router.get('/router-version', (ctx: { body: unknown }) => {
+              ctx.body = { version };
+            }),
+        },
+      ];
+    });
     await agent.start();
     const rebuilt = deferred<ReturnType<typeof echo>>();
     mockGetHttpCallback.mockReturnValue(rebuilt.promise);
-
-    const remount = jest.spyOn(agent as any, 'remount');
 
     const restarting = agent.restart();
     await until(() => mockGetHttpCallback.mock.calls.length === 2);
@@ -379,8 +399,8 @@ describe.each([
     rebuilt.resolve(echo('mcp-restarted'));
     await restarting;
 
-    expect(remount).not.toHaveBeenCalled();
-
+    expect(routerVersion).toBe(2);
+    expect((await request(app).get('/prefix/forest/router-version')).body).toEqual({ version: 1 });
     expect((await request(app).post('/mcp')).status).toBe(503);
     expect((await request(app).get('/api/health')).status).toBe(503);
   });
@@ -431,6 +451,23 @@ describe('addGateway() checks at start()', () => {
     );
   });
 
+  it('should leave the host /api routes alone when stop() follows a failed start()', async () => {
+    mockBffVersion = '0.0.1';
+    const { agent } = buildAgent();
+    agent.addGateway({ api: {} });
+    const app = onExpress(agent);
+    app.get('/api/users', (_req, res) => {
+      res.send('host users');
+    });
+
+    await expect(agent.start()).rejects.toThrow('requires @forestadmin/agent-bff');
+    await agent.stop();
+
+    const response = await request(app).get('/api/users');
+    expect(response.status).toBe(200);
+    expect(response.text).toBe('host users');
+  });
+
   it('should leave addBff() free of the version check', async () => {
     mockBffVersion = '0.0.1';
     const { agent } = buildAgent();
@@ -451,9 +488,10 @@ describe('addGateway() checks at start()', () => {
 
     const warnings = logger.mock.calls.filter(([, message]) => /IP whitelist/.test(message));
     expect(warnings).toEqual([['Warn', expect.stringMatching(/^\[MCP\] The IP whitelist/)]]);
+    expect(warnings[0][1]).not.toContain('Gateway API');
   });
 
-  it('should warn once with both services on, from the MCP only', async () => {
+  it('should warn once with both services on, naming the API routes in the MCP warning', async () => {
     const getIpWhitelistConfiguration = jest.fn().mockResolvedValue({ isFeatureEnabled: true });
     const forestAdminClient = factories.forestAdminClient.build({ getIpWhitelistConfiguration });
     const { agent, logger } = buildAgent({ forestAdminClient });
@@ -463,6 +501,7 @@ describe('addGateway() checks at start()', () => {
 
     const warnings = logger.mock.calls.filter(([, message]) => /IP whitelist/.test(message));
     expect(warnings).toEqual([['Warn', expect.stringMatching(/^\[MCP\] The IP whitelist/)]]);
+    expect(warnings[0][1]).toContain('The Gateway API on /api/* escapes it too');
     await agent.stop();
   });
 
