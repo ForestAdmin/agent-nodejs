@@ -12,13 +12,6 @@ function isAgentHttpResponse(cause: unknown): cause is AgentHttpResponse {
   return cause instanceof Error && typeof (cause as Partial<AgentHttpResponse>).status === 'number';
 }
 
-export function agentErrorDetail(cause: unknown): string | undefined {
-  if (!isAgentHttpResponse(cause)) return undefined;
-  const detail = extractErrorDetail(cause);
-
-  return detail ? flattenAgentMessage(detail) : undefined;
-}
-
 export function flattenAgentMessage(detail: string): string {
   const flat = Array.from(detail.slice(0, AGENT_ERROR_MESSAGE_MAX_LENGTH * 4), char =>
     char < ' ' || (char >= '\u007f' && char <= '\u009f') ? ' ' : char,
@@ -30,6 +23,13 @@ export function flattenAgentMessage(detail: string): string {
   return flat.length > AGENT_ERROR_MESSAGE_MAX_LENGTH
     ? `${flat.slice(0, AGENT_ERROR_MESSAGE_MAX_LENGTH)}…`
     : flat;
+}
+
+export function agentErrorDetail(cause: unknown): string | undefined {
+  if (!isAgentHttpResponse(cause)) return undefined;
+  const detail = extractErrorDetail(cause);
+
+  return detail ? flattenAgentMessage(detail) : undefined;
 }
 
 function agentErrorMessage(cause: unknown): string | undefined {
