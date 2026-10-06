@@ -40,6 +40,7 @@ import {
   describeGatewayRoutes,
   mcpUnavailable,
   resolveGatewayServices,
+  servesOAuth,
 } from './gateway';
 import makeRoutes from './routes';
 import makeServices from './services';
@@ -97,6 +98,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   private gateway: {
     basePath: string;
     services: GatewayServices;
+    allowedOAuthClients?: string[];
     build?: (mcp?: RootHandler) => RootHandler;
   } | null = null;
 
@@ -371,7 +373,11 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     if (this.mcpEnabled || this.embeddedBff) throw new Error(GATEWAY_MIXING);
 
     const services = resolveGatewayServices(options);
-    this.gateway = { basePath: options.basePath ?? '', services };
+    this.gateway = {
+      basePath: options.basePath ?? '',
+      services,
+      allowedOAuthClients: options.allowedOAuthClients,
+    };
 
     if (services.mcp) {
       this.mcpEnabled = true;
@@ -570,6 +576,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
       name: 'The Gateway API',
       requiredVersion: AGENT_BFF_PEER_VERSION,
       skipIpWhitelistWarning: Boolean(this.gateway?.services.mcp),
+      allowedOAuthClients: this.gateway?.allowedOAuthClients,
     });
 
     return this.embeddedBff;
@@ -603,9 +610,16 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   private logGatewayRoutes(): void {
     if (!this.gateway) return;
 
-    describeGatewayRoutes(this.gateway.basePath, this.gateway.services).forEach(line =>
-      this.options.logger('Info', line),
-    );
+    const { basePath, services, allowedOAuthClients } = this.gateway;
+
+    describeGatewayRoutes(basePath, services).forEach(line => this.options.logger('Info', line));
+
+    if (allowedOAuthClients && !servesOAuth(services)) {
+      this.options.logger(
+        'Warn',
+        '[Gateway] allowedOAuthClients is set but no OAuth route is served (MCP off, API OAuth off).',
+      );
+    }
   }
 
   protected getRoutes(dataSource: DataSource, services: ForestAdminHttpDriverServices) {

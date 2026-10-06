@@ -102,6 +102,10 @@ function servesInMemoryUploads({ fileUploads, enabledTools }: GatewayMcpOptions)
   return !enabledTools || enabledTools.includes('requestActionFileUpload');
 }
 
+export function servesOAuth({ mcp, api }: GatewayServices): boolean {
+  return Boolean(mcp || api?.tokenEncryptionKey);
+}
+
 export function describeGatewayRoutes(basePath: string, { mcp, api }: GatewayServices): string[] {
   const lines: string[] = [];
 

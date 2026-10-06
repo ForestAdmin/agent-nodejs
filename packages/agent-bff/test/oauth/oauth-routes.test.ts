@@ -86,6 +86,7 @@ function buildApp(
   forestAppUrl: string = APP_URL,
   onTokenRequest?: () => void,
   resolveEnvironmentId: () => Promise<number> = async () => 99,
+  allowedOAuthClients?: string[],
 ) {
   const logs: LogLine[] = [];
 
@@ -118,6 +119,7 @@ function buildApp(
       authSecret: AUTH_SECRET,
       resolveEnvironmentId,
       logger,
+      allowedOAuthClients,
     }),
   );
 
@@ -1103,6 +1105,137 @@ describe('oauth-routes middleware', () => {
       const response = await request(app.callback()).get('/something-else');
 
       expect(response.status).toBe(204);
+    });
+  });
+});
+
+describe('oauth-routes allowedOAuthClients', () => {
+  const ALLOWED_REDIRECT_URI = 'https://app.dust.tt/oauth/callback';
+  const ZENDESK_REDIRECT_URI = 'https://app.forestadmin.com/zendesk-oauth-redirect';
+
+  function buildRestrictedApp(redirectUris: string[], allowedOAuthClients?: string[]) {
+    const exchangeCode = jest.fn(async () => serverTokens());
+    const getRegisteredClient = jest.fn(async () => ({
+      client_id: CLIENT_ID,
+      redirect_uris: redirectUris,
+    }));
+    const built = buildApp(
+      stubServerClient({ exchangeCode, getRegisteredClient }),
+      APP_URL,
+      undefined,
+      async () => 99,
+      allowedOAuthClients,
+    );
+
+    return { ...built, exchangeCode };
+  }
+
+  describe('on GET /oauth/authorize', () => {
+    it('should reject a client outside the allowed domains with a 400 invalid_client body and no redirect', async () => {
+      const { app } = buildRestrictedApp([ZENDESK_REDIRECT_URI], ['claude.ai']);
+
+      const response = await request(app.callback())
+        .get('/oauth/authorize')
+        .query({ ...AUTHORIZE_QUERY, redirect_uri: ZENDESK_REDIRECT_URI });
+
+      expect(response.status).toBe(400);
+      expect(response.headers['content-type']).toMatch(/application\/json/);
+      expect(response.body).toEqual({
+        error: 'invalid_client',
+        error_description:
+          'This API only accepts approved client applications. Contact your Forest Admin administrator.',
+      });
+      expect(response.headers.location).toBeUndefined();
+      expect(JSON.stringify(response.body)).not.toContain('claude.ai');
+    });
+
+    it('should reject a client outside the allowed domains even when the redirect_uri is not registered', async () => {
+      const { app } = buildRestrictedApp([ZENDESK_REDIRECT_URI], ['claude.ai']);
+
+      const response = await request(app.callback())
+        .get('/oauth/authorize')
+        .query({ ...AUTHORIZE_QUERY, redirect_uri: 'https://elsewhere.example/cb' });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('invalid_client');
+    });
+
+    it('should log the rejected client id and its redirect URIs', async () => {
+      const { app, logs } = buildRestrictedApp([ZENDESK_REDIRECT_URI], ['claude.ai']);
+
+      await request(app.callback())
+        .get('/oauth/authorize')
+        .query({ ...AUTHORIZE_QUERY, redirect_uri: ZENDESK_REDIRECT_URI });
+
+      expect(logs).toContainEqual({
+        level: 'Info',
+        message: 'Rejected OAuth client: redirect URIs are not all on an allowed domain',
+        context: { clientId: CLIENT_ID, redirectUris: [ZENDESK_REDIRECT_URI] },
+      });
+    });
+
+    it('should redirect to the Forest authorize url for a client on an allowed domain', async () => {
+      const { app } = buildRestrictedApp([ALLOWED_REDIRECT_URI], ['dust.tt']);
+
+      const response = await request(app.callback())
+        .get('/oauth/authorize')
+        .query({ ...AUTHORIZE_QUERY, redirect_uri: ALLOWED_REDIRECT_URI });
+
+      expect(response.status).toBe(302);
+      const location = new URL(response.headers.location);
+      expect(location.origin + location.pathname).toBe(`${APP_URL}/oauth/authorize`);
+      expect(location.searchParams.get('redirect_uri')).toBe(ALLOWED_REDIRECT_URI);
+    });
+
+    it('should accept any registered client when no allowlist is set', async () => {
+      const { app } = buildRestrictedApp([ZENDESK_REDIRECT_URI]);
+
+      const response = await request(app.callback())
+        .get('/oauth/authorize')
+        .query({ ...AUTHORIZE_QUERY, redirect_uri: ZENDESK_REDIRECT_URI });
+
+      expect(response.status).toBe(302);
+      expect(new URL(response.headers.location).pathname).toBe('/oauth/authorize');
+    });
+  });
+
+  describe('on POST /oauth/token with grant_type=authorization_code', () => {
+    it('should reject a client outside the allowed domains with invalid_client and call no SaaS exchange', async () => {
+      const { app, exchangeCode } = buildRestrictedApp([ZENDESK_REDIRECT_URI], ['claude.ai']);
+
+      const response = await request(app.callback())
+        .post('/oauth/token')
+        .send({ ...TOKEN_BODY, redirect_uri: ZENDESK_REDIRECT_URI });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('invalid_client');
+      expect(JSON.stringify(response.body)).not.toContain('claude.ai');
+      expect(exchangeCode).not.toHaveBeenCalled();
+    });
+
+    it('should issue tokens to a client on an allowed domain', async () => {
+      const { app, exchangeCode } = buildRestrictedApp([ALLOWED_REDIRECT_URI], ['dust.tt']);
+
+      const response = await request(app.callback())
+        .post('/oauth/token')
+        .send({ ...TOKEN_BODY, redirect_uri: ALLOWED_REDIRECT_URI });
+
+      expect(response.status).toBe(200);
+      expect(response.body.token_type).toBe('Bearer');
+      expect(exchangeCode).toHaveBeenCalledWith(
+        expect.objectContaining({ clientId: CLIENT_ID, redirectUri: ALLOWED_REDIRECT_URI }),
+      );
+    });
+
+    it('should issue tokens to any registered client when no allowlist is set', async () => {
+      const { app } = buildRestrictedApp([ZENDESK_REDIRECT_URI]);
+
+      const response = await request(app.callback())
+        .post('/oauth/token')
+        .send({ ...TOKEN_BODY, redirect_uri: ZENDESK_REDIRECT_URI });
+
+      expect(response.status).toBe(200);
+      expect(response.body.token_type).toBe('Bearer');
     });
   });
 });

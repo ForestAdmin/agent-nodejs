@@ -4,7 +4,7 @@ import request from 'supertest';
 
 import { createHttpTransport } from '../src/agent/agent-transport';
 import buildBff from '../src/build-bff';
-import { restoreFetchAfterEach, stubEnvironmentIdFetch } from './helpers/fetch-stub';
+import { restoreFetchAfterEach, stubEnvironmentIdFetch, stubFetch } from './helpers/fetch-stub';
 import { parseConfig } from '../src/config/env-config';
 import version from '../src/version';
 
@@ -191,6 +191,82 @@ describe('buildBff', () => {
       });
 
       expect(() => bff.invalidate()).not.toThrow();
+    });
+  });
+
+  describe('when allowedOAuthClients is set', () => {
+    const ZENDESK_REDIRECT_URI = 'https://app.forestadmin.com/zendesk-oauth-redirect';
+    const AUTHORIZE_QUERY = {
+      client_id: 'zendesk',
+      redirect_uri: ZENDESK_REDIRECT_URI,
+      response_type: 'code',
+      code_challenge: 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM',
+      code_challenge_method: 'S256',
+      state: 'state-xyz',
+    };
+
+    function stubRegisteredClientFetch(): void {
+      const ok = (body: unknown) => ({
+        ok: true,
+        status: 200,
+        statusText: 'ok',
+        json: async () => body,
+      });
+
+      stubFetch(undefined).mockImplementation(async (url: string) =>
+        String(url).includes('/oauth/register/')
+          ? ok({ client_id: 'zendesk', redirect_uris: [ZENDESK_REDIRECT_URI] })
+          : ok({ data: { id: '42' } }),
+      );
+    }
+
+    it('should reject an OAuth client outside the normalized allowed domains', async () => {
+      stubRegisteredClientFetch();
+      const { callback } = await buildBff({
+        config: parseConfig(VALID_ENV),
+        logger: noopLogger,
+        allowedOAuthClients: [' CLAUDE.ai '],
+      });
+
+      const response = await request(callback).get('/oauth/authorize').query(AUTHORIZE_QUERY);
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('invalid_client');
+      expect(response.headers.location).toBeUndefined();
+    });
+
+    it('should accept an OAuth client on an allowed domain', async () => {
+      stubRegisteredClientFetch();
+      const { callback } = await buildBff({
+        config: parseConfig(VALID_ENV),
+        logger: noopLogger,
+        allowedOAuthClients: ['forestadmin.com'],
+      });
+
+      const response = await request(callback).get('/oauth/authorize').query(AUTHORIZE_QUERY);
+
+      expect(response.status).toBe(302);
+      const location = new URL(response.headers.location);
+      expect(location.origin + location.pathname).toBe(
+        `${VALID_ENV.FOREST_APP_URL}/oauth/authorize`,
+      );
+      expect(location.searchParams.get('environmentId')).toBe('42');
+    });
+
+    it('should refuse to build on a list with no domain', async () => {
+      await expect(
+        buildBff({ config: parseConfig(VALID_ENV), logger: noopLogger, allowedOAuthClients: [] }),
+      ).rejects.toThrow('Invalid allowedOAuthClients: no domains to allow');
+    });
+
+    it('should refuse to build on an entry that is not a bare domain', async () => {
+      await expect(
+        buildBff({
+          config: parseConfig(VALID_ENV),
+          logger: noopLogger,
+          allowedOAuthClients: ['https://claude.ai'],
+        }),
+      ).rejects.toThrow('Invalid allowedOAuthClients entry "https://claude.ai"');
     });
   });
 

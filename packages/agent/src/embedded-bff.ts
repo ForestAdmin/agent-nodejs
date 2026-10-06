@@ -8,6 +8,7 @@ export type EmbeddedBffMount = {
   name?: string;
   requiredVersion?: string;
   skipIpWhitelistWarning?: boolean;
+  allowedOAuthClients?: string[];
 };
 
 /** How long `stop()` waits for the activity-log writes no connection holds. */
@@ -122,6 +123,7 @@ export default class EmbeddedBff {
       config: this.config as BFFConfig,
       dispatcher,
       basePath: this.mount.prefix,
+      allowedOAuthClients: this.mount.allowedOAuthClients,
       // Counters are the schema cache's and the action-endpoint resolver's only channel — they take
       // no logger — and every one of them reports a failure, so they go to the host's logs. Gauges
       // do not: they are periodic cache sizes, and the default console sink reports them at Info,

@@ -15,7 +15,7 @@ import type {
 import type { Response } from 'express';
 
 import { toAgentTokenClaims } from '@forestadmin/agent-client';
-import createForestAdminClient from '@forestadmin/forestadmin-client';
+import createForestAdminClient, { isClientAllowed } from '@forestadmin/forestadmin-client';
 import {
   CustomOAuthError,
   InvalidClientError,
@@ -191,16 +191,9 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
   private assertClientIsAllowed(client: OAuthClientInformationFull): void {
     const allowedDomains = this.allowedOAuthClients;
 
-    if (!allowedDomains) return;
+    if (!allowedDomains || isClientAllowed(client.redirect_uris, allowedDomains)) return;
 
-    // every() over an empty list is vacuously true, so a registration without
-    // redirect URIs must be rejected explicitly rather than slip through.
     const redirectUris = client.redirect_uris ?? [];
-    const isAllowed =
-      redirectUris.length > 0 &&
-      redirectUris.every(uri => ForestOAuthProvider.isUriOnAllowedDomain(uri, allowedDomains));
-
-    if (isAllowed) return;
 
     this.logger(
       'Info',
@@ -213,28 +206,6 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
       'This MCP server only accepts approved client applications. ' +
         'Contact your Forest Admin administrator.',
     );
-  }
-
-  private static isUriOnAllowedDomain(redirectUri: string, allowedDomains: string[]): boolean {
-    let hostname: string;
-    let protocol: string;
-
-    try {
-      // URL normalizes the host to lowercase punycode, closing case and homograph tricks.
-      ({ hostname, protocol } = new URL(redirectUri));
-    } catch {
-      return false;
-    }
-
-    // A custom scheme (attacker-app://dust.tt/cb) dispatches the callback to whatever
-    // application registered it, so its hostname says nothing about where the code lands.
-    if (protocol !== 'https:' && protocol !== 'http:') return false;
-
-    return allowedDomains.some(domain => {
-      const allowedDomain = domain.toLowerCase();
-
-      return hostname === allowedDomain || hostname.endsWith(`.${allowedDomain}`);
-    });
   }
 
   async authorize(
