@@ -1263,9 +1263,24 @@ describe('TriggerRecordActionStepExecutor', () => {
         ).execute();
 
         const formOrder = closingFields.map(f => f.name);
-        const reApplied = (agentPort.getActionForm as jest.Mock).mock.calls[1][0].values;
+        const [reApplyQuery] = (agentPort.getActionForm as jest.Mock).mock.calls[1];
+        expect(reApplyQuery).toEqual({
+          collection: 'customers',
+          action: 'send-welcome-email',
+          id: [42],
+          values: aiValuesOutOfFormOrder,
+        });
+        expect(Object.keys(reApplyQuery.values)).toEqual(formOrder);
+        expect(agentPort.executeAction).toHaveBeenCalledWith(
+          expect.objectContaining({
+            collection: 'customers',
+            action: 'send-welcome-email',
+            id: [42],
+            values: aiValuesOutOfFormOrder,
+          }),
+          { user: expect.anything(), forestServerToken: undefined },
+        );
         const submitted = (agentPort.executeAction as jest.Mock).mock.calls[0][0].values;
-        expect(Object.keys(reApplied)).toEqual(formOrder);
         expect(Object.keys(submitted)).toEqual(formOrder);
       });
 
@@ -1359,6 +1374,7 @@ describe('TriggerRecordActionStepExecutor', () => {
         await new TriggerRecordActionStepExecutor(context).execute();
 
         const submitted = (agentPort.executeAction as jest.Mock).mock.calls[0][0].values;
+        expect(submitted).toEqual({ a: '1', x: '2', b: '3' });
         expect(Object.keys(submitted)).toEqual(['a', 'x', 'b']);
       });
     });
