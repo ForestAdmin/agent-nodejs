@@ -666,6 +666,11 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
       if (!isFeatureEnabled) return;
 
       const base = normalizeMcpBasePath(this.mcpBasePath);
+      const apiNote = this.gateway?.services.api
+        ? ` The Gateway API on ${base}/api/* escapes it too: it reaches the agent in-process, ` +
+          'which the whitelist exempts as a trusted loopback caller. API calls still require an ' +
+          'API key or an OAuth session.'
+        : '';
 
       this.options.logger(
         'Warn',
@@ -674,7 +679,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
           `/.well-known/oauth-authorization-server${base}, ` +
           `/.well-known/oauth-protected-resource${base}/mcp): its middleware is mounted on the ` +
           `/forest router only, so these routes escape it for any caller. Tool calls on ${base}/mcp ` +
-          'still require a valid MCP OAuth token.',
+          `still require a valid MCP OAuth token.${apiNote}`,
       );
     } catch (error) {
       this.options.logger(
