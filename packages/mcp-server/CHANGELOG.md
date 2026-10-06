@@ -1,3 +1,10 @@
+## @forestadmin/mcp-server [1.27.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.27.0...@forestadmin/mcp-server@1.27.1) (2026-10-06)
+
+
+### Bug Fixes
+
+* **mcp-server:** support zod 4.4+ ([#1971](https://github.com/ForestAdmin/agent-nodejs/issues/1971)) ([2d70244](https://github.com/ForestAdmin/agent-nodejs/commit/2d7024446cc09e416f5f6ccf761a05fd8dd762fc))
+
 # @forestadmin/mcp-server [1.27.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.26.0...@forestadmin/mcp-server@1.27.0) (2026-10-06)
 
 
