@@ -1,3 +1,10 @@
+## @forestadmin/workflow-executor [1.31.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.31.5...@forestadmin/workflow-executor@1.31.6) (2026-10-06)
+
+
+### Bug Fixes
+
+* **workflow-executor:** apply AI form values in the form's field order ([#1973](https://github.com/ForestAdmin/agent-nodejs/issues/1973)) ([8016ff9](https://github.com/ForestAdmin/agent-nodejs/commit/8016ff990a815d8b7bbeb9a70b0a978e38a17772))
+
 ## @forestadmin/workflow-executor [1.31.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.31.4...@forestadmin/workflow-executor@1.31.5) (2026-10-06)
 
 
