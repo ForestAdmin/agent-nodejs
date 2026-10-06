@@ -2,6 +2,7 @@ import type { ActivityLogWriter } from './activity-log/activity-log-writer';
 import type { AgentTransport } from './agent/agent-transport';
 import type { AgentDispatcher } from './agent/in-process-transport';
 import type { BFFConfig } from './config/env-config';
+import type { BffHealth } from './http/health-route';
 import type { EnvironmentIdResolver } from './oauth/environment-id';
 import type { SessionStore } from './oauth/session-store';
 import type { UnfoldSource } from './openapi/unfolded-document';
@@ -41,7 +42,7 @@ import createAccessLogMiddleware from './http/access-log-middleware';
 import { unauthorized, unsupportedMediaType } from './http/bff-http-error';
 import BODY_LIMIT, { AI_BODY_LIMIT } from './http/body-limit';
 import createErrorMiddleware from './http/error-middleware';
-import createHealthRoute from './http/health-route';
+import createHealthRoute, { describeHealth } from './http/health-route';
 import createVersionHeaderMiddleware from './http/version-header-middleware';
 import createEnvironmentIdResolver, { tolerateEnvironmentIdFailure } from './oauth/environment-id';
 import ForestServerClient from './oauth/forest-server-client';
@@ -89,6 +90,11 @@ export interface BuildBffOptions {
    * passes. Passed by the Gateway, never read from the environment.
    */
   allowedOAuthClients?: string[];
+  /**
+   * Sent as `X-Forest-Gateway-Version` on every response, next to agent-bff's own
+   * `X-Forest-Bff-Version`. Unset or empty, the header is not sent: `forest-bff` keeps today's headers.
+   */
+  gatewayVersion?: string;
 }
 
 export interface Bff {
@@ -106,6 +112,7 @@ export interface Bff {
    * `timeoutMs` is the host's shutdown deadline; the returned descriptions name what it cut short.
    */
   drainActivityLogs?: (timeoutMs?: number) => Promise<string[]>;
+  health(): BffHealth;
 }
 
 const SESSION_TTL_SECONDS = 24 * 60 * 60;
@@ -542,6 +549,7 @@ export default async function buildBff({
   dispatcher,
   metrics,
   allowedOAuthClients,
+  gatewayVersion,
 }: BuildBffOptions): Promise<Bff> {
   // Before anything is assembled: a mount the host does not serve must fail at boot, not surface as
   // a docs page that cannot load itself.
@@ -579,25 +587,25 @@ export default async function buildBff({
   const hasAgentEdge = agentMiddlewares.length > 0;
   const agentErrorMiddleware = hasAgentEdge ? [agentScoped(createErrorMiddleware({ logger }))] : [];
   const agentJsonOnlyGuard = hasAgentEdge ? [agentScoped(createJsonOnlyGuard())] : [];
+  // Embedded, the rest is inherited from the agent, so there is no gap to report: a 503 here
+  // would let a load balancer restart a process that serves api-key traffic fine. The auth
+  // secret is still required — without it the agent edge is a stub and nothing authenticated
+  // can be served, which is exactly what a probe must see.
+  const health = describeHealth(
+    (dispatcher !== undefined && Boolean(config.forestAuthSecret)) || config.hasAllRequired,
+    version,
+    {
+      oauth: oauth.middlewares.length > 0,
+      ai: aiMiddlewares.length > 0,
+      cors: config.allowedOrigins.length > 0,
+      openapi: config.openapiEnabled && agentMiddlewares.length > 0,
+    },
+  );
 
   const middlewares = [
     createAccessLogMiddleware({ logger, basePath: mountPath }),
-    createVersionHeaderMiddleware(version),
-    createHealthRoute({
-      version,
-      // Embedded, the rest is inherited from the agent, so there is no gap to report: a 503 here
-      // would let a load balancer restart a process that serves api-key traffic fine. The auth
-      // secret is still required — without it the agent edge is a stub and nothing authenticated
-      // can be served, which is exactly what a probe must see.
-      healthy:
-        (dispatcher !== undefined && Boolean(config.forestAuthSecret)) || config.hasAllRequired,
-      configured: {
-        oauth: oauth.middlewares.length > 0,
-        ai: aiMiddlewares.length > 0,
-        cors: config.allowedOrigins.length > 0,
-        openapi: config.openapiEnabled && agentMiddlewares.length > 0,
-      },
-    }),
+    createVersionHeaderMiddleware(version, gatewayVersion),
+    createHealthRoute({ health }),
     createCorsMiddleware({ allowedOrigins: config.allowedOrigins, logger }),
     ...agentErrorMiddleware,
     ...agentJsonOnlyGuard,
@@ -624,5 +632,6 @@ export default async function buildBff({
     callback: app.callback(),
     invalidate: agentEdge.invalidate,
     drainActivityLogs: activityLogs && (timeoutMs => activityLogs.drain(timeoutMs)),
+    health: () => ({ ...health, configured: { ...health.configured } }),
   };
 }

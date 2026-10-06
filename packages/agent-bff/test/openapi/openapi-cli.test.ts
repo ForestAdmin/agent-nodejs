@@ -8,14 +8,10 @@ import { tmpdir } from 'os';
 import path from 'path';
 import request from 'supertest';
 
-import dispatchCli, {
-  DEFAULT_OUTPUT_FILE,
-  HINT,
-  USAGE,
-  renderOpenApi,
-} from '../../src/cli-dispatch';
+import dispatchCli, { DEFAULT_OUTPUT_FILE, HINT, USAGE } from '../../src/cli-dispatch';
 import { issueBffAccessToken } from '../../src/oauth/bff-token';
 import { OPENAPI_PATH } from '../../src/openapi/openapi-routes';
+import renderOpenApi from '../../src/openapi/render-openapi';
 import version from '../../src/version';
 import { action, collection, column, relation } from '../read-model/fixtures';
 
@@ -244,6 +240,13 @@ describe('renderOpenApi', () => {
     );
 
     expect(document.servers[0].url).toBe('https://bff.example.com');
+  });
+
+  it('should carry basePath in the unfolded export', async () => {
+    const document = JSON.parse(await renderOpenApi(VALID_ENV, noopLogger, { basePath: '/api' }));
+
+    expect(document.info.description).toContain('Paths are unfolded');
+    expect(document.servers[0].url).toBe('/api');
   });
 
   it('should reject a malformed BFF_PUBLIC_URL rather than export an unusable server', async () => {
