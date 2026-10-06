@@ -92,8 +92,7 @@ export default class BFFHttpServer {
     app.use(createVersionHeaderMiddleware(version));
     app.use(
       createHealthRoute({
-        version,
-        health: describeHealth(config.hasAllRequired, {
+        health: describeHealth(config.hasAllRequired, version, {
           oauth: Boolean(config.tokenEncryptionKey),
           ai: Boolean(config.tokenEncryptionKey),
           cors: config.allowedOrigins.length > 0,

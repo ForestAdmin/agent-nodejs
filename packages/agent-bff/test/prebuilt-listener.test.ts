@@ -124,14 +124,14 @@ describe('prebuilt listener surface of the package entry point', () => {
       ['degraded', { ...VALID_ENV, AGENT_URL: undefined }, 503],
       ['key-only', { ...VALID_ENV, BFF_TOKEN_ENCRYPTION_KEY: undefined }, 200],
     ])(
-      'should equal the status and configured of GET and HEAD /health on a %s config',
+      'should equal the body of GET /health and the status of HEAD /health on a %s config',
       async (_label, env, httpStatus) => {
         const bff = await buildBff({ config: parseConfig(env), logger: noopLogger });
 
         const get = await request(bff.callback).get('/health');
         const head = await request(bff.callback).head('/health');
 
-        expect(bff.health()).toEqual({ status: get.body.status, configured: get.body.configured });
+        expect(bff.health()).toEqual(get.body);
         expect(get.status).toBe(httpStatus);
         expect(head.status).toBe(httpStatus);
       },

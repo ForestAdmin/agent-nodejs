@@ -579,6 +579,7 @@ export default async function buildBff({
   // can be served, which is exactly what a probe must see.
   const health = describeHealth(
     (dispatcher !== undefined && Boolean(config.forestAuthSecret)) || config.hasAllRequired,
+    version,
     {
       oauth: oauth.middlewares.length > 0,
       ai: aiMiddlewares.length > 0,
@@ -590,7 +591,7 @@ export default async function buildBff({
   const middlewares = [
     createAccessLogMiddleware({ logger, basePath: mountPath }),
     createVersionHeaderMiddleware(version, gatewayVersion),
-    createHealthRoute({ version, health }),
+    createHealthRoute({ health }),
     createCorsMiddleware({ allowedOrigins: config.allowedOrigins, logger }),
     ...agentErrorMiddleware,
     ...agentJsonOnlyGuard,
@@ -617,6 +618,6 @@ export default async function buildBff({
     callback: app.callback(),
     invalidate: agentEdge.invalidate,
     drainActivityLogs: activityLogs && (timeoutMs => activityLogs.drain(timeoutMs)),
-    health: () => ({ status: health.status, configured: { ...health.configured } }),
+    health: () => ({ ...health, configured: { ...health.configured } }),
   };
 }

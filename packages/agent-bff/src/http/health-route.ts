@@ -17,19 +17,23 @@ export interface HealthConfigured {
 
 export interface BffHealth {
   status: 'ok' | 'degraded';
+  version: string;
   configured: HealthConfigured;
 }
 
-export function describeHealth(healthy: boolean, configured: HealthConfigured): BffHealth {
-  return { status: healthy ? 'ok' : 'degraded', configured };
+export function describeHealth(
+  healthy: boolean,
+  version: string,
+  configured: HealthConfigured,
+): BffHealth {
+  return { status: healthy ? 'ok' : 'degraded', version, configured };
 }
 
 export interface HealthRouteOptions {
-  version: string;
   health: BffHealth;
 }
 
-export default function createHealthRoute({ version, health }: HealthRouteOptions): Middleware {
+export default function createHealthRoute({ health }: HealthRouteOptions): Middleware {
   return async function healthRoute(ctx, next) {
     const isHealthRequest =
       (ctx.method === 'GET' || ctx.method === 'HEAD') && ctx.path === HEALTH_PATH;
@@ -41,6 +45,6 @@ export default function createHealthRoute({ version, health }: HealthRouteOption
     }
 
     ctx.status = health.status === 'ok' ? 200 : 503;
-    ctx.body = { status: health.status, version, configured: health.configured };
+    ctx.body = health;
   };
 }
