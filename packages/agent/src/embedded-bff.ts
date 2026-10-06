@@ -100,7 +100,7 @@ export default class EmbeddedBff {
   }
 
   claims(pathname: string): boolean {
-    if (!this.claimsBffPath) throw new Error(`${this.name} must be prepared before it routes.`);
+    if (!this.claimsBffPath) return false;
 
     return this.claimsBffPath(pathname, { docs: this.embedOptions.openapiEnabled ?? false });
   }
