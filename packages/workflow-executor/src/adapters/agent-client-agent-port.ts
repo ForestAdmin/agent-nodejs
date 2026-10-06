@@ -130,6 +130,23 @@ const FORM_VALIDATION_STATUSES = [400, 422];
 
 // setFields refuses a value two ways: an unknown field, or the change-hook request it makes rejecting
 // it. Anything else is the agent or the caller faltering, and blaming the form would misdirect.
+// A change hook can clear a value set before the field it depends on, so values are applied in the
+// form's own order. Fields a hook reveals later are absent from it and keep their order at the end.
+function inFormOrder(
+  values: Record<string, unknown>,
+  form: { getFields(): { getName(): string }[] },
+): Record<string, unknown> {
+  const formFieldNames = form.getFields().map(field => field.getName());
+
+  const position = (name: string) => {
+    const index = formFieldNames.indexOf(name);
+
+    return index === -1 ? formFieldNames.length : index;
+  };
+
+  return Object.fromEntries(Object.entries(values).sort(([a], [b]) => position(a) - position(b)));
+}
+
 function isRejectedFormValue(cause: unknown): boolean {
   if (cause instanceof UnknownActionFieldError) return true;
 
@@ -346,7 +363,7 @@ export default class AgentClientAgentPort implements AgentPort {
 
       if (values) {
         try {
-          await act.setFields(values);
+          await act.setFields(inFormOrder(values, act));
         } catch (cause) {
           if (isRejectedFormValue(cause)) {
             throw new ActionFormValidationError(action, cause, backendRefusalMessage(cause));
@@ -398,7 +415,7 @@ export default class AgentClientAgentPort implements AgentPort {
 
       // Soft-apply so dependent fields are revealed by change hooks; unknown fields (dropped by a
       // prior hook) come back in skippedFields rather than throwing (mirrors MCP get-action-form).
-      const skippedFields = values ? await act.tryToSetFields(values) : [];
+      const skippedFields = values ? await act.tryToSetFields(inFormOrder(values, act)) : [];
 
       const fields = act.getFields().map((field): ActionFormField => {
         const description = field.getPlainField()?.description;
