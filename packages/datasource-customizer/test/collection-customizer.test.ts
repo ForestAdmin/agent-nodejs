@@ -9,7 +9,12 @@ import type { ActionDefinition } from '../src/decorators/actions/types/actions';
 import type { WriteDefinition } from '../src/decorators/write/write-replace/types';
 import type { ColumnSchema } from '@forestadmin/datasource-toolkit';
 
-import { ConditionTreeLeaf, MissingFieldError, Sort } from '@forestadmin/datasource-toolkit';
+import {
+  ConditionTreeLeaf,
+  MissingFieldError,
+  Projection,
+  Sort,
+} from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import { CollectionCustomizer, DataSourceCustomizer } from '../src';
@@ -25,6 +30,7 @@ describe('Builder > Collection', () => {
           fields: {
             name: factories.columnSchema.build({
               columnType: 'String',
+              filterOperators: new Set(['Equal']),
             }),
             nameInReadOnly: factories.columnSchema.build({
               columnType: 'String',
@@ -102,7 +108,7 @@ describe('Builder > Collection', () => {
     const customizer = new CollectionCustomizer(dsc, stack, 'authors');
     const bookCustomizer = new CollectionCustomizer(dsc, stack, 'books');
 
-    return { dsc, customizer, stack, bookCustomizer };
+    return { dsc, customizer, stack, bookCustomizer, dataSource };
   };
 
   describe('use', () => {
@@ -198,6 +204,30 @@ describe('Builder > Collection', () => {
         originKeyTarget: 'title',
         isFilterable: false,
       });
+    });
+
+    it('should still let a code segment filter through a disabled relation', async () => {
+      const { dsc, customizer, dataSource } = await setup();
+      const segmentTree = new ConditionTreeLeaf('translator:name', 'Equal', 'Jane');
+
+      jest.mocked(dataSource.getCollection('authors').list).mockResolvedValue([]);
+      customizer.disableFieldFiltering('translator').addSegment('translatedByJane', segmentTree);
+      const authors = (await dsc.getDataSource(logger)).getCollection('authors');
+
+      await authors.list(
+        factories.caller.build(),
+        factories.filter.build({ segment: 'translatedByJane' }),
+        new Projection('authorId'),
+      );
+
+      expect(authors.schema.fields.translator).toEqual(
+        expect.objectContaining({ isFilterable: false }),
+      );
+      expect(dataSource.getCollection('authors').list).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ conditionTree: segmentTree, segment: null }),
+        expect.anything(),
+      );
     });
   });
 
