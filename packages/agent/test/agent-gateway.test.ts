@@ -179,6 +179,37 @@ describe('Agent.addGateway', () => {
       );
     });
 
+    it('should warn that the allowlist protects nothing when no OAuth route is served', async () => {
+      const { agent, logger } = buildAgent();
+      agent.addGateway({ allowedOAuthClients: ['claude.ai'], api: {} });
+
+      await agent.start();
+
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        '[Gateway] allowedOAuthClients is set but no OAuth route is served (MCP off, API OAuth off).',
+      );
+    });
+
+    it.each<[string, GatewayOptions]>([
+      ['the MCP is on', { allowedOAuthClients: ['claude.ai'], mcp: true, api: {} }],
+      [
+        'API OAuth is on',
+        { allowedOAuthClients: ['claude.ai'], api: { tokenEncryptionKey: 'key' } },
+      ],
+      ['no allowlist is set', { api: {} }],
+    ])('should not warn about the allowlist when %s', async (_case, options) => {
+      const { agent, logger } = buildAgent();
+      agent.addGateway(options);
+
+      await agent.start();
+
+      expect(logger).not.toHaveBeenCalledWith(
+        'Warn',
+        expect.stringContaining('allowedOAuthClients is set'),
+      );
+    });
+
     it('should log only the enabled service', async () => {
       const { agent, logger } = buildAgent();
       agent.addGateway({ mcp: true, api: false });
@@ -225,6 +256,46 @@ describe('Agent.addGateway', () => {
           enabledTools: ['list'],
           tokenTtl: { accessTokenSeconds: 900 },
         }),
+      );
+    });
+
+    it('should hand the API the Gateway allowlist when only the API is on', async () => {
+      const { agent } = buildAgent();
+      agent.addGateway({ allowedOAuthClients: ['claude.ai'], api: { tokenEncryptionKey: 'key' } });
+
+      await agent.start();
+
+      expect(mockBuildBff).toHaveBeenCalledWith(
+        expect.objectContaining({ basePath: '/api', allowedOAuthClients: ['claude.ai'] }),
+      );
+    });
+
+    it('should hand the same allowlist to both services', async () => {
+      const { agent } = buildAgent();
+      agent.addGateway({
+        allowedOAuthClients: ['claude.ai'],
+        mcp: true,
+        api: { tokenEncryptionKey: 'key' },
+      });
+
+      await agent.start();
+
+      expect(mcpServerSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ allowedOAuthClients: ['claude.ai'] }),
+      );
+      expect(mockBuildBff).toHaveBeenCalledWith(
+        expect.objectContaining({ allowedOAuthClients: ['claude.ai'] }),
+      );
+    });
+
+    it('should hand the API no allowlist when the Gateway has none', async () => {
+      const { agent } = buildAgent();
+      agent.addGateway({ api: { tokenEncryptionKey: 'key' } });
+
+      await agent.start();
+
+      expect(mockBuildBff).toHaveBeenCalledWith(
+        expect.objectContaining({ allowedOAuthClients: undefined }),
       );
     });
 
@@ -413,5 +484,16 @@ describe('Agent.addBff (deprecated alias)', () => {
     expect(await request('/bff/agent/v1/books/list')).toEqual({ status: 200, body: 'bff' });
     expect((await request('/api/agent/v1/books/list')).status).toBe(404);
     expect((await request('/api/health')).status).toBe(404);
+  });
+
+  it('should hand the BFF no allowlist', async () => {
+    const { agent } = buildAgent();
+    agent.addBff({ tokenEncryptionKey: 'key' });
+
+    await agent.start();
+
+    expect(mockBuildBff).toHaveBeenCalledWith(
+      expect.objectContaining({ basePath: '/bff', allowedOAuthClients: undefined }),
+    );
   });
 });

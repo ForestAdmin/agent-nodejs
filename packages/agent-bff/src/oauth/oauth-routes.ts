@@ -6,6 +6,7 @@ import type { Logger } from '../ports/logger-port';
 import type { UserInfo } from '@forestadmin/forestadmin-client';
 import type { Context, Middleware } from 'koa';
 
+import { isClientAllowed } from '@forestadmin/forestadmin-client';
 import crypto from 'crypto';
 import jsonwebtoken from 'jsonwebtoken';
 
@@ -36,6 +37,7 @@ export interface OAuthRoutesOptions {
   authSecret: string;
   resolveEnvironmentId: EnvironmentIdResolver;
   logger: Logger;
+  allowedOAuthClients?: string[];
 }
 
 const CODE_VERIFIER_PATTERN = /^[A-Za-z0-9\-._~]{43,128}$/;
@@ -88,6 +90,26 @@ function assertRegisteredRedirectUri(
   if (!redirectUris.includes(redirectUri)) {
     throw onMismatch('redirect_uri does not match the registered client');
   }
+}
+
+const CLIENT_NOT_APPROVED_MESSAGE =
+  'This API only accepts approved client applications. Contact your Forest Admin administrator.';
+
+function assertClientIsAllowed(
+  clientId: string,
+  redirectUris: string[] | undefined,
+  options: OAuthRoutesOptions,
+): void {
+  const { allowedOAuthClients } = options;
+
+  if (!allowedOAuthClients || isClientAllowed(redirectUris, allowedOAuthClients)) return;
+
+  options.logger('Info', 'Rejected OAuth client: redirect URIs are not all on an allowed domain', {
+    clientId,
+    redirectUris: redirectUris ?? [],
+  });
+
+  throw invalidClient(CLIENT_NOT_APPROVED_MESSAGE);
 }
 
 function toSafeExchangeError(saasError: string): OAuthRequestError {
@@ -165,6 +187,7 @@ async function handleAuthorize(ctx: Context, options: OAuthRoutesOptions): Promi
     throw invalidRequest('Unknown client_id');
   }
 
+  assertClientIsAllowed(clientId, client.redirect_uris, options);
   assertRegisteredRedirectUri(client.redirect_uris, redirectUri, invalidRequest);
 
   // redirect_uri is now trusted: remaining validation errors redirect back to
@@ -260,6 +283,7 @@ async function parseTokenRequest(ctx: Context, options: OAuthRoutesOptions): Pro
     throw invalidClient('Unknown client_id');
   }
 
+  assertClientIsAllowed(request.clientId, client.redirect_uris, options);
   assertRegisteredRedirectUri(client.redirect_uris, request.redirectUri, invalidGrant);
 
   return request;

@@ -1,4 +1,4 @@
-import parseDomainList from '../../src/utils/parse-domain-list';
+import parseDomainList from '../../src/oauth-client-allowlist/parse-domain-list';
 
 describe('parseDomainList', () => {
   it('should return undefined when env value is undefined', () => {

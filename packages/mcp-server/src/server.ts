@@ -9,6 +9,7 @@ import type { ToolContext } from './tool-context';
 import type { TokenTtlOptions } from './utils/token-ttl';
 import type { Express } from 'express';
 
+import { normalizeDomainList } from '@forestadmin/forestadmin-client';
 import { authorizationHandler } from '@modelcontextprotocol/sdk/server/auth/handlers/authorize.js';
 import { metadataHandler } from '@modelcontextprotocol/sdk/server/auth/handlers/metadata.js';
 import { tokenHandler } from '@modelcontextprotocol/sdk/server/auth/handlers/token.js';
@@ -44,7 +45,6 @@ import declareRequestActionFileUploadTool from './tools/request-action-file-uplo
 import declareTriggerWorkflowTool from './tools/trigger-workflow';
 import declareUpdateTool from './tools/update';
 import normalizeAgentUrl from './utils/normalize-agent-url';
-import normalizeDomainList from './utils/normalize-domain-list';
 import { fetchForestSchema, getCollectionNames } from './utils/schema-fetcher';
 import interceptResponseForErrorLogging from './utils/sse-error-logger';
 import normalizeTokenTtl from './utils/token-ttl';

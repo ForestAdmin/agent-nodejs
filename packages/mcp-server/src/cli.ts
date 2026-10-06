@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 
+import { parseDomainList } from '@forestadmin/forestadmin-client';
+
 import ForestMCPServer from './server';
 import loadFileUploads from './utils/load-file-uploads';
-import parseDomainList from './utils/parse-domain-list';
 import parseToolList from './utils/parse-tool-list';
 
 const toSeconds = (value?: string) => (value === undefined ? undefined : Number(value));

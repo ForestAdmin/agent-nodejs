@@ -24,6 +24,8 @@ const CODE_VERIFIER = 'v'.repeat(43);
 const CODE_CHALLENGE = 'c'.repeat(43);
 const TIMEZONE = 'Europe/Paris';
 const LIST_BODY = { projection: ['id', 'title'] };
+const ZENDESK_CLIENT_ID = 'zendesk-client';
+const ZENDESK_REDIRECT_URI = 'https://app.forestadmin.com/zendesk-oauth-redirect';
 
 let codeCount = 0;
 
@@ -82,6 +84,10 @@ function startMockForestServer(): MockForestServer {
           tags: [],
         },
       },
+    })
+    .get(`/oauth/register/${ZENDESK_CLIENT_ID}`, {
+      client_id: ZENDESK_CLIENT_ID,
+      redirect_uris: [ZENDESK_REDIRECT_URI],
     })
     .setupDefaultRoutes({ envSecret: ENV_SECRET, collections: COLLECTIONS })
     .setupSuperagentMock()
@@ -286,6 +292,111 @@ describe.each(['', '/ai'])('the embedded Gateway on basePath "%s"', basePath => 
     expect((await request(app).post(`${basePath}/mcp`)).status).toBe(401);
     expect((await listBooks(app, `${apiBase}/agent/v1/books/list`, token)).status).toBe(200);
   });
+});
+
+describe.each(['', '/ai'])('the embedded Gateway allowlist on basePath "%s"', basePath => {
+  const authorizeQuery = (clientId: string, redirectUri: string) => ({
+    client_id: clientId,
+    redirect_uri: redirectUri,
+    response_type: 'code',
+    code_challenge: CODE_CHALLENGE,
+    code_challenge_method: 'S256',
+    state: 'state-1',
+  });
+
+  async function withGateway(
+    name: string,
+    allowedOAuthClients: string[] | undefined,
+    run: (app: express.Express) => Promise<void>,
+  ) {
+    const agent = buildAgent(`${name}${basePath.replace('/', '-')}`).addGateway({
+      basePath,
+      allowedOAuthClients,
+      api: API_OPTIONS,
+    });
+    const app = await startOn(agent);
+
+    try {
+      await run(app);
+    } finally {
+      await agent.stop();
+    }
+  }
+
+  it(
+    'should answer authorize with a 400 invalid_client body for a client outside the list',
+    async () => {
+      await withGateway('allowlist-authorize', ['claude.ai'], async app => {
+        const response = await request(app)
+          .get(`${basePath}/oauth/authorize?service=api`)
+          .query(authorizeQuery(ZENDESK_CLIENT_ID, ZENDESK_REDIRECT_URI));
+
+        expect(response.status).toBe(400);
+        expect(response.headers['content-type']).toMatch(/application\/json/);
+        expect(response.body.error).toBe('invalid_client');
+        expect(response.headers.location).toBeUndefined();
+        expect(response.text).not.toContain('claude.ai');
+      });
+    },
+    BOOT_TIMEOUT_MS,
+  );
+
+  it(
+    'should refuse the code exchange of a client outside the list',
+    async () => {
+      await withGateway('allowlist-token', ['claude.ai'], async app => {
+        const response = await request(app)
+          .post(`${basePath}/oauth/token?service=api`)
+          .set('Content-Type', 'application/json')
+          .send({
+            grant_type: 'authorization_code',
+            client_id: ZENDESK_CLIENT_ID,
+            code: nextCode(),
+            code_verifier: CODE_VERIFIER,
+            redirect_uri: ZENDESK_REDIRECT_URI,
+          });
+
+        expect(response.status).toBe(400);
+        expect(response.body.error).toBe('invalid_client');
+        expect(response.body.access_token).toBeUndefined();
+      });
+    },
+    BOOT_TIMEOUT_MS,
+  );
+
+  it(
+    'should sign in a client whose redirect URIs are all on a listed domain',
+    async () => {
+      await withGateway('allowlist-allowed', ['localhost'], async app => {
+        const authorize = await oauth(`${basePath}/oauth`, '?service=api').authorize(app);
+        const token = await signIn(app, `${basePath}/oauth`, '?service=api');
+
+        expect(authorize.status).toBe(302);
+        expect(authorize.headers.location).toMatch(
+          /^https:\/\/app\.forestadmin\.com\/oauth\/authorize\?/,
+        );
+        expect(jsonwebtoken.verify(token, AUTH_SECRET)).toMatchObject({ type: 'bff_access' });
+      });
+    },
+    BOOT_TIMEOUT_MS,
+  );
+
+  it(
+    'should sign in any registered client without a list',
+    async () => {
+      await withGateway('allowlist-none', undefined, async app => {
+        const authorize = await request(app)
+          .get(`${basePath}/oauth/authorize?service=api`)
+          .query(authorizeQuery(ZENDESK_CLIENT_ID, ZENDESK_REDIRECT_URI));
+
+        expect(authorize.status).toBe(302);
+        expect(authorize.headers.location).toMatch(
+          /^https:\/\/app\.forestadmin\.com\/oauth\/authorize\?/,
+        );
+      });
+    },
+    BOOT_TIMEOUT_MS,
+  );
 });
 
 describe('the embedded Gateway on a basePath', () => {

@@ -11,6 +11,7 @@ import type ReadModelStore from './read-model/read-model-store';
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { Middleware } from 'koa';
 
+import { normalizeDomainList } from '@forestadmin/forestadmin-client';
 import { bodyParser } from '@koa/bodyparser';
 import Koa from 'koa';
 
@@ -82,6 +83,12 @@ export interface BuildBffOptions {
    * standalone deployment wants; an embedding host passes its own, or a no-op.
    */
   metrics?: Metrics;
+  /**
+   * Domains of the OAuth clients allowed to sign in: a client passes when every redirect URI it
+   * registered is an http(s) URI on a listed domain or a subdomain. Unset, any registered client
+   * passes. Passed by the Gateway, never read from the environment.
+   */
+  allowedOAuthClients?: string[];
 }
 
 export interface Bff {
@@ -204,7 +211,11 @@ interface OAuthEdge {
   session?: OAuthSession;
 }
 
-function buildOAuthMiddlewares(config: BFFConfig, logger: Logger): OAuthEdge {
+function buildOAuthMiddlewares(
+  config: BFFConfig,
+  logger: Logger,
+  allowedOAuthClients: string[] | undefined,
+): OAuthEdge {
   const oauthConfig = resolveOAuthConfig(config);
 
   if (!oauthConfig) {
@@ -232,6 +243,7 @@ function buildOAuthMiddlewares(config: BFFConfig, logger: Logger): OAuthEdge {
     authSecret: forestAuthSecret,
     resolveEnvironmentId,
     logger,
+    allowedOAuthClients,
   });
 
   return {
@@ -529,10 +541,12 @@ export default async function buildBff({
   basePath,
   dispatcher,
   metrics,
+  allowedOAuthClients,
 }: BuildBffOptions): Promise<Bff> {
   // Before anything is assembled: a mount the host does not serve must fail at boot, not surface as
   // a docs page that cannot load itself.
   const mountPath = normalizeBasePath(basePath);
+  const allowedClientDomains = normalizeDomainList(allowedOAuthClients);
 
   if (config.invalidAllowedOrigins.length > 0) {
     logger('Warn', 'Ignoring malformed BFF_ALLOWED_ORIGINS entries', {
@@ -550,7 +564,7 @@ export default async function buildBff({
   }
 
   const transport = resolveTransport(config, dispatcher);
-  const oauth = buildOAuthMiddlewares(config, logger);
+  const oauth = buildOAuthMiddlewares(config, logger, allowedClientDomains);
   const aiMiddlewares = buildAiMiddlewares(config, oauth, logger);
   const agentEdge = buildAgentMiddlewares(
     config,
