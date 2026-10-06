@@ -367,7 +367,8 @@ const ContextValidationSchema = z
 
 const ContextFieldSchema = z.object({
   field: z.string(),
-  recordKey: z.string().optional(),
+  recordKey: z.string().nullable().optional(),
+  sharesRecordKeyWith: z.array(z.string()).optional(),
   type: ContextFieldTypeSchema,
   relationship: z.enum(RELATIONSHIP_TYPES).optional(),
   reference: z.string().optional(),
@@ -435,12 +436,17 @@ export const ContextResponseSchema = z
       '`field` is the technical name the agent declares, and the one to send back in a filter, ' +
       'a sort or a projection. It is NOT always the key the record carries: a snake_case agent ' +
       '(Rails) declares `created_at` and the response returns `createdAt`. When the two ' +
-      'differ, `recordKey` names the response key — read a record value under `recordKey ?? ' +
-      'field`, and keep using `field` on the request side. It is omitted when the key would be ' +
-      'ambiguous, so its presence is a promise: two fields differing only by casing collapse onto ' +
-      'one key, and a field named `Id` collapses onto the resource identifier, whose value ' +
-      'overwrites the attribute — in both cases no `recordKey` is published and that field is ' +
-      'simply not readable by name. Sub-fields of a composite `type` are ' +
+      'differ, `recordKey` names the response key; keep using `field` on the request side. Read ' +
+      'a record value by the three states of `recordKey`: absent, read it under `field`; a ' +
+      'string, read it under that key; `null`, the value cannot be read from a returned record ' +
+      'at all — never read it under `field`. A `?? field` fallback is wrong here, since it turns ' +
+      '`null` back into `field`. `null` is published for a field named `Id` (or any casing of ' +
+      '`id` other than `id` itself), primary key or not: it collapses onto the resource ' +
+      'identifier, which overwrites the attribute with the packed record id. Every record ' +
+      'carries `id`, the record identifier, which is not a schema field. Fields differing only ' +
+      'by casing collapse onto one key: each publishes that shared `recordKey` and lists the ' +
+      'others in `sharesRecordKeyWith`, and the key holds the right value only when a single one ' +
+      'of them is projected in the request. Sub-fields of a composite `type` are ' +
       'not covered either: they carry no `recordKey` and the same transform applies to them. ' +
       'The document carries no rendering, project or team identity, and the only environment ' +
       'datum is `meta.environmentId` below. It is served to both auth modes — an OAuth session ' +

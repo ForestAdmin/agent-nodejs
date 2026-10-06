@@ -127,7 +127,7 @@ Actions properties:
 - hasForm: true if action requires form input (use getActionForm to see fields)
 - download: true if action returns a file download (not executable via AI)
 
-Field names: every field name you send (filters, sort, \`fields\`, \`relation:field\`, \`relation@@@field\`, create/update attributes) is the schema \`name\`. A field or relation with a \`recordKey\` comes back under that key in a returned record; it only says where to read the value, never send it. A related record's values sit under the related collection's record keys (call describeCollection on it).
+Field names: every field name you send (filters, sort, \`fields\`, \`relation:field\`, \`relation@@@field\`, create/update attributes) is the schema \`name\`. A field or relation with a \`recordKey\` comes back under that key in a returned record; it only says where to read the value, never send it. Fields sharing a \`recordKey\` (listed in \`sharesRecordKeyWith\`) can be read only when a single one of them is projected in the call. \`recordKey: null\` means the value cannot be read from a returned record: never read it under its name. Every record carries \`id\`, the record identifier, which is not a schema field. A related record's values sit under the related collection's record keys (call describeCollection on it).
 
 Polymorphic relations (isPolymorphic=true) point to multiple collections. When creating/updating, you must set both the _id and _type fields (e.g. commentable_id and commentable_type).
 
@@ -161,11 +161,7 @@ Check \`_meta\` for data availability context.`,
             .filter(name => !schemaFieldNames.includes(name));
           const recordKeys = publishedRecordKeys([...schemaFieldNames, ...capabilityOnlyNames]);
 
-          const withRecordKey = (name: string) => {
-            const recordKey = recordKeys.get(name);
-
-            return recordKey ? { recordKey } : {};
-          };
+          const withRecordKey = (name: string) => recordKeys.get(name) ?? {};
 
           // Build fields array - use capabilities if available, otherwise fall back to schema
           const fields = collectionCapabilities?.fields

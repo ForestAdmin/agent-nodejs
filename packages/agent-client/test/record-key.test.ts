@@ -33,30 +33,60 @@ describe('groupByRecordKey', () => {
 
 describe('publishedRecordKeys', () => {
   it('should publish the camelCase key of a snake_case name', () => {
-    expect(publishedRecordKeys(['created_at'])).toEqual(new Map([['created_at', 'createdAt']]));
+    expect(publishedRecordKeys(['created_at'])).toEqual(
+      new Map([['created_at', { recordKey: 'createdAt' }]]),
+    );
   });
 
   it('should publish nothing for a name the deserializer leaves untouched', () => {
     expect(publishedRecordKeys(['email', 'createdAt', 'id'])).toEqual(new Map());
   });
 
-  it('should publish nothing for names that collide on one key', () => {
-    expect(publishedRecordKeys(['first_name', 'firstName'])).toEqual(new Map());
+  it('should publish the shared key and the other names for names that collide on one key', () => {
+    expect(publishedRecordKeys(['first_name', 'firstName'])).toEqual(
+      new Map([
+        ['first_name', { recordKey: 'firstName', sharesRecordKeyWith: ['firstName'] }],
+        ['firstName', { recordKey: 'firstName', sharesRecordKeyWith: ['first_name'] }],
+      ]),
+    );
+  });
+
+  it('should list every other colliding name when more than two collide', () => {
+    expect(publishedRecordKeys(['first_name', 'firstName', 'FirstName']).get('firstName')).toEqual({
+      recordKey: 'firstName',
+      sharesRecordKeyWith: ['first_name', 'FirstName'],
+    });
   });
 
   it('should publish Id for a Mongo _id', () => {
-    expect(publishedRecordKeys(['_id'])).toEqual(new Map([['_id', 'Id']]));
+    expect(publishedRecordKeys(['_id'])).toEqual(new Map([['_id', { recordKey: 'Id' }]]));
   });
 
-  it('should publish nothing for a name the resource id overwrites', () => {
-    expect(publishedRecordKeys(['Id'])).toEqual(new Map());
+  it('should publish a null key for a name the resource id overwrites', () => {
+    expect(publishedRecordKeys(['Id'])).toEqual(new Map([['Id', { recordKey: null }]]));
   });
 
-  it('should publish _id as Id while Id itself maps to the reserved id', () => {
-    expect(publishedRecordKeys(['_id', 'Id'])).toEqual(new Map([['_id', 'Id']]));
+  it('should publish _id as Id while Id itself gets a null key', () => {
+    expect(publishedRecordKeys(['_id', 'Id'])).toEqual(
+      new Map([
+        ['_id', { recordKey: 'Id' }],
+        ['Id', { recordKey: null }],
+      ]),
+    );
   });
 
-  it('should publish nothing for a name declared twice', () => {
-    expect(publishedRecordKeys(['author_id', 'author_id'])).toEqual(new Map());
+  it('should publish a null key without shared names when several names collapse onto id', () => {
+    expect(publishedRecordKeys(['id', 'Id', 'ID'])).toEqual(
+      new Map([
+        ['Id', { recordKey: null }],
+        ['ID', { recordKey: null }],
+      ]),
+    );
+  });
+
+  it('should treat a name declared twice as one field, not a collision', () => {
+    expect(publishedRecordKeys(['author_id', 'author_id'])).toEqual(
+      new Map([['author_id', { recordKey: 'authorId' }]]),
+    );
   });
 });
