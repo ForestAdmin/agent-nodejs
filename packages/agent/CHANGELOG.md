@@ -1,3 +1,10 @@
+## @forestadmin/agent [1.106.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.106.0...@forestadmin/agent@1.106.1) (2026-10-06)
+
+
+### Bug Fixes
+
+* **audit-trail:** match search and fields against served values, not withheld ones [PRD-1295] ([#1936](https://github.com/ForestAdmin/agent-nodejs/issues/1936)) ([ee7d7e5](https://github.com/ForestAdmin/agent-nodejs/commit/ee7d7e5bef713fa3200102bc24fb514829ceb0c8))
+
 # @forestadmin/agent [1.106.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.105.6...@forestadmin/agent@1.106.0) (2026-10-06)
 
 
