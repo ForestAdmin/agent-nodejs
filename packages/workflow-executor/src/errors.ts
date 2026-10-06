@@ -155,16 +155,24 @@ export class UnsupportedActionFormError extends WorkflowExecutorError {
   }
 }
 
-// The action submission was rejected by the agent's server-side validation (bad/missing values),
-// NOT an infra failure. Full AI treats this as a fallback-to-AI-assisted reason
-// so a human can fix the values and resubmit.
+// The backend refused the submission (a 400/422: bad values or a business refusal), NOT an infra
+// failure. Full AI treats this as a fallback-to-AI-assisted reason so a human can resubmit.
+// backendMessage is the customer's own wording and may name client data: it stays out of
+// userMessage, which reaches the orchestrator through stepOutcome.error.
 export class ActionFormValidationError extends WorkflowOperatorError {
-  constructor(actionName: string, cause?: unknown) {
+  readonly backendMessage?: string;
+
+  constructor(actionName: string, cause?: unknown, backendMessage?: string) {
     super(
-      `Action "${actionName}" rejected the submitted form values`,
-      'The submitted form values were rejected. Please review the form and try again.',
+      backendMessage
+        ? `Action "${actionName}" was refused by the backend: ${backendMessage}`
+        : `Action "${actionName}" rejected the submitted form values`,
+      backendMessage
+        ? 'The backend refused this action.'
+        : 'The submitted form values were rejected. Please review the form and try again.',
     );
     this.cause = cause;
+    this.backendMessage = backendMessage;
   }
 }
 
@@ -406,11 +414,7 @@ function isAgentHttpResponse(cause: unknown): cause is AgentHttpResponse {
   return cause instanceof Error && typeof (cause as Partial<AgentHttpResponse>).status === 'number';
 }
 
-function agentErrorMessage(cause: unknown): string | undefined {
-  if (!isAgentHttpResponse(cause) || cause.status < 500) return undefined;
-  const detail = extractErrorDetail(cause);
-  if (!detail) return undefined;
-
+export function flattenAgentMessage(detail: string): string {
   const flat = Array.from(detail.slice(0, AGENT_ERROR_MESSAGE_MAX_LENGTH * 4), char =>
     char < ' ' || (char >= '\u007f' && char <= '\u009f') ? ' ' : char,
   )
@@ -421,6 +425,13 @@ function agentErrorMessage(cause: unknown): string | undefined {
   return flat.length > AGENT_ERROR_MESSAGE_MAX_LENGTH
     ? `${flat.slice(0, AGENT_ERROR_MESSAGE_MAX_LENGTH)}…`
     : flat;
+}
+
+function agentErrorMessage(cause: unknown): string | undefined {
+  if (!isAgentHttpResponse(cause) || cause.status < 500) return undefined;
+  const detail = extractErrorDetail(cause);
+
+  return detail ? flattenAgentMessage(detail) : undefined;
 }
 
 export class AgentPortError extends WorkflowExecutorError {

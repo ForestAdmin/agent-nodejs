@@ -11,6 +11,7 @@ import { z } from 'zod';
 
 import createConsoleLogger from '../../src/adapters/console-logger';
 import CredentialEncryption from '../../src/crypto/credential-encryption';
+import { ActionFormValidationError } from '../../src/errors';
 import ExecutorHttpServer from '../../src/http/executor-http-server';
 import OAuthTokenService from '../../src/oauth/token-service';
 import RemoteToolFetcher from '../../src/remote-tool-fetcher';
@@ -509,6 +510,69 @@ describe('workflow execution (integration)', () => {
     expect(workflowPort.updateStepExecution).toHaveBeenCalledWith(
       'run-1',
       expect.objectContaining({ type: 'record', status: 'success' }),
+    );
+  });
+
+  it('trigger-action Full AI: a backend refusal pauses with its message for the run view', async () => {
+    const model = createSequentialMockModel({
+      name: 'fill_action_form',
+      args: { values: { block_fx: true } },
+    });
+    const step = buildPendingStep({
+      stepDefinition: {
+        type: StepType.TriggerAction,
+        executionType: StepExecutionMode.FullyAutomated,
+        prompt: 'Close the account',
+        preRecordedArgs: { selectedRecordStepId: 'workflow-start', actionName: 'send_email' },
+      },
+    });
+    const workflowPort = createMockWorkflowPort({
+      getAvailableRun: jest
+        .fn()
+        .mockResolvedValue({ step, auth: { forestServerToken: 'test-forest-token' } }),
+      getCollectionSchema: jest.fn().mockResolvedValue(COLLECTION_SCHEMA_WITH_ACTIONS),
+    });
+    const agentPort = createMockAgentPort();
+    agentPort.getActionForm
+      .mockResolvedValueOnce({
+        fields: [{ name: 'block_fx', type: 'Boolean', isRequired: true }],
+        canExecute: false,
+        requiredFields: ['block_fx'],
+        skippedFields: [],
+      })
+      .mockResolvedValueOnce({
+        fields: [{ name: 'block_fx', type: 'Boolean', isRequired: true, value: true }],
+        canExecute: true,
+        requiredFields: [],
+        skippedFields: [],
+      });
+    agentPort.executeAction.mockRejectedValue(
+      new ActionFormValidationError(
+        'send_email',
+        undefined,
+        'Account cannot be closed: 2 cards still active',
+      ),
+    );
+    const { server, runStore } = createIntegrationSetup({ workflowPort, model, agentPort });
+    await runStore.init();
+    const token = signToken({ id: STEP_USER.id });
+
+    await request(server.callback)
+      .post('/runs/run-1/trigger')
+      .set('Authorization', `Bearer ${token}`)
+      .send();
+    const response = await request(server.callback)
+      .get('/runs/run-1')
+      .set('Authorization', `Bearer ${token}`)
+      .send();
+
+    expect(response.body.steps[0].pendingData.fullAiFallback).toEqual({
+      reason: 'backend-refused',
+      backendMessage: 'Account cannot be closed: 2 cards still active',
+    });
+    expect(workflowPort.updateStepExecution).toHaveBeenCalledWith(
+      'run-1',
+      expect.objectContaining({ type: 'record', status: 'awaiting-input' }),
     );
   });
 
