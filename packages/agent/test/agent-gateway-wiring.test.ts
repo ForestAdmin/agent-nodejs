@@ -511,7 +511,7 @@ describe('addGateway() checks at start()', () => {
 
     await agent.start();
 
-    expect(logger).toHaveBeenCalledWith('Info', '[BFF] Embedded BFF mounted on /ai/api');
+    expect(logger).toHaveBeenCalledWith('Info', '[Gateway API] The Gateway API mounted on /ai/api');
     expect(mockBuildBff).toHaveBeenCalledWith(expect.objectContaining({ basePath: '/ai/api' }));
     await agent.stop();
   });

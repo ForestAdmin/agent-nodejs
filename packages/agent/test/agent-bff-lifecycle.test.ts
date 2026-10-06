@@ -170,7 +170,7 @@ describe('the embedded BFF lifecycle', () => {
       expect(bodyOf(response).error).toEqual({
         type: 'bff_not_started',
         status: 503,
-        message: 'The embedded BFF is not started yet.',
+        message: 'The Gateway API is not started yet.',
       });
     });
   });
@@ -188,7 +188,7 @@ describe('the embedded BFF lifecycle', () => {
       expect(bodyOf(response).error).toEqual({
         type: 'bff_stopped',
         status: 503,
-        message: 'The embedded BFF was stopped with the agent.',
+        message: 'The Gateway API was stopped with the agent.',
       });
     });
 

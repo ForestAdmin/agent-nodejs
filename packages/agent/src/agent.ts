@@ -577,6 +577,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
       requiredVersion: AGENT_BFF_PEER_VERSION,
       skipIpWhitelistWarning: Boolean(this.gateway?.services.mcp),
       allowedOAuthClients: this.gateway?.allowedOAuthClients,
+      gateway: true,
     });
 
     return this.embeddedBff;
