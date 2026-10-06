@@ -256,4 +256,131 @@ describe('unpackPrimaryKey', () => {
       });
     });
   });
+
+  describe('when a forest_liana agent serializes its composite id as a JSON array', () => {
+    const LIANA_KEYS = [
+      { name: 'seq', type: 'Number' },
+      { name: 'tenant_id', type: 'String' },
+    ];
+    const MAPPING_ERROR = expect.objectContaining({ type: 'mapping_error', status: 500 });
+
+    it('should place each value on its key by the record, the array following the model order', () => {
+      expect(
+        unpackPrimaryKey('["acme",1]', LIANA_KEYS, { tenantId: 'acme', seq: 1, id: '["acme",1]' }),
+      ).toEqual({ seq: 1, tenant_id: 'acme' });
+    });
+
+    it('should give the one key the record cannot read the value left over', () => {
+      expect(unpackPrimaryKey('["acme",1]', LIANA_KEYS, { tenantId: 'acme' })).toEqual({
+        seq: 1,
+        tenant_id: 'acme',
+      });
+    });
+
+    it('should throw rather than pair by position when two keys go unread', () => {
+      expect(() => unpackPrimaryKey('["acme",1]', LIANA_KEYS, {})).toThrow(MAPPING_ERROR);
+      expect(() => unpackPrimaryKey('["acme",1]', LIANA_KEYS)).toThrow(MAPPING_ERROR);
+    });
+
+    it('should throw on an integer past the safe range instead of rounding it', () => {
+      expect(() =>
+        unpackPrimaryKey('["acme",9007199254740993]', LIANA_KEYS, {
+          tenantId: 'acme',
+          seq: 9007199254740992,
+        }),
+      ).toThrow(MAPPING_ERROR);
+    });
+
+    it.each([
+      ['a boolean', '["acme",true]'],
+      ['a null', '["acme",null]'],
+      ['an object', '["acme",{"seq":1}]'],
+      ['a nested array', '["acme",[1]]'],
+      ['a fractional number', '["acme",1.5]'],
+    ])('should throw on %s element rather than build a key from it', (_, packedId) => {
+      expect(() => unpackPrimaryKey(packedId, LIANA_KEYS, { tenantId: 'acme', seq: 1 })).toThrow(
+        MAPPING_ERROR,
+      );
+    });
+
+    it('should keep the segment count error when the array length does not match the keys', () => {
+      expect(() =>
+        unpackPrimaryKey('["acme",1,2]', LIANA_KEYS, { tenantId: 'acme', seq: 1 }),
+      ).toThrow(
+        expect.objectContaining({
+          message: 'Cannot build primary key: expected 2 values, found 1',
+        }),
+      );
+    });
+
+    it('should read a JSON array whose string value holds the pipe separator', () => {
+      expect(unpackPrimaryKey('["a|b",1]', LIANA_KEYS, { tenantId: 'a|b', seq: 1 })).toEqual({
+        seq: 1,
+        tenant_id: 'a|b',
+      });
+    });
+
+    describe('when the id reads both as a JSON array and as pipe segments', () => {
+      const STRING_KEYS = [
+        { name: 'k1', type: 'String' },
+        { name: 'k2', type: 'String' },
+      ];
+
+      it('should keep the pipe reading when the record backs every segment', () => {
+        expect(unpackPrimaryKey('[")a|b",1]', STRING_KEYS, { k1: '[")a', k2: 'b",1]' })).toEqual({
+          k1: '[")a',
+          k2: 'b",1]',
+        });
+      });
+
+      it('should keep the pipe reading over a JSON reading the record only partly backs', () => {
+        const packedId = '["a|b","[\\"a"]';
+
+        expect(unpackPrimaryKey(packedId, STRING_KEYS, { k1: '["a', k2: 'b","[\\"a"]' })).toEqual({
+          k1: '["a',
+          k2: 'b","[\\"a"]',
+        });
+      });
+
+      it('should throw rather than give a key the leftover value when neither reading is fully backed', () => {
+        expect(() => unpackPrimaryKey('["a|b",1]', STRING_KEYS, { k1: '["a' })).toThrow(
+          MAPPING_ERROR,
+        );
+      });
+
+      it('should throw when only a JSON reading with an unread key is left', () => {
+        expect(() => unpackPrimaryKey('["a|b",1]', LIANA_KEYS, { tenantId: 'a|b' })).toThrow(
+          MAPPING_ERROR,
+        );
+      });
+    });
+
+    it('should leave a pipe id on the pipe path', () => {
+      expect(unpackPrimaryKey('acme|1', LIANA_KEYS, { tenantId: 'acme', seq: 1 })).toEqual({
+        seq: 1,
+        tenant_id: 'acme',
+      });
+    });
+
+    it('should leave a bracketed pipe id that is not JSON on the pipe path', () => {
+      expect(
+        unpackPrimaryKey('[x|y]', [
+          { name: 'a', type: 'String' },
+          { name: 'b', type: 'String' },
+        ]),
+      ).toEqual({ a: '[x', b: 'y]' });
+    });
+
+    it('should keep a single key whole, even when its id looks like a JSON array', () => {
+      expect(unpackPrimaryKey('["a"]', [{ name: 'code', type: 'String' }])).toEqual({
+        code: '["a"]',
+      });
+    });
+
+    it('should keep a derived key whole, even when its id is a JSON array', () => {
+      expect(
+        unpackPrimaryKey('["acme",1]', [{ name: 'id', type: 'String', derived: true }]),
+      ).toEqual({ id: '["acme",1]' });
+    });
+  });
 });
