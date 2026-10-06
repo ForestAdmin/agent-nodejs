@@ -95,6 +95,16 @@ describe('the embedded BFF lifecycle', () => {
 
       expect(mockBuildBff).toHaveBeenCalledTimes(1);
     });
+
+    it('should log the addBff() mount line byte-identically', async () => {
+      const logger = jest.fn();
+      const agent = new Agent(
+        factories.forestAdminHttpDriverOptions.build({ skipSchemaUpdate: true, logger }),
+      ).addBff();
+      await agent.start();
+
+      expect(logger).toHaveBeenCalledWith('Info', '[BFF] Embedded BFF mounted on /bff');
+    });
   });
 
   describe('when addBff is called once startup has begun', () => {
@@ -170,7 +180,7 @@ describe('the embedded BFF lifecycle', () => {
       expect(bodyOf(response).error).toEqual({
         type: 'bff_not_started',
         status: 503,
-        message: 'The Gateway API is not started yet.',
+        message: 'The embedded BFF is not started yet.',
       });
     });
   });
@@ -188,7 +198,7 @@ describe('the embedded BFF lifecycle', () => {
       expect(bodyOf(response).error).toEqual({
         type: 'bff_stopped',
         status: 503,
-        message: 'The Gateway API was stopped with the agent.',
+        message: 'The embedded BFF was stopped with the agent.',
       });
     });
 

@@ -1,7 +1,7 @@
 import type { ActivityLogWriter } from './activity-log/activity-log-writer';
 import type { AgentTransport } from './agent/agent-transport';
 import type { AgentDispatcher } from './agent/in-process-transport';
-import type { BFFConfig, ConfigKey, ConfigLabels } from './config/env-config';
+import type { BFFConfig, ConfigLabels } from './config/env-config';
 import type { BffHealth } from './http/health-route';
 import type { EnvironmentIdResolver } from './oauth/environment-id';
 import type { SessionStore } from './oauth/session-store';
@@ -393,14 +393,11 @@ function buildAgentRouteMiddlewares(
   transport: AgentTransport | undefined,
   logger: Logger,
   permissionsCache: PermissionsCache,
-  label: (key: ConfigKey) => string,
 ): AgentRouteEdge {
   if (!bundle) {
     logger(
       'Warn',
-      `Data, action and permissions endpoints disabled: ${label('FOREST_SERVER_URL')}, ${label(
-        'FOREST_ENV_SECRET',
-      )} or ${label('FOREST_AUTH_SECRET')} is missing`,
+      'Data, action and permissions endpoints disabled: FOREST_SERVER_URL, FOREST_ENV_SECRET or FOREST_AUTH_SECRET is missing',
     );
 
     return { middlewares: [createAgentStubMiddleware()] };
@@ -419,7 +416,7 @@ function buildAgentRouteMiddlewares(
   });
 
   if (!transport) {
-    logger('Warn', `Data and action endpoints disabled: ${label('AGENT_URL')} is missing`);
+    logger('Warn', 'Data and action endpoints disabled: AGENT_URL is missing');
 
     return { middlewares: [permissionsMiddleware, createAgentStubMiddleware()] };
   }
@@ -478,12 +475,11 @@ function buildAgentMiddlewares(
   basePath: string,
   transport: AgentTransport | undefined,
   metrics: Metrics | undefined,
-  label: (key: ConfigKey) => string,
 ): AgentEdge {
   const { forestAuthSecret, defaultTimezone } = config;
 
   if (!forestAuthSecret) {
-    logger('Warn', `Agent edge disabled: ${label('FOREST_AUTH_SECRET')} is missing`);
+    logger('Warn', 'Agent edge disabled: FOREST_AUTH_SECRET is missing');
 
     return { middlewares: [], invalidate: () => undefined };
   }
@@ -494,7 +490,7 @@ function buildAgentMiddlewares(
   const bundle = resolveReadModelBundle(config, logger, metrics);
   const source = toUnfoldSource(bundle, transport, logger);
   const permissionsCache = new PermissionsCache();
-  const routeEdge = buildAgentRouteMiddlewares(bundle, transport, logger, permissionsCache, label);
+  const routeEdge = buildAgentRouteMiddlewares(bundle, transport, logger, permissionsCache);
 
   const chain: Middleware[] = [
     createAuthModeMiddleware({ authSecret: forestAuthSecret }),
@@ -596,7 +592,6 @@ export default async function buildBff({
     mountPath,
     transport,
     metrics,
-    label,
   );
   const agentMiddlewares = agentEdge.middlewares;
   const hasAgentEdge = agentMiddlewares.length > 0;

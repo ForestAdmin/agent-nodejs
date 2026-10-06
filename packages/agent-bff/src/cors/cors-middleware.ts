@@ -45,7 +45,7 @@ export const ALLOWED_HEADERS =
   'Authorization, Content-Type, X-Forest-Timezone, X-Forest-Bff-Key, X-Request-Id, Forest-Projection';
 export const PREFLIGHT_MAX_AGE_SECONDS = 600;
 
-export const EXPOSED_HEADERS =
+const EXPOSED_HEADERS =
   'Deprecation, Link, Retry-After, X-Forest-Gateway-Version, X-Forest-Bff-Version';
 
 /**

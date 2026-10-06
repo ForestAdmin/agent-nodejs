@@ -528,7 +528,7 @@ describe('parseConfig', () => {
     });
   });
 
-  describe('with a label map (addGateway({ api }) option labels)', () => {
+  describe('with the addGateway({ api }) label map', () => {
     const LABELS: ConfigLabels = {
       FOREST_AUTH_SECRET: 'authSecret',
       FOREST_ENV_SECRET: 'envSecret',
@@ -540,9 +540,6 @@ describe('parseConfig', () => {
       BFF_AGENT_TIMEOUT_MS: 'api.agentTimeoutMs',
       BFF_AI_TIMEOUT_MS: 'api.aiTimeoutMs',
       BFF_OPENAPI_ENABLED: 'api.openapiEnabled',
-      BFF_PUBLIC_URL: 'api.publicUrl',
-      BFF_RATE_LIMIT_MAX_REQUESTS: 'api.rateLimitMaxRequests',
-      HTTP_PORT: 'api.port',
     };
 
     it('should name api.tokenEncryptionKey on an invalid key', () => {
@@ -581,24 +578,30 @@ describe('parseConfig', () => {
       );
     });
 
-    it('should name api.publicUrl on an invalid url', () => {
-      expect(() => parseConfig({ ...VALID_ENV, BFF_PUBLIC_URL: 'not-a-url' }, LABELS)).toThrow(
-        'Invalid configuration: api.publicUrl must be a valid http(s) URL.',
-      );
-    });
-
-    it('should name api.rateLimitMaxRequests on an invalid value', () => {
+    it('should name a neutral label on an invalid public url, uncovered by the gateway map', () => {
       expect(() =>
-        parseConfig({ ...VALID_ENV, BFF_RATE_LIMIT_MAX_REQUESTS: 'abc' }, LABELS),
+        parseConfig(
+          { ...VALID_ENV, BFF_PUBLIC_URL: 'not-a-url' },
+          { BFF_PUBLIC_URL: 'x.publicUrl' },
+        ),
+      ).toThrow('Invalid configuration: x.publicUrl must be a valid http(s) URL.');
+    });
+
+    it('should name a neutral label on an invalid rate limit, uncovered by the gateway map', () => {
+      expect(() =>
+        parseConfig(
+          { ...VALID_ENV, BFF_RATE_LIMIT_MAX_REQUESTS: 'abc' },
+          { BFF_RATE_LIMIT_MAX_REQUESTS: 'x.rateLimitMaxRequests' },
+        ),
       ).toThrow(
-        'Invalid configuration: api.rateLimitMaxRequests must be an integer between 1 and 10000.',
+        'Invalid configuration: x.rateLimitMaxRequests must be an integer between 1 and 10000.',
       );
     });
 
-    it('should name api.port on an invalid port', () => {
-      expect(() => parseConfig({ ...VALID_ENV, HTTP_PORT: '99999' }, LABELS)).toThrow(
-        'Invalid configuration: api.port must be an integer between 0 and 65535.',
-      );
+    it('should name a neutral label on an invalid port, uncovered by the gateway map', () => {
+      expect(() =>
+        parseConfig({ ...VALID_ENV, HTTP_PORT: '99999' }, { HTTP_PORT: 'x.port' }),
+      ).toThrow('Invalid configuration: x.port must be an integer between 0 and 65535.');
     });
 
     it('should keep the env key in every message when no map is given', () => {

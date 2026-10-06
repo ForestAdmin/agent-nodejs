@@ -1,4 +1,5 @@
 import type { AgentDispatcher, Bff, BuildBffOptions } from '@forestadmin/agent-bff';
+import type { IncomingMessage, ServerResponse } from 'http';
 
 import EmbeddedBff, { GATEWAY_API_CONFIG_LABELS } from '../../src/embedded-bff';
 import * as factories from '../__factories__';
@@ -34,6 +35,24 @@ function buildEmbedded(gateway: boolean, tokenEncryptionKey?: string): EmbeddedB
   );
 }
 
+function answer503(embedded: EmbeddedBff): { type: string; status: number; message: string } {
+  const res = {
+    statusCode: 0,
+    body: '',
+    headers: {} as Record<string, string>,
+    setHeader(name: string, value: string) {
+      this.headers[name] = value;
+    },
+    end(chunk?: string) {
+      this.body = chunk ?? '';
+    },
+  };
+
+  embedded.handle({} as IncomingMessage, res as unknown as ServerResponse);
+
+  return JSON.parse(res.body).error;
+}
+
 describe('EmbeddedBff config labels', () => {
   beforeEach(() => {
     mockBuildBff.mockReset();
@@ -64,6 +83,24 @@ describe('EmbeddedBff config labels', () => {
         }),
       );
     });
+
+    it('should answer the addGateway() 503s naming the Gateway API', async () => {
+      const embedded = buildEmbedded(true);
+
+      expect(answer503(embedded)).toEqual({
+        type: 'bff_not_started',
+        status: 503,
+        message: 'The Gateway API is not started yet.',
+      });
+
+      await embedded.stop();
+
+      expect(answer503(embedded)).toEqual({
+        type: 'bff_stopped',
+        status: 503,
+        message: 'The Gateway API was stopped with the agent.',
+      });
+    });
   });
 
   describe('under addBff()', () => {
@@ -73,6 +110,24 @@ describe('EmbeddedBff config labels', () => {
       await expect(embedded.prepare()).rejects.toThrow(
         `Invalid configuration: BFF_TOKEN_ENCRYPTION_KEY ${INVALID_KEY_ERROR}`,
       );
+    });
+
+    it('should answer the addBff() 503s naming the embedded BFF', async () => {
+      const embedded = buildEmbedded(false);
+
+      expect(answer503(embedded)).toEqual({
+        type: 'bff_not_started',
+        status: 503,
+        message: 'The embedded BFF is not started yet.',
+      });
+
+      await embedded.stop();
+
+      expect(answer503(embedded)).toEqual({
+        type: 'bff_stopped',
+        status: 503,
+        message: 'The embedded BFF was stopped with the agent.',
+      });
     });
 
     it('should pass the agent version but no labels and no name to buildBff', async () => {

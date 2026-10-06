@@ -253,10 +253,15 @@ export default class EmbeddedBff {
 
     this.options.logger(
       'Warn',
-      this.log('Stopped the embedded BFF with activity logs still in flight', {
-        timeoutMs,
-        unfinished,
-      }),
+      this.log(
+        `Stopped ${
+          this.mount.gateway ? 'the Gateway API' : 'the embedded BFF'
+        } with activity logs still in flight`,
+        {
+          timeoutMs,
+          unfinished,
+        },
+      ),
     );
   }
 
@@ -272,8 +277,8 @@ export default class EmbeddedBff {
     if (!this.bff) {
       const type = this.stopped ? 'bff_stopped' : 'bff_not_started';
       const message = this.stopped
-        ? 'The Gateway API was stopped with the agent.'
-        : 'The Gateway API is not started yet.';
+        ? `${this.name} was stopped with the agent.`
+        : `${this.name} is not started yet.`;
 
       res.statusCode = 503;
       res.setHeader('Content-Type', 'application/json');
