@@ -383,7 +383,14 @@ across pages rather than looping. Feed the two values back verbatim; don't synth
 must always add at least the last row's id to the exclusions, so a cursor that would come back
 unchanged ends the walk instead of repeating the page forever.
 
+**Authors.** On the first page only (no `before`), `meta` also carries `availableUsers`: the
+distinct authors matching the active filters across the collections queried, independent of the
+cursor, in the per-record route's shape. Later pages omit the key rather than send `[]`, so a client
+keeps the list it already saw. Authors are not detail values, so the admin rule above leaves them in.
+
 A custom `AuditStore` that doesn't implement `listTimeline` simply doesn't get this route mounted.
+One that implements `listTimeline` without `listTimelineUsers` serves the rows with no
+`availableUsers`.
 
 ### `GET /forest/_audit-trail/correlation/{correlationKey}`
 
