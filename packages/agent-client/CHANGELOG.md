@@ -1,3 +1,10 @@
+# @forestadmin/agent-client [1.18.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.17.1...@forestadmin/agent-client@1.18.0) (2026-10-07)
+
+
+### Features
+
+* **mcp-server:** tell the model which fields a record cannot be read under ([#1977](https://github.com/ForestAdmin/agent-nodejs/issues/1977)) ([6ff083e](https://github.com/ForestAdmin/agent-nodejs/commit/6ff083e9938c7857020dc8e12e4b62921883a8f5))
+
 ## @forestadmin/agent-client [1.17.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.17.0...@forestadmin/agent-client@1.17.1) (2026-10-07)
 
 
