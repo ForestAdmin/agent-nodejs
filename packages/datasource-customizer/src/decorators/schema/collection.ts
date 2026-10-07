@@ -1,15 +1,15 @@
-import type { CollectionSchema, ColumnSchema } from '@forestadmin/datasource-toolkit';
-
-import {
-  CollectionDecorator,
-  FieldValidator,
-  ValidationError,
+import type {
+  CollectionSchema,
+  ManyToOneSchema,
+  OneToOneSchema,
 } from '@forestadmin/datasource-toolkit';
+
+import { CollectionDecorator, SchemaUtils, ValidationError } from '@forestadmin/datasource-toolkit';
 
 /**
  * This decorator allows to override parts of the collections schema.
  * It can be used to toggle off collection level capabilities for performance
- * (for now, list-view counts and the search bar), or to hide filter operators
+ * (for now, list-view counts and the search bar), or to hide filtering on fields
  * that decorators below still rely on (e.g. 'In' on a custom relation key).
  */
 export default class SchemaCollectionDecorator extends CollectionDecorator {
@@ -22,9 +22,16 @@ export default class SchemaCollectionDecorator extends CollectionDecorator {
   }
 
   disableFieldFiltering(name: string): void {
-    FieldValidator.validate(this, name);
+    const field = SchemaUtils.getField(this.childCollection.schema, name, this.name);
 
-    if ((this.childCollection.schema.fields[name] as ColumnSchema).isPrimaryKey) {
+    if (field.type === 'OneToMany' || field.type === 'ManyToMany') {
+      throw new ValidationError(
+        `Unexpected field type: '${this.name}.${name}' ` +
+          `(found '${field.type}' expected 'Column', 'ManyToOne' or 'OneToOne')`,
+      );
+    }
+
+    if (field.type === 'Column' && field.isPrimaryKey) {
       throw new ValidationError(`Cannot disable filtering on primary key '${this.name}.${name}'`);
     }
 
@@ -33,13 +40,19 @@ export default class SchemaCollectionDecorator extends CollectionDecorator {
   }
 
   protected override refineSchema(subSchema: CollectionSchema): CollectionSchema {
-    const fields = { ...subSchema.fields };
+    const schema = { ...subSchema, ...this.schemaOverride };
+    const fields = { ...schema.fields };
 
-    // Empty Set rather than undefined: FilterFactory calls filterOperators.has() unguarded
     for (const name of this.unfilterableFields) {
-      fields[name] = { ...(fields[name] as ColumnSchema), filterOperators: new Set() };
+      const field = fields[name];
+
+      // Empty Set rather than undefined: FilterFactory calls filterOperators.has() unguarded
+      fields[name] =
+        field.type === 'Column'
+          ? { ...field, filterOperators: new Set() }
+          : { ...(field as ManyToOneSchema | OneToOneSchema), isFilterable: false };
     }
 
-    return { ...subSchema, fields, ...this.schemaOverride };
+    return { ...schema, fields };
   }
 }

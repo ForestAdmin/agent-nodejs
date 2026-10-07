@@ -1,4 +1,4 @@
-import normalizeDomainList from '../../src/utils/normalize-domain-list';
+import normalizeDomainList from '../../src/oauth-client-allowlist/normalize-domain-list';
 
 describe('normalizeDomainList', () => {
   it('should return undefined when the option is not configured', () => {

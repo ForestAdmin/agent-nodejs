@@ -1343,7 +1343,7 @@ describe('ForestMCPServer Instance', () => {
       );
       expect(listTool).toBeDefined();
       expect(listTool.description).toBe(
-        'Retrieve a list of records from the specified collection. Send schema field names; read each value under its `recordKey` when describeCollection publishes one.',
+        'Retrieve a list of records from the specified collection. Send schema field names; read each value under its `recordKey` when describeCollection publishes one. Never read a field whose `recordKey` is null; project a field listing `sharesRecordKeyWith` without the fields it lists.',
       );
       expect(listTool.inputSchema).toBeDefined();
       expect(listTool.inputSchema.properties).toHaveProperty('collectionName');
@@ -2929,6 +2929,19 @@ describe('basePath prefix', () => {
 
       await expect(server.buildExpressApp(new URL('http://localhost:3000/agent'))).rejects.toThrow(
         /requires the agent to be served at the domain root/,
+      );
+    });
+
+    it('names the basePath and the agent path in the rejection, not an MCP-only option', async () => {
+      const server = new ForestMCPServer({
+        envSecret: 'ENV_SECRET',
+        authSecret: 'AUTH_SECRET',
+        forestServerClient: createMockForestServerClient(),
+        basePath: '/ai',
+      });
+
+      await expect(server.buildExpressApp(new URL('https://host/app'))).rejects.toThrow(
+        /^basePath "\/ai" requires the agent to be served at the domain root, .*\("\/app"\)/,
       );
     });
   });

@@ -1,4 +1,4 @@
-import type { BFFConfig } from './env-config';
+import type { BFFConfig, ConfigKey, ConfigLabels } from './env-config';
 import type { Logger } from '../ports/logger-port';
 
 /**
@@ -6,10 +6,14 @@ import type { Logger } from '../ports/logger-port';
  * assembly time, so a misconfiguration reads the same whether the BFF listens on its own port or is
  * mounted by a host that never starts a listener.
  */
-export default function warnMissingConfig(config: BFFConfig, logger: Logger): void {
+export default function warnMissingConfig(
+  config: BFFConfig,
+  logger: Logger,
+  labels: ConfigLabels = {},
+): void {
   const missing = Object.entries(config.presence)
     .filter(([, present]) => !present)
-    .map(([key]) => key);
+    .map(([key]) => labels[key as ConfigKey] ?? key);
 
   if (missing.length === 0) return;
 

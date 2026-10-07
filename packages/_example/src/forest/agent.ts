@@ -24,6 +24,8 @@ import sequelizeMsSql from '../connections/sequelize-mssql';
 import sequelizeMySql from '../connections/sequelize-mysql';
 import sequelizePostgres from '../connections/sequelize-postgres';
 
+const ZENDESK_OAUTH_DOMAIN = 'forestadmin.com';
+
 export default function makeAgent() {
   const envOptions: AgentOptions = {
     authSecret: process.env.FOREST_AUTH_SECRET,
@@ -37,14 +39,15 @@ export default function makeAgent() {
   };
 
   const rawAllowedOAuthClients = process.env.FOREST_MCP_ALLOWED_OAUTH_CLIENTS;
-  // Unset or '' means not configured; a set value with no domains stays an empty
-  // list so the agent fails closed at startup. Mirrors the standalone CLI parser.
-  const allowedOAuthClients = rawAllowedOAuthClients
+  const configuredOAuthClients = rawAllowedOAuthClients
     ? rawAllowedOAuthClients
         .split(',')
         .map(domain => domain.trim())
         .filter(Boolean)
     : undefined;
+  const allowedOAuthClients = configuredOAuthClients?.length
+    ? [...new Set([...configuredOAuthClients, ZENDESK_OAUTH_DOMAIN])]
+    : configuredOAuthClients;
 
   const bffAllowedOrigins = (process.env.BFF_ALLOWED_ORIGINS ?? '')
     .split(',')
@@ -98,16 +101,16 @@ export default function makeAgent() {
 
       return resultBuilder.value((rows?.[0]?.value as number) ?? 0);
     })
-    .mountAiMcpServer({
-      ...(allowedOAuthClients && { allowedOAuthClients }),
-    })
 
-    // Serves the BFF at /bff on every port this agent is mounted on, in-process. Without
-    // `allowedOrigins` no browser can call it, which for a backend-for-frontend is a mistake the
-    // BFF warns about at startup.
-    .addBff({
-      allowedOrigins: bffAllowedOrigins,
-      tokenEncryptionKey: process.env.BFF_TOKEN_ENCRYPTION_KEY,
+    // One allowlist for both services on purpose: separate lists need the two deprecated aliases.
+    // Without `allowedOrigins` no browser can call the API, which the API warns about at startup.
+    .addGateway({
+      ...(allowedOAuthClients && { allowedOAuthClients }),
+      mcp: true,
+      api: {
+        allowedOrigins: bffAllowedOrigins,
+        tokenEncryptionKey: process.env.BFF_TOKEN_ENCRYPTION_KEY,
+      },
     })
 
     .customizeCollection('card', customizeCard)

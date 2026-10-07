@@ -1,7 +1,7 @@
 import type { ActivityLogWriter } from './activity-log/activity-log-writer';
 import type { AgentTransport } from './agent/agent-transport';
 import type { AgentDispatcher } from './agent/in-process-transport';
-import type { BFFConfig } from './config/env-config';
+import type { BFFConfig, ConfigLabels } from './config/env-config';
 import type { BffHealth } from './http/health-route';
 import type { EnvironmentIdResolver } from './oauth/environment-id';
 import type { SessionStore } from './oauth/session-store';
@@ -12,6 +12,7 @@ import type ReadModelStore from './read-model/read-model-store';
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { Middleware } from 'koa';
 
+import { normalizeDomainList } from '@forestadmin/forestadmin-client';
 import { bodyParser } from '@koa/bodyparser';
 import Koa from 'koa';
 
@@ -31,6 +32,7 @@ import createResolveCache from './api-key/resolve-cache';
 import createAuthModeMiddleware from './auth/auth-mode-middleware';
 import createForestServerTokenMiddleware from './auth/forest-server-token-middleware';
 import normalizeBasePath from './base-path';
+import { labeler } from './config/env-config';
 import warnMissingConfig from './config/missing-config-warning';
 import createContextRoutesMiddleware from './context/context-routes-middleware';
 import createCorsMiddleware from './cors/cors-middleware';
@@ -84,10 +86,18 @@ export interface BuildBffOptions {
    */
   metrics?: Metrics;
   /**
+   * Domains of the OAuth clients allowed to sign in: a client passes when every redirect URI it
+   * registered is an http(s) URI on a listed domain or a subdomain. Unset, any registered client
+   * passes. Passed by the Gateway, never read from the environment.
+   */
+  allowedOAuthClients?: string[];
+  /**
    * Sent as `X-Forest-Gateway-Version` on every response, next to agent-bff's own
    * `X-Forest-Bff-Version`. Unset or empty, the header is not sent: `forest-bff` keeps today's headers.
    */
   gatewayVersion?: string;
+  labels?: ConfigLabels;
+  name?: string;
 }
 
 export interface Bff {
@@ -211,7 +221,11 @@ interface OAuthEdge {
   session?: OAuthSession;
 }
 
-function buildOAuthMiddlewares(config: BFFConfig, logger: Logger): OAuthEdge {
+function buildOAuthMiddlewares(
+  config: BFFConfig,
+  logger: Logger,
+  allowedOAuthClients: string[] | undefined,
+): OAuthEdge {
   const oauthConfig = resolveOAuthConfig(config);
 
   if (!oauthConfig) {
@@ -239,6 +253,7 @@ function buildOAuthMiddlewares(config: BFFConfig, logger: Logger): OAuthEdge {
     authSecret: forestAuthSecret,
     resolveEnvironmentId,
     logger,
+    allowedOAuthClients,
   });
 
   return {
@@ -460,6 +475,7 @@ function buildAgentMiddlewares(
   basePath: string,
   transport: AgentTransport | undefined,
   metrics: Metrics | undefined,
+  allowedOriginsLabel = 'BFF_ALLOWED_ORIGINS',
 ): AgentEdge {
   const { forestAuthSecret, defaultTimezone } = config;
 
@@ -486,7 +502,11 @@ function buildAgentMiddlewares(
       maxRequests: config.rateLimitMaxRequests,
       windowMs: config.rateLimitWindowMs,
     }),
-    createPerKeyOriginMiddleware({ logger, serverAllowedOrigins: config.allowedOrigins }),
+    createPerKeyOriginMiddleware({
+      logger,
+      serverAllowedOrigins: config.allowedOrigins,
+      allowedOriginsLabel,
+    }),
     createOpenApiRoutes({
       version,
       enabled: config.openapiEnabled,
@@ -536,29 +556,38 @@ export default async function buildBff({
   basePath,
   dispatcher,
   metrics,
+  allowedOAuthClients,
   gatewayVersion,
+  labels = {},
+  name,
 }: BuildBffOptions): Promise<Bff> {
+  const label = labeler(labels);
   // Before anything is assembled: a mount the host does not serve must fail at boot, not surface as
   // a docs page that cannot load itself.
   const mountPath = normalizeBasePath(basePath);
+  const allowedClientDomains = normalizeDomainList(allowedOAuthClients);
 
   if (config.invalidAllowedOrigins.length > 0) {
-    logger('Warn', 'Ignoring malformed BFF_ALLOWED_ORIGINS entries', {
+    logger('Warn', `Ignoring malformed ${label('BFF_ALLOWED_ORIGINS')} entries`, {
       entries: config.invalidAllowedOrigins,
     });
   }
 
-  warnMissingConfig(config, logger);
+  warnMissingConfig(config, logger, labels);
 
   if (config.allowedOrigins.length === 0) {
     logger(
       'Warn',
-      'No allowed origin: no browser can call this BFF. Set BFF_ALLOWED_ORIGINS, or `allowedOrigins`.',
+      name
+        ? `No allowed origin: no browser can call this ${name}. Set \`${label(
+            'BFF_ALLOWED_ORIGINS',
+          )}\`.`
+        : 'No allowed origin: no browser can call this BFF. Set BFF_ALLOWED_ORIGINS, or `allowedOrigins`.',
     );
   }
 
   const transport = resolveTransport(config, dispatcher);
-  const oauth = buildOAuthMiddlewares(config, logger);
+  const oauth = buildOAuthMiddlewares(config, logger, allowedClientDomains);
   const aiMiddlewares = buildAiMiddlewares(config, oauth, logger);
   const agentEdge = buildAgentMiddlewares(
     config,
@@ -568,6 +597,7 @@ export default async function buildBff({
     mountPath,
     transport,
     metrics,
+    label('BFF_ALLOWED_ORIGINS'),
   );
   const agentMiddlewares = agentEdge.middlewares;
   const hasAgentEdge = agentMiddlewares.length > 0;

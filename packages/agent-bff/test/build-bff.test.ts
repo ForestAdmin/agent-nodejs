@@ -4,7 +4,7 @@ import request from 'supertest';
 
 import { createHttpTransport } from '../src/agent/agent-transport';
 import buildBff from '../src/build-bff';
-import { restoreFetchAfterEach, stubEnvironmentIdFetch } from './helpers/fetch-stub';
+import { restoreFetchAfterEach, stubEnvironmentIdFetch, stubFetch } from './helpers/fetch-stub';
 import { parseConfig } from '../src/config/env-config';
 import version from '../src/version';
 
@@ -179,7 +179,7 @@ describe('buildBff', () => {
           logger: noopLogger,
           basePath: 'https://bff.example.com',
         }),
-      ).rejects.toThrow('Invalid BFF base path "https://bff.example.com"');
+      ).rejects.toThrow('Invalid Gateway API base path "https://bff.example.com"');
     });
   });
 
@@ -191,6 +191,82 @@ describe('buildBff', () => {
       });
 
       expect(() => bff.invalidate()).not.toThrow();
+    });
+  });
+
+  describe('when allowedOAuthClients is set', () => {
+    const ZENDESK_REDIRECT_URI = 'https://app.forestadmin.com/zendesk-oauth-redirect';
+    const AUTHORIZE_QUERY = {
+      client_id: 'zendesk',
+      redirect_uri: ZENDESK_REDIRECT_URI,
+      response_type: 'code',
+      code_challenge: 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM',
+      code_challenge_method: 'S256',
+      state: 'state-xyz',
+    };
+
+    function stubRegisteredClientFetch(): void {
+      const ok = (body: unknown) => ({
+        ok: true,
+        status: 200,
+        statusText: 'ok',
+        json: async () => body,
+      });
+
+      stubFetch(undefined).mockImplementation(async (url: string) =>
+        String(url).includes('/oauth/register/')
+          ? ok({ client_id: 'zendesk', redirect_uris: [ZENDESK_REDIRECT_URI] })
+          : ok({ data: { id: '42' } }),
+      );
+    }
+
+    it('should reject an OAuth client outside the normalized allowed domains', async () => {
+      stubRegisteredClientFetch();
+      const { callback } = await buildBff({
+        config: parseConfig(VALID_ENV),
+        logger: noopLogger,
+        allowedOAuthClients: [' CLAUDE.ai '],
+      });
+
+      const response = await request(callback).get('/oauth/authorize').query(AUTHORIZE_QUERY);
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('invalid_client');
+      expect(response.headers.location).toBeUndefined();
+    });
+
+    it('should accept an OAuth client on an allowed domain', async () => {
+      stubRegisteredClientFetch();
+      const { callback } = await buildBff({
+        config: parseConfig(VALID_ENV),
+        logger: noopLogger,
+        allowedOAuthClients: ['forestadmin.com'],
+      });
+
+      const response = await request(callback).get('/oauth/authorize').query(AUTHORIZE_QUERY);
+
+      expect(response.status).toBe(302);
+      const location = new URL(response.headers.location);
+      expect(location.origin + location.pathname).toBe(
+        `${VALID_ENV.FOREST_APP_URL}/oauth/authorize`,
+      );
+      expect(location.searchParams.get('environmentId')).toBe('42');
+    });
+
+    it('should refuse to build on a list with no domain', async () => {
+      await expect(
+        buildBff({ config: parseConfig(VALID_ENV), logger: noopLogger, allowedOAuthClients: [] }),
+      ).rejects.toThrow('Invalid allowedOAuthClients: no domains to allow');
+    });
+
+    it('should refuse to build on an entry that is not a bare domain', async () => {
+      await expect(
+        buildBff({
+          config: parseConfig(VALID_ENV),
+          logger: noopLogger,
+          allowedOAuthClients: ['https://claude.ai'],
+        }),
+      ).rejects.toThrow('Invalid allowedOAuthClients entry "https://claude.ai"');
     });
   });
 
@@ -207,6 +283,65 @@ describe('buildBff', () => {
         'Warn',
         'Ignoring malformed BFF_ALLOWED_ORIGINS entries',
         { entries: ['*'] },
+      );
+    });
+
+    it('should name the label the caller passed instead of the env key', async () => {
+      const logger = jest.fn();
+
+      await buildBff({
+        config: parseConfig({ ...VALID_ENV, BFF_ALLOWED_ORIGINS: 'https://ok.example.com,*' }),
+        logger,
+        labels: { BFF_ALLOWED_ORIGINS: 'api.allowedOrigins' },
+      });
+
+      expect(logger).toHaveBeenCalledWith('Warn', 'Ignoring malformed api.allowedOrigins entries', {
+        entries: ['*'],
+      });
+    });
+  });
+
+  describe('boot warnings under a label map', () => {
+    it('should warn with the Gateway API noun and the option label when no origin is allowed', async () => {
+      const logger = jest.fn();
+
+      await buildBff({
+        config: parseConfig(VALID_ENV),
+        logger,
+        labels: { BFF_ALLOWED_ORIGINS: 'api.allowedOrigins' },
+        name: 'Gateway API',
+      });
+
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        'No allowed origin: no browser can call this Gateway API. Set `api.allowedOrigins`.',
+      );
+    });
+
+    it('should keep the standalone wording when no name is given', async () => {
+      const logger = jest.fn();
+
+      await buildBff({ config: parseConfig(VALID_ENV), logger });
+
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        'No allowed origin: no browser can call this BFF. Set BFF_ALLOWED_ORIGINS, or `allowedOrigins`.',
+      );
+    });
+
+    it('should name the labeled key in the missing-configuration warning', async () => {
+      const logger = jest.fn();
+
+      await buildBff({
+        config: parseConfig({ ...VALID_ENV, FOREST_AUTH_SECRET: undefined }),
+        logger,
+        labels: { FOREST_AUTH_SECRET: 'authSecret' },
+      });
+
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        'Missing required configuration; /health will report degraded',
+        { missing: ['authSecret'] },
       );
     });
   });

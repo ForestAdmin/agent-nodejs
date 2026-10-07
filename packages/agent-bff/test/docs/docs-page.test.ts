@@ -178,6 +178,19 @@ const API_KEY_SPEC = {
   },
 };
 
+describe('docs page shell', () => {
+  it('should say Gateway API, not BFF, in the title, the key label and the unlock hint', () => {
+    const html = renderDocsPage(DOCUMENT_PATH, BUNDLE_PATH);
+
+    expect(html).toContain('<title>Forest Gateway API</title>');
+    expect(html).toContain('<label for="key">Gateway API key</label>');
+    expect(html).toContain(
+      'A Gateway API key is required: the document is never served unauthenticated.',
+    );
+    expect(html).not.toMatch(/\bBFF\b/);
+  });
+});
+
 describe('docs page script', () => {
   describe('when a submission is abandoned for another one', () => {
     it('should ignore the abandoned error, since it did not come from the key on screen', async () => {
@@ -263,7 +276,7 @@ describe('docs page script', () => {
       });
       await page.flush();
 
-      expect(page.errorText()).toBe('The BFF answered 401 unauthorized: Key revoked');
+      expect(page.errorText()).toBe('The Gateway API answered 401 unauthorized: Key revoked');
       expect(page.redocInit).not.toHaveBeenCalled();
     });
 
@@ -276,7 +289,7 @@ describe('docs page script', () => {
 
       expect(page.redocInit).not.toHaveBeenCalled();
       expect(page.errorText()).toBe(
-        'The BFF answered 200 unreadable_response: <html>gateway</html>',
+        'The Gateway API answered 200 unreadable_response: <html>gateway</html>',
       );
     });
 

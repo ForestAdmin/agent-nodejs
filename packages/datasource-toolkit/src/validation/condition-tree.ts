@@ -1,6 +1,11 @@
 import type { Collection } from '../interfaces/collection';
 import type ConditionTree from '../interfaces/query/condition-tree/nodes/base';
-import type { ColumnSchema, PrimitiveTypes } from '../interfaces/schema';
+import type {
+  ColumnSchema,
+  ManyToOneSchema,
+  OneToOneSchema,
+  PrimitiveTypes,
+} from '../interfaces/schema';
 
 import FieldValidator from './field';
 import {
@@ -12,6 +17,7 @@ import { ValidationError } from '../errors';
 import ConditionTreeBranch from '../interfaces/query/condition-tree/nodes/branch';
 import ConditionTreeLeaf from '../interfaces/query/condition-tree/nodes/leaf';
 import CollectionUtils from '../utils/collection';
+import SchemaUtils from '../utils/schema';
 
 export default class ConditionTreeValidator {
   static validate(conditionTree: ConditionTree, collection: Collection): void {
@@ -44,12 +50,31 @@ export default class ConditionTreeValidator {
   }
 
   private static validateLeaf(leaf: ConditionTreeLeaf, collection: Collection): void {
+    ConditionTreeValidator.throwIfRelationNotFilterable(leaf, collection);
+
     const fieldSchema = CollectionUtils.getFieldSchema(collection, leaf.field) as ColumnSchema;
 
     ConditionTreeValidator.throwIfOperatorNotAllowedWithColumn(leaf, fieldSchema);
     ConditionTreeValidator.throwIfValueNotAllowedWithOperator(leaf, fieldSchema);
     ConditionTreeValidator.throwIfOperatorNotAllowedWithColumnType(leaf, fieldSchema);
     ConditionTreeValidator.throwIfValueNotAllowedWithColumnType(leaf, fieldSchema);
+  }
+
+  private static throwIfRelationNotFilterable(leaf: ConditionTreeLeaf, collection: Collection) {
+    const relationNames = leaf.field.split(':').slice(0, -1);
+    let current = collection;
+
+    for (const name of relationNames) {
+      const relation = SchemaUtils.getRelation(current.schema, name, current.name) as
+        | ManyToOneSchema
+        | OneToOneSchema;
+
+      if (relation.isFilterable === false) {
+        throw new ValidationError(`The relation '${current.name}.${name}' is not filterable`);
+      }
+
+      current = current.dataSource.getCollection(relation.foreignCollection);
+    }
   }
 
   private static throwIfOperatorNotAllowedWithColumn(

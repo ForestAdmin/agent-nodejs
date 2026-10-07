@@ -814,9 +814,9 @@ describe('Agent', () => {
         agent.mountAiMcpServer();
         await agent.start();
 
-        expect(logger.mock.calls.filter(([level]) => level === 'Warn')).toEqual([
-          ['Warn', warning],
-        ]);
+        expect(logger.mock.calls.filter(([, message]) => message.includes('IP whitelist'))).toEqual(
+          [['Warn', warning]],
+        );
       });
 
       test('prefixes the warned routes with the MCP basePath', async () => {

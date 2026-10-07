@@ -69,7 +69,7 @@ export function ambiguousCredentials(
   return new BffHttpError(400, 'ambiguous_credentials', message);
 }
 
-export function sessionExpired(message = 'The BFF session has expired'): BffHttpError {
+export function sessionExpired(message = 'The Gateway API session has expired'): BffHttpError {
   return new BffHttpError(401, 'session_expired', message);
 }
 

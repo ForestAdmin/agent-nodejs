@@ -1,7 +1,8 @@
 import type { ForestMCPServerOptions } from './server';
 
+import { parseDomainList } from '@forestadmin/forestadmin-client';
+
 import normalizeAgentUrl from './utils/normalize-agent-url';
-import parseDomainList from './utils/parse-domain-list';
 import parseToolList from './utils/parse-tool-list';
 import { assertTokenSeconds } from './utils/token-ttl';
 
