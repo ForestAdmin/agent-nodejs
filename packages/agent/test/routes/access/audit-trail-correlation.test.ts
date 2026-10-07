@@ -200,7 +200,7 @@ describe('AuditTrailCorrelationRoute', () => {
         jest
           .spyOn(dataSource.getCollection('books'), 'list')
           .mockResolvedValueOnce([]) // scoped check: not found
-          .mockResolvedValueOnce([]); // bare check: genuinely gone
+          .mockResolvedValue([]); // bare check: genuinely gone, and at the re-read
         const route = new AuditTrailCorrelationRoute(services, options, dataSource);
         const context = contextWith({
           timezone: 'Europe/Paris',
@@ -304,7 +304,7 @@ describe('AuditTrailCorrelationRoute', () => {
         jest
           .spyOn(dataSource.getCollection('books'), 'list')
           .mockResolvedValueOnce([]) // scoped check: not found
-          .mockResolvedValueOnce([]); // bare check: genuinely gone
+          .mockResolvedValue([]); // bare check: genuinely gone, and at the re-read
         const route = new AuditTrailCorrelationRoute(services, options, dataSource);
         const context = contextWith({
           timezone: 'Europe/Paris',

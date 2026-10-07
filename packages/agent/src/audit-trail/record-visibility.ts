@@ -77,9 +77,13 @@ export default async function checkRecordVisibility(
  * The record can be deleted — or moved out of the caller's permission scope — between the check
  * that authorized the request and the audit read that answers it: the audit trail lives in its own
  * database, often its own engine, so no single snapshot spans both. Re-reads once the rows are in
- * hand, and returns null when there is nothing to re-read: a caller with no scope has nothing to
- * withhold, and a record already gone at the first check has already had the withholding applied —
- * an id recreated in the meantime would only widen what is served, never what is hidden.
+ * hand, and returns null only for a caller with no scope, who has nothing to withhold.
+ *
+ * Both reads count, and neither can clear the other, as in agent-ruby. The first is the only one that
+ * saw the record whose rows these are, so an id freed by a delete and taken by another record since
+ * answers for itself, never for the earlier life: gone at either read means gone. The second is the
+ * only one that sees a record deleted since, and the one that answers 404 when the id now belongs to
+ * a record this caller cannot read — even if it was already gone at the first.
  */
 export async function recheckRecordVisibility(
   collection: Collection,
@@ -88,7 +92,9 @@ export async function recheckRecordVisibility(
   permissionScope: ConditionTree | null,
   wasGoneEntirely: boolean,
 ): Promise<RecordVisibility | null> {
-  if (!permissionScope || wasGoneEntirely) return null;
+  if (!permissionScope) return null;
 
-  return checkRecordVisibility(collection, packedId, context, permissionScope);
+  const now = await checkRecordVisibility(collection, packedId, context, permissionScope);
+
+  return { visible: now.visible, goneEntirely: wasGoneEntirely || now.goneEntirely };
 }

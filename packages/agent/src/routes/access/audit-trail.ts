@@ -16,7 +16,7 @@ import {
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
 
-import { revertRecord } from '../../audit-trail';
+import { REDACTED, jsonEscaped, revertRecord } from '../../audit-trail';
 import {
   parseDateBoundary,
   parseFields,
@@ -248,15 +248,19 @@ export default class AuditTrailRoute extends CollectionRoute {
       sides.some(values =>
         fields.some(field => Object.prototype.hasOwnProperty.call(values, field)),
       );
-    const texts = [
-      entry.actionName,
-      entry.userFirstName,
-      entry.userLastName,
-      entry.userEmail,
-      ...sides.map(values => JSON.stringify(values)),
-    ];
 
-    return touchesField && (!term || texts.some(text => text?.toLowerCase().includes(term)));
+    if (!touchesField) return false;
+    if (!term) return true;
+
+    const identity = [entry.actionName, entry.userFirstName, entry.userLastName, entry.userEmail];
+    const valueTerm = jsonEscaped(term);
+
+    return (
+      identity.some(text => text?.toLowerCase().includes(term)) ||
+      sides.some(values =>
+        JSON.stringify(values).split(REDACTED).join('').toLowerCase().includes(valueTerm),
+      )
+    );
   }
 
   private withhold(

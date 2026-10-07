@@ -823,7 +823,7 @@ describe('AuditTrailRoute', () => {
       jest
         .spyOn(dataSource.getCollection('books'), 'list')
         .mockResolvedValueOnce([]) // scoped check: not found
-        .mockResolvedValueOnce([]); // bare check: genuinely gone, not just out of scope
+        .mockResolvedValue([]); // bare check: genuinely gone, not just out of scope, and at the re-read
       const route = new AuditTrailRoute(services, options, dataSource, 'books');
       const context = createMockContext({
         state: { user: { email: 'john.doe@domain.com' } },
@@ -923,6 +923,23 @@ describe('AuditTrailRoute', () => {
           count: 2,
           availableUsers: [{ id: 7, firstName: null, lastName: null, email: 'jane@acme.com' }],
         });
+      });
+
+      test('does not confirm a masked value by searching the mask', async () => {
+        const { body } = await searched(
+          [kept({ previousValues: { ownerId: 1, ssn: '[redacted]' } })],
+          { search: 'redacted' },
+        );
+
+        expect(body.data).toEqual([]);
+      });
+
+      test('finds a served value holding a quote, as JSON serialized it', async () => {
+        const quoted = kept({ previousValues: { ownerId: 1, title: '15" monitor' } });
+
+        const { body } = await searched([quoted], { search: '15" monitor' });
+
+        expect(body.data).toEqual([quoted]);
       });
 
       test('does not match a field only a withheld side touched', async () => {
@@ -1040,7 +1057,7 @@ describe('AuditTrailRoute', () => {
       jest
         .spyOn(dataSource.getCollection('books'), 'list')
         .mockResolvedValueOnce([]) // scoped check: not found
-        .mockResolvedValueOnce([]); // bare check: genuinely gone, not just out of scope
+        .mockResolvedValue([]); // bare check: genuinely gone, not just out of scope, and at the re-read
       const route = new AuditTrailRoute(services, options, dataSource, 'books');
       const context = createMockContext({
         state: { user: { email: 'john.doe@domain.com' } },
@@ -1070,7 +1087,7 @@ describe('AuditTrailRoute', () => {
         jest
           .spyOn(dataSource.getCollection('books'), 'list')
           .mockResolvedValueOnce([]) // scoped check: not found
-          .mockResolvedValueOnce([]); // bare check: genuinely gone
+          .mockResolvedValue([]); // bare check: genuinely gone, and at the re-read
         const route = new AuditTrailRoute(services, options, dataSource, 'books');
         const context = createMockContext({
           state: { user: { email: 'john.doe@domain.com' } },
@@ -1135,7 +1152,7 @@ describe('AuditTrailRoute', () => {
       jest
         .spyOn(dataSource.getCollection('books'), 'list')
         .mockResolvedValueOnce([]) // scoped check: not found
-        .mockResolvedValueOnce([]); // bare check: genuinely gone, not just out of scope
+        .mockResolvedValue([]); // bare check: genuinely gone, not just out of scope, and at the re-read
       const route = new AuditTrailRoute(services, options, dataSource, 'books');
       const context = createMockContext({
         state: { user: { email: 'john.doe@domain.com' } },
@@ -1166,7 +1183,7 @@ describe('AuditTrailRoute', () => {
       jest
         .spyOn(dataSource.getCollection('books'), 'list')
         .mockResolvedValueOnce([]) // scoped check: not found
-        .mockResolvedValueOnce([]); // bare check: genuinely gone, not just out of scope
+        .mockResolvedValue([]); // bare check: genuinely gone, not just out of scope, and at the re-read
       const route = new AuditTrailRoute(services, options, dataSource, 'books');
       const context = createMockContext({
         state: { user: { email: 'john.doe@domain.com' } },
@@ -1284,10 +1301,21 @@ describe('AuditTrailRoute', () => {
         expect(services.authorization.getScope).toHaveBeenCalledTimes(1);
       });
 
-      test('does not ask again for a record that was already gone at the first check', async () => {
-        const { list } = await raceWith([], []);
+      test('refuses when an id gone at the first check now belongs to a record the caller cannot read', async () => {
+        // gone at the check (scoped and bare), then the id was taken by someone else's record
+        const { context } = await raceWith([], [], [], [{ id: 2 }]);
 
-        expect(list).toHaveBeenCalledTimes(2);
+        expect(context.throw).toHaveBeenCalledWith(404, 'Record does not exists');
+      });
+
+      test('keeps withholding when an in-scope record took the id after the first check', async () => {
+        // gone at the check; the replacement answers for itself, not for the rows of the earlier life
+        const { context } = await raceWith([], [], [{ id: 2 }]);
+
+        expect(context.throw).not.toHaveBeenCalled();
+        expect((context.response.body as { data: unknown[] }).data).toEqual([
+          { operation: 'delete', recordId: '2', previousValues: {}, newValues: {} },
+        ]);
       });
     });
 
@@ -2159,7 +2187,7 @@ describe('AuditTrailRoute', () => {
         jest
           .spyOn(dataSource.getCollection('books'), 'list')
           .mockResolvedValueOnce([]) // scoped fetch: not found
-          .mockResolvedValueOnce([]); // bare check: genuinely gone, not just out of scope
+          .mockResolvedValue([]); // bare check: genuinely gone, not just out of scope, and at the re-read
         const context = createMockContext({
           state: { user: { email: 'john.doe@domain.com' } },
           customProperties: {
@@ -2222,7 +2250,7 @@ describe('AuditTrailRoute', () => {
         .spyOn(dataSource.getCollection('books'), 'list')
         .mockResolvedValueOnce([{ id: 2, status: 'closed', name: 'Acme' }]) // present and in scope
         .mockResolvedValueOnce([]) // re-read, scoped: gone
-        .mockResolvedValueOnce([]); // re-read, bare: genuinely gone
+        .mockResolvedValue([]); // re-read, bare: genuinely gone, and at the re-read
       const context = createMockContext({
         state: { user: { email: 'john.doe@domain.com' } },
         customProperties: {
@@ -2278,7 +2306,7 @@ describe('AuditTrailRoute', () => {
       jest
         .spyOn(dataSource.getCollection('books'), 'list')
         .mockResolvedValueOnce([]) // scoped fetch: not found
-        .mockResolvedValueOnce([]); // bare check: genuinely gone
+        .mockResolvedValue([]); // bare check: genuinely gone, and at the re-read
       const context = createMockContext({
         state: { user: { email: 'john.doe@domain.com' } },
         customProperties: {
@@ -2303,7 +2331,7 @@ describe('AuditTrailRoute', () => {
       jest
         .spyOn(dataSource.getCollection('books'), 'list')
         .mockResolvedValueOnce([]) // scoped fetch: not found
-        .mockResolvedValueOnce([]); // bare check: genuinely gone
+        .mockResolvedValue([]); // bare check: genuinely gone, and at the re-read
       const context = createMockContext({
         state: { user: { email: 'john.doe@domain.com' } },
         customProperties: {
