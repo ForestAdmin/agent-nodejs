@@ -438,14 +438,16 @@ export default class CollectionCustomizer<
   }
 
   /**
-   * Disable filtering on a specific field for the end-user.
-   * Operators stay available to the customizations, so the field can still be used
-   * as the key of a custom relation.
-   * @param name the name of the field with filtering to be disabled
+   * Disable filtering on a specific column or relation for the end-user.
+   * Operators stay available to the customizations, so a column can still be used
+   * as the key of a custom relation, and a relation can still be used by code segments and search.
+   * Filters coming from the UI or the API (including UI segments and saved views) are rejected.
+   * @param name the name of the column, or of the many to one / one to one relation
    * @example
-   * .disableFieldFiltering('authorId');
+   * .disableFieldFiltering('referenceCode')
+   * .disableFieldFiltering('author');
    */
-  disableFieldFiltering(name: TColumnName<S, N>): this {
+  disableFieldFiltering(name: TColumnNameAndRelationName<S, N>): this {
     return this.pushCustomization(async () => {
       this.stack.schema.getCollection(this.name).disableFieldFiltering(name);
     });

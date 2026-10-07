@@ -94,4 +94,64 @@ describe('SchemaGeneratorFields > One to One', () => {
       validations: [],
     });
   });
+
+  describe('when the relations are not filterable', () => {
+    const setupWithUnfilterableRelations = () =>
+      factories.dataSource.buildWithCollections([
+        factories.collection.build({
+          name: 'books',
+          schema: factories.collectionSchema.build({
+            fields: {
+              bookPk: factories.columnSchema.numericPrimaryKey().build(),
+              authorId: factories.columnSchema.build({
+                columnType: 'String',
+                filterOperators: new Set(['Equal']),
+              }),
+              author: factories.manyToOneSchema.build({
+                foreignCollection: 'persons',
+                foreignKey: 'authorId',
+                foreignKeyTarget: 'personsPk',
+                isFilterable: false,
+              }),
+            },
+          }),
+        }),
+        factories.collection.build({
+          name: 'persons',
+          schema: factories.collectionSchema.build({
+            fields: {
+              personsPk: factories.columnSchema.build({
+                columnType: 'String',
+                isPrimaryKey: true,
+                filterOperators: new Set(['Equal']),
+              }),
+              book: factories.oneToOneSchema.build({
+                foreignCollection: 'books',
+                originKey: 'authorId',
+                originKeyTarget: 'personsPk',
+                isFilterable: false,
+              }),
+            },
+          }),
+        }),
+      ]);
+
+    test('should mark the one to one as not filterable', () => {
+      const schema = SchemaGeneratorFields.buildSchema(
+        setupWithUnfilterableRelations().getCollection('persons'),
+        'book',
+      );
+
+      expect(schema.isFilterable).toBe(false);
+    });
+
+    test('should mark the many to one as not filterable', () => {
+      const schema = SchemaGeneratorFields.buildSchema(
+        setupWithUnfilterableRelations().getCollection('books'),
+        'author',
+      );
+
+      expect(schema.isFilterable).toBe(false);
+    });
+  });
 });

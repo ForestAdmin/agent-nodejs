@@ -33,3 +33,37 @@ export function groupByRecordKey<T>(
 
   return byKey;
 }
+
+const RESOURCE_ID_KEY = 'id';
+
+export interface PublishedRecordKey {
+  recordKey: string | null;
+  sharesRecordKeyWith?: string[];
+}
+
+export function publishedRecordKeys(
+  namesOfEveryField: readonly string[],
+): Map<string, PublishedRecordKey> {
+  const published = new Map<string, PublishedRecordKey>();
+
+  for (const [key, group] of groupByRecordKey(namesOfEveryField, name => name)) {
+    const names = [...new Set(group)];
+
+    if (key === RESOURCE_ID_KEY) {
+      names
+        .filter(name => name !== RESOURCE_ID_KEY)
+        .forEach(name => published.set(name, { recordKey: null }));
+    } else if (names.length > 1) {
+      names.forEach(name =>
+        published.set(name, {
+          recordKey: key,
+          sharesRecordKeyWith: names.filter(other => other !== name),
+        }),
+      );
+    } else if (key !== names[0]) {
+      published.set(names[0], { recordKey: key });
+    }
+  }
+
+  return published;
+}

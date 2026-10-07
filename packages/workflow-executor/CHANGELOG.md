@@ -1,3 +1,49 @@
+## @forestadmin/workflow-executor [1.31.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.31.7...@forestadmin/workflow-executor@1.31.8) (2026-10-07)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.18.0
+
+## @forestadmin/workflow-executor [1.31.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.31.6...@forestadmin/workflow-executor@1.31.7) (2026-10-07)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.17.1
+* **@forestadmin/ai-proxy:** upgraded to 1.14.3
+* **@forestadmin/forestadmin-client:** upgraded to 1.43.5
+
+## @forestadmin/workflow-executor [1.31.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.31.5...@forestadmin/workflow-executor@1.31.6) (2026-10-06)
+
+
+### Bug Fixes
+
+* **workflow-executor:** apply AI form values in the form's field order ([#1973](https://github.com/ForestAdmin/agent-nodejs/issues/1973)) ([8016ff9](https://github.com/ForestAdmin/agent-nodejs/commit/8016ff990a815d8b7bbeb9a70b0a978e38a17772))
+
+## @forestadmin/workflow-executor [1.31.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.31.4...@forestadmin/workflow-executor@1.31.5) (2026-10-06)
+
+
+### Bug Fixes
+
+* **workflow-executor:** keep the backend refusal message when a Full AI step pauses ([#1963](https://github.com/ForestAdmin/agent-nodejs/issues/1963)) ([5d5bce6](https://github.com/ForestAdmin/agent-nodejs/commit/5d5bce67ac5424e47eea4cd5d90c97a08d05f6ea))
+
+## @forestadmin/workflow-executor [1.31.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.31.3...@forestadmin/workflow-executor@1.31.4) (2026-10-05)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.17.0
+
 ## @forestadmin/workflow-executor [1.31.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.31.2...@forestadmin/workflow-executor@1.31.3) (2026-10-05)
 
 

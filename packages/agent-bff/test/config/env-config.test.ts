@@ -506,9 +506,6 @@ describe('parseConfig', () => {
       'https://user:password@bff.example.com',
       'https://user@bff.example.com',
       'HTTPS://user:password@bff.example.com',
-      'https:/user:password@bff.example.com',
-      'https:user:password@bff.example.com',
-      String.raw`https:\\user:password@bff.example.com`,
     ])(
       'should reject the credentials in %j, which every reader of the document would receive',
       value => {
@@ -520,6 +517,19 @@ describe('parseConfig', () => {
         );
       },
     );
+
+    it.each([
+      'https:/user:password@bff.example.com',
+      'https:user:password@bff.example.com',
+      String.raw`https:\\user:password@bff.example.com`,
+    ])('should reject the malformed credentialed URL %j as an invalid URL', value => {
+      expect(() => parseConfig({ ...VALID_ENV, BFF_PUBLIC_URL: value })).toThrow(
+        ConfigurationError,
+      );
+      expect(() => parseConfig({ ...VALID_ENV, BFF_PUBLIC_URL: value })).toThrow(
+        /BFF_PUBLIC_URL must be a valid http\(s\) URL/,
+      );
+    });
 
     it('should not echo the offending value', () => {
       expect(() => parseConfig({ ...VALID_ENV, BFF_PUBLIC_URL: 'not-a-url-secret' })).not.toThrow(

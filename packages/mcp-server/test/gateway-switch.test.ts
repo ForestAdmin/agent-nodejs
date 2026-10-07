@@ -141,6 +141,25 @@ const rowsFor = (P: string): Row[] => [
     `/.well-known/oauth-protected-resource${P}/mcp`,
   ],
   ['get', `/.well-known/oauth-authorization-server${P}`, 'api', 'host'],
+  ['get', '/.well-known/acme-challenge/tok123', 'mcp,api', 'host'],
+  ['get', '/.well-known/security.txt', 'mcp,api', 'host'],
+  ['get', '/.well-known/openid-configuration', 'mcp,api', 'host'],
+  ['get', `/.well-known/oauth-protected-resource${P}`, 'mcp,api', 'host'],
+  ['get', `/.well-known/oauth-protected-resource${P}/mcp/extra`, 'mcp,api', 'host'],
+  [
+    'options',
+    `/.well-known/oauth-authorization-server${P}`,
+    'mcp,api',
+    'mcp',
+    `/.well-known/oauth-authorization-server${P}`,
+  ],
+  [
+    'head',
+    `/.well-known/oauth-protected-resource${P}/mcp`,
+    'mcp,api',
+    'mcp',
+    `/.well-known/oauth-protected-resource${P}/mcp`,
+  ],
 ];
 
 const rowsOutsidePrefix = (P: string): Row[] => [

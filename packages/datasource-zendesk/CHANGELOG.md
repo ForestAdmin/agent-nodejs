@@ -1,3 +1,14 @@
+## @forestadmin/datasource-zendesk [1.0.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-zendesk@1.0.7...@forestadmin/datasource-zendesk@1.0.8) (2026-10-07)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.56.0
+* **@forestadmin/datasource-customizer:** upgraded to 1.73.0
+
 ## @forestadmin/datasource-zendesk [1.0.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-zendesk@1.0.6...@forestadmin/datasource-zendesk@1.0.7) (2026-10-02)
 
 

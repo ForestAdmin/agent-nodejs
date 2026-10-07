@@ -1,6 +1,9 @@
 import type { FileUploadsOptions } from '../file-uploads/types';
+import type { McpEnvLabels } from '../mcp-env';
 
 import * as path from 'path';
+
+import { DEFAULT_MCP_ENV_LABELS } from '../mcp-env';
 
 // A module is free to throw a non-Error, and reading .message off it yields undefined.
 const describe = (error: unknown) => (error instanceof Error ? error.message : String(error));
@@ -22,6 +25,9 @@ const withCause = (message: string, cause: unknown) => Object.assign(new Error(m
  */
 export default async function loadFileUploads(
   modulePath?: string,
+  {
+    uploadStorageModule: label = DEFAULT_MCP_ENV_LABELS.uploadStorageModule,
+  }: Partial<McpEnvLabels> = {},
 ): Promise<FileUploadsOptions | undefined> {
   if (!modulePath) return undefined;
 
@@ -44,10 +50,8 @@ export default async function loadFileUploads(
 
     throw withCause(
       absent
-        ? `FOREST_MCP_UPLOAD_STORAGE_MODULE "${modulePath}" was not found (resolved to ${resolved}).`
-        : `FOREST_MCP_UPLOAD_STORAGE_MODULE "${modulePath}" failed while loading: ${describe(
-            error,
-          )}`,
+        ? `${label} "${modulePath}" was not found (resolved to ${resolved}).`
+        : `${label} "${modulePath}" failed while loading: ${describe(error)}`,
       error,
     );
   }
@@ -61,9 +65,7 @@ export default async function loadFileUploads(
     // The sync path above is wrapped; a rejecting factory would otherwise surface with no mention
     // of the module it came from.
     throw withCause(
-      `FOREST_MCP_UPLOAD_STORAGE_MODULE "${modulePath}" failed while building the options: ${describe(
-        error,
-      )}`,
+      `${label} "${modulePath}" failed while building the options: ${describe(error)}`,
       error,
     );
   }
@@ -72,7 +74,7 @@ export default async function loadFileUploads(
   // is a mistake, most likely a module that forgot to export.
   if (!options || typeof options !== 'object') {
     throw new Error(
-      `FOREST_MCP_UPLOAD_STORAGE_MODULE "${modulePath}" must export the fileUploads options, or a ` +
+      `${label} "${modulePath}" must export the fileUploads options, or a ` +
         'function returning them. See the fileUploads section of the mcp-server README.',
     );
   }
@@ -89,7 +91,7 @@ export default async function loadFileUploads(
 
     if (missing.length) {
       throw new Error(
-        `FOREST_MCP_UPLOAD_STORAGE_MODULE "${modulePath}" exports a storage missing ` +
+        `${label} "${modulePath}" exports a storage missing ` +
           `${missing.join(', ')}. An UploadStorage implements createUploadUrl, download and ` +
           'getSize. Omit the storage entirely to use the in-memory store on purpose.',
       );

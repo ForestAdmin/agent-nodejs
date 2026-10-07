@@ -199,6 +199,32 @@ describe('ForestMCPServer Instance', () => {
       await expect(server.run()).rejects.toThrow(/MCP_SERVER_PORT=0 binds a port chosen by the OS/);
     });
 
+    it('ignores the ambient option variables when given constructor options', async () => {
+      process.env.MCP_SERVER_PORT = '0';
+      process.env.FOREST_MCP_SERVER_URL = 'https://mcp.example.com';
+      process.env.FOREST_MCP_FILE_UPLOADS = 'invalid';
+      process.env.FOREST_MCP_ACCESS_TOKEN_TTL_SECONDS = 'invalid';
+
+      try {
+        server = new ForestMCPServer({
+          authSecret: 'AUTH_SECRET',
+          envSecret: 'ENV_SECRET',
+          fileUploads: false,
+          forestServerClient: createMockForestServerClient(),
+        });
+
+        await expect(server.run()).resolves.toBeUndefined();
+        await new Promise(resolve => {
+          setTimeout(resolve, 500);
+        });
+
+        expect((server.httpServer as http.Server).listening).toBe(true);
+      } finally {
+        delete process.env.FOREST_MCP_FILE_UPLOADS;
+        delete process.env.FOREST_MCP_ACCESS_TOKEN_TTL_SECONDS;
+      }
+    });
+
     it('binds an ephemeral port on MCP_SERVER_PORT=0 rather than falling back to 3931', async () => {
       process.env.MCP_SERVER_PORT = '0';
       process.env.FOREST_MCP_SERVER_URL = 'https://mcp.example.com';
@@ -1317,7 +1343,7 @@ describe('ForestMCPServer Instance', () => {
       );
       expect(listTool).toBeDefined();
       expect(listTool.description).toBe(
-        'Retrieve a list of records from the specified collection.',
+        'Retrieve a list of records from the specified collection. Send schema field names; read each value under its `recordKey` when describeCollection publishes one. Never read a field whose `recordKey` is null; project a field listing `sharesRecordKeyWith` without the fields it lists.',
       );
       expect(listTool.inputSchema).toBeDefined();
       expect(listTool.inputSchema.properties).toHaveProperty('collectionName');
@@ -2966,6 +2992,71 @@ describe('basePath prefix', () => {
         expect(next).toHaveBeenCalledTimes(1);
       },
     );
+  });
+
+  describe.each([
+    ['', '/.well-known/oauth-protected-resource/mcp'],
+    ['/ai', '/.well-known/oauth-protected-resource/ai/mcp'],
+  ])('started callback with basePath %p and the host .well-known', (basePath, resourcePath) => {
+    let callbackServer: http.Server;
+
+    beforeEach(async () => {
+      mockForestFetch();
+      const server = new ForestMCPServer({
+        envSecret: 'ENV_SECRET',
+        authSecret: 'AUTH_SECRET',
+        forestServerClient: createMockForestServerClient(),
+        basePath,
+      });
+      const callback = await server.getHttpCallback(new URL('http://localhost:3000'));
+      callbackServer = http.createServer((req, res) =>
+        callback(req, res, () => {
+          res.setHeader('x-target', 'host');
+          res.end('host');
+        }),
+      );
+    });
+
+    afterEach(async () => {
+      await shutDownHttpServer(callbackServer);
+    });
+
+    it.each([
+      '/.well-known/acme-challenge/tok123',
+      '/.well-known/security.txt',
+      '/.well-known/openid-configuration',
+      `/.well-known/oauth-protected-resource${basePath}`,
+      `${resourcePath}/extra`,
+    ])('lets %p reach the host', async url => {
+      const response = await request(callbackServer).get(url);
+
+      expect(response.status).toBe(200);
+      expect(response.headers['x-target']).toBe('host');
+    });
+
+    it('still serves its own RFC 9728 protected-resource document', async () => {
+      const response = await request(callbackServer).get(resourcePath);
+
+      expect(response.status).toBe(200);
+      expect(response.headers['x-target']).toBeUndefined();
+      expect(response.body.resource).toBe(`http://localhost:3000${basePath}/mcp`);
+    });
+
+    it('answers the CORS preflight of its own discovery document', async () => {
+      const response = await request(callbackServer).options(
+        `/.well-known/oauth-authorization-server${basePath}`,
+      );
+
+      expect(response.status).toBe(204);
+      expect(response.headers['x-target']).toBeUndefined();
+      expect(response.headers['access-control-allow-origin']).toBe('*');
+    });
+
+    it('keeps HEAD on its own discovery document instead of handing it to the host', async () => {
+      const response = await request(callbackServer).head(resourcePath);
+
+      expect(response.headers['x-target']).toBeUndefined();
+    });
   });
 });
 

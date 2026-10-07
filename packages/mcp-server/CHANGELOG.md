@@ -1,3 +1,58 @@
+# @forestadmin/mcp-server [1.28.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.27.2...@forestadmin/mcp-server@1.28.0) (2026-10-07)
+
+
+### Features
+
+* **mcp-server:** tell the model which fields a record cannot be read under ([#1977](https://github.com/ForestAdmin/agent-nodejs/issues/1977)) ([6ff083e](https://github.com/ForestAdmin/agent-nodejs/commit/6ff083e9938c7857020dc8e12e4b62921883a8f5))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.18.0
+
+## @forestadmin/mcp-server [1.27.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.27.1...@forestadmin/mcp-server@1.27.2) (2026-10-07)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.17.1
+* **@forestadmin/forestadmin-client:** upgraded to 1.43.5
+
+## @forestadmin/mcp-server [1.27.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.27.0...@forestadmin/mcp-server@1.27.1) (2026-10-06)
+
+
+### Bug Fixes
+
+* **mcp-server:** support zod 4.4+ ([#1971](https://github.com/ForestAdmin/agent-nodejs/issues/1971)) ([2d70244](https://github.com/ForestAdmin/agent-nodejs/commit/2d7024446cc09e416f5f6ccf761a05fd8dd762fc))
+
+# @forestadmin/mcp-server [1.27.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.26.0...@forestadmin/mcp-server@1.27.0) (2026-10-06)
+
+
+### Features
+
+* **mcp-server:** claim only the mcp discovery documents under .well-known ([#1969](https://github.com/ForestAdmin/agent-nodejs/issues/1969)) ([fb8f000](https://github.com/ForestAdmin/agent-nodejs/commit/fb8f0008cbef212ee1c3584c38c203ac501624be))
+
+# @forestadmin/mcp-server [1.26.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.25.1...@forestadmin/mcp-server@1.26.0) (2026-10-05)
+
+
+### Features
+
+* **mcp-server:** tell the model which record key holds each schema field ([#1961](https://github.com/ForestAdmin/agent-nodejs/issues/1961)) ([cba8a29](https://github.com/ForestAdmin/agent-nodejs/commit/cba8a299a4733713f0c487e3d2a9e07cb9ab371f))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.17.0
+
 ## @forestadmin/mcp-server [1.25.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.25.0...@forestadmin/mcp-server@1.25.1) (2026-10-05)
 
 

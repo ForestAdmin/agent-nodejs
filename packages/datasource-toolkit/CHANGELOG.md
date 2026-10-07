@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.56.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.55.1...@forestadmin/datasource-toolkit@1.56.0) (2026-10-07)
+
+
+### Features
+
+* allow disable filtering on relation ([#1975](https://github.com/ForestAdmin/agent-nodejs/issues/1975)) ([e942507](https://github.com/ForestAdmin/agent-nodejs/commit/e942507e609d02920d3b8dc31651bb467103434b))
+
 ## @forestadmin/datasource-toolkit [1.55.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.55.0...@forestadmin/datasource-toolkit@1.55.1) (2026-08-25)
 
 
