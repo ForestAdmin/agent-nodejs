@@ -1,4 +1,4 @@
-import type { GatewayEnv } from './gateway-env';
+import type { ApiSettings, GatewayEnv, McpSettings } from './gateway-env';
 import type { ApiHealth, McpHealth } from './standalone-handler';
 import type { Bff, Logger } from '@forestadmin/agent-bff';
 import type { GatewayHandler } from '@forestadmin/mcp-server';
@@ -19,7 +19,7 @@ import {
   parseMcpEnv,
 } from '@forestadmin/mcp-server';
 
-import parseGatewayEnv, { apiBasePath, toBffEnv, toMcpEnv, warnLegacyVars } from './gateway-env';
+import parseGatewayEnv, { apiBasePath } from './gateway-env';
 import createStandaloneHandler, {
   createUnavailableMcpHandler,
   describeGatewayHealth,
@@ -27,6 +27,7 @@ import createStandaloneHandler, {
 import version from './version';
 
 export const GATEWAY_NAME = 'Forest Gateway';
+export const GATEWAY_API_NAME = 'Gateway API';
 
 const MCP_REQUIRED_VARS = ['FOREST_ENV_SECRET', 'FOREST_AUTH_SECRET'] as const;
 
@@ -40,16 +41,17 @@ interface ApiService {
   bff: Bff;
 }
 
-function missingMcpVars(env: NodeJS.ProcessEnv): string[] {
+function missingMcpVars(env: McpSettings['env']): string[] {
   return MCP_REQUIRED_VARS.filter(name => !env[name]?.trim());
 }
 
 async function buildMcpService(
-  env: NodeJS.ProcessEnv,
+  settings: McpSettings,
   gateway: GatewayEnv,
   logger: Logger,
 ): Promise<McpService> {
-  const missing = missingMcpVars(env);
+  const { options, uploadStorageModule } = parseMcpEnv(settings.env, settings.labels);
+  const missing = missingMcpVars(settings.env);
 
   if (missing.length > 0) {
     logger('Error', 'The MCP service is not configured and answers 503 until restart', {
@@ -59,7 +61,6 @@ async function buildMcpService(
     return { handler: createUnavailableMcpHandler(gateway.basePath), health: 'degraded' };
   }
 
-  const { options, uploadStorageModule } = parseMcpEnv(toMcpEnv(env));
   const fileUploads = await loadFileUploads(uploadStorageModule);
   const server = new ForestMCPServer({
     ...options,
@@ -79,17 +80,26 @@ async function buildMcpService(
 }
 
 async function buildApiService(
-  env: NodeJS.ProcessEnv,
+  settings: ApiSettings,
   gateway: GatewayEnv,
   logger: Logger,
 ): Promise<ApiService> {
-  const config = parseConfig(toBffEnv(env, gateway));
+  const config = parseConfig(settings.env, settings.labels);
   const bff = await buildBff({
     config,
     logger,
     basePath: apiBasePath(gateway.basePath),
     gatewayVersion: version,
+    labels: settings.labels,
+    name: GATEWAY_API_NAME,
+    allowedOAuthClients: settings.allowedOAuthClients,
   });
+
+  if (!bff.health().configured.oauth) {
+    logger('Warn', `API sign-in (${gateway.basePath}/oauth/*?service=api) is off`, {
+      ...(!config.tokenEncryptionKey && { set: settings.labels.BFF_TOKEN_ENCRYPTION_KEY }),
+    });
+  }
 
   return {
     handler: {
@@ -143,10 +153,10 @@ export default async function runGateway(
 ): Promise<BFFHttpServer> {
   const gateway = parseGatewayEnv(env);
 
-  warnLegacyVars(env, logger);
+  gateway.warnings.forEach(warning => logger('Warn', warning));
 
-  const mcp = gateway.services.has('mcp') ? await buildMcpService(env, gateway, logger) : undefined;
-  const api = gateway.services.has('api') ? await buildApiService(env, gateway, logger) : undefined;
+  const mcp = gateway.mcp ? await buildMcpService(gateway.mcp, gateway, logger) : undefined;
+  const api = gateway.api ? await buildApiService(gateway.api, gateway, logger) : undefined;
 
   const gatewaySwitch = createGatewaySwitch({
     basePath: gateway.basePath,

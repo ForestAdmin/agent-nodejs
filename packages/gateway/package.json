@@ -33,6 +33,7 @@
   },
   "dependencies": {
     "@forestadmin/agent-bff": "^1.40.0",
+    "@forestadmin/forestadmin-client": "^1.43.5",
     "@forestadmin/mcp-server": "^1.28.0"
   },
   "devDependencies": {

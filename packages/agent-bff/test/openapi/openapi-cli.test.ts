@@ -254,6 +254,24 @@ describe('renderOpenApi', () => {
       /BFF_PUBLIC_URL/,
     );
   });
+
+  it('should name the labelled key of a malformed public url', async () => {
+    await expect(
+      renderOpenApi({ BFF_PUBLIC_URL: 'bff.example.com' }, noopLogger, {
+        labels: { BFF_PUBLIC_URL: 'FOREST_GATEWAY_API_PUBLIC_URL' },
+      }),
+    ).rejects.toThrow(
+      'Invalid configuration: FOREST_GATEWAY_API_PUBLIC_URL must be a valid http(s) URL.',
+    );
+  });
+
+  it('should name the labelled key of a broken setting once unfolding is asked', async () => {
+    await expect(
+      renderOpenApi({ ...VALID_ENV, BFF_AGENT_TIMEOUT_MS: 'nope' }, noopLogger, {
+        labels: { BFF_AGENT_TIMEOUT_MS: 'FOREST_GATEWAY_API_AGENT_TIMEOUT_MS' },
+      }),
+    ).rejects.toThrow('FOREST_GATEWAY_API_AGENT_TIMEOUT_MS must be an integer');
+  });
 });
 
 describe('dispatchCli', () => {
