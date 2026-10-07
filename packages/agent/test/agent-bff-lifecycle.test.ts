@@ -20,11 +20,17 @@ const mockParseConfig = jest.fn();
 const mockInvalidate = jest.fn();
 const mockBffCallback = jest.fn();
 
+const PEER_VERSION: string =
+  jest.requireActual('../package.json').peerDependencies['@forestadmin/agent-bff'];
+
 jest.mock('@forestadmin/agent-bff', () => ({
   __esModule: true,
   IN_PROCESS_AGENT_URL: 'http://in-process.agent',
   parseConfig: (env: unknown) => mockParseConfig(env),
   buildBff: (options: unknown) => mockBuildBff(options),
+  get version() {
+    return PEER_VERSION;
+  },
 }));
 
 const mockExecutorStart = jest.fn();
@@ -272,6 +278,28 @@ describe('the embedded BFF lifecycle', () => {
       expect(logger).toHaveBeenCalledWith(
         'Warn',
         '[BFF] Stopped the embedded BFF with activity logs still in flight ' +
+          '{"timeoutMs":10000,"unfinished":["\'action\' request on \'books\'"]}',
+      );
+    });
+
+    it('should name the Gateway API under addGateway, not the embedded BFF', async () => {
+      const logger = jest.fn();
+      const drainActivityLogs = jest.fn(async () => ["'action' request on 'books'"]);
+      mockBuildBff.mockResolvedValue({
+        callback: mockBffCallback,
+        invalidate: mockInvalidate,
+        drainActivityLogs,
+      });
+      const agent = new Agent(
+        factories.forestAdminHttpDriverOptions.build({ skipSchemaUpdate: true, logger }),
+      ).addGateway({ api: {} });
+      await agent.start();
+
+      await agent.stop();
+
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        '[Gateway API] Stopped the Gateway API with activity logs still in flight ' +
           '{"timeoutMs":10000,"unfinished":["\'action\' request on \'books\'"]}',
       );
     });

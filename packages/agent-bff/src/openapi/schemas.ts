@@ -445,7 +445,7 @@ export const ContextResponseSchema = z
       'not covered either: they carry no `recordKey` and the same transform applies to them. ' +
       'The document carries no rendering, project or team identity, and the only environment ' +
       'datum is `meta.environmentId` below. It is served to both auth modes — an OAuth session ' +
-      'and a Gateway API API key get the same document. It is NOT filtered by the caller permissions: ' +
+      'and a Gateway API key get the same document. It is NOT filtered by the caller permissions: ' +
       'it describes the whole exposed schema minus the endpoint-less actions, so cross it with ' +
       '`/agent/v1/permissions` to know what the caller may actually ' +
       'see. `meta.schemaRevision` increments whenever the Gateway API refreshes its schema, and resets ' +

@@ -475,6 +475,7 @@ function buildAgentMiddlewares(
   basePath: string,
   transport: AgentTransport | undefined,
   metrics: Metrics | undefined,
+  allowedOriginsLabel = 'BFF_ALLOWED_ORIGINS',
 ): AgentEdge {
   const { forestAuthSecret, defaultTimezone } = config;
 
@@ -501,7 +502,11 @@ function buildAgentMiddlewares(
       maxRequests: config.rateLimitMaxRequests,
       windowMs: config.rateLimitWindowMs,
     }),
-    createPerKeyOriginMiddleware({ logger, serverAllowedOrigins: config.allowedOrigins }),
+    createPerKeyOriginMiddleware({
+      logger,
+      serverAllowedOrigins: config.allowedOrigins,
+      allowedOriginsLabel,
+    }),
     createOpenApiRoutes({
       version,
       enabled: config.openapiEnabled,
@@ -592,6 +597,7 @@ export default async function buildBff({
     mountPath,
     transport,
     metrics,
+    label('BFF_ALLOWED_ORIGINS'),
   );
   const agentMiddlewares = agentEdge.middlewares;
   const hasAgentEdge = agentMiddlewares.length > 0;
