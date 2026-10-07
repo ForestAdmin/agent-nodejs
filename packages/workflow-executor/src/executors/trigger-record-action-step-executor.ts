@@ -43,6 +43,29 @@ Important rules:
 - For Enum fields, use exactly one of the allowed values, otherwise leave the field out.
 - Do not invent identifiers, dates, amounts, or file contents that are absent from both the request and the context.`;
 
+function isEmptyValue(value: unknown): boolean {
+  return (
+    value === undefined ||
+    value === null ||
+    value === '' ||
+    (Array.isArray(value) && value.length === 0)
+  );
+}
+
+// A value outside the options is rejected here rather than kept: a field without a change hook
+// keeps it as is, and the AI could never correct it once its options show up.
+function isAmongOptions(field: ActionFormField, value: unknown): boolean {
+  const options = field.enumValues ?? field.allowedValues?.map(option => option.value);
+
+  if (!options) return true;
+
+  const candidates = Array.isArray(value) ? value : [value];
+
+  return candidates.every(candidate =>
+    options.some(option => String(option) === String(candidate)),
+  );
+}
+
 interface ActionTarget extends ActionRef {
   selectedRecordRef: RecordRef;
   isGlobal?: boolean;
@@ -210,6 +233,11 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
 
     // Full AI: submit if all required fields are filled, else fallback (pause) with what was filled.
     if (!filledForm.canExecute) {
+      this.context.logger('Info', 'Full AI left required fields empty', {
+        ...this.logCtx,
+        requiredFields: filledForm.requiredFields,
+      });
+
       return this.pauseForConfirmation(target, reviewState, { reason: 'required-fields-missing' });
     }
 
@@ -272,12 +300,15 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     initialForm: ActionForm,
     isGlobal?: boolean,
   ): Promise<{ aiFilledValues: AiFilledFormValue[]; form: ActionForm }> {
-    const MAX_ITERATIONS = 3;
+    const MAX_ITERATIONS = 10;
     const accumulator: Record<string, unknown> = {};
     const ordered: AiFilledFormValue[] = [];
+    const refilledFields = new Set<string>();
+    let fieldsShownToAi = new Set<string>();
     let form = initialForm;
+    let pass = 0;
 
-    for (let i = 0; i < MAX_ITERATIONS; i += 1) {
+    for (; pass < MAX_ITERATIONS; pass += 1) {
       // eslint-disable-next-line no-await-in-loop
       const aiValues = await this.askAiToFillForm(form);
       let progressed = false;
@@ -289,12 +320,23 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       );
 
       for (const [field, value] of valuesInFormOrder) {
-        const isEmpty = value === undefined || value === null || value === '';
-        const exists = form.fields.some(f => f.name === field);
-        const isNew = !isDeepStrictEqual(accumulator[field], value);
+        const formField = form.fields.find(f => f.name === field);
+        const filledByAi = Object.prototype.hasOwnProperty.call(accumulator, field);
+        // The AI gets one more try on a value the agent emptied (e.g. an Enum not in its options);
+        // without that bound, a hook that keeps emptying it would run the loop to the cap.
+        const emptiedByAgent =
+          filledByAi &&
+          isEmptyValue(formField?.value) &&
+          !refilledFields.has(field) &&
+          !isDeepStrictEqual(accumulator[field], value);
 
-        // Keep only non-empty values for fields that still exist and weren't already set.
-        if (!isEmpty && exists && isNew) {
+        if (
+          !isEmptyValue(value) &&
+          formField &&
+          isAmongOptions(formField, value) &&
+          (!filledByAi || emptiedByAgent)
+        ) {
+          if (filledByAi) refilledFields.add(field);
           accumulator[field] = value;
           ordered.push({ field, value });
           progressed = true;
@@ -304,7 +346,8 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       // No-progress guard: the AI added nothing new this pass → it has no more context to offer.
       if (!progressed) break;
 
-      const fieldsShownToAi = new Set(form.fields.map(f => f.name));
+      const shownThisPass = new Set(form.fields.map(f => f.name));
+      fieldsShownToAi = shownThisPass;
 
       // Re-apply so change hooks reveal/adjust dependent fields for the next pass.
       // eslint-disable-next-line no-await-in-loop
@@ -315,8 +358,19 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
         values: accumulator,
       });
 
-      const revealedFields = form.fields.some(f => !fieldsShownToAi.has(f.name));
+      const revealedFields = form.fields.some(f => !shownThisPass.has(f.name));
       if (form.canExecute && !revealedFields) break;
+    }
+
+    if (pass === MAX_ITERATIONS) {
+      this.context.logger('Warn', 'AI form-fill stopped at the pass limit', {
+        ...this.logCtx,
+        passes: MAX_ITERATIONS,
+        requiredFields: form.requiredFields,
+        fieldsNeverShownToAi: form.fields
+          .map(f => f.name)
+          .filter(name => !fieldsShownToAi.has(name)),
+      });
     }
 
     // Drop any value whose field no longer exists after the hooks (state drift) — fail-safe.

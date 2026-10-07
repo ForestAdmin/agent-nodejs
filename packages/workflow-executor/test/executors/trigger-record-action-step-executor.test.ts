@@ -1391,6 +1391,379 @@ describe('TriggerRecordActionStepExecutor', () => {
       });
     });
 
+    describe('change hooks chained over several passes', () => {
+      const logCtx = {
+        runId: 'run-1',
+        stepId: 'trigger-1',
+        stepIndex: 0,
+        stepType: StepType.TriggerAction,
+        collection: 'customers',
+      };
+
+      function contextFor(
+        model: ExecutionContext['model'],
+        agentPort: AgentPort,
+        runStore: ReturnType<typeof makeMockRunStore>,
+        logger: jest.Mock = jest.fn(),
+      ) {
+        return makeContext({
+          model,
+          agentPort,
+          runStore,
+          logger,
+          stepDefinition: makeStep({
+            executionType: StepExecutionMode.FullyAutomated,
+            preRecordedArgs: {
+              selectedRecordStepId: 'workflow-start',
+              actionName: 'send-welcome-email',
+            },
+          }),
+        });
+      }
+
+      function aiFillsInTurn(invoke: jest.Mock, valuesPerPass: Record<string, unknown>[]) {
+        valuesPerPass.forEach((values, index) => {
+          invoke.mockResolvedValueOnce({
+            tool_calls: [{ name: 'fill_action_form', args: { values }, id: `call_${index}` }],
+          });
+        });
+      }
+
+      function firstValues(chain: { name: string; value: string }[], count: number) {
+        return Object.fromEntries(chain.slice(0, count).map(({ name, value }) => [name, value]));
+      }
+
+      it('submits once every dependent Enum got its options from the field set before it', async () => {
+        const closingChain = [
+          { name: 'closing_reason_initiative', value: 'qonto' },
+          { name: 'closing_reason_category', value: 'fraud' },
+          { name: 'closing_reason_details', value: 'suspicious_operations' },
+          { name: 'closing_reason_origin', value: 'internal_alert' },
+        ];
+        const agentPort = makeMockAgentPort();
+        (agentPort.getActionForm as jest.Mock).mockImplementation(
+          ({ values }: { values?: Record<string, unknown> }) => {
+            const filled = Object.keys(values ?? {}).length;
+
+            return Promise.resolve({
+              fields: closingChain.map(({ name, value }, index) => ({
+                name,
+                type: 'Enum',
+                isRequired: true,
+                enumValues: index <= filled ? [value, 'other'] : [],
+                ...(index < filled && { value }),
+              })),
+              canExecute: filled === closingChain.length,
+              requiredFields: closingChain.slice(filled).map(({ name }) => name),
+              skippedFields: [],
+            });
+          },
+        );
+        (agentPort.executeAction as jest.Mock).mockResolvedValue({ result: { success: 'ok' } });
+        const mockModel = makeMockModel(undefined, 'fill_action_form');
+        aiFillsInTurn(
+          mockModel.invoke,
+          closingChain.map((_, index) => firstValues(closingChain, index + 1)),
+        );
+        const logger = jest.fn();
+
+        await new TriggerRecordActionStepExecutor(
+          contextFor(mockModel.model, agentPort, makeMockRunStore(), logger),
+        ).execute();
+
+        expect(mockModel.invoke).toHaveBeenCalledTimes(4);
+        expect(logger).not.toHaveBeenCalledWith(
+          'Warn',
+          'AI form-fill stopped at the pass limit',
+          expect.anything(),
+        );
+        expect(agentPort.executeAction).toHaveBeenCalledWith(
+          expect.objectContaining({
+            collection: 'customers',
+            action: 'send-welcome-email',
+            id: [42],
+            values: {
+              closing_reason_initiative: 'qonto',
+              closing_reason_category: 'fraud',
+              closing_reason_details: 'suspicious_operations',
+              closing_reason_origin: 'internal_alert',
+            },
+          }),
+          { user: expect.anything(), forestServerToken: undefined },
+        );
+      });
+
+      it('submits the option the AI picks once shown instead of the label it guessed before the options loaded', async () => {
+        const agentPort = makeMockAgentPort();
+        (agentPort.getActionForm as jest.Mock).mockImplementation(
+          ({ values }: { values?: Record<string, unknown> }) => {
+            const category = values?.closing_reason_category;
+            const details = values?.closing_reason_details;
+
+            return Promise.resolve({
+              fields: [
+                {
+                  name: 'closing_reason_category',
+                  type: 'Enum',
+                  isRequired: true,
+                  enumValues: ['fraud', 'other'],
+                  ...(category !== undefined && { value: category }),
+                },
+                {
+                  name: 'closing_reason_details',
+                  type: 'Enum',
+                  isRequired: true,
+                  enumValues: category ? ['suspicious_operations', 'other'] : [],
+                  ...(details !== undefined && { value: details }),
+                },
+              ],
+              canExecute: category !== undefined && details !== undefined,
+              requiredFields: [
+                ...(category === undefined ? ['closing_reason_category'] : []),
+                ...(details === undefined ? ['closing_reason_details'] : []),
+              ],
+              skippedFields: [],
+            });
+          },
+        );
+        (agentPort.executeAction as jest.Mock).mockResolvedValue({ result: { success: 'ok' } });
+        const mockModel = makeMockModel(undefined, 'fill_action_form');
+        aiFillsInTurn(mockModel.invoke, [
+          { closing_reason_category: 'fraud', closing_reason_details: 'Suspicious operations' },
+          { closing_reason_category: 'fraud', closing_reason_details: 'suspicious_operations' },
+        ]);
+
+        await new TriggerRecordActionStepExecutor(
+          contextFor(mockModel.model, agentPort, makeMockRunStore()),
+        ).execute();
+
+        expect(mockModel.invoke).toHaveBeenCalledTimes(2);
+        expect(agentPort.executeAction).toHaveBeenCalledWith(
+          expect.objectContaining({
+            collection: 'customers',
+            action: 'send-welcome-email',
+            id: [42],
+            values: {
+              closing_reason_category: 'fraud',
+              closing_reason_details: 'suspicious_operations',
+            },
+          }),
+          { user: expect.anything(), forestServerToken: undefined },
+        );
+      });
+
+      it('submits a chain of five required fields each revealed by the one before it', async () => {
+        const chain = [
+          { name: 'country', value: 'FR' },
+          { name: 'region', value: 'IDF' },
+          { name: 'city', value: 'Paris' },
+          { name: 'branch', value: 'Paris 8' },
+          { name: 'advisor', value: 'jdoe' },
+        ];
+        const agentPort = makeMockAgentPort();
+        (agentPort.getActionForm as jest.Mock).mockImplementation(
+          ({ values }: { values?: Record<string, unknown> }) => {
+            const filled = Object.keys(values ?? {}).length;
+
+            return Promise.resolve({
+              fields: chain.slice(0, filled + 1).map(({ name, value }, index) => ({
+                name,
+                type: 'String',
+                isRequired: true,
+                ...(index < filled && { value }),
+              })),
+              canExecute: filled === chain.length,
+              requiredFields: chain.slice(filled, filled + 1).map(({ name }) => name),
+              skippedFields: [],
+            });
+          },
+        );
+        (agentPort.executeAction as jest.Mock).mockResolvedValue({ result: { success: 'ok' } });
+        const mockModel = makeMockModel(undefined, 'fill_action_form');
+        aiFillsInTurn(
+          mockModel.invoke,
+          chain.map((_, index) => firstValues(chain, index + 1)),
+        );
+
+        await new TriggerRecordActionStepExecutor(
+          contextFor(mockModel.model, agentPort, makeMockRunStore()),
+        ).execute();
+
+        expect(mockModel.invoke).toHaveBeenCalledTimes(5);
+        expect(agentPort.executeAction).toHaveBeenCalledWith(
+          expect.objectContaining({
+            collection: 'customers',
+            action: 'send-welcome-email',
+            id: [42],
+            values: {
+              country: 'FR',
+              region: 'IDF',
+              city: 'Paris',
+              branch: 'Paris 8',
+              advisor: 'jdoe',
+            },
+          }),
+          { user: expect.anything(), forestServerToken: undefined },
+        );
+      });
+
+      it('keeps the first value of a field the AI rewords on every later pass', async () => {
+        const agentPort = makeMockAgentPort();
+        (agentPort.getActionForm as jest.Mock)
+          .mockResolvedValueOnce({
+            fields: [
+              { name: 'reason', type: 'String', isRequired: true },
+              { name: 'iban', type: 'String', isRequired: true },
+            ],
+            canExecute: false,
+            requiredFields: ['reason', 'iban'],
+            skippedFields: [],
+          })
+          .mockResolvedValue({
+            fields: [
+              { name: 'reason', type: 'String', isRequired: true, value: 'Closing request #1' },
+              { name: 'iban', type: 'String', isRequired: true },
+            ],
+            canExecute: false,
+            requiredFields: ['iban'],
+            skippedFields: [],
+          });
+        const mockModel = makeMockModel(undefined, 'fill_action_form');
+        let wording = 0;
+        mockModel.invoke.mockImplementation(() => {
+          wording += 1;
+
+          return Promise.resolve({
+            tool_calls: [
+              {
+                name: 'fill_action_form',
+                args: { values: { reason: `Closing request #${wording}` } },
+                id: `call_${wording}`,
+              },
+            ],
+          });
+        });
+        const runStore = makeMockRunStore();
+
+        await new TriggerRecordActionStepExecutor(
+          contextFor(mockModel.model, agentPort, runStore),
+        ).execute();
+
+        expect(mockModel.invoke).toHaveBeenCalledTimes(2);
+        expect(agentPort.executeAction).not.toHaveBeenCalled();
+        expect(runStore.saveStepExecution).toHaveBeenLastCalledWith(
+          'run-1',
+          expect.objectContaining({
+            pendingData: expect.objectContaining({
+              form: expect.objectContaining({
+                aiFilledValues: [{ field: 'reason', value: 'Closing request #1' }],
+              }),
+              fullAiFallback: { reason: 'required-fields-missing' },
+            }),
+          }),
+        );
+      });
+
+      it('lets the AI replace a valid Enum value the agent emptied only once', async () => {
+        const agentPort = makeMockAgentPort();
+        (agentPort.getActionForm as jest.Mock).mockResolvedValue({
+          fields: [
+            {
+              name: 'plan',
+              type: 'Enum',
+              isRequired: true,
+              enumValues: ['basic', 'premium', 'enterprise'],
+            },
+          ],
+          canExecute: false,
+          requiredFields: ['plan'],
+          skippedFields: [],
+        });
+        const mockModel = makeMockModel({ values: { plan: 'enterprise' } }, 'fill_action_form');
+        aiFillsInTurn(mockModel.invoke, [{ plan: 'basic' }, { plan: 'premium' }]);
+        const runStore = makeMockRunStore();
+
+        const result = await new TriggerRecordActionStepExecutor(
+          contextFor(mockModel.model, agentPort, runStore),
+        ).execute();
+
+        expect(mockModel.invoke).toHaveBeenCalledTimes(3);
+        expect(agentPort.getActionForm).toHaveBeenCalledTimes(3);
+        expect(agentPort.getActionForm).toHaveBeenLastCalledWith(
+          {
+            collection: 'customers',
+            action: 'send-welcome-email',
+            id: [42],
+            values: { plan: 'premium' },
+          },
+          expect.objectContaining({ id: 1, email: 'test@example.com' }),
+        );
+        expect(result.stepOutcome.status).toBe('awaiting-input');
+        expect(agentPort.executeAction).not.toHaveBeenCalled();
+        expect(runStore.saveStepExecution).toHaveBeenLastCalledWith(
+          'run-1',
+          expect.objectContaining({
+            pendingData: expect.objectContaining({
+              form: expect.objectContaining({
+                aiFilledValues: [
+                  { field: 'plan', value: 'basic' },
+                  { field: 'plan', value: 'premium' },
+                ],
+              }),
+              fullAiFallback: { reason: 'required-fields-missing' },
+            }),
+          }),
+        );
+      });
+
+      it('warns with the fields left out when the form still reveals one at the pass limit', async () => {
+        const agentPort = makeMockAgentPort();
+        (agentPort.getActionForm as jest.Mock).mockImplementation(
+          ({ values }: { values?: Record<string, unknown> }) => {
+            const filled = Object.keys(values ?? {}).length;
+            const steps = Array.from({ length: filled + 1 }, (_, index) => ({
+              name: `step_${index + 1}`,
+              type: 'String',
+              isRequired: true,
+              ...(index < filled && { value: `value_${index + 1}` }),
+            }));
+
+            return Promise.resolve({
+              fields: [{ name: 'iban', type: 'String', isRequired: true }, ...steps],
+              canExecute: false,
+              requiredFields: ['iban', `step_${filled + 1}`],
+              skippedFields: [],
+            });
+          },
+        );
+        const mockModel = makeMockModel(undefined, 'fill_action_form');
+        let pass = 0;
+        mockModel.invoke.mockImplementation(() => {
+          pass += 1;
+          const values = Object.fromEntries(
+            Array.from({ length: pass }, (_, index) => [`step_${index + 1}`, `value_${index + 1}`]),
+          );
+
+          return Promise.resolve({
+            tool_calls: [{ name: 'fill_action_form', args: { values }, id: `call_${pass}` }],
+          });
+        });
+        const logger = jest.fn();
+
+        await new TriggerRecordActionStepExecutor(
+          contextFor(mockModel.model, agentPort, makeMockRunStore(), logger),
+        ).execute();
+
+        expect(mockModel.invoke).toHaveBeenCalledTimes(10);
+        expect(logger).toHaveBeenCalledWith('Warn', 'AI form-fill stopped at the pass limit', {
+          ...logCtx,
+          passes: 10,
+          requiredFields: ['iban', 'step_11'],
+          fieldsNeverShownToAi: ['step_11'],
+        });
+      });
+    });
+
     it('falls back to the AI-assisted review state when a required field stays empty', async () => {
       const agentPort = makeMockAgentPort();
       (agentPort.getActionForm as jest.Mock).mockResolvedValue({
@@ -1426,6 +1799,44 @@ describe('TriggerRecordActionStepExecutor', () => {
           }),
         }),
       );
+    });
+
+    it('logs the required fields still empty when Full AI falls back to the review state', async () => {
+      const agentPort = makeMockAgentPort();
+      (agentPort.getActionForm as jest.Mock).mockResolvedValue({
+        fields: [
+          { name: 'amount', type: 'Number', isRequired: true },
+          { name: 'iban', type: 'String', isRequired: true },
+        ],
+        canExecute: false,
+        requiredFields: ['amount', 'iban'],
+        skippedFields: [],
+      });
+      const logger = jest.fn();
+      const context = makeContext({
+        model: makeMockModel({ values: {} }, 'fill_action_form').model,
+        agentPort,
+        runStore: makeMockRunStore(),
+        logger,
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          preRecordedArgs: {
+            selectedRecordStepId: 'workflow-start',
+            actionName: 'send-welcome-email',
+          },
+        }),
+      });
+
+      await new TriggerRecordActionStepExecutor(context).execute();
+
+      expect(logger).toHaveBeenCalledWith('Info', 'Full AI left required fields empty', {
+        runId: 'run-1',
+        stepId: 'trigger-1',
+        stepIndex: 0,
+        stepType: StepType.TriggerAction,
+        collection: 'customers',
+        requiredFields: ['amount', 'iban'],
+      });
     });
 
     it('falls back to AI-assisted when the action requires an approval', async () => {
