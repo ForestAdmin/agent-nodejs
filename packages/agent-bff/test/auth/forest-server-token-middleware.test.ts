@@ -205,9 +205,10 @@ describe('forest server token middleware', () => {
         authMode: 'oauth',
         principal: { sid: SESSION_ID, rendering_id: String(RENDERING_ID) },
       });
+      const logger = jest.fn();
       const middleware = createForestServerTokenMiddleware({
         session: { store, serverClient },
-        logger: () => undefined,
+        logger,
       });
       await middleware(ctx, async () => undefined);
 
@@ -216,6 +217,7 @@ describe('forest server token middleware', () => {
         type: 'plan_feature_missing',
         message: "The project's plan does not include the Gateway API.",
       });
+      expect(logger).not.toHaveBeenCalledWith('Error', expect.anything(), expect.anything());
     });
 
     it('should refuse with session_expired when the deployment carries no session store', async () => {

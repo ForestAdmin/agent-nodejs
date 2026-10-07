@@ -277,7 +277,10 @@ async function exchangeForServerTokens(
     return await options.serverClient.exchangeCode(request);
   } catch (error) {
     if (error instanceof OAuthExchangeError) {
-      options.logger('Warn', 'Forest server code exchange rejected', { saasError: error.error });
+      options.logger('Warn', 'Forest server code exchange rejected', {
+        saasError: error.error,
+        reason: error.reason,
+      });
       throw toSafeExchangeError(error);
     }
 

@@ -60,6 +60,8 @@ async function resolveToken(
       logger,
     });
   } catch (error) {
+    if (error instanceof OAuthRequestError && error.type === 'plan_feature_missing') throw error;
+
     // The errors below carry neither the cause nor a `cause` field, so this line is the only place
     // the operator ever sees what actually failed — a broken session store reads as an audit
     // outage otherwise.
@@ -74,8 +76,6 @@ async function resolveToken(
     if (error instanceof OAuthRequestError && error.status === UNAUTHORIZED) {
       throw sessionExpired(NO_SESSION_MESSAGE);
     }
-
-    if (error instanceof OAuthRequestError && error.type === 'plan_feature_missing') throw error;
 
     throw auditUnavailable(AUDIT_RETRY_AFTER_SECONDS);
   }

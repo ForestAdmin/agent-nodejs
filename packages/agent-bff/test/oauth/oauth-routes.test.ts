@@ -602,7 +602,7 @@ describe('oauth-routes POST /oauth/token', () => {
       const exchangeCode = jest.fn(async () => {
         throw new OAuthExchangeError('access_denied', 'no Gateway API', 'plan_feature_missing');
       });
-      const { app } = buildApp(stubServerClient({ exchangeCode }));
+      const { app, logs } = buildApp(stubServerClient({ exchangeCode }));
 
       const response = await request(app.callback()).post('/oauth/token').send(TOKEN_BODY);
       const replay = await request(app.callback()).post('/oauth/token').send(TOKEN_BODY);
@@ -615,6 +615,11 @@ describe('oauth-routes POST /oauth/token', () => {
       expect(replay.status).toBe(400);
       expect(replay.body.error).toBe('invalid_grant');
       expect(exchangeCode).toHaveBeenCalledTimes(1);
+      expect(logs).toContainEqual({
+        level: 'Warn',
+        message: 'Forest server code exchange rejected',
+        context: { saasError: 'access_denied', reason: 'plan_feature_missing' },
+      });
     });
 
     it('should keep the 502 server_error for an access_denied carrying another reason', async () => {
