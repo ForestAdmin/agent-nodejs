@@ -217,6 +217,14 @@ treated as gone: an id freed by a delete and taken by another record since answe
 for the rows of the record that held it before. And the re-read runs even for a record already gone
 at the first check, so an id since taken by a record the caller cannot read is refused (404).
 
+**An id freed by a delete and taken since has two lives.** A live record in the caller's scope says
+nothing about the rows filed under its id before the id's last confirmed `delete`: they are an
+earlier record's. Those rows go through the same withholding as a record gone for good — on the
+history route (with `search` and `fields` matched against the served values, so the count and the
+authors cannot leak them either), on the correlation lookups, and on `/state`, whose reconstruction
+at or before that `delete` is tested against the scope. A `pending` delete frees nothing, since it may
+never have landed.
+
 That test only runs when the snapshot can actually answer it. The capture keeps the writable columns
 (plus the packed record id), so a scope reaching for anything else — a read-only column, a relation,
 a field stored redacted — has no honest answer in the snapshot and the values are withheld rather

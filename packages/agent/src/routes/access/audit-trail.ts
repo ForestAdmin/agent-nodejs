@@ -17,6 +17,7 @@ import {
 } from '@forestadmin/datasource-toolkit';
 
 import { REDACTED, jsonEscaped, revertRecord } from '../../audit-trail';
+import { belongsToEarlierLife, lastDeleteOf } from '../../audit-trail/earlier-life';
 import {
   parseDateBoundary,
   parseFields,
@@ -96,8 +97,8 @@ export default class AuditTrailRoute extends CollectionRoute {
 
     const filtersOnValues = Boolean(fields || search);
 
-    const serveMatchedValues = async (scope: ConditionTree) => {
-      const matched = await this.scanServedValues(context, scope, rowFilters, {
+    const serveMatchedValues = async (withholdServed: (rows: AuditRecord[]) => AuditRecord[]) => {
+      const matched = await this.scanServedValues(context, withholdServed, rowFilters, {
         fields,
         search,
         order,
@@ -116,8 +117,23 @@ export default class AuditTrailRoute extends CollectionRoute {
       };
     };
 
+    const withholdAll = (rows: AuditRecord[]) =>
+      permissionScope ? this.withhold(rows, permissionScope, context) : rows;
+
     if (permissionScope && goneEntirely && filtersOnValues) {
-      await serveMatchedValues(permissionScope);
+      await serveMatchedValues(withholdAll);
+
+      // Gone at the check, so everything stays withheld whatever the re-read finds; it is asked
+      // only for the 404, when the id has since been taken by a record this caller cannot read.
+      const recheck = await recheckRecordVisibility(
+        this.collection,
+        context.params.id,
+        context,
+        permissionScope,
+        goneEntirely,
+      );
+
+      if (recheck && !recheck.visible) context.throw(HttpCode.NotFound, 'Record does not exists');
 
       return;
     }
@@ -150,10 +166,27 @@ export default class AuditTrailRoute extends CollectionRoute {
 
     const gone = after ? after.goneEntirely : goneEntirely;
 
-    // Gone between the check and the read: this answer withholds, so the rows, count and authors
-    // matched in SQL above must not decide what is served either.
-    if (permissionScope && gone && filtersOnValues) {
-      await serveMatchedValues(permissionScope);
+    // Live now, but the id may have been freed by a delete and taken since: the rows up to that
+    // delete are the earlier record's, which the current one's scope says nothing about.
+    const lastDelete =
+      permissionScope && !gone
+        ? await lastDeleteOf(store, this.collection.name, context.params.id)
+        : null;
+
+    const withholdServed = gone
+      ? withholdAll
+      : (rows: AuditRecord[]) => {
+          const withheld = withholdAll(rows);
+
+          return rows.map((row, index) =>
+            belongsToEarlierLife(row, lastDelete) ? withheld[index] : row,
+          );
+        };
+
+    // Gone between the check and the read, or carrying an earlier life: this answer withholds, so
+    // the rows, count and authors matched in SQL above must not decide what is served either.
+    if (permissionScope && (gone || lastDelete) && filtersOnValues) {
+      await serveMatchedValues(withholdServed);
 
       return;
     }
@@ -162,9 +195,8 @@ export default class AuditTrailRoute extends CollectionRoute {
     // existence against — but create/update/delete rows still carry captured column values from
     // when the record existed. If those values themselves would have failed the caller's permission scope,
     // withhold them while still surfacing that the row happened, by whom and when: that part
-    // stays visible regardless.
-    const data =
-      permissionScope && gone ? this.withhold(rawData, permissionScope, context) : rawData;
+    // stays visible regardless. The same holds for an earlier record that held this id.
+    const data = permissionScope && (gone || lastDelete) ? withholdServed(rawData) : rawData;
 
     context.response.body = {
       data: data.map(({ previousRecordId, ...served }) => served),
@@ -180,7 +212,7 @@ export default class AuditTrailRoute extends CollectionRoute {
   // bounded at the instant the scan starts so an id taken since cannot keep it chasing new rows.
   private async scanServedValues(
     context: Context,
-    permissionScope: ConditionTree,
+    withholdServed: (rows: AuditRecord[]) => AuditRecord[],
     rowFilters: Omit<AuditHistoryQuery, 'fields' | 'search' | 'skip' | 'limit' | 'order' | 'after'>,
     {
       fields,
@@ -210,7 +242,7 @@ export default class AuditTrailRoute extends CollectionRoute {
         ...(after && { after: { timestamp: after.timestamp, id: after.id } }),
       });
 
-      const matched = this.withhold(rows, permissionScope, context).filter(entry =>
+      const matched = withholdServed(rows).filter(entry =>
         AuditTrailRoute.matchesServedValues(entry, fields, search),
       );
 
@@ -330,6 +362,14 @@ export default class AuditTrailRoute extends CollectionRoute {
 
     const goneNow = after ? after.goneEntirely : goneEntirely;
 
+    // A live record whose id was freed by a delete and taken since: a state at or before that
+    // delete is the earlier record's, which the current one's scope says nothing about.
+    const lastDelete =
+      permissionScope && !goneNow
+        ? await lastDeleteOf(store, this.collection.name, context.params.id)
+        : null;
+    const ofEarlierLife = Boolean(lastDelete && at <= lastDelete.timestamp);
+
     // `startTimestamp` is an inclusive lower bound, so an entry timestamped exactly `at` comes
     // back too — but the record already reflects that entry's change at instant `at`, so it must
     // be kept rather than reverted (which would wrongly return the state just *before* it).
@@ -368,7 +408,7 @@ export default class AuditTrailRoute extends CollectionRoute {
     // id is merged in first for the same reason it is on a row: a read-only primary key never lands
     // in the capture, so a scope on the id would blank the very record it names.
     if (
-      goneNow &&
+      (goneNow || ofEarlierLife) &&
       !permissionScopeAccepts(
         // `false`: the reconstruction may sit on the far side of a primary-key move this route
         // cannot see, so the requested id does not answer for a key the trail redacted.
