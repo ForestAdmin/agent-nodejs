@@ -112,10 +112,19 @@ export default class InMemoryAuditStore implements AuditStore {
       .slice(0, limit);
   }
 
+  listTimelineUsers(
+    query: Omit<AuditTimelineQuery, 'limit' | 'before' | 'excludeIds'>,
+  ): AuditUserSummary[] {
+    return InMemoryAuditStore.authorsOf(this.listTimeline({ ...query, limit: Infinity }));
+  }
+
   listDistinctUsers(
     query: Omit<AuditHistoryQuery, 'skip' | 'limit' | 'order'>,
   ): AuditUserSummary[] {
-    const matches = this.matching({ ...query, order: 'asc' });
+    return InMemoryAuditStore.authorsOf(this.matching({ ...query, order: 'asc' }));
+  }
+
+  private static authorsOf(matches: AuditRecord[]): AuditUserSummary[] {
     const byUser = new Map<number, AuditUserSummary>();
 
     for (const record of matches) {

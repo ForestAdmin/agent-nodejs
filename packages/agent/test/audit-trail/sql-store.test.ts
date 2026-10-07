@@ -964,6 +964,37 @@ describe('createSqlAuditStore (sqlite round-trip)', () => {
 
     await close();
   });
+
+  describe('listTimelineUsers', () => {
+    it('returns the distinct authors on the allowed collections, under the timeline filters', async () => {
+      const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
+
+      await seed(store, record({ collection: 'accounts', userId: 1, userFirstName: 'Jane' }));
+      await seed(store, record({ collection: 'books', userId: 1, userFirstName: 'Jane' }));
+      await seed(store, record({ collection: 'books', userId: 2, operation: 'delete' }));
+      await seed(store, record({ collection: 'secrets', userId: 3, userFirstName: 'Hidden' }));
+
+      const users = await store.listTimelineUsers({
+        collections: ['accounts', 'books'],
+        operations: ['update'],
+      });
+
+      expect(users).toEqual([
+        { id: 1, firstName: 'Jane', lastName: 'Doe', email: 'jane.doe@forest.dev' },
+      ]);
+
+      await close();
+    });
+
+    it('matches nothing when no collection is allowed', async () => {
+      const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
+      await seed(store, record({ collection: 'accounts', userId: 1 }));
+
+      expect(await store.listTimelineUsers({ collections: [] })).toEqual([]);
+
+      await close();
+    });
+  });
 });
 
 describe('fieldsChangedCondition', () => {
