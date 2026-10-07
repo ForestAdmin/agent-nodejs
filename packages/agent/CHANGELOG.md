@@ -1,3 +1,24 @@
+# @forestadmin/agent [1.107.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.106.2...@forestadmin/agent@1.107.0) (2026-10-07)
+
+
+### Features
+
+* allow disable filtering on relation ([#1975](https://github.com/ForestAdmin/agent-nodejs/issues/1975)) ([e942507](https://github.com/ForestAdmin/agent-nodejs/commit/e942507e609d02920d3b8dc31651bb467103434b))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.73.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.56.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.43.5
+* **@forestadmin/mcp-server:** upgraded to 1.27.2
+* **@forestadmin/agent-bff:** upgraded to 1.39.1
+* **@forestadmin/datasource-sql:** upgraded to 1.17.15
+* **@forestadmin/workflow-executor:** upgraded to 1.31.7
+
 ## @forestadmin/agent [1.106.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.106.1...@forestadmin/agent@1.106.2) (2026-10-06)
 
 
