@@ -1,3 +1,18 @@
+# @forestadmin/datasource-customizer [1.73.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.72.0...@forestadmin/datasource-customizer@1.73.0) (2026-10-07)
+
+
+### Features
+
+* allow disable filtering on relation ([#1975](https://github.com/ForestAdmin/agent-nodejs/issues/1975)) ([e942507](https://github.com/ForestAdmin/agent-nodejs/commit/e942507e609d02920d3b8dc31651bb467103434b))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.56.0
+
 # @forestadmin/datasource-customizer [1.72.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.71.3...@forestadmin/datasource-customizer@1.72.0) (2026-10-02)
 
 
