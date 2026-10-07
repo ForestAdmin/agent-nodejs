@@ -1,6 +1,8 @@
 import jsonwebtoken from 'jsonwebtoken';
 
-import issueTokenBodySchema from './fixtures/forestadmin-server-oauth-route-validator-issue-token';
+import issueTokenBodySchema, {
+  issueTokenQuerySchema,
+} from './fixtures/forestadmin-server-oauth-route-validator-issue-token';
 import ForestServerClient from '../../src/oauth/forest-server-client';
 
 jest.mock('@forestadmin/forestadmin-client', () => ({
@@ -25,6 +27,10 @@ function captureTokenRequestBody(): jest.Mock {
 
 function sentBody(fetchMock: jest.Mock): unknown {
   return JSON.parse(fetchMock.mock.calls[0][1].body);
+}
+
+function sentUrl(fetchMock: jest.Mock): URL {
+  return new URL(fetchMock.mock.calls[0][0]);
 }
 
 describe('Forest server /oauth/token contract', () => {
@@ -53,6 +59,38 @@ describe('Forest server /oauth/token contract', () => {
 
     expect(issueTokenBodySchema.validate(sentBody(fetchMock)).error).toBeUndefined();
   });
+
+  it.each([
+    [
+      'refresh',
+      (c: ForestServerClient) => c.refreshServerToken({ refreshToken: 'R1', clientId: 'client-1' }),
+    ],
+    [
+      'authorization code',
+      (c: ForestServerClient) =>
+        c.exchangeCode({
+          code: 'code-1',
+          codeVerifier: 'verifier-1',
+          redirectUri: 'http://localhost/callback',
+          clientId: 'client-1',
+        }),
+    ],
+  ])(
+    'should declare service=api in the query of a %s grant, never in the body',
+    async (_, send) => {
+      const fetchMock = captureTokenRequestBody();
+
+      await send(client);
+      const url = sentUrl(fetchMock);
+      const query = Object.fromEntries(url.searchParams);
+
+      expect(url.pathname).toBe('/oauth/token');
+      expect(query).toEqual({ service: 'api' });
+      expect(issueTokenQuerySchema.validate(query).error).toBeUndefined();
+      expect(sentBody(fetchMock)).not.toHaveProperty('service');
+      expect(issueTokenBodySchema.validate(sentBody(fetchMock)).error).toBeUndefined();
+    },
+  );
 
   it('should be rejected by the Forest server schema when client_id is missing', () => {
     const { error } = issueTokenBodySchema.validate({

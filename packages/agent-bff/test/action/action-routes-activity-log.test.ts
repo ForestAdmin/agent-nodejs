@@ -1,23 +1,29 @@
 import type { AgentActionClient } from '../../src/action/agent-action-client';
 import type { ActivityLogWriter } from '../../src/activity-log/activity-log-writer';
+import type ForestServerClient from '../../src/oauth/forest-server-client';
+import type { SessionStore } from '../../src/oauth/session-store';
 import type { Logger } from '../../src/ports/logger-port';
 import type { Middleware } from 'koa';
 
 import { ActionRequiresApprovalError } from '@forestadmin/agent-client';
 import { HttpError } from '@forestadmin/forestadmin-client';
 import { bodyParser } from '@koa/bodyparser';
+import jsonwebtoken from 'jsonwebtoken';
 import Koa from 'koa';
 import request from 'supertest';
 
 import createActionRoutesMiddleware from '../../src/action/action-routes-middleware';
 import { createHttpTransport } from '../../src/agent/agent-transport';
+import createForestServerTokenMiddleware from '../../src/auth/forest-server-token-middleware';
 import createErrorMiddleware from '../../src/http/error-middleware';
+import OAuthExchangeError from '../../src/oauth/oauth-exchange-error';
 import { TIMEZONE, clientOf, makeAction, readModel, storeOf } from '../helpers/action-routes';
 import {
   ACTIVITY_LOG_ID,
   ACTIVITY_LOG_INDEX,
   API_KEY_SERVER_TOKEN,
   RENDERING_ID,
+  SESSION_ID,
   activityLogsOf,
   apiKeyCredentials,
   fakeActivityLogsService,
@@ -33,11 +39,13 @@ function buildApp({
   client,
   credentials = apiKeyCredentials(),
   saasAccessToken,
+  tokenStep = forestServerTokenStep(saasAccessToken),
 }: {
   service: ReturnType<typeof fakeActivityLogsService>;
   client: AgentActionClient;
   credentials?: Middleware;
   saasAccessToken?: string;
+  tokenStep?: Middleware;
 }): { app: Koa; activityLogs: ActivityLogWriter } {
   const activityLogs = activityLogsOf(service, noopLogger);
   const app = new Koa();
@@ -45,7 +53,7 @@ function buildApp({
   app.use(createErrorMiddleware({ logger: noopLogger }));
   app.use(bodyParser());
   app.use(credentials);
-  app.use(forestServerTokenStep(saasAccessToken));
+  app.use(tokenStep);
   app.use(async (ctx, next) => {
     ctx.state.timezone = TIMEZONE;
     ctx.state.agentToken = 'agent-jwt';
@@ -285,6 +293,49 @@ describe('action routes activity log', () => {
       expect(response.body.error.type).toBe('session_expired');
       expect(loadAction).not.toHaveBeenCalled();
       expect(service.createMcpActivityLog).not.toHaveBeenCalled();
+    });
+
+    it('should refuse with 403 plan_feature_missing when the Forest server refuses the session refresh on the plan', async () => {
+      const service = fakeActivityLogsService();
+      const loadAction = jest.fn(async () => executingAction());
+      const store = {
+        get: (sid: string) =>
+          sid === SESSION_ID
+            ? {
+                saasAccessToken: jsonwebtoken.sign({}, 'session-secret', { expiresIn: '-1s' }),
+                clientId: 'client-1',
+              }
+            : undefined,
+        getSaasRefreshToken: () => 'refresh-token',
+      } as unknown as SessionStore;
+      const serverClient = {
+        refreshServerToken: async () => {
+          throw new OAuthExchangeError('access_denied', 'no Gateway API', 'plan_feature_missing');
+        },
+      } as unknown as ForestServerClient;
+      const { app } = buildApp({
+        service,
+        client: clientOf(executingAction(), loadAction as jest.Mock),
+        credentials: oauthCredentials(),
+        tokenStep: createForestServerTokenMiddleware({
+          session: { store, serverClient },
+          logger: noopLogger,
+        }),
+      });
+
+      const response = await request(app.callback())
+        .post('/agent/v1/users/actions/approve/execute')
+        .send({ recordIds: ['42'] });
+
+      expect(response.status).toBe(403);
+      expect(response.body).toEqual({
+        error: {
+          type: 'plan_feature_missing',
+          status: 403,
+          message: "The project's plan does not include the Gateway API.",
+        },
+      });
+      expect(loadAction).not.toHaveBeenCalled();
     });
 
     it('should use the session token when the caller carries an oauth session', async () => {

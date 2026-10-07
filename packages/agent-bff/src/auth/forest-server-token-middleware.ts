@@ -75,6 +75,8 @@ async function resolveToken(
       throw sessionExpired(NO_SESSION_MESSAGE);
     }
 
+    if (error instanceof OAuthRequestError && error.type === 'plan_feature_missing') throw error;
+
     throw auditUnavailable(AUDIT_RETRY_AFTER_SECONDS);
   }
 }

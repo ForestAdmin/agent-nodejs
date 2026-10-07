@@ -5,7 +5,12 @@ import type { Logger } from '../ports/logger-port';
 import jsonwebtoken from 'jsonwebtoken';
 
 import { OAuthExchangeError } from './forest-server-client';
-import { serverError, sessionExpired } from './oauth-error';
+import {
+  isPlanFeatureMissingRefusal,
+  planFeatureMissing,
+  serverError,
+  sessionExpired,
+} from './oauth-error';
 
 export interface EnsureFreshServerAccessParams {
   sid: string;
@@ -54,6 +59,16 @@ async function refreshAndPersist(
       clientId: session.clientId,
     });
   } catch (error) {
+    if (error instanceof OAuthExchangeError && isPlanFeatureMissingRefusal(error)) {
+      logger(
+        'Warn',
+        'The Forest server refused the session refresh: the plan lacks the Gateway API',
+        sessionContext,
+      );
+
+      throw planFeatureMissing();
+    }
+
     if (error instanceof OAuthExchangeError && CLIENT_ERROR_CODES.has(error.error)) {
       logger('Warn', 'The Forest server rejected the session refresh', {
         ...sessionContext,

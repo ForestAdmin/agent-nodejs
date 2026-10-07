@@ -8,6 +8,7 @@ import createPendingActivityLog, {
   markActivityLog,
 } from '../../src/activity-log/activity-logs-creator';
 import { AUDIT_RETRY_AFTER_SECONDS, auditUnavailable } from '../../src/http/bff-local-errors';
+import { planFeatureMissing } from '../../src/oauth/oauth-error';
 import {
   ACTIVITY_LOG_ID,
   ACTIVITY_LOG_INDEX,
@@ -105,6 +106,34 @@ describe('activity logs creator', () => {
             'performed',
         },
       );
+    });
+
+    it('should serve a read unaudited when the plan lacks the Gateway API', async () => {
+      const service = fakeActivityLogsService();
+
+      const pending = await createPendingActivityLog({
+        ctx: ctxRejectingCredentials(planFeatureMissing()),
+        service,
+        action: 'index',
+        logger: loggerSpy(),
+      });
+
+      expect(pending).toBeNull();
+      expect(service.createMcpActivityLog).not.toHaveBeenCalled();
+    });
+
+    it('should refuse a write with plan_feature_missing when the plan lacks the Gateway API', async () => {
+      const service = fakeActivityLogsService();
+
+      await expect(
+        createPendingActivityLog({
+          ctx: ctxRejectingCredentials(planFeatureMissing()),
+          service,
+          action: 'action',
+          logger: loggerSpy(),
+        }),
+      ).rejects.toMatchObject({ status: 403, type: 'plan_feature_missing' });
+      expect(service.createMcpActivityLog).not.toHaveBeenCalled();
     });
   });
 

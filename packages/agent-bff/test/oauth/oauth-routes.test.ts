@@ -597,6 +597,42 @@ describe('oauth-routes POST /oauth/token', () => {
     });
   });
 
+  describe('when the Forest server refuses the exchange because the plan lacks the Gateway API', () => {
+    it('should answer 403 plan_feature_missing with the flat OAuth body and keep the code claimed', async () => {
+      const exchangeCode = jest.fn(async () => {
+        throw new OAuthExchangeError('access_denied', 'no Gateway API', 'plan_feature_missing');
+      });
+      const { app } = buildApp(stubServerClient({ exchangeCode }));
+
+      const response = await request(app.callback()).post('/oauth/token').send(TOKEN_BODY);
+      const replay = await request(app.callback()).post('/oauth/token').send(TOKEN_BODY);
+
+      expect(response.status).toBe(403);
+      expect(response.body).toEqual({
+        error: 'plan_feature_missing',
+        error_description: "The project's plan does not include the Gateway API.",
+      });
+      expect(replay.status).toBe(400);
+      expect(replay.body.error).toBe('invalid_grant');
+      expect(exchangeCode).toHaveBeenCalledTimes(1);
+    });
+
+    it('should keep the 502 server_error for an access_denied carrying another reason', async () => {
+      const { app } = buildApp(
+        stubServerClient({
+          exchangeCode: async () => {
+            throw new OAuthExchangeError('access_denied', 'other', 'something_else');
+          },
+        }),
+      );
+
+      const response = await request(app.callback()).post('/oauth/token').send(TOKEN_BODY);
+
+      expect(response.status).toBe(502);
+      expect(response.body.error).toBe('server_error');
+    });
+  });
+
   describe('when an unsupported grant_type is used', () => {
     it('should reject a grant_type that is neither authorization_code nor refresh_token', async () => {
       const { app } = buildApp(stubServerClient());
@@ -877,6 +913,33 @@ describe('oauth-routes POST /oauth/token refresh_token grant', () => {
 
       expect(response.status).toBe(401);
       expect(response.body.error).toBe('session_expired');
+    });
+  });
+
+  describe('when the Forest server refuses the refresh because the plan lacks the Gateway API', () => {
+    it('should answer 403 plan_feature_missing and keep the refresh token usable once Forest accepts again', async () => {
+      let refused = true;
+      const refreshServerToken = jest.fn(async () => {
+        if (refused) {
+          throw new OAuthExchangeError('access_denied', 'no Gateway API', 'plan_feature_missing');
+        }
+
+        return decodableServerTokens();
+      });
+      const { app } = buildApp(stubServerClient({ refreshServerToken }));
+      const refreshToken = await login(app);
+
+      const refusedResponse = await refresh(app, refreshToken);
+      refused = false;
+      const restoredResponse = await refresh(app, refreshToken);
+
+      expect(refusedResponse.status).toBe(403);
+      expect(refusedResponse.body).toEqual({
+        error: 'plan_feature_missing',
+        error_description: "The project's plan does not include the Gateway API.",
+      });
+      expect(restoredResponse.status).toBe(200);
+      expect(restoredResponse.body.refresh_token).not.toBe(refreshToken);
     });
   });
 
