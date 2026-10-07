@@ -49,6 +49,7 @@ function mapTask(task: ServerWorkflowTask): StepDefinition {
         ...base,
         type: StepType.Mcp,
         mcpServerId: task.mcpServerId,
+        allowedTools: task.allowedTools,
       });
     case ServerTaskTypeEnum.Guideline:
       return parseStepDefinition(GuidanceStepDefinitionSchema, {

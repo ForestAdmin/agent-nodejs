@@ -546,9 +546,33 @@ describe('McpStepExecutor', () => {
   });
 
   describe('forwards all provided remoteTools to the AI', () => {
-    // Tools are pre-scoped upstream — the executor must not re-filter. Mixing divergent
-    // mcpServerId values in the input asserts the executor passes every tool through, even
-    // ones that wouldn't match the step's mcpServerId on their own.
+    // Tools are pre-scoped upstream — the executor must not re-filter by mcpServerId. Mixing
+    // divergent mcpServerId values in the input asserts the executor passes every tool through,
+    // even ones that wouldn't match the step's mcpServerId on their own.
+    it.each([
+      ['absent', undefined],
+      ['null', null],
+      ['empty', []],
+    ])('binds every tool it receives when allowedTools is %s', async (_label, allowedTools) => {
+      const toolA = new MockRemoteTool({ name: 'tool_a' });
+      const toolB = new MockRemoteTool({ name: 'tool_b' });
+      const { model, bindTools } = makeMockModel('tool_a', {});
+      const context = makeContext({
+        model,
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          allowedTools: allowedTools as McpStepDefinition['allowedTools'],
+        }),
+      });
+      const executor = new McpStepExecutor(context, [toolA, toolB]);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      const boundTools = bindTools.mock.calls[0][0] as Array<{ name: string }>;
+      expect(boundTools.map(t => t.name)).toEqual(['tool_a', 'tool_b']);
+    });
+
     it('binds every tool it receives, including ones whose mcpServerId differs from the step', async () => {
       const matchingTool = new MockRemoteTool({ name: 'tool_a', mcpServerId: 'id-A' });
       const offTargetTool = new MockRemoteTool({ name: 'tool_b', mcpServerId: 'id-B' });
@@ -592,6 +616,187 @@ describe('McpStepExecutor', () => {
       const boundTools = bindTools.mock.calls[0][0] as Array<{ name: string }>;
       expect(boundTools.map(t => t.name)).toEqual(['zendesk_get_tickets']);
       expect(invokeFn).toHaveBeenCalled();
+    });
+  });
+
+  describe('allowedTools', () => {
+    it('binds only the allowed tools to the AI', async () => {
+      const searchInvoke = jest.fn().mockResolvedValue('found');
+      const sendInvoke = jest.fn();
+      const tools = [
+        new MockRemoteTool({ name: 'search_pages', invoke: searchInvoke }),
+        new MockRemoteTool({ name: 'send_email', invoke: sendInvoke }),
+        new MockRemoteTool({ name: 'get_page' }),
+      ];
+      const { model, bindTools } = makeMockModel('search_pages', { query: 'q' });
+      const context = makeContext({
+        model,
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          allowedTools: ['search_pages', 'get_page'],
+        }),
+      });
+
+      const result = await new McpStepExecutor(context, tools).execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      const boundTools = bindTools.mock.calls[0][0] as Array<{ name: string }>;
+      expect(boundTools.map(t => t.name)).toEqual(['search_pages', 'get_page']);
+      expect(searchInvoke).toHaveBeenCalledWith({ query: 'q' });
+      expect(sendInvoke).not.toHaveBeenCalled();
+    });
+
+    it('matches an allow-list entry against the sanitized tool name', async () => {
+      const invokeFn = jest.fn().mockResolvedValue('sent');
+      const tools = [
+        new MockRemoteTool({ name: 'notion.search', invoke: invokeFn }),
+        new MockRemoteTool({ name: 'notion.delete' }),
+      ];
+      const { model, bindTools } = makeMockModel('notion.search', { query: 'q' });
+      const context = makeContext({
+        model,
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          allowedTools: ['notion_search'],
+        }),
+      });
+
+      const result = await new McpStepExecutor(context, tools).execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      const boundTools = bindTools.mock.calls[0][0] as Array<{ name: string }>;
+      expect(boundTools.map(t => t.name)).toEqual(['notion.search']);
+      expect(invokeFn).toHaveBeenCalledWith({ query: 'q' });
+    });
+
+    it('runs on the matched tools and logs one Warn naming the unmatched entries on a partial match', async () => {
+      const logger = jest.fn();
+      const invokeFn = jest.fn().mockResolvedValue('found');
+      const tools = [
+        new MockRemoteTool({ name: 'search_pages', invoke: invokeFn }),
+        new MockRemoteTool({ name: 'send_email' }),
+      ];
+      const { model, bindTools } = makeMockModel('search_pages', { query: 'q' });
+      const context = makeContext({
+        logger,
+        model,
+        stepDefinition: makeStep({
+          mcpServerId: 'notion-1',
+          executionType: StepExecutionMode.FullyAutomated,
+          allowedTools: ['search_pages', 'renamed_tool', 'dropped_tool'],
+        }),
+      });
+
+      const result = await new McpStepExecutor(context, tools).execute();
+
+      expect(result.stepOutcome).toEqual({
+        type: 'mcp',
+        stepId: 'mcp-1',
+        stepIndex: 0,
+        status: 'success',
+      });
+      const boundTools = bindTools.mock.calls[0][0] as Array<{ name: string }>;
+      expect(boundTools.map(t => t.name)).toEqual(['search_pages']);
+      expect(invokeFn).toHaveBeenCalledWith({ query: 'q' });
+      const warnCalls = logger.mock.calls.filter(([level]) => level === 'Warn');
+      expect(warnCalls).toEqual([
+        [
+          'Warn',
+          'MCP step allow-list names tools the server did not load',
+          expect.objectContaining({
+            runId: 'run-1',
+            stepIndex: 0,
+            mcpServerId: 'notion-1',
+            unmatchedAllowedTools: ['renamed_tool', 'dropped_tool'],
+          }),
+        ],
+      ]);
+    });
+
+    it('logs no Warn when every allow-list entry matches a loaded tool', async () => {
+      const logger = jest.fn();
+      const tools = [
+        new MockRemoteTool({ name: 'search_pages' }),
+        new MockRemoteTool({ name: 'send_email' }),
+      ];
+      const { model } = makeMockModel('search_pages', {});
+      const context = makeContext({
+        logger,
+        model,
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          allowedTools: ['search_pages'],
+        }),
+      });
+
+      const result = await new McpStepExecutor(context, tools).execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(logger).not.toHaveBeenCalledWith('Warn', expect.anything(), expect.anything());
+    });
+  });
+
+  describe('McpToolsNotAllowedError', () => {
+    it('returns a configuration error naming the missing tools when no loaded tool is allowed', async () => {
+      const invokeFn = jest.fn();
+      const { model, bindTools } = makeMockModel('send_email', {});
+      const context = makeContext({
+        model,
+        stepDefinition: makeStep({
+          mcpServerId: 'notion-1',
+          executionType: StepExecutionMode.FullyAutomated,
+          allowedTools: ['search_pages', 'get_page'],
+        }),
+      });
+      const executor = new McpStepExecutor(context, [
+        new MockRemoteTool({ name: 'send_email', invoke: invokeFn }),
+      ]);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome).toEqual({
+        type: 'mcp',
+        stepId: 'mcp-1',
+        stepIndex: 0,
+        status: 'error',
+        errorKind: 'configuration',
+        error:
+          'None of the tools this step is allowed to use are available on its server: search_pages, get_page.',
+      });
+      expect(bindTools).not.toHaveBeenCalled();
+      expect(invokeFn).not.toHaveBeenCalled();
+    });
+
+    it('logs the technical message with the mcpServerId and the missing tools', async () => {
+      const logger = jest.fn();
+      const context = makeContext({
+        logger,
+        stepDefinition: makeStep({ mcpServerId: 'notion-1', allowedTools: ['search_pages'] }),
+      });
+      const executor = new McpStepExecutor(context, [new MockRemoteTool({ name: 'send_email' })]);
+
+      await executor.execute();
+
+      expect(logger).toHaveBeenCalledWith(
+        'Error',
+        'No loaded MCP tool is allowed for mcpServerId="notion-1": search_pages',
+        expect.objectContaining({ runId: 'run-1', stepIndex: 0, mcpServerId: 'notion-1' }),
+      );
+    });
+
+    it('still reports NoMcpToolsError when the server loaded no tools, whatever the allow-list', async () => {
+      const context = makeContext({
+        stepDefinition: makeStep({ allowedTools: ['search_pages'] }),
+      });
+      const executor = new McpStepExecutor(context, []);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toMatch(
+        /^Tools could not be loaded for the targeted server\./,
+      );
+      expect(result.stepOutcome.errorKind).toBeUndefined();
     });
   });
 
@@ -669,6 +874,36 @@ describe('McpStepExecutor', () => {
       expect(result.stepOutcome.error).toBe(
         "The AI selected a tool that doesn't exist. Try rephrasing the step's prompt.",
       );
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
+
+    it('returns error without invoking it when the tool from pendingData is loaded but not allowed (Branch A)', async () => {
+      const execution: McpStepExecutionData = {
+        type: 'mcp',
+        stepIndex: 0,
+        pendingData: { name: 'send_email', sourceId: 'mcp-server-1', input: {} },
+        userConfirmation: { userConfirmed: true },
+      };
+      const sendInvoke = jest.fn();
+      const tools = [
+        new MockRemoteTool({ name: 'search_pages', sourceId: 'mcp-server-1' }),
+        new MockRemoteTool({ name: 'send_email', sourceId: 'mcp-server-1', invoke: sendInvoke }),
+      ];
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([execution]),
+      });
+      const context = makeContext({
+        runStore,
+        stepDefinition: makeStep({ allowedTools: ['search_pages'] }),
+      });
+
+      const result = await new McpStepExecutor(context, tools).execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        "The AI selected a tool that doesn't exist. Try rephrasing the step's prompt.",
+      );
+      expect(sendInvoke).not.toHaveBeenCalled();
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
   });
@@ -1177,6 +1412,40 @@ describe('McpStepExecutor — OAuth2 tool-call re-authentication', () => {
     expect(result.stepOutcome.status).toBe('success');
     expect(reloadWithFreshAuth).toHaveBeenCalledTimes(1);
     expect(freshInvoke).toHaveBeenCalledWith({ message: 'Hello' });
+  });
+
+  it('retries the allowed tool after a 401 when the step carries an allow-list', async () => {
+    const tools = [
+      new MockRemoteTool({
+        name: 'send_notification',
+        invoke: jest.fn().mockRejectedValue(authError()),
+      }),
+      new MockRemoteTool({ name: 'delete_channel' }),
+    ];
+    const freshInvoke = jest.fn().mockResolvedValue('ok-after-refresh');
+    const freshDeleteInvoke = jest.fn();
+    const reloadWithFreshAuth = jest
+      .fn()
+      .mockResolvedValue([
+        new MockRemoteTool({ name: 'send_notification', invoke: freshInvoke }),
+        new MockRemoteTool({ name: 'delete_channel', invoke: freshDeleteInvoke }),
+      ]);
+    const { model, bindTools } = makeMockModel('send_notification', { message: 'Hello' });
+    const context = makeContext({
+      model,
+      stepDefinition: makeStep({
+        executionType: StepExecutionMode.FullyAutomated,
+        allowedTools: ['send_notification'],
+      }),
+    });
+
+    const result = await new McpStepExecutor(context, tools, 'srv', reloadWithFreshAuth).execute();
+
+    expect(result.stepOutcome.status).toBe('success');
+    const boundTools = bindTools.mock.calls[0][0] as Array<{ name: string }>;
+    expect(boundTools.map(t => t.name)).toEqual(['send_notification']);
+    expect(freshInvoke).toHaveBeenCalledWith({ message: 'Hello' });
+    expect(freshDeleteInvoke).not.toHaveBeenCalled();
   });
 
   it("pauses with awaiting-input/'needs-oauth-reauth' when the credential can no longer be refreshed", async () => {

@@ -143,6 +143,58 @@ describe('toStepDefinition', () => {
       });
     });
 
+    it('forwards allowedTools on an mcp-server task', () => {
+      const task = makeTask({
+        taskType: ServerTaskTypeEnum.McpServer,
+        prompt: 'run mcp',
+        mcpServerId: 'mcp-abc',
+        allowedTools: ['search_pages', 'get_page'],
+      });
+
+      expect(toStepDefinition(task)).toEqual({
+        type: StepType.Mcp,
+        prompt: 'run mcp',
+        mcpServerId: 'mcp-abc',
+        allowedTools: ['search_pages', 'get_page'],
+        title: 'Test task',
+        executionType: ServerStepExecutionTypeEnum.AutomatedWithConfirmation,
+      });
+    });
+
+    it('maps a null allowedTools on an mcp-server task to an absent allow-list', () => {
+      const task = makeTask({
+        taskType: ServerTaskTypeEnum.McpServer,
+        prompt: 'run mcp',
+        mcpServerId: 'mcp-abc',
+        allowedTools: null,
+      });
+
+      expect(toStepDefinition(task)).toEqual({
+        type: StepType.Mcp,
+        prompt: 'run mcp',
+        mcpServerId: 'mcp-abc',
+        title: 'Test task',
+        executionType: ServerStepExecutionTypeEnum.AutomatedWithConfirmation,
+      });
+    });
+
+    it.each([
+      ['a string', 'search_pages'],
+      ['a non-string entry', ['search_pages', 42]],
+      ['an object', { search_pages: true }],
+    ])(
+      'throws InvalidStepDefinitionError when allowedTools is %s rather than allowing every tool',
+      (_label, allowedTools) => {
+        const task = makeTask({
+          taskType: ServerTaskTypeEnum.McpServer,
+          mcpServerId: 'mcp-abc',
+          allowedTools,
+        } as Partial<ServerWorkflowTask>);
+
+        expect(() => toStepDefinition(task)).toThrow(InvalidStepDefinitionError);
+      },
+    );
+
     it('rejects an mcp-server task missing mcpServerId at the zod boundary', () => {
       const task = makeTask({ taskType: ServerTaskTypeEnum.McpServer, prompt: 'run mcp' });
 

@@ -19,6 +19,7 @@ import { z } from 'zod';
 import {
   McpToolInvocationError,
   McpToolNotFoundError,
+  McpToolsNotAllowedError,
   NoMcpToolsError,
   OAuthReauthRequiredError,
   StepStateError,
@@ -39,6 +40,8 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
   private readonly mcpServerName?: string;
 
   private readonly reloadWithFreshAuth?: () => Promise<RemoteTool[]>;
+
+  private allowedRemoteTools?: RemoteTool[];
 
   constructor(
     context: ExecutionContext<McpStepDefinition>,
@@ -345,6 +348,31 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
       throw new NoMcpToolsError(this.context.stepDefinition.mcpServerId);
     }
 
-    return [...this.remoteTools];
+    // Filtered once per execution: the FullyAutomated path asks twice, and warns only once.
+    this.allowedRemoteTools ??= this.filterAllowedTools();
+
+    return [...this.allowedRemoteTools];
+  }
+
+  private filterAllowedTools(): RemoteTool[] {
+    const { allowedTools, mcpServerId } = this.context.stepDefinition;
+    if (!allowedTools?.length) return [...this.remoteTools];
+
+    const tools = this.remoteTools.filter(t => allowedTools.includes(t.sanitizedName));
+    if (tools.length === 0) throw new McpToolsNotAllowedError(mcpServerId, allowedTools);
+
+    // A per-user OAuth listing can return a subset, so a partial match runs, but traced: the model
+    // must call a bound tool, so a renamed allowed tool silently becomes a different one.
+    const loaded = new Set(tools.map(t => t.sanitizedName));
+    const unmatchedAllowedTools = allowedTools.filter(name => !loaded.has(name));
+
+    if (unmatchedAllowedTools.length > 0) {
+      this.context.logger('Warn', 'MCP step allow-list names tools the server did not load', {
+        ...this.logCtx,
+        unmatchedAllowedTools,
+      });
+    }
+
+    return tools;
   }
 }
