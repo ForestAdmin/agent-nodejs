@@ -83,6 +83,9 @@ export function toRow(
     operation: record.operation,
     collection: record.collection,
     recordId: record.recordId,
+    // Optional at insert, but kept when given, as the in-memory store keeps it: a later `confirm`
+    // that omits it must not read as a row older than the column.
+    previousRecordId: record.previousRecordId ?? null,
     userId: record.userId,
     userFirstName: record.userFirstName,
     userLastName: record.userLastName,
