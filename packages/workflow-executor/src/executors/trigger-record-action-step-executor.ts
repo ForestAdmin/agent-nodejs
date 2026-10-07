@@ -43,13 +43,14 @@ Important rules:
 - For Enum fields, use exactly one of the allowed values, otherwise leave the field out.
 - Do not invent identifiers, dates, amounts, or file contents that are absent from both the request and the context.`;
 
+function isMissing(value: unknown): boolean {
+  return value === undefined || value === null || value === '';
+}
+
+// An empty list the AI sends is a deliberate answer (clear a checkbox group); one the agent sends back
+// means it dropped the value.
 function isEmptyValue(value: unknown): boolean {
-  return (
-    value === undefined ||
-    value === null ||
-    value === '' ||
-    (Array.isArray(value) && value.length === 0)
-  );
+  return isMissing(value) || (Array.isArray(value) && value.length === 0);
 }
 
 // A value outside the options is rejected here rather than kept: a field without a change hook
@@ -331,7 +332,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
           !isDeepStrictEqual(accumulator[field], value);
 
         if (
-          !isEmptyValue(value) &&
+          !isMissing(value) &&
           formField &&
           isAmongOptions(formField, value) &&
           (!filledByAi || emptiedByAgent)

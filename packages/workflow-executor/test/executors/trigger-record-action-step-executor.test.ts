@@ -1762,6 +1762,41 @@ describe('TriggerRecordActionStepExecutor', () => {
           fieldsNeverShownToAi: ['step_11'],
         });
       });
+
+      it('submits an emptied checkbox group when the AI clears its current selection', async () => {
+        const agentPort = makeMockAgentPort();
+        (agentPort.getActionForm as jest.Mock)
+          .mockResolvedValueOnce({
+            fields: [
+              { name: 'title', type: 'String', isRequired: true },
+              { name: 'tags', type: ['Enum'], enumValues: ['a', 'b', 'c'], value: ['a', 'b'] },
+            ],
+            canExecute: false,
+            requiredFields: ['title'],
+            skippedFields: [],
+          })
+          .mockResolvedValueOnce({
+            fields: [
+              { name: 'title', type: 'String', isRequired: true, value: 'x' },
+              { name: 'tags', type: ['Enum'], enumValues: ['a', 'b', 'c'], value: [] },
+            ],
+            canExecute: true,
+            requiredFields: [],
+            skippedFields: [],
+          });
+        (agentPort.executeAction as jest.Mock).mockResolvedValue({ result: { success: 'ok' } });
+        const mockModel = makeMockModel(undefined, 'fill_action_form');
+        aiFillsInTurn(mockModel.invoke, [{ title: 'x', tags: [] }]);
+
+        await new TriggerRecordActionStepExecutor(
+          contextFor(mockModel.model, agentPort, makeMockRunStore()),
+        ).execute();
+
+        expect(agentPort.executeAction).toHaveBeenCalledWith(
+          expect.objectContaining({ values: { title: 'x', tags: [] } }),
+          { user: expect.anything(), forestServerToken: undefined },
+        );
+      });
     });
 
     it('falls back to the AI-assisted review state when a required field stays empty', async () => {
