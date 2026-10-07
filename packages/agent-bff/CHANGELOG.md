@@ -1,3 +1,18 @@
+# @forestadmin/agent-bff [1.40.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.39.1...@forestadmin/agent-bff@1.40.0) (2026-10-07)
+
+
+### Features
+
+* **mcp-server:** tell the model which fields a record cannot be read under ([#1977](https://github.com/ForestAdmin/agent-nodejs/issues/1977)) ([6ff083e](https://github.com/ForestAdmin/agent-nodejs/commit/6ff083e9938c7857020dc8e12e4b62921883a8f5))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.18.0
+
 ## @forestadmin/agent-bff [1.39.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.39.0...@forestadmin/agent-bff@1.39.1) (2026-10-07)
 
 
