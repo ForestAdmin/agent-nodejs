@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/agent-testing",
-  "version": "1.2.55",
+  "version": "1.2.56",
   "description": "Testing utilities for Forest Admin agent",
   "author": "Vincent Molinié <vincent.m@forestadmin.com>",
   "homepage": "https://github.com/ForestAdmin/agent-nodejs#readme",
@@ -26,7 +26,7 @@
     "test": "jest"
   },
   "dependencies": {
-    "@forestadmin/agent-client": "1.17.1",
+    "@forestadmin/agent-client": "1.18.0",
     "@forestadmin/datasource-customizer": "1.73.0",
     "@forestadmin/datasource-toolkit": "1.56.0",
     "@forestadmin/forestadmin-client": "1.43.5",
@@ -35,7 +35,7 @@
     "superagent": "^10.3.0"
   },
   "peerDependencies": {
-    "@forestadmin/agent": "1.107.0"
+    "@forestadmin/agent": "1.107.1"
   },
   "peerDependenciesMeta": {
     "@forestadmin/agent": {
@@ -43,7 +43,7 @@
     }
   },
   "devDependencies": {
-    "@forestadmin/agent": "1.107.0",
+    "@forestadmin/agent": "1.107.1",
     "@forestadmin/datasource-sql": "1.17.15",
     "@types/jsonwebtoken": "^9.0.1",
     "@types/superagent": "^8.1.9",
