@@ -152,6 +152,14 @@ export interface AuditStore {
    * written before this existed simply doesn't serve the project-level route.
    */
   listTimeline?(query: AuditTimelineQuery): AuditRecord[] | Promise<AuditRecord[]>;
+  /**
+   * Distinct authors matching the timeline's filters, independent of its cursor. Optional like
+   * `listTimeline`: without it the route serves the rows but no author list. An empty
+   * `collections` must match nothing.
+   */
+  listTimelineUsers?(
+    query: Omit<AuditTimelineQuery, 'limit' | 'before' | 'excludeIds'>,
+  ): AuditUserSummary[] | Promise<AuditUserSummary[]>;
   /** Distinct authors matching the query filters, independent of pagination. */
   listDistinctUsers(
     query: Omit<AuditHistoryQuery, 'skip' | 'limit' | 'order'>,

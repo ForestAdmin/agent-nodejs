@@ -5,6 +5,7 @@ import type {
   AuditStorageOptions,
   AuditStore,
   AuditTimelineQuery,
+  AuditUserSummary,
   PendingAuditRecord,
 } from './types';
 import type { Model, ModelStatic } from 'sequelize';
@@ -246,7 +247,7 @@ function buildTimelineWhereClause(
     startTimestamp,
     endTimestamp,
     search,
-  }: AuditTimelineQuery,
+  }: Omit<AuditTimelineQuery, 'limit'>,
   sequelize: Sequelize,
 ): Record<string | symbol, unknown> {
   const where: Record<string | symbol, unknown> = { collection: { [Op.in]: collections } };
@@ -270,6 +271,38 @@ function buildTimelineWhereClause(
   if (search) where[Op.and] = [searchCondition(sequelize, search)];
 
   return where;
+}
+
+async function listAuthors(
+  model: ModelStatic<Model>,
+  where: Record<string | symbol, unknown>,
+): Promise<AuditUserSummary[]> {
+  // MAX() rather than a bare column: grouping by `user_id` alone is invalid in strict SQL
+  // unless every selected column is either grouped or aggregated.
+  const rows = (await model.findAll({
+    where,
+    attributes: [
+      'userId',
+      [Sequelize.fn('MAX', Sequelize.col('user_first_name')), 'userFirstName'],
+      [Sequelize.fn('MAX', Sequelize.col('user_last_name')), 'userLastName'],
+      [Sequelize.fn('MAX', Sequelize.col('user_email')), 'userEmail'],
+    ],
+    group: ['userId'],
+    raw: true,
+    transaction: null,
+  })) as unknown as Array<{
+    userId: number;
+    userFirstName: string | null;
+    userLastName: string | null;
+    userEmail: string | null;
+  }>;
+
+  return rows.map(row => ({
+    id: row.userId,
+    firstName: row.userFirstName ?? null,
+    lastName: row.userLastName ?? null,
+    email: row.userEmail ?? null,
+  }));
 }
 
 export function fromRow(row: Model): AuditRecord {
@@ -424,32 +457,14 @@ export function createSqlAuditStore(options: AuditStorageOptions): {
       async listDistinctUsers(query) {
         const { model, connection } = await init();
 
-        // MAX() rather than a bare column: grouping by `user_id` alone is invalid in strict SQL
-        // unless every selected column is either grouped or aggregated.
-        const rows = (await model.findAll({
-          where: buildHistoryWhereClause(query as AuditHistoryQuery, connection),
-          attributes: [
-            'userId',
-            [Sequelize.fn('MAX', Sequelize.col('user_first_name')), 'userFirstName'],
-            [Sequelize.fn('MAX', Sequelize.col('user_last_name')), 'userLastName'],
-            [Sequelize.fn('MAX', Sequelize.col('user_email')), 'userEmail'],
-          ],
-          group: ['userId'],
-          raw: true,
-          transaction: null,
-        })) as unknown as Array<{
-          userId: number;
-          userFirstName: string | null;
-          userLastName: string | null;
-          userEmail: string | null;
-        }>;
+        return listAuthors(model, buildHistoryWhereClause(query as AuditHistoryQuery, connection));
+      },
+      async listTimelineUsers(query) {
+        if (!query.collections.length) return [];
 
-        return rows.map(row => ({
-          id: row.userId,
-          firstName: row.userFirstName ?? null,
-          lastName: row.userLastName ?? null,
-          email: row.userEmail ?? null,
-        }));
+        const { model, connection } = await init();
+
+        return listAuthors(model, buildTimelineWhereClause(query, connection));
       },
       async listByCorrelation({ collection, recordId, correlationKey }) {
         const { model } = await init();
