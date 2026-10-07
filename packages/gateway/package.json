@@ -32,8 +32,8 @@
     "test": "jest"
   },
   "dependencies": {
-    "@forestadmin/agent-bff": "1.39.0",
-    "@forestadmin/mcp-server": "1.27.1"
+    "@forestadmin/agent-bff": "^1.40.0",
+    "@forestadmin/mcp-server": "^1.28.0"
   },
   "devDependencies": {
     "supertest": "^7.1.3"
