@@ -337,20 +337,43 @@ describe('AgentClientSegmentReader', () => {
       expect(captured.query).toMatchObject({ 'page[size]': '500', 'page[number]': '3' });
     });
 
-    it('should sort by the first primary key column when asked to', async () => {
+    it('should send every sort clause, in order, as one comma-separated sort', async () => {
       const captured = interceptList();
 
       await reader.listRecordIds(
-        makeQuery({ primaryKeys: ['tenantId', 'id'], sortByPrimaryKey: true }),
+        makeQuery({
+          sort: [
+            { field: 'created_at', ascending: false },
+            { field: 'id', ascending: true },
+          ],
+        }),
       );
 
-      expect(captured.query).toMatchObject({ sort: 'tenantId' });
+      expect(captured.query).toMatchObject({ sort: '-created_at,id' });
+    });
+
+    it('should send a relation sort field with its dot', async () => {
+      const captured = interceptList();
+
+      await reader.listRecordIds(
+        makeQuery({ sort: [{ field: 'customer.name', ascending: true }] }),
+      );
+
+      expect(captured.query).toMatchObject({ sort: 'customer.name' });
     });
 
     it('should impose no sort by default', async () => {
       const captured = interceptList();
 
       await reader.listRecordIds(makeQuery());
+
+      expect(captured.query).not.toHaveProperty('sort');
+    });
+
+    it('should impose no sort for an empty sort', async () => {
+      const captured = interceptList();
+
+      await reader.listRecordIds(makeQuery({ sort: [] }));
 
       expect(captured.query).not.toHaveProperty('sort');
     });
@@ -460,6 +483,26 @@ describe('AgentClientSegmentReader', () => {
       await expect(reader.listRecordIds(makeQuery())).rejects.toMatchObject({
         cause: expect.objectContaining({ code: 'ECONNREFUSED' }),
       });
+    });
+  });
+
+  describe('sorting on several fields', () => {
+    it.each(['forest-rails', 'forest-nodejs-agent', 'agent-python', 'agent-ruby'])(
+      'should let %s sort on several fields',
+      liana => {
+        expect(reader.sortsOnSeveralFields(liana)).toBe(true);
+      },
+    );
+
+    it.each([
+      'forest-express-sequelize',
+      'forest-express-mongoose',
+      'agent-php',
+      'some-future-agent',
+      null,
+      undefined,
+    ])('should keep %s to one sort field', liana => {
+      expect(reader.sortsOnSeveralFields(liana)).toBe(false);
     });
   });
 

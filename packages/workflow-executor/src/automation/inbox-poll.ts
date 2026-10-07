@@ -1,9 +1,14 @@
 import type { AutomationPort } from '../ports/automation-port';
 import type { Logger } from '../ports/logger-port';
 import type { ExclusionUnavailableReason, SegmentReaderPort } from '../ports/segment-reader-port';
-import type { AutomatedInbox, InboxAssignment, SegmentReadFailure } from '../types/automation';
+import type {
+  AutomatedInbox,
+  InboxAssignment,
+  PlainSortClause,
+  SegmentReadFailure,
+} from '../types/automation';
 
-import { mayBeOperatorRefusal, toReadFailure } from './read-failure';
+import { mayBeOperatorRefusal, mayBeSortRefusal, toReadFailure } from './read-failure';
 import {
   MAX_PADDED_PAGES,
   MEMBERSHIP_CHUNK_SIZE,
@@ -40,6 +45,8 @@ interface ReadAttempt {
   pageNumber?: number;
   paddedPageReason?: PaddedPageReason;
   notIn?: boolean;
+  inboxSortDropped?: boolean;
+  sortedReadFailure?: { sort?: PlainSortClause[] } & ReturnType<typeof describeAgentFailure>;
 }
 
 function describeAgentFailure(error: unknown) {
@@ -48,6 +55,44 @@ function describeAgentFailure(error: unknown) {
     httpStatus: error instanceof SegmentReadError ? error.httpStatus : undefined,
     agentError: error instanceof SegmentReadError ? error.agentDetail : undefined,
   };
+}
+
+interface PaddedOrder {
+  sort?: PlainSortClause[];
+  pageable: boolean;
+}
+
+function agentSort(
+  inboxSort: PlainSortClause[] | undefined,
+  sortsOnSeveralFields: boolean,
+): PlainSortClause[] | undefined {
+  return sortsOnSeveralFields ? inboxSort : inboxSort?.slice(0, 1);
+}
+
+// Offset pages only walk a total order, which only a single-column key can close as a tiebreak.
+function paddedOrder(
+  inbox: AutomatedInbox,
+  wholeInboxSort: PlainSortClause[] | undefined,
+  sortsOnSeveralFields: boolean,
+): PaddedOrder {
+  const [primaryKey] = inbox.primaryKeys;
+  const byKey = { field: primaryKey, ascending: true };
+  const inboxSort = agentSort(wholeInboxSort, sortsOnSeveralFields);
+
+  if (inbox.primaryKeys.length !== 1) return { sort: inboxSort, pageable: false };
+  if (!inboxSort) return { sort: [byKey], pageable: true };
+
+  if (inboxSort.some(({ field }) => field === primaryKey)) {
+    return { sort: inboxSort, pageable: true };
+  }
+
+  if (!sortsOnSeveralFields) return { sort: inboxSort, pageable: false };
+
+  return { sort: [...inboxSort, byKey], pageable: true };
+}
+
+function activeInboxSort(inbox: AutomatedInbox, attempt: ReadAttempt) {
+  return attempt.inboxSortDropped ? undefined : inbox.sort;
 }
 
 function segmentQuery(inbox: AutomatedInbox) {
@@ -260,6 +305,7 @@ export default class InboxPoll {
     const known = knownRecordIds(assignments);
     const knownSet = new Set(known);
     const paddedPageReason = await this.paddedPageReason(logContext, inbox, known);
+    const sortsOnSeveralFields = this.segmentReaderPort.sortsOnSeveralFields(inbox.liana);
 
     if (!paddedPageReason) {
       Object.assign(attempt, {
@@ -270,11 +316,19 @@ export default class InboxPoll {
       let page: string[];
 
       try {
-        page = await this.segmentReaderPort.listRecordIds({
-          ...segmentQuery(inbox),
-          ...(known.length ? { excludedRecordIds: known } : {}),
-          pageSize: inbox.maxConcurrentRuns,
-        });
+        page = await this.readWithInboxSort(
+          logContext,
+          inbox,
+          attempt,
+          inboxSort => agentSort(inboxSort, sortsOnSeveralFields),
+          sort =>
+            this.segmentReaderPort.listRecordIds({
+              ...segmentQuery(inbox),
+              ...(known.length ? { excludedRecordIds: known } : {}),
+              pageSize: inbox.maxConcurrentRuns,
+              sort,
+            }),
+        );
       } catch (error) {
         if (!known.length || !mayBeOperatorRefusal(error)) throw error;
 
@@ -319,32 +373,60 @@ export default class InboxPoll {
     attempt: ReadAttempt,
   ): Promise<SegmentRead<string>> {
     const requestedPageSize = paddedPageSize(inbox.maxConcurrentRuns, knownSet.size);
-    // agent-client sorts on one field: a composite key tied on its first column has no stable order
-    // across offset pages, so it keeps the single unsorted page.
-    const pageable = inbox.primaryKeys.length === 1;
-    const maxPages = pageable ? MAX_PADDED_PAGES : 1;
+    const sortsOnSeveralFields = this.segmentReaderPort.sortsOnSeveralFields(inbox.liana);
+    const orderFor = (inboxSort: PlainSortClause[] | undefined) =>
+      paddedOrder(inbox, inboxSort, sortsOnSeveralFields);
+    const byKeyOrder = orderFor(undefined);
+    let order = orderFor(activeInboxSort(inbox, attempt));
+    let orderPagesRead = 0;
     const candidates = new Set<string>();
     let pagesRead = 0;
     let reachedEnd = false;
 
-    while (pagesRead < maxPages && candidates.size < inbox.maxConcurrentRuns && !reachedEnd) {
+    while (
+      pagesRead < MAX_PADDED_PAGES &&
+      candidates.size < inbox.maxConcurrentRuns &&
+      !reachedEnd
+    ) {
+      // A page in an order that cannot be paged may hold nothing but treated records: the key order
+      // then walks past them, as it would without an inbox sort.
+      if (orderPagesRead > 0 && !order.pageable) {
+        if (!byKeyOrder.pageable) break;
+        order = byKeyOrder;
+        orderPagesRead = 0;
+      }
+
       pagesRead += 1;
+      orderPagesRead += 1;
+      const pageNumber = orderPagesRead;
+      const pageSort = order.sort;
       Object.assign(attempt, {
         requestedPageSize,
-        pageNumber: pagesRead,
+        pageNumber,
         paddedPageReason,
         notIn: false,
       });
+      const readPage = (sort: PlainSortClause[] | undefined) =>
+        this.segmentReaderPort.listRecordIds({
+          ...segmentQuery(inbox),
+          pageSize: requestedPageSize,
+          pageNumber,
+          sort,
+        });
       let page: string[];
 
       try {
         // eslint-disable-next-line no-await-in-loop
-        page = await this.segmentReaderPort.listRecordIds({
-          ...segmentQuery(inbox),
-          pageSize: requestedPageSize,
-          pageNumber: pagesRead,
-          sortByPrimaryKey: pageable,
-        });
+        page = await (pagesRead === 1
+          ? this.readWithInboxSort(
+              logContext,
+              inbox,
+              attempt,
+              inboxSort => orderFor(inboxSort).sort,
+              readPage,
+            )
+          : readPage(pageSort));
+        if (pagesRead === 1) order = orderFor(activeInboxSort(inbox, attempt));
       } catch (error) {
         if (candidates.size === 0) throw error;
 
@@ -384,6 +466,48 @@ export default class InboxPoll {
       requestedPageSize,
       pagesRead,
     };
+  }
+
+  /**
+   * A sort field renamed or out of the service account's reach must not stop the inbox from
+   * dispatching. Used on the not_in read and the first padded page only: a refused sort is refused
+   * on the first page already. The order is dropped for the rest of the candidate read only once the
+   * read without it succeeds, since a read failing both ways says nothing against the sort.
+   */
+  private async readWithInboxSort(
+    logContext: Record<string, unknown>,
+    inbox: AutomatedInbox,
+    attempt: ReadAttempt,
+    toSort: (inboxSort: PlainSortClause[] | undefined) => PlainSortClause[] | undefined,
+    read: (sort: PlainSortClause[] | undefined) => Promise<string[]>,
+  ): Promise<string[]> {
+    const inboxSort = activeInboxSort(inbox, attempt);
+    const sort = toSort(inboxSort);
+
+    try {
+      return await read(sort);
+    } catch (error) {
+      if (!inboxSort?.length || !mayBeSortRefusal(error)) throw error;
+
+      let page: string[];
+
+      try {
+        page = await read(toSort(undefined));
+      } catch (unsortedError) {
+        Object.assign(attempt, { sortedReadFailure: { sort, ...describeAgentFailure(error) } });
+        throw unsortedError;
+      }
+
+      this.logger('Warn', 'The agent rejected the inbox sort, reading candidates without it', {
+        ...logContext,
+        ...attempt,
+        sort,
+        ...describeAgentFailure(error),
+      });
+      Object.assign(attempt, { inboxSortDropped: true });
+
+      return page;
+    }
   }
 
   private async paddedPageReason(

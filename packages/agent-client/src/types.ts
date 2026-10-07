@@ -4,7 +4,7 @@ export type RecordId = string | number | Array<string | number>;
 
 export type BaseOptions = {
   filters?: PlainFilter['conditionTree']; // Filters to apply to the query
-  sort?: PlainSortClause; // Sort clause for the query
+  sort?: PlainSortClause | PlainSortClause[]; // Sort clause for the query
   search?: string; // Search term for the query
   fields?: string[]; // Fields to include in the response
   shouldSearchInRelation?: boolean; // Whether to search also on related collections

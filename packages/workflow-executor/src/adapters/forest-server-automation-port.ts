@@ -61,6 +61,7 @@ function toAutomatedInbox(config: ServerAutomatedInboxConfig): AutomatedInbox {
     timezone: toProjectTimezone(config.timezone),
     liana: config.liana,
     segment: config.segment,
+    sort: config.sort,
     user: toStepUser(config.serviceAccountProfile),
   };
 }
@@ -158,6 +159,7 @@ export default class ForestServerAutomationPort implements AutomationPort {
       // One unreadable config must not blind the poller to the others: a contract the executor is
       // too old to understand is the expected reason, and the rest of the environment still runs.
       if (parsed.success) {
+        this.warnOnUnreadableSort(raw, parsed.data);
         configs.push(toAutomatedInbox(parsed.data));
       } else {
         this.logger('Warn', 'Skipping an automated inbox config the executor cannot read', {
@@ -169,6 +171,21 @@ export default class ForestServerAutomationPort implements AutomationPort {
     }
 
     return configs;
+  }
+
+  private warnOnUnreadableSort(raw: unknown, config: ServerAutomatedInboxConfig): void {
+    const sent = (raw as { sort?: unknown })?.sort;
+
+    if (sent == null || config.sort) return;
+
+    this.logger(
+      'Warn',
+      'Ignoring an automated inbox sort the executor cannot read, reading in the agent order',
+      {
+        inboxId: config.inboxId,
+        sort: sent,
+      },
+    );
   }
 
   async listAssignments(inboxId: string): Promise<InboxAssignment[]> {

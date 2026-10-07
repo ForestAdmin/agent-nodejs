@@ -1,4 +1,4 @@
-import type { SegmentDescriptor } from '../types/automation';
+import type { PlainSortClause, SegmentDescriptor } from '../types/automation';
 import type { StepUser } from '../types/execution-context';
 
 export interface ListSegmentRecordIdsQuery {
@@ -19,8 +19,7 @@ export interface ListSegmentRecordIdsQuery {
   excludedRecordIds?: string[];
   pageSize?: number;
   pageNumber?: number;
-  /** Orders by the first primary key column, so offset pages are stable enough to walk. */
-  sortByPrimaryKey?: boolean;
+  sort?: PlainSortClause[];
 }
 
 /**
@@ -37,6 +36,7 @@ export interface SegmentReaderPort {
   exclusionUnavailableReason(
     query: ExclusionQuery,
   ): Promise<ExclusionUnavailableReason | undefined>;
+  sortsOnSeveralFields(liana: string | null | undefined): boolean;
 }
 
 export type ExclusionUnavailableReason =
