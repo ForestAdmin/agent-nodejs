@@ -358,19 +358,27 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     const { allowedTools, mcpServerId } = this.context.stepDefinition;
     if (!allowedTools?.length) return [...this.remoteTools];
 
-    const tools = this.remoteTools.filter(t => allowedTools.includes(t.sanitizedName));
+    // sanitizedName is lossy (`a.b` and `a:b` both read `a_b`): an entry naming several loaded tools
+    // cannot say which one was allowed, so it allows none of them rather than all.
+    const matched = allowedTools.filter(
+      name => this.remoteTools.filter(t => t.sanitizedName === name).length === 1,
+    );
+    const tools = this.remoteTools.filter(t => matched.includes(t.sanitizedName));
     if (tools.length === 0) throw new McpToolsNotAllowedError(mcpServerId, allowedTools);
 
     // A per-user OAuth listing can return a subset, so a partial match runs, but traced: the model
     // must call a bound tool, so a renamed allowed tool silently becomes a different one.
-    const loaded = new Set(tools.map(t => t.sanitizedName));
-    const unmatchedAllowedTools = allowedTools.filter(name => !loaded.has(name));
+    const unmatchedAllowedTools = allowedTools.filter(name => !matched.includes(name));
 
     if (unmatchedAllowedTools.length > 0) {
-      this.context.logger('Warn', 'MCP step allow-list names tools the server did not load', {
-        ...this.logCtx,
-        unmatchedAllowedTools,
-      });
+      this.context.logger(
+        'Warn',
+        'MCP step allow-list names tools that match no single loaded tool',
+        {
+          ...this.logCtx,
+          unmatchedAllowedTools,
+        },
+      );
     }
 
     return tools;

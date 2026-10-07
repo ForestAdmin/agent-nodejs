@@ -702,7 +702,7 @@ describe('McpStepExecutor', () => {
       expect(warnCalls).toEqual([
         [
           'Warn',
-          'MCP step allow-list names tools the server did not load',
+          'MCP step allow-list names tools that match no single loaded tool',
           expect.objectContaining({
             runId: 'run-1',
             stepIndex: 0,
@@ -711,6 +711,43 @@ describe('McpStepExecutor', () => {
           }),
         ],
       ]);
+    });
+
+    it('binds neither tool when one allow-list entry is the sanitized name of two loaded tools', async () => {
+      const logger = jest.fn();
+      const deleteSlash = jest.fn();
+      const deleteColon = jest.fn();
+      const tools = [
+        new MockRemoteTool({ name: 'delete/user', invoke: deleteSlash }),
+        new MockRemoteTool({ name: 'delete:user', invoke: deleteColon }),
+        new MockRemoteTool({ name: 'search_pages' }),
+      ];
+      const { model, bindTools } = makeMockModel('search_pages', {});
+      const context = makeContext({
+        logger,
+        model,
+        stepDefinition: makeStep({
+          mcpServerId: 'notion-1',
+          executionType: StepExecutionMode.FullyAutomated,
+          allowedTools: ['delete_user', 'search_pages'],
+        }),
+      });
+
+      const result = await new McpStepExecutor(context, tools).execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      const boundTools = bindTools.mock.calls[0][0] as Array<{ name: string }>;
+      expect(boundTools.map(t => t.name)).toEqual(['search_pages']);
+      expect(deleteSlash).not.toHaveBeenCalled();
+      expect(deleteColon).not.toHaveBeenCalled();
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        'MCP step allow-list names tools that match no single loaded tool',
+        expect.objectContaining({
+          mcpServerId: 'notion-1',
+          unmatchedAllowedTools: ['delete_user'],
+        }),
+      );
     });
 
     it('logs no Warn when every allow-list entry matches a loaded tool', async () => {
@@ -782,6 +819,25 @@ describe('McpStepExecutor', () => {
         'No loaded MCP tool is allowed for mcpServerId="notion-1": search_pages',
         expect.objectContaining({ runId: 'run-1', stepIndex: 0, mcpServerId: 'notion-1' }),
       );
+    });
+
+    it('returns a configuration error when the only allow-list entry is the sanitized name of two loaded tools', async () => {
+      const deleteSlash = jest.fn();
+      const context = makeContext({
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          allowedTools: ['delete_user'],
+        }),
+      });
+      const executor = new McpStepExecutor(context, [
+        new MockRemoteTool({ name: 'delete/user', invoke: deleteSlash }),
+        new MockRemoteTool({ name: 'delete:user' }),
+      ]);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome).toMatchObject({ status: 'error', errorKind: 'configuration' });
+      expect(deleteSlash).not.toHaveBeenCalled();
     });
 
     it('still reports NoMcpToolsError when the server loaded no tools, whatever the allow-list', async () => {
