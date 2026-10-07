@@ -51,6 +51,7 @@ describe('toRow', () => {
       operation: 'update',
       collection: 'accounts',
       recordId: '1',
+      previousRecordId: null,
       userId: 42,
       userFirstName: 'Jane',
       userLastName: 'Doe',
@@ -61,6 +62,14 @@ describe('toRow', () => {
       newValues: { status: 'closed' },
       status: 'done',
     });
+  });
+
+  it('keeps a previousRecordId given at insert, like the in-memory store', () => {
+    const status: AuditStatus = 'pending';
+
+    expect(toRow({ ...record(), previousRecordId: '7', status })).toEqual(
+      expect.objectContaining({ previousRecordId: '7' }),
+    );
   });
 });
 

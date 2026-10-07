@@ -257,12 +257,24 @@ function buildMigrations(schema: string | undefined, tableName: string) {
         // Idempotent for the same reason 001 is: a process losing a concurrent-boot race retries.
         if (existing.has('previous_record_id')) return;
 
-        await context.queryInterface.addColumn(
-          table,
-          'previous_record_id',
-          { type: DataTypes.TEXT, allowNull: true },
-          { transaction: context.transaction },
-        );
+        try {
+          await context.queryInterface.addColumn(
+            table,
+            'previous_record_id',
+            { type: DataTypes.TEXT, allowNull: true },
+            { transaction: context.transaction },
+          );
+        } catch (error) {
+          // Without Postgres's advisory lock, another agent booting at the same moment can add the
+          // column between the check above and this statement. Its duplicate-column error then
+          // means the work is done. Anything else, or a column still missing, is a real failure.
+          const added = await columnNames(context.queryInterface, table, context.transaction).then(
+            columns => columns.has('previous_record_id'),
+            () => false,
+          );
+
+          if (!added) throw error;
+        }
       },
       down: async ({ context }: { context: MigrationContext }) => {
         await context.queryInterface.removeColumn(
