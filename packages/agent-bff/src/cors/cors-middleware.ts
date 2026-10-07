@@ -45,6 +45,9 @@ export const ALLOWED_HEADERS =
   'Authorization, Content-Type, X-Forest-Timezone, X-Forest-Bff-Key, X-Request-Id, Forest-Projection';
 export const PREFLIGHT_MAX_AGE_SECONDS = 600;
 
+const EXPOSED_HEADERS =
+  'Deprecation, Link, Retry-After, X-Forest-Gateway-Version, X-Forest-Bff-Version';
+
 /**
  * Shaped like every other BFF error so a consumer branches on `error.type`. Built here rather than
  * thrown: this middleware runs before the agent-scoped error middleware, so a throw would surface
@@ -53,7 +56,7 @@ export const PREFLIGHT_MAX_AGE_SECONDS = 600;
 export const ORIGIN_NOT_ALLOWED = {
   type: 'origin_not_allowed',
   status: 403,
-  message: 'This origin is not allowed to call this BFF',
+  message: 'This origin is not allowed to call this Gateway API',
 } as const;
 
 export interface CorsMiddlewareOptions {
@@ -72,7 +75,10 @@ export default function createCorsMiddleware({
 
     const allowed = origin ? originAllowed(origin, allowedOrigins) : false;
 
-    if (allowed) ctx.set('Access-Control-Allow-Origin', origin);
+    if (allowed) {
+      ctx.set('Access-Control-Allow-Origin', origin);
+      ctx.set('Access-Control-Expose-Headers', EXPOSED_HEADERS);
+    }
 
     if (ctx.method === 'OPTIONS') {
       if (allowed) {

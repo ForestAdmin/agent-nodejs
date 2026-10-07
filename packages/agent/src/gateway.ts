@@ -1,11 +1,14 @@
 import type { BffEmbedOptions, GatewayOptions, McpEmbedOptions, RootHandler } from './types';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires, import/no-dynamic-require, global-require
-const { peerDependencies } = require('../package.json') as {
+const { peerDependencies, version } = require('../package.json') as {
   peerDependencies: Record<string, string>;
+  version: string;
 };
 
 export const AGENT_BFF_PEER_VERSION = peerDependencies['@forestadmin/agent-bff'];
+
+export const AGENT_VERSION = version;
 
 const isWithin = (path: string, root: string) => path === root || path.startsWith(`${root}/`);
 

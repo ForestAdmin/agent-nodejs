@@ -48,7 +48,7 @@ const ConditionTreeSchema: z.ZodType = z
     description:
       'Either a leaf condition, a branch nesting more conditions, or the empty object, which is ' +
       'how an absent filter is spelled. A branch must carry its ' +
-      '`aggregator`: the BFF forwards a branch without one, but the agent then parses it as ' +
+      '`aggregator`: the Gateway API forwards a branch without one, but the agent then parses it as ' +
       'neither leaf nor branch and answers 400. On top-level list and count, nesting deeper ' +
       `than ${MAX_FILTER_DEPTH} levels is rejected and each field is checked against the ` +
       'collection capabilities; relation list and count forward the filter without either check.',
@@ -64,7 +64,7 @@ export const PageSchema = PageInput.openapi('Page', {
     `Any other offset is rejected with 400 invalid_request, as is a \`limit\` above \`${MAX_PAGE_LIMIT}\` ` +
     '(the maximum is not clamped silently). `limit` and `offset` are both ' +
     'required once `page` is sent, but the object itself is optional on every list — and ' +
-    'omitting it is not a request for the whole collection. The BFF then forwards no ' +
+    'omitting it is not a request for the whole collection. The Gateway API then forwards no ' +
     'pagination, so the agent applies its own default: the first page (offset 0), a limit ' +
     'of 15 records on the Node agent. Anything past that page is silently missing. Send ' +
     '`page` and walk it to read a collection in full.',
@@ -91,7 +91,7 @@ export const SearchSchema = SearchInput.openapi('Search', {
     'collection — so a search reaches relation fields on its own, with no `searchExtended`, and ' +
     'escapes the 422 relation_field_not_supported that the same path draws in `filter`, `sort` or ' +
     '`projection`. The agent resolves a relation named in a query against its own schema, so a ' +
-    'query can filter on a column of a collection this BFF does not expose.',
+    'query can filter on a column of a collection this Gateway API does not expose.',
 });
 
 export const SearchExtendedSchema = SearchExtendedInput.openapi('SearchExtended', {
@@ -231,7 +231,7 @@ const ActionResultSuccessSchema = z
     description:
       'The action ran. `invalidated` names the relations of the acted-on collection whose ' +
       'Related Data should be re-fetched — the agent fills it from ' +
-      '`resultBuilder.success(message, { invalidated })` and the BFF relays it from the agent ' +
+      '`resultBuilder.success(message, { invalidated })` and the Gateway API relays it from the agent ' +
       '`refresh.relationships`. `message` is the agent wording: an agent-nodejs success with ' +
       'no message serializes the empty string, so null means the agent omitted `success` ' +
       'entirely.',
@@ -269,7 +269,7 @@ export const ActionResultSchema = z
   .openapi('ActionResult', {
     description:
       'The normalized execute result, discriminated by `type`. These three are the only 200 ' +
-      'bodies: a result the BFF cannot normalize answers 501 instead (see the execute 501 ' +
+      'bodies: a result the Gateway API cannot normalize answers 501 instead (see the execute 501 ' +
       'response), and a form the agent rejects answers 400 action_error.',
   });
 
@@ -381,7 +381,7 @@ const ContextFieldSchema = z.object({
     .openapi({
       description:
         'Set only alongside `isPrimaryKey`, when the schema declared no primary key at all and ' +
-        'the BFF derived one from a field named `id`. The key is then a GUESS: it is what ' +
+        'the Gateway API derived one from a field named `id`. The key is then a GUESS: it is what ' +
         '`__forest.primaryKey` carries, but nothing confirms it is the column the records are ' +
         'really keyed on, so a filter on it can answer 200 with no row. Use it to read record ' +
         'identities, not to filter by identity.',
@@ -445,11 +445,11 @@ export const ContextResponseSchema = z
       'not covered either: they carry no `recordKey` and the same transform applies to them. ' +
       'The document carries no rendering, project or team identity, and the only environment ' +
       'datum is `meta.environmentId` below. It is served to both auth modes — an OAuth session ' +
-      'and a BFF API key get the same document. It is NOT filtered by the caller permissions: ' +
+      'and a Gateway API key get the same document. It is NOT filtered by the caller permissions: ' +
       'it describes the whole exposed schema minus the endpoint-less actions, so cross it with ' +
       '`/agent/v1/permissions` to know what the caller may actually ' +
-      'see. `meta.schemaRevision` increments whenever the BFF refreshes its schema, and resets ' +
-      'when the BFF restarts. `meta.environmentId` is the environment the BFF resolved at boot ' +
+      'see. `meta.schemaRevision` increments whenever the Gateway API refreshes its schema, and resets ' +
+      'when the Gateway API restarts. `meta.environmentId` is the environment the Gateway API resolved at boot ' +
       'from its own secret — it is telemetry, not a routing input, and it is absent when the ' +
       'deployment runs without the OAuth configuration.',
   });
@@ -515,7 +515,7 @@ export const PermissionHintsSchema = z
 export const AiQueryRequestSchema = z.unknown().openapi('AiQueryRequest', {
   description:
     'Passed through to the Forest AI proxy without validation or rewriting, so the authority on ' +
-    'this shape is the upstream contract, not the BFF. It is left free-form on purpose: the BFF ' +
+    'this shape is the upstream contract, not the Gateway API. It is left free-form on purpose: the Gateway API ' +
     'enforces nothing here, and a shape published from this side would drift from the upstream ' +
     'one nobody keeps it in sync with. In practice it is the OpenAI chat-completion body — ' +
     '`messages`, and optionally `tools`, `tool_choice`, `parallel_tool_calls`. A malformed body ' +

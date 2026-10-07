@@ -14,6 +14,25 @@ import { DISPLAY_HINT_FINALITY } from '../../src/permissions/build-permission-hi
 const document = generateOpenApiDocument('9.9.9', { hasAiQueryRoute: true });
 const schemas = document.components?.schemas as Record<string, Record<string, unknown>>;
 
+it('should title the document Forest Gateway API', () => {
+  expect(document.info.title).toBe('Forest Gateway API');
+});
+
+it('should describe the security schemes as Gateway API credentials', () => {
+  const schemes = document.components?.securitySchemes as Record<string, { description: string }>;
+
+  expect(schemes.bffSession.description).toContain('the Gateway API session token');
+  expect(schemes.bffApiKey.description).toContain('a Gateway API key');
+  expect(schemes.bffSession.description).not.toContain('BFF');
+  expect(schemes.bffApiKey.description).not.toContain('BFF');
+});
+
+it('should leave no product-noun BFF in the document outside env-var key names', () => {
+  const withoutEnvKeys = JSON.stringify(document).replace(/BFF_[A-Z_]+/g, '');
+
+  expect(withoutEnvKeys).not.toMatch(/\bBFF\b/);
+});
+
 type ResolvedResponse = {
   description: string;
   headers?: Record<string, unknown>;
@@ -470,7 +489,7 @@ describe('generateOpenApiDocument', () => {
 
     expect(fallback.content?.['application/json'].schema).toEqual({});
     expect(fallback.description).toContain('relayed unchanged when it was JSON');
-    expect(fallback.description).toContain('replaced by the BFF');
+    expect(fallback.description).toContain('replaced by the Gateway API');
     expect(fallback.description).toContain(
       'below 400 that carries no JSON body is reported as 502',
     );
@@ -590,13 +609,13 @@ describe('generateOpenApiDocument', () => {
   });
 
   it('should credit the BFF itself with the 429, not only the agent', () => {
-    expect(listResponses()['429'].description).toContain('BFF rate-limited');
+    expect(listResponses()['429'].description).toContain('Gateway API rate-limited');
   });
 
   it('should declare the 429 on the context route, which the same limiter answers', () => {
     const context = responsesOf(`${ROUTE_PREFIX}/context`);
 
-    expect(context['429'].description).toContain('BFF rate-limited');
+    expect(context['429'].description).toContain('Gateway API rate-limited');
     expect(Object.keys(context['429'].headers ?? {})).toEqual(['Retry-After']);
   });
 
@@ -607,7 +626,7 @@ describe('generateOpenApiDocument', () => {
     };
 
     expect(Object.keys(ai['429'].headers ?? {})).toEqual(['Retry-After']);
-    expect(ai['429'].description).toContain('BFF rate-limited');
+    expect(ai['429'].description).toContain('Gateway API rate-limited');
     expect(header['Retry-After']?.description).toContain('rate-limit');
   });
 

@@ -2,7 +2,7 @@ import type { BffEmbedOptions } from '../../src/types';
 import type { Server } from 'http';
 import type supertest from 'supertest';
 
-import { buildBff, parseConfig } from '@forestadmin/agent-bff';
+import { version as bffVersion, buildBff, parseConfig } from '@forestadmin/agent-bff';
 import express from 'express';
 import jsonwebtoken from 'jsonwebtoken';
 import { tmpdir } from 'os';
@@ -13,6 +13,8 @@ import RecordContractDataSource from './fixtures/record-contract-datasource';
 import SearchDataSource from './fixtures/search-datasource';
 import Agent from '../../src/agent';
 import MockForestServer from '../__helper__/mock-forest-server';
+
+const agentVersion: string = jest.requireActual('../../package.json').version;
 
 const AUTH_SECRET = 'test-auth-secret-32-chars-min!!!';
 const ENV_SECRET = '0'.repeat(64);
@@ -349,6 +351,24 @@ describe('embedded BFF', () => {
         status: 'ok',
         configured: { oauth: false, ai: false, cors: true, openapi: false },
       });
+    });
+  });
+
+  describe('response headers on a /bff route', () => {
+    it('should send both version headers and expose them with the deprecation ones to browsers', async () => {
+      const response = await request(app)
+        .get('/bff/agent/v1/context')
+        .set('Authorization', `Bearer ${sessionToken()}`)
+        .set('Origin', ALLOWED_ORIGIN);
+
+      expect(response.status).toBe(200);
+      expect(response.headers['x-forest-bff-version']).toBe(bffVersion);
+      expect(response.headers['x-forest-gateway-version']).toBe(agentVersion);
+      expect(response.headers['access-control-expose-headers']).toBe(
+        'Deprecation, Link, Retry-After, X-Forest-Gateway-Version, X-Forest-Bff-Version',
+      );
+      expect(response.headers.deprecation).toBe('@1791158400');
+      expect(response.headers.link).toContain('rel="deprecation"');
     });
   });
 

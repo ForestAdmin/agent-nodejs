@@ -9,7 +9,8 @@ const OPENAPI_MODULE_PREFIX = 'openapi/';
 
 const ALLOWED_OPENAPI_IMPORTS: Record<string, string[]> = {
   'build-bff.ts': ['openapi/openapi-routes', 'openapi/unfolded-document'],
-  'cli-dispatch.ts': ['openapi/openapi-document', 'openapi/unfolded-document', 'openapi/unfolding'],
+  'cli-dispatch.ts': ['openapi/render-openapi'],
+  'index.ts': ['openapi/render-openapi'],
 };
 
 function sourceFiles(): string[] {
@@ -51,14 +52,16 @@ describe('the OpenAPI document mount point', () => {
   });
 
   describe('when a module outside src/openapi reaches into it', () => {
-    it('should only be the two known mount points, since any other one could serve the document off /agent', () => {
+    it('should only be the known mount points, since any other one could serve the document off /agent', () => {
       expect(openapiImportsOutsideTheOpenapiDir()).toEqual(ALLOWED_OPENAPI_IMPORTS);
     });
   });
 
   describe('when the package public surface is read', () => {
-    it('should expose nothing OpenAPI-related, since a consumer could mount it off /agent', () => {
-      expect(Object.keys(publicApi).filter(name => /openapi/i.test(name))).toEqual([]);
+    it('should expose only the string renderer, nothing a consumer could mount off /agent', () => {
+      expect(Object.keys(publicApi).filter(name => /openapi/i.test(name))).toEqual([
+        'renderOpenApi',
+      ]);
     });
   });
 });

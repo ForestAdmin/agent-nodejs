@@ -28,7 +28,7 @@ export default function normalizeBasePath(input?: string): string {
 
   if (!SHAPE.test(collapsed)) {
     throw new ConfigurationError(
-      `Invalid BFF base path "${input}": use a plain path prefix like "/bff" ` +
+      `Invalid Gateway API base path "${input}": use a plain path prefix like "/api" ` +
         `(letters, digits, "-" and "_" only).`,
     );
   }

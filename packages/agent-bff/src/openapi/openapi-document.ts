@@ -41,20 +41,20 @@ const ERROR_STATUSES: Record<string, string> = {
   401: 'Missing, invalid, or expired credentials',
   403: 'The action needs approval before it runs (the body carries the approving roles), the Forest identity behind the API key is not allowed, the plan of the project does not include the Gateway API (type plan_feature_missing), the origin is not allowed for this key, the Forest server refused to write the activity log the request needs (type audit_not_authorized), or the agent refused the collection, relation, or action',
   404: 'Unknown collection, relation, or action',
-  413: `The request body exceeds the BFF limit of ${BODY_LIMIT}`,
+  413: `The request body exceeds the Gateway API limit of ${BODY_LIMIT}`,
   415: 'The request Content-Type is neither application/json nor an application/*+json type, including form-urlencoded, and is rejected with 415 instead of being silently dropped; a request carrying a body with no Content-Type at all is rejected the same way; or the declared character set cannot be decoded',
   422: 'A field is unknown, not filterable, is a nested relation path, or an action value at execute is outside its enum or of the wrong type',
-  429: `The BFF rate-limited the request, for one of two reasons: the caller identity exceeded its per-window budget, or the limiter is saturated and cannot open a window for a new identity. The \`details.cause\` field of the error body distinguishes them (\`${RATE_LIMIT_CAUSES.limitExceeded}\` or \`${RATE_LIMIT_CAUSES.limiterSaturated}\`), and Retry-After carries the seconds to wait. On data and action routes the agent may also rate-limit the request itself; that 429 is relayed with the agent's own payload as \`details\`, so it carries neither \`cause\` nor Retry-After — read them only when they are present rather than branching on their value`,
-  500: 'The agent payload could not be mapped to the BFF contract, or the BFF hit an unexpected error',
-  501: 'The BFF is running without an agent configured, so the proxy is not implemented',
+  429: `The Gateway API rate-limited the request, for one of two reasons: the caller identity exceeded its per-window budget, or the limiter is saturated and cannot open a window for a new identity. The \`details.cause\` field of the error body distinguishes them (\`${RATE_LIMIT_CAUSES.limitExceeded}\` or \`${RATE_LIMIT_CAUSES.limiterSaturated}\`), and Retry-After carries the seconds to wait. On data and action routes the agent may also rate-limit the request itself; that 429 is relayed with the agent's own payload as \`details\`, so it carries neither \`cause\` nor Retry-After — read them only when they are present rather than branching on their value`,
+  500: 'The agent payload could not be mapped to the Gateway API contract, or the Gateway API hit an unexpected error',
+  501: 'The Gateway API is running without an agent configured, so the proxy is not implemented',
   502: 'The agent refused the connection, its host could not be resolved, or the transport failed another way (a connection reset mid-flight, a socket hang up, a TLS failure) — it failed outright rather than running out of time',
   503: 'The agent schema is unavailable, the agent returned a 5xx, the API key could not be resolved, the activity log an action execution must be recorded in could not be written, so the action was not run (type audit_unavailable), or the Forest permissions could not be fetched and no fresh cache was left (type permissions_unavailable)',
-  504: 'The agent did not answer before the BFF timeout (BFF_AGENT_TIMEOUT_MS, 10s by default). The deadline is armed when the request starts, so at the default it also covers a host that accepts nothing and never resets the connection — raise the timeout past the OS connect timeout and that case reverts to 502',
+  504: 'The agent did not answer before the Gateway API timeout (BFF_AGENT_TIMEOUT_MS, 10s by default). The deadline is armed when the request starts, so at the default it also covers a host that accepts nothing and never resets the connection — raise the timeout past the OS connect timeout and that case reverts to 502',
 };
 
 const UNSUPPORTED_RESULT_DESCRIPTION =
-  'Either the BFF runs without an agent configured, or the action returned a result shape the ' +
-  'BFF cannot normalize. The second case carries no message field.';
+  'Either the Gateway API runs without an agent configured, or the action returned a result shape the ' +
+  'Gateway API cannot normalize. The second case carries no message field.';
 
 const ERROR_RESPONSE_REF = '#/components/schemas/ErrorResponse';
 const MESSAGELESS_ERROR_RESPONSE_REF = '#/components/schemas/MessagelessErrorResponse';
@@ -76,15 +76,15 @@ const retryAfterHeader = (description: string) => ({
 });
 
 const RETRY_AFTER_HEADER = retryAfterHeader(
-  'Seconds to wait before retrying. Set when the BFF could not reach the Forest server — an ' +
+  'Seconds to wait before retrying. Set when the Gateway API could not reach the Forest server — an ' +
     'unresolvable API key, or permissions it could not fetch.',
 );
 
 const RETRY_AFTER_RATE_LIMIT_HEADER = retryAfterHeader(
-  'Seconds until the BFF rate-limit window of the caller resets. When the limiter is ' +
+  'Seconds until the Gateway API rate-limit window of the caller resets. When the limiter is ' +
     'saturated the caller has no window yet, so the value is a lower bound instead: the ' +
     'earliest reset among the identities currently holding one, after which a slot may free ' +
-    'up. Present when the BFF itself emitted this 429; an agent 429 relayed from upstream ' +
+    'up. Present when the Gateway API itself emitted this 429; an agent 429 relayed from upstream ' +
     'carries no header.',
 );
 
@@ -209,30 +209,30 @@ const DATA_ERRORS = [
 ];
 
 const AI_RELAYED_OR_ENVELOPE =
-  'Below 500 the BFF relays whatever JSON the Forest AI proxy answered, unchanged, so the authority ' +
-  'on this body is the upstream contract and not the BFF one. When the upstream answer carried no ' +
-  'JSON body, the BFF substitutes its own `{ error: { type, status, message } }` envelope at the ' +
+  'Below 500 the Gateway API relays whatever JSON the Forest AI proxy answered, unchanged, so the authority ' +
+  'on this body is the upstream contract and not the Gateway API one. When the upstream answer carried no ' +
+  'JSON body, the Gateway API substitutes its own `{ error: { type, status, message } }` envelope at the ' +
   'same status. A consumer must accept either shape.';
 
 const AI_DUAL_SHAPED_ERRORS: Record<string, string> = {
-  400: `The BFF could not parse the body as JSON, or the Forest AI proxy rejected the query. ${AI_RELAYED_OR_ENVELOPE}`,
-  401: `The BFF session is missing, invalid or expired, or the Forest server refused the access token this route forwards. ${AI_RELAYED_OR_ENVELOPE}`,
+  400: `The Gateway API could not parse the body as JSON, or the Forest AI proxy rejected the query. ${AI_RELAYED_OR_ENVELOPE}`,
+  401: `The Gateway API session is missing, invalid or expired, or the Forest server refused the access token this route forwards. ${AI_RELAYED_OR_ENVELOPE}`,
   403: `The request presented an API key instead of a session (type oauth_required), or the Forest server refused the query. ${AI_RELAYED_OR_ENVELOPE}`,
   413: `The request body exceeds the AI query limit of ${AI_BODY_LIMIT}, or the Forest AI proxy refused it as too large. ${AI_RELAYED_OR_ENVELOPE}`,
-  415: `The request Content-Type is neither application/json nor an application/*+json type, or the request carries a body with no Content-Type at all, or it declares a character set the BFF cannot decode. ${AI_RELAYED_OR_ENVELOPE}`,
-  429: `The BFF rate-limited the request (its own envelope, with Retry-After), or the Forest AI proxy rate-limited the query. ${AI_RELAYED_OR_ENVELOPE}`,
+  415: `The request Content-Type is neither application/json nor an application/*+json type, or the request carries a body with no Content-Type at all, or it declares a character set the Gateway API cannot decode. ${AI_RELAYED_OR_ENVELOPE}`,
+  429: `The Gateway API rate-limited the request (its own envelope, with Retry-After), or the Forest AI proxy rate-limited the query. ${AI_RELAYED_OR_ENVELOPE}`,
 };
 
 const AI_ENVELOPE_ERRORS: Record<string, string> = {
-  500: 'The BFF hit an unexpected error, or the Forest server answered a 500 whose body is withheld',
-  502: 'The Forest server could not be reached, or answered a status the BFF does not relay',
+  500: 'The Gateway API hit an unexpected error, or the Forest server answered a 500 whose body is withheld',
+  502: 'The Forest server could not be reached, or answered a status the Gateway API does not relay',
   503: 'The Forest server reported itself unavailable',
-  504: 'The Forest server did not answer the AI query before the BFF timeout',
+  504: 'The Forest server did not answer the AI query before the Gateway API timeout',
 };
 
 const AI_DEFAULT_DESCRIPTION =
   'Any other status this relay can answer. Below 500 the body is the Forest AI proxy answer, ' +
-  'relayed unchanged when it was JSON and replaced by the BFF ' +
+  'relayed unchanged when it was JSON and replaced by the Gateway API ' +
   '`{ error: { type, status, message } }` envelope when it was not. At 500 and above the body is ' +
   'always that envelope, so no upstream infrastructure detail reaches the caller. An upstream ' +
   'answer below 400 that carries no JSON body is reported as 502, since there is nothing to relay.';
@@ -366,13 +366,13 @@ const TIMEZONE_HEADER = z
   .openapi({
     param: { name: 'X-Forest-Timezone', in: 'header' },
     description:
-      'An IANA timezone. Takes precedence over the `timezone` body field; the BFF default ' +
+      'An IANA timezone. Takes precedence over the `timezone` body field; the Gateway API default ' +
       'applies when neither is sent.',
   });
 
 const SHARED_DESCRIPTION =
   'The timezone is resolved from the `X-Forest-Timezone` header first, then a `timezone` body ' +
-  'field, then the BFF default when one is configured. A deployment without a default rejects a ' +
+  'field, then the Gateway API default when one is configured. A deployment without a default rejects a ' +
   'request carrying neither with 400 missing_timezone, so send one of the two to be safe. Agent ' +
   'routes read application/json (and application/*+json) bodies only: any other Content-Type, ' +
   'form-urlencoded included, is rejected with 415 instead of being read as an absent body, and ' +
@@ -480,13 +480,13 @@ function registerDocumentPath(registry: OpenAPIRegistry, errorRefs: ErrorRespons
       'API key — as they do on every data, action, context and permissions route; the AI-query ' +
       'relay, where it is published, is the one exception and takes a session only. `HEAD` is ' +
       'served identically. The ' +
-      'answer is never cached (`Cache-Control: no-store`) and is regenerated when the BFF ' +
+      'answer is never cached (`Cache-Control: no-store`) and is regenerated when the Gateway API ' +
       'refreshes its schema, so a client can re-fetch it to pick up a new collection or field.',
     security: SECURITY,
     request: {},
     responses: {
       200: {
-        description: 'The OpenAPI document of this BFF',
+        description: 'The OpenAPI document of this Gateway API',
         content: { 'application/json': { schema: z.unknown() } },
       },
       400: errorRefs.byStatus['400'],
@@ -526,7 +526,7 @@ function registerAiQueryPath(
     summary: 'Relay an AI query to the Forest server',
     description:
       'Relays the body unchanged to the Forest AI proxy, authenticated with the OAuth session ' +
-      'held by the BFF. Requires a session: an API key is rejected with 403 oauth_required, ' +
+      'held by the Gateway API. Requires a session: an API key is rejected with 403 oauth_required, ' +
       'because only the OAuth flow yields the Forest access token this route forwards. The ' +
       'environment and rendering are derived server-side, so sending forest-* headers has no ' +
       `effect. The body limit is ${AI_BODY_LIMIT} here rather than the ${BODY_LIMIT} of every ` +
@@ -548,7 +548,7 @@ function registerAiQueryPath(
   });
 }
 
-const CONFIGURED_SERVER_DESCRIPTION = 'The public base URL of this BFF deployment.';
+const CONFIGURED_SERVER_DESCRIPTION = 'The public base URL of this Gateway API deployment.';
 
 // A self-hosted BFF cannot know its own external URL, and this document is also exported offline by
 // the CLI, so the absolute form has to be configured. Not a server variable in the meantime: a
@@ -564,7 +564,7 @@ export interface GenerateOpenApiDocumentOptions {
   hasAiQueryRoute?: boolean;
   /** The deployment's own external base URL, from `BFF_PUBLIC_URL`. Takes precedence. */
   publicUrl?: string;
-  /** Where the BFF answers from the caller's point of view. Empty when it owns the origin root. */
+  /** Where the Gateway API answers from the caller's point of view. Empty when it owns the origin root. */
   basePath?: string;
 }
 
@@ -589,8 +589,8 @@ export function generateOpenApiDocument(
     type: 'http',
     scheme: 'bearer',
     description:
-      'Mode 1: the BFF session token issued after the OAuth login. Accepted on the context ' +
-      'contract and on every data and action route, where the BFF mints the agent token from the ' +
+      'Mode 1: the Gateway API session token issued after the OAuth login. Accepted on the context ' +
+      'contract and on every data and action route, where the Gateway API mints the agent token from the ' +
       'session. The session must carry a usable rendering, otherwise the request is rejected ' +
       'with 401.',
   });
@@ -599,7 +599,7 @@ export function generateOpenApiDocument(
     in: 'header',
     name: 'X-Forest-Bff-Key',
     description:
-      'Mode 2: a BFF API key. Never send both this and an Authorization header. A key created ' +
+      'Mode 2: a Gateway API key. Never send both this and an Authorization header. A key created ' +
       'with allowedOrigins restricts browser callers only: an Origin the client sends must be in ' +
       'that list, else 403 origin_not_allowed, while a request with no Origin at all — curl, a ' +
       'server-side client, CI, an empty Origin header counting as none — passes, because there ' +
@@ -685,7 +685,7 @@ export function generateOpenApiDocument(
       )} collection.`,
     })),
     info: {
-      title: 'Forest BFF',
+      title: 'Forest Gateway API',
       version,
       license: { name: 'GPL-3.0', url: 'https://www.gnu.org/licenses/gpl-3.0.html' },
       description: `${

@@ -38,6 +38,16 @@ describe('cors middleware (layer 1)', () => {
       expect(response.headers.vary).toContain('Origin');
     });
 
+    it('exposes the deprecation and version headers to browser JS', async () => {
+      const { app } = buildApp();
+
+      const response = await request(app.callback()).get('/agent/x').set('Origin', ALLOWED);
+
+      expect(response.headers['access-control-expose-headers']).toBe(
+        'Deprecation, Link, Retry-After, X-Forest-Gateway-Version, X-Forest-Bff-Version',
+      );
+    });
+
     it('matches an allow-listed origin regardless of the default port', async () => {
       const { app } = buildApp();
 
@@ -58,6 +68,9 @@ describe('cors middleware (layer 1)', () => {
 
       expect(response.status).toBe(403);
       expect(response.body.error).toMatchObject({ type: 'origin_not_allowed', status: 403 });
+      expect(response.body.error.message).toBe(
+        'This origin is not allowed to call this Gateway API',
+      );
       expect(response.headers['access-control-allow-origin']).toBeUndefined();
       // Le point du refus : sans lui la requête s'exécutait, et seul le navigateur jetait la
       // réponse — donc une liste était lue et une action exécutée pour une origine non autorisée.
