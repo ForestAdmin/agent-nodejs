@@ -79,6 +79,7 @@ jobs:
           - datasource-sql
           - datasource-toolkit
           - forestadmin-client
+          - gateway
           - plugin-aws-s3
           - plugin-export-advanced
           - plugin-flattener
