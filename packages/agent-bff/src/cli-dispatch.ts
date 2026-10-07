@@ -1,18 +1,13 @@
 import type BFFHttpServer from './http/bff-http-server';
 import type { Logger } from './ports/logger-port';
 
-import { mkdirSync, writeFileSync } from 'fs';
-import path from 'path';
-
 import createConsoleLogger from './adapters/console-logger';
 import runCli from './cli-core';
-import { extractErrorMessage } from './errors';
+import { DEFAULT_OUTPUT_FILE, OUTPUT_FLAG, parseOutputOption, writeOutputFile } from './cli-output';
 import renderOpenApi from './openapi/render-openapi';
 import version from './version';
 
-export const DEFAULT_OUTPUT_FILE = 'openapi.json';
-
-const OUTPUT_FLAG = '--output';
+export { DEFAULT_OUTPUT_FILE };
 
 export const USAGE = `Usage: forest-bff [command]
 
@@ -44,46 +39,6 @@ function rejectCli(reason: string): DispatchOutcome {
   process.stderr.write(`${reason}\n${HINT}\n`);
 
   return { exitCode: 1 };
-}
-
-interface OutputOption {
-  file?: string;
-  extras: string[];
-}
-
-function parseOutputOption(rest: string[]): OutputOption {
-  const index = rest.indexOf(OUTPUT_FLAG);
-
-  if (index === -1) return { extras: rest };
-
-  const candidate = rest[index + 1];
-  const takesValue = candidate !== undefined && candidate !== '' && !candidate.startsWith('-');
-
-  return {
-    file: takesValue ? candidate : DEFAULT_OUTPUT_FILE,
-    extras: [...rest.slice(0, index), ...rest.slice(index + (takesValue ? 2 : 1))],
-  };
-}
-
-function writeOpenApiFile(file: string, document: string): DispatchOutcome {
-  const asDirectory = file.endsWith('/') || file.endsWith(path.sep);
-  const destination = path.resolve(
-    process.cwd(),
-    asDirectory ? path.join(file, DEFAULT_OUTPUT_FILE) : file,
-  );
-
-  try {
-    mkdirSync(path.dirname(destination), { recursive: true });
-    writeFileSync(destination, document);
-  } catch (error) {
-    process.stderr.write(`Cannot write ${destination}: ${extractErrorMessage(error)}\n`);
-
-    return { exitCode: 1 };
-  }
-
-  process.stderr.write(`Wrote the OpenAPI document to ${destination}\n`);
-
-  return { exitCode: 0 };
 }
 
 export default async function dispatchCli(
@@ -128,7 +83,7 @@ export default async function dispatchCli(
   const document = await renderOpenApi(env, logger ?? createConsoleLogger());
 
   if (file !== undefined) {
-    return writeOpenApiFile(file, document);
+    return writeOutputFile(file, document);
   }
 
   process.stdout.write(document);
