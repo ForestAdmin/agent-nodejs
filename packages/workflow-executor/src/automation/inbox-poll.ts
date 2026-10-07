@@ -46,6 +46,7 @@ interface ReadAttempt {
   paddedPageReason?: PaddedPageReason;
   notIn?: boolean;
   inboxSortDropped?: boolean;
+  sortedReadFailure?: { sort?: PlainSortClause[] } & ReturnType<typeof describeAgentFailure>;
 }
 
 function describeAgentFailure(error: unknown) {
@@ -61,14 +62,22 @@ interface PaddedOrder {
   pageable: boolean;
 }
 
+function agentSort(
+  inboxSort: PlainSortClause[] | undefined,
+  sortsOnSeveralFields: boolean,
+): PlainSortClause[] | undefined {
+  return sortsOnSeveralFields ? inboxSort : inboxSort?.slice(0, 1);
+}
+
 // Offset pages only walk a total order, which only a single-column key can close as a tiebreak.
 function paddedOrder(
   inbox: AutomatedInbox,
-  inboxSort: PlainSortClause[] | undefined,
+  wholeInboxSort: PlainSortClause[] | undefined,
   sortsOnSeveralFields: boolean,
 ): PaddedOrder {
   const [primaryKey] = inbox.primaryKeys;
   const byKey = { field: primaryKey, ascending: true };
+  const inboxSort = agentSort(wholeInboxSort, sortsOnSeveralFields);
 
   if (inbox.primaryKeys.length !== 1) return { sort: inboxSort, pageable: false };
   if (!inboxSort) return { sort: [byKey], pageable: true };
@@ -296,6 +305,7 @@ export default class InboxPoll {
     const known = knownRecordIds(assignments);
     const knownSet = new Set(known);
     const paddedPageReason = await this.paddedPageReason(logContext, inbox, known);
+    const sortsOnSeveralFields = this.segmentReaderPort.sortsOnSeveralFields(inbox.liana);
 
     if (!paddedPageReason) {
       Object.assign(attempt, {
@@ -310,7 +320,7 @@ export default class InboxPoll {
           logContext,
           inbox,
           attempt,
-          inboxSort => inboxSort,
+          inboxSort => agentSort(inboxSort, sortsOnSeveralFields),
           sort =>
             this.segmentReaderPort.listRecordIds({
               ...segmentQuery(inbox),
@@ -366,15 +376,30 @@ export default class InboxPoll {
     const sortsOnSeveralFields = this.segmentReaderPort.sortsOnSeveralFields(inbox.liana);
     const orderFor = (inboxSort: PlainSortClause[] | undefined) =>
       paddedOrder(inbox, inboxSort, sortsOnSeveralFields);
-    const maxPages = () =>
-      orderFor(activeInboxSort(inbox, attempt)).pageable ? MAX_PADDED_PAGES : 1;
+    const byKeyOrder = orderFor(undefined);
+    let order = orderFor(activeInboxSort(inbox, attempt));
+    let orderPagesRead = 0;
     const candidates = new Set<string>();
     let pagesRead = 0;
     let reachedEnd = false;
 
-    while (pagesRead < maxPages() && candidates.size < inbox.maxConcurrentRuns && !reachedEnd) {
+    while (
+      pagesRead < MAX_PADDED_PAGES &&
+      candidates.size < inbox.maxConcurrentRuns &&
+      !reachedEnd
+    ) {
+      // A page in an order that cannot be paged may hold nothing but treated records: the key order
+      // then walks past them, as it would without an inbox sort.
+      if (orderPagesRead > 0 && !order.pageable) {
+        if (!byKeyOrder.pageable) break;
+        order = byKeyOrder;
+        orderPagesRead = 0;
+      }
+
       pagesRead += 1;
-      const pageNumber = pagesRead;
+      orderPagesRead += 1;
+      const pageNumber = orderPagesRead;
+      const pageSort = order.sort;
       Object.assign(attempt, {
         requestedPageSize,
         pageNumber,
@@ -392,7 +417,7 @@ export default class InboxPoll {
 
       try {
         // eslint-disable-next-line no-await-in-loop
-        page = await (pageNumber === 1
+        page = await (pagesRead === 1
           ? this.readWithInboxSort(
               logContext,
               inbox,
@@ -400,7 +425,8 @@ export default class InboxPoll {
               inboxSort => orderFor(inboxSort).sort,
               readPage,
             )
-          : readPage(orderFor(activeInboxSort(inbox, attempt)).sort));
+          : readPage(pageSort));
+        if (pagesRead === 1) order = orderFor(activeInboxSort(inbox, attempt));
       } catch (error) {
         if (candidates.size === 0) throw error;
 
@@ -463,7 +489,14 @@ export default class InboxPoll {
     } catch (error) {
       if (!inboxSort?.length || !mayBeSortRefusal(error)) throw error;
 
-      const page = await read(toSort(undefined));
+      let page: string[];
+
+      try {
+        page = await read(toSort(undefined));
+      } catch (unsortedError) {
+        Object.assign(attempt, { sortedReadFailure: { sort, ...describeAgentFailure(error) } });
+        throw unsortedError;
+      }
 
       this.logger('Warn', 'The agent rejected the inbox sort, reading candidates without it', {
         ...logContext,

@@ -434,6 +434,26 @@ describe('automation sweep, real poller over the real adapters', () => {
       ]);
       expect(syncBodies).toStrictEqual([{ closed: [], candidates: ['7', '3', '4'] }]);
     });
+
+    it('should send only the first inbox sort field to an agent that sorts on one field', async () => {
+      const syncBodies = serveOrchestrator({
+        config: makeConfig({ sort, liana: 'forest-express-sequelize' }),
+        assignments,
+      });
+      onSortedList('-created_at', 200, records('1', '2', '3'));
+
+      await sweepOnce();
+
+      expect(nock.isDone()).toBe(true);
+      expect(agentRequests).toEqual([
+        {
+          method: 'GET',
+          path: '/forest/orders',
+          query: listQuery({ 'page[size]': '5', 'page[number]': '1', sort: '-created_at' }),
+        },
+      ]);
+      expect(syncBodies).toStrictEqual([{ closed: [], candidates: ['3'] }]);
+    });
   });
 
   describe('the not_in candidate read', () => {

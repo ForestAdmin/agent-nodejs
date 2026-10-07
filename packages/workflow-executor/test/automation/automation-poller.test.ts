@@ -1420,15 +1420,67 @@ describe('AutomationPoller', () => {
           );
         });
 
-        it('should read one page in the inbox order alone on an agent that sorts on one field', async () => {
+        it('should walk the key order after an inbox-ordered page of known records, on an agent that sorts on one field', async () => {
           const context = paddingContext('forest-express-sequelize');
-          context.segmentReaderPort.listRecordIds.mockResolvedValue(knownPage(1));
+          context.segmentReaderPort.listRecordIds
+            .mockResolvedValueOnce(knownPage(1))
+            .mockResolvedValueOnce(['w0', 'fresh-1']);
 
           await runOneCycle(makePoller(context));
 
           expect(context.segmentReaderPort.sortsOnSeveralFields).toHaveBeenCalledWith(
             'forest-express-sequelize',
           );
+          expect(readQueries(context)).toEqual([
+            expect.objectContaining({ pageSize: 500, pageNumber: 1, sort: byNewest }),
+            expect.objectContaining({
+              pageSize: 500,
+              pageNumber: 1,
+              sort: [{ field: 'id', ascending: true }],
+            }),
+          ]);
+          expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
+            closed: [],
+            candidates: ['fresh-1'],
+          });
+        });
+
+        it('should keep walking the key order past its first page', async () => {
+          const context = paddingContext('forest-express-sequelize');
+          context.segmentReaderPort.listRecordIds
+            .mockResolvedValueOnce(knownPage(1))
+            .mockResolvedValueOnce(knownPage(1))
+            .mockResolvedValueOnce(['fresh-1']);
+
+          await runOneCycle(makePoller(context));
+
+          expect(readQueries(context)).toEqual([
+            expect.objectContaining({ pageNumber: 1, sort: byNewest }),
+            expect.objectContaining({ pageNumber: 1, sort: [{ field: 'id', ascending: true }] }),
+            expect.objectContaining({ pageNumber: 2, sort: [{ field: 'id', ascending: true }] }),
+          ]);
+        });
+
+        it('should read no more pages in all than without an inbox order', async () => {
+          const context = paddingContext('forest-express-sequelize');
+          context.segmentReaderPort.listRecordIds.mockResolvedValue(knownPage(1));
+
+          await runOneCycle(makePoller(context));
+
+          expect(readQueries(context)).toEqual([
+            expect.objectContaining({ pageNumber: 1, sort: byNewest }),
+            ...[1, 2, 3, 4].map(pageNumber =>
+              expect.objectContaining({ pageNumber, sort: [{ field: 'id', ascending: true }] }),
+            ),
+          ]);
+        });
+
+        it('should not walk the key order once the inbox-ordered page reached the end', async () => {
+          const context = paddingContext('forest-express-sequelize');
+          context.segmentReaderPort.listRecordIds.mockResolvedValueOnce(['w0', 'w1']);
+
+          await runOneCycle(makePoller(context));
+
           expect(readQueries(context)).toEqual([
             expect.objectContaining({ pageNumber: 1, sort: byNewest }),
           ]);
@@ -1476,6 +1528,61 @@ describe('AutomationPoller', () => {
             candidates: ['fresh'],
           });
         });
+      });
+
+      describe('on an agent that sorts on one field', () => {
+        const twoFields = [...byNewest, { field: 'name', ascending: true }];
+
+        it('should send only the first inbox sort field on the not_in read', async () => {
+          const context = sortedContext({ liana: 'forest-express-sequelize', sort: twoFields });
+          context.segmentReaderPort.sortsOnSeveralFields.mockReturnValue(false);
+
+          await runOneCycle(makePoller(context));
+
+          expect(readQueries(context)).toEqual([
+            expect.objectContaining({ excludedRecordIds: ['a'], sort: byNewest }),
+          ]);
+        });
+
+        it('should send only the first inbox sort field on the padded read', async () => {
+          const context = sortedContext(
+            { liana: 'forest-express-sequelize', sort: twoFields },
+            false,
+          );
+          context.segmentReaderPort.sortsOnSeveralFields.mockReturnValue(false);
+
+          await runOneCycle(makePoller(context));
+
+          expect(readQueries(context)).toEqual([
+            expect.objectContaining({ pageNumber: 1, sort: byNewest }),
+          ]);
+        });
+      });
+
+      it('should log the sorted read failure when the read without the order fails too', async () => {
+        const context = sortedContext();
+        context.segmentReaderPort.listRecordIds
+          .mockRejectedValueOnce(
+            segmentReadFailure('failed', { httpStatus: 400, agentDetail: 'Invalid sort' }),
+          )
+          .mockRejectedValueOnce(
+            segmentReadFailure('failed', { httpStatus: 400, agentDetail: 'Unsupported not_in' }),
+          );
+
+        await runOneCycle(makePoller(context));
+
+        expect(context.logger).toHaveBeenCalledWith(
+          'Warn',
+          'The not_in candidate read failed, padding the page instead',
+          expect.objectContaining({
+            agentError: 'Unsupported not_in',
+            sortedReadFailure: expect.objectContaining({
+              sort: byNewest,
+              httpStatus: 400,
+              agentError: 'Invalid sort',
+            }),
+          }),
+        );
       });
 
       it('should read again without the inbox order when the agent rejects the sort', async () => {
