@@ -1,7 +1,7 @@
-import type { Logger } from '@forestadmin/agent-bff';
+import type { ConfigKey, Logger } from '@forestadmin/agent-bff';
 
 import { ConfigurationError } from '@forestadmin/agent-bff';
-import { normalizeMountPath } from '@forestadmin/mcp-server';
+import { MCP_LISTENER_ENV, normalizeMountPath } from '@forestadmin/mcp-server';
 
 export type Service = 'mcp' | 'api';
 
@@ -19,11 +19,16 @@ const MAX_PORT = 65535;
 const DECIMAL_INTEGER = /^\d+$/;
 const HTTP_PROTOCOLS = ['http:', 'https:'];
 
+const BFF_LISTENER_ENV = {
+  port: 'HTTP_PORT',
+  publicUrl: 'BFF_PUBLIC_URL',
+} as const satisfies Record<string, ConfigKey>;
+
 const LEGACY_VARS: Record<string, string> = {
-  MCP_SERVER_PORT: PORT_VAR,
-  HTTP_PORT: PORT_VAR,
-  FOREST_MCP_SERVER_URL: PUBLIC_URL_VAR,
-  BFF_PUBLIC_URL: PUBLIC_URL_VAR,
+  [MCP_LISTENER_ENV.port]: PORT_VAR,
+  [BFF_LISTENER_ENV.port]: PORT_VAR,
+  [MCP_LISTENER_ENV.publicUrl]: PUBLIC_URL_VAR,
+  [BFF_LISTENER_ENV.publicUrl]: PUBLIC_URL_VAR,
 };
 
 export interface GatewayUrls {
@@ -128,11 +133,12 @@ export function apiBasePath(basePath: string): string {
 export function toBffEnv(env: NodeJS.ProcessEnv, gateway: GatewayUrls): NodeJS.ProcessEnv {
   return {
     ...env,
-    HTTP_PORT: undefined,
-    BFF_PUBLIC_URL: gateway.publicUrl && `${gateway.publicUrl}${apiBasePath(gateway.basePath)}`,
+    [BFF_LISTENER_ENV.port]: undefined,
+    [BFF_LISTENER_ENV.publicUrl]:
+      gateway.publicUrl && `${gateway.publicUrl}${apiBasePath(gateway.basePath)}`,
   };
 }
 
 export function toMcpEnv(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
-  return { ...env, MCP_SERVER_PORT: undefined, FOREST_MCP_SERVER_URL: undefined };
+  return { ...env, [MCP_LISTENER_ENV.port]: undefined, [MCP_LISTENER_ENV.publicUrl]: undefined };
 }
