@@ -27,12 +27,17 @@ export function mayBeOperatorRefusal(error: unknown): boolean {
   return !(error instanceof SegmentReadError) || error.failure === 'failed';
 }
 
-// An agent rejects a sort on a field it does not know as a plain failure, and one on a relation the
-// service account cannot read as a refusal. An unreachable or overloaded agent says nothing about
-// the sort, and reading again would only add load.
+// An agent rejects a sort on a field it does not know with a 4xx, and one on a relation the service
+// account cannot read with a refusal. Anything else says nothing about the sort, and a segment that
+// timed out its database would only be evaluated twice.
 export function mayBeSortRefusal(error: unknown): boolean {
+  if (!(error instanceof SegmentReadError)) return false;
+  if (error.failure === 'forbidden') return true;
+
   return (
-    error instanceof SegmentReadError &&
-    (error.failure === 'failed' || error.failure === 'forbidden')
+    error.failure === 'failed' &&
+    error.httpStatus !== undefined &&
+    error.httpStatus >= 400 &&
+    error.httpStatus < 500
   );
 }

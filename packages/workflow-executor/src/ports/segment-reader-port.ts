@@ -19,7 +19,6 @@ export interface ListSegmentRecordIdsQuery {
   excludedRecordIds?: string[];
   pageSize?: number;
   pageNumber?: number;
-  /** Sort clauses in priority order; the agent's own order when absent or empty. */
   sort?: PlainSortClause[];
 }
 
@@ -37,6 +36,7 @@ export interface SegmentReaderPort {
   exclusionUnavailableReason(
     query: ExclusionQuery,
   ): Promise<ExclusionUnavailableReason | undefined>;
+  sortsOnSeveralFields(liana: string | null | undefined): boolean;
 }
 
 export type ExclusionUnavailableReason =

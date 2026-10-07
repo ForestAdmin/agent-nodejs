@@ -35,6 +35,16 @@ const LIANAS_WITH_CAPABILITIES: ReadonlySet<string> = new Set([
   'agent-php',
 ]);
 
+// The lianas the front lets an inbox sort on several fields (`MultipleSortingFields`). The others
+// read one sort field: forest-express-sequelize answers 500 on `a,id`, and forest-express-mongoose
+// sorts on a single field literally named `a,_id`.
+const LIANAS_WITH_MULTIPLE_SORT: ReadonlySet<string> = new Set([
+  'forest-rails',
+  'forest-nodejs-agent',
+  'agent-python',
+  'agent-ruby',
+]);
+
 // Both a collection and a segment expose the same read; the descriptor decides which one answers.
 interface RecordLister {
   list<Data = unknown>(options?: SelectOptions): Promise<Data[]>;
@@ -121,6 +131,10 @@ export default class AgentClientSegmentReader implements SegmentReaderPort {
     }
 
     return operators.includes('not_in') ? undefined : 'field-without-not-in';
+  }
+
+  sortsOnSeveralFields(liana: string | null | undefined): boolean {
+    return liana != null && LIANAS_WITH_MULTIPLE_SORT.has(liana);
   }
 
   private createClient(user: ListSegmentRecordIdsQuery['user'], timezone: string): AgentClient {

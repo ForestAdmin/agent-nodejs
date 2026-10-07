@@ -486,6 +486,26 @@ describe('AgentClientSegmentReader', () => {
     });
   });
 
+  describe('sorting on several fields', () => {
+    it.each(['forest-rails', 'forest-nodejs-agent', 'agent-python', 'agent-ruby'])(
+      'should let %s sort on several fields',
+      liana => {
+        expect(reader.sortsOnSeveralFields(liana)).toBe(true);
+      },
+    );
+
+    it.each([
+      'forest-express-sequelize',
+      'forest-express-mongoose',
+      'agent-php',
+      'some-future-agent',
+      null,
+      undefined,
+    ])('should keep %s to one sort field', liana => {
+      expect(reader.sortsOnSeveralFields(liana)).toBe(false);
+    });
+  });
+
   describe('exclusion availability', () => {
     const DECLARES_NOT_IN = {
       collections: [

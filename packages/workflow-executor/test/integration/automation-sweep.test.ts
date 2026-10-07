@@ -365,12 +365,14 @@ describe('automation sweep, real poller over the real adapters', () => {
       expect(syncBodies).toStrictEqual([{ closed: [], candidates: ['5', '3'] }]);
     });
 
-    it('should pad in the inbox order then by key, and by key alone once the agent rejects the sort', async () => {
+    it('should pad in the inbox order then by key, and by key alone once the agent refuses the sort', async () => {
       const syncBodies = serveOrchestrator({
-        config: makeConfig({ sort, liana: 'forest-express-sequelize' }),
+        config: makeConfig({ sort, liana: 'forest-rails' }),
         assignments,
       });
-      onSortedList('-created_at,customer.name,id', 400, { errors: [{ detail: 'Invalid sort' }] });
+      onSortedList('-created_at,customer.name,id', 403, {
+        errors: [{ detail: 'Forbidden on customer' }],
+      });
       onSortedList('id', 200, records('1', '2', '3'));
 
       await sweepOnce();
@@ -395,7 +397,7 @@ describe('automation sweep, real poller over the real adapters', () => {
       expect(syncBodies).toStrictEqual([{ closed: [], candidates: ['3'] }]);
       expect(logger).toHaveBeenCalledWith(
         'Warn',
-        'A sorted candidate read failed, reading again without the inbox sort',
+        'The agent rejected the inbox sort, reading candidates without it',
         {
           ...logContext,
           requestedPageSize: 5,
@@ -403,11 +405,34 @@ describe('automation sweep, real poller over the real adapters', () => {
           paddedPageReason: 'unknown-liana',
           notIn: false,
           sort: [...sort, { field: 'id', ascending: true }],
-          error: 'Agent port "listSegmentRecordIds" failed: Agent responded with HTTP 400',
-          httpStatus: 400,
-          agentError: 'Invalid sort',
+          error: 'Agent port "listSegmentRecordIds" failed: Agent responded with HTTP 403',
+          httpStatus: 403,
+          agentError: 'Forbidden on customer',
         },
       );
+    });
+
+    it('should pad a single page in the inbox order alone for an agent that sorts on one field', async () => {
+      const syncBodies = serveOrchestrator({
+        config: makeConfig({
+          sort: [{ field: 'created_at', ascending: false }],
+          liana: 'forest-express-sequelize',
+        }),
+        assignments,
+      });
+      onSortedList('-created_at', 200, records('1', '2', '7', '3', '4'));
+
+      await sweepOnce();
+
+      expect(nock.isDone()).toBe(true);
+      expect(agentRequests).toEqual([
+        {
+          method: 'GET',
+          path: '/forest/orders',
+          query: listQuery({ 'page[size]': '5', 'page[number]': '1', sort: '-created_at' }),
+        },
+      ]);
+      expect(syncBodies).toStrictEqual([{ closed: [], candidates: ['7', '3', '4'] }]);
     });
   });
 

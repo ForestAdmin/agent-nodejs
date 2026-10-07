@@ -199,16 +199,42 @@ describe('ForestServerAutomationPort', () => {
       ['an entry with a direction as text', [{ field: 'created_at', ascending: 'desc' }]],
       ['one bad entry among good ones', [{ field: 'id', ascending: true }, { field: 'x' }]],
       ['an object', { field: 'created_at', ascending: true }],
-      ['null', null],
-    ])('should keep an inbox whose sort is %s, in the agent order', async (_, sort) => {
+    ])('should keep an inbox whose sort is %s, in the agent order, and say so', async (_, sort) => {
       mockQuery.mockResolvedValue({ inboxes: [{ ...makeConfig(), sort }] });
 
       await expect(port.listAutomatedInboxes('w1')).resolves.toStrictEqual([makeInbox()]);
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        'Ignoring an automated inbox sort the executor cannot read, reading in the agent order',
+        { inboxId: 'inbox-1', sort },
+      );
       expect(logger).not.toHaveBeenCalledWith(
         'Warn',
         'Skipping an automated inbox config the executor cannot read',
         expect.anything(),
       );
+    });
+
+    it.each([
+      ['absent', undefined],
+      ['null', null],
+    ])(
+      'should read an inbox whose sort is %s in the agent order, without a warning',
+      async (_, sort) => {
+        mockQuery.mockResolvedValue({ inboxes: [{ ...makeConfig(), sort }] });
+
+        await expect(port.listAutomatedInboxes('w1')).resolves.toStrictEqual([makeInbox()]);
+        expect(logger).not.toHaveBeenCalled();
+      },
+    );
+
+    it('should not warn about a sort it can read', async () => {
+      const sort = [{ field: 'created_at', ascending: false }];
+      mockQuery.mockResolvedValue({ inboxes: [makeConfig({ sort })] });
+
+      await port.listAutomatedInboxes('w1');
+
+      expect(logger).not.toHaveBeenCalled();
     });
 
     it('should keep a leaf whose operator the agent evaluates on its own, with no value', async () => {

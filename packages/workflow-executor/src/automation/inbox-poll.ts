@@ -56,16 +56,34 @@ function describeAgentFailure(error: unknown) {
   };
 }
 
-function paddedSort(
+interface PaddedOrder {
+  sort?: PlainSortClause[];
+  pageable: boolean;
+}
+
+// Offset pages only walk a total order, which only a single-column key can close as a tiebreak.
+function paddedOrder(
   inbox: AutomatedInbox,
   inboxSort: PlainSortClause[] | undefined,
-): PlainSortClause[] | undefined {
+  sortsOnSeveralFields: boolean,
+): PaddedOrder {
   const [primaryKey] = inbox.primaryKeys;
+  const byKey = { field: primaryKey, ascending: true };
 
-  if (inbox.primaryKeys.length !== 1) return inboxSort;
-  if (inboxSort?.some(({ field }) => field === primaryKey)) return inboxSort;
+  if (inbox.primaryKeys.length !== 1) return { sort: inboxSort, pageable: false };
+  if (!inboxSort) return { sort: [byKey], pageable: true };
 
-  return [...(inboxSort ?? []), { field: primaryKey, ascending: true }];
+  if (inboxSort.some(({ field }) => field === primaryKey)) {
+    return { sort: inboxSort, pageable: true };
+  }
+
+  if (!sortsOnSeveralFields) return { sort: inboxSort, pageable: false };
+
+  return { sort: [...inboxSort, byKey], pageable: true };
+}
+
+function activeInboxSort(inbox: AutomatedInbox, attempt: ReadAttempt) {
+  return attempt.inboxSortDropped ? undefined : inbox.sort;
 }
 
 function segmentQuery(inbox: AutomatedInbox) {
@@ -345,13 +363,16 @@ export default class InboxPoll {
     attempt: ReadAttempt,
   ): Promise<SegmentRead<string>> {
     const requestedPageSize = paddedPageSize(inbox.maxConcurrentRuns, knownSet.size);
-    const pageable = inbox.primaryKeys.length === 1;
-    const maxPages = pageable ? MAX_PADDED_PAGES : 1;
+    const sortsOnSeveralFields = this.segmentReaderPort.sortsOnSeveralFields(inbox.liana);
+    const orderFor = (inboxSort: PlainSortClause[] | undefined) =>
+      paddedOrder(inbox, inboxSort, sortsOnSeveralFields);
+    const maxPages = () =>
+      orderFor(activeInboxSort(inbox, attempt)).pageable ? MAX_PADDED_PAGES : 1;
     const candidates = new Set<string>();
     let pagesRead = 0;
     let reachedEnd = false;
 
-    while (pagesRead < maxPages && candidates.size < inbox.maxConcurrentRuns && !reachedEnd) {
+    while (pagesRead < maxPages() && candidates.size < inbox.maxConcurrentRuns && !reachedEnd) {
       pagesRead += 1;
       const pageNumber = pagesRead;
       Object.assign(attempt, {
@@ -360,23 +381,26 @@ export default class InboxPoll {
         paddedPageReason,
         notIn: false,
       });
+      const readPage = (sort: PlainSortClause[] | undefined) =>
+        this.segmentReaderPort.listRecordIds({
+          ...segmentQuery(inbox),
+          pageSize: requestedPageSize,
+          pageNumber,
+          sort,
+        });
       let page: string[];
 
       try {
         // eslint-disable-next-line no-await-in-loop
-        page = await this.readWithInboxSort(
-          logContext,
-          inbox,
-          attempt,
-          inboxSort => paddedSort(inbox, inboxSort),
-          sort =>
-            this.segmentReaderPort.listRecordIds({
-              ...segmentQuery(inbox),
-              pageSize: requestedPageSize,
-              pageNumber,
-              sort,
-            }),
-        );
+        page = await (pageNumber === 1
+          ? this.readWithInboxSort(
+              logContext,
+              inbox,
+              attempt,
+              inboxSort => orderFor(inboxSort).sort,
+              readPage,
+            )
+          : readPage(orderFor(activeInboxSort(inbox, attempt)).sort));
       } catch (error) {
         if (candidates.size === 0) throw error;
 
@@ -420,8 +444,9 @@ export default class InboxPoll {
 
   /**
    * A sort field renamed or out of the service account's reach must not stop the inbox from
-   * dispatching. Dropped once, the inbox order stays dropped for the rest of the candidate read, so
-   * the padded pages after it walk the same order as the first.
+   * dispatching. Used on the not_in read and the first padded page only: a refused sort is refused
+   * on the first page already. The order is dropped for the rest of the candidate read only once the
+   * read without it succeeds, since a read failing both ways says nothing against the sort.
    */
   private async readWithInboxSort(
     logContext: Record<string, unknown>,
@@ -430,7 +455,7 @@ export default class InboxPoll {
     toSort: (inboxSort: PlainSortClause[] | undefined) => PlainSortClause[] | undefined,
     read: (sort: PlainSortClause[] | undefined) => Promise<string[]>,
   ): Promise<string[]> {
-    const inboxSort = attempt.inboxSortDropped ? undefined : inbox.sort;
+    const inboxSort = activeInboxSort(inbox, attempt);
     const sort = toSort(inboxSort);
 
     try {
@@ -438,7 +463,9 @@ export default class InboxPoll {
     } catch (error) {
       if (!inboxSort?.length || !mayBeSortRefusal(error)) throw error;
 
-      this.logger('Warn', 'A sorted candidate read failed, reading again without the inbox sort', {
+      const page = await read(toSort(undefined));
+
+      this.logger('Warn', 'The agent rejected the inbox sort, reading candidates without it', {
         ...logContext,
         ...attempt,
         sort,
@@ -446,7 +473,7 @@ export default class InboxPoll {
       });
       Object.assign(attempt, { inboxSortDropped: true });
 
-      return read(toSort(undefined));
+      return page;
     }
   }
 

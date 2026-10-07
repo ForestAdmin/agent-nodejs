@@ -25,7 +25,6 @@ export interface AutomatedInbox {
   timezone: string;
   liana?: string | null;
   segment: SegmentDescriptor;
-  /** The inbox dispatch order, absent when records are dispatched at random. */
   sort?: PlainSortClause[];
   user: StepUser;
 }
