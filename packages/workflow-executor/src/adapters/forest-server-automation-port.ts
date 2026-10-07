@@ -61,6 +61,7 @@ function toAutomatedInbox(config: ServerAutomatedInboxConfig): AutomatedInbox {
     timezone: toProjectTimezone(config.timezone),
     liana: config.liana,
     segment: config.segment,
+    sort: config.sort,
     user: toStepUser(config.serviceAccountProfile),
   };
 }

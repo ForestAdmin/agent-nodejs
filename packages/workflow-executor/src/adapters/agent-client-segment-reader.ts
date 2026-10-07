@@ -72,7 +72,7 @@ export default class AgentClientSegmentReader implements SegmentReaderPort {
         ...(pageSize !== undefined
           ? { pagination: { size: pageSize, number: pageNumber ?? 1 } }
           : {}),
-        ...(query.sortByPrimaryKey ? { sort: { field: primaryKeys[0], ascending: true } } : {}),
+        sort: query.sort,
         ...(filters !== undefined ? { filters } : {}),
       };
 

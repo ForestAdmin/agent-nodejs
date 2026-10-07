@@ -355,6 +355,12 @@ export const ServerAutomatedInboxConfigSchema = z.object({
   // filter, which reads as unknown: the poller then pads its page, as it always did.
   liana: z.string().nullish(),
   segment: ServerAutomatedSegmentDescriptorSchema,
+  // A sort the executor cannot read costs the inbox its order, never the inbox itself.
+  sort: z
+    .array(z.object({ field: z.string().min(1), ascending: z.boolean() }))
+    .min(1)
+    .optional()
+    .catch(undefined),
   serviceAccountProfile: ServerAutomatedInboxServiceAccountProfileSchema,
 });
 export type ServerAutomatedInboxConfig = z.infer<typeof ServerAutomatedInboxConfigSchema>;

@@ -1,4 +1,4 @@
-import type { SegmentDescriptor } from '../types/automation';
+import type { PlainSortClause, SegmentDescriptor } from '../types/automation';
 import type { StepUser } from '../types/execution-context';
 
 export interface ListSegmentRecordIdsQuery {
@@ -19,8 +19,8 @@ export interface ListSegmentRecordIdsQuery {
   excludedRecordIds?: string[];
   pageSize?: number;
   pageNumber?: number;
-  /** Orders by the first primary key column, so offset pages are stable enough to walk. */
-  sortByPrimaryKey?: boolean;
+  /** Sort clauses in priority order; the agent's own order when absent or empty. */
+  sort?: PlainSortClause[];
 }
 
 /**

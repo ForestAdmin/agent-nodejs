@@ -649,7 +649,11 @@ describe('AutomationPoller', () => {
 
       expect(context.segmentReaderPort.listRecordIds.mock.calls.map(([query]) => query)).toEqual([
         expect.objectContaining({ excludedRecordIds: ['known'], pageSize: 20 }),
-        expect.objectContaining({ pageSize: 21, pageNumber: 1, sortByPrimaryKey: true }),
+        expect.objectContaining({
+          pageSize: 21,
+          pageNumber: 1,
+          sort: [{ field: 'id', ascending: true }],
+        }),
       ]);
       expect(context.segmentReaderPort.listRecordIds.mock.calls[1][0]).not.toHaveProperty(
         'excludedRecordIds',
@@ -1063,7 +1067,11 @@ describe('AutomationPoller', () => {
 
         expect(context.segmentReaderPort.listRecordIds.mock.calls.map(([query]) => query)).toEqual(
           [1, 2, 3].map(pageNumber =>
-            expect.objectContaining({ pageSize: 500, pageNumber, sortByPrimaryKey: true }),
+            expect.objectContaining({
+              pageSize: 500,
+              pageNumber,
+              sort: [{ field: 'id', ascending: true }],
+            }),
           ),
         );
         expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
@@ -1149,7 +1157,11 @@ describe('AutomationPoller', () => {
 
         expect(context.segmentReaderPort.listRecordIds).toHaveBeenNthCalledWith(
           3,
-          expect.objectContaining({ pageSize: 500, pageNumber: 2, sortByPrimaryKey: true }),
+          expect.objectContaining({
+            pageSize: 500,
+            pageNumber: 2,
+            sort: [{ field: 'id', ascending: true }],
+          }),
         );
         expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
           closed: [],
@@ -1243,8 +1255,9 @@ describe('AutomationPoller', () => {
         await runOneCycle(makePoller(context));
 
         expect(context.segmentReaderPort.listRecordIds.mock.calls.map(([query]) => query)).toEqual([
-          expect.objectContaining({ pageNumber: 1, sortByPrimaryKey: false }),
+          expect.objectContaining({ pageNumber: 1 }),
         ]);
+        expect(context.segmentReaderPort.listRecordIds.mock.calls[0][0].sort).toBeUndefined();
         expect(context.logger).toHaveBeenCalledWith(
           'Info',
           'Automated inbox polled',
@@ -1278,6 +1291,190 @@ describe('AutomationPoller', () => {
           'Automated inbox polled',
           expect.objectContaining({ candidatePagesRead: 5 }),
         );
+      });
+    });
+
+    describe('in the inbox dispatch order', () => {
+      const byNewest = [{ field: 'created_at', ascending: false }];
+      const known = [makeAssignment({ recordId: 'a', state: 'doing', runState: 'started' })];
+      const readQueries = (context: ReturnType<typeof makeContext>) =>
+        context.segmentReaderPort.listRecordIds.mock.calls.map(([query]) => query);
+
+      function sortedContext(overrides: Partial<AutomatedInbox> = {}, exclusion = true) {
+        const context = makeContext({
+          inboxes: [makeConfig({ liana: 'forest-nodejs-agent', sort: byNewest, ...overrides })],
+          assignments: known,
+        });
+
+        if (exclusion) {
+          context.segmentReaderPort.exclusionUnavailableReason.mockResolvedValue(undefined);
+        }
+
+        return context;
+      }
+
+      it('should read the not_in page in the inbox order', async () => {
+        const context = sortedContext();
+
+        await runOneCycle(makePoller(context));
+
+        expect(readQueries(context)).toEqual([
+          expect.objectContaining({ excludedRecordIds: ['a'], pageSize: 20, sort: byNewest }),
+        ]);
+      });
+
+      it('should read a padded page in the inbox order, then by key', async () => {
+        const context = sortedContext({}, false);
+
+        await runOneCycle(makePoller(context));
+
+        expect(readQueries(context)).toEqual([
+          expect.objectContaining({
+            pageNumber: 1,
+            sort: [...byNewest, { field: 'id', ascending: true }],
+          }),
+        ]);
+      });
+
+      it('should not sort twice on the key when the inbox order already ends on it', async () => {
+        const byKeyLast = [...byNewest, { field: 'id', ascending: false }];
+        const context = sortedContext({ sort: byKeyLast }, false);
+
+        await runOneCycle(makePoller(context));
+
+        expect(readQueries(context)).toEqual([
+          expect.objectContaining({ pageNumber: 1, sort: byKeyLast }),
+        ]);
+      });
+
+      it('should read a composite key in a single page, in the inbox order alone', async () => {
+        const context = sortedContext({ primaryKeys: ['tenantId', 'id'] }, false);
+        context.automationPort.listAssignments.mockResolvedValue([
+          makeAssignment({ recordId: 't|a', state: 'doing', runState: 'started' }),
+        ]);
+        context.segmentReaderPort.exclusionUnavailableReason.mockResolvedValue('composite-key');
+        context.segmentReaderPort.listRecordIds.mockResolvedValue(['t|a']);
+
+        await runOneCycle(makePoller(context));
+
+        expect(readQueries(context)).toEqual([
+          expect.objectContaining({ pageNumber: 1, sort: byNewest }),
+        ]);
+      });
+
+      it('should keep the agent order on the not_in page of an inbox without one', async () => {
+        const context = sortedContext({ sort: undefined });
+
+        await runOneCycle(makePoller(context));
+
+        expect(readQueries(context)).toHaveLength(1);
+        expect(readQueries(context)[0].sort).toBeUndefined();
+      });
+
+      it('should sort a padded page by key alone for an inbox without an order', async () => {
+        const context = sortedContext({ sort: undefined }, false);
+
+        await runOneCycle(makePoller(context));
+
+        expect(readQueries(context)).toEqual([
+          expect.objectContaining({ pageNumber: 1, sort: [{ field: 'id', ascending: true }] }),
+        ]);
+      });
+
+      it('should read again without the inbox order when the agent rejects the sort', async () => {
+        const context = sortedContext();
+        context.segmentReaderPort.listRecordIds
+          .mockRejectedValueOnce(
+            segmentReadFailure('failed', { httpStatus: 400, agentDetail: 'Invalid sort' }),
+          )
+          .mockResolvedValueOnce(['fresh']);
+
+        await runOneCycle(makePoller(context));
+
+        expect(readQueries(context)).toEqual([
+          expect.objectContaining({ excludedRecordIds: ['a'], sort: byNewest }),
+          expect.objectContaining({ excludedRecordIds: ['a'], sort: undefined }),
+        ]);
+        expect(context.logger).toHaveBeenCalledWith(
+          'Warn',
+          'A sorted candidate read failed, reading again without the inbox sort',
+          expect.objectContaining({ inboxId: 'inbox-1', sort: byNewest, httpStatus: 400 }),
+        );
+        expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
+          closed: [],
+          candidates: ['fresh'],
+        });
+      });
+
+      it('should read a padded page again by key alone when the agent refuses the sort', async () => {
+        const context = sortedContext({}, false);
+        context.segmentReaderPort.listRecordIds
+          .mockRejectedValueOnce(segmentReadFailure('forbidden', { httpStatus: 403 }))
+          .mockResolvedValueOnce(['fresh']);
+
+        await runOneCycle(makePoller(context));
+
+        expect(readQueries(context)).toEqual([
+          expect.objectContaining({
+            pageNumber: 1,
+            sort: [...byNewest, { field: 'id', ascending: true }],
+          }),
+          expect.objectContaining({ pageNumber: 1, sort: [{ field: 'id', ascending: true }] }),
+        ]);
+        expect(context.logger).toHaveBeenCalledWith(
+          'Warn',
+          'A sorted candidate read failed, reading again without the inbox sort',
+          expect.objectContaining({
+            inboxId: 'inbox-1',
+            sort: [...byNewest, { field: 'id', ascending: true }],
+            httpStatus: 403,
+          }),
+        );
+        expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
+          closed: [],
+          candidates: ['fresh'],
+        });
+      });
+
+      it('should pad from the unsorted outcome when the not_in read fails without the order too', async () => {
+        const context = sortedContext();
+        context.segmentReaderPort.listRecordIds
+          .mockRejectedValueOnce(segmentReadFailure('failed', { httpStatus: 400 }))
+          .mockRejectedValueOnce(segmentReadFailure('failed', { httpStatus: 400 }))
+          .mockResolvedValueOnce(['a', 'fresh']);
+
+        await runOneCycle(makePoller(context));
+
+        expect(readQueries(context)).toEqual([
+          expect.objectContaining({ excludedRecordIds: ['a'], sort: byNewest }),
+          expect.objectContaining({ excludedRecordIds: ['a'], sort: undefined }),
+          expect.objectContaining({ pageNumber: 1, sort: [{ field: 'id', ascending: true }] }),
+        ]);
+        expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
+          closed: [],
+          candidates: ['fresh'],
+        });
+      });
+
+      it('should not read again when a sorted read cannot reach the agent', async () => {
+        const context = sortedContext();
+        context.segmentReaderPort.listRecordIds.mockRejectedValueOnce(
+          segmentReadFailure('unreachable', { httpStatus: 503 }),
+        );
+
+        await runOneCycle(makePoller(context));
+
+        expect(context.segmentReaderPort.listRecordIds).toHaveBeenCalledTimes(1);
+        expect(context.logger).not.toHaveBeenCalledWith(
+          'Warn',
+          'A sorted candidate read failed, reading again without the inbox sort',
+          expect.anything(),
+        );
+        expect(context.automationPort.sync).toHaveBeenCalledWith('inbox-1', {
+          closed: [],
+          candidates: [],
+          readFailure: { reason: 'agent-unreachable', httpStatus: 503 },
+        });
       });
     });
 

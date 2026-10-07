@@ -1,9 +1,14 @@
 import type { AutomationPort } from '../ports/automation-port';
 import type { Logger } from '../ports/logger-port';
 import type { ExclusionUnavailableReason, SegmentReaderPort } from '../ports/segment-reader-port';
-import type { AutomatedInbox, InboxAssignment, SegmentReadFailure } from '../types/automation';
+import type {
+  AutomatedInbox,
+  InboxAssignment,
+  PlainSortClause,
+  SegmentReadFailure,
+} from '../types/automation';
 
-import { mayBeOperatorRefusal, toReadFailure } from './read-failure';
+import { mayBeOperatorRefusal, mayBeSortRefusal, toReadFailure } from './read-failure';
 import {
   MAX_PADDED_PAGES,
   MEMBERSHIP_CHUNK_SIZE,
@@ -40,6 +45,7 @@ interface ReadAttempt {
   pageNumber?: number;
   paddedPageReason?: PaddedPageReason;
   notIn?: boolean;
+  inboxSortDropped?: boolean;
 }
 
 function describeAgentFailure(error: unknown) {
@@ -48,6 +54,18 @@ function describeAgentFailure(error: unknown) {
     httpStatus: error instanceof SegmentReadError ? error.httpStatus : undefined,
     agentError: error instanceof SegmentReadError ? error.agentDetail : undefined,
   };
+}
+
+function paddedSort(
+  inbox: AutomatedInbox,
+  inboxSort: PlainSortClause[] | undefined,
+): PlainSortClause[] | undefined {
+  const [primaryKey] = inbox.primaryKeys;
+
+  if (inbox.primaryKeys.length !== 1) return inboxSort;
+  if (inboxSort?.some(({ field }) => field === primaryKey)) return inboxSort;
+
+  return [...(inboxSort ?? []), { field: primaryKey, ascending: true }];
 }
 
 function segmentQuery(inbox: AutomatedInbox) {
@@ -270,11 +288,19 @@ export default class InboxPoll {
       let page: string[];
 
       try {
-        page = await this.segmentReaderPort.listRecordIds({
-          ...segmentQuery(inbox),
-          ...(known.length ? { excludedRecordIds: known } : {}),
-          pageSize: inbox.maxConcurrentRuns,
-        });
+        page = await this.readWithInboxSort(
+          logContext,
+          inbox,
+          attempt,
+          inboxSort => inboxSort,
+          sort =>
+            this.segmentReaderPort.listRecordIds({
+              ...segmentQuery(inbox),
+              ...(known.length ? { excludedRecordIds: known } : {}),
+              pageSize: inbox.maxConcurrentRuns,
+              sort,
+            }),
+        );
       } catch (error) {
         if (!known.length || !mayBeOperatorRefusal(error)) throw error;
 
@@ -319,8 +345,6 @@ export default class InboxPoll {
     attempt: ReadAttempt,
   ): Promise<SegmentRead<string>> {
     const requestedPageSize = paddedPageSize(inbox.maxConcurrentRuns, knownSet.size);
-    // agent-client sorts on one field: a composite key tied on its first column has no stable order
-    // across offset pages, so it keeps the single unsorted page.
     const pageable = inbox.primaryKeys.length === 1;
     const maxPages = pageable ? MAX_PADDED_PAGES : 1;
     const candidates = new Set<string>();
@@ -329,9 +353,10 @@ export default class InboxPoll {
 
     while (pagesRead < maxPages && candidates.size < inbox.maxConcurrentRuns && !reachedEnd) {
       pagesRead += 1;
+      const pageNumber = pagesRead;
       Object.assign(attempt, {
         requestedPageSize,
-        pageNumber: pagesRead,
+        pageNumber,
         paddedPageReason,
         notIn: false,
       });
@@ -339,12 +364,19 @@ export default class InboxPoll {
 
       try {
         // eslint-disable-next-line no-await-in-loop
-        page = await this.segmentReaderPort.listRecordIds({
-          ...segmentQuery(inbox),
-          pageSize: requestedPageSize,
-          pageNumber: pagesRead,
-          sortByPrimaryKey: pageable,
-        });
+        page = await this.readWithInboxSort(
+          logContext,
+          inbox,
+          attempt,
+          inboxSort => paddedSort(inbox, inboxSort),
+          sort =>
+            this.segmentReaderPort.listRecordIds({
+              ...segmentQuery(inbox),
+              pageSize: requestedPageSize,
+              pageNumber,
+              sort,
+            }),
+        );
       } catch (error) {
         if (candidates.size === 0) throw error;
 
@@ -384,6 +416,38 @@ export default class InboxPoll {
       requestedPageSize,
       pagesRead,
     };
+  }
+
+  /**
+   * A sort field renamed or out of the service account's reach must not stop the inbox from
+   * dispatching. Dropped once, the inbox order stays dropped for the rest of the candidate read, so
+   * the padded pages after it walk the same order as the first.
+   */
+  private async readWithInboxSort(
+    logContext: Record<string, unknown>,
+    inbox: AutomatedInbox,
+    attempt: ReadAttempt,
+    toSort: (inboxSort: PlainSortClause[] | undefined) => PlainSortClause[] | undefined,
+    read: (sort: PlainSortClause[] | undefined) => Promise<string[]>,
+  ): Promise<string[]> {
+    const inboxSort = attempt.inboxSortDropped ? undefined : inbox.sort;
+    const sort = toSort(inboxSort);
+
+    try {
+      return await read(sort);
+    } catch (error) {
+      if (!inboxSort?.length || !mayBeSortRefusal(error)) throw error;
+
+      this.logger('Warn', 'A sorted candidate read failed, reading again without the inbox sort', {
+        ...logContext,
+        ...attempt,
+        sort,
+        ...describeAgentFailure(error),
+      });
+      Object.assign(attempt, { inboxSortDropped: true });
+
+      return read(toSort(undefined));
+    }
   }
 
   private async paddedPageReason(

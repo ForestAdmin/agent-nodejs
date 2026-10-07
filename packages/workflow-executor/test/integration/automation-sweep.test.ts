@@ -328,6 +328,89 @@ describe('automation sweep, real poller over the real adapters', () => {
     });
   });
 
+  describe('the inbox dispatch order', () => {
+    const assignments = [liveAssignment('1', 11), liveAssignment('2', 12)];
+    const sort = [
+      { field: 'created_at', ascending: false },
+      { field: 'customer.name', ascending: true },
+    ];
+
+    function onSortedList(sortParam: string, status: number, body: unknown): void {
+      agent
+        .get('/forest/orders')
+        .query(query => (query as Record<string, string>).sort === sortParam)
+        .reply(status, body as nock.Body);
+    }
+
+    it('should read the not_in page in the inbox order', async () => {
+      const syncBodies = serveOrchestrator({ config: makeConfig({ sort }), assignments });
+      onCapabilities(['equal', 'in', 'not_in']);
+      onSortedList('-created_at,customer.name', 200, records('5', '3'));
+
+      await sweepOnce();
+
+      expect(nock.isDone()).toBe(true);
+      expect(agentRequests.slice(1)).toEqual([
+        {
+          method: 'GET',
+          path: '/forest/orders',
+          query: listQuery({
+            'page[size]': '3',
+            'page[number]': '1',
+            sort: '-created_at,customer.name',
+            filters: { field: 'id', operator: 'not_in', value: ['1', '2'] },
+          }),
+        },
+      ]);
+      expect(syncBodies).toStrictEqual([{ closed: [], candidates: ['5', '3'] }]);
+    });
+
+    it('should pad in the inbox order then by key, and by key alone once the agent rejects the sort', async () => {
+      const syncBodies = serveOrchestrator({
+        config: makeConfig({ sort, liana: 'forest-express-sequelize' }),
+        assignments,
+      });
+      onSortedList('-created_at,customer.name,id', 400, { errors: [{ detail: 'Invalid sort' }] });
+      onSortedList('id', 200, records('1', '2', '3'));
+
+      await sweepOnce();
+
+      expect(nock.isDone()).toBe(true);
+      expect(agentRequests).toEqual([
+        {
+          method: 'GET',
+          path: '/forest/orders',
+          query: listQuery({
+            'page[size]': '5',
+            'page[number]': '1',
+            sort: '-created_at,customer.name,id',
+          }),
+        },
+        {
+          method: 'GET',
+          path: '/forest/orders',
+          query: listQuery({ 'page[size]': '5', 'page[number]': '1', sort: 'id' }),
+        },
+      ]);
+      expect(syncBodies).toStrictEqual([{ closed: [], candidates: ['3'] }]);
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        'A sorted candidate read failed, reading again without the inbox sort',
+        {
+          ...logContext,
+          requestedPageSize: 5,
+          pageNumber: 1,
+          paddedPageReason: 'unknown-liana',
+          notIn: false,
+          sort: [...sort, { field: 'id', ascending: true }],
+          error: 'Agent port "listSegmentRecordIds" failed: Agent responded with HTTP 400',
+          httpStatus: 400,
+          agentError: 'Invalid sort',
+        },
+      );
+    });
+  });
+
   describe('the not_in candidate read', () => {
     const assignments = [liveAssignment('1', 11), liveAssignment('2', 12)];
 
