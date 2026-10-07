@@ -116,6 +116,33 @@ describe('QuerySerializer', () => {
       expect(result.sort).toBe('-name');
     });
 
+    it('should join an array of sort clauses in order', () => {
+      const result = QuerySerializer.serialize(
+        {
+          sort: [
+            { field: 'created_at', ascending: false },
+            { field: 'owner.name', ascending: true },
+            { field: 'id', ascending: true },
+          ],
+        },
+        'users',
+      );
+      expect(result.sort).toBe('-created_at,owner.name,id');
+    });
+
+    it('should serialize a single-clause array like a single clause', () => {
+      const result = QuerySerializer.serialize(
+        { sort: [{ field: 'name', ascending: false }] },
+        'users',
+      );
+      expect(result.sort).toBe('-name');
+    });
+
+    it('should leave sort undefined for an empty array', () => {
+      const result = QuerySerializer.serialize({ sort: [] }, 'users');
+      expect(result.sort).toBeUndefined();
+    });
+
     it('should serialize filters with conditionTree and convert operators to snake_case', () => {
       const filters = {
         field: 'status',
