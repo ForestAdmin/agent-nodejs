@@ -53,17 +53,16 @@ function isEmptyValue(value: unknown): boolean {
   return isMissing(value) || (Array.isArray(value) && value.length === 0);
 }
 
-// A value outside the options is rejected here rather than kept: a field without a change hook
-// keeps it as is, and the AI could never correct it once its options show up.
+// An Enum value outside the options is rejected rather than kept: a field without a change hook
+// keeps it as is, and the AI could never correct it once its options show up. Choice widgets are
+// not checked, a dynamic-search dropdown only lists the current suggestions.
 function isAmongOptions(field: ActionFormField, value: unknown): boolean {
-  const options = field.enumValues ?? field.allowedValues?.map(option => option.value);
-
-  if (!options) return true;
+  if (!field.enumValues) return true;
 
   const candidates = Array.isArray(value) ? value : [value];
 
   return candidates.every(candidate =>
-    options.some(option => String(option) === String(candidate)),
+    field.enumValues.some(option => String(option) === String(candidate)),
   );
 }
 
@@ -323,11 +322,14 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       for (const [field, value] of valuesInFormOrder) {
         const formField = form.fields.find(f => f.name === field);
         const filledByAi = Object.prototype.hasOwnProperty.call(accumulator, field);
-        // The AI gets one more try on a value the agent emptied (e.g. an Enum not in its options);
-        // without that bound, a hook that keeps emptying it would run the loop to the cap.
-        const emptiedByAgent =
+        // The AI gets one more try on a value the form no longer holds (emptied by the agent, or out of
+        // options a hook swapped); without that bound, such a hook would run the loop to the cap.
+        const noLongerHeld =
+          formField !== undefined &&
+          (isEmptyValue(formField.value) || !isAmongOptions(formField, formField.value));
+        const reopened =
           filledByAi &&
-          isEmptyValue(formField?.value) &&
+          noLongerHeld &&
           !refilledFields.has(field) &&
           !isDeepStrictEqual(accumulator[field], value);
 
@@ -335,7 +337,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
           !isMissing(value) &&
           formField &&
           isAmongOptions(formField, value) &&
-          (!filledByAi || emptiedByAgent)
+          (!filledByAi || reopened)
         ) {
           if (filledByAi) refilledFields.add(field);
           accumulator[field] = value;

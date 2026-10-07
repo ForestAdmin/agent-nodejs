@@ -1797,6 +1797,135 @@ describe('TriggerRecordActionStepExecutor', () => {
           { user: expect.anything(), forestServerToken: undefined },
         );
       });
+
+      it('submits the option the AI picks again once a parent hook swapped the options of a value it still holds', async () => {
+        const agentPort = makeMockAgentPort();
+        (agentPort.getActionForm as jest.Mock)
+          .mockResolvedValueOnce({
+            fields: [
+              { name: 'region', type: 'Enum', isRequired: true, enumValues: ['eu', 'us'] },
+              {
+                name: 'plan',
+                type: 'Enum',
+                isRequired: true,
+                enumValues: ['eu_basic', 'eu_pro'],
+              },
+            ],
+            canExecute: false,
+            requiredFields: ['region', 'plan'],
+            skippedFields: [],
+          })
+          .mockResolvedValueOnce({
+            fields: [
+              {
+                name: 'region',
+                type: 'Enum',
+                isRequired: true,
+                enumValues: ['eu', 'us'],
+                value: 'us',
+              },
+              {
+                name: 'plan',
+                type: 'Enum',
+                isRequired: true,
+                enumValues: ['us_basic', 'us_pro'],
+                value: 'eu_basic',
+              },
+              { name: 'tax_id', type: 'String', isRequired: true },
+            ],
+            canExecute: false,
+            requiredFields: ['tax_id'],
+            skippedFields: [],
+          })
+          .mockResolvedValue({
+            fields: [
+              {
+                name: 'region',
+                type: 'Enum',
+                isRequired: true,
+                enumValues: ['eu', 'us'],
+                value: 'us',
+              },
+              {
+                name: 'plan',
+                type: 'Enum',
+                isRequired: true,
+                enumValues: ['us_basic', 'us_pro'],
+                value: 'us_basic',
+              },
+              { name: 'tax_id', type: 'String', isRequired: true, value: 'US-123' },
+            ],
+            canExecute: true,
+            requiredFields: [],
+            skippedFields: [],
+          });
+        (agentPort.executeAction as jest.Mock).mockResolvedValue({ result: { success: 'ok' } });
+        const mockModel = makeMockModel(undefined, 'fill_action_form');
+        aiFillsInTurn(mockModel.invoke, [
+          { region: 'us', plan: 'eu_basic' },
+          { region: 'us', plan: 'us_basic', tax_id: 'US-123' },
+        ]);
+
+        await new TriggerRecordActionStepExecutor(
+          contextFor(mockModel.model, agentPort, makeMockRunStore()),
+        ).execute();
+
+        expect(agentPort.executeAction).toHaveBeenCalledWith(
+          expect.objectContaining({
+            collection: 'customers',
+            action: 'send-welcome-email',
+            id: [42],
+            values: { region: 'us', plan: 'us_basic', tax_id: 'US-123' },
+          }),
+          { user: expect.anything(), forestServerToken: undefined },
+        );
+      });
+
+      it('submits a choice widget value found through a dynamic search even if absent from its listed suggestions', async () => {
+        const allowedValues = [
+          { value: 'a', label: 'A' },
+          { value: 'b', label: 'B' },
+        ];
+        const agentPort = makeMockAgentPort();
+        (agentPort.getActionForm as jest.Mock)
+          .mockResolvedValueOnce({
+            fields: [{ name: 'tags', type: ['String'], isRequired: true, allowedValues }],
+            canExecute: false,
+            requiredFields: ['tags'],
+            skippedFields: [],
+          })
+          .mockResolvedValue({
+            fields: [
+              {
+                name: 'tags',
+                type: ['String'],
+                isRequired: true,
+                allowedValues,
+                value: ['a', 'z'],
+              },
+            ],
+            canExecute: true,
+            requiredFields: [],
+            skippedFields: [],
+          });
+        (agentPort.executeAction as jest.Mock).mockResolvedValue({ result: { success: 'ok' } });
+        const mockModel = makeMockModel(undefined, 'fill_action_form');
+        aiFillsInTurn(mockModel.invoke, [{ tags: ['a', 'z'] }]);
+
+        await new TriggerRecordActionStepExecutor(
+          contextFor(mockModel.model, agentPort, makeMockRunStore()),
+        ).execute();
+
+        expect(agentPort.executeAction).toHaveBeenCalledWith(
+          expect.objectContaining({
+            collection: 'customers',
+            action: 'send-welcome-email',
+            id: [42],
+            values: { tags: ['a', 'z'] },
+          }),
+          { user: expect.anything(), forestServerToken: undefined },
+        );
+      });
     });
 
     it('falls back to the AI-assisted review state when a required field stays empty', async () => {
