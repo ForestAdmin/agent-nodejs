@@ -1,16 +1,17 @@
 import type { BFFHttpServer, Logger } from '@forestadmin/agent-bff';
 
-import { createConsoleLogger, renderOpenApi } from '@forestadmin/agent-bff';
-import { mkdirSync, writeFileSync } from 'fs';
-import path from 'path';
+import {
+  DEFAULT_OUTPUT_FILE,
+  OUTPUT_FLAG,
+  createConsoleLogger,
+  parseOutputOption,
+  renderOpenApi,
+  writeOutputFile,
+} from '@forestadmin/agent-bff';
 
 import { apiBasePath, parseGatewayUrls, toBffEnv } from './gateway-env';
 import runGateway from './run-gateway';
 import version from './version';
-
-export const DEFAULT_OUTPUT_FILE = 'openapi.json';
-
-const OUTPUT_FLAG = '--output';
 
 export const USAGE = `Usage: forest-gateway [command]
 
@@ -36,54 +37,10 @@ export interface DispatchOutcome {
   server?: BFFHttpServer;
 }
 
-function errorMessageOf(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
-
 function rejectCli(reason: string): DispatchOutcome {
   process.stderr.write(`${reason}\n${HINT}\n`);
 
   return { exitCode: 1 };
-}
-
-interface OutputOption {
-  file?: string;
-  extras: string[];
-}
-
-function parseOutputOption(rest: string[]): OutputOption {
-  const index = rest.indexOf(OUTPUT_FLAG);
-
-  if (index === -1) return { extras: rest };
-
-  const candidate = rest[index + 1];
-  const takesValue = candidate !== undefined && candidate !== '' && !candidate.startsWith('-');
-
-  return {
-    file: takesValue ? candidate : DEFAULT_OUTPUT_FILE,
-    extras: [...rest.slice(0, index), ...rest.slice(index + (takesValue ? 2 : 1))],
-  };
-}
-
-function writeOpenApiFile(file: string, document: string): DispatchOutcome {
-  const asDirectory = file.endsWith('/') || file.endsWith(path.sep);
-  const destination = path.resolve(
-    process.cwd(),
-    asDirectory ? path.join(file, DEFAULT_OUTPUT_FILE) : file,
-  );
-
-  try {
-    mkdirSync(path.dirname(destination), { recursive: true });
-    writeFileSync(destination, document);
-  } catch (error) {
-    process.stderr.write(`Cannot write ${destination}: ${errorMessageOf(error)}\n`);
-
-    return { exitCode: 1 };
-  }
-
-  process.stderr.write(`Wrote the OpenAPI document to ${destination}\n`);
-
-  return { exitCode: 0 };
 }
 
 async function renderGatewayOpenApi(env: NodeJS.ProcessEnv, logger: Logger): Promise<string> {
@@ -134,7 +91,7 @@ export default async function dispatchCli(
   const document = await renderGatewayOpenApi(env, logger ?? createConsoleLogger());
 
   if (file !== undefined) {
-    return writeOpenApiFile(file, document);
+    return writeOutputFile(file, document);
   }
 
   process.stdout.write(document);
