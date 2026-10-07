@@ -101,7 +101,7 @@ describe('declareListTool', () => {
 
       expect(registeredToolConfig.title).toBe('List records from a collection');
       expect(registeredToolConfig.description).toBe(
-        'Retrieve a list of records from the specified collection. Send schema field names; read each value under its `recordKey` when describeCollection publishes one.',
+        'Retrieve a list of records from the specified collection. Send schema field names; read each value under its `recordKey` when describeCollection publishes one. Never read a field whose `recordKey` is null; project a field listing `sharesRecordKeyWith` without the fields it lists.',
       );
     });
 

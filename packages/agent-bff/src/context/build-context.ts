@@ -1,6 +1,7 @@
 import type { FieldType } from '../read-model/field-type';
 import type ReadModel from '../read-model/read-model';
 import type { RelationshipType } from '../read-model/read-model';
+import type { PublishedRecordKey } from '@forestadmin/agent-client';
 import type {
   ForestSchemaAction,
   ForestSchemaCollection,
@@ -31,7 +32,8 @@ export interface ContextValidation {
 
 export interface ContextField {
   field: string;
-  recordKey?: string;
+  recordKey?: string | null;
+  sharesRecordKeyWith?: string[];
   type: FieldType;
   relationship?: RelationshipType;
   reference?: string;
@@ -82,13 +84,20 @@ function toContextValidations(validations: unknown[] | null | undefined): Contex
 
 function toContextField(
   field: FieldWithWireEnums,
-  recordKeys: ReadonlyMap<string, string>,
+  recordKeys: ReadonlyMap<string, PublishedRecordKey>,
   derivedPrimaryKeys: ReadonlySet<string>,
 ): ContextField {
   const serialized: ContextField = { field: field.field, type: field.type };
 
-  const key = recordKeys.get(field.field);
-  if (key) serialized.recordKey = key;
+  const published = recordKeys.get(field.field);
+
+  if (published) {
+    serialized.recordKey = published.recordKey;
+
+    if (published.sharesRecordKeyWith) {
+      serialized.sharesRecordKeyWith = [...published.sharesRecordKeyWith];
+    }
+  }
 
   if (field.relationship) serialized.relationship = field.relationship;
   if (field.reference) serialized.reference = field.reference;

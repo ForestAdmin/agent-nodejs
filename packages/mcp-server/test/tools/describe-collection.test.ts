@@ -98,6 +98,18 @@ describe('declareDescribeCollectionTool', () => {
       );
     });
 
+    it('should tell the model when a field can only be read projected alone, or not at all', () => {
+      declareDescribeCollectionTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: [],
+      });
+
+      expect(registeredToolConfig.description).toContain(
+        'Fields sharing a `recordKey` (listed in `sharesRecordKeyWith`) can be read only when a single one of them is projected in the call. `recordKey: null` means the value cannot be read from a returned record: never read it under its name. Every record carries `id`, the record identifier, which is not a schema field.',
+      );
+    });
+
     it('should be annotated as read-only', () => {
       declareDescribeCollectionTool(mcpServer, {
         forestServerClient: mockForestServerClient,
@@ -882,8 +894,8 @@ describe('declareDescribeCollectionTool', () => {
         };
 
         return JSON.parse(result.content[0].text) as {
-          fields: { name: string; recordKey?: string }[];
-          relations: { name: string; recordKey?: string }[];
+          fields: { name: string; recordKey?: string | null; sharesRecordKeyWith?: string[] }[];
+          relations: { name: string; recordKey?: string | null; sharesRecordKeyWith?: string[] }[];
         };
       }
 
@@ -929,14 +941,20 @@ describe('declareDescribeCollectionTool', () => {
         ]);
       });
 
-      it('should publish no record key on fields that collide on one key', async () => {
+      it('should publish the shared record key and each other on fields that collide', async () => {
         const parsed = await describeWith(
           [schemaField('first_name'), schemaField('firstName')],
           withoutCapabilities,
         );
 
-        expect(parsed.fields.find(f => f.name === 'first_name')).not.toHaveProperty('recordKey');
-        expect(parsed.fields.find(f => f.name === 'firstName')).not.toHaveProperty('recordKey');
+        expect(parsed.fields.find(f => f.name === 'first_name')).toMatchObject({
+          recordKey: 'firstName',
+          sharesRecordKeyWith: ['firstName'],
+        });
+        expect(parsed.fields.find(f => f.name === 'firstName')).toMatchObject({
+          recordKey: 'firstName',
+          sharesRecordKeyWith: ['first_name'],
+        });
       });
 
       it('should detect a collision with a relation the fields list leaves out', async () => {
@@ -952,7 +970,14 @@ describe('declareDescribeCollectionTool', () => {
           withoutCapabilities,
         );
 
-        expect(parsed.fields.find(f => f.name === 'author_id')).not.toHaveProperty('recordKey');
+        expect(parsed.fields.find(f => f.name === 'author_id')).toMatchObject({
+          recordKey: 'authorId',
+          sharesRecordKeyWith: ['authorId'],
+        });
+        expect(parsed.relations.find(r => r.name === 'authorId')).toMatchObject({
+          recordKey: 'authorId',
+          sharesRecordKeyWith: ['author_id'],
+        });
       });
 
       it('should detect a collision with a capability field absent from the schema', async () => {
@@ -961,7 +986,10 @@ describe('declareDescribeCollectionTool', () => {
           withCapabilities(['first_name', 'firstName']),
         );
 
-        expect(parsed.fields.find(f => f.name === 'first_name')).not.toHaveProperty('recordKey');
+        expect(parsed.fields.find(f => f.name === 'first_name')).toMatchObject({
+          recordKey: 'firstName',
+          sharesRecordKeyWith: ['firstName'],
+        });
       });
 
       it('should publish Id as the record key of a Mongo _id', async () => {
@@ -973,14 +1001,35 @@ describe('declareDescribeCollectionTool', () => {
         expect(parsed.fields.find(f => f.name === '_id')).toHaveProperty('recordKey', 'Id');
       });
 
-      it('should publish Id for _id and nothing for Id, which maps to the reserved id', async () => {
+      it('should publish Id for _id and a null key for Id, which maps to the reserved id', async () => {
         const parsed = await describeWith(
           [schemaField('_id', { isPrimaryKey: true }), schemaField('Id')],
           withoutCapabilities,
         );
 
         expect(parsed.fields.find(f => f.name === '_id')).toHaveProperty('recordKey', 'Id');
-        expect(parsed.fields.find(f => f.name === 'Id')).not.toHaveProperty('recordKey');
+        expect(parsed.fields.find(f => f.name === 'Id')).toHaveProperty('recordKey', null);
+      });
+
+      it('should publish a null key on a non-key Id field', async () => {
+        const parsed = await describeWith(
+          [schemaField('reference', { isPrimaryKey: true }), schemaField('Id')],
+          withCapabilities(['reference', 'Id']),
+        );
+
+        expect(parsed.fields.find(f => f.name === 'Id')).toEqual(
+          expect.objectContaining({ recordKey: null }),
+        );
+        expect(parsed.fields.find(f => f.name === 'Id')).not.toHaveProperty('sharesRecordKeyWith');
+      });
+
+      it('should publish a null key on a primary key named Id, whose record id is packed', async () => {
+        const parsed = await describeWith(
+          [schemaField('Id', { isPrimaryKey: true })],
+          withoutCapabilities,
+        );
+
+        expect(parsed.fields.find(f => f.name === 'Id')).toHaveProperty('recordKey', null);
       });
 
       it('should publish the record key of a snake_case relation', async () => {
