@@ -2271,7 +2271,11 @@ describe('AuditTrailRoute', () => {
         },
       ];
 
-      const stateAt = async (at: string) => {
+      const stateAt = async (
+        at: string,
+        entries = history,
+        scope = new ConditionTreeLeaf('status', 'Equal', 'mine'),
+      ) => {
         const { services, dataSource, store, route } = setupBooks();
         store.listByRecord.mockImplementation(
           async ({
@@ -2281,15 +2285,13 @@ describe('AuditTrailRoute', () => {
             startTimestamp?: string;
             operations?: string[];
           }) =>
-            history.filter(
+            entries.filter(
               entry =>
                 (!startTimestamp || entry.timestamp >= startTimestamp) &&
                 (!operations || operations.includes(entry.operation)),
             ),
         );
-        (services.authorization.getScope as jest.Mock).mockResolvedValue(
-          new ConditionTreeLeaf('status', 'Equal', 'mine'),
-        );
+        (services.authorization.getScope as jest.Mock).mockResolvedValue(scope);
         jest
           .spyOn(dataSource.getCollection('books'), 'list')
           .mockResolvedValue([{ id: 2, status: 'mine', name: 'New' }]);
@@ -2311,6 +2313,19 @@ describe('AuditTrailRoute', () => {
 
       test('serves a state from after the id was taken', async () => {
         const context = await stateAt('2026-06-21');
+
+        expect(context.response.body).toEqual({ data: { id: 2, status: 'mine', name: 'New' } });
+      });
+
+      // A scope on a column the capture never kept cannot be answered from a reconstruction, so
+      // testing this state at all would withhold the replacement the caller was just shown to read.
+      test('serves the state at the instant of a delete that a replacement create shares', async () => {
+        const sameInstant = '2026-06-19T00:00:00.000Z';
+        const context = await stateAt(
+          sameInstant,
+          [{ ...history[0], timestamp: sameInstant }, history[1]],
+          new ConditionTreeLeaf('displayName', 'Equal', 'New'),
+        );
 
         expect(context.response.body).toEqual({ data: { id: 2, status: 'mine', name: 'New' } });
       });

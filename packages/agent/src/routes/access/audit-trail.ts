@@ -362,13 +362,15 @@ export default class AuditTrailRoute extends CollectionRoute {
 
     const goneNow = after ? after.goneEntirely : goneEntirely;
 
-    // A live record whose id was freed by a delete and taken since: a state at or before that
-    // delete is the earlier record's, which the current one's scope says nothing about.
+    // A live record whose id was freed by a delete and taken since: a state before that delete is
+    // the earlier record's, which the current one's scope says nothing about. Strictly before: at
+    // the delete's own instant the state already reflects every row there, including a replacement
+    // `create` sharing it.
     const lastDelete =
       permissionScope && !goneNow
         ? await lastDeleteOf(store, this.collection.name, context.params.id)
         : null;
-    const ofEarlierLife = Boolean(lastDelete && at <= lastDelete.timestamp);
+    const ofEarlierLife = Boolean(lastDelete && at < lastDelete.timestamp);
 
     // `startTimestamp` is an inclusive lower bound, so an entry timestamped exactly `at` comes
     // back too — but the record already reflects that entry's change at instant `at`, so it must

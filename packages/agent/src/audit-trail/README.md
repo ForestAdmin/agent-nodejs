@@ -222,7 +222,8 @@ nothing about the rows filed under its id before the id's last confirmed `delete
 earlier record's. Those rows go through the same withholding as a record gone for good — on the
 history route (with `search` and `fields` matched against the served values, so the count and the
 authors cannot leak them either), on the correlation lookups, and on `/state`, whose reconstruction
-at or before that `delete` is tested against the scope. A `pending` delete frees nothing, since it may
+at an instant before that `delete` is tested against the scope (strictly before: at the delete's own
+instant the state already includes a replacement `create` sharing it). A `pending` delete frees nothing, since it may
 never have landed.
 
 That test only runs when the snapshot can actually answer it. The capture keeps the writable columns
