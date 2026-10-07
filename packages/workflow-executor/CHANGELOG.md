@@ -1,3 +1,10 @@
+## @forestadmin/workflow-executor [1.31.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.31.8...@forestadmin/workflow-executor@1.31.9) (2026-10-07)
+
+
+### Bug Fixes
+
+* **workflow-executor:** let Full AI fill forms that reveal fields over more than 3 passes ([#1982](https://github.com/ForestAdmin/agent-nodejs/issues/1982)) ([789c6a4](https://github.com/ForestAdmin/agent-nodejs/commit/789c6a4ea403920105929b551d71efd1baf0f2ea))
+
 ## @forestadmin/workflow-executor [1.31.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.31.7...@forestadmin/workflow-executor@1.31.8) (2026-10-07)
 
 
