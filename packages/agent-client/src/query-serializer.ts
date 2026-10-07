@@ -32,10 +32,11 @@ export default class QuerySerializer {
     };
   }
 
-  private static formatSort(sort: PlainSortClause): string {
-    if (!sort) return undefined;
+  private static formatSort(sort: PlainSortClause | PlainSortClause[]): string {
+    const clauses = Array.isArray(sort) ? sort : [sort].filter(Boolean);
+    if (!clauses.length) return undefined;
 
-    return sort.ascending ? sort.field : `-${sort.field}`;
+    return clauses.map(({ field, ascending }) => (ascending ? field : `-${field}`)).join(',');
   }
 
   private static formatFilters(filters: PlainFilter['conditionTree']): string {
