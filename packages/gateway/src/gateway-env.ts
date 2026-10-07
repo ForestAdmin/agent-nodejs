@@ -233,6 +233,7 @@ export default function parseGatewayEnv(env: NodeJS.ProcessEnv): GatewayEnv {
   const allowedOAuthClients = aliases.resolve(
     ALLOWED_OAUTH_CLIENTS_VAR,
     ALLOWED_OAUTH_CLIENTS_ALIASES,
+    { blankIsSet: true },
   );
   const allowedClientDomains = parseAllowedOAuthClients(allowedOAuthClients);
 

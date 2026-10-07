@@ -55,6 +55,24 @@ describe('EnvAliases', () => {
       expect(aliases.warnings).toEqual([]);
     });
 
+    it('should keep a blank value when asked to', () => {
+      const aliases = new EnvAliases({ NEW: '  ', OLD: 'value' });
+
+      expect(aliases.resolve('NEW', ['OLD'], { blankIsSet: true })).toEqual({
+        key: 'NEW',
+        value: '  ',
+      });
+    });
+
+    it('should still treat an empty value as unset when blanks are kept', () => {
+      const aliases = new EnvAliases({ NEW: '', OLD: '  ' });
+
+      expect(aliases.resolve('NEW', ['OLD'], { blankIsSet: true })).toEqual({
+        key: 'OLD',
+        value: '  ',
+      });
+    });
+
     it('should fail naming two aliases that disagree', () => {
       const aliases = new EnvAliases({ HTTP_PORT: '8080', MCP_SERVER_PORT: '3931' });
 

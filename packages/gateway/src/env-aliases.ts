@@ -5,8 +5,16 @@ export interface Resolution {
   value?: string;
 }
 
+export interface ResolveOptions {
+  blankIsSet?: boolean;
+}
+
 function isSet(value: string | undefined): value is string {
   return value !== undefined && value.trim() !== '';
+}
+
+function isNonEmpty(value: string | undefined): value is string {
+  return value !== undefined && value !== '';
 }
 
 export default class EnvAliases {
@@ -14,10 +22,15 @@ export default class EnvAliases {
 
   constructor(private readonly env: NodeJS.ProcessEnv) {}
 
-  resolve(name: string, aliases: readonly string[] = []): Resolution {
-    const usedAliases = aliases.filter(alias => isSet(this.env[alias]));
+  resolve(
+    name: string,
+    aliases: readonly string[] = [],
+    { blankIsSet = false }: ResolveOptions = {},
+  ): Resolution {
+    const isUsed = blankIsSet ? isNonEmpty : isSet;
+    const usedAliases = aliases.filter(alias => isUsed(this.env[alias]));
 
-    if (isSet(this.env[name])) {
+    if (isUsed(this.env[name])) {
       usedAliases.forEach(alias => this.warnings.push(`${alias} is ignored: ${name} is set`));
 
       return { key: name, value: this.env[name] };

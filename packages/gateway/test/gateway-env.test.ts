@@ -412,6 +412,25 @@ describe('parseGatewayEnv aliases', () => {
       expect(parse).toThrow(reason);
     });
 
+    it.each([
+      ['FOREST_GATEWAY_ALLOWED_OAUTH_CLIENTS', {}],
+      ['FOREST_MCP_ALLOWED_OAUTH_CLIENTS', {}],
+      ['FOREST_GATEWAY_ALLOWED_OAUTH_CLIENTS', { FOREST_MCP_ALLOWED_OAUTH_CLIENTS: 'claude.ai' }],
+    ])('should fail closed on a whitespace-only %s', (key, others) => {
+      expect(() =>
+        parseGatewayEnv({ FOREST_GATEWAY_SERVICES: 'api', [key]: '  ', ...others }),
+      ).toThrow(`Invalid ${key}: no domains to allow.`);
+    });
+
+    it('should leave the allowlist unset on an empty value', () => {
+      const gateway = parseGatewayEnv({
+        FOREST_GATEWAY_SERVICES: 'api',
+        FOREST_GATEWAY_ALLOWED_OAUTH_CLIENTS: '',
+      });
+
+      expect(gateway.api?.allowedOAuthClients).toBeUndefined();
+    });
+
     it('should leave the allowlist unset when no name is set', () => {
       const gateway = parseGatewayEnv({ FOREST_GATEWAY_SERVICES: 'api' });
 
