@@ -1,5 +1,5 @@
 export { default as BFFHttpServer } from './http/bff-http-server';
-export { parseConfig, REQUIRED_KEYS } from './config/env-config';
+export { CONFIG_KEYS, parseConfig, parsePublicUrl, REQUIRED_KEYS } from './config/env-config';
 export type {
   BFFConfig,
   PresenceMap,

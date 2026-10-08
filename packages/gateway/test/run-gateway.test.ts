@@ -5,7 +5,12 @@ import request from 'supertest';
 
 import { runGateway, version } from '../src';
 import startFakeForestServer from './helpers/fake-forest-server';
-import { ALLOWED_ORIGIN, gatewayEnv, getAvailablePort } from './helpers/gateway-env';
+import {
+  ALLOWED_ORIGIN,
+  ENCRYPTION_KEY,
+  gatewayEnv,
+  getAvailablePort,
+} from './helpers/gateway-env';
 
 const SIGNALS: NodeJS.Signals[] = ['SIGTERM', 'SIGINT'];
 
@@ -316,7 +321,7 @@ describe('a degraded API', () => {
   let gateway: RunningGateway;
 
   beforeAll(async () => {
-    gateway = await startGateway({ FOREST_GATEWAY_SERVICES: 'api', AGENT_URL: undefined });
+    gateway = await startGateway({ FOREST_GATEWAY_SERVICES: 'api', FOREST_AGENT_URL: undefined });
   });
 
   afterAll(async () => {
@@ -375,7 +380,7 @@ describe('boot log', () => {
   });
 
   it('should say the API OAuth is off without the encryption key', async () => {
-    const gateway = await startGateway({ BFF_TOKEN_ENCRYPTION_KEY: undefined });
+    const gateway = await startGateway({ FOREST_GATEWAY_API_TOKEN_ENCRYPTION_KEY: undefined });
 
     try {
       expect(gateway.logger).toHaveBeenCalledWith(
@@ -388,16 +393,197 @@ describe('boot log', () => {
     }
   });
 
-  it('should warn about a legacy listener variable it ignores', async () => {
-    const gateway = await startGateway({ MCP_SERVER_PORT: '1234' });
+  it('should warn about a legacy listener variable it reads', async () => {
+    const port = await getAvailablePort();
+    const gateway = await startGateway({ PORT: undefined, MCP_SERVER_PORT: String(port) });
 
     try {
       expect(gateway.logger).toHaveBeenCalledWith(
         'Warn',
-        'MCP_SERVER_PORT is ignored by forest-gateway: use PORT instead',
+        'MCP_SERVER_PORT is a legacy name: use PORT instead',
       );
+      expect((await request(`http://127.0.0.1:${port}`).get('/health')).status).toBe(200);
     } finally {
       await gateway.server.stop();
     }
+  });
+});
+
+describe('configuration', () => {
+  async function withGateway(
+    overrides: NodeJS.ProcessEnv,
+    check: (gateway: RunningGateway) => Promise<void> | void,
+  ): Promise<void> {
+    const gateway = await startGateway(overrides);
+
+    try {
+      await check(gateway);
+    } finally {
+      await gateway.server.stop();
+    }
+  }
+
+  it('should start without the API encryption key, saying API sign-in is off', async () => {
+    await withGateway(
+      { FOREST_GATEWAY_BASE_PATH: '/ai', FOREST_GATEWAY_API_TOKEN_ENCRYPTION_KEY: undefined },
+      async gateway => {
+        const response = await request(gateway.url).get('/health');
+
+        expect(response.body.services.api.configured.oauth).toBe(false);
+        expect(gateway.logger).toHaveBeenCalledWith(
+          'Warn',
+          'API sign-in (/ai/oauth/*?service=api) is off',
+          { set: 'FOREST_GATEWAY_API_TOKEN_ENCRYPTION_KEY' },
+        );
+      },
+    );
+  });
+
+  it('should start the API degraded without an agent url, naming FOREST_AGENT_URL', async () => {
+    await withGateway(
+      { FOREST_GATEWAY_SERVICES: 'api', FOREST_AGENT_URL: undefined },
+      async gateway => {
+        const response = await request(gateway.url).get('/health');
+
+        expect(response.status).toBe(503);
+        expect(response.body.services.api.status).toBe('degraded');
+        expect(gateway.logger).toHaveBeenCalledWith(
+          'Warn',
+          'Missing required configuration; /health will report degraded',
+          { missing: ['FOREST_AGENT_URL'] },
+        );
+      },
+    );
+  });
+
+  it('should start from a forest-bff configuration, never logging the encryption key', async () => {
+    await withGateway(
+      {
+        FOREST_GATEWAY_SERVICES: 'api',
+        FOREST_AGENT_URL: undefined,
+        FOREST_GATEWAY_API_TOKEN_ENCRYPTION_KEY: undefined,
+        FOREST_GATEWAY_API_ALLOWED_ORIGINS: undefined,
+        AGENT_URL: 'https://agent.example.com',
+        BFF_PUBLIC_URL: 'https://corp.example/api',
+        BFF_TOKEN_ENCRYPTION_KEY: ENCRYPTION_KEY,
+        BFF_ALLOWED_ORIGINS: ALLOWED_ORIGIN,
+      },
+      async gateway => {
+        const response = await request(gateway.url).get('/health');
+        const warnings = gateway.logger.mock.calls
+          .filter(([level]) => level === 'Warn')
+          .map(([, message]) => message);
+
+        expect(response.status).toBe(200);
+        expect(warnings).toEqual([
+          'AGENT_URL is a legacy name: use FOREST_AGENT_URL instead',
+          'BFF_PUBLIC_URL is a legacy name: use FOREST_GATEWAY_API_PUBLIC_URL instead',
+          'BFF_TOKEN_ENCRYPTION_KEY is a legacy name: use FOREST_GATEWAY_API_TOKEN_ENCRYPTION_KEY instead',
+          'BFF_ALLOWED_ORIGINS is a legacy name: use FOREST_GATEWAY_API_ALLOWED_ORIGINS instead',
+        ]);
+        expect(JSON.stringify(gateway.logger.mock.calls)).not.toContain(ENCRYPTION_KEY);
+      },
+    );
+  });
+
+  it('should start from the hosted API configuration under its Gateway names', async () => {
+    const port = await getAvailablePort();
+    const logger = jest.fn();
+    const server = await runGateway(
+      {
+        FOREST_GATEWAY_SERVICES: 'api',
+        PORT: String(port),
+        FOREST_AGENT_URL: 'https://agent.example.com',
+        FOREST_SERVER_URL: forest.url,
+        FOREST_APP_URL: 'https://app.development.forestadmin.com',
+        FOREST_AUTH_SECRET: 'auth-secret',
+        FOREST_ENV_SECRET: 'env-secret',
+        FOREST_GATEWAY_API_PUBLIC_URL: 'https://agent-bff.development.forestadmin.com/api',
+        FOREST_GATEWAY_API_TOKEN_ENCRYPTION_KEY: ENCRYPTION_KEY,
+        FOREST_GATEWAY_API_ALLOWED_ORIGINS: 'http://localhost:5173',
+        FOREST_GATEWAY_API_DEFAULT_TIMEZONE: 'Europe/Paris',
+        FOREST_GATEWAY_API_OPENAPI_ENABLED: 'true',
+      },
+      logger as unknown as Logger,
+    );
+
+    try {
+      const response = await request(`http://127.0.0.1:${port}`).get('/health');
+
+      expect(response.status).toBe(200);
+      expect(response.body.services.api.configured).toEqual({
+        oauth: true,
+        ai: true,
+        cors: true,
+        openapi: true,
+      });
+      expect(logger.mock.calls.filter(([level]) => level === 'Warn')).toEqual([]);
+    } finally {
+      await server.stop();
+    }
+  });
+
+  it('should drop an invalid allowed origin, warning naming its key', async () => {
+    await withGateway(
+      { FOREST_GATEWAY_API_ALLOWED_ORIGINS: `${ALLOWED_ORIGIN},not-an-origin` },
+      async gateway => {
+        const response = await request(gateway.url)
+          .options('/oauth/token?service=api')
+          .set('Origin', ALLOWED_ORIGIN)
+          .set('Access-Control-Request-Method', 'POST');
+
+        expect(response.headers['access-control-allow-origin']).toBe(ALLOWED_ORIGIN);
+        expect(gateway.logger).toHaveBeenCalledWith(
+          'Warn',
+          'Ignoring malformed FOREST_GATEWAY_API_ALLOWED_ORIGINS entries',
+          { entries: ['not-an-origin'] },
+        );
+      },
+    );
+  });
+
+  it('should fail on an invalid MCP token TTL even when the MCP would be degraded', async () => {
+    await expect(
+      startGateway({
+        FOREST_GATEWAY_SERVICES: 'mcp',
+        FOREST_AUTH_SECRET: undefined,
+        FOREST_MCP_ACCESS_TOKEN_TTL_SECONDS: 'soon',
+      }),
+    ).rejects.toThrow('Invalid FOREST_MCP_ACCESS_TOKEN_TTL_SECONDS');
+  });
+
+  it('should not load the upload storage module when uploads are off', async () => {
+    await withGateway(
+      {
+        FOREST_GATEWAY_SERVICES: 'mcp',
+        FOREST_MCP_FILE_UPLOADS: 'false',
+        FOREST_MCP_UPLOAD_STORAGE_MODULE: './does-not-exist',
+      },
+      async gateway => {
+        const response = await request(gateway.url).get('/health');
+
+        expect(response.body.services.mcp).toBe('ok');
+      },
+    );
+  });
+
+  it('should keep the MCP healthy without a gateway url, warning naming it', async () => {
+    await withGateway({ FOREST_GATEWAY_SERVICES: 'mcp' }, async gateway => {
+      const response = await request(gateway.url).get('/health');
+
+      expect(response.body.services.mcp).toBe('ok');
+      expect(gateway.logger).toHaveBeenCalledWith(
+        'Warn',
+        `FOREST_GATEWAY_URL is not set: MCP clients are told http://localhost:${gateway.port}`,
+      );
+    });
+  });
+
+  it('should fail once on an agent url with a query string, without its value', async () => {
+    await expect(
+      startGateway({ FOREST_AGENT_URL: 'https://agent.example.com?token=do-not-print-me' }),
+    ).rejects.toThrow(
+      'Invalid FOREST_AGENT_URL: expected an absolute http(s) URL with no query string or fragment.',
+    );
   });
 });

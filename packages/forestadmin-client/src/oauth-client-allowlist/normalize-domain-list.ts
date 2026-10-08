@@ -1,11 +1,14 @@
-export default function normalizeDomainList(domains?: string[]): string[] | undefined {
+export default function normalizeDomainList(
+  domains?: string[],
+  label = 'allowedOAuthClients',
+): string[] | undefined {
   if (domains === undefined) return undefined;
 
   const entries = domains.map(domain => domain.trim()).filter(Boolean);
 
   if (entries.length === 0) {
     throw new Error(
-      'Invalid allowedOAuthClients: no domains to allow. List at least one domain ' +
+      `Invalid ${label}: no domains to allow. List at least one domain ` +
         '(e.g. dust.tt), or omit the option to accept any registered client.',
     );
   }
@@ -15,7 +18,7 @@ export default function normalizeDomainList(domains?: string[]): string[] | unde
     // hostname; '\' acts as a path separator in WHATWG URLs, silently truncating.
     if (/[/:@?#\\\s]/.test(entry)) {
       throw new Error(
-        `Invalid allowedOAuthClients entry "${entry}": list bare domains (e.g. dust.tt) ` +
+        `Invalid ${label} entry "${entry}": list bare domains (e.g. dust.tt) ` +
           'without scheme, port, path, or spaces.',
       );
     }
@@ -27,7 +30,7 @@ export default function normalizeDomainList(domains?: string[]): string[] | unde
       // carry one, so keeping it would silently reject every client for that domain.
       return new URL(`https://${entry}`).hostname.replace(/\.$/, '');
     } catch {
-      throw new Error(`Invalid allowedOAuthClients entry "${entry}": not a valid domain.`);
+      throw new Error(`Invalid ${label} entry "${entry}": not a valid domain.`);
     }
   });
 }

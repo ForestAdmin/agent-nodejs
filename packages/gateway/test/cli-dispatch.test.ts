@@ -27,11 +27,19 @@ describe('dispatchCli', () => {
   it.each([
     [{}, '/api'],
     [{ FOREST_GATEWAY_BASE_PATH: '/ai' }, '/ai/api'],
-    [{ FOREST_GATEWAY_URL: 'https://gateway.example.com' }, 'https://gateway.example.com/api'],
     [
-      { FOREST_GATEWAY_URL: 'https://gateway.example.com', FOREST_GATEWAY_BASE_PATH: '/ai' },
-      'https://gateway.example.com/ai/api',
+      { FOREST_GATEWAY_API_PUBLIC_URL: 'https://gateway.example.com/api' },
+      'https://gateway.example.com/api',
     ],
+    [
+      {
+        FOREST_GATEWAY_API_PUBLIC_URL: 'https://corp.example/forest/api',
+        FOREST_GATEWAY_BASE_PATH: '/forest',
+      },
+      'https://corp.example/forest/api',
+    ],
+    [{ BFF_PUBLIC_URL: 'https://corp.example/api' }, 'https://corp.example/api'],
+    [{ FOREST_GATEWAY_URL: 'https://gateway.example.com' }, '/api'],
   ])('should announce the API server of %p as %s', async (env, url) => {
     const outcome = await dispatchCli(['openapi'], env, noopLogger);
 
@@ -39,10 +47,21 @@ describe('dispatchCli', () => {
     expect(writtenDocument().servers[0].url).toBe(url);
   });
 
-  it('should ignore BFF_PUBLIC_URL in the document', async () => {
-    await dispatchCli(['openapi'], { BFF_PUBLIC_URL: 'https://old.example.com' }, noopLogger);
+  it('should warn naming a legacy public url it reads', async () => {
+    const logger = jest.fn();
 
-    expect(writtenDocument().servers[0].url).toBe('/api');
+    await dispatchCli(['openapi'], { BFF_PUBLIC_URL: 'https://corp.example/api' }, logger);
+
+    expect(logger).toHaveBeenCalledWith(
+      'Warn',
+      'BFF_PUBLIC_URL is a legacy name: use FOREST_GATEWAY_API_PUBLIC_URL instead',
+    );
+  });
+
+  it('should refuse a legacy root public url, asking for /api', async () => {
+    await expect(
+      dispatchCli(['openapi'], { BFF_PUBLIC_URL: 'https://corp.example' }, noopLogger),
+    ).rejects.toThrow('BFF_PUBLIC_URL must end with /api');
   });
 
   it('should write the document to the --output file', async () => {

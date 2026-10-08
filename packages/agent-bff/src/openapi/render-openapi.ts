@@ -1,3 +1,4 @@
+import type { ConfigLabels } from '../config/env-config';
 import type { Logger } from '../ports/logger-port';
 
 import { generateOpenApiDocument, serializeOpenApi } from './openapi-document';
@@ -18,9 +19,9 @@ function wantsUnfolding(env: NodeJS.ProcessEnv): boolean {
   return UNFOLD_VARS.every(name => (env[name] ?? '').trim() !== '');
 }
 
-function publishesAiQuery(env: NodeJS.ProcessEnv, logger: Logger): boolean {
+function publishesAiQuery(env: NodeJS.ProcessEnv, logger: Logger, labels: ConfigLabels): boolean {
   try {
-    return resolveOAuthConfig(parseConfig(env)) !== undefined;
+    return resolveOAuthConfig(parseConfig(env, labels)) !== undefined;
   } catch (error) {
     const reason = extractErrorMessage(error);
 
@@ -42,8 +43,9 @@ function publishesAiQuery(env: NodeJS.ProcessEnv, logger: Logger): boolean {
 export default async function renderOpenApi(
   env: NodeJS.ProcessEnv,
   logger: Logger,
-  options: { basePath?: string } = {},
+  options: { basePath?: string; labels?: ConfigLabels } = {},
 ): Promise<string> {
+  const labels = options.labels ?? {};
   const basePath = normalizeBasePath(options.basePath);
   const authSecret = env.FOREST_AUTH_SECRET;
 
@@ -53,11 +55,11 @@ export default async function renderOpenApi(
   // the variables unfolding needs are all present — and from there a bad value is a real failure.
   const unfoldable =
     authSecret && wantsUnfolding(env)
-      ? { source: resolveUnfoldSource(parseConfig(env), logger), authSecret }
+      ? { source: resolveUnfoldSource(parseConfig(env, labels), logger), authSecret }
       : undefined;
 
-  const publicUrl = parsePublicUrl(env.BFF_PUBLIC_URL, 'BFF_PUBLIC_URL');
-  const hasAiQueryRoute = publishesAiQuery(env, logger);
+  const publicUrl = parsePublicUrl(env.BFF_PUBLIC_URL, labels.BFF_PUBLIC_URL ?? 'BFF_PUBLIC_URL');
+  const hasAiQueryRoute = publishesAiQuery(env, logger, labels);
 
   if (!unfoldable?.source) {
     logger('Warn', `Emitting the generic OpenAPI document: ${NOTHING_TO_UNFOLD}`);
