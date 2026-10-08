@@ -1,4 +1,8 @@
-import parseGatewayEnv, { parseOpenApiEnv, parseServices } from '../src/gateway-env';
+import parseGatewayEnv, {
+  parseOpenApiEnv,
+  parseServices,
+  resolveListenPort,
+} from '../src/gateway-env';
 
 describe('parseServices', () => {
   it.each([
@@ -501,5 +505,40 @@ describe('parseOpenApiEnv', () => {
         FOREST_GATEWAY_API_PUBLIC_URL: 'https://corp.example/api',
       }),
     ).toThrow('FOREST_GATEWAY_API_PUBLIC_URL must end with /ai/api');
+  });
+});
+
+describe('resolveListenPort', () => {
+  it.each([
+    ['mcp', 3931],
+    ['mcp,api', 3931],
+    ['api', 3450],
+  ])('should default the port of "%s" to %d', (services, port) => {
+    expect(resolveListenPort({ FOREST_GATEWAY_SERVICES: services })).toBe(port);
+  });
+
+  it.each([
+    [{ PORT: '8080', HTTP_PORT: '9090' }, 8080],
+    [{ MCP_SERVER_PORT: ' 8081 ' }, 8081],
+    [{ HTTP_PORT: '8082' }, 8082],
+  ])('should agree with parseGatewayEnv on %p', (env, port) => {
+    const full = { FOREST_GATEWAY_SERVICES: 'mcp,api', ...env };
+
+    expect(resolveListenPort(full)).toBe(port);
+    expect(parseGatewayEnv(full).port).toBe(port);
+  });
+
+  it('should fail naming both legacy ports when they disagree', () => {
+    expect(() =>
+      resolveListenPort({
+        FOREST_GATEWAY_SERVICES: 'api',
+        MCP_SERVER_PORT: '3931',
+        HTTP_PORT: '8080',
+      }),
+    ).toThrow('MCP_SERVER_PORT and HTTP_PORT disagree');
+  });
+
+  it('should reject invalid services', () => {
+    expect(() => resolveListenPort({})).toThrow(/FOREST_GATEWAY_SERVICES/);
   });
 });

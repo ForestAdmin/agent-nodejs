@@ -208,16 +208,24 @@ export function parseOpenApiEnv(env: NodeJS.ProcessEnv): OpenApiEnv {
   return { basePath, api, warnings: aliases.warnings };
 }
 
+function resolvePort(aliases: EnvAliases, withMcp: boolean): number {
+  return parsePort(
+    aliases.resolve(PORT_VAR, PORT_ALIASES),
+    withMcp ? DEFAULT_MCP_PORT : DEFAULT_API_PORT,
+  );
+}
+
+export function resolveListenPort(env: NodeJS.ProcessEnv): number {
+  return resolvePort(new EnvAliases(env), parseServices(env[SERVICES_VAR]).has('mcp'));
+}
+
 export default function parseGatewayEnv(env: NodeJS.ProcessEnv): GatewayEnv {
   const services = parseServices(env[SERVICES_VAR]);
   const withMcp = services.has('mcp');
   const withApi = services.has('api');
   const basePath = normalizeMountPath(env[BASE_PATH_VAR], BASE_PATH_VAR);
   const aliases = new EnvAliases(env);
-  const port = parsePort(
-    aliases.resolve(PORT_VAR, PORT_ALIASES),
-    withMcp ? DEFAULT_MCP_PORT : DEFAULT_API_PORT,
-  );
+  const port = resolvePort(aliases, withMcp);
 
   if (!withMcp) {
     aliases.ignore(
