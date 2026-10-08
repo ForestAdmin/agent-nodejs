@@ -1,7 +1,6 @@
 {
   "name": "@forestadmin/gateway",
   "version": "0.0.0",
-  "private": true,
   "description": "Serves the Forest Admin MCP and API services on one port, for agents that cannot embed them",
   "main": "dist/index.js",
   "bin": {
