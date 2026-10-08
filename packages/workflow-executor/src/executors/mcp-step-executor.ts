@@ -1,5 +1,9 @@
 import type { ExecutionContext, StepExecutionResult } from '../types/execution-context';
-import type { McpStepExecutionData, McpToolCall } from '../types/step-execution-data';
+import type {
+  McpExecutedToolCall,
+  McpStepExecutionData,
+  McpToolCall,
+} from '../types/step-execution-data';
 import type { McpStepDefinition } from '../types/validated/step-definition';
 import type {
   AwaitingInputReason,
@@ -17,6 +21,7 @@ import {
 import { z } from 'zod';
 
 import {
+  McpToolCallLimitError,
   McpToolInvocationError,
   McpToolNotFoundError,
   McpToolsNotAllowedError,
@@ -27,12 +32,41 @@ import {
 import BaseStepExecutor from './base-step-executor';
 import { StepExecutionMode } from '../types/validated/step-definition';
 
-const MCP_TASK_SYSTEM_PROMPT = `You are an AI agent selecting and executing a tool to fulfill a user request.
-Select the most appropriate tool and fill in its parameters precisely.
+const MAX_TOOL_CALLS = 10;
+// Caps each result, not the total: every decision replays all of the step's results, so up to
+// MAX_TOOL_CALLS × 20k characters. Cap the total if a model's context window falls short.
+const MAX_RESULT_LENGTH = 20_000;
+
+const COMPLETE_STEP_TOOL = new DynamicStructuredTool({
+  name: 'complete-step',
+  description:
+    'Ends the step with the final answer for the user. Call it once the request is fulfilled, ' +
+    'or when no further tool call can help.',
+  schema: z.object({
+    summary: z
+      .string()
+      .min(1)
+      .describe('Concise human-readable answer: what was done and what was found.'),
+  }),
+  func: undefined,
+});
+
+const MCP_TASK_SYSTEM_PROMPT = `You are an AI agent fulfilling a user request by calling the tools available to you.
+Call one tool at a time and fill in its parameters precisely. The result of every call is shown to you before you choose the next one.
 
 Important rules:
-- Select only the tool directly relevant to the request.
+- Call only the tools directly relevant to the request.
+- You can make at most ${MAX_TOOL_CALLS} tool calls.
+- Once the request is fulfilled, or no further tool call can help, call "${COMPLETE_STEP_TOOL.name}" with a concise answer for the user. Be factual and do not include raw JSON or technical identifiers.
 - Final answer is definitive, you won't receive any other input from the user.`;
+
+function formatResultForAi(result: unknown): string {
+  const text = typeof result === 'string' ? result : String(JSON.stringify(result));
+
+  return text.length > MAX_RESULT_LENGTH
+    ? `${text.slice(0, MAX_RESULT_LENGTH)}\n... [truncated]`
+    : text;
+}
 
 export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition> {
   private readonly remoteTools: readonly RemoteTool[];
@@ -112,13 +146,13 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     }
   }
 
-  // Keep a confirmation-flow record's approved pendingData (clear only the marker) so resume replays
-  // it; delete a pendingData-less record, which would otherwise mis-route resume into confirmation.
+  // Keep a record carrying an approved call or completed calls (clear only the marker) so resume
+  // replays or continues from them; delete an empty one, which would mis-route resume into confirmation.
   private async clearReauthPauseState(): Promise<void> {
     const existing = await this.findPendingExecution<McpStepExecutionData>('mcp');
     if (!existing) return;
 
-    if (existing.pendingData) {
+    if (existing.pendingData || existing.toolCalls?.length) {
       await this.context.runStore.saveStepExecution(this.context.runId, {
         ...existing,
         idempotencyPhase: undefined,
@@ -129,44 +163,56 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
   }
 
   private async runStep(): Promise<StepExecutionResult> {
-    const pending = await this.patchAndReloadPendingData<McpStepExecutionData>(
+    const execution = await this.patchAndReloadPendingData<McpStepExecutionData>(
       this.context.incomingPendingData,
     );
 
-    if (pending) {
-      return this.handleConfirmationFlow<McpStepExecutionData>(pending, execution =>
-        this.executeToolAndPersist(execution.pendingData as McpToolCall, execution),
+    // Only a re-authentication pause leaves completed calls with none pending: carry on from them.
+    if (execution?.toolCalls?.length && !execution.pendingData) {
+      return this.continueLoop(execution);
+    }
+
+    if (execution) {
+      return this.handleConfirmationFlow<McpStepExecutionData>(execution, async accepted =>
+        this.continueLoop(await this.executeCall(accepted.pendingData as McpToolCall, accepted)),
       );
     }
 
-    const tools = this.requireTools();
-    const { toolName, args } = await this.selectTool(tools);
-    const selectedTool = tools.find(t => t.base.name === toolName);
-    if (!selectedTool) throw new McpToolNotFoundError(toolName);
-    const target: McpToolCall = { name: toolName, sourceId: selectedTool.sourceId, input: args };
+    return this.continueLoop({ type: 'mcp', stepIndex: this.context.stepIndex, toolCalls: [] });
+  }
+
+  private async continueLoop(execution: McpStepExecutionData): Promise<StepExecutionResult> {
+    const toolCalls = execution.toolCalls ?? [];
+    const next = await this.selectNextMove(toolCalls);
+
+    if ('summary' in next) return this.persistFinalAnswer(execution, toolCalls, next.summary);
+    if (toolCalls.length >= MAX_TOOL_CALLS) throw new McpToolCallLimitError(MAX_TOOL_CALLS);
 
     if (this.context.stepDefinition.executionType === StepExecutionMode.FullyAutomated) {
-      return this.executeToolAndPersist(target);
+      return this.continueLoop(await this.executeCall(next, execution));
     }
 
+    // A fresh confirmation for the next call: the previous one must not approve it.
     await this.context.runStore.saveStepExecution(this.context.runId, {
-      type: 'mcp',
-      stepIndex: this.context.stepIndex,
-      pendingData: target,
+      ...execution,
+      toolCalls,
+      pendingData: next,
+      userConfirmation: undefined,
+      idempotencyPhase: undefined,
     });
 
     return this.buildOutcomeResult({ status: 'awaiting-input' });
   }
 
-  private async executeToolAndPersist(
+  private async executeCall(
     target: McpToolCall,
-    existingExecution?: McpStepExecutionData,
-  ): Promise<StepExecutionResult> {
+    execution: McpStepExecutionData,
+  ): Promise<McpStepExecutionData> {
     const tools = this.requireTools();
     const tool = tools.find(t => t.base.name === target.name && t.sourceId === target.sourceId);
     if (!tool) throw new McpToolNotFoundError(target.name);
 
-    const toolResult = await this.context.activityLog.track(
+    const result = await this.context.activityLog.track(
       {
         action: 'action',
         type: 'write',
@@ -178,64 +224,48 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
         operation: () => this.invokeWithReauthRetry(tool, target),
         beforeCall: () =>
           this.context.runStore.saveStepExecution(this.context.runId, {
-            ...existingExecution,
-            type: 'mcp',
-            stepIndex: this.context.stepIndex,
+            ...execution,
             idempotencyPhase: 'executing',
           }),
       },
     );
 
-    // 1. Persist raw result immediately — safe state before any further network calls
-    const baseExecutionResult = { success: true as const, toolResult };
-    const baseData: McpStepExecutionData = {
-      ...existingExecution,
-      type: 'mcp',
-      stepIndex: this.context.stepIndex,
-      executionParams: { name: target.name, sourceId: target.sourceId, input: target.input },
-      executionResult: baseExecutionResult,
-      idempotencyPhase: 'done',
+    const { name, sourceId, input } = target;
+    const executed: McpStepExecutionData = {
+      ...execution,
+      toolCalls: [...(execution.toolCalls ?? []), { name, sourceId, input, result }],
+      idempotencyPhase: 'executing',
     };
 
-    await this.context.runStore.saveStepExecution(this.context.runId, baseData);
+    await this.context.runStore.saveStepExecution(this.context.runId, executed);
 
-    // 2. AI formatting — non-blocking; errors are logged but do not fail the step
-    let formattedResponse: string | null = null;
+    return executed;
+  }
 
-    try {
-      formattedResponse = await this.formatToolResult(target, toolResult);
-    } catch (cause) {
-      this.context.logger(
-        'Error',
-        'Failed to format MCP tool result, persisting raw result without summary',
-        {
-          runId: this.context.runId,
-          stepIndex: this.context.stepIndex,
-          toolName: target.name,
-          cause: cause instanceof Error ? cause.message : String(cause),
+  private async persistFinalAnswer(
+    execution: McpStepExecutionData,
+    toolCalls: McpExecutedToolCall[],
+    summary: string,
+  ): Promise<StepExecutionResult> {
+    const lastCall = toolCalls[toolCalls.length - 1];
+
+    await this.context.runStore.saveStepExecution(this.context.runId, {
+      ...execution,
+      toolCalls,
+      ...(lastCall && {
+        executionParams: {
+          name: lastCall.name,
+          sourceId: lastCall.sourceId,
+          input: lastCall.input,
         },
-      );
-    }
-
-    if (formattedResponse) {
-      try {
-        await this.context.runStore.saveStepExecution(this.context.runId, {
-          ...baseData,
-          executionResult: { ...baseExecutionResult, formattedResponse },
-        });
-      } catch (cause) {
-        this.context.logger(
-          'Error',
-          'MCP tool result formatted but enriched state could not be persisted',
-          {
-            runId: this.context.runId,
-            stepIndex: this.context.stepIndex,
-            toolName: target.name,
-            cause: cause instanceof Error ? cause.message : String(cause),
-          },
-        );
-      }
-    }
+      }),
+      executionResult: {
+        success: true,
+        toolResult: lastCall?.result ?? null,
+        ...(summary && { formattedResponse: summary }),
+      },
+      idempotencyPhase: 'done',
+    });
 
     return this.buildOutcomeResult({ status: 'success' });
   }
@@ -289,54 +319,47 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     }
   }
 
-  private async formatToolResult(tool: McpToolCall, toolResult: unknown): Promise<string | null> {
-    if (toolResult === null || toolResult === undefined) return null;
-
-    const resultStr = typeof toolResult === 'string' ? toolResult : JSON.stringify(toolResult);
-    const truncatedResult =
-      resultStr.length > 20_000 ? `${resultStr.slice(0, 20_000)}\n... [truncated]` : resultStr;
-
-    const summaryTool = new DynamicStructuredTool({
-      name: 'summarize-result',
-      description: 'Provides a human-readable summary of the tool execution result.',
-      schema: z.object({
-        summary: z.string().min(1).describe('Concise human-readable summary of the tool result.'),
-      }),
-      func: undefined,
-    });
-
-    const messages = [
-      this.buildContextMessage(),
-      new SystemMessage(
-        'You are summarizing the result of a workflow tool execution for the end user. ' +
-          'Be concise and factual. Do not include raw JSON or technical identifiers.',
-      ),
-      new HumanMessage(
-        `Tool "${tool.name}" was executed with input: ${JSON.stringify(tool.input)}.\n` +
-          `Result: ${truncatedResult}\n\n` +
-          `Provide a concise human-readable summary.`,
-      ),
-    ];
-
-    const { summary } = await this.invokeWithTool<{ summary: string }>(messages, summaryTool);
-
-    return summary || null;
-  }
-
-  private async selectTool(tools: RemoteTool[]) {
+  private async selectNextMove(
+    toolCalls: McpExecutedToolCall[],
+  ): Promise<McpToolCall | { summary: string }> {
+    const tools = this.requireTools();
     const messages = [
       this.buildContextMessage(),
       ...(await this.buildPreviousStepsMessages()),
       new SystemMessage(MCP_TASK_SYSTEM_PROMPT),
-      new HumanMessage(
-        `**Request**: ${this.context.stepDefinition.prompt ?? 'Execute the relevant tool.'}`,
-      ),
+      new HumanMessage(this.buildRequest(toolCalls)),
     ];
 
-    return this.invokeWithTools(
-      messages,
-      tools.map(t => t.base),
+    const { toolName, args } = await this.invokeWithTools(messages, [
+      ...tools.map(t => t.base),
+      COMPLETE_STEP_TOOL,
+    ]);
+
+    if (toolName === COMPLETE_STEP_TOOL.name) {
+      return { summary: typeof args.summary === 'string' ? args.summary : '' };
+    }
+
+    const selectedTool = tools.find(t => t.base.name === toolName);
+    if (!selectedTool) throw new McpToolNotFoundError(toolName);
+
+    return { name: toolName, sourceId: selectedTool.sourceId, input: args };
+  }
+
+  private buildRequest(toolCalls: McpExecutedToolCall[]): string {
+    const request = `**Request**: ${
+      this.context.stepDefinition.prompt ?? 'Execute the relevant tool.'
+    }`;
+    if (!toolCalls.length) return request;
+
+    const calls = toolCalls.map(
+      (call, i) =>
+        `${i + 1}. "${call.name}" with input ${JSON.stringify(call.input)}\n` +
+        `Result: ${formatResultForAi(call.result)}`,
     );
+
+    return `${request}\n\n**Tool calls already made in this step** (oldest first):\n${calls.join(
+      '\n\n',
+    )}`;
   }
 
   // Tools are pre-scoped to step.mcpServerId upstream. An empty list means either no config

@@ -179,10 +179,17 @@ export interface McpToolCall extends McpToolRef {
   input: Record<string, unknown>;
 }
 
+export interface McpExecutedToolCall extends McpToolCall {
+  result: unknown;
+}
+
 export interface McpStepExecutionData
   extends MutatingStepExecutionData,
     WithUserConfirmation<McpConfirmation> {
   type: 'mcp';
+  // Every call the step ran, oldest first; absent on records written before a step made several.
+  toolCalls?: McpExecutedToolCall[];
+  // The last executed call, kept so readers of the single-call shape still show one.
   executionParams?: McpToolCall;
   executionResult?:
     | { success: true; toolResult: unknown; formattedResponse?: string }
