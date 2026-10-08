@@ -1,4 +1,6 @@
+import type { SequelizeDatasourceOptions } from './types';
 import type {
+  ActionResult,
   AggregateResult,
   Aggregation,
   Caller,
@@ -43,6 +45,7 @@ export default class SequelizeCollection extends BaseCollection {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     model: ModelDefined<any, any>,
     logger?: Logger,
+    options?: SequelizeDatasourceOptions,
   ) {
     if (!model) throw new Error('Invalid (null) model instance.');
 
@@ -63,9 +66,9 @@ export default class SequelizeCollection extends BaseCollection {
       rawQuery: async (
         sql: string,
         replacements: Replacements,
-        options?: { syntax?: 'bind' | 'replacements' },
+        opts?: { syntax?: 'bind' | 'replacements' },
       ) => {
-        const opt = { syntax: 'replacements', ...options };
+        const opt = { syntax: 'replacements', ...opts };
         const result = await model.sequelize.query(sql, {
           type: QueryTypes.RAW,
           plain: false,
@@ -89,6 +92,29 @@ export default class SequelizeCollection extends BaseCollection {
     this.enableCount();
     this.addFields(modelSchema.fields);
     this.addSegments(modelSchema.segments);
+
+    if (this.model.options.paranoid && options?.actions) {
+      const { hardDelete, restoreSoftDeleted } = options.actions;
+
+      if ((Array.isArray(hardDelete) && hardDelete.includes(name)) || hardDelete === true) {
+        this.addAction('Hard Delete', {
+          scope: 'Bulk',
+          description: 'Permanently deletes selected records',
+          staticForm: true,
+        });
+      }
+
+      if (
+        (Array.isArray(restoreSoftDeleted) && restoreSoftDeleted.includes(name)) ||
+        restoreSoftDeleted === true
+      ) {
+        this.addAction('Restore Soft Deleted', {
+          scope: 'Bulk',
+          description: 'Restores selected records',
+          staticForm: true,
+        });
+      }
+    }
   }
 
   async create(caller: Caller, data: RecordData[]): Promise<RecordData[]> {
@@ -225,5 +251,40 @@ export default class SequelizeCollection extends BaseCollection {
       aggregation.groups,
       !aggregationFieldSchema || aggregationFieldSchema?.columnType === 'Number',
     );
+  }
+
+  override async execute(
+    caller: Caller,
+    name: string,
+    formValues: RecordData,
+    filter?: Filter,
+  ): Promise<ActionResult> {
+    const options = {
+      where: await this.queryConverter.getWhereFromConditionTreeToByPassInclude(
+        filter.conditionTree,
+      ),
+    };
+
+    if (name === 'Hard Delete') {
+      try {
+        await handleErrors('delete', () => this.model.destroy({ ...options, force: true }));
+      } catch (error) {
+        return { message: error.message, type: 'Error' };
+      }
+
+      return { message: 'Records permanently deleted', type: 'Success', invalidated: new Set() };
+    }
+
+    if (name === 'Restore Soft Deleted') {
+      try {
+        await handleErrors('update', () => this.model.restore(options));
+      } catch (error) {
+        return { message: error.message, type: 'Error' };
+      }
+
+      return { message: 'Records restored', type: 'Success', invalidated: new Set() };
+    }
+
+    return super.execute(caller, name, formValues, filter);
   }
 }
