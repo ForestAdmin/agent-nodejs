@@ -74,6 +74,23 @@ describe('probeHealth', () => {
     ).resolves.toMatch(new RegExp(`^/health on port ${port}: ECONNREFUSED$`));
   });
 
+  it('should fail when /health does not answer within the timeout', async () => {
+    const server = http.createServer(() => undefined);
+    await new Promise<void>(resolve => {
+      server.listen(0, resolve);
+    });
+    const { port } = server.address() as AddressInfo;
+
+    try {
+      await expect(
+        probeHealth({ FOREST_GATEWAY_SERVICES: 'mcp', PORT: String(port) }, 50),
+      ).resolves.toBe(`/health on port ${port}: timed out after 50ms`);
+    } finally {
+      server.closeAllConnections();
+      await close(server);
+    }
+  });
+
   it('should fail naming the variable when the services are invalid', async () => {
     await expect(probeHealth({ FOREST_GATEWAY_SERVICES: 'foo' })).resolves.toMatch(
       /^Invalid FOREST_GATEWAY_SERVICES "foo"/,

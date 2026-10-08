@@ -7,20 +7,23 @@ import { HEALTH_PATH } from './standalone-handler';
 const HTTP_OK = 200;
 const PROBE_TIMEOUT_MS = 4000;
 
-export default async function probeHealth(env: NodeJS.ProcessEnv): Promise<string | undefined> {
+export default async function probeHealth(
+  env: NodeJS.ProcessEnv,
+  timeoutMs = PROBE_TIMEOUT_MS,
+): Promise<string | undefined> {
   let port: number;
 
   try {
     port = resolveListenPort(env);
   } catch (error) {
-    return error instanceof Error ? error.message : String(error);
+    return (error as Error).message;
   }
 
   if (port === 0) return 'PORT=0 binds a port chosen by the OS, which cannot be probed';
 
   return new Promise(resolve => {
     const request = http.get(
-      { host: 'localhost', port, path: HEALTH_PATH, timeout: PROBE_TIMEOUT_MS },
+      { host: 'localhost', port, path: HEALTH_PATH, timeout: timeoutMs },
       response => {
         response.resume();
         resolve(
@@ -31,9 +34,7 @@ export default async function probeHealth(env: NodeJS.ProcessEnv): Promise<strin
       },
     );
 
-    request.on('timeout', () =>
-      request.destroy(new Error(`timed out after ${PROBE_TIMEOUT_MS}ms`)),
-    );
+    request.on('timeout', () => request.destroy(new Error(`timed out after ${timeoutMs}ms`)));
     request.on('error', (error: NodeJS.ErrnoException) =>
       resolve(`${HEALTH_PATH} on port ${port}: ${error.code ?? error.message}`),
     );
