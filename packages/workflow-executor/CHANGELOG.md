@@ -1,3 +1,10 @@
+# @forestadmin/workflow-executor [1.32.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.31.9...@forestadmin/workflow-executor@1.32.0) (2026-10-08)
+
+
+### Features
+
+* **workflow-executor:** restrict an MCP step to its allowed tools ([#1984](https://github.com/ForestAdmin/agent-nodejs/issues/1984)) ([a3470c1](https://github.com/ForestAdmin/agent-nodejs/commit/a3470c135b097e1a4a4c1d914234aa7760f521b7))
+
 ## @forestadmin/workflow-executor [1.31.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.31.8...@forestadmin/workflow-executor@1.31.9) (2026-10-07)
 
 
