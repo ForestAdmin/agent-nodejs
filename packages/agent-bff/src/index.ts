@@ -1,5 +1,5 @@
 export { default as BFFHttpServer } from './http/bff-http-server';
-export { parseConfig, REQUIRED_KEYS } from './config/env-config';
+export { CONFIG_KEYS, parseConfig, parsePublicUrl, REQUIRED_KEYS } from './config/env-config';
 export type {
   BFFConfig,
   PresenceMap,
@@ -9,6 +9,8 @@ export type {
 } from './config/env-config';
 export { default as runCli, installShutdownHandlers } from './cli-core';
 export { default as renderOpenApi } from './openapi/render-openapi';
+export { DEFAULT_OUTPUT_FILE, OUTPUT_FLAG, parseOutputOption, writeOutputFile } from './cli-output';
+export type { OutputOption } from './cli-output';
 export { default as buildBff } from './build-bff';
 export {
   default as createInProcessTransport,

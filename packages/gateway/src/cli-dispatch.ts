@@ -1,23 +1,26 @@
-import type BFFHttpServer from './http/bff-http-server';
-import type { Logger } from './ports/logger-port';
+import type { BFFHttpServer, Logger } from '@forestadmin/agent-bff';
 
-import createConsoleLogger from './adapters/console-logger';
-import runCli from './cli-core';
-import { DEFAULT_OUTPUT_FILE, OUTPUT_FLAG, parseOutputOption, writeOutputFile } from './cli-output';
-import renderOpenApi from './openapi/render-openapi';
+import {
+  DEFAULT_OUTPUT_FILE,
+  OUTPUT_FLAG,
+  createConsoleLogger,
+  parseOutputOption,
+  renderOpenApi,
+  writeOutputFile,
+} from '@forestadmin/agent-bff';
+
+import { apiBasePath, parseOpenApiEnv } from './gateway-env';
+import runGateway from './run-gateway';
 import version from './version';
 
-export { DEFAULT_OUTPUT_FILE };
-
-export const USAGE = `Usage: forest-bff [command]
+export const USAGE = `Usage: forest-gateway [command]
 
 Commands:
-  (none)      Start the BFF server, configured from the environment.
-  openapi     Write the OpenAPI document to stdout. Needs no configuration, but
-              a deployment configured to reach its Forest schema and its agent
-              (FOREST_ENV_SECRET, FOREST_AUTH_SECRET, AGENT_URL) unfolds one
-              path per collection, relation and action instead of the generic
-              ones.
+  (none)      Start the Gateway, configured from the environment.
+              FOREST_GATEWAY_SERVICES lists what it serves: mcp, api or mcp,api.
+  openapi     Write the API's OpenAPI document to stdout, its paths under
+              FOREST_GATEWAY_BASE_PATH/api, its server FOREST_GATEWAY_API_PUBLIC_URL
+              when set.
               --output [file]  Write to a file instead of stdout, defaulting
                                to ${DEFAULT_OUTPUT_FILE} in the current directory.
 
@@ -25,12 +28,7 @@ Options:
   -h, --help     Show this help and exit.
   -v, --version  Show the package version and exit.`;
 
-export const HINT = "Run 'forest-bff --help' for usage.";
-
-export const DEPRECATION_WARNING =
-  'forest-bff is deprecated: it keeps working, but new deployments should run forest-gateway ' +
-  '(@forestadmin/gateway). Moving changes the API URL to /api: ' +
-  'https://docs.forestadmin.com/product/embed/gateway-standalone';
+export const HINT = "Run 'forest-gateway --help' for usage.";
 
 const HELP_FLAGS = new Set(['-h', '--help']);
 const VERSION_FLAGS = new Set(['-v', '--version']);
@@ -46,6 +44,14 @@ function rejectCli(reason: string): DispatchOutcome {
   return { exitCode: 1 };
 }
 
+async function renderGatewayOpenApi(env: NodeJS.ProcessEnv, logger: Logger): Promise<string> {
+  const { basePath, api, warnings } = parseOpenApiEnv(env);
+
+  warnings.forEach(warning => logger('Warn', warning));
+
+  return renderOpenApi(api.env, logger, { basePath: apiBasePath(basePath), labels: api.labels });
+}
+
 export default async function dispatchCli(
   argv: string[],
   env: NodeJS.ProcessEnv,
@@ -54,10 +60,7 @@ export default async function dispatchCli(
   const [subcommand, ...rest] = argv;
 
   if (subcommand === undefined) {
-    const bootLogger = logger ?? createConsoleLogger();
-    bootLogger('Warn', DEPRECATION_WARNING);
-
-    return { exitCode: 0, server: await runCli(env, bootLogger) };
+    return { exitCode: 0, server: await runGateway(env, logger) };
   }
 
   if (HELP_FLAGS.has(subcommand)) {
@@ -88,7 +91,7 @@ export default async function dispatchCli(
     );
   }
 
-  const document = await renderOpenApi(env, logger ?? createConsoleLogger());
+  const document = await renderGatewayOpenApi(env, logger ?? createConsoleLogger());
 
   if (file !== undefined) {
     return writeOutputFile(file, document);
