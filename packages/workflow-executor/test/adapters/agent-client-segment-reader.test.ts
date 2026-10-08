@@ -510,6 +510,7 @@ describe('AgentClientSegmentReader', () => {
       ['forest-nodejs-agent', undefined],
       ['agent-php', '1.18.0'],
       ['some-future-agent', '1.0.0'],
+      ['constructor', '1.0.0'],
       [null, '9.6.11'],
       [undefined, undefined],
     ])('should keep %s %s to one sort field', (liana, lianaVersion) => {

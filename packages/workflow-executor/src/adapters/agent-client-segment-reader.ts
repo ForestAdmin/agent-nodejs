@@ -39,14 +39,14 @@ const LIANAS_WITH_CAPABILITIES: ReadonlySet<string> = new Set([
 // The first version of each liana that sorts on several fields, the front's `MultipleSortingFields`.
 // An older one reads `a,id` as a single column: forest-express-sequelize answers 500, and
 // forest-express-mongoose sorts on a field literally named `a,_id`.
-const MULTIPLE_SORT_MINIMAL_VERSIONS: Readonly<Record<string, string>> = {
-  'forest-rails': '8.3.0',
-  'forest-nodejs-agent': '1.40.0',
-  'agent-python': '1.8.0',
-  'agent-ruby': '1.0.0-beta.56',
-  'forest-express-sequelize': '9.6.11',
-  'forest-express-mongoose': '9.6.8',
-};
+const MULTIPLE_SORT_MINIMAL_VERSIONS: ReadonlyMap<string, string> = new Map([
+  ['forest-rails', '8.3.0'],
+  ['forest-nodejs-agent', '1.40.0'],
+  ['agent-python', '1.8.0'],
+  ['agent-ruby', '1.0.0-beta.56'],
+  ['forest-express-sequelize', '9.6.11'],
+  ['forest-express-mongoose', '9.6.8'],
+]);
 
 // Both a collection and a segment expose the same read; the descriptor decides which one answers.
 interface RecordLister {
@@ -140,7 +140,7 @@ export default class AgentClientSegmentReader implements SegmentReaderPort {
     liana: string | null | undefined,
     lianaVersion: string | null | undefined,
   ): boolean {
-    const minimalVersion = liana != null ? MULTIPLE_SORT_MINIMAL_VERSIONS[liana] : undefined;
+    const minimalVersion = liana != null ? MULTIPLE_SORT_MINIMAL_VERSIONS.get(liana) : undefined;
     const version = lianaVersion != null ? semver.valid(lianaVersion) : null;
 
     return Boolean(minimalVersion && version && semver.gte(version, minimalVersion));
