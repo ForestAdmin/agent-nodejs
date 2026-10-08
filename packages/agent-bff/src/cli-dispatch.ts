@@ -27,6 +27,11 @@ Options:
 
 export const HINT = "Run 'forest-bff --help' for usage.";
 
+export const DEPRECATION_WARNING =
+  'forest-bff is deprecated: it keeps working, but new deployments should run forest-gateway ' +
+  '(@forestadmin/gateway). Moving changes the API URL to /api: ' +
+  'https://docs.forestadmin.com/product/embed/gateway-standalone';
+
 const HELP_FLAGS = new Set(['-h', '--help']);
 const VERSION_FLAGS = new Set(['-v', '--version']);
 
@@ -49,7 +54,10 @@ export default async function dispatchCli(
   const [subcommand, ...rest] = argv;
 
   if (subcommand === undefined) {
-    return { exitCode: 0, server: await runCli(env, logger) };
+    const bootLogger = logger ?? createConsoleLogger();
+    bootLogger('Warn', DEPRECATION_WARNING);
+
+    return { exitCode: 0, server: await runCli(env, bootLogger) };
   }
 
   if (HELP_FLAGS.has(subcommand)) {

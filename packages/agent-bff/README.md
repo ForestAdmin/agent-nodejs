@@ -1,5 +1,11 @@
 # @forestadmin/agent-bff
 
+> [!IMPORTANT]
+> Internal building block of the Forest Gateway. For new deployments, use
+> [`@forestadmin/gateway`](https://docs.forestadmin.com/product/embed/gateway-standalone). The
+> `forest-bff` command keeps working, deprecated: moving to `forest-gateway` serves the API under
+> `/api`.
+
 Standalone REST BFF (Backend-For-Frontend) that lets a trusted third-party UI call a Forest
 agent from a browser without learning MCP or JSON:API.
 
