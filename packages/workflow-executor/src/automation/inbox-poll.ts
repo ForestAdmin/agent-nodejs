@@ -305,7 +305,10 @@ export default class InboxPoll {
     const known = knownRecordIds(assignments);
     const knownSet = new Set(known);
     const paddedPageReason = await this.paddedPageReason(logContext, inbox, known);
-    const sortsOnSeveralFields = this.segmentReaderPort.sortsOnSeveralFields(inbox.liana);
+    const sortsOnSeveralFields = this.segmentReaderPort.sortsOnSeveralFields(
+      inbox.liana,
+      inbox.lianaVersion,
+    );
 
     if (!paddedPageReason) {
       Object.assign(attempt, {
@@ -373,7 +376,10 @@ export default class InboxPoll {
     attempt: ReadAttempt,
   ): Promise<SegmentRead<string>> {
     const requestedPageSize = paddedPageSize(inbox.maxConcurrentRuns, knownSet.size);
-    const sortsOnSeveralFields = this.segmentReaderPort.sortsOnSeveralFields(inbox.liana);
+    const sortsOnSeveralFields = this.segmentReaderPort.sortsOnSeveralFields(
+      inbox.liana,
+      inbox.lianaVersion,
+    );
     const orderFor = (inboxSort: PlainSortClause[] | undefined) =>
       paddedOrder(inbox, inboxSort, sortsOnSeveralFields);
     const byKeyOrder = orderFor(undefined);

@@ -60,6 +60,7 @@ function toAutomatedInbox(config: ServerAutomatedInboxConfig): AutomatedInbox {
     maxConcurrentRuns: config.maxConcurrentRuns,
     timezone: toProjectTimezone(config.timezone),
     liana: config.liana,
+    lianaVersion: config.lianaVersion,
     segment: config.segment,
     sort: config.sort,
     user: toStepUser(config.serviceAccountProfile),

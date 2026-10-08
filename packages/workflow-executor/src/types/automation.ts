@@ -24,6 +24,7 @@ export interface AutomatedInbox {
   /** Zone the segment's relative dates are read in, already resolved to a valid one. */
   timezone: string;
   liana?: string | null;
+  lianaVersion?: string | null;
   segment: SegmentDescriptor;
   sort?: PlainSortClause[];
   user: StepUser;

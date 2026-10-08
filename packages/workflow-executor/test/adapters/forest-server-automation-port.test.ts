@@ -67,6 +67,7 @@ function makeInbox(overrides: Record<string, unknown> = {}) {
     maxConcurrentRuns: 20,
     timezone: 'Europe/Paris',
     liana: undefined,
+    lianaVersion: undefined,
     segment: { kind: 'smart', name: 'to-review' },
     sort: undefined,
     user: SERVICE_ACCOUNT_USER,
@@ -98,10 +99,12 @@ describe('ForestServerAutomationPort', () => {
     });
 
     it('should return the configs the orchestrator serves as domain inboxes', async () => {
-      mockQuery.mockResolvedValue({ inboxes: [makeConfig({ liana: 'agent-ruby' })] });
+      mockQuery.mockResolvedValue({
+        inboxes: [makeConfig({ liana: 'agent-ruby', lianaVersion: '1.0.0-beta.76' })],
+      });
 
       await expect(port.listAutomatedInboxes('w1')).resolves.toStrictEqual([
-        makeInbox({ liana: 'agent-ruby' }),
+        makeInbox({ liana: 'agent-ruby', lianaVersion: '1.0.0-beta.76' }),
       ]);
     });
 
@@ -174,6 +177,7 @@ describe('ForestServerAutomationPort', () => {
           maxConcurrentRuns: 20,
           timezone: 'Europe/Paris',
           liana: undefined,
+          lianaVersion: undefined,
           segment: { kind: 'smart', name: 'to-review' },
           sort: undefined,
           user: SERVICE_ACCOUNT_USER,
