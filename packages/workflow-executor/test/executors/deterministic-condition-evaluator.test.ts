@@ -511,14 +511,21 @@ describe('evaluateOperator', () => {
       expect(ev('yesterday', '2026-09-03T23:00:00Z')).toBe(false);
     });
 
-    // The toolkit's transforms emit GreaterThan for a datetime and GreaterThanOrEqual for a
-    // calendar date: a record stamped exactly at midnight is "today" in a list filter only when
-    // the column is a Dateonly, and the Decision must not say otherwise.
+    // The toolkit's transforms emit GreaterThanOrEqual whatever the column type: a record stamped
+    // exactly at midnight is "today" in a list filter, and the Decision must not say otherwise.
     it('treats the very start of the window like the list filter does', () => {
-      expect(ev('today', '2026-09-03T22:00:00Z')).toBe(false);
-      expect(ev('today', '2026-09-03T22:00:00.001Z')).toBe(true);
+      expect(ev('today', '2026-09-03T22:00:00Z')).toBe(true);
+      expect(ev('today', '2026-09-03T21:59:59.999Z')).toBe(false);
       expect(ev('today', '2026-09-04')).toBe(true);
       expect(ev('yesterday', '2026-09-03')).toBe(true);
+    });
+
+    // Consecutive windows tile the timeline: the instant that opens a day closes the one before it,
+    // so it belongs to exactly one of them.
+    it('places the opening instant of a day in that day and in no other', () => {
+      expect(ev('today', '2026-09-03T22:00:00Z')).toBe(true);
+      expect(ev('yesterday', '2026-09-03T22:00:00Z')).toBe(false);
+      expect(ev('yesterday', '2026-09-02T22:00:00Z')).toBe(true);
     });
 
     // Paris switched to summer time on 2026-03-29 at 02:00: that day is 23 hours long, and a
