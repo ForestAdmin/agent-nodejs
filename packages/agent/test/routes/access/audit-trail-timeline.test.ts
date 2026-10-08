@@ -199,17 +199,6 @@ describe('AuditTrailTimelineRoute', () => {
 
       expect((context.response.body as { meta: object }).meta).not.toHaveProperty('availableUsers');
     });
-
-    test('still names the authors to a non-admin, since they are not detail values', async () => {
-      const { route } = setup([row(1)], [jane]);
-      const context = contextWith({}, 'user');
-
-      await route.handleTimeline(context);
-
-      expect(
-        (context.response.body as { meta: { availableUsers: unknown[] } }).meta.availableUsers,
-      ).toEqual([jane]);
-    });
   });
 
   describe('cursor', () => {

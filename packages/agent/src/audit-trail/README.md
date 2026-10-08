@@ -386,7 +386,7 @@ unchanged ends the walk instead of repeating the page forever.
 **Authors.** On the first page only (no `before`), `meta` also carries `availableUsers`: the
 distinct authors matching the active filters across the collections queried, independent of the
 cursor, in the per-record route's shape. Later pages omit the key rather than send `[]`, so a client
-keeps the list it already saw. Authors are not detail values, so the admin rule above leaves them in.
+keeps the list it already saw.
 
 A custom `AuditStore` that doesn't implement `listTimeline` simply doesn't get this route mounted.
 One that implements `listTimeline` without `listTimelineUsers` serves the rows with no
