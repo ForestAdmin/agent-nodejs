@@ -346,14 +346,13 @@ happened across the project rather than to one record. Each row carries its own 
 { "data": [ /* rows */ ], "meta": { "cursor": { "before": "…", "excludeIds": [12, 11] } } }
 ```
 
-**Detail values are admin-only here, and only here.** `previousValues` and `newValues` reach a caller
-whose permission level is `admin` — exactly that level, not a privileged set. Every other caller gets
-each row with both objects empty: what happened, by whom and when stays readable, the values do not.
-The per-record routes above are deliberately *not* gated — someone who can read the collection can
-already read the record, so its before/after values tell them nothing the record itself doesn't. What
-stays admin-only is the aggregate: every collection at once, with no record to know in advance. The
-capabilities payload advertises this as `restrictsProjectAuditValuesToAdmins`, so a client can tell an
-agent that enforces the rule from an older one that merely hides the values in its UI.
+**Detail values follow the same rule as the per-record routes:** a caller who can read a collection
+gets its rows with `previousValues` and `newValues`, whatever their permission level. Someone who can
+read the collection can already read each record's history one at a time, so the feed serves the same
+values in aggregate. Who can open the project's Activity Logs at all is decided per team by Forest
+(the `activityLogs` feature a team can be deactivated for), not by this route. The capabilities
+payload advertises the route as `canUseAuditTrailTimeline`, true only when the store implements
+`listTimeline`.
 
 **Permissions.** Only the collections the caller can read are queried. A collection the caller sees
 only through a **record-level scope is left out entirely**: a scope can't be evaluated across a whole

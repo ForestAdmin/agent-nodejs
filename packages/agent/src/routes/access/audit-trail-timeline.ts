@@ -5,7 +5,6 @@ import type { DataSource } from '@forestadmin/datasource-toolkit';
 import type Router from '@koa/router';
 import type { Context } from 'koa';
 
-import withholdValuesFromNonAdmin from '../../audit-trail/admin-gate';
 import {
   parseDateBoundary,
   parseOperations,
@@ -62,7 +61,7 @@ export default class AuditTrailTimelineRoute extends BaseRoute {
     const page = fetched.slice(0, limit);
 
     context.response.body = {
-      data: withholdValuesFromNonAdmin(page, context),
+      data: page,
       meta: {
         cursor: fetched.length > limit ? AuditTrailTimelineRoute.nextCursor(page, cursor) : null,
       },

@@ -244,15 +244,13 @@ describe('AuditTrailTimelineRoute', () => {
     });
   });
 
-  test('blanks the values for a non-admin caller', async () => {
+  test('serves the values to a non-admin caller who can read the collection', async () => {
     const { route } = setup([row(1)]);
     const context = contextWith({}, 'editor');
 
     await route.handleTimeline(context);
 
-    expect((context.response.body as { data: unknown[] }).data).toEqual([
-      { ...row(1), previousValues: {}, newValues: {} },
-    ]);
+    expect((context.response.body as { data: unknown[] }).data).toEqual([row(1)]);
   });
 
   describe('conditional mounting', () => {
