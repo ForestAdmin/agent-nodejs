@@ -487,22 +487,34 @@ describe('AgentClientSegmentReader', () => {
   });
 
   describe('sorting on several fields', () => {
-    it.each(['forest-rails', 'forest-nodejs-agent', 'agent-python', 'agent-ruby'])(
-      'should let %s sort on several fields',
-      liana => {
-        expect(reader.sortsOnSeveralFields(liana)).toBe(true);
-      },
-    );
+    it.each([
+      ['forest-rails', '8.3.0'],
+      ['forest-nodejs-agent', '1.40.0'],
+      ['agent-python', '1.8.0'],
+      ['agent-ruby', '1.0.0-beta.56'],
+      ['agent-ruby', '1.0.0'],
+      ['forest-express-sequelize', '9.6.11'],
+      ['forest-express-mongoose', '9.6.8'],
+      ['forest-express-sequelize', '10.0.0'],
+    ])('should let %s %s sort on several fields', (liana, lianaVersion) => {
+      expect(reader.sortsOnSeveralFields(liana, lianaVersion)).toBe(true);
+    });
 
     it.each([
-      'forest-express-sequelize',
-      'forest-express-mongoose',
-      'agent-php',
-      'some-future-agent',
-      null,
-      undefined,
-    ])('should keep %s to one sort field', liana => {
-      expect(reader.sortsOnSeveralFields(liana)).toBe(false);
+      ['forest-rails', '8.2.9'],
+      ['agent-ruby', '1.0.0-beta.55'],
+      ['forest-express-sequelize', '9.6.10'],
+      ['forest-express-mongoose', '9.6.7'],
+      ['forest-nodejs-agent', 'not-a-version'],
+      ['forest-nodejs-agent', null],
+      ['forest-nodejs-agent', undefined],
+      ['agent-php', '1.18.0'],
+      ['some-future-agent', '1.0.0'],
+      ['constructor', '1.0.0'],
+      [null, '9.6.11'],
+      [undefined, undefined],
+    ])('should keep %s %s to one sort field', (liana, lianaVersion) => {
+      expect(reader.sortsOnSeveralFields(liana, lianaVersion)).toBe(false);
     });
   });
 

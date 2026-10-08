@@ -53,6 +53,7 @@ function makeConfig(overrides: Record<string, unknown> = {}) {
     maxConcurrentRuns: 3,
     timezone: 'Europe/Paris',
     liana: 'forest-nodejs-agent',
+    lianaVersion: '1.52.0',
     segment: { kind: 'smart', name: 'to-review' },
     serviceAccountProfile: profile,
     ...overrides,
@@ -367,7 +368,7 @@ describe('automation sweep, real poller over the real adapters', () => {
 
     it('should pad in the inbox order then by key, and by key alone once the agent refuses the sort', async () => {
       const syncBodies = serveOrchestrator({
-        config: makeConfig({ sort, liana: 'forest-rails' }),
+        config: makeConfig({ sort, liana: 'forest-rails', lianaVersion: '9.22.8' }),
         assignments,
       });
       onSortedList('-created_at,customer.name,id', 403, {
@@ -437,7 +438,7 @@ describe('automation sweep, real poller over the real adapters', () => {
 
     it('should send only the first inbox sort field to an agent that sorts on one field', async () => {
       const syncBodies = serveOrchestrator({
-        config: makeConfig({ sort, liana: 'forest-express-sequelize' }),
+        config: makeConfig({ sort, liana: 'forest-express-sequelize', lianaVersion: '9.6.10' }),
         assignments,
       });
       onSortedList('-created_at', 200, records('1', '2', '3'));
@@ -450,6 +451,30 @@ describe('automation sweep, real poller over the real adapters', () => {
           method: 'GET',
           path: '/forest/orders',
           query: listQuery({ 'page[size]': '5', 'page[number]': '1', sort: '-created_at' }),
+        },
+      ]);
+      expect(syncBodies).toStrictEqual([{ closed: [], candidates: ['3'] }]);
+    });
+
+    it('should send the whole inbox sort then the key to a forest-express version that sorts on several fields', async () => {
+      const syncBodies = serveOrchestrator({
+        config: makeConfig({ sort, liana: 'forest-express-sequelize', lianaVersion: '9.6.11' }),
+        assignments,
+      });
+      onSortedList('-created_at,customer.name,id', 200, records('1', '2', '3'));
+
+      await sweepOnce();
+
+      expect(nock.isDone()).toBe(true);
+      expect(agentRequests).toEqual([
+        {
+          method: 'GET',
+          path: '/forest/orders',
+          query: listQuery({
+            'page[size]': '5',
+            'page[number]': '1',
+            sort: '-created_at,customer.name,id',
+          }),
         },
       ]);
       expect(syncBodies).toStrictEqual([{ closed: [], candidates: ['3'] }]);
