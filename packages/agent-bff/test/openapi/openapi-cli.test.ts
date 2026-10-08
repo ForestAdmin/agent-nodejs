@@ -8,7 +8,12 @@ import { tmpdir } from 'os';
 import path from 'path';
 import request from 'supertest';
 
-import dispatchCli, { DEFAULT_OUTPUT_FILE, HINT, USAGE } from '../../src/cli-dispatch';
+import dispatchCli, {
+  DEFAULT_OUTPUT_FILE,
+  DEPRECATION_WARNING,
+  HINT,
+  USAGE,
+} from '../../src/cli-dispatch';
 import { issueBffAccessToken } from '../../src/oauth/bff-token';
 import { OPENAPI_PATH } from '../../src/openapi/openapi-routes';
 import renderOpenApi from '../../src/openapi/render-openapi';
@@ -392,6 +397,37 @@ describe('dispatchCli', () => {
         expect(outcome.server).toBeDefined();
       } finally {
         await outcome.server?.stop();
+      }
+    });
+
+    it('should warn once that forest-bff is deprecated in favor of forest-gateway', async () => {
+      const logger = jest.fn();
+      const outcome = await dispatchCli([], VALID_ENV, logger);
+
+      try {
+        const deprecations = logger.mock.calls.filter(([, message]) =>
+          String(message).includes('deprecated'),
+        );
+
+        expect(deprecations).toEqual([['Warn', DEPRECATION_WARNING]]);
+        expect(DEPRECATION_WARNING).toContain('forest-gateway');
+      } finally {
+        await outcome.server?.stop();
+      }
+    });
+  });
+
+  describe('when the openapi subcommand runs', () => {
+    it('should not warn about the deprecation, since it serves nothing', async () => {
+      const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+      const logger = jest.fn();
+
+      try {
+        await dispatchCli(['openapi'], {}, logger);
+
+        expect(logger).not.toHaveBeenCalledWith('Warn', DEPRECATION_WARNING);
+      } finally {
+        stdout.mockRestore();
       }
     });
   });
