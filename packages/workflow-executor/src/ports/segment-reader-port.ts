@@ -36,7 +36,10 @@ export interface SegmentReaderPort {
   exclusionUnavailableReason(
     query: ExclusionQuery,
   ): Promise<ExclusionUnavailableReason | undefined>;
-  sortsOnSeveralFields(liana: string | null | undefined): boolean;
+  sortsOnSeveralFields(
+    liana: string | null | undefined,
+    lianaVersion: string | null | undefined,
+  ): boolean;
 }
 
 export type ExclusionUnavailableReason =

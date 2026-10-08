@@ -354,6 +354,9 @@ export const ServerAutomatedInboxConfigSchema = z.object({
   // Which agent answers the segment read. Absent on an orchestrator that predates the exclusion
   // filter, which reads as unknown: the poller then pads its page, as it always did.
   liana: z.string().nullish(),
+  // Absent on an orchestrator that predates it, which reads as a version too old to sort on several
+  // fields.
+  lianaVersion: z.string().nullish(),
   segment: ServerAutomatedSegmentDescriptorSchema,
   // A sort the executor cannot read costs the inbox its order, never the inbox itself.
   sort: z

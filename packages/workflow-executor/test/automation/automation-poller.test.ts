@@ -1390,7 +1390,7 @@ describe('AutomationPoller', () => {
           Array.from({ length: 500 }, (_unused, index) => `w${(pageNumber - 1) * 500 + index}`);
 
         function paddingContext(liana: string) {
-          const context = sortedContext({ liana }, false);
+          const context = sortedContext({ liana, lianaVersion: '9.6.10' }, false);
           context.automationPort.listAssignments.mockResolvedValue(waitingOnAPerson);
           context.segmentReaderPort.exclusionUnavailableReason.mockResolvedValue(
             'too-many-known-records',
@@ -1430,6 +1430,7 @@ describe('AutomationPoller', () => {
 
           expect(context.segmentReaderPort.sortsOnSeveralFields).toHaveBeenCalledWith(
             'forest-express-sequelize',
+            '9.6.10',
           );
           expect(readQueries(context)).toEqual([
             expect.objectContaining({ pageSize: 500, pageNumber: 1, sort: byNewest }),

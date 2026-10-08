@@ -8,6 +8,7 @@ import type { SegmentConditionTree, SegmentDescriptor } from '../types/automatio
 import type { SelectOptions } from '@forestadmin/agent-client';
 
 import { createRemoteAgentClient } from '@forestadmin/agent-client';
+import semver from 'semver';
 
 import { segmentReadError } from './agent-errors';
 import { mintStepToken } from './step-user';
@@ -35,15 +36,17 @@ const LIANAS_WITH_CAPABILITIES: ReadonlySet<string> = new Set([
   'agent-php',
 ]);
 
-// The lianas the front lets an inbox sort on several fields (`MultipleSortingFields`). The others
-// read one sort field: forest-express-sequelize answers 500 on `a,id`, and forest-express-mongoose
-// sorts on a single field literally named `a,_id`.
-const LIANAS_WITH_MULTIPLE_SORT: ReadonlySet<string> = new Set([
-  'forest-rails',
-  'forest-nodejs-agent',
-  'agent-python',
-  'agent-ruby',
-]);
+// The first version of each liana that sorts on several fields, the front's `MultipleSortingFields`.
+// An older one reads `a,id` as a single column: forest-express-sequelize answers 500, and
+// forest-express-mongoose sorts on a field literally named `a,_id`.
+const MULTIPLE_SORT_MINIMAL_VERSIONS: Readonly<Record<string, string>> = {
+  'forest-rails': '8.3.0',
+  'forest-nodejs-agent': '1.40.0',
+  'agent-python': '1.8.0',
+  'agent-ruby': '1.0.0-beta.56',
+  'forest-express-sequelize': '9.6.11',
+  'forest-express-mongoose': '9.6.8',
+};
 
 // Both a collection and a segment expose the same read; the descriptor decides which one answers.
 interface RecordLister {
@@ -133,8 +136,14 @@ export default class AgentClientSegmentReader implements SegmentReaderPort {
     return operators.includes('not_in') ? undefined : 'field-without-not-in';
   }
 
-  sortsOnSeveralFields(liana: string | null | undefined): boolean {
-    return liana != null && LIANAS_WITH_MULTIPLE_SORT.has(liana);
+  sortsOnSeveralFields(
+    liana: string | null | undefined,
+    lianaVersion: string | null | undefined,
+  ): boolean {
+    const minimalVersion = liana != null ? MULTIPLE_SORT_MINIMAL_VERSIONS[liana] : undefined;
+    const version = lianaVersion != null ? semver.valid(lianaVersion) : null;
+
+    return Boolean(minimalVersion && version && semver.gte(version, minimalVersion));
   }
 
   private createClient(user: ListSegmentRecordIdsQuery['user'], timezone: string): AgentClient {
