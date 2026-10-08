@@ -339,6 +339,73 @@ describe('McpStepExecutor', () => {
       expect(modelInvoke).toHaveBeenCalledTimes(11);
     });
 
+    describe('once the step has timed out', () => {
+      const settle = (ms: number) =>
+        new Promise(resolve => {
+          setTimeout(resolve, ms);
+        });
+
+      it('asks the AI for nothing more and never marks the step done after a call outlived it', async () => {
+        const searchInvoke = jest.fn(async () => {
+          await settle(100);
+
+          return 'p1';
+        });
+        const getInvoke = jest.fn();
+        const { model, invoke: modelInvoke } = makeLoopModel([
+          ['search_pages', {}],
+          ['get_page', {}],
+        ]);
+        const runStore = makeMockRunStore();
+        const context = makeContext({
+          model,
+          runStore,
+          stepTimeoutS: 0.05,
+          stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+        });
+
+        const result = await new McpStepExecutor(context, [
+          new MockRemoteTool({ name: 'search_pages', invoke: searchInvoke }),
+          new MockRemoteTool({ name: 'get_page', invoke: getInvoke }),
+        ]).execute();
+        await settle(200);
+
+        expect(result.stepOutcome.status).toBe('error');
+        expect(searchInvoke).toHaveBeenCalledTimes(1);
+        expect(modelInvoke).toHaveBeenCalledTimes(1);
+        expect(getInvoke).not.toHaveBeenCalled();
+        expect(runStore.saveStepExecution).not.toHaveBeenCalledWith(
+          'run-1',
+          expect.objectContaining({ idempotencyPhase: 'done' }),
+        );
+      });
+
+      it('runs no tool call the AI chose after the step timed out', async () => {
+        const invokeFn = jest.fn();
+        const modelInvoke = jest.fn(async () => {
+          await settle(100);
+
+          return toolCallResponse('send_notification', {});
+        });
+        const model = {
+          bindTools: jest.fn().mockReturnValue({ invoke: modelInvoke }),
+        } as unknown as ExecutionContext['model'];
+        const context = makeContext({
+          model,
+          stepTimeoutS: 0.05,
+          stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+        });
+
+        const result = await new McpStepExecutor(context, [
+          new MockRemoteTool({ name: 'send_notification', invoke: invokeFn }),
+        ]).execute();
+        await settle(200);
+
+        expect(result.stepOutcome.status).toBe('error');
+        expect(invokeFn).not.toHaveBeenCalled();
+      });
+    });
+
     it('succeeds with the AI answer without calling any tool when the AI completes first', async () => {
       const invokeFn = jest.fn();
       const activityLogPort = makeActivityLogPort();

@@ -28,6 +28,7 @@ import {
   NoMcpToolsError,
   OAuthReauthRequiredError,
   StepStateError,
+  StepTimeoutError,
 } from '../errors';
 import BaseStepExecutor from './base-step-executor';
 import { StepExecutionMode } from '../types/validated/step-definition';
@@ -76,6 +77,8 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
   private readonly reloadWithFreshAuth?: () => Promise<RemoteTool[]>;
 
   private allowedRemoteTools?: RemoteTool[];
+
+  private deadline?: number;
 
   constructor(
     context: ExecutionContext<McpStepDefinition>,
@@ -128,6 +131,9 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
   }
 
   protected async doExecute(): Promise<StepExecutionResult> {
+    const { stepTimeoutS } = this.context;
+    if (stepTimeoutS && stepTimeoutS > 0) this.deadline = Date.now() + stepTimeoutS * 1000;
+
     try {
       return await this.runStep();
     } catch (error) {
@@ -181,7 +187,16 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     return this.continueLoop({ type: 'mcp', stepIndex: this.context.stepIndex, toolCalls: [] });
   }
 
+  // The base reports a timeout without cancelling this work, so the loop stops itself: a step
+  // already reported as timed out must not go on calling tools in the background.
+  private throwIfTimedOut(): void {
+    if (this.deadline !== undefined && Date.now() >= this.deadline) {
+      throw new StepTimeoutError(this.context.stepTimeoutS as number);
+    }
+  }
+
   private async continueLoop(execution: McpStepExecutionData): Promise<StepExecutionResult> {
+    this.throwIfTimedOut();
     const toolCalls = execution.toolCalls ?? [];
     const next = await this.selectNextMove(toolCalls);
 
@@ -208,6 +223,7 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     target: McpToolCall,
     execution: McpStepExecutionData,
   ): Promise<McpStepExecutionData> {
+    this.throwIfTimedOut();
     const tools = this.requireTools();
     const tool = tools.find(t => t.base.name === target.name && t.sourceId === target.sourceId);
     if (!tool) throw new McpToolNotFoundError(target.name);
