@@ -321,7 +321,7 @@ jobs:
     outputs:
       # Decided here rather than in extract-version, against the tags as they stand
       # when the manifest is written. notify-server reads it to gate the dispatch.
-      is_latest: ${{ steps.recheck.outputs.is_latest }}
+      is_latest: ${{ steps.publish.outputs.is_latest }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
@@ -335,33 +335,6 @@ jobs:
           merge-multiple: true
           path: /tmp/digests
 
-      # The mutable tags (:latest, :major, :minor) move only for the highest STABLE
-      # version of this package. Deciding it HERE rather than at the start of the run
-      # is what makes it safe: two dispatches for different versions run concurrently
-      # (their concurrency groups differ by version), and an older one finishing last
-      # would otherwise move :latest back onto a stale image.
-      #
-      # Comparing against stable-only tags covers the other two cases for free — a
-      # prerelease never matches the pattern, and neither does a rebuild of an older
-      # version. We look at this package's tags specifically: the repo-wide GitHub
-      # "latest release" belongs to whichever monorepo package shipped last.
-      - name: Decide latest-stable against current tags
-        id: recheck
-        env:
-          FULL: ${{ needs.extract-version.outputs.full }}
-        run: |
-          PREFIX="@forestadmin/gateway@"
-          LATEST_STABLE=$(git tag --list "${PREFIX}*" \
-            | sed "s|^${PREFIX}||" \
-            | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' \
-            | sort -V | tail -n1)
-          if [ "$FULL" = "$LATEST_STABLE" ]; then
-            echo "is_latest=true" >> $GITHUB_OUTPUT
-          else
-            echo "::notice::${FULL} is no longer the latest stable version (${LATEST_STABLE}); leaving the mutable tags alone."
-            echo "is_latest=false" >> $GITHUB_OUTPUT
-          fi
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
 
@@ -373,13 +346,13 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create and push multi-arch manifest
+        id: publish
         working-directory: /tmp/digests
         env:
           IMAGE: ghcr.io/forestadmin/gateway
           FULL: ${{ needs.extract-version.outputs.full }}
           MINOR: ${{ needs.extract-version.outputs.minor }}
           MAJOR: ${{ needs.extract-version.outputs.major }}
-          IS_LATEST: ${{ steps.recheck.outputs.is_latest }}
         run: |
           # :$FULL is advertised as immutable, so a re-dispatch of a version that
           # already shipped must not repoint it at the images this run just built.
@@ -392,7 +365,19 @@ jobs:
           if EXISTING=$(docker buildx imagetools inspect "$IMAGE:$FULL" --raw 2>/tmp/inspect.err); then
             HAVE=$(printf '%s' "$EXISTING" \
               | jq -r '.manifests[]? | select(.platform.architecture != "unknown") | .digest' | sort)
-            WANT=$(printf 'sha256:%s\n' * | sort)
+            # With `sbom: true` each pushed digest is an index (image + attestation), which
+            # imagetools flattens into :$FULL. Compare platform manifests on both sides.
+            WANT=$(
+              for digest in *; do
+                RAW=$(docker buildx imagetools inspect "$IMAGE@sha256:$digest" --raw)
+                if printf '%s' "$RAW" | jq -e '.manifests' >/dev/null; then
+                  printf '%s' "$RAW" \
+                    | jq -r '.manifests[] | select(.platform.architecture != "unknown") | .digest'
+                else
+                  echo "sha256:$digest"
+                fi
+              done | sort
+            )
             if [ "$HAVE" != "$WANT" ]; then
               echo "::error::$IMAGE:$FULL already exists and points to other images."
               echo "published: $(echo $HAVE)" >&2
@@ -412,10 +397,28 @@ jobs:
             exit 1
           fi
 
-          # Always publish the immutable full-version tag. The mutable tags
-          # (minor, major, latest) only move when this is the latest stable
-          # version, so neither a prerelease nor a rebuild of an older version
-          # ever overwrites the current stable :latest / :1 images.
+          # The mutable tags (:latest, :major, :minor) move only for the highest STABLE
+          # version of this package: a prerelease never matches the pattern, nor does a
+          # rebuild of an older version. Decided against tags fetched right before the
+          # push, not at the start of the run: dispatches for different versions run
+          # concurrently, and a stale reading would let an older one move :latest back.
+          # Serializing merges across versions is not an option: GitHub keeps one pending
+          # job per concurrency group and cancels the others, which would drop their
+          # immutable :$FULL tag.
+          git -C "$GITHUB_WORKSPACE" fetch --tags --force --quiet origin
+          PREFIX="@forestadmin/gateway@"
+          LATEST_STABLE=$(git -C "$GITHUB_WORKSPACE" tag --list "${PREFIX}*" \
+            | sed "s|^${PREFIX}||" \
+            | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' \
+            | sort -V | tail -n1)
+          IS_LATEST=false
+          if [ "$FULL" = "$LATEST_STABLE" ]; then
+            IS_LATEST=true
+          else
+            echo "::notice::${FULL} is not the latest stable version (${LATEST_STABLE}); leaving the mutable tags alone."
+          fi
+          echo "is_latest=$IS_LATEST" >> "$GITHUB_OUTPUT"
+
           TAGS="-t $IMAGE:$FULL"
           if [ "$IS_LATEST" = "true" ]; then
             TAGS="$TAGS -t $IMAGE:$MINOR -t $IMAGE:$MAJOR -t $IMAGE:latest"
