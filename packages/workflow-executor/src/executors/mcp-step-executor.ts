@@ -31,12 +31,10 @@ import {
   StepTimeoutError,
 } from '../errors';
 import BaseStepExecutor from './base-step-executor';
+import StepExecutionFormatters from './summary/step-execution-formatters';
 import { StepExecutionMode } from '../types/validated/step-definition';
 
 const MAX_TOOL_CALLS = 10;
-// Caps each result, not the total: every decision replays all of the step's results, so up to
-// MAX_TOOL_CALLS × 20k characters. Cap the total if a model's context window falls short.
-const MAX_RESULT_LENGTH = 20_000;
 
 const COMPLETE_STEP_TOOL = new DynamicStructuredTool({
   name: 'complete-step',
@@ -60,14 +58,6 @@ Important rules:
 - You can make at most ${MAX_TOOL_CALLS} tool calls.
 - Once the request is fulfilled, or no further tool call can help, call "${COMPLETE_STEP_TOOL.name}" with a concise answer for the user. Be factual and do not include raw JSON or technical identifiers.
 - Final answer is definitive, you won't receive any other input from the user.`;
-
-function formatResultForAi(result: unknown): string {
-  const text = typeof result === 'string' ? result : String(JSON.stringify(result));
-
-  return text.length > MAX_RESULT_LENGTH
-    ? `${text.slice(0, MAX_RESULT_LENGTH)}\n... [truncated]`
-    : text;
-}
 
 export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition> {
   private readonly remoteTools: readonly RemoteTool[];
@@ -367,14 +357,8 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     }`;
     if (!toolCalls.length) return request;
 
-    const calls = toolCalls.map(
-      (call, i) =>
-        `${i + 1}. "${call.name}" with input ${JSON.stringify(call.input)}\n` +
-        `Result: ${formatResultForAi(call.result)}`,
-    );
-
-    return `${request}\n\n**Tool calls already made in this step** (oldest first):\n${calls.join(
-      '\n\n',
+    return `${request}\n\n**Tool calls already made in this step** (oldest first):\n${StepExecutionFormatters.formatMcpToolCalls(
+      toolCalls,
     )}`;
   }
 
