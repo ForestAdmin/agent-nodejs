@@ -1,0 +1,131 @@
+// Generates the package.json for the Docker image's isolated runtime deps.
+//
+// It merges the external (non-@forestadmin) runtime dependencies of the Gateway
+// and its 6 workspace dependencies into a single manifest, plus the OpenTelemetry
+// packages used for APM (Docker-only; not shipped to npm consumers of the CLI).
+//
+// The output is deterministic (sorted keys). A committed yarn.lock sits next to
+// the generated manifest; the Docker build regenerates the manifest and runs
+// `yarn install --frozen-lockfile`, so any workspace dependency change that the
+// lock does not cover fails the build instead of silently drifting.
+//
+// Usage: node build-deps-manifest.js <packagesDir> <outFile>
+//   <packagesDir>  directory containing the workspace packages (e.g. "packages")
+//   <outFile>      path to write the merged package.json
+
+const fs = require('fs');
+const path = require('path');
+
+const WORKSPACE_PACKAGES = [
+  'gateway',
+  'agent-bff',
+  'agent-client',
+  'agent-toolkit',
+  'datasource-toolkit',
+  'forestadmin-client',
+  'mcp-server',
+];
+
+// Pinned to exact versions — OTel ships only in the Docker image, so nothing else bumps them.
+// sdk-node drags in every OTLP exporter plus the Zipkin one, which is why the image can honour
+// OTEL_TRACES_EXPORTER and OTEL_EXPORTER_OTLP_PROTOCOL without naming an exporter here.
+// A fixable CRITICAL/HIGH in this tree blocks every publish of this image until someone raises a
+// pin here and refreshes deps/yarn.lock (see the propagator-jaeger resolution below for the shape
+// of that fix). Renovate does not watch this file — it is a plain object, not a manifest — so an
+// unrelated release will stall on it unless someone is looking.
+const OTEL_DEPENDENCIES = {
+  '@opentelemetry/sdk-node': '0.219.0',
+  '@opentelemetry/auto-instrumentations-node': '0.77.0',
+  '@opentelemetry/exporter-trace-otlp-http': '0.219.0',
+};
+
+// Security pins for transitive deps whose parents never ship a patched range.
+// They mirror the monorepo root's `resolutions` for the packages that actually
+// appear in this closure — the isolated install does not inherit the root ones.
+const RESOLUTIONS = {
+  // qs DoS + array-limit bypass (Dependabot #488-#489, patched in 6.16.0).
+  '**/qs': '^6.16.0',
+  // jsonapi-serializer pins lodash ^4.17.x.
+  '**/lodash': '^4.18.0',
+  // auto-instrumentations-node pins propagator-jaeger 2.8.0 (CVE-2026-59892, fixed in 2.9.0).
+  '**/@opentelemetry/propagator-jaeger': '2.9.0',
+  // Dependabot alert #452 — Hono ReDoS + memo() SSR retention + lang middleware DoS (patched in 4.12.34).
+  '**/@modelcontextprotocol/sdk/hono': '^4.12.34',
+  // fast-uri host confusion + SSRF cluster (Dependabot #499-#502, patched in 3.1.6).
+  '**/ajv/fast-uri': '^3.1.6',
+  // Mirrors the root resolutions: express 5 (mcp-server, MCP SDK) pins an unpatched body-parser.
+  '**/express/body-parser': '^2.3.0',
+};
+
+function generate(packagesDir, outFile) {
+  // A flat install holds one version per dependency, so two packages asking for
+  // different ranges is a decision, not something to let iteration order settle.
+  // It has never happened here — refusing keeps it that way, and keeps the answer
+  // out of this script.
+  const deps = {};
+  const declaredBy = {};
+
+  for (const pkg of WORKSPACE_PACKAGES) {
+    const manifestPath = path.join(packagesDir, pkg, 'package.json');
+    const { dependencies = {} } = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+
+    for (const [name, range] of Object.entries(dependencies)) {
+      if (name.startsWith('@forestadmin/')) continue;
+
+      if (deps[name] !== undefined && deps[name] !== range) {
+        throw new Error(
+          `Conflicting ranges for "${name}": ${deps[name]} (${declaredBy[name]}) and ` +
+            `${range} (${pkg}). Align the version in the source packages.`,
+        );
+      }
+
+      deps[name] = range;
+      declaredBy[name] = pkg;
+    }
+  }
+
+  Object.assign(deps, OTEL_DEPENDENCIES);
+
+  const sorted = Object.fromEntries(Object.keys(deps).sort().map(key => [key, deps[key]]));
+
+  const manifest = { name: 'gateway-docker-deps', private: true };
+
+  // Carry the monorepo's pinned package manager so a manual lockfile refresh
+  // (yarn install on this generated manifest) uses the same Yarn via Corepack,
+  // not a contributor's global Yarn 4 which would emit an incompatible lockfile.
+  // Resolved from the repo root relative to this script; absent in the Docker
+  // build (root package.json isn't copied there) — harmless, the image uses its
+  // own bundled Yarn 1.x.
+  const packageManager = rootPackageManager();
+  if (packageManager) manifest.packageManager = packageManager;
+
+  manifest.dependencies = sorted;
+  manifest.resolutions = RESOLUTIONS;
+
+  fs.writeFileSync(outFile, `${JSON.stringify(manifest, null, 2)}\n`);
+}
+
+function rootPackageManager() {
+  try {
+    const root = JSON.parse(
+      fs.readFileSync(path.join(__dirname, '..', '..', '..', 'package.json'), 'utf8'),
+    );
+
+    return root.packageManager;
+  } catch {
+    return undefined;
+  }
+}
+
+if (require.main === module) {
+  const [, , packagesDir, outFile] = process.argv;
+
+  if (!packagesDir || !outFile) {
+    console.error('Usage: node build-deps-manifest.js <packagesDir> <outFile>');
+    process.exit(1);
+  }
+
+  generate(packagesDir, outFile);
+}
+
+module.exports = { WORKSPACE_PACKAGES, generate };
