@@ -440,6 +440,8 @@ Once running, the MCP server exposes the following endpoints:
 
 The `/mcp` endpoint expects MCP protocol messages (JSON-RPC 2.0) and requires a valid OAuth Bearer token with at least the `mcp:read` scope.
 
+An autonomous system with no human behind it can send a service account credential instead (`Authorization: Bearer fgw_…`). The Forest server resolves it, and refuses it when the project's plan does not include the Gateway MCP. The session then acts as the service account, with its Role and Teams.
+
 ## Features
 
 - **HTTP Transport**: Uses streamable HTTP transport for MCP communication

@@ -3,19 +3,32 @@ import type { TokenTtlOptions } from '../src/utils/token-ttl';
 import type { OAuthClientInformationFull } from '@modelcontextprotocol/sdk/shared/auth';
 import type { Response } from 'express';
 
-import createForestAdminClient from '@forestadmin/forestadmin-client';
+import createForestAdminClient, {
+  GatewayApiKeyClient,
+  parseGatewayApiKey,
+} from '@forestadmin/forestadmin-client';
 import {
+  InsufficientScopeError,
   InvalidClientError,
   InvalidTokenError,
+  ServerError,
 } from '@modelcontextprotocol/sdk/server/auth/errors.js';
 import jsonwebtoken from 'jsonwebtoken';
 
 import forestServerIssueTokenSchema from './helpers/forest-server-issue-token-schema';
 import MockServer from './test-utils/mock-server';
 import ForestOAuthProvider from '../src/forest-oauth-provider';
+import GatewayApiKeyAuthenticator from '../src/gateway-api-key-authenticator';
+
+const mockAuthenticate = jest.fn();
 
 jest.mock('jsonwebtoken');
 jest.mock('@forestadmin/forestadmin-client');
+jest.mock('../src/gateway-api-key-authenticator', () => ({
+  __esModule: true,
+  ...jest.requireActual('../src/gateway-api-key-authenticator'),
+  default: jest.fn().mockImplementation(() => ({ authenticate: mockAuthenticate })),
+}));
 
 const mockCreateForestAdminClient = createForestAdminClient as jest.MockedFunction<
   typeof createForestAdminClient
@@ -1103,6 +1116,156 @@ describe('ForestOAuthProvider', () => {
         environmentApiEndpoint: 'https://api.example.com',
         forestServerToken: 'forest-server-token',
       });
+    });
+  });
+
+  describe('verifyAccessToken with a service account credential', () => {
+    const PARSED = { keyId: 'a'.repeat(16), secret: 'b'.repeat(64) };
+    const CREDENTIAL = `fgw_${PARSED.keyId}_${PARSED.secret}`;
+    const EXPIRES_AT = Math.floor(Date.now() / 1000) + 300;
+    const AUTHENTICATED = {
+      identity: {
+        user: {
+          id: 42,
+          email: 'bot@forest.local',
+          firstName: 'Bot',
+          lastName: null,
+          team: 'Operations',
+          tags: [],
+          permissionLevel: 'user',
+        },
+        renderingId: 7,
+        saasAccessToken: 'saas-token',
+      },
+      agentToken: 'agent-token',
+      expiresAt: EXPIRES_AT,
+    };
+
+    beforeEach(() => {
+      (parseGatewayApiKey as jest.Mock).mockImplementation(raw =>
+        raw === CREDENTIAL ? PARSED : null,
+      );
+      mockAuthenticate.mockReset();
+      (jsonwebtoken.verify as jest.Mock).mockClear();
+    });
+
+    afterEach(() => {
+      (parseGatewayApiKey as jest.Mock).mockReset();
+    });
+
+    it('should resolve credentials for the mcp service with the env secret', () => {
+      createProvider('https://custom.forestadmin.com');
+
+      expect(GatewayApiKeyClient).toHaveBeenLastCalledWith({
+        forestServerUrl: 'https://custom.forestadmin.com',
+        envSecret: TEST_ENV_SECRET,
+        service: 'mcp',
+      });
+      expect(GatewayApiKeyAuthenticator).toHaveBeenLastCalledWith({
+        client: jest.mocked(GatewayApiKeyClient).mock.instances.at(-1),
+        authSecret: TEST_AUTH_SECRET,
+      });
+    });
+
+    it('should build the auth info of the service account from the credential', async () => {
+      mockAuthenticate.mockResolvedValue(AUTHENTICATED);
+
+      const result = await createProvider().verifyAccessToken(CREDENTIAL);
+
+      expect(mockAuthenticate).toHaveBeenCalledWith(PARSED);
+      expect(result).toEqual({
+        token: 'agent-token',
+        clientId: `service-account-key:${PARSED.keyId}`,
+        expiresAt: EXPIRES_AT,
+        scopes: ['mcp:read', 'mcp:write', 'mcp:action'],
+        extra: {
+          userId: 42,
+          email: 'bot@forest.local',
+          renderingId: 7,
+          environmentApiEndpoint: undefined,
+          forestServerToken: 'saas-token',
+        },
+      });
+    });
+
+    it('should not verify the credential as a JWT', async () => {
+      mockAuthenticate.mockResolvedValue(AUTHENTICATED);
+
+      await createProvider().verifyAccessToken(CREDENTIAL);
+
+      expect(jsonwebtoken.verify).not.toHaveBeenCalled();
+    });
+
+    it('should use agentUrl as the tool callback endpoint when configured', async () => {
+      mockAuthenticate.mockResolvedValue(AUTHENTICATED);
+
+      const result = await createProvider(
+        'https://api.forestadmin.com',
+        'http://forest-agent.internal:3310',
+      ).verifyAccessToken(CREDENTIAL);
+
+      expect((result.extra as { environmentApiEndpoint: string }).environmentApiEndpoint).toBe(
+        'http://forest-agent.internal:3310',
+      );
+    });
+
+    it('should propagate a refusal and log it with the key id', async () => {
+      const refusal = new InsufficientScopeError(
+        "The project's plan does not include the Gateway MCP",
+      );
+      mockAuthenticate.mockRejectedValue(refusal);
+      const logger = jest.fn();
+
+      await expect(
+        createProvider(
+          'https://api.forestadmin.com',
+          undefined,
+          undefined,
+          logger,
+        ).verifyAccessToken(CREDENTIAL),
+      ).rejects.toBe(refusal);
+      expect(logger).toHaveBeenCalledWith(
+        'Error',
+        expect.stringContaining(`Service account credential ${PARSED.keyId} refused`),
+      );
+    });
+
+    it('should log the cause of a refusal', async () => {
+      const refusal = Object.assign(
+        new ServerError('Unable to resolve the service account credential'),
+        {
+          cause: new Error('Gateway API key resolve failed (status 404)'),
+        },
+      );
+      mockAuthenticate.mockRejectedValue(refusal);
+      const logger = jest.fn();
+
+      await createProvider('https://api.forestadmin.com', undefined, undefined, logger)
+        .verifyAccessToken(CREDENTIAL)
+        .catch(() => undefined);
+
+      expect(logger).toHaveBeenCalledWith(
+        'Error',
+        expect.stringContaining(
+          'Unable to resolve the service account credential (Error: Gateway API key resolve failed (status 404))',
+        ),
+      );
+    });
+
+    it('should verify a token that is not a credential as an OAuth access token', async () => {
+      (jsonwebtoken.verify as jest.Mock).mockReturnValue({
+        id: 1,
+        email: 'user@example.com',
+        renderingId: 2,
+        serverToken: 'forest-server-token',
+        scopes: ['mcp:read'],
+        exp: Math.floor(Date.now() / 1000) + 3600,
+      });
+
+      const result = await createProvider().verifyAccessToken('valid-access-token');
+
+      expect(mockAuthenticate).not.toHaveBeenCalled();
+      expect(result.token).toBe('valid-access-token');
     });
   });
 
