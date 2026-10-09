@@ -12,6 +12,7 @@ import type { Model, ModelStatic } from 'sequelize';
 
 import { DataTypes, Op, Sequelize } from 'sequelize';
 
+import { REDACTED } from './instrument';
 import { runAuditMigrations } from './migrations';
 
 export const DEFAULT_SCHEMA = 'forest';
@@ -167,12 +168,20 @@ function jsonColumnAsText(sequelize: Sequelize, column: string): string {
   return column;
 }
 
+// What serializing the term would have produced, minus its own surrounding quotes.
+export function jsonEscaped(term: string): string {
+  return JSON.stringify(term).slice(1, -1);
+}
+
 // A free-text search against the *serialized* JSON text naturally covers "keys and scalar values
 // at any depth" without walking the structure by hand: both a key and a value appear as a quoted
 // literal substring of that text. This runs as a SQL WHERE clause (not an in-memory scan of
-// fetched rows), so it composes with pagination and COUNT the same way every other filter does. A
-// redacted value can't match a search for the real value — the real value already isn't in this
-// text, `redactValues` replaced it before the row was ever written.
+// fetched rows), so it composes with pagination and COUNT the same way every other filter does.
+//
+// Two things keep it honest about what the text holds. The term is escaped the way JSON wrote the
+// values, so `15" monitor` (stored as `15\" monitor`) is found, and a bare quote can't match the
+// document's own structure. And the redaction mask is removed before matching, so `search=redacted`
+// can't confirm which rows hold a masked value. Both mirror agent-ruby's `Sql::TextSearch`.
 export function searchCondition(sequelize: Sequelize, term: string) {
   // `~` rather than the standard `\`: MySQL/MariaDB treat backslash as a string-literal escape
   // character under the default sql_mode (no NO_BACKSLASH_ESCAPES), so a bare `ESCAPE '\'` is
@@ -180,21 +189,25 @@ export function searchCondition(sequelize: Sequelize, term: string) {
   // literal. `~` has no special meaning to any of the four supported dialects' string literals, so
   // it sidesteps that interaction entirely. Escapes the two LIKE wildcards plus itself, so a term
   // containing `%`/`_`/`~` is matched literally instead of behaving like a pattern.
-  const escaped = term.replace(/[~%_]/g, char => `~${char}`);
-  const pattern = sequelize.escape(`%${escaped}%`);
+  const like = (expression: string, text: string) => {
+    const escaped = text.replace(/[~%_]/g, char => `~${char}`);
 
-  const columns = [
-    'action_name',
-    'user_first_name',
-    'user_last_name',
-    'user_email',
-    jsonColumnAsText(sequelize, 'previous_values'),
-    jsonColumnAsText(sequelize, 'new_values'),
+    return `LOWER(${expression}) LIKE LOWER(${sequelize.escape(`%${escaped}%`)}) ESCAPE '~'`;
+  };
+
+  const valuesAsText = (column: string) =>
+    `REPLACE(${jsonColumnAsText(sequelize, column)}, ${sequelize.escape(REDACTED)}, '')`;
+
+  const clauses = [
+    ...['action_name', 'user_first_name', 'user_last_name', 'user_email'].map(column =>
+      like(column, term),
+    ),
+    ...['previous_values', 'new_values'].map(column =>
+      like(valuesAsText(column), jsonEscaped(term)),
+    ),
   ];
 
-  return Sequelize.literal(
-    `(${columns.map(column => `LOWER(${column}) LIKE LOWER(${pattern}) ESCAPE '~'`).join(' OR ')})`,
-  );
+  return Sequelize.literal(`(${clauses.join(' OR ')})`);
 }
 
 function buildHistoryWhereClause(

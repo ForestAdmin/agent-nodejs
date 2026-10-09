@@ -7,6 +7,7 @@ import type { Context } from 'koa';
 
 import { ValidationError } from '@forestadmin/datasource-toolkit';
 
+import { belongsToEarlierLife, lastDeleteOf } from '../../audit-trail/earlier-life';
 import checkRecordVisibility, {
   recheckRecordVisibility,
 } from '../../audit-trail/record-visibility';
@@ -110,14 +111,27 @@ export default class AuditTrailCorrelationRoute extends BaseRoute {
 
     const gone = after ? after.goneEntirely : target.goneEntirely;
 
-    if (!target.permissionScope || !gone) return entries;
+    if (!target.permissionScope) return entries;
 
-    return withholdOutsidePermissionScope(entries, {
+    // Live now, but the rows up to the id's last delete may be an earlier record's.
+    const lastDelete = gone
+      ? null
+      : await lastDeleteOf(this.options.auditTrail.store, target.collection, target.recordId);
+
+    if (!gone && !lastDelete) return entries;
+
+    const withheld = withholdOutsidePermissionScope(entries, {
       collection: target.collectionObject,
       permissionScope: target.permissionScope,
       timezone: QueryStringParser.parseCaller(context, { defaultTimezone: 'UTC' }).timezone,
       logger: this.options.logger,
     });
+
+    return gone
+      ? withheld
+      : entries.map((entry, index) =>
+          belongsToEarlierLife(entry, lastDelete) ? withheld[index] : entry,
+        );
   }
 
   // Returns null (after issuing the 404) when a configured record-level permission scope excludes the id —

@@ -869,7 +869,7 @@ describe('createSqlAuditStore (sqlite round-trip)', () => {
     await close();
   });
 
-  it('search does not match a value that was redacted before it was ever stored', async () => {
+  it('search confirms neither a redacted value nor the mask that replaced it', async () => {
     const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
 
     // Simulates what instrument.ts's redactValues does before a redacted row ever reaches the
@@ -888,7 +888,40 @@ describe('createSqlAuditStore (sqlite round-trip)', () => {
     ).resolves.toEqual([]);
     await expect(
       store.listByRecord({ collection: 'accounts', recordId: '1', search: 'redacted' }),
-    ).resolves.toHaveLength(1);
+    ).resolves.toEqual([]);
+
+    await close();
+  });
+
+  it('search finds a value holding a quote or a backslash, as JSON serialized it', async () => {
+    const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
+    await seed(store, record({ recordId: '1', newValues: { name: '15" monitor' } }));
+    await seed(store, record({ recordId: '1', newValues: { path: 'C:\\temp' } }));
+
+    const byQuote = await store.listByRecord({
+      collection: 'accounts',
+      recordId: '1',
+      search: '15" monitor',
+    });
+    const byBackslash = await store.listByRecord({
+      collection: 'accounts',
+      recordId: '1',
+      search: 'C:\\temp',
+    });
+
+    expect(byQuote.map(entry => entry.newValues)).toEqual([{ name: '15" monitor' }]);
+    expect(byBackslash.map(entry => entry.newValues)).toEqual([{ path: 'C:\\temp' }]);
+
+    await close();
+  });
+
+  it('search does not let a bare quote match the JSON structure', async () => {
+    const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
+    await seed(store, record({ recordId: '1', newValues: { status: 'open' } }));
+
+    await expect(
+      store.listByRecord({ collection: 'accounts', recordId: '1', search: '"status"' }),
+    ).resolves.toEqual([]);
 
     await close();
   });
@@ -1070,8 +1103,8 @@ describe('searchCondition', () => {
     const sqlite = new Sequelize('sqlite::memory:', { logging: false });
     const mssql = new Sequelize('mssql://user:pwd@localhost/db', { logging: false });
 
-    expect(searchCondition(sqlite, 'Lyon').val).toMatch(/LOWER\(previous_values\)/);
-    expect(searchCondition(mssql, 'Lyon').val).toMatch(/LOWER\(previous_values\)/);
+    expect(searchCondition(sqlite, 'Lyon').val).toMatch(/LOWER\(REPLACE\(previous_values, /);
+    expect(searchCondition(mssql, 'Lyon').val).toMatch(/LOWER\(REPLACE\(previous_values, /);
   });
 
   it('matches against the identity columns as well as the JSON columns', () => {

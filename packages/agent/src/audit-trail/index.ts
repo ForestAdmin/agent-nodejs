@@ -11,6 +11,7 @@ export {
   ensureAuditStorage,
   defineAuditLogModel,
   fieldsChangedCondition,
+  jsonEscaped,
   searchCondition,
   toRow,
   fromRow,

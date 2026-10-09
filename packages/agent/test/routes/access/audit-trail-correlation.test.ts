@@ -17,7 +17,7 @@ describe('AuditTrailCorrelationRoute', () => {
       }),
     ]);
     const store = {
-      listByRecord: jest.fn(),
+      listByRecord: jest.fn().mockResolvedValue([]),
       countByRecord: jest.fn(),
       listByCorrelation: jest.fn().mockResolvedValue(history),
       listByCorrelations: jest.fn().mockResolvedValue(history),
@@ -200,7 +200,7 @@ describe('AuditTrailCorrelationRoute', () => {
         jest
           .spyOn(dataSource.getCollection('books'), 'list')
           .mockResolvedValueOnce([]) // scoped check: not found
-          .mockResolvedValueOnce([]); // bare check: genuinely gone
+          .mockResolvedValue([]); // bare check: genuinely gone, and at the re-read
         const route = new AuditTrailCorrelationRoute(services, options, dataSource);
         const context = contextWith({
           timezone: 'Europe/Paris',
@@ -242,6 +242,32 @@ describe('AuditTrailCorrelationRoute', () => {
           },
         ]);
       });
+    });
+
+    test('withholds an entry from before the id was freed and taken by a record in scope', async () => {
+      const freed = {
+        id: 2,
+        timestamp: '2026-01-02T00:00:00.000Z',
+        operation: 'delete',
+        recordId: '2',
+        correlationKey: 'req-1',
+        previousValues: { title: 'Secret' },
+        newValues: {},
+      };
+      const { services, dataSource, options, store } = setup([freed]);
+      store.listByRecord.mockResolvedValue([freed]);
+      (services.authorization.getScope as jest.Mock).mockResolvedValue(
+        new ConditionTreeLeaf('id', 'Equal', 1),
+      );
+      jest.spyOn(dataSource.getCollection('books'), 'list').mockResolvedValue([{ id: 2 }]);
+      const route = new AuditTrailCorrelationRoute(services, options, dataSource);
+      const context = contextWith({ timezone: 'Europe/Paris', collection: 'books', recordId: '2' });
+
+      await route.handleHistory(context);
+
+      expect((context.response.body as { data: unknown[] }).data).toEqual([
+        { ...freed, previousValues: {} },
+      ]);
     });
 
     test('allows an id inside a restrictive scope through to the store', async () => {
@@ -304,7 +330,7 @@ describe('AuditTrailCorrelationRoute', () => {
         jest
           .spyOn(dataSource.getCollection('books'), 'list')
           .mockResolvedValueOnce([]) // scoped check: not found
-          .mockResolvedValueOnce([]); // bare check: genuinely gone
+          .mockResolvedValue([]); // bare check: genuinely gone, and at the re-read
         const route = new AuditTrailCorrelationRoute(services, options, dataSource);
         const context = contextWith({
           timezone: 'Europe/Paris',
@@ -489,7 +515,7 @@ describe('AuditTrailCorrelationRoute', () => {
       const services = factories.forestAdminHttpDriverServices.build();
       const dataSource = buildDataSource();
       const store = {
-        listByRecord: jest.fn(),
+        listByRecord: jest.fn().mockResolvedValue([]),
         countByRecord: jest.fn(),
         listByCorrelation: jest.fn(),
         listByCorrelations: jest.fn(),
