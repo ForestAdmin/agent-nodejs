@@ -54,16 +54,26 @@ export default class AuditTrailTimelineRoute extends BaseRoute {
     const collections = await this.readableCollections(context);
     const { store } = this.options.auditTrail;
 
+    // Authors on the first page only, like the per-record route and Forest's activity-logs route:
+    // they do not change along the walk, and later pages omit the key rather than send `[]`.
     // One row over the page: the only way to know whether a further page exists without a count.
-    const fetched = collections.length
-      ? await store.listTimeline({ ...filters, ...cursor, collections, limit: limit + 1 })
-      : [];
+    const [fetched, availableUsers] = await Promise.all([
+      collections.length
+        ? store.listTimeline({ ...filters, ...cursor, collections, limit: limit + 1 })
+        : [],
+      !cursor.before && store.listTimelineUsers
+        ? store.listTimelineUsers({ ...filters, collections })
+        : undefined,
+    ]);
     const page = fetched.slice(0, limit);
 
     context.response.body = {
-      data: page,
+      // `previousRecordId` stays out: it is how the agent follows a record across a rename, not
+      // something a client reads.
+      data: page.map(({ previousRecordId, ...served }) => served),
       meta: {
         cursor: fetched.length > limit ? AuditTrailTimelineRoute.nextCursor(page, cursor) : null,
+        ...(availableUsers && { availableUsers }),
       },
     };
   }

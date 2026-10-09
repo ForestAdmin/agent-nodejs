@@ -106,7 +106,9 @@ export default class AuditTrailRoute extends CollectionRoute {
       });
 
       context.response.body = {
-        data: matched.page,
+        // `previousRecordId` stays out: it is how the agent follows a record across a rename, not
+        // something a client reads.
+        data: matched.page.map(({ previousRecordId, ...served }) => served),
         meta: {
           count: matched.count,
           ...(isFirstFetch && { availableUsers: [...matched.authors.values()] }),
@@ -165,7 +167,7 @@ export default class AuditTrailRoute extends CollectionRoute {
       permissionScope && gone ? this.withhold(rawData, permissionScope, context) : rawData;
 
     context.response.body = {
-      data,
+      data: data.map(({ previousRecordId, ...served }) => served),
       meta: { count, ...(availableUsers && { availableUsers }) },
     };
   }

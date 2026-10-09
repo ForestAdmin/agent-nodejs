@@ -86,6 +86,7 @@ The `forest.audit_logs` table has one row per audited change:
 | `operation`          | `create` / `update` / `delete` / `action` / `action_failed`        |
 | `collection`         | audited collection name                                            |
 | `record_id`          | packed record id (primary keys joined with `\|`); `null` for a `create` row still `pending` (the record's id isn't assigned yet) |
+| `previous_record_id` | the id the row was filed under before a confirmed `update`, set whether or not the key moved; `null` on every other operation and on any row written before this column existed. Internal: never served to a client |
 | `user_id`            | id of the Forest user who made the change                          |
 | `user_first_name`    | that user's first name, denormalized at write time                 |
 | `user_last_name`     | that user's last name, denormalized at write time                  |
@@ -382,7 +383,14 @@ across pages rather than looping. Feed the two values back verbatim; don't synth
 must always add at least the last row's id to the exclusions, so a cursor that would come back
 unchanged ends the walk instead of repeating the page forever.
 
+**Authors.** On the first page only (no `before`), `meta` also carries `availableUsers`: the
+distinct authors matching the active filters across the collections queried, independent of the
+cursor, in the per-record route's shape. Later pages omit the key rather than send `[]`, so a client
+keeps the list it already saw.
+
 A custom `AuditStore` that doesn't implement `listTimeline` simply doesn't get this route mounted.
+One that implements `listTimeline` without `listTimelineUsers` serves the rows with no
+`availableUsers`.
 
 ### `GET /forest/_audit-trail/correlation/{correlationKey}`
 

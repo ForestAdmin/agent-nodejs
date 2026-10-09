@@ -43,6 +43,7 @@ describe('runAuditMigrations (sqlite)', () => {
       'id',
       'new_values',
       'operation',
+      'previous_record_id',
       'previous_values',
       'record_id',
       'status',
@@ -71,6 +72,7 @@ describe('runAuditMigrations (sqlite)', () => {
     expect(applied).toEqual([
       { name: 'forest.audit_logs:001-create-audit-logs' },
       { name: 'forest.audit_logs:002-index-timestamp-id' },
+      { name: 'forest.audit_logs:003-add-previous-record-id' },
     ]);
 
     await sequelize.close();
@@ -85,6 +87,7 @@ describe('runAuditMigrations (sqlite)', () => {
     expect(applied).toEqual([
       { name: 'audit_logs:001-create-audit-logs' },
       { name: 'audit_logs:002-index-timestamp-id' },
+      { name: 'audit_logs:003-add-previous-record-id' },
     ]);
 
     await sequelize.close();
@@ -169,7 +172,7 @@ describe('runAuditMigrations (sqlite)', () => {
     ).resolves.toBeUndefined();
 
     const [applied] = await sequelize.query('SELECT name FROM "audit_logs_migration"');
-    expect(applied).toHaveLength(2);
+    expect(applied).toHaveLength(3);
 
     await sequelize.close();
   });
@@ -255,12 +258,55 @@ describe('runAuditMigrations (sqlite)', () => {
       const umzug = buildUmzug(sequelize, { tableName: 'audit_logs' });
       await umzug.up();
 
-      await umzug.down();
+      await umzug.down({ step: 2 });
 
       expect(await indexOf(sequelize)).toBeUndefined();
 
       await sequelize.close();
     });
+  });
+
+  it('treats previous_record_id as added when a concurrent boot added it after the check', async () => {
+    const sequelize = new Sequelize('sqlite::memory:', { logging: false });
+    await runAuditMigrations(sequelize, { tableName: 'audit_logs' });
+    await sequelize.query(
+      `DELETE FROM "audit_logs_migration" WHERE name = 'audit_logs:003-add-previous-record-id'`,
+    );
+    // The check reads the table before the other boot's column lands, so this one still adds it.
+    const queryInterface = sequelize.getQueryInterface();
+    const describeTable = queryInterface.describeTable.bind(queryInterface);
+    jest.spyOn(queryInterface, 'describeTable').mockImplementationOnce(async (...args) => {
+      const { previous_record_id: lateColumn, ...columns } = await describeTable(...args);
+
+      return columns;
+    });
+
+    await expect(
+      runAuditMigrations(sequelize, { tableName: 'audit_logs' }),
+    ).resolves.toBeUndefined();
+
+    const [applied] = await sequelize.query('SELECT name FROM "audit_logs_migration"');
+    expect(applied).toHaveLength(3);
+
+    await sequelize.close();
+  });
+
+  it('still fails migration 003 when adding the column fails and the column is missing', async () => {
+    const sequelize = new Sequelize('sqlite::memory:', { logging: false });
+    await runAuditMigrations(sequelize, { tableName: 'audit_logs' });
+    await sequelize.query('ALTER TABLE "audit_logs" DROP COLUMN "previous_record_id"');
+    await sequelize.query(
+      `DELETE FROM "audit_logs_migration" WHERE name = 'audit_logs:003-add-previous-record-id'`,
+    );
+    jest
+      .spyOn(sequelize.getQueryInterface(), 'addColumn')
+      .mockRejectedValueOnce(new Error('disk full'));
+
+    await expect(runAuditMigrations(sequelize, { tableName: 'audit_logs' })).rejects.toThrow(
+      'disk full',
+    );
+
+    await sequelize.close();
   });
 
   it('rejects a pre-existing table sharing the name that is missing audit-trail columns', async () => {

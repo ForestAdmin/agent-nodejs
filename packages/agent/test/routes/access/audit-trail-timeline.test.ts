@@ -18,7 +18,7 @@ describe('AuditTrailTimelineRoute', () => {
     ...patch,
   });
 
-  const setup = (timeline: unknown[] = []) => {
+  const setup = (timeline: unknown[] = [], users?: unknown[]) => {
     const services = factories.forestAdminHttpDriverServices.build();
     const dataSource = factories.dataSource.buildWithCollections([
       factories.collection.build({
@@ -34,7 +34,10 @@ describe('AuditTrailTimelineRoute', () => {
         }),
       }),
     ]);
-    const store = { listTimeline: jest.fn().mockResolvedValue(timeline) };
+    const store = {
+      listTimeline: jest.fn().mockResolvedValue(timeline),
+      ...(users && { listTimelineUsers: jest.fn().mockResolvedValue(users) }),
+    };
     const options = factories.forestAdminHttpDriverOptions.build({
       auditTrail: { connectionString: 'sqlite::memory:', store } as never,
     });
@@ -143,6 +146,59 @@ describe('AuditTrailTimelineRoute', () => {
     );
     expect(services.authorization.canRead).not.toHaveBeenCalled();
     expect(store.listTimeline).not.toHaveBeenCalled();
+  });
+
+  test('never serves the id a record moved from, which is internal', async () => {
+    const { route } = setup([row(1, { previousRecordId: '1' })]);
+    const context = contextWith();
+
+    await route.handleTimeline(context);
+
+    expect((context.response.body as { data: object[] }).data[0]).not.toHaveProperty(
+      'previousRecordId',
+    );
+  });
+
+  describe('available users', () => {
+    const jane = { id: 1, firstName: 'Jane', lastName: 'Doe', email: 'jane@forest.dev' };
+
+    test('announces the authors on the first page, with the filters and readable collections', async () => {
+      const { store, route } = setup([row(1)], [jane]);
+      const context = contextWith({ userIds: '1', operations: 'update' });
+
+      await route.handleTimeline(context);
+
+      expect(store.listTimelineUsers).toHaveBeenCalledWith(
+        expect.objectContaining({
+          collections: ['books', 'authors'],
+          userIds: [1],
+          operations: ['update'],
+        }),
+      );
+      expect((context.response.body as { meta: object }).meta).toEqual({
+        cursor: null,
+        availableUsers: [jane],
+      });
+    });
+
+    test('omits the key on a later page rather than sending an empty list', async () => {
+      const { store, route } = setup([row(1)], [jane]);
+      const context = contextWith({ before: '2026-01-05T00:00:00.000Z' });
+
+      await route.handleTimeline(context);
+
+      expect(store.listTimelineUsers).not.toHaveBeenCalled();
+      expect((context.response.body as { meta: object }).meta).not.toHaveProperty('availableUsers');
+    });
+
+    test('omits the key when the store cannot list the authors', async () => {
+      const { route } = setup([row(1)]);
+      const context = contextWith();
+
+      await route.handleTimeline(context);
+
+      expect((context.response.body as { meta: object }).meta).not.toHaveProperty('availableUsers');
+    });
   });
 
   describe('cursor', () => {

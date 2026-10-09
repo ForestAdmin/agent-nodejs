@@ -51,6 +51,7 @@ describe('toRow', () => {
       operation: 'update',
       collection: 'accounts',
       recordId: '1',
+      previousRecordId: null,
       userId: 42,
       userFirstName: 'Jane',
       userLastName: 'Doe',
@@ -61,6 +62,14 @@ describe('toRow', () => {
       newValues: { status: 'closed' },
       status: 'done',
     });
+  });
+
+  it('keeps a previousRecordId given at insert, like the in-memory store', () => {
+    const status: AuditStatus = 'pending';
+
+    expect(toRow({ ...record(), previousRecordId: '7', status })).toEqual(
+      expect.objectContaining({ previousRecordId: '7' }),
+    );
   });
 });
 
@@ -963,6 +972,37 @@ describe('createSqlAuditStore (sqlite round-trip)', () => {
     expect(users.map(user => user.id).sort()).toEqual([1, 2]);
 
     await close();
+  });
+
+  describe('listTimelineUsers', () => {
+    it('returns the distinct authors on the allowed collections, under the timeline filters', async () => {
+      const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
+
+      await seed(store, record({ collection: 'accounts', userId: 1, userFirstName: 'Jane' }));
+      await seed(store, record({ collection: 'books', userId: 1, userFirstName: 'Jane' }));
+      await seed(store, record({ collection: 'books', userId: 2, operation: 'delete' }));
+      await seed(store, record({ collection: 'secrets', userId: 3, userFirstName: 'Hidden' }));
+
+      const users = await store.listTimelineUsers({
+        collections: ['accounts', 'books'],
+        operations: ['update'],
+      });
+
+      expect(users).toEqual([
+        { id: 1, firstName: 'Jane', lastName: 'Doe', email: 'jane.doe@forest.dev' },
+      ]);
+
+      await close();
+    });
+
+    it('matches nothing when no collection is allowed', async () => {
+      const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
+      await seed(store, record({ collection: 'accounts', userId: 1 }));
+
+      expect(await store.listTimelineUsers({ collections: [] })).toEqual([]);
+
+      await close();
+    });
   });
 });
 
