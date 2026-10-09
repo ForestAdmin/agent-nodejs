@@ -17,6 +17,8 @@ import {
   invalidClient,
   invalidGrant,
   invalidRequest,
+  isPlanFeatureMissingRefusal,
+  planFeatureMissing,
   serverError,
   sessionExpired,
   sessionInvalidated,
@@ -90,9 +92,11 @@ function assertRegisteredRedirectUri(
   }
 }
 
-function toSafeExchangeError(saasError: string): OAuthRequestError {
-  if (SAFE_EXCHANGE_ERRORS.has(saasError)) {
-    return new OAuthRequestError(400, saasError, 'Authorization code exchange failed');
+function toSafeExchangeError(saasError: OAuthExchangeError): OAuthRequestError {
+  if (isPlanFeatureMissingRefusal(saasError)) return planFeatureMissing();
+
+  if (SAFE_EXCHANGE_ERRORS.has(saasError.error)) {
+    return new OAuthRequestError(400, saasError.error, 'Authorization code exchange failed');
   }
 
   return new OAuthRequestError(
@@ -273,8 +277,11 @@ async function exchangeForServerTokens(
     return await options.serverClient.exchangeCode(request);
   } catch (error) {
     if (error instanceof OAuthExchangeError) {
-      options.logger('Warn', 'Forest server code exchange rejected', { saasError: error.error });
-      throw toSafeExchangeError(error.error);
+      options.logger('Warn', 'Forest server code exchange rejected', {
+        saasError: error.error,
+        reason: error.reason,
+      });
+      throw toSafeExchangeError(error);
     }
 
     throw error;

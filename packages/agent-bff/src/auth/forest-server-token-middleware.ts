@@ -35,6 +35,31 @@ const NO_AUDIT_CREDENTIAL_MESSAGE =
   'operation was not performed';
 const UNAUTHORIZED = 401;
 
+function toSessionAccessFailure(
+  error: unknown,
+  principal: BffAccessTokenPayload,
+  logger: Logger,
+): Error {
+  if (error instanceof OAuthRequestError && error.type === 'plan_feature_missing') return error;
+
+  // The errors below carry neither the cause nor a `cause` field, so this line is the only place
+  // the operator ever sees what actually failed — a broken session store reads as an audit
+  // outage otherwise.
+  logger('Error', 'Could not resolve the Forest server access of this session', {
+    renderingId: readRenderingId(principal),
+    cause: extractErrorMessage(error),
+  });
+
+  // Only a session the Forest server rejected, or one that vanished, makes re-authenticating the
+  // answer. Everything else — the server being unreachable, above all — is retryable, and a 401
+  // would log every user out over a blip instead of failing the audit write alone.
+  if (error instanceof OAuthRequestError && error.status === UNAUTHORIZED) {
+    return sessionExpired(NO_SESSION_MESSAGE);
+  }
+
+  return auditUnavailable(AUDIT_RETRY_AFTER_SECONDS);
+}
+
 async function resolveToken(
   ctx: Context,
   logger: Logger,
@@ -60,22 +85,7 @@ async function resolveToken(
       logger,
     });
   } catch (error) {
-    // The errors below carry neither the cause nor a `cause` field, so this line is the only place
-    // the operator ever sees what actually failed — a broken session store reads as an audit
-    // outage otherwise.
-    logger('Error', 'Could not resolve the Forest server access of this session', {
-      renderingId: readRenderingId(principal),
-      cause: extractErrorMessage(error),
-    });
-
-    // Only a session the Forest server rejected, or one that vanished, makes re-authenticating the
-    // answer. Everything else — the server being unreachable, above all — is retryable, and a 401
-    // would log every user out over a blip instead of failing the audit write alone.
-    if (error instanceof OAuthRequestError && error.status === UNAUTHORIZED) {
-      throw sessionExpired(NO_SESSION_MESSAGE);
-    }
-
-    throw auditUnavailable(AUDIT_RETRY_AFTER_SECONDS);
+    throw toSessionAccessFailure(error, principal, logger);
   }
 }
 

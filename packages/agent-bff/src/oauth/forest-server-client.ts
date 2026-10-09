@@ -161,7 +161,7 @@ export default class ForestServerClient {
     payload: Record<string, string>,
     isInitialExchange: boolean,
   ): Promise<ServerTokens> {
-    const response = await fetchWithTimeout(this.url('/oauth/token'), {
+    const response = await fetchWithTimeout(this.url('/oauth/token?service=api'), {
       method: 'POST',
       headers: { ...DEFAULT_HEADERS, 'forest-secret-key': this.envSecret },
       body: JSON.stringify(payload),
@@ -171,10 +171,12 @@ export default class ForestServerClient {
       const errorBody = (await response.json().catch(() => ({}))) as {
         error?: string;
         error_description?: string;
+        reason?: string;
       };
       throw new OAuthExchangeError(
         errorBody.error || 'server_error',
         errorBody.error_description || 'Failed to exchange token with the Forest server',
+        errorBody.reason,
       );
     }
 

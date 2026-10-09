@@ -71,6 +71,38 @@ describe('ForestServerClient', () => {
       ).rejects.toMatchObject({ error: 'invalid_grant' });
     });
 
+    it('should carry the reason of a refused exchange', async () => {
+      mockFetchOnce({
+        ok: false,
+        status: 400,
+        json: async () => ({
+          error: 'access_denied',
+          error_description: 'no Gateway API',
+          reason: 'plan_feature_missing',
+        }),
+      });
+
+      const client = new ForestServerClient({ forestServerUrl: SERVER_URL, envSecret: ENV_SECRET });
+
+      await expect(
+        client.exchangeCode({ code: 'c', codeVerifier: 'v', redirectUri: 'r', clientId: 'x' }),
+      ).rejects.toMatchObject({
+        error: 'access_denied',
+        reason: 'plan_feature_missing',
+        message: 'no Gateway API',
+      });
+    });
+
+    it('should leave the reason undefined when the refusal carries none', async () => {
+      mockFetchOnce({ ok: false, status: 400, json: async () => ({ error: 'access_denied' }) });
+
+      const client = new ForestServerClient({ forestServerUrl: SERVER_URL, envSecret: ENV_SECRET });
+
+      await expect(
+        client.exchangeCode({ code: 'c', codeVerifier: 'v', redirectUri: 'r', clientId: 'x' }),
+      ).rejects.toMatchObject({ error: 'access_denied', reason: undefined });
+    });
+
     it('should throw when the exchange response omits the refresh token', async () => {
       mockFetchOnce({ ok: true, json: async () => ({ access_token: saasAccessToken(17) }) });
 
