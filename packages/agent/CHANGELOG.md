@@ -1,3 +1,10 @@
+# @forestadmin/agent [1.108.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.107.3...@forestadmin/agent@1.108.0) (2026-10-09)
+
+
+### Features
+
+* **audit-trail:** cross-collection timeline route [PRD-1257] ([#1911](https://github.com/ForestAdmin/agent-nodejs/issues/1911)) ([811559f](https://github.com/ForestAdmin/agent-nodejs/commit/811559fc10343b70ef6172843c7327b5f34baa66))
+
 ## @forestadmin/agent [1.107.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.107.2...@forestadmin/agent@1.107.3) (2026-10-08)
 
 
