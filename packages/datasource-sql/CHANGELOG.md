@@ -1,3 +1,19 @@
+## @forestadmin/datasource-sql [1.17.16](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.17.15...@forestadmin/datasource-sql@1.17.16) (2026-10-10)
+
+
+### Bug Fixes
+
+* **license:** relicense from GPL-3.0 to Apache-2.0 ([#1992](https://github.com/ForestAdmin/agent-nodejs/issues/1992)) ([9db2921](https://github.com/ForestAdmin/agent-nodejs/commit/9db2921d6b66ef74e3ea75d92e4a29325732b492))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sequelize:** upgraded to 1.13.14
+* **@forestadmin/datasource-toolkit:** upgraded to 1.56.1
+
 ## @forestadmin/datasource-sql [1.17.15](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.17.14...@forestadmin/datasource-sql@1.17.15) (2026-10-07)
 
 
