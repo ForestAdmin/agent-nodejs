@@ -3,7 +3,7 @@
   "version": "1.5.7",
   "description": "A plugin that allows to flatten columns and relations in Forest Admin",
   "main": "dist/index.js",
-  "license": "GPL-3.0",
+  "license": "Apache-2.0",
   "files": [
     "dist/**/*.js",
     "dist/**/*.d.ts"
