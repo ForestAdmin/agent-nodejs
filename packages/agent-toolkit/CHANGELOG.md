@@ -1,3 +1,10 @@
+## @forestadmin/agent-toolkit [1.2.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-toolkit@1.2.0...@forestadmin/agent-toolkit@1.2.1) (2026-10-10)
+
+
+### Bug Fixes
+
+* **license:** relicense from GPL-3.0 to Apache-2.0 ([#1992](https://github.com/ForestAdmin/agent-nodejs/issues/1992)) ([9db2921](https://github.com/ForestAdmin/agent-nodejs/commit/9db2921d6b66ef74e3ea75d92e4a29325732b492))
+
 # @forestadmin/agent-toolkit [1.2.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-toolkit@1.1.0...@forestadmin/agent-toolkit@1.2.0) (2026-03-31)
 
 
