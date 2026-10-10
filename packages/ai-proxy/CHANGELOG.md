@@ -1,3 +1,19 @@
+## @forestadmin/ai-proxy [1.14.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.14.3...@forestadmin/ai-proxy@1.14.4) (2026-10-10)
+
+
+### Bug Fixes
+
+* **license:** relicense from GPL-3.0 to Apache-2.0 ([#1992](https://github.com/ForestAdmin/agent-nodejs/issues/1992)) ([9db2921](https://github.com/ForestAdmin/agent-nodejs/commit/9db2921d6b66ef74e3ea75d92e4a29325732b492))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-toolkit:** upgraded to 1.2.1
+* **@forestadmin/datasource-toolkit:** upgraded to 1.56.1
+
 ## @forestadmin/ai-proxy [1.14.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.14.2...@forestadmin/ai-proxy@1.14.3) (2026-10-07)
 
 
