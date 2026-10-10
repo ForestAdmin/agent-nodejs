@@ -1,3 +1,18 @@
+## @forestadmin/forestadmin-client [1.43.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.43.5...@forestadmin/forestadmin-client@1.43.6) (2026-10-10)
+
+
+### Bug Fixes
+
+* **license:** relicense from GPL-3.0 to Apache-2.0 ([#1992](https://github.com/ForestAdmin/agent-nodejs/issues/1992)) ([9db2921](https://github.com/ForestAdmin/agent-nodejs/commit/9db2921d6b66ef74e3ea75d92e4a29325732b492))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.56.1
+
 ## @forestadmin/forestadmin-client [1.43.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.43.4...@forestadmin/forestadmin-client@1.43.5) (2026-10-07)
 
 
