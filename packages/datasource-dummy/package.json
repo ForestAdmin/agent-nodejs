@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/datasource-dummy",
-  "version": "1.1.77",
+  "version": "1.1.78",
   "main": "dist/index.js",
   "license": "Apache-2.0",
   "publishConfig": {
@@ -12,8 +12,8 @@
     "directory": "packages/datasource-dummy"
   },
   "dependencies": {
-    "@forestadmin/datasource-customizer": "1.73.0",
-    "@forestadmin/datasource-toolkit": "1.56.0"
+    "@forestadmin/datasource-customizer": "1.73.1",
+    "@forestadmin/datasource-toolkit": "1.56.1"
   },
   "files": [
     "dist/**/*.js",
