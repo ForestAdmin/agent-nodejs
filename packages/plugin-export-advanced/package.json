@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/plugin-export-advanced",
-  "version": "1.1.52",
+  "version": "1.1.53",
   "main": "dist/index.js",
   "license": "Apache-2.0",
   "publishConfig": {
@@ -15,8 +15,8 @@
     "write-excel-file": "^4.1.1"
   },
   "devDependencies": {
-    "@forestadmin/datasource-customizer": "1.73.0",
-    "@forestadmin/datasource-toolkit": "1.56.0"
+    "@forestadmin/datasource-customizer": "1.73.1",
+    "@forestadmin/datasource-toolkit": "1.56.1"
   },
   "files": [
     "dist/**/*.js",
