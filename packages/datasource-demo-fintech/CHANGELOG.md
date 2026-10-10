@@ -1,3 +1,20 @@
+## @forestadmin/datasource-demo-fintech [1.0.12](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-demo-fintech@1.0.11...@forestadmin/datasource-demo-fintech@1.0.12) (2026-10-10)
+
+
+### Bug Fixes
+
+* **license:** relicense from GPL-3.0 to Apache-2.0 ([#1992](https://github.com/ForestAdmin/agent-nodejs/issues/1992)) ([9db2921](https://github.com/ForestAdmin/agent-nodejs/commit/9db2921d6b66ef74e3ea75d92e4a29325732b492))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.73.1
+* **@forestadmin/datasource-sql:** upgraded to 1.17.16
+* **@forestadmin/datasource-toolkit:** upgraded to 1.56.1
+
 ## @forestadmin/datasource-demo-fintech [1.0.11](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-demo-fintech@1.0.10...@forestadmin/datasource-demo-fintech@1.0.11) (2026-10-07)
 
 
