@@ -17,6 +17,7 @@ export interface MalformedRunInfo {
 export interface AvailableRunDispatch {
   step: AvailableStepExecution;
   auth: { forestServerToken: string };
+  lockedAt: string | null;
 }
 
 export interface AvailableRunsBatch {
@@ -25,7 +26,7 @@ export interface AvailableRunsBatch {
 }
 
 export interface WorkflowPort {
-  getAvailableRuns(): Promise<AvailableRunsBatch>;
+  getAvailableRuns(count: number): Promise<AvailableRunsBatch>;
   // Throws MalformedRunError on mapping failure.
   getAvailableRun(runId: string): Promise<AvailableRunDispatch | null>;
   // Returns the next step to chain when the orchestrator has one ready, or null when the run is
@@ -40,4 +41,6 @@ export interface WorkflowPort {
   // Only the user id is needed (the access check is `?userId=`); kept narrow so callers don't
   // have to produce a full StepUser.
   hasRunAccess(runId: string, user: { id: number }): Promise<boolean>;
+  // Never throws: when the orchestrator does not hear it, the run is freed when its lock expires.
+  releaseRun(runId: string, lockedAt: string | null): Promise<void>;
 }

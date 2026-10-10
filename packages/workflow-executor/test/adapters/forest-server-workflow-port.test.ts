@@ -53,6 +53,13 @@ const mockQuery = ServerUtils.query as jest.Mock;
 
 const options = { envSecret: 'env-secret-123', forestServerUrl: 'https://api.forestadmin.com' };
 
+const makeHttpError = (status: number) => {
+  const err = new Error(`HTTP ${status}`);
+  (err as Error & { status: number }).status = status;
+
+  return err;
+};
+
 function makeRun(overrides: Partial<ServerHydratedWorkflowRun> = {}): ServerHydratedWorkflowRun {
   return {
     id: 42,
@@ -99,21 +106,47 @@ describe('ForestServerWorkflowPort', () => {
   });
 
   describe('getAvailableRuns', () => {
-    it('calls the pending-run route and returns pending + malformed buckets', async () => {
-      mockQuery.mockResolvedValue([makeRun()]);
+    it('asks the orchestrator for the number of runs it was given', async () => {
+      mockQuery.mockResolvedValue([]);
 
-      const result = await port.getAvailableRuns();
+      await port.getAvailableRuns(3);
 
       expect(mockQuery).toHaveBeenCalledWith(
         options,
         'get',
-        '/api/workflow-orchestrator/pending-run',
+        '/api/workflow-orchestrator/pending-run?count=3',
+      );
+    });
+
+    it('calls the pending-run route and returns pending + malformed buckets', async () => {
+      mockQuery.mockResolvedValue([makeRun()]);
+
+      const result = await port.getAvailableRuns(10);
+
+      expect(mockQuery).toHaveBeenCalledWith(
+        options,
+        'get',
+        '/api/workflow-orchestrator/pending-run?count=10',
       );
       expect(result.pending).toHaveLength(1);
       expect(result.pending[0].step.runId).toBe('42');
       expect(result.pending[0].step.stepId).toBe('step-1');
       expect(result.pending[0].auth.forestServerToken).toBe('test-forest-token');
       expect(result.malformed).toEqual([]);
+    });
+
+    it('carries the lock each run was claimed under, null when the orchestrator sends none', async () => {
+      mockQuery.mockResolvedValue([
+        makeRun({ id: 1, lockedAt: '2026-09-30T10:00:00.123Z' }),
+        makeRun({ id: 2 }),
+      ]);
+
+      const { pending } = await port.getAvailableRuns(2);
+
+      expect(pending.map(dispatch => [dispatch.step.runId, dispatch.lockedAt])).toEqual([
+        ['1', '2026-09-30T10:00:00.123Z'],
+        ['2', null],
+      ]);
     });
 
     it('filters out runs with no available step', async () => {
@@ -133,7 +166,7 @@ describe('ForestServerWorkflowPort', () => {
       });
       mockQuery.mockResolvedValue([terminalRun]);
 
-      const result = await port.getAvailableRuns();
+      const result = await port.getAvailableRuns(10);
 
       expect(result.pending).toEqual([]);
       expect(result.malformed).toEqual([]);
@@ -144,7 +177,7 @@ describe('ForestServerWorkflowPort', () => {
       const malformedRun = makeRun({ id: 99, collectionName: null });
       mockQuery.mockResolvedValue([malformedRun, validRun]);
 
-      const result = await port.getAvailableRuns();
+      const result = await port.getAvailableRuns(10);
 
       expect(result.pending).toHaveLength(1);
       expect(result.pending[0].step.runId).toBe('42');
@@ -192,7 +225,7 @@ describe('ForestServerWorkflowPort', () => {
       });
       mockQuery.mockResolvedValue([malformedRun]);
 
-      const result = await port.getAvailableRuns();
+      const result = await port.getAvailableRuns(10);
 
       expect(result.malformed[0]).toEqual(
         expect.objectContaining({ stepId: 'pending-step', stepIndex: 1 }),
@@ -203,7 +236,7 @@ describe('ForestServerWorkflowPort', () => {
       const malformedRun = makeRun({ id: 88, collectionName: null, workflowHistory: [] });
       mockQuery.mockResolvedValue([malformedRun]);
 
-      const result = await port.getAvailableRuns();
+      const result = await port.getAvailableRuns(10);
 
       expect(result.malformed[0]).toEqual(
         expect.objectContaining({ runId: '88', stepId: null, stepIndex: null }),
@@ -224,7 +257,7 @@ describe('ForestServerWorkflowPort', () => {
       });
       mockQuery.mockResolvedValue([unsupportedRun]);
 
-      const result = await port.getAvailableRuns();
+      const result = await port.getAvailableRuns(10);
 
       expect(result.pending).toEqual([]);
       expect(result.malformed).toHaveLength(1);
@@ -251,7 +284,7 @@ describe('ForestServerWorkflowPort', () => {
       });
       mockQuery.mockResolvedValue([malformedRun]);
 
-      const result = await port.getAvailableRuns();
+      const result = await port.getAvailableRuns(10);
 
       expect(result.pending).toEqual([]);
       expect(result.malformed[0]).toEqual(
@@ -269,7 +302,7 @@ describe('ForestServerWorkflowPort', () => {
       });
       mockQuery.mockResolvedValue([malformedRun]);
 
-      const result = await port.getAvailableRuns();
+      const result = await port.getAvailableRuns(10);
 
       expect(result.pending).toEqual([]);
       expect(result.malformed[0]).toEqual(
@@ -302,7 +335,7 @@ describe('ForestServerWorkflowPort', () => {
       });
       mockQuery.mockResolvedValue([malformedRun]);
 
-      const result = await port.getAvailableRuns();
+      const result = await port.getAvailableRuns(10);
 
       expect(result.pending).toEqual([]);
       expect(result.malformed[0]).toEqual(
@@ -321,7 +354,7 @@ describe('ForestServerWorkflowPort', () => {
       const brokenRun = { ...makeRun({ id: 111 }), selectedRecordId: 42 as never };
       mockQuery.mockResolvedValue([brokenRun]);
 
-      const result = await portWithLogger.getAvailableRuns();
+      const result = await portWithLogger.getAvailableRuns(10);
 
       expect(result.pending).toEqual([]);
       expect(result.malformed).toEqual([
@@ -366,6 +399,21 @@ describe('ForestServerWorkflowPort', () => {
         'get',
         '/api/workflow-orchestrator/available-run/run%2F42%20special',
       );
+    });
+
+    it.each([
+      [
+        'the lock it was claimed under',
+        { lockedAt: '2026-09-30T10:00:00.123Z' },
+        '2026-09-30T10:00:00.123Z',
+      ],
+      ['a null lock when the orchestrator sends none', {}, null],
+    ])('carries %s', async (_label, overrides, expected) => {
+      mockQuery.mockResolvedValue(makeRun(overrides));
+
+      const result = await port.getAvailableRun('42');
+
+      expect(result?.lockedAt).toBe(expected);
     });
 
     it('returns null when the server returns null (no pending run)', async () => {
@@ -632,6 +680,164 @@ describe('ForestServerWorkflowPort', () => {
       const result = await port.updateStepExecution('42', stepOutcome);
 
       expect(result).toBeNull();
+    });
+  });
+
+  describe('updateStepExecution hand back', () => {
+    const stepOutcome: StepOutcome = {
+      type: 'condition',
+      stepId: 'step-1',
+      stepIndex: 0,
+      status: 'success',
+      selectedOption: 'Yes',
+    };
+
+    function chainedRun(overrides: Partial<ServerHydratedWorkflowRun> = {}) {
+      return makeRun({
+        id: 42,
+        workflowHistory: [
+          { stepName: 'step-1', stepIndex: 0, done: true, stepDefinition: makeConditionStepDef() },
+          { stepName: 'step-2', stepIndex: 1, done: false, stepDefinition: makeConditionStepDef() },
+        ],
+        ...overrides,
+      });
+    }
+
+    it('carries the lock of the chained next step and hands nothing back', async () => {
+      mockQuery.mockResolvedValue(chainedRun({ lockedAt: 'lock-chained' }));
+
+      const result = await port.updateStepExecution('42', stepOutcome);
+
+      expect(result?.step.stepId).toBe('step-2');
+      expect(result?.lockedAt).toBe('lock-chained');
+      expect(mockQuery).toHaveBeenCalledTimes(1);
+    });
+
+    it('hands back, under its lock, a chained run it cannot parse, and still logs why', async () => {
+      const logger = jest.fn();
+      const portWithLogger = new ForestServerWorkflowPort({ ...options, logger });
+      mockQuery
+        .mockResolvedValueOnce(
+          chainedRun({
+            lockedAt: 'lock-chained',
+            userProfile: undefined as unknown as ServerUserProfile,
+          }),
+        )
+        .mockResolvedValueOnce(undefined);
+
+      const result = await portWithLogger.updateStepExecution('42', stepOutcome);
+
+      expect(result).toBeNull();
+      expect(mockQuery).toHaveBeenCalledTimes(2);
+      expect(mockQuery).toHaveBeenNthCalledWith(
+        2,
+        options,
+        'post',
+        '/api/workflow-orchestrator/release-run',
+        {},
+        { runId: 42, lockedAt: 'lock-chained' },
+      );
+      expect(logger).toHaveBeenCalledWith(
+        'Error',
+        'Failed to parse chained next step from /update-step response',
+        { runId: '42', error: expect.stringContaining('missing required field userProfile') },
+      );
+    });
+
+    it('hands back a chained run that has no step left to run', async () => {
+      mockQuery
+        .mockResolvedValueOnce(
+          makeRun({
+            id: 42,
+            lockedAt: 'lock-done',
+            workflowHistory: [
+              {
+                stepName: 'step-1',
+                stepIndex: 0,
+                done: true,
+                stepDefinition: makeConditionStepDef(),
+              },
+            ],
+          }),
+        )
+        .mockResolvedValueOnce(undefined);
+
+      const result = await port.updateStepExecution('42', stepOutcome);
+
+      expect(result).toBeNull();
+      expect(mockQuery).toHaveBeenNthCalledWith(
+        2,
+        options,
+        'post',
+        '/api/workflow-orchestrator/release-run',
+        {},
+        { runId: 42, lockedAt: 'lock-done' },
+      );
+    });
+
+    it('hands nothing back when the orchestrator returns no run', async () => {
+      mockQuery.mockResolvedValue(null);
+
+      const result = await port.updateStepExecution('42', stepOutcome);
+
+      expect(result).toBeNull();
+      expect(mockQuery).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('releaseRun', () => {
+    const RELEASE_ROUTE_MISSING =
+      'The orchestrator cannot take back the runs this executor lets go; they resume once their ' +
+      'lock expires. Expected while the executor runs ahead of the server.';
+
+    it('posts the run id as a number and the lock it holds to the release-run route', async () => {
+      mockQuery.mockResolvedValue(undefined);
+
+      await port.releaseRun('42', '2026-09-30T10:00:00.123Z');
+
+      expect(mockQuery).toHaveBeenCalledWith(
+        options,
+        'post',
+        '/api/workflow-orchestrator/release-run',
+        {},
+        { runId: 42, lockedAt: '2026-09-30T10:00:00.123Z' },
+      );
+    });
+
+    it('calls nothing for a run held under no lock', async () => {
+      await port.releaseRun('42', null);
+
+      expect(mockQuery).not.toHaveBeenCalled();
+    });
+
+    it('warns once, then only debugs, when the orchestrator has no release-run route', async () => {
+      const logger = jest.fn();
+      const portWithLogger = new ForestServerWorkflowPort({ ...options, logger });
+      mockQuery.mockRejectedValue(makeHttpError(404));
+
+      await expect(portWithLogger.releaseRun('42', 'lock-1')).resolves.toBeUndefined();
+      await expect(portWithLogger.releaseRun('43', 'lock-2')).resolves.toBeUndefined();
+
+      expect(logger.mock.calls).toEqual([
+        ['Warn', RELEASE_ROUTE_MISSING, { runId: '42', forestServerUrl: options.forestServerUrl }],
+        ['Debug', RELEASE_ROUTE_MISSING, { runId: '43', forestServerUrl: options.forestServerUrl }],
+      ]);
+    });
+
+    it('warns without throwing when the orchestrator fails to take the run back', async () => {
+      const logger = jest.fn();
+      const portWithLogger = new ForestServerWorkflowPort({ ...options, logger });
+      mockQuery.mockRejectedValue(makeHttpError(500));
+
+      await expect(portWithLogger.releaseRun('42', 'lock-1')).resolves.toBeUndefined();
+
+      expect(logger.mock.calls).toEqual([
+        [
+          'Warn',
+          'Failed to hand a run back to the orchestrator',
+          { runId: '42', error: 'HTTP 500' },
+        ],
+      ]);
     });
   });
 
@@ -1106,7 +1312,7 @@ describe('ForestServerWorkflowPort', () => {
     it('propagates errors from ServerUtils.query on getAvailableRuns', async () => {
       mockQuery.mockRejectedValue(new Error('Network error'));
 
-      await expect(port.getAvailableRuns()).rejects.toThrow('Network error');
+      await expect(port.getAvailableRuns(10)).rejects.toThrow('Network error');
     });
 
     it('propagates errors from getAvailableRun', async () => {
@@ -1142,13 +1348,6 @@ describe('ForestServerWorkflowPort', () => {
     afterEach(() => {
       jest.useRealTimers();
     });
-
-    const makeHttpError = (status: number) => {
-      const err = new Error(`HTTP ${status}`);
-      (err as Error & { status: number }).status = status;
-
-      return err;
-    };
 
     it('updateStepExecution retries on HTTP 503 and succeeds on the second attempt', async () => {
       mockQuery.mockRejectedValueOnce(makeHttpError(503)).mockResolvedValueOnce(null);
@@ -1227,6 +1426,16 @@ describe('ForestServerWorkflowPort', () => {
 
       await expect(promise).resolves.toEqual([]);
       expect(mockQuery).toHaveBeenCalledTimes(2);
+    });
+
+    it('releaseRun does not retry a failure the other routes would retry', async () => {
+      mockQuery.mockRejectedValue(makeHttpError(500));
+
+      const promise = port.releaseRun('42', 'lock-1');
+      await jest.advanceTimersByTimeAsync(100 + 500 + 2_000);
+
+      await expect(promise).resolves.toBeUndefined();
+      expect(mockQuery).toHaveBeenCalledTimes(1);
     });
 
     it('does not retry on non-retryable HTTP errors (4xx)', async () => {

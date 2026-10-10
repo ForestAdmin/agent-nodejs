@@ -2,10 +2,7 @@
 import type { MalformedRunInfo } from './ports/workflow-port';
 import type { RecordId } from './types/validated/collection';
 import type { AwaitingInputReason, ErrorKind } from './types/validated/step-outcome';
-import type { AgentHttpError } from '@forestadmin/agent-client';
 import type { z } from 'zod';
-
-import { extractErrorDetail } from '@forestadmin/agent-client';
 
 export function causeMessage(error: unknown): string | undefined {
   const { cause } = (error ?? {}) as { cause?: unknown };
@@ -416,38 +413,9 @@ export class McpToolNotFoundError extends WorkflowExecutorError {
   }
 }
 
-const AGENT_ERROR_MESSAGE_MAX_LENGTH = 500;
-
-type AgentHttpResponse = Pick<AgentHttpError, 'status' | 'body'>;
-
-function isAgentHttpResponse(cause: unknown): cause is AgentHttpResponse {
-  return cause instanceof Error && typeof (cause as Partial<AgentHttpResponse>).status === 'number';
-}
-
-export function flattenAgentMessage(detail: string): string {
-  const flat = Array.from(detail.slice(0, AGENT_ERROR_MESSAGE_MAX_LENGTH * 4), char =>
-    char < ' ' || (char >= '\u007f' && char <= '\u009f') ? ' ' : char,
-  )
-    .join('')
-    .replace(/\s+/g, ' ')
-    .trim();
-
-  return flat.length > AGENT_ERROR_MESSAGE_MAX_LENGTH
-    ? `${flat.slice(0, AGENT_ERROR_MESSAGE_MAX_LENGTH)}…`
-    : flat;
-}
-
-function agentErrorMessage(cause: unknown): string | undefined {
-  if (!isAgentHttpResponse(cause) || cause.status < 500) return undefined;
-  const detail = extractErrorDetail(cause);
-
-  return detail ? flattenAgentMessage(detail) : undefined;
-}
-
 export class AgentPortError extends WorkflowExecutorError {
-  constructor(operation: string, cause: unknown) {
+  constructor(operation: string, cause: unknown, agentMessage?: string) {
     const causeText = cause instanceof Error ? cause.message : String(cause);
-    const agentMessage = agentErrorMessage(cause);
 
     super(
       `Agent port "${operation}" failed: ${causeText}${
@@ -456,6 +424,30 @@ export class AgentPortError extends WorkflowExecutorError {
       'An error occurred while accessing your data. Please try again.',
     );
     this.cause = cause;
+  }
+}
+
+export type SegmentReadFailureKind = 'forbidden' | 'unreachable' | 'overloaded' | 'failed';
+
+export class SegmentReadError extends AgentPortError {
+  readonly failure: SegmentReadFailureKind;
+  readonly httpStatus?: number;
+  readonly agentDetail?: string;
+
+  constructor(
+    operation: string,
+    cause: unknown,
+    details: {
+      failure: SegmentReadFailureKind;
+      httpStatus?: number;
+      agentDetail?: string;
+      agentMessage?: string;
+    },
+  ) {
+    super(operation, cause, details.agentMessage);
+    this.failure = details.failure;
+    this.httpStatus = details.httpStatus;
+    this.agentDetail = details.agentDetail;
   }
 }
 
@@ -679,6 +671,44 @@ export class AgentProbeError extends Error {
     super(`Agent probe failed: ${message}`);
     this.name = 'AgentProbeError';
     if (options?.cause !== undefined) this.cause = options.cause;
+  }
+}
+
+// Boundary error — the automation poller drops the inbox for this cycle; never reaches a step
+// executor. The server answers 404 both for an inbox that is gone and for one it currently refuses
+// to serve (disabled, or degraded), so the poller must not treat it as permanent: the next config
+// poll is what decides whether the inbox comes back.
+export class AutomatedInboxGoneError extends Error {
+  readonly inboxId: string;
+  readonly operation: string;
+  readonly detail?: string;
+
+  constructor(inboxId: string, operation: string, detail?: string) {
+    super(`Automated inbox "${inboxId}" is no longer served by the orchestrator`);
+    this.name = 'AutomatedInboxGoneError';
+    this.inboxId = inboxId;
+    this.operation = operation;
+    this.detail = detail;
+  }
+}
+
+export class SegmentRecordIdMissingError extends Error {
+  constructor(collectionName: string) {
+    super(
+      `The agent returned a "${collectionName}" record with no id while reading an automated ` +
+        `inbox's segment`,
+    );
+    this.name = 'SegmentRecordIdMissingError';
+  }
+}
+
+export class CompositeRecordIdMismatchError extends Error {
+  constructor(recordId: string, expectedParts: number) {
+    super(
+      `Record id "${recordId}" does not split into the ${expectedParts} primary key parts the ` +
+        `collection declares`,
+    );
+    this.name = 'CompositeRecordIdMismatchError';
   }
 }
 

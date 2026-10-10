@@ -1,4 +1,4 @@
-import type { ServerHydratedWorkflowRun } from './server-types';
+import type { ServerHydratedWorkflowRun, ServerReleaseRunRequest } from './server-types';
 import type { Logger } from '../ports/logger-port';
 import type {
   AvailableRunDispatch,
@@ -30,11 +30,12 @@ import {
 import { CollectionSchemaSchema } from '../types/validated/collection';
 
 const ROUTES = {
-  pendingRuns: '/api/workflow-orchestrator/pending-run',
+  pendingRuns: (count: number) => `/api/workflow-orchestrator/pending-run?count=${count}`,
   availableRun: (runId: string) =>
     `/api/workflow-orchestrator/available-run/${encodeURIComponent(runId)}`,
   updateStep: '/api/workflow-orchestrator/update-step',
   executorMetadata: '/api/workflow-orchestrator/executor-metadata',
+  releaseRun: '/api/workflow-orchestrator/release-run',
   collectionSchema: (collectionName: string, runId: string) =>
     `/api/workflow-orchestrator/collection-schema/${encodeURIComponent(
       collectionName,
@@ -50,18 +51,27 @@ function stripReferenceKey(name: string | undefined): string | undefined {
   return name?.includes('.') ? name.slice(0, name.lastIndexOf('.')) : name;
 }
 
+const RELEASE_ROUTE_MISSING =
+  'The orchestrator cannot take back the runs this executor lets go; they resume once their ' +
+  'lock expires. Expected while the executor runs ahead of the server.';
+
 export default class ForestServerWorkflowPort implements WorkflowPort {
   private readonly options: HttpOptions;
   private readonly logger: Logger;
+  private reportedMissingReleaseRoute = false;
 
   constructor(params: { envSecret: string; forestServerUrl: string; logger?: Logger }) {
     this.options = { envSecret: params.envSecret, forestServerUrl: params.forestServerUrl };
     this.logger = params.logger ?? createConsoleLogger();
   }
 
-  async getAvailableRuns(): Promise<AvailableRunsBatch> {
+  async getAvailableRuns(count: number): Promise<AvailableRunsBatch> {
     const runs = await this.callPort('getAvailableRuns', () =>
-      ServerUtils.query<ServerHydratedWorkflowRun[]>(this.options, 'get', ROUTES.pendingRuns),
+      ServerUtils.query<ServerHydratedWorkflowRun[]>(
+        this.options,
+        'get',
+        ROUTES.pendingRuns(count),
+      ),
     );
 
     const pending: AvailableRunDispatch[] = [];
@@ -137,7 +147,7 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
     const step = toAvailableStepExecution(run);
     if (!step) return null;
 
-    return { step, auth: { forestServerToken: token } };
+    return { step, auth: { forestServerToken: token }, lockedAt: run.lockedAt ?? null };
   }
 
   private toMalformedInfo(
@@ -160,35 +170,61 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
     runId: string,
     stepOutcome: StepOutcome,
   ): Promise<AvailableRunDispatch | null> {
-    return this.callPort(
+    const run = await this.callPort(
       'updateStepExecution',
-      async () => {
-        const body = toUpdateStepRequest(runId, stepOutcome);
-        const run = await ServerUtils.query<ServerHydratedWorkflowRun | null>(
+      () =>
+        ServerUtils.query<ServerHydratedWorkflowRun | null>(
           this.options,
           'post',
           ROUTES.updateStep,
           {},
-          body,
-        );
-
-        if (!run) return null;
-
-        try {
-          return this.toDispatch(run);
-        } catch (error) {
-          // The outcome was recorded server-side; only the chain parse failed. Fall back to the
-          // next poll cycle — don't let a malformed chain response mask the successful update.
-          this.logger('Error', 'Failed to parse chained next step from /update-step response', {
-            runId: String(run.id),
-            error: extractErrorMessage(error),
-          });
-
-          return null;
-        }
-      },
+          toUpdateStepRequest(runId, stepOutcome),
+        ),
       { retry: true },
     );
+
+    if (!run) return null;
+
+    let dispatch: AvailableRunDispatch | null = null;
+
+    try {
+      dispatch = this.toDispatch(run);
+    } catch (error) {
+      // The outcome was recorded server-side; only the chain parse failed. Fall back to the
+      // next poll cycle — don't let a malformed chain response mask the successful update.
+      this.logger('Error', 'Failed to parse chained next step from /update-step response', {
+        runId: String(run.id),
+        error: extractErrorMessage(error),
+      });
+    }
+
+    if (!dispatch) await this.releaseRun(String(run.id), run.lockedAt ?? null);
+
+    return dispatch;
+  }
+
+  async releaseRun(runId: string, lockedAt: string | null): Promise<void> {
+    if (!lockedAt) return;
+
+    try {
+      const body: ServerReleaseRunRequest = { runId: Number(runId), lockedAt };
+      await ServerUtils.query<void>(this.options, 'post', ROUTES.releaseRun, {}, body);
+    } catch (error) {
+      if ((error as { status?: number })?.status === 404) {
+        this.logger(this.reportedMissingReleaseRoute ? 'Debug' : 'Warn', RELEASE_ROUTE_MISSING, {
+          runId,
+          forestServerUrl: this.options.forestServerUrl,
+        });
+        this.reportedMissingReleaseRoute = true;
+
+        return;
+      }
+
+      this.logger('Warn', 'Failed to hand a run back to the orchestrator', {
+        runId,
+        error: extractErrorMessage(error),
+      });
+    }
   }
 
   async getCollectionSchema(collectionName: string, runId: string): Promise<CollectionSchema> {
