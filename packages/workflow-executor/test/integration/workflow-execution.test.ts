@@ -681,7 +681,7 @@ describe('workflow execution (integration)', () => {
 
     const model = createSequentialMockModel(
       { name: 'send_notification', args: { message: 'Hello' } },
-      { name: 'summarize-result', args: { summary: 'Notification sent' } },
+      { name: 'complete-step', args: { summary: 'Notification sent' } },
     );
 
     const aiClient = createMockAiClient(model);
@@ -748,6 +748,30 @@ describe('workflow execution (integration)', () => {
     expect(aiClient.loadRemoteToolsWithFailures).toHaveBeenCalledWith({
       'mcp-server-1': expect.objectContaining({ id: 'mcp-1' }),
     });
+
+    const run = await request(server.callback)
+      .get('/runs/run-1')
+      .set('Authorization', `Bearer ${token}`)
+      .send();
+
+    expect(run.body.steps[0]).toEqual(
+      expect.objectContaining({
+        type: 'mcp',
+        toolCalls: [
+          {
+            name: 'send_notification',
+            sourceId: 'mcp-1',
+            input: { message: 'Hello' },
+            result: 'OK',
+          },
+        ],
+        executionResult: {
+          success: true,
+          toolResult: 'OK',
+          formattedResponse: 'Notification sent',
+        },
+      }),
+    );
   });
 
   // -------------------------------------------------------------------------
