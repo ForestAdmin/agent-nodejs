@@ -4,7 +4,7 @@
   "description": "Testing utilities for Forest Admin agent",
   "author": "Vincent Molinié <vincent.m@forestadmin.com>",
   "homepage": "https://github.com/ForestAdmin/agent-nodejs#readme",
-  "license": "GPL-3.0",
+  "license": "Apache-2.0",
   "main": "dist/index.js",
   "publishConfig": {
     "access": "public"

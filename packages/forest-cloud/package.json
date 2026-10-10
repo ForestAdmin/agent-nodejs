@@ -36,7 +36,7 @@
     "dist/**/*.txt"
   ],
   "homepage": "https://github.com/ForestAdmin/agent-nodejs/forest-cloud",
-  "license": "GPL-3.0",
+  "license": "Apache-2.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ForestAdmin/agent-nodejs.git",

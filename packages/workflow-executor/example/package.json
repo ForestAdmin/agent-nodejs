@@ -1,7 +1,7 @@
 {
   "name": "workflow-executor-example",
   "version": "0.0.0",
-  "license": "GPL-3.0",
+  "license": "Apache-2.0",
   "private": true,
   "scripts": {
     "start": "node --env-file=.env ../dist/cli.js",

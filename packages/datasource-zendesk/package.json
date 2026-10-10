@@ -2,7 +2,7 @@
   "name": "@forestadmin/datasource-zendesk",
   "version": "1.0.8",
   "main": "dist/index.js",
-  "license": "GPL-3.0",
+  "license": "Apache-2.0",
   "publishConfig": {
     "access": "public"
   },

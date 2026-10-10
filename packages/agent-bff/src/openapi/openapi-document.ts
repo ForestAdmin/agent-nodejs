@@ -687,7 +687,7 @@ export function generateOpenApiDocument(
     info: {
       title: 'Forest BFF',
       version,
-      license: { name: 'GPL-3.0', url: 'https://www.gnu.org/licenses/gpl-3.0.html' },
+      license: { name: 'Apache-2.0', url: 'https://www.apache.org/licenses/LICENSE-2.0.html' },
       description: `${
         unfolding ? UNFOLDED_DESCRIPTION : GENERIC_DESCRIPTION
       } ${SHARED_DESCRIPTION} ${SURFACE_DESCRIPTION}`,
