@@ -1,0 +1,10 @@
+---
+status: accepted
+date: 2026-10-12
+tags: [ai-plane, gateway]
+affected_components: [agent, agent-bff, mcp-server, gateway]
+---
+
+# One Gateway serves the MCP and the API behind a shared OAuth route
+
+The MCP server and the former BFF ship as one component, the Gateway: `addGateway({ mcp, api })` in `@forestadmin/agent` and the standalone `@forestadmin/gateway` (`forest-gateway`) wrap `mcp-server` and `agent-bff` as they are, behind one switch (`createGatewaySwitch`) and one layout that never depends on which services are enabled: `<basePath>/mcp`, `<basePath>/oauth/*`, `<basePath>/api/{agent,docs,health}`. `mountAiMcpServer()`, `addBff()` and `forest-bff` stay as deprecated aliases on their current paths, so no major version is needed and MCP URLs already pasted into customer clients keep working; mixing an alias with `addGateway()` throws. Both services keep their own OAuth server and their own token, but they share `<basePath>/oauth/*`, and the caller says which one it wants: `?service=api` goes to the API, no `service` goes to the MCP, any other value answers `400 invalid_request` when the MCP is mounted. The query is needed because nothing else in the request tells them apart: both declare `GET /oauth/authorize` and `POST /oauth/token`, and their `client_id`s come from the same Forest registry, where every client is registered as `application_type: 'mcp'`. A separate `<basePath>/api/oauth/*` was turned down because MCP clients discover OAuth through `.well-known` documents anchored on the MCP prefix, so only the API side could move, and customers registering an API client would then face two OAuth surfaces on one Gateway; routing on a registry marker was turned down because it needs a new server field and the re-registration of existing clients. Accepted cost: every API OAuth caller (today only the Zendesk app) must send `?service=api` on both `/oauth/authorize` and `/oauth/token`, and the Forest server reads the same parameter to apply the right plan gate (`gatewayMcp` or `bff`).
