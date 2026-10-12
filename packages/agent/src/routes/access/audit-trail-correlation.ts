@@ -7,6 +7,7 @@ import type { Context } from 'koa';
 
 import { ValidationError } from '@forestadmin/datasource-toolkit';
 
+import { toServedAuditRecord } from '../../audit-trail';
 import checkRecordVisibility, {
   recheckRecordVisibility,
 } from '../../audit-trail/record-visibility';
@@ -59,7 +60,7 @@ export default class AuditTrailCorrelationRoute extends BaseRoute {
     const data = await this.withhold(history, target, context);
     if (!data) return;
 
-    context.response.body = { data };
+    context.response.body = { data: data.map(toServedAuditRecord) };
   }
 
   public async handleBatch(context: Context): Promise<void> {
@@ -77,7 +78,7 @@ export default class AuditTrailCorrelationRoute extends BaseRoute {
     const data = await this.withhold(history, target, context);
     if (!data) return;
 
-    context.response.body = { data };
+    context.response.body = { data: data.map(toServedAuditRecord) };
   }
 
   // Same rule as the per-record history route: these routes return the same rows, so a gone

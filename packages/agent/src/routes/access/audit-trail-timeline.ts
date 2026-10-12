@@ -5,6 +5,7 @@ import type { DataSource } from '@forestadmin/datasource-toolkit';
 import type Router from '@koa/router';
 import type { Context } from 'koa';
 
+import { toServedAuditRecord } from '../../audit-trail';
 import {
   parseDateBoundary,
   parseOperations,
@@ -68,9 +69,7 @@ export default class AuditTrailTimelineRoute extends BaseRoute {
     const page = fetched.slice(0, limit);
 
     context.response.body = {
-      // `previousRecordId` stays out: it is how the agent follows a record across a rename, not
-      // something a client reads.
-      data: page.map(({ previousRecordId, ...served }) => served),
+      data: page.map(toServedAuditRecord),
       meta: {
         cursor: fetched.length > limit ? AuditTrailTimelineRoute.nextCursor(page, cursor) : null,
         ...(availableUsers && { availableUsers }),

@@ -16,7 +16,7 @@ import {
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
 
-import { revertRecord } from '../../audit-trail';
+import { revertRecord, toServedAuditRecord } from '../../audit-trail';
 import {
   parseDateBoundary,
   parseFields,
@@ -106,9 +106,7 @@ export default class AuditTrailRoute extends CollectionRoute {
       });
 
       context.response.body = {
-        // `previousRecordId` stays out: it is how the agent follows a record across a rename, not
-        // something a client reads.
-        data: matched.page.map(({ previousRecordId, ...served }) => served),
+        data: matched.page.map(toServedAuditRecord),
         meta: {
           count: matched.count,
           ...(isFirstFetch && { availableUsers: [...matched.authors.values()] }),
@@ -167,7 +165,7 @@ export default class AuditTrailRoute extends CollectionRoute {
       permissionScope && gone ? this.withhold(rawData, permissionScope, context) : rawData;
 
     context.response.body = {
-      data: data.map(({ previousRecordId, ...served }) => served),
+      data: data.map(toServedAuditRecord),
       meta: { count, ...(availableUsers && { availableUsers }) },
     };
   }

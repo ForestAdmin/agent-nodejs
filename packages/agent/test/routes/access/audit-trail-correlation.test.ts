@@ -138,6 +138,27 @@ describe('AuditTrailCorrelationRoute', () => {
     expect(context.response.body).toEqual({ data: history });
   });
 
+  test.each(['handleHistory', 'handleBatch'] as const)(
+    '%s does not serve the id a row was filed under before its update',
+    async handler => {
+      const history = [{ operation: 'update', correlationKey: 'req-1', previousRecordId: '2' }];
+      const { services, dataSource, options } = setup(history);
+      const route = new AuditTrailCorrelationRoute(services, options, dataSource);
+      const context = contextWith({
+        timezone: 'Europe/Paris',
+        collection: 'books',
+        recordId: '2',
+        correlationKeys: 'req-1',
+      });
+
+      await route[handler](context);
+
+      expect(context.response.body).toEqual({
+        data: [{ operation: 'update', correlationKey: 'req-1' }],
+      });
+    },
+  );
+
   test('asserts the user can read the collection from the query param', async () => {
     const { services, dataSource, options } = setup();
     const route = new AuditTrailCorrelationRoute(services, options, dataSource);

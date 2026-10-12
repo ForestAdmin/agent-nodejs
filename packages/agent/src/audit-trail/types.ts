@@ -36,6 +36,15 @@ export type AuditRecord = {
   status: AuditStatus;
 };
 
+export type ServedAuditRecord = Omit<AuditRecord, 'previousRecordId'>;
+
+export function toServedAuditRecord({
+  previousRecordId,
+  ...served
+}: AuditRecord): ServedAuditRecord {
+  return served;
+}
+
 /** The subset known before the write runs, when the pending row is first inserted. */
 export type PendingAuditRecord = Omit<AuditRecord, 'id' | 'status' | 'previousRecordId'> &
   Partial<Pick<AuditRecord, 'previousRecordId'>>;
