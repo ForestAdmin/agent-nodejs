@@ -309,6 +309,28 @@ describe('runAuditMigrations (sqlite)', () => {
     await sequelize.close();
   });
 
+  it('still fails migration 003 with the add error when re-reading the columns fails too', async () => {
+    const sequelize = new Sequelize('sqlite::memory:', { logging: false });
+    await runAuditMigrations(sequelize, { tableName: 'audit_logs' });
+    await sequelize.query('ALTER TABLE "audit_logs" DROP COLUMN "previous_record_id"');
+    await sequelize.query(
+      `DELETE FROM "audit_logs_migration" WHERE name = 'audit_logs:003-add-previous-record-id'`,
+    );
+    const queryInterface = sequelize.getQueryInterface();
+    jest.spyOn(queryInterface, 'addColumn').mockImplementationOnce(async () => {
+      jest
+        .spyOn(queryInterface, 'describeTable')
+        .mockRejectedValueOnce(new Error('connection lost'));
+      throw new Error('disk full');
+    });
+
+    await expect(runAuditMigrations(sequelize, { tableName: 'audit_logs' })).rejects.toThrow(
+      'disk full',
+    );
+
+    await sequelize.close();
+  });
+
   it('rejects a pre-existing table sharing the name that is missing audit-trail columns', async () => {
     const sequelize = new Sequelize('sqlite::memory:', { logging: false });
     await sequelize.getQueryInterface().createTable('audit_logs', {
