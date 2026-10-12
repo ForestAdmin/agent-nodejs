@@ -13,6 +13,7 @@ import createAiRoutesMiddleware, { AI_QUERY_ROUTE } from '../../src/ai/ai-routes
 import { AI_BODY_LIMIT } from '../../src/http/body-limit';
 import createErrorMiddleware from '../../src/http/error-middleware';
 import EnvironmentFetchError from '../../src/oauth/environment-fetch-error';
+import OAuthExchangeError from '../../src/oauth/oauth-exchange-error';
 import { restoreFetchAfterEach, stubFetch } from '../helpers/fetch-stub';
 
 const SAAS_ACCESS_TOKEN = 'saas-access-token';
@@ -178,6 +179,37 @@ describe('createAiRoutesMiddleware', () => {
         'AI query refused: the Forest server could not refresh the session',
         { cause: expect.stringContaining('ECONNREFUSED 10.0.0.1') },
       );
+    });
+  });
+
+  describe('when the Forest server refuses the session refresh because the plan lacks the Gateway API', () => {
+    it('should answer 403 plan_feature_missing with the nested body and never reach the upstream', async () => {
+      const store = makeSessionStore({
+        saasAccessToken: 'expired.token.value',
+        clientId: 'client-1',
+      });
+      const serverClient = {
+        refreshServerToken: jest
+          .fn()
+          .mockRejectedValue(
+            new OAuthExchangeError('access_denied', 'no Gateway API', 'plan_feature_missing'),
+          ),
+      } as unknown as ForestServerClient;
+      (store.getSaasRefreshToken as jest.Mock).mockReturnValue('refresh-token');
+      const query = jest.fn();
+      const { app } = makeApp({ query, store, serverClient });
+
+      const response = await request(app.callback()).post(AI_QUERY_ROUTE).send({ messages: [] });
+
+      expect(response.status).toBe(403);
+      expect(response.body).toEqual({
+        error: {
+          type: 'plan_feature_missing',
+          status: 403,
+          message: "The project's plan does not include the Gateway API.",
+        },
+      });
+      expect(query).not.toHaveBeenCalled();
     });
   });
 
