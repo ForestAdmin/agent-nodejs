@@ -23,6 +23,7 @@ import type { ForestSchema } from '@forestadmin/forestadmin-client';
 import type { FileUploadsOptions, TokenTtlOptions, ToolName } from '@forestadmin/mcp-server';
 
 import { DataSourceCustomizer } from '@forestadmin/datasource-customizer';
+import { normalizeDomainList } from '@forestadmin/forestadmin-client';
 import bodyParser from '@koa/bodyparser';
 import cors from '@koa/cors';
 import Router from '@koa/router';
@@ -100,6 +101,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     services: GatewayServices;
     allowedOAuthClients?: string[];
     build?: (mcp?: RootHandler) => RootHandler;
+    mcpStopped?: RootHandler;
   } | null = null;
 
   private isRestarting = false;
@@ -551,7 +553,11 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
       );
     }
 
-    const { createGatewaySwitch, normalizeMountPath } = await import('@forestadmin/mcp-server');
+    normalizeDomainList(this.gateway.allowedOAuthClients);
+
+    const { createGatewaySwitch, makeIsMcpRoute, normalizeMountPath } = await import(
+      '@forestadmin/mcp-server'
+    );
     const basePath = normalizeMountPath(this.gateway.basePath, 'basePath');
 
     assertNoGatewayOverlap(basePath, this.completeMountPrefix, services);
@@ -560,7 +566,10 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
 
     const bff = services.api ? this.gatewayApi(basePath, services.api) : null;
     const api = bff ? { matches: (path: string) => bff.claims(path), callback: bff.handle } : null;
-    const mcpStarting = services.mcp ? mcpUnavailable(basePath, 'starting') : null;
+    const isMcpRoute = makeIsMcpRoute(basePath);
+    const mcpStarting = services.mcp ? mcpUnavailable(isMcpRoute, 'starting') : null;
+
+    if (services.mcp) this.gateway.mcpStopped = mcpUnavailable(isMcpRoute, 'stopped');
 
     this.gateway.build = mcp =>
       createGatewaySwitch({
@@ -600,10 +609,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
       return;
     }
 
-    const stopped =
-      this.isStopped && this.gateway.services.mcp
-        ? mcpUnavailable(this.gateway.basePath, 'stopped')
-        : undefined;
+    const stopped = this.isStopped ? this.gateway.mcpStopped : undefined;
 
     this.setGatewayCallback(this.gateway.build(stopped ?? mcp));
   }

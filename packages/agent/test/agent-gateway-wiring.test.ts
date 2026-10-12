@@ -331,18 +331,9 @@ describe.each([
     const { agent } = buildAgent();
     agent.addGateway({ mcp: true });
     const app = mount(agent);
-    const preparing = deferred<void>();
-    const prepare = (agent as any).prepareGateway.bind(agent);
-    jest.spyOn(agent as any, 'prepareGateway').mockImplementation(async () => {
-      await preparing.promise;
-      await prepare();
-    });
-    const prepareCalls = jest.mocked((agent as any).prepareGateway).mock.calls;
 
     const starting = agent.start();
-    await until(() => prepareCalls.length > 0);
     await agent.stop();
-    preparing.resolve();
     await starting;
 
     const mcp = await request(app).post('/mcp');
@@ -405,6 +396,30 @@ describe.each([
     expect((await request(app).get('/api/health')).status).toBe(503);
   });
 
+  it('should answer 503 on the MCP discovery documents while the MCP starts', async () => {
+    const dataSource = deferred<ReturnType<typeof factories.dataSource.build>>();
+    const getDataSource = jest.mocked(DataSourceCustomizer.prototype.getDataSource);
+    getDataSource.mockReturnValue(dataSource.promise);
+    const { agent } = buildAgent();
+    agent.addGateway({ mcp: true, basePath: '/ai' });
+    const app = mount(agent);
+
+    const starting = agent.start();
+    await until(() => getDataSource.mock.calls.length > 0);
+    const statuses = await Promise.all(
+      [
+        '/.well-known/oauth-authorization-server/ai',
+        '/.well-known/oauth-protected-resource/ai/mcp',
+        '/ai/mcp',
+      ].map(async path => (await request(app).get(path)).status),
+    );
+    await agent.stop();
+    dataSource.resolve(factories.dataSource.build());
+    await starting;
+
+    expect(statuses).toEqual([503, 503, 503]);
+  });
+
   it('should leave /.well-known to the host in every window the MCP is not built', async () => {
     const dataSource = deferred<ReturnType<typeof factories.dataSource.build>>();
     const getDataSource = jest.mocked(DataSourceCustomizer.prototype.getDataSource);
@@ -435,11 +450,24 @@ describe.each([
 
     expect((await request(app).get('/api/health')).status).toBe(503);
     expect((await request(app).post('/mcp')).status).toBe(503);
-    expect((await request(app).get('/.well-known/oauth-authorization-server')).status).toBe(404);
+    expect((await request(app).get('/.well-known/oauth-authorization-server')).status).toBe(503);
   });
 });
 
 describe('addGateway() checks at start()', () => {
+  it('should refuse a malformed allowedOAuthClients before serving /forest', async () => {
+    const { agent } = buildAgent();
+    agent.addGateway({ api: {}, allowedOAuthClients: ['https://claude.ai'] });
+    onExpress(agent);
+
+    await expect(agent.start()).rejects.toThrow(
+      'Invalid allowedOAuthClients entry "https://claude.ai"',
+    );
+
+    expect(mockMakeRoutes).not.toHaveBeenCalled();
+    expect(mockBuildBff).not.toHaveBeenCalled();
+  });
+
   it('should refuse another agent-bff version, naming both', async () => {
     mockBffVersion = '0.0.1';
     const { agent } = buildAgent();

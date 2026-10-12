@@ -19,16 +19,12 @@ const MCP_UNAVAILABLE = {
   stopped: 'The MCP server was stopped with the agent.',
 };
 
-export function mcpUnavailable(basePath: string, state: keyof typeof MCP_UNAVAILABLE): RootHandler {
-  const mcpPath = `${basePath}/mcp`;
-  const oauthPrefix = `${basePath}/oauth/`;
-
+export function mcpUnavailable(
+  isMcpRoute: (url: string) => boolean,
+  state: keyof typeof MCP_UNAVAILABLE,
+): RootHandler {
   return {
-    matches: url => {
-      const [pathname] = url.split(/[?#]/, 1);
-
-      return isWithin(pathname, mcpPath) || pathname.startsWith(oauthPrefix);
-    },
+    matches: isMcpRoute,
     callback: (_req, res) => {
       res.statusCode = HTTP_SERVICE_UNAVAILABLE;
       res.setHeader('Content-Type', 'application/json');
