@@ -608,7 +608,7 @@ describe('generateOpenApiDocument', () => {
     expect(header['Retry-After']?.description).not.toContain('could not be resolved');
   });
 
-  it('should credit the BFF itself with the 429, not only the agent', () => {
+  it('should credit the Gateway API itself with the 429, not only the agent', () => {
     expect(listResponses()['429'].description).toContain('Gateway API rate-limited');
   });
 
