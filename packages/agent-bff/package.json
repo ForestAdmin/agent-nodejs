@@ -1,11 +1,11 @@
 {
   "name": "@forestadmin/agent-bff",
-  "version": "1.35.2",
+  "version": "1.40.1",
   "main": "dist/index.js",
   "bin": {
     "forest-bff": "dist/cli.js"
   },
-  "license": "GPL-3.0",
+  "license": "Apache-2.0",
   "engines": {
     "node": ">=22.12.0"
   },
@@ -33,24 +33,23 @@
   },
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "8.5.0",
-    "@forestadmin/agent-client": "1.16.2",
-    "@forestadmin/datasource-toolkit": "1.55.1",
-    "@forestadmin/forestadmin-client": "1.43.4",
+    "@forestadmin/agent-client": "1.18.1",
+    "@forestadmin/datasource-toolkit": "1.56.1",
+    "@forestadmin/forestadmin-client": "1.43.6",
     "@koa/bodyparser": "^6.1.0",
-    "inflected": "^1.1.6",
     "jsonwebtoken": "^9.0.3",
     "koa": "^3.0.1",
     "sanitize-html": "2.17.5",
-    "zod": "4.3.6"
+    "zod": "4.6.5"
   },
   "devDependencies": {
     "@hey-api/openapi-ts": "0.99.0",
     "@redocly/cli": "2.35.1",
-    "@types/inflected": "^1.1.29",
     "@types/jsonwebtoken": "^9.0.1",
     "@types/koa": "^2.13.5",
     "@types/sanitize-html": "^2.16.1",
     "@types/supertest": "^6.0.2",
+    "joi": "^17.13.6",
     "openapi3-ts": "4.6.1",
     "redoc": "2.5.3",
     "supertest": "^7.1.3"

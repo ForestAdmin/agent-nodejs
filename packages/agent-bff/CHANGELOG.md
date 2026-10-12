@@ -1,3 +1,97 @@
+## @forestadmin/agent-bff [1.40.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.40.0...@forestadmin/agent-bff@1.40.1) (2026-10-10)
+
+
+### Bug Fixes
+
+* **license:** relicense from GPL-3.0 to Apache-2.0 ([#1992](https://github.com/ForestAdmin/agent-nodejs/issues/1992)) ([9db2921](https://github.com/ForestAdmin/agent-nodejs/commit/9db2921d6b66ef74e3ea75d92e4a29325732b492))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.18.1
+* **@forestadmin/datasource-toolkit:** upgraded to 1.56.1
+* **@forestadmin/forestadmin-client:** upgraded to 1.43.6
+
+# @forestadmin/agent-bff [1.40.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.39.1...@forestadmin/agent-bff@1.40.0) (2026-10-07)
+
+
+### Features
+
+* **mcp-server:** tell the model which fields a record cannot be read under ([#1977](https://github.com/ForestAdmin/agent-nodejs/issues/1977)) ([6ff083e](https://github.com/ForestAdmin/agent-nodejs/commit/6ff083e9938c7857020dc8e12e4b62921883a8f5))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.18.0
+
+## @forestadmin/agent-bff [1.39.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.39.0...@forestadmin/agent-bff@1.39.1) (2026-10-07)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.17.1
+* **@forestadmin/datasource-toolkit:** upgraded to 1.56.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.43.5
+
+# @forestadmin/agent-bff [1.39.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.38.1...@forestadmin/agent-bff@1.39.0) (2026-10-06)
+
+
+### Features
+
+* **agent-bff:** prepare a prebuilt listener for the gateway ([#1966](https://github.com/ForestAdmin/agent-nodejs/issues/1966)) ([43fc771](https://github.com/ForestAdmin/agent-nodejs/commit/43fc771d2e1d57350855c591f55b645ac3c08b0e))
+
+## @forestadmin/agent-bff [1.38.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.38.0...@forestadmin/agent-bff@1.38.1) (2026-10-06)
+
+
+### Bug Fixes
+
+* **agent-bff:** read the json array composite id forest_liana serializes ([#1968](https://github.com/ForestAdmin/agent-nodejs/issues/1968)) ([a62e137](https://github.com/ForestAdmin/agent-nodejs/commit/a62e137f965e271fc72aa505668a5defec81b2ea))
+
+# @forestadmin/agent-bff [1.38.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.37.0...@forestadmin/agent-bff@1.38.0) (2026-10-05)
+
+
+### Features
+
+* **mcp-server:** tell the model which record key holds each schema field ([#1961](https://github.com/ForestAdmin/agent-nodejs/issues/1961)) ([cba8a29](https://github.com/ForestAdmin/agent-nodejs/commit/cba8a299a4733713f0c487e3d2a9e07cb9ab371f))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.17.0
+
+# @forestadmin/agent-bff [1.37.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.36.1...@forestadmin/agent-bff@1.37.0) (2026-10-05)
+
+
+### Features
+
+* **mcp-server:** add gateway switch for mcp and api routing ([#1958](https://github.com/ForestAdmin/agent-nodejs/issues/1958)) ([1cb907e](https://github.com/ForestAdmin/agent-nodejs/commit/1cb907e8eb0374da4e851a405083345dbaecdf10))
+
+## @forestadmin/agent-bff [1.36.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.36.0...@forestadmin/agent-bff@1.36.1) (2026-10-05)
+
+
+### Bug Fixes
+
+* **agent-bff:** send client_id on the Forest refresh grant ([#1953](https://github.com/ForestAdmin/agent-nodejs/issues/1953)) ([11760d7](https://github.com/ForestAdmin/agent-nodejs/commit/11760d714a49b8a9181b6173dd12f3990e76d938))
+
+# @forestadmin/agent-bff [1.36.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.35.2...@forestadmin/agent-bff@1.36.0) (2026-10-02)
+
+
+### Features
+
+* **agent-bff:** report a missing gateway plan feature on resolve ([#1930](https://github.com/ForestAdmin/agent-nodejs/issues/1930)) ([0b9809b](https://github.com/ForestAdmin/agent-nodejs/commit/0b9809babc54099fe727afa991de16c8f0d1a089))
+
 ## @forestadmin/agent-bff [1.35.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.35.1...@forestadmin/agent-bff@1.35.2) (2026-10-01)
 
 

@@ -117,7 +117,7 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
 LABEL org.opencontainers.image.title="forestadmin-agent-bff" \
       org.opencontainers.image.description="Backend-for-frontend for Forest Admin agents." \
       org.opencontainers.image.source="https://github.com/ForestAdmin/agent-nodejs" \
-      org.opencontainers.image.licenses="GPL-3.0"
+      org.opencontainers.image.licenses="Apache-2.0"
 
 # Exec form, no wrapper script: the CLI takes positional subcommands (`openapi`),
 # so a "is the first argument a flag?" wrapper would misread them as a command to

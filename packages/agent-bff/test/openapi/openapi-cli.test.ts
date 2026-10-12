@@ -10,12 +10,13 @@ import request from 'supertest';
 
 import dispatchCli, {
   DEFAULT_OUTPUT_FILE,
+  DEPRECATION_WARNING,
   HINT,
   USAGE,
-  renderOpenApi,
 } from '../../src/cli-dispatch';
 import { issueBffAccessToken } from '../../src/oauth/bff-token';
 import { OPENAPI_PATH } from '../../src/openapi/openapi-routes';
+import renderOpenApi from '../../src/openapi/render-openapi';
 import version from '../../src/version';
 import { action, collection, column, relation } from '../read-model/fixtures';
 
@@ -246,10 +247,35 @@ describe('renderOpenApi', () => {
     expect(document.servers[0].url).toBe('https://bff.example.com');
   });
 
+  it('should carry basePath in the unfolded export', async () => {
+    const document = JSON.parse(await renderOpenApi(VALID_ENV, noopLogger, { basePath: '/api' }));
+
+    expect(document.info.description).toContain('Paths are unfolded');
+    expect(document.servers[0].url).toBe('/api');
+  });
+
   it('should reject a malformed BFF_PUBLIC_URL rather than export an unusable server', async () => {
     await expect(renderOpenApi({ BFF_PUBLIC_URL: 'bff.example.com' }, noopLogger)).rejects.toThrow(
       /BFF_PUBLIC_URL/,
     );
+  });
+
+  it('should name the labelled key of a malformed public url', async () => {
+    await expect(
+      renderOpenApi({ BFF_PUBLIC_URL: 'bff.example.com' }, noopLogger, {
+        labels: { BFF_PUBLIC_URL: 'FOREST_GATEWAY_API_PUBLIC_URL' },
+      }),
+    ).rejects.toThrow(
+      'Invalid configuration: FOREST_GATEWAY_API_PUBLIC_URL must be a valid http(s) URL.',
+    );
+  });
+
+  it('should name the labelled key of a broken setting once unfolding is asked', async () => {
+    await expect(
+      renderOpenApi({ ...VALID_ENV, BFF_AGENT_TIMEOUT_MS: 'nope' }, noopLogger, {
+        labels: { BFF_AGENT_TIMEOUT_MS: 'FOREST_GATEWAY_API_AGENT_TIMEOUT_MS' },
+      }),
+    ).rejects.toThrow('FOREST_GATEWAY_API_AGENT_TIMEOUT_MS must be an integer');
   });
 });
 
@@ -371,6 +397,37 @@ describe('dispatchCli', () => {
         expect(outcome.server).toBeDefined();
       } finally {
         await outcome.server?.stop();
+      }
+    });
+
+    it('should warn once that forest-bff is deprecated in favor of forest-gateway', async () => {
+      const logger = jest.fn();
+      const outcome = await dispatchCli([], VALID_ENV, logger);
+
+      try {
+        const deprecations = logger.mock.calls.filter(([, message]) =>
+          String(message).includes('deprecated'),
+        );
+
+        expect(deprecations).toEqual([['Warn', DEPRECATION_WARNING]]);
+        expect(DEPRECATION_WARNING).toContain('forest-gateway');
+      } finally {
+        await outcome.server?.stop();
+      }
+    });
+  });
+
+  describe('when the openapi subcommand runs', () => {
+    it('should not warn about the deprecation, since it serves nothing', async () => {
+      const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+      const logger = jest.fn();
+
+      try {
+        await dispatchCli(['openapi'], {}, logger);
+
+        expect(logger).not.toHaveBeenCalledWith('Warn', DEPRECATION_WARNING);
+      } finally {
+        stdout.mockRestore();
       }
     });
   });

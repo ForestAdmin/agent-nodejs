@@ -1,3 +1,210 @@
+## @forestadmin/forest-cloud [1.12.240](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.239...@forestadmin/forest-cloud@1.12.240) (2026-10-10)
+
+
+### Bug Fixes
+
+* **license:** relicense from GPL-3.0 to Apache-2.0 ([#1992](https://github.com/ForestAdmin/agent-nodejs/issues/1992)) ([9db2921](https://github.com/ForestAdmin/agent-nodejs/commit/9db2921d6b66ef74e3ea75d92e4a29325732b492))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.108.1
+* **@forestadmin/datasource-customizer:** upgraded to 1.73.1
+* **@forestadmin/datasource-mongo:** upgraded to 1.6.15
+* **@forestadmin/datasource-mongoose:** upgraded to 1.14.5
+* **@forestadmin/datasource-sequelize:** upgraded to 1.13.14
+* **@forestadmin/datasource-sql:** upgraded to 1.17.16
+* **@forestadmin/datasource-toolkit:** upgraded to 1.56.1
+
+## @forestadmin/forest-cloud [1.12.239](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.238...@forestadmin/forest-cloud@1.12.239) (2026-10-09)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.108.0
+
+## @forestadmin/forest-cloud [1.12.238](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.237...@forestadmin/forest-cloud@1.12.238) (2026-10-08)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.107.3
+
+## @forestadmin/forest-cloud [1.12.237](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.236...@forestadmin/forest-cloud@1.12.237) (2026-10-07)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.107.2
+
+## @forestadmin/forest-cloud [1.12.236](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.235...@forestadmin/forest-cloud@1.12.236) (2026-10-07)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.107.1
+
+## @forestadmin/forest-cloud [1.12.235](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.234...@forestadmin/forest-cloud@1.12.235) (2026-10-07)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.107.0
+* **@forestadmin/datasource-customizer:** upgraded to 1.73.0
+* **@forestadmin/datasource-mongo:** upgraded to 1.6.14
+* **@forestadmin/datasource-mongoose:** upgraded to 1.14.4
+* **@forestadmin/datasource-sequelize:** upgraded to 1.13.13
+* **@forestadmin/datasource-sql:** upgraded to 1.17.15
+* **@forestadmin/datasource-toolkit:** upgraded to 1.56.0
+
+## @forestadmin/forest-cloud [1.12.234](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.233...@forestadmin/forest-cloud@1.12.234) (2026-10-06)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.106.2
+
+## @forestadmin/forest-cloud [1.12.233](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.232...@forestadmin/forest-cloud@1.12.233) (2026-10-06)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.106.1
+
+## @forestadmin/forest-cloud [1.12.232](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.231...@forestadmin/forest-cloud@1.12.232) (2026-10-06)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.106.0
+
+## @forestadmin/forest-cloud [1.12.231](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.230...@forestadmin/forest-cloud@1.12.231) (2026-10-06)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.105.6
+
+## @forestadmin/forest-cloud [1.12.230](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.229...@forestadmin/forest-cloud@1.12.230) (2026-10-06)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.105.5
+
+## @forestadmin/forest-cloud [1.12.229](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.228...@forestadmin/forest-cloud@1.12.229) (2026-10-06)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.105.4
+
+## @forestadmin/forest-cloud [1.12.228](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.227...@forestadmin/forest-cloud@1.12.228) (2026-10-05)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.105.3
+
+## @forestadmin/forest-cloud [1.12.227](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.226...@forestadmin/forest-cloud@1.12.227) (2026-10-05)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.105.2
+
+## @forestadmin/forest-cloud [1.12.226](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.225...@forestadmin/forest-cloud@1.12.226) (2026-10-05)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.105.1
+
+## @forestadmin/forest-cloud [1.12.225](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.224...@forestadmin/forest-cloud@1.12.225) (2026-10-05)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.105.0
+
+## @forestadmin/forest-cloud [1.12.224](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.223...@forestadmin/forest-cloud@1.12.224) (2026-10-05)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.104.7
+
+## @forestadmin/forest-cloud [1.12.223](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.222...@forestadmin/forest-cloud@1.12.223) (2026-10-05)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.104.6
+
+## @forestadmin/forest-cloud [1.12.222](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.221...@forestadmin/forest-cloud@1.12.222) (2026-10-02)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.104.5
+
 ## @forestadmin/forest-cloud [1.12.221](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.220...@forestadmin/forest-cloud@1.12.221) (2026-10-02)
 
 

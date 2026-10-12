@@ -29,6 +29,12 @@ function qualifiedMigrationName(schema: string | undefined, tableName: string): 
     : `${tableName}:001-create-audit-logs`;
 }
 
+function qualifiedMigrationName002(schema: string | undefined, tableName: string): string {
+  return schema
+    ? `${schema}.${tableName}:002-index-timestamp-id`
+    : `${tableName}:002-index-timestamp-id`;
+}
+
 // Every table name claimed by an audit-trail store configured in this process, keyed by
 // `schema\0name` — both its own data table and the migration table Umzug derives from it.
 // A second store's data table can otherwise land on the exact name a first store's migration
@@ -194,6 +200,42 @@ function buildMigrations(schema: string | undefined, tableName: string) {
       down: async ({ context }: { context: MigrationContext }) => {
         await context.queryInterface.dropTable(
           { tableName: context.tableName, schema: context.schema },
+          { transaction: context.transaction },
+        );
+      },
+    },
+    {
+      // Its own migration rather than an index added to 001: the table has shipped, so a database
+      // out there has already recorded 001 as applied. The timeline route reads across every
+      // record, ordered and paged by (timestamp, id): without this, each page sorts the whole table.
+      name: qualifiedMigrationName002(schema, tableName),
+      up: async ({ context }: { context: MigrationContext }) => {
+        const table = { tableName: context.tableName, schema: context.schema };
+        const name = `${context.tableName}_timestamp_id`;
+        const hasIndex = () =>
+          indexNames(context.queryInterface, table, context.transaction).then(names =>
+            names.has(name),
+          );
+
+        // Idempotent for the same reason 001 is: a process losing a concurrent-boot race retries.
+        if (await hasIndex()) return;
+
+        try {
+          await context.queryInterface.addIndex(table, {
+            fields: ['timestamp', 'id'],
+            name,
+            transaction: context.transaction,
+          });
+        } catch (error) {
+          // Without Postgres's advisory lock, another agent booting at the same moment can add the
+          // index between the check above and this statement. Anything else is a real failure.
+          if (!(await hasIndex().catch(() => false))) throw error;
+        }
+      },
+      down: async ({ context }: { context: MigrationContext }) => {
+        await context.queryInterface.removeIndex(
+          { tableName: context.tableName, schema: context.schema },
+          `${context.tableName}_timestamp_id`,
           { transaction: context.transaction },
         );
       },

@@ -85,7 +85,7 @@
     "**/concurrently/shell-quote": "^1.8.4",
     "**/forest-cli/joi": "^17.13.6",
     "axios": "^1.18.0",
-    "zod": "4.3.6",
+    "zod": "4.6.5",
     "**/@forestadmin/agent/express/body-parser": "^1.20.6",
     "**/@fastify/express/express/body-parser": "^1.20.6",
     "**/example/express/body-parser": "^1.20.6",

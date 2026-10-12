@@ -26,6 +26,7 @@ import {
   HttpRequester,
   UnknownActionFieldError,
   createRemoteAgentClient,
+  extractErrorDetail,
   toAgentTokenClaims,
 } from '@forestadmin/agent-client';
 import jsonwebtoken from 'jsonwebtoken';
@@ -39,7 +40,22 @@ import {
   RecordNotFoundError,
   WorkflowExecutorError,
   extractErrorMessage,
+  flattenAgentMessage,
 } from '../errors';
+
+// agent-client keeps the agent's own wording as the message only when the body had one; otherwise
+// the message is its generic fallback and unstructuredCause holds the raw response.
+function backendRefusalMessage(cause: unknown): string | undefined {
+  let detail: string | undefined;
+
+  if (cause instanceof ClientActionFormValidationError) {
+    detail = cause.unstructuredCause ? undefined : cause.message;
+  } else if (cause instanceof AgentHttpError) {
+    detail = extractErrorDetail(cause);
+  }
+
+  return detail ? flattenAgentMessage(detail) : undefined;
+}
 
 // Re-wrap agent-client's semantic action error into the executor's domain error (carries userMessage
 // + drives the step fallback). Anything else stays raw → AgentPortError = step error.
@@ -49,7 +65,7 @@ function mapActionExecutionError(action: string, cause: unknown): unknown {
   }
 
   if (cause instanceof ClientActionFormValidationError) {
-    return new ActionFormValidationError(action, cause);
+    return new ActionFormValidationError(action, cause, backendRefusalMessage(cause));
   }
 
   if (cause instanceof ClientApprovalRequestCreationError) {
@@ -332,7 +348,9 @@ export default class AgentClientAgentPort implements AgentPort {
         try {
           await act.setFields(values);
         } catch (cause) {
-          if (isRejectedFormValue(cause)) throw new ActionFormValidationError(action, cause);
+          if (isRejectedFormValue(cause)) {
+            throw new ActionFormValidationError(action, cause, backendRefusalMessage(cause));
+          }
 
           throw cause;
         }

@@ -1,3 +1,222 @@
+## @forestadmin/agent [1.108.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.108.0...@forestadmin/agent@1.108.1) (2026-10-10)
+
+
+### Bug Fixes
+
+* **license:** relicense from GPL-3.0 to Apache-2.0 ([#1992](https://github.com/ForestAdmin/agent-nodejs/issues/1992)) ([9db2921](https://github.com/ForestAdmin/agent-nodejs/commit/9db2921d6b66ef74e3ea75d92e4a29325732b492))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-toolkit:** upgraded to 1.2.1
+* **@forestadmin/datasource-customizer:** upgraded to 1.73.1
+* **@forestadmin/datasource-toolkit:** upgraded to 1.56.1
+* **@forestadmin/forestadmin-client:** upgraded to 1.43.6
+* **@forestadmin/mcp-server:** upgraded to 1.28.1
+* **@forestadmin/agent-bff:** upgraded to 1.40.1
+* **@forestadmin/datasource-sql:** upgraded to 1.17.16
+* **@forestadmin/workflow-executor:** upgraded to 1.32.1
+
+# @forestadmin/agent [1.108.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.107.3...@forestadmin/agent@1.108.0) (2026-10-09)
+
+
+### Features
+
+* **audit-trail:** cross-collection timeline route [PRD-1257] ([#1911](https://github.com/ForestAdmin/agent-nodejs/issues/1911)) ([811559f](https://github.com/ForestAdmin/agent-nodejs/commit/811559fc10343b70ef6172843c7327b5f34baa66))
+
+## @forestadmin/agent [1.107.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.107.2...@forestadmin/agent@1.107.3) (2026-10-08)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/workflow-executor:** upgraded to 1.32.0
+
+## @forestadmin/agent [1.107.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.107.1...@forestadmin/agent@1.107.2) (2026-10-07)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/workflow-executor:** upgraded to 1.31.9
+
+## @forestadmin/agent [1.107.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.107.0...@forestadmin/agent@1.107.1) (2026-10-07)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/mcp-server:** upgraded to 1.28.0
+* **@forestadmin/agent-bff:** upgraded to 1.40.0
+* **@forestadmin/workflow-executor:** upgraded to 1.31.8
+
+# @forestadmin/agent [1.107.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.106.2...@forestadmin/agent@1.107.0) (2026-10-07)
+
+
+### Features
+
+* allow disable filtering on relation ([#1975](https://github.com/ForestAdmin/agent-nodejs/issues/1975)) ([e942507](https://github.com/ForestAdmin/agent-nodejs/commit/e942507e609d02920d3b8dc31651bb467103434b))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.73.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.56.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.43.5
+* **@forestadmin/mcp-server:** upgraded to 1.27.2
+* **@forestadmin/agent-bff:** upgraded to 1.39.1
+* **@forestadmin/datasource-sql:** upgraded to 1.17.15
+* **@forestadmin/workflow-executor:** upgraded to 1.31.7
+
+## @forestadmin/agent [1.106.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.106.1...@forestadmin/agent@1.106.2) (2026-10-06)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/mcp-server:** upgraded to 1.27.1
+
+## @forestadmin/agent [1.106.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.106.0...@forestadmin/agent@1.106.1) (2026-10-06)
+
+
+### Bug Fixes
+
+* **audit-trail:** match search and fields against served values, not withheld ones [PRD-1295] ([#1936](https://github.com/ForestAdmin/agent-nodejs/issues/1936)) ([ee7d7e5](https://github.com/ForestAdmin/agent-nodejs/commit/ee7d7e5bef713fa3200102bc24fb514829ceb0c8))
+
+# @forestadmin/agent [1.106.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.105.6...@forestadmin/agent@1.106.0) (2026-10-06)
+
+
+### Features
+
+* **mcp-server:** claim only the mcp discovery documents under .well-known ([#1969](https://github.com/ForestAdmin/agent-nodejs/issues/1969)) ([fb8f000](https://github.com/ForestAdmin/agent-nodejs/commit/fb8f0008cbef212ee1c3584c38c203ac501624be))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/mcp-server:** upgraded to 1.27.0
+
+## @forestadmin/agent [1.105.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.105.5...@forestadmin/agent@1.105.6) (2026-10-06)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-bff:** upgraded to 1.39.0
+
+## @forestadmin/agent [1.105.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.105.4...@forestadmin/agent@1.105.5) (2026-10-06)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/workflow-executor:** upgraded to 1.31.6
+
+## @forestadmin/agent [1.105.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.105.3...@forestadmin/agent@1.105.4) (2026-10-06)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-bff:** upgraded to 1.38.1
+* **@forestadmin/workflow-executor:** upgraded to 1.31.5
+
+## @forestadmin/agent [1.105.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.105.2...@forestadmin/agent@1.105.3) (2026-10-05)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/mcp-server:** upgraded to 1.26.0
+* **@forestadmin/agent-bff:** upgraded to 1.38.0
+* **@forestadmin/workflow-executor:** upgraded to 1.31.4
+
+## @forestadmin/agent [1.105.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.105.1...@forestadmin/agent@1.105.2) (2026-10-05)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/mcp-server:** upgraded to 1.25.1
+* **@forestadmin/workflow-executor:** upgraded to 1.31.3
+
+## @forestadmin/agent [1.105.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.105.0...@forestadmin/agent@1.105.1) (2026-10-05)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/mcp-server:** upgraded to 1.25.0
+* **@forestadmin/agent-bff:** upgraded to 1.37.0
+* **@forestadmin/workflow-executor:** upgraded to 1.31.2
+
+# @forestadmin/agent [1.105.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.104.7...@forestadmin/agent@1.105.0) (2026-10-05)
+
+
+### Features
+
+* **agent:** warn when embedded mcp escapes ip whitelist ([#1957](https://github.com/ForestAdmin/agent-nodejs/issues/1957)) ([b12a77d](https://github.com/ForestAdmin/agent-nodejs/commit/b12a77d4ea78dc8b29681431486b1ec081c45b4d))
+
+## @forestadmin/agent [1.104.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.104.6...@forestadmin/agent@1.104.7) (2026-10-05)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/mcp-server:** upgraded to 1.24.10
+
+## @forestadmin/agent [1.104.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.104.5...@forestadmin/agent@1.104.6) (2026-10-05)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-bff:** upgraded to 1.36.1
+* **@forestadmin/workflow-executor:** upgraded to 1.31.1
+
+## @forestadmin/agent [1.104.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.104.4...@forestadmin/agent@1.104.5) (2026-10-02)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/mcp-server:** upgraded to 1.24.9
+* **@forestadmin/agent-bff:** upgraded to 1.36.0
+
 ## @forestadmin/agent [1.104.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.104.3...@forestadmin/agent@1.104.4) (2026-10-02)
 
 

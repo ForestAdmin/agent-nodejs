@@ -1,5 +1,6 @@
 import type ForestServerClient from './forest-server-client';
-import type { SessionStore } from './session-store';
+import type { SessionStore, StoredSession } from './session-store';
+import type { Logger } from '../ports/logger-port';
 
 import jsonwebtoken from 'jsonwebtoken';
 
@@ -10,6 +11,7 @@ export interface EnsureFreshServerAccessParams {
   sid: string;
   store: SessionStore;
   serverClient: ForestServerClient;
+  logger: Logger;
 }
 
 const CLIENT_ERROR_CODES = new Set(['invalid_grant', 'invalid_request', 'invalid_client']);
@@ -23,10 +25,21 @@ function accessTokenExpiry(saasAccessToken: string): number {
 }
 
 async function refreshAndPersist(
-  sid: string,
-  store: SessionStore,
-  serverClient: ForestServerClient,
+  session: StoredSession,
+  { sid, store, serverClient, logger }: EnsureFreshServerAccessParams,
 ): Promise<string> {
+  const sessionContext = { renderingId: session.renderingId, userId: session.userId };
+
+  if (!session.clientId) {
+    logger(
+      'Warn',
+      'The session has no client id to refresh the Forest server token',
+      sessionContext,
+    );
+
+    throw sessionExpired('Session not found or expired');
+  }
+
   const currentRefresh = store.getSaasRefreshToken(sid);
 
   if (currentRefresh === undefined) {
@@ -36,9 +49,18 @@ async function refreshAndPersist(
   let rotated: Awaited<ReturnType<ForestServerClient['refreshServerToken']>>;
 
   try {
-    rotated = await serverClient.refreshServerToken(currentRefresh);
+    rotated = await serverClient.refreshServerToken({
+      refreshToken: currentRefresh,
+      clientId: session.clientId,
+    });
   } catch (error) {
     if (error instanceof OAuthExchangeError && CLIENT_ERROR_CODES.has(error.error)) {
+      logger('Warn', 'The Forest server rejected the session refresh', {
+        ...sessionContext,
+        error: error.error,
+        errorDescription: error.message,
+      });
+
       throw sessionExpired('The Forest server rejected the refresh token');
     }
 
@@ -57,11 +79,10 @@ async function refreshAndPersist(
   return rotated.saasAccessToken;
 }
 
-export default async function ensureFreshServerAccess({
-  sid,
-  store,
-  serverClient,
-}: EnsureFreshServerAccessParams): Promise<string> {
+export default async function ensureFreshServerAccess(
+  params: EnsureFreshServerAccessParams,
+): Promise<string> {
+  const { sid, store } = params;
   const session = store.get(sid);
 
   if (!session) {
@@ -75,7 +96,7 @@ export default async function ensureFreshServerAccess({
   const existing = inFlightRefreshesBySid.get(sid);
   if (existing) return existing;
 
-  const refresh = refreshAndPersist(sid, store, serverClient).finally(() => {
+  const refresh = refreshAndPersist(session, params).finally(() => {
     inFlightRefreshesBySid.delete(sid);
   });
   inFlightRefreshesBySid.set(sid, refresh);

@@ -11,6 +11,7 @@ import {
   invalidApiKey,
   invalidRequest,
   keyResolutionUnavailable,
+  planFeatureMissing,
 } from './api-key-error';
 
 const UNAVAILABLE_RETRY_AFTER_SECONDS = 5;
@@ -49,7 +50,9 @@ function mapResolveError(error: ApiKeyResolveError): ApiKeyError {
     case 401:
       return invalidApiKey();
     case 403:
-      return forestIdentityNotAllowed();
+      return error.code === 'plan_feature_missing'
+        ? planFeatureMissing()
+        : forestIdentityNotAllowed();
     case 400:
       return invalidRequest();
     case 429:

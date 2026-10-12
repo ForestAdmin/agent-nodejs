@@ -56,3 +56,17 @@ describe('Agent.addBff (optional dependency missing)', () => {
     expect(error.cause?.message).toBe("Cannot find module '@forestadmin/agent-bff'");
   });
 });
+
+describe('Agent.addGateway({ api }) (optional dependency missing)', () => {
+  it('should name the Gateway API and give the install command', async () => {
+    const agent = new Agent(
+      factories.forestAdminHttpDriverOptions.build({ prefix: '', skipSchemaUpdate: true }),
+    ).addGateway({ api: true });
+
+    await expect(agent.start()).rejects.toThrow(
+      'The Gateway API requires the `@forestadmin/agent-bff` package, which failed to load: ' +
+        "Cannot find module '@forestadmin/agent-bff'. " +
+        'Install it with `npm install @forestadmin/agent-bff`.',
+    );
+  });
+});

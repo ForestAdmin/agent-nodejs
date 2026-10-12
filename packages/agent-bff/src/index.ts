@@ -1,7 +1,16 @@
 export { default as BFFHttpServer } from './http/bff-http-server';
-export { parseConfig, REQUIRED_KEYS } from './config/env-config';
-export type { BFFConfig, PresenceMap, RequiredKey } from './config/env-config';
-export { default as runCli } from './cli-core';
+export { CONFIG_KEYS, parseConfig, parsePublicUrl, REQUIRED_KEYS } from './config/env-config';
+export type {
+  BFFConfig,
+  PresenceMap,
+  RequiredKey,
+  ConfigKey,
+  ConfigLabels,
+} from './config/env-config';
+export { default as runCli, installShutdownHandlers } from './cli-core';
+export { default as renderOpenApi } from './openapi/render-openapi';
+export { DEFAULT_OUTPUT_FILE, OUTPUT_FLAG, parseOutputOption, writeOutputFile } from './cli-output';
+export type { OutputOption } from './cli-output';
 export { default as buildBff } from './build-bff';
 export {
   default as createInProcessTransport,
@@ -13,6 +22,7 @@ export type {
   AgentDispatchResponse,
 } from './agent/in-process-transport';
 export type { Bff, BuildBffOptions, BffCallback } from './build-bff';
+export type { BffHealth, HealthConfigured } from './http/health-route';
 export { ConfigurationError } from './errors';
 export { default as DEFAULT_BFF_PORT } from './defaults';
 export { default as createConsoleLogger } from './adapters/console-logger';
@@ -60,3 +70,5 @@ export {
   toErrorBody as toApiKeyErrorBody,
 } from './api-key/api-key-error';
 export type { ApiKeyErrorType, ApiKeyErrorBody } from './api-key/api-key-error';
+export { default as claimsBffPath } from './claims-bff-path';
+export type { ClaimsBffPathOptions } from './claims-bff-path';

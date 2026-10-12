@@ -2,8 +2,10 @@ import type { Logger } from '../server';
 import type { ToolContext } from '../tool-context';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
+import { publishedRecordKeys, toWireOperator } from '@forestadmin/agent-client';
 import { z } from 'zod';
 
+import { operatorEnum } from '../schemas/filter';
 import buildClient from '../utils/agent-caller';
 import {
   fetchForestSchema,
@@ -18,7 +20,34 @@ interface DescribeCollectionArgument {
 }
 
 interface CollectionCapabilities {
-  fields: { name: string; type: string; operators: string[] }[];
+  fields: { name: string; type: string; operators?: string[] }[];
+}
+
+const SNAKE_TO_PASCAL = new Map<string, string>(
+  operatorEnum.options.map(operator => [toWireOperator(operator), operator]),
+);
+
+function toListOperators(
+  operators: string[] | undefined,
+  context: { collectionName: string; fieldName: string },
+  logger: Logger,
+): string[] | undefined {
+  if (!operators) return undefined;
+
+  return operators.flatMap(operator => {
+    const listOperator = SNAKE_TO_PASCAL.get(operator);
+
+    if (!listOperator) {
+      logger(
+        'Debug',
+        `Operator ${operator} of ${context.collectionName}.${context.fieldName} is unknown to the list tool, not announced`,
+      );
+
+      return [];
+    }
+
+    return [listOperator];
+  });
 }
 
 function createDescribeCollectionArgumentShape(collectionNames: string[]) {
@@ -98,6 +127,8 @@ Actions properties:
 - hasForm: true if action requires form input (use getActionForm to see fields)
 - download: true if action returns a file download (not executable via AI)
 
+Field names: every field name you send (filters, sort, \`fields\`, \`relation:field\`, \`relation@@@field\`, create/update attributes) is the schema \`name\`. A field or relation with a \`recordKey\` comes back under that key in a returned record; it only says where to read the value, never send it. Fields sharing a \`recordKey\` (listed in \`sharesRecordKeyWith\`) can be read only when a single one of them is projected in the call. \`recordKey: null\` means the value cannot be read from a returned record: never read it under its name. Every record carries \`id\`, the record identifier, which is not a schema field. A related record's values sit under the related collection's record keys (call describeCollection on it).
+
 Polymorphic relations (isPolymorphic=true) point to multiple collections. When creating/updating, you must set both the _id and _type fields (e.g. commentable_id and commentable_type).
 
 Check \`_meta\` for data availability context.`,
@@ -124,6 +155,14 @@ Check \`_meta\` for data availability context.`,
             logger,
           );
 
+          const schemaFieldNames = schemaFields.map(f => f.field);
+          const capabilityOnlyNames = (collectionCapabilities?.fields ?? [])
+            .map(capField => capField.name)
+            .filter(name => !schemaFieldNames.includes(name));
+          const recordKeys = publishedRecordKeys([...schemaFieldNames, ...capabilityOnlyNames]);
+
+          const withRecordKey = (name: string) => recordKeys.get(name) ?? {};
+
           // Build fields array - use capabilities if available, otherwise fall back to schema
           const fields = collectionCapabilities?.fields
             ? collectionCapabilities.fields.map(capField => {
@@ -131,8 +170,13 @@ Check \`_meta\` for data availability context.`,
 
                 return {
                   name: capField.name,
+                  ...withRecordKey(capField.name),
                   type: capField.type,
-                  operators: capField.operators,
+                  operators: toListOperators(
+                    capField.operators,
+                    { collectionName: options.collectionName, fieldName: capField.name },
+                    logger,
+                  ),
                   isPrimaryKey: schemaField?.isPrimaryKey || false,
                   isReadOnly: schemaField?.isReadOnly || false,
                   isRequired: schemaField?.isRequired || false,
@@ -143,6 +187,7 @@ Check \`_meta\` for data availability context.`,
                 .filter(f => !f.relationship) // Only non-relation fields
                 .map(schemaField => ({
                   name: schemaField.field,
+                  ...withRecordKey(schemaField.field),
                   type: schemaField.type,
                   operators: null, // Not available without capabilities route
                   isPrimaryKey: schemaField.isPrimaryKey,
@@ -161,6 +206,7 @@ Check \`_meta\` for data availability context.`,
 
               return {
                 name: f.field,
+                ...withRecordKey(f.field),
                 type: mapRelationType(f.relationship),
                 targetCollection: isPolymorphic ? null : f.reference?.split('.')[0] || null,
                 ...(isPolymorphic && { isPolymorphic: true, polymorphicTargets }),

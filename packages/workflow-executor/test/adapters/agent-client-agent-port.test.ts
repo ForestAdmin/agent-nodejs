@@ -54,7 +54,11 @@ jest.mock('@forestadmin/agent-client', () => {
   }
 
   class MockActionFormValidationError extends Error {
-    constructor(message: string) {
+    constructor(
+      message: string,
+      public readonly html?: string,
+      public readonly unstructuredCause?: Error,
+    ) {
       super(message);
       this.name = 'ActionFormValidationError';
     }
@@ -1284,6 +1288,82 @@ describe('AgentClientAgentPort', () => {
       await expect(
         port.executeAction({ collection: 'users', action: 'refund', id: [1] }, { user }),
       ).rejects.toBeInstanceOf(ActionFormValidationError);
+    });
+
+    it('keeps the backend refusal message when the action is refused', async () => {
+      mockAction.execute.mockRejectedValue(
+        new ClientFormValidationError('Account cannot be closed: 2 cards still active'),
+      );
+
+      const error = (await port
+        .executeAction({ collection: 'users', action: 'refund', id: [1] }, { user })
+        .catch((e: unknown) => e)) as ActionFormValidationError;
+
+      expect(error.backendMessage).toBe('Account cannot be closed: 2 cards still active');
+      expect(error.message).toBe(
+        'Action "refund" was refused by the backend: Account cannot be closed: 2 cards still active',
+      );
+      expect(error.userMessage).toBe('The backend refused this action.');
+    });
+
+    it('has no backend message when the refusal body carried none', async () => {
+      mockAction.execute.mockRejectedValue(
+        new ClientFormValidationError(
+          'The action form values were rejected.',
+          undefined,
+          new AgentHttpError(400, '<html>Bad Request</html>'),
+        ),
+      );
+
+      const error = (await port
+        .executeAction({ collection: 'users', action: 'refund', id: [1] }, { user })
+        .catch((e: unknown) => e)) as ActionFormValidationError;
+
+      expect(error).toBeInstanceOf(ActionFormValidationError);
+      expect(error.backendMessage).toBeUndefined();
+      expect(error.message).toBe('Action "refund" rejected the submitted form values');
+    });
+
+    it('flattens and caps a long multi-line backend message', async () => {
+      mockAction.execute.mockRejectedValue(
+        new ClientFormValidationError(`Blocked:\n- card\n${'x'.repeat(600)}`),
+      );
+
+      const error = (await port
+        .executeAction({ collection: 'users', action: 'refund', id: [1] }, { user })
+        .catch((e: unknown) => e)) as ActionFormValidationError;
+
+      expect(error.backendMessage).toBe(`Blocked: - card ${'x'.repeat(484)}…`);
+    });
+
+    // forest-rails smart actions refuse with `render status: 400, json: { error: '...' }`.
+    it('keeps the backend message when the change hook refuses a value', async () => {
+      mockAction.setFields.mockRejectedValue(
+        new AgentHttpError(400, { error: 'Smart Action: target record not found' }),
+      );
+
+      const error = (await port
+        .executeAction(
+          { collection: 'users', action: 'refund', id: [1], values: { amount: 50 } },
+          { user },
+        )
+        .catch((e: unknown) => e)) as ActionFormValidationError;
+
+      expect(error).toBeInstanceOf(ActionFormValidationError);
+      expect(error.backendMessage).toBe('Smart Action: target record not found');
+    });
+
+    it('has no backend message when setFields names an unknown field', async () => {
+      mockAction.setFields.mockRejectedValue(new ClientUnknownActionFieldError('x'));
+
+      const error = (await port
+        .executeAction(
+          { collection: 'users', action: 'refund', id: [1], values: { x: 1 } },
+          { user },
+        )
+        .catch((e: unknown) => e)) as ActionFormValidationError;
+
+      expect(error.backendMessage).toBeUndefined();
     });
 
     it('leaves a plain permission 403 as a generic AgentPortError (step error, not a fallback)', async () => {

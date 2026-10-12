@@ -4,11 +4,15 @@ import createConsoleLogger from './adapters/console-logger';
 import buildBff from './build-bff';
 import { parseConfig } from './config/env-config';
 import { extractErrorMessage } from './errors';
-import BFFHttpServer from './http/bff-http-server';
+import BFFHttpServer, { DEFAULT_SERVER_NAME } from './http/bff-http-server';
 
 const SHUTDOWN_SIGNALS: NodeJS.Signals[] = ['SIGTERM', 'SIGINT'];
 
 let installedShutdownHandlers: { signal: NodeJS.Signals; handler: () => void }[] = [];
+
+export interface Stoppable {
+  stop(): Promise<void>;
+}
 
 /**
  * Routes a termination signal to `stop()`, which drains the activity-log transitions no connection
@@ -18,17 +22,32 @@ let installedShutdownHandlers: { signal: NodeJS.Signals; handler: () => void }[]
  * A process runs one BFF, so a second call replaces the handlers instead of adding a pair: the
  * signal must reach the server that is listening, and nothing else.
  */
-export function installShutdownHandlers(server: BFFHttpServer, logger: Logger): void {
+export function installShutdownHandlers(
+  target: Stoppable,
+  logger: Logger,
+  { name = DEFAULT_SERVER_NAME }: { name?: string } = {},
+): void {
   for (const { signal, handler } of installedShutdownHandlers) {
     process.removeListener(signal, handler);
   }
 
+  let stopping = false;
+
   installedShutdownHandlers = SHUTDOWN_SIGNALS.map(signal => {
     const handler = () => {
-      logger('Info', 'Stopping the Forest BFF', { signal });
+      if (stopping) {
+        logger('Info', `Ignoring the signal: the ${name} is already stopping`, { signal });
 
-      server.stop().catch(error => {
-        logger('Error', 'The Forest BFF did not stop cleanly', {
+        return;
+      }
+
+      stopping = true;
+      logger('Info', `Stopping the ${name}`, { signal });
+
+      new Promise<void>(resolve => {
+        resolve(target.stop());
+      }).catch(error => {
+        logger('Error', `The ${name} did not stop cleanly`, {
           cause: extractErrorMessage(error),
         });
       });

@@ -53,6 +53,7 @@ export type ManyToOneSchema = {
   foreignCollection: string;
   foreignKey: string;
   foreignKeyTarget: string;
+  isFilterable?: boolean;
   type: 'ManyToOne';
 };
 
@@ -67,6 +68,7 @@ export type OneToOneSchema = {
   foreignCollection: string;
   originKey: string;
   originKeyTarget: string;
+  isFilterable?: boolean;
   type: 'OneToOne';
 };
 

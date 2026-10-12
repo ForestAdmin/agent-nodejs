@@ -9,6 +9,7 @@ import type { ToolContext } from './tool-context';
 import type { TokenTtlOptions } from './utils/token-ttl';
 import type { Express } from 'express';
 
+import { normalizeDomainList } from '@forestadmin/forestadmin-client';
 import { authorizationHandler } from '@modelcontextprotocol/sdk/server/auth/handlers/authorize.js';
 import { metadataHandler } from '@modelcontextprotocol/sdk/server/auth/handlers/metadata.js';
 import { tokenHandler } from '@modelcontextprotocol/sdk/server/auth/handlers/token.js';
@@ -28,6 +29,7 @@ import EphemeralStorage from './file-uploads/ephemeral-storage';
 import { resolveFileUploads } from './file-uploads/types';
 import ForestOAuthProvider from './forest-oauth-provider';
 import { createForestServerClient } from './http-client';
+import { parseMcpListenerEnv } from './mcp-env';
 import { makeIsMcpRoute, normalizeMountPath } from './mcp-paths';
 import declareAssociateTool from './tools/associate';
 import declareCreateTool from './tools/create';
@@ -44,7 +46,6 @@ import declareRequestActionFileUploadTool from './tools/request-action-file-uplo
 import declareTriggerWorkflowTool from './tools/trigger-workflow';
 import declareUpdateTool from './tools/update';
 import normalizeAgentUrl from './utils/normalize-agent-url';
-import normalizeDomainList from './utils/normalize-domain-list';
 import { fetchForestSchema, getCollectionNames } from './utils/schema-fetcher';
 import interceptResponseForErrorLogging from './utils/sse-error-logger';
 import normalizeTokenTtl from './utils/token-ttl';
@@ -86,6 +87,8 @@ function logErrorWithStack(logger: Logger, message: string, err: Error): void {
     logger('Error', `Stack: ${err.stack}`);
   }
 }
+
+const DEFAULT_PORT = 3931;
 
 /** Fields that are safe to log for each tool (non-sensitive data) */
 const SAFE_ARGUMENTS_FOR_LOGGING: Record<string, string[]> = {
@@ -575,7 +578,7 @@ export default class ForestMCPServer {
     // agent itself is at the domain root. Fail loudly rather than advertise URLs we can't serve.
     if (prefix && effectiveBaseUrl.pathname !== '/') {
       throw new Error(
-        `MCP basePath "${prefix}" requires the agent to be served at the domain root, but its ` +
+        `basePath "${prefix}" requires the agent to be served at the domain root, but its ` +
           `base URL has a path ("${effectiveBaseUrl.pathname}"). Remove the basePath or mount ` +
           `the agent at the root.`,
       );
@@ -803,20 +806,9 @@ export default class ForestMCPServer {
    * Run the MCP server as a standalone HTTP server.
    */
   async run(): Promise<void> {
-    // Parsed before defaulting: `Number(x) || 3931` turns port 0, which means "any free port",
-    // into 3931. A configured FOREST_MCP_SERVER_URL also replaces the default url, so nothing else
-    // parses the port either.
-    const rawPort = process.env.MCP_SERVER_PORT;
-    const port = rawPort ? Number(rawPort) : 3931;
-    const configuredUrl = process.env.FOREST_MCP_SERVER_URL;
+    const { port: configuredPort, publicUrl: configuredUrl } = parseMcpListenerEnv(process.env);
+    const port = configuredPort ?? DEFAULT_PORT;
 
-    if (!Number.isInteger(port) || port < 0 || port > 65535) {
-      throw new Error(
-        `Invalid MCP_SERVER_PORT "${rawPort}": expected an integer between 0 and 65535.`,
-      );
-    }
-
-    // The url is built here, before listen() picks the port, so 0 cannot appear in it.
     if (port === 0 && !configuredUrl) {
       throw new Error(
         'MCP_SERVER_PORT=0 binds a port chosen by the OS, which cannot be in the url advertised ' +
@@ -824,28 +816,7 @@ export default class ForestMCPServer {
       );
     }
 
-    const publicUrl = configuredUrl || `http://localhost:${port}`;
-    const baseUrl = URL.canParse(publicUrl) ? new URL(publicUrl) : undefined;
-
-    // Origin only: the OAuth endpoints are concatenated onto this href, the uploads base resolves
-    // against it.
-    if (
-      !baseUrl ||
-      !['http:', 'https:'].includes(baseUrl.protocol) ||
-      baseUrl.href !== `${baseUrl.origin}/`
-    ) {
-      // Never the raw value: it may carry credentials. `origin` is "null" for an opaque scheme,
-      // which is what a forgotten scheme parses as.
-      const shown =
-        baseUrl && baseUrl.origin !== 'null'
-          ? baseUrl.origin
-          : publicUrl.slice(publicUrl.lastIndexOf('@') + 1);
-
-      throw new Error(
-        `Invalid FOREST_MCP_SERVER_URL "${shown}": expected an http(s) origin with no path, ` +
-          'query, fragment or credentials, e.g. https://mcp.example.com',
-      );
-    }
+    const baseUrl = new URL(configuredUrl || `http://localhost:${port}`);
 
     const app = await this.buildExpressApp(baseUrl);
 

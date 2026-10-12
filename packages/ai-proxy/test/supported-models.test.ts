@@ -17,6 +17,10 @@ describe('isModelSupportingTools', () => {
     expect(isModelSupportingTools('gpt-4')).toBe(false);
   });
 
+  it('should return false for gpt-3.5-turbo-1106 (deprecated)', () => {
+    expect(isModelSupportingTools('gpt-3.5-turbo-1106')).toBe(false);
+  });
+
   it.each(['gpt-live-1', 'gpt-4o-realtime-preview', 'gpt-4o-audio-preview'])(
     'should return false for %s (not a chat completions model)',
     model => {
@@ -24,12 +28,17 @@ describe('isModelSupportingTools', () => {
     },
   );
 
-  it.each(['gpt-5.6-luna', 'gpt-5.6-sol', 'gpt-5.6-terra', 'gpt-6-astra', 'gpt-6-luna', 'gpt-6-sol'])(
-    'should return false for %s (v1/responses only)',
-    model => {
-      expect(isModelSupportingTools(model)).toBe(false);
-    },
-  );
+  it.each([
+    'gpt-5.6-luna',
+    'gpt-5.6-sol',
+    'gpt-5.6-terra',
+    'gpt-6-astra',
+    'gpt-6-luna',
+    'gpt-6-sol',
+    'gpt-6.1-sol',
+  ])('should return false for %s (v1/responses only)', model => {
+    expect(isModelSupportingTools(model)).toBe(false);
+  });
 
   // claude-fable-5-1 broke the integration suite on its release day; the whole line shares the
   // always-on thinking the proxy cannot carry, so point releases must be excluded on arrival.
@@ -47,6 +56,17 @@ describe('isModelSupportingTools', () => {
     },
   );
 
+  it.each(['claude-sonnet-5-5', 'claude-sonnet-5-5-20260901'])(
+    'should return false for %s (between_tools thinking incompatible with proxy)',
+    model => {
+      expect(isModelSupportingTools(model, 'anthropic')).toBe(false);
+    },
+  );
+
+  it('should keep the neighbouring claude-sonnet-5 line supported', () => {
+    expect(isModelSupportingTools('claude-sonnet-5', 'anthropic')).toBe(true);
+  });
+
   it('should not exclude a model merely prefixed by an unsupported family name', () => {
     expect(isModelSupportingTools('claude-fable-50', 'anthropic')).toBe(true);
   });
@@ -59,6 +79,10 @@ describe('isModelSupportingTools', () => {
   });
 
   describe('bedrock', () => {
+    it('rejects claude-sonnet-5-5, which refuses a forced tool call', () => {
+      expect(isModelSupportingTools('eu.anthropic.claude-sonnet-5-5', 'bedrock')).toBe(false);
+    });
+
     it.each([
       'eu.anthropic.claude-sonnet-5-v1:0',
       'us.anthropic.claude-opus-4-5-v1:0',

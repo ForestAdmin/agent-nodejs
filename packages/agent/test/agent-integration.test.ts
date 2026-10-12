@@ -597,6 +597,26 @@ describe('Agent Integration Tests', () => {
         expect(response.body.scopes_supported).toContain('mcp:read');
       });
 
+      it('should expose the RFC 9728 document at /.well-known/oauth-protected-resource/mcp', async () => {
+        const response = await superagent.get(
+          `${testContext.baseUrl}/.well-known/oauth-protected-resource/mcp`,
+        );
+
+        expect(response.status).toBe(200);
+        expect(response.body.resource).toBe(`${testContext.baseUrl}/mcp`);
+      });
+
+      it.each(['/.well-known/acme-challenge/tok123', '/.well-known/security.txt'])(
+        'should leave %s to the host framework',
+        async url => {
+          const error: { status?: number } = await superagent
+            .get(`${testContext.baseUrl}${url}`)
+            .catch(err => err);
+
+          expect(error.status).toBe(404);
+        },
+      );
+
       it('should handle /oauth/authorize redirect', async () => {
         // The authorize endpoint should redirect to Forest Admin frontend
         const params = new URLSearchParams({

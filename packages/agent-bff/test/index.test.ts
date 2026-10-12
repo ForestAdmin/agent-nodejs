@@ -22,6 +22,12 @@ describe('package index', () => {
       expect(bff.BFF_ACCESS_TOKEN_TYPE).toBeDefined();
       expect(bff.createPkcePair).toBeDefined();
       expect(bff.OAuthRequestError).toBeDefined();
+      expect(bff.claimsBffPath('/health', { docs: false })).toBe(true);
+      expect(bff.parseOutputOption(['--output', 'doc.json', 'extra'])).toEqual({
+        file: 'doc.json',
+        extras: ['extra'],
+      });
+      expect(bff.writeOutputFile).toBeDefined();
     });
   });
 });

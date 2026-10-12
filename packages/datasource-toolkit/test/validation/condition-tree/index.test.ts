@@ -1,7 +1,7 @@
 import type ConditionTree from '../../../src/interfaces/query/condition-tree/nodes/base';
 import type { Aggregator } from '../../../src/interfaces/query/condition-tree/nodes/branch';
 
-import { MissingFieldError } from '../../../src';
+import { MissingFieldError, ValidationError } from '../../../src';
 import ConditionTreeValidator from '../../../src/validation/condition-tree';
 import * as factories from '../../__factories__';
 
@@ -103,6 +103,71 @@ describe('ConditionTreeValidation', () => {
           expect(() =>
             ConditionTreeValidator.validate(conditionTree, dataSource.getCollection('books')),
           ).not.toThrow();
+        });
+
+        describe('when a relation of the path is not filterable', () => {
+          const buildDataSource = () =>
+            factories.dataSource.buildWithCollections([
+              factories.collection.build({
+                name: 'books',
+                schema: factories.collectionSchema.build({
+                  fields: {
+                    id: factories.columnSchema.uuidPrimaryKey().build(),
+                    author: factories.manyToOneSchema.build({
+                      foreignCollection: 'persons',
+                      foreignKey: 'authorId',
+                    }),
+                    authorId: factories.columnSchema.build({ columnType: 'Uuid' }),
+                  },
+                }),
+              }),
+              factories.collection.build({
+                name: 'persons',
+                schema: factories.collectionSchema.build({
+                  fields: {
+                    id: factories.columnSchema.uuidPrimaryKey().build({
+                      filterOperators: new Set(['Equal']),
+                    }),
+                    lastBook: factories.oneToOneSchema.build({
+                      foreignCollection: 'books',
+                      originKey: 'authorId',
+                      originKeyTarget: 'id',
+                      isFilterable: false,
+                    }),
+                  },
+                }),
+              }),
+            ]);
+
+          it('should throw when filtering through it', () => {
+            const conditionTree = factories.conditionTreeLeaf.build({
+              operator: 'Equal',
+              value: '2d162303-78bf-599e-b197-93590ac3d315',
+              field: 'lastBook:id',
+            });
+
+            expect(() =>
+              ConditionTreeValidator.validate(
+                conditionTree,
+                buildDataSource().getCollection('persons'),
+              ),
+            ).toThrow(new ValidationError("The relation 'persons.lastBook' is not filterable"));
+          });
+
+          it('should throw when it is deeper in the path', () => {
+            const conditionTree = factories.conditionTreeLeaf.build({
+              operator: 'Equal',
+              value: '2d162303-78bf-599e-b197-93590ac3d315',
+              field: 'author:lastBook:id',
+            });
+
+            expect(() =>
+              ConditionTreeValidator.validate(
+                conditionTree,
+                buildDataSource().getCollection('books'),
+              ),
+            ).toThrow(new ValidationError("The relation 'persons.lastBook' is not filterable"));
+          });
         });
       });
 

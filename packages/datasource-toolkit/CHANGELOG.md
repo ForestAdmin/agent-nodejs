@@ -1,3 +1,25 @@
+## @forestadmin/datasource-toolkit [1.56.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.56.0...@forestadmin/datasource-toolkit@1.56.1) (2026-10-10)
+
+
+### Bug Fixes
+
+* **license:** relicense from GPL-3.0 to Apache-2.0 ([#1992](https://github.com/ForestAdmin/agent-nodejs/issues/1992)) ([9db2921](https://github.com/ForestAdmin/agent-nodejs/commit/9db2921d6b66ef74e3ea75d92e4a29325732b492))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-toolkit:** upgraded to 1.2.1
+
+# @forestadmin/datasource-toolkit [1.56.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.55.1...@forestadmin/datasource-toolkit@1.56.0) (2026-10-07)
+
+
+### Features
+
+* allow disable filtering on relation ([#1975](https://github.com/ForestAdmin/agent-nodejs/issues/1975)) ([e942507](https://github.com/ForestAdmin/agent-nodejs/commit/e942507e609d02920d3b8dc31651bb467103434b))
+
 ## @forestadmin/datasource-toolkit [1.55.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.55.0...@forestadmin/datasource-toolkit@1.55.1) (2026-08-25)
 
 

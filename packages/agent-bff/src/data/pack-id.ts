@@ -1,9 +1,10 @@
 import type { PrimaryKeyField } from '../read-model/read-model';
 
-import recordKey from './record-key';
+import { recordKey } from '@forestadmin/agent-client';
+
 import { mappingError } from '../http/bff-local-errors';
 
-export const PACKED_ID_SEPARATOR = '|';
+const PACKED_ID_SEPARATOR = '|';
 
 // The only column type unpacked to a number, mirroring the agent's `IdUtils.unpackId`.
 const NUMBER_COLUMN_TYPE = 'Number';
@@ -72,6 +73,29 @@ function comparableValue(record: Record<string, unknown>, key: PrimaryKeyField):
  *
  * With no record, the values are returned whole and the pairing is the positional one.
  */
+function matchedByRecord(
+  values: string[],
+  primaryKeys: PrimaryKeyField[],
+  record: Record<string, unknown>,
+): { segments: string[]; unread: number } {
+  const claimed = values.map(() => false);
+  const matched = primaryKeys.map(key => {
+    const wanted = comparableValue(record, key);
+    const index = wanted === null ? -1 : values.findIndex((v, i) => !claimed[i] && v === wanted);
+
+    if (index !== -1) claimed[index] = true;
+
+    return index === -1 ? null : values[index];
+  });
+
+  const leftovers = values.filter((_, index) => !claimed[index]);
+
+  return {
+    segments: matched.map(value => value ?? (leftovers.shift() as string)),
+    unread: matched.filter(value => value === null).length,
+  };
+}
+
 function segmentsByKey(
   values: string[],
   primaryKeys: PrimaryKeyField[],
@@ -79,27 +103,83 @@ function segmentsByKey(
 ): string[] {
   if (!record) return values;
 
-  const claimed = values.map(() => false);
-  const matched = primaryKeys.map(key => {
-    const wanted = comparableValue(record, key);
-    const index = wanted === null ? -1 : values.findIndex((v, i) => !claimed[i] && v === wanted);
+  const { segments, unread } = matchedByRecord(values, primaryKeys, record);
 
-    if (index === -1) return null;
-    claimed[index] = true;
+  return unread > 1 ? values : segments;
+}
 
-    return values[index];
+function parseJsonArrayId(packedId: string, keyCount: number): unknown[] | null {
+  if (keyCount < 2 || !packedId.startsWith('[') || !packedId.endsWith(']')) return null;
+
+  try {
+    const parsed: unknown = JSON.parse(packedId);
+
+    return Array.isArray(parsed) && parsed.length === keyCount ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function jsonArrayValues(elements: unknown[]): string[] | null {
+  const values = elements.map(element => {
+    if (typeof element === 'string') return element;
+
+    return typeof element === 'number' && Number.isSafeInteger(element) ? String(element) : null;
   });
 
-  if (matched.filter(value => value === null).length > 1) return values;
+  return values.every((value): value is string => value !== null) ? values : null;
+}
 
-  const leftovers = values.filter((_, index) => !claimed[index]);
+function jsonArraySegments(
+  packedId: string,
+  primaryKeys: PrimaryKeyField[],
+  record?: Record<string, unknown>,
+): string[] {
+  const values = jsonArrayValues(parseJsonArrayId(packedId, primaryKeys.length) ?? []);
+  const pipeValues = packedId.split(PACKED_ID_SEPARATOR);
 
-  return matched.map(value => value ?? (leftovers.shift() as string));
+  const read = (candidate: string[] | null, unreadAllowed: number): string[] | null => {
+    if (!candidate || !record) return null;
+
+    const { segments, unread } = matchedByRecord(candidate, primaryKeys, record);
+
+    return unread <= unreadAllowed ? segments : null;
+  };
+
+  const segments =
+    pipeValues.length === primaryKeys.length
+      ? read(pipeValues, 0) ?? read(values, 0)
+      : read(values, 1);
+
+  if (!segments) {
+    throw mappingError(
+      'Cannot build primary key: the record does not say which composite id value is whose',
+    );
+  }
+
+  return segments;
+}
+
+function pipeSegments(
+  packedId: string,
+  primaryKeys: PrimaryKeyField[],
+  record?: Record<string, unknown>,
+): string[] {
+  const values = packedId.split(PACKED_ID_SEPARATOR);
+
+  if (values.length !== primaryKeys.length) {
+    throw mappingError(
+      `Cannot build primary key: expected ${primaryKeys.length} values, found ${values.length}`,
+    );
+  }
+
+  return segmentsByKey(values, primaryKeys, record);
 }
 
 /**
  * Rebuild the structured primary key of a record from its opaque packed id, mirroring the agent's
- * `IdUtils.packId`/`unpackId` (`|`-joined values, `Number` columns cast back to numbers). Returns a
+ * `IdUtils.packId`/`unpackId` (`|`-joined values, `Number` columns cast back to numbers), or the
+ * JSON array `forest_liana` serializes a composite key as, paired by the record only. Returns a
  * `{ pkField: value }` map for `__forest.primaryKey`. Throws a mapping error rather than emitting a
  * malformed key when the schema lacks key metadata or the packed id shape does not match it.
  *
@@ -125,15 +205,9 @@ export default function unpackPrimaryKey(
     };
   }
 
-  const values = packedId.split(PACKED_ID_SEPARATOR);
-
-  if (values.length !== primaryKeys.length) {
-    throw mappingError(
-      `Cannot build primary key: expected ${primaryKeys.length} values, found ${values.length}`,
-    );
-  }
-
-  const segments = segmentsByKey(values, primaryKeys, record);
+  const segments = parseJsonArrayId(packedId, primaryKeys.length)
+    ? jsonArraySegments(packedId, primaryKeys, record)
+    : pipeSegments(packedId, primaryKeys, record);
   const result: Record<string, string | number> = {};
 
   primaryKeys.forEach(({ name, type }, index) => {

@@ -1,11 +1,11 @@
 {
   "name": "@forestadmin/workflow-executor",
-  "version": "1.31.0",
+  "version": "1.32.1",
   "main": "dist/index.js",
   "bin": {
     "forest-workflow-executor": "dist/cli.js"
   },
-  "license": "GPL-3.0",
+  "license": "Apache-2.0",
   "engines": {
     "node": ">=22.12.0"
   },
@@ -29,9 +29,9 @@
     "test": "jest"
   },
   "dependencies": {
-    "@forestadmin/agent-client": "1.16.2",
-    "@forestadmin/ai-proxy": "1.14.1",
-    "@forestadmin/forestadmin-client": "1.43.4",
+    "@forestadmin/agent-client": "1.18.1",
+    "@forestadmin/ai-proxy": "1.14.4",
+    "@forestadmin/forestadmin-client": "1.43.6",
     "@koa/bodyparser": "^6.1.0",
     "@koa/router": "^15.6.0",
     "jsonwebtoken": "^9.0.3",
@@ -42,7 +42,7 @@
     "picocolors": "^1.1.1",
     "sequelize": "^6.37.8",
     "umzug": "^3.8.2",
-    "zod": "4.3.6"
+    "zod": "4.6.5"
   },
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.10",

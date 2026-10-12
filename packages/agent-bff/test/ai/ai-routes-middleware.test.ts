@@ -139,7 +139,10 @@ describe('createAiRoutesMiddleware', () => {
 
   describe('when refreshing the session fails on a transient error', () => {
     it('should answer 502 network_error rather than the oauth server_error type', async () => {
-      const store = makeSessionStore({ saasAccessToken: 'expired.token.value' });
+      const store = makeSessionStore({
+        saasAccessToken: 'expired.token.value',
+        clientId: 'client-1',
+      });
       const serverClient = {
         refreshServerToken: jest.fn().mockRejectedValue(new Error('socket hang up')),
       } as unknown as ForestServerClient;
@@ -158,7 +161,10 @@ describe('createAiRoutesMiddleware', () => {
       const transport = Object.assign(new TypeError('fetch failed'), {
         cause: new Error('connect ECONNREFUSED 10.0.0.1:443'),
       });
-      const store = makeSessionStore({ saasAccessToken: 'expired.token.value' });
+      const store = makeSessionStore({
+        saasAccessToken: 'expired.token.value',
+        clientId: 'client-1',
+      });
       const serverClient = {
         refreshServerToken: jest.fn().mockRejectedValue(transport),
       } as unknown as ForestServerClient;

@@ -11,18 +11,22 @@ export type TokenTtlOptions = {
   refreshTokenSeconds?: number;
 };
 
+export function assertTokenSeconds(label: string, value: number | undefined): void {
+  if (value !== undefined && (!Number.isInteger(value) || value <= 0)) {
+    throw new Error(
+      `Invalid ${label} "${value}": it must be a positive integer number of seconds.`,
+    );
+  }
+}
+
 function normalizeSeconds(
   field: keyof TokenTtlOptions,
   value: number | undefined,
   logger: Logger,
 ): number | undefined {
-  if (value === undefined) return undefined;
+  assertTokenSeconds(`tokenTtl.${field}`, value);
 
-  if (!Number.isInteger(value) || value <= 0) {
-    throw new Error(
-      `Invalid tokenTtl.${field} "${value}": it must be a positive integer number of seconds.`,
-    );
-  }
+  if (value === undefined) return undefined;
 
   if (value < MIN_TOKEN_TTL_SECONDS) {
     logger(

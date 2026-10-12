@@ -29,6 +29,11 @@ export interface ExchangeCodeParams {
   clientId: string;
 }
 
+export interface RefreshServerTokenParams {
+  refreshToken: string;
+  clientId: string;
+}
+
 export interface ForestServerClientOptions {
   forestServerUrl: string;
   envSecret: string;
@@ -142,8 +147,14 @@ export default class ForestServerClient {
     );
   }
 
-  async refreshServerToken(saasRefreshToken: string): Promise<ServerTokens> {
-    return this.postToken({ grant_type: 'refresh_token', refresh_token: saasRefreshToken }, false);
+  async refreshServerToken({
+    refreshToken,
+    clientId,
+  }: RefreshServerTokenParams): Promise<ServerTokens> {
+    return this.postToken(
+      { grant_type: 'refresh_token', refresh_token: refreshToken, client_id: clientId },
+      false,
+    );
   }
 
   private async postToken(

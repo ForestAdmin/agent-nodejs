@@ -104,6 +104,6 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
 LABEL org.opencontainers.image.title="forestadmin-runtime" \
       org.opencontainers.image.description="Run Forest Admin workflow steps on your own infrastructure." \
       org.opencontainers.image.source="https://github.com/ForestAdmin/agent-nodejs" \
-      org.opencontainers.image.licenses="GPL-3.0"
+      org.opencontainers.image.licenses="Apache-2.0"
 
 ENTRYPOINT ["/bin/sh", "packages/workflow-executor/docker-entrypoint.sh"]

@@ -4,6 +4,7 @@ import type {
   AuditStatus,
   AuditStorageOptions,
   AuditStore,
+  AuditTimelineQuery,
   PendingAuditRecord,
 } from './types';
 import type { Model, ModelStatic } from 'sequelize';
@@ -199,6 +200,8 @@ function buildHistoryWhereClause(
     endTimestamp,
     fields,
     search,
+    order,
+    after,
   }: AuditHistoryQuery,
   sequelize: Sequelize,
 ): Record<string | symbol, unknown> {
@@ -215,7 +218,53 @@ function buildHistoryWhereClause(
   const andConditions = [];
   if (fields?.length) andConditions.push(fieldsChangedCondition(sequelize, fields));
   if (search) andConditions.push(searchCondition(sequelize, search));
+
+  if (after) {
+    const past = order === 'desc' ? Op.lt : Op.gt;
+    const at = new Date(after.timestamp);
+
+    andConditions.push({
+      [Op.or]: [{ timestamp: { [past]: at } }, { timestamp: at, id: { [past]: after.id } }],
+    });
+  }
+
   if (andConditions.length) where[Op.and] = andConditions;
+
+  return where;
+}
+
+function buildTimelineWhereClause(
+  {
+    collections,
+    before,
+    excludeIds,
+    userIds,
+    operations,
+    startTimestamp,
+    endTimestamp,
+    search,
+  }: AuditTimelineQuery,
+  sequelize: Sequelize,
+): Record<string | symbol, unknown> {
+  const where: Record<string | symbol, unknown> = { collection: { [Op.in]: collections } };
+
+  if (userIds) where.userId = { [Op.in]: userIds };
+  if (operations?.length) where.operation = { [Op.in]: operations };
+  if (excludeIds?.length) where.id = { [Op.notIn]: excludeIds };
+
+  const timestampRange: Record<symbol, Date> = {};
+  if (startTimestamp) timestampRange[Op.gte] = new Date(startTimestamp);
+
+  // The cursor bound and the `endDate` filter are both inclusive upper bounds; the tighter wins.
+  const upperBounds = [endTimestamp, before].filter(Boolean).map(bound => new Date(bound));
+
+  if (upperBounds.length) {
+    timestampRange[Op.lte] = new Date(Math.min(...upperBounds.map(date => date.getTime())));
+  }
+
+  if (Object.getOwnPropertySymbols(timestampRange).length) where.timestamp = timestampRange;
+
+  if (search) where[Op.and] = [searchCondition(sequelize, search)];
 
   return where;
 }
@@ -350,6 +399,23 @@ export function createSqlAuditStore(options: AuditStorageOptions): {
           where: buildHistoryWhereClause(query, connection),
           transaction: null,
         });
+      },
+      async listTimeline(query) {
+        if (!query.collections.length) return [];
+
+        const { model, connection } = await init();
+
+        const rows = await model.findAll({
+          where: buildTimelineWhereClause(query, connection),
+          order: [
+            ['timestamp', 'DESC'],
+            ['id', 'DESC'],
+          ],
+          limit: query.limit,
+          transaction: null,
+        });
+
+        return rows.map(fromRow);
       },
       async listDistinctUsers(query) {
         const { model, connection } = await init();

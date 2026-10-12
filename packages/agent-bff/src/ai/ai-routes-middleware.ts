@@ -91,7 +91,7 @@ async function resolveSessionAccessToken(
   logger: Logger,
 ): Promise<string> {
   try {
-    return await ensureFreshServerAccess({ sid: principal.sid, store, serverClient });
+    return await ensureFreshServerAccess({ sid: principal.sid, store, serverClient, logger });
   } catch (error) {
     if (error instanceof OAuthRequestError && error.status >= 500) {
       logger('Warn', 'AI query refused: the Forest server could not refresh the session', {

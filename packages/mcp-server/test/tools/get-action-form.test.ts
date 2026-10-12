@@ -72,6 +72,21 @@ describe('declareGetActionFormTool', () => {
       expect(registeredToolConfig.description).toContain('canExecute');
     });
 
+    it('tells the model to fill revealed fields even once canExecute is true', () => {
+      declareGetActionFormTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: [],
+      });
+
+      expect(registeredToolConfig.description).toContain(
+        'look for fields that were not in the previous response',
+      );
+      expect(registeredToolConfig.description).toContain(
+        '"canExecute" only means the required fields are filled',
+      );
+    });
+
     it('should be annotated as read-only', () => {
       declareGetActionFormTool(mcpServer, {
         forestServerClient: mockForestServerClient,

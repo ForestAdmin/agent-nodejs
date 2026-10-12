@@ -1,7 +1,7 @@
 import type { ActionEndpointsByCollection } from '@forestadmin/agent-client';
 import type { ForestSchemaCollection, ForestSchemaField } from '@forestadmin/forestadmin-client';
 
-import recordKey, { groupByRecordKey } from '../data/record-key';
+import { groupByRecordKey, recordKey } from '@forestadmin/agent-client';
 
 export const RELATIONSHIP_TYPES = [
   'BelongsTo',

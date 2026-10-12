@@ -153,6 +153,32 @@ describe('InMemoryAuditStore', () => {
     expect(page2.map(r => r.newValues)).toEqual([{ n: 3 }]);
   });
 
+  describe('listByRecord after a cursor', () => {
+    const history = { collection: 'accounts', recordId: '1' };
+    const seedTied = (store: InMemoryAuditStore) =>
+      [1, 2, 3].map(id =>
+        store.seed(record({ id, ...(id === 3 && { timestamp: '2026-01-02T00:00:00.000Z' }) })),
+      );
+
+    test('continues past the cursor oldest first, breaking a timestamp tie by id', () => {
+      const store = new InMemoryAuditStore();
+      const [first] = seedTied(store);
+
+      const rows = store.listByRecord({ ...history, order: 'asc', after: first });
+
+      expect(rows.map(row => row.id)).toEqual([2, 3]);
+    });
+
+    test('continues past the cursor newest first, breaking a timestamp tie by id', () => {
+      const store = new InMemoryAuditStore();
+      const [, second] = seedTied(store);
+
+      const rows = store.listByRecord({ ...history, order: 'desc', after: second });
+
+      expect(rows.map(row => row.id)).toEqual([1]);
+    });
+  });
+
   describe('countByRecord', () => {
     it('counts all matching entries, ignoring skip and limit', () => {
       const store = new InMemoryAuditStore();

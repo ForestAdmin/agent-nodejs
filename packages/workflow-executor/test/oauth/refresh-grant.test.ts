@@ -267,6 +267,40 @@ describe('refreshAccessToken', () => {
     },
   );
 
+  it('maps a malformed-request rejection (invalid_request) to re-auth, carrying its description', async () => {
+    fetchSpy.mockResolvedValue(
+      mockResponse({
+        ok: false,
+        status: 400,
+        payload: { error: 'invalid_request', error_description: 'missing or unknown client id' },
+      }),
+    );
+
+    const refresh = refreshAccessToken({
+      tokenEndpoint: 'https://idp/token',
+      refreshToken: 'rt-1',
+    });
+
+    await expect(refresh).rejects.toBeInstanceOf(OAuthInvalidGrantError);
+    await expect(refresh).rejects.toThrow(
+      'OAuth refresh token rejected: missing or unknown client id',
+    );
+  });
+
+  it('throws OAuthRefreshError on a 429 from the token endpoint', async () => {
+    fetchSpy.mockResolvedValue(
+      mockResponse({ ok: false, status: 429, payload: { error: 'slow_down' } }),
+    );
+
+    const refresh = refreshAccessToken({
+      tokenEndpoint: 'https://idp/token',
+      refreshToken: 'rt-1',
+    });
+
+    await expect(refresh).rejects.toBeInstanceOf(OAuthRefreshError);
+    await expect(refresh).rejects.toThrow('OAuth token refresh failed: slow_down');
+  });
+
   it('throws OAuthRefreshError on a 5xx from the token endpoint', async () => {
     fetchSpy.mockResolvedValue(mockResponse({ ok: false, status: 503, nonJson: true }));
 

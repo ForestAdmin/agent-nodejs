@@ -1,3 +1,104 @@
+## @forestadmin/workflow-executor [1.32.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.32.0...@forestadmin/workflow-executor@1.32.1) (2026-10-10)
+
+
+### Bug Fixes
+
+* **license:** relicense from GPL-3.0 to Apache-2.0 ([#1992](https://github.com/ForestAdmin/agent-nodejs/issues/1992)) ([9db2921](https://github.com/ForestAdmin/agent-nodejs/commit/9db2921d6b66ef74e3ea75d92e4a29325732b492))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.18.1
+* **@forestadmin/ai-proxy:** upgraded to 1.14.4
+* **@forestadmin/forestadmin-client:** upgraded to 1.43.6
+
+# @forestadmin/workflow-executor [1.32.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.31.9...@forestadmin/workflow-executor@1.32.0) (2026-10-08)
+
+
+### Features
+
+* **workflow-executor:** restrict an MCP step to its allowed tools ([#1984](https://github.com/ForestAdmin/agent-nodejs/issues/1984)) ([a3470c1](https://github.com/ForestAdmin/agent-nodejs/commit/a3470c135b097e1a4a4c1d914234aa7760f521b7))
+
+## @forestadmin/workflow-executor [1.31.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.31.8...@forestadmin/workflow-executor@1.31.9) (2026-10-07)
+
+
+### Bug Fixes
+
+* **workflow-executor:** let Full AI fill forms that reveal fields over more than 3 passes ([#1982](https://github.com/ForestAdmin/agent-nodejs/issues/1982)) ([789c6a4](https://github.com/ForestAdmin/agent-nodejs/commit/789c6a4ea403920105929b551d71efd1baf0f2ea))
+
+## @forestadmin/workflow-executor [1.31.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.31.7...@forestadmin/workflow-executor@1.31.8) (2026-10-07)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.18.0
+
+## @forestadmin/workflow-executor [1.31.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.31.6...@forestadmin/workflow-executor@1.31.7) (2026-10-07)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.17.1
+* **@forestadmin/ai-proxy:** upgraded to 1.14.3
+* **@forestadmin/forestadmin-client:** upgraded to 1.43.5
+
+## @forestadmin/workflow-executor [1.31.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.31.5...@forestadmin/workflow-executor@1.31.6) (2026-10-06)
+
+
+### Bug Fixes
+
+* **workflow-executor:** apply AI form values in the form's field order ([#1973](https://github.com/ForestAdmin/agent-nodejs/issues/1973)) ([8016ff9](https://github.com/ForestAdmin/agent-nodejs/commit/8016ff990a815d8b7bbeb9a70b0a978e38a17772))
+
+## @forestadmin/workflow-executor [1.31.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.31.4...@forestadmin/workflow-executor@1.31.5) (2026-10-06)
+
+
+### Bug Fixes
+
+* **workflow-executor:** keep the backend refusal message when a Full AI step pauses ([#1963](https://github.com/ForestAdmin/agent-nodejs/issues/1963)) ([5d5bce6](https://github.com/ForestAdmin/agent-nodejs/commit/5d5bce67ac5424e47eea4cd5d90c97a08d05f6ea))
+
+## @forestadmin/workflow-executor [1.31.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.31.3...@forestadmin/workflow-executor@1.31.4) (2026-10-05)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.17.0
+
+## @forestadmin/workflow-executor [1.31.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.31.2...@forestadmin/workflow-executor@1.31.3) (2026-10-05)
+
+
+### Bug Fixes
+
+* **workflow-executor:** ask to reconnect when a token endpoint rejects a refresh as invalid_request ([fcf316c](https://github.com/ForestAdmin/agent-nodejs/commit/fcf316c8994665527ececbf877bfaa3efb90d964))
+
+## @forestadmin/workflow-executor [1.31.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.31.1...@forestadmin/workflow-executor@1.31.2) (2026-10-05)
+
+
+### Bug Fixes
+
+* **workflow-executor,mcp-server:** let the AI fill the form fields a change hook reveals ([#1959](https://github.com/ForestAdmin/agent-nodejs/issues/1959)) ([f9c0bcb](https://github.com/ForestAdmin/agent-nodejs/commit/f9c0bcb00f81b5d27404545cc5c053a8c63990dd))
+
+## @forestadmin/workflow-executor [1.31.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.31.0...@forestadmin/workflow-executor@1.31.1) (2026-10-05)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/ai-proxy:** upgraded to 1.14.2
+
 # @forestadmin/workflow-executor [1.31.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.30.2...@forestadmin/workflow-executor@1.31.0) (2026-10-02)
 
 

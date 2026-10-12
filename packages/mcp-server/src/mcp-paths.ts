@@ -1,6 +1,6 @@
 export type McpRouteMatcher = (url: string) => boolean;
 
-export function normalizeMountPath(input?: string): string {
+export function normalizeMountPath(input?: string, label = 'MCP mount path'): string {
   if (!input) return '';
 
   const trimmed = input.trim();
@@ -14,7 +14,7 @@ export function normalizeMountPath(input?: string): string {
   // metadata; an allowlist keeps those two interpretations identical and future-proof.
   if (!/^(\/[A-Za-z0-9_-]+)+$/.test(collapsed)) {
     throw new Error(
-      `Invalid MCP mount path "${input}": use a plain path prefix like "/mcp" ` +
+      `Invalid ${label} "${input}": use a plain path prefix like "/mcp" ` +
         `(letters, digits, "-" and "_" only).`,
     );
   }
@@ -26,28 +26,38 @@ export function normalizeMountPath(input?: string): string {
  * Well-known paths stay anchored at the origin root (per RFC 8414/9728) but carry the prefix
  * as a suffix, so a host's own root OAuth metadata is not claimed.
  */
+function buildWellKnownDocuments(normalized: string): string[] {
+  return [
+    `/.well-known/oauth-authorization-server${normalized}`,
+    `/.well-known/oauth-protected-resource${normalized}/mcp`,
+  ];
+}
+
+function buildRoutePrefixes(normalized: string): string[] {
+  return [`${normalized}/oauth/`, `${normalized}/mcp`];
+}
+
 export function buildMcpPaths(prefix = ''): string[] {
   const normalized = normalizeMountPath(prefix);
 
-  const wellKnown = normalized
-    ? [
-        `/.well-known/oauth-authorization-server${normalized}`,
-        `/.well-known/oauth-protected-resource${normalized}`,
-      ]
-    : ['/.well-known/'];
-
-  return [...wellKnown, `${normalized}/oauth/`, `${normalized}/mcp`];
+  return [...buildWellKnownDocuments(normalized), ...buildRoutePrefixes(normalized)];
 }
 
 export function makeIsMcpRoute(prefix = ''): McpRouteMatcher {
-  const paths = buildMcpPaths(prefix);
+  const normalized = normalizeMountPath(prefix);
+  const wellKnownDocuments = buildWellKnownDocuments(normalized);
+  const routePrefixes = buildRoutePrefixes(normalized);
 
   // Match on the pathname (req.url carries the query string) and on a segment boundary, so
   // '/mcp?x=1' still matches and '/ai/mcp' does not shadow '/ai/mcp-dashboard'.
   return (url: string) => {
     const [pathname] = url.split(/[?#]/, 1);
+    const withoutTrailingSlash = pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
 
-    return paths.some(p => pathname === p || pathname.startsWith(p.endsWith('/') ? p : `${p}/`));
+    return (
+      wellKnownDocuments.includes(withoutTrailingSlash) ||
+      routePrefixes.some(p => pathname === p || pathname.startsWith(p.endsWith('/') ? p : `${p}/`))
+    );
   };
 }
 

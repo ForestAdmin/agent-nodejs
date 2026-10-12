@@ -49,6 +49,7 @@ const OPENAI_UNSUPPORTED_PATTERNS = [
 
 const OPENAI_UNSUPPORTED_MODELS = [
   'us-40-51r-vm-ev3', // Not a chat model (v1/completions only)
+  'gpt-3.5-turbo-1106', // Deprecated by OpenAI (returns 404 on invocation)
   // Reject reasoning_effort with function tools on v1/chat/completions (v1/responses only)
   'gpt-5.6-luna',
   'gpt-5.6-sol',
@@ -56,6 +57,7 @@ const OPENAI_UNSUPPORTED_MODELS = [
   'gpt-6-astra',
   'gpt-6-luna',
   'gpt-6-sol',
+  'gpt-6.1-sol',
 ];
 
 const OPENAI_SUPPORTED_OVERRIDES = ['gpt-4-turbo', 'gpt-4o', 'gpt-4.1'];
@@ -101,6 +103,10 @@ const ANTHROPIC_UNSUPPORTED_PREFIXES = [
   // line and still answers with thinking disabled — a prefix also matches the id exactly, so the
   // shorter one would exclude it too.
   'claude-opus-5-5',
+  // Rejects thinking.type 'disabled' in favour of 'between_tools', which still returns thinking
+  // blocks the proxy drops. Bedrock refuses its forced tool call for the same reason. Not
+  // `claude-sonnet-5`, which still answers with thinking disabled.
+  'claude-sonnet-5-5',
 ];
 
 function isAnthropicModelSupported(model: string): boolean {

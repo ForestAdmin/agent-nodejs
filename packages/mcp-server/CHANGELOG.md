@@ -1,3 +1,107 @@
+## @forestadmin/mcp-server [1.28.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.28.0...@forestadmin/mcp-server@1.28.1) (2026-10-10)
+
+
+### Bug Fixes
+
+* **license:** relicense from GPL-3.0 to Apache-2.0 ([#1992](https://github.com/ForestAdmin/agent-nodejs/issues/1992)) ([9db2921](https://github.com/ForestAdmin/agent-nodejs/commit/9db2921d6b66ef74e3ea75d92e4a29325732b492))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.18.1
+* **@forestadmin/forestadmin-client:** upgraded to 1.43.6
+
+# @forestadmin/mcp-server [1.28.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.27.2...@forestadmin/mcp-server@1.28.0) (2026-10-07)
+
+
+### Features
+
+* **mcp-server:** tell the model which fields a record cannot be read under ([#1977](https://github.com/ForestAdmin/agent-nodejs/issues/1977)) ([6ff083e](https://github.com/ForestAdmin/agent-nodejs/commit/6ff083e9938c7857020dc8e12e4b62921883a8f5))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.18.0
+
+## @forestadmin/mcp-server [1.27.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.27.1...@forestadmin/mcp-server@1.27.2) (2026-10-07)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.17.1
+* **@forestadmin/forestadmin-client:** upgraded to 1.43.5
+
+## @forestadmin/mcp-server [1.27.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.27.0...@forestadmin/mcp-server@1.27.1) (2026-10-06)
+
+
+### Bug Fixes
+
+* **mcp-server:** support zod 4.4+ ([#1971](https://github.com/ForestAdmin/agent-nodejs/issues/1971)) ([2d70244](https://github.com/ForestAdmin/agent-nodejs/commit/2d7024446cc09e416f5f6ccf761a05fd8dd762fc))
+
+# @forestadmin/mcp-server [1.27.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.26.0...@forestadmin/mcp-server@1.27.0) (2026-10-06)
+
+
+### Features
+
+* **mcp-server:** claim only the mcp discovery documents under .well-known ([#1969](https://github.com/ForestAdmin/agent-nodejs/issues/1969)) ([fb8f000](https://github.com/ForestAdmin/agent-nodejs/commit/fb8f0008cbef212ee1c3584c38c203ac501624be))
+
+# @forestadmin/mcp-server [1.26.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.25.1...@forestadmin/mcp-server@1.26.0) (2026-10-05)
+
+
+### Features
+
+* **mcp-server:** tell the model which record key holds each schema field ([#1961](https://github.com/ForestAdmin/agent-nodejs/issues/1961)) ([cba8a29](https://github.com/ForestAdmin/agent-nodejs/commit/cba8a299a4733713f0c487e3d2a9e07cb9ab371f))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.17.0
+
+## @forestadmin/mcp-server [1.25.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.25.0...@forestadmin/mcp-server@1.25.1) (2026-10-05)
+
+
+### Bug Fixes
+
+* **mcp-server:** announce list-accepted filter operators ([#1960](https://github.com/ForestAdmin/agent-nodejs/issues/1960)) ([9338362](https://github.com/ForestAdmin/agent-nodejs/commit/9338362673ff57e497e2ac0bab3bd79b9456801e))
+
+# @forestadmin/mcp-server [1.25.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.24.10...@forestadmin/mcp-server@1.25.0) (2026-10-05)
+
+
+### Bug Fixes
+
+* **workflow-executor,mcp-server:** let the AI fill the form fields a change hook reveals ([#1959](https://github.com/ForestAdmin/agent-nodejs/issues/1959)) ([f9c0bcb](https://github.com/ForestAdmin/agent-nodejs/commit/f9c0bcb00f81b5d27404545cc5c053a8c63990dd))
+
+
+### Features
+
+* **mcp-server:** add gateway switch for mcp and api routing ([#1958](https://github.com/ForestAdmin/agent-nodejs/issues/1958)) ([1cb907e](https://github.com/ForestAdmin/agent-nodejs/commit/1cb907e8eb0374da4e851a405083345dbaecdf10))
+
+## @forestadmin/mcp-server [1.24.10](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.24.9...@forestadmin/mcp-server@1.24.10) (2026-10-05)
+
+
+### Bug Fixes
+
+* **mcp-server:** send scope instead of scopes on the forest refresh [PRD-1385] ([#1955](https://github.com/ForestAdmin/agent-nodejs/issues/1955)) ([75535b3](https://github.com/ForestAdmin/agent-nodejs/commit/75535b379662e119338e2127361ed8f7171b5e20))
+
+## @forestadmin/mcp-server [1.24.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.24.8...@forestadmin/mcp-server@1.24.9) (2026-10-02)
+
+
+### Bug Fixes
+
+* **mcp-server:** blame the missing dependency, not the configured path ([#1834](https://github.com/ForestAdmin/agent-nodejs/issues/1834)) ([cefda1f](https://github.com/ForestAdmin/agent-nodejs/commit/cefda1f87f92a8145528d5d623587bf232385648))
+
 ## @forestadmin/mcp-server [1.24.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.24.7...@forestadmin/mcp-server@1.24.8) (2026-10-01)
 
 

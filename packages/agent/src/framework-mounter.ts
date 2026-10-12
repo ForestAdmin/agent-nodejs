@@ -30,7 +30,7 @@ export default class FrameworkMounter {
   private inProcessHookRegistered = false;
 
   /** Compute the prefix that the main router should be mounted at in the client's application */
-  private get completeMountPrefix(): string {
+  protected get completeMountPrefix(): string {
     return path.posix.join('/', this.prefix, 'forest');
   }
 
@@ -52,6 +52,10 @@ export default class FrameworkMounter {
   }
 
   /** Serve an embedded BFF at `/bff`. Pass null to stop answering there. */
+  protected setGatewayCallback(handler: RootHandler): void {
+    this.rootMiddleware.set('gateway', handler);
+  }
+
   protected setBffCallback(callback: HttpCallback | null): void {
     this.rootMiddleware.set('bff', callback && { callback, matches: isBffRoute });
   }

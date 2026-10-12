@@ -182,10 +182,12 @@ refuses an over-cap bulk write.
 
 ## HTTP routes
 
-When `auditTrail` is set, the agent exposes three routes (all behind Forest's auth, gated by
-`assertCanRead` on the target collection). When the caller's role has a record-level scope on that
-collection, every route below — including the correlation lookups — additionally requires the
-target id to currently exist and match that scope. A scope can't be evaluated against a record that
+When `auditTrail` is set, the agent exposes four routes, all behind Forest's auth. The three
+record-scoped ones are gated by `assertCanRead` on the collection they name; the cross-collection
+timeline has no target collection, so it checks `canRead` per collection and queries only the ones
+that pass. When the caller's role has a record-level scope on that collection, every record-scoped
+route below — including the correlation lookups — additionally requires the target id to currently
+exist and match that scope. A scope can't be evaluated against a record that
 no longer exists, so this only refuses a still-existing, out-of-scope id: once a record is genuinely
 deleted, anyone who can read the collection can see its history, reconstructed state, or correlated
 operations, scope aside — inspecting what was deleted is much of the point of an audit trail.
@@ -213,6 +215,13 @@ That test only runs when the snapshot can actually answer it. The capture keeps 
 (plus the packed record id), so a scope reaching for anything else — a read-only column, a relation,
 a field stored redacted — has no honest answer in the snapshot and the values are withheld rather
 than matched against a missing key: absent is not the same as passing.
+
+A captured `null` is tested the way the database tests a `NULL`: it answers only a condition asking
+for the null itself (`Blank`, `Missing`, `Equal` null, an `In` list holding null), never a negated or
+ordered one. In memory `status != 'private'` holds for a null status and `null < 5` coerces to
+`0 < 5`, while the scoped read that guarded the live record left that record out — without this, a
+record the caller could never read alive would become readable once deleted. On a datasource whose
+own `!=` keeps a NULL (Mongo's `$ne`), this is stricter than the live read, never looser.
 
 Primary keys are the exception, read back from the row's own id — but only for the side that id
 speaks for. A row is filed under the identity the record ended up with, so its id answers for a
@@ -292,9 +301,13 @@ ever written, so the real value was never in the database to find.
 Nor can a search confirm a value the scope withholding hides. On a record gone for good under a
 caller's permission scope, `search` and `fields` are matched against the values as served, never as
 captured — in SQL, which rows come back, `meta.count` and `availableUsers` would each say whether a
-withheld value holds the term. The rows are read without those two filters, in batches of 500, and
-matched and paged in memory, keeping only the requested page and the authors. That holds too for a
-record deleted while the request was in flight, whose SQL-matched answer is discarded and re-read.
+withheld value holds the term. The rows are read without those two filters, in batches of 500 that
+each continue past the last row read, never at an offset, and bounded at the instant the scan
+starts. They are matched and paged as they go, keeping only the page asked for. Only a gone
+record's history pays that scan, and it is one record's history — the same rows the SQL search
+would have scanned without an index. That holds too for a record deleted while the request was in flight:
+the second read of the record decides the withholding, so the SQL-matched answer is discarded and
+the history scanned the same way.
 
 Matching the *serialized* text rather than a structural walk of the parsed value is cheap and still
 correct for "keys and scalar values" — but two things follow from it. A punctuation-only term (`,`,
@@ -322,6 +335,54 @@ to `20`, capped at `100`. Out-of-bound or non-numeric values fall back to the de
 
 Ties on equal timestamps fall back to insertion order (the auto-increment `id`), so the order is
 deterministic and stable across pages whatever the direction and filters.
+
+### `GET /forest/_audit-trail` — cross-collection timeline
+
+The project-level feed: every collection at once, newest first, for the page that shows what
+happened across the project rather than to one record. Each row carries its own `collection` and
+`recordId`, so the client can name and link the record it belongs to.
+
+```json
+{ "data": [ /* rows */ ], "meta": { "cursor": { "before": "…", "excludeIds": [12, 11] } } }
+```
+
+**Detail values follow the same rule as the per-record routes:** a caller who can read a collection
+gets its rows with `previousValues` and `newValues`, whatever their permission level. Someone who can
+read the collection can already read each record's history one at a time, so the feed serves the same
+values in aggregate. Who can open the project's Activity Logs at all is decided per team by Forest
+(the `activityLogs` feature a team can be deactivated for), not by this route. The capabilities
+payload advertises the route as `canUseAuditTrailTimeline`, true only when the store implements
+`listTimeline`.
+
+**Permissions.** Only the collections the caller can read are queried. A collection the caller sees
+only through a **record-level scope is left out entirely**: a scope can't be evaluated across a whole
+timeline without fetching every record it mentions, and the row alone would already reveal that a
+record the caller cannot read exists and was touched. A caller scoped on every collection therefore
+gets an empty timeline.
+
+**Filters** are the per-record route's, minus `fields` (a column name means nothing across
+collections): `userIds`, `operations`, `startDate` / `endDate` / `timezone`, `search`, parsed exactly
+the same way — including the 400 on an unrecognized `operation`.
+
+**Paging is by cursor, not offset.** A project-wide feed keeps growing at the head, so an offset
+silently shifts rows across pages. `page[size]` still applies (default `20`, capped at `100`), and
+`meta.cursor` carries the next page's position — `null` once the last row has been served:
+
+| query param   | format                          | effect                                              |
+| ------------- | ------------------------------- | --------------------------------------------------- |
+| `before`      | ISO instant                     | **inclusive** upper bound on `timestamp`            |
+| `excludeIds`  | comma-separated integers        | row ids already served at that boundary             |
+
+The bound is inclusive on purpose: rows sharing the boundary timestamp must not fall between two
+pages, so they come back and `excludeIds` drops the ones already sent. Ties order by descending `id`
+(insertion order), and a timestamp holding more rows than fit on one page accumulates its exclusions
+across pages rather than looping. Feed the two values back verbatim; don't synthesize them.
+
+`meta.cursor` is also `null` if the walk cannot move past the current timestamp — staying on one
+must always add at least the last row's id to the exclusions, so a cursor that would come back
+unchanged ends the walk instead of repeating the page forever.
+
+A custom `AuditStore` that doesn't implement `listTimeline` simply doesn't get this route mounted.
 
 ### `GET /forest/_audit-trail/correlation/{correlationKey}`
 

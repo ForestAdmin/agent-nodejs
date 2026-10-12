@@ -7,6 +7,7 @@ import CollectionApiChartRoute from './access/api-chart-collection';
 import DataSourceApiChartRoute from './access/api-chart-datasource';
 import AuditTrailRoute from './access/audit-trail';
 import AuditTrailCorrelationRoute from './access/audit-trail-correlation';
+import AuditTrailTimelineRoute from './access/audit-trail-timeline';
 import Chart from './access/chart';
 import Count from './access/count';
 import CountRelated from './access/count-related';
@@ -184,6 +185,10 @@ function getAuditTrailRoutes(
     // Registered before the per-collection routes: if a collection is named "correlation", its
     // `/_audit-trail/correlation/:id` route would otherwise shadow this one.
     new AuditTrailCorrelationRoute(services, options, dataSource),
+    // A store written before the cross-collection timeline existed simply doesn't serve it.
+    ...(options.auditTrail.store.listTimeline
+      ? [new AuditTrailTimelineRoute(services, options, dataSource)]
+      : []),
     ...dataSource.collections.map(
       collection => new AuditTrailRoute(services, options, dataSource, collection.name),
     ),

@@ -15,6 +15,7 @@ import {
 } from '@modelcontextprotocol/sdk/server/auth/errors.js';
 import jsonwebtoken from 'jsonwebtoken';
 
+import forestServerIssueTokenSchema from './helpers/forest-server-issue-token-schema';
 import MockServer from './test-utils/mock-server';
 import ForestOAuthProvider from '../src/forest-oauth-provider';
 import GatewayApiKeyAuthenticator from '../src/gateway-api-key-authenticator';
@@ -22,7 +23,10 @@ import GatewayApiKeyAuthenticator from '../src/gateway-api-key-authenticator';
 const mockAuthenticate = jest.fn();
 
 jest.mock('jsonwebtoken');
-jest.mock('@forestadmin/forestadmin-client');
+jest.mock('@forestadmin/forestadmin-client', () => ({
+  ...jest.createMockFromModule<object>('@forestadmin/forestadmin-client'),
+  isClientAllowed: jest.requireActual('@forestadmin/forestadmin-client').isClientAllowed,
+}));
 jest.mock('../src/gateway-api-key-authenticator', () => ({
   __esModule: true,
   ...jest.requireActual('../src/gateway-api-key-authenticator'),
@@ -829,9 +833,98 @@ describe('ForestOAuthProvider', () => {
         provider.exchangeRefreshToken(mockClient, 'valid-refresh-token'),
       ).rejects.toMatchObject({ errorCode: 'invalid_grant' });
     });
+
+    describe('refresh body sent to the Forest issueToken route', () => {
+      async function refreshAndCaptureBody(scopes?: string[]): Promise<Record<string, unknown>> {
+        (jsonwebtoken.verify as jest.Mock).mockReturnValue({
+          type: 'refresh',
+          clientId: 'test-client-id',
+          userId: 123,
+          renderingId: 456,
+          serverRefreshToken: 'forest-refresh-token',
+        });
+        const now = Math.floor(Date.now() / 1000);
+        mockJwtDecode
+          .mockReturnValueOnce({ meta: { renderingId: 456 }, exp: now + 3600, iat: now })
+          .mockReturnValueOnce({ exp: now + 604800, iat: now });
+        mockServer.post('/oauth/token', {
+          access_token: 'new-forest-access-token',
+          refresh_token: 'new-forest-refresh-token',
+          expires_in: 3600,
+          token_type: 'Bearer',
+        });
+        global.fetch = mockServer.fetch;
+
+        await createProvider().exchangeRefreshToken(mockClient, 'valid-refresh-token', scopes);
+
+        const [, options] = (mockServer.fetch as jest.Mock).mock.calls.find(
+          ([url]) => url === 'https://api.forestadmin.com/oauth/token',
+        );
+
+        return JSON.parse(options.body);
+      }
+
+      it('passes the issueToken schema with a space-joined scope when the client sends scope', async () => {
+        const body = await refreshAndCaptureBody(['mcp:read', 'profile']);
+
+        expect(forestServerIssueTokenSchema.validate(body).error).toBeUndefined();
+        expect(body).toEqual({
+          grant_type: 'refresh_token',
+          refresh_token: 'forest-refresh-token',
+          client_id: 'test-client-id',
+          scope: 'mcp:read profile',
+        });
+      });
+
+      it.each([
+        ['no scopes', undefined],
+        ['an empty scope list', []],
+      ])(
+        'passes the issueToken schema without scope when the client sends %s',
+        async (_, scopes) => {
+          const body = await refreshAndCaptureBody(scopes);
+
+          expect(forestServerIssueTokenSchema.validate(body).error).toBeUndefined();
+          expect(body).not.toHaveProperty('scope');
+        },
+      );
+    });
   });
 
   describe('verifyAccessToken', () => {
+    it('accepts a signed access token without a type claim', async () => {
+      const jwt = jest.requireActual<typeof jsonwebtoken>('jsonwebtoken');
+      const claims = {
+        id: 123,
+        email: 'user@example.com',
+        renderingId: 456,
+        serverToken: 'forest-server-token',
+        scopes: ['mcp:read'],
+      };
+      const token = jwt.sign(claims, TEST_AUTH_SECRET, { expiresIn: 3600 });
+
+      (jsonwebtoken.verify as jest.Mock).mockImplementation(jwt.verify);
+
+      const decoded = jwt.decode(token) as jsonwebtoken.JwtPayload;
+      expect(decoded).not.toHaveProperty('type');
+
+      const provider = createProvider();
+
+      await expect(provider.verifyAccessToken(token)).resolves.toEqual({
+        token,
+        clientId: '123',
+        expiresAt: decoded.exp,
+        scopes: ['mcp:read'],
+        extra: {
+          userId: 123,
+          email: 'user@example.com',
+          renderingId: 456,
+          environmentApiEndpoint: undefined,
+          forestServerToken: 'forest-server-token',
+        },
+      });
+    });
+
     it('should verify and decode a valid access token', async () => {
       const mockDecoded = {
         id: 123,

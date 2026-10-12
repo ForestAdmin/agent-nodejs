@@ -2,7 +2,8 @@ export type ApiKeyErrorType =
   | 'invalid_api_key'
   | 'forest_identity_not_allowed'
   | 'invalid_request'
-  | 'key_resolution_unavailable';
+  | 'key_resolution_unavailable'
+  | 'plan_feature_missing';
 
 export class ApiKeyError extends Error {
   readonly status: number;
@@ -36,6 +37,12 @@ export function invalidApiKey(message = 'Invalid API key'): ApiKeyError {
 
 export function forestIdentityNotAllowed(message = 'Forest identity not allowed'): ApiKeyError {
   return new ApiKeyError(403, 'forest_identity_not_allowed', message);
+}
+
+export function planFeatureMissing(
+  message = "The project's plan does not include the Gateway API.",
+): ApiKeyError {
+  return new ApiKeyError(403, 'plan_feature_missing', message);
 }
 
 export function invalidRequest(message = 'Invalid request'): ApiKeyError {

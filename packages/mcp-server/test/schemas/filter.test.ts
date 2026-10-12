@@ -1,6 +1,17 @@
 import filterSchema from '../../src/schemas/filter';
 
 describe('filterSchema', () => {
+  it('allows Zod to bind parsing methods on the exported schema', () => {
+    const condition = {
+      aggregator: 'And',
+      conditions: [{ field: 'name', operator: 'Equal', value: 'John' }],
+    };
+
+    expect(filterSchema.parse(condition)).toEqual(condition);
+    expect(filterSchema.safeParse(condition)).toEqual({ success: true, data: condition });
+    expect(Object.isFrozen(filterSchema)).toBe(false);
+  });
+
   describe('leaf conditions', () => {
     it('should accept valid leaf condition with Equal operator', () => {
       const condition = {

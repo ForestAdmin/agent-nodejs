@@ -188,7 +188,9 @@ export default class SchemaGeneratorFields {
       ...baseSchema,
       type: keyField.columnType as PrimitiveTypes,
       defaultValue: null,
-      isFilterable: SchemaGeneratorFields.isForeignCollectionFilterable(foreignCollection),
+      isFilterable:
+        relation.isFilterable !== false &&
+        SchemaGeneratorFields.isForeignCollectionFilterable(foreignCollection),
       isPrimaryKey: false,
       isRequired: false,
       isReadOnly: Boolean(keyField.isReadOnly),
@@ -210,7 +212,9 @@ export default class SchemaGeneratorFields {
       ...baseSchema,
       type: keyField.columnType as PrimitiveTypes,
       defaultValue: keyField.defaultValue ?? null,
-      isFilterable: SchemaGeneratorFields.isForeignCollectionFilterable(foreignCollection),
+      isFilterable:
+        relation.isFilterable !== false &&
+        SchemaGeneratorFields.isForeignCollectionFilterable(foreignCollection),
 
       // Always set false even if the foreign key is the primary key.
       // Doing otherwise breaks the frontend when no reference field is set.

@@ -48,6 +48,7 @@ describe('shutdown handlers', () => {
     installed[0].handler();
 
     await expect(stop.mock.results[0].value).rejects.toBe(closeError);
+    await new Promise(setImmediate);
 
     expect(logger).toHaveBeenCalledWith('Error', 'The Forest BFF did not stop cleanly', {
       cause: 'close failed',

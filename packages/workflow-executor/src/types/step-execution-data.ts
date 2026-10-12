@@ -123,7 +123,13 @@ export interface TriggerActionPendingData extends ActionRef {
     fields: ActionFormField[];
     aiFilledValues: AiFilledFormValue[];
   };
+  fullAiFallback?: FullAiFallback;
 }
+
+export type FullAiFallback =
+  | { reason: 'required-fields-missing' }
+  | { reason: 'backend-refused'; backendMessage?: string }
+  | { reason: 'approval-required' };
 
 // Submission outcome reported by the native front: `executed` = the action ran and a
 // result exists; `pending-approval` = the submit only created an approval request (no result yet).

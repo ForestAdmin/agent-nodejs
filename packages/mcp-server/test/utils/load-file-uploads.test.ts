@@ -28,6 +28,12 @@ describe('loadFileUploads', () => {
     await expect(loadFileUploads('')).resolves.toBeUndefined();
   });
 
+  it('names the module through the label map', async () => {
+    await expect(
+      loadFileUploads('./does-not-exist.js', { uploadStorageModule: 'UPLOADS_MODULE' }),
+    ).rejects.toThrow('UPLOADS_MODULE "./does-not-exist.js" was not found');
+  });
+
   it('loads options exported directly', async () => {
     const file = writeModule(`module.exports = { storage: ${storageSource}, maxBytes: 4242 };`);
 
@@ -51,6 +57,16 @@ describe('loadFileUploads', () => {
     await expect(loadFileUploads(file)).resolves.toMatchObject({
       storage: expect.any(Object),
     });
+  });
+
+  it('blames the dependency, not the path, when the module requires something missing', async () => {
+    const file = writeModule(`require('@this/does-not-exist');`);
+
+    const error = (await loadFileUploads(file).catch((e: Error) => e)) as Error;
+
+    expect(error.message).toContain('failed while loading');
+    expect(error.message).toContain("Cannot find module '@this/does-not-exist'");
+    expect(error.message).not.toContain('was not found');
   });
 
   it('names the module and the resolved path when it cannot be found', async () => {

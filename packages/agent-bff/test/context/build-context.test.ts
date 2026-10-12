@@ -124,7 +124,7 @@ describe('buildContext', () => {
       expect(peopleFields().find(entry => entry.field === 'id')).not.toHaveProperty('recordKey');
     });
 
-    it('should omit recordKey when another field claims the same key, which collapses', () => {
+    it('should publish the shared recordKey and each other when fields collapse onto one key', () => {
       const collidingSchema = [
         {
           name: 'people',
@@ -141,11 +141,17 @@ describe('buildContext', () => {
         schemaRevision: 1,
       }).collections;
 
-      expect(fields.find(entry => entry.field === 'first_name')).not.toHaveProperty('recordKey');
-      expect(fields.find(entry => entry.field === 'firstName')).not.toHaveProperty('recordKey');
+      expect(fields.find(entry => entry.field === 'first_name')).toMatchObject({
+        recordKey: 'firstName',
+        sharesRecordKeyWith: ['firstName'],
+      });
+      expect(fields.find(entry => entry.field === 'firstName')).toMatchObject({
+        recordKey: 'firstName',
+        sharesRecordKeyWith: ['first_name'],
+      });
     });
 
-    it('should omit recordKey on a non-key field named Id, which the resource id overwrites', () => {
+    it('should publish a null recordKey on a non-key field named Id, which the resource id overwrites', () => {
       const idSchema = [
         {
           name: 'people',
@@ -161,10 +167,10 @@ describe('buildContext', () => {
         schemaRevision: 1,
       }).collections;
 
-      expect(fields.find(entry => entry.field === 'Id')).not.toHaveProperty('recordKey');
+      expect(fields.find(entry => entry.field === 'Id')).toHaveProperty('recordKey', null);
     });
 
-    it('should omit recordKey on a primary key named Id, whose record id is packed and a string', () => {
+    it('should publish a null recordKey on a primary key named Id, whose record id is packed and a string', () => {
       const pascalKeySchema = [
         {
           name: 'people',
@@ -177,7 +183,49 @@ describe('buildContext', () => {
         schemaRevision: 1,
       }).collections;
 
-      expect(fields.find(entry => entry.field === 'Id')).not.toHaveProperty('recordKey');
+      expect(fields.find(entry => entry.field === 'Id')).toHaveProperty('recordKey', null);
+    });
+
+    it('should publish Id for a Mongo _id and a null recordKey for Id', () => {
+      const mongoSchema = [
+        {
+          name: 'products',
+          fields: [
+            { field: '_id', type: 'String', isPrimaryKey: true },
+            { field: 'Id', type: 'String' },
+          ],
+          actions: [],
+        },
+      ] as unknown as Parameters<typeof buildContext>[0];
+
+      const [{ fields }] = buildContext(mongoSchema, new ReadModel(mongoSchema), {
+        schemaRevision: 1,
+      }).collections;
+
+      expect(fields.map(({ field, recordKey }) => ({ field, recordKey }))).toEqual([
+        { field: '_id', recordKey: 'Id' },
+        { field: 'Id', recordKey: null },
+      ]);
+    });
+
+    it('should keep null and shared record keys through the published schema', () => {
+      const withheldSchema = [
+        {
+          name: 'people',
+          fields: [
+            { field: 'reference', type: 'String', isPrimaryKey: true },
+            { field: 'Id', type: 'String' },
+            { field: 'first_name', type: 'String' },
+            { field: 'firstName', type: 'String' },
+          ],
+          actions: [],
+        },
+      ] as unknown as Parameters<typeof buildContext>[0];
+      const context = buildContext(withheldSchema, new ReadModel(withheldSchema), {
+        schemaRevision: 1,
+      });
+
+      expect(ContextResponseSchema.parse(context)).toStrictEqual(context);
     });
 
     it('should survive the published schema, which would drop an undeclared key', () => {

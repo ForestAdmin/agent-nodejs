@@ -139,6 +139,9 @@ export {
   ResolvedGatewayApiKeyIdentity,
   parseGatewayApiKey,
 } from './gateway-api-key';
+export { default as parseDomainList } from './oauth-client-allowlist/parse-domain-list';
+export { default as normalizeDomainList } from './oauth-client-allowlist/normalize-domain-list';
+export { default as isClientAllowed } from './oauth-client-allowlist/is-client-allowed';
 
 export * from './auth/errors';
 export * from './utils/errors';

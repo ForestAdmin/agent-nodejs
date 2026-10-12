@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-const operatorEnum = z.enum([
+export const operatorEnum = z.enum([
   'Equal',
   'NotEqual',
   'LessThan',
@@ -71,4 +71,7 @@ for (let i = 0; i < MAX_NESTING_DEPTH; i += 1) {
   ]);
 }
 
-export default Object.freeze(conditionSchema);
+// Not frozen: zod 4.4+ binds methods like parse onto the instance on first read.
+const filterSchema = conditionSchema;
+
+export default filterSchema;
