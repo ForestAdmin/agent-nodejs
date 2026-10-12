@@ -1,7 +1,8 @@
 import type { ForestMCPServerOptions } from './server';
 
+import { parseDomainList } from '@forestadmin/forestadmin-client';
+
 import normalizeAgentUrl from './utils/normalize-agent-url';
-import parseDomainList from './utils/parse-domain-list';
 import parseToolList from './utils/parse-tool-list';
 import { assertTokenSeconds } from './utils/token-ttl';
 
@@ -38,14 +39,19 @@ export type ParsedMcpEnv = {
   uploadStorageModule?: string;
 };
 
+export const MCP_LISTENER_ENV = {
+  port: 'MCP_SERVER_PORT',
+  publicUrl: 'FOREST_MCP_SERVER_URL',
+} as const;
+
 export const DEFAULT_MCP_ENV_LABELS: McpEnvLabels = {
   accessTokenTtl: 'tokenTtl.accessTokenSeconds',
   refreshTokenTtl: 'tokenTtl.refreshTokenSeconds',
   fileUploads: 'FOREST_MCP_FILE_UPLOADS',
   uploadStorageModule: 'FOREST_MCP_UPLOAD_STORAGE_MODULE',
   agentUrl: 'agentUrl',
-  port: 'MCP_SERVER_PORT',
-  publicUrl: 'FOREST_MCP_SERVER_URL',
+  port: MCP_LISTENER_ENV.port,
+  publicUrl: MCP_LISTENER_ENV.publicUrl,
 };
 
 const MAX_PORT = 65535;
@@ -123,8 +129,8 @@ export function parseMcpListenerEnv(
   const { port, publicUrl } = resolveLabels(labels);
 
   return {
-    port: parsePort(env.MCP_SERVER_PORT, port),
-    publicUrl: parsePublicUrl(env.FOREST_MCP_SERVER_URL, publicUrl),
+    port: parsePort(env[MCP_LISTENER_ENV.port], port),
+    publicUrl: parsePublicUrl(env[MCP_LISTENER_ENV.publicUrl], publicUrl),
   };
 }
 

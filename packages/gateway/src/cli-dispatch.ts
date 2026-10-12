@@ -1,0 +1,103 @@
+import type { BFFHttpServer, Logger } from '@forestadmin/agent-bff';
+
+import {
+  DEFAULT_OUTPUT_FILE,
+  OUTPUT_FLAG,
+  createConsoleLogger,
+  parseOutputOption,
+  renderOpenApi,
+  writeOutputFile,
+} from '@forestadmin/agent-bff';
+
+import { apiBasePath, parseOpenApiEnv } from './gateway-env';
+import runGateway from './run-gateway';
+import version from './version';
+
+export const USAGE = `Usage: forest-gateway [command]
+
+Commands:
+  (none)      Start the Gateway, configured from the environment.
+              FOREST_GATEWAY_SERVICES lists what it serves: mcp, api or mcp,api.
+  openapi     Write the API's OpenAPI document to stdout, its paths under
+              FOREST_GATEWAY_BASE_PATH/api, its server FOREST_GATEWAY_API_PUBLIC_URL
+              when set.
+              --output [file]  Write to a file instead of stdout, defaulting
+                               to ${DEFAULT_OUTPUT_FILE} in the current directory.
+
+Options:
+  -h, --help     Show this help and exit.
+  -v, --version  Show the package version and exit.`;
+
+export const HINT = "Run 'forest-gateway --help' for usage.";
+
+const HELP_FLAGS = new Set(['-h', '--help']);
+const VERSION_FLAGS = new Set(['-v', '--version']);
+
+export interface DispatchOutcome {
+  exitCode: number;
+  server?: BFFHttpServer;
+}
+
+function rejectCli(reason: string): DispatchOutcome {
+  process.stderr.write(`${reason}\n${HINT}\n`);
+
+  return { exitCode: 1 };
+}
+
+async function renderGatewayOpenApi(env: NodeJS.ProcessEnv, logger: Logger): Promise<string> {
+  const { basePath, api, warnings } = parseOpenApiEnv(env);
+
+  warnings.forEach(warning => logger('Warn', warning));
+
+  return renderOpenApi(api.env, logger, { basePath: apiBasePath(basePath), labels: api.labels });
+}
+
+export default async function dispatchCli(
+  argv: string[],
+  env: NodeJS.ProcessEnv,
+  logger?: Logger,
+): Promise<DispatchOutcome> {
+  const [subcommand, ...rest] = argv;
+
+  if (subcommand === undefined) {
+    return { exitCode: 0, server: await runGateway(env, logger) };
+  }
+
+  if (HELP_FLAGS.has(subcommand)) {
+    process.stdout.write(`${USAGE}\n`);
+
+    return { exitCode: 0 };
+  }
+
+  if (VERSION_FLAGS.has(subcommand)) {
+    process.stdout.write(`${version}\n`);
+
+    return { exitCode: 0 };
+  }
+
+  if (subcommand !== 'openapi') {
+    return rejectCli(
+      subcommand === OUTPUT_FLAG
+        ? `${OUTPUT_FLAG} only applies to the openapi command`
+        : `Unknown command: ${subcommand}`,
+    );
+  }
+
+  const { file, extras } = parseOutputOption(rest);
+
+  if (extras.length > 0) {
+    return rejectCli(
+      `openapi accepts only --output, got: ${extras.map(extra => JSON.stringify(extra)).join(' ')}`,
+    );
+  }
+
+  const document = await renderGatewayOpenApi(env, logger ?? createConsoleLogger());
+
+  if (file !== undefined) {
+    return writeOutputFile(file, document);
+  }
+
+  process.stdout.write(document);
+
+  return { exitCode: 0 };
+}

@@ -38,6 +38,8 @@ export default function expressToKoa(
       return;
     }
 
+    (ctx.req as typeof ctx.req & { originalUrl?: string }).originalUrl ??= ctx.originalUrl;
+
     // Let Express handle the request
     const handled = await new Promise<boolean>(resolve => {
       // Tell Koa not to respond - Express will handle it

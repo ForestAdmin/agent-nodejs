@@ -1,5 +1,10 @@
 # @forestadmin/mcp-server
 
+> [!IMPORTANT]
+> Internal building block of the Forest Gateway. For new deployments, use
+> [`@forestadmin/gateway`](https://docs.forestadmin.com/product/embed/gateway-standalone). The
+> `forest-mcp-server` command keeps working, deprecated.
+
 Model Context Protocol (MCP) server for Forest Admin with OAuth authentication support.
 
 ## Overview
@@ -499,7 +504,7 @@ The server consists of:
 
 ## License
 
-GPL-3.0
+Apache-2.0
 
 ## Repository
 

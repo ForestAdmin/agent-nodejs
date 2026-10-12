@@ -1,3 +1,43 @@
+## @forestadmin/agent-testing [1.2.60](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-testing@1.2.59...@forestadmin/agent-testing@1.2.60) (2026-10-10)
+
+
+### Bug Fixes
+
+* **license:** relicense from GPL-3.0 to Apache-2.0 ([#1992](https://github.com/ForestAdmin/agent-nodejs/issues/1992)) ([9db2921](https://github.com/ForestAdmin/agent-nodejs/commit/9db2921d6b66ef74e3ea75d92e4a29325732b492))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.18.1
+* **@forestadmin/datasource-customizer:** upgraded to 1.73.1
+* **@forestadmin/datasource-toolkit:** upgraded to 1.56.1
+* **@forestadmin/forestadmin-client:** upgraded to 1.43.6
+* **@forestadmin/agent:** upgraded to 1.108.1
+* **@forestadmin/datasource-sql:** upgraded to 1.17.16
+
+## @forestadmin/agent-testing [1.2.59](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-testing@1.2.58...@forestadmin/agent-testing@1.2.59) (2026-10-09)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.108.0
+
+## @forestadmin/agent-testing [1.2.58](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-testing@1.2.57...@forestadmin/agent-testing@1.2.58) (2026-10-08)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.107.3
+
 ## @forestadmin/agent-testing [1.2.57](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-testing@1.2.56...@forestadmin/agent-testing@1.2.57) (2026-10-07)
 
 

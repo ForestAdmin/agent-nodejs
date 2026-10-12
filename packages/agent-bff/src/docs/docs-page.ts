@@ -30,14 +30,14 @@ export default function renderDocsPage(documentPath: string, bundlePath: string)
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex" />
-    <title>Forest BFF API</title>
+    <title>Forest Gateway API</title>
     <link rel="icon" href="data:image/svg+xml,${encodeURIComponent(FAVICON_SVG)}" />
     <style>${PAGE_STYLES}    </style>
   </head>
   <body>
     <div id="unlock">
       <strong>Forest<span>.</span></strong>
-      <label for="key">BFF API key</label>
+      <label for="key">Gateway API key</label>
       <input id="key" type="password" autocomplete="off" spellcheck="false" />
       <button id="load" type="button">Load the API document</button>
     </div>
@@ -68,10 +68,10 @@ ${SAMPLES_SCRIPT}
           var error = body && body.error;
 
           if (error && error.type) {
-            return 'The BFF answered ' + status + ' ' + error.type + ': ' + (error.message || '');
+            return 'The Gateway API answered ' + status + ' ' + error.type + ': ' + (error.message || '');
           }
 
-          return 'The BFF answered ' + status + ': ' + JSON.stringify(body);
+          return 'The Gateway API answered ' + status + ': ' + JSON.stringify(body);
         }
 
         /**
@@ -151,7 +151,7 @@ ${SAMPLES_SCRIPT}
           input.value = '';
 
           if (key) load(key);
-          else show('A BFF API key is required: the document is never served unauthenticated.');
+          else show('A Gateway API key is required: the document is never served unauthenticated.');
         }
 
         button.addEventListener('click', unlockDocument);

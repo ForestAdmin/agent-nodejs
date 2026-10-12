@@ -95,6 +95,7 @@ export {
   ActionNotFoundError,
   StepStateError,
   NoMcpToolsError,
+  McpToolsNotAllowedError,
   McpToolNotFoundError,
   McpToolInvocationError,
   AgentPortError,

@@ -1,3 +1,42 @@
+## @forestadmin/agent [1.108.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.108.0...@forestadmin/agent@1.108.1) (2026-10-10)
+
+
+### Bug Fixes
+
+* **license:** relicense from GPL-3.0 to Apache-2.0 ([#1992](https://github.com/ForestAdmin/agent-nodejs/issues/1992)) ([9db2921](https://github.com/ForestAdmin/agent-nodejs/commit/9db2921d6b66ef74e3ea75d92e4a29325732b492))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-toolkit:** upgraded to 1.2.1
+* **@forestadmin/datasource-customizer:** upgraded to 1.73.1
+* **@forestadmin/datasource-toolkit:** upgraded to 1.56.1
+* **@forestadmin/forestadmin-client:** upgraded to 1.43.6
+* **@forestadmin/mcp-server:** upgraded to 1.28.1
+* **@forestadmin/agent-bff:** upgraded to 1.40.1
+* **@forestadmin/datasource-sql:** upgraded to 1.17.16
+* **@forestadmin/workflow-executor:** upgraded to 1.32.1
+
+# @forestadmin/agent [1.108.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.107.3...@forestadmin/agent@1.108.0) (2026-10-09)
+
+
+### Features
+
+* **audit-trail:** cross-collection timeline route [PRD-1257] ([#1911](https://github.com/ForestAdmin/agent-nodejs/issues/1911)) ([811559f](https://github.com/ForestAdmin/agent-nodejs/commit/811559fc10343b70ef6172843c7327b5f34baa66))
+
+## @forestadmin/agent [1.107.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.107.2...@forestadmin/agent@1.107.3) (2026-10-08)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/workflow-executor:** upgraded to 1.32.0
+
 ## @forestadmin/agent [1.107.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.107.1...@forestadmin/agent@1.107.2) (2026-10-07)
 
 

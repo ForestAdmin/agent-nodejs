@@ -15,7 +15,10 @@ import MockServer from './test-utils/mock-server';
 import ForestOAuthProvider from '../src/forest-oauth-provider';
 
 jest.mock('jsonwebtoken');
-jest.mock('@forestadmin/forestadmin-client');
+jest.mock('@forestadmin/forestadmin-client', () => ({
+  ...jest.createMockFromModule<object>('@forestadmin/forestadmin-client'),
+  isClientAllowed: jest.requireActual('@forestadmin/forestadmin-client').isClientAllowed,
+}));
 
 const mockCreateForestAdminClient = createForestAdminClient as jest.MockedFunction<
   typeof createForestAdminClient

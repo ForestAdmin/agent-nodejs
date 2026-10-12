@@ -46,6 +46,10 @@ export default class Capabilities extends BaseRoute {
         // `x-forest-correlation-id` is emitted on every response regardless — the frontend must
         // gate the History tab on this flag rather than inferring the feature from that header.
         canUseAuditTrail: this.options.auditTrail !== null,
+        // The cross-collection timeline is mounted only when the store can list it: an older agent,
+        // or a custom store without `listTimeline`, omits it or answers false, and the front keeps
+        // the project page on the activity logs instead of 404ing on every batch.
+        canUseAuditTrailTimeline: Boolean(this.options.auditTrail?.store?.listTimeline),
         checksRelationReadPermissions: !this.options.skipRelationReadPermissions,
       },
       collections:
