@@ -504,7 +504,7 @@ The server consists of:
 
 ## License
 
-GPL-3.0
+Apache-2.0
 
 ## Repository
 

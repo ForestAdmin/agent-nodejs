@@ -103,6 +103,8 @@ export interface ServerWorkflowTaskMcpServer extends ServerWorkflowTaskBase {
     | ServerStepExecutionTypeEnum.FullyAutomated
     | ServerStepExecutionTypeEnum.AutomatedWithConfirmation;
   mcpServerId: string;
+  // Validated by the step-definition schema.
+  allowedTools?: string[] | null;
 }
 
 export type ServerWorkflowTask =

@@ -81,6 +81,7 @@ describe('Capabilities', () => {
             canUseProjectionViaHeaderOnList: true,
             canUseMultipleFieldsProjectionOnRelation: true,
             canUseAuditTrail: false,
+            canUseAuditTrailTimeline: false,
             checksRelationReadPermissions: true,
           },
           collections: [],
@@ -107,6 +108,7 @@ describe('Capabilities', () => {
             canUseProjectionViaHeaderOnList: true,
             canUseMultipleFieldsProjectionOnRelation: true,
             canUseAuditTrail: false,
+            canUseAuditTrailTimeline: false,
             checksRelationReadPermissions: true,
           },
           collections: [],
@@ -131,6 +133,7 @@ describe('Capabilities', () => {
             canUseProjectionViaHeaderOnList: true,
             canUseMultipleFieldsProjectionOnRelation: true,
             canUseAuditTrail: false,
+            canUseAuditTrailTimeline: false,
             checksRelationReadPermissions: true,
           },
           collections: [],
@@ -184,6 +187,32 @@ describe('Capabilities', () => {
           agentCapabilities: { canUseAuditTrail: true },
         });
       });
+
+      test('reports canUseAuditTrailTimeline only when the store can list the timeline', async () => {
+        const fetchTimelineCapability = async (store: object) => {
+          const timelineOptions = factories.forestAdminHttpDriverOptions.build({
+            auditTrail: { store, close: jest.fn() } as never,
+          });
+          const dataSource = factories.dataSource.buildWithCollection(
+            factories.collection.build({ name: 'books' }),
+          );
+          const capabilities = new Capabilities(services, timelineOptions, dataSource);
+          const context = createMockContext({
+            ...defaultContext,
+            requestBody: { collectionNames: [] },
+          });
+
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          await capabilities.fetchCapabilities(context);
+
+          return (context.response.body as { agentCapabilities: Record<string, boolean> })
+            .agentCapabilities.canUseAuditTrailTimeline;
+        };
+
+        expect(await fetchTimelineCapability({ listTimeline: jest.fn() })).toBe(true);
+        expect(await fetchTimelineCapability({})).toBe(false);
+      });
     });
 
     describe('when requesting a collection capabilities', () => {
@@ -205,6 +234,7 @@ describe('Capabilities', () => {
             canUseProjectionViaHeaderOnList: true,
             canUseMultipleFieldsProjectionOnRelation: true,
             canUseAuditTrail: false,
+            canUseAuditTrailTimeline: false,
             checksRelationReadPermissions: true,
           },
           collections: [

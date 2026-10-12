@@ -257,6 +257,12 @@ export const McpStepDefinitionSchema = z.object({
     .default(AutomatedWithConfirmation)
     .catch(AutomatedWithConfirmation),
   mcpServerId: z.string().min(1),
+  // Sanitized tool names (`RemoteTool.sanitizedName`); absent, null or empty allows every tool.
+  // No `.catch`: a malformed list must fail the run, never widen it to every tool.
+  allowedTools: z
+    .array(z.string())
+    .nullish()
+    .transform(v => v ?? undefined),
 });
 export type McpStepDefinition = z.infer<typeof McpStepDefinitionSchema>;
 

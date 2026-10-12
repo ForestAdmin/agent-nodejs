@@ -1,3 +1,19 @@
+## @forestadmin/datasource-dummy [1.1.78](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-dummy@1.1.77...@forestadmin/datasource-dummy@1.1.78) (2026-10-10)
+
+
+### Bug Fixes
+
+* **license:** relicense from GPL-3.0 to Apache-2.0 ([#1992](https://github.com/ForestAdmin/agent-nodejs/issues/1992)) ([9db2921](https://github.com/ForestAdmin/agent-nodejs/commit/9db2921d6b66ef74e3ea75d92e4a29325732b492))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.73.1
+* **@forestadmin/datasource-toolkit:** upgraded to 1.56.1
+
 ## @forestadmin/datasource-dummy [1.1.77](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-dummy@1.1.76...@forestadmin/datasource-dummy@1.1.77) (2026-10-07)
 
 

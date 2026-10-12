@@ -397,6 +397,16 @@ export class NoMcpToolsError extends WorkflowExecutorError {
   }
 }
 
+export class McpToolsNotAllowedError extends WorkflowConfigurationError {
+  constructor(mcpServerId: string, missingTools: string[]) {
+    const names = missingTools.join(', ');
+    super(
+      `No loaded MCP tool is allowed for mcpServerId="${mcpServerId}": ${names}`,
+      `None of the tools this step is allowed to use are available on its server: ${names}.`,
+    );
+  }
+}
+
 export class McpToolNotFoundError extends WorkflowExecutorError {
   constructor(name: string) {
     super(
