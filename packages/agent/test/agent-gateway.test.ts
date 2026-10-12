@@ -410,13 +410,15 @@ describe('Agent.addGateway', () => {
 
   describe('route overlap with the agent', () => {
     it.each`
-      prefix         | options                                   | message
-      ${''}          | ${{ basePath: '/forest', mcp: true }}     | ${'basePath "/forest" overlaps the agent routes on /forest'}
-      ${'api'}       | ${{ basePath: '/api/forest/x', api: {} }} | ${'basePath "/api/forest/x" overlaps the agent routes on /api/forest'}
-      ${'mcp'}       | ${{ mcp: true }}                          | ${'The agent routes on /mcp/forest overlap /mcp, claimed by the Gateway MCP'}
-      ${'oauth'}     | ${{ mcp: true }}                          | ${'The agent routes on /oauth/forest overlap /oauth, claimed by the Gateway MCP'}
-      ${'ai/mcp'}    | ${{ basePath: '/ai', mcp: true }}         | ${'The agent routes on /ai/mcp/forest overlap /ai/mcp, claimed by the Gateway MCP'}
-      ${'api/agent'} | ${{ api: {} }}                            | ${'The agent routes on /api/agent/forest overlap /api/agent, claimed by the Gateway API'}
+      prefix         | options                                                    | message
+      ${''}          | ${{ basePath: '/forest', mcp: true }}                      | ${'basePath "/forest" overlaps the agent routes on /forest'}
+      ${'api'}       | ${{ basePath: '/api/forest/x', api: {} }}                  | ${'basePath "/api/forest/x" overlaps the agent routes on /api/forest'}
+      ${'mcp'}       | ${{ mcp: true }}                                           | ${'The agent routes on /mcp/forest overlap /mcp, claimed by the Gateway MCP'}
+      ${'oauth'}     | ${{ mcp: true }}                                           | ${'The agent routes on /oauth/forest overlap /oauth, claimed by the Gateway MCP'}
+      ${'ai/mcp'}    | ${{ basePath: '/ai', mcp: true }}                          | ${'The agent routes on /ai/mcp/forest overlap /ai/mcp, claimed by the Gateway MCP'}
+      ${'api/agent'} | ${{ api: {} }}                                             | ${'The agent routes on /api/agent/forest overlap /api/agent, claimed by the Gateway API'}
+      ${'oauth'}     | ${{ api: {} }}                                             | ${'The agent routes on /oauth/forest overlap /oauth, claimed by the Gateway API'}
+      ${'ai/oauth'}  | ${{ basePath: '/ai', api: { tokenEncryptionKey: 'key' } }} | ${'The agent routes on /ai/oauth/forest overlap /ai/oauth, claimed by the Gateway API'}
     `('should refuse prefix "$prefix" with $options', async ({ prefix, options, message }) => {
       const { agent } = buildAgent(prefix);
       agent.addGateway(options);

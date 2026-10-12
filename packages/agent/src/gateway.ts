@@ -77,12 +77,8 @@ export function assertNoGatewayOverlap(
   }
 
   const claimed = [
-    ...(mcp
-      ? [
-          { path: `${basePath}/mcp`, service: 'MCP' },
-          { path: `${basePath}/oauth`, service: 'MCP' },
-        ]
-      : []),
+    ...(mcp ? [{ path: `${basePath}/mcp`, service: 'MCP' }] : []),
+    ...(mcp || api ? [{ path: `${basePath}/oauth`, service: mcp ? 'MCP' : 'API' }] : []),
     ...(api ? [{ path: `${basePath}/api/agent`, service: 'API' }] : []),
   ];
   const overlap = claimed.find(({ path }) => isWithin(forestPath, path));
