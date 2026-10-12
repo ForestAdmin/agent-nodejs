@@ -97,6 +97,20 @@ describe('forest-mcp-server', () => {
     expect(Server.mock.results[0].value.run).toHaveBeenCalledWith();
   });
 
+  it('warns once that it is deprecated in favor of forest-gateway', async () => {
+    const consoleWarn = jest.spyOn(console, 'warn').mockImplementation();
+
+    await startCli({});
+
+    const deprecations = consoleWarn.mock.calls.filter(([message]) =>
+      String(message).includes('deprecated'),
+    );
+
+    expect(deprecations).toHaveLength(1);
+    expect(deprecations[0][0]).toContain('forest-mcp-server is deprecated');
+    expect(deprecations[0][0]).toContain('forest-gateway');
+  });
+
   it("passes fileUploads: false on FOREST_MCP_FILE_UPLOADS='false', module or not", async () => {
     const { Server } = await startCli({
       FOREST_MCP_FILE_UPLOADS: 'false',

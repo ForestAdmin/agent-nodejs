@@ -1,6 +1,7 @@
 import {
   ForestMCPServer,
   ForestServerClientImpl,
+  MCP_LISTENER_ENV,
   MCP_PATHS,
   createForestServerClient,
   createGatewaySwitch,
@@ -42,5 +43,14 @@ describe('mcp-server exports', () => {
       publicUrl: undefined,
     });
     await expect(loadFileUploads(undefined)).resolves.toBeUndefined();
+  });
+
+  it('should export the listener variables parseMcpEnv reads', () => {
+    expect(
+      parseMcpEnv({
+        [MCP_LISTENER_ENV.port]: '4000',
+        [MCP_LISTENER_ENV.publicUrl]: 'https://mcp.example.com',
+      }).listener,
+    ).toEqual({ port: 4000, publicUrl: 'https://mcp.example.com' });
   });
 });

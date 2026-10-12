@@ -53,4 +53,22 @@ describe('normalizeDomainList', () => {
     expect(() => normalizeDomainList(['dust.tt#x'])).toThrow(/bare domains/);
     expect(() => normalizeDomainList(['dust.tt\\unexpected'])).toThrow(/bare domains/);
   });
+
+  it('should name the given label on an empty list', () => {
+    expect(() => normalizeDomainList([], 'FOREST_GATEWAY_ALLOWED_OAUTH_CLIENTS')).toThrow(
+      'Invalid FOREST_GATEWAY_ALLOWED_OAUTH_CLIENTS: no domains to allow.',
+    );
+  });
+
+  it('should name the given label on an invalid entry', () => {
+    expect(() =>
+      normalizeDomainList(['https://dust.tt'], 'FOREST_MCP_ALLOWED_OAUTH_CLIENTS'),
+    ).toThrow('Invalid FOREST_MCP_ALLOWED_OAUTH_CLIENTS entry "https://dust.tt"');
+  });
+
+  it('should name allowedOAuthClients by default', () => {
+    expect(() => normalizeDomainList(['https://dust.tt'])).toThrow(
+      'Invalid allowedOAuthClients entry "https://dust.tt"',
+    );
+  });
 });
