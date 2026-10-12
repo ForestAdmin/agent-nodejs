@@ -10,14 +10,17 @@ export {
   createSqlAuditStore,
   ensureAuditStorage,
   defineAuditLogModel,
-  fieldsChangedCondition,
-  jsonEscaped,
-  searchCondition,
   toRow,
   fromRow,
   DEFAULT_SCHEMA,
   DEFAULT_TABLE,
 } from './sql-store';
 export { runAuditMigrations } from './migrations';
+export {
+  fieldsChangedCondition,
+  jsonEscaped,
+  matchesServedValues,
+  searchCondition,
+} from './value-filters';
 export { default as revertRecord } from './revert';
 export * from './types';

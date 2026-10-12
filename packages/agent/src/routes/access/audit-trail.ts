@@ -16,8 +16,8 @@ import {
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
 
-import { REDACTED, jsonEscaped, revertRecord } from '../../audit-trail';
-import { belongsToEarlierLife, lastDeleteOf } from '../../audit-trail/earlier-life';
+import { matchesServedValues, revertRecord } from '../../audit-trail';
+import { lifeBoundaryOf, withholdEarlierLives } from '../../audit-trail/earlier-life';
 import {
   parseDateBoundary,
   parseFields,
@@ -164,26 +164,19 @@ export default class AuditTrailRoute extends CollectionRoute {
 
     const gone = after ? after.goneEntirely : goneEntirely;
 
-    // Live now, but the id may have been freed by a delete and taken since: the rows up to that
-    // delete are the earlier record's, which the current one's scope says nothing about.
-    const lastDelete =
+    // Live now, but the id may have been freed and taken since: the rows before the current record
+    // took it are an earlier record's, which the current one's scope says nothing about.
+    const boundary =
       permissionScope && !gone
-        ? await lastDeleteOf(store, this.collection.name, context.params.id)
+        ? await lifeBoundaryOf(store, this.collection.name, context.params.id)
         : null;
 
-    const withholdServed = gone
-      ? withholdAll
-      : (rows: AuditRecord[]) => {
-          const withheld = withholdAll(rows);
-
-          return rows.map((row, index) =>
-            belongsToEarlierLife(row, lastDelete) ? withheld[index] : row,
-          );
-        };
+    const withholdServed = (rows: AuditRecord[]) =>
+      withholdEarlierLives(rows, { gone, boundary, withhold: withholdAll });
 
     // Gone between the check and the read, or carrying an earlier life: this answer withholds, so
     // the rows, count and authors matched in SQL above must not decide what is served either.
-    if (permissionScope && (gone || lastDelete) && filtersOnValues) {
+    if (permissionScope && (gone || boundary) && filtersOnValues) {
       await serveMatchedValues(withholdServed);
 
       return;
@@ -194,7 +187,7 @@ export default class AuditTrailRoute extends CollectionRoute {
     // when the record existed. If those values themselves would have failed the caller's permission scope,
     // withhold them while still surfacing that the row happened, by whom and when: that part
     // stays visible regardless. The same holds for an earlier record that held this id.
-    const data = permissionScope && (gone || lastDelete) ? withholdServed(rawData) : rawData;
+    const data = permissionScope && (gone || boundary) ? withholdServed(rawData) : rawData;
 
     context.response.body = {
       data,
@@ -241,7 +234,7 @@ export default class AuditTrailRoute extends CollectionRoute {
       });
 
       const matched = withholdServed(rows).filter(entry =>
-        AuditTrailRoute.matchesServedValues(entry, fields, search),
+        matchesServedValues(entry, { fields, search }),
       );
 
       for (const entry of matched) {
@@ -263,34 +256,6 @@ export default class AuditTrailRoute extends CollectionRoute {
     } while (rows.length === SCAN_BATCH_SIZE);
 
     return { page, count, authors };
-  }
-
-  // The SQL store's `fieldsChangedCondition` and `searchCondition`, run on the values as served.
-  private static matchesServedValues(
-    entry: AuditRecord,
-    fields?: string[],
-    search?: string,
-  ): boolean {
-    const sides = [entry.previousValues ?? {}, entry.newValues ?? {}];
-    const term = search?.toLowerCase();
-    const touchesField =
-      !fields ||
-      sides.some(values =>
-        fields.some(field => Object.prototype.hasOwnProperty.call(values, field)),
-      );
-
-    if (!touchesField) return false;
-    if (!term) return true;
-
-    const identity = [entry.actionName, entry.userFirstName, entry.userLastName, entry.userEmail];
-    const valueTerm = jsonEscaped(term);
-
-    return (
-      identity.some(text => text?.toLowerCase().includes(term)) ||
-      sides.some(values =>
-        JSON.stringify(values).split(REDACTED).join('').toLowerCase().includes(valueTerm),
-      )
-    );
   }
 
   private withhold(
@@ -360,15 +325,15 @@ export default class AuditTrailRoute extends CollectionRoute {
 
     const goneNow = after ? after.goneEntirely : goneEntirely;
 
-    // A live record whose id was freed by a delete and taken since: a state before that delete is
-    // the earlier record's, which the current one's scope says nothing about. Strictly before: at
-    // the delete's own instant the state already reflects every row there, including a replacement
+    // A live record whose id was freed and taken since: a state before that boundary is the
+    // earlier record's, which the current one's scope says nothing about. Strictly before: at the
+    // boundary's own instant the state already reflects every row there, including a replacement
     // `create` sharing it.
-    const lastDelete =
+    const boundary =
       permissionScope && !goneNow
-        ? await lastDeleteOf(store, this.collection.name, context.params.id)
+        ? await lifeBoundaryOf(store, this.collection.name, context.params.id)
         : null;
-    const ofEarlierLife = Boolean(lastDelete && at < lastDelete.timestamp);
+    const ofEarlierLife = Boolean(boundary && at < boundary.timestamp);
 
     // `startTimestamp` is an inclusive lower bound, so an entry timestamped exactly `at` comes
     // back too — but the record already reflects that entry's change at instant `at`, so it must
