@@ -15,6 +15,20 @@ export default class StepSummaryBuilder {
     const lines = [header, `  Prompt: ${prompt}`];
 
     if (execution !== undefined) {
+      const mcpCalls = StepExecutionFormatters.formatMcpCallsWithoutAnswer(execution);
+
+      if (mcpCalls !== null) {
+        lines.push(mcpCalls);
+
+        if (stepOutcome.status === 'success' && execution.executionResult === undefined) {
+          lines.push(
+            `  Note: the user handled this step manually — the actual outcome may differ from the calls above.`,
+          );
+        }
+
+        return lines.join('\n');
+      }
+
       // Detect "handled manually": executor proposed an action (pendingData) but the user
       // completed the step on the frontend without going through the trigger endpoint, so the
       // executor never wrote executionResult. Normal completions (confirmation flow, skip, Branch B)

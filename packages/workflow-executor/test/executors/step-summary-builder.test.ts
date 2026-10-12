@@ -501,6 +501,103 @@ describe('StepSummaryBuilder', () => {
       });
     });
 
+    describe('MCP step that made tool calls', () => {
+      const step: StepDefinition = {
+        type: StepType.Mcp,
+        executionType: StepExecutionMode.AutomatedWithConfirmation,
+        mcpServerId: 'notion',
+        prompt: 'File the customer in Notion',
+      };
+      const search = {
+        name: 'search_pages',
+        sourceId: 'notion',
+        input: { query: 'Acme' },
+        result: { count: 0 },
+      };
+      const createPage = { name: 'create_page', sourceId: 'notion', input: { title: 'Acme' } };
+
+      function makeOutcome(status: 'success' | 'error'): StepOutcome {
+        return { type: 'mcp', stepId: 'mcp-1', stepIndex: 2, status };
+      }
+
+      it('lists the calls made before the user handled the step manually, then the one proposed', () => {
+        const execution: StepExecutionData = {
+          type: 'mcp',
+          stepIndex: 2,
+          toolCalls: [search],
+          pendingData: createPage,
+        };
+
+        const result = StepSummaryBuilder.build(step, makeOutcome('success'), execution);
+
+        expect(result).toContain(
+          '1. "search_pages" with input {"query":"Acme"}\nResult: {"count":0}',
+        );
+        expect(result).toContain(
+          'Next call proposed, never made: {"name":"create_page","sourceId":"notion","input":{"title":"Acme"}}',
+        );
+        expect(result).toContain('handled this step manually');
+      });
+
+      it('lists the calls made before the user rejected the next one', () => {
+        const execution: StepExecutionData = {
+          type: 'mcp',
+          stepIndex: 2,
+          toolCalls: [search],
+          pendingData: createPage,
+          userConfirmation: { userConfirmed: false },
+          executionResult: { skipped: true },
+        };
+
+        const result = StepSummaryBuilder.build(step, makeOutcome('success'), execution);
+
+        expect(result).toContain('1. "search_pages" with input {"query":"Acme"}');
+        expect(result).toContain(
+          'The user rejected the next call: {"name":"create_page","sourceId":"notion","input":{"title":"Acme"}}',
+        );
+        expect(result).not.toContain('Output:');
+      });
+
+      it('does not present an approved call as proposed once it ran', () => {
+        const execution: StepExecutionData = {
+          type: 'mcp',
+          stepIndex: 2,
+          toolCalls: [search, { ...createPage, result: { id: 'page-1' } }],
+          pendingData: createPage,
+          userConfirmation: { userConfirmed: true },
+          idempotencyPhase: 'executing',
+        };
+
+        const result = StepSummaryBuilder.build(step, makeOutcome('error'), execution);
+
+        expect(result).toContain(
+          '2. "create_page" with input {"title":"Acme"}\nResult: {"id":"page-1"}',
+        );
+        expect(result).not.toContain('proposed');
+        expect(result).not.toContain('Pending:');
+      });
+
+      it('keeps the final answer alone when the step ended with one', () => {
+        const execution: StepExecutionData = {
+          type: 'mcp',
+          stepIndex: 2,
+          toolCalls: [search],
+          executionParams: { name: 'search_pages', sourceId: 'notion', input: { query: 'Acme' } },
+          executionResult: {
+            success: true,
+            toolResult: { count: 0 },
+            formattedResponse: 'No page.',
+          },
+          idempotencyPhase: 'done',
+        };
+
+        const result = StepSummaryBuilder.build(step, makeOutcome('success'), execution);
+
+        expect(result).toContain('Result: No page.');
+        expect(result).not.toContain('search_pages');
+      });
+    });
+
     it('shows "(no prompt)" when step has no prompt', () => {
       const step: StepDefinition = {
         type: StepType.Condition,

@@ -82,14 +82,53 @@ function makeMockWorkflowPort(): WorkflowPort {
   };
 }
 
-function makeMockModel(toolName: string, toolArgs: Record<string, unknown>) {
-  const invoke = jest.fn().mockResolvedValue({
-    tool_calls: [{ name: toolName, args: toolArgs, id: 'call_1' }],
-  });
+const COMPLETE_STEP = 'complete-step';
+const CALL_LIMIT_ERROR =
+  "The AI needed more than 10 tool calls to complete this step. Try narrowing the step's prompt.";
+
+function toolCallResponse(name: string, args: Record<string, unknown>) {
+  return { tool_calls: [{ name, args, id: `call_${name}` }] };
+}
+
+// Proposes each call in turn, then completes the step with `summary`.
+function makeLoopModel(calls: Array<[string, Record<string, unknown>]>, summary = 'Done.') {
+  const invoke = jest.fn();
+  calls.forEach(([name, args]) => invoke.mockResolvedValueOnce(toolCallResponse(name, args)));
+  invoke.mockResolvedValue(toolCallResponse(COMPLETE_STEP, { summary }));
   const bindTools = jest.fn().mockReturnValue({ invoke });
   const model = { bindTools } as unknown as ExecutionContext['model'];
 
   return { model, bindTools, invoke };
+}
+
+function makeMockModel(toolName: string, toolArgs: Record<string, unknown>) {
+  return makeLoopModel([[toolName, toolArgs]]);
+}
+
+// Never completes: proposes the same call on every decision.
+function makeEndlessModel(toolName: string, toolArgs: Record<string, unknown>) {
+  const invoke = jest.fn().mockResolvedValue(toolCallResponse(toolName, toolArgs));
+  const model = { bindTools: jest.fn().mockReturnValue({ invoke }) };
+
+  return { model: model as unknown as ExecutionContext['model'], invoke };
+}
+
+function requestSentOnDecision(modelInvoke: jest.Mock, decision: number): string {
+  const messages = modelInvoke.mock.calls[decision][0] as Array<{ content: string }>;
+
+  return messages[messages.length - 1].content;
+}
+
+function makeActivityLogPort() {
+  return {
+    createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
+    markSucceeded: jest.fn().mockResolvedValue(undefined),
+    markFailed: jest.fn().mockResolvedValue(undefined),
+  };
+}
+
+function executedCall(name: string, input: Record<string, unknown>, result: unknown) {
+  return { name, sourceId: 'mcp-server-1', input, result };
 }
 
 function makeContext(
@@ -191,193 +230,280 @@ describe('McpStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('success');
       expect(invokeFn).toHaveBeenCalledWith({ message: 'Hello' });
-      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
-        'run-1',
-        expect.objectContaining({
-          type: 'mcp',
-          stepIndex: 0,
-          executionParams: {
-            name: 'send_notification',
-            sourceId: 'mcp-server-1',
-            input: { message: 'Hello' },
-          },
-          executionResult: { success: true, toolResult: { result: 'notification sent' } },
-        }),
-      );
-      // Model is invoked twice: once for tool selection, once for AI formatting
+      expect(runStore.saveStepExecution).toHaveBeenLastCalledWith('run-1', {
+        type: 'mcp',
+        stepIndex: 0,
+        toolCalls: [
+          executedCall('send_notification', { message: 'Hello' }, { result: 'notification sent' }),
+        ],
+        executionParams: {
+          name: 'send_notification',
+          sourceId: 'mcp-server-1',
+          input: { message: 'Hello' },
+        },
+        executionResult: {
+          success: true,
+          toolResult: { result: 'notification sent' },
+          formattedResponse: 'Done.',
+        },
+        idempotencyPhase: 'done',
+      });
+      // Model is invoked twice: once to call the tool, once to complete the step
       expect(modelInvoke).toHaveBeenCalledTimes(2);
     });
 
-    it('persists formattedResponse when AI formatting succeeds', async () => {
-      const toolResult = { result: 'notification sent' };
-      const invokeFn = jest.fn().mockResolvedValue(toolResult);
-      const tool = new MockRemoteTool({
-        name: 'send_notification',
-        sourceId: 'mcp-server-1',
-        invoke: invokeFn,
-      });
-      const { model, invoke: modelInvoke } = makeMockModel('send_notification', {
-        message: 'Hello',
-      });
-      // Second model call (formatting) returns a summary
-      modelInvoke
-        .mockResolvedValueOnce({
-          tool_calls: [{ name: 'send_notification', args: { message: 'Hello' }, id: 'call_1' }],
-        })
-        .mockResolvedValueOnce({
-          tool_calls: [
-            { name: 'summarize-result', args: { summary: 'Found 3 results.' }, id: 'call_2' },
-          ],
-        });
+    it('runs several tool calls in sequence, each AI decision seeing the previous results', async () => {
+      const searchInvoke = jest.fn().mockResolvedValue({ pageId: 'p1' });
+      const getInvoke = jest.fn().mockResolvedValue('Quarterly target: 42');
+      const tools = [
+        new MockRemoteTool({ name: 'search_pages', invoke: searchInvoke }),
+        new MockRemoteTool({ name: 'get_page', invoke: getInvoke }),
+      ];
+      const { model, invoke: modelInvoke } = makeLoopModel(
+        [
+          ['search_pages', { query: 'targets' }],
+          ['get_page', { pageId: 'p1' }],
+        ],
+        'The quarterly target is 42.',
+      );
       const runStore = makeMockRunStore();
       const context = makeContext({
         model,
         runStore,
         stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
-      const executor = new McpStepExecutor(context, [tool]);
 
-      const result = await executor.execute();
+      const result = await new McpStepExecutor(context, tools).execute();
 
       expect(result.stepOutcome.status).toBe('success');
-      expect(modelInvoke).toHaveBeenCalledTimes(2);
-      // First save: executing marker (before tool call)
-      expect(runStore.saveStepExecution).toHaveBeenNthCalledWith(
-        1,
-        'run-1',
-        expect.objectContaining({ idempotencyPhase: 'executing' }),
-      );
-      // Second save: raw result with done marker
-      expect(runStore.saveStepExecution).toHaveBeenNthCalledWith(
-        2,
+      expect(searchInvoke).toHaveBeenCalledWith({ query: 'targets' });
+      expect(getInvoke).toHaveBeenCalledWith({ pageId: 'p1' });
+      expect(modelInvoke).toHaveBeenCalledTimes(3);
+      expect(requestSentOnDecision(modelInvoke, 0)).not.toContain('search_pages');
+      expect(requestSentOnDecision(modelInvoke, 1)).toContain('search_pages');
+      expect(requestSentOnDecision(modelInvoke, 1)).toContain('{"query":"targets"}');
+      expect(requestSentOnDecision(modelInvoke, 1)).toContain('{"pageId":"p1"}');
+      expect(requestSentOnDecision(modelInvoke, 2)).toContain('Quarterly target: 42');
+      expect(runStore.saveStepExecution).toHaveBeenLastCalledWith('run-1', {
+        type: 'mcp',
+        stepIndex: 0,
+        toolCalls: [
+          executedCall('search_pages', { query: 'targets' }, { pageId: 'p1' }),
+          executedCall('get_page', { pageId: 'p1' }, 'Quarterly target: 42'),
+        ],
+        executionParams: { name: 'get_page', sourceId: 'mcp-server-1', input: { pageId: 'p1' } },
+        executionResult: {
+          success: true,
+          toolResult: 'Quarterly target: 42',
+          formattedResponse: 'The quarterly target is 42.',
+        },
+        idempotencyPhase: 'done',
+      });
+    });
+
+    it('binds the complete-step tool alongside the tools of the step', async () => {
+      const { model, bindTools } = makeMockModel('send_notification', {});
+      const context = makeContext({
+        model,
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+
+      await new McpStepExecutor(context, [
+        new MockRemoteTool({ name: 'send_notification' }),
+      ]).execute();
+
+      const boundTools = bindTools.mock.calls[0][0] as Array<{ name: string }>;
+      expect(boundTools.map(t => t.name)).toEqual(['send_notification', COMPLETE_STEP]);
+    });
+
+    it('fails the step without running an 11th call when the AI asks for more than 10', async () => {
+      const invokeFn = jest.fn().mockResolvedValue('sent');
+      const { model, invoke: modelInvoke } = makeEndlessModel('send_notification', {});
+      const context = makeContext({
+        model,
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+
+      const result = await new McpStepExecutor(context, [
+        new MockRemoteTool({ name: 'send_notification', invoke: invokeFn }),
+      ]).execute();
+
+      expect(result.stepOutcome).toEqual({
+        type: 'mcp',
+        stepId: 'mcp-1',
+        stepIndex: 0,
+        status: 'error',
+        error: CALL_LIMIT_ERROR,
+      });
+      expect(invokeFn).toHaveBeenCalledTimes(10);
+      expect(modelInvoke).toHaveBeenCalledTimes(11);
+    });
+
+    describe('once the step has timed out', () => {
+      const settle = (ms: number) =>
+        new Promise(resolve => {
+          setTimeout(resolve, ms);
+        });
+
+      it('asks the AI for nothing more and never marks the step done after a call outlived it', async () => {
+        const searchInvoke = jest.fn(async () => {
+          await settle(100);
+
+          return 'p1';
+        });
+        const getInvoke = jest.fn();
+        const { model, invoke: modelInvoke } = makeLoopModel([
+          ['search_pages', {}],
+          ['get_page', {}],
+        ]);
+        const runStore = makeMockRunStore();
+        const context = makeContext({
+          model,
+          runStore,
+          stepTimeoutS: 0.05,
+          stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+        });
+
+        const result = await new McpStepExecutor(context, [
+          new MockRemoteTool({ name: 'search_pages', invoke: searchInvoke }),
+          new MockRemoteTool({ name: 'get_page', invoke: getInvoke }),
+        ]).execute();
+        await settle(200);
+
+        expect(result.stepOutcome.status).toBe('error');
+        expect(searchInvoke).toHaveBeenCalledTimes(1);
+        expect(modelInvoke).toHaveBeenCalledTimes(1);
+        expect(getInvoke).not.toHaveBeenCalled();
+        expect(runStore.saveStepExecution).not.toHaveBeenCalledWith(
+          'run-1',
+          expect.objectContaining({ idempotencyPhase: 'done' }),
+        );
+      });
+
+      it('runs no tool call the AI chose after the step timed out', async () => {
+        const invokeFn = jest.fn();
+        const modelInvoke = jest.fn(async () => {
+          await settle(100);
+
+          return toolCallResponse('send_notification', {});
+        });
+        const model = {
+          bindTools: jest.fn().mockReturnValue({ invoke: modelInvoke }),
+        } as unknown as ExecutionContext['model'];
+        const context = makeContext({
+          model,
+          stepTimeoutS: 0.05,
+          stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+        });
+
+        const result = await new McpStepExecutor(context, [
+          new MockRemoteTool({ name: 'send_notification', invoke: invokeFn }),
+        ]).execute();
+        await settle(200);
+
+        expect(result.stepOutcome.status).toBe('error');
+        expect(invokeFn).not.toHaveBeenCalled();
+      });
+    });
+
+    it('succeeds with the AI answer without calling any tool when the AI completes first', async () => {
+      const invokeFn = jest.fn();
+      const activityLogPort = makeActivityLogPort();
+      const { model } = makeLoopModel([], 'The previous step already holds the address.');
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        model,
+        runStore,
+        activityLogPort,
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+
+      const result = await new McpStepExecutor(context, [
+        new MockRemoteTool({ name: 'send_notification', invoke: invokeFn }),
+      ]).execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(invokeFn).not.toHaveBeenCalled();
+      expect(activityLogPort.createPending).not.toHaveBeenCalled();
+      expect(runStore.saveStepExecution).toHaveBeenCalledTimes(1);
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith('run-1', {
+        type: 'mcp',
+        stepIndex: 0,
+        toolCalls: [],
+        executionResult: {
+          success: true,
+          toolResult: null,
+          formattedResponse: 'The previous step already holds the address.',
+        },
+        idempotencyPhase: 'done',
+      });
+    });
+
+    it('leaves formattedResponse out when the AI completes with an empty answer', async () => {
+      const { model } = makeLoopModel([['send_notification', {}]], '');
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        model,
+        runStore,
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+
+      const result = await new McpStepExecutor(context, [
+        new MockRemoteTool({
+          name: 'send_notification',
+          invoke: jest.fn().mockResolvedValue('ok'),
+        }),
+      ]).execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(runStore.saveStepExecution).toHaveBeenLastCalledWith(
         'run-1',
         expect.objectContaining({
-          executionResult: { success: true, toolResult },
+          executionResult: { success: true, toolResult: 'ok' },
           idempotencyPhase: 'done',
         }),
       );
-      // Third save: raw result + formattedResponse
-      expect(runStore.saveStepExecution).toHaveBeenNthCalledWith(
-        3,
-        'run-1',
-        expect.objectContaining({
-          executionResult: { success: true, toolResult, formattedResponse: 'Found 3 results.' },
-        }),
-      );
     });
 
-    it('returns success and logs when persisting the formatted response fails', async () => {
-      const toolResult = { result: 'notification sent' };
-      const invokeFn = jest.fn().mockResolvedValue(toolResult);
-      const tool = new MockRemoteTool({
-        name: 'send_notification',
-        sourceId: 'mcp-server-1',
-        invoke: invokeFn,
-      });
-      const { model, invoke: modelInvoke } = makeMockModel('send_notification', {
-        message: 'Hello',
-      });
-      modelInvoke
-        .mockResolvedValueOnce({
-          tool_calls: [{ name: 'send_notification', args: { message: 'Hello' }, id: 'call_1' }],
-        })
-        .mockResolvedValueOnce({
-          tool_calls: [
-            { name: 'summarize-result', args: { summary: 'Found 3 results.' }, id: 'call_2' },
-          ],
-        });
-      const persistFailure = new Error('database unreachable');
-      // First two saves (executing marker, raw result) succeed; third save (enriched
-      // with formattedResponse) fails.
-      const saveStepExecution = jest
+    it('fails the step, still marked executing, when the AI cannot decide after a tool ran', async () => {
+      const modelInvoke = jest
         .fn()
-        .mockResolvedValueOnce(undefined)
-        .mockResolvedValueOnce(undefined)
-        .mockRejectedValueOnce(persistFailure);
-      const runStore = makeMockRunStore({ saveStepExecution });
-      const logger = jest.fn();
-      const context = makeContext({
-        model,
-        runStore,
-        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
-        logger,
-      });
-      const executor = new McpStepExecutor(context, [tool]);
-
-      const result = await executor.execute();
-
-      // Step does NOT fail — the raw toolResult was already persisted on the
-      // second save (done marker). The enriched save is best-effort.
-      expect(result.stepOutcome.status).toBe('success');
-      expect(runStore.saveStepExecution).toHaveBeenCalledTimes(3);
-      expect(runStore.saveStepExecution).toHaveBeenNthCalledWith(
-        3,
-        'run-1',
-        expect.objectContaining({
-          executionResult: { success: true, toolResult, formattedResponse: 'Found 3 results.' },
-        }),
-      );
-      expect(logger).toHaveBeenCalledWith(
-        'Error',
-        'MCP tool result formatted but enriched state could not be persisted',
-        expect.objectContaining({
-          runId: 'run-1',
-          toolName: 'send_notification',
-          cause: 'database unreachable',
-        }),
-      );
-    });
-
-    it('returns success and logs when AI formatting throws', async () => {
-      const invokeFn = jest.fn().mockResolvedValue({ result: 'ok' });
-      const tool = new MockRemoteTool({
-        name: 'send_notification',
-        sourceId: 'mcp-server-1',
-        invoke: invokeFn,
-      });
-      const { model, invoke: modelInvoke } = makeMockModel('send_notification', { message: 'Hi' });
-      // Second call (formatting) returns no tool calls → MissingToolCallError
-      modelInvoke
-        .mockResolvedValueOnce({
-          tool_calls: [{ name: 'send_notification', args: { message: 'Hi' }, id: 'call_1' }],
-        })
+        .mockResolvedValueOnce(toolCallResponse('send_notification', { message: 'Hi' }))
         .mockResolvedValueOnce({ tool_calls: [] });
-      const logger = jest.fn();
+      const model = {
+        bindTools: jest.fn().mockReturnValue({ invoke: modelInvoke }),
+      } as unknown as ExecutionContext['model'];
       const runStore = makeMockRunStore();
       const context = makeContext({
         model,
         runStore,
         stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
-        logger,
       });
-      const executor = new McpStepExecutor(context, [tool]);
 
-      const result = await executor.execute();
-
-      expect(result.stepOutcome.status).toBe('success');
-      // Two saves: executing marker, then raw result with done marker (no third save since formatting failed)
-      expect(runStore.saveStepExecution).toHaveBeenCalledTimes(2);
-      expect(runStore.saveStepExecution).toHaveBeenNthCalledWith(
-        2,
-        'run-1',
-        expect.objectContaining({
-          executionResult: { success: true, toolResult: { result: 'ok' } },
+      const result = await new McpStepExecutor(context, [
+        new MockRemoteTool({
+          name: 'send_notification',
+          invoke: jest.fn().mockResolvedValue('ok'),
         }),
+      ]).execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        "The AI couldn't decide what to do. Try rephrasing the step's prompt.",
       );
-      expect(logger).toHaveBeenCalledWith(
-        'Error',
-        'Failed to format MCP tool result, persisting raw result without summary',
-        expect.objectContaining({ toolName: 'send_notification' }),
+      expect(runStore.saveStepExecution).toHaveBeenLastCalledWith('run-1', {
+        type: 'mcp',
+        stepIndex: 0,
+        toolCalls: [executedCall('send_notification', { message: 'Hi' }, 'ok')],
+        idempotencyPhase: 'executing',
+      });
+      expect(runStore.saveStepExecution).not.toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({ idempotencyPhase: 'done' }),
       );
     });
 
-    it('does not call AI formatting when toolResult is null', async () => {
-      const invokeFn = jest.fn().mockResolvedValue(null);
-      const tool = new MockRemoteTool({
-        name: 'send_notification',
-        sourceId: 'mcp-server-1',
-        invoke: invokeFn,
-      });
+    it('records a null tool result and still completes with the AI answer', async () => {
       const { model, invoke: modelInvoke } = makeMockModel('send_notification', { message: 'Hi' });
       const runStore = makeMockRunStore();
       const context = makeContext({
@@ -385,22 +511,40 @@ describe('McpStepExecutor', () => {
         runStore,
         stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
-      const executor = new McpStepExecutor(context, [tool]);
 
-      const result = await executor.execute();
+      const result = await new McpStepExecutor(context, [
+        new MockRemoteTool({
+          name: 'send_notification',
+          invoke: jest.fn().mockResolvedValue(null),
+        }),
+      ]).execute();
 
       expect(result.stepOutcome.status).toBe('success');
-      // Model called only once (tool selection) — no formatting call for null result
-      expect(modelInvoke).toHaveBeenCalledTimes(1);
-      // Two saves: executing marker, then raw result with done marker
-      expect(runStore.saveStepExecution).toHaveBeenCalledTimes(2);
-      expect(runStore.saveStepExecution).toHaveBeenNthCalledWith(
-        2,
+      expect(modelInvoke).toHaveBeenCalledTimes(2);
+      expect(runStore.saveStepExecution).toHaveBeenLastCalledWith(
         'run-1',
         expect.objectContaining({
-          executionResult: { success: true, toolResult: null },
+          toolCalls: [executedCall('send_notification', { message: 'Hi' }, null)],
+          executionResult: { success: true, toolResult: null, formattedResponse: 'Done.' },
         }),
       );
+    });
+
+    it('truncates a tool result over 20,000 characters before showing it to the AI', async () => {
+      const longResult = `${'a'.repeat(20_000)}TAIL`;
+      const { model, invoke: modelInvoke } = makeMockModel('get_page', {});
+      const context = makeContext({
+        model,
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+
+      await new McpStepExecutor(context, [
+        new MockRemoteTool({ name: 'get_page', invoke: jest.fn().mockResolvedValue(longResult) }),
+      ]).execute();
+
+      const request = requestSentOnDecision(modelInvoke, 1);
+      expect(request).toContain(`${'a'.repeat(20_000)}\n... [truncated]`);
+      expect(request).not.toContain('TAIL');
     });
   });
 
@@ -415,18 +559,38 @@ describe('McpStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('awaiting-input');
-      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
-        'run-1',
-        expect.objectContaining({
-          type: 'mcp',
-          stepIndex: 0,
-          pendingData: {
-            name: 'send_notification',
-            sourceId: 'mcp-server-1',
-            input: { message: 'Hello' },
-          },
-        }),
-      );
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith('run-1', {
+        type: 'mcp',
+        stepIndex: 0,
+        toolCalls: [],
+        pendingData: {
+          name: 'send_notification',
+          sourceId: 'mcp-server-1',
+          input: { message: 'Hello' },
+        },
+      });
+    });
+
+    it('completes without asking for confirmation when the AI answers before proposing a call', async () => {
+      const invokeFn = jest.fn();
+      const { model } = makeLoopModel([], 'Nothing to send.');
+      const runStore = makeMockRunStore();
+      const context = makeContext({ model, runStore });
+
+      const result = await new McpStepExecutor(context, [
+        new MockRemoteTool({ name: 'send_notification', invoke: invokeFn }),
+      ]).execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(invokeFn).not.toHaveBeenCalled();
+      expect(runStore.saveStepExecution).toHaveBeenCalledTimes(1);
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith('run-1', {
+        type: 'mcp',
+        stepIndex: 0,
+        toolCalls: [],
+        executionResult: { success: true, toolResult: null, formattedResponse: 'Nothing to send.' },
+        idempotencyPhase: 'done',
+      });
     });
 
     it('returns error when saveStepExecution fails (Branch C)', async () => {
@@ -476,30 +640,142 @@ describe('McpStepExecutor', () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
       });
-      const context = makeContext({ runStore });
+      const { model } = makeLoopModel([], 'Email sent.');
+      const context = makeContext({ model, runStore });
       const executor = new McpStepExecutor(context, [tool]);
 
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('success');
       expect(invokeFn).toHaveBeenCalledWith({ message: 'Hello' });
-      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+      expect(runStore.saveStepExecution).toHaveBeenLastCalledWith('run-1', {
+        type: 'mcp',
+        stepIndex: 0,
+        toolCalls: [executedCall('send_notification', { message: 'Hello' }, 'email sent')],
+        executionParams: {
+          name: 'send_notification',
+          sourceId: 'mcp-server-1',
+          input: { message: 'Hello' },
+        },
+        executionResult: {
+          success: true,
+          toolResult: 'email sent',
+          formattedResponse: 'Email sent.',
+        },
+        pendingData: {
+          name: 'send_notification',
+          sourceId: 'mcp-server-1',
+          input: { message: 'Hello' },
+        },
+        userConfirmation: { userConfirmed: true },
+        idempotencyPhase: 'done',
+      });
+    });
+
+    it('pauses for the next call the AI proposes, keeping the completed calls and clearing the confirmation', async () => {
+      const searchInvoke = jest.fn().mockResolvedValue({ pageId: 'p1' });
+      const deleteInvoke = jest.fn();
+      const execution: McpStepExecutionData = {
+        type: 'mcp',
+        stepIndex: 0,
+        toolCalls: [],
+        pendingData: { name: 'search_pages', sourceId: 'mcp-server-1', input: { query: 'q' } },
+        userConfirmation: { userConfirmed: true },
+      };
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([execution]),
+      });
+      const { model } = makeLoopModel([['delete_page', { pageId: 'p1' }]]);
+      const context = makeContext({ model, runStore });
+
+      const result = await new McpStepExecutor(context, [
+        new MockRemoteTool({ name: 'search_pages', invoke: searchInvoke }),
+        new MockRemoteTool({ name: 'delete_page', invoke: deleteInvoke }),
+      ]).execute();
+
+      expect(result.stepOutcome).toEqual({
+        type: 'mcp',
+        stepId: 'mcp-1',
+        stepIndex: 0,
+        status: 'awaiting-input',
+      });
+      expect(searchInvoke).toHaveBeenCalledWith({ query: 'q' });
+      expect(deleteInvoke).not.toHaveBeenCalled();
+      expect(runStore.saveStepExecution).toHaveBeenLastCalledWith('run-1', {
+        type: 'mcp',
+        stepIndex: 0,
+        toolCalls: [executedCall('search_pages', { query: 'q' }, { pageId: 'p1' })],
+        pendingData: { name: 'delete_page', sourceId: 'mcp-server-1', input: { pageId: 'p1' } },
+      });
+    });
+
+    it('continues from the calls already made when a later call is accepted', async () => {
+      const getInvoke = jest.fn().mockResolvedValue('page body');
+      const execution: McpStepExecutionData = {
+        type: 'mcp',
+        stepIndex: 0,
+        toolCalls: [executedCall('search_pages', { query: 'q' }, { pageId: 'p1' })],
+        pendingData: { name: 'get_page', sourceId: 'mcp-server-1', input: { pageId: 'p1' } },
+        userConfirmation: { userConfirmed: true },
+      };
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([execution]),
+      });
+      const { model, invoke: modelInvoke } = makeLoopModel([], 'Read the page.');
+      const context = makeContext({ model, runStore });
+
+      const result = await new McpStepExecutor(context, [
+        new MockRemoteTool({ name: 'search_pages' }),
+        new MockRemoteTool({ name: 'get_page', invoke: getInvoke }),
+      ]).execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(getInvoke).toHaveBeenCalledWith({ pageId: 'p1' });
+      expect(requestSentOnDecision(modelInvoke, 0)).toContain('{"pageId":"p1"}');
+      expect(requestSentOnDecision(modelInvoke, 0)).toContain('page body');
+      expect(runStore.saveStepExecution).toHaveBeenLastCalledWith(
         'run-1',
         expect.objectContaining({
-          type: 'mcp',
-          executionParams: {
-            name: 'send_notification',
-            sourceId: 'mcp-server-1',
-            input: { message: 'Hello' },
+          toolCalls: [
+            executedCall('search_pages', { query: 'q' }, { pageId: 'p1' }),
+            executedCall('get_page', { pageId: 'p1' }, 'page body'),
+          ],
+          executionResult: {
+            success: true,
+            toolResult: 'page body',
+            formattedResponse: 'Read the page.',
           },
-          executionResult: { success: true, toolResult: 'email sent' },
-          pendingData: {
-            name: 'send_notification',
-            sourceId: 'mcp-server-1',
-            input: { message: 'Hello' },
-          },
+          idempotencyPhase: 'done',
         }),
       );
+    });
+
+    it('fails the step when the AI proposes an 11th call after the 10th is accepted', async () => {
+      const invokeFn = jest.fn().mockResolvedValue('sent');
+      const execution: McpStepExecutionData = {
+        type: 'mcp',
+        stepIndex: 0,
+        toolCalls: Array.from({ length: 9 }, () => executedCall('send_notification', {}, 'sent')),
+        pendingData: { name: 'send_notification', sourceId: 'mcp-server-1', input: {} },
+        userConfirmation: { userConfirmed: true },
+      };
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([execution]),
+      });
+      const { model } = makeEndlessModel('send_notification', {});
+      const context = makeContext({ model, runStore });
+
+      const result = await new McpStepExecutor(context, [
+        new MockRemoteTool({ name: 'send_notification', invoke: invokeFn }),
+      ]).execute();
+
+      expect(result.stepOutcome).toMatchObject({ status: 'error', error: CALL_LIMIT_ERROR });
+      expect(invokeFn).toHaveBeenCalledTimes(1);
+      // The last save records the 10th call: the step never paused for an 11th.
+      const saves = (runStore.saveStepExecution as jest.Mock).mock.calls;
+      const lastSaved = saves[saves.length - 1][1] as McpStepExecutionData;
+      expect(lastSaved.toolCalls).toHaveLength(10);
+      expect(lastSaved.idempotencyPhase).toBe('executing');
     });
   });
 
@@ -543,6 +819,34 @@ describe('McpStepExecutor', () => {
         }),
       );
     });
+
+    it('keeps the completed calls when a later call is rejected', async () => {
+      const deleteInvoke = jest.fn();
+      const completed = [executedCall('search_pages', { query: 'q' }, { pageId: 'p1' })];
+      const execution: McpStepExecutionData = {
+        type: 'mcp',
+        stepIndex: 0,
+        toolCalls: completed,
+        pendingData: { name: 'delete_page', sourceId: 'mcp-server-1', input: { pageId: 'p1' } },
+        userConfirmation: { userConfirmed: false },
+      };
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([execution]),
+      });
+      const context = makeContext({ runStore });
+
+      const result = await new McpStepExecutor(context, [
+        new MockRemoteTool({ name: 'delete_page', invoke: deleteInvoke }),
+      ]).execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(deleteInvoke).not.toHaveBeenCalled();
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith('run-1', {
+        ...execution,
+        toolCalls: completed,
+        executionResult: { skipped: true },
+      });
+    });
   });
 
   describe('forwards all provided remoteTools to the AI', () => {
@@ -570,7 +874,7 @@ describe('McpStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('success');
       const boundTools = bindTools.mock.calls[0][0] as Array<{ name: string }>;
-      expect(boundTools.map(t => t.name)).toEqual(['tool_a', 'tool_b']);
+      expect(boundTools.map(t => t.name)).toEqual(['tool_a', 'tool_b', COMPLETE_STEP]);
     });
 
     it('binds every tool it receives, including ones whose mcpServerId differs from the step', async () => {
@@ -614,7 +918,7 @@ describe('McpStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('success');
       const boundTools = bindTools.mock.calls[0][0] as Array<{ name: string }>;
-      expect(boundTools.map(t => t.name)).toEqual(['zendesk_get_tickets']);
+      expect(boundTools.map(t => t.name)).toEqual(['zendesk_get_tickets', COMPLETE_STEP]);
       expect(invokeFn).toHaveBeenCalled();
     });
   });
@@ -641,7 +945,7 @@ describe('McpStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('success');
       const boundTools = bindTools.mock.calls[0][0] as Array<{ name: string }>;
-      expect(boundTools.map(t => t.name)).toEqual(['search_pages', 'get_page']);
+      expect(boundTools.map(t => t.name)).toEqual(['search_pages', 'get_page', COMPLETE_STEP]);
       expect(searchInvoke).toHaveBeenCalledWith({ query: 'q' });
       expect(sendInvoke).not.toHaveBeenCalled();
     });
@@ -665,7 +969,7 @@ describe('McpStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('success');
       const boundTools = bindTools.mock.calls[0][0] as Array<{ name: string }>;
-      expect(boundTools.map(t => t.name)).toEqual(['notion.search']);
+      expect(boundTools.map(t => t.name)).toEqual(['notion.search', COMPLETE_STEP]);
       expect(invokeFn).toHaveBeenCalledWith({ query: 'q' });
     });
 
@@ -696,7 +1000,7 @@ describe('McpStepExecutor', () => {
         status: 'success',
       });
       const boundTools = bindTools.mock.calls[0][0] as Array<{ name: string }>;
-      expect(boundTools.map(t => t.name)).toEqual(['search_pages']);
+      expect(boundTools.map(t => t.name)).toEqual(['search_pages', COMPLETE_STEP]);
       expect(invokeFn).toHaveBeenCalledWith({ query: 'q' });
       const warnCalls = logger.mock.calls.filter(([level]) => level === 'Warn');
       expect(warnCalls).toEqual([
@@ -737,7 +1041,7 @@ describe('McpStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('success');
       const boundTools = bindTools.mock.calls[0][0] as Array<{ name: string }>;
-      expect(boundTools.map(t => t.name)).toEqual(['search_pages']);
+      expect(boundTools.map(t => t.name)).toEqual(['search_pages', COMPLETE_STEP]);
       expect(deleteSlash).not.toHaveBeenCalled();
       expect(deleteColon).not.toHaveBeenCalled();
       expect(logger).toHaveBeenCalledWith(
@@ -1314,38 +1618,174 @@ describe('McpStepExecutor', () => {
       expect(activityLogPort.createPending).not.toHaveBeenCalled();
     });
 
-    it('saves executing marker before side effect and done marker with executionResult after', async () => {
-      const toolInvoke = jest.fn().mockResolvedValue('tool-result');
-      const tool = new MockRemoteTool({ name: 'send_notification', invoke: toolInvoke });
-      const { model } = makeMockModel('send_notification', { message: 'Hello' });
+    it('keeps the step marked executing from the first call until the final answer, marking it done only with that answer', async () => {
+      const tools = [
+        new MockRemoteTool({ name: 'search_pages', invoke: jest.fn().mockResolvedValue('p1') }),
+        new MockRemoteTool({ name: 'get_page', invoke: jest.fn().mockResolvedValue('body') }),
+      ];
+      const { model } = makeLoopModel([
+        ['search_pages', {}],
+        ['get_page', {}],
+      ]);
       const runStore = makeMockRunStore();
       const context = makeContext({
         model,
         runStore,
         stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
-      const executor = new McpStepExecutor(context, [tool]);
 
-      await executor.execute();
+      await new McpStepExecutor(context, tools).execute();
 
-      const { calls } = (runStore.saveStepExecution as jest.Mock).mock;
-      // First: 'executing'; Second: 'done' with executionResult (no formattedResponse model call)
-      expect(calls[0][1]).toMatchObject({
-        type: 'mcp',
-        stepIndex: 0,
-        idempotencyPhase: 'executing',
+      const saved = (runStore.saveStepExecution as jest.Mock).mock.calls.map(
+        ([, execution]) => execution as McpStepExecutionData,
+      );
+      // Before call 1, after call 1, before call 2, after call 2, final answer.
+      expect(saved.map(e => e.idempotencyPhase)).toEqual([
+        'executing',
+        'executing',
+        'executing',
+        'executing',
+        'done',
+      ]);
+      expect(saved.map(e => e.toolCalls?.length)).toEqual([0, 1, 1, 2, 2]);
+      expect(saved.slice(0, 4).every(e => e.executionResult === undefined)).toBe(true);
+      expect(saved[4].executionResult).toEqual({
+        success: true,
+        toolResult: 'body',
+        formattedResponse: 'Done.',
       });
-      expect(calls[0][1]).not.toHaveProperty('executionResult');
-      expect(calls[1][1]).toMatchObject({
-        type: 'mcp',
-        stepIndex: 0,
+    });
+
+    it('reports the step as interrupted when re-dispatched after failing between two calls', async () => {
+      const store = new InMemoryStore();
+      const searchInvoke = jest.fn().mockResolvedValue('p1');
+      const tools = [new MockRemoteTool({ name: 'search_pages', invoke: searchInvoke })];
+      const failingModelInvoke = jest
+        .fn()
+        .mockResolvedValueOnce(toolCallResponse('search_pages', {}))
+        .mockRejectedValueOnce(new Error('connection reset'));
+      const failingModel = {
+        bindTools: jest.fn().mockReturnValue({ invoke: failingModelInvoke }),
+      } as unknown as ExecutionContext['model'];
+      const stepDefinition = makeStep({ executionType: StepExecutionMode.FullyAutomated });
+
+      const first = await new McpStepExecutor(
+        makeContext({ runStore: store, model: failingModel, stepDefinition }),
+        tools,
+      ).execute();
+      const { model } = makeLoopModel([['search_pages', {}]]);
+      const second = await new McpStepExecutor(
+        makeContext({ runStore: store, model, stepDefinition }),
+        tools,
+      ).execute();
+
+      expect(first.stepOutcome.status).toBe('error');
+      expect(second.stepOutcome).toMatchObject({
+        status: 'error',
+        error: 'An unexpected error occurred while processing this step.',
+      });
+      expect(searchInvoke).toHaveBeenCalledTimes(1);
+    });
+
+    it('runs each call once the user accepts it, pausing again for the next', async () => {
+      const store = new InMemoryStore();
+      const searchInvoke = jest.fn().mockResolvedValue({ pageId: 'p1' });
+      const getInvoke = jest.fn().mockResolvedValue('page body');
+      const tools = [
+        new MockRemoteTool({ name: 'search_pages', invoke: searchInvoke }),
+        new MockRemoteTool({ name: 'get_page', invoke: getInvoke }),
+      ];
+      const { model } = makeLoopModel(
+        [
+          ['search_pages', { query: 'q' }],
+          ['get_page', { pageId: 'p1' }],
+        ],
+        'Read the page.',
+      );
+      const run = (incomingPendingData?: unknown) =>
+        new McpStepExecutor(makeContext({ runStore: store, model, incomingPendingData }), tools)
+          .execute()
+          .then(r => r.stepOutcome.status);
+
+      const statuses = [
+        await run(),
+        await run({ userConfirmed: true }),
+        await run({ userConfirmed: true }),
+      ];
+
+      expect(statuses).toEqual(['awaiting-input', 'awaiting-input', 'success']);
+      expect(searchInvoke).toHaveBeenCalledTimes(1);
+      expect(getInvoke).toHaveBeenCalledTimes(1);
+      const [persisted] = (await store.getStepExecutions('run-1')) as McpStepExecutionData[];
+      expect(persisted).toMatchObject({
+        toolCalls: [
+          executedCall('search_pages', { query: 'q' }, { pageId: 'p1' }),
+          executedCall('get_page', { pageId: 'p1' }, 'page body'),
+        ],
+        executionResult: {
+          success: true,
+          toolResult: 'page body',
+          formattedResponse: 'Read the page.',
+        },
         idempotencyPhase: 'done',
-        executionResult: { success: true, toolResult: 'tool-result' },
       });
+    });
+
+    it('re-emits awaiting-input without running the next call when re-dispatched before the user answers', async () => {
+      const store = new InMemoryStore();
+      const searchInvoke = jest.fn().mockResolvedValue('p1');
+      const getInvoke = jest.fn();
+      const tools = [
+        new MockRemoteTool({ name: 'search_pages', invoke: searchInvoke }),
+        new MockRemoteTool({ name: 'get_page', invoke: getInvoke }),
+      ];
+      const { model } = makeLoopModel([
+        ['search_pages', {}],
+        ['get_page', {}],
+      ]);
+      const run = (incomingPendingData?: unknown) =>
+        new McpStepExecutor(makeContext({ runStore: store, model, incomingPendingData }), tools)
+          .execute()
+          .then(r => r.stepOutcome.status);
+
+      await run();
+      await run({ userConfirmed: true });
+      const redispatched = await run();
+
+      expect(redispatched).toBe('awaiting-input');
+      expect(getInvoke).not.toHaveBeenCalled();
     });
   });
 
   describe('activity log', () => {
+    it('opens one activity-log entry per executed call', async () => {
+      const activityLogPort = makeActivityLogPort();
+      const tools = [
+        new MockRemoteTool({ name: 'search_pages' }),
+        new MockRemoteTool({ name: 'get_page' }),
+      ];
+      const { model } = makeLoopModel([
+        ['search_pages', {}],
+        ['get_page', {}],
+      ]);
+      const context = makeContext({
+        model,
+        activityLogPort,
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          mcpServerId: 'my-mcp-server',
+        }),
+      });
+
+      await new McpStepExecutor(context, tools).execute();
+
+      expect(activityLogPort.createPending.mock.calls).toEqual([
+        [expect.objectContaining({ label: 'my-mcp-server', type: 'write' })],
+        [expect.objectContaining({ label: 'my-mcp-server', type: 'write' })],
+      ]);
+      expect(activityLogPort.markSucceeded).toHaveBeenCalledTimes(2);
+    });
+
     it('logs against the run base record with collectionId, renderingId, action, type and mcpServerId as label', async () => {
       const tool = new MockRemoteTool({ name: 'send_notification', sourceId: 'mcp-server-1' });
       const { model } = makeMockModel('send_notification', { message: 'Hello' });
@@ -1499,7 +1939,7 @@ describe('McpStepExecutor — OAuth2 tool-call re-authentication', () => {
 
     expect(result.stepOutcome.status).toBe('success');
     const boundTools = bindTools.mock.calls[0][0] as Array<{ name: string }>;
-    expect(boundTools.map(t => t.name)).toEqual(['send_notification']);
+    expect(boundTools.map(t => t.name)).toEqual(['send_notification', COMPLETE_STEP]);
     expect(freshInvoke).toHaveBeenCalledWith({ message: 'Hello' });
     expect(freshDeleteInvoke).not.toHaveBeenCalled();
   });
@@ -1681,6 +2121,67 @@ describe('McpStepExecutor — re-auth pause hardening', () => {
         sourceId: 'mcp-server-1',
         input: { message: 'Hello' },
       });
+    });
+
+    it('keeps the completed calls on a re-auth pause after a call ran, and resumes from them after reconnecting', async () => {
+      // GIVEN a FullyAutomated loop whose first call succeeds and whose second call 401s with a
+      // credential that can no longer be refreshed.
+      const store = new InMemoryStore();
+      const searchInvoke = jest.fn().mockResolvedValue({ pageId: 'p1' });
+      const stepDefinition = makeStep({ executionType: StepExecutionMode.FullyAutomated });
+      const { model: pausingModel } = makeLoopModel([
+        ['search_pages', { query: 'q' }],
+        ['get_page', { pageId: 'p1' }],
+      ]);
+      const pause = await new McpStepExecutor(
+        makeContext({ runStore: store, model: pausingModel, stepDefinition }),
+        [
+          new MockRemoteTool({ name: 'search_pages', invoke: searchInvoke }),
+          new MockRemoteTool({
+            name: 'get_page',
+            invoke: jest.fn().mockRejectedValue(authError()),
+          }),
+        ],
+        'srv',
+        jest.fn().mockRejectedValue(new OAuthReauthRequiredError('srv')),
+      ).execute();
+
+      // THEN the step pauses, keeping the completed call without the write-ahead marker.
+      expect(pause.stepOutcome).toMatchObject({
+        status: 'awaiting-input',
+        awaitingInputReason: 'needs-oauth-reauth',
+      });
+      const [paused] = (await store.getStepExecutions('run-1')) as McpStepExecutionData[];
+      expect(paused.toolCalls).toEqual([
+        executedCall('search_pages', { query: 'q' }, { pageId: 'p1' }),
+      ]);
+      expect(paused.idempotencyPhase).toBeUndefined();
+
+      // WHEN the user reconnects and the step is re-dispatched.
+      const getInvoke = jest.fn().mockResolvedValue('page body');
+      const { model: resumedModel, invoke: resumedModelInvoke } = makeLoopModel([
+        ['get_page', { pageId: 'p1' }],
+      ]);
+      const resumed = await new McpStepExecutor(
+        makeContext({ runStore: store, model: resumedModel, stepDefinition }),
+        [
+          new MockRemoteTool({ name: 'search_pages', invoke: searchInvoke }),
+          new MockRemoteTool({ name: 'get_page', invoke: getInvoke }),
+        ],
+        'srv',
+      ).execute();
+
+      // THEN the AI continues from the completed call, which never runs twice.
+      expect(resumed.stepOutcome.status).toBe('success');
+      expect(searchInvoke).toHaveBeenCalledTimes(1);
+      expect(getInvoke).toHaveBeenCalledWith({ pageId: 'p1' });
+      expect(requestSentOnDecision(resumedModelInvoke, 0)).toContain('{"pageId":"p1"}');
+      const [finished] = (await store.getStepExecutions('run-1')) as McpStepExecutionData[];
+      expect(finished.toolCalls).toEqual([
+        executedCall('search_pages', { query: 'q' }, { pageId: 'p1' }),
+        executedCall('get_page', { pageId: 'p1' }, 'page body'),
+      ]);
+      expect(finished.idempotencyPhase).toBe('done');
     });
 
     it('surfaces a store error from the re-auth cleanup as a step error, not a stuck pause', async () => {

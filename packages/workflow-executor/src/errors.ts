@@ -416,6 +416,15 @@ export class McpToolNotFoundError extends WorkflowExecutorError {
   }
 }
 
+export class McpToolCallLimitError extends WorkflowExecutorError {
+  constructor(limit: number) {
+    super(
+      `AI asked for more than ${limit} MCP tool calls in one step`,
+      `The AI needed more than ${limit} tool calls to complete this step. Try narrowing the step's prompt.`,
+    );
+  }
+}
+
 const AGENT_ERROR_MESSAGE_MAX_LENGTH = 500;
 
 type AgentHttpResponse = Pick<AgentHttpError, 'status' | 'body'>;
