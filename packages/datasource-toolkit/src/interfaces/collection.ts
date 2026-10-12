@@ -29,6 +29,7 @@ export type GetFormMetas = {
   searchField?: string | null;
   searchValues?: Record<string, string | null>;
   includeHiddenFields?: boolean;
+  actionIntentParams?: Record<string, unknown> | null;
 };
 
 export interface Collection {
