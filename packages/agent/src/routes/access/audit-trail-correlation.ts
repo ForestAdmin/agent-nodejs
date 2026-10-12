@@ -7,7 +7,7 @@ import type { Context } from 'koa';
 
 import { ValidationError } from '@forestadmin/datasource-toolkit';
 
-import { belongsToEarlierLife, lastDeleteOf } from '../../audit-trail/earlier-life';
+import { lifeBoundaryOf, withholdEarlierLives } from '../../audit-trail/earlier-life';
 import checkRecordVisibility, {
   recheckRecordVisibility,
 } from '../../audit-trail/record-visibility';
@@ -113,25 +113,22 @@ export default class AuditTrailCorrelationRoute extends BaseRoute {
 
     if (!target.permissionScope) return entries;
 
-    // Live now, but the rows up to the id's last delete may be an earlier record's.
-    const lastDelete = gone
+    // Live now, but the rows before the current record took the id may be an earlier record's.
+    const boundary = gone
       ? null
-      : await lastDeleteOf(this.options.auditTrail.store, target.collection, target.recordId);
+      : await lifeBoundaryOf(this.options.auditTrail.store, target.collection, target.recordId);
 
-    if (!gone && !lastDelete) return entries;
-
-    const withheld = withholdOutsidePermissionScope(entries, {
-      collection: target.collectionObject,
-      permissionScope: target.permissionScope,
-      timezone: QueryStringParser.parseCaller(context, { defaultTimezone: 'UTC' }).timezone,
-      logger: this.options.logger,
+    return withholdEarlierLives(entries, {
+      gone,
+      boundary,
+      withhold: rows =>
+        withholdOutsidePermissionScope(rows, {
+          collection: target.collectionObject,
+          permissionScope: target.permissionScope,
+          timezone: QueryStringParser.parseCaller(context, { defaultTimezone: 'UTC' }).timezone,
+          logger: this.options.logger,
+        }),
     });
-
-    return gone
-      ? withheld
-      : entries.map((entry, index) =>
-          belongsToEarlierLife(entry, lastDelete) ? withheld[index] : entry,
-        );
   }
 
   // Returns null (after issuing the 404) when a configured record-level permission scope excludes the id —

@@ -1249,7 +1249,7 @@ describe('AuditTrailRoute', () => {
     // The audit trail lives in its own database — often its own engine — so no single snapshot
     // spans the visibility check and the audit read. The record can go away in between.
     describe('the record changes between the visibility check and the audit read', () => {
-      const raceWith = async (...listAnswers: unknown[][]) => {
+      const raceWithQuery = async (query: Record<string, string>, ...listAnswers: unknown[][]) => {
         const history = [
           {
             operation: 'delete',
@@ -1267,13 +1267,15 @@ describe('AuditTrailRoute', () => {
         const route = new AuditTrailRoute(services, options, dataSource, 'books');
         const context = createMockContext({
           state: { user: { email: 'john.doe@domain.com' } },
-          customProperties: { query: { timezone: 'Europe/Paris' }, params: { id: '2' } },
+          customProperties: { query: { timezone: 'Europe/Paris', ...query }, params: { id: '2' } },
         });
 
         await route.handleHistory(context);
 
         return { context, list, services };
       };
+
+      const raceWith = (...listAnswers: unknown[][]) => raceWithQuery({}, ...listAnswers);
 
       test('withholds the values when the record was deleted in between', async () => {
         // present and in scope at the check, gone by the time the rows are in hand
@@ -1304,6 +1306,12 @@ describe('AuditTrailRoute', () => {
       test('refuses when an id gone at the first check now belongs to a record the caller cannot read', async () => {
         // gone at the check (scoped and bare), then the id was taken by someone else's record
         const { context } = await raceWith([], [], [], [{ id: 2 }]);
+
+        expect(context.throw).toHaveBeenCalledWith(404, 'Record does not exists');
+      });
+
+      test('refuses a search when an id gone at the first check now belongs to a record the caller cannot read', async () => {
+        const { context } = await raceWithQuery({ search: 'secret' }, [], [], [], [{ id: 2 }]);
 
         expect(context.throw).toHaveBeenCalledWith(404, 'Record does not exists');
       });
@@ -1384,18 +1392,36 @@ describe('AuditTrailRoute', () => {
         expect(body).toEqual({ data: [], meta: { count: 0, availableUsers: [] } });
       });
 
-      test('does not treat a pending delete as freeing the id, since it may never have landed', async () => {
+      test('withholds the rows before the current create when the delete was never confirmed', async () => {
         const pending = { ...freed, status: 'pending' };
 
         const body = await readHistory([current, pending, earlier]);
 
-        expect(body.data).toEqual([current, pending, earlier]);
+        expect(body.data).toEqual([
+          current,
+          { ...pending, previousValues: {} },
+          { ...earlier, previousValues: {}, newValues: {} },
+        ]);
+      });
+
+      test('withholds the rows of a record whose primary key moved off the id', async () => {
+        const body = await readHistory([current, earlier]);
+
+        expect(body.data).toEqual([current, { ...earlier, previousValues: {}, newValues: {} }]);
       });
 
       test('serves the whole history of an id that was never freed', async () => {
-        const body = await readHistory([current, earlier]);
+        const later = row({
+          id: 4,
+          timestamp: '2026-01-04T00:00:00.000Z',
+          operation: 'update',
+          previousValues: { ownerId: 1, title: 'Mine' },
+          newValues: { ownerId: 1, title: 'Still mine' },
+        });
 
-        expect(body.data).toEqual([current, earlier]);
+        const body = await readHistory([later, current]);
+
+        expect(body.data).toEqual([later, current]);
       });
     });
 
