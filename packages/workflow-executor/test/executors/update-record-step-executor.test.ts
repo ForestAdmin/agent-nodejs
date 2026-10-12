@@ -231,6 +231,7 @@ describe('UpdateRecordStepExecutor', () => {
           type: 'update-record',
           stepIndex: 0,
           executionParams: { displayName: 'Status', name: 'status', value: 'active' },
+          aiSuggestion: { reasoning: 'User requested status change' },
           executionResult: { updatedValues },
           selectedRecordRef: expect.objectContaining({
             collectionName: 'customers',
@@ -416,6 +417,7 @@ describe('UpdateRecordStepExecutor', () => {
         expect.objectContaining({
           type: 'update-record',
           stepIndex: 0,
+          aiSuggestion: { reasoning: 'User requested status change' },
           pendingData: { displayName: 'Status', name: 'status', value: 'active' },
           selectedRecordRef: expect.objectContaining({
             collectionName: 'customers',
@@ -791,11 +793,8 @@ describe('UpdateRecordStepExecutor', () => {
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({
-          pendingData: {
-            displayName: 'Order Status',
-            name: 'status',
-            value: 'shipped',
-          },
+          aiSuggestion: { reasoning: 'Mark as shipped' },
+          pendingData: { displayName: 'Order Status', name: 'status', value: 'shipped' },
           selectedRecordRef: expect.objectContaining({
             recordId: [99],
             collectionName: 'orders',
@@ -2515,6 +2514,304 @@ describe('UpdateRecordStepExecutor', () => {
           'Contact your administrator if the problem persists.',
       );
       expect(agentPort.updateRecord).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('AI reasoning', () => {
+    describe('when the AI picks both field and value (Full AI)', () => {
+      it('should record why the written value was chosen', async () => {
+        const updatedValues = { status: 'active' };
+        const agentPort = makeMockAgentPort(updatedValues);
+        const runStore = makeMockRunStore();
+        const context = makeContext({
+          agentPort,
+          runStore,
+          model: makeMockModel({
+            input: { fieldName: 'Status', value: 'active', reasoning: 'The order shipped' },
+          }).model,
+          stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+        });
+
+        const result = await new UpdateRecordStepExecutor(context).execute();
+
+        expect(result.stepOutcome.status).toBe('success');
+        expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+          'run-1',
+          expect.objectContaining({
+            aiSuggestion: { reasoning: 'The order shipped' },
+            executionResult: { updatedValues },
+          }),
+        );
+      });
+    });
+
+    describe('when the field is pinned and the AI only resolves the value', () => {
+      it('should record why that value was chosen', async () => {
+        const updatedValues = { status: 'active' };
+        const agentPort = makeMockAgentPort(updatedValues);
+        const runStore = makeMockRunStore();
+        const context = makeContext({
+          agentPort,
+          runStore,
+          model: makeMockModel(
+            { value: 'active', reasoning: 'The customer paid' },
+            'set-record-field-value',
+          ).model,
+          stepDefinition: makeStep({
+            executionType: StepExecutionMode.FullyAutomated,
+            preRecordedArgs: { fieldName: 'status' },
+          }),
+        });
+
+        const result = await new UpdateRecordStepExecutor(context).execute();
+
+        expect(result.stepOutcome.status).toBe('success');
+        expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+          'run-1',
+          expect.objectContaining({
+            aiSuggestion: { reasoning: 'The customer paid' },
+            executionResult: { updatedValues },
+          }),
+        );
+      });
+    });
+
+    describe('when field and value are both pre-recorded (no AI)', () => {
+      it('should leave the written value unexplained rather than claim a justification', async () => {
+        const updatedValues = { status: 'active' };
+        const agentPort = makeMockAgentPort(updatedValues);
+        const runStore = makeMockRunStore();
+        const context = makeContext({
+          agentPort,
+          runStore,
+          model: makeMockModel().model,
+          stepDefinition: makeStep({
+            executionType: StepExecutionMode.FullyAutomated,
+            preRecordedArgs: { fieldName: 'status', value: 'active' },
+          }),
+        });
+
+        const result = await new UpdateRecordStepExecutor(context).execute();
+
+        expect(result.stepOutcome.status).toBe('success');
+
+        const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+        expect(finalSave).not.toHaveProperty('aiSuggestion');
+        expect(finalSave).not.toHaveProperty('aiSuggestionRuling');
+        expect(finalSave.executionResult).toEqual({ updatedValues });
+      });
+    });
+
+    describe('when a human ruled on the AI proposal', () => {
+      function makeConfirmation(
+        pendingValue: unknown,
+        reasoning: string | undefined,
+        userValue: unknown,
+      ) {
+        const execution: UpdateRecordStepExecutionData = {
+          type: 'update-record',
+          stepIndex: 0,
+          pendingData: { displayName: 'Status', name: 'status', value: pendingValue },
+          ...(reasoning !== undefined && { aiSuggestion: { reasoning } }),
+          selectedRecordRef: makeRecordRef(),
+        };
+        const runStore = makeMockRunStore({
+          getStepExecutions: jest.fn().mockResolvedValue([execution]),
+        });
+        const context = makeContext({
+          agentPort: makeMockAgentPort({ status: userValue }),
+          runStore,
+          incomingPendingData: { userConfirmed: true, value: userValue },
+        });
+
+        return { executor: new UpdateRecordStepExecutor(context), runStore };
+      }
+
+      it('should record the agreement when the human keeps the AI value', async () => {
+        const { executor, runStore } = makeConfirmation('active', 'The order shipped', 'active');
+
+        await executor.execute();
+
+        const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+        expect(finalSave.aiSuggestionRuling).toBe('kept');
+      });
+
+      it('should record the disagreement when the human writes another value', async () => {
+        const { executor, runStore } = makeConfirmation(
+          'inactive',
+          'The order was cancelled',
+          'active',
+        );
+
+        await executor.execute();
+
+        const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+        expect(finalSave.aiSuggestionRuling).toBe('value-changed');
+      });
+
+      it('should record nothing when no AI proposed the value', async () => {
+        const { executor, runStore } = makeConfirmation('inactive', undefined, 'active');
+
+        await executor.execute();
+
+        const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+        expect(finalSave).not.toHaveProperty('aiSuggestionRuling');
+      });
+    });
+
+    describe('when the human confirms without editing the value', () => {
+      it('should rule kept, which is the confirmation the panel sends most often', async () => {
+        const execution: UpdateRecordStepExecutionData = {
+          type: 'update-record',
+          stepIndex: 0,
+          pendingData: { displayName: 'Status', name: 'status', value: 'active' },
+          aiSuggestion: { reasoning: 'The order shipped' },
+          selectedRecordRef: makeRecordRef(),
+        };
+        const runStore = makeMockRunStore({
+          getStepExecutions: jest.fn().mockResolvedValue([execution]),
+        });
+        const context = makeContext({
+          agentPort: makeMockAgentPort({ status: 'active' }),
+          runStore,
+          // Accept-via-PATCH carries no value at all: the user edited nothing.
+          incomingPendingData: { userConfirmed: true },
+        });
+
+        await new UpdateRecordStepExecutor(context).execute();
+
+        const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+        expect(finalSave.aiSuggestionRuling).toBe('kept');
+        expect(finalSave.aiSuggestion).toEqual({ reasoning: 'The order shipped' });
+      });
+    });
+
+    describe('when the AI answers with a blank reasoning', () => {
+      it('should record no justification rather than an empty one', async () => {
+        const runStore = makeMockRunStore();
+        const context = makeContext({
+          agentPort: makeMockAgentPort({ status: 'active' }),
+          runStore,
+          model: makeMockModel({ input: { fieldName: 'Status', value: 'active', reasoning: '' } })
+            .model,
+          stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+        });
+
+        await new UpdateRecordStepExecutor(context).execute();
+
+        const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+        expect(finalSave.aiSuggestion ?? {}).not.toHaveProperty('reasoning');
+      });
+    });
+
+    describe('when the field holds an array value', () => {
+      const tagsField = {
+        fieldName: 'tags',
+        displayName: 'Tags',
+        isRelationship: false,
+        type: ['String'] as unknown as CollectionSchema['fields'][number]['type'],
+      };
+
+      function makeArrayConfirmation(userValue: unknown) {
+        const execution: UpdateRecordStepExecutionData = {
+          type: 'update-record',
+          stepIndex: 0,
+          pendingData: { displayName: 'Tags', name: 'tags', value: ['red', 'blue'] },
+          aiSuggestion: { reasoning: 'Both tags appear on the order' },
+          selectedRecordRef: makeRecordRef(),
+        };
+        const runStore = makeMockRunStore({
+          getStepExecutions: jest.fn().mockResolvedValue([execution]),
+        });
+        const context = makeContext({
+          agentPort: makeMockAgentPort({ tags: userValue }),
+          runStore,
+          workflowPort: makeMockWorkflowPort({
+            customers: makeCollectionSchema({ fields: [tagsField] }),
+          }),
+          incomingPendingData: { userConfirmed: true, value: userValue },
+        });
+
+        return { executor: new UpdateRecordStepExecutor(context), runStore };
+      }
+
+      it('should rule kept when the user re-submits the same array', async () => {
+        const { executor, runStore } = makeArrayConfirmation(['red', 'blue']);
+
+        await executor.execute();
+
+        const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+        expect(finalSave.aiSuggestionRuling).toBe('kept');
+      });
+
+      it('should rule value-changed when the user submits a different array', async () => {
+        const { executor, runStore } = makeArrayConfirmation(['red']);
+
+        await executor.execute();
+
+        const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+        expect(finalSave.aiSuggestionRuling).toBe('value-changed');
+      });
+    });
+
+    describe('when the suggested value no longer validates', () => {
+      it('should write the value the user confirmed instead of erroring the step', async () => {
+        const execution: UpdateRecordStepExecutionData = {
+          type: 'update-record',
+          stepIndex: 0,
+          pendingData: { displayName: 'Count', name: 'count', value: 'not a number' },
+          aiSuggestion: { reasoning: 'Counted from the order lines' },
+          selectedRecordRef: makeRecordRef(),
+        };
+        const runStore = makeMockRunStore({
+          getStepExecutions: jest.fn().mockResolvedValue([execution]),
+        });
+        const agentPort = makeMockAgentPort({ count: 7 });
+        const context = makeContext({
+          agentPort,
+          runStore,
+          workflowPort: makeMockWorkflowPort({
+            customers: makeCollectionSchema({
+              fields: [
+                { fieldName: 'count', displayName: 'Count', isRelationship: false, type: 'Number' },
+              ],
+            }),
+          }),
+          incomingPendingData: { userConfirmed: true, value: 7 },
+        });
+
+        const result = await new UpdateRecordStepExecutor(context).execute();
+
+        expect(result.stepOutcome.status).toBe('success');
+        expect(agentPort.updateRecord).toHaveBeenCalledWith(
+          expect.objectContaining({ values: { count: 7 } }),
+          expect.objectContaining({ id: 1 }),
+        );
+
+        const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+        expect(finalSave.aiSuggestionRuling).toBe('value-changed');
+      });
+    });
+
+    describe('when the mutation is about to run', () => {
+      it('should record the justification before the call, not only after it', async () => {
+        const runStore = makeMockRunStore();
+        const context = makeContext({
+          agentPort: makeMockAgentPort({ status: 'active' }),
+          runStore,
+          model: makeMockModel({
+            input: { fieldName: 'Status', value: 'active', reasoning: 'The order shipped' },
+          }).model,
+          stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+        });
+
+        await new UpdateRecordStepExecutor(context).execute();
+
+        const marker = (runStore.saveStepExecution as jest.Mock).mock.calls.find(
+          call => call[1].idempotencyPhase === 'executing',
+        )?.[1];
+        expect(marker.aiSuggestion).toEqual({ reasoning: 'The order shipped' });
+      });
     });
   });
 });
