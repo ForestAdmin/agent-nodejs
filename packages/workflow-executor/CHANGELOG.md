@@ -1,3 +1,10 @@
+# @forestadmin/workflow-executor [1.33.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.32.1...@forestadmin/workflow-executor@1.33.0) (2026-10-12)
+
+
+### Features
+
+* **workflow-executor:** let an MCP step make several tool calls ([#1991](https://github.com/ForestAdmin/agent-nodejs/issues/1991)) ([6bff0e4](https://github.com/ForestAdmin/agent-nodejs/commit/6bff0e4bfc5ca97bce6a958a5a539667f8c7ddf1))
+
 ## @forestadmin/workflow-executor [1.32.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.32.0...@forestadmin/workflow-executor@1.32.1) (2026-10-10)
 
 
