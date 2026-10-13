@@ -338,13 +338,18 @@ deterministic and stable across pages whatever the direction and filters.
 
 ### `GET /forest/_audit-trail` — cross-collection timeline
 
-The project-level feed: every collection at once, newest first, for the page that shows what
-happened across the project rather than to one record. Each row carries its own `collection` and
-`recordId`, so the client can name and link the record it belongs to.
+The project-level feed: every collection at once, for the page that shows what happened across the
+project rather than to one record. Each row carries its own `collection` and `recordId`, so the
+client can name and link the record it belongs to.
 
 ```json
 { "data": [ /* rows */ ], "meta": { "cursor": { "before": "…", "excludeIds": [12, 11] } } }
 ```
+
+`sort` reads like the per-record route: newest first by default, oldest first on `sort=timestamp`.
+The cursor follows the direction — `before`, an inclusive upper bound, newest first; `after`, an
+inclusive lower bound, oldest first — and `meta.cursor` hands back the one the walk uses. The bound
+for the other direction is ignored.
 
 **Detail values follow the same rule as the per-record routes:** a caller who can read a collection
 gets its rows with `previousValues` and `newValues`, whatever their permission level. Someone who can
@@ -352,7 +357,8 @@ read the collection can already read each record's history one at a time, so the
 values in aggregate. Who can open the project's Activity Logs at all is decided per team by Forest
 (the `activityLogs` feature a team can be deactivated for), not by this route. The capabilities
 payload advertises the route as `canUseAuditTrailTimeline`, true only when the store implements
-`listTimeline`.
+`listTimeline`, and `canSortAuditTrailTimeline` alongside it: an agent without that flag serves the
+feed newest first whatever `sort` asks. A custom `listTimeline` must honour `order` and `after`.
 
 **Permissions.** Only the collections the caller can read are queried. A collection the caller sees
 only through a **record-level scope is left out entirely**: a scope can't be evaluated across a whole

@@ -369,6 +369,47 @@ describe('createSqlAuditStore (sqlite round-trip)', () => {
       await close();
     });
 
+    it('walks oldest first, ties by ascending id, from an inclusive after bound', async () => {
+      const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
+      const boundary = '2026-01-02T00:00:00.000Z';
+      await seed(store, record({ recordId: '1', timestamp: '2026-01-01T00:00:00.000Z' }));
+      const excluded = await seed(store, record({ recordId: '2', timestamp: boundary }));
+      await seed(store, record({ recordId: '3', timestamp: boundary }));
+      await seed(store, record({ recordId: '4', timestamp: boundary }));
+      await seed(store, record({ recordId: '5', timestamp: '2026-01-03T00:00:00.000Z' }));
+
+      const timeline = await store.listTimeline({
+        collections: ['accounts'],
+        limit: 10,
+        order: 'asc',
+        after: boundary,
+        excludeIds: [excluded],
+      });
+
+      expect(timeline.map(entry => entry.recordId)).toEqual(['3', '4', '5']);
+
+      await close();
+    });
+
+    it('keeps the tighter of the after bound and the startDate filter', async () => {
+      const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
+      await seed(store, record({ recordId: '1', timestamp: '2026-01-01T00:00:00.000Z' }));
+      await seed(store, record({ recordId: '2', timestamp: '2026-01-02T00:00:00.000Z' }));
+      await seed(store, record({ recordId: '3', timestamp: '2026-01-03T00:00:00.000Z' }));
+
+      const timeline = await store.listTimeline({
+        collections: ['accounts'],
+        limit: 10,
+        order: 'asc',
+        after: '2026-01-01T00:00:00.000Z',
+        startTimestamp: '2026-01-02T00:00:00.000Z',
+      });
+
+      expect(timeline.map(entry => entry.recordId)).toEqual(['2', '3']);
+
+      await close();
+    });
+
     it('honors the limit', async () => {
       const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
       await seed(store, record({ recordId: '1', timestamp: '2026-01-01T00:00:00.000Z' }));

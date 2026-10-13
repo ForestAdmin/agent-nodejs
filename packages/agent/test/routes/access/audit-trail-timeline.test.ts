@@ -135,6 +135,7 @@ describe('AuditTrailTimelineRoute', () => {
       search: 'jane',
       before: undefined,
       excludeIds: [],
+      order: 'desc',
     });
   });
 
@@ -271,6 +272,42 @@ describe('AuditTrailTimelineRoute', () => {
         data: [row(7, { timestamp: tied }), row(6, { timestamp: tied })],
         meta: { cursor: null },
       });
+    });
+
+    test('pages oldest first on sort=timestamp, handing back an after cursor', async () => {
+      const tied = '2026-01-05T00:00:00.000Z';
+      const { store, route } = setup([
+        row(4, { timestamp: tied }),
+        row(5, { timestamp: tied }),
+        row(6, { timestamp: '2026-01-06T00:00:00.000Z' }),
+      ]);
+      const context = contextWith({
+        sort: 'timestamp',
+        'page[size]': '2',
+        after: tied,
+        excludeIds: '3',
+      });
+
+      await route.handleTimeline(context);
+
+      expect(store.listTimeline).toHaveBeenCalledWith(
+        expect.objectContaining({ order: 'asc', after: tied, excludeIds: [3] }),
+      );
+      expect((context.response.body as { meta: { cursor: unknown } }).meta.cursor).toEqual({
+        after: tied,
+        excludeIds: [3, 4, 5],
+      });
+    });
+
+    test('ignores an after bound on a newest-first walk', async () => {
+      const { store, route } = setup();
+
+      await route.handleTimeline(contextWith({ after: '2026-01-05T00:00:00.000Z' }));
+
+      expect(store.listTimeline).toHaveBeenCalledWith(
+        expect.not.objectContaining({ after: expect.anything() }),
+      );
+      expect(store.listTimeline).toHaveBeenCalledWith(expect.objectContaining({ order: 'desc' }));
     });
 
     test('forwards the incoming cursor to the store as an inclusive bound', async () => {
