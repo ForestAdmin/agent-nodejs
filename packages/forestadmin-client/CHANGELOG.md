@@ -1,3 +1,10 @@
+# @forestadmin/forestadmin-client [1.44.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.43.6...@forestadmin/forestadmin-client@1.44.0) (2026-10-13)
+
+
+### Features
+
+* **gateway:** release the forest gateway r1 ([#1993](https://github.com/ForestAdmin/agent-nodejs/issues/1993)) ([aad92fd](https://github.com/ForestAdmin/agent-nodejs/commit/aad92fd57b377df87db0c2c6812083c8c9e78522))
+
 ## @forestadmin/forestadmin-client [1.43.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.43.5...@forestadmin/forestadmin-client@1.43.6) (2026-10-10)
 
 
