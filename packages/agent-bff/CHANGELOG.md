@@ -1,3 +1,19 @@
+# @forestadmin/agent-bff [1.41.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.40.1...@forestadmin/agent-bff@1.41.0) (2026-10-13)
+
+
+### Features
+
+* **gateway:** release the forest gateway r1 ([#1993](https://github.com/ForestAdmin/agent-nodejs/issues/1993)) ([aad92fd](https://github.com/ForestAdmin/agent-nodejs/commit/aad92fd57b377df87db0c2c6812083c8c9e78522))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.18.2
+* **@forestadmin/forestadmin-client:** upgraded to 1.44.0
+
 ## @forestadmin/agent-bff [1.40.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.40.0...@forestadmin/agent-bff@1.40.1) (2026-10-10)
 
 
