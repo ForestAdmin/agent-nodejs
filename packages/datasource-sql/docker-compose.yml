@@ -1,4 +1,10 @@
 version: '3.1'
+x-healthcheck-timing: &healthcheck-timing
+  interval: 30s
+  timeout: 5s
+  retries: 3
+  start_period: 180s
+  start_interval: 2s
 services:
   postgres9:
     image: postgres:9
@@ -8,6 +14,9 @@ services:
     environment:
       - POSTGRES_USER=test
       - POSTGRES_PASSWORD=password
+    healthcheck:
+      test: ['CMD', 'pg_isready', '-h', '127.0.0.1', '-U', 'test']
+      <<: *healthcheck-timing
 
   postgres16:
     image: postgres:16
@@ -17,6 +26,9 @@ services:
     environment:
       - POSTGRES_USER=test
       - POSTGRES_PASSWORD=password
+    healthcheck:
+      test: ['CMD', 'pg_isready', '-h', '127.0.0.1', '-U', 'test']
+      <<: *healthcheck-timing
 
   mysql5:
     image: mysql:5
@@ -26,6 +38,9 @@ services:
       - '3305:3306'
     environment:
       - MYSQL_ROOT_PASSWORD=password
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', '127.0.0.1', '-uroot', '-ppassword', '--silent']
+      <<: *healthcheck-timing
 
   mysql8:
     image: mysql:8
@@ -34,6 +49,9 @@ services:
       - '3308:3306'
     environment:
       - MYSQL_ROOT_PASSWORD=password
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', '127.0.0.1', '-uroot', '-ppassword', '--silent']
+      <<: *healthcheck-timing
 
   mssql2017:
     image: mcr.microsoft.com/mssql/server:2017-latest
@@ -54,6 +72,11 @@ services:
     environment:
       - MSSQL_SA_PASSWORD=yourStrong(!)Password
       - ACCEPT_EULA=Y
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P "$$MSSQL_SA_PASSWORD" -Q "SELECT 1" -b -o /dev/null
+      <<: *healthcheck-timing
 
   mariadb10:
     image: mariadb:10
@@ -63,6 +86,9 @@ services:
       - '3810:3306'
     environment:
       - MARIADB_ROOT_PASSWORD=password
+    healthcheck:
+      test: ['CMD', 'healthcheck.sh', '--connect', '--innodb_initialized']
+      <<: *healthcheck-timing
 
   mariadb11:
     image: mariadb:11.2
@@ -71,6 +97,9 @@ services:
       - '3811:3306'
     environment:
       - MARIADB_ROOT_PASSWORD=password
+    healthcheck:
+      test: ['CMD', 'healthcheck.sh', '--connect', '--innodb_initialized']
+      <<: *healthcheck-timing
 
   socks-proxy:
     image: serjs/go-socks5-proxy
@@ -96,3 +125,8 @@ services:
       - ./test/ssh-config:/config
     ports:
       - '2222:2222'
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - grep -q '^AllowTcpForwarding yes' /etc/ssh/sshd_config && nc -z localhost 2222
+      <<: *healthcheck-timing
