@@ -7,7 +7,7 @@ import { createMongoDataSource } from '../src';
 describe('create', () => {
   beforeEach(async () => {
     const connection = await mongoose.createConnection(
-      'mongodb://forest:secret@127.0.0.1:27017/movies?authSource=admin',
+      'mongodb://forest:secret@127.0.0.1:27017/movies_create_test?authSource=admin',
     );
 
     await connection.dropDatabase();
@@ -24,7 +24,7 @@ describe('create', () => {
 
   async function createDataSource() {
     const dataSourceFactory = createMongoDataSource({
-      uri: 'mongodb://forest:secret@127.0.0.1:27017/movies?authSource=admin',
+      uri: 'mongodb://forest:secret@127.0.0.1:27017/movies_create_test?authSource=admin',
       dataSource: {},
     });
 
