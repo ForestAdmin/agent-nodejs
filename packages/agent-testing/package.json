@@ -26,10 +26,10 @@
     "test": "jest"
   },
   "dependencies": {
-    "@forestadmin/agent-client": "1.18.1",
+    "@forestadmin/agent-client": "1.18.2",
     "@forestadmin/datasource-customizer": "1.73.1",
     "@forestadmin/datasource-toolkit": "1.56.1",
-    "@forestadmin/forestadmin-client": "1.43.6",
+    "@forestadmin/forestadmin-client": "1.44.0",
     "jsonapi-serializer": "^3.6.9",
     "jsonwebtoken": "^9.0.3",
     "superagent": "^10.3.0"
