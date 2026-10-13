@@ -1,3 +1,15 @@
+# @forestadmin/agent [1.109.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.108.2...@forestadmin/agent@1.109.0) (2026-10-13)
+
+
+### Bug Fixes
+
+* **deps:** align agent and agent-testing on the released workspace versions ([#1995](https://github.com/ForestAdmin/agent-nodejs/issues/1995)) ([c80f53f](https://github.com/ForestAdmin/agent-nodejs/commit/c80f53fa2df28b5d044e35ebc69b69434ca93d20))
+
+
+### Features
+
+* **gateway:** release the forest gateway r1 ([#1993](https://github.com/ForestAdmin/agent-nodejs/issues/1993)) ([aad92fd](https://github.com/ForestAdmin/agent-nodejs/commit/aad92fd57b377df87db0c2c6812083c8c9e78522))
+
 ## @forestadmin/agent [1.108.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.108.1...@forestadmin/agent@1.108.2) (2026-10-12)
 
 
