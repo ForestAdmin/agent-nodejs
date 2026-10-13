@@ -15,6 +15,7 @@ function buildApp(
   allowedOrigins?: string[],
   logger: Logger = () => undefined,
   serverAllowedOrigins: string[] = [],
+  allowedOriginsLabel?: string,
 ) {
   const app = new Koa();
   app.silent = true;
@@ -26,7 +27,7 @@ function buildApp(
 
     await next();
   });
-  app.use(createPerKeyOriginMiddleware({ logger, serverAllowedOrigins }));
+  app.use(createPerKeyOriginMiddleware({ logger, serverAllowedOrigins, allowedOriginsLabel }));
   app.use(async ctx => {
     ctx.status = 200;
     ctx.body = { reached: true };
@@ -210,6 +211,27 @@ describe('per-key origin middleware (layer 2)', () => {
       expect(logger).toHaveBeenCalledWith(
         'Warn',
         'BFF key origins are all outside BFF_ALLOWED_ORIGINS',
+        {
+          keyHash: fingerprintApiKey(RAW_KEY),
+          renderingId: RENDERING_ID,
+          keyOrigins: ['https://a.com'],
+        },
+      );
+    });
+
+    it('names the option label the gateway operator wrote, when one is given', async () => {
+      const logger = jest.fn();
+
+      await request(
+        buildApp(['https://a.com'], logger, ['https://b.com'], 'api.allowedOrigins').callback(),
+      )
+        .get('/agent/x')
+        .set('Origin', 'https://a.com')
+        .set(BFF_KEY_HEADER, RAW_KEY);
+
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        'BFF key origins are all outside api.allowedOrigins',
         {
           keyHash: fingerprintApiKey(RAW_KEY),
           renderingId: RENDERING_ID,

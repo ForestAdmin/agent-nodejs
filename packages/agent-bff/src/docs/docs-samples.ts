@@ -329,7 +329,7 @@ const SAMPLES_SCRIPT = `
          * The base every sample is built on, read off the document's own \`servers\` entry so the
          * snippets and the generated clients cannot disagree. An entry that already carries a scheme
          * and a host is the base as it stands; a bare prefix is appended to the origin the page was
-         * served from, and \`/\` means the BFF owns that origin root.
+         * served from, and \`/\` means the Gateway API owns that origin root.
          */
         function sampleBase(spec) {
           var mount = (((spec.servers || [])[0]) || {}).url || '/';

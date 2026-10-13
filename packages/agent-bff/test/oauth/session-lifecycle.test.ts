@@ -259,6 +259,34 @@ describe('ensureFreshServerAccess', () => {
     });
   });
 
+  describe('when the Forest server refuses the refresh because the plan lacks the Gateway API', () => {
+    it('should throw 403 plan_feature_missing and keep the session and its refresh token', async () => {
+      const store = buildStore();
+      const { sid } = store.create({
+        saasAccessToken: accessToken(-10),
+        saasRefreshToken: 'R1',
+        renderingId: 17,
+        userId: 42,
+        clientId: 'client-1',
+      });
+      const client = {
+        refreshServerToken: jest.fn(async () => {
+          throw new OAuthExchangeError('access_denied', 'no Gateway API', 'plan_feature_missing');
+        }),
+      } as unknown as ForestServerClient;
+
+      await expect(
+        ensureFreshServerAccess({ sid, store, serverClient: client, logger }),
+      ).rejects.toMatchObject({
+        status: 403,
+        type: 'plan_feature_missing',
+        message: "The project's plan does not include the Gateway API.",
+      });
+      expect(store.get(sid)).toBeDefined();
+      expect(store.getSaasRefreshToken(sid)).toBe('R1');
+    });
+  });
+
   describe('when the Forest server rejects the refresh token', () => {
     it('should throw session_expired so the client re-authenticates', async () => {
       const store = buildStore();

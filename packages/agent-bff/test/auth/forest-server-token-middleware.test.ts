@@ -191,6 +191,35 @@ describe('forest server token middleware', () => {
       );
     });
 
+    it('should refuse with plan_feature_missing, not audit_unavailable, when the plan lacks the Gateway API', async () => {
+      const store = {
+        get: () => ({ saasAccessToken: expiredAccessToken(), clientId: 'client-1' }),
+        getSaasRefreshToken: () => 'refresh-token',
+      } as unknown as SessionStore;
+      const serverClient = {
+        refreshServerToken: async () => {
+          throw new OAuthExchangeError('access_denied', 'no Gateway API', 'plan_feature_missing');
+        },
+      } as unknown as ForestServerClient;
+      const ctx = contextOf({
+        authMode: 'oauth',
+        principal: { sid: SESSION_ID, rendering_id: String(RENDERING_ID) },
+      });
+      const logger = jest.fn();
+      const middleware = createForestServerTokenMiddleware({
+        session: { store, serverClient },
+        logger,
+      });
+      await middleware(ctx, async () => undefined);
+
+      await expect(resolveForestServerToken(ctx)).rejects.toMatchObject({
+        status: 403,
+        type: 'plan_feature_missing',
+        message: "The project's plan does not include the Gateway API.",
+      });
+      expect(logger).not.toHaveBeenCalledWith('Error', expect.anything(), expect.anything());
+    });
+
     it('should refuse with session_expired when the deployment carries no session store', async () => {
       const ctx = contextOf({
         authMode: 'oauth',

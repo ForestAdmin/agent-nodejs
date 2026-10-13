@@ -1,5 +1,9 @@
 import Joi from 'joi';
 
+export const issueTokenQuerySchema = Joi.object({
+  service: Joi.string().valid('api', 'mcp'),
+}).unknown();
+
 const issueTokenBodySchema = Joi.object({
   client_id: Joi.string().required(),
   grant_type: Joi.string().valid('authorization_code', 'refresh_token').required(),

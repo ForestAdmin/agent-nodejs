@@ -8,7 +8,13 @@ export function createAgent<S extends TSchema = TSchema>(options: AgentOptions):
 }
 
 export { Agent };
-export { AgentOptions, BffEmbedOptions, WorkflowExecutorEmbedOptions } from './types';
+export {
+  AgentOptions,
+  BffEmbedOptions,
+  GatewayOptions,
+  McpEmbedOptions,
+  WorkflowExecutorEmbedOptions,
+} from './types';
 export * from '@forestadmin/datasource-customizer';
 
 // export is necessary for the agent-generator package

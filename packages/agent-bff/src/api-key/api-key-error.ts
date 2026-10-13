@@ -39,9 +39,9 @@ export function forestIdentityNotAllowed(message = 'Forest identity not allowed'
   return new ApiKeyError(403, 'forest_identity_not_allowed', message);
 }
 
-export function planFeatureMissing(
-  message = "The project's plan does not include the Gateway API.",
-): ApiKeyError {
+export const PLAN_FEATURE_MISSING_MESSAGE = "The project's plan does not include the Gateway API.";
+
+export function planFeatureMissing(message = PLAN_FEATURE_MISSING_MESSAGE): ApiKeyError {
   return new ApiKeyError(403, 'plan_feature_missing', message);
 }
 

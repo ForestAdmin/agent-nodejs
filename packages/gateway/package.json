@@ -1,0 +1,41 @@
+{
+  "name": "@forestadmin/gateway",
+  "version": "0.0.0",
+  "description": "Serves the Forest Admin MCP and API services on one port, for agents that cannot embed them",
+  "main": "dist/index.js",
+  "bin": {
+    "forest-gateway": "dist/cli.js"
+  },
+  "license": "GPL-3.0",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ForestAdmin/agent-nodejs.git",
+    "directory": "packages/gateway"
+  },
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "start": "node dist/cli.js",
+    "clean": "rm -rf coverage dist",
+    "lint": "eslint src test",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@forestadmin/agent-bff": "^1.40.0",
+    "@forestadmin/forestadmin-client": "^1.43.5",
+    "@forestadmin/mcp-server": "^1.28.0"
+  },
+  "devDependencies": {
+    "supertest": "^7.1.3"
+  }
+}

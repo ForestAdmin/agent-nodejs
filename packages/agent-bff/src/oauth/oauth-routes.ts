@@ -6,6 +6,7 @@ import type { Logger } from '../ports/logger-port';
 import type { UserInfo } from '@forestadmin/forestadmin-client';
 import type { Context, Middleware } from 'koa';
 
+import { isClientAllowed } from '@forestadmin/forestadmin-client';
 import crypto from 'crypto';
 import jsonwebtoken from 'jsonwebtoken';
 
@@ -17,6 +18,8 @@ import {
   invalidClient,
   invalidGrant,
   invalidRequest,
+  isPlanFeatureMissingRefusal,
+  planFeatureMissing,
   serverError,
   sessionExpired,
   sessionInvalidated,
@@ -36,6 +39,7 @@ export interface OAuthRoutesOptions {
   authSecret: string;
   resolveEnvironmentId: EnvironmentIdResolver;
   logger: Logger;
+  allowedOAuthClients?: string[];
 }
 
 const CODE_VERIFIER_PATTERN = /^[A-Za-z0-9\-._~]{43,128}$/;
@@ -90,9 +94,31 @@ function assertRegisteredRedirectUri(
   }
 }
 
-function toSafeExchangeError(saasError: string): OAuthRequestError {
-  if (SAFE_EXCHANGE_ERRORS.has(saasError)) {
-    return new OAuthRequestError(400, saasError, 'Authorization code exchange failed');
+const CLIENT_NOT_APPROVED_MESSAGE =
+  'This API only accepts approved client applications. Contact your Forest Admin administrator.';
+
+function assertClientIsAllowed(
+  clientId: string,
+  redirectUris: string[] | undefined,
+  options: OAuthRoutesOptions,
+): void {
+  const { allowedOAuthClients } = options;
+
+  if (!allowedOAuthClients || isClientAllowed(redirectUris, allowedOAuthClients)) return;
+
+  options.logger('Info', 'Rejected OAuth client: redirect URIs are not all on an allowed domain', {
+    clientId,
+    redirectUris: redirectUris ?? [],
+  });
+
+  throw invalidClient(CLIENT_NOT_APPROVED_MESSAGE);
+}
+
+function toSafeExchangeError(saasError: OAuthExchangeError): OAuthRequestError {
+  if (isPlanFeatureMissingRefusal(saasError)) return planFeatureMissing();
+
+  if (SAFE_EXCHANGE_ERRORS.has(saasError.error)) {
+    return new OAuthRequestError(400, saasError.error, 'Authorization code exchange failed');
   }
 
   return new OAuthRequestError(
@@ -165,6 +191,7 @@ async function handleAuthorize(ctx: Context, options: OAuthRoutesOptions): Promi
     throw invalidRequest('Unknown client_id');
   }
 
+  assertClientIsAllowed(clientId, client.redirect_uris, options);
   assertRegisteredRedirectUri(client.redirect_uris, redirectUri, invalidRequest);
 
   // redirect_uri is now trusted: remaining validation errors redirect back to
@@ -260,6 +287,7 @@ async function parseTokenRequest(ctx: Context, options: OAuthRoutesOptions): Pro
     throw invalidClient('Unknown client_id');
   }
 
+  assertClientIsAllowed(request.clientId, client.redirect_uris, options);
   assertRegisteredRedirectUri(client.redirect_uris, request.redirectUri, invalidGrant);
 
   return request;
@@ -273,8 +301,11 @@ async function exchangeForServerTokens(
     return await options.serverClient.exchangeCode(request);
   } catch (error) {
     if (error instanceof OAuthExchangeError) {
-      options.logger('Warn', 'Forest server code exchange rejected', { saasError: error.error });
-      throw toSafeExchangeError(error.error);
+      options.logger('Warn', 'Forest server code exchange rejected', {
+        saasError: error.error,
+        reason: error.reason,
+      });
+      throw toSafeExchangeError(error);
     }
 
     throw error;

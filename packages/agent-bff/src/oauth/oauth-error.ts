@@ -1,3 +1,5 @@
+import { PLAN_FEATURE_MISSING_MESSAGE } from '../api-key/api-key-error';
+
 export class OAuthRequestError extends Error {
   readonly status: number;
   readonly type: string;
@@ -51,4 +53,12 @@ export function sessionInvalidated(message: string): OAuthRequestError {
 
 export function serverError(message: string, cause?: unknown): OAuthRequestError {
   return new OAuthRequestError(502, 'server_error', message, cause);
+}
+
+export function planFeatureMissing(): OAuthRequestError {
+  return new OAuthRequestError(403, 'plan_feature_missing', PLAN_FEATURE_MISSING_MESSAGE);
+}
+
+export function isPlanFeatureMissingRefusal(error: { reason?: string }): boolean {
+  return error.reason === 'plan_feature_missing';
 }

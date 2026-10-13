@@ -1,5 +1,10 @@
 # @forestadmin/mcp-server
 
+> [!IMPORTANT]
+> Internal building block of the Forest Gateway. For new deployments, use
+> [`@forestadmin/gateway`](https://docs.forestadmin.com/product/embed/gateway-standalone). The
+> `forest-mcp-server` command keeps working, deprecated.
+
 Model Context Protocol (MCP) server for Forest Admin with OAuth authentication support.
 
 ## Overview
@@ -439,6 +444,8 @@ Once running, the MCP server exposes the following endpoints:
 | GET | `/.well-known/oauth-protected-resource/mcp` | OAuth metadata discovery |
 
 The `/mcp` endpoint expects MCP protocol messages (JSON-RPC 2.0) and requires a valid OAuth Bearer token with at least the `mcp:read` scope.
+
+An autonomous system with no human behind it can send a service account credential instead (`Authorization: Bearer fgw_…`). The Forest server resolves it, and refuses it when the project's plan does not include the Gateway MCP. The session then acts as the service account, with its Role and Teams.
 
 ## Features
 

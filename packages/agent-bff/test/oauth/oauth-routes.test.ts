@@ -86,6 +86,7 @@ function buildApp(
   forestAppUrl: string = APP_URL,
   onTokenRequest?: () => void,
   resolveEnvironmentId: () => Promise<number> = async () => 99,
+  allowedOAuthClients?: string[],
 ) {
   const logs: LogLine[] = [];
 
@@ -118,6 +119,7 @@ function buildApp(
       authSecret: AUTH_SECRET,
       resolveEnvironmentId,
       logger,
+      allowedOAuthClients,
     }),
   );
 
@@ -597,6 +599,47 @@ describe('oauth-routes POST /oauth/token', () => {
     });
   });
 
+  describe('when the Forest server refuses the exchange because the plan lacks the Gateway API', () => {
+    it('should answer 403 plan_feature_missing with the flat OAuth body and keep the code claimed', async () => {
+      const exchangeCode = jest.fn(async () => {
+        throw new OAuthExchangeError('access_denied', 'no Gateway API', 'plan_feature_missing');
+      });
+      const { app, logs } = buildApp(stubServerClient({ exchangeCode }));
+
+      const response = await request(app.callback()).post('/oauth/token').send(TOKEN_BODY);
+      const replay = await request(app.callback()).post('/oauth/token').send(TOKEN_BODY);
+
+      expect(response.status).toBe(403);
+      expect(response.body).toEqual({
+        error: 'plan_feature_missing',
+        error_description: "The project's plan does not include the Gateway API.",
+      });
+      expect(replay.status).toBe(400);
+      expect(replay.body.error).toBe('invalid_grant');
+      expect(exchangeCode).toHaveBeenCalledTimes(1);
+      expect(logs).toContainEqual({
+        level: 'Warn',
+        message: 'Forest server code exchange rejected',
+        context: { saasError: 'access_denied', reason: 'plan_feature_missing' },
+      });
+    });
+
+    it('should keep the 502 server_error for an access_denied carrying another reason', async () => {
+      const { app } = buildApp(
+        stubServerClient({
+          exchangeCode: async () => {
+            throw new OAuthExchangeError('access_denied', 'other', 'something_else');
+          },
+        }),
+      );
+
+      const response = await request(app.callback()).post('/oauth/token').send(TOKEN_BODY);
+
+      expect(response.status).toBe(502);
+      expect(response.body.error).toBe('server_error');
+    });
+  });
+
   describe('when an unsupported grant_type is used', () => {
     it('should reject a grant_type that is neither authorization_code nor refresh_token', async () => {
       const { app } = buildApp(stubServerClient());
@@ -880,6 +923,33 @@ describe('oauth-routes POST /oauth/token refresh_token grant', () => {
     });
   });
 
+  describe('when the Forest server refuses the refresh because the plan lacks the Gateway API', () => {
+    it('should answer 403 plan_feature_missing and keep the refresh token usable once Forest accepts again', async () => {
+      let refused = true;
+      const refreshServerToken = jest.fn(async () => {
+        if (refused) {
+          throw new OAuthExchangeError('access_denied', 'no Gateway API', 'plan_feature_missing');
+        }
+
+        return decodableServerTokens();
+      });
+      const { app } = buildApp(stubServerClient({ refreshServerToken }));
+      const refreshToken = await login(app);
+
+      const refusedResponse = await refresh(app, refreshToken);
+      refused = false;
+      const restoredResponse = await refresh(app, refreshToken);
+
+      expect(refusedResponse.status).toBe(403);
+      expect(refusedResponse.body).toEqual({
+        error: 'plan_feature_missing',
+        error_description: "The project's plan does not include the Gateway API.",
+      });
+      expect(restoredResponse.status).toBe(200);
+      expect(restoredResponse.body.refresh_token).not.toBe(refreshToken);
+    });
+  });
+
   describe('when the underlying SaaS refresh fails transiently', () => {
     it('should not rotate the presented token, so a retry after the blip succeeds', async () => {
       let attempts = 0;
@@ -1103,6 +1173,137 @@ describe('oauth-routes middleware', () => {
       const response = await request(app.callback()).get('/something-else');
 
       expect(response.status).toBe(204);
+    });
+  });
+});
+
+describe('oauth-routes allowedOAuthClients', () => {
+  const ALLOWED_REDIRECT_URI = 'https://app.dust.tt/oauth/callback';
+  const ZENDESK_REDIRECT_URI = 'https://app.forestadmin.com/zendesk-oauth-redirect';
+
+  function buildRestrictedApp(redirectUris: string[], allowedOAuthClients?: string[]) {
+    const exchangeCode = jest.fn(async () => serverTokens());
+    const getRegisteredClient = jest.fn(async () => ({
+      client_id: CLIENT_ID,
+      redirect_uris: redirectUris,
+    }));
+    const built = buildApp(
+      stubServerClient({ exchangeCode, getRegisteredClient }),
+      APP_URL,
+      undefined,
+      async () => 99,
+      allowedOAuthClients,
+    );
+
+    return { ...built, exchangeCode };
+  }
+
+  describe('on GET /oauth/authorize', () => {
+    it('should reject a client outside the allowed domains with a 400 invalid_client body and no redirect', async () => {
+      const { app } = buildRestrictedApp([ZENDESK_REDIRECT_URI], ['claude.ai']);
+
+      const response = await request(app.callback())
+        .get('/oauth/authorize')
+        .query({ ...AUTHORIZE_QUERY, redirect_uri: ZENDESK_REDIRECT_URI });
+
+      expect(response.status).toBe(400);
+      expect(response.headers['content-type']).toMatch(/application\/json/);
+      expect(response.body).toEqual({
+        error: 'invalid_client',
+        error_description:
+          'This API only accepts approved client applications. Contact your Forest Admin administrator.',
+      });
+      expect(response.headers.location).toBeUndefined();
+      expect(JSON.stringify(response.body)).not.toContain('claude.ai');
+    });
+
+    it('should reject a client outside the allowed domains even when the redirect_uri is not registered', async () => {
+      const { app } = buildRestrictedApp([ZENDESK_REDIRECT_URI], ['claude.ai']);
+
+      const response = await request(app.callback())
+        .get('/oauth/authorize')
+        .query({ ...AUTHORIZE_QUERY, redirect_uri: 'https://elsewhere.example/cb' });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('invalid_client');
+    });
+
+    it('should log the rejected client id and its redirect URIs', async () => {
+      const { app, logs } = buildRestrictedApp([ZENDESK_REDIRECT_URI], ['claude.ai']);
+
+      await request(app.callback())
+        .get('/oauth/authorize')
+        .query({ ...AUTHORIZE_QUERY, redirect_uri: ZENDESK_REDIRECT_URI });
+
+      expect(logs).toContainEqual({
+        level: 'Info',
+        message: 'Rejected OAuth client: redirect URIs are not all on an allowed domain',
+        context: { clientId: CLIENT_ID, redirectUris: [ZENDESK_REDIRECT_URI] },
+      });
+    });
+
+    it('should redirect to the Forest authorize url for a client on an allowed domain', async () => {
+      const { app } = buildRestrictedApp([ALLOWED_REDIRECT_URI], ['dust.tt']);
+
+      const response = await request(app.callback())
+        .get('/oauth/authorize')
+        .query({ ...AUTHORIZE_QUERY, redirect_uri: ALLOWED_REDIRECT_URI });
+
+      expect(response.status).toBe(302);
+      const location = new URL(response.headers.location);
+      expect(location.origin + location.pathname).toBe(`${APP_URL}/oauth/authorize`);
+      expect(location.searchParams.get('redirect_uri')).toBe(ALLOWED_REDIRECT_URI);
+    });
+
+    it('should accept any registered client when no allowlist is set', async () => {
+      const { app } = buildRestrictedApp([ZENDESK_REDIRECT_URI]);
+
+      const response = await request(app.callback())
+        .get('/oauth/authorize')
+        .query({ ...AUTHORIZE_QUERY, redirect_uri: ZENDESK_REDIRECT_URI });
+
+      expect(response.status).toBe(302);
+      expect(new URL(response.headers.location).pathname).toBe('/oauth/authorize');
+    });
+  });
+
+  describe('on POST /oauth/token with grant_type=authorization_code', () => {
+    it('should reject a client outside the allowed domains with invalid_client and call no SaaS exchange', async () => {
+      const { app, exchangeCode } = buildRestrictedApp([ZENDESK_REDIRECT_URI], ['claude.ai']);
+
+      const response = await request(app.callback())
+        .post('/oauth/token')
+        .send({ ...TOKEN_BODY, redirect_uri: ZENDESK_REDIRECT_URI });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('invalid_client');
+      expect(JSON.stringify(response.body)).not.toContain('claude.ai');
+      expect(exchangeCode).not.toHaveBeenCalled();
+    });
+
+    it('should issue tokens to a client on an allowed domain', async () => {
+      const { app, exchangeCode } = buildRestrictedApp([ALLOWED_REDIRECT_URI], ['dust.tt']);
+
+      const response = await request(app.callback())
+        .post('/oauth/token')
+        .send({ ...TOKEN_BODY, redirect_uri: ALLOWED_REDIRECT_URI });
+
+      expect(response.status).toBe(200);
+      expect(response.body.token_type).toBe('Bearer');
+      expect(exchangeCode).toHaveBeenCalledWith(
+        expect.objectContaining({ clientId: CLIENT_ID, redirectUri: ALLOWED_REDIRECT_URI }),
+      );
+    });
+
+    it('should issue tokens to any registered client when no allowlist is set', async () => {
+      const { app } = buildRestrictedApp([ZENDESK_REDIRECT_URI]);
+
+      const response = await request(app.callback())
+        .post('/oauth/token')
+        .send({ ...TOKEN_BODY, redirect_uri: ZENDESK_REDIRECT_URI });
+
+      expect(response.status).toBe(200);
+      expect(response.body.token_type).toBe('Bearer');
     });
   });
 });

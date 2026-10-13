@@ -1,6 +1,7 @@
 import type { AuditStore } from './audit-trail/types';
 import type { CompositeId, Logger, LoggerLevel } from '@forestadmin/datasource-toolkit';
 import type { ForestAdminClient } from '@forestadmin/forestadmin-client';
+import type { FileUploadsOptions, TokenTtlOptions, ToolName } from '@forestadmin/mcp-server';
 import type { WorkflowExecutorTuningOptions } from '@forestadmin/workflow-executor';
 import type { IncomingMessage, ServerResponse } from 'http';
 
@@ -206,6 +207,21 @@ export type BffEmbedOptions = {
    * the entries the deadline leaves `pending` — those are logged by name when it expires.
    */
   shutdownTimeoutMs?: number;
+};
+
+export type McpEmbedOptions = {
+  enabledTools?: ToolName[];
+  basePath?: string;
+  tokenTtl?: TokenTtlOptions;
+  allowedOAuthClients?: string[];
+  fileUploads?: false | FileUploadsOptions;
+};
+
+export type GatewayOptions = {
+  basePath?: string;
+  allowedOAuthClients?: string[];
+  mcp?: Omit<McpEmbedOptions, 'basePath' | 'allowedOAuthClients'> | boolean;
+  api?: BffEmbedOptions | boolean;
 };
 
 // Runtime view of `auditTrail`: the validator has built the SQL store from the connection string.
