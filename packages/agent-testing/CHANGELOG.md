@@ -1,3 +1,18 @@
+## @forestadmin/agent-testing [1.2.62](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-testing@1.2.61...@forestadmin/agent-testing@1.2.62) (2026-10-13)
+
+
+### Bug Fixes
+
+* **deps:** align agent and agent-testing on the released workspace versions ([#1995](https://github.com/ForestAdmin/agent-nodejs/issues/1995)) ([c80f53f](https://github.com/ForestAdmin/agent-nodejs/commit/c80f53fa2df28b5d044e35ebc69b69434ca93d20))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.109.0
+
 ## @forestadmin/agent-testing [1.2.61](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-testing@1.2.60...@forestadmin/agent-testing@1.2.61) (2026-10-12)
 
 
