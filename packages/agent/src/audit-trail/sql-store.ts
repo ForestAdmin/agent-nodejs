@@ -244,6 +244,7 @@ function buildTimelineWhereClause(
   {
     collections,
     before,
+    after,
     excludeIds,
     userIds,
     operations,
@@ -260,10 +261,14 @@ function buildTimelineWhereClause(
   if (excludeIds?.length) where.id = { [Op.notIn]: excludeIds };
 
   const timestampRange: Record<symbol, Date> = {};
-  if (startTimestamp) timestampRange[Op.gte] = new Date(startTimestamp);
 
-  // The cursor bound and the `endDate` filter are both inclusive upper bounds; the tighter wins.
+  // Each cursor bound and its date filter are inclusive on the same side; the tighter wins.
+  const lowerBounds = [startTimestamp, after].filter(Boolean).map(bound => new Date(bound));
   const upperBounds = [endTimestamp, before].filter(Boolean).map(bound => new Date(bound));
+
+  if (lowerBounds.length) {
+    timestampRange[Op.gte] = new Date(Math.max(...lowerBounds.map(date => date.getTime())));
+  }
 
   if (upperBounds.length) {
     timestampRange[Op.lte] = new Date(Math.min(...upperBounds.map(date => date.getTime())));
@@ -444,12 +449,13 @@ export function createSqlAuditStore(options: AuditStorageOptions): {
         if (!query.collections.length) return [];
 
         const { model, connection } = await init();
+        const direction = query.order === 'asc' ? 'ASC' : 'DESC';
 
         const rows = await model.findAll({
           where: buildTimelineWhereClause(query, connection),
           order: [
-            ['timestamp', 'DESC'],
-            ['id', 'DESC'],
+            ['timestamp', direction],
+            ['id', direction],
           ],
           limit: query.limit,
           transaction: null,

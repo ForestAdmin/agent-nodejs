@@ -50,6 +50,9 @@ export default class Capabilities extends BaseRoute {
         // or a custom store without `listTimeline`, omits it or answers false, and the front keeps
         // the project page on the activity logs instead of 404ing on every batch.
         canUseAuditTrailTimeline: Boolean(this.options.auditTrail?.store?.listTimeline),
+        // An agent before this flag serves the timeline newest first whatever `sort` asks, so the
+        // front offers oldest first on the project page only when it is set.
+        canSortAuditTrailTimeline: Boolean(this.options.auditTrail?.store?.listTimeline),
         checksRelationReadPermissions: !this.options.skipRelationReadPermissions,
       },
       collections:

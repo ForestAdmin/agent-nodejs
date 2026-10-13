@@ -16,7 +16,8 @@ import {
 import { RouteType } from '../../types';
 import BaseRoute from '../base-route';
 
-type Cursor = { before?: string; excludeIds: number[] };
+type Order = 'asc' | 'desc';
+type Cursor = { before?: string; after?: string; excludeIds: number[] };
 
 export default class AuditTrailTimelineRoute extends BaseRoute {
   readonly type = RouteType.PrivateRoute;
@@ -40,7 +41,8 @@ export default class AuditTrailTimelineRoute extends BaseRoute {
     const query = context.request.query as Record<string, unknown>;
     const timezone = query.timezone?.toString() || 'UTC';
     const limit = parsePageSize(query['page[size]']?.toString());
-    const cursor = AuditTrailTimelineRoute.parseCursor(context);
+    const order: Order = query.sort?.toString() === 'timestamp' ? 'asc' : 'desc';
+    const cursor = AuditTrailTimelineRoute.parseCursor(context, order);
 
     // Parsed before the permission sweep so a malformed filter reads as a 400 whatever the caller
     // is allowed to see.
@@ -60,9 +62,9 @@ export default class AuditTrailTimelineRoute extends BaseRoute {
     // One row over the page: the only way to know whether a further page exists without a count.
     const [fetched, availableUsers] = await Promise.all([
       collections.length
-        ? store.listTimeline({ ...filters, ...cursor, collections, limit: limit + 1 })
+        ? store.listTimeline({ ...filters, ...cursor, order, collections, limit: limit + 1 })
         : [],
-      !cursor.before && store.listTimelineUsers
+      !cursor.before && !cursor.after && store.listTimelineUsers
         ? store.listTimelineUsers({ ...filters, collections })
         : undefined,
     ]);
@@ -71,7 +73,8 @@ export default class AuditTrailTimelineRoute extends BaseRoute {
     context.response.body = {
       data: page.map(toServedAuditRecord),
       meta: {
-        cursor: fetched.length > limit ? AuditTrailTimelineRoute.nextCursor(page, cursor) : null,
+        cursor:
+          fetched.length > limit ? AuditTrailTimelineRoute.nextCursor(page, cursor, order) : null,
         ...(availableUsers && { availableUsers }),
       },
     };
@@ -97,9 +100,9 @@ export default class AuditTrailTimelineRoute extends BaseRoute {
     return names.filter(Boolean);
   }
 
-  // `before` is an inclusive upper bound, so the rows sharing the last row's timestamp are carried
-  // over as `excludeIds` rather than being skipped — that is what keeps a tie from falling between
-  // two pages. When the previous page ended on the same timestamp its exclusions still apply, so a
+  // `before` (`after` on an oldest-first walk) is an inclusive bound, so the rows sharing the last
+  // row's timestamp are carried over as `excludeIds` rather than being skipped — that is what keeps
+  // a tie from falling between two pages. When the previous page ended on the same timestamp its exclusions still apply, so a
   // timestamp holding more rows than fit on one page walks forward instead of looping.
   //
   // Null when that walk makes no progress. Staying on the same timestamp must add at least the last
@@ -109,27 +112,31 @@ export default class AuditTrailTimelineRoute extends BaseRoute {
   // ~9e15 rows to reach it. Ending the walk is the safe answer at that point; the upgrade, if such
   // a table ever exists, is to carry the id as a string through `AuditRecord`, the cursor and the
   // SQL binding.
-  private static nextCursor(page: AuditRecord[], previous: Cursor): Cursor | null {
+  private static nextCursor(page: AuditRecord[], previous: Cursor, order: Order): Cursor | null {
+    const bound = order === 'asc' ? 'after' : 'before';
     const last = page[page.length - 1];
-    const sameBoundary = previous.before === last.timestamp;
+    const sameBoundary = previous[bound] === last.timestamp;
     const carried = sameBoundary ? previous.excludeIds : [];
     const tied = page.filter(row => row.timestamp === last.timestamp).map(row => row.id);
     const excludeIds = [...new Set([...carried, ...tied])];
 
     if (sameBoundary && excludeIds.length === carried.length) return null;
 
-    return { before: last.timestamp, excludeIds };
+    return { [bound]: last.timestamp, excludeIds };
   }
 
-  private static parseCursor(context: Context): Cursor {
+  private static parseCursor(context: Context, order: Order): Cursor {
     const query = context.request.query as Record<string, unknown>;
-    const before = parseDateBoundary(query.before?.toString(), 'UTC', 'end');
+    const bound =
+      order === 'asc'
+        ? { after: parseDateBoundary(query.after?.toString(), 'UTC', 'start') }
+        : { before: parseDateBoundary(query.before?.toString(), 'UTC', 'end') };
     const excludeIds = (query.excludeIds?.toString() ?? '')
       .split(',')
       .map(token => token.trim())
       .filter(token => /^\d+$/.test(token))
       .map(token => Number.parseInt(token, 10));
 
-    return { before, excludeIds };
+    return { ...bound, excludeIds };
   }
 }
