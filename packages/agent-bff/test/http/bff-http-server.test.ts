@@ -284,6 +284,10 @@ describe('BFFHttpServer', () => {
   });
 
   describe('when stopping a server that writes activity logs', () => {
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
     it('should drain the pending status transitions after closing the connections', async () => {
       const events: string[] = [];
       const server = createServer({ ...VALID_ENV }, 0, noopLogger, async () => {
@@ -332,11 +336,15 @@ describe('BFFHttpServer', () => {
 
       const internal = (server as unknown as { server: Server }).server;
       jest.spyOn(internal, 'close').mockImplementation((() => internal) as Server['close']);
+      jest.useFakeTimers();
 
-      await server.stop();
+      const stopping = server.stop();
+      await jest.advanceTimersByTimeAsync(SHUTDOWN_DEADLINE_MS);
+      await stopping;
 
       expect(drain).toHaveBeenCalledWith(0);
 
+      jest.useRealTimers();
       jest.restoreAllMocks();
       await closeServer(internal);
     });
