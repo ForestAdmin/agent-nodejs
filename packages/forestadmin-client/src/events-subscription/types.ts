@@ -13,7 +13,8 @@ export type ServerEvent = MessageEvent<{
 export interface RefreshEventsHandlerService {
   refreshUsers: () => Promise<void> | void;
   refreshRoles: () => Promise<void> | void;
-  refreshRenderings: (renderingIds?: (string | number)[]) => Promise<void> | void;
+  /** An empty list invalidates every rendering. */
+  refreshRenderings: (renderingIds: (string | number)[]) => Promise<void> | void;
   refreshCustomizations: () => Promise<void> | void;
   onRefreshCustomizations: (handler: () => void | Promise<void>) => void;
 

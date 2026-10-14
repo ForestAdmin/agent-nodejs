@@ -73,29 +73,19 @@ export default class EventsSubscriptionService implements BaseEventsSubscription
 
     this.detectBuffering();
 
-    eventSource.addEventListener(ServerEventType.RefreshUsers, async () =>
-      this.dispatch(ServerEventType.RefreshUsers, () =>
-        this.refreshEventsHandlerService.refreshUsers(),
-      ),
-    );
-
-    eventSource.addEventListener(ServerEventType.RefreshRoles, async () =>
-      this.dispatch(ServerEventType.RefreshRoles, () =>
-        this.refreshEventsHandlerService.refreshRoles(),
-      ),
-    );
-
-    eventSource.addEventListener(ServerEventType.RefreshRenderings, async (event: ServerEvent) =>
-      this.dispatch(ServerEventType.RefreshRenderings, () =>
-        this.handleSeverEventRefreshRenderings(event),
-      ),
-    );
-
-    eventSource.addEventListener(ServerEventType.RefreshCustomizations, async () =>
-      this.dispatch(ServerEventType.RefreshCustomizations, () =>
+    const handlers: Record<ServerEventType, (event: ServerEvent) => Promise<void> | void> = {
+      [ServerEventType.RefreshUsers]: () => this.refreshEventsHandlerService.refreshUsers(),
+      [ServerEventType.RefreshRoles]: () => this.refreshEventsHandlerService.refreshRoles(),
+      [ServerEventType.RefreshRenderings]: event => this.handleSeverEventRefreshRenderings(event),
+      [ServerEventType.RefreshCustomizations]: () =>
         this.refreshEventsHandlerService.refreshCustomizations(),
-      ),
-    );
+    };
+
+    Object.entries(handlers).forEach(([eventType, handler]) => {
+      eventSource.addEventListener(eventType, async (event: ServerEvent) =>
+        this.dispatch(eventType, () => handler(event)),
+      );
+    });
 
     this.eventSource = eventSource;
   }
@@ -108,9 +98,7 @@ export default class EventsSubscriptionService implements BaseEventsSubscription
     this.eventSource?.close();
   }
 
-  // An event listener runs outside any caller that could catch its rejection: an error here would
-  // be unhandled and stop the agent, so it is logged instead.
-  private async dispatch(eventType: ServerEventType, handler: () => Promise<void> | void) {
+  private async dispatch(eventType: string, handler: () => Promise<void> | void) {
     try {
       await handler();
     } catch (error) {
@@ -124,18 +112,14 @@ export default class EventsSubscriptionService implements BaseEventsSubscription
   private async handleSeverEventRefreshRenderings(event: ServerEvent) {
     const renderingIds = this.parseRenderingIds(event.data as unknown as string);
 
-    if (!renderingIds?.length) {
-      // Renderings the event does not name could be any of them, so none of them is kept.
+    if (!renderingIds) {
       this.options.logger(
         'Warn',
         'Server Event - RefreshRenderings without rendering ids, dropping every rendering.',
       );
-      await this.refreshEventsHandlerService.refreshRenderings();
-
-      return;
     }
 
-    await this.refreshEventsHandlerService.refreshRenderings(renderingIds);
+    await this.refreshEventsHandlerService.refreshRenderings(renderingIds ?? []);
   }
 
   private parseRenderingIds(data: string): (string | number)[] | undefined {

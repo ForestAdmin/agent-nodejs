@@ -2,6 +2,7 @@ import type { RefreshEventsHandlerService } from './types';
 import type ActionPermissionService from '../permissions/action-permission';
 import type RenderingPermissionService from '../permissions/rendering-permission';
 import type UserPermissionService from '../permissions/user-permission';
+import type { Logger } from '../types';
 
 import EventEmitter from 'events';
 
@@ -12,6 +13,7 @@ export default class NativeRefreshEventsHandlerService implements RefreshEventsH
     private readonly actionPermissionService: ActionPermissionService,
     private readonly usersPermissionService: UserPermissionService,
     private readonly renderingPermissionService: RenderingPermissionService,
+    private readonly logger: Logger,
   ) {
     this.eventEmitter = new EventEmitter();
   }
@@ -24,8 +26,8 @@ export default class NativeRefreshEventsHandlerService implements RefreshEventsH
     this.actionPermissionService.invalidateCache();
   }
 
-  public refreshRenderings(renderingIds?: (string | number)[]) {
-    if (!renderingIds?.length) {
+  public refreshRenderings(renderingIds: (string | number)[]) {
+    if (!renderingIds.length) {
       this.renderingPermissionService.invalidateAllCache();
 
       return;
@@ -41,7 +43,17 @@ export default class NativeRefreshEventsHandlerService implements RefreshEventsH
   }
 
   public onRefreshCustomizations(handler: () => void | Promise<void>) {
-    this.eventEmitter.on('RefreshCustomizations', handler);
+    // EventEmitter drops the promise a listener returns, so a failing handler would reject unhandled.
+    this.eventEmitter.on('RefreshCustomizations', async () => {
+      try {
+        await handler();
+      } catch (error) {
+        this.logger(
+          'Error',
+          `Server Event - refresh-customizations failed: ${error?.message ?? error}`,
+        );
+      }
+    });
   }
 
   public refreshEverything() {

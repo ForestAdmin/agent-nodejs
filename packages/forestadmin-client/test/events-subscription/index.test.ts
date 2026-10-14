@@ -224,31 +224,43 @@ describe('EventsSubscriptionService', () => {
         expect(refreshEventsHandlerService.refreshRenderings).toHaveBeenCalledWith(['13', 24]);
       });
 
-      describe.each([
-        null,
-        'notjson',
-        'null',
-        'true',
-        '1',
-        '[1]',
-        '{}',
-        '{"renderingIds":5}',
-        '{"renderingIds":[]}',
-      ])('when the event carries %p', data => {
-        test('should drop every rendering without throwing', async () => {
+      describe.each([null, 'notjson', 'null', 'true', '1', '[1]', '{}', '{"renderingIds":5}'])(
+        'when the event carries %p',
+        data => {
+          test('should drop every rendering without throwing', async () => {
+            const eventsSubscriptionService = new EventsSubscriptionService(
+              options,
+              refreshEventsHandlerService,
+            );
+            eventsSubscriptionService.subscribeEvents();
+
+            await expect(
+              events[ServerEventType.RefreshRenderings]({ data }),
+            ).resolves.not.toThrow();
+
+            expect(refreshEventsHandlerService.refreshRenderings).toHaveBeenCalledWith([]);
+            expect(options.logger).toHaveBeenCalledWith(
+              'Warn',
+              'Server Event - RefreshRenderings without rendering ids, dropping every rendering.',
+            );
+          });
+        },
+      );
+
+      describe('when the environment has no rendering', () => {
+        test('should drop every rendering without warning', async () => {
           const eventsSubscriptionService = new EventsSubscriptionService(
             options,
             refreshEventsHandlerService,
           );
           eventsSubscriptionService.subscribeEvents();
 
-          await expect(events[ServerEventType.RefreshRenderings]({ data })).resolves.not.toThrow();
+          await events[ServerEventType.RefreshRenderings]({
+            data: JSON.stringify({ renderingIds: [] }),
+          });
 
-          expect(refreshEventsHandlerService.refreshRenderings).toHaveBeenCalledWith();
-          expect(options.logger).toHaveBeenCalledWith(
-            'Warn',
-            'Server Event - RefreshRenderings without rendering ids, dropping every rendering.',
-          );
+          expect(refreshEventsHandlerService.refreshRenderings).toHaveBeenCalledWith([]);
+          expect(options.logger).not.toHaveBeenCalledWith('Warn', expect.anything());
         });
       });
     });
