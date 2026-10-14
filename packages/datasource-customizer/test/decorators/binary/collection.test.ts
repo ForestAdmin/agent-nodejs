@@ -504,6 +504,34 @@ describe('BinaryCollectionDecorator', () => {
     });
   });
 
+  describe('list with a composite column holding no binary', () => {
+    test('should return the records of the child collection untouched', async () => {
+      const files = factories.collection.build({
+        name: 'files',
+        schema: factories.collectionSchema.build({
+          fields: {
+            id: factories.columnSchema.numericPrimaryKey().build(),
+            meta: factories.columnSchema.build({ columnType: { tags: ['String'] } }),
+          },
+        }),
+      });
+      const decoratedFiles = new DataSourceDecorator(
+        factories.dataSource.buildWithCollections([files]),
+        BinaryCollectionDecorator,
+      ).getCollection('files');
+      const childRecords = [{ id: 1, meta: { tags: ['a'] } }];
+      (files.list as jest.Mock).mockResolvedValue(childRecords);
+
+      const records = await decoratedFiles.list(
+        factories.caller.build(),
+        new PaginatedFilter({}),
+        new Projection('id', 'meta'),
+      );
+
+      expect(records).toBe(childRecords);
+    });
+  });
+
   describe('list after switching a binary column to hex', () => {
     test('should convert the column with the new mode', async () => {
       const caller = factories.caller.build();
@@ -528,7 +556,7 @@ describe('BinaryCollectionDecorator', () => {
         new Projection('title', 'cover'),
       );
 
-      expect(records).toEqual([{ title: 'Foundation' }]);
+      expect(records).toStrictEqual([{ title: 'Foundation' }]);
     });
   });
 
@@ -580,6 +608,22 @@ describe('BinaryCollectionDecorator', () => {
 
       expect(result).toEqual([
         { value: 1, group: { 'book:title': 'Foundation', 'book:id': '3030' } },
+      ]);
+    });
+
+    test('should convert a group listed twice only once', async () => {
+      (books.aggregate as jest.Mock).mockResolvedValue([
+        { value: 1, group: { cover: Buffer.from('23', 'ascii') } },
+      ]);
+
+      const result = await decoratedBook.aggregate(
+        factories.caller.build(),
+        new Filter({}),
+        new Aggregation({ operation: 'Count', groups: [{ field: 'cover' }, { field: 'cover' }] }),
+      );
+
+      expect(result).toEqual([
+        { value: 1, group: { cover: 'data:application/octet-stream;base64,MjM=' } },
       ]);
     });
 

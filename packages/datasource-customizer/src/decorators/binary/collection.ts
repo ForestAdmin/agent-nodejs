@@ -105,7 +105,12 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
   }
 
   private containsBinary(columnType: ColumnType): boolean {
-    return this.replaceColumnType(columnType) !== columnType;
+    if (typeof columnType === 'string') return columnType === 'Binary';
+    if (Array.isArray(columnType)) return this.containsBinary(columnType[0]);
+
+    return Object.values(columnType).some(
+      type => !TypeGetter.isEnumField(type) && this.containsBinary(type),
+    );
   }
 
   private shouldUseHex(name: string): boolean {
@@ -140,11 +145,14 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
     limit?: number,
   ): Promise<AggregateResult[]> {
     const rows = await super.aggregate(caller, filter, aggregation, limit);
-    const binaryGroups = (aggregation.groups ?? [])
-      .map(({ field }) => [field, this.resolveBinaryColumn(field)] as const)
-      .filter(([, column]) => column);
+    const binaryGroups = new Map<string, BinaryColumn>();
 
-    if (!binaryGroups.length) return rows;
+    for (const { field } of aggregation.groups ?? []) {
+      const column = this.resolveBinaryColumn(field);
+      if (column) binaryGroups.set(field, column);
+    }
+
+    if (!binaryGroups.size) return rows;
 
     return rows.map(row => {
       const group = { ...row.group };
