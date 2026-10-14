@@ -1,3 +1,10 @@
+# @forestadmin/agent [1.110.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.109.0...@forestadmin/agent@1.110.0) (2026-10-14)
+
+
+### Features
+
+* **audit-trail:** announce the timeline's authors and sort it oldest first ([#1946](https://github.com/ForestAdmin/agent-nodejs/issues/1946)) ([8755cc8](https://github.com/ForestAdmin/agent-nodejs/commit/8755cc862806060907d037e3a21bd79a4477a6fc))
+
 # @forestadmin/agent [1.109.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.108.2...@forestadmin/agent@1.109.0) (2026-10-13)
 
 
