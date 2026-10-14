@@ -60,20 +60,16 @@ export default class EventsSubscriptionService implements BaseEventsSubscription
 
     eventSource.addEventListener('error', this.onEventError.bind(this));
 
-    // Only listen after first open
-    eventSource.addEventListener(
-      'open',
-      () => eventSource.addEventListener('open', () => this.onEventOpenAgain()),
-      { once: true },
-    );
+    // eventsource 2.x ignores addEventListener's `{ once: true }`, so the first open is tracked here.
+    let openedOnce = false;
+    eventSource.addEventListener('open', () => {
+      if (openedOnce) this.onEventOpenAgain();
+      openedOnce = true;
+    });
 
-    eventSource.addEventListener(
-      'heartbeat',
-      () => {
-        clearTimeout(this.heartBeatTimeout);
-      },
-      { once: true },
-    );
+    eventSource.addEventListener('heartbeat', () => {
+      clearTimeout(this.heartBeatTimeout);
+    });
 
     this.detectBuffering();
 
