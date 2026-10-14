@@ -96,44 +96,31 @@ function addCustomActionPermissions(
   }
 }
 
-function addActionPermissions(
-  rights: IntermediateRightsList,
-  permissions: EnvironmentCollectionsPermissionsV4,
-): void {
-  for (const [collectionId, { actions }] of Object.entries(permissions)) {
-    addCustomActionPermissions(rights, collectionId, actions);
-  }
-}
-
-function generateActionsGloballyAllowed(permissions: IntermediateRightsList): Set<string> {
+function splitActionPermissions(
+  permissions: IntermediateRightsList,
+): Pick<ActionPermissions, 'actionsGloballyAllowed' | 'actionsByRole'> {
   const actionsGloballyAllowed = new Set<string>();
-
-  for (const [action, permission] of permissions) {
-    if (permission.description === true) actionsGloballyAllowed.add(action);
-  }
-
-  return actionsGloballyAllowed;
-}
-
-function generateActionsByRole(permissions: IntermediateRightsList): Map<string, ActionPermission> {
   const actionsByRole = new Map<string, ActionPermission>();
 
-  for (const [name, permission] of permissions) {
-    if (typeof permission.description !== 'boolean') {
-      actionsByRole.set(name, {
-        allowedRoles: new Set((permission.description as RightDescriptionWithRolesV4).roles),
-        ...(permission.conditions
-          ? {
-              conditionsByRole: new Map(
-                permission.conditions.map(({ roleId, filter }) => [roleId, filter]),
-              ),
-            }
-          : {}),
-      });
+  for (const [name, { description, conditions }] of permissions) {
+    if (description === true) {
+      actionsGloballyAllowed.add(name);
+    } else if (typeof description !== 'boolean') {
+      const permission: ActionPermission = {
+        allowedRoles: new Set((description as RightDescriptionWithRolesV4).roles),
+      };
+
+      if (conditions) {
+        permission.conditionsByRole = new Map(
+          conditions.map(({ roleId, filter }) => [roleId, filter]),
+        );
+      }
+
+      actionsByRole.set(name, permission);
     }
   }
 
-  return actionsByRole;
+  return { actionsGloballyAllowed, actionsByRole };
 }
 
 export default function generateActionsFromPermissions(
@@ -151,11 +138,10 @@ export default function generateActionsFromPermissions(
 
   const allPermissions: IntermediateRightsList = new Map();
   addCollectionPermissions(allPermissions, remotePermissions.collections);
-  addActionPermissions(allPermissions, remotePermissions.collections);
 
-  return {
-    isDevelopment: false,
-    actionsGloballyAllowed: generateActionsGloballyAllowed(allPermissions),
-    actionsByRole: generateActionsByRole(allPermissions),
-  };
+  for (const [collectionId, { actions }] of Object.entries(remotePermissions.collections)) {
+    addCustomActionPermissions(allPermissions, collectionId, actions);
+  }
+
+  return { isDevelopment: false, ...splitActionPermissions(allPermissions) };
 }

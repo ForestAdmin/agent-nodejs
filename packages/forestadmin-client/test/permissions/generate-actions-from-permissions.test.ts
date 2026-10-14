@@ -539,4 +539,53 @@ describe('generateActionsFromPermissions', () => {
       expect(permission).not.toHaveProperty('conditionsByRole');
     });
   });
+
+  describe('when two actions produce the same identifier', () => {
+    const forbiddenCollection = {
+      addEnabled: false,
+      browseEnabled: false,
+      deleteEnabled: false,
+      editEnabled: false,
+      exportEnabled: false,
+      readEnabled: false,
+    };
+    const triggerableBy = (roles: number[]) => ({
+      triggerEnabled: { roles },
+      triggerConditions: [],
+      approvalRequired: false,
+      approvalRequiredConditions: [],
+      userApprovalEnabled: false,
+      userApprovalConditions: [],
+      selfApprovalEnabled: false,
+    });
+
+    const generate = () =>
+      generateActionsFromPermissions({
+        collections: {
+          'orders:archive': {
+            collection: forbiddenCollection,
+            actions: { run: triggerableBy([1]) },
+          },
+          books: { collection: forbiddenCollection, actions: { publish: triggerableBy([2]) } },
+          orders: {
+            collection: forbiddenCollection,
+            actions: { 'archive:run': triggerableBy([3]) },
+          },
+        },
+      });
+
+    it('should keep the identifier at its first position', () => {
+      expect([...generate().actionsByRole.keys()]).toEqual([
+        'custom:orders:archive:run:trigger',
+        'custom:books:publish:trigger',
+      ]);
+    });
+
+    it('should keep the rights of the last action written', () => {
+      expect(generate().actionsByRole.get('custom:orders:archive:run:trigger')).toEqual({
+        allowedRoles: new Set([3]),
+        conditionsByRole: new Map(),
+      });
+    });
+  });
 });
