@@ -1,7 +1,14 @@
-import type { AggregateResult, Collection, RecordData } from '@forestadmin/datasource-toolkit';
+import type {
+  AggregateResult,
+  Collection,
+  CollectionSchema,
+  FieldSchema,
+  RecordData,
+} from '@forestadmin/datasource-toolkit';
 
 import {
   Aggregation,
+  CollectionDecorator,
   ConditionTreeBranch,
   ConditionTreeLeaf,
   DataSourceDecorator,
@@ -479,6 +486,479 @@ describe('BinaryCollectionDecorator', () => {
       expect(result).toEqual([
         { value: 1, group: { 'book:cover': 'data:application/octet-stream;base64,aGVsbG8=' } },
       ]);
+    });
+  });
+
+  describe('list with a projection reaching no binary field', () => {
+    test('should return the records of the child collection untouched', async () => {
+      const childRecords = [{ id: 1, book: { title: 'Foundation' } }];
+      (favorites.list as jest.Mock).mockResolvedValue(childRecords);
+
+      const records = await decoratedFavorites.list(
+        factories.caller.build(),
+        new PaginatedFilter({}),
+        new Projection('id', 'book:title'),
+      );
+
+      expect(records).toBe(childRecords);
+    });
+  });
+
+  describe('list with a composite column holding no binary', () => {
+    test('should return the records of the child collection untouched', async () => {
+      const files = factories.collection.build({
+        name: 'files',
+        schema: factories.collectionSchema.build({
+          fields: {
+            id: factories.columnSchema.numericPrimaryKey().build(),
+            meta: factories.columnSchema.build({ columnType: { tags: ['String'] } }),
+          },
+        }),
+      });
+      const decoratedFiles = new DataSourceDecorator(
+        factories.dataSource.buildWithCollections([files]),
+        BinaryCollectionDecorator,
+      ).getCollection('files');
+      const childRecords = [{ id: 1, meta: { tags: ['a'] } }];
+      (files.list as jest.Mock).mockResolvedValue(childRecords);
+
+      const records = await decoratedFiles.list(
+        factories.caller.build(),
+        new PaginatedFilter({}),
+        new Projection('id', 'meta'),
+      );
+
+      expect(records).toBe(childRecords);
+    });
+  });
+
+  describe('list after switching a binary column to hex', () => {
+    test('should convert the column with the new mode', async () => {
+      const caller = factories.caller.build();
+      const projection = new Projection('cover');
+      (books.list as jest.Mock).mockResolvedValue([{ cover: Buffer.from('0000', 'ascii') }]);
+
+      await decoratedBook.list(caller, new PaginatedFilter({}), projection);
+      decoratedBook.setBinaryMode('cover', 'hex');
+      const records = await decoratedBook.list(caller, new PaginatedFilter({}), projection);
+
+      expect(records).toEqual([{ cover: '30303030' }]);
+    });
+  });
+
+  describe('list with a column projected without its record key', () => {
+    test('should not add the missing key to the record', async () => {
+      (books.list as jest.Mock).mockResolvedValue([{ title: 'Foundation' }]);
+
+      const records = await decoratedBook.list(
+        factories.caller.build(),
+        new PaginatedFilter({}),
+        new Projection('title', 'cover'),
+      );
+
+      expect(records).toStrictEqual([{ title: 'Foundation' }]);
+    });
+  });
+
+  describe('with an array of binaries', () => {
+    test('list should convert every item of the array', async () => {
+      const files = factories.collection.build({
+        name: 'files',
+        schema: factories.collectionSchema.build({
+          fields: {
+            id: factories.columnSchema.numericPrimaryKey().build(),
+            chunks: factories.columnSchema.build({ columnType: ['Binary'] }),
+          },
+        }),
+      });
+      const decoratedFiles = new DataSourceDecorator(
+        factories.dataSource.buildWithCollections([files]),
+        BinaryCollectionDecorator,
+      ).getCollection('files');
+      (files.list as jest.Mock).mockResolvedValue([
+        { id: 1, chunks: [Buffer.from('0000', 'ascii'), null] },
+      ]);
+
+      const records = await decoratedFiles.list(
+        factories.caller.build(),
+        new PaginatedFilter({}),
+        new Projection('id', 'chunks'),
+      );
+
+      expect(records).toEqual([
+        { id: 1, chunks: ['data:application/octet-stream;base64,MDAwMA==', null] },
+      ]);
+    });
+  });
+
+  describe('aggregation with binary and non binary groups', () => {
+    test('should only convert the binary groups', async () => {
+      (favorites.aggregate as jest.Mock).mockResolvedValue([
+        { value: 1, group: { 'book:title': 'Foundation', 'book:id': Buffer.from('00', 'ascii') } },
+      ]);
+
+      const result = await decoratedFavorites.aggregate(
+        factories.caller.build(),
+        new Filter({}),
+        new Aggregation({
+          operation: 'Count',
+          groups: [{ field: 'book:title' }, { field: 'book:id' }],
+        }),
+      );
+
+      expect(result).toEqual([
+        { value: 1, group: { 'book:title': 'Foundation', 'book:id': '3030' } },
+      ]);
+    });
+
+    test('should convert a group listed twice only once', async () => {
+      (books.aggregate as jest.Mock).mockResolvedValue([
+        { value: 1, group: { cover: Buffer.from('23', 'ascii') } },
+      ]);
+
+      const result = await decoratedBook.aggregate(
+        factories.caller.build(),
+        new Filter({}),
+        new Aggregation({ operation: 'Count', groups: [{ field: 'cover' }, { field: 'cover' }] }),
+      );
+
+      expect(result).toEqual([
+        { value: 1, group: { cover: 'data:application/octet-stream;base64,MjM=' } },
+      ]);
+    });
+
+    test('should return the rows untouched when no group is binary', async () => {
+      const rows = [{ value: 1, group: { 'book:title': 'Foundation' } }];
+      (favorites.aggregate as jest.Mock).mockResolvedValue(rows);
+
+      const result = await decoratedFavorites.aggregate(
+        factories.caller.build(),
+        new Filter({}),
+        new Aggregation({ operation: 'Count', groups: [{ field: 'book:title' }] }),
+      );
+
+      expect(result).toBe(rows);
+    });
+  });
+
+  describe('filter reaching no binary field', () => {
+    test('should pass the filter to the child collection untouched', async () => {
+      const filter = new PaginatedFilter({
+        conditionTree: new ConditionTreeBranch('And', [
+          new ConditionTreeLeaf('id', 'Equal', 1),
+          new ConditionTreeLeaf('book:title', 'Equal', 'Foundation'),
+          new ConditionTreeLeaf('book:cover', 'Present'),
+        ]),
+      });
+
+      await decoratedFavorites.list(factories.caller.build(), filter, new Projection('id'));
+
+      expect((favorites.list as jest.Mock).mock.calls[0][1]).toBe(filter);
+    });
+
+    test('should pass an unknown field through to the child collection', async () => {
+      const filter = new PaginatedFilter({
+        conditionTree: new ConditionTreeLeaf('unknown', 'Equal', 'value'),
+      });
+
+      await decoratedBook.list(factories.caller.build(), filter, new Projection('title'));
+
+      expect((books.list as jest.Mock).mock.calls[0][1]).toBe(filter);
+    });
+  });
+
+  describe('composite sub-path of a binary column', () => {
+    test('filter should convert the value with the sub-type', async () => {
+      const caller = factories.caller.build();
+      const filter = new PaginatedFilter({
+        conditionTree: new ConditionTreeLeaf(
+          'book:author:picture',
+          'Equal',
+          'data:application/octet-stream;base64,MDAwMA==',
+        ),
+      });
+
+      await decoratedFavorites.list(caller, filter, new Projection('id'));
+
+      expect(favorites.list).toHaveBeenCalledWith(
+        caller,
+        expect.objectContaining({
+          conditionTree: new ConditionTreeLeaf(
+            'book:author:picture',
+            'Equal',
+            Buffer.from('0000', 'ascii'),
+          ),
+        }),
+        new Projection('id'),
+      );
+    });
+
+    test('aggregate should convert the group with the sub-type', async () => {
+      (books.aggregate as jest.Mock).mockResolvedValue([
+        { value: 1, group: { 'author:picture': Buffer.from('0000', 'ascii') } },
+      ]);
+
+      const result = await decoratedBook.aggregate(
+        factories.caller.build(),
+        new Filter({}),
+        new Aggregation({ operation: 'Count', groups: [{ field: 'author:picture' }] }),
+      );
+
+      expect(result).toEqual([
+        {
+          value: 1,
+          group: { 'author:picture': 'data:application/octet-stream;base64,MDAwMA==' },
+        },
+      ]);
+    });
+
+    test('aggregate should leave a non binary sub-path untouched', async () => {
+      const rows = [{ value: 1, group: { 'author:name': 'John Doe' } }];
+      (books.aggregate as jest.Mock).mockResolvedValue(rows);
+
+      const result = await decoratedBook.aggregate(
+        factories.caller.build(),
+        new Filter({}),
+        new Aggregation({ operation: 'Count', groups: [{ field: 'author:name' }] }),
+      );
+
+      expect(result).toBe(rows);
+    });
+  });
+
+  describe('aggregation through two relations', () => {
+    test('should convert the binary group with the mode of the last collection', async () => {
+      const reviews = factories.collection.build({
+        name: 'reviews',
+        schema: factories.collectionSchema.build({
+          fields: {
+            id: factories.columnSchema.numericPrimaryKey().build(),
+            favorite: factories.manyToOneSchema.build({ foreignCollection: 'favorites' }),
+          },
+        }),
+      });
+      const decoratedReviews = new DataSourceDecorator(
+        factories.dataSource.buildWithCollections([reviews, favorites, books]),
+        BinaryCollectionDecorator,
+      ).getCollection('reviews');
+      (reviews.aggregate as jest.Mock).mockResolvedValue([
+        {
+          value: 1,
+          group: {
+            'favorite:book:id': Buffer.from('0000', 'ascii'),
+            'favorite:book:cover': Buffer.from('0000', 'ascii'),
+          },
+        },
+      ]);
+
+      const result = await decoratedReviews.aggregate(
+        factories.caller.build(),
+        new Filter({}),
+        new Aggregation({
+          operation: 'Count',
+          groups: [{ field: 'favorite:book:id' }, { field: 'favorite:book:cover' }],
+        }),
+      );
+
+      expect(result).toEqual([
+        {
+          value: 1,
+          group: {
+            'favorite:book:id': '30303030',
+            'favorite:book:cover': 'data:application/octet-stream;base64,MDAwMA==',
+          },
+        },
+      ]);
+    });
+  });
+
+  describe('writing an unknown key', () => {
+    test('create should pass it through to the child collection', async () => {
+      const caller = factories.caller.build();
+      (books.create as jest.Mock).mockResolvedValue([{ unknown: 'value' }]);
+
+      const records = await decoratedBook.create(caller, [
+        { unknown: 'value', cover: 'data:application/octet-stream;base64,MDAwMA==' },
+      ]);
+
+      expect(books.create).toHaveBeenCalledWith(caller, [
+        { unknown: 'value', cover: Buffer.from('0000', 'ascii') },
+      ]);
+      expect(records).toEqual([{ unknown: 'value' }]);
+    });
+
+    test('update should pass it through to the child collection', async () => {
+      const caller = factories.caller.build();
+      const filter = new Filter({});
+
+      await decoratedBook.update(caller, filter, { unknown: 'value' });
+
+      expect(books.update).toHaveBeenCalledWith(caller, filter, { unknown: 'value' });
+    });
+  });
+
+  describe('when a lower decorator changes its schema after a first read', () => {
+    class FieldAddingCollectionDecorator extends CollectionDecorator {
+      private addedFields: Record<string, FieldSchema> = {};
+
+      addField(name: string, schema: FieldSchema): void {
+        this.addedFields[name] = schema;
+        this.markSchemaAsDirty();
+      }
+
+      protected override refineSchema(subSchema: CollectionSchema): CollectionSchema {
+        return { ...subSchema, fields: { ...subSchema.fields, ...this.addedFields } };
+      }
+    }
+
+    test('should use hex for a binary column that became a foreign key', async () => {
+      const owners = factories.collection.build({
+        name: 'owners',
+        schema: factories.collectionSchema.build({
+          fields: {
+            id: factories.columnSchema.build({ isPrimaryKey: true, columnType: 'Binary' }),
+          },
+        }),
+      });
+      const pets = factories.collection.build({
+        name: 'pets',
+        schema: factories.collectionSchema.build({
+          fields: {
+            id: factories.columnSchema.numericPrimaryKey().build(),
+            ownerId: factories.columnSchema.build({ columnType: 'Binary' }),
+          },
+        }),
+      });
+      const lowerDataSource = new DataSourceDecorator(
+        factories.dataSource.buildWithCollections([pets, owners]),
+        FieldAddingCollectionDecorator,
+      );
+      const decoratedPets = new DataSourceDecorator(
+        lowerDataSource,
+        BinaryCollectionDecorator,
+      ).getCollection('pets');
+      const caller = factories.caller.build();
+      const projection = new Projection('ownerId');
+      (pets.list as jest.Mock).mockResolvedValue([{ ownerId: Buffer.from('0000', 'ascii') }]);
+
+      const before = await decoratedPets.list(caller, new PaginatedFilter({}), projection);
+      lowerDataSource
+        .getCollection('pets')
+        .addField(
+          'owner',
+          factories.manyToOneSchema.build({ foreignCollection: 'owners', foreignKey: 'ownerId' }),
+        );
+      const after = await decoratedPets.list(caller, new PaginatedFilter({}), projection);
+
+      expect(before).toEqual([{ ownerId: 'data:application/octet-stream;base64,MDAwMA==' }]);
+      expect(after).toEqual([{ ownerId: '30303030' }]);
+    });
+  });
+
+  describe('on a wide collection', () => {
+    const range = (count: number) => Array.from({ length: count }, (_, i) => i);
+
+    const buildWideCollection = (columnCount: number, binaryColumn = false) => {
+      const cardFields: Record<string, FieldSchema> = {
+        id: factories.columnSchema.numericPrimaryKey().build(),
+      };
+      const wideFields: Record<string, FieldSchema> = {
+        id: factories.columnSchema.numericPrimaryKey().build(),
+        card_id: factories.columnSchema.build({ columnType: 'Number' }),
+        card: factories.manyToOneSchema.build({
+          foreignCollection: 'cards',
+          foreignKey: 'card_id',
+        }),
+      };
+
+      range(columnCount).forEach(i => {
+        cardFields[`column${i}`] = factories.columnSchema.build({ columnType: 'String' });
+        wideFields[`column${i}`] = factories.columnSchema.build({ columnType: 'String' });
+      });
+
+      if (binaryColumn) wideFields.file = factories.columnSchema.build({ columnType: 'Binary' });
+
+      const cards = factories.collection.build({
+        name: 'cards',
+        schema: factories.collectionSchema.build({ fields: cardFields }),
+      });
+      const child = factories.collection.build({
+        name: 'wide',
+        schema: factories.collectionSchema.build({ fields: wideFields }),
+      });
+      const decorated = new DataSourceDecorator(
+        factories.dataSource.buildWithCollections([child, cards]),
+        BinaryCollectionDecorator,
+      ).getCollection('wide');
+
+      return { child, decorated };
+    };
+
+    const buildRecords = (columnCount: number, binaryColumn = false) =>
+      range(10).map(id => {
+        const record: RecordData = { id, card_id: id, card: { id } };
+        range(columnCount).forEach(i => {
+          record[`column${i}`] = 'value';
+          record.card[`column${i}`] = 'value';
+        });
+        if (binaryColumn) record.file = Buffer.from('00', 'ascii');
+
+        return record;
+      });
+
+    const buildProjection = (columnCount: number, binaryColumn = false) =>
+      new Projection(
+        'id',
+        'card_id',
+        'card:id',
+        ...range(columnCount).flatMap(i => [`column${i}`, `card:column${i}`]),
+        ...(binaryColumn ? ['file'] : []),
+      );
+
+    test('list without binary columns should return the child records untouched', async () => {
+      const { child, decorated } = buildWideCollection(100);
+      const childRecords = buildRecords(100);
+      (child.list as jest.Mock).mockResolvedValue(childRecords);
+
+      const records = await decorated.list(
+        factories.caller.build(),
+        new PaginatedFilter({}),
+        buildProjection(100),
+      );
+
+      expect(records).toBe(childRecords);
+    });
+
+    describe('list with a binary column', () => {
+      let childRecords: RecordData[];
+      let records: RecordData[];
+
+      beforeEach(async () => {
+        const { child, decorated } = buildWideCollection(2, true);
+        childRecords = buildRecords(2, true);
+        (child.list as jest.Mock).mockResolvedValue(childRecords);
+
+        records = await decorated.list(
+          factories.caller.build(),
+          new PaginatedFilter({}),
+          buildProjection(2, true),
+        );
+      });
+
+      test('should only convert the binary column', () => {
+        expect(records[0]).toEqual({
+          id: 0,
+          card_id: 0,
+          card: { id: 0, column0: 'value', column1: 'value' },
+          column0: 'value',
+          column1: 'value',
+          file: 'data:application/octet-stream;base64,MDA=',
+        });
+      });
+
+      test('should return the relations reaching no binary field untouched', () => {
+        expect(records[0].card).toBe(childRecords[0].card);
+      });
     });
   });
 });
