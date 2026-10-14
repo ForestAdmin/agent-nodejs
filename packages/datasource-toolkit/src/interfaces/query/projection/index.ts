@@ -3,6 +3,8 @@ import type { RecordData } from '../../record';
 
 import SchemaUtils from '../../../utils/schema';
 
+type ProjectionTree = { columns: string[]; relations: [string, ProjectionTree][] };
+
 export default class Projection extends Array<string> {
   get columns(): string[] {
     return this.filter(f => !f.includes(':'));
@@ -59,7 +61,9 @@ export default class Projection extends Array<string> {
   }
 
   apply(records: RecordData[]): RecordData[] {
-    return records.map(record => this.reproject(record));
+    const tree = this.compileTree();
+
+    return records.map(record => Projection.reproject(record, tree));
   }
 
   withPks(collection: Collection): Projection {
@@ -99,19 +103,27 @@ export default class Projection extends Array<string> {
     return this.map(path => path.substring(prefix.length + 1)) as Projection;
   }
 
-  private reproject(record: RecordData): RecordData {
-    let result: RecordData = null;
+  private compileTree(): ProjectionTree {
+    return {
+      columns: this.columns,
+      relations: Object.entries(this.relations).map(([relation, projection]) => [
+        relation,
+        projection.compileTree(),
+      ]),
+    };
+  }
 
-    if (record) {
-      result = {};
+  private static reproject(record: RecordData, tree: ProjectionTree): RecordData {
+    if (!record) return null;
 
-      for (const column of this.columns) {
-        result[column] = record[column];
-      }
+    const result: RecordData = {};
 
-      for (const [relation, projection] of Object.entries(this.relations)) {
-        result[relation] = projection.reproject(record[relation] as RecordData);
-      }
+    for (const column of tree.columns) {
+      result[column] = record[column];
+    }
+
+    for (const [relation, subTree] of tree.relations) {
+      result[relation] = Projection.reproject(record[relation] as RecordData, subTree);
     }
 
     return result;
