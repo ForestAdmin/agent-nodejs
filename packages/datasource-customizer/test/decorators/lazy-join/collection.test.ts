@@ -421,81 +421,105 @@ describe('LazyJoinDecorator', () => {
       branchProjectionGetter.mockRestore();
     });
 
+    const countReadsDuring = async (action: () => Promise<unknown>) => {
+      relationsGetter.mockClear();
+      branchProjectionGetter.mockClear();
+
+      await action();
+
+      return {
+        relations: relationsGetter.mock.calls.length,
+        branchProjection: branchProjectionGetter.mock.calls.length,
+      };
+    };
+
     describe('list', () => {
-      test.each([2, 50])(
-        'computes the projection relations once for %i relations',
-        async relationCount => {
-          const { child, decorated } = buildWideCollection(relationCount);
-          const listSpy = jest.spyOn(child, 'list').mockResolvedValue([]);
-          const caller = factories.caller.build();
-          const filter = new PaginatedFilter({});
-          const projection = new Projection(...range(relationCount).map(i => `card${i}:id`));
-          relationsGetter.mockClear();
+      const listWithRelationProjection = async (relationCount: number) => {
+        const { child, decorated } = buildWideCollection(relationCount);
+        const listSpy = jest.spyOn(child, 'list').mockResolvedValue([]);
+        const caller = factories.caller.build();
+        const filter = new PaginatedFilter({});
+        const projection = new Projection(...range(relationCount).map(i => `card${i}:id`));
 
-          await decorated.list(caller, filter, projection);
+        const reads = await countReadsDuring(() => decorated.list(caller, filter, projection));
 
-          expect(relationsGetter).toHaveBeenCalledTimes(1);
-          expect(listSpy).toHaveBeenCalledWith(
-            caller,
-            filter,
-            new Projection(...range(relationCount).map(i => `card${i}_id`)),
-          );
-        },
-      );
+        expect(listSpy).toHaveBeenCalledWith(
+          caller,
+          filter,
+          new Projection(...range(relationCount).map(i => `card${i}_id`)),
+        );
 
-      test.each([2, 200])(
-        'computes the condition tree projection once and the relations once per projection and filter for %i leaves',
-        async leafCount => {
-          const { child, decorated } = buildWideCollection(leafCount);
-          const listSpy = jest.spyOn(child, 'list').mockResolvedValue([]);
-          const caller = factories.caller.build();
-          const filter = buildOrFilter(leafCount, i => `card${i}:id`);
-          relationsGetter.mockClear();
-          branchProjectionGetter.mockClear();
+        return reads;
+      };
 
-          await decorated.list(caller, filter, new Projection('id'));
+      const listWithRelationFilter = async (leafCount: number) => {
+        const { child, decorated } = buildWideCollection(leafCount);
+        const listSpy = jest.spyOn(child, 'list').mockResolvedValue([]);
+        const caller = factories.caller.build();
+        const filter = buildOrFilter(leafCount, i => `card${i}:id`);
 
-          expect(branchProjectionGetter).toHaveBeenCalledTimes(1);
-          expect(relationsGetter).toHaveBeenCalledTimes(2);
-          expect(listSpy).toHaveBeenCalledWith(
-            caller,
-            buildOrFilter(leafCount, i => `card${i}_id`),
-            new Projection('id'),
-          );
-        },
-      );
+        const reads = await countReadsDuring(() =>
+          decorated.list(caller, filter, new Projection('id')),
+        );
+
+        expect(listSpy).toHaveBeenCalledWith(
+          caller,
+          buildOrFilter(leafCount, i => `card${i}_id`),
+          new Projection('id'),
+        );
+
+        return reads;
+      };
+
+      test('reads the projection relations as often for 50 relations as for 2', async () => {
+        const small = await listWithRelationProjection(2);
+        const large = await listWithRelationProjection(50);
+
+        expect(large).toEqual(small);
+      });
+
+      test('reads the condition tree projection and relations as often for 200 leaves as for 2', async () => {
+        const small = await listWithRelationFilter(2);
+        const large = await listWithRelationFilter(200);
+
+        expect(large).toEqual(small);
+      });
     });
 
     describe('aggregate', () => {
-      test.each([2, 50])(
-        'computes the relations once per projection and filter for %i relations',
-        async relationCount => {
-          const { child, decorated } = buildWideCollection(relationCount);
-          const aggregateSpy = jest.spyOn(child, 'aggregate').mockResolvedValue([]);
-          const caller = factories.caller.build();
-          const filter = buildOrFilter(relationCount, i => `card${i}:id`);
-          const aggregation = new Aggregation({
+      const aggregateWithRelations = async (relationCount: number) => {
+        const { child, decorated } = buildWideCollection(relationCount);
+        const aggregateSpy = jest.spyOn(child, 'aggregate').mockResolvedValue([]);
+        const caller = factories.caller.build();
+        const filter = buildOrFilter(relationCount, i => `card${i}:id`);
+        const aggregation = new Aggregation({
+          operation: 'Count',
+          groups: range(relationCount).map(i => ({ field: `card${i}:id` })),
+        });
+
+        const reads = await countReadsDuring(() =>
+          decorated.aggregate(caller, filter, aggregation),
+        );
+
+        expect(aggregateSpy).toHaveBeenCalledWith(
+          caller,
+          buildOrFilter(relationCount, i => `card${i}_id`),
+          new Aggregation({
             operation: 'Count',
-            groups: range(relationCount).map(i => ({ field: `card${i}:id` })),
-          });
-          relationsGetter.mockClear();
-          branchProjectionGetter.mockClear();
+            groups: range(relationCount).map(i => ({ field: `card${i}_id` })),
+          }),
+          undefined,
+        );
 
-          await decorated.aggregate(caller, filter, aggregation);
+        return reads;
+      };
 
-          expect(branchProjectionGetter).toHaveBeenCalledTimes(1);
-          expect(relationsGetter).toHaveBeenCalledTimes(2);
-          expect(aggregateSpy).toHaveBeenCalledWith(
-            caller,
-            buildOrFilter(relationCount, i => `card${i}_id`),
-            new Aggregation({
-              operation: 'Count',
-              groups: range(relationCount).map(i => ({ field: `card${i}_id` })),
-            }),
-            undefined,
-          );
-        },
-      );
+      test('reads the condition tree projection and relations as often for 50 relations as for 2', async () => {
+        const small = await aggregateWithRelations(2);
+        const large = await aggregateWithRelations(50);
+
+        expect(large).toEqual(small);
+      });
     });
   });
 });

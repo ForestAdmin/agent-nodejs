@@ -25,12 +25,14 @@ export default class LazyJoinDecorator extends CollectionDecorator {
     const records = await this.childCollection.list(caller, refinedFilter, refinedProjection);
 
     this.refineResults(relations, (relationName, foreignKey, foreignKeyTarget) => {
+      const isForeignKeyProjected = projection.includes(foreignKey);
+
       records.forEach(record => {
         if (record[foreignKey]) {
           record[relationName] = { [foreignKeyTarget]: record[foreignKey] };
         }
 
-        if (!projection.includes(foreignKey)) delete record[foreignKey];
+        if (!isForeignKeyProjected) delete record[foreignKey];
       });
     });
 
