@@ -15,7 +15,7 @@ on:
   schedule:
     # Staggered per repo: 5 concurrent Opus sessions on one API key
     # tripped a rate limit on 2026-07-30 (first request never billed).
-    - cron: "0 12 * * 4" # Thursdays 12:00 UTC
+    - cron: "0 12 * * 1" # Mondays 12:00 UTC
   workflow_dispatch:
     inputs:
       debug:
