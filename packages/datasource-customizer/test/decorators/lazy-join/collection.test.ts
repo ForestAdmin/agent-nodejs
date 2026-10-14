@@ -444,7 +444,7 @@ describe('LazyJoinDecorator', () => {
       );
 
       test.each([2, 200])(
-        'computes the condition tree projection once for %i leaves',
+        'computes the condition tree projection once and the relations once per projection and filter for %i leaves',
         async leafCount => {
           const { child, decorated } = buildWideCollection(leafCount);
           const listSpy = jest.spyOn(child, 'list').mockResolvedValue([]);
