@@ -24,7 +24,13 @@ export default class NativeRefreshEventsHandlerService implements RefreshEventsH
     this.actionPermissionService.invalidateCache();
   }
 
-  public refreshRenderings(renderingIds: (string | number)[]) {
+  public refreshRenderings(renderingIds?: (string | number)[]) {
+    if (!renderingIds?.length) {
+      this.renderingPermissionService.invalidateAllCache();
+
+      return;
+    }
+
     for (const renderingId of renderingIds) {
       this.renderingPermissionService.invalidateCache(renderingId);
     }

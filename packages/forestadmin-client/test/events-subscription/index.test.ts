@@ -227,21 +227,51 @@ describe('EventsSubscriptionService', () => {
         expect(refreshEventsHandlerService.refreshRenderings).toHaveBeenCalledWith(['13', 24]);
       });
 
-      describe('on malformed event', () => {
-        test('should not do anything', () => {
+      describe.each([
+        null,
+        'notjson',
+        'null',
+        'true',
+        '1',
+        '[1]',
+        '{}',
+        '{"renderingIds":5}',
+        '{"renderingIds":[]}',
+      ])('when the event carries %p', data => {
+        test('should drop every rendering without throwing', async () => {
           const eventsSubscriptionService = new EventsSubscriptionService(
             options,
             refreshEventsHandlerService,
           );
           eventsSubscriptionService.subscribeEvents();
 
-          // eslint-disable-next-line @typescript-eslint/dot-notation
-          events[ServerEventType.RefreshRenderings]({
-            data: null,
-          });
+          await expect(events[ServerEventType.RefreshRenderings]({ data })).resolves.not.toThrow();
 
-          expect(refreshEventsHandlerService.refreshRenderings).not.toHaveBeenCalled();
+          expect(refreshEventsHandlerService.refreshRenderings).toHaveBeenCalledWith();
+          expect(options.logger).toHaveBeenCalledWith(
+            'Warn',
+            'Server Event - RefreshRenderings without rendering ids, dropping every rendering.',
+          );
         });
+      });
+    });
+
+    describe('when a handler fails', () => {
+      test('should log the error instead of rejecting', async () => {
+        const failingHandlerService = factories.eventsHandler.mockAllMethods().build();
+        (failingHandlerService.refreshUsers as jest.Mock).mockRejectedValue(new Error('boom'));
+        const eventsSubscriptionService = new EventsSubscriptionService(
+          options,
+          failingHandlerService,
+        );
+        eventsSubscriptionService.subscribeEvents();
+
+        await expect(events[ServerEventType.RefreshUsers]({})).resolves.not.toThrow();
+
+        expect(options.logger).toHaveBeenCalledWith(
+          'Error',
+          'Server Event - refresh-users failed: boom',
+        );
       });
     });
   });

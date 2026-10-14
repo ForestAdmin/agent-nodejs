@@ -72,6 +72,22 @@ describe('NativeRefreshEventsHandlerService', () => {
       expect(actionPermission.invalidateCache).not.toHaveBeenCalled();
       expect(usersPermission.invalidateCache).not.toHaveBeenCalled();
     });
+
+    test.each([[undefined], [[]]])(
+      'should invalidate every rendering when given %p',
+      async renderingsIds => {
+        const refreshEventsHandler = new NativeRefreshEventsHandlerService(
+          actionPermission,
+          usersPermission,
+          renderingPermission,
+        );
+
+        refreshEventsHandler.refreshRenderings(renderingsIds);
+
+        expect(renderingPermission.invalidateAllCache).toHaveBeenCalledTimes(1);
+        expect(renderingPermission.invalidateCache).not.toHaveBeenCalled();
+      },
+    );
   });
 
   describe('refreshCustomizations', () => {
