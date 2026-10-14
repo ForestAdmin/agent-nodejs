@@ -26,116 +26,114 @@ export type ActionPermission = {
   conditionsByRole?: Map<number, RawTreeWithSources>;
 };
 
-type IntermediateRightsList = {
-  [key: string]: {
+type IntermediateRightsList = Map<
+  string,
+  {
     description: RightDescriptionV4;
     conditions?: RightConditionByRolesV4[];
-  };
-};
+  }
+>;
 
-function generateCollectionPermissions(
+function addCollectionPermissions(
+  rights: IntermediateRightsList,
   permissions: EnvironmentCollectionsPermissionsV4,
-): IntermediateRightsList {
-  return Object.entries(permissions).reduce((acc, [collectionId, collectionPermissions]) => {
-    const { collection } = collectionPermissions;
-
-    return {
-      ...acc,
-      [generateCollectionActionIdentifier(CollectionActionEvent.Browse, collectionId)]: {
-        description: collection.browseEnabled,
-      },
-      [generateCollectionActionIdentifier(CollectionActionEvent.Read, collectionId)]: {
-        description: collection.readEnabled,
-      },
-      [generateCollectionActionIdentifier(CollectionActionEvent.Edit, collectionId)]: {
-        description: collection.editEnabled,
-      },
-      [generateCollectionActionIdentifier(CollectionActionEvent.Add, collectionId)]: {
-        description: collection.addEnabled,
-      },
-      [generateCollectionActionIdentifier(CollectionActionEvent.Delete, collectionId)]: {
-        description: collection.deleteEnabled,
-      },
-      [generateCollectionActionIdentifier(CollectionActionEvent.Export, collectionId)]: {
-        description: collection.exportEnabled,
-      },
-    };
-  }, {});
+): void {
+  for (const [collectionId, { collection }] of Object.entries(permissions)) {
+    rights.set(generateCollectionActionIdentifier(CollectionActionEvent.Browse, collectionId), {
+      description: collection.browseEnabled,
+    });
+    rights.set(generateCollectionActionIdentifier(CollectionActionEvent.Read, collectionId), {
+      description: collection.readEnabled,
+    });
+    rights.set(generateCollectionActionIdentifier(CollectionActionEvent.Edit, collectionId), {
+      description: collection.editEnabled,
+    });
+    rights.set(generateCollectionActionIdentifier(CollectionActionEvent.Add, collectionId), {
+      description: collection.addEnabled,
+    });
+    rights.set(generateCollectionActionIdentifier(CollectionActionEvent.Delete, collectionId), {
+      description: collection.deleteEnabled,
+    });
+    rights.set(generateCollectionActionIdentifier(CollectionActionEvent.Export, collectionId), {
+      description: collection.exportEnabled,
+    });
+  }
 }
 
-function generateCustomActionPermission(
+function addCustomActionPermissions(
+  rights: IntermediateRightsList,
   collectionId: string,
   actions: EnvironmentCollectionActionPermissionsV4,
-): IntermediateRightsList {
-  return Object.entries(actions).reduce((acc, [actionName, actionPermissions]) => {
-    return {
-      ...acc,
-      ...{
-        [generateCustomActionIdentifier(CustomActionEvent.Approve, actionName, collectionId)]: {
-          description: actionPermissions.userApprovalEnabled,
-          conditions: actionPermissions.userApprovalConditions,
-        },
-        [generateCustomActionIdentifier(CustomActionEvent.SelfApprove, actionName, collectionId)]: {
-          description: actionPermissions.selfApprovalEnabled,
-        },
-
-        [generateCustomActionIdentifier(CustomActionEvent.Trigger, actionName, collectionId)]: {
-          description: actionPermissions.triggerEnabled,
-          conditions: actionPermissions.triggerConditions,
-        },
-
-        [generateCustomActionIdentifier(
-          CustomActionEvent.RequireApproval,
-          actionName,
-          collectionId,
-        )]: {
-          description: actionPermissions.approvalRequired,
-          conditions: actionPermissions.approvalRequiredConditions,
-        },
+): void {
+  for (const [actionName, actionPermissions] of Object.entries(actions)) {
+    rights.set(
+      generateCustomActionIdentifier(CustomActionEvent.Approve, actionName, collectionId),
+      {
+        description: actionPermissions.userApprovalEnabled,
+        conditions: actionPermissions.userApprovalConditions,
       },
-    };
-  }, {});
+    );
+    rights.set(
+      generateCustomActionIdentifier(CustomActionEvent.SelfApprove, actionName, collectionId),
+      {
+        description: actionPermissions.selfApprovalEnabled,
+      },
+    );
+    rights.set(
+      generateCustomActionIdentifier(CustomActionEvent.Trigger, actionName, collectionId),
+      {
+        description: actionPermissions.triggerEnabled,
+        conditions: actionPermissions.triggerConditions,
+      },
+    );
+    rights.set(
+      generateCustomActionIdentifier(CustomActionEvent.RequireApproval, actionName, collectionId),
+      {
+        description: actionPermissions.approvalRequired,
+        conditions: actionPermissions.approvalRequiredConditions,
+      },
+    );
+  }
 }
 
-function generateActionPermissions(
+function addActionPermissions(
+  rights: IntermediateRightsList,
   permissions: EnvironmentCollectionsPermissionsV4,
-): IntermediateRightsList {
-  return Object.entries(permissions).reduce((acc, [collectionId, collectionPermissions]) => {
-    const { actions } = collectionPermissions;
-
-    return {
-      ...acc,
-      ...generateCustomActionPermission(collectionId, actions),
-    };
-  }, {});
+): void {
+  for (const [collectionId, { actions }] of Object.entries(permissions)) {
+    addCustomActionPermissions(rights, collectionId, actions);
+  }
 }
 
 function generateActionsGloballyAllowed(permissions: IntermediateRightsList): Set<string> {
-  return new Set(
-    Object.entries(permissions)
-      .filter(([, permission]) => permission.description === true)
-      .map(([action]) => action),
-  );
+  const actionsGloballyAllowed = new Set<string>();
+
+  for (const [action, permission] of permissions) {
+    if (permission.description === true) actionsGloballyAllowed.add(action);
+  }
+
+  return actionsGloballyAllowed;
 }
 
 function generateActionsByRole(permissions: IntermediateRightsList): Map<string, ActionPermission> {
-  return new Map(
-    Object.entries(permissions)
-      .filter(([, permission]) => typeof permission.description !== 'boolean')
-      .map(([name, permission]) => [
-        name,
-        {
-          allowedRoles: new Set((permission.description as RightDescriptionWithRolesV4).roles),
-          ...(permission.conditions
-            ? {
-                conditionsByRole: new Map(
-                  permission.conditions?.map(({ roleId, filter }) => [roleId, filter]),
-                ),
-              }
-            : {}),
-        },
-      ]),
-  );
+  const actionsByRole = new Map<string, ActionPermission>();
+
+  for (const [name, permission] of permissions) {
+    if (typeof permission.description !== 'boolean') {
+      actionsByRole.set(name, {
+        allowedRoles: new Set((permission.description as RightDescriptionWithRolesV4).roles),
+        ...(permission.conditions
+          ? {
+              conditionsByRole: new Map(
+                permission.conditions.map(({ roleId, filter }) => [roleId, filter]),
+              ),
+            }
+          : {}),
+      });
+    }
+  }
+
+  return actionsByRole;
 }
 
 export default function generateActionsFromPermissions(
@@ -151,10 +149,9 @@ export default function generateActionsFromPermissions(
 
   const remotePermissions: EnvironmentPermissionsV4Remote = environmentPermissions;
 
-  const allPermissions = {
-    ...generateCollectionPermissions(remotePermissions.collections),
-    ...generateActionPermissions(remotePermissions.collections),
-  };
+  const allPermissions: IntermediateRightsList = new Map();
+  addCollectionPermissions(allPermissions, remotePermissions.collections);
+  addActionPermissions(allPermissions, remotePermissions.collections);
 
   return {
     isDevelopment: false,

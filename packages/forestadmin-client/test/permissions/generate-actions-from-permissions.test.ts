@@ -446,4 +446,97 @@ describe('generateActionsFromPermissions', () => {
       });
     });
   });
+
+  describe('when several collections declare rights', () => {
+    const forbidden = {
+      addEnabled: false,
+      browseEnabled: false,
+      deleteEnabled: false,
+      editEnabled: false,
+      exportEnabled: false,
+      readEnabled: false,
+    };
+    const filter = { field: 'status', operator: 'equal', value: 'open', source: 'data' as const };
+
+    const generate = () =>
+      generateActionsFromPermissions({
+        collections: {
+          books: {
+            collection: { ...forbidden, browseEnabled: true, editEnabled: { roles: [1] } },
+            actions: {
+              publish: {
+                triggerEnabled: { roles: [1, 2] },
+                triggerConditions: [{ roleId: 2, filter }],
+                approvalRequired: false,
+                approvalRequiredConditions: [],
+                userApprovalEnabled: true,
+                userApprovalConditions: [],
+                selfApprovalEnabled: { roles: [3] },
+              },
+            },
+          },
+          authors: {
+            collection: { ...forbidden, readEnabled: true, deleteEnabled: { roles: [2] } },
+            actions: {},
+          },
+          reviews: {
+            collection: { ...forbidden, exportEnabled: true },
+            actions: {
+              moderate: {
+                triggerEnabled: true,
+                triggerConditions: [],
+                approvalRequired: { roles: [4] },
+                approvalRequiredConditions: undefined,
+                userApprovalEnabled: false,
+                userApprovalConditions: [],
+                selfApprovalEnabled: false,
+              },
+            },
+          },
+        },
+      });
+
+    it('should list globally allowed actions, collection rights first, in declaration order', () => {
+      expect([...generate().actionsGloballyAllowed]).toEqual([
+        'collection:books:browse',
+        'collection:authors:read',
+        'collection:reviews:export',
+        'custom:books:publish:approve',
+        'custom:reviews:moderate:trigger',
+      ]);
+    });
+
+    it('should list actions allowed by role, collection rights first, in declaration order', () => {
+      expect([...generate().actionsByRole.keys()]).toEqual([
+        'collection:books:edit',
+        'collection:authors:delete',
+        'custom:books:publish:self-approve',
+        'custom:books:publish:trigger',
+        'custom:reviews:moderate:require-approval',
+      ]);
+    });
+
+    it('should build the roles and the conditions of each action allowed by role', () => {
+      expect(generate()).toEqual({
+        isDevelopment: false,
+        actionsGloballyAllowed: expect.any(Set),
+        actionsByRole: new Map([
+          ['collection:books:edit', { allowedRoles: new Set([1]) }],
+          ['collection:authors:delete', { allowedRoles: new Set([2]) }],
+          ['custom:books:publish:self-approve', { allowedRoles: new Set([3]) }],
+          [
+            'custom:books:publish:trigger',
+            { allowedRoles: new Set([1, 2]), conditionsByRole: new Map([[2, filter]]) },
+          ],
+          ['custom:reviews:moderate:require-approval', { allowedRoles: new Set([4]) }],
+        ]),
+      });
+    });
+
+    it('should not set conditions on an action whose conditions are absent', () => {
+      const permission = generate().actionsByRole.get('custom:reviews:moderate:require-approval');
+
+      expect(permission).not.toHaveProperty('conditionsByRole');
+    });
+  });
 });
