@@ -79,7 +79,7 @@ export type AuditHistoryQuery = {
 };
 
 /**
- * Cross-collection timeline, newest first. Paged by cursor rather than by offset: a project-wide
+ * Cross-collection timeline, newest first unless `order` says otherwise. Paged by cursor rather than by offset: a project-wide
  * feed keeps growing at the head, so an offset silently shifts rows across pages.
  */
 export type AuditTimelineQuery = {
@@ -91,7 +91,11 @@ export type AuditTimelineQuery = {
    * sharing the boundary timestamp aren't skipped; `excludeIds` drops the ones already returned.
    */
   before?: string;
+  /** Mirror of `before` for an `asc` walk: an inclusive lower bound from the previous page. */
+  after?: string;
   excludeIds?: number[];
+  /** Defaults to `'desc'`; ties follow `id` in the same direction. */
+  order?: 'asc' | 'desc';
   userIds?: number[];
   operations?: AuditOperation[];
   /** Inclusive lower bound on `timestamp` as a UTC ISO instant. */
@@ -136,10 +140,18 @@ export interface AuditStore {
   /** Flat list of entries recorded under any of `correlationKeys` for a record, oldest first. */
   listByCorrelations(query: AuditCorrelationsQuery): AuditRecord[] | Promise<AuditRecord[]>;
   /**
-   * Cross-collection timeline, newest first (ties broken by descending `id`). Optional: a store
+   * Cross-collection timeline in `order`, ties broken by `id` the same way. Optional: a store
    * written before this existed simply doesn't serve the project-level route.
    */
   listTimeline?(query: AuditTimelineQuery): AuditRecord[] | Promise<AuditRecord[]>;
+  /**
+   * Distinct authors matching the timeline's filters, independent of its cursor. Optional like
+   * `listTimeline`: without it the route serves the rows but no author list. An empty
+   * `collections` must match nothing.
+   */
+  listTimelineUsers?(
+    query: Omit<AuditTimelineQuery, 'limit' | 'before' | 'after' | 'excludeIds' | 'order'>,
+  ): AuditUserSummary[] | Promise<AuditUserSummary[]>;
   /** Distinct authors matching the query filters, independent of pagination. */
   listDistinctUsers(
     query: Omit<AuditHistoryQuery, 'skip' | 'limit' | 'order'>,

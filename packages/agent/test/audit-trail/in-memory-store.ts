@@ -94,28 +94,42 @@ export default class InMemoryAuditStore implements AuditStore {
     collections,
     limit,
     before,
+    after,
     excludeIds,
+    order = 'desc',
     userIds,
     operations,
     startTimestamp,
     endTimestamp,
   }: AuditTimelineQuery): AuditRecord[] {
+    const direction = order === 'asc' ? 1 : -1;
+
     return this.records
       .filter(record => collections.includes(record.collection))
       .filter(record => !before || record.timestamp <= before)
+      .filter(record => !after || record.timestamp >= after)
       .filter(record => !excludeIds?.includes(record.id))
       .filter(record => !userIds || userIds.includes(record.userId))
       .filter(record => !operations?.length || operations.includes(record.operation))
       .filter(record => !startTimestamp || record.timestamp >= startTimestamp)
       .filter(record => !endTimestamp || record.timestamp <= endTimestamp)
-      .sort((a, b) => b.timestamp.localeCompare(a.timestamp) || b.id - a.id)
+      .sort((a, b) => direction * (a.timestamp.localeCompare(b.timestamp) || a.id - b.id))
       .slice(0, limit);
+  }
+
+  listTimelineUsers(
+    query: Omit<AuditTimelineQuery, 'limit' | 'before' | 'after' | 'excludeIds' | 'order'>,
+  ): AuditUserSummary[] {
+    return InMemoryAuditStore.authorsOf(this.listTimeline({ ...query, limit: Infinity }));
   }
 
   listDistinctUsers(
     query: Omit<AuditHistoryQuery, 'skip' | 'limit' | 'order'>,
   ): AuditUserSummary[] {
-    const matches = this.matching({ ...query, order: 'asc' });
+    return InMemoryAuditStore.authorsOf(this.matching({ ...query, order: 'asc' }));
+  }
+
+  private static authorsOf(matches: AuditRecord[]): AuditUserSummary[] {
     const byUser = new Map<number, AuditUserSummary>();
 
     for (const record of matches) {
