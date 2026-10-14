@@ -92,6 +92,57 @@ describe('Projection', () => {
         },
       ]);
     });
+
+    test('should reproject nested relations and leave missing or empty ones null', () => {
+      const projection = new Projection('id', 'author:name', 'author:country:code', 'editor:id');
+
+      expect(
+        projection.apply([
+          { id: 1, author: { name: 'ana', age: 3, country: { code: 'FR', name: 'France' } } },
+          { id: 2, author: { name: 'bob', country: null }, editor: undefined },
+          null,
+        ]),
+      ).toStrictEqual([
+        { id: 1, author: { name: 'ana', country: { code: 'FR' } }, editor: null },
+        { id: 2, author: { name: 'bob', country: null }, editor: null },
+        null,
+      ]);
+    });
+
+    test('should put the columns before the relations', () => {
+      const [record] = new Projection('author:name', 'id').apply([
+        { author: { name: 'ana' }, id: 1 },
+      ]);
+
+      expect(Object.keys(record)).toEqual(['id', 'author']);
+    });
+
+    test('should not modify the records it is given', () => {
+      const record = { id: 1, age: 12, author: { name: 'ana', lastname: 'something' } };
+
+      new Projection('id', 'author:name').apply([record]);
+
+      expect(record).toStrictEqual({
+        id: 1,
+        age: 12,
+        author: { name: 'ana', lastname: 'something' },
+      });
+    });
+
+    test('should not regroup the relations for every record', () => {
+      const projection = new Projection('id', 'author:name', 'author:country:code');
+      const relations = jest.spyOn(Projection.prototype, 'relations', 'get');
+      const record = { id: 1, author: { name: 'ana', country: { code: 'FR' } } };
+
+      projection.apply([record]);
+      const callsForOneRecord = relations.mock.calls.length;
+      relations.mockClear();
+      projection.apply(Array.from({ length: 50 }, () => record));
+      const callsForFiftyRecords = relations.mock.calls.length;
+      relations.mockRestore();
+
+      expect(callsForFiftyRecords).toBe(callsForOneRecord);
+    });
   });
 
   describe('nest()', () => {
