@@ -11,6 +11,30 @@ describe('Projection', () => {
       expect(projection1.equals(projection2)).toBe(false);
       expect(projection2.equals(projection3)).toBe(true);
     });
+
+    test('should ignore the order of the fields', () => {
+      expect(new Projection('id', 'name').equals(new Projection('name', 'id'))).toBe(true);
+    });
+
+    test('should be false when a field is missing from a projection of the same length', () => {
+      expect(new Projection('id', 'name').equals(new Projection('id', 'title'))).toBe(false);
+    });
+  });
+
+  describe('relations', () => {
+    test('should group the sub-paths by relation, in order of first appearance', () => {
+      const { relations } = new Projection(
+        'id',
+        'owner:name',
+        'author:id',
+        'owner:address:city',
+        'owner:id',
+      );
+
+      expect(Object.keys(relations)).toEqual(['owner', 'author']);
+      expect(relations.owner).toStrictEqual(new Projection('name', 'address:city', 'id'));
+      expect(relations.author).toStrictEqual(new Projection('id'));
+    });
   });
 
   describe('replace()', () => {
@@ -26,6 +50,22 @@ describe('Projection', () => {
       );
 
       expect(projection).toEqual(['id', 'firstName', 'lastName']);
+    });
+
+    test('should keep the first appearance of each field across replacements', () => {
+      const projection = new Projection('name', 'id', 'title').replace(field =>
+        field === 'name' ? new Projection('firstName', 'id') : [field, 'firstName'],
+      );
+
+      expect(projection).toStrictEqual(new Projection('firstName', 'id', 'title'));
+    });
+
+    test('should drop the fields replaced by nothing', () => {
+      const projection = new Projection('id', 'name', 'title').replace(field =>
+        field === 'name' ? null : field,
+      );
+
+      expect(projection).toStrictEqual(new Projection('id', 'title'));
     });
   });
 
@@ -155,6 +195,26 @@ describe('Projection', () => {
         const projection = new Projection('name', 'owner:name').withPks(collection);
         expect(projection).toEqual(['name', 'owner:name', 'id', 'owner:id']);
       });
+
+      test('should not repeat a relation pk that is already projected', () => {
+        const collection = dataSource.getCollection('cars');
+        const projection = new Projection('owner:id', 'owner:name').withPks(collection);
+
+        expect(projection).toEqual(['owner:id', 'owner:name', 'id']);
+      });
+    });
+
+    test('should not modify the projection it is called on', () => {
+      const collection = factories.collection.build({
+        schema: factories.collectionSchema.build({
+          fields: { id: factories.columnSchema.uuidPrimaryKey().build() },
+        }),
+      });
+      const projection = new Projection('name');
+
+      projection.withPks(collection);
+
+      expect(projection).toEqual(['name']);
     });
   });
 
@@ -170,6 +230,25 @@ describe('Projection', () => {
       const projection = new Projection('id', 'title');
 
       expect(projection.union(null)).toStrictEqual(projection);
+    });
+
+    it('should keep the first appearance of each field across projections', () => {
+      const projection = new Projection('id', 'title').union(
+        ['amount', 'id'],
+        null,
+        new Projection('title', 'date', 'amount'),
+      );
+
+      expect(projection).toStrictEqual(new Projection('id', 'title', 'amount', 'date'));
+    });
+
+    it('should return a new projection', () => {
+      const projection = new Projection('id');
+      const union = projection.union([]);
+
+      union.push('title');
+
+      expect(projection).toEqual(['id']);
     });
   });
 });

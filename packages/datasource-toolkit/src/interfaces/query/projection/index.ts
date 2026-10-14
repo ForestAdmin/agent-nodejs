@@ -9,37 +9,53 @@ export default class Projection extends Array<string> {
   }
 
   get relations(): Record<string, Projection> {
-    return this.reduce<Record<string, Projection>>((memo, path) => {
+    const relations: Record<string, Projection> = {};
+
+    for (const path of this) {
       const index = path.indexOf(':');
 
       if (index !== -1) {
         const field = path.substring(0, index);
-        memo[field] = new Projection(...(memo[field] ?? []), path.substring(index + 1));
+        relations[field] ??= new Projection();
+        relations[field].push(path.substring(index + 1));
       }
+    }
 
-      return memo;
-    }, {});
+    return relations;
   }
 
   equals(other: Projection): boolean {
-    return this.length === other.length && this.every(field => other.includes(field));
+    if (this.length !== other.length) return false;
+
+    const otherFields = new Set(other);
+
+    return this.every(field => otherFields.has(field));
   }
 
-  replace(handler: (path: string) => Projection | string | string[], bind?: unknown): Projection {
-    return this.map(handler, bind).reduce<Projection>((memo, newPaths) => {
-      if (typeof newPaths === 'string') return memo.union([newPaths]);
+  replace(
+    handler: (path: string) => Projection | string | string[] | null,
+    bind?: unknown,
+  ): Projection {
+    const fields = new Set<string>();
 
-      return memo.union(newPaths);
-    }, new Projection());
+    for (let index = 0; index < this.length; index += 1) {
+      const newPaths = handler.call(bind, this[index], index, this);
+
+      if (typeof newPaths === 'string') fields.add(newPaths);
+      else if (newPaths) for (const path of newPaths) fields.add(path);
+    }
+
+    return Projection.from(fields) as Projection;
   }
 
   union(...otherProjections: (Projection | string[])[]): Projection {
-    const fields = [this, ...otherProjections].reduce(
-      (memo, projection) => (projection ? [...memo, ...projection] : memo),
-      [],
-    );
+    const fields = new Set<string>();
 
-    return new Projection(...new Set(fields));
+    for (const projection of [this, ...otherProjections]) {
+      if (projection) for (const path of projection) fields.add(path);
+    }
+
+    return Projection.from(fields) as Projection;
   }
 
   apply(records: RecordData[]): RecordData[] {
@@ -47,20 +63,23 @@ export default class Projection extends Array<string> {
   }
 
   withPks(collection: Collection): Projection {
-    const result = new Projection(...this);
+    const result = Projection.from(this) as Projection;
+    const fields = new Set<string>(this);
 
-    for (const pk of SchemaUtils.getPrimaryKeys(collection.schema)) {
-      if (!result.includes(pk)) result.push(pk);
-    }
+    const add = (field: string) => {
+      if (!fields.has(field)) {
+        fields.add(field);
+        result.push(field);
+      }
+    };
+
+    SchemaUtils.getPrimaryKeys(collection.schema).forEach(add);
 
     for (const [relation, projection] of Object.entries(this.relations)) {
       const schema = SchemaUtils.getRelation(collection.schema, relation, collection.name);
       const association = collection.dataSource.getCollection(schema.foreignCollection);
-      const projectionWithPk = projection.withPks(association).nest(relation);
 
-      for (const field of projectionWithPk) {
-        if (!result.includes(field)) result.push(field);
-      }
+      projection.withPks(association).nest(relation).forEach(add);
     }
 
     return result;
