@@ -25,20 +25,27 @@ export default class Projection extends Array<string> {
   }
 
   equals(other: Projection): boolean {
+    if (this.length !== other.length) return false;
+
     const otherFields = new Set(other);
 
-    return this.length === other.length && this.every(field => otherFields.has(field));
+    return this.every(field => otherFields.has(field));
   }
 
-  replace(handler: (path: string) => Projection | string | string[], bind?: unknown): Projection {
+  replace(
+    handler: (path: string) => Projection | string | string[] | null,
+    bind?: unknown,
+  ): Projection {
     const fields = new Set<string>();
 
-    for (const newPaths of this.map(handler, bind)) {
+    for (let index = 0; index < this.length; index += 1) {
+      const newPaths = handler.call(bind, this[index], index, this);
+
       if (typeof newPaths === 'string') fields.add(newPaths);
       else if (newPaths) for (const path of newPaths) fields.add(path);
     }
 
-    return Projection.fromFields(fields);
+    return Projection.from(fields) as Projection;
   }
 
   union(...otherProjections: (Projection | string[])[]): Projection {
@@ -48,7 +55,7 @@ export default class Projection extends Array<string> {
       if (projection) for (const path of projection) fields.add(path);
     }
 
-    return Projection.fromFields(fields);
+    return Projection.from(fields) as Projection;
   }
 
   apply(records: RecordData[]): RecordData[] {
@@ -56,7 +63,7 @@ export default class Projection extends Array<string> {
   }
 
   withPks(collection: Collection): Projection {
-    const result = Projection.fromFields(this);
+    const result = Projection.from(this) as Projection;
     const fields = new Set<string>(this);
 
     const add = (field: string) => {
@@ -90,14 +97,6 @@ export default class Projection extends Array<string> {
     }
 
     return this.map(path => path.substring(prefix.length + 1)) as Projection;
-  }
-
-  private static fromFields(fields: Iterable<string>): Projection {
-    const projection = new Projection();
-
-    for (const field of fields) projection.push(field);
-
-    return projection;
   }
 
   private reproject(record: RecordData): RecordData {
