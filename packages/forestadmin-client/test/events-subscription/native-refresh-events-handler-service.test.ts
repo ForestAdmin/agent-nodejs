@@ -19,6 +19,7 @@ describe('NativeRefreshEventsHandlerService', () => {
   const actionPermission = factories.actionPermission.mockAllMethods().build();
   const usersPermission = factories.userPermission.mockAllMethods().build();
   const renderingPermission = factories.renderingPermission.mockAllMethods().build();
+  const logger = jest.fn();
 
   describe('refreshUsers', () => {
     test('should invalidate users cache', async () => {
@@ -26,6 +27,7 @@ describe('NativeRefreshEventsHandlerService', () => {
         actionPermission,
         usersPermission,
         renderingPermission,
+        logger,
       );
 
       refreshEventsHandler.refreshUsers();
@@ -43,6 +45,7 @@ describe('NativeRefreshEventsHandlerService', () => {
         actionPermission,
         usersPermission,
         renderingPermission,
+        logger,
       );
 
       refreshEventsHandler.refreshRoles();
@@ -60,6 +63,7 @@ describe('NativeRefreshEventsHandlerService', () => {
         actionPermission,
         usersPermission,
         renderingPermission,
+        logger,
       );
 
       const renderingsIds = ['13', 24];
@@ -72,6 +76,20 @@ describe('NativeRefreshEventsHandlerService', () => {
       expect(actionPermission.invalidateCache).not.toHaveBeenCalled();
       expect(usersPermission.invalidateCache).not.toHaveBeenCalled();
     });
+
+    test('should invalidate every rendering when given an empty list', async () => {
+      const refreshEventsHandler = new NativeRefreshEventsHandlerService(
+        actionPermission,
+        usersPermission,
+        renderingPermission,
+        logger,
+      );
+
+      refreshEventsHandler.refreshRenderings([]);
+
+      expect(renderingPermission.invalidateAllCache).toHaveBeenCalledTimes(1);
+      expect(renderingPermission.invalidateCache).not.toHaveBeenCalled();
+    });
   });
 
   describe('refreshCustomizations', () => {
@@ -80,6 +98,7 @@ describe('NativeRefreshEventsHandlerService', () => {
         actionPermission,
         usersPermission,
         renderingPermission,
+        logger,
       );
 
       const handler = jest.fn();
@@ -102,6 +121,7 @@ describe('NativeRefreshEventsHandlerService', () => {
         actionPermission,
         usersPermission,
         renderingPermission,
+        logger,
       );
 
       const handler = jest.fn();
@@ -123,6 +143,7 @@ describe('NativeRefreshEventsHandlerService', () => {
         actionPermission,
         usersPermission,
         renderingPermission,
+        logger,
       );
 
       const handler = jest.fn();
@@ -137,5 +158,32 @@ describe('NativeRefreshEventsHandlerService', () => {
       expect(handler).toHaveBeenCalled();
       expect(secondHandler).toHaveBeenCalled();
     });
+
+    test.each(['refreshCustomizations', 'refreshEverything'] as const)(
+      'should log a failing handler instead of rejecting on %s',
+      async method => {
+        const refreshEventsHandler = new NativeRefreshEventsHandlerService(
+          actionPermission,
+          usersPermission,
+          renderingPermission,
+          logger,
+        );
+        const unhandledRejection = jest.fn();
+        process.on('unhandledRejection', unhandledRejection);
+        refreshEventsHandler.onRefreshCustomizations(() => Promise.reject(new Error('boom')));
+
+        refreshEventsHandler[method]();
+        await new Promise(resolve => {
+          setImmediate(resolve);
+        });
+        process.off('unhandledRejection', unhandledRejection);
+
+        expect(logger).toHaveBeenCalledWith(
+          'Error',
+          'Server Event - refresh-customizations failed: boom',
+        );
+        expect(unhandledRejection).not.toHaveBeenCalled();
+      },
+    );
   });
 });

@@ -76,6 +76,7 @@ export default function buildApplicationServices(
     actionPermission,
     usersPermission,
     renderingPermission,
+    optionsWithDefaults.logger,
   );
 
   const eventsSubscription = new EventsSubscriptionService(optionsWithDefaults, eventsHandler);
