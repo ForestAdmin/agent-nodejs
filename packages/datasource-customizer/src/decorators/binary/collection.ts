@@ -105,12 +105,7 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
   }
 
   private containsBinary(columnType: ColumnType): boolean {
-    if (typeof columnType === 'string') return columnType === 'Binary';
-    if (Array.isArray(columnType)) return this.containsBinary(columnType[0]);
-
-    return Object.values(columnType).some(
-      type => !TypeGetter.isEnumField(type) && this.containsBinary(type),
-    );
+    return this.replaceColumnType(columnType) !== columnType;
   }
 
   private shouldUseHex(name: string): boolean {
@@ -155,7 +150,7 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
       const group = { ...row.group };
 
       for (const [field, { columnType, useHex }] of binaryGroups) {
-        if (field in group) {
+        if (Object.prototype.hasOwnProperty.call(group, field)) {
           group[field] = this.convertValueHelper(false, columnType, useHex, group[field]);
         }
       }
@@ -176,10 +171,12 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
   }
 
   override async refineFilter(caller: Caller, filter?: PaginatedFilter): Promise<PaginatedFilter> {
-    return filter?.override({
-      conditionTree: await filter?.conditionTree?.replaceLeafsAsync(leaf =>
-        this.convertConditionTreeLeaf(leaf),
-      ),
+    const conditionTree = filter?.conditionTree;
+
+    if (!conditionTree?.someLeaf(leaf => this.needsValueConversion(leaf))) return filter;
+
+    return filter.override({
+      conditionTree: conditionTree.replaceLeafs(leaf => this.convertConditionTreeLeaf(leaf)),
     });
   }
 
@@ -230,13 +227,13 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
     const converted = { ...record };
 
     for (const [name, { columnType, useHex }] of plan.columns) {
-      if (name in converted) {
+      if (Object.prototype.hasOwnProperty.call(converted, name)) {
         converted[name] = this.convertValueHelper(false, columnType, useHex, converted[name]);
       }
     }
 
     for (const [name, { collection, plan: subPlan }] of plan.relations) {
-      if (name in converted) {
+      if (Object.prototype.hasOwnProperty.call(converted, name)) {
         converted[name] = collection.applyConversionPlan(subPlan, converted[name]);
       }
     }
@@ -249,8 +246,32 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
     if (binaryColumn) return binaryColumn;
 
     const [prefix, suffix] = path.split(/:(.*)/);
+    if (!suffix) return undefined;
 
-    return suffix ? this.getForeignCollection(prefix)?.resolveBinaryColumn(suffix) : undefined;
+    const parentColumn = this.binaryColumns.get(prefix);
+    if (parentColumn) return this.resolveNestedBinaryColumn(parentColumn, suffix);
+
+    return this.getForeignCollection(prefix)?.resolveBinaryColumn(suffix);
+  }
+
+  private resolveNestedBinaryColumn(
+    { columnType, useHex }: BinaryColumn,
+    path: string,
+  ): BinaryColumn | undefined {
+    let nestedType: ColumnType = columnType;
+
+    for (const key of path.split(':')) {
+      if (typeof nestedType !== 'object' || Array.isArray(nestedType)) return undefined;
+
+      const type = nestedType[key];
+      if (!type || TypeGetter.isEnumField(type)) return undefined;
+
+      nestedType = type as ColumnType;
+    }
+
+    if (!this.containsBinary(nestedType)) return undefined;
+
+    return { columnType: nestedType, useHex };
   }
 
   private convertRecord(toBackend: boolean, record: RecordData): RecordData {
@@ -281,35 +302,23 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
     return collection ? collection.convertRecord(toBackend, value as RecordData) : value;
   }
 
-  private async convertConditionTreeLeaf(leaf: ConditionTreeLeaf): Promise<ConditionTree> {
-    const [prefix, suffix] = leaf.field.split(/:(.*)/);
-    const schema = SchemaUtils.getField(
-      this.childCollection.schema,
-      prefix,
-      this.childCollection.name,
+  private needsValueConversion(leaf: ConditionTreeLeaf): boolean {
+    return (
+      BinaryCollectionDecorator.operatorsWithValueReplacement.includes(leaf.operator) &&
+      Boolean(this.resolveBinaryColumn(leaf.field))
     );
+  }
 
-    if (schema.type !== 'Column') {
-      const conditionTree = await this.dataSource
-        .getCollection(schema.foreignCollection)
-        .convertConditionTreeLeaf(leaf.override({ field: suffix }));
+  private convertConditionTreeLeaf(leaf: ConditionTreeLeaf): ConditionTree {
+    if (!this.needsValueConversion(leaf)) return leaf;
 
-      return conditionTree.nest(prefix);
-    }
+    const { columnType, useHex } = this.resolveBinaryColumn(leaf.field);
+    const valueType: ColumnType =
+      leaf.operator === 'In' || leaf.operator === 'NotIn' ? [columnType] : columnType;
 
-    if (BinaryCollectionDecorator.operatorsWithValueReplacement.includes(leaf.operator)) {
-      const useHex = this.shouldUseHex(prefix);
-      const columnType: ColumnType =
-        leaf.operator === 'In' || leaf.operator === 'NotIn'
-          ? [schema.columnType]
-          : schema.columnType;
-
-      return leaf.override({
-        value: this.convertValueHelper(true, columnType, useHex, leaf.value),
-      });
-    }
-
-    return leaf;
+    return leaf.override({
+      value: this.convertValueHelper(true, valueType, useHex, leaf.value),
+    });
   }
 
   private convertValueHelper(
@@ -386,7 +395,9 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
     }
 
     if (Array.isArray(columnType)) {
-      return [this.replaceColumnType(columnType[0])];
+      const itemType = this.replaceColumnType(columnType[0]);
+
+      return itemType === columnType[0] ? columnType : [itemType];
     }
 
     const entries = Object.entries(columnType).map(([key, type]) => [
@@ -394,7 +405,9 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
       TypeGetter.isEnumField(type) ? type : this.replaceColumnType(type),
     ]);
 
-    return Object.fromEntries(entries);
+    return entries.some(([key, type]) => type !== columnType[key as string])
+      ? Object.fromEntries(entries)
+      : columnType;
   }
 
   private replaceValidation(name: string, schema: ColumnSchema): ColumnSchema['validation'] {
