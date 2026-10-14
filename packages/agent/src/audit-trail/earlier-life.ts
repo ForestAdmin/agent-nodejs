@@ -7,7 +7,25 @@ import type { AuditRecord, AuditStore } from './types';
 // A confirmed `create` marks the boundary too: a primary-key move or an unconfirmed delete frees an
 // id without leaving a confirmed `delete`, and the record that takes it next starts with its create.
 
-/** The id's latest confirmed `delete` or `create`, or null when no record life ever ended or began. */
+/**
+ * Whether a row belongs to a record that held the id before the boundary, in the trail's
+ * (timestamp, id) order. A boundary `delete` is the earlier record's last row, a boundary `create`
+ * the current record's first.
+ */
+export function belongsToEarlierLife(row: AuditRecord, boundary: AuditRecord | null): boolean {
+  if (!boundary) return false;
+  if (row.id === boundary.id) return boundary.operation === 'delete';
+
+  return (
+    row.timestamp < boundary.timestamp ||
+    (row.timestamp === boundary.timestamp && row.id < boundary.id)
+  );
+}
+
+/**
+ * The id's latest confirmed `delete` or `create`, or null when the id has had one life only: no
+ * boundary at all, or a `create` with nothing filed before it.
+ */
 export async function lifeBoundaryOf(
   store: AuditStore,
   collection: string,
@@ -22,26 +40,19 @@ export async function lifeBoundaryOf(
 
   // A pending row may never have landed, so it marks nothing. Filtered here too, not just in the
   // query: a store that ignores `operations` must not turn any row into the boundary.
-  return (
+  const boundary =
     boundaries.find(
       row => (row.operation === 'delete' || row.operation === 'create') && row.status !== 'pending',
-    ) ?? null
-  );
-}
+    ) ?? null;
 
-/**
- * Whether a row belongs to a record that held the id before the boundary, in the trail's
- * (timestamp, id) order. A boundary `delete` is the earlier record's last row, a boundary `create`
- * the current record's first.
- */
-export function belongsToEarlierLife(row: AuditRecord, boundary: AuditRecord | null): boolean {
-  if (!boundary) return false;
-  if (row.id === boundary.id) return boundary.operation === 'delete';
+  if (boundary?.operation !== 'create') return boundary;
 
-  return (
-    row.timestamp < boundary.timestamp ||
-    (row.timestamp === boundary.timestamp && row.id < boundary.id)
-  );
+  // A create with nothing filed before it began the id's only life. A record created through Forest
+  // has its own create here, and counting it would send every scoped search on it down the
+  // served-value scan. Tested on whatever comes back, should a store ignore the order or the limit.
+  const oldest = await store.listByRecord({ collection, recordId, order: 'asc', limit: 1 });
+
+  return oldest.some(row => belongsToEarlierLife(row, boundary)) ? boundary : null;
 }
 
 /** The rows as served: all withheld for a gone record, only the earlier lives' for a live one. */

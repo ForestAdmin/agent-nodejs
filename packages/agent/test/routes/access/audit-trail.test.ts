@@ -1410,6 +1410,44 @@ describe('AuditTrailRoute', () => {
         expect(body.data).toEqual([current, { ...earlier, previousValues: {}, newValues: {} }]);
       });
 
+      // The record's own create is the latest boundary of any record created through Forest. With
+      // nothing before it there is no earlier life, so a search stays a single matched query rather
+      // than the served-value scan.
+      test('keeps a search on a record created through Forest in the store query', async () => {
+        const later = row({
+          id: 4,
+          timestamp: '2026-01-04T00:00:00.000Z',
+          operation: 'update',
+          previousValues: { ownerId: 1, title: 'Mine' },
+          newValues: { ownerId: 1, title: 'Still mine' },
+        });
+        const { services, dataSource, options, store } = setup([later, current]);
+        store.listByRecord.mockImplementation(async ({ order, limit }: Record<string, unknown>) => {
+          const rows = order === 'asc' ? [current, later] : [later, current];
+
+          return limit ? rows.slice(0, limit as number) : rows;
+        });
+        (services.authorization.getScope as jest.Mock).mockResolvedValue(
+          new ConditionTreeLeaf('ownerId', 'Equal', 1),
+        );
+        jest.spyOn(dataSource.getCollection('books'), 'list').mockResolvedValue([{ id: 2 }]);
+        const route = new AuditTrailRoute(services, options, dataSource, 'books');
+        const context = createMockContext({
+          state: { user: { email: 'john.doe@domain.com' } },
+          customProperties: { query: { search: 'mine' }, params: { id: '2' } },
+        });
+
+        await route.handleHistory(context);
+
+        const scans = (store.listByRecord as jest.Mock).mock.calls.filter(
+          ([query]) => query.limit === 500,
+        );
+        expect(scans).toEqual([]);
+        expect(store.countByRecord).toHaveBeenCalledWith(
+          expect.objectContaining({ search: 'mine' }),
+        );
+      });
+
       test('serves the whole history of an id that was never freed', async () => {
         const later = row({
           id: 4,
