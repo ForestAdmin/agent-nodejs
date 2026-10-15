@@ -17,6 +17,7 @@ export default class CollectionDecorator implements Collection {
   protected childCollection: Collection;
 
   private lastSchema: CollectionSchema;
+  private lastName: string;
 
   get nativeDriver(): unknown {
     return this.childCollection.nativeDriver;
@@ -33,7 +34,9 @@ export default class CollectionDecorator implements Collection {
   }
 
   get name(): string {
-    return this.childCollection.name;
+    this.lastName ??= this.childCollection.name;
+
+    return this.lastName;
   }
 
   /**
@@ -137,6 +140,7 @@ export default class CollectionDecorator implements Collection {
 
   protected markSchemaAsDirty(): void {
     this.lastSchema = null;
+    this.lastName = null;
   }
 
   protected async refineFilter(caller: Caller, filter?: PaginatedFilter): Promise<PaginatedFilter> {
