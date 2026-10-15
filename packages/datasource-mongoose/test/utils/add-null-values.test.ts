@@ -138,4 +138,25 @@ describe('addNullValues', () => {
 
     expect(readsFor(50)).toBe(readsFor(1));
   });
+
+  it('should return binary values as they are, next to a relation flagged as not existing', () => {
+    const picture = Buffer.from('picture');
+    const input = { picture, author: { id: FOREST_RECORD_DOES_NOT_EXIST } };
+
+    const [result] = addNullValues([input], ['picture', 'author:id']);
+
+    expect(result.picture).toBe(picture);
+    expect(result.author).toBeNull();
+  });
+
+  it('should not look for the not-exist marker inside binary values', () => {
+    const picture = Buffer.alloc(16);
+    const values = jest.spyOn(Object, 'values');
+
+    addNullValues([{ id: 1, picture }], ['id', 'picture']);
+    const scannedValues = values.mock.calls.map(([value]) => value);
+    values.mockRestore();
+
+    expect(scannedValues).not.toContain(picture);
+  });
 });
