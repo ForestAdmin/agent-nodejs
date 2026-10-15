@@ -93,6 +93,37 @@ describe('deduplication', () => {
     expect(handler).toHaveBeenCalledTimes(1);
     expect(handler).toHaveBeenCalledWith([1, 2, 666]);
   });
+
+  test('merges records holding equal nested values', async () => {
+    const first = { title: 'Foundation', author: { bornAt: new Date(0), tags: ['a', 1] } };
+    const second = { title: 'Foundation', author: { bornAt: new Date(0), tags: ['a', 1] } };
+    const handler = jest.fn().mockResolvedValue(['computed']);
+
+    const result = await transformUniqueValues([first, second], handler);
+
+    expect(handler).toHaveBeenCalledWith([first]);
+    expect(result).toEqual(['computed', 'computed']);
+  });
+
+  test.each([
+    ['NaN and null', { value: NaN }, { value: null }],
+    ['a date and its ISO string', { value: new Date(0) }, { value: new Date(0).toISOString() }],
+    ['a number and its string', { value: 1 }, { value: '1' }],
+    ['a bigint and a number', { value: BigInt(1) }, { value: 1 }],
+    ['a boolean and its string', { value: true }, { value: 'true' }],
+    ['an object and its JSON string', { value: { a: 1 } }, { value: '{"a":1}' }],
+    ['an undefined and a missing key', { value: undefined }, {}],
+    ['different buffers', { value: Buffer.from('a') }, { value: Buffer.from('b') }],
+    ['different maps', { value: new Map([['a', 1]]) }, { value: new Map([['a', 2]]) }],
+    ['a string holding a separator', { a: 'x,"b":"y' }, { a: 'x', b: 'y' }],
+  ])('keeps %s apart', async (_, first, second) => {
+    const handler = jest.fn().mockResolvedValue(['first', 'second']);
+
+    const result = await transformUniqueValues<object, string>([first, second], handler);
+
+    expect(handler).toHaveBeenCalledWith([first, second]);
+    expect(result).toEqual(['first', 'second']);
+  });
 });
 
 describe('deprecation-map', () => {
