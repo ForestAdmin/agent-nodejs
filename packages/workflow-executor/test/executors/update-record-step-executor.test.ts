@@ -1850,6 +1850,154 @@ describe('UpdateRecordStepExecutor', () => {
         }),
       );
     });
+
+    describe('build-time value coercion', () => {
+      const prerecordedFields: CollectionSchema['fields'] = [
+        {
+          fieldName: 'status',
+          displayName: 'Status',
+          isRelationship: false,
+          type: 'Enum',
+          enumValues: ['active', 'inactive'],
+        },
+        { fieldName: 'closedAt', displayName: 'Closed At', isRelationship: false, type: 'Date' },
+        { fieldName: 'age', displayName: 'Age', isRelationship: false, type: 'Number' },
+        { fieldName: 'isActive', displayName: 'Is Active', isRelationship: false, type: 'Boolean' },
+      ];
+
+      function makePrerecordedContext(
+        fieldName: string,
+        value: unknown,
+        executionType: UpdateRecordStepDefinition['executionType'] = StepExecutionMode.FullyAutomated,
+      ) {
+        const runStore = makeMockRunStore();
+        const agentPort = makeMockAgentPort();
+        const workflowPort = makeMockWorkflowPort({
+          customers: makeCollectionSchema({ fields: prerecordedFields }),
+        });
+        const context = makeContext({
+          runStore,
+          agentPort,
+          workflowPort,
+          stepDefinition: makeStep({ executionType, preRecordedArgs: { fieldName, value } }),
+        });
+
+        return { executor: new UpdateRecordStepExecutor(context), agentPort, runStore, context };
+      }
+
+      it('writes a valid enum value', async () => {
+        const { executor, agentPort, context } = makePrerecordedContext('status', 'inactive');
+
+        const result = await executor.execute();
+
+        expect(result.stepOutcome.status).toBe('success');
+        expect(agentPort.updateRecord).toHaveBeenCalledWith(
+          { collection: 'customers', id: [42], values: { status: 'inactive' } },
+          context.user,
+        );
+      });
+
+      it('fails as a configuration error naming the field on an invalid enum value', async () => {
+        const { executor, agentPort } = makePrerecordedContext('status', 'archived');
+
+        const result = await executor.execute();
+
+        expect(result.stepOutcome.status).toBe('error');
+        expect(result.stepOutcome.errorKind).toBe('configuration');
+        expect(result.stepOutcome.error).toBe(
+          'The value set on this step for the "Status" field is invalid: ' +
+            'Invalid option: expected one of "active"|"inactive". Edit the step to set a valid value.',
+        );
+        expect(agentPort.updateRecord).not.toHaveBeenCalled();
+      });
+
+      it('rejects an invalid enum value before asking for confirmation', async () => {
+        const { executor, runStore } = makePrerecordedContext(
+          'status',
+          'archived',
+          StepExecutionMode.AutomatedWithConfirmation,
+        );
+
+        const result = await executor.execute();
+
+        expect(result.stepOutcome.status).toBe('error');
+        expect(result.stepOutcome.errorKind).toBe('configuration');
+        expect(runStore.saveStepExecution).not.toHaveBeenCalledWith(
+          'run-1',
+          expect.objectContaining({ pendingData: expect.anything() }),
+        );
+      });
+
+      it('writes a valid ISO datetime', async () => {
+        const { executor, agentPort, context } = makePrerecordedContext(
+          'closedAt',
+          '2026-06-01T00:00:00Z',
+        );
+
+        const result = await executor.execute();
+
+        expect(result.stepOutcome.status).toBe('success');
+        expect(agentPort.updateRecord).toHaveBeenCalledWith(
+          { collection: 'customers', id: [42], values: { closedAt: '2026-06-01T00:00:00Z' } },
+          context.user,
+        );
+      });
+
+      it('fails as a configuration error on an impossible date', async () => {
+        const { executor, agentPort } = makePrerecordedContext('closedAt', '2026-02-30T00:00:00Z');
+
+        const result = await executor.execute();
+
+        expect(result.stepOutcome.status).toBe('error');
+        expect(result.stepOutcome.errorKind).toBe('configuration');
+        expect(result.stepOutcome.error).toContain('"Closed At" field is invalid');
+        expect(agentPort.updateRecord).not.toHaveBeenCalled();
+      });
+
+      it('coerces a numeric string to a number', async () => {
+        const { executor, agentPort, context } = makePrerecordedContext('age', '12');
+
+        await executor.execute();
+
+        expect(agentPort.updateRecord).toHaveBeenCalledWith(
+          { collection: 'customers', id: [42], values: { age: 12 } },
+          context.user,
+        );
+      });
+
+      it('writes 0', async () => {
+        const { executor, agentPort, context } = makePrerecordedContext('age', 0);
+
+        await executor.execute();
+
+        expect(agentPort.updateRecord).toHaveBeenCalledWith(
+          { collection: 'customers', id: [42], values: { age: 0 } },
+          context.user,
+        );
+      });
+
+      it.each([false, 'false'])('writes boolean false from %p', async value => {
+        const { executor, agentPort, context } = makePrerecordedContext('isActive', value);
+
+        await executor.execute();
+
+        expect(agentPort.updateRecord).toHaveBeenCalledWith(
+          { collection: 'customers', id: [42], values: { isActive: false } },
+          context.user,
+        );
+      });
+
+      it('passes null through to clear the field', async () => {
+        const { executor, agentPort, context } = makePrerecordedContext('closedAt', null);
+
+        await executor.execute();
+
+        expect(agentPort.updateRecord).toHaveBeenCalledWith(
+          { collection: 'customers', id: [42], values: { closedAt: null } },
+          context.user,
+        );
+      });
+    });
   });
 
   describe('buildUpdateFieldTool — type-specific schemas', () => {
