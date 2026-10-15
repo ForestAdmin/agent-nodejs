@@ -473,6 +473,15 @@ describe('generateActionsFromPermissions', () => {
                 userApprovalConditions: [],
                 selfApprovalEnabled: { roles: [3] },
               },
+              unpublish: {
+                triggerEnabled: true,
+                triggerConditions: [],
+                approvalRequired: { roles: [5] },
+                approvalRequiredConditions: undefined,
+                userApprovalEnabled: false,
+                userApprovalConditions: [],
+                selfApprovalEnabled: false,
+              },
             },
           },
           authors: {
@@ -502,6 +511,7 @@ describe('generateActionsFromPermissions', () => {
         'collection:authors:read',
         'collection:reviews:export',
         'custom:books:publish:approve',
+        'custom:books:unpublish:trigger',
         'custom:reviews:moderate:trigger',
       ]);
     });
@@ -512,6 +522,7 @@ describe('generateActionsFromPermissions', () => {
         'collection:authors:delete',
         'custom:books:publish:self-approve',
         'custom:books:publish:trigger',
+        'custom:books:unpublish:require-approval',
         'custom:reviews:moderate:require-approval',
       ]);
     });
@@ -528,6 +539,7 @@ describe('generateActionsFromPermissions', () => {
             'custom:books:publish:trigger',
             { allowedRoles: new Set([1, 2]), conditionsByRole: new Map([[2, filter]]) },
           ],
+          ['custom:books:unpublish:require-approval', { allowedRoles: new Set([5]) }],
           ['custom:reviews:moderate:require-approval', { allowedRoles: new Set([4]) }],
         ]),
       });

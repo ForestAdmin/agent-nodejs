@@ -105,7 +105,7 @@ function splitActionPermissions(
   for (const [name, { description, conditions }] of permissions) {
     if (description === true) {
       actionsGloballyAllowed.add(name);
-    } else if (typeof description !== 'boolean') {
+    } else if (description !== false) {
       const permission: ActionPermission = {
         allowedRoles: new Set((description as RightDescriptionWithRolesV4).roles),
       };
