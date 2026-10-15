@@ -112,8 +112,9 @@ export default class ProviderDispatcher {
     }
 
     // The Responses API carries no Chat Completions payload to hand back as is.
-    if (this.openaiUsesResponsesApi)
+    if (this.openaiUsesResponsesApi) {
       return LangChainAdapter.convertResponse(response, this.modelName);
+    }
 
     // eslint-disable-next-line no-underscore-dangle
     const rawResponse = response.additional_kwargs.__raw_response as ChatCompletionResponse;
