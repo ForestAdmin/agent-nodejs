@@ -296,7 +296,11 @@ describe('Utils > QueryConverter', () => {
             stringValue,
             {
               [Op.or]: [
-                { __field_1__: { [Op.notLike]: `%${stringValue}%` } },
+                {
+                  attribute: { col: 'model.__field_1__' },
+                  comparator: 'NOT LIKE',
+                  logic: { val: `'%${stringValue}%' ESCAPE '!'` },
+                },
                 { __field_1__: { [Op.is]: null } },
               ],
             },
@@ -306,7 +310,11 @@ describe('Utils > QueryConverter', () => {
             stringValue,
             {
               [Op.or]: [
-                { __field_1__: { [Op.notILike]: `%${stringValue}%` } },
+                {
+                  attribute: { col: 'model.__field_1__' },
+                  comparator: 'NOT ILIKE',
+                  logic: { val: `'%${stringValue}%' ESCAPE '!'` },
+                },
                 { __field_1__: { [Op.is]: null } },
               ],
             },
@@ -323,6 +331,24 @@ describe('Utils > QueryConverter', () => {
             expect(sequelizeFilter).toEqual(where);
           },
         );
+
+        it.each([
+          ['Contains', 'LIKE', '%a!_b!%!!%'],
+          ['IContains', 'ILIKE', '%a!_b!%!!%'],
+          ['StartsWith', 'LIKE', 'a!_b!%!!%'],
+          ['IStartsWith', 'ILIKE', 'a!_b!%!!%'],
+          ['EndsWith', 'LIKE', '%a!_b!%!!'],
+          ['IEndsWith', 'ILIKE', '%a!_b!%!!'],
+        ])('should escape the wildcards of a "%s" value', (operator, comparator, pattern) => {
+          const conditionTree = new ConditionTreeLeaf('__field_1__', operator as Operator, 'a_b%!');
+          const queryConverter = new QueryConverter(setupModel());
+
+          expect(queryConverter.getWhereFromConditionTree(conditionTree)).toEqual({
+            attribute: { col: 'model.__field_1__' },
+            comparator,
+            logic: { val: `'${pattern}' ESCAPE '!'` },
+          });
+        });
 
         describe('with  "sqlite" dialect', () => {
           const model = setupModel('sqlite');
