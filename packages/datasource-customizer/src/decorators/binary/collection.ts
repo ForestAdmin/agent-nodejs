@@ -118,9 +118,11 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
   }
 
   private getForeignCollection(name: string): BinaryCollectionDecorator | null {
-    const field = this.childCollection.schema.fields[name];
+    const { fields } = this.childCollection.schema;
+    if (!Object.prototype.hasOwnProperty.call(fields, name)) return null;
 
-    if (!field || field.type === 'Column') return null;
+    const field = fields[name];
+    if (field.type === 'Column') return null;
 
     return this.dataSource.getCollection(field.foreignCollection);
   }
@@ -206,19 +208,11 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
   }
 
   private buildConversionPlan(projection: Projection): ConversionPlan | null {
-    const plan: ConversionPlan = { columns: new Map(), relations: new Map() };
-
-    for (const column of projection.columns) {
-      const binaryColumn = this.binaryColumns.get(column);
-      if (binaryColumn) plan.columns.set(column, binaryColumn);
-    }
+    // Every binary column is planned, projected or not: a child may return more than asked for.
+    const plan: ConversionPlan = { columns: this.binaryColumns, relations: new Map() };
 
     for (const [prefix, subProjection] of Object.entries(projection.relations)) {
-      const binaryColumn = this.binaryColumns.get(prefix);
-
-      if (binaryColumn) {
-        plan.columns.set(prefix, binaryColumn);
-      } else {
+      if (!this.binaryColumns.has(prefix)) {
         const collection = this.getForeignCollection(prefix);
         const subPlan = collection?.buildConversionPlan(subProjection);
 

@@ -489,8 +489,8 @@ describe('BinaryCollectionDecorator', () => {
     });
   });
 
-  describe('list with a projection reaching no binary field', () => {
-    test('should return the records of the child collection untouched', async () => {
+  describe('list with a projection reaching no binary value', () => {
+    test('should return the records of the child collection unchanged', async () => {
       const childRecords = [{ id: 1, book: { title: 'Foundation' } }];
       (favorites.list as jest.Mock).mockResolvedValue(childRecords);
 
@@ -500,7 +500,39 @@ describe('BinaryCollectionDecorator', () => {
         new Projection('id', 'book:title'),
       );
 
-      expect(records).toBe(childRecords);
+      expect(records).toStrictEqual([{ id: 1, book: { title: 'Foundation' } }]);
+    });
+  });
+
+  describe('list returning a binary column outside the projection', () => {
+    test('should convert it anyway', async () => {
+      (books.list as jest.Mock).mockResolvedValue([
+        { title: 'Foundation', cover: Buffer.from('hello', 'ascii') },
+      ]);
+
+      const records = await decoratedBook.list(
+        factories.caller.build(),
+        new PaginatedFilter({}),
+        new Projection('title'),
+      );
+
+      expect(records).toStrictEqual([
+        { title: 'Foundation', cover: 'data:application/octet-stream;base64,aGVsbG8=' },
+      ]);
+    });
+  });
+
+  describe('writing a record with a key named after an Object prototype member', () => {
+    test('should pass the key through to the child collection', async () => {
+      (books.create as jest.Mock).mockResolvedValue([]);
+
+      await decoratedBook.create(factories.caller.build(), [
+        { title: 'Foundation', constructor: 1 },
+      ]);
+
+      expect(books.create).toHaveBeenCalledWith(expect.anything(), [
+        { title: 'Foundation', constructor: 1 },
+      ]);
     });
   });
 
@@ -660,6 +692,7 @@ describe('BinaryCollectionDecorator', () => {
       const filter = new PaginatedFilter({
         conditionTree: new ConditionTreeLeaf('unknown', 'Equal', 'value'),
       });
+      (books.list as jest.Mock).mockResolvedValue([]);
 
       await decoratedBook.list(factories.caller.build(), filter, new Projection('title'));
 
