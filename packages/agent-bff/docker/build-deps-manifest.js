@@ -47,6 +47,9 @@ const RESOLUTIONS = {
   '**/lodash': '^4.18.0',
   // auto-instrumentations-node pins propagator-jaeger 2.8.0 (CVE-2026-59892, fixed in 2.9.0).
   '**/@opentelemetry/propagator-jaeger': '2.9.0',
+  // sanitize-html >= 2.17.6 bumped htmlparser2 to ^12 (ESM-only); pin to the last 10.x which
+  // ships a CJS entry so the BFF's Jest config (CJS) still loads it.
+  '**/sanitize-html/htmlparser2': '^10.1.0',
 };
 
 function generate(packagesDir, outFile) {
