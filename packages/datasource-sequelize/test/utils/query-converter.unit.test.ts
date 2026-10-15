@@ -403,9 +403,9 @@ describe('Utils > QueryConverter', () => {
             [
               'mssql',
               {
-                attribute: { fn: 'LOWER', args: [{ col: 'model.__field_1__' }] },
-                comparator: 'LIKE',
-                logic: 'value',
+                __field_1__: {
+                  [Op.like]: { val: "N'VaLuE' COLLATE SQL_Latin1_General_CP1_CI_AS" },
+                },
               },
             ],
             ['mysql', { __field_1__: { [Op.like]: 'VaLuE' } }],
