@@ -4,7 +4,7 @@ import type { Middleware } from 'koa';
 
 import { allowedEntriesIntersect, hasOrigin, loggableOrigin, originAllowed } from './origin';
 import { fingerprintApiKey } from '../api-key/api-key';
-import { BFF_KEY_HEADER } from '../api-key/api-key-middleware';
+import { readApiKey } from '../api-key/api-key-middleware';
 import { originNotAllowed } from '../http/bff-http-error';
 
 export interface PerKeyOriginMiddlewareOptions {
@@ -60,7 +60,7 @@ export default function createPerKeyOriginMiddleware({
       return;
     }
 
-    const keyHash = fingerprintApiKey(ctx.get(BFF_KEY_HEADER));
+    const keyHash = fingerprintApiKey(readApiKey(ctx));
     reportOriginsThatCanNeverPass(allowedOrigins, keyHash, identity.renderingId);
 
     if (hasOrigin(origin) && !originAllowed(origin, allowedOrigins)) {

@@ -60,7 +60,11 @@ export type {
   AuthenticatedApiKey,
   ApiKeyAuthenticatorOptions,
 } from './api-key/api-key-authenticator';
-export { default as createApiKeyMiddleware, BFF_KEY_HEADER } from './api-key/api-key-middleware';
+export {
+  default as createApiKeyMiddleware,
+  BFF_KEY_HEADER,
+  GATEWAY_KEY_HEADER,
+} from './api-key/api-key-middleware';
 export {
   ApiKeyError,
   invalidApiKey,

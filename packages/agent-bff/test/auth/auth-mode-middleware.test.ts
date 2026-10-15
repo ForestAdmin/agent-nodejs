@@ -2,7 +2,8 @@ import jsonwebtoken from 'jsonwebtoken';
 import Koa from 'koa';
 import request from 'supertest';
 
-import createAuthModeMiddleware, { BFF_KEY_HEADER } from '../../src/auth/auth-mode-middleware';
+import { BFF_KEY_HEADER, GATEWAY_KEY_HEADER } from '../../src/api-key/api-key-middleware';
+import createAuthModeMiddleware from '../../src/auth/auth-mode-middleware';
 import createErrorMiddleware from '../../src/http/error-middleware';
 
 const AUTH_SECRET = 'test-secret';
@@ -75,6 +76,33 @@ describe('auth mode middleware', () => {
 
     expect(response.status).toBe(200);
     expect(response.body.authMode).toBe('api-key');
+  });
+
+  it('resolves api-key when only the gateway key header is present', async () => {
+    const response = await request(buildApp()).get('/agent/x').set(GATEWAY_KEY_HEADER, RAW_KEY);
+
+    expect(response.status).toBe(200);
+    expect(response.body.authMode).toBe('api-key');
+  });
+
+  it('returns 400 ambiguous_credentials when both Bearer and the gateway key are present', async () => {
+    const response = await request(buildApp())
+      .get('/agent/x')
+      .set('Authorization', `Bearer ${bffAccess('15m')}`)
+      .set(GATEWAY_KEY_HEADER, RAW_KEY);
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.type).toBe('ambiguous_credentials');
+  });
+
+  it('returns 400 ambiguous_credentials when the two key headers disagree', async () => {
+    const response = await request(buildApp())
+      .get('/agent/x')
+      .set(GATEWAY_KEY_HEADER, RAW_KEY)
+      .set(BFF_KEY_HEADER, `${RAW_KEY}x`);
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.type).toBe('ambiguous_credentials');
   });
 
   it('resolves oauth for a valid bff_access Bearer', async () => {

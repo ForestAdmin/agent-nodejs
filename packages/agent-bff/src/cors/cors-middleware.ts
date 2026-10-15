@@ -42,7 +42,7 @@ function isSameOrigin(origin: string, host: string): boolean {
 
 export const ALLOWED_METHODS = 'GET, POST, PUT, PATCH, DELETE, OPTIONS';
 export const ALLOWED_HEADERS =
-  'Authorization, Content-Type, X-Forest-Timezone, X-Forest-Bff-Key, X-Request-Id, Forest-Projection';
+  'Authorization, Content-Type, X-Forest-Timezone, X-Forest-Bff-Key, X-Forest-Gateway-Key, X-Request-Id, Forest-Projection';
 export const PREFLIGHT_MAX_AGE_SECONDS = 600;
 
 const EXPOSED_HEADERS =

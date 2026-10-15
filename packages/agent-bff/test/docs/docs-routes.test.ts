@@ -70,7 +70,7 @@ describe('docs routes', () => {
       const response = await request(buildApp(true).callback()).get(DOCS_PATH);
 
       expect(response.text).toContain(JSON.stringify(DOCUMENT_PATH));
-      expect(response.text).toContain('X-Forest-Bff-Key');
+      expect(response.text).toContain('X-Forest-Gateway-Key');
     });
 
     it('should carry no form, since a default submit would put the key in the URL', async () => {

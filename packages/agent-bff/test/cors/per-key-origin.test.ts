@@ -4,7 +4,7 @@ import Koa from 'koa';
 import request from 'supertest';
 
 import { fingerprintApiKey } from '../../src/api-key/api-key';
-import { BFF_KEY_HEADER } from '../../src/api-key/api-key-middleware';
+import { BFF_KEY_HEADER, GATEWAY_KEY_HEADER } from '../../src/api-key/api-key-middleware';
 import createPerKeyOriginMiddleware from '../../src/cors/per-key-origin';
 import createErrorMiddleware from '../../src/http/error-middleware';
 
@@ -139,6 +139,22 @@ describe('per-key origin middleware (layer 2)', () => {
         keyHash: fingerprintApiKey(RAW_KEY),
         renderingId: RENDERING_ID,
       });
+    });
+
+    it('fingerprints a key sent in the gateway key header', async () => {
+      const logger = jest.fn();
+
+      const response = await request(buildApp(['https://a.com'], logger).callback())
+        .get('/agent/x')
+        .set('Origin', 'https://b.com')
+        .set(GATEWAY_KEY_HEADER, RAW_KEY);
+
+      expect(response.status).toBe(403);
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        'BFF per-key origin rejected',
+        expect.objectContaining({ keyHash: fingerprintApiKey(RAW_KEY) }),
+      );
     });
 
     it('logs nothing when a restricted key sends no origin, which is not a browser', async () => {

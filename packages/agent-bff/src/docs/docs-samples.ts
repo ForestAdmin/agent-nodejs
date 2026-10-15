@@ -1,4 +1,4 @@
-import { BFF_KEY_HEADER } from '../api-key/api-key-middleware';
+import { GATEWAY_KEY_HEADER } from '../api-key/api-key-middleware';
 import { TIMEZONE_HEADER } from '../timezone/timezone-middleware';
 
 /** Neutral and always valid, where a local zone would only be right for whoever generated it. */
@@ -34,7 +34,7 @@ const SESSION_VARIABLE = 'BFF_SESSION';
  * all absent) and that is precisely what a hand-written sample forgets.
  */
 const SAMPLES_SCRIPT = `
-        var KEY_HEADER = ${JSON.stringify(BFF_KEY_HEADER)};
+        var KEY_HEADER = ${JSON.stringify(GATEWAY_KEY_HEADER)};
         var TIMEZONE_HEADER = ${JSON.stringify(TIMEZONE_HEADER)};
         var SAMPLE_TIMEZONE = ${JSON.stringify(SAMPLE_TIMEZONE)};
         var KEY_VARIABLE = ${JSON.stringify(KEY_VARIABLE)};

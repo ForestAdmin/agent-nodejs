@@ -5,10 +5,9 @@ import jsonwebtoken from 'jsonwebtoken';
 
 import { extractBearerToken, resolveAuthMode } from './auth-mode';
 import { issueAgentTokenFromPrincipal } from '../api-key/agent-token';
+import { readApiKey } from '../api-key/api-key-middleware';
 import { sessionExpired, unauthorized } from '../http/bff-http-error';
 import { BFF_ACCESS_TOKEN_TYPE } from '../oauth/bff-token';
-
-export const BFF_KEY_HEADER = 'X-Forest-Bff-Key';
 
 export interface AuthModeMiddlewareOptions {
   authSecret: string;
@@ -55,7 +54,7 @@ export default function createAuthModeMiddleware({
 }: AuthModeMiddlewareOptions): Middleware {
   return async function authModeMiddleware(ctx, next) {
     const bearer = extractBearerToken(ctx.get('Authorization'));
-    const apiKey = ctx.get(BFF_KEY_HEADER);
+    const apiKey = readApiKey(ctx);
 
     const mode = resolveAuthMode({ hasBearer: bearer !== undefined, hasApiKey: apiKey !== '' });
 
