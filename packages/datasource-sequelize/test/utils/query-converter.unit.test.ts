@@ -296,7 +296,9 @@ describe('Utils > QueryConverter', () => {
             stringValue,
             {
               [Op.or]: [
-                { __field_1__: { [Op.notLike]: `%${stringValue}%` } },
+                {
+                  __field_1__: { [Op.notLike]: { val: `'%${stringValue}%' ESCAPE '!'` } },
+                },
                 { __field_1__: { [Op.is]: null } },
               ],
             },
@@ -306,7 +308,9 @@ describe('Utils > QueryConverter', () => {
             stringValue,
             {
               [Op.or]: [
-                { __field_1__: { [Op.notILike]: `%${stringValue}%` } },
+                {
+                  __field_1__: { [Op.notILike]: { val: `'%${stringValue}%' ESCAPE '!'` } },
+                },
                 { __field_1__: { [Op.is]: null } },
               ],
             },
@@ -323,6 +327,35 @@ describe('Utils > QueryConverter', () => {
             expect(sequelizeFilter).toEqual(where);
           },
         );
+
+        it.each([
+          ['Contains', Op.like, '%a!_b!%!!%'],
+          ['IContains', Op.iLike, '%a!_b!%!!%'],
+          ['StartsWith', Op.like, 'a!_b!%!!%'],
+          ['IStartsWith', Op.iLike, 'a!_b!%!!%'],
+          ['EndsWith', Op.like, '%a!_b!%!!'],
+          ['IEndsWith', Op.iLike, '%a!_b!%!!'],
+        ])('should escape the wildcards of a "%s" value', (operator, comparator, pattern) => {
+          const conditionTree = new ConditionTreeLeaf('__field_1__', operator as Operator, 'a_b%!');
+          const queryConverter = new QueryConverter(setupModel());
+
+          expect(queryConverter.getWhereFromConditionTree(conditionTree)).toEqual({
+            __field_1__: { [comparator]: { val: `'${pattern}' ESCAPE '!'` } },
+          });
+        });
+
+        it('should lower both sides on a dialect without case-insensitive LIKE', () => {
+          const model = setupModel();
+          jest.spyOn(model.sequelize, 'getDialect').mockReturnValue('oracle');
+          const queryConverter = new QueryConverter(model);
+          const conditionTree = new ConditionTreeLeaf('__field_1__', 'IContains', 'A_b');
+
+          expect(queryConverter.getWhereFromConditionTree(conditionTree)).toEqual({
+            attribute: { fn: 'LOWER', args: [{ col: 'model.__field_1__' }] },
+            comparator: 'LIKE',
+            logic: { val: "'%a!_b%' ESCAPE '!'" },
+          });
+        });
 
         describe('with  "sqlite" dialect', () => {
           const model = setupModel('sqlite');
@@ -350,23 +383,9 @@ describe('Utils > QueryConverter', () => {
 
         describe('with "Like" operator', () => {
           it.each([
-            [
-              'mariadb',
-              {
-                attribute: { fn: 'BINARY', args: [{ col: 'model.__field_1__' }] },
-                comparator: 'LIKE',
-                logic: 'VaLuE',
-              },
-            ],
+            ['mariadb', { __field_1__: { [Op.like]: { val: "CAST('VaLuE' AS BINARY)" } } }],
             ['mssql', { __field_1__: { [Op.like]: 'VaLuE' } }],
-            [
-              'mysql',
-              {
-                attribute: { fn: 'BINARY', args: [{ col: 'model.__field_1__' }] },
-                comparator: 'LIKE',
-                logic: 'VaLuE',
-              },
-            ],
+            ['mysql', { __field_1__: { [Op.like]: { val: "CAST('VaLuE' AS BINARY)" } } }],
             ['postgres', { __field_1__: { [Op.like]: 'VaLuE' } }],
           ])('should generate a "where" Sequelize filter for "%s"', (dialect, where) => {
             const tree = new ConditionTreeLeaf('__field_1__', 'Like', 'VaLuE');
@@ -384,9 +403,9 @@ describe('Utils > QueryConverter', () => {
             [
               'mssql',
               {
-                attribute: { fn: 'LOWER', args: [{ col: 'model.__field_1__' }] },
-                comparator: 'LIKE',
-                logic: 'value',
+                __field_1__: {
+                  [Op.like]: { val: "N'VaLuE' COLLATE SQL_Latin1_General_CP1_CI_AS" },
+                },
               },
             ],
             ['mysql', { __field_1__: { [Op.like]: 'VaLuE' } }],

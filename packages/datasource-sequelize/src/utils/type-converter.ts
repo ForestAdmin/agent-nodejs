@@ -70,7 +70,18 @@ export default class TypeConverter {
       'LessThanOrEqual',
       'GreaterThanOrEqual',
     ];
-    const strings: Operator[] = ['Like', 'ILike', 'NotContains', 'NotIContains'];
+    const strings: Operator[] = [
+      'Like',
+      'ILike',
+      'Contains',
+      'IContains',
+      'StartsWith',
+      'IStartsWith',
+      'EndsWith',
+      'IEndsWith',
+      'NotContains',
+      'NotIContains',
+    ];
 
     if (typeof columnType === 'string') {
       if (['Boolean', 'Binary', 'Enum', 'Uuid'].includes(columnType)) {

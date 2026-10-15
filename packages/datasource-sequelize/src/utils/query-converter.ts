@@ -22,6 +22,12 @@ import { Op } from 'sequelize';
 
 import unAmbigousField from './un-ambigous';
 
+type LiteralPosition = 'anywhere' | 'start' | 'end';
+
+const LIKE_ESCAPE_CHARACTER = '!';
+const LIKE_SPECIAL_CHARACTERS = [LIKE_ESCAPE_CHARACTER, '%', '_'];
+const MSSQL_CASE_INSENSITIVE_COLLATION = 'SQL_Latin1_General_CP1_CI_AS';
+
 export default class QueryConverter {
   private model: ModelDefined<unknown, unknown>;
   private dialect: Dialect;
@@ -80,10 +86,22 @@ export default class QueryConverter {
         return this.makeLikeWhereClause(colName, field, value as string, true, false);
       case operator === 'ILike':
         return this.makeLikeWhereClause(colName, field, value as string, false, false);
+      case operator === 'Contains':
+        return this.makeLikeWhereClause(colName, field, `${value}`, true, false, 'anywhere');
+      case operator === 'IContains':
+        return this.makeLikeWhereClause(colName, field, `${value}`, false, false, 'anywhere');
+      case operator === 'StartsWith':
+        return this.makeLikeWhereClause(colName, field, `${value}`, true, false, 'start');
+      case operator === 'IStartsWith':
+        return this.makeLikeWhereClause(colName, field, `${value}`, false, false, 'start');
+      case operator === 'EndsWith':
+        return this.makeLikeWhereClause(colName, field, `${value}`, true, false, 'end');
+      case operator === 'IEndsWith':
+        return this.makeLikeWhereClause(colName, field, `${value}`, false, false, 'end');
       case operator === 'NotContains':
-        return this.makeLikeWhereClause(colName, field, `%${value}%`, true, true);
+        return this.makeLikeWhereClause(colName, field, `${value}`, true, true, 'anywhere');
       case operator === 'NotIContains':
-        return this.makeLikeWhereClause(colName, field, `%${value}%`, false, true);
+        return this.makeLikeWhereClause(colName, field, `${value}`, false, true, 'anywhere');
 
       // Arrays
       case operator === 'IncludesAll' && this.dialect === 'postgres':
@@ -172,6 +190,7 @@ export default class QueryConverter {
     value: string,
     caseSensitive: boolean,
     not: boolean,
+    literalPosition?: LiteralPosition,
   ): WhereOptions {
     const op = not ? 'NOT LIKE' : 'LIKE';
     let condition: WhereOptions;
@@ -183,31 +202,88 @@ export default class QueryConverter {
       if (this.dialect === 'sqlite') {
         const sqLiteOp = not ? 'NOT GLOB' : 'GLOB';
 
-        condition = this.where(
-          this.col(field),
-          sqLiteOp,
-          value.replace(/%/g, '*').replace(/_/g, '?'),
-        );
+        condition = this.where(this.col(field), sqLiteOp, this.makeGlob(value, literalPosition));
       } else if (this.dialect === 'mysql' || this.dialect === 'mariadb') {
-        condition = this.where(this.fn('BINARY', this.col(safeField)), op, value);
+        condition = {
+          [colName]: {
+            [not ? Op.notLike : Op.like]: this.makeLikePattern(value, literalPosition, {
+              binary: true,
+            }),
+          },
+        };
       } else {
-        condition = { [colName]: { [not ? Op.notLike : Op.like]: value } };
+        condition = {
+          [colName]: { [not ? Op.notLike : Op.like]: this.makeLikePattern(value, literalPosition) },
+        };
       }
 
       // Case insensitive
     } else if (this.dialect === 'postgres') {
-      condition = { [colName]: { [not ? Op.notILike : Op.iLike]: value } };
+      condition = {
+        [colName]: { [not ? Op.notILike : Op.iLike]: this.makeLikePattern(value, literalPosition) },
+      };
     } else if (
       this.dialect === 'mysql' ||
       this.dialect === 'mariadb' ||
       this.dialect === 'sqlite'
     ) {
-      condition = { [colName]: { [not ? Op.notLike : Op.like]: value } };
+      condition = {
+        [colName]: { [not ? Op.notLike : Op.like]: this.makeLikePattern(value, literalPosition) },
+      };
+    } else if (this.dialect === 'mssql') {
+      condition = {
+        [colName]: {
+          [not ? Op.notLike : Op.like]: this.makeLikePattern(value, literalPosition, {
+            collate: MSSQL_CASE_INSENSITIVE_COLLATION,
+          }),
+        },
+      };
     } else {
-      condition = this.where(this.fn('LOWER', this.col(safeField)), op, value.toLocaleLowerCase());
+      condition = this.where(
+        this.fn('LOWER', this.col(safeField)),
+        op,
+        this.makeLikePattern(value.toLowerCase(), literalPosition),
+      );
     }
 
     return not ? { [Op.or]: [condition, { [colName]: { [Op.is]: null } }] } : condition;
+  }
+
+  private makeLikePattern(
+    value: string,
+    literalPosition?: LiteralPosition,
+    { binary = false, collate }: { binary?: boolean; collate?: string } = {},
+  ): string | ReturnType<Sequelize['literal']> {
+    if (!literalPosition && !binary && !collate) return value;
+
+    const escaped = [...value]
+      .map(character =>
+        LIKE_SPECIAL_CHARACTERS.includes(character) ||
+        (this.dialect === 'mssql' && character === '[')
+          ? `${LIKE_ESCAPE_CHARACTER}${character}`
+          : character,
+      )
+      .join('');
+    const pattern = literalPosition
+      ? `${literalPosition === 'start' ? '' : '%'}${escaped}${literalPosition === 'end' ? '' : '%'}`
+      : value;
+    const escapedPattern = this.model.sequelize.escape(pattern);
+
+    return this.model.sequelize.literal(
+      `${binary ? `CAST(${escapedPattern} AS BINARY)` : escapedPattern}${
+        collate ? ` COLLATE ${collate}` : ''
+      }${literalPosition ? ` ESCAPE '${LIKE_ESCAPE_CHARACTER}'` : ''}`,
+    );
+  }
+
+  private makeGlob(value: string, literalPosition?: LiteralPosition): string {
+    if (!literalPosition) return value.replace(/%/g, '*').replace(/_/g, '?');
+
+    const escaped = value.replace(/[*?[]/g, '[$&]');
+
+    return `${literalPosition === 'start' ? '' : '*'}${escaped}${
+      literalPosition === 'end' ? '' : '*'
+    }`;
   }
 
   /*

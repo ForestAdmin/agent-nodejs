@@ -62,4 +62,5 @@ export { default as CollectionUtils } from './utils/collection';
 export { default as RecordUtils } from './utils/record';
 export { default as SchemaUtils } from './utils/schema';
 export { isDataUri, makeDataUri, parseDataUri } from './utils/data-uri';
+export { default as escapeRegExp } from './utils/escape-regexp';
 export { default as Deferred } from './deferred';
