@@ -441,6 +441,26 @@ describe('ConditionTree', () => {
         expect(leaf.apply(records, collection, 'Europe/Paris').map(r => r.id)).toEqual(ids);
       });
 
+      test.each([
+        ['IContains', 'a_b', ['a_b']],
+        ['IContains', '50%', ['50%']],
+        ['IContains', 'a(b', ['a(b']],
+        ['IContains', 'a.b', ['a.b']],
+        ['Contains', 'A_B', []],
+        ['IStartsWith', 'a_', ['a_b']],
+        ['IEndsWith', '%', ['50%']],
+      ] as const)('should match %s %j literally', (operator, value, titles) => {
+        const literals = ['a_b', 'axb', '50%', '500', 'a(b', 'a.b', 'acb'].map(title => ({
+          title,
+        }));
+
+        expect(
+          new ConditionTreeLeaf('title', operator, value)
+            .apply(literals, collection, 'Europe/Paris')
+            .map(r => r.title),
+        ).toEqual(titles);
+      });
+
       test('should keep every record matching a pattern, however many match in a row', () => {
         const alphas = [{ title: 'alpha' }, { title: 'alpha' }, { title: 'alpha' }];
 

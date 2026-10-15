@@ -11,6 +11,21 @@ function likes(getPattern: (pattern: string) => string, caseSensitive: boolean):
   };
 }
 
+function literal(getSource: (escaped: string) => string, caseSensitive: boolean): Alternative {
+  return {
+    dependsOn: ['Match'],
+    forTypes: ['String'],
+    replacer: leaf => {
+      const escaped = `${leaf.value}`.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+      return leaf.override({
+        operator: 'Match',
+        value: new RegExp(getSource(escaped), caseSensitive ? '' : 'i'),
+      });
+    },
+  };
+}
+
 function match(caseSensitive: boolean): Alternative {
   return {
     dependsOn: ['Match'],
@@ -31,12 +46,12 @@ function match(caseSensitive: boolean): Alternative {
 }
 
 export default (): Partial<Record<Operator, Alternative[]>> => ({
-  Contains: [likes(value => `%${value}%`, true)],
-  StartsWith: [likes(value => `${value}%`, true)],
-  EndsWith: [likes(value => `%${value}`, true)],
-  IContains: [likes(value => `%${value}%`, false)],
-  IStartsWith: [likes(value => `${value}%`, false)],
-  IEndsWith: [likes(value => `%${value}`, false)],
+  Contains: [literal(value => value, true), likes(value => `%${value}%`, true)],
+  StartsWith: [literal(value => `^${value}`, true), likes(value => `${value}%`, true)],
+  EndsWith: [literal(value => `${value}$`, true), likes(value => `%${value}`, true)],
+  IContains: [literal(value => value, false), likes(value => `%${value}%`, false)],
+  IStartsWith: [literal(value => `^${value}`, false), likes(value => `${value}%`, false)],
+  IEndsWith: [literal(value => `${value}$`, false), likes(value => `%${value}`, false)],
   ILike: [match(false)],
   Like: [match(true)],
 });
