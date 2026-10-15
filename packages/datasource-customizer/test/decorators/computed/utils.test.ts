@@ -105,6 +105,18 @@ describe('deduplication', () => {
     expect(result).toEqual(['computed', 'computed']);
   });
 
+  test('merges records holding the same symbol', async () => {
+    const symbol = Symbol('a');
+    const first = { value: symbol };
+    const second = { value: symbol };
+    const handler = jest.fn().mockResolvedValue(['computed']);
+
+    const result = await transformUniqueValues([first, second], handler);
+
+    expect(handler).toHaveBeenCalledWith([first]);
+    expect(result).toEqual(['computed', 'computed']);
+  });
+
   test.each([
     ['NaN and null', { value: NaN }, { value: null }],
     ['a date and its ISO string', { value: new Date(0) }, { value: new Date(0).toISOString() }],
@@ -116,6 +128,7 @@ describe('deduplication', () => {
     ['different buffers', { value: Buffer.from('a') }, { value: Buffer.from('b') }],
     ['different maps', { value: new Map([['a', 1]]) }, { value: new Map([['a', 2]]) }],
     ['a string holding a separator', { a: 'x,"b":"y' }, { a: 'x', b: 'y' }],
+    ['different symbols', { value: Symbol('a') }, { value: Symbol('b') }],
   ])('keeps %s apart', async (_, first, second) => {
     const handler = jest.fn().mockResolvedValue(['first', 'second']);
 

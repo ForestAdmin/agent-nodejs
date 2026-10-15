@@ -218,6 +218,42 @@ describe('ActionRoute', () => {
         // @ts-expect-error: test private method
         await expect(route.handleExecute.call(route, context)).rejects.toThrow();
       });
+
+      test('it should build the unscoped filter only when the approval asks for it', async () => {
+        const context = createMockContext({
+          ...baseContext,
+          requestBody: {
+            data: {
+              attributes: {
+                ...baseContext.requestBody.data.attributes,
+                values: { firstname: 'John' },
+                requester_id: 42,
+              },
+            },
+          },
+        });
+        const assertCanApprove = jest
+          // @ts-expect-error: test private property
+          .spyOn(route.actionAuthorizationService, 'assertCanApproveCustomAction')
+          .mockResolvedValue(undefined);
+
+        // @ts-expect-error: test private method
+        await route.handleExecute.call(route, context);
+
+        expect(services.authorization.getScope).toHaveBeenCalledTimes(1);
+
+        const [{ getFilterForAllCaller }] = assertCanApprove.mock.calls[0];
+        const filterForAllCaller = await getFilterForAllCaller();
+
+        expect(services.authorization.getScope).toHaveBeenCalledTimes(1);
+        expect(filterForAllCaller.conditionTree).toEqual(
+          expect.objectContaining({
+            field: 'id',
+            operator: 'Equal',
+            value: '123e4567-e89b-12d3-a456-426614174000',
+          }),
+        );
+      });
     });
 
     describe('when the request is a trigger', () => {
