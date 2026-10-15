@@ -11008,7 +11008,7 @@ is-plain-obj@^4.1.0:
   resolved "https://registry.yarnpkg.com/is-plain-obj/-/is-plain-obj-4.1.0.tgz#d65025edec3657ce032fd7db63c97883eaed71f0"
   integrity sha512-+Pgi+vMuUNkJyExiMBt5IlFoMyKnr5zhJ4Uspz58WOhBF5QoIZkFyNHIbBAtHwzVAgk5RtndVNsDRN61/mmDqg==
 
-is-plain-object@^5.1.0:
+is-plain-object@^5.0.0:
   version "5.1.0"
   resolved "https://registry.yarnpkg.com/is-plain-object/-/is-plain-object-5.1.0.tgz#22ed7b5e856bb57966348e5b9468dada42be87f4"
   integrity sha512-bUi/yjmtKYcRVUtWRGr0UA6xEFh2I6zWUwMrUXB3s7bmYCaZ8a+0ZsTRkrawh/mzlSD1Y0Ph8bp/U+TvBpWDNw==
@@ -12170,7 +12170,7 @@ koa@^3.0.1:
   dependencies:
     p-queue "6.6.2"
 
-launder@^1.7.2:
+launder@^1.7.1:
   version "1.7.2"
   resolved "https://registry.yarnpkg.com/launder/-/launder-1.7.2.tgz#5ddfddbcb565d208e4c702e94b043a11bfb32653"
   integrity sha512-DLg3HPnHUfBi5/MxMLmJD12dmlMpFEC2HgMW6vkZ/9JR0RU00kXoRGvDxAvFmdO0o610OA77i4FgNTLucmhDVg==
@@ -15377,7 +15377,7 @@ postcss-selector-parser@^7.0.0:
     cssesc "^3.0.0"
     util-deprecate "^1.0.2"
 
-postcss@^8.5.27:
+postcss@^8.3.11:
   version "8.5.30"
   resolved "https://registry.yarnpkg.com/postcss/-/postcss-8.5.30.tgz#f76f192357d2b7026b651fd2c7baa60d05325a9e"
   integrity sha512-zkd+e9S1AQHhmaBKye9zlFHWjOwVgqXl1q3ECYy8561K7qxR2cREf/STLskulBFd78k6AOFeA+ff1TtEzk9bAA==
@@ -16381,17 +16381,18 @@ safe-stable-stringify@^2.3.1:
   resolved "https://registry.yarnpkg.com/safer-buffer/-/safer-buffer-2.1.2.tgz#44fa161b0187b9549dd84bb91802f9bd8385cd6a"
   integrity sha512-YZo3K82SD7Riyi0E1EQPojLz7kpepnSQI9IyPbHHg1XXXevb5dJI7tpyN2ADxGcQbHG7vcyRHk0cbwqcQriUtg==
 
-sanitize-html@^2.17.7:
-  version "2.18.1"
-  resolved "https://registry.yarnpkg.com/sanitize-html/-/sanitize-html-2.18.1.tgz#a2b5447020db598fb65f6865bdf37e25e8cff09d"
-  integrity sha512-2X5lC8fYla8YaT8g73Nj+HcLWXan5dLyCWLgVvaOmfw7JI78IRsyNtIDytTHdn7hBQbIkCah7Zbmd5jabzeDig==
+sanitize-html@~2.17.7:
+  version "2.17.7"
+  resolved "https://registry.yarnpkg.com/sanitize-html/-/sanitize-html-2.17.7.tgz#b16417c348ea5f99c2451964b6e6621ca6b1da94"
+  integrity sha512-PGtEkc9cbnedU3s9TmzDbpsZ8w086g/0Q8k8/oIO1NLNU3i5k9yn835CrjJSajp1KMmkisbO1qPXxNKO3welAg==
   dependencies:
+    deepmerge "^4.2.2"
     escape-string-regexp "^4.0.0"
     htmlparser2 "^12.0.0"
-    is-plain-object "^5.1.0"
-    launder "^1.7.2"
+    is-plain-object "^5.0.0"
+    launder "^1.7.1"
     parse-srcset "^1.0.2"
-    postcss "^8.5.27"
+    postcss "^8.3.11"
 
 saslprep@1.0.3:
   version "1.0.3"
