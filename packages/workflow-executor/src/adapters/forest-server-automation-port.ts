@@ -17,6 +17,7 @@ import { toStepUser } from './step-user';
 import withRetry from './with-retry';
 import {
   AutomatedInboxGoneError,
+  UnreadableAutomatedInboxListingError,
   WorkflowExecutorError,
   WorkflowPortError,
   extractErrorMessage,
@@ -147,9 +148,7 @@ export default class ForestServerAutomationPort implements AutomationPort {
     const envelope = ServerAutomatedInboxesResponseSchema.safeParse(response);
 
     if (!envelope.success) {
-      throw new Error(
-        `Unreadable automated inbox listing from ${this.options.forestServerUrl}: ${envelope.error.message}`,
-      );
+      throw new UnreadableAutomatedInboxListingError(this.options.forestServerUrl, envelope.error);
     }
 
     const configs: AutomatedInbox[] = [];

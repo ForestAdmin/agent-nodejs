@@ -701,6 +701,18 @@ export class AutomatedInboxGoneError extends Error {
   }
 }
 
+// Boundary error — the orchestrator broke the listing's wire contract; ends the poll cycle, never
+// reaches a step executor.
+export class UnreadableAutomatedInboxListingError extends Error {
+  readonly cause: z.ZodError;
+
+  constructor(forestServerUrl: string, zodError: z.ZodError) {
+    super(`Unreadable automated inbox listing from ${forestServerUrl}: ${zodError.message}`);
+    this.name = 'UnreadableAutomatedInboxListingError';
+    this.cause = zodError;
+  }
+}
+
 export class SegmentRecordIdMissingError extends Error {
   constructor(collectionName: string) {
     super(

@@ -393,8 +393,14 @@ describe('AutomationPoller', () => {
       await jest.advanceTimersByTimeAsync(60_000);
       await poller.stop();
 
-      expect(context.automationPort.listAssignments).toHaveBeenCalledTimes(5);
-      expect(context.automationPort.sync).toHaveBeenCalledTimes(5);
+      const dispatched = ['inbox-1', 'inbox-2', 'inbox-3', 'inbox-4', 'inbox-5'];
+
+      expect(context.automationPort.listAssignments.mock.calls.map(([inboxId]) => inboxId)).toEqual(
+        dispatched,
+      );
+      expect(context.automationPort.sync.mock.calls.map(([inboxId]) => inboxId)).toEqual(
+        dispatched,
+      );
     });
 
     it('should sweep right away when it wins the lease back', async () => {
@@ -2481,7 +2487,11 @@ describe('AutomationPoller', () => {
 
       expect(maxOpen()).toBe(5);
       expect(context.automationPort.listAutomatedInboxes).toHaveBeenCalledTimes(1);
-      expect(context.automationPort.sync).toHaveBeenCalledTimes(12);
+      expect(context.automationPort.sync.mock.calls.map(([inboxId]) => inboxId).sort()).toEqual(
+        makeInboxes(12)
+          .map(({ inboxId }) => inboxId)
+          .sort(),
+      );
     });
 
     it('should hand the slot of a failed inbox to the next one right away', async () => {

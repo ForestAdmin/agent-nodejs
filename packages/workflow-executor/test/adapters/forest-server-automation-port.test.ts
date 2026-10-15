@@ -4,7 +4,11 @@ import { ServerUtils } from '@forestadmin/forestadmin-client';
 import { ZodError } from 'zod';
 
 import ForestServerAutomationPort from '../../src/adapters/forest-server-automation-port';
-import { AutomatedInboxGoneError, WorkflowPortError } from '../../src/errors';
+import {
+  AutomatedInboxGoneError,
+  UnreadableAutomatedInboxListingError,
+  WorkflowPortError,
+} from '../../src/errors';
 
 jest.mock('@forestadmin/forestadmin-client', () => ({
   ServerUtils: { query: jest.fn() },
@@ -344,9 +348,13 @@ describe('ForestServerAutomationPort', () => {
     it('should throw on an envelope it cannot read rather than report no inbox at all', async () => {
       mockQuery.mockResolvedValue({ data: { inboxes: [] } });
 
-      await expect(port.listAutomatedInboxes('w1')).rejects.toThrow(
+      const listing = port.listAutomatedInboxes('w1');
+
+      await expect(listing).rejects.toThrow(UnreadableAutomatedInboxListingError);
+      await expect(listing).rejects.toThrow(
         `Unreadable automated inbox listing from ${options.forestServerUrl}`,
       );
+      await expect(listing).rejects.toHaveProperty('cause', expect.any(ZodError));
     });
 
     it('should read a 404 as an orchestrator that has no such route', async () => {
