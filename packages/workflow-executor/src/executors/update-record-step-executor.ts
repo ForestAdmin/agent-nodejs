@@ -1,3 +1,4 @@
+import type { WorkflowExecutorError } from '../errors';
 import type { StepExecutionResult } from '../types/execution-context';
 import type { FieldWithValue, UpdateRecordStepExecutionData } from '../types/step-execution-data';
 import type { CollectionSchema, FieldSchema, RecordRef } from '../types/validated/collection';
@@ -10,6 +11,7 @@ import {
   FieldNotFoundError,
   FieldTypeMissingError,
   InvalidPreRecordedArgsError,
+  InvalidPreRecordedValueError,
   NoWritableFieldsError,
   PinnedArgNotFoundError,
   StepStateError,
@@ -120,6 +122,8 @@ function coerceFieldValue(
   fieldSchema: FieldSchema | undefined,
   value: unknown,
   collectionName: string,
+  toError: (fieldDisplayName: string, reason: string) => WorkflowExecutorError = (name, reason) =>
+    new StepStateError(`Invalid value for field "${name}": ${reason}`),
 ): unknown {
   // Field not found, relationship (type intentionally null), or explicit null → nothing to coerce.
   if (!fieldSchema || fieldSchema.isRelationship || value === null) return value;
@@ -127,10 +131,9 @@ function coerceFieldValue(
   const parsed = buildZodSchemaForField(fieldSchema, collectionName).safeParse(value);
 
   if (!parsed.success) {
-    throw new StepStateError(
-      `Invalid value for field "${fieldSchema.displayName}": ${parsed.error.issues
-        .map(issue => issue.message)
-        .join(', ')}`,
+    throw toError(
+      fieldSchema.displayName,
+      parsed.error.issues.map(issue => issue.message).join(', '),
     );
   }
 
@@ -226,27 +229,26 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     let fieldName: string;
     let value: unknown;
 
-    if (recordedField !== undefined && preRecordedArgs?.value !== undefined) {
-      fieldName = recordedField;
-      value = preRecordedArgs.value;
-    } else if (recordedField !== undefined) {
+    if (recordedField !== undefined) {
       const field = this.findFieldByTechnicalName(schema, recordedField);
       if (!field) throw new PinnedArgNotFoundError('field', recordedField, schema.collectionName);
       fieldName = recordedField;
-      value = await this.selectValueForField(schema, field, step.prompt);
+      value =
+        preRecordedArgs?.value !== undefined
+          ? coerceFieldValue(
+              field,
+              preRecordedArgs.value,
+              schema.collectionName,
+              (name, reason) => new InvalidPreRecordedValueError(name, reason),
+            )
+          : await this.selectValueForField(schema, field, step.prompt);
     } else {
       ({ fieldName, value } = await this.selectFieldAndValue(schema, step.prompt));
     }
 
     const field = this.findFieldByTechnicalName(schema, fieldName);
 
-    if (!field) {
-      // Reached with a pinned name only when field and value were both pre-recorded; the
-      // pinned-name-only branch above resolves the field before it gets here.
-      throw recordedField !== undefined
-        ? new PinnedArgNotFoundError('field', fieldName, schema.collectionName)
-        : new FieldNotFoundError(fieldName, schema.collectionName);
-    }
+    if (!field) throw new FieldNotFoundError(fieldName, schema.collectionName);
 
     const target: UpdateTarget = {
       selectedRecordRef,

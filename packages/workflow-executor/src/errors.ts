@@ -638,6 +638,16 @@ export class InvalidPreRecordedArgsError extends WorkflowConfigurationError {
   }
 }
 
+export class InvalidPreRecordedValueError extends WorkflowConfigurationError {
+  constructor(fieldDisplayName: string, reason: string) {
+    super(
+      `Invalid pre-recorded value for field "${fieldDisplayName}": ${reason}`,
+      `The value set on this step for the "${fieldDisplayName}" field is invalid: ${reason}. ` +
+        'Edit the step to set a valid value.',
+    );
+  }
+}
+
 // A "Related to" / "On record" source step ran but loaded no record, so the step that uses it has
 // no source to act on ("no source record"). Distinct from a bad config — the
 // user can continue without. Wording is step-type-neutral (shared by load-related and trigger-action).
