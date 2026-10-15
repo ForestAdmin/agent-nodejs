@@ -297,9 +297,7 @@ describe('Utils > QueryConverter', () => {
             {
               [Op.or]: [
                 {
-                  attribute: { col: 'model.__field_1__' },
-                  comparator: 'NOT LIKE',
-                  logic: { val: `'%${stringValue}%' ESCAPE '!'` },
+                  __field_1__: { [Op.notLike]: { val: `'%${stringValue}%' ESCAPE '!'` } },
                 },
                 { __field_1__: { [Op.is]: null } },
               ],
@@ -311,9 +309,7 @@ describe('Utils > QueryConverter', () => {
             {
               [Op.or]: [
                 {
-                  attribute: { col: 'model.__field_1__' },
-                  comparator: 'NOT ILIKE',
-                  logic: { val: `'%${stringValue}%' ESCAPE '!'` },
+                  __field_1__: { [Op.notILike]: { val: `'%${stringValue}%' ESCAPE '!'` } },
                 },
                 { __field_1__: { [Op.is]: null } },
               ],
@@ -333,20 +329,18 @@ describe('Utils > QueryConverter', () => {
         );
 
         it.each([
-          ['Contains', 'LIKE', '%a!_b!%!!%'],
-          ['IContains', 'ILIKE', '%a!_b!%!!%'],
-          ['StartsWith', 'LIKE', 'a!_b!%!!%'],
-          ['IStartsWith', 'ILIKE', 'a!_b!%!!%'],
-          ['EndsWith', 'LIKE', '%a!_b!%!!'],
-          ['IEndsWith', 'ILIKE', '%a!_b!%!!'],
+          ['Contains', Op.like, '%a!_b!%!!%'],
+          ['IContains', Op.iLike, '%a!_b!%!!%'],
+          ['StartsWith', Op.like, 'a!_b!%!!%'],
+          ['IStartsWith', Op.iLike, 'a!_b!%!!%'],
+          ['EndsWith', Op.like, '%a!_b!%!!'],
+          ['IEndsWith', Op.iLike, '%a!_b!%!!'],
         ])('should escape the wildcards of a "%s" value', (operator, comparator, pattern) => {
           const conditionTree = new ConditionTreeLeaf('__field_1__', operator as Operator, 'a_b%!');
           const queryConverter = new QueryConverter(setupModel());
 
           expect(queryConverter.getWhereFromConditionTree(conditionTree)).toEqual({
-            attribute: { col: 'model.__field_1__' },
-            comparator,
-            logic: { val: `'${pattern}' ESCAPE '!'` },
+            __field_1__: { [comparator]: { val: `'${pattern}' ESCAPE '!'` } },
           });
         });
 
@@ -376,23 +370,9 @@ describe('Utils > QueryConverter', () => {
 
         describe('with "Like" operator', () => {
           it.each([
-            [
-              'mariadb',
-              {
-                attribute: { fn: 'BINARY', args: [{ col: 'model.__field_1__' }] },
-                comparator: 'LIKE',
-                logic: 'VaLuE',
-              },
-            ],
+            ['mariadb', { __field_1__: { [Op.like]: { val: "CAST('VaLuE' AS BINARY)" } } }],
             ['mssql', { __field_1__: { [Op.like]: 'VaLuE' } }],
-            [
-              'mysql',
-              {
-                attribute: { fn: 'BINARY', args: [{ col: 'model.__field_1__' }] },
-                comparator: 'LIKE',
-                logic: 'VaLuE',
-              },
-            ],
+            ['mysql', { __field_1__: { [Op.like]: { val: "CAST('VaLuE' AS BINARY)" } } }],
             ['postgres', { __field_1__: { [Op.like]: 'VaLuE' } }],
           ])('should generate a "where" Sequelize filter for "%s"', (dialect, where) => {
             const tree = new ConditionTreeLeaf('__field_1__', 'Like', 'VaLuE');

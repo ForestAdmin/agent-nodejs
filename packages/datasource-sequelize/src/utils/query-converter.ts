@@ -22,6 +22,11 @@ import { Op } from 'sequelize';
 
 import unAmbigousField from './un-ambigous';
 
+type LiteralPosition = 'anywhere' | 'start' | 'end';
+
+const LIKE_ESCAPE_CHARACTER = '!';
+const LIKE_SPECIAL_CHARACTERS = [LIKE_ESCAPE_CHARACTER, '%', '_'];
+
 export default class QueryConverter {
   private model: ModelDefined<unknown, unknown>;
   private dialect: Dialect;
@@ -81,21 +86,21 @@ export default class QueryConverter {
       case operator === 'ILike':
         return this.makeLikeWhereClause(colName, field, value as string, false, false);
       case operator === 'Contains':
-        return this.makeLiteralWhereClause(colName, field, value, 'anywhere', true, false);
+        return this.makeLikeWhereClause(colName, field, `${value}`, true, false, 'anywhere');
       case operator === 'IContains':
-        return this.makeLiteralWhereClause(colName, field, value, 'anywhere', false, false);
+        return this.makeLikeWhereClause(colName, field, `${value}`, false, false, 'anywhere');
       case operator === 'StartsWith':
-        return this.makeLiteralWhereClause(colName, field, value, 'start', true, false);
+        return this.makeLikeWhereClause(colName, field, `${value}`, true, false, 'start');
       case operator === 'IStartsWith':
-        return this.makeLiteralWhereClause(colName, field, value, 'start', false, false);
+        return this.makeLikeWhereClause(colName, field, `${value}`, false, false, 'start');
       case operator === 'EndsWith':
-        return this.makeLiteralWhereClause(colName, field, value, 'end', true, false);
+        return this.makeLikeWhereClause(colName, field, `${value}`, true, false, 'end');
       case operator === 'IEndsWith':
-        return this.makeLiteralWhereClause(colName, field, value, 'end', false, false);
+        return this.makeLikeWhereClause(colName, field, `${value}`, false, false, 'end');
       case operator === 'NotContains':
-        return this.makeLiteralWhereClause(colName, field, value, 'anywhere', true, true);
+        return this.makeLikeWhereClause(colName, field, `${value}`, true, true, 'anywhere');
       case operator === 'NotIContains':
-        return this.makeLiteralWhereClause(colName, field, value, 'anywhere', false, true);
+        return this.makeLikeWhereClause(colName, field, `${value}`, false, true, 'anywhere');
 
       // Arrays
       case operator === 'IncludesAll' && this.dialect === 'postgres':
@@ -178,59 +183,13 @@ export default class QueryConverter {
     };
   }
 
-  private makeLiteralWhereClause(
-    colName: string,
-    field: string,
-    value: unknown,
-    position: 'anywhere' | 'start' | 'end',
-    caseSensitive: boolean,
-    not: boolean,
-  ): WhereOptions {
-    const literal = `${value}`;
-    const before = position === 'start' ? '' : '%';
-    const after = position === 'end' ? '' : '%';
-    const safeField = unAmbigousField(this.model, field, true);
-    let condition: WhereOptions;
-
-    if (caseSensitive && this.dialect === 'sqlite') {
-      const glob = literal.replace(/[*?[]/g, '[$&]');
-
-      condition = this.where(
-        this.col(field),
-        not ? 'NOT GLOB' : 'GLOB',
-        `${before.replace('%', '*')}${glob}${after.replace('%', '*')}`,
-      );
-    } else {
-      const specialCharacters = this.dialect === 'mssql' ? /[!%_[]/g : /[!%_]/g;
-      let pattern = `${before}${literal.replace(specialCharacters, '!$&')}${after}`;
-      let column: ReturnType<Sequelize['col']> | ReturnType<Sequelize['fn']> = this.col(safeField);
-      let op = 'LIKE';
-
-      if (caseSensitive && (this.dialect === 'mysql' || this.dialect === 'mariadb')) {
-        column = this.fn('BINARY', column);
-      } else if (!caseSensitive && this.dialect === 'postgres') {
-        op = 'ILIKE';
-      } else if (!caseSensitive && !['mysql', 'mariadb', 'sqlite'].includes(this.dialect)) {
-        column = this.fn('LOWER', column);
-        pattern = pattern.toLocaleLowerCase();
-      }
-
-      condition = this.where(
-        column,
-        not ? `NOT ${op}` : op,
-        this.model.sequelize.literal(`${this.model.sequelize.escape(pattern)} ESCAPE '!'`),
-      );
-    }
-
-    return not ? { [Op.or]: [condition, { [colName]: { [Op.is]: null } }] } : condition;
-  }
-
   private makeLikeWhereClause(
     colName: string,
     field: string,
     value: string,
     caseSensitive: boolean,
     not: boolean,
+    literalPosition?: LiteralPosition,
   ): WhereOptions {
     const op = not ? 'NOT LIKE' : 'LIKE';
     let condition: WhereOptions;
@@ -242,31 +201,78 @@ export default class QueryConverter {
       if (this.dialect === 'sqlite') {
         const sqLiteOp = not ? 'NOT GLOB' : 'GLOB';
 
-        condition = this.where(
-          this.col(field),
-          sqLiteOp,
-          value.replace(/%/g, '*').replace(/_/g, '?'),
-        );
+        condition = this.where(this.col(field), sqLiteOp, this.makeGlob(value, literalPosition));
       } else if (this.dialect === 'mysql' || this.dialect === 'mariadb') {
-        condition = this.where(this.fn('BINARY', this.col(safeField)), op, value);
+        condition = {
+          [colName]: {
+            [not ? Op.notLike : Op.like]: this.makeLikePattern(value, literalPosition, true),
+          },
+        };
       } else {
-        condition = { [colName]: { [not ? Op.notLike : Op.like]: value } };
+        condition = {
+          [colName]: { [not ? Op.notLike : Op.like]: this.makeLikePattern(value, literalPosition) },
+        };
       }
 
       // Case insensitive
     } else if (this.dialect === 'postgres') {
-      condition = { [colName]: { [not ? Op.notILike : Op.iLike]: value } };
+      condition = {
+        [colName]: { [not ? Op.notILike : Op.iLike]: this.makeLikePattern(value, literalPosition) },
+      };
     } else if (
       this.dialect === 'mysql' ||
       this.dialect === 'mariadb' ||
       this.dialect === 'sqlite'
     ) {
-      condition = { [colName]: { [not ? Op.notLike : Op.like]: value } };
+      condition = {
+        [colName]: { [not ? Op.notLike : Op.like]: this.makeLikePattern(value, literalPosition) },
+      };
     } else {
-      condition = this.where(this.fn('LOWER', this.col(safeField)), op, value.toLocaleLowerCase());
+      condition = this.where(
+        this.fn('LOWER', this.col(safeField)),
+        op,
+        this.makeLikePattern(value.toLowerCase(), literalPosition),
+      );
     }
 
     return not ? { [Op.or]: [condition, { [colName]: { [Op.is]: null } }] } : condition;
+  }
+
+  private makeLikePattern(
+    value: string,
+    literalPosition?: LiteralPosition,
+    binary = false,
+  ): string | ReturnType<Sequelize['literal']> {
+    if (!literalPosition && !binary) return value;
+
+    const escaped = [...value]
+      .map(character =>
+        LIKE_SPECIAL_CHARACTERS.includes(character) ||
+        (this.dialect === 'mssql' && character === '[')
+          ? `${LIKE_ESCAPE_CHARACTER}${character}`
+          : character,
+      )
+      .join('');
+    const pattern = literalPosition
+      ? `${literalPosition === 'start' ? '' : '%'}${escaped}${literalPosition === 'end' ? '' : '%'}`
+      : value;
+    const escapedPattern = this.model.sequelize.escape(pattern);
+
+    return this.model.sequelize.literal(
+      `${binary ? `CAST(${escapedPattern} AS BINARY)` : escapedPattern}${
+        literalPosition ? ` ESCAPE '${LIKE_ESCAPE_CHARACTER}'` : ''
+      }`,
+    );
+  }
+
+  private makeGlob(value: string, literalPosition?: LiteralPosition): string {
+    if (!literalPosition) return value.replace(/%/g, '*').replace(/_/g, '?');
+
+    const escaped = value.replace(/[*?[]/g, '[$&]');
+
+    return `${literalPosition === 'start' ? '' : '*'}${escaped}${
+      literalPosition === 'end' ? '' : '*'
+    }`;
   }
 
   /*

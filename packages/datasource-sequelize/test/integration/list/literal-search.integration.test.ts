@@ -1,6 +1,11 @@
-import type { Caller, Operator } from '@forestadmin/datasource-toolkit';
+import type { Caller, Collection, Operator } from '@forestadmin/datasource-toolkit';
 
-import { ConditionTreeLeaf, PaginatedFilter, Projection } from '@forestadmin/datasource-toolkit';
+import {
+  ConditionTreeLeaf,
+  Filter,
+  PaginatedFilter,
+  Projection,
+} from '@forestadmin/datasource-toolkit';
 import { DataTypes, Sequelize } from 'sequelize';
 
 import { createSequelizeDataSource } from '../../../src/index';
@@ -60,6 +65,7 @@ describe('Literal search values', () => {
   describe.each([sqlite, ...servers])('On $name', ({ open }) => {
     let sequelize: Sequelize;
     let list: (operator: Operator, value: string) => Promise<string[]>;
+    let collection: Collection;
 
     beforeAll(async () => {
       sequelize = await open();
@@ -67,9 +73,9 @@ describe('Literal search values', () => {
       await sequelize.sync({ force: true });
       await sequelize.models.Label.bulkCreate(TITLES.map(title => ({ title })));
 
-      const collection = (
-        await createSequelizeDataSource(sequelize)(jest.fn(), jest.fn())
-      ).getCollection('Label');
+      collection = (await createSequelizeDataSource(sequelize)(jest.fn(), jest.fn())).getCollection(
+        'Label',
+      );
 
       list = async (operator, value) => {
         const records = await collection.list(
@@ -101,6 +107,38 @@ describe('Literal search values', () => {
         'acb',
         'axb',
       ]);
+    });
+
+    it.each([
+      ['Contains', 'a_b', ['a_b']],
+      ['IContains', 'a_b', ['a_b', 'A_B']],
+    ] as const)(
+      'should update the records matching %s %j literally',
+      async (operator, value, titles) => {
+        const filter = new Filter({
+          conditionTree: new ConditionTreeLeaf('title', operator, value),
+        });
+
+        await collection.update(caller, filter, { title: `${operator} updated` });
+
+        expect(await list('Equal', `${operator} updated`)).toHaveLength(titles.length);
+        await collection.update(
+          caller,
+          new Filter({
+            conditionTree: new ConditionTreeLeaf('title', 'Equal', `${operator} updated`),
+          }),
+          { title: titles[0] },
+        );
+      },
+    );
+
+    it('should delete the records not matching a value literally', async () => {
+      await collection.delete(
+        caller,
+        new Filter({ conditionTree: new ConditionTreeLeaf('title', 'NotIContains', 'a_b') }),
+      );
+
+      expect(await list('Present', '')).toEqual(['a_b', 'a_b']);
     });
   });
 });
