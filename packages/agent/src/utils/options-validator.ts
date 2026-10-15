@@ -1,10 +1,9 @@
+import type * as SqlAuditStore from '../audit-trail/sql-store';
 import type { AgentOptions, AgentOptionsWithDefaults, AuditTrailRuntime } from '../types';
 
 import createForestAdminClient from '@forestadmin/forestadmin-client';
 import { existsSync } from 'fs';
 import path from 'path';
-
-import { createSqlAuditStore } from '../audit-trail';
 
 const DEFAULT_MINIMUM_CACHE_DURATION = 60;
 // One year cache duration when using events
@@ -104,7 +103,7 @@ export default class OptionsValidator {
 
     const auditTrail: AuditTrailRuntime | null = copyOptions.auditTrail
       ? (() => {
-          const { store, close } = createSqlAuditStore({
+          const { store, close } = OptionsValidator.loadSqlAuditStore().createSqlAuditStore({
             connectionString: copyOptions.auditTrail.connectionString,
             schema: copyOptions.auditTrail.schema,
             tableName: copyOptions.auditTrail.tableName,
@@ -124,6 +123,20 @@ export default class OptionsValidator {
       ...copyOptions,
       auditTrail,
     } as AgentOptionsWithDefaults;
+  }
+
+  // `sequelize` and `umzug` are optional peers: only an agent with the audit trail on loads them.
+  private static loadSqlAuditStore(): typeof SqlAuditStore {
+    try {
+      return require('../audit-trail/sql-store'); // eslint-disable-line @typescript-eslint/no-var-requires,global-require
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'MODULE_NOT_FOUND') throw error;
+
+      throw new Error(
+        'The audit trail requires the `sequelize` and `umzug` packages. ' +
+          'Install them with `npm install sequelize umzug`.',
+      );
+    }
   }
 
   static validate(options: AgentOptions): AgentOptionsWithDefaults {

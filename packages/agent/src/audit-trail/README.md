@@ -16,8 +16,11 @@ The audit trail has two decoupled parts, both handled by the agent:
 Pass an `auditTrail` option to `createAgent`. The agent constructs the SQL store, registers the
 CRUD hooks on every collection, and mounts the record-history routes only when this option is set.
 
-Sequelize does not bundle database drivers, so install the one matching `connectionString`'s
-dialect — e.g. `pg` and `pg-hstore` for PostgreSQL — even in an agent whose main datasource isn't SQL.
+The SQL store runs on `sequelize` and `umzug`, which the agent lists as optional peer dependencies:
+install them alongside the agent (`npm install sequelize umzug`), or it refuses to start with the
+audit trail on. An agent without the audit trail never loads them. Sequelize does not bundle
+database drivers either, so also install the one matching `connectionString`'s dialect — e.g. `pg`
+and `pg-hstore` for PostgreSQL — even in an agent whose main datasource isn't SQL.
 
 ```ts
 import { createAgent } from '@forestadmin/agent';
