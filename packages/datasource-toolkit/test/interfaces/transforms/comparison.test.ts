@@ -68,7 +68,7 @@ describe('ConditionTreeOperators > Comparison', () => {
           new ConditionTreeLeaf('column', 'In', ['something', 'else']),
           'Europe/Paris',
         ),
-      ).toEqual({ field: 'column', operator: 'Match', value: /^something|else$/g });
+      ).toEqual({ field: 'column', operator: 'Match', value: /^(?:something|else)$/g });
     });
 
     test('should be rewritten with multiple elements', () => {
@@ -81,9 +81,29 @@ describe('ConditionTreeOperators > Comparison', () => {
         aggregator: 'Or',
         conditions: [
           { field: 'column', operator: 'Equal', value: null },
-          { field: 'column', operator: 'Match', value: /^something|else$/g },
+          { field: 'column', operator: 'Match', value: /^(?:something|else)$/g },
         ],
       });
+    });
+  });
+
+  describe.each([
+    ['In', 0, ['a+b', 'x(y'], ['a+b', 'x(y'], ['aab', 'a+bc', 'xa+b', 'x']],
+    ['NotIn', 0, ['a+b', 'x(y'], ['aab', 'a+bc', 'xa+b', 'x'], ['a+b', 'x(y']],
+  ] as const)('%s => Match regexp', (operator, index, values, matching, notMatching) => {
+    const { value: regexp } = alternatives[operator]![index].replacer(
+      new ConditionTreeLeaf('column', operator, [...values]),
+      'Europe/Paris',
+    ) as ConditionTreeLeaf;
+
+    test.each(matching)('should match %j', candidate => {
+      (regexp as RegExp).lastIndex = 0;
+      expect((regexp as RegExp).test(candidate)).toBe(true);
+    });
+
+    test.each(notMatching)('should not match %j', candidate => {
+      (regexp as RegExp).lastIndex = 0;
+      expect((regexp as RegExp).test(candidate)).toBe(false);
     });
   });
 
@@ -131,7 +151,7 @@ describe('ConditionTreeOperators > Comparison', () => {
           new ConditionTreeLeaf('column', 'NotIn', ['something', 'else']),
           'Europe/Paris',
         ),
-      ).toEqual({ field: 'column', operator: 'Match', value: /(?!something|else)/g });
+      ).toEqual({ field: 'column', operator: 'Match', value: /^(?!(?:something|else)$)/g });
     });
 
     test('should be rewritten with multiple elements', () => {
@@ -144,7 +164,7 @@ describe('ConditionTreeOperators > Comparison', () => {
         aggregator: 'And',
         conditions: [
           { field: 'column', operator: 'NotEqual', value: null },
-          { field: 'column', operator: 'Match', value: /(?!something|else)/g },
+          { field: 'column', operator: 'Match', value: /^(?!(?:something|else)$)/g },
         ],
       });
     });

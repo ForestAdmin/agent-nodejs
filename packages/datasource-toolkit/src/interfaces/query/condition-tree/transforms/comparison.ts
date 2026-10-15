@@ -2,6 +2,7 @@ import type { Alternative } from '../equivalence';
 import type ConditionTree from '../nodes/base';
 import type { Operator } from '../nodes/operators';
 
+import escapeRegExp from '../../../../utils/escape-regexp';
 import ConditionTreeFactory from '../factory';
 import ConditionTreeBranch from '../nodes/branch';
 import ConditionTreeLeaf from '../nodes/leaf';
@@ -56,8 +57,8 @@ export default (): Partial<Record<Operator, Alternative[]>> => ({
         }
 
         if (values.some(v => v !== null && v !== '')) {
-          const escaped = values.filter(Boolean).map(str => str.replace(/[.|[\]]/g, m => `\\${m}`));
-          const regexp = new RegExp(`^${escaped.join('|')}$`, 'g');
+          const escaped = values.filter(Boolean).map(escapeRegExp);
+          const regexp = new RegExp(`^(?:${escaped.join('|')})$`, 'g');
           conditions.push(new ConditionTreeLeaf(leaf.field, 'Match', regexp));
         }
 
@@ -95,8 +96,8 @@ export default (): Partial<Record<Operator, Alternative[]>> => ({
         }
 
         if (values.some(v => v !== null && v !== '')) {
-          const escaped = values.filter(Boolean).map(str => str.replace(/[.|[\]]/g, m => `\\${m}`));
-          const regexp = new RegExp(`(?!${escaped.join('|')})`, 'g');
+          const escaped = values.filter(Boolean).map(escapeRegExp);
+          const regexp = new RegExp(`^(?!(?:${escaped.join('|')})$)`, 'g');
           conditions.push(new ConditionTreeLeaf(leaf.field, 'Match', regexp));
         }
 
