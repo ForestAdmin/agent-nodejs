@@ -13,7 +13,7 @@ import { Types, isValidObjectId } from 'mongoose';
 import MongooseSchema from '../../mongoose/schema';
 import VersionManager from '../version-manager';
 
-const STRING_OPERATORS = ['Match', 'NotContains', 'LongerThan', 'ShorterThan'];
+const STRING_OPERATORS = ['Match', 'NotContains', 'NotIContains', 'LongerThan', 'ShorterThan'];
 
 export enum FilterAtStage {
   Early = 'early',

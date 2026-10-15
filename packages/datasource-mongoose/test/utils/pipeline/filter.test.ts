@@ -54,6 +54,18 @@ describe('FilterGenerator', () => {
         ]);
       });
 
+      it('filter should stringify an ObjectId for NotIContains', () => {
+        const filter = new PaginatedFilter({
+          conditionTree: new ConditionTreeLeaf('author:identifier', 'NotIContains', 'ABC'),
+        });
+
+        const pipeline = FilterGenerator.filter(model, stack, filter);
+        expect(pipeline).toStrictEqual([
+          { $addFields: { 'author.string_identifier': { $toString: '$author.identifier' } } },
+          { $match: { 'author.string_identifier': { $not: /ABC/i } } },
+        ]);
+      });
+
       it('filter should generate a $nin for NotIn', () => {
         const filter = new PaginatedFilter({
           conditionTree: new ConditionTreeLeaf('title', 'NotIn', ['Foundation', 'Dune']),
