@@ -14,10 +14,7 @@ export default class Serializer {
   private readonly serializers: WeakMap<CollectionSchema, JsonApiSerializer> = new WeakMap();
 
   serialize(collection: Collection, data: RecordData | RecordData[]): unknown {
-    const result = this.getSerializer(collection).serialize(collection.name, data);
-    this.stripUndefinedsInPlace(result);
-
-    return result;
+    return this.getSerializer(collection).serialize(collection.name, data);
   }
 
   deserialize(collection: Collection, body: unknown): RecordData {
@@ -131,23 +128,5 @@ export default class Serializer {
     }
 
     return relationships;
-  }
-
-  private stripUndefinedsInPlace(record: unknown): void {
-    if (record !== null && typeof record === 'object') {
-      const keys = Object.keys(record);
-      let i = keys.length;
-
-      // eslint-disable-next-line no-plusplus
-      while (i--) {
-        const key = keys[i];
-
-        if (record[key] === undefined) {
-          delete record[key];
-        } else {
-          this.stripUndefinedsInPlace(record[key]);
-        }
-      }
-    }
   }
 }
