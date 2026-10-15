@@ -1,3 +1,10 @@
+# @forestadmin/agent-bff [1.42.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.41.0...@forestadmin/agent-bff@1.42.0) (2026-10-15)
+
+
+### Features
+
+* **agent-bff:** accept the x-forest-gateway-key header for api keys ([#2011](https://github.com/ForestAdmin/agent-nodejs/issues/2011)) ([da6946b](https://github.com/ForestAdmin/agent-nodejs/commit/da6946b62629ef4f6fb41cc3554a057da5263df6))
+
 # @forestadmin/agent-bff [1.41.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.40.1...@forestadmin/agent-bff@1.41.0) (2026-10-13)
 
 
