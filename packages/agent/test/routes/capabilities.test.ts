@@ -142,6 +142,19 @@ describe('Capabilities', () => {
         });
       });
 
+      test('should return nothing when collectionNames is not an array', async () => {
+        const context = createMockContext({
+          ...defaultContext,
+          requestBody: { collectionNames: { books: true } },
+        });
+
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        await route.fetchCapabilities(context);
+
+        expect((context.response.body as { collections: unknown[] }).collections).toEqual([]);
+      });
+
       test('should handle empty body', async () => {
         const context = createMockContext({
           ...defaultContext,

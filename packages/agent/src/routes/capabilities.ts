@@ -33,9 +33,8 @@ export default class Capabilities extends BaseRoute {
   }
 
   private async fetchCapabilities(context: Context) {
-    const requestedNames = new Set(
-      (context.request.body as { collectionNames: string[] }).collectionNames,
-    );
+    const { collectionNames } = (context.request.body ?? {}) as { collectionNames?: unknown };
+    const requestedNames = new Set(Array.isArray(collectionNames) ? collectionNames : []);
     this.allCollections ??= this.dataSource.collections;
     const collections = this.allCollections.filter(collection =>
       requestedNames.has(collection.name),
