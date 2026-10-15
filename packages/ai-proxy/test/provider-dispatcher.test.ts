@@ -53,6 +53,7 @@ const invokeMock = jest.fn().mockResolvedValue({
 const bindToolsMock = jest.fn().mockReturnValue({ invoke: invokeMock });
 
 jest.mock('@langchain/openai', () => ({
+  ...jest.requireActual('@langchain/openai'),
   ChatOpenAI: jest.fn().mockImplementation(() => ({
     invoke: invokeMock,
     bindTools: bindToolsMock,
