@@ -1863,6 +1863,7 @@ describe('UpdateRecordStepExecutor', () => {
         { fieldName: 'closedAt', displayName: 'Closed At', isRelationship: false, type: 'Date' },
         { fieldName: 'age', displayName: 'Age', isRelationship: false, type: 'Number' },
         { fieldName: 'isActive', displayName: 'Is Active', isRelationship: false, type: 'Boolean' },
+        { fieldName: 'legacy', displayName: 'Legacy', isRelationship: false },
       ];
 
       function makePrerecordedContext(
@@ -1943,6 +1944,31 @@ describe('UpdateRecordStepExecutor', () => {
         );
       });
 
+      it('writes an ISO datetime carrying a timezone offset', async () => {
+        const { executor, agentPort, context } = makePrerecordedContext(
+          'closedAt',
+          '2026-06-01T10:00:00+02:00',
+        );
+
+        const result = await executor.execute();
+
+        expect(result.stepOutcome.status).toBe('success');
+        expect(agentPort.updateRecord).toHaveBeenCalledWith(
+          { collection: 'customers', id: [42], values: { closedAt: '2026-06-01T10:00:00+02:00' } },
+          context.user,
+        );
+      });
+
+      it('fails as a configuration error on a datetime without a timezone', async () => {
+        const { executor, agentPort } = makePrerecordedContext('closedAt', '2026-06-01T10:00:00');
+
+        const result = await executor.execute();
+
+        expect(result.stepOutcome.status).toBe('error');
+        expect(result.stepOutcome.errorKind).toBe('configuration');
+        expect(agentPort.updateRecord).not.toHaveBeenCalled();
+      });
+
       it('fails as a configuration error on an impossible date', async () => {
         const { executor, agentPort } = makePrerecordedContext('closedAt', '2026-02-30T00:00:00Z');
 
@@ -1963,6 +1989,37 @@ describe('UpdateRecordStepExecutor', () => {
           { collection: 'customers', id: [42], values: { age: 12 } },
           context.user,
         );
+      });
+
+      it.each(['', '  '])(
+        'fails as a configuration error on the blank string %p instead of writing 0',
+        async value => {
+          const { executor, agentPort } = makePrerecordedContext('age', value);
+
+          const result = await executor.execute();
+
+          expect(result.stepOutcome.status).toBe('error');
+          expect(result.stepOutcome.errorKind).toBe('configuration');
+          expect(result.stepOutcome.error).toBe(
+            'The value set on this step for the "Age" field is invalid: ' +
+              'Invalid input: expected number, received NaN. Edit the step to set a valid value.',
+          );
+          expect(agentPort.updateRecord).not.toHaveBeenCalled();
+        },
+      );
+
+      it('fails as a configuration error when the pinned field has no column type', async () => {
+        const { executor, agentPort } = makePrerecordedContext('legacy', 'anything');
+
+        const result = await executor.execute();
+
+        expect(result.stepOutcome.status).toBe('error');
+        expect(result.stepOutcome.errorKind).toBe('configuration');
+        expect(result.stepOutcome.error).toBe(
+          "This field can't be updated because its type is missing from the schema. " +
+            'Contact your administrator if the problem persists.',
+        );
+        expect(agentPort.updateRecord).not.toHaveBeenCalled();
       });
 
       it('writes 0', async () => {
@@ -2574,6 +2631,27 @@ describe('UpdateRecordStepExecutor', () => {
       const { executor, agentPort } = makeCoercionContext(numberArrayField, null, {
         userConfirmed: true,
         value: ['abc'],
+      });
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        'An unexpected error occurred while processing this step.',
+      );
+      expect(agentPort.updateRecord).not.toHaveBeenCalled();
+    });
+
+    it('fails on a blank override to a Number field instead of writing 0', async () => {
+      const numberField = {
+        fieldName: 'age',
+        displayName: 'Age',
+        isRelationship: false,
+        type: 'Number' as const,
+      };
+      const { executor, agentPort } = makeCoercionContext(numberField, 30, {
+        userConfirmed: true,
+        value: '',
       });
 
       const result = await executor.execute();

@@ -65,11 +65,20 @@ function buildZodSchemaForPrimitive(
             return val;
           }, z.boolean());
     case 'Date':
-      return z.iso.datetime().describe('ISO 8601 datetime, e.g. 2024-06-01T00:00:00Z');
+      return z.iso
+        .datetime({ offset: true })
+        .describe('ISO 8601 datetime, e.g. 2024-06-01T00:00:00Z');
     case 'Dateonly':
       return z.iso.date().describe('ISO 8601 date, e.g. 2024-06-01');
     case 'Number':
-      return z.coerce.number();
+      // z.coerce.number() reads a blank string as 0; NaN makes it fail instead. Kept off the AI
+      // tool for the same JSON Schema reason as Boolean.
+      return forAiTool
+        ? z.coerce.number()
+        : z.preprocess(
+            val => (typeof val === 'string' && val.trim() === '' ? NaN : val),
+            z.coerce.number(),
+          );
     case 'Enum':
       if (enumValues && enumValues.length >= 2) {
         return z.enum(enumValues as [string, string, ...string[]]);
