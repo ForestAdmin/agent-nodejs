@@ -20,6 +20,27 @@ export type AsyncLeafReplacer = LeafHandler<Promise<ConditionTree | PlainConditi
 export type LeafTester = LeafHandler<boolean>;
 export type LeafCallback = LeafHandler<void>;
 
+type FieldMatcher = (record: RecordData, fieldValue: unknown) => boolean;
+
+const SUPPORTED_OPERATORS = new Set<Operator>([
+  'In',
+  'Equal',
+  'LessThan',
+  'GreaterThan',
+  'LessThanOrEqual',
+  'GreaterThanOrEqual',
+  'Match',
+  'StartsWith',
+  'EndsWith',
+  'LongerThan',
+  'ShorterThan',
+  'IncludesAll',
+  'IncludesNone',
+  'NotIn',
+  'NotEqual',
+  'NotContains',
+]);
+
 export default class ConditionTreeLeaf extends ConditionTree {
   field: string;
   operator: Operator;
@@ -83,73 +104,99 @@ export default class ConditionTreeLeaf extends ConditionTree {
     return result instanceof ConditionTree ? result : ConditionTreeFactory.fromPlainObject(result);
   }
 
+  override createMatcher(
+    collection: Collection,
+    timezone: string,
+  ): (record: RecordData) => boolean {
+    let evaluate: FieldMatcher;
+
+    return record => {
+      const fieldValue = RecordUtils.getFieldValue(record, this.field);
+      evaluate ??= this.resolveFieldMatcher(collection, timezone);
+
+      return evaluate(record, fieldValue);
+    };
+  }
+
   match(record: RecordData, collection: Collection, timezone: string): boolean {
-    const fieldValue = RecordUtils.getFieldValue(record, this.field);
+    return this.createMatcher(collection, timezone)(record);
+  }
+
+  private resolveFieldMatcher(collection: Collection, timezone: string): FieldMatcher {
     const { columnType } = CollectionUtils.getFieldSchema(collection, this.field) as ColumnSchema;
-    const supported = [
-      ...[
-        'In',
-        'Equal',
-        'LessThan',
-        'GreaterThan',
-        'LessThanOrEqual',
-        'GreaterThanOrEqual',
-        'Match',
-        'StartsWith',
-        'EndsWith',
-      ],
-      ...[
-        'LongerThan',
-        'ShorterThan',
-        'IncludesAll',
-        'IncludesNone',
-        'NotIn',
-        'NotEqual',
-        'NotContains',
-      ],
-    ] as const;
+    const { value } = this;
 
     switch (this.operator) {
       case 'In':
-        return (this.value as unknown[])?.includes(fieldValue);
+        return (_, fieldValue) => (value as unknown[])?.includes(fieldValue);
       case 'Equal':
-        return fieldValue == this.value; // eslint-disable-line eqeqeq
+        return (_, fieldValue) => fieldValue == value; // eslint-disable-line eqeqeq
       case 'LessThan':
-        return fieldValue < this.value;
+        return (_, fieldValue) => fieldValue < value;
       case 'GreaterThan':
-        return fieldValue > this.value;
+        return (_, fieldValue) => fieldValue > value;
       case 'LessThanOrEqual':
-        return fieldValue <= this.value;
+        return (_, fieldValue) => fieldValue <= value;
       case 'GreaterThanOrEqual':
-        return fieldValue >= this.value;
+        return (_, fieldValue) => fieldValue >= value;
       case 'Match':
-        return typeof fieldValue === 'string' && (this.value as RegExp).test(fieldValue);
+        return (_, fieldValue) =>
+          typeof fieldValue === 'string' && (value as RegExp).test(fieldValue);
       case 'StartsWith':
-        return typeof fieldValue === 'string' && fieldValue.startsWith(this.value as string);
+        return (_, fieldValue) =>
+          typeof fieldValue === 'string' && fieldValue.startsWith(value as string);
       case 'EndsWith':
-        return typeof fieldValue === 'string' && fieldValue.endsWith(this.value as string);
+        return (_, fieldValue) =>
+          typeof fieldValue === 'string' && fieldValue.endsWith(value as string);
       case 'LongerThan':
-        return typeof fieldValue === 'string' ? fieldValue.length > (this.value as number) : false;
+        return (_, fieldValue) =>
+          typeof fieldValue === 'string' ? fieldValue.length > (value as number) : false;
       case 'ShorterThan':
-        return typeof fieldValue === 'string' ? fieldValue.length < (this.value as number) : false;
+        return (_, fieldValue) =>
+          typeof fieldValue === 'string' ? fieldValue.length < (value as number) : false;
       case 'IncludesAll':
-        return !!(this.value as unknown[])?.every(v => (fieldValue as unknown[])?.includes(v));
+        return (_, fieldValue) =>
+          !!(value as unknown[])?.every(v => (fieldValue as unknown[])?.includes(v));
       case 'IncludesNone':
-        return !(this.value as unknown[])?.some(v => (fieldValue as unknown[])?.includes(v));
+        return (_, fieldValue) =>
+          !(value as unknown[])?.some(v => (fieldValue as unknown[])?.includes(v));
       case 'NotIn':
       case 'NotEqual':
       case 'NotContains':
       case 'NotIContains':
-        return !this.inverse().match(record, collection, timezone);
+        return this.createInverseMatcher(collection, timezone);
 
-      default:
-        return ConditionTreeEquivalent.getEquivalentTree(
+      default: {
+        const equivalent = ConditionTreeEquivalent.getEquivalentTree(
           this,
-          new Set(supported),
+          SUPPORTED_OPERATORS,
           columnType,
           timezone,
-        ).match(record, collection, timezone);
+        );
+
+        const matcher = equivalent.createMatcher(collection, timezone);
+        const statefulRegExps: RegExp[] = [];
+        equivalent.forEachLeaf(({ value: leafValue }) => {
+          if (leafValue instanceof RegExp && (leafValue.global || leafValue.sticky)) {
+            statefulRegExps.push(leafValue);
+          }
+        });
+
+        // The Like transforms build global regexps, whose `test` is stateful through `lastIndex`,
+        // and the equivalent tree is reused across records.
+        return record => {
+          for (const regExp of statefulRegExps) regExp.lastIndex = 0;
+
+          return matcher(record);
+        };
+      }
     }
+  }
+
+  private createInverseMatcher(collection: Collection, timezone: string): FieldMatcher {
+    const inverse = this.inverse().createMatcher(collection, timezone);
+
+    return record => !inverse(record);
   }
 
   override(params: Partial<PlainConditionTreeLeaf>): ConditionTreeLeaf {

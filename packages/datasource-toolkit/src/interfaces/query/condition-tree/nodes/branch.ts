@@ -70,10 +70,25 @@ export default class ConditionTreeBranch extends ConditionTree {
     );
   }
 
-  match(record: RecordData, collection: Collection, timezone: string): boolean {
+  override createMatcher(
+    collection: Collection,
+    timezone: string,
+  ): (record: RecordData) => boolean {
+    // A condition built by another copy of the toolkit (e.g. deduplicated in a plugin) may predate
+    // createMatcher.
+    const matchers = this.conditions.map(c =>
+      c.createMatcher
+        ? c.createMatcher(collection, timezone)
+        : (record: RecordData) => c.match(record, collection, timezone),
+    );
+
     return this.aggregator === 'And'
-      ? this.conditions.every(c => c.match(record, collection, timezone))
-      : this.conditions.some(c => c.match(record, collection, timezone));
+      ? record => matchers.every(matcher => matcher(record))
+      : record => matchers.some(matcher => matcher(record));
+  }
+
+  match(record: RecordData, collection: Collection, timezone: string): boolean {
+    return this.createMatcher(collection, timezone)(record);
   }
 
   toPlainObject(): PlainConditionTreeBranch {
