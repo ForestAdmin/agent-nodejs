@@ -71,8 +71,8 @@ export default class RenderingPermissionService {
     const collectionPermissions = permissions?.collections?.[collectionName];
 
     if (!collectionPermissions) {
-      if (allowRetry && this.refetchThrottle.tryAcquire(`${renderingId}`)) {
-        this.invalidateCache(renderingId);
+      if (allowRetry) {
+        this.tryForceRefetch(renderingId);
 
         return this.getScopeOrRetry({
           renderingId,
@@ -158,8 +158,8 @@ export default class RenderingPermissionService {
         !isSegmentQueryAllowedOnConnection(collectionPermissions, segmentQuery, connectionName)) ||
       !isSegmentQueryAllowed(segmentQuery, collectionPermissions.segments)
     ) {
-      if (allowRetry && this.refetchThrottle.tryAcquire(`${renderingId}`)) {
-        this.invalidateCache(renderingId);
+      if (allowRetry) {
+        this.tryForceRefetch(renderingId);
 
         return this.canExecuteSegmentQueryOrRetry({
           renderingId,
@@ -257,9 +257,8 @@ export default class RenderingPermissionService {
       return true;
     }
 
-    if (allowRetry && this.refetchThrottle.tryAcquire(`${renderingId}`)) {
-      this.invalidateCache(renderingId);
-      this.userPermissions.invalidateCache();
+    if (allowRetry) {
+      if (this.tryForceRefetch(renderingId)) this.userPermissions.invalidateCache();
 
       return this.canRetrieveChartHashOrRetry({
         renderingId,
@@ -275,6 +274,14 @@ export default class RenderingPermissionService {
     );
 
     return false;
+  }
+
+  private tryForceRefetch(renderingId: number | string): boolean {
+    if (!this.refetchThrottle.tryAcquire(`${renderingId}`)) return false;
+
+    this.invalidateCache(renderingId);
+
+    return true;
   }
 
   public invalidateCache(renderingId: number | string) {

@@ -1207,6 +1207,21 @@ describe('RenderingPermissionService', () => {
       expect(serverInterface.getRenderingPermissions).toHaveBeenCalledTimes(2);
     });
 
+    it('should share the refetch interval between the scope and chart paths', async () => {
+      const { renderingPermission, serverInterface, userPermission } = setupDenied();
+
+      await renderingPermission.getScope({ renderingId: 42, collectionName: 'books', userId: 1 });
+      const result = await renderingPermission.canExecuteChart({
+        renderingId: 42,
+        chartRequest,
+        userId: 1,
+      });
+
+      expect(result).toBe(false);
+      expect(serverInterface.getRenderingPermissions).toHaveBeenCalledTimes(2);
+      expect(userPermission.invalidateCache).not.toHaveBeenCalled();
+    });
+
     it('should refetch for a chart at most once within the refetch interval', async () => {
       const { renderingPermission, serverInterface, userPermission } = setupDenied();
 

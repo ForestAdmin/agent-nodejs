@@ -50,8 +50,8 @@ export default class ActionPermissionService {
     const permissions = await this.getPermissions();
     const isAllowed = this.isAllowed({ permissions, actionName, roleId });
 
-    if (!isAllowed && allowRefetch && this.refetchThrottle.tryAcquire(CACHE_KEY)) {
-      this.invalidateCache();
+    if (!isAllowed && allowRefetch) {
+      if (this.refetchThrottle.tryAcquire(CACHE_KEY)) this.invalidateCache();
 
       return this.hasPermissionOrRefetch({
         roleId,

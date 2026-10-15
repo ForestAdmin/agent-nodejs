@@ -46,6 +46,10 @@ describe('ActionPermissionService', () => {
     jest.clearAllMocks();
   });
 
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   describe('isDevelopmentPermission', () => {
     it('should return the value of isDevelopment', async () => {
       const { service } = setup({
@@ -167,6 +171,23 @@ describe('ActionPermissionService', () => {
         ]);
 
         expect(results).toEqual([false, false, false]);
+        expect(serverInterface.getEnvironmentPermissions).toHaveBeenCalledTimes(2);
+      });
+
+      it('should answer concurrent denials from the single refetch', async () => {
+        const { service, serverInterface } = setup(denied, {
+          isDevelopment: false,
+          actionsByRole: new Map(),
+          actionsGloballyAllowed: new Set(['action1', 'action2', 'action3']),
+        });
+
+        const results = await Promise.all([
+          service.can(10, 'action1'),
+          service.can(10, 'action2'),
+          service.can(10, 'action3'),
+        ]);
+
+        expect(results).toEqual([true, true, true]);
         expect(serverInterface.getEnvironmentPermissions).toHaveBeenCalledTimes(2);
       });
 
