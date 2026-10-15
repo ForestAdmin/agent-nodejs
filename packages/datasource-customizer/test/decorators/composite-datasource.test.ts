@@ -56,6 +56,27 @@ describe('CompositeDataSource', () => {
       );
     });
 
+    it('should throw when a third datasource clashes with the second one', () => {
+      const compositeDataSource = new CompositeDataSource<Collection>();
+      compositeDataSource.addDataSource(
+        factories.dataSource.buildWithCollection(
+          factories.collection.build({ name: 'collection1' }),
+        ),
+      );
+      compositeDataSource.addDataSource(
+        factories.dataSource.buildWithCollection(
+          factories.collection.build({ name: 'collection2' }),
+        ),
+      );
+      const clashingDataSource = factories.dataSource.buildWithCollection(
+        factories.collection.build({ name: 'collection2' }),
+      );
+
+      expect(() => compositeDataSource.addDataSource(clashingDataSource)).toThrow(
+        "Collection 'collection2' already exists",
+      );
+    });
+
     it('should throw an error if a chart name is already registered', () => {
       const compositeDataSource = new CompositeDataSource<Collection>();
       const aDataSource = factories.dataSource.buildWithCharts(['chart1']);
@@ -137,6 +158,24 @@ describe('CompositeDataSource', () => {
 
         expect(compositeDataSource.getCollection('comments')).toBe(lateCollection);
         expect(firstDataSource.getCollection).not.toHaveBeenCalled();
+      });
+
+      it('should throw the composite error when a child no longer has a known collection', () => {
+        secondDataSource.collections.splice(0, 1);
+
+        expect(() => compositeDataSource.getCollection('reviews')).toThrow(
+          new MissingCollectionError(
+            "Collection 'reviews' not found. List of available collections: " +
+              'authors, books, libraries',
+          ),
+        );
+      });
+
+      it('should find a known collection that moved to another child', () => {
+        const [movedCollection] = secondDataSource.collections.splice(0, 1);
+        firstDataSource.collections.push(movedCollection);
+
+        expect(compositeDataSource.getCollection('reviews')).toBe(movedCollection);
       });
     });
 

@@ -31,7 +31,14 @@ export default class CompositeDatasource<T extends Collection = Collection>
 
   getCollection(name: string): T {
     const knownDataSource = this.dataSourceByCollectionName.get(name);
-    if (knownDataSource) return knownDataSource.getCollection(name) as T;
+
+    if (knownDataSource) {
+      try {
+        return knownDataSource.getCollection(name) as T;
+      } catch {
+        this.dataSourceByCollectionName.delete(name);
+      }
+    }
 
     for (const dataSource of this.dataSources) {
       try {
