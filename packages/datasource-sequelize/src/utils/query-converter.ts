@@ -26,6 +26,7 @@ type LiteralPosition = 'anywhere' | 'start' | 'end';
 
 const LIKE_ESCAPE_CHARACTER = '!';
 const LIKE_SPECIAL_CHARACTERS = [LIKE_ESCAPE_CHARACTER, '%', '_'];
+const MSSQL_CASE_INSENSITIVE_COLLATION = 'SQL_Latin1_General_CP1_CI_AS';
 
 export default class QueryConverter {
   private model: ModelDefined<unknown, unknown>;
@@ -205,7 +206,9 @@ export default class QueryConverter {
       } else if (this.dialect === 'mysql' || this.dialect === 'mariadb') {
         condition = {
           [colName]: {
-            [not ? Op.notLike : Op.like]: this.makeLikePattern(value, literalPosition, true),
+            [not ? Op.notLike : Op.like]: this.makeLikePattern(value, literalPosition, {
+              binary: true,
+            }),
           },
         };
       } else {
@@ -227,6 +230,14 @@ export default class QueryConverter {
       condition = {
         [colName]: { [not ? Op.notLike : Op.like]: this.makeLikePattern(value, literalPosition) },
       };
+    } else if (this.dialect === 'mssql') {
+      condition = {
+        [colName]: {
+          [not ? Op.notLike : Op.like]: this.makeLikePattern(value, literalPosition, {
+            collate: MSSQL_CASE_INSENSITIVE_COLLATION,
+          }),
+        },
+      };
     } else {
       condition = this.where(
         this.fn('LOWER', this.col(safeField)),
@@ -241,9 +252,9 @@ export default class QueryConverter {
   private makeLikePattern(
     value: string,
     literalPosition?: LiteralPosition,
-    binary = false,
+    { binary = false, collate }: { binary?: boolean; collate?: string } = {},
   ): string | ReturnType<Sequelize['literal']> {
-    if (!literalPosition && !binary) return value;
+    if (!literalPosition && !binary && !collate) return value;
 
     const escaped = [...value]
       .map(character =>
@@ -260,8 +271,8 @@ export default class QueryConverter {
 
     return this.model.sequelize.literal(
       `${binary ? `CAST(${escapedPattern} AS BINARY)` : escapedPattern}${
-        literalPosition ? ` ESCAPE '${LIKE_ESCAPE_CHARACTER}'` : ''
-      }`,
+        collate ? ` COLLATE ${collate}` : ''
+      }${literalPosition ? ` ESCAPE '${LIKE_ESCAPE_CHARACTER}'` : ''}`,
     );
   }
 
