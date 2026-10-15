@@ -77,19 +77,21 @@ export default class SchemaUtils {
   ): RelationSchema {
     SchemaUtils.throwIfAccessingFieldFromRelation(relationName, collectionName);
 
-    const relations = Object.keys(schema.fields).filter(
-      name => schema.fields[name].type !== 'Column',
-    );
+    const field = Object.prototype.hasOwnProperty.call(schema.fields, relationName)
+      ? schema.fields[relationName]
+      : undefined;
 
-    if (!relations.find(name => name === relationName)) {
+    if (!field || field.type === 'Column') {
       throw new MissingRelationError({
         fieldName: relationName,
-        availableFields: relations,
+        availableFields: Object.keys(schema.fields).filter(
+          name => schema.fields[name].type !== 'Column',
+        ),
         collectionName,
       });
     }
 
-    return schema.fields[relationName] as RelationSchema;
+    return field;
   }
 
   static getPrimaryKeys(schema: CollectionSchema): string[] {
