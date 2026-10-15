@@ -3,6 +3,7 @@ import type { PlainConditionTree } from '../../src/interfaces/query/condition-tr
 import ConditionTreeFactory from '../../src/interfaces/query/condition-tree/factory';
 import ConditionTreeBranch from '../../src/interfaces/query/condition-tree/nodes/branch';
 import ConditionTreeLeaf from '../../src/interfaces/query/condition-tree/nodes/leaf';
+import CollectionUtils from '../../src/utils/collection';
 import * as factories from '../__factories__';
 
 describe('ConditionTree', () => {
@@ -370,6 +371,117 @@ describe('ConditionTree', () => {
           'Europe/Paris',
         ),
       ).toBeTruthy();
+    });
+
+    describe('apply()', () => {
+      const collection = factories.collection.build({
+        schema: factories.collectionSchema.build({
+          fields: {
+            id: factories.columnSchema.numericPrimaryKey().build(),
+            title: factories.columnSchema.build({ columnType: 'String' }),
+            price: factories.columnSchema.build({ columnType: 'Number' }),
+            tags: factories.columnSchema.build({ columnType: ['String'] }),
+            publishedAt: factories.columnSchema.build({ columnType: 'Date' }),
+          },
+        }),
+      });
+      const records = [
+        { id: 1, title: 'Alpha', price: 10, tags: ['a', 'b'], publishedAt: '2026-10-15T08:00:00Z' },
+        { id: 2, title: 'beta', price: 20, tags: ['b'], publishedAt: '2026-10-14T08:00:00Z' },
+        { id: 3, title: 'ALPHABET', price: null, tags: [], publishedAt: '2026-10-01T08:00:00Z' },
+        { id: 4, title: null, price: 30, tags: null, publishedAt: null },
+        {
+          id: 5,
+          title: 'alphanumeric',
+          price: 10,
+          tags: ['c'],
+          publishedAt: '2026-09-15T08:00:00Z',
+        },
+      ];
+
+      beforeEach(() => jest.useFakeTimers({ now: new Date('2026-10-15T12:00:00.000Z') }));
+      afterEach(() => jest.useRealTimers());
+
+      test.each([
+        ['title', 'Present', undefined, [1, 2, 3, 5]],
+        ['title', 'Blank', undefined, [4]],
+        ['title', 'Missing', undefined, [4]],
+        ['title', 'Equal', 'beta', [2]],
+        ['title', 'NotEqual', 'beta', [1, 3, 4, 5]],
+        ['price', 'LessThan', 20, [1, 3, 5]],
+        ['price', 'GreaterThan', 10, [2, 4]],
+        ['price', 'LessThanOrEqual', 20, [1, 2, 3, 5]],
+        ['price', 'GreaterThanOrEqual', 20, [2, 4]],
+        ['price', 'In', [10, 30], [1, 4, 5]],
+        ['price', 'NotIn', [10], [2, 3, 4]],
+        ['title', 'Like', '%pha%', [1, 5]],
+        ['title', 'ILike', '%PHA%', [1, 3, 5]],
+        ['title', 'Contains', 'pha', [1, 5]],
+        ['title', 'NotContains', 'pha', [2, 3, 4]],
+        ['title', 'IContains', 'alpha', [1, 3, 5]],
+        ['title', 'NotIContains', 'alpha', [2, 4]],
+        ['title', 'StartsWith', 'Al', [1]],
+        ['title', 'IStartsWith', 'al', [1, 3, 5]],
+        ['title', 'EndsWith', 'ta', [2]],
+        ['title', 'IEndsWith', 'BET', [3]],
+        ['title', 'LongerThan', 5, [3, 5]],
+        ['title', 'ShorterThan', 6, [1, 2]],
+        ['tags', 'IncludesAll', ['b'], [1, 2]],
+        ['tags', 'IncludesNone', ['b'], [3, 4, 5]],
+        ['publishedAt', 'Today', undefined, [1]],
+        ['publishedAt', 'Yesterday', undefined, [2]],
+        ['publishedAt', 'Past', undefined, [1, 2, 3, 5]],
+        ['publishedAt', 'PreviousXDays', 7, [2]],
+        ['publishedAt', 'PreviousMonth', undefined, [5]],
+        ['publishedAt', 'BeforeXHoursAgo', 5, [2, 3, 5]],
+        ['publishedAt', 'AfterXHoursAgo', 5, [1]],
+      ] as const)('should keep the right records for %s %s %j', (field, operator, value, ids) => {
+        const leaf = new ConditionTreeLeaf(field, operator, value);
+
+        expect(leaf.apply(records, collection, 'Europe/Paris').map(r => r.id)).toEqual(ids);
+      });
+
+      test('should resolve the field schema the same number of times whatever the record count', () => {
+        const filterTree = new ConditionTreeBranch('And', [
+          new ConditionTreeLeaf('title', 'IContains', 'alpha'),
+          new ConditionTreeLeaf('price', 'NotIn', [20]),
+        ]);
+        const getFieldSchema = jest.spyOn(CollectionUtils, 'getFieldSchema');
+
+        const callsFor = (count: number) => {
+          getFieldSchema.mockClear();
+          filterTree.apply(
+            Array.from({ length: count }, () => records[0]),
+            collection,
+            'Europe/Paris',
+          );
+
+          return getFieldSchema.mock.calls.length;
+        };
+
+        const callsForOneRecord = callsFor(1);
+        const callsForFiftyRecords = callsFor(50);
+        getFieldSchema.mockRestore();
+
+        expect(callsForFiftyRecords).toBe(callsForOneRecord);
+      });
+
+      test('should not resolve an unknown field when there is no record', () => {
+        const leaf = new ConditionTreeLeaf('unknown', 'IContains', 'alpha');
+
+        expect(leaf.apply([], collection, 'Europe/Paris')).toEqual([]);
+      });
+
+      test('should not resolve a condition that the aggregator never reaches', () => {
+        const filterTree = new ConditionTreeBranch('Or', [
+          new ConditionTreeLeaf('id', 'Present'),
+          new ConditionTreeLeaf('unknown', 'IContains', 'alpha'),
+        ]);
+
+        expect(filterTree.apply(records, collection, 'Europe/Paris').map(r => r.id)).toEqual([
+          1, 2, 3, 4, 5,
+        ]);
+      });
     });
 
     test('nest() should work', () => {
