@@ -1,45 +1,69 @@
 import hashRecord from 'object-hash';
 
-function toKey(value: unknown): string {
-  if (value === null) return 'z';
-  if (value === undefined) return 'u';
+function createKeyBuilder(): (value: unknown) => string {
+  const identities = new Map<unknown, number>();
+  const ancestors: object[] = [];
 
-  switch (typeof value) {
-    case 'string':
-      return JSON.stringify(value);
-    case 'number':
-      return `n${value}`;
-    case 'bigint':
-      return `i${value}`;
-    case 'boolean':
-      return `b${value}`;
-    case 'object':
-      break;
-    default:
-      return `h${hashRecord(value as object)}`;
+  function identityKey(value: unknown): string {
+    if (!identities.has(value)) identities.set(value, identities.size);
+
+    return `s${identities.get(value)}`;
   }
 
-  if (value instanceof Date) return `D${value.getTime()}`;
-  if (Buffer.isBuffer(value)) return `B${value.toString('base64')}`;
-  if (Array.isArray(value)) return `[${value.map(toKey).join(',')}]`;
+  function toKey(value: unknown): string {
+    if (value === null) return 'z';
+    if (value === undefined) return 'u';
 
-  const prototype = Object.getPrototypeOf(value);
+    switch (typeof value) {
+      case 'string':
+        return JSON.stringify(value);
+      case 'number':
+        return Object.is(value, -0) ? 'n-0' : `n${value}`;
+      case 'bigint':
+        return `i${value}`;
+      case 'boolean':
+        return `b${value}`;
+      case 'object':
+        break;
+      default:
+        return identityKey(value);
+    }
 
-  if (prototype === Object.prototype || prototype === null) {
-    const entries = Object.entries(value).map(
-      ([key, item]) => `${JSON.stringify(key)}:${toKey(item)}`,
-    );
+    if (value instanceof Date) return `D${value.getTime()}`;
+    if (Buffer.isBuffer(value)) return `B${value.toString('base64')}`;
 
-    return `{${entries.join(',')}}`;
+    const depth = ancestors.indexOf(value);
+    if (depth !== -1) return `^${ancestors.length - depth}`;
+
+    const prototype = Object.getPrototypeOf(value);
+    let key: string;
+
+    ancestors.push(value);
+
+    if (Array.isArray(value)) {
+      key = `[${Array.from(value, toKey).join(',')}]`;
+    } else if (prototype === Object.prototype || prototype === null) {
+      const entries = Object.entries(value).map(
+        ([name, item]) => `${JSON.stringify(name)}:${toKey(item)}`,
+      );
+      key = `{${entries.join(',')}}`;
+    } else {
+      key = `h${hashRecord(value)}`;
+    }
+
+    ancestors.pop();
+
+    return key;
   }
 
-  return `h${hashRecord(value)}`;
+  return toKey;
 }
 
 export default async function transformUniqueValues<Input, Output>(
   inputs: Input[],
   callback: (inputs: Input[]) => Promise<Output[]>,
 ): Promise<Output[]> {
+  const toKey = createKeyBuilder();
   const indexes = new Map<string, number>();
   const mapping: number[] = [];
   const uniqueInputs: Input[] = [];

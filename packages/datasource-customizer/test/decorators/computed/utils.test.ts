@@ -117,6 +117,32 @@ describe('deduplication', () => {
     expect(result).toEqual(['computed', 'computed']);
   });
 
+  test('merges structurally equal records holding a cycle', async () => {
+    const first: Record<string, unknown> = { title: 'Foundation' };
+    const second: Record<string, unknown> = { title: 'Foundation' };
+    first.self = first;
+    second.self = second;
+    const handler = jest.fn().mockResolvedValue(['computed']);
+
+    const result = await transformUniqueValues([first, second], handler);
+
+    expect(handler).toHaveBeenCalledWith([first]);
+    expect(result).toEqual(['computed', 'computed']);
+  });
+
+  test('keeps records holding a cycle apart when their values differ', async () => {
+    const first: Record<string, unknown> = { title: 'Foundation' };
+    const second: Record<string, unknown> = { title: 'Dune' };
+    first.self = first;
+    second.self = second;
+    const handler = jest.fn().mockResolvedValue(['first', 'second']);
+
+    const result = await transformUniqueValues([first, second], handler);
+
+    expect(handler).toHaveBeenCalledWith([first, second]);
+    expect(result).toEqual(['first', 'second']);
+  });
+
   test.each([
     ['NaN and null', { value: NaN }, { value: null }],
     ['a date and its ISO string', { value: new Date(0) }, { value: new Date(0).toISOString() }],
@@ -129,6 +155,9 @@ describe('deduplication', () => {
     ['different maps', { value: new Map([['a', 1]]) }, { value: new Map([['a', 2]]) }],
     ['a string holding a separator', { a: 'x,"b":"y' }, { a: 'x', b: 'y' }],
     ['different symbols', { value: Symbol('a') }, { value: Symbol('b') }],
+    ['different symbols with the same description', { value: Symbol('a') }, { value: Symbol('a') }],
+    ['zero and negative zero', { value: 0 }, { value: -0 }],
+    ['an array with a hole and an empty array', { value: [,] }, { value: [] }], // eslint-disable-line no-sparse-arrays
   ])('keeps %s apart', async (_, first, second) => {
     const handler = jest.fn().mockResolvedValue(['first', 'second']);
 
