@@ -12,6 +12,7 @@ function removeNotExistRecord(record: Record<string, unknown>): Record<string, u
     if (
       value &&
       typeof value === 'object' &&
+      !ArrayBuffer.isView(value) &&
       Object.values(value).find(v => v === FOREST_RECORD_DOES_NOT_EXIST)
     ) {
       record[key] = null;
