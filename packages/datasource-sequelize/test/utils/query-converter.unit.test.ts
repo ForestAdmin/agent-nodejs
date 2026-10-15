@@ -344,6 +344,19 @@ describe('Utils > QueryConverter', () => {
           });
         });
 
+        it('should lower both sides on a dialect without case-insensitive LIKE', () => {
+          const model = setupModel();
+          jest.spyOn(model.sequelize, 'getDialect').mockReturnValue('oracle');
+          const queryConverter = new QueryConverter(model);
+          const conditionTree = new ConditionTreeLeaf('__field_1__', 'IContains', 'A_b');
+
+          expect(queryConverter.getWhereFromConditionTree(conditionTree)).toEqual({
+            attribute: { fn: 'LOWER', args: [{ col: 'model.__field_1__' }] },
+            comparator: 'LIKE',
+            logic: { val: "'%a!_b%' ESCAPE '!'" },
+          });
+        });
+
         describe('with  "sqlite" dialect', () => {
           const model = setupModel('sqlite');
           const queryConverter = new QueryConverter(model);
