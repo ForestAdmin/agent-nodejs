@@ -166,6 +166,32 @@ describe('SchemaUtils', () => {
           SchemaUtils.getRelation(factories.collectionSchema.build(), 'relation'),
         ).toThrow(MissingRelationError);
       });
+
+      it('should list only the available relations in the error', () => {
+        const schema = factories.collectionSchema.build({
+          fields: {
+            id: factories.columnSchema.uuidPrimaryKey().build(),
+            author: factories.manyToOneSchema.build(),
+            books: factories.oneToManySchema.build(),
+          },
+        });
+
+        expect(() => SchemaUtils.getRelation(schema, 'publisher', 'books')).toThrow(
+          new MissingRelationError({
+            fieldName: 'publisher',
+            availableFields: ['author', 'books'],
+            collectionName: 'books',
+          }),
+        );
+      });
+    });
+
+    describe('when field name matches an inherited object property', () => {
+      it('should throw an error', () => {
+        expect(() =>
+          SchemaUtils.getRelation(factories.collectionSchema.build(), 'constructor'),
+        ).toThrow(MissingRelationError);
+      });
     });
 
     describe('when relation exists', () => {
@@ -182,6 +208,19 @@ describe('SchemaUtils', () => {
       it('should throw an error', () => {
         expect(() => SchemaUtils.getRelation(factories.collectionSchema.build(), 'field')).toThrow(
           MissingRelationError,
+        );
+      });
+
+      it('should throw an error listing the relations when the field is an existing column', () => {
+        const schema = factories.collectionSchema.build({
+          fields: {
+            title: factories.columnSchema.build(),
+            author: factories.manyToOneSchema.build(),
+          },
+        });
+
+        expect(() => SchemaUtils.getRelation(schema, 'title')).toThrow(
+          new MissingRelationError({ fieldName: 'title', availableFields: ['author'] }),
         );
       });
     });
