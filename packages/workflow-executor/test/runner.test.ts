@@ -852,6 +852,46 @@ describe('polling loop', () => {
       await drainRuns(runner);
     });
 
+    it('hands back the runs a poll brought back beyond the slots a trigger took meanwhile', async () => {
+      const workflowPort = createMockWorkflowPort();
+      const logger = createMockLogger();
+      const releases = blockExecutions(10);
+
+      let answer: (value: Awaited<ReturnType<WorkflowPort['getAvailableRuns']>>) => void = () => {};
+
+      workflowPort.getAvailableRuns.mockReturnValueOnce(
+        new Promise(resolve => {
+          answer = resolve;
+        }),
+      );
+      workflowPort.getAvailableRun.mockResolvedValue(makePendingDispatch({ runId: 'run-T' }));
+      runner = new Runner(createRunnerConfig({ workflowPort, logger }));
+      await runner.start();
+
+      jest.advanceTimersByTime(POLLING_INTERVAL_MS);
+      await flushPromises();
+      await runner.triggerPoll('run-T');
+      answer({
+        pending: batchOf(10).map((dispatch, index) => ({ ...dispatch, lockedAt: `lock-${index}` })),
+        malformed: [],
+      });
+      await flushPromises();
+      await flushPromises();
+
+      expect(workflowPort.getAvailableRuns).toHaveBeenCalledWith(10);
+      expect(executeSpy).toHaveBeenCalledTimes(10);
+      expect(workflowPort.releaseRun).toHaveBeenCalledTimes(1);
+      expect(workflowPort.releaseRun).toHaveBeenCalledWith('run-9', 'lock-9');
+      expect(logger).toHaveBeenCalledWith(
+        'Info',
+        'Poll answered with more runs than free slots, handing the extra back',
+        { runIds: ['run-9'] },
+      );
+
+      releases.forEach(release => release());
+      await drainRuns(runner);
+    });
+
     it('hands back, without starting, what a poll brought back after stop() began', async () => {
       const logger = createMockLogger();
       const workflowPort = createMockWorkflowPort();

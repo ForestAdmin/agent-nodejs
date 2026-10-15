@@ -266,18 +266,34 @@ export default class Runner {
       // Each reportMalformedRun has its own try/catch, no individual failure poisons the cycle.
       await Promise.allSettled(malformed.map(info => this.reportMalformedRun(info)));
 
-      const dispatchable = pending.filter(d => !this.inFlightRuns.has(d.step.runId));
+      const claimed = pending.filter(d => !this.inFlightRuns.has(d.step.runId));
 
       if (this._state !== 'running') {
         this.logger('Info', 'Poll answered after stop began, handing the claimed runs back', {
-          runIds: dispatchable.map(d => d.step.runId),
+          runIds: claimed.map(d => d.step.runId),
         });
-        await Promise.all(dispatchable.map(d => this.handBack(d)));
+        await Promise.all(claimed.map(d => this.handBack(d)));
 
         return;
       }
 
+      // A trigger may have taken a slot while the poll was awaited.
+      const slotsLeft = Math.max(0, MAX_CONCURRENT_RUNS - this.inFlightRuns.size);
+      const dispatchable = claimed.slice(0, slotsLeft);
+      const overCapacity = claimed.slice(slotsLeft);
+
       dispatchable.forEach(d => this.dispatchDetached(d.step, d.auth.forestServerToken));
+
+      if (overCapacity.length) {
+        this.logger(
+          'Info',
+          'Poll answered with more runs than free slots, handing the extra back',
+          {
+            runIds: overCapacity.map(d => d.step.runId),
+          },
+        );
+        await Promise.all(overCapacity.map(d => this.handBack(d)));
+      }
 
       const logLevel = Runner.getPollingLogLevel({
         pending: pending.length,
@@ -289,8 +305,8 @@ export default class Runner {
         fetched: pending.length,
         dispatching: dispatchable.length,
         malformed: malformed.length,
-        ...(dispatchable.length < pending.length && {
-          alreadyInFlight: pending.filter(d => !dispatchable.includes(d)).map(d => d.step.runId),
+        ...(claimed.length < pending.length && {
+          alreadyInFlight: pending.filter(d => !claimed.includes(d)).map(d => d.step.runId),
         }),
       });
     } catch (error) {
