@@ -200,7 +200,7 @@ describe('SchemaUtils', () => {
           fields: { relation: factories.manyToManySchema.build() },
         });
 
-        expect(SchemaUtils.getRelation(schema, 'relation')).toEqual(schema.fields.relation);
+        expect(SchemaUtils.getRelation(schema, 'relation')).toBe(schema.fields.relation);
       });
     });
 
