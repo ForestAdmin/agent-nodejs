@@ -1,5 +1,6 @@
 import vm from 'vm';
 
+import { GATEWAY_KEY_HEADER } from '../../src/api-key/api-key-middleware';
 import renderDocsPage from '../../src/docs/docs-page';
 import { REDOC_THEME } from '../../src/docs/docs-theme';
 
@@ -51,6 +52,7 @@ function extractInlineScript(html: string): string {
 function runPage() {
   const elements = new Map(ELEMENT_IDS.map(id => [id, createElement()]));
   const pending: PendingResponse[] = [];
+  const fetchCalls: { url: string; init: { headers?: Record<string, string> } }[] = [];
   const redocInit = jest.fn();
 
   const sandbox = {
@@ -61,8 +63,9 @@ function runPage() {
     window: { location: { origin: ORIGIN } },
     document: { getElementById: (id: string) => elements.get(id) ?? null },
     Redoc: { init: redocInit },
-    fetch: () =>
+    fetch: (url: string, init: { headers?: Record<string, string> }) =>
       new Promise((resolveFetch, rejectFetch) => {
+        fetchCalls.push({ url, init });
         pending.push({
           resolve({ ok, status, body }) {
             resolveFetch({ ok, status, text: () => Promise.resolve(JSON.stringify(body)) });
@@ -83,6 +86,7 @@ function runPage() {
   return {
     redocInit,
     pending,
+    fetchCalls,
     errorShown: () => errorBox.attributes['data-shown'] !== undefined,
     errorText: () => errorBox.textContent,
     promptHidden: () => (elements.get('unlock') as FakeElement).style.display === 'none',
@@ -103,7 +107,7 @@ function runPage() {
 const API_KEY_SPEC = {
   components: {
     securitySchemes: {
-      bffApiKey: { type: 'apiKey', in: 'header', name: 'X-Forest-Bff-Key' },
+      bffApiKey: { type: 'apiKey', in: 'header', name: 'X-Forest-Gateway-Key' },
       bffSession: { type: 'http', scheme: 'bearer' },
     },
     schemas: {
@@ -192,6 +196,19 @@ describe('docs page shell', () => {
 });
 
 describe('docs page script', () => {
+  it('should send the typed key in X-Forest-Gateway-Key when fetching the document', () => {
+    const page = runPage();
+
+    page.submit('typed-key');
+
+    expect(page.fetchCalls).toEqual([
+      {
+        url: DOCUMENT_PATH,
+        init: expect.objectContaining({ headers: { [GATEWAY_KEY_HEADER]: 'typed-key' } }),
+      },
+    ]);
+  });
+
   describe('when a submission is abandoned for another one', () => {
     it('should ignore the abandoned error, since it did not come from the key on screen', async () => {
       const page = runPage();
@@ -354,7 +371,7 @@ describe('the code samples the docs page injects', () => {
     expect(page.sourceOf(RELATION, 'cURL')).toBe(
       [
         `curl -X POST '${ORIGIN}/agent/v1/My%20Coll/relations/orders/list' \\`,
-        '  -H "X-Forest-Bff-Key: $BFF_KEY" \\',
+        '  -H "X-Forest-Gateway-Key: $BFF_KEY" \\',
         "  -H 'X-Forest-Timezone: UTC' \\",
         "  -H 'Content-Type: application/json' \\",
         `  -d '{"parentId":"<parentId>"}'`,
@@ -393,8 +410,8 @@ describe('the code samples the docs page injects', () => {
     const page = await render(API_KEY_SPEC);
     const curl = page.sourceOf(RELATION, 'cURL');
 
-    expect(curl).toContain('  -H "X-Forest-Bff-Key: $BFF_KEY"');
-    expect(curl).not.toContain("'X-Forest-Bff-Key: $BFF_KEY'");
+    expect(curl).toContain('  -H "X-Forest-Gateway-Key: $BFF_KEY"');
+    expect(curl).not.toContain("'X-Forest-Gateway-Key: $BFF_KEY'");
     expect(curl).toContain("  -H 'X-Forest-Timezone: UTC'");
   });
 
@@ -416,7 +433,7 @@ describe('the code samples the docs page injects', () => {
     const page = await render(API_KEY_SPEC);
 
     expect(page.sourceOf(AI_QUERY, 'cURL')).toContain('-H "Authorization: Bearer $BFF_SESSION"');
-    expect(page.sourceOf(AI_QUERY, 'cURL')).not.toContain('X-Forest-Bff-Key');
+    expect(page.sourceOf(AI_QUERY, 'cURL')).not.toContain('X-Forest-Gateway-Key');
   });
 
   it('should not sample the unlock key on the session-only route, which answers 403 to it', async () => {
@@ -434,7 +451,7 @@ describe('the code samples the docs page injects', () => {
     const page = await render(API_KEY_SPEC);
 
     [LIST, ACTION].forEach(path => {
-      expect(page.sourceOf(path, 'cURL')).toContain('-H "X-Forest-Bff-Key: $BFF_KEY"');
+      expect(page.sourceOf(path, 'cURL')).toContain('-H "X-Forest-Gateway-Key: $BFF_KEY"');
       expect(page.sourceOf(path, 'cURL')).not.toContain('Authorization');
     });
   });
@@ -455,7 +472,7 @@ describe('the code samples the docs page injects', () => {
         `const response = await fetch("${ORIGIN}/agent/v1/My%20Coll/relations/orders/list", {`,
         '  method: "POST",',
         '  headers: {',
-        '    "X-Forest-Bff-Key": process.env.BFF_KEY,',
+        '    "X-Forest-Gateway-Key": process.env.BFF_KEY,',
         '    "X-Forest-Timezone": "UTC",',
         '    "Content-Type": "application/json",',
         '  },',
@@ -473,7 +490,7 @@ describe('the code samples the docs page injects', () => {
     const page = await render(API_KEY_SPEC);
 
     expect(page.sourceOf(RELATION, 'Ruby')).toContain(
-      "request['X-Forest-Bff-Key'] = ENV.fetch('BFF_KEY')",
+      "request['X-Forest-Gateway-Key'] = ENV.fetch('BFF_KEY')",
     );
     expect(page.sourceOf(AI_QUERY, 'Ruby')).toContain(
       `request['Authorization'] = "Bearer #{ENV.fetch('BFF_SESSION')}"`,
