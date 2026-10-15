@@ -3,7 +3,14 @@
 import type { Aggregator, ConditionTreeLeaf, Operator } from '@forestadmin/datasource-toolkit';
 import type { Connection } from 'mongoose';
 
-import { Page, PaginatedFilter, Projection, Sort } from '@forestadmin/datasource-toolkit';
+import {
+  ConditionTreeEquivalent,
+  ConditionTreeLeaf as Leaf,
+  Page,
+  PaginatedFilter,
+  Projection,
+  Sort,
+} from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 import { Types } from 'mongoose';
 
@@ -146,6 +153,45 @@ describe('MongooseCollection', () => {
       );
 
       expect(records).toEqual([{ nestedField: null }]);
+    });
+  });
+
+  describe('search values', () => {
+    const titles = ['a_b', 'axb', '50%', '500', 'a(b', 'a.b', 'acb'];
+
+    const listTitles = async (leaf: Leaf) => {
+      connection = await setupReview('collection_review_list');
+      const review = new MongooseDatasource(connection).getCollection('review');
+      await review.create(
+        factories.caller.build(),
+        titles.map(title => ({ title })),
+      );
+      const conditionTree = ConditionTreeEquivalent.getEquivalentTree(
+        leaf,
+        review.schema.fields.title.type === 'Column'
+          ? review.schema.fields.title.filterOperators
+          : null,
+        'String',
+        'Europe/Paris',
+      );
+      const records = await review.list(
+        factories.caller.build(),
+        new PaginatedFilter({ conditionTree }),
+        new Projection('title'),
+      );
+
+      return records.map(r => r.title);
+    };
+
+    it.each([
+      ['IContains', 'a_b', ['a_b']],
+      ['IContains', '50%', ['50%']],
+      ['IContains', 'a(b', ['a(b']],
+      ['IContains', 'a.b', ['a.b']],
+      ['NotContains', 'a.b', ['a_b', 'axb', '50%', '500', 'a(b', 'acb']],
+      ['NotIContains', 'A(B', ['a_b', 'axb', '50%', '500', 'a.b', 'acb']],
+    ] as const)('should match %s %j literally', async (operator, value, expected) => {
+      expect(await listTitles(new Leaf('title', operator, value))).toEqual(expected);
     });
   });
 

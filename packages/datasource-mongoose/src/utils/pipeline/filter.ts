@@ -198,9 +198,9 @@ export default class FilterGenerator {
           ? { $nin: formattedLeafValue }
           : { $ne: formattedLeafValue };
       case 'NotContains':
-        return { $not: new RegExp(`.*${formattedLeafValue}.*`) };
+        return { $not: new RegExp(this.escapeRegExp(formattedLeafValue)) };
       case 'NotIContains':
-        return { $not: new RegExp(`.*${formattedLeafValue}.*`, 'i') };
+        return { $not: new RegExp(this.escapeRegExp(formattedLeafValue), 'i') };
       case 'Match':
         return formattedLeafValue;
       case 'Present':
@@ -233,6 +233,10 @@ export default class FilterGenerator {
       },
       { $addFields: {} },
     );
+  }
+
+  private static escapeRegExp(value: unknown): string {
+    return `${value}`.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
 
   private static formatNestedFieldPath(field: string): string {

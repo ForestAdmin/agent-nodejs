@@ -50,7 +50,7 @@ describe('FilterGenerator', () => {
         const pipeline = FilterGenerator.filter(model, stack, filter);
         expect(pipeline).toStrictEqual([
           { $addFields: { 'author.string_identifier': { $toString: '$author.identifier' } } },
-          { $match: { 'author.string_identifier': { $not: /.*something.*/ } } },
+          { $match: { 'author.string_identifier': { $not: /something/ } } },
         ]);
       });
 
