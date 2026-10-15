@@ -63,7 +63,7 @@ export default class CollectionDecorator implements Collection {
         // Call the original method (the child)
         originalChildMarkSchemaAsDirty.call(childCollection);
 
-        // Invalidate our schema (the parent)
+        // Invalidate our schema and name (the parent)
         this.markSchemaAsDirty();
       };
     }
