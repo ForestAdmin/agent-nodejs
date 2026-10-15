@@ -191,6 +191,25 @@ describe('ActionPermissionService', () => {
         expect(serverInterface.getEnvironmentPermissions).toHaveBeenCalledTimes(2);
       });
 
+      it('should reject every concurrent denial when the single refetch fails', async () => {
+        const { service, serverInterface } = setup(denied);
+        const error = new Error('Server unavailable');
+        (serverInterface.getEnvironmentPermissions as jest.Mock)
+          .mockResolvedValueOnce({})
+          .mockRejectedValueOnce(error);
+
+        const results = await Promise.allSettled([
+          service.can(10, 'action1'),
+          service.can(10, 'action2'),
+        ]);
+
+        expect(results).toEqual([
+          { status: 'rejected', reason: error },
+          { status: 'rejected', reason: error },
+        ]);
+        expect(serverInterface.getEnvironmentPermissions).toHaveBeenCalledTimes(2);
+      });
+
       it('should refetch again once the refetch interval has elapsed', async () => {
         const { service, serverInterface } = setup(denied, denied, denied, {
           isDevelopment: false,

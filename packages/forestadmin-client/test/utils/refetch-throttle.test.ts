@@ -45,6 +45,16 @@ describe('RefetchThrottle', () => {
     expect(throttle.tryAcquire('key')).toBe(true);
   });
 
+  it('should allow a refetch after the clock stepped back', () => {
+    const throttle = new RefetchThrottle();
+    jest.setSystemTime(10000);
+    throttle.tryAcquire('key');
+
+    jest.setSystemTime(5000);
+
+    expect(throttle.tryAcquire('key')).toBe(true);
+  });
+
   it('should throttle each key independently', () => {
     const throttle = new RefetchThrottle();
     throttle.tryAcquire('key1');

@@ -1170,6 +1170,36 @@ describe('RenderingPermissionService', () => {
       expect(serverInterface.getRenderingPermissions).toHaveBeenCalledTimes(2);
     });
 
+    it('should answer concurrent scope denials from the single refetch', async () => {
+      const { renderingPermission, serverInterface } = setupDenied();
+      const scope = { field: 'title', operator: 'Present' } as RawTree;
+      (serverInterface.getRenderingPermissions as jest.Mock)
+        .mockResolvedValueOnce(deniedPermissions)
+        .mockResolvedValueOnce({ ...deniedPermissions, collections: { books: { scope } } });
+      jest.spyOn(ContextVariablesInjector, 'injectContextInFilter').mockReturnValue(scope);
+
+      const results = await Promise.all([
+        renderingPermission.getScope({ renderingId: 42, collectionName: 'books', userId: 1 }),
+        renderingPermission.getScope({ renderingId: 42, collectionName: 'books', userId: 2 }),
+      ]);
+
+      expect(results).toEqual([scope, scope]);
+      expect(serverInterface.getRenderingPermissions).toHaveBeenCalledTimes(2);
+    });
+
+    it('should answer concurrent chart denials from the single refetch', async () => {
+      const { renderingPermission, serverInterface, hashServerChartsMock } = setupDenied();
+      hashServerChartsMock.mockReturnValueOnce(new Set()).mockReturnValueOnce(new Set(['HASH']));
+
+      const results = await Promise.all([
+        renderingPermission.canExecuteChart({ renderingId: 42, chartRequest, userId: 1 }),
+        renderingPermission.canExecuteChart({ renderingId: 42, chartRequest, userId: 2 }),
+      ]);
+
+      expect(results).toEqual([true, true]);
+      expect(serverInterface.getRenderingPermissions).toHaveBeenCalledTimes(2);
+    });
+
     it('should refetch the scope again once the refetch interval has elapsed', async () => {
       const { renderingPermission, serverInterface } = setupDenied();
 

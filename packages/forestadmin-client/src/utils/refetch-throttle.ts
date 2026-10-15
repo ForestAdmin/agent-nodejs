@@ -9,7 +9,9 @@ export default class RefetchThrottle {
     const now = Date.now();
     const lastRefetch = this.lastRefetchByKey.get(key);
 
-    if (lastRefetch !== undefined && now - lastRefetch < this.intervalInMs) return false;
+    if (lastRefetch !== undefined && now >= lastRefetch && now - lastRefetch < this.intervalInMs) {
+      return false;
+    }
 
     this.lastRefetchByKey.set(key, now);
 
