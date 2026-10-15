@@ -139,9 +139,17 @@ export default class ConditionTreeLeaf extends ConditionTree {
         return (_, fieldValue) => fieldValue <= value;
       case 'GreaterThanOrEqual':
         return (_, fieldValue) => fieldValue >= value;
+
       case 'Match':
-        return (_, fieldValue) =>
-          typeof fieldValue === 'string' && (value as RegExp).test(fieldValue);
+        return (_, fieldValue) => {
+          if (typeof fieldValue !== 'string') return false;
+
+          // `test` on a global or sticky regexp is stateful through `lastIndex`.
+          (value as RegExp).lastIndex = 0;
+
+          return (value as RegExp).test(fieldValue);
+        };
+
       case 'StartsWith':
         return (_, fieldValue) =>
           typeof fieldValue === 'string' && fieldValue.startsWith(value as string);
@@ -174,21 +182,7 @@ export default class ConditionTreeLeaf extends ConditionTree {
           timezone,
         );
 
-        const matcher = equivalent.createMatcher(collection, timezone);
-        const statefulRegExps: RegExp[] = [];
-        equivalent.forEachLeaf(({ value: leafValue }) => {
-          if (leafValue instanceof RegExp && (leafValue.global || leafValue.sticky)) {
-            statefulRegExps.push(leafValue);
-          }
-        });
-
-        // The Like transforms build global regexps, whose `test` is stateful through `lastIndex`,
-        // and the equivalent tree is reused across records.
-        return record => {
-          for (const regExp of statefulRegExps) regExp.lastIndex = 0;
-
-          return matcher(record);
-        };
+        return equivalent.createMatcher(collection, timezone);
       }
     }
   }

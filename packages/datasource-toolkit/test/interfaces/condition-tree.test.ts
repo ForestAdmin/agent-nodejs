@@ -469,6 +469,21 @@ describe('ConditionTree', () => {
         ).toEqual(alphas);
       });
 
+      test.each([/alpha/g, /alpha/y])(
+        'should keep every record matching %s, however many match in a row',
+        regExp => {
+          const alphas = [{ title: 'alpha' }, { title: 'alpha' }, { title: 'alpha' }];
+
+          expect(
+            new ConditionTreeLeaf('title', 'Match', regExp).apply(
+              alphas,
+              collection,
+              'Europe/Paris',
+            ),
+          ).toEqual(alphas);
+        },
+      );
+
       test('should match a condition built without createMatcher', () => {
         const foreignCondition = {
           match: (record: { id: number }) => record.id < 3,
