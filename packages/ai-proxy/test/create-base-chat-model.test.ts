@@ -6,6 +6,7 @@ import { createBaseChatModel } from '../src/create-base-chat-model';
 import { AIBadRequestError } from '../src/errors';
 
 jest.mock('@langchain/openai', () => ({
+  ...jest.requireActual('@langchain/openai'),
   ChatOpenAI: jest.fn(),
 }));
 
@@ -37,6 +38,24 @@ describe('createBaseChatModel', () => {
       apiKey: 'test-key',
       model: 'gpt-4o',
     });
+  });
+
+  it('creates a ChatOpenAI on the Responses API for a GPT-6 model', () => {
+    createBaseChatModel({
+      name: 'luna',
+      provider: 'openai' as const,
+      apiKey: 'test-key',
+      model: 'gpt-6-luna',
+    });
+
+    expect(ChatOpenAI).toHaveBeenCalledWith(
+      expect.objectContaining({
+        maxRetries: 0,
+        apiKey: 'test-key',
+        model: 'gpt-6-luna',
+        useResponsesApi: true,
+      }),
+    );
   });
 
   it('forwards extra options like temperature to ChatOpenAI', () => {
