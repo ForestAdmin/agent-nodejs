@@ -174,8 +174,6 @@ export default class ConditionTreeLeaf extends ConditionTree {
           timezone,
         );
 
-        if (!equivalent) return record => equivalent.match(record, collection, timezone);
-
         const matcher = equivalent.createMatcher(collection, timezone);
         const statefulRegExps: RegExp[] = [];
         equivalent.forEachLeaf(({ value: leafValue }) => {
@@ -184,8 +182,8 @@ export default class ConditionTreeLeaf extends ConditionTree {
           }
         });
 
-        // The equivalent tree used to be rebuilt for every record, so its global regexps (from the
-        // Like transforms) always started from lastIndex 0.
+        // The Like transforms build global regexps, whose `test` is stateful through `lastIndex`,
+        // and the equivalent tree is reused across records.
         return record => {
           for (const regExp of statefulRegExps) regExp.lastIndex = 0;
 

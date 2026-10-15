@@ -441,6 +441,25 @@ describe('ConditionTree', () => {
         expect(leaf.apply(records, collection, 'Europe/Paris').map(r => r.id)).toEqual(ids);
       });
 
+      test('should keep every record matching a pattern, however many match in a row', () => {
+        const alphas = [{ title: 'alpha' }, { title: 'alpha' }, { title: 'alpha' }];
+
+        expect(
+          new ConditionTreeLeaf('title', 'Like', 'alpha').apply(alphas, collection, 'Europe/Paris'),
+        ).toEqual(alphas);
+      });
+
+      test('should match a condition built without createMatcher', () => {
+        const foreignCondition = {
+          match: (record: { id: number }) => record.id < 3,
+        } as unknown as ConditionTreeLeaf;
+        const filterTree = new ConditionTreeBranch('And', [foreignCondition]);
+
+        expect(filterTree.apply(records, collection, 'Europe/Paris').map(r => r.id)).toEqual([
+          1, 2,
+        ]);
+      });
+
       test('should resolve the field schema the same number of times whatever the record count', () => {
         const filterTree = new ConditionTreeBranch('And', [
           new ConditionTreeLeaf('title', 'IContains', 'alpha'),

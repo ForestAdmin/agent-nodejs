@@ -74,7 +74,13 @@ export default class ConditionTreeBranch extends ConditionTree {
     collection: Collection,
     timezone: string,
   ): (record: RecordData) => boolean {
-    const matchers = this.conditions.map(c => c.createMatcher(collection, timezone));
+    // A condition built by another copy of the toolkit (e.g. deduplicated in a plugin) may predate
+    // createMatcher.
+    const matchers = this.conditions.map(c =>
+      c.createMatcher
+        ? c.createMatcher(collection, timezone)
+        : (record: RecordData) => c.match(record, collection, timezone),
+    );
 
     return this.aggregator === 'And'
       ? record => matchers.every(matcher => matcher(record))
