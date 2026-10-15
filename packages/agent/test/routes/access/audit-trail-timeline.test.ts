@@ -74,6 +74,21 @@ describe('AuditTrailTimelineRoute', () => {
     expect((context.response.body as { data: unknown[] }).data).toEqual(timeline);
   });
 
+  test('reads the datasource collections once across requests', async () => {
+    const { dataSource, store, route } = setup();
+    const collectionsGetter = jest.fn().mockReturnValue(dataSource.collections);
+    Object.defineProperty(dataSource, 'collections', { get: collectionsGetter });
+
+    await route.handleTimeline(contextWith());
+    await route.handleTimeline(contextWith());
+
+    expect(store.listTimeline).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ collections: ['books', 'authors'] }),
+    );
+    expect(collectionsGetter).toHaveBeenCalledTimes(1);
+  });
+
   test('leaves out a collection the caller cannot read', async () => {
     const { services, store, route } = setup();
     (services.authorization.canRead as jest.Mock).mockImplementation(
