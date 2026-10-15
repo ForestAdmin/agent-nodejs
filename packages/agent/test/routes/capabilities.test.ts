@@ -27,6 +27,31 @@ describe('Capabilities', () => {
     expect(router.post).toHaveBeenCalledWith('/_internal/capabilities', expect.any(Function));
   });
 
+  test('should read the datasource collections once across requests, in datasource order', async () => {
+    const dataSource = factories.dataSource.buildWithCollections([
+      factories.collection.build({ name: 'books' }),
+      factories.collection.build({ name: 'authors' }),
+    ]);
+    const collectionsGetter = jest.fn().mockReturnValue(dataSource.collections);
+    Object.defineProperty(dataSource, 'collections', { get: collectionsGetter });
+    const route = new Capabilities(services, options, dataSource);
+
+    const fetch = async (collectionNames: string[]) => {
+      const context = createMockContext({ ...defaultContext, requestBody: { collectionNames } });
+      // @ts-expect-error: test private method
+      await route.fetchCapabilities(context);
+
+      return (context.response.body as { collections: { name: string }[] }).collections;
+    };
+
+    const first = await fetch(['authors', 'unknown']);
+    const second = await fetch(['authors', 'books']);
+
+    expect(first.map(({ name }) => name)).toEqual(['authors']);
+    expect(second.map(({ name }) => name)).toEqual(['books', 'authors']);
+    expect(collectionsGetter).toHaveBeenCalledTimes(1);
+  });
+
   describe('with the route mounted', () => {
     let route: Capabilities;
     beforeEach(() => {
@@ -115,6 +140,19 @@ describe('Capabilities', () => {
           },
           collections: [],
         });
+      });
+
+      test('should return nothing when collectionNames is not an array', async () => {
+        const context = createMockContext({
+          ...defaultContext,
+          requestBody: { collectionNames: { books: true } },
+        });
+
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        await route.fetchCapabilities(context);
+
+        expect((context.response.body as { collections: unknown[] }).collections).toEqual([]);
       });
 
       test('should handle empty body', async () => {

@@ -82,10 +82,7 @@ export default class ActionRoute extends CollectionRoute {
     const { dataSource } = this.collection;
 
     const caller = QueryStringParser.parseCaller(context);
-    const [filterForCaller, filterForAllCaller] = await Promise.all([
-      this.getRecordSelection(context),
-      this.getRecordSelection(context, false),
-    ]);
+    const filterForCaller = await this.getRecordSelection(context);
     const requestBody = context.request.body as SmartActionApprovalRequestBody;
 
     const canPerformCustomActionParams = {
@@ -93,7 +90,7 @@ export default class ActionRoute extends CollectionRoute {
       customActionName: this.actionName,
       collection: this.collection,
       filterForCaller,
-      filterForAllCaller,
+      getFilterForAllCaller: () => this.getRecordSelection(context, false),
     };
 
     if (requestBody?.data?.attributes?.requester_id) {

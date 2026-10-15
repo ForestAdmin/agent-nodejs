@@ -93,6 +93,83 @@ describe('deduplication', () => {
     expect(handler).toHaveBeenCalledTimes(1);
     expect(handler).toHaveBeenCalledWith([1, 2, 666]);
   });
+
+  test('merges records holding equal nested values', async () => {
+    const first = { title: 'Foundation', author: { bornAt: new Date(0), tags: ['a', 1] } };
+    const second = { title: 'Foundation', author: { bornAt: new Date(0), tags: ['a', 1] } };
+    const handler = jest.fn().mockResolvedValue(['computed']);
+
+    const result = await transformUniqueValues([first, second], handler);
+
+    expect(handler).toHaveBeenCalledWith([first]);
+    expect(result).toEqual(['computed', 'computed']);
+  });
+
+  test('merges records holding the same symbol', async () => {
+    const symbol = Symbol('a');
+    const first = { value: symbol };
+    const second = { value: symbol };
+    const handler = jest.fn().mockResolvedValue(['computed']);
+
+    const result = await transformUniqueValues([first, second], handler);
+
+    expect(handler).toHaveBeenCalledWith([first]);
+    expect(result).toEqual(['computed', 'computed']);
+  });
+
+  test('merges structurally equal records holding a cycle', async () => {
+    const first: Record<string, unknown> = { title: 'Foundation' };
+    const second: Record<string, unknown> = { title: 'Foundation' };
+    first.self = first;
+    second.self = second;
+    const handler = jest.fn().mockResolvedValue(['computed']);
+
+    const result = await transformUniqueValues([first, second], handler);
+
+    expect(handler).toHaveBeenCalledWith([first]);
+    expect(result).toEqual(['computed', 'computed']);
+  });
+
+  test('keeps records holding a cycle apart when their values differ', async () => {
+    const first: Record<string, unknown> = { title: 'Foundation' };
+    const second: Record<string, unknown> = { title: 'Dune' };
+    first.self = first;
+    second.self = second;
+    const handler = jest.fn().mockResolvedValue(['first', 'second']);
+
+    const result = await transformUniqueValues([first, second], handler);
+
+    expect(handler).toHaveBeenCalledWith([first, second]);
+    expect(result).toEqual(['first', 'second']);
+  });
+
+  test.each([
+    ['NaN and null', { value: NaN }, { value: null }],
+    ['a date and its ISO string', { value: new Date(0) }, { value: new Date(0).toISOString() }],
+    ['a number and its string', { value: 1 }, { value: '1' }],
+    ['a bigint and a number', { value: BigInt(1) }, { value: 1 }],
+    ['a string and the number it spells', { value: 'n1' }, { value: 1 }],
+    ['a date and its timestamp', { value: new Date(0) }, { value: 0 }],
+    ['undefined and null', { value: undefined }, { value: null }],
+    ['the same value under different keys', { a: 1 }, { b: 1 }],
+    ['a boolean and its string', { value: true }, { value: 'true' }],
+    ['an object and its JSON string', { value: { a: 1 } }, { value: '{"a":1}' }],
+    ['an undefined and a missing key', { value: undefined }, {}],
+    ['different buffers', { value: Buffer.from('a') }, { value: Buffer.from('b') }],
+    ['different maps', { value: new Map([['a', 1]]) }, { value: new Map([['a', 2]]) }],
+    ['a string holding a separator', { a: 'x,"b":"y' }, { a: 'x', b: 'y' }],
+    ['different symbols', { value: Symbol('a') }, { value: Symbol('b') }],
+    ['different symbols with the same description', { value: Symbol('a') }, { value: Symbol('a') }],
+    ['zero and negative zero', { value: 0 }, { value: -0 }],
+    ['an array with a hole and an empty array', { value: [,] }, { value: [] }], // eslint-disable-line no-sparse-arrays
+  ])('keeps %s apart', async (_, first, second) => {
+    const handler = jest.fn().mockResolvedValue(['first', 'second']);
+
+    const result = await transformUniqueValues<object, string>([first, second], handler);
+
+    expect(handler).toHaveBeenCalledWith([first, second]);
+    expect(result).toEqual(['first', 'second']);
+  });
 });
 
 describe('deprecation-map', () => {
