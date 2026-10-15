@@ -4,8 +4,23 @@ import type { Context, Middleware } from 'koa';
 
 import { fingerprintApiKey } from './api-key';
 import { ApiKeyError } from './api-key-error';
+import { ambiguousCredentials } from '../http/bff-http-error';
 
+export const GATEWAY_KEY_HEADER = 'X-Forest-Gateway-Key';
 export const BFF_KEY_HEADER = 'X-Forest-Bff-Key';
+
+const CONFLICTING_KEYS_MESSAGE = `${GATEWAY_KEY_HEADER} and ${BFF_KEY_HEADER} carry different keys`;
+
+export function readApiKey(ctx: Context): string {
+  const gatewayKey = ctx.get(GATEWAY_KEY_HEADER);
+  const bffKey = ctx.get(BFF_KEY_HEADER);
+
+  if (gatewayKey && bffKey && gatewayKey !== bffKey) {
+    throw ambiguousCredentials(CONFLICTING_KEYS_MESSAGE);
+  }
+
+  return gatewayKey || bffKey;
+}
 
 export type ApiKeyIdentityInvalidator = () => void;
 
@@ -22,7 +37,7 @@ export default function createApiKeyMiddleware({
   logger,
 }: ApiKeyMiddlewareOptions): Middleware {
   return async function apiKeyMiddleware(ctx, next) {
-    const rawKey = ctx.get(BFF_KEY_HEADER);
+    const rawKey = readApiKey(ctx);
 
     if (!rawKey) {
       await next();

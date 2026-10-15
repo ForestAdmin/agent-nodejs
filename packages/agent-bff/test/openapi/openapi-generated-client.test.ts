@@ -12,7 +12,7 @@ import path from 'path';
 
 import createActionRoutesMiddleware from '../../src/action/action-routes-middleware';
 import { createHttpTransport } from '../../src/agent/agent-transport';
-import { BFF_KEY_HEADER } from '../../src/api-key/api-key-middleware';
+import { GATEWAY_KEY_HEADER } from '../../src/api-key/api-key-middleware';
 import dispatchCli from '../../src/cli-dispatch';
 import createDataRoutesMiddleware from '../../src/data/data-routes-middleware';
 import createErrorMiddleware from '../../src/http/error-middleware';
@@ -165,7 +165,7 @@ function storeOf(readModel: ReadModel): ReadModelStore {
 type AuthCallback = (scheme: { name?: string }) => string | undefined;
 
 const SCHEME_AWARE_AUTH: AuthCallback = scheme =>
-  scheme.name === BFF_KEY_HEADER ? API_KEY : undefined;
+  scheme.name === GATEWAY_KEY_HEADER ? API_KEY : undefined;
 
 const receivedKeys: string[] = [];
 const receivedAuthorizations: string[] = [];
@@ -177,7 +177,7 @@ function buildApp(): Koa {
   app.use(createErrorMiddleware({ logger: noopLogger }));
   app.use(bodyParser());
   app.use(async (ctx, next) => {
-    receivedKeys.push(ctx.get(BFF_KEY_HEADER));
+    receivedKeys.push(ctx.get(GATEWAY_KEY_HEADER));
     receivedAuthorizations.push(ctx.get('Authorization'));
     // Auth is out of this test's scope (the gate is its own ticket): the request arrives with agent
     // credentials already resolved, exactly as the auth chain would have left it.
