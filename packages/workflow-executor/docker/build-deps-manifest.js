@@ -28,7 +28,7 @@ const WORKSPACE_PACKAGES = [
 // Pinned to exact versions — OTel ships only in the Docker image.
 const OTEL_DEPENDENCIES = {
   '@opentelemetry/sdk-node': '0.219.0',
-  '@opentelemetry/auto-instrumentations-node': '0.77.0',
+  '@opentelemetry/auto-instrumentations-node': '0.79.0',
   '@opentelemetry/exporter-trace-otlp-http': '0.219.0',
 };
 

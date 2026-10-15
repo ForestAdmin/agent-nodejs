@@ -33,7 +33,7 @@ const WORKSPACE_PACKAGES = [
 // unrelated release will stall on it unless someone is looking.
 const OTEL_DEPENDENCIES = {
   '@opentelemetry/sdk-node': '0.219.0',
-  '@opentelemetry/auto-instrumentations-node': '0.77.0',
+  '@opentelemetry/auto-instrumentations-node': '0.79.0',
   '@opentelemetry/exporter-trace-otlp-http': '0.219.0',
 };
 
@@ -78,7 +78,11 @@ function generate(packagesDir, outFile) {
 
   Object.assign(deps, OTEL_DEPENDENCIES);
 
-  const sorted = Object.fromEntries(Object.keys(deps).sort().map(key => [key, deps[key]]));
+  const sorted = Object.fromEntries(
+    Object.keys(deps)
+      .sort()
+      .map(key => [key, deps[key]]),
+  );
 
   const manifest = { name: 'agent-bff-docker-deps', private: true };
 
