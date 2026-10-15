@@ -2,7 +2,11 @@ import type { Stack } from '../../types';
 import type { ConditionTree, Operator, PaginatedFilter } from '@forestadmin/datasource-toolkit';
 import type { Model, PipelineStage } from 'mongoose';
 
-import { ConditionTreeBranch, ConditionTreeLeaf } from '@forestadmin/datasource-toolkit';
+import {
+  ConditionTreeBranch,
+  ConditionTreeLeaf,
+  escapeRegExp,
+} from '@forestadmin/datasource-toolkit';
 import { DateTime } from 'luxon';
 import { Types, isValidObjectId } from 'mongoose';
 
@@ -198,9 +202,9 @@ export default class FilterGenerator {
           ? { $nin: formattedLeafValue }
           : { $ne: formattedLeafValue };
       case 'NotContains':
-        return { $not: new RegExp(this.escapeRegExp(formattedLeafValue)) };
+        return { $not: new RegExp(escapeRegExp(formattedLeafValue)) };
       case 'NotIContains':
-        return { $not: new RegExp(this.escapeRegExp(formattedLeafValue), 'i') };
+        return { $not: new RegExp(escapeRegExp(formattedLeafValue), 'i') };
       case 'Match':
         return formattedLeafValue;
       case 'Present':
@@ -233,10 +237,6 @@ export default class FilterGenerator {
       },
       { $addFields: {} },
     );
-  }
-
-  private static escapeRegExp(value: unknown): string {
-    return `${value}`.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
 
   private static formatNestedFieldPath(field: string): string {

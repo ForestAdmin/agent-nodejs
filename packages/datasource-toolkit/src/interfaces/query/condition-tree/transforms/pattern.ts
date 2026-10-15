@@ -1,6 +1,8 @@
 import type { Alternative } from '../equivalence';
 import type { Operator } from '../nodes/operators';
 
+import escapeRegExp from '../../../../utils/escape-regexp';
+
 function likes(getPattern: (pattern: string) => string, caseSensitive: boolean): Alternative {
   const operator = caseSensitive ? 'Like' : 'ILike';
 
@@ -16,11 +18,9 @@ function literal(getSource: (escaped: string) => string, caseSensitive: boolean)
     dependsOn: ['Match'],
     forTypes: ['String'],
     replacer: leaf => {
-      const escaped = `${leaf.value}`.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
       return leaf.override({
         operator: 'Match',
-        value: new RegExp(getSource(escaped), caseSensitive ? '' : 'i'),
+        value: new RegExp(getSource(escapeRegExp(leaf.value)), caseSensitive ? '' : 'i'),
       });
     },
   };
@@ -31,11 +31,7 @@ function match(caseSensitive: boolean): Alternative {
     dependsOn: ['Match'],
     forTypes: ['String'],
     replacer: leaf => {
-      let regexp = leaf.value as string;
-
-      // eslint-disable-next-line no-useless-escape
-      regexp = regexp.replace(/([\.\\\+\*\?\[\^\]\$\(\)\{\}\=\!\<\>\|\:\-])/g, '\\$1');
-      regexp = regexp.replace(/%/g, '.*').replace(/_/g, '.');
+      const regexp = escapeRegExp(leaf.value).replace(/%/g, '.*').replace(/_/g, '.');
 
       return leaf.override({
         operator: 'Match',
