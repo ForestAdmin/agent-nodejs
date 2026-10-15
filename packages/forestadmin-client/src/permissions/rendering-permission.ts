@@ -10,6 +10,7 @@ import { PermissionLevel } from './types';
 import verifySQLQuery from './verify-sql-query';
 import ContextVariables from '../utils/context-variables';
 import ContextVariablesInjector from '../utils/context-variables-injector';
+import RefetchThrottle from '../utils/refetch-throttle';
 import TTLCache from '../utils/ttl-cache';
 
 export type RenderingPermission = {
@@ -20,6 +21,7 @@ export type RenderingPermission = {
 
 export default class RenderingPermissionService {
   private readonly permissionsByRendering: TTLCache<RenderingPermission>;
+  private readonly refetchThrottle = new RefetchThrottle();
 
   constructor(
     private readonly options: ForestAdminClientOptionsWithDefaults,
@@ -69,7 +71,7 @@ export default class RenderingPermissionService {
     const collectionPermissions = permissions?.collections?.[collectionName];
 
     if (!collectionPermissions) {
-      if (allowRetry) {
+      if (allowRetry && this.refetchThrottle.tryAcquire(`${renderingId}`)) {
         this.invalidateCache(renderingId);
 
         return this.getScopeOrRetry({
@@ -156,7 +158,7 @@ export default class RenderingPermissionService {
         !isSegmentQueryAllowedOnConnection(collectionPermissions, segmentQuery, connectionName)) ||
       !isSegmentQueryAllowed(segmentQuery, collectionPermissions.segments)
     ) {
-      if (allowRetry) {
+      if (allowRetry && this.refetchThrottle.tryAcquire(`${renderingId}`)) {
         this.invalidateCache(renderingId);
 
         return this.canExecuteSegmentQueryOrRetry({
@@ -255,7 +257,7 @@ export default class RenderingPermissionService {
       return true;
     }
 
-    if (allowRetry) {
+    if (allowRetry && this.refetchThrottle.tryAcquire(`${renderingId}`)) {
       this.invalidateCache(renderingId);
       this.userPermissions.invalidateCache();
 

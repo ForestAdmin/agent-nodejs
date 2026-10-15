@@ -3,10 +3,14 @@ import type { RawTreeWithSources } from './types';
 import type { ForestAdminClientOptionsWithDefaults, ForestAdminServerInterface } from '../types';
 
 import generateActionsFromPermissions from './generate-actions-from-permissions';
+import RefetchThrottle from '../utils/refetch-throttle';
 import TTLCache from '../utils/ttl-cache';
+
+const CACHE_KEY = 'currentEnvironment';
 
 export default class ActionPermissionService {
   private permissionsCache: TTLCache<ActionPermissions>;
+  private readonly refetchThrottle = new RefetchThrottle();
 
   constructor(
     private readonly options: ForestAdminClientOptionsWithDefaults,
@@ -46,7 +50,7 @@ export default class ActionPermissionService {
     const permissions = await this.getPermissions();
     const isAllowed = this.isAllowed({ permissions, actionName, roleId });
 
-    if (!isAllowed && allowRefetch) {
+    if (!isAllowed && allowRefetch && this.refetchThrottle.tryAcquire(CACHE_KEY)) {
       this.invalidateCache();
 
       return this.hasPermissionOrRefetch({
@@ -82,7 +86,7 @@ export default class ActionPermissionService {
   }
 
   private async getPermissions(): Promise<ActionPermissions> {
-    return this.permissionsCache.fetch('currentEnvironment');
+    return this.permissionsCache.fetch(CACHE_KEY);
   }
 
   private async fetchEnvironmentPermissions(): Promise<ActionPermissions> {
