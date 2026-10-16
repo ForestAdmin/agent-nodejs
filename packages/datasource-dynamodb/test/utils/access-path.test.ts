@@ -415,3 +415,26 @@ describe('a filter naming several partitions', () => {
     expect(plan.keyCondition.partition.values).toEqual([1, 2]);
   });
 });
+
+describe('planKeyLookup bounds', () => {
+  const composite = () => buildModel();
+
+  it('lists each value once before building the keys', () => {
+    const tree = and(
+      plain('customerId', 'In', ['c1', 'c1', 'c2']),
+      plain('orderId', 'In', ['o1', 'o1']),
+    );
+
+    expect(planKeyLookup(composite(), tree).keys).toEqual([
+      { customerId: 'c1', orderId: 'o1' },
+      { customerId: 'c2', orderId: 'o1' },
+    ]);
+  });
+
+  it('does not build the product of two long lists, which would be millions of keys', () => {
+    const many = (prefix: string) => Array.from({ length: 10000 }, (_, i) => `${prefix}${i}`);
+    const tree = and(plain('customerId', 'In', many('c')), plain('orderId', 'In', many('o')));
+
+    expect(planKeyLookup(composite(), tree)).toBeNull();
+  });
+});

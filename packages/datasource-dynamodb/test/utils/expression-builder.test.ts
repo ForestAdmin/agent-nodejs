@@ -153,18 +153,6 @@ describe('ExpressionBuilder', () => {
       expect(builder.values).toEqual({ ':v0': 'NULL', ':v1': '' });
     });
 
-    it('translates Before and After on a date as comparisons on its ISO string', () => {
-      const builder = new ExpressionBuilder();
-      const date = new Date('2024-01-15T10:00:00.000Z');
-
-      expect(builder.condition(leaf('at', 'Before', date))).toBe('#n0 < :v0');
-      expect(builder.condition(leaf('at', 'After', date))).toBe('#n0 > :v1');
-      expect(builder.values).toEqual({
-        ':v0': '2024-01-15T10:00:00.000Z',
-        ':v1': '2024-01-15T10:00:00.000Z',
-      });
-    });
-
     it('requires none of the values for IncludesNone', () => {
       const builder = new ExpressionBuilder();
 
@@ -243,6 +231,18 @@ describe('ExpressionBuilder', () => {
 });
 
 describe('splitCondition', () => {
+  it.each(['Before', 'After'])(
+    'leaves %s to the items, since DynamoDB compares dates as text whatever their offset',
+    operator => {
+      const tree = leaf('at', operator, '2024-01-01T00:00:00Z');
+
+      const { pushable, residual } = splitCondition(tree);
+
+      expect(pushable).toBeUndefined();
+      expect(residual).toBe(tree);
+    },
+  );
+
   it('leaves Present to the items, since the toolkit also excludes empty strings from it', () => {
     const tree = leaf('f', 'Present');
 

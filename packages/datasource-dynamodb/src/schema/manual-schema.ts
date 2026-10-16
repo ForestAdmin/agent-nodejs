@@ -210,7 +210,8 @@ function toModel(collection: CollectionDefinition): TableModel {
     partitionKey,
     sortKey,
     indexes,
-    schema: { ...keys, ...flattenFields(collection.fields) },
+    // The configured key types are the table's: a field of the same name cannot change them.
+    schema: { ...flattenFields(collection.fields), ...keys },
     entity: collection.entity,
     enableCount: collection.enableCount,
     scanPolicy: collection.scanPolicy,
