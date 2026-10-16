@@ -26,7 +26,6 @@ type LiteralPosition = 'anywhere' | 'start' | 'end';
 
 const LIKE_ESCAPE_CHARACTER = '!';
 const LIKE_SPECIAL_CHARACTERS = [LIKE_ESCAPE_CHARACTER, '%', '_'];
-const MSSQL_CASE_INSENSITIVE_COLLATION = 'SQL_Latin1_General_CP1_CI_AS';
 
 export default class QueryConverter {
   private model: ModelDefined<unknown, unknown>;
@@ -49,7 +48,21 @@ export default class QueryConverter {
     field: string,
     operator: Operator,
     value: unknown,
+    qualifyColumns = true,
   ): WhereOptions {
+    const like = (
+      pattern: string,
+      caseSensitive: boolean,
+      not: boolean,
+      literalPosition?: LiteralPosition,
+    ) =>
+      this.makeLikeWhereClause(colName, field, pattern, {
+        caseSensitive,
+        not,
+        literalPosition,
+        qualifyColumns,
+      });
+
     switch (true) {
       // Presence
       case operator === 'Present':
@@ -83,25 +96,25 @@ export default class QueryConverter {
 
       // Strings
       case operator === 'Like':
-        return this.makeLikeWhereClause(colName, field, value as string, true, false);
+        return like(value as string, true, false);
       case operator === 'ILike':
-        return this.makeLikeWhereClause(colName, field, value as string, false, false);
+        return like(value as string, false, false);
       case operator === 'Contains':
-        return this.makeLikeWhereClause(colName, field, `${value}`, true, false, 'anywhere');
+        return like(`${value}`, true, false, 'anywhere');
       case operator === 'IContains':
-        return this.makeLikeWhereClause(colName, field, `${value}`, false, false, 'anywhere');
+        return like(`${value}`, false, false, 'anywhere');
       case operator === 'StartsWith':
-        return this.makeLikeWhereClause(colName, field, `${value}`, true, false, 'start');
+        return like(`${value}`, true, false, 'start');
       case operator === 'IStartsWith':
-        return this.makeLikeWhereClause(colName, field, `${value}`, false, false, 'start');
+        return like(`${value}`, false, false, 'start');
       case operator === 'EndsWith':
-        return this.makeLikeWhereClause(colName, field, `${value}`, true, false, 'end');
+        return like(`${value}`, true, false, 'end');
       case operator === 'IEndsWith':
-        return this.makeLikeWhereClause(colName, field, `${value}`, false, false, 'end');
+        return like(`${value}`, false, false, 'end');
       case operator === 'NotContains':
-        return this.makeLikeWhereClause(colName, field, `${value}`, true, true, 'anywhere');
+        return like(`${value}`, true, true, 'anywhere');
       case operator === 'NotIContains':
-        return this.makeLikeWhereClause(colName, field, `${value}`, false, true, 'anywhere');
+        return like(`${value}`, false, true, 'anywhere');
 
       // Arrays
       case operator === 'IncludesAll' && this.dialect === 'postgres':
@@ -188,21 +201,29 @@ export default class QueryConverter {
     colName: string,
     field: string,
     value: string,
-    caseSensitive: boolean,
-    not: boolean,
-    literalPosition?: LiteralPosition,
+    {
+      caseSensitive,
+      not,
+      literalPosition,
+      qualifyColumns,
+    }: {
+      caseSensitive: boolean;
+      not: boolean;
+      literalPosition?: LiteralPosition;
+      qualifyColumns: boolean;
+    },
   ): WhereOptions {
     const op = not ? 'NOT LIKE' : 'LIKE';
     let condition: WhereOptions;
 
-    // using safeField in fn that will be injected literally inside the query
-    const safeField = unAmbigousField(this.model, field, true);
+    // Update and destroy queries have no table alias, so the column is left unqualified there.
+    const column = this.col(qualifyColumns ? unAmbigousField(this.model, field, true) : field);
 
     if (caseSensitive) {
       if (this.dialect === 'sqlite') {
         const sqLiteOp = not ? 'NOT GLOB' : 'GLOB';
 
-        condition = this.where(this.col(field), sqLiteOp, this.makeGlob(value, literalPosition));
+        condition = this.where(column, sqLiteOp, this.makeGlob(value, literalPosition));
       } else if (this.dialect === 'mysql' || this.dialect === 'mariadb') {
         condition = {
           [colName]: {
@@ -230,17 +251,9 @@ export default class QueryConverter {
       condition = {
         [colName]: { [not ? Op.notLike : Op.like]: this.makeLikePattern(value, literalPosition) },
       };
-    } else if (this.dialect === 'mssql') {
-      condition = {
-        [colName]: {
-          [not ? Op.notLike : Op.like]: this.makeLikePattern(value, literalPosition, {
-            collate: MSSQL_CASE_INSENSITIVE_COLLATION,
-          }),
-        },
-      };
     } else {
       condition = this.where(
-        this.fn('LOWER', this.col(safeField)),
+        this.fn('LOWER', column),
         op,
         this.makeLikePattern(value.toLocaleLowerCase(), literalPosition),
       );
@@ -252,17 +265,17 @@ export default class QueryConverter {
   private makeLikePattern(
     value: string,
     literalPosition?: LiteralPosition,
-    { binary = false, collate }: { binary?: boolean; collate?: string } = {},
+    { binary = false }: { binary?: boolean } = {},
   ): string | ReturnType<Sequelize['literal']> {
-    if (!literalPosition && !binary && !collate) return value;
+    if (!literalPosition && !binary) return value;
 
     const pattern = literalPosition ? this.makeLiteralLikePattern(value, literalPosition) : value;
     const escapedPattern = this.model.sequelize.escape(pattern);
 
     return this.model.sequelize.literal(
       `${binary ? `CAST(${escapedPattern} AS BINARY)` : escapedPattern}${
-        collate ? ` COLLATE ${collate}` : ''
-      }${literalPosition ? ` ESCAPE '${LIKE_ESCAPE_CHARACTER}'` : ''}`,
+        literalPosition ? ` ESCAPE '${LIKE_ESCAPE_CHARACTER}'` : ''
+      }`,
     );
   }
 
@@ -301,14 +314,17 @@ export default class QueryConverter {
     const include = conditionTree
       ? this.getIncludeFromProjection(new Projection(), conditionTree.projection)
       : [];
-    const whereOptions = this.getWhereFromConditionTree(conditionTree);
 
     if (include.length === 0) {
-      return whereOptions;
+      return this.getWhereFromConditionTree(conditionTree, false);
     }
 
     const keys = [...this.model.primaryKeyAttributes];
-    const records = await this.model.findAll({ attributes: keys, where: whereOptions, include });
+    const records = await this.model.findAll({
+      attributes: keys,
+      where: this.getWhereFromConditionTree(conditionTree),
+      include,
+    });
     const conditions = records.map(record => {
       const equals = keys.map(pk => new ConditionTreeLeaf(pk, 'Equal', record.get(pk)));
 
@@ -320,7 +336,7 @@ export default class QueryConverter {
     return this.getWhereFromConditionTree(union);
   }
 
-  getWhereFromConditionTree(conditionTree?: ConditionTree): WhereOptions {
+  getWhereFromConditionTree(conditionTree?: ConditionTree, qualifyColumns = true): WhereOptions {
     if (!conditionTree) return {};
 
     if ((conditionTree as ConditionTreeBranch).aggregator !== undefined) {
@@ -337,7 +353,9 @@ export default class QueryConverter {
       }
 
       return {
-        [sequelizeOperator]: conditions.map(condition => this.getWhereFromConditionTree(condition)),
+        [sequelizeOperator]: conditions.map(condition =>
+          this.getWhereFromConditionTree(condition, qualifyColumns),
+        ),
       };
     }
 
@@ -352,6 +370,7 @@ export default class QueryConverter {
         safeField,
         operator,
         value,
+        qualifyColumns,
       );
     }
 

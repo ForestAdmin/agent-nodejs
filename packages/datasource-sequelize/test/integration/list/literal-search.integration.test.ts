@@ -142,3 +142,89 @@ describe('Literal search values', () => {
     });
   });
 });
+
+describe('Case-insensitive search on MSSQL columns with their own collation', () => {
+  const caller = {} as Caller;
+  const mssql = CONNECTIONS.find(connection => connection.dialect === 'mssql');
+  let sequelize: Sequelize;
+  let collection: Collection;
+
+  const values = async (field: string, operator: Operator, value: string) => {
+    const records = await collection.list(
+      caller,
+      new PaginatedFilter({ conditionTree: new ConditionTreeLeaf(field, operator, value) }),
+      new Projection(field),
+    );
+
+    return records.map(record => record[field] as string).sort();
+  };
+
+  const people = async () =>
+    collection.list(caller, new PaginatedFilter({}), new Projection('cyrillic', 'french'));
+
+  beforeAll(async () => {
+    const db = 'forest_test_collation_search';
+    const server = new Sequelize(mssql.uri(), { logging: false });
+    await server.getQueryInterface().dropDatabase(db);
+    await mssql.query.createDatabase(server, db);
+    await server.close();
+
+    sequelize = new Sequelize(mssql.uri(db), { logging: false });
+    sequelize.define(
+      'Person',
+      { cyrillic: DataTypes.STRING, french: DataTypes.STRING },
+      { tableName: 'people' },
+    );
+    await sequelize.sync({ force: true });
+    await sequelize.query(
+      'ALTER TABLE people ALTER COLUMN cyrillic VARCHAR(100) COLLATE Cyrillic_General_CI_AS',
+    );
+    await sequelize.query(
+      'ALTER TABLE people ALTER COLUMN french VARCHAR(100) COLLATE French_CI_AI',
+    );
+    await sequelize.models.Person.bulkCreate([
+      { cyrillic: 'Иван', french: 'café' },
+      { cyrillic: 'Пётр', french: 'thé' },
+    ]);
+
+    collection = (await createSequelizeDataSource(sequelize)(jest.fn(), jest.fn())).getCollection(
+      'Person',
+    );
+  }, 60_000);
+
+  afterAll(async () => {
+    await sequelize?.close();
+  });
+
+  it('should match non-Latin values of a varchar column', async () => {
+    expect(await values('cyrillic', 'IContains', 'иван')).toEqual(['Иван']);
+  });
+
+  it('should keep the accent-insensitivity of the column collation', async () => {
+    expect(await values('french', 'IContains', 'cafe')).toEqual(['café']);
+  });
+
+  it('should update the records matching a case-insensitive filter', async () => {
+    await collection.update(
+      caller,
+      new Filter({ conditionTree: new ConditionTreeLeaf('cyrillic', 'IContains', 'иван') }),
+      { french: 'renamed' },
+    );
+
+    expect(await people()).toEqual(
+      expect.arrayContaining([
+        { cyrillic: 'Иван', french: 'renamed' },
+        { cyrillic: 'Пётр', french: 'thé' },
+      ]),
+    );
+  });
+
+  it('should delete the records not matching a case-insensitive filter', async () => {
+    await collection.delete(
+      caller,
+      new Filter({ conditionTree: new ConditionTreeLeaf('cyrillic', 'NotIContains', 'иван') }),
+    );
+
+    expect(await values('cyrillic', 'Present', '')).toEqual(['Иван']);
+  });
+});

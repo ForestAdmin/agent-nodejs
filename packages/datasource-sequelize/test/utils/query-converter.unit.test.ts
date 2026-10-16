@@ -357,6 +357,22 @@ describe('Utils > QueryConverter', () => {
           });
         });
 
+        it.each([
+          ['mssql', 'IContains', { fn: 'LOWER', args: [{ col: '__field_1__' }] }],
+          ['sqlite', 'Contains', { col: '__field_1__' }],
+        ] as const)(
+          'should leave the column unqualified for an update or delete on %s',
+          async (dialect, operator, attribute) => {
+            const queryConverter = new QueryConverter(setupModel(dialect));
+
+            const where = await queryConverter.getWhereFromConditionTreeToByPassInclude(
+              new ConditionTreeLeaf('__field_1__', operator, 'x'),
+            );
+
+            expect(where).toEqual(expect.objectContaining({ attribute }));
+          },
+        );
+
         describe('with  "sqlite" dialect', () => {
           const model = setupModel('sqlite');
           const queryConverter = new QueryConverter(model);
@@ -367,7 +383,7 @@ describe('Utils > QueryConverter', () => {
             expect(sequelizeFilter).toEqual({
               [Op.or]: [
                 {
-                  attribute: { col: '__field_1__' },
+                  attribute: { col: 'model.__field_1__' },
                   comparator: 'NOT GLOB',
                   logic: '*test*',
                 },
@@ -403,9 +419,9 @@ describe('Utils > QueryConverter', () => {
             [
               'mssql',
               {
-                __field_1__: {
-                  [Op.like]: { val: "N'VaLuE' COLLATE SQL_Latin1_General_CP1_CI_AS" },
-                },
+                attribute: { fn: 'LOWER', args: [{ col: 'model.__field_1__' }] },
+                comparator: 'LIKE',
+                logic: 'value',
               },
             ],
             ['mysql', { __field_1__: { [Op.like]: 'VaLuE' } }],
