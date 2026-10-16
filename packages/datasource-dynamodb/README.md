@@ -26,15 +26,15 @@ DynamoDB reads fast by key and scans otherwise, and it cannot sort, count or agg
 server. The datasource uses the key whenever a filter allows it and does the rest on the items it
 reads. What that means for each feature:
 
-| Feature          | How it works                                                                                                                                                                                                          |
-| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Filters          | Pushed down when DynamoDB can evaluate them. `Like`, `ILike`, `IContains`, `EndsWith`, date intervals and the like are applied on the returned items, so they read more than they return.                             |
-| Access path      | A `Query` on the table, a global or local secondary index when an equality pins its partition key (with the sort key range when there is one), a `BatchGetItem` when the filter names whole keys, a `Scan` otherwise. |
-| Sort             | Free on the sort key of the table or index being read. On any other attribute, the matching items are read, then sorted in memory.                                                                                    |
-| Pagination       | There is no offset: the datasource remembers the key where earlier pages stopped and resumes from the closest one. `maxOffset` (100 000) caps how deep a page can be.                                                 |
-| Count and charts | Computed by reading the items (a counting `Scan`/`Query` for a plain count), in parallel segments for a table. Results are kept in memory for `chartCacheTtlMs` (30 s).                                               |
-| Search           | Evaluated on the items: it scans. Case-insensitive, accents kept.                                                                                                                                                     |
-| Relations        | None in DynamoDB. Declare them with `addManyToOneRelation` and friends: a lookup by key is one `BatchGetItem`, a relation backed by a secondary index is a `Query`.                                                   |
+| Feature          | How it works                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Filters          | Pushed down when DynamoDB can evaluate them. `Like`, `ILike`, `IContains`, `EndsWith`, date intervals and the like are applied on the returned items, so they read more than they return.                                                                                                                                                                                                                                                      |
+| Access path      | A `Query` on the table, a global or local secondary index when an equality pins its partition key (with the sort key range when there is one), a `BatchGetItem` when the filter names whole keys, a `Scan` otherwise. An index leaves out the items that lack its sort key, so one that has a sort key is only read when the filter has a condition on that key, or when the index is declared with `coversAllItems: true` in a manual schema. |
+| Sort             | Free on the sort key of the table or index being read. On any other attribute, the matching items are read, then sorted in memory.                                                                                                                                                                                                                                                                                                             |
+| Pagination       | There is no offset: the datasource remembers the key where earlier pages stopped and resumes from the closest one. `maxOffset` (100 000) caps how deep a page can be.                                                                                                                                                                                                                                                                          |
+| Count and charts | Computed by reading the items (a counting `Scan`/`Query` for a plain count), in parallel segments for a table. Results are kept in memory for `chartCacheTtlMs` (30 s).                                                                                                                                                                                                                                                                        |
+| Search           | Evaluated on the items: it scans. Case-insensitive, accents kept.                                                                                                                                                                                                                                                                                                                                                                              |
+| Relations        | None in DynamoDB. Declare them with `addManyToOneRelation` and friends: a lookup by key is one `BatchGetItem`, a relation backed by a secondary index is a `Query`.                                                                                                                                                                                                                                                                            |
 
 ## Controlling cost: `scanPolicy`
 
@@ -47,7 +47,8 @@ A request that no key or index serves reads the whole table. `scanPolicy` decide
 | `'deny'`           | Refuses with an explicit error.                                                      |
 
 `maxScannedItems` (1 000 000) stops any single request that reads more items than that, with an error
-rather than a partial result. Both can be set on the datasource or on a collection.
+rather than a partial result. PartiQL native queries do not report how many items they evaluated,
+so for them it bounds the rows returned, and the pages fetched are capped at 1000. Both can be set on the datasource or on a collection.
 
 ## Choosing the tables and naming collections
 
@@ -102,6 +103,9 @@ createDynamoDBDataSource({
   },
 });
 ```
+
+Dates are compared by their instant when sorted or aggregated here, but DynamoDB compares them as
+text when it filters: store them in one offset (UTC) if you filter on ranges of them.
 
 Types: `string`, `number`, `boolean`, `date` and `dateonly` (ISO 8601 strings), `timeonly`, `object`,
 `array`, `point` (GeoJSON), `binary` (base64). Keys are strings or numbers.
