@@ -11,6 +11,7 @@ const CACHE_KEY = 'currentEnvironment';
 export default class ActionPermissionService {
   private permissionsCache: TTLCache<ActionPermissions>;
   private readonly refetchThrottle = new RefetchThrottle();
+  private forcedRefetch?: Promise<void>;
 
   constructor(
     private readonly options: ForestAdminClientOptionsWithDefaults,
@@ -51,7 +52,7 @@ export default class ActionPermissionService {
     const isAllowed = this.isAllowed({ permissions, actionName, roleId });
 
     if (!isAllowed && allowRefetch) {
-      if (this.refetchThrottle.tryAcquire(CACHE_KEY)) this.invalidateCache();
+      if (this.refetchThrottle.tryAcquire(`${roleId}:${actionName}`)) this.forceRefetch();
 
       return this.hasPermissionOrRefetch({
         roleId,
@@ -83,6 +84,17 @@ export default class ActionPermissionService {
         permissions.actionsGloballyAllowed.has(actionName) ||
         permissions.actionsByRole.get(actionName)?.allowedRoles.has(roleId),
     );
+  }
+
+  private forceRefetch(): void {
+    if (this.forcedRefetch) return;
+
+    const done = () => {
+      this.forcedRefetch = undefined;
+    };
+
+    this.invalidateCache();
+    this.forcedRefetch = this.getPermissions().then(done, done);
   }
 
   private async getPermissions(): Promise<ActionPermissions> {

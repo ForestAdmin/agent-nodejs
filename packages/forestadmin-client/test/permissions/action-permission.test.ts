@@ -156,9 +156,25 @@ describe('ActionPermissionService', () => {
         expect(await service.can(10, 'action')).toBe(false);
         jest.setSystemTime(500);
         expect(await service.can(10, 'action')).toBe(false);
-        expect(await service.can(10, 'other-action')).toBe(false);
 
         expect(serverInterface.getEnvironmentPermissions).toHaveBeenCalledTimes(2);
+      });
+
+      it('should refetch for another role or action within the refetch interval', async () => {
+        const { service, serverInterface } = setup(denied, denied, denied, {
+          isDevelopment: false,
+          actionsByRole: new Map([['action', { allowedRoles: new Set([11]) }]]),
+          actionsGloballyAllowed: new Set(),
+        });
+
+        jest.useFakeTimers();
+        jest.setSystemTime(0);
+
+        expect(await service.can(10, 'action')).toBe(false);
+        expect(await service.can(10, 'other-action')).toBe(false);
+        expect(await service.can(11, 'action')).toBe(true);
+
+        expect(serverInterface.getEnvironmentPermissions).toHaveBeenCalledTimes(4);
       });
 
       it('should refetch once when several denials happen concurrently', async () => {
