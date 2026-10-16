@@ -3,9 +3,14 @@ import type * as MigrationsModule from '../../src/audit-trail/migrations';
 
 import { Sequelize } from 'sequelize';
 
-import { fieldsChangedCondition, searchCondition } from '../../src/audit-trail';
+import {
+  createSqlAuditStore,
+  ensureAuditStorage,
+  fieldsChangedCondition,
+  searchCondition,
+  toRow,
+} from '../../src/audit-trail';
 import { runAuditMigrations } from '../../src/audit-trail/migrations';
-import { createSqlAuditStore, ensureAuditStorage, toRow } from '../../src/audit-trail/sql-store';
 
 jest.mock('../../src/audit-trail/migrations', () => ({
   runAuditMigrations: jest.fn().mockResolvedValue(undefined),

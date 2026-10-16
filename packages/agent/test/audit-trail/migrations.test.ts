@@ -2,13 +2,13 @@ import type { AuditStatus, PendingAuditRecord } from '../../src/audit-trail';
 
 import { Sequelize } from 'sequelize';
 
+import { ensureAuditStorage, toRow } from '../../src/audit-trail';
 import {
   buildUmzug,
   ensureSchema,
   isSchemaAlreadyExistsError,
   runAuditMigrations,
 } from '../../src/audit-trail/migrations';
-import { ensureAuditStorage, toRow } from '../../src/audit-trail/sql-store';
 
 type StoredRecord = PendingAuditRecord & { status: AuditStatus };
 
