@@ -1,9 +1,8 @@
-import { Aggregation } from '@forestadmin/datasource-toolkit';
+import { Aggregation, Sort } from '@forestadmin/datasource-toolkit';
 
-import compareValues from '../../src/utils/compare';
 import StreamingAggregator from '../../src/utils/aggregator';
+import compareValues from '../../src/utils/compare';
 import compareRecords from '../../src/utils/sort';
-import { Sort } from '@forestadmin/datasource-toolkit';
 
 describe('compareValues', () => {
   it('orders date-times by the instant, not by their text', () => {

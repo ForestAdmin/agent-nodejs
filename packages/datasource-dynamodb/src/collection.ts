@@ -31,9 +31,9 @@ import { DynamoDBOperationError, OffsetTooDeepError, ScanDeniedError } from './e
 import convertModelToFields from './schema/schema-converter';
 import { planAccessPath, planKeyLookup } from './utils/access-path';
 import StreamingAggregator from './utils/aggregator';
+import { mapWithConcurrency } from './utils/concurrency';
 import DynamoExecutor from './utils/executor';
 import ExpressionBuilder, { splitCondition } from './utils/expression-builder';
-import { mapWithConcurrency } from './utils/concurrency';
 import Serializer from './utils/serializer';
 import compareRecords from './utils/sort';
 
@@ -557,6 +557,7 @@ export default class DynamoDBCollection extends BaseCollection {
     }
 
     const item = Serializer.unflatten(created);
+
     if (entity?.attribute !== undefined) {
       if (item[entity.attribute] !== undefined && item[entity.attribute] !== entity.value) {
         throw new ValidationError(
@@ -716,6 +717,7 @@ export default class DynamoDBCollection extends BaseCollection {
     const budget = this.executor.newBudget();
     const segments = plan.access?.kind === 'scan' ? Math.max(this.settings.scanConcurrency, 1) : 1;
     const partitions = plan.access?.keyCondition?.partition.values;
+
     const segmentsOf = (): Array<ReadUnit | undefined> => {
       if (partitions) return partitions.map(partition => ({ partition }));
 
