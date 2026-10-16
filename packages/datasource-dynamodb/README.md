@@ -104,8 +104,9 @@ createDynamoDBDataSource({
 });
 ```
 
-Dates are compared by their instant when sorted or aggregated here, but DynamoDB compares them as
-text when it filters: store them in one offset (UTC) if you filter on ranges of them.
+Dates are compared by their instant when sorted or aggregated here, but DynamoDB orders and compares
+them as text on a key and when it filters: store them in one offset (UTC) if a date is a sort key or
+you filter on ranges of it.
 
 Types: `string`, `number`, `boolean`, `date` and `dateonly` (ISO 8601 strings), `timeonly`, `object`,
 `array`, `point` (GeoJSON), `binary` (base64). Keys are strings or numbers.

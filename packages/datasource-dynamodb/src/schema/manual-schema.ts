@@ -39,6 +39,13 @@ function validateFields(fields: FieldDefinition[], collectionName: string, path 
       throw new ValidationError(`A field of collection '${collectionName}' has no name`);
     }
 
+    if (field.name.includes(PATH_SEPARATOR)) {
+      throw new ValidationError(
+        `Field '${fullPath}' in collection '${collectionName}' contains '${PATH_SEPARATOR}', ` +
+          `which names nested attributes`,
+      );
+    }
+
     if (names.has(field.name)) {
       throw new ValidationError(
         `Duplicate field name: '${fullPath}' in collection '${collectionName}'`,

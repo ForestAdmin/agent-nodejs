@@ -121,6 +121,12 @@ function collectTypes(
   if (entries.length === 0) record('object');
 
   for (const [key, nested] of entries) {
+    if (key.includes(PATH_SEPARATOR)) {
+      throw new ValidationError(
+        `Attribute '${key}' contains '${PATH_SEPARATOR}', which names nested attributes`,
+      );
+    }
+
     collectTypes(
       nested,
       path ? `${path}${PATH_SEPARATOR}${key}` : key,
@@ -157,7 +163,7 @@ export function inferSchema(
   const hasNested = (path: string) =>
     paths.some(other => other.startsWith(`${path}${PATH_SEPARATOR}`));
 
-  for (const [path, observed] of Object.entries(types).filter(([path]) => !hasNested(path))) {
+  for (const [path, observed] of Object.entries(types).filter(([name]) => !hasNested(name))) {
     schema[path] = {
       type: TypeConverter.getMostSpecificType(observed),
       nullable: observed.includes('null') || presence[path] < items.length,

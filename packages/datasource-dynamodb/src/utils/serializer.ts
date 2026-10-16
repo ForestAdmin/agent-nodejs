@@ -94,6 +94,18 @@ export default class Serializer {
     return item;
   }
 
+  /** Sets the value at a path, creating the maps on the way, and replaces what was there. */
+  static setPath(target: Record<string, unknown>, segments: string[], value: unknown): void {
+    let holder = target;
+
+    for (const segment of segments.slice(0, -1)) {
+      if (!isPlainObject(holder[segment])) holder[segment] = {};
+      holder = holder[segment] as Record<string, unknown>;
+    }
+
+    holder[segments[segments.length - 1]] = value instanceof Date ? value.toISOString() : value;
+  }
+
   static toPathSegments(field: string): string[] {
     return field.split(PATH_SEPARATOR);
   }

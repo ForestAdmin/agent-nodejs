@@ -2,7 +2,7 @@ import type PaginationCache from './utils/pagination-cache';
 import type { PaginationCacheOptions } from './utils/pagination-cache';
 import type { DynamoDBClientConfig } from '@aws-sdk/client-dynamodb';
 import type { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
-import type { FieldSchema } from '@forestadmin/datasource-toolkit';
+import type { AggregateResult, FieldSchema } from '@forestadmin/datasource-toolkit';
 
 export type ScanPolicy = 'allow' | 'warn' | 'deny';
 
@@ -129,6 +129,8 @@ export type CollectionSettings = {
   logConsumedCapacity: boolean;
   logQueries: boolean;
   paginationCache: PaginationCache;
+  /** Charts by table then by request: every collection of a table drops them on a write. */
+  chartCaches: Map<string, Map<string, { at: number; value: AggregateResult[] }>>;
   now: () => number;
 };
 
