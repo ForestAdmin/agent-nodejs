@@ -5,6 +5,10 @@ import { ChatOpenAI, ChatOpenAIResponses } from '@langchain/openai';
 // Chat Completions rejects reasoning_effort alongside function tools on these models.
 const RESPONSES_ONLY_MODEL = /^gpt-6(?:[.-]|$)/;
 
+// The Responses API stores a response for at least 30 days unless asked not to, where Chat Completions
+// stored nothing. A configuration can still opt in through its own modelKwargs.
+const KEEP_NOTHING_AT_OPENAI = { store: false };
+
 function forcesResponsesApi(fields: Pick<ChatOpenAIFields, 'model' | 'useResponsesApi'>) {
   return Boolean(fields.useResponsesApi) || RESPONSES_ONLY_MODEL.test(fields.model ?? '');
 }
@@ -39,6 +43,11 @@ export default function createOpenAIChatModel(fields: ChatOpenAIFields): ChatOpe
   return new ChatOpenAI({
     ...fields,
     ...(forcesResponsesApi(fields) && { useResponsesApi: true }),
-    responses: restoreToolChoice(new ChatOpenAIResponses(fields)),
+    responses: restoreToolChoice(
+      new ChatOpenAIResponses({
+        ...fields,
+        modelKwargs: { ...KEEP_NOTHING_AT_OPENAI, ...fields.modelKwargs },
+      }),
+    ),
   });
 }

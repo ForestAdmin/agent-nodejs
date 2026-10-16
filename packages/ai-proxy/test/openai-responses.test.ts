@@ -506,6 +506,60 @@ describe('ProviderDispatcher with a Responses API model', () => {
   });
 });
 
+describe('what OpenAI keeps of a Responses API call', () => {
+  function build(fields: Record<string, unknown>) {
+    const { requests, fakeFetch } = buildFakeFetch();
+    const model = createOpenAIChatModel({
+      apiKey: 'dev',
+      maxRetries: 0,
+      configuration: { fetch: fakeFetch as never },
+      ...fields,
+    } as never);
+
+    return { requests, model };
+  }
+
+  it.each(['gpt-6-luna', 'gpt-5.6-mini'])(
+    'asks OpenAI not to store the conversation for %s, as Chat Completions did',
+    async name => {
+      const { requests, model } = build({ model: name });
+
+      await model.invoke('hi');
+
+      expect(requests[0].url).toMatch(/\/v1\/responses$/);
+      expect(requests[0].body.store).toBe(false);
+    },
+  );
+
+  it('lets a configuration ask OpenAI to store the conversation', async () => {
+    const { requests, model } = build({ model: 'gpt-6-luna', modelKwargs: { store: true } });
+
+    await model.invoke('hi');
+
+    expect(requests[0].body.store).toBe(true);
+  });
+
+  it('keeps the other model options a configuration passes through modelKwargs', async () => {
+    const { requests, model } = build({
+      model: 'gpt-6-luna',
+      modelKwargs: { metadata: { team: 'ops' } },
+    });
+
+    await model.invoke('hi');
+
+    expect(requests[0].body).toMatchObject({ store: false, metadata: { team: 'ops' } });
+  });
+
+  it('sends no store field on Chat Completions, whose default already keeps nothing', async () => {
+    const { requests, model } = build({ model: 'gpt-4o' });
+
+    await model.invoke('hi');
+
+    expect(requests[0].url).toMatch(/\/v1\/chat\/completions$/);
+    expect(requests[0].body).not.toHaveProperty('store');
+  });
+});
+
 describe('createBaseChatModel on the Responses API', () => {
   it.each(['gpt-6-luna', 'gpt-5.6-mini'])(
     'turns the forced tool call the executor makes into tool_choice required for %s',
