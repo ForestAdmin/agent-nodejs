@@ -33,8 +33,12 @@ import { planAccessPath, planKeyLookup } from './utils/access-path';
 import StreamingAggregator from './utils/aggregator';
 import DynamoExecutor from './utils/executor';
 import ExpressionBuilder, { splitCondition } from './utils/expression-builder';
+import { mapWithConcurrency } from './utils/concurrency';
 import Serializer from './utils/serializer';
 import compareRecords from './utils/sort';
+
+/** What a parallel read splits into: the segments of a scan, or the partitions of a filter. */
+type ReadUnit = { segment?: { index: number; total: number }; partition?: string | number };
 
 type ReadPlan = { lookup?: KeyLookup; access?: AccessPath; residual?: ConditionTree };
 
@@ -47,6 +51,10 @@ function intersect(...trees: ConditionTree[]): ConditionTree | undefined {
 /** Values a single expression may carry before it is evaluated on the returned items instead. */
 const MAX_PUSHED_LIST_VALUES = 200;
 const LIST_OPERATORS = ['In', 'NotIn', 'IncludesAll', 'IncludesNone'];
+/** Items below which a page read without any filter is too cheap to call a scan. */
+const MAX_CHEAP_PAGE_ITEMS = 1000;
+/** A scan warning is repeated at most this often. */
+const WARN_INTERVAL_MS = 60000;
 /** Charts remembered per collection, the oldest dropped first. */
 const MAX_CACHED_CHARTS = 100;
 
@@ -68,9 +76,10 @@ function describeFilter(tree?: ConditionTree): string {
 function keyConditionExpression(
   builder: ExpressionBuilder,
   { partition, sort }: AccessPath['keyCondition'],
+  partitionValue: string | number,
 ): string {
   const expressions = [
-    `${builder.attribute(partition.attribute)} = ${builder.value(partition.value)}`,
+    `${builder.attribute(partition.attribute)} = ${builder.value(partitionValue)}`,
   ];
 
   if (sort) {
@@ -103,6 +112,7 @@ export default class DynamoDBCollection extends BaseCollection {
   private readonly logger: Logger;
   private readonly fieldNames: Set<string>;
   private readonly matchContext: Collection;
+  private readonly warnedAt = new Map<string, number>();
   private readonly chartCache = new Map<string, { at: number; value: AggregateResult[] }>();
 
   constructor(
@@ -287,23 +297,32 @@ export default class DynamoDBCollection extends BaseCollection {
       );
     }
 
-    this.logger(
-      'Warn',
-      `Scan on table '${this.model.tableName}' for collection '${this.name}': ${reason}`,
-    );
+    const message = `Scan on table '${this.model.tableName}' for collection '${this.name}': ${reason}`;
+    const now = this.settings.now();
+
+    // The same scan is asked for again each time a page or a chart is displayed: say it once.
+    if (now - (this.warnedAt.get(message) ?? -Infinity) < WARN_INTERVAL_MS) return;
+
+    this.warnedAt.set(message, now);
+    this.logger('Warn', message);
   }
 
   private buildReadInput(
     access: AccessPath,
     fields: string[],
     extra: Partial<ReadInput> = {},
+    partitionValue?: string | number,
   ): ReadInput {
     const builder = new ExpressionBuilder();
     const input: ReadInput = {};
 
     if (access.kind === 'query') {
       input.IndexName = access.indexName;
-      input.KeyConditionExpression = keyConditionExpression(builder, access.keyCondition);
+      input.KeyConditionExpression = keyConditionExpression(
+        builder,
+        access.keyCondition,
+        partitionValue ?? access.keyCondition.partition.value,
+      );
       if (!access.scanIndexForward) input.ScanIndexForward = false;
     }
 
@@ -326,7 +345,7 @@ export default class DynamoDBCollection extends BaseCollection {
     plan: ReadPlan,
     fields: string[],
     budget: ReadBudget,
-    segment?: { index: number; total: number },
+    unit?: ReadUnit,
   ): AsyncGenerator<Item[]> {
     if (plan.lookup) {
       yield await this.executor.batchGet(plan.lookup.keys, this.projectionParams(fields) as never);
@@ -334,10 +353,24 @@ export default class DynamoDBCollection extends BaseCollection {
       return;
     }
 
+    const partitions = plan.access.keyCondition?.partition.values;
+
+    // A filter naming several partitions is one Query per partition, read one after the other.
+    if (partitions && !unit) {
+      for (const partition of partitions) {
+        yield* this.readBatches(plan, fields, budget, { partition });
+      }
+
+      return;
+    }
+
     const operation: ReadOperation = plan.access.kind;
-    const input = this.buildReadInput(plan.access, fields, {
-      ...(segment ? { Segment: segment.index, TotalSegments: segment.total } : {}),
-    });
+    const input = this.buildReadInput(
+      plan.access,
+      fields,
+      unit?.segment ? { Segment: unit.segment.index, TotalSegments: unit.segment.total } : {},
+      unit?.partition,
+    );
 
     for await (const page of this.executor.readPages(operation, input, budget)) yield page.items;
   }
@@ -432,7 +465,15 @@ export default class DynamoDBCollection extends BaseCollection {
     const limit = filter.page?.limit || undefined;
     const plan = this.plan(filter.conditionTree, sort);
 
-    this.guardScan(plan, filter.conditionTree);
+    // Reading the first page of a collection without any filter costs one page, not a table.
+    const isCheapPage =
+      !filter.conditionTree &&
+      !plan.residual &&
+      (!sort || plan.access?.sortSatisfied) &&
+      limit !== undefined &&
+      skip + limit <= MAX_CHEAP_PAGE_ITEMS;
+
+    if (!isCheapPage) this.guardScan(plan, filter.conditionTree);
 
     const { columns } = projection;
     const fields = [
@@ -452,7 +493,9 @@ export default class DynamoDBCollection extends BaseCollection {
       );
     };
 
-    if (!plan.lookup && (!sort || plan.access.sortSatisfied)) {
+    const singlePartition = !plan.access?.keyCondition?.partition.values;
+
+    if (!plan.lookup && singlePartition && (!sort || plan.access.sortSatisfied)) {
       return (await this.readPage(plan, fields, skip, limit, caller.timezone)).map(toResult);
     }
 
@@ -640,7 +683,7 @@ export default class DynamoDBCollection extends BaseCollection {
     read: (segment: T) => Promise<void>,
   ): Promise<void> {
     try {
-      await Promise.all(segments.map(read));
+      await mapWithConcurrency(segments, Math.max(this.settings.scanConcurrency, 1), read);
     } catch (error) {
       budget.abort();
 
@@ -672,19 +715,30 @@ export default class DynamoDBCollection extends BaseCollection {
 
     const budget = this.executor.newBudget();
     const segments = plan.access?.kind === 'scan' ? Math.max(this.settings.scanConcurrency, 1) : 1;
-    const segmentsOf = (): Array<{ index: number; total: number } | undefined> =>
-      segments > 1
-        ? Array.from({ length: segments }, (_, index) => ({ index, total: segments }))
+    const partitions = plan.access?.keyCondition?.partition.values;
+    const segmentsOf = (): Array<ReadUnit | undefined> => {
+      if (partitions) return partitions.map(partition => ({ partition }));
+
+      return segments > 1
+        ? Array.from({ length: segments }, (_, index) => ({ segment: { index, total: segments } }))
         : [undefined];
+    };
 
     if (isCount && ungrouped && !plan.lookup && !plan.residual) {
       let total = 0;
 
-      await this.inSegments(budget, segmentsOf(), async segment => {
-        const input = this.buildReadInput(plan.access, [], {
-          Select: 'COUNT',
-          ...(segment ? { Segment: segment.index, TotalSegments: segment.total } : {}),
-        });
+      await this.inSegments(budget, segmentsOf(), async unit => {
+        const input = this.buildReadInput(
+          plan.access,
+          [],
+          {
+            Select: 'COUNT',
+            ...(unit?.segment
+              ? { Segment: unit.segment.index, TotalSegments: unit.segment.total }
+              : {}),
+          },
+          unit?.partition,
+        );
 
         for await (const page of this.executor.readPages(plan.access.kind, input, budget)) {
           total += page.count;
@@ -702,8 +756,8 @@ export default class DynamoDBCollection extends BaseCollection {
     ];
     const aggregator = new StreamingAggregator(aggregation, timezone);
 
-    await this.inSegments(budget, segmentsOf(), async segment => {
-      for await (const batch of this.readBatches(plan, fields, budget, segment)) {
+    await this.inSegments(budget, segmentsOf(), async unit => {
+      for await (const batch of this.readBatches(plan, fields, budget, unit)) {
         for (const item of batch) {
           if (!plan.residual || this.matches(plan.residual, item, timezone)) {
             aggregator.add(this.toRecord(item));
