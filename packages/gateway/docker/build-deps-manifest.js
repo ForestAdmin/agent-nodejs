@@ -55,9 +55,6 @@ const RESOLUTIONS = {
   '**/ajv/fast-uri': '^3.1.6',
   // Mirrors the root resolutions: express 5 (mcp-server, MCP SDK) pins an unpatched body-parser.
   '**/express/body-parser': '^2.3.0',
-  // sanitize-html >= 2.17.6 bumped htmlparser2 to ^12 (ESM-only); pin to the last 10.x which
-  // ships a CJS entry so the BFF's Jest config (CJS) still loads it.
-  '**/sanitize-html/htmlparser2': '^10.1.0',
 };
 
 function generate(packagesDir, outFile) {
