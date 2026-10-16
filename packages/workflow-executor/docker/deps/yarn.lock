@@ -2,15 +2,15 @@
 # yarn lockfile v1
 
 
-"@anthropic-ai/sdk@^0.95.1":
-  version "0.95.2"
-  resolved "https://registry.yarnpkg.com/@anthropic-ai/sdk/-/sdk-0.95.2.tgz#a3d6f079493d7abb9ccb312e25376e8850ef8f6f"
-  integrity sha512-Egddwo3sheo1PzUrMkZnH6VkQYwS0h/b/i8vSK8Ta9M45UQipAMeDFH57dYuDAfXMEUUGeKw6CMlremgMZgrSQ==
+"@anthropic-ai/sdk@^0.122.0":
+  version "0.122.0"
+  resolved "https://registry.yarnpkg.com/@anthropic-ai/sdk/-/sdk-0.122.0.tgz#9dd620dd0a98405b81e9b39f1b752d13d1c76ff8"
+  integrity sha512-GGPNftt0caaz9MDlmNQGHX8855Ojaduyy5pm9Sm1h7HalCn0cWNb5/bweadJF+4yzbal+QL6ztBa09WAAOzLmQ==
   dependencies:
     json-schema-to-ts "^3.1.1"
     standardwebhooks "^1.0.0"
 
-"@aws-sdk/client-bedrock-agent-runtime@^3.1078.0":
+"@aws-sdk/client-bedrock-agent-runtime@^3.1141.0":
   version "3.1152.0"
   resolved "https://registry.yarnpkg.com/@aws-sdk/client-bedrock-agent-runtime/-/client-bedrock-agent-runtime-3.1152.0.tgz#a3dc7bf5ede1f669394c52a0621cfccf3c744008"
   integrity sha512-9hoa4giCc+2fYR4NNqVA2P8BoUmlbWH1iesh+bVNCCMunGmPW2YrGSCcpmx+WhnWXyWK7GBXSVnoTH0CniAPOA==
@@ -24,7 +24,7 @@
     "@smithy/types" "^4.19.0"
     tslib "^2.6.2"
 
-"@aws-sdk/client-bedrock-runtime@^3.1078.0":
+"@aws-sdk/client-bedrock-runtime@^3.1141.0":
   version "3.1152.0"
   resolved "https://registry.yarnpkg.com/@aws-sdk/client-bedrock-runtime/-/client-bedrock-runtime-3.1152.0.tgz#e723c7bd635a356b7b57e87ee5efc2113d0fedfa"
   integrity sha512-73OunQANpKST6eQljF9mwt9z49MpL1oL1inIgBTUtc/CegxYQ8OLj/5/yLrmxuRzZWYFSxp0e04TLiwIrDRuSQ==
@@ -42,7 +42,7 @@
     "@smithy/types" "^4.19.0"
     tslib "^2.6.2"
 
-"@aws-sdk/client-kendra@^3.1078.0":
+"@aws-sdk/client-kendra@^3.1141.0":
   version "3.1152.0"
   resolved "https://registry.yarnpkg.com/@aws-sdk/client-kendra/-/client-kendra-3.1152.0.tgz#d20ff97082bb6e371215c405a0a903620d144125"
   integrity sha512-ac6nIrkDlc2LjY4khNjl4AED5cDam1q5f8sGETnmE2PlcVZeiaT+3dFJJ/HRB7lO9LCgMAU3H2ylolCVrSAfIg==
@@ -125,7 +125,7 @@
     "@smithy/types" "^4.19.0"
     tslib "^2.6.2"
 
-"@aws-sdk/credential-provider-node@^3.972.61", "@aws-sdk/credential-provider-node@^3.972.86":
+"@aws-sdk/credential-provider-node@^3.972.84", "@aws-sdk/credential-provider-node@^3.972.86":
   version "3.972.86"
   resolved "https://registry.yarnpkg.com/@aws-sdk/credential-provider-node/-/credential-provider-node-3.972.86.tgz#a90360977d5ebdd13d0e98a8f79d943f9eb7d263"
   integrity sha512-WNttSyr6e8innPtBSty//CdnqJcgZN6eAbtw3v/CR2IObz6MYZEo8eusdtuCHJ2ujwFqC2bSPHVyhXGHx8HruQ==
@@ -355,62 +355,61 @@
     koa-compose "^4.1.0"
     path-to-regexp "^8.4.2"
 
-"@langchain/anthropic@1.4.0":
-  version "1.4.0"
-  resolved "https://registry.yarnpkg.com/@langchain/anthropic/-/anthropic-1.4.0.tgz#15c204fe8cb23ec706e37b5c928412e559bc476e"
-  integrity sha512-rs1yVydrHjyiD31uChdCnKZpmDuKa0Bpz8Raiy9GvqnqmfXPMe0oOrap/2paE+NRSinDbtax8mMpP/yv8EbO1A==
+"@langchain/anthropic@1.5.12":
+  version "1.5.12"
+  resolved "https://registry.yarnpkg.com/@langchain/anthropic/-/anthropic-1.5.12.tgz#558576c00b665961011192b2a558d9f1eb216258"
+  integrity sha512-tVvI94zAtG6isYxBzL7hlbxfbqjmvx/BqBWAov7v+bABKYz3fZHFI2Io1UI5UzU+h/5SuC1qXUV+JxnaqylJJw==
   dependencies:
-    "@anthropic-ai/sdk" "^0.95.1"
+    "@anthropic-ai/sdk" "^0.122.0"
     zod "^3.25.76 || ^4"
 
-"@langchain/aws@1.4.3":
-  version "1.4.3"
-  resolved "https://registry.yarnpkg.com/@langchain/aws/-/aws-1.4.3.tgz#7d159051d5fa3e73ce49bd7140ae6b33a7469073"
-  integrity sha512-X3oNXI1/pLizW6D4Wd1ojWTTPGnRgli8S+rm+CAhFAevIP3UdFfTDY6xih7xrQQ/0sO7po/eD0jHeZoLRKhhBg==
+"@langchain/aws@1.4.7":
+  version "1.4.7"
+  resolved "https://registry.yarnpkg.com/@langchain/aws/-/aws-1.4.7.tgz#484e31e435d9ff35eb6a7965074ee4029fb9c20d"
+  integrity sha512-l7fAJsydqBLlsyZhpBu3gtrlZq0IFZm8zi/FqNkS4eK3gxHGyI0YuqBOb1xgsoe7LnE8K3aaaIRzkNVFI1UYYQ==
   dependencies:
-    "@aws-sdk/client-bedrock-agent-runtime" "^3.1078.0"
-    "@aws-sdk/client-bedrock-runtime" "^3.1078.0"
-    "@aws-sdk/client-kendra" "^3.1078.0"
-    "@aws-sdk/credential-provider-node" "^3.972.61"
+    "@aws-sdk/client-bedrock-agent-runtime" "^3.1141.0"
+    "@aws-sdk/client-bedrock-runtime" "^3.1141.0"
+    "@aws-sdk/client-kendra" "^3.1141.0"
+    "@aws-sdk/credential-provider-node" "^3.972.84"
 
-"@langchain/core@1.1.48":
-  version "1.1.48"
-  resolved "https://registry.yarnpkg.com/@langchain/core/-/core-1.1.48.tgz#dfe7f6a64b0e3e79e5357ed4b402c021ee315a7f"
-  integrity sha512-fQU6Guyb1pwc2fEplmA8FPbKfOMAofjnyJzExevro0FxEiuGHE18Ov/ZHmT9trWCDTZRI9eW1VIc6aChxV8pAQ==
+"@langchain/core@1.2.18":
+  version "1.2.18"
+  resolved "https://registry.yarnpkg.com/@langchain/core/-/core-1.2.18.tgz#e302249406b917905f065fad286757d2bc32baf4"
+  integrity sha512-ccwixbasSfP0ZGEUsN0/qdA1PK3GBzA1fwSi7PlQpvnT78/chR5FAKcodsvSk8imUNP/SWWeWnBG2VDrR1JLJQ==
   dependencies:
     "@cfworker/json-schema" "^4.0.2"
     "@standard-schema/spec" "^1.1.0"
     js-tiktoken "^1.0.12"
-    langsmith ">=0.5.0 <1.0.0"
+    langsmith ">=0.11.0 <1.0.0"
     mustache "^4.2.0"
     p-queue "^6.6.2"
     zod "^3.25.76 || ^4"
 
-"@langchain/langgraph-checkpoint@^1.0.4":
+"@langchain/langgraph-checkpoint@^1.2.0":
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/@langchain/langgraph-checkpoint/-/langgraph-checkpoint-1.2.0.tgz#e2df33d1d492e52b3b8adff558b3d709298923db"
   integrity sha512-a9F1tO/bKGS4AlLR0FVa859oImD0iQiQLAAPkP66Nnp7a5dXPgys2IpzdJQ9slKiVznsSAFjxxNCmM25dBOvWA==
 
-"@langchain/langgraph-sdk@~1.9.19":
-  version "1.9.31"
-  resolved "https://registry.yarnpkg.com/@langchain/langgraph-sdk/-/langgraph-sdk-1.9.31.tgz#4dad28c89a74014288f3b6ceadfda2cd42094715"
-  integrity sha512-y1sSdq39IPb6mOX43+JiSezVbUdA8EBEJ1gvn91GP0jrLG0EcSApeRDCjRouyDpPXZ51bQXEQhA8CiHM0mzcAw==
+"@langchain/langgraph-sdk@~1.12.4":
+  version "1.12.4"
+  resolved "https://registry.yarnpkg.com/@langchain/langgraph-sdk/-/langgraph-sdk-1.12.4.tgz#1b3b02d631a6b829942b45e536e0137e9ab8c42e"
+  integrity sha512-DuYk7HbajphOzBBtZYm+4LpCZuHj1/Csqepej5Ro1PJvchotA+bjg9XLh9LRsbz5j49Tl3owNoUp9ezj0lMCXA==
   dependencies:
-    "@langchain/protocol" "^0.0.18"
+    "@langchain/protocol" "^0.0.19"
     "@types/json-schema" "^7.0.15"
     p-queue "^9.0.1"
     p-retry "^7.1.1"
 
-"@langchain/langgraph@1.3.7":
-  version "1.3.7"
-  resolved "https://registry.yarnpkg.com/@langchain/langgraph/-/langgraph-1.3.7.tgz#2f7430a42875689e98947a4060e6a2de461a2eb4"
-  integrity sha512-6WNskiu3bpy3XFwiD9cm4n2QapnFVX7dqYeJzuEAUGp9R3vbxngRVyb5+Myp5Rz4GCFXGXuhcFSjLVRHPhsNtQ==
+"@langchain/langgraph@1.5.0":
+  version "1.5.0"
+  resolved "https://registry.yarnpkg.com/@langchain/langgraph/-/langgraph-1.5.0.tgz#2cf85f1bf29ab1f9fbd8bbdbdb2452146e5753b2"
+  integrity sha512-nYBV1vkWtAdU9GFDzdnPKiEMZVXerqCadRcyRtjTnd6Z4nIPmyB4SGSKioQFjSWBZK6nd/RIoyQVhjnLpw9oxQ==
   dependencies:
-    "@langchain/langgraph-checkpoint" "^1.0.4"
-    "@langchain/langgraph-sdk" "~1.9.19"
-    "@langchain/protocol" "^0.0.16"
+    "@langchain/langgraph-checkpoint" "^1.2.0"
+    "@langchain/langgraph-sdk" "~1.12.4"
+    "@langchain/protocol" "^0.0.19"
     "@standard-schema/spec" "1.1.0"
-    uuid "^14.0.0"
 
 "@langchain/mcp-adapters@1.1.3":
   version "1.1.3"
@@ -423,24 +422,19 @@
   optionalDependencies:
     extended-eventsource "^1.7.0"
 
-"@langchain/openai@1.4.7":
-  version "1.4.7"
-  resolved "https://registry.yarnpkg.com/@langchain/openai/-/openai-1.4.7.tgz#8af279497ead6f5ac3a97dd0f4f5faccf2b31614"
-  integrity sha512-i1YLV4pWbGC6W8m0ZNpLObJuf1nyU4o8aWyX4AF9fHn7eM67HfIJWQ5n5XzcCpuSa41otrxA9jvH5XRKwI1qDA==
+"@langchain/openai@1.6.2":
+  version "1.6.2"
+  resolved "https://registry.yarnpkg.com/@langchain/openai/-/openai-1.6.2.tgz#1a70df67e11680e9d38c2bb4214c753ce13a1ed9"
+  integrity sha512-KaXc3zjdM2/E24FdBlsk5NTT2Dyxh46vzCS2by78ehN6G5zdx+4OfVnPvyLl8r2tv2TqQCHpEhImVXgnAZaOvg==
   dependencies:
     js-tiktoken "^1.0.12"
-    openai "^6.37.0"
+    openai "^7.10.0"
     zod "^3.25.76 || ^4"
 
-"@langchain/protocol@^0.0.16":
-  version "0.0.16"
-  resolved "https://registry.yarnpkg.com/@langchain/protocol/-/protocol-0.0.16.tgz#68b63d58feaf4f0acf77405cb8fb16f9c3f09b60"
-  integrity sha512-ws+J7MaHyhO5dG7f0vdyHQiUn9hoCnki0f3crJPa4MCTGzcRC39jYSCghyrGtBPYQnZbUQiGyRVpW3z3M8IpJg==
-
-"@langchain/protocol@^0.0.18":
-  version "0.0.18"
-  resolved "https://registry.yarnpkg.com/@langchain/protocol/-/protocol-0.0.18.tgz#6d96155e7263c958fbce6d4b7241b4725b72fbad"
-  integrity sha512-XW1egQtPfsGI41w2AMZNFZrUIwFSQHTjVMZs0OaTpCAvht/QLoaPN8FQcsysMVypOhupG28J29yOorrc70otBQ==
+"@langchain/protocol@^0.0.19":
+  version "0.0.19"
+  resolved "https://registry.yarnpkg.com/@langchain/protocol/-/protocol-0.0.19.tgz#7fe43fed115dc34b3b4c246e8d5283fbcbfab7b0"
+  integrity sha512-9hKcRrH7cBX6gfutdfXPoft1OCchHe4FEpALoDJMl5Qu+n/YG5ynZmyu8+8cxORlPwHBoKTxggvXz+76M1yX1Q==
 
 "@modelcontextprotocol/sdk@^1.26.0":
   version "1.32.1"
@@ -2510,10 +2504,10 @@ koa@^3.0.1:
     type-is "^2.0.1"
     vary "^1.1.2"
 
-"langsmith@>=0.5.0 <1.0.0":
-  version "0.10.13"
-  resolved "https://registry.yarnpkg.com/langsmith/-/langsmith-0.10.13.tgz#3f4c7b651ec838a0073d1db2cf9055422595e98a"
-  integrity sha512-v5500fr7rVzQSfQphTBJV2/OrMRDzb2QfLfoO+gvPBY/kER99QF2+wbG6QQUydm0N7ueyJfBOYhq6tqYacXVAA==
+"langsmith@>=0.11.0 <1.0.0":
+  version "0.11.0"
+  resolved "https://registry.yarnpkg.com/langsmith/-/langsmith-0.11.0.tgz#63f493faec6268fab81ca57d827639d97755b1ef"
+  integrity sha512-NMyaEhfHKAVPdXR8jqP1in4BAr2RhJTmBsH+ZzhvBDTxWUsuaprnJxkRe/3NY5d2+wCaPtzbDK2Myhh6vg2q7w==
   dependencies:
     p-queue "6.6.2"
 
@@ -2757,10 +2751,10 @@ once@^1.4.0:
   dependencies:
     wrappy "1"
 
-openai@^6.37.0:
-  version "6.49.0"
-  resolved "https://registry.yarnpkg.com/openai/-/openai-6.49.0.tgz#6e9f798e146935ed38d955b43d57d6796cee5e6b"
-  integrity sha512-aYCc0C6L864eR6WSYIwQGyXriw/nIyZx0ObvhzOEVuk0zoBDpynjSbrionWI7q65B5H8jJX0DXR9snEzM6bfPg==
+openai@^7.10.0:
+  version "7.34.0"
+  resolved "https://registry.yarnpkg.com/openai/-/openai-7.34.0.tgz#86ea47b0d27bdc60b3aa6906cb422e293fa25667"
+  integrity sha512-PMwuTQ/3cVyWZJOVpb6bzlrQj17uImlnUGQWqh5zHlN/snwK5ww4ZUHW8NYGtH6f9PQOEPxyD/f8WJVIHp1q2A==
 
 openid-client@^5.7.1:
   version "5.7.1"
@@ -3404,11 +3398,6 @@ uuid@11.1.1, uuid@^11.1.1, uuid@^8.3.2:
   version "11.1.1"
   resolved "https://registry.yarnpkg.com/uuid/-/uuid-11.1.1.tgz#f6d81d2e1c65d00762e5e29b16c5d2d995e208ad"
   integrity sha512-vIYxrBCC/N/K+Js3qSN88go7kIfNPssr/hHCesKCQNAjmgvYS2oqr69kIufEG+O4+PfezOH4EbIeHCfFov8ZgQ==
-
-uuid@^14.0.0:
-  version "14.0.3"
-  resolved "https://registry.yarnpkg.com/uuid/-/uuid-14.0.3.tgz#48c9b0dcf5a42d983c23162399eeb9af8b2cc617"
-  integrity sha512-Sc5u1VVln93y1Xnz4R+CunOZc7R9LUcTmhj7Rc7Eg3HVcf7rVn2FOoa812fe0W8p3jD7xeoGSYbfqCGGH2B6xw==
 
 validator@^13.7.0, validator@^13.9.0:
   version "13.15.35"
