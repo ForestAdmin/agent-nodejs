@@ -18,8 +18,6 @@ const COMPARISONS: Partial<Record<Operator, string>> = {
   LessThanOrEqual: '<=',
   GreaterThan: '>',
   GreaterThanOrEqual: '>=',
-  Before: '<',
-  After: '>',
 };
 
 /** What DynamoDB evaluates itself; any other operator is applied on the items it returns. */

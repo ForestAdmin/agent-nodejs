@@ -151,6 +151,27 @@ describe('introspectTable', () => {
     expect(schema['a->b->c']).toBeUndefined();
   });
 
+  it('exposes only the nested columns of a map seen empty in some items', async () => {
+    const client = fakeClient({
+      DescribeTable: () => describeTable(),
+      Scan: () => ({
+        Items: [
+          { customerId: 'c', orderId: 'o1', address: null },
+          { customerId: 'c', orderId: 'o2', address: {} },
+          { customerId: 'c', orderId: 'o3', address: { city: 'Paris' } },
+        ],
+      }),
+    });
+
+    const { schema } = await introspectTable(client, {
+      collectionName: 'orders',
+      tableName: 'Orders',
+    });
+
+    expect(schema.address).toBeUndefined();
+    expect(schema['address->city']).toMatchObject({ type: 'string', nullable: true });
+  });
+
   it('declares the keys even when the table is empty', async () => {
     const client = fakeClient({
       DescribeTable: () => describeTable(),

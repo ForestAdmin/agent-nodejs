@@ -46,6 +46,9 @@ type Candidate = {
   coversAllItems: boolean;
 };
 
+/** Keys a lookup may name: a longer list is read some other way than one BatchGetItem. */
+const MAX_LOOKUP_KEYS = 10000;
+
 /** Partitions a single filter may fan out to: each one is a request of its own. */
 const MAX_PARTITIONS = 50;
 
@@ -329,15 +332,24 @@ export function planKeyLookup(model: TableModel, conditionTree?: ConditionTree):
 
     return {
       leaf,
-      values: (
-        (leaf.operator === 'Equal' ? [leaf.value] : leaf.value) as Array<string | number>
-      ).map(value => coerceKeyValue(attribute, value)),
+      values: [
+        ...new Set(
+          ((leaf.operator === 'Equal' ? [leaf.value] : leaf.value) as Array<string | number>).map(
+            value => coerceKeyValue(attribute, value),
+          ),
+        ),
+      ],
     };
   };
 
   const resolved = keyAttributes.map(attribute => ({ attribute, found: valuesOf(attribute) }));
 
   if (resolved.every(({ found }) => found)) {
+    // The keys are the product of the lists: a huge one is never built.
+    const product = resolved.reduce((count, { found }) => count * found.values.length, 1);
+
+    if (product > MAX_LOOKUP_KEYS) return null;
+
     const keys = resolved.reduce<Array<Record<string, unknown>>>(
       (combined, { attribute, found }) =>
         combined.flatMap(key => found.values.map(value => ({ ...key, [attribute.name]: value }))),

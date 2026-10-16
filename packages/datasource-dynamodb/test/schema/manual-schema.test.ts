@@ -122,6 +122,20 @@ describe('convertManualSchema', () => {
   });
 });
 
+describe('keys and fields of the same name', () => {
+  it('keeps the type configured for the key', () => {
+    const [model] = convertManualSchema(
+      config({
+        partitionKey: { name: 'id', type: 'number' },
+        sortKey: undefined,
+        fields: [{ name: 'id', type: 'string' }],
+      }),
+    );
+
+    expect(model.schema.id).toEqual({ type: 'number', nullable: false });
+  });
+});
+
 describe('validateManualSchema', () => {
   it('accepts a valid schema', () => {
     expect(() => validateManualSchema(config())).not.toThrow();

@@ -151,7 +151,13 @@ export function inferSchema(
 
   const schema: Record<string, AttributeSchema> = Object.create(null);
 
-  for (const [path, observed] of Object.entries(types)) {
+  // A map seen empty or null in some items and populated in others was recorded as a value and
+  // as nested attributes: only the nested ones are columns, the map itself is expanded.
+  const paths = Object.keys(types);
+  const hasNested = (path: string) =>
+    paths.some(other => other.startsWith(`${path}${PATH_SEPARATOR}`));
+
+  for (const [path, observed] of Object.entries(types).filter(([path]) => !hasNested(path))) {
     schema[path] = {
       type: TypeConverter.getMostSpecificType(observed),
       nullable: observed.includes('null') || presence[path] < items.length,

@@ -9,6 +9,11 @@ describe('compareValues', () => {
     expect(compareValues('2024-01-01T00:30:00+02:00', '2023-12-31T23:00:00Z')).toBe(-1);
   });
 
+  it('compares a date without time as the instant it starts at, in UTC', () => {
+    expect(compareValues('2024-01-01', '2024-01-01T00:30:00+02:00')).toBe(1);
+    expect(compareValues('2024-01-01', '2024-01-01T00:00:00Z')).toBe(0);
+  });
+
   it('treats the same instant written two ways as equal', () => {
     expect(compareValues('2024-01-01T02:00:00+02:00', '2024-01-01T00:00:00Z')).toBe(0);
   });
