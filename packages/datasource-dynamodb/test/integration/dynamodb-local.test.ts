@@ -343,6 +343,33 @@ run('DynamoDB Local', () => {
       expect(records.map(r => r.sk)).toEqual(['USER#2']);
     });
 
+    it('queries each partition of an In on the partition key', async () => {
+      logger.mockClear();
+
+      const records = await orders().list(
+        caller,
+        new PaginatedFilter({
+          conditionTree: leaf('customerId', 'In', ['c1', 'c2']),
+          page: { skip: 18, limit: 4 } as never,
+        }),
+        new Projection('customerId', 'orderId'),
+      );
+      const count = await orders().aggregate(
+        caller,
+        new Filter({ conditionTree: leaf('customerId', 'In', ['c1', 'c2']) }),
+        new Aggregation({ operation: 'Count' }),
+      );
+
+      expect(records.map(r => `${r.customerId}${r.orderId}`)).toEqual([
+        'c1o18',
+        'c1o19',
+        'c2o20',
+        'c2o21',
+      ]);
+      expect(count).toEqual([{ value: 30, group: {} }]);
+      expect(logger).not.toHaveBeenCalledWith('Warn', expect.stringContaining('Scan on table'));
+    });
+
     it('reads whole keys with BatchGetItem', async () => {
       const records = await orders().list(
         caller,

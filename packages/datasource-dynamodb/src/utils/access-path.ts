@@ -25,7 +25,8 @@ export type AccessPath = {
   /** Key attributes of the table or index read: a Query filter cannot reference them. */
   keyAttributes?: string[];
   keyCondition?: {
-    partition: { attribute: string; value: string | number };
+    /** `values` lists every partition to read, when the filter names several: one Query each. */
+    partition: { attribute: string; value: string | number; values?: Array<string | number> };
     sort?: SortKeyCondition;
   };
   /** What the key condition leaves for a filter expression. */
@@ -44,6 +45,9 @@ type Candidate = {
   /** Whether an item missing the sort key can still be in the index: it cannot, unless told so. */
   coversAllItems: boolean;
 };
+
+/** Partitions a single filter may fan out to: each one is a request of its own. */
+const MAX_PARTITIONS = 50;
 
 const RANGE_OPERATORS = ['LessThan', 'LessThanOrEqual', 'GreaterThan', 'GreaterThanOrEqual'];
 
@@ -193,12 +197,28 @@ export function planAccessPath(
   let best: { path: AccessPath; score: number } | undefined;
 
   for (const candidate of candidates) {
-    const partition = leaves.find(
-      leaf =>
-        leaf.field === candidate.partitionKey.name &&
-        leaf.operator === 'Equal' &&
-        isKeyValue(leaf.value),
-    );
+    const onPartitionKey = leaves.filter(leaf => leaf.field === candidate.partitionKey.name);
+    const equal = onPartitionKey.find(leaf => leaf.operator === 'Equal' && isKeyValue(leaf.value));
+    const partition =
+      equal ??
+      onPartitionKey.find(
+        leaf =>
+          leaf.operator === 'In' &&
+          Array.isArray(leaf.value) &&
+          leaf.value.length > 0 &&
+          leaf.value.length <= MAX_PARTITIONS &&
+          leaf.value.every(isKeyValue),
+      );
+    const partitionValues = partition
+      ? [
+          ...new Set(
+            (partition.operator === 'Equal'
+              ? [partition.value]
+              : (partition.value as unknown[])
+            ).map(value => coerceKeyValue(candidate.partitionKey, value) as string | number),
+          ),
+        ]
+      : [];
 
     if (partition) {
       const picked = candidate.sortKey ? pickSortCondition(candidate.sortKey, parts) : undefined;
@@ -210,7 +230,11 @@ export function planAccessPath(
       }
 
       const sortClause = sort?.length === 1 ? sort[0] : undefined;
-      const sortSatisfied = !!sortClause && sortClause.field === candidate.sortKey?.name;
+      // Several partitions are read one after the other: their items are not in one key order.
+      const sortSatisfied =
+        !!sortClause &&
+        sortClause.field === candidate.sortKey?.name &&
+        partitionValues.length === 1;
       const consumed = new Set<ConditionTree>([partition, ...(picked?.consumed ?? [])]);
       const score = (picked ? 2 : 0) + (sortSatisfied ? 1 : 0);
 
@@ -224,7 +248,8 @@ export function planAccessPath(
             keyCondition: {
               partition: {
                 attribute: candidate.partitionKey.name,
-                value: coerceKeyValue(candidate.partitionKey, partition.value) as string | number,
+                value: partitionValues[0],
+                ...(partitionValues.length > 1 ? { values: partitionValues } : {}),
               },
               sort: picked?.condition,
             },

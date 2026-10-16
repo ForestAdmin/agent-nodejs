@@ -351,3 +351,67 @@ describe('planKeyLookup soundness', () => {
     expect(planKeyLookup(buildModel(), tree).keys).toEqual([{ customerId: 'c1', orderId: 'o1' }]);
   });
 });
+
+describe('a filter naming several partitions', () => {
+  it('queries each partition of an In on the partition key', () => {
+    const plan = planAccessPath(buildModel(), leaf('customerId', 'In', ['c1', 'c2', 'c1']));
+
+    expect(plan.kind).toBe('query');
+    expect(plan.keyCondition.partition).toEqual({
+      attribute: 'customerId',
+      value: 'c1',
+      values: ['c1', 'c2'],
+    });
+    expect(plan.remaining).toBeUndefined();
+  });
+
+  it('reads a single value In as one partition', () => {
+    const plan = planAccessPath(buildModel(), leaf('customerId', 'In', ['c1']));
+
+    expect(plan.keyCondition.partition).toEqual({ attribute: 'customerId', value: 'c1' });
+  });
+
+  it('prefers an equality to an In on the same key', () => {
+    const plan = planAccessPath(
+      buildModel(),
+      and(plain('customerId', 'In', ['c1', 'c2']), plain('customerId', 'Equal', 'c2')),
+    );
+
+    expect(plan.keyCondition.partition.values).toBeUndefined();
+    expect(plan.keyCondition.partition.value).toBe('c2');
+  });
+
+  it('keeps the sort key range for every partition', () => {
+    const plan = planAccessPath(
+      buildModel(),
+      and(plain('customerId', 'In', ['c1', 'c2']), plain('orderId', 'GreaterThan', 'o5')),
+    );
+
+    expect(plan.keyCondition.sort).toMatchObject({ operator: 'GreaterThan', value: 'o5' });
+  });
+
+  it('does not claim a sort order across partitions', () => {
+    const plan = planAccessPath(
+      buildModel(),
+      leaf('customerId', 'In', ['c1', 'c2']),
+      new Sort({ field: 'orderId', ascending: true }),
+    );
+
+    expect(plan.sortSatisfied).toBe(false);
+  });
+
+  it('scans instead of sending dozens of queries for a long list', () => {
+    const values = Array.from({ length: 51 }, (_, i) => `c${i}`);
+
+    expect(planAccessPath(buildModel(), leaf('customerId', 'In', values)).kind).toBe('scan');
+  });
+
+  it('types the values like the key', () => {
+    const plan = planAccessPath(
+      buildModel({ partitionKey: { name: 'accountId', type: 'N' } }),
+      leaf('accountId', 'In', ['1', 2]),
+    );
+
+    expect(plan.keyCondition.partition.values).toEqual([1, 2]);
+  });
+});
