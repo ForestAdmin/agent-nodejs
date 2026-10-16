@@ -94,6 +94,12 @@ export default class Runner {
     // Probe the agent first so we fail fast without opening DB connections when unreachable.
     await this.config.agentPort.probe();
     this.logger('Info', 'Agent probe passed', {});
+
+    // Required on the port so an adapter cannot drop the gate silently, but called defensively:
+    // Runner and RunnerConfig are exported, so an untyped consumer can hand us a port built before
+    // this method existed. Degrading beats crashing their boot on a check they never asked for.
+    await this.config.aiModelPort.probeCredentials?.();
+    this.logger('Info', 'AI credential probe passed', {});
     await this.config.runStore.init(this.logger);
 
     this._state = 'running';

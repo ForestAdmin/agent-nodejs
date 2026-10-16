@@ -64,6 +64,11 @@ export default class ServerAiAdapter implements AiModelPort {
     return this.callPort('closeConnections', () => this.aiClient.closeConnections());
   }
 
+  // The Forest server owns the provider credentials; this executor holds none to resolve.
+  probeCredentials(): Promise<void> {
+    return Promise.resolve();
+  }
+
   // Every call is routed to the Forest server's AI proxy, which picks the real provider/model.
   // The model name is therefore a placeholder, and fetch is rewritten to hit the proxy with the
   // env secret instead of an OpenAI Authorization header.

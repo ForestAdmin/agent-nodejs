@@ -7,6 +7,7 @@ const mockGetModel = jest.fn().mockReturnValue({ invoke: jest.fn() });
 const mockLoadRemoteTools = jest.fn().mockResolvedValue([]);
 const mockLoadRemoteToolsWithFailures = jest.fn().mockResolvedValue({ tools: [], failures: [] });
 const mockCloseConnections = jest.fn().mockResolvedValue(undefined);
+const mockProbeCredentials = jest.fn().mockResolvedValue(undefined);
 const mockAiClientConstructor = jest.fn();
 
 jest.mock('@forestadmin/ai-proxy', () => ({
@@ -18,12 +19,37 @@ jest.mock('@forestadmin/ai-proxy', () => ({
       loadRemoteTools: mockLoadRemoteTools,
       loadRemoteToolsWithFailures: mockLoadRemoteToolsWithFailures,
       closeConnections: mockCloseConnections,
+      probeCredentials: mockProbeCredentials,
     };
   }),
 }));
 
 describe('AiClientAdapter', () => {
   beforeEach(() => jest.clearAllMocks());
+
+  it('delegates probeCredentials to AiClient', async () => {
+    const adapter = new AiClientAdapter([
+      { name: 'default', provider: 'bedrock' as const, model: 'eu.anthropic.claude-sonnet-5' },
+    ]);
+
+    await adapter.probeCredentials();
+
+    expect(mockProbeCredentials).toHaveBeenCalledTimes(1);
+  });
+
+  // The AWS message names what to fix (which chain was searched, the Docker mount trap), so losing
+  // it to a generic port error would leave the operator with "probeCredentials failed" and nothing
+  // to act on.
+  it('keeps the provider message when the probe fails', async () => {
+    mockProbeCredentials.mockRejectedValueOnce(
+      new Error('no AWS credentials could be resolved: the standard chain found none'),
+    );
+    const adapter = new AiClientAdapter([
+      { name: 'default', provider: 'bedrock' as const, model: 'eu.anthropic.claude-sonnet-5' },
+    ]);
+
+    await expect(adapter.probeCredentials()).rejects.toThrow('the standard chain found none');
+  });
 
   it('delegates getModel to AiClient with aiConfigName from step definition', () => {
     const adapter = new AiClientAdapter([
