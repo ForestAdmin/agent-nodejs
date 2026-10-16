@@ -1,3 +1,4 @@
+import type { WorkflowExecutorError } from '../errors';
 import type { StepExecutionResult } from '../types/execution-context';
 import type { FieldWithValue, UpdateRecordStepExecutionData } from '../types/step-execution-data';
 import type { CollectionSchema, FieldSchema, RecordRef } from '../types/validated/collection';
@@ -10,6 +11,7 @@ import {
   FieldNotFoundError,
   FieldTypeMissingError,
   InvalidPreRecordedArgsError,
+  InvalidPreRecordedValueError,
   NoWritableFieldsError,
   PinnedArgNotFoundError,
   StepStateError,
@@ -63,11 +65,20 @@ function buildZodSchemaForPrimitive(
             return val;
           }, z.boolean());
     case 'Date':
-      return z.iso.datetime().describe('ISO 8601 datetime, e.g. 2024-06-01T00:00:00Z');
+      return z.iso
+        .datetime({ offset: true })
+        .describe('ISO 8601 datetime, e.g. 2024-06-01T00:00:00Z');
     case 'Dateonly':
       return z.iso.date().describe('ISO 8601 date, e.g. 2024-06-01');
     case 'Number':
-      return z.coerce.number();
+      // z.coerce.number() reads a blank string as 0; NaN makes it fail instead. Kept off the AI
+      // tool for the same JSON Schema reason as Boolean.
+      return forAiTool
+        ? z.coerce.number()
+        : z.preprocess(
+            val => (typeof val === 'string' && val.trim() === '' ? NaN : val),
+            z.coerce.number(),
+          );
     case 'Enum':
       if (enumValues && enumValues.length >= 2) {
         return z.enum(enumValues as [string, string, ...string[]]);
@@ -120,6 +131,8 @@ function coerceFieldValue(
   fieldSchema: FieldSchema | undefined,
   value: unknown,
   collectionName: string,
+  toError: (fieldDisplayName: string, reason: string) => WorkflowExecutorError = (name, reason) =>
+    new StepStateError(`Invalid value for field "${name}": ${reason}`),
 ): unknown {
   // Field not found, relationship (type intentionally null), or explicit null → nothing to coerce.
   if (!fieldSchema || fieldSchema.isRelationship || value === null) return value;
@@ -127,10 +140,9 @@ function coerceFieldValue(
   const parsed = buildZodSchemaForField(fieldSchema, collectionName).safeParse(value);
 
   if (!parsed.success) {
-    throw new StepStateError(
-      `Invalid value for field "${fieldSchema.displayName}": ${parsed.error.issues
-        .map(issue => issue.message)
-        .join(', ')}`,
+    throw toError(
+      fieldSchema.displayName,
+      parsed.error.issues.map(issue => issue.message).join(', '),
     );
   }
 
@@ -226,27 +238,26 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     let fieldName: string;
     let value: unknown;
 
-    if (recordedField !== undefined && preRecordedArgs?.value !== undefined) {
-      fieldName = recordedField;
-      value = preRecordedArgs.value;
-    } else if (recordedField !== undefined) {
+    if (recordedField !== undefined) {
       const field = this.findFieldByTechnicalName(schema, recordedField);
       if (!field) throw new PinnedArgNotFoundError('field', recordedField, schema.collectionName);
       fieldName = recordedField;
-      value = await this.selectValueForField(schema, field, step.prompt);
+      value =
+        preRecordedArgs?.value !== undefined
+          ? coerceFieldValue(
+              field,
+              preRecordedArgs.value,
+              schema.collectionName,
+              (name, reason) => new InvalidPreRecordedValueError(name, reason),
+            )
+          : await this.selectValueForField(schema, field, step.prompt);
     } else {
       ({ fieldName, value } = await this.selectFieldAndValue(schema, step.prompt));
     }
 
     const field = this.findFieldByTechnicalName(schema, fieldName);
 
-    if (!field) {
-      // Reached with a pinned name only when field and value were both pre-recorded; the
-      // pinned-name-only branch above resolves the field before it gets here.
-      throw recordedField !== undefined
-        ? new PinnedArgNotFoundError('field', fieldName, schema.collectionName)
-        : new FieldNotFoundError(fieldName, schema.collectionName);
-    }
+    if (!field) throw new FieldNotFoundError(fieldName, schema.collectionName);
 
     const target: UpdateTarget = {
       selectedRecordRef,
