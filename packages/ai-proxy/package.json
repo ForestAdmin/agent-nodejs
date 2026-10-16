@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/ai-proxy",
-  "version": "1.14.4",
+  "version": "1.14.5",
   "main": "dist/index.js",
   "license": "Apache-2.0",
   "publishConfig": {
@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@forestadmin/agent-toolkit": "1.2.1",
-    "@forestadmin/datasource-toolkit": "1.56.1",
+    "@forestadmin/datasource-toolkit": "1.56.2",
     "@langchain/anthropic": "1.4.0",
     "@langchain/aws": "1.4.3",
     "@langchain/core": "1.1.48",
