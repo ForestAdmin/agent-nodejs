@@ -175,7 +175,8 @@ export default class StreamingAggregator {
       if (a.value === null) return 1;
       if (b.value === null) return -1;
 
-      return a.value < b.value ? 1 : -1;
+      // Highest first, dates by the instant they stand for.
+      return -compareValues(a.value, b.value);
     });
 
     return limit && rows.length > limit ? rows.slice(0, limit) : rows;

@@ -51,4 +51,17 @@ describe('sorting and aggregating dates with offsets', () => {
 
     expect(aggregator.result()).toEqual([{ value: expected, group: {} }]);
   });
+
+  it('ranks groups by the instant of their Max, so a limit keeps the latest', () => {
+    const aggregator = new StreamingAggregator(
+      new Aggregation({ operation: 'Max', field: 'at', groups: [{ field: 'g' }] }),
+      'UTC',
+    );
+    aggregator.add({ g: 'earlier', at: '2024-01-01T00:30:00+02:00' });
+    aggregator.add({ g: 'later', at: '2023-12-31T23:00:00Z' });
+
+    expect(aggregator.result(1)).toEqual([
+      { value: '2023-12-31T23:00:00Z', group: { g: 'later' } },
+    ]);
+  });
 });
