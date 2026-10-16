@@ -1,3 +1,10 @@
+## @forestadmin/datasource-toolkit [1.56.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.56.1...@forestadmin/datasource-toolkit@1.56.2) (2026-10-16)
+
+
+### Performance Improvements
+
+* port the list, search and permission optimizations to agent-nodejs (PRD-1578) ([#2019](https://github.com/ForestAdmin/agent-nodejs/issues/2019)) ([57d8e15](https://github.com/ForestAdmin/agent-nodejs/commit/57d8e15f1ee5a56bd54b2f2c6c01a9da081a6db8))
+
 ## @forestadmin/datasource-toolkit [1.56.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.56.0...@forestadmin/datasource-toolkit@1.56.1) (2026-10-10)
 
 

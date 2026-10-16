@@ -1,6 +1,8 @@
 import Serializer from '../../src/services/serializer';
 import * as factories from '../__factories__';
 
+const asSent = (body: unknown): unknown => JSON.parse(JSON.stringify(body));
+
 describe('Serializer', () => {
   const setupSerializer = (): Serializer => {
     return new Serializer();
@@ -38,7 +40,22 @@ describe('Serializer', () => {
 
     test('should serialize', () => {
       const result = setupSerializer().serialize(dataSource.collections[0], person);
-      expect(result).toStrictEqual(serializedPerson);
+      expect(asSent(result)).toStrictEqual(serializedPerson);
+    });
+
+    test('should leave an undefined attribute out of the sent body', () => {
+      const result = setupSerializer().serialize(dataSource.collections[0], {
+        ...person,
+        firstName: undefined,
+      });
+
+      expect(asSent(result)).toStrictEqual({
+        ...serializedPerson,
+        data: {
+          ...serializedPerson.data,
+          attributes: { idA: person.idA, idB: person.idB },
+        },
+      });
     });
 
     test('should deserialize', () => {
@@ -96,7 +113,7 @@ describe('Serializer', () => {
             [person],
             'Isaac',
           );
-          expect(result).toStrictEqual({
+          expect(asSent(result)).toStrictEqual({
             data: [
               {
                 type: 'person',
@@ -127,7 +144,7 @@ describe('Serializer', () => {
               [person],
               'Not Match',
             );
-            expect(result).toStrictEqual({
+            expect(asSent(result)).toStrictEqual({
               data: [
                 {
                   type: 'person',
@@ -162,7 +179,7 @@ describe('Serializer', () => {
               ],
               'MATCH',
             );
-            expect(result).toStrictEqual({
+            expect(asSent(result)).toStrictEqual({
               jsonapi: {
                 version: '1.0',
               },
@@ -228,7 +245,7 @@ describe('Serializer', () => {
                   },
                 },
               };
-              expect(result).toStrictEqual({
+              expect(asSent(result)).toStrictEqual({
                 meta,
                 jsonapi: {
                   version: '1.0',
@@ -284,7 +301,7 @@ describe('Serializer', () => {
             [person],
             '',
           );
-          expect(result).toStrictEqual({
+          expect(asSent(result)).toStrictEqual({
             data: [
               {
                 type: 'person',
@@ -308,7 +325,7 @@ describe('Serializer', () => {
             [person],
             null,
           );
-          expect(result).toStrictEqual({
+          expect(asSent(result)).toStrictEqual({
             data: [
               {
                 type: 'person',
@@ -367,7 +384,7 @@ describe('Serializer', () => {
         author: { id: 'asim00', name: 'Asimov' },
       });
 
-      expect(result).toStrictEqual({
+      expect(asSent(result)).toStrictEqual({
         data: {
           type: 'book',
           id: '9780345317988',
@@ -433,7 +450,7 @@ describe('Serializer', () => {
         author: { id: 'asim00', name: 'Asimov', address: { id: 'addr01', street: 'Main street' } },
       });
 
-      expect(result).toStrictEqual({
+      expect(asSent(result)).toStrictEqual({
         data: {
           type: 'book',
           id: '9780345317988',
@@ -464,7 +481,7 @@ describe('Serializer', () => {
         author: { id: 'must be / encoded', name: 'Asimov' },
       });
 
-      expect(result).toStrictEqual({
+      expect(asSent(result)).toStrictEqual({
         data: {
           type: 'book',
           id: '9780345317988',

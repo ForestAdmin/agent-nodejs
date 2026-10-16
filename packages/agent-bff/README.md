@@ -259,8 +259,11 @@ layer instead, so a caller sending no timezone against a BFF with no `BFF_DEFAUL
 | Presented credentials                | Result                      |
 | ------------------------------------ | --------------------------- |
 | `Authorization: Bearer <bff_access>` | Mode 1 (OAuth session)      |
-| `X-Forest-Bff-Key`                   | Mode 2 (API key)            |
-| both                                 | `400 ambiguous_credentials` |
+| `X-Forest-Gateway-Key`               | Mode 2 (API key)            |
+| `X-Forest-Bff-Key` (legacy)          | Mode 2 (API key)            |
+| both key headers, same key           | Mode 2 (API key)            |
+| both key headers, different keys     | `400 ambiguous_credentials` |
+| Bearer and a key header              | `400 ambiguous_credentials` |
 | neither                              | `401 unauthorized`          |
 
 A Mode 1 `bff_access` that is malformed or wrong-typed → `401 unauthorized`; one that is validly

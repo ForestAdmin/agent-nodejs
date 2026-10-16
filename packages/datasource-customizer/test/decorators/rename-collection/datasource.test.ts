@@ -1,3 +1,4 @@
+import { CollectionDecorator, DataSourceDecorator } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import RenameCollectionDataSourceDecorator from '../../../src/decorators/rename-collection/datasource';
@@ -191,6 +192,20 @@ describe('RenameCollectionDecorator', () => {
       expect(() => decoratedDataSource.getCollection('name 1')).toThrow(
         `Collection 'name 1' has been renamed to 'name 2'`,
       );
+    });
+
+    test('should return the new name in upper layers that read the name before the rename', () => {
+      const dataSource = factories.dataSource.buildWithCollection(
+        factories.collection.build({ name: 'name 1' }),
+      );
+      const decoratedDataSource = new RenameCollectionDataSourceDecorator(dataSource);
+      const upperDataSource = new DataSourceDecorator(decoratedDataSource, CollectionDecorator);
+      const upperCollection = upperDataSource.getCollection('name 1');
+      expect(upperCollection.name).toBe('name 1');
+
+      decoratedDataSource.renameCollection('name 1', 'name 2');
+
+      expect(upperCollection.name).toBe('name 2');
     });
 
     test('should change the foreign collection when it is a many to one', () => {

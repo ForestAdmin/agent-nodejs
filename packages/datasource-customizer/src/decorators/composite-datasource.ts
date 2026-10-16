@@ -12,6 +12,7 @@ export default class CompositeDatasource<T extends Collection = Collection>
   implements DataSource<T>
 {
   private dataSources: DataSource[] = [];
+  private dataSourceByCollectionName = new Map<string, DataSource>();
 
   get nativeQueryConnections(): Record<string, unknown> {
     return this.dataSources.reduce(
@@ -29,9 +30,22 @@ export default class CompositeDatasource<T extends Collection = Collection>
   }
 
   getCollection(name: string): T {
-    for (const collection of this.dataSources) {
+    const knownDataSource = this.dataSourceByCollectionName.get(name);
+
+    if (knownDataSource) {
       try {
-        return collection.getCollection(name) as T;
+        return knownDataSource.getCollection(name) as T;
+      } catch {
+        this.dataSourceByCollectionName.delete(name);
+      }
+    }
+
+    for (const dataSource of this.dataSources) {
+      try {
+        const collection = dataSource.getCollection(name) as T;
+        this.dataSourceByCollectionName.set(name, dataSource);
+
+        return collection;
       } catch (error) {
         // Ignore
       }
@@ -46,8 +60,10 @@ export default class CompositeDatasource<T extends Collection = Collection>
   }
 
   addDataSource(dataSource: DataSource): void {
+    const existingNames = new Set(this.collections.map(c => c.name));
+
     for (const collection of dataSource.collections) {
-      if (this.collections.some(c => c.name === collection.name)) {
+      if (existingNames.has(collection.name)) {
         throw new Error(`Collection '${collection.name}' already exists`);
       }
     }
@@ -65,6 +81,10 @@ export default class CompositeDatasource<T extends Collection = Collection>
     }
 
     this.dataSources.push(dataSource);
+
+    for (const collection of dataSource.collections) {
+      this.dataSourceByCollectionName.set(collection.name, dataSource);
+    }
   }
 
   async renderChart(

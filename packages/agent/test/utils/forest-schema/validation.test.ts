@@ -152,9 +152,9 @@ describe('FrontendValidationUtils', () => {
 
     expect(validationList).toStrictEqual([
       {
-        message: 'Value must match /^a|b|c$/g',
+        message: 'Value must match /^(?:a|b|c)$/g',
         type: 'is like',
-        value: '/^a|b|c$/g',
+        value: '/^(?:a|b|c)$/g',
       },
     ]);
   });
@@ -206,9 +206,9 @@ describe('FrontendValidationUtils', () => {
 
     expect(validationList).toStrictEqual([
       {
-        message: 'Value must match /(?!a|b)/g',
+        message: 'Value must match /^(?!(?:a|b)$)/g',
         type: 'is like',
-        value: '/(?!a|b)/g',
+        value: '/^(?!(?:a|b)$)/g',
       },
     ]);
   });

@@ -20,6 +20,28 @@ export type AsyncLeafReplacer = LeafHandler<Promise<ConditionTree | PlainConditi
 export type LeafTester = LeafHandler<boolean>;
 export type LeafCallback = LeafHandler<void>;
 
+type RecordMatcher = (record: RecordData) => boolean;
+type ValueMatcher = (fieldValue: unknown) => boolean;
+
+const SUPPORTED_OPERATORS = new Set<Operator>([
+  'In',
+  'Equal',
+  'LessThan',
+  'GreaterThan',
+  'LessThanOrEqual',
+  'GreaterThanOrEqual',
+  'Match',
+  'StartsWith',
+  'EndsWith',
+  'LongerThan',
+  'ShorterThan',
+  'IncludesAll',
+  'IncludesNone',
+  'NotIn',
+  'NotEqual',
+  'NotContains',
+]);
+
 export default class ConditionTreeLeaf extends ConditionTree {
   field: string;
   operator: Operator;
@@ -83,73 +105,103 @@ export default class ConditionTreeLeaf extends ConditionTree {
     return result instanceof ConditionTree ? result : ConditionTreeFactory.fromPlainObject(result);
   }
 
+  override createMatcher(
+    collection: Collection,
+    timezone: string,
+  ): (record: RecordData) => boolean {
+    let evaluate: RecordMatcher;
+
+    return record => {
+      evaluate ??= this.resolveRecordMatcher(collection, timezone);
+
+      return evaluate(record);
+    };
+  }
+
   match(record: RecordData, collection: Collection, timezone: string): boolean {
-    const fieldValue = RecordUtils.getFieldValue(record, this.field);
+    return this.createMatcher(collection, timezone)(record);
+  }
+
+  private resolveRecordMatcher(collection: Collection, timezone: string): RecordMatcher {
     const { columnType } = CollectionUtils.getFieldSchema(collection, this.field) as ColumnSchema;
-    const supported = [
-      ...[
-        'In',
-        'Equal',
-        'LessThan',
-        'GreaterThan',
-        'LessThanOrEqual',
-        'GreaterThanOrEqual',
-        'Match',
-        'StartsWith',
-        'EndsWith',
-      ],
-      ...[
-        'LongerThan',
-        'ShorterThan',
-        'IncludesAll',
-        'IncludesNone',
-        'NotIn',
-        'NotEqual',
-        'NotContains',
-      ],
-    ] as const;
 
     switch (this.operator) {
-      case 'In':
-        return (this.value as unknown[])?.includes(fieldValue);
-      case 'Equal':
-        return fieldValue == this.value; // eslint-disable-line eqeqeq
-      case 'LessThan':
-        return fieldValue < this.value;
-      case 'GreaterThan':
-        return fieldValue > this.value;
-      case 'LessThanOrEqual':
-        return fieldValue <= this.value;
-      case 'GreaterThanOrEqual':
-        return fieldValue >= this.value;
-      case 'Match':
-        return typeof fieldValue === 'string' && (this.value as RegExp).test(fieldValue);
-      case 'StartsWith':
-        return typeof fieldValue === 'string' && fieldValue.startsWith(this.value as string);
-      case 'EndsWith':
-        return typeof fieldValue === 'string' && fieldValue.endsWith(this.value as string);
-      case 'LongerThan':
-        return typeof fieldValue === 'string' ? fieldValue.length > (this.value as number) : false;
-      case 'ShorterThan':
-        return typeof fieldValue === 'string' ? fieldValue.length < (this.value as number) : false;
-      case 'IncludesAll':
-        return !!(this.value as unknown[])?.every(v => (fieldValue as unknown[])?.includes(v));
-      case 'IncludesNone':
-        return !(this.value as unknown[])?.some(v => (fieldValue as unknown[])?.includes(v));
       case 'NotIn':
       case 'NotEqual':
       case 'NotContains':
       case 'NotIContains':
-        return !this.inverse().match(record, collection, timezone);
+        return this.createInverseMatcher(collection, timezone);
 
-      default:
-        return ConditionTreeEquivalent.getEquivalentTree(
+      default: {
+        const matchValue = this.resolveValueMatcher();
+
+        if (matchValue) return record => matchValue(RecordUtils.getFieldValue(record, this.field));
+
+        const equivalent = ConditionTreeEquivalent.getEquivalentTree(
           this,
-          new Set(supported),
+          SUPPORTED_OPERATORS,
           columnType,
           timezone,
-        ).match(record, collection, timezone);
+        );
+
+        return equivalent.createMatcher(collection, timezone);
+      }
     }
+  }
+
+  private resolveValueMatcher(): ValueMatcher | null {
+    const { value } = this;
+
+    switch (this.operator) {
+      case 'In':
+        return fieldValue => (value as unknown[])?.includes(fieldValue);
+      case 'Equal':
+        return fieldValue => fieldValue == value; // eslint-disable-line eqeqeq
+      case 'LessThan':
+        return fieldValue => fieldValue < value;
+      case 'GreaterThan':
+        return fieldValue => fieldValue > value;
+      case 'LessThanOrEqual':
+        return fieldValue => fieldValue <= value;
+      case 'GreaterThanOrEqual':
+        return fieldValue => fieldValue >= value;
+
+      case 'Match':
+        return fieldValue => {
+          if (typeof fieldValue !== 'string') return false;
+
+          // `test` on a global or sticky regexp is stateful through `lastIndex`.
+          (value as RegExp).lastIndex = 0;
+
+          return (value as RegExp).test(fieldValue);
+        };
+
+      case 'StartsWith':
+        return fieldValue =>
+          typeof fieldValue === 'string' && fieldValue.startsWith(value as string);
+      case 'EndsWith':
+        return fieldValue => typeof fieldValue === 'string' && fieldValue.endsWith(value as string);
+      case 'LongerThan':
+        return fieldValue =>
+          typeof fieldValue === 'string' ? fieldValue.length > (value as number) : false;
+      case 'ShorterThan':
+        return fieldValue =>
+          typeof fieldValue === 'string' ? fieldValue.length < (value as number) : false;
+      case 'IncludesAll':
+        return fieldValue =>
+          !!(value as unknown[])?.every(v => (fieldValue as unknown[])?.includes(v));
+      case 'IncludesNone':
+        return fieldValue =>
+          !(value as unknown[])?.some(v => (fieldValue as unknown[])?.includes(v));
+      default:
+        return null;
+    }
+  }
+
+  private createInverseMatcher(collection: Collection, timezone: string): RecordMatcher {
+    const inverse = this.inverse().createMatcher(collection, timezone);
+
+    return record => !inverse(record);
   }
 
   override(params: Partial<PlainConditionTreeLeaf>): ConditionTreeLeaf {

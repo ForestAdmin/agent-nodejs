@@ -1,7 +1,7 @@
 import type { AuditRecord } from '../../audit-trail';
 import type { ForestAdminHttpDriverServices } from '../../services';
 import type { AgentOptionsWithDefaults } from '../../types';
-import type { DataSource } from '@forestadmin/datasource-toolkit';
+import type { Collection, DataSource } from '@forestadmin/datasource-toolkit';
 import type Router from '@koa/router';
 import type { Context } from 'koa';
 
@@ -22,6 +22,7 @@ export default class AuditTrailTimelineRoute extends BaseRoute {
   readonly type = RouteType.PrivateRoute;
 
   private readonly dataSource: DataSource;
+  private allCollections?: Collection[];
 
   constructor(
     services: ForestAdminHttpDriverServices,
@@ -84,8 +85,9 @@ export default class AuditTrailTimelineRoute extends BaseRoute {
   // only sees through a permission scope is left out entirely rather than surfaced unfiltered: the row alone
   // would reveal that a record it cannot read exists and was touched.
   private async readableCollections(context: Context): Promise<string[]> {
+    this.allCollections ??= this.dataSource.collections;
     const names = await Promise.all(
-      this.dataSource.collections.map(async collection => {
+      this.allCollections.map(async collection => {
         const readable = await this.services.authorization.canRead(context, collection.name);
 
         if (!readable) return null;

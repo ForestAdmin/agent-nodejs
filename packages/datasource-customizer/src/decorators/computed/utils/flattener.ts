@@ -33,13 +33,13 @@ export function withNullMarkers(projection: string[]): string[] {
 export function unflatten(flatList: unknown[][], projection: string[]): unknown[] {
   const numRecords = flatList[0]?.length ?? 0;
   const records = [];
+  // When a marker is found, the parent is null.
+  const partsByPath = projection.map(path => path.split(':').filter(part => part !== markerName));
 
   for (let recordIndex = 0; recordIndex < numRecords; recordIndex += 1) {
     records[recordIndex] = {};
 
-    for (const [pathIndex, path] of projection.entries()) {
-      // When a marker is found, the parent is null.
-      const parts = path.split(':').filter(part => part !== markerName);
+    for (const [pathIndex, parts] of partsByPath.entries()) {
       const value = flatList[pathIndex][recordIndex];
 
       // Ignore undefined values.

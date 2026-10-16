@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/gateway",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "description": "Serves the Forest Admin MCP and API services on one port, for agents that cannot embed them",
   "main": "dist/index.js",
   "bin": {
@@ -31,9 +31,9 @@
     "test": "jest"
   },
   "dependencies": {
-    "@forestadmin/agent-bff": "1.41.0",
-    "@forestadmin/forestadmin-client": "1.44.0",
-    "@forestadmin/mcp-server": "1.29.0"
+    "@forestadmin/agent-bff": "1.42.1",
+    "@forestadmin/forestadmin-client": "1.44.1",
+    "@forestadmin/mcp-server": "1.29.1"
   },
   "devDependencies": {
     "supertest": "^7.1.3"

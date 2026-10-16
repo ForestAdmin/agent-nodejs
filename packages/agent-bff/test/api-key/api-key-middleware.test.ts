@@ -7,6 +7,7 @@ import request from 'supertest';
 import { invalidApiKey, keyResolutionUnavailable } from '../../src/api-key/api-key-error';
 import createApiKeyMiddleware, {
   BFF_KEY_HEADER,
+  GATEWAY_KEY_HEADER,
   invalidateApiKeyIdentity,
 } from '../../src/api-key/api-key-middleware';
 import createErrorMiddleware from '../../src/http/error-middleware';
@@ -60,6 +61,59 @@ function buildApp(authenticate: ApiKeyAuthenticator['authenticate']) {
 }
 
 describe('api key middleware', () => {
+  describe('header names', () => {
+    const resolved = async () => ({ agentToken: 'minted-token', identity: IDENTITY });
+
+    it('should authenticate a key sent in X-Forest-Gateway-Key', async () => {
+      const authenticate = jest.fn(resolved);
+      const { app } = buildApp(authenticate);
+
+      const response = await request(app.callback()).get('/').set('X-Forest-Gateway-Key', RAW);
+
+      expect(GATEWAY_KEY_HEADER).toBe('X-Forest-Gateway-Key');
+      expect(authenticate).toHaveBeenCalledWith(RAW);
+      expect(response.status).toBe(200);
+    });
+
+    it('should still authenticate a key sent in X-Forest-Bff-Key', async () => {
+      const authenticate = jest.fn(resolved);
+      const { app } = buildApp(authenticate);
+
+      const response = await request(app.callback()).get('/').set('X-Forest-Bff-Key', RAW);
+
+      expect(BFF_KEY_HEADER).toBe('X-Forest-Bff-Key');
+      expect(authenticate).toHaveBeenCalledWith(RAW);
+      expect(response.status).toBe(200);
+    });
+
+    it('should accept both headers when they carry the same key', async () => {
+      const authenticate = jest.fn(resolved);
+      const { app } = buildApp(authenticate);
+
+      const response = await request(app.callback())
+        .get('/')
+        .set(GATEWAY_KEY_HEADER, RAW)
+        .set(BFF_KEY_HEADER, RAW);
+
+      expect(authenticate).toHaveBeenCalledWith(RAW);
+      expect(response.status).toBe(200);
+    });
+
+    it('should reject both headers carrying different keys with 400 ambiguous_credentials', async () => {
+      const authenticate = jest.fn(resolved);
+      const { app } = buildApp(authenticate);
+
+      const response = await request(app.callback())
+        .get('/')
+        .set(GATEWAY_KEY_HEADER, RAW)
+        .set(BFF_KEY_HEADER, `${RAW}x`);
+
+      expect(authenticate).not.toHaveBeenCalled();
+      expect(response.status).toBe(400);
+      expect(response.body.error.type).toBe('ambiguous_credentials');
+    });
+  });
+
   describe('when the key resolves', () => {
     it('should attach the minted token and identity to ctx.state with no-store', async () => {
       const authenticate = jest.fn(async () => ({

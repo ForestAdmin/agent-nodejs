@@ -35,7 +35,18 @@ describe('Utils > TypeConverter', () => {
       'LessThanOrEqual',
       'GreaterThanOrEqual',
     ] as const;
-    const strings = ['Like', 'ILike', 'NotContains', 'NotIContains'] as const;
+    const strings = [
+      'Like',
+      'ILike',
+      'Contains',
+      'IContains',
+      'StartsWith',
+      'IStartsWith',
+      'EndsWith',
+      'IEndsWith',
+      'NotContains',
+      'NotIContains',
+    ] as const;
 
     it.each([
       // Primitive type

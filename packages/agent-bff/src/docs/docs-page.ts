@@ -16,6 +16,7 @@
  */
 import SAMPLES_SCRIPT from './docs-samples';
 import { FAVICON_SVG, PAGE_STYLES, REDOC_THEME } from './docs-theme';
+import { GATEWAY_KEY_HEADER } from '../api-key/api-key-middleware';
 
 /**
  * `untrustedSpec` because the descriptions in the document come from the agent's own schema, which is
@@ -111,7 +112,7 @@ ${SAMPLES_SCRIPT}
 
           fetch(DOCUMENT_PATH, {
             cache: 'no-store',
-            headers: { 'X-Forest-Bff-Key': key },
+            headers: { ${JSON.stringify(GATEWAY_KEY_HEADER)}: key },
           })
             .then(function (response) {
               return response.text().then(function (text) {

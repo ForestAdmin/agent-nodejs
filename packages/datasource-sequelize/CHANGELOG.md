@@ -1,3 +1,18 @@
+## @forestadmin/datasource-sequelize [1.13.15](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.13.14...@forestadmin/datasource-sequelize@1.13.15) (2026-10-16)
+
+
+### Performance Improvements
+
+* port the list, search and permission optimizations to agent-nodejs (PRD-1578) ([#2019](https://github.com/ForestAdmin/agent-nodejs/issues/2019)) ([57d8e15](https://github.com/ForestAdmin/agent-nodejs/commit/57d8e15f1ee5a56bd54b2f2c6c01a9da081a6db8))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.56.2
+
 ## @forestadmin/datasource-sequelize [1.13.14](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.13.13...@forestadmin/datasource-sequelize@1.13.14) (2026-10-10)
 
 

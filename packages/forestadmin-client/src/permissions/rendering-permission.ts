@@ -10,6 +10,7 @@ import { PermissionLevel } from './types';
 import verifySQLQuery from './verify-sql-query';
 import ContextVariables from '../utils/context-variables';
 import ContextVariablesInjector from '../utils/context-variables-injector';
+import RefetchThrottle from '../utils/refetch-throttle';
 import TTLCache from '../utils/ttl-cache';
 
 export type RenderingPermission = {
@@ -20,6 +21,8 @@ export type RenderingPermission = {
 
 export default class RenderingPermissionService {
   private readonly permissionsByRendering: TTLCache<RenderingPermission>;
+  private readonly refetchThrottle = new RefetchThrottle();
+  private readonly forcedRefetches = new Map<string, Promise<void>>();
 
   constructor(
     private readonly options: ForestAdminClientOptionsWithDefaults,
@@ -70,7 +73,7 @@ export default class RenderingPermissionService {
 
     if (!collectionPermissions) {
       if (allowRetry) {
-        this.invalidateCache(renderingId);
+        this.tryForceRefetch(renderingId, `scope:${collectionName}`);
 
         return this.getScopeOrRetry({
           renderingId,
@@ -157,7 +160,7 @@ export default class RenderingPermissionService {
       !isSegmentQueryAllowed(segmentQuery, collectionPermissions.segments)
     ) {
       if (allowRetry) {
-        this.invalidateCache(renderingId);
+        this.tryForceRefetch(renderingId, `segment:${collectionName}`);
 
         return this.canExecuteSegmentQueryOrRetry({
           renderingId,
@@ -256,8 +259,11 @@ export default class RenderingPermissionService {
     }
 
     if (allowRetry) {
-      this.invalidateCache(renderingId);
-      this.userPermissions.invalidateCache();
+      this.tryForceRefetch(renderingId, 'chart');
+
+      if (this.refetchThrottle.tryAcquire(`${renderingId}:users`)) {
+        this.userPermissions.invalidateCache();
+      }
 
       return this.canRetrieveChartHashOrRetry({
         renderingId,
@@ -273,6 +279,21 @@ export default class RenderingPermissionService {
     );
 
     return false;
+  }
+
+  private tryForceRefetch(renderingId: number | string, check: string): void {
+    const key = `${renderingId}`;
+
+    if (this.forcedRefetches.has(key) || !this.refetchThrottle.tryAcquire(`${key}:${check}`)) {
+      return;
+    }
+
+    const done = () => {
+      this.forcedRefetches.delete(key);
+    };
+
+    this.invalidateCache(renderingId);
+    this.forcedRefetches.set(key, this.permissionsByRendering.fetch(key).then(done, done));
   }
 
   public invalidateCache(renderingId: number | string) {

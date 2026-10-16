@@ -64,7 +64,7 @@ export function unauthorized(message = 'Missing or invalid credentials'): BffHtt
 }
 
 export function ambiguousCredentials(
-  message = 'Both Authorization and X-Forest-Bff-Key were provided',
+  message = 'Both Authorization and an API key header were provided',
 ): BffHttpError {
   return new BffHttpError(400, 'ambiguous_credentials', message);
 }

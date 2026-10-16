@@ -1,6 +1,13 @@
-import type { Collection, DataSource } from '@forestadmin/datasource-toolkit';
+import type { Collection, DataSource, FieldSchema } from '@forestadmin/datasource-toolkit';
 
-import { Aggregation, DataSourceDecorator, Projection } from '@forestadmin/datasource-toolkit';
+import {
+  Aggregation,
+  ConditionTreeBranch,
+  ConditionTreeLeaf,
+  DataSourceDecorator,
+  PaginatedFilter,
+  Projection,
+} from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
 import LazyJoinDecorator from '../../../src/decorators/lazy-join/collection';
@@ -361,6 +368,157 @@ describe('LazyJoinDecorator', () => {
           { value: 1824.11, group: { 'user:name': 'Brad' } },
           { value: 824, group: { 'user:name': 'Pit' } },
         ]);
+      });
+    });
+  });
+
+  describe('footprint', () => {
+    let relationsGetter: jest.SpyInstance;
+    let branchProjectionGetter: jest.SpyInstance;
+
+    const buildWideCollection = (relationCount: number) => {
+      const fields: Record<string, FieldSchema> = {
+        id: factories.columnSchema.uuidPrimaryKey().build(),
+      };
+
+      for (let i = 0; i < relationCount; i += 1) {
+        fields[`card${i}_id`] = factories.columnSchema.build();
+        fields[`card${i}`] = factories.manyToOneSchema.build({
+          foreignCollection: 'cards',
+          foreignKey: `card${i}_id`,
+        });
+      }
+
+      const child = factories.collection.build({
+        name: 'wide',
+        schema: factories.collectionSchema.build({ fields }),
+      });
+      const decorated = new DataSourceDecorator(
+        factories.dataSource.buildWithCollections([child]),
+        LazyJoinDecorator,
+      ).getCollection('wide');
+
+      return { child, decorated };
+    };
+
+    const range = (count: number) => Array.from({ length: count }, (_, i) => i);
+
+    const buildOrFilter = (count: number, field: (i: number) => string) =>
+      new PaginatedFilter({
+        conditionTree: new ConditionTreeBranch(
+          'Or',
+          range(count).map(i => new ConditionTreeLeaf(field(i), 'Equal', i)),
+        ),
+      });
+
+    beforeEach(() => {
+      relationsGetter = jest.spyOn(Projection.prototype, 'relations', 'get');
+      branchProjectionGetter = jest.spyOn(ConditionTreeBranch.prototype, 'projection', 'get');
+    });
+
+    afterEach(() => {
+      relationsGetter.mockRestore();
+      branchProjectionGetter.mockRestore();
+    });
+
+    const countReadsDuring = async (action: () => Promise<unknown>) => {
+      relationsGetter.mockClear();
+      branchProjectionGetter.mockClear();
+
+      await action();
+
+      return {
+        relations: relationsGetter.mock.calls.length,
+        branchProjection: branchProjectionGetter.mock.calls.length,
+      };
+    };
+
+    describe('list', () => {
+      const listWithRelationProjection = async (relationCount: number) => {
+        const { child, decorated } = buildWideCollection(relationCount);
+        const listSpy = jest.spyOn(child, 'list').mockResolvedValue([]);
+        const caller = factories.caller.build();
+        const filter = new PaginatedFilter({});
+        const projection = new Projection(...range(relationCount).map(i => `card${i}:id`));
+
+        const reads = await countReadsDuring(() => decorated.list(caller, filter, projection));
+
+        expect(listSpy).toHaveBeenCalledWith(
+          caller,
+          filter,
+          new Projection(...range(relationCount).map(i => `card${i}_id`)),
+        );
+
+        return reads;
+      };
+
+      const listWithRelationFilter = async (leafCount: number) => {
+        const { child, decorated } = buildWideCollection(leafCount);
+        const listSpy = jest.spyOn(child, 'list').mockResolvedValue([]);
+        const caller = factories.caller.build();
+        const filter = buildOrFilter(leafCount, i => `card${i}:id`);
+
+        const reads = await countReadsDuring(() =>
+          decorated.list(caller, filter, new Projection('id')),
+        );
+
+        expect(listSpy).toHaveBeenCalledWith(
+          caller,
+          buildOrFilter(leafCount, i => `card${i}_id`),
+          new Projection('id'),
+        );
+
+        return reads;
+      };
+
+      test('reads the projection relations as often for 50 relations as for 2', async () => {
+        const small = await listWithRelationProjection(2);
+        const large = await listWithRelationProjection(50);
+
+        expect(large).toEqual(small);
+      });
+
+      test('reads the condition tree projection and relations as often for 200 leaves as for 2', async () => {
+        const small = await listWithRelationFilter(2);
+        const large = await listWithRelationFilter(200);
+
+        expect(large).toEqual(small);
+      });
+    });
+
+    describe('aggregate', () => {
+      const aggregateWithRelations = async (relationCount: number) => {
+        const { child, decorated } = buildWideCollection(relationCount);
+        const aggregateSpy = jest.spyOn(child, 'aggregate').mockResolvedValue([]);
+        const caller = factories.caller.build();
+        const filter = buildOrFilter(relationCount, i => `card${i}:id`);
+        const aggregation = new Aggregation({
+          operation: 'Count',
+          groups: range(relationCount).map(i => ({ field: `card${i}:id` })),
+        });
+
+        const reads = await countReadsDuring(() =>
+          decorated.aggregate(caller, filter, aggregation),
+        );
+
+        expect(aggregateSpy).toHaveBeenCalledWith(
+          caller,
+          buildOrFilter(relationCount, i => `card${i}_id`),
+          new Aggregation({
+            operation: 'Count',
+            groups: range(relationCount).map(i => ({ field: `card${i}_id` })),
+          }),
+          undefined,
+        );
+
+        return reads;
+      };
+
+      test('reads the condition tree projection and relations as often for 50 relations as for 2', async () => {
+        const small = await aggregateWithRelations(2);
+        const large = await aggregateWithRelations(50);
+
+        expect(large).toEqual(small);
       });
     });
   });

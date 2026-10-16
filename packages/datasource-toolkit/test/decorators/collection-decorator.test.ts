@@ -20,6 +20,10 @@ class DecoratedCollection extends CollectionDecorator {
   public override refineSchema(subSchema: CollectionSchema): CollectionSchema {
     return subSchema;
   }
+
+  public override markSchemaAsDirty(): void {
+    super.markSchemaAsDirty();
+  }
 }
 
 describe('CollectionDecorator', () => {
@@ -153,19 +157,12 @@ describe('CollectionDecorator', () => {
       );
       const collection = dataSource.getCollection('books');
 
-      // "Identity decorator"
-      const ParentDecorator = class extends CollectionDecorator {
-        public override markSchemaAsDirty(): void {
-          super.markSchemaAsDirty();
-        }
-      };
-
       const refineSchema = jest.fn().mockImplementation(child => child);
       const ChildDecorator = class extends CollectionDecorator {
         override refineSchema = refineSchema;
       };
 
-      const parent = new ParentDecorator(collection, dataSource);
+      const parent = new DecoratedCollection(collection, dataSource);
       const child = new ChildDecorator(parent, dataSource);
       parent.markSchemaAsDirty();
       child.schema; // eslint-disable-line @typescript-eslint/no-unused-expressions
@@ -267,6 +264,59 @@ describe('CollectionDecorator', () => {
       );
 
       expect(decoratedCollection.name).toStrictEqual('a name');
+    });
+
+    describe('with a stack of decorators', () => {
+      const setupStack = (depth: number) => {
+        const dataSource = factories.dataSource.build();
+        const base = factories.collection.build();
+        let currentName = 'books';
+        const readName = jest.fn(() => currentName);
+        Object.defineProperty(base, 'name', { get: readName });
+
+        const layers = [new DecoratedCollection(base, dataSource)];
+
+        for (let i = 1; i < depth; i += 1) {
+          layers.push(new DecoratedCollection(layers[i - 1], dataSource));
+        }
+
+        return {
+          readName,
+          bottom: layers[0],
+          top: layers[depth - 1],
+          rename: (name: string) => {
+            currentName = name;
+          },
+        };
+      };
+
+      it.each([1, 5, 25])('resolves the child name once whatever the depth (%i layers)', depth => {
+        const { readName, top } = setupStack(depth);
+
+        const names = [top.name, top.name, top.name];
+
+        expect(names).toEqual(['books', 'books', 'books']);
+        expect(readName).toHaveBeenCalledTimes(1);
+      });
+
+      it('returns the new child name once a lower layer marks its schema as dirty', () => {
+        const { bottom, top, rename } = setupStack(5);
+        expect(top.name).toBe('books');
+
+        rename('renamedBooks');
+        bottom.markSchemaAsDirty();
+
+        expect(top.name).toBe('renamedBooks');
+      });
+
+      it('keeps the cached name when the child is renamed without marking the schema as dirty', () => {
+        const { top, rename } = setupStack(5);
+        expect(top.name).toBe('books');
+
+        rename('renamedBooks');
+
+        expect(top.name).toBe('books');
+      });
     });
   });
 

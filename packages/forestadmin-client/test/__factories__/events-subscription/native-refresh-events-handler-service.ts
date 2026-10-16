@@ -24,6 +24,7 @@ const nativeRefreshEventsHandlerServiceFactory = NativeRefreshEventsHandlerServi
       actionPermission.mockAllMethods().build(),
       userPermission.mockAllMethods().build(),
       renderingPermission.mockAllMethods().build(),
+      jest.fn(),
     ),
 );
 

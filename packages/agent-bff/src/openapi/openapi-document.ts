@@ -23,6 +23,7 @@ import {
 } from './schemas';
 import registerUnfoldedPaths from './unfolded-paths';
 import { z } from './zod-openapi';
+import { BFF_KEY_HEADER, GATEWAY_KEY_HEADER } from '../api-key/api-key-middleware';
 import { RATE_LIMIT_CAUSES } from '../http/bff-local-errors';
 import BODY_LIMIT, { AI_BODY_LIMIT } from '../http/body-limit';
 import { PERMISSIONS_CACHE_TTL_MS } from '../permissions/permissions-cache';
@@ -597,9 +598,11 @@ export function generateOpenApiDocument(
   registry.registerComponent('securitySchemes', API_KEY_SCHEME, {
     type: 'apiKey',
     in: 'header',
-    name: 'X-Forest-Bff-Key',
+    name: GATEWAY_KEY_HEADER,
     description:
-      'Mode 2: a Gateway API key. Never send both this and an Authorization header. A key created ' +
+      `Mode 2: a Gateway API key. The legacy header ${BFF_KEY_HEADER} is still accepted; sending ` +
+      'both with different keys is rejected with 400 ambiguous_credentials. Never send a key and ' +
+      'an Authorization header. A key created ' +
       'with allowedOrigins restricts browser callers only: an Origin the client sends must be in ' +
       'that list, else 403 origin_not_allowed, while a request with no Origin at all — curl, a ' +
       'server-side client, CI, an empty Origin header counting as none — passes, because there ' +

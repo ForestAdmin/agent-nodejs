@@ -252,9 +252,17 @@ describe('generateOpenApiDocument', () => {
       bffApiKey: expect.objectContaining({
         type: 'apiKey',
         in: 'header',
-        name: 'X-Forest-Bff-Key',
+        name: 'X-Forest-Gateway-Key',
       }),
     });
+  });
+
+  it('should tell api-key callers the legacy X-Forest-Bff-Key header is still accepted', () => {
+    const apiKeyScheme = document.components?.securitySchemes?.bffApiKey as {
+      description?: string;
+    };
+
+    expect(apiKeyScheme.description).toContain('X-Forest-Bff-Key is still accepted');
   });
 
   it('should let both auth modes reach every data and action operation, as mode 1 mints an agent token', () => {
