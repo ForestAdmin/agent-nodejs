@@ -218,6 +218,42 @@ describe('ActionRoute', () => {
         // @ts-expect-error: test private method
         await expect(route.handleExecute.call(route, context)).rejects.toThrow();
       });
+
+      test('it should build the unscoped filter only when the approval asks for it', async () => {
+        const context = createMockContext({
+          ...baseContext,
+          requestBody: {
+            data: {
+              attributes: {
+                ...baseContext.requestBody.data.attributes,
+                values: { firstname: 'John' },
+                requester_id: 42,
+              },
+            },
+          },
+        });
+        const assertCanApprove = jest
+          // @ts-expect-error: test private property
+          .spyOn(route.actionAuthorizationService, 'assertCanApproveCustomAction')
+          .mockResolvedValue(undefined);
+
+        // @ts-expect-error: test private method
+        await route.handleExecute.call(route, context);
+
+        expect(services.authorization.getScope).toHaveBeenCalledTimes(1);
+
+        const [{ getFilterForAllCaller }] = assertCanApprove.mock.calls[0];
+        const filterForAllCaller = await getFilterForAllCaller();
+
+        expect(services.authorization.getScope).toHaveBeenCalledTimes(1);
+        expect(filterForAllCaller.conditionTree).toEqual(
+          expect.objectContaining({
+            field: 'id',
+            operator: 'Equal',
+            value: '123e4567-e89b-12d3-a456-426614174000',
+          }),
+        );
+      });
     });
 
     describe('when the request is a trigger', () => {
@@ -1131,6 +1167,87 @@ describe('ActionRoute', () => {
           segment: expect.toBeNil(),
           liveQuerySegment: expect.toBeNil(),
         }),
+      );
+    });
+  });
+
+  describe('with an action used from a many-to-many related-data page', () => {
+    beforeEach(() => {
+      dataSource = factories.dataSource.buildWithCollections([
+        factories.collection.build({
+          name: 'reviews',
+          schema: {
+            actions: { MySingleAction: { scope: 'Single' } },
+            fields: { id: factories.columnSchema.uuidPrimaryKey().build() },
+          },
+          getForm: jest.fn().mockResolvedValue([]),
+          execute: jest.fn().mockResolvedValue({ type: 'Webhook' }),
+        }),
+        factories.collection.build({
+          name: 'books',
+          schema: {
+            fields: {
+              id: factories.columnSchema.uuidPrimaryKey().build(),
+              reviews: factories.manyToManySchema.build({
+                foreignCollection: 'reviews',
+                originKey: 'bookId',
+                originKeyTarget: 'id',
+                foreignKey: 'reviewId',
+                foreignKeyTarget: 'id',
+                throughCollection: 'bookReviews',
+              }),
+            },
+          },
+        }),
+        factories.collection.build({
+          name: 'bookReviews',
+          schema: {
+            fields: {
+              bookId: factories.columnSchema.uuidPrimaryKey().build(),
+              reviewId: factories.columnSchema.uuidPrimaryKey().build(),
+            },
+          },
+          list: jest.fn().mockResolvedValue([{ reviewId: '123e4567-e89b-12d3-a456-426614174000' }]),
+        }),
+      ]);
+
+      route = new ActionRoute(services, options, dataSource, 'reviews', 'MySingleAction');
+    });
+
+    test('should list the through collection once when no approval is involved', async () => {
+      const context = createMockContext({
+        ...baseContext,
+        requestBody: {
+          data: {
+            attributes: {
+              ...baseContext.requestBody.data.attributes,
+              parent_association_name: 'reviews',
+              parent_collection_name: 'books',
+              parent_collection_id: '00000000-0000-4000-8000-000000000000',
+              values: {},
+            },
+          },
+        },
+      });
+
+      // @ts-expect-error: test private method
+      await route.handleExecute(context);
+
+      expect(dataSource.getCollection('bookReviews').list).toHaveBeenCalledTimes(1);
+      expect(dataSource.getCollection('bookReviews').list).toHaveBeenCalledWith(
+        expect.objectContaining({ id: '42' }),
+        expect.objectContaining({
+          conditionTree: expect.objectContaining({
+            conditions: expect.arrayContaining([
+              expect.objectContaining({
+                field: 'bookId',
+                operator: 'Equal',
+                value: '00000000-0000-4000-8000-000000000000',
+              }),
+            ]),
+          }),
+        }),
+        expect.anything(),
       );
     });
   });

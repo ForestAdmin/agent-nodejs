@@ -2,14 +2,18 @@ import type { Stack } from '../../types';
 import type { ConditionTree, Operator, PaginatedFilter } from '@forestadmin/datasource-toolkit';
 import type { Model, PipelineStage } from 'mongoose';
 
-import { ConditionTreeBranch, ConditionTreeLeaf } from '@forestadmin/datasource-toolkit';
+import {
+  ConditionTreeBranch,
+  ConditionTreeLeaf,
+  escapeRegExp,
+} from '@forestadmin/datasource-toolkit';
 import { DateTime } from 'luxon';
 import { Types, isValidObjectId } from 'mongoose';
 
 import MongooseSchema from '../../mongoose/schema';
 import VersionManager from '../version-manager';
 
-const STRING_OPERATORS = ['Match', 'NotContains', 'LongerThan', 'ShorterThan'];
+const STRING_OPERATORS = ['Match', 'NotContains', 'NotIContains', 'LongerThan', 'ShorterThan'];
 
 export enum FilterAtStage {
   Early = 'early',
@@ -198,9 +202,9 @@ export default class FilterGenerator {
           ? { $nin: formattedLeafValue }
           : { $ne: formattedLeafValue };
       case 'NotContains':
-        return { $not: new RegExp(`.*${formattedLeafValue}.*`) };
+        return { $not: new RegExp(escapeRegExp(formattedLeafValue)) };
       case 'NotIContains':
-        return { $not: new RegExp(`.*${formattedLeafValue}.*`, 'i') };
+        return { $not: new RegExp(escapeRegExp(formattedLeafValue), 'i') };
       case 'Match':
         return formattedLeafValue;
       case 'Present':

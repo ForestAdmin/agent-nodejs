@@ -60,38 +60,32 @@ export default class EventsSubscriptionService implements BaseEventsSubscription
 
     eventSource.addEventListener('error', this.onEventError.bind(this));
 
-    // Only listen after first open
-    eventSource.addEventListener(
-      'open',
-      () => eventSource.addEventListener('open', () => this.onEventOpenAgain()),
-      { once: true },
-    );
+    // eventsource 2.x ignores addEventListener's `{ once: true }`, so the first open is tracked here.
+    let openedOnce = false;
+    eventSource.addEventListener('open', () => {
+      if (openedOnce) this.onEventOpenAgain();
+      openedOnce = true;
+    });
 
-    eventSource.addEventListener(
-      'heartbeat',
-      () => {
-        clearTimeout(this.heartBeatTimeout);
-      },
-      { once: true },
-    );
+    eventSource.addEventListener('heartbeat', () => {
+      clearTimeout(this.heartBeatTimeout);
+    });
 
     this.detectBuffering();
 
-    eventSource.addEventListener(ServerEventType.RefreshUsers, async () =>
-      this.refreshEventsHandlerService.refreshUsers(),
-    );
+    const handlers: Record<ServerEventType, (event: ServerEvent) => Promise<void> | void> = {
+      [ServerEventType.RefreshUsers]: () => this.refreshEventsHandlerService.refreshUsers(),
+      [ServerEventType.RefreshRoles]: () => this.refreshEventsHandlerService.refreshRoles(),
+      [ServerEventType.RefreshRenderings]: event => this.handleSeverEventRefreshRenderings(event),
+      [ServerEventType.RefreshCustomizations]: () =>
+        this.refreshEventsHandlerService.refreshCustomizations(),
+    };
 
-    eventSource.addEventListener(ServerEventType.RefreshRoles, async () =>
-      this.refreshEventsHandlerService.refreshRoles(),
-    );
-
-    eventSource.addEventListener(ServerEventType.RefreshRenderings, async (event: ServerEvent) =>
-      this.handleSeverEventRefreshRenderings(event),
-    );
-
-    eventSource.addEventListener(ServerEventType.RefreshCustomizations, async () =>
-      this.refreshEventsHandlerService.refreshCustomizations(),
-    );
+    Object.entries(handlers).forEach(([eventType, handler]) => {
+      eventSource.addEventListener(eventType, async (event: ServerEvent) =>
+        this.dispatch(eventType, () => handler(event)),
+      );
+    });
 
     this.eventSource = eventSource;
   }
@@ -104,15 +98,39 @@ export default class EventsSubscriptionService implements BaseEventsSubscription
     this.eventSource?.close();
   }
 
-  private async handleSeverEventRefreshRenderings(event: ServerEvent) {
-    if (!event.data) {
-      this.options.logger('Debug', 'Server Event - RefreshRenderings missing required data.');
+  private async dispatch(eventType: string, handler: () => Promise<void> | void) {
+    try {
+      await handler();
+    } catch (error) {
+      this.options.logger(
+        'Error',
+        `Server Event - ${eventType} failed: ${error?.message ?? error}`,
+      );
+    }
+  }
 
-      return;
+  private async handleSeverEventRefreshRenderings(event: ServerEvent) {
+    const renderingIds = this.parseRenderingIds(event.data as unknown as string);
+
+    if (!renderingIds) {
+      this.options.logger(
+        'Warn',
+        'Server Event - RefreshRenderings without rendering ids, dropping every rendering.',
+      );
     }
 
-    const { renderingIds } = JSON.parse(event.data as unknown as string);
-    await this.refreshEventsHandlerService.refreshRenderings(renderingIds);
+    await this.refreshEventsHandlerService.refreshRenderings(renderingIds ?? []);
+  }
+
+  private parseRenderingIds(data: string): (string | number)[] | undefined {
+    try {
+      const parsed = JSON.parse(data);
+      const renderingIds = parsed && typeof parsed === 'object' ? parsed.renderingIds : undefined;
+
+      return Array.isArray(renderingIds) ? renderingIds : undefined;
+    } catch {
+      return undefined;
+    }
   }
 
   private onEventError(event: { type: string; status?: number; message?: string }) {

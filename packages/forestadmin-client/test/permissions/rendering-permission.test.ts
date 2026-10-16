@@ -11,6 +11,7 @@ import RenderingPermissionService from '../../src/permissions/rendering-permissi
 import { PermissionLevel } from '../../src/permissions/types';
 import verifySQLQuery from '../../src/permissions/verify-sql-query';
 import ContextVariablesInjector from '../../src/utils/context-variables-injector';
+import { FORCED_REFETCH_INTERVAL_IN_SECONDS } from '../../src/utils/refetch-throttle';
 import * as factories from '../__factories__';
 import userPermissionsFactory from '../__factories__/permissions/user-permission';
 
@@ -1123,6 +1124,167 @@ describe('RenderingPermissionService', () => {
         );
         expect(serverInterface.getRenderingPermissions).toHaveBeenCalledWith(42, options);
       });
+    });
+  });
+
+  describe('when permissions are denied repeatedly', () => {
+    const deniedPermissions = { team: { id: 33 }, collections: {}, stats: {} };
+
+    function setupDenied() {
+      const context = setup();
+      context.serverInterface.getRenderingPermissions = jest
+        .fn()
+        .mockResolvedValue(deniedPermissions);
+      context.hashServerChartsMock.mockReturnValue(new Set());
+      context.hashChartRequestMock.mockReturnValue('HASH');
+
+      jest.useFakeTimers();
+      jest.setSystemTime(0);
+
+      return context;
+    }
+
+    const chartRequest = {
+      type: ChartType.Value,
+      sourceCollectionName: 'jedi',
+      aggregateFieldName: 'strength',
+      aggregator: 'Sum',
+    } as const;
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('should refetch the scope at most once within the refetch interval', async () => {
+      const { renderingPermission, serverInterface } = setupDenied();
+
+      await renderingPermission.getScope({ renderingId: 42, collectionName: 'books', userId: 1 });
+      jest.setSystemTime(FORCED_REFETCH_INTERVAL_IN_SECONDS * 1000 - 1);
+      const scope = await renderingPermission.getScope({
+        renderingId: 42,
+        collectionName: 'books',
+        userId: 1,
+      });
+
+      expect(scope).toBeNull();
+      expect(serverInterface.getRenderingPermissions).toHaveBeenCalledTimes(2);
+    });
+
+    it('should refetch the scope of another collection within the refetch interval', async () => {
+      const { renderingPermission, serverInterface } = setupDenied();
+
+      await renderingPermission.getScope({ renderingId: 42, collectionName: 'books', userId: 1 });
+      await renderingPermission.getScope({ renderingId: 42, collectionName: 'authors', userId: 1 });
+
+      expect(serverInterface.getRenderingPermissions).toHaveBeenCalledTimes(3);
+    });
+
+    it('should answer concurrent scope denials from the single refetch', async () => {
+      const { renderingPermission, serverInterface } = setupDenied();
+      const scope = { field: 'title', operator: 'Present' } as RawTree;
+      (serverInterface.getRenderingPermissions as jest.Mock)
+        .mockResolvedValueOnce(deniedPermissions)
+        .mockResolvedValueOnce({ ...deniedPermissions, collections: { books: { scope } } });
+      jest.spyOn(ContextVariablesInjector, 'injectContextInFilter').mockReturnValue(scope);
+
+      const results = await Promise.all([
+        renderingPermission.getScope({ renderingId: 42, collectionName: 'books', userId: 1 }),
+        renderingPermission.getScope({ renderingId: 42, collectionName: 'books', userId: 2 }),
+      ]);
+
+      expect(results).toEqual([scope, scope]);
+      expect(serverInterface.getRenderingPermissions).toHaveBeenCalledTimes(2);
+    });
+
+    it('should answer concurrent chart denials from the single refetch', async () => {
+      const { renderingPermission, serverInterface, hashServerChartsMock } = setupDenied();
+      hashServerChartsMock.mockReturnValueOnce(new Set()).mockReturnValueOnce(new Set(['HASH']));
+
+      const results = await Promise.all([
+        renderingPermission.canExecuteChart({ renderingId: 42, chartRequest, userId: 1 }),
+        renderingPermission.canExecuteChart({ renderingId: 42, chartRequest, userId: 2 }),
+      ]);
+
+      expect(results).toEqual([true, true]);
+      expect(serverInterface.getRenderingPermissions).toHaveBeenCalledTimes(2);
+    });
+
+    it('should refetch the scope again once the refetch interval has elapsed', async () => {
+      const { renderingPermission, serverInterface } = setupDenied();
+
+      await renderingPermission.getScope({ renderingId: 42, collectionName: 'books', userId: 1 });
+      jest.setSystemTime(FORCED_REFETCH_INTERVAL_IN_SECONDS * 1000);
+      await renderingPermission.getScope({ renderingId: 42, collectionName: 'books', userId: 1 });
+
+      expect(serverInterface.getRenderingPermissions).toHaveBeenCalledTimes(3);
+    });
+
+    it('should throttle the refetch of each rendering independently', async () => {
+      const { renderingPermission, serverInterface, options } = setupDenied();
+
+      await renderingPermission.getScope({ renderingId: 42, collectionName: 'books', userId: 1 });
+      await renderingPermission.getScope({ renderingId: 43, collectionName: 'books', userId: 1 });
+
+      expect(serverInterface.getRenderingPermissions).toHaveBeenCalledTimes(4);
+      expect(serverInterface.getRenderingPermissions).toHaveBeenCalledWith(43, options);
+    });
+
+    it('should refetch for a segment query at most once within the refetch interval', async () => {
+      const { renderingPermission, serverInterface, verifySQLQueryMock } = setupDenied();
+      verifySQLQueryMock.mockReturnValue(true);
+
+      const params = {
+        renderingId: 42,
+        collectionName: 'actors',
+        segmentQuery: 'SELECT * from actors',
+        userId: 1,
+      };
+      await renderingPermission.canExecuteSegmentQuery(params);
+      const result = await renderingPermission.canExecuteSegmentQuery(params);
+
+      expect(result).toBe(false);
+      expect(serverInterface.getRenderingPermissions).toHaveBeenCalledTimes(2);
+    });
+
+    it('should not let a scope denial use up the chart and users refetch', async () => {
+      const { renderingPermission, serverInterface, userPermission } = setupDenied();
+
+      await renderingPermission.getScope({ renderingId: 42, collectionName: 'books', userId: 1 });
+      const result = await renderingPermission.canExecuteChart({
+        renderingId: 42,
+        chartRequest,
+        userId: 1,
+      });
+
+      expect(result).toBe(false);
+      expect(serverInterface.getRenderingPermissions).toHaveBeenCalledTimes(3);
+      expect(userPermission.invalidateCache).toHaveBeenCalledTimes(1);
+    });
+
+    it('should refetch once when denials of different collections happen concurrently', async () => {
+      const { renderingPermission, serverInterface } = setupDenied();
+
+      await Promise.all([
+        renderingPermission.getScope({ renderingId: 42, collectionName: 'books', userId: 1 }),
+        renderingPermission.getScope({ renderingId: 42, collectionName: 'authors', userId: 1 }),
+      ]);
+
+      expect(serverInterface.getRenderingPermissions).toHaveBeenCalledTimes(2);
+    });
+
+    it('should refetch for a chart at most once within the refetch interval', async () => {
+      const { renderingPermission, serverInterface, userPermission } = setupDenied();
+
+      await renderingPermission.canExecuteChart({ renderingId: 42, chartRequest, userId: 1 });
+      const result = await renderingPermission.canExecuteChart({
+        renderingId: 42,
+        chartRequest,
+        userId: 1,
+      });
+
+      expect(result).toBe(false);
+      expect(serverInterface.getRenderingPermissions).toHaveBeenCalledTimes(2);
+      expect(userPermission.invalidateCache).toHaveBeenCalledTimes(1);
     });
   });
 });

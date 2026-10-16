@@ -15,7 +15,7 @@ type CanPerformCustomActionParams = {
   customActionName: string;
   collection: Collection;
   filterForCaller: Filter; // Filter that may include scope if any
-  filterForAllCaller: Filter; // Filter without scope
+  getFilterForAllCaller: () => Promise<Filter>; // Filter without scope
 };
 
 export default class ActionAuthorizationService {
@@ -25,7 +25,7 @@ export default class ActionAuthorizationService {
     customActionName,
     collection,
     filterForCaller,
-    filterForAllCaller,
+    getFilterForAllCaller,
     caller,
     resolveSelectAllRecordIds,
   }: CanPerformCustomActionParams & {
@@ -55,7 +55,7 @@ export default class ActionAuthorizationService {
         caller,
         customActionName,
         collection,
-        filterForAllCaller,
+        getFilterForAllCaller,
       );
 
       throw new CustomActionRequiresApprovalError(
@@ -70,7 +70,7 @@ export default class ActionAuthorizationService {
     requesterId,
     collection,
     filterForCaller,
-    filterForAllCaller,
+    getFilterForAllCaller,
     caller,
   }: CanPerformCustomActionParams & {
     requesterId: number | string;
@@ -88,7 +88,7 @@ export default class ActionAuthorizationService {
         caller,
         customActionName,
         collection,
-        filterForAllCaller,
+        getFilterForAllCaller,
       );
 
       throw new ApprovalNotAllowedError(roleIdsAllowedToApprove);
@@ -226,7 +226,7 @@ export default class ActionAuthorizationService {
     caller: Caller,
     customActionName: string,
     collection: Collection,
-    filterForAllCaller: Filter,
+    getFilterForAllCaller: () => Promise<Filter>,
   ) {
     const actionConditionsByRoleId =
       await this.forestAdminClient.permissionService.getConditionalApproveConditions({
@@ -247,6 +247,7 @@ export default class ActionAuthorizationService {
       return roleIdsAllowedToApproveWithoutConditions;
     }
 
+    const filterForAllCaller = await getFilterForAllCaller();
     const [requestRecordsCount, ...conditionRecordsCounts] = await Promise.all([
       ActionAuthorizationService.aggregateCountConditionIntersection(
         caller,

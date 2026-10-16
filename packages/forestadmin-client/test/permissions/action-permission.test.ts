@@ -3,6 +3,7 @@ import type { RawTreeWithSources } from '../../src/permissions/types';
 
 import ActionPermissionService from '../../src/permissions/action-permission';
 import generateActionsFromPermissions from '../../src/permissions/generate-actions-from-permissions';
+import { FORCED_REFETCH_INTERVAL_IN_SECONDS } from '../../src/utils/refetch-throttle';
 import * as factories from '../__factories__';
 
 jest.mock('../../src/permissions/generate-actions-from-permissions', () => ({
@@ -11,6 +12,12 @@ jest.mock('../../src/permissions/generate-actions-from-permissions', () => ({
 }));
 
 const generateActionsFromPermissionsMock = generateActionsFromPermissions as jest.Mock;
+
+const denied: ActionPermissions = {
+  isDevelopment: false,
+  actionsByRole: new Map(),
+  actionsGloballyAllowed: new Set(),
+};
 
 describe('ActionPermissionService', () => {
   function setup(...actionsPermissions: ActionPermissions[]) {
@@ -37,6 +44,10 @@ describe('ActionPermissionService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
   });
 
   describe('isDevelopmentPermission', () => {
@@ -134,6 +145,114 @@ describe('ActionPermissionService', () => {
 
         expect(serverInterface.getEnvironmentPermissions).toHaveBeenCalledTimes(2);
         expect(generateActionsFromPermissionsMock).toHaveBeenCalledTimes(2);
+      });
+
+      it('should refetch at most once for repeated denials within the refetch interval', async () => {
+        const { service, serverInterface } = setup(denied, denied);
+
+        jest.useFakeTimers();
+        jest.setSystemTime(0);
+
+        expect(await service.can(10, 'action')).toBe(false);
+        jest.setSystemTime(500);
+        expect(await service.can(10, 'action')).toBe(false);
+
+        expect(serverInterface.getEnvironmentPermissions).toHaveBeenCalledTimes(2);
+      });
+
+      it('should refetch for another role or action within the refetch interval', async () => {
+        const { service, serverInterface } = setup(denied, denied, denied, {
+          isDevelopment: false,
+          actionsByRole: new Map([['action', { allowedRoles: new Set([11]) }]]),
+          actionsGloballyAllowed: new Set(),
+        });
+
+        jest.useFakeTimers();
+        jest.setSystemTime(0);
+
+        expect(await service.can(10, 'action')).toBe(false);
+        expect(await service.can(10, 'other-action')).toBe(false);
+        expect(await service.can(11, 'action')).toBe(true);
+
+        expect(serverInterface.getEnvironmentPermissions).toHaveBeenCalledTimes(4);
+      });
+
+      it('should refetch once when several denials happen concurrently', async () => {
+        const { service, serverInterface } = setup(denied, denied);
+
+        const results = await Promise.all([
+          service.can(10, 'action1'),
+          service.can(10, 'action2'),
+          service.can(10, 'action3'),
+        ]);
+
+        expect(results).toEqual([false, false, false]);
+        expect(serverInterface.getEnvironmentPermissions).toHaveBeenCalledTimes(2);
+      });
+
+      it('should answer concurrent denials from the single refetch', async () => {
+        const { service, serverInterface } = setup(denied, {
+          isDevelopment: false,
+          actionsByRole: new Map(),
+          actionsGloballyAllowed: new Set(['action1', 'action2', 'action3']),
+        });
+
+        const results = await Promise.all([
+          service.can(10, 'action1'),
+          service.can(10, 'action2'),
+          service.can(10, 'action3'),
+        ]);
+
+        expect(results).toEqual([true, true, true]);
+        expect(serverInterface.getEnvironmentPermissions).toHaveBeenCalledTimes(2);
+      });
+
+      it('should reject every concurrent denial when the single refetch fails', async () => {
+        const { service, serverInterface } = setup(denied);
+        const error = new Error('Server unavailable');
+        (serverInterface.getEnvironmentPermissions as jest.Mock)
+          .mockResolvedValueOnce({})
+          .mockRejectedValueOnce(error);
+
+        const results = await Promise.allSettled([
+          service.can(10, 'action1'),
+          service.can(10, 'action2'),
+        ]);
+
+        expect(results).toEqual([
+          { status: 'rejected', reason: error },
+          { status: 'rejected', reason: error },
+        ]);
+        expect(serverInterface.getEnvironmentPermissions).toHaveBeenCalledTimes(2);
+      });
+
+      it('should refetch again once the refetch interval has elapsed', async () => {
+        const { service, serverInterface } = setup(denied, denied, denied, {
+          isDevelopment: false,
+          actionsByRole: new Map([['action', { allowedRoles: new Set([10]) }]]),
+          actionsGloballyAllowed: new Set(),
+        });
+
+        jest.useFakeTimers();
+        jest.setSystemTime(0);
+
+        expect(await service.can(10, 'action')).toBe(false);
+        jest.setSystemTime(FORCED_REFETCH_INTERVAL_IN_SECONDS * 1000);
+        expect(await service.can(10, 'action')).toBe(true);
+
+        expect(serverInterface.getEnvironmentPermissions).toHaveBeenCalledTimes(4);
+      });
+
+      it('should not refetch when the instant cache refresh is enabled', async () => {
+        const { options, serverInterface } = setup(denied);
+        const instantService = new ActionPermissionService(
+          { ...options, instantCacheRefresh: true },
+          serverInterface,
+        );
+
+        expect(await instantService.can(10, 'action')).toBe(false);
+
+        expect(serverInterface.getEnvironmentPermissions).toHaveBeenCalledTimes(1);
       });
     });
 

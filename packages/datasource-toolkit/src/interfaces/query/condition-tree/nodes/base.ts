@@ -26,8 +26,14 @@ export default abstract class ConditionTree {
 
   abstract get projection(): Projection;
 
+  createMatcher(collection: Collection, timezone: string): (record: RecordData) => boolean {
+    return record => this.match(record, collection, timezone);
+  }
+
   apply(records: RecordData[], collection: Collection, timezone: string): RecordData[] {
-    return records.filter(record => this.match(record, collection, timezone));
+    const matcher = this.createMatcher(collection, timezone);
+
+    return records.filter(record => matcher(record));
   }
 
   nest(prefix: string): ConditionTree {

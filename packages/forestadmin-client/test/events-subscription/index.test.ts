@@ -35,11 +35,8 @@ describe('EventsSubscriptionService', () => {
       eventsSubscriptionService.subscribeEvents();
 
       expect(addEventListener).toHaveBeenCalledWith('error', expect.any(Function));
-      expect(addEventListener).toHaveBeenCalledWith('open', expect.any(Function), { once: true });
-
-      expect(addEventListener).toHaveBeenCalledWith('heartbeat', expect.any(Function), {
-        once: true,
-      });
+      expect(addEventListener).toHaveBeenCalledWith('open', expect.any(Function));
+      expect(addEventListener).toHaveBeenCalledWith('heartbeat', expect.any(Function));
 
       expect(addEventListener).toHaveBeenCalledWith(
         ServerEventType.RefreshUsers,
@@ -227,27 +224,69 @@ describe('EventsSubscriptionService', () => {
         expect(refreshEventsHandlerService.refreshRenderings).toHaveBeenCalledWith(['13', 24]);
       });
 
-      describe('on malformed event', () => {
-        test('should not do anything', () => {
+      describe.each([null, 'notjson', 'null', 'true', '1', '[1]', '{}', '{"renderingIds":5}'])(
+        'when the event carries %p',
+        data => {
+          test('should drop every rendering without throwing', async () => {
+            const eventsSubscriptionService = new EventsSubscriptionService(
+              options,
+              refreshEventsHandlerService,
+            );
+            eventsSubscriptionService.subscribeEvents();
+
+            await expect(
+              events[ServerEventType.RefreshRenderings]({ data }),
+            ).resolves.not.toThrow();
+
+            expect(refreshEventsHandlerService.refreshRenderings).toHaveBeenCalledWith([]);
+            expect(options.logger).toHaveBeenCalledWith(
+              'Warn',
+              'Server Event - RefreshRenderings without rendering ids, dropping every rendering.',
+            );
+          });
+        },
+      );
+
+      describe('when the environment has no rendering', () => {
+        test('should drop every rendering without warning', async () => {
           const eventsSubscriptionService = new EventsSubscriptionService(
             options,
             refreshEventsHandlerService,
           );
           eventsSubscriptionService.subscribeEvents();
 
-          // eslint-disable-next-line @typescript-eslint/dot-notation
-          events[ServerEventType.RefreshRenderings]({
-            data: null,
+          await events[ServerEventType.RefreshRenderings]({
+            data: JSON.stringify({ renderingIds: [] }),
           });
 
-          expect(refreshEventsHandlerService.refreshRenderings).not.toHaveBeenCalled();
+          expect(refreshEventsHandlerService.refreshRenderings).toHaveBeenCalledWith([]);
+          expect(options.logger).not.toHaveBeenCalledWith('Warn', expect.anything());
         });
+      });
+    });
+
+    describe('when a handler fails', () => {
+      test('should log the error instead of rejecting', async () => {
+        const failingHandlerService = factories.eventsHandler.mockAllMethods().build();
+        (failingHandlerService.refreshUsers as jest.Mock).mockRejectedValue(new Error('boom'));
+        const eventsSubscriptionService = new EventsSubscriptionService(
+          options,
+          failingHandlerService,
+        );
+        eventsSubscriptionService.subscribeEvents();
+
+        await expect(events[ServerEventType.RefreshUsers]({})).resolves.not.toThrow();
+
+        expect(options.logger).toHaveBeenCalledWith(
+          'Error',
+          'Server Event - refresh-users failed: boom',
+        );
       });
     });
   });
 
   describe('onEventOpenAgain', () => {
-    test('should add new open listener on first open event', () => {
+    test('should not refresh on the first open event', () => {
       const eventsSubscriptionService = new EventsSubscriptionService(
         options,
         refreshEventsHandlerService,
@@ -258,9 +297,33 @@ describe('EventsSubscriptionService', () => {
       // eslint-disable-next-line @typescript-eslint/dot-notation
       events['open']();
 
-      expect(addEventListener).toHaveBeenCalledWith('open', expect.any(Function));
-
       expect(refreshEventsHandlerService.refreshEverything).not.toHaveBeenCalled();
+    });
+
+    test('should refresh once per reconnection, with a single open listener', () => {
+      const eventsSubscriptionService = new EventsSubscriptionService(
+        options,
+        refreshEventsHandlerService,
+      );
+      // Mirrors eventsource 2.x, which keeps every open listener and ignores `{ once: true }`.
+      const openListeners: Array<() => void> = [];
+      addEventListener.mockImplementation((event, callback) => {
+        if (event === 'open') openListeners.push(callback);
+        events[event] = callback;
+      });
+
+      eventsSubscriptionService.subscribeEvents();
+
+      for (let opening = 0; opening < 4; opening += 1) {
+        [...openListeners].forEach(listener => listener());
+      }
+
+      addEventListener.mockImplementation((event, callback) => {
+        events[event] = callback;
+      });
+
+      expect(openListeners).toHaveLength(1);
+      expect(refreshEventsHandlerService.refreshEverything).toHaveBeenCalledTimes(3);
     });
 
     test('should refreshEverything using refreshEventsHandlerService on re-open', () => {

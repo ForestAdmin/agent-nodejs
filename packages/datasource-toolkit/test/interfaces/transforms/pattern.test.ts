@@ -5,69 +5,33 @@ import makeAlternatives from '../../../src/interfaces/query/condition-tree/trans
 describe('ConditionTreeOperators > Pattern', () => {
   const alternatives = makeAlternatives();
 
-  describe('Contains', () => {
-    test('should be rewritten', () => {
-      expect(
-        alternatives.Contains![0].replacer(
-          new ConditionTreeLeaf('column', 'Contains', 'something'),
-          'Europe/Paris',
-        ),
-      ).toEqual({ field: 'column', operator: 'Like', value: '%something%' });
-    });
-  });
+  describe.each([
+    ['Contains', 'a.b_c%(', 'a\\.b_c%\\(', '', 'Like', '%a.b_c%(%'],
+    ['StartsWith', 'a.b_c%(', '^a\\.b_c%\\(', '', 'Like', 'a.b_c%(%'],
+    ['EndsWith', 'a.b_c%(', 'a\\.b_c%\\($', '', 'Like', '%a.b_c%('],
+    ['IContains', 'a.b_c%(', 'a\\.b_c%\\(', 'i', 'ILike', '%a.b_c%(%'],
+    ['IStartsWith', 'a.b_c%(', '^a\\.b_c%\\(', 'i', 'ILike', 'a.b_c%(%'],
+    ['IEndsWith', 'a.b_c%(', 'a\\.b_c%\\($', 'i', 'ILike', '%a.b_c%('],
+  ] as const)('%s', (operator, value, source, flags, likeOperator, likePattern) => {
+    test('should be rewritten as a literal match when Match is supported', () => {
+      const leaf = alternatives[operator]![0].replacer(
+        new ConditionTreeLeaf('column', operator, value),
+        'Europe/Paris',
+      ) as ConditionTreeLeaf;
 
-  describe('StartsWith', () => {
-    test('should be rewritten', () => {
-      expect(
-        alternatives.StartsWith![0].replacer(
-          new ConditionTreeLeaf('column', 'StartsWith', 'something'),
-          'Europe/Paris',
-        ),
-      ).toEqual({ field: 'column', operator: 'Like', value: 'something%' });
+      expect(leaf.field).toBe('column');
+      expect(leaf.operator).toBe('Match');
+      expect((leaf.value as RegExp).source).toBe(source);
+      expect((leaf.value as RegExp).flags).toBe(flags);
     });
-  });
 
-  describe('EndsWith', () => {
-    test('should be rewritten', () => {
+    test('should be rewritten as a like otherwise', () => {
       expect(
-        alternatives.EndsWith![0].replacer(
-          new ConditionTreeLeaf('column', 'EndsWith', 'something'),
+        alternatives[operator]![1].replacer(
+          new ConditionTreeLeaf('column', operator, value),
           'Europe/Paris',
         ),
-      ).toEqual({ field: 'column', operator: 'Like', value: '%something' });
-    });
-  });
-
-  describe('IContains', () => {
-    test('should be rewritten', () => {
-      expect(
-        alternatives.IContains![0].replacer(
-          new ConditionTreeLeaf('column', 'IContains', 'something'),
-          'Europe/Paris',
-        ),
-      ).toEqual({ field: 'column', operator: 'ILike', value: '%something%' });
-    });
-  });
-
-  describe('IStartsWith', () => {
-    test('should be rewritten', () => {
-      expect(
-        alternatives.IStartsWith![0].replacer(
-          new ConditionTreeLeaf('column', 'IStartsWith', 'something'),
-          'Europe/Paris',
-        ),
-      ).toEqual({ field: 'column', operator: 'ILike', value: 'something%' });
-    });
-  });
-
-  describe('IEndsWith', () => {
-    test('should be rewritten', () => {
-      expect(
-        alternatives.IEndsWith![0].replacer(
-          new ConditionTreeLeaf('column', 'IEndsWith', 'something'),
-          'Europe/Paris',
-        ),
-      ).toEqual({ field: 'column', operator: 'ILike', value: '%something' });
+      ).toEqual({ field: 'column', operator: likeOperator, value: likePattern });
     });
   });
 });

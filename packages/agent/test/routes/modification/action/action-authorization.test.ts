@@ -1,6 +1,6 @@
 import type { ForestAdminClient } from '@forestadmin/forestadmin-client';
 
-import { ForbiddenError } from '@forestadmin/datasource-toolkit';
+import { ConditionTreeLeaf, Filter, ForbiddenError } from '@forestadmin/datasource-toolkit';
 
 import ActionAuthorizationService from '../../../../src/routes/modification/action/action-authorization';
 import CustomActionTriggerForbiddenError from '../../../../src/routes/modification/action/errors/custom-action-trigger-forbidden-error';
@@ -56,7 +56,7 @@ describe('ActionAuthorizationService', () => {
             customActionName: 'do-something',
             collection,
             filterForCaller,
-            filterForAllCaller,
+            getFilterForAllCaller: async () => filterForAllCaller,
             caller,
           }),
         ).resolves.toBe(undefined);
@@ -80,7 +80,7 @@ describe('ActionAuthorizationService', () => {
             customActionName: 'do-something',
             collection,
             filterForCaller,
-            filterForAllCaller,
+            getFilterForAllCaller: async () => filterForAllCaller,
             caller,
           }),
         ).rejects.toThrow(CustomActionTriggerForbiddenError);
@@ -109,7 +109,7 @@ describe('ActionAuthorizationService', () => {
               customActionName: 'do-something',
               collection,
               filterForCaller,
-              filterForAllCaller,
+              getFilterForAllCaller: async () => filterForAllCaller,
               caller,
             }),
           ).resolves.toBe(undefined);
@@ -138,7 +138,7 @@ describe('ActionAuthorizationService', () => {
               customActionName: 'do-something',
               collection,
               filterForCaller,
-              filterForAllCaller,
+              getFilterForAllCaller: async () => filterForAllCaller,
               caller,
             }),
           ).rejects.toThrow(CustomActionTriggerForbiddenError);
@@ -185,7 +185,7 @@ describe('ActionAuthorizationService', () => {
               customActionName: 'do-something',
               collection,
               filterForCaller,
-              filterForAllCaller,
+              getFilterForAllCaller: async () => filterForAllCaller,
               caller,
             }),
           ).rejects.toMatchObject({
@@ -197,6 +197,27 @@ describe('ActionAuthorizationService', () => {
           });
         },
       );
+
+      it('should not build the unscoped filter when no role approves under a condition', async () => {
+        (
+          forestAdminClient.permissionService.getConditionalRequiresApprovalCondition as jest.Mock
+        ).mockResolvedValue(null);
+        const getFilterForAllCaller = jest.fn().mockResolvedValue(filterForAllCaller);
+
+        const authorization = new ActionAuthorizationService(forestAdminClient);
+
+        await expect(
+          authorization.assertCanTriggerCustomAction({
+            customActionName: 'do-something',
+            collection,
+            filterForCaller,
+            getFilterForAllCaller,
+            caller,
+          }),
+        ).rejects.toMatchObject({ name: 'CustomActionRequiresApprovalError' });
+
+        expect(getFilterForAllCaller).not.toHaveBeenCalled();
+      });
 
       describe('with "RequiresApproval" condition (conditional use case)', () => {
         beforeEach(() => {
@@ -216,7 +237,7 @@ describe('ActionAuthorizationService', () => {
               customActionName: 'do-something',
               collection,
               filterForCaller,
-              filterForAllCaller,
+              getFilterForAllCaller: async () => filterForAllCaller,
               caller,
             }),
           ).resolves.toBe(undefined);
@@ -247,7 +268,7 @@ describe('ActionAuthorizationService', () => {
                 customActionName: 'do-something',
                 collection,
                 filterForCaller,
-                filterForAllCaller,
+                getFilterForAllCaller: async () => filterForAllCaller,
                 caller,
               }),
             ).rejects.toMatchObject({
@@ -285,7 +306,7 @@ describe('ActionAuthorizationService', () => {
                 customActionName: 'do-something',
                 collection,
                 filterForCaller,
-                filterForAllCaller,
+                getFilterForAllCaller: async () => filterForAllCaller,
                 caller,
               }),
             ).rejects.toThrow(new InvalidActionConditionError());
@@ -307,7 +328,7 @@ describe('ActionAuthorizationService', () => {
                 customActionName: 'do-something',
                 collection,
                 filterForCaller,
-                filterForAllCaller,
+                getFilterForAllCaller: async () => filterForAllCaller,
                 caller,
               }),
             ).rejects.toThrow(new InvalidActionConditionError());
@@ -347,7 +368,7 @@ describe('ActionAuthorizationService', () => {
             customActionName: 'do-something',
             collection,
             filterForCaller,
-            filterForAllCaller,
+            getFilterForAllCaller: async () => filterForAllCaller,
             caller,
             requesterId: 30,
           }),
@@ -383,7 +404,7 @@ describe('ActionAuthorizationService', () => {
             customActionName: 'do-something',
             collection,
             filterForCaller,
-            filterForAllCaller,
+            getFilterForAllCaller: async () => filterForAllCaller,
             caller,
             requesterId: 30,
           }),
@@ -450,7 +471,7 @@ describe('ActionAuthorizationService', () => {
             customActionName: 'do-something',
             collection,
             filterForCaller,
-            filterForAllCaller,
+            getFilterForAllCaller: async () => filterForAllCaller,
             caller,
             requesterId: 30,
           }),
@@ -469,7 +490,7 @@ describe('ActionAuthorizationService', () => {
             customActionName: 'do-something',
             collection,
             filterForCaller,
-            filterForAllCaller,
+            getFilterForAllCaller: async () => filterForAllCaller,
             caller,
             requesterId: 30,
           }),
@@ -487,6 +508,34 @@ describe('ActionAuthorizationService', () => {
         // so it's only computed once for both conditions
         // (We group roleId by condition hash to gain performances)
         expect(collection.aggregate).toHaveBeenCalledTimes(4);
+      });
+
+      it('should count the approvable records on the unscoped filter, built once', async () => {
+        (collection.aggregate as jest.Mock).mockResolvedValueOnce([{ value: 3 }]);
+        const unscopedTree = new ConditionTreeLeaf('name', 'Equal', 'unscoped');
+        const getFilterForAllCaller = jest
+          .fn()
+          .mockResolvedValue(new Filter({ conditionTree: unscopedTree }));
+
+        const authorization = new ActionAuthorizationService(forestAdminClient);
+
+        await expect(
+          authorization.assertCanApproveCustomAction({
+            customActionName: 'do-something',
+            collection,
+            filterForCaller,
+            getFilterForAllCaller,
+            caller,
+            requesterId: 30,
+          }),
+        ).rejects.toMatchObject({ name: 'ApprovalNotAllowedError' });
+
+        expect(getFilterForAllCaller).toHaveBeenCalledTimes(1);
+        expect(collection.aggregate).toHaveBeenCalledWith(
+          caller,
+          expect.objectContaining({ conditionTree: unscopedTree }),
+          expect.objectContaining({ operation: 'Count' }),
+        );
       });
     });
   });

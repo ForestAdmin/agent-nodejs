@@ -18,18 +18,21 @@ export default class LazyJoinDecorator extends CollectionDecorator {
     filter: PaginatedFilter,
     projection: Projection,
   ): Promise<RecordData[]> {
-    const refinedProjection = projection.replace(field => this.refineField(field, projection));
+    const { relations } = projection;
+    const refinedProjection = projection.replace(field => this.refineField(field, relations));
     const refinedFilter = await this.refineFilter(caller, filter);
 
     const records = await this.childCollection.list(caller, refinedFilter, refinedProjection);
 
-    this.refineResults(projection, (relationName, foreignKey, foreignKeyTarget) => {
+    this.refineResults(relations, (relationName, foreignKey, foreignKeyTarget) => {
+      const isForeignKeyProjected = projection.includes(foreignKey);
+
       records.forEach(record => {
         if (record[foreignKey]) {
           record[relationName] = { [foreignKeyTarget]: record[foreignKey] };
         }
 
-        if (!projection.includes(foreignKey)) delete record[foreignKey];
+        if (!isForeignKeyProjected) delete record[foreignKey];
       });
     });
 
@@ -42,8 +45,9 @@ export default class LazyJoinDecorator extends CollectionDecorator {
     aggregation: Aggregation,
     limit?: number,
   ): Promise<AggregateResult[]> {
+    const { relations } = aggregation.projection;
     const refinedAggregation = aggregation.replaceFields(field =>
-      this.refineField(field, aggregation.projection),
+      this.refineField(field, relations),
     );
     const refinedFilter = await this.refineFilter(caller, filter);
 
@@ -54,7 +58,7 @@ export default class LazyJoinDecorator extends CollectionDecorator {
       limit,
     );
 
-    this.refineResults(aggregation.projection, (relationName, foreignKey, foreignKeyTarget) => {
+    this.refineResults(relations, (relationName, foreignKey, foreignKeyTarget) => {
       results.forEach(result => {
         if (result.group[foreignKey]) {
           result.group[`${relationName}:${foreignKeyTarget}`] = result.group[foreignKey];
@@ -75,12 +79,12 @@ export default class LazyJoinDecorator extends CollectionDecorator {
     );
   }
 
-  private refineField(field: string, projection: Projection): string {
+  private refineField(field: string, relations: Record<string, Projection>): string {
     if (!field.includes(':')) return field;
 
     const relationName = field.split(':')[0];
     const relation = this.schema.fields[relationName] as ManyToOneSchema;
-    const relationProjection = projection.relations[relationName];
+    const relationProjection = relations[relationName];
 
     return this.isLazyRelationProjection(relation, relationProjection)
       ? relation.foreignKey
@@ -89,8 +93,9 @@ export default class LazyJoinDecorator extends CollectionDecorator {
 
   override async refineFilter(caller: Caller, filter?: PaginatedFilter): Promise<PaginatedFilter> {
     if (filter?.conditionTree) {
+      const { relations } = filter.conditionTree.projection;
       filter.conditionTree = filter.conditionTree.replaceFields(field =>
-        this.refineField(field, filter.conditionTree.projection),
+        this.refineField(field, relations),
       );
     }
 
@@ -98,10 +103,10 @@ export default class LazyJoinDecorator extends CollectionDecorator {
   }
 
   private refineResults(
-    projection: Projection,
+    relations: Record<string, Projection>,
     handler: (relationName: string, foreignKey: string, foreignKeyTarget: string) => void,
   ) {
-    Object.entries(projection.relations).forEach(([relationName, relationProjection]) => {
+    Object.entries(relations).forEach(([relationName, relationProjection]) => {
       const relation = this.schema.fields[relationName] as ManyToOneSchema;
 
       if (this.isLazyRelationProjection(relation, relationProjection)) {

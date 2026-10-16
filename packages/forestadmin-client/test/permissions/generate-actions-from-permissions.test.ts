@@ -446,4 +446,158 @@ describe('generateActionsFromPermissions', () => {
       });
     });
   });
+
+  describe('when several collections declare rights', () => {
+    const forbidden = {
+      addEnabled: false,
+      browseEnabled: false,
+      deleteEnabled: false,
+      editEnabled: false,
+      exportEnabled: false,
+      readEnabled: false,
+    };
+    const filter = { field: 'status', operator: 'equal', value: 'open', source: 'data' as const };
+
+    const generate = () =>
+      generateActionsFromPermissions({
+        collections: {
+          books: {
+            collection: { ...forbidden, browseEnabled: true, editEnabled: { roles: [1] } },
+            actions: {
+              publish: {
+                triggerEnabled: { roles: [1, 2] },
+                triggerConditions: [{ roleId: 2, filter }],
+                approvalRequired: false,
+                approvalRequiredConditions: [],
+                userApprovalEnabled: true,
+                userApprovalConditions: [],
+                selfApprovalEnabled: { roles: [3] },
+              },
+              unpublish: {
+                triggerEnabled: true,
+                triggerConditions: [],
+                approvalRequired: { roles: [5] },
+                approvalRequiredConditions: undefined,
+                userApprovalEnabled: false,
+                userApprovalConditions: [],
+                selfApprovalEnabled: false,
+              },
+            },
+          },
+          authors: {
+            collection: { ...forbidden, readEnabled: true, deleteEnabled: { roles: [2] } },
+            actions: {},
+          },
+          reviews: {
+            collection: { ...forbidden, exportEnabled: true },
+            actions: {
+              moderate: {
+                triggerEnabled: true,
+                triggerConditions: [],
+                approvalRequired: { roles: [4] },
+                approvalRequiredConditions: undefined,
+                userApprovalEnabled: false,
+                userApprovalConditions: [],
+                selfApprovalEnabled: false,
+              },
+            },
+          },
+        },
+      });
+
+    it('should list globally allowed actions, collection rights first, in declaration order', () => {
+      expect([...generate().actionsGloballyAllowed]).toEqual([
+        'collection:books:browse',
+        'collection:authors:read',
+        'collection:reviews:export',
+        'custom:books:publish:approve',
+        'custom:books:unpublish:trigger',
+        'custom:reviews:moderate:trigger',
+      ]);
+    });
+
+    it('should list actions allowed by role, collection rights first, in declaration order', () => {
+      expect([...generate().actionsByRole.keys()]).toEqual([
+        'collection:books:edit',
+        'collection:authors:delete',
+        'custom:books:publish:self-approve',
+        'custom:books:publish:trigger',
+        'custom:books:unpublish:require-approval',
+        'custom:reviews:moderate:require-approval',
+      ]);
+    });
+
+    it('should build the roles and the conditions of each action allowed by role', () => {
+      expect(generate()).toEqual({
+        isDevelopment: false,
+        actionsGloballyAllowed: expect.any(Set),
+        actionsByRole: new Map([
+          ['collection:books:edit', { allowedRoles: new Set([1]) }],
+          ['collection:authors:delete', { allowedRoles: new Set([2]) }],
+          ['custom:books:publish:self-approve', { allowedRoles: new Set([3]) }],
+          [
+            'custom:books:publish:trigger',
+            { allowedRoles: new Set([1, 2]), conditionsByRole: new Map([[2, filter]]) },
+          ],
+          ['custom:books:unpublish:require-approval', { allowedRoles: new Set([5]) }],
+          ['custom:reviews:moderate:require-approval', { allowedRoles: new Set([4]) }],
+        ]),
+      });
+    });
+
+    it('should not set conditions on an action whose conditions are absent', () => {
+      const permission = generate().actionsByRole.get('custom:reviews:moderate:require-approval');
+
+      expect(permission).not.toHaveProperty('conditionsByRole');
+    });
+  });
+
+  describe('when two actions produce the same identifier', () => {
+    const forbiddenCollection = {
+      addEnabled: false,
+      browseEnabled: false,
+      deleteEnabled: false,
+      editEnabled: false,
+      exportEnabled: false,
+      readEnabled: false,
+    };
+    const triggerableBy = (roles: number[]) => ({
+      triggerEnabled: { roles },
+      triggerConditions: [],
+      approvalRequired: false,
+      approvalRequiredConditions: [],
+      userApprovalEnabled: false,
+      userApprovalConditions: [],
+      selfApprovalEnabled: false,
+    });
+
+    const generate = () =>
+      generateActionsFromPermissions({
+        collections: {
+          'orders:archive': {
+            collection: forbiddenCollection,
+            actions: { run: triggerableBy([1]) },
+          },
+          books: { collection: forbiddenCollection, actions: { publish: triggerableBy([2]) } },
+          orders: {
+            collection: forbiddenCollection,
+            actions: { 'archive:run': triggerableBy([3]) },
+          },
+        },
+      });
+
+    it('should keep the identifier at its first position', () => {
+      expect([...generate().actionsByRole.keys()]).toEqual([
+        'custom:orders:archive:run:trigger',
+        'custom:books:publish:trigger',
+      ]);
+    });
+
+    it('should keep the rights of the last action written', () => {
+      expect(generate().actionsByRole.get('custom:orders:archive:run:trigger')).toEqual({
+        allowedRoles: new Set([3]),
+        conditionsByRole: new Map(),
+      });
+    });
+  });
 });

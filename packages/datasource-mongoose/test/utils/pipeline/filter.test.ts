@@ -50,7 +50,19 @@ describe('FilterGenerator', () => {
         const pipeline = FilterGenerator.filter(model, stack, filter);
         expect(pipeline).toStrictEqual([
           { $addFields: { 'author.string_identifier': { $toString: '$author.identifier' } } },
-          { $match: { 'author.string_identifier': { $not: /.*something.*/ } } },
+          { $match: { 'author.string_identifier': { $not: /something/ } } },
+        ]);
+      });
+
+      it('filter should stringify an ObjectId for NotIContains', () => {
+        const filter = new PaginatedFilter({
+          conditionTree: new ConditionTreeLeaf('author:identifier', 'NotIContains', 'ABC'),
+        });
+
+        const pipeline = FilterGenerator.filter(model, stack, filter);
+        expect(pipeline).toStrictEqual([
+          { $addFields: { 'author.string_identifier': { $toString: '$author.identifier' } } },
+          { $match: { 'author.string_identifier': { $not: /ABC/i } } },
         ]);
       });
 

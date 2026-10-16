@@ -56,6 +56,27 @@ describe('CompositeDataSource', () => {
       );
     });
 
+    it('should throw when a third datasource clashes with the second one', () => {
+      const compositeDataSource = new CompositeDataSource<Collection>();
+      compositeDataSource.addDataSource(
+        factories.dataSource.buildWithCollection(
+          factories.collection.build({ name: 'collection1' }),
+        ),
+      );
+      compositeDataSource.addDataSource(
+        factories.dataSource.buildWithCollection(
+          factories.collection.build({ name: 'collection2' }),
+        ),
+      );
+      const clashingDataSource = factories.dataSource.buildWithCollection(
+        factories.collection.build({ name: 'collection2' }),
+      );
+
+      expect(() => compositeDataSource.addDataSource(clashingDataSource)).toThrow(
+        "Collection 'collection2' already exists",
+      );
+    });
+
     it('should throw an error if a chart name is already registered', () => {
       const compositeDataSource = new CompositeDataSource<Collection>();
       const aDataSource = factories.dataSource.buildWithCharts(['chart1']);
@@ -80,6 +101,84 @@ describe('CompositeDataSource', () => {
   });
 
   describe('getCollection', () => {
+    describe('with two datasources', () => {
+      let firstDataSource: ReturnType<typeof factories.dataSource.buildWithCollections>;
+      let secondDataSource: ReturnType<typeof factories.dataSource.buildWithCollections>;
+      let compositeDataSource: CompositeDataSource<Collection>;
+
+      beforeEach(() => {
+        firstDataSource = factories.dataSource.buildWithCollections([
+          { name: 'books' },
+          { name: 'authors' },
+        ]);
+        secondDataSource = factories.dataSource.buildWithCollections([
+          { name: 'reviews' },
+          { name: 'libraries' },
+        ]);
+        compositeDataSource = new CompositeDataSource<Collection>();
+        compositeDataSource.addDataSource(firstDataSource);
+        compositeDataSource.addDataSource(secondDataSource);
+      });
+
+      it('should return a collection of the first datasource without asking the second', () => {
+        const collection = compositeDataSource.getCollection('books');
+
+        expect(collection).toBe(firstDataSource.collections[0]);
+        expect(firstDataSource.getCollection).toHaveBeenCalledWith('books');
+        expect(secondDataSource.getCollection).not.toHaveBeenCalled();
+      });
+
+      it('should return a collection of the second datasource without asking the first', () => {
+        const collection = compositeDataSource.getCollection('reviews');
+
+        expect(collection).toBe(secondDataSource.collections[0]);
+        expect(secondDataSource.getCollection).toHaveBeenCalledWith('reviews');
+        expect(firstDataSource.getCollection).not.toHaveBeenCalled();
+      });
+
+      it('should throw with every collection name sorted when the name is unknown', () => {
+        expect(() => compositeDataSource.getCollection('missing')).toThrow(
+          new MissingCollectionError(
+            "Collection 'missing' not found. List of available collections: " +
+              'authors, books, libraries, reviews',
+          ),
+        );
+      });
+
+      it('should find a collection added to a child after the datasource was added', () => {
+        const lateCollection = factories.collection.build({
+          name: 'comments',
+          dataSource: secondDataSource,
+        });
+        secondDataSource.collections.push(lateCollection);
+
+        expect(compositeDataSource.getCollection('comments')).toBe(lateCollection);
+
+        (firstDataSource.getCollection as jest.Mock).mockClear();
+
+        expect(compositeDataSource.getCollection('comments')).toBe(lateCollection);
+        expect(firstDataSource.getCollection).not.toHaveBeenCalled();
+      });
+
+      it('should throw the composite error when a child no longer has a known collection', () => {
+        secondDataSource.collections.splice(0, 1);
+
+        expect(() => compositeDataSource.getCollection('reviews')).toThrow(
+          new MissingCollectionError(
+            "Collection 'reviews' not found. List of available collections: " +
+              'authors, books, libraries',
+          ),
+        );
+      });
+
+      it('should find a known collection that moved to another child', () => {
+        const [movedCollection] = secondDataSource.collections.splice(0, 1);
+        firstDataSource.collections.push(movedCollection);
+
+        expect(compositeDataSource.getCollection('reviews')).toBe(movedCollection);
+      });
+    });
+
     it('should throw an error when the collection does not exist', () => {
       const aDataSource = factories.dataSource.buildWithCollection(
         factories.collection.build({ name: 'collection1' }),

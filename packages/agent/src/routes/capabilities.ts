@@ -1,6 +1,11 @@
 import type { ForestAdminHttpDriverServices } from '../services';
 import type { AgentOptionsWithDefaults } from '../types';
-import type { ColumnSchema, DataSource, FieldSchema } from '@forestadmin/datasource-toolkit';
+import type {
+  Collection,
+  ColumnSchema,
+  DataSource,
+  FieldSchema,
+} from '@forestadmin/datasource-toolkit';
 import type Router from '@koa/router';
 import type { Context } from 'koa';
 
@@ -12,6 +17,7 @@ import { HttpCode, RouteType } from '../types';
 export default class Capabilities extends BaseRoute {
   readonly type = RouteType.PrivateRoute;
   protected readonly dataSource: DataSource;
+  private allCollections?: Collection[];
 
   constructor(
     services: ForestAdminHttpDriverServices,
@@ -27,10 +33,11 @@ export default class Capabilities extends BaseRoute {
   }
 
   private async fetchCapabilities(context: Context) {
-    const collections = this.dataSource.collections.filter(collection =>
-      (context.request.body as { collectionNames: string[] }).collectionNames?.includes(
-        collection.name,
-      ),
+    const { collectionNames } = (context.request.body ?? {}) as { collectionNames?: unknown };
+    const requestedNames = new Set(Array.isArray(collectionNames) ? collectionNames : []);
+    this.allCollections ??= this.dataSource.collections;
+    const collections = this.allCollections.filter(collection =>
+      requestedNames.has(collection.name),
     );
 
     context.response.body = {
