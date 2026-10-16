@@ -98,6 +98,11 @@ export default class ArrayCollection extends BaseCollection {
     this.chain = [...parentLevels, { arrayField: config.arrayField, indexColumn: INDEX_FIELD }];
     this.keyColumns = [...this.rootKeys, ...this.chain.map(level => level.indexColumn)];
 
+    // A key named like a position column would be overwritten by it, and so address another item.
+    if (new Set(this.keyColumns).size !== this.keyColumns.length) {
+      throw new ValidationError(`The key columns of '${config.name}' must have distinct names`);
+    }
+
     const schema: Record<string, AttributeSchema> = {
       ...config.itemSchema,
       ...Object.fromEntries(
@@ -322,10 +327,22 @@ export default class ArrayCollection extends BaseCollection {
         ReturnValues: 'UPDATED_NEW',
       });
     } catch (error) {
-      if (error.name === 'ConditionalCheckFailedException') {
-        throw new ValidationError(
-          `The parent record of '${this.name}' does not exist in '${this.parent.name}'`,
-        );
+      if (error.name === 'ConditionalCheckFailedException') throw this.missingParent();
+
+      // The array sits under a map the item does not have yet, which SET cannot create.
+      if (error.name === 'ValidationException' && /document path/i.test(error.message)) {
+        const index = await this.appendByRewriting(key, parentPositions as number[], fields);
+
+        return {
+          ...key,
+          ...Object.fromEntries(
+            parentKeyColumns
+              .slice(this.rootKeys.length)
+              .map((name, i) => [name, parentPositions[i]]),
+          ),
+          [INDEX_FIELD]: index,
+          ...fields,
+        };
       }
 
       throw error;
@@ -341,6 +358,70 @@ export default class ArrayCollection extends BaseCollection {
       [INDEX_FIELD]: length - 1,
       ...fields,
     };
+  }
+
+  private missingParent(): ValidationError {
+    return new ValidationError(
+      `The parent record of '${this.name}' does not exist in '${this.parent.name}'`,
+    );
+  }
+
+  /** Appends in the item itself, creating the maps on the way, for when DynamoDB cannot. */
+  private async appendByRewriting(
+    key: Item,
+    parentPositions: number[],
+    fields: Record<string, unknown>,
+  ): Promise<number> {
+    const item = await this.root.executor.get(key);
+
+    if (!item) throw this.missingParent();
+
+    let container: Item = item;
+    let index = -1;
+
+    this.chain.forEach((level, depth) => {
+      const segments = Serializer.toPathSegments(level.arrayField);
+      const holder = segments.slice(0, -1).reduce<Item>((value, segment) => {
+        if (!value[segment]) value[segment] = {};
+
+        return value[segment] as Item;
+      }, container);
+      const last = segments[segments.length - 1];
+
+      if (depth === this.chain.length - 1) {
+        holder[last] ??= [];
+        (holder[last] as unknown[]).push(Serializer.unflatten(fields));
+        index = (holder[last] as unknown[]).length - 1;
+      } else {
+        container = (holder[last] as Item[] | undefined)?.[parentPositions[depth]];
+
+        if (!container) throw this.missingParent();
+      }
+    });
+
+    const keyBuilder = new ExpressionBuilder('k', 'kv');
+    const builder = new ExpressionBuilder();
+    const conditions = [`attribute_exists(${keyBuilder.attribute(this.rootKeys[0])})`];
+    const entity = this.entityCondition(builder);
+
+    if (entity) conditions.push(entity);
+
+    try {
+      await this.root.executor.put({
+        Item: item,
+        ConditionExpression: conditions.join(' AND '),
+        ExpressionAttributeNames: { ...builder.names, ...keyBuilder.names },
+        ...(Object.keys(builder.values).length
+          ? { ExpressionAttributeValues: builder.values }
+          : {}),
+      });
+    } catch (error) {
+      if (error.name === 'ConditionalCheckFailedException') throw this.missingParent();
+
+      throw error;
+    }
+
+    return index;
   }
 
   /** UPDATED_NEW answers with only the arrays on the path, each holding just the updated element. */
@@ -411,8 +492,6 @@ export default class ArrayCollection extends BaseCollection {
 
     if (!item) return;
 
-    const patch = Serializer.unflatten(Object.fromEntries(entries));
-
     for (const position of positions) {
       let container: Item = item;
 
@@ -424,7 +503,10 @@ export default class ArrayCollection extends BaseCollection {
         const array = holder[segments[segments.length - 1]] as Item[];
 
         if (depth === this.chain.length - 1) {
-          array[position[depth]] = Serializer.deepMerge(array[position[depth]], patch);
+          // Each attribute of the patch replaces what it names, as SET does, and nothing else.
+          for (const [field, value] of entries) {
+            Serializer.setPath(array[position[depth]], Serializer.toPathSegments(field), value);
+          }
         } else {
           container = array[position[depth]];
         }

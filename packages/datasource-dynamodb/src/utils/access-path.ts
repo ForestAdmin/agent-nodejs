@@ -142,7 +142,7 @@ function pickSortCondition(
   const [lower] = find(['GreaterThanOrEqual']);
   const [upper] = find(['LessThanOrEqual']);
 
-  if (lower && upper) {
+  if (lower && upper && !(valueOf(lower) > valueOf(upper))) {
     return {
       condition: { attribute, operator: 'Between', value: [valueOf(lower), valueOf(upper)] },
       consumed: [lower, upper],

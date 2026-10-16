@@ -63,6 +63,9 @@ const hasOversizedList = (leaf: ConditionTreeLeaf): boolean =>
   Array.isArray(leaf.value) &&
   leaf.value.length > MAX_PUSHED_LIST_VALUES;
 
+const copyOf = (rows: AggregateResult[]): AggregateResult[] =>
+  rows.map(row => ({ ...row, group: { ...row.group } }));
+
 const isEmptyKey = (value: unknown): boolean =>
   value === undefined || value === null || value === '';
 
@@ -113,7 +116,6 @@ export default class DynamoDBCollection extends BaseCollection {
   private readonly fieldNames: Set<string>;
   private readonly matchContext: Collection;
   private readonly warnedAt = new Map<string, number>();
-  private readonly chartCache = new Map<string, { at: number; value: AggregateResult[] }>();
 
   constructor(
     datasource: DataSource,
@@ -149,7 +151,7 @@ export default class DynamoDBCollection extends BaseCollection {
 
   invalidateCaches(): void {
     this.settings.paginationCache.invalidateTable(this.model.tableName);
-    this.chartCache.clear();
+    this.settings.chartCaches.get(this.model.tableName)?.clear();
   }
 
   async create(caller: Caller, data: RecordData[]): Promise<RecordData[]> {
@@ -469,6 +471,7 @@ export default class DynamoDBCollection extends BaseCollection {
     const isCheapPage =
       !filter.conditionTree &&
       !plan.residual &&
+      !plan.access?.remaining &&
       (!sort || plan.access?.sortSatisfied) &&
       limit !== undefined &&
       skip + limit <= MAX_CHEAP_PAGE_ITEMS;
@@ -566,6 +569,7 @@ export default class DynamoDBCollection extends BaseCollection {
       }
 
       item[entity.attribute] = entity.value;
+      created[entity.attribute] = entity.value;
     }
 
     const keyBuilder = new ExpressionBuilder('k', 'kv');
@@ -648,6 +652,7 @@ export default class DynamoDBCollection extends BaseCollection {
     const { timezone } = caller;
     const { paginationCache: cache, chartCacheTtlMs, now } = this.settings;
     const cacheKey = cache.hash({
+      collection: this.name,
       filter: filter.conditionTree?.toPlainObject(),
       aggregation: {
         field: aggregation.field,
@@ -657,24 +662,34 @@ export default class DynamoDBCollection extends BaseCollection {
       limit,
       timezone,
     });
-    const cached = this.chartCache.get(cacheKey);
+    const charts = this.chartsOfTable();
+    const cached = charts.get(cacheKey);
 
-    if (cached && now() - cached.at < chartCacheTtlMs) {
-      return cached.value.map(row => ({ ...row, group: { ...row.group } }));
-    }
+    if (cached && now() - cached.at < chartCacheTtlMs) return copyOf(cached.value);
 
     const value = await this.computeAggregation(filter, aggregation, limit, timezone);
 
     if (chartCacheTtlMs > 0) {
-      this.chartCache.delete(cacheKey);
-      this.chartCache.set(cacheKey, { at: now(), value });
+      // A copy: the caller may rename the groups it is given, which must not reach the cache.
+      charts.delete(cacheKey);
+      charts.set(cacheKey, { at: now(), value: copyOf(value) });
 
-      if (this.chartCache.size > MAX_CACHED_CHARTS) {
-        this.chartCache.delete(this.chartCache.keys().next().value);
-      }
+      if (charts.size > MAX_CACHED_CHARTS) charts.delete(charts.keys().next().value);
     }
 
     return value;
+  }
+
+  private chartsOfTable(): Map<string, { at: number; value: AggregateResult[] }> {
+    const { chartCaches } = this.settings;
+    let charts = chartCaches.get(this.model.tableName);
+
+    if (!charts) {
+      charts = new Map();
+      chartCaches.set(this.model.tableName, charts);
+    }
+
+    return charts;
   }
 
   /** Reads the segments of a parallel scan at once; a failure stops the others from reading on. */

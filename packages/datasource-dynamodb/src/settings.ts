@@ -21,5 +21,6 @@ export function resolveSettings(settings: Partial<CollectionSettings> = {}): Col
     ...settings,
     now,
     paginationCache: settings.paginationCache ?? new PaginationCache({ now }),
+    chartCaches: settings.chartCaches ?? new Map(),
   };
 }
