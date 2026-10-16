@@ -256,6 +256,17 @@ export default class QueryConverter {
   ): string | ReturnType<Sequelize['literal']> {
     if (!literalPosition && !binary && !collate) return value;
 
+    const pattern = literalPosition ? this.makeLiteralLikePattern(value, literalPosition) : value;
+    const escapedPattern = this.model.sequelize.escape(pattern);
+
+    return this.model.sequelize.literal(
+      `${binary ? `CAST(${escapedPattern} AS BINARY)` : escapedPattern}${
+        collate ? ` COLLATE ${collate}` : ''
+      }${literalPosition ? ` ESCAPE '${LIKE_ESCAPE_CHARACTER}'` : ''}`,
+    );
+  }
+
+  private makeLiteralLikePattern(value: string, literalPosition: LiteralPosition): string {
     const escaped = [...value]
       .map(character =>
         LIKE_SPECIAL_CHARACTERS.includes(character) ||
@@ -264,16 +275,10 @@ export default class QueryConverter {
           : character,
       )
       .join('');
-    const pattern = literalPosition
-      ? `${literalPosition === 'start' ? '' : '%'}${escaped}${literalPosition === 'end' ? '' : '%'}`
-      : value;
-    const escapedPattern = this.model.sequelize.escape(pattern);
 
-    return this.model.sequelize.literal(
-      `${binary ? `CAST(${escapedPattern} AS BINARY)` : escapedPattern}${
-        collate ? ` COLLATE ${collate}` : ''
-      }${literalPosition ? ` ESCAPE '${LIKE_ESCAPE_CHARACTER}'` : ''}`,
-    );
+    return `${literalPosition === 'start' ? '' : '%'}${escaped}${
+      literalPosition === 'end' ? '' : '%'
+    }`;
   }
 
   private makeGlob(value: string, literalPosition?: LiteralPosition): string {
