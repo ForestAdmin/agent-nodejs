@@ -27,9 +27,9 @@ const WORKSPACE_PACKAGES = [
 
 // Pinned to exact versions — OTel ships only in the Docker image.
 const OTEL_DEPENDENCIES = {
-  '@opentelemetry/sdk-node': '0.219.0',
-  '@opentelemetry/auto-instrumentations-node': '0.77.0',
-  '@opentelemetry/exporter-trace-otlp-http': '0.219.0',
+  '@opentelemetry/sdk-node': '0.221.0',
+  '@opentelemetry/auto-instrumentations-node': '0.79.0',
+  '@opentelemetry/exporter-trace-otlp-http': '0.221.0',
 };
 
 // Security pins for transitive deps whose parents never ship a patched range.
@@ -38,8 +38,6 @@ const OTEL_DEPENDENCIES = {
 // combination CI exercises.
 const RESOLUTIONS = {
   '**/sequelize/uuid': '^11.1.1',
-  // auto-instrumentations-node pins propagator-jaeger 2.8.0 (CVE-2026-59892, fixed in 2.9.0).
-  '**/@opentelemetry/propagator-jaeger': '2.9.0',
   // Dependabot alert #452 — Hono ReDoS + memo() SSR retention + lang middleware DoS (patched in 4.12.34).
   '**/@modelcontextprotocol/sdk/hono': '^4.12.34',
   // fast-uri host confusion + SSRF cluster (Dependabot #499-#502, patched in 3.1.6; #539 host-case bump 3.1.8).

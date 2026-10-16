@@ -28,13 +28,13 @@ const WORKSPACE_PACKAGES = [
 // sdk-node drags in every OTLP exporter plus the Zipkin one, which is why the image can honour
 // OTEL_TRACES_EXPORTER and OTEL_EXPORTER_OTLP_PROTOCOL without naming an exporter here.
 // A fixable CRITICAL/HIGH in this tree blocks every publish of this image until someone raises a
-// pin here and refreshes deps/yarn.lock (see the propagator-jaeger resolution below for the shape
-// of that fix). Renovate does not watch this file — it is a plain object, not a manifest — so an
-// unrelated release will stall on it unless someone is looking.
+// pin here or adds a resolution below, and refreshes deps/yarn.lock. Renovate does not watch this
+// file — it is a plain object, not a manifest — so an unrelated release will stall on it unless
+// someone is looking.
 const OTEL_DEPENDENCIES = {
-  '@opentelemetry/sdk-node': '0.219.0',
-  '@opentelemetry/auto-instrumentations-node': '0.77.0',
-  '@opentelemetry/exporter-trace-otlp-http': '0.219.0',
+  '@opentelemetry/sdk-node': '0.221.0',
+  '@opentelemetry/auto-instrumentations-node': '0.79.0',
+  '@opentelemetry/exporter-trace-otlp-http': '0.221.0',
 };
 
 // Security pins for transitive deps whose parents never ship a patched range.
@@ -45,8 +45,9 @@ const RESOLUTIONS = {
   '**/qs': '>=6.15.2',
   // jsonapi-serializer pins lodash ^4.17.x.
   '**/lodash': '^4.18.0',
-  // auto-instrumentations-node pins propagator-jaeger 2.8.0 (CVE-2026-59892, fixed in 2.9.0).
-  '**/@opentelemetry/propagator-jaeger': '2.9.0',
+  // sanitize-html >= 2.17.6 bumped htmlparser2 to ^12 (ESM-only); pin to the last 10.x which
+  // ships a CJS entry so the BFF's Jest config (CJS) still loads it.
+  '**/sanitize-html/htmlparser2': '^10.1.0',
 };
 
 function generate(packagesDir, outFile) {
@@ -78,7 +79,11 @@ function generate(packagesDir, outFile) {
 
   Object.assign(deps, OTEL_DEPENDENCIES);
 
-  const sorted = Object.fromEntries(Object.keys(deps).sort().map(key => [key, deps[key]]));
+  const sorted = Object.fromEntries(
+    Object.keys(deps)
+      .sort()
+      .map(key => [key, deps[key]]),
+  );
 
   const manifest = { name: 'agent-bff-docker-deps', private: true };
 
