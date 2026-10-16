@@ -82,12 +82,31 @@ describe('virtual collections', () => {
     );
   });
 
-  it('refuses to expose an array of a virtual collection', async () => {
-    const { logger, dataSource } = build(
-      [{ id: 'o1', lines: [{ sku: 'A', parts: [{ n: 1 }] }] }],
+  it('exposes an array of an array, identified by the position in each', async () => {
+    const { dataSource } = build(
+      [{ id: 'o1', lines: [{ sku: 'A', parts: [{ n: 1 }, { n: 2 }] }] }],
       [
         { parentCollection: 'Orders', collectionName: 'lines', arrayField: 'lines' },
         { parentCollection: 'lines', collectionName: 'parts', arrayField: 'parts' },
+      ],
+    );
+
+    const { fields } = (await dataSource).getCollection('parts').schema;
+
+    expect(
+      Object.entries(fields)
+        .filter(([, field]) => field.type === 'Column' && field.isPrimaryKey)
+        .map(([name]) => name),
+    ).toEqual(['id', 'linesIndex', 'index']);
+    expect(fields.n).toMatchObject({ columnType: 'Number', isPrimaryKey: false });
+  });
+
+  it('skips an array of an array declared before its parent, and says so', async () => {
+    const { logger, dataSource } = build(
+      [{ id: 'o1', lines: [{ sku: 'A', parts: [{ n: 1 }] }] }],
+      [
+        { parentCollection: 'lines', collectionName: 'parts', arrayField: 'parts' },
+        { parentCollection: 'Orders', collectionName: 'lines', arrayField: 'lines' },
       ],
     );
 
@@ -96,7 +115,7 @@ describe('virtual collections', () => {
     expect(result.collections.map(c => c.name).sort()).toEqual(['Orders', 'lines']);
     expect(logger).toHaveBeenCalledWith(
       'Warn',
-      "Skipping virtual collection 'parts' for array 'lines.parts': an array of an array cannot be exposed",
+      expect.stringContaining("Skipping virtual collection 'parts' for array 'lines.parts'"),
     );
   });
 });
