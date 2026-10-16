@@ -31,6 +31,8 @@
     "light-my-request": "^5.14.0",
     "luxon": "^3.2.1",
     "object-hash": "^3.0.0",
+    "pg": "^8.8.0",
+    "pg-hstore": "^2.3.4",
     "sequelize": "^6.37.8",
     "superagent": "^10.3.0",
     "umzug": "^3.8.2",

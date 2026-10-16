@@ -16,8 +16,8 @@ The audit trail has two decoupled parts, both handled by the agent:
 Pass an `auditTrail` option to `createAgent`. The agent constructs the SQL store, registers the
 CRUD hooks on every collection, and mounts the record-history routes only when this option is set.
 
-Sequelize does not bundle database drivers, so install the one matching `connectionString`'s
-dialect — e.g. `pg` and `pg-hstore` for PostgreSQL — even in an agent whose main datasource isn't SQL.
+The agent ships `sequelize`, `umzug` and the PostgreSQL driver (`pg`, `pg-hstore`), so the option is all
+it takes, even in an agent whose main datasource isn't SQL.
 
 ```ts
 import { createAgent } from '@forestadmin/agent';
@@ -211,6 +211,22 @@ audit read; a record deleted in between is treated as a request starting a momen
 treated it, and one moved out of the caller's scope in between is refused. The extra read only
 happens for a scoped caller — with no scope there is nothing to withhold.
 
+Both reads count, and neither can clear the other, as in agent-ruby. A record gone at either read is
+treated as gone: an id freed by a delete and taken by another record since answers for itself, never
+for the rows of the record that held it before. And the re-read runs even for a record already gone
+at the first check, so an id since taken by a record the caller cannot read is refused (404).
+
+**An id freed and taken since has two lives.** A live record in the caller's scope says nothing
+about the rows filed under its id before it took the id: they are an earlier record's. The boundary
+is the id's latest confirmed `delete` (the earlier record's last row) or `create` (the current
+record's first), whichever is later; the `create` covers an id freed with no confirmed `delete`, by a
+primary-key move or a delete that was never confirmed. Those rows go through the same withholding as
+a record gone for good — on the history route (with `search` and `fields` matched against the served
+values, so the count and the authors cannot leak them either), on the correlation lookups, and on
+`/state`, whose reconstruction at an instant before the boundary is tested against the scope
+(strictly before: at the boundary's own instant the state already includes a replacement `create`
+sharing it). A `pending` row marks no boundary, since it may never have landed.
+
 That test only runs when the snapshot can actually answer it. The capture keeps the writable columns
 (plus the packed record id), so a scope reaching for anything else — a read-only column, a relation,
 a field stored redacted — has no honest answer in the snapshot and the values are withheld rather
@@ -310,11 +326,12 @@ the second read of the record decides the withholding, so the SQL-matched answer
 the history scanned the same way.
 
 Matching the *serialized* text rather than a structural walk of the parsed value is cheap and still
-correct for "keys and scalar values" — but two things follow from it. A punctuation-only term (`,`,
-`:`, `{`) matches almost any row whose diff has more than one key, since those characters are JSON
-structure rather than content. And a value containing a double quote or a backslash can't be found
-by searching for it literally — `5"` is stored in the JSON text as `5\"`, so searching `5"` never
-matches the row that holds it. Neither is severe, and both are inherent to the approach.
+correct for "keys and scalar values". The term is escaped the way JSON escaped the values, so `5"`
+finds the row whose JSON text holds `5\"`, and a bare quote can't match the document's own
+structure. The redaction mask is removed before matching, so `search=redacted` confirms nothing.
+Both hold on the served-value path too, and both mirror agent-ruby. One thing remains inherent to
+the approach: a punctuation-only term (`,`, `:`, `{`) matches almost any row whose diff has more
+than one key, since those characters are JSON structure rather than content.
 
 Defensive parsing:
 

@@ -823,7 +823,7 @@ describe('AuditTrailRoute', () => {
       jest
         .spyOn(dataSource.getCollection('books'), 'list')
         .mockResolvedValueOnce([]) // scoped check: not found
-        .mockResolvedValueOnce([]); // bare check: genuinely gone, not just out of scope
+        .mockResolvedValue([]); // bare check: genuinely gone, not just out of scope, and at the re-read
       const route = new AuditTrailRoute(services, options, dataSource, 'books');
       const context = createMockContext({
         state: { user: { email: 'john.doe@domain.com' } },
@@ -923,6 +923,23 @@ describe('AuditTrailRoute', () => {
           count: 2,
           availableUsers: [{ id: 7, firstName: null, lastName: null, email: 'jane@acme.com' }],
         });
+      });
+
+      test('does not confirm a masked value by searching the mask', async () => {
+        const { body } = await searched(
+          [kept({ previousValues: { ownerId: 1, ssn: '[redacted]' } })],
+          { search: 'redacted' },
+        );
+
+        expect(body.data).toEqual([]);
+      });
+
+      test('finds a served value holding a quote, as JSON serialized it', async () => {
+        const quoted = kept({ previousValues: { ownerId: 1, title: '15" monitor' } });
+
+        const { body } = await searched([quoted], { search: '15" monitor' });
+
+        expect(body.data).toEqual([quoted]);
       });
 
       test('does not match a field only a withheld side touched', async () => {
@@ -1040,7 +1057,7 @@ describe('AuditTrailRoute', () => {
       jest
         .spyOn(dataSource.getCollection('books'), 'list')
         .mockResolvedValueOnce([]) // scoped check: not found
-        .mockResolvedValueOnce([]); // bare check: genuinely gone, not just out of scope
+        .mockResolvedValue([]); // bare check: genuinely gone, not just out of scope, and at the re-read
       const route = new AuditTrailRoute(services, options, dataSource, 'books');
       const context = createMockContext({
         state: { user: { email: 'john.doe@domain.com' } },
@@ -1070,7 +1087,7 @@ describe('AuditTrailRoute', () => {
         jest
           .spyOn(dataSource.getCollection('books'), 'list')
           .mockResolvedValueOnce([]) // scoped check: not found
-          .mockResolvedValueOnce([]); // bare check: genuinely gone
+          .mockResolvedValue([]); // bare check: genuinely gone, and at the re-read
         const route = new AuditTrailRoute(services, options, dataSource, 'books');
         const context = createMockContext({
           state: { user: { email: 'john.doe@domain.com' } },
@@ -1135,7 +1152,7 @@ describe('AuditTrailRoute', () => {
       jest
         .spyOn(dataSource.getCollection('books'), 'list')
         .mockResolvedValueOnce([]) // scoped check: not found
-        .mockResolvedValueOnce([]); // bare check: genuinely gone, not just out of scope
+        .mockResolvedValue([]); // bare check: genuinely gone, not just out of scope, and at the re-read
       const route = new AuditTrailRoute(services, options, dataSource, 'books');
       const context = createMockContext({
         state: { user: { email: 'john.doe@domain.com' } },
@@ -1166,7 +1183,7 @@ describe('AuditTrailRoute', () => {
       jest
         .spyOn(dataSource.getCollection('books'), 'list')
         .mockResolvedValueOnce([]) // scoped check: not found
-        .mockResolvedValueOnce([]); // bare check: genuinely gone, not just out of scope
+        .mockResolvedValue([]); // bare check: genuinely gone, not just out of scope, and at the re-read
       const route = new AuditTrailRoute(services, options, dataSource, 'books');
       const context = createMockContext({
         state: { user: { email: 'john.doe@domain.com' } },
@@ -1232,7 +1249,7 @@ describe('AuditTrailRoute', () => {
     // The audit trail lives in its own database — often its own engine — so no single snapshot
     // spans the visibility check and the audit read. The record can go away in between.
     describe('the record changes between the visibility check and the audit read', () => {
-      const raceWith = async (...listAnswers: unknown[][]) => {
+      const raceWithQuery = async (query: Record<string, string>, ...listAnswers: unknown[][]) => {
         const history = [
           {
             operation: 'delete',
@@ -1250,13 +1267,15 @@ describe('AuditTrailRoute', () => {
         const route = new AuditTrailRoute(services, options, dataSource, 'books');
         const context = createMockContext({
           state: { user: { email: 'john.doe@domain.com' } },
-          customProperties: { query: { timezone: 'Europe/Paris' }, params: { id: '2' } },
+          customProperties: { query: { timezone: 'Europe/Paris', ...query }, params: { id: '2' } },
         });
 
         await route.handleHistory(context);
 
         return { context, list, services };
       };
+
+      const raceWith = (...listAnswers: unknown[][]) => raceWithQuery({}, ...listAnswers);
 
       test('withholds the values when the record was deleted in between', async () => {
         // present and in scope at the check, gone by the time the rows are in hand
@@ -1284,10 +1303,163 @@ describe('AuditTrailRoute', () => {
         expect(services.authorization.getScope).toHaveBeenCalledTimes(1);
       });
 
-      test('does not ask again for a record that was already gone at the first check', async () => {
-        const { list } = await raceWith([], []);
+      test('refuses when an id gone at the first check now belongs to a record the caller cannot read', async () => {
+        // gone at the check (scoped and bare), then the id was taken by someone else's record
+        const { context } = await raceWith([], [], [], [{ id: 2 }]);
 
-        expect(list).toHaveBeenCalledTimes(2);
+        expect(context.throw).toHaveBeenCalledWith(404, 'Record does not exists');
+      });
+
+      test('refuses a search when an id gone at the first check now belongs to a record the caller cannot read', async () => {
+        const { context } = await raceWithQuery({ search: 'secret' }, [], [], [], [{ id: 2 }]);
+
+        expect(context.throw).toHaveBeenCalledWith(404, 'Record does not exists');
+      });
+
+      test('keeps withholding when an in-scope record took the id after the first check', async () => {
+        // gone at the check; the replacement answers for itself, not for the rows of the earlier life
+        const { context } = await raceWith([], [], [{ id: 2 }]);
+
+        expect(context.throw).not.toHaveBeenCalled();
+        expect((context.response.body as { data: unknown[] }).data).toEqual([
+          { operation: 'delete', recordId: '2', previousValues: {}, newValues: {} },
+        ]);
+      });
+    });
+
+    describe('an id freed by a delete and taken by a record in scope since', () => {
+      const row = (over: Record<string, unknown>) => ({
+        recordId: '2',
+        userId: 7,
+        userFirstName: null,
+        userLastName: null,
+        userEmail: 'jane@acme.io',
+        actionName: null,
+        ...over,
+      });
+      const current = row({
+        id: 3,
+        timestamp: '2026-01-03T00:00:00.000Z',
+        operation: 'create',
+        previousValues: {},
+        newValues: { ownerId: 1, title: 'Mine' },
+      });
+      const freed = row({
+        id: 2,
+        timestamp: '2026-01-02T00:00:00.000Z',
+        operation: 'delete',
+        previousValues: { ownerId: 2, title: 'Secret' },
+        newValues: {},
+      });
+      const earlier = row({
+        id: 1,
+        timestamp: '2026-01-01T00:00:00.000Z',
+        operation: 'update',
+        previousValues: { ownerId: 2, title: 'Old secret' },
+        newValues: { ownerId: 2, title: 'Secret' },
+      });
+
+      const readHistory = async (history: unknown[], query: Record<string, string> = {}) => {
+        const { services, dataSource, options } = setup(history);
+        (services.authorization.getScope as jest.Mock).mockResolvedValue(
+          new ConditionTreeLeaf('ownerId', 'Equal', 1),
+        );
+        jest.spyOn(dataSource.getCollection('books'), 'list').mockResolvedValue([{ id: 2 }]);
+        const route = new AuditTrailRoute(services, options, dataSource, 'books');
+        const context = createMockContext({
+          state: { user: { email: 'john.doe@domain.com' } },
+          customProperties: { query: { timezone: 'Europe/Paris', ...query }, params: { id: '2' } },
+        });
+
+        await route.handleHistory(context);
+
+        return context.response.body as { data: unknown[]; meta: unknown };
+      };
+
+      test('withholds the earlier record values and serves the current record', async () => {
+        const body = await readHistory([current, freed, earlier]);
+
+        expect(body.data).toEqual([
+          current,
+          { ...freed, previousValues: {} },
+          { ...earlier, previousValues: {}, newValues: {} },
+        ]);
+      });
+
+      test('matches a search on the values served, so it cannot find the earlier record values', async () => {
+        const body = await readHistory([current, freed, earlier], { search: 'secret' });
+
+        expect(body).toEqual({ data: [], meta: { count: 0, availableUsers: [] } });
+      });
+
+      test('withholds the rows before the current create when the delete was never confirmed', async () => {
+        const pending = { ...freed, status: 'pending' };
+
+        const body = await readHistory([current, pending, earlier]);
+
+        expect(body.data).toEqual([
+          current,
+          { ...pending, previousValues: {} },
+          { ...earlier, previousValues: {}, newValues: {} },
+        ]);
+      });
+
+      test('withholds the rows of a record whose primary key moved off the id', async () => {
+        const body = await readHistory([current, earlier]);
+
+        expect(body.data).toEqual([current, { ...earlier, previousValues: {}, newValues: {} }]);
+      });
+
+      // The record's own create is the latest boundary of any record created through Forest. With
+      // nothing before it there is no earlier life, so a search stays a single matched query rather
+      // than the served-value scan.
+      test('keeps a search on a record created through Forest in the store query', async () => {
+        const later = row({
+          id: 4,
+          timestamp: '2026-01-04T00:00:00.000Z',
+          operation: 'update',
+          previousValues: { ownerId: 1, title: 'Mine' },
+          newValues: { ownerId: 1, title: 'Still mine' },
+        });
+        const { services, dataSource, options, store } = setup([later, current]);
+        store.listByRecord.mockImplementation(async ({ order, limit }: Record<string, unknown>) => {
+          const rows = order === 'asc' ? [current, later] : [later, current];
+
+          return limit ? rows.slice(0, limit as number) : rows;
+        });
+        (services.authorization.getScope as jest.Mock).mockResolvedValue(
+          new ConditionTreeLeaf('ownerId', 'Equal', 1),
+        );
+        jest.spyOn(dataSource.getCollection('books'), 'list').mockResolvedValue([{ id: 2 }]);
+        const route = new AuditTrailRoute(services, options, dataSource, 'books');
+        const context = createMockContext({
+          state: { user: { email: 'john.doe@domain.com' } },
+          customProperties: { query: { search: 'mine' }, params: { id: '2' } },
+        });
+
+        await route.handleHistory(context);
+
+        const scans = (store.listByRecord as jest.Mock).mock.calls.filter(
+          ([query]) => query.limit === 500,
+        );
+        expect(scans).toEqual([]);
+        expect(store.countByRecord).toHaveBeenCalledWith(
+          expect.objectContaining({ search: 'mine' }),
+        );
+      });
+
+      test('serves the whole history of an id that was never freed', async () => {
+        const later = row({
+          id: 4,
+          timestamp: '2026-01-04T00:00:00.000Z',
+          operation: 'update',
+          previousValues: { ownerId: 1, title: 'Mine' },
+          newValues: { ownerId: 1, title: 'Still mine' },
+        });
+
+        const body = await readHistory([later, current]);
+
+        expect(body.data).toEqual([later, current]);
       });
     });
 
@@ -2086,6 +2258,84 @@ describe('AuditTrailRoute', () => {
     // The history route withholds a gone record's captured values from a caller whose scope they
     // fail; this route is those same values reassembled, so it has to answer the same way or the
     // withheld values are one request away.
+    describe('an id freed by a delete and taken by a record in scope since', () => {
+      const history = [
+        {
+          id: 3,
+          timestamp: '2026-06-20T00:00:00.000Z',
+          operation: 'create',
+          previousValues: {},
+          newValues: { id: 2, status: 'mine', name: 'New' },
+        },
+        {
+          id: 2,
+          timestamp: '2026-06-19T00:00:00.000Z',
+          operation: 'delete',
+          previousValues: { id: 2, status: 'secret', name: 'Old' },
+          newValues: {},
+        },
+      ];
+
+      const stateAt = async (
+        at: string,
+        entries = history,
+        scope = new ConditionTreeLeaf('status', 'Equal', 'mine'),
+      ) => {
+        const { services, dataSource, store, route } = setupBooks();
+        store.listByRecord.mockImplementation(
+          async ({
+            startTimestamp,
+            operations,
+          }: {
+            startTimestamp?: string;
+            operations?: string[];
+          }) =>
+            entries.filter(
+              entry =>
+                (!startTimestamp || entry.timestamp >= startTimestamp) &&
+                (!operations || operations.includes(entry.operation)),
+            ),
+        );
+        (services.authorization.getScope as jest.Mock).mockResolvedValue(scope);
+        jest
+          .spyOn(dataSource.getCollection('books'), 'list')
+          .mockResolvedValue([{ id: 2, status: 'mine', name: 'New' }]);
+        const context = createMockContext({
+          state: { user: { email: 'john.doe@domain.com' } },
+          customProperties: { query: { timezone: 'UTC', at }, params: { id: '2' } },
+        });
+
+        await route.handleStateAt(context);
+
+        return context;
+      };
+
+      test('withholds a state from before the delete when the earlier record fails the scope', async () => {
+        const context = await stateAt('2026-06-18');
+
+        expect(context.response.body).toEqual({ data: null });
+      });
+
+      test('serves a state from after the id was taken', async () => {
+        const context = await stateAt('2026-06-21');
+
+        expect(context.response.body).toEqual({ data: { id: 2, status: 'mine', name: 'New' } });
+      });
+
+      // A scope on a column the capture never kept cannot be answered from a reconstruction, so
+      // testing this state at all would withhold the replacement the caller was just shown to read.
+      test('serves the state at the instant of a delete that a replacement create shares', async () => {
+        const sameInstant = '2026-06-19T00:00:00.000Z';
+        const context = await stateAt(
+          sameInstant,
+          [{ ...history[0], timestamp: sameInstant }, history[1]],
+          new ConditionTreeLeaf('displayName', 'Equal', 'New'),
+        );
+
+        expect(context.response.body).toEqual({ data: { id: 2, status: 'mine', name: 'New' } });
+      });
+    });
+
     describe('a genuinely gone record, read by a scoped caller', () => {
       const reconstructFor = async (scope: ConditionTreeLeaf, status: string | null = 'closed') => {
         const history = [
@@ -2100,7 +2350,7 @@ describe('AuditTrailRoute', () => {
         jest
           .spyOn(dataSource.getCollection('books'), 'list')
           .mockResolvedValueOnce([]) // scoped fetch: not found
-          .mockResolvedValueOnce([]); // bare check: genuinely gone, not just out of scope
+          .mockResolvedValue([]); // bare check: genuinely gone, not just out of scope, and at the re-read
         const context = createMockContext({
           state: { user: { email: 'john.doe@domain.com' } },
           customProperties: {
@@ -2163,7 +2413,7 @@ describe('AuditTrailRoute', () => {
         .spyOn(dataSource.getCollection('books'), 'list')
         .mockResolvedValueOnce([{ id: 2, status: 'closed', name: 'Acme' }]) // present and in scope
         .mockResolvedValueOnce([]) // re-read, scoped: gone
-        .mockResolvedValueOnce([]); // re-read, bare: genuinely gone
+        .mockResolvedValue([]); // re-read, bare: genuinely gone, and at the re-read
       const context = createMockContext({
         state: { user: { email: 'john.doe@domain.com' } },
         customProperties: {
@@ -2219,7 +2469,7 @@ describe('AuditTrailRoute', () => {
       jest
         .spyOn(dataSource.getCollection('books'), 'list')
         .mockResolvedValueOnce([]) // scoped fetch: not found
-        .mockResolvedValueOnce([]); // bare check: genuinely gone
+        .mockResolvedValue([]); // bare check: genuinely gone, and at the re-read
       const context = createMockContext({
         state: { user: { email: 'john.doe@domain.com' } },
         customProperties: {
@@ -2244,7 +2494,7 @@ describe('AuditTrailRoute', () => {
       jest
         .spyOn(dataSource.getCollection('books'), 'list')
         .mockResolvedValueOnce([]) // scoped fetch: not found
-        .mockResolvedValueOnce([]); // bare check: genuinely gone
+        .mockResolvedValue([]); // bare check: genuinely gone, and at the re-read
       const context = createMockContext({
         state: { user: { email: 'john.doe@domain.com' } },
         customProperties: {
