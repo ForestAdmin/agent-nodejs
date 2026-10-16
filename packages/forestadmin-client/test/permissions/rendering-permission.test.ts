@@ -1162,12 +1162,21 @@ describe('RenderingPermissionService', () => {
       jest.setSystemTime(FORCED_REFETCH_INTERVAL_IN_SECONDS * 1000 - 1);
       const scope = await renderingPermission.getScope({
         renderingId: 42,
-        collectionName: 'authors',
+        collectionName: 'books',
         userId: 1,
       });
 
       expect(scope).toBeNull();
       expect(serverInterface.getRenderingPermissions).toHaveBeenCalledTimes(2);
+    });
+
+    it('should refetch the scope of another collection within the refetch interval', async () => {
+      const { renderingPermission, serverInterface } = setupDenied();
+
+      await renderingPermission.getScope({ renderingId: 42, collectionName: 'books', userId: 1 });
+      await renderingPermission.getScope({ renderingId: 42, collectionName: 'authors', userId: 1 });
+
+      expect(serverInterface.getRenderingPermissions).toHaveBeenCalledTimes(3);
     });
 
     it('should answer concurrent scope denials from the single refetch', async () => {
@@ -1237,7 +1246,7 @@ describe('RenderingPermissionService', () => {
       expect(serverInterface.getRenderingPermissions).toHaveBeenCalledTimes(2);
     });
 
-    it('should share the refetch interval between the scope and chart paths', async () => {
+    it('should not let a scope denial use up the chart and users refetch', async () => {
       const { renderingPermission, serverInterface, userPermission } = setupDenied();
 
       await renderingPermission.getScope({ renderingId: 42, collectionName: 'books', userId: 1 });
@@ -1248,8 +1257,19 @@ describe('RenderingPermissionService', () => {
       });
 
       expect(result).toBe(false);
+      expect(serverInterface.getRenderingPermissions).toHaveBeenCalledTimes(3);
+      expect(userPermission.invalidateCache).toHaveBeenCalledTimes(1);
+    });
+
+    it('should refetch once when denials of different collections happen concurrently', async () => {
+      const { renderingPermission, serverInterface } = setupDenied();
+
+      await Promise.all([
+        renderingPermission.getScope({ renderingId: 42, collectionName: 'books', userId: 1 }),
+        renderingPermission.getScope({ renderingId: 42, collectionName: 'authors', userId: 1 }),
+      ]);
+
       expect(serverInterface.getRenderingPermissions).toHaveBeenCalledTimes(2);
-      expect(userPermission.invalidateCache).not.toHaveBeenCalled();
     });
 
     it('should refetch for a chart at most once within the refetch interval', async () => {
