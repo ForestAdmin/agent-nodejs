@@ -1,0 +1,8 @@
+version: '3.1'
+services:
+  dynamodb:
+    image: amazon/dynamodb-local
+    container_name: forest_datasource_dynamodb_test
+    command: -jar DynamoDBLocal.jar -inMemory -sharedDb
+    ports:
+      - 8000:8000

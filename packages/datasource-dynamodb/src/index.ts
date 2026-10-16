@@ -1,0 +1,150 @@
+import type { ConfigurationOptions } from './introspection/builder';
+import type {
+  DynamoDBClientOptions,
+  DynamoDBSettingsOptions,
+  IntrospectionConfig,
+  ManualSchemaConfig,
+  TableModel,
+  VirtualCollectionConfig,
+} from './types';
+import type { DataSourceFactory } from '@forestadmin/datasource-toolkit';
+
+import { ValidationError } from '@forestadmin/datasource-toolkit';
+
+import createDocumentClient from './client';
+import DynamoDBDataSource from './datasource';
+import { DynamoDBDatasourceBuilder } from './introspection/builder';
+import {
+  DEFAULT_MAX_DEPTH,
+  DEFAULT_SAMPLE_SIZE,
+  introspectTables,
+} from './introspection/introspector';
+import { convertManualSchema } from './schema/manual-schema';
+import { resolveSettings } from './settings';
+import PaginationCache from './utils/pagination-cache';
+import addVirtualCollections from './virtual-collections';
+
+export { default as DynamoDBCollection } from './collection';
+export { default as ArrayCollection } from './array-collection';
+export { default as DynamoDBDataSource } from './datasource';
+export { ScanDeniedError, ScanLimitExceededError, OffsetTooDeepError } from './errors';
+export type {
+  ConfigurationOptions,
+  DynamoDBDatasourceOptionsBuilder,
+  TableCollectionOptions,
+} from './introspection/builder';
+export type {
+  CollectionDefinition,
+  DynamoDBClientOptions,
+  DynamoDBSettingsOptions,
+  EntityDefinition,
+  FieldDefinition,
+  IndexDefinition,
+  IntrospectionConfig,
+  ManualSchemaConfig,
+  ScanPolicy,
+  VirtualCollectionConfig,
+} from './types';
+
+export type DynamoDBDataSourceOptions = DynamoDBClientOptions &
+  DynamoDBSettingsOptions & {
+    /** Tables to introspect, instead of every table of the account and region. */
+    tables?: string[];
+    /** Adds collections one table at a time, to name them or to share a table between several. */
+    builder?: ConfigurationOptions;
+    /** Declares the collections instead of discovering them. Needs `disableIntrospection`. */
+    schema?: ManualSchemaConfig;
+    disableIntrospection?: boolean;
+    introspectionConfig?: IntrospectionConfig;
+    /** Exposes arrays of maps as collections of their own. */
+    virtualCollections?: VirtualCollectionConfig[];
+    /** Name of the connection that runs PartiQL native queries. Without it, none is offered. */
+    liveQueryConnection?: string;
+  };
+
+const withoutUndefined = <T extends object>(value: T): T =>
+  Object.fromEntries(Object.entries(value).filter(([, entry]) => entry !== undefined)) as T;
+
+async function loadModels(
+  options: DynamoDBDataSourceOptions,
+  client: ReturnType<typeof createDocumentClient>,
+  logger: Parameters<DataSourceFactory>[0],
+): Promise<TableModel[]> {
+  const sampleSize = options.introspectionConfig?.sampleSize ?? DEFAULT_SAMPLE_SIZE;
+  const maxDepth = options.introspectionConfig?.maxDepth ?? DEFAULT_MAX_DEPTH;
+
+  if (options.disableIntrospection) {
+    if (!options.schema) {
+      throw new ValidationError(
+        'When disableIntrospection is true, you must provide a schema with collection definitions',
+      );
+    }
+
+    logger('Info', 'Using the manual schema (introspection disabled)');
+
+    return convertManualSchema(options.schema);
+  }
+
+  if (options.builder) {
+    const builder = options.builder(
+      new DynamoDBDatasourceBuilder(client, { sampleSize, maxDepth }),
+    ) as DynamoDBDatasourceBuilder;
+
+    return builder.createCollectionsFromConfiguration();
+  }
+
+  const models = await introspectTables(
+    client,
+    { tables: options.tables, sampleSize, maxDepth },
+    logger,
+  );
+
+  if (models.length === 0) logger('Warn', 'No collections were introspected.');
+
+  return models;
+}
+
+/**
+ * Creates a datasource over DynamoDB tables.
+ *
+ * @example
+ * agent.addDataSource(
+ *   createDynamoDBDataSource({ region: 'eu-west-1', tables: ['Orders'], scanPolicy: 'warn' }),
+ * );
+ */
+export function createDynamoDBDataSource(
+  options: DynamoDBDataSourceOptions = {},
+): DataSourceFactory {
+  return async logger => {
+    const client = createDocumentClient(options);
+    const settings = resolveSettings(
+      withoutUndefined({
+        scanPolicy: options.scanPolicy,
+        maxScannedItems: options.maxScannedItems,
+        scanConcurrency: options.scanConcurrency,
+        approximateCount: options.approximateCount,
+        chartCacheTtlMs: options.chartCacheTtlMs,
+        maxOffset: options.maxOffset,
+        logConsumedCapacity: options.logConsumedCapacity,
+        logQueries: options.logQueries,
+        paginationCache: new PaginationCache(options.paginationCache),
+      }),
+    );
+
+    const models = await loadModels(options, client, logger);
+    const dataSource = new DynamoDBDataSource(client, models, logger, settings, {
+      liveQueryConnection: options.liveQueryConnection,
+    });
+
+    if (options.virtualCollections?.length) {
+      await addVirtualCollections(
+        dataSource,
+        options.virtualCollections,
+        options.introspectionConfig?.sampleSize,
+        logger,
+      );
+    }
+
+    return dataSource;
+  };
+}
