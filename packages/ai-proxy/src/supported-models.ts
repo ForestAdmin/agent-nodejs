@@ -28,7 +28,7 @@ const OPENAI_UNSUPPORTED_PREFIXES = [
   'gpt-audio', // gpt-audio
   'sora', // sora-2, sora-2-pro
   'codex', // codex-mini-latest
-  'gpt-5.6', // v1/responses only: reject reasoning_effort with function tools on v1/chat/completions
+  'gpt-5.6', // Never checked against the live API: LangChain sends every variant to v1/responses
 ];
 
 const OPENAI_UNSUPPORTED_PATTERNS = [
