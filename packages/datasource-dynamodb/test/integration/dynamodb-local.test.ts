@@ -1,7 +1,12 @@
 import type { DataSource } from '@forestadmin/datasource-toolkit';
 
 import { CreateTableCommand, DeleteTableCommand, DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { BatchWriteCommand, DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
+import {
+  BatchWriteCommand,
+  DeleteCommand,
+  DynamoDBDocumentClient,
+  PutCommand,
+} from '@aws-sdk/lib-dynamodb';
 import {
   Aggregation,
   ConditionTreeFactory,
@@ -204,17 +209,46 @@ run('DynamoDB Local', () => {
       expect(records.map(r => r.orderId)).toEqual(['o12', 'o11', 'o10']);
     });
 
-    it('queries a global secondary index', async () => {
+    it('queries a global secondary index when a condition on its sort key is given', async () => {
       logger.mockClear();
+
+      const records = await orders().list(
+        caller,
+        new PaginatedFilter({
+          conditionTree: tree({
+            aggregator: 'And',
+            conditions: [
+              { field: 'status', operator: 'Equal', value: 'paid' },
+              { field: 'createdAt', operator: 'GreaterThan', value: '2000' },
+            ],
+          }),
+        }),
+        new Projection('orderId'),
+      );
+
+      expect(records).toHaveLength(10);
+      expect(logger).not.toHaveBeenCalledWith('Warn', expect.stringContaining('Scan on table'));
+    });
+
+    it('does not let an index hide the items that lack its sort key', async () => {
+      await documents.send(
+        new PutCommand({
+          TableName: ORDERS,
+          Item: { customerId: 'c3', orderId: 'o90', status: 'paid', total: 1 },
+        }),
+      );
 
       const records = await orders().list(
         caller,
         new PaginatedFilter({ conditionTree: leaf('status', 'Equal', 'paid') }),
         new Projection('orderId'),
       );
+      await documents.send(
+        new DeleteCommand({ TableName: ORDERS, Key: { customerId: 'c3', orderId: 'o90' } }),
+      );
 
-      expect(records).toHaveLength(10);
-      expect(logger).not.toHaveBeenCalledWith('Warn', expect.stringContaining('Scan on table'));
+      expect(records.map(r => r.orderId)).toContain('o90');
+      expect(records).toHaveLength(11);
     });
 
     it('scans, with a warning, for a filter no key serves', async () => {

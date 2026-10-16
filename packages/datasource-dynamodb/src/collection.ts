@@ -144,12 +144,12 @@ export default class DynamoDBCollection extends BaseCollection {
 
   async create(caller: Caller, data: RecordData[]): Promise<RecordData[]> {
     try {
-      const created = await this.executor.mapWrites(data, record => this.createOne(record));
-      this.invalidateCaches();
-
-      return created;
+      return await this.executor.mapWrites(data, record => this.createOne(record));
     } catch (error) {
       throw this.wrap(error, 'create');
+    } finally {
+      // Also after a failure: the writes that went through must not stay hidden by a cache.
+      this.invalidateCaches();
     }
   }
 
@@ -175,15 +175,23 @@ export default class DynamoDBCollection extends BaseCollection {
             `The key attribute '${field}' of '${this.name}' cannot be updated`,
           );
         }
+
+        if (field === this.model.entity?.attribute) {
+          throw new ValidationError(
+            `The attribute '${field}' tells which entity a record of '${this.name}' belongs to, ` +
+              `so it cannot be updated`,
+          );
+        }
       }
 
       if (entries.length === 0) return;
 
       const keys = await this.resolveKeys(caller, filter);
       await this.executor.mapWrites(keys, key => this.updateOne(key, entries));
-      this.invalidateCaches();
     } catch (error) {
       throw this.wrap(error, 'update');
+    } finally {
+      this.invalidateCaches();
     }
   }
 
@@ -194,9 +202,10 @@ export default class DynamoDBCollection extends BaseCollection {
       if (keys.length === 0) return;
 
       await this.executor.batchDelete(keys);
-      this.invalidateCaches();
     } catch (error) {
       throw this.wrap(error, 'delete');
+    } finally {
+      this.invalidateCaches();
     }
   }
 
@@ -368,6 +377,7 @@ export default class DynamoDBCollection extends BaseCollection {
     const hash = cache.hash({
       base,
       residual: residual?.toPlainObject(),
+      timezone,
       table: this.model.tableName,
     });
     const cached = limit === undefined ? undefined : cache.findBestToken(hash, skip);
@@ -446,12 +456,12 @@ export default class DynamoDBCollection extends BaseCollection {
       return (await this.readPage(plan, fields, skip, limit, caller.timezone)).map(toResult);
     }
 
-    const items = await this.readAll(plan, fields, caller.timezone);
+    let items = await this.readAll(plan, fields, caller.timezone);
 
     if (sort && !plan.access?.sortSatisfied) {
       const rows = items.map(item => ({ item, record: this.toRecord(item) }));
       rows.sort((a, b) => compareRecords(a.record, b.record, sort));
-      items.splice(0, items.length, ...rows.map(row => row.item));
+      items = rows.map(row => row.item);
     }
 
     return items.slice(skip, limit === undefined ? undefined : skip + limit).map(toResult);
@@ -504,7 +514,15 @@ export default class DynamoDBCollection extends BaseCollection {
     }
 
     const item = Serializer.unflatten(created);
-    if (entity?.attribute !== undefined) item[entity.attribute] ??= entity.value;
+    if (entity?.attribute !== undefined) {
+      if (item[entity.attribute] !== undefined && item[entity.attribute] !== entity.value) {
+        throw new ValidationError(
+          `The attribute '${entity.attribute}' of '${this.name}' must be '${entity.value}'`,
+        );
+      }
+
+      item[entity.attribute] = entity.value;
+    }
 
     const keyBuilder = new ExpressionBuilder('k', 'kv');
 

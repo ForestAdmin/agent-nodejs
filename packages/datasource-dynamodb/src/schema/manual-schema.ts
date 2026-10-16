@@ -112,7 +112,10 @@ function validateCollection(collection: CollectionDefinition): void {
   if (entity) {
     const hasDiscriminator = entity.attribute !== undefined || entity.value !== undefined;
 
-    if (hasDiscriminator === (entity.sortKeyPrefix !== undefined)) {
+    const incompleteDiscriminator =
+      hasDiscriminator && (entity.attribute === undefined || entity.value === undefined);
+
+    if (hasDiscriminator === (entity.sortKeyPrefix !== undefined) || incompleteDiscriminator) {
       throw new ValidationError(
         `Collection '${name}' entity must use either 'attribute'/'value' or 'sortKeyPrefix'`,
       );
@@ -198,6 +201,7 @@ function toModel(collection: CollectionDefinition): TableModel {
     partitionKey: toKey(index.partitionKey),
     sortKey: index.sortKey ? toKey(index.sortKey) : undefined,
     projectsAllAttributes: index.projectsAllAttributes ?? true,
+    coversAllItems: index.coversAllItems ?? false,
   }));
 
   return {

@@ -21,6 +21,34 @@ export async function mapWithConcurrency<T, R>(
   return results;
 }
 
+/**
+ * Like mapWithConcurrency, for writes: once one fails nothing new is started, and the call only
+ * rejects after the writes already in flight have finished, so what follows sees their effect.
+ */
+export async function mapUntilSettled<T, R>(
+  items: T[],
+  limit: number,
+  handler: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+  let failure: { error: unknown } | undefined;
+
+  const results = await mapWithConcurrency(items, limit, async (item, index) => {
+    if (failure) return undefined;
+
+    try {
+      return await handler(item, index);
+    } catch (error) {
+      failure ??= { error };
+
+      return undefined;
+    }
+  });
+
+  if (failure) throw failure.error;
+
+  return results;
+}
+
 export function chunk<T>(items: T[], size: number): T[][] {
   const chunks: T[][] = [];
 

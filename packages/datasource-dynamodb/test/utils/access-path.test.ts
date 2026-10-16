@@ -9,6 +9,7 @@ const gsi = (overrides = {}) => ({
   partitionKey: { name: 'status', type: 'S' as const },
   sortKey: { name: 'createdAt', type: 'S' as const },
   projectsAllAttributes: true,
+  coversAllItems: true,
   ...overrides,
 });
 
@@ -290,5 +291,63 @@ describe('key value types', () => {
     );
 
     expect(lookup.keys).toEqual([{ id: 1 }, { id: 2 }, { id: 3 }]);
+  });
+});
+
+describe('secondary indexes that leave items out', () => {
+  const sparse = () => buildModel({ indexes: [gsi({ coversAllItems: false })] });
+
+  it('does not read an index by its partition key alone, as items lacking its sort key are not in it', () => {
+    expect(planAccessPath(sparse(), leaf('status', 'Equal', 'paid')).kind).toBe('scan');
+  });
+
+  it('reads it once a condition on its sort key means the item must be in it', () => {
+    const plan = planAccessPath(
+      sparse(),
+      and(plain('status', 'Equal', 'paid'), plain('createdAt', 'GreaterThan', '2024')),
+    );
+
+    expect(plan).toMatchObject({ kind: 'query', indexName: 'by-status' });
+  });
+
+  it('reads an index without sort key by its partition key', () => {
+    const model = buildModel({
+      indexes: [gsi({ sortKey: undefined, coversAllItems: false })],
+    });
+
+    expect(planAccessPath(model, leaf('status', 'Equal', 'paid'))).toMatchObject({
+      kind: 'query',
+      indexName: 'by-status',
+    });
+  });
+});
+
+describe('planKeyLookup soundness', () => {
+  it('is not a lookup when an arm of the OR carries a nested filter', () => {
+    const tree = or(
+      and(plain('id', 'Equal', 'a'), {
+        aggregator: 'Or',
+        conditions: [plain('age', 'Equal', 1), plain('age', 'Equal', 2)],
+      }),
+      plain('id', 'Equal', 'b'),
+    );
+
+    expect(planKeyLookup(buildSimpleModel(), tree)).toBeNull();
+  });
+
+  it('lists each key once for a repeated value', () => {
+    expect(planKeyLookup(buildSimpleModel(), leaf('id', 'In', ['a', 'a', 'b'])).keys).toEqual([
+      { id: 'a' },
+      { id: 'b' },
+    ]);
+  });
+
+  it('lists each key once for overlapping OR arms', () => {
+    const tree = or(
+      and(plain('customerId', 'Equal', 'c1'), plain('orderId', 'Equal', 'o1')),
+      and(plain('customerId', 'Equal', 'c1'), plain('orderId', 'Equal', 'o1')),
+    );
+
+    expect(planKeyLookup(buildModel(), tree).keys).toEqual([{ customerId: 'c1', orderId: 'o1' }]);
   });
 });

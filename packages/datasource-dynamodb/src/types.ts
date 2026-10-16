@@ -36,6 +36,11 @@ export type IndexModel = {
   partitionKey: KeyAttribute;
   sortKey?: KeyAttribute;
   projectsAllAttributes: boolean;
+  /**
+   * Whether every item of the table is in the index. An index leaves out the items that lack its
+   * sort key, so it is only read without a condition on that key when this is true.
+   */
+  coversAllItems?: boolean;
 };
 
 /**
@@ -83,6 +88,8 @@ export type IndexDefinition = {
   sortKey?: { name: string; type: 'string' | 'number' };
   /** Whether the index projects every attribute, which a query on it needs. Default: true. */
   projectsAllAttributes?: boolean;
+  /** Every item has the index keys, so the index may be read without a sort key condition. */
+  coversAllItems?: boolean;
 };
 
 export type CollectionDefinition = {

@@ -8,8 +8,13 @@ import { BaseDataSource, ValidationError } from '@forestadmin/datasource-toolkit
 
 import DynamoDBCollection from './collection';
 import { ScanLimitExceededError } from './errors';
+import parameterize from './utils/partiql';
 
-const PLACEHOLDER = /\$(\w+)/g;
+/**
+ * PartiQL does not say how many items a statement evaluated, only how many it returned, so the
+ * read budget bounds the rows returned and the pages (up to 1 MB each) fetched.
+ */
+const MAX_NATIVE_QUERY_PAGES = 1000;
 const READ_ONLY_STATEMENT = /^\s*select\b/i;
 
 type NativeQueryConnection = { client: DynamoDBDocumentClient };
@@ -54,19 +59,11 @@ export default class DynamoDBDataSource extends BaseDataSource<
       throw new ValidationError('Only SELECT statements can be run as native queries');
     }
 
-    const parameters: unknown[] = [];
-    const statement = query.replace(PLACEHOLDER, (_match, name: string) => {
-      if (!(name in contextVariables)) {
-        throw new ValidationError(`No value was given for the placeholder $${name}`);
-      }
-
-      parameters.push(contextVariables[name]);
-
-      return '?';
-    });
+    const { statement, parameters } = parameterize(query, contextVariables);
 
     const rows: Record<string, unknown>[] = [];
     let nextToken: string;
+    let pages = 0;
 
     do {
       // eslint-disable-next-line no-await-in-loop
@@ -80,6 +77,13 @@ export default class DynamoDBDataSource extends BaseDataSource<
 
       rows.push(...((response.Items ?? []) as Record<string, unknown>[]));
       nextToken = response.NextToken;
+      pages += 1;
+
+      if (nextToken && pages >= MAX_NATIVE_QUERY_PAGES) {
+        throw new ScanLimitExceededError(
+          `The native query still has results after ${pages} pages. Narrow it with a WHERE clause.`,
+        );
+      }
 
       if (rows.length > this.settings.maxScannedItems) {
         throw new ScanLimitExceededError(

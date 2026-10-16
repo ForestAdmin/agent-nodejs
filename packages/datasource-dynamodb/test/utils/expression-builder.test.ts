@@ -87,13 +87,9 @@ describe('ExpressionBuilder', () => {
       expect(builder.values).toEqual({ ':v0': 'NULL' });
     });
 
-    it('translates Present and Missing around the NULL type', () => {
-      const present = new ExpressionBuilder();
+    it('translates Missing as a missing or NULL attribute', () => {
       const missing = new ExpressionBuilder();
 
-      expect(present.condition(leaf('f', 'Present'))).toBe(
-        '(attribute_exists(#n0) AND NOT attribute_type(#n0, :v0))',
-      );
       expect(missing.condition(leaf('f', 'Missing'))).toBe(
         '(attribute_not_exists(#n0) OR attribute_type(#n0, :v0))',
       );
@@ -247,6 +243,15 @@ describe('ExpressionBuilder', () => {
 });
 
 describe('splitCondition', () => {
+  it('leaves Present to the items, since the toolkit also excludes empty strings from it', () => {
+    const tree = leaf('f', 'Present');
+
+    const { pushable, residual } = splitCondition(tree);
+
+    expect(pushable).toBeUndefined();
+    expect(residual).toBe(tree);
+  });
+
   it('returns everything as pushable when DynamoDB can evaluate it', () => {
     const tree = leaf('f', 'Equal', 1);
 

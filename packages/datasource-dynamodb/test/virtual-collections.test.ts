@@ -55,16 +55,13 @@ describe('virtual collections', () => {
     });
   });
 
-  it('samples only the parents that have the array', async () => {
-    const { client, dataSource } = build([{ id: 'o1', lines: [{ sku: 'A' }] }]);
+  it('samples the parents that have the array, applying the filter on the items read', async () => {
+    const { client, dataSource } = build([{ id: 'o1', lines: [{ sku: 'A' }] }, { id: 'o2' }]);
 
-    await dataSource;
+    const result = await dataSource;
 
-    const sample = client.calls('Scan').find(call => call.FilterExpression);
-    expect(sample.FilterExpression).toBe(
-      '(attribute_exists(#n0) AND NOT attribute_type(#n0, :v0))',
-    );
-    expect(sample.ExpressionAttributeNames['#n0']).toBe('lines');
+    expect(client.calls('Scan')[0].FilterExpression).toBeUndefined();
+    expect(result.getCollection('lines').schema.fields.sku).toBeDefined();
   });
 
   it('skips a collection whose parent does not exist, and says so', async () => {
@@ -117,5 +114,49 @@ describe('virtual collections', () => {
       'Warn',
       expect.stringContaining("Skipping virtual collection 'parts' for array 'lines.parts'"),
     );
+  });
+
+  it('uses the item schema a parent array collection declares when the sample is empty', async () => {
+    const client = fakeClient({
+      DescribeTable: () => orders,
+      Scan: () => ({ Items: [] }),
+    });
+
+    const dataSource = await createDynamoDBDataSource({
+      client,
+      disableIntrospection: true,
+      schema: {
+        collections: [
+          {
+            name: 'Orders',
+            tableName: 'Orders',
+            partitionKey: { name: 'id', type: 'string' },
+            fields: [
+              {
+                name: 'lines',
+                type: 'array',
+                subType: 'object',
+                fields: [
+                  {
+                    name: 'parts',
+                    type: 'array',
+                    subType: 'object',
+                    fields: [{ name: 'n', type: 'number' }],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      virtualCollections: [
+        { parentCollection: 'Orders', collectionName: 'lines', arrayField: 'lines' },
+        { parentCollection: 'lines', collectionName: 'parts', arrayField: 'parts' },
+      ],
+    })(jest.fn(), jest.fn());
+
+    expect(dataSource.getCollection('parts').schema.fields.n).toMatchObject({
+      columnType: 'Number',
+    });
   });
 });

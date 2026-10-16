@@ -37,7 +37,13 @@ export type AccessPath = {
 
 export type KeyLookup = { keys: Array<Record<string, unknown>>; remaining?: ConditionTree };
 
-type Candidate = { indexName?: string; partitionKey: KeyAttribute; sortKey?: KeyAttribute };
+type Candidate = {
+  indexName?: string;
+  partitionKey: KeyAttribute;
+  sortKey?: KeyAttribute;
+  /** Whether an item missing the sort key can still be in the index: it cannot, unless told so. */
+  coversAllItems: boolean;
+};
 
 const RANGE_OPERATORS = ['LessThan', 'LessThanOrEqual', 'GreaterThan', 'GreaterThanOrEqual'];
 
@@ -53,6 +59,20 @@ function coerceKeyValue<T>(attribute: KeyAttribute, value: T): T | string | numb
   if (attribute.type === 'S' && typeof value === 'number') return String(value);
 
   return value;
+}
+
+/** BatchGetItem refuses the same key twice. */
+function uniqueKeys(keys: Array<Record<string, unknown>>): Array<Record<string, unknown>> {
+  const seen = new Set<string>();
+
+  return keys.filter(key => {
+    const id = JSON.stringify(key);
+
+    if (seen.has(id)) return false;
+    seen.add(id);
+
+    return true;
+  });
 }
 
 /** The restriction a single-table entity puts on the items of its table. */
@@ -159,13 +179,14 @@ export function planAccessPath(
   const leaves = leavesOf(parts);
 
   const candidates: Candidate[] = [
-    { partitionKey: model.partitionKey, sortKey: model.sortKey },
+    { partitionKey: model.partitionKey, sortKey: model.sortKey, coversAllItems: true },
     ...model.indexes
       .filter(index => index.projectsAllAttributes)
       .map(index => ({
         indexName: index.name,
         partitionKey: index.partitionKey,
         sortKey: index.sortKey,
+        coversAllItems: !!index.coversAllItems,
       })),
   ];
 
@@ -181,6 +202,13 @@ export function planAccessPath(
 
     if (partition) {
       const picked = candidate.sortKey ? pickSortCondition(candidate.sortKey, parts) : undefined;
+
+      // An index leaves out the items that lack its sort key: without a condition on that key, it
+      // could return fewer items than the table holds.
+      if (candidate.indexName && candidate.sortKey && !picked && !candidate.coversAllItems) {
+        continue;
+      }
+
       const sortClause = sort?.length === 1 ? sort[0] : undefined;
       const sortSatisfied = !!sortClause && sortClause.field === candidate.sortKey?.name;
       const consumed = new Set<ConditionTree>([partition, ...(picked?.consumed ?? [])]);
@@ -225,7 +253,12 @@ function keysFromOr(model: TableModel, part: ConditionTree): KeyLookup['keys'] |
   const keys: KeyLookup['keys'] = [];
 
   for (const condition of part.conditions) {
-    const equalities = leavesOf(conjuncts(condition));
+    const armParts = conjuncts(condition);
+
+    // An arm with a nested branch carries a filter the keys alone would drop.
+    if (armParts.some(armPart => !(armPart instanceof ConditionTreeLeaf))) return null;
+
+    const equalities = leavesOf(armParts);
     const key: Record<string, unknown> = {};
 
     for (const attribute of [model.partitionKey, model.sortKey].filter(Boolean)) {
@@ -242,7 +275,7 @@ function keysFromOr(model: TableModel, part: ConditionTree): KeyLookup['keys'] |
     keys.push(key);
   }
 
-  return keys;
+  return uniqueKeys(keys);
 }
 
 /**
@@ -287,7 +320,10 @@ export function planKeyLookup(model: TableModel, conditionTree?: ConditionTree):
     );
     const consumed = new Set<ConditionTree>(resolved.map(({ found }) => found.leaf));
 
-    return { keys, remaining: rebuild(parts.filter(part => !consumed.has(part))) };
+    return {
+      keys: uniqueKeys(keys),
+      remaining: rebuild(parts.filter(part => !consumed.has(part))),
+    };
   }
 
   for (const part of parts) {

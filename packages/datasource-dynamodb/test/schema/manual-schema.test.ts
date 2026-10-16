@@ -110,6 +110,7 @@ describe('convertManualSchema', () => {
         partitionKey: { name: 'status', type: 'S' },
         sortKey: { name: 'createdAt', type: 'S' },
         projectsAllAttributes: true,
+        coversAllItems: false,
       },
     ]);
     expect(model).toMatchObject({
