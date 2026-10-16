@@ -29,6 +29,9 @@ import compareRecords from './utils/sort';
 
 export const INDEX_FIELD = 'index';
 
+/** Expressions are limited to 4 KB by DynamoDB, names and values apart. */
+const MAX_EXPRESSION_LENGTH = 3000;
+
 /** One array on the way from the item of the table to the records of a collection. */
 type Level = { arrayField: string; indexColumn: string };
 
@@ -64,6 +67,9 @@ export default class ArrayCollection extends BaseCollection {
   private readonly chain: Level[];
   private readonly rootKeys: string[];
   private readonly itemFields: Set<string>;
+
+  /** Attributes of an element, by flattened name, as declared or sampled. */
+  readonly itemSchema: Record<string, AttributeSchema>;
 
   /** The columns identifying a record: the table keys, then one position per array. */
   readonly keyColumns: string[];
@@ -115,19 +121,22 @@ export default class ArrayCollection extends BaseCollection {
     this.addFields(fields);
     this.enableCount();
 
+    this.itemSchema = config.itemSchema;
     this.itemFields = new Set(Object.keys(config.itemSchema));
   }
 
   async create(caller: Caller, data: RecordData[]): Promise<RecordData[]> {
     const created: RecordData[] = [];
 
-    // Appended one after the other: each append reads the length the previous one left.
-    for (const record of data) {
-      // eslint-disable-next-line no-await-in-loop
-      created.push(await this.append(record));
+    try {
+      // Appended one after the other: each append reads the length the previous one left.
+      for (const record of data) {
+        // eslint-disable-next-line no-await-in-loop
+        created.push(await this.append(record));
+      }
+    } finally {
+      this.root.invalidateCaches();
     }
-
-    this.root.invalidateCaches();
 
     return created;
   }
@@ -164,37 +173,28 @@ export default class ArrayCollection extends BaseCollection {
 
     if (entries.length === 0) return;
 
-    await this.writePerTableItem(caller, filter, (builder, positions) => {
-      const values = entries.map(([, value]) => builder.value(value));
+    await this.writePerTableItem(caller, filter, {
+      keyword: 'SET',
+      clauses: (builder, position, state) => {
+        state.values ??= entries.map(([, value]) => builder.value(value));
 
-      return {
-        UpdateExpression: `SET ${positions
-          .flatMap(position =>
-            entries.map(
-              ([field], index) =>
-                `${this.elementPath(builder, position)}.${builder.attribute(field)} = ${
-                  values[index]
-                }`,
-            ),
-          )
-          .join(', ')}`,
-      };
+        return entries.map(
+          ([field], index) =>
+            `${this.elementPath(builder, position)}.${builder.attribute(field)} = ${
+              state.values[index]
+            }`,
+        );
+      },
+      fallback: (key, positions) => this.replaceElements(key, positions, entries),
     });
   }
 
   async delete(caller: Caller, filter: Filter): Promise<void> {
-    await this.writePerTableItem(caller, filter, (builder, positions) => {
-      const descending = [...positions].sort((a, b) => {
-        const different = a.findIndex((index, level) => index !== b[level]);
-
-        return different === -1 ? 0 : b[different] - a[different];
-      });
-
-      return {
-        UpdateExpression: `REMOVE ${descending
-          .map(position => this.elementPath(builder, position))
-          .join(', ')}`,
-      };
+    await this.writePerTableItem(caller, filter, {
+      keyword: 'REMOVE',
+      // Highest positions first, so that removing one does not shift those still to remove.
+      descending: true,
+      clauses: (builder, position) => [this.elementPath(builder, position)],
     });
   }
 
@@ -259,11 +259,12 @@ export default class ArrayCollection extends BaseCollection {
         elements.forEach((element, index) => {
           if (element && typeof element === 'object') {
             records.push({
+              // The identity comes last: an element's own `index` must not take its place.
+              ...Serializer.flatten(element as Item, this.itemFields),
               ...Object.fromEntries(
                 ownKeyColumns.map((name, i) => [name, parent[parentColumns[i]]]),
               ),
               [INDEX_FIELD]: index,
-              ...Serializer.flatten(element as Item, this.itemFields),
             });
           }
         });
@@ -304,6 +305,10 @@ export default class ArrayCollection extends BaseCollection {
     const conditions = [`attribute_exists(${keyBuilder.attribute(this.rootKeys[0])})`];
 
     if (parentPath) conditions.push(`attribute_exists(${parentPath})`);
+
+    const entity = this.entityCondition(builder);
+
+    if (entity) conditions.push(entity);
 
     let attributes: Item;
 
@@ -353,11 +358,115 @@ export default class ArrayCollection extends BaseCollection {
     return (value as unknown[]).length;
   }
 
+  /** Restricts a write to the items of the entity the parent collection stands for. */
+  private entityCondition(builder: ExpressionBuilder): string | undefined {
+    const { entity, sortKey } = this.root.model;
+
+    if (entity?.sortKeyPrefix !== undefined && sortKey) {
+      return `begins_with(${builder.attribute(sortKey.name)}, ${builder.value(
+        entity.sortKeyPrefix,
+      )})`;
+    }
+
+    if (entity?.attribute !== undefined) {
+      return `${builder.attribute(entity.attribute)} = ${builder.value(entity.value)}`;
+    }
+
+    return undefined;
+  }
+
+  private async writeExpression(
+    key: Item,
+    expression: string,
+    builder: ExpressionBuilder,
+  ): Promise<void> {
+    const keyBuilder = new ExpressionBuilder('k', 'kv');
+    const conditions = [`attribute_exists(${keyBuilder.attribute(this.rootKeys[0])})`];
+    const entity = this.entityCondition(builder);
+
+    if (entity) conditions.push(entity);
+
+    try {
+      await this.root.executor.update({
+        Key: key,
+        UpdateExpression: expression,
+        ConditionExpression: conditions.join(' AND '),
+        ExpressionAttributeNames: { ...builder.names, ...keyBuilder.names },
+        ...(Object.keys(builder.values).length
+          ? { ExpressionAttributeValues: builder.values }
+          : {}),
+      });
+    } catch (error) {
+      if (error.name !== 'ConditionalCheckFailedException') throw error;
+    }
+  }
+
+  /** Sets attributes of elements one by one in the item itself, for when DynamoDB cannot. */
+  private async replaceElements(
+    key: Item,
+    positions: number[][],
+    entries: Array<[string, unknown]>,
+  ): Promise<void> {
+    const item = await this.root.executor.get(key);
+
+    if (!item) return;
+
+    const patch = Serializer.unflatten(Object.fromEntries(entries));
+
+    for (const position of positions) {
+      let container: Item = item;
+
+      this.chain.forEach((level, depth) => {
+        const segments = Serializer.toPathSegments(level.arrayField);
+        const holder = segments
+          .slice(0, -1)
+          .reduce<Item>((value, segment) => value[segment] as Item, container);
+        const array = holder[segments[segments.length - 1]] as Item[];
+
+        if (depth === this.chain.length - 1) {
+          array[position[depth]] = Serializer.deepMerge(array[position[depth]], patch);
+        } else {
+          container = array[position[depth]];
+        }
+      });
+    }
+
+    const keyBuilder = new ExpressionBuilder('k', 'kv');
+    const builder = new ExpressionBuilder();
+    const conditions = [`attribute_exists(${keyBuilder.attribute(this.rootKeys[0])})`];
+    const entity = this.entityCondition(builder);
+
+    if (entity) conditions.push(entity);
+
+    try {
+      await this.root.executor.put({
+        Item: item,
+        ConditionExpression: conditions.join(' AND '),
+        ExpressionAttributeNames: { ...builder.names, ...keyBuilder.names },
+        ...(Object.keys(builder.values).length
+          ? { ExpressionAttributeValues: builder.values }
+          : {}),
+      });
+    } catch (error) {
+      if (error.name !== 'ConditionalCheckFailedException') throw error;
+    }
+  }
+
   /** Finds the matching elements, then writes once per table item whatever they need. */
   private async writePerTableItem(
     caller: Caller,
     filter: Filter,
-    build: (builder: ExpressionBuilder, positions: number[][]) => { UpdateExpression: string },
+    write: {
+      keyword: 'SET' | 'REMOVE';
+      descending?: boolean;
+      clauses: (
+        builder: ExpressionBuilder,
+        position: number[],
+        state: { values?: string[] },
+      ) => string[];
+      /** What to do when DynamoDB refuses the path, for instance under a map that is missing. */
+      fallback?: (key: Item, positions: number[][]) => Promise<void>;
+    },
   ): Promise<void> {
     const records = await this.list(
       caller,
@@ -375,26 +484,45 @@ export default class ArrayCollection extends BaseCollection {
       perItem.set(id, entry);
     }
 
-    await this.root.executor.mapWrites([...perItem.values()], async ({ key, positions }) => {
-      const builder = new ExpressionBuilder();
-      const keyBuilder = new ExpressionBuilder('k', 'kv');
-      const { UpdateExpression } = build(builder, positions);
+    try {
+      await this.root.executor.mapWrites([...perItem.values()], async ({ key, positions }) => {
+        const ordered = [...positions].sort((a, b) => {
+          const different = a.findIndex((index, depth) => index !== b[depth]);
 
-      try {
-        await this.root.executor.update({
-          Key: key,
-          UpdateExpression,
-          ConditionExpression: `attribute_exists(${keyBuilder.attribute(this.rootKeys[0])})`,
-          ExpressionAttributeNames: { ...builder.names, ...keyBuilder.names },
-          ...(Object.keys(builder.values).length
-            ? { ExpressionAttributeValues: builder.values }
-            : {}),
+          return different === -1 ? 0 : (a[different] - b[different]) * (write.descending ? -1 : 1);
         });
-      } catch (error) {
-        if (error.name !== 'ConditionalCheckFailedException') throw error;
-      }
-    });
+        let builder = new ExpressionBuilder();
+        let state: { values?: string[] } = {};
+        let clauses: string[] = [];
 
-    this.root.invalidateCaches();
+        const flush = async () => {
+          if (clauses.length) {
+            await this.writeExpression(key, `${write.keyword} ${clauses.join(', ')}`, builder);
+          }
+
+          builder = new ExpressionBuilder();
+          state = {};
+          clauses = [];
+        };
+
+        try {
+          for (const position of ordered) {
+            clauses.push(...write.clauses(builder, position, state));
+
+            // An expression is limited to 4 KB: past a safe size, what is left goes in the next.
+            // eslint-disable-next-line no-await-in-loop
+            if (clauses.join(', ').length > MAX_EXPRESSION_LENGTH) await flush();
+          }
+
+          await flush();
+        } catch (error) {
+          if (!write.fallback || !/document path/i.test(error.message)) throw error;
+
+          await write.fallback(key, ordered);
+        }
+      });
+    } finally {
+      this.root.invalidateCaches();
+    }
   }
 }

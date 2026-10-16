@@ -27,7 +27,6 @@ export const PUSHABLE_OPERATORS = new Set<Operator>([
   'Equal',
   'In',
   'NotIn',
-  'Present',
   'Missing',
   'Blank',
   'StartsWith',
@@ -199,8 +198,6 @@ export default class ExpressionBuilder {
         return value === null || value === undefined
           ? this.missing(path)
           : `${path} = ${this.value(value)}`;
-      case 'Present':
-        return `(attribute_exists(${path}) AND NOT ${this.isNull(path)})`;
       case 'Missing':
         return this.missing(path);
       case 'Blank':

@@ -22,7 +22,9 @@ async function itemSchemaOf(
   sampleSize: number,
 ): Promise<Record<string, AttributeSchema>> {
   const declared =
-    parent instanceof ArrayCollection ? undefined : parent.model.schema[arrayField]?.items;
+    parent instanceof ArrayCollection
+      ? parent.itemSchema[arrayField]?.items
+      : parent.model.schema[arrayField]?.items;
 
   if (declared) return declared;
 

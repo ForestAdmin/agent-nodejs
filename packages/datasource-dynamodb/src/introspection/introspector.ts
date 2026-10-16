@@ -137,8 +137,9 @@ export function inferSchema(
   keys: KeyAttribute[],
   maxDepth: number,
 ): Record<string, AttributeSchema> {
-  const types: Record<string, DynamoDataType[]> = {};
-  const presence: Record<string, number> = {};
+  // Attribute names are data: `constructor` or `__proto__` must not reach Object.prototype.
+  const types: Record<string, DynamoDataType[]> = Object.create(null);
+  const presence: Record<string, number> = Object.create(null);
 
   for (const item of items) {
     const present = new Set<string>();
@@ -148,7 +149,7 @@ export function inferSchema(
     });
   }
 
-  const schema: Record<string, AttributeSchema> = {};
+  const schema: Record<string, AttributeSchema> = Object.create(null);
 
   for (const [path, observed] of Object.entries(types)) {
     schema[path] = {

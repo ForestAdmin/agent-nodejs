@@ -16,7 +16,7 @@ import {
 } from '@aws-sdk/lib-dynamodb';
 
 import { DynamoDBOperationError, ScanLimitExceededError } from '../errors';
-import { chunk, mapWithConcurrency, sleep } from './concurrency';
+import { chunk, mapUntilSettled, sleep } from './concurrency';
 
 export type Item = Record<string, unknown>;
 
@@ -132,8 +132,9 @@ export default class DynamoExecutor {
     projection: Pick<ReadInput, 'ProjectionExpression' | 'ExpressionAttributeNames'> = {},
   ): Promise<Item[]> {
     const items: Item[] = [];
+    const distinct = [...new Map(keys.map(key => [JSON.stringify(key), key])).values()];
 
-    for (const keysChunk of chunk(keys, BATCH_GET_SIZE)) {
+    for (const keysChunk of chunk(distinct, BATCH_GET_SIZE)) {
       let pending: Item[] = keysChunk;
 
       for (let attempt = 0; pending.length > 0; attempt += 1) {
@@ -150,6 +151,7 @@ export default class DynamoExecutor {
           }),
         );
 
+        this.logBatchCapacity('batchGet', response.ConsumedCapacity);
         items.push(...((response.Responses?.[this.model.tableName] ?? []) as Item[]));
         pending = (response.UnprocessedKeys?.[this.model.tableName]?.Keys ?? []) as Item[];
       }
@@ -159,7 +161,9 @@ export default class DynamoExecutor {
   }
 
   async batchDelete(keys: Item[]): Promise<void> {
-    await mapWithConcurrency(chunk(keys, BATCH_WRITE_SIZE), WRITE_CONCURRENCY, async keysChunk => {
+    const distinct = [...new Map(keys.map(key => [JSON.stringify(key), key])).values()];
+
+    await mapUntilSettled(chunk(distinct, BATCH_WRITE_SIZE), WRITE_CONCURRENCY, async keysChunk => {
       let pending = keysChunk.map(Key => ({ DeleteRequest: { Key } }));
 
       for (let attempt = 0; pending.length > 0; attempt += 1) {
@@ -176,13 +180,14 @@ export default class DynamoExecutor {
           }),
         );
 
+        this.logBatchCapacity('batchDelete', response.ConsumedCapacity);
         pending = (response.UnprocessedItems?.[this.model.tableName] ?? []) as typeof pending;
       }
     });
   }
 
   async mapWrites<T, R>(items: T[], handler: (item: T) => Promise<R>): Promise<R[]> {
-    return mapWithConcurrency(items, WRITE_CONCURRENCY, handler);
+    return mapUntilSettled(items, WRITE_CONCURRENCY, handler);
   }
 
   async put(input: Item): Promise<void> {
@@ -240,6 +245,12 @@ export default class DynamoExecutor {
 
   private capacityRequest(): { ReturnConsumedCapacity?: 'TOTAL' } {
     return this.settings.logConsumedCapacity ? { ReturnConsumedCapacity: 'TOTAL' } : {};
+  }
+
+  private logBatchCapacity(operation: string, consumed?: Array<{ CapacityUnits?: number }>): void {
+    const units = consumed?.reduce((sum, entry) => sum + (entry.CapacityUnits ?? 0), 0);
+
+    if (units !== undefined) this.logCapacity(operation, units);
   }
 
   private logCapacity(operation: string, units?: number): void {

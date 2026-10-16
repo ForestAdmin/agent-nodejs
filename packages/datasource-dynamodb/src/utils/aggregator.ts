@@ -5,6 +5,8 @@ import type {
   RecordData,
 } from '@forestadmin/datasource-toolkit';
 
+import compareValues from './compare';
+
 /** Numbers below this are epoch seconds: in milliseconds they would be before 1973. */
 const EPOCH_SECONDS_CEILING = 1e11;
 const MONTHS_PER_QUARTER = 3;
@@ -123,8 +125,13 @@ export default class StreamingAggregator {
     if (value === undefined || value === null) return;
 
     accumulator.values += 1;
-    if (accumulator.min === undefined || value < accumulator.min) accumulator.min = value;
-    if (accumulator.max === undefined || value > accumulator.max) accumulator.max = value;
+    if (accumulator.min === undefined || compareValues(value, accumulator.min) < 0) {
+      accumulator.min = value;
+    }
+
+    if (accumulator.max === undefined || compareValues(value, accumulator.max) > 0) {
+      accumulator.max = value;
+    }
 
     if (typeof value === 'number' && !Number.isNaN(value)) {
       accumulator.numbers += 1;
