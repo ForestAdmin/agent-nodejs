@@ -475,6 +475,50 @@ describe('ProviderDispatcher with a Responses API model', () => {
     });
   });
 
+  describe('the turn after a malformed tool call was relayed', () => {
+    const history = [
+      { role: 'user', content: 'weather in Paris?' },
+      {
+        role: 'assistant',
+        content: '',
+        tool_calls: [
+          {
+            id: 'call_1',
+            type: 'function',
+            function: { name: 'get_weather', arguments: '{"city":' },
+          },
+        ],
+      },
+      { role: 'tool', tool_call_id: 'call_1', content: 'invalid arguments' },
+    ];
+
+    it('goes through on the Responses API with empty arguments for the broken call', async () => {
+      const { requests, dispatcher } = buildDispatcher('gpt-6-luna');
+
+      const response = await dispatcher.dispatch({
+        messages: history,
+        tools: [weatherTool],
+      } as never);
+
+      expect(response.choices[0].message.content).toBe('It is sunny');
+      expect(requests[0].body.input).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ type: 'function_call', call_id: 'call_1', arguments: '{}' }),
+        ]),
+      );
+    });
+
+    it('goes through on Chat Completions too', async () => {
+      const { requests, dispatcher } = buildDispatcher('gpt-4o');
+
+      await expect(
+        dispatcher.dispatch({ messages: history, tools: [weatherTool] } as never),
+      ).resolves.toBeDefined();
+
+      expect(requests[0].url).toMatch(/\/v1\/chat\/completions$/);
+    });
+  });
+
   describe('a model LangChain sends to the Responses API on its own', () => {
     it.each(['gpt-5.6-mini', 'gpt-5.6-luna-2026-08-01'])(
       'answers %s in the Chat Completions shape with its forced tool choice',
