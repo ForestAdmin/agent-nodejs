@@ -2356,16 +2356,6 @@
     object-hash "^3.0.0"
     uuid "^9.0.0"
 
-"@forestadmin/datasource-toolkit@1.56.1":
-  version "1.56.1"
-  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-toolkit/-/datasource-toolkit-1.56.1.tgz#9d4d650394ea2f79dc0e1e993ab775c6e81d79c6"
-  integrity sha512-ztPcbtoki4SSyKqMA6+YTaFGSo+CA0ynSQPjux9qjxD2H+OVe6nlYoMIfc/noaa9reXzuF66BJWpEoVS9MxTUg==
-  dependencies:
-    "@forestadmin/agent-toolkit" "1.2.1"
-    luxon "^3.2.1"
-    object-hash "^3.0.0"
-    uuid "11.1.1"
-
 "@gar/promise-retry@^1.0.0", "@gar/promise-retry@^1.0.2":
   version "1.0.3"
   resolved "https://registry.yarnpkg.com/@gar/promise-retry/-/promise-retry-1.0.3.tgz#65e726428e794bc4453948e0a41e6de4215ce8b0"
