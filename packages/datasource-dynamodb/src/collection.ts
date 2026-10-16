@@ -1,6 +1,6 @@
 import type { CollectionSettings, TableModel } from './types';
 import type { AccessPath, KeyLookup } from './utils/access-path';
-import type { Item, ReadInput, ReadOperation, ReadBudget } from './utils/executor';
+import type { Item, ReadBudget, ReadInput, ReadOperation } from './utils/executor';
 import type { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import type {
   AggregateResult,
@@ -34,7 +34,7 @@ import StreamingAggregator from './utils/aggregator';
 import DynamoExecutor from './utils/executor';
 import ExpressionBuilder, { splitCondition } from './utils/expression-builder';
 import Serializer from './utils/serializer';
-import { compareRecords } from './utils/sort';
+import compareRecords from './utils/sort';
 
 type ReadPlan = { lookup?: KeyLookup; access?: AccessPath; residual?: ConditionTree };
 
@@ -355,7 +355,7 @@ export default class DynamoDBCollection extends BaseCollection {
   ): Promise<Item[]> {
     const { access, residual } = plan;
     const cache = this.settings.paginationCache;
-    const maxOffset = this.settings.maxOffset;
+    const { maxOffset } = this.settings;
 
     if (skip > maxOffset) {
       throw new OffsetTooDeepError(
@@ -424,7 +424,7 @@ export default class DynamoDBCollection extends BaseCollection {
 
     this.guardScan(plan, filter.conditionTree);
 
-    const columns = projection.columns;
+    const { columns } = projection;
     const fields = [
       ...new Set([
         ...columns,
@@ -433,6 +433,7 @@ export default class DynamoDBCollection extends BaseCollection {
         ...this.positionAttributes(plan.access),
       ]),
     ];
+
     const toResult = (item: Item) => {
       const record = this.toRecord(item);
 

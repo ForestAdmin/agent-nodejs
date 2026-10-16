@@ -1,3 +1,5 @@
+import type { DataSource } from '@forestadmin/datasource-toolkit';
+
 import {
   Aggregation,
   Filter,
@@ -5,7 +7,6 @@ import {
   Projection,
   Sort,
 } from '@forestadmin/datasource-toolkit';
-import type { DataSource } from '@forestadmin/datasource-toolkit';
 
 import { buildCollection } from './collection-helpers';
 import { and, buildModel, leaf, plain } from './helpers';

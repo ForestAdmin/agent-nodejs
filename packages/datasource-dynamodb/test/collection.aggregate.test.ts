@@ -414,7 +414,10 @@ describe('DynamoDBCollection.aggregate', () => {
           aggregation({ operation: 'Count' }),
         );
 
-      for (let age = 0; age <= 100; age += 1) await run(age);
+      for (let age = 0; age <= 100; age += 1) {
+        // eslint-disable-next-line no-await-in-loop
+        await run(age);
+      }
       client.send.mockClear();
 
       await run(100);

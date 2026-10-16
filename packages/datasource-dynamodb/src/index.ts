@@ -11,7 +11,7 @@ import type { DataSourceFactory } from '@forestadmin/datasource-toolkit';
 
 import { ValidationError } from '@forestadmin/datasource-toolkit';
 
-import { createDocumentClient } from './client';
+import createDocumentClient from './client';
 import DynamoDBDataSource from './datasource';
 import { DynamoDBDatasourceBuilder } from './introspection/builder';
 import {

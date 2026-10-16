@@ -15,7 +15,9 @@ function isLowLevelClient(client: unknown): client is DynamoDBClient {
   return client instanceof DynamoDBClient || client?.constructor?.name === 'DynamoDBClient';
 }
 
-export function createDocumentClient(options: DynamoDBClientOptions): DynamoDBDocumentClient {
+export default function createDocumentClient(
+  options: DynamoDBClientOptions,
+): DynamoDBDocumentClient {
   if (options.client) {
     return isLowLevelClient(options.client)
       ? DynamoDBDocumentClient.from(options.client, TRANSLATE_CONFIG)
