@@ -214,9 +214,15 @@ export default class DynamoExecutor {
     return response.Attributes;
   }
 
+  /** Strongly consistent, for the reads a write is built from: a stale copy would undo writes. */
   async get(key: Item): Promise<Item | undefined> {
     const response = await this.client.send(
-      new GetCommand({ TableName: this.model.tableName, Key: key, ...this.capacityRequest() }),
+      new GetCommand({
+        TableName: this.model.tableName,
+        Key: key,
+        ConsistentRead: true,
+        ...this.capacityRequest(),
+      }),
     );
     this.logCapacity('get', response.ConsumedCapacity?.CapacityUnits);
 
