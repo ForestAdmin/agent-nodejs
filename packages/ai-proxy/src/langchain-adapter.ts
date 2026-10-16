@@ -167,9 +167,7 @@ export class LangChainAdapter {
             refusal: typeof refusal === 'string' ? refusal : null,
             tool_calls: toolCalls.length ? toolCalls : undefined,
           },
-          finish_reason: toolCalls.length
-            ? 'tool_calls'
-            : LangChainAdapter.finishReasonOf(metadata),
+          finish_reason: LangChainAdapter.finishReasonOf(metadata, toolCalls.length > 0),
           logprobs: null,
         },
       ],
@@ -203,16 +201,19 @@ export class LangChainAdapter {
     );
   }
 
+  // An answer cut short stays cut short even when it carries tool calls: their arguments may be
+  // incomplete, as Chat Completions reports it.
   private static finishReasonOf(
     metadata: ResponseMetadata | undefined,
-  ): 'stop' | 'length' | 'content_filter' {
+    hasToolCalls: boolean,
+  ): 'stop' | 'length' | 'content_filter' | 'tool_calls' {
     switch (metadata?.incomplete_details?.reason) {
       case 'max_output_tokens':
         return 'length';
       case 'content_filter':
         return 'content_filter';
       default:
-        return 'stop';
+        return hasToolCalls ? 'tool_calls' : 'stop';
     }
   }
 

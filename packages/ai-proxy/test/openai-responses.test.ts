@@ -343,6 +343,37 @@ describe('ProviderDispatcher with a Responses API model', () => {
       });
     });
 
+    it('reports a function call cut by max_output_tokens as length, not as a finished call', async () => {
+      const { dispatcher } = buildDispatcher(
+        'gpt-6-luna',
+        [
+          {
+            type: 'function_call',
+            id: 'fc_1',
+            call_id: 'call_1',
+            name: 'get_weather',
+            arguments: '{"city":',
+            status: 'incomplete',
+          },
+        ],
+        {},
+        { status: 'incomplete', incomplete_details: { reason: 'max_output_tokens' } },
+      );
+
+      const response = await dispatcher.dispatch(dispatchBody as never);
+
+      expect(response.choices[0]).toMatchObject({
+        finish_reason: 'length',
+        message: {
+          tool_calls: [
+            expect.objectContaining({
+              function: expect.objectContaining({ arguments: '{"city":' }),
+            }),
+          ],
+        },
+      });
+    });
+
     it('reports a filtered response as finish_reason content_filter', async () => {
       const { dispatcher } = buildDispatcher(
         'gpt-6-luna',
