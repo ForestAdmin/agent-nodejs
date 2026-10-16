@@ -1,5 +1,9 @@
-import type { AggregateResult, Aggregation, DateOperation } from '@forestadmin/datasource-toolkit';
-import type { RecordData } from '@forestadmin/datasource-toolkit';
+import type {
+  AggregateResult,
+  Aggregation,
+  DateOperation,
+  RecordData,
+} from '@forestadmin/datasource-toolkit';
 
 /** Numbers below this are epoch seconds: in milliseconds they would be before 1973. */
 const EPOCH_SECONDS_CEILING = 1e11;
@@ -19,11 +23,15 @@ type Accumulator = {
 function toDate(value: unknown): Date | null {
   let date: Date;
 
-  if (value instanceof Date) date = value;
-  else if (typeof value === 'number') {
+  if (value instanceof Date) {
+    date = value;
+  } else if (typeof value === 'number') {
     date = new Date(value < EPOCH_SECONDS_CEILING ? value * 1000 : value);
-  } else if (typeof value === 'string') date = new Date(value);
-  else return null;
+  } else if (typeof value === 'string') {
+    date = new Date(value);
+  } else {
+    return null;
+  }
 
   return Number.isNaN(date.getTime()) ? null : date;
 }
@@ -66,6 +74,7 @@ function dateBucket(value: unknown, operation: DateOperation, timezone: string):
       )}-01`;
     case 'Month':
       return `${year}-${two(month)}-01`;
+
     case 'Week': {
       const monday = new Date(Date.UTC(year, month - 1, day));
       monday.setUTCDate(
@@ -74,6 +83,7 @@ function dateBucket(value: unknown, operation: DateOperation, timezone: string):
 
       return monday.toISOString().slice(0, 10);
     }
+
     default:
       return `${year}-${two(month)}-${two(day)}`;
   }

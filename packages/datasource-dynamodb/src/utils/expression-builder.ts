@@ -1,7 +1,6 @@
-import type { ConditionTree, Operator } from '@forestadmin/datasource-toolkit';
+import type { ConditionTree, ConditionTreeBranch, Operator } from '@forestadmin/datasource-toolkit';
 
 import {
-  ConditionTreeBranch,
   ConditionTreeFactory,
   ConditionTreeLeaf,
   ValidationError,
@@ -210,12 +209,14 @@ export default class ExpressionBuilder {
         )})`;
       case 'In':
         return values.length === 0 ? this.never(path) : this.in(path, values);
+
       case 'NotIn': {
         if (values.length === 0) return this.always(path);
         const matches = this.in(path, values);
 
         return matches.startsWith('(') ? `NOT ${matches}` : `NOT (${matches})`;
       }
+
       case 'StartsWith':
         return `begins_with(${path}, ${this.value(value)})`;
       case 'Contains':
@@ -232,6 +233,7 @@ export default class ExpressionBuilder {
         return `(${values
           .map(item => `NOT contains(${path}, ${this.value(item)})`)
           .join(' AND ')})`;
+
       default: {
         const comparison = COMPARISONS[operator];
 

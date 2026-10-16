@@ -1,3 +1,4 @@
+/* eslint-disable max-classes-per-file */
 import type { CollectionSettings, TableModel } from '../types';
 import type { StartKey } from './pagination-cache';
 import type { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';

@@ -61,12 +61,13 @@ function withEntity(model: TableModel, tree?: ConditionTree): ConditionTree | un
 
   if (!entity) return tree;
 
-  const restriction =
-    entity.sortKeyPrefix !== undefined && model.sortKey
-      ? new ConditionTreeLeaf(model.sortKey.name, 'StartsWith', entity.sortKeyPrefix)
-      : entity.attribute !== undefined
-      ? new ConditionTreeLeaf(entity.attribute, 'Equal', entity.value)
-      : undefined;
+  let restriction: ConditionTreeLeaf | undefined;
+
+  if (entity.sortKeyPrefix !== undefined && model.sortKey) {
+    restriction = new ConditionTreeLeaf(model.sortKey.name, 'StartsWith', entity.sortKeyPrefix);
+  } else if (entity.attribute !== undefined) {
+    restriction = new ConditionTreeLeaf(entity.attribute, 'Equal', entity.value);
+  }
 
   if (!restriction) return tree;
 

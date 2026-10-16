@@ -1,9 +1,9 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 
-import { createDocumentClient } from '../src/client';
-import { createDynamoDBDataSource } from '../src/index';
 import { fakeClient } from './fake-client';
+import createDocumentClient from '../src/client';
+import { createDynamoDBDataSource } from '../src/index';
 
 const table = (name: string, keyType = 'S') => ({
   Table: {

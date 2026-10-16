@@ -4,7 +4,6 @@ import type {
   AggregateResult,
   Aggregation,
   Caller,
-  ColumnSchema,
   ConditionTree,
   DataSource,
   Filter,
@@ -26,7 +25,7 @@ import convertModelToFields from './schema/schema-converter';
 import StreamingAggregator from './utils/aggregator';
 import ExpressionBuilder from './utils/expression-builder';
 import Serializer from './utils/serializer';
-import { compareRecords } from './utils/sort';
+import compareRecords from './utils/sort';
 
 export const INDEX_FIELD = 'index';
 
@@ -123,7 +122,7 @@ export default class ArrayCollection extends BaseCollection {
 
     const skip = filter.page?.skip ?? 0;
     const limit = filter.page?.limit || undefined;
-    const columns = projection.columns;
+    const { columns } = projection;
 
     return records
       .slice(skip, limit === undefined ? undefined : skip + limit)
