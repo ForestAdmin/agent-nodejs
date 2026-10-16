@@ -4,13 +4,14 @@ import { Aggregation, Filter, PaginatedFilter, Projection } from '@forestadmin/d
 
 import { buildCollection } from './collection-helpers';
 import { fakeClient } from './fake-client';
-import { and, buildModel, buildSimpleModel, plain } from './helpers';
+import { and, buildModel, buildSimpleModel, leaf, plain } from './helpers';
 import ArrayCollection from '../src/array-collection';
 import DynamoDBCollection from '../src/collection';
 import { introspectTables } from '../src/introspection/introspector';
 import { validateManualSchema } from '../src/schema/manual-schema';
 import { resolveSettings } from '../src/settings';
 import { planAccessPath } from '../src/utils/access-path';
+import Serializer from '../src/utils/serializer';
 
 const caller = { timezone: 'UTC' } as never;
 const sum = new Aggregation({ operation: 'Sum', field: 'age' });
@@ -251,5 +252,43 @@ describe('a reversed range on the sort key', () => {
     );
 
     expect(records).toEqual([]);
+  });
+});
+
+describe('writing records', () => {
+  it('refuses a path through __proto__ instead of changing every object', () => {
+    expect(() => Serializer.unflatten({ '__proto__->polluted': 'yes' })).toThrow(
+      "An attribute path cannot contain '__proto__'",
+    );
+    expect(() => Serializer.setPath({}, ['__proto__', 'polluted'], 'yes')).toThrow(
+      "An attribute path cannot contain '__proto__'",
+    );
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+  });
+
+  it('does not take an inherited property for a map to write into', () => {
+    const item = Serializer.unflatten({ 'constructor->name': 'x' });
+
+    expect(Object.keys(item)).toEqual(['constructor']);
+    expect((item.constructor as unknown as Record<string, unknown>).name).toBe('x');
+    expect(Object.prototype.constructor.name).toBe('Object');
+  });
+
+  it('reads the item strongly consistent before rewriting it', async () => {
+    const { collection, client } = buildCollection(buildSimpleModel(), {
+      Update: () => {
+        throw Object.assign(new Error('The document path provided is invalid'), {
+          name: 'ValidationException',
+        });
+      },
+      Get: () => ({ Item: { id: 'u1' } }),
+      Put: () => ({}),
+    });
+
+    await collection.update(caller, new Filter({ conditionTree: leaf('id', 'Equal', 'u1') }), {
+      'address->city': 'Lyon',
+    });
+
+    expect(client.calls('Get')[0].ConsistentRead).toBe(true);
   });
 });

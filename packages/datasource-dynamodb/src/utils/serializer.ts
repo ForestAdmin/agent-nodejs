@@ -1,5 +1,7 @@
 import type { RecordData } from '@forestadmin/datasource-toolkit';
 
+import { ValidationError } from '@forestadmin/datasource-toolkit';
+
 import TypeConverter from './type-converter';
 
 export const PATH_SEPARATOR = '->';
@@ -37,6 +39,18 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
     !(value instanceof Uint8Array) &&
     !TypeConverter.isGeoPoint(value)
   );
+}
+
+/** Writing to `__proto__` would change what every object of the process inherits. */
+function assertWritable(segments: string[]): void {
+  if (segments.includes('__proto__')) {
+    throw new ValidationError("An attribute path cannot contain '__proto__'");
+  }
+}
+
+/** Own properties only: what an object inherits is not a map to write into. */
+function hasOwnMap(target: Record<string, unknown>, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(target, key) && isPlainObject(target[key]);
 }
 
 export default class Serializer {
@@ -83,8 +97,10 @@ export default class Serializer {
       const parts = Serializer.toPathSegments(field);
       let target = item;
 
+      assertWritable(parts);
+
       for (const part of parts.slice(0, -1)) {
-        if (!isPlainObject(target[part])) target[part] = {};
+        if (!hasOwnMap(target, part)) target[part] = {};
         target = target[part] as Record<string, unknown>;
       }
 
@@ -98,8 +114,10 @@ export default class Serializer {
   static setPath(target: Record<string, unknown>, segments: string[], value: unknown): void {
     let holder = target;
 
+    assertWritable(segments);
+
     for (const segment of segments.slice(0, -1)) {
-      if (!isPlainObject(holder[segment])) holder[segment] = {};
+      if (!hasOwnMap(holder, segment)) holder[segment] = {};
       holder = holder[segment] as Record<string, unknown>;
     }
 
