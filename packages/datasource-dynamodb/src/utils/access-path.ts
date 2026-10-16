@@ -220,15 +220,15 @@ export function planAccessPath(
         ]
       : [];
 
-    if (partition) {
-      const picked = candidate.sortKey ? pickSortCondition(candidate.sortKey, parts) : undefined;
+    const picked =
+      partition && candidate.sortKey ? pickSortCondition(candidate.sortKey, parts) : undefined;
 
-      // An index leaves out the items that lack its sort key: without a condition on that key, it
-      // could return fewer items than the table holds.
-      if (candidate.indexName && candidate.sortKey && !picked && !candidate.coversAllItems) {
-        continue;
-      }
+    // An index leaves out the items that lack its sort key: without a condition on that key, it
+    // could return fewer items than the table holds.
+    const mayMissItems =
+      !!candidate.indexName && !!candidate.sortKey && !picked && !candidate.coversAllItems;
 
+    if (partition && !mayMissItems) {
       const sortClause = sort?.length === 1 ? sort[0] : undefined;
       // Several partitions are read one after the other: their items are not in one key order.
       const sortSatisfied =

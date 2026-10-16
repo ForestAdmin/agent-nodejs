@@ -3,10 +3,10 @@ import type { DataSource } from '@forestadmin/datasource-toolkit';
 import { Filter, PaginatedFilter, Projection } from '@forestadmin/datasource-toolkit';
 
 import { buildCollection } from './collection-helpers';
-import { buildModel, leaf } from './helpers';
-import ArrayCollection from '../src/array-collection';
-import { createDynamoDBDataSource } from '../src';
 import { fakeClient } from './fake-client';
+import { buildModel } from './helpers';
+import { createDynamoDBDataSource } from '../src';
+import ArrayCollection from '../src/array-collection';
 
 const caller = { timezone: 'UTC' } as never;
 

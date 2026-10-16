@@ -125,6 +125,7 @@ export default class StreamingAggregator {
     if (value === undefined || value === null) return;
 
     accumulator.values += 1;
+
     if (accumulator.min === undefined || compareValues(value, accumulator.min) < 0) {
       accumulator.min = value;
     }
