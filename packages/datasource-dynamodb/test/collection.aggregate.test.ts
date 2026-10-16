@@ -418,6 +418,7 @@ describe('DynamoDBCollection.aggregate', () => {
         // eslint-disable-next-line no-await-in-loop
         await run(age);
       }
+
       client.send.mockClear();
 
       await run(100);
