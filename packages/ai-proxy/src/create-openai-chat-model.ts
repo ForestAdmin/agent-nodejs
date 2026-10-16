@@ -16,9 +16,8 @@ function toResponsesToolChoice(toolChoice: unknown): 'auto' | 'none' | 'required
   return undefined;
 }
 
-// LangChain drops a string `tool_choice` on the Responses API, and `reasoning` for any model it
-// does not know as a reasoning model, which GPT-6 is not yet. Lift both when LangChain handles them.
-function restoreDroppedParams(responses: ChatOpenAIResponses): ChatOpenAIResponses {
+// LangChain drops a string `tool_choice` on the Responses API. Lift this when it handles it.
+function restoreToolChoice(responses: ChatOpenAIResponses): ChatOpenAIResponses {
   const invocationParams = responses.invocationParams.bind(responses);
 
   responses.invocationParams = options => {
@@ -26,10 +25,6 @@ function restoreDroppedParams(responses: ChatOpenAIResponses): ChatOpenAIRespons
 
     if (params.tool_choice === undefined && params.tools?.length) {
       params.tool_choice = toResponsesToolChoice(options?.tool_choice);
-    }
-
-    if (params.reasoning === undefined && responses.reasoning) {
-      params.reasoning = responses.reasoning;
     }
 
     return params;
@@ -44,6 +39,6 @@ export default function createOpenAIChatModel(fields: ChatOpenAIFields): ChatOpe
   return new ChatOpenAI({
     ...fields,
     useResponsesApi: true,
-    responses: restoreDroppedParams(new ChatOpenAIResponses(fields)),
+    responses: restoreToolChoice(new ChatOpenAIResponses(fields)),
   });
 }
