@@ -1,3 +1,24 @@
+## @forestadmin/agent [1.110.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.110.1...@forestadmin/agent@1.110.2) (2026-10-16)
+
+
+### Performance Improvements
+
+* port the list, search and permission optimizations to agent-nodejs (PRD-1578) ([#2019](https://github.com/ForestAdmin/agent-nodejs/issues/2019)) ([57d8e15](https://github.com/ForestAdmin/agent-nodejs/commit/57d8e15f1ee5a56bd54b2f2c6c01a9da081a6db8))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.73.2
+* **@forestadmin/datasource-toolkit:** upgraded to 1.56.2
+* **@forestadmin/forestadmin-client:** upgraded to 1.44.1
+* **@forestadmin/mcp-server:** upgraded to 1.29.1
+* **@forestadmin/agent-bff:** upgraded to 1.42.1
+* **@forestadmin/datasource-sql:** upgraded to 1.17.17
+* **@forestadmin/workflow-executor:** upgraded to 1.33.2
+
 ## @forestadmin/agent [1.110.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.110.0...@forestadmin/agent@1.110.1) (2026-10-15)
 
 
