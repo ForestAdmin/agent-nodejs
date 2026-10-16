@@ -47,6 +47,22 @@ export type LangChainToolChoice =
   | { type: 'tool'; name: string }
   | undefined;
 
+interface UsageMetadata {
+  input_tokens?: number;
+  output_tokens?: number;
+  total_tokens?: number;
+  input_token_details?: { cache_read?: number };
+  output_token_details?: { reasoning?: number };
+}
+
+// What LangChain keeps of an OpenAI Responses API result; no other provider sets `object`.
+interface ResponseMetadata {
+  object?: string;
+  created_at?: number;
+  model_name?: string;
+  incomplete_details?: { reason?: string };
+}
+
 /** Handles generic format conversions between OpenAI and LangChain. */
 export class LangChainAdapter {
   /** Convert OpenAI-format messages to LangChain messages. */
@@ -107,34 +123,53 @@ export class LangChainAdapter {
 
   /** Convert a LangChain AIMessage to an OpenAI-compatible ChatCompletionResponse. */
   static convertResponse(response: AIMessage, modelName: string | null): ChatCompletionResponse {
-    const toolCalls = response.tool_calls?.map(tc => ({
-      id: tc.id || `call_${crypto.randomUUID()}`,
-      type: 'function' as const,
-      function: {
-        name: tc.name,
-        arguments: JSON.stringify(tc.args),
-      },
-    }));
+    const toolCalls = [
+      ...(response.tool_calls ?? []).map(tc => ({
+        id: tc.id || `call_${crypto.randomUUID()}`,
+        type: 'function' as const,
+        function: {
+          name: tc.name,
+          arguments: JSON.stringify(tc.args),
+        },
+      })),
+      // A call whose arguments are not valid JSON still reaches the caller, who can report it.
+      ...(response.invalid_tool_calls ?? []).map(tc => ({
+        id: tc.id || `call_${crypto.randomUUID()}`,
+        type: 'function' as const,
+        function: {
+          name: tc.name ?? '',
+          arguments: tc.args ?? '',
+        },
+      })),
+    ];
 
-    const usageMetadata = response.usage_metadata as
-      | { input_tokens?: number; output_tokens?: number; total_tokens?: number }
-      | undefined;
+    const usageMetadata = response.usage_metadata as UsageMetadata | undefined;
+    const metadata = response.response_metadata as ResponseMetadata | undefined;
+    const isResponsesApi = metadata?.object === 'response';
+    const refusal = response.additional_kwargs?.refusal;
+    const cachedTokens = usageMetadata?.input_token_details?.cache_read;
+    const reasoningTokens = usageMetadata?.output_token_details?.reasoning;
 
     return {
       id: response.id || `msg_${crypto.randomUUID()}`,
       object: 'chat.completion',
-      created: Math.floor(Date.now() / 1000),
-      model: modelName,
+      created:
+        isResponsesApi && typeof metadata.created_at === 'number'
+          ? metadata.created_at
+          : Math.floor(Date.now() / 1000),
+      model: (isResponsesApi && metadata.model_name) || modelName,
       choices: [
         {
           index: 0,
           message: {
             role: 'assistant',
             content: LangChainAdapter.extractTextContent(response.content),
-            refusal: null,
-            tool_calls: toolCalls?.length ? toolCalls : undefined,
+            refusal: typeof refusal === 'string' ? refusal : null,
+            tool_calls: toolCalls.length ? toolCalls : undefined,
           },
-          finish_reason: toolCalls?.length ? 'tool_calls' : 'stop',
+          finish_reason: toolCalls.length
+            ? 'tool_calls'
+            : LangChainAdapter.finishReasonOf(metadata),
           logprobs: null,
         },
       ],
@@ -142,6 +177,12 @@ export class LangChainAdapter {
         prompt_tokens: usageMetadata?.input_tokens ?? 0,
         completion_tokens: usageMetadata?.output_tokens ?? 0,
         total_tokens: usageMetadata?.total_tokens ?? 0,
+        ...(typeof cachedTokens === 'number' && {
+          prompt_tokens_details: { cached_tokens: cachedTokens },
+        }),
+        ...(typeof reasoningTokens === 'number' && {
+          completion_tokens_details: { reasoning_tokens: reasoningTokens },
+        }),
       },
     };
   }
@@ -160,6 +201,19 @@ export class LangChainAdapter {
     throw new AIBadRequestError(
       `Unsupported tool_choice value. Expected: 'auto', 'none', 'required', or {type: 'function', function: {name: '...'}}.`,
     );
+  }
+
+  private static finishReasonOf(
+    metadata: ResponseMetadata | undefined,
+  ): 'stop' | 'length' | 'content_filter' {
+    switch (metadata?.incomplete_details?.reason) {
+      case 'max_output_tokens':
+        return 'length';
+      case 'content_filter':
+        return 'content_filter';
+      default:
+        return 'stop';
+    }
   }
 
   private static extractTextContent(content: AIMessage['content']): string | null {

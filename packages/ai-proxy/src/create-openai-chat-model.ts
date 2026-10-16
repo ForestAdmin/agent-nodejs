@@ -5,7 +5,7 @@ import { ChatOpenAI, ChatOpenAIResponses } from '@langchain/openai';
 // Chat Completions rejects reasoning_effort alongside function tools on these models.
 const RESPONSES_ONLY_MODEL = /^gpt-6(?:[.-]|$)/;
 
-export function usesResponsesApi(fields: Pick<ChatOpenAIFields, 'model' | 'useResponsesApi'>) {
+function forcesResponsesApi(fields: Pick<ChatOpenAIFields, 'model' | 'useResponsesApi'>) {
   return Boolean(fields.useResponsesApi) || RESPONSES_ONLY_MODEL.test(fields.model ?? '');
 }
 
@@ -33,12 +33,12 @@ function restoreToolChoice(responses: ChatOpenAIResponses): ChatOpenAIResponses 
   return responses;
 }
 
+// LangChain also sends some models to the Responses API on its own (gpt-5.6, reasoning summaries),
+// so the delegate it picks is always ours, whatever the route a call ends up taking.
 export default function createOpenAIChatModel(fields: ChatOpenAIFields): ChatOpenAI {
-  if (!usesResponsesApi(fields)) return new ChatOpenAI(fields);
-
   return new ChatOpenAI({
     ...fields,
-    useResponsesApi: true,
+    ...(forcesResponsesApi(fields) && { useResponsesApi: true }),
     responses: restoreToolChoice(new ChatOpenAIResponses(fields)),
   });
 }

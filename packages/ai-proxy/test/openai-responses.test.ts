@@ -1,6 +1,6 @@
 import type { DispatchBody } from '../src';
 
-import { ProviderDispatcher, RemoteTools } from '../src';
+import { ProviderDispatcher, RemoteTools, createBaseChatModel } from '../src';
 import createOpenAIChatModel from '../src/create-openai-chat-model';
 
 type SentRequest = { url: string; body: Record<string, any> };
@@ -26,7 +26,10 @@ const RESPONSES_TOOL_CALL_OUTPUT = [
   },
 ];
 
-function buildFakeFetch(output: unknown[] = RESPONSES_TEXT_OUTPUT) {
+function buildFakeFetch(
+  output: unknown[] = RESPONSES_TEXT_OUTPUT,
+  overrides: Record<string, unknown> = {},
+) {
   const requests: SentRequest[] = [];
 
   const fakeFetch = async (url: unknown, init: { body: string }) => {
@@ -42,6 +45,7 @@ function buildFakeFetch(output: unknown[] = RESPONSES_TEXT_OUTPUT) {
           status: 'completed',
           output,
           usage: { input_tokens: 5, output_tokens: 7, total_tokens: 12 },
+          ...overrides,
         }
       : {
           id: 'chatcmpl_1',
@@ -180,8 +184,13 @@ describe('createOpenAIChatModel', () => {
 });
 
 describe('ProviderDispatcher with a Responses API model', () => {
-  function buildDispatcher(model: string, output?: unknown[], extra: Record<string, unknown> = {}) {
-    const { requests, fakeFetch } = buildFakeFetch(output);
+  function buildDispatcher(
+    model: string,
+    output?: unknown[],
+    extra: Record<string, unknown> = {},
+    overrides: Record<string, unknown> = {},
+  ) {
+    const { requests, fakeFetch } = buildFakeFetch(output, overrides);
     const dispatcher = new ProviderDispatcher(
       {
         name: 'luna',
@@ -306,4 +315,184 @@ describe('ProviderDispatcher with a Responses API model', () => {
     expect(requests[0].url).toMatch(/\/v1\/chat\/completions$/);
     expect(response).toMatchObject({ id: 'chatcmpl_1', object: 'chat.completion' });
   });
+
+  describe('what the Responses API can answer besides a clean completion', () => {
+    const dispatchBody = { messages: [{ role: 'user', content: 'hi' }], tools: [weatherTool] };
+
+    it('reports a response cut by max_output_tokens as finish_reason length', async () => {
+      const { dispatcher } = buildDispatcher(
+        'gpt-6-luna',
+        [
+          {
+            type: 'message',
+            id: 'msg_1',
+            role: 'assistant',
+            status: 'incomplete',
+            content: [{ type: 'output_text', text: 'It is sun', annotations: [] }],
+          },
+        ],
+        {},
+        { status: 'incomplete', incomplete_details: { reason: 'max_output_tokens' } },
+      );
+
+      const response = await dispatcher.dispatch(dispatchBody as never);
+
+      expect(response.choices[0]).toMatchObject({
+        finish_reason: 'length',
+        message: { content: 'It is sun' },
+      });
+    });
+
+    it('reports a filtered response as finish_reason content_filter', async () => {
+      const { dispatcher } = buildDispatcher(
+        'gpt-6-luna',
+        [],
+        {},
+        { status: 'incomplete', incomplete_details: { reason: 'content_filter' } },
+      );
+
+      const response = await dispatcher.dispatch(dispatchBody as never);
+
+      expect(response.choices[0].finish_reason).toBe('content_filter');
+    });
+
+    it('carries the refusal text instead of an empty answer', async () => {
+      const { dispatcher } = buildDispatcher('gpt-6-luna', [
+        {
+          type: 'message',
+          id: 'msg_1',
+          role: 'assistant',
+          status: 'completed',
+          content: [{ type: 'refusal', refusal: 'I cannot help with that' }],
+        },
+      ]);
+
+      const response = await dispatcher.dispatch(dispatchBody as never);
+
+      expect(response.choices[0].message).toMatchObject({
+        content: null,
+        refusal: 'I cannot help with that',
+      });
+    });
+
+    it('hands a function call with malformed arguments to the caller as a tool call', async () => {
+      const { dispatcher } = buildDispatcher('gpt-6-luna', [
+        {
+          type: 'function_call',
+          id: 'fc_1',
+          call_id: 'call_1',
+          name: 'get_weather',
+          arguments: '{"city":',
+          status: 'completed',
+        },
+      ]);
+
+      const response = await dispatcher.dispatch(dispatchBody as never);
+
+      expect(response.choices[0]).toMatchObject({
+        finish_reason: 'tool_calls',
+        message: {
+          tool_calls: [
+            {
+              id: 'call_1',
+              type: 'function',
+              function: { name: 'get_weather', arguments: '{"city":' },
+            },
+          ],
+        },
+      });
+    });
+
+    it('keeps the cached and reasoning token counts the server bills on', async () => {
+      const { dispatcher } = buildDispatcher(
+        'gpt-6-luna',
+        undefined,
+        {},
+        {
+          usage: {
+            input_tokens: 10,
+            output_tokens: 20,
+            total_tokens: 30,
+            input_tokens_details: { cached_tokens: 4 },
+            output_tokens_details: { reasoning_tokens: 12 },
+          },
+        },
+      );
+
+      const response = await dispatcher.dispatch(body());
+
+      expect(response.usage).toEqual({
+        prompt_tokens: 10,
+        completion_tokens: 20,
+        total_tokens: 30,
+        prompt_tokens_details: { cached_tokens: 4 },
+        completion_tokens_details: { reasoning_tokens: 12 },
+      });
+    });
+
+    it('reports the model that served the call and when OpenAI created the response', async () => {
+      const { dispatcher } = buildDispatcher(
+        'gpt-6-luna',
+        undefined,
+        {},
+        { model: 'gpt-6-luna-2026-09-01', created_at: 1700000000 },
+      );
+
+      const response = await dispatcher.dispatch(body());
+
+      expect(response).toMatchObject({ model: 'gpt-6-luna-2026-09-01', created: 1700000000 });
+    });
+  });
+
+  describe('a model LangChain sends to the Responses API on its own', () => {
+    it.each(['gpt-5.6-mini', 'gpt-5.6-luna-2026-08-01'])(
+      'answers %s in the Chat Completions shape with its forced tool choice',
+      async model => {
+        const { requests, dispatcher } = buildDispatcher(model, RESPONSES_TOOL_CALL_OUTPUT);
+
+        const response = await dispatcher.dispatch({
+          messages: [{ role: 'user', content: 'hi' }],
+          tools: [weatherTool],
+          tool_choice: 'required',
+        } as never);
+
+        expect(requests[0].url).toMatch(/\/v1\/responses$/);
+        expect(requests[0].body.tool_choice).toBe('required');
+        expect(response.choices[0].finish_reason).toBe('tool_calls');
+      },
+    );
+
+    it('answers a configuration asking for reasoning summaries through the Responses API', async () => {
+      const { requests, dispatcher } = buildDispatcher('gpt-5', undefined, {
+        reasoning: { effort: 'low', summary: 'auto' },
+      });
+
+      const response = await dispatcher.dispatch(body());
+
+      expect(requests[0].url).toMatch(/\/v1\/responses$/);
+      expect(response.choices[0].message.content).toBe('It is sunny');
+    });
+  });
+});
+
+describe('createBaseChatModel on the Responses API', () => {
+  it.each(['gpt-6-luna', 'gpt-5.6-mini'])(
+    'turns the forced tool call the executor makes into tool_choice required for %s',
+    async model => {
+      const { requests, fakeFetch } = buildFakeFetch(RESPONSES_TOOL_CALL_OUTPUT);
+      const chatModel = createBaseChatModel({
+        name: 'executor',
+        provider: 'openai',
+        model,
+        apiKey: 'dev',
+        maxRetries: 0,
+        configuration: { fetch: fakeFetch as never },
+      } as never);
+
+      const answer = await chatModel.bindTools!([weatherTool], { tool_choice: 'any' }).invoke('hi');
+
+      expect(requests[0].body.tool_choice).toBe('required');
+      expect(answer.tool_calls).toEqual([expect.objectContaining({ name: 'get_weather' })]);
+    },
+  );
 });

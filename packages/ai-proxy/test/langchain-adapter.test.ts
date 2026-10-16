@@ -181,6 +181,67 @@ describe('LangChainAdapter', () => {
       expect(response.choices[0].message.content).toBeNull();
     });
 
+    it('should keep an invalid tool call, with the raw arguments, as a tool call', () => {
+      const response = LangChainAdapter.convertResponse(
+        new AIMessage({
+          content: '',
+          invalid_tool_calls: [
+            {
+              type: 'invalid_tool_call',
+              id: 'call_9',
+              name: 'calculate',
+              args: '{"a":',
+              error: 'x',
+            },
+          ],
+        }),
+        'gpt-6-luna',
+      );
+
+      expect(response.choices[0]).toMatchObject({
+        finish_reason: 'tool_calls',
+        message: {
+          tool_calls: [
+            {
+              id: 'call_9',
+              type: 'function',
+              function: { name: 'calculate', arguments: '{"a":' },
+            },
+          ],
+        },
+      });
+    });
+
+    it('should generate an id and keep empty strings for an invalid tool call without any', () => {
+      const response = LangChainAdapter.convertResponse(
+        new AIMessage({
+          content: '',
+          invalid_tool_calls: [{ type: 'invalid_tool_call', error: 'x' }],
+        }),
+        null,
+      );
+
+      expect(response.choices[0].message.tool_calls).toEqual([
+        {
+          id: expect.stringMatching(/^call_/),
+          type: 'function',
+          function: { name: '', arguments: '' },
+        },
+      ]);
+    });
+
+    it('should not add token details when the provider reports none', () => {
+      const response = LangChainAdapter.convertResponse(
+        new AIMessage({
+          content: 'x',
+          usage_metadata: { input_tokens: 1, output_tokens: 2, total_tokens: 3 },
+        }),
+        'm',
+      );
+
+      expect(response.usage).toEqual({ prompt_tokens: 1, completion_tokens: 2, total_tokens: 3 });
+    });
+
     it('should convert tool_calls to OpenAI format with finish_reason "tool_calls"', () => {
       const aiMessage = new AIMessage({ content: '' });
       Object.assign(aiMessage, {
