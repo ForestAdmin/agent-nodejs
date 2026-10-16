@@ -10,7 +10,7 @@ import { ChatAnthropic } from '@langchain/anthropic';
 import { convertToOpenAIFunction } from '@langchain/core/utils/function_calling';
 
 import AnthropicAdapter from './anthropic-adapter';
-import createOpenAIChatModel, { usesResponsesApi } from './create-openai-chat-model';
+import createOpenAIChatModel from './create-openai-chat-model';
 import {
   AIBadRequestError,
   AIForbiddenError,
@@ -44,8 +44,6 @@ export default class ProviderDispatcher {
 
   private readonly modelName: string | null = null;
 
-  private readonly openaiUsesResponsesApi: boolean = false;
-
   private readonly remoteTools: RemoteTools;
 
   constructor(configuration: AiConfiguration | null, remoteTools: RemoteTools) {
@@ -58,7 +56,6 @@ export default class ProviderDispatcher {
         ...chatOpenAIOptions,
         __includeRawResponse: true,
       });
-      this.openaiUsesResponsesApi = usesResponsesApi(chatOpenAIOptions);
       this.modelName = chatOpenAIOptions.model;
     } else if (configuration?.provider === 'anthropic') {
       const { provider, name, model, ...clientOptions } = configuration;
@@ -112,7 +109,9 @@ export default class ProviderDispatcher {
     }
 
     // The Responses API carries no Chat Completions payload to hand back as is.
-    if (this.openaiUsesResponsesApi) {
+    const metadata = response.response_metadata as { object?: string } | undefined;
+
+    if (metadata?.object === 'response') {
       return LangChainAdapter.convertResponse(response, this.modelName);
     }
 

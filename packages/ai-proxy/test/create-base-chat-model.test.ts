@@ -37,6 +37,7 @@ describe('createBaseChatModel', () => {
       maxRetries: 0,
       apiKey: 'test-key',
       model: 'gpt-4o',
+      responses: expect.anything(),
     });
   });
 
@@ -74,6 +75,7 @@ describe('createBaseChatModel', () => {
       apiKey: 'test-key',
       model: 'gpt-4o',
       temperature: 0.7,
+      responses: expect.anything(),
     });
   });
 

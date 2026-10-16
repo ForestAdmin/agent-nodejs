@@ -28,12 +28,16 @@ describe('isModelSupportingTools', () => {
     },
   );
 
-  it.each(['gpt-5.6-luna', 'gpt-5.6-sol', 'gpt-5.6-terra'])(
-    'should return false for %s (v1/responses only)',
-    model => {
-      expect(isModelSupportingTools(model)).toBe(false);
-    },
-  );
+  it.each([
+    'gpt-5.6',
+    'gpt-5.6-luna',
+    'gpt-5.6-sol',
+    'gpt-5.6-terra',
+    'gpt-5.6-mini',
+    'gpt-5.6-luna-2026-08-01',
+  ])('should return false for %s (v1/responses only)', model => {
+    expect(isModelSupportingTools(model)).toBe(false);
+  });
 
   it.each(['gpt-6-astra', 'gpt-6-luna', 'gpt-6-sol', 'gpt-6.1-sol'])(
     'should return true for %s (served through the Responses API)',
