@@ -60,12 +60,30 @@ function localDay(date: Date, timezone: string): { year: number; month: number; 
 
 const two = (n: number) => String(n).padStart(2, '0');
 
-function dateBucket(value: unknown, operation: DateOperation, timezone: string): string | null {
+const DATE_ONLY = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+/** A date without time is a calendar day, which no timezone moves; an instant is read in one. */
+function calendarDay(
+  value: unknown,
+  timezone: string,
+): { year: number; month: number; day: number } | null {
+  const dateOnly = typeof value === 'string' ? DATE_ONLY.exec(value) : null;
+
+  if (dateOnly) {
+    return { year: Number(dateOnly[1]), month: Number(dateOnly[2]), day: Number(dateOnly[3]) };
+  }
+
   const date = toDate(value);
 
-  if (!date) return null;
+  return date ? localDay(date, timezone) : null;
+}
 
-  const { year, month, day } = localDay(date, timezone);
+function dateBucket(value: unknown, operation: DateOperation, timezone: string): string | null {
+  const calendar = calendarDay(value, timezone);
+
+  if (!calendar) return null;
+
+  const { year, month, day } = calendar;
 
   switch (operation) {
     case 'Year':
