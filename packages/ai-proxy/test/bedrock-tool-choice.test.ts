@@ -29,16 +29,17 @@ describe('bedrock tool_choice contract', () => {
     'eu.anthropic.claude-haiku-4-5-20251001-v1:0',
     'us.anthropic.claude-opus-4-5-v1:0',
     'eu.anthropic.claude-sonnet-4-6-v1:0',
+    'eu.anthropic.claude-fable-5-1-v1:0',
   ])('resolves the forced tool call the executor makes on every AI step: %s', model => {
     expect(toolChoiceFor(model)).toEqual({ any: {} });
   });
 
-  // The negative control: without the override LangChain rejects claude-5 client-side, from a
-  // hardcoded family list it has not updated. Delete the override and this test goes green while
+  // The negative control: without the override LangChain rejects a model family client-side, from a
+  // hardcoded list it has not updated. It follows the newest family LangChain does not know yet. Delete the override and this test goes green while
   // the one above goes red, which is the pair that documents why the option exists.
   it('fails without the override, which is why supportsToolChoiceValues is set', () => {
     const bare = new ChatBedrockConverse({
-      model: 'eu.anthropic.claude-sonnet-5-v1:0',
+      model: 'eu.anthropic.claude-fable-5-1-v1:0',
       region: 'eu-west-3',
     }) as unknown as { invocationParams: (o: unknown) => unknown };
 

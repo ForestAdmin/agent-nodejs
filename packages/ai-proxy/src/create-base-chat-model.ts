@@ -3,8 +3,8 @@ import type { BaseChatModel } from '@langchain/core/language_models/chat_models'
 
 import { ChatAnthropic } from '@langchain/anthropic';
 import { ChatBedrockConverse } from '@langchain/aws';
-import { ChatOpenAI } from '@langchain/openai';
 
+import createOpenAIChatModel from './create-openai-chat-model';
 import { AIBadRequestError } from './errors';
 
 // LangChain infers tool_choice support from a hardcoded family list (claude-3/4, mistral-large)
@@ -36,7 +36,7 @@ export function createBaseChatModel(config: AiConfiguration): BaseChatModel {
   if (config.provider === 'openai') {
     const { provider, name, ...opts } = config;
 
-    return new ChatOpenAI({ maxRetries: 0, ...opts });
+    return createOpenAIChatModel({ maxRetries: 0, ...opts });
   }
 
   if (config.provider === 'anthropic') {

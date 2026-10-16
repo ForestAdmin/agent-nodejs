@@ -84,18 +84,52 @@ describe('LangChainAdapter', () => {
       );
     });
 
-    it('should throw AIBadRequestError for invalid JSON in tool_calls arguments', () => {
-      expect(() =>
-        LangChainAdapter.convertMessages([
-          {
-            role: 'assistant',
-            content: '',
-            tool_calls: [{ id: 'call_1', function: { name: 'my_tool', arguments: 'not-json' } }],
-          },
-        ]),
-      ).toThrow(
-        new AIBadRequestError("Invalid JSON in tool_calls arguments for tool 'my_tool': not-json"),
-      );
+    it('should keep a tool call whose arguments are not valid JSON, with empty arguments', () => {
+      const [message] = LangChainAdapter.convertMessages([
+        {
+          role: 'assistant',
+          content: '',
+          tool_calls: [{ id: 'call_1', function: { name: 'my_tool', arguments: 'not-json' } }],
+        },
+      ]);
+
+      expect((message as AIMessage).tool_calls).toEqual([
+        { id: 'call_1', name: 'my_tool', args: {} },
+      ]);
+    });
+  });
+
+  describe('withParsableToolArguments', () => {
+    it('should replace tool call arguments that are not valid JSON with an empty object', () => {
+      const messages = LangChainAdapter.withParsableToolArguments([
+        { role: 'user', content: 'hi' },
+        {
+          role: 'assistant',
+          content: '',
+          tool_calls: [
+            { id: 'call_1', type: 'function', function: { name: 'a', arguments: '{"city":' } },
+            { id: 'call_2', type: 'function', function: { name: 'b', arguments: '{"x":1}' } },
+          ],
+        },
+      ]);
+
+      expect(messages[1]).toEqual({
+        role: 'assistant',
+        content: '',
+        tool_calls: [
+          { id: 'call_1', type: 'function', function: { name: 'a', arguments: '{}' } },
+          { id: 'call_2', type: 'function', function: { name: 'b', arguments: '{"x":1}' } },
+        ],
+      });
+    });
+
+    it('should leave messages without tool calls untouched', () => {
+      const input = [
+        { role: 'user', content: 'hi' },
+        { role: 'tool', tool_call_id: 'c', content: 'x' },
+      ];
+
+      expect(LangChainAdapter.withParsableToolArguments(input)).toEqual(input);
     });
   });
 
@@ -179,6 +213,67 @@ describe('LangChainAdapter', () => {
       const response = LangChainAdapter.convertResponse(aiMessage, 'claude-3-5-sonnet-latest');
 
       expect(response.choices[0].message.content).toBeNull();
+    });
+
+    it('should keep an invalid tool call, with the raw arguments, as a tool call', () => {
+      const response = LangChainAdapter.convertResponse(
+        new AIMessage({
+          content: '',
+          invalid_tool_calls: [
+            {
+              type: 'invalid_tool_call',
+              id: 'call_9',
+              name: 'calculate',
+              args: '{"a":',
+              error: 'x',
+            },
+          ],
+        }),
+        'gpt-6-luna',
+      );
+
+      expect(response.choices[0]).toMatchObject({
+        finish_reason: 'tool_calls',
+        message: {
+          tool_calls: [
+            {
+              id: 'call_9',
+              type: 'function',
+              function: { name: 'calculate', arguments: '{"a":' },
+            },
+          ],
+        },
+      });
+    });
+
+    it('should generate an id and keep empty strings for an invalid tool call without any', () => {
+      const response = LangChainAdapter.convertResponse(
+        new AIMessage({
+          content: '',
+          invalid_tool_calls: [{ type: 'invalid_tool_call', error: 'x' }],
+        }),
+        null,
+      );
+
+      expect(response.choices[0].message.tool_calls).toEqual([
+        {
+          id: expect.stringMatching(/^call_/),
+          type: 'function',
+          function: { name: '', arguments: '' },
+        },
+      ]);
+    });
+
+    it('should not add token details when the provider reports none', () => {
+      const response = LangChainAdapter.convertResponse(
+        new AIMessage({
+          content: 'x',
+          usage_metadata: { input_tokens: 1, output_tokens: 2, total_tokens: 3 },
+        }),
+        'm',
+      );
+
+      expect(response.usage).toEqual({ prompt_tokens: 1, completion_tokens: 2, total_tokens: 3 });
     });
 
     it('should convert tool_calls to OpenAI format with finish_reason "tool_calls"', () => {
