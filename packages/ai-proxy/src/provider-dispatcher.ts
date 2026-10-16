@@ -103,7 +103,9 @@ export default class ProviderDispatcher {
     let response: AIMessage;
 
     try {
-      response = await model.invoke(messages as BaseMessageLike[]);
+      response = await model.invoke(
+        LangChainAdapter.withParsableToolArguments(messages) as BaseMessageLike[],
+      );
     } catch (error) {
       throw ProviderDispatcher.wrapProviderError(error, 'OpenAI');
     }

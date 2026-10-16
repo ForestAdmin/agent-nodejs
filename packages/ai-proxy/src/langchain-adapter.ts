@@ -85,10 +85,7 @@ export class LangChainAdapter {
                 tool_calls: msg.tool_calls.map(tc => ({
                   id: tc.id,
                   name: tc.function.name,
-                  args: LangChainAdapter.parseToolArguments(
-                    tc.function.name,
-                    tc.function.arguments,
-                  ),
+                  args: LangChainAdapter.parseToolArguments(tc.function.arguments),
                 })),
               }),
             );
@@ -232,13 +229,43 @@ export class LangChainAdapter {
     return null;
   }
 
-  private static parseToolArguments(toolName: string, args: string): Record<string, unknown> {
+  // Arguments that are not valid JSON are what a relayed invalid tool call leaves in the history,
+  // and the next turn must still go through.
+  private static parseToolArguments(args: string): Record<string, unknown> {
     try {
       return JSON.parse(args);
     } catch {
-      throw new AIBadRequestError(
-        `Invalid JSON in tool_calls arguments for tool '${toolName}': ${args}`,
-      );
+      return {};
+    }
+  }
+
+  /** Replace tool call arguments that are not valid JSON, so the provider's SDK accepts the history. */
+  static withParsableToolArguments<T>(messages: T[]): T[] {
+    return messages.map(message => {
+      const { tool_calls: toolCalls } = message as { tool_calls?: unknown };
+
+      if (!Array.isArray(toolCalls)) return message;
+
+      return {
+        ...message,
+        tool_calls: toolCalls.map(toolCall => {
+          const args = toolCall?.function?.arguments;
+
+          if (typeof args !== 'string' || LangChainAdapter.isJson(args)) return toolCall;
+
+          return { ...toolCall, function: { ...toolCall.function, arguments: '{}' } };
+        }),
+      };
+    });
+  }
+
+  private static isJson(value: string): boolean {
+    try {
+      JSON.parse(value);
+
+      return true;
+    } catch {
+      return false;
     }
   }
 }
