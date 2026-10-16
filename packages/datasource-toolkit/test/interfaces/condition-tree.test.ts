@@ -4,6 +4,7 @@ import ConditionTreeFactory from '../../src/interfaces/query/condition-tree/fact
 import ConditionTreeBranch from '../../src/interfaces/query/condition-tree/nodes/branch';
 import ConditionTreeLeaf from '../../src/interfaces/query/condition-tree/nodes/leaf';
 import CollectionUtils from '../../src/utils/collection';
+import RecordUtils from '../../src/utils/record';
 import * as factories from '../__factories__';
 
 describe('ConditionTree', () => {
@@ -494,6 +495,20 @@ describe('ConditionTree', () => {
           1, 2,
         ]);
       });
+
+      test.each(['NotContains', 'IContains'] as const)(
+        'should read the field of each record once with %s',
+        operator => {
+          const getFieldValue = jest.spyOn(RecordUtils, 'getFieldValue');
+          const leaf = new ConditionTreeLeaf('title', operator, 'alpha');
+
+          leaf.apply(records, collection, 'Europe/Paris');
+          const calls = getFieldValue.mock.calls.length;
+          getFieldValue.mockRestore();
+
+          expect(calls).toBe(records.length);
+        },
+      );
 
       test('should resolve the field schema the same number of times whatever the record count', () => {
         const filterTree = new ConditionTreeBranch('And', [

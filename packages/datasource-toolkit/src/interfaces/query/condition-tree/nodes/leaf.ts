@@ -20,7 +20,8 @@ export type AsyncLeafReplacer = LeafHandler<Promise<ConditionTree | PlainConditi
 export type LeafTester = LeafHandler<boolean>;
 export type LeafCallback = LeafHandler<void>;
 
-type FieldMatcher = (record: RecordData, fieldValue: unknown) => boolean;
+type RecordMatcher = (record: RecordData) => boolean;
+type ValueMatcher = (fieldValue: unknown) => boolean;
 
 const SUPPORTED_OPERATORS = new Set<Operator>([
   'In',
@@ -108,13 +109,12 @@ export default class ConditionTreeLeaf extends ConditionTree {
     collection: Collection,
     timezone: string,
   ): (record: RecordData) => boolean {
-    let evaluate: FieldMatcher;
+    let evaluate: RecordMatcher;
 
     return record => {
-      const fieldValue = RecordUtils.getFieldValue(record, this.field);
-      evaluate ??= this.resolveFieldMatcher(collection, timezone);
+      evaluate ??= this.resolveRecordMatcher(collection, timezone);
 
-      return evaluate(record, fieldValue);
+      return evaluate(record);
     };
   }
 
@@ -122,52 +122,10 @@ export default class ConditionTreeLeaf extends ConditionTree {
     return this.createMatcher(collection, timezone)(record);
   }
 
-  private resolveFieldMatcher(collection: Collection, timezone: string): FieldMatcher {
+  private resolveRecordMatcher(collection: Collection, timezone: string): RecordMatcher {
     const { columnType } = CollectionUtils.getFieldSchema(collection, this.field) as ColumnSchema;
-    const { value } = this;
 
     switch (this.operator) {
-      case 'In':
-        return (_, fieldValue) => (value as unknown[])?.includes(fieldValue);
-      case 'Equal':
-        return (_, fieldValue) => fieldValue == value; // eslint-disable-line eqeqeq
-      case 'LessThan':
-        return (_, fieldValue) => fieldValue < value;
-      case 'GreaterThan':
-        return (_, fieldValue) => fieldValue > value;
-      case 'LessThanOrEqual':
-        return (_, fieldValue) => fieldValue <= value;
-      case 'GreaterThanOrEqual':
-        return (_, fieldValue) => fieldValue >= value;
-
-      case 'Match':
-        return (_, fieldValue) => {
-          if (typeof fieldValue !== 'string') return false;
-
-          // `test` on a global or sticky regexp is stateful through `lastIndex`.
-          (value as RegExp).lastIndex = 0;
-
-          return (value as RegExp).test(fieldValue);
-        };
-
-      case 'StartsWith':
-        return (_, fieldValue) =>
-          typeof fieldValue === 'string' && fieldValue.startsWith(value as string);
-      case 'EndsWith':
-        return (_, fieldValue) =>
-          typeof fieldValue === 'string' && fieldValue.endsWith(value as string);
-      case 'LongerThan':
-        return (_, fieldValue) =>
-          typeof fieldValue === 'string' ? fieldValue.length > (value as number) : false;
-      case 'ShorterThan':
-        return (_, fieldValue) =>
-          typeof fieldValue === 'string' ? fieldValue.length < (value as number) : false;
-      case 'IncludesAll':
-        return (_, fieldValue) =>
-          !!(value as unknown[])?.every(v => (fieldValue as unknown[])?.includes(v));
-      case 'IncludesNone':
-        return (_, fieldValue) =>
-          !(value as unknown[])?.some(v => (fieldValue as unknown[])?.includes(v));
       case 'NotIn':
       case 'NotEqual':
       case 'NotContains':
@@ -175,6 +133,10 @@ export default class ConditionTreeLeaf extends ConditionTree {
         return this.createInverseMatcher(collection, timezone);
 
       default: {
+        const matchValue = this.resolveValueMatcher();
+
+        if (matchValue) return record => matchValue(RecordUtils.getFieldValue(record, this.field));
+
         const equivalent = ConditionTreeEquivalent.getEquivalentTree(
           this,
           SUPPORTED_OPERATORS,
@@ -187,7 +149,56 @@ export default class ConditionTreeLeaf extends ConditionTree {
     }
   }
 
-  private createInverseMatcher(collection: Collection, timezone: string): FieldMatcher {
+  private resolveValueMatcher(): ValueMatcher | null {
+    const { value } = this;
+
+    switch (this.operator) {
+      case 'In':
+        return fieldValue => (value as unknown[])?.includes(fieldValue);
+      case 'Equal':
+        return fieldValue => fieldValue == value; // eslint-disable-line eqeqeq
+      case 'LessThan':
+        return fieldValue => fieldValue < value;
+      case 'GreaterThan':
+        return fieldValue => fieldValue > value;
+      case 'LessThanOrEqual':
+        return fieldValue => fieldValue <= value;
+      case 'GreaterThanOrEqual':
+        return fieldValue => fieldValue >= value;
+
+      case 'Match':
+        return fieldValue => {
+          if (typeof fieldValue !== 'string') return false;
+
+          // `test` on a global or sticky regexp is stateful through `lastIndex`.
+          (value as RegExp).lastIndex = 0;
+
+          return (value as RegExp).test(fieldValue);
+        };
+
+      case 'StartsWith':
+        return fieldValue =>
+          typeof fieldValue === 'string' && fieldValue.startsWith(value as string);
+      case 'EndsWith':
+        return fieldValue => typeof fieldValue === 'string' && fieldValue.endsWith(value as string);
+      case 'LongerThan':
+        return fieldValue =>
+          typeof fieldValue === 'string' ? fieldValue.length > (value as number) : false;
+      case 'ShorterThan':
+        return fieldValue =>
+          typeof fieldValue === 'string' ? fieldValue.length < (value as number) : false;
+      case 'IncludesAll':
+        return fieldValue =>
+          !!(value as unknown[])?.every(v => (fieldValue as unknown[])?.includes(v));
+      case 'IncludesNone':
+        return fieldValue =>
+          !(value as unknown[])?.some(v => (fieldValue as unknown[])?.includes(v));
+      default:
+        return null;
+    }
+  }
+
+  private createInverseMatcher(collection: Collection, timezone: string): RecordMatcher {
     const inverse = this.inverse().createMatcher(collection, timezone);
 
     return record => !inverse(record);
