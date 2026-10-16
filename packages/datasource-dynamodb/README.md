@@ -142,9 +142,20 @@ createDynamoDBDataSource({
 });
 ```
 
-Each element of the array becomes a record, identified by the key of its parent and its `index` in
-the array. Creating appends, updating sets the element's attributes, and deleting removes it, so the
-index of the following elements shifts.
+Each element of the array becomes a record, identified by the key of the table item and its `index`
+in the array. Creating appends, updating sets the element's attributes, and deleting removes it, so
+the index of the following elements shifts.
+
+`arrayField` can point inside a map (`'meta->items'`). An array of an array is a collection whose
+parent is the first one, declared after it: the position in the outer array becomes a key column
+named `<parent>Index`, and creating an inner element needs it.
+
+```ts
+virtualCollections: [
+  { parentCollection: 'orders', collectionName: 'order_lines', arrayField: 'lines' },
+  { parentCollection: 'order_lines', collectionName: 'line_parts', arrayField: 'parts' },
+];
+```
 
 ## Native queries
 

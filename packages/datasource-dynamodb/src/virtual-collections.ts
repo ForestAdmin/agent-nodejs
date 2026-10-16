@@ -17,11 +17,12 @@ const SAMPLING_CALLER = { timezone: 'UTC' } as Caller;
 
 /** The attributes of an item come from the schema when it declares them, else from a sample. */
 async function itemSchemaOf(
-  parent: DynamoDBCollection,
+  parent: DynamoDBCollection | ArrayCollection,
   arrayField: string,
   sampleSize: number,
 ): Promise<Record<string, AttributeSchema>> {
-  const declared = parent.model.schema[arrayField]?.items;
+  const declared =
+    parent instanceof ArrayCollection ? undefined : parent.model.schema[arrayField]?.items;
 
   if (declared) return declared;
 
@@ -50,10 +51,6 @@ export default async function addVirtualCollections(
   for (const config of configs) {
     try {
       const parent = dataSource.getCollection(config.parentCollection);
-
-      if (parent instanceof ArrayCollection) {
-        throw new Error('an array of an array cannot be exposed');
-      }
 
       // eslint-disable-next-line no-await-in-loop
       const itemSchema = await itemSchemaOf(parent, config.arrayField, sampleSize);

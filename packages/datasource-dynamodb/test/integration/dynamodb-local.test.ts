@@ -90,11 +90,12 @@ run('DynamoDB Local', () => {
       createdAt: `2024-0${(i % 3) + 1}-15T10:00:00Z`,
       tags: new Set(['a']),
       ...(i === 0 ? { address: { city: 'Paris' } } : {}),
+      ...(i === 2 ? { meta: { items: [{ x: 1 }, { x: 2 }] } } : {}),
       ...(i === 1
         ? {
             lines: [
-              { sku: 'A', qty: 1 },
-              { sku: 'B', qty: 2 },
+              { sku: 'A', qty: 1, parts: [{ n: 1 }, { n: 2 }] },
+              { sku: 'B', qty: 2, parts: [{ n: 3 }] },
             ],
           }
         : {}),
@@ -141,6 +142,8 @@ run('DynamoDB Local', () => {
           }),
       virtualCollections: [
         { parentCollection: 'orders', collectionName: 'order_lines', arrayField: 'lines' },
+        { parentCollection: 'order_lines', collectionName: 'line_parts', arrayField: 'parts' },
+        { parentCollection: 'orders', collectionName: 'meta_items', arrayField: 'meta->items' },
       ],
       liveQueryConnection: 'dynamo',
       chartCacheTtlMs: 0,
@@ -448,6 +451,79 @@ run('DynamoDB Local', () => {
   });
 
   describe('virtual array collection', () => {
+    it('lists, updates, appends to and deletes the items of an array inside an array', async () => {
+      const parts = dataSource.getCollection('line_parts');
+      const order = tree({
+        aggregator: 'And',
+        conditions: [
+          { field: 'customerId', operator: 'Equal', value: 'c1' },
+          { field: 'orderId', operator: 'Equal', value: 'o01' },
+        ],
+      });
+      const read = () =>
+        parts.list(
+          caller,
+          new PaginatedFilter({ conditionTree: order }),
+          new Projection('order_linesIndex', 'index', 'n'),
+        );
+
+      expect(await read()).toEqual([
+        { order_linesIndex: 0, index: 0, n: 1 },
+        { order_linesIndex: 0, index: 1, n: 2 },
+        { order_linesIndex: 1, index: 0, n: 3 },
+      ]);
+
+      await parts.update(caller, new Filter({ conditionTree: leaf('n', 'Equal', 3) }), { n: 9 });
+      const created = await parts.create(caller, [
+        { customerId: 'c1', orderId: 'o01', order_linesIndex: 1, n: 4 },
+      ]);
+      await parts.delete(
+        caller,
+        new Filter({
+          conditionTree: ConditionTreeFactory.intersect(order, leaf('n', 'Equal', 1)),
+        }),
+      );
+
+      expect(created).toEqual([
+        { customerId: 'c1', orderId: 'o01', order_linesIndex: 1, index: 1, n: 4 },
+      ]);
+      expect(await read()).toEqual([
+        { order_linesIndex: 0, index: 0, n: 2 },
+        { order_linesIndex: 1, index: 0, n: 9 },
+        { order_linesIndex: 1, index: 1, n: 4 },
+      ]);
+    });
+
+    it('exposes an array held in a nested map', async () => {
+      const items = dataSource.getCollection('meta_items');
+      const order = tree({
+        aggregator: 'And',
+        conditions: [
+          { field: 'customerId', operator: 'Equal', value: 'c1' },
+          { field: 'orderId', operator: 'Equal', value: 'o02' },
+        ],
+      });
+      const read = () =>
+        items.list(
+          caller,
+          new PaginatedFilter({ conditionTree: order }),
+          new Projection('index', 'x'),
+        );
+
+      await items.update(caller, new Filter({ conditionTree: leaf('x', 'Equal', 2) }), { x: 7 });
+      const [created] = await items.create(caller, [{ customerId: 'c1', orderId: 'o02', x: 3 }]);
+      await items.delete(
+        caller,
+        new Filter({ conditionTree: ConditionTreeFactory.intersect(order, leaf('x', 'Equal', 1)) }),
+      );
+
+      expect(created.index).toBe(2);
+      expect(await read()).toEqual([
+        { index: 0, x: 7 },
+        { index: 1, x: 3 },
+      ]);
+    });
+
     it('lists, updates and deletes the items of an array', async () => {
       const lines = dataSource.getCollection('order_lines');
       const parent = ConditionTreeFactory.fromPlainObject({

@@ -311,3 +311,123 @@ describe('ArrayCollection', () => {
     });
   });
 });
+
+describe('ArrayCollection of an array', () => {
+  const nested = [
+    {
+      customerId: 'c1',
+      orderId: 'o1',
+      lines: [
+        { sku: 'A', parts: [{ n: 1 }, { n: 2 }] },
+        { sku: 'B', parts: [{ n: 3 }] },
+      ],
+    },
+  ];
+
+  function buildNested(handlers: Record<string, any>) {
+    const parent = buildCollection(
+      buildModel({
+        schema: {
+          customerId: { type: 'string' },
+          orderId: { type: 'string' },
+          lines: { type: 'array' },
+        },
+      }),
+      handlers,
+      { scanConcurrency: 1 },
+    );
+    const lines = new ArrayCollection({} as DataSource, parent.collection, {
+      name: 'order_lines',
+      arrayField: 'lines',
+      itemSchema: { sku: { type: 'string' }, parts: { type: 'array' } },
+    });
+    const parts = new ArrayCollection({} as DataSource, lines, {
+      name: 'parts',
+      arrayField: 'parts',
+      itemSchema: { n: { type: 'number' } },
+    });
+
+    return { parts, client: parent.client };
+  }
+
+  it('is keyed by the table key and the position in each array', () => {
+    const { parts } = buildNested({});
+
+    expect(
+      Object.entries(parts.schema.fields)
+        .filter(([, field]) => field.type === 'Column' && field.isPrimaryKey)
+        .map(([name]) => name),
+    ).toEqual(['customerId', 'orderId', 'order_linesIndex', 'index']);
+  });
+
+  it('lists the elements of every inner array', async () => {
+    const { parts } = buildNested({ Scan: () => ({ Items: nested }) });
+
+    const records = await parts.list(
+      caller,
+      new PaginatedFilter({}),
+      new Projection('order_linesIndex', 'index', 'n'),
+    );
+
+    expect(records).toEqual([
+      { order_linesIndex: 0, index: 0, n: 1 },
+      { order_linesIndex: 0, index: 1, n: 2 },
+      { order_linesIndex: 1, index: 0, n: 3 },
+    ]);
+  });
+
+  it('sets an attribute of an inner element through the path of both arrays', async () => {
+    const { parts, client } = buildNested({
+      Scan: () => ({ Items: nested }),
+      Update: () => ({}),
+    });
+
+    await parts.update(caller, new Filter({ conditionTree: leaf('n', 'Equal', 3) }), { n: 9 });
+
+    expect(client.calls('Update')[0]).toMatchObject({
+      Key: { customerId: 'c1', orderId: 'o1' },
+      UpdateExpression: 'SET #n0[1].#n1[0].#n2 = :v0',
+      ExpressionAttributeNames: { '#n0': 'lines', '#n1': 'parts', '#n2': 'n' },
+      ExpressionAttributeValues: { ':v0': 9 },
+    });
+  });
+
+  it('removes inner elements, highest positions first', async () => {
+    const { parts, client } = buildNested({
+      Scan: () => ({ Items: nested }),
+      Update: () => ({}),
+    });
+
+    await parts.delete(caller, new Filter({}));
+
+    expect(client.calls('Update')[0].UpdateExpression).toBe(
+      'REMOVE #n0[1].#n1[0], #n0[0].#n1[1], #n0[0].#n1[0]',
+    );
+  });
+
+  it('appends to the inner array of an existing outer element', async () => {
+    const { parts, client } = buildNested({
+      Update: () => ({ Attributes: { lines: [{ parts: [{ n: 3 }, { n: 4 }] }] } }),
+    });
+
+    const created = await parts.create(caller, [
+      { customerId: 'c1', orderId: 'o1', order_linesIndex: 1, n: 4 },
+    ]);
+
+    expect(created).toEqual([
+      { customerId: 'c1', orderId: 'o1', order_linesIndex: 1, index: 1, n: 4 },
+    ]);
+    expect(client.calls('Update')[0]).toMatchObject({
+      UpdateExpression: 'SET #n0[1].#n1 = list_append(if_not_exists(#n0[1].#n1, :v0), :v1)',
+      ConditionExpression: 'attribute_exists(#k0) AND attribute_exists(#n0[1])',
+    });
+  });
+
+  it('requires the position in the outer array to create', async () => {
+    const { parts } = buildNested({});
+
+    await expect(parts.create(caller, [{ customerId: 'c1', orderId: 'o1', n: 4 }])).rejects.toThrow(
+      "The key attribute 'order_linesIndex' of the parent 'order_lines' is required to create a record in 'parts'",
+    );
+  });
+});
