@@ -1,5 +1,6 @@
 import type { AuditRecord } from './types';
-import type { Sequelize } from 'sequelize';
+
+import { Sequelize } from 'sequelize';
 
 import { REDACTED } from './instrument';
 
@@ -30,7 +31,7 @@ export function fieldsChangedCondition(sequelize: Sequelize, fields: string[]) {
   if (dialect === 'postgres') {
     const keys = fields.map(field => sequelize.escape(field)).join(',');
 
-    return sequelize.literal(
+    return Sequelize.literal(
       `(jsonb_exists_any("previous_values"::jsonb, ARRAY[${keys}]) ` +
         `OR jsonb_exists_any("new_values"::jsonb, ARRAY[${keys}]))`,
     );
@@ -46,13 +47,13 @@ export function fieldsChangedCondition(sequelize: Sequelize, fields: string[]) {
       ];
     });
 
-    return sequelize.literal(`(${tests.join(' OR ')})`);
+    return Sequelize.literal(`(${tests.join(' OR ')})`);
   }
 
   if (dialect === 'mysql' || dialect === 'mariadb') {
     const paths = fields.map(field => sequelize.escape(jsonPath(field))).join(',');
 
-    return sequelize.literal(
+    return Sequelize.literal(
       `(JSON_CONTAINS_PATH(previous_values, 'one', ${paths}) ` +
         `OR JSON_CONTAINS_PATH(new_values, 'one', ${paths}))`,
     );
@@ -69,7 +70,7 @@ export function fieldsChangedCondition(sequelize: Sequelize, fields: string[]) {
     });
 
     // JSON_PATH_EXISTS requires SQL Server 2022+.
-    return sequelize.literal(`(${tests.join(' OR ')})`);
+    return Sequelize.literal(`(${tests.join(' OR ')})`);
   }
 
   throw new Error(`Audit-trail "fields" filter is not supported on dialect "${dialect}"`);
@@ -121,7 +122,7 @@ export function searchCondition(sequelize: Sequelize, term: string) {
     ...VALUE_COLUMNS.map(([, column]) => like(valuesAsText(column), jsonEscaped(term))),
   ];
 
-  return sequelize.literal(`(${clauses.join(' OR ')})`);
+  return Sequelize.literal(`(${clauses.join(' OR ')})`);
 }
 
 /** `fieldsChangedCondition` and `searchCondition`, run on the values as served. */
