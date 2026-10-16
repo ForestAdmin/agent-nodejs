@@ -149,7 +149,7 @@ describe('Case-insensitive search on MSSQL columns with their own collation', ()
   let sequelize: Sequelize;
   let collection: Collection;
 
-  const titles = async (field: string, operator: Operator, value: string) => {
+  const values = async (field: string, operator: Operator, value: string) => {
     const records = await collection.list(
       caller,
       new PaginatedFilter({ conditionTree: new ConditionTreeLeaf(field, operator, value) }),
@@ -158,6 +158,9 @@ describe('Case-insensitive search on MSSQL columns with their own collation', ()
 
     return records.map(record => record[field] as string).sort();
   };
+
+  const people = async () =>
+    collection.list(caller, new PaginatedFilter({}), new Projection('cyrillic', 'french'));
 
   beforeAll(async () => {
     const db = 'forest_test_collation_search';
@@ -194,25 +197,34 @@ describe('Case-insensitive search on MSSQL columns with their own collation', ()
   });
 
   it('should match non-Latin values of a varchar column', async () => {
-    expect(await titles('cyrillic', 'IContains', 'иван')).toEqual(['Иван']);
+    expect(await values('cyrillic', 'IContains', 'иван')).toEqual(['Иван']);
   });
 
   it('should keep the accent-insensitivity of the column collation', async () => {
-    expect(await titles('french', 'IContains', 'cafe')).toEqual(['café']);
+    expect(await values('french', 'IContains', 'cafe')).toEqual(['café']);
   });
 
-  it('should update and delete through a case-insensitive filter on that column', async () => {
+  it('should update the records matching a case-insensitive filter', async () => {
     await collection.update(
       caller,
       new Filter({ conditionTree: new ConditionTreeLeaf('cyrillic', 'IContains', 'иван') }),
       { french: 'renamed' },
     );
-    expect(await titles('french', 'Equal', 'renamed')).toEqual(['renamed']);
 
+    expect(await people()).toEqual(
+      expect.arrayContaining([
+        { cyrillic: 'Иван', french: 'renamed' },
+        { cyrillic: 'Пётр', french: 'thé' },
+      ]),
+    );
+  });
+
+  it('should delete the records not matching a case-insensitive filter', async () => {
     await collection.delete(
       caller,
       new Filter({ conditionTree: new ConditionTreeLeaf('cyrillic', 'NotIContains', 'иван') }),
     );
-    expect(await titles('cyrillic', 'Present', '')).toEqual(['Иван']);
+
+    expect(await values('cyrillic', 'Present', '')).toEqual(['Иван']);
   });
 });
