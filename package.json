@@ -90,7 +90,6 @@
     "**/@langchain/mcp-adapters/@modelcontextprotocol/sdk": "^1.31.0",
     "**/redoc/dompurify": "^3.4.16",
     "**/postcss/source-map-js": "^1.2.2",
-    "**/sanitize-html/htmlparser2": "^10.1.0",
     "proxy-addr": "^2.0.8",
     "**/concurrently/shell-quote": "^1.11.0",
     "**/forest-cli/joi": "^17.13.6",

@@ -45,9 +45,6 @@ const RESOLUTIONS = {
   '**/qs': '>=6.15.2',
   // jsonapi-serializer pins lodash ^4.17.x.
   '**/lodash': '^4.18.0',
-  // sanitize-html >= 2.17.6 bumped htmlparser2 to ^12 (ESM-only); pin to the last 10.x which
-  // ships a CJS entry so the BFF's Jest config (CJS) still loads it.
-  '**/sanitize-html/htmlparser2': '^10.1.0',
 };
 
 function generate(packagesDir, outFile) {
