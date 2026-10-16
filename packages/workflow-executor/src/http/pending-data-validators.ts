@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { deserializeRecordId } from '../adapters/record-id-serializer';
+import { deserializeRecordId } from '../record-id';
 
 // Per-step-type schemas for the userConfirmation payload sent by the front via
 // POST /runs/:runId/trigger. Validated into `execution.userConfirmation`; schemas
