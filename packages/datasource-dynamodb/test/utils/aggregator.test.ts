@@ -184,6 +184,16 @@ describe('StreamingAggregator', () => {
       expect(result).toEqual([{ value: 2, group: { at: '2024-01-15' } }]);
     });
 
+    it('keeps a date without time on its own day whatever the timezone', () => {
+      const result = aggregate(
+        { operation: 'Count', groups: [{ field: 'at', operation: 'Month' }] },
+        [{ at: '2024-01-01' }],
+        { timezone: 'America/Los_Angeles' },
+      );
+
+      expect(result).toEqual([{ value: 1, group: { at: '2024-01-01' } }]);
+    });
+
     it('groups an unparsable date under null', () => {
       const result = aggregate(
         { operation: 'Count', groups: [{ field: 'at', operation: 'Day' }] },
