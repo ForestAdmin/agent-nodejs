@@ -241,10 +241,10 @@ function dateOrdering(satisfies: (actual: DateTime, expected: DateTime) => boole
   };
 }
 
-// Relative to the clock. The end of a window is always excluded; its start is included for a
-// calendar date and excluded for a datetime. That asymmetry is datasource-toolkit's (its time
-// transforms emit GreaterThanOrEqual for a Dateonly column, GreaterThan otherwise), and the list
-// filter runs on it, so the same record answers "today" the same way in both places.
+// Relative to the clock. Every window is half-open, [start, end): its start is included and its end
+// excluded, for a calendar date as for a datetime. That is datasource-toolkit's convention (its time
+// transforms emit GreaterThanOrEqual and LessThan), and the list filter runs on it, so the same
+// record answers "today" the same way in both places.
 type Window = (now: DateTime, value: unknown) => [start: DateTime, end: DateTime] | null;
 
 function days(value: unknown): number | null {
@@ -311,9 +311,8 @@ function within(name: keyof typeof WINDOWS) {
     if (window === null) return false;
 
     const [start, end] = window.map(bound => alignToValueKind(actual, bound));
-    const afterStart = DATE_ONLY.test(actual as string) ? instant >= start : instant > start;
 
-    return afterStart && instant < end;
+    return instant >= start && instant < end;
   };
 }
 
