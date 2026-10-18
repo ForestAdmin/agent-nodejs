@@ -626,6 +626,171 @@ run('DynamoDB Local', () => {
     });
   });
 
+  describe('manual schema', () => {
+    const MANUAL = `manual-${suffix}`;
+    let manual: DataSource;
+    let manualLogger: jest.Mock;
+
+    beforeAll(async () => {
+      await client.send(
+        new CreateTableCommand({
+          TableName: MANUAL,
+          BillingMode: 'PAY_PER_REQUEST',
+          KeySchema: [
+            { AttributeName: 'customerId', KeyType: 'HASH' },
+            { AttributeName: 'orderId', KeyType: 'RANGE' },
+          ],
+          AttributeDefinitions: [
+            { AttributeName: 'customerId', AttributeType: 'S' },
+            { AttributeName: 'orderId', AttributeType: 'S' },
+            { AttributeName: 'status', AttributeType: 'S' },
+            { AttributeName: 'createdAt', AttributeType: 'S' },
+          ],
+          GlobalSecondaryIndexes: [
+            {
+              IndexName: 'by-status',
+              KeySchema: [
+                { AttributeName: 'status', KeyType: 'HASH' },
+                { AttributeName: 'createdAt', KeyType: 'RANGE' },
+              ],
+              Projection: { ProjectionType: 'ALL' },
+            },
+          ],
+        }),
+      );
+
+      await documents.send(
+        new BatchWriteCommand({
+          RequestItems: {
+            [MANUAL]: Array.from({ length: 6 }, (_, i) => ({
+              PutRequest: {
+                Item: {
+                  customerId: 'c1',
+                  orderId: `o${i}`,
+                  status: i % 2 ? 'paid' : 'open',
+                  total: i + 1,
+                  createdAt: `2024-01-0${i + 1}T00:00:00Z`,
+                  shipping: { city: i % 2 ? 'Paris' : 'Austin' },
+                },
+              },
+            })),
+          },
+        }),
+      );
+
+      manualLogger = jest.fn();
+      manual = await createDynamoDBDataSource({
+        client: documents,
+        disableIntrospection: true,
+        schema: {
+          collections: [
+            {
+              name: 'manual_orders',
+              tableName: MANUAL,
+              partitionKey: { name: 'customerId', type: 'string' },
+              sortKey: { name: 'orderId', type: 'string' },
+              indexes: [
+                {
+                  name: 'by-status',
+                  type: 'GSI',
+                  partitionKey: { name: 'status', type: 'string' },
+                  sortKey: { name: 'createdAt', type: 'string' },
+                },
+              ],
+              fields: [
+                { name: 'total', type: 'number' },
+                { name: 'status', type: 'string' },
+                { name: 'createdAt', type: 'date' },
+                { name: 'shipping', type: 'object', fields: [{ name: 'city', type: 'string' }] },
+              ],
+            },
+          ],
+        },
+        chartCacheTtlMs: 0,
+      })(manualLogger, jest.fn());
+    });
+
+    afterAll(async () => {
+      await client.send(new DeleteTableCommand({ TableName: MANUAL })).catch(() => undefined);
+    });
+
+    it('declares the keys, the typed attributes and the flattened nested ones', () => {
+      expect(manual.getCollection('manual_orders').schema.fields).toMatchObject({
+        customerId: { isPrimaryKey: true, columnType: 'String' },
+        orderId: { isPrimaryKey: true, columnType: 'String' },
+        total: { columnType: 'Number' },
+        status: { columnType: 'String' },
+        createdAt: { columnType: 'Date' },
+        'shipping->city': { columnType: 'String' },
+      });
+    });
+
+    it('exposes only the declared collections', () => {
+      expect(manual.collections.map(c => c.name)).toEqual(['manual_orders']);
+    });
+
+    it('reads the declared index and filters on a nested attribute', async () => {
+      manualLogger.mockClear();
+
+      const records = await manual.getCollection('manual_orders').list(
+        caller,
+        new PaginatedFilter({
+          conditionTree: tree({
+            aggregator: 'And',
+            conditions: [
+              { field: 'status', operator: 'Equal', value: 'paid' },
+              { field: 'createdAt', operator: 'GreaterThan', value: '2000-01-01T00:00:00Z' },
+              { field: 'shipping->city', operator: 'Equal', value: 'Paris' },
+            ],
+          }),
+        }),
+        new Projection('orderId', 'shipping->city'),
+      );
+
+      expect(records.map(r => r.orderId).sort()).toEqual(['o1', 'o3', 'o5']);
+      expect(manualLogger).not.toHaveBeenCalledWith(
+        'Warn',
+        expect.stringContaining('Scan on table'),
+      );
+    });
+
+    it('creates, updates and deletes through the declared schema', async () => {
+      const collection = manual.getCollection('manual_orders');
+      const key = tree({
+        aggregator: 'And',
+        conditions: [
+          { field: 'customerId', operator: 'Equal', value: 'c9' },
+          { field: 'orderId', operator: 'Equal', value: 'o1' },
+        ],
+      });
+
+      await collection.create(caller, [
+        { customerId: 'c9', orderId: 'o1', total: 5, 'shipping->city': 'Rome' },
+      ]);
+      await collection.update(caller, new Filter({ conditionTree: key }), {
+        'shipping->city': 'Milan',
+      });
+
+      expect(
+        await collection.list(
+          caller,
+          new PaginatedFilter({ conditionTree: key }),
+          new Projection('total', 'shipping->city'),
+        ),
+      ).toEqual([{ total: 5, 'shipping->city': 'Milan' }]);
+
+      await collection.delete(caller, new Filter({ conditionTree: key }));
+
+      expect(
+        await collection.list(
+          caller,
+          new PaginatedFilter({ conditionTree: key }),
+          new Projection('total'),
+        ),
+      ).toEqual([]);
+    });
+  });
+
   describe('native query', () => {
     it('runs a PartiQL statement with parameters', async () => {
       const rows = await dataSource.executeNativeQuery(
