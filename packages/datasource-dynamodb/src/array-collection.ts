@@ -16,6 +16,7 @@ import {
   ConditionTreeBranch,
   ConditionTreeFactory,
   ConditionTreeLeaf,
+  Page,
   PaginatedFilter as PaginatedFilterClass,
   Projection,
   ValidationError,
@@ -28,6 +29,9 @@ import Serializer from './utils/serializer';
 import compareRecords from './utils/sort';
 
 export const INDEX_FIELD = 'index';
+
+/** Table items read at once when only the first elements of the array are needed. */
+const PARENTS_PER_READ = 100;
 
 /** Expressions are limited to 4 KB by DynamoDB, names and values apart. */
 const MAX_EXPRESSION_LENGTH = 3000;
@@ -151,14 +155,16 @@ export default class ArrayCollection extends BaseCollection {
     filter: PaginatedFilter,
     projection: Projection,
   ): Promise<RecordData[]> {
-    const records = await this.readRecords(caller, filter.conditionTree);
     const sort = filter.sort?.length ? filter.sort : undefined;
-
-    if (sort) records.sort((a, b) => compareRecords(a, b, sort));
-
     const skip = filter.page?.skip ?? 0;
     const limit = filter.page?.limit || undefined;
+    // Without a sort the first records are the first elements: parents are read only as far as
+    // the page needs, instead of the whole table.
+    const wanted = !sort && limit !== undefined ? skip + limit : undefined;
+    const records = await this.readRecords(caller, filter.conditionTree, wanted);
     const { columns } = projection;
+
+    if (sort) records.sort((a, b) => compareRecords(a, b, sort));
 
     return records
       .slice(skip, limit === undefined ? undefined : skip + limit)
@@ -236,7 +242,11 @@ export default class ArrayCollection extends BaseCollection {
   }
 
   /** Reads the parents, then turns each array element into a record and applies the filter. */
-  private async readRecords(caller: Caller, tree?: ConditionTree): Promise<RecordData[]> {
+  private async readRecords(
+    caller: Caller,
+    tree?: ConditionTree,
+    wanted?: number,
+  ): Promise<RecordData[]> {
     // Conditions on the table key narrow the parents read; the rest applies to the elements.
     const onTableKey = conjuncts(tree).filter(
       condition =>
@@ -245,38 +255,48 @@ export default class ArrayCollection extends BaseCollection {
     const { arrayField } = this.chain[this.chain.length - 1];
     const parentColumns = this.parentColumns();
     const ownKeyColumns = this.keyColumns.slice(0, -1);
-    const parents = await this.parent.list(
-      caller,
-      new PaginatedFilterClass({
-        conditionTree: onTableKey.length
-          ? ConditionTreeFactory.intersect(...onTableKey)
-          : undefined,
-      }),
-      new Projection(...parentColumns, arrayField),
-    );
-
+    const parentFilter = onTableKey.length
+      ? ConditionTreeFactory.intersect(...onTableKey)
+      : undefined;
+    const parentProjection = new Projection(...parentColumns, arrayField);
     const records: RecordData[] = [];
 
-    for (const parent of parents) {
-      const elements = parent[arrayField];
+    for (let offset = 0; ; offset += PARENTS_PER_READ) {
+      // eslint-disable-next-line no-await-in-loop
+      const parents = await this.parent.list(
+        caller,
+        new PaginatedFilterClass({
+          conditionTree: parentFilter,
+          ...(wanted === undefined ? {} : { page: new Page(offset, PARENTS_PER_READ) }),
+        }),
+        parentProjection,
+      );
 
-      if (Array.isArray(elements)) {
-        elements.forEach((element, index) => {
-          if (element && typeof element === 'object') {
-            records.push({
-              // The identity comes last: an element's own `index` must not take its place.
-              ...Serializer.flatten(element as Item, this.itemFields),
-              ...Object.fromEntries(
-                ownKeyColumns.map((name, i) => [name, parent[parentColumns[i]]]),
-              ),
-              [INDEX_FIELD]: index,
-            });
-          }
-        });
+      for (const parent of parents) {
+        const elements = parent[arrayField];
+
+        if (Array.isArray(elements)) {
+          elements.forEach((element, index) => {
+            if (element && typeof element === 'object') {
+              const record = {
+                // The identity comes last: an element's own `index` must not take its place.
+                ...Serializer.flatten(element as Item, this.itemFields),
+                ...Object.fromEntries(
+                  ownKeyColumns.map((name, i) => [name, parent[parentColumns[i]]]),
+                ),
+                [INDEX_FIELD]: index,
+              };
+
+              if (!tree || tree.match(record, this, caller.timezone)) records.push(record);
+            }
+          });
+        }
+      }
+
+      if (wanted === undefined || records.length >= wanted || parents.length < PARENTS_PER_READ) {
+        return records;
       }
     }
-
-    return tree ? records.filter(record => tree.match(record, this, caller.timezone)) : records;
   }
 
   private async append(record: RecordData): Promise<RecordData> {

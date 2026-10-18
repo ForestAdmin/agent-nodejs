@@ -4,7 +4,7 @@ import { Filter, PaginatedFilter, Projection } from '@forestadmin/datasource-too
 
 import { buildCollection } from './collection-helpers';
 import { fakeClient } from './fake-client';
-import { buildModel } from './helpers';
+import { buildModel, leaf } from './helpers';
 import { createDynamoDBDataSource } from '../src';
 import ArrayCollection from '../src/array-collection';
 
@@ -190,5 +190,55 @@ describe('native queries', () => {
     await expect(
       dataSource.executeNativeQuery('dynamo', 'SELECT * FROM "Orders" WHERE a = 1', {}),
     ).rejects.toThrow('still has results after 1000 pages');
+  });
+});
+
+describe('listing the elements of an array page by page', () => {
+  const parents = (count: number, sku: (i: number) => string) =>
+    Array.from({ length: count }, (_, i) => ({
+      customerId: 'c1',
+      orderId: `o${String(i).padStart(4, '0')}`,
+      lines: [{ sku: sku(i) }],
+    }));
+
+  it('reads only as many table items as the page needs', async () => {
+    const { collection, client } = build({
+      Scan: () => ({ Items: parents(250, () => 'A') }),
+    });
+
+    const records = await collection.list(
+      caller,
+      new PaginatedFilter({ page: { skip: 0, limit: 3 } as never }),
+      new Projection('sku'),
+    );
+
+    expect(records).toHaveLength(3);
+    expect(client.calls('Scan')).toHaveLength(1);
+    expect(client.calls('Scan')[0].Limit).toBe(100);
+  });
+
+  it('reads the next table items when the first ones do not hold enough matches', async () => {
+    const all = parents(200, i => (i >= 150 ? 'MATCH' : 'A'));
+    const { collection, client } = build({
+      Scan: (input: any) => {
+        const start = input.ExclusiveStartKey
+          ? all.findIndex(item => item.orderId === input.ExclusiveStartKey.orderId) + 1
+          : 0;
+
+        return { Items: all.slice(start, start + 100) };
+      },
+    });
+
+    const records = await collection.list(
+      caller,
+      new PaginatedFilter({
+        conditionTree: leaf('sku', 'Equal', 'MATCH'),
+        page: { skip: 0, limit: 5 } as never,
+      }),
+      new Projection('sku', 'orderId'),
+    );
+
+    expect(records.map(r => r.orderId)).toEqual(['o0150', 'o0151', 'o0152', 'o0153', 'o0154']);
+    expect(client.calls('Scan')).toHaveLength(2);
   });
 });
