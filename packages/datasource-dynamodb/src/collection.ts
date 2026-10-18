@@ -203,7 +203,8 @@ export default class DynamoDBCollection extends BaseCollection {
 
       if (changedKey) {
         throw new ValidationError(
-          `The key attribute '${changedKey[0]}' of '${this.name}' cannot be updated`,
+          `The key attribute '${changedKey[0]}' of '${this.name}' cannot be changed on an existing ` +
+            `record, since DynamoDB keys are immutable: delete the record and create a new one instead`,
         );
       }
 

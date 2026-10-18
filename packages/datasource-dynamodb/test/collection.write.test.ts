@@ -228,7 +228,10 @@ describe('DynamoDBCollection.update', () => {
       collection.update(caller, new Filter({ conditionTree: leaf('id', 'Equal', 'u1') }), {
         id: 'u2',
       }),
-    ).rejects.toThrow("The key attribute 'id' of 'users' cannot be updated");
+    ).rejects.toThrow(
+      "The key attribute 'id' of 'users' cannot be changed on an existing record, " +
+        'since DynamoDB keys are immutable: delete the record and create a new one instead',
+    );
   });
 
   it('accepts a key written with the value it already has', async () => {
