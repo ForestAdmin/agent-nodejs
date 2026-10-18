@@ -3,6 +3,7 @@ import type { DataSource } from '@forestadmin/datasource-toolkit';
 import {
   Aggregation,
   Filter,
+  Page,
   PaginatedFilter,
   Projection,
   Sort,
@@ -27,7 +28,7 @@ const orders = [
   { customerId: 'c3', orderId: 'o3' },
 ];
 
-function build(handlers: Record<string, any>) {
+function build(handlers: Record<string, any>, settings = {}) {
   const parent = buildCollection(
     buildModel({
       schema: {
@@ -37,7 +38,7 @@ function build(handlers: Record<string, any>) {
       },
     }),
     handlers,
-    { scanConcurrency: 1 },
+    { scanConcurrency: 1, ...settings },
   );
   const collection = new ArrayCollection({} as DataSource, parent.collection, {
     name: 'order_lines',
@@ -429,5 +430,49 @@ describe('ArrayCollection of an array', () => {
     await expect(parts.create(caller, [{ customerId: 'c1', orderId: 'o1', n: 4 }])).rejects.toThrow(
       "The key attribute 'order_linesIndex' of the parent 'order_lines' is required to create a record in 'parts'",
     );
+  });
+
+  describe('read budget', () => {
+    it('counts the parents of every page against maxScannedItems', async () => {
+      const parents = Array.from({ length: 1000 }, (_, i) => ({
+        customerId: `c${i}`,
+        orderId: `o${i}`,
+        lines: [{ sku: 'A', qty: 1 }],
+      }));
+      const { collection } = build(
+        {
+          Scan: (input: Record<string, any>) => {
+            const start = input.ExclusiveStartKey
+              ? Number(input.ExclusiveStartKey.orderId.slice(1)) + 1
+              : 0;
+            const items = parents.slice(start, start + (input.Limit ?? parents.length));
+
+            return {
+              Items: items,
+              ...(start + items.length < parents.length
+                ? {
+                    LastEvaluatedKey: {
+                      customerId: items[items.length - 1].customerId,
+                      orderId: items[items.length - 1].orderId,
+                    },
+                  }
+                : {}),
+            };
+          },
+        },
+        { maxScannedItems: 300 },
+      );
+
+      await expect(
+        collection.list(
+          caller,
+          new PaginatedFilter({
+            conditionTree: leaf('sku', 'Equal', 'none'),
+            page: new Page(0, 15),
+          }),
+          new Projection('sku'),
+        ),
+      ).rejects.toThrow(/maxScannedItems is 300/);
+    });
   });
 });

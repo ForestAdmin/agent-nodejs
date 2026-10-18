@@ -22,6 +22,7 @@ import {
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
 
+import { ScanLimitExceededError } from './errors';
 import convertModelToFields from './schema/schema-converter';
 import StreamingAggregator from './utils/aggregator';
 import ExpressionBuilder from './utils/expression-builder';
@@ -260,6 +261,7 @@ export default class ArrayCollection extends BaseCollection {
       : undefined;
     const parentProjection = new Projection(...parentColumns, arrayField);
     const records: RecordData[] = [];
+    let parentsRead = 0;
 
     for (let offset = 0; ; offset += PARENTS_PER_READ) {
       // eslint-disable-next-line no-await-in-loop
@@ -295,6 +297,17 @@ export default class ArrayCollection extends BaseCollection {
 
       if (wanted === undefined || records.length >= wanted || parents.length < PARENTS_PER_READ) {
         return records;
+      }
+
+      // Each page of parents is read with a budget of its own: this one is shared by all of them.
+      parentsRead += parents.length;
+
+      if (parentsRead > this.root.executor.maxScannedItems) {
+        throw new ScanLimitExceededError(
+          `Reading the parents of '${this.name}' stopped after ${parentsRead} items of table ` +
+            `'${this.root.model.tableName}': maxScannedItems is ${this.root.executor.maxScannedItems}. ` +
+            `Narrow the results with filters.`,
+        );
       }
     }
   }

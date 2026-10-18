@@ -282,6 +282,30 @@ describe('DynamoDBCollection.update', () => {
     });
   });
 
+  it('replaces a map the way SET does when it falls back to a client-side rewrite', async () => {
+    const { collection, client } = buildCollection(buildSimpleModel(), {
+      Update: () => {
+        throw Object.assign(
+          new Error('The document path provided in the update expression is invalid for update'),
+          { name: 'ValidationException' },
+        );
+      },
+      Get: () => ({ Item: { id: 'u1', config: { keep: 1, remove: 2 } } }),
+      Put: () => ({}),
+    });
+
+    await collection.update(caller, new Filter({ conditionTree: leaf('id', 'Equal', 'u1') }), {
+      config: { keep: 3 },
+      'address->city': 'Lyon',
+    });
+
+    expect(client.calls('Put')[0].Item).toEqual({
+      id: 'u1',
+      config: { keep: 3 },
+      address: { city: 'Lyon' },
+    });
+  });
+
   it('does not create an item that does not exist', async () => {
     const { collection } = buildCollection(buildSimpleModel(), {
       Update: () => {

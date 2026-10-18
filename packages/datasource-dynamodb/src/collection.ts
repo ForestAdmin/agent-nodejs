@@ -645,9 +645,14 @@ export default class DynamoDBCollection extends BaseCollection {
 
     const keyBuilder = new ExpressionBuilder('k', 'kv');
 
+    // Each entry replaces what is at its path, as a SET does: a map is not merged with the old one.
+    for (const [field, value] of entries) {
+      Serializer.setPath(existing, Serializer.toPathSegments(field), value);
+    }
+
     try {
       await this.executor.put({
-        Item: Serializer.deepMerge(existing, Serializer.unflatten(Object.fromEntries(entries))),
+        Item: existing,
         ConditionExpression: `attribute_exists(${keyBuilder.attribute(
           this.model.partitionKey.name,
         )})`,

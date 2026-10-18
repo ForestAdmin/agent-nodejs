@@ -127,21 +127,4 @@ export default class Serializer {
   static toPathSegments(field: string): string[] {
     return field.split(PATH_SEPARATOR);
   }
-
-  /** Merges `patch` into `item`, recursing into maps only. */
-  static deepMerge(
-    item: Record<string, unknown>,
-    patch: Record<string, unknown>,
-  ): Record<string, unknown> {
-    const merged = { ...item };
-
-    for (const [key, value] of Object.entries(patch)) {
-      merged[key] =
-        isPlainObject(value) && isPlainObject(merged[key])
-          ? Serializer.deepMerge(merged[key] as Record<string, unknown>, value)
-          : value;
-    }
-
-    return merged;
-  }
 }
