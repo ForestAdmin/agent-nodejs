@@ -37,8 +37,36 @@ describe('DynamoDBCollection.create', () => {
     expect(client.calls('Put')[0].Item.id).toBe(created.id);
   });
 
-  it('refuses a record without a sort key', async () => {
+  it('generates a sort key for a string key left empty', async () => {
     const { collection, client } = buildCollection(buildModel(), { Put: () => ({}) });
+
+    const [created] = await collection.create(caller, [{ customerId: 'c1' }]);
+
+    expect(created.orderId).toMatch(/^[0-9a-f-]{36}$/);
+    expect(client.calls('Put')[0].Item).toMatchObject({
+      customerId: 'c1',
+      orderId: created.orderId,
+    });
+  });
+
+  it('prefixes a generated sort key with the entity prefix', async () => {
+    const { collection } = buildCollection(buildModel({ entity: { sortKeyPrefix: 'ORDER#' } }), {
+      Put: () => ({}),
+    });
+
+    const [created] = await collection.create(caller, [{ customerId: 'c1', orderId: '' }]);
+
+    expect(created.orderId).toMatch(/^ORDER#[0-9a-f-]{36}$/);
+  });
+
+  it('refuses a numeric sort key left empty', async () => {
+    const { collection, client } = buildCollection(
+      buildModel({
+        sortKey: { name: 'orderId', type: 'N' },
+        schema: { orderId: { type: 'number' } },
+      }),
+      { Put: () => ({}) },
+    );
 
     await expect(collection.create(caller, [{ customerId: 'c1' }])).rejects.toThrow(
       "The sort key 'orderId' is required to create a record in 'orders'",
@@ -201,6 +229,31 @@ describe('DynamoDBCollection.update', () => {
         id: 'u2',
       }),
     ).rejects.toThrow("The key attribute 'id' of 'users' cannot be updated");
+  });
+
+  it('accepts a key written with the value it already has', async () => {
+    const { collection, client } = buildCollection(buildModel(), { Update: () => ({}) });
+
+    await collection.update(
+      caller,
+      new Filter({
+        conditionTree: and(leaf('customerId', 'Equal', 'c1'), leaf('orderId', 'Equal', 'o1')),
+      }),
+      { customerId: 'c1', status: 'paid' },
+    );
+
+    expect(client.calls('Update')).toHaveLength(1);
+    expect(client.calls('Update')[0].UpdateExpression).not.toContain('customerId');
+  });
+
+  it('writes nothing when the only change is a key it already has', async () => {
+    const { collection, client } = buildCollection(buildSimpleModel(), { Update: () => ({}) });
+
+    await collection.update(caller, new Filter({ conditionTree: leaf('id', 'Equal', 'u1') }), {
+      id: 'u1',
+    });
+
+    expect(client.calls('Update')).toHaveLength(0);
   });
 
   it('merges client-side when the parent map of a nested path does not exist yet', async () => {

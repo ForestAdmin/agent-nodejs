@@ -114,7 +114,9 @@ Types: `string`, `number`, `boolean`, `date` and `dateonly` (ISO 8601 strings), 
 ## Composite keys
 
 The partition key and the sort key are both primary key columns of the collection, so Forest
-identifies a record by the two. A record created without a string partition key gets a UUID.
+identifies a record by the two. A record created without a string partition or sort key gets a UUID (the sort key keeps its
+entity prefix, when there is one), since Forest greys the key fields of the creation form. A
+numeric key has to be supplied.
 Keys cannot be updated.
 
 ## Single-table design

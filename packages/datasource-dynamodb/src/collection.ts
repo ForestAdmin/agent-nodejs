@@ -182,12 +182,6 @@ export default class DynamoDBCollection extends BaseCollection {
       const entries = Object.entries(patch).filter(([, value]) => value !== undefined);
 
       for (const [field] of entries) {
-        if (this.keyNames().includes(field)) {
-          throw new ValidationError(
-            `The key attribute '${field}' of '${this.name}' cannot be updated`,
-          );
-        }
-
         if (field === this.model.entity?.attribute) {
           throw new ValidationError(
             `The attribute '${field}' tells which entity a record of '${this.name}' belongs to, ` +
@@ -199,7 +193,25 @@ export default class DynamoDBCollection extends BaseCollection {
       if (entries.length === 0) return;
 
       const keys = await this.resolveKeys(caller, filter);
-      await this.executor.mapWrites(keys, key => this.updateOne(key, entries));
+      const keyNames = this.keyNames();
+
+      // Forest sets a many-to-one relation by writing its foreign key, which is a key of the
+      // record when the relation follows the table's own keys: writing the value it has is harmless.
+      const changedKey = entries.find(
+        ([field, value]) => keyNames.includes(field) && keys.some(key => key[field] !== value),
+      );
+
+      if (changedKey) {
+        throw new ValidationError(
+          `The key attribute '${changedKey[0]}' of '${this.name}' cannot be updated`,
+        );
+      }
+
+      const writable = entries.filter(([field]) => !keyNames.includes(field));
+
+      if (writable.length === 0) return;
+
+      await this.executor.mapWrites(keys, key => this.updateOne(key, writable));
     } catch (error) {
       throw this.wrap(error, 'update');
     } finally {
@@ -545,9 +557,13 @@ export default class DynamoDBCollection extends BaseCollection {
     }
 
     if (sortKey && isEmptyKey(created[sortKey.name])) {
-      throw new ValidationError(
-        `The sort key '${sortKey.name}' is required to create a record in '${this.name}'`,
-      );
+      if (sortKey.type !== 'S') {
+        throw new ValidationError(
+          `The sort key '${sortKey.name}' is required to create a record in '${this.name}'`,
+        );
+      }
+
+      created[sortKey.name] = `${entity?.sortKeyPrefix ?? ''}${randomUUID()}`;
     }
 
     if (
