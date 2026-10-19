@@ -368,8 +368,9 @@ The cursor follows the direction — `before`, an inclusive upper bound, newest 
 inclusive lower bound, oldest first — and `meta.cursor` hands back the one the walk uses. The bound
 for the other direction is ignored.
 
-**Detail values follow the same rule as the per-record routes:** a caller who can read a collection
-gets its rows with `previousValues` and `newValues`, whatever their permission level. Someone who can
+**Detail values follow the same rule as the per-record routes:** a caller who can read a collection,
+with no scope on it, gets its rows with `previousValues` and `newValues`, whatever their permission
+level. Someone who can
 read the collection can already read each record's history one at a time, so the feed serves the same
 values in aggregate. Who can open the project's Activity Logs at all is decided per team by Forest
 (the `activityLogs` feature a team can be deactivated for), not by this route. The capabilities
@@ -377,11 +378,13 @@ payload advertises the route as `canUseAuditTrailTimeline`, true only when the s
 `listTimeline`, and `canSortAuditTrailTimeline` alongside it: an agent without that flag serves the
 feed newest first whatever `sort` asks. A custom `listTimeline` must honour `order` and `after`.
 
-**Permissions.** Only the collections the caller can read are queried. A collection the caller sees
-only through a **record-level scope is left out entirely**: a scope can't be evaluated across a whole
-timeline without fetching every record it mentions, and the row alone would already reveal that a
-record the caller cannot read exists and was touched. A caller scoped on every collection therefore
-gets an empty timeline.
+**Permissions.** Only the collections the caller can read are queried. A collection the caller's
+team has a **record-level scope on is left out entirely**, whatever the scope's condition, even one
+every record passes: a scope can't be evaluated across a whole timeline without fetching every record
+it mentions. A caller scoped on every collection therefore gets an empty timeline. On the project's
+Activity Logs page, such a collection still shows its Forest activity logs, without diffs, since
+Forest never filtered those by roles or scopes; each record's own history route still serves its
+audit trail.
 
 **Filters** are the per-record route's, minus `fields` (a column name means nothing across
 collections): `userIds`, `operations`, `startDate` / `endDate` / `timezone`, `search`, parsed exactly
