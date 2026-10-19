@@ -1,3 +1,18 @@
+# @forestadmin/workflow-executor [1.34.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.33.2...@forestadmin/workflow-executor@1.34.0) (2026-10-19)
+
+
+### Features
+
+* **workflow-executor:** poll automated inboxes and report segment membership ([#1906](https://github.com/ForestAdmin/agent-nodejs/issues/1906)) ([dd0e5a9](https://github.com/ForestAdmin/agent-nodejs/commit/dd0e5a9f9fe109b46cad1c515fe39120e3f356d7))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.19.0
+
 ## @forestadmin/workflow-executor [1.33.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.33.1...@forestadmin/workflow-executor@1.33.2) (2026-10-16)
 
 
