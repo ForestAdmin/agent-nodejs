@@ -6,7 +6,7 @@ import {
   classifyAgentFailure,
   segmentReadError,
 } from '../../src/adapters/agent-errors';
-import { AgentPortError, SegmentReadError } from '../../src/errors';
+import { AgentPortError, SegmentReadError, WorkflowExecutorError } from '../../src/errors';
 
 const answered = (status: number) => new AgentHttpError(status, {}, '');
 
@@ -53,7 +53,7 @@ describe('segmentReadError', () => {
     const error = segmentReadError('listSegmentRecordIds', cause);
 
     expect(error).toBeInstanceOf(SegmentReadError);
-    expect(error).toBeInstanceOf(AgentPortError);
+    expect(error).not.toBeInstanceOf(WorkflowExecutorError);
     expect(error.message).toBe(
       'Agent port "listSegmentRecordIds" failed: Agent responded with HTTP 500 | agent error: hook crashed',
     );

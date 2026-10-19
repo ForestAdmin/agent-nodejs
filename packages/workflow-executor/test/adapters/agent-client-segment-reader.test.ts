@@ -8,7 +8,7 @@ import type { StepUser } from '../../src/types/execution-context';
 import nock from 'nock';
 
 import AgentClientSegmentReader from '../../src/adapters/agent-client-segment-reader';
-import { AgentPortError, SegmentReadError } from '../../src/errors';
+import { SegmentReadError } from '../../src/errors';
 
 const AGENT_URL = 'https://agent.example.com';
 const AUTH_SECRET = 'auth-secret';
@@ -457,13 +457,13 @@ describe('AgentClientSegmentReader', () => {
       );
     });
 
-    it('should report an agent failure as a port error', async () => {
+    it('should report an agent failure as a segment read error', async () => {
       nock(AGENT_URL)
         .get('/forest/orders')
         .query(true)
         .reply(500, { errors: [{ detail: 'boom' }] });
 
-      await expect(reader.listRecordIds(makeQuery())).rejects.toThrow(AgentPortError);
+      await expect(reader.listRecordIds(makeQuery())).rejects.toThrow(SegmentReadError);
     });
 
     it('should keep the HTTP status of the agent answer on the port error', async () => {

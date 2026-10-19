@@ -346,9 +346,7 @@ export type ServerAutomatedInboxServiceAccountProfile = z.infer<
 export const ServerAutomatedInboxConfigSchema = z.object({
   inboxId: z.string().min(1),
   renderingId: z.number().int().nonnegative().optional(),
-  teamId: z.number().int().nonnegative().optional(),
   workflowId: z.string().min(1).optional(),
-  collectionId: z.string().min(1).optional(),
   collectionName: z.string().min(1),
   primaryKeys: z.array(z.string().min(1)).min(1),
   maxConcurrentRuns: z.number().int().positive(),
@@ -408,17 +406,6 @@ export interface ServerAutomatedInboxSyncRequest {
   candidates: string[];
   readFailure?: ServerAutomatedInboxReadFailure;
 }
-
-export const SERVER_AUTOMATED_INBOX_SYNC_OUTCOMES = [
-  'started',
-  'skipped-active-run',
-  'skipped-assigned',
-  'skipped-cap',
-  'skipped-breaker',
-  'untreated',
-  'cleaned',
-] as const;
-export type ServerAutomatedInboxSyncOutcome = (typeof SERVER_AUTOMATED_INBOX_SYNC_OUTCOMES)[number];
 
 export const ServerAutomatedInboxSyncResponseSchema = z.object({
   results: z.array(

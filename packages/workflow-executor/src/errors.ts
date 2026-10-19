@@ -438,7 +438,8 @@ export class AgentPortError extends WorkflowExecutorError {
 
 export type SegmentReadFailureKind = 'forbidden' | 'unreachable' | 'overloaded' | 'failed';
 
-export class SegmentReadError extends AgentPortError {
+export class SegmentReadError extends Error {
+  readonly cause: unknown;
   readonly failure: SegmentReadFailureKind;
   readonly httpStatus?: number;
   readonly agentDetail?: string;
@@ -453,7 +454,15 @@ export class SegmentReadError extends AgentPortError {
       agentMessage?: string;
     },
   ) {
-    super(operation, cause, details.agentMessage);
+    const causeText = cause instanceof Error ? cause.message : String(cause);
+
+    super(
+      `Agent port "${operation}" failed: ${causeText}${
+        details.agentMessage ? ` | agent error: ${details.agentMessage}` : ''
+      }`,
+    );
+    this.name = 'SegmentReadError';
+    this.cause = cause;
     this.failure = details.failure;
     this.httpStatus = details.httpStatus;
     this.agentDetail = details.agentDetail;
