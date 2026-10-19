@@ -46,4 +46,12 @@ describe('AlwaysErrorAiModelPort', () => {
       await expect(port.closeConnections()).resolves.toBeUndefined();
     });
   });
+
+  // The boot gate is required on the port, and this dev-only adapter holds no credentials: the
+  // no-op has to be explicit so a missing one stays a compile error rather than a silent skip.
+  describe('probeCredentials', () => {
+    it('resolves without error', async () => {
+      await expect(port.probeCredentials()).resolves.toBeUndefined();
+    });
+  });
 });

@@ -420,3 +420,129 @@ describe('closeConnections', () => {
     expect(dispose).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('probeCredentials', () => {
+  const bedrockConfig = {
+    name: 'bedrock',
+    provider: 'bedrock' as const,
+    model: 'eu.anthropic.claude-sonnet-5',
+    region: 'eu-west-1',
+  };
+
+  function mockBedrockModel(credentials: () => Promise<unknown>) {
+    createBaseChatModelMock.mockReturnValue({
+      client: { config: { credentials } },
+    } as unknown as BaseChatModel);
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    createBaseChatModelMock.mockReturnValue({} as BaseChatModel);
+  });
+
+  // The whole point: an AWS profile mounted where the container's user cannot read it resolves
+  // nothing, and without this the executor boots healthy and dies on the first AI step instead.
+  it('refuses to start when the AWS chain resolves no credentials', async () => {
+    mockBedrockModel(
+      jest.fn().mockRejectedValue(new Error('Could not load credentials from any providers')),
+    );
+
+    await expect(
+      new AiClient({ aiConfigurations: [bedrockConfig] }).probeCredentials(),
+    ).rejects.toThrow('no AWS credentials could be resolved');
+  });
+
+  it('passes when the chain resolves', async () => {
+    mockBedrockModel(jest.fn().mockResolvedValue({ accessKeyId: 'AKIA' }));
+
+    await expect(
+      new AiClient({ aiConfigurations: [bedrockConfig] }).probeCredentials(),
+    ).resolves.toBeUndefined();
+  });
+
+  // The assertion that bites: a non-bedrock provider must not even reach model construction.
+  it('does not build a model for a non-bedrock provider', async () => {
+    await new AiClient({
+      aiConfigurations: [{ name: 'o', provider: 'openai', apiKey: 'k', model: 'gpt-4.1' }],
+    }).probeCredentials();
+
+    expect(createBaseChatModelMock).not.toHaveBeenCalled();
+  });
+
+  // The chain's STS legs set no timeout, so this cap is the only thing between a blackholed
+  // egress and a boot that never finishes. Expiry warns rather than fails: a slow chain is not a
+  // wrong one, and failing here would trade a rare misconfiguration for a flaky deploy.
+  it('warns and starts anyway when the chain does not answer in time', async () => {
+    jest.useFakeTimers();
+    mockBedrockModel(jest.fn().mockReturnValue(new Promise(() => {})));
+    const logger = jest.fn() as unknown as Logger;
+
+    const probe = new AiClient({ aiConfigurations: [bedrockConfig], logger }).probeCredentials();
+    jest.advanceTimersByTime(10_000);
+    await probe;
+
+    expect(logger).toHaveBeenCalledWith('Warn', expect.stringContaining('did not resolve within'));
+    jest.useRealTimers();
+  });
+
+  // A Bedrock API key authenticates by bearer token, and LangChain builds the sigv4 provider beside
+  // it — one that rejects by design. Probing it would refuse to boot a deployment that works.
+  it('skips the probe when a bearer token is in use', async () => {
+    createBaseChatModelMock.mockReturnValue({
+      client: {
+        config: {
+          token: jest.fn(),
+          credentials: jest
+            .fn()
+            .mockRejectedValue(new Error('Could not load credentials from any providers')),
+        },
+      },
+    } as unknown as BaseChatModel);
+
+    await expect(
+      new AiClient({ aiConfigurations: [bedrockConfig] }).probeCredentials(),
+    ).resolves.toBeUndefined();
+  });
+
+  // A chain that fails for its own reason must keep that reason: pointing an operator at Docker
+  // file permissions when the real cause is an expired SSO session sends them after nothing.
+  it('keeps the provider diagnosis when the chain fails for a specific reason', async () => {
+    mockBedrockModel(
+      jest.fn().mockRejectedValue(new Error('Profile mfa requires multi-factor authentication')),
+    );
+
+    const error = await new AiClient({ aiConfigurations: [bedrockConfig] }).probeCredentials().then(
+      () => new Error('probe unexpectedly resolved'),
+      (e: Error) => e,
+    );
+
+    expect(error.message).toContain('requires multi-factor authentication');
+    expect(error.message).not.toContain('readable by the');
+  });
+
+  it('probes every bedrock configuration, not just the first', async () => {
+    const second = { ...bedrockConfig, name: 'second' };
+    createBaseChatModelMock.mockImplementation((config: { name: string }) => ({
+      client: {
+        config: {
+          credentials:
+            config.name === 'second'
+              ? jest
+                  .fn()
+                  .mockRejectedValue(new Error('Could not load credentials from any providers'))
+              : jest.fn().mockResolvedValue({ accessKeyId: 'AKIA' }),
+        },
+      },
+    }));
+
+    const error = await new AiClient({ aiConfigurations: [bedrockConfig, second] })
+      .probeCredentials()
+      .then(
+        () => new Error('probe unexpectedly resolved'),
+        (e: Error) => e,
+      );
+
+    expect(error.message).toContain('"second"');
+    expect(createBaseChatModelMock).toHaveBeenCalledTimes(2);
+  });
+});
