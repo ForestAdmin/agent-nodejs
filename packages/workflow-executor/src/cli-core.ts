@@ -14,6 +14,7 @@ import {
 } from './build-workflow-executor';
 import {
   DEFAULT_AI_INVOKE_TIMEOUT_S,
+  DEFAULT_AUTOMATION_POLL_INTERVAL_S,
   DEFAULT_FOREST_SERVER_URL,
   DEFAULT_HTTP_PORT,
   DEFAULT_LOGGER_LEVEL,
@@ -282,6 +283,12 @@ export function readEnvConfig(env: NodeJS.ProcessEnv, args: CliArgs): CliConfig 
     httpPort: parsePositiveIntEnv('HTTP_PORT', env.HTTP_PORT) ?? DEFAULT_HTTP_PORT,
     forestServerUrl: env.FOREST_SERVER_URL,
     pollingIntervalS: parsePositiveIntEnv('POLLING_INTERVAL_S', env.POLLING_INTERVAL_S),
+    // Zero accepted here alone: it is how an operator turns the sweep off, and an environment the
+    // orchestrator refuses would otherwise log an error on every cycle.
+    automationPollingIntervalS:
+      env.AUTOMATION_POLL_INTERVAL_S?.trim() === '0'
+        ? 0
+        : parsePositiveIntEnv('AUTOMATION_POLL_INTERVAL_S', env.AUTOMATION_POLL_INTERVAL_S),
     stopTimeoutS: parsePositiveIntEnv('STOP_TIMEOUT_S', env.STOP_TIMEOUT_S),
     stepTimeoutS: parsePositiveIntEnv('STEP_TIMEOUT_S', env.STEP_TIMEOUT_S),
     aiInvokeTimeoutS: parsePositiveIntEnv('AI_INVOKE_TIMEOUT_S', env.AI_INVOKE_TIMEOUT_S),
@@ -336,6 +343,7 @@ Optional environment variables:
   HTTP_PORT              Default: ${DEFAULT_HTTP_PORT}
   FOREST_SERVER_URL      Default: ${DEFAULT_FOREST_SERVER_URL}
   POLLING_INTERVAL_S    Default: ${DEFAULT_POLLING_INTERVAL_S}
+  AUTOMATION_POLL_INTERVAL_S  How often automated inboxes are swept, in seconds (default: ${DEFAULT_AUTOMATION_POLL_INTERVAL_S})
   STOP_TIMEOUT_S        Default: ${DEFAULT_STOP_TIMEOUT_S}
   STEP_TIMEOUT_S        Max duration of a step in seconds (default: ${DEFAULT_STEP_TIMEOUT_S})
   AI_INVOKE_TIMEOUT_S   Max duration of a single AI provider invocation in seconds (default: ${DEFAULT_AI_INVOKE_TIMEOUT_S})

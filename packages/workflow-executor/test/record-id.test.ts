@@ -1,5 +1,5 @@
-import { deserializeRecordId, serializeRecordId } from '../../src/adapters/record-id-serializer';
-import { RecordIdSerializationError } from '../../src/errors';
+import { RecordIdSerializationError } from '../src/errors';
+import { deserializeRecordId, serializeRecordId } from '../src/record-id';
 
 describe('serializeRecordId', () => {
   it('single id → no pipe', () => {

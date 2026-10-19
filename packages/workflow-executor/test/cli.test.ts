@@ -266,6 +266,29 @@ describe('readEnvConfig', () => {
     expect(config.executorOptions.schemaCacheTtlS).toBe(120000);
   });
 
+  it.each(['0', ' 0 '])(
+    'turns the automation sweep off with AUTOMATION_POLL_INTERVAL_S=%p',
+    value => {
+      expect(
+        readEnvConfig({ ...baseEnv, AUTOMATION_POLL_INTERVAL_S: value }, args).executorOptions
+          .automationPollingIntervalS,
+      ).toBe(0);
+    },
+  );
+
+  it('reads a positive AUTOMATION_POLL_INTERVAL_S as the sweep interval', () => {
+    expect(
+      readEnvConfig({ ...baseEnv, AUTOMATION_POLL_INTERVAL_S: '45' }, args).executorOptions
+        .automationPollingIntervalS,
+    ).toBe(45);
+  });
+
+  it.each(['-1', 'abc', '1.5'])('rejects AUTOMATION_POLL_INTERVAL_S=%p', value => {
+    expect(() => readEnvConfig({ ...baseEnv, AUTOMATION_POLL_INTERVAL_S: value }, args)).toThrow(
+      'AUTOMATION_POLL_INTERVAL_S must be a positive integer',
+    );
+  });
+
   it('leaves schemaCacheTtlS undefined when SCHEMA_CACHE_TTL_S is unset (default applied downstream in build)', () => {
     const config = readEnvConfig(baseEnv, args);
 
