@@ -1,3 +1,10 @@
+# @forestadmin/agent-client [1.19.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.18.3...@forestadmin/agent-client@1.19.0) (2026-10-19)
+
+
+### Features
+
+* **workflow-executor:** poll automated inboxes and report segment membership ([#1906](https://github.com/ForestAdmin/agent-nodejs/issues/1906)) ([dd0e5a9](https://github.com/ForestAdmin/agent-nodejs/commit/dd0e5a9f9fe109b46cad1c515fe39120e3f356d7))
+
 ## @forestadmin/agent-client [1.18.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.18.2...@forestadmin/agent-client@1.18.3) (2026-10-16)
 
 
