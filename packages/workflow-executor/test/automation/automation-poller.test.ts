@@ -549,7 +549,7 @@ describe('AutomationPoller', () => {
       expect(context.automationPort.holdLease).toHaveBeenCalledTimes(4);
       expect(context.automationPort.listAutomatedInboxes).toHaveBeenCalledTimes(1);
       expect(context.logger).toHaveBeenCalledWith(
-        'Error',
+        'Warn',
         'Automation poller lease heartbeat failed',
         expect.objectContaining({ error: expect.stringContaining('orchestrator unreachable') }),
       );
