@@ -346,3 +346,41 @@ describe('GuidanceStepDefinitionSchema executionType', () => {
     ).toBe(false);
   });
 });
+
+describe('the Multiple flag and the condition quantifier', () => {
+  it('keeps the Multiple flag of a Load Related Record step', () => {
+    const parsed = LoadRelatedRecordStepDefinitionSchema.parse({
+      type: StepType.LoadRelatedRecord,
+      preRecordedArgs: { relationName: 'ubos', multiple: true },
+    });
+
+    expect(parsed.preRecordedArgs?.multiple).toBe(true);
+  });
+
+  const conditionWith = (quantifier: unknown) => ({
+    type: StepType.Condition,
+    options: ['Escalate', 'Approve'],
+    preRecordedArgs: {
+      optionConditions: [
+        {
+          option: 'Escalate',
+          aggregator: 'and',
+          conditions: [
+            { sourceStepId: 'get-ubos', fieldName: 'pep', operator: 'present', quantifier },
+          ],
+        },
+      ],
+      fallbackOption: 'Approve',
+    },
+  });
+
+  it.each(['any', 'every', 'none'])('keeps the "%s" quantifier of a condition', quantifier => {
+    const parsed = ConditionStepDefinitionSchema.parse(conditionWith(quantifier));
+
+    expect(parsed.preRecordedArgs?.optionConditions[0].conditions[0].quantifier).toBe(quantifier);
+  });
+
+  it('refuses a quantifier outside any, every and none', () => {
+    expect(ConditionStepDefinitionSchema.safeParse(conditionWith('some')).success).toBe(false);
+  });
+});

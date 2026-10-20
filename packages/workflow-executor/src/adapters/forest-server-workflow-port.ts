@@ -4,6 +4,7 @@ import type {
   AvailableRunDispatch,
   AvailableRunsBatch,
   MalformedRunInfo,
+  RenewRunLockResult,
   WorkflowPort,
 } from '../ports/workflow-port';
 import type { CollectionSchema } from '../types/validated/collection';
@@ -36,6 +37,7 @@ const ROUTES = {
   updateStep: '/api/workflow-orchestrator/update-step',
   executorMetadata: '/api/workflow-orchestrator/executor-metadata',
   releaseRun: '/api/workflow-orchestrator/release-run',
+  renewRunLock: '/api/workflow-orchestrator/renew-run-lock',
   collectionSchema: (collectionName: string, runId: string) =>
     `/api/workflow-orchestrator/collection-schema/${encodeURIComponent(
       collectionName,
@@ -50,6 +52,8 @@ const ROUTES = {
 function stripReferenceKey(name: string | undefined): string | undefined {
   return name?.includes('.') ? name.slice(0, name.lastIndexOf('.')) : name;
 }
+
+const LOCK_REFUSED_STATUS = 409;
 
 const RELEASE_ROUTE_MISSING =
   'The orchestrator cannot take back the runs this executor lets go; they resume once their ' +
@@ -169,6 +173,7 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
   async updateStepExecution(
     runId: string,
     stepOutcome: StepOutcome,
+    options?: { clearsError?: boolean },
   ): Promise<AvailableRunDispatch | null> {
     const run = await this.callPort(
       'updateStepExecution',
@@ -178,7 +183,7 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
           'post',
           ROUTES.updateStep,
           {},
-          toUpdateStepRequest(runId, stepOutcome),
+          toUpdateStepRequest(runId, stepOutcome, options),
         ),
       { retry: true },
     );
@@ -224,6 +229,31 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
         runId,
         error: extractErrorMessage(error),
       });
+    }
+  }
+
+  async renewRunLock(runId: string, lockedAt: string): Promise<RenewRunLockResult> {
+    try {
+      const renewed = await ServerUtils.query<{ lockedAt: string }>(
+        this.options,
+        'post',
+        ROUTES.renewRunLock,
+        {},
+        { runId: Number(runId), lockedAt },
+      );
+
+      return { status: 'renewed', lockedAt: renewed.lockedAt };
+    } catch (error) {
+      if ((error as { status?: number })?.status === LOCK_REFUSED_STATUS) {
+        return { status: 'refused' };
+      }
+
+      this.logger('Warn', 'Failed to renew the lock of a run', {
+        runId,
+        error: extractErrorMessage(error),
+      });
+
+      return { status: 'unavailable' };
     }
   }
 
