@@ -4919,6 +4919,67 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
     const ubo = (id: number) => ({ collectionName: 'ubos', recordId: [id], stepIndex: 0 });
 
+    it('lists the one record a to-one relation leads to, pre-checked', async () => {
+      const ownerSchema = makeCollectionSchema({
+        collectionName: 'companies',
+        fields: [
+          {
+            fieldName: 'owner',
+            displayName: 'Owner',
+            isRelationship: true,
+            relationType: 'BelongsTo',
+            relatedCollectionName: 'ubos',
+          },
+        ],
+      });
+      const { context, runStore } = contextFor(
+        StepExecutionMode.AutomatedWithConfirmation,
+        uboData(1),
+        {
+          workflowPort: makeMockWorkflowPort({ companies: ownerSchema, ubos: uboSchema }),
+          stepDefinition: makeStep({
+            executionType: StepExecutionMode.AutomatedWithConfirmation,
+            preRecordedArgs: {
+              selectedRecordStepId: WORKFLOW_START_STEP_ID,
+              relationName: 'owner',
+              multiple: true,
+            },
+          }),
+        },
+      );
+
+      const result = await new LoadRelatedRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('awaiting-input');
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          pendingData: expect.objectContaining({
+            availableRecordIds: [{ recordId: ['1'], referenceFieldValue: 'UBO 1' }],
+            suggestedRecords: [{ recordId: ['1'], referenceFieldValue: 'UBO 1' }],
+          }),
+        }),
+      );
+    });
+
+    it('lists the candidates with nothing pre-checked when the AI picks a record outside the list', async () => {
+      const { model } = aiPicks([0, 7]);
+      const { context, runStore } = contextFor(
+        StepExecutionMode.AutomatedWithConfirmation,
+        uboData(3),
+        {
+          model,
+        },
+      );
+
+      const result = await new LoadRelatedRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('awaiting-input');
+      const saved = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)[1];
+      expect(saved.pendingData.availableRecordIds).toHaveLength(3);
+      expect(saved.pendingData).not.toHaveProperty('suggestedRecords');
+    });
+
     it('asks for one candidate more than it shows, to tell when the list was cut', async () => {
       const { context, agentPort } = contextFor(StepExecutionMode.Manual, uboData(3));
 
@@ -5162,6 +5223,44 @@ describe('LoadRelatedRecordStepExecutor', () => {
         expect(runStore.saveStepExecution).toHaveBeenLastCalledWith(
           'run-1',
           expect.objectContaining({ executionResult: { skipped: true } }),
+        );
+      });
+
+      it('refuses a confirmation that picks nothing when the AI picked nothing either', async () => {
+        const pending = pendingMultiple();
+        pending.pendingData!.suggestedRecords = undefined;
+        const runStore = makeMockRunStore({
+          getStepExecutions: jest.fn().mockResolvedValue([pending]),
+        });
+        const { context } = contextFor(StepExecutionMode.Manual, uboData(3), {
+          runStore,
+          incomingPendingData: { userConfirmed: true },
+        });
+
+        const result = await new LoadRelatedRecordStepExecutor(context).execute();
+
+        expect(result.stepOutcome.status).toBe('error');
+      });
+
+      it('refuses a confirmation whose relation no longer leads to a collection', async () => {
+        const runStore = makeMockRunStore({
+          getStepExecutions: jest.fn().mockResolvedValue([pendingMultiple()]),
+        });
+        const { context } = contextFor(StepExecutionMode.Manual, uboData(3), {
+          runStore,
+          incomingPendingData: { userConfirmed: true, selectedRecordIds: ['1'] },
+          workflowPort: makeMockWorkflowPort({
+            companies: makeCollectionSchema({ collectionName: 'companies', fields: [] }),
+            ubos: uboSchema,
+          }),
+        });
+
+        const result = await new LoadRelatedRecordStepExecutor(context).execute();
+
+        expect(result.stepOutcome.status).toBe('error');
+        expect(runStore.saveStepExecution).not.toHaveBeenCalledWith(
+          'run-1',
+          expect.objectContaining({ executionResult: expect.anything() }),
         );
       });
 
