@@ -10,8 +10,11 @@ import type {
   AvailableStepExecution,
   ExecutionContext,
   IStepExecutor,
+  RunControl,
   StepExecutionResult,
 } from '../types/execution-context';
+import type { Step } from '../types/validated/execution';
+import type { PerRecordSource } from './per-record-step-executor';
 import type {
   ConditionStepDefinition,
   GuidanceStepDefinition,
@@ -36,11 +39,76 @@ import ConditionStepExecutor from './condition-step-executor';
 import GuidanceStepExecutor from './guidance-step-executor';
 import LoadRelatedRecordStepExecutor from './load-related-record-step-executor';
 import McpStepExecutor from './mcp-step-executor';
+import PerRecordStepExecutor from './per-record-step-executor';
 import ReadRecordStepExecutor from './read-record-step-executor';
 import TriggerRecordActionStepExecutor from './trigger-record-action-step-executor';
 import UpdateRecordStepExecutor from './update-record-step-executor';
-import { StepType } from '../types/validated/step-definition';
+import { StepType, WORKFLOW_START_STEP_ID } from '../types/validated/step-definition';
 import { stepTypeToOutcomeType } from '../types/validated/step-outcome';
+
+export type { RunControl };
+
+// The record steps that run once per record when their source chain starts at a Multiple step.
+const PER_RECORD_STEP_TYPES = [
+  StepType.ReadRecord,
+  StepType.UpdateRecord,
+  StepType.TriggerAction,
+  StepType.LoadRelatedRecord,
+];
+
+function latestLoadStep(step: AvailableStepExecution, stepId: string): Step | undefined {
+  const frame = step.callScope?.currentFrameStepIndexes;
+
+  return step.previousSteps
+    .filter(
+      previous =>
+        previous.stepDefinition.type === StepType.LoadRelatedRecord &&
+        previous.stepOutcome.stepId === stepId &&
+        (frame === undefined || frame.includes(previous.stepOutcome.stepIndex)),
+    )
+    .at(-1);
+}
+
+// A step runs once per record when a Load Related Record set to Multiple sits on its source chain.
+function findPerRecordSource(step: AvailableStepExecution): PerRecordSource | null {
+  if (!PER_RECORD_STEP_TYPES.includes(step.stepDefinition.type)) return null;
+
+  const pinned = step.stepDefinition as { preRecordedArgs?: { selectedRecordStepId?: string } };
+  let stepId = pinned.preRecordedArgs?.selectedRecordStepId;
+  let direct: Step | undefined;
+  const visited = new Set<string>();
+
+  while (stepId !== undefined && stepId !== WORKFLOW_START_STEP_ID && !visited.has(stepId)) {
+    visited.add(stepId);
+    const source = latestLoadStep(step, stepId);
+    if (!source) return null;
+
+    direct ??= source;
+    const sourceArgs = (source.stepDefinition as LoadRelatedRecordStepDefinition).preRecordedArgs;
+    if (sourceArgs?.multiple === true) return { root: source, direct };
+
+    stepId = sourceArgs?.selectedRecordStepId;
+  }
+
+  return null;
+}
+
+function createRecordExecutor(context: ExecutionContext): IStepExecutor {
+  switch (context.stepDefinition.type) {
+    case StepType.ReadRecord:
+      return new ReadRecordStepExecutor(context as ExecutionContext<ReadRecordStepDefinition>);
+    case StepType.UpdateRecord:
+      return new UpdateRecordStepExecutor(context as ExecutionContext<UpdateRecordStepDefinition>);
+    case StepType.TriggerAction:
+      return new TriggerRecordActionStepExecutor(
+        context as ExecutionContext<TriggerActionStepDefinition>,
+      );
+    default:
+      return new LoadRelatedRecordStepExecutor(
+        context as ExecutionContext<LoadRelatedRecordStepDefinition>,
+      );
+  }
+}
 
 export interface StepContextConfig {
   aiModelPort: AiModelPort;
@@ -51,6 +119,7 @@ export interface StepContextConfig {
   logger: Logger;
   stepTimeoutS?: number;
   aiInvokeTimeoutS?: number;
+  runControl?: RunControl;
 }
 
 export default class StepExecutorFactory {
@@ -70,6 +139,11 @@ export default class StepExecutorFactory {
         incomingPendingData,
         forestServerToken,
       );
+      const perRecordSource = findPerRecordSource(step);
+
+      if (perRecordSource) {
+        return new PerRecordStepExecutor(context, perRecordSource, createRecordExecutor);
+      }
 
       switch (step.stepDefinition.type) {
         case StepType.Condition:
@@ -200,6 +274,7 @@ export default class StepExecutorFactory {
       incomingPendingData,
       stepTimeoutS: cfg.stepTimeoutS,
       aiInvokeTimeoutS: cfg.aiInvokeTimeoutS,
+      runControl: cfg.runControl,
     };
   }
 }

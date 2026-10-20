@@ -1,5 +1,6 @@
 import type { ActionFormField } from '../ports/agent-port';
 import type { RecordId, RecordRef } from './validated/collection';
+import type { ErrorKind } from './validated/step-outcome';
 import type {
   LoadRelatedRecordConfirmation,
   McpConfirmation,
@@ -40,6 +41,8 @@ interface ConditionLeafResult {
   index: number;
   met: boolean | null;
   reason?: ConditionNotLoadedReason;
+  // A quantified condition: how many of the records it read matched, out of those it could read.
+  records?: { matched: number; evaluated: number };
 }
 
 // A group carries its own result, so the run view never re-derives the aggregation.
@@ -67,13 +70,26 @@ export interface DeterministicConditionExecutionParams {
   // Without the instant, a check on "previous 7 days" cannot be explained a day later.
   evaluatedAt: string;
   timezone: string;
+  // Set when a condition met records without a value and the operator picked the branch instead.
+  unchecked?: string[];
+  selectedBy?: 'operator';
+}
+
+// A deterministic decision that met records without a value decides nothing: it waits for the
+// operator, naming those records by their serialized source record id.
+export interface PausedConditionExecutionParams {
+  evaluations: ConditionEvaluation[];
+  evaluatedAt: string;
+  timezone: string;
+  unchecked: string[];
 }
 
 export interface ConditionStepExecutionData extends BaseStepExecutionData {
   type: 'condition';
   executionParams:
     | { answer: string | null; reasoning?: string }
-    | DeterministicConditionExecutionParams;
+    | DeterministicConditionExecutionParams
+    | PausedConditionExecutionParams;
   executionResult?: { answer: string };
 }
 
@@ -237,6 +253,10 @@ export interface LoadRelatedRecordPendingData {
   // The AI actively judged no candidate relevant (incl. Full AI degrading to confirmation) → the front
   // pre-checks "No X to load". Distinct from a plain absent suggestedRecord (Manual: the user picks).
   suggestNoRecord?: boolean;
+  // A Multiple step: the AI's pick to pre-check, absent in Manual mode.
+  suggestedRecords?: LoadRelatedRecordCandidate[];
+  // A Multiple step: the list stopped at its cap while the relation holds more records.
+  hasMoreRecords?: true;
 }
 
 export interface LoadRelatedRecordStepExecutionData
@@ -247,7 +267,10 @@ export interface LoadRelatedRecordStepExecutionData
   // Set on every await/load path (and preserved through the user-initiated "continue without" skip).
   selectedRecordRef?: RecordRef;
   executionParams?: RelationRef;
-  executionResult?: { relation: RelationRef; record: RecordRef } | { skipped: true };
+  executionResult?:
+    | { relation: RelationRef; record: RecordRef }
+    | { relation: RelationRef; records: RecordRef[] }
+    | { skipped: true };
 }
 
 // -- Guidance --
@@ -258,6 +281,58 @@ export interface GuidanceStepExecutionData extends BaseStepExecutionData {
   // opens empty, no badge, AI not retried on re-dispatch.
   pendingData?: { userInput?: string; aiGenerated?: boolean };
   executionResult?: { userInput?: string; generatedByAi?: boolean };
+}
+
+// -- A step running once per record --
+
+type PerRecordExecution =
+  | ReadRecordStepExecutionData
+  | UpdateRecordStepExecutionData
+  | TriggerRecordActionStepExecutionData
+  | LoadRelatedRecordStepExecutionData;
+
+type IterationField<K extends string> = PerRecordExecution extends infer E
+  ? E extends unknown
+    ? K extends keyof E
+      ? E[K]
+      : never
+    : never
+  : never;
+
+// One record's run of a step that runs once per record. It holds the fields the step's own
+// execution would, so the single-record executor reads and writes it unchanged.
+export interface StepIteration {
+  // The record the Multiple step loaded, which identifies the iteration across the steps after it.
+  sourceRecordRef: RecordRef;
+  // The record this step acted on: absent when none was reached.
+  selectedRecordRef?: RecordRef;
+  attempt: number;
+  executionParams?: IterationField<'executionParams'>;
+  pendingData?: IterationField<'pendingData'>;
+  userConfirmation?: IterationField<'userConfirmation'>;
+  executionResult?: IterationField<'executionResult'>;
+  error?: string;
+  errorKind?: ErrorKind;
+  idempotencyPhase?: 'executing' | 'done';
+  finishedAt?: string;
+}
+
+// No status field: a result means done or skipped, an error failed, a pause awaiting input.
+export interface PerRecordStepExecutionData extends BaseStepExecutionData {
+  type: PerRecordExecution['type'];
+  iterations: StepIteration[];
+  selectedRecordRef?: undefined;
+  executionParams?: undefined;
+  pendingData?: undefined;
+  userConfirmation?: undefined;
+  executionResult?: undefined;
+  idempotencyPhase?: undefined;
+}
+
+export function isPerRecordExecution(
+  execution: StepExecutionData | undefined,
+): execution is PerRecordStepExecutionData {
+  return Array.isArray((execution as PerRecordStepExecutionData | undefined)?.iterations);
 }
 
 export type ConfirmableStepExecutionData =
@@ -274,6 +349,7 @@ export type StepExecutionData =
   | RecordStepExecutionData
   | LoadRelatedRecordStepExecutionData
   | McpStepExecutionData
-  | GuidanceStepExecutionData;
+  | GuidanceStepExecutionData
+  | PerRecordStepExecutionData;
 
 export type ExecutedStepExecutionData = StepExecutionData;

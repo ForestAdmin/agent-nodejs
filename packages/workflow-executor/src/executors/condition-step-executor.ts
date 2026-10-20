@@ -3,6 +3,8 @@ import type {
   ConditionEvaluation,
   ConditionNotLoadedReason,
   ConditionResult,
+  ConditionStepExecutionData,
+  PausedConditionExecutionParams,
   StepExecutionData,
 } from '../types/step-execution-data';
 import type {
@@ -16,10 +18,17 @@ import type { ConditionStepOutcome, ErrorKind } from '../types/validated/step-ou
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 import { z } from 'zod';
 
-import { InvalidStepDefinitionError, MalformedToolCallError, StepStateError } from '../errors';
+import {
+  InvalidStepDefinitionError,
+  MalformedToolCallError,
+  MissingConditionQuantifierError,
+  StepStateError,
+} from '../errors';
 import BaseStepExecutor from './base-step-executor';
 import evaluateOperator, { type Clock } from './deterministic-condition-evaluator';
 import patchBodySchemas from '../http/pending-data-validators';
+import { serializeRecordId } from '../record-id';
+import { isPerRecordExecution } from '../types/step-execution-data';
 import {
   StepExecutionMode,
   StepType,
@@ -36,6 +45,14 @@ interface GatewayToolArgs {
 interface GatewayDecision {
   selectedOption: string | null;
   reasoning: string;
+}
+
+interface ConditionResult {
+  met: boolean | null;
+  reason?: ConditionNotLoadedReason;
+  records?: { matched: number; evaluated: number };
+  // Serialized source record ids of the records it could not decide on.
+  unchecked?: string[];
 }
 
 const GATEWAY_SYSTEM_PROMPT = `You are an AI agent selecting the correct option for a workflow gateway decision.
@@ -82,6 +99,10 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
     const { stepDefinition: step, incomingPendingData } = this.context;
 
     if (isDeterministicConditionStep(step)) {
+      const stepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
+      const paused = this.findPausedDecision(stepExecutions);
+      if (paused) return this.completePausedDecision(step, paused, incomingPendingData);
+
       // The config wins over an explicit human action, so say so: a mixed-version fleet can pause
       // the step on an args-blind instance, and the user's click would otherwise vanish untraced.
       if (incomingPendingData !== undefined) {
@@ -92,7 +113,7 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
         );
       }
 
-      return this.evaluateDeterministically(step);
+      return this.evaluateDeterministically(step, stepExecutions);
     }
 
     // Manual mode: the user picks the option from the frontend. Wait for their input
@@ -125,13 +146,49 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
     return this.buildOutcomeResult({ status: 'success', selectedOption });
   }
 
+  // A decision paused on records it could not check, waiting for the operator's branch.
+  private findPausedDecision(
+    stepExecutions: StepExecutionData[],
+  ): (ConditionStepExecutionData & { executionParams: PausedConditionExecutionParams }) | undefined {
+    const own = stepExecutions.find(e => e.stepIndex === this.context.stepIndex);
+    if (own?.type !== 'condition' || own.executionResult !== undefined) return undefined;
+    if (!('unchecked' in own.executionParams)) return undefined;
+
+    return own as ConditionStepExecutionData & { executionParams: PausedConditionExecutionParams };
+  }
+
+  private async completePausedDecision(
+    step: DeterministicConditionStep,
+    paused: ConditionStepExecutionData & { executionParams: PausedConditionExecutionParams },
+    incomingPendingData: unknown,
+  ): Promise<StepExecutionResult> {
+    if (incomingPendingData === undefined) return this.buildOutcomeResult({ status: 'awaiting-input' });
+
+    const { selectedOption } = this.readUserChoice(step, incomingPendingData);
+
+    await this.context.runStore.saveStepExecution(this.context.runId, {
+      type: 'condition',
+      stepIndex: this.context.stepIndex,
+      executionParams: {
+        ...paused.executionParams,
+        selectedOption: selectedOption as string,
+        usedFallback: false,
+        selectedBy: 'operator',
+      },
+      executionResult: { answer: selectedOption as string },
+    });
+
+    return this.buildOutcomeResult({ status: 'success', selectedOption: selectedOption as string });
+  }
+
   private async evaluateDeterministically(
     step: DeterministicConditionStep,
+    stepExecutions: StepExecutionData[],
   ): Promise<StepExecutionResult> {
     const { optionConditions, fallbackOption } = step.preRecordedArgs;
-    const stepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
     // One clock per step, so "today" cannot flip between the first and the last condition.
     const clock: Clock = { now: new Date(), timezone: this.context.timezone };
+    const unchecked = new Set<string>();
 
     let matchedOption: string | undefined;
     const evaluations = optionConditions.map(({ option, aggregator, conditions }) => {
@@ -140,9 +197,11 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
       }
 
       const { met: matched, conditions: results } = this.evaluateGroup(
+        option,
         { aggregator, conditions },
         stepExecutions,
         clock,
+        unchecked,
       );
       if (matched) matchedOption = option;
 
@@ -152,6 +211,23 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
         conditions: results,
       } satisfies ConditionEvaluation;
     });
+
+    // A record without a value would make any, every and none each say something untrue, so the
+    // decision takes no branch: the operator picks one, knowing which records went unchecked.
+    if (unchecked.size > 0) {
+      await this.context.runStore.saveStepExecution(this.context.runId, {
+        type: 'condition',
+        stepIndex: this.context.stepIndex,
+        executionParams: {
+          evaluations,
+          evaluatedAt: clock.now.toISOString(),
+          timezone: clock.timezone,
+          unchecked: [...unchecked],
+        },
+      });
+
+      return this.buildOutcomeResult({ status: 'awaiting-input' });
+    }
 
     const usedFallback = matchedOption === undefined;
     const selectedOption = matchedOption ?? fallbackOption;
@@ -182,18 +258,26 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
   }
 
   private evaluateGroup(
+    option: string,
     { aggregator, conditions }: DeterministicConditionGroup,
     stepExecutions: StepExecutionData[],
     clock: Clock,
+    unchecked: Set<string>,
   ): { met: boolean; conditions: ConditionResult[] } {
     const results = conditions.map((node, index): ConditionResult => {
       if (isDeterministicConditionGroup(node)) {
-        return { index, ...this.evaluateGroup(node, stepExecutions, clock) };
+        return { index, ...this.evaluateGroup(option, node, stepExecutions, clock, unchecked) };
       }
 
-      const { met, reason } = this.evaluateCondition(node, stepExecutions, clock);
+      const result = this.evaluateCondition(option, node, stepExecutions, clock);
+      result.unchecked?.forEach(recordId => unchecked.add(recordId));
 
-      return { index, met, ...(reason && { reason }) };
+      return {
+        index,
+        met: result.met,
+        ...(result.reason && { reason: result.reason }),
+        ...(result.records && { records: result.records }),
+      };
     });
 
     return {
@@ -206,11 +290,18 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
   }
 
   private evaluateCondition(
+    option: string,
     condition: DeterministicCondition,
     stepExecutions: StepExecutionData[],
     clock: Clock,
-  ): { met: boolean | null; reason?: ConditionNotLoadedReason } {
+  ): ConditionResult {
     const resolved = this.resolveConditionValue(condition, stepExecutions);
+
+    if (resolved.found === 'per-record') {
+      if (!condition.quantifier) throw new MissingConditionQuantifierError(option, condition.fieldName);
+
+      return this.evaluateOverRecords(condition, resolved.values, clock);
+    }
 
     // The reason is what keeps the fallback from passing for a decision the data took: the run view
     // words it instead of showing a bare cross. Returning here also means "never read" is not
@@ -226,7 +317,45 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
       return { met: null, reason: resolved.reason };
     }
 
-    return { met: evaluateOperator(condition.operator, resolved.value, condition.value, clock) };
+    const met = evaluateOperator(condition.operator, resolved.value, condition.value, clock);
+    if (!condition.quantifier) return { met };
+
+    return { met, records: { matched: met === true ? 1 : 0, evaluated: met === null ? 0 : 1 } };
+  }
+
+  // A record whose value decides nothing (not read, or read empty for a comparison) is unchecked.
+  private evaluateOverRecords(
+    condition: DeterministicCondition,
+    values: Array<{ recordId: string; found: boolean; value?: unknown }>,
+    clock: Clock,
+  ): ConditionResult {
+    const unchecked: string[] = [];
+    let matched = 0;
+    let evaluated = 0;
+
+    values.forEach(({ recordId, found, value }) => {
+      const met = found ? evaluateOperator(condition.operator, value, condition.value, clock) : null;
+
+      if (met === null) {
+        unchecked.push(recordId);
+      } else {
+        evaluated += 1;
+        if (met) matched += 1;
+      }
+    });
+
+    const records = { matched, evaluated };
+    if (unchecked.length > 0) return { met: null, records, unchecked };
+    // Over no record at all, "every" and "none" would hold vacuously: nothing was checked.
+    if (evaluated === 0) return { met: false, records };
+
+    const met = {
+      any: matched > 0,
+      every: matched === evaluated,
+      none: matched === 0,
+    }[condition.quantifier as NonNullable<DeterministicCondition['quantifier']>];
+
+    return { met, records };
   }
 
   // Same live-path + most-recent-occurrence resolution as resolveSourceRecordRef: previousSteps
@@ -234,7 +363,10 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
   private resolveConditionValue(
     condition: DeterministicCondition,
     stepExecutions: StepExecutionData[],
-  ): { found: true; value: unknown } | { found: false; reason: ConditionNotLoadedReason } {
+  ):
+    | { found: true; value: unknown }
+    | { found: 'per-record'; values: Array<{ recordId: string; found: boolean; value?: unknown }> }
+    | { found: false; reason: ConditionNotLoadedReason } {
     const matches = this.context.previousSteps.filter(
       step =>
         step.stepDefinition.type === StepType.ReadRecord &&
@@ -244,6 +376,22 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
     if (!sourceStep) return { found: false, reason: 'source-step-not-reached' };
 
     const execution = this.resolveStepExecution(sourceStep, stepExecutions);
+
+    if (isPerRecordExecution(execution)) {
+      return {
+        found: 'per-record',
+        values: execution.iterations.map(iteration => {
+          const result = iteration.executionResult as { fields?: Array<{ name: string; value?: unknown }> };
+          const field = result?.fields?.find(f => f.name === condition.fieldName);
+          const recordId = serializeRecordId(iteration.sourceRecordRef.recordId);
+
+          return field && 'value' in field
+            ? { recordId, found: true, value: field.value }
+            : { recordId, found: false };
+        }),
+      };
+    }
+
     if (execution?.type !== 'read-record') return { found: false, reason: 'field-not-loaded' };
 
     const field = execution.executionResult.fields.find(f => f.name === condition.fieldName);

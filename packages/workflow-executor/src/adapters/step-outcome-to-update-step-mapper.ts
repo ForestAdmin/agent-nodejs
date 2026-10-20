@@ -24,8 +24,18 @@ function toExecutionStatus(outcome: StepOutcome): ServerExecutionStatus {
 export default function toUpdateStepRequest(
   runId: string,
   outcome: StepOutcome,
+  options?: { clearsError?: boolean },
 ): ServerUpdateStepRequest {
   const context: Record<string, unknown> = { status: outcome.status };
+
+  // The orchestrator merges each report into the context the error left, and keeps a null where
+  // it drops an undefined key, so only a null clears it.
+  if (options?.clearsError && outcome.status !== 'error') {
+    context.error = null;
+    context.errorKind = null;
+    context.errorSourceStepIndex = null;
+  }
+
   if (outcome.error !== undefined) context.error = outcome.error;
   if (outcome.errorKind !== undefined) context.errorKind = outcome.errorKind;
 
