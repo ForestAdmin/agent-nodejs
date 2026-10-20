@@ -45,6 +45,16 @@ const mcpPatchSchema = z.object({ userConfirmed: z.boolean() }).strict();
 //      finalizing. The executor refreshes pendingData and stays awaiting-input.
 //      Required when the frontend lets the user switch relations: the IDs originally
 //      stored under `availableRecordIds` belong to the AI-suggested relation only.
+// The Forest Runtime lists at most this many candidates on a Load Related Record step.
+export const MAX_SELECTED_RECORDS = 50;
+
+// Pipe-separated id (e.g. 'id1|id2'), deserialized to an id array; empty segments would build a bogus PK.
+const recordIdSchema = z
+  .string()
+  .min(1)
+  .transform(deserializeRecordId)
+  .pipe(z.array(z.string().min(1)));
+
 const loadRelatedRecordPatchSchema = z
   .object({
     userConfirmed: z.boolean().optional(),
@@ -57,20 +67,19 @@ const loadRelatedRecordPatchSchema = z
     // deserialized to an id array. Required when confirming with a relation override —
     // the original record ID belongs to a different collection and cannot be reused.
     // The .pipe(...) rejects empty segments that would build a bogus PK.
-    selectedRecordId: z
-      .string()
-      .min(1)
-      .transform(deserializeRecordId)
-      .pipe(z.array(z.string().min(1)))
-      .optional(),
+    selectedRecordId: recordIdSchema.optional(),
+    // A Multiple step: every record picked, each among the candidates offered.
+    selectedRecordIds: z.array(recordIdSchema).min(1).max(MAX_SELECTED_RECORDS).optional(),
   })
   .strict()
   .refine(
     data => {
       // Preview patch (no confirm): fieldName alone is sufficient.
       if (data.userConfirmed === undefined) return data.fieldName !== undefined;
-      // Confirm patch with relation override: selectedRecordId required.
-      if (data.fieldName !== undefined) return data.selectedRecordId !== undefined;
+      // Confirm patch with relation override: the records picked are required.
+      if (data.fieldName !== undefined) {
+        return data.selectedRecordId !== undefined || data.selectedRecordIds !== undefined;
+      }
 
       return true;
     },

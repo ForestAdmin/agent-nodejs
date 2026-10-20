@@ -240,7 +240,27 @@ describe('toAvailableStepExecution', () => {
     });
   });
 
-  describe('previousSteps', () => {
+  describe('carriesError', () => {
+  it('marks the step dispatched while it still carries an error from its last report', () => {
+    const run = makeRun({
+      workflowHistory: [makeStepHistory({ context: { status: 'error', error: '1 of 3 records failed.' } })],
+    });
+
+    expect(toAvailableStepExecution(run)?.carriesError).toBe(true);
+  });
+
+  it.each([
+    ['no context', undefined],
+    ['an empty error', { error: '' }],
+    ['an error cleared as null', { error: null }],
+  ])('leaves the mark off a step with %s', (_label, context) => {
+    const run = makeRun({ workflowHistory: [makeStepHistory({ context } as never)] });
+
+    expect(toAvailableStepExecution(run)).not.toHaveProperty('carriesError');
+  });
+});
+
+describe('previousSteps', () => {
     it('should include done steps preceding the available step', () => {
       const run = makeRun({
         workflowHistory: [

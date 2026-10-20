@@ -7,7 +7,7 @@ import type { Logger, LoggerLevel } from './ports/logger-port';
 import type { RunStore } from './ports/run-store';
 import type { AvailableRunDispatch, MalformedRunInfo, WorkflowPort } from './ports/workflow-port';
 import type SchemaCache from './schema-cache';
-import type { AvailableStepExecution, StepExecutionResult } from './types/execution-context';
+import type { RunControl, StepExecutionResult } from './types/execution-context';
 import type { StepExecutionData } from './types/step-execution-data';
 import type { StepOutcome } from './types/validated/step-outcome';
 
@@ -197,7 +197,7 @@ export default class Runner {
 
     if (!dispatch) throw new RunNotFoundError(runId);
 
-    const { step, auth } = dispatch;
+    const { step } = dispatch;
 
     if (options?.bearerUserId !== undefined && step.user.id !== options.bearerUserId) {
       throw new UserMismatchError(runId, options.bearerUserId, step.user.id);
@@ -205,15 +205,13 @@ export default class Runner {
 
     // Not awaited: the chain's outcome travels through updateStepExecution, never through this
     // response.
-    this.dispatchDetached(step, auth.forestServerToken, options?.pendingData);
+    this.dispatchDetached(dispatch, options?.pendingData);
   }
 
-  private dispatchDetached(
-    step: AvailableStepExecution,
-    forestServerToken: string,
-    incomingPendingData?: unknown,
-  ): void {
-    void this.executeStep(step, forestServerToken, incomingPendingData).catch(error => {
+  private dispatchDetached(dispatch: AvailableRunDispatch, incomingPendingData?: unknown): void {
+    const { step } = dispatch;
+
+    void this.executeStep(dispatch, incomingPendingData).catch(error => {
       const context = {
         runId: step.runId,
         stepId: step.stepId,
@@ -282,7 +280,7 @@ export default class Runner {
       const dispatchable = claimed.slice(0, slotsLeft);
       const overCapacity = claimed.slice(slotsLeft);
 
-      dispatchable.forEach(d => this.dispatchDetached(d.step, d.auth.forestServerToken));
+      dispatchable.forEach(d => this.dispatchDetached(d));
 
       if (overCapacity.length) {
         this.logger(
@@ -354,29 +352,27 @@ export default class Runner {
     }
   }
 
-  private executeStep(
-    step: AvailableStepExecution,
-    forestServerToken: string,
-    incomingPendingData?: unknown,
-  ): Promise<void> {
+  private executeStep(dispatch: AvailableRunDispatch, incomingPendingData?: unknown): Promise<void> {
     // The tracked promise covers the entire auto-chain for this run plus the map cleanup —
     // register it once, clean up once. Storing per-step entries (or Promise.resolve()) would
     // break drain: Promise.allSettled would see already-resolved entries and stop waiting while
     // the chain is still running.
     return this.inFlightRuns.track(
-      step.runId,
-      this.doExecuteStep(step, forestServerToken, incomingPendingData),
+      dispatch.step.runId,
+      this.doExecuteStep(dispatch, incomingPendingData),
     );
   }
 
   private async doExecuteStep(
-    step: AvailableStepExecution,
-    forestServerToken: string,
+    dispatch: AvailableRunDispatch,
     incomingPendingData?: unknown,
   ): Promise<void> {
+    const { step } = dispatch;
     let currentStep = step;
-    let currentToken = forestServerToken;
+    let currentToken = dispatch.auth.forestServerToken;
     let currentIncomingData = incomingPendingData;
+    // The lock this chain holds on the run: a step running once per record renews it per record.
+    const lock = { lockedAt: dispatch.lockedAt };
     let chainedCount = 0; // additional steps chained after the initial one
     const maxDepth = this.config.maxChainDepth ?? DEFAULT_MAX_CHAIN_DEPTH;
 
@@ -396,7 +392,7 @@ export default class Runner {
       try {
         const executor = await StepExecutorFactory.create(
           currentStep,
-          this.contextConfig,
+          { ...this.contextConfig, runControl: this.runControlFor(currentStep.runId, lock) },
           this.config.activityLogPortFactory.forRun(currentToken),
           (mcpServerId, userId) => this.remoteToolFetcher.fetch(mcpServerId, userId),
           currentIncomingData,
@@ -438,13 +434,38 @@ export default class Runner {
         return;
       }
 
+      // A lost lock means another holder or an abort owns the run now: report nothing. A yield
+      // hands the run back, its records done so far saved, for whoever claims it next.
+      if (result.interrupted === 'stopped') {
+        this.logger('Info', 'Step stopped between records, the run lock was lost', {
+          runId: currentStep.runId,
+          stepIndex: currentStep.stepIndex,
+        });
+
+        return;
+      }
+
+      if (result.interrupted === 'yielded') {
+        await this.config.workflowPort.releaseRun(currentStep.runId, lock.lockedAt);
+
+        return;
+      }
+
       let nextDispatch: AvailableRunDispatch | null;
 
       try {
-        nextDispatch = await this.config.workflowPort.updateStepExecution(
-          currentStep.runId,
-          result.stepOutcome,
-        );
+        // Only a step dispatched with an error asks for it to be cleared, so every other report
+        // stays exactly what it was.
+        nextDispatch = currentStep.carriesError
+          ? await this.config.workflowPort.updateStepExecution(
+              currentStep.runId,
+              result.stepOutcome,
+              { clearsError: true },
+            )
+          : await this.config.workflowPort.updateStepExecution(
+              currentStep.runId,
+              result.stepOutcome,
+            );
       } catch (error) {
         this.logger('Error', 'Failed to report step outcome', {
           runId: currentStep.runId,
@@ -515,6 +536,7 @@ export default class Runner {
       chainedCount += 1;
       currentStep = nextDispatch.step;
       currentToken = nextDispatch.auth.forestServerToken;
+      lock.lockedAt = nextDispatch.lockedAt;
       currentIncomingData = undefined; // chained steps never carry pending data
     }
     /* eslint-enable no-await-in-loop, no-constant-condition */
@@ -522,6 +544,23 @@ export default class Runner {
 
   private handBack(dispatch: AvailableRunDispatch): Promise<void> {
     return this.config.workflowPort.releaseRun(dispatch.step.runId, dispatch.lockedAt);
+  }
+
+  // Asked before each record: yield once stopping, so a drain never waits on a long record loop.
+  // A run held under no lock has nothing to renew.
+  private runControlFor(runId: string, lock: { lockedAt: string | null }): RunControl {
+    return {
+      beforeRecord: async () => {
+        if (this._state === 'draining' || this._state === 'stopped') return 'yield';
+        if (lock.lockedAt === null) return 'continue';
+
+        const renewal = await this.config.workflowPort.renewRunLock(runId, lock.lockedAt);
+        if (renewal.status === 'refused') return 'stop';
+        if (renewal.status === 'renewed') lock.lockedAt = renewal.lockedAt;
+
+        return 'continue';
+      },
+    };
   }
 
   private get contextConfig(): StepContextConfig {

@@ -660,6 +660,36 @@ export class SourceRecordMissingError extends WorkflowExecutorError {
 
 // Not SourceRecordMissingError: a record was found and it is the wrong one, so the remedy is the
 // calling Sub-workflow step rather than anything in this workflow.
+// One level of fan-out only: the editor and the orchestrator refuse it too, so only a hand-edited
+// or stale workflow gets here.
+export class MultipleOnPerRecordSourceError extends WorkflowConfigurationError {
+  constructor(stepTitle?: string) {
+    const step = stepTitle ? `"${stepTitle}"` : 'This step';
+    super(
+      `Load Related Record ${step} is set to Multiple on a source that already runs once per record`,
+      `${step} loads multiple records from a source that already runs once per record. Set it to "Single record".`,
+    );
+  }
+}
+
+export class MissingConditionQuantifierError extends WorkflowConfigurationError {
+  constructor(option: string, fieldName: string) {
+    super(
+      `Condition on "${fieldName}" for option "${option}" reads per-record data without a quantifier`,
+      `The option "${option}" reads "${fieldName}" from a step that runs once per record without saying whether any, every or no record must match. Reconfigure this decision step.`,
+    );
+  }
+}
+
+export class RecordNotOfferedError extends WorkflowExecutorError {
+  constructor(recordId: string) {
+    super(
+      `Record "${recordId}" was not among the candidates offered`,
+      'A record picked is not among those this step offered. Pick the records again.',
+    );
+  }
+}
+
 export class SourceRecordCollectionMismatchError extends WorkflowCallSiteError {
   constructor(recordCollectionName: string, calledWorkflowCollectionName: string) {
     super(

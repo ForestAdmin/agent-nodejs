@@ -617,4 +617,68 @@ describe('StepSummaryBuilder', () => {
       expect(result).toContain('Prompt: (no prompt)');
     });
   });
+  describe('steps that loaded or ran over several records', () => {
+    const ubo = (id: number) => ({ collectionName: 'ubos', recordId: [id], stepIndex: 1 });
+    const success = (stepId: string, stepIndex: number): StepOutcome => ({
+      type: 'record',
+      stepId,
+      stepIndex,
+      status: 'success',
+    });
+
+    it('names every record a Multiple step loaded', () => {
+      const step: StepDefinition = {
+        type: StepType.LoadRelatedRecord,
+        executionType: StepExecutionMode.Manual,
+        prompt: 'Load the UBOs',
+      };
+      const execution = {
+        type: 'load-related-record',
+        stepIndex: 1,
+        executionParams: { name: 'ubos', displayName: 'UBOs' },
+        executionResult: { relation: { name: 'ubos', displayName: 'UBOs' }, records: [ubo(1), ubo(3)] },
+        selectedRecordRef: { collectionName: 'companies', recordId: [7], stepIndex: 0 },
+      } as unknown as StepExecutionData;
+
+      const result = StepSummaryBuilder.build(step, success('load-ubos', 1), execution);
+
+      expect(result).toContain('  Loaded: companies #7 → [UBOs] → ubos #1, ubos #3 (step 1)');
+    });
+
+    it('lists the outcome for each record of a step that ran once per record', () => {
+      const step: StepDefinition = {
+        type: StepType.ReadRecord,
+        executionType: StepExecutionMode.FullyAutomated,
+        prompt: 'Read PEP',
+      };
+      const execution = {
+        type: 'read-record',
+        stepIndex: 2,
+        iterations: [
+          {
+            sourceRecordRef: ubo(1),
+            attempt: 1,
+            executionResult: { fields: [{ name: 'pep', displayName: 'PEP', value: true }] },
+          },
+          { sourceRecordRef: ubo(2), attempt: 1, error: 'boom' },
+          { sourceRecordRef: ubo(3), attempt: 1, pendingData: { value: 1 } },
+          { sourceRecordRef: ubo(4), attempt: 1 },
+        ],
+      } as unknown as StepExecutionData;
+
+      const result = StepSummaryBuilder.build(step, success('get-ubos', 2), execution);
+
+      expect(result).toBe(
+        [
+          'Step "get-ubos" (index 2):',
+          '  Prompt: Read PEP',
+          '  Ran once per record:',
+          '  - ubos #1: {"fields":[{"name":"pep","displayName":"PEP","value":true}]}',
+          '  - ubos #2: failed: boom',
+          '  - ubos #3: awaiting input: {"value":1}',
+          '  - ubos #4: not run',
+        ].join('\n'),
+      );
+    });
+  });
 });

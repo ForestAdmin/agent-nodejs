@@ -25,15 +25,24 @@ export interface AvailableRunsBatch {
   malformed: MalformedRunInfo[];
 }
 
+// 'refused': the run was aborted or its lock lost, so the step stops. 'unavailable': the
+// orchestrator could not answer, so the step carries on under the lock it holds.
+export type RenewRunLockResult =
+  | { status: 'renewed'; lockedAt: string }
+  | { status: 'refused' }
+  | { status: 'unavailable' };
+
 export interface WorkflowPort {
   getAvailableRuns(count: number): Promise<AvailableRunsBatch>;
   // Throws MalformedRunError on mapping failure.
   getAvailableRun(runId: string): Promise<AvailableRunDispatch | null>;
   // Returns the next step to chain when the orchestrator has one ready, or null when the run is
   // awaiting-input / finished / errored. Lets the executor skip a poll cycle for auto workflows.
+  // clearsError: the step was dispatched carrying an error that this outcome clears.
   updateStepExecution(
     runId: string,
     stepOutcome: StepOutcome,
+    options?: { clearsError?: boolean },
   ): Promise<AvailableRunDispatch | null>;
   getCollectionSchema(collectionName: string, runId: string): Promise<CollectionSchema>;
   getMcpServerConfigs(): Promise<Record<string, ToolConfig>>;
@@ -43,4 +52,6 @@ export interface WorkflowPort {
   hasRunAccess(runId: string, user: { id: number }): Promise<boolean>;
   // Never throws: when the orchestrator does not hear it, the run is freed when its lock expires.
   releaseRun(runId: string, lockedAt: string | null): Promise<void>;
+  // Never throws: a step running once per record calls it before each record.
+  renewRunLock(runId: string, lockedAt: string): Promise<RenewRunLockResult>;
 }

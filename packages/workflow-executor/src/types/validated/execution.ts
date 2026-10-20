@@ -72,6 +72,8 @@ export const AvailableStepExecutionSchema = z
     // fires on a mapper bug.
     timezone: z.string().refine(IANAZone.isValidZone),
     callScope: CallScopeSchema.optional(),
+    // The step still carries the error of its last report: a success or a pause clears it.
+    carriesError: z.literal(true).optional(),
   })
   .strict();
 export type AvailableStepExecution = z.infer<typeof AvailableStepExecutionSchema>;

@@ -16,11 +16,12 @@ import {
   SourceRecordStepNotReachedError,
 } from '../errors';
 import BaseStepExecutor from './base-step-executor';
+import { isPerRecordExecution } from '../types/step-execution-data';
 import { StepType, WORKFLOW_START_STEP_ID } from '../types/validated/step-definition';
 
 // Candidates passed over are the operator's call, and none at all is a source the operator can go
 // back to. Neither is a configuration fault, so neither is classified as one.
-function classifyMissingSourceRecord(execution?: StepExecutionData): ErrorKind | undefined {
+export function classifyMissingSourceRecord(execution?: StepExecutionData): ErrorKind | undefined {
   if (execution?.type !== 'load-related-record') return undefined;
 
   const { pendingData, executionResult } = execution;
@@ -33,6 +34,26 @@ function classifyMissingSourceRecord(execution?: StepExecutionData): ErrorKind |
 
   // Whether it paused or recorded a decline, the candidate list says whether there was a choice.
   return pendingData.availableRecordIds.length > 0 ? 'operator' : 'empty-source';
+}
+
+// Every record a load-related-record execution loaded: one, several, or one per record it ran for.
+function loadedRecordsOf(execution: StepExecutionData | undefined): RecordRef[] {
+  if (isPerRecordExecution(execution)) {
+    return execution.iterations.flatMap(iteration => {
+      const result = iteration.executionResult;
+
+      return result && 'record' in result ? [result.record] : [];
+    });
+  }
+
+  if (execution?.type !== 'load-related-record' || execution.executionResult === undefined) {
+    return [];
+  }
+
+  const result = execution.executionResult;
+  if ('records' in result) return result.records;
+
+  return 'record' in result ? [result.record] : [];
 }
 
 export default abstract class RecordStepExecutor<
@@ -170,21 +191,11 @@ export default abstract class RecordStepExecutor<
   // originalStepIndex.
   protected async getAvailableRecordRefs(): Promise<RecordRef[]> {
     const stepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
-    const relatedRecords = this.context.previousSteps.flatMap(step => {
-      if (step.stepDefinition.type !== StepType.LoadRelatedRecord) return [];
-
-      const execution = this.resolveStepExecution(step, stepExecutions);
-
-      if (
-        execution?.type === 'load-related-record' &&
-        execution.executionResult !== undefined &&
-        'record' in execution.executionResult
-      ) {
-        return [execution.executionResult.record];
-      }
-
-      return [];
-    });
+    const relatedRecords = this.context.previousSteps.flatMap(step =>
+      step.stepDefinition.type === StepType.LoadRelatedRecord
+        ? loadedRecordsOf(this.resolveStepExecution(step, stepExecutions))
+        : [],
+    );
 
     return [this.context.baseRecordRef, ...relatedRecords];
   }
