@@ -5116,6 +5116,65 @@ describe('LoadRelatedRecordStepExecutor', () => {
           expect.objectContaining({ executionResult: { skipped: true } }),
         );
       });
+
+      describe('relation switch', () => {
+        const twoRelations = makeCollectionSchema({
+          collectionName: 'companies',
+          collectionDisplayName: 'Companies',
+          fields: [
+            {
+              fieldName: 'ubos',
+              displayName: 'UBOs',
+              isRelationship: true,
+              relationType: 'HasMany',
+              relatedCollectionName: 'ubos',
+            },
+            {
+              fieldName: 'directors',
+              displayName: 'Directors',
+              isRelationship: true,
+              relationType: 'HasMany',
+              relatedCollectionName: 'ubos',
+            },
+          ],
+        });
+        const send = async (pendingData: unknown) => {
+          const pending = pendingMultiple();
+          pending.pendingData!.availableFields.push({ name: 'directors', displayName: 'Directors' });
+          const runStore = makeMockRunStore({
+            getStepExecutions: jest.fn().mockResolvedValue([pending]),
+          });
+          const { context, agentPort } = contextFor(StepExecutionMode.Manual, uboData(3), {
+            runStore,
+            incomingPendingData: pendingData,
+            workflowPort: makeMockWorkflowPort({ companies: twoRelations, ubos: uboSchema }),
+          });
+          const result = await new LoadRelatedRecordStepExecutor(context).execute();
+
+          return { result, runStore, agentPort };
+        };
+
+        it("refuses to list another relation's records at run time", async () => {
+          const { result, agentPort } = await send({ fieldName: 'directors' });
+
+          expect(result.stepOutcome.status).toBe('error');
+          expect(agentPort.getRelatedData).not.toHaveBeenCalled();
+        });
+
+        it('refuses a confirmation naming another relation', async () => {
+          const { result, runStore } = await send({
+            userConfirmed: true,
+            fieldName: 'directors',
+            selectedRecordIds: ['1'],
+          });
+
+          expect(result.stepOutcome.status).toBe('error');
+          expect(runStore.saveStepExecution).not.toHaveBeenCalledWith(
+            'run-1',
+            expect.objectContaining({ executionResult: expect.anything() }),
+          );
+        });
+      });
     });
   });
 });
