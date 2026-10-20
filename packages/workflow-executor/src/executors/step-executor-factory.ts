@@ -1,3 +1,4 @@
+import type { PerRecordSource } from './per-record-step-executor';
 import type { ActivityLogPort } from '../ports/activity-log-port';
 import type { AgentPort } from '../ports/agent-port';
 import type { AiModelPort } from '../ports/ai-model-port';
@@ -14,7 +15,6 @@ import type {
   StepExecutionResult,
 } from '../types/execution-context';
 import type { Step } from '../types/validated/execution';
-import type { PerRecordSource } from './per-record-step-executor';
 import type {
   ConditionStepDefinition,
   GuidanceStepDefinition,

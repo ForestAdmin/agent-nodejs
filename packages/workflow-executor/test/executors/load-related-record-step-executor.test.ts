@@ -2117,6 +2117,30 @@ describe('LoadRelatedRecordStepExecutor', () => {
       );
     });
 
+    it('refuses a confirmation naming several records on a step loading one', async () => {
+      const execution = makePendingExecution({
+        pendingData: {
+          availableFields: [{ name: 'order', displayName: 'Order' }],
+          suggestedField: { name: 'order', displayName: 'Order' },
+          availableRecordIds: [cand([99]), cand([5])],
+          suggestedRecord: cand([99]),
+        },
+        userConfirmation: { userConfirmed: true, selectedRecordIds: [['5']] },
+      });
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([execution]),
+      });
+      const context = makeContext({ runStore });
+
+      const result = await new LoadRelatedRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(runStore.saveStepExecution).not.toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({ executionResult: expect.anything() }),
+      );
+    });
+
     it('uses suggestedRecord when the user does not override the AI suggestion', async () => {
       const agentPort = makeMockAgentPort();
       const execution = makePendingExecution({
@@ -4812,6 +4836,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       );
     });
   });
+
   describe('a Multiple step', () => {
     const ubosSchema = makeCollectionSchema({
       collectionName: 'companies',
@@ -4850,6 +4875,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
           multiple: true,
         },
       });
+
     const aiPicks = (recordIndexes: number[], confident = true) => {
       const invoke = jest
         .fn()
@@ -4869,6 +4895,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
       return { model: { bindTools } as unknown as ExecutionContext['model'], bindTools, invoke };
     };
+
     const contextFor = (
       executionType: StepExecutionMode,
       relatedData: RecordData[],
@@ -4889,6 +4916,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
       return { context, agentPort, runStore };
     };
+
     const ubo = (id: number) => ({ collectionName: 'ubos', recordId: [id], stepIndex: 0 });
 
     it('asks for one candidate more than it shows, to tell when the list was cut', async () => {
@@ -4973,28 +5001,35 @@ describe('LoadRelatedRecordStepExecutor', () => {
       ['the list was cut at 50', uboData(51), [0], true],
       ['the AI is not sure of its pick', uboData(3), [0], false],
       ['the AI picked nothing', uboData(3), [], true],
-    ])('pauses for review in Full AI mode when %s', async (_label, relatedData, indexes, confident) => {
-      const ai = aiPicks(indexes, confident);
-      const { context, runStore } = contextFor(StepExecutionMode.FullyAutomated, relatedData, {
-        model: ai.model,
-      });
+    ])(
+      'pauses for review in Full AI mode when %s',
+      async (_label, relatedData, indexes, confident) => {
+        const ai = aiPicks(indexes, confident);
+        const { context, runStore } = contextFor(StepExecutionMode.FullyAutomated, relatedData, {
+          model: ai.model,
+        });
 
-      const result = await new LoadRelatedRecordStepExecutor(context).execute();
+        const result = await new LoadRelatedRecordStepExecutor(context).execute();
 
-      expect(result.stepOutcome.status).toBe('awaiting-input');
-      const saved = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)[1];
-      expect(saved).not.toHaveProperty('executionResult');
-      expect(saved.pendingData.suggestedRecords).toStrictEqual(
-        indexes.map(i => cand([i + 1], `UBO ${i + 1}`)),
-      );
-    });
+        expect(result.stepOutcome.status).toBe('awaiting-input');
+        const saved = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)[1];
+        expect(saved).not.toHaveProperty('executionResult');
+        expect(saved.pendingData.suggestedRecords).toStrictEqual(
+          indexes.map(i => cand([i + 1], `UBO ${i + 1}`)),
+        );
+      },
+    );
 
     it('pauses for review in Full AI mode when the candidates did not all fit in the prompt', async () => {
       const wideFields = ['f1', 'f2', 'f3', 'f4', 'f5', 'f6'];
       const wideSchema = makeCollectionSchema({
         collectionName: 'ubos',
         collectionDisplayName: 'UBOs',
-        fields: wideFields.map(name => ({ fieldName: name, displayName: name, isRelationship: false })),
+        fields: wideFields.map(name => ({
+          fieldName: name,
+          displayName: name,
+          isRelationship: false,
+        })),
       });
       const bulky = uboData(50).map(r => ({
         ...r,
@@ -5015,7 +5050,9 @@ describe('LoadRelatedRecordStepExecutor', () => {
           ],
         });
       const { context } = contextFor(StepExecutionMode.FullyAutomated, bulky, {
-        model: { bindTools: jest.fn().mockReturnValue({ invoke }) } as unknown as ExecutionContext['model'],
+        model: {
+          bindTools: jest.fn().mockReturnValue({ invoke }),
+        } as unknown as ExecutionContext['model'],
         workflowPort: makeMockWorkflowPort({ companies: ubosSchema, ubos: wideSchema }),
       });
 
@@ -5047,6 +5084,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
           },
           selectedRecordRef: makeRecordRef({ collectionName: 'companies', recordId: [7] }),
         });
+
       const confirm = async (pendingData: unknown) => {
         const runStore = makeMockRunStore({
           getStepExecutions: jest.fn().mockResolvedValue([pendingMultiple()]),
@@ -5107,6 +5145,16 @@ describe('LoadRelatedRecordStepExecutor', () => {
         );
       });
 
+      it('refuses a confirmation naming a single record instead of the records picked', async () => {
+        const { result, runStore } = await confirm({ userConfirmed: true, selectedRecordId: '3' });
+
+        expect(result.stepOutcome.status).toBe('error');
+        expect(runStore.saveStepExecution).not.toHaveBeenCalledWith(
+          'run-1',
+          expect.objectContaining({ executionResult: expect.anything() }),
+        );
+      });
+
       it('loads none when the confirmation declines', async () => {
         const { result, runStore } = await confirm({ userConfirmed: false });
 
@@ -5138,9 +5186,13 @@ describe('LoadRelatedRecordStepExecutor', () => {
             },
           ],
         });
+
         const send = async (pendingData: unknown) => {
           const pending = pendingMultiple();
-          pending.pendingData!.availableFields.push({ name: 'directors', displayName: 'Directors' });
+          pending.pendingData!.availableFields.push({
+            name: 'directors',
+            displayName: 'Directors',
+          });
           const runStore = makeMockRunStore({
             getStepExecutions: jest.fn().mockResolvedValue([pending]),
           });

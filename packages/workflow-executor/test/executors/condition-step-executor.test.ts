@@ -1312,9 +1312,13 @@ describe('ConditionStepExecutor', () => {
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
   });
+
   describe('quantified conditions over records', () => {
     const ubo = (id: number) => ({ collectionName: 'ubos', recordId: [id], stepIndex: 1 });
-    type Read = { id: number; pep?: boolean } | { id: number; skipped: true } | { id: number; failed: true };
+    type Read =
+      | { id: number; pep?: boolean }
+      | { id: number; skipped: true }
+      | { id: number; failed: true };
 
     function perRecordRead(stepIndex: number, reads: Read[]): StepExecutionData {
       return {
@@ -1364,7 +1368,9 @@ describe('ConditionStepExecutor', () => {
       executions: StepExecutionData[],
       overrides: Partial<ExecutionContext<ConditionStepDefinition>> = {},
     ) {
-      const runStore = makeMockRunStore({ getStepExecutions: jest.fn().mockResolvedValue(executions) });
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue(executions),
+      });
       const context = makeContext({
         runStore,
         stepDefinition: makeDeterministicStep(preRecordedArgs),
@@ -1376,12 +1382,61 @@ describe('ConditionStepExecutor', () => {
     }
 
     it.each([
-      ['any', [{ id: 1, pep: false }, { id: 2, pep: true }, { id: 3, pep: false }], 'Escalate', 1],
-      ['any', [{ id: 1, pep: false }, { id: 2, pep: false }], 'Approve', 0],
-      ['every', [{ id: 1, pep: true }, { id: 2, pep: true }], 'Escalate', 2],
-      ['every', [{ id: 1, pep: true }, { id: 2, pep: false }], 'Approve', 1],
-      ['none', [{ id: 1, pep: false }, { id: 2, pep: false }], 'Escalate', 0],
-      ['none', [{ id: 1, pep: false }, { id: 2, pep: true }], 'Approve', 1],
+      [
+        'any',
+        [
+          { id: 1, pep: false },
+          { id: 2, pep: true },
+          { id: 3, pep: false },
+        ],
+        'Escalate',
+        1,
+      ],
+      [
+        'any',
+        [
+          { id: 1, pep: false },
+          { id: 2, pep: false },
+        ],
+        'Approve',
+        0,
+      ],
+      [
+        'every',
+        [
+          { id: 1, pep: true },
+          { id: 2, pep: true },
+        ],
+        'Escalate',
+        2,
+      ],
+      [
+        'every',
+        [
+          { id: 1, pep: true },
+          { id: 2, pep: false },
+        ],
+        'Approve',
+        1,
+      ],
+      [
+        'none',
+        [
+          { id: 1, pep: false },
+          { id: 2, pep: false },
+        ],
+        'Escalate',
+        0,
+      ],
+      [
+        'none',
+        [
+          { id: 1, pep: false },
+          { id: 2, pep: true },
+        ],
+        'Approve',
+        1,
+      ],
     ] as const)(
       'matches "%s" over the records read: %j → %s',
       async (quantifier, reads, expectedOption, matched) => {
@@ -1391,7 +1446,10 @@ describe('ConditionStepExecutor', () => {
 
         const result = await new ConditionStepExecutor(context).execute();
 
-        expect(result.stepOutcome).toMatchObject({ status: 'success', selectedOption: expectedOption });
+        expect(result.stepOutcome).toMatchObject({
+          status: 'success',
+          selectedOption: expectedOption,
+        });
         expect(runStore.saveStepExecution).toHaveBeenCalledWith(
           'run-1',
           expect.objectContaining({
@@ -1444,7 +1502,13 @@ describe('ConditionStepExecutor', () => {
       } as unknown as StepExecutionData;
       const { context, runStore } = contextFor(
         quantified('any'),
-        [paused, perRecordRead(2, [{ id: 1, pep: false }, { id: 2, skipped: true }])],
+        [
+          paused,
+          perRecordRead(2, [
+            { id: 1, pep: false },
+            { id: 2, skipped: true },
+          ]),
+        ],
         { incomingPendingData: { selectedOption: 'Escalate' } },
       );
 
@@ -1475,7 +1539,10 @@ describe('ConditionStepExecutor', () => {
       } as unknown as StepExecutionData;
       const { context, runStore } = contextFor(quantified('any'), [
         paused,
-        perRecordRead(2, [{ id: 1, pep: true }, { id: 2, pep: true }]),
+        perRecordRead(2, [
+          { id: 1, pep: true },
+          { id: 2, pep: true },
+        ]),
       ]);
 
       const result = await new ConditionStepExecutor(context).execute();
@@ -1491,6 +1558,22 @@ describe('ConditionStepExecutor', () => {
 
       expect(result.stepOutcome).toMatchObject({ status: 'error', errorKind: 'configuration' });
     });
+
+    it.each([
+      [true, 'Approve'],
+      [false, 'Escalate'],
+    ])(
+      'matches "none" over the one value of a single-record source read as %s → %s',
+      async (pep, expectedOption) => {
+        const { context } = contextFor(quantified('none'), [
+          makeReadRecordExecution(2, [{ name: 'pep', displayName: 'PEP', value: pep }]),
+        ]);
+
+        const result = await new ConditionStepExecutor(context).execute();
+
+        expect(result.stepOutcome).toMatchObject({ status: 'success', selectedOption: expectedOption });
+      },
+    );
 
     it('evaluates a quantifier over the one value of a single-record source', async () => {
       const { context } = contextFor(quantified('every'), [

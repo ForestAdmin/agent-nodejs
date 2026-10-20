@@ -157,6 +157,7 @@ export default class PerRecordStepExecutor implements IStepExecutor {
 
       row.iterations = row.iterations.map(iteration => {
         if (iteration.error === undefined) return iteration;
+
         if (sourceRecordId !== undefined && sourceRecordId !== this.idOf(iteration)) {
           return iteration;
         }
@@ -165,7 +166,9 @@ export default class PerRecordStepExecutor implements IStepExecutor {
           ? { sourceRecordRef: iteration.sourceRecordRef, attempt: iteration.attempt + 1 }
           : {
               sourceRecordRef: iteration.sourceRecordRef,
-              ...(iteration.selectedRecordRef && { selectedRecordRef: iteration.selectedRecordRef }),
+              ...(iteration.selectedRecordRef && {
+                selectedRecordRef: iteration.selectedRecordRef,
+              }),
               attempt: iteration.attempt,
               executionResult: { skipped: true },
               finishedAt: new Date().toISOString(),
@@ -200,7 +203,11 @@ export default class PerRecordStepExecutor implements IStepExecutor {
     answered: boolean,
     executions: StepExecutionData[],
   ): Promise<RecordRun> {
-    const decision = (await this.context.runControl?.beforeRecord()) ?? 'continue';
+    // An answered record runs before any hand-back: its answer lives only in this dispatch, and
+    // the claim that brought it is fresh.
+    const decision = answered
+      ? 'continue'
+      : (await this.context.runControl?.beforeRecord()) ?? 'continue';
     if (decision === 'stop') return { interrupted: 'stopped' };
     if (decision === 'yield') return { interrupted: 'yielded' };
 
@@ -217,13 +224,18 @@ export default class PerRecordStepExecutor implements IStepExecutor {
       return { status: 'success' };
     }
 
-    const store = new IterationRunStore(this.context.runStore, this.context.stepIndex, sourceRecordRef, {
-      get: () => row.iterations[index],
-      set: async iteration => {
-        row.iterations[index] = iteration;
-        await this.persist(row);
+    const store = new IterationRunStore(
+      this.context.runStore,
+      this.context.stepIndex,
+      sourceRecordRef,
+      {
+        get: () => row.iterations[index],
+        set: async iteration => {
+          row.iterations[index] = iteration;
+          await this.persist(row);
+        },
       },
-    });
+    );
     const { incomingPendingData } = this.context;
     const answer = answered ? this.withoutRecordId(incomingPendingData) : undefined;
     const inner = this.createInner({
@@ -287,9 +299,7 @@ export default class PerRecordStepExecutor implements IStepExecutor {
         new Promise<StepExecutionResult>(resolve => {
           timer = setTimeout(() => {
             store.abandon();
-            resolve(
-              this.outcome('error', { error: new StepTimeoutError(timeoutS).userMessage }),
-            );
+            resolve(this.outcome('error', { error: new StepTimeoutError(timeoutS).userMessage }));
           }, timeoutS * 1000);
         }),
       ]);
@@ -308,10 +318,24 @@ export default class PerRecordStepExecutor implements IStepExecutor {
     return serializeRecordId(iteration.sourceRecordRef.recordId);
   }
 
+  // The label only names the record to the AI, so a schema that cannot be read falls back to the
+  // technical name: the record's own run reads it again and reports the failure on that record.
   private async labelOf(record: RecordRef): Promise<string> {
-    const schema = await this.context.schemaResolver.resolve(record.collectionName);
+    const id = record.recordId.join(', ');
 
-    return `${schema.collectionDisplayName} #${record.recordId.join(', ')}`;
+    try {
+      const schema = await this.context.schemaResolver.resolve(record.collectionName);
+
+      return `${schema.collectionDisplayName} #${id}`;
+    } catch (error) {
+      this.context.logger('Warn', 'Could not read the schema naming a record for the AI', {
+        ...this.logCtx,
+        collectionName: record.collectionName,
+        error: extractErrorMessage(error),
+      });
+
+      return `${record.collectionName} #${id}`;
+    }
   }
 
   private persist(row: PerRecordStepExecutionData): Promise<void> {
@@ -320,7 +344,10 @@ export default class PerRecordStepExecutor implements IStepExecutor {
 
   private outcome(
     status: RecordStepStatus,
-    extra: Pick<StepExecutionResult['stepOutcome'], 'error' | 'errorKind' | 'errorSourceStepIndex'> = {},
+    extra: Pick<
+      StepExecutionResult['stepOutcome'],
+      'error' | 'errorKind' | 'errorSourceStepIndex'
+    > = {},
   ): StepExecutionResult {
     return {
       stepOutcome: {
