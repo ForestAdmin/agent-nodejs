@@ -127,24 +127,11 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       throw new StepStateError(`Step at index ${this.context.stepIndex} has no pending data`);
     }
 
+    if (this.isMultiple) this.refuseRelationSwitch(fieldName);
+
     const useAi = this.context.stepDefinition.executionType !== StepExecutionMode.Manual;
     const schema = await this.getCollectionSchema(execution.selectedRecordRef.collectionName);
     const target = await this.buildTarget(schema, fieldName, execution.selectedRecordRef);
-
-    if (this.isMultiple) {
-      const candidates = await this.collectMultipleCandidatesOrDegrade(target, useAi);
-      await this.context.runStore.saveStepExecution(this.context.runId, {
-        ...execution,
-        userConfirmation: undefined,
-        pendingData: {
-          availableFields: execution.pendingData.availableFields,
-          suggestedField: { name: target.name, displayName: target.displayName },
-          ...this.multiplePendingFields(candidates),
-        },
-      });
-
-      return this.buildOutcomeResult({ status: 'awaiting-input' });
-    }
 
     // AI failure while re-listing → degrade to the no-AI list, not a run error (see AiAssistUnavailableError).
     let aiSuggested = useAi;
@@ -517,6 +504,14 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     return this.context.stepDefinition.preRecordedArgs?.multiple === true;
   }
 
+  // The relation a Multiple step loads is fixed once its records are offered: the run view never
+  // switches it, so a request to is refused rather than loading another relation's records.
+  private refuseRelationSwitch(fieldName: string): never {
+    throw new StepStateError(
+      `Step at index ${this.context.stepIndex} loads several records and cannot switch to relation "${fieldName}"`,
+    );
+  }
+
   private multiplePendingFields(candidates: MultipleCandidates): {
     availableRecordIds: LoadRelatedRecordCandidate[];
     suggestedRecords?: LoadRelatedRecordCandidate[];
@@ -527,21 +522,6 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       ...(candidates.suggestedRecords && { suggestedRecords: candidates.suggestedRecords }),
       ...(candidates.hasMoreRecords && { hasMoreRecords: true as const }),
     };
-  }
-
-  // AI failure while re-listing degrades to the no-AI list, as it does for a single record.
-  private async collectMultipleCandidatesOrDegrade(
-    target: RelationTarget,
-    useAi: boolean,
-  ): Promise<MultipleCandidates> {
-    try {
-      return await this.collectMultipleCandidates(target, useAi);
-    } catch (error) {
-      if (!(useAi && error instanceof AiAssistUnavailableError)) throw error;
-      this.logAiDegrade(error.reason);
-
-      return this.collectMultipleCandidates(target, false);
-    }
   }
 
   // One candidate more than the list shows is fetched, so a list cut at its cap says so.
@@ -636,14 +616,10 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       throw new StepStateError(`Step at index ${this.context.stepIndex} has no pending data`);
     }
 
-    const relationRef = userConfirmation?.fieldName
-      ? pendingData.availableFields.find(f => f.name === userConfirmation.fieldName)
-      : pendingData.suggestedField;
+    const relationRef = pendingData.suggestedField;
 
-    if (!relationRef) {
-      throw new StepStateError(
-        `Step at index ${this.context.stepIndex} could not resolve relation "${userConfirmation?.fieldName}" from available fields`,
-      );
+    if (userConfirmation?.fieldName !== undefined && userConfirmation.fieldName !== relationRef.name) {
+      this.refuseRelationSwitch(userConfirmation.fieldName);
     }
 
     const picked =
