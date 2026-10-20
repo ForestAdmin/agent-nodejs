@@ -66,7 +66,7 @@ const SCHEMAS: Record<string, CollectionSchema> = {
         relatedCollectionName: 'documents',
       },
     ],
-    actions: [],
+    actions: [{ name: 'flag', displayName: 'Flag UBO', endpoint: '/forest/actions/flag' }],
   },
   addresses: {
     collectionName: 'addresses',
@@ -732,6 +732,84 @@ describe('a step running once per record', () => {
       } finally {
         jest.useRealTimers();
       }
+    });
+  });
+
+  describe('every record step type', () => {
+    it('loads, for each record, the record its relation leads to', async () => {
+      const agentPort = makeAgentPort({
+        getSingleRelatedData: jest.fn(async ({ id }: { id: unknown[] }) => ({
+          collectionName: 'addresses',
+          recordId: [Number(id[0]) * 10],
+          values: {},
+        })) as never,
+      });
+      const { run, row } = await setup({ stepDefinition: LOAD_ADDRESS.stepDefinition, agentPort });
+
+      const result = await run();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(
+        agentPort.getSingleRelatedData.mock.calls.map(([query]) => [query.collection, query.id]),
+      ).toStrictEqual([
+        ['ubos', [1]],
+        ['ubos', [2]],
+        ['ubos', [3]],
+      ]);
+      const { iterations } = await row();
+      expect(iterations?.map(iteration => iteration.executionResult)).toStrictEqual(
+        [1, 2, 3].map(id => ({
+          relation: { name: 'address', displayName: 'Address' },
+          record: { collectionName: 'addresses', recordId: [id * 10], stepIndex: 3 },
+        })),
+      );
+    });
+
+    it('runs an action once for each record', async () => {
+      const agentPort = makeAgentPort({
+        getActionForm: jest.fn().mockResolvedValue({
+          fields: [],
+          canExecute: true,
+          requiredFields: [],
+          skippedFields: [],
+        }) as never,
+      });
+      const { run } = await setup({
+        stepDefinition: {
+          type: StepType.TriggerAction,
+          executionType: StepExecutionMode.FullyAutomated,
+          title: 'Flag UBOs',
+          preRecordedArgs: { selectedRecordStepId: 'load-ubos', actionName: 'flag' },
+        } as StepDefinition,
+        agentPort,
+      });
+
+      const result = await run();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(
+        agentPort.executeAction.mock.calls.map(([query]) => [
+          query.collection,
+          query.action,
+          query.id,
+        ]),
+      ).toStrictEqual([
+        ['ubos', 'flag', [1]],
+        ['ubos', 'flag', [2]],
+        ['ubos', 'flag', [3]],
+      ]);
+    });
+
+    it('reports an unexpected failure as a step error, without the details', async () => {
+      const harness = await setup({ stepDefinition: readUbos() });
+      jest.spyOn(harness.runStore, 'saveStepExecution').mockRejectedValue(new Error('disk full'));
+
+      const result = await harness.run();
+
+      expect(result.stepOutcome).toMatchObject({
+        status: 'error',
+        error: 'Unexpected error during step execution',
+      });
     });
   });
 
