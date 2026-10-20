@@ -80,6 +80,7 @@ export default class IterationRunStore implements RunStore {
 
   async saveStepExecution(runId: string, stepExecution: StepExecutionData): Promise<void> {
     if (this.abandoned) return;
+
     if (stepExecution.stepIndex !== this.stepIndex) {
       await this.base.saveStepExecution(runId, stepExecution);
 
@@ -106,11 +107,15 @@ export default class IterationRunStore implements RunStore {
     if (row.stepIndex === this.stepIndex) {
       const own = this.handle.get();
 
-      return ITERATION_FIELDS.some(field => own[field] !== undefined) ? [asExecution(row, own)] : [];
+      return ITERATION_FIELDS.some(field => own[field] !== undefined)
+        ? [asExecution(row, own)]
+        : [];
     }
 
     if (isPerRecordExecution(row)) {
-      const match = row.iterations.find(it => isSameRecord(it.sourceRecordRef, this.sourceRecordRef));
+      const match = row.iterations.find(it =>
+        isSameRecord(it.sourceRecordRef, this.sourceRecordRef),
+      );
 
       return match ? [asExecution(row, match)] : [];
     }

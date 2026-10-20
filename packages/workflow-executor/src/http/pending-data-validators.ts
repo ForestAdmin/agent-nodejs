@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { deserializeRecordId } from '../record-id';
+import { deserializeRecordId, serializeRecordId } from '../record-id';
 
 // Per-step-type schemas for the userConfirmation payload sent by the front via
 // POST /runs/:runId/trigger. Validated into `execution.userConfirmation`; schemas
@@ -69,17 +69,25 @@ const loadRelatedRecordPatchSchema = z
     // The .pipe(...) rejects empty segments that would build a bogus PK.
     selectedRecordId: recordIdSchema.optional(),
     // A Multiple step: every record picked, each among the candidates offered.
-    selectedRecordIds: z.array(recordIdSchema).min(1).max(MAX_SELECTED_RECORDS).optional(),
+    // A record picked twice would run every step after it twice on that record.
+    selectedRecordIds: z
+      .array(recordIdSchema)
+      .min(1)
+      .max(MAX_SELECTED_RECORDS)
+      .refine(ids => new Set(ids.map(serializeRecordId)).size === ids.length, {
+        message: 'each record can be picked once',
+      })
+      .optional(),
   })
   .strict()
   .refine(
     data => {
       // Preview patch (no confirm): fieldName alone is sufficient.
       if (data.userConfirmed === undefined) return data.fieldName !== undefined;
-      // Confirm patch with relation override: the records picked are required.
-      if (data.fieldName !== undefined) {
-        return data.selectedRecordId !== undefined || data.selectedRecordIds !== undefined;
-      }
+
+      // Confirm patch with relation override: the record picked is required. A Multiple step's
+      // relation is never switched, so the override never comes with selectedRecordIds.
+      if (data.fieldName !== undefined) return data.selectedRecordId !== undefined;
 
       return true;
     },

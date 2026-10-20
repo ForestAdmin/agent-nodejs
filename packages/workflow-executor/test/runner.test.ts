@@ -2399,7 +2399,9 @@ describe('a step running once per record', () => {
   it('hands the run back before the next record once the runtime is stopping', async () => {
     const workflowPort = createMockWorkflowPort();
     workflowPort.renewRunLock.mockResolvedValue({ status: 'renewed', lockedAt: 'lock-1' });
+
     let openGate: () => void = () => {};
+
     const gate = new Promise<void>(resolve => {
       openGate = resolve;
     });

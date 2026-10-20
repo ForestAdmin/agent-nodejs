@@ -9,8 +9,9 @@ function summarizeIteration(iteration: StepIteration): string {
   const { collectionName, recordId } = iteration.sourceRecordRef;
   let outcome = 'not run';
 
-  if (iteration.error !== undefined) outcome = `failed: ${iteration.error}`;
-  else if (iteration.executionResult !== undefined) {
+  if (iteration.error !== undefined) {
+    outcome = `failed: ${iteration.error}`;
+  } else if (iteration.executionResult !== undefined) {
     outcome = JSON.stringify(iteration.executionResult);
   } else if (iteration.pendingData !== undefined) {
     outcome = `awaiting input: ${JSON.stringify(iteration.pendingData)}`;
@@ -30,9 +31,11 @@ export default class StepSummaryBuilder {
     const lines = [header, `  Prompt: ${prompt}`];
 
     if (isPerRecordExecution(execution)) {
-      return [...lines, '  Ran once per record:', ...execution.iterations.map(summarizeIteration)].join(
-        '\n',
-      );
+      return [
+        ...lines,
+        '  Ran once per record:',
+        ...execution.iterations.map(summarizeIteration),
+      ].join('\n');
     }
 
     if (execution !== undefined) {

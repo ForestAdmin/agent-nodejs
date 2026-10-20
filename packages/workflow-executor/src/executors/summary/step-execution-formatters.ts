@@ -152,7 +152,8 @@ export default class StepExecutionFormatters {
 
     const { selectedRecordRef } = execution;
     const { relation } = executionResult;
-    const records = 'records' in executionResult ? executionResult.records : [executionResult.record];
+    const records =
+      'records' in executionResult ? executionResult.records : [executionResult.record];
     const sourceId = selectedRecordRef.recordId.join(', ');
     const loaded = records.map(r => `${r.collectionName} #${r.recordId.join(', ')}`).join(', ');
 
