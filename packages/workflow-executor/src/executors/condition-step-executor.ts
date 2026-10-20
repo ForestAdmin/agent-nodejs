@@ -97,6 +97,12 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
 
     if (isDeterministicConditionStep(step)) {
       const stepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
+      const operatorChoice = this.findOperatorChoice(stepExecutions);
+
+      if (operatorChoice !== undefined) {
+        return this.buildOutcomeResult({ status: 'success', selectedOption: operatorChoice });
+      }
+
       const paused = this.findPausedDecision(stepExecutions);
       if (paused) return this.completePausedDecision(step, paused, incomingPendingData);
 
@@ -141,6 +147,16 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
     }
 
     return this.buildOutcomeResult({ status: 'success', selectedOption });
+  }
+
+  // The branch an operator picked stands: a dispatch repeating the step replays it.
+  private findOperatorChoice(stepExecutions: StepExecutionData[]): string | undefined {
+    const own = stepExecutions.find(e => e.stepIndex === this.context.stepIndex);
+    if (own?.type !== 'condition' || own.executionResult === undefined) return undefined;
+
+    const params = own.executionParams as { selectedBy?: string };
+
+    return params.selectedBy === 'operator' ? own.executionResult.answer : undefined;
   }
 
   // A decision paused on records it could not check, waiting for the operator's branch.
