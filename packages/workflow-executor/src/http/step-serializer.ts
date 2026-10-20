@@ -62,7 +62,8 @@ function serializeIteration(type: StepExecutionData['type'], iteration: StepIter
     ...(type === 'load-related-record' &&
       serializeLoadRelatedFields({
         pendingData: iteration.pendingData as LoadRelatedRecordPendingData | undefined,
-        executionResult: iteration.executionResult as LoadRelatedRecordStepExecutionData['executionResult'],
+        executionResult:
+          iteration.executionResult as LoadRelatedRecordStepExecutionData['executionResult'],
       })),
   };
 }

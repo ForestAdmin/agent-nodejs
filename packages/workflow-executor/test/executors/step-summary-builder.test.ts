@@ -617,6 +617,7 @@ describe('StepSummaryBuilder', () => {
       expect(result).toContain('Prompt: (no prompt)');
     });
   });
+
   describe('steps that loaded or ran over several records', () => {
     const ubo = (id: number) => ({ collectionName: 'ubos', recordId: [id], stepIndex: 1 });
     const success = (stepId: string, stepIndex: number): StepOutcome => ({
@@ -636,7 +637,10 @@ describe('StepSummaryBuilder', () => {
         type: 'load-related-record',
         stepIndex: 1,
         executionParams: { name: 'ubos', displayName: 'UBOs' },
-        executionResult: { relation: { name: 'ubos', displayName: 'UBOs' }, records: [ubo(1), ubo(3)] },
+        executionResult: {
+          relation: { name: 'ubos', displayName: 'UBOs' },
+          records: [ubo(1), ubo(3)],
+        },
         selectedRecordRef: { collectionName: 'companies', recordId: [7], stepIndex: 0 },
       } as unknown as StepExecutionData;
 

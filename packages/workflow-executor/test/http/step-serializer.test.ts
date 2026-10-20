@@ -132,6 +132,7 @@ describe('serializeStepForWire', () => {
 
     expect(serializeStepForWire(step)).toBe(step);
   });
+
   describe('a Multiple step and a step running once per record', () => {
     it('serializes every record a Multiple step loaded and the records the AI picked', () => {
       const step = {

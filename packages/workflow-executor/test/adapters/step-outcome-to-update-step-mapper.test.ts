@@ -367,6 +367,7 @@ describe('toUpdateStepRequest', () => {
       expect(body.stepUpdate.attributes.context).not.toHaveProperty('errorKind');
     });
   });
+
   describe('a step dispatched while it carried an error', () => {
     const outcome = (status: 'success' | 'awaiting-input' | 'error'): StepOutcome => ({
       type: 'record',
@@ -399,7 +400,7 @@ describe('toUpdateStepRequest', () => {
       });
     });
 
-    it('sends exactly today\'s report for a step dispatched without an error', () => {
+    it("sends exactly today's report for a step dispatched without an error", () => {
       expect(toUpdateStepRequest('42', outcome('success'), { clearsError: false })).toStrictEqual(
         toUpdateStepRequest('42', outcome('success')),
       );

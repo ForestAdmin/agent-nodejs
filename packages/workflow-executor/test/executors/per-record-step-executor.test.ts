@@ -151,9 +151,7 @@ const activityLogPort: ActivityLogPort = {
   markFailed: jest.fn().mockResolvedValue(undefined),
 };
 
-function makeRunControl(
-  ...answers: Array<'continue' | 'stop' | 'yield'>
-): jest.Mocked<RunControl> {
+function makeRunControl(...answers: Array<'continue' | 'stop' | 'yield'>): jest.Mocked<RunControl> {
   const beforeRecord = jest.fn();
   answers.forEach(answer => beforeRecord.mockResolvedValueOnce(answer));
   beforeRecord.mockResolvedValue('continue');
@@ -259,7 +257,7 @@ async function setup({
     };
   };
 
-  return { run, row, runStore, agentPort, model, runControl };
+  return { run, row, runStore, agentPort, model, runControl, workflowPort };
 }
 
 describe('a step running once per record', () => {
@@ -336,6 +334,25 @@ describe('a step running once per record', () => {
       expect(agentPort.getRecord).not.toHaveBeenCalled();
     });
 
+    it("keeps running the records when a record's name cannot be read for the AI", async () => {
+      const harness = await setup({ stepDefinition: readUbos() });
+      const getCollectionSchema = harness.workflowPort.getCollectionSchema as jest.Mock;
+      let failedOnce = false;
+      getCollectionSchema.mockImplementation(async (name: string) => {
+        if (name === 'ubos' && !failedOnce) {
+          failedOnce = true;
+          throw new Error('orchestrator unreachable');
+        }
+
+        return SCHEMAS[name];
+      });
+
+      const result = await harness.run();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(harness.agentPort.getRecord).toHaveBeenCalledTimes(3);
+    });
+
     it('attempts every record and ends in error when one of them failed', async () => {
       const agentPort = makeAgentPort();
       agentPort.getRecord.mockImplementation(async ({ id }) => {
@@ -353,7 +370,12 @@ describe('a step running once per record', () => {
       });
       expect(agentPort.getRecord).toHaveBeenCalledTimes(3);
       const { iterations } = await row();
-      expect(iterations?.map(iteration => [iteration.error !== undefined, iteration.finishedAt !== undefined])).toStrictEqual([
+      expect(
+        iterations?.map(iteration => [
+          iteration.error !== undefined,
+          iteration.finishedAt !== undefined,
+        ]),
+      ).toStrictEqual([
         [false, true],
         [true, true],
         [false, true],
@@ -459,6 +481,27 @@ describe('a step running once per record', () => {
       });
     });
 
+    it('runs an answered record before handing the run back to a runtime shutting down', async () => {
+      const runControl = makeRunControl('continue');
+      const harness = await setup({
+        stepDefinition: updateUbos(StepExecutionMode.AutomatedWithConfirmation),
+        runControl,
+      });
+      await harness.run();
+      runControl.beforeRecord.mockResolvedValue('yield');
+
+      const result = await harness.run({ userConfirmed: true, sourceRecordId: '1' });
+
+      expect(result.interrupted).toBe('yielded');
+      expect(harness.agentPort.updateRecord).toHaveBeenCalledTimes(1);
+      expect(harness.agentPort.updateRecord).toHaveBeenCalledWith(
+        { collection: 'ubos', id: [1], values: { note: 'checked' } },
+        expect.anything(),
+      );
+      const { iterations } = await harness.row();
+      expect(iterations?.[0].executionResult).toStrictEqual({ updatedValues: { note: 'checked' } });
+    });
+
     it('drops an answer naming another record and stays paused on its record', async () => {
       const harness = await setup({
         stepDefinition: updateUbos(StepExecutionMode.AutomatedWithConfirmation),
@@ -518,7 +561,7 @@ describe('a step running once per record', () => {
                 finishedAt: 't',
               },
         ),
-      }) as unknown as StepExecutionData;
+      } as unknown as StepExecutionData);
 
     it('re-runs only the failed records, at their next attempt, when asked to retry them', async () => {
       const { run, row, agentPort } = await setup({
@@ -543,7 +586,10 @@ describe('a step running once per record', () => {
 
       const result = await run({ failedRecords: 'retry', sourceRecordId: '3' });
 
-      expect(result.stepOutcome).toMatchObject({ status: 'error', error: '1 of 3 records failed.' });
+      expect(result.stepOutcome).toMatchObject({
+        status: 'error',
+        error: '1 of 3 records failed.',
+      });
       expect(agentPort.getRecord.mock.calls.map(([args]) => args.id)).toStrictEqual([[3]]);
       const { iterations } = await row();
       expect(iterations?.[1]).toMatchObject({ attempt: 1, error: 'boom' });
@@ -596,7 +642,10 @@ describe('a step running once per record', () => {
 
       const crashed = await harness.run();
 
-      expect(crashed.stepOutcome).toMatchObject({ status: 'error', error: '1 of 3 records failed.' });
+      expect(crashed.stepOutcome).toMatchObject({
+        status: 'error',
+        error: '1 of 3 records failed.',
+      });
       expect(harness.agentPort.updateRecord.mock.calls.map(([args]) => args.id)).toStrictEqual([
         [3],
       ]);
@@ -615,7 +664,9 @@ describe('a step running once per record', () => {
 
       try {
         const agentPort = makeAgentPort();
+
         let releaseSlowRead: () => void = () => {};
+
         agentPort.getRecord.mockImplementationOnce(
           ({ id }) =>
             new Promise(resolve => {
@@ -623,7 +674,11 @@ describe('a step running once per record', () => {
                 resolve({ collectionName: 'ubos', recordId: id, values: { pep: true } });
             }),
         );
-        const { run, row } = await setup({ stepDefinition: readUbos(), agentPort, stepTimeoutS: 1 });
+        const { run, row } = await setup({
+          stepDefinition: readUbos(),
+          agentPort,
+          stepTimeoutS: 1,
+        });
 
         const pending = run();
         await jest.advanceTimersByTimeAsync(1_000);
@@ -631,7 +686,10 @@ describe('a step running once per record', () => {
         releaseSlowRead();
         await jest.advanceTimersByTimeAsync(10);
 
-        expect(result.stepOutcome).toMatchObject({ status: 'error', error: '1 of 3 records failed.' });
+        expect(result.stepOutcome).toMatchObject({
+          status: 'error',
+          error: '1 of 3 records failed.',
+        });
         const { iterations } = await row();
         expect(iterations?.[0]).toMatchObject({
           error:
@@ -655,7 +713,10 @@ describe('a step running once per record', () => {
           selectedRecordRef: ubo(1),
           attempt: 1,
           executionParams: { name: 'address', displayName: 'Address' },
-          executionResult: { relation: { name: 'address', displayName: 'Address' }, record: address(11) },
+          executionResult: {
+            relation: { name: 'address', displayName: 'Address' },
+            record: address(11),
+          },
           finishedAt: 't',
         },
         {
@@ -671,7 +732,10 @@ describe('a step running once per record', () => {
           selectedRecordRef: ubo(3),
           attempt: 1,
           executionParams: { name: 'address', displayName: 'Address' },
-          executionResult: { relation: { name: 'address', displayName: 'Address' }, record: address(13) },
+          executionResult: {
+            relation: { name: 'address', displayName: 'Address' },
+            record: address(13),
+          },
           finishedAt: 't',
         },
       ],
@@ -691,7 +755,9 @@ describe('a step running once per record', () => {
       const result = await run();
 
       expect(result.stepOutcome.status).toBe('success');
-      expect(agentPort.getRecord.mock.calls.map(([args]) => [args.collection, args.id])).toStrictEqual([
+      expect(
+        agentPort.getRecord.mock.calls.map(([args]) => [args.collection, args.id]),
+      ).toStrictEqual([
         ['addresses', [11]],
         ['addresses', [13]],
       ]);
@@ -712,7 +778,9 @@ describe('a step running once per record', () => {
           selectedRecordRef: ubo(id),
           attempt: 1,
           executionParams: { fields: [{ name: 'note', displayName: 'Note' }] },
-          executionResult: { fields: [{ name: 'note', displayName: 'Note', value: `secret-${id}` }] },
+          executionResult: {
+            fields: [{ name: 'note', displayName: 'Note', value: `secret-${id}` }],
+          },
           finishedAt: 't',
         })),
       } as unknown as StepExecutionData;
@@ -830,7 +898,10 @@ describe('a step running once per record', () => {
       expect(runControl.beforeRecord).not.toHaveBeenCalled();
       const stored = await row();
       expect(stored).not.toHaveProperty('iterations');
-      expect(stored).toMatchObject({ selectedRecordRef: ubo(1), executionResult: expect.anything() });
+      expect(stored).toMatchObject({
+        selectedRecordRef: ubo(1),
+        executionResult: expect.anything(),
+      });
     });
   });
 });

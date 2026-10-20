@@ -146,7 +146,9 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
   // A decision paused on records it could not check, waiting for the operator's branch.
   private findPausedDecision(
     stepExecutions: StepExecutionData[],
-  ): (ConditionStepExecutionData & { executionParams: PausedConditionExecutionParams }) | undefined {
+  ):
+    | (ConditionStepExecutionData & { executionParams: PausedConditionExecutionParams })
+    | undefined {
     const own = stepExecutions.find(e => e.stepIndex === this.context.stepIndex);
     if (own?.type !== 'condition' || own.executionResult !== undefined) return undefined;
     if (!('unchecked' in own.executionParams)) return undefined;
@@ -159,7 +161,9 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
     paused: ConditionStepExecutionData & { executionParams: PausedConditionExecutionParams },
     incomingPendingData: unknown,
   ): Promise<StepExecutionResult> {
-    if (incomingPendingData === undefined) return this.buildOutcomeResult({ status: 'awaiting-input' });
+    if (incomingPendingData === undefined) {
+      return this.buildOutcomeResult({ status: 'awaiting-input' });
+    }
 
     const { selectedOption } = this.readUserChoice(step, incomingPendingData);
 
@@ -271,7 +275,9 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
     const resolved = this.resolveConditionValue(condition, stepExecutions);
 
     if (resolved.found === 'per-record') {
-      if (!condition.quantifier) throw new MissingConditionQuantifierError(option, condition.fieldName);
+      if (!condition.quantifier) {
+        throw new MissingConditionQuantifierError(option, condition.fieldName);
+      }
 
       return this.evaluateOverRecords(condition, resolved.values, clock);
     }
@@ -293,7 +299,10 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
     const met = evaluateOperator(condition.operator, resolved.value, condition.value, clock);
     if (!condition.quantifier) return { met };
 
-    return { met, records: { matched: met === true ? 1 : 0, evaluated: met === null ? 0 : 1 } };
+    const records = { matched: met === true ? 1 : 0, evaluated: met === null ? 0 : 1 };
+
+    // "none" holds when the one record does not match; an undecided value stays undecided.
+    return { met: condition.quantifier === 'none' && met !== null ? !met : met, records };
   }
 
   // A record whose value decides nothing (not read, or read empty for a comparison) is unchecked.
@@ -307,7 +316,9 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
     let evaluated = 0;
 
     values.forEach(({ recordId, found, value }) => {
-      const met = found ? evaluateOperator(condition.operator, value, condition.value, clock) : null;
+      const met = found
+        ? evaluateOperator(condition.operator, value, condition.value, clock)
+        : null;
 
       if (met === null) {
         unchecked.push(recordId);
@@ -354,7 +365,9 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
       return {
         found: 'per-record',
         values: execution.iterations.map(iteration => {
-          const result = iteration.executionResult as { fields?: Array<{ name: string; value?: unknown }> };
+          const result = iteration.executionResult as {
+            fields?: Array<{ name: string; value?: unknown }>;
+          };
           const field = result?.fields?.find(f => f.name === condition.fieldName);
           const recordId = serializeRecordId(iteration.sourceRecordRef.recordId);
 

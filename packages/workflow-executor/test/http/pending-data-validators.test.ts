@@ -196,10 +196,16 @@ describe('patchBodySchemas', () => {
         expect(() => schema.parse({ userConfirmed: true, selectedRecordIds })).toThrow();
       });
 
-      it('accepts a relation override confirmed with selectedRecordIds alone', () => {
-        expect(
+      it('refuses a relation override confirmed with selectedRecordIds alone', () => {
+        expect(() =>
           schema.parse({ userConfirmed: true, fieldName: 'ubos', selectedRecordIds: ['1'] }),
-        ).toStrictEqual({ userConfirmed: true, fieldName: 'ubos', selectedRecordIds: [['1']] });
+        ).toThrow();
+      });
+
+      it('refuses the same record picked twice', () => {
+        expect(() =>
+          schema.parse({ userConfirmed: true, selectedRecordIds: ['pk1|pk2', '42', 'pk1|pk2'] }),
+        ).toThrow();
       });
     });
 

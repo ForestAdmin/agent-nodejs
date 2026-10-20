@@ -352,7 +352,10 @@ export default class Runner {
     }
   }
 
-  private executeStep(dispatch: AvailableRunDispatch, incomingPendingData?: unknown): Promise<void> {
+  private executeStep(
+    dispatch: AvailableRunDispatch,
+    incomingPendingData?: unknown,
+  ): Promise<void> {
     // The tracked promise covers the entire auto-chain for this run plus the map cleanup —
     // register it once, clean up once. Storing per-step entries (or Promise.resolve()) would
     // break drain: Promise.allSettled would see already-resolved entries and stop waiting while

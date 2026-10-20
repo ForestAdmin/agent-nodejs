@@ -558,7 +558,9 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     }
 
     const { prompt } = this.context.stepDefinition;
-    const fieldNames = await this.withAiAssist(() => this.selectRelevantFields(relatedSchema, prompt));
+    const fieldNames = await this.withAiAssist(() =>
+      this.selectRelevantFields(relatedSchema, prompt),
+    );
     const { indexes, confident, sawAll } = await this.withAiAssist(() =>
       this.selectRelevantRecordIndexes(relatedData, fieldNames, prompt),
     );
@@ -618,8 +620,18 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
 
     const relationRef = pendingData.suggestedField;
 
-    if (userConfirmation?.fieldName !== undefined && userConfirmation.fieldName !== relationRef.name) {
+    if (
+      userConfirmation?.fieldName !== undefined &&
+      userConfirmation.fieldName !== relationRef.name
+    ) {
       this.refuseRelationSwitch(userConfirmation.fieldName);
+    }
+
+    // One record picked for a step loading several would otherwise fall back to the AI's pick.
+    if (userConfirmation?.selectedRecordId !== undefined) {
+      throw new StepStateError(
+        `Step at index ${this.context.stepIndex} loads several records and cannot take selectedRecordId`,
+      );
     }
 
     const picked =
@@ -721,6 +733,13 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     if (!relationRef) {
       throw new StepStateError(
         `Step at index ${this.context.stepIndex} could not resolve relation "${userConfirmation?.fieldName}" from available fields`,
+      );
+    }
+
+    // Records picked for a step loading one would otherwise fall back to the AI's suggestion.
+    if (userConfirmation?.selectedRecordIds !== undefined) {
+      throw new StepStateError(
+        `Step at index ${this.context.stepIndex} loads one record and cannot take selectedRecordIds`,
       );
     }
 
