@@ -2,6 +2,7 @@ import type { RunStore } from '../ports/run-store';
 import type { StepExecutionData, StepIteration } from '../types/step-execution-data';
 import type { RecordRef } from '../types/validated/collection';
 
+import { StepStateError } from '../errors';
 import { serializeRecordId } from '../record-id';
 import { isPerRecordExecution } from '../types/step-execution-data';
 
@@ -59,7 +60,8 @@ export default class IterationRunStore implements RunStore {
     this.handle = handle;
   }
 
-  // A run past its timeout keeps going, since nothing aborts it: its saves must land nowhere.
+  // A run past its timeout keeps going, since nothing aborts it. Its saves are refused, which also
+  // stops it at the write-ahead marker a mutating step saves before its side effect.
   abandon(): void {
     this.abandoned = true;
   }
@@ -79,7 +81,11 @@ export default class IterationRunStore implements RunStore {
   }
 
   async saveStepExecution(runId: string, stepExecution: StepExecutionData): Promise<void> {
-    if (this.abandoned) return;
+    if (this.abandoned) {
+      throw new StepStateError(
+        `Run of step ${this.stepIndex} for a record was abandoned at its timeout`,
+      );
+    }
 
     if (stepExecution.stepIndex !== this.stepIndex) {
       await this.base.saveStepExecution(runId, stepExecution);
