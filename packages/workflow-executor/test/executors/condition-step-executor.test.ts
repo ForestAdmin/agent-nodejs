@@ -1531,6 +1531,35 @@ describe('ConditionStepExecutor', () => {
       });
     });
 
+    it("keeps the operator's choice when a completed decision is dispatched again", async () => {
+      const completed = {
+        type: 'condition',
+        stepIndex: 0,
+        executionParams: {
+          evaluations: [],
+          unchecked: ['2'],
+          evaluatedAt: 't',
+          timezone: 'UTC',
+          selectedOption: 'Escalate',
+          usedFallback: false,
+          selectedBy: 'operator',
+        },
+        executionResult: { answer: 'Escalate' },
+      } as unknown as StepExecutionData;
+      const { context, runStore } = contextFor(quantified('any'), [
+        completed,
+        perRecordRead(2, [
+          { id: 1, pep: false },
+          { id: 2, skipped: true },
+        ]),
+      ]);
+
+      const result = await new ConditionStepExecutor(context).execute();
+
+      expect(result.stepOutcome).toMatchObject({ status: 'success', selectedOption: 'Escalate' });
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
+
     it('stays paused when a paused decision is dispatched again without a choice', async () => {
       const paused = {
         type: 'condition',
@@ -1571,7 +1600,10 @@ describe('ConditionStepExecutor', () => {
 
         const result = await new ConditionStepExecutor(context).execute();
 
-        expect(result.stepOutcome).toMatchObject({ status: 'success', selectedOption: expectedOption });
+        expect(result.stepOutcome).toMatchObject({
+          status: 'success',
+          selectedOption: expectedOption,
+        });
       },
     );
 

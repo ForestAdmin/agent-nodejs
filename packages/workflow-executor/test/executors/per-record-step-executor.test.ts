@@ -701,6 +701,38 @@ describe('a step running once per record', () => {
         jest.useRealTimers();
       }
     });
+
+    it('never runs the update of a record whose step timeout passed before the update started', async () => {
+      jest.useFakeTimers({ doNotFake: ['nextTick', 'setImmediate'] });
+
+      try {
+        let releaseAuditLog: () => void = () => {};
+
+        (activityLogPort.createPending as jest.Mock).mockImplementationOnce(
+          () =>
+            new Promise(resolve => {
+              releaseAuditLog = () => resolve({ id: 'log-late', index: '0' });
+            }),
+        );
+        const { run, agentPort } = await setup({
+          stepDefinition: updateUbos(StepExecutionMode.FullyAutomated),
+          stepTimeoutS: 1,
+        });
+
+        const pending = run();
+        await jest.advanceTimersByTimeAsync(1_000);
+        await pending;
+        releaseAuditLog();
+        await jest.advanceTimersByTimeAsync(10);
+
+        expect(agentPort.updateRecord.mock.calls.map(([args]) => args.id)).toStrictEqual([
+          [2],
+          [3],
+        ]);
+      } finally {
+        jest.useRealTimers();
+      }
+    });
   });
 
   describe('chained steps', () => {
