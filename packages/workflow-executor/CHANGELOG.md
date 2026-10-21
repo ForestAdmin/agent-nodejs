@@ -1,3 +1,18 @@
+# @forestadmin/workflow-executor [1.35.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.34.0...@forestadmin/workflow-executor@1.35.0) (2026-10-21)
+
+
+### Features
+
+* **ai-proxy:** serve GPT-6 models through the OpenAI Responses API ([#2014](https://github.com/ForestAdmin/agent-nodejs/issues/2014)) ([a03c0c9](https://github.com/ForestAdmin/agent-nodejs/commit/a03c0c96e529133701a7458e3a81e173651a898f))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/ai-proxy:** upgraded to 1.15.0
+
 # @forestadmin/workflow-executor [1.34.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.33.2...@forestadmin/workflow-executor@1.34.0) (2026-10-19)
 
 
