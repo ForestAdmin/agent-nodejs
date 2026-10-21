@@ -371,6 +371,36 @@ describe('ProviderDispatcher', () => {
       );
     });
 
+    it('should let the conversation continue after a relayed tool call with invalid JSON arguments', async () => {
+      mockAnthropicResponse('Done');
+
+      await dispatcher.dispatch(
+        buildBody({
+          messages: [
+            { role: 'user', content: 'Hello' },
+            {
+              role: 'assistant',
+              content: '',
+              tool_calls: [
+                {
+                  id: 'call_1',
+                  type: 'function',
+                  function: { name: 'my_tool', arguments: '{"a":' },
+                },
+              ],
+            },
+            { role: 'tool', tool_call_id: 'call_1', content: 'invalid arguments' },
+          ],
+        } as unknown as DispatchBody),
+      );
+
+      const sent = anthropicInvokeMock.mock.calls[0][0] as AIMessage[];
+
+      expect(sent.find(message => message.tool_calls?.length)?.tool_calls).toEqual([
+        { id: 'call_1', name: 'my_tool', args: {} },
+      ]);
+    });
+
     it('should return an OpenAI-compatible response', async () => {
       mockAnthropicResponse('Hello from Claude', {
         id: 'msg_123',

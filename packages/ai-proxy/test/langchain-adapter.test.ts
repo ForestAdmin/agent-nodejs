@@ -84,18 +84,18 @@ describe('LangChainAdapter', () => {
       );
     });
 
-    it('should keep a tool call whose arguments are not valid JSON, with empty arguments', () => {
-      const [message] = LangChainAdapter.convertMessages([
-        {
-          role: 'assistant',
-          content: '',
-          tool_calls: [{ id: 'call_1', function: { name: 'my_tool', arguments: 'not-json' } }],
-        },
-      ]);
-
-      expect((message as AIMessage).tool_calls).toEqual([
-        { id: 'call_1', name: 'my_tool', args: {} },
-      ]);
+    it('should throw AIBadRequestError for invalid JSON in tool_calls arguments', () => {
+      expect(() =>
+        LangChainAdapter.convertMessages([
+          {
+            role: 'assistant',
+            content: '',
+            tool_calls: [{ id: 'call_1', function: { name: 'my_tool', arguments: 'not-json' } }],
+          },
+        ]),
+      ).toThrow(
+        new AIBadRequestError("Invalid JSON in tool_calls arguments for tool 'my_tool': not-json"),
+      );
     });
   });
 

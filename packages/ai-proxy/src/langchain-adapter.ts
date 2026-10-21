@@ -85,7 +85,10 @@ export class LangChainAdapter {
                 tool_calls: msg.tool_calls.map(tc => ({
                   id: tc.id,
                   name: tc.function.name,
-                  args: LangChainAdapter.parseToolArguments(tc.function.arguments),
+                  args: LangChainAdapter.parseToolArguments(
+                    tc.function.name,
+                    tc.function.arguments,
+                  ),
                 })),
               }),
             );
@@ -229,17 +232,20 @@ export class LangChainAdapter {
     return null;
   }
 
-  // Arguments that are not valid JSON are what a relayed invalid tool call leaves in the history,
-  // and the next turn must still go through.
-  private static parseToolArguments(args: string): Record<string, unknown> {
+  private static parseToolArguments(toolName: string, args: string): Record<string, unknown> {
     try {
       return JSON.parse(args);
     } catch {
-      return {};
+      throw new AIBadRequestError(
+        `Invalid JSON in tool_calls arguments for tool '${toolName}': ${args}`,
+      );
     }
   }
 
-  /** Replace tool call arguments that are not valid JSON, so the provider's SDK accepts the history. */
+  /**
+   * Replace tool call arguments that are not valid JSON, so the provider's SDK accepts the history.
+   * A relayed invalid tool call leaves them there, and the next turn must still go through.
+   */
   static withParsableToolArguments<T>(messages: T[]): T[] {
     return messages.map(message => {
       const { tool_calls: toolCalls } = message as { tool_calls?: unknown };

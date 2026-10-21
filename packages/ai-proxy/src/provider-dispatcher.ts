@@ -73,12 +73,17 @@ export default class ProviderDispatcher {
   }
 
   async dispatch(body: DispatchBody): Promise<ChatCompletionResponse> {
+    const parsableBody = {
+      ...body,
+      messages: LangChainAdapter.withParsableToolArguments(body.messages),
+    };
+
     if (this.openaiModel) {
-      return this.dispatchOpenAI(body);
+      return this.dispatchOpenAI(parsableBody);
     }
 
     if (this.anthropicModel) {
-      return this.dispatchAnthropic(body);
+      return this.dispatchAnthropic(parsableBody);
     }
 
     throw new AINotConfiguredError();
@@ -103,9 +108,7 @@ export default class ProviderDispatcher {
     let response: AIMessage;
 
     try {
-      response = await model.invoke(
-        LangChainAdapter.withParsableToolArguments(messages) as BaseMessageLike[],
-      );
+      response = await model.invoke(messages as BaseMessageLike[]);
     } catch (error) {
       throw ProviderDispatcher.wrapProviderError(error, 'OpenAI');
     }
