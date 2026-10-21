@@ -1,3 +1,18 @@
+## @forestadmin/agent [1.110.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.110.3...@forestadmin/agent@1.110.4) (2026-10-21)
+
+
+### Bug Fixes
+
+* **audit-trail:** close the remaining scope oracles and parity gaps with Ruby [PRD-1269] ([#1983](https://github.com/ForestAdmin/agent-nodejs/issues/1983)) ([669ef58](https://github.com/ForestAdmin/agent-nodejs/commit/669ef586310caf9ec244e436a362064502bc655e))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/workflow-executor:** upgraded to 1.35.0
+
 ## @forestadmin/agent [1.110.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.110.2...@forestadmin/agent@1.110.3) (2026-10-19)
 
 
