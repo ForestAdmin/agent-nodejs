@@ -1,4 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import nock from 'nock';
+
 type MockRouteHandler<T> = T | ((url: string, options?: RequestInit) => T);
 
 interface MockRoute<T> {
@@ -294,6 +296,10 @@ export default class MockForestServer {
     superagent.patch = (reqUrl: string) =>
       createMockRequest('PATCH', reqUrl, originalSuperagent.patch);
 
+    // openid-client registers on /oidc/reg and eventsource subscribes over raw http, past both mocks.
+    nock.disableNetConnect();
+    nock.enableNetConnect(/^(localhost|127\.0\.0\.1)(:\d+)?$/);
+
     this.superagentMocked = true;
 
     return this;
@@ -319,6 +325,7 @@ export default class MockForestServer {
     const superagent = require('superagent');
 
     Object.assign(superagent, originalSuperagent);
+    nock.enableNetConnect();
     this.superagentMocked = false;
   }
 
