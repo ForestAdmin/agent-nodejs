@@ -391,8 +391,16 @@ export default class ActionRoute extends CollectionRoute {
     let filter = ContextFilterFactory.build(this.collection, context, scope);
 
     // Restrict the filter to the selected records for single or bulk actions.
-    if (this.collection.schema.actions[this.actionName].scope !== 'Global') {
+    const actionScope = this.collection.schema.actions[this.actionName].scope;
+
+    if (actionScope !== 'Global') {
       const selectionIds = BodyParser.parseSelectionIds(this.collection.schema, context);
+
+      // A single action only ever runs on the first record: refuse rather than skip the others.
+      if (actionScope === 'Single' && (selectionIds.areExcluded || selectionIds.ids.length > 1)) {
+        throw new UnprocessableError('This action can only be triggered on one record at a time.');
+      }
+
       let selectedIds = ConditionTreeFactory.matchIds(this.collection.schema, selectionIds.ids);
       if (selectionIds.areExcluded) selectedIds = selectedIds.inverse();
 
