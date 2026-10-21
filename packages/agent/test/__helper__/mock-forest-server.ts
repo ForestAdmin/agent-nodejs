@@ -1,4 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import nock from 'nock';
+
 type MockRouteHandler<T> = T | ((url: string, options?: RequestInit) => T);
 
 interface MockRoute<T> {
@@ -166,6 +168,9 @@ export default class MockForestServer {
     this.post('/api/activity-logs-requests', {
       data: { id: 'activity-log-1', attributes: { index: 'logs-2024' } },
     });
+    // A 404 here makes the status update retry for seconds, past restore(): the retries then reach
+    // the real forestServerUrl.
+    this.patch(/\/api\/activity-logs-requests\/[^/]+\/[^/]+\/status/, {});
 
     // Server events (SSE endpoint mock)
     this.get('/liana/v4/subscriptions/server-events', {
@@ -288,6 +293,12 @@ export default class MockForestServer {
     superagent.put = (reqUrl: string) => createMockRequest('PUT', reqUrl, originalSuperagent.put);
     superagent.delete = (reqUrl: string) =>
       createMockRequest('DELETE', reqUrl, originalSuperagent.delete);
+    superagent.patch = (reqUrl: string) =>
+      createMockRequest('PATCH', reqUrl, originalSuperagent.patch);
+
+    // openid-client registers on /oidc/reg and eventsource subscribes over raw http, past both mocks.
+    nock.disableNetConnect();
+    nock.enableNetConnect(/^(localhost|127\.0\.0\.1)(:\d+)?$/);
 
     this.superagentMocked = true;
 
@@ -314,6 +325,7 @@ export default class MockForestServer {
     const superagent = require('superagent');
 
     Object.assign(superagent, originalSuperagent);
+    nock.enableNetConnect();
     this.superagentMocked = false;
   }
 
