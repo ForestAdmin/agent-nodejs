@@ -16,6 +16,7 @@ import { z } from 'zod';
 
 import {
   MultipleOnPerRecordSourceError,
+  RecordChangeInterruptedError,
   SourceRecordMissingError,
   StepTimeoutError,
   WorkflowExecutorError,
@@ -116,11 +117,18 @@ export default class PerRecordStepExecutor implements IStepExecutor {
       }
     }
 
-    const failed = row.iterations.filter(iteration => iteration.error !== undefined).length;
+    const failed = row.iterations.filter(iteration => iteration.error !== undefined);
+    if (failed.length === 0) return this.outcome('success');
 
-    return failed > 0
-      ? this.outcome('error', { error: `${failed} of ${row.iterations.length} records failed.` })
-      : this.outcome('success');
+    // Records failing for one kind of reason make the step fail for it: an edit, not a retry, fixes
+    // a configuration error on every record.
+    const kinds = new Set(failed.map(iteration => iteration.errorKind));
+    const [errorKind] = kinds.size === 1 ? [...kinds] : [];
+
+    return this.outcome('error', {
+      error: `${failed.length} of ${row.iterations.length} records failed.`,
+      ...(errorKind !== undefined && { errorKind }),
+    });
   }
 
   // Every record is listed when the step starts, so the run view shows the ones still to come.
@@ -224,6 +232,12 @@ export default class PerRecordStepExecutor implements IStepExecutor {
       return { status: 'success' };
     }
 
+    // A restart cut this record's change off after it started: it may have landed, so the record
+    // fails saying so, and only a retry, which drops the marker, runs it again.
+    if (row.iterations[index].idempotencyPhase === 'executing') {
+      return this.failRecord(row, index, new RecordChangeInterruptedError().userMessage);
+    }
+
     const store = new IterationRunStore(
       this.context.runStore,
       this.context.stepIndex,
@@ -245,7 +259,11 @@ export default class PerRecordStepExecutor implements IStepExecutor {
       stepTimeoutS: undefined,
       perRecordLabel: await this.labelOf(sourceRecordRef),
     });
-    const { stepOutcome } = await this.withTimeout(inner.execute(), store);
+    const { stepOutcome } = await this.withTimeout(
+      inner.execute(),
+      store,
+      () => row.iterations[index],
+    );
 
     if (stepOutcome.status === 'awaiting-input') {
       await this.persist(row);
@@ -253,17 +271,36 @@ export default class PerRecordStepExecutor implements IStepExecutor {
       return { status: 'awaiting-input' };
     }
 
+    if (stepOutcome.status === 'error') {
+      return this.failRecord(
+        row,
+        index,
+        stepOutcome.error ?? 'Unexpected error during step execution',
+        stepOutcome.errorKind,
+      );
+    }
+
+    row.iterations[index] = { ...row.iterations[index], finishedAt: new Date().toISOString() };
+    await this.persist(row);
+
+    return { status: stepOutcome.status };
+  }
+
+  private async failRecord(
+    row: PerRecordStepExecutionData,
+    index: number,
+    error: string,
+    errorKind?: StepIteration['errorKind'],
+  ): Promise<RecordRun> {
     row.iterations[index] = {
       ...row.iterations[index],
-      ...(stepOutcome.status === 'error' && {
-        error: stepOutcome.error ?? 'Unexpected error during step execution',
-        ...(stepOutcome.errorKind !== undefined && { errorKind: stepOutcome.errorKind }),
-      }),
+      error,
+      ...(errorKind !== undefined && { errorKind }),
       finishedAt: new Date().toISOString(),
     };
     await this.persist(row);
 
-    return { status: stepOutcome.status };
+    return { status: 'error' };
   }
 
   // A record whose per-record source found nothing for it is skipped by the steps after it.
@@ -286,6 +323,7 @@ export default class PerRecordStepExecutor implements IStepExecutor {
   private async withTimeout(
     execution: Promise<StepExecutionResult>,
     store: IterationRunStore,
+    iteration: () => StepIteration,
   ): Promise<StepExecutionResult> {
     const timeoutS = this.context.stepTimeoutS;
     if (!timeoutS || timeoutS <= 0) return execution;
@@ -299,7 +337,18 @@ export default class PerRecordStepExecutor implements IStepExecutor {
         new Promise<StepExecutionResult>(resolve => {
           timer = setTimeout(() => {
             store.abandon();
-            resolve(this.outcome('error', { error: new StepTimeoutError(timeoutS).userMessage }));
+            // Past its write-ahead marker, the change has started and may still land.
+            const changeStarted = iteration().idempotencyPhase === 'executing';
+            this.context.logger('Error', `Step execution exceeded timeout of ${timeoutS}s`, {
+              ...this.logCtx,
+              sourceRecordId: this.idOf(iteration()),
+              timeoutS,
+              changeStarted,
+            });
+            const error = changeStarted
+              ? new RecordChangeInterruptedError()
+              : new StepTimeoutError(timeoutS);
+            resolve(this.outcome('error', { error: error.userMessage }));
           }, timeoutS * 1000);
         }),
       ]);

@@ -159,6 +159,27 @@ function makeRunControl(...answers: Array<'continue' | 'stop' | 'yield'>): jest.
   return { beforeRecord } as jest.Mocked<RunControl>;
 }
 
+const USER = {
+  id: 1,
+  email: 'jane@example.com',
+  firstName: 'Jane',
+  lastName: 'Doe',
+  team: 'Operations',
+  renderingId: 1,
+  role: 'admin',
+  permissionLevel: 'admin',
+  tags: {},
+} as AvailableStepExecution['user'];
+
+// Which record each agent call read or wrote, and as whom.
+function recordsCalled(
+  spy: jest.MockInstance<unknown, [{ id: unknown }, unknown]>,
+): Array<{ id: unknown; user: unknown }> {
+  return spy.mock.calls.map(([query, user]) => ({ id: query.id, user }));
+}
+
+const readAs = (...ids: number[]) => ids.map(id => ({ id: [id], user: USER }));
+
 function makeStep(
   stepDefinition: StepDefinition,
   overrides: Partial<AvailableStepExecution> = {},
@@ -172,17 +193,7 @@ function makeStep(
     baseRecordRef: COMPANY,
     stepDefinition,
     previousSteps: [LOAD_UBOS],
-    user: {
-      id: 1,
-      email: 'jane@example.com',
-      firstName: 'Jane',
-      lastName: 'Doe',
-      team: 'Operations',
-      renderingId: 1,
-      role: 'admin',
-      permissionLevel: 'admin',
-      tags: {},
-    },
+    user: USER,
     timezone: 'UTC',
     ...overrides,
   } as AvailableStepExecution;
@@ -212,6 +223,7 @@ async function setup({
   model = makeModel(),
   runControl = makeRunControl(),
   stepTimeoutS,
+  callScope,
 }: {
   stepDefinition: StepDefinition;
   stored?: StepExecutionData[];
@@ -220,6 +232,7 @@ async function setup({
   model?: ReturnType<typeof makeModel>;
   runControl?: jest.Mocked<RunControl>;
   stepTimeoutS?: number;
+  callScope?: AvailableStepExecution['callScope'];
 }) {
   const runStore = new InMemoryStore();
   await Promise.all(stored.map(execution => runStore.saveStepExecution(RUN_ID, execution)));
@@ -239,7 +252,7 @@ async function setup({
 
   const run = async (incomingPendingData?: unknown) => {
     const executor = await StepExecutorFactory.create(
-      makeStep(stepDefinition, { previousSteps }),
+      makeStep(stepDefinition, { previousSteps, ...(callScope && { callScope }) }),
       contextConfig,
       activityLogPort,
       jest.fn(),
@@ -257,7 +270,7 @@ async function setup({
     };
   };
 
-  return { run, row, runStore, agentPort, model, runControl, workflowPort };
+  return { run, row, runStore, agentPort, model, runControl, workflowPort, logger: contextConfig.logger };
 }
 
 describe('a step running once per record', () => {
@@ -350,7 +363,7 @@ describe('a step running once per record', () => {
       const result = await harness.run();
 
       expect(result.stepOutcome.status).toBe('success');
-      expect(harness.agentPort.getRecord).toHaveBeenCalledTimes(3);
+      expect(recordsCalled(harness.agentPort.getRecord)).toStrictEqual(readAs(1, 2, 3));
     });
 
     it('attempts every record and ends in error when one of them failed', async () => {
@@ -368,7 +381,7 @@ describe('a step running once per record', () => {
         status: 'error',
         error: '1 of 3 records failed.',
       });
-      expect(agentPort.getRecord).toHaveBeenCalledTimes(3);
+      expect(recordsCalled(agentPort.getRecord)).toStrictEqual(readAs(1, 2, 3));
       const { iterations } = await row();
       expect(
         iterations?.map(iteration => [
@@ -401,7 +414,7 @@ describe('a step running once per record', () => {
       const result = await run();
 
       expect(result.interrupted).toBe('stopped');
-      expect(agentPort.getRecord).toHaveBeenCalledTimes(1);
+      expect(recordsCalled(agentPort.getRecord)).toStrictEqual(readAs(1));
       const { iterations } = await row();
       expect(iterations?.map(iteration => iteration.finishedAt !== undefined)).toStrictEqual([
         true,
@@ -419,7 +432,7 @@ describe('a step running once per record', () => {
       const result = await run();
 
       expect(result.interrupted).toBe('yielded');
-      expect(agentPort.getRecord).toHaveBeenCalledTimes(1);
+      expect(recordsCalled(agentPort.getRecord)).toStrictEqual(readAs(1));
     });
 
     it('resumes at the next record when the step is dispatched again', async () => {
@@ -470,7 +483,7 @@ describe('a step running once per record', () => {
       expect(harness.agentPort.updateRecord).toHaveBeenCalledTimes(1);
       expect(harness.agentPort.updateRecord).toHaveBeenCalledWith(
         { collection: 'ubos', id: [1], values: { note: 'checked' } },
-        expect.anything(),
+        USER,
       );
       const { iterations } = await harness.row();
       expect(iterations?.[0].executionResult).toStrictEqual({ updatedValues: { note: 'checked' } });
@@ -496,7 +509,7 @@ describe('a step running once per record', () => {
       expect(harness.agentPort.updateRecord).toHaveBeenCalledTimes(1);
       expect(harness.agentPort.updateRecord).toHaveBeenCalledWith(
         { collection: 'ubos', id: [1], values: { note: 'checked' } },
-        expect.anything(),
+        USER,
       );
       const { iterations } = await harness.row();
       expect(iterations?.[0].executionResult).toStrictEqual({ updatedValues: { note: 'checked' } });
@@ -649,6 +662,7 @@ describe('a step running once per record', () => {
       expect(harness.agentPort.updateRecord.mock.calls.map(([args]) => args.id)).toStrictEqual([
         [3],
       ]);
+      expect((await harness.row()).iterations?.[1].error).toBe('The change on this record was cut off after it started and may already be applied. Check the record before you retry.');
 
       harness.agentPort.updateRecord.mockClear();
       const retried = await harness.run({ failedRecords: 'retry' });
@@ -674,7 +688,7 @@ describe('a step running once per record', () => {
                 resolve({ collectionName: 'ubos', recordId: id, values: { pep: true } });
             }),
         );
-        const { run, row } = await setup({
+        const { run, row, logger } = await setup({
           stepDefinition: readUbos(),
           agentPort,
           stepTimeoutS: 1,
@@ -697,6 +711,15 @@ describe('a step running once per record', () => {
         });
         expect(iterations?.[0]).not.toHaveProperty('executionResult');
         expect(iterations?.[2]).toHaveProperty('executionResult');
+        expect(logger).toHaveBeenCalledWith('Error', 'Step execution exceeded timeout of 1s', {
+          runId: RUN_ID,
+          stepId: 'current-step',
+          stepIndex: 3,
+          stepType: StepType.ReadRecord,
+          sourceRecordId: '1',
+          timeoutS: 1,
+          changeStarted: false,
+        });
       } finally {
         jest.useRealTimers();
       }
@@ -732,6 +755,71 @@ describe('a step running once per record', () => {
       } finally {
         jest.useRealTimers();
       }
+    });
+
+    it('says a record may already be changed when its update started and then timed out', async () => {
+      jest.useFakeTimers({ doNotFake: ['nextTick', 'setImmediate'] });
+
+      try {
+        const agentPort = makeAgentPort();
+        agentPort.updateRecord.mockImplementationOnce(() => new Promise(() => {}));
+        const { run, row, logger } = await setup({
+          stepDefinition: updateUbos(StepExecutionMode.FullyAutomated),
+          agentPort,
+          stepTimeoutS: 1,
+        });
+
+        const pending = run();
+        await jest.advanceTimersByTimeAsync(1_000);
+        await pending;
+
+        const { iterations } = await row();
+        expect(iterations?.[0].error).toBe('The change on this record was cut off after it started and may already be applied. Check the record before you retry.');
+        expect(logger).toHaveBeenCalledWith(
+          'Error',
+          'Step execution exceeded timeout of 1s',
+          expect.objectContaining({ sourceRecordId: '1', timeoutS: 1, changeStarted: true }),
+        );
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+  });
+
+  describe('the step error', () => {
+    it('carries the kind every failed record shares', async () => {
+      const { run } = await setup({ stepDefinition: readUbos({ fieldNames: ['missing'] }) });
+
+      const result = await run();
+
+      expect(result.stepOutcome).toMatchObject({
+        status: 'error',
+        error: '3 of 3 records failed.',
+        errorKind: 'configuration',
+      });
+    });
+
+    it('carries no kind when the failed records disagree', async () => {
+      const agentPort = makeAgentPort();
+      agentPort.getRecord.mockImplementation(async ({ id }) => {
+        if (id[0] === 2) throw new Error('agent unreachable');
+
+        return { collectionName: 'ubos', recordId: id, values: { pep: true } };
+      });
+      const { run, row, runStore } = await setup({ stepDefinition: readUbos(), agentPort });
+      await run();
+      const stored = await row();
+      await runStore.saveStepExecution(RUN_ID, {
+        ...stored,
+        iterations: stored.iterations?.map((iteration, index) =>
+          index === 0 ? { ...iteration, error: 'refused', errorKind: 'configuration' } : iteration,
+        ),
+      } as StepExecutionData);
+
+      const result = await run({ failedRecords: 'skip', sourceRecordId: '3' });
+
+      expect(result.stepOutcome).toMatchObject({ status: 'error', error: '2 of 3 records failed.' });
+      expect(result.stepOutcome).not.toHaveProperty('errorKind');
     });
   });
 
@@ -954,9 +1042,108 @@ describe('a step running once per record', () => {
       expect(result.stepOutcome.status).toBe('success');
       expect(agentPort.getRecord).toHaveBeenCalledWith(
         { collection: 'ubos', id: [2], fields: ['pep'] },
-        expect.anything(),
+        USER,
       );
       expect(runControl.beforeRecord).not.toHaveBeenCalled();
+    });
+
+    it('offers each record a per-record Load Related Record loaded as a candidate', async () => {
+      const invoke = jest
+        .fn()
+        .mockResolvedValueOnce({
+          tool_calls: [
+            {
+              name: 'select-record',
+              args: { recordIdentifier: 'Step 2 - Addresses #20' },
+              id: 'c1',
+            },
+          ],
+        })
+        .mockResolvedValueOnce({
+          tool_calls: [
+            { name: 'read-selected-record-fields', args: { fieldNames: ['City'] }, id: 'c2' },
+          ],
+        });
+      const addressesLoaded = {
+        type: 'load-related-record',
+        stepIndex: 2,
+        iterations: [1, 2, 3].map(id => ({
+          sourceRecordRef: ubo(id),
+          selectedRecordRef: ubo(id),
+          attempt: 1,
+          executionResult: {
+            relation: { name: 'address', displayName: 'Address' },
+            record: address(id * 10),
+          },
+          finishedAt: 't',
+        })),
+      } as unknown as StepExecutionData;
+      const { run, agentPort } = await setup({
+        stepDefinition: {
+          type: StepType.ReadRecord,
+          executionType: StepExecutionMode.FullyAutomated,
+          prompt: "Read the city of the second UBO's address",
+        },
+        stored: [loadedUbos(), addressesLoaded],
+        previousSteps: [LOAD_UBOS, LOAD_ADDRESS],
+        model: makeModel(invoke),
+      });
+
+      const result = await run();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(agentPort.getRecord).toHaveBeenCalledWith(
+        { collection: 'addresses', id: [20], fields: ['city'] },
+        USER,
+      );
+    });
+  });
+
+  describe('inside a Sub-workflow call', () => {
+    it('runs once per record when the Multiple step it pins is in the current call', async () => {
+      const { run, agentPort } = await setup({
+        stepDefinition: readUbos(),
+        callScope: { currentFrameStepIndexes: [1] },
+      });
+
+      const result = await run();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(recordsCalled(agentPort.getRecord)).toStrictEqual(readAs(1, 2, 3));
+    });
+
+    it('never takes a Multiple step of another call as its source', async () => {
+      const { run, row, agentPort } = await setup({
+        stepDefinition: readUbos(),
+        callScope: { currentFrameStepIndexes: [0] },
+      });
+
+      const result = await run();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(agentPort.getRecord).not.toHaveBeenCalled();
+      expect(await row()).toBeUndefined();
+    });
+
+    it('refuses a call that pins a Multiple step, naming the Sub-workflow step to change', async () => {
+      const { run, agentPort } = await setup({
+        stepDefinition: readUbos({ selectedRecordStepId: WORKFLOW_START_STEP_ID }),
+        callScope: {
+          selectedRecordStepId: 'load-ubos',
+          pinnedFrameStepIndexes: [1],
+          currentFrameStepIndexes: [3],
+        },
+      });
+
+      const result = await run();
+
+      expect(result.stepOutcome).toMatchObject({
+        status: 'error',
+        errorKind: 'call-site',
+        error:
+          'The Sub-workflow step that called this workflow takes its record from "Load UBOs", which loads several records. Set its record to a step that loads one.',
+      });
+      expect(agentPort.getRecord).not.toHaveBeenCalled();
     });
   });
 

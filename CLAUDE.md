@@ -143,4 +143,5 @@ Decisions live in `docs/adr/`. Run `/adr` to record one.
 - [Bedrock is executor-only, and its models pass an allowlist](docs/adr/2026-09-15-bedrock-is-executor-only-and-its-models-pass-an-allowlist.md) — 2026-09-15-bedrock-is-executor-only-and-its-models-pass-an-allowlist [accepted]
 - [One Gateway serves the MCP and the API behind a shared OAuth route](docs/adr/2026-10-12-one-gateway-serves-the-mcp-and-the-api-behind-a-shared-oauth-route.md) — 2026-10-12-one-gateway-serves-the-mcp-and-the-api-behind-a-shared-oauth-route [accepted]
 - [The automation sweep sends record ids to the orchestrator, and decides nothing itself](docs/adr/2026-10-15-the-automation-sweep-sends-record-ids-to-the-orchestrator-and-decides.md) — 2026-10-15-the-automation-sweep-sends-record-ids-to-the-orchestrator-and-decides [accepted]
+- [A step running once per record renews its run lock with the orchestrator before each record](docs/adr/2026-10-21-a-step-running-once-per-record-renews-its-run-lock-with-the-orchestrat.md) — 2026-10-21-a-step-running-once-per-record-renews-its-run-lock-with-the-orchestrat [accepted]
 <!-- ADR:INDEX:END -->

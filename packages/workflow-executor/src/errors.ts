@@ -658,8 +658,6 @@ export class SourceRecordMissingError extends WorkflowExecutorError {
   }
 }
 
-// Not SourceRecordMissingError: a record was found and it is the wrong one, so the remedy is the
-// calling Sub-workflow step rather than anything in this workflow.
 // One level of fan-out only: the editor and the orchestrator refuse it too, so only a hand-edited
 // or stale workflow gets here.
 export class MultipleOnPerRecordSourceError extends WorkflowConfigurationError {
@@ -690,6 +688,31 @@ export class RecordNotOfferedError extends WorkflowExecutorError {
   }
 }
 
+// The write-ahead marker was still set: the change was cut off after it started, by a restart or
+// the step timeout, so it may have landed and running it again could apply it twice.
+export class RecordChangeInterruptedError extends WorkflowExecutorError {
+  constructor() {
+    super(
+      'Record change was cut off after it started',
+      'The change on this record was cut off after it started and may already be applied. Check the record before you retry.',
+    );
+  }
+}
+
+// Not SourceRecordMissingError: the source loaded several records, which a Sub-workflow cannot take
+// until it runs once per record, so the remedy is the calling Sub-workflow step.
+export class SourceLoadsSeveralRecordsError extends WorkflowCallSiteError {
+  constructor(stepTitle?: string) {
+    const step = stepTitle ? `"${stepTitle}"` : 'a step';
+    super(
+      `Sub-workflow call pins ${step}, which loads several records`,
+      `The Sub-workflow step that called this workflow takes its record from ${step}, which loads several records. Set its record to a step that loads one.`,
+    );
+  }
+}
+
+// Not SourceRecordMissingError: a record was found and it is the wrong one, so the remedy is the
+// calling Sub-workflow step rather than anything in this workflow.
 export class SourceRecordCollectionMismatchError extends WorkflowCallSiteError {
   constructor(recordCollectionName: string, calledWorkflowCollectionName: string) {
     super(
