@@ -760,6 +760,16 @@ describe('ActionRoute', () => {
         },
       });
 
+    // Through the handlers setupRoutes registers, so an approval runs the signed-request middleware.
+    const post = async (context: ReturnType<typeof createMockContext>, suffix = '') => {
+      route.setupRoutes(router);
+      const [, first, second] = (router.post as jest.Mock).mock.calls.find(
+        ([path]) => path === `/_actions/books/0/mysingleaction${suffix}`,
+      );
+
+      return second ? first(context, () => second(context)) : first(context);
+    };
+
     beforeEach(() => {
       dataSource = factories.dataSource.buildWithCollections([
         factories.collection.build({
@@ -776,16 +786,15 @@ describe('ActionRoute', () => {
       route = new ActionRoute(services, options, dataSource, 'books', 'MySingleAction');
     });
 
-    test('handleExecute rejects two ids with a 422 and runs nothing', async () => {
-      // @ts-expect-error: test private method
-      const error = await route.handleExecute(contextWith({ ids: twoIds })).catch(e => e);
+    test('refuses two ids with a 422 and runs nothing', async () => {
+      const error = await post(contextWith({ ids: twoIds })).catch(e => e);
 
       expect(error).toBeInstanceOf(UnprocessableError);
       expect(error.message).toBe(message);
       expect(dataSource.getCollection('books').execute).not.toHaveBeenCalled();
     });
 
-    test('handleExecute rejects two ids before asking for an approval', async () => {
+    test('refuses two ids before asking for an approval', async () => {
       (
         options.forestAdminClient.permissionService
           .doesTriggerCustomActionRequiresApproval as jest.Mock
@@ -798,8 +807,7 @@ describe('ActionRoute', () => {
         options.forestAdminClient.permissionService.getConditionalApproveConditions as jest.Mock
       ).mockResolvedValue(new Map());
 
-      // @ts-expect-error: test private method
-      const error = await route.handleExecute(contextWith({ ids: twoIds })).catch(e => e);
+      const error = await post(contextWith({ ids: twoIds })).catch(e => e);
 
       expect(error).toBeInstanceOf(UnprocessableError);
       expect(error.message).toBe(message);
@@ -809,34 +817,37 @@ describe('ActionRoute', () => {
       expect(dataSource.getCollection('books').execute).not.toHaveBeenCalled();
     });
 
-    test('handleExecute rejects the approval of a request naming two ids and runs nothing', async () => {
-      const context = contextWith({ ids: twoIds, requester_id: 42 });
+    test('refuses the approval of a signed request naming two ids and runs nothing', async () => {
+      (options.forestAdminClient.verifySignedActionParameters as jest.Mock).mockReturnValue({
+        data: {
+          attributes: { ...baseContext.requestBody.data.attributes, ids: twoIds, requester_id: 42 },
+        },
+      });
 
-      // @ts-expect-error: test private method
-      const error = await route.handleExecute(context).catch(e => e);
+      // The outer body names one id: only the signed request names two.
+      const error = await post(contextWith({ signed_approval_request: 'signed' })).catch(e => e);
 
       expect(error).toBeInstanceOf(UnprocessableError);
       expect(error.message).toBe(message);
+      expect(options.forestAdminClient.verifySignedActionParameters).toHaveBeenCalledWith('signed');
       expect(
         options.forestAdminClient.permissionService.canApproveCustomAction,
       ).not.toHaveBeenCalled();
       expect(dataSource.getCollection('books').execute).not.toHaveBeenCalled();
     });
 
-    test('handleExecute rejects a select-all selection with a 422 and runs nothing', async () => {
+    test('refuses a select-all selection with a 422 and runs nothing', async () => {
       const context = contextWith({ ids: [], all_records: true, all_records_ids_excluded: [] });
 
-      // @ts-expect-error: test private method
-      const error = await route.handleExecute(context).catch(e => e);
+      const error = await post(context).catch(e => e);
 
       expect(error).toBeInstanceOf(UnprocessableError);
       expect(error.message).toBe(message);
       expect(dataSource.getCollection('books').execute).not.toHaveBeenCalled();
     });
 
-    test('handleHook rejects two ids with a 422 and loads no form', async () => {
-      // @ts-expect-error: test private method
-      const error = await route.handleHook(contextWith({ ids: twoIds })).catch(e => e);
+    test('refuses to load the form for two ids and computes no form', async () => {
+      const error = await post(contextWith({ ids: twoIds }), '/hooks/load').catch(e => e);
 
       expect(error).toBeInstanceOf(UnprocessableError);
       expect(error.message).toBe(message);
