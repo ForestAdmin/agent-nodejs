@@ -29,16 +29,22 @@ describe('isModelSupportingTools', () => {
   );
 
   it.each([
+    'gpt-5.6',
     'gpt-5.6-luna',
     'gpt-5.6-sol',
     'gpt-5.6-terra',
-    'gpt-6-astra',
-    'gpt-6-luna',
-    'gpt-6-sol',
-    'gpt-6.1-sol',
-  ])('should return false for %s (v1/responses only)', model => {
+    'gpt-5.6-mini',
+    'gpt-5.6-luna-2026-08-01',
+  ])('should return false for %s (not checked against the live API)', model => {
     expect(isModelSupportingTools(model)).toBe(false);
   });
+
+  it.each(['gpt-6-astra', 'gpt-6-luna', 'gpt-6-sol', 'gpt-6.1-sol'])(
+    'should return true for %s (served through the Responses API)',
+    model => {
+      expect(isModelSupportingTools(model)).toBe(true);
+    },
+  );
 
   // claude-fable-5-1 broke the integration suite on its release day; the whole line shares the
   // always-on thinking the proxy cannot carry, so point releases must be excluded on arrival.

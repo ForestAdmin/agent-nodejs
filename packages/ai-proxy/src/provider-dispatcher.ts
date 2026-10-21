@@ -3,13 +3,14 @@ import type { AiConfiguration, ChatCompletionResponse, ChatCompletionTool } from
 import type { RemoteTools } from './remote-tools';
 import type { DispatchBody } from './schemas/route';
 import type { AIMessage, BaseMessageLike } from '@langchain/core/messages';
+import type { ChatOpenAI } from '@langchain/openai';
 
 import { BusinessError, UnprocessableError } from '@forestadmin/datasource-toolkit';
 import { ChatAnthropic } from '@langchain/anthropic';
 import { convertToOpenAIFunction } from '@langchain/core/utils/function_calling';
-import { ChatOpenAI } from '@langchain/openai';
 
 import AnthropicAdapter from './anthropic-adapter';
+import createOpenAIChatModel from './create-openai-chat-model';
 import {
   AIBadRequestError,
   AIForbiddenError,
@@ -50,11 +51,12 @@ export default class ProviderDispatcher {
 
     if (configuration?.provider === 'openai') {
       const { provider, name, ...chatOpenAIOptions } = configuration;
-      this.openaiModel = new ChatOpenAI({
+      this.openaiModel = createOpenAIChatModel({
         maxRetries: 0, // No retries by default - this lib is a passthrough
         ...chatOpenAIOptions,
         __includeRawResponse: true,
       });
+      this.modelName = chatOpenAIOptions.model;
     } else if (configuration?.provider === 'anthropic') {
       const { provider, name, model, ...clientOptions } = configuration;
       this.anthropicModel = new ChatAnthropic({
@@ -71,12 +73,17 @@ export default class ProviderDispatcher {
   }
 
   async dispatch(body: DispatchBody): Promise<ChatCompletionResponse> {
+    const parsableBody = {
+      ...body,
+      messages: LangChainAdapter.withParsableToolArguments(body.messages),
+    };
+
     if (this.openaiModel) {
-      return this.dispatchOpenAI(body);
+      return this.dispatchOpenAI(parsableBody);
     }
 
     if (this.anthropicModel) {
-      return this.dispatchAnthropic(body);
+      return this.dispatchAnthropic(parsableBody);
     }
 
     throw new AINotConfiguredError();
@@ -104,6 +111,13 @@ export default class ProviderDispatcher {
       response = await model.invoke(messages as BaseMessageLike[]);
     } catch (error) {
       throw ProviderDispatcher.wrapProviderError(error, 'OpenAI');
+    }
+
+    // The Responses API carries no Chat Completions payload to hand back as is.
+    const metadata = response.response_metadata as { object?: string } | undefined;
+
+    if (metadata?.object === 'response') {
+      return LangChainAdapter.convertResponse(response, this.modelName);
     }
 
     // eslint-disable-next-line no-underscore-dangle
