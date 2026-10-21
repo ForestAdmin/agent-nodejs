@@ -270,7 +270,16 @@ async function setup({
     };
   };
 
-  return { run, row, runStore, agentPort, model, runControl, workflowPort, logger: contextConfig.logger };
+  return {
+    run,
+    row,
+    runStore,
+    agentPort,
+    model,
+    runControl,
+    workflowPort,
+    logger: contextConfig.logger,
+  };
 }
 
 describe('a step running once per record', () => {
@@ -662,7 +671,9 @@ describe('a step running once per record', () => {
       expect(harness.agentPort.updateRecord.mock.calls.map(([args]) => args.id)).toStrictEqual([
         [3],
       ]);
-      expect((await harness.row()).iterations?.[1].error).toBe('The change on this record was cut off after it started and may already be applied. Check the record before you retry.');
+      expect((await harness.row()).iterations?.[1].error).toBe(
+        'The change on this record was cut off after it started and may already be applied. Check the record before you retry.',
+      );
 
       harness.agentPort.updateRecord.mockClear();
       const retried = await harness.run({ failedRecords: 'retry' });
@@ -774,7 +785,9 @@ describe('a step running once per record', () => {
         await pending;
 
         const { iterations } = await row();
-        expect(iterations?.[0].error).toBe('The change on this record was cut off after it started and may already be applied. Check the record before you retry.');
+        expect(iterations?.[0].error).toBe(
+          'The change on this record was cut off after it started and may already be applied. Check the record before you retry.',
+        );
         expect(logger).toHaveBeenCalledWith(
           'Error',
           'Step execution exceeded timeout of 1s',
@@ -818,7 +831,10 @@ describe('a step running once per record', () => {
 
       const result = await run({ failedRecords: 'skip', sourceRecordId: '3' });
 
-      expect(result.stepOutcome).toMatchObject({ status: 'error', error: '2 of 3 records failed.' });
+      expect(result.stepOutcome).toMatchObject({
+        status: 'error',
+        error: '2 of 3 records failed.',
+      });
       expect(result.stepOutcome).not.toHaveProperty('errorKind');
     });
   });

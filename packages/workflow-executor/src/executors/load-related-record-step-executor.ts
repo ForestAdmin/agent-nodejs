@@ -1,3 +1,4 @@
+import type { PickerAi } from './related-record-picker';
 import type { StepExecutionResult } from '../types/execution-context';
 import type {
   LoadRelatedRecordCandidate,
@@ -11,7 +12,6 @@ import type {
   RecordRef,
 } from '../types/validated/collection';
 import type { LoadRelatedRecordStepDefinition } from '../types/validated/step-definition';
-import type { PickerAi } from './related-record-picker';
 
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 import { z } from 'zod';
@@ -850,7 +850,8 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     return {
       invoke: (messages, tool) => this.invokeWithTool(messages, tool),
       contextMessage: this.buildContextMessage(),
-      warn: (message, context) => this.context.logger('Warn', message, { ...this.logCtx, ...context }),
+      warn: (message, context) =>
+        this.context.logger('Warn', message, { ...this.logCtx, ...context }),
     };
   }
 
