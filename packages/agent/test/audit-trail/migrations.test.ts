@@ -71,6 +71,7 @@ describe('runAuditMigrations (sqlite)', () => {
     expect(applied).toEqual([
       { name: 'forest.audit_logs:001-create-audit-logs' },
       { name: 'forest.audit_logs:002-index-timestamp-id' },
+      { name: 'forest.audit_logs:003-index-record-history' },
     ]);
 
     await sequelize.close();
@@ -85,6 +86,7 @@ describe('runAuditMigrations (sqlite)', () => {
     expect(applied).toEqual([
       { name: 'audit_logs:001-create-audit-logs' },
       { name: 'audit_logs:002-index-timestamp-id' },
+      { name: 'audit_logs:003-index-record-history' },
     ]);
 
     await sequelize.close();
@@ -169,7 +171,7 @@ describe('runAuditMigrations (sqlite)', () => {
     ).resolves.toBeUndefined();
 
     const [applied] = await sequelize.query('SELECT name FROM "audit_logs_migration"');
-    expect(applied).toHaveLength(2);
+    expect(applied).toHaveLength(3);
 
     await sequelize.close();
   });
@@ -255,9 +257,127 @@ describe('runAuditMigrations (sqlite)', () => {
       const umzug = buildUmzug(sequelize, { tableName: 'audit_logs' });
       await umzug.up();
 
-      await umzug.down();
+      await umzug.down({ step: 2 });
 
       expect(await indexOf(sequelize)).toBeUndefined();
+
+      await sequelize.close();
+    });
+  });
+
+  describe('migration 003: the record history indexes', () => {
+    const MIGRATION_003 = 'audit_logs:003-index-record-history';
+
+    const indexesOf = async (sequelize: Sequelize) => {
+      const [rows] = await sequelize.query(
+        "SELECT name, sql FROM sqlite_master WHERE type = 'index' AND tbl_name = 'audit_logs'",
+      );
+
+      return new Map((rows as Array<{ name: string; sql: string }>).map(r => [r.name, r.sql]));
+    };
+
+    const shippedBefore003 = async () => {
+      const sequelize = new Sequelize('sqlite::memory:', { logging: false });
+      await runAuditMigrations(sequelize, { tableName: 'audit_logs' });
+      await sequelize.query('DROP INDEX "audit_logs_record_history"');
+      await sequelize.query('DROP INDEX "audit_logs_life_boundaries"');
+      await sequelize.query(`DELETE FROM "audit_logs_migration" WHERE name = '${MIGRATION_003}'`);
+
+      return sequelize;
+    };
+
+    it('indexes a record history by collection, record_id, then timestamp and id', async () => {
+      const sequelize = new Sequelize('sqlite::memory:', { logging: false });
+
+      await runAuditMigrations(sequelize, { tableName: 'audit_logs' });
+
+      expect((await indexesOf(sequelize)).get('audit_logs_record_history')).toMatch(
+        /\(`collection`, `record_id`, `timestamp`, `id`\)$/,
+      );
+
+      await sequelize.close();
+    });
+
+    it('indexes the same columns over create and delete rows only, for the life boundary', async () => {
+      const sequelize = new Sequelize('sqlite::memory:', { logging: false });
+
+      await runAuditMigrations(sequelize, { tableName: 'audit_logs' });
+
+      expect((await indexesOf(sequelize)).get('audit_logs_life_boundaries')).toMatch(
+        /\(`collection`, `record_id`, `timestamp`, `id`\) WHERE `operation` IN \('create', 'delete'\)$/,
+      );
+
+      await sequelize.close();
+    });
+
+    it('adds both indexes to a table that already applied 002', async () => {
+      const sequelize = await shippedBefore003();
+
+      await runAuditMigrations(sequelize, { tableName: 'audit_logs' });
+
+      const indexes = await indexesOf(sequelize);
+      expect([...indexes.keys()]).toEqual(
+        expect.arrayContaining(['audit_logs_record_history', 'audit_logs_life_boundaries']),
+      );
+
+      await sequelize.close();
+    });
+
+    it('skips the partial index on a dialect that cannot filter one', async () => {
+      const sequelize = await shippedBefore003();
+      jest.spyOn(sequelize, 'getDialect').mockReturnValue('mysql');
+
+      await buildUmzug(sequelize, { tableName: 'audit_logs' }).up();
+
+      const indexes = await indexesOf(sequelize);
+      expect(indexes.has('audit_logs_record_history')).toBe(true);
+      expect(indexes.has('audit_logs_life_boundaries')).toBe(false);
+
+      await sequelize.close();
+    });
+
+    it('treats an index as added when a concurrent boot added it after the check', async () => {
+      const sequelize = await shippedBefore003();
+      const queryInterface = sequelize.getQueryInterface();
+      const addIndex = queryInterface.addIndex.bind(queryInterface);
+      jest.spyOn(queryInterface, 'addIndex').mockImplementationOnce(async (...args) => {
+        await (addIndex as (...a: unknown[]) => Promise<void>)(...args);
+        throw new Error('index "audit_logs_record_history" already exists');
+      });
+
+      await expect(
+        runAuditMigrations(sequelize, { tableName: 'audit_logs' }),
+      ).resolves.toBeUndefined();
+
+      const [applied] = await sequelize.query('SELECT name FROM "audit_logs_migration"');
+      expect(applied).toContainEqual({ name: MIGRATION_003 });
+
+      await sequelize.close();
+    });
+
+    it('still fails when adding an index fails and the index is missing', async () => {
+      const sequelize = await shippedBefore003();
+      jest
+        .spyOn(sequelize.getQueryInterface(), 'addIndex')
+        .mockRejectedValueOnce(new Error('disk full'));
+
+      await expect(runAuditMigrations(sequelize, { tableName: 'audit_logs' })).rejects.toThrow(
+        'disk full',
+      );
+
+      await sequelize.close();
+    });
+
+    it('drops both indexes on down', async () => {
+      const sequelize = new Sequelize('sqlite::memory:', { logging: false });
+      const umzug = buildUmzug(sequelize, { tableName: 'audit_logs' });
+      await umzug.up();
+
+      await umzug.down();
+
+      const indexes = await indexesOf(sequelize);
+      expect(indexes.has('audit_logs_record_history')).toBe(false);
+      expect(indexes.has('audit_logs_life_boundaries')).toBe(false);
 
       await sequelize.close();
     });

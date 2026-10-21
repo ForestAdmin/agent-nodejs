@@ -1,4 +1,4 @@
-import type { QueryInterface, Sequelize, Transaction } from 'sequelize';
+import type { QueryInterface, Sequelize, Transaction, WhereOptions } from 'sequelize';
 
 import { DataTypes } from 'sequelize';
 import { SequelizeStorage, Umzug } from 'umzug';
@@ -34,6 +34,14 @@ function qualifiedMigrationName002(schema: string | undefined, tableName: string
     ? `${schema}.${tableName}:002-index-timestamp-id`
     : `${tableName}:002-index-timestamp-id`;
 }
+
+function qualifiedMigrationName003(schema: string | undefined, tableName: string): string {
+  return schema
+    ? `${schema}.${tableName}:003-index-record-history`
+    : `${tableName}:003-index-record-history`;
+}
+
+const DIALECTS_WITHOUT_PARTIAL_INDEXES = new Set(['mysql', 'mariadb']);
 
 // Every table name claimed by an audit-trail store configured in this process, keyed by
 // `schema\0name` — both its own data table and the migration table Umzug derives from it.
@@ -72,6 +80,31 @@ async function indexNames(
   }>;
 
   return new Set(indexes.map(index => index.name));
+}
+
+async function addIndexOnce(
+  context: MigrationContext,
+  name: string,
+  options: { fields: Array<string | { name: string; length: number }>; where?: WhereOptions },
+): Promise<void> {
+  const table = { tableName: context.tableName, schema: context.schema };
+  const hasIndex = () =>
+    indexNames(context.queryInterface, table, context.transaction).then(names => names.has(name));
+
+  // Idempotent for the same reason 001 is: a process losing a concurrent-boot race retries.
+  if (await hasIndex()) return;
+
+  try {
+    await context.queryInterface.addIndex(table, {
+      ...options,
+      name,
+      transaction: context.transaction,
+    });
+  } catch (error) {
+    // Without Postgres's advisory lock, another agent booting at the same moment can add the
+    // index between the check above and this statement. Anything else is a real failure.
+    if (!(await hasIndex().catch(() => false))) throw error;
+  }
 }
 
 async function columnNames(
@@ -210,27 +243,9 @@ function buildMigrations(schema: string | undefined, tableName: string) {
       // record, ordered and paged by (timestamp, id): without this, each page sorts the whole table.
       name: qualifiedMigrationName002(schema, tableName),
       up: async ({ context }: { context: MigrationContext }) => {
-        const table = { tableName: context.tableName, schema: context.schema };
-        const name = `${context.tableName}_timestamp_id`;
-        const hasIndex = () =>
-          indexNames(context.queryInterface, table, context.transaction).then(names =>
-            names.has(name),
-          );
-
-        // Idempotent for the same reason 001 is: a process losing a concurrent-boot race retries.
-        if (await hasIndex()) return;
-
-        try {
-          await context.queryInterface.addIndex(table, {
-            fields: ['timestamp', 'id'],
-            name,
-            transaction: context.transaction,
-          });
-        } catch (error) {
-          // Without Postgres's advisory lock, another agent booting at the same moment can add the
-          // index between the check above and this statement. Anything else is a real failure.
-          if (!(await hasIndex().catch(() => false))) throw error;
-        }
+        await addIndexOnce(context, `${context.tableName}_timestamp_id`, {
+          fields: ['timestamp', 'id'],
+        });
       },
       down: async ({ context }: { context: MigrationContext }) => {
         await context.queryInterface.removeIndex(
@@ -238,6 +253,45 @@ function buildMigrations(schema: string | undefined, tableName: string) {
           `${context.tableName}_timestamp_id`,
           { transaction: context.transaction },
         );
+      },
+    },
+    {
+      // A record's history is read by (collection, record_id) in (timestamp, id) order. With only
+      // `record_id` and `(timestamp, id)` to choose from, Postgres either reads every row the id
+      // holds across all collections, or walks the whole table's (timestamp, id) index under a
+      // LIMIT: finding a recent record's oldest row discarded 2.1M rows (534 ms) on a 2.1M-row table.
+      name: qualifiedMigrationName003(schema, tableName),
+      up: async ({ context }: { context: MigrationContext }) => {
+        await addIndexOnce(context, `${context.tableName}_record_history`, {
+          fields: ['collection', { name: 'record_id', length: 191 }, 'timestamp', 'id'],
+        });
+
+        if (DIALECTS_WITHOUT_PARTIAL_INDEXES.has(context.queryInterface.sequelize.getDialect())) {
+          return;
+        }
+
+        // The life boundary lookup keeps a record's `create` and `delete` rows only: without this,
+        // a record updated 100k times is read whole to find its one `create`.
+        await addIndexOnce(context, `${context.tableName}_life_boundaries`, {
+          fields: ['collection', { name: 'record_id', length: 191 }, 'timestamp', 'id'],
+          where: { operation: ['create', 'delete'] },
+        });
+      },
+      down: async ({ context }: { context: MigrationContext }) => {
+        const table = { tableName: context.tableName, schema: context.schema };
+        const existing = await indexNames(context.queryInterface, table, context.transaction);
+
+        for (const name of [
+          `${context.tableName}_life_boundaries`,
+          `${context.tableName}_record_history`,
+        ]) {
+          if (existing.has(name)) {
+            // eslint-disable-next-line no-await-in-loop
+            await context.queryInterface.removeIndex(table, name, {
+              transaction: context.transaction,
+            });
+          }
+        }
       },
     },
   ];
