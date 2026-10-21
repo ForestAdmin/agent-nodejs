@@ -41,6 +41,7 @@ import LoadRelatedRecordStepExecutor from './load-related-record-step-executor';
 import McpStepExecutor from './mcp-step-executor';
 import PerRecordStepExecutor from './per-record-step-executor';
 import ReadRecordStepExecutor from './read-record-step-executor';
+import { findPinnedLoadStep } from './record-step-executor';
 import TriggerRecordActionStepExecutor from './trigger-record-action-step-executor';
 import UpdateRecordStepExecutor from './update-record-step-executor';
 import { StepType, WORKFLOW_START_STEP_ID } from '../types/validated/step-definition';
@@ -56,19 +57,6 @@ const PER_RECORD_STEP_TYPES = [
   StepType.LoadRelatedRecord,
 ];
 
-function latestLoadStep(step: AvailableStepExecution, stepId: string): Step | undefined {
-  const frame = step.callScope?.currentFrameStepIndexes;
-
-  return step.previousSteps
-    .filter(
-      previous =>
-        previous.stepDefinition.type === StepType.LoadRelatedRecord &&
-        previous.stepOutcome.stepId === stepId &&
-        (frame === undefined || frame.includes(previous.stepOutcome.stepIndex)),
-    )
-    .at(-1);
-}
-
 // A step runs once per record when a Load Related Record set to Multiple sits on its source chain.
 function findPerRecordSource(step: AvailableStepExecution): PerRecordSource | null {
   if (!PER_RECORD_STEP_TYPES.includes(step.stepDefinition.type)) return null;
@@ -80,7 +68,12 @@ function findPerRecordSource(step: AvailableStepExecution): PerRecordSource | nu
 
   while (stepId !== undefined && stepId !== WORKFLOW_START_STEP_ID && !visited.has(stepId)) {
     visited.add(stepId);
-    const source = latestLoadStep(step, stepId);
+    // The same lookup the record executor reads its source with, so both agree on the step.
+    const source = findPinnedLoadStep(
+      step.previousSteps,
+      stepId,
+      step.callScope?.currentFrameStepIndexes,
+    );
     if (!source) return null;
 
     direct ??= source;
