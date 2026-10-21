@@ -440,7 +440,7 @@ export default class Runner {
       // A lost lock means another holder or an abort owns the run now: report nothing. A yield
       // hands the run back, its records done so far saved, for whoever claims it next.
       if (result.interrupted === 'stopped') {
-        this.logger('Info', 'Step stopped between records, the run lock was lost', {
+        this.logger('Info', 'Step stopped between records: the run was aborted or its lock lost', {
           runId: currentStep.runId,
           stepIndex: currentStep.stepIndex,
         });
