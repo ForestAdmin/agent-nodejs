@@ -1,4 +1,4 @@
-import type { RecordData, CollectionSchema } from '../types/validated/collection';
+import type { CollectionSchema, RecordData } from '../types/validated/collection';
 import type { BaseMessage } from '@forestadmin/ai-proxy';
 
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
