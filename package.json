@@ -77,7 +77,7 @@
     "**/@aws-sdk/xml-builder/fast-xml-parser": "^5.7.0",
     "**/@fastify/ajv-compiler/fast-uri": "^3.1.6",
     "**/fast-json-stringify/fast-uri": "^3.1.6",
-    "**/@nestjs/platform-fastify/fastify": "^5.12.1",
+    "**/@nestjs/platform-fastify/fastify": "^5.12.5",
     "@nestjs/platform-fastify": "^11.2.4",
     "**/@actions/http-client/undici": "^6.28.1",
     "**/@semantic-release/github/undici": "^7.29.1",
