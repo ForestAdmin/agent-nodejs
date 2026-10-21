@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/ai-proxy",
-  "version": "1.14.5",
+  "version": "1.15.0",
   "main": "dist/index.js",
   "license": "Apache-2.0",
   "publishConfig": {

@@ -1,3 +1,10 @@
+# @forestadmin/ai-proxy [1.15.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.14.5...@forestadmin/ai-proxy@1.15.0) (2026-10-21)
+
+
+### Features
+
+* **ai-proxy:** serve GPT-6 models through the OpenAI Responses API ([#2014](https://github.com/ForestAdmin/agent-nodejs/issues/2014)) ([a03c0c9](https://github.com/ForestAdmin/agent-nodejs/commit/a03c0c96e529133701a7458e3a81e173651a898f))
+
 ## @forestadmin/ai-proxy [1.14.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.14.4...@forestadmin/ai-proxy@1.14.5) (2026-10-16)
 
 
