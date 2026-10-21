@@ -166,6 +166,9 @@ export default class MockForestServer {
     this.post('/api/activity-logs-requests', {
       data: { id: 'activity-log-1', attributes: { index: 'logs-2024' } },
     });
+    // A 404 here makes the status update retry for seconds, past restore(): the retries then reach
+    // the real forestServerUrl.
+    this.patch(/\/api\/activity-logs-requests\/[^/]+\/[^/]+\/status/, {});
 
     // Server events (SSE endpoint mock)
     this.get('/liana/v4/subscriptions/server-events', {
@@ -288,6 +291,8 @@ export default class MockForestServer {
     superagent.put = (reqUrl: string) => createMockRequest('PUT', reqUrl, originalSuperagent.put);
     superagent.delete = (reqUrl: string) =>
       createMockRequest('DELETE', reqUrl, originalSuperagent.delete);
+    superagent.patch = (reqUrl: string) =>
+      createMockRequest('PATCH', reqUrl, originalSuperagent.patch);
 
     this.superagentMocked = true;
 
