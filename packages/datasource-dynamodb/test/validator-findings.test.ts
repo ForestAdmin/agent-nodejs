@@ -105,6 +105,62 @@ describe('string and number sets', () => {
   });
 });
 
+describe('clearing a set', () => {
+  const model = () =>
+    buildSimpleModel({
+      schema: {
+        id: { type: 'string' },
+        name: { type: 'string', nullable: true },
+        tags: { type: 'array', set: true, nullable: true },
+      },
+    });
+  const byId = () => new Filter({ conditionTree: leaf('id', 'Equal', 'u1') });
+
+  it('leaves the attribute out on create, since DynamoDB holds no empty set', async () => {
+    const { collection, client } = buildCollection(model(), { Put: () => ({}) });
+
+    const [created] = await collection.create(caller, [{ id: 'u1', tags: [] }]);
+
+    expect(Object.keys(client.calls('Put')[0].Item)).toEqual(['id']);
+    expect(created.tags).toEqual([]);
+  });
+
+  it('removes the attribute on update', async () => {
+    const { collection, client } = buildCollection(model(), { Update: () => ({}) });
+
+    await collection.update(caller, byId(), { tags: [] });
+
+    const call = client.calls('Update')[0];
+    expect(call.UpdateExpression).toBe('REMOVE #n0');
+    expect(call.ExpressionAttributeNames).toMatchObject({ '#n0': 'tags' });
+    expect(call.ExpressionAttributeValues).toBeUndefined();
+  });
+
+  it('removes it next to the other attributes of the same update', async () => {
+    const { collection, client } = buildCollection(model(), { Update: () => ({}) });
+
+    await collection.update(caller, byId(), { name: 'x', tags: [] });
+
+    expect(client.calls('Update')[0].UpdateExpression).toBe('SET #n0 = :v0 REMOVE #n1');
+  });
+
+  it('removes it in the client-side rewrite too', async () => {
+    const { collection, client } = buildCollection(model(), {
+      Update: () => {
+        throw Object.assign(new Error('The document path provided is invalid for update'), {
+          name: 'ValidationException',
+        });
+      },
+      Get: () => ({ Item: { id: 'u1', tags: new Set(['a']), name: 'n' } }),
+      Put: () => ({}),
+    });
+
+    await collection.update(caller, byId(), { name: 'x', tags: [] });
+
+    expect(client.calls('Put')[0].Item).toEqual({ id: 'u1', name: 'x' });
+  });
+});
+
 describe('a manual schema collection without fields', () => {
   it('exposes its keys instead of failing', () => {
     const [table] = convertManualSchema({

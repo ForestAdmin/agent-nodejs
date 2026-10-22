@@ -108,6 +108,9 @@ function keyConditionExpression(
   return expressions.join(' AND ');
 }
 
+/** What a set emptied in Forest turns into: DynamoDB holds no empty set, so the attribute goes. */
+const CLEARED = Symbol('cleared');
+
 export default class DynamoDBCollection extends BaseCollection {
   readonly model: TableModel;
   readonly executor: DynamoExecutor;
@@ -309,7 +312,9 @@ export default class DynamoDBCollection extends BaseCollection {
       return Uint8Array.from(Buffer.from(value, 'base64'));
     }
 
-    if (this.model.schema[field]?.set && Array.isArray(value)) return new Set(value);
+    if (this.model.schema[field]?.set && Array.isArray(value)) {
+      return value.length ? new Set(value) : CLEARED;
+    }
 
     return value;
   }
@@ -612,7 +617,9 @@ export default class DynamoDBCollection extends BaseCollection {
 
     const item = Serializer.unflatten(
       Object.fromEntries(
-        Object.entries(created).map(([field, value]) => [field, this.toStored(field, value)]),
+        Object.entries(created)
+          .map(([field, value]) => [field, this.toStored(field, value)])
+          .filter(([, value]) => value !== CLEARED),
       ),
     );
 
@@ -638,18 +645,29 @@ export default class DynamoDBCollection extends BaseCollection {
   private async updateOne(key: Item, entries: Array<[string, unknown]>): Promise<void> {
     const builder = new ExpressionBuilder();
     const keyBuilder = new ExpressionBuilder('k', 'kv');
-    const sets = entries.map(
-      ([field, value]) => `${builder.attribute(field)} = ${builder.value(value)}`,
-    );
+    const sets = entries
+      .filter(([, value]) => value !== CLEARED)
+      .map(([field, value]) => `${builder.attribute(field)} = ${builder.value(value)}`);
+    const removes = entries
+      .filter(([, value]) => value === CLEARED)
+      .map(([field]) => builder.attribute(field));
     const condition = `attribute_exists(${keyBuilder.attribute(this.model.partitionKey.name)})`;
+    const updateExpression = [
+      sets.length ? `SET ${sets.join(', ')}` : '',
+      removes.length ? `REMOVE ${removes.join(', ')}` : '',
+    ]
+      .filter(Boolean)
+      .join(' ');
 
     try {
       await this.executor.update({
         Key: key,
-        UpdateExpression: `SET ${sets.join(', ')}`,
+        UpdateExpression: updateExpression,
         ConditionExpression: condition,
         ExpressionAttributeNames: { ...builder.names, ...keyBuilder.names },
-        ExpressionAttributeValues: builder.values,
+        ...(Object.keys(builder.values).length
+          ? { ExpressionAttributeValues: builder.values }
+          : {}),
       });
     } catch (error) {
       if (error.name === 'ConditionalCheckFailedException') return;
@@ -674,7 +692,8 @@ export default class DynamoDBCollection extends BaseCollection {
 
     // Each entry replaces what is at its path, as a SET does: a map is not merged with the old one.
     for (const [field, value] of entries) {
-      Serializer.setPath(existing, Serializer.toPathSegments(field), value);
+      if (value === CLEARED) Serializer.removePath(existing, Serializer.toPathSegments(field));
+      else Serializer.setPath(existing, Serializer.toPathSegments(field), value);
     }
 
     try {

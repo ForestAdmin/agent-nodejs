@@ -797,6 +797,23 @@ run('DynamoDB Local', () => {
       const stored = await documents.send(new GetCommand({ TableName: MANUAL, Key: key }));
       expect(stored.Item.labels).toBeInstanceOf(Set);
       expect([...stored.Item.labels].sort()).toEqual(['b', 'c']);
+
+      await collection.update(
+        caller,
+        new Filter({
+          conditionTree: tree({
+            aggregator: 'And',
+            conditions: [
+              { field: 'customerId', operator: 'Equal', value: 'c7' },
+              { field: 'orderId', operator: 'Equal', value: 'o1' },
+            ],
+          }),
+        }),
+        { labels: [] },
+      );
+
+      const cleared = await documents.send(new GetCommand({ TableName: MANUAL, Key: key }));
+      expect(cleared.Item).toEqual(key);
     });
 
     it('creates, updates and deletes through the declared schema', async () => {

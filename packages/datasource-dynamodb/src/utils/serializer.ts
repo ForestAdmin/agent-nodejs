@@ -125,6 +125,20 @@ export default class Serializer {
     holder[segments[segments.length - 1]] = value instanceof Date ? value.toISOString() : value;
   }
 
+  /** Removes the value at a path, as REMOVE does, and leaves the maps on the way as they are. */
+  static removePath(target: Record<string, unknown>, segments: string[]): void {
+    let holder = target;
+
+    assertWritable(segments);
+
+    for (const segment of segments.slice(0, -1)) {
+      if (!hasOwnMap(holder, segment)) return;
+      holder = holder[segment] as Record<string, unknown>;
+    }
+
+    delete holder[segments[segments.length - 1]];
+  }
+
   static toPathSegments(field: string): string[] {
     return field.split(PATH_SEPARATOR);
   }
