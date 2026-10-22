@@ -4,7 +4,9 @@ import type { Aggregator, ConditionTreeLeaf, Operator } from '@forestadmin/datas
 import type { Connection } from 'mongoose';
 
 import {
+  ConditionTreeBranch as Branch,
   ConditionTreeEquivalent,
+  ConditionTreeFactory,
   ConditionTreeLeaf as Leaf,
   Page,
   PaginatedFilter,
@@ -386,6 +388,85 @@ describe('MongooseCollection', () => {
           new Projection(),
         ),
       ).rejects.toThrow('unknown top level operator: $bad.');
+    });
+
+    describe('with branches', () => {
+      const setupRecords = async () => {
+        connection = await setupReview('collection_review_list');
+        const review = new MongooseDatasource(connection).getCollection('review');
+        await review.create(factories.caller.build(), [
+          { message: 'A', rating: 1 },
+          { message: 'B', rating: 2 },
+          { message: 'C', rating: 3 },
+        ]);
+
+        return review;
+      };
+
+      it('returns nothing for MatchNone', async () => {
+        const review = await setupRecords();
+
+        const records = await review.list(
+          factories.caller.build(),
+          factories.filter.build({ conditionTree: ConditionTreeFactory.MatchNone }),
+          new Projection('message'),
+        );
+
+        expect(records).toEqual([]);
+      });
+
+      it('returns nothing for MatchNone intersected with another condition', async () => {
+        const review = await setupRecords();
+
+        const records = await review.list(
+          factories.caller.build(),
+          factories.filter.build({
+            conditionTree: new Branch('And', [
+              new Leaf('rating', 'GreaterThan', 0),
+              ConditionTreeFactory.MatchNone,
+            ]),
+          }),
+          new Projection('message'),
+        );
+
+        expect(records).toEqual([]);
+      });
+
+      it('returns every record for an empty And', async () => {
+        const review = await setupRecords();
+
+        const records = await review.list(
+          factories.caller.build(),
+          factories.filter.build({
+            conditionTree: new Branch('And', []),
+            sort: new Sort({ field: 'message', ascending: true }),
+          }),
+          new Projection('message'),
+        );
+
+        expect(records).toEqual([{ message: 'A' }, { message: 'B' }, { message: 'C' }]);
+      });
+
+      it('applies an And group nested in an Or', async () => {
+        const review = await setupRecords();
+
+        const records = await review.list(
+          factories.caller.build(),
+          factories.filter.build({
+            conditionTree: new Branch('Or', [
+              new Branch('And', [
+                new Leaf('rating', 'GreaterThan', 1),
+                new Leaf('message', 'Equal', 'B'),
+              ]),
+              new Leaf('message', 'Equal', 'A'),
+            ]),
+            sort: new Sort({ field: 'message', ascending: true }),
+          }),
+          new Projection('message'),
+        );
+
+        expect(records).toEqual([{ message: 'A' }, { message: 'B' }]);
+      });
     });
 
     it('supports default operators when the primary key objectId is given', async () => {

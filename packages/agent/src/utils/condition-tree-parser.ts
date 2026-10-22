@@ -25,6 +25,10 @@ const STRING_TO_BOOLEAN = {
 
 export default class ConditionTreeParser {
   static fromPlainObject(collection: Collection, json: unknown): ConditionTree {
+    return ConditionTreeParser.parse(collection, json, true);
+  }
+
+  private static parse(collection: Collection, json: unknown, isRoot: boolean): ConditionTree {
     if (ConditionTreeParser.isLeaf(json)) {
       const operator = ConditionTreeParser.toPascalCase(json.operator);
       const value = ConditionTreeParser.parseValue(collection, { ...json, operator });
@@ -33,9 +37,15 @@ export default class ConditionTreeParser {
     }
 
     if (ConditionTreeParser.isBranch(json)) {
+      // An empty nested Or would match nothing and an empty nested And everything: dropping it
+      // widens the filter, keeping it silently empties the result. Either is wrong under a bulk action.
+      if (!isRoot && json.conditions.length === 0) {
+        throw new Error('A nested group of conditions cannot be empty');
+      }
+
       const aggregator = ConditionTreeParser.toPascalCase(json.aggregator) as Aggregator;
       const conditions = json.conditions.map(subTree =>
-        ConditionTreeParser.fromPlainObject(collection, subTree),
+        ConditionTreeParser.parse(collection, subTree, false),
       );
 
       return conditions.length !== 1
@@ -115,10 +125,15 @@ export default class ConditionTreeParser {
   }
 
   private static isLeaf(raw: unknown): raw is { field: string; operator: string; value: unknown } {
-    return typeof raw === 'object' && 'field' in raw && 'operator' in raw;
+    return typeof raw === 'object' && raw !== null && 'field' in raw && 'operator' in raw;
   }
 
   private static isBranch(raw: unknown): raw is { aggregator: string; conditions: unknown[] } {
-    return typeof raw === 'object' && 'aggregator' in raw && 'conditions' in raw;
+    return (
+      typeof raw === 'object' &&
+      raw !== null &&
+      'aggregator' in raw &&
+      Array.isArray((raw as { conditions?: unknown }).conditions)
+    );
   }
 }
