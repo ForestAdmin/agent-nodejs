@@ -179,7 +179,9 @@ export default class DynamoDBCollection extends BaseCollection {
 
   async update(caller: Caller, filter: Filter, patch: RecordData): Promise<void> {
     try {
-      const entries = Object.entries(patch).filter(([, value]) => value !== undefined);
+      const entries: Array<[string, unknown]> = Object.entries(patch)
+        .filter(([, value]) => value !== undefined)
+        .map(([field, value]) => [field, this.toStored(field, value)]);
 
       for (const [field] of entries) {
         if (field === this.model.entity?.attribute) {
@@ -295,6 +297,13 @@ export default class DynamoDBCollection extends BaseCollection {
     );
 
     return { access: { ...access, remaining: filter }, residual: intersect(moved, residual) };
+  }
+
+  /** Forest sends a binary attribute as base64 text, which DynamoDB must store as bytes. */
+  private toStored(field: string, value: unknown): unknown {
+    return this.isBinary(field) && typeof value === 'string'
+      ? Uint8Array.from(Buffer.from(value, 'base64'))
+      : value;
   }
 
   private isBinary(field: string): boolean {
@@ -583,7 +592,11 @@ export default class DynamoDBCollection extends BaseCollection {
       );
     }
 
-    const item = Serializer.unflatten(created);
+    const item = Serializer.unflatten(
+      Object.fromEntries(
+        Object.entries(created).map(([field, value]) => [field, this.toStored(field, value)]),
+      ),
+    );
 
     if (entity?.attribute !== undefined) {
       if (item[entity.attribute] !== undefined && item[entity.attribute] !== entity.value) {

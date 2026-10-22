@@ -5,6 +5,7 @@ import {
   BatchWriteCommand,
   DeleteCommand,
   DynamoDBDocumentClient,
+  GetCommand,
   PutCommand,
 } from '@aws-sdk/lib-dynamodb';
 import {
@@ -701,6 +702,7 @@ run('DynamoDB Local', () => {
                 { name: 'total', type: 'number' },
                 { name: 'status', type: 'string' },
                 { name: 'createdAt', type: 'date' },
+                { name: 'blob', type: 'binary', nullable: true },
                 { name: 'shipping', type: 'object', fields: [{ name: 'city', type: 'string' }] },
               ],
             },
@@ -752,6 +754,24 @@ run('DynamoDB Local', () => {
         'Warn',
         expect.stringContaining('Scan on table'),
       );
+    });
+
+    it('stores a binary attribute as bytes and reads it back as base64', async () => {
+      const collection = manual.getCollection('manual_orders');
+
+      await collection.create(caller, [{ customerId: 'c8', orderId: 'o1', blob: 'AQID' }]);
+
+      const stored = await documents.send(
+        new GetCommand({ TableName: MANUAL, Key: { customerId: 'c8', orderId: 'o1' } }),
+      );
+      expect(Array.from(stored.Item.blob as Uint8Array)).toEqual([1, 2, 3]);
+
+      const records = await collection.list(
+        caller,
+        new PaginatedFilter({ conditionTree: leaf('blob', 'Equal', 'AQID') }),
+        new Projection('orderId', 'blob'),
+      );
+      expect(records).toEqual([{ orderId: 'o1', blob: 'AQID' }]);
     });
 
     it('creates, updates and deletes through the declared schema', async () => {

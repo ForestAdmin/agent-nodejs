@@ -1,4 +1,4 @@
-import { PaginatedFilter, Projection, Sort } from '@forestadmin/datasource-toolkit';
+import { Filter, PaginatedFilter, Projection, Sort } from '@forestadmin/datasource-toolkit';
 
 import { buildCollection } from './collection-helpers';
 import { buildSimpleModel, leaf } from './helpers';
@@ -96,5 +96,40 @@ describe('binary attributes', () => {
 
     expect(records).toEqual([{ id: 'u1', blob: 'AQID' }]);
     expect(client.calls('Scan')[0].FilterExpression).toBeUndefined();
+  });
+});
+
+describe('writing binary attributes', () => {
+  const model = () =>
+    buildSimpleModel({ schema: { id: { type: 'string' }, blob: { type: 'binary' } } });
+
+  it('stores the bytes of the base64 text on create and returns the text', async () => {
+    const { collection, client } = buildCollection(model(), { Put: () => ({}) });
+
+    const [created] = await collection.create(caller, [{ id: 'u1', blob: 'AQID' }]);
+
+    expect(Array.from(client.calls('Put')[0].Item.blob as Uint8Array)).toEqual([1, 2, 3]);
+    expect(created.blob).toBe('AQID');
+  });
+
+  it('stores the bytes of the base64 text on update', async () => {
+    const { collection, client } = buildCollection(model(), { Update: () => ({}) });
+
+    await collection.update(caller, new Filter({ conditionTree: leaf('id', 'Equal', 'u1') }), {
+      blob: 'AQID',
+    });
+
+    const [value] = Object.values(client.calls('Update')[0].ExpressionAttributeValues);
+    expect(Array.from(value as Uint8Array)).toEqual([1, 2, 3]);
+  });
+
+  it('keeps a null binary as null', async () => {
+    const { collection, client } = buildCollection(model(), { Update: () => ({}) });
+
+    await collection.update(caller, new Filter({ conditionTree: leaf('id', 'Equal', 'u1') }), {
+      blob: null,
+    });
+
+    expect(Object.values(client.calls('Update')[0].ExpressionAttributeValues)).toContain(null);
   });
 });
