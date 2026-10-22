@@ -182,7 +182,7 @@ export default class AutomationPoller {
         });
       }
     } catch (error) {
-      this.logger('Error', 'Automation poller lease heartbeat failed', {
+      this.logger('Warn', 'Automation poller lease heartbeat failed', {
         instanceId: this.config.instanceId,
         error: extractErrorMessage(error),
       });
