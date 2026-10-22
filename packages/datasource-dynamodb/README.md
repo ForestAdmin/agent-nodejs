@@ -109,7 +109,8 @@ them as text on a key and when it filters: store them in one offset (UTC) if a d
 you filter on ranges of it.
 
 Types: `string`, `number`, `boolean`, `date` and `dateonly` (ISO 8601 strings), `timeonly`, `object`,
-`array`, `point` (GeoJSON), `binary` (base64). Keys are strings or numbers.
+`array`, `point` (GeoJSON, exposed as Json), `binary` (base64, filtered on the returned items). Keys
+are strings or numbers. `timeonly` is exposed as Forest's `Time`.
 
 ## Composite keys
 

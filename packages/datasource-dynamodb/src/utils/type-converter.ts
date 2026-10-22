@@ -34,14 +34,13 @@ export default class TypeConverter {
       case 'dateonly':
         return 'Dateonly';
       case 'timeonly':
-        return 'Timeonly';
+        return 'Time';
       case 'number':
         return 'Number';
       case 'string':
       case 'binary':
         return 'String';
       case 'point':
-        return 'Point';
       case 'object':
       case 'array':
       case 'null':

@@ -276,7 +276,8 @@ export default class DynamoDBCollection extends BaseCollection {
   // ---- reads ------------------------------------------------------------------------------
 
   private plan(tree?: ConditionTree, sort?: Sort): ReadPlan {
-    const { pushable, residual } = splitCondition(tree);
+    // DynamoDB compares a binary attribute to a binary, never to the base64 text Forest sends.
+    const { pushable, residual } = splitCondition(tree, leaf => !this.isBinary(leaf.field));
     const lookup = planKeyLookup(this.model, pushable);
 
     if (lookup) return { lookup, residual: intersect(lookup.remaining, residual) };
@@ -294,6 +295,10 @@ export default class DynamoDBCollection extends BaseCollection {
     );
 
     return { access: { ...access, remaining: filter }, residual: intersect(moved, residual) };
+  }
+
+  private isBinary(field: string): boolean {
+    return this.model.schema[field]?.type === 'binary';
   }
 
   private guardScan(plan: ReadPlan, tree?: ConditionTree): void {
@@ -363,6 +368,8 @@ export default class DynamoDBCollection extends BaseCollection {
     unit?: ReadUnit,
   ): AsyncGenerator<Item[]> {
     if (plan.lookup) {
+      budget.charge(plan.lookup.keys.length, 'query');
+
       yield await this.executor.batchGet(plan.lookup.keys, this.projectionParams(fields) as never);
 
       return;
@@ -412,15 +419,6 @@ export default class DynamoDBCollection extends BaseCollection {
   ): Promise<Item[]> {
     const { access, residual } = plan;
     const cache = this.settings.paginationCache;
-    const { maxOffset } = this.settings;
-
-    if (skip > maxOffset) {
-      throw new OffsetTooDeepError(
-        `Offset ${skip} exceeds the maximum allowed offset of ${maxOffset}. ` +
-          `Narrow the results with filters.`,
-      );
-    }
-
     const base = this.buildReadInput(access, fields);
     const hash = cache.hash({
       base,
@@ -478,6 +476,15 @@ export default class DynamoDBCollection extends BaseCollection {
     const sort = filter.sort?.length ? filter.sort : undefined;
     const skip = filter.page?.skip ?? 0;
     const limit = filter.page?.limit || undefined;
+    const { maxOffset } = this.settings;
+
+    if (skip > maxOffset) {
+      throw new OffsetTooDeepError(
+        `Offset ${skip} exceeds the maximum allowed offset of ${maxOffset}. ` +
+          `Narrow the results with filters.`,
+      );
+    }
+
     const plan = this.plan(filter.conditionTree, sort);
 
     // Reading the first page of a collection without any filter costs one page, not a table.
