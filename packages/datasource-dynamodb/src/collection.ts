@@ -158,7 +158,8 @@ export default class DynamoDBCollection extends BaseCollection {
 
   invalidateCaches(): void {
     this.settings.paginationCache.invalidateTable(this.model.tableName);
-    this.settings.chartCaches.get(this.model.tableName)?.clear();
+    // Dropped, not cleared: a chart still being computed holds the old map and writes into it.
+    this.settings.chartCaches.delete(this.model.tableName);
   }
 
   async create(caller: Caller, data: RecordData[]): Promise<RecordData[]> {

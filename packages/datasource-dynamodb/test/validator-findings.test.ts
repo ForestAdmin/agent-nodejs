@@ -1,4 +1,4 @@
-import { Filter, PaginatedFilter, Projection } from '@forestadmin/datasource-toolkit';
+import { Aggregation, Filter, PaginatedFilter, Projection } from '@forestadmin/datasource-toolkit';
 
 import { buildCollection } from './collection-helpers';
 import { fakeClient } from './fake-client';
@@ -241,5 +241,40 @@ describe('native queries', () => {
       'Only SELECT statements can be run as native queries',
     );
     expect(client.calls('ExecuteStatement')).toHaveLength(0);
+  });
+});
+
+describe('a chart computed while a write happens', () => {
+  it('does not put its stale result back in the cache', async () => {
+    let release: (value: unknown) => void;
+    const firstScan = new Promise(resolve => {
+      release = resolve;
+    });
+    let scans = 0;
+    const { collection } = buildCollection(
+      buildSimpleModel(),
+      {
+        Scan: () => {
+          scans += 1;
+
+          return scans === 1 ? firstScan : { Items: [{ age: 2 }] };
+        },
+        Put: () => ({}),
+      },
+      { chartCacheTtlMs: 60000, scanConcurrency: 1 },
+    );
+    const sum = new Aggregation({ operation: 'Sum', field: 'age' });
+
+    const started = collection.aggregate(caller, new Filter({}), sum);
+    await new Promise(resolve => {
+      setTimeout(resolve, 0);
+    });
+    await collection.create(caller, [{ id: 'u9', age: 5 }]);
+    release({ Items: [{ age: 1 }] });
+    await started;
+
+    const after = await collection.aggregate(caller, new Filter({}), sum);
+
+    expect(after).toEqual([{ value: 2, group: {} }]);
   });
 });
