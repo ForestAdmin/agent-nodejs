@@ -875,6 +875,7 @@ run('DynamoDB Local', () => {
       },
       'c2|o1': { customerId: 'c2', orderId: 'o1', lines: [{ sku: 'A', qty: 100, parts: [] }] },
     });
+
     const keyOf = (id: string) => {
       const [customerId, orderId] = id.split('|');
 
