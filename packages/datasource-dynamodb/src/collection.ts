@@ -134,9 +134,13 @@ export default class DynamoDBCollection extends BaseCollection {
     this.addFields(convertModelToFields(model, logger));
     if (model.enableCount ?? true) this.enableCount();
 
-    this.fieldNames = new Set(Object.keys(this.schema.fields));
-
     const entityAttribute = model.entity?.attribute;
+
+    // The discriminator may be left out of the schema, and is still read to tell the entities apart.
+    this.fieldNames = new Set([
+      ...Object.keys(this.schema.fields),
+      ...(entityAttribute !== undefined ? [entityAttribute] : []),
+    ]);
     this.matchContext = {
       schema: {
         fields: {

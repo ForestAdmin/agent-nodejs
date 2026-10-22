@@ -1,7 +1,7 @@
 import { Filter, PaginatedFilter, Projection, Sort } from '@forestadmin/datasource-toolkit';
 
 import { buildCollection } from './collection-helpers';
-import { buildModel, buildSimpleModel, leaf } from './helpers';
+import { and, buildModel, buildSimpleModel, leaf } from './helpers';
 
 const caller = { timezone: 'UTC' } as never;
 
@@ -155,5 +155,33 @@ describe('a nested entity discriminator', () => {
       collection.create(caller, [{ customerId: 'c1', orderId: 'o1', 'meta->type': 'INVOICE' }]),
     ).rejects.toThrow("The attribute 'meta->type' of 'orders' must be 'ORDER'");
     expect(client.calls('Put')).toHaveLength(0);
+  });
+});
+
+describe('a nested entity discriminator left out of the schema', () => {
+  it('still matches the items of the entity when they are read by key', async () => {
+    const { collection } = buildCollection(
+      buildModel({ entity: { attribute: 'meta->type', value: 'ORDER' } }),
+      {
+        BatchGet: () => ({
+          Responses: {
+            Orders: [
+              { customerId: 'c1', orderId: 'o1', meta: { type: 'ORDER' } },
+              { customerId: 'c1', orderId: 'o2', meta: { type: 'INVOICE' } },
+            ],
+          },
+        }),
+      },
+    );
+
+    const records = await collection.list(
+      caller,
+      new PaginatedFilter({
+        conditionTree: and(leaf('customerId', 'Equal', 'c1'), leaf('orderId', 'In', ['o1', 'o2'])),
+      }),
+      new Projection('orderId'),
+    );
+
+    expect(records).toEqual([{ orderId: 'o1' }]);
   });
 });
