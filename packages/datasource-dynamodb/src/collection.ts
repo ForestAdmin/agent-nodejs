@@ -592,22 +592,21 @@ export default class DynamoDBCollection extends BaseCollection {
       );
     }
 
-    const item = Serializer.unflatten(
-      Object.fromEntries(
-        Object.entries(created).map(([field, value]) => [field, this.toStored(field, value)]),
-      ),
-    );
-
     if (entity?.attribute !== undefined) {
-      if (item[entity.attribute] !== undefined && item[entity.attribute] !== entity.value) {
+      if (created[entity.attribute] !== undefined && created[entity.attribute] !== entity.value) {
         throw new ValidationError(
           `The attribute '${entity.attribute}' of '${this.name}' must be '${entity.value}'`,
         );
       }
 
-      item[entity.attribute] = entity.value;
       created[entity.attribute] = entity.value;
     }
+
+    const item = Serializer.unflatten(
+      Object.fromEntries(
+        Object.entries(created).map(([field, value]) => [field, this.toStored(field, value)]),
+      ),
+    );
 
     const keyBuilder = new ExpressionBuilder('k', 'kv');
 

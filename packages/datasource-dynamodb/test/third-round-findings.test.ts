@@ -1,7 +1,7 @@
 import { Filter, PaginatedFilter, Projection, Sort } from '@forestadmin/datasource-toolkit';
 
 import { buildCollection } from './collection-helpers';
-import { buildSimpleModel, leaf } from './helpers';
+import { buildModel, buildSimpleModel, leaf } from './helpers';
 
 const caller = { timezone: 'UTC' } as never;
 
@@ -131,5 +131,29 @@ describe('writing binary attributes', () => {
     });
 
     expect(Object.values(client.calls('Update')[0].ExpressionAttributeValues)).toContain(null);
+  });
+});
+
+describe('a nested entity discriminator', () => {
+  const model = () => buildModel({ entity: { attribute: 'meta->type', value: 'ORDER' } });
+
+  it('is stamped under its path, not under a literal key', async () => {
+    const { collection, client } = buildCollection(model(), { Put: () => ({}) });
+
+    const [created] = await collection.create(caller, [{ customerId: 'c1', orderId: 'o1' }]);
+    const { Item } = client.calls('Put')[0];
+
+    expect(Item.meta).toEqual({ type: 'ORDER' });
+    expect(Object.keys(Item)).not.toContain('meta->type');
+    expect(created['meta->type']).toBe('ORDER');
+  });
+
+  it('refuses another value supplied for it', async () => {
+    const { collection, client } = buildCollection(model(), { Put: () => ({}) });
+
+    await expect(
+      collection.create(caller, [{ customerId: 'c1', orderId: 'o1', 'meta->type': 'INVOICE' }]),
+    ).rejects.toThrow("The attribute 'meta->type' of 'orders' must be 'ORDER'");
+    expect(client.calls('Put')).toHaveLength(0);
   });
 });
