@@ -853,6 +853,161 @@ run('DynamoDB Local', () => {
     });
   });
 
+  describe('writes through virtual collections of a composite key table', () => {
+    const VC = `vc-${suffix}`;
+    let vc: DataSource;
+
+    const original = () => ({
+      'c1|o1': {
+        customerId: 'c1',
+        orderId: 'o1',
+        status: 'open',
+        note: 'keep',
+        lines: [
+          { sku: 'A', qty: 1, parts: [{ n: 1 }, { n: 2 }] },
+          { sku: 'B', qty: 2, parts: [{ n: 3 }] },
+        ],
+      },
+      'c1|o2': {
+        customerId: 'c1',
+        orderId: 'o2',
+        lines: [{ sku: 'A', qty: 10, parts: [{ n: 1 }] }],
+      },
+      'c2|o1': { customerId: 'c2', orderId: 'o1', lines: [{ sku: 'A', qty: 100, parts: [] }] },
+    });
+    const keyOf = (id: string) => {
+      const [customerId, orderId] = id.split('|');
+
+      return { customerId, orderId };
+    };
+
+    const raw = async (id: string) =>
+      (await documents.send(new GetCommand({ TableName: VC, Key: keyOf(id) }))).Item;
+
+    const at = (id: string, index: number, extra: Record<string, unknown> = {}) =>
+      tree({
+        aggregator: 'And',
+        conditions: [
+          { field: 'customerId', operator: 'Equal', value: keyOf(id).customerId },
+          { field: 'orderId', operator: 'Equal', value: keyOf(id).orderId },
+          { field: 'index', operator: 'Equal', value: index },
+          ...Object.entries(extra).map(([field, value]) => ({
+            field,
+            operator: 'Equal',
+            value,
+          })),
+        ],
+      });
+
+    beforeAll(async () => {
+      await client.send(
+        new CreateTableCommand({
+          TableName: VC,
+          BillingMode: 'PAY_PER_REQUEST',
+          KeySchema: [
+            { AttributeName: 'customerId', KeyType: 'HASH' },
+            { AttributeName: 'orderId', KeyType: 'RANGE' },
+          ],
+          AttributeDefinitions: [
+            { AttributeName: 'customerId', AttributeType: 'S' },
+            { AttributeName: 'orderId', AttributeType: 'S' },
+          ],
+        }),
+      );
+      vc = await createDynamoDBDataSource({
+        client: documents,
+        builder: configurator =>
+          configurator.addCollectionFromTable({ name: 'vc_orders', tableName: VC }),
+        virtualCollections: [
+          { parentCollection: 'vc_orders', collectionName: 'order_lines', arrayField: 'lines' },
+          { parentCollection: 'order_lines', collectionName: 'line_parts', arrayField: 'parts' },
+        ],
+        chartCacheTtlMs: 0,
+      })(jest.fn(), jest.fn());
+    });
+
+    beforeEach(async () => {
+      await documents.send(
+        new BatchWriteCommand({
+          RequestItems: {
+            [VC]: Object.values(original()).map(Item => ({ PutRequest: { Item } })),
+          },
+        }),
+      );
+    });
+
+    afterAll(async () => {
+      await client.send(new DeleteTableCommand({ TableName: VC })).catch(() => undefined);
+    });
+
+    it('edits the line of one order and leaves every other item and attribute alone', async () => {
+      await vc
+        .getCollection('order_lines')
+        .update(caller, new Filter({ conditionTree: at('c1|o1', 1) }), { qty: 20 });
+
+      const expected = original();
+      expected['c1|o1'].lines[1].qty = 20;
+
+      expect(await raw('c1|o1')).toEqual(expected['c1|o1']);
+      expect(await raw('c1|o2')).toEqual(expected['c1|o2']);
+      expect(await raw('c2|o1')).toEqual(expected['c2|o1']);
+    });
+
+    it('tells apart two items that share the sort key, or the partition key', async () => {
+      await vc
+        .getCollection('order_lines')
+        .update(caller, new Filter({ conditionTree: at('c2|o1', 0) }), { sku: 'Z' });
+
+      const expected = original();
+      expected['c2|o1'].lines[0].sku = 'Z';
+
+      expect(await raw('c2|o1')).toEqual(expected['c2|o1']);
+      expect(await raw('c1|o1')).toEqual(expected['c1|o1']);
+      expect(await raw('c1|o2')).toEqual(expected['c1|o2']);
+    });
+
+    it('edits the element of an array inside an array', async () => {
+      await vc
+        .getCollection('line_parts')
+        .update(caller, new Filter({ conditionTree: at('c1|o1', 1, { order_linesIndex: 0 }) }), {
+          n: 99,
+        });
+
+      const expected = original();
+      expected['c1|o1'].lines[0].parts[1].n = 99;
+
+      expect(await raw('c1|o1')).toEqual(expected['c1|o1']);
+      expect(await raw('c1|o2')).toEqual(expected['c1|o2']);
+    });
+
+    it('deletes the line it names and keeps the order and its other lines', async () => {
+      await vc
+        .getCollection('order_lines')
+        .delete(caller, new Filter({ conditionTree: at('c1|o1', 0) }));
+
+      const expected = original();
+      expected['c1|o1'].lines.splice(0, 1);
+
+      expect(await raw('c1|o1')).toEqual(expected['c1|o1']);
+      expect(await raw('c1|o2')).toEqual(expected['c1|o2']);
+      expect(await raw('c2|o1')).toEqual(expected['c2|o1']);
+    });
+
+    it('appends a line to the order its keys name', async () => {
+      const [created] = await vc
+        .getCollection('order_lines')
+        .create(caller, [{ customerId: 'c1', orderId: 'o2', sku: 'N', qty: 5 }]);
+
+      const expected = original();
+      expected['c1|o2'].lines.push({ sku: 'N', qty: 5 } as never);
+
+      expect(created).toMatchObject({ customerId: 'c1', orderId: 'o2', index: 1 });
+      expect(await raw('c1|o2')).toEqual(expected['c1|o2']);
+      expect(await raw('c1|o1')).toEqual(expected['c1|o1']);
+      expect(await raw('c2|o1')).toEqual(expected['c2|o1']);
+    });
+  });
+
   describe('native query', () => {
     it('runs a PartiQL statement with parameters', async () => {
       const rows = await dataSource.executeNativeQuery(
