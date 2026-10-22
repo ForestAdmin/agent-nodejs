@@ -749,7 +749,7 @@ describe('ActionRoute', () => {
     });
   });
 
-  describe('with a single action given more than one record', () => {
+  describe('with a single action given anything but one record', () => {
     const message = 'This action can only be triggered on one record at a time.';
     const twoIds = ['123e4567-e89b-12d3-a456-426614174000', '123e4567-e89b-12d3-a456-426614174001'];
     const contextWith = (attributes: Record<string, unknown>) =>
@@ -833,6 +833,14 @@ describe('ActionRoute', () => {
       expect(
         options.forestAdminClient.permissionService.canApproveCustomAction,
       ).not.toHaveBeenCalled();
+      expect(dataSource.getCollection('books').execute).not.toHaveBeenCalled();
+    });
+
+    test('refuses an empty selection with a 422 and runs nothing', async () => {
+      const error = await post(contextWith({ ids: [] })).catch(e => e);
+
+      expect(error).toBeInstanceOf(UnprocessableError);
+      expect(error.message).toBe(message);
       expect(dataSource.getCollection('books').execute).not.toHaveBeenCalled();
     });
 

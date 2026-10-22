@@ -396,8 +396,8 @@ export default class ActionRoute extends CollectionRoute {
     if (actionScope !== 'Global') {
       const selectionIds = BodyParser.parseSelectionIds(this.collection.schema, context);
 
-      // A single action only ever runs on the first record: refuse rather than skip the others.
-      if (actionScope === 'Single' && (selectionIds.areExcluded || selectionIds.ids.length > 1)) {
+      // A single action runs on its first record, or on nothing: refuse any selection but one id.
+      if (actionScope === 'Single' && (selectionIds.areExcluded || selectionIds.ids.length !== 1)) {
         throw new UnprocessableError('This action can only be triggered on one record at a time.');
       }
 
