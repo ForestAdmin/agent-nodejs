@@ -46,6 +46,8 @@ A request that no key or index serves reads the whole table. `scanPolicy` decide
 | `'allow'`          | Scans silently.                                                                      |
 | `'deny'`           | Refuses with an explicit error.                                                      |
 
+Any other value is refused at startup.
+
 `maxScannedItems` (1 000 000) stops any single request that reads more items than that, with an error
 rather than a partial result. PartiQL native queries do not report how many items they evaluated,
 so for them it bounds the rows returned, and the pages fetched are capped at 1000. Both can be set on the datasource or on a collection.
@@ -110,7 +112,9 @@ you filter on ranges of it.
 
 Types: `string`, `number`, `boolean`, `date` and `dateonly` (ISO 8601 strings), `timeonly`, `object`,
 `array`, `point` (GeoJSON, exposed as Json), `binary` (base64, filtered on the returned items). Keys
-are strings or numbers. `timeonly` is exposed as Forest's `Time`.
+are strings or numbers. `timeonly` is exposed as Forest's `Time`. A number beyond 2^53 is read as
+text, to keep every digit. A string or number set is read as an array and written back as a set when
+the introspection saw it as one, or when the manual schema declares `set: true` on the array.
 
 ## Composite keys
 
@@ -141,6 +145,9 @@ configurator
 A sort key prefix is also used as the sort key condition of queries, and checked on create.
 
 ## Arrays as collections
+
+`virtualArrayCollections`, the name the Cosmos DB datasource uses, is read as an alias of
+`virtualCollections`.
 
 ```ts
 createDynamoDBDataSource({

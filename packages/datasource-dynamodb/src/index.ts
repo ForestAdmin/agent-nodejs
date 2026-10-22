@@ -58,6 +58,8 @@ export type DynamoDBDataSourceOptions = DynamoDBClientOptions &
     introspectionConfig?: IntrospectionConfig;
     /** Exposes arrays of maps as collections of their own. */
     virtualCollections?: VirtualCollectionConfig[];
+    /** Another name for `virtualCollections`, the one the Cosmos DB datasource uses. */
+    virtualArrayCollections?: VirtualCollectionConfig[];
     /** Name of the connection that runs PartiQL native queries. Without it, none is offered. */
     liveQueryConnection?: string;
   };
@@ -136,10 +138,15 @@ export function createDynamoDBDataSource(
       liveQueryConnection: options.liveQueryConnection,
     });
 
-    if (options.virtualCollections?.length) {
+    const virtualCollections = [
+      ...(options.virtualCollections ?? []),
+      ...(options.virtualArrayCollections ?? []),
+    ];
+
+    if (virtualCollections.length) {
       await addVirtualCollections(
         dataSource,
-        options.virtualCollections,
+        virtualCollections,
         options.introspectionConfig?.sampleSize,
         logger,
       );

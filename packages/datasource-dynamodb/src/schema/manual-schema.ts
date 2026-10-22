@@ -61,6 +61,13 @@ function validateFields(fields: FieldDefinition[], collectionName: string, path 
       );
     }
 
+    if (field.set && !(field.type === 'array' && ['string', 'number'].includes(field.subType))) {
+      throw new ValidationError(
+        `Field '${fullPath}' in collection '${collectionName}' cannot be a set: only an array ` +
+          `of strings or numbers can`,
+      );
+    }
+
     if (field.type === 'array') {
       if (!field.subType) {
         throw new ValidationError(
@@ -178,6 +185,7 @@ function flattenFields(fields: FieldDefinition[], prefix = ''): Record<string, A
       attributes[path] = {
         type: field.type,
         nullable: !!field.nullable,
+        ...(field.type === 'array' && field.set ? { set: true } : {}),
         ...(field.type === 'array' && field.subType === 'object'
           ? { items: flattenFields(field.fields) }
           : {}),
@@ -218,7 +226,7 @@ function toModel(collection: CollectionDefinition): TableModel {
     sortKey,
     indexes,
     // The configured key types are the table's: a field of the same name cannot change them.
-    schema: { ...flattenFields(collection.fields), ...keys },
+    schema: { ...flattenFields(collection.fields ?? []), ...keys },
     entity: collection.entity,
     enableCount: collection.enableCount,
     scanPolicy: collection.scanPolicy,

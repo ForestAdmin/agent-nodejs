@@ -303,11 +303,15 @@ export default class DynamoDBCollection extends BaseCollection {
     return { access: { ...access, remaining: filter }, residual: intersect(moved, residual) };
   }
 
-  /** Forest sends a binary attribute as base64 text, which DynamoDB must store as bytes. */
+  /** Gives back the DynamoDB type Forest cannot send: bytes for base64 text, a set for an array. */
   private toStored(field: string, value: unknown): unknown {
-    return this.isBinary(field) && typeof value === 'string'
-      ? Uint8Array.from(Buffer.from(value, 'base64'))
-      : value;
+    if (this.isBinary(field) && typeof value === 'string') {
+      return Uint8Array.from(Buffer.from(value, 'base64'));
+    }
+
+    if (this.model.schema[field]?.set && Array.isArray(value)) return new Set(value);
+
+    return value;
   }
 
   private isBinary(field: string): boolean {

@@ -26,6 +26,8 @@ export type DynamoDataType =
 export type AttributeSchema = {
   type: DynamoDataType;
   nullable?: boolean;
+  /** An array stored as a string or number set, which must be written back as one. */
+  set?: boolean;
   /** Schema of the items of an array of maps, used to expose it as a virtual collection. */
   items?: Record<string, AttributeSchema>;
 };
@@ -77,6 +79,8 @@ export type FieldDefinition = {
   nullable?: boolean;
   /** For arrays: the type of the items. */
   subType?: DynamoDataType;
+  /** For arrays of strings or numbers: the attribute is a DynamoDB set, not a list. */
+  set?: boolean;
   /** For objects, and arrays of objects: the nested attributes. */
   fields?: FieldDefinition[];
 };

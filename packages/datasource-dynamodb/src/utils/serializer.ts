@@ -54,8 +54,9 @@ function hasOwnMap(target: Record<string, unknown>, key: string): boolean {
 }
 
 export default class Serializer {
-  /** Makes a value out of what the DocumentClient reads: no set, no date object, no buffer. */
+  /** Makes a value out of what the DocumentClient reads: no set, date object, buffer or bigint. */
   static normalize(value: unknown): unknown {
+    if (typeof value === 'bigint') return value.toString();
     if (value instanceof Set) return [...value].map(item => Serializer.normalize(item));
     if (value instanceof Date) return value.toISOString();
     if (value instanceof Uint8Array) return Buffer.from(value).toString('base64');

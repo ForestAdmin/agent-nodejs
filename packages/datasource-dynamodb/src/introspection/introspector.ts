@@ -95,6 +95,7 @@ function collectTypes(
   maxDepth: number,
   types: Record<string, DynamoDataType[]>,
   presentInItem: Set<string>,
+  arrayKinds: Record<string, { sets: number; lists: number }>,
 ): void {
   const record = (type: DynamoDataType) => {
     types[path] ??= [];
@@ -105,7 +106,14 @@ function collectTypes(
   const inferred = TypeConverter.inferTypeFromValue(value);
 
   if (inferred !== 'object') {
-    if (path) record(inferred);
+    if (path) {
+      record(inferred);
+
+      if (inferred === 'array') {
+        arrayKinds[path] ??= { sets: 0, lists: 0 };
+        arrayKinds[path][value instanceof Set ? 'sets' : 'lists'] += 1;
+      }
+    }
 
     return;
   }
@@ -134,6 +142,7 @@ function collectTypes(
       maxDepth,
       types,
       presentInItem,
+      arrayKinds,
     );
   }
 }
@@ -146,10 +155,11 @@ export function inferSchema(
   // Attribute names are data: `constructor` or `__proto__` must not reach Object.prototype.
   const types: Record<string, DynamoDataType[]> = Object.create(null);
   const presence: Record<string, number> = Object.create(null);
+  const arrayKinds: Record<string, { sets: number; lists: number }> = Object.create(null);
 
   for (const item of items) {
     const present = new Set<string>();
-    collectTypes(item, '', 0, maxDepth, types, present);
+    collectTypes(item, '', 0, maxDepth, types, present, arrayKinds);
     present.forEach(path => {
       presence[path] = (presence[path] ?? 0) + 1;
     });
@@ -164,9 +174,15 @@ export function inferSchema(
     paths.some(other => other.startsWith(`${path}${PATH_SEPARATOR}`));
 
   for (const [path, observed] of Object.entries(types).filter(([name]) => !hasNested(name))) {
+    const type = TypeConverter.getMostSpecificType(observed);
+
     schema[path] = {
-      type: TypeConverter.getMostSpecificType(observed),
+      type,
       nullable: observed.includes('null') || presence[path] < items.length,
+      // Only an attribute that was always a set is written back as one.
+      ...(type === 'array' && arrayKinds[path]?.sets > 0 && arrayKinds[path].lists === 0
+        ? { set: true }
+        : {}),
     };
   }
 

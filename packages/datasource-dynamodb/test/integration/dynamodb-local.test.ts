@@ -703,6 +703,7 @@ run('DynamoDB Local', () => {
                 { name: 'status', type: 'string' },
                 { name: 'createdAt', type: 'date' },
                 { name: 'blob', type: 'binary', nullable: true },
+                { name: 'labels', type: 'array', subType: 'string', set: true, nullable: true },
                 { name: 'shipping', type: 'object', fields: [{ name: 'city', type: 'string' }] },
               ],
             },
@@ -772,6 +773,30 @@ run('DynamoDB Local', () => {
         new Projection('orderId', 'blob'),
       );
       expect(records).toEqual([{ orderId: 'o1', blob: 'AQID' }]);
+    });
+
+    it('writes a declared set back as a DynamoDB set', async () => {
+      const collection = manual.getCollection('manual_orders');
+      const key = { customerId: 'c7', orderId: 'o1' };
+
+      await collection.create(caller, [{ ...key, labels: ['a', 'b'] }]);
+      await collection.update(
+        caller,
+        new Filter({
+          conditionTree: tree({
+            aggregator: 'And',
+            conditions: [
+              { field: 'customerId', operator: 'Equal', value: 'c7' },
+              { field: 'orderId', operator: 'Equal', value: 'o1' },
+            ],
+          }),
+        }),
+        { labels: ['b', 'c'] },
+      );
+
+      const stored = await documents.send(new GetCommand({ TableName: MANUAL, Key: key }));
+      expect(stored.Item.labels).toBeInstanceOf(Set);
+      expect([...stored.Item.labels].sort()).toEqual(['b', 'c']);
     });
 
     it('creates, updates and deletes through the declared schema', async () => {
