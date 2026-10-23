@@ -22,6 +22,7 @@ describe('createCortexAnalystTool', () => {
     });
 
     expect(fetch).toHaveBeenCalledWith(`${baseUrl}/api/v2/cortex/analyst/message`, {
+      redirect: 'manual',
       method: 'POST',
       headers,
       body: JSON.stringify({

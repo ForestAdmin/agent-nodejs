@@ -1,6 +1,7 @@
 import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 
+import fetchWithoutRedirect from '../../fetch-without-redirect';
 import { assertResponseOk } from '../utils';
 
 export default function createUpdateTicketTool(
@@ -76,7 +77,7 @@ export default function createUpdateTicketTool(
       if (custom_fields !== undefined) ticketUpdate.custom_fields = custom_fields;
       if (due_at !== undefined) ticketUpdate.due_at = due_at;
 
-      const response = await fetch(`${baseUrl}/tickets/${ticket_id}.json`, {
+      const response = await fetchWithoutRedirect(`${baseUrl}/tickets/${ticket_id}.json`, {
         method: 'PUT',
         headers,
         body: JSON.stringify({ ticket: ticketUpdate }),

@@ -34,6 +34,7 @@ describe('createCreateTicketCommentTool', () => {
     const result = await tool.invoke({ ticket_id: 5, comment: 'Looks good' });
 
     expect(fetch).toHaveBeenCalledWith(`${baseUrl}/tickets/5.json`, {
+      redirect: 'manual',
       method: 'PUT',
       headers,
       body: JSON.stringify({
@@ -49,6 +50,7 @@ describe('createCreateTicketCommentTool', () => {
     await tool.invoke({ ticket_id: 5, comment: 'Internal note', public: false });
 
     expect(fetch).toHaveBeenCalledWith(`${baseUrl}/tickets/5.json`, {
+      redirect: 'manual',
       method: 'PUT',
       headers,
       body: JSON.stringify({

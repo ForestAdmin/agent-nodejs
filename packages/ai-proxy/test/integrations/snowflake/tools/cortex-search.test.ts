@@ -29,6 +29,7 @@ describe('createCortexSearchTool', () => {
     expect(fetch).toHaveBeenCalledWith(
       `${baseUrl}/api/v2/databases/MY_DB/schemas/MY_SCHEMA/cortex-search-services/MY_SVC:query`,
       {
+        redirect: 'manual',
         method: 'POST',
         headers,
         body: JSON.stringify({

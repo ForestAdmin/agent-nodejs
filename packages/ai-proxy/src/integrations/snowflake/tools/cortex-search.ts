@@ -1,6 +1,7 @@
 import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 
+import fetchWithoutRedirect from '../../fetch-without-redirect';
 import { assertResponseOk } from '../utils';
 
 export default function createCortexSearchTool(
@@ -45,7 +46,7 @@ export default function createCortexSearchTool(
       if (filter) body.filter = filter;
       if (limit !== undefined) body.limit = limit;
 
-      const response = await fetch(url, {
+      const response = await fetchWithoutRedirect(url, {
         method: 'POST',
         headers,
         body: JSON.stringify(body),

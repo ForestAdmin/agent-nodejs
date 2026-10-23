@@ -34,6 +34,7 @@ describe('createUpdateTicketTool', () => {
     const result = await tool.invoke({ ticket_id: 7, status: 'solved' });
 
     expect(fetch).toHaveBeenCalledWith(`${baseUrl}/tickets/7.json`, {
+      redirect: 'manual',
       method: 'PUT',
       headers,
       body: JSON.stringify({ ticket: { status: 'solved' } }),
@@ -57,6 +58,7 @@ describe('createUpdateTicketTool', () => {
     });
 
     expect(fetch).toHaveBeenCalledWith(`${baseUrl}/tickets/7.json`, {
+      redirect: 'manual',
       method: 'PUT',
       headers,
       body: JSON.stringify({
@@ -80,6 +82,7 @@ describe('createUpdateTicketTool', () => {
     await tool.invoke({ ticket_id: 7 });
 
     expect(fetch).toHaveBeenCalledWith(`${baseUrl}/tickets/7.json`, {
+      redirect: 'manual',
       method: 'PUT',
       headers,
       body: JSON.stringify({ ticket: {} }),

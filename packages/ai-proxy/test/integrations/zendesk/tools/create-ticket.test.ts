@@ -34,6 +34,7 @@ describe('createCreateTicketTool', () => {
     const result = await tool.invoke({ subject: 'Bug', description: 'It broke' });
 
     expect(fetch).toHaveBeenCalledWith(`${baseUrl}/tickets.json`, {
+      redirect: 'manual',
       method: 'POST',
       headers,
       body: JSON.stringify({ ticket: { subject: 'Bug', comment: { body: 'It broke' } } }),
@@ -57,6 +58,7 @@ describe('createCreateTicketTool', () => {
     });
 
     expect(fetch).toHaveBeenCalledWith(`${baseUrl}/tickets.json`, {
+      redirect: 'manual',
       method: 'POST',
       headers,
       body: JSON.stringify({
@@ -85,6 +87,7 @@ describe('createCreateTicketTool', () => {
     });
 
     expect(fetch).toHaveBeenCalledWith(`${baseUrl}/tickets.json`, {
+      redirect: 'manual',
       method: 'POST',
       headers,
       body: JSON.stringify({
@@ -107,6 +110,7 @@ describe('createCreateTicketTool', () => {
     });
 
     expect(fetch).toHaveBeenCalledWith(`${baseUrl}/tickets.json`, {
+      redirect: 'manual',
       method: 'POST',
       headers,
       body: JSON.stringify({
@@ -129,6 +133,7 @@ describe('createCreateTicketTool', () => {
     });
 
     expect(fetch).toHaveBeenCalledWith(`${baseUrl}/tickets.json`, {
+      redirect: 'manual',
       method: 'POST',
       headers,
       body: JSON.stringify({
@@ -152,6 +157,7 @@ describe('createCreateTicketTool', () => {
     });
 
     expect(fetch).toHaveBeenCalledWith(`${baseUrl}/tickets.json`, {
+      redirect: 'manual',
       method: 'POST',
       headers,
       body: JSON.stringify({
@@ -174,6 +180,7 @@ describe('createCreateTicketTool', () => {
     });
 
     expect(fetch).toHaveBeenCalledWith(`${baseUrl}/tickets.json`, {
+      redirect: 'manual',
       method: 'POST',
       headers,
       body: JSON.stringify({

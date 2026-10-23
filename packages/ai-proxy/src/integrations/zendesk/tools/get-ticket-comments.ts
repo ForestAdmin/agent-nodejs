@@ -1,6 +1,7 @@
 import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 
+import fetchWithoutRedirect from '../../fetch-without-redirect';
 import { assertResponseOk } from '../utils';
 
 export default function createGetTicketCommentsTool(
@@ -14,7 +15,7 @@ export default function createGetTicketCommentsTool(
       ticket_id: z.number().int().positive().describe('The ID of the ticket to get comments for'),
     }),
     func: async ({ ticket_id }) => {
-      const response = await fetch(`${baseUrl}/tickets/${ticket_id}/comments.json`, {
+      const response = await fetchWithoutRedirect(`${baseUrl}/tickets/${ticket_id}/comments.json`, {
         headers,
       });
 

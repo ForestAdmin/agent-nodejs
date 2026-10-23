@@ -27,6 +27,7 @@ describe('createExecuteQueryTool', () => {
     const result = await tool.invoke({ statement: 'SELECT 1' });
 
     expect(fetch).toHaveBeenCalledWith(`${baseUrl}/api/v2/statements`, {
+      redirect: 'manual',
       method: 'POST',
       headers,
       body: JSON.stringify({
