@@ -1,4 +1,4 @@
-import { McpConnectionError } from '../../../src/errors';
+import { AIBadRequestError, McpConnectionError } from '../../../src/errors';
 import {
   assertResponseOk,
   getZendeskConfig,
@@ -20,6 +20,37 @@ describe('zendesk/utils', () => {
           'Content-Type': 'application/json',
         },
       });
+    });
+
+    it.each(['my-company', 'Acme1', 'a', 'a'.repeat(63)])(
+      'should accept the subdomain %s',
+      subdomain => {
+        const { baseUrl } = getZendeskConfig({ subdomain, email: 'a@b.c', apiToken: 't' });
+
+        expect(baseUrl).toBe(`https://${subdomain}.zendesk.com/api/v2`);
+      },
+    );
+
+    it.each([
+      'evil.example/x#',
+      'evil.example?',
+      'mycompany.zendesk.com',
+      'user@evil.example',
+      'my company',
+      '',
+      'a'.repeat(64),
+    ])('should reject the subdomain %j', subdomain => {
+      expect(() => getZendeskConfig({ subdomain, email: 'a@b.c', apiToken: 't' })).toThrow(
+        new AIBadRequestError(`Invalid Zendesk subdomain: ${JSON.stringify(subdomain)}`),
+      );
+    });
+
+    it('should reject a subdomain that is not a string', () => {
+      const config = { subdomain: 42 as unknown as string, email: 'a@b.c', apiToken: 't' };
+
+      expect(() => getZendeskConfig(config)).toThrow(
+        new AIBadRequestError('Invalid Zendesk subdomain: 42'),
+      );
     });
   });
 
@@ -115,6 +146,15 @@ describe('zendesk/utils', () => {
       await expect(validateZendeskConfig(config)).rejects.toThrow(
         'Failed to validate Zendesk config: Bad Gateway',
       );
+    });
+
+    it('should send no request when the subdomain is invalid', async () => {
+      jest.spyOn(global, 'fetch');
+
+      await expect(
+        validateZendeskConfig({ ...config, subdomain: 'evil.example/x#' }),
+      ).rejects.toThrow(AIBadRequestError);
+      expect(fetch).not.toHaveBeenCalled();
     });
 
     it('should throw McpConnectionError using error.title as fallback', async () => {

@@ -3,6 +3,7 @@ import type { SnowflakeConfig } from '../tools';
 import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 
+import fetchWithoutRedirect from '../../fetch-without-redirect';
 import { assertReadOnlySql, assertResponseOk, buildSessionContext } from '../utils';
 
 export default function createExecuteQueryTool(
@@ -44,7 +45,7 @@ export default function createExecuteQueryTool(
         ...(role && { role }),
       };
 
-      const response = await fetch(`${baseUrl}/api/v2/statements`, {
+      const response = await fetchWithoutRedirect(`${baseUrl}/api/v2/statements`, {
         method: 'POST',
         headers,
         body: JSON.stringify(body),

@@ -39,7 +39,10 @@ describe('createGetTicketsTool', () => {
       sort_by: 'created_at',
       sort_order: 'desc',
     });
-    expect(fetch).toHaveBeenCalledWith(`${baseUrl}/tickets.json?${expectedParams}`, { headers });
+    expect(fetch).toHaveBeenCalledWith(`${baseUrl}/tickets.json?${expectedParams}`, {
+      redirect: 'manual',
+      headers,
+    });
     expect(result).toBe(JSON.stringify(mockResponse));
   });
 
@@ -54,7 +57,10 @@ describe('createGetTicketsTool', () => {
       sort_by: 'updated_at',
       sort_order: 'asc',
     });
-    expect(fetch).toHaveBeenCalledWith(`${baseUrl}/tickets.json?${expectedParams}`, { headers });
+    expect(fetch).toHaveBeenCalledWith(`${baseUrl}/tickets.json?${expectedParams}`, {
+      redirect: 'manual',
+      headers,
+    });
   });
 
   it('should search tickets by requester email', async () => {
@@ -69,7 +75,10 @@ describe('createGetTicketsTool', () => {
       sort_by: 'created_at',
       sort_order: 'desc',
     });
-    expect(fetch).toHaveBeenCalledWith(`${baseUrl}/search.json?${expectedParams}`, { headers });
+    expect(fetch).toHaveBeenCalledWith(`${baseUrl}/search.json?${expectedParams}`, {
+      redirect: 'manual',
+      headers,
+    });
     expect(result).toBe(JSON.stringify(mockResponse));
   });
 
@@ -80,7 +89,7 @@ describe('createGetTicketsTool', () => {
 
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining('query=submitter%3Asubmitter%40example.com+type%3Aticket'),
-      { headers },
+      { redirect: 'manual', headers },
     );
   });
 
@@ -91,7 +100,7 @@ describe('createGetTicketsTool', () => {
 
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining('query=cc%3Acc%40example.com+type%3Aticket'),
-      { headers },
+      { redirect: 'manual', headers },
     );
   });
 
@@ -102,7 +111,7 @@ describe('createGetTicketsTool', () => {
 
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining('query=assignee%3Aagent%40example.com+type%3Aticket'),
-      { headers },
+      { redirect: 'manual', headers },
     );
   });
 
@@ -113,7 +122,7 @@ describe('createGetTicketsTool', () => {
 
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining('query=status%3Aopen+priority%3Aurgent+type%3Aticket'),
-      { headers },
+      { redirect: 'manual', headers },
     );
   });
 
@@ -124,7 +133,7 @@ describe('createGetTicketsTool', () => {
 
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining('query=created%3E2024-01-01+created%3C2024-06-01+type%3Aticket'),
-      { headers },
+      { redirect: 'manual', headers },
     );
   });
 
@@ -135,7 +144,7 @@ describe('createGetTicketsTool', () => {
 
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining('query=updated%3E2024-03-01+type%3Aticket'),
-      { headers },
+      { redirect: 'manual', headers },
     );
   });
 
@@ -146,7 +155,7 @@ describe('createGetTicketsTool', () => {
 
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining('query=solved%3E2024-05-01+type%3Aticket'),
-      { headers },
+      { redirect: 'manual', headers },
     );
   });
 
@@ -157,7 +166,7 @@ describe('createGetTicketsTool', () => {
 
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining('query=description%3A%22login+error%22+type%3Aticket'),
-      { headers },
+      { redirect: 'manual', headers },
     );
   });
 
@@ -168,7 +177,7 @@ describe('createGetTicketsTool', () => {
 
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining('query=tags%3Avip+tags%3Abilling+type%3Aticket'),
-      { headers },
+      { redirect: 'manual', headers },
     );
   });
 
@@ -179,7 +188,7 @@ describe('createGetTicketsTool', () => {
 
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining('query=subject%3Arefund+%22payment+issue%22+type%3Aticket'),
-      { headers },
+      { redirect: 'manual', headers },
     );
   });
 
@@ -196,7 +205,7 @@ describe('createGetTicketsTool', () => {
       expect.stringContaining(
         'query=requester%3Auser%40example.com+status%3Aopen+priority%3Ahigh+type%3Aticket',
       ),
-      { headers },
+      { redirect: 'manual', headers },
     );
   });
 
@@ -206,6 +215,7 @@ describe('createGetTicketsTool', () => {
     await tool.invoke({ ticket_type: 'incident' });
 
     expect(fetch).toHaveBeenCalledWith(expect.stringContaining('query=type%3Aincident'), {
+      redirect: 'manual',
       headers,
     });
     expect(fetch).not.toHaveBeenCalledWith(
@@ -221,7 +231,7 @@ describe('createGetTicketsTool', () => {
 
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining('query=group%3Asupport+brand%3Aacme+type%3Aticket'),
-      { headers },
+      { redirect: 'manual', headers },
     );
   });
 
@@ -234,7 +244,7 @@ describe('createGetTicketsTool', () => {
       expect.stringContaining(
         'query=group%3A%22tier+1+support%22+brand%3Aacme+subject%3A%22billing+issue%22+type%3Aticket',
       ),
-      { headers },
+      { redirect: 'manual', headers },
     );
   });
 
@@ -245,7 +255,7 @@ describe('createGetTicketsTool', () => {
 
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining('query=status%3Aopen+type%3Aticket'),
-      { headers },
+      { redirect: 'manual', headers },
     );
   });
 

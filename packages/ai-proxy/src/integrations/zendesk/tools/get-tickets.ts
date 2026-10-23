@@ -1,6 +1,7 @@
 import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 
+import fetchWithoutRedirect from '../../fetch-without-redirect';
 import { assertResponseOk } from '../utils';
 
 const searchFiltersSchema = z.object({
@@ -129,7 +130,9 @@ export default function createGetTicketsTool(
           sort_order: sortOrder,
         });
 
-        const response = await fetch(`${baseUrl}/search.json?${params}`, { headers });
+        const response = await fetchWithoutRedirect(`${baseUrl}/search.json?${params}`, {
+          headers,
+        });
         await assertResponseOk(response, 'search tickets');
 
         return JSON.stringify(await response.json());
@@ -142,7 +145,7 @@ export default function createGetTicketsTool(
         sort_order: sortOrder,
       });
 
-      const response = await fetch(`${baseUrl}/tickets.json?${params}`, { headers });
+      const response = await fetchWithoutRedirect(`${baseUrl}/tickets.json?${params}`, { headers });
       await assertResponseOk(response, 'get tickets');
 
       return JSON.stringify(await response.json());

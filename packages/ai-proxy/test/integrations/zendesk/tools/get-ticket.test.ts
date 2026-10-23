@@ -33,7 +33,10 @@ describe('createGetTicketTool', () => {
 
     const result = await tool.invoke({ ticket_id: 42 });
 
-    expect(fetch).toHaveBeenCalledWith(`${baseUrl}/tickets/42.json`, { headers });
+    expect(fetch).toHaveBeenCalledWith(`${baseUrl}/tickets/42.json`, {
+      redirect: 'manual',
+      headers,
+    });
     expect(result).toBe(JSON.stringify(mockResponse));
   });
 });
