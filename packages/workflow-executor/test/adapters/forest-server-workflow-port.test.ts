@@ -841,6 +841,48 @@ describe('ForestServerWorkflowPort', () => {
     });
   });
 
+  describe('renewRunLock', () => {
+    it('posts the run id as a number and the lock it holds, and answers with the renewed lock', async () => {
+      mockQuery.mockResolvedValue({ lockedAt: '2026-10-20T10:01:00.000Z' });
+
+      const renewal = await port.renewRunLock('42', '2026-10-20T10:00:00.000Z');
+
+      expect(renewal).toStrictEqual({ status: 'renewed', lockedAt: '2026-10-20T10:01:00.000Z' });
+      expect(mockQuery).toHaveBeenCalledWith(
+        options,
+        'post',
+        '/api/workflow-orchestrator/renew-run-lock',
+        {},
+        { runId: 42, lockedAt: '2026-10-20T10:00:00.000Z' },
+      );
+    });
+
+    it('says the renewal was refused when the orchestrator answers 409', async () => {
+      mockQuery.mockRejectedValue(makeHttpError(409));
+
+      await expect(port.renewRunLock('42', 'lock-1')).resolves.toStrictEqual({
+        status: 'refused',
+      });
+    });
+
+    it.each([404, 500])(
+      'says the renewal was unavailable, and warns, when the orchestrator answers %i',
+      async status => {
+        const logger = jest.fn();
+        const portWithLogger = new ForestServerWorkflowPort({ ...options, logger });
+        mockQuery.mockRejectedValue(makeHttpError(status));
+
+        await expect(portWithLogger.renewRunLock('42', 'lock-1')).resolves.toStrictEqual({
+          status: 'unavailable',
+        });
+        expect(logger).toHaveBeenCalledWith('Warn', 'Failed to renew the lock of a run', {
+          runId: '42',
+          error: `HTTP ${status}`,
+        });
+      },
+    );
+  });
+
   describe('getCollectionSchema', () => {
     const collectionSchema: CollectionSchema = {
       collectionName: 'users',

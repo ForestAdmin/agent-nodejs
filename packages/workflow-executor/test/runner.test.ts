@@ -55,6 +55,7 @@ function createMockWorkflowPort(): jest.Mocked<WorkflowPort> {
     hasRunAccess: jest.fn().mockResolvedValue(true),
     reportExecutorMetadata: jest.fn().mockResolvedValue(undefined),
     releaseRun: jest.fn().mockResolvedValue(undefined),
+    renewRunLock: jest.fn().mockResolvedValue({ status: 'renewed', lockedAt: 'renewed-lock' }),
   };
 }
 
@@ -2269,6 +2270,184 @@ describe('chain', () => {
 // ---------------------------------------------------------------------------
 // MCP lazy loading
 // ---------------------------------------------------------------------------
+
+describe('a step running once per record', () => {
+  let loopSpy: jest.SpyInstance | undefined;
+
+  afterEach(() => {
+    loopSpy?.mockRestore();
+    loopSpy = undefined;
+  });
+
+  const outcome = {
+    type: 'record' as const,
+    stepId: 'step-1',
+    stepIndex: 0,
+    status: 'success' as const,
+  };
+
+  // Stands in for the per-record loop: asks the runner before each record, then reports.
+  function fakeLoop(
+    records: number,
+    after: (answers: string[]) => Awaited<ReturnType<BaseStepExecutor['execute']>>,
+    gate?: Promise<void>,
+  ) {
+    loopSpy = jest
+      .spyOn(StepExecutorFactory, 'create')
+      .mockImplementation(async (_step, contextConfig: StepContextConfig) => ({
+        execute: async () => {
+          if (gate) await gate;
+          const answers: string[] = [];
+
+          for (let i = 0; i < records; i += 1) {
+            // eslint-disable-next-line no-await-in-loop
+            const answer = await contextConfig.runControl!.beforeRecord();
+            answers.push(answer);
+            if (answer !== 'continue') break;
+          }
+
+          return after(answers);
+        },
+      }));
+
+    return loopSpy;
+  }
+
+  async function triggerWith(
+    workflowPort: jest.Mocked<WorkflowPort>,
+    dispatch: Partial<AvailableRunDispatch> = {},
+  ) {
+    workflowPort.getAvailableRun.mockResolvedValue({
+      ...makePendingDispatch(),
+      lockedAt: 'lock-0',
+      ...dispatch,
+    } as AvailableRunDispatch);
+    runner = new Runner(createRunnerConfig({ workflowPort }));
+    await runner.start();
+    await triggerAndDrain(runner, 'run-1');
+  }
+
+  it('renews the lock the dispatch carries, then the lock each renewal returned', async () => {
+    const workflowPort = createMockWorkflowPort();
+    workflowPort.renewRunLock
+      .mockResolvedValueOnce({ status: 'renewed', lockedAt: 'lock-1' })
+      .mockResolvedValueOnce({ status: 'renewed', lockedAt: 'lock-2' });
+    fakeLoop(2, () => ({ stepOutcome: outcome }));
+
+    await triggerWith(workflowPort);
+
+    expect(workflowPort.renewRunLock.mock.calls).toStrictEqual([
+      ['run-1', 'lock-0'],
+      ['run-1', 'lock-1'],
+    ]);
+    expect(workflowPort.updateStepExecution).toHaveBeenCalledWith('run-1', outcome);
+  });
+
+  it('hands the run back with the lock it last renewed when the step yields', async () => {
+    const workflowPort = createMockWorkflowPort();
+    workflowPort.renewRunLock.mockResolvedValue({ status: 'renewed', lockedAt: 'lock-1' });
+    fakeLoop(1, () => ({ stepOutcome: outcome, interrupted: 'yielded' }));
+
+    await triggerWith(workflowPort);
+
+    expect(workflowPort.releaseRun.mock.calls).toStrictEqual([['run-1', 'lock-1']]);
+    expect(workflowPort.updateStepExecution).not.toHaveBeenCalled();
+  });
+
+  it('stops the record loop and reports nothing when the renewal is refused', async () => {
+    const workflowPort = createMockWorkflowPort();
+    workflowPort.renewRunLock.mockResolvedValue({ status: 'refused' });
+    let answersSeen: string[] = [];
+    fakeLoop(3, answers => {
+      answersSeen = answers;
+
+      return { stepOutcome: outcome, interrupted: 'stopped' };
+    });
+
+    await triggerWith(workflowPort);
+
+    expect(answersSeen).toStrictEqual(['stop']);
+    expect(workflowPort.updateStepExecution).not.toHaveBeenCalled();
+    expect(workflowPort.releaseRun).not.toHaveBeenCalled();
+  });
+
+  it('carries on without a renewal the orchestrator cannot make', async () => {
+    const workflowPort = createMockWorkflowPort();
+    workflowPort.renewRunLock.mockResolvedValue({ status: 'unavailable' });
+    let answersSeen: string[] = [];
+    fakeLoop(2, answers => {
+      answersSeen = answers;
+
+      return { stepOutcome: outcome };
+    });
+
+    await triggerWith(workflowPort);
+
+    expect(answersSeen).toStrictEqual(['continue', 'continue']);
+    expect(workflowPort.updateStepExecution).toHaveBeenCalledWith('run-1', outcome);
+  });
+
+  it('makes no renewal call for a run held under no lock', async () => {
+    const workflowPort = createMockWorkflowPort();
+    fakeLoop(2, () => ({ stepOutcome: outcome }));
+
+    await triggerWith(workflowPort, { lockedAt: null });
+
+    expect(workflowPort.renewRunLock).not.toHaveBeenCalled();
+  });
+
+  it('hands the run back before the next record once the runtime is stopping', async () => {
+    const workflowPort = createMockWorkflowPort();
+    workflowPort.renewRunLock.mockResolvedValue({ status: 'renewed', lockedAt: 'lock-1' });
+
+    let openGate: () => void = () => {};
+
+    const gate = new Promise<void>(resolve => {
+      openGate = resolve;
+    });
+    let answersSeen: string[] = [];
+    fakeLoop(
+      2,
+      answers => {
+        answersSeen = answers;
+
+        return { stepOutcome: outcome, interrupted: 'yielded' };
+      },
+      gate,
+    );
+    workflowPort.getAvailableRun.mockResolvedValue({
+      ...makePendingDispatch(),
+      lockedAt: 'lock-0',
+    } as AvailableRunDispatch);
+    runner = new Runner(createRunnerConfig({ workflowPort }));
+    await runner.start();
+    await runner.triggerPoll('run-1');
+
+    const stopping = runner.stop();
+    openGate();
+    await jest.advanceTimersByTimeAsync(0);
+    await stopping;
+
+    expect(answersSeen).toStrictEqual(['yield']);
+    expect(workflowPort.releaseRun.mock.calls).toStrictEqual([['run-1', 'lock-0']]);
+  });
+
+  it('reports the error cleared for a step dispatched while it carried an error', async () => {
+    const workflowPort = createMockWorkflowPort();
+    workflowPort.getAvailableRun.mockResolvedValue({
+      ...makePendingDispatch({ carriesError: true }),
+      lockedAt: null,
+    } as AvailableRunDispatch);
+    runner = new Runner(createRunnerConfig({ workflowPort }));
+    await runner.start();
+
+    await triggerAndDrain(runner, 'run-1');
+
+    expect(workflowPort.updateStepExecution).toHaveBeenCalledWith('run-1', outcome, {
+      clearsError: true,
+    });
+  });
+});
 
 describe('MCP lazy loading (via once thunk)', () => {
   it('does not call fetchRemoteTools when there are no McpTask steps', async () => {

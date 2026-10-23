@@ -80,6 +80,9 @@ export const CONDITION_OPERATORS = [
 ] as const;
 export type ConditionOperator = (typeof CONDITION_OPERATORS)[number];
 
+export const CONDITION_QUANTIFIERS = ['any', 'every', 'none'] as const;
+export type ConditionQuantifier = (typeof CONDITION_QUANTIFIERS)[number];
+
 const VALUE_LESS_OPERATORS: readonly ConditionOperator[] = [
   'present',
   'blank',
@@ -104,6 +107,8 @@ const DeterministicConditionSchema = z
     fieldName: z.string().min(1),
     operator: z.enum(CONDITION_OPERATORS),
     value: z.unknown().optional(),
+    /** Over which records a per-record source must match: required when it runs once per record. */
+    quantifier: z.enum(CONDITION_QUANTIFIERS).optional(),
   })
   // A value-bearing operator without its value compares against `undefined`: it can never be met,
   // so the step would silently route to the fallback instead of reporting the broken config.
@@ -241,6 +246,8 @@ export const LoadRelatedRecordStepDefinitionSchema = z.object({
       relationName: z.string().optional(),
       /** 1–n relation filter (conditionTree), forwarded verbatim; loosely typed as it's trusted config the agent validates. */
       filters: z.unknown().optional(),
+      /** Loads several records, and the steps sourced from it run once per record. Absent = Single. */
+      multiple: z.boolean().optional(),
     })
     .optional(),
 });
