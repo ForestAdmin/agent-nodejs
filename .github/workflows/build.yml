@@ -349,25 +349,26 @@ jobs:
       cancel-in-progress: false
     needs: [build-api-reference, send-coverage, lint, bff-integration-tests]
     steps:
-      - name: Check this run still builds the branch tip
-        id: tip
+      - name: Check no newer commit on the branch will publish
+        id: newest
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           BRANCH: ${{ github.ref_name }}
           SHA: ${{ github.sha }}
         run: |
-          TIP_SHA=$(gh api "repos/$REPO/git/ref/heads/$BRANCH" --jq .object.sha)
-          if [ "$TIP_SHA" = "$SHA" ]; then
-            echo "is_tip=true" >> "$GITHUB_OUTPUT"
+          NEWER_BUILDS=$(gh api "repos/$REPO/compare/$SHA...$BRANCH" \
+            --jq '[.commits[].commit.message | select(test("\\[(skip ci|ci skip|no ci|skip actions|actions skip)\\]"; "i") | not)] | length')
+          if [ "$NEWER_BUILDS" = "0" ]; then
+            echo "publish=true" >> "$GITHUB_OUTPUT"
           else
-            echo "is_tip=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Skipping the Pages deploy: $SHA is no longer the tip of $BRANCH ($TIP_SHA), whose run publishes the newer reference."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipping the Pages deploy: $NEWER_BUILDS newer commit(s) on $BRANCH start their own run, which publishes the newer reference."
           fi
       - name: Setup Pages
-        if: steps.tip.outputs.is_tip == 'true'
+        if: steps.newest.outputs.publish == 'true'
         uses: actions/configure-pages@v3
       - name: Deploy to GitHub Pages
         id: deployment
-        if: steps.tip.outputs.is_tip == 'true'
+        if: steps.newest.outputs.publish == 'true'
         uses: actions/deploy-pages@v4
