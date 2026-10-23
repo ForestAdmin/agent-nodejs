@@ -587,3 +587,21 @@ describe('configuration', () => {
     );
   });
 });
+
+describe('shutdown handlers', () => {
+  it.each(SIGNALS)('should already route %s to the shutdown when it logs started', async signal => {
+    let listenersAtStarted: NodeJS.SignalsListener[] = [];
+
+    const logger: Logger = (_level, message) => {
+      if (message === 'Forest Gateway started') listenersAtStarted = process.listeners(signal);
+    };
+
+    const server = await runGateway(gatewayEnv(forest.url, await getAvailablePort()), logger);
+
+    try {
+      expect(listenersAtStarted).toContain(process.listeners(signal).at(-1));
+    } finally {
+      await server.stop();
+    }
+  });
+});
