@@ -23,12 +23,12 @@ import {
   servesOAuth,
 } from './gateway';
 
-// Whichever is registered second raises it. `addBff()` registers at builder time and the MCP
-// server only at start(), and the root middleware answers with the first handler whose matcher
-// claims the url — so the BFF wins and the whole MCP surface would go silently dark.
 const normalizeMcpBasePath = (basePath?: string): string =>
   `/${(basePath ?? '').trim()}`.replace(/\/+/g, '/').replace(/\/$/, '');
 
+// Whichever is registered second raises it. `addBff()` registers at builder time and the MCP
+// server only at start(), and the root middleware answers with the first handler whose matcher
+// claims the url — so the BFF wins and the whole MCP surface would go silently dark.
 const bffMcpCollision = (mcpBasePath: string) =>
   `Cannot use addBff together with mountAiMcpServer({ basePath: '${mcpBasePath}' }): the MCP ` +
   `server would claim ${BFF_PREFIX} paths the embedded BFF answers on (${BFF_PREFIX}/oauth, ` +
