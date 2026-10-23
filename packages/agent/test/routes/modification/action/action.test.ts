@@ -749,6 +749,120 @@ describe('ActionRoute', () => {
     });
   });
 
+  describe('with a single action given anything but one record', () => {
+    const message = 'This action can only be triggered on one record at a time.';
+    const twoIds = ['123e4567-e89b-12d3-a456-426614174000', '123e4567-e89b-12d3-a456-426614174001'];
+    const contextWith = (attributes: Record<string, unknown>) =>
+      createMockContext({
+        ...baseContext,
+        requestBody: {
+          data: { attributes: { ...baseContext.requestBody.data.attributes, ...attributes } },
+        },
+      });
+
+    // Through the handlers setupRoutes registers, so an approval runs the signed-request middleware.
+    const post = async (context: ReturnType<typeof createMockContext>, suffix = '') => {
+      route.setupRoutes(router);
+      const [, first, second] = (router.post as jest.Mock).mock.calls.find(
+        ([path]) => path === `/_actions/books/0/mysingleaction${suffix}`,
+      );
+
+      return second ? first(context, () => second(context)) : first(context);
+    };
+
+    beforeEach(() => {
+      dataSource = factories.dataSource.buildWithCollections([
+        factories.collection.build({
+          name: 'books',
+          schema: {
+            actions: { MySingleAction: { scope: 'Single' } },
+            fields: { id: factories.columnSchema.uuidPrimaryKey().build() },
+          },
+          getForm: jest.fn().mockResolvedValue([]),
+          execute: jest.fn().mockResolvedValue({ type: 'Success', invalidated: new Set() }),
+        }),
+      ]);
+
+      route = new ActionRoute(services, options, dataSource, 'books', 'MySingleAction');
+    });
+
+    test('refuses two ids with a 422 and runs nothing', async () => {
+      const error = await post(contextWith({ ids: twoIds })).catch(e => e);
+
+      expect(error).toBeInstanceOf(UnprocessableError);
+      expect(error.message).toBe(message);
+      expect(dataSource.getCollection('books').execute).not.toHaveBeenCalled();
+    });
+
+    test('refuses two ids before asking for an approval', async () => {
+      (
+        options.forestAdminClient.permissionService
+          .doesTriggerCustomActionRequiresApproval as jest.Mock
+      ).mockResolvedValue(true);
+      (
+        options.forestAdminClient.permissionService
+          .getRoleIdsAllowedToApproveWithoutConditions as jest.Mock
+      ).mockResolvedValue([7]);
+      (
+        options.forestAdminClient.permissionService.getConditionalApproveConditions as jest.Mock
+      ).mockResolvedValue(new Map());
+
+      const error = await post(contextWith({ ids: twoIds })).catch(e => e);
+
+      expect(error).toBeInstanceOf(UnprocessableError);
+      expect(error.message).toBe(message);
+      expect(
+        options.forestAdminClient.permissionService.canTriggerCustomAction,
+      ).not.toHaveBeenCalled();
+      expect(dataSource.getCollection('books').execute).not.toHaveBeenCalled();
+    });
+
+    test('refuses the approval of a signed request naming two ids and runs nothing', async () => {
+      (options.forestAdminClient.verifySignedActionParameters as jest.Mock).mockReturnValue({
+        data: {
+          attributes: { ...baseContext.requestBody.data.attributes, ids: twoIds, requester_id: 42 },
+        },
+      });
+
+      // The outer body names one id: only the signed request names two.
+      const error = await post(contextWith({ signed_approval_request: 'signed' })).catch(e => e);
+
+      expect(error).toBeInstanceOf(UnprocessableError);
+      expect(error.message).toBe(message);
+      expect(options.forestAdminClient.verifySignedActionParameters).toHaveBeenCalledWith('signed');
+      expect(
+        options.forestAdminClient.permissionService.canApproveCustomAction,
+      ).not.toHaveBeenCalled();
+      expect(dataSource.getCollection('books').execute).not.toHaveBeenCalled();
+    });
+
+    test('refuses an empty selection with a 422 and runs nothing', async () => {
+      const error = await post(contextWith({ ids: [] })).catch(e => e);
+
+      expect(error).toBeInstanceOf(UnprocessableError);
+      expect(error.message).toBe(message);
+      expect(dataSource.getCollection('books').execute).not.toHaveBeenCalled();
+    });
+
+    test('refuses a select-all selection with a 422 and runs nothing', async () => {
+      const context = contextWith({ ids: [], all_records: true, all_records_ids_excluded: [] });
+
+      const error = await post(context).catch(e => e);
+
+      expect(error).toBeInstanceOf(UnprocessableError);
+      expect(error.message).toBe(message);
+      expect(dataSource.getCollection('books').execute).not.toHaveBeenCalled();
+    });
+
+    test('refuses to load the form for two ids and computes no form', async () => {
+      const error = await post(contextWith({ ids: twoIds }), '/hooks/load').catch(e => e);
+
+      expect(error).toBeInstanceOf(UnprocessableError);
+      expect(error.message).toBe(message);
+      expect(dataSource.getCollection('books').getForm).not.toHaveBeenCalled();
+    });
+  });
+
   describe('when an approval-required action is triggered on a select-all selection', () => {
     beforeEach(() => {
       dataSource = factories.dataSource.buildWithCollections([
@@ -1389,35 +1503,6 @@ describe('ActionRoute', () => {
         );
       });
 
-      test('excludes an id the caller is not authorized to act on from the audited ids', async () => {
-        (dataSource.getCollection('books').list as jest.Mock).mockResolvedValue([
-          { id: '123e4567-e89b-12d3-a456-426614174000' },
-        ]);
-
-        const context = createMockContext({
-          ...baseContext,
-          requestBody: {
-            data: {
-              attributes: {
-                ...baseContext.requestBody.data.attributes,
-                ids: [
-                  '123e4567-e89b-12d3-a456-426614174000',
-                  '123e4567-e89b-12d3-a456-426614174999',
-                ],
-                values: { firstname: 'John' },
-              },
-            },
-          },
-        });
-
-        // @ts-expect-error: test private method
-        await route.handleExecute(context);
-
-        expect(insertPendingBatch).toHaveBeenCalledWith([
-          expect.objectContaining({ recordId: '123e4567-e89b-12d3-a456-426614174000' }),
-        ]);
-      });
-
       test('still records the targeted record when the action itself deletes it', async () => {
         const listMock = dataSource.getCollection('books').list as jest.Mock;
         // Resolved before `execute()` runs; the action then deletes the record, so a re-list
@@ -1685,6 +1770,35 @@ describe('ActionRoute', () => {
         expect(insertPendingBatch).toHaveBeenCalledWith([
           expect.objectContaining({ recordId: '123e4567-e89b-12d3-a456-426614174000' }),
           expect.objectContaining({ recordId: '123e4567-e89b-12d3-a456-426614174001' }),
+        ]);
+      });
+
+      test('excludes an id the caller is not authorized to act on from the audited ids', async () => {
+        (dataSource.getCollection('books').list as jest.Mock).mockResolvedValue([
+          { id: '123e4567-e89b-12d3-a456-426614174000' },
+        ]);
+
+        const context = createMockContext({
+          ...baseContext,
+          requestBody: {
+            data: {
+              attributes: {
+                ...baseContext.requestBody.data.attributes,
+                ids: [
+                  '123e4567-e89b-12d3-a456-426614174000',
+                  '123e4567-e89b-12d3-a456-426614174999',
+                ],
+                values: { firstname: 'John' },
+              },
+            },
+          },
+        });
+
+        // @ts-expect-error: test private method
+        await route.handleExecute(context);
+
+        expect(insertPendingBatch).toHaveBeenCalledWith([
+          expect.objectContaining({ recordId: '123e4567-e89b-12d3-a456-426614174000' }),
         ]);
       });
 
