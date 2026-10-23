@@ -1,3 +1,10 @@
+## @forestadmin/workflow-executor [1.35.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.35.0...@forestadmin/workflow-executor@1.35.1) (2026-10-23)
+
+
+### Bug Fixes
+
+* **workflow-executor:** log a failed lease heartbeat as a warning ([#2025](https://github.com/ForestAdmin/agent-nodejs/issues/2025)) ([0bc9670](https://github.com/ForestAdmin/agent-nodejs/commit/0bc96701ceed1d6173fd436eb94ea618a494d6bb))
+
 # @forestadmin/workflow-executor [1.35.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.34.0...@forestadmin/workflow-executor@1.35.0) (2026-10-21)
 
 
