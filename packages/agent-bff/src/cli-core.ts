@@ -74,8 +74,8 @@ export default async function runCli(
     drainActivityLogs,
   });
 
-  await server.start();
   installShutdownHandlers(server, logger);
+  await server.start();
 
   return server;
 }

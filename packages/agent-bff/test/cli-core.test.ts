@@ -21,6 +21,8 @@ const VALID_ENV = {
 
 const noopLogger: Logger = () => undefined;
 
+const SHUTDOWN_SIGNALS: NodeJS.Signals[] = ['SIGTERM', 'SIGINT'];
+
 const ANSWER_TIMEOUT_MS = 3_000;
 
 async function countedOversizedBodyStatus(
@@ -827,6 +829,45 @@ describe('runCli', () => {
         expect([page.status, document.status]).toEqual([404, 404]);
       } finally {
         await server.stop();
+      }
+    });
+  });
+
+  describe('when it logs that the server started', () => {
+    it.each(SHUTDOWN_SIGNALS)('should already route %s to the shutdown', async signal => {
+      let listenersAtStarted: NodeJS.SignalsListener[] = [];
+
+      const logger: Logger = (_level, message) => {
+        if (message === 'Forest BFF started') listenersAtStarted = process.listeners(signal);
+      };
+
+      const server = await runCli({ ...VALID_ENV }, logger);
+
+      try {
+        expect(listenersAtStarted).toContain(process.listeners(signal).at(-1));
+      } finally {
+        await server.stop();
+      }
+    });
+  });
+
+  describe('when the port is already taken', () => {
+    it('should reject with the listen error', async () => {
+      const blocker = createServer();
+      await new Promise<void>(resolve => {
+        blocker.listen(0, resolve);
+      });
+
+      try {
+        const { port } = blocker.address() as AddressInfo;
+
+        await expect(
+          runCli({ ...VALID_ENV, HTTP_PORT: String(port) }, noopLogger),
+        ).rejects.toMatchObject({ code: 'EADDRINUSE' });
+      } finally {
+        await new Promise(resolve => {
+          blocker.close(resolve);
+        });
       }
     });
   });

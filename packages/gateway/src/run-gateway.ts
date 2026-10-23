@@ -176,8 +176,8 @@ export default async function runGateway(
     drainActivityLogs: api?.bff.drainActivityLogs,
   });
 
-  await server.start();
   installShutdownHandlers(server, logger, { name: GATEWAY_NAME });
+  await server.start();
   logRoutes(gateway, mcp, api, logger);
 
   return server;
