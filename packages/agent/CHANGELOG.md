@@ -1,3 +1,10 @@
+## @forestadmin/agent [1.110.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.110.5...@forestadmin/agent@1.110.6) (2026-10-23)
+
+
+### Bug Fixes
+
+* **agent:** explain and log gateway alias mixing ([#2030](https://github.com/ForestAdmin/agent-nodejs/issues/2030)) ([4c991d7](https://github.com/ForestAdmin/agent-nodejs/commit/4c991d7a228ebbce4f84e862e12cd1bf28969886))
+
 ## @forestadmin/agent [1.110.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.110.4...@forestadmin/agent@1.110.5) (2026-10-23)
 
 
