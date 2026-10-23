@@ -32,6 +32,8 @@ export function normalizeOrigin(raw: string | undefined | null): string | null {
   return url.origin;
 }
 
+export const ZENDESK_APP_ORIGIN = 'https://*.apps.zdusercontent.com';
+
 const WILDCARD_LABEL_PREFIX = '*.';
 const MIN_WILDCARD_HOST_LABELS = 2;
 
@@ -68,6 +70,24 @@ function matchesWildcard(entry: URL, request: URL): boolean {
   const head = request.hostname.slice(0, -suffixWithDot.length);
 
   return head !== '' && !head.includes('.');
+}
+
+const LOCAL_HOSTS = ['localhost', '127.0.0.1'];
+
+export function maskCredentials(entry: string): string {
+  return entry.replace(
+    /^([a-z][a-z0-9+.-]*:\/\/)?[\s\S]*@/i,
+    (_match, scheme = '') => `${scheme}***@`,
+  );
+}
+
+export function suggestedOrigin(entry: string): string | null {
+  if (entry.includes('://') || !/[.:]/.test(entry)) return null;
+
+  const isLocal = LOCAL_HOSTS.some(host => entry === host || entry.startsWith(`${host}:`));
+  const candidate = `${isLocal ? 'http' : 'https'}://${entry}`;
+
+  return parseAllowedEntry(candidate)?.origin === candidate.toLowerCase() ? candidate : null;
 }
 
 export function parseAllowedOrigins(raw: string | undefined): {

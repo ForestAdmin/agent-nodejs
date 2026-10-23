@@ -97,7 +97,6 @@ export interface BuildBffOptions {
    */
   gatewayVersion?: string;
   labels?: ConfigLabels;
-  name?: string;
 }
 
 export interface Bff {
@@ -559,7 +558,6 @@ export default async function buildBff({
   allowedOAuthClients,
   gatewayVersion,
   labels = {},
-  name,
 }: BuildBffOptions): Promise<Bff> {
   const label = labeler(labels);
   // Before anything is assembled: a mount the host does not serve must fail at boot, not surface as
@@ -567,24 +565,8 @@ export default async function buildBff({
   const mountPath = normalizeBasePath(basePath);
   const allowedClientDomains = normalizeDomainList(allowedOAuthClients);
 
-  if (config.invalidAllowedOrigins.length > 0) {
-    logger('Warn', `Ignoring malformed ${label('BFF_ALLOWED_ORIGINS')} entries`, {
-      entries: config.invalidAllowedOrigins,
-    });
-  }
-
   warnMissingConfig(config, logger, labels);
-
-  if (config.allowedOrigins.length === 0) {
-    logger(
-      'Warn',
-      name
-        ? `No allowed origin: no browser can call this ${name}. Set \`${label(
-            'BFF_ALLOWED_ORIGINS',
-          )}\`.`
-        : 'No allowed origin: no browser can call this BFF. Set BFF_ALLOWED_ORIGINS, or `allowedOrigins`.',
-    );
-  }
+  logger('Info', `Allowed origins: ${config.allowedOrigins.join(', ')}`);
 
   const transport = resolveTransport(config, dispatcher);
   const oauth = buildOAuthMiddlewares(config, logger, allowedClientDomains);

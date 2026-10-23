@@ -2,7 +2,13 @@ import type { ResolvedApiKeyIdentity } from '../api-key/api-key-client';
 import type { Logger } from '../ports/logger-port';
 import type { Middleware } from 'koa';
 
-import { allowedEntriesIntersect, hasOrigin, loggableOrigin, originAllowed } from './origin';
+import {
+  ZENDESK_APP_ORIGIN,
+  allowedEntriesIntersect,
+  hasOrigin,
+  loggableOrigin,
+  originAllowed,
+} from './origin';
 import { fingerprintApiKey } from '../api-key/api-key';
 import { readApiKey } from '../api-key/api-key-middleware';
 import { originNotAllowed } from '../http/bff-http-error';
@@ -26,13 +32,14 @@ export default function createPerKeyOriginMiddleware({
   allowedOriginsLabel = 'BFF_ALLOWED_ORIGINS',
 }: PerKeyOriginMiddlewareOptions): Middleware {
   const assessedKeys = new Set<string>();
+  const configuredOrigins = serverAllowedOrigins.filter(origin => origin !== ZENDESK_APP_ORIGIN);
 
   function reportOriginsThatCanNeverPass(
     allowedOrigins: string[],
     keyHash: string,
     renderingId: number,
   ): void {
-    if (serverAllowedOrigins.length === 0 || assessedKeys.has(keyHash)) return;
+    if (configuredOrigins.length === 0 || assessedKeys.has(keyHash)) return;
 
     const canNeverPass = !allowedOrigins.some(entry =>
       serverAllowedOrigins.some(serverOrigin => allowedEntriesIntersect(entry, serverOrigin)),

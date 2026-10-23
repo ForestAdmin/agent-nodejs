@@ -5,6 +5,7 @@ import request from 'supertest';
 
 import { fingerprintApiKey } from '../../src/api-key/api-key';
 import { BFF_KEY_HEADER, GATEWAY_KEY_HEADER } from '../../src/api-key/api-key-middleware';
+import { ZENDESK_APP_ORIGIN } from '../../src/cors/origin';
 import createPerKeyOriginMiddleware from '../../src/cors/per-key-origin';
 import createErrorMiddleware from '../../src/http/error-middleware';
 
@@ -299,6 +300,38 @@ describe('per-key origin middleware (layer 2)', () => {
         .set(BFF_KEY_HEADER, RAW_KEY);
 
       expect(logger).not.toHaveBeenCalled();
+    });
+
+    it('stays silent when the server allow-list holds only the built-in Zendesk app origin', async () => {
+      const logger = jest.fn();
+
+      await request(buildApp(['https://a.com'], logger, [ZENDESK_APP_ORIGIN]).callback())
+        .get('/agent/x')
+        .set('Origin', 'https://a.com')
+        .set(BFF_KEY_HEADER, RAW_KEY);
+
+      expect(logger).not.toHaveBeenCalled();
+    });
+
+    it('reports the key when a configured list beside the built-in origin shares nothing with it', async () => {
+      const logger = jest.fn();
+
+      await request(
+        buildApp(['https://a.com'], logger, ['https://b.com', ZENDESK_APP_ORIGIN]).callback(),
+      )
+        .get('/agent/x')
+        .set('Origin', 'https://a.com')
+        .set(BFF_KEY_HEADER, RAW_KEY);
+
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        'BFF key origins are all outside BFF_ALLOWED_ORIGINS',
+        {
+          keyHash: fingerprintApiKey(RAW_KEY),
+          renderingId: RENDERING_ID,
+          keyOrigins: ['https://a.com'],
+        },
+      );
     });
 
     it('stays silent when the server allow-list is empty, where no key is at fault', async () => {

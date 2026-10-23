@@ -67,7 +67,7 @@ describe('EmbeddedBff config labels', () => {
       );
     });
 
-    it('should pass the gateway labels, the Gateway API name and the agent version to buildBff', async () => {
+    it('should pass the gateway labels and the agent version to buildBff', async () => {
       const embedded = buildEmbedded(true);
       const bff = { callback: jest.fn(), invalidate: jest.fn() } as unknown as Bff;
 
@@ -79,7 +79,6 @@ describe('EmbeddedBff config labels', () => {
         expect.objectContaining({
           gatewayVersion: AGENT_VERSION,
           labels: GATEWAY_API_CONFIG_LABELS,
-          name: 'Gateway API',
         }),
       );
     });
