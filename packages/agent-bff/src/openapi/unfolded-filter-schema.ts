@@ -46,9 +46,6 @@ function groupByOperators(filterable: FilterableField[]): OperatorGroup[] {
   const groups = new Map<string, OperatorGroup>();
 
   filterable.forEach(field => {
-    // An empty set would emit `enum: []`, which forbids every value and makes the leaf unsatisfiable —
-    // the trap `fieldsEnum` guards above. `collectFilterableFields` cannot produce one, but `Unfolding`
-    // is hand-constructible plain data, so the generator holds the invariant rather than assume it.
     if (field.operators.length === 0) return;
 
     // Safe as a key because the operators are normalized to one canonical order at collect time.
