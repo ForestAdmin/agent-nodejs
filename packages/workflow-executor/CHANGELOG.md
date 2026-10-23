@@ -1,3 +1,10 @@
+## @forestadmin/workflow-executor [1.35.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.35.1...@forestadmin/workflow-executor@1.35.2) (2026-10-23)
+
+
+### Bug Fixes
+
+* **docker:** bump node to 22.23.4 / 24.22.1 (Oct 2026 security release) ([#2031](https://github.com/ForestAdmin/agent-nodejs/issues/2031)) ([94ae70f](https://github.com/ForestAdmin/agent-nodejs/commit/94ae70fdbc0aec602f7ff5d3724062aeb60b54dc))
+
 ## @forestadmin/workflow-executor [1.35.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.35.0...@forestadmin/workflow-executor@1.35.1) (2026-10-23)
 
 
