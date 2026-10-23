@@ -344,10 +344,30 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    concurrency:
+      group: pages-${{ github.ref }}
+      cancel-in-progress: false
     needs: [build-api-reference, send-coverage, lint, bff-integration-tests]
     steps:
+      - name: Check this run still builds the branch tip
+        id: tip
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
+        run: |
+          TIP_SHA=$(gh api "repos/$REPO/git/ref/heads/$BRANCH" --jq .object.sha)
+          if [ "$TIP_SHA" = "$SHA" ]; then
+            echo "is_tip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_tip=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipping the Pages deploy: $SHA is no longer the tip of $BRANCH ($TIP_SHA), whose run publishes the newer reference."
+          fi
       - name: Setup Pages
+        if: steps.tip.outputs.is_tip == 'true'
         uses: actions/configure-pages@v3
       - name: Deploy to GitHub Pages
         id: deployment
+        if: steps.tip.outputs.is_tip == 'true'
         uses: actions/deploy-pages@v4
