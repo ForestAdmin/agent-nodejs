@@ -1,3 +1,15 @@
+# @forestadmin/agent-bff [1.43.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.42.2...@forestadmin/agent-bff@1.43.0) (2026-10-23)
+
+
+### Bug Fixes
+
+* **docker:** bump node to 22.23.4 / 24.22.1 (Oct 2026 security release) ([#2031](https://github.com/ForestAdmin/agent-nodejs/issues/2031)) ([94ae70f](https://github.com/ForestAdmin/agent-nodejs/commit/94ae70fdbc0aec602f7ff5d3724062aeb60b54dc))
+
+
+### Features
+
+* **agent-bff:** allow the zendesk app origin by default and refuse malformed origins ([#2032](https://github.com/ForestAdmin/agent-nodejs/issues/2032)) ([688f6c8](https://github.com/ForestAdmin/agent-nodejs/commit/688f6c8f1551d0ea395c892d704de802983f0b96))
+
 ## @forestadmin/agent-bff [1.42.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.42.1...@forestadmin/agent-bff@1.42.2) (2026-10-19)
 
 
