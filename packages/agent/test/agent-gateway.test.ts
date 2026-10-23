@@ -377,34 +377,75 @@ describe('Agent.addGateway', () => {
       );
     });
 
-    const mixing = 'cannot be combined with';
+    const mcpAliasMixing =
+      'mountAiMcpServer() is a deprecated alias of addGateway({ mcp }) and cannot be combined ' +
+      'with addGateway(): configure every service through a single addGateway({ mcp, api }) ' +
+      'call. See https://docs.forest.app/product/embed/gateway#the-deprecated-mcp-alias';
+    const apiAliasMixing =
+      'addBff() is a deprecated alias of addGateway({ api }) and cannot be combined with ' +
+      'addGateway(): configure every service through a single addGateway({ mcp, api }) call. ' +
+      'See https://docs.forest.app/product/embed/gateway#moving-from-addbff-to-addgateway--api-';
 
-    it('should refuse addGateway() after mountAiMcpServer()', () => {
-      const { agent } = buildAgent();
-      agent.mountAiMcpServer();
+    describe.each([
+      {
+        order: 'addGateway() after mountAiMcpServer()',
+        message: mcpAliasMixing,
+        first: (agent: Agent) => agent.mountAiMcpServer(),
+        second: (agent: Agent) => agent.addGateway({ api: {} }),
+      },
+      {
+        order: 'mountAiMcpServer() after addGateway()',
+        message: mcpAliasMixing,
+        first: (agent: Agent) => agent.addGateway({ api: {} }),
+        second: (agent: Agent) => agent.mountAiMcpServer(),
+      },
+      {
+        order: 'addGateway() after addBff()',
+        message: apiAliasMixing,
+        first: (agent: Agent) => agent.addBff(),
+        second: (agent: Agent) => agent.addGateway({ mcp: true }),
+      },
+      {
+        order: 'addBff() after addGateway()',
+        message: apiAliasMixing,
+        first: (agent: Agent) => agent.addGateway({ mcp: true }),
+        second: (agent: Agent) => agent.addBff(),
+      },
+    ])('when calling $order', ({ message, first, second }) => {
+      it('should throw the alias mixing message', () => {
+        const { agent } = buildAgent();
+        first(agent);
 
-      expect(() => agent.addGateway({ api: {} })).toThrow(mixing);
+        expect(() => second(agent)).toThrow(new Error(message));
+      });
+
+      it('should log the alias mixing message once as an error before throwing', () => {
+        const { agent, logger } = buildAgent();
+        first(agent);
+
+        expect(() => second(agent)).toThrow();
+        expect(logger.mock.calls.filter(([level]) => level === 'Error')).toEqual([
+          ['Error', message],
+        ]);
+      });
     });
 
-    it('should refuse mountAiMcpServer() after addGateway()', () => {
+    it('should name mountAiMcpServer() when both aliases precede addGateway()', () => {
       const { agent } = buildAgent();
-      agent.addGateway({ api: {} });
+      agent.mountAiMcpServer().addBff();
 
-      expect(() => agent.mountAiMcpServer()).toThrow(mixing);
+      expect(() => agent.addGateway({ api: {} })).toThrow(new Error(mcpAliasMixing));
     });
 
-    it('should refuse addGateway() after addBff()', () => {
-      const { agent } = buildAgent();
-      agent.addBff();
+    it.each([
+      ['addGateway() alone', (agent: Agent) => agent.addGateway({ mcp: true, api: {} })],
+      ['mountAiMcpServer() alone', (agent: Agent) => agent.mountAiMcpServer()],
+      ['mountAiMcpServer() with addBff()', (agent: Agent) => agent.mountAiMcpServer().addBff()],
+    ])('should neither throw nor log an error for %s', (_, configure) => {
+      const { agent, logger } = buildAgent();
 
-      expect(() => agent.addGateway({ mcp: true })).toThrow(mixing);
-    });
-
-    it('should refuse addBff() after addGateway()', () => {
-      const { agent } = buildAgent();
-      agent.addGateway({ mcp: true });
-
-      expect(() => agent.addBff()).toThrow(mixing);
+      expect(() => configure(agent)).not.toThrow();
+      expect(logger).not.toHaveBeenCalledWith('Error', expect.anything());
     });
   });
 

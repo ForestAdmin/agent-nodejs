@@ -61,9 +61,17 @@ const bffMcpCollision = (mcpBasePath: string) =>
   `server would claim ${BFF_PREFIX} paths the embedded BFF answers on (${BFF_PREFIX}/oauth, ` +
   `${BFF_PREFIX}/mcp). Mount the MCP server elsewhere.`;
 
-const GATEWAY_MIXING =
-  'addGateway() cannot be combined with mountAiMcpServer() or addBff(): configure every ' +
-  'service through addGateway({ mcp, api }), or keep both aliases.';
+const GATEWAY_DOC = 'https://docs.forest.app/product/embed/gateway';
+
+const MCP_ALIAS_MIXING =
+  'mountAiMcpServer() is a deprecated alias of addGateway({ mcp }) and cannot be combined ' +
+  'with addGateway(): configure every service through a single addGateway({ mcp, api }) ' +
+  `call. See ${GATEWAY_DOC}#the-deprecated-mcp-alias`;
+
+const API_ALIAS_MIXING =
+  'addBff() is a deprecated alias of addGateway({ api }) and cannot be combined with ' +
+  'addGateway(): configure every service through a single addGateway({ mcp, api }) call. ' +
+  `See ${GATEWAY_DOC}#moving-from-addbff-to-addgateway--api-`;
 
 /**
  * Allow to create a new Forest Admin agent from scratch.
@@ -372,7 +380,8 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
       throw new Error('addGateway must be called before start(): the agent is already starting.');
     }
 
-    if (this.mcpEnabled || this.embeddedBff) throw new Error(GATEWAY_MIXING);
+    if (this.mcpEnabled) this.rejectGatewayMixing(MCP_ALIAS_MIXING);
+    if (this.embeddedBff) this.rejectGatewayMixing(API_ALIAS_MIXING);
 
     const services = resolveGatewayServices(options);
     this.gateway = {
@@ -427,7 +436,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * agent.mountAiMcpServer({ fileUploads: false });
    */
   mountAiMcpServer(options?: McpEmbedOptions): this {
-    if (this.gateway) throw new Error(GATEWAY_MIXING);
+    if (this.gateway) this.rejectGatewayMixing(MCP_ALIAS_MIXING);
 
     if (this.embeddedBff && collidesWithBff(options?.basePath)) {
       throw new Error(bffMcpCollision(options?.basePath as string));
@@ -512,7 +521,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    *   .start();
    */
   addBff(options: BffEmbedOptions = {}): this {
-    if (this.gateway) throw new Error(GATEWAY_MIXING);
+    if (this.gateway) this.rejectGatewayMixing(API_ALIAS_MIXING);
 
     if (this.embeddedBff) {
       throw new Error('addBff can only be called once.');
@@ -590,6 +599,12 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     });
 
     return this.embeddedBff;
+  }
+
+  private rejectGatewayMixing(message: string): never {
+    this.options.logger('Error', message);
+
+    throw new Error(message);
   }
 
   private warnIfMcpAliasUsed(): void {
