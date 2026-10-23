@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/agent",
-  "version": "1.110.6",
+  "version": "1.111.0",
   "main": "dist/index.js",
   "license": "Apache-2.0",
   "publishConfig": {
@@ -51,9 +51,9 @@
   },
   "devDependencies": {
     "@fastify/express": "^1.1.0",
-    "@forestadmin/agent-bff": "1.42.2",
+    "@forestadmin/agent-bff": "1.43.0",
     "@forestadmin/datasource-sql": "1.17.17",
-    "@forestadmin/workflow-executor": "1.35.1",
+    "@forestadmin/workflow-executor": "1.35.2",
     "@nestjs/common": "^11.1.24",
     "@nestjs/core": "^11.1.24",
     "@nestjs/platform-express": "^11.1.24",
@@ -77,8 +77,8 @@
   },
   "peerDependencies": {
     "@fastify/express": "^1.1.0 || ^2.0.0 || ^3.0.0 || ^4.0.0",
-    "@forestadmin/agent-bff": "1.42.2",
-    "@forestadmin/workflow-executor": "1.35.1"
+    "@forestadmin/agent-bff": "1.43.0",
+    "@forestadmin/workflow-executor": "1.35.2"
   },
   "peerDependenciesMeta": {
     "@fastify/express": {

@@ -1,3 +1,19 @@
+# @forestadmin/agent [1.111.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.110.6...@forestadmin/agent@1.111.0) (2026-10-23)
+
+
+### Features
+
+* **agent-bff:** allow the zendesk app origin by default and refuse malformed origins ([#2032](https://github.com/ForestAdmin/agent-nodejs/issues/2032)) ([688f6c8](https://github.com/ForestAdmin/agent-nodejs/commit/688f6c8f1551d0ea395c892d704de802983f0b96))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-bff:** upgraded to 1.43.0
+* **@forestadmin/workflow-executor:** upgraded to 1.35.2
+
 ## @forestadmin/agent [1.110.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.110.5...@forestadmin/agent@1.110.6) (2026-10-23)
 
 
