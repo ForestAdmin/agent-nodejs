@@ -103,7 +103,6 @@ export default function makeAgent() {
     })
 
     // One allowlist for both services on purpose: separate lists need the two deprecated aliases.
-    // Without `allowedOrigins` no browser can call the API, which the API warns about at startup.
     .addGateway({
       ...(allowedOAuthClients && { allowedOAuthClients }),
       mcp: true,

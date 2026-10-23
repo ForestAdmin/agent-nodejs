@@ -72,10 +72,20 @@ function matchesWildcard(entry: URL, request: URL): boolean {
   return head !== '' && !head.includes('.');
 }
 
+const LOCAL_HOSTS = ['localhost', '127.0.0.1'];
+
+export function maskCredentials(entry: string): string {
+  return entry.replace(
+    /^([a-z][a-z0-9+.-]*:\/\/)?[\s\S]*@/i,
+    (_match, scheme = '') => `${scheme}***@`,
+  );
+}
+
 export function suggestedOrigin(entry: string): string | null {
   if (entry.includes('://') || !/[.:]/.test(entry)) return null;
 
-  const candidate = `https://${entry}`;
+  const isLocal = LOCAL_HOSTS.some(host => entry === host || entry.startsWith(`${host}:`));
+  const candidate = `${isLocal ? 'http' : 'https'}://${entry}`;
 
   return parseAllowedEntry(candidate) === null ? null : candidate;
 }

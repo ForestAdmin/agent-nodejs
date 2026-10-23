@@ -1,6 +1,11 @@
 import { z } from 'zod';
 
-import { ZENDESK_APP_ORIGIN, parseAllowedOrigins, suggestedOrigin } from '../cors/origin';
+import {
+  ZENDESK_APP_ORIGIN,
+  maskCredentials,
+  parseAllowedOrigins,
+  suggestedOrigin,
+} from '../cors/origin';
 import DEFAULT_BFF_PORT from '../defaults';
 import { ConfigurationError } from '../errors';
 import { isValidTimezone } from '../timezone/timezone';
@@ -180,9 +185,10 @@ function parseOpenApiEnabled(raw: string | undefined, label: string): boolean {
 const CROSS_ORIGIN_DOC = 'https://docs.forest.app/product/embed/gateway#cross-origin-access';
 
 function describeMalformedOrigin(entry: string): string {
+  const shown = maskCredentials(entry);
   const suggestion = suggestedOrigin(entry);
 
-  return suggestion ? `"${entry}" (did you mean "${suggestion}"?)` : `"${entry}"`;
+  return suggestion ? `"${shown}" (did you mean "${maskCredentials(suggestion)}"?)` : `"${shown}"`;
 }
 
 function resolveAllowedOrigins(raw: string | undefined, label: string): string[] {

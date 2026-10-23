@@ -274,6 +274,43 @@ describe('parseConfig', () => {
       );
     });
 
+    it('should suggest the http form for a local development host', () => {
+      expect(() => parseConfig({ ...VALID_ENV, BFF_ALLOWED_ORIGINS: 'localhost:4200' })).toThrow(
+        '"localhost:4200" (did you mean "http://localhost:4200"?)',
+      );
+    });
+
+    it('should mask credentials carried by a malformed entry', () => {
+      let message = '';
+
+      try {
+        parseConfig({ ...VALID_ENV, BFF_ALLOWED_ORIGINS: 'https://user:token@*.host' });
+      } catch (error) {
+        message = (error as Error).message;
+      }
+
+      expect(message).toContain('has malformed entries: "https://***@*.host".');
+      expect(message).not.toContain('token');
+    });
+
+    it.each([
+      ['an @ in the password', 'https://u:p@ss@*.host', 'https://***@*.host'],
+      ['a / in the password', 'https://u:pa/ss@*.host', 'https://***@*.host'],
+      ['no scheme', 'u:p@ss@client.com:80', '***@client.com:80'],
+      ['a line break in the password', 'https://u:p\nss@*.host', 'https://***@*.host'],
+    ])('should mask the whole userinfo with %s', (_case, entry, shown) => {
+      let message = '';
+
+      try {
+        parseConfig({ ...VALID_ENV, BFF_ALLOWED_ORIGINS: entry });
+      } catch (error) {
+        message = (error as Error).message;
+      }
+
+      expect(message).toContain(`has malformed entries: "${shown}"`);
+      expect(message).not.toMatch(/ss@|p@/);
+    });
+
     it('should reject a wildcard over a host of fewer than two labels', () => {
       expect(() => parseConfig({ ...VALID_ENV, BFF_ALLOWED_ORIGINS: 'https://*.com' })).toThrow(
         'BFF_ALLOWED_ORIGINS has malformed entries: "https://*.com".',

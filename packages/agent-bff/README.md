@@ -307,7 +307,9 @@ The two layers:
 A wildcard in a key's `allowedOrigins` (layer 2) is matched the same way. Those entries come from
 the Forest SaaS and never pass through the boot-time parser, so an illegal pattern there gets no
 warning of its own; it counts as an origin that can never pass, and the key-level `Warn` names the
-key once when *every* one of its origins is outside `BFF_ALLOWED_ORIGINS` or illegal.
+key once when *every* one of its origins is outside `BFF_ALLOWED_ORIGINS` or illegal. With no
+origin configured beyond the built-in Zendesk app origin, that `Warn` stays silent: a host serving
+its own UI passes on the same-origin exemption.
 
 **Local development:** browsers still enforce CORS against `localhost`, so add your dev origin(s) to
 `BFF_ALLOWED_ORIGINS` (e.g. `BFF_ALLOWED_ORIGINS=http://localhost:4200`) — there is no dev bypass.
