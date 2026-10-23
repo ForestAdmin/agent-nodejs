@@ -344,10 +344,31 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    concurrency:
+      group: pages-${{ github.ref }}
+      cancel-in-progress: false
     needs: [build-api-reference, send-coverage, lint, bff-integration-tests]
     steps:
+      - name: Check no newer commit on the branch will publish
+        id: newest
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
+        run: |
+          NEWER_BUILDS=$(gh api "repos/$REPO/compare/$SHA...$BRANCH" \
+            --jq '[.commits[].commit.message | select(test("\\[(skip ci|ci skip|no ci|skip actions|actions skip)\\]"; "i") | not)] | length')
+          if [ "$NEWER_BUILDS" = "0" ]; then
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipping the Pages deploy: $NEWER_BUILDS newer commit(s) on $BRANCH start their own run, which publishes the newer reference."
+          fi
       - name: Setup Pages
+        if: steps.newest.outputs.publish == 'true'
         uses: actions/configure-pages@v3
       - name: Deploy to GitHub Pages
         id: deployment
+        if: steps.newest.outputs.publish == 'true'
         uses: actions/deploy-pages@v4
