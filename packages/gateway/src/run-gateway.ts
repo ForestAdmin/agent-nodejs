@@ -27,7 +27,6 @@ import createStandaloneHandler, {
 import version from './version';
 
 export const GATEWAY_NAME = 'Forest Gateway';
-export const GATEWAY_API_NAME = 'Gateway API';
 
 const MCP_REQUIRED_VARS = ['FOREST_ENV_SECRET', 'FOREST_AUTH_SECRET'] as const;
 
@@ -91,7 +90,6 @@ async function buildApiService(
     basePath: apiBasePath(gateway.basePath),
     gatewayVersion: version,
     labels: settings.labels,
-    name: GATEWAY_API_NAME,
     allowedOAuthClients: settings.allowedOAuthClients,
   });
 

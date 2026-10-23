@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { parseAllowedOrigins } from '../cors/origin';
+import { ZENDESK_APP_ORIGIN, parseAllowedOrigins, suggestedOrigin } from '../cors/origin';
 import DEFAULT_BFF_PORT from '../defaults';
 import { ConfigurationError } from '../errors';
 import { isValidTimezone } from '../timezone/timezone';
@@ -56,7 +56,6 @@ export interface BFFConfig {
   publicUrl?: string;
   tokenEncryptionKey?: string;
   allowedOrigins: string[];
-  invalidAllowedOrigins: string[];
   defaultTimezone?: string;
   agentTimeoutMs?: number;
   aiTimeoutMs: number;
@@ -178,6 +177,29 @@ function parseOpenApiEnabled(raw: string | undefined, label: string): boolean {
   throw new ConfigurationError(`Invalid configuration: ${label} must be a boolean (true/false).`);
 }
 
+const CROSS_ORIGIN_DOC = 'https://docs.forest.app/product/embed/gateway#cross-origin-access';
+
+function describeMalformedOrigin(entry: string): string {
+  const suggestion = suggestedOrigin(entry);
+
+  return suggestion ? `"${entry}" (did you mean "${suggestion}"?)` : `"${entry}"`;
+}
+
+function resolveAllowedOrigins(raw: string | undefined, label: string): string[] {
+  const { origins, invalid } = parseAllowedOrigins(raw);
+
+  if (invalid.length > 0) {
+    throw new ConfigurationError(
+      `Invalid configuration: ${label} has malformed entries: ` +
+        `${invalid.map(describeMalformedOrigin).join(', ')}. ` +
+        'Each entry is an origin: scheme, host and optional port, e.g. https://client.com or ' +
+        `https://*.client.com. See ${CROSS_ORIGIN_DOC}.`,
+    );
+  }
+
+  return origins.includes(ZENDESK_APP_ORIGIN) ? origins : [...origins, ZENDESK_APP_ORIGIN];
+}
+
 export function parseConfig(env: NodeJS.ProcessEnv, labels: ConfigLabels = {}): BFFConfig {
   const label = labeler(labels);
   const normalized = Object.fromEntries(
@@ -202,8 +224,9 @@ export function parseConfig(env: NodeJS.ProcessEnv, labels: ConfigLabels = {}): 
     env.BFF_TOKEN_ENCRYPTION_KEY,
     label('BFF_TOKEN_ENCRYPTION_KEY'),
   );
-  const { origins: allowedOrigins, invalid: invalidAllowedOrigins } = parseAllowedOrigins(
+  const allowedOrigins = resolveAllowedOrigins(
     env.BFF_ALLOWED_ORIGINS,
+    label('BFF_ALLOWED_ORIGINS'),
   );
   const defaultTimezone = parseDefaultTimezone(
     env.BFF_DEFAULT_TIMEZONE,
@@ -219,7 +242,6 @@ export function parseConfig(env: NodeJS.ProcessEnv, labels: ConfigLabels = {}): 
     publicUrl: parsePublicUrl(env.BFF_PUBLIC_URL, label('BFF_PUBLIC_URL')),
     tokenEncryptionKey,
     allowedOrigins,
-    invalidAllowedOrigins,
     defaultTimezone,
     agentTimeoutMs: parseTimeoutMs(
       env.BFF_AGENT_TIMEOUT_MS,

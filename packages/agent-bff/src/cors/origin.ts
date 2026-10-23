@@ -32,6 +32,8 @@ export function normalizeOrigin(raw: string | undefined | null): string | null {
   return url.origin;
 }
 
+export const ZENDESK_APP_ORIGIN = 'https://*.apps.zdusercontent.com';
+
 const WILDCARD_LABEL_PREFIX = '*.';
 const MIN_WILDCARD_HOST_LABELS = 2;
 
@@ -68,6 +70,14 @@ function matchesWildcard(entry: URL, request: URL): boolean {
   const head = request.hostname.slice(0, -suffixWithDot.length);
 
   return head !== '' && !head.includes('.');
+}
+
+export function suggestedOrigin(entry: string): string | null {
+  if (entry.includes('://') || !/[.:]/.test(entry)) return null;
+
+  const candidate = `https://${entry}`;
+
+  return parseAllowedEntry(candidate) === null ? null : candidate;
 }
 
 export function parseAllowedOrigins(raw: string | undefined): {

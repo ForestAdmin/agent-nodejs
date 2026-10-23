@@ -153,7 +153,7 @@ export default class EmbeddedBff {
       basePath: this.mount.prefix,
       allowedOAuthClients: this.mount.allowedOAuthClients,
       gatewayVersion: AGENT_VERSION,
-      ...(this.mount.gateway ? { labels: GATEWAY_API_CONFIG_LABELS, name: 'Gateway API' } : {}),
+      ...(this.mount.gateway ? { labels: GATEWAY_API_CONFIG_LABELS } : {}),
       // Counters are the schema cache's and the action-endpoint resolver's only channel — they take
       // no logger — and every one of them reports a failure, so they go to the host's logs. Gauges
       // do not: they are periodic cache sizes, and the default console sink reports them at Info,

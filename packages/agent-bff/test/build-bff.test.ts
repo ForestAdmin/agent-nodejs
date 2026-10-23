@@ -62,7 +62,7 @@ describe('buildBff', () => {
       expect(response.body).toEqual({
         status: 'ok',
         version,
-        configured: { oauth: true, ai: true, cors: false, openapi: true },
+        configured: { oauth: true, ai: true, cors: true, openapi: true },
       });
     });
 
@@ -85,7 +85,7 @@ describe('buildBff', () => {
       expect(response.body).toEqual({
         status: 'degraded',
         version,
-        configured: { oauth: true, ai: true, cors: false, openapi: true },
+        configured: { oauth: true, ai: true, cors: true, openapi: true },
       });
     });
 
@@ -270,65 +270,42 @@ describe('buildBff', () => {
     });
   });
 
-  describe('when BFF_ALLOWED_ORIGINS carries a malformed entry', () => {
-    it('should warn once with the rejected entries', async () => {
-      const logger = jest.fn();
-
-      await buildBff({
-        config: parseConfig({ ...VALID_ENV, BFF_ALLOWED_ORIGINS: 'https://ok.example.com,*' }),
-        logger,
-      });
-
-      expect(logger).toHaveBeenCalledWith(
-        'Warn',
-        'Ignoring malformed BFF_ALLOWED_ORIGINS entries',
-        { entries: ['*'] },
-      );
-    });
-
-    it('should name the label the caller passed instead of the env key', async () => {
-      const logger = jest.fn();
-
-      await buildBff({
-        config: parseConfig({ ...VALID_ENV, BFF_ALLOWED_ORIGINS: 'https://ok.example.com,*' }),
-        logger,
-        labels: { BFF_ALLOWED_ORIGINS: 'api.allowedOrigins' },
-      });
-
-      expect(logger).toHaveBeenCalledWith('Warn', 'Ignoring malformed api.allowedOrigins entries', {
-        entries: ['*'],
-      });
-    });
-  });
-
-  describe('boot warnings under a label map', () => {
-    it('should warn with the Gateway API noun and the option label when no origin is allowed', async () => {
-      const logger = jest.fn();
-
-      await buildBff({
-        config: parseConfig(VALID_ENV),
-        logger,
-        labels: { BFF_ALLOWED_ORIGINS: 'api.allowedOrigins' },
-        name: 'Gateway API',
-      });
-
-      expect(logger).toHaveBeenCalledWith(
-        'Warn',
-        'No allowed origin: no browser can call this Gateway API. Set `api.allowedOrigins`.',
-      );
-    });
-
-    it('should keep the standalone wording when no name is given', async () => {
+  describe('when logging the effective allow-list', () => {
+    it('should list the built-in Zendesk app origin when nothing is configured', async () => {
       const logger = jest.fn();
 
       await buildBff({ config: parseConfig(VALID_ENV), logger });
 
       expect(logger).toHaveBeenCalledWith(
-        'Warn',
-        'No allowed origin: no browser can call this BFF. Set BFF_ALLOWED_ORIGINS, or `allowedOrigins`.',
+        'Info',
+        'Allowed origins: https://*.apps.zdusercontent.com',
       );
     });
 
+    it('should list the configured origins before the built-in one', async () => {
+      const logger = jest.fn();
+
+      await buildBff({
+        config: parseConfig({ ...VALID_ENV, BFF_ALLOWED_ORIGINS: 'https://ok.example.com' }),
+        logger,
+      });
+
+      expect(logger).toHaveBeenCalledWith(
+        'Info',
+        'Allowed origins: https://ok.example.com, https://*.apps.zdusercontent.com',
+      );
+    });
+
+    it('should not warn that no browser can call it', async () => {
+      const logger = jest.fn();
+
+      await buildBff({ config: parseConfig(VALID_ENV), logger });
+
+      expect(logger).not.toHaveBeenCalledWith('Warn', expect.stringContaining('No allowed origin'));
+    });
+  });
+
+  describe('boot warnings under a label map', () => {
     it('should name the labeled key in the missing-configuration warning', async () => {
       const logger = jest.fn();
 

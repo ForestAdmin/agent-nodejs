@@ -523,23 +523,25 @@ describe('configuration', () => {
     }
   });
 
-  it('should drop an invalid allowed origin, warning naming its key', async () => {
-    await withGateway(
-      { FOREST_GATEWAY_API_ALLOWED_ORIGINS: `${ALLOWED_ORIGIN},not-an-origin` },
-      async gateway => {
-        const response = await request(gateway.url)
-          .options('/oauth/token?service=api')
-          .set('Origin', ALLOWED_ORIGIN)
-          .set('Access-Control-Request-Method', 'POST');
-
-        expect(response.headers['access-control-allow-origin']).toBe(ALLOWED_ORIGIN);
-        expect(gateway.logger).toHaveBeenCalledWith(
-          'Warn',
-          'Ignoring malformed FOREST_GATEWAY_API_ALLOWED_ORIGINS entries',
-          { entries: ['not-an-origin'] },
-        );
-      },
+  it('should refuse to start on an invalid allowed origin, naming its key', async () => {
+    await expect(
+      startGateway({ FOREST_GATEWAY_API_ALLOWED_ORIGINS: `${ALLOWED_ORIGIN},not-an-origin` }),
+    ).rejects.toThrow(
+      'Invalid configuration: FOREST_GATEWAY_API_ALLOWED_ORIGINS has malformed entries: "not-an-origin".',
     );
+  });
+
+  it('should admit the Zendesk app origin with no allowed origin configured', async () => {
+    await withGateway({}, async gateway => {
+      const response = await request(gateway.url)
+        .options('/oauth/token?service=api')
+        .set('Origin', 'https://1231469.apps.zdusercontent.com')
+        .set('Access-Control-Request-Method', 'POST');
+
+      expect(response.headers['access-control-allow-origin']).toBe(
+        'https://1231469.apps.zdusercontent.com',
+      );
+    });
   });
 
   it('should fail on an invalid MCP token TTL even when the MCP would be degraded', async () => {

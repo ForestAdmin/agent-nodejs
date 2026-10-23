@@ -209,53 +209,84 @@ describe('parseConfig', () => {
   });
 
   describe('when resolving BFF_ALLOWED_ORIGINS', () => {
-    it('should default to an empty allow-list when unset', () => {
+    const ZENDESK_APP_ORIGIN = 'https://*.apps.zdusercontent.com';
+    const FORMAT_HELP =
+      'Each entry is an origin: scheme, host and optional port, e.g. https://client.com or ' +
+      'https://*.client.com. See https://docs.forest.app/product/embed/gateway#cross-origin-access.';
+
+    it('should allow only the Zendesk app origin when unset', () => {
       const config = parseConfig({ ...VALID_ENV });
 
-      expect(config.allowedOrigins).toEqual([]);
-      expect(config.invalidAllowedOrigins).toEqual([]);
+      expect(config.allowedOrigins).toEqual([ZENDESK_APP_ORIGIN]);
     });
 
-    it('should normalize and keep valid comma-separated origins', () => {
+    it('should normalize valid comma-separated origins and keep the Zendesk app origin', () => {
       const config = parseConfig({
         ...VALID_ENV,
-        BFF_ALLOWED_ORIGINS: 'https://app.example.com:443, https://zendesk.example.com',
+        BFF_ALLOWED_ORIGINS: 'https://app.example.com:443, https://*.client.example.com',
       });
 
       expect(config.allowedOrigins).toEqual([
         'https://app.example.com',
-        'https://zendesk.example.com',
+        'https://*.client.example.com',
+        ZENDESK_APP_ORIGIN,
       ]);
     });
 
-    it('should drop malformed and wildcard entries into invalidAllowedOrigins', () => {
-      const config = parseConfig({
-        ...VALID_ENV,
-        BFF_ALLOWED_ORIGINS: 'https://app.example.com, *, garbage',
-      });
+    it('should not duplicate the Zendesk app origin when it is configured', () => {
+      const config = parseConfig({ ...VALID_ENV, BFF_ALLOWED_ORIGINS: ZENDESK_APP_ORIGIN });
 
-      expect(config.allowedOrigins).toEqual(['https://app.example.com']);
-      expect(config.invalidAllowedOrigins).toEqual(['*', 'garbage']);
+      expect(config.allowedOrigins).toEqual([ZENDESK_APP_ORIGIN]);
     });
 
-    it('should keep a leading-label subdomain wildcard in the allow-list', () => {
+    it('should keep the exact Zendesk app origin beside the built-in wildcard', () => {
       const config = parseConfig({
         ...VALID_ENV,
-        BFF_ALLOWED_ORIGINS: 'https://*.apps.zdusercontent.com',
+        BFF_ALLOWED_ORIGINS: 'https://1231469.apps.zdusercontent.com',
       });
 
-      expect(config.allowedOrigins).toEqual(['https://*.apps.zdusercontent.com']);
-      expect(config.invalidAllowedOrigins).toEqual([]);
+      expect(config.allowedOrigins).toEqual([
+        'https://1231469.apps.zdusercontent.com',
+        ZENDESK_APP_ORIGIN,
+      ]);
     });
 
-    it('should drop an illegal wildcard into invalidAllowedOrigins so boot warns', () => {
-      const config = parseConfig({
-        ...VALID_ENV,
-        BFF_ALLOWED_ORIGINS: 'https://a.*.example.com, https://*.com',
-      });
+    it('should reject an origin without a scheme, suggesting the https form', () => {
+      expect(() => parseConfig({ ...VALID_ENV, BFF_ALLOWED_ORIGINS: 'client.com' })).toThrow(
+        new ConfigurationError(
+          'Invalid configuration: BFF_ALLOWED_ORIGINS has malformed entries: "client.com" ' +
+            `(did you mean "https://client.com"?). ${FORMAT_HELP}`,
+        ),
+      );
+    });
 
-      expect(config.allowedOrigins).toEqual([]);
-      expect(config.invalidAllowedOrigins).toEqual(['https://a.*.example.com', 'https://*.com']);
+    it('should list every malformed entry and suggest nothing that would still be invalid', () => {
+      expect(() =>
+        parseConfig({
+          ...VALID_ENV,
+          BFF_ALLOWED_ORIGINS: 'https://app.example.com, *, null, https://a.*.example.com',
+        }),
+      ).toThrow(
+        new ConfigurationError(
+          'Invalid configuration: BFF_ALLOWED_ORIGINS has malformed entries: "*", "null", ' +
+            `"https://a.*.example.com". ${FORMAT_HELP}`,
+        ),
+      );
+    });
+
+    it('should reject a wildcard over a host of fewer than two labels', () => {
+      expect(() => parseConfig({ ...VALID_ENV, BFF_ALLOWED_ORIGINS: 'https://*.com' })).toThrow(
+        'BFF_ALLOWED_ORIGINS has malformed entries: "https://*.com".',
+      );
+    });
+
+    it('should name the labeled key in the malformed-entry error', () => {
+      expect(() =>
+        parseConfig(
+          { ...VALID_ENV, BFF_ALLOWED_ORIGINS: 'client.com' },
+          { BFF_ALLOWED_ORIGINS: 'api.allowedOrigins' },
+        ),
+      ).toThrow('Invalid configuration: api.allowedOrigins has malformed entries: "client.com"');
     });
   });
 

@@ -534,20 +534,16 @@ describe('runCli', () => {
   });
 
   describe('when BFF_ALLOWED_ORIGINS has malformed entries', () => {
-    it('should log that the malformed entries are ignored', async () => {
-      const logs: string[] = [];
-      const logger: Logger = (_level, message) => logs.push(message);
-
-      const server = await runCli(
+    it('should refuse to start, naming the rejected entry', async () => {
+      const err = await runCli(
         { ...VALID_ENV, BFF_ALLOWED_ORIGINS: 'https://ok.com, garbage' },
-        logger,
-      );
+        noopLogger,
+      ).catch((e: unknown) => e);
 
-      try {
-        expect(logs).toContain('Ignoring malformed BFF_ALLOWED_ORIGINS entries');
-      } finally {
-        await server.stop();
-      }
+      expect(err).toBeInstanceOf(ConfigurationError);
+      expect((err as Error).message).toContain(
+        'Invalid configuration: BFF_ALLOWED_ORIGINS has malformed entries: "garbage".',
+      );
     });
   });
 
