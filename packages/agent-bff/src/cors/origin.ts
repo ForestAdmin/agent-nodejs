@@ -87,7 +87,7 @@ export function suggestedOrigin(entry: string): string | null {
   const isLocal = LOCAL_HOSTS.some(host => entry === host || entry.startsWith(`${host}:`));
   const candidate = `${isLocal ? 'http' : 'https'}://${entry}`;
 
-  return parseAllowedEntry(candidate) === null ? null : candidate;
+  return parseAllowedEntry(candidate)?.origin === candidate.toLowerCase() ? candidate : null;
 }
 
 export function parseAllowedOrigins(raw: string | undefined): {

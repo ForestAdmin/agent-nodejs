@@ -274,6 +274,15 @@ describe('parseConfig', () => {
       );
     });
 
+    it.each(['http//client.com', 'client.com:443', 'client.com/path'])(
+      'should not suggest an origin that would not reproduce %s',
+      entry => {
+        expect(() => parseConfig({ ...VALID_ENV, BFF_ALLOWED_ORIGINS: entry })).toThrow(
+          `has malformed entries: "${entry}". Each entry is an origin`,
+        );
+      },
+    );
+
     it('should suggest the http form for a local development host', () => {
       expect(() => parseConfig({ ...VALID_ENV, BFF_ALLOWED_ORIGINS: 'localhost:4200' })).toThrow(
         '"localhost:4200" (did you mean "http://localhost:4200"?)',
