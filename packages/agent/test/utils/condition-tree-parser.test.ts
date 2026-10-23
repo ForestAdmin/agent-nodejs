@@ -38,6 +38,91 @@ describe('ConditionTreeParser', () => {
     );
   });
 
+  test('should keep a group of And nested in an Or', () => {
+    const tree = ConditionTreeParser.fromPlainObject(collection, {
+      aggregator: 'or',
+      conditions: [
+        {
+          aggregator: 'and',
+          conditions: [
+            { field: 'number', operator: 'greater_than', value: '1' },
+            { field: 'boolean', operator: 'equal', value: 'true' },
+          ],
+        },
+        { field: 'string', operator: 'equal', value: 'a' },
+      ],
+    });
+
+    expect(tree).toStrictEqual(
+      new ConditionTreeBranch('Or', [
+        new ConditionTreeBranch('And', [
+          new ConditionTreeLeaf('number', 'GreaterThan', 1),
+          new ConditionTreeLeaf('boolean', 'Equal', true),
+        ]),
+        new ConditionTreeLeaf('string', 'Equal', 'a'),
+      ]),
+    );
+  });
+
+  test('should unwrap a nested group holding a single condition', () => {
+    const tree = ConditionTreeParser.fromPlainObject(collection, {
+      aggregator: 'and',
+      conditions: [
+        { aggregator: 'or', conditions: [{ field: 'string', operator: 'equal', value: 'a' }] },
+        { field: 'number', operator: 'equal', value: 2 },
+      ],
+    });
+
+    expect(tree).toStrictEqual(
+      new ConditionTreeBranch('And', [
+        new ConditionTreeLeaf('string', 'Equal', 'a'),
+        new ConditionTreeLeaf('number', 'Equal', 2),
+      ]),
+    );
+  });
+
+  test.each(['and', 'or'])('should reject an empty nested %s group', aggregator => {
+    expect(() =>
+      ConditionTreeParser.fromPlainObject(collection, {
+        aggregator: 'and',
+        conditions: [
+          { field: 'string', operator: 'equal', value: 'a' },
+          { aggregator, conditions: [] },
+        ],
+      }),
+    ).toThrow('A nested group of conditions cannot be empty');
+  });
+
+  test('should reject an empty group nested deeper than one level', () => {
+    expect(() =>
+      ConditionTreeParser.fromPlainObject(collection, {
+        aggregator: 'or',
+        conditions: [
+          { field: 'string', operator: 'equal', value: 'a' },
+          { aggregator: 'and', conditions: [{ aggregator: 'or', conditions: [] }] },
+        ],
+      }),
+    ).toThrow('A nested group of conditions cannot be empty');
+  });
+
+  test.each([
+    ['a null condition', { aggregator: 'and', conditions: [null] }],
+    ['conditions that are not an array', { aggregator: 'or', conditions: 'x' }],
+  ])('should reject a group holding %s', (_, json) => {
+    expect(() => ConditionTreeParser.fromPlainObject(collection, json)).toThrow(
+      'Failed to instantiate condition tree from json',
+    );
+  });
+
+  test('should keep an empty root group as an empty branch', () => {
+    const tree = ConditionTreeParser.fromPlainObject(collection, {
+      aggregator: 'and',
+      conditions: [],
+    });
+
+    expect(tree).toStrictEqual(new ConditionTreeBranch('And', []));
+  });
+
   test('should work with snake case', () => {
     const tree = ConditionTreeParser.fromPlainObject(collection, {
       field: 'id',
