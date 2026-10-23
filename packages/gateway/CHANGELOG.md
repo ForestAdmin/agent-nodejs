@@ -1,3 +1,18 @@
+## @forestadmin/gateway [1.1.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/gateway@1.1.0...@forestadmin/gateway@1.1.1) (2026-10-23)
+
+
+### Bug Fixes
+
+* **gateway:** install shutdown handlers before the server starts ([#2033](https://github.com/ForestAdmin/agent-nodejs/issues/2033)) ([7f8c711](https://github.com/ForestAdmin/agent-nodejs/commit/7f8c71167adeac96a5c768e01ff2b77782c494d3))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-bff:** upgraded to 1.43.1
+
 # @forestadmin/gateway [1.1.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/gateway@1.0.4...@forestadmin/gateway@1.1.0) (2026-10-23)
 
 
