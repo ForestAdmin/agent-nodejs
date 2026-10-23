@@ -1,0 +1,36 @@
+{
+  "name": "@forestadmin/datasource-dynamodb",
+  "version": "0.0.0",
+  "main": "dist/index.js",
+  "license": "Apache-2.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ForestAdmin/agent-nodejs.git",
+    "directory": "packages/datasource-dynamodb"
+  },
+  "dependencies": {
+    "@forestadmin/datasource-toolkit": "1.56.2"
+  },
+  "peerDependencies": {
+    "@aws-sdk/client-dynamodb": "^3.750.0",
+    "@aws-sdk/lib-dynamodb": "^3.750.0"
+  },
+  "devDependencies": {
+    "@aws-sdk/client-dynamodb": "^3.750.0",
+    "@aws-sdk/lib-dynamodb": "^3.750.0"
+  },
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "clean": "rm -rf coverage dist",
+    "lint": "eslint src test",
+    "test": "jest"
+  }
+}
