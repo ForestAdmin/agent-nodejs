@@ -1,3 +1,18 @@
+## @forestadmin/agent [1.110.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.110.4...@forestadmin/agent@1.110.5) (2026-10-23)
+
+
+### Bug Fixes
+
+* **agent:** refuse a single-record action given several records ([#2028](https://github.com/ForestAdmin/agent-nodejs/issues/2028)) ([2c2d8b0](https://github.com/ForestAdmin/agent-nodejs/commit/2c2d8b04380b6e29fb112776b4f6dd64abbfb512))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/workflow-executor:** upgraded to 1.35.1
+
 ## @forestadmin/agent [1.110.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.110.3...@forestadmin/agent@1.110.4) (2026-10-21)
 
 
