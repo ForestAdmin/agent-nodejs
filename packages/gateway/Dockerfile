@@ -9,7 +9,7 @@
 # (mcp, api or mcp,api) is required.
 
 # Base image pinned by digest (node:22-bookworm-slim). Bump via Renovate/Dependabot.
-FROM node:22-bookworm-slim@sha256:813a7480f28fdadac1f7f5c824bcdad435b5bc1322a5968bbbdef8d058f9dff4 AS base
+FROM node:22-bookworm-slim@sha256:de170b39439eb0e5a3444ad7d60b015614a381e10fecae2e30ec9e735122f38d AS base
 
 # ── Stage 1: build ────────────────────────────────────────────────────────────
 FROM base AS builder
