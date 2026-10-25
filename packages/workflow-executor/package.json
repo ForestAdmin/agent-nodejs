@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/workflow-executor",
-  "version": "1.35.2",
+  "version": "1.35.3",
   "main": "dist/index.js",
   "bin": {
     "forest-workflow-executor": "dist/cli.js"
@@ -30,7 +30,7 @@
   },
   "dependencies": {
     "@forestadmin/agent-client": "1.19.0",
-    "@forestadmin/ai-proxy": "1.15.0",
+    "@forestadmin/ai-proxy": "1.15.1",
     "@forestadmin/forestadmin-client": "1.44.1",
     "@koa/bodyparser": "^6.1.0",
     "@koa/router": "^15.6.0",
