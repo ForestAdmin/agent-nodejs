@@ -1,3 +1,10 @@
+## @forestadmin/ai-proxy [1.15.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.15.0...@forestadmin/ai-proxy@1.15.1) (2026-10-25)
+
+
+### Bug Fixes
+
+* **ai-proxy:** validate the Zendesk subdomain and refuse redirects on integration requests ([#2039](https://github.com/ForestAdmin/agent-nodejs/issues/2039)) ([0f23cd0](https://github.com/ForestAdmin/agent-nodejs/commit/0f23cd0b19b86dd60e281db076d0a6587b014116))
+
 # @forestadmin/ai-proxy [1.15.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.14.5...@forestadmin/ai-proxy@1.15.0) (2026-10-21)
 
 
