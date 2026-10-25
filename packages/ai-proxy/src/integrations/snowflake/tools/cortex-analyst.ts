@@ -2,6 +2,7 @@ import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 
 import { AIBadRequestError } from '../../../errors';
+import fetchWithoutRedirect from '../../fetch-without-redirect';
 import { assertResponseOk } from '../utils';
 
 export default function createCortexAnalystTool(
@@ -52,7 +53,7 @@ export default function createCortexAnalystTool(
         ...(semantic_view && { semantic_view }),
       };
 
-      const response = await fetch(`${baseUrl}/api/v2/cortex/analyst/message`, {
+      const response = await fetchWithoutRedirect(`${baseUrl}/api/v2/cortex/analyst/message`, {
         method: 'POST',
         headers,
         body: JSON.stringify(body),

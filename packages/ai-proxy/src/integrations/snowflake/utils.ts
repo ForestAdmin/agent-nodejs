@@ -1,6 +1,7 @@
 import type { SnowflakeConfig } from './tools';
 
 import { AIBadRequestError, AIToolUnprocessableError, McpConnectionError } from '../../errors';
+import fetchWithoutRedirect from '../fetch-without-redirect';
 
 const READ_ONLY_LEADING_KEYWORD_RE = /^\s*(select|show|describe|desc|explain)\b/i;
 const FORBIDDEN_KEYWORD_RE =
@@ -144,7 +145,7 @@ export async function validateSnowflakeConfig(config: SnowflakeConfig) {
   };
   const url = `${baseUrl}/api/v2/statements`;
 
-  const response = await fetch(url, {
+  const response = await fetchWithoutRedirect(url, {
     method: 'POST',
     headers,
     body: JSON.stringify(body),

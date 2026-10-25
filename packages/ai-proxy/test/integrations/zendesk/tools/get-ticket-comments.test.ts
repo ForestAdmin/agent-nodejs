@@ -33,7 +33,10 @@ describe('createGetTicketCommentsTool', () => {
 
     const result = await tool.invoke({ ticket_id: 10 });
 
-    expect(fetch).toHaveBeenCalledWith(`${baseUrl}/tickets/10/comments.json`, { headers });
+    expect(fetch).toHaveBeenCalledWith(`${baseUrl}/tickets/10/comments.json`, {
+      redirect: 'manual',
+      headers,
+    });
     expect(result).toBe(JSON.stringify(mockResponse));
   });
 });

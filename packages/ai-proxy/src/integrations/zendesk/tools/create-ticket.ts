@@ -1,6 +1,7 @@
 import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 
+import fetchWithoutRedirect from '../../fetch-without-redirect';
 import { assertResponseOk } from '../utils';
 
 export default function createCreateTicketTool(
@@ -79,7 +80,7 @@ export default function createCreateTicketTool(
         },
       };
 
-      const response = await fetch(`${baseUrl}/tickets.json`, {
+      const response = await fetchWithoutRedirect(`${baseUrl}/tickets.json`, {
         method: 'POST',
         headers,
         body: JSON.stringify(ticketData),
