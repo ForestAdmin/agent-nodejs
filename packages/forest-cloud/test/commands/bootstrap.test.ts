@@ -1,12 +1,28 @@
 import type BootstrapPathManager from '../../src/services/bootstrap-path-manager';
 
+import AdmZip from 'adm-zip';
 import fs from 'fs/promises';
 
 import CommandTester from './command-tester';
 import { setupCommandArguments } from './utils';
 import { defaultEnvs } from '../../src/services/environment-variables';
+import HttpServer from '../../src/services/http-server';
 
 describe('bootstrap command', () => {
+  beforeEach(() => {
+    jest
+      .spyOn(HttpServer, 'downloadCloudCustomizerTemplate')
+      .mockImplementation(async destination => {
+        const template = new AdmZip();
+        template.addFile('cloud-customizer-main/src/', Buffer.alloc(0));
+        template.writeZip(destination);
+      });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   const removePotentialFolderWithSameProjectName = async (
     bootstrapPathManager: BootstrapPathManager,
   ) => {
