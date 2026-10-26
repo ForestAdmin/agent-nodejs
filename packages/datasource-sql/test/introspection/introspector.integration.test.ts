@@ -11,7 +11,6 @@ import setupEmptyDatabase from '../_helpers/setup-empty-database';
 describe('Introspector > Integration', () => {
   /**
    * Bug reproduction: FK relations disappear when another schema has same table names.
-   * @see https://community.forestadmin.com/t/missing-related-data/8385
    *
    * Root cause: Sequelize's FK query joins both key_column_usage and constraint_column_usage
    * on constraint_name without schema qualifiers. When two schemas have identical table/column

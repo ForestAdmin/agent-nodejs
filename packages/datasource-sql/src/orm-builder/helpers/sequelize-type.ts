@@ -40,7 +40,6 @@ export default class SequelizeTypeFactory {
    * This will fail if the database that sequelize is connected to was not initially created by
    * sequelize, because the enum type is unlikely to have the name that sequelize expects.
    *
-   * @see https://community.forestadmin.com/t/postgresql-enum-type-does-not-exist-error-wrong-enum-type-name/5931
    * @see https://github.com/sequelize/sequelize/blob/v6.28.0/src/dialects/postgres/data-types.js#L491
    * @see https://github.com/sequelize/sequelize/blob/v6.28.0/src/utils.js#L555
    */
