@@ -1,3 +1,19 @@
+## @forestadmin/gateway [1.1.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/gateway@1.1.1...@forestadmin/gateway@1.1.2) (2026-10-26)
+
+
+### Bug Fixes
+
+* **mcp-server:** declare zod as a range so it shares the MCP SDK's zod ([#2040](https://github.com/ForestAdmin/agent-nodejs/issues/2040)) ([b74658b](https://github.com/ForestAdmin/agent-nodejs/commit/b74658bb6f131df0a69eb77d036bcc615dd8465c))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-bff:** upgraded to 1.43.2
+* **@forestadmin/mcp-server:** upgraded to 1.29.3
+
 ## @forestadmin/gateway [1.1.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/gateway@1.1.0...@forestadmin/gateway@1.1.1) (2026-10-23)
 
 
