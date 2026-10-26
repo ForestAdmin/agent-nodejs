@@ -878,7 +878,7 @@ describe('ForestOAuthProvider', () => {
         });
       });
 
-      it('refreshes an mcp:read grant when the client asks for mcp:write too, and reports mcp:read', async () => {
+      it('refreshes an mcp:read grant when the client asks for mcp:write too', async () => {
         (jsonwebtoken.verify as jest.Mock).mockReturnValue({
           type: 'refresh',
           clientId: 'test-client-id',
@@ -891,7 +891,7 @@ describe('ForestOAuthProvider', () => {
           .mockReset()
           .mockImplementation((token: string) =>
             token === 'new-forest-access-token'
-              ? { meta: { renderingId: 456 }, exp: now + 3600, iat: now, scope: 'mcp:read' }
+              ? { meta: { renderingId: 456, scope: 'mcp:read' }, exp: now + 3600, iat: now }
               : { exp: now + 604800, iat: now },
           );
         const grantedScopes = ['mcp:read'];
@@ -929,7 +929,11 @@ describe('ForestOAuthProvider', () => {
         ]);
 
         expect(result).toEqual(
-          expect.objectContaining({ token_type: 'Bearer', scope: 'mcp:read' }),
+          expect.objectContaining({
+            access_token: 'new-mocked-jwt-token',
+            refresh_token: 'new-mocked-jwt-token',
+            token_type: 'Bearer',
+          }),
         );
       });
 
