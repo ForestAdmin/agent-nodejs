@@ -1,3 +1,10 @@
+## @forestadmin/mcp-server [1.29.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.29.3...@forestadmin/mcp-server@1.29.4) (2026-10-26)
+
+
+### Bug Fixes
+
+* **mcp-server:** stop forwarding the client's scope on the Forest refresh ([#2041](https://github.com/ForestAdmin/agent-nodejs/issues/2041)) ([d937418](https://github.com/ForestAdmin/agent-nodejs/commit/d9374189202d59ccff3838e61f1a1a187a8a0291))
+
 ## @forestadmin/mcp-server [1.29.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.29.2...@forestadmin/mcp-server@1.29.3) (2026-10-26)
 
 
