@@ -34,9 +34,9 @@ const WORKSPACE_PACKAGES = [
 // of that fix). Renovate does not watch this file — it is a plain object, not a manifest — so an
 // unrelated release will stall on it unless someone is looking.
 const OTEL_DEPENDENCIES = {
-  '@opentelemetry/sdk-node': '0.219.0',
-  '@opentelemetry/auto-instrumentations-node': '0.77.0',
-  '@opentelemetry/exporter-trace-otlp-http': '0.219.0',
+  '@opentelemetry/sdk-node': '0.221.0',
+  '@opentelemetry/auto-instrumentations-node': '0.79.0',
+  '@opentelemetry/exporter-trace-otlp-http': '0.221.0',
 };
 
 // Security pins for transitive deps whose parents never ship a patched range.
