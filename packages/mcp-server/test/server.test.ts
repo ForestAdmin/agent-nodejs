@@ -428,12 +428,7 @@ describe('ForestMCPServer Instance', () => {
           `http://localhost:${httpEndpointPort}/oauth/token`,
         );
         expect(response.body.revocation_endpoint).toBeUndefined();
-        expect(response.body.scopes_supported).toEqual([
-          'mcp:read',
-          'mcp:write',
-          'mcp:action',
-          'mcp:admin',
-        ]);
+        expect(response.body.scopes_supported).toEqual(['mcp:read']);
         expect(response.body.response_types_supported).toEqual(['code']);
         expect(response.body.grant_types_supported).toEqual([
           'authorization_code',
@@ -548,7 +543,7 @@ describe('ForestMCPServer Instance', () => {
         expect(redirectUrl.searchParams.get('response_type')).toBe('code');
         expect(redirectUrl.searchParams.get('client_id')).toBe('registered-client');
         expect(redirectUrl.searchParams.get('state')).toBe('test-state');
-        expect(redirectUrl.searchParams.get('scope')).toBe('mcp:read+profile');
+        expect(redirectUrl.searchParams.get('scope')).toBe('mcp:read profile');
         expect(redirectUrl.searchParams.get('environmentId')).toBe('12345');
       });
 

@@ -450,7 +450,7 @@ An autonomous system with no human behind it can send a service account credenti
 ## Features
 
 - **HTTP Transport**: Uses streamable HTTP transport for MCP communication
-- **OAuth Authentication**: Built-in OAuth 2.0 with scopes (`mcp:read`, `mcp:write`, `mcp:action`, `mcp:admin`)
+- **OAuth Authentication**: Built-in OAuth 2.0 with a single `mcp:read` scope; what a user can do is decided by their Forest permissions
 - **CORS Enabled**: Allows cross-origin requests
 - **Express-based**: Built on top of Express.js for reliability and extensibility
 

@@ -257,18 +257,18 @@ describe('declareRequestActionFileUploadTool', () => {
       expect(storage.createUploadUrl).not.toHaveBeenCalled();
     });
 
-    // /mcp only gates on mcp:read, so a read-only token would otherwise mint a pre-authorized
-    // write into the host's storage.
-    it('rejects a token that lacks the mcp:action scope', async () => {
+    it('serves a token holding only the mcp:read scope', async () => {
       setup();
 
-      const result = await callExpectingError({ filename: 'r.pdf', mimeType: 'application/pdf' }, {
+      await call({ filename: 'r.pdf', mimeType: 'application/pdf' }, {
         authInfo: { token: 't', scopes: ['mcp:read'], extra: { userId: 42 } },
       } as unknown as typeof authenticatedExtra);
 
-      expect(result.isError).toBe(true);
-      expect(result.content[0].text).toContain('requires the "mcp:action" scope');
-      expect(storage.createUploadUrl).not.toHaveBeenCalled();
+      expect(storage.createUploadUrl).toHaveBeenCalledWith({
+        key: expect.stringMatching(/^mcp-uploads\/[0-9a-f-]{36}\/r\.pdf$/),
+        mimeType: 'application/pdf',
+        expiresInSeconds: 15 * 60,
+      });
     });
 
     // The zod schema trims and requires a non-empty name, but the fallback is what keeps a name

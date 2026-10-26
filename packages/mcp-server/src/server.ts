@@ -587,7 +587,7 @@ export default class ForestMCPServer {
     const mountBase = prefix ? new URL(`${prefix.slice(1)}/`, effectiveBaseUrl) : effectiveBaseUrl;
     const issuerUrl = prefix ? new URL(prefix.slice(1), effectiveBaseUrl) : effectiveBaseUrl;
 
-    const scopesSupported = ['mcp:read', 'mcp:write', 'mcp:action', 'mcp:admin'];
+    const scopesSupported = ['mcp:read'];
 
     // Create OAuth metadata with custom registration_endpoint pointing to Forest Admin
     const oauthMetadata = createOAuthMetadata({

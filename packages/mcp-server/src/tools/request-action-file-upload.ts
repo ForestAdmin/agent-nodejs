@@ -12,7 +12,6 @@ const MIME_TYPE_PATTERN = /^[\w.+-]+\/[\w.+-]+$/;
 const SHA256_HEX_PATTERN = /^[0-9a-f]{64}$/i;
 const SHA256_BASE64_PATTERN = /^[A-Za-z0-9+/]{43}=$/;
 const MAX_FILENAME_LENGTH = 128;
-const REQUIRED_SCOPE = 'mcp:action';
 
 // Names the requirement rather than a menu path: the setting that satisfies it is not in the same
 // place in every client, and on a managed workspace the end user may have no access to it at all.
@@ -104,12 +103,6 @@ The url accepts one upload: to send different bytes, call this tool again for a 
 
       if (userId === undefined || userId === null) {
         throw new Error('Cannot request a file upload without an authenticated user');
-      }
-
-      // /mcp only requires mcp:read, but this mints a pre-authorized write into the host's
-      // storage. The route this tool replaced enforced mcp:action, so it is enforced here.
-      if (!extra.authInfo?.scopes?.includes(REQUIRED_SCOPE)) {
-        throw new Error(`Requesting a file upload requires the "${REQUIRED_SCOPE}" scope.`);
       }
 
       if (!MIME_TYPE_PATTERN.test(options.mimeType)) {
