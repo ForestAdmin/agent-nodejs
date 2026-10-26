@@ -1,5 +1,6 @@
 import type { Logger } from '../src/server';
 import type { TokenTtlOptions } from '../src/utils/token-ttl';
+import type { OAuthServerProvider } from '@modelcontextprotocol/sdk/server/auth/provider.js';
 import type { OAuthClientInformationFull } from '@modelcontextprotocol/sdk/shared/auth';
 import type { Response } from 'express';
 
@@ -855,7 +856,9 @@ describe('ForestOAuthProvider', () => {
         });
         global.fetch = mockServer.fetch;
 
-        await createProvider().exchangeRefreshToken(mockClient, 'valid-refresh-token', scopes);
+        const provider: OAuthServerProvider = createProvider();
+
+        await provider.exchangeRefreshToken(mockClient, 'valid-refresh-token', scopes);
 
         const [, options] = (mockServer.fetch as jest.Mock).mock.calls.find(
           ([url]) => url === 'https://api.forestadmin.com/oauth/token',
@@ -864,21 +867,74 @@ describe('ForestOAuthProvider', () => {
         return JSON.parse(options.body);
       }
 
-      it('passes the issueToken schema with a space-joined scope when the client sends scope', async () => {
-        const body = await refreshAndCaptureBody(['mcp:read', 'profile']);
+      it('leaves out the scope the client sends, so Forest keeps the original grant', async () => {
+        const body = await refreshAndCaptureBody(['mcp:read', 'mcp:write', 'mcp:action']);
 
         expect(forestServerIssueTokenSchema.validate(body).error).toBeUndefined();
         expect(body).toEqual({
           grant_type: 'refresh_token',
           refresh_token: 'forest-refresh-token',
           client_id: 'test-client-id',
-          scope: 'mcp:read profile',
         });
+      });
+
+      it('refreshes an mcp:read grant when the client asks for mcp:write too, and reports mcp:read', async () => {
+        (jsonwebtoken.verify as jest.Mock).mockReturnValue({
+          type: 'refresh',
+          clientId: 'test-client-id',
+          userId: 123,
+          renderingId: 456,
+          serverRefreshToken: 'forest-refresh-token',
+        });
+        const now = Math.floor(Date.now() / 1000);
+        mockJwtDecode.mockReset().mockImplementation((token: string) =>
+          token === 'new-forest-access-token'
+            ? { meta: { renderingId: 456 }, exp: now + 3600, iat: now, scope: 'mcp:read' }
+            : { exp: now + 604800, iat: now },
+        );
+        const grantedScopes = ['mcp:read'];
+        global.fetch = jest.fn(async (_url: string, options: { body: string }) => {
+          const { scope } = JSON.parse(options.body);
+          const exceeding = scope?.split(' ').find(s => !grantedScopes.includes(s));
+
+          if (exceeding) {
+            return new globalThis.Response(
+              JSON.stringify({
+                error: 'invalid_scope',
+                error_description: `Requested scope '${exceeding}' exceeds original scope`,
+              }),
+              { status: 400 },
+            );
+          }
+
+          return new globalThis.Response(
+            JSON.stringify({
+              access_token: 'new-forest-access-token',
+              refresh_token: 'new-forest-refresh-token',
+              expires_in: 3600,
+              token_type: 'Bearer',
+              scope: 'mcp:read',
+            }),
+            { status: 200 },
+          );
+        }) as unknown as typeof fetch;
+
+        const provider: OAuthServerProvider = createProvider();
+        const result = await provider.exchangeRefreshToken(
+          mockClient,
+          'valid-refresh-token',
+          ['mcp:read', 'mcp:write', 'mcp:action'],
+        );
+
+        expect(result).toEqual(
+          expect.objectContaining({ token_type: 'Bearer', scope: 'mcp:read' }),
+        );
       });
 
       it.each([
         ['no scopes', undefined],
         ['an empty scope list', []],
+        ['a scope', ['mcp:read']],
       ])(
         'passes the issueToken schema without scope when the client sends %s',
         async (_, scopes) => {

@@ -308,7 +308,6 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
   async exchangeRefreshToken(
     client: OAuthClientInformationFull,
     refreshToken: string,
-    scopes?: string[],
   ): Promise<OAuthTokens> {
     // Verify and decode the refresh token
     let verified: unknown;
@@ -375,7 +374,8 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
           grant_type: 'refresh_token',
           refresh_token: decoded.serverRefreshToken,
           client_id: client.client_id,
-          scope: scopes?.join(' ') || undefined,
+          // No scope: clients ask for more than the login granted (mcp-remote asks mcp:write on an
+          // mcp:read grant), which Forest refuses with an invalid_scope they never recover from.
         },
         sessionStartedAt,
       );
