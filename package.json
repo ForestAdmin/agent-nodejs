@@ -104,6 +104,7 @@
     "**/@nestjs/platform-express/express/body-parser": "^2.3.0",
     "**/@nestjs/platform-fastify/find-my-way": "^9.7.0",
     "**/@nestjs/platform-express/multer": "^2.3.0",
-    "**/nx/smol-toml": "^1.7.1"
+    "**/nx/smol-toml": "^1.7.1",
+    "**/external-editor/tmp": "^0.2.7"
   }
 }
