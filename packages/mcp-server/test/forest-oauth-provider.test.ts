@@ -887,11 +887,13 @@ describe('ForestOAuthProvider', () => {
           serverRefreshToken: 'forest-refresh-token',
         });
         const now = Math.floor(Date.now() / 1000);
-        mockJwtDecode.mockReset().mockImplementation((token: string) =>
-          token === 'new-forest-access-token'
-            ? { meta: { renderingId: 456 }, exp: now + 3600, iat: now, scope: 'mcp:read' }
-            : { exp: now + 604800, iat: now },
-        );
+        mockJwtDecode
+          .mockReset()
+          .mockImplementation((token: string) =>
+            token === 'new-forest-access-token'
+              ? { meta: { renderingId: 456 }, exp: now + 3600, iat: now, scope: 'mcp:read' }
+              : { exp: now + 604800, iat: now },
+          );
         const grantedScopes = ['mcp:read'];
         global.fetch = jest.fn(async (_url: string, options: { body: string }) => {
           const { scope } = JSON.parse(options.body);
@@ -920,11 +922,11 @@ describe('ForestOAuthProvider', () => {
         }) as unknown as typeof fetch;
 
         const provider: OAuthServerProvider = createProvider();
-        const result = await provider.exchangeRefreshToken(
-          mockClient,
-          'valid-refresh-token',
-          ['mcp:read', 'mcp:write', 'mcp:action'],
-        );
+        const result = await provider.exchangeRefreshToken(mockClient, 'valid-refresh-token', [
+          'mcp:read',
+          'mcp:write',
+          'mcp:action',
+        ]);
 
         expect(result).toEqual(
           expect.objectContaining({ token_type: 'Bearer', scope: 'mcp:read' }),
