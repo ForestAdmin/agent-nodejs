@@ -1,12 +1,11 @@
 import type * as http from 'http';
 import type * as net from 'net';
 
-import { readFileSync } from 'fs';
-import * as path from 'path';
-
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import { readFileSync } from 'fs';
 import jsonwebtoken from 'jsonwebtoken';
+import * as path from 'path';
 
 import createMockForestServerClient from './helpers/forest-server-client';
 import MockServer from './test-utils/mock-server';
