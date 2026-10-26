@@ -1,3 +1,10 @@
+## @forestadmin/mcp-server [1.29.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.29.2...@forestadmin/mcp-server@1.29.3) (2026-10-26)
+
+
+### Bug Fixes
+
+* **mcp-server:** declare zod as a range so it shares the MCP SDK's zod ([#2040](https://github.com/ForestAdmin/agent-nodejs/issues/2040)) ([b74658b](https://github.com/ForestAdmin/agent-nodejs/commit/b74658bb6f131df0a69eb77d036bcc615dd8465c))
+
 ## @forestadmin/mcp-server [1.29.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.29.1...@forestadmin/mcp-server@1.29.2) (2026-10-19)
 
 
