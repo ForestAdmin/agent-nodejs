@@ -1,155 +1,100 @@
-# Forest Admin - Agent-nodejs
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./assets/header-agent-nodejs-dark.svg">
+    <img alt="Forest agent for Node.js: your data, workflows and AI agents, running on your infrastructure." src="./assets/header-agent-nodejs-light.svg" width="100%">
+  </picture>
+</p>
 
-Forest Admin provides an off-the-shelf administration panel based on a highly-extensible API plugged into your application.
+<p align="center">
+  <a href="https://www.npmjs.com/package/@forestadmin/agent"><img alt="npm" src="https://img.shields.io/npm/v/@forestadmin/agent?color=3f5b1e&labelColor=262d1e"></a>
+  <a href="https://github.com/ForestAdmin/agent-nodejs/actions/workflows/build.yml"><img alt="CI" src="https://github.com/ForestAdmin/agent-nodejs/actions/workflows/build.yml/badge.svg?branch=main"></a>
+  <a href="./LICENSE"><img alt="License" src="https://img.shields.io/github/license/ForestAdmin/agent-nodejs?color=3f5b1e&labelColor=262d1e"></a>
+</p>
 
-This project has been designed with scalability in mind to fit requirements from small projects to mature companies.
+**Forest is the back office for operations teams in regulated companies.** Ops teams review, decide and act on your data from one interface, or let AI agents do it through MCP, within the roles, permissions and audit logs you define.
 
-## Installation
+This repository is the **Node.js agent**: the part of Forest that runs on your servers, connects to your databases and services, and exposes them to the Forest interface and to AI agents. Your business data never goes through Forest.
 
+> [!NOTE]
+> **Forest v2.** This is the current Node.js SDK. Using `forest-express-sequelize` or `forest-express-mongoose`? You are on v1: see the [migration guide](https://docs.forest.app/guides/migration/from-v1/overview).
+
+## Quick start
+
+```bash
+npm install @forestadmin/agent @forestadmin/datasource-sql
 ```
-yarn install && yarn bootstrap
+
+```typescript
+import { createAgent } from '@forestadmin/agent';
+import { createSqlDataSource } from '@forestadmin/datasource-sql';
+
+const agent = createAgent({
+  authSecret: process.env.FOREST_AUTH_SECRET,
+  envSecret: process.env.FOREST_ENV_SECRET,
+  isProduction: process.env.NODE_ENV === 'production',
+});
+
+agent.addDataSource(createSqlDataSource(process.env.DATABASE_URL));
+
+await agent.start();
 ```
 
-## Who Uses Forest Admin
+Required environment variables: `FOREST_ENV_SECRET`, `FOREST_AUTH_SECRET`, `DATABASE_URL`.
+Full guide: [docs.forest.app/get-started/quickstart](https://docs.forest.app/get-started/quickstart)
 
-- [Apartmentlist](https://www.apartmentlist.com)
-- [Carbon Health](https://carbonhealth.com)
-- [Ebanx](https://www.ebanx.com)
-- [First circle](https://www.firstcircle.ph)
-- [Forest Admin](https://www.forestadmin.com) of course :-)
-- [Heetch](https://www.heetch.com)
-- [Swile](https://www.swile.co)
-- [Pillow](https://www.pillow.com)
-- [Qonto](https://www.qonto.eu)
-- [Shadow](https://shadow.tech)
-- And hundreds more…
+## Requirements
 
-## Getting started
+| | |
+|---|---|
+| Node.js | Developed and tested on Node.js 24 (see [`.nvmrc`](./.nvmrc)) |
+| Framework | None required: standalone server, or mounted on Express, Koa, Fastify or NestJS |
 
-[https://docs.forestadmin.com/developer-guide-agents-nodejs/getting-started/quick-start](https://docs.forestadmin.com/developer-guide-agents-nodejs/getting-started/quick-start)
+## What the agent gives you
 
-## Documentation
-
-[https://docs.forestadmin.com/developer-guide-agents-nodejs/](https://docs.forestadmin.com/developer-guide-agents-nodejs/)
+| | |
+|---|---|
+| **Data** | Connect your databases and services through data sources: SQL, Sequelize, Mongoose, MongoDB, Zendesk, replicas, RPC. |
+| **Customization** | Computed fields, actions, segments, hooks and validations in TypeScript, with autocompletion generated from your schema. |
+| **Workflows** | Runs your Forest business processes on your side (`@forestadmin/workflow-executor`). |
+| **MCP server** | Exposes your collections and actions to AI agents through the Model Context Protocol (`@forestadmin/mcp-server`). |
+| **Permissions and audit** | Roles, scopes and activity logs defined in Forest, enforced on every request, from the UI or from an AI agent. |
 
 ## How it works
 
-<p align="center" style="margin: 60px 0">
-  <img width="100%" src="https://forest-assets.s3.amazonaws.com/Github+README+assets/howitworks.png" alt="Howitworks">
-</p>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./assets/arch-agent-nodejs-dark.svg">
+  <img alt="The Node.js agent runs on your infrastructure. Forest calls it over HTTPS; the agent queries your databases and services, and exposes an MCP server to AI agents." src="./assets/arch-agent-nodejs-light.svg" width="100%">
+</picture>
 
-Forest Admin consists of two components:
+The agent runs **on your infrastructure**. The Forest interface calls your agent, and your agent queries your sources: Forest does not store your business data. You control what is exposed, to whom, and the logic applied to it.
 
-- The Admin Frontend is the user interface where you'll manage your data and configuration.
-- The Admin Backend API hosted on your servers where you can find and extend your data models and all the business logic (routes, actions, …) related to your admin panel.
+## Documentation
 
-The Forest Admin NPM package (aka Forest Liana) introspects all your data model
-and dynamically generates the Admin API hosted on your servers. The Forest Admin
-interface is a web application that handles communication between the admin
-user and your application data through the Admin API.
+| | |
+|---|---|
+| Get started | https://docs.forest.app/get-started/quickstart |
+| Connect a data source | https://docs.forest.app/get-started/connect/data-sources/overview |
+| Node.js API reference | https://docs.forest.app/reference/agent-api/nodejs |
+| MCP server | https://docs.forest.app/product/embed/mcp-server |
+| Migrating from v1 | https://docs.forest.app/guides/migration/from-v1/overview |
 
-## Features
+<details>
+<summary><b>Packages in this monorepo</b></summary>
 
-### CRUD
+`@forestadmin/agent` · `datasource-sql` · `datasource-sequelize` · `datasource-mongoose` · `datasource-mongo` · `datasource-zendesk` · `datasource-replica` · `datasource-customizer` · `mcp-server` · `workflow-executor` · `agent-testing` · `plugin-aws-s3` · `plugin-flattener` · `plugin-export-advanced` · `forest-cloud`
 
-All of your CRUD operations are natively supported. The API automatically
-supports your data models' validation and allows you to easily extend or
-override any API routes' with your very own custom logic.
+Experimental plugins and data sources: [forestadmin-experimental](https://github.com/ForestAdmin/forestadmin-experimental).
 
-<img src="https://forest-assets.s3.amazonaws.com/Github+README+assets/crud.jpeg" alt="CRUD">
+</details>
 
-### Search & Filters
+## Contributing
 
-Forest Admin has a built-in search allowing you to run basic queries to
-retrieve your application's data. Set advanced filters based on fields and
-relationships to handle complex search use cases.
+Bug reports and pull requests are welcome. See [CONTRIBUTING.md](./CONTRIBUTING.md) for setup, tests and commit conventions.
 
-<img src="https://forest-assets.s3.amazonaws.com/Github+README+assets/search+filters.jpeg" alt="Search and Filters">
+```bash
+yarn install && yarn build && yarn test
+```
 
-### Sorting & Pagination
+## License
 
-Sorting and pagination features are natively handled by the Admin API. We're
-continuously optimizing how queries are run in order to display results faster
-and reduce the load of your servers.
-
-<img src="https://forest-assets.s3.amazonaws.com/Github+README+assets/sorting+pagination.jpeg" alt="Sorting and Pagination">
-
-### Custom action
-
-A custom action is a button which allows you to trigger an API call to execute
-a custom logic. With virtually no limitations, you can extend the way you
-manipulate data and trigger actions (e.g. refund a customer, apply a coupon,
-ban a user, etc.)
-
-<img src="https://forest-assets.s3.amazonaws.com/Github+README+assets/custom+actions.jpeg" alt="Custom action">
-
-### Export
-
-Sometimes you need to export your data to a good old fashioned CSV. Yes, we
-know this can come in handy sometimes :-)
-
-<img src="https://forest-assets.s3.amazonaws.com/Github+README+assets/exports.jpeg" alt="Export">
-
-### Segments
-
-Get in app access to a subset of your application data by doing a basic search
-or typing an SQL query or implementing an API route.
-
-<img src="https://forest-assets.s3.amazonaws.com/Github+README+assets/segments.jpeg" alt="Segments">
-
-### Dashboards
-
-Forest Admin is able to tap into your actual data to chart out your metrics
-using a simple UI panel, a SQL query or a custom API call.
-
-<img src="https://forest-assets.s3.amazonaws.com/Github+README+assets/dashboards.jpeg" alt="Dashboard">
-
-### WYSIWYG
-
-The WYSIWYG interface saves you a tremendous amount of frontend development
-time using drag'n'drop as well as advanced widgets to build customizable views.
-
-<img src="https://forest-assets.s3.amazonaws.com/Github+README+assets/wysiwyg.jpeg" alt="WYSIWYG">
-
-### Custom HTML/JS/CSS
-
-Code your own views using JS, HTML, and CSS to display your application data in
-a more appropriate way (e.g. Kanban, Map, Calendar, Gallery, etc.).
-
-<img src="https://forest-assets.s3.amazonaws.com/Github+README+assets/smart+views.jpeg" alt="Custom views">
-
-### Team-based permissions
-
-Without any lines of code, manage directly from the UI who has access or can
-act on which data using a team-based permission system.
-
-<img src="https://forest-assets.s3.amazonaws.com/Github+README+assets/teams.jpeg" alt="Team based permissions">
-
-### Third-party integrations
-
-Leverage data from third-party services by reconciling it with your
-application’s data and providing it directly to your Admin Panel. All your
-actions can be performed at the same place, bringing additional intelligence to
-your Admin Panel and ensuring consistency.
-
-<img src="https://forest-assets.s3.amazonaws.com/Github+README+assets/integrations.jpeg" alt="Third-party integrations">
-
-### Notes & Comments
-
-Assign your teammates to specific tasks, leave a note or simply comment a
-record, thereby simplifying collaboration all across your organization.
-
-<img src="https://forest-assets.s3.amazonaws.com/Github+README+assets/notes+comments.jpeg" alt="Notes and Comments">
-
-### Activity logs
-
-Monitor each action executed and follow the trail of modification on any data
-with an extensive activity log system.
-
-<img src="https://forest-assets.s3.amazonaws.com/Github+README+assets/activity+logs.jpeg" alt="Activity logs">
-
-## Community
-
-👇 Join our Developers community for support and more
-
-[![Discourse developers community](https://img.shields.io/discourse/posts?label=discourse&server=https%3A%2F%2Fcommunity.forestadmin.com)](https://community.forestadmin.com)
+Apache 2.0. See [LICENSE](./LICENSE).
