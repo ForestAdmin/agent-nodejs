@@ -357,7 +357,7 @@ describe('ForestOAuthProvider', () => {
       expect(url.searchParams.get('response_type')).toBe('code');
       expect(url.searchParams.get('client_id')).toBe('test-client-id');
       expect(url.searchParams.get('state')).toBe('test-state');
-      expect(url.searchParams.get('scope')).toBe('mcp:read+profile');
+      expect(url.searchParams.get('scope')).toBe('mcp:read profile');
       expect(url.searchParams.get('environmentId')).toBe('12345');
     });
 
@@ -473,6 +473,41 @@ describe('ForestOAuthProvider', () => {
 
     afterEach(() => {
       jest.clearAllMocks();
+    });
+
+    it('signs only mcp:read when Forest keeps the granted scope under meta', async () => {
+      const now = Math.floor(Date.now() / 1000);
+      mockJwtDecode
+        .mockReset()
+        .mockImplementation((token: string) =>
+          token === 'forest-access-token'
+            ? { meta: { renderingId: 456, scope: 'mcp:read mcp:write' }, exp: now + 3600, iat: now }
+            : { exp: now + 604800, iat: now },
+        );
+      mockServer
+        .get('/liana/environment', {
+          data: { id: '12345', attributes: { api_endpoint: 'https://api.example.com' } },
+        })
+        .post('/oauth/token', {
+          access_token: 'forest-access-token',
+          refresh_token: 'forest-refresh-token',
+          expires_in: 3600,
+          token_type: 'Bearer',
+        });
+      global.fetch = mockServer.fetch;
+
+      await createProvider().exchangeAuthorizationCode(
+        mockClient,
+        'auth-code-123',
+        'code-verifier-456',
+        'https://example.com/callback',
+      );
+
+      expect(mockJwtSign).toHaveBeenCalledWith(
+        expect.objectContaining({ serverToken: 'forest-access-token', scopes: ['mcp:read'] }),
+        'test-auth-secret',
+        { expiresIn: expect.any(Number) },
+      );
     });
 
     it('should exchange authorization code with Forest Admin server', async () => {
@@ -1242,7 +1277,7 @@ describe('ForestOAuthProvider', () => {
         token: 'agent-token',
         clientId: `service-account-key:${PARSED.keyId}`,
         expiresAt: EXPIRES_AT,
-        scopes: ['mcp:read', 'mcp:write', 'mcp:action'],
+        scopes: ['mcp:read'],
         extra: {
           userId: 42,
           email: 'bot@forest.local',

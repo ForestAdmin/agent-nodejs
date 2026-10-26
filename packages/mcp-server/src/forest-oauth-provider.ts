@@ -246,7 +246,7 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
       agentAuthUrl.searchParams.set('response_type', 'code');
       agentAuthUrl.searchParams.set('client_id', client.client_id);
       agentAuthUrl.searchParams.set('state', params.state);
-      agentAuthUrl.searchParams.set('scope', params.scopes.join('+'));
+      agentAuthUrl.searchParams.set('scope', params.scopes.join(' '));
 
       if (params.resource?.href) {
         agentAuthUrl.searchParams.set('resource', params.resource.href);
@@ -503,7 +503,7 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
       sessionRemaining,
       this.tokenTtl?.accessTokenSeconds ?? Infinity,
     );
-    const tokenScopes = scope ? scope.split(' ') : ['mcp:read', 'mcp:write', 'mcp:action'];
+    const tokenScopes = scope ? scope.split(' ') : ['mcp:read'];
     const accessToken = jsonwebtoken.sign(
       {
         ...toAgentTokenClaims(user),

@@ -15,7 +15,7 @@ import {
 import crypto from 'crypto';
 import jsonwebtoken from 'jsonwebtoken';
 
-export const SERVICE_ACCOUNT_SCOPES = ['mcp:read', 'mcp:write', 'mcp:action'];
+export const SERVICE_ACCOUNT_SCOPES = ['mcp:read'];
 
 const AGENT_TOKEN_TTL_SECONDS = 5 * 60;
 const POSITIVE_TTL_MS = 60_000;
