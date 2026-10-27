@@ -16,6 +16,10 @@ export default class CsvRoute extends CollectionRoute {
 
   async handleCsv(context: Context): Promise<void> {
     await this.services.authorization.assertCanBrowse(context, this.collection.name);
+    await this.services.authorization.assertCanExecuteLiveQuerySegment(
+      context,
+      this.collection.name,
+    );
     await this.services.authorization.assertCanExport(context, this.collection.name);
     await this.services.authorization.assertCanReadQueryFields(context, this.collection);
 

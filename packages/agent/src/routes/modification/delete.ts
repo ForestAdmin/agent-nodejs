@@ -36,6 +36,11 @@ export default class DeleteRoute extends CollectionRoute {
   }
 
   private async deleteRecords(context: Context, selectionIds: SelectionIds): Promise<void> {
+    await this.services.authorization.assertCanExecuteLiveQuerySegment(
+      context,
+      this.collection.name,
+    );
+
     let selectedIds = ConditionTreeFactory.matchIds(this.collection.schema, selectionIds.ids);
     if (selectionIds.areExcluded) selectedIds = selectedIds.inverse();
 

@@ -60,6 +60,30 @@ describe('CsvRelatedRoute', () => {
     );
   });
 
+  test('refuses the export of the related records when their live query segment is not allowed', async () => {
+    const { options, services, dataSource } = setupWithOneToManyRelation();
+    (services.authorization.assertCanExecuteLiveQuerySegment as jest.Mock).mockRejectedValueOnce(
+      new Error('Forbidden'),
+    );
+    const listRelation = jest.spyOn(CollectionUtils, 'listRelation').mockResolvedValue([]);
+    const csvRoute = new CsvRoute(services, options, dataSource, 'books', 'myPersons');
+    const context = createMockContext({
+      customProperties: {
+        params: { parentId: '2d162303-78bf-599e-b197-93590ac3d315' },
+        query: { 'fields[persons]': 'name', timezone: 'Europe/Paris' },
+      },
+    });
+
+    await expect(csvRoute.handleRelatedCsv(context)).rejects.toThrow('Forbidden');
+
+    expect(services.authorization.assertCanExecuteLiveQuerySegment).toHaveBeenCalledWith(
+      context,
+      'persons',
+    );
+    expect(listRelation).not.toHaveBeenCalled();
+    listRelation.mockRestore();
+  });
+
   describe('handleRelatedCsv', () => {
     it('should set the response headers correctly', async () => {
       const { options, services, dataSource } = setupWithOneToManyRelation();

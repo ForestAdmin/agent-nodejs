@@ -60,6 +60,31 @@ describe('ListRelatedRoute', () => {
     );
   });
 
+  test('refuses the listing of the related records when their live query segment is not allowed', async () => {
+    const { services, dataSource, options } = setupWithOneToManyRelation();
+    (services.authorization.assertCanExecuteLiveQuerySegment as jest.Mock).mockRejectedValueOnce(
+      new Error('Forbidden'),
+    );
+    const listRelation = jest.spyOn(CollectionUtils, 'listRelation').mockResolvedValue([]);
+    const route = new ListRelatedRoute(services, options, dataSource, 'books', 'myPersons');
+    const context = createMockContext({
+      state: { user: { email: 'john.doe@domain.com' } },
+      customProperties: {
+        params: { parentId: '2d162303-78bf-599e-b197-93590ac3d315' },
+        query: { timezone: 'Europe/Paris' },
+      },
+    });
+
+    await expect(route.handleListRelated(context)).rejects.toThrow('Forbidden');
+
+    expect(services.authorization.assertCanExecuteLiveQuerySegment).toHaveBeenCalledWith(
+      context,
+      'persons',
+    );
+    expect(listRelation).not.toHaveBeenCalled();
+    listRelation.mockRestore();
+  });
+
   describe('handleListRelated', () => {
     describe('when the request is correct', () => {
       test('should return the record result', async () => {

@@ -22,6 +22,10 @@ export default class CsvRelatedRoute extends RelationRoute {
 
   async handleRelatedCsv(context: Context): Promise<void> {
     await this.services.authorization.assertCanBrowse(context, this.foreignCollection.name);
+    await this.services.authorization.assertCanExecuteLiveQuerySegment(
+      context,
+      this.foreignCollection.name,
+    );
     await this.services.authorization.assertCanExport(context, this.foreignCollection.name);
     await this.services.authorization.assertCanReadQueryFields(context, this.foreignCollection);
 

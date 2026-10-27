@@ -6,6 +6,7 @@ import {
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import Chart from '../../../src/routes/access/chart';
+import AuthorizationService from '../../../src/services/authorization/authorization';
 import * as factories from '../../__factories__';
 
 describe('ChartRoute', () => {
@@ -1126,6 +1127,174 @@ describe('ChartRoute', () => {
       chart.setupRoutes(router);
 
       expect(router.post).toHaveBeenCalledWith('/stats/books\\+\\?\\*', expect.any(Function));
+    });
+  });
+
+  describe('with a live query segment and the real authorization service', () => {
+    const throwingThrow = () =>
+      jest.fn((status: number, message: string) => {
+        throw Object.assign(new Error(message), { status });
+      });
+
+    const setup = (canExecuteSegmentQuery: boolean) => {
+      const forestAdminClient = factories.forestAdminClient.build();
+      (forestAdminClient.permissionService.canExecuteChart as jest.Mock).mockResolvedValue(true);
+      (forestAdminClient.permissionService.canExecuteSegmentQuery as jest.Mock).mockResolvedValue(
+        canExecuteSegmentQuery,
+      );
+      const services = factories.forestAdminHttpDriverServices.build({
+        authorization: new AuthorizationService(forestAdminClient),
+      });
+      (services.chartHandler.getChartWithContextInjected as jest.Mock).mockImplementation(
+        ({ chartRequest }) => chartRequest,
+      );
+      const books = factories.collection.build({
+        name: 'books',
+        schema: factories.collectionSchema.build({
+          fields: { id: factories.columnSchema.uuidPrimaryKey().build() },
+        }),
+        aggregate: jest.fn().mockResolvedValue([{ value: 1234, group: null }]),
+      });
+      const dataSource = factories.dataSource.buildWithCollection(books);
+      const chart = new Chart(
+        services,
+        factories.forestAdminHttpDriverOptions.build(),
+        dataSource,
+        'books',
+      );
+      const context = createMockContext({
+        throw: throwingThrow(),
+        requestBody: { type: 'Value', aggregator: 'Count', sourceCollectionName: 'books' },
+        customProperties: {
+          query: {
+            timezone: 'Europe/Paris',
+            segmentQuery: 'SELECT id FROM books',
+            connectionName: 'main',
+          },
+        },
+        state: { user: { email: 'john.doe@domain.com', id: 100, renderingId: 7 } },
+      });
+
+      return { forestAdminClient, books, chart, context };
+    };
+
+    const expectedSegmentCheck = {
+      userId: 100,
+      collectionName: 'books',
+      renderingId: 7,
+      segmentQuery: 'SELECT id FROM books',
+      connectionName: 'main',
+    };
+
+    test('refuses a chart on a segment the user is not allowed to run', async () => {
+      const { forestAdminClient, books, chart, context } = setup(false);
+
+      await expect(chart.handleChart(context)).rejects.toMatchObject({ status: 403 });
+
+      expect(forestAdminClient.permissionService.canExecuteSegmentQuery).toHaveBeenCalledWith(
+        expectedSegmentCheck,
+      );
+      expect(books.aggregate).not.toHaveBeenCalled();
+    });
+
+    test('checks a count leaderboard segment against the charted collection only', async () => {
+      const forestAdminClient = factories.forestAdminClient.build();
+      (forestAdminClient.permissionService.canExecuteChart as jest.Mock).mockResolvedValue(true);
+      (forestAdminClient.permissionService.canOnCollection as jest.Mock).mockResolvedValue(true);
+      (forestAdminClient.permissionService.canExecuteSegmentQuery as jest.Mock).mockImplementation(
+        async ({ collectionName }) => collectionName === 'persons',
+      );
+      const services = factories.forestAdminHttpDriverServices.build({
+        authorization: new AuthorizationService(forestAdminClient),
+      });
+      (services.chartHandler.getChartWithContextInjected as jest.Mock).mockImplementation(
+        ({ chartRequest }) => chartRequest,
+      );
+      const persons = factories.collection.build({
+        name: 'persons',
+        schema: factories.collectionSchema.build({
+          fields: {
+            id: factories.columnSchema.uuidPrimaryKey().build(),
+            books: factories.oneToManySchema.build({
+              foreignCollection: 'books',
+              originKey: 'authorId',
+              originKeyTarget: 'id',
+            }),
+          },
+        }),
+      });
+      const books = factories.collection.build({
+        name: 'books',
+        schema: factories.collectionSchema.build({
+          fields: {
+            id: factories.columnSchema.uuidPrimaryKey().build(),
+            authorId: factories.columnSchema.build({ columnType: 'Uuid' }),
+            author: factories.manyToOneSchema.build({
+              foreignCollection: 'persons',
+              foreignKey: 'authorId',
+              foreignKeyTarget: 'id',
+            }),
+          },
+        }),
+        aggregate: jest.fn().mockResolvedValue([{ value: 3, group: { 'author:id': 'a1' } }]),
+      });
+      const dataSource = factories.dataSource.buildWithCollections([persons, books]);
+      const chart = new Chart(
+        services,
+        factories.forestAdminHttpDriverOptions.build(),
+        dataSource,
+        'persons',
+      );
+      const context = createMockContext({
+        throw: throwingThrow(),
+        requestBody: {
+          type: 'Leaderboard',
+          aggregator: 'Count',
+          sourceCollectionName: 'persons',
+          labelFieldName: 'id',
+          relationshipFieldName: 'books',
+          limit: 5,
+        },
+        customProperties: {
+          query: {
+            timezone: 'Europe/Paris',
+            segmentQuery: 'SELECT id FROM persons',
+            connectionName: 'main',
+          },
+        },
+        state: { user: { email: 'john.doe@domain.com', id: 100, renderingId: 7 } },
+      });
+
+      await chart.handleChart(context);
+
+      expect(forestAdminClient.permissionService.canExecuteSegmentQuery).toHaveBeenCalledTimes(1);
+      expect(forestAdminClient.permissionService.canExecuteSegmentQuery).toHaveBeenCalledWith({
+        userId: 100,
+        collectionName: 'persons',
+        renderingId: 7,
+        segmentQuery: 'SELECT id FROM persons',
+        connectionName: 'main',
+      });
+      expect(context.response.body).toMatchObject({
+        data: { attributes: { value: [{ key: 'a1', value: 3 }] } },
+      });
+    });
+
+    test('computes a chart on a segment the user is allowed to run', async () => {
+      const { forestAdminClient, books, chart, context } = setup(true);
+
+      await chart.handleChart(context);
+
+      expect(forestAdminClient.permissionService.canExecuteSegmentQuery).toHaveBeenCalledWith(
+        expectedSegmentCheck,
+      );
+      expect(books.aggregate).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 100 }),
+        expect.objectContaining({
+          liveQuerySegment: { query: 'SELECT id FROM books', connectionName: 'main' },
+        }),
+        { field: undefined, groups: undefined, operation: 'Count' },
+      );
     });
   });
 });

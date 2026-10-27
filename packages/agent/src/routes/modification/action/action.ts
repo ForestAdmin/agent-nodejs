@@ -385,6 +385,11 @@ export default class ActionRoute extends CollectionRoute {
     const attributes = body?.data?.attributes;
 
     // Match user filter + search + scope? + segment.
+    await this.services.authorization.assertCanExecuteLiveQuerySegment(
+      context,
+      this.collection.name,
+    );
+
     const scope = includeUserScope
       ? await this.services.authorization.getScope(this.collection, context)
       : null;

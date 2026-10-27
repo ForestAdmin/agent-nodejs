@@ -76,6 +76,27 @@ describe('CountRelatedRoute', () => {
     );
   });
 
+  test('refuses the count of the related records when their live query segment is not allowed', async () => {
+    const { services, dataSource, options } = setupWithOneToManyRelation();
+    (services.authorization.assertCanExecuteLiveQuerySegment as jest.Mock).mockRejectedValueOnce(
+      new Error('Forbidden'),
+    );
+    const aggregateRelation = jest
+      .spyOn(CollectionUtils, 'aggregateRelation')
+      .mockResolvedValue([{ value: 1, group: {} }]);
+    const route = new CountRelatedRoute(services, options, dataSource, 'books', 'myBookPersons');
+    const context = setupContext();
+
+    await expect(route.handleCountRelated(context)).rejects.toThrow('Forbidden');
+
+    expect(services.authorization.assertCanExecuteLiveQuerySegment).toHaveBeenCalledWith(
+      context,
+      'bookPersons',
+    );
+    expect(aggregateRelation).not.toHaveBeenCalled();
+    aggregateRelation.mockRestore();
+  });
+
   describe('handleCountRelated', () => {
     describe('when the request is correct', () => {
       test('should aggregate the relation and return the result', async () => {

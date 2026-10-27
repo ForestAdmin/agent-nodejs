@@ -1,6 +1,7 @@
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import DeleteRoute from '../../../src/routes/modification/delete';
+import AuthorizationService from '../../../src/services/authorization/authorization';
 import { HttpCode } from '../../../src/types';
 import * as factories from '../../__factories__';
 
@@ -462,6 +463,123 @@ describe('DeleteRoute', () => {
           );
         });
       });
+    });
+  });
+
+  describe('with a live query segment and the real authorization service', () => {
+    const throwingThrow = () =>
+      jest.fn((status: number, message: string) => {
+        throw Object.assign(new Error(message), { status });
+      });
+
+    const setup = (canExecuteSegmentQuery: boolean) => {
+      const forestAdminClient = factories.forestAdminClient.build();
+      (forestAdminClient.permissionService.canOnCollection as jest.Mock).mockResolvedValue(true);
+      (forestAdminClient.permissionService.canExecuteSegmentQuery as jest.Mock).mockResolvedValue(
+        canExecuteSegmentQuery,
+      );
+      const realServices = factories.forestAdminHttpDriverServices.build({
+        authorization: new AuthorizationService(forestAdminClient),
+      });
+      const bookCollection = factories.collection.build({
+        name: 'books',
+        schema: factories.collectionSchema.build({
+          fields: { id: factories.columnSchema.numericPrimaryKey().build() },
+        }),
+      });
+      const dataSource = factories.dataSource.buildWithCollection(bookCollection);
+      const deleteRoute = new DeleteRoute(realServices, options, dataSource, 'books');
+
+      return { forestAdminClient, bookCollection, deleteRoute };
+    };
+
+    const listDeleteContext = () =>
+      createMockContext({
+        throw: throwingThrow(),
+        state: { user: { id: 35, renderingId: 42, email: 'john.doe@domain.com' } },
+        customProperties: { query: { timezone: 'Europe/Paris' } },
+        requestBody: {
+          data: {
+            attributes: {
+              ids: [],
+              all_records: true,
+              all_records_ids_excluded: [],
+              all_records_subset_query: {
+                segmentQuery: 'SELECT id FROM books',
+                connectionName: 'main',
+              },
+            },
+          },
+        },
+      });
+
+    test('refuses a bulk delete whose segment query the user is not allowed to run', async () => {
+      const { forestAdminClient, bookCollection, deleteRoute } = setup(false);
+      const context = listDeleteContext();
+
+      await expect(deleteRoute.handleListDelete(context)).rejects.toMatchObject({
+        status: HttpCode.Forbidden,
+      });
+
+      expect(forestAdminClient.permissionService.canExecuteSegmentQuery).toHaveBeenCalledWith({
+        userId: 35,
+        collectionName: 'books',
+        renderingId: 42,
+        segmentQuery: 'SELECT id FROM books',
+        connectionName: 'main',
+      });
+      expect(bookCollection.delete).not.toHaveBeenCalled();
+    });
+
+    test('deletes the records of a segment the user is allowed to run', async () => {
+      const { forestAdminClient, bookCollection, deleteRoute } = setup(true);
+      const context = listDeleteContext();
+
+      await deleteRoute.handleListDelete(context);
+
+      expect(forestAdminClient.permissionService.canExecuteSegmentQuery).toHaveBeenCalledWith({
+        userId: 35,
+        collectionName: 'books',
+        renderingId: 42,
+        segmentQuery: 'SELECT id FROM books',
+        connectionName: 'main',
+      });
+      expect(bookCollection.delete).toHaveBeenCalledWith(
+        expect.objectContaining({ timezone: 'Europe/Paris' }),
+        expect.objectContaining({
+          liveQuerySegment: { query: 'SELECT id FROM books', connectionName: 'main' },
+        }),
+      );
+      expect(context.response.status).toEqual(HttpCode.NoContent);
+    });
+
+    test('refuses a single delete whose query string carries a segment query the user is not allowed to run', async () => {
+      const { forestAdminClient, bookCollection, deleteRoute } = setup(false);
+      const context = createMockContext({
+        throw: throwingThrow(),
+        state: { user: { id: 35, renderingId: 42, email: 'john.doe@domain.com' } },
+        customProperties: {
+          params: { id: '1523' },
+          query: {
+            timezone: 'Europe/Paris',
+            segmentQuery: 'SELECT id FROM books',
+            connectionName: 'main',
+          },
+        },
+      });
+
+      await expect(deleteRoute.handleDelete(context)).rejects.toMatchObject({
+        status: HttpCode.Forbidden,
+      });
+
+      expect(forestAdminClient.permissionService.canExecuteSegmentQuery).toHaveBeenCalledWith({
+        userId: 35,
+        collectionName: 'books',
+        renderingId: 42,
+        segmentQuery: 'SELECT id FROM books',
+        connectionName: 'main',
+      });
+      expect(bookCollection.delete).not.toHaveBeenCalled();
     });
   });
 

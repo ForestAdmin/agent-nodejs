@@ -187,6 +187,29 @@ export default class AuthorizationService {
     }
   }
 
+  public async assertCanExecuteLiveQuerySegment(
+    context: Context,
+    collectionName: string,
+  ): Promise<void> {
+    const liveQuerySegment = context.request
+      ? QueryStringParser.parseLiveQuerySegment(context)
+      : null;
+
+    if (!liveQuerySegment) return;
+
+    const { id: userId, renderingId } = context.state.user;
+    const canExecuteSegmentQuery =
+      await this.forestAdminClient.permissionService.canExecuteSegmentQuery({
+        userId,
+        collectionName,
+        renderingId,
+        segmentQuery: liveQuerySegment.query,
+        connectionName: liveQuerySegment.connectionName,
+      });
+
+    if (!canExecuteSegmentQuery) context.throw(HttpCode.Forbidden, 'Forbidden');
+  }
+
   /** The root is skipped: `browse` gates a listing, `read` a get, and the signed hash a chart. */
   private async getReadPermissions(
     context: Context,
@@ -207,35 +230,13 @@ export default class AuthorizationService {
     context: Context,
     collectionName: string,
   ) {
-    const { id: userId, renderingId } = context.state.user;
+    const { id: userId } = context.state.user;
 
     const canOnCollection = await this.forestAdminClient.permissionService.canOnCollection({
       userId,
       event,
       collectionName,
     });
-
-    if (
-      context.request?.query &&
-      CollectionActionEvent.Browse === event &&
-      (context.request.query as { segmentQuery?: string }).segmentQuery
-    ) {
-      const { segmentQuery, connectionName } = context.request.query as {
-        segmentQuery?: string;
-        connectionName?: string;
-      };
-
-      const canExecuteSegmentQuery =
-        await this.forestAdminClient.permissionService.canExecuteSegmentQuery({
-          userId,
-          collectionName,
-          renderingId,
-          segmentQuery,
-          connectionName,
-        });
-
-      if (!canExecuteSegmentQuery) context.throw(HttpCode.Forbidden, 'Forbidden');
-    }
 
     if (!canOnCollection) {
       context.throw(HttpCode.Forbidden, 'Forbidden');
