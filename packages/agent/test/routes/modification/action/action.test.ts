@@ -1965,6 +1965,11 @@ describe('ActionRoute', () => {
         },
       });
 
+    const allowSegmentQuery = (allowed: boolean) =>
+      (
+        options.forestAdminClient.permissionService.canExecuteSegmentQuery as jest.Mock
+      ).mockResolvedValue(allowed);
+
     const callRoute = async (path: string, context: ReturnType<typeof buildContext>) => {
       const actionRouter = factories.router.mockAllMethods().build();
       route.setupRoutes(actionRouter);
@@ -1994,11 +1999,6 @@ describe('ActionRoute', () => {
         requestBody: { data: { attributes: { signed_approval_request: 'signed-request' } } },
       });
     };
-
-    const allowSegmentQuery = (allowed: boolean) =>
-      (
-        options.forestAdminClient.permissionService.canExecuteSegmentQuery as jest.Mock
-      ).mockResolvedValue(allowed);
 
     beforeEach(() => {
       realServices = factories.forestAdminHttpDriverServices.build({
