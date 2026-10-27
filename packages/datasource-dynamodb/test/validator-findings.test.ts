@@ -4,7 +4,7 @@ import { Aggregation, Filter, PaginatedFilter, Projection } from '@forestadmin/d
 
 import { buildCollection } from './collection-helpers';
 import { fakeClient } from './fake-client';
-import { buildModel, buildSimpleModel, leaf } from './helpers';
+import { and, buildModel, buildSimpleModel, leaf } from './helpers';
 import { createDynamoDBDataSource } from '../src';
 import ArrayCollection from '../src/array-collection';
 import { inferSchema } from '../src/introspection/introspector';
@@ -414,6 +414,26 @@ describe('the binary and set attributes of an array element', () => {
     expect(call.ExpressionAttributeValues).toBeUndefined();
   });
 
+  it('sets and removes in one statement, so the second does not look for a record the first changed', async () => {
+    const { collection, client } = build({
+      Query: () => ({ Items: [{ ...order, lines: [{ sku: 'A', labels: new Set(['old']) }] }] }),
+      Update: () => ({}),
+    });
+
+    await collection.update(
+      caller,
+      new Filter({
+        conditionTree: and(leaf('customerId', 'Equal', 'c1'), leaf('sku', 'Equal', 'A')),
+      }),
+      { sku: 'B', labels: [] },
+    );
+
+    expect(client.calls('Update')).toHaveLength(1);
+    expect(client.calls('Update')[0].UpdateExpression).toMatch(
+      /^SET #n0\[0\]\.#n1 = :v0 REMOVE #n0\[0\]\.#n2$/,
+    );
+  });
+
   it('stores bytes and a set in the client-side rewrite too', async () => {
     const { collection, client } = build({
       Query: () => ({ Items: [order] }),
@@ -428,8 +448,9 @@ describe('the binary and set attributes of an array element', () => {
 
     await collection.update(caller, first, { blob: 'AQID', labels: [] });
 
-    const [assigned, cleared] = client.calls('Put').map(call => call.Item.lines[0]);
-    expect(Array.from(assigned.blob)).toEqual([1, 2, 3]);
-    expect(cleared).not.toHaveProperty('labels');
+    expect(client.calls('Put')).toHaveLength(1);
+    const [line] = client.calls('Put')[0].Item.lines;
+    expect(Array.from(line.blob)).toEqual([1, 2, 3]);
+    expect(line).not.toHaveProperty('labels');
   });
 });

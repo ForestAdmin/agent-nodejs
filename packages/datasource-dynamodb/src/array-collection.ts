@@ -199,41 +199,30 @@ export default class ArrayCollection extends BaseCollection {
     const assigned = entries.filter(([, value]) => value !== CLEARED);
     const cleared = entries.filter(([, value]) => value === CLEARED);
 
-    if (assigned.length) {
-      await this.writePerTableItem(caller, filter, {
-        keyword: 'SET',
-        clauses: (builder, position, state) => {
-          state.values ??= assigned.map(([, value]) => builder.value(value));
+    // One statement for the whole patch: a second one would look for the record again by the very
+    // attribute the first changed.
+    await this.writePerTableItem(caller, filter, {
+      clauses: (builder, position, state) => {
+        state.values ??= assigned.map(([, value]) => builder.value(value));
 
-          return assigned.map(
-            ([field], index) =>
-              `${this.elementPath(builder, position)}.${builder.attribute(field)} = ${
-                state.values[index]
-              }`,
-          );
-        },
-        fallback: (key, positions) => this.replaceElements(key, positions, assigned),
-      });
-    }
+        const path = this.elementPath(builder, position);
 
-    if (cleared.length) {
-      await this.writePerTableItem(caller, filter, {
-        keyword: 'REMOVE',
-        clauses: (builder, position) =>
-          cleared.map(
-            ([field]) => `${this.elementPath(builder, position)}.${builder.attribute(field)}`,
+        return {
+          set: assigned.map(
+            ([field], index) => `${path}.${builder.attribute(field)} = ${state.values[index]}`,
           ),
-        fallback: (key, positions) => this.replaceElements(key, positions, cleared),
-      });
-    }
+          remove: cleared.map(([field]) => `${path}.${builder.attribute(field)}`),
+        };
+      },
+      fallback: (key, positions) => this.replaceElements(key, positions, entries),
+    });
   }
 
   async delete(caller: Caller, filter: Filter): Promise<void> {
     await this.writePerTableItem(caller, filter, {
-      keyword: 'REMOVE',
       // Highest positions first, so that removing one does not shift those still to remove.
       descending: true,
-      clauses: (builder, position) => [this.elementPath(builder, position)],
+      clauses: (builder, position) => ({ set: [], remove: [this.elementPath(builder, position)] }),
     });
   }
 
@@ -627,13 +616,12 @@ export default class ArrayCollection extends BaseCollection {
     caller: Caller,
     filter: Filter,
     write: {
-      keyword: 'SET' | 'REMOVE';
       descending?: boolean;
       clauses: (
         builder: ExpressionBuilder,
         position: number[],
         state: { values?: string[] },
-      ) => string[];
+      ) => { set: string[]; remove: string[] };
       /** What to do when DynamoDB refuses the path, for instance under a map that is missing. */
       fallback?: (key: Item, positions: number[][]) => Promise<void>;
     },
@@ -663,25 +651,37 @@ export default class ArrayCollection extends BaseCollection {
         });
         let builder = new ExpressionBuilder();
         let state: { values?: string[] } = {};
-        let clauses: string[] = [];
+        let sets: string[] = [];
+        let removes: string[] = [];
 
         const flush = async () => {
-          if (clauses.length) {
-            await this.writeExpression(key, `${write.keyword} ${clauses.join(', ')}`, builder);
+          if (sets.length || removes.length) {
+            const expression = [
+              sets.length ? `SET ${sets.join(', ')}` : '',
+              removes.length ? `REMOVE ${removes.join(', ')}` : '',
+            ]
+              .filter(Boolean)
+              .join(' ');
+
+            await this.writeExpression(key, expression, builder);
           }
 
           builder = new ExpressionBuilder();
           state = {};
-          clauses = [];
+          sets = [];
+          removes = [];
         };
 
         try {
           for (const position of ordered) {
-            clauses.push(...write.clauses(builder, position, state));
+            const clauses = write.clauses(builder, position, state);
+
+            sets.push(...clauses.set);
+            removes.push(...clauses.remove);
 
             // An expression is limited to 4 KB: past a safe size, what is left goes in the next.
             // eslint-disable-next-line no-await-in-loop
-            if (clauses.join(', ').length > MAX_EXPRESSION_LENGTH) await flush();
+            if ([...sets, ...removes].join(', ').length > MAX_EXPRESSION_LENGTH) await flush();
           }
 
           await flush();
