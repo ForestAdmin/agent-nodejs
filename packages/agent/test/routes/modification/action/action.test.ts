@@ -1965,6 +1965,36 @@ describe('ActionRoute', () => {
         },
       });
 
+    const callRoute = async (path: string, context: ReturnType<typeof buildContext>) => {
+      const actionRouter = factories.router.mockAllMethods().build();
+      route.setupRoutes(actionRouter);
+      const [, ...handlers] = (actionRouter.post as jest.Mock).mock.calls.find(
+        ([registeredPath]) => registeredPath === path,
+      );
+      const dispatch = (index: number): Promise<void> =>
+        index < handlers.length ? handlers[index](context, () => dispatch(index + 1)) : undefined;
+
+      return dispatch(0);
+    };
+
+    const executePath = '/_actions/books/0/mybulkaction';
+    const loadHookPath = '/_actions/books/0/mybulkaction/hooks/load';
+
+    const buildApprovalContext = (allowed: boolean) => {
+      const signedRequest = buildContext({ requester_id: 12 }).request.body;
+      (options.forestAdminClient.verifySignedActionParameters as jest.Mock).mockReturnValue(
+        signedRequest,
+      );
+      allowSegmentQuery(allowed);
+
+      return createMockContext({
+        ...baseContext,
+        throw: throwingThrow(),
+        state: { user: { ...baseContext.state.user, renderingId: 7 } },
+        requestBody: { data: { attributes: { signed_approval_request: 'signed-request' } } },
+      });
+    };
+
     const allowSegmentQuery = (allowed: boolean) =>
       (
         options.forestAdminClient.permissionService.canExecuteSegmentQuery as jest.Mock
@@ -1993,8 +2023,7 @@ describe('ActionRoute', () => {
       allowSegmentQuery(false);
       const context = buildContext();
 
-      // @ts-expect-error: test private method
-      await expect(route.handleExecute(context)).rejects.toMatchObject({ status: 403 });
+      await expect(callRoute(executePath, context)).rejects.toMatchObject({ status: 403 });
 
       expect(
         options.forestAdminClient.permissionService.canExecuteSegmentQuery,
@@ -2006,8 +2035,7 @@ describe('ActionRoute', () => {
       allowSegmentQuery(true);
       const context = buildContext();
 
-      // @ts-expect-error: test private method
-      await route.handleExecute(context);
+      await callRoute(executePath, context);
 
       expect(
         options.forestAdminClient.permissionService.canExecuteSegmentQuery,
@@ -2027,8 +2055,7 @@ describe('ActionRoute', () => {
       allowSegmentQuery(false);
       const context = buildContext();
 
-      // @ts-expect-error: test private method
-      await expect(route.handleHook(context)).rejects.toMatchObject({ status: 403 });
+      await expect(callRoute(loadHookPath, context)).rejects.toMatchObject({ status: 403 });
 
       expect(
         options.forestAdminClient.permissionService.canExecuteSegmentQuery,
@@ -2040,8 +2067,7 @@ describe('ActionRoute', () => {
       allowSegmentQuery(true);
       const context = buildContext();
 
-      // @ts-expect-error: test private method
-      await route.handleHook(context);
+      await callRoute(loadHookPath, context);
 
       expect(
         options.forestAdminClient.permissionService.canExecuteSegmentQuery,
@@ -2058,11 +2084,9 @@ describe('ActionRoute', () => {
     });
 
     test('refuses an approval on a segment the approver is not allowed to run', async () => {
-      allowSegmentQuery(false);
-      const context = buildContext({ requester_id: 12 });
+      const context = buildApprovalContext(false);
 
-      // @ts-expect-error: test private method
-      await expect(route.handleExecute(context)).rejects.toMatchObject({ status: 403 });
+      await expect(callRoute(executePath, context)).rejects.toMatchObject({ status: 403 });
 
       expect(
         options.forestAdminClient.permissionService.canExecuteSegmentQuery,
@@ -2071,11 +2095,9 @@ describe('ActionRoute', () => {
     });
 
     test('executes an approval on a segment the approver is allowed to run', async () => {
-      allowSegmentQuery(true);
-      const context = buildContext({ requester_id: 12 });
+      const context = buildApprovalContext(true);
 
-      // @ts-expect-error: test private method
-      await route.handleExecute(context);
+      await callRoute(executePath, context);
 
       expect(
         options.forestAdminClient.permissionService.canExecuteSegmentQuery,
