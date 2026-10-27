@@ -2,6 +2,8 @@ import { Projection } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import List from '../../../src/routes/access/list';
+import AuthorizationService from '../../../src/services/authorization/authorization';
+import SegmentQueryHandler from '../../../src/services/segment-query-handler';
 import * as factories from '../../__factories__';
 
 describe('ListRoute', () => {
@@ -282,6 +284,93 @@ describe('ListRoute', () => {
       list.setupRoutes(router);
 
       expect(router.get).toHaveBeenCalledWith('/books\\+\\?\\*', expect.any(Function));
+    });
+  });
+
+  describe('with a live query segment and the real authorization service', () => {
+    const throwingThrow = () =>
+      jest.fn((status: number, message: string) => {
+        throw Object.assign(new Error(message), { status });
+      });
+
+    const setupWithRealAuthorization = (canExecuteSegmentQuery: boolean) => {
+      const { dataSource, options, collection } = setup();
+      const forestAdminClient = factories.forestAdminClient.build();
+      (forestAdminClient.permissionService.canOnCollection as jest.Mock).mockResolvedValue(true);
+      (forestAdminClient.permissionService.canExecuteSegmentQuery as jest.Mock).mockResolvedValue(
+        canExecuteSegmentQuery,
+      );
+      (
+        forestAdminClient.contextVariablesInstantiator.buildContextVariables as jest.Mock
+      ).mockResolvedValue({ getValue: jest.fn() });
+      const services = factories.forestAdminHttpDriverServices.build({
+        authorization: new AuthorizationService(forestAdminClient),
+        segmentQueryHandler: new SegmentQueryHandler(
+          forestAdminClient.contextVariablesInstantiator,
+        ),
+      });
+      jest.spyOn(collection, 'list').mockResolvedValue([{ id: 1 }]);
+
+      return {
+        forestAdminClient,
+        list: new List(services, options, dataSource, collection.name),
+        collection,
+      };
+    };
+
+    const buildContext = () =>
+      createMockContext({
+        throw: throwingThrow(),
+        state: { user: { id: 35, renderingId: 42, email: 'john.doe@domain.com' } },
+        customProperties: {
+          query: {
+            timezone: 'Europe/Paris',
+            segmentQuery: 'SELECT id FROM books',
+            connectionName: 'main',
+          },
+        },
+      });
+
+    const expectedSegmentCheck = {
+      userId: 35,
+      collectionName: 'books',
+      renderingId: 42,
+      segmentQuery: 'SELECT id FROM books',
+      connectionName: 'main',
+    };
+
+    test('refuses to list a segment the user is not allowed to run', async () => {
+      const { forestAdminClient, list, collection } = setupWithRealAuthorization(false);
+      const context = buildContext();
+
+      await expect(list.handleList(context)).rejects.toMatchObject({ status: 403 });
+
+      expect(forestAdminClient.permissionService.canExecuteSegmentQuery).toHaveBeenCalledWith(
+        expectedSegmentCheck,
+      );
+      expect(collection.list).not.toHaveBeenCalled();
+    });
+
+    test('lists a segment the user is allowed to run', async () => {
+      const { forestAdminClient, list, collection } = setupWithRealAuthorization(true);
+      const context = buildContext();
+
+      await list.handleList(context);
+
+      expect(forestAdminClient.permissionService.canExecuteSegmentQuery).toHaveBeenCalledWith(
+        expectedSegmentCheck,
+      );
+      expect(collection.list).toHaveBeenCalledWith(
+        expect.objectContaining({ timezone: 'Europe/Paris' }),
+        expect.objectContaining({
+          liveQuerySegment: {
+            query: 'SELECT id FROM books',
+            connectionName: 'main',
+            contextVariables: {},
+          },
+        }),
+        expect.anything(),
+      );
     });
   });
 });
