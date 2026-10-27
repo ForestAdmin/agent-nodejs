@@ -27,6 +27,7 @@ export const PUSHABLE_OPERATORS = new Set<Operator>([
   'NotIn',
   'Missing',
   'Blank',
+  'Present',
   'StartsWith',
   'Contains',
   'NotContains',
@@ -186,6 +187,10 @@ export default class ExpressionBuilder {
     return hasNull ? `(${matches} OR ${this.missing(path)})` : matches;
   }
 
+  private blank(path: string): string {
+    return `(attribute_not_exists(${path}) OR ${this.isNull(path)} OR ${path} = ${this.value('')})`;
+  }
+
   private leaf(leaf: ConditionTreeLeaf): string {
     const path = this.attribute(leaf.field);
     const { operator, value } = leaf;
@@ -199,9 +204,9 @@ export default class ExpressionBuilder {
       case 'Missing':
         return this.missing(path);
       case 'Blank':
-        return `(attribute_not_exists(${path}) OR ${this.isNull(path)} OR ${path} = ${this.value(
-          '',
-        )})`;
+        return this.blank(path);
+      case 'Present':
+        return `NOT ${this.blank(path)}`;
       case 'In':
         return values.length === 0 ? this.never(path) : this.in(path, values);
 

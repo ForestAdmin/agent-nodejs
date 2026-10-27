@@ -164,6 +164,7 @@ export function createDynamoDBDataSource(
         maxOffset: options.maxOffset,
         logConsumedCapacity: options.logConsumedCapacity,
         logQueries: options.logQueries,
+        inMemoryProcessing: options.inMemoryProcessing,
         paginationCache: new PaginationCache(options.paginationCache),
       }),
     );

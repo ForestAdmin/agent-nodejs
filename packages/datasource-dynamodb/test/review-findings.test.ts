@@ -71,7 +71,11 @@ describe('caches after a failed write', () => {
 describe('sorting a large result', () => {
   it('sorts more records than a function call can take as arguments', async () => {
     const items = Array.from({ length: 150000 }, (_, i) => ({ id: `u${i}`, age: i % 1000 }));
-    const { collection } = buildCollection(buildSimpleModel(), { Scan: () => ({ Items: items }) });
+    const { collection } = buildCollection(
+      buildSimpleModel(),
+      { Scan: () => ({ Items: items }) },
+      { inMemoryProcessing: true },
+    );
 
     const records = await collection.list(
       caller,

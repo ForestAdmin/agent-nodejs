@@ -28,6 +28,7 @@ export function resolveSettings(settings: Partial<CollectionSettings> = {}): Col
     writeRetryBaseDelayMs: 50,
     logConsumedCapacity: false,
     logQueries: false,
+    inMemoryProcessing: false,
     ...settings,
     now,
     paginationCache: settings.paginationCache ?? new PaginationCache({ now }),

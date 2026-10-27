@@ -152,6 +152,7 @@ run('DynamoDB Local', () => {
         { parentCollection: 'orders', collectionName: 'meta_items', arrayField: 'meta@@@items' },
       ],
       liveQueryConnection: 'dynamo',
+      inMemoryProcessing: true,
       chartCacheTtlMs: 0,
       scanConcurrency: 2,
     })(logger, jest.fn());
@@ -1059,6 +1060,59 @@ run('DynamoDB Local', () => {
       })(jest.fn(), jest.fn());
 
       expect(adjusted.collections.map(c => c.name).sort()).toEqual([ORDERS, 'shared_users'].sort());
+    });
+  });
+
+  describe('Present and Blank', () => {
+    const PB = `pb-${suffix}`;
+
+    beforeAll(async () => {
+      await client.send(
+        new CreateTableCommand({
+          TableName: PB,
+          BillingMode: 'PAY_PER_REQUEST',
+          KeySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],
+          AttributeDefinitions: [{ AttributeName: 'id', AttributeType: 'S' }],
+        }),
+      );
+
+      for (const Item of [
+        { id: 'a', name: 'x' },
+        { id: 'b' },
+        { id: 'c', name: null },
+        { id: 'd', name: '' },
+      ]) {
+        // eslint-disable-next-line no-await-in-loop
+        await documents.send(new PutCommand({ TableName: PB, Item }));
+      }
+    });
+
+    afterAll(async () => {
+      await client.send(new DeleteTableCommand({ TableName: PB })).catch(() => undefined);
+    });
+
+    const idsFor = async (operator: string) => {
+      const source = await createDynamoDBDataSource({ client: documents, tables: [PB] })(
+        jest.fn(),
+        jest.fn(),
+      );
+      const records = await source
+        .getCollection(PB)
+        .list(
+          caller,
+          new PaginatedFilter({ conditionTree: leaf('name', operator) }),
+          new Projection('id'),
+        );
+
+      return records.map(record => record.id).sort();
+    };
+
+    it('keeps the items that hold a value, as DynamoDB evaluates it', async () => {
+      expect(await idsFor('Present')).toEqual(['a']);
+    });
+
+    it('keeps the items without a value, a null or an empty string', async () => {
+      expect(await idsFor('Blank')).toEqual(['b', 'c', 'd']);
     });
   });
 

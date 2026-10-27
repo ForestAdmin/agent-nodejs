@@ -123,6 +123,18 @@ export default class ArrayCollection extends BaseCollection {
       overrideTypeConverter: undefined,
     };
     const fields = convertModelToFields(model);
+    const inMemory = this.root.settings.inMemoryProcessing;
+
+    // The attributes of an element live inside the item: a filter on one reads every parent. Only
+    // the keys of the item and the position of the element narrow what is read.
+    for (const [name, field] of Object.entries(fields)) {
+      if (!inMemory && field.type === 'Column') {
+        const isKey = this.keyColumns.includes(name);
+
+        field.filterOperators = new Set(isKey ? ['Equal', 'In'] : []);
+        field.isSortable = false;
+      }
+    }
 
     for (const name of this.keyColumns) {
       Object.assign(fields[name], { isPrimaryKey: true, isReadOnly: true });

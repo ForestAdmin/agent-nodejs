@@ -329,9 +329,11 @@ describe('DynamoDBCollection.list', () => {
 
   describe('sort', () => {
     it('sorts on a non-key attribute after reading the matching items', async () => {
-      const { collection } = buildCollection(buildModel(), {
-        Query: () => ({ Items: [order(3), order(1), order(2)] }),
-      });
+      const { collection } = buildCollection(
+        buildModel(),
+        { Query: () => ({ Items: [order(3), order(1), order(2)] }) },
+        { inMemoryProcessing: true },
+      );
 
       const records = await collection.list(
         caller,
@@ -346,9 +348,11 @@ describe('DynamoDBCollection.list', () => {
     });
 
     it('sorts null and missing values last when ascending', async () => {
-      const { collection } = buildCollection(buildSimpleModel(), {
-        Scan: () => ({ Items: [{ id: 'a' }, { id: 'b', age: 2 }, { id: 'c', age: 1 }] }),
-      });
+      const { collection } = buildCollection(
+        buildSimpleModel(),
+        { Scan: () => ({ Items: [{ id: 'a' }, { id: 'b', age: 2 }, { id: 'c', age: 1 }] }) },
+        { inMemoryProcessing: true },
+      );
 
       const records = await collection.list(
         caller,

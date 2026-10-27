@@ -145,6 +145,7 @@ export type CollectionSettings = {
   writeRetryBaseDelayMs: number;
   logConsumedCapacity: boolean;
   logQueries: boolean;
+  inMemoryProcessing: boolean;
   paginationCache: PaginationCache;
   /** Charts by table then by request: every collection of a table drops them on a write. */
   chartCaches: Map<string, Map<string, { at: number; value: AggregateResult[] }>>;
@@ -178,6 +179,12 @@ export type DynamoDBSettingsOptions = {
   logConsumedCapacity?: boolean;
   /** Log the expressions sent to DynamoDB. */
   logQueries?: boolean;
+  /**
+   * Lets Forest filter and sort on what DynamoDB does not evaluate itself (`IContains`, `Like`,
+   * relative dates, a sort on any attribute): the datasource reads the items and does it. Off by
+   * default: those columns are then neither filterable that way nor sortable.
+   */
+  inMemoryProcessing?: boolean;
   paginationCache?: PaginationCacheOptions;
 };
 

@@ -53,7 +53,7 @@ describe('maxOffset on reads that sort in memory', () => {
     const { collection, client } = buildCollection(
       buildSimpleModel(),
       { Scan: () => ({ Items: [{ id: 'u1', name: 'a' }] }) },
-      { maxOffset: 100, scanConcurrency: 1 },
+      { maxOffset: 100, scanConcurrency: 1, inMemoryProcessing: true },
     );
 
     await expect(

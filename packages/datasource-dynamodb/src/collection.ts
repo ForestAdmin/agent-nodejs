@@ -135,7 +135,7 @@ export default class DynamoDBCollection extends BaseCollection {
     this.logger = logger;
     this.executor = new DynamoExecutor(client, model, settings, logger);
 
-    this.addFields(convertModelToFields(model, logger));
+    this.addFields(convertModelToFields(model, logger, settings.inMemoryProcessing));
     if (model.enableCount ?? true) this.enableCount();
 
     this.columnNames = Object.keys(this.schema.fields);
@@ -329,6 +329,29 @@ export default class DynamoDBCollection extends BaseCollection {
     return value;
   }
 
+  /** Forest hides the sort of a column that is not ordered by a key: a request for it is refused. */
+  private assertSortable(sort?: Sort): void {
+    if (this.settings.inMemoryProcessing || !sort) return;
+
+    const keys = new Set(
+      [
+        this.model.partitionKey,
+        this.model.sortKey,
+        ...this.model.indexes.flatMap(index => [index.partitionKey, index.sortKey]),
+      ]
+        .filter(Boolean)
+        .map(key => key.name),
+    );
+    const unordered = sort.find(clause => !keys.has(clause.field));
+
+    if (unordered) {
+      throw new ValidationError(
+        `Sorting on '${unordered.field}' reads every item and sorts them in memory: DynamoDB ` +
+          `sorts on keys only. Set inMemoryProcessing to allow it.`,
+      );
+    }
+  }
+
   private isBinary(field: string): boolean {
     return this.model.schema[field]?.type === 'binary';
   }
@@ -506,6 +529,9 @@ export default class DynamoDBCollection extends BaseCollection {
     projection: Projection,
   ): Promise<RecordData[]> {
     const sort = filter.sort?.length ? filter.sort : undefined;
+
+    this.assertSortable(sort);
+
     const skip = filter.page?.skip ?? 0;
     const limit = filter.page?.limit || undefined;
     const { maxOffset } = this.settings;

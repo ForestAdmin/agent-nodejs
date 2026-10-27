@@ -243,13 +243,13 @@ describe('splitCondition', () => {
     },
   );
 
-  it('leaves Present to the items, since the toolkit also excludes empty strings from it', () => {
+  it('pushes Present as the negation of Blank, which also excludes empty strings', () => {
     const tree = leaf('f', 'Present');
 
     const { pushable, residual } = splitCondition(tree);
 
-    expect(pushable).toBeUndefined();
-    expect(residual).toBe(tree);
+    expect(pushable).toBe(tree);
+    expect(residual).toBeUndefined();
   });
 
   it('returns everything as pushable when DynamoDB can evaluate it', () => {

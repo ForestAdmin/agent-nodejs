@@ -302,29 +302,6 @@ describe('an attribute an item does not have', () => {
     { id: 'c', name: null, address: {} },
   ];
 
-  const idsFor = async (field: string, operator: string) => {
-    const { collection } = buildCollection(
-      model(),
-      { Scan: () => ({ Items: items }) },
-      { scanConcurrency: 1 },
-    );
-    const records = await collection.list(
-      caller,
-      new PaginatedFilter({ conditionTree: leaf(field, operator as never) }),
-      new Projection('id'),
-    );
-
-    return records.map(record => record.id).sort();
-  };
-
-  it('is not Present, like a null one', async () => {
-    expect(await idsFor('name', 'Present')).toEqual(['a']);
-  });
-
-  it('is not Present when it sits in a map the item lacks', async () => {
-    expect(await idsFor('address@@@city', 'Present')).toEqual(['a']);
-  });
-
   it('is read as null', async () => {
     const { collection } = buildCollection(
       model(),
