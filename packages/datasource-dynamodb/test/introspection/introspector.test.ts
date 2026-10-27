@@ -114,8 +114,8 @@ describe('introspectTable', () => {
       total: { type: 'number', nullable: false },
       createdAt: { type: 'date', nullable: false },
       tags: { type: 'array', nullable: true },
-      'address->city': { type: 'string', nullable: true },
-      'address->geo->lat': { type: 'number', nullable: true },
+      'address@@@city': { type: 'string', nullable: true },
+      'address@@@geo@@@lat': { type: 'number', nullable: true },
       note: { type: 'string', nullable: true },
     });
     expect(schema.address).toBeUndefined();
@@ -147,8 +147,8 @@ describe('introspectTable', () => {
       maxDepth: 2,
     });
 
-    expect(schema['a->b']).toMatchObject({ type: 'object' });
-    expect(schema['a->b->c']).toBeUndefined();
+    expect(schema['a@@@b']).toMatchObject({ type: 'object' });
+    expect(schema['a@@@b@@@c']).toBeUndefined();
   });
 
   it('exposes only the nested columns of a map seen empty in some items', async () => {
@@ -169,7 +169,7 @@ describe('introspectTable', () => {
     });
 
     expect(schema.address).toBeUndefined();
-    expect(schema['address->city']).toMatchObject({ type: 'string', nullable: true });
+    expect(schema['address@@@city']).toMatchObject({ type: 'string', nullable: true });
   });
 
   it('declares the keys even when the table is empty', async () => {

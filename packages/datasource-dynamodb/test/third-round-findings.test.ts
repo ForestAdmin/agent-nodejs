@@ -135,7 +135,7 @@ describe('writing binary attributes', () => {
 });
 
 describe('a nested entity discriminator', () => {
-  const model = () => buildModel({ entity: { attribute: 'meta->type', value: 'ORDER' } });
+  const model = () => buildModel({ entity: { attribute: 'meta@@@type', value: 'ORDER' } });
 
   it('is stamped under its path, not under a literal key', async () => {
     const { collection, client } = buildCollection(model(), { Put: () => ({}) });
@@ -144,16 +144,16 @@ describe('a nested entity discriminator', () => {
     const { Item } = client.calls('Put')[0];
 
     expect(Item.meta).toEqual({ type: 'ORDER' });
-    expect(Object.keys(Item)).not.toContain('meta->type');
-    expect(created['meta->type']).toBe('ORDER');
+    expect(Object.keys(Item)).not.toContain('meta@@@type');
+    expect(created['meta@@@type']).toBe('ORDER');
   });
 
   it('refuses another value supplied for it', async () => {
     const { collection, client } = buildCollection(model(), { Put: () => ({}) });
 
     await expect(
-      collection.create(caller, [{ customerId: 'c1', orderId: 'o1', 'meta->type': 'INVOICE' }]),
-    ).rejects.toThrow("The attribute 'meta->type' of 'orders' must be 'ORDER'");
+      collection.create(caller, [{ customerId: 'c1', orderId: 'o1', 'meta@@@type': 'INVOICE' }]),
+    ).rejects.toThrow("The attribute 'meta@@@type' of 'orders' must be 'ORDER'");
     expect(client.calls('Put')).toHaveLength(0);
   });
 });
@@ -161,7 +161,7 @@ describe('a nested entity discriminator', () => {
 describe('a nested entity discriminator left out of the schema', () => {
   it('still matches the items of the entity when they are read by key', async () => {
     const { collection } = buildCollection(
-      buildModel({ entity: { attribute: 'meta->type', value: 'ORDER' } }),
+      buildModel({ entity: { attribute: 'meta@@@type', value: 'ORDER' } }),
       {
         BatchGet: () => ({
           Responses: {

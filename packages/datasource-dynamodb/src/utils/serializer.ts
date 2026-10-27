@@ -4,7 +4,7 @@ import { ValidationError } from '@forestadmin/datasource-toolkit';
 
 import TypeConverter from './type-converter';
 
-export const PATH_SEPARATOR = '->';
+export const PATH_SEPARATOR = '@@@';
 
 const nestedPrefixesCache = new WeakMap<Set<string>, Set<string>>();
 
@@ -71,7 +71,7 @@ export default class Serializer {
     return value;
   }
 
-  /** Turns an item into a record: maps that have declared columns become `a->b` fields. */
+  /** Turns an item into a record: maps that have declared columns become `a@@@b` fields. */
   static flatten(item: Record<string, unknown>, fields: Set<string>): RecordData {
     const prefixes = nestedPrefixes(fields);
     const record: RecordData = {};
@@ -90,7 +90,7 @@ export default class Serializer {
     return record;
   }
 
-  /** Turns `a->b` fields back into nested maps, ready to be written. */
+  /** Turns `a@@@b` fields back into nested maps, ready to be written. */
   static unflatten(record: RecordData): Record<string, unknown> {
     const item: Record<string, unknown> = {};
 

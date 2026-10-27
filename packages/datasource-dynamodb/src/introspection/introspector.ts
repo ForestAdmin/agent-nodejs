@@ -291,10 +291,13 @@ async function listTables(client: DynamoDBDocumentClient): Promise<string[]> {
 /** Introspects the given tables, or every table of the account and region. */
 export async function introspectTables(
   client: DynamoDBDocumentClient,
-  options: { tables?: string[]; sampleSize?: number; maxDepth?: number },
+  options: { tables?: string[]; exclude?: string[]; sampleSize?: number; maxDepth?: number },
   logger: Logger,
 ): Promise<TableModel[]> {
-  const tableNames = options.tables ?? (await listTables(client));
+  const excluded = new Set(options.exclude);
+  const tableNames = (options.tables ?? (await listTables(client))).filter(
+    name => !excluded.has(name),
+  );
 
   const models = await mapWithConcurrency(
     tableNames,

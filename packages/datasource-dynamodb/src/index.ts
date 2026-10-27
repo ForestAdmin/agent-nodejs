@@ -2,12 +2,12 @@ import type { ConfigurationOptions } from './introspection/builder';
 import type {
   DynamoDBClientOptions,
   DynamoDBSettingsOptions,
+  Introspection,
   IntrospectionConfig,
-  ManualSchemaConfig,
   TableModel,
   VirtualCollectionConfig,
 } from './types';
-import type { DataSourceFactory } from '@forestadmin/datasource-toolkit';
+import type { DataSourceFactory, Logger } from '@forestadmin/datasource-toolkit';
 
 import { ValidationError } from '@forestadmin/datasource-toolkit';
 
@@ -19,8 +19,9 @@ import {
   DEFAULT_SAMPLE_SIZE,
   introspectTables,
 } from './introspection/introspector';
-import { convertManualSchema } from './schema/manual-schema';
+import { convertManualSchema, toDefinition } from './schema/manual-schema';
 import { resolveSettings } from './settings';
+import { INTROSPECTION_VERSION } from './types';
 import PaginationCache from './utils/pagination-cache';
 import addVirtualCollections from './virtual-collections';
 
@@ -40,6 +41,7 @@ export type {
   EntityDefinition,
   FieldDefinition,
   IndexDefinition,
+  Introspection,
   IntrospectionConfig,
   ManualSchemaConfig,
   ScanPolicy,
@@ -48,13 +50,16 @@ export type {
 
 export type DynamoDBDataSourceOptions = DynamoDBClientOptions &
   DynamoDBSettingsOptions & {
-    /** Tables to introspect, instead of every table of the account and region. */
+    /**
+     * Tables to introspect, instead of every table of the account and region. An empty list
+     * introspects none, which leaves the builder collections alone.
+     */
     tables?: string[];
-    /** Adds collections one table at a time, to name them or to share a table between several. */
+    /**
+     * Adjusts the collections one table at a time: to name them, tune them or share a table
+     * between several. The tables it names are not introspected a second time.
+     */
     builder?: ConfigurationOptions;
-    /** Declares the collections instead of discovering them. Needs `disableIntrospection`. */
-    schema?: ManualSchemaConfig;
-    disableIntrospection?: boolean;
     introspectionConfig?: IntrospectionConfig;
     /** Exposes arrays of maps as collections of their own. */
     virtualCollections?: VirtualCollectionConfig[];
@@ -67,43 +72,72 @@ export type DynamoDBDataSourceOptions = DynamoDBClientOptions &
 const withoutUndefined = <T extends object>(value: T): T =>
   Object.fromEntries(Object.entries(value).filter(([, entry]) => entry !== undefined)) as T;
 
-async function loadModels(
+async function liveModels(
   options: DynamoDBDataSourceOptions,
   client: ReturnType<typeof createDocumentClient>,
-  logger: Parameters<DataSourceFactory>[0],
+  logger: Logger,
 ): Promise<TableModel[]> {
   const sampleSize = options.introspectionConfig?.sampleSize ?? DEFAULT_SAMPLE_SIZE;
   const maxDepth = options.introspectionConfig?.maxDepth ?? DEFAULT_MAX_DEPTH;
 
-  if (options.disableIntrospection) {
-    if (!options.schema) {
-      throw new ValidationError(
-        'When disableIntrospection is true, you must provide a schema with collection definitions',
-      );
-    }
-
-    logger('Info', 'Using the manual schema (introspection disabled)');
-
-    return convertManualSchema(options.schema);
-  }
-
-  if (options.builder) {
-    const builder = options.builder(
-      new DynamoDBDatasourceBuilder(client, { sampleSize, maxDepth }),
-    ) as DynamoDBDatasourceBuilder;
-
-    return builder.createCollectionsFromConfiguration();
-  }
+  const fromBuilder = options.builder
+    ? await (
+        options.builder(
+          new DynamoDBDatasourceBuilder(client, { sampleSize, maxDepth }),
+        ) as DynamoDBDatasourceBuilder
+      ).createCollectionsFromConfiguration()
+    : [];
 
   const models = await introspectTables(
     client,
-    { tables: options.tables, sampleSize, maxDepth },
+    {
+      tables: options.tables,
+      exclude: fromBuilder.map(model => model.tableName),
+      sampleSize,
+      maxDepth,
+    },
     logger,
   );
+
+  return [...fromBuilder, ...models];
+}
+
+async function loadModels(
+  options: DynamoDBDataSourceOptions,
+  introspection: Introspection | undefined,
+  client: ReturnType<typeof createDocumentClient>,
+  logger: Logger,
+): Promise<TableModel[]> {
+  if (introspection) {
+    if (options.builder) {
+      throw new ValidationError('An introspection and a builder cannot be used together');
+    }
+
+    logger('Info', 'Using the given introspection');
+
+    return convertManualSchema(introspection);
+  }
+
+  const models = await liveModels(options, client, logger);
 
   if (models.length === 0) logger('Warn', 'No collections were introspected.');
 
   return models;
+}
+
+/**
+ * Reads the tables and describes them as collection definitions. Save the result, for instance in
+ * a file, and give it back as the `introspection` of `createDynamoDBDataSource` to start without
+ * sampling the tables.
+ */
+export async function introspect(
+  options: DynamoDBDataSourceOptions = {},
+  logger: Logger = () => {},
+): Promise<Introspection> {
+  const client = createDocumentClient(options);
+  const models = await liveModels(options, client, logger);
+
+  return { version: INTROSPECTION_VERSION, collections: models.map(toDefinition) };
 }
 
 /**
@@ -116,6 +150,7 @@ async function loadModels(
  */
 export function createDynamoDBDataSource(
   options: DynamoDBDataSourceOptions = {},
+  dataSourceOptions: { introspection?: Introspection } = {},
 ): DataSourceFactory {
   return async logger => {
     const client = createDocumentClient(options);
@@ -133,7 +168,7 @@ export function createDynamoDBDataSource(
       }),
     );
 
-    const models = await loadModels(options, client, logger);
+    const models = await loadModels(options, dataSourceOptions.introspection, client, logger);
     const dataSource = new DynamoDBDataSource(client, models, logger, settings, {
       liveQueryConnection: options.liveQueryConnection,
     });

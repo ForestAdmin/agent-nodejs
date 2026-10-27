@@ -36,7 +36,7 @@ describe('ExpressionBuilder', () => {
     it('turns arrow notation into a nested document path', () => {
       const builder = new ExpressionBuilder();
 
-      expect(builder.condition(leaf('address->city', 'Equal', 'Paris'))).toBe('#n0.#n1 = :v0');
+      expect(builder.condition(leaf('address@@@city', 'Equal', 'Paris'))).toBe('#n0.#n1 = :v0');
       expect(builder.names).toEqual({ '#n0': 'address', '#n1': 'city' });
     });
 
@@ -208,7 +208,7 @@ describe('ExpressionBuilder', () => {
     it('aliases the top-level attribute of nested fields once', () => {
       const builder = new ExpressionBuilder();
 
-      expect(builder.projection(['pk', 'address->city', 'address->zip'])).toBe('#n0, #n1');
+      expect(builder.projection(['pk', 'address@@@city', 'address@@@zip'])).toBe('#n0, #n1');
       expect(builder.names).toEqual({ '#n0': 'pk', '#n1': 'address' });
     });
   });

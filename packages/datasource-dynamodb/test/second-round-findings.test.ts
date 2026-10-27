@@ -130,7 +130,7 @@ describe('array collections', () => {
       Put: () => ({}),
     });
 
-    const [created] = await lines('details->lines').create(caller, [
+    const [created] = await lines('details@@@lines').create(caller, [
       { customerId: 'c1', orderId: 'o1', sku: 'A' },
     ]);
 
@@ -153,7 +153,7 @@ describe('attribute names holding the path separator', () => {
           AttributeDefinitions: [{ AttributeName: 'id', AttributeType: 'S' }],
         },
       }),
-      Scan: () => ({ Items: [{ id: 'a', 'a->b': 1 }] }),
+      Scan: () => ({ Items: [{ id: 'a', 'a@@@b': 1 }] }),
     });
     const logger = jest.fn();
 
@@ -162,7 +162,7 @@ describe('attribute names holding the path separator', () => {
     expect(models).toEqual([]);
     expect(logger).toHaveBeenCalledWith(
       'Warn',
-      "Introspector - Skipping table 'T': Attribute 'a->b' contains '->', which names nested attributes",
+      "Introspector - Skipping table 'T': Attribute 'a@@@b' contains '@@@', which names nested attributes",
     );
   });
 
@@ -174,11 +174,11 @@ describe('attribute names holding the path separator', () => {
             name: 'c',
             tableName: 'T',
             partitionKey: { name: 'pk', type: 'string' },
-            fields: [{ name: 'a->b', type: 'string' }],
+            fields: [{ name: 'a@@@b', type: 'string' }],
           },
         ],
       }),
-    ).toThrow("Field 'a->b' in collection 'c' contains '->'");
+    ).toThrow("Field 'a@@@b' in collection 'c' contains '@@@'");
   });
 });
 
@@ -257,7 +257,7 @@ describe('a reversed range on the sort key', () => {
 
 describe('writing records', () => {
   it('refuses a path through __proto__ instead of changing every object', () => {
-    expect(() => Serializer.unflatten({ '__proto__->polluted': 'yes' })).toThrow(
+    expect(() => Serializer.unflatten({ '__proto__@@@polluted': 'yes' })).toThrow(
       "An attribute path cannot contain '__proto__'",
     );
     expect(() => Serializer.setPath({}, ['__proto__', 'polluted'], 'yes')).toThrow(
@@ -267,7 +267,7 @@ describe('writing records', () => {
   });
 
   it('does not take an inherited property for a map to write into', () => {
-    const item = Serializer.unflatten({ 'constructor->name': 'x' });
+    const item = Serializer.unflatten({ 'constructor@@@name': 'x' });
 
     expect(Object.keys(item)).toEqual(['constructor']);
     expect((item.constructor as unknown as Record<string, unknown>).name).toBe('x');
@@ -286,7 +286,7 @@ describe('writing records', () => {
     });
 
     await collection.update(caller, new Filter({ conditionTree: leaf('id', 'Equal', 'u1') }), {
-      'address->city': 'Lyon',
+      'address@@@city': 'Lyon',
     });
 
     expect(client.calls('Get')[0].ConsistentRead).toBe(true);

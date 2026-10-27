@@ -42,7 +42,7 @@ type Level = { arrayField: string; indexColumn: string };
 
 export type ArrayCollectionConfig = {
   name: string;
-  /** Attribute of the parent holding the array, `a->b` for one inside a map. */
+  /** Attribute of the parent holding the array, `a@@@b` for one inside a map. */
   arrayField: string;
   /** Attributes of an item, by flattened name. */
   itemSchema: Record<string, AttributeSchema>;
@@ -237,6 +237,13 @@ export default class ArrayCollection extends BaseCollection {
       .join('.');
   }
 
+  /** Reads an attribute the element does not have as a null, as the collection of a table does. */
+  private itemColumns(record: RecordData): RecordData {
+    for (const column of this.itemFields) record[column] ??= null;
+
+    return record;
+  }
+
   /** The columns identifying the parent element, as named by the parent. */
   private parentColumns(): string[] {
     return this.parent instanceof ArrayCollection ? this.parent.keyColumns : this.rootKeys;
@@ -282,7 +289,7 @@ export default class ArrayCollection extends BaseCollection {
             if (element && typeof element === 'object') {
               const record = {
                 // The identity comes last: an element's own `index` must not take its place.
-                ...Serializer.flatten(element as Item, this.itemFields),
+                ...this.itemColumns(Serializer.flatten(element as Item, this.itemFields)),
                 ...Object.fromEntries(
                   ownKeyColumns.map((name, i) => [name, parent[parentColumns[i]]]),
                 ),

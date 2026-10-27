@@ -11,6 +11,7 @@ import type {
 
 import { ValidationError } from '@forestadmin/datasource-toolkit';
 
+import { INTROSPECTION_VERSION } from '../types';
 import { PATH_SEPARATOR } from '../utils/serializer';
 
 const FIELD_TYPES: DynamoDataType[] = [
@@ -61,32 +62,20 @@ function validateFields(fields: FieldDefinition[], collectionName: string, path 
       );
     }
 
-    if (field.set && !(field.type === 'array' && ['string', 'number'].includes(field.subType))) {
+    const isSetCandidate =
+      field.type === 'array' && (!field.subType || ['string', 'number'].includes(field.subType));
+
+    if (field.set && !isSetCandidate) {
       throw new ValidationError(
         `Field '${fullPath}' in collection '${collectionName}' cannot be a set: only an array ` +
           `of strings or numbers can`,
       );
     }
 
-    if (field.type === 'array') {
-      if (!field.subType) {
-        throw new ValidationError(
-          `Array field '${fullPath}' in collection '${collectionName}' must have a subType`,
-        );
-      }
-
-      if (field.subType === 'object' && !field.fields?.length) {
-        throw new ValidationError(
-          `Array field '${fullPath}' in collection '${collectionName}' of objects must have ` +
-            `nested field definitions`,
-        );
-      }
-    }
-
-    if (field.type === 'object' && !field.fields?.length) {
+    if (field.type === 'array' && field.subType === 'object' && !field.fields?.length) {
       throw new ValidationError(
-        `Object field '${fullPath}' in collection '${collectionName}' must have nested field ` +
-          `definitions`,
+        `Array field '${fullPath}' in collection '${collectionName}' of objects must have ` +
+          `nested field definitions`,
       );
     }
 
@@ -152,12 +141,19 @@ function validateCollection(collection: CollectionDefinition): void {
 }
 
 export function validateManualSchema(schema: ManualSchemaConfig): void {
+  if (schema?.version !== undefined && schema.version !== INTROSPECTION_VERSION) {
+    throw new ValidationError(
+      `The introspection is in version ${schema.version}, this datasource reads version ` +
+        `${INTROSPECTION_VERSION}`,
+    );
+  }
+
   if (!Array.isArray(schema?.collections)) {
-    throw new ValidationError('Manual schema must have a collections array');
+    throw new ValidationError('The introspection must have a collections array');
   }
 
   if (schema.collections.length === 0) {
-    throw new ValidationError('Manual schema must have at least one collection');
+    throw new ValidationError('The introspection must have at least one collection');
   }
 
   const names = new Set<string>();
@@ -179,7 +175,7 @@ function flattenFields(fields: FieldDefinition[], prefix = ''): Record<string, A
   for (const field of fields) {
     const path = prefix ? `${prefix}${PATH_SEPARATOR}${field.name}` : field.name;
 
-    if (field.type === 'object') {
+    if (field.type === 'object' && field.fields?.length) {
       Object.assign(attributes, flattenFields(field.fields, path));
     } else {
       attributes[path] = {
@@ -239,4 +235,86 @@ export function convertManualSchema(schema: ManualSchemaConfig): TableModel[] {
   validateManualSchema(schema);
 
   return schema.collections.map(toModel);
+}
+
+const keyType = (key: KeyAttribute): 'string' | 'number' =>
+  key.type === 'N' ? 'number' : 'string';
+
+/** Nests the attributes of a table, flattened by name, back into field definitions. */
+function nestFields(
+  attributes: Record<string, AttributeSchema>,
+  keys: Set<string>,
+): FieldDefinition[] {
+  const fields: FieldDefinition[] = [];
+  const objects = new Map<string, FieldDefinition>();
+
+  for (const [path, attribute] of Object.entries(attributes)) {
+    const segments = path.split(PATH_SEPARATOR);
+
+    if (!keys.has(path)) {
+      let siblings = fields;
+
+      segments.slice(0, -1).forEach((segment, depth) => {
+        const objectPath = segments.slice(0, depth + 1).join(PATH_SEPARATOR);
+        let object = objects.get(objectPath);
+
+        if (!object) {
+          object = { name: segment, type: 'object', fields: [] };
+          objects.set(objectPath, object);
+          siblings.push(object);
+        }
+
+        siblings = object.fields;
+      });
+
+      const field: FieldDefinition = {
+        name: segments[segments.length - 1],
+        type: attribute.type,
+        nullable: attribute.nullable ?? false,
+        ...(attribute.set ? { set: true } : {}),
+      };
+
+      if (attribute.items) {
+        field.subType = 'object';
+        field.fields = nestFields(attribute.items, new Set());
+      }
+
+      siblings.push(field);
+    }
+  }
+
+  return fields;
+}
+
+/** The collection definition a table model comes from: what `introspect` returns. */
+export function toDefinition(model: TableModel): CollectionDefinition {
+  const keys = new Set([model.partitionKey.name, model.sortKey?.name].filter(Boolean));
+
+  return {
+    name: model.name,
+    tableName: model.tableName,
+    partitionKey: { name: model.partitionKey.name, type: keyType(model.partitionKey) },
+    ...(model.sortKey
+      ? { sortKey: { name: model.sortKey.name, type: keyType(model.sortKey) } }
+      : {}),
+    ...(model.indexes.length
+      ? {
+          indexes: model.indexes.map(index => ({
+            name: index.name,
+            type: index.type,
+            partitionKey: { name: index.partitionKey.name, type: keyType(index.partitionKey) },
+            ...(index.sortKey
+              ? { sortKey: { name: index.sortKey.name, type: keyType(index.sortKey) } }
+              : {}),
+            projectsAllAttributes: index.projectsAllAttributes,
+            coversAllItems: index.coversAllItems ?? false,
+          })),
+        }
+      : {}),
+    fields: nestFields(model.schema, keys),
+    ...(model.entity ? { entity: model.entity } : {}),
+    ...(model.enableCount !== undefined ? { enableCount: model.enableCount } : {}),
+    ...(model.scanPolicy ? { scanPolicy: model.scanPolicy } : {}),
+    ...(model.maxScannedItems !== undefined ? { maxScannedItems: model.maxScannedItems } : {}),
+  };
 }

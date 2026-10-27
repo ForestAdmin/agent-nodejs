@@ -467,7 +467,7 @@ describe('DynamoDBCollection.list', () => {
           schema: {
             id: { type: 'string' },
             tags: { type: 'array' },
-            'address->city': { type: 'string' },
+            'address@@@city': { type: 'string' },
           },
         }),
         {
@@ -480,21 +480,21 @@ describe('DynamoDBCollection.list', () => {
       const records = await collection.list(
         caller,
         new PaginatedFilter({}),
-        new Projection('id', 'tags', 'address->city'),
+        new Projection('id', 'tags', 'address@@@city'),
       );
 
-      expect(records).toEqual([{ id: 'u1', tags: ['a'], 'address->city': 'Paris' }]);
+      expect(records).toEqual([{ id: 'u1', tags: ['a'], 'address@@@city': 'Paris' }]);
     });
 
     it('fetches the top-level attribute of a nested projection, with the key', async () => {
       const { collection, client } = buildCollection(
         buildSimpleModel({
-          schema: { id: { type: 'string' }, 'address->city': { type: 'string' } },
+          schema: { id: { type: 'string' }, 'address@@@city': { type: 'string' } },
         }),
         { Scan: () => ({ Items: [] }) },
       );
 
-      await collection.list(caller, new PaginatedFilter({}), new Projection('address->city'));
+      await collection.list(caller, new PaginatedFilter({}), new Projection('address@@@city'));
 
       expect(client.calls('Scan')[0]).toMatchObject({
         ProjectionExpression: '#n0, #n1',

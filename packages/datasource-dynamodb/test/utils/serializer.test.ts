@@ -5,10 +5,10 @@ describe('Serializer', () => {
     it('expands nested maps declared as columns into arrow-notation fields', () => {
       const record = Serializer.flatten(
         { pk: 'a', address: { city: 'Paris', geo: { lat: 1 } } },
-        new Set(['pk', 'address->city', 'address->geo->lat']),
+        new Set(['pk', 'address@@@city', 'address@@@geo@@@lat']),
       );
 
-      expect(record).toEqual({ pk: 'a', 'address->city': 'Paris', 'address->geo->lat': 1 });
+      expect(record).toEqual({ pk: 'a', 'address@@@city': 'Paris', 'address@@@geo@@@lat': 1 });
     });
 
     it('keeps a map as Json when no nested column is declared under it', () => {
@@ -52,7 +52,7 @@ describe('Serializer', () => {
   describe('unflatten', () => {
     it('rebuilds nested maps from arrow-notation fields', () => {
       expect(
-        Serializer.unflatten({ pk: 'a', 'address->city': 'Paris', 'address->zip': '75' }),
+        Serializer.unflatten({ pk: 'a', 'address@@@city': 'Paris', 'address@@@zip': '75' }),
       ).toEqual({
         pk: 'a',
         address: { city: 'Paris', zip: '75' },
@@ -66,7 +66,7 @@ describe('Serializer', () => {
 
   describe('toDocumentPath', () => {
     it('splits arrow notation into path segments', () => {
-      expect(Serializer.toPathSegments('a->b->c')).toEqual(['a', 'b', 'c']);
+      expect(Serializer.toPathSegments('a@@@b@@@c')).toEqual(['a', 'b', 'c']);
     });
   });
 });

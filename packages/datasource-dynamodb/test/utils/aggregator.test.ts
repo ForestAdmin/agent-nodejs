@@ -121,12 +121,12 @@ describe('StreamingAggregator', () => {
     });
 
     it('reads flattened nested fields by their arrow path', () => {
-      const result = aggregate({ operation: 'Count', groups: [{ field: 'address->city' }] }, [
-        { 'address->city': 'Paris' },
-        { 'address->city': 'Paris' },
+      const result = aggregate({ operation: 'Count', groups: [{ field: 'address@@@city' }] }, [
+        { 'address@@@city': 'Paris' },
+        { 'address@@@city': 'Paris' },
       ]);
 
-      expect(result).toEqual([{ value: 2, group: { 'address->city': 'Paris' } }]);
+      expect(result).toEqual([{ value: 2, group: { 'address@@@city': 'Paris' } }]);
     });
 
     it('averages per group', () => {

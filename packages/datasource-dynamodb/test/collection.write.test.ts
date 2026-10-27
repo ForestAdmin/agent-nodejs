@@ -14,11 +14,11 @@ describe('DynamoDBCollection.create', () => {
     const { collection, client } = buildCollection(buildModel(), { Put: () => ({}) });
 
     const created = await collection.create(caller, [
-      { customerId: 'c1', orderId: 'o1', total: 5, 'address->city': 'Paris' },
+      { customerId: 'c1', orderId: 'o1', total: 5, 'address@@@city': 'Paris' },
     ]);
 
     expect(created).toEqual([
-      { customerId: 'c1', orderId: 'o1', total: 5, 'address->city': 'Paris' },
+      { customerId: 'c1', orderId: 'o1', total: 5, 'address@@@city': 'Paris' },
     ]);
     expect(client.calls('Put')[0]).toEqual({
       TableName: 'Orders',
@@ -176,7 +176,7 @@ describe('DynamoDBCollection.update', () => {
     const { collection, client } = buildCollection(buildSimpleModel(), { Update: () => ({}) });
 
     await collection.update(caller, new Filter({ conditionTree: leaf('id', 'Equal', 'u1') }), {
-      'address->city': 'Lyon',
+      'address@@@city': 'Lyon',
     });
 
     expect(client.calls('Update')[0]).toMatchObject({
@@ -272,7 +272,7 @@ describe('DynamoDBCollection.update', () => {
     });
 
     await collection.update(caller, new Filter({ conditionTree: leaf('id', 'Equal', 'u1') }), {
-      'address->city': 'Lyon',
+      'address@@@city': 'Lyon',
     });
 
     expect(client.calls('Put')[0]).toMatchObject({
@@ -296,7 +296,7 @@ describe('DynamoDBCollection.update', () => {
 
     await collection.update(caller, new Filter({ conditionTree: leaf('id', 'Equal', 'u1') }), {
       config: { keep: 3 },
-      'address->city': 'Lyon',
+      'address@@@city': 'Lyon',
     });
 
     expect(client.calls('Put')[0].Item).toEqual({

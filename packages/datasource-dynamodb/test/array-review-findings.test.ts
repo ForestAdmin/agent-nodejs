@@ -94,7 +94,7 @@ describe('ArrayCollection review findings', () => {
       Put: () => ({}),
     });
 
-    await collection.update(caller, new Filter({}), { 'details->note': 'hi' });
+    await collection.update(caller, new Filter({}), { 'details@@@note': 'hi' });
 
     expect(client.calls('Put')[0].Item).toEqual(order([{ sku: 'A', details: { note: 'hi' } }]));
   });

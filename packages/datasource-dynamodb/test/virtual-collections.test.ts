@@ -122,38 +122,42 @@ describe('virtual collections', () => {
       Scan: () => ({ Items: [] }),
     });
 
-    const dataSource = await createDynamoDBDataSource({
-      client,
-      disableIntrospection: true,
-      schema: {
-        collections: [
-          {
-            name: 'Orders',
-            tableName: 'Orders',
-            partitionKey: { name: 'id', type: 'string' },
-            fields: [
-              {
-                name: 'lines',
-                type: 'array',
-                subType: 'object',
-                fields: [
-                  {
-                    name: 'parts',
-                    type: 'array',
-                    subType: 'object',
-                    fields: [{ name: 'n', type: 'number' }],
-                  },
-                ],
-              },
-            ],
-          },
+    const dataSource = await createDynamoDBDataSource(
+      {
+        client,
+
+        virtualCollections: [
+          { parentCollection: 'Orders', collectionName: 'lines', arrayField: 'lines' },
+          { parentCollection: 'lines', collectionName: 'parts', arrayField: 'parts' },
         ],
       },
-      virtualCollections: [
-        { parentCollection: 'Orders', collectionName: 'lines', arrayField: 'lines' },
-        { parentCollection: 'lines', collectionName: 'parts', arrayField: 'parts' },
-      ],
-    })(jest.fn(), jest.fn());
+      {
+        introspection: {
+          collections: [
+            {
+              name: 'Orders',
+              tableName: 'Orders',
+              partitionKey: { name: 'id', type: 'string' },
+              fields: [
+                {
+                  name: 'lines',
+                  type: 'array',
+                  subType: 'object',
+                  fields: [
+                    {
+                      name: 'parts',
+                      type: 'array',
+                      subType: 'object',
+                      fields: [{ name: 'n', type: 'number' }],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      },
+    )(jest.fn(), jest.fn());
 
     expect(dataSource.getCollection('parts').schema.fields.n).toMatchObject({
       columnType: 'Number',

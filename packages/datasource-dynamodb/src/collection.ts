@@ -117,6 +117,7 @@ export default class DynamoDBCollection extends BaseCollection {
   readonly settings: CollectionSettings;
   private readonly logger: Logger;
   private readonly fieldNames: Set<string>;
+  private readonly columnNames: string[];
   private readonly matchContext: Collection;
   private readonly warnedAt = new Map<string, number>();
 
@@ -136,6 +137,8 @@ export default class DynamoDBCollection extends BaseCollection {
 
     this.addFields(convertModelToFields(model, logger));
     if (model.enableCount ?? true) this.enableCount();
+
+    this.columnNames = Object.keys(this.schema.fields);
 
     const entityAttribute = model.entity?.attribute;
 
@@ -276,7 +279,13 @@ export default class DynamoDBCollection extends BaseCollection {
   }
 
   private toRecord(item: Item): RecordData {
-    return Serializer.flatten(item, this.fieldNames);
+    const record = Serializer.flatten(item, this.fieldNames);
+
+    // An item has no attribute it never got, where Forest reads a null, and filters on Present
+    // or Blank tell the two apart.
+    for (const column of this.columnNames) record[column] ??= null;
+
+    return record;
   }
 
   private matches(tree: ConditionTree, item: Item, timezone: string): boolean {

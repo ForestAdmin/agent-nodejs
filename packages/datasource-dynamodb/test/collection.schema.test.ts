@@ -42,12 +42,12 @@ describe('DynamoDBCollection schema', () => {
   it('exposes nested attributes as arrow-notation columns', () => {
     const { collection } = buildCollection(
       buildSimpleModel({
-        schema: { id: { type: 'string' }, 'address->city': { type: 'string' } },
+        schema: { id: { type: 'string' }, 'address@@@city': { type: 'string' } },
       }),
       {},
     );
 
-    expect(collection.schema.fields['address->city']).toMatchObject({ columnType: 'String' });
+    expect(collection.schema.fields['address@@@city']).toMatchObject({ columnType: 'String' });
   });
 
   it('does not allow sorting on Json columns', () => {

@@ -173,30 +173,34 @@ describe('a manual schema collection without fields', () => {
 
 describe('the option naming the virtual collections', () => {
   it('also reads the name the ticket gives it', async () => {
-    const dataSource = await createDynamoDBDataSource({
-      client: fakeClient({}),
-      disableIntrospection: true,
-      virtualArrayCollections: [
-        { parentCollection: 'a', collectionName: 'a_items', arrayField: 'items' },
-      ],
-      schema: {
-        collections: [
-          {
-            name: 'a',
-            tableName: 'A',
-            partitionKey: { name: 'id', type: 'string' },
-            fields: [
-              {
-                name: 'items',
-                type: 'array',
-                subType: 'object',
-                fields: [{ name: 'k', type: 'string' }],
-              },
-            ],
-          },
+    const dataSource = await createDynamoDBDataSource(
+      {
+        client: fakeClient({}),
+
+        virtualArrayCollections: [
+          { parentCollection: 'a', collectionName: 'a_items', arrayField: 'items' },
         ],
       },
-    })(jest.fn(), jest.fn());
+      {
+        introspection: {
+          collections: [
+            {
+              name: 'a',
+              tableName: 'A',
+              partitionKey: { name: 'id', type: 'string' },
+              fields: [
+                {
+                  name: 'items',
+                  type: 'array',
+                  subType: 'object',
+                  fields: [{ name: 'k', type: 'string' }],
+                },
+              ],
+            },
+          ],
+        },
+      },
+    )(jest.fn(), jest.fn());
 
     expect(dataSource.collections.map(c => c.name).sort()).toEqual(['a', 'a_items']);
   });
@@ -221,21 +225,25 @@ describe('native queries', () => {
     'DELETE FROM "Users" WHERE id = \'a\'',
   ])('refuse the statement %s', async statement => {
     const client = fakeClient({ ExecuteStatement: () => ({ Items: [] }) });
-    const dataSource = await createDynamoDBDataSource({
-      client,
-      disableIntrospection: true,
-      schema: {
-        collections: [
-          {
-            name: 'u',
-            tableName: 'Users',
-            partitionKey: { name: 'id', type: 'string' },
-            fields: [],
-          },
-        ],
+    const dataSource = await createDynamoDBDataSource(
+      {
+        client,
+
+        liveQueryConnection: 'dynamo',
       },
-      liveQueryConnection: 'dynamo',
-    })(jest.fn(), jest.fn());
+      {
+        introspection: {
+          collections: [
+            {
+              name: 'u',
+              tableName: 'Users',
+              partitionKey: { name: 'id', type: 'string' },
+              fields: [],
+            },
+          ],
+        },
+      },
+    )(jest.fn(), jest.fn());
 
     await expect(dataSource.executeNativeQuery('dynamo', statement, {})).rejects.toThrow(
       'Only SELECT statements can be run as native queries',
@@ -276,5 +284,64 @@ describe('a chart computed while a write happens', () => {
     const after = await collection.aggregate(caller, new Filter({}), sum);
 
     expect(after).toEqual([{ value: 2, group: {} }]);
+  });
+});
+
+describe('an attribute an item does not have', () => {
+  const model = () =>
+    buildSimpleModel({
+      schema: {
+        id: { type: 'string' },
+        name: { type: 'string', nullable: true },
+        'address@@@city': { type: 'string', nullable: true },
+      },
+    });
+  const items = [
+    { id: 'a', name: 'x', address: { city: 'Paris' } },
+    { id: 'b' },
+    { id: 'c', name: null, address: {} },
+  ];
+
+  const idsFor = async (field: string, operator: string) => {
+    const { collection } = buildCollection(
+      model(),
+      { Scan: () => ({ Items: items }) },
+      { scanConcurrency: 1 },
+    );
+    const records = await collection.list(
+      caller,
+      new PaginatedFilter({ conditionTree: leaf(field, operator as never) }),
+      new Projection('id'),
+    );
+
+    return records.map(record => record.id).sort();
+  };
+
+  it('is not Present, like a null one', async () => {
+    expect(await idsFor('name', 'Present')).toEqual(['a']);
+  });
+
+  it('is not Present when it sits in a map the item lacks', async () => {
+    expect(await idsFor('address@@@city', 'Present')).toEqual(['a']);
+  });
+
+  it('is read as null', async () => {
+    const { collection } = buildCollection(
+      model(),
+      { Scan: () => ({ Items: items }) },
+      { scanConcurrency: 1 },
+    );
+
+    const records = await collection.list(
+      caller,
+      new PaginatedFilter({ sort: undefined }),
+      new Projection('id', 'name', 'address@@@city'),
+    );
+
+    expect(records.find(record => record.id === 'b')).toEqual({
+      id: 'b',
+      name: null,
+      'address@@@city': null,
+    });
   });
 });

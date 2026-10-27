@@ -94,7 +94,7 @@ export default class ExpressionBuilder {
 
   constructor(private readonly namePrefix = 'n', private readonly valuePrefix = 'v') {}
 
-  /** Alias of an attribute path: `a->b` becomes `#n0.#n1`. */
+  /** Alias of an attribute path: `a@@@b` becomes `#n0.#n1`. */
   attribute(field: string): string {
     if (field.includes(':')) {
       throw new ValidationError(`Filtering on the relation field "${field}" is not supported`);

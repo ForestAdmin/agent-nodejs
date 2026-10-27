@@ -64,7 +64,7 @@ export type TableModel = {
   partitionKey: KeyAttribute;
   sortKey?: KeyAttribute;
   indexes: IndexModel[];
-  /** Attributes by flattened name: nested maps are `a->b`. */
+  /** Attributes by flattened name: nested maps are `a@@@b`. */
   schema: Record<string, AttributeSchema>;
   entity?: EntityDefinition;
   enableCount?: boolean;
@@ -110,14 +110,27 @@ export type CollectionDefinition = {
   overrideTypeConverter?: OverrideTypeConverter;
 };
 
-export type ManualSchemaConfig = { collections: CollectionDefinition[] };
+/** The version of the introspection this datasource reads and writes. */
+export const INTROSPECTION_VERSION = 1;
+
+/**
+ * What the datasource knows of the tables: the output of `introspect` and the input of the
+ * `introspection` option, which skips the live introspection. Written by hand, it is the manual schema.
+ */
+export type Introspection = {
+  version?: typeof INTROSPECTION_VERSION;
+  collections: CollectionDefinition[];
+};
+
+/** @deprecated The manual schema is an introspection. */
+export type ManualSchemaConfig = Introspection;
 
 export type VirtualCollectionConfig = {
   /** Name of the collection holding the array. */
   parentCollection: string;
   /** Name of the new collection. */
   collectionName: string;
-  /** Attribute holding the array, `a->b` for a nested one. */
+  /** Attribute holding the array, `a@@@b` for a nested one. */
   arrayField: string;
 };
 

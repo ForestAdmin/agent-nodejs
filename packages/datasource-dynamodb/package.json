@@ -12,15 +12,9 @@
     "directory": "packages/datasource-dynamodb"
   },
   "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.750.0",
+    "@aws-sdk/lib-dynamodb": "^3.750.0",
     "@forestadmin/datasource-toolkit": "1.56.2"
-  },
-  "peerDependencies": {
-    "@aws-sdk/client-dynamodb": "^3.750.0",
-    "@aws-sdk/lib-dynamodb": "^3.750.0"
-  },
-  "devDependencies": {
-    "@aws-sdk/client-dynamodb": "^3.750.0",
-    "@aws-sdk/lib-dynamodb": "^3.750.0"
   },
   "files": [
     "dist/**/*.js",

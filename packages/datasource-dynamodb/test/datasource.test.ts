@@ -52,6 +52,7 @@ describe('createDynamoDBDataSource', () => {
 
     const dataSource = await createDynamoDBDataSource({
       client,
+      tables: [],
       builder: configurator =>
         configurator.addCollectionFromTable({
           name: 'customers',
@@ -67,23 +68,26 @@ describe('createDynamoDBDataSource', () => {
     expect(client.calls('ListTables')).toHaveLength(0);
   });
 
-  it('builds collections from a manual schema without calling AWS', async () => {
+  it('builds collections from a given introspection without calling AWS', async () => {
     const client = fakeClient({});
 
-    const dataSource = await createDynamoDBDataSource({
-      client,
-      disableIntrospection: true,
-      schema: {
-        collections: [
-          {
-            name: 'users',
-            tableName: 'Users',
-            partitionKey: { name: 'id', type: 'string' },
-            fields: [{ name: 'name', type: 'string' }],
-          },
-        ],
+    const dataSource = await createDynamoDBDataSource(
+      {
+        client,
       },
-    })(jest.fn(), jest.fn());
+      {
+        introspection: {
+          collections: [
+            {
+              name: 'users',
+              tableName: 'Users',
+              partitionKey: { name: 'id', type: 'string' },
+              fields: [{ name: 'name', type: 'string' }],
+            },
+          ],
+        },
+      },
+    )(jest.fn(), jest.fn());
 
     expect(dataSource.getCollection('users').schema.fields.name).toMatchObject({
       columnType: 'String',
@@ -91,26 +95,16 @@ describe('createDynamoDBDataSource', () => {
     expect(client.send).not.toHaveBeenCalled();
   });
 
-  it('requires a schema when introspection is disabled', async () => {
-    const factory = createDynamoDBDataSource({
-      client: fakeClient({}),
-      disableIntrospection: true,
-    });
-
-    await expect(factory(jest.fn(), jest.fn())).rejects.toThrow(
-      'When disableIntrospection is true, you must provide a schema',
+  it('rejects an invalid introspection', async () => {
+    const factory = createDynamoDBDataSource(
+      {
+        client: fakeClient({}),
+      },
+      { introspection: { collections: [] } },
     );
-  });
-
-  it('rejects an invalid manual schema', async () => {
-    const factory = createDynamoDBDataSource({
-      client: fakeClient({}),
-      disableIntrospection: true,
-      schema: { collections: [] },
-    });
 
     await expect(factory(jest.fn(), jest.fn())).rejects.toThrow(
-      'Manual schema must have at least one collection',
+      'The introspection must have at least one collection',
     );
   });
 

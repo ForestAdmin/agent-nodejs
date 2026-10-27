@@ -50,8 +50,8 @@ describe('convertManualSchema', () => {
   it('flattens nested objects into arrow-notation fields', () => {
     const [model] = convertManualSchema(config());
 
-    expect(model.schema['address->city']).toEqual({ type: 'string', nullable: false });
-    expect(model.schema['address->geo->lat']).toEqual({ type: 'number', nullable: false });
+    expect(model.schema['address@@@city']).toEqual({ type: 'string', nullable: false });
+    expect(model.schema['address@@@geo@@@lat']).toEqual({ type: 'number', nullable: false });
     expect(model.schema.address).toBeUndefined();
   });
 
@@ -142,8 +142,8 @@ describe('validateManualSchema', () => {
   });
 
   it.each([
-    [{ collections: [] }, 'Manual schema must have at least one collection'],
-    [undefined, 'Manual schema must have a collections array'],
+    [{ collections: [] }, 'The introspection must have at least one collection'],
+    [undefined, 'The introspection must have a collections array'],
   ])('rejects %p', (schema, message) => {
     expect(() => validateManualSchema(schema as never)).toThrow(message);
   });
@@ -198,15 +198,23 @@ describe('validateManualSchema', () => {
     );
   });
 
-  it('rejects an array without sub type', () => {
-    expect(() => validateManualSchema(config({ fields: [{ name: 'a', type: 'array' }] }))).toThrow(
-      "Array field 'a' in collection 'orders' must have a subType",
-    );
+  it('accepts an array without sub type, as the introspection writes it', () => {
+    expect(() =>
+      validateManualSchema(config({ fields: [{ name: 'a', type: 'array' }] })),
+    ).not.toThrow();
   });
 
-  it('rejects an object without nested fields', () => {
-    expect(() => validateManualSchema(config({ fields: [{ name: 'a', type: 'object' }] }))).toThrow(
-      "Object field 'a' in collection 'orders' must have nested field definitions",
+  it('accepts an object without nested fields, which is a column of its own', () => {
+    expect(() =>
+      validateManualSchema(config({ fields: [{ name: 'a', type: 'object' }] })),
+    ).not.toThrow();
+  });
+
+  it('rejects an array of objects without nested fields', () => {
+    expect(() =>
+      validateManualSchema(config({ fields: [{ name: 'a', type: 'array', subType: 'object' }] })),
+    ).toThrow(
+      "Array field 'a' in collection 'orders' of objects must have nested field definitions",
     );
   });
 

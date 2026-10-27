@@ -17,7 +17,7 @@ import {
   Sort,
 } from '@forestadmin/datasource-toolkit';
 
-import { createDynamoDBDataSource } from '../../src';
+import { createDynamoDBDataSource, introspect } from '../../src';
 
 /**
  * Runs against DynamoDB Local (`docker compose up -d`, then DYNAMODB_ENDPOINT=http://localhost:8000):
@@ -149,7 +149,7 @@ run('DynamoDB Local', () => {
       virtualCollections: [
         { parentCollection: 'orders', collectionName: 'order_lines', arrayField: 'lines' },
         { parentCollection: 'order_lines', collectionName: 'line_parts', arrayField: 'parts' },
-        { parentCollection: 'orders', collectionName: 'meta_items', arrayField: 'meta->items' },
+        { parentCollection: 'orders', collectionName: 'meta_items', arrayField: 'meta@@@items' },
       ],
       liveQueryConnection: 'dynamo',
       chartCacheTtlMs: 0,
@@ -463,15 +463,15 @@ run('DynamoDB Local', () => {
             ],
           }),
         }),
-        { total: 2, 'address->city': 'Lyon' },
+        { total: 2, 'address@@@city': 'Lyon' },
       );
 
       const [updated] = await orders().list(
         caller,
         new PaginatedFilter({ conditionTree: leaf('customerId', 'Equal', 'c9') }),
-        new Projection('total', 'address->city'),
+        new Projection('total', 'address@@@city'),
       );
-      expect(updated).toEqual({ total: 2, 'address->city': 'Lyon' });
+      expect(updated).toEqual({ total: 2, 'address@@@city': 'Lyon' });
 
       await expect(orders().create(caller, [{ ...key, total: 3 }])).rejects.toThrow(
         'already exists',
@@ -680,37 +680,41 @@ run('DynamoDB Local', () => {
       );
 
       manualLogger = jest.fn();
-      manual = await createDynamoDBDataSource({
-        client: documents,
-        disableIntrospection: true,
-        schema: {
-          collections: [
-            {
-              name: 'manual_orders',
-              tableName: MANUAL,
-              partitionKey: { name: 'customerId', type: 'string' },
-              sortKey: { name: 'orderId', type: 'string' },
-              indexes: [
-                {
-                  name: 'by-status',
-                  type: 'GSI',
-                  partitionKey: { name: 'status', type: 'string' },
-                  sortKey: { name: 'createdAt', type: 'string' },
-                },
-              ],
-              fields: [
-                { name: 'total', type: 'number' },
-                { name: 'status', type: 'string' },
-                { name: 'createdAt', type: 'date' },
-                { name: 'blob', type: 'binary', nullable: true },
-                { name: 'labels', type: 'array', subType: 'string', set: true, nullable: true },
-                { name: 'shipping', type: 'object', fields: [{ name: 'city', type: 'string' }] },
-              ],
-            },
-          ],
+      manual = await createDynamoDBDataSource(
+        {
+          client: documents,
+
+          chartCacheTtlMs: 0,
         },
-        chartCacheTtlMs: 0,
-      })(manualLogger, jest.fn());
+        {
+          introspection: {
+            collections: [
+              {
+                name: 'manual_orders',
+                tableName: MANUAL,
+                partitionKey: { name: 'customerId', type: 'string' },
+                sortKey: { name: 'orderId', type: 'string' },
+                indexes: [
+                  {
+                    name: 'by-status',
+                    type: 'GSI',
+                    partitionKey: { name: 'status', type: 'string' },
+                    sortKey: { name: 'createdAt', type: 'string' },
+                  },
+                ],
+                fields: [
+                  { name: 'total', type: 'number' },
+                  { name: 'status', type: 'string' },
+                  { name: 'createdAt', type: 'date' },
+                  { name: 'blob', type: 'binary', nullable: true },
+                  { name: 'labels', type: 'array', subType: 'string', set: true, nullable: true },
+                  { name: 'shipping', type: 'object', fields: [{ name: 'city', type: 'string' }] },
+                ],
+              },
+            ],
+          },
+        },
+      )(manualLogger, jest.fn());
     });
 
     afterAll(async () => {
@@ -724,7 +728,7 @@ run('DynamoDB Local', () => {
         total: { columnType: 'Number' },
         status: { columnType: 'String' },
         createdAt: { columnType: 'Date' },
-        'shipping->city': { columnType: 'String' },
+        'shipping@@@city': { columnType: 'String' },
       });
     });
 
@@ -743,11 +747,11 @@ run('DynamoDB Local', () => {
             conditions: [
               { field: 'status', operator: 'Equal', value: 'paid' },
               { field: 'createdAt', operator: 'GreaterThan', value: '2000-01-01T00:00:00Z' },
-              { field: 'shipping->city', operator: 'Equal', value: 'Paris' },
+              { field: 'shipping@@@city', operator: 'Equal', value: 'Paris' },
             ],
           }),
         }),
-        new Projection('orderId', 'shipping->city'),
+        new Projection('orderId', 'shipping@@@city'),
       );
 
       expect(records.map(r => r.orderId).sort()).toEqual(['o1', 'o3', 'o5']);
@@ -827,19 +831,19 @@ run('DynamoDB Local', () => {
       });
 
       await collection.create(caller, [
-        { customerId: 'c9', orderId: 'o1', total: 5, 'shipping->city': 'Rome' },
+        { customerId: 'c9', orderId: 'o1', total: 5, 'shipping@@@city': 'Rome' },
       ]);
       await collection.update(caller, new Filter({ conditionTree: key }), {
-        'shipping->city': 'Milan',
+        'shipping@@@city': 'Milan',
       });
 
       expect(
         await collection.list(
           caller,
           new PaginatedFilter({ conditionTree: key }),
-          new Projection('total', 'shipping->city'),
+          new Projection('total', 'shipping@@@city'),
         ),
-      ).toEqual([{ total: 5, 'shipping->city': 'Milan' }]);
+      ).toEqual([{ total: 5, 'shipping@@@city': 'Milan' }]);
 
       await collection.delete(caller, new Filter({ conditionTree: key }));
 
@@ -1006,6 +1010,55 @@ run('DynamoDB Local', () => {
       expect(await raw('c1|o2')).toEqual(expected['c1|o2']);
       expect(await raw('c1|o1')).toEqual(expected['c1|o1']);
       expect(await raw('c2|o1')).toEqual(expected['c2|o1']);
+    });
+  });
+
+  describe('introspect', () => {
+    it('describes a table so that a datasource starts from it without sampling', async () => {
+      const introspection = await introspect({ client: documents, tables: [ORDERS] });
+
+      expect(JSON.parse(JSON.stringify(introspection))).toEqual(introspection);
+      expect(introspection.collections[0]).toMatchObject({
+        tableName: ORDERS,
+        partitionKey: { name: 'customerId', type: 'string' },
+        sortKey: { name: 'orderId', type: 'string' },
+        indexes: [{ name: 'by-status', type: 'GSI' }],
+      });
+
+      const offline = await createDynamoDBDataSource({ client: documents }, { introspection })(
+        jest.fn(),
+        jest.fn(),
+      );
+      const records = await offline.getCollection(ORDERS).list(
+        caller,
+        new PaginatedFilter({
+          conditionTree: tree({
+            aggregator: 'And',
+            conditions: [
+              { field: 'customerId', operator: 'Equal', value: 'c1' },
+              { field: 'orderId', operator: 'Equal', value: 'o05' },
+            ],
+          }),
+        }),
+        new Projection('customerId', 'orderId'),
+      );
+
+      expect(records).toEqual([{ customerId: 'c1', orderId: 'o05' }]);
+    });
+
+    it('keeps introspecting the other tables when the builder adjusts one', async () => {
+      const adjusted = await createDynamoDBDataSource({
+        client: documents,
+        tables: [ORDERS],
+        builder: configurator =>
+          configurator.addCollectionFromTable({
+            name: 'shared_users',
+            tableName: SHARED,
+            entity: { sortKeyPrefix: 'USER#' },
+          }),
+      })(jest.fn(), jest.fn());
+
+      expect(adjusted.collections.map(c => c.name).sort()).toEqual([ORDERS, 'shared_users'].sort());
     });
   });
 
