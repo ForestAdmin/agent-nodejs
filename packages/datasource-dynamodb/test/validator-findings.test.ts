@@ -1,9 +1,12 @@
+import type { DataSource } from '@forestadmin/datasource-toolkit';
+
 import { Aggregation, Filter, PaginatedFilter, Projection } from '@forestadmin/datasource-toolkit';
 
 import { buildCollection } from './collection-helpers';
 import { fakeClient } from './fake-client';
-import { buildSimpleModel, leaf } from './helpers';
+import { buildModel, buildSimpleModel, leaf } from './helpers';
 import { createDynamoDBDataSource } from '../src';
+import ArrayCollection from '../src/array-collection';
 import { inferSchema } from '../src/introspection/introspector';
 import { convertManualSchema, validateManualSchema } from '../src/schema/manual-schema';
 import { resolveSettings } from '../src/settings';
@@ -320,5 +323,113 @@ describe('an attribute an item does not have', () => {
       name: null,
       'address@@@city': null,
     });
+  });
+});
+
+describe('the binary and set attributes of an array element', () => {
+  const build = (handlers: Record<string, any>) => {
+    const parent = buildCollection(
+      buildModel({
+        schema: {
+          customerId: { type: 'string' },
+          orderId: { type: 'string' },
+          lines: { type: 'array' },
+        },
+      }),
+      handlers,
+      { scanConcurrency: 1 },
+    );
+    const collection = new ArrayCollection({} as DataSource, parent.collection, {
+      name: 'order_lines',
+      arrayField: 'lines',
+      itemSchema: {
+        sku: { type: 'string' },
+        blob: { type: 'binary', nullable: true },
+        labels: { type: 'array', set: true, nullable: true },
+      },
+    });
+
+    return { collection, client: parent.client };
+  };
+
+  const order = { customerId: 'c1', orderId: 'o1', lines: [{ sku: 'A' }] };
+  const first = new Filter({
+    conditionTree: leaf('customerId', 'Equal', 'c1'),
+  });
+  const valuesOf = (call: Record<string, any>) => Object.values(call.ExpressionAttributeValues);
+
+  it('stores bytes and a set when an element is appended', async () => {
+    const { collection, client } = build({
+      Update: () => ({ Attributes: { lines: [{ sku: 'A' }, { sku: 'N' }] } }),
+    });
+
+    await collection.create(caller, [
+      { customerId: 'c1', orderId: 'o1', sku: 'N', blob: 'AQID', labels: ['a', 'b'] },
+    ]);
+
+    const appended = valuesOf(client.calls('Update')[0]).find(
+      value => Array.isArray(value) && value.length,
+    ) as any[];
+    const [element] = appended.filter(value => value.sku === 'N');
+    expect(Array.from(element.blob)).toEqual([1, 2, 3]);
+    expect(element.labels).toBeInstanceOf(Set);
+  });
+
+  it('leaves an emptied set out of an appended element', async () => {
+    const { collection, client } = build({
+      Update: () => ({ Attributes: { lines: [{ sku: 'N' }] } }),
+    });
+
+    await collection.create(caller, [{ customerId: 'c1', orderId: 'o1', sku: 'N', labels: [] }]);
+
+    const [element] = valuesOf(client.calls('Update')[0]).find(
+      value => Array.isArray(value) && value.length,
+    ) as any[];
+    expect(Object.keys(element)).toEqual(['sku']);
+  });
+
+  it('stores bytes and a set when an element is updated', async () => {
+    const { collection, client } = build({
+      Query: () => ({ Items: [order] }),
+      Update: () => ({}),
+    });
+
+    await collection.update(caller, first, { blob: 'AQID', labels: ['x'] });
+
+    const [bytes, set] = valuesOf(client.calls('Update')[0]);
+    expect(Array.from(bytes as Uint8Array)).toEqual([1, 2, 3]);
+    expect(set).toBeInstanceOf(Set);
+  });
+
+  it('removes the attribute of an element whose set is emptied', async () => {
+    const { collection, client } = build({
+      Query: () => ({ Items: [order] }),
+      Update: () => ({}),
+    });
+
+    await collection.update(caller, first, { labels: [] });
+
+    const call = client.calls('Update')[0];
+    expect(call.UpdateExpression).toMatch(/^REMOVE #n0\[0\]\.#n1$|^REMOVE #n0\[0\]\.#n1 *$/);
+    expect(call.ExpressionAttributeValues).toBeUndefined();
+  });
+
+  it('stores bytes and a set in the client-side rewrite too', async () => {
+    const { collection, client } = build({
+      Query: () => ({ Items: [order] }),
+      Update: () => {
+        throw Object.assign(new Error('The document path provided is invalid for update'), {
+          name: 'ValidationException',
+        });
+      },
+      Get: () => ({ Item: { ...order, lines: [{ sku: 'A', labels: new Set(['old']) }] } }),
+      Put: () => ({}),
+    });
+
+    await collection.update(caller, first, { blob: 'AQID', labels: [] });
+
+    const [assigned, cleared] = client.calls('Put').map(call => call.Item.lines[0]);
+    expect(Array.from(assigned.blob)).toEqual([1, 2, 3]);
+    expect(cleared).not.toHaveProperty('labels');
   });
 });

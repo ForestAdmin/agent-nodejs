@@ -34,7 +34,7 @@ import StreamingAggregator from './utils/aggregator';
 import { mapWithConcurrency } from './utils/concurrency';
 import DynamoExecutor from './utils/executor';
 import ExpressionBuilder, { splitCondition } from './utils/expression-builder';
-import Serializer from './utils/serializer';
+import Serializer, { CLEARED } from './utils/serializer';
 import compareRecords from './utils/sort';
 
 /** What a parallel read splits into: the segments of a scan, or the partitions of a filter. */
@@ -107,9 +107,6 @@ function keyConditionExpression(
 
   return expressions.join(' AND ');
 }
-
-/** What a set emptied in Forest turns into: DynamoDB holds no empty set, so the attribute goes. */
-const CLEARED = Symbol('cleared');
 
 export default class DynamoDBCollection extends BaseCollection {
   readonly model: TableModel;

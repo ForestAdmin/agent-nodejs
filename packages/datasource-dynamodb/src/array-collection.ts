@@ -26,7 +26,7 @@ import { ScanLimitExceededError } from './errors';
 import convertModelToFields from './schema/schema-converter';
 import StreamingAggregator from './utils/aggregator';
 import ExpressionBuilder from './utils/expression-builder';
-import Serializer from './utils/serializer';
+import Serializer, { CLEARED } from './utils/serializer';
 import compareRecords from './utils/sort';
 
 export const INDEX_FIELD = 'index';
@@ -193,24 +193,39 @@ export default class ArrayCollection extends BaseCollection {
       }
     }
 
-    const entries = Object.entries(patch).filter(([, value]) => value !== undefined);
+    const entries: Array<[string, unknown]> = Object.entries(patch)
+      .filter(([, value]) => value !== undefined)
+      .map(([field, value]) => [field, this.toStored(field, value)]);
+    const assigned = entries.filter(([, value]) => value !== CLEARED);
+    const cleared = entries.filter(([, value]) => value === CLEARED);
 
-    if (entries.length === 0) return;
+    if (assigned.length) {
+      await this.writePerTableItem(caller, filter, {
+        keyword: 'SET',
+        clauses: (builder, position, state) => {
+          state.values ??= assigned.map(([, value]) => builder.value(value));
 
-    await this.writePerTableItem(caller, filter, {
-      keyword: 'SET',
-      clauses: (builder, position, state) => {
-        state.values ??= entries.map(([, value]) => builder.value(value));
+          return assigned.map(
+            ([field], index) =>
+              `${this.elementPath(builder, position)}.${builder.attribute(field)} = ${
+                state.values[index]
+              }`,
+          );
+        },
+        fallback: (key, positions) => this.replaceElements(key, positions, assigned),
+      });
+    }
 
-        return entries.map(
-          ([field], index) =>
-            `${this.elementPath(builder, position)}.${builder.attribute(field)} = ${
-              state.values[index]
-            }`,
-        );
-      },
-      fallback: (key, positions) => this.replaceElements(key, positions, entries),
-    });
+    if (cleared.length) {
+      await this.writePerTableItem(caller, filter, {
+        keyword: 'REMOVE',
+        clauses: (builder, position) =>
+          cleared.map(
+            ([field]) => `${this.elementPath(builder, position)}.${builder.attribute(field)}`,
+          ),
+        fallback: (key, positions) => this.replaceElements(key, positions, cleared),
+      });
+    }
   }
 
   async delete(caller: Caller, filter: Filter): Promise<void> {
@@ -247,6 +262,19 @@ export default class ArrayCollection extends BaseCollection {
       .slice(0, levels)
       .map((level, i) => `${builder.attribute(level.arrayField)}[${positions[i]}]`)
       .join('.');
+  }
+
+  /** Gives back the DynamoDB type Forest cannot send: bytes for base64 text, a set for an array. */
+  private toStored(field: string, value: unknown): unknown {
+    const attribute = this.itemSchema[field];
+
+    if (attribute?.type === 'binary' && typeof value === 'string') {
+      return Uint8Array.from(Buffer.from(value, 'base64'));
+    }
+
+    if (attribute?.set && Array.isArray(value)) return value.length ? new Set(value) : CLEARED;
+
+    return value;
   }
 
   /** Reads an attribute the element does not have as a null, as the collection of a table does. */
@@ -348,6 +376,11 @@ export default class ArrayCollection extends BaseCollection {
     const fields = Object.fromEntries(
       Object.entries(record).filter(([name]) => !this.keyColumns.includes(name)),
     );
+    const stored = Object.fromEntries(
+      Object.entries(fields)
+        .map(([name, value]) => [name, this.toStored(name, value)])
+        .filter(([, value]) => value !== CLEARED),
+    );
     const builder = new ExpressionBuilder();
     const keyBuilder = new ExpressionBuilder('k', 'kv');
     const parentPath = this.elementPath(
@@ -358,7 +391,7 @@ export default class ArrayCollection extends BaseCollection {
     const { arrayField } = this.chain[this.chain.length - 1];
     const arrayPath = [parentPath, builder.attribute(arrayField)].filter(Boolean).join('.');
     const emptyList = builder.value([]);
-    const appended = builder.value([Serializer.unflatten(fields)]);
+    const appended = builder.value([Serializer.unflatten(stored)]);
     const conditions = [`attribute_exists(${keyBuilder.attribute(this.rootKeys[0])})`];
 
     if (parentPath) conditions.push(`attribute_exists(${parentPath})`);
@@ -383,7 +416,7 @@ export default class ArrayCollection extends BaseCollection {
 
       // The array sits under a map the item does not have yet, which SET cannot create.
       if (error.name === 'ValidationException' && /document path/i.test(error.message)) {
-        const index = await this.appendByRewriting(key, parentPositions as number[], fields);
+        const index = await this.appendByRewriting(key, parentPositions as number[], stored);
 
         return {
           ...key,
@@ -557,7 +590,10 @@ export default class ArrayCollection extends BaseCollection {
         if (depth === this.chain.length - 1) {
           // Each attribute of the patch replaces what it names, as SET does, and nothing else.
           for (const [field, value] of entries) {
-            Serializer.setPath(array[position[depth]], Serializer.toPathSegments(field), value);
+            const path = Serializer.toPathSegments(field);
+
+            if (value === CLEARED) Serializer.removePath(array[position[depth]], path);
+            else Serializer.setPath(array[position[depth]], path, value);
           }
         } else {
           container = array[position[depth]];

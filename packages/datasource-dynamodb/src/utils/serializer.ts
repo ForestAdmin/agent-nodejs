@@ -6,6 +6,9 @@ import TypeConverter from './type-converter';
 
 export const PATH_SEPARATOR = '@@@';
 
+/** What a set emptied in Forest turns into: DynamoDB holds no empty set, so the attribute goes. */
+export const CLEARED = Symbol('cleared');
+
 const nestedPrefixesCache = new WeakMap<Set<string>, Set<string>>();
 
 /** Paths that have columns declared under them, hence are expanded rather than kept as Json. */
