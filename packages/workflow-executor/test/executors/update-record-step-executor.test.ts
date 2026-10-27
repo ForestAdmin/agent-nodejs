@@ -1864,6 +1864,7 @@ describe('UpdateRecordStepExecutor', () => {
         { fieldName: 'age', displayName: 'Age', isRelationship: false, type: 'Number' },
         { fieldName: 'isActive', displayName: 'Is Active', isRelationship: false, type: 'Boolean' },
         { fieldName: 'legacy', displayName: 'Legacy', isRelationship: false },
+        { fieldName: 'orders', displayName: 'Orders', isRelationship: true, type: null },
       ];
 
       function makePrerecordedContext(
@@ -2003,6 +2004,40 @@ describe('UpdateRecordStepExecutor', () => {
           expect(result.stepOutcome.error).toBe(
             'The value set on this step for the "Age" field is invalid: ' +
               'Invalid input: expected number, received NaN. Edit the step to set a valid value.',
+          );
+          expect(agentPort.updateRecord).not.toHaveBeenCalled();
+        },
+      );
+
+      it.each([false, true, [], ['12']])(
+        'fails as a configuration error on the non-numeric %p instead of coercing it',
+        async value => {
+          const { executor, agentPort } = makePrerecordedContext('age', value);
+
+          const result = await executor.execute();
+
+          expect(result.stepOutcome.status).toBe('error');
+          expect(result.stepOutcome.errorKind).toBe('configuration');
+          expect(result.stepOutcome.error).toBe(
+            'The value set on this step for the "Age" field is invalid: ' +
+              'Invalid input: expected number, received NaN. Edit the step to set a valid value.',
+          );
+          expect(agentPort.updateRecord).not.toHaveBeenCalled();
+        },
+      );
+
+      it.each(['42', null])(
+        'fails as a configuration error on the value %p set on a relationship field',
+        async value => {
+          const { executor, agentPort } = makePrerecordedContext('orders', value);
+
+          const result = await executor.execute();
+
+          expect(result.stepOutcome.status).toBe('error');
+          expect(result.stepOutcome.errorKind).toBe('configuration');
+          expect(result.stepOutcome.error).toBe(
+            'The value set on this step for the "Orders" field is invalid: ' +
+              "this step can't update a relationship field. Edit the step to set a valid value.",
           );
           expect(agentPort.updateRecord).not.toHaveBeenCalled();
         },
@@ -2691,25 +2726,25 @@ describe('UpdateRecordStepExecutor', () => {
       );
     });
 
-    it('passes the value through unchanged when the field type is null (relationship)', async () => {
-      const nullTypeField = {
+    it('fails on an override to a relationship field instead of writing it raw', async () => {
+      const relationshipField = {
         fieldName: 'orders',
         displayName: 'Orders',
         isRelationship: true,
         type: null,
       };
-      const opaque = { some: 'object' };
-      const { executor, agentPort } = makeCoercionContext(nullTypeField, null, {
+      const { executor, agentPort } = makeCoercionContext(relationshipField, null, {
         userConfirmed: true,
-        value: opaque,
+        value: { some: 'object' },
       });
 
-      await executor.execute();
+      const result = await executor.execute();
 
-      expect(agentPort.updateRecord).toHaveBeenCalledWith(
-        { collection: 'customers', id: [42], values: { orders: opaque } },
-        expect.objectContaining({ id: 1 }),
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        'An unexpected error occurred while processing this step.',
       );
+      expect(agentPort.updateRecord).not.toHaveBeenCalled();
     });
 
     it('fails on a non-boolean string override to a Boolean field (preprocess passes it through, z.boolean rejects)', async () => {

@@ -71,12 +71,13 @@ function buildZodSchemaForPrimitive(
     case 'Dateonly':
       return z.iso.date().describe('ISO 8601 date, e.g. 2024-06-01');
     case 'Number':
-      // z.coerce.number() reads a blank string as 0; NaN makes it fail instead. Kept off the AI
-      // tool for the same JSON Schema reason as Boolean.
+      // z.coerce.number() reads a blank string, false or [] as 0 and true as 1; NaN makes them
+      // fail instead. Kept off the AI tool for the same JSON Schema reason as Boolean.
       return forAiTool
         ? z.coerce.number()
         : z.preprocess(
-            val => (typeof val === 'string' && val.trim() === '' ? NaN : val),
+            val =>
+              typeof val === 'number' || (typeof val === 'string' && val.trim() !== '') ? val : NaN,
             z.coerce.number(),
           );
     case 'Enum':
@@ -124,6 +125,8 @@ function buildZodSchemaForField(
   return buildZodSchemaForPrimitive(type as string, enumValues, forAiTool);
 }
 
+const RELATIONSHIP_NOT_UPDATABLE_REASON = "this step can't update a relationship field";
+
 // Coerce a user-overridden value to the field's native type before updating the record.
 // The HTTP schema accepts `unknown`, so the override may be a boolean or an array; this turns
 // it into the type the datasource expects, and throws a StepStateError on mismatch.
@@ -134,8 +137,13 @@ function coerceFieldValue(
   toError: (fieldDisplayName: string, reason: string) => WorkflowExecutorError = (name, reason) =>
     new StepStateError(`Invalid value for field "${name}": ${reason}`),
 ): unknown {
-  // Field not found, relationship (type intentionally null), or explicit null → nothing to coerce.
-  if (!fieldSchema || fieldSchema.isRelationship || value === null) return value;
+  if (!fieldSchema) return value;
+
+  if (fieldSchema.isRelationship) {
+    throw toError(fieldSchema.displayName, RELATIONSHIP_NOT_UPDATABLE_REASON);
+  }
+
+  if (value === null) return value;
 
   const parsed = buildZodSchemaForField(fieldSchema, collectionName).safeParse(value);
 
