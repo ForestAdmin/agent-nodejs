@@ -15,7 +15,7 @@ import {
   NoWritableFieldsError,
   PendingFieldNotFoundError,
   PinnedArgNotFoundError,
-  PinnedRelationshipFieldError,
+  RelationshipFieldNotUpdatableError,
   StepStateError,
 } from '../errors';
 import RecordStepExecutor from './record-step-executor';
@@ -151,8 +151,6 @@ function buildZodSchemaForField(
   return buildZodSchemaForPrimitive(type as string, enumValues, forAiTool, strict);
 }
 
-const RELATIONSHIP_NOT_UPDATABLE_REASON = "this step can't update a relationship field";
-
 interface CoerceOptions {
   strict?: boolean;
   toError?: (fieldDisplayName: string, reason: string) => WorkflowExecutorError;
@@ -168,7 +166,7 @@ function coerceFieldValue(
   }: CoerceOptions = {},
 ): unknown {
   if (fieldSchema.isRelationship) {
-    throw toError(fieldSchema.displayName, RELATIONSHIP_NOT_UPDATABLE_REASON);
+    throw new RelationshipFieldNotUpdatableError(fieldSchema.displayName, collectionName);
   }
 
   if (value === null) return value;
@@ -216,15 +214,16 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
 
     if (pending) {
       return this.handleConfirmationFlow<UpdateRecordStepExecutionData>(pending, async exec => {
-        const { selectedRecordRef, pendingData, userConfirmation } = exec;
+        const { selectedRecordRef, userConfirmation } = exec;
+        const pendingData = exec.pendingData!;
         // A user override of `null` (clearing the field) must win over the AI suggestion, so
         // distinguish "no override" (undefined) from "override to null".
         const isOverridden = userConfirmation?.value !== undefined;
-        const rawValue = isOverridden ? userConfirmation.value : pendingData!.value;
+        const rawValue = isOverridden ? userConfirmation.value : pendingData.value;
 
         const target: UpdateTarget = {
           selectedRecordRef,
-          ...pendingData!,
+          ...pendingData,
           // The value comes from an `unknown` HTTP value (may be a boolean or array), so coerce
           // it to the field's native type before updating. Idempotent on already-typed values.
           value: await this.coerceOverride(selectedRecordRef, pendingData, rawValue, isOverridden),
@@ -240,15 +239,15 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
 
   private async coerceOverride(
     selectedRecordRef: RecordRef,
-    pendingData: FieldWithValue | undefined,
+    pendingData: FieldWithValue,
     value: unknown,
     isOverridden: boolean,
   ): Promise<unknown> {
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
-    const fieldSchema = this.findFieldByTechnicalName(schema, pendingData?.name);
+    const fieldSchema = this.findFieldByTechnicalName(schema, pendingData.name);
 
     if (!fieldSchema) {
-      throw new PendingFieldNotFoundError(pendingData?.name, schema.collectionName);
+      throw new PendingFieldNotFoundError(pendingData.name, schema.collectionName);
     }
 
     return coerceFieldValue(fieldSchema, value, selectedRecordRef.collectionName, {
@@ -291,7 +290,10 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
       }
 
       if (pinnedField.isRelationship) {
-        throw new PinnedRelationshipFieldError(pinnedField.displayName, schema.collectionName);
+        throw new RelationshipFieldNotUpdatableError(
+          pinnedField.displayName,
+          schema.collectionName,
+        );
       }
 
       field = pinnedField;

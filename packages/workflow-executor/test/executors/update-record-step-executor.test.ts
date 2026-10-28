@@ -2046,8 +2046,8 @@ describe('UpdateRecordStepExecutor', () => {
           expect(result.stepOutcome.status).toBe('error');
           expect(result.stepOutcome.errorKind).toBe('configuration');
           expect(result.stepOutcome.error).toBe(
-            'The "Orders" field pinned on this step is a relationship, which this step can\'t ' +
-              'update. Edit the step to pick another field.',
+            'The "Orders" field is a relationship, which this step can\'t update. ' +
+              'Edit the step to pick another field.',
           );
           expect(agentPort.updateRecord).not.toHaveBeenCalled();
         },
@@ -2876,8 +2876,10 @@ describe('UpdateRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.errorKind).toBe('configuration');
       expect(result.stepOutcome.error).toBe(
-        'An unexpected error occurred while processing this step.',
+        'The "Orders" field is a relationship, which this step can\'t update. ' +
+          'Edit the step to pick another field.',
       );
       expect(agentPort.updateRecord).not.toHaveBeenCalled();
     });
@@ -2897,8 +2899,10 @@ describe('UpdateRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.errorKind).toBe('configuration');
       expect(result.stepOutcome.error).toBe(
-        'An unexpected error occurred while processing this step.',
+        'The "Owner" field is a relationship, which this step can\'t update. ' +
+          'Edit the step to pick another field.',
       );
       expect(agentPort.updateRecord).not.toHaveBeenCalled();
     });
@@ -2980,8 +2984,14 @@ describe('UpdateRecordStepExecutor', () => {
       const result = await new UpdateRecordStepExecutor(context).execute();
 
       expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.errorKind).toBe('configuration');
       expect(result.stepOutcome.error).toBe(
         'The field this step was about to update no longer exists on this record.',
+      );
+      expect(context.logger).toHaveBeenCalledWith(
+        'Error',
+        'Field "status" awaiting confirmation not found in collection "customers"',
+        expect.anything(),
       );
       expect(agentPort.updateRecord).not.toHaveBeenCalled();
     });
