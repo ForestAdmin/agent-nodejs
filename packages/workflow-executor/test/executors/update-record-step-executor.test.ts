@@ -2088,6 +2088,23 @@ describe('UpdateRecordStepExecutor', () => {
         },
       );
 
+      it('names the expected number format in the technical message only', async () => {
+        const { executor, context } = makePrerecordedContext('age', 'abc');
+
+        const result = await executor.execute();
+
+        expect(result.stepOutcome.error).toBe(
+          'The value set on this step can\'t be written to the "Age" field. ' +
+            'Edit the step to set a valid value.',
+        );
+        expect(context.logger).toHaveBeenCalledWith(
+          'Error',
+          'Invalid pre-recorded value for field "Age": ' +
+            'expected a number or a decimal string, e.g. 12, -3 or 12.5',
+          expect.anything(),
+        );
+      });
+
       it.each([[{ a: 1 }], [[1, 2]], ['{"a":1}'], [true], [123]])(
         'writes the Json value %p as is',
         async value => {
@@ -2175,31 +2192,40 @@ describe('UpdateRecordStepExecutor', () => {
   });
 
   describe('AI-returned value coercion', () => {
+    function makeAiContext(field: CollectionSchema['fields'][number], aiValue: unknown) {
+      const agentPort = makeMockAgentPort();
+      const mockModel = makeMockModel({
+        input: { fieldName: field.displayName, value: aiValue, reasoning: 'r' },
+      });
+      const workflowPort = makeMockWorkflowPort({
+        customers: makeCollectionSchema({ fields: [field] }),
+      });
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort,
+        workflowPort,
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+
+      return { executor: new UpdateRecordStepExecutor(context), agentPort, context };
+    }
+
+    const ageField = {
+      fieldName: 'age',
+      displayName: 'Age',
+      isRelationship: false,
+      type: 'Number' as const,
+    };
+
     it.each([
       ['', 0],
       [true, 1],
     ])(
       'writes the AI value %p on a Number field as %p, as the front does',
       async (aiValue, written) => {
-        const agentPort = makeMockAgentPort();
-        const mockModel = makeMockModel({
-          input: { fieldName: 'Age', value: aiValue, reasoning: 'r' },
-        });
-        const workflowPort = makeMockWorkflowPort({
-          customers: makeCollectionSchema({
-            fields: [
-              { fieldName: 'age', displayName: 'Age', isRelationship: false, type: 'Number' },
-            ],
-          }),
-        });
-        const context = makeContext({
-          model: mockModel.model,
-          agentPort,
-          workflowPort,
-          stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
-        });
+        const { executor, agentPort } = makeAiContext(ageField, aiValue);
 
-        const result = await new UpdateRecordStepExecutor(context).execute();
+        const result = await executor.execute();
 
         expect(result.stepOutcome.status).toBe('success');
         expect(agentPort.updateRecord).toHaveBeenCalledWith(
@@ -2208,6 +2234,20 @@ describe('UpdateRecordStepExecutor', () => {
         );
       },
     );
+
+    it('names the expected number format when an AI value is not a number', async () => {
+      const { executor, agentPort, context } = makeAiContext(ageField, 'abc');
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(context.logger).toHaveBeenCalledWith(
+        'Error',
+        'Invalid value for field "Age": expected a number or a decimal string, e.g. 12, -3 or 12.5',
+        expect.anything(),
+      );
+      expect(agentPort.updateRecord).not.toHaveBeenCalled();
+    });
   });
 
   describe('buildUpdateFieldTool — type-specific schemas', () => {

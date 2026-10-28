@@ -63,14 +63,24 @@ function toExactNumber(decimal: string): number | string {
   return INTEGER_PATTERN.test(decimal) && !Number.isSafeInteger(asNumber) ? decimal : asNumber;
 }
 
-function buildNumberCoercion(strict: boolean): z.ZodTypeAny {
-  return z.preprocess(val => {
-    if (typeof val === 'string' && DECIMAL_PATTERN.test(val.trim())) {
-      return toExactNumber(val.trim());
-    }
+const NUMBER_FORMAT_MESSAGE = 'expected a number or a decimal string, e.g. 12, -3 or 12.5';
 
-    return strict && typeof val !== 'number' ? NaN : val;
-  }, z.union([z.string().regex(INTEGER_PATTERN), z.coerce.number()]));
+function buildNumberCoercion(strict: boolean): z.ZodTypeAny {
+  return z.preprocess(
+    val => {
+      if (typeof val === 'string' && DECIMAL_PATTERN.test(val.trim())) {
+        return toExactNumber(val.trim());
+      }
+
+      return strict || typeof val === 'number' ? val : Number(val);
+    },
+    z.custom<number | string>(
+      val =>
+        (typeof val === 'number' && Number.isFinite(val)) ||
+        (typeof val === 'string' && INTEGER_PATTERN.test(val)),
+      { message: NUMBER_FORMAT_MESSAGE },
+    ),
+  );
 }
 
 // `forAiTool` = the schema is bound into an AI tool (langchain converts it to JSON Schema). The
