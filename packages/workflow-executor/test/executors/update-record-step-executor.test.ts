@@ -1866,6 +1866,12 @@ describe('UpdateRecordStepExecutor', () => {
         { fieldName: 'legacy', displayName: 'Legacy', isRelationship: false },
         { fieldName: 'orders', displayName: 'Orders', isRelationship: true, type: null },
         { fieldName: 'metadata', displayName: 'Metadata', isRelationship: false, type: 'Json' },
+        {
+          fieldName: 'address',
+          displayName: 'Address',
+          isRelationship: false,
+          type: { street: 'String' },
+        },
       ];
 
       function makePrerecordedContext(
@@ -2049,7 +2055,8 @@ describe('UpdateRecordStepExecutor', () => {
 
       it.each([
         ['12345678901234567890', '12345678901234567890'],
-        ['0.1000000000000000000001', '0.1000000000000000000001'],
+        ['-12345678901234567890', '-12345678901234567890'],
+        ['0.0000001', 1e-7],
         ['12.50', 12.5],
         ['007', 7],
         ['-3', -3],
@@ -2081,7 +2088,7 @@ describe('UpdateRecordStepExecutor', () => {
         },
       );
 
-      it.each([[{ a: 1 }], [[1, 2]], ['{"a":1}']])(
+      it.each([[{ a: 1 }], [[1, 2]], ['{"a":1}'], [true], [123]])(
         'writes the Json value %p as is',
         async value => {
           const { executor, agentPort, context } = makePrerecordedContext('metadata', value);
@@ -2094,6 +2101,19 @@ describe('UpdateRecordStepExecutor', () => {
           );
         },
       );
+
+      it('writes an object value as is on a composite field', async () => {
+        const { executor, agentPort, context } = makePrerecordedContext('address', {
+          street: 'Main St',
+        });
+
+        await executor.execute();
+
+        expect(agentPort.updateRecord).toHaveBeenCalledWith(
+          { collection: 'customers', id: [42], values: { address: { street: 'Main St' } } },
+          context.user,
+        );
+      });
 
       it('fails as a configuration error on a Json string that is not valid JSON', async () => {
         const { executor, agentPort } = makePrerecordedContext('metadata', '{not json');

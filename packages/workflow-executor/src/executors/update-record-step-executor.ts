@@ -49,19 +49,18 @@ const jsonValueSchema = z.union([
   jsonStringSchema,
   z.record(z.string(), z.unknown()),
   z.array(z.unknown()),
+  z.boolean(),
+  z.number(),
 ]);
 
 const DECIMAL_PATTERN = /^-?\d+(\.\d+)?$/;
+const INTEGER_PATTERN = /^-?\d+$/;
 
-// A decimal string a double can't hold exactly (a bigint or decimal column) is written as is.
+// The agent takes a bigint column's value as an integer string, which a double would round.
 function toExactNumber(decimal: string): number | string {
   const asNumber = Number(decimal);
-  const canonical = decimal
-    .replace(/^(-?)0+(?=\d)/, '$1')
-    .replace(/(\.\d*?)0+$/, '$1')
-    .replace(/\.$/, '');
 
-  return String(asNumber) === canonical ? asNumber : decimal;
+  return INTEGER_PATTERN.test(decimal) && !Number.isSafeInteger(asNumber) ? decimal : asNumber;
 }
 
 function buildNumberCoercion(strict: boolean): z.ZodTypeAny {
@@ -71,7 +70,7 @@ function buildNumberCoercion(strict: boolean): z.ZodTypeAny {
     }
 
     return strict && typeof val !== 'number' ? NaN : val;
-  }, z.union([z.string().regex(DECIMAL_PATTERN), z.coerce.number()]));
+  }, z.union([z.string().regex(INTEGER_PATTERN), z.coerce.number()]));
 }
 
 // `forAiTool` = the schema is bound into an AI tool (langchain converts it to JSON Schema). The
@@ -249,7 +248,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     const fieldSchema = this.findFieldByTechnicalName(schema, pendingData?.name);
 
     if (!fieldSchema) {
-      throw new PendingFieldNotFoundError(pendingData?.name ?? '', schema.collectionName);
+      throw new PendingFieldNotFoundError(pendingData?.name, schema.collectionName);
     }
 
     return coerceFieldValue(fieldSchema, value, selectedRecordRef.collectionName, {

@@ -288,7 +288,7 @@ export class PinnedRelationshipFieldError extends WorkflowConfigurationError {
 }
 
 export class PendingFieldNotFoundError extends WorkflowExecutorError {
-  constructor(name: string, collectionName: string) {
+  constructor(name: string | undefined, collectionName: string) {
     super(
       `Field "${name}" awaiting confirmation not found in collection "${collectionName}"`,
       'The field this step was about to update no longer exists on this record.',
