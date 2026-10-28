@@ -1907,8 +1907,8 @@ describe('UpdateRecordStepExecutor', () => {
         expect(result.stepOutcome.status).toBe('error');
         expect(result.stepOutcome.errorKind).toBe('configuration');
         expect(result.stepOutcome.error).toBe(
-          'The value set on this step for the "Status" field is invalid: ' +
-            'Invalid option: expected one of "active"|"inactive". Edit the step to set a valid value.',
+          'The value set on this step can\'t be written to the "Status" field. ' +
+            'Edit the step to set a valid value.',
         );
         expect(agentPort.updateRecord).not.toHaveBeenCalled();
       });
@@ -1977,7 +1977,10 @@ describe('UpdateRecordStepExecutor', () => {
 
         expect(result.stepOutcome.status).toBe('error');
         expect(result.stepOutcome.errorKind).toBe('configuration');
-        expect(result.stepOutcome.error).toContain('"Closed At" field is invalid');
+        expect(result.stepOutcome.error).toBe(
+          'The value set on this step can\'t be written to the "Closed At" field. ' +
+            'Edit the step to set a valid value.',
+        );
         expect(agentPort.updateRecord).not.toHaveBeenCalled();
       });
 
@@ -2002,8 +2005,8 @@ describe('UpdateRecordStepExecutor', () => {
           expect(result.stepOutcome.status).toBe('error');
           expect(result.stepOutcome.errorKind).toBe('configuration');
           expect(result.stepOutcome.error).toBe(
-            'The value set on this step for the "Age" field is invalid: ' +
-              'Invalid input: expected number, received NaN. Edit the step to set a valid value.',
+            'The value set on this step can\'t be written to the "Age" field. ' +
+              'Edit the step to set a valid value.',
           );
           expect(agentPort.updateRecord).not.toHaveBeenCalled();
         },
@@ -2019,29 +2022,38 @@ describe('UpdateRecordStepExecutor', () => {
           expect(result.stepOutcome.status).toBe('error');
           expect(result.stepOutcome.errorKind).toBe('configuration');
           expect(result.stepOutcome.error).toBe(
-            'The value set on this step for the "Age" field is invalid: ' +
-              'Invalid input: expected number, received NaN. Edit the step to set a valid value.',
+            'The value set on this step can\'t be written to the "Age" field. ' +
+              'Edit the step to set a valid value.',
           );
           expect(agentPort.updateRecord).not.toHaveBeenCalled();
         },
       );
 
-      it.each(['42', null])(
-        'fails as a configuration error on the value %p set on a relationship field',
-        async value => {
-          const { executor, agentPort } = makePrerecordedContext('orders', value);
+      it('fails as a configuration error on a value set on a relationship field', async () => {
+        const { executor, agentPort } = makePrerecordedContext('orders', '42');
 
-          const result = await executor.execute();
+        const result = await executor.execute();
 
-          expect(result.stepOutcome.status).toBe('error');
-          expect(result.stepOutcome.errorKind).toBe('configuration');
-          expect(result.stepOutcome.error).toBe(
-            'The value set on this step for the "Orders" field is invalid: ' +
-              "this step can't update a relationship field. Edit the step to set a valid value.",
-          );
-          expect(agentPort.updateRecord).not.toHaveBeenCalled();
-        },
-      );
+        expect(result.stepOutcome.status).toBe('error');
+        expect(result.stepOutcome.errorKind).toBe('configuration');
+        expect(result.stepOutcome.error).toBe(
+          'The value set on this step can\'t be written to the "Orders" field. ' +
+            'Edit the step to set a valid value.',
+        );
+        expect(agentPort.updateRecord).not.toHaveBeenCalled();
+      });
+
+      it('passes null through on a relationship field to unlink it', async () => {
+        const { executor, agentPort, context } = makePrerecordedContext('orders', null);
+
+        const result = await executor.execute();
+
+        expect(result.stepOutcome.status).toBe('success');
+        expect(agentPort.updateRecord).toHaveBeenCalledWith(
+          { collection: 'customers', id: [42], values: { orders: null } },
+          context.user,
+        );
+      });
 
       it('fails as a configuration error when the pinned field has no column type', async () => {
         const { executor, agentPort } = makePrerecordedContext('legacy', 'anything');
@@ -2090,6 +2102,42 @@ describe('UpdateRecordStepExecutor', () => {
         );
       });
     });
+  });
+
+  describe('AI-returned value coercion', () => {
+    it.each([
+      ['', 0],
+      [true, 1],
+    ])(
+      'writes the AI value %p on a Number field as %p, as the front does',
+      async (aiValue, written) => {
+        const agentPort = makeMockAgentPort();
+        const mockModel = makeMockModel({
+          input: { fieldName: 'Age', value: aiValue, reasoning: 'r' },
+        });
+        const workflowPort = makeMockWorkflowPort({
+          customers: makeCollectionSchema({
+            fields: [
+              { fieldName: 'age', displayName: 'Age', isRelationship: false, type: 'Number' },
+            ],
+          }),
+        });
+        const context = makeContext({
+          model: mockModel.model,
+          agentPort,
+          workflowPort,
+          stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+        });
+
+        const result = await new UpdateRecordStepExecutor(context).execute();
+
+        expect(result.stepOutcome.status).toBe('success');
+        expect(agentPort.updateRecord).toHaveBeenCalledWith(
+          { collection: 'customers', id: [42], values: { age: written } },
+          expect.objectContaining({ id: 1 }),
+        );
+      },
+    );
   });
 
   describe('buildUpdateFieldTool — type-specific schemas', () => {
@@ -2141,6 +2189,18 @@ describe('UpdateRecordStepExecutor', () => {
       ).toThrow();
       expect(() =>
         schema.parse({ input: { fieldName: 'Created At', value: 'not-a-date', reasoning: 'r' } }),
+      ).toThrow();
+    });
+
+    it('Date: rejects a datetime carrying a timezone offset, like the front tool', async () => {
+      const schema = await getToolSchema([
+        { fieldName: 'created_at', displayName: 'Created At', isRelationship: false, type: 'Date' },
+      ]);
+
+      expect(() =>
+        schema.parse({
+          input: { fieldName: 'Created At', value: '2024-06-01T10:00:00+02:00', reasoning: 'r' },
+        }),
       ).toThrow();
     });
 
@@ -2745,6 +2805,27 @@ describe('UpdateRecordStepExecutor', () => {
         'An unexpected error occurred while processing this step.',
       );
       expect(agentPort.updateRecord).not.toHaveBeenCalled();
+    });
+
+    it('passes a null override through on a relationship field to unlink it', async () => {
+      const relationshipField = {
+        fieldName: 'owner',
+        displayName: 'Owner',
+        isRelationship: true,
+        type: null,
+      };
+      const { executor, agentPort } = makeCoercionContext(relationshipField, null, {
+        userConfirmed: true,
+        value: null,
+      });
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], values: { owner: null } },
+        expect.objectContaining({ id: 1 }),
+      );
     });
 
     it('fails on a non-boolean string override to a Boolean field (preprocess passes it through, z.boolean rejects)', async () => {

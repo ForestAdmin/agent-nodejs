@@ -48,10 +48,13 @@ const jsonStringSchema = z
 // when the workspace resolves two zod copies (root vs nested) → "Transforms cannot be represented
 // in JSON Schema". For the AI tool we hand it a plain z.boolean(); coerceFieldValue (which builds
 // with forAiTool=false) still normalizes any stray "true"/"false" string afterwards.
+// `strict` = the value was written by a person (pre-recorded on the step or overridden at
+// confirmation), not returned by the AI. The AI paths keep the front's rules.
 function buildZodSchemaForPrimitive(
   type: string,
   enumValues?: string[],
   forAiTool = false,
+  strict = false,
 ): z.ZodTypeAny {
   switch (type) {
     case 'Boolean':
@@ -66,20 +69,20 @@ function buildZodSchemaForPrimitive(
           }, z.boolean());
     case 'Date':
       return z.iso
-        .datetime({ offset: true })
+        .datetime({ offset: strict })
         .describe('ISO 8601 datetime, e.g. 2024-06-01T00:00:00Z');
     case 'Dateonly':
       return z.iso.date().describe('ISO 8601 date, e.g. 2024-06-01');
     case 'Number':
       // z.coerce.number() reads a blank string, false or [] as 0 and true as 1; NaN makes them
-      // fail instead. Kept off the AI tool for the same JSON Schema reason as Boolean.
-      return forAiTool
-        ? z.coerce.number()
-        : z.preprocess(
+      // fail instead.
+      return strict
+        ? z.preprocess(
             val =>
               typeof val === 'number' || (typeof val === 'string' && val.trim() !== '') ? val : NaN,
             z.coerce.number(),
-          );
+          )
+        : z.coerce.number();
     case 'Enum':
       if (enumValues && enumValues.length >= 2) {
         return z.enum(enumValues as [string, string, ...string[]]);
@@ -102,6 +105,7 @@ function buildZodSchemaForField(
   field: FieldSchema,
   collectionName: string,
   forAiTool = false,
+  strict = false,
 ): z.ZodTypeAny {
   const { type, enumValues } = field;
 
@@ -115,37 +119,43 @@ function buildZodSchemaForField(
     // Nested array (e.g. [['String']]) → treat as opaque JSON.
     if (Array.isArray(type[0])) return z.array(jsonStringSchema);
 
-    return z.array(buildZodSchemaForPrimitive(type[0] as string, enumValues, forAiTool));
+    return z.array(buildZodSchemaForPrimitive(type[0] as string, enumValues, forAiTool, strict));
   }
 
   if (typeof type === 'object' && type !== null) {
     return jsonStringSchema;
   }
 
-  return buildZodSchemaForPrimitive(type as string, enumValues, forAiTool);
+  return buildZodSchemaForPrimitive(type as string, enumValues, forAiTool, strict);
 }
 
 const RELATIONSHIP_NOT_UPDATABLE_REASON = "this step can't update a relationship field";
 
-// Coerce a user-overridden value to the field's native type before updating the record.
-// The HTTP schema accepts `unknown`, so the override may be a boolean or an array; this turns
-// it into the type the datasource expects, and throws a StepStateError on mismatch.
+interface CoerceOptions {
+  strict?: boolean;
+  toError?: (fieldDisplayName: string, reason: string) => WorkflowExecutorError;
+}
+
+// Coerce a value (AI-returned, pre-recorded or user-overridden) to the field's native type
+// before updating the record. Throws through `toError` (StepStateError by default) on mismatch.
 function coerceFieldValue(
   fieldSchema: FieldSchema | undefined,
   value: unknown,
   collectionName: string,
-  toError: (fieldDisplayName: string, reason: string) => WorkflowExecutorError = (name, reason) =>
-    new StepStateError(`Invalid value for field "${name}": ${reason}`),
+  {
+    strict = false,
+    toError = (name, reason) => new StepStateError(`Invalid value for field "${name}": ${reason}`),
+  }: CoerceOptions = {},
 ): unknown {
-  if (!fieldSchema) return value;
+  if (!fieldSchema || value === null) return value;
 
   if (fieldSchema.isRelationship) {
     throw toError(fieldSchema.displayName, RELATIONSHIP_NOT_UPDATABLE_REASON);
   }
 
-  if (value === null) return value;
-
-  const parsed = buildZodSchemaForField(fieldSchema, collectionName).safeParse(value);
+  const parsed = buildZodSchemaForField(fieldSchema, collectionName, false, strict).safeParse(
+    value,
+  );
 
   if (!parsed.success) {
     throw toError(
@@ -216,7 +226,9 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
     const fieldSchema = this.findFieldByTechnicalName(schema, pendingData?.name);
 
-    return coerceFieldValue(fieldSchema, value, selectedRecordRef.collectionName);
+    return coerceFieldValue(fieldSchema, value, selectedRecordRef.collectionName, {
+      strict: true,
+    });
   }
 
   private async handleFirstCall(): Promise<StepExecutionResult> {
@@ -252,12 +264,10 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
       fieldName = recordedField;
       value =
         preRecordedArgs?.value !== undefined
-          ? coerceFieldValue(
-              field,
-              preRecordedArgs.value,
-              schema.collectionName,
-              (name, reason) => new InvalidPreRecordedValueError(name, reason),
-            )
+          ? coerceFieldValue(field, preRecordedArgs.value, schema.collectionName, {
+              strict: true,
+              toError: (name, reason) => new InvalidPreRecordedValueError(name, reason),
+            })
           : await this.selectValueForField(schema, field, step.prompt);
     } else {
       ({ fieldName, value } = await this.selectFieldAndValue(schema, step.prompt));

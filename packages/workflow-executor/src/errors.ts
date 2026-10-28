@@ -643,7 +643,7 @@ export class InvalidPreRecordedValueError extends WorkflowConfigurationError {
   constructor(fieldDisplayName: string, reason: string) {
     super(
       `Invalid pre-recorded value for field "${fieldDisplayName}": ${reason}`,
-      `The value set on this step for the "${fieldDisplayName}" field is invalid: ${reason}. ` +
+      `The value set on this step can't be written to the "${fieldDisplayName}" field. ` +
         'Edit the step to set a valid value.',
     );
   }
