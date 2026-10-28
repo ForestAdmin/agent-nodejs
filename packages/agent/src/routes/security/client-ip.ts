@@ -1,4 +1,4 @@
-import { BlockList, isIP, isIPv6 } from 'net';
+import { BlockList, isIPv6 } from 'net';
 
 const TRUSTED_PROXY_SUBNETS: [ip: string, prefix: number, type: 'ipv4' | 'ipv6'][] = [
   ['127.0.0.0', 8, 'ipv4'],
@@ -14,18 +14,9 @@ const TRUSTED_PROXY_SUBNETS: [ip: string, prefix: number, type: 'ipv4' | 'ipv6']
 const trustedProxies = new BlockList();
 TRUSTED_PROXY_SUBNETS.forEach(([ip, prefix, type]) => trustedProxies.addSubnet(ip, prefix, type));
 
-const IPV4_MAPPED_PREFIX = '::ffff:';
+export const ipVersion = (ip: string): 'ipv4' | 'ipv6' => (isIPv6(ip) ? 'ipv6' : 'ipv4');
 
-const unmapIpv4 = (ip: string): string =>
-  ip.toLowerCase().startsWith(IPV4_MAPPED_PREFIX) ? ip.slice(IPV4_MAPPED_PREFIX.length) : ip;
-
-const isTrustedProxy = (ip: string): boolean => {
-  const candidate = unmapIpv4(ip.trim());
-
-  return (
-    isIP(candidate) !== 0 && trustedProxies.check(candidate, isIPv6(candidate) ? 'ipv6' : 'ipv4')
-  );
-};
+const isTrustedProxy = (ip: string): boolean => trustedProxies.check(ip.trim(), ipVersion(ip));
 
 const resolveClientIp = (socketIp: string, forwardedFor?: string | string[]): string => {
   const header = `${forwardedFor ?? ''}`;

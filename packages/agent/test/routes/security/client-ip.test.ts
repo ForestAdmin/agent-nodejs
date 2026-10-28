@@ -16,6 +16,10 @@ describe('resolveClientIp', () => {
     test('resolves to an ipv6 socket peer', () => {
       expect(resolveClientIp('2001:db8::1', '9.9.9.9')).toBe('2001:db8::1');
     });
+
+    test('resolves to an ipv4-mapped public socket peer', () => {
+      expect(resolveClientIp('::ffff:203.0.113.5', '9.9.9.9')).toBe('::ffff:203.0.113.5');
+    });
   });
 
   describe('when the socket peer is a trusted proxy', () => {
@@ -49,9 +53,12 @@ describe('resolveClientIp', () => {
       expect(resolveClientIp(socketIp, expected)).toBe(expected);
     });
 
-    test('skips an ipv4-mapped trusted proxy hop while walking', () => {
-      expect(resolveClientIp('10.0.0.2', '203.0.113.77, ::ffff:10.0.0.3')).toBe('203.0.113.77');
-    });
+    test.each(['::ffff:10.0.0.3', '::ffff:a00:3', '::FFFF:10.0.0.3'])(
+      'skips the ipv4-mapped trusted proxy hop %s while walking',
+      mappedProxy => {
+        expect(resolveClientIp('10.0.0.2', `203.0.113.77, ${mappedProxy}`)).toBe('203.0.113.77');
+      },
+    );
 
     test('trims the hops whatever the spacing', () => {
       expect(resolveClientIp('  10.0.0.2 ', '  203.0.113.77 ,  10.0.0.3  ')).toBe('203.0.113.77');
