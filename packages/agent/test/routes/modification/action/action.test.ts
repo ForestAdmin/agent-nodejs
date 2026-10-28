@@ -1803,7 +1803,7 @@ describe('ActionRoute', () => {
         ]);
       });
 
-      test('resolves the live-query segment context variables before listing the audited selection', async () => {
+      test('lists an explicit audited selection by its ids, without its live-query segment', async () => {
         const context = createMockContext({
           ...baseContext,
           customProperties: {
@@ -1830,15 +1830,19 @@ describe('ActionRoute', () => {
         await route.handleExecute(context);
 
         expect(dataSource.getCollection('books').list).toHaveBeenCalledWith(
-          expect.anything(),
+          expect.objectContaining({ id: '42' }),
           expect.objectContaining({
-            liveQuerySegment: expect.objectContaining({
-              query: 'SELECT 1',
-              connectionName: 'main',
-              contextVariables: {},
+            liveQuerySegment: expect.toBeNil(),
+            conditionTree: expect.objectContaining({
+              field: 'id',
+              operator: 'In',
+              value: [
+                '123e4567-e89b-12d3-a456-426614174000',
+                '123e4567-e89b-12d3-a456-426614174001',
+              ],
             }),
           }),
-          expect.anything(),
+          ['id'],
         );
       });
 
@@ -1985,8 +1989,8 @@ describe('ActionRoute', () => {
     const executePath = '/_actions/books/0/mybulkaction';
     const loadHookPath = '/_actions/books/0/mybulkaction/hooks/load';
 
-    const buildApprovalContext = (allowed: boolean) => {
-      const signedRequest = buildContext({ requester_id: 12 }).request.body;
+    const buildApprovalContext = (allowed: boolean, attributes: Record<string, unknown> = {}) => {
+      const signedRequest = buildContext({ requester_id: 12, ...attributes }).request.body;
       (options.forestAdminClient.verifySignedActionParameters as jest.Mock).mockReturnValue(
         signedRequest,
       );
@@ -2092,6 +2096,30 @@ describe('ActionRoute', () => {
         options.forestAdminClient.permissionService.canExecuteSegmentQuery,
       ).toHaveBeenCalledWith(expectedSegmentCheck);
       expect(dataSource.getCollection('books').execute).not.toHaveBeenCalled();
+    });
+
+    test('executes an approval on selected records without checking or running their segment', async () => {
+      const selectedId = '123e4567-e89b-12d3-a456-426614174000';
+      const context = buildApprovalContext(false, { all_records: false, ids: [selectedId] });
+
+      await callRoute(executePath, context);
+
+      expect(
+        options.forestAdminClient.permissionService.canExecuteSegmentQuery,
+      ).not.toHaveBeenCalled();
+      expect(dataSource.getCollection('books').execute).toHaveBeenCalledWith(
+        expect.objectContaining({ id: '42' }),
+        'MyBulkAction',
+        { firstname: 'John' },
+        expect.objectContaining({
+          liveQuerySegment: expect.toBeNil(),
+          conditionTree: expect.objectContaining({
+            field: 'id',
+            operator: 'Equal',
+            value: selectedId,
+          }),
+        }),
+      );
     });
 
     test('executes an approval on a segment the approver is allowed to run', async () => {

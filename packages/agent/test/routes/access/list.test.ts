@@ -369,7 +369,7 @@ describe('ListRoute', () => {
             contextVariables: {},
           },
         }),
-        expect.anything(),
+        ['id'],
       );
     });
   });
