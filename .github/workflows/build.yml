@@ -72,6 +72,7 @@ jobs:
           - datasource-customizer
           - datasource-demo-fintech
           - datasource-dummy
+          - datasource-dynamodb
           - datasource-mongoose
           - datasource-replica
           - datasource-mongo
@@ -90,7 +91,7 @@ jobs:
         with:
           node-version-file: ".nvmrc"
       - name: Start docker containers
-        if: ${{ matrix.package == 'datasource-mongo' || matrix.package == 'datasource-mongoose' || matrix.package == 'datasource-sql' || matrix.package == 'datasource-sequelize' }}
+        if: ${{ matrix.package == 'datasource-mongo' || matrix.package == 'datasource-mongoose' || matrix.package == 'datasource-sql' || matrix.package == 'datasource-sequelize' || matrix.package == 'datasource-dynamodb' }}
         run: docker compose -f ./packages/${{ matrix.package }}/docker-compose.yml up -d; sleep 5
       - name: Restore dependencies from cache
         uses: actions/cache/restore@v4
@@ -112,6 +113,8 @@ jobs:
       # broadly: most packages keep genuine unit tests under `test/integration*/`, and a wide
       # pattern would silently stop running hundreds of them.
       - name: Test code (excluding integration suites with their own job)
+        env:
+          DYNAMODB_ENDPOINT: ${{ matrix.package == 'datasource-dynamodb' && 'http://localhost:8000' || '' }}
         run: cd packages/${{ matrix.package }} && yarn test --coverage --testPathIgnorePatterns='llm.integration|bedrock.integration|embedded-bff.e2e' && cd -
       - name: Upload coverage
         uses: actions/upload-artifact@v4

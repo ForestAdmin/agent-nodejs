@@ -34,6 +34,7 @@ yarn test:coverage      # Run tests with coverage
 - `datasource-sequelize` - Sequelize datasource
 - `datasource-mongo` - MongoDB datasource
 - `datasource-mongoose` - Mongoose datasource
+- `datasource-dynamodb` - DynamoDB datasource
 
 **Other:**
 - `mcp-server` - MCP (Model Context Protocol) server for AI integration
