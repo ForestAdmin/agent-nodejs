@@ -6,6 +6,7 @@ import { BlockList, isIPv6 } from 'net';
 
 import { HttpCode, RouteType } from '../../types';
 import BaseRoute from '../base-route';
+import resolveClientIp from './client-ip';
 
 type IpRule = IpWhitelistConfiguration['ipRules'][number];
 
@@ -58,7 +59,10 @@ export default class IpWhitelist extends BaseRoute {
         return next();
       }
 
-      const currentIp = `${context.request.headers['x-forwarded-for'] ?? context.request.ip}`;
+      const currentIp = resolveClientIp(
+        context.req?.socket?.remoteAddress ?? '',
+        context.request.headers['x-forwarded-for'],
+      );
 
       if (!this.allowedIps.check(currentIp, ipVersion(currentIp))) {
         return context.throw(HttpCode.Forbidden, `IP address rejected (${currentIp})`);

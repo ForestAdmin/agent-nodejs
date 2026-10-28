@@ -74,6 +74,16 @@ describe('IpWhitelist', () => {
       return ipWhitelistService;
     };
 
+    const peerContext = (opts: { socketIp: string; xff?: string | null }): Context =>
+      ({
+        req: { socket: { remoteAddress: opts.socketIp } },
+        request: {
+          ip: opts.socketIp,
+          headers: { 'x-forwarded-for': opts.xff ?? null },
+        },
+        throw: jest.fn(),
+      } as unknown as Context);
+
     test('should call the next callback', async () => {
       const ipWhitelistService = await setupIpWhitelistService({
         isFeatureEnabled: false,
@@ -99,11 +109,7 @@ describe('IpWhitelist', () => {
             ipRules: [rule],
           });
 
-          // The ip property of the koa context is not supposed to be changed
-          // Thus, forging a manual context is the only way of testing this function
-          const context = {
-            request: { ip: '10.20.15.10', headers: { 'x-forwarded-for': null } },
-          } as unknown as Context;
+          const context = peerContext({ socketIp: '10.20.15.10' });
           const next = jest.fn() as Next;
 
           await ipWhitelistService.checkIp(context, next);
@@ -125,7 +131,7 @@ describe('IpWhitelist', () => {
 
           const notAllowedIp = '10.20.15.1';
 
-          const context = createMockContext({ headers: { 'x-forwarded-for': notAllowedIp } });
+          const context = peerContext({ socketIp: '10.0.0.2', xff: notAllowedIp });
           const next = jest.fn() as Next;
 
           await ipWhitelistService.checkIp(context, next);
@@ -146,7 +152,7 @@ describe('IpWhitelist', () => {
           });
 
           const allowedIp = '10.20.15.10';
-          const context = createMockContext({ headers: { 'x-forwarded-for': allowedIp } });
+          const context = peerContext({ socketIp: '10.0.0.2', xff: allowedIp });
           const next = jest.fn() as Next;
           await ipWhitelistService.checkIp(context, next);
 
@@ -166,7 +172,7 @@ describe('IpWhitelist', () => {
             ipRules: [rule],
           });
 
-          const context = createMockContext({ headers: { 'x-forwarded-for': ip } });
+          const context = peerContext({ socketIp: '10.0.0.2', xff: ip });
           const next = jest.fn() as Next;
 
           await ipWhitelistService.checkIp(context, next);
@@ -181,7 +187,7 @@ describe('IpWhitelist', () => {
             ipRules: [{ type: 2, range: '2001:db8::/32' }],
           });
 
-          const context = createMockContext({ headers: { 'x-forwarded-for': '2001:db9::1' } });
+          const context = peerContext({ socketIp: '10.0.0.2', xff: '2001:db9::1' });
           const next = jest.fn() as Next;
 
           await ipWhitelistService.checkIp(context, next);
@@ -201,9 +207,7 @@ describe('IpWhitelist', () => {
             ipRules: [{ type: 2, range: '10.20.15.0/24' }],
           });
 
-          const context = createMockContext({
-            headers: { 'x-forwarded-for': '::ffff:10.20.15.10' },
-          });
+          const context = peerContext({ socketIp: '10.0.0.2', xff: '::ffff:10.20.15.10' });
           const next = jest.fn() as Next;
 
           await ipWhitelistService.checkIp(context, next);
@@ -227,7 +231,7 @@ describe('IpWhitelist', () => {
             ipRules: [rule],
           });
 
-          const context = createMockContext({ headers: { 'x-forwarded-for': '10.20.15.10' } });
+          const context = peerContext({ socketIp: '10.0.0.2', xff: '10.20.15.10' });
           const next = jest.fn() as Next;
 
           await ipWhitelistService.checkIp(context, next);
@@ -263,7 +267,7 @@ describe('IpWhitelist', () => {
             'IP whitelist: ignoring invalid rule {"type":0,"ip":"not-an-ip"}',
           );
 
-          const context = createMockContext({ headers: { 'x-forwarded-for': '10.20.15.10' } });
+          const context = peerContext({ socketIp: '10.0.0.2', xff: '10.20.15.10' });
           const next = jest.fn() as Next;
 
           await ipWhitelistService.checkIp(context, next);
@@ -273,25 +277,67 @@ describe('IpWhitelist', () => {
       });
 
       describe('when the ip cannot be read', () => {
-        test.each(['', 'not-an-ip', '10.20.15.10, 10.20.15.11'])(
-          'should reject the caller sending %s',
-          async forwardedFor => {
+        test.each([
+          { socketIp: '203.0.113.5', forwardedFor: '', judged: '203.0.113.5' },
+          { socketIp: '10.0.0.2', forwardedFor: 'not-an-ip', judged: 'not-an-ip' },
+        ])(
+          'should reject the caller judged on $judged',
+          async ({ socketIp, forwardedFor, judged }) => {
             const ipWhitelistService = await setupIpWhitelistService({
               isFeatureEnabled: true,
               ipRules: [{ type: 0, ip: '10.20.15.10' }],
             });
 
-            const context = createMockContext({
-              headers: { 'x-forwarded-for': forwardedFor },
-            });
+            const context = peerContext({ socketIp, xff: forwardedFor });
             const next = jest.fn() as Next;
 
             await ipWhitelistService.checkIp(context, next);
 
             expect(next).not.toHaveBeenCalled();
-            expect(context.throw).toHaveBeenCalledWith(HttpCode.Forbidden, expect.any(String));
+            expect(context.throw).toHaveBeenCalledWith(
+              HttpCode.Forbidden,
+              `IP address rejected (${judged})`,
+            );
           },
         );
+
+        test('should use the rightmost untrusted hop behind a trusted proxy', async () => {
+          const ipWhitelistService = await setupIpWhitelistService({
+            isFeatureEnabled: true,
+            ipRules: [{ type: 0, ip: '9.9.9.9' }],
+          });
+
+          const context = peerContext({ socketIp: '10.0.0.2', xff: '9.9.9.9, 203.0.113.77' });
+          const next = jest.fn() as Next;
+
+          await ipWhitelistService.checkIp(context, next);
+
+          expect(next).not.toHaveBeenCalled();
+          expect(context.throw).toHaveBeenCalledWith(
+            HttpCode.Forbidden,
+            'IP address rejected (203.0.113.77)',
+          );
+        });
+      });
+
+      describe('when the socket peer is a public address', () => {
+        test('checks the socket address', async () => {
+          const ipWhitelistService = await setupIpWhitelistService({
+            isFeatureEnabled: true,
+            ipRules: [{ type: 0, ip: '9.9.9.9' }],
+          });
+
+          const context = peerContext({ socketIp: '203.0.113.77', xff: '9.9.9.9' });
+          const next = jest.fn() as Next;
+
+          await ipWhitelistService.checkIp(context, next);
+
+          expect(next).not.toHaveBeenCalled();
+          expect(context.throw).toHaveBeenCalledWith(
+            HttpCode.Forbidden,
+            'IP address rejected (203.0.113.77)',
+          );
+        });
       });
     });
 
@@ -301,22 +347,11 @@ describe('IpWhitelist', () => {
         ipRules: [{ type: 0, ip: '10.20.15.10' }],
       };
 
-      // socketIp = the true socket peer (req.socket.remoteAddress); xff is the proxy hop marker.
-      const forgeContext = (opts: { socketIp: string; xff?: string | null }): Context =>
-        ({
-          req: { socket: { remoteAddress: opts.socketIp } },
-          request: {
-            ip: opts.socketIp,
-            headers: { 'x-forwarded-for': opts.xff ?? null },
-          },
-          throw: jest.fn(),
-        } as unknown as Context);
-
       test.each(['127.0.0.1', '::1', '::ffff:127.0.0.1'])(
         'exempts a direct loopback caller with no proxy hop from socket %s',
         async socketIp => {
           const service = await setupIpWhitelistService(restrictiveRules);
-          const context = forgeContext({ socketIp });
+          const context = peerContext({ socketIp });
           const next = jest.fn() as Next;
 
           await service.checkIp(context, next);
@@ -328,7 +363,7 @@ describe('IpWhitelist', () => {
 
       test('does NOT exempt a non-loopback socket', async () => {
         const service = await setupIpWhitelistService(restrictiveRules);
-        const context = forgeContext({ socketIp: '203.0.113.5' });
+        const context = peerContext({ socketIp: '203.0.113.5' });
         const next = jest.fn() as Next;
 
         await service.checkIp(context, next);
@@ -341,7 +376,7 @@ describe('IpWhitelist', () => {
       // x-forwarded-for → the exemption must NOT fire, so the real IP is checked normally.
       test('does NOT exempt a loopback socket that carries x-forwarded-for (proxy hop)', async () => {
         const service = await setupIpWhitelistService(restrictiveRules);
-        const context = forgeContext({ socketIp: '127.0.0.1', xff: '203.0.113.5' });
+        const context = peerContext({ socketIp: '127.0.0.1', xff: '203.0.113.5' });
         const next = jest.fn() as Next;
 
         await service.checkIp(context, next);
@@ -353,11 +388,9 @@ describe('IpWhitelist', () => {
         );
       });
 
-      // Anti-spoof: an external socket carrying x-forwarded-for: 127.0.0.1 must NOT be exempted
-      // (exemption reads the socket, not the header) and the header IP is what gets rejected.
-      test('ignores a spoofed x-forwarded-for loopback (socket is external)', async () => {
+      test('does not exempt a loopback hop when the socket is external', async () => {
         const service = await setupIpWhitelistService(restrictiveRules);
-        const context = forgeContext({ socketIp: '203.0.113.5', xff: '127.0.0.1' });
+        const context = peerContext({ socketIp: '203.0.113.5', xff: '127.0.0.1' });
         const next = jest.fn() as Next;
 
         await service.checkIp(context, next);
@@ -365,13 +398,13 @@ describe('IpWhitelist', () => {
         expect(next).not.toHaveBeenCalled();
         expect(context.throw).toHaveBeenCalledWith(
           HttpCode.Forbidden,
-          `IP address rejected (127.0.0.1)`,
+          `IP address rejected (203.0.113.5)`,
         );
       });
 
       test('a proxied user from a whitelisted IP still passes the normal check', async () => {
         const service = await setupIpWhitelistService(restrictiveRules);
-        const context = forgeContext({ socketIp: '127.0.0.1', xff: '10.20.15.10' });
+        const context = peerContext({ socketIp: '127.0.0.1', xff: '10.20.15.10' });
         const next = jest.fn() as Next;
 
         await service.checkIp(context, next);
