@@ -1865,6 +1865,7 @@ describe('UpdateRecordStepExecutor', () => {
         { fieldName: 'isActive', displayName: 'Is Active', isRelationship: false, type: 'Boolean' },
         { fieldName: 'legacy', displayName: 'Legacy', isRelationship: false },
         { fieldName: 'orders', displayName: 'Orders', isRelationship: true, type: null },
+        { fieldName: 'metadata', displayName: 'Metadata', isRelationship: false, type: 'Json' },
       ];
 
       function makePrerecordedContext(
@@ -2029,30 +2030,79 @@ describe('UpdateRecordStepExecutor', () => {
         },
       );
 
-      it('fails as a configuration error on a value set on a relationship field', async () => {
-        const { executor, agentPort } = makePrerecordedContext('orders', '42');
+      it.each(['42', null, undefined])(
+        'fails as a configuration error when the pinned field is a relationship (value %p)',
+        async value => {
+          const { executor, agentPort } = makePrerecordedContext('orders', value);
+
+          const result = await executor.execute();
+
+          expect(result.stepOutcome.status).toBe('error');
+          expect(result.stepOutcome.errorKind).toBe('configuration');
+          expect(result.stepOutcome.error).toBe(
+            'The "Orders" field pinned on this step is a relationship, which this step can\'t ' +
+              'update. Edit the step to pick another field.',
+          );
+          expect(agentPort.updateRecord).not.toHaveBeenCalled();
+        },
+      );
+
+      it.each([
+        ['12345678901234567890', '12345678901234567890'],
+        ['0.1000000000000000000001', '0.1000000000000000000001'],
+        ['12.50', 12.5],
+        ['007', 7],
+        ['-3', -3],
+      ])('writes the decimal string %p as %p without losing precision', async (value, written) => {
+        const { executor, agentPort, context } = makePrerecordedContext('age', value);
+
+        await executor.execute();
+
+        expect(agentPort.updateRecord).toHaveBeenCalledWith(
+          { collection: 'customers', id: [42], values: { age: written } },
+          context.user,
+        );
+      });
+
+      it.each(['0x10', '0b11', '0o17', '1e3', 'Infinity', '12abc'])(
+        'fails as a configuration error on the non-decimal string %p',
+        async value => {
+          const { executor, agentPort } = makePrerecordedContext('age', value);
+
+          const result = await executor.execute();
+
+          expect(result.stepOutcome.status).toBe('error');
+          expect(result.stepOutcome.errorKind).toBe('configuration');
+          expect(result.stepOutcome.error).toBe(
+            'The value set on this step can\'t be written to the "Age" field. ' +
+              'Edit the step to set a valid value.',
+          );
+          expect(agentPort.updateRecord).not.toHaveBeenCalled();
+        },
+      );
+
+      it.each([[{ a: 1 }], [[1, 2]], ['{"a":1}']])(
+        'writes the Json value %p as is',
+        async value => {
+          const { executor, agentPort, context } = makePrerecordedContext('metadata', value);
+
+          await executor.execute();
+
+          expect(agentPort.updateRecord).toHaveBeenCalledWith(
+            { collection: 'customers', id: [42], values: { metadata: value } },
+            context.user,
+          );
+        },
+      );
+
+      it('fails as a configuration error on a Json string that is not valid JSON', async () => {
+        const { executor, agentPort } = makePrerecordedContext('metadata', '{not json');
 
         const result = await executor.execute();
 
         expect(result.stepOutcome.status).toBe('error');
         expect(result.stepOutcome.errorKind).toBe('configuration');
-        expect(result.stepOutcome.error).toBe(
-          'The value set on this step can\'t be written to the "Orders" field. ' +
-            'Edit the step to set a valid value.',
-        );
         expect(agentPort.updateRecord).not.toHaveBeenCalled();
-      });
-
-      it('passes null through on a relationship field to unlink it', async () => {
-        const { executor, agentPort, context } = makePrerecordedContext('orders', null);
-
-        const result = await executor.execute();
-
-        expect(result.stepOutcome.status).toBe('success');
-        expect(agentPort.updateRecord).toHaveBeenCalledWith(
-          { collection: 'customers', id: [42], values: { orders: null } },
-          context.user,
-        );
       });
 
       it('fails as a configuration error when the pinned field has no column type', async () => {
@@ -2197,11 +2247,16 @@ describe('UpdateRecordStepExecutor', () => {
         { fieldName: 'created_at', displayName: 'Created At', isRelationship: false, type: 'Date' },
       ]);
 
-      expect(() =>
+      expect(
         schema.parse({
+          input: { fieldName: 'Created At', value: '2024-06-01T10:00:00Z', reasoning: 'r' },
+        }).input.value,
+      ).toBe('2024-06-01T10:00:00Z');
+      expect(
+        schema.safeParse({
           input: { fieldName: 'Created At', value: '2024-06-01T10:00:00+02:00', reasoning: 'r' },
-        }),
-      ).toThrow();
+        }).error?.issues,
+      ).toEqual([expect.objectContaining({ path: ['input', 'value'], format: 'datetime' })]);
     });
 
     it('Dateonly: accepts ISO 8601 date, rejects datetime and free text', async () => {
@@ -2807,7 +2862,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(agentPort.updateRecord).not.toHaveBeenCalled();
     });
 
-    it('passes a null override through on a relationship field to unlink it', async () => {
+    it('fails on a null override to a relationship field, which the agent cannot unlink', async () => {
       const relationshipField = {
         fieldName: 'owner',
         displayName: 'Owner',
@@ -2821,11 +2876,94 @@ describe('UpdateRecordStepExecutor', () => {
 
       const result = await executor.execute();
 
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        'An unexpected error occurred while processing this step.',
+      );
+      expect(agentPort.updateRecord).not.toHaveBeenCalled();
+    });
+
+    it('fails on a hexadecimal override to a Number field instead of writing 16', async () => {
+      const numberField = {
+        fieldName: 'age',
+        displayName: 'Age',
+        isRelationship: false,
+        type: 'Number' as const,
+      };
+      const { executor, agentPort } = makeCoercionContext(numberField, 30, {
+        userConfirmed: true,
+        value: '0x10',
+      });
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(agentPort.updateRecord).not.toHaveBeenCalled();
+    });
+
+    it('writes a pending blank Number value saved by an older executor when accepted as is', async () => {
+      const numberField = {
+        fieldName: 'age',
+        displayName: 'Age',
+        isRelationship: false,
+        type: 'Number' as const,
+      };
+      const { executor, agentPort } = makeCoercionContext(numberField, '', {
+        userConfirmed: true,
+      });
+
+      const result = await executor.execute();
+
       expect(result.stepOutcome.status).toBe('success');
       expect(agentPort.updateRecord).toHaveBeenCalledWith(
-        { collection: 'customers', id: [42], values: { owner: null } },
+        { collection: 'customers', id: [42], values: { age: 0 } },
         expect.objectContaining({ id: 1 }),
       );
+    });
+
+    it.each([
+      ['Date' as const, '2026-06-01T10:00:00+02:00'],
+      ['Json' as const, { a: 1 }],
+      ['Number' as const, '12345678901234567890'],
+    ])('writes a pending %s value accepted as is', async (type, pendingValue) => {
+      const field = { fieldName: 'value', displayName: 'Value', isRelationship: false, type };
+      const { executor, agentPort } = makeCoercionContext(field, pendingValue, {
+        userConfirmed: true,
+      });
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], values: { value: pendingValue } },
+        expect.objectContaining({ id: 1 }),
+      );
+    });
+
+    it('fails without writing when the pending field was removed from the schema', async () => {
+      const execution: UpdateRecordStepExecutionData = {
+        type: 'update-record',
+        stepIndex: 0,
+        pendingData: { displayName: 'Status', name: 'status', value: 'active' },
+        userConfirmation: { userConfirmed: true, value: [1, 2] },
+        selectedRecordRef: makeRecordRef(),
+      };
+      const agentPort = makeMockAgentPort();
+      const context = makeContext({
+        agentPort,
+        runStore: makeMockRunStore({ getStepExecutions: jest.fn().mockResolvedValue([execution]) }),
+        workflowPort: makeMockWorkflowPort({
+          customers: makeCollectionSchema({ fields: [booleanField] }),
+        }),
+      });
+
+      const result = await new UpdateRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        'The field this step was about to update no longer exists on this record.',
+      );
+      expect(agentPort.updateRecord).not.toHaveBeenCalled();
     });
 
     it('fails on a non-boolean string override to a Boolean field (preprocess passes it through, z.boolean rejects)', async () => {

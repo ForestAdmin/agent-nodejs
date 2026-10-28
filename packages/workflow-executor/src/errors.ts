@@ -277,6 +277,25 @@ export class PinnedArgNotFoundError extends WorkflowConfigurationError {
   }
 }
 
+export class PinnedRelationshipFieldError extends WorkflowConfigurationError {
+  constructor(fieldDisplayName: string, collectionName: string) {
+    super(
+      `Pinned field "${fieldDisplayName}" in collection "${collectionName}" is a relationship`,
+      `The "${fieldDisplayName}" field pinned on this step is a relationship, which this step ` +
+        "can't update. Edit the step to pick another field.",
+    );
+  }
+}
+
+export class PendingFieldNotFoundError extends WorkflowExecutorError {
+  constructor(name: string, collectionName: string) {
+    super(
+      `Field "${name}" awaiting confirmation not found in collection "${collectionName}"`,
+      'The field this step was about to update no longer exists on this record.',
+    );
+  }
+}
+
 export class FieldTypeMissingError extends WorkflowConfigurationError {
   constructor(name: string, collectionName: string) {
     super(
