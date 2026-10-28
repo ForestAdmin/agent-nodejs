@@ -63,13 +63,25 @@ function toExactNumber(decimal: string): number | string {
   return INTEGER_PATTERN.test(decimal) && !Number.isSafeInteger(asNumber) ? decimal : asNumber;
 }
 
+const ZERO_FRACTION_PATTERN = /\.0+$/;
+
+function toStrictNumber(decimal: string): number | string {
+  const integral = decimal.replace(ZERO_FRACTION_PATTERN, '');
+
+  if (INTEGER_PATTERN.test(integral)) return toExactNumber(integral);
+
+  const asNumber = Number(decimal);
+
+  return Math.abs(asNumber) > Number.MAX_SAFE_INTEGER ? NaN : asNumber;
+}
+
 const NUMBER_FORMAT_MESSAGE = 'expected a number or a decimal string, e.g. 12, -3 or 12.5';
 
 function buildNumberCoercion(strict: boolean): z.ZodTypeAny {
   return z.preprocess(
     val => {
       if (typeof val === 'string' && DECIMAL_PATTERN.test(val.trim())) {
-        return toExactNumber(val.trim());
+        return strict ? toStrictNumber(val.trim()) : toExactNumber(val.trim());
       }
 
       return strict || typeof val === 'number' ? val : Number(val);

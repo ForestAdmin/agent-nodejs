@@ -2057,6 +2057,9 @@ describe('UpdateRecordStepExecutor', () => {
         ['12345678901234567890', '12345678901234567890'],
         ['-12345678901234567890', '-12345678901234567890'],
         ['0.0000001', 1e-7],
+        ['9007199254740993.0', '9007199254740993'],
+        ['-12345678901234567890.000', '-12345678901234567890'],
+        ['12.0', 12],
         ['12.50', 12.5],
         ['007', 7],
         ['-3', -3],
@@ -2071,8 +2074,8 @@ describe('UpdateRecordStepExecutor', () => {
         );
       });
 
-      it.each(['0x10', '0b11', '0o17', '1e3', 'Infinity', '12abc'])(
-        'fails as a configuration error on the non-decimal string %p',
+      it.each(['0x10', '0b11', '0o17', '1e3', 'Infinity', '12abc', '12345678901234567890.5'])(
+        'fails as a configuration error on the string %p, which no Number can take exactly',
         async value => {
           const { executor, agentPort } = makePrerecordedContext('age', value);
 
@@ -3036,6 +3039,24 @@ describe('UpdateRecordStepExecutor', () => {
       const { executor, agentPort } = makeCoercionContext(numberField, '', {
         userConfirmed: true,
         value: '',
+      });
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(agentPort.updateRecord).not.toHaveBeenCalled();
+    });
+
+    it('rejects an override with a fraction beyond the safe integer range instead of rounding it', async () => {
+      const numberField = {
+        fieldName: 'age',
+        displayName: 'Age',
+        isRelationship: false,
+        type: 'Number' as const,
+      };
+      const { executor, agentPort } = makeCoercionContext(numberField, 30, {
+        userConfirmed: true,
+        value: '9007199254740993.5',
       });
 
       const result = await executor.execute();
