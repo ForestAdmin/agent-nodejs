@@ -2235,6 +2235,28 @@ describe('UpdateRecordStepExecutor', () => {
       },
     );
 
+    it.each([
+      [
+        'Date',
+        { fieldName: 'closedAt', displayName: 'Closed At', type: 'Date' as const },
+        '2026-06-01T10:00:00+02:00',
+      ],
+      ['Json object', { fieldName: 'meta', displayName: 'Meta', type: 'Json' as const }, { a: 1 }],
+      ['Json boolean', { fieldName: 'meta', displayName: 'Meta', type: 'Json' as const }, true],
+      ['Json number', { fieldName: 'meta', displayName: 'Meta', type: 'Json' as const }, 123],
+      ['Number', ageField, '12345678901234567890'],
+    ])('writes the AI %s value %p as is', async (_label, field, aiValue) => {
+      const { executor, agentPort } = makeAiContext({ ...field, isRelationship: false }, aiValue);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], values: { [field.fieldName]: aiValue } },
+        expect.objectContaining({ id: 1 }),
+      );
+    });
+
     it('names the expected number format when an AI value is not a number', async () => {
       const { executor, agentPort, context } = makeAiContext(ageField, 'abc');
 
@@ -2302,7 +2324,7 @@ describe('UpdateRecordStepExecutor', () => {
       ).toThrow();
     });
 
-    it('Date: rejects a datetime carrying a timezone offset, like the front tool', async () => {
+    it('Date: the tool schema sent to the model accepts Z and rejects an offset, like the front tool', async () => {
       const schema = await getToolSchema([
         { fieldName: 'created_at', displayName: 'Created At', isRelationship: false, type: 'Date' },
       ]);
@@ -2965,7 +2987,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(agentPort.updateRecord).not.toHaveBeenCalled();
     });
 
-    it('writes a pending blank Number value saved by an older executor when accepted as is', async () => {
+    it('coerces a pending blank Number value leniently when a client accepts without sending a value', async () => {
       const numberField = {
         fieldName: 'age',
         displayName: 'Age',
@@ -3000,6 +3022,45 @@ describe('UpdateRecordStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('success');
       expect(agentPort.updateRecord).toHaveBeenCalledWith(
         { collection: 'customers', id: [42], values: { value: pendingValue } },
+        expect.objectContaining({ id: 1 }),
+      );
+    });
+
+    it('coerces strictly when the run view accepts by sending the pending value back', async () => {
+      const numberField = {
+        fieldName: 'age',
+        displayName: 'Age',
+        isRelationship: false,
+        type: 'Number' as const,
+      };
+      const { executor, agentPort } = makeCoercionContext(numberField, '', {
+        userConfirmed: true,
+        value: '',
+      });
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(agentPort.updateRecord).not.toHaveBeenCalled();
+    });
+
+    it('keeps a pending bigint string exact when the run view sends it back', async () => {
+      const numberField = {
+        fieldName: 'age',
+        displayName: 'Age',
+        isRelationship: false,
+        type: 'Number' as const,
+      };
+      const { executor, agentPort } = makeCoercionContext(numberField, '12345678901234567890', {
+        userConfirmed: true,
+        value: '12345678901234567890',
+      });
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], values: { age: '12345678901234567890' } },
         expect.objectContaining({ id: 1 }),
       );
     });
