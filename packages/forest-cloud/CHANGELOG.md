@@ -1,3 +1,21 @@
+## @forestadmin/forest-cloud [1.12.255](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.254...@forestadmin/forest-cloud@1.12.255) (2026-10-29)
+
+
+### Bug Fixes
+
+* **forest-cloud:** point unexpected errors to the support form instead of the community forum ([#2045](https://github.com/ForestAdmin/agent-nodejs/issues/2045)) ([e1ba495](https://github.com/ForestAdmin/agent-nodejs/commit/e1ba49534694008d2ec0f767e740631eb6eaa930))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.111.5
+* **@forestadmin/datasource-mongo:** upgraded to 1.6.17
+* **@forestadmin/datasource-mongoose:** upgraded to 1.14.7
+* **@forestadmin/datasource-sql:** upgraded to 1.17.18
+
 ## @forestadmin/forest-cloud [1.12.254](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.253...@forestadmin/forest-cloud@1.12.254) (2026-10-26)
 
 
