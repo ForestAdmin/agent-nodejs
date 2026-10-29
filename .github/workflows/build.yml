@@ -92,7 +92,7 @@ jobs:
           node-version-file: ".nvmrc"
       - name: Start docker containers
         if: ${{ matrix.package == 'datasource-mongo' || matrix.package == 'datasource-mongoose' || matrix.package == 'datasource-sql' || matrix.package == 'datasource-sequelize' || matrix.package == 'datasource-dynamodb' }}
-        run: docker compose -f ./packages/${{ matrix.package }}/docker-compose.yml up -d; sleep 5
+        run: docker compose -f ./packages/${{ matrix.package }}/docker-compose.yml up -d --wait --wait-timeout 180
       - name: Restore dependencies from cache
         uses: actions/cache/restore@v4
         with:

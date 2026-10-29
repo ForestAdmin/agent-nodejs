@@ -96,3 +96,9 @@ services:
       - ./test/ssh-config:/config
     ports:
       - '2222:2222'
+    healthcheck:
+      # sshd only listens once the tunnel mod is downloaded and host keys are generated
+      test: ['CMD', 'ssh-keyscan', '-p', '2222', '127.0.0.1']
+      interval: 2s
+      timeout: 5s
+      retries: 60
