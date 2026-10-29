@@ -1,3 +1,10 @@
+## @forestadmin/datasource-mongoose [1.14.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.14.6...@forestadmin/datasource-mongoose@1.14.7) (2026-10-29)
+
+
+### Bug Fixes
+
+* **forest-cloud:** point unexpected errors to the support form instead of the community forum ([#2045](https://github.com/ForestAdmin/agent-nodejs/issues/2045)) ([e1ba495](https://github.com/ForestAdmin/agent-nodejs/commit/e1ba49534694008d2ec0f767e740631eb6eaa930))
+
 ## @forestadmin/datasource-mongoose [1.14.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.14.5...@forestadmin/datasource-mongoose@1.14.6) (2026-10-16)
 
 

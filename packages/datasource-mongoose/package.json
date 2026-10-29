@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/datasource-mongoose",
-  "version": "1.14.6",
+  "version": "1.14.7",
   "main": "dist/index.js",
   "license": "Apache-2.0",
   "publishConfig": {
