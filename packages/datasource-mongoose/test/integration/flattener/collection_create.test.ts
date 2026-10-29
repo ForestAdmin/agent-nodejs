@@ -139,7 +139,6 @@ describe('create collection', () => {
       );
     });
 
-    /** @see https://community.forestadmin.com/t/bug-report-with-smart-models-on-node-js-agent/6480/6 */
     it('should work when creating a submodel with nested fields', async () => {
       const flatRecord = {
         date: '2010-01-01T00:00:00.000Z',

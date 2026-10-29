@@ -16,7 +16,7 @@ export default function actionRunner(spinner: Spinner, fn: (...args) => Promise<
         process.exitCode = 1;
       } else {
         spinner.fail(
-          'An unexpected error occurred.\nPlease reach out for help in our Developers community (https://community.forestadmin.com/)',
+          'An unexpected error occurred.\nPlease contact our support (https://forest.app/forms/support)',
         );
         throw error;
       }

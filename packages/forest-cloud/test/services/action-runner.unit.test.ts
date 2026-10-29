@@ -56,7 +56,7 @@ describe('actionRunner', () => {
 
         expect(spinner.stop).toHaveBeenCalled();
         expect(spinner.fail).toHaveBeenCalledWith(
-          'An unexpected error occurred.\nPlease reach out for help in our Developers community (https://community.forestadmin.com/)',
+          'An unexpected error occurred.\nPlease contact our support (https://forest.app/forms/support)',
         );
       });
     });
