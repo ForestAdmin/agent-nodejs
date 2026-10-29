@@ -1,3 +1,13 @@
+## @forestadmin/agent [1.111.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.111.4...@forestadmin/agent@1.111.5) (2026-10-29)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sql:** upgraded to 1.17.18
+
 ## @forestadmin/agent [1.111.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.111.3...@forestadmin/agent@1.111.4) (2026-10-26)
 
 
