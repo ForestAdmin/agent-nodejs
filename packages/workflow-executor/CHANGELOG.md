@@ -1,3 +1,10 @@
+## @forestadmin/workflow-executor [1.35.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.35.3...@forestadmin/workflow-executor@1.35.4) (2026-10-30)
+
+
+### Bug Fixes
+
+* **workflow-executor:** coerce the pre-recorded update value, invalid one is a configuration error ([#2008](https://github.com/ForestAdmin/agent-nodejs/issues/2008)) ([996d623](https://github.com/ForestAdmin/agent-nodejs/commit/996d623d1c4fdca06f063d9f9534e7dd77712097))
+
 ## @forestadmin/workflow-executor [1.35.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.35.2...@forestadmin/workflow-executor@1.35.3) (2026-10-25)
 
 
