@@ -277,6 +277,25 @@ export class PinnedArgNotFoundError extends WorkflowConfigurationError {
   }
 }
 
+export class RelationshipFieldNotUpdatableError extends WorkflowConfigurationError {
+  constructor(fieldDisplayName: string, collectionName: string) {
+    super(
+      `Field "${fieldDisplayName}" in collection "${collectionName}" is a relationship`,
+      `The "${fieldDisplayName}" field is a relationship, which this step can't update. ` +
+        'Edit the step to pick another field.',
+    );
+  }
+}
+
+export class PendingFieldNotFoundError extends WorkflowConfigurationError {
+  constructor(name: string, collectionName: string) {
+    super(
+      `Field "${name}" awaiting confirmation not found in collection "${collectionName}"`,
+      'The field this step was about to update no longer exists on this record.',
+    );
+  }
+}
+
 export class FieldTypeMissingError extends WorkflowConfigurationError {
   constructor(name: string, collectionName: string) {
     super(
@@ -636,6 +655,16 @@ export class InvalidPendingDataError extends WorkflowExecutorError {
 export class InvalidPreRecordedArgsError extends WorkflowConfigurationError {
   constructor(detail: string) {
     super(`Invalid pre-recorded args: ${detail}`, 'The pre-configured step parameters are invalid');
+  }
+}
+
+export class InvalidPreRecordedValueError extends WorkflowConfigurationError {
+  constructor(fieldDisplayName: string, reason: string) {
+    super(
+      `Invalid pre-recorded value for field "${fieldDisplayName}": ${reason}`,
+      `The value set on this step can't be written to the "${fieldDisplayName}" field. ` +
+        'Edit the step to set a valid value.',
+    );
   }
 }
 

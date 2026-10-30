@@ -1,3 +1,4 @@
+import type { WorkflowExecutorError } from '../errors';
 import type { StepExecutionResult } from '../types/execution-context';
 import type { FieldWithValue, UpdateRecordStepExecutionData } from '../types/step-execution-data';
 import type { CollectionSchema, FieldSchema, RecordRef } from '../types/validated/collection';
@@ -10,8 +11,11 @@ import {
   FieldNotFoundError,
   FieldTypeMissingError,
   InvalidPreRecordedArgsError,
+  InvalidPreRecordedValueError,
   NoWritableFieldsError,
+  PendingFieldNotFoundError,
   PinnedArgNotFoundError,
+  RelationshipFieldNotUpdatableError,
   StepStateError,
 } from '../errors';
 import RecordStepExecutor from './record-step-executor';
@@ -41,6 +45,88 @@ const jsonStringSchema = z
   )
   .describe('JSON content as a valid JSON string');
 
+const jsonValueSchema = z.union([
+  jsonStringSchema,
+  z.record(z.string(), z.unknown()),
+  z.array(z.unknown()),
+  z.boolean(),
+  z.number(),
+]);
+
+const DECIMAL_PATTERN = /^-?\d+(\.\d+)?$/;
+const INTEGER_PATTERN = /^-?\d+$/;
+
+// The agent takes a bigint column's value as an integer string, which a double would round.
+function toExactNumber(decimal: string): number | string {
+  const asNumber = Number(decimal);
+
+  return INTEGER_PATTERN.test(decimal) && !Number.isSafeInteger(asNumber) ? decimal : asNumber;
+}
+
+const ZERO_FRACTION_PATTERN = /\.0+$/;
+
+function significantDigits(decimal: string): string {
+  return decimal
+    .replace(/e.*$/i, '')
+    .replace(/\D/g, '')
+    .replace(/^0+|0+$/g, '');
+}
+
+function toStrictNumber(decimal: string): number | string {
+  const integral = decimal.replace(ZERO_FRACTION_PATTERN, '');
+
+  if (INTEGER_PATTERN.test(integral)) return toExactNumber(integral);
+
+  const asNumber = Number(decimal);
+
+  return significantDigits(decimal) === significantDigits(String(asNumber)) ? asNumber : NaN;
+}
+
+function isPointString(val: string): boolean {
+  const coordinates = val.split(',');
+
+  return (
+    coordinates.length === 2 &&
+    coordinates.every(coordinate => coordinate.trim() !== '' && Number.isFinite(Number(coordinate)))
+  );
+}
+
+function isPointArray(val: unknown): val is [number, number] {
+  return (
+    Array.isArray(val) &&
+    val.length === 2 &&
+    val.every(coordinate => typeof coordinate === 'number' && Number.isFinite(coordinate))
+  );
+}
+
+// The agent takes a Point only as the string "longitude,latitude".
+const pointValueSchema = z.preprocess(
+  val => (isPointArray(val) ? val.join(',') : val),
+  z.custom<string>(val => typeof val === 'string' && isPointString(val), {
+    message: 'expected [longitude, latitude] or "longitude,latitude"',
+  }),
+);
+
+const NUMBER_FORMAT_MESSAGE = 'expected a number or a decimal string, e.g. 12, -3 or 12.5';
+
+function buildNumberCoercion(strict: boolean): z.ZodTypeAny {
+  return z.preprocess(
+    val => {
+      if (typeof val === 'string' && DECIMAL_PATTERN.test(val.trim())) {
+        return strict ? toStrictNumber(val.trim()) : toExactNumber(val.trim());
+      }
+
+      return strict || typeof val === 'number' ? val : Number(val);
+    },
+    z.custom<number | string>(
+      val =>
+        (typeof val === 'number' && Number.isFinite(val)) ||
+        (typeof val === 'string' && INTEGER_PATTERN.test(val)),
+      { message: NUMBER_FORMAT_MESSAGE },
+    ),
+  );
+}
+
 // `forAiTool` = the schema is bound into an AI tool (langchain converts it to JSON Schema). The
 // Boolean coercion uses `z.preprocess`, which langchain's cross-package transform-stripping misses
 // when the workspace resolves two zod copies (root vs nested) → "Transforms cannot be represented
@@ -50,6 +136,7 @@ function buildZodSchemaForPrimitive(
   type: string,
   enumValues?: string[],
   forAiTool = false,
+  strict = false,
 ): z.ZodTypeAny {
   switch (type) {
     case 'Boolean':
@@ -63,11 +150,13 @@ function buildZodSchemaForPrimitive(
             return val;
           }, z.boolean());
     case 'Date':
-      return z.iso.datetime().describe('ISO 8601 datetime, e.g. 2024-06-01T00:00:00Z');
+      return z.iso
+        .datetime({ offset: !forAiTool })
+        .describe('ISO 8601 datetime, e.g. 2024-06-01T00:00:00Z');
     case 'Dateonly':
       return z.iso.date().describe('ISO 8601 date, e.g. 2024-06-01');
     case 'Number':
-      return z.coerce.number();
+      return forAiTool ? z.coerce.number() : buildNumberCoercion(strict);
     case 'Enum':
       if (enumValues && enumValues.length >= 2) {
         return z.enum(enumValues as [string, string, ...string[]]);
@@ -77,9 +166,11 @@ function buildZodSchemaForPrimitive(
 
       return z.string();
     case 'Json':
-      return jsonStringSchema;
+      return forAiTool ? jsonStringSchema : jsonValueSchema;
     case 'Point':
-      return z.array(z.number()).length(2).describe('[longitude, latitude]');
+      return forAiTool
+        ? z.array(z.number()).length(2).describe('[longitude, latitude]')
+        : pointValueSchema;
     // String, Uuid, Time, Binary, Timeonly, File → plain string
     default:
       return z.string();
@@ -90,6 +181,7 @@ function buildZodSchemaForField(
   field: FieldSchema,
   collectionName: string,
   forAiTool = false,
+  strict = false,
 ): z.ZodTypeAny {
   const { type, enumValues } = field;
 
@@ -99,38 +191,50 @@ function buildZodSchemaForField(
     throw new FieldTypeMissingError(field.displayName, collectionName);
   }
 
+  const jsonSchema = forAiTool ? jsonStringSchema : jsonValueSchema;
+
   if (Array.isArray(type)) {
     // Nested array (e.g. [['String']]) → treat as opaque JSON.
-    if (Array.isArray(type[0])) return z.array(jsonStringSchema);
+    if (Array.isArray(type[0])) return z.array(jsonSchema);
 
-    return z.array(buildZodSchemaForPrimitive(type[0] as string, enumValues, forAiTool));
+    return z.array(buildZodSchemaForPrimitive(type[0] as string, enumValues, forAiTool, strict));
   }
 
   if (typeof type === 'object' && type !== null) {
-    return jsonStringSchema;
+    return jsonSchema;
   }
 
-  return buildZodSchemaForPrimitive(type as string, enumValues, forAiTool);
+  return buildZodSchemaForPrimitive(type as string, enumValues, forAiTool, strict);
 }
 
-// Coerce a user-overridden value to the field's native type before updating the record.
-// The HTTP schema accepts `unknown`, so the override may be a boolean or an array; this turns
-// it into the type the datasource expects, and throws a StepStateError on mismatch.
+interface CoerceOptions {
+  strict?: boolean;
+  toError?: (fieldDisplayName: string, reason: string) => WorkflowExecutorError;
+}
+
 function coerceFieldValue(
-  fieldSchema: FieldSchema | undefined,
+  fieldSchema: FieldSchema,
   value: unknown,
   collectionName: string,
+  {
+    strict = false,
+    toError = (name, reason) => new StepStateError(`Invalid value for field "${name}": ${reason}`),
+  }: CoerceOptions = {},
 ): unknown {
-  // Field not found, relationship (type intentionally null), or explicit null → nothing to coerce.
-  if (!fieldSchema || fieldSchema.isRelationship || value === null) return value;
+  if (fieldSchema.isRelationship) {
+    throw new RelationshipFieldNotUpdatableError(fieldSchema.displayName, collectionName);
+  }
 
-  const parsed = buildZodSchemaForField(fieldSchema, collectionName).safeParse(value);
+  if (value === null) return value;
+
+  const parsed = buildZodSchemaForField(fieldSchema, collectionName, false, strict).safeParse(
+    value,
+  );
 
   if (!parsed.success) {
-    throw new StepStateError(
-      `Invalid value for field "${fieldSchema.displayName}": ${parsed.error.issues
-        .map(issue => issue.message)
-        .join(', ')}`,
+    throw toError(
+      fieldSchema.displayName,
+      parsed.error.issues.map(issue => issue.message).join(', '),
     );
   }
 
@@ -166,18 +270,19 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
 
     if (pending) {
       return this.handleConfirmationFlow<UpdateRecordStepExecutionData>(pending, async exec => {
-        const { selectedRecordRef, pendingData, userConfirmation } = exec;
+        const { selectedRecordRef, userConfirmation } = exec;
+        const pendingData = exec.pendingData!;
         // A user override of `null` (clearing the field) must win over the AI suggestion, so
         // distinguish "no override" (undefined) from "override to null".
-        const rawValue =
-          userConfirmation?.value !== undefined ? userConfirmation.value : pendingData!.value;
+        const isOverridden = userConfirmation?.value !== undefined;
+        const rawValue = isOverridden ? userConfirmation.value : pendingData.value;
 
         const target: UpdateTarget = {
           selectedRecordRef,
-          ...pendingData!,
+          ...pendingData,
           // The value comes from an `unknown` HTTP value (may be a boolean or array), so coerce
           // it to the field's native type before updating. Idempotent on already-typed values.
-          value: await this.coerceOverride(selectedRecordRef, pendingData, rawValue),
+          value: await this.coerceOverride(selectedRecordRef, pendingData, rawValue, isOverridden),
         };
 
         return this.resolveAndUpdate(target, exec);
@@ -190,13 +295,20 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
 
   private async coerceOverride(
     selectedRecordRef: RecordRef,
-    pendingData: FieldWithValue | undefined,
+    pendingData: FieldWithValue,
     value: unknown,
+    isOverridden: boolean,
   ): Promise<unknown> {
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
-    const fieldSchema = this.findFieldByTechnicalName(schema, pendingData?.name);
+    const fieldSchema = this.findFieldByTechnicalName(schema, pendingData.name);
 
-    return coerceFieldValue(fieldSchema, value, selectedRecordRef.collectionName);
+    if (!fieldSchema) {
+      throw new PendingFieldNotFoundError(pendingData.name, schema.collectionName);
+    }
+
+    return coerceFieldValue(fieldSchema, value, selectedRecordRef.collectionName, {
+      strict: isOverridden,
+    });
   }
 
   private async handleFirstCall(): Promise<StepExecutionResult> {
@@ -223,29 +335,33 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     // - fieldName only     → field is pinned; the AI resolves just the value from the prompt.
     // - neither            → the AI picks both field and value.
     const recordedField = preRecordedArgs?.fieldName;
-    let fieldName: string;
+    let field: FieldSchema;
     let value: unknown;
 
-    if (recordedField !== undefined && preRecordedArgs?.value !== undefined) {
-      fieldName = recordedField;
-      value = preRecordedArgs.value;
-    } else if (recordedField !== undefined) {
-      const field = this.findFieldByTechnicalName(schema, recordedField);
-      if (!field) throw new PinnedArgNotFoundError('field', recordedField, schema.collectionName);
-      fieldName = recordedField;
-      value = await this.selectValueForField(schema, field, step.prompt);
+    if (recordedField !== undefined) {
+      const pinnedField = this.findFieldByTechnicalName(schema, recordedField);
+
+      if (!pinnedField) {
+        throw new PinnedArgNotFoundError('field', recordedField, schema.collectionName);
+      }
+
+      if (pinnedField.isRelationship) {
+        throw new RelationshipFieldNotUpdatableError(
+          pinnedField.displayName,
+          schema.collectionName,
+        );
+      }
+
+      field = pinnedField;
+      value =
+        preRecordedArgs?.value !== undefined
+          ? coerceFieldValue(field, preRecordedArgs.value, schema.collectionName, {
+              strict: true,
+              toError: (name, reason) => new InvalidPreRecordedValueError(name, reason),
+            })
+          : await this.selectValueForField(schema, field, step.prompt);
     } else {
-      ({ fieldName, value } = await this.selectFieldAndValue(schema, step.prompt));
-    }
-
-    const field = this.findFieldByTechnicalName(schema, fieldName);
-
-    if (!field) {
-      // Reached with a pinned name only when field and value were both pre-recorded; the
-      // pinned-name-only branch above resolves the field before it gets here.
-      throw recordedField !== undefined
-        ? new PinnedArgNotFoundError('field', fieldName, schema.collectionName)
-        : new FieldNotFoundError(fieldName, schema.collectionName);
+      ({ field, value } = await this.selectFieldAndValue(schema, step.prompt));
     }
 
     const target: UpdateTarget = {
@@ -316,7 +432,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
   private async selectFieldAndValue(
     schema: CollectionSchema,
     prompt: string | undefined,
-  ): Promise<{ fieldName: string; value: unknown }> {
+  ): Promise<{ field: FieldSchema; value: unknown }> {
     const tool = this.buildUpdateFieldTool(schema);
     const messages = [
       this.buildContextMessage(),
@@ -333,17 +449,15 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     }>(messages, tool);
 
     const fieldName = this.resolveAiFieldName(schema, input.fieldName);
+    const field = this.findFieldByTechnicalName(schema, fieldName);
+
+    if (!field || field.isRelationship) {
+      throw new FieldNotFoundError(fieldName, schema.collectionName);
+    }
 
     // The AI tool schema is JSON-Schema-safe (plain z.boolean() for Boolean), so it does not coerce
     // a stray string — normalize to the field's native type, matching the pinned-field path.
-    return {
-      fieldName,
-      value: coerceFieldValue(
-        this.findFieldByTechnicalName(schema, fieldName),
-        input.value,
-        schema.collectionName,
-      ),
-    };
+    return { field, value: coerceFieldValue(field, input.value, schema.collectionName) };
   }
 
   // Field is pinned at build time; only the value is AI-resolved from the prompt/workflow context.
