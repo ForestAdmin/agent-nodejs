@@ -34,13 +34,24 @@ export default class ListRelatedRoute extends RelationRoute {
       QueryStringParser.parseProjectionFromHeaderOrQuery(this.foreignCollection, context),
     );
 
-    const records = await CollectionUtils.listRelation(
-      this.collection,
-      parentId,
-      this.relationName,
-      QueryStringParser.parseCaller(context),
-      paginatedFilter,
-      projection.withPks(this.foreignCollection),
+    const caller = QueryStringParser.parseCaller(context);
+    const queried = projection.withPks(this.foreignCollection);
+    const relationScopes = await this.services.authorization.getRelationScopes(
+      context,
+      this.foreignCollection,
+      queried,
+    );
+    const records = relationScopes.redact(
+      await CollectionUtils.listRelation(
+        this.collection,
+        parentId,
+        this.relationName,
+        caller,
+        paginatedFilter,
+        relationScopes.withScopeFields(queried),
+      ),
+      queried,
+      caller.timezone,
     );
 
     context.response.body = this.services.serializer.serializeWithSearchMetadata(

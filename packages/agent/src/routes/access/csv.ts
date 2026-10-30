@@ -1,3 +1,4 @@
+import type { Caller, PaginatedFilter, Projection } from '@forestadmin/datasource-toolkit';
 import type Router from '@koa/router';
 import type { Context } from 'koa';
 
@@ -31,10 +32,20 @@ export default class CsvRoute extends CollectionRoute {
     const scope = await this.services.authorization.getScope(this.collection, context);
     const caller = QueryStringParser.parseCaller(context);
     const filter = ContextFilterFactory.buildPaginated(this.collection, context, scope);
+    const relationScopes = await this.services.authorization.getRelationScopes(
+      context,
+      this.collection,
+      projection,
+    );
 
     CsvRouteContext.buildResponse(context);
 
-    const list = this.collection.list.bind(this.collection);
+    const list = async (cal: Caller, fil: PaginatedFilter, proj: Projection) =>
+      relationScopes.redact(
+        await this.collection.list(cal, fil, relationScopes.withScopeFields(proj)),
+        proj,
+        cal.timezone,
+      );
 
     const gen = CsvGenerator.generate(
       caller,

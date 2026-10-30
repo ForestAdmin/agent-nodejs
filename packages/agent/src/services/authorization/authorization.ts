@@ -1,13 +1,21 @@
 import type { RequestedProjection } from '../../utils/query-string';
+import type { RelationScope } from '../../utils/relation-scopes';
 import type {
   Collection,
   CollectionDecorator,
   ConditionTree,
+  ManyToOneSchema,
+  OneToOneSchema,
 } from '@forestadmin/datasource-toolkit';
 import type { ForestAdminClient } from '@forestadmin/forestadmin-client';
 import type { Context } from 'koa';
 
-import { ForbiddenError, Projection, UnprocessableError } from '@forestadmin/datasource-toolkit';
+import {
+  ForbiddenError,
+  Projection,
+  SchemaUtils,
+  UnprocessableError,
+} from '@forestadmin/datasource-toolkit';
 import {
   ChainedSQLQueryError,
   CollectionActionEvent,
@@ -19,6 +27,7 @@ import { HttpCode } from '../../types';
 import ConditionTreeParser from '../../utils/condition-tree-parser';
 import FieldPathUtils from '../../utils/field-path';
 import QueryStringParser from '../../utils/query-string';
+import RelationScopes from '../../utils/relation-scopes';
 
 type FieldUsage = { action: string; path: string; collectionName: string };
 
@@ -282,6 +291,40 @@ export default class AuthorizationService {
     if (!scope) return null;
 
     return ConditionTreeParser.fromPlainObject(collection, scope);
+  }
+
+  /** The caller's scope on each collection the projection reaches through a to-one relation. */
+  public async getRelationScopes(
+    context: Context,
+    collection: Collection,
+    projection: Projection,
+  ): Promise<RelationScopes> {
+    return new RelationScopes(await this.collectRelationScopes(context, collection, projection));
+  }
+
+  private async collectRelationScopes(
+    context: Context,
+    collection: Collection,
+    projection: Projection,
+    prefix?: string,
+  ): Promise<RelationScope[]> {
+    const scopes = await Promise.all(
+      Object.entries(projection.relations).map(async ([name, subProjection]) => {
+        const relation = SchemaUtils.getRelation(collection.schema, name, collection.name);
+        const foreignCollection = collection.dataSource.getCollection(
+          (relation as ManyToOneSchema | OneToOneSchema).foreignCollection,
+        );
+        const path = prefix ? `${prefix}:${name}` : name;
+        const [scope, nested] = await Promise.all([
+          this.getScope(foreignCollection, context),
+          this.collectRelationScopes(context, foreignCollection, subProjection, path),
+        ]);
+
+        return scope ? [{ path, collection: foreignCollection, scope }, ...nested] : nested;
+      }),
+    );
+
+    return scopes.flat();
   }
 
   public invalidateScopeCache(renderingId: number | string) {
