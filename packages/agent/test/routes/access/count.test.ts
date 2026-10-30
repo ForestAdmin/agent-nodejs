@@ -51,6 +51,27 @@ describe('CountRoute', () => {
         expect(context.response.body).toEqual({ count: 2 });
       });
 
+      test('refuses the count before aggregating when the live query segment is not allowed', async () => {
+        const aggregateSpy = jest.fn().mockReturnValue([{ value: 2 }]);
+        dataSource.getCollection('books').aggregate = aggregateSpy;
+        (
+          services.authorization.assertCanExecuteLiveQuerySegment as jest.Mock
+        ).mockRejectedValueOnce(new Error('Forbidden'));
+        const count = new Count(services, options, dataSource, 'books');
+        const context = createMockContext({
+          customProperties: { query: { timezone: 'Europe/Paris' } },
+          state: { user: { email: 'john.doe@domain.com' } },
+        });
+
+        await expect(count.handleCount(context)).rejects.toThrow('Forbidden');
+
+        expect(services.authorization.assertCanExecuteLiveQuerySegment).toHaveBeenCalledWith(
+          context,
+          'books',
+        );
+        expect(aggregateSpy).not.toHaveBeenCalled();
+      });
+
       test('should ignore the Forest-Projection header', async () => {
         const aggregateSpy = jest.fn().mockReturnValue([{ value: 2 }]);
         dataSource.getCollection('books').aggregate = aggregateSpy;

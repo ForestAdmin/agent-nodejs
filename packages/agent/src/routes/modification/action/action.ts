@@ -384,18 +384,34 @@ export default class ActionRoute extends CollectionRoute {
     const body = context.request.body as any;
     const attributes = body?.data?.attributes;
 
+    const actionScope = this.collection.schema.actions[this.actionName].scope;
+    const selectionIds =
+      actionScope === 'Global'
+        ? null
+        : BodyParser.parseSelectionIds(this.collection.schema, context);
+    // Explicit ids already pin the records: the selection's segment adds nothing, so it never runs.
+    const isExplicitIdSelection = selectionIds !== null && !selectionIds.areExcluded;
+
     // Match user filter + search + scope? + segment.
+    if (!isExplicitIdSelection) {
+      await this.services.authorization.assertCanExecuteLiveQuerySegment(
+        context,
+        this.collection.name,
+      );
+    }
+
     const scope = includeUserScope
       ? await this.services.authorization.getScope(this.collection, context)
       : null;
-    let filter = ContextFilterFactory.build(this.collection, context, scope);
+    let filter = ContextFilterFactory.build(
+      this.collection,
+      context,
+      scope,
+      isExplicitIdSelection ? { liveQuerySegment: undefined } : undefined,
+    );
 
     // Restrict the filter to the selected records for single or bulk actions.
-    const actionScope = this.collection.schema.actions[this.actionName].scope;
-
-    if (actionScope !== 'Global') {
-      const selectionIds = BodyParser.parseSelectionIds(this.collection.schema, context);
-
+    if (selectionIds) {
       // A single action runs on its first record, or on nothing: refuse any selection but one id.
       if (actionScope === 'Single' && (selectionIds.areExcluded || selectionIds.ids.length !== 1)) {
         throw new UnprocessableError('This action can only be triggered on one record at a time.');

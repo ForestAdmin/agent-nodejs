@@ -18,6 +18,10 @@ export default class ListRelatedRoute extends RelationRoute {
 
   public async handleListRelated(context: Context): Promise<void> {
     await this.services.authorization.assertCanBrowse(context, this.foreignCollection.name);
+    await this.services.authorization.assertCanExecuteLiveQuerySegment(
+      context,
+      this.foreignCollection.name,
+    );
     await this.services.authorization.assertCanReadQueryFields(context, this.foreignCollection);
 
     const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);

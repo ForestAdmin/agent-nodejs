@@ -6,6 +6,7 @@ import { Readable } from 'stream';
 
 import ActionRoute from '../../../../src/routes/modification/action/action';
 import CustomActionTriggerForbiddenError from '../../../../src/routes/modification/action/errors/custom-action-trigger-forbidden-error';
+import AuthorizationService from '../../../../src/services/authorization/authorization';
 import * as factories from '../../../__factories__';
 
 // This part of the context is the same in all tests.
@@ -1802,7 +1803,7 @@ describe('ActionRoute', () => {
         ]);
       });
 
-      test('resolves the live-query segment context variables before listing the audited selection', async () => {
+      test('lists an explicit audited selection by its ids, without its live-query segment', async () => {
         const context = createMockContext({
           ...baseContext,
           customProperties: {
@@ -1829,15 +1830,19 @@ describe('ActionRoute', () => {
         await route.handleExecute(context);
 
         expect(dataSource.getCollection('books').list).toHaveBeenCalledWith(
-          expect.anything(),
+          expect.objectContaining({ id: '42' }),
           expect.objectContaining({
-            liveQuerySegment: expect.objectContaining({
-              query: 'SELECT 1',
-              connectionName: 'main',
-              contextVariables: {},
+            liveQuerySegment: expect.toBeNil(),
+            conditionTree: expect.objectContaining({
+              field: 'id',
+              operator: 'In',
+              value: [
+                '123e4567-e89b-12d3-a456-426614174000',
+                '123e4567-e89b-12d3-a456-426614174001',
+              ],
             }),
           }),
-          expect.anything(),
+          ['id'],
         );
       });
 
@@ -1925,6 +1930,214 @@ describe('ActionRoute', () => {
         expect(dataSource.getCollection('books').execute).not.toHaveBeenCalled();
         expect(insertPendingBatch).not.toHaveBeenCalled();
       });
+    });
+  });
+
+  describe('with a live query segment and the real authorization service', () => {
+    const throwingThrow = () =>
+      jest.fn((status: number, message: string) => {
+        throw Object.assign(new Error(message), { status });
+      });
+
+    let realServices: ReturnType<typeof factories.forestAdminHttpDriverServices.build>;
+
+    const segmentQuery = 'SELECT id FROM books';
+    const expectedSegmentCheck = {
+      userId: '42',
+      collectionName: 'books',
+      renderingId: 7,
+      segmentQuery,
+      connectionName: 'main',
+    };
+
+    const buildContext = (attributes: Record<string, unknown> = {}) =>
+      createMockContext({
+        ...baseContext,
+        throw: throwingThrow(),
+        state: { user: { ...baseContext.state.user, renderingId: 7 } },
+        requestBody: {
+          data: {
+            attributes: {
+              ...baseContext.requestBody.data.attributes,
+              ids: [],
+              all_records: true,
+              values: { firstname: 'John' },
+              all_records_subset_query: { segmentQuery, connectionName: 'main' },
+              ...attributes,
+            },
+          },
+        },
+      });
+
+    const allowSegmentQuery = (allowed: boolean) =>
+      (
+        options.forestAdminClient.permissionService.canExecuteSegmentQuery as jest.Mock
+      ).mockResolvedValue(allowed);
+
+    const callRoute = async (path: string, context: ReturnType<typeof buildContext>) => {
+      const actionRouter = factories.router.mockAllMethods().build();
+      route.setupRoutes(actionRouter);
+      const [, ...handlers] = (actionRouter.post as jest.Mock).mock.calls.find(
+        ([registeredPath]) => registeredPath === path,
+      );
+      const dispatch = (index: number): Promise<void> =>
+        index < handlers.length ? handlers[index](context, () => dispatch(index + 1)) : undefined;
+
+      return dispatch(0);
+    };
+
+    const executePath = '/_actions/books/0/mybulkaction';
+    const loadHookPath = '/_actions/books/0/mybulkaction/hooks/load';
+
+    const buildApprovalContext = (allowed: boolean, attributes: Record<string, unknown> = {}) => {
+      const signedRequest = buildContext({ requester_id: 12, ...attributes }).request.body;
+      (options.forestAdminClient.verifySignedActionParameters as jest.Mock).mockReturnValue(
+        signedRequest,
+      );
+      allowSegmentQuery(allowed);
+
+      return createMockContext({
+        ...baseContext,
+        throw: throwingThrow(),
+        state: { user: { ...baseContext.state.user, renderingId: 7 } },
+        requestBody: { data: { attributes: { signed_approval_request: 'signed-request' } } },
+      });
+    };
+
+    beforeEach(() => {
+      realServices = factories.forestAdminHttpDriverServices.build({
+        authorization: new AuthorizationService(options.forestAdminClient),
+      });
+      dataSource = factories.dataSource.buildWithCollections([
+        factories.collection.build({
+          name: 'books',
+          schema: {
+            actions: { MyBulkAction: { scope: 'Bulk' } },
+            fields: { id: factories.columnSchema.uuidPrimaryKey().build() },
+          },
+          getForm: jest.fn().mockResolvedValue([{ type: 'String', label: 'firstname' }]),
+          execute: jest.fn().mockResolvedValue({ type: 'Success', message: 'ok', invalidated: [] }),
+        }),
+      ]);
+
+      route = new ActionRoute(realServices, options, dataSource, 'books', 'MyBulkAction');
+    });
+
+    test('refuses to execute an action on a segment the user is not allowed to run', async () => {
+      allowSegmentQuery(false);
+      const context = buildContext();
+
+      await expect(callRoute(executePath, context)).rejects.toMatchObject({ status: 403 });
+
+      expect(
+        options.forestAdminClient.permissionService.canExecuteSegmentQuery,
+      ).toHaveBeenCalledWith(expectedSegmentCheck);
+      expect(dataSource.getCollection('books').execute).not.toHaveBeenCalled();
+    });
+
+    test('executes an action on a segment the user is allowed to run', async () => {
+      allowSegmentQuery(true);
+      const context = buildContext();
+
+      await callRoute(executePath, context);
+
+      expect(
+        options.forestAdminClient.permissionService.canExecuteSegmentQuery,
+      ).toHaveBeenCalledWith(expectedSegmentCheck);
+      expect(dataSource.getCollection('books').execute).toHaveBeenCalledWith(
+        expect.objectContaining({ id: '42' }),
+        'MyBulkAction',
+        { firstname: 'John' },
+        expect.objectContaining({
+          liveQuerySegment: { query: segmentQuery, connectionName: 'main' },
+        }),
+      );
+      expect(context.response.body).toEqual(expect.objectContaining({ success: 'ok' }));
+    });
+
+    test('refuses to load an action form on a segment the user is not allowed to run', async () => {
+      allowSegmentQuery(false);
+      const context = buildContext();
+
+      await expect(callRoute(loadHookPath, context)).rejects.toMatchObject({ status: 403 });
+
+      expect(
+        options.forestAdminClient.permissionService.canExecuteSegmentQuery,
+      ).toHaveBeenCalledWith(expectedSegmentCheck);
+      expect(dataSource.getCollection('books').getForm).not.toHaveBeenCalled();
+    });
+
+    test('loads an action form on a segment the user is allowed to run', async () => {
+      allowSegmentQuery(true);
+      const context = buildContext();
+
+      await callRoute(loadHookPath, context);
+
+      expect(
+        options.forestAdminClient.permissionService.canExecuteSegmentQuery,
+      ).toHaveBeenCalledWith(expectedSegmentCheck);
+      expect(dataSource.getCollection('books').getForm).toHaveBeenCalledWith(
+        expect.objectContaining({ id: '42' }),
+        'MyBulkAction',
+        null,
+        expect.objectContaining({
+          liveQuerySegment: { query: segmentQuery, connectionName: 'main' },
+        }),
+        expect.objectContaining({ includeHiddenFields: false }),
+      );
+    });
+
+    test('refuses an approval on a segment the approver is not allowed to run', async () => {
+      const context = buildApprovalContext(false);
+
+      await expect(callRoute(executePath, context)).rejects.toMatchObject({ status: 403 });
+
+      expect(
+        options.forestAdminClient.permissionService.canExecuteSegmentQuery,
+      ).toHaveBeenCalledWith(expectedSegmentCheck);
+      expect(dataSource.getCollection('books').execute).not.toHaveBeenCalled();
+    });
+
+    test('executes an approval on selected records without checking or running their segment', async () => {
+      const selectedId = '123e4567-e89b-12d3-a456-426614174000';
+      const context = buildApprovalContext(false, { all_records: false, ids: [selectedId] });
+
+      await callRoute(executePath, context);
+
+      expect(
+        options.forestAdminClient.permissionService.canExecuteSegmentQuery,
+      ).not.toHaveBeenCalled();
+      expect(dataSource.getCollection('books').execute).toHaveBeenCalledWith(
+        expect.objectContaining({ id: '42' }),
+        'MyBulkAction',
+        { firstname: 'John' },
+        expect.objectContaining({
+          liveQuerySegment: expect.toBeNil(),
+          conditionTree: expect.objectContaining({
+            field: 'id',
+            operator: 'Equal',
+            value: selectedId,
+          }),
+        }),
+      );
+    });
+
+    test('executes an approval on a segment the approver is allowed to run', async () => {
+      const context = buildApprovalContext(true);
+
+      await callRoute(executePath, context);
+
+      expect(
+        options.forestAdminClient.permissionService.canExecuteSegmentQuery,
+      ).toHaveBeenCalledWith(expectedSegmentCheck);
+      expect(dataSource.getCollection('books').execute).toHaveBeenCalledWith(
+        expect.objectContaining({ id: '42' }),
+        'MyBulkAction',
+        { firstname: 'John' },
+        expect.objectContaining({
+          liveQuerySegment: { query: segmentQuery, connectionName: 'main' },
+        }),
+      );
     });
   });
 });

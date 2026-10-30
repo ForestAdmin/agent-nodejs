@@ -83,93 +83,129 @@ describe('AuthorizationService', () => {
     });
   });
 
-  describe('assertCanBrowseOnCollection', () => {
-    describe('when a live query segment is present', () => {
-      it('should not do anything for authorized users', async () => {
-        const forestAdminClient = factories.forestAdminClient.build();
-        const authorizationService = new AuthorizationService(forestAdminClient);
+  describe('assertCanExecuteLiveQuerySegment', () => {
+    const buildContext = (request: { query?: object; body?: object }) =>
+      ({
+        request: { query: {}, ...request },
+        state: { user: { id: 35, renderingId: 42 } },
+        throw: jest.fn(),
+      } as unknown as Context);
 
-        const context = {
-          request: {
-            query: {
-              segmentQuery: `SELECT id FROM books where type = 'comics'`,
-              connectionName: 'library',
-            },
-          },
-          state: {
-            user: {
-              id: 35,
-              renderingId: 42,
-            },
-          },
-          throw: jest.fn(),
-        } as unknown as Context;
+    const subsetQueryBody = (segmentQuery: string, connectionName: string) => ({
+      data: { attributes: { all_records_subset_query: { segmentQuery, connectionName } } },
+    });
 
-        (forestAdminClient.permissionService.canOnCollection as jest.Mock).mockResolvedValue(true);
-        (forestAdminClient.permissionService.canExecuteSegmentQuery as jest.Mock).mockResolvedValue(
-          true,
-        );
+    let forestAdminClient: ReturnType<typeof factories.forestAdminClient.build>;
+    let authorizationService: AuthorizationService;
 
-        await authorizationService.assertCanBrowse(context, 'books');
+    beforeEach(() => {
+      forestAdminClient = factories.forestAdminClient.build();
+      authorizationService = new AuthorizationService(forestAdminClient);
+    });
 
-        expect(context.throw).not.toHaveBeenCalled();
-
-        expect(forestAdminClient.permissionService.canOnCollection).toHaveBeenCalledWith({
-          userId: 35,
-          event: CollectionActionEvent.Browse,
-          collectionName: 'books',
-        });
-
-        expect(forestAdminClient.permissionService.canExecuteSegmentQuery).toHaveBeenCalledWith({
-          userId: 35,
-          collectionName: 'books',
-          renderingId: 42,
-          segmentQuery: `SELECT id FROM books where type = 'comics'`,
-          connectionName: 'library',
-        });
+    it('refuses the request when the segment query of the query string is not allowed', async () => {
+      (forestAdminClient.permissionService.canExecuteSegmentQuery as jest.Mock).mockResolvedValue(
+        false,
+      );
+      const context = buildContext({
+        query: { segmentQuery: 'SELECT id FROM books', connectionName: 'library' },
       });
 
-      describe('when query is not authorized', () => {
-        it('should throw forbidden error', async () => {
-          const forestAdminClient = factories.forestAdminClient.build();
-          const authorizationService = new AuthorizationService(forestAdminClient);
+      await authorizationService.assertCanExecuteLiveQuerySegment(context, 'books');
 
-          const context = {
-            request: {
-              query: {
-                segmentQuery: `DROP TABLE books;`,
-                connectionName: 'library',
-              },
-            },
-            state: {
-              user: {
-                id: 35,
-                renderingId: 42,
-              },
-            },
-            throw: jest.fn(),
-          } as unknown as Context;
-
-          (forestAdminClient.permissionService.canOnCollection as jest.Mock).mockResolvedValue(
-            true,
-          );
-          (
-            forestAdminClient.permissionService.canExecuteSegmentQuery as jest.Mock
-          ).mockResolvedValue(false);
-
-          await authorizationService.assertCanBrowse(context, 'books');
-
-          expect(context.throw).toHaveBeenCalledWith(HttpCode.Forbidden, 'Forbidden');
-
-          expect(forestAdminClient.permissionService.canExecuteSegmentQuery).toHaveBeenCalledWith({
-            userId: 35,
-            collectionName: 'books',
-            renderingId: 42,
-            segmentQuery: `DROP TABLE books;`,
-            connectionName: 'library',
-          });
-        });
+      expect(forestAdminClient.permissionService.canExecuteSegmentQuery).toHaveBeenCalledWith({
+        userId: 35,
+        collectionName: 'books',
+        renderingId: 42,
+        segmentQuery: 'SELECT id FROM books',
+        connectionName: 'library',
       });
+      expect(context.throw).toHaveBeenCalledWith(HttpCode.Forbidden, 'Forbidden');
+    });
+
+    it('refuses the request when the segment query of the request body is not allowed', async () => {
+      (forestAdminClient.permissionService.canExecuteSegmentQuery as jest.Mock).mockResolvedValue(
+        false,
+      );
+      const context = buildContext({ body: subsetQueryBody('SELECT id FROM books', 'library') });
+
+      await authorizationService.assertCanExecuteLiveQuerySegment(context, 'books');
+
+      expect(forestAdminClient.permissionService.canExecuteSegmentQuery).toHaveBeenCalledWith({
+        userId: 35,
+        collectionName: 'books',
+        renderingId: 42,
+        segmentQuery: 'SELECT id FROM books',
+        connectionName: 'library',
+      });
+      expect(context.throw).toHaveBeenCalledWith(HttpCode.Forbidden, 'Forbidden');
+    });
+
+    it('checks the segment query the filter will use when both the body and the query string carry one', async () => {
+      (forestAdminClient.permissionService.canExecuteSegmentQuery as jest.Mock).mockResolvedValue(
+        true,
+      );
+      const context = buildContext({
+        query: { segmentQuery: 'SELECT id FROM books', connectionName: 'library' },
+        body: subsetQueryBody('SELECT id FROM authors', 'archive'),
+      });
+
+      await authorizationService.assertCanExecuteLiveQuerySegment(context, 'books');
+
+      expect(forestAdminClient.permissionService.canExecuteSegmentQuery).toHaveBeenCalledTimes(1);
+      expect(forestAdminClient.permissionService.canExecuteSegmentQuery).toHaveBeenCalledWith({
+        userId: 35,
+        collectionName: 'books',
+        renderingId: 42,
+        segmentQuery: 'SELECT id FROM authors',
+        connectionName: 'archive',
+      });
+    });
+
+    it('allows the request when the segment query is allowed', async () => {
+      (forestAdminClient.permissionService.canExecuteSegmentQuery as jest.Mock).mockResolvedValue(
+        true,
+      );
+      const context = buildContext({ body: subsetQueryBody('SELECT id FROM books', 'library') });
+
+      await authorizationService.assertCanExecuteLiveQuerySegment(context, 'books');
+
+      expect(forestAdminClient.permissionService.canExecuteSegmentQuery).toHaveBeenCalledWith({
+        userId: 35,
+        collectionName: 'books',
+        renderingId: 42,
+        segmentQuery: 'SELECT id FROM books',
+        connectionName: 'library',
+      });
+      expect(context.throw).not.toHaveBeenCalled();
+    });
+
+    it('does not check any segment query when the request carries none', async () => {
+      const context = buildContext({ query: { timezone: 'Europe/Paris' } });
+
+      await authorizationService.assertCanExecuteLiveQuerySegment(context, 'books');
+
+      expect(forestAdminClient.permissionService.canExecuteSegmentQuery).not.toHaveBeenCalled();
+      expect(context.throw).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      'assertCanAdd',
+      'assertCanBrowse',
+      'assertCanDelete',
+      'assertCanEdit',
+      'assertCanExport',
+      'assertCanRead',
+    ])('%s leaves the segment query to the route whose filter uses it', async assertion => {
+      (forestAdminClient.permissionService.canOnCollection as jest.Mock).mockResolvedValue(true);
+      const context = buildContext({
+        query: { segmentQuery: 'SELECT id FROM books', connectionName: 'library' },
+      });
+
+      await authorizationService[assertion](context, 'authors');
+
+      expect(forestAdminClient.permissionService.canExecuteSegmentQuery).not.toHaveBeenCalled();
+      expect(context.throw).not.toHaveBeenCalled();
     });
   });
 
