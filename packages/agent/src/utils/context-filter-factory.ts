@@ -1,7 +1,13 @@
 import type { Collection, ConditionTree } from '@forestadmin/datasource-toolkit';
 import type { Context } from 'koa';
 
-import { ConditionTreeFactory, Filter, PaginatedFilter } from '@forestadmin/datasource-toolkit';
+import {
+  ConditionTreeFactory,
+  Filter,
+  PaginatedFilter,
+  Sort,
+  SortFactory,
+} from '@forestadmin/datasource-toolkit';
 
 import QueryStringParser from './query-string';
 
@@ -13,7 +19,10 @@ export default class ContextFilterFactory {
     partialFilter?: Partial<PaginatedFilter>,
   ): PaginatedFilter {
     return new PaginatedFilter({
-      sort: QueryStringParser.parseSort(collection, context),
+      sort: ContextFilterFactory.withPrimaryKeyTiebreaker(
+        collection,
+        QueryStringParser.parseSort(collection, context),
+      ),
       page: QueryStringParser.parsePagination(context),
       ...ContextFilterFactory.build(collection, context, scope),
       ...partialFilter,
@@ -37,5 +46,16 @@ export default class ContextFilterFactory {
       ),
       ...partialFilter,
     });
+  }
+
+  private static withPrimaryKeyTiebreaker(collection: Collection, sort: Sort): Sort {
+    if (sort.length === 0) return sort;
+
+    const { ascending } = sort[sort.length - 1];
+    const missingPrimaryKeys = SortFactory.byPrimaryKeys(collection)
+      .filter(({ field }) => !sort.some(clause => clause.field === field))
+      .map(({ field }) => ({ field, ascending }));
+
+    return new Sort(...sort, ...missingPrimaryKeys);
   }
 }

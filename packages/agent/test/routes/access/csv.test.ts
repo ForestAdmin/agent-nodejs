@@ -192,6 +192,33 @@ describe('CsvRoute', () => {
       const csvResult = await readCsv(context.response.body as AsyncGenerator<string>);
       expect(csvResult).toEqual(['name,id\n', 'a,1\nab,2\nabc,3\n']);
     });
+
+    it('should page the export with the primary key as sort tiebreaker', async () => {
+      jest.restoreAllMocks();
+      const { options, services, dataSource } = setup();
+      const csvRoute = new CsvRoute(services, options, dataSource, 'books');
+      const context = createMockContext({
+        customProperties: {
+          query: { 'fields[books]': 'id,name', header: 'id,name', sort: '-name', timezone: 'UTC' },
+        },
+      });
+      const list = jest.fn().mockReturnValue([]);
+      dataSource.getCollection('books').list = list;
+
+      await csvRoute.handleCsv(context);
+      await readCsv(context.response.body as AsyncGenerator<string>);
+
+      expect(list).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          sort: [
+            { field: 'name', ascending: false },
+            { field: 'id', ascending: false },
+          ],
+        }),
+        ['id', 'name'],
+      );
+    });
   });
 
   describe('with special characters in names', () => {

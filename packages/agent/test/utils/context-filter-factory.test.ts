@@ -1,3 +1,5 @@
+import type { Collection, ColumnSchema } from '@forestadmin/datasource-toolkit';
+
 import {
   ConditionTreeBranch,
   ConditionTreeLeaf,
@@ -91,6 +93,105 @@ describe('FilterFactory', () => {
           liveQuerySegment: expect.toBeNil(),
         }),
       );
+    });
+
+    describe('primary key tiebreaker', () => {
+      const buildCollection = (fields: Record<string, ColumnSchema>) =>
+        factories.collection.build({
+          schema: factories.collectionSchema.build({ fields }),
+        });
+
+      const buildSort = (collection: Collection, sort?: string) =>
+        ContextFilterFactory.buildPaginated(
+          collection,
+          createMockContext({ customProperties: { query: { sort, timezone: 'Europe/Paris' } } }),
+          null,
+        ).sort;
+
+      test('should append the primary key in the direction of a descending sort', () => {
+        const collection = buildCollection({
+          id: factories.columnSchema.numericPrimaryKey().build(),
+          createdDate: factories.columnSchema.text().build(),
+        });
+
+        expect(buildSort(collection, '-createdDate')).toEqual([
+          { field: 'createdDate', ascending: false },
+          { field: 'id', ascending: false },
+        ]);
+      });
+
+      test('should append the primary key in the direction of the last sort clause', () => {
+        const collection = buildCollection({
+          id: factories.columnSchema.numericPrimaryKey().build(),
+          name: factories.columnSchema.text().build(),
+          createdDate: factories.columnSchema.text().build(),
+        });
+
+        expect(buildSort(collection, '-name,createdDate')).toEqual([
+          { field: 'name', ascending: false },
+          { field: 'createdDate', ascending: true },
+          { field: 'id', ascending: true },
+        ]);
+      });
+
+      test('should keep the sort unchanged when it already contains the primary key', () => {
+        const collection = buildCollection({
+          id: factories.columnSchema.numericPrimaryKey().build(),
+          createdDate: factories.columnSchema.text().build(),
+        });
+
+        expect(buildSort(collection, 'createdDate,-id')).toEqual([
+          { field: 'createdDate', ascending: true },
+          { field: 'id', ascending: false },
+        ]);
+      });
+
+      test('should append only the missing fields of a composite primary key', () => {
+        const collection = buildCollection({
+          tenantId: factories.columnSchema.numericPrimaryKey().build(),
+          id: factories.columnSchema.numericPrimaryKey().build(),
+          createdDate: factories.columnSchema.text().build(),
+        });
+
+        expect(buildSort(collection, '-createdDate,tenantId')).toEqual([
+          { field: 'createdDate', ascending: false },
+          { field: 'tenantId', ascending: true },
+          { field: 'id', ascending: true },
+        ]);
+      });
+
+      test('should append every field of a composite primary key', () => {
+        const collection = buildCollection({
+          tenantId: factories.columnSchema.numericPrimaryKey().build(),
+          id: factories.columnSchema.numericPrimaryKey().build(),
+          createdDate: factories.columnSchema.text().build(),
+        });
+
+        expect(buildSort(collection, '-createdDate')).toEqual([
+          { field: 'createdDate', ascending: false },
+          { field: 'tenantId', ascending: false },
+          { field: 'id', ascending: false },
+        ]);
+      });
+
+      test('should skip a primary key that is not sortable', () => {
+        const collection = buildCollection({
+          id: factories.columnSchema.numericPrimaryKey().build({ isSortable: false }),
+          createdDate: factories.columnSchema.text().build(),
+        });
+
+        expect(buildSort(collection, '-createdDate')).toEqual([
+          { field: 'createdDate', ascending: false },
+        ]);
+      });
+
+      test('should leave an empty sort empty', () => {
+        const collection = buildCollection({
+          id: factories.columnSchema.numericPrimaryKey().build(),
+        });
+
+        expect(buildSort(collection, undefined)).toEqual(new Sort());
+      });
     });
   });
 });

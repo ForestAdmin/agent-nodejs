@@ -903,7 +903,10 @@ describe('read permissions on related collections', () => {
         buildContext({ query: { sort: '-account.balance' } }),
       );
 
-      expect(list.mock.calls[0][1].sort).toEqual([{ field: 'account:balance', ascending: false }]);
+      expect(list.mock.calls[0][1].sort).toEqual([
+        { field: 'account:balance', ascending: false },
+        { field: 'id', ascending: false },
+      ]);
     });
 
     it('should serve an extended search the stack cannot describe', async () => {
