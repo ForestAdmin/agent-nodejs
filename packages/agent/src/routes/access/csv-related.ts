@@ -45,6 +45,11 @@ export default class CsvRelatedRoute extends RelationRoute {
     const caller = QueryStringParser.parseCaller(context);
     const filter = ContextFilterFactory.buildPaginated(this.foreignCollection, context, scope);
     const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
+    const relationScopes = await this.services.authorization.getRelationScopes(
+      context,
+      this.foreignCollection,
+      projection,
+    );
 
     CsvRouteContext.buildResponse(context);
 
@@ -56,7 +61,18 @@ export default class CsvRelatedRoute extends RelationRoute {
       this.options.limitExportSize,
       this.foreignCollection,
       async (cal: Caller, fil: PaginatedFilter, proj: Projection) =>
-        CollectionUtils.listRelation(this.collection, parentId, this.relationName, cal, fil, proj),
+        relationScopes.redact(
+          await CollectionUtils.listRelation(
+            this.collection,
+            parentId,
+            this.relationName,
+            cal,
+            fil,
+            relationScopes.withScopeFields(proj),
+          ),
+          proj,
+          cal.timezone,
+        ),
     );
     context.response.body = Readable.from(gen);
   }

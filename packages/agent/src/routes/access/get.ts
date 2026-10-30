@@ -30,10 +30,17 @@ export default class GetRoute extends CollectionRoute {
       QueryStringParser.parseProjectionFromHeaderOrQuery(this.collection, context),
     );
 
-    const records = await this.collection.list(
-      QueryStringParser.parseCaller(context),
-      filter,
-      projection.withPks(this.collection),
+    const caller = QueryStringParser.parseCaller(context);
+    const queried = projection.withPks(this.collection);
+    const relationScopes = await this.services.authorization.getRelationScopes(
+      context,
+      this.collection,
+      queried,
+    );
+    const records = relationScopes.redact(
+      await this.collection.list(caller, filter, relationScopes.withScopeFields(queried)),
+      queried,
+      caller.timezone,
     );
 
     if (!records.length) {
