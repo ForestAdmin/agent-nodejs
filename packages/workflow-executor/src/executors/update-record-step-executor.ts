@@ -65,6 +65,13 @@ function toExactNumber(decimal: string): number | string {
 
 const ZERO_FRACTION_PATTERN = /\.0+$/;
 
+function significantDigits(decimal: string): string {
+  return decimal
+    .replace(/e.*$/i, '')
+    .replace(/\D/g, '')
+    .replace(/^0+|0+$/g, '');
+}
+
 function toStrictNumber(decimal: string): number | string {
   const integral = decimal.replace(ZERO_FRACTION_PATTERN, '');
 
@@ -72,8 +79,33 @@ function toStrictNumber(decimal: string): number | string {
 
   const asNumber = Number(decimal);
 
-  return Math.abs(asNumber) > Number.MAX_SAFE_INTEGER ? NaN : asNumber;
+  return significantDigits(decimal) === significantDigits(String(asNumber)) ? asNumber : NaN;
 }
+
+function isPointString(val: string): boolean {
+  const coordinates = val.split(',');
+
+  return (
+    coordinates.length === 2 &&
+    coordinates.every(coordinate => coordinate.trim() !== '' && Number.isFinite(Number(coordinate)))
+  );
+}
+
+function isPointArray(val: unknown): val is [number, number] {
+  return (
+    Array.isArray(val) &&
+    val.length === 2 &&
+    val.every(coordinate => typeof coordinate === 'number' && Number.isFinite(coordinate))
+  );
+}
+
+// The agent takes a Point only as the string "longitude,latitude".
+const pointValueSchema = z.preprocess(
+  val => (isPointArray(val) ? val.join(',') : val),
+  z.custom<string>(val => typeof val === 'string' && isPointString(val), {
+    message: 'expected [longitude, latitude] or "longitude,latitude"',
+  }),
+);
 
 const NUMBER_FORMAT_MESSAGE = 'expected a number or a decimal string, e.g. 12, -3 or 12.5';
 
@@ -136,7 +168,9 @@ function buildZodSchemaForPrimitive(
     case 'Json':
       return forAiTool ? jsonStringSchema : jsonValueSchema;
     case 'Point':
-      return z.array(z.number()).length(2).describe('[longitude, latitude]');
+      return forAiTool
+        ? z.array(z.number()).length(2).describe('[longitude, latitude]')
+        : pointValueSchema;
     // String, Uuid, Time, Binary, Timeonly, File → plain string
     default:
       return z.string();
@@ -417,7 +451,9 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     const fieldName = this.resolveAiFieldName(schema, input.fieldName);
     const field = this.findFieldByTechnicalName(schema, fieldName);
 
-    if (!field) throw new FieldNotFoundError(fieldName, schema.collectionName);
+    if (!field || field.isRelationship) {
+      throw new FieldNotFoundError(fieldName, schema.collectionName);
+    }
 
     // The AI tool schema is JSON-Schema-safe (plain z.boolean() for Boolean), so it does not coerce
     // a stray string — normalize to the field's native type, matching the pinned-field path.

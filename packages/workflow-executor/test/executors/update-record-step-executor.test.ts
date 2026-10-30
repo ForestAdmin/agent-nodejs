@@ -1866,6 +1866,7 @@ describe('UpdateRecordStepExecutor', () => {
         { fieldName: 'legacy', displayName: 'Legacy', isRelationship: false },
         { fieldName: 'orders', displayName: 'Orders', isRelationship: true, type: null },
         { fieldName: 'metadata', displayName: 'Metadata', isRelationship: false, type: 'Json' },
+        { fieldName: 'location', displayName: 'Location', isRelationship: false, type: 'Point' },
         {
           fieldName: 'address',
           displayName: 'Address',
@@ -2074,7 +2075,19 @@ describe('UpdateRecordStepExecutor', () => {
         );
       });
 
-      it.each(['0x10', '0b11', '0o17', '1e3', 'Infinity', '12abc', '12345678901234567890.5'])(
+      it.each([
+        '0x10',
+        '0b11',
+        '0o17',
+        '1e3',
+        'Infinity',
+        '12abc',
+        '12345678901234567890.5',
+        '4503599627370496.5',
+        '123456789.123456789',
+        '0.1000000000000000000001',
+        '1.00000000000000000001',
+      ])(
         'fails as a configuration error on the string %p, which no Number can take exactly',
         async value => {
           const { executor, agentPort } = makePrerecordedContext('age', value);
@@ -2119,6 +2132,38 @@ describe('UpdateRecordStepExecutor', () => {
             { collection: 'customers', id: [42], values: { metadata: value } },
             context.user,
           );
+        },
+      );
+
+      it.each([
+        ['2.35,48.85', '2.35,48.85'],
+        [[2.35, 48.85], '2.35,48.85'],
+      ])('writes the Point value %p as the string %p the agent takes', async (value, written) => {
+        const { executor, agentPort, context } = makePrerecordedContext('location', value);
+
+        await executor.execute();
+
+        expect(agentPort.updateRecord).toHaveBeenCalledWith(
+          { collection: 'customers', id: [42], values: { location: written } },
+          context.user,
+        );
+      });
+
+      it.each([['abc'], ['1,2,3'], ['1,'], [[1]]])(
+        'fails as a configuration error on the Point value %p',
+        async value => {
+          const { executor, agentPort, context } = makePrerecordedContext('location', value);
+
+          const result = await executor.execute();
+
+          expect(result.stepOutcome.errorKind).toBe('configuration');
+          expect(context.logger).toHaveBeenCalledWith(
+            'Error',
+            'Invalid pre-recorded value for field "Location": ' +
+              'expected [longitude, latitude] or "longitude,latitude"',
+            expect.anything(),
+          );
+          expect(agentPort.updateRecord).not.toHaveBeenCalled();
         },
       );
 
@@ -2258,6 +2303,50 @@ describe('UpdateRecordStepExecutor', () => {
         { collection: 'customers', id: [42], values: { [field.fieldName]: aiValue } },
         expect.objectContaining({ id: 1 }),
       );
+    });
+
+    it('writes an AI Point array as the string the agent takes', async () => {
+      const { executor, agentPort } = makeAiContext(
+        { fieldName: 'location', displayName: 'Location', isRelationship: false, type: 'Point' },
+        [2.35, 48.85],
+      );
+
+      await executor.execute();
+
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], values: { location: '2.35,48.85' } },
+        expect.objectContaining({ id: 1 }),
+      );
+    });
+
+    it('asks to rephrase the prompt, not to edit the step, when the AI names a relationship', async () => {
+      const agentPort = makeMockAgentPort();
+      const mockModel = makeMockModel({
+        input: { fieldName: 'Orders', value: null, reasoning: 'r' },
+      });
+      const workflowPort = makeMockWorkflowPort({
+        customers: makeCollectionSchema({
+          fields: [
+            ageField,
+            { fieldName: 'orders', displayName: 'Orders', isRelationship: true, type: null },
+          ],
+        }),
+      });
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort,
+        workflowPort,
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+
+      const result = await new UpdateRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.errorKind).not.toBe('configuration');
+      expect(result.stepOutcome.error).toBe(
+        "The AI selected a field that doesn't exist on this record. Try rephrasing the step's prompt.",
+      );
+      expect(agentPort.updateRecord).not.toHaveBeenCalled();
     });
 
     it('names the expected number format when an AI value is not a number', async () => {
