@@ -1,3 +1,10 @@
+## @forestadmin/agent [1.111.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.111.5...@forestadmin/agent@1.111.6) (2026-10-30)
+
+
+### Bug Fixes
+
+* **agent:** add primary key tiebreaker to paginated sorts ([#2049](https://github.com/ForestAdmin/agent-nodejs/issues/2049)) ([346002d](https://github.com/ForestAdmin/agent-nodejs/commit/346002d655c747aff6497a7d4af044426d8956c9))
+
 ## @forestadmin/agent [1.111.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.111.4...@forestadmin/agent@1.111.5) (2026-10-29)
 
 
