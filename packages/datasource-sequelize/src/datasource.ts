@@ -58,13 +58,30 @@ export default class SequelizeDataSource extends BaseDataSource<SequelizeCollect
       throw new Error(`Unknown connection name '${connectionName}'`);
     }
 
-    return (this.nativeQueryConnections[connectionName] as NativeQueryConnection).instance.query<R>(
-      query,
-      {
+    const { instance } = this.nativeQueryConnections[connectionName] as NativeQueryConnection;
+    // Live queries only read: whatever their text runs, it is rolled back, never committed.
+    const transaction = await instance.transaction();
+    let rows: R[];
+
+    try {
+      if (instance.getDialect() === 'postgres') {
+        await instance.query('SET TRANSACTION READ ONLY', { transaction });
+      }
+
+      rows = await instance.query<R>(query, {
         bind: contextVariables,
         type: QueryTypes.SELECT,
         raw: true,
-      },
-    );
+        transaction,
+      });
+    } catch (error) {
+      // The failed query may have ended the transaction already; its error is the one to report.
+      await transaction.rollback().catch(() => undefined);
+      throw error;
+    }
+
+    await transaction.rollback();
+
+    return rows;
   }
 }
