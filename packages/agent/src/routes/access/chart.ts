@@ -225,7 +225,11 @@ export default class ChartRoute extends CollectionRoute {
 
       if (inverse) {
         collection = field.foreignCollection;
-        filter = (await this.getFilter(context)).nest(inverse);
+        filter = await this.intersectScopes(
+          context,
+          (await this.getFilter(context)).nest(inverse),
+          [{ collectionName: field.foreignCollection }],
+        );
         aggregation = new Aggregation({
           operation: body.aggregator,
           field: body.aggregateFieldName,
@@ -240,7 +244,10 @@ export default class ChartRoute extends CollectionRoute {
 
       if (origin && target) {
         collection = field.throughCollection;
-        filter = (await this.getFilter(context)).nest(origin);
+        filter = await this.intersectScopes(context, (await this.getFilter(context)).nest(origin), [
+          { collectionName: field.throughCollection },
+          { collectionName: field.foreignCollection, prefix: target },
+        ]);
         aggregation = new Aggregation({
           operation: body.aggregator,
           field: body.aggregateFieldName ? `${target}:${body.aggregateFieldName}` : null,
@@ -316,6 +323,26 @@ export default class ChartRoute extends CollectionRoute {
           collectionName: FieldPathUtils.getLeafCollection(pathCollection, path).name,
         })),
     );
+  }
+
+  /** No record of an aggregation can be redacted afterwards, so each aggregated scope filters. */
+  private async intersectScopes(
+    context: Context,
+    filter: Filter,
+    scoped: Array<{ collectionName: string; prefix?: string }>,
+  ): Promise<Filter> {
+    const scopes = await Promise.all(
+      scoped.map(async ({ collectionName, prefix }) => {
+        const collection = this.dataSource.getCollection(collectionName);
+        const scope = await this.services.authorization.getScope(collection, context);
+
+        return prefix ? scope?.nest(prefix) : scope;
+      }),
+    );
+
+    return filter.override({
+      conditionTree: ConditionTreeFactory.intersect(filter.conditionTree, ...scopes),
+    });
   }
 
   private async getFilter(context: Context): Promise<Filter> {

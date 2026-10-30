@@ -1,6 +1,6 @@
 import type { Context } from 'koa';
 
-import { Projection } from '@forestadmin/datasource-toolkit';
+import { ConditionTreeLeaf, Projection } from '@forestadmin/datasource-toolkit';
 import {
   ChainedSQLQueryError,
   ChartType,
@@ -537,6 +537,115 @@ describe('AuthorizationService', () => {
         "You are not allowed to read 'holder:fullName' from the 'holders' collection, " +
           "'holder:nationalId' from the 'holders' collection.",
       );
+    });
+  });
+
+  describe('getRelationScopes', () => {
+    const buildDataSource = () =>
+      factories.dataSource.buildWithCollections([
+        factories.collection.build({
+          name: 'cards',
+          schema: factories.collectionSchema.build({
+            fields: {
+              id: factories.columnSchema.uuidPrimaryKey().build(),
+              account: factories.manyToOneSchema.build({ foreignCollection: 'accounts' }),
+              holder: factories.manyToOneSchema.build({ foreignCollection: 'holders' }),
+            },
+          }),
+        }),
+        factories.collection.build({
+          name: 'accounts',
+          schema: factories.collectionSchema.build({
+            fields: {
+              id: factories.columnSchema.uuidPrimaryKey().build(),
+              iban: factories.columnSchema.build(),
+              organization: factories.manyToOneSchema.build({ foreignCollection: 'organizations' }),
+            },
+          }),
+        }),
+        factories.collection.build({
+          name: 'organizations',
+          schema: factories.collectionSchema.build({
+            fields: {
+              id: factories.columnSchema.uuidPrimaryKey().build(),
+              name: factories.columnSchema.build(),
+            },
+          }),
+        }),
+        factories.collection.build({
+          name: 'holders',
+          schema: factories.collectionSchema.build({
+            fields: {
+              id: factories.columnSchema.uuidPrimaryKey().build(),
+              region: factories.columnSchema.build(),
+              nationalId: factories.columnSchema.build(),
+            },
+          }),
+        }),
+      ]);
+    const context = { state: { user: { id: 35, renderingId: 42 } } } as unknown as Context;
+    const scopesByCollection = {
+      accounts: new ConditionTreeLeaf('organization:name', 'Equal', 'OwnOrg'),
+      holders: new ConditionTreeLeaf('region', 'Equal', 'EU'),
+    };
+
+    beforeEach(() => {
+      (ConditionTreeParser.fromPlainObject as jest.Mock).mockImplementation(
+        (collection, scope) => scope,
+      );
+    });
+
+    it('should fetch the scope of every collection reached through a relation', async () => {
+      const forestAdminClient = factories.forestAdminClient.build();
+      const authorizationService = new AuthorizationService(forestAdminClient);
+
+      await authorizationService.getRelationScopes(
+        context,
+        buildDataSource().getCollection('cards'),
+        new Projection('id', 'account:organization:name', 'holder:nationalId'),
+      );
+
+      const fetched = (forestAdminClient.getScope as jest.Mock).mock.calls.map(
+        ([{ collectionName }]) => collectionName,
+      );
+      expect(fetched.sort()).toEqual(['accounts', 'holders', 'organizations']);
+    });
+
+    it('should nest each scope under the relation path that reaches its collection', async () => {
+      const forestAdminClient = factories.forestAdminClient.build();
+      const authorizationService = new AuthorizationService(forestAdminClient);
+      (forestAdminClient.getScope as jest.Mock).mockImplementation(
+        async ({ collectionName }) => scopesByCollection[collectionName] ?? null,
+      );
+
+      const relationScopes = await authorizationService.getRelationScopes(
+        context,
+        buildDataSource().getCollection('cards'),
+        new Projection('id', 'account:iban', 'holder:nationalId'),
+      );
+
+      expect(
+        relationScopes.withScopeFields(new Projection('id', 'account:iban', 'holder:nationalId')),
+      ).toEqual([
+        'id',
+        'account:iban',
+        'holder:nationalId',
+        'account:organization:name',
+        'holder:region',
+      ]);
+    });
+
+    it('should fetch no scope when the projection reaches no relation', async () => {
+      const forestAdminClient = factories.forestAdminClient.build();
+      const authorizationService = new AuthorizationService(forestAdminClient);
+
+      await authorizationService.getRelationScopes(
+        context,
+        buildDataSource().getCollection('cards'),
+        new Projection('id'),
+      );
+
+      expect(forestAdminClient.getScope).not.toHaveBeenCalled();
     });
   });
 });
