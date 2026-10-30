@@ -109,6 +109,13 @@ export default class FilterGenerator {
     const schema = MongooseSchema.fromModel(model).applyStack(stack, true);
 
     if (tree instanceof ConditionTreeBranch) {
+      // MongoDB refuses `$and: []` and `$or: []`; the toolkit's MatchNone is an empty Or.
+      if (tree.conditions.length === 0 && tree.aggregator === 'Or') {
+        return { $expr: { $literal: false } };
+      }
+
+      if (tree.conditions.length === 0 && tree.aggregator === 'And') return {};
+
       return {
         [`$${tree.aggregator.toLowerCase()}`]: tree.conditions.map(condition =>
           this.computeMatch(model, stack, condition, fields),

@@ -61,6 +61,7 @@ export default class Capabilities extends BaseRoute {
         // front offers oldest first on the project page only when it is set.
         canSortAuditTrailTimeline: Boolean(this.options.auditTrail?.store?.listTimeline),
         checksRelationReadPermissions: !this.options.skipRelationReadPermissions,
+        canUseNestedConditionTree: true,
       },
       collections:
         collections?.map(collection => {
