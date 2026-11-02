@@ -16,6 +16,13 @@ function deleteAllRows(dialect: Dialect, table: string): string {
   return (ROWS_DELETING_QUERY[dialect] ?? (t => `DELETE FROM ${t} RETURNING id`))(table);
 }
 
+const DELETE_OUTCOME: Partial<Record<Dialect, object>> = {
+  postgres: { error: expect.stringContaining('read-only transaction') },
+  // MySQL has no RETURNING: Sequelize fails to map the DELETE's result header as rows, after the
+  // statement ran.
+  mysql: { error: expect.stringContaining('TypeError') },
+};
+
 describe('Native queries', () => {
   const sqliteInMemory = {
     name: 'SQLite in memory',
@@ -85,10 +92,15 @@ describe('Native queries', () => {
     });
 
     it('should roll back what a query writes unless its connection is shared', async () => {
-      await dataSource
-        .executeNativeQuery('main', deleteAllRows(sequelize.getDialect() as Dialect, table))
-        .catch(() => undefined);
+      const dialect = sequelize.getDialect() as Dialect;
+      const outcome = await dataSource
+        .executeNativeQuery('main', deleteAllRows(dialect, table))
+        .then(
+          rows => ({ deletedRows: rows.length }),
+          (error: Error) => ({ error: `${error.name}: ${error.message}` }),
+        );
 
+      expect(outcome).toEqual(DELETE_OUTCOME[dialect] ?? { deletedRows: 2 });
       expect(await sequelize.models.Label.count()).toBe(rollsBackWrites ? 2 : 0);
     });
 

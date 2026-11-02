@@ -146,6 +146,19 @@ describe('SequelizeDataSource', () => {
       expect(transaction.rollback).not.toHaveBeenCalled();
     });
 
+    it('should run the query outside a transaction on a sqlite database with no storage', async () => {
+      const { dataSource, spyQuery, spyTransaction } = setup('sqlite');
+
+      await dataSource.executeNativeQuery('main', 'query');
+
+      expect(spyQuery).toHaveBeenCalledWith('query', {
+        bind: {},
+        type: QueryTypes.SELECT,
+        raw: true,
+      });
+      expect(spyTransaction).not.toHaveBeenCalled();
+    });
+
     it('should run the query outside a transaction on a temporary sqlite database', async () => {
       const { dataSource, spyQuery, transaction } = setup('sqlite', '');
 

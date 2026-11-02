@@ -1197,7 +1197,7 @@ describe('ChartRoute', () => {
       expect(books.aggregate).not.toHaveBeenCalled();
     });
 
-    test('checks a count leaderboard segment against the charted collection only', async () => {
+    test('checks a count leaderboard segment against the charted collection, then refuses to nest it', async () => {
       const forestAdminClient = factories.forestAdminClient.build();
       (forestAdminClient.permissionService.canExecuteChart as jest.Mock).mockResolvedValue(true);
       (forestAdminClient.permissionService.canOnCollection as jest.Mock).mockResolvedValue(true);
@@ -1265,7 +1265,7 @@ describe('ChartRoute', () => {
         state: { user: { email: 'john.doe@domain.com', id: 100, renderingId: 7 } },
       });
 
-      await chart.handleChart(context);
+      await expect(chart.handleChart(context)).rejects.toThrow("Filter can't be nested");
 
       expect(forestAdminClient.permissionService.canExecuteSegmentQuery).toHaveBeenCalledTimes(1);
       expect(forestAdminClient.permissionService.canExecuteSegmentQuery).toHaveBeenCalledWith({
@@ -1275,9 +1275,7 @@ describe('ChartRoute', () => {
         segmentQuery: 'SELECT id FROM persons',
         connectionName: 'main',
       });
-      expect(context.response.body).toMatchObject({
-        data: { attributes: { value: [{ key: 'a1', value: 3 }] } },
-      });
+      expect(books.aggregate).not.toHaveBeenCalled();
     });
 
     test('computes a chart on a segment the user is allowed to run', async () => {

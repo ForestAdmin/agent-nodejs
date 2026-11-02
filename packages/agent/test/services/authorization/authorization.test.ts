@@ -120,7 +120,11 @@ describe('AuthorizationService', () => {
         segmentQuery: 'SELECT id FROM books',
         connectionName: 'library',
       });
-      expect(context.throw).toHaveBeenCalledWith(HttpCode.Forbidden, 'Forbidden');
+      expect(context.throw).toHaveBeenCalledWith(
+        HttpCode.Forbidden,
+        "You are not allowed to run this live query segment on the 'books' collection " +
+          "(connection 'library').",
+      );
     });
 
     it('refuses the request when the segment query of the request body is not allowed', async () => {
@@ -138,7 +142,11 @@ describe('AuthorizationService', () => {
         segmentQuery: 'SELECT id FROM books',
         connectionName: 'library',
       });
-      expect(context.throw).toHaveBeenCalledWith(HttpCode.Forbidden, 'Forbidden');
+      expect(context.throw).toHaveBeenCalledWith(
+        HttpCode.Forbidden,
+        "You are not allowed to run this live query segment on the 'books' collection " +
+          "(connection 'library').",
+      );
     });
 
     it('checks the segment query the filter will use when both the body and the query string carry one', async () => {

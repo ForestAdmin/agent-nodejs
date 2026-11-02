@@ -207,7 +207,13 @@ export default class AuthorizationService {
         connectionName: liveQuerySegment.connectionName,
       });
 
-    if (!canExecuteSegmentQuery) context.throw(HttpCode.Forbidden, 'Forbidden');
+    if (!canExecuteSegmentQuery) {
+      context.throw(
+        HttpCode.Forbidden,
+        `You are not allowed to run this live query segment on the '${collectionName}' ` +
+          `collection (connection '${liveQuerySegment.connectionName}').`,
+      );
+    }
   }
 
   /** The root is skipped: `browse` gates a listing, `read` a get, and the signed hash a chart. */
