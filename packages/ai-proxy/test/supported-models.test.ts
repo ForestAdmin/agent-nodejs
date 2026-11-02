@@ -17,8 +17,40 @@ describe('isModelSupportingTools', () => {
     expect(isModelSupportingTools('gpt-4')).toBe(false);
   });
 
-  it('should return false for gpt-3.5-turbo-1106 (deprecated)', () => {
-    expect(isModelSupportingTools('gpt-3.5-turbo-1106')).toBe(false);
+  it.each([
+    'gpt-3.5-turbo',
+    'gpt-3.5-turbo-0125',
+    'gpt-3.5-turbo-1106',
+    'gpt-3.5-turbo-16k',
+    'gpt-4-turbo',
+    'gpt-4-turbo-2024-04-09',
+    'gpt-4.1-nano',
+    'gpt-4.1-nano-2025-04-14',
+    'gpt-4o-2024-05-13',
+  ])('should return false for %s (deprecated by OpenAI)', model => {
+    expect(isModelSupportingTools(model)).toBe(false);
+  });
+
+  it.each(['gpt-4.1-mini', 'gpt-4o-2024-08-06'])(
+    'should keep %s supported next to its retired siblings',
+    model => {
+      expect(isModelSupportingTools(model)).toBe(true);
+    },
+  );
+
+  it('should return false for claude-sonnet-4-20250514 (end of life)', () => {
+    expect(isModelSupportingTools('claude-sonnet-4-20250514', 'anthropic')).toBe(false);
+  });
+
+  it.each([
+    ['claude-3-5-haiku-latest', 'claude-3-5-haiku-20241022'],
+    ['claude-3-7-sonnet-latest', 'claude-3-7-sonnet-20250219'],
+    ['claude-sonnet-4-0', 'claude-sonnet-4-20250514'],
+    ['claude-opus-4-0', 'claude-opus-4-20250514'],
+    ['claude-opus-4-1', 'claude-opus-4-1-20250805'],
+  ])('should return false for %s, the alias of denylisted %s', (alias, target) => {
+    expect(isModelSupportingTools(target, 'anthropic')).toBe(false);
+    expect(isModelSupportingTools(alias, 'anthropic')).toBe(false);
   });
 
   it.each(['gpt-live-1', 'gpt-4o-realtime-preview', 'gpt-4o-audio-preview'])(
@@ -158,6 +190,7 @@ describe('isModelSupportingTools', () => {
       'us.anthropic.claude-3-5-haiku-20241022-v1:0',
       // Bedrock's own words: "This model version has reached the end of its life."
       'eu.anthropic.claude-3-sonnet-20240229-v1:0',
+      'global.anthropic.claude-sonnet-4-20250514-v1:0',
     ])('lets the EOL denylist fire after the family allowlist passes: %s', model => {
       expect(isModelSupportingTools(model, 'bedrock')).toBe(false);
     });
