@@ -38,9 +38,12 @@ describe('isModelSupportingTools', () => {
     },
   );
 
-  it('should return false for claude-sonnet-4-20250514 (end of life)', () => {
-    expect(isModelSupportingTools('claude-sonnet-4-20250514', 'anthropic')).toBe(false);
-  });
+  it.each(['claude-sonnet-4-20250514', 'claude-sonnet-4-0'])(
+    'should return false for %s (end of life)',
+    model => {
+      expect(isModelSupportingTools(model, 'anthropic')).toBe(false);
+    },
+  );
 
   it.each(['gpt-live-1', 'gpt-4o-realtime-preview', 'gpt-4o-audio-preview'])(
     'should return false for %s (not a chat completions model)',
