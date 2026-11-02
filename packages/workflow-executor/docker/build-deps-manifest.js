@@ -40,10 +40,12 @@ const RESOLUTIONS = {
   '**/sequelize/uuid': '^11.1.1',
   // Dependabot alert #452 — Hono ReDoS + memo() SSR retention + lang middleware DoS (patched in 4.12.34).
   '**/@modelcontextprotocol/sdk/hono': '^4.12.34',
-  // fast-uri host confusion + SSRF cluster (Dependabot #499-#502, patched in 3.1.6; #539 host-case bump 3.1.8).
-  '**/@fastify/ajv-compiler/fast-uri': '^3.1.8',
-  '**/fast-json-stringify/fast-uri': '^3.1.8',
-  '**/ajv/fast-uri': '^3.1.8',
+  // fast-uri host confusion + SSRF cluster (Dependabot #499-#502, patched in 3.1.6; #539 host-case bump 3.1.8; #669-#672 cluster bump 3.1.9).
+  '**/@fastify/ajv-compiler/fast-uri': '^3.1.9',
+  '**/fast-json-stringify/fast-uri': '^3.1.9',
+  '**/ajv/fast-uri': '^3.1.9',
+  // body-parser DoS via trailing bytes after compressed body (Dependabot #660, patched 2.4.0).
+  '**/express/body-parser': '^2.4.0',
   // qs DoS + array-limit bypass (Dependabot #488-#489, patched in 6.16.0).
   '**/qs': '^6.16.0',
   // moment path traversal via non-string locale (Dependabot #536, patched 2.31.0).
