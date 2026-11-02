@@ -1989,17 +1989,39 @@ describe('ActionRoute', () => {
     const executePath = '/_actions/books/0/mybulkaction';
     const loadHookPath = '/_actions/books/0/mybulkaction/hooks/load';
 
-    const buildApprovalContext = (allowed: boolean, attributes: Record<string, unknown> = {}) => {
-      const signedRequest = buildContext({ requester_id: 12, ...attributes }).request.body;
-      (options.forestAdminClient.verifySignedActionParameters as jest.Mock).mockReturnValue(
-        signedRequest,
-      );
-      allowSegmentQuery(allowed);
+    const approvedId = '123e4567-e89b-12d3-a456-426614174000';
+
+    // The shape forestadmin-server signs (generateCustomActionRequest): the selection was frozen
+    // into explicit record ids when the request was created, and allRecordsSubsetQuery is always
+    // null, so an approval carries no segment of its own. `canExecuteSegmentQuery` is left
+    // unmocked, hence falsy: any check that fires answers 403 and fails the test.
+    const buildApprovalContext = (
+      attributes: Record<string, unknown> = {},
+      query: Record<string, unknown> = {},
+    ) => {
+      (options.forestAdminClient.verifySignedActionParameters as jest.Mock).mockReturnValue({
+        data: {
+          attributes: {
+            requester_id: 12,
+            ids: [approvedId],
+            collection_name: 'books',
+            smart_action_id: 'smartActionId',
+            values: { firstname: 'John' },
+            parent_collection_name: null,
+            parent_collection_id: null,
+            parent_association_name: null,
+            all_records: false,
+            all_records_subset_query: null,
+            ...attributes,
+          },
+        },
+      });
 
       return createMockContext({
         ...baseContext,
         throw: throwingThrow(),
         state: { user: { ...baseContext.state.user, renderingId: 7 } },
+        customProperties: { query: { ...baseContext.customProperties.query, ...query } },
         requestBody: { data: { attributes: { signed_approval_request: 'signed-request' } } },
       });
     };
@@ -2087,20 +2109,8 @@ describe('ActionRoute', () => {
       );
     });
 
-    test('refuses an approval on a segment the approver is not allowed to run', async () => {
-      const context = buildApprovalContext(false);
-
-      await expect(callRoute(executePath, context)).rejects.toMatchObject({ status: 403 });
-
-      expect(
-        options.forestAdminClient.permissionService.canExecuteSegmentQuery,
-      ).toHaveBeenCalledWith(expectedSegmentCheck);
-      expect(dataSource.getCollection('books').execute).not.toHaveBeenCalled();
-    });
-
-    test('executes an approval on selected records without checking or running their segment', async () => {
-      const selectedId = '123e4567-e89b-12d3-a456-426614174000';
-      const context = buildApprovalContext(false, { all_records: false, ids: [selectedId] });
+    test('executes an approval on the frozen selection, with no segment to check', async () => {
+      const context = buildApprovalContext();
 
       await callRoute(executePath, context);
 
@@ -2116,26 +2126,33 @@ describe('ActionRoute', () => {
           conditionTree: expect.objectContaining({
             field: 'id',
             operator: 'Equal',
-            value: selectedId,
+            value: approvedId,
           }),
         }),
       );
     });
 
-    test('executes an approval on a segment the approver is allowed to run', async () => {
-      const context = buildApprovalContext(true);
+    // The signed payload replaces the body, never the query string, so this is the one segment an
+    // approver still controls. The frozen selection drops it before it can be run.
+    test('ignores a segment an approver appends to the query string of an approval', async () => {
+      const context = buildApprovalContext({}, { segmentQuery, connectionName: 'main' });
 
       await callRoute(executePath, context);
 
       expect(
         options.forestAdminClient.permissionService.canExecuteSegmentQuery,
-      ).toHaveBeenCalledWith(expectedSegmentCheck);
+      ).not.toHaveBeenCalled();
       expect(dataSource.getCollection('books').execute).toHaveBeenCalledWith(
         expect.objectContaining({ id: '42' }),
         'MyBulkAction',
         { firstname: 'John' },
         expect.objectContaining({
-          liveQuerySegment: { query: segmentQuery, connectionName: 'main' },
+          liveQuerySegment: expect.toBeNil(),
+          conditionTree: expect.objectContaining({
+            field: 'id',
+            operator: 'Equal',
+            value: approvedId,
+          }),
         }),
       );
     });
