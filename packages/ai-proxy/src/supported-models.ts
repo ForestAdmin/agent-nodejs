@@ -6,6 +6,7 @@ import type { AiProvider } from './provider';
 const OPENAI_UNSUPPORTED_PREFIXES = [
   // Legacy models
   'gpt-4', // Base gpt-4 doesn't honor tool_choice: required
+  'gpt-3.5-turbo', // Deprecated by OpenAI (returns 404 on invocation)
   'text-davinci',
   'davinci',
   'curie',
@@ -50,10 +51,14 @@ const OPENAI_UNSUPPORTED_PATTERNS = [
 
 const OPENAI_UNSUPPORTED_MODELS = [
   'us-40-51r-vm-ev3', // Not a chat model (v1/completions only)
-  'gpt-3.5-turbo-1106', // Deprecated by OpenAI (returns 404 on invocation)
+  // Deprecated by OpenAI (return 404 on invocation)
+  'gpt-4o-2024-05-13',
+  'gpt-4.1-nano',
+  'gpt-4.1-nano-2025-04-14',
 ];
 
-const OPENAI_SUPPORTED_OVERRIDES = ['gpt-4-turbo', 'gpt-4o', 'gpt-4.1'];
+// gpt-4-turbo is gone too (deprecated by OpenAI), so it falls back under the `gpt-4` prefix.
+const OPENAI_SUPPORTED_OVERRIDES = ['gpt-4o', 'gpt-4.1'];
 
 function isOpenAIModelSupported(model: string): boolean {
   if (OPENAI_UNSUPPORTED_MODELS.includes(model)) return false;
@@ -81,6 +86,7 @@ const ANTHROPIC_UNSUPPORTED_MODELS = [
   'claude-3-5-haiku-latest', // Points to deprecated claude-3-5-haiku-20241022
   'claude-3-7-sonnet-20250219', // EOL 2026-02-19
   'claude-3-sonnet-20240229', // EOL 2025-07-21
+  'claude-sonnet-4-20250514', // EOL on Bedrock, gone from the Anthropic catalogue
   'claude-opus-4-20250514', // Requires streaming (non-streaming times out)
   'claude-opus-4-1-20250805', // Requires streaming (non-streaming times out)
 ];
