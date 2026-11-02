@@ -47,10 +47,6 @@ export function sessionExpired(message: string): OAuthRequestError {
   return new OAuthRequestError(401, 'session_expired', message);
 }
 
-export function sessionInvalidated(message: string): OAuthRequestError {
-  return new OAuthRequestError(401, 'session_invalidated', message);
-}
-
 export function serverError(message: string, cause?: unknown): OAuthRequestError {
   return new OAuthRequestError(502, 'server_error', message, cause);
 }

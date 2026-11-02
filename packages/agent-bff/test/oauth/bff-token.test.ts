@@ -25,9 +25,10 @@ function decode(token: string) {
 
 describe('bff-token', () => {
   describe('when issuing a BFF access token', () => {
-    it('should carry type bff_access, sid, whitelisted identity claims and tags', () => {
+    it('should carry type bff_access, sid, the sealed server access, whitelisted identity claims and tags', () => {
       const token = issueBffAccessToken({
         sid: 'sid-1',
+        serverAccess: 'SEALED-SERVER-ACCESS',
         user: USER,
         renderingId: 17,
         authSecret: AUTH_SECRET,
@@ -38,6 +39,7 @@ describe('bff-token', () => {
 
       expect(payload.type).toBe(BFF_ACCESS_TOKEN_TYPE);
       expect(payload.sid).toBe('sid-1');
+      expect(payload.server_access).toBe('SEALED-SERVER-ACCESS');
       expect(payload.id).toBe(42);
       expect(payload.email).toBe('ada@example.com');
       expect(payload.first_name).toBe('Ada');
@@ -51,6 +53,7 @@ describe('bff-token', () => {
     it('should default tags to {} when the user has none', () => {
       const token = issueBffAccessToken({
         sid: 'sid-2',
+        serverAccess: 'SEALED-SERVER-ACCESS',
         user: { ...USER, tags: undefined as unknown as UserInfo['tags'] },
         renderingId: 17,
         authSecret: AUTH_SECRET,
@@ -65,6 +68,7 @@ describe('bff-token', () => {
 
       const token = issueBffAccessToken({
         sid: 'sid-3',
+        serverAccess: 'SEALED-SERVER-ACCESS',
         user: USER,
         renderingId: 17,
         authSecret: AUTH_SECRET,
@@ -80,6 +84,7 @@ describe('bff-token', () => {
     it('should not leak any non-whitelisted user field into the payload', () => {
       const token = issueBffAccessToken({
         sid: 'sid-4',
+        serverAccess: 'SEALED-SERVER-ACCESS',
         user: { ...USER, secret: 'SHOULD-NOT-LEAK' } as UserInfo,
         renderingId: 17,
         authSecret: AUTH_SECRET,
@@ -94,6 +99,7 @@ describe('bff-token', () => {
 
       const token = issueBffAccessToken({
         sid: 'sid-5',
+        serverAccess: 'SEALED-SERVER-ACCESS',
         user: USER,
         renderingId: 17,
         authSecret: AUTH_SECRET,

@@ -2,8 +2,7 @@ import type AiProxyClient from './ai-proxy-client';
 import type { AiProxyResponse } from './ai-proxy-client';
 import type { BffAccessTokenPayload } from '../oauth/bff-token';
 import type { EnvironmentIdResolver } from '../oauth/environment-id';
-import type ForestServerClient from '../oauth/forest-server-client';
-import type { SessionStore } from '../oauth/session-store';
+import type { SessionTokenCodec } from '../oauth/session-token';
 import type { Logger } from '../ports/logger-port';
 import type { Context, Middleware } from 'koa';
 
@@ -18,8 +17,7 @@ import {
   upstreamUnreachable,
 } from '../http/bff-local-errors';
 import { environmentFailureLevel } from '../oauth/environment-fetch-error';
-import { OAuthRequestError } from '../oauth/oauth-error';
-import ensureFreshServerAccess from '../oauth/session-lifecycle';
+import resolveServerAccess from '../oauth/server-access';
 
 export const AI_QUERY_ROUTE = '/agent/v1/ai/query';
 
@@ -29,8 +27,7 @@ const MAX_CAUSE_MESSAGE = 512;
 
 export interface AiRoutesMiddlewareOptions {
   client: AiProxyClient;
-  sessionStore: SessionStore;
-  serverClient: ForestServerClient;
+  sessionTokens: SessionTokenCodec;
   resolveEnvironmentId?: EnvironmentIdResolver;
   logger: Logger;
 }
@@ -84,27 +81,6 @@ async function resolveEnvironmentIdOrRefuse(
   }
 }
 
-async function resolveSessionAccessToken(
-  principal: BffAccessTokenPayload,
-  store: SessionStore,
-  serverClient: ForestServerClient,
-  logger: Logger,
-): Promise<string> {
-  try {
-    return await ensureFreshServerAccess({ sid: principal.sid, store, serverClient, logger });
-  } catch (error) {
-    if (error instanceof OAuthRequestError && error.status >= 500) {
-      logger('Warn', 'AI query refused: the Forest server could not refresh the session', {
-        cause: describeFailure(error),
-      });
-
-      throw upstreamUnreachable();
-    }
-
-    throw error;
-  }
-}
-
 function relayJsonBodyOrGenericError(
   ctx: Context,
   response: AiProxyResponse,
@@ -131,8 +107,7 @@ function relayJsonBodyOrGenericError(
 
 export default function createAiRoutesMiddleware({
   client,
-  sessionStore,
-  serverClient,
+  sessionTokens,
   resolveEnvironmentId,
   logger,
 }: AiRoutesMiddlewareOptions): Middleware {
@@ -146,12 +121,7 @@ export default function createAiRoutesMiddleware({
     const principal = requireSessionPrincipal(ctx);
     const renderingId = requireRenderingId(principal);
 
-    const saasAccessToken = await resolveSessionAccessToken(
-      principal,
-      sessionStore,
-      serverClient,
-      logger,
-    );
+    const saasAccessToken = resolveServerAccess(principal, sessionTokens);
 
     const environmentId = await resolveEnvironmentIdOrRefuse(resolveEnvironmentId, logger);
 

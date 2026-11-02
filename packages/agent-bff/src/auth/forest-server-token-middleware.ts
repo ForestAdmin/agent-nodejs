@@ -1,22 +1,19 @@
 import type { ResolvedApiKeyIdentity } from '../api-key/api-key-client';
 import type { BffAccessTokenPayload } from '../oauth/bff-token';
-import type ForestServerClient from '../oauth/forest-server-client';
-import type { SessionStore } from '../oauth/session-store';
+import type { SessionTokenCodec } from '../oauth/session-token';
 import type { Logger } from '../ports/logger-port';
 import type { Context, Middleware } from 'koa';
 
 import { readRenderingId } from './auth-mode';
 import { extractErrorMessage } from '../errors';
 import { sessionExpired } from '../http/bff-http-error';
-import { AUDIT_RETRY_AFTER_SECONDS, auditUnavailable } from '../http/bff-local-errors';
-import { OAuthRequestError } from '../oauth/oauth-error';
-import ensureFreshServerAccess from '../oauth/session-lifecycle';
+import { auditUnavailable } from '../http/bff-local-errors';
+import resolveServerAccess from '../oauth/server-access';
 
 export type ForestServerTokenResolver = () => Promise<string>;
 
 export interface OAuthSessionAccess {
-  store: SessionStore;
-  serverClient: ForestServerClient;
+  sessionTokens: SessionTokenCodec;
 }
 
 export interface ForestServerTokenMiddlewareOptions {
@@ -33,31 +30,18 @@ const NO_RESOLVER_MESSAGE = 'This request carries no Forest server credentials';
 const NO_AUDIT_CREDENTIAL_MESSAGE =
   'The Forest server does not provide the credential the activity log is written with, so the ' +
   'operation was not performed';
-const UNAUTHORIZED = 401;
 
 function toSessionAccessFailure(
   error: unknown,
   principal: BffAccessTokenPayload,
   logger: Logger,
 ): Error {
-  if (error instanceof OAuthRequestError && error.type === 'plan_feature_missing') return error;
-
-  // The errors below carry neither the cause nor a `cause` field, so this line is the only place
-  // the operator ever sees what actually failed — a broken session store reads as an audit
-  // outage otherwise.
-  logger('Error', 'Could not resolve the Forest server access of this session', {
+  logger('Warn', 'Could not resolve the Forest server access of this session', {
     renderingId: readRenderingId(principal),
     cause: extractErrorMessage(error),
   });
 
-  // Only a session the Forest server rejected, or one that vanished, makes re-authenticating the
-  // answer. Everything else — the server being unreachable, above all — is retryable, and a 401
-  // would log every user out over a blip instead of failing the audit write alone.
-  if (error instanceof OAuthRequestError && error.status === UNAUTHORIZED) {
-    return sessionExpired(NO_SESSION_MESSAGE);
-  }
-
-  return auditUnavailable(AUDIT_RETRY_AFTER_SECONDS);
+  return sessionExpired(NO_SESSION_MESSAGE);
 }
 
 async function resolveToken(
@@ -78,12 +62,7 @@ async function resolveToken(
   if (!principal || !session) throw sessionExpired(NO_SESSION_MESSAGE);
 
   try {
-    return await ensureFreshServerAccess({
-      sid: principal.sid,
-      store: session.store,
-      serverClient: session.serverClient,
-      logger,
-    });
+    return resolveServerAccess(principal, session.sessionTokens);
   } catch (error) {
     throw toSessionAccessFailure(error, principal, logger);
   }

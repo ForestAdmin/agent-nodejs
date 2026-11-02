@@ -1,7 +1,5 @@
 import type AiProxyClient from '../../src/ai/ai-proxy-client';
 import type { AiProxyResponse } from '../../src/ai/ai-proxy-client';
-import type ForestServerClient from '../../src/oauth/forest-server-client';
-import type { SessionStore, StoredSession } from '../../src/oauth/session-store';
 
 import { bodyParser } from '@koa/bodyparser';
 import jsonwebtoken from 'jsonwebtoken';
@@ -13,35 +11,24 @@ import createAiRoutesMiddleware, { AI_QUERY_ROUTE } from '../../src/ai/ai-routes
 import { AI_BODY_LIMIT } from '../../src/http/body-limit';
 import createErrorMiddleware from '../../src/http/error-middleware';
 import EnvironmentFetchError from '../../src/oauth/environment-fetch-error';
-import OAuthExchangeError from '../../src/oauth/oauth-exchange-error';
+import createSessionTokenCodec from '../../src/oauth/session-token';
+import createTokenCipher from '../../src/oauth/token-cipher';
 import { restoreFetchAfterEach, stubFetch } from '../helpers/fetch-stub';
 
-const SAAS_ACCESS_TOKEN = 'saas-access-token';
+const SESSION_ID = 'session-id';
+const USER_ID = 5;
 
-function makeSessionStore(session?: Partial<StoredSession>): SessionStore {
-  const stored = session && ({ saasAccessToken: SAAS_ACCESS_TOKEN, ...session } as StoredSession);
-
-  return {
-    get: jest.fn().mockReturnValue(stored),
-    getSaasRefreshToken: jest.fn().mockReturnValue(undefined),
-    updateSaasTokens: jest.fn(),
-    create: jest.fn(),
-    prepareRotation: jest.fn(),
-    commitRotation: jest.fn(),
-    destroy: jest.fn(),
-    claimAuthorizationCode: jest.fn(),
-    releaseAuthorizationCode: jest.fn(),
-    pendingClaimCount: jest.fn(),
-  };
-}
+const sessionTokens = createSessionTokenCodec(
+  createTokenCipher(Buffer.alloc(32, 3).toString('base64')),
+  () => Date.now(),
+);
 
 function freshAccessToken(): string {
   return jsonwebtoken.sign({ scope: 'saas' }, 'irrelevant-for-decode', { expiresIn: '1h' });
 }
 
 interface AppContext {
-  store?: SessionStore;
-  serverClient?: ForestServerClient;
+  saasAccessToken?: string | null;
   authMode?: 'oauth' | 'api-key';
   renderingId?: string;
   environmentId?: number;
@@ -51,15 +38,13 @@ interface AppContext {
 function buildApp(
   client: AiProxyClient,
   {
-    store,
-    serverClient = {} as ForestServerClient,
+    saasAccessToken = freshAccessToken(),
     authMode = 'oauth',
     renderingId = '42',
     environmentId = 7,
     resolveEnvironmentId = async () => environmentId,
   }: AppContext,
 ) {
-  const sessionStore = store ?? makeSessionStore({ saasAccessToken: freshAccessToken() });
   const logger = jest.fn();
   const app = new Koa();
 
@@ -69,7 +54,18 @@ function buildApp(
     ctx.state.authMode = authMode;
 
     if (authMode === 'oauth') {
-      ctx.state.principal = { sid: 'session-id', rendering_id: renderingId };
+      ctx.state.principal = {
+        sid: SESSION_ID,
+        id: USER_ID,
+        rendering_id: renderingId,
+        server_access:
+          saasAccessToken === null
+            ? undefined
+            : sessionTokens.sealServerAccess(
+                { sid: SESSION_ID, userId: USER_ID, renderingId: Number(renderingId) },
+                saasAccessToken,
+              ),
+      };
     }
 
     await next();
@@ -77,14 +73,13 @@ function buildApp(
   app.use(
     createAiRoutesMiddleware({
       client,
-      sessionStore,
-      serverClient,
+      sessionTokens,
       resolveEnvironmentId,
       logger,
     }),
   );
 
-  return { app, sessionStore, logger };
+  return { app, logger };
 }
 
 function makeApp({ query = jest.fn(), ...context }: AppContext & { query?: jest.Mock } = {}) {
@@ -124,91 +119,27 @@ describe('createAiRoutesMiddleware', () => {
     });
   });
 
-  describe('when the session is absent from the store', () => {
-    it('should answer 401 session_expired without attempting a refresh', async () => {
-      const store = makeSessionStore(undefined);
-      const { app, query } = makeApp({ store });
+  describe('when the access token carries no Forest server access', () => {
+    it('should answer 401 session_expired and never reach the upstream', async () => {
+      const { app, query } = makeApp({ saasAccessToken: null });
 
       const response = await request(app.callback()).post(AI_QUERY_ROUTE).send({ messages: [] });
 
       expect(response.status).toBe(401);
       expect(response.body.error.type).toBe('session_expired');
-      expect(store.getSaasRefreshToken).not.toHaveBeenCalled();
       expect(query).not.toHaveBeenCalled();
     });
   });
 
-  describe('when refreshing the session fails on a transient error', () => {
-    it('should answer 502 network_error rather than the oauth server_error type', async () => {
-      const store = makeSessionStore({
-        saasAccessToken: 'expired.token.value',
-        clientId: 'client-1',
-      });
-      const serverClient = {
-        refreshServerToken: jest.fn().mockRejectedValue(new Error('socket hang up')),
-      } as unknown as ForestServerClient;
-      (store.getSaasRefreshToken as jest.Mock).mockReturnValue('refresh-token');
-      const query = jest.fn();
-      const { app } = makeApp({ query, store, serverClient });
+  describe('when the sealed Forest server access expired', () => {
+    it('should answer 401 session_expired so the client refreshes', async () => {
+      const expired = jsonwebtoken.sign({ scope: 'saas' }, 'irrelevant', { expiresIn: '-1s' });
+      const { app, query } = makeApp({ saasAccessToken: expired });
 
       const response = await request(app.callback()).post(AI_QUERY_ROUTE).send({ messages: [] });
 
-      expect(response.status).toBe(502);
-      expect(response.body.error.type).toBe('network_error');
-      expect(query).not.toHaveBeenCalled();
-    });
-
-    it('should log the transport cause through the whole wrapper chain, not just the fetch wrapper', async () => {
-      const transport = Object.assign(new TypeError('fetch failed'), {
-        cause: new Error('connect ECONNREFUSED 10.0.0.1:443'),
-      });
-      const store = makeSessionStore({
-        saasAccessToken: 'expired.token.value',
-        clientId: 'client-1',
-      });
-      const serverClient = {
-        refreshServerToken: jest.fn().mockRejectedValue(transport),
-      } as unknown as ForestServerClient;
-      (store.getSaasRefreshToken as jest.Mock).mockReturnValue('refresh-token');
-      const { app, logger } = makeApp({ store, serverClient });
-
-      await request(app.callback()).post(AI_QUERY_ROUTE).send({ messages: [] });
-
-      expect(logger).toHaveBeenCalledWith(
-        'Warn',
-        'AI query refused: the Forest server could not refresh the session',
-        { cause: expect.stringContaining('ECONNREFUSED 10.0.0.1') },
-      );
-    });
-  });
-
-  describe('when the Forest server refuses the session refresh because the plan lacks the Gateway API', () => {
-    it('should answer 403 plan_feature_missing with the nested body and never reach the upstream', async () => {
-      const store = makeSessionStore({
-        saasAccessToken: 'expired.token.value',
-        clientId: 'client-1',
-      });
-      const serverClient = {
-        refreshServerToken: jest
-          .fn()
-          .mockRejectedValue(
-            new OAuthExchangeError('access_denied', 'no Gateway API', 'plan_feature_missing'),
-          ),
-      } as unknown as ForestServerClient;
-      (store.getSaasRefreshToken as jest.Mock).mockReturnValue('refresh-token');
-      const query = jest.fn();
-      const { app } = makeApp({ query, store, serverClient });
-
-      const response = await request(app.callback()).post(AI_QUERY_ROUTE).send({ messages: [] });
-
-      expect(response.status).toBe(403);
-      expect(response.body).toEqual({
-        error: {
-          type: 'plan_feature_missing',
-          status: 403,
-          message: "The project's plan does not include the Gateway API.",
-        },
-      });
+      expect(response.status).toBe(401);
+      expect(response.body.error.type).toBe('session_expired');
       expect(query).not.toHaveBeenCalled();
     });
   });
@@ -277,9 +208,8 @@ describe('createAiRoutesMiddleware', () => {
   describe('when the session is valid', () => {
     it('should forward the session access token, not the incoming Authorization header', async () => {
       const saasAccessToken = freshAccessToken();
-      const store = makeSessionStore({ saasAccessToken });
       const query = jest.fn().mockResolvedValue(jsonResponse(200, { choices: [] }));
-      const { app } = makeApp({ query, store });
+      const { app } = makeApp({ query, saasAccessToken });
 
       await request(app.callback())
         .post(AI_QUERY_ROUTE)

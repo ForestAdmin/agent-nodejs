@@ -1,7 +1,8 @@
+import type { AuthorizationCodeClaims } from './authorization-code-claims';
 import type { EnvironmentIdResolver } from './environment-id';
 import type ForestServerClient from './forest-server-client';
 import type { ServerTokens } from './forest-server-client';
-import type { SessionStore } from './session-store';
+import type { SessionState, SessionTokenCodec } from './session-token';
 import type { Logger } from '../ports/logger-port';
 import type { UserInfo } from '@forestadmin/forestadmin-client';
 import type { Context, Middleware } from 'koa';
@@ -22,11 +23,10 @@ import {
   planFeatureMissing,
   serverError,
   sessionExpired,
-  sessionInvalidated,
   toErrorBody,
   unsupportedGrantType,
 } from './oauth-error';
-import ensureFreshServerAccess from './session-lifecycle';
+import { createSid } from './session-token';
 
 function hashPresentedToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('base64url');
@@ -34,7 +34,9 @@ function hashPresentedToken(token: string): string {
 
 export interface OAuthRoutesOptions {
   serverClient: ForestServerClient;
-  sessionStore: SessionStore;
+  sessionTokens: SessionTokenCodec;
+  authorizationCodes: AuthorizationCodeClaims;
+  sessionTtlSeconds: number;
   forestAppUrl: string;
   authSecret: string;
   resolveEnvironmentId: EnvironmentIdResolver;
@@ -53,6 +55,8 @@ const SAFE_EXCHANGE_ERRORS = new Set([
   'unsupported_grant_type',
   'invalid_scope',
 ]);
+
+const REFRESH_REJECTION_ERRORS = new Set(['invalid_grant', 'invalid_request', 'invalid_client']);
 
 function getQueryParam(ctx: Context, key: string): string | undefined {
   const value = ctx.query[key];
@@ -346,13 +350,34 @@ function writeTokenResponse(
   };
 }
 
+function issueSessionAccessToken(
+  sid: string,
+  user: UserInfo,
+  renderingId: number,
+  saasAccessToken: string,
+  expiresInSeconds: number,
+  options: OAuthRoutesOptions,
+): string {
+  return issueBffAccessToken({
+    sid,
+    serverAccess: options.sessionTokens.sealServerAccess(
+      { sid, userId: user.id, renderingId },
+      saasAccessToken,
+    ),
+    user,
+    renderingId,
+    authSecret: options.authSecret,
+    expiresInSeconds,
+  });
+}
+
 async function handleAuthorizationCodeGrant(
   ctx: Context,
   options: OAuthRoutesOptions,
 ): Promise<void> {
   const request = await parseTokenRequest(ctx, options);
 
-  if (!options.sessionStore.claimAuthorizationCode(request.code)) {
+  if (!options.authorizationCodes.claim(request.code)) {
     throw invalidGrant('Authorization code has already been used');
   }
 
@@ -362,7 +387,7 @@ async function handleAuthorizationCodeGrant(
     serverTokens = await exchangeForServerTokens(request, options);
   } catch (error) {
     if (isRetriableExchangeError(error)) {
-      options.sessionStore.releaseAuthorizationCode(request.code);
+      options.authorizationCodes.release(request.code);
     }
 
     throw error;
@@ -375,21 +400,24 @@ async function handleAuthorizationCodeGrant(
     options,
   );
 
-  const { sid, refreshToken } = options.sessionStore.create({
-    saasAccessToken: serverTokens.saasAccessToken,
+  const sid = createSid();
+  const refreshToken = options.sessionTokens.sealRefreshToken({
+    sid,
     saasRefreshToken: serverTokens.saasRefreshToken,
     renderingId: serverTokens.renderingId,
     userId: user.id,
     clientId: request.clientId,
+    expiresAt: Date.now() + options.sessionTtlSeconds * 1000,
   });
 
-  const accessToken = issueBffAccessToken({
+  const accessToken = issueSessionAccessToken(
     sid,
     user,
-    renderingId: serverTokens.renderingId,
-    authSecret: options.authSecret,
+    serverTokens.renderingId,
+    serverTokens.saasAccessToken,
     expiresInSeconds,
-  });
+    options,
+  );
 
   options.logger('Info', 'Issued BFF session token', {
     renderingId: serverTokens.renderingId,
@@ -419,54 +447,83 @@ interface RefreshGrantResult {
   sid: string;
   accessToken: string;
   expiresInSeconds: number;
-  newRefreshToken: string;
+  refreshToken: string;
 }
 
 type RuntimeOptions = OAuthRoutesOptions & {
   inFlightRefreshByPresentedHash: Map<string, Promise<RefreshGrantResult>>;
 };
 
-async function issueAccessForSession(
-  sid: string,
-  renderingId: number,
-  refreshToken: string,
+async function rotateServerTokens(
+  state: SessionState,
   options: OAuthRoutesOptions,
-): Promise<RefreshGrantResult> {
-  const saasAccessToken = await ensureFreshServerAccess({
-    sid,
-    store: options.sessionStore,
-    serverClient: options.serverClient,
-    logger: options.logger,
-  });
+): Promise<ServerTokens> {
+  const sessionContext = { renderingId: state.renderingId, userId: state.userId };
 
-  const expiresInSeconds = expiresInFromAccessToken(saasAccessToken);
-  const user = await resolveIdentity(renderingId, saasAccessToken, options);
+  try {
+    return await options.serverClient.refreshServerToken({
+      refreshToken: state.saasRefreshToken,
+      clientId: state.clientId,
+    });
+  } catch (error) {
+    if (error instanceof OAuthExchangeError && isPlanFeatureMissingRefusal(error)) {
+      options.logger(
+        'Warn',
+        'The Forest server refused the session refresh: the plan lacks the Gateway API',
+        sessionContext,
+      );
 
-  const accessToken = issueBffAccessToken({
-    sid,
-    user,
-    renderingId,
-    authSecret: options.authSecret,
-    expiresInSeconds,
-  });
+      throw planFeatureMissing();
+    }
 
-  return { sid, accessToken, expiresInSeconds, newRefreshToken: refreshToken };
+    if (error instanceof OAuthExchangeError && REFRESH_REJECTION_ERRORS.has(error.error)) {
+      options.logger('Warn', 'The Forest server rejected the session refresh', {
+        ...sessionContext,
+        error: error.error,
+        errorDescription: error.message,
+      });
+
+      throw invalidGrant('The Forest server rejected the refresh token');
+    }
+
+    throw serverError('Failed to reach the Forest server to refresh the session', error);
+  }
 }
 
-async function reissueThenCommitRotation(
+async function refreshSession(
   presentedToken: string,
-  sid: string,
-  renderingId: number,
-  newRefreshToken: string,
   options: OAuthRoutesOptions,
 ): Promise<RefreshGrantResult> {
-  const result = await issueAccessForSession(sid, renderingId, newRefreshToken, options);
+  const state = options.sessionTokens.openRefreshToken(presentedToken);
 
-  if (!options.sessionStore.commitRotation(presentedToken, newRefreshToken)) {
-    throw sessionExpired('Session expired during refresh');
+  if (!state) {
+    throw invalidGrant('Unknown, malformed or expired refresh token');
   }
 
-  return result;
+  const rotated = await rotateServerTokens(state, options);
+  const expiresInSeconds = expiresInFromAccessToken(rotated.saasAccessToken);
+  const user = await resolveIdentity(state.renderingId, rotated.saasAccessToken, options);
+
+  if (user.id !== state.userId) {
+    throw invalidGrant('The refresh token belongs to another user');
+  }
+
+  return {
+    sid: state.sid,
+    accessToken: issueSessionAccessToken(
+      state.sid,
+      user,
+      state.renderingId,
+      rotated.saasAccessToken,
+      expiresInSeconds,
+      options,
+    ),
+    expiresInSeconds,
+    refreshToken: options.sessionTokens.sealRefreshToken({
+      ...state,
+      saasRefreshToken: rotated.saasRefreshToken,
+    }),
+  };
 }
 
 async function handleRefreshGrant(ctx: Context, options: RuntimeOptions): Promise<void> {
@@ -478,51 +535,16 @@ async function handleRefreshGrant(ctx: Context, options: RuntimeOptions): Promis
   let pending = inFlight.get(presentedHash);
 
   if (!pending) {
-    const rotation = options.sessionStore.prepareRotation(presentedToken);
-
-    if (rotation.outcome === 'reuse') {
-      options.sessionStore.destroy(rotation.sid);
-      options.logger('Warn', 'Rotated-out refresh token replayed; session invalidated', {
-        sid: rotation.sid,
-      });
-      throw sessionInvalidated('Refresh token was already used; the session is invalidated');
-    }
-
-    if (rotation.outcome === 'unknown') {
-      throw invalidGrant('Unknown or malformed refresh token');
-    }
-
-    if (rotation.outcome === 'replay') {
-      options.logger('Info', 'Replayed the last issued pair for a benign retry', {
-        sid: rotation.sid,
-      });
-      pending = issueAccessForSession(
-        rotation.sid,
-        rotation.renderingId,
-        rotation.lastIssuedRefreshToken,
-        options,
-      ).finally(() => {
-        inFlight.delete(presentedHash);
-      });
-    } else {
-      pending = reissueThenCommitRotation(
-        presentedToken,
-        rotation.sid,
-        rotation.renderingId,
-        rotation.newRefreshToken,
-        options,
-      ).finally(() => {
-        inFlight.delete(presentedHash);
-      });
-    }
-
+    pending = refreshSession(presentedToken, options).finally(() => {
+      inFlight.delete(presentedHash);
+    });
     inFlight.set(presentedHash, pending);
   }
 
   const result = await pending;
 
   options.logger('Info', 'Refreshed BFF session token', { sid: result.sid });
-  writeTokenResponse(ctx, result.accessToken, result.expiresInSeconds, result.newRefreshToken);
+  writeTokenResponse(ctx, result.accessToken, result.expiresInSeconds, result.refreshToken);
 }
 
 async function handleToken(ctx: Context, options: RuntimeOptions): Promise<void> {

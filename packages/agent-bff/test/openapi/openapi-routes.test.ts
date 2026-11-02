@@ -85,6 +85,7 @@ function mockApiKeyResolve(): void {
 function sessionToken(): string {
   return issueBffAccessToken({
     sid: 'session-1',
+    serverAccess: 'unused-sealed-server-access',
     user: {
       id: 1,
       email: 'user@example.com',

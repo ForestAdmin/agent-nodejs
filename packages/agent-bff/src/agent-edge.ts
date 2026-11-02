@@ -206,8 +206,7 @@ export function buildAiMiddlewares(
   return [
     createAiRoutesMiddleware({
       client,
-      sessionStore: session.store,
-      serverClient: session.serverClient,
+      sessionTokens: session.sessionTokens,
       resolveEnvironmentId,
       logger,
     }),

@@ -268,7 +268,7 @@ layer instead, so a caller sending no timezone against a BFF with no `BFF_DEFAUL
 
 A Mode 1 `bff_access` that is malformed or wrong-typed → `401 unauthorized`; one that is validly
 signed but expired → `401 session_expired` (the client should refresh). Refresh-token reuse remains
-a `POST /oauth/token` concern (`session_invalidated`, OAuth/RFC shape).
+a `POST /oauth/token` concern (`400 invalid_grant`, OAuth/RFC shape).
 
 ### CORS
 
@@ -351,22 +351,45 @@ holds, and relays the answer back:
 
 ## Sessions & token rotation
 
-OAuth sessions, opaque refresh tokens, and rotated-out-token reuse detection are held in an
-**in-memory, single-process** store. Reuse detection has a one-step grace window: re-presenting the
-**most recently** rotated-out token (a benign retry of a refresh whose response was lost) replays
-the last issued pair instead of killing the session — the stored refresh token is returned with a
-freshly minted access JWT. Re-presenting any **older** rotated-out token still invalidates the whole
-session, so a stolen earlier token stays detectable. The grace window is bounded by the rotation
-chain, not a timer: once the client advances one more rotation, the previous token is no longer the
-latest and falls back to reuse. These guarantees are only correct within one process. Two layers
-are process-local: the session/rotation maps in the store, and the in-flight refresh dedup maps
-(`inFlightRefreshByPresentedHash` in `oauth-routes`, `inFlightRefreshesBySid` in
-`session-lifecycle`) that collapse concurrent refreshes of the same token into a single rotation.
-Running the BFF behind a load balancer without sticky sessions breaks reuse detection and the
-single-rotation guarantee — and a shared session store alone does not fix it: two concurrent
-refreshes landing on different nodes would each try to rotate, one committing and the other failing
-with `session_expired`. Horizontal scaling requires both a shared session store **and** a shared
-(or node-pinned) refresh-coordination mechanism.
+OAuth sessions hold no state in the BFF process: everything a session needs travels in the two tokens
+the client holds, sealed with `BFF_TOKEN_ENCRYPTION_KEY` (`api.tokenEncryptionKey` embedded,
+AES-256-GCM). Every instance sharing that key serves every session, and a restart loses none of them.
+
+- **Refresh token.** Opaque to the client: the sealed session state — the Forest server refresh
+  token, the rendering, the user, the OAuth client id and the session's absolute expiry (24 h after
+  sign-in, kept across refreshes). A token that does not open under the key, was sealed for another
+  purpose, or is past its expiry gets `400 invalid_grant`.
+- **Access token.** The `bff_access` JWT carries a `server_access` claim: the Forest server access
+  token, sealed and bound to the JWT's `sid`, user id and rendering. The AI relay and the activity-log
+  writes read it from there; a claim missing, unreadable, bound to another session or expired answers
+  `401 session_expired`, and the client refreshes. The JWT never outlives that server access token.
+
+Every `refresh_token` grant rotates the Forest server refresh token, so the Forest server decides the
+rotation and its safety, not the BFF. With `OAUTH_API_REFRESH_ROTATION_ENABLED` on in the Forest server
+(PRD-1889), Gateway API grants are idempotent: concurrent refreshes of one token, on any instances,
+get the same pair; a retry within 60 s of a lost response gets it again; a rotated-out token presented
+later revokes the whole grant, which signs out every holder (`400 invalid_grant`). The BFF still
+collapses concurrent refreshes of one token inside one process into a single Forest server call.
+
+| Forest server answer on refresh | BFF answer |
+| --- | --- |
+| new pair | `200`, new pair, same `sid` and expiry |
+| `invalid_grant`, `invalid_request`, `invalid_client` | `400 invalid_grant`: the client signs in again |
+| plan without the Gateway API | `403 plan_feature_missing` |
+| anything else, `503 temporarily_unavailable` and network failures included | `502 server_error`: retryable, the presented token stays usable |
+
+Limits:
+
+- **Forest server flag off.** Concurrent refreshes on two instances each fork a pair, and a retry
+  after a lost response gets `invalid_grant`, which signs the user out. Turn the flag on before
+  running several instances.
+- **Key change.** Changing `BFF_TOKEN_ENCRYPTION_KEY` signs every user out, and instances must share
+  one key: during a rollout that changes it, a token issued by one side is refused by the other.
+- **No revocation in the BFF.** A stolen refresh token works on any instance until the Forest server
+  rejects it, at the latest at the session's 24 h expiry.
+- **Authorization codes.** The single-use claim of a code is per process; a code replayed on another
+  instance relies on the Forest server refusing a second exchange.
+- **Upgrade.** Tokens issued before this mechanism do not open: users sign in once after the upgrade.
 
 ## `/health`
 

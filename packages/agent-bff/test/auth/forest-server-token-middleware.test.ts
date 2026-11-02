@@ -1,5 +1,4 @@
-import type ForestServerClient from '../../src/oauth/forest-server-client';
-import type { SessionStore } from '../../src/oauth/session-store';
+import type { SessionTokenCodec } from '../../src/oauth/session-token';
 import type { Logger } from '../../src/ports/logger-port';
 import type { Context } from 'koa';
 
@@ -8,13 +7,14 @@ import jsonwebtoken from 'jsonwebtoken';
 import createForestServerTokenMiddleware, {
   resolveForestServerToken,
 } from '../../src/auth/forest-server-token-middleware';
-import OAuthExchangeError from '../../src/oauth/oauth-exchange-error';
 import {
   API_KEY_SERVER_TOKEN,
   RENDERING_ID,
   SESSION_ID,
+  SESSION_USER_ID,
+  sealedServerAccess,
   sessionAccessToken,
-  unusedServerClient,
+  testSessionTokens,
 } from '../helpers/activity-log';
 
 function contextOf(state: Record<string, unknown>): Context {
@@ -25,29 +25,37 @@ function expiredAccessToken(): string {
   return jsonwebtoken.sign({ scope: 'forest' }, 'session-secret', { expiresIn: '-1s' });
 }
 
-function storeOf(saasAccessToken: string | undefined, get = jest.fn()) {
-  const store = {
-    get: get.mockImplementation((sid: string) =>
-      sid === SESSION_ID && saasAccessToken !== undefined ? { saasAccessToken } : undefined,
-    ),
-  } as unknown as SessionStore;
-
-  return { store, get };
+function oauthContext(serverAccess: string | undefined): Context {
+  return contextOf({
+    authMode: 'oauth',
+    principal: {
+      sid: SESSION_ID,
+      id: SESSION_USER_ID,
+      rendering_id: String(RENDERING_ID),
+      server_access: serverAccess,
+    },
+  });
 }
 
 async function landResolver(
   ctx: Context,
-  store?: SessionStore,
+  sessionTokens?: SessionTokenCodec,
   logger: Logger = () => undefined,
 ): Promise<() => Promise<string>> {
   const middleware = createForestServerTokenMiddleware({
-    session: store ? { store, serverClient: unusedServerClient } : undefined,
+    session: sessionTokens ? { sessionTokens } : undefined,
     logger,
   });
 
   await middleware(ctx, async () => undefined);
 
   return () => resolveForestServerToken(ctx);
+}
+
+function spiedSessionTokens(): { sessionTokens: SessionTokenCodec; openServerAccess: jest.Mock } {
+  const openServerAccess = jest.fn(testSessionTokens.openServerAccess);
+
+  return { sessionTokens: { ...testSessionTokens, openServerAccess }, openServerAccess };
 }
 
 describe('forest server token middleware', () => {
@@ -81,184 +89,71 @@ describe('forest server token middleware', () => {
   });
 
   describe('in oauth mode', () => {
-    it('should resolve the token held by the session', async () => {
+    it('should resolve the Forest server access sealed in the session token', async () => {
       const saasAccessToken = sessionAccessToken();
-      const { store } = storeOf(saasAccessToken);
-      const ctx = contextOf({
-        authMode: 'oauth',
-        principal: { sid: SESSION_ID, rendering_id: String(RENDERING_ID) },
-      });
+      const ctx = oauthContext(sealedServerAccess(saasAccessToken));
 
-      const resolve = await landResolver(ctx, store);
+      const resolve = await landResolver(ctx, testSessionTokens);
 
       await expect(resolve()).resolves.toBe(saasAccessToken);
     });
 
-    it('should refuse with session_expired when the session is gone', async () => {
-      const { store } = storeOf(undefined);
-      const ctx = contextOf({
-        authMode: 'oauth',
-        principal: { sid: SESSION_ID, rendering_id: String(RENDERING_ID) },
-      });
+    it('should refuse with session_expired when the token carries no server access', async () => {
+      const ctx = oauthContext(undefined);
 
-      const resolve = await landResolver(ctx, store);
+      const resolve = await landResolver(ctx, testSessionTokens);
 
-      await expect(resolve()).rejects.toMatchObject({
-        status: 401,
-        type: 'session_expired',
-      });
+      await expect(resolve()).rejects.toMatchObject({ status: 401, type: 'session_expired' });
     });
 
-    it('should refuse with audit_unavailable when the Forest server cannot be reached', async () => {
-      const store = {
-        get: () => ({ saasAccessToken: expiredAccessToken(), clientId: 'client-1' }),
-        getSaasRefreshToken: () => 'refresh-token',
-      } as unknown as SessionStore;
-      const serverClient = {
-        refreshServerToken: async () => {
-          throw new Error('connect ECONNREFUSED');
-        },
-      } as unknown as ForestServerClient;
-      const ctx = contextOf({
-        authMode: 'oauth',
-        principal: { sid: SESSION_ID, rendering_id: String(RENDERING_ID) },
-      });
-
-      const middleware = createForestServerTokenMiddleware({
-        session: { store, serverClient },
-        logger: () => undefined,
-      });
-      await middleware(ctx, async () => undefined);
-
-      await expect(resolveForestServerToken(ctx)).rejects.toMatchObject({
-        status: 503,
-        type: 'audit_unavailable',
-      });
-    });
-
-    it('should report the original failure, which the mapped error drops', async () => {
-      const store = {
-        get: () => {
-          throw new TypeError('sessions.get is not a function');
-        },
-      } as unknown as SessionStore;
+    it('should refuse with session_expired and report why when the sealed access is unreadable', async () => {
       const logger = jest.fn();
-      const ctx = contextOf({
-        authMode: 'oauth',
-        principal: { sid: SESSION_ID, rendering_id: String(RENDERING_ID) },
-      });
+      const ctx = oauthContext('not-a-sealed-value');
 
-      const resolve = await landResolver(ctx, store, logger);
+      const resolve = await landResolver(ctx, testSessionTokens, logger);
 
-      await expect(resolve()).rejects.toMatchObject({ status: 503, type: 'audit_unavailable' });
+      await expect(resolve()).rejects.toMatchObject({ status: 401, type: 'session_expired' });
       expect(logger).toHaveBeenCalledWith(
-        'Error',
+        'Warn',
         'Could not resolve the Forest server access of this session',
-        { renderingId: RENDERING_ID, cause: 'sessions.get is not a function' },
+        { renderingId: RENDERING_ID, cause: 'Session not found or expired' },
       );
     });
 
-    it('should refuse with session_expired when the Forest server rejects the refresh token', async () => {
-      const store = {
-        get: () => ({ saasAccessToken: expiredAccessToken(), clientId: 'client-1' }),
-        getSaasRefreshToken: () => 'refresh-token',
-      } as unknown as SessionStore;
-      const serverClient = {
-        refreshServerToken: async () => {
-          throw new OAuthExchangeError('invalid_grant', 'the refresh token was revoked');
-        },
-      } as unknown as ForestServerClient;
-      const ctx = contextOf({
-        authMode: 'oauth',
-        principal: { sid: SESSION_ID, rendering_id: String(RENDERING_ID) },
-      });
+    it('should refuse with session_expired when the sealed Forest server access expired', async () => {
+      const ctx = oauthContext(sealedServerAccess(expiredAccessToken()));
 
-      const logger = jest.fn();
-      const middleware = createForestServerTokenMiddleware({
-        session: { store, serverClient },
-        logger,
-      });
-      await middleware(ctx, async () => undefined);
+      const resolve = await landResolver(ctx, testSessionTokens);
 
-      await expect(resolveForestServerToken(ctx)).rejects.toMatchObject({
-        status: 401,
-        type: 'session_expired',
-      });
-      expect(logger).toHaveBeenCalledWith(
-        'Error',
-        'Could not resolve the Forest server access of this session',
-        { renderingId: RENDERING_ID, cause: 'The Forest server rejected the refresh token' },
-      );
+      await expect(resolve()).rejects.toMatchObject({ status: 401, type: 'session_expired' });
     });
 
-    it('should refuse with plan_feature_missing, not audit_unavailable, when the plan lacks the Gateway API', async () => {
-      const store = {
-        get: () => ({ saasAccessToken: expiredAccessToken(), clientId: 'client-1' }),
-        getSaasRefreshToken: () => 'refresh-token',
-      } as unknown as SessionStore;
-      const serverClient = {
-        refreshServerToken: async () => {
-          throw new OAuthExchangeError('access_denied', 'no Gateway API', 'plan_feature_missing');
-        },
-      } as unknown as ForestServerClient;
-      const ctx = contextOf({
-        authMode: 'oauth',
-        principal: { sid: SESSION_ID, rendering_id: String(RENDERING_ID) },
-      });
-      const logger = jest.fn();
-      const middleware = createForestServerTokenMiddleware({
-        session: { store, serverClient },
-        logger,
-      });
-      await middleware(ctx, async () => undefined);
-
-      await expect(resolveForestServerToken(ctx)).rejects.toMatchObject({
-        status: 403,
-        type: 'plan_feature_missing',
-        message: "The project's plan does not include the Gateway API.",
-      });
-      expect(logger).not.toHaveBeenCalledWith('Error', expect.anything(), expect.anything());
-    });
-
-    it('should refuse with session_expired when the deployment carries no session store', async () => {
-      const ctx = contextOf({
-        authMode: 'oauth',
-        principal: { sid: SESSION_ID, rendering_id: String(RENDERING_ID) },
-      });
+    it('should refuse with session_expired when the deployment carries no OAuth session', async () => {
+      const ctx = oauthContext(sealedServerAccess(sessionAccessToken()));
 
       const resolve = await landResolver(ctx);
 
-      await expect(resolve()).rejects.toMatchObject({
-        status: 401,
-        type: 'session_expired',
-      });
+      await expect(resolve()).rejects.toMatchObject({ status: 401, type: 'session_expired' });
     });
 
-    it('should look the session up only once for repeated resolutions', async () => {
-      const { store, get } = storeOf(sessionAccessToken());
-      const ctx = contextOf({
-        authMode: 'oauth',
-        principal: { sid: SESSION_ID, rendering_id: String(RENDERING_ID) },
-      });
+    it('should open the sealed access only once for repeated resolutions', async () => {
+      const { sessionTokens, openServerAccess } = spiedSessionTokens();
+      const ctx = oauthContext(sealedServerAccess(sessionAccessToken()));
 
-      const resolve = await landResolver(ctx, store);
+      const resolve = await landResolver(ctx, sessionTokens);
       await resolve();
       await resolve();
 
-      expect(get).toHaveBeenCalledTimes(1);
+      expect(openServerAccess).toHaveBeenCalledTimes(1);
     });
   });
 
-  it('should not look the session up when nothing resolves the token', async () => {
-    const { store, get } = storeOf(sessionAccessToken());
-    const ctx = contextOf({
-      authMode: 'oauth',
-      principal: { sid: SESSION_ID, rendering_id: String(RENDERING_ID) },
-    });
+  it('should not open the sealed access when nothing resolves the token', async () => {
+    const { sessionTokens, openServerAccess } = spiedSessionTokens();
 
-    await landResolver(ctx, store);
+    await landResolver(oauthContext(sealedServerAccess(sessionAccessToken())), sessionTokens);
 
-    expect(get).not.toHaveBeenCalled();
+    expect(openServerAccess).not.toHaveBeenCalled();
   });
 
   it('should refuse with session_expired when no resolver was landed on the context', () => {
