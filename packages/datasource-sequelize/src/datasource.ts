@@ -1,3 +1,4 @@
+import type { SequelizeExt } from './type-overrides';
 import type { SequelizeDatasourceOptions } from './types';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 import type { Sequelize } from 'sequelize';
@@ -9,6 +10,12 @@ import SequelizeCollection from './collection';
 
 interface NativeQueryConnection {
   instance: Sequelize;
+}
+
+function isInMemorySqlite(instance: Sequelize): boolean {
+  const { storage, host } = (instance as SequelizeExt).options;
+
+  return instance.getDialect() === 'sqlite' && (storage ?? (host || ':memory:')) === ':memory:';
 }
 
 export default class SequelizeDataSource extends BaseDataSource<SequelizeCollection> {
@@ -59,6 +66,12 @@ export default class SequelizeDataSource extends BaseDataSource<SequelizeCollect
     }
 
     const { instance } = this.nativeQueryConnections[connectionName] as NativeQueryConnection;
+    const selectOptions = { bind: contextVariables, type: QueryTypes.SELECT, raw: true } as const;
+
+    // Sequelize runs every query of an in-memory SQLite database, transactional or not, on one
+    // connection: rolling a transaction back there would also undo the writes of other requests.
+    if (isInMemorySqlite(instance)) return instance.query<R>(query, selectOptions);
+
     // Live queries only read: whatever their text runs, it is rolled back, never committed.
     const transaction = await instance.transaction();
     let rows: R[];
@@ -68,12 +81,7 @@ export default class SequelizeDataSource extends BaseDataSource<SequelizeCollect
         await instance.query('SET TRANSACTION READ ONLY', { transaction });
       }
 
-      rows = await instance.query<R>(query, {
-        bind: contextVariables,
-        type: QueryTypes.SELECT,
-        raw: true,
-        transaction,
-      });
+      rows = await instance.query<R>(query, { ...selectOptions, transaction });
     } catch (error) {
       // The failed query may have ended the transaction already; its error is the one to report.
       await transaction.rollback().catch(() => undefined);

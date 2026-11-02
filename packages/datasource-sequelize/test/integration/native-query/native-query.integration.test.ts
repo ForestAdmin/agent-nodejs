@@ -1,5 +1,7 @@
 import type { Dialect } from 'sequelize';
 
+import os from 'os';
+import path from 'path';
 import { DataTypes, Sequelize } from 'sequelize';
 
 import { SequelizeDataSource } from '../../../src';
@@ -15,12 +17,24 @@ function deleteAllRows(dialect: Dialect, table: string): string {
 }
 
 describe('Native queries', () => {
-  const sqlite = {
-    name: 'SQLite',
+  const sqliteInMemory = {
+    name: 'SQLite in memory',
+    rollsBackWrites: false,
     open: async () => new Sequelize({ dialect: 'sqlite', storage: ':memory:', logging: false }),
+  };
+  const sqliteFile = {
+    name: 'SQLite file',
+    rollsBackWrites: true,
+    open: async () =>
+      new Sequelize({
+        dialect: 'sqlite',
+        storage: path.join(os.tmpdir(), 'forest_test_native_query.sqlite'),
+        logging: false,
+      }),
   };
   const servers = CONNECTIONS.map(connection => ({
     name: connection.name,
+    rollsBackWrites: true,
     open: async () => {
       const db = 'forest_test_native_query';
       const server = new Sequelize(connection.uri(), { logging: false });
@@ -32,7 +46,9 @@ describe('Native queries', () => {
     },
   }));
 
-  describe.each([sqlite, ...servers])('On $name', ({ open }) => {
+  const databases = [sqliteInMemory, sqliteFile, ...servers];
+
+  describe.each(databases)('On $name', ({ open, rollsBackWrites }) => {
     let sequelize: Sequelize;
     let dataSource: SequelizeDataSource;
     let table: string;
@@ -63,12 +79,21 @@ describe('Native queries', () => {
       expect(rows).toEqual([{ title: 'a' }, { title: 'b' }]);
     });
 
-    it('should leave the data untouched when a query writes', async () => {
+    it('should roll back what a query writes unless its connection is shared', async () => {
       await dataSource
         .executeNativeQuery('main', deleteAllRows(sequelize.getDialect() as Dialect, table))
         .catch(() => undefined);
 
-      expect(await sequelize.models.Label.count()).toBe(2);
+      expect(await sequelize.models.Label.count()).toBe(rollsBackWrites ? 2 : 0);
+    });
+
+    it('should keep a write made while a query runs', async () => {
+      await Promise.all([
+        dataSource.executeNativeQuery('main', `SELECT title FROM ${table}`),
+        sequelize.models.Label.create({ title: 'c' }),
+      ]);
+
+      expect(await sequelize.models.Label.count()).toBe(3);
     });
   });
 });

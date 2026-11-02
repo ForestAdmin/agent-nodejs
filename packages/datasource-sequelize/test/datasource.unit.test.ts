@@ -65,8 +65,8 @@ describe('SequelizeDataSource', () => {
   });
 
   describe('executeNativeQuery', () => {
-    const setup = (dialect: 'postgres' | 'mssql') => {
-      const sequelize = new Sequelize({ dialect });
+    const setup = (dialect: 'postgres' | 'mssql' | 'sqlite', storage?: string) => {
+      const sequelize = new Sequelize({ dialect, storage });
       sequelize.define('cars', {});
       const transaction = { rollback: jest.fn().mockResolvedValue(undefined) };
       jest.spyOn(sequelize, 'transaction').mockResolvedValue(transaction as never);
@@ -120,6 +120,29 @@ describe('SequelizeDataSource', () => {
 
       expect(spyQuery).toHaveBeenCalledTimes(1);
       expect(spyQuery).toHaveBeenCalledWith('query', expect.anything());
+    });
+
+    it('should run the query outside a transaction on an in-memory sqlite database', async () => {
+      const { dataSource, spyQuery, transaction } = setup('sqlite', ':memory:');
+
+      const rows = await dataSource.executeNativeQuery('main', 'query', { something: 'value' });
+
+      expect(rows).toEqual([{ id: 1 }]);
+      expect(spyQuery).toHaveBeenCalledWith('query', {
+        bind: { something: 'value' },
+        type: QueryTypes.SELECT,
+        raw: true,
+      });
+      expect(transaction.rollback).not.toHaveBeenCalled();
+    });
+
+    it('should run the query in a rolled back transaction on a sqlite file', async () => {
+      const { dataSource, spyQuery, transaction } = setup('sqlite', '/data/app.sqlite');
+
+      await dataSource.executeNativeQuery('main', 'query');
+
+      expect(spyQuery).toHaveBeenCalledWith('query', expect.objectContaining({ transaction }));
+      expect(transaction.rollback).toHaveBeenCalledTimes(1);
     });
 
     it('should roll back and rethrow the query error when the query fails', async () => {

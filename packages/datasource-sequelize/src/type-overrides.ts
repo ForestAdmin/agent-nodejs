@@ -8,6 +8,7 @@ import type {
   BelongsToMany,
   Model,
   ModelAttributeColumnOptions,
+  Sequelize,
 } from 'sequelize';
 
 export interface BelongsToManyExt extends BelongsToMany {
@@ -21,4 +22,8 @@ export interface ModelAttributeColumnOptionsExt extends ModelAttributeColumnOpti
 export interface ArrayDataTypeExt<T extends AbstractDataTypeConstructor | AbstractDataType>
   extends ArrayDataType<T> {
   type: AbstractDataType;
+}
+
+export interface SequelizeExt extends Sequelize {
+  options: { storage?: string; host?: string };
 }
