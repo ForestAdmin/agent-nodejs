@@ -1,3 +1,10 @@
+## @forestadmin/ai-proxy [1.15.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.15.1...@forestadmin/ai-proxy@1.15.2) (2026-11-02)
+
+
+### Bug Fixes
+
+* **ai-proxy:** exclude the models OpenAI and Bedrock retired ([#2052](https://github.com/ForestAdmin/agent-nodejs/issues/2052)) ([85d9ae3](https://github.com/ForestAdmin/agent-nodejs/commit/85d9ae3c3cef1c454b6e140fb90a9441f7643175))
+
 ## @forestadmin/ai-proxy [1.15.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.15.0...@forestadmin/ai-proxy@1.15.1) (2026-10-25)
 
 
