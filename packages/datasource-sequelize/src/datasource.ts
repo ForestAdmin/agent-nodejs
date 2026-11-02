@@ -12,10 +12,15 @@ interface NativeQueryConnection {
   instance: Sequelize;
 }
 
-function isInMemorySqlite(instance: Sequelize): boolean {
+const EPHEMERAL_SQLITE_STORAGES = [':memory:', ''];
+
+function isEphemeralSqlite(instance: Sequelize): boolean {
   const { storage, host } = (instance as SequelizeExt).options;
 
-  return instance.getDialect() === 'sqlite' && (storage ?? (host || ':memory:')) === ':memory:';
+  return (
+    instance.getDialect() === 'sqlite' &&
+    EPHEMERAL_SQLITE_STORAGES.includes(storage ?? (host || ':memory:'))
+  );
 }
 
 export default class SequelizeDataSource extends BaseDataSource<SequelizeCollection> {
@@ -68,9 +73,10 @@ export default class SequelizeDataSource extends BaseDataSource<SequelizeCollect
     const { instance } = this.nativeQueryConnections[connectionName] as NativeQueryConnection;
     const selectOptions = { bind: contextVariables, type: QueryTypes.SELECT, raw: true } as const;
 
-    // Sequelize runs every query of an in-memory SQLite database, transactional or not, on one
-    // connection: rolling a transaction back there would also undo the writes of other requests.
-    if (isInMemorySqlite(instance)) return instance.query<R>(query, selectOptions);
+    // A transaction cannot isolate an ephemeral SQLite database: in memory, Sequelize runs every
+    // query on one connection, so its rollback would undo other requests' writes; on an empty
+    // storage, each connection opens its own private database, where the tables do not exist.
+    if (isEphemeralSqlite(instance)) return instance.query<R>(query, selectOptions);
 
     // Live queries only read: whatever their text runs, it is rolled back, never committed.
     const transaction = await instance.transaction();

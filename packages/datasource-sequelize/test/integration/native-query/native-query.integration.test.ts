@@ -22,6 +22,11 @@ describe('Native queries', () => {
     rollsBackWrites: false,
     open: async () => new Sequelize({ dialect: 'sqlite', storage: ':memory:', logging: false }),
   };
+  const sqliteTemporary = {
+    name: 'SQLite temporary',
+    rollsBackWrites: false,
+    open: async () => new Sequelize({ dialect: 'sqlite', storage: '', logging: false }),
+  };
   const sqliteFile = {
     name: 'SQLite file',
     rollsBackWrites: true,
@@ -46,7 +51,7 @@ describe('Native queries', () => {
     },
   }));
 
-  const databases = [sqliteInMemory, sqliteFile, ...servers];
+  const databases = [sqliteInMemory, sqliteTemporary, sqliteFile, ...servers];
 
   describe.each(databases)('On $name', ({ open, rollsBackWrites }) => {
     let sequelize: Sequelize;
