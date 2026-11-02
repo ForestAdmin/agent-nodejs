@@ -374,15 +374,21 @@ collapses concurrent refreshes of one token inside one process into a single For
 | Forest server answer on refresh | BFF answer |
 | --- | --- |
 | new pair | `200`, new pair, same `sid` and expiry |
-| `invalid_grant`, `invalid_request`, `invalid_client` | `400 invalid_grant`: the client signs in again |
+| `invalid_grant`, `invalid_request`, `invalid_client`, `unauthorized_client` | `400 invalid_grant`: the client signs in again |
 | plan without the Gateway API | `403 plan_feature_missing` |
 | anything else, `503 temporarily_unavailable` and network failures included | `502 server_error`: retryable, the presented token stays usable |
 
 Limits:
 
-- **Forest server flag off.** Concurrent refreshes on two instances each fork a pair, and a retry
-  after a lost response gets `invalid_grant`, which signs the user out. Turn the flag on before
-  running several instances.
+- **Forest server flag off.** No grant-wide reuse detection: a stolen refresh token, redeemed before
+  its owner, keeps the session until its 24 h expiry while the owner gets `invalid_grant`. Concurrent
+  refreshes on two instances each fork a pair, and a retry after a lost response signs the user out.
+  The BFF logs a `Warn` at every sign-in on a grant the server did not tag (`meta.service: 'api'` and
+  `meta.gatewayGrantId` in its refresh token). Turn the flag on before running this version.
+- **Failure after the rotation.** Once the Forest server rotated, the BFF still reads the user
+  (`getUserInfo`) before answering. If that read fails, the client keeps the presented token: a retry
+  within the server's 60 s replay window gets the rotated pair, a later one is treated as a reuse and
+  signs the user out. Same bound as the Forest server's own lost-response limit.
 - **Key change.** Changing `BFF_TOKEN_ENCRYPTION_KEY` signs every user out, and instances must share
   one key: during a rollout that changes it, a token issued by one side is refused by the other.
 - **No revocation in the BFF.** A stolen refresh token works on any instance until the Forest server

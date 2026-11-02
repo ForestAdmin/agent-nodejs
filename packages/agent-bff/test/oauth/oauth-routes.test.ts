@@ -371,6 +371,35 @@ describe('oauth-routes POST /oauth/token', () => {
       expect(serialized).not.toContain(SENTINEL_REFRESH);
     });
 
+    it('should warn when the Forest server grant carries no refresh reuse detection', async () => {
+      const { app, logs } = buildApp(stubServerClient());
+
+      await request(app.callback()).post('/oauth/token').send(TOKEN_BODY);
+
+      expect(logs).toContainEqual({
+        level: 'Warn',
+        message:
+          'The Forest server issued a grant without refresh reuse detection: a stolen refresh token stays usable until the session expires',
+        context: { renderingId: 17, userId: USER.id },
+      });
+    });
+
+    it('should not warn for a grant the Forest server tagged for rotation enforcement', async () => {
+      const taggedRefresh = jsonwebtoken.sign(
+        { meta: { service: 'api', gatewayGrantId: 'grant-1' } },
+        'saas-secret',
+      );
+      const { app, logs } = buildApp(
+        stubServerClient({
+          exchangeCode: async () => ({ ...serverTokens(), saasRefreshToken: taggedRefresh }),
+        }),
+      );
+
+      await request(app.callback()).post('/oauth/token').send(TOKEN_BODY);
+
+      expect(logs.filter(({ level }) => level === 'Warn')).toEqual([]);
+    });
+
     it('should not leak any SaaS token value into the logs', async () => {
       const { app, logs } = buildApp(stubServerClient());
 
@@ -1001,7 +1030,7 @@ describe('oauth-routes POST /oauth/token refresh_token grant', () => {
   });
 
   describe('when the Forest server rejects the refresh token', () => {
-    it.each(['invalid_grant', 'invalid_request', 'invalid_client'])(
+    it.each(['invalid_grant', 'invalid_request', 'invalid_client', 'unauthorized_client'])(
       'should answer 400 invalid_grant for %s',
       async code => {
         const refreshServerToken = jest.fn(async () => {

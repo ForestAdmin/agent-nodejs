@@ -2,6 +2,7 @@ import crypto from 'crypto';
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_BYTES = 12;
+const AUTH_TAG_BYTES = 16;
 
 export interface EncryptedBlob {
   iv: string;
@@ -43,8 +44,17 @@ export default function createTokenCipher(base64Key: string): TokenCipher {
       };
     },
     decrypt({ iv, authTag, ciphertext }) {
-      const decipher = crypto.createDecipheriv(ALGORITHM, key, bytes(iv));
-      decipher.setAuthTag(bytes(authTag));
+      const ivBytes = bytes(iv);
+      const tagBytes = bytes(authTag);
+
+      if (ivBytes.length !== IV_BYTES || tagBytes.length !== AUTH_TAG_BYTES) {
+        throw new Error('Malformed encrypted blob');
+      }
+
+      const decipher = crypto.createDecipheriv(ALGORITHM, key, ivBytes, {
+        authTagLength: AUTH_TAG_BYTES,
+      });
+      decipher.setAuthTag(tagBytes);
 
       return Buffer.concat([
         new Uint8Array(decipher.update(bytes(ciphertext))),

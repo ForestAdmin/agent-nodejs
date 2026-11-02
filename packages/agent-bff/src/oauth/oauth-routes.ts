@@ -56,7 +56,12 @@ const SAFE_EXCHANGE_ERRORS = new Set([
   'invalid_scope',
 ]);
 
-const REFRESH_REJECTION_ERRORS = new Set(['invalid_grant', 'invalid_request', 'invalid_client']);
+const REFRESH_REJECTION_ERRORS = new Set([
+  'invalid_grant',
+  'invalid_request',
+  'invalid_client',
+  'unauthorized_client',
+]);
 
 function getQueryParam(ctx: Context, key: string): string | undefined {
   const value = ctx.query[key];
@@ -350,6 +355,14 @@ function writeTokenResponse(
   };
 }
 
+function isRotationEnforcedGrant(saasRefreshToken: string): boolean {
+  const decoded = jsonwebtoken.decode(saasRefreshToken) as {
+    meta?: { service?: unknown; gatewayGrantId?: unknown };
+  } | null;
+
+  return decoded?.meta?.service === 'api' && typeof decoded.meta.gatewayGrantId === 'string';
+}
+
 function issueSessionAccessToken(
   sid: string,
   user: UserInfo,
@@ -399,6 +412,14 @@ async function handleAuthorizationCodeGrant(
     serverTokens.saasAccessToken,
     options,
   );
+
+  if (!isRotationEnforcedGrant(serverTokens.saasRefreshToken)) {
+    options.logger(
+      'Warn',
+      'The Forest server issued a grant without refresh reuse detection: a stolen refresh token stays usable until the session expires',
+      { renderingId: serverTokens.renderingId, userId: user.id },
+    );
+  }
 
   const sid = createSid();
   const refreshToken = options.sessionTokens.sealRefreshToken({

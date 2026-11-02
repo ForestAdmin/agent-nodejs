@@ -48,6 +48,25 @@ describe('token-cipher', () => {
       expect(() => cipher.decrypt(tampered)).toThrow();
     });
 
+    it('should refuse a truncated genuine authTag instead of checking only its prefix', () => {
+      const cipher = createTokenCipher(KEY);
+      const blob = cipher.encrypt('payload');
+      const truncated = Buffer.from(blob.authTag, 'base64').subarray(0, 4).toString('base64');
+
+      expect(() => cipher.decrypt({ ...blob, authTag: truncated })).toThrow(
+        'Malformed encrypted blob',
+      );
+    });
+
+    it('should refuse an iv that is not 12 bytes', () => {
+      const cipher = createTokenCipher(KEY);
+      const blob = cipher.encrypt('payload');
+
+      expect(() => cipher.decrypt({ ...blob, iv: Buffer.alloc(16, 0).toString('base64') })).toThrow(
+        'Malformed encrypted blob',
+      );
+    });
+
     it('should throw on a mutated ciphertext', () => {
       const cipher = createTokenCipher(KEY);
       const blob = cipher.encrypt('payload');

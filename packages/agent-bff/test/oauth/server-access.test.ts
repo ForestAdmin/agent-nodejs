@@ -58,6 +58,12 @@ describe('resolveServerAccess', () => {
     );
   });
 
+  it('should accept an opaque server access, whose lifetime the access token already bounds', () => {
+    const principal = principalOf(sessionTokens.sealServerAccess(BINDING, 'opaque-access'));
+
+    expect(resolveServerAccess(principal, sessionTokens)).toBe('opaque-access');
+  });
+
   it('should refuse with session_expired when the sealed access expired', () => {
     const principal = principalOf(sessionTokens.sealServerAccess(BINDING, saasAccessToken(-1)));
 

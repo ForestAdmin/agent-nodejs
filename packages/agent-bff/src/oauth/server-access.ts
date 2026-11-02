@@ -5,10 +5,10 @@ import jsonwebtoken from 'jsonwebtoken';
 
 import { sessionExpired } from './oauth-error';
 
-function accessTokenExpiry(saasAccessToken: string): number {
-  const decoded = jsonwebtoken.decode(saasAccessToken) as { exp?: number } | null;
+function hasExpired(saasAccessToken: string): boolean {
+  const decoded = jsonwebtoken.decode(saasAccessToken) as { exp?: unknown } | null;
 
-  return decoded?.exp ?? 0;
+  return typeof decoded?.exp === 'number' && decoded.exp <= Math.floor(Date.now() / 1000);
 }
 
 export default function resolveServerAccess(
@@ -28,7 +28,7 @@ export default function resolveServerAccess(
     throw sessionExpired('Session not found or expired');
   }
 
-  if (accessTokenExpiry(saasAccessToken) <= Math.floor(Date.now() / 1000)) {
+  if (hasExpired(saasAccessToken)) {
     throw sessionExpired('The Forest server access of this session expired');
   }
 
