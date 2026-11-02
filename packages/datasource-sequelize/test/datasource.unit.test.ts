@@ -69,13 +69,15 @@ describe('SequelizeDataSource', () => {
       const sequelize = new Sequelize({ dialect, storage });
       sequelize.define('cars', {});
       const transaction = { rollback: jest.fn().mockResolvedValue(undefined) };
-      jest.spyOn(sequelize, 'transaction').mockResolvedValue(transaction as never);
+      const spyTransaction = jest
+        .spyOn(sequelize, 'transaction')
+        .mockResolvedValue(transaction as never);
       const spyQuery = jest.spyOn(sequelize, 'query').mockResolvedValue([{ id: 1 }] as never);
       const dataSource = new SequelizeDataSource(sequelize, jest.fn(), {
         liveQueryConnections: 'main',
       });
 
-      return { dataSource, spyQuery, transaction };
+      return { dataSource, spyQuery, spyTransaction, transaction };
     };
 
     it('should execute the given query on the correct connection, in a transaction', async () => {
@@ -89,6 +91,14 @@ describe('SequelizeDataSource', () => {
         raw: true,
         transaction,
       });
+    });
+
+    it('should open a read-only transaction, so it may run on a read replica', async () => {
+      const { dataSource, spyTransaction } = setup('mssql');
+
+      await dataSource.executeNativeQuery('main', 'query');
+
+      expect(spyTransaction).toHaveBeenCalledWith({ readOnly: true });
     });
 
     it('should return the rows and roll the transaction back', async () => {

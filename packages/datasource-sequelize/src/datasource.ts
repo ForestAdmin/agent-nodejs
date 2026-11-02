@@ -79,7 +79,7 @@ export default class SequelizeDataSource extends BaseDataSource<SequelizeCollect
     if (isEphemeralSqlite(instance)) return instance.query<R>(query, selectOptions);
 
     // Live queries only read: whatever their text runs, it is rolled back, never committed.
-    const transaction = await instance.transaction();
+    const transaction = await instance.transaction({ readOnly: true });
     let rows: R[];
 
     try {
