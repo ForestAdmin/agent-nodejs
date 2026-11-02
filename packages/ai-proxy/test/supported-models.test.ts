@@ -38,12 +38,20 @@ describe('isModelSupportingTools', () => {
     },
   );
 
-  it.each(['claude-sonnet-4-20250514', 'claude-sonnet-4-0'])(
-    'should return false for %s (end of life)',
-    model => {
-      expect(isModelSupportingTools(model, 'anthropic')).toBe(false);
-    },
-  );
+  it('should return false for claude-sonnet-4-20250514 (end of life)', () => {
+    expect(isModelSupportingTools('claude-sonnet-4-20250514', 'anthropic')).toBe(false);
+  });
+
+  it.each([
+    ['claude-3-5-haiku-latest', 'claude-3-5-haiku-20241022'],
+    ['claude-3-7-sonnet-latest', 'claude-3-7-sonnet-20250219'],
+    ['claude-sonnet-4-0', 'claude-sonnet-4-20250514'],
+    ['claude-opus-4-0', 'claude-opus-4-20250514'],
+    ['claude-opus-4-1', 'claude-opus-4-1-20250805'],
+  ])('should return false for %s, the alias of denylisted %s', (alias, target) => {
+    expect(isModelSupportingTools(target, 'anthropic')).toBe(false);
+    expect(isModelSupportingTools(alias, 'anthropic')).toBe(false);
+  });
 
   it.each(['gpt-live-1', 'gpt-4o-realtime-preview', 'gpt-4o-audio-preview'])(
     'should return false for %s (not a chat completions model)',
