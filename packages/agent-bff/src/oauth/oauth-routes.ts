@@ -363,12 +363,16 @@ function isRotationEnforcedGrant(saasRefreshToken: string): boolean {
   return decoded?.meta?.service === 'api' && typeof decoded.meta.gatewayGrantId === 'string';
 }
 
+interface SessionAccess {
+  sid: string;
+  user: UserInfo;
+  renderingId: number;
+  saasAccessToken: string;
+  expiresInSeconds: number;
+}
+
 function issueSessionAccessToken(
-  sid: string,
-  user: UserInfo,
-  renderingId: number,
-  saasAccessToken: string,
-  expiresInSeconds: number,
+  { sid, user, renderingId, saasAccessToken, expiresInSeconds }: SessionAccess,
   options: OAuthRoutesOptions,
 ): string {
   return issueBffAccessToken({
@@ -432,11 +436,13 @@ async function handleAuthorizationCodeGrant(
   });
 
   const accessToken = issueSessionAccessToken(
-    sid,
-    user,
-    serverTokens.renderingId,
-    serverTokens.saasAccessToken,
-    expiresInSeconds,
+    {
+      sid,
+      user,
+      renderingId: serverTokens.renderingId,
+      saasAccessToken: serverTokens.saasAccessToken,
+      expiresInSeconds,
+    },
     options,
   );
 
@@ -532,11 +538,13 @@ async function refreshSession(
   return {
     sid: state.sid,
     accessToken: issueSessionAccessToken(
-      state.sid,
-      user,
-      state.renderingId,
-      rotated.saasAccessToken,
-      expiresInSeconds,
+      {
+        sid: state.sid,
+        user,
+        renderingId: state.renderingId,
+        saasAccessToken: rotated.saasAccessToken,
+        expiresInSeconds,
+      },
       options,
     ),
     expiresInSeconds,

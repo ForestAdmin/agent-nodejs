@@ -68,23 +68,17 @@ function open(cipher: TokenCipher, sealed: string, type: string): Record<string,
 function toSessionState(payload: Record<string, unknown>): SessionState | undefined {
   const { sid, saasRefreshToken, renderingId, userId, clientId, expiresAt } = payload;
 
-  if (
-    !isNonEmptyString(sid) ||
-    !isNonEmptyString(saasRefreshToken) ||
-    !Number.isInteger(renderingId) ||
-    !Number.isInteger(userId) ||
-    !isNonEmptyString(clientId) ||
-    typeof expiresAt !== 'number'
-  ) {
-    return undefined;
-  }
+  const hasStrings = [sid, saasRefreshToken, clientId].every(isNonEmptyString);
+  const hasIntegers = [renderingId, userId].every(value => Number.isInteger(value));
+
+  if (!hasStrings || !hasIntegers || typeof expiresAt !== 'number') return undefined;
 
   return {
-    sid,
-    saasRefreshToken,
+    sid: sid as string,
+    saasRefreshToken: saasRefreshToken as string,
     renderingId: renderingId as number,
     userId: userId as number,
-    clientId,
+    clientId: clientId as string,
     expiresAt,
   };
 }
