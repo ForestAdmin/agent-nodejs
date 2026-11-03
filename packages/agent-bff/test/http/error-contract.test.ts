@@ -11,7 +11,7 @@ import createApiKeyMiddleware, { BFF_KEY_HEADER } from '../../src/api-key/api-ke
 import createAuthModeMiddleware from '../../src/auth/auth-mode-middleware';
 import createPerKeyOriginMiddleware from '../../src/cors/per-key-origin';
 import createErrorMiddleware from '../../src/http/error-middleware';
-import { sessionInvalidated, toErrorBody } from '../../src/oauth/oauth-error';
+import { invalidGrant, toErrorBody } from '../../src/oauth/oauth-error';
 import createTimezoneMiddleware from '../../src/timezone/timezone-middleware';
 
 const AUTH_SECRET = 'contract-secret';
@@ -159,9 +159,9 @@ describe('auth/error contract at the /agent edge', () => {
     expect(res.body.error.type).toBe('not_implemented');
   });
 
-  it('exposes session_invalidated in the RFC shape at the OAuth token endpoint', () => {
-    expect(toErrorBody(sessionInvalidated('reused'))).toEqual({
-      error: 'session_invalidated',
+  it('exposes a refresh-token reuse in the RFC shape at the OAuth token endpoint', () => {
+    expect(toErrorBody(invalidGrant('reused'))).toEqual({
+      error: 'invalid_grant',
       error_description: 'reused',
     });
   });
@@ -171,7 +171,6 @@ describe('auth/error contract at the /agent edge', () => {
       'unauthorized',
       'ambiguous_credentials',
       'session_expired',
-      'session_invalidated',
       'invalid_api_key',
       'forest_identity_not_allowed',
       'origin_not_allowed',

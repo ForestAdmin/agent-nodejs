@@ -15,9 +15,10 @@ describe('package index', () => {
       expect(bff.ForestServerClient).toBeDefined();
       expect(bff.OAuthExchangeError).toBeDefined();
       expect(bff.createOAuthRoutes).toBeDefined();
-      expect(bff.createInMemorySessionStore).toBeDefined();
+      expect(bff.createSessionTokenCodec).toBeDefined();
+      expect(bff.createAuthorizationCodeClaims).toBeDefined();
       expect(bff.createTokenCipher).toBeDefined();
-      expect(bff.ensureFreshServerAccess).toBeDefined();
+      expect(bff.resolveServerAccess).toBeDefined();
       expect(bff.issueBffAccessToken).toBeDefined();
       expect(bff.BFF_ACCESS_TOKEN_TYPE).toBeDefined();
       expect(bff.createPkcePair).toBeDefined();

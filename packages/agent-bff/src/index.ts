@@ -35,10 +35,12 @@ export type {
   ExchangeCodeParams,
 } from './oauth/forest-server-client';
 export { default as createOAuthRoutes } from './oauth/oauth-routes';
-export { default as createInMemorySessionStore } from './oauth/session-store';
-export type { SessionStore, StoredSession, CreatedSession } from './oauth/session-store';
+export { default as createSessionTokenCodec } from './oauth/session-token';
+export type { SessionTokenCodec, SessionState, ServerAccessBinding } from './oauth/session-token';
+export { default as createAuthorizationCodeClaims } from './oauth/authorization-code-claims';
+export type { AuthorizationCodeClaims } from './oauth/authorization-code-claims';
 export { default as createTokenCipher } from './oauth/token-cipher';
-export { default as ensureFreshServerAccess } from './oauth/session-lifecycle';
+export { default as resolveServerAccess } from './oauth/server-access';
 export { issueBffAccessToken, BFF_ACCESS_TOKEN_TYPE } from './oauth/bff-token';
 export type { BffAccessTokenPayload } from './oauth/bff-token';
 export { createPkcePair } from './oauth/pkce';

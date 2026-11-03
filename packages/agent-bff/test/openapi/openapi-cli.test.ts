@@ -800,6 +800,7 @@ describe('the CLI export and the HTTP route', () => {
           'Authorization',
           `Bearer ${issueBffAccessToken({
             sid: 'session-1',
+            serverAccess: 'unused-sealed-server-access',
             user: {
               id: 1,
               email: 'user@example.com',

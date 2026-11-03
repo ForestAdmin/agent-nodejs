@@ -7,6 +7,7 @@ export const BFF_ACCESS_TOKEN_MAX_EXPIRES_IN = 15 * 60;
 
 export interface IssueBffAccessTokenParams {
   sid: string;
+  serverAccess: string;
   user: UserInfo;
   renderingId: number;
   authSecret: string;
@@ -16,6 +17,7 @@ export interface IssueBffAccessTokenParams {
 export interface BffAccessTokenPayload {
   type: typeof BFF_ACCESS_TOKEN_TYPE;
   sid: string;
+  server_access?: string;
   id: number;
   email: string;
   first_name: string;
@@ -29,6 +31,7 @@ export interface BffAccessTokenPayload {
 
 export function issueBffAccessToken({
   sid,
+  serverAccess,
   user,
   renderingId,
   authSecret,
@@ -37,6 +40,7 @@ export function issueBffAccessToken({
   const payload: BffAccessTokenPayload = {
     type: BFF_ACCESS_TOKEN_TYPE,
     sid,
+    server_access: serverAccess,
     id: user.id,
     email: user.email,
     first_name: user.firstName,

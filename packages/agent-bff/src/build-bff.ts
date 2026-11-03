@@ -2,7 +2,7 @@ import type { AgentDispatcher } from './agent/in-process-transport';
 import type { BFFConfig, ConfigLabels } from './config/env-config';
 import type { BffHealth } from './http/health-route';
 import type { EnvironmentIdResolver } from './oauth/environment-id';
-import type { SessionStore } from './oauth/session-store';
+import type { SessionTokenCodec } from './oauth/session-token';
 import type { Logger } from './ports/logger-port';
 import type { Metrics } from './ports/metrics-port';
 import type { IncomingMessage, ServerResponse } from 'http';
@@ -31,10 +31,11 @@ import BODY_LIMIT, { AI_BODY_LIMIT } from './http/body-limit';
 import createErrorMiddleware from './http/error-middleware';
 import createHealthRoute, { describeHealth } from './http/health-route';
 import createVersionHeaderMiddleware from './http/version-header-middleware';
+import createAuthorizationCodeClaims from './oauth/authorization-code-claims';
 import createEnvironmentIdResolver from './oauth/environment-id';
 import ForestServerClient from './oauth/forest-server-client';
 import createOAuthRoutes from './oauth/oauth-routes';
-import createInMemorySessionStore from './oauth/session-store';
+import createSessionTokenCodec from './oauth/session-token';
 import createTokenCipher from './oauth/token-cipher';
 import { OPENAPI_PATH } from './openapi/openapi-routes';
 import version from './version';
@@ -167,8 +168,7 @@ export function resolveOAuthConfig(config: BFFConfig): ResolvedOAuthConfig | und
 }
 
 interface OAuthSession {
-  store: SessionStore;
-  serverClient: ForestServerClient;
+  sessionTokens: SessionTokenCodec;
   forestServerUrl: string;
 }
 
@@ -197,15 +197,17 @@ function buildOAuthMiddlewares(
   const serverClient = new ForestServerClient({ forestServerUrl, envSecret: forestEnvSecret });
   const resolveEnvironmentId = createEnvironmentIdResolver(serverClient);
 
-  const sessionStore = createInMemorySessionStore({
-    cipher: createTokenCipher(tokenEncryptionKey),
-    now: () => Date.now(),
+  const now = () => Date.now();
+  const sessionTokens = createSessionTokenCodec(createTokenCipher(tokenEncryptionKey), {
+    now,
     sessionTtlSeconds: SESSION_TTL_SECONDS,
+    logger,
   });
 
   const oauthRoutes = createOAuthRoutes({
     serverClient,
-    sessionStore,
+    sessionTokens,
+    authorizationCodes: createAuthorizationCodeClaims({ now }),
     forestAppUrl,
     authSecret: forestAuthSecret,
     resolveEnvironmentId,
@@ -216,7 +218,7 @@ function buildOAuthMiddlewares(
   return {
     middlewares: [oauthRoutes],
     resolveEnvironmentId,
-    session: { store: sessionStore, serverClient, forestServerUrl },
+    session: { sessionTokens, forestServerUrl },
   };
 }
 

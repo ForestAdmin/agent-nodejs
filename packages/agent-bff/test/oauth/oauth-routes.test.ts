@@ -9,9 +9,10 @@ import jsonwebtoken from 'jsonwebtoken';
 import Koa from 'koa';
 import request from 'supertest';
 
+import createAuthorizationCodeClaims from '../../src/oauth/authorization-code-claims';
 import { OAuthExchangeError } from '../../src/oauth/forest-server-client';
 import createOAuthRoutes from '../../src/oauth/oauth-routes';
-import createInMemorySessionStore from '../../src/oauth/session-store';
+import createSessionTokenCodec from '../../src/oauth/session-token';
 import createTokenCipher from '../../src/oauth/token-cipher';
 
 const AUTH_SECRET = 'auth-secret';
@@ -21,6 +22,18 @@ const REDIRECT_URI = 'http://localhost:4567/callback';
 const SENTINEL_ACCESS = 'SAAS-ACCESS-SENTINEL';
 const SENTINEL_REFRESH = 'SAAS-REFRESH-SENTINEL';
 const KEY = Buffer.alloc(32, 5).toString('base64');
+const SESSION_TTL_SECONDS = 3600;
+
+function routeOptions(key: string = KEY) {
+  return {
+    sessionTokens: createSessionTokenCodec(createTokenCipher(key), {
+      now: () => Date.now(),
+      sessionTtlSeconds: SESSION_TTL_SECONDS,
+      logger: () => undefined,
+    }),
+    authorizationCodes: createAuthorizationCodeClaims({ now: () => Date.now() }),
+  };
+}
 
 const USER: UserInfo = {
   id: 42,
@@ -87,6 +100,7 @@ function buildApp(
   onTokenRequest?: () => void,
   resolveEnvironmentId: () => Promise<number> = async () => 99,
   allowedOAuthClients?: string[],
+  key: string = KEY,
 ) {
   const logs: LogLine[] = [];
 
@@ -94,11 +108,7 @@ function buildApp(
     logs.push({ level, message, context });
   };
 
-  const sessionStore = createInMemorySessionStore({
-    cipher: createTokenCipher(KEY),
-    now: () => Date.now(),
-    sessionTtlSeconds: 3600,
-  });
+  const options = routeOptions(key);
 
   const app = new Koa();
   app.use(bodyParser());
@@ -114,7 +124,7 @@ function buildApp(
   app.use(
     createOAuthRoutes({
       serverClient,
-      sessionStore,
+      ...options,
       forestAppUrl,
       authSecret: AUTH_SECRET,
       resolveEnvironmentId,
@@ -123,7 +133,7 @@ function buildApp(
     }),
   );
 
-  return { app, logs, sessionStore };
+  return { app, logs, sessionTokens: options.sessionTokens };
 }
 
 const TOKEN_BODY = {
@@ -364,6 +374,35 @@ describe('oauth-routes POST /oauth/token', () => {
       expect(serialized).not.toContain(SENTINEL_REFRESH);
     });
 
+    it('should warn when the Forest server grant carries no refresh reuse detection', async () => {
+      const { app, logs } = buildApp(stubServerClient());
+
+      await request(app.callback()).post('/oauth/token').send(TOKEN_BODY);
+
+      expect(logs).toContainEqual({
+        level: 'Warn',
+        message:
+          'The Forest server issued a grant without refresh reuse detection: a stolen refresh token stays usable until the session expires',
+        context: { renderingId: 17, userId: USER.id },
+      });
+    });
+
+    it('should not warn for a grant the Forest server tagged for rotation enforcement', async () => {
+      const taggedRefresh = jsonwebtoken.sign(
+        { meta: { service: 'api', gatewayGrantId: 'grant-1' } },
+        'saas-secret',
+      );
+      const { app, logs } = buildApp(
+        stubServerClient({
+          exchangeCode: async () => ({ ...serverTokens(), saasRefreshToken: taggedRefresh }),
+        }),
+      );
+
+      await request(app.callback()).post('/oauth/token').send(TOKEN_BODY);
+
+      expect(logs.filter(({ level }) => level === 'Warn')).toEqual([]);
+    });
+
     it('should not leak any SaaS token value into the logs', async () => {
       const { app, logs } = buildApp(stubServerClient());
 
@@ -373,13 +412,37 @@ describe('oauth-routes POST /oauth/token', () => {
       expect(JSON.stringify(logs)).not.toContain(SENTINEL_REFRESH);
     });
 
-    it('should store the exchanged client id in the session for later refreshes', async () => {
-      const { app, sessionStore } = buildApp(stubServerClient());
+    it('should seal the session state, exchanged client id included, into the refresh token', async () => {
+      const { app, sessionTokens } = buildApp(stubServerClient());
+      const before = Date.now();
 
       const response = await request(app.callback()).post('/oauth/token').send(TOKEN_BODY);
       const { sid } = jsonwebtoken.decode(response.body.access_token) as { sid: string };
+      const state = sessionTokens.openRefreshToken(response.body.refresh_token);
 
-      expect(sessionStore.get(sid)?.clientId).toBe(CLIENT_ID);
+      expect(state).toEqual({
+        sid,
+        saasRefreshToken: SENTINEL_REFRESH,
+        renderingId: 17,
+        userId: USER.id,
+        clientId: CLIENT_ID,
+        expiresAt: expect.any(Number),
+      });
+      expect(state?.expiresAt).toBeGreaterThanOrEqual(before + SESSION_TTL_SECONDS * 1000);
+      expect(state?.expiresAt).toBeLessThanOrEqual(Date.now() + SESSION_TTL_SECONDS * 1000);
+    });
+
+    it('should seal the Forest server access into the access token, bound to its session', async () => {
+      const { app, sessionTokens } = buildApp(stubServerClient());
+
+      const response = await request(app.callback()).post('/oauth/token').send(TOKEN_BODY);
+      const { sid, server_access: serverAccess } = jsonwebtoken.decode(
+        response.body.access_token,
+      ) as { sid: string; server_access: string };
+
+      expect(
+        sessionTokens.openServerAccess(serverAccess, { sid, userId: USER.id, renderingId: 17 }),
+      ).toBe(SENTINEL_ACCESS);
     });
   });
 
@@ -670,16 +733,11 @@ describe('oauth-routes POST /oauth/token', () => {
 
   describe('when the request body is missing (no parsed body)', () => {
     it('should reject with invalid_request', async () => {
-      const sessionStore = createInMemorySessionStore({
-        cipher: createTokenCipher(KEY),
-        now: () => Date.now(),
-        sessionTtlSeconds: 3600,
-      });
       const app = new Koa();
       app.use(
         createOAuthRoutes({
           serverClient: stubServerClient(),
-          sessionStore,
+          ...routeOptions(),
           forestAppUrl: APP_URL,
           authSecret: AUTH_SECRET,
           resolveEnvironmentId: async () => 99,
@@ -762,11 +820,28 @@ describe('oauth-routes POST /oauth/token refresh_token grant', () => {
       .send({ grant_type: 'refresh_token', refresh_token: refreshToken });
   }
 
+  function singleUseRefresh() {
+    const live = new Set([SENTINEL_REFRESH]);
+    let issued = 0;
+
+    return jest.fn(async ({ refreshToken }: { refreshToken: string }) => {
+      if (!live.delete(refreshToken)) {
+        live.clear();
+        throw new OAuthExchangeError('invalid_grant', 'refresh token reused');
+      }
+
+      issued += 1;
+      const rotated = { ...decodableServerTokens(), saasRefreshToken: `SAAS-REFRESH-${issued}` };
+      live.add(rotated.saasRefreshToken);
+
+      return rotated;
+    });
+  }
+
   describe('when a valid refresh token is presented', () => {
-    it('should return a new token pair whose refresh token differs from the old one', async () => {
-      const { app } = buildApp(
-        stubServerClient({ refreshServerToken: async () => decodableServerTokens() }),
-      );
+    it('should rotate the sealed Forest refresh token and return a new pair', async () => {
+      const refreshServerToken = jest.fn(async () => decodableServerTokens());
+      const { app, sessionTokens } = buildApp(stubServerClient({ refreshServerToken }));
       const refreshToken = await login(app);
 
       const response = await refresh(app, refreshToken);
@@ -776,21 +851,60 @@ describe('oauth-routes POST /oauth/token refresh_token grant', () => {
       expect(response.body.expires_in).toBeGreaterThan(0);
       expect(typeof response.body.access_token).toBe('string');
       expect(response.body.refresh_token).not.toBe(refreshToken);
+      expect(refreshServerToken).toHaveBeenCalledWith({
+        refreshToken: SENTINEL_REFRESH,
+        clientId: CLIENT_ID,
+      });
+      expect(sessionTokens.openRefreshToken(response.body.refresh_token)).toMatchObject({
+        saasRefreshToken: 'ROTATED-SAAS-REFRESH',
+      });
     });
 
-    it('should keep accepting the rotated token for a further refresh', async () => {
-      const { app } = buildApp(
-        stubServerClient({ refreshServerToken: async () => decodableServerTokens() }),
+    it('should keep the session id and its absolute expiry across rotations', async () => {
+      const { app, sessionTokens } = buildApp(stubServerClient());
+      const refreshToken = await login(app);
+
+      const response = await refresh(app, refreshToken);
+
+      const before = sessionTokens.openRefreshToken(refreshToken);
+      const after = sessionTokens.openRefreshToken(response.body.refresh_token);
+      expect(after?.sid).toBe(before?.sid);
+      expect(after?.expiresAt).toBe(before?.expiresAt);
+      expect((jsonwebtoken.decode(response.body.access_token) as { sid: string }).sid).toBe(
+        before?.sid,
       );
+    });
+
+    it('should present the rotated Forest refresh token on the next refresh', async () => {
+      const refreshServerToken = singleUseRefresh();
+      const { app } = buildApp(stubServerClient({ refreshServerToken }));
       const refreshToken = await login(app);
 
       const first = await refresh(app, refreshToken);
-      const newToken = first.body.refresh_token as string;
-      const useNew = await refresh(app, newToken);
+      const second = await refresh(app, first.body.refresh_token as string);
 
-      expect(first.status).toBe(200);
-      expect(useNew.status).toBe(200);
-      expect(useNew.body.refresh_token).not.toBe(newToken);
+      expect(second.status).toBe(200);
+      expect(refreshServerToken).toHaveBeenLastCalledWith({
+        refreshToken: 'SAAS-REFRESH-1',
+        clientId: CLIENT_ID,
+      });
+    });
+
+    it('should seal the rotated Forest server access into the new access token', async () => {
+      const rotated = decodableServerTokens();
+      const { app, sessionTokens } = buildApp(
+        stubServerClient({ refreshServerToken: async () => rotated }),
+      );
+      const refreshToken = await login(app);
+
+      const response = await refresh(app, refreshToken);
+      const { sid, server_access: serverAccess } = jsonwebtoken.decode(
+        response.body.access_token,
+      ) as { sid: string; server_access: string };
+
+      expect(
+        sessionTokens.openServerAccess(serverAccess, { sid, userId: USER.id, renderingId: 17 }),
+      ).toBe(rotated.saasAccessToken);
     });
 
     it('should not leak any SaaS access or refresh token in the response body or the new JWT', async () => {
@@ -825,75 +939,85 @@ describe('oauth-routes POST /oauth/token refresh_token grant', () => {
     });
   });
 
-  describe('when the most recently rotated-out token is replayed (benign retry)', () => {
-    it('should return the same refresh token it last issued without killing the session', async () => {
-      const { app } = buildApp(
-        stubServerClient({ refreshServerToken: async () => decodableServerTokens() }),
-      );
-      const refreshToken = await login(app);
-
-      const first = await refresh(app, refreshToken);
-      const newToken = first.body.refresh_token as string;
-
-      const replay = await refresh(app, refreshToken);
-
-      expect(replay.status).toBe(200);
-      expect(replay.body.refresh_token).toBe(newToken);
-
-      const useNew = await refresh(app, newToken);
-      expect(useNew.status).toBe(200);
-    });
-
-    it('should not leak any SaaS token in a replayed response', async () => {
-      const { app } = buildApp(
-        stubServerClient({ refreshServerToken: async () => decodableServerTokens() }),
-      );
-      const refreshToken = await login(app);
-
-      await refresh(app, refreshToken);
-      const replay = await refresh(app, refreshToken);
-
-      const decoded = jsonwebtoken.verify(replay.body.access_token, AUTH_SECRET) as Record<
-        string,
-        unknown
-      >;
-      const serialized = JSON.stringify(replay.body) + JSON.stringify(decoded);
-      expect(decoded.type).toBe('bff_access');
-      expect(serialized).not.toContain(SENTINEL_REFRESH);
-      expect(serialized).not.toContain('ROTATED-SAAS-REFRESH');
-    });
-  });
-
-  describe('when a token older than the latest rotated-out one is replayed', () => {
-    it('should invalidate the whole session and reject with 401 session_invalidated', async () => {
-      const { app } = buildApp(
-        stubServerClient({ refreshServerToken: async () => decodableServerTokens() }),
-      );
+  describe('when a rotated-out refresh token is presented again', () => {
+    it('should relay the Forest server rejection as invalid_grant', async () => {
+      const { app } = buildApp(stubServerClient({ refreshServerToken: singleUseRefresh() }));
       const r1 = await login(app);
-
-      const firstRefresh = await refresh(app, r1);
-      const r2 = firstRefresh.body.refresh_token as string;
-      const secondRefresh = await refresh(app, r2);
-      const r3 = secondRefresh.body.refresh_token as string;
+      const r2 = (await refresh(app, r1)).body.refresh_token as string;
 
       const replay = await refresh(app, r1);
-      const afterReplay = await refresh(app, r3);
+      const afterReplay = await refresh(app, r2);
 
-      expect(replay.status).toBe(401);
-      expect(replay.body.error).toBe('session_invalidated');
+      expect(replay.status).toBe(400);
+      expect(replay.body.error).toBe('invalid_grant');
       expect(afterReplay.status).toBe(400);
       expect(afterReplay.body.error).toBe('invalid_grant');
     });
+
+    it('should leave a benign retry to the Forest server, presenting the same Forest token', async () => {
+      const refreshServerToken = jest.fn(async () => decodableServerTokens());
+      const { app } = buildApp(stubServerClient({ refreshServerToken }));
+      const refreshToken = await login(app);
+
+      await refresh(app, refreshToken);
+      const retry = await refresh(app, refreshToken);
+
+      expect(retry.status).toBe(200);
+      expect(refreshServerToken).toHaveBeenCalledTimes(2);
+      expect(refreshServerToken).toHaveBeenNthCalledWith(2, {
+        refreshToken: SENTINEL_REFRESH,
+        clientId: CLIENT_ID,
+      });
+    });
   });
 
-  describe('when an unknown refresh token is presented', () => {
-    it('should reject with 400 invalid_grant', async () => {
+  describe('when the refresh token cannot be opened', () => {
+    it('should reject a token never issued with 400 invalid_grant', async () => {
       const { app } = buildApp(stubServerClient());
 
       const response = await refresh(app, 'never-issued');
 
       expect(response.status).toBe(400);
       expect(response.body.error).toBe('invalid_grant');
+    });
+
+    it('should reject a token sealed with another key and never call the Forest server', async () => {
+      const refreshServerToken = jest.fn(async () => decodableServerTokens());
+      const { app } = buildApp(stubServerClient({ refreshServerToken }));
+      const foreign = buildApp(
+        stubServerClient(),
+        APP_URL,
+        undefined,
+        undefined,
+        undefined,
+        Buffer.alloc(32, 9).toString('base64'),
+      );
+      const refreshToken = await login(foreign.app);
+
+      const response = await refresh(app, refreshToken);
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('invalid_grant');
+      expect(refreshServerToken).not.toHaveBeenCalled();
+    });
+
+    it('should reject a session past its absolute expiry with invalid_grant', async () => {
+      const refreshServerToken = jest.fn(async () => decodableServerTokens());
+      const { app, sessionTokens } = buildApp(stubServerClient({ refreshServerToken }));
+      const expired = sessionTokens.sealRefreshToken({
+        sid: 'sid-1',
+        saasRefreshToken: SENTINEL_REFRESH,
+        renderingId: 17,
+        userId: USER.id,
+        clientId: CLIENT_ID,
+        expiresAt: Date.now() - 1,
+      });
+
+      const response = await refresh(app, expired);
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('invalid_grant');
+      expect(refreshServerToken).not.toHaveBeenCalled();
     });
 
     it('should reject a missing refresh_token with invalid_request', async () => {
@@ -908,18 +1032,72 @@ describe('oauth-routes POST /oauth/token refresh_token grant', () => {
     });
   });
 
-  describe('when the underlying SaaS refresh is rejected by the Forest server', () => {
-    it('should reject with 401 session_expired', async () => {
+  describe('when the Forest server rejects the refresh token', () => {
+    it.each(['invalid_grant', 'invalid_request', 'invalid_client', 'unauthorized_client'])(
+      'should answer 400 invalid_grant for %s',
+      async code => {
+        const refreshServerToken = jest.fn(async () => {
+          throw new OAuthExchangeError(code, 'saas refused');
+        });
+        const { app, logs } = buildApp(stubServerClient({ refreshServerToken }));
+        const refreshToken = await login(app);
+
+        const response = await refresh(app, refreshToken);
+
+        expect(response.status).toBe(400);
+        expect(response.body).toEqual({
+          error: 'invalid_grant',
+          error_description: 'The Forest server rejected the refresh token',
+        });
+        expect(logs).toContainEqual({
+          level: 'Warn',
+          message: 'The Forest server rejected the session refresh',
+          context: {
+            renderingId: 17,
+            userId: USER.id,
+            error: code,
+            errorDescription: 'saas refused',
+          },
+        });
+      },
+    );
+  });
+
+  describe('when the Forest server cannot serve the refresh', () => {
+    it.each([
+      ['an unavailable store', new OAuthExchangeError('temporarily_unavailable', 'redis down')],
+      ['an unknown error code', new OAuthExchangeError('server_error', 'boom')],
+      ['a transport failure', new Error('network blip')],
+    ])('should answer a retryable 502 server_error on %s', async (_, failure) => {
       const refreshServerToken = jest.fn(async () => {
-        throw new OAuthExchangeError('invalid_grant', 'saas refused');
+        throw failure;
       });
       const { app } = buildApp(stubServerClient({ refreshServerToken }));
       const refreshToken = await login(app);
 
       const response = await refresh(app, refreshToken);
 
-      expect(response.status).toBe(401);
-      expect(response.body.error).toBe('session_expired');
+      expect(response.status).toBe(502);
+      expect(response.body.error).toBe('server_error');
+    });
+
+    it('should keep the presented token usable, so a retry after the blip succeeds', async () => {
+      let attempts = 0;
+      const refreshServerToken = jest.fn(async () => {
+        attempts += 1;
+        if (attempts === 1) throw new Error('network blip');
+
+        return decodableServerTokens();
+      });
+      const { app } = buildApp(stubServerClient({ refreshServerToken }));
+      const refreshToken = await login(app);
+
+      const failed = await refresh(app, refreshToken);
+      const retried = await refresh(app, refreshToken);
+
+      expect(failed.status).toBe(502);
+      expect(retried.status).toBe(200);
+      expect(retried.body.refresh_token).not.toBe(refreshToken);
     });
   });
 
@@ -950,29 +1128,8 @@ describe('oauth-routes POST /oauth/token refresh_token grant', () => {
     });
   });
 
-  describe('when the underlying SaaS refresh fails transiently', () => {
-    it('should not rotate the presented token, so a retry after the blip succeeds', async () => {
-      let attempts = 0;
-      const refreshServerToken = jest.fn(async () => {
-        attempts += 1;
-        if (attempts === 1) throw new Error('network blip');
-
-        return decodableServerTokens();
-      });
-      const { app } = buildApp(stubServerClient({ refreshServerToken }));
-      const refreshToken = await login(app);
-
-      const failed = await refresh(app, refreshToken);
-      const retried = await refresh(app, refreshToken);
-
-      expect(failed.status).toBe(502);
-      expect(retried.status).toBe(200);
-      expect(retried.body.refresh_token).not.toBe(refreshToken);
-    });
-  });
-
   describe('when identity resolution fails transiently during a refresh', () => {
-    it('should not rotate the presented token, so a retry after the blip succeeds', async () => {
+    it('should answer 502, so a retry presenting the same token succeeds', async () => {
       let attempts = 0;
       const getUserInfo = jest.fn(async () => {
         attempts += 1;
@@ -996,8 +1153,26 @@ describe('oauth-routes POST /oauth/token refresh_token grant', () => {
     });
   });
 
+  describe('when the refreshed identity is another user than the session one', () => {
+    it('should reject with invalid_grant', async () => {
+      let calls = 0;
+      const getUserInfo = jest.fn(async () => {
+        calls += 1;
+
+        return calls === 1 ? USER : { ...USER, id: USER.id + 1 };
+      });
+      const { app } = buildApp(stubServerClient({ getUserInfo }));
+      const refreshToken = await login(app);
+
+      const response = await refresh(app, refreshToken);
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('invalid_grant');
+    });
+  });
+
   describe('when the rotated SaaS access token is already expired', () => {
-    it('should reject with 401 session_expired without rotating', async () => {
+    it('should reject with 401 session_expired', async () => {
       const { app } = buildApp(
         stubServerClient({ refreshServerToken: async () => decodableServerTokens(-10) }),
       );
@@ -1007,6 +1182,95 @@ describe('oauth-routes POST /oauth/token refresh_token grant', () => {
 
       expect(failed.status).toBe(401);
       expect(failed.body.error).toBe('session_expired');
+    });
+  });
+
+  describe('when the session is refreshed shortly before its absolute expiry', () => {
+    afterEach(() => jest.restoreAllMocks());
+
+    it('should not issue an access token that outlives the session', async () => {
+      const { app, sessionTokens } = buildApp(stubServerClient());
+      const refreshToken = await login(app);
+      const { expiresAt } = sessionTokens.openRefreshToken(refreshToken) ?? { expiresAt: 0 };
+      const fiveMinutesBeforeExpiry = expiresAt - 5 * 60 * 1000;
+      jest.spyOn(Date, 'now').mockReturnValue(fiveMinutesBeforeExpiry);
+
+      const response = await refresh(app, refreshToken);
+
+      expect(response.status).toBe(200);
+      expect(response.body.expires_in).toBe(5 * 60);
+      const { exp } = jsonwebtoken.decode(response.body.access_token) as { exp: number };
+      expect(exp * 1000).toBeLessThanOrEqual(expiresAt);
+    });
+
+    it('should reject with invalid_grant when the session expires during the refresh', async () => {
+      const clock = { now: 0 };
+
+      const twoSecondsLater = async () => {
+        clock.now += 2000;
+
+        return USER;
+      };
+
+      const { app, sessionTokens } = buildApp(stubServerClient({ getUserInfo: twoSecondsLater }));
+      const refreshToken = await login(app);
+      const { expiresAt } = sessionTokens.openRefreshToken(refreshToken) ?? { expiresAt: 0 };
+      clock.now = expiresAt - 500;
+      jest.spyOn(Date, 'now').mockImplementation(() => clock.now);
+
+      const response = await refresh(app, refreshToken);
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual(
+        expect.objectContaining({
+          error: 'invalid_grant',
+          error_description: 'The session expired during the refresh',
+        }),
+      );
+    });
+
+    it('should never round the remaining session lifetime up', async () => {
+      const { app, sessionTokens } = buildApp(stubServerClient());
+      const refreshToken = await login(app);
+      const { expiresAt } = sessionTokens.openRefreshToken(refreshToken) ?? { expiresAt: 0 };
+      jest.spyOn(Date, 'now').mockReturnValue(expiresAt - 1500);
+
+      const response = await refresh(app, refreshToken);
+
+      expect(response.status).toBe(200);
+      expect(response.body.expires_in).toBe(1);
+    });
+  });
+
+  describe('when the Forest server does not rotate the refresh token', () => {
+    it('should warn that the session keeps presenting the same Forest refresh token', async () => {
+      const unrotated = async () => ({
+        ...decodableServerTokens(),
+        saasRefreshToken: SENTINEL_REFRESH,
+      });
+      const { app, logs } = buildApp(stubServerClient({ refreshServerToken: unrotated }));
+      const refreshToken = await login(app);
+
+      const response = await refresh(app, refreshToken);
+
+      expect(response.status).toBe(200);
+      expect(logs).toContainEqual({
+        level: 'Warn',
+        message:
+          'The Forest server did not rotate the refresh token: the session keeps presenting the same one',
+        context: { renderingId: 17, userId: USER.id },
+      });
+    });
+
+    it('should not warn when the Forest server rotates the refresh token', async () => {
+      const { app, logs } = buildApp(stubServerClient());
+      const refreshToken = await login(app);
+
+      await refresh(app, refreshToken);
+
+      expect(logs.map(log => log.message)).not.toContain(
+        'The Forest server did not rotate the refresh token: the session keeps presenting the same one',
+      );
     });
   });
 
@@ -1050,33 +1314,8 @@ describe('oauth-routes POST /oauth/token refresh_token grant', () => {
     });
   });
 
-  describe('when the session is destroyed mid-refresh, before the rotation commits', () => {
-    it('should not commit the rotation and reject with 401 session_expired', async () => {
-      let sessionStore: ReturnType<typeof buildApp>['sessionStore'];
-      let sid = '';
-      const getUserInfo = jest.fn(async () => {
-        sessionStore.destroy(sid);
-
-        return USER;
-      });
-      const built = buildApp(
-        stubServerClient({ getUserInfo, refreshServerToken: async () => decodableServerTokens() }),
-      );
-      sessionStore = built.sessionStore;
-      const loginResponse = await request(built.app.callback())
-        .post('/oauth/token')
-        .send(TOKEN_BODY);
-      sid = (jsonwebtoken.decode(loginResponse.body.access_token) as { sid: string }).sid;
-
-      const response = await refresh(built.app, loginResponse.body.refresh_token as string);
-
-      expect(response.status).toBe(401);
-      expect(response.body.error).toBe('session_expired');
-    });
-  });
-
-  describe('when two independent BFF instances run in the same process', () => {
-    it('should not let one instance refresh resolve against another instance store', async () => {
+  describe('when another BFF instance shares the token encryption key', () => {
+    it('should refresh a token the first instance issued', async () => {
       const appA = buildApp(stubServerClient());
       const appB = buildApp(stubServerClient());
 
@@ -1084,20 +1323,17 @@ describe('oauth-routes POST /oauth/token refresh_token grant', () => {
 
       const response = await refresh(appB.app, refreshTokenFromA);
 
-      expect(response.status).toBe(400);
-      expect(response.body.error).toBe('invalid_grant');
+      expect(response.status).toBe(200);
     });
   });
 
-  describe('when two concurrent refreshes of the same token run', () => {
-    it('should commit exactly one rotation, keep the session alive, and not trip reuse detection', async () => {
+  describe('when two concurrent refreshes of the same token run on one instance', () => {
+    it('should call the Forest server once and answer both with the same pair', async () => {
       let release: () => void = () => undefined;
       const gate = new Promise<void>(resolve => {
         release = resolve;
       });
-      let calls = 0;
       const refreshServerToken = jest.fn(async () => {
-        calls += 1;
         await gate;
 
         return decodableServerTokens();
@@ -1122,9 +1358,13 @@ describe('oauth-routes POST /oauth/token refresh_token grant', () => {
       release();
       const [a, b] = await both;
 
-      expect([a.status, b.status].sort()).toEqual([200, 200]);
+      expect([a.status, b.status]).toEqual([200, 200]);
       expect(a.body.refresh_token).toBe(b.body.refresh_token);
-      expect(calls).toBe(1);
+      expect(refreshServerToken).toHaveBeenCalledTimes(1);
+      expect(refreshServerToken).toHaveBeenCalledWith({
+        refreshToken: SENTINEL_REFRESH,
+        clientId: CLIENT_ID,
+      });
 
       const followUp = await refresh(app, a.body.refresh_token as string);
       expect(followUp.status).toBe(200);
@@ -1183,19 +1423,20 @@ describe('oauth-routes allowedOAuthClients', () => {
 
   function buildRestrictedApp(redirectUris: string[], allowedOAuthClients?: string[]) {
     const exchangeCode = jest.fn(async () => serverTokens());
+    const refreshServerToken = jest.fn(async () => decodableServerTokens());
     const getRegisteredClient = jest.fn(async () => ({
       client_id: CLIENT_ID,
       redirect_uris: redirectUris,
     }));
     const built = buildApp(
-      stubServerClient({ exchangeCode, getRegisteredClient }),
+      stubServerClient({ exchangeCode, getRegisteredClient, refreshServerToken }),
       APP_URL,
       undefined,
       async () => 99,
       allowedOAuthClients,
     );
 
-    return { ...built, exchangeCode };
+    return { ...built, exchangeCode, refreshServerToken, getRegisteredClient };
   }
 
   describe('on GET /oauth/authorize', () => {
@@ -1304,6 +1545,72 @@ describe('oauth-routes allowedOAuthClients', () => {
 
       expect(response.status).toBe(200);
       expect(response.body.token_type).toBe('Bearer');
+    });
+  });
+
+  describe('on POST /oauth/token with grant_type=refresh_token', () => {
+    async function signIn(app: Koa, redirectUri: string): Promise<string> {
+      const response = await request(app.callback())
+        .post('/oauth/token')
+        .send({ ...TOKEN_BODY, redirect_uri: redirectUri });
+      expect(response.status).toBe(200);
+
+      return response.body.refresh_token as string;
+    }
+
+    function refresh(app: Koa, refreshToken: string) {
+      return request(app.callback())
+        .post('/oauth/token')
+        .send({ grant_type: 'refresh_token', refresh_token: refreshToken });
+    }
+
+    it('should reject a session whose client left the allowed domains, without refreshing it', async () => {
+      const before = buildRestrictedApp([ZENDESK_REDIRECT_URI]);
+      const refreshToken = await signIn(before.app, ZENDESK_REDIRECT_URI);
+      const after = buildRestrictedApp([ZENDESK_REDIRECT_URI], ['claude.ai']);
+
+      const response = await refresh(after.app, refreshToken);
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('invalid_client');
+      expect(after.refreshServerToken).not.toHaveBeenCalled();
+    });
+
+    it('should reject a session whose client is no longer registered', async () => {
+      const before = buildRestrictedApp([ALLOWED_REDIRECT_URI], ['dust.tt']);
+      const refreshToken = await signIn(before.app, ALLOWED_REDIRECT_URI);
+      const after = buildRestrictedApp([ALLOWED_REDIRECT_URI], ['dust.tt']);
+      after.getRegisteredClient.mockResolvedValue(undefined as never);
+
+      const response = await refresh(after.app, refreshToken);
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('invalid_client');
+      expect(after.refreshServerToken).not.toHaveBeenCalled();
+    });
+
+    it('should refresh a session whose client is on an allowed domain', async () => {
+      const { app, refreshServerToken } = buildRestrictedApp([ALLOWED_REDIRECT_URI], ['dust.tt']);
+      const refreshToken = await signIn(app, ALLOWED_REDIRECT_URI);
+
+      const response = await refresh(app, refreshToken);
+
+      expect(response.status).toBe(200);
+      expect(refreshServerToken).toHaveBeenCalledWith({
+        refreshToken: SENTINEL_REFRESH,
+        clientId: CLIENT_ID,
+      });
+    });
+
+    it('should not look the client up again when no allowlist is set', async () => {
+      const { app, getRegisteredClient } = buildRestrictedApp([ZENDESK_REDIRECT_URI]);
+      const refreshToken = await signIn(app, ZENDESK_REDIRECT_URI);
+      getRegisteredClient.mockClear();
+
+      const response = await refresh(app, refreshToken);
+
+      expect(response.status).toBe(200);
+      expect(getRegisteredClient).not.toHaveBeenCalled();
     });
   });
 });

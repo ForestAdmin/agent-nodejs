@@ -31,6 +31,7 @@ const EMBEDDED_ENV = {
 function sessionToken(): string {
   return issueBffAccessToken({
     sid: 'session-1',
+    serverAccess: 'unused-sealed-server-access',
     user: {
       id: 1,
       email: 'test@example.com',
