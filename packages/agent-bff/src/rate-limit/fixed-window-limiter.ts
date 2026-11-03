@@ -27,6 +27,18 @@ function retryAfterSeconds(resetAt: number, current: number): number {
   return Math.max(1, Math.ceil((resetAt - current) / MS_PER_SECOND));
 }
 
+function purgeExpired(buckets: Map<string, WindowEntry>, current: number): void {
+  for (const [key, entry] of buckets) {
+    if (current >= entry.resetAt) buckets.delete(key);
+  }
+}
+
+function saturationRefusal(buckets: Map<string, WindowEntry>, current: number): LimitRefusal {
+  const earliestReset = Math.min(...[...buckets.values()].map(live => live.resetAt));
+
+  return { retryAfterSeconds: retryAfterSeconds(earliestReset, current), saturated: true };
+}
+
 export default function createFixedWindowLimiter({
   windowMs,
   maxRequests,
@@ -35,33 +47,24 @@ export default function createFixedWindowLimiter({
 }: FixedWindowLimiterOptions): FixedWindowLimiter {
   const buckets = new Map<string, WindowEntry>();
 
-  function purgeExpired(current: number): void {
-    for (const [key, entry] of buckets) {
-      if (current >= entry.resetAt) buckets.delete(key);
-    }
+  function liveEntry(key: string, current: number): WindowEntry | undefined {
+    const entry = buckets.get(key);
+
+    if (entry && current < entry.resetAt) return entry;
+
+    buckets.delete(key);
+    purgeExpired(buckets, current);
+
+    return undefined;
   }
 
   return {
     hit(key) {
       const current = now();
-      let entry = buckets.get(key);
-
-      if (entry && current >= entry.resetAt) {
-        buckets.delete(key);
-        entry = undefined;
-      }
+      let entry = liveEntry(key, current);
 
       if (entry === undefined) {
-        purgeExpired(current);
-
-        if (buckets.size >= maxEntries) {
-          const earliestReset = Math.min(...[...buckets.values()].map(live => live.resetAt));
-
-          return {
-            retryAfterSeconds: retryAfterSeconds(earliestReset, current),
-            saturated: true,
-          };
-        }
+        if (buckets.size >= maxEntries) return saturationRefusal(buckets, current);
 
         entry = { count: 0, resetAt: current + windowMs };
         buckets.set(key, entry);
@@ -69,14 +72,9 @@ export default function createFixedWindowLimiter({
 
       entry.count += 1;
 
-      if (entry.count > maxRequests) {
-        return {
-          retryAfterSeconds: retryAfterSeconds(entry.resetAt, current),
-          saturated: false,
-        };
-      }
+      if (entry.count <= maxRequests) return undefined;
 
-      return undefined;
+      return { retryAfterSeconds: retryAfterSeconds(entry.resetAt, current), saturated: false };
     },
   };
 }
