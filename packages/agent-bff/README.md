@@ -277,7 +277,10 @@ Past 10 000 sessions refreshing in the same minute, a new session is refused the
 window resets. The authorization-code grant has no rate limit. An authorization `code` longer than
 512 characters is rejected with `400 invalid_request` before any Forest server call. A code the
 Forest server rejects as `invalid_grant` is released from the local single-use claims at once, so
-never-issued codes cannot fill them and block other sign-ins.
+never-issued codes the Forest server has already answered do not fill them. Codes still waiting for
+that answer do hold a claim, up to 10 000 per process for as long as the exchange takes: a flood of
+concurrent junk codes against a slow Forest server can still refuse real sign-ins with
+`400 invalid_grant` until those exchanges settle.
 
 ### CORS
 

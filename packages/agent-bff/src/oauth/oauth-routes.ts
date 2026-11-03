@@ -44,6 +44,7 @@ export interface OAuthRoutesOptions {
   resolveEnvironmentId: EnvironmentIdResolver;
   logger: Logger;
   allowedOAuthClients?: string[];
+  refreshLimiter?: FixedWindowLimiter;
 }
 
 const MAX_AUTHORIZATION_CODE_LENGTH = 512;
@@ -704,10 +705,12 @@ export default function createOAuthRoutes(options: OAuthRoutesOptions): Middlewa
   const runtimeOptions: RuntimeOptions = {
     ...options,
     inFlightRefreshByPresentedHash: new Map(),
-    refreshLimiter: createFixedWindowLimiter({
-      windowMs: REFRESH_LIMIT_WINDOW_MS,
-      maxRequests: REFRESH_LIMIT_PER_SESSION,
-    }),
+    refreshLimiter:
+      options.refreshLimiter ??
+      createFixedWindowLimiter({
+        windowMs: REFRESH_LIMIT_WINDOW_MS,
+        maxRequests: REFRESH_LIMIT_PER_SESSION,
+      }),
   };
 
   return async function oauthRoutes(ctx, next) {

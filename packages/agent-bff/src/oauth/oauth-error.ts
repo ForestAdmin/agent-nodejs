@@ -1,28 +1,18 @@
 import { PLAN_FEATURE_MISSING_MESSAGE } from '../api-key/api-key-error';
 
-export interface OAuthRequestErrorOptions {
-  cause?: unknown;
-  retryAfter?: number;
-}
-
 export class OAuthRequestError extends Error {
   readonly status: number;
   readonly type: string;
   readonly cause?: unknown;
   readonly retryAfter?: number;
 
-  constructor(
-    status: number,
-    type: string,
-    message: string,
-    options: OAuthRequestErrorOptions = {},
-  ) {
+  constructor(status: number, type: string, message: string, cause?: unknown, retryAfter?: number) {
     super(message);
     this.name = 'OAuthRequestError';
     this.status = status;
     this.type = type;
-    this.cause = options.cause;
-    this.retryAfter = options.retryAfter;
+    this.cause = cause;
+    this.retryAfter = retryAfter;
   }
 }
 
@@ -52,7 +42,7 @@ export function unsupportedGrantType(message: string): OAuthRequestError {
 }
 
 export function tooManyRequests(retryAfter: number, message: string): OAuthRequestError {
-  return new OAuthRequestError(429, 'too_many_requests', message, { retryAfter });
+  return new OAuthRequestError(429, 'too_many_requests', message, undefined, retryAfter);
 }
 
 export function forestIdentityNotAllowed(message: string): OAuthRequestError {
@@ -64,7 +54,7 @@ export function sessionExpired(message: string): OAuthRequestError {
 }
 
 export function serverError(message: string, cause?: unknown): OAuthRequestError {
-  return new OAuthRequestError(502, 'server_error', message, { cause });
+  return new OAuthRequestError(502, 'server_error', message, cause);
 }
 
 export function planFeatureMissing(): OAuthRequestError {

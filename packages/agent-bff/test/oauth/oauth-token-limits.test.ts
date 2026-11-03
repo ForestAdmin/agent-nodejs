@@ -1,5 +1,6 @@
 import type ForestServerClient from '../../src/oauth/forest-server-client';
 import type { ServerTokens } from '../../src/oauth/forest-server-client';
+import type { FixedWindowLimiter } from '../../src/rate-limit/fixed-window-limiter';
 import type { UserInfo } from '@forestadmin/forestadmin-client';
 
 import { bodyParser } from '@koa/bodyparser';
@@ -12,6 +13,7 @@ import { OAuthExchangeError } from '../../src/oauth/forest-server-client';
 import createOAuthRoutes from '../../src/oauth/oauth-routes';
 import createSessionTokenCodec from '../../src/oauth/session-token';
 import createTokenCipher from '../../src/oauth/token-cipher';
+import createFixedWindowLimiter from '../../src/rate-limit/fixed-window-limiter';
 
 const KEY = Buffer.alloc(32, 7).toString('base64');
 const CLIENT_A = 'client-a';
@@ -20,6 +22,7 @@ const LEGIT_CODE = 'legit-code';
 const REFRESH_LIMIT_PER_SESSION = 10;
 const MAX_CODE_LENGTH = 512;
 const PENDING_CODES_CAP = 100;
+const REFRESH_WINDOW_MS = 60_000;
 
 const USER: UserInfo = {
   id: 42,
@@ -44,7 +47,7 @@ function serverTokens(): ServerTokens {
   };
 }
 
-function buildApp(allowedOAuthClients?: string[]) {
+function buildApp(allowedOAuthClients?: string[], refreshLimiter?: FixedWindowLimiter) {
   const exchangeCode = jest.fn(async ({ code }: { code: string }) => {
     if (code === LEGIT_CODE) return serverTokens();
 
@@ -81,6 +84,7 @@ function buildApp(allowedOAuthClients?: string[]) {
       resolveEnvironmentId: async () => 99,
       logger: () => undefined,
       allowedOAuthClients,
+      refreshLimiter,
     }),
   );
 
@@ -158,17 +162,51 @@ describe('oauth-routes POST /oauth/token limits', () => {
     });
 
     it('should not count a token that cannot be opened against any session', async () => {
-      const { app, refreshServerToken } = buildApp();
-
-      const statuses = await postSequentially(
+      const oneSessionLimiter = createFixedWindowLimiter({
+        windowMs: REFRESH_WINDOW_MS,
+        maxRequests: REFRESH_LIMIT_PER_SESSION,
+        maxEntries: 1,
+      });
+      const { app, refreshServerToken } = buildApp(undefined, oneSessionLimiter);
+      const garbageStatuses = await postSequentially(
         app,
         Array.from({ length: 50 }, (_, i) => ({
           grant_type: 'refresh_token',
           refresh_token: `garbage-${i}`,
         })),
       );
+      const signIn = await request(app.callback()).post('/oauth/token').send(codeGrant(LEGIT_CODE));
+      const refreshBody = { grant_type: 'refresh_token', refresh_token: signIn.body.refresh_token };
 
-      expect(new Set(statuses)).toEqual(new Set([400]));
+      const sessionStatuses = await postSequentially(
+        app,
+        Array(REFRESH_LIMIT_PER_SESSION).fill(refreshBody),
+      );
+
+      expect(new Set(garbageStatuses)).toEqual(new Set([400]));
+      expect(new Set(sessionStatuses)).toEqual(new Set([200]));
+      expect(refreshServerToken).toHaveBeenCalledTimes(REFRESH_LIMIT_PER_SESSION);
+    });
+  });
+
+  describe('when too many sessions are refreshing in the same window', () => {
+    it('should refuse a new session with too_many_requests and Retry-After before any Forest call', async () => {
+      const saturatedLimiter: FixedWindowLimiter = {
+        hit: jest.fn(() => ({ retryAfterSeconds: 17, saturated: true })),
+      };
+      const { app, refreshServerToken } = buildApp(undefined, saturatedLimiter);
+      const signIn = await request(app.callback()).post('/oauth/token').send(codeGrant(LEGIT_CODE));
+
+      const refused = await request(app.callback())
+        .post('/oauth/token')
+        .send({ grant_type: 'refresh_token', refresh_token: signIn.body.refresh_token });
+
+      expect(refused.status).toBe(429);
+      expect(refused.body).toEqual({
+        error: 'too_many_requests',
+        error_description: 'Too many sessions are refreshing at once: retry shortly',
+      });
+      expect(refused.headers['retry-after']).toBe('17');
       expect(refreshServerToken).not.toHaveBeenCalled();
     });
   });
