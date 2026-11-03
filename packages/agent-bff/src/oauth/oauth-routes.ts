@@ -517,6 +517,39 @@ async function rotateServerTokens(
   }
 }
 
+async function assertSessionClientIsAllowed(
+  clientId: string,
+  options: OAuthRoutesOptions,
+): Promise<void> {
+  if (!options.allowedOAuthClients) return;
+
+  const client = await options.serverClient.getRegisteredClient(clientId);
+
+  if (!client) {
+    throw invalidClient('Unknown client_id');
+  }
+
+  assertClientIsAllowed(clientId, client.redirect_uris, options);
+}
+
+function warnOnUnrotatedRefreshToken(
+  state: SessionState,
+  rotated: ServerTokens,
+  options: OAuthRoutesOptions,
+): void {
+  if (rotated.saasRefreshToken !== state.saasRefreshToken) return;
+
+  options.logger(
+    'Warn',
+    'The Forest server did not rotate the refresh token: the session keeps presenting the same one',
+    { renderingId: state.renderingId, userId: state.userId },
+  );
+}
+
+function sessionRemainingSeconds(state: SessionState): number {
+  return Math.ceil((state.expiresAt - Date.now()) / 1000);
+}
+
 async function refreshSession(
   presentedToken: string,
   options: OAuthRoutesOptions,
@@ -527,8 +560,14 @@ async function refreshSession(
     throw invalidGrant('Unknown, malformed or expired refresh token');
   }
 
+  await assertSessionClientIsAllowed(state.clientId, options);
+
   const rotated = await rotateServerTokens(state, options);
-  const expiresInSeconds = expiresInFromAccessToken(rotated.saasAccessToken);
+  warnOnUnrotatedRefreshToken(state, rotated, options);
+  const expiresInSeconds = Math.min(
+    expiresInFromAccessToken(rotated.saasAccessToken),
+    sessionRemainingSeconds(state),
+  );
   const user = await resolveIdentity(state.renderingId, rotated.saasAccessToken, options);
 
   if (user.id !== state.userId) {

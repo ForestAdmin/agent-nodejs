@@ -1182,6 +1182,57 @@ describe('oauth-routes POST /oauth/token refresh_token grant', () => {
     });
   });
 
+  describe('when the session is refreshed shortly before its absolute expiry', () => {
+    afterEach(() => jest.restoreAllMocks());
+
+    it('should not issue an access token that outlives the session', async () => {
+      const { app, sessionTokens } = buildApp(stubServerClient());
+      const refreshToken = await login(app);
+      const { expiresAt } = sessionTokens.openRefreshToken(refreshToken) ?? { expiresAt: 0 };
+      const fiveMinutesBeforeExpiry = expiresAt - 5 * 60 * 1000;
+      jest.spyOn(Date, 'now').mockReturnValue(fiveMinutesBeforeExpiry);
+
+      const response = await refresh(app, refreshToken);
+
+      expect(response.status).toBe(200);
+      expect(response.body.expires_in).toBe(5 * 60);
+      const { exp } = jsonwebtoken.decode(response.body.access_token) as { exp: number };
+      expect(exp * 1000).toBeLessThanOrEqual(expiresAt);
+    });
+  });
+
+  describe('when the Forest server does not rotate the refresh token', () => {
+    it('should warn that the session keeps presenting the same Forest refresh token', async () => {
+      const unrotated = async () => ({
+        ...decodableServerTokens(),
+        saasRefreshToken: SENTINEL_REFRESH,
+      });
+      const { app, logs } = buildApp(stubServerClient({ refreshServerToken: unrotated }));
+      const refreshToken = await login(app);
+
+      const response = await refresh(app, refreshToken);
+
+      expect(response.status).toBe(200);
+      expect(logs).toContainEqual({
+        level: 'Warn',
+        message:
+          'The Forest server did not rotate the refresh token: the session keeps presenting the same one',
+        context: { renderingId: 17, userId: USER.id },
+      });
+    });
+
+    it('should not warn when the Forest server rotates the refresh token', async () => {
+      const { app, logs } = buildApp(stubServerClient());
+      const refreshToken = await login(app);
+
+      await refresh(app, refreshToken);
+
+      expect(logs.map(log => log.message)).not.toContain(
+        'The Forest server did not rotate the refresh token: the session keeps presenting the same one',
+      );
+    });
+  });
+
   describe('when the Forest server returns a non-JWT (opaque) SaaS access token', () => {
     it('should still rotate and cap expires_in at the BFF maximum', async () => {
       const opaqueTokens = async (): Promise<ServerTokens> => ({
@@ -1327,19 +1378,20 @@ describe('oauth-routes allowedOAuthClients', () => {
 
   function buildRestrictedApp(redirectUris: string[], allowedOAuthClients?: string[]) {
     const exchangeCode = jest.fn(async () => serverTokens());
+    const refreshServerToken = jest.fn(async () => decodableServerTokens());
     const getRegisteredClient = jest.fn(async () => ({
       client_id: CLIENT_ID,
       redirect_uris: redirectUris,
     }));
     const built = buildApp(
-      stubServerClient({ exchangeCode, getRegisteredClient }),
+      stubServerClient({ exchangeCode, getRegisteredClient, refreshServerToken }),
       APP_URL,
       undefined,
       async () => 99,
       allowedOAuthClients,
     );
 
-    return { ...built, exchangeCode };
+    return { ...built, exchangeCode, refreshServerToken, getRegisteredClient };
   }
 
   describe('on GET /oauth/authorize', () => {
@@ -1448,6 +1500,72 @@ describe('oauth-routes allowedOAuthClients', () => {
 
       expect(response.status).toBe(200);
       expect(response.body.token_type).toBe('Bearer');
+    });
+  });
+
+  describe('on POST /oauth/token with grant_type=refresh_token', () => {
+    async function signIn(app: Koa, redirectUri: string): Promise<string> {
+      const response = await request(app.callback())
+        .post('/oauth/token')
+        .send({ ...TOKEN_BODY, redirect_uri: redirectUri });
+      expect(response.status).toBe(200);
+
+      return response.body.refresh_token as string;
+    }
+
+    function refresh(app: Koa, refreshToken: string) {
+      return request(app.callback())
+        .post('/oauth/token')
+        .send({ grant_type: 'refresh_token', refresh_token: refreshToken });
+    }
+
+    it('should reject a session whose client left the allowed domains, without refreshing it', async () => {
+      const before = buildRestrictedApp([ZENDESK_REDIRECT_URI]);
+      const refreshToken = await signIn(before.app, ZENDESK_REDIRECT_URI);
+      const after = buildRestrictedApp([ZENDESK_REDIRECT_URI], ['claude.ai']);
+
+      const response = await refresh(after.app, refreshToken);
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('invalid_client');
+      expect(after.refreshServerToken).not.toHaveBeenCalled();
+    });
+
+    it('should reject a session whose client is no longer registered', async () => {
+      const before = buildRestrictedApp([ALLOWED_REDIRECT_URI], ['dust.tt']);
+      const refreshToken = await signIn(before.app, ALLOWED_REDIRECT_URI);
+      const after = buildRestrictedApp([ALLOWED_REDIRECT_URI], ['dust.tt']);
+      after.getRegisteredClient.mockResolvedValue(undefined as never);
+
+      const response = await refresh(after.app, refreshToken);
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('invalid_client');
+      expect(after.refreshServerToken).not.toHaveBeenCalled();
+    });
+
+    it('should refresh a session whose client is on an allowed domain', async () => {
+      const { app, refreshServerToken } = buildRestrictedApp([ALLOWED_REDIRECT_URI], ['dust.tt']);
+      const refreshToken = await signIn(app, ALLOWED_REDIRECT_URI);
+
+      const response = await refresh(app, refreshToken);
+
+      expect(response.status).toBe(200);
+      expect(refreshServerToken).toHaveBeenCalledWith({
+        refreshToken: SENTINEL_REFRESH,
+        clientId: CLIENT_ID,
+      });
+    });
+
+    it('should not look the client up again when no allowlist is set', async () => {
+      const { app, getRegisteredClient } = buildRestrictedApp([ZENDESK_REDIRECT_URI]);
+      const refreshToken = await signIn(app, ZENDESK_REDIRECT_URI);
+      getRegisteredClient.mockClear();
+
+      const response = await refresh(app, refreshToken);
+
+      expect(response.status).toBe(200);
+      expect(getRegisteredClient).not.toHaveBeenCalled();
     });
   });
 });
