@@ -528,8 +528,8 @@ describe('oauth-routes POST /oauth/token', () => {
     });
   });
 
-  describe('when the exchange is rejected with a non-retriable error', () => {
-    it('should keep the code claimed so the rejected code cannot be replayed', async () => {
+  describe('when the Forest server rejects the code as invalid_grant', () => {
+    it('should release the claim and leave the replay to the Forest server', async () => {
       const exchangeCode = jest.fn(async () => {
         throw new OAuthExchangeError('invalid_grant', 'spent upstream');
       });
@@ -542,7 +542,7 @@ describe('oauth-routes POST /oauth/token', () => {
       expect(first.body.error).toBe('invalid_grant');
       expect(second.status).toBe(400);
       expect(second.body.error).toBe('invalid_grant');
-      expect(exchangeCode).toHaveBeenCalledTimes(1);
+      expect(exchangeCode).toHaveBeenCalledTimes(2);
     });
   });
 

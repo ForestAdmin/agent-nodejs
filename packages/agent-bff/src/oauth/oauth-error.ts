@@ -4,13 +4,15 @@ export class OAuthRequestError extends Error {
   readonly status: number;
   readonly type: string;
   readonly cause?: unknown;
+  readonly retryAfter?: number;
 
-  constructor(status: number, type: string, message: string, cause?: unknown) {
+  constructor(status: number, type: string, message: string, cause?: unknown, retryAfter?: number) {
     super(message);
     this.name = 'OAuthRequestError';
     this.status = status;
     this.type = type;
     this.cause = cause;
+    this.retryAfter = retryAfter;
   }
 }
 
@@ -37,6 +39,10 @@ export function invalidGrant(message: string): OAuthRequestError {
 
 export function unsupportedGrantType(message: string): OAuthRequestError {
   return new OAuthRequestError(400, 'unsupported_grant_type', message);
+}
+
+export function tooManyRequests(retryAfter: number, message: string): OAuthRequestError {
+  return new OAuthRequestError(429, 'too_many_requests', message, undefined, retryAfter);
 }
 
 export function forestIdentityNotAllowed(message: string): OAuthRequestError {

@@ -270,6 +270,15 @@ A Mode 1 `bff_access` that is malformed or wrong-typed → `401 unauthorized`; o
 signed but expired → `401 session_expired` (the client should refresh). Refresh-token reuse remains
 a `POST /oauth/token` concern (`400 invalid_grant`, OAuth/RFC shape).
 
+On `POST /oauth/token`, a refresh is limited to 10 per minute per session, counted per process:
+past it the endpoint answers `429 too_many_requests` with an integer `Retry-After` before any
+Forest server call. A token that cannot be opened is rejected first and counts against nothing.
+Past 10 000 sessions refreshing in the same minute, a new session is refused the same way until a
+window resets. The authorization-code grant has no rate limit. An authorization `code` longer than
+512 characters is rejected with `400 invalid_request` before any Forest server call. A code the
+Forest server rejects as `invalid_grant` is released from the local single-use claims at once, so
+never-issued codes cannot fill them and block other sign-ins.
+
 ### CORS
 
 Two layers, both driven by the same matcher (case-insensitive scheme/host, default ports normalized
