@@ -94,7 +94,7 @@ export default class ExecutorHttpServer {
           this.logger('Error', 'HTTP request failed', {
             method: ctx.method,
             path: ctx.path,
-            status: httpError.status,
+            httpStatus: httpError.status,
             error: extractErrorMessage(httpError.cause ?? httpError),
             // Prefer the cause's stack (points at the real fault site); fall back to the HTTP
             // error's own stack so a log:true error without a cause never logs an empty stack.

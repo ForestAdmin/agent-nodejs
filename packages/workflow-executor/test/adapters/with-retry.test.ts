@@ -123,7 +123,7 @@ describe('withRetry', () => {
     expect(logger).toHaveBeenCalledWith(
       'Warn',
       '"test" failed, retrying',
-      expect.objectContaining({ attempt: 1, status: 404 }),
+      expect.objectContaining({ attempt: 1, httpStatus: 404 }),
     );
   });
 

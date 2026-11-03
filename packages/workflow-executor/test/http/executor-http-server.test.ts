@@ -684,7 +684,7 @@ describe('ExecutorHttpServer', () => {
         expect.objectContaining({
           method: 'POST',
           path: '/runs/run-1/trigger',
-          status: 403,
+          httpStatus: 403,
           error: 'User 999 not authorized for run "run-1" (owned by user 1)',
           stack: domainError.stack,
         }),

@@ -336,7 +336,7 @@ describe('createAiRoutesMiddleware', () => {
         'Warn',
         'AI proxy upstream body withheld; client message is generic',
         {
-          status: 200,
+          httpStatus: 200,
           isJson: false,
           cause: expect.stringContaining('Unexpected end of JSON input'),
         },

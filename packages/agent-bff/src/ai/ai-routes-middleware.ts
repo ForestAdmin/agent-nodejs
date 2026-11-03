@@ -90,7 +90,7 @@ function relayJsonBodyOrGenericError(
 
   if (bodyWouldLeakInfrastructure) {
     logger('Warn', 'AI proxy upstream body withheld; client message is generic', {
-      status: response.status,
+      httpStatus: response.status,
       isJson: response.isJson,
       ...(response.unparseableBodyError !== undefined
         ? { cause: describeFailure(response.unparseableBodyError) }

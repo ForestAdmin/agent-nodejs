@@ -1607,7 +1607,7 @@ describe('data routes middleware', () => {
       expect(logger).toHaveBeenCalledWith(
         'Warn',
         'Agent 5xx mapped to agent_unavailable; client message is generic',
-        { status: 503, cause: 'Service Unavailable' },
+        { httpStatus: 503, cause: 'Service Unavailable' },
       );
       expect(logger).toHaveBeenCalledWith(
         'Warn',

@@ -34,7 +34,7 @@ export default async function withRetry<T>(
       if (!isRetryable(err, extraRetryStatuses) || attempt === RETRY_DELAYS_MS.length) throw err;
       logger('Warn', `"${label}" failed, retrying`, {
         attempt: attempt + 1,
-        status: (err as { status?: number }).status,
+        httpStatus: (err as { status?: number }).status,
         error: extractErrorMessage(err),
       });
       // eslint-disable-next-line no-await-in-loop
