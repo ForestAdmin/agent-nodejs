@@ -524,6 +524,52 @@ describe('BaseStepExecutor', () => {
         );
       });
 
+      it('logs the step outcome as stepStatus, not status, in the completed log', async () => {
+        class AwaitingInputExecutor extends TestableExecutor {
+          protected override async doExecute(): Promise<StepExecutionResult> {
+            const { stepOutcome } = this.buildOutcomeResult({ status: 'success' });
+
+            return { stepOutcome: { ...stepOutcome, status: 'awaiting-input' } };
+          }
+        }
+        const logger = makeMockLogger();
+        const executor = new AwaitingInputExecutor(makeContext({ logger }));
+        await executor.execute();
+        expect(logger).toHaveBeenCalledWith(
+          'Info',
+          'Step execution completed',
+          expect.objectContaining({ stepStatus: 'awaiting-input' }),
+        );
+        expect(logger).not.toHaveBeenCalledWith(
+          'Info',
+          'Step execution completed',
+          expect.objectContaining({ status: expect.anything() }),
+        );
+      });
+
+      it('logs the step outcome as stepStatus, not status, in the cache-replay log', async () => {
+        class CachedExecutor extends TestableExecutor {
+          override checkIdempotency(): Promise<StepExecutionResult> {
+            const { stepOutcome } = this.buildOutcomeResult({ status: 'success' });
+
+            return Promise.resolve({ stepOutcome: { ...stepOutcome, status: 'awaiting-input' } });
+          }
+        }
+        const logger = makeMockLogger();
+        const executor = new CachedExecutor(makeContext({ logger }));
+        await executor.execute();
+        expect(logger).toHaveBeenCalledWith(
+          'Info',
+          'Step execution completed (replayed from cache)',
+          expect.objectContaining({ stepStatus: 'awaiting-input' }),
+        );
+        expect(logger).not.toHaveBeenCalledWith(
+          'Info',
+          'Step execution completed (replayed from cache)',
+          expect.objectContaining({ status: expect.anything() }),
+        );
+      });
+
       it('includes stack trace in log context', async () => {
         const logger = makeMockLogger();
         const err = new Error('db connection refused');
