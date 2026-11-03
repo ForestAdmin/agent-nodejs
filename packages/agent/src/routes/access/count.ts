@@ -14,6 +14,10 @@ export default class CountRoute extends CollectionRoute {
 
   public async handleCount(context: Context): Promise<void> {
     await this.services.authorization.assertCanBrowse(context, this.collection.name);
+    await this.services.authorization.assertCanExecuteLiveQuerySegment(
+      context,
+      this.collection.name,
+    );
 
     if (this.collection.schema.countable) {
       await this.services.authorization.assertCanReadQueryFields(context, this.collection, [

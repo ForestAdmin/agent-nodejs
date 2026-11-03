@@ -59,6 +59,11 @@ export default class AssociateRelatedRoute extends RelationRoute {
     targetedRelationId: CompositeId,
     context: Context,
   ) {
+    await this.services.authorization.assertCanExecuteLiveQuerySegment(
+      context,
+      this.foreignCollection.name,
+    );
+
     const [id] = SchemaUtils.getPrimaryKeys(this.foreignCollection.schema);
     let value = await CollectionUtils.getValue(
       this.foreignCollection,

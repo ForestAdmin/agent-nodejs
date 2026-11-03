@@ -12,6 +12,10 @@ export default class ListRoute extends CollectionRoute {
 
   public async handleList(context: Context) {
     await this.services.authorization.assertCanBrowse(context, this.collection.name);
+    await this.services.authorization.assertCanExecuteLiveQuerySegment(
+      context,
+      this.collection.name,
+    );
     await this.services.authorization.assertCanReadQueryFields(context, this.collection);
 
     const scope = await this.services.authorization.getScope(this.collection, context);

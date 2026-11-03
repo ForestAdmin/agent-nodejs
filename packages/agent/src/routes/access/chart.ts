@@ -319,6 +319,11 @@ export default class ChartRoute extends CollectionRoute {
   }
 
   private async getFilter(context: Context): Promise<Filter> {
+    await this.services.authorization.assertCanExecuteLiveQuerySegment(
+      context,
+      this.collection.name,
+    );
+
     const scope = await this.services.authorization.getScope(this.collection, context);
 
     return ContextFilterFactory.build(this.collection, context, scope);

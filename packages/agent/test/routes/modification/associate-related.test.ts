@@ -58,6 +58,36 @@ describe('AssociateRelatedRoute', () => {
       );
     });
 
+    test('refuses the association before updating when the live query segment is not allowed', async () => {
+      const { services, dataSource, options } = setupWithOneToManyRelation();
+      (services.authorization.assertCanExecuteLiveQuerySegment as jest.Mock).mockRejectedValueOnce(
+        new Error('Forbidden'),
+      );
+      const route = new AssociateRelatedRoute(
+        services,
+        options,
+        dataSource,
+        'books',
+        'myBookPersons',
+      );
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        requestBody: { data: [{ id: '123e4567-e89b-12d3-a456-222222222222' }] },
+        customProperties: {
+          query: { timezone: 'Europe/Paris' },
+          params: { parentId: '123e4567-e89b-12d3-a456-111111111111' },
+        },
+      });
+
+      await expect(route.handleAssociateRelatedRoute(context)).rejects.toThrow('Forbidden');
+
+      expect(services.authorization.assertCanExecuteLiveQuerySegment).toHaveBeenCalledWith(
+        context,
+        'bookPersons',
+      );
+      expect(dataSource.getCollection('bookPersons').update).not.toHaveBeenCalled();
+    });
+
     test('should update the related records', async () => {
       // given
       const { services, dataSource, options } = setupWithOneToManyRelation();

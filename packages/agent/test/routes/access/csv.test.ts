@@ -38,6 +38,25 @@ describe('CsvRoute', () => {
   describe('handleCsv', () => {
     const limitExportSize = 5000;
 
+    it('refuses the export before listing when the live query segment is not allowed', async () => {
+      const { options, services, dataSource } = setup();
+      (services.authorization.assertCanExecuteLiveQuerySegment as jest.Mock).mockRejectedValueOnce(
+        new Error('Forbidden'),
+      );
+      const csvRoute = new CsvRoute(services, options, dataSource, 'books');
+      const context = createMockContext({
+        customProperties: { query: { 'fields[books]': 'name', timezone: 'Europe/Paris' } },
+      });
+
+      await expect(csvRoute.handleCsv(context)).rejects.toThrow('Forbidden');
+
+      expect(services.authorization.assertCanExecuteLiveQuerySegment).toHaveBeenCalledWith(
+        context,
+        'books',
+      );
+      expect(dataSource.getCollection('books').list).not.toHaveBeenCalled();
+    });
+
     it('should set the response headers correctly', async () => {
       const { options, services, dataSource } = setup();
       const csvRoute = new CsvRoute(services, options, dataSource, 'books');

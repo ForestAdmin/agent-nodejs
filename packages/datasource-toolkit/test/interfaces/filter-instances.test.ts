@@ -76,5 +76,14 @@ describe('Filter', () => {
       expect(segmentFilter.isNestable).toBeFalsy();
       expect(() => segmentFilter.nest('prefix')).toThrow();
     });
+
+    test('nest should crash with a live query segment', () => {
+      const segmentFilter = new Filter({
+        liveQuerySegment: { query: 'SELECT id FROM books', connectionName: 'main' },
+      });
+
+      expect(segmentFilter.isNestable).toBe(false);
+      expect(() => segmentFilter.nest('prefix')).toThrow("Filter can't be nested");
+    });
   });
 });
