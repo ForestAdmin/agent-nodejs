@@ -362,7 +362,8 @@ AES-256-GCM). Every instance sharing that key serves every session, and a restar
 - **Access token.** The `bff_access` JWT carries a `server_access` claim: the Forest server access
   token, sealed and bound to the JWT's `sid`, user id and rendering. The AI relay and the activity-log
   writes read it from there; a claim missing, unreadable, bound to another session or expired answers
-  `401 session_expired`, and the client refreshes. The JWT never outlives that server access token.
+  `401 session_expired`, and the client refreshes. The JWT never outlives that server access token,
+  nor the session's absolute expiry.
 
 Every `refresh_token` grant rotates the Forest server refresh token, so the Forest server decides the
 rotation and its safety, not the BFF. With `OAUTH_API_REFRESH_ROTATION_ENABLED` on in the Forest server
@@ -370,6 +371,8 @@ rotation and its safety, not the BFF. With `OAUTH_API_REFRESH_ROTATION_ENABLED` 
 get the same pair; a retry within 60 s of a lost response gets it again; a rotated-out token presented
 later revokes the whole grant, which signs out every holder (`400 invalid_grant`). The BFF still
 collapses concurrent refreshes of one token inside one process into a single Forest server call.
+With `allowedOAuthClients` set, every refresh checks the session's OAuth client against it again: a
+client removed from the list loses its sessions at their next refresh (`400 invalid_client`).
 
 | Forest server answer on refresh | BFF answer |
 | --- | --- |
@@ -384,13 +387,19 @@ Limits:
   its owner, keeps the session until its 24 h expiry while the owner gets `invalid_grant`. Concurrent
   refreshes on two instances each fork a pair, and a retry after a lost response signs the user out.
   The BFF logs a `Warn` at every sign-in on a grant the server did not tag (`meta.service: 'api'` and
-  `meta.gatewayGrantId` in its refresh token). Turn the flag on before running this version.
+  `meta.gatewayGrantId` in its refresh token), and at every refresh that returns the presented Forest
+  refresh token unchanged. Turn the flag on before running this version.
 - **Failure after the rotation.** Once the Forest server rotated, the BFF still reads the user
   (`getUserInfo`) before answering. If that read fails, the client keeps the presented token: a retry
   within the server's 60 s replay window gets the rotated pair, a later one is treated as a reuse and
   signs the user out. Same bound as the Forest server's own lost-response limit.
 - **Key change.** Changing `BFF_TOKEN_ENCRYPTION_KEY` signs every user out, and instances must share
   one key: during a rollout that changes it, a token issued by one side is refused by the other.
+- **One key per deployment.** Sealed tokens carry no deployment audience: any BFF holding the same
+  `BFF_TOKEN_ENCRYPTION_KEY` opens and refreshes the sessions of another. Never share a key between
+  environments or deployments.
+- **Revocation tail.** A `bff_access` token already issued keeps driving the AI relay and the
+  activity-log writes until it expires, up to 15 min after the Forest server revoked its grant.
 - **No revocation in the BFF.** A stolen refresh token works on any instance until the Forest server
   rejects it, at the latest at the session's 24 h expiry.
 - **Authorization codes.** The single-use claim of a code is per process; a code replayed on another
