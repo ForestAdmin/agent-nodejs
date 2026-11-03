@@ -4,6 +4,7 @@ import type ForestServerClient from './forest-server-client';
 import type { ServerTokens } from './forest-server-client';
 import type { SessionState, SessionTokenCodec } from './session-token';
 import type { Logger } from '../ports/logger-port';
+import type { FixedWindowLimiter } from '../rate-limit/fixed-window-limiter';
 import type { UserInfo } from '@forestadmin/forestadmin-client';
 import type { Context, Middleware } from 'koa';
 
@@ -24,9 +25,11 @@ import {
   serverError,
   sessionExpired,
   toErrorBody,
+  tooManyRequests,
   unsupportedGrantType,
 } from './oauth-error';
 import { createSid } from './session-token';
+import createFixedWindowLimiter from '../rate-limit/fixed-window-limiter';
 
 function hashPresentedToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('base64url');
@@ -41,7 +44,12 @@ export interface OAuthRoutesOptions {
   resolveEnvironmentId: EnvironmentIdResolver;
   logger: Logger;
   allowedOAuthClients?: string[];
+  refreshLimiter?: FixedWindowLimiter;
 }
+
+const MAX_AUTHORIZATION_CODE_LENGTH = 512;
+const REFRESH_LIMIT_PER_SESSION = 10;
+const REFRESH_LIMIT_WINDOW_MS = 60_000;
 
 const CODE_VERIFIER_PATTERN = /^[A-Za-z0-9\-._~]{43,128}$/;
 const S256_CODE_CHALLENGE_PATTERN = /^[A-Za-z0-9_-]{43}$/;
@@ -287,6 +295,10 @@ async function parseTokenRequest(ctx: Context, options: OAuthRoutesOptions): Pro
     redirectUri: requireBodyString(params, 'redirect_uri'),
   };
 
+  if (request.code.length > MAX_AUTHORIZATION_CODE_LENGTH) {
+    throw invalidRequest(`code exceeds ${MAX_AUTHORIZATION_CODE_LENGTH} characters`);
+  }
+
   assertValidCodeVerifier(request.codeVerifier);
 
   const client = await options.serverClient.getRegisteredClient(request.clientId);
@@ -320,8 +332,10 @@ async function exchangeForServerTokens(
   }
 }
 
-function isRetriableExchangeError(error: unknown): boolean {
-  return !(error instanceof OAuthRequestError) || error.status >= 500;
+function shouldReleaseClaim(error: unknown): boolean {
+  if (!(error instanceof OAuthRequestError)) return true;
+
+  return error.status >= 500 || error.type === 'invalid_grant';
 }
 
 async function resolveIdentity(
@@ -402,7 +416,7 @@ async function handleAuthorizationCodeGrant(
   try {
     serverTokens = await exchangeForServerTokens(request, options);
   } catch (error) {
-    if (isRetriableExchangeError(error)) {
+    if (shouldReleaseClaim(error)) {
       options.authorizationCodes.release(request.code);
     }
 
@@ -478,6 +492,7 @@ interface RefreshGrantResult {
 
 type RuntimeOptions = OAuthRoutesOptions & {
   inFlightRefreshByPresentedHash: Map<string, Promise<RefreshGrantResult>>;
+  refreshLimiter: FixedWindowLimiter;
 };
 
 async function rotateServerTokens(
@@ -545,15 +560,37 @@ function warnOnUnrotatedRefreshToken(
   );
 }
 
+function assertSessionRefreshAllowed(sid: string, options: RuntimeOptions): void {
+  const refusal = options.refreshLimiter.hit(sid);
+
+  if (!refusal) return;
+
+  if (refusal.saturated) {
+    throw tooManyRequests(
+      refusal.retryAfterSeconds,
+      'Too many sessions are refreshing at once: retry shortly',
+    );
+  }
+
+  throw tooManyRequests(
+    refusal.retryAfterSeconds,
+    `Too many refreshes: the limit is ${REFRESH_LIMIT_PER_SESSION} per ${
+      REFRESH_LIMIT_WINDOW_MS / 1000
+    }s per session`,
+  );
+}
+
 async function refreshSession(
   presentedToken: string,
-  options: OAuthRoutesOptions,
+  options: RuntimeOptions,
 ): Promise<RefreshGrantResult> {
   const state = options.sessionTokens.openRefreshToken(presentedToken);
 
   if (!state) {
     throw invalidGrant('Unknown, malformed or expired refresh token');
   }
+
+  assertSessionRefreshAllowed(state.sid, options);
 
   await assertSessionClientIsAllowed(state.clientId, options);
 
@@ -646,6 +683,10 @@ function matchRoute(ctx: Context): RouteHandler | undefined {
 
 function writeError(ctx: Context, error: unknown, options: OAuthRoutesOptions): void {
   if (error instanceof OAuthRequestError) {
+    if (error.retryAfter !== undefined) {
+      ctx.set('Retry-After', String(error.retryAfter));
+    }
+
     ctx.status = error.status;
     ctx.body = toErrorBody(error);
 
@@ -664,6 +705,12 @@ export default function createOAuthRoutes(options: OAuthRoutesOptions): Middlewa
   const runtimeOptions: RuntimeOptions = {
     ...options,
     inFlightRefreshByPresentedHash: new Map(),
+    refreshLimiter:
+      options.refreshLimiter ??
+      createFixedWindowLimiter({
+        windowMs: REFRESH_LIMIT_WINDOW_MS,
+        maxRequests: REFRESH_LIMIT_PER_SESSION,
+      }),
   };
 
   return async function oauthRoutes(ctx, next) {

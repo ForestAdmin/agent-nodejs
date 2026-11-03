@@ -6,6 +6,7 @@ import {
   invalidRequest,
   sessionExpired,
   toErrorBody,
+  tooManyRequests,
 } from '../../src/oauth/oauth-error';
 
 describe('oauth-error', () => {
@@ -36,6 +37,26 @@ describe('oauth-error', () => {
       expect(error).toBeInstanceOf(OAuthRequestError);
       expect(error.type).toBe(type);
       expect(error.status).toBe(status);
+    });
+  });
+
+  describe('when a caller builds the error with a positional cause', () => {
+    it('should keep the fourth argument as the cause and leave retryAfter unset', () => {
+      const cause = new Error('upstream');
+
+      const error = new OAuthRequestError(502, 'server_error', 'Upstream failed', cause);
+
+      expect(error.cause).toBe(cause);
+      expect(error.retryAfter).toBeUndefined();
+    });
+  });
+
+  describe('when a rate limit refuses the request', () => {
+    it('should carry the retry delay without a cause', () => {
+      const error = tooManyRequests(7, 'Slow down');
+
+      expect(error).toMatchObject({ status: 429, type: 'too_many_requests', retryAfter: 7 });
+      expect(error.cause).toBeUndefined();
     });
   });
 });
