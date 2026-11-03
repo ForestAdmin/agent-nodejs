@@ -1,3 +1,10 @@
+## @forestadmin/agent-bff [1.44.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.44.0...@forestadmin/agent-bff@1.44.1) (2026-11-03)
+
+
+### Bug Fixes
+
+* **agent-bff:** bound refreshes per session and junk authorization codes ([#2056](https://github.com/ForestAdmin/agent-nodejs/issues/2056)) ([8dac9bd](https://github.com/ForestAdmin/agent-nodejs/commit/8dac9bd3102ca7dc8df9205e7f968db2e9445274))
+
 # @forestadmin/agent-bff [1.44.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.43.3...@forestadmin/agent-bff@1.44.0) (2026-11-03)
 
 
