@@ -547,7 +547,7 @@ function warnOnUnrotatedRefreshToken(
 }
 
 function sessionRemainingSeconds(state: SessionState): number {
-  return Math.ceil((state.expiresAt - Date.now()) / 1000);
+  return Math.floor((state.expiresAt - Date.now()) / 1000);
 }
 
 async function refreshSession(
@@ -564,15 +564,22 @@ async function refreshSession(
 
   const rotated = await rotateServerTokens(state, options);
   warnOnUnrotatedRefreshToken(state, rotated, options);
-  const expiresInSeconds = Math.min(
-    expiresInFromAccessToken(rotated.saasAccessToken),
-    sessionRemainingSeconds(state),
-  );
   const user = await resolveIdentity(state.renderingId, rotated.saasAccessToken, options);
 
   if (user.id !== state.userId) {
     throw invalidGrant('The refresh token belongs to another user');
   }
+
+  const remainingSeconds = sessionRemainingSeconds(state);
+
+  if (remainingSeconds <= 0) {
+    throw invalidGrant('The session expired during the refresh');
+  }
+
+  const expiresInSeconds = Math.min(
+    expiresInFromAccessToken(rotated.saasAccessToken),
+    remainingSeconds,
+  );
 
   return {
     sid: state.sid,
