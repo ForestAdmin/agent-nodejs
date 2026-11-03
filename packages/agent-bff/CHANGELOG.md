@@ -1,3 +1,10 @@
+# @forestadmin/agent-bff [1.44.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.43.3...@forestadmin/agent-bff@1.44.0) (2026-11-03)
+
+
+### Features
+
+* **agent-bff:** keep oauth sessions valid across instances and restarts ([#2055](https://github.com/ForestAdmin/agent-nodejs/issues/2055)) ([a4d87ee](https://github.com/ForestAdmin/agent-nodejs/commit/a4d87ee9be550c35c1d183da762e54216fe86313))
+
 ## @forestadmin/agent-bff [1.43.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.43.2...@forestadmin/agent-bff@1.43.3) (2026-11-03)
 
 
