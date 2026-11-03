@@ -26,9 +26,12 @@ const SESSION_TTL_SECONDS = 3600;
 
 function routeOptions(key: string = KEY) {
   return {
-    sessionTokens: createSessionTokenCodec(createTokenCipher(key), () => Date.now()),
+    sessionTokens: createSessionTokenCodec(createTokenCipher(key), {
+      now: () => Date.now(),
+      sessionTtlSeconds: SESSION_TTL_SECONDS,
+      logger: () => undefined,
+    }),
     authorizationCodes: createAuthorizationCodeClaims({ now: () => Date.now() }),
-    sessionTtlSeconds: SESSION_TTL_SECONDS,
   };
 }
 
@@ -1358,6 +1361,10 @@ describe('oauth-routes POST /oauth/token refresh_token grant', () => {
       expect([a.status, b.status]).toEqual([200, 200]);
       expect(a.body.refresh_token).toBe(b.body.refresh_token);
       expect(refreshServerToken).toHaveBeenCalledTimes(1);
+      expect(refreshServerToken).toHaveBeenCalledWith({
+        refreshToken: SENTINEL_REFRESH,
+        clientId: CLIENT_ID,
+      });
 
       const followUp = await refresh(app, a.body.refresh_token as string);
       expect(followUp.status).toBe(200);

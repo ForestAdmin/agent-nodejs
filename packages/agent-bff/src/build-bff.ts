@@ -198,13 +198,16 @@ function buildOAuthMiddlewares(
   const resolveEnvironmentId = createEnvironmentIdResolver(serverClient);
 
   const now = () => Date.now();
-  const sessionTokens = createSessionTokenCodec(createTokenCipher(tokenEncryptionKey), now);
+  const sessionTokens = createSessionTokenCodec(createTokenCipher(tokenEncryptionKey), {
+    now,
+    sessionTtlSeconds: SESSION_TTL_SECONDS,
+    logger,
+  });
 
   const oauthRoutes = createOAuthRoutes({
     serverClient,
     sessionTokens,
     authorizationCodes: createAuthorizationCodeClaims({ now }),
-    sessionTtlSeconds: SESSION_TTL_SECONDS,
     forestAppUrl,
     authSecret: forestAuthSecret,
     resolveEnvironmentId,

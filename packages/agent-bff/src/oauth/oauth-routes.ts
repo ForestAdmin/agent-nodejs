@@ -36,7 +36,6 @@ export interface OAuthRoutesOptions {
   serverClient: ForestServerClient;
   sessionTokens: SessionTokenCodec;
   authorizationCodes: AuthorizationCodeClaims;
-  sessionTtlSeconds: number;
   forestAppUrl: string;
   authSecret: string;
   resolveEnvironmentId: EnvironmentIdResolver;
@@ -432,7 +431,7 @@ async function handleAuthorizationCodeGrant(
     renderingId: serverTokens.renderingId,
     userId: user.id,
     clientId: request.clientId,
-    expiresAt: Date.now() + options.sessionTtlSeconds * 1000,
+    expiresAt: options.sessionTokens.newSessionExpiresAt(),
   });
 
   const accessToken = issueSessionAccessToken(
@@ -546,10 +545,6 @@ function warnOnUnrotatedRefreshToken(
   );
 }
 
-function sessionRemainingSeconds(state: SessionState): number {
-  return Math.floor((state.expiresAt - Date.now()) / 1000);
-}
-
 async function refreshSession(
   presentedToken: string,
   options: OAuthRoutesOptions,
@@ -570,7 +565,7 @@ async function refreshSession(
     throw invalidGrant('The refresh token belongs to another user');
   }
 
-  const remainingSeconds = sessionRemainingSeconds(state);
+  const remainingSeconds = options.sessionTokens.remainingSeconds(state);
 
   if (remainingSeconds <= 0) {
     throw invalidGrant('The session expired during the refresh');

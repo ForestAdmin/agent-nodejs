@@ -1,4 +1,5 @@
 import type { EncryptedBlob, TokenCipher } from './token-cipher';
+import type { Logger } from '../ports/logger-port';
 
 import crypto from 'crypto';
 
@@ -20,7 +21,15 @@ export interface ServerAccessBinding {
   renderingId: number;
 }
 
+export interface SessionTokenCodecOptions {
+  now: () => number;
+  sessionTtlSeconds: number;
+  logger: Logger;
+}
+
 export interface SessionTokenCodec {
+  newSessionExpiresAt(): number;
+  remainingSeconds(state: SessionState): number;
   sealRefreshToken(state: SessionState): string;
   openRefreshToken(token: string): SessionState | undefined;
   sealServerAccess(binding: ServerAccessBinding, saasAccessToken: string): string;
@@ -52,17 +61,49 @@ function seal(cipher: TokenCipher, payload: Record<string, unknown>): string {
   return Buffer.from(JSON.stringify(cipher.encrypt(JSON.stringify(payload)))).toString('base64url');
 }
 
-function open(cipher: TokenCipher, sealed: string, type: string): Record<string, unknown> | null {
+function parseBlob(sealed: string): EncryptedBlob | null {
   try {
     const blob: unknown = JSON.parse(Buffer.from(sealed, 'base64url').toString('utf8'));
-    if (!isBlob(blob)) return null;
 
-    const payload: unknown = JSON.parse(cipher.decrypt(blob));
+    return isBlob(blob) ? blob : null;
+  } catch {
+    return null;
+  }
+}
+
+function decrypt(cipher: TokenCipher, blob: EncryptedBlob, logger: Logger): string | null {
+  try {
+    return cipher.decrypt(blob);
+  } catch {
+    logger(
+      'Warn',
+      'A sealed session token does not decrypt under BFF_TOKEN_ENCRYPTION_KEY: it was sealed under another key or altered',
+    );
+
+    return null;
+  }
+}
+
+function parsePayload(plaintext: string, type: string): Record<string, unknown> | null {
+  try {
+    const payload: unknown = JSON.parse(plaintext);
 
     return isRecord(payload) && payload.typ === type ? payload : null;
   } catch {
     return null;
   }
+}
+
+function open(
+  cipher: TokenCipher,
+  sealed: string,
+  type: string,
+  logger: Logger,
+): Record<string, unknown> | null {
+  const blob = parseBlob(sealed);
+  const plaintext = blob ? decrypt(cipher, blob, logger) : null;
+
+  return plaintext === null ? null : parsePayload(plaintext, type);
 }
 
 function toSessionState(payload: Record<string, unknown>): SessionState | undefined {
@@ -93,15 +134,23 @@ function matchesBinding(payload: Record<string, unknown>, binding: ServerAccessB
 
 export default function createSessionTokenCodec(
   cipher: TokenCipher,
-  now: () => number,
+  { now, sessionTtlSeconds, logger }: SessionTokenCodecOptions,
 ): SessionTokenCodec {
   return {
+    newSessionExpiresAt() {
+      return now() + sessionTtlSeconds * 1000;
+    },
+
+    remainingSeconds(state) {
+      return Math.floor((state.expiresAt - now()) / 1000);
+    },
+
     sealRefreshToken(state) {
       return seal(cipher, { typ: REFRESH_TYPE, ...state });
     },
 
     openRefreshToken(token) {
-      const payload = open(cipher, token, REFRESH_TYPE);
+      const payload = open(cipher, token, REFRESH_TYPE, logger);
       const state = payload ? toSessionState(payload) : undefined;
 
       return state && now() < state.expiresAt ? state : undefined;
@@ -112,7 +161,7 @@ export default function createSessionTokenCodec(
     },
 
     openServerAccess(sealed, binding) {
-      const payload = open(cipher, sealed, SERVER_ACCESS_TYPE);
+      const payload = open(cipher, sealed, SERVER_ACCESS_TYPE, logger);
 
       if (!payload || !matchesBinding(payload, binding)) return undefined;
 
