@@ -65,6 +65,37 @@ describe('DissociateDeleteRelatedRoute', () => {
     );
   });
 
+  test('refuses to dissociate or delete related records when their live query segment is not allowed', async () => {
+    const { services, dataSource, options } = setupWithOneToManyRelation();
+    (services.authorization.assertCanExecuteLiveQuerySegment as jest.Mock).mockRejectedValueOnce(
+      new Error('Forbidden'),
+    );
+    const route = new DissociateDeleteRoute(
+      services,
+      options,
+      dataSource,
+      'books',
+      'myBookPersons',
+    );
+    const context = createMockContext({
+      state: { user: { email: 'john.doe@domain.com' } },
+      customProperties: {
+        query: { timezone: 'Europe/Paris', delete: 'true' },
+        params: { parentId: '123e4567-e89b-12d3-a456-426614174088' },
+      },
+      requestBody: { data: [{ id: '123e4567-e89b-12d3-a456-426614174001' }] },
+    });
+
+    await expect(route.handleDissociateDeleteRelatedRoute(context)).rejects.toThrow('Forbidden');
+
+    expect(services.authorization.assertCanExecuteLiveQuerySegment).toHaveBeenCalledWith(
+      context,
+      'bookPersons',
+    );
+    expect(dataSource.getCollection('bookPersons').delete).not.toHaveBeenCalled();
+    expect(dataSource.getCollection('bookPersons').update).not.toHaveBeenCalled();
+  });
+
   describe('DissociateDeleteRelatedRoute > dissociate', () => {
     describe('when it is a one to many relation', () => {
       test('should update the foreign key in the foreign collection', async () => {

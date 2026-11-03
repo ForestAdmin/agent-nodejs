@@ -30,7 +30,7 @@ export default class Filter {
   liveQuerySegment?: LiveQuerySegment;
 
   get isNestable(): boolean {
-    return !this.search && !this.segment;
+    return !this.search && !this.segment && !this.liveQuerySegment;
   }
 
   constructor(parts: FilterComponents) {

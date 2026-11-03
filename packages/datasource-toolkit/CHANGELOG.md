@@ -1,3 +1,10 @@
+## @forestadmin/datasource-toolkit [1.56.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.56.2...@forestadmin/datasource-toolkit@1.56.3) (2026-11-03)
+
+
+### Bug Fixes
+
+* **agent:** check the segment query permission wherever a live query segment is used ([#2046](https://github.com/ForestAdmin/agent-nodejs/issues/2046)) ([f1fb803](https://github.com/ForestAdmin/agent-nodejs/commit/f1fb803c64b6d1da0017f449be50b325fe382130))
+
 ## @forestadmin/datasource-toolkit [1.56.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.56.1...@forestadmin/datasource-toolkit@1.56.2) (2026-10-16)
 
 

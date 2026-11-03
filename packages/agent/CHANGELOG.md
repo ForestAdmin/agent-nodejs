@@ -1,3 +1,24 @@
+## @forestadmin/agent [1.111.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.111.8...@forestadmin/agent@1.111.9) (2026-11-03)
+
+
+### Bug Fixes
+
+* **agent:** check the segment query permission wherever a live query segment is used ([#2046](https://github.com/ForestAdmin/agent-nodejs/issues/2046)) ([f1fb803](https://github.com/ForestAdmin/agent-nodejs/commit/f1fb803c64b6d1da0017f449be50b325fe382130))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.73.3
+* **@forestadmin/datasource-toolkit:** upgraded to 1.56.3
+* **@forestadmin/forestadmin-client:** upgraded to 1.44.2
+* **@forestadmin/mcp-server:** upgraded to 1.29.5
+* **@forestadmin/agent-bff:** upgraded to 1.43.3
+* **@forestadmin/datasource-sql:** upgraded to 1.17.19
+* **@forestadmin/workflow-executor:** upgraded to 1.35.6
+
 ## @forestadmin/agent [1.111.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.111.7...@forestadmin/agent@1.111.8) (2026-11-02)
 
 

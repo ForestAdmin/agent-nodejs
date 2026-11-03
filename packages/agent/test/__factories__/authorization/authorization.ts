@@ -14,6 +14,7 @@ export class AuthorizationsFactory extends Factory<AuthorizationService> {
       Authorizations.assertCanExport = jest.fn();
       Authorizations.getScope = jest.fn();
       Authorizations.assertCanExecuteChart = jest.fn();
+      Authorizations.assertCanExecuteLiveQuerySegment = jest.fn();
       Authorizations.invalidateScopeCache = jest.fn();
       Authorizations.canRead = jest.fn().mockResolvedValue(true);
       Authorizations.assertCanReadQueryFields = jest.fn();

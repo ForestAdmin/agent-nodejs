@@ -18,6 +18,10 @@ export default class CountRelatedRoute extends RelationRoute {
 
   public async handleCountRelated(context: Context): Promise<void> {
     await this.services.authorization.assertCanBrowse(context, this.foreignCollection.name);
+    await this.services.authorization.assertCanExecuteLiveQuerySegment(
+      context,
+      this.foreignCollection.name,
+    );
 
     if (this.foreignCollection.schema.countable) {
       await this.services.authorization.assertCanReadQueryFields(context, this.foreignCollection, [
