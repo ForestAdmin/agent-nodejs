@@ -504,6 +504,45 @@ describe('CollectionUtils', () => {
 
         expect(listResults).toEqual([{ id: 1, aField: 'aValue' }]);
       });
+
+      test('should run a live query segment on the foreign collection, not the through one', async () => {
+        const { dataSource } = setupWithManyToManyRelation();
+        const libraries = factories.collection.build({ name: 'libraries' });
+        jest.spyOn(dataSource, 'getCollection').mockImplementation(name => {
+          if (name === 'libraries') return libraries;
+
+          return dataSource.collections.find(collection => collection.name === name);
+        });
+        const through = dataSource.getCollection('librariesBooks');
+        jest.spyOn(through, 'list').mockResolvedValue([{ libraryId: 'library-1' }]);
+        const liveQuerySegment = { query: 'SELECT id FROM libraries', connectionName: 'main' };
+        const filter = factories.filter.build({ liveQuerySegment });
+        const caller = factories.caller.build();
+        const projection = new Projection('id');
+
+        await CollectionUtils.listRelation(
+          dataSource.getCollection('books'),
+          [2],
+          'manyToManyRelationField',
+          caller,
+          filter,
+          projection,
+        );
+
+        expect(through.list).toHaveBeenCalledWith(
+          caller,
+          expect.objectContaining({ liveQuerySegment: undefined }),
+          new Projection('libraryId'),
+        );
+        expect(libraries.list).toHaveBeenCalledWith(
+          caller,
+          expect.objectContaining({
+            liveQuerySegment,
+            conditionTree: new ConditionTreeLeaf('id', 'In', ['library-1']),
+          }),
+          projection,
+        );
+      });
     });
   });
 

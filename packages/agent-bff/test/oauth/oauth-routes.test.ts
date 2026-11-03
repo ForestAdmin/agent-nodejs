@@ -26,9 +26,12 @@ const SESSION_TTL_SECONDS = 3600;
 
 function routeOptions(key: string = KEY) {
   return {
-    sessionTokens: createSessionTokenCodec(createTokenCipher(key), () => Date.now()),
+    sessionTokens: createSessionTokenCodec(createTokenCipher(key), {
+      now: () => Date.now(),
+      sessionTtlSeconds: SESSION_TTL_SECONDS,
+      logger: () => undefined,
+    }),
     authorizationCodes: createAuthorizationCodeClaims({ now: () => Date.now() }),
-    sessionTtlSeconds: SESSION_TTL_SECONDS,
   };
 }
 
@@ -1199,6 +1202,44 @@ describe('oauth-routes POST /oauth/token refresh_token grant', () => {
       const { exp } = jsonwebtoken.decode(response.body.access_token) as { exp: number };
       expect(exp * 1000).toBeLessThanOrEqual(expiresAt);
     });
+
+    it('should reject with invalid_grant when the session expires during the refresh', async () => {
+      const clock = { now: 0 };
+
+      const twoSecondsLater = async () => {
+        clock.now += 2000;
+
+        return USER;
+      };
+
+      const { app, sessionTokens } = buildApp(stubServerClient({ getUserInfo: twoSecondsLater }));
+      const refreshToken = await login(app);
+      const { expiresAt } = sessionTokens.openRefreshToken(refreshToken) ?? { expiresAt: 0 };
+      clock.now = expiresAt - 500;
+      jest.spyOn(Date, 'now').mockImplementation(() => clock.now);
+
+      const response = await refresh(app, refreshToken);
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual(
+        expect.objectContaining({
+          error: 'invalid_grant',
+          error_description: 'The session expired during the refresh',
+        }),
+      );
+    });
+
+    it('should never round the remaining session lifetime up', async () => {
+      const { app, sessionTokens } = buildApp(stubServerClient());
+      const refreshToken = await login(app);
+      const { expiresAt } = sessionTokens.openRefreshToken(refreshToken) ?? { expiresAt: 0 };
+      jest.spyOn(Date, 'now').mockReturnValue(expiresAt - 1500);
+
+      const response = await refresh(app, refreshToken);
+
+      expect(response.status).toBe(200);
+      expect(response.body.expires_in).toBe(1);
+    });
   });
 
   describe('when the Forest server does not rotate the refresh token', () => {
@@ -1320,6 +1361,10 @@ describe('oauth-routes POST /oauth/token refresh_token grant', () => {
       expect([a.status, b.status]).toEqual([200, 200]);
       expect(a.body.refresh_token).toBe(b.body.refresh_token);
       expect(refreshServerToken).toHaveBeenCalledTimes(1);
+      expect(refreshServerToken).toHaveBeenCalledWith({
+        refreshToken: SENTINEL_REFRESH,
+        clientId: CLIENT_ID,
+      });
 
       const followUp = await refresh(app, a.body.refresh_token as string);
       expect(followUp.status).toBe(200);

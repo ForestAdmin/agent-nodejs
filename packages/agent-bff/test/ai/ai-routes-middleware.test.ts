@@ -20,7 +20,7 @@ const USER_ID = 5;
 
 const sessionTokens = createSessionTokenCodec(
   createTokenCipher(Buffer.alloc(32, 3).toString('base64')),
-  () => Date.now(),
+  { now: () => Date.now(), sessionTtlSeconds: 3600, logger: () => undefined },
 );
 
 function freshAccessToken(): string {

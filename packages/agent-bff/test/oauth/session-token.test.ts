@@ -1,4 +1,5 @@
 import type { SessionState } from '../../src/oauth/session-token';
+import type { Logger } from '../../src/ports/logger-port';
 
 import createSessionTokenCodec, { createSid } from '../../src/oauth/session-token';
 import createTokenCipher from '../../src/oauth/token-cipher';
@@ -18,8 +19,11 @@ const STATE: SessionState = {
 
 const BINDING = { sid: 'sid-1', userId: 42, renderingId: 17 };
 
-function codec(key = KEY, now = () => NOW) {
-  return createSessionTokenCodec(createTokenCipher(key), now);
+const KEY_MISMATCH_WARNING =
+  'A sealed session token does not decrypt under BFF_TOKEN_ENCRYPTION_KEY: it was sealed under another key or altered';
+
+function codec(key = KEY, now = () => NOW, logger: Logger = () => undefined) {
+  return createSessionTokenCodec(createTokenCipher(key), { now, sessionTtlSeconds: 3600, logger });
 }
 
 function flipLastCiphertextChar(token: string): string {
@@ -54,6 +58,23 @@ describe('session token codec', () => {
       const token = codec(OTHER_KEY).sealRefreshToken(STATE);
 
       expect(codec().openRefreshToken(token)).toBeUndefined();
+    });
+
+    it('should warn when a token does not decrypt under the key', () => {
+      const logger = jest.fn();
+      const token = codec(OTHER_KEY).sealRefreshToken(STATE);
+
+      codec(KEY, () => NOW, logger).openRefreshToken(token);
+
+      expect(logger).toHaveBeenCalledWith('Warn', KEY_MISMATCH_WARNING);
+    });
+
+    it('should not warn on a token that is not a sealed blob', () => {
+      const logger = jest.fn();
+
+      codec(KEY, () => NOW, logger).openRefreshToken('garbage');
+
+      expect(logger).not.toHaveBeenCalled();
     });
 
     it('should reject a tampered token', () => {
@@ -118,6 +139,17 @@ describe('session token codec', () => {
       const sealed = codec(OTHER_KEY).sealServerAccess(BINDING, 'SAAS-ACCESS');
 
       expect(codec().openServerAccess(sealed, BINDING)).toBeUndefined();
+    });
+  });
+
+  describe('session lifetime', () => {
+    it('should stamp a new session with the TTL from the injected clock', () => {
+      expect(codec().newSessionExpiresAt()).toBe(NOW + 3600 * 1000);
+    });
+
+    it('should count the remaining whole seconds on the injected clock', () => {
+      expect(codec(KEY, () => STATE.expiresAt - 1500).remainingSeconds(STATE)).toBe(1);
+      expect(codec(KEY, () => STATE.expiresAt).remainingSeconds(STATE)).toBe(0);
     });
   });
 

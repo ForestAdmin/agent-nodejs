@@ -130,8 +130,12 @@ function createIdempotentForestServer(now: () => number) {
 
 function createInstance(serverClient: ForestServerClient, aiQuery: jest.Mock) {
   const now = () => Date.now();
-  const sessionTokens = createSessionTokenCodec(createTokenCipher(KEY), now);
   const logger = () => undefined;
+  const sessionTokens = createSessionTokenCodec(createTokenCipher(KEY), {
+    now,
+    sessionTtlSeconds: 24 * 60 * 60,
+    logger,
+  });
   const app = new Koa();
 
   app.use(createErrorMiddleware({ logger }));
@@ -141,7 +145,6 @@ function createInstance(serverClient: ForestServerClient, aiQuery: jest.Mock) {
       serverClient,
       sessionTokens,
       authorizationCodes: createAuthorizationCodeClaims({ now }),
-      sessionTtlSeconds: 24 * 60 * 60,
       forestAppUrl: 'https://app.forestadmin.com',
       authSecret: AUTH_SECRET,
       resolveEnvironmentId: async () => 99,

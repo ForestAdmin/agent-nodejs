@@ -8,7 +8,7 @@ import createTokenCipher from '../../src/oauth/token-cipher';
 
 const sessionTokens = createSessionTokenCodec(
   createTokenCipher(Buffer.alloc(32, 3).toString('base64')),
-  () => Date.now(),
+  { now: () => Date.now(), sessionTtlSeconds: 3600, logger: () => undefined },
 );
 
 const BINDING = { sid: 'sid-1', userId: 42, renderingId: 17 };

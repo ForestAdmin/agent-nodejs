@@ -67,12 +67,15 @@ function buildApp(allowedOAuthClients?: string[]) {
   app.use(
     createOAuthRoutes({
       serverClient,
-      sessionTokens: createSessionTokenCodec(createTokenCipher(KEY), () => Date.now()),
+      sessionTokens: createSessionTokenCodec(createTokenCipher(KEY), {
+        now: () => Date.now(),
+        sessionTtlSeconds: 3600,
+        logger: () => undefined,
+      }),
       authorizationCodes: createAuthorizationCodeClaims({
         now: () => Date.now(),
         maxPending: PENDING_CODES_CAP,
       }),
-      sessionTtlSeconds: 3600,
       forestAppUrl: 'https://app.forestadmin.com',
       authSecret: 'auth-secret',
       resolveEnvironmentId: async () => 99,

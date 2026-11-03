@@ -138,13 +138,19 @@ describe('forest server token middleware', () => {
 
     it('should open the sealed access only once for repeated resolutions', async () => {
       const { sessionTokens, openServerAccess } = spiedSessionTokens();
-      const ctx = oauthContext(sealedServerAccess(sessionAccessToken()));
+      const sealed = sealedServerAccess(sessionAccessToken());
+      const ctx = oauthContext(sealed);
 
       const resolve = await landResolver(ctx, sessionTokens);
       await resolve();
       await resolve();
 
       expect(openServerAccess).toHaveBeenCalledTimes(1);
+      expect(openServerAccess).toHaveBeenCalledWith(sealed, {
+        sid: SESSION_ID,
+        userId: SESSION_USER_ID,
+        renderingId: RENDERING_ID,
+      });
     });
   });
 

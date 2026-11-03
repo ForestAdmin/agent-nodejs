@@ -22,7 +22,7 @@ export const SESSION_USER_ID = 7;
 
 export const testSessionTokens = createSessionTokenCodec(
   createTokenCipher(Buffer.alloc(32, 3).toString('base64')),
-  () => Date.now(),
+  { now: () => Date.now(), sessionTtlSeconds: 3600, logger: () => undefined },
 );
 
 export interface FakeActivityLogsService extends ActivityLogsWriter {

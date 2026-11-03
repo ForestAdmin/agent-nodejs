@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/datasource-replica",
-  "version": "1.8.20",
+  "version": "1.8.21",
   "main": "dist/index.js",
   "license": "Apache-2.0",
   "publishConfig": {
@@ -23,10 +23,10 @@
     "test": "jest"
   },
   "dependencies": {
-    "@forestadmin/datasource-customizer": "1.73.2",
-    "@forestadmin/datasource-sequelize": "1.13.15",
-    "@forestadmin/datasource-sql": "1.17.18",
-    "@forestadmin/datasource-toolkit": "1.56.2",
+    "@forestadmin/datasource-customizer": "1.73.3",
+    "@forestadmin/datasource-sequelize": "1.13.16",
+    "@forestadmin/datasource-sql": "1.17.19",
+    "@forestadmin/datasource-toolkit": "1.56.3",
     "croner": "^6.0.6",
     "sequelize": "^6.37.8"
   }

@@ -39,7 +39,6 @@ export interface OAuthRoutesOptions {
   serverClient: ForestServerClient;
   sessionTokens: SessionTokenCodec;
   authorizationCodes: AuthorizationCodeClaims;
-  sessionTtlSeconds: number;
   forestAppUrl: string;
   authSecret: string;
   resolveEnvironmentId: EnvironmentIdResolver;
@@ -445,7 +444,7 @@ async function handleAuthorizationCodeGrant(
     renderingId: serverTokens.renderingId,
     userId: user.id,
     clientId: request.clientId,
-    expiresAt: Date.now() + options.sessionTtlSeconds * 1000,
+    expiresAt: options.sessionTokens.newSessionExpiresAt(),
   });
 
   const accessToken = issueSessionAccessToken(
@@ -560,10 +559,6 @@ function warnOnUnrotatedRefreshToken(
   );
 }
 
-function sessionRemainingSeconds(state: SessionState): number {
-  return Math.ceil((state.expiresAt - Date.now()) / 1000);
-}
-
 function assertSessionRefreshAllowed(sid: string, options: RuntimeOptions): void {
   const refusal = options.refreshLimiter.hit(sid);
 
@@ -600,15 +595,22 @@ async function refreshSession(
 
   const rotated = await rotateServerTokens(state, options);
   warnOnUnrotatedRefreshToken(state, rotated, options);
-  const expiresInSeconds = Math.min(
-    expiresInFromAccessToken(rotated.saasAccessToken),
-    sessionRemainingSeconds(state),
-  );
   const user = await resolveIdentity(state.renderingId, rotated.saasAccessToken, options);
 
   if (user.id !== state.userId) {
     throw invalidGrant('The refresh token belongs to another user');
   }
+
+  const remainingSeconds = options.sessionTokens.remainingSeconds(state);
+
+  if (remainingSeconds <= 0) {
+    throw invalidGrant('The session expired during the refresh');
+  }
+
+  const expiresInSeconds = Math.min(
+    expiresInFromAccessToken(rotated.saasAccessToken),
+    remainingSeconds,
+  );
 
   return {
     sid: state.sid,

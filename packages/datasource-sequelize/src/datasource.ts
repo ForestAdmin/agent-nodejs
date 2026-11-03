@@ -1,3 +1,4 @@
+import type { SequelizeExt } from './type-overrides';
 import type { SequelizeDatasourceOptions } from './types';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 import type { Sequelize } from 'sequelize';
@@ -9,6 +10,17 @@ import SequelizeCollection from './collection';
 
 interface NativeQueryConnection {
   instance: Sequelize;
+}
+
+const EPHEMERAL_SQLITE_STORAGES = [':memory:', ''];
+
+function isEphemeralSqlite(instance: Sequelize): boolean {
+  const { storage, host } = (instance as SequelizeExt).options;
+
+  return (
+    instance.getDialect() === 'sqlite' &&
+    EPHEMERAL_SQLITE_STORAGES.includes(storage ?? (host || ':memory:'))
+  );
 }
 
 export default class SequelizeDataSource extends BaseDataSource<SequelizeCollection> {
@@ -58,13 +70,32 @@ export default class SequelizeDataSource extends BaseDataSource<SequelizeCollect
       throw new Error(`Unknown connection name '${connectionName}'`);
     }
 
-    return (this.nativeQueryConnections[connectionName] as NativeQueryConnection).instance.query<R>(
-      query,
-      {
-        bind: contextVariables,
-        type: QueryTypes.SELECT,
-        raw: true,
-      },
-    );
+    const { instance } = this.nativeQueryConnections[connectionName] as NativeQueryConnection;
+    const selectOptions = { bind: contextVariables, type: QueryTypes.SELECT, raw: true } as const;
+
+    // A transaction cannot isolate an ephemeral SQLite database: in memory, Sequelize runs every
+    // query on one connection, so its rollback would undo other requests' writes; on an empty
+    // storage, each connection opens its own private database, where the tables do not exist.
+    if (isEphemeralSqlite(instance)) return instance.query<R>(query, selectOptions);
+
+    // Live queries only read: whatever their text runs, it is rolled back, never committed.
+    const transaction = await instance.transaction({ readOnly: true });
+    let rows: R[];
+
+    try {
+      if (instance.getDialect() === 'postgres') {
+        await instance.query('SET TRANSACTION READ ONLY', { transaction });
+      }
+
+      rows = await instance.query<R>(query, { ...selectOptions, transaction });
+    } catch (error) {
+      // The failed query may have ended the transaction already; its error is the one to report.
+      await transaction.rollback().catch(() => undefined);
+      throw error;
+    }
+
+    await transaction.rollback();
+
+    return rows;
   }
 }
