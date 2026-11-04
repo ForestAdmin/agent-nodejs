@@ -122,6 +122,93 @@ describe('StepExecutorFactory.create', () => {
     );
   });
 
+  // The AI's candidates show what the step sees of the calling workflow's Multiple step.
+  it("narrows the calling workflow's records to the call's record inside a call opened once per record", async () => {
+    const ubo = (id: number) => ({ collectionName: 'ubos', recordId: [id], stepIndex: 1 });
+    const invoke = jest
+      .fn()
+      .mockResolvedValueOnce({
+        tool_calls: [
+          { name: 'select-record', args: { recordIdentifier: 'Step 1 - UBOs #2' }, id: 'c1' },
+        ],
+      })
+      .mockResolvedValueOnce({
+        tool_calls: [
+          { name: 'read-selected-record-fields', args: { fieldNames: ['Share'] }, id: 'c2' },
+        ],
+      });
+    const bindTools = jest.fn().mockReturnValue({ invoke });
+    const schema = (collectionName: string, displayName: string) => ({
+      collectionName,
+      collectionId: `col-${collectionName}`,
+      collectionDisplayName: displayName,
+      primaryKeyFields: ['id'],
+      fields: [{ fieldName: 'share', displayName: 'Share', isRelationship: false }],
+      actions: [],
+    });
+    const config = {
+      ...makeContextConfig(),
+      aiModelPort: { getModel: jest.fn().mockReturnValue({ bindTools }) },
+      agentPort: { getRecord: jest.fn().mockResolvedValue({ values: { share: 30 } }) },
+      workflowPort: {
+        getCollectionSchema: jest
+          .fn()
+          .mockImplementation((name: string) =>
+            Promise.resolve(name === 'ubos' ? schema('ubos', 'UBOs') : schema(name, 'Customers')),
+          ),
+      },
+      runStore: {
+        getStepExecutions: jest.fn().mockResolvedValue([
+          {
+            type: 'load-related-record',
+            stepIndex: 1,
+            executionResult: {
+              relation: { name: 'ubos', displayName: 'UBOs' },
+              records: [ubo(1), ubo(2), ubo(3)],
+            },
+            selectedRecordRef: { collectionName: 'customers', recordId: [1], stepIndex: 0 },
+          },
+        ]),
+        saveStepExecution: jest.fn().mockResolvedValue(undefined),
+      },
+    } as unknown as StepContextConfig;
+    const step = makeStep({
+      stepIndex: 3,
+      stepDefinition: {
+        type: StepType.ReadRecord,
+        executionType: StepExecutionMode.FullyAutomated,
+        prompt: "Read the UBO's share",
+      },
+      previousSteps: [
+        {
+          stepDefinition: {
+            type: StepType.LoadRelatedRecord,
+            executionType: StepExecutionMode.FullyAutomated,
+            preRecordedArgs: { multiple: true },
+          },
+          stepOutcome: { type: 'record', stepId: 'load-ubos', stepIndex: 1, status: 'success' },
+        },
+      ],
+      callScope: {
+        currentFrameStepIndexes: [],
+        recordCall: {
+          selectedRecordStepId: 'load-ubos',
+          pinnedFrameStepIndexes: [1],
+          recordIndex: 1,
+          stepIndexes: [],
+        },
+      },
+    } as unknown as Partial<AvailableStepExecution>);
+
+    const executor = await StepExecutorFactory.create(step, config, activityLogPort, jest.fn());
+    await executor.execute();
+
+    expect(bindTools.mock.calls[0][0][0].schema.shape.recordIdentifier.options).toEqual([
+      'Step 0 - Customers #1',
+      'Step 1 - UBOs #2',
+    ]);
+  });
+
   describe('after a Multiple step', () => {
     const loadStores = {
       stepDefinition: {

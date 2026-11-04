@@ -40,21 +40,31 @@ export function classifyMissingSourceRecord(execution?: StepExecutionData): Erro
   return pendingData.availableRecordIds.length > 0 ? 'operator' : 'empty-source';
 }
 
-// The step a pin names: the latest Load Related Record with that id, because a loop repeats ids,
-// and only inside the frame when one is given, since step ids are unique only per workflow.
-export function findPinnedLoadStep(
+// The latest step of that type with that id, because a loop repeats ids, and only inside the frame
+// when one is given, since step ids are unique only per workflow and every call repeats them.
+export function findLatestStepInFrame(
   previousSteps: readonly Step[],
+  type: StepType,
   stepId: string,
   frameStepIndexes?: number[],
 ): Step | undefined {
   return previousSteps
     .filter(
       step =>
-        step.stepDefinition.type === StepType.LoadRelatedRecord &&
+        step.stepDefinition.type === type &&
         step.stepOutcome.stepId === stepId &&
         (frameStepIndexes === undefined || frameStepIndexes.includes(step.stepOutcome.stepIndex)),
     )
     .at(-1);
+}
+
+// The step a pin names.
+export function findPinnedLoadStep(
+  previousSteps: readonly Step[],
+  stepId: string,
+  frameStepIndexes?: number[],
+): Step | undefined {
+  return findLatestStepInFrame(previousSteps, StepType.LoadRelatedRecord, stepId, frameStepIndexes);
 }
 
 // Every record a load-related-record execution loaded: one, several, or one per record it ran for.
@@ -216,28 +226,15 @@ export default abstract class RecordStepExecutor<
   // Candidate sources for the AI: the base record plus the record each live prior
   // load-related step resolved — own stepIndex first, falling back to a clone's
   // originalStepIndex.
-  // Inside a call opened once per record, the calling workflow's records loaded several at a time
-  // belong to every call, so the call's own record stands in for them.
   protected async getAvailableRecordRefs(): Promise<RecordRef[]> {
-    const { callScope } = this.context;
-    const perRecordCall = callScope?.callRecordIndex !== undefined;
-    const ownFrame = callScope?.currentFrameStepIndexes ?? [];
     const stepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
-    const relatedRecords = this.context.previousSteps.flatMap(step => {
-      if (step.stepDefinition.type !== StepType.LoadRelatedRecord) return [];
+    const relatedRecords = this.context.previousSteps.flatMap(step =>
+      step.stepDefinition.type === StepType.LoadRelatedRecord
+        ? loadedRecordsOf(this.resolveStepExecution(step, stepExecutions))
+        : [],
+    );
 
-      const execution = this.resolveStepExecution(step, stepExecutions);
-      const result = execution?.type === 'load-related-record' && execution.executionResult;
-      const loadsSeveral = isPerRecordExecution(execution) || (!!result && 'records' in result);
-      const outsideCall = !ownFrame.includes(step.stepOutcome.stepIndex);
-
-      return perRecordCall && outsideCall && loadsSeveral ? [] : loadedRecordsOf(execution);
-    });
-    const callRecords = perRecordCall
-      ? [await this.resolveSourceRecordRef(WORKFLOW_START_STEP_ID)]
-      : [];
-
-    return [this.context.baseRecordRef, ...callRecords, ...relatedRecords];
+    return [this.context.baseRecordRef, ...relatedRecords];
   }
 
   protected getCollectionSchema(collectionName: string): Promise<CollectionSchema> {

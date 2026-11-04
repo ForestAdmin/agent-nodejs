@@ -747,7 +747,7 @@ export class CallRecordNotLoadedError extends WorkflowCallSiteError {
     const step = stepTitle ? `"${stepTitle}"` : 'a step';
     super(
       `Sub-workflow call's record index is past the records ${step} loaded`,
-      `The Sub-workflow step that called this workflow runs once for each record of ${step}, but this run's record is not among the records it loaded. Revise the Sub-workflow step to run it again.`,
+      `The Sub-workflow step that called this workflow runs once for each record of ${step}, but this run's record is not among the records it loaded. Revise ${step} to load them again.`,
     );
   }
 }
@@ -759,7 +759,7 @@ export class SourceRunsOncePerRecordError extends WorkflowCallSiteError {
     const step = stepTitle ? `"${stepTitle}"` : 'a step';
     super(
       `Sub-workflow call pins ${step}, which runs once per record`,
-      `The Sub-workflow step that called this workflow takes its record from ${step}, which runs once for each record of a Multiple step. Set its record to the Multiple step itself.`,
+      `The Sub-workflow step that called this workflow takes its record from ${step}, which runs once for each record of a Multiple step. Set its record to a step that loads one record.`,
     );
   }
 }

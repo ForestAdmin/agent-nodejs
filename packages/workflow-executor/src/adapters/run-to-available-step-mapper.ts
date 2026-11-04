@@ -133,13 +133,13 @@ function toNonEmptyString(value: unknown): string | undefined {
 function toCallRecordIndex(context: ServerStepHistory['context']): number | undefined {
   const value = context?.callRecordIndex;
 
-  return typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : undefined;
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? value : undefined;
 }
 
 // Rebuilt from the raw history because previousSteps drops the navigation steps, and read the way
 // the orchestrator reads its own call stack so the two agree on which call is open.
-// excludedStepIndexes: inside a call opened once per record, the steps of the calls the same
-// Sub-workflow step opened for the other records, which are another record's run.
+// excludedStepIndexes: inside a call opened once per record, the steps of every other call opened
+// once per record from the same calling frame, which are another record's run or another pass's.
 function toCallScope(
   history: ServerStepHistory[],
   pending: ServerStepHistory,
@@ -225,16 +225,14 @@ function toCallScope(
 
   // The record a "workflow start" pin resolves to is the one the pinning call took.
   const callRecordIndex = pin !== undefined ? pinnedBy?.callRecordIndex : undefined;
-  const excludedStepIndexes =
-    callRecordIndex === undefined
-      ? []
-      : closedRecordCalls
-          .filter(
-            call =>
-              call.frameOpenedAt === pinnedBy?.frameOpenedAt &&
-              call.callRecordIndex !== callRecordIndex,
-          )
-          .flatMap(call => call.stepIndexes);
+  const recordCallAt = openCalls.map(call => call.callRecordIndex !== undefined).lastIndexOf(true);
+  const recordCall = recordCallAt === -1 ? undefined : openCalls[recordCallAt];
+  const recordCallPin = recordCall && pinOf(recordCall);
+  const excludedStepIndexes = recordCall
+    ? closedRecordCalls
+        .filter(call => call.frameOpenedAt === recordCall.frameOpenedAt)
+        .flatMap(call => call.stepIndexes)
+    : [];
 
   return {
     excludedStepIndexes,
@@ -245,6 +243,21 @@ function toCallScope(
       ...(calledWorkflowCollectionName !== undefined && { calledWorkflowCollectionName }),
       ...(pinOf(innermost) !== undefined && { isPinned: true as const }),
       ...(callRecordIndex !== undefined && { callRecordIndex }),
+      ...(recordCall?.callRecordIndex !== undefined &&
+        recordCallPin !== undefined && {
+          recordCall: {
+            selectedRecordStepId: recordCallPin,
+            pinnedFrameStepIndexes: [...frameOfStep]
+              .filter(
+                ([stepIndex, frame]) =>
+                  frame === recordCall.frameOpenedAt && stepIndex < recordCall.stepIndex,
+              )
+              .map(([stepIndex]) => stepIndex),
+            recordIndex: recordCall.callRecordIndex,
+            // Steps of calls still open inside it are not folded into it until they close.
+            stepIndexes: openCalls.slice(recordCallAt).flatMap(call => call.stepIndexes),
+          },
+        }),
     },
   };
 }

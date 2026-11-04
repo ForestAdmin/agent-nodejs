@@ -14,6 +14,7 @@ import type {
   RunControl,
   StepExecutionResult,
 } from '../types/execution-context';
+import type { RecordRef } from '../types/validated/collection';
 import type { Step } from '../types/validated/execution';
 import type {
   ConditionStepDefinition,
@@ -41,6 +42,8 @@ import LoadRelatedRecordStepExecutor from './load-related-record-step-executor';
 import McpStepExecutor from './mcp-step-executor';
 import PerRecordStepExecutor from './per-record-step-executor';
 import ReadRecordStepExecutor from './read-record-step-executor';
+import { findStepExecution } from './base-step-executor';
+import CallRecordRunStore from './call-record-run-store';
 import { findPinnedLoadStep } from './record-step-executor';
 import TriggerRecordActionStepExecutor from './trigger-record-action-step-executor';
 import UpdateRecordStepExecutor from './update-record-step-executor';
@@ -86,6 +89,28 @@ function findPerRecordSource(step: AvailableStepExecution): PerRecordSource | nu
   return null;
 }
 
+// The record a call opened once per record runs on: its Multiple step's record at the call's
+// position. Undefined when it cannot be read, and the step's own source resolution then says why.
+async function findCallRecord(
+  step: AvailableStepExecution,
+  runStore: RunStore,
+): Promise<RecordRef | undefined> {
+  const call = step.callScope?.recordCall;
+  if (!call) return undefined;
+
+  const source = findPinnedLoadStep(
+    step.previousSteps,
+    call.selectedRecordStepId,
+    call.pinnedFrameStepIndexes,
+  );
+  if (!source) return undefined;
+
+  const execution = findStepExecution(source, await runStore.getStepExecutions(step.runId));
+  const result = execution?.type === 'load-related-record' ? execution.executionResult : undefined;
+
+  return result && 'records' in result ? result.records[call.recordIndex] : undefined;
+}
+
 function createRecordExecutor(context: ExecutionContext): IStepExecutor {
   switch (context.stepDefinition.type) {
     case StepType.ReadRecord:
@@ -125,13 +150,24 @@ export default class StepExecutorFactory {
     forestServerToken?: string,
   ): Promise<IStepExecutor> {
     try {
-      const context = StepExecutorFactory.buildContext(
+      const builtContext = StepExecutorFactory.buildContext(
         step,
         contextConfig,
         activityLogPort,
         incomingPendingData,
         forestServerToken,
       );
+      const callRecord = await findCallRecord(step, builtContext.runStore);
+      const context: ExecutionContext = callRecord
+        ? {
+            ...builtContext,
+            runStore: new CallRecordRunStore(
+              builtContext.runStore,
+              callRecord,
+              step.callScope?.recordCall?.stepIndexes ?? [],
+            ),
+          }
+        : builtContext;
       const perRecordSource = findPerRecordSource(step);
 
       if (perRecordSource) {
