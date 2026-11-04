@@ -788,6 +788,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
         relatedData,
         suggestedFields,
         this.context.stepDefinition.prompt,
+        relatedSchema.collectionDisplayName,
         opts.allowNone,
       ),
     );
