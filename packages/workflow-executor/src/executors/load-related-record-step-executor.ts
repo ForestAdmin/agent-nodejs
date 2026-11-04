@@ -542,7 +542,13 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       selectRelevantFields(this.pickerAi, relatedSchema, prompt),
     );
     const { indexes, confident, sawAll } = await this.withAiAssist(() =>
-      selectRelevantRecordIndexes(this.pickerAi, relatedData, fieldNames, prompt),
+      selectRelevantRecordIndexes(
+        this.pickerAi,
+        relatedData,
+        fieldNames,
+        prompt,
+        relatedSchema.collectionDisplayName,
+      ),
     );
 
     return {

@@ -5037,6 +5037,21 @@ describe('LoadRelatedRecordStepExecutor', () => {
       expect(saved.pendingData).not.toHaveProperty('suggestedRecord');
     });
 
+    it('tells the AI which collection the candidates come from when it picks records', async () => {
+      const ai = aiPicks([0]);
+      const { context } = contextFor(StepExecutionMode.AutomatedWithConfirmation, uboData(3), {
+        model: ai.model,
+      });
+
+      await new LoadRelatedRecordStepExecutor(context).execute();
+
+      // Without it the AI judges whether each candidate is what the request names, and doubts a
+      // pick it would otherwise be sure of.
+      const recordSelectionMessages = ai.invoke.mock.calls[1][0] as Array<{ content: unknown }>;
+      const content = recordSelectionMessages.map(m => String(m.content)).join('\n');
+      expect(content).toContain('The related records are from the "UBOs" collection.');
+    });
+
     it("loads the AI's pick in Full AI mode when the AI saw every candidate and is sure", async () => {
       const ai = aiPicks([0, 2]);
       const { context, runStore } = contextFor(StepExecutionMode.FullyAutomated, uboData(3), {
