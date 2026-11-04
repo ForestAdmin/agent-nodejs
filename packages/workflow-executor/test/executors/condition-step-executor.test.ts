@@ -1708,6 +1708,127 @@ describe('ConditionStepExecutor', () => {
       },
     );
 
+    it.each([
+      ['any', { id: 1, pep: true }, 'Escalate', 1],
+      ['every', { id: 1, pep: false }, 'Approve', 0],
+      ['none', { id: 1, pep: true }, 'Approve', 1],
+    ] as const)(
+      'decides "%s" past a record without a value when the records read already settle it: %j → %s',
+      async (quantifier, read, expectedOption, matched) => {
+        const { context, runStore } = contextFor(quantified(quantifier), [
+          perRecordRead(2, [read, { id: 2, skipped: true }]),
+        ]);
+
+        const result = await new ConditionStepExecutor(context).execute();
+
+        expect(result.stepOutcome).toMatchObject({
+          status: 'success',
+          selectedOption: expectedOption,
+        });
+        const saved = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)[1];
+        expect(saved.executionParams).not.toHaveProperty('unchecked');
+        expect(saved.executionParams.evaluations[0].conditions[0].records).toStrictEqual({
+          matched,
+          evaluated: 1,
+          unchecked: ['2'],
+        });
+      },
+    );
+
+    it.each([
+      ['every', { id: 1, pep: true }],
+      ['none', { id: 1, pep: false }],
+    ] as const)(
+      'pauses on "%s" when the record without a value could still change it: %j',
+      async (quantifier, read) => {
+        const { context, runStore } = contextFor(quantified(quantifier), [
+          perRecordRead(2, [read, { id: 2, skipped: true }]),
+        ]);
+
+        const result = await new ConditionStepExecutor(context).execute();
+
+        expect(result.stepOutcome.status).toBe('awaiting-input');
+        const saved = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)[1];
+        expect(saved.executionParams.unchecked).toStrictEqual(['2']);
+      },
+    );
+
+    describe('when one condition of an option cannot be decided', () => {
+      const pep = (quantifier: 'any' | 'every', value: boolean) => ({
+        sourceStepId: 'get-ubos',
+        fieldName: 'pep',
+        operator: 'equal' as const,
+        value,
+        quantifier,
+      });
+      // One UBO is not a PEP and the other was skipped: "any UBO is a PEP" cannot be decided.
+      const reads = [
+        perRecordRead(2, [
+          { id: 1, pep: false },
+          { id: 2, skipped: true },
+        ]),
+      ];
+
+      it('decides an "and" option another of its conditions already fails', async () => {
+        const { context } = contextFor(
+          {
+            optionConditions: [
+              {
+                option: 'Escalate',
+                aggregator: 'and',
+                conditions: [pep('any', true), pep('every', true)],
+              },
+            ],
+            fallbackOption: 'Approve',
+          },
+          reads,
+        );
+
+        const result = await new ConditionStepExecutor(context).execute();
+
+        expect(result.stepOutcome).toMatchObject({ status: 'success', selectedOption: 'Approve' });
+      });
+
+      it('decides an "or" option another of its conditions already meets', async () => {
+        const { context } = contextFor(
+          {
+            optionConditions: [
+              {
+                option: 'Escalate',
+                aggregator: 'or',
+                conditions: [pep('any', true), pep('any', false)],
+              },
+            ],
+            fallbackOption: 'Approve',
+          },
+          reads,
+        );
+
+        const result = await new ConditionStepExecutor(context).execute();
+
+        expect(result.stepOutcome).toMatchObject({ status: 'success', selectedOption: 'Escalate' });
+      });
+
+      it('pauses rather than take a later option the undecided one comes before', async () => {
+        const { context, runStore } = contextFor(
+          {
+            optionConditions: [
+              { option: 'Escalate', aggregator: 'and', conditions: [pep('any', true)] },
+              { option: 'Review', aggregator: 'and', conditions: [pep('any', false)] },
+            ],
+            fallbackOption: 'Approve',
+          },
+          reads,
+        );
+
+        const result = await new ConditionStepExecutor(context).execute();
+
+        expect(result.stepOutcome.status).toBe('awaiting-input');
+        const saved = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)[1];
+        expect(saved.executionParams.unchecked).toStrictEqual(['2']);
+      });
+    });
+
     it("completes a paused decision with the operator's choice of branch", async () => {
       const paused = {
         type: 'condition',

@@ -41,8 +41,9 @@ interface ConditionLeafResult {
   index: number;
   met: boolean | null;
   reason?: ConditionNotLoadedReason;
-  // A quantified condition: how many of the records it read matched, out of those it could read.
-  records?: { matched: number; evaluated: number };
+  // A quantified condition: how many of the records it read matched, out of those it could read,
+  // and the records without a value, by serialized source record id.
+  records?: { matched: number; evaluated: number; unchecked?: string[] };
 }
 
 // A group carries its own result, so the run view never re-derives the aggregation.
