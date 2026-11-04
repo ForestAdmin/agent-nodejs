@@ -229,6 +229,7 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
       const group = this.evaluateGroup(option, { aggregator, conditions }, stepExecutions, clock);
       // Only a record without a value that could still change a quantified condition leaves the
       // option undecided.
+
       if (group.verdict === null) group.unchecked.forEach(recordId => unchecked.add(recordId));
 
       const matched = group.verdict === true;
