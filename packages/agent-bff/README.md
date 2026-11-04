@@ -25,7 +25,19 @@ Everything the agent proxy exposes lives under `/agent/v1`. The data and action 
 | `/agent/v1/{collection}/relations/{relation}/list` · `/count` | `POST`       | same, through a **to-many** relation — to-one relations are not listable and 404 by design                |
 | `/agent/v1/{collection}/actions/{action}/form` · `/execute`   | `POST`       | load a Smart Action's form, then run it                                                                   |
 | `/agent/v1/permissions`                                       | `GET`        | what the caller may see and do, **as display hints** for graying out UI — never an authorization decision |
+| `/agent/v1/collections/{collection}/filter-operators`         | `GET`        | each filterable field of a collection with its filter operators, always on whatever `BFF_OPENAPI_ENABLED` says |
 | `/agent/openapi.json`                                         | `GET`/`HEAD` | the unfolded document, auth-gated, when `BFF_OPENAPI_ENABLED` is on                                       |
+
+`GET /agent/v1/collections/{collection}/filter-operators` answers
+`{ "collection": "...", "fields": [{ "field": "email", "operators": ["Equal", "In", "Contains"] }] }`.
+The operators carry the canonical names of the OpenAPI document's `FilterLeaf_*` enums, a field
+whose operators include one this BFF cannot map is left out the same way, and a field with no
+operator is not listed. It reads the per-collection capabilities cache the data routes share, so a
+warm collection costs no agent call. A collection the schema does not expose answers
+`404 unknown_collection`, and an agent that fails to answer its capabilities answers the mapped
+agent error (`503 agent_unavailable`, `504 agent_timeout`, …), never an empty list. `/health`
+reports `configured.filterOperators: true` where the route is mounted, so a client can tell a
+Gateway that serves it from an older one.
 
 `/health`, the `/oauth/*` login routes and the `/docs` viewer (page and `redoc.standalone.js`
 bundle) sit outside the prefix and outside the auth edge; `/health` and `/docs` answer `HEAD` as
@@ -247,10 +259,12 @@ request starts, so at the default a host that accepts nothing and never resets i
 `BFF_AGENT_TIMEOUT_MS` past the OS connect timeout (~75 s) and that last case reverts to `502`,
 because the kernel gives up first and reports `ETIMEDOUT` rather than superagent's deadline.
 
-Two paths sit before the timezone layer and so skip it: `/agent/v1/context`, and the AI relay
-described below. Neither reaches an agent, so neither has a timezone to resolve. This holds only
-where they are actually mounted — `/agent/v1/context` needs the read-model bundle and the AI relay
-needs an OAuth session. In a deployment missing either, the request falls through to the timezone
+Three paths sit before the timezone layer and so skip it: `/agent/v1/context`, the filter-operators
+route, and the AI relay described below. None of them sends a timezone to the agent, so none has one
+to resolve. This holds only
+where they are actually mounted — `/agent/v1/context` needs the read-model bundle, the
+filter-operators route needs it plus a reachable agent, and the AI relay needs an OAuth session. In a
+deployment missing one, the request falls through to the timezone
 layer instead, so a caller sending no timezone against a BFF with no `BFF_DEFAULT_TIMEZONE` gets
 `400 missing_timezone` rather than the `404` it would expect from an unmounted route.
 

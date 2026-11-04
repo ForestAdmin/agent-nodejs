@@ -1,6 +1,8 @@
 import type { FieldType } from '../read-model/field-type';
 import type { PrimaryKeyField } from '../read-model/read-model';
-import type { Operator } from '@forestadmin/datasource-toolkit';
+import type { FilterableField } from '../validation/filterable-fields';
+
+export type { FilterableField };
 
 /**
  * The snapshot the OpenAPI generator unfolds. It is plain data on purpose: collecting it hits the
@@ -58,17 +60,6 @@ export interface ProjectableField {
   name: string;
   type: FieldType;
   sortable?: false;
-}
-
-/**
- * A field the agent reports at least one operator for, with that operator set — the very set the
- * runtime validates a filter leaf against. Normalized to canonical PascalCase and to the
- * `allOperators` order at collect time, so the same capabilities answer always yields the same
- * document whatever order the agent serialized the operators in.
- */
-export interface FilterableField {
-  name: string;
-  operators: Operator[];
 }
 
 export type DegradedReason = 'capabilities_unavailable' | 'no_fields';

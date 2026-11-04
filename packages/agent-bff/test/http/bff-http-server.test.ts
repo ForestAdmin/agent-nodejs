@@ -103,7 +103,7 @@ describe('BFFHttpServer', () => {
       expect(response.body).toEqual({
         status: 'ok',
         version: VERSION,
-        configured: { oauth: true, ai: true, cors: true, openapi: true },
+        configured: { oauth: true, ai: true, cors: true, openapi: true, filterOperators: false },
       });
     });
 
@@ -122,6 +122,7 @@ describe('BFFHttpServer', () => {
         ai: false,
         cors: true,
         openapi: false,
+        filterOperators: false,
       });
     });
 

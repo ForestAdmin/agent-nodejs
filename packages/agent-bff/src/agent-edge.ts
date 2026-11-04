@@ -28,6 +28,7 @@ import createForestServerTokenMiddleware from './auth/forest-server-token-middle
 import createContextRoutesMiddleware from './context/context-routes-middleware';
 import createPerKeyOriginMiddleware from './cors/per-key-origin';
 import createDataRoutesMiddleware from './data/data-routes-middleware';
+import createFilterOperatorsRoutesMiddleware from './filter-operators/filter-operators-routes-middleware';
 import { tolerateEnvironmentIdFailure } from './oauth/environment-id';
 import createOpenApiRoutes from './openapi/openapi-routes';
 import PermissionsCache from './permissions/permissions-cache';
@@ -217,6 +218,7 @@ interface AgentEdge {
   middlewares: Middleware[];
   invalidate(): void;
   activityLogs?: ActivityLogWriter;
+  servesFilterOperators: boolean;
 }
 
 export function buildAgentMiddlewares(
@@ -234,7 +236,7 @@ export function buildAgentMiddlewares(
   if (!forestAuthSecret) {
     logger('Warn', 'Agent edge disabled: FOREST_AUTH_SECRET is missing');
 
-    return { middlewares: [], invalidate: () => undefined };
+    return { middlewares: [], invalidate: () => undefined, servesFilterOperators: false };
   }
 
   const apiKeyStep = buildApiKeyMiddleware(config, logger) ?? createApiKeyUnavailableGuard(logger);
@@ -277,6 +279,9 @@ export function buildAgentMiddlewares(
           }),
         ]
       : []),
+    ...(bundle && transport
+      ? [createFilterOperatorsRoutesMiddleware({ store: bundle.store, transport, logger })]
+      : []),
     ...aiMiddlewares,
     createTimezoneMiddleware({ defaultTimezone }),
     ...routeEdge.middlewares,
@@ -292,5 +297,6 @@ export function buildAgentMiddlewares(
       permissionsCache.clear();
     },
     activityLogs: routeEdge.activityLogs,
+    servesFilterOperators: Boolean(bundle && transport),
   };
 }

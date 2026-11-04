@@ -97,6 +97,7 @@ export default class BFFHttpServer {
           ai: Boolean(config.tokenEncryptionKey),
           cors: config.allowedOrigins.length > 0,
           openapi: config.openapiEnabled,
+          filterOperators: false,
         }),
       }),
     );

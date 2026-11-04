@@ -349,8 +349,38 @@ describe('embedded BFF', () => {
       expect(response.status).toBe(200);
       expect(response.body).toMatchObject({
         status: 'ok',
-        configured: { oauth: false, ai: false, cors: true, openapi: false },
+        configured: {
+          oauth: false,
+          ai: false,
+          cors: true,
+          openapi: false,
+          filterOperators: true,
+        },
       });
+    });
+  });
+
+  describe('/bff/agent/v1/collections/{collection}/filter-operators', () => {
+    it('should serve the canonical operators with the OpenAPI document left off', async () => {
+      const response = await request(app)
+        .get('/bff/agent/v1/collections/books/filter-operators')
+        .set('Authorization', `Bearer ${sessionToken()}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.collection).toBe('books');
+      expect(response.body.fields).toContainEqual({
+        field: 'title',
+        operators: expect.arrayContaining(['Equal', 'Contains']),
+      });
+    });
+
+    it('should answer 404 unknown_collection for a collection the schema does not expose', async () => {
+      const response = await request(app)
+        .get('/bff/agent/v1/collections/secrets/filter-operators')
+        .set('Authorization', `Bearer ${sessionToken()}`);
+
+      expect(response.status).toBe(404);
+      expect(response.body.error).toMatchObject({ type: 'unknown_collection' });
     });
   });
 

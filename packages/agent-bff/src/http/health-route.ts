@@ -13,6 +13,7 @@ export interface HealthConfigured {
   ai: boolean;
   cors: boolean;
   openapi: boolean;
+  filterOperators: boolean;
 }
 
 export interface BffHealth {

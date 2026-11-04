@@ -277,6 +277,7 @@ export default async function buildBff({
       ai: aiMiddlewares.length > 0,
       cors: config.allowedOrigins.length > 0,
       openapi: config.openapiEnabled && agentMiddlewares.length > 0,
+      filterOperators: agentEdge.servesFilterOperators,
     },
   );
 
