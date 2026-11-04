@@ -10,6 +10,7 @@ import type { ReadRecordStepDefinition } from '../../src/types/validated/step-de
 import { AgentPortError, NoRecordsError, RecordNotFoundError } from '../../src/errors';
 import ActivityLog from '../../src/executors/activity-log';
 import AgentWithLog from '../../src/executors/agent-with-log';
+import CallRecordRunStore from '../../src/executors/call-record-run-store';
 import ReadRecordStepExecutor from '../../src/executors/read-record-step-executor';
 import SchemaCache from '../../src/schema-cache';
 import SchemaResolver from '../../src/schema-resolver';
@@ -1719,7 +1720,7 @@ describe('ReadRecordStepExecutor', () => {
           errorKind: 'call-site',
           error:
             'The Sub-workflow step that called this workflow runs once for each record of "Load UBOs", ' +
-            'but this run\'s record is not among the records it loaded. Revise the Sub-workflow step to run it again.',
+            'but this run\'s record is not among the records it loaded. Revise "Load UBOs" to load them again.',
         });
         expect(agentPort.getRecord).not.toHaveBeenCalled();
       });
@@ -1766,10 +1767,11 @@ describe('ReadRecordStepExecutor', () => {
           errorKind: 'call-site',
           error:
             'The Sub-workflow step that called this workflow takes its record from "Load each address", ' +
-            'which runs once for each record of a Multiple step. Set its record to the Multiple step itself.',
+            'which runs once for each record of a Multiple step. Set its record to a step that loads one record.',
         });
       });
 
+      // The factory wraps the run store of a step inside a call opened once per record.
       it("offers the AI the call's record and the calling workflow's single loads, never the other records", async () => {
         const invoke = jest
           .fn()
@@ -1802,14 +1804,15 @@ describe('ReadRecordStepExecutor', () => {
           selectedRecordRef: makeRecordRef(),
         };
         const agentPort = makeMockAgentPort({ ubos: { values: { share: 30 } } });
+        const baseStore = makeMockRunStore({
+          getStepExecutions: jest.fn().mockResolvedValue([multipleExecution, orderExecution]),
+        });
 
         const result = await new ReadRecordStepExecutor(
           callContext(1, {
             agentPort,
             model: { bindTools } as unknown as ExecutionContext['model'],
-            runStore: makeMockRunStore({
-              getStepExecutions: jest.fn().mockResolvedValue([multipleExecution, orderExecution]),
-            }),
+            runStore: new CallRecordRunStore(baseStore, uboRef(2), []),
             previousSteps: [makePinnedSourceStep('Load UBOs'), orderLoad],
             stepDefinition: makeStep({ prompt: "Read the UBO's share" }),
           }),

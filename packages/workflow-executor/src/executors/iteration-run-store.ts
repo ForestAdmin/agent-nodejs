@@ -33,6 +33,30 @@ function asExecution(row: StepExecutionData, iteration: StepIteration): StepExec
   return execution as unknown as StepExecutionData;
 }
 
+// An earlier step as one record sees it: a step that ran once per record shows that record's
+// iteration, and a Multiple step shows that record alone among those it loaded, or nothing when
+// it did not load it.
+export function narrowToRecord(row: StepExecutionData, record: RecordRef): StepExecutionData[] {
+  if (isPerRecordExecution(row)) {
+    const match = row.iterations.find(it => isSameRecord(it.sourceRecordRef, record));
+
+    return match ? [asExecution(row, match)] : [];
+  }
+
+  if (
+    row.type === 'load-related-record' &&
+    row.executionResult !== undefined &&
+    'records' in row.executionResult
+  ) {
+    const loaded = row.executionResult.records.find(r => isSameRecord(r, record));
+    if (!loaded) return [];
+
+    return [{ ...row, executionResult: { relation: row.executionResult.relation, record: loaded } }];
+  }
+
+  return [row];
+}
+
 export interface IterationHandle {
   get(): StepIteration;
   set(iteration: StepIteration): Promise<void>;
@@ -118,25 +142,6 @@ export default class IterationRunStore implements RunStore {
         : [];
     }
 
-    if (isPerRecordExecution(row)) {
-      const match = row.iterations.find(it =>
-        isSameRecord(it.sourceRecordRef, this.sourceRecordRef),
-      );
-
-      return match ? [asExecution(row, match)] : [];
-    }
-
-    if (
-      row.type === 'load-related-record' &&
-      row.executionResult !== undefined &&
-      'records' in row.executionResult
-    ) {
-      const record = row.executionResult.records.find(r => isSameRecord(r, this.sourceRecordRef));
-      if (!record) return [];
-
-      return [{ ...row, executionResult: { relation: row.executionResult.relation, record } }];
-    }
-
-    return [row];
+    return narrowToRecord(row, this.sourceRecordRef);
   }
 }
