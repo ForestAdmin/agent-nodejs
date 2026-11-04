@@ -1681,9 +1681,7 @@ describe('ReadRecordStepExecutor', () => {
       it("resolves workflow-start to the Multiple step's record at the call's index", async () => {
         const agentPort = makeMockAgentPort({ ubos: { values: { share: 30 } } });
 
-        const result = await new ReadRecordStepExecutor(
-          callContext(1, { agentPort }),
-        ).execute();
+        const result = await new ReadRecordStepExecutor(callContext(1, { agentPort })).execute();
 
         expect(agentPort.getRecord).toHaveBeenCalledWith(
           expect.objectContaining({ collection: 'ubos', id: [2], fields: ['share'] }),
@@ -1794,7 +1792,7 @@ describe('ReadRecordStepExecutor', () => {
           callContext(1, {
             agentPort,
             model: { bindTools } as unknown as ExecutionContext['model'],
-            runStore: new CallRecordRunStore(baseStore, uboRef(2), []),
+            runStore: new CallRecordRunStore(baseStore, uboRef(2), 2),
             previousSteps: [makePinnedSourceStep('Load UBOs'), orderLoad],
             stepDefinition: makeStep({ prompt: "Read the UBO's share" }),
           }),

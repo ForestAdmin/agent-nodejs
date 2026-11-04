@@ -254,8 +254,7 @@ function toCallScope(
               )
               .map(([stepIndex]) => stepIndex),
             recordIndex: recordCall.callRecordIndex,
-            // Steps of calls still open inside it are not folded into it until they close.
-            stepIndexes: openCalls.slice(recordCallAt).flatMap(call => call.stepIndexes),
+            startStepIndex: recordCall.stepIndex,
           },
         }),
     },

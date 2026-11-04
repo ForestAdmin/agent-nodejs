@@ -195,7 +195,7 @@ describe('StepExecutorFactory.create', () => {
           selectedRecordStepId: 'load-ubos',
           pinnedFrameStepIndexes: [1],
           recordIndex: 1,
-          stepIndexes: [],
+          startStepIndex: 2,
         },
       },
     } as unknown as Partial<AvailableStepExecution>);
