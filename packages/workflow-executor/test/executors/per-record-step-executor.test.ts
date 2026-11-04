@@ -564,6 +564,69 @@ describe('a step running once per record', () => {
       expect(iterations?.[0].executionResult).toStrictEqual({ skipped: true });
       expect(iterations?.[1].pendingData).toBeDefined();
     });
+
+    describe('handing the rest over by hand', () => {
+      const handedOverByHand = {
+        userConfirmation: { userConfirmed: false },
+        executionResult: { skipped: true },
+      };
+
+      it('hands every record not finished over at once and completes the step', async () => {
+        const harness = await setup({
+          stepDefinition: updateUbos(StepExecutionMode.AutomatedWithConfirmation),
+        });
+        await harness.run();
+
+        const result = await harness.run({
+          unfinishedRecords: 'handle-manually',
+          sourceRecordId: '1',
+        });
+
+        expect(result.stepOutcome.status).toBe('success');
+        expect(harness.agentPort.updateRecord).not.toHaveBeenCalled();
+        const { iterations } = await harness.row();
+        expect(iterations).toMatchObject([handedOverByHand, handedOverByHand, handedOverByHand]);
+      });
+
+      it('ends in error when a record before them failed, so it can be retried or skipped', async () => {
+        const harness = await setup({
+          stepDefinition: updateUbos(StepExecutionMode.AutomatedWithConfirmation),
+        });
+        await harness.run();
+        harness.agentPort.updateRecord.mockRejectedValueOnce(new Error('value too long'));
+        await harness.run({ userConfirmed: true, sourceRecordId: '1' });
+
+        const result = await harness.run({
+          unfinishedRecords: 'handle-manually',
+          sourceRecordId: '2',
+        });
+
+        expect(result.stepOutcome).toMatchObject({
+          status: 'error',
+          error: '1 of 3 records failed.',
+        });
+        const { iterations } = await harness.row();
+        expect(iterations?.[0].error).toBeDefined();
+        expect(iterations?.slice(1)).toMatchObject([handedOverByHand, handedOverByHand]);
+      });
+
+      it('drops a request naming a record that is not the one paused', async () => {
+        const harness = await setup({
+          stepDefinition: updateUbos(StepExecutionMode.AutomatedWithConfirmation),
+        });
+        await harness.run();
+
+        const result = await harness.run({
+          unfinishedRecords: 'handle-manually',
+          sourceRecordId: '2',
+        });
+
+        expect(result.stepOutcome.status).toBe('awaiting-input');
+        const { iterations } = await harness.row();
+        expect(iterations?.[0]).not.toHaveProperty('executionResult');
+        expect(iterations?.[1].finishedAt).toBeUndefined();
+      });
+    });
   });
 
   describe('retrying and skipping failed records', () => {

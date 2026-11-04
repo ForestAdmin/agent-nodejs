@@ -38,6 +38,16 @@ const FailedRecordsRequestSchema = z
   })
   .strict();
 
+// Handle the rest manually: every record not finished, the paused one included, is handed over at
+// once, as if each had been handled by hand, so a record that failed before them still ends the
+// step in error and comes back as Retry failed and Skip failed.
+const HandRestRequestSchema = z
+  .object({
+    unfinishedRecords: z.literal('handle-manually'),
+    sourceRecordId: z.string().min(1),
+  })
+  .strict();
+
 export interface PerRecordSource {
   // The Multiple step whose records the step runs once for.
   root: Step;
@@ -152,7 +162,8 @@ export default class PerRecordStepExecutor implements IStepExecutor {
     };
   }
 
-  // Applies a retry or skip request, or returns the index of the paused record an answer is for.
+  // Applies a retry, skip or hand-the-rest request, or returns the index of the paused record an
+  // answer is for.
   // An answer for any other record is dropped: the run view sent it for a pause that has moved on.
   private readRequest(row: PerRecordStepExecutionData): number | undefined {
     const incoming = this.context.incomingPendingData;
@@ -188,14 +199,33 @@ export default class PerRecordStepExecutor implements IStepExecutor {
 
     const paused = row.iterations.findIndex(iteration => iteration.finishedAt === undefined);
     const { sourceRecordId } = (incoming ?? {}) as { sourceRecordId?: unknown };
-
-    if (
+    const isForPaused =
       paused >= 0 &&
       row.iterations[paused].pendingData !== undefined &&
-      sourceRecordId === this.idOf(row.iterations[paused])
-    ) {
-      return paused;
+      sourceRecordId === this.idOf(row.iterations[paused]);
+
+    if (isForPaused && HandRestRequestSchema.safeParse(incoming).success) {
+      const finishedAt = new Date().toISOString();
+
+      row.iterations = row.iterations.map(iteration =>
+        iteration.finishedAt !== undefined
+          ? iteration
+          : {
+              sourceRecordRef: iteration.sourceRecordRef,
+              ...(iteration.selectedRecordRef && {
+                selectedRecordRef: iteration.selectedRecordRef,
+              }),
+              attempt: iteration.attempt,
+              userConfirmation: { userConfirmed: false },
+              executionResult: { skipped: true },
+              finishedAt,
+            },
+      );
+
+      return undefined;
     }
+
+    if (isForPaused) return paused;
 
     this.context.logger('Info', 'Dropped an answer for a record that is not the one paused', {
       ...this.logCtx,
