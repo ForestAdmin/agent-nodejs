@@ -6,7 +6,7 @@
  * - KYC: every customer's onboarding case with its documents, periodic reviews on the risk cycle,
  *   reviews triggered by an expired ID, requests for information sent to clients.
  * - Screening: sanctions and PEP lists, hits on customers and on one payment.
- * - Alerts, investigations and SARs: raised by the rules on the stories of stories.js (mules,
+ * - Alerts, investigations and SARs: raised by the rules on the stories of stories.ts (mules,
  *   split payments, takeovers, card testing, high-risk countries) and on everyday activity (a
  *   month with unusual income, a login abroad), most of which turn out to be false positives.
  * - The status history of every case, and readable references numbered in date order.
@@ -415,7 +415,7 @@ function devicesAndLogins(ctx) {
 }
 
 /**
- * Phones, computers and logins of people who joined after wave B (onboarding-funnel.js): the same
+ * Phones, computers and logins of people who joined after wave B (onboarding-funnel.ts): the same
  * as everyone's, and the transfers they make and the payees they add come from those devices.
  */
 function newcomerDevices(rows, people) {
@@ -611,7 +611,7 @@ function selfieOutcome(idOutcomeRow, state, verifiedAt, by) {
 }
 
 /**
- * An id whose scan shows `flaw` (clean, glare, cropped or name, random.js scanFlaw): derived from
+ * An id whose scan shows `flaw` (clean, glare, cropped or name, random.ts scanFlaw): derived from
  * the drawn id, so no random draw is used.
  */
 function cleanScanId(id, flaw = 'clean') {
@@ -2676,7 +2676,7 @@ const STORY_CASES = {
   SANCTIONS: () => undefined,
 };
 
-/** Alerts and cases for each story of stories.js. */
+/** Alerts and cases for each story of stories.ts. */
 function storyCases(ctx) {
   const parties = new Map(ctx.rows.counterparties.map(p => [p.id, p]));
   ctx.stories.forEach(story => {
@@ -2889,7 +2889,7 @@ function freezeCases(ctx) {
       }
 
       const start = a ? toDate(a.escalated_at) : opened;
-      // A victim's case closes once the payments are refunded (disputes.js), after about two weeks.
+      // A victim's case closes once the payments are refunded (disputes.ts), after about two weeks.
       const settled = Boolean(a) && NOW.getTime() - start.getTime() > 14 * DAY;
       const inv = investigation(ctx, {
         customer,
@@ -3312,8 +3312,8 @@ function reopen(ctx, account) {
  * An AML case gives no ground to freeze an account in France, and a freeze would tip the customer
  * off: only a mule's account stays frozen while its case is open, to protect the victims' money,
  * and opens again once the case is closed. The accounts were frozen when the customers were drawn
- * (retail.js, business.js), before any case existed: undone here, so no random draw moves. Their
- * statements stop at the old freeze date (banking.js): a quiet account, not a frozen one.
+ * (retail.ts, business.ts), before any case existed: undone here, so no random draw moves. Their
+ * statements stop at the old freeze date (banking.ts): a quiet account, not a frozen one.
  */
 function amlFreezes(ctx) {
   const { rows } = ctx;
@@ -3588,7 +3588,7 @@ function sanctionedPayment(ctx) {
   });
 }
 
-// A French supplier whose name is close to a company on the EU list (crime.js LISTED_ENTITIES).
+// A French supplier whose name is close to a company on the EU list (crime.ts LISTED_ENTITIES).
 const NAMESAKE = { listed: 'Northern Star Logistics LLC', payee: 'Northern Star Logistique' };
 
 /**
@@ -3705,7 +3705,7 @@ function namesakePayment(ctx, busy) {
 }
 
 /**
- * The disputed card payment the customer approved with 3-D Secure (disputes.js doubtedClaims) is
+ * The disputed card payment the customer approved with 3-D Secure (disputes.ts doubtedClaims) is
  * the investigations queue's no-SAR case: moved to the same customer on every build (the first by
  * a hash of their id with such a payment, no story on them), where the disputes wave drew it at
  * random. Same dates, same answer: only whose payment it is changes.
@@ -3812,7 +3812,7 @@ function receivedTransfers(rows, received) {
 }
 
 /**
- * The police requisition about money from a scam victim (lifecycle.js policeRequisition) opens the
+ * The police requisition about money from a scam victim (lifecycle.ts policeRequisition) opens the
  * investigation the MLRO sends back: moved to the same customer on every build (the first by a
  * hash of their id with two transfers received before the requisition, no story on them), where
  * the lifecycle wave drew it at random. Same dates; the two transfers named are the new customer's
@@ -3928,7 +3928,7 @@ const tracfinNumber = (report, date) =>
 
 /**
  * The rule: once a SAR is filed, every account of the customer stays frozen, its cards blocked,
- * until TRACFIN answers. A customer the bank already let go (fraudExit, lifecycle.js) had
+ * until TRACFIN answers. A customer the bank already let go (fraudExit, lifecycle.ts) had
  * TRACFIN's answer first: exit the relationship. Last of all, and drawing nothing from the seeded
  * stream, so every other row stays as it was.
  */
@@ -4050,7 +4050,7 @@ function financialCrime(rows, stories, waves = [], late = []) {
 
 export {
   financialCrime,
-  // For the onboarding funnel (onboarding-funnel.js).
+  // For the onboarding funnel (onboarding-funnel.ts).
   SENIOR_RISKS,
   SIGNOFF_REASON,
   beneficialOwners,
@@ -4065,7 +4065,7 @@ export {
   newcomerDevices,
   payers,
   personDocuments,
-  // For the later waves (disputes.js).
+  // For the later waves (disputes.ts).
   HOUR,
   TEAM,
   NOW,

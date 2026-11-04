@@ -1,5 +1,5 @@
 /**
- * The stories behind the desks' history (desk-history.js), and the words written from them.
+ * The stories behind the desks' history (desk-history.ts), and the words written from them.
  *
  * - Investigations: each case gets the movements of its story, booked on the customer's statement
  *   with the payers, payees and transfer details a real one has (money from people with no link to

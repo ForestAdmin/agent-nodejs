@@ -3,7 +3,7 @@
  * the transfer: a workflow "read" step only shows fields of one record, so each fact is one short
  * text (the transfer, the payee, the payee check, the account, the risk signals, the call back).
  * The payee check and the call back show once the workflow ran them: their answers are lines of
- * the transfer's history (status_changes), written by the actions in actions-cases.js.
+ * the transfer's history (status_changes), written by the actions in actions/cases.ts.
  */
 import { mod97 } from '../../seed/reference';
 

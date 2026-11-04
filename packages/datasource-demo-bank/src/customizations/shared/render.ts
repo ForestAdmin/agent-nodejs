@@ -281,7 +281,7 @@ const ALTERED = /altered|synthetic|template|forg|screen/i;
 
 /**
  * What a scan shows. A failed paper shows why it failed. A paper not checked yet (or that the check
- * could not read) is clean most of the time: an ID shows the flaw random.js scanFlaw fixes for it
+ * could not read) is clean most of the time: an ID shows the flaw random.ts scanFlaw fixes for it
  * (the ID check reads the same), another paper one of `choices` now and then.
  */
 // Why a paper failed, as the scan shows it (first match wins).

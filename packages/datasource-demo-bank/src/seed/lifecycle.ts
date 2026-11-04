@@ -1680,7 +1680,7 @@ function lifecycle(ctx) {
   numberReferences(ctx.rows.deceased_cases, 'DEC', 'notified_at');
   // New holds and complaints join the ones of wave C, numbered again in date order.
   numberReferences(ctx.rows.holds, 'HLD', 'placed_at');
-  // The reference draws of the recall holds no longer placed (disputes.js, holdNoMore).
+  // The reference draws of the recall holds no longer placed (disputes.ts, holdNoMore).
   for (let k = 0; k < (ctx.holdsNoMore || 0); k += 1) between(1, 9);
   numberReferences(ctx.rows.complaints, 'CMP', 'received_at');
 }

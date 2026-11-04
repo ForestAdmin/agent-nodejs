@@ -1,7 +1,7 @@
 /**
  * The links between tables, from the data model (model/data-model.json): SQLite keeps foreign keys but
  * no relations, so every table gets its many-to-one, one-to-one, one-to-many and many-to-many
- * links here, with the names model/schema.js gives them.
+ * links here, with the names model/schema.ts gives them.
  */
 import { relationNames } from '../../model/schema';
 

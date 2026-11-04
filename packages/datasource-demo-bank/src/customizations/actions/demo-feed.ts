@@ -1,10 +1,10 @@
 /**
  * The presenter's button on the Onboarding desks: "Send new applications", a Global Smart Action on
- * kyc_cases. It sends N retail applications as the app does (live.js newRetailApplicant), so the
+ * kyc_cases. It sends N retail applications as the app does (live.ts newRetailApplicant), so the
  * prospect watches the automated inbox take them:
  *
- * - a clean file: nothing to flag in the profile (case-file.js applicantRating LOW, no income
- *   proof needed), an ID whose scan is clean (random.js scanFlaw), pre-score LOW. The automated
+ * - a clean file: nothing to flag in the profile (case-file.ts applicantRating LOW, no income
+ *   proof needed), an ID whose scan is clean (random.ts scanFlaw), pre-score LOW. The automated
  *   inbox "Retail onboarding: automatic" runs its workflow and approves it within seconds.
  * - an ID the provider cannot pass (scan cut off, or a name that differs), pre-score LOW: the
  *   robot starts, the ID check does not come back clean, and the run pauses for a person in
@@ -30,7 +30,7 @@ const MAX = 10;
 
 // Above 70k EUR a year the bank asks for an income proof the app does not send: not clean.
 const PROOF_BANDS = ['FROM_70K_TO_120K', 'ABOVE_120K'];
-// The top of each declared band, a year (case-file.js BANDS).
+// The top of each declared band, a year (case-file.ts BANDS).
 const BAND_TOP = { BELOW_20K: 20000, FROM_20K_TO_40K: 40000, FROM_40K_TO_70K: 70000 };
 
 const MINUTE = 60 * 1000;
@@ -44,7 +44,7 @@ const cleanProfile = p =>
 // Every demo application comes from the bank's app (the result card says so).
 const FROM_APP = { channel: 'APP' };
 
-/** An id whose scan shows `flaw` (random.js scanFlaw), as crime.js and actions-partner.js do. */
+/** An id whose scan shows `flaw` (random.ts scanFlaw), as crime.ts and actions/partner.ts do. */
 function idWithFlaw(flaw) {
   let id = randomUUID();
   while (scanFlaw(id) !== flaw) id = randomUUID();
@@ -185,7 +185,7 @@ function resultCard(sent) {
   });
 }
 
-// The last batch each person sent (by email), for the automatic desk's guide (demo-guide.js): in
+// The last batch each person sent (by email), for the automatic desk's guide (demo-guide.ts): in
 // memory only, so a restart forgets it, as it resets the data.
 const batches = new Map();
 

@@ -32,7 +32,7 @@ const MAX_STRETCH = 2.6;
 // Each side of the center stretches on its own (the picture fills the box with the center in the
 // middle), up to this ratio between opposite sides.
 const MAX_SIDES = 2.5;
-// Node radii and label fonts, the same as the component's (network-chart/component.js).
+// Node radii and label fonts, the same as the network chart's component.
 const RADIUS = { customer: 18, account: 13, device: 16, phone: 14, postal: 14, iban: 16 };
 const CENTER_RADIUS = 26;
 const FONT = 13;

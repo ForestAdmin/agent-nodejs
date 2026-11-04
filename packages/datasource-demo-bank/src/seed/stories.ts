@@ -1,8 +1,8 @@
 /**
  * Wave B stories: the few customers whose statements hide what a financial crime team looks for.
  * Each story picks a customer before the statements are simulated, adds its movements to that
- * customer's statement (banking.js calls `story.events`), and keeps the lines it produced, so
- * crime.js can raise the alerts, open the investigations and file the SARs about exactly them.
+ * customer's statement (banking.ts calls `story.events`), and keeps the lines it produced, so
+ * crime.ts can raise the alerts, open the investigations and file the SARs about exactly them.
  *
  * - Money mules: young customers receive victims' transfers and forward them within hours to the
  *   same accounts abroad. Two collectors tie six customers together (the network view's ring).
@@ -77,7 +77,7 @@ const RISKY_SUPPLIERS = [
   ['Anatolia Tekstil Sanayi A.S.', 'TR'],
 ];
 
-// The company on the EU sanctions list (fictional), and the matching list entry in crime.js.
+// The company on the EU sanctions list (fictional), and the matching list entry in crime.ts.
 const SANCTIONED = { name: 'Volga Maritime Trading LLC', country: 'CY' };
 
 // ---- choosing who lives each story ------------------------------------------------------------
@@ -209,7 +209,7 @@ function muleStories(rows, pool) {
       const last = new Date(start.getTime() + (n * 3 + 1) * DAY);
       const frozen = withTime(new Date(last.getTime() + between(5, 12) * DAY));
       story.frozenAt = earlier(frozen, withTime(daysAgo(1)));
-      // Victims' money passes through: frozen to protect it while the case is open (crime.js
+      // Victims' money passes through: frozen to protect it while the case is open (crime.ts
       // lifts it once the case is closed).
       const note =
         'Protective freeze: money from fraud victims goes through this account. Frozen while the investigation is open.';

@@ -60,7 +60,7 @@ function applyTypes(dataSource) {
 async function buildSeededSqlDataSource(logger, restartAgent) {
   await rm(STORAGE, { force: true });
   await seed(STORAGE);
-  // The demo's two KYC cases, kept out of every queue but the KYC case desk's (showcase.js).
+  // The demo's two KYC cases, kept out of every queue but the KYC case desk's (showcase.ts).
   await addShowcaseCases(STORAGE);
   const dataSource = await createSqlDataSource({ dialect: 'sqlite', storage: STORAGE })(
     logger,
@@ -100,6 +100,6 @@ export function createDemoBankDataSource(): DataSourceFactory {
 
   addCharts(customizer);
 
-  // Remembered for the explainers' Smart Actions figure (charts/features.js).
+  // Remembered for the explainers' Smart Actions figure (charts/features.ts).
   return withFeatureSource(customizer.getFactory());
 }

@@ -1,6 +1,6 @@
 /**
- * Why an onboarding ends without approval, in one wording per reason, for the seed (crime.js,
- * onboarding-funnel.js) and the Reject KYC action alike. The code is kyc_cases.rejection_code.
+ * Why an onboarding ends without approval, in one wording per reason, for the seed (crime.ts,
+ * onboarding-funnel.ts) and the Reject KYC action alike. The code is kyc_cases.rejection_code.
  *
  * Refused (the customer becomes DECLINED): the selfie is not the ID holder, a forged paper, a
  * synthetic identity, owners unlike the register, the bank's risk appetite. A blurry photo or a

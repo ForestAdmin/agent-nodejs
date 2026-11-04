@@ -6,8 +6,8 @@
  * - "Submit application" (Global, on kyc_cases): the person, the retail customer and its OPEN
  *   onboarding case, channel PARTNER, partner = the partner's name on the customer and the case
  *   (a partner team's Forest scope reads it), also in the case notes ("Partner: Lagoon"). It
- *   lands in the Retail onboarding inbox like any application (live.js writes them the same way).
- * - "Upload document" (Single, on kyc_cases): one paper, fetched from the portal (uploads.js) or
+ *   lands in the Retail onboarding inbox like any application (live.ts writes them the same way).
+ * - "Upload document" (Single, on kyc_cases): one paper, fetched from the portal (uploads.ts) or
  *   given as a small File, stored like the papers the bank's app sends: a documents row waiting
  *   for its check, the file at the bank's own address.
  *
@@ -41,7 +41,7 @@ const RETAIL_PAPERS = [
   'BANK_STATEMENT',
 ];
 const REVIEW_YEARS = { LOW: 3, MEDIUM: 2, HIGH: 1 };
-// The flaws an ID's scan can show (random.js scanFlaw); a selfie's or a bill's mean nothing on an ID.
+// The flaws an ID's scan can show (random.ts scanFlaw); a selfie's or a bill's mean nothing on an ID.
 const ID_SCANS = ['clean', 'glare', 'cropped', 'name'];
 // A bill addressed to someone else is read as such on arrival (the bank reads the name and date).
 const OTHER_NAME = 'Name does not match the application: the bill is addressed to someone else';
@@ -348,7 +348,7 @@ const UPLOAD_FORM = [
   { label: 'Issuing country', type: 'String', description: 'IDs only; nationality by default' },
 ];
 
-/** An id whose scan shows `flaw` (random.js scanFlaw), so the ID check reads what the file shows. */
+/** An id whose scan shows `flaw` (random.ts scanFlaw), so the ID check reads what the file shows. */
 function idWithScan(flaw) {
   let id = randomUUID();
   while (scanFlaw(id) !== flaw) id = randomUUID();

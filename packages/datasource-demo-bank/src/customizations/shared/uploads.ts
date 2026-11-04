@@ -4,7 +4,7 @@
  * "Upload document" action gets a link on the portal and fetches the file itself: only from the
  * portal's own address (DEMO_BANK_PORTAL_ORIGINS), only a PDF, PNG or JPEG, at most 5 MB.
  *
- * Seeded documents are drawn from their record (render.js); an uploaded one keeps its own file,
+ * Seeded documents are drawn from their record (render.ts); an uploaded one keeps its own file,
  * here, in memory. The SQLite file is seeded again on every boot, so the files and the rows they
  * belong to go away together.
  */
@@ -20,8 +20,8 @@ const SIGNATURES: [string, string, number[]][] = [
   ['image/png', 'png', [0x89, 0x50, 0x4e, 0x47]],
   ['image/jpeg', 'jpg', [0xff, 0xd8, 0xff]],
 ];
-// The portal's sample files say which flaw their scan shows (render.js draws it), so the checks
-// answer what the picture shows: an ID's flaw (random.js scanFlaw reads the same from the
+// The portal's sample files say which flaw their scan shows (render.ts draws it), so the checks
+// answer what the picture shows: an ID's flaw (random.ts scanFlaw reads the same from the
 // document's id), a selfie of another face, a bill addressed to someone else. And the date printed
 // on the paper, which the bank reads as a real one would (a proof of address must be recent).
 const SCAN_MARK = /%forest-lab-scan:(clean|glare|cropped|name|other_face|other_name)/;

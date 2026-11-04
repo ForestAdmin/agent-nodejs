@@ -18,10 +18,10 @@ agent.addDataSource(createDemoBankDataSource());
 ## How the data is built
 
 - **Model** (`src/model/`): `data-model.json` lists the 59 tables, their fields, enums and links.
-- **Seed** (`src/seed/`): `seed/index.js` creates every table and runs the domain builders
-  (retail, business, banking, crime, disputes, e-invoicing, credit, lifecycle…). The data is the
-  same on every boot (fixed seed in `seed/random.js`) and dated relative to today, so a demo never
-  looks stale. Business coherence is enforced in the builders: a filed SAR escalates its alert, a
+- **Seed** (`src/seed/`): `seed/index.ts` creates every table and runs the domain builders
+  (retail, business, banking, crime, disputes, e-invoicing, credit, lifecycle…). The stories are
+  the same on every boot (fixed seed in `seed/random.ts`) and dated from the boot, so a demo never
+  looks stale; two boots within the same hour give exactly the same rows. Business coherence is enforced in the builders: a filed SAR escalates its alert, a
   chargeback links back to its card transaction, and so on.
 - **Customize** (`src/customizations/`): the links of the data model, readable record names and
   parent lists for every table (`shared/`), then one module per table with its Smart Actions,

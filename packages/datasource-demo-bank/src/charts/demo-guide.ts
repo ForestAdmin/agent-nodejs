@@ -4,7 +4,7 @@
  * `GET /forest/_charts/demo_guide?id=<kyc case id>`, read every few seconds by the guide.
  *
  * - documents / screening: the history line "Check documents" and "Screen against sanctions lists"
- *   write (case-file.js, checksRun);
+ *   write (case-file.ts, checksRun);
  * - idChecked: the case's ID has a check result (Verify document);
  * - riskAfter: the rating "Rate the risk" wrote;
  * - escalated: the case went to a senior (PENDING_APPROVAL now or in its history);
@@ -14,7 +14,7 @@
  * sent, -0003, -0004), each waiting or decided, and how many are decided.
  *
  * Each `desk` answer carries `unlocked`, for the Go to buttons that wait on the visitor
- * (go-to.js `unlock=`): `senior` once a case is decided, `simplified` once the
+ * (the CLI's Go to button, `unlock=`): `senior` once a case is decided, `simplified` once the
  * visitor ran a Smart Action (any history line signed with their email).
  *
  * `?desk=auto` (the automatic desk's guide): the visitor's last "Send new applications" batch

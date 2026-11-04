@@ -1,7 +1,7 @@
 /**
  * The demo's own two KYC cases, created at every boot after the seed, for the "Onboarding desk -
  * KYC Case" workspace. Their references carry SHOWCASE_MARK (KYC-DEMO-0001, -0002): every queue
- * but the desk's own list leaves them out (segments.js), so a self-service visitor always finds
+ * but the desk's own list leaves them out (segments.ts), so a self-service visitor always finds
  * them waiting, whatever the robot or other desks do.
  *
  * - KYC-DEMO-0001, the happy path: a clean retail file (papers complete, an ID whose scan passes,
@@ -14,7 +14,7 @@
  *   an operator checked them and rated them MEDIUM (more money expected in than the income; funds
  *   from an inheritance with no notary deed). The senior officer's desk shows its inbox with them.
  *
- * Built like the presenter's "Send new applications" (demo-feed.js KINDS), so the papers, the
+ * Built like the presenter's "Send new applications" (demo-feed.ts KINDS), so the papers, the
  * history and the pre-score are those of a real application. "Reset the demo cases" (a Global
  * action on kyc_cases) removes the two and everything they gathered, and creates them again.
  */
@@ -53,7 +53,7 @@ const CASES = [
 ];
 // Above 70k EUR a year the bank asks for a proof of income the app does not send: not clean.
 const PROOF_BANDS = ['FROM_70K_TO_120K', 'ABOVE_120K'];
-// The demo's shapes: demo-feed.js's, and an inheritance with no notary deed (a MEDIUM risk).
+// The demo's shapes: demo-feed.ts's, and an inheritance with no notary deed (a MEDIUM risk).
 const SHAPES = {
   ...Object.fromEntries(Object.entries(KINDS).map(([kind, k]) => [kind, k.shape])),
   inheritance: () => ({
@@ -135,7 +135,7 @@ const normalize = s =>
     .toLowerCase()
     .trim();
 
-/** The two cases, written through `store` (live.js: the seed's SQLite or the agent's data). */
+/** The two cases, written through `store` (live.ts: the seed's SQLite or the agent's data). */
 async function createShowcaseCases(store) {
   const run = newRun(store);
   const entries = await store.list(

@@ -5,12 +5,12 @@
  * Every table of the data model is created from model/schema.json.
  * Filled so far: parties (retail and business customers, companies and their owners), core banking
  * (counterparties, cards, mandates, six months of transactions), financial crime (KYC, devices,
- * screening, alerts, investigations, SARs, with the stories of stories.js) and disputes (dispute
+ * screening, alerts, investigations, SARs, with the stories of stories.ts) and disputes (dispute
  * requests, chargebacks, SEPA disputes, holds, complaints) and e-invoicing (directory entries,
  * invoices, payment matching, e-reporting) and credit (applications, loans and repayments,
  * guarantees, collections, limit requests) and the lifecycle (closures, authority requests,
  * company events, insolvencies, deceased customers, QA reviews).
- * Every id is a UUID, the same on every run. `node seed/index.js out.sqlite` writes a copy to
+ * Every id is a UUID, the same on every run. `node dist/seed/index.js out.sqlite` writes a copy to
  * inspect.
  */
 import fs from 'fs';
@@ -64,21 +64,21 @@ function build(count = 300, businessCount = 60) {
 
   const stories = assignStories(rows);
   coreBanking(rows, stories);
-  // The guided alerts last: they draw nothing from the random stream (alert-cases.js). Then, with
+  // The guided alerts last: they draw nothing from the random stream (alert-cases.ts). Then, with
   // no draw from the seeded stream either, the payments desk's open cases, and the compliance
-  // queues on the customers nobody took (crime.js complianceQueue).
+  // queues on the customers nobody took (crime.ts complianceQueue).
   financialCrime(
     rows,
     stories,
     [disputes, einvoicing, credit, lifecycle, alertCases],
     [paymentsDesk],
   );
-  // Last, on a stream of its own: 26 weeks of applications, decided (onboarding-funnel.js).
+  // Last, on a stream of its own: 26 weeks of applications, decided (onboarding-funnel.ts).
   withStream('onboarding-funnel', () => onboardingFunnel(rows));
-  // Then the other desks' half year of decided work, on a stream of its own (desk-history.js).
+  // Then the other desks' half year of decided work, on a stream of its own (desk-history.ts).
   withStream('desk-history', () => deskHistory(rows, stories));
   // Last of all, on its own stream: Lagoon's applications and the partner on every row
-  // (lagoon-history.js).
+  // (lagoon-history.ts).
   withStream('lagoon-history', () => lagoonHistory(rows));
 
   return { rows, stories };

@@ -2694,7 +2694,7 @@ function disputes(ctx) {
 
 export {
   disputes,
-  // For the desks' history (desk-history.js), which writes more cases the same way.
+  // For the desks' history (desk-history.ts), which writes more cases the same way.
   FINAL,
   ONLINE_SHOPS,
   applyRounds,

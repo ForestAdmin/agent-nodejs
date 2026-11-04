@@ -1,6 +1,6 @@
 /**
  * The open alerts the guided AML and fraud workflows need, so each queue holds one alert per path
- * whatever the hour: the stories (stories.js) give the mules,
+ * whatever the hour: the stories (stories.ts) give the mules,
  * the split payments and the takeovers; this wave adds what they lack.
  *
  * - AML, explained by the profile: a yearly bonus from the customer's own employer pushes the
@@ -417,7 +417,7 @@ function alertCases(ctx) {
   newPhoneCase(ctx, used);
   travelCase(ctx, used);
   pastChecks(ctx);
-  // Kept out of the compliance queues, which pick their customers last (crime.js).
+  // Kept out of the compliance queues, which pick their customers last (crime.ts).
   ctx.reserved = new Set([...(ctx.reserved || []), ...used]);
 }
 

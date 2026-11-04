@@ -1,6 +1,6 @@
 /**
  * The evidence a screening analyst reads before deciding on a hit, as fields of the hit (same
- * pattern as case-file.js): the list entry, our customer or payee, the comparison of the two, the
+ * pattern as case-file.ts): the list entry, our customer or payee, the comparison of the two, the
  * payment screening held, and the decision once taken. One short value per field.
  */
 import { ConditionTreeLeaf } from '@forestadmin/datasource-toolkit';

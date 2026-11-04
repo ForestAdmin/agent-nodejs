@@ -1,6 +1,6 @@
 /**
  * The case file an investigator and the MLRO read, as fields of the investigation (same pattern
- * as case-file.js): the case, the alerts and hits behind it, its transactions, the customer's
+ * as case-file.ts): the case, the alerts and hits behind it, its transactions, the customer's
  * profile against their activity, KYC, the questions asked, and the SAR once drafted and filed.
  */
 import type { RecordData } from '@forestadmin/datasource-toolkit';

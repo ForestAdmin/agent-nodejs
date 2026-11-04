@@ -21,7 +21,7 @@
  * a technical error.
  *
  * The way in: the global Smart Action "Start the day" on customers (n cases per inbox, at most 5),
- * written through Forest's collections so the agent sees them at once (customizations/customers.js).
+ * written through Forest's collections so the agent sees them at once (customizations/customers.ts).
  */
 import { randomUUID } from 'crypto';
 
@@ -1117,7 +1117,7 @@ const idNumber = type =>
 
 /**
  * A new person, nobody else's name (the data never has two people with the same name). `accept`:
- * who may apply (the presenter's button wants a file with nothing to flag, demo-feed.js).
+ * who may apply (the presenter's button wants a file with nothing to flag, demo-feed.ts).
  */
 async function newPerson(run, country, adultAge = 18, accept: (p) => boolean = () => true) {
   const draw = () => {
@@ -1260,7 +1260,7 @@ function documentRow(run, kyc, minutesAgo, fields) {
   });
 }
 
-/** The applicant's ID. `extra.id` picks its scan (random.js scanFlaw reads it from the id). */
+/** The applicant's ID. `extra.id` picks its scan (random.ts scanFlaw reads it from the id). */
 function idDocument(run, kyc, who, minutesAgo, extra = {}) {
   const type = who.nationality === 'FR' ? 'NATIONAL_ID' : 'PASSPORT';
   const issued = new Date(run.now.getTime() - rnd(200, 3000) * DAY);
@@ -1285,7 +1285,7 @@ function idDocument(run, kyc, who, minutesAgo, extra = {}) {
 /**
  * A retail application from the app: the person, the customer, the case, an ID, a selfie and a
  * proof of address. `shape` fixes what is drawn at random otherwise (the presenter's button,
- * demo-feed.js): `country`, `accept` (who applies), `channel`, `risk` (the customer's rating),
+ * demo-feed.ts): `country`, `accept` (who applies), `channel`, `risk` (the customer's rating),
  * `monthlyIn` (who => money expected in a month), `idDocumentId` and `intake`: the app's
  * pre-score, written to the case's risk_before last, once every paper is there (an automated
  * inbox takes the case on that score, and must not find it half sent).
@@ -1342,7 +1342,7 @@ async function newRetailApplicant(run, shape) {
   };
 }
 
-// NAF code, label, legal form, sells by card, monthly revenue, name: as business.js draws them.
+// NAF code, label, legal form, sells by card, monthly revenue, name: as business.ts draws them.
 const INDUSTRIES = [
   ['10.71C', 'Bakery', 'SARL', true, [25000, 70000], n => `Boulangerie ${n}`],
   ['56.10A', 'Restaurant', 'SAS', true, [40000, 120000], n => `Le Bistrot ${n}`],
@@ -1604,7 +1604,7 @@ export {
   ID_FILES,
   KINDS,
   addLiveDay,
-  // For the partner portal's actions (actions-partner.js): an application, its case, its papers.
+  // For the partner portal's actions (actions/partner.ts): an application, its case, its papers.
   applicant,
   documentRow,
   onboardingCase,

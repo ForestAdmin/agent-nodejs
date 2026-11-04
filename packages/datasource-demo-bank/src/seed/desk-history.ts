@@ -1,13 +1,13 @@
 /**
  * The desks' history: half a year of the work the Alerts, Investigations, MLRO, Disputes and
- * Payments desks decided, so their weekly charts (desk-charts.js) draw a curve and their KPIs say
- * something true. What onboarding-funnel.js did for the Onboarding desk.
+ * Payments desks decided, so their weekly charts (desk-charts.ts) draw a curve and their KPIs say
+ * something true. What onboarding-funnel.ts did for the Onboarding desk.
  *
  * - Alerts: 9 to 12 everyday alerts cleared each week on top of the stories', raised by their
  *   rule on a real payment (a card purchase far above the usual basket, money in and out within
  *   48 hours, a month's income above twice the declared one): card purchases cleared the same
  *   day, AML patterns 4 hours to 3 days later; two thirds false positives. The note says what the
- *   lines show (desk-history-stories.js).
+ *   lines show (desk-history-stories.ts).
  * - Investigations: 2 to 3 decided each week, 10 to 40 days after they opened, from an alert, a
  *   referral or (rarely) the press. Each books its story's lines on the customer's statement and
  *   its summary is written from them. About a third end in a SAR, at least one each month:
@@ -28,7 +28,7 @@
  * the other waves' human steps there too. Cases whose decision would come after now are left out:
  * the open queues stay the ones the other waves write. Alerts get their due date from their
  * severity, card fraud within 24 hours (`due_at`), and the references are numbered again in date
- * order. Built last, on a stream of its own (random.js withStream).
+ * order. Built last, on a stream of its own (random.ts withStream).
  */
 import { toDate, upper } from './banking';
 import { context, informationRequest, kycCase, op, trail } from './crime';
@@ -631,7 +631,7 @@ function tracfinAnswer(ctx, customerId, filed, waiting) {
   return answered;
 }
 
-/** A SAR still waiting for TRACFIN: every open account frozen, the cards blocked (crime.js rule). */
+/** A SAR still waiting for TRACFIN: every open account frozen, the cards blocked (crime.ts rule). */
 function freezeForTracfin(ctx, report) {
   const accounts = ctx.rows.accounts.filter(
     a => a.customer_id === report.customer_id && ['ACTIVE', 'DORMANT'].includes(a.status),
@@ -816,7 +816,7 @@ function sarDates(ctx, customerId, opened, decided, waiting) {
   return { answered, toMlro, drafted };
 }
 
-/** Hours a story takes from its first line to the last, at most (desk-history-stories.js). */
+/** Hours a story takes from its first line to the last, at most (desk-history-stories.ts). */
 const STORY_SPAN = {
   strangersAbroad: 150,
   passThroughAbroad: 80,

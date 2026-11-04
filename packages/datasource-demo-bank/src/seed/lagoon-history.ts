@@ -4,7 +4,7 @@
  * Forest's Gateway API, scoped on `partner`.
  *
  * - History: Lagoon went live 18 weeks ago with about 3 applications a week, now 5 or 6 (fewer in
- *   mid-August). Each is decided like the funnel's (onboarding-funnel.js, same code): by the desk on
+ *   mid-August). Each is decided like the funnel's (onboarding-funnel.ts, same code): by the desk on
  *   working days, approved about 7 times in 10 (the approved ones get their accounts and statement),
  *   declined, or closed when the applicant stops answering. Never approved by the system: a partner
  *   application always meets a person.
@@ -16,7 +16,7 @@
  *   has something to leave out. Partner onboarding cases name the partner in their notes, as
  *   "Submit application" writes them.
  *
- * Built last, on a seeded stream of its own (seed/index.js withStream), so nothing drawn before moves.
+ * Built last, on a seeded stream of its own (seed/index.ts withStream), so nothing drawn before moves.
  */
 import { createHash } from 'crypto';
 
@@ -128,7 +128,7 @@ function backlogApplicant(rows, references, hours) {
     rows.individuals.push(individual);
     rows.customer_members.push(member);
   });
-  // The rating the case file suggests, as the funnel's applicants get (case-file.js).
+  // The rating the case file suggests, as the funnel's applicants get (case-file.ts).
   Object.assign(drawn.customer, {
     risk_rating: applicantRating(
       made.map(m => m.individual),
@@ -151,7 +151,7 @@ function pickedUp(date, hours) {
   return moment < latest ? moment : latest;
 }
 
-/** An ID whose scan shows `flaw` (random.js scanFlaw): its id derived from the drawn one. */
+/** An ID whose scan shows `flaw` (random.ts scanFlaw): its id derived from the drawn one. */
 function withScan(doc, flaw) {
   let { id } = doc;
 

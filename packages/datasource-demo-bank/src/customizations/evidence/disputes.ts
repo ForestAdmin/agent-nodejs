@@ -17,7 +17,7 @@ const OK = '✓';
 const LOOK = '⚠';
 const BAD = '✗';
 
-// [Visa code, Visa label, Mastercard code, Mastercard label], as in disputes.js.
+// [Visa code, Visa label, Mastercard code, Mastercard label], as in disputes.ts.
 const REASON_CODES = {
   UNAUTHORIZED: [
     '10.4',

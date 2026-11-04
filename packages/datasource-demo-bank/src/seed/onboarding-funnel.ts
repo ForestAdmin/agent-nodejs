@@ -1,6 +1,6 @@
 /**
  * The onboarding funnel: a year of applications, decided as a real onboarding desk decides them,
- * so the Onboarding desk's weekly charts (desk-charts.js) draw a curve and the customer base grows
+ * so the Onboarding desk's weekly charts (desk-charts.ts) draw a curve and the customer base grows
  * without a cliff. Over the 26 weeks the charts show, 14 to 22 decisions a week; in the 26 weeks
  * before, from 1 to 11 (the bank was smaller).
  *
@@ -9,11 +9,11 @@
  * - Approved by the desk, on working days: papers checked (business: the beneficial owners' IDs,
  *   the company papers against the INPI register and its register of beneficial owners), sometimes
  *   after a question to the client; a medium or high risk signed off by a senior. The rating is the
- *   one the case file suggests (case-file.js).
+ *   one the case file suggests (case-file.ts).
  * - Approved customers become ACTIVE; their accounts open after the approval with a first deposit
- *   from their own account elsewhere, then the statement everyone has (banking.js), a phone and
+ *   from their own account elsewhere, then the statement everyone has (banking.ts), a phone and
  *   logins.
- * - Declined (refusals.js): the selfie is not the ID holder, a forged paper, owners unlike the
+ * - Declined (refusals.ts): the selfie is not the ID holder, a forged paper, owners unlike the
  *   register, outside the risk appetite. The customer is DECLINED, with no account.
  * - Closed, no answer: a question went unanswered; the case closes two weeks after its due date,
  *   the request cancelled with it, and the applicant is a PROSPECT again.
@@ -22,8 +22,8 @@
  *
  * The rate of approval (approved against declined) moves between about 55% and 82%: a slower,
  * lower summer and the fraud wave; the team gets faster as months go by. Applications whose
- * decision would come after now are left out: the open queue is the one crime.js writes. Built
- * last, on a seeded stream of its own (random.js withStream); the KYC and request references are
+ * decision would come after now are left out: the open queue is the one crime.ts writes. Built
+ * last, on a seeded stream of its own (random.ts withStream); the KYC and request references are
  * numbered again, to stay in date order with the new cases.
  */
 import { createHash } from 'crypto';
@@ -204,7 +204,7 @@ function approvalDays(business, pace) {
   return (low + rand() * (high - low)) * pace;
 }
 
-/** Why a declined application was declined (refusals.js codes). */
+/** Why a declined application was declined (refusals.ts codes). */
 function refusal(outcome, business) {
   if (outcome === 'FRAUD') return 'SYNTHETIC_IDENTITY';
 
@@ -396,7 +396,7 @@ function dateApplicant(state, parts, opened) {
   parts.business_members.forEach(m => Object.assign(m, { since: isoDate(opened) }));
 }
 
-/** The rating the case file suggests (case-file.js); a synthetic identity is high risk. */
+/** The rating the case file suggests (case-file.ts); a synthetic identity is high risk. */
 function ratingOf(state, app, parts) {
   if (app.outcome === 'FRAUD') return 'HIGH';
   if (parts.business) return companyRating(parts.business);
@@ -952,7 +952,7 @@ function renumber(rows, list, prefix, dateField) {
 function prepare(state, app) {
   const parts = applicant(state, app.business, app.decided);
   if (app.outcome === 'FRAUD') waveApplicant(state, parts);
-  // A partner's applications (lagoon-history.js) all come through the partner's app.
+  // A partner's applications (lagoon-history.ts) all come through the partner's app.
   if (state.channel) Object.assign(parts.customer, { onboarding_channel: state.channel });
   const rating = ratingOf(state, app, parts);
   Object.assign(parts.customer, { risk_rating: rating });
@@ -977,7 +977,7 @@ function prepare(state, app) {
 
 /**
  * `plan` lists the decisions to build (plannedDecisions by default) and `channel` forces the
- * channel they came through: lagoon-history.js decides a partner's applications the same way.
+ * channel they came through: lagoon-history.ts decides a partner's applications the same way.
  */
 function onboardingFunnel(rows, { plan = plannedDecisions, channel = null } = {}) {
   const state: Record<string, any> = {

@@ -58,7 +58,7 @@ async function drawDocuments(records, context) {
 
   const moves = await movesAfter(records, context);
 
-  // A paper a partner sent (actions-partner.js) is its own file; the others are drawn.
+  // A paper a partner sent (actions/partner.ts) is its own file; the others are drawn.
   return records.map(
     r =>
       uploaded(r.id)?.uri ||

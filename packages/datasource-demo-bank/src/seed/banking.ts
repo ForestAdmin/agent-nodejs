@@ -1810,7 +1810,7 @@ function firstDeposit(ctx, opened) {
 
 /**
  * Everything about one customer's money: cards, payees, mandates, statements. None of a
- * `newcomer`'s transfers (onboarding-funnel.js) waits for validation: the payments desk keeps the
+ * `newcomer`'s transfers (onboarding-funnel.ts) waits for validation: the payments desk keeps the
  * queue its own cases make.
  */
 function customerBanking(rows, customer, shared, { newcomer = false } = {}) {
@@ -1889,7 +1889,7 @@ function closeTheBooks(rows, ctx) {
 }
 
 // What coreBanking shared between customers (merchants, creditors, employers...), by rows: later
-// customers (onboarding-funnel.js) bank with the same ones.
+// customers (onboarding-funnel.ts) bank with the same ones.
 const SHARED = new WeakMap();
 const sharedOf = rows => SHARED.get(rows);
 

@@ -237,7 +237,7 @@ async function unfreeze(d, account) {
 
 // ---- the account a new customer gets on approval ----------------------------------------------
 
-// What the seed opens for an approved customer (retail.js accountRows, onboarding-funnel.js):
+// What the seed opens for an approved customer (retail.ts accountRows, onboarding-funnel.ts):
 // a current account, or a business one. At zero, no overdraft until it has a history.
 const FIRST_ACCOUNT = {
   RETAIL: { type: 'CURRENT', purpose: 'DAILY_BANKING', plan: 'STANDARD' },
@@ -248,7 +248,7 @@ const FIRST_ACCOUNT = {
     plan: 'BUSINESS_PRO',
   },
 };
-// Who gets a card on it: the people who can pay from it (banking.js holdersOf).
+// Who gets a card on it: the people who can pay from it (banking.ts holdersOf).
 const CARD_ROLES = ['HOLDER', 'JOINT_HOLDER', 'SIGNATORY'];
 const accountNumberOf = iban => Number(String(iban).replace(/ /g, '').slice(14, 25)) || 0;
 const randomDigits = n => Array.from({ length: n }, () => Math.floor(Math.random() * 10)).join('');
@@ -616,7 +616,7 @@ async function checkDocuments(context, resultBuilder) {
   const checked = await documentCheck(reader(context.dataSource), kyc);
   if (!checked) return resultBuilder.error(`${kyc.reference} has nobody to check papers for.`);
   const missing = checked.rows.filter(r => !r.ok);
-  // The case file shows its "Documents ·" fields from this line on (case-file.js, checksRun).
+  // The case file shows its "Documents ·" fields from this line on (case-file.ts, checksRun).
   await d.create('status_changes', {
     record_type: 'KYC_CASES',
     record_id: kyc.id,
@@ -654,7 +654,7 @@ async function screenCase(context, resultBuilder) {
   const check = `check ${checkId}`;
   const screened = subjects.map(s => s.names[0]).join(', ');
   const matches = findMatches(subjects, entries);
-  // The case file shows its screening fields from this line on (case-file.js, checksRun).
+  // The case file shows its screening fields from this line on (case-file.ts, checksRun).
   await d.create('status_changes', {
     record_type: 'KYC_CASES',
     record_id: kyc.id,
@@ -685,7 +685,7 @@ async function screenCase(context, resultBuilder) {
   );
 }
 
-/** The flaw render.js draws on an ID (random.js scanFlaw: same seed, so the same picture). */
+/** The flaw render.ts draws on an ID (random.ts scanFlaw: same seed, so the same picture). */
 const drawnFlaw = scanFlaw;
 
 const FLAW_OUTCOME = {
@@ -709,7 +709,7 @@ function idCheck(doc, otherFace = false) {
 }
 
 /** The person's latest selfie on the case shows another face: a partner upload whose scan says
- * so (uploads.js). The app's seeded selfies carry their outcome in their row already. */
+ * so (uploads.ts). The app's seeded selfies carry their outcome in their row already. */
 async function selfieOfAnotherFace(d, doc) {
   if (!doc.kyc_case_id || !doc.individual_id) return false;
   const [selfie] = await d.list(
@@ -1480,7 +1480,7 @@ function failedChecks({ hits, docs, sanctioned }) {
   ];
 }
 
-/** Why the case ends, as a code (refusals.js): from a failed paper, an unanswered request, or the
+/** Why the case ends, as a code (refusals.ts): from a failed paper, an unanswered request, or the
  * reviewer's judgement (risk appetite). */
 async function defaultCode(d, kyc, findings) {
   const fromPaper = findings.docs
@@ -1706,7 +1706,7 @@ async function handToPerson(context, resultBuilder) {
   ]);
   const why = checkReasons(file);
   await d.update('kyc_cases', [eq('id', kyc.id)], { assigned_to: null, updated_at: now() });
-  // Written down, so the desks can tell what the robot handed over, when and why (robot-results.js).
+  // Written down, so the desks can tell what the robot handed over, when and why (robot-results.ts).
   await d.create('status_changes', {
     record_type: 'KYC_CASES',
     record_id: kyc.id,
@@ -1912,7 +1912,7 @@ async function rejectKyc(context, resultBuilder) {
     }),
   );
 
-  // Refused: DECLINED. Stopped answering: a prospect again (refusals.js).
+  // Refused: DECLINED. Stopped answering: a prospect again (refusals.ts).
   const customer = await d.one('customers', kyc.customer_id, ['id', 'status', 'display_name']);
   const after = customerStatusAfter(code);
   const ends = kyc.type === 'ONBOARDING' && customer.status === 'ONBOARDING';
@@ -2991,7 +2991,7 @@ async function casesToRelease(d, hit) {
   return free.filter(Boolean);
 }
 
-/** Who the hit is about on our side, as its evidence says it (evidence-screening.js). */
+/** Who the hit is about on our side, as its evidence says it (evidence/screening.ts). */
 async function hitParty(context) {
   const side = await context.getRecord(['customer_name', 'customer_relationship']);
 

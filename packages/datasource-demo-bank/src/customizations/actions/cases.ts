@@ -982,7 +982,7 @@ async function refuseOnboarding(context, inv, reason) {
     await history(context, 'KYC_CASES', kyc.id, [kyc.status, 'REJECTED'], why);
   }
 
-  // Refused, never a customer: DECLINED (refusals.js).
+  // Refused, never a customer: DECLINED (refusals.ts).
   await patch(context, 'customers', inv.customer_id, { status: 'DECLINED', updated_at: now() });
   await history(context, 'CUSTOMERS', inv.customer_id, ['ONBOARDING', 'DECLINED'], why);
 
@@ -1314,7 +1314,7 @@ const payeeName = f => f.payee?.counterparty?.name || 'the payee';
 const payeeLine = f =>
   f.payee ? `${payeeName(f)} · ${f.payee.iban} · ${f.payee.bank_name}` : null;
 
-/** The transfer waiting for validation, with what is known about it (evidence-transfers.js). */
+/** The transfer waiting for validation, with what is known about it (evidence/transfers.ts). */
 async function pendingTransfer(context) {
   const transfer = await context.getRecord(TRANSFER_FIELDS);
   const list = transferReader(context.dataSource);
@@ -1629,7 +1629,7 @@ function customizeOutgoingTransfers(collection) {
 
 // ---- dispute requests ----------------------------------------------------------------------------
 
-// Reason codes and SEPA codes: evidence-disputes.js, which the workflows' evidence reads too.
+// Reason codes and SEPA codes: evidence/disputes.ts, which the workflows' evidence reads too.
 // Wero settles over SEPA Instant, so a Wero payment is recalled like an instant transfer.
 const SCHEMES = {
   TRANSFER: 'SCT',
@@ -1970,7 +1970,7 @@ function routeCard(dispute, route, opened, notes, block, { customer, paid }) {
   });
 }
 
-// What the evidence needs to say why a request is declined (evidence-disputes.js).
+// What the evidence needs to say why a request is declined (evidence/disputes.ts).
 const DISPUTE_FILE = [...DISPUTE.filter(f => !f.includes(':')), 'merchant_contacted_at'];
 
 /** The merchant first: the customer asks them, the request waits on the customer. */

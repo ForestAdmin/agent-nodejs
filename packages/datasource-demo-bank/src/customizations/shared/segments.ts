@@ -13,7 +13,7 @@ const has = (field, text) => ({ field, operator: 'Contains', value: text });
 const hasNot = (field, text) => ({ field, operator: 'NotContains', value: text });
 const and = (...conditions) => ({ aggregator: 'And', conditions });
 
-// The demo's own cases (showcase.js): KYC-DEMO-… references, kept out of every queue but theirs,
+// The demo's own cases (showcase.ts): KYC-DEMO-… references, kept out of every queue but theirs,
 // so a self-service visitor always finds them waiting.
 const SHOWCASE_MARK = 'DEMO';
 const notShowcase = hasNot('reference', SHOWCASE_MARK);
@@ -59,7 +59,7 @@ const SEGMENTS = {
     ),
   ],
   // Retail onboardings sent for a senior's sign-off (a medium or high risk): the senior officer's
-  // queue, demo cases included (KYC-DEMO-0003 and -0004 wait there from boot, showcase.js).
+  // queue, demo cases included (KYC-DEMO-0003 and -0004 wait there from boot, showcase.ts).
   kyc_senior: [
     'kyc_cases',
     'Senior sign-off',
@@ -69,7 +69,7 @@ const SEGMENTS = {
       is('status', 'PENDING_APPROVAL'),
     ),
   ],
-  // The demo's two cases (showcase.js), whatever their status: the KYC case desk's own list.
+  // The demo's two cases (showcase.ts), whatever their status: the KYC case desk's own list.
   kyc_showcase: [
     'kyc_cases',
     'Demo KYC cases',

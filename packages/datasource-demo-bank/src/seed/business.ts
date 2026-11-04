@@ -437,7 +437,7 @@ function businessCustomers(count, retailPeople, nextAccountNumber) {
 }
 
 /**
- * A company applying to become a customer on `created` (onboarding-funnel.js): the company, who
+ * A company applying to become a customer on `created` (onboarding-funnel.ts): the company, who
  * owns it, its director (always someone new) and the relationship, still ONBOARDING, signed by its
  * director alone. No account: one opens once the application is approved.
  */

@@ -112,8 +112,8 @@ function eighteenth(person) {
 
 // ---- what an ID scan shows -------------------------------------------------------------------------
 /**
- * The flaw an ID scan shows, fixed by its id (md5 of id + "flaw"), never drawn: render.js draws it,
- * the simulated ID check (actions-onboarding.js) reads it, crime.js picks ids that show the flaw a
+ * The flaw an ID scan shows, fixed by its id (md5 of id + "flaw"), never drawn: render.ts draws it,
+ * the simulated ID check (actions/onboarding.ts) reads it, crime.ts picks ids that show the flaw a
  * case needs. Most scans are clean; glare is a reflection that still passes.
  */
 function scanFlaw(id) {

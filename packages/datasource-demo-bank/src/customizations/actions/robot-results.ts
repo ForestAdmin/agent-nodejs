@@ -5,7 +5,7 @@
  *
  * The robot is given a new retail application the app pre-scored LOW (risk_before; seeded cases
  * leave it empty). Its "Hand to a person" step writes a status_changes row (field assigned_to, its
- * reason the checks that failed, actions-onboarding.js); an application approved without one was
+ * reason the checks that failed, actions/onboarding.ts); an application approved without one was
  * approved by the robot. The agent reseeds its database when it starts, so every hand-over it
  * holds has its row.
  */

@@ -290,7 +290,7 @@ function balance(status, type, monthlyIn) {
   return round2(monthlyIn * (0.1 + rand() * 1.4));
 }
 
-// An AML freeze drawn here is lifted once the case behind it exists (crime.js amlFreezes): an AML
+// An AML freeze drawn here is lifted once the case behind it exists (crime.ts amlFreezes): an AML
 // case alone gives no ground to freeze. Kept in the draw so the rest of the data does not move.
 const FREEZE_REASONS = ['FRAUD_SUSPICION', 'AML_INVESTIGATION', 'AUTHORITY_REQUEST'];
 // What the operator wrote when freezing, per reason.

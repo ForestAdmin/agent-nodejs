@@ -8,11 +8,11 @@ Demo data source themed around a bank's back office (KYC, screening, AML, SARs, 
 
 ## Architecture
 
-`src/index.js` builds everything at boot; the order matters:
+`src/index.ts` builds everything at boot; the order matters:
 
 1. **Seed → SQLite** (`src/seed/`): `seed(filename)` creates every table from `src/model/data-model.json`, then runs the domain builders. Then `addShowcaseCases` adds the KYC case desk's four cases (`KYC-DEMO-000x`).
 2. **Introspect** via `@forestadmin/datasource-sql`; `applyTypes` re-types SQLite text columns as `Enum` (from `data-model.json`) and `Uuid`.
-3. **Customize**: `addLinks`, `addReadableNames`, `addParentLists` (`customizations/shared/`) for every table, then `customizeCollection(<table>, …)` per table (`customizations/<table>.js`), then `addCharts` (`charts/index.js`).
+3. **Customize**: `addLinks`, `addReadableNames`, `addParentLists` (`customizations/shared/`) for every table, then `customizeCollection(<table>, …)` per table (`customizations/<table>.ts`), then `addCharts` (`charts/index.ts`).
 
 ## Commands
 
@@ -23,5 +23,5 @@ Demo data source themed around a bank's back office (KYC, screening, AML, SARs, 
 ## Gotchas
 
 - **Smart Action order is a contract.** The agent numbers action endpoints by declaration order per collection (`/forest/_actions/<collection>/<index>/<slug>`) and the CLI's demo layout calls those numbers. Adding, removing or reordering an action, a collection or a chart means regenerating the CLI's `forest-layout.json`.
-- **Chart answers and segment keys are a contract** too: the CLI's Custom components read the API charts (`hub_counts` answers per segment key of `customizations/shared/segments.js`; the Hub adds up each desk's queues).
+- **Chart answers and segment keys are a contract** too: the CLI's Custom components read the API charts (`hub_counts` answers per segment key of `customizations/shared/segments.ts`; the Hub adds up each desk's queues).
 - **The data is deterministic** (fixed seed, dates relative to today, the hour as the story's end): a test may rely on counts, not on today's dates.

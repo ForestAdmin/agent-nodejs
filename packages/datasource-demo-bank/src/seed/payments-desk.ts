@@ -69,7 +69,7 @@ function bankAccount(key, bank) {
   };
 }
 
-/** An account at the Lithuanian e-money bank the mule rings use (reference.js FOREIGN_BANKS). */
+/** An account at the Lithuanian e-money bank the mule rings use (reference.ts FOREIGN_BANKS). */
 function lithuanianAccount(key) {
   const bban = `32500${digits(`${key}:lt`, 11)}`;
   const check = String(98 - mod97(`${bban}212900`)).padStart(2, '0');
@@ -252,7 +252,7 @@ function pickCustomer(state, type, accepts) {
 
 const available = party => Number(party.account.available_balance);
 const withDevice = party => Boolean(party.device);
-// The sanctions wave freezes a foreign customer first (disputes.js): our cases go to French ones.
+// The sanctions wave freezes a foreign customer first (disputes.ts): our cases go to French ones.
 const french = party => party.person.nationality === 'FR';
 // A comfortable income (set when the customer is created): the account is not overdrawn.
 const wellOff = party => Number(party.customer.expected_monthly_in) >= 3000;
@@ -971,7 +971,7 @@ function paymentsDesk(rows, stories, reserved) {
     words:
       'No: 3,200 EUR is the price of the van I sold them, invoice 2026-0877. Nothing to send back.',
   });
-  // Kept out of the compliance queues, which pick their customers after this (crime.js).
+  // Kept out of the compliance queues, which pick their customers after this (crime.ts).
   state.taken.forEach(id => reserved?.add(id));
 
   return rows;
