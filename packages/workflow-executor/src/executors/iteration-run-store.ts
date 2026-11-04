@@ -50,7 +50,9 @@ export function narrowToRecord(row: StepExecutionData, record: RecordRef): StepE
     const loaded = row.executionResult.records.find(r => isSameRecord(r, record));
     if (!loaded) return [row];
 
-    return [{ ...row, executionResult: { relation: row.executionResult.relation, record: loaded } }];
+    return [
+      { ...row, executionResult: { relation: row.executionResult.relation, record: loaded } },
+    ];
   }
 
   return [row];
