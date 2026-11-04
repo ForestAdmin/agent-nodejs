@@ -1,0 +1,189 @@
+{
+  "name": "High-value transfer validation",
+  "collection": "outgoing_transfers",
+  "segments": [
+    "b722f1ed-518e-4797-831b-cfbe16f80438"
+  ],
+  "steps": [
+    {
+      "id": "transfer",
+      "type": "read",
+      "title": "Read the transfer",
+      "prompt": "Read all 5 of these fields of this transfer (every one is needed): \"Transfer · Amount\", \"Transfer · Scheme\", \"Transfer · Requested\", \"Transfer · Initiated via\" and \"Transfer · Customer authentication\": the amount and the account, the scheme, when it was asked, how it was sent and how the customer confirmed it.",
+      "autoComplete": false,
+      "next": "payee",
+      "fields": [
+        "tr_amount",
+        "tr_scheme",
+        "tr_requested",
+        "tr_via",
+        "tr_sca"
+      ]
+    },
+    {
+      "id": "payee",
+      "type": "read",
+      "title": "Read the payee",
+      "prompt": "Read all 3 of these fields of this transfer (every one is needed): \"Payee · Beneficiary\", \"Payee · Saved or new\" and \"Payee · Earlier payments\": who receives the money (name, IBAN, bank, country), whether the payee is saved or new, and the earlier payments to it.",
+      "autoComplete": false,
+      "next": "check_payee",
+      "fields": [
+        "py_beneficiary",
+        "py_saved",
+        "py_history"
+      ]
+    },
+    {
+      "id": "check_payee",
+      "type": "action",
+      "title": "Check the payee (Verification of Payee)",
+      "prompt": "Run \"Check the payee\": through STET, the payee's bank says whether the name the customer typed is the name on the account, and the IBAN is checked. The answer is recorded on the transfer.",
+      "auto": true,
+      "autoComplete": false,
+      "next": "payee_check"
+    },
+    {
+      "id": "payee_check",
+      "type": "read",
+      "title": "Read the payee check",
+      "prompt": "Read both of these fields of this transfer (every one is needed): \"Payee check · Result\" and \"Payee check · IBAN\": the name check and the IBAN check.",
+      "autoComplete": false,
+      "next": "payee_ok",
+      "fields": [
+        "pc_result",
+        "pc_iban"
+      ]
+    },
+    {
+      "id": "payee_ok",
+      "type": "condition",
+      "title": "Name on the account?",
+      "prompt": "Matches when \"Payee check · Result\" starts with \"✓ Match\", \"⚠ Close match\" or \"⚠ Not possible\". No match when it starts with \"✗ No match\": the money would go to someone else, stop the transfer.",
+      "branches": [
+        {
+          "answer": "Matches or close",
+          "next": "account"
+        },
+        {
+          "answer": "No match",
+          "next": "reject",
+          "color": "red"
+        }
+      ],
+      "ai": true
+    },
+    {
+      "id": "account",
+      "type": "read",
+      "title": "Read the account",
+      "prompt": "Read both of these fields of this transfer (every one is needed): \"Account · Balance after\" and \"Account · Usual largest payment\": what is left once it is sent, and the largest payment of the last 6 months.",
+      "autoComplete": false,
+      "next": "signals",
+      "fields": [
+        "ac_after",
+        "ac_usual"
+      ]
+    },
+    {
+      "id": "signals",
+      "type": "read",
+      "title": "Read the risk signals",
+      "prompt": "Read all 4 of these fields of this transfer (every one is needed): \"Signals · Result\", \"Signals · Device\", \"Signals · Recent changes\" and \"Signals · Alerts\": the device, recent changes of phone, email or address, open alerts, and the list of risk signals.",
+      "autoComplete": false,
+      "next": "any_signal",
+      "fields": [
+        "sg_result",
+        "sg_device",
+        "sg_changes",
+        "sg_alerts"
+      ]
+    },
+    {
+      "id": "any_signal",
+      "type": "condition",
+      "title": "Any risk signal?",
+      "prompt": "None when \"Signals · Result\" starts with \"✓ No risk signal\". Signals found when it starts with \"⚠\": call the customer back.",
+      "branches": [
+        {
+          "answer": "None",
+          "next": "approve"
+        },
+        {
+          "answer": "Signals found",
+          "next": "call",
+          "color": "orange"
+        }
+      ],
+      "ai": true
+    },
+    {
+      "id": "call",
+      "type": "action",
+      "title": "Call the customer back",
+      "prompt": "Run \"Call customer back\": Aircall dials the number on file, the one before any recent change. Ask whether they made this transfer, to whom and why, then pick what they said and note their words.",
+      "autoComplete": false,
+      "next": "call_read"
+    },
+    {
+      "id": "call_read",
+      "type": "read",
+      "title": "Read the call",
+      "prompt": "Read both of these fields of this transfer (every one is needed): \"Call · Result\" and \"Call · Number called\": what the customer said, and the number called.",
+      "autoComplete": false,
+      "next": "confirms",
+      "fields": [
+        "call_result",
+        "call_number"
+      ]
+    },
+    {
+      "id": "confirms",
+      "type": "condition",
+      "title": "Customer confirms?",
+      "prompt": "Confirms when \"Call · Result\" starts with \"✓ Confirmed\". Denies when it starts with \"✗\". Not reached when it starts with \"⚠ Not reached\".",
+      "branches": [
+        {
+          "answer": "Confirms",
+          "next": "approve"
+        },
+        {
+          "answer": "Denies",
+          "next": "reject",
+          "color": "red"
+        },
+        {
+          "answer": "Not reached",
+          "next": "reject",
+          "color": "yellow"
+        }
+      ],
+      "ai": true
+    },
+    {
+      "id": "approve",
+      "type": "action",
+      "title": "Approve the transfer",
+      "prompt": "Run \"Approve transfer\": the money leaves now. Above 50,000 EUR a second operator approves (role setting). The result card shows the transfer sent.",
+      "autoComplete": false,
+      "next": "end_ok"
+    },
+    {
+      "id": "end_ok",
+      "type": "end",
+      "title": "Transfer sent"
+    },
+    {
+      "id": "reject",
+      "type": "action",
+      "title": "Reject the transfer",
+      "prompt": "Run \"Reject transfer\": the reason is pre-filled from the payee check or the call. When the customer denied it, an account takeover alert opens for the fraud team. The result card shows the transfer stopped.",
+      "autoComplete": false,
+      "next": "end_rejected"
+    },
+    {
+      "id": "end_rejected",
+      "type": "end",
+      "title": "Transfer stopped"
+    }
+  ]
+}

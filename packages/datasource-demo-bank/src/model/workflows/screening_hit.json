@@ -1,0 +1,172 @@
+{
+  "name": "Screening hit review",
+  "collection": "screening_hits",
+  "segments": [
+    "454efe22-4290-4c2b-860e-172eecd1b90a"
+  ],
+  "steps": [
+    {
+      "id": "hit",
+      "type": "read",
+      "title": "Read the hit",
+      "prompt": "Read all 6 of these fields of this screening hit (every one is needed): \"Hit · List\", \"Hit · List entry\", \"Hit · Date of birth on the list\", \"Hit · Country on the list\", \"Hit · Match score\" and \"Hit · Found by\": the list and its entry, the date of birth and country on the list, the match score, and how ComplyAdvantage found it.",
+      "autoComplete": false,
+      "next": "customer",
+      "fields": [
+        "hit_list",
+        "hit_entry",
+        "hit_entry_birth",
+        "hit_entry_country",
+        "hit_score",
+        "hit_found"
+      ]
+    },
+    {
+      "id": "customer",
+      "type": "read",
+      "title": "Read who we screened",
+      "prompt": "Read all 4 of these fields of this screening hit (every one is needed): \"Customer · Name\", \"Customer · Date of birth\", \"Customer · Country\" and \"Customer · Relationship\": our customer, their payee or company, with the date of birth, country and relationship to compare.",
+      "autoComplete": false,
+      "next": "compare",
+      "fields": [
+        "customer_name",
+        "customer_birth",
+        "customer_country",
+        "customer_relationship"
+      ]
+    },
+    {
+      "id": "compare",
+      "type": "read",
+      "title": "Compare the two",
+      "prompt": "Read all 4 of these fields of this screening hit (every one is needed): \"Comparison · Verdict\", \"Comparison · Name\", \"Comparison · Date of birth\" and \"Comparison · Country\": name, date of birth and country side by side, and the verdict they add up to.",
+      "autoComplete": false,
+      "next": "same_person",
+      "fields": [
+        "compare_verdict",
+        "compare_name",
+        "compare_birth",
+        "compare_country"
+      ]
+    },
+    {
+      "id": "same_person",
+      "type": "condition",
+      "title": "Same person?",
+      "prompt": "Clearly different when \"Comparison · Verdict\" starts with \"✓ Different\". Possible match when it starts with ⚠ or ✗: you decide in the next step.",
+      "branches": [
+        {
+          "answer": "Clearly different",
+          "next": "payment"
+        },
+        {
+          "answer": "Possible match",
+          "next": "decide",
+          "color": "orange"
+        }
+      ],
+      "ai": true
+    },
+    {
+      "id": "decide",
+      "type": "condition",
+      "title": "Your decision",
+      "prompt": "Compare the date of birth, the country and the list entry above. True match only when they point to the same person or company: it freezes their accounts and stops their payments.",
+      "branches": [
+        {
+          "answer": "False positive",
+          "next": "payment"
+        },
+        {
+          "answer": "True match",
+          "next": "confirm",
+          "color": "red"
+        }
+      ]
+    },
+    {
+      "id": "payment",
+      "type": "read",
+      "title": "Is a payment held?",
+      "prompt": "Read the field \"Payment · Held payment\" of this screening hit: the payment screening stopped, or no payment.",
+      "autoComplete": false,
+      "next": "held",
+      "fields": [
+        "payment_held"
+      ]
+    },
+    {
+      "id": "held",
+      "type": "condition",
+      "title": "Release a payment?",
+      "prompt": "Yes when \"Payment · Held payment\" starts with \"⚠ Held\". No otherwise.",
+      "branches": [
+        {
+          "answer": "Yes",
+          "next": "discard_release"
+        },
+        {
+          "answer": "No",
+          "next": "discard"
+        }
+      ],
+      "ai": true
+    },
+    {
+      "id": "discard",
+      "type": "action",
+      "title": "Discard as false positive",
+      "prompt": "Run \"Discard as false positive\" with the reason the comparison gives (another date of birth or another country). An onboarding parked for this hit goes back to its queue. The result card sums up the decision and says no payment is held.",
+      "autoComplete": false,
+      "next": "end_discarded"
+    },
+    {
+      "id": "discard_release",
+      "type": "action",
+      "title": "Discard as false positive",
+      "prompt": "Run \"Discard as false positive\" with the reason the comparison gives (another date of birth or another country). An onboarding parked for this hit goes back to its queue. The result card shows the payment still held: you release it next.",
+      "autoComplete": false,
+      "next": "release"
+    },
+    {
+      "id": "release",
+      "type": "action",
+      "title": "Release the held payment",
+      "prompt": "Run \"Release held payment\": the payment leaves through the SEPA network and the money set aside is booked. The result card shows the payment sent, with the time. Every outcome is a human call: you trigger it.",
+      "autoComplete": false,
+      "next": "end_released"
+    },
+    {
+      "id": "end_released",
+      "type": "end",
+      "title": "False positive, payment released"
+    },
+    {
+      "id": "end_discarded",
+      "type": "end",
+      "title": "False positive closed"
+    },
+    {
+      "id": "confirm",
+      "type": "action",
+      "title": "Confirm true match",
+      "prompt": "Run \"Confirm true match\" with what matched. A second analyst approves it (role setting). It flags the person or company, freezes their accounts, blocks their cards, holds the money, stops a held payment and reports the freeze to the DG Trésor (simulated); the result card sums it up.",
+      "autoComplete": false,
+      "next": "to_mlro"
+    },
+    {
+      "id": "to_mlro",
+      "type": "action",
+      "title": "Escalate to the MLRO",
+      "prompt": "Run \"Escalate to MLRO\": it opens an urgent sanctions investigation due today, waiting for the MLRO, with the stopped payment attached. The result card shows what was done: the decision and the DG Trésor report, the accounts frozen and cards blocked, the money held, the payment stopped and the investigation number.",
+      "auto": true,
+      "autoComplete": false,
+      "next": "end_mlro"
+    },
+    {
+      "id": "end_mlro",
+      "type": "end",
+      "title": "With the MLRO"
+    }
+  ]
+}

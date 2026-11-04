@@ -1,0 +1,192 @@
+{
+  "name": "Retail onboarding: automatic",
+  "collection": "kyc_cases",
+  "segments": [
+    "588c2803-d411-4ccd-8395-4e6c061cb506"
+  ],
+  "steps": [
+    {
+      "id": "check_docs",
+      "type": "action",
+      "title": "Check the documents",
+      "prompt": "Run \"Check documents\": each paper on file is checked against the onboarding rules; the result card lists each one, valid or what is wrong.",
+      "next": "verify",
+      "action": "Check documents",
+      "fullAi": true
+    },
+    {
+      "id": "verify",
+      "type": "action",
+      "title": "Verify the ID document (Onfido)",
+      "prompt": "Run \"Verify document\": Onfido checks the applicant's ID live and matches the selfie to it; the result card shows each check.",
+      "next": "screen",
+      "action": "Verify document",
+      "fullAi": true
+    },
+    {
+      "id": "screen",
+      "type": "action",
+      "title": "Screen the applicant (ComplyAdvantage)",
+      "prompt": "Run \"Screen against sanctions lists\": the result card lists each name checked and any match.",
+      "next": "evidence",
+      "action": "Screen against sanctions lists",
+      "fullAi": true
+    },
+    {
+      "id": "evidence",
+      "type": "read",
+      "title": "Read the deciding evidence",
+      "prompt": "Read all 5 of these fields of this KYC case (every one is needed): \"Automatic check · Result\", \"Documents · Complete\", \"ID checks · Result\", \"Screening · Result\" and \"Risk · Suggested rating\".",
+      "autoComplete": true,
+      "next": "clean",
+      "fields": [
+        "auto_check",
+        "docs_complete",
+        "idcheck_result",
+        "screening_result",
+        "risk_rating_suggested"
+      ]
+    },
+    {
+      "id": "clean",
+      "type": "condition",
+      "title": "Clean file?",
+      "prompt": "Clean when \"Automatic check · Result\" is CLEAN: documents complete, every ID and selfie passed, nobody found by the screening, suggested rating LOW. Anything else goes to a person, with the first check that failed.",
+      "branches": [
+        {
+          "answer": "Clean",
+          "next": "approve"
+        }
+      ],
+      "rules": [
+        {
+          "answer": "Clean",
+          "match": "all",
+          "conditions": [
+            {
+              "step": "evidence",
+              "field": "auto_check",
+              "operator": "equal",
+              "value": "CLEAN"
+            }
+          ]
+        }
+      ],
+      "fallback": "handover"
+    },
+    {
+      "id": "approve",
+      "type": "action",
+      "title": "Approve KYC",
+      "prompt": "Run \"Approve KYC\": the risk rating is the pre-score (LOW); the case is decided by the service account and the customer becomes active.",
+      "next": "end_ok",
+      "action": "Approve KYC",
+      "fullAi": true
+    },
+    {
+      "id": "end_ok",
+      "type": "end",
+      "title": "Approved automatically"
+    },
+    {
+      "id": "handover",
+      "type": "action",
+      "title": "Hand the file to a person",
+      "prompt": "Run \"Hand to a person\": the robot started the review, so the case leaves its service account; the result card says which check did not come back clean.",
+      "next": "review",
+      "action": "Hand to a person",
+      "fullAi": true
+    },
+    {
+      "id": "review",
+      "type": "guidance",
+      "title": "Review the file",
+      "prompt": "The robot paused here: a check did not come back clean (the step above says which). Read \"ID checks · Result\" and \"Documents · Complete\" in the Case tab and open the ID in the Documents tab, then click Done and decide.",
+      "next": "decide"
+    },
+    {
+      "id": "decide",
+      "type": "condition",
+      "title": "Onboard this customer?",
+      "prompt": "Your decision. An ID cut off or with another name: ask for a new ID, or reject. Approve only when every check shows ✓: Approve KYC refuses an ID that failed or needs a closer look.",
+      "branches": [
+        {
+          "answer": "Ask for a new ID",
+          "next": "request_id",
+          "color": "yellow"
+        },
+        {
+          "answer": "Reject",
+          "next": "reject",
+          "color": "red"
+        },
+        {
+          "answer": "Ask for missing documents",
+          "next": "request_docs",
+          "color": "yellow"
+        },
+        {
+          "answer": "Approve",
+          "next": "approve_manual"
+        }
+      ]
+    },
+    {
+      "id": "approve_manual",
+      "type": "action",
+      "title": "Approve KYC",
+      "prompt": "Run \"Approve KYC\" with the risk rating decided: it refuses when a document, an ID or a screening hit is still open.",
+      "autoComplete": false,
+      "next": "end_ok_manual",
+      "action": "Approve KYC"
+    },
+    {
+      "id": "end_ok_manual",
+      "type": "end",
+      "title": "Customer onboarded"
+    },
+    {
+      "id": "request_id",
+      "type": "action",
+      "title": "Request a new ID document",
+      "prompt": "Run \"Request ID document\": the applicant gets a request in the app to upload a valid ID, with the reason Onfido gave.",
+      "autoComplete": false,
+      "next": "end_waiting",
+      "action": "Request ID document"
+    },
+    {
+      "id": "request_docs",
+      "type": "action",
+      "title": "Request the missing documents",
+      "prompt": "Run \"Request missing documents\": the request is pre-filled with what the file lacks.",
+      "autoComplete": false,
+      "next": "end_waiting",
+      "action": "Request missing documents"
+    },
+    {
+      "id": "end_waiting",
+      "type": "end",
+      "title": "Waiting on the client"
+    },
+    {
+      "id": "reject",
+      "type": "action",
+      "title": "Reject KYC",
+      "prompt": "Run \"Reject KYC\": the reason is pre-filled from the failed checks.",
+      "autoComplete": false,
+      "next": "end_rejected",
+      "action": "Reject KYC"
+    },
+    {
+      "id": "end_rejected",
+      "type": "end",
+      "title": "Onboarding refused"
+    }
+  ],
+  "triggers": [
+    "manual",
+    "mcp",
+    "dataChange"
+  ],
+  "fallbackInboxId": "4e7b66f1-9835-5d57-bb17-d1f17153b813"
+}

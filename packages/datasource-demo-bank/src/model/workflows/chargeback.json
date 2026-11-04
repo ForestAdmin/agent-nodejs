@@ -1,0 +1,179 @@
+{
+  "name": "Chargeback",
+  "collection": "chargebacks",
+  "segments": [
+    "d8c76a4a-d285-446c-8864-a19c17304348"
+  ],
+  "steps": [
+    {
+      "id": "chargeback",
+      "type": "read",
+      "title": "Read the chargeback",
+      "prompt": "Read all 5 of these fields of this chargeback (every one is needed): \"Chargeback · Reason code\", \"Chargeback · Network\", \"Chargeback · Amount\", \"Chargeback · Deadline\" and \"Chargeback · Round\": card network, reason code and what it means, amount, deadline to file, and where the case stands.",
+      "autoComplete": false,
+      "next": "fraud",
+      "fields": [
+        "cb_reason",
+        "cb_network",
+        "cb_amount",
+        "cb_deadline",
+        "cb_round"
+      ]
+    },
+    {
+      "id": "fraud",
+      "type": "condition",
+      "title": "Fraud reason code?",
+      "prompt": "Fraud when \"Chargeback · Reason code\" starts with \"⚠ Fraud code\" (Visa 10.x, Mastercard 4837 or 4863). Not fraud otherwise.",
+      "branches": [
+        {
+          "answer": "Fraud",
+          "next": "card",
+          "color": "red"
+        },
+        {
+          "answer": "Not fraud",
+          "next": "evidence"
+        }
+      ],
+      "ai": true
+    },
+    {
+      "id": "card",
+      "type": "read",
+      "title": "Check the card is blocked",
+      "prompt": "Read the field \"Card · Status\" of this chargeback: the intake desk blocks the card when it routes a fraud claim, so it should show blocked at intake, when, and by which processor.",
+      "autoComplete": false,
+      "next": "card_ok",
+      "fields": [
+        "card_status"
+      ]
+    },
+    {
+      "id": "card_ok",
+      "type": "condition",
+      "title": "Card blocked?",
+      "prompt": "Blocked when \"Card · Status\" starts with \"✓\" or \"○\" (blocked, expired or cancelled: nobody can use it). Still active when it starts with \"⚠\".",
+      "branches": [
+        {
+          "answer": "Blocked",
+          "next": "evidence"
+        },
+        {
+          "answer": "Still active",
+          "next": "block",
+          "color": "red"
+        }
+      ],
+      "ai": true
+    },
+    {
+      "id": "block",
+      "type": "action",
+      "title": "Block the card",
+      "prompt": "Run \"Block linked card\": Marqeta, our card processor, blocks the card at once so nobody can use it again.",
+      "auto": true,
+      "autoComplete": false,
+      "next": "blocked"
+    },
+    {
+      "id": "blocked",
+      "type": "read",
+      "title": "Check the block",
+      "prompt": "Read the field \"Card · Status\" of this chargeback: blocked now, by which processor.",
+      "autoComplete": false,
+      "next": "evidence",
+      "fields": [
+        "card_status"
+      ]
+    },
+    {
+      "id": "evidence",
+      "type": "read",
+      "title": "Check the evidence",
+      "prompt": "Read all 4 of these fields of this chargeback (every one is needed): \"Evidence · Complete\", \"Evidence · Cardholder answers\", \"Evidence · Documents\" and \"Evidence · 3-D Secure\": the cardholder's answers, their documents, 3-D Secure on the payment, and whether the file is complete.",
+      "autoComplete": false,
+      "next": "evidence_ok",
+      "fields": [
+        "ev_complete",
+        "ev_answers",
+        "ev_documents",
+        "ev_3ds"
+      ]
+    },
+    {
+      "id": "evidence_ok",
+      "type": "condition",
+      "title": "Evidence complete?",
+      "prompt": "Complete when \"Evidence · Complete\" starts with \"✓\". Missing when it shows ✗: ask the cardholder.",
+      "branches": [
+        {
+          "answer": "Complete",
+          "next": "decide"
+        },
+        {
+          "answer": "Missing",
+          "next": "ask",
+          "color": "yellow"
+        }
+      ],
+      "ai": true
+    },
+    {
+      "id": "ask",
+      "type": "action",
+      "title": "Ask the cardholder",
+      "prompt": "Run \"Request cardholder info\": the questions fit the reason code. The chargeback waits on the cardholder, out of \"Chargebacks to file\". The result card shows the request and its due date.",
+      "autoComplete": false,
+      "next": "end_waiting"
+    },
+    {
+      "id": "end_waiting",
+      "type": "end",
+      "title": "Waiting on the cardholder"
+    },
+    {
+      "id": "decide",
+      "type": "condition",
+      "title": "File or accept?",
+      "prompt": "Look at \"Chargeback · Amount\" and \"Chargeback · Deadline\" read above: accepting is cheaper under 50 EUR (the amount shows ⚠) or with less than 3 days left. File otherwise.",
+      "branches": [
+        {
+          "answer": "File with the network",
+          "next": "file"
+        },
+        {
+          "answer": "Accept the loss",
+          "next": "accept",
+          "color": "orange"
+        }
+      ]
+    },
+    {
+      "id": "file",
+      "type": "action",
+      "title": "File with the network",
+      "prompt": "Run \"File with network\": the file goes to Visa Resolve Online or Mastercom. An unauthorised payment was credited to the customer when the claim opened (PSD2); the other chargebacks are credited only if won. The result card shows the network case, the merchant's deadline and the credit, or none until the chargeback is won.",
+      "autoComplete": false,
+      "next": "end_filed"
+    },
+    {
+      "id": "end_filed",
+      "type": "end",
+      "title": "Filed, waiting for the network"
+    },
+    {
+      "id": "accept",
+      "type": "action",
+      "title": "Accept liability and refund",
+      "prompt": "Run \"Accept Liability & Refund Customer\": the bank drops the claim and refunds the customer now (an unauthorised payment keeps the credit it got when the claim opened). The result card shows the claim withdrawn and the money refunded or kept.",
+      "autoComplete": false,
+      "next": "end_accepted"
+    },
+    {
+      "id": "end_accepted",
+      "type": "end",
+      "title": "Customer refunded"
+    }
+  ]
+}

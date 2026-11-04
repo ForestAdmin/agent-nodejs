@@ -1,0 +1,166 @@
+{
+  "name": "Incoming SEPA recall",
+  "collection": "sepa_disputes",
+  "segments": [
+    "55356272-5c2f-4970-8d73-d517f3fe8dab"
+  ],
+  "steps": [
+    {
+      "id": "original",
+      "type": "read",
+      "title": "Read the original payment",
+      "prompt": "Read both of these fields of this SEPA dispute (every one is needed): \"Original payment · Received\" and \"Original payment · Payer\": when the money reached our customer, and who sent it.",
+      "autoComplete": false,
+      "next": "recall",
+      "fields": [
+        "og_received",
+        "og_payer"
+      ]
+    },
+    {
+      "id": "recall",
+      "type": "read",
+      "title": "Read the recall",
+      "prompt": "Read all 4 of these fields of this SEPA dispute (every one is needed): \"Recall · Reason\", \"Recall · Asking bank\", \"Recall · Amount\" and \"Recall · Deadline\": the reason code, the bank asking, the amount and the deadline to answer.",
+      "autoComplete": false,
+      "next": "reason",
+      "fields": [
+        "rc_reason",
+        "rc_bank",
+        "rc_amount",
+        "rc_deadline"
+      ]
+    },
+    {
+      "id": "reason",
+      "type": "condition",
+      "title": "Fraud or a mistake?",
+      "prompt": "Fraud when \"Recall · Reason\" starts with \"FRAD\". Customer must agree otherwise (DUPL, TECH, AC03, AM09): the money is our customer's until they say yes.",
+      "branches": [
+        {
+          "answer": "Fraud",
+          "next": "fraud",
+          "color": "red"
+        },
+        {
+          "answer": "Customer must agree",
+          "next": "customer",
+          "color": "yellow"
+        }
+      ],
+      "ai": true
+    },
+    {
+      "id": "fraud",
+      "type": "action",
+      "title": "Escalate to fraud",
+      "prompt": "Run \"Escalate to fraud\": the money mule alert goes to the fraud team (monitoring may have raised it already) and what is left of the money is held until we answer.",
+      "auto": true,
+      "autoComplete": false,
+      "next": "funds"
+    },
+    {
+      "id": "customer",
+      "type": "read",
+      "title": "Read the customer's consent",
+      "prompt": "Read both of these fields of this SEPA dispute (every one is needed): \"Customer · Consent\" and \"Customer · Account holder\": who holds the account, and whether they were asked, agreed or refused.",
+      "autoComplete": false,
+      "next": "consent",
+      "fields": [
+        "cu_consent",
+        "cu_holder"
+      ]
+    },
+    {
+      "id": "consent",
+      "type": "condition",
+      "title": "Customer's answer?",
+      "prompt": "Not asked when \"Customer · Consent\" starts with \"⚠ Not asked yet\". Agreed when it starts with \"✓ Agreed\". Refused when it starts with \"✗\".",
+      "branches": [
+        {
+          "answer": "Not asked yet",
+          "next": "ask"
+        },
+        {
+          "answer": "Agreed",
+          "next": "funds"
+        },
+        {
+          "answer": "Refused",
+          "next": "refuse",
+          "color": "red"
+        }
+      ],
+      "ai": true
+    },
+    {
+      "id": "ask",
+      "type": "action",
+      "title": "Ask the customer for consent",
+      "prompt": "Run \"Ask the customer for consent\": a request goes to the customer in the app and the recall leaves \"Recalls we received\" until they answer. Nothing is held: the money is theirs until they agree. The result card shows the request, when it was sent and when the answer is due.",
+      "autoComplete": false,
+      "next": "end_waiting"
+    },
+    {
+      "id": "end_waiting",
+      "type": "end",
+      "title": "Waiting on the customer"
+    },
+    {
+      "id": "funds",
+      "type": "read",
+      "title": "Is the money still there?",
+      "prompt": "Read both of these fields of this SEPA dispute (every one is needed): \"Funds · On the account\" and \"Funds · Holds\": what can still go back (held for this recall, on a fraud or once the customer agreed, or free on the account), and the holds.",
+      "autoComplete": false,
+      "next": "funds_ok",
+      "fields": [
+        "fd_there",
+        "fd_holds"
+      ]
+    },
+    {
+      "id": "funds_ok",
+      "type": "condition",
+      "title": "Money to send back?",
+      "prompt": "Money to send back when \"Funds · On the account\" starts with \"✓ All there\" or \"⚠ Part left\". Nothing left when it starts with \"✗ Spent\".",
+      "branches": [
+        {
+          "answer": "Money to send back",
+          "next": "return"
+        },
+        {
+          "answer": "Nothing left",
+          "next": "refuse",
+          "color": "orange"
+        }
+      ],
+      "ai": true
+    },
+    {
+      "id": "return",
+      "type": "action",
+      "title": "Accept and return the funds",
+      "prompt": "Run \"Accept and return funds\": the money goes back to the other bank through STET (a pacs.004 return) and the hold is released. The result card shows what went back, and the interbank message.",
+      "autoComplete": false,
+      "next": "end_returned"
+    },
+    {
+      "id": "end_returned",
+      "type": "end",
+      "title": "Funds returned"
+    },
+    {
+      "id": "refuse",
+      "type": "action",
+      "title": "Refuse with a reason",
+      "prompt": "Run \"Refuse with a reason\": the SEPA refusal code is pre-filled (AM04 when no money is left, CUST when the customer refuses); the other bank gets a negative answer through STET. The result card shows the refusal, and the interbank message.",
+      "autoComplete": false,
+      "next": "end_refused"
+    },
+    {
+      "id": "end_refused",
+      "type": "end",
+      "title": "Recall refused"
+    }
+  ]
+}

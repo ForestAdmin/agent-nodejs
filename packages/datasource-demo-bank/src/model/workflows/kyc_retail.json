@@ -1,0 +1,267 @@
+{
+  "name": "Retail onboarding",
+  "collection": "kyc_cases",
+  "segments": [
+    "8e82ba24-ba6c-4cb6-8d40-33825e3aab20",
+    "50120141-4d31-4979-8900-dd672ad26a5a"
+  ],
+  "steps": [
+    {
+      "id": "applicant",
+      "type": "read",
+      "title": "Read the applicant file",
+      "prompt": "Read all 4 of these fields of this KYC case (every one is needed): \"Applicant · Identity\", \"Applicant · Contact\", \"Applicant · Declared profile\" and \"Applicant · Expected volumes\": who applies, how to reach them, what they declared (occupation, income, source of funds, residence, tax residence, PEP) and the money they expect to pay in and out each month.",
+      "autoComplete": false,
+      "next": "check_docs",
+      "fields": [
+        "applicant_identity",
+        "applicant_contact",
+        "applicant_profile",
+        "applicant_volumes"
+      ]
+    },
+    {
+      "id": "check_docs",
+      "type": "action",
+      "title": "Check the documents",
+      "prompt": "Run \"Check documents\": each paper on file is checked against the onboarding rules (ID valid, selfie, proof of address under 3 months, proof of income above 70k EUR a year); the result card lists each one, valid or what is wrong.",
+      "auto": true,
+      "autoComplete": false,
+      "next": "documents"
+    },
+    {
+      "id": "documents",
+      "type": "read",
+      "title": "Read the document results",
+      "prompt": "Read all 5 of these fields of this KYC case (every one is needed): \"Documents · Complete\", \"Documents · ID document\", \"Documents · Selfie\", \"Documents · Proof of address\" (less than 3 months old) and \"Documents · Proof of income\" (above 70k EUR a year).",
+      "autoComplete": false,
+      "next": "docs_ok",
+      "fields": [
+        "docs_complete",
+        "doc_id",
+        "doc_selfie",
+        "doc_address",
+        "doc_income"
+      ]
+    },
+    {
+      "id": "docs_ok",
+      "type": "condition",
+      "title": "Documents complete?",
+      "prompt": "Complete when \"Documents · Complete\" says \"✓ Yes\". Missing or outdated when it starts with \"✗ No\": a paper not received, or a proof of address older than 3 months.",
+      "branches": [
+        {
+          "answer": "Complete",
+          "next": "verify_id"
+        },
+        {
+          "answer": "Missing or outdated",
+          "next": "request_docs",
+          "color": "yellow"
+        }
+      ],
+      "ai": true
+    },
+    {
+      "id": "request_docs",
+      "type": "action",
+      "title": "Request the missing documents",
+      "prompt": "Run \"Request missing documents\": the request is pre-filled with what \"Documents · Complete\" lacks. The case waits on the client, out of the queue; the result card shows the request and its due date.",
+      "autoComplete": false,
+      "next": "end_waiting"
+    },
+    {
+      "id": "end_waiting",
+      "type": "end",
+      "title": "Waiting on the client"
+    },
+    {
+      "id": "verify_id",
+      "type": "action",
+      "title": "Verify the ID document (Onfido)",
+      "prompt": "Run \"Verify document\": Onfido checks each applicant's ID live and matches the selfie to it; one result card per ID.",
+      "auto": true,
+      "autoComplete": false,
+      "next": "ids_read"
+    },
+    {
+      "id": "ids_read",
+      "type": "read",
+      "title": "Read the ID check results",
+      "prompt": "Read all 3 of these fields of this KYC case (every one is needed): \"ID checks · Result\", \"ID checks · Documents\" and \"ID checks · Face match\": each ID with its result and confidence, each selfie matched to its ID, and the overall result.",
+      "autoComplete": false,
+      "next": "ids_ok",
+      "fields": [
+        "idcheck_result",
+        "idcheck_documents",
+        "idcheck_faces"
+      ]
+    },
+    {
+      "id": "ids_ok",
+      "type": "condition",
+      "title": "ID document valid?",
+      "prompt": "Valid when \"ID checks · Result\" starts with \"✓ Passed\". Not valid when it shows ✗ Failed or ⚠ Needs a closer look: ask for a new ID.",
+      "branches": [
+        {
+          "answer": "Valid",
+          "next": "screen"
+        },
+        {
+          "answer": "Not valid",
+          "next": "request_id",
+          "color": "yellow"
+        }
+      ]
+    },
+    {
+      "id": "request_id",
+      "type": "action",
+      "title": "Request a new ID document",
+      "prompt": "Run \"Request ID document\": the applicant gets a request in the app to upload a valid ID, with the reason Onfido gave; the result card shows the request and its due date.",
+      "autoComplete": false,
+      "next": "end_waiting"
+    },
+    {
+      "id": "screen",
+      "type": "action",
+      "title": "Screen the applicants (ComplyAdvantage)",
+      "prompt": "Run \"Screen against sanctions lists\": the result card lists each name checked and any match.",
+      "auto": true,
+      "autoComplete": false,
+      "next": "screening"
+    },
+    {
+      "id": "screening",
+      "type": "read",
+      "title": "Read the screening result",
+      "prompt": "Read the field \"Screening · Result\" of this KYC case: each hit on the applicants (✗ open or confirmed, ○ cleared before), or no hit.",
+      "autoComplete": false,
+      "next": "hit_open",
+      "fields": [
+        "screening_result"
+      ]
+    },
+    {
+      "id": "hit_open",
+      "type": "condition",
+      "title": "Open screening hit?",
+      "prompt": "Open hit when \"Screening · Result\" lists a hit marked ✗ and \"open\". Clear otherwise: \"✓ No hit\", or only hits cleared before (○).",
+      "branches": [
+        {
+          "answer": "Clear",
+          "next": "risk_inputs"
+        },
+        {
+          "answer": "Open hit",
+          "next": "park",
+          "color": "orange"
+        }
+      ],
+      "ai": true
+    },
+    {
+      "id": "park",
+      "type": "action",
+      "title": "Park the case for screening",
+      "prompt": "Run \"Park for screening\": the case leaves the onboarding queue until the screening team decides on the hit; the result card lists the open hits.",
+      "auto": true,
+      "autoComplete": false,
+      "next": "end_screening"
+    },
+    {
+      "id": "end_screening",
+      "type": "end",
+      "title": "Sent to screening"
+    },
+    {
+      "id": "risk_inputs",
+      "type": "read",
+      "title": "Read the risk inputs",
+      "prompt": "Read all 6 of these fields of this KYC case (every one is needed): \"Risk · Suggested rating\", \"Risk · Screening hits\", \"Risk · PEP\", \"Risk · Residence\", \"Risk · Occupation and funds\" and \"Risk · Income vs volumes\".",
+      "autoComplete": false,
+      "next": "rate",
+      "fields": [
+        "risk_rating_suggested",
+        "risk_hits",
+        "risk_pep",
+        "risk_residence",
+        "risk_funds",
+        "risk_volumes"
+      ]
+    },
+    {
+      "id": "rate",
+      "type": "action",
+      "title": "Rate the risk",
+      "prompt": "Run \"Rate the risk\": pick LOW, MEDIUM or HIGH (it starts on the suggested rating). Low when every \"Risk ·\" line shows ✓: no open hit, no PEP, living and paying tax in the EU, an occupation and source of funds that explain the money, and no more money expected in than the declared income. The result card lists the risk lines and the next step.",
+      "autoComplete": false,
+      "next": "rated"
+    },
+    {
+      "id": "rated",
+      "type": "read",
+      "title": "Read the rating decided",
+      "prompt": "Read the field \"Risk rating · Decided\" of this KYC case.",
+      "autoComplete": true,
+      "next": "risk",
+      "fields": [
+        "risk_decided"
+      ]
+    },
+    {
+      "id": "risk",
+      "type": "condition",
+      "title": "Low risk?",
+      "prompt": "Low when \"Risk rating · Decided\" is LOW: the operator approves. Medium or high: a senior signs off.",
+      "branches": [
+        {
+          "answer": "Low",
+          "next": "approve"
+        }
+      ],
+      "rules": [
+        {
+          "answer": "Low",
+          "match": "all",
+          "conditions": [
+            {
+              "step": "rated",
+              "field": "risk_decided",
+              "operator": "equal",
+              "value": "LOW"
+            }
+          ]
+        }
+      ],
+      "fallback": "signoff"
+    },
+    {
+      "id": "signoff",
+      "type": "action",
+      "title": "Send to the senior sign-off queue",
+      "prompt": "Run \"Send for senior sign-off\": the case leaves the onboarding queue for the \"Senior sign-off\" queue, where a senior officer takes it and runs Senior review.",
+      "auto": true,
+      "autoComplete": true,
+      "next": "end_senior"
+    },
+    {
+      "id": "end_senior",
+      "type": "end",
+      "title": "With a senior officer"
+    },
+    {
+      "id": "approve",
+      "type": "action",
+      "title": "Approve KYC - Low risk",
+      "prompt": "Run \"Approve KYC - Low risk\": the case was rated LOW. It refuses when a document, an ID or a screening hit is still open.",
+      "autoComplete": false,
+      "next": "end_ok"
+    },
+    {
+      "id": "end_ok",
+      "type": "end",
+      "title": "Customer onboarded"
+    }
+  ]
+}

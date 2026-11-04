@@ -1,0 +1,416 @@
+/* Data map (data-map.js), in Forest's brand. Forest adds this file to the page as a global style
+   element: every class starts with dm. Sizes are in em of the root, whose font size the component
+   sets from its box. */
+.dm {
+  --dm-dark: #262d1e;
+  --dm-darker: #1a2208;
+  --dm-green: #3f5b1e;
+  --dm-pop: #ddf327;
+  --dm-lime: #e3f68b;
+  --dm-tint: #f2f8d4;
+  --dm-canvas: #f6f5ee;
+  --dm-zone: #ece9e0;
+  --dm-card: #e9e6df;
+  --dm-label: #686c62;
+
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+  height: 100%;
+  overflow: hidden;
+  padding: 1.2em 1.4em;
+  border-radius: 14px;
+  background: var(--dm-canvas);
+  color: var(--dm-dark);
+  font-family: Matter, Inter, system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+.dm * {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+.dm button {
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* Header: the words on the left, the numbers on the right. */
+.dm .dm-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 2em;
+}
+
+.dm .dm-head-text {
+  max-width: 46em;
+}
+
+.dm .dm-badge {
+  display: inline-block;
+  padding: 0.2em 0.65em;
+  border-radius: 999px;
+  background: var(--dm-pop);
+  font-size: 0.72em;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.dm .dm-title {
+  margin-top: 0.3em;
+  color: var(--dm-darker);
+  font-size: 1.8em;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.dm .dm-intro {
+  margin-top: 0.4em;
+  color: var(--dm-label);
+  font-size: 0.9em;
+}
+
+.dm .dm-stats {
+  display: flex;
+  flex: none;
+  gap: 0.6em;
+}
+
+.dm .dm-stat {
+  display: flex;
+  flex-direction: column;
+  min-width: 6.5em;
+  padding: 0.6em 0.8em;
+  border-radius: 10px;
+  background: var(--dm-dark);
+  color: var(--dm-pop);
+}
+
+.dm .dm-stat-value {
+  font-size: 1.5em;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.dm .dm-stat-label {
+  color: #d0ee89;
+  font-size: 0.72em;
+}
+
+/* Body: the domains on the left, the selected one on the right. */
+.dm .dm-body {
+  display: grid;
+  flex: 1;
+  grid-template-columns: 15em minmax(0, 1fr);
+  gap: 1em;
+  min-height: 0;
+}
+
+.dm .dm-domains {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3em;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.dm .dm-domain {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  padding: 0.45em 0.6em;
+  border-left: 0.22em solid transparent;
+  border-radius: 8px;
+}
+
+.dm .dm-domain:hover {
+  background: var(--dm-zone);
+}
+
+.dm .dm-domain--on {
+  border-left-color: var(--dm-pop);
+  background: var(--dm-dark);
+  color: #ffffff;
+}
+
+.dm .dm-domain--on:hover {
+  background: var(--dm-dark);
+}
+
+.dm .dm-domain-icon {
+  flex: none;
+  font-size: 1.2em;
+}
+
+.dm .dm-domain-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.dm .dm-domain-name {
+  font-weight: 700;
+}
+
+.dm .dm-domain-meta {
+  color: var(--dm-label);
+  font-size: 0.75em;
+}
+
+.dm .dm-domain--on .dm-domain-meta {
+  color: #d0ee89;
+}
+
+.dm .dm-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8em;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 1em 1.2em;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.dm .dm-h2 {
+  font-size: 1.35em;
+  font-weight: 800;
+}
+
+.dm .dm-blurb {
+  color: var(--dm-label);
+  font-size: 0.9em;
+}
+
+/* The domain's map: its tables on an ellipse, a line per link. */
+.dm .dm-map {
+  position: relative;
+  flex: none;
+  padding: 0.6em;
+  border-radius: 10px;
+  background: var(--dm-canvas);
+}
+
+.dm .dm-svg {
+  display: block;
+  width: 100%;
+  max-height: 14em;
+}
+
+.dm .dm-line {
+  stroke: #b4b2a6;
+  stroke-width: 2;
+}
+
+.dm .dm-node {
+  cursor: pointer;
+}
+
+.dm .dm-node rect {
+  fill: #ffffff;
+  stroke: var(--dm-dark);
+  stroke-width: 2;
+}
+
+.dm .dm-node text {
+  fill: var(--dm-dark);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.dm .dm-node:hover rect,
+.dm .dm-node--on rect {
+  fill: var(--dm-pop);
+}
+
+.dm .dm-outside {
+  position: absolute;
+  right: 0.8em;
+  bottom: 0.5em;
+  color: var(--dm-label);
+  font-size: 0.72em;
+}
+
+/* The domain's tables as cards. */
+.dm .dm-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15em, 1fr));
+  gap: 0.6em;
+}
+
+.dm .dm-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3em;
+  padding: 0.75em 0.9em;
+  border: 1px solid var(--dm-card);
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.dm .dm-card:hover {
+  border-color: var(--dm-green);
+}
+
+.dm .dm-card--link {
+  border-style: dashed;
+  background: var(--dm-canvas);
+}
+
+.dm .dm-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6em;
+}
+
+.dm .dm-card-name {
+  font-weight: 800;
+}
+
+.dm .dm-rows {
+  flex: none;
+  padding: 0.1em 0.5em;
+  border-radius: 999px;
+  background: var(--dm-tint);
+  color: var(--dm-green);
+  font-size: 0.72em;
+  font-weight: 700;
+}
+
+.dm .dm-card-purpose {
+  color: var(--dm-label);
+  font-size: 0.85em;
+}
+
+.dm .dm-card-meta {
+  margin-top: auto;
+  color: var(--dm-green);
+  font-size: 0.75em;
+  font-weight: 700;
+}
+
+/* A table, in detail. */
+.dm .dm-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8em;
+}
+
+.dm .dm-detail-head {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35em;
+}
+
+.dm .dm-back {
+  color: var(--dm-green);
+  font-size: 0.8em;
+  font-weight: 700;
+}
+
+.dm .dm-h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  font-size: 1.3em;
+  font-weight: 800;
+}
+
+.dm .dm-open {
+  padding: 0.45em 1em;
+  border-radius: 999px;
+  background: var(--dm-dark) !important;
+  color: var(--dm-pop) !important;
+  font-size: 0.85em !important;
+  font-weight: 700;
+}
+
+.dm .dm-open:hover {
+  background: var(--dm-green) !important;
+  color: #ffffff !important;
+}
+
+.dm .dm-detail-cols {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  gap: 1.4em;
+}
+
+.dm .dm-h4 {
+  margin: 0.6em 0 0.35em;
+  font-size: 0.9em;
+  font-weight: 800;
+}
+
+.dm .dm-list {
+  list-style: none;
+}
+
+.dm .dm-action {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.8em;
+  padding: 0.35em 0;
+  border-bottom: 1px solid var(--dm-zone);
+  font-size: 0.85em;
+}
+
+.dm .dm-action span {
+  flex: none;
+  color: var(--dm-label);
+}
+
+.dm .dm-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35em;
+}
+
+.dm .dm-chip {
+  padding: 0.2em 0.6em;
+  border-radius: 999px;
+  background: var(--dm-zone);
+  font-size: 0.78em;
+}
+
+.dm .dm-chip em {
+  color: var(--dm-label);
+  font-style: normal;
+}
+
+.dm .dm-chip--link {
+  background: var(--dm-tint);
+  color: var(--dm-green);
+  font-weight: 700;
+}
+
+.dm .dm-chip--link:hover {
+  background: var(--dm-pop);
+  color: var(--dm-dark);
+}
+
+.dm .dm-chip--computed {
+  background: #ffffff;
+  outline: 1px dashed var(--dm-card);
+}
+
+.dm .dm-note {
+  margin-bottom: 0.4em;
+  color: var(--dm-label);
+  font-size: 0.75em;
+}
+
+.dm .dm-loading {
+  color: var(--dm-label);
+}

@@ -1,0 +1,39 @@
+<div class="dg" style={{this.rootStyle}}>
+  <div class="dg-head">
+    <span class="dg-badge">Senior officer</span>
+    {{#if this.progress}}<span class="dg-ref">{{this.progress}}</span>{{/if}}
+  </div>
+  <div class="dg-title">Four eyes on a medium risk</div>
+  <p class="dg-intro">An operator cannot approve a medium or high risk alone: they rate it and send it to the Senior sign-off queue. You are the second pair of eyes.</p>
+  <ol class="dg-steps">
+    {{#each this.how as |step|}}
+      <li class={{step.className}}>
+        <span class="dg-mark">{{step.mark}}</span>
+        <span class="dg-body">
+          <span class="dg-step-title">{{step.title}}</span>
+          <span class="dg-detail">{{step.detail}}</span>
+        </span>
+      </li>
+    {{/each}}
+  </ol>
+  <div class="dg-queue-title">The queue</div>
+  <ul class="dg-queue">
+    {{#each this.cases as |c|}}
+      <li class={{c.rowClass}}>
+        <span class="dg-case-head">
+          <span class="dg-case-ref">{{c.reference}}</span>
+          <span class={{c.chipClass}}>{{c.chip}}</span>
+        </span>
+        <span class="dg-detail">{{c.name}} · {{c.story}}</span>
+        {{#if c.later}}<span class="dg-detail">{{c.later}}</span>{{/if}}
+      </li>
+    {{/each}}
+  </ul>
+  {{#if this.end}}
+    <div class="dg-end">
+      <span class="dg-end-title">{{this.end.title}}</span>
+      <span class="dg-end-text">{{this.end.text}}</span>
+    </div>
+  {{/if}}
+  {{#if this.failed}}<p class="dg-failed">The agent does not answer: is it running?</p>{{/if}}
+</div>

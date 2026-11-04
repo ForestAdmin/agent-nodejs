@@ -1,0 +1,392 @@
+{
+  "name": "Fraud and takeover alert",
+  "collection": "alerts",
+  "segments": [
+    "2f844e58-1470-4d7b-8d8a-ad28e1b7174a"
+  ],
+  "steps": [
+    {
+      "id": "take",
+      "type": "action",
+      "title": "Start the review",
+      "prompt": "Run \"Start review\": the alert shows as in review, under your name.",
+      "auto": true,
+      "autoComplete": true,
+      "next": "alert"
+    },
+    {
+      "id": "alert",
+      "type": "read",
+      "title": "Read the alert and the payment",
+      "prompt": "Read all 4 of these fields of this alert (every one is needed): \"Alert · Rule\", \"Alert · Score and time\", \"Payment · Status\" and \"Payment · Payee\": the rule that fired, the score, and the transfer at stake (held, sent or none) with its payee.",
+      "autoComplete": false,
+      "next": "kind",
+      "fields": [
+        "alert_rule",
+        "alert_score",
+        "payment_status",
+        "payment_payee"
+      ]
+    },
+    {
+      "id": "kind",
+      "type": "condition",
+      "title": "Takeover or other fraud?",
+      "prompt": "Takeover when \"Alert · Rule\" starts with \"Account takeover\" (a new device and payee, or logins too far apart). Other fraud otherwise (card testing, a recall received, disputes, an invoice).",
+      "branches": [
+        {
+          "answer": "Takeover",
+          "next": "device"
+        },
+        {
+          "answer": "Other fraud",
+          "next": "tx_read"
+        }
+      ],
+      "ai": true
+    },
+    {
+      "id": "device",
+      "type": "read",
+      "title": "Read the login behind it",
+      "prompt": "Read all 4 of these fields of this alert (every one is needed): \"Device · Login device\", \"Device · Login place\", \"Device · Login to payment\" and \"Device · Security and contact changes\": the device (new or known), where it logged in against the usual place, the time from login to payment, and any MFA reset or change of phone or email.",
+      "autoComplete": false,
+      "next": "ip_check",
+      "fields": [
+        "device_login",
+        "device_place",
+        "device_timing",
+        "device_changes"
+      ]
+    },
+    {
+      "id": "ip_check",
+      "type": "action",
+      "title": "Check the device and IP (SEON)",
+      "prompt": "Run \"Check device and IP\": SEON looks up the device and the IP address of the login (hosting provider, roaming, home broadband) and gives a risk score.",
+      "auto": true,
+      "autoComplete": false,
+      "next": "ip_read"
+    },
+    {
+      "id": "ip_read",
+      "type": "read",
+      "title": "Read the SEON result",
+      "prompt": "Read the field \"Device check · Result\" of this alert: takeover signals or not, the risk score and why.",
+      "autoComplete": false,
+      "next": "signals",
+      "fields": [
+        "device_check"
+      ]
+    },
+    {
+      "id": "signals",
+      "type": "condition",
+      "title": "Takeover signals?",
+      "prompt": "Takeover signals when \"Device check · Result\" starts with \"✗ Takeover signals\". No takeover signal when it starts with \"✓\".",
+      "branches": [
+        {
+          "answer": "Takeover signals",
+          "next": "revoke",
+          "color": "red"
+        },
+        {
+          "answer": "No takeover signal",
+          "next": "call"
+        }
+      ],
+      "ai": true
+    },
+    {
+      "id": "revoke",
+      "type": "action",
+      "title": "Revoke the new device",
+      "prompt": "Run \"Revoke device\": the login's device is signed out and no longer trusted.",
+      "auto": true,
+      "autoComplete": true,
+      "next": "freeze"
+    },
+    {
+      "id": "freeze",
+      "type": "action",
+      "title": "Freeze the account",
+      "prompt": "Run \"Freeze account\" with reason FRAUD_SUSPICION: no payment leaves the account until we know.",
+      "auto": true,
+      "autoComplete": true,
+      "next": "call"
+    },
+    {
+      "id": "call",
+      "type": "action",
+      "title": "Call the customer (Aircall)",
+      "prompt": "Run \"Call the customer\": Aircall calls the number on file before any recent change (never a new one) and records what the customer says.",
+      "auto": true,
+      "autoComplete": false,
+      "next": "call_read"
+    },
+    {
+      "id": "call_read",
+      "type": "read",
+      "title": "Read the call",
+      "prompt": "Read both of these fields of this alert (every one is needed): \"Call · Outcome\" and \"Call · Details\": what the customer said, and the call's number, time and length.",
+      "autoComplete": false,
+      "next": "confirms",
+      "fields": [
+        "call_result",
+        "call_details"
+      ]
+    },
+    {
+      "id": "confirms",
+      "type": "condition",
+      "title": "Was it the customer?",
+      "prompt": "It was the customer when \"Call · Outcome\" starts with \"✓ It was the customer\". Not the customer when it starts with \"✗ Not the customer\". Not reached when it starts with \"⚠ Not reached\".",
+      "branches": [
+        {
+          "answer": "It was the customer",
+          "next": "unfreeze"
+        },
+        {
+          "answer": "Not the customer",
+          "next": "money",
+          "color": "red"
+        },
+        {
+          "answer": "Not reached",
+          "next": "second_look",
+          "color": "yellow"
+        }
+      ],
+      "ai": true
+    },
+    {
+      "id": "unfreeze",
+      "type": "action",
+      "title": "Unfreeze the account",
+      "prompt": "Run \"Unfreeze account\": it lifts the fraud freeze. Nothing to undo when the account was not frozen; a freeze for another reason (sanctions, a seizure) is not this alert's and stays.",
+      "auto": true,
+      "autoComplete": true,
+      "next": "payment"
+    },
+    {
+      "id": "payment",
+      "type": "read",
+      "title": "Read the payment",
+      "prompt": "Read the field \"Payment · Status\" of this alert: a transfer held by the fraud rules, sent, released, already stopped or recalled, or no transfer on this alert.",
+      "autoComplete": false,
+      "next": "held",
+      "fields": [
+        "payment_status"
+      ]
+    },
+    {
+      "id": "held",
+      "type": "condition",
+      "title": "A payment to release?",
+      "prompt": "Release it when \"Payment · Status\" starts with \"⚠ Held\". Nothing to release in every other case: no transfer on this alert, already stopped (○ Stopped), released (✓ Released), sent (✗ Sent) or recalled (⚠ Recall).",
+      "branches": [
+        {
+          "answer": "Release the held payment",
+          "next": "release"
+        },
+        {
+          "answer": "Nothing to release: clear the alert",
+          "next": "clear"
+        }
+      ],
+      "ai": true
+    },
+    {
+      "id": "release",
+      "type": "action",
+      "title": "Release the payment",
+      "prompt": "Run \"Approve transfer\": the held transfer is booked and sent.",
+      "autoComplete": false,
+      "next": "clear"
+    },
+    {
+      "id": "money",
+      "type": "read",
+      "title": "Read the payment",
+      "prompt": "Read the field \"Payment · Status\" of this alert: a transfer held by the fraud rules, sent, released, already stopped or recalled, or no transfer on this alert.",
+      "autoComplete": false,
+      "next": "stop",
+      "fields": [
+        "payment_status"
+      ]
+    },
+    {
+      "id": "stop",
+      "type": "condition",
+      "title": "Where is the money?",
+      "prompt": "Stop it when \"Payment · Status\" starts with \"⚠ Held\". Recall it when it starts with \"✗ Sent\" or \"✓ Released\" (the money has left). Nothing to stop in every other case: no transfer on this alert, already stopped (○ Stopped) or a recall already sent (⚠ Recall).",
+      "branches": [
+        {
+          "answer": "Stop the held payment",
+          "next": "reject"
+        },
+        {
+          "answer": "Recall the sent payment",
+          "next": "recall",
+          "color": "red"
+        },
+        {
+          "answer": "Nothing to stop: escalate",
+          "next": "escalate"
+        }
+      ],
+      "ai": true
+    },
+    {
+      "id": "reject",
+      "type": "action",
+      "title": "Stop the payment",
+      "prompt": "Run \"Reject transfer\": the reason is pre-filled from the call; the money stays on the account.",
+      "autoComplete": false,
+      "next": "escalate"
+    },
+    {
+      "id": "recall",
+      "type": "action",
+      "title": "Recall the transfer (SEPA)",
+      "prompt": "Run \"Recall transfer\": a fraud recall (FRAD) goes to the beneficiary bank through STET; it has 15 business days to answer.",
+      "autoComplete": false,
+      "next": "refund"
+    },
+    {
+      "id": "refund",
+      "type": "action",
+      "title": "Refund the customer (PSD2)",
+      "prompt": "Run \"Refund the customer (PSD2)\": the customer did not make this transfer, so the law (PSD2) has us refund it by the end of the next business day, whatever the recall brings back. What the recall recovers then goes to the bank.",
+      "auto": true,
+      "autoComplete": true,
+      "next": "recall_read"
+    },
+    {
+      "id": "recall_read",
+      "type": "read",
+      "title": "Read the recall and the refund",
+      "prompt": "Read the field \"Payment · Status\" of this alert: the recall's reference, the bank it went to and when the answer is due, then the refund credited to the customer.",
+      "autoComplete": false,
+      "next": "escalate",
+      "fields": [
+        "payment_status"
+      ]
+    },
+    {
+      "id": "tx_read",
+      "type": "read",
+      "title": "Read the transactions and the history",
+      "prompt": "Read all 6 of these fields of this alert (every one is needed): \"Transactions · Summary\", \"Transactions · Counterparties\", \"Transactions · Countries\", \"Transactions · Money in, money out\", \"History · Earlier alerts\" and \"History · Investigations\": what moved, with whom, where, and the customer's earlier alerts and investigations.",
+      "autoComplete": false,
+      "next": "other_decide",
+      "fields": [
+        "tx_summary",
+        "tx_counterparties",
+        "tx_countries",
+        "tx_flow",
+        "history_alerts",
+        "history_cases"
+      ]
+    },
+    {
+      "id": "other_decide",
+      "type": "condition",
+      "title": "Clear or escalate?",
+      "prompt": "Escalate when the transactions show the fraud (a card being tested, money from a fraud victim, a supplier's IBAN changed). Clear when explained. Not sure: ask a senior.",
+      "branches": [
+        {
+          "answer": "Clear",
+          "next": "clear"
+        },
+        {
+          "answer": "Not sure",
+          "next": "second_look",
+          "color": "yellow"
+        },
+        {
+          "answer": "Escalate",
+          "next": "escalate",
+          "color": "red"
+        }
+      ]
+    },
+    {
+      "id": "second_look",
+      "type": "action",
+      "title": "Send for a second look",
+      "prompt": "Run \"Send for a second look\" and say what is missing: the alert leaves the fraud queue and waits for a senior.",
+      "autoComplete": true,
+      "next": "to_senior"
+    },
+    {
+      "id": "to_senior",
+      "type": "escalation",
+      "title": "Ask a senior analyst",
+      "next": "senior_read",
+      "inboxId": "0f6561e7-1145-5698-8d3a-261b98e5e7a1"
+    },
+    {
+      "id": "senior_read",
+      "type": "read",
+      "title": "Read why the analyst asks",
+      "prompt": "Read the field \"Result · Outcome\" of this alert: who sent it for a second look, and why.",
+      "autoComplete": false,
+      "next": "senior",
+      "fields": [
+        "result_outcome"
+      ]
+    },
+    {
+      "id": "senior",
+      "type": "guidance",
+      "title": "Senior review",
+      "prompt": "You take over from the analyst: read the lines above (device, call, transactions), then write in one or two sentences why you clear or escalate.",
+      "next": "senior_decide",
+      "input": "free-text"
+    },
+    {
+      "id": "senior_decide",
+      "type": "condition",
+      "title": "Clear or escalate?",
+      "prompt": "Your decision, as the senior analyst.",
+      "branches": [
+        {
+          "answer": "Clear",
+          "next": "clear"
+        },
+        {
+          "answer": "Escalate",
+          "next": "escalate",
+          "color": "red"
+        }
+      ]
+    },
+    {
+      "id": "clear",
+      "type": "action",
+      "title": "Clear the alert",
+      "prompt": "Run \"Clear alert\": after a call where the customer confirmed, the reason and note say so. The result card sums up the decision, the payment and the account.",
+      "autoComplete": false,
+      "next": "end_cleared"
+    },
+    {
+      "id": "end_cleared",
+      "type": "end",
+      "title": "Alert closed"
+    },
+    {
+      "id": "escalate",
+      "type": "action",
+      "title": "Open a fraud investigation",
+      "prompt": "Run \"Escalate\": the priority is pre-filled (urgent for a takeover); the alert's transactions go with it. The result card names the investigation, new or already open, with the payment and the account as they stand.",
+      "autoComplete": false,
+      "next": "end_escalated"
+    },
+    {
+      "id": "end_escalated",
+      "type": "end",
+      "title": "Fraud case opened"
+    }
+  ]
+}

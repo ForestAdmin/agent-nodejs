@@ -70,6 +70,7 @@ jobs:
           - forest-cloud
           - mcp-server
           - datasource-customizer
+          - datasource-demo-bank
           - datasource-demo-fintech
           - datasource-dummy
           - datasource-dynamodb

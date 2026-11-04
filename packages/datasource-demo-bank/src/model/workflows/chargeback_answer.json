@@ -1,0 +1,94 @@
+{
+  "name": "Merchant answered",
+  "collection": "chargebacks",
+  "segments": [
+    "1257df99-ed12-4ff5-8874-ad31cba19392"
+  ],
+  "steps": [
+    {
+      "id": "chargeback",
+      "type": "read",
+      "title": "Read the chargeback",
+      "prompt": "Read all 5 of these fields of this chargeback (every one is needed): \"Chargeback · Network\", \"Chargeback · Reason code\", \"Chargeback · Amount\", \"Chargeback · Deadline\" and \"Chargeback · Round\": card network, reason code, amount, the deadline to push back, and where the case stands.",
+      "autoComplete": false,
+      "next": "merchant",
+      "fields": [
+        "cb_network",
+        "cb_reason",
+        "cb_amount",
+        "cb_deadline",
+        "cb_round"
+      ]
+    },
+    {
+      "id": "merchant",
+      "type": "read",
+      "title": "Read the merchant's answer",
+      "prompt": "Read all 3 of these fields of this chargeback (every one is needed): \"Merchant · Name\", \"Merchant · Answer\" and \"Merchant · Suggested decision\": who the merchant is, what it answered, and what the rules suggest.",
+      "autoComplete": false,
+      "next": "evidence",
+      "fields": [
+        "merchant_name",
+        "merchant_answer",
+        "merchant_suggested"
+      ]
+    },
+    {
+      "id": "evidence",
+      "type": "read",
+      "title": "Compare with the cardholder's evidence",
+      "prompt": "Read all 4 of these fields of this chargeback (every one is needed): \"Evidence · Cardholder answers\", \"Evidence · Documents\", \"Evidence · 3-D Secure\" and \"Evidence · Complete\": what the cardholder said and sent, and 3-D Secure on the payment.",
+      "autoComplete": false,
+      "next": "decide",
+      "fields": [
+        "ev_answers",
+        "ev_documents",
+        "ev_3ds",
+        "ev_complete"
+      ]
+    },
+    {
+      "id": "decide",
+      "type": "condition",
+      "title": "Push back or accept?",
+      "prompt": "Push back when the cardholder's evidence answers the merchant's point (\"Merchant · Suggested decision\" starts with ✓). Accept when the merchant proved its case, or under 50 EUR.",
+      "branches": [
+        {
+          "answer": "Push back (pre-arbitration)",
+          "next": "push"
+        },
+        {
+          "answer": "Accept",
+          "next": "accept",
+          "color": "orange"
+        }
+      ]
+    },
+    {
+      "id": "push",
+      "type": "action",
+      "title": "File pre-arbitration",
+      "prompt": "Run \"File pre-arbitration\" with our answer to the merchant: it goes to Visa Resolve Online or Mastercom. The case waits for the merchant's bank, out of \"Merchant answered\". The result card shows the pre-arbitration filed and when the merchant's bank must answer.",
+      "autoComplete": false,
+      "next": "end_pushed"
+    },
+    {
+      "id": "end_pushed",
+      "type": "end",
+      "title": "Pre-arbitration filed"
+    },
+    {
+      "id": "accept",
+      "type": "action",
+      "title": "Accept the merchant's answer",
+      "prompt": "Run \"Accept representment\": the claim is lost. Only an unauthorised payment was credited before the decision, and it keeps the money (the bank bears the loss); the others got nothing, so nothing is taken back. The result card shows the claim lost and the money kept or never credited.",
+      "autoComplete": false,
+      "next": "end_lost"
+    },
+    {
+      "id": "end_lost",
+      "type": "end",
+      "title": "Claim lost"
+    }
+  ]
+}

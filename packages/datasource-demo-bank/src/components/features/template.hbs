@@ -1,0 +1,286 @@
+<div class="fx-page">
+  <nav class="fx-top">
+    <button type="button" class="fx-back" {{on "click" this.openHub}}>← Hub</button>
+    <span class="fx-crumb">Forest feature {{this.feature.position}} of {{this.feature.total}}</span>
+  </nav>
+
+  <header class="fx-header">
+    <span class="fx-icon" aria-hidden="true">{{this.feature.icon}}</span>
+    <div class="fx-header-text">
+      <p class="fx-eyebrow">Forest feature</p>
+      <h1 class="fx-title">{{this.feature.name}}</h1>
+      <p class="fx-promise">{{this.feature.promise}}</p>
+    </div>
+  </header>
+
+  <section class="fx-main">
+    <div class="fx-what">
+      <h2 class="fx-h2">What it is</h2>
+      {{#each this.feature.what as |paragraph|}}
+        <p class="fx-p">{{paragraph}}</p>
+      {{/each}}
+    </div>
+
+    <figure class="fx-art">
+      {{#if this.art.collections}}
+        <div class="fx-ill fx-ill-two">
+          <div class="fx-mock">
+            <div class="fx-mock-bar"><b>Customers</b><span class="fx-mock-search">Search…</span></div>
+            <div class="fx-row fx-row-head"><span>Name</span><span>Type</span><span>Risk</span></div>
+            <div class="fx-row"><span>Camille Laurent</span><span>Retail</span><span class="fx-tag">Low</span></div>
+            <div class="fx-row fx-row-on"><span>Atelier Moreau SAS</span><span>Business</span><span class="fx-tag fx-tag-pop">Medium</span></div>
+            <div class="fx-row"><span>Hugo Bernard</span><span>Retail</span><span class="fx-tag">Low</span></div>
+            <div class="fx-row"><span>Nordlys Trading</span><span>Business</span><span class="fx-tag">Low</span></div>
+          </div>
+          <span class="fx-arrow" aria-hidden="true">→</span>
+          <div class="fx-mock">
+            <div class="fx-record-head"><span class="fx-avatar">AM</span><b>Atelier Moreau SAS</b></div>
+            <div class="fx-tabs"><span class="fx-tab-on">Details</span><span>Accounts</span><span>KYC</span><span>Activity</span></div>
+            <div class="fx-kv"><span>Status</span><b>Active</b></div>
+            <div class="fx-kv"><span>Risk rating</span><b>Medium</b></div>
+            <div class="fx-kv"><span>Onboarded</span><b>12 Mar 2024</b></div>
+            <div class="fx-chips"><span class="fx-chip">3 accounts</span><span class="fx-chip">2 cards</span><span class="fx-chip">1 KYC case</span><span class="fx-chip">📄 Kbis.pdf</span></div>
+          </div>
+        </div>
+        <figcaption class="fx-caption">A list of customers, and one customer’s record with everything linked to it.</figcaption>
+      {{/if}}
+
+      {{#if this.art.segments}}
+        <div class="fx-ill">
+          <div class="fx-mock fx-mock-wide">
+            <div class="fx-seg-tabs"><span>All outgoing transfers</span><span class="fx-seg-on">Transfers to validate</span></div>
+            <div class="fx-filter"><span class="fx-filter-chip">Validation status is Pending</span></div>
+            <div class="fx-row fx-row-off"><span>€820 · Loyer octobre</span><span class="fx-tag">Not required</span></div>
+            <div class="fx-row fx-row-on"><span>€24,500 · Brasserie du Port</span><span class="fx-tag fx-tag-pop">Pending</span></div>
+            <div class="fx-row fx-row-off"><span>€18,200 · Kessler GmbH</span><span class="fx-tag">Approved</span></div>
+            <div class="fx-row fx-row-on"><span>€41,000 · Nordlys Trading</span><span class="fx-tag fx-tag-pop">Pending</span></div>
+            <div class="fx-row fx-row-on"><span>€12,900 · Atelier Moreau SAS</span><span class="fx-tag fx-tag-pop">Pending</span></div>
+          </div>
+        </div>
+        <figcaption class="fx-caption">One saved filter, a name, and the whole team sees the same rows.</figcaption>
+      {{/if}}
+
+      {{#if this.art.inboxes}}
+        <div class="fx-ill fx-ill-flow">
+          <div class="fx-stack">
+            <span class="fx-stack-label">Segment</span>
+            <div class="fx-stack-card">KYC #1048</div>
+            <div class="fx-stack-card">KYC #1047</div>
+            <div class="fx-stack-card">KYC #1046</div>
+            <span class="fx-stack-label">oldest first</span>
+          </div>
+          <span class="fx-arrow" aria-hidden="true">→</span>
+          <div class="fx-people">
+            <div class="fx-person"><span class="fx-avatar">AN</span><span class="fx-person-task">KYC #1041</span></div>
+            <div class="fx-person"><span class="fx-avatar">MX</span><span class="fx-person-task">KYC #1042</span></div>
+            <div class="fx-person"><span class="fx-avatar">YOU</span><span class="fx-next">Next ticket →</span></div>
+            <span class="fx-stack-label">max 5 tasks each · idle tasks go back</span>
+          </div>
+        </div>
+        <figcaption class="fx-caption">A segment becomes a queue: each analyst gets the next case, nobody gets the same one.</figcaption>
+      {{/if}}
+
+      {{#if this.art.workflows}}
+        <div class="fx-ill fx-wf">
+          <div class="fx-wf-step"><span class="fx-wf-kind">auto</span>Start the review</div>
+          <span class="fx-wf-line" aria-hidden="true"></span>
+          <div class="fx-wf-step"><span class="fx-wf-kind">read · Done</span>Read the alert and the payment</div>
+          <span class="fx-wf-line" aria-hidden="true"></span>
+          <div class="fx-wf-step fx-wf-ai"><span class="fx-wf-kind">✨ AI decides</span>Takeover or other fraud?</div>
+          <div class="fx-wf-branches">
+            <div class="fx-wf-branch">
+              <span class="fx-wf-answer">Takeover</span>
+              <div class="fx-wf-step"><span class="fx-wf-kind">action</span>Check device and IP (SEON)</div>
+              <div class="fx-wf-step fx-wf-ai"><span class="fx-wf-kind">✨ AI decides</span>Takeover signals?</div>
+              <div class="fx-wf-step"><span class="fx-wf-kind">action</span>Revoke device, freeze account</div>
+            </div>
+            <div class="fx-wf-branch">
+              <span class="fx-wf-answer">Other fraud</span>
+              <div class="fx-wf-step"><span class="fx-wf-kind">read · Done</span>Read the transactions</div>
+              <div class="fx-wf-step"><span class="fx-wf-kind">analyst decides</span>Clear or escalate? · Not sure</div>
+              <div class="fx-wf-step fx-wf-esc"><span class="fx-wf-kind">escalation</span>Inbox “Alerts: second look”</div>
+            </div>
+          </div>
+          <span class="fx-wf-line" aria-hidden="true"></span>
+          <div class="fx-wf-end">✓ Done</div>
+        </div>
+        <figcaption class="fx-caption">The fraud alert procedure: automatic steps, steps to read, an AI decision, an escalation.</figcaption>
+      {{/if}}
+
+      {{#if this.art.actions}}
+        <div class="fx-ill fx-ill-flow">
+          <div class="fx-act-col">
+            <span class="fx-btn-mock">Route dispute</span>
+            <span class="fx-stack-label">can require a second person’s approval</span>
+          </div>
+          <span class="fx-arrow" aria-hidden="true">→</span>
+          <div class="fx-mock fx-form">
+            <b class="fx-form-title">Route dispute</b>
+            <span class="fx-form-label">Route</span>
+            <span class="fx-form-input">Chargeback ▾</span>
+            <span class="fx-form-label">Note</span>
+            <span class="fx-form-input fx-form-area">Goods not received, merchant silent for 15 days.</span>
+            <span class="fx-form-submit">Submit</span>
+          </div>
+          <span class="fx-arrow" aria-hidden="true">→</span>
+          <div class="fx-result">
+            <span class="fx-stack-label">Dispute triage · DSP-2041</span>
+            <b>Chargeback opened</b>
+            <span>Disputed amount: €389.00</span>
+            <span>New case CB-1187</span>
+          </div>
+        </div>
+        <figcaption class="fx-caption">A button, a form, your code in the agent, and a card of what it did.</figcaption>
+      {{/if}}
+
+      {{#if this.art.charts}}
+        <div class="fx-ill fx-charts">
+          <div class="fx-tile"><span class="fx-tile-value">42</span><span class="fx-tile-label">KYC to review</span></div>
+          <div class="fx-tile fx-tile-dark"><span class="fx-tile-value">7</span><span class="fx-tile-label">overdue</span></div>
+          <div class="fx-bars" aria-hidden="true">
+            <span style="height: 40%"></span><span style="height: 65%"></span><span style="height: 50%"></span><span style="height: 80%"></span><span style="height: 60%"></span><span style="height: 95%"></span><span style="height: 70%"></span>
+          </div>
+          <div class="fx-donut" aria-hidden="true"><span></span></div>
+        </div>
+        <figcaption class="fx-caption">Counters, a trend and a breakdown, computed live when the page opens.</figcaption>
+      {{/if}}
+
+      {{#if this.art.workspaces}}
+        <div class="fx-ill fx-ws">
+          <div class="fx-ws-top"><b>🛂 Onboarding desk</b><span class="fx-ws-toggle">Layout editor ●</span></div>
+          <div class="fx-ws-counters"><span>12</span><span>5</span><span>3</span><span>36</span><span>40</span></div>
+          <div class="fx-ws-body">
+            <div class="fx-ws-block fx-ws-inbox">📥 Inbox<span></span><span></span><span></span></div>
+            <div class="fx-ws-side">
+              <div class="fx-ws-block fx-ws-btn">▶ Retail onboarding</div>
+              <div class="fx-ws-block fx-ws-btn">Approve KYC</div>
+              <div class="fx-ws-block fx-ws-drag">⠿ drag a component</div>
+            </div>
+          </div>
+          <div class="fx-ws-block fx-ws-tabs"><span class="fx-tab-on">Case</span><span>People</span><span>Documents</span><span>Requests</span></div>
+        </div>
+        <figcaption class="fx-caption">A desk: counters, the inbox, the buttons for the picked case, its fields in tabs.</figcaption>
+      {{/if}}
+
+      {{#if this.art.custom}}
+        <div class="fx-ill fx-ill-flow">
+          <div class="fx-files">
+            <div class="fx-file"><b>template.hbs</b><span>&lt;h1&gt;Welcome&lt;/h1&gt;</span></div>
+            <div class="fx-file"><b>component.js</b><span>fetch('/forest/_charts/…')</span></div>
+            <div class="fx-file"><b>style.css</b><span>.card { color: … }</span></div>
+          </div>
+          <span class="fx-arrow" aria-hidden="true">→</span>
+          <div class="fx-act-col">
+            <span class="fx-pipe">a CDN<br />…/hub/</span>
+          </div>
+          <span class="fx-arrow" aria-hidden="true">→</span>
+          <div class="fx-mock fx-rendered">
+            <b>Welcome to the bank’s back office</b>
+            <span class="fx-rendered-card">🛂 Onboarding desk <i>12 to review</i></span>
+            <span class="fx-rendered-card">🚨 Alerts desk <i>9 to review</i></span>
+          </div>
+        </div>
+        <figcaption class="fx-caption">Three files served by your agent, drawn inside a Forest page.</figcaption>
+      {{/if}}
+
+      {{#if this.art.roles}}
+        <div class="fx-ill">
+          <div class="fx-mock fx-mock-wide fx-matrix">
+            <div class="fx-matrix-row fx-matrix-head"><span></span><span>Analyst</span><span>MLRO</span><span>Auditor</span></div>
+            <div class="fx-matrix-row"><span>See investigations</span><span class="fx-yes">✓</span><span class="fx-yes">✓</span><span class="fx-yes">✓</span></div>
+            <div class="fx-matrix-row"><span>Edit a case</span><span class="fx-yes">✓</span><span class="fx-yes">✓</span><span class="fx-no">–</span></div>
+            <div class="fx-matrix-row"><span>Draft SAR</span><span class="fx-yes">✓</span><span class="fx-yes">✓</span><span class="fx-no">–</span></div>
+            <div class="fx-matrix-row"><span>File SAR</span><span class="fx-ask">asks approval</span><span class="fx-yes">approves</span><span class="fx-no">–</span></div>
+            <div class="fx-matrix-row"><span>Export</span><span class="fx-no">–</span><span class="fx-yes">✓</span><span class="fx-yes">✓</span></div>
+          </div>
+          <div class="fx-chips fx-chips-center"><span class="fx-chip">Team Operations</span><span class="fx-chip">Team Compliance</span><span class="fx-chip">Team Payments</span></div>
+        </div>
+        <figcaption class="fx-caption">Roles say what each person may do; teams say which pages they see.</figcaption>
+      {{/if}}
+
+      {{#if this.art.agent}}
+        <div class="fx-ill fx-net">
+          <div class="fx-net-node fx-net-browser">💻 Your browser<small>app.forestadmin.com</small></div>
+          <span class="fx-net-link fx-net-c1">↕ interface, layouts</span>
+          <span class="fx-net-link fx-net-link-pop fx-net-c3">↕ your data, direct</span>
+          <div class="fx-net-node fx-net-c1">☁️ Forest servers<small>layouts · permissions · schema</small></div>
+          <span class="fx-net-arrow fx-net-c2">← schema only</span>
+          <div class="fx-net-node fx-net-yours fx-net-c3">🛡️ Your agent<small>localhost:3310</small></div>
+          <span class="fx-net-link fx-net-c3">↕</span>
+          <div class="fx-net-node fx-net-db fx-net-c3">🗄️ Your database<small>stays on your side</small></div>
+        </div>
+        <figcaption class="fx-caption">The browser asks your agent for the rows. Forest only knows the shape of the tables.</figcaption>
+      {{/if}}
+
+      {{#if this.art.ai}}
+        <div class="fx-ill">
+          <div class="fx-wf-step fx-wf-ai fx-ai-q"><span class="fx-wf-kind">✨ AI decides</span>Takeover or other fraud?</div>
+          <div class="fx-bubble">
+            <b>AI chose: Takeover</b>
+            <span>The rule that fired is “Account takeover”: a new device and a new payee, the payment sent 3 minutes after the login.</span>
+            <span class="fx-bubble-foot">The analyst sees why, and can take the other branch.</span>
+          </div>
+          <div class="fx-mcp">
+            <span class="fx-mcp-node">🤖 Claude, Cursor…</span>
+            <span class="fx-mcp-link">⇄ MCP ⇄</span>
+            <span class="fx-mcp-node">🛡️ Your agent</span>
+          </div>
+          <span class="fx-stack-label fx-center">same permissions as the user · every call logged</span>
+        </div>
+        <figcaption class="fx-caption">AI inside the procedure, and AI assistants through MCP, both inside your rules.</figcaption>
+      {{/if}}
+
+      {{#if this.art.activity}}
+        <div class="fx-ill">
+          <div class="fx-timeline">
+            <div class="fx-event"><span class="fx-event-time">10:42</span><span><b>Ana</b> ran <b>Approve KYC</b> on KYC case #1041</span></div>
+            <div class="fx-event"><span class="fx-event-time">10:39</span><span><b>Ana</b> finished step “Check the ID” of Retail onboarding</span></div>
+            <div class="fx-event"><span class="fx-event-time">10:31</span><span><b>Ana</b> took KYC case #1041 from Retail onboarding</span></div>
+            <div class="fx-event"><span class="fx-event-time">09:58</span><span><b>Max</b> edited <b>Risk rating</b> on Atelier Moreau SAS</span></div>
+            <div class="fx-event"><span class="fx-event-time">09:12</span><span><b>Léa</b> approved <b>File SAR</b> requested by Max</span></div>
+          </div>
+        </div>
+        <figcaption class="fx-caption">Who did what, on which record, and when.</figcaption>
+      {{/if}}
+    </figure>
+  </section>
+
+  <section class="fx-live">
+    <div class="fx-live-head">
+      <h2 class="fx-h2 fx-on-dark">See it live in this demo</h2>
+      <span class="fx-live-note">{{this.liveNote}}</span>
+    </div>
+    {{#if this.feature.liveText}}
+      <p class="fx-live-text">{{this.feature.liveText}}</p>
+    {{/if}}
+    {{#if this.hasFacts}}
+      <div class="fx-facts">
+        {{#each this.facts as |fact|}}
+          <div class="fx-fact">
+            <span class="fx-fact-value">{{fact.value}}</span>
+            <span class="fx-fact-label">{{fact.label}}</span>
+          </div>
+        {{/each}}
+      </div>
+    {{/if}}
+    <div class="fx-actions">
+      {{#each this.feature.buttons as |button|}}
+        <button type="button" class="fx-go" {{on "click" (fn this.open button)}}>{{button.label}} →</button>
+      {{/each}}
+    </div>
+  </section>
+
+  <section class="fx-setup">
+    <h2 class="fx-h2">How to set it up</h2>
+    <ol class="fx-steps">
+      {{#each this.steps as |step|}}
+        <li class="fx-step"><span class="fx-step-number">{{step.number}}</span><span class="fx-step-text">{{step.text}}</span></li>
+      {{/each}}
+    </ol>
+    <a class="fx-docs" href={{this.feature.docs}} target="_blank" rel="noopener noreferrer">Read more in the Forest docs ↗</a>
+  </section>
+
+  <footer class="fx-footer">
+    <button type="button" class="fx-back fx-back-big" {{on "click" this.openHub}}>← Back to the Hub</button>
+  </footer>
+</div>

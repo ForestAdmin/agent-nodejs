@@ -1,0 +1,99 @@
+{
+  "accounts": [
+    "Freeze account",
+    "Unfreeze account"
+  ],
+  "alerts": [
+    "Start review",
+    "Check device and IP",
+    "Call the customer",
+    "Send for a second look",
+    "Clear alert",
+    "Escalate",
+    "Revoke device",
+    "Freeze account",
+    "Unfreeze account",
+    "Recall transfer",
+    "Refund the customer (PSD2)",
+    "Approve transfer",
+    "Reject transfer"
+  ],
+  "chargebacks": [
+    "Block linked card",
+    "Request cardholder info",
+    "File with network",
+    "Accept Liability & Refund Customer",
+    "File pre-arbitration",
+    "Accept representment"
+  ],
+  "customers": [
+    "Change preferred language",
+    "Start the day"
+  ],
+  "dispute_requests": [
+    "Ask to contact the merchant",
+    "Route dispute"
+  ],
+  "documents": [
+    "Verify document",
+    "Check against the register",
+    "Accept",
+    "Reject with a reason"
+  ],
+  "investigations": [
+    "Assign",
+    "Request information",
+    "Request enhanced due diligence",
+    "Draft SAR",
+    "File SAR",
+    "Send back to the analyst",
+    "Close without SAR",
+    "Exit relationship"
+  ],
+  "kyc_cases": [
+    "Check documents",
+    "Screen against sanctions lists",
+    "Verify document",
+    "Request ID document",
+    "Request company documents",
+    "Request missing documents",
+    "Check the company register",
+    "Send for senior sign-off",
+    "Park for screening",
+    "Hand to a person",
+    "Approve card acceptance",
+    "Set a reserve",
+    "Approve KYC",
+    "Rate the risk",
+    "Approve KYC - Low risk",
+    "Approve KYC - Medium or High",
+    "Reject KYC",
+    "Change preferred language",
+    "Submit application",
+    "Upload document",
+    "Send new applications",
+    "Reset the demo cases"
+  ],
+  "outgoing_transfers": [
+    "Check the payee",
+    "Call customer back",
+    "Approve transfer",
+    "Reject transfer"
+  ],
+  "sar_reports": [
+    "Record TRACFIN answer"
+  ],
+  "screening_hits": [
+    "Discard as false positive",
+    "Confirm true match",
+    "Release held payment",
+    "Escalate to MLRO"
+  ],
+  "sepa_disputes": [
+    "Escalate to fraud",
+    "Ask the customer for consent",
+    "Record the customer’s answer",
+    "Accept and return funds",
+    "Refuse with a reason"
+  ]
+}

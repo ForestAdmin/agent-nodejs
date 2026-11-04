@@ -1,0 +1,83 @@
+<div class="hub-page">
+  <section class="hub-welcome">
+    <div class="hub-welcome-head">
+      <p class="hub-eyebrow">Forest demo · Hub</p>
+      <h1 class="hub-title">Welcome to the bank’s back office</h1>
+    </div>
+    <p class="hub-lead">
+      This is where the bank’s teams work every day, on its live data. Onboarding checks everyone
+      who opens an account: papers, ID, sanctions screening, risk. The alerts team clears AML and
+      fraud alerts, investigators build the cases and the MLRO files the suspicious activity
+      reports, payments validates the large transfers, disputes handles card chargebacks and SEPA
+      recalls. Each team works from its own desk: its queues, its next case, its actions and
+      workflows.
+    </p>
+  </section>
+
+  <section class="hub-band hub-band-tour">
+    <div class="hub-band-text">
+      <h2 class="hub-band-title">New to Forest? Take a tour!</h2>
+      <p class="hub-band-sub">Step by step, on a real desk: Smart Actions first, then a full KYC case, a workflow and a senior’s sign-off.</p>
+    </div>
+    <button type="button" class="hub-band-button" {{on "click" this.openTour}}>Start the tour →</button>
+  </section>
+
+  <section class="hub-band hub-band-explore">
+    <div class="hub-band-text">
+      <h2 class="hub-band-title">Already familiar? Explore on your own</h2>
+      <p class="hub-band-sub">Open the data in the left panel, try the pre-built desks below, and edit any workspace as you see fit: the pencil at the top of each page opens the layout editor.</p>
+    </div>
+    {{#if this.dataMapWorkspaceId}}
+      <button type="button" class="hub-band-button" {{on "click" this.openDataMap}}>See the data model →</button>
+    {{/if}}
+  </section>
+
+  <section class="hub-section">
+    <h2 class="hub-h2">Team desks</h2>
+    <p class="hub-sub">Live from the data: what waits for each team right now.</p>
+    <div class="hub-desks">
+      {{#each this.desks as |desk|}}
+        <div class="hub-desk">
+          <span class="hub-desk-icon">{{desk.icon}}</span>
+          <span class="hub-desk-body">
+            <button type="button" class="hub-desk-name hub-desk-open" {{on "click" (fn this.openWorkspace desk.workspaceId)}}>{{desk.name}}</button>
+            <span class="hub-desk-desc">{{desk.description}}</span>
+          </span>
+          <span class="hub-desk-counts">
+            {{#if desk.counts}}
+              <span class="hub-pill">{{desk.counts.waiting}} to review</span>
+              {{#if desk.counts.second}}
+                <span class="hub-pill hub-pill-pop">{{desk.counts.second}}</span>
+              {{/if}}
+            {{else}}
+              <span class="hub-pill hub-pill-muted">{{this.countsStatus}}</span>
+            {{/if}}
+          </span>
+          <span class="hub-desk-arrow" aria-hidden="true">→</span>
+        </div>
+      {{/each}}
+    </div>
+  </section>
+
+  <section class="hub-section">
+    <h2 class="hub-h2">Feature by feature</h2>
+    <p class="hub-sub">Click a feature: what it does, a picture of it, where to see it live here, and how to set it up.</p>
+    <div class="hub-features">
+      {{#each this.features as |feature|}}
+        {{#if feature.clickable}}
+          <button type="button" class="hub-feature hub-feature-link" {{on "click" (fn this.openFeature feature)}}>
+            <span class="hub-feature-name">{{feature.name}} <span class="hub-feature-arrow" aria-hidden="true">→</span></span>
+            <span class="hub-feature-what">{{feature.what}}</span>
+            <span class="hub-feature-where">{{feature.where}}</span>
+          </button>
+        {{else}}
+          <div class="hub-feature">
+            <span class="hub-feature-name">{{feature.name}}</span>
+            <span class="hub-feature-what">{{feature.what}}</span>
+            <span class="hub-feature-where">{{feature.where}}</span>
+          </div>
+        {{/if}}
+      {{/each}}
+    </div>
+  </section>
+</div>
