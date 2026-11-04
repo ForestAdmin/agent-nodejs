@@ -12,7 +12,7 @@ import { mkdtempSync, readFileSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import path from 'path';
 
-import { buildPublic, publicFiles } from '../scripts/build-public';
+import { SEGMENTS } from '../src/customizations/shared/segments';
 import { createDemoBankDataSource } from '../src/index';
 import { tables } from '../src/model/schema';
 
@@ -62,7 +62,7 @@ describe('createDemoBankDataSource', () => {
       dataSource = await createDemoBankDataSource()(logger, restartAgent);
     });
 
-    it('should expose exactly the 59 tables of schema.json as collections', () => {
+    it('should expose exactly the 59 tables of data-model.json as collections', () => {
       const names = dataSource.collections.map(c => c.name).sort();
 
       expect(names).toEqual(Object.keys(tables).sort());
@@ -314,29 +314,21 @@ describe('createDemoBankDataSource', () => {
       rows.forEach(row => expect(row.full_name).toBe(`${row.first_name} ${row.last_name}`));
     });
 
-    it('should count the waiting and overdue tasks of every desk in hub_counts', async () => {
-      const desk = {
+    it('should count the waiting and overdue tasks of every segment queue in hub_counts', async () => {
+      const queue = {
         waiting: expect.any(Number),
         overdue: expect.any(Number),
         hasDeadline: expect.any(Boolean),
-        queues: expect.any(Object),
       };
 
       const chart = await dataSource.renderChart(caller, 'hub_counts');
 
       expect(chart).toEqual({
         at: expect.any(String),
-        desks: {
-          onboarding: desk,
-          alerts: desk,
-          investigations: desk,
-          mlro: desk,
-          payments: desk,
-          disputes: desk,
-          overview: desk,
-        },
+        queues: Object.fromEntries(Object.keys(SEGMENTS).map(key => [key, queue])),
       });
-      expect(chart.desks.overview.waiting).toBeGreaterThan(0);
+      expect(chart.queues.alerts_aml.waiting).toBeGreaterThan(0);
+      expect(chart.queues.alerts_aml.hasDeadline).toBe(true);
     });
 
     it('should count the rows of every table in data_map, with none unavailable', async () => {
@@ -347,18 +339,5 @@ describe('createDemoBankDataSource', () => {
       expect(chart.stats.tables).toBe(59);
       expect(counted).toHaveLength(59);
     });
-  });
-});
-
-describe('buildPublic', () => {
-  it('should render every Custom component file the demo layout loads', () => {
-    const out = mkdtempSync(path.join(tmpdir(), 'demo-bank-public-'));
-
-    try {
-      expect(buildPublic(out)).toEqual(publicFiles());
-      expect(publicFiles()).toHaveLength(37);
-    } finally {
-      rmSync(out, { recursive: true, force: true });
-    }
   });
 });

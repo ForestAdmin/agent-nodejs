@@ -322,7 +322,12 @@ const CASES: Record<string, Record<string, Case>> = {
       rows: both(undecided, company),
       values: { 'Share held (%)': 10, 'Days held': 120 },
     },
-    'Approve KYC': { rows: status('IN_REVIEW'), message: /approved\.$/ },
+    'Approve KYC': {
+      rows: status('IN_REVIEW'),
+      // The case picked decides how the message ends: a customer still onboarding becomes active,
+      // and a new customer's (an ONBOARDING case's) first account opens.
+      message: /approved\.( .+ is now an active customer\.( Account opened: .+\.)?)?$/,
+    },
     'Rate the risk': { rows: status('IN_REVIEW'), message: /rated/ },
     'Approve KYC - Low risk': {
       // Cases a person has just rated LOW; the approval still wants their papers verified.
@@ -421,7 +426,7 @@ describe('the demo bank once booted', () => {
   });
 
   describe('computed fields', () => {
-    // A field the data source adds: not a column of schema.json, not a relation.
+    // A field the data source adds: not a column of data-model.json, not a relation.
     const computedOf = (collection: Collection) =>
       Object.entries(collection.schema.fields)
         .filter(([, field]) => field.type === 'Column')

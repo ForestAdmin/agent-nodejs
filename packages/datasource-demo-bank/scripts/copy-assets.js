@@ -1,7 +1,6 @@
+/* eslint-disable @typescript-eslint/no-var-requires -- a plain Node script run after tsc */
 /**
- * Copies the data model files tsc leaves behind (src/model/**\/*.json: the schema, the desks and
- * workflows the charts read) into dist/. The Custom component sources (src/components/) stay out:
- * they are browser files, only read by build-public.js at build time.
+ * Copies the data model files tsc leaves behind (src/model/**\/*.json: data-model.json) into dist/.
  */
 const fs = require('fs');
 const path = require('path');

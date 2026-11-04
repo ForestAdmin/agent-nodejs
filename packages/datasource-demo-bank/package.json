@@ -21,11 +21,10 @@
   "files": [
     "dist/**/*.js",
     "dist/**/*.d.ts",
-    "dist/model/**/*.json",
-    "dist/public/**"
+    "dist/model/**/*.json"
   ],
   "scripts": {
-    "build": "tsc && node scripts/copy-assets.js && node scripts/build-public.js",
+    "build": "tsc && node scripts/copy-assets.js",
     "build:watch": "tsc --watch",
     "clean": "rm -rf coverage dist",
     "lint": "eslint src test scripts",

@@ -17,9 +17,7 @@ agent.addDataSource(createDemoBankDataSource());
 
 ## How the data is built
 
-- **Model** (`src/model/`): `schema.json` lists the 59 tables, their fields, enums and links;
-  `workflows/*.json` hold the desks' content (queues, steps, buttons) the charts and components
-  read.
+- **Model** (`src/model/`): `data-model.json` lists the 59 tables, their fields, enums and links.
 - **Seed** (`src/seed/`): `seed/index.js` creates every table and runs the domain builders
   (retail, business, banking, crime, disputes, e-invoicing, credit, lifecycle…). The data is the
   same on every boot (fixed seed in `seed/random.js`) and dated relative to today, so a demo never
@@ -28,16 +26,11 @@ agent.addDataSource(createDemoBankDataSource());
 - **Customize** (`src/customizations/`): the links of the data model, readable record names and
   parent lists for every table (`shared/`), then one module per table with its Smart Actions,
   computed fields and evidence.
-- **Charts** (`src/charts/`): the API charts the demo workspaces read (desk counts, the data map,
-  the KYC flow, the Hub).
+- **Charts** (`src/charts/`): the API charts the demo workspaces read (the desks' weekly figures,
+  the queue counts, the data map, the guides' and the feature explainers' facts, a record's
+  network).
 
-## Custom components
-
-The demo layout's Custom components (the Hub, the desks' guides and buttons, the KYC flow, the
-feature explainers) are generated at build time from `src/components/` into `dist/public/hub/`,
-and loaded by the layout from a CDN serving this package
-(`https://cdn.jsdelivr.net/npm/@forestadmin/datasource-demo-bank@1/dist/public/hub/…`). The agent
-serves no files.
+The demo layout and its Custom components ship with the Forest CLI.
 
 ## Partner portal
 

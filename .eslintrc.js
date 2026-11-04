@@ -164,11 +164,6 @@ module.exports = {
       rules: { 'unicorn/filename-case': 'off' },
     },
     {
-      // A JavaScript package (allowJs): CommonJS modules.
-      files: ['packages/datasource-demo-bank/**/*.js'],
-      rules: { '@typescript-eslint/no-var-requires': 'off' },
-    },
-    {
       // Test filenames separate subject from case with an underscore; nothing imports
       // them, so their casing cannot break a build.
       files: ['**/test/**/*'],
