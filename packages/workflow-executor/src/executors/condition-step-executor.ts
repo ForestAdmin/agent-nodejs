@@ -388,10 +388,13 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
     | { found: true; value: unknown }
     | { found: 'per-record'; values: Array<{ recordId: string; found: boolean; value?: unknown }> }
     | { found: false; reason: ConditionNotLoadedReason } {
+    // Inside a call, only this call's own steps: another call of the workflow repeats the id.
+    const frame = this.context.callScope?.currentFrameStepIndexes;
     const matches = this.context.previousSteps.filter(
       step =>
         step.stepDefinition.type === StepType.ReadRecord &&
-        step.stepOutcome.stepId === condition.sourceStepId,
+        step.stepOutcome.stepId === condition.sourceStepId &&
+        (frame === undefined || frame.includes(step.stepOutcome.stepIndex)),
     );
     const sourceStep = matches[matches.length - 1];
     if (!sourceStep) return { found: false, reason: 'source-step-not-reached' };
