@@ -134,6 +134,7 @@ export async function selectRelevantRecordIndexes(
   candidates: RecordData[],
   fieldNames: string[],
   prompt: string | undefined,
+  collectionDisplayName: string,
 ): Promise<{ indexes: number[]; confident: boolean; sawAll: boolean }> {
   const { lines, shown, truncated } = candidateLines(candidates, fieldNames);
   const maxIndex = shown - 1;
@@ -160,6 +161,9 @@ export async function selectRelevantRecordIndexes(
   const messages = [
     ai.contextMessage,
     new SystemMessage(SELECT_RECORDS_SYSTEM_PROMPT),
+    // Without it the AI judges whether each candidate is what the request names: "the dvds priced
+    // above $8" over titles reading like bicycles drew "not confident they are DVDs", or no pick.
+    new SystemMessage(`The related records are from the "${collectionDisplayName}" collection.`),
     new SystemMessage(`Candidates:\n${lines.join('\n')}`),
     new HumanMessage(`**Request**: ${prompt ?? 'Select the relevant records.'}`),
   ];
