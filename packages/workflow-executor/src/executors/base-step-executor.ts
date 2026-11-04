@@ -125,7 +125,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
   }
 
   // Both catch branches below route through here, so neither can drop the classification. The
-  // factory's own catch (step-executor-factory.ts) builds its outcome separately and does not.
+  // factory's own catch (step-executor-factory.ts) builds its outcome separately and keeps the kind.
   private buildErrorOutcome(error: WorkflowExecutorError): StepExecutionResult {
     return this.buildOutcomeResult({ status: 'error', ...toErrorOutcome(error) });
   }
