@@ -52,6 +52,10 @@ export default function toUpdateStepRequest(
     context.approvalRequest = outcome.approvalRequest;
   }
 
+  if (outcome.type === 'record' && outcome.loadedRecordCount !== undefined) {
+    context.loadedRecordCount = outcome.loadedRecordCount;
+  }
+
   if (outcome.type === 'mcp' && outcome.awaitingInputReason !== undefined) {
     context.awaitingInputReason = outcome.awaitingInputReason;
   }

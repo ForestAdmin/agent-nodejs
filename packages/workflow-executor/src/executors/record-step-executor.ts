@@ -9,6 +9,7 @@ import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin
 import { z } from 'zod';
 
 import {
+  CallRecordNotLoadedError,
   InvalidAIResponseError,
   InvalidPreRecordedArgsError,
   NoRecordsError,
@@ -16,6 +17,7 @@ import {
   SourceRecordCollectionMismatchError,
   SourceRecordMissingError,
   SourceRecordStepNotReachedError,
+  SourceRunsOncePerRecordError,
 } from '../errors';
 import BaseStepExecutor from './base-step-executor';
 import { isPerRecordExecution } from '../types/step-execution-data';
@@ -83,6 +85,7 @@ export default abstract class RecordStepExecutor<
     error?: string;
     errorKind?: ErrorKind;
     errorSourceStepIndex?: number;
+    loadedRecordCount?: number;
   }): StepExecutionResult {
     return {
       stepOutcome: {
@@ -147,6 +150,7 @@ export default abstract class RecordStepExecutor<
       const pinned = await this.resolveStepRecordRef(
         callScope.selectedRecordStepId,
         callScope.pinnedFrameStepIndexes,
+        { recordIndex: callScope.callRecordIndex },
       );
       // The pin names a step of the calling workflow, so a miss is that Sub-workflow step's to fix.
       if (!pinned) throw new SourceRecordStepNotReachedError(callScope.selectedRecordStepId);
@@ -168,29 +172,39 @@ export default abstract class RecordStepExecutor<
     return record;
   }
 
-  // Undefined on a miss so each caller names its own error. A call's pin passes its frame.
+  // Undefined on a miss so each caller names its own error. A call's pin passes its frame, and
+  // the record index the orchestrator gave a call opened once per record of a Multiple step.
   private async resolveStepRecordRef(
     stepId: string,
     frameStepIndexes?: number[],
+    call?: { recordIndex?: number },
   ): Promise<RecordRef | undefined> {
     const sourceStep = findPinnedLoadStep(this.context.previousSteps, stepId, frameStepIndexes);
 
     if (sourceStep) {
       const stepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
       const execution = this.resolveStepExecution(sourceStep, stepExecutions);
+      const { title } = sourceStep.stepDefinition;
 
-      // A step that ran once per record keeps what it loaded in its iterations, not in a result.
+      // A step that ran once per record keeps what it loaded in its iterations, not in a result. A
+      // step's own pin on one runs once per record, so a call's pin is the one expected here.
       if (isPerRecordExecution(execution)) {
-        throw new SourceLoadsSeveralRecordsError(sourceStep.stepDefinition.title);
+        throw call
+          ? new SourceRunsOncePerRecordError(title)
+          : new SourceLoadsSeveralRecordsError(title);
       }
 
       const result = execution?.type === 'load-related-record' && execution.executionResult;
 
       if (result && 'record' in result) return result.record;
 
-      // A step's own pin on a Multiple step runs once per record, so only a call's pin gets here.
       if (result && 'records' in result) {
-        throw new SourceLoadsSeveralRecordsError(sourceStep.stepDefinition.title);
+        if (call?.recordIndex === undefined) throw new SourceLoadsSeveralRecordsError(title);
+
+        const record = result.records[call.recordIndex];
+        if (!record) throw new CallRecordNotLoadedError(title);
+
+        return record;
       }
 
       // The source step exists but loaded nothing → clear "no source record" message,
@@ -207,15 +221,28 @@ export default abstract class RecordStepExecutor<
   // Candidate sources for the AI: the base record plus the record each live prior
   // load-related step resolved — own stepIndex first, falling back to a clone's
   // originalStepIndex.
+  // Inside a call opened once per record, the calling workflow's records loaded several at a time
+  // belong to every call, so the call's own record stands in for them.
   protected async getAvailableRecordRefs(): Promise<RecordRef[]> {
+    const { callScope } = this.context;
+    const perRecordCall = callScope?.callRecordIndex !== undefined;
+    const ownFrame = callScope?.currentFrameStepIndexes ?? [];
     const stepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
-    const relatedRecords = this.context.previousSteps.flatMap(step =>
-      step.stepDefinition.type === StepType.LoadRelatedRecord
-        ? loadedRecordsOf(this.resolveStepExecution(step, stepExecutions))
-        : [],
-    );
+    const relatedRecords = this.context.previousSteps.flatMap(step => {
+      if (step.stepDefinition.type !== StepType.LoadRelatedRecord) return [];
 
-    return [this.context.baseRecordRef, ...relatedRecords];
+      const execution = this.resolveStepExecution(step, stepExecutions);
+      const result = execution?.type === 'load-related-record' && execution.executionResult;
+      const loadsSeveral = isPerRecordExecution(execution) || (!!result && 'records' in result);
+      const outsideCall = !ownFrame.includes(step.stepOutcome.stepIndex);
+
+      return perRecordCall && outsideCall && loadsSeveral ? [] : loadedRecordsOf(execution);
+    });
+    const callRecords = perRecordCall
+      ? [await this.resolveSourceRecordRef(WORKFLOW_START_STEP_ID)]
+      : [];
+
+    return [this.context.baseRecordRef, ...callRecords, ...relatedRecords];
   }
 
   protected getCollectionSchema(collectionName: string): Promise<CollectionSchema> {

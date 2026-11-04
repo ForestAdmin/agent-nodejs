@@ -52,6 +52,9 @@ export const CallScopeSchema = z
     // The call itself carries a pin, "workflow start" included. A pin resolving outwards to the run's
     // record sends no selectedRecordStepId, and this is what still tells it from an unpinned call.
     isPinned: z.literal(true).optional(),
+    // The position, in the pinned Multiple step's records, of the record a call opened once per
+    // record runs on.
+    callRecordIndex: z.number().int().nonnegative().optional(),
   })
   .strict();
 export type CallScope = z.infer<typeof CallScopeSchema>;

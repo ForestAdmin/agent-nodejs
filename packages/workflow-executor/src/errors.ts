@@ -728,14 +728,38 @@ export class RecordChangeInterruptedError extends WorkflowExecutorError {
   }
 }
 
-// Not SourceRecordMissingError: the source loaded several records, which a Sub-workflow cannot take
-// until it runs once per record, so the remedy is the calling Sub-workflow step.
+// Not SourceRecordMissingError: the source loaded several records and the call carries no record
+// index, as from an orchestrator that opens one call only, so the remedy is the Sub-workflow step.
 export class SourceLoadsSeveralRecordsError extends WorkflowCallSiteError {
   constructor(stepTitle?: string) {
     const step = stepTitle ? `"${stepTitle}"` : 'a step';
     super(
       `Sub-workflow call pins ${step}, which loads several records`,
       `The Sub-workflow step that called this workflow takes its record from ${step}, which loads several records. Set its record to a step that loads one.`,
+    );
+  }
+}
+
+// A call opened once per record names its record by position, so a position past the records the
+// Multiple step loaded means the call no longer matches that step.
+export class CallRecordNotLoadedError extends WorkflowCallSiteError {
+  constructor(stepTitle?: string) {
+    const step = stepTitle ? `"${stepTitle}"` : 'a step';
+    super(
+      `Sub-workflow call's record index is past the records ${step} loaded`,
+      `The Sub-workflow step that called this workflow runs once for each record of ${step}, but this run's record is not among the records it loaded. Revise the Sub-workflow step to run it again.`,
+    );
+  }
+}
+
+// A Sub-workflow runs once per record only on the Multiple step itself: a step loading one record
+// per record of it may have found none for some, leaving those calls without a record.
+export class SourceRunsOncePerRecordError extends WorkflowCallSiteError {
+  constructor(stepTitle?: string) {
+    const step = stepTitle ? `"${stepTitle}"` : 'a step';
+    super(
+      `Sub-workflow call pins ${step}, which runs once per record`,
+      `The Sub-workflow step that called this workflow takes its record from ${step}, which runs once for each record of a Multiple step. Set its record to the Multiple step itself.`,
     );
   }
 }
