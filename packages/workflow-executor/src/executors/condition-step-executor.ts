@@ -232,6 +232,7 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
         aggregator,
         evaluated.map(result => (result.unchecked ? null : result.met === true)),
       );
+
       if (verdict === null) {
         evaluated.forEach(result => result.unchecked?.forEach(recordId => unchecked.add(recordId)));
       }
