@@ -1634,6 +1634,18 @@ describe('toAvailableStepExecution', () => {
         expect(result?.previousSteps).toEqual([]);
       });
 
+      // An unbalanced close is read as the orchestrator reads it, never as a reason to fail the run.
+      it('passes over a close with no call open', () => {
+        const run = makeRun({
+          workflowHistory: [
+            makeCloseSubWorkflowHistory({ stepName: 'close-1', stepIndex: 0 }),
+            makeStepHistory({ stepName: 'after', stepIndex: 1, done: false }),
+          ],
+        });
+
+        expect(toAvailableStepExecution(run)?.previousSteps).toEqual([]);
+      });
+
       it('keeps every call in previousSteps once the step runs after them, in the calling workflow', () => {
         const run = makeRun({
           workflowHistory: [

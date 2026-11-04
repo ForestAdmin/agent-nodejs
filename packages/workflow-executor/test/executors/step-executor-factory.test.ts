@@ -270,6 +270,35 @@ describe('StepExecutorFactory.create', () => {
     });
   });
 
+  it('fails a step at the call site when its per-record call pins a step the run never took', async () => {
+    const step = makeStep({
+      stepIndex: 3,
+      stepDefinition: {
+        type: StepType.ReadRecord,
+        executionType: StepExecutionMode.FullyAutomated,
+        prompt: "Read the UBO's share",
+      },
+      callScope: {
+        currentFrameStepIndexes: [],
+        recordCall: {
+          selectedRecordStepId: 'load-ubos',
+          pinnedFrameStepIndexes: [],
+          recordIndex: 0,
+          startStepIndex: 2,
+        },
+      },
+    } as unknown as Partial<AvailableStepExecution>);
+    const config = {
+      ...makeContextConfig(),
+      runStore: { getStepExecutions: jest.fn().mockResolvedValue([]) },
+    } as unknown as StepContextConfig;
+
+    const executor = await StepExecutorFactory.create(step, config, activityLogPort, jest.fn());
+    const result = await executor.execute();
+
+    expect(result.stepOutcome).toMatchObject({ status: 'error', errorKind: 'call-site' });
+  });
+
   describe('after a Multiple step', () => {
     const loadStores = {
       stepDefinition: {

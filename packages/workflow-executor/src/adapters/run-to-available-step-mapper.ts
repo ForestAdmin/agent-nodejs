@@ -172,8 +172,11 @@ function toCallScope(
       });
     } else if (entry.stepDefinition.type === ServerStepTypeEnum.CloseSubWorkflow) {
       const closed = openCalls.pop();
-      openCalls.at(-1)?.stepIndexes.push(...(closed?.stepIndexes ?? []));
-      if (closed?.callRecordIndex !== undefined) closedRecordCalls.push(closed);
+
+      if (closed) {
+        openCalls.at(-1)?.stepIndexes.push(...closed.stepIndexes);
+        if (closed.callRecordIndex !== undefined) closedRecordCalls.push(closed);
+      }
     } else {
       frameOfStep.set(entry.stepIndex, frameOpenedAt);
       openCalls.at(-1)?.stepIndexes.push(entry.stepIndex);

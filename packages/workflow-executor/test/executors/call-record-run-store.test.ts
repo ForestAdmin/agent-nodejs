@@ -93,6 +93,25 @@ describe('CallRecordRunStore', () => {
     expect(await store.getStepExecutions('run-1')).toEqual([pendingPerRecordRow]);
   });
 
+  // Another Multiple step's records belong to every call, as a single load does.
+  it("reads another Multiple step of the calling workflow whole, since the call's record is not among its records", async () => {
+    const directorsRow = { ...multipleRow, stepIndex: 3 } as StepExecutionData;
+    const store = new CallRecordRunStore(makeBaseStore([directorsRow]), ubo(9), 4);
+
+    expect(await store.getStepExecutions('run-1')).toEqual([directorsRow]);
+  });
+
+  it('opens and closes without touching the run store it wraps', async () => {
+    const base = makeBaseStore([]);
+    const store = new CallRecordRunStore(base, ubo(2), 4);
+
+    await store.init();
+    await store.close();
+
+    expect(base.init).not.toHaveBeenCalled();
+    expect(base.close).not.toHaveBeenCalled();
+  });
+
   it('saves and deletes through the run store it wraps', async () => {
     const base = makeBaseStore([]);
     const store = new CallRecordRunStore(base, ubo(2), 4);
