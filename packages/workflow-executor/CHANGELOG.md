@@ -1,3 +1,10 @@
+## @forestadmin/workflow-executor [1.35.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.35.6...@forestadmin/workflow-executor@1.35.7) (2026-11-04)
+
+
+### Bug Fixes
+
+* **agent-bff,workflow-executor:** stop status keys in log contexts from overriding the log level ([#2057](https://github.com/ForestAdmin/agent-nodejs/issues/2057)) ([982f4a7](https://github.com/ForestAdmin/agent-nodejs/commit/982f4a725c4ac29dab0c968c9357be92ee81fbcc))
+
 ## @forestadmin/workflow-executor [1.35.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.35.5...@forestadmin/workflow-executor@1.35.6) (2026-11-03)
 
 
