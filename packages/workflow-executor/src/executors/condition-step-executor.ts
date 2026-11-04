@@ -47,9 +47,18 @@ interface GatewayDecision {
 interface ConditionResult {
   met: boolean | null;
   reason?: ConditionNotLoadedReason;
-  records?: { matched: number; evaluated: number };
-  // Serialized source record ids of the records it could not decide on.
+  records?: { matched: number; evaluated: number; unchecked?: string[] };
+  // Serialized source record ids of the records without a value, set only when one of them could
+  // still change the answer: the condition is then undecided rather than not met.
   unchecked?: string[];
+}
+
+// Three-valued: null is a condition a record without a value could still turn either way.
+function combine(aggregator: 'and' | 'or', verdicts: Array<boolean | null>): boolean | null {
+  const settling = aggregator === 'or';
+  if (verdicts.includes(settling)) return settling;
+
+  return verdicts.includes(null) ? null : !settling;
 }
 
 const GATEWAY_SYSTEM_PROMPT = `You are an AI agent selecting the correct option for a workflow gateway decision.
@@ -209,26 +218,33 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
 
     let matchedOption: string | undefined;
     const evaluations = optionConditions.map(({ option, aggregator, conditions }) => {
-      if (matchedOption !== undefined) {
+      // Options are taken first match first, so none is taken past one left undecided.
+      if (matchedOption !== undefined || unchecked.size > 0) {
         return { option, outcome: 'not-evaluated' } satisfies ConditionEvaluation;
       }
 
-      const results = conditions.map((condition, index) => {
-        const result = this.evaluateCondition(option, condition, stepExecutions, clock);
-        result.unchecked?.forEach(recordId => unchecked.add(recordId));
+      const evaluated = conditions.map(condition =>
+        this.evaluateCondition(option, condition, stepExecutions, clock),
+      );
+      // A value that could not be read counts as not met, as on a single record; only a record
+      // without a value that could still change a quantified condition leaves it undecided.
+      const verdict = combine(
+        aggregator,
+        evaluated.map(result => (result.unchecked ? null : result.met === true)),
+      );
+      if (verdict === null) {
+        evaluated.forEach(result => result.unchecked?.forEach(recordId => unchecked.add(recordId)));
+      }
 
-        return {
-          index,
-          met: result.met,
-          ...(result.reason && { reason: result.reason }),
-          ...(result.records && { records: result.records }),
-        };
-      });
-      const matched =
-        aggregator === 'or'
-          ? results.some(result => result.met === true)
-          : results.every(result => result.met === true);
+      const matched = verdict === true;
       if (matched) matchedOption = option;
+
+      const results = evaluated.map((result, index) => ({
+        index,
+        met: result.met,
+        ...(result.reason && { reason: result.reason }),
+        ...(result.records && { records: result.records }),
+      }));
 
       return {
         option,
@@ -237,8 +253,8 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
       } satisfies ConditionEvaluation;
     });
 
-    // A record without a value would make any, every and none each say something untrue, so the
-    // decision takes no branch: the operator picks one, knowing which records went unchecked.
+    // A record without a value that could change the branch: the decision takes none, and the
+    // operator picks one, knowing which records went unchecked.
     if (unchecked.size > 0) {
       await this.context.runStore.saveStepExecution(this.context.runId, {
         type: 'condition',
@@ -344,18 +360,22 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
       }
     });
 
-    const records = { matched, evaluated };
+    const records = { matched, evaluated, ...(unchecked.length > 0 && { unchecked }) };
+    const quantifier = condition.quantifier as NonNullable<DeterministicCondition['quantifier']>;
+    // The records read can settle it whatever the others hold: one match answers any and none, one
+    // record that does not match answers every.
+    const settled = {
+      any: matched > 0 ? true : undefined,
+      every: matched < evaluated ? false : undefined,
+      none: matched > 0 ? false : undefined,
+    }[quantifier];
+
+    if (settled !== undefined) return { met: settled, records };
     if (unchecked.length > 0) return { met: null, records, unchecked };
     // Over no record at all, "every" and "none" would hold vacuously: nothing was checked.
     if (evaluated === 0) return { met: false, records };
 
-    const met = {
-      any: matched > 0,
-      every: matched === evaluated,
-      none: matched === 0,
-    }[condition.quantifier as NonNullable<DeterministicCondition['quantifier']>];
-
-    return { met, records };
+    return { met: quantifier !== 'any', records };
   }
 
   // Same live-path + most-recent-occurrence resolution as resolveSourceRecordRef: previousSteps
