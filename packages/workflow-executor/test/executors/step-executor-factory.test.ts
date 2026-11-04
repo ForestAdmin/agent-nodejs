@@ -209,6 +209,67 @@ describe('StepExecutorFactory.create', () => {
     ]);
   });
 
+  // Run unnarrowed, an AI-picked step could act on any record the calling workflow loaded.
+  it('fails a step at the call site when its per-record call has no record to run on', async () => {
+    const step = makeStep({
+      stepIndex: 3,
+      stepDefinition: {
+        type: StepType.UpdateRecord,
+        executionType: StepExecutionMode.FullyAutomated,
+        prompt: "Update the UBO's share",
+      },
+      previousSteps: [
+        {
+          stepDefinition: {
+            type: StepType.LoadRelatedRecord,
+            executionType: StepExecutionMode.FullyAutomated,
+            title: 'Load UBOs',
+            preRecordedArgs: { multiple: true },
+          },
+          stepOutcome: { type: 'record', stepId: 'load-ubos', stepIndex: 1, status: 'success' },
+        },
+      ],
+      callScope: {
+        currentFrameStepIndexes: [],
+        recordCall: {
+          selectedRecordStepId: 'load-ubos',
+          pinnedFrameStepIndexes: [1],
+          recordIndex: 5,
+          startStepIndex: 2,
+        },
+      },
+    } as unknown as Partial<AvailableStepExecution>);
+    const config = {
+      ...makeContextConfig(),
+      runStore: {
+        getStepExecutions: jest.fn().mockResolvedValue([
+          {
+            type: 'load-related-record',
+            stepIndex: 1,
+            executionResult: {
+              relation: { name: 'ubos', displayName: 'UBOs' },
+              records: [{ collectionName: 'ubos', recordId: [1], stepIndex: 1 }],
+            },
+          },
+        ]),
+      },
+    } as unknown as StepContextConfig;
+
+    const executor = await StepExecutorFactory.create(step, config, activityLogPort, jest.fn());
+    const result = await executor.execute();
+
+    expect(result.stepOutcome).toEqual({
+      type: 'record',
+      stepId: 'step-1',
+      stepIndex: 3,
+      status: 'error',
+      errorKind: 'call-site',
+      error:
+        'The Sub-workflow step that called this workflow runs once for each record of "Load UBOs", ' +
+        'but this run\'s record is not among the records it loaded. Revise "Load UBOs" to load them again.',
+    });
+  });
+
   describe('after a Multiple step', () => {
     const loadStores = {
       stepDefinition: {
