@@ -47,6 +47,44 @@ describe('createConsoleLogger', () => {
     });
   });
 
+  describe('when the context carries a reserved key', () => {
+    it('should rename status, severity and syslog so they cannot override the level in Datadog', () => {
+      const logger = createConsoleLogger('Info');
+
+      logger('Warn', 'upstream failed', {
+        status: 503,
+        severity: 'low',
+        syslog: { severity: 2 },
+      });
+
+      const payload = JSON.parse(warn.mock.calls[0][0] as string);
+      expect(payload).toEqual({
+        level: 'Warn',
+        message: 'upstream failed',
+        timestamp: expect.any(String),
+        context_status: 503,
+        context_severity: 'low',
+        context_syslog: { severity: 2 },
+      });
+    });
+
+    it('should rename level, message and timestamp so they cannot overwrite the fields the logger sets', () => {
+      const logger = createConsoleLogger('Info');
+
+      logger('Error', 'boom', { level: 'Info', message: 'other', timestamp: 'yesterday' });
+
+      const payload = JSON.parse(error.mock.calls[0][0] as string);
+      expect(payload).toEqual({
+        level: 'Error',
+        message: 'boom',
+        timestamp: expect.not.stringMatching(/^yesterday$/),
+        context_level: 'Info',
+        context_message: 'other',
+        context_timestamp: 'yesterday',
+      });
+    });
+  });
+
   describe('when the level is below the minimum', () => {
     it('should drop the entry without calling console', () => {
       const logger = createConsoleLogger('Warn');

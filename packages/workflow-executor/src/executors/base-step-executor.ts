@@ -56,7 +56,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
       if (cached) {
         this.context.logger('Info', 'Step execution completed (replayed from cache)', {
           ...this.logCtx,
-          status: cached.stepOutcome.status,
+          stepStatus: cached.stepOutcome.status,
         });
 
         return cached;
@@ -66,7 +66,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
 
       this.context.logger('Info', 'Step execution completed', {
         ...this.logCtx,
-        status: result.stepOutcome.status,
+        stepStatus: result.stepOutcome.status,
       });
 
       return result;

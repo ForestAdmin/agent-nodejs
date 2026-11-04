@@ -675,7 +675,7 @@ describe('action execute', () => {
     expect(logger).toHaveBeenCalledWith(
       'Warn',
       'Agent action 4xx carried no structured error; client message is generic',
-      { status: 422, cause: '<!DOCTYPE html><html>Cannot POST</html>' },
+      { httpStatus: 422, cause: '<!DOCTYPE html><html>Cannot POST</html>' },
     );
   });
 

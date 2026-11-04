@@ -229,7 +229,7 @@ describe('mapAgentError', () => {
     expect(logger).toHaveBeenCalledWith(
       'Warn',
       expect.any(String),
-      expect.objectContaining({ status: 400, cause: 'Bad things happened' }),
+      expect.objectContaining({ httpStatus: 400, cause: 'Bad things happened' }),
     );
   });
 
@@ -244,7 +244,7 @@ describe('mapAgentError', () => {
     expect(logger).toHaveBeenCalledWith(
       'Warn',
       expect.any(String),
-      expect.objectContaining({ status: 404, cause: html }),
+      expect.objectContaining({ httpStatus: 404, cause: html }),
     );
   });
 
@@ -270,7 +270,7 @@ describe('mapAgentError', () => {
     expect(logger).toHaveBeenCalledWith(
       'Warn',
       expect.any(String),
-      expect.objectContaining({ name: 'MissingCollectionError', status: 400 }),
+      expect.objectContaining({ name: 'MissingCollectionError', httpStatus: 400 }),
     );
   });
 

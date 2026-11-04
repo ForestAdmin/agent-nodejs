@@ -7,6 +7,10 @@ describe('createConsoleLogger', () => {
     logger = createConsoleLogger();
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('Info level writes to console.info as JSON', () => {
     const spy = jest.spyOn(console, 'info').mockImplementation();
 
@@ -63,6 +67,46 @@ describe('createConsoleLogger', () => {
     infoSpy.mockRestore();
     warnSpy.mockRestore();
     errorSpy.mockRestore();
+  });
+
+  it('renames status, severity and syslog so they cannot override the level in Datadog', () => {
+    const spy = jest.spyOn(console, 'info').mockImplementation();
+
+    logger('Info', 'Step execution completed', {
+      status: 'awaiting-input',
+      severity: 'low',
+      syslog: { severity: 2 },
+    });
+
+    const output = JSON.parse(spy.mock.calls[0][0]);
+    expect(output).toEqual({
+      level: 'Info',
+      message: 'Step execution completed',
+      timestamp: expect.any(String),
+      context_status: 'awaiting-input',
+      context_severity: 'low',
+      context_syslog: { severity: 2 },
+    });
+
+    spy.mockRestore();
+  });
+
+  it('renames level, message and timestamp so they cannot overwrite the fields the logger sets', () => {
+    const spy = jest.spyOn(console, 'error').mockImplementation();
+
+    logger('Error', 'boom', { level: 'Info', message: 'other', timestamp: 'yesterday' });
+
+    const output = JSON.parse(spy.mock.calls[0][0]);
+    expect(output).toEqual({
+      level: 'Error',
+      message: 'boom',
+      timestamp: expect.not.stringMatching(/^yesterday$/),
+      context_level: 'Info',
+      context_message: 'other',
+      context_timestamp: 'yesterday',
+    });
+
+    spy.mockRestore();
   });
 
   it('accepts a missing context argument', () => {

@@ -147,6 +147,32 @@ describe('ForestadminClientActivityLogPort', () => {
       expect(service.createActivityLog).toHaveBeenCalledTimes(1);
     });
 
+    it('logs the creation failure with the HTTP code as httpStatus, not status', async () => {
+      const service = makeService();
+      service.createActivityLog.mockRejectedValueOnce(makeHttpError(404));
+      const logger = makeLogger();
+      const port = makePort(service, { logger });
+
+      await expect(
+        port.createPending({
+          renderingId: 5,
+          action: 'update',
+          type: 'write',
+          collectionId: 'col-1',
+        }),
+      ).rejects.toBeInstanceOf(ActivityLogCreationError);
+      expect(logger).toHaveBeenCalledWith(
+        'Error',
+        'activity log create failed',
+        expect.objectContaining({ action: 'update', collectionId: 'col-1', httpStatus: 404 }),
+      );
+      expect(logger).not.toHaveBeenCalledWith(
+        'Error',
+        'activity log create failed',
+        expect.objectContaining({ status: expect.anything() }),
+      );
+    });
+
     it('does not retry on 401 (not a transient error)', async () => {
       const service = makeService();
       service.createActivityLog.mockRejectedValue(makeHttpError(401));

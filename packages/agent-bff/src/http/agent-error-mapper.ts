@@ -76,7 +76,7 @@ function logCauseAndReturnAgentUnavailable(
   cause: string,
 ): BffHttpError {
   logger('Warn', 'Agent 5xx mapped to agent_unavailable; client message is generic', {
-    status,
+    httpStatus: status,
     cause,
   });
 
@@ -115,7 +115,7 @@ function mapJsonApiError(
   if (agentError.name && mappedType === undefined) {
     logger('Warn', 'Unmapped agent error name; using status-derived type', {
       name: agentError.name,
-      status,
+      httpStatus: status,
     });
   }
 
@@ -154,7 +154,7 @@ function mapFlatBody(error: AgentHttpError, logger: Logger): BffHttpError {
   // path already gives.
   if (message === undefined) {
     logger('Warn', 'Agent 4xx carried no structured error; client message is generic', {
-      status,
+      httpStatus: status,
       cause: asNonEmptyString(responseText),
     });
   }

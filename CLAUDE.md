@@ -85,6 +85,7 @@ ESLint owns the mechanical rules — file naming, formatting, unused variables
 
 - **No magic numbers/strings** - Use named constants
 - **Handle errors explicitly** - No silent failures
+- **No `status` key in a log context** - Datadog reads `status` and `severity` before `level` to set a line's status, so they override the level the line was logged at. Use `httpStatus` for an HTTP code and `stepStatus` for a step outcome
 
 ### Review Checklist
 

@@ -175,7 +175,7 @@ async function handleExecute({
 
       if (unstructuredCause) {
         logger('Warn', 'Agent action 4xx carried no structured error; client message is generic', {
-          status: unstructuredCause.status,
+          httpStatus: unstructuredCause.status,
           cause: unstructuredCause.responseText ?? unstructuredCause.body,
         });
       }
