@@ -36,14 +36,14 @@ import {
 import SchemaResolver from '../schema-resolver';
 import ActivityLog from './activity-log';
 import AgentWithLog from './agent-with-log';
+import { findStepExecution } from './base-step-executor';
+import CallRecordRunStore from './call-record-run-store';
 import ConditionStepExecutor from './condition-step-executor';
 import GuidanceStepExecutor from './guidance-step-executor';
 import LoadRelatedRecordStepExecutor from './load-related-record-step-executor';
 import McpStepExecutor from './mcp-step-executor';
 import PerRecordStepExecutor from './per-record-step-executor';
 import ReadRecordStepExecutor from './read-record-step-executor';
-import { findStepExecution } from './base-step-executor';
-import CallRecordRunStore from './call-record-run-store';
 import { findPinnedLoadStep } from './record-step-executor';
 import TriggerRecordActionStepExecutor from './trigger-record-action-step-executor';
 import UpdateRecordStepExecutor from './update-record-step-executor';
@@ -157,17 +157,19 @@ export default class StepExecutorFactory {
         incomingPendingData,
         forestServerToken,
       );
+      const recordCall = step.callScope?.recordCall;
       const callRecord = await findCallRecord(step, builtContext.runStore);
-      const context: ExecutionContext = callRecord
-        ? {
-            ...builtContext,
-            runStore: new CallRecordRunStore(
-              builtContext.runStore,
-              callRecord,
-              step.callScope?.recordCall?.stepIndexes ?? [],
-            ),
-          }
-        : builtContext;
+      const context: ExecutionContext =
+        recordCall && callRecord
+          ? {
+              ...builtContext,
+              runStore: new CallRecordRunStore(
+                builtContext.runStore,
+                callRecord,
+                recordCall.startStepIndex,
+              ),
+            }
+          : builtContext;
       const perRecordSource = findPerRecordSource(step);
 
       if (perRecordSource) {

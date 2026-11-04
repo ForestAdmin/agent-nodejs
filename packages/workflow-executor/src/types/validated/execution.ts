@@ -56,13 +56,13 @@ export const CallScopeSchema = z
     // record runs on.
     callRecordIndex: z.number().int().nonnegative().optional(),
     // The nearest enclosing call opened once per record, nested calls included: its Multiple step,
-    // read in the frame that pinned it, its record's position, and every step run inside it.
+    // read in the frame that pinned it, its record's position, and where its start entry sits.
     recordCall: z
       .object({
         selectedRecordStepId: z.string().min(1),
         pinnedFrameStepIndexes: z.array(z.number().int().nonnegative()),
         recordIndex: z.number().int().nonnegative(),
-        stepIndexes: z.array(z.number().int().nonnegative()),
+        startStepIndex: z.number().int().nonnegative(),
       })
       .strict()
       .optional(),

@@ -5,16 +5,17 @@ import type { RecordRef } from '../types/validated/collection';
 import { narrowToRecord } from './iteration-run-store';
 
 // What a call opened once per record of a Multiple step sees of the calling workflow: that record
-// alone, as an iteration of a per-record step sees it. The call's own steps read as they are.
+// alone, as an iteration of a per-record step sees it. Every row written since the call opened is
+// the call's own, the pending step's and its revisions' included, and reads as it is.
 export default class CallRecordRunStore implements RunStore {
   private readonly base: RunStore;
   private readonly record: RecordRef;
-  private readonly callStepIndexes: number[];
+  private readonly callStartStepIndex: number;
 
-  constructor(base: RunStore, record: RecordRef, callStepIndexes: number[]) {
+  constructor(base: RunStore, record: RecordRef, callStartStepIndex: number) {
     this.base = base;
     this.record = record;
-    this.callStepIndexes = callStepIndexes;
+    this.callStartStepIndex = callStartStepIndex;
   }
 
   init(): Promise<void> {
@@ -29,7 +30,7 @@ export default class CallRecordRunStore implements RunStore {
     const rows = await this.base.getStepExecutions(runId);
 
     return rows.flatMap(row =>
-      this.callStepIndexes.includes(row.stepIndex) ? [row] : narrowToRecord(row, this.record),
+      row.stepIndex > this.callStartStepIndex ? [row] : narrowToRecord(row, this.record),
     );
   }
 

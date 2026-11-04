@@ -1445,7 +1445,11 @@ describe('toAvailableStepExecution', () => {
         const run = makeRun({
           workflowHistory: [
             makeStartSubWorkflowHistory(
-              { stepName: 'call-1', stepIndex: 0, context: { callRecordIndex: 1, callRecordCount: 3 } },
+              {
+                stepName: 'call-1',
+                stepIndex: 0,
+                context: { callRecordIndex: 1, callRecordCount: 3 },
+              },
               { selectedRecordStepId: 'load-ubos', calledWorkflowCollectionName: 'ubos' },
             ),
             makeChildStepHistory({ stepName: 'child-1', stepIndex: 1, done: false }),
@@ -1463,7 +1467,7 @@ describe('toAvailableStepExecution', () => {
             selectedRecordStepId: 'load-ubos',
             pinnedFrameStepIndexes: [],
             recordIndex: 1,
-            stepIndexes: [],
+            startStepIndex: 0,
           },
         });
       });
@@ -1473,7 +1477,11 @@ describe('toAvailableStepExecution', () => {
         const run = makeRun({
           workflowHistory: [
             makeStartSubWorkflowHistory(
-              { stepName: 'call-1', stepIndex: 0, context: { callRecordIndex: 2, callRecordCount: 3 } },
+              {
+                stepName: 'call-1',
+                stepIndex: 0,
+                context: { callRecordIndex: 2, callRecordCount: 3 },
+              },
               { selectedRecordStepId: 'load-ubos', calledWorkflowCollectionName: 'ubos' },
             ),
             makeStartSubWorkflowHistory(
@@ -1538,7 +1546,7 @@ describe('toAvailableStepExecution', () => {
           selectedRecordStepId: 'load-ubos',
           pinnedFrameStepIndexes: [0],
           recordIndex: 1,
-          stepIndexes: [2, 4],
+          startStepIndex: 1,
         });
       });
 

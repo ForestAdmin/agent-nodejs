@@ -45,7 +45,7 @@ function makeBaseStore(rows: StepExecutionData[]): RunStore {
 
 describe('CallRecordRunStore', () => {
   it("reads the calling workflow's Multiple step as having loaded the call's record alone", async () => {
-    const store = new CallRecordRunStore(makeBaseStore([multipleRow]), ubo(2), []);
+    const store = new CallRecordRunStore(makeBaseStore([multipleRow]), ubo(2), 4);
 
     expect(await store.getStepExecutions('run-1')).toEqual([
       {
@@ -56,7 +56,7 @@ describe('CallRecordRunStore', () => {
   });
 
   it("reads a calling workflow's step that ran once per record as the call's record's iteration", async () => {
-    const store = new CallRecordRunStore(makeBaseStore([perRecordRow]), ubo(2), []);
+    const store = new CallRecordRunStore(makeBaseStore([perRecordRow]), ubo(2), 4);
 
     expect(await store.getStepExecutions('run-1')).toEqual([
       {
@@ -72,7 +72,7 @@ describe('CallRecordRunStore', () => {
   });
 
   it("leaves out a step that ran once per record but never for the call's record", async () => {
-    const store = new CallRecordRunStore(makeBaseStore([perRecordRow]), ubo(3), []);
+    const store = new CallRecordRunStore(makeBaseStore([perRecordRow]), ubo(3), 4);
 
     expect(await store.getStepExecutions('run-1')).toEqual([]);
   });
@@ -80,14 +80,22 @@ describe('CallRecordRunStore', () => {
   // A called workflow can load several records of its own, a second level of records.
   it("reads the call's own steps as they are, a Multiple step of its own included", async () => {
     const ownMultiple = { ...multipleRow, stepIndex: 5 } as StepExecutionData;
-    const store = new CallRecordRunStore(makeBaseStore([ownMultiple]), ubo(2), [5]);
+    const store = new CallRecordRunStore(makeBaseStore([ownMultiple]), ubo(2), 4);
 
     expect(await store.getStepExecutions('run-1')).toEqual([ownMultiple]);
   });
 
+  // A pending step is not among the steps the call already ran, yet its own row is the call's.
+  it("reads a row written in the call after its last finished step as it is, the pending step's own included", async () => {
+    const pendingPerRecordRow = { ...perRecordRow, stepIndex: 6 } as StepExecutionData;
+    const store = new CallRecordRunStore(makeBaseStore([pendingPerRecordRow]), ubo(2), 4);
+
+    expect(await store.getStepExecutions('run-1')).toEqual([pendingPerRecordRow]);
+  });
+
   it('saves and deletes through the run store it wraps', async () => {
     const base = makeBaseStore([]);
-    const store = new CallRecordRunStore(base, ubo(2), []);
+    const store = new CallRecordRunStore(base, ubo(2), 4);
 
     await store.saveStepExecution('run-1', multipleRow);
     await store.deleteStepExecution('run-1', 1);
