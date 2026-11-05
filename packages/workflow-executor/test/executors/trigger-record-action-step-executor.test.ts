@@ -3462,6 +3462,37 @@ describe('TriggerRecordActionStepExecutor', () => {
       );
     });
 
+    it('errors the step instead of falling back to the native form when the AI leaves a required field empty', async () => {
+      const agentPort = makeMockAgentPort();
+      (agentPort.getActionForm as jest.Mock).mockResolvedValue({
+        fields: [{ name: 'reason', type: 'String', isRequired: true }],
+        canExecute: false,
+        requiredFields: ['reason'],
+        skippedFields: [],
+      });
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        agentPort,
+        runStore,
+        stepDefinition: approvalStep(),
+      });
+
+      const result = await new TriggerRecordActionStepExecutor(context).execute();
+
+      expect(result.stepOutcome).toEqual(
+        expect.objectContaining({
+          status: 'error',
+          error:
+            'This step has Approved and Rejected branches, which only run automatically for now. Complete the action configuration so the AI can submit it, then revise the step.',
+        }),
+      );
+      expect(agentPort.executeAction).not.toHaveBeenCalled();
+      expect(runStore.saveStepExecution).not.toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({ pendingData: expect.anything() }),
+      );
+    });
+
     it('errors the step when the filed request comes back without an id', async () => {
       const agentPort = makeMockAgentPort();
       (agentPort.executeAction as jest.Mock).mockResolvedValue({ approvalRequested: true });
