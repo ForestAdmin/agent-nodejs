@@ -1,3 +1,10 @@
+# @forestadmin/agent-bff [1.45.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.44.2...@forestadmin/agent-bff@1.45.0) (2026-11-05)
+
+
+### Features
+
+* **agent-bff:** serve per-field filter operators on an always-on route ([#2058](https://github.com/ForestAdmin/agent-nodejs/issues/2058)) ([b62278e](https://github.com/ForestAdmin/agent-nodejs/commit/b62278e266400ddfe8df8487295911e2c05e6498))
+
 ## @forestadmin/agent-bff [1.44.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.44.1...@forestadmin/agent-bff@1.44.2) (2026-11-04)
 
 
