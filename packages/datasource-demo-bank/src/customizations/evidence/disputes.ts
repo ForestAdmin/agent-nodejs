@@ -691,7 +691,7 @@ function sepaRoute(d) {
 
     return [
       '✓ SEPA dispute',
-      `refund of the direct debit (${code}) through ${PROVIDERS.sepa}${owed}`,
+      `refund of the direct debit (${code}) through the ${PROVIDERS.sepa}${owed}`,
     ];
   }
 
@@ -805,7 +805,7 @@ async function sepaOutcome(list, d) {
 
   return `${OK} SEPA dispute ${row.reference}: ${label(row.type)} (${
     row.reason_code
-  }) sent ${frDate(row.requested_at)} through ${PROVIDERS.sepa} (simulated), ${
+  }) sent ${frDate(row.requested_at)} through the ${PROVIDERS.sepa} (simulated), ${
     where || label(row.status)
   }`;
 }
@@ -825,9 +825,9 @@ function cardBlock(d, p) {
     return ` · ${name} already blocked (${why}) on ${stamp(card.blocked_at)}`;
   }
 
-  return ` · ${name} blocked at intake (${why}) on ${stamp(card.blocked_at)} through ${
-    PROVIDERS.cardProcessor
-  } (simulated)`;
+  return ` · ${name} blocked at intake (${why}) on ${stamp(
+    card.blocked_at,
+  )} through the card processor (simulated)`;
 }
 
 /** Where the request went: waiting, routed (and how the case stands), or closed and why. */
@@ -897,26 +897,25 @@ async function disputeFile(list, d, now = new Date()) {
   };
 }
 
-// field: label. The prefix groups them, so a workflow step can read one group by its name.
-const LABELS = {
-  dispute_reason: 'Dispute · Reason',
-  dispute_amount: 'Dispute · Amount',
-  dispute_payment: 'Dispute · Payment type',
-  dispute_date: 'Dispute · Filed on',
-  dispute_channel: 'Dispute · Channel',
-  payment_party: 'Payment · Paid to',
-  payment_date: 'Payment · Date',
-  payment_auth: 'Payment · Authentication',
-  payment_device: 'Payment · Device',
-  elig_deadline: 'Eligibility · Time to claim',
-  elig_merchant: 'Eligibility · Merchant contacted',
-  elig_history: 'Eligibility · Earlier disputes',
-  elig_refund: 'Eligibility · Refund by the next business day (PSD2)',
-  route_suggested: 'Eligibility · Suggested route',
-  outcome_route: 'Outcome · Route',
-  outcome_money: 'Outcome · Money back',
-};
-const FIELDS = Object.keys(LABELS);
+// The evidence fields; the prefix of a name groups them.
+const FIELDS = [
+  'dispute_reason',
+  'dispute_amount',
+  'dispute_payment',
+  'dispute_date',
+  'dispute_channel',
+  'payment_party',
+  'payment_date',
+  'payment_auth',
+  'payment_device',
+  'elig_deadline',
+  'elig_merchant',
+  'elig_history',
+  'elig_refund',
+  'route_suggested',
+  'outcome_route',
+  'outcome_money',
+];
 
 /**
  * Route dispute's default note, as the rules give it: why a request is declined, or why the bank
@@ -958,7 +957,6 @@ function addDisputeEvidence(collection) {
 export {
   FIELDS,
   FRAUD_CODES,
-  LABELS,
   MERCHANT_REASONS,
   REASON_CODES,
   SEPA_CODES,
@@ -966,8 +964,6 @@ export {
   addDisputeEvidence,
   booked,
   UNAUTHORISED,
-  cardCode,
-  disputeFile,
   rowOf,
   ruledNote,
 };

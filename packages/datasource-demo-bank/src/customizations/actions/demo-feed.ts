@@ -1,19 +1,17 @@
 /**
- * The presenter's button on the Onboarding desks: "Send new applications", a Global Smart Action on
- * kyc_cases. It sends N retail applications as the app does (live.ts newRetailApplicant), so the
- * prospect watches the automated inbox take them:
+ * "Send new applications", a Global Smart Action on kyc_cases, a demo tool. It sends N retail
+ * applications as the app does (live.ts newRetailApplicant):
  *
  * - a clean file: nothing to flag in the profile (case-file.ts applicantRating LOW, no income
- *   proof needed), an ID whose scan is clean (random.ts scanFlaw), pre-score LOW. The automated
- *   inbox "Retail onboarding: automatic" runs its workflow and approves it within seconds.
- * - an ID the provider cannot pass (scan cut off, or a name that differs), pre-score LOW: the
- *   robot starts, the ID check does not come back clean, and the run pauses for a person in
- *   "Retail onboarding: manual review".
- * - a pre-score MEDIUM (more money expected in than the declared income): never automated, the
- *   case goes to the manual "Retail onboarding" queue.
+ *   proof needed), an ID whose scan is clean (random.ts scanFlaw), pre-score LOW. It waits in the
+ *   queue "Retail onboarding: automatic" (kyc_retail_auto), every check ready to pass.
+ * - an ID the provider cannot pass (scan cut off, or a name that differs), pre-score LOW: in the
+ *   same queue, but the ID check does not come back clean, so a person decides.
+ * - a pre-score MEDIUM (more money expected in than the declared income): in the "Retail
+ *   onboarding" queue, for an operator.
  *
  * The pre-score is the case's risk_before, written by the app when the application arrives
- * (seeded onboarding cases leave it empty, so the robot never sweeps the backlog).
+ * (seeded onboarding cases leave it empty, so the automatic queue never holds the backlog).
  */
 import { randomUUID } from 'crypto';
 
@@ -64,7 +62,7 @@ const KINDS = {
       ...FROM_APP,
     }),
     shows: 'Clean: ID and selfie match, income fits, nothing to flag',
-    goes: 'The robot: should be approved',
+    goes: 'Retail onboarding: automatic (should be approved)',
     tone: 'green',
   },
   cropped: {
@@ -77,7 +75,7 @@ const KINDS = {
       ...FROM_APP,
     }),
     shows: 'ID scan cut off at one edge',
-    goes: 'The robot, then paused in Retail onboarding: manual review',
+    goes: 'Retail onboarding: automatic, then a person (ID check fails)',
     tone: 'amber',
   },
   name: {
@@ -90,7 +88,7 @@ const KINDS = {
       ...FROM_APP,
     }),
     shows: 'Name on the ID differs from the application',
-    goes: 'The robot, then paused in Retail onboarding: manual review',
+    goes: 'Retail onboarding: automatic, then a person (ID check fails)',
     tone: 'red',
   },
   medium: {
@@ -107,8 +105,8 @@ const KINDS = {
     tone: 'amber',
   },
 };
-// The files needing a person, in turn: two the robot pauses on (an ID cut off, then a name that
-// differs), then one it never takes (pre-score MEDIUM).
+// The files needing a person, in turn: two the ID check stops (an ID cut off, then a name that
+// differs), then one the automatic queue never takes (pre-score MEDIUM).
 const REVIEW_TURN = ['cropped', 'name', 'medium'];
 
 /** n applications, `review` of them needing a person, spread among the clean ones. */
@@ -178,19 +176,11 @@ function resultCard(sent) {
       ]),
     },
     note:
-      'The automated inbox "Retail onboarding: automatic" takes every application pre-scored ' +
-      'LOW within a minute: a clean one ends Approved, decided by the onboarding robot (its ' +
-      'service account); the others pause in "Retail onboarding: manual review". A pre-score ' +
-      'MEDIUM goes to "Retail onboarding".',
+      'Every application pre-scored LOW waits in the queue "Retail onboarding: automatic": a ' +
+      'clean one passes every check and can be approved without a person; one whose ID check ' +
+      'fails needs a person. A pre-score MEDIUM waits in "Retail onboarding", for an operator.',
   });
 }
-
-// The last batch each person sent (by email), for the automatic desk's guide (demo-guide.ts): in
-// memory only, so a restart forgets it, as it resets the data.
-const batches = new Map();
-
-/** The last applications `email` sent: { at, cases: [{ kind, reference, kycId, name }] }. */
-const lastBatch = email => batches.get(email) || null;
 
 function addDemoFeed(collection) {
   collection.addAction(ACTION, {
@@ -215,10 +205,6 @@ function addDemoFeed(collection) {
       const { n, review } = asked(context.formValues);
       const sent = await sendApplications(forestStore(context.dataSource), n, review);
 
-      if (context.caller?.email) {
-        batches.set(context.caller.email, { at: new Date().toISOString(), cases: sent });
-      }
-
       return resultBuilder.success(
         `${sent.length} new application${sent.length > 1 ? 's' : ''} sent.`,
         { html: resultCard(sent) },
@@ -227,4 +213,4 @@ function addDemoFeed(collection) {
   });
 }
 
-export { ACTION, KINDS, addDemoFeed, asked, lastBatch, plan, sendApplications };
+export { KINDS, addDemoFeed, asked, plan };

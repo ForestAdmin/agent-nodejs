@@ -1,11 +1,16 @@
 /**
- * The work queues the inboxes, workflows and desk counters hang on. The demo layout carries them
- * as manual segments: Forest fills an inbox from a layout segment only, a coded one is ignored
- * there. The editor reads one flat list of
- * conditions, so each tree below stays one level deep (layoutFilter).
+ * The work queues: for each key, a table, a name and the condition tree that selects the records
+ * waiting in it (`hub_counts` and `feature_facts` count them). Each tree stays one level deep (one
+ * condition, or an And of conditions), so it reads as a flat list of conditions.
+ *
+ * - KYC: retail onboardings for a person, those pre-scored LOW for the onboarding robot (and what
+ *   it was given), the senior's sign-offs, the demo's own cases, business onboardings, cases
+ *   parked for a screening hit, and the other reviews;
+ * - financial crime: AML and fraud alerts, open screening hits, investigations, the MLRO's
+ *   sign-offs, SARs to file and SARs waiting for TRACFIN;
+ * - payments and disputes: transfers to validate, SEPA recalls received, new disputes,
+ *   chargebacks to file or answered by the merchant, requests waiting on the client.
  */
-import crypto from 'crypto';
-
 const is = (field, value) => ({ field, operator: 'Equal', value });
 const isNot = (field, value) => ({ field, operator: 'NotEqual', value });
 const anyOf = (field, values) => ({ field, operator: 'In', value: values });
@@ -20,7 +25,7 @@ const notShowcase = hasNot('reference', SHOWCASE_MARK);
 
 // key: [table, name, condition tree]
 const SEGMENTS = {
-  // Not the applications the app pre-scored LOW: those go to the automated inbox below. "Is not"
+  // Not the applications the app pre-scored LOW: those are the onboarding robot's (below). "Is not"
   // keeps an empty pre-score (SQL NotEqual keeps NULLs), so the seeded backlog stays here.
   kyc_retail: [
     'kyc_cases',
@@ -33,9 +38,9 @@ const SEGMENTS = {
       notShowcase,
     ),
   ],
-  // The automated inbox: a new application the app pre-scored LOW (risk_before, set by the app at
-  // application time; seeded cases leave it empty). Its first step moves the case to IN_REVIEW,
-  // so the record leaves this segment as soon as the robot starts on it.
+  // The onboarding robot's queue: a new application the app pre-scored LOW (risk_before, set by the
+  // app at application time; seeded cases leave it empty). The robot's first step moves the case to
+  // IN_REVIEW, so the record leaves this queue as soon as the robot starts on it.
   kyc_retail_auto: [
     'kyc_cases',
     'Retail onboarding: automatic',
@@ -69,7 +74,7 @@ const SEGMENTS = {
       is('status', 'PENDING_APPROVAL'),
     ),
   ],
-  // The demo's two cases (showcase.ts), whatever their status: the KYC case desk's own list.
+  // The demo's own cases (showcase.ts), whatever their status.
   kyc_showcase: [
     'kyc_cases',
     'Demo KYC cases',
@@ -84,7 +89,6 @@ const SEGMENTS = {
       anyOf('status', ['OPEN', 'IN_REVIEW']),
     ),
   ],
-  // Escalated runs wait in the "KYC: senior sign-off" workflow inbox, not here.
   // Parked for a screening hit only: an onboarding escalated for identity fraud is the
   // investigations team's.
   kyc_parked: [
@@ -141,46 +145,4 @@ const SEGMENTS = {
   ],
 };
 
-/** Same id on every run (build.py computes the same one for the workflow specs). */
-const segmentId = key => {
-  const h = crypto.createHash('md5').update(`forest-lab-segment:${key}`).digest('hex');
-
-  return `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-8${h.slice(17, 20)}-${h.slice(
-    20,
-    32,
-  )}`;
-};
-
-const condition = (field, operator, value) => {
-  const [fieldName, subFieldName = null] = field.split(':');
-
-  return { fieldName, subFieldName, embeddedFieldName: null, operator, value };
-};
-
-// The operator names Forest's editor stores (read from a segment built in the editor).
-// "is in" takes its values as one comma-separated text.
-const LAYOUT_OPERATORS: Record<string, (value) => [string, unknown]> = {
-  Equal: value => ['is', value],
-  NotEqual: value => ['is not', value],
-  In: value => ['is in', value.join(',')],
-  Contains: value => ['contains', value],
-  NotContains: value => ['not contains', value],
-};
-
-/** The tree as the layout editor writes it: one flat list of conditions, all to be met. */
-function layoutFilter(key) {
-  const [, , tree] = SEGMENTS[key];
-
-  return {
-    type: 'and',
-    conditions: (tree.conditions || [tree]).map(({ field, operator, value }) => {
-      if (!LAYOUT_OPERATORS[operator]) {
-        throw new Error(`${key}: no layout operator for ${operator}`);
-      }
-
-      return condition(field, ...LAYOUT_OPERATORS[operator](value));
-    }),
-  };
-}
-
-export { SEGMENTS, SHOWCASE_MARK, layoutFilter, segmentId };
+export { SEGMENTS, SHOWCASE_MARK };

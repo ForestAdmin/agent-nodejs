@@ -1,7 +1,7 @@
 /**
- * Weekly charts for the classic desks, computed by the agent (API charts) and shown by Forest's
- * native line chart (a workspace chart with an `apiRoute`). Native charts cannot divide one count
- * by another, average a duration or count what was open on a past date, hence the agent.
+ * Weekly figures per team, computed by the agent as API charts (line charts): Forest's native
+ * charts cannot divide one count by another, average a duration or count what was open on a past
+ * date.
  *
  * Onboarding desk. Both count onboarding cases by the week they were decided (`resolved_at`), so
  * every week is complete: a case still open counts nowhere until its decision, and recent weeks are
@@ -664,28 +664,4 @@ function addDeskCharts(customizer) {
   customizer.addChart(CHARTS.open.name, weekly(overview, 'open'));
 }
 
-export {
-  CHARTS,
-  HISTORY_WEEKS,
-  MONTHS,
-  ROUTE_LABELS,
-  WEEKS,
-  alertWeeks,
-  closeMonths,
-  disputeWeeks,
-  investigationWeeks,
-  recallWeeks,
-  routeLines,
-  sarMonths,
-  winRateMonths,
-  workingMinutes,
-  WORK,
-  addDeskCharts,
-  decidedTransfers,
-  onboardingWeeks,
-  overviewWeeks,
-  paymentsWeeks,
-  seriesOf,
-  weekStart,
-  workItems,
-};
+export { MONTHS, WEEKS, addDeskCharts };

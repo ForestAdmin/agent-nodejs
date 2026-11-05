@@ -541,9 +541,6 @@ const STORIES = {
 const SAR_STORIES = ['strangersAbroad', 'passThroughAbroad', 'noSource'];
 const CLEAR_STORIES = ['carSale', 'inheritance', 'wedding', 'flatDeposit'];
 
-/** How long a story takes from its first line to the line that sets the alert off, in hours. */
-const STORY_HOURS = 120;
-
 /**
  * Books the story `name` on the customer's statement from `start`, and returns what it wrote.
  * `story`: { customer, account, person }.
@@ -653,4 +650,4 @@ function clearanceNote(ctx, trigger, clearance) {
   return volumeNote(trigger, clearance, { name, income });
 }
 
-export { CLEAR_STORIES, SAR_STORIES, STORY_HOURS, clearanceNote, deviceOf, euros, day, tellStory };
+export { CLEAR_STORIES, SAR_STORIES, clearanceNote, deviceOf, euros, day, tellStory };

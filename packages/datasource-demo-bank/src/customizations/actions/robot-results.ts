@@ -1,7 +1,7 @@
 /**
- * What the onboarding robot did with each application it was given (the automated inbox runs
- * "Retail onboarding: automatic", a workflow of the demo layout): approved it, or handed it to a
- * person, when, and why. The Onboarding desks list these in "Cases treated automatically".
+ * What the onboarding robot did with each application it was given: approved it, or handed it to a
+ * person, when, and why: three computed fields on kyc_cases (robot_outcome, robot_decided_at,
+ * robot_why).
  *
  * The robot is given a new retail application the app pre-scored LOW (risk_before; seeded cases
  * leave it empty). Its "Hand to a person" step writes a status_changes row (field assigned_to, its
@@ -21,12 +21,7 @@ const OUTCOMES = {
   approved: '✓ Approved',
   handed: '👤 To a person',
 };
-const LABELS = {
-  robot_outcome: 'Robot · Outcome',
-  robot_decided_at: 'Robot · Decided at',
-  robot_why: 'Robot · Why it went to a person',
-};
-const FIELDS = Object.keys(LABELS);
+const FIELDS = ['robot_outcome', 'robot_decided_at', 'robot_why'];
 
 const givenToRobot = kyc => kyc.type === 'ONBOARDING' && kyc.risk_before === 'LOW';
 
@@ -115,4 +110,4 @@ function addRobotResults(collection) {
   );
 }
 
-export { FIELDS, LABELS, OUTCOMES, addRobotResults, handoverReason, robotResult };
+export { FIELDS, OUTCOMES, addRobotResults, handoverReason };

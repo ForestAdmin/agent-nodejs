@@ -1,7 +1,6 @@
-import { dataMap } from '../src/charts/data-map';
-import { GROUPS } from '../src/model/folders';
+import { GROUPS, dataMap } from '../src/charts/data-map';
 
-// Every table the Data model workspace shows, as data-map.js reads them from the folders.
+// Every table of the domains (GROUPS), detail tables included.
 const TABLES = (GROUPS as [string, string, string[]][]).flatMap(([, , list]) =>
   list.map(t => t.replace(/^-/, '')),
 );

@@ -181,7 +181,7 @@ function memberRow(businessId, fields, created) {
     until: null,
     since: isoDate(created),
     verified: true,
-    verified_by: `${pick(MANAGERS)}@forest-lab-bank.fr`,
+    verified_by: `${pick(MANAGERS)}@demo-bank.example`,
     verified_at: isoDate(new Date(created.getTime() + between(0, 5) * DAY)),
     source: weighted([
       ['COMPANY_REGISTER', 55],
@@ -309,7 +309,7 @@ function businessCustomerRow(biz, boss, created, lastName, applying) {
       ['BRANCH', 5],
     ]),
     onboarded_at: status === 'ONBOARDING' ? null : isoDate(onboarded),
-    relationship_manager: chance(0.5) ? `${pick(MANAGERS)}@forest-lab-bank.fr` : null,
+    relationship_manager: chance(0.5) ? `${pick(MANAGERS)}@demo-bank.example` : null,
     created_at: iso(created),
     updated_at: iso(offboardedAt || withTime(daysAgo(between(1, 60)))),
   };

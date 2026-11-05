@@ -1,8 +1,8 @@
 /**
- * The facts behind the KYC Case desk's guide (demo-guide.*, a Custom component): for one case, which of
- * the demo's steps are done, read from the case itself, never from clicks. API chart
- * `GET /forest/_charts/demo_guide?id=<kyc case id>`, read every few seconds by the guide.
+ * The API chart `demo_guide`: how far the demo's KYC story has gone, read from the records
+ * themselves (history lines, documents, statuses), never from clicks.
  *
+ * `GET /forest/_charts/demo_guide?id=<kyc case id>`, for one case:
  * - documents / screening: the history line "Check documents" and "Screen against sanctions lists"
  *   write (case-file.ts, checksRun);
  * - idChecked: the case's ID has a check result (Verify document);
@@ -10,19 +10,11 @@
  * - escalated: the case went to a senior (PENDING_APPROVAL now or in its history);
  * - status: APPROVED or REJECTED at the end.
  *
- * With `?desk=senior` (the senior officer's guide): the senior's demo cases (KYC-DEMO-0002 once
- * sent, -0003, -0004), each waiting or decided, and how many are decided.
- *
- * Each `desk` answer carries `unlocked`, for the Go to buttons that wait on the visitor
- * (the CLI's Go to button, `unlock=`): `senior` once a case is decided, `simplified` once the
- * visitor ran a Smart Action (any history line signed with their email).
- *
- * `?desk=auto` (the automatic desk's guide): the visitor's last "Send new applications" batch
- * (demo-feed.ts), each case sent, with the robot, approved, handed to a person or reviewed;
- * `unlocked` once the visitor decided a file the robot handed over..
+ * `?desk=senior`: the senior officer's demo cases (KYC-DEMO-0002 once sent, -0003, -0004), each
+ * waiting, decided or not sent yet, how many are decided, and `unlocked` once one is.
+ * `?desk=simplified`: `unlocked` once the caller ran a Smart Action (any history line signed with
+ * their email).
  */
-import { lastBatch } from '../customizations/actions/demo-feed';
-
 const ID_TYPES = ['PASSPORT', 'NATIONAL_ID', 'DRIVERS_LICENSE'];
 
 const where = (field, operator, value) => ({ field, operator, value });
@@ -142,93 +134,9 @@ async function simplifiedFacts(dataSource, caller) {
   return { unlocked: lines.length > 0 };
 }
 
-// ---- the automatic desk ----------------------------------------------------------------------
-
-const HANDOVER = 'Handed to a person: ';
-const DECIDED = ['APPROVED', 'REJECTED', 'WAITING_CUSTOMER'];
-
-/** Each case of a batch where it stands: sent, robot, approved, person (to review), reviewed. */
-function batchState(kyc, handover, reviewedAt) {
-  if (kyc.risk_before !== 'LOW') {
-    // A pre-score MEDIUM is never automated: the operators' queue takes it.
-    return DECIDED.includes(kyc.status) ? 'reviewed' : 'person';
-  }
-
-  if (handover) return reviewedAt ? 'reviewed' : 'person';
-  if (kyc.status === 'APPROVED') return 'approved';
-  if (kyc.status === 'OPEN') return 'sent';
-
-  return 'robot';
-}
-
-async function autoFacts(dataSource, caller) {
-  const list = (table, filter, fields) => dataSource.getCollection(table).list(filter, fields);
-  const me = caller?.email || null;
-  // Files the robot handed over that this visitor then moved (unlocks the next steps).
-  const handovers = await list(
-    'status_changes',
-    and(
-      where('record_type', 'Equal', 'KYC_CASES'),
-      where('field', 'Equal', 'assigned_to'),
-      where('reason', 'StartsWith', HANDOVER),
-    ),
-    ['record_id', 'changed_at'],
-  );
-  const handedAt = new Map<any, any>(handovers.map(h => [h.record_id, h.changed_at]));
-  const mine =
-    me && handedAt.size
-      ? await list(
-          'status_changes',
-          and(
-            where('record_type', 'Equal', 'KYC_CASES'),
-            where('field', 'Equal', 'status'),
-            where('changed_by', 'Equal', me),
-            where('record_id', 'In', [...handedAt.keys()]),
-          ),
-          ['record_id', 'changed_at'],
-        )
-      : [];
-  const reviewedAt = new Map(
-    mine
-      .filter(l => new Date(l.changed_at) >= new Date(handedAt.get(l.record_id)))
-      .map(l => [l.record_id, l.changed_at]),
-  );
-  const batch = me ? lastBatch(me) : null;
-  const ids = batch ? batch.cases.map(c => c.kycId) : [];
-  const rows = ids.length
-    ? await list('kyc_cases', { conditionTree: where('id', 'In', ids) }, [
-        'id',
-        'reference',
-        'status',
-        'risk_before',
-        'customer:display_name',
-      ])
-    : [];
-  const cases = ids
-    .map(id => rows.find(r => r.id === id))
-    .filter(Boolean)
-    .map(k => ({
-      reference: k.reference,
-      name: k.customer?.display_name || null,
-      state: batchState(k, handedAt.has(k.id), reviewedAt.get(k.id)),
-    }));
-  const count = state => cases.filter(c => c.state === state).length;
-
-  return {
-    sentAt: batch?.at || null,
-    cases,
-    robotDone: cases.length > 0 && !cases.some(c => ['sent', 'robot'].includes(c.state)),
-    approved: count('approved'),
-    toPerson: count('person'),
-    reviewed: reviewedAt.size,
-    unlocked: reviewedAt.size > 0,
-  };
-}
-
 function chartFacts({ dataSource, parameters, caller }) {
   if (parameters?.desk === 'senior') return seniorQueueFacts(dataSource);
   if (parameters?.desk === 'simplified') return simplifiedFacts(dataSource, caller);
-  if (parameters?.desk === 'auto') return autoFacts(dataSource, caller);
 
   return demoGuideFacts(dataSource, parameters?.id);
 }
@@ -239,11 +147,5 @@ function addDemoGuideChart(customizer) {
   );
 }
 
-export {
-  SENIOR_QUEUE,
-  addDemoGuideChart,
-  autoFacts,
-  demoGuideFacts,
-  seniorQueueFacts,
-  simplifiedFacts,
-};
+// eslint-disable-next-line import/prefer-default-export
+export { addDemoGuideChart };

@@ -1,10 +1,9 @@
 /**
- * The data model (data-model.json): tables, typed fields, dropdown values, links. Everything
+ * The data model (data-model.ts): tables, typed fields, dropdown values, links. Everything
  * structural in this package comes from here; the generators in seed/ only decide what goes in the
  * rows.
  */
-// eslint-disable-next-line global-require, @typescript-eslint/no-var-requires
-const schema = require('./data-model.json');
+import schema from './data-model';
 
 const { tables }: { tables: Record<string, any> } = schema;
 
@@ -54,7 +53,7 @@ const singular = table =>
     .replace(/(ss|sh|ch|x)es$/, '$1')
     .replace(/s$/, '');
 
-/** Relation names, decided once so the agent and the layout agree. */
+/** Relation names, decided once from the data model, the same on every boot. */
 function relationNames() {
   const used = Object.fromEntries(
     Object.entries(tables).map(([table, { fields }]) => [table, new Set(fields.map(f => f.name))]),
@@ -139,4 +138,4 @@ function relationNames() {
   return links;
 }
 
-export { LINK_NAMES, PARENT_LINK_NAMES, schema, tables, relationNames };
+export { schema, tables, relationNames };

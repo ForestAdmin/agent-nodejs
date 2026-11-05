@@ -1,14 +1,104 @@
 /**
- * The bank's data model for a demo visitor: the "Data model" workspace's Custom component
- * (data-map.*, shipped with the demo layout) reads it from the API chart `GET /forest/_charts/data_map`.
+ * The bank's data model, by domain: the API chart `GET /forest/_charts/data_map`.
  *
- * Read live from what the agent serves, so it never goes stale: the domains are the left panel's
- * folders (folders.ts GROUPS), each table's fields, links and Smart Actions come from its schema as
- * the agent built it (a field the database does not have, data-model.json, is computed by the agent),
- * and its rows are counted. Only the words are written here: a line per domain and per table.
+ * Read live from what the agent serves, so it never goes stale: the domains are fixed here
+ * (GROUPS below), each table's fields, links and Smart Actions come from its schema as
+ * the agent built it (a field the database does not have, not in seed/data-model.ts, is computed by
+ * the agent), and its rows are counted. Only the words are written here: a line per domain and per
+ * table.
  */
-import { GROUPS } from '../model/folders';
-import { tables as STORED } from '../model/schema';
+import { tables as STORED } from '../seed/schema';
+
+// The domains of the bank: tables grouped the way an operator thinks about the work.
+// [domain, icon, tables]. A table name starting with '-' belongs to the domain but is a detail
+// table (hidden).
+const GROUPS: [string, string, string[]][] = [
+  [
+    'Customers',
+    '👥',
+    ['customers', 'individuals', 'businesses', '-customer_members', '-business_members'],
+  ],
+  ['Accounts & cards', '💳', ['accounts', 'cards', 'mandates']],
+  [
+    'Payments',
+    '💸',
+    [
+      'transactions',
+      'card_transactions',
+      'incoming_transfers',
+      'outgoing_transfers',
+      'direct_debits',
+      'fees',
+      'wero_payments',
+      'wallet_transfers',
+    ],
+  ],
+  [
+    'Counterparties',
+    '🤝',
+    [
+      'counterparties',
+      'card_merchants',
+      'sct_emitters',
+      'sct_beneficiaries',
+      'sdd_creditors',
+      'wero_contacts',
+    ],
+  ],
+  [
+    'Onboarding & KYC',
+    '🛂',
+    ['kyc_cases', 'documents', 'information_requests', 'customer_change_requests'],
+  ],
+  [
+    'Financial crime',
+    '🚨',
+    [
+      'alerts',
+      'investigations',
+      'sar_reports',
+      'screening_hits',
+      'watchlist_entries',
+      'rules',
+      'devices',
+      'login_events',
+      '-alert_transactions',
+      '-investigation_transactions',
+    ],
+  ],
+  ['Disputes', '↩️', ['dispute_requests', 'chargebacks', 'sepa_disputes', '-dispute_transactions']],
+  [
+    'E-invoicing',
+    '📃',
+    ['invoices', 'einvoicing_registrations', 'ereporting_submissions', '-invoice_payments'],
+  ],
+  [
+    'Credit',
+    '💰',
+    [
+      'loan_applications',
+      'loans',
+      'repayments',
+      'guarantees',
+      'collection_cases',
+      'limit_requests',
+    ],
+  ],
+  [
+    'Lifecycle & legal',
+    '⚖️',
+    [
+      'closures',
+      'holds',
+      'authority_requests',
+      'business_events',
+      'insolvency_proceedings',
+      'deceased_cases',
+    ],
+  ],
+  ['Service & quality', '📢', ['complaints', 'qa_reviews']],
+  ['Admin', '🛠️', ['status_changes']],
+];
 
 const DOMAINS = {
   Customers: 'Who banks here: people and companies, and who may act for each customer account.',
@@ -216,4 +306,4 @@ function addDataMapChart(customizer) {
   );
 }
 
-export { DOMAINS, PURPOSES, addDataMapChart, dataMap, labelOf };
+export { DOMAINS, GROUPS, PURPOSES, addDataMapChart, dataMap };

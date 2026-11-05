@@ -2,7 +2,7 @@
  * Builds the demo SQLite database: deterministic (fixed seed), consistent (dates and statuses
  * agree), dated relative to today so a demo never looks stale.
  *
- * Every table of the data model is created from model/schema.json.
+ * Every table of the data model is created from data-model.ts, read through schema.ts.
  * Filled so far: parties (retail and business customers, companies and their owners), core banking
  * (counterparties, cards, mandates, six months of transactions), financial crime (KYC, devices,
  * screening, alerts, investigations, SARs, with the stories of stories.ts) and disputes (dispute
@@ -10,10 +10,8 @@
  * invoices, payment matching, e-reporting) and credit (applications, loans and repayments,
  * guarantees, collections, limit requests) and the lifecycle (closures, authority requests,
  * company events, insolvencies, deceased customers, QA reviews).
- * Every id is a UUID, the same on every run. `node dist/seed/index.js out.sqlite` writes a copy to
- * inspect.
+ * Every id is a UUID, the same on every run.
  */
-import fs from 'fs';
 import knex from 'knex';
 
 import { alertCases } from './alert-cases';
@@ -31,8 +29,8 @@ import { paymentsDesk } from './payments-desk';
 import { between, reset, withStream } from './random';
 import { frenchIban } from './reference';
 import { accountRows, memberRows, newCustomer } from './retail';
+import { tables } from './schema';
 import { assignStories } from './stories';
-import { tables } from '../model/schema';
 
 /** Every row of the demo, before it is written: parties first, then core banking on top. */
 function build(count = 300, businessCount = 60) {
@@ -108,11 +106,16 @@ function defineColumns(t, fields) {
   }
 }
 
-async function seed(filename) {
+/**
+ * Writes the demo to the SQLite file `filename`. `extend` (optional) adds rows to the built ones
+ * (table → rows) before anything is written.
+ */
+async function seed(filename, extend?: (rows) => Promise<void>) {
   const db = knex({ client: 'sqlite3', connection: { filename }, useNullAsDefault: true });
 
   try {
     const { rows } = build();
+    if (extend) await extend(rows);
     // A demo database, written once at boot: no journal to keep, one transaction for every row
     // (each batch committed on its own made the disk the slowest part of the seed).
     await db.raw('PRAGMA journal_mode = OFF');
@@ -138,10 +141,3 @@ async function seed(filename) {
 }
 
 export { seed, build, frenchIban };
-
-if (require.main === module) {
-  const out = process.argv[2] || 'demo.sqlite';
-  fs.rmSync(out, { force: true });
-  // eslint-disable-next-line no-console
-  seed(out).then(counts => console.log(out, counts));
-}

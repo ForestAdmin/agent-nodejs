@@ -456,27 +456,26 @@ async function hitFile(list, hit) {
   };
 }
 
-// field: label. The prefix groups them, so a workflow step can read one group by its name.
-const LABELS = {
-  hit_list: 'Hit · List',
-  hit_entry: 'Hit · List entry',
-  hit_entry_birth: 'Hit · Date of birth on the list',
-  hit_entry_country: 'Hit · Country on the list',
-  hit_score: 'Hit · Match score',
-  hit_found: 'Hit · Found by',
-  customer_name: 'Customer · Name',
-  customer_birth: 'Customer · Date of birth',
-  customer_country: 'Customer · Country',
-  customer_relationship: 'Customer · Relationship',
-  compare_name: 'Comparison · Name',
-  compare_birth: 'Comparison · Date of birth',
-  compare_country: 'Comparison · Country',
-  compare_verdict: 'Comparison · Verdict',
-  payment_held: 'Payment · Held payment',
-  decision_result: 'Decision · Result',
-  decision_mlro: 'Decision · MLRO',
-};
-const FIELDS = Object.keys(LABELS);
+// The evidence fields; the prefix of a name groups them.
+const FIELDS = [
+  'hit_list',
+  'hit_entry',
+  'hit_entry_birth',
+  'hit_entry_country',
+  'hit_score',
+  'hit_found',
+  'customer_name',
+  'customer_birth',
+  'customer_country',
+  'customer_relationship',
+  'compare_name',
+  'compare_birth',
+  'compare_country',
+  'compare_verdict',
+  'payment_held',
+  'decision_result',
+  'decision_mlro',
+];
 
 function addScreeningEvidence(collection) {
   // One computation per hit and request, whichever fields are asked for.
@@ -506,4 +505,4 @@ function addScreeningEvidence(collection) {
   );
 }
 
-export { FIELDS, LABELS, addScreeningEvidence };
+export { FIELDS, addScreeningEvidence };

@@ -51,4 +51,4 @@ function addReadableNames(customizer) {
   );
 }
 
-export { LABELS, NAMED_BY_COUNTERPARTY, addReadableNames };
+export { LABELS, addReadableNames };

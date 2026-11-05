@@ -1,8 +1,8 @@
 /**
- * Smart Actions called by the onboarding, alert and screening workflows (the
- * demo layout's). Names match the workflow steps exactly. Each action checks the record's state first,
- * writes a status_changes row for every status it changes, and gives new case rows a reference.
- * Simulated providers answer from the data, never at random, and say so in their message.
+ * Smart Actions of the onboarding, alert and screening work. Each action checks the record's
+ * state first, writes a status_changes row for every status it changes, and gives new case rows a
+ * reference. Simulated providers answer from the data, never at random, and say so in their
+ * message.
  */
 import type { RecordData } from '@forestadmin/datasource-toolkit';
 
@@ -16,19 +16,19 @@ import {
 import { createHash, randomUUID } from 'crypto';
 
 import { handoverReason } from './robot-results';
-import { tables } from '../../model/schema';
 import { businessDays } from '../../seed/ledger';
 import { scanFlaw } from '../../seed/random';
 import { BIC, frenchIban } from '../../seed/reference';
 import { REFUSAL, customerStatusAfter, refusalOfPaper, refusalReason } from '../../seed/refusals';
+import { tables } from '../../seed/schema';
 import {
   callAnswer,
+  deviceVerdict,
   alertTransactions as evidenceTransactions,
   loginFacts,
   paymentOf,
   paymentStatusText,
   phoneOnFile,
-  seonVerdict,
 } from '../evidence/alerts';
 import {
   LABELS as CASE_LABELS,
@@ -44,7 +44,6 @@ import {
 } from '../shared/case-file';
 import { PROVIDERS, freezeReport, resultsFrom } from '../shared/providers';
 import { badge, card, codeText, euros, frDate, frStamp } from '../shared/render';
-import { uploaded } from '../shared/uploads';
 
 const DAY = 24 * 3600 * 1000;
 const CLOSED_CASE = ['APPROVED', 'REJECTED'];
@@ -71,10 +70,6 @@ const dateOnly = iso => iso.slice(0, 10);
 const money = n => Math.round(Number(n) * 100) / 100;
 const hex = (seed, length) =>
   createHash('md5').update(String(seed)).digest('hex').slice(0, length).toUpperCase();
-const simulateCall = () =>
-  new Promise(resolve => {
-    setTimeout(resolve, 700);
-  });
 const normalize = s =>
   String(s || '')
     .normalize('NFD')
@@ -612,7 +607,6 @@ async function checkDocuments(context, resultBuilder) {
   const { kyc, error } = await openCase(context);
   if (error) return resultBuilder.error(error);
 
-  await simulateCall();
   const checked = await documentCheck(reader(context.dataSource), kyc);
   if (!checked) return resultBuilder.error(`${kyc.reference} has nobody to check papers for.`);
   const missing = checked.rows.filter(r => !r.ok);
@@ -644,7 +638,6 @@ async function screenCase(context, resultBuilder) {
   if (error) return resultBuilder.error(error);
 
   const subjects = subjectsOf(await caseParties(d, kyc));
-  await simulateCall();
   const entries = await d.list(
     'watchlist_entries',
     [new ConditionTreeLeaf('delisted_at', 'Missing')],
@@ -695,35 +688,15 @@ const FLAW_OUTCOME = {
   name: ['FAILED', 'Name on the document differs from the application'],
 };
 
-/** What the ID provider answers, from the document itself (and whether the selfie shows another
- * face): never random. */
-function idCheck(doc, otherFace = false) {
+/** What the ID provider answers, from the document itself: never random. */
+function idCheck(doc) {
   if (doc.expires_at && String(doc.expires_at) < now()) {
     return ['FAILED', `Document expired on ${String(doc.expires_at).slice(0, 10)}`];
   }
 
   if (doc.check_result === 'FAILED') return ['FAILED', doc.failure_reason];
-  if (otherFace) return ['FAILED', REFUSAL.IDENTITY_FAILED];
 
   return FLAW_OUTCOME[drawnFlaw(doc.id)];
-}
-
-/** The person's latest selfie on the case shows another face: a partner upload whose scan says
- * so (uploads.ts). The app's seeded selfies carry their outcome in their row already. */
-async function selfieOfAnotherFace(d, doc) {
-  if (!doc.kyc_case_id || !doc.individual_id) return false;
-  const [selfie] = await d.list(
-    'documents',
-    [
-      eq('kyc_case_id', doc.kyc_case_id),
-      eq('individual_id', doc.individual_id),
-      eq('document_type', 'SELFIE'),
-    ],
-    ['id'],
-    { field: 'uploaded_at', ascending: false },
-  );
-
-  return Boolean(selfie) && uploaded(selfie.id)?.scan === 'other_face';
 }
 
 const MARK = { ok: ['✓', 'green'], warn: ['⚠', 'amber'], bad: ['✗', 'red'] };
@@ -809,11 +782,9 @@ const ID_DOC_FIELDS = [
  * actions, so they never disagree.
  */
 async function runIdChecks(d, docs) {
-  await simulateCall();
-
   return Promise.all(
     docs.map(async doc => {
-      const [result, reason] = idCheck(doc, await selfieOfAnotherFace(d, doc));
+      const [result, reason] = idCheck(doc);
       const checkId = doc.provider_check_id || `IDV-${hex(doc.id, 12)}`;
       const stamp = { verified_at: now(), verified_by: d.email, provider_check_id: checkId };
       await d.update('documents', [eq('id', doc.id)], {
@@ -887,7 +858,7 @@ async function verifyDocument(context, resultBuilder) {
   // Nothing left to check is an answer, not an error: a workflow step moves on with it.
   if (!targets.length) {
     return resultBuilder.success(
-      `All ID documents on ${kyc.reference} passed their ${PROVIDERS.idCheck} check already (${docs
+      `All ID documents on ${kyc.reference} passed their ID check already (${docs
         .map(doc => label(doc.document_type))
         .join(', ')}).`,
     );
@@ -1021,7 +992,7 @@ async function requestIdDocument(context, resultBuilder) {
   if (error) return resultBuilder.error(error);
 
   const parties = await caseParties(d, kyc);
-  // The reason Onfido gave: a failed ID, or one it could not read (cut off).
+  // The reason the ID check gave: a failed ID, or one it could not read (cut off).
   const [failed] = await d.list(
     'documents',
     [
@@ -1292,7 +1263,6 @@ async function registerCheck(d, kyc, found) {
   );
   const kbis = papers.find(doc => doc.document_type === 'COMPANY_REGISTRATION');
   const own = await companyOwners(d.list, business);
-  await simulateCall();
   const register = registerOf(business, kbis);
   const lines = registerLines(business, register, own);
   const requestId = `RNE-${hex(business.id, 10)}`;
@@ -1684,10 +1654,9 @@ async function approveCase(context, resultBuilder, chosen) {
 }
 
 /**
- * The automatic onboarding's way to a person (the demo layout's "Retail onboarding: automatic"
- * workflow): the robot started the review, so the case is assigned to its service account; a
- * person must find it unassigned in the manual review inbox. Says why the run paused, from the
- * case file.
+ * The onboarding robot's way to a person: the robot started the review, so the case is assigned to
+ * its service account; a person must find it unassigned in the manual review queue. Says why the
+ * run paused, from the case file.
  */
 async function handToPerson(context, resultBuilder) {
   const d = db(context);
@@ -2168,7 +2137,7 @@ async function sendForSecondLook(context, resultBuilder) {
   );
 }
 
-const SEON_ROWS = (v, f) => [
+const DEVICE_ROWS = (v, f) => [
   ['Device', v.device],
   ['IP address', `${f.login.ip_address} · ${v.network}`],
   ['Login', `${f.login.city}, ${f.login.country} · ${frDate(f.login.created_at)}`],
@@ -2181,7 +2150,7 @@ const SEON_ROWS = (v, f) => [
   ],
 ];
 
-/** SEON's device and IP intelligence on the alert's login, recorded on the alert now. */
+/** The fraud scoring provider's device and IP check on the alert's login, recorded now. */
 async function checkDevice(context, resultBuilder) {
   const d = db(context);
   const { alert, error } = await liveAlert(context);
@@ -2189,14 +2158,13 @@ async function checkDevice(context, resultBuilder) {
 
   const facts = await loginFacts(d.list, alert);
   if (!facts) return resultBuilder.error(`${alert.reference} has no login to check.`);
-  await simulateCall();
-  const verdict = seonVerdict(alert, facts);
+  const verdict = deviceVerdict(alert, facts);
   await d.update('alerts', [eq('id', alert.id)], { device_checked_at: now() });
   const html = card({
     eyebrow: resultsFrom(PROVIDERS.deviceIntel, 'device and IP intelligence'),
     title: `${alert.reference} · risk ${verdict.score}/100`,
     status: verdict.takeover ? ['Takeover signals', 'red'] : ['No takeover signal', 'green'],
-    rows: [['Check', verdict.id], ...SEON_ROWS(verdict, facts)],
+    rows: [['Check', verdict.id], ...DEVICE_ROWS(verdict, facts)],
     note: verdict.text,
   });
 
@@ -2212,7 +2180,7 @@ const CALL_RESULTS = {
   NOT_REACHED: ['Not reached', 'amber'],
 };
 
-/** A call to the customer through Aircall, on the number on file; the answer is recorded. */
+/** A call to the customer through the phone provider, on the number on file; the answer is recorded. */
 async function callCustomer(context, resultBuilder) {
   const d = db(context);
   const { alert, error } = await liveAlert(context);
@@ -2227,7 +2195,6 @@ async function callCustomer(context, resultBuilder) {
   const holder = await d.one('individuals', contactId, ['id', 'first_name', 'last_name', 'phone']);
   const phone = await phoneOnFile(d.list, holder);
   if (!phone.number) return resultBuilder.error(`${alert.reference}: no phone number on file.`);
-  await simulateCall();
   const answer = callAnswer(facts, payment);
   await d.update('alerts', [eq('id', alert.id)], {
     called_at: now(),
@@ -2610,7 +2577,6 @@ async function recallTransfer(context, resultBuilder) {
     'iban',
     'bank_name',
   ]);
-  await simulateCall();
   const dispute = await d.create('sepa_disputes', {
     customer_id: alert.customer_id,
     transaction_id: tx.id,
@@ -2652,7 +2618,7 @@ async function recallTransfer(context, resultBuilder) {
   });
 
   return resultBuilder.success(
-    `Recall ${dispute.reference} sent for ${euros(tx.amount)} through ${
+    `Recall ${dispute.reference} sent for ${euros(tx.amount)} through the ${
       PROVIDERS.sepa
     } (simulated): the other bank has 15 business days to answer.`,
     { html },
@@ -3277,7 +3243,6 @@ async function releaseHeldPayment(context, resultBuilder) {
     return resultBuilder.error(`${hit.reference} has no held payment to release.`);
   }
 
-  await simulateCall();
   await bookHeld(d, tx);
   const freed = await releaseHolds(d, hit);
   const sent = await d.one('transactions', tx.id, ['booked_at', 'balance_after']);
@@ -3511,7 +3476,7 @@ async function verifyOneDocument(context, resultBuilder) {
 
   if (!target || !ID_TYPES.includes(target.document_type)) {
     return resultBuilder.error(
-      `${PROVIDERS.idCheck} checks IDs and selfies. For company papers run "Check against the register"; for other papers, "Accept" or "Reject with a reason".`,
+      `The ${PROVIDERS.idCheck.toLowerCase()} checks IDs and selfies. For company papers run "Check against the register"; for other papers, "Accept" or "Reject with a reason".`,
     );
   }
 

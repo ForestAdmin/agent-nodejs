@@ -23,7 +23,7 @@ import { tmpdir } from 'os';
 import path from 'path';
 
 import { createDemoBankDataSource } from '../src/index';
-import { tables } from '../src/model/schema';
+import { tables } from '../src/seed/schema';
 
 const chartNames: string[] = JSON.parse(
   readFileSync(path.join(__dirname, 'fixtures', 'charts.json'), 'utf8'),
@@ -43,7 +43,7 @@ const caller = {
   renderingId: 1,
   timezone: 'Europe/Paris',
 } as unknown as Caller;
-const PDF = Buffer.from('%PDF-1.4\n%forest-lab-scan:clean\n%forest-lab-issued:2026-01-15\n%%EOF');
+const PDF = Buffer.from('%PDF-1.4\n%%EOF');
 const RESULT_TYPES = ['Success', 'Error', 'Webhook', 'File', 'Redirect'];
 // How many rows matching a case's filter an action may refuse before one lets it do its work.
 const CANDIDATES = 30;
@@ -111,6 +111,38 @@ async function alertWithHeldPayment(dataSource: DataSource, nth: number) {
     .update(caller, byId(transactionId), { status: 'HELD' });
 
   return { ids: [alertId], setup: [] };
+}
+
+/**
+ * A KYC case in review whose holder has an open screening hit, the state "Park for screening"
+ * acts on. Few seeded cases are in it, and the actions before it decide them, so the test puts one
+ * there: an open hit moved onto the holder of the first case in review.
+ */
+async function caseWithOpenHit(dataSource: DataSource) {
+  const [kycId] = await idsOf(dataSource.getCollection('kyc_cases'), status('IN_REVIEW'), 1);
+  const [kyc] = await dataSource
+    .getCollection('kyc_cases')
+    .list(
+      caller,
+      new PaginatedFilter({ conditionTree: where('id', kycId) }),
+      new Projection('customer_id'),
+    );
+  const [member] = await dataSource.getCollection('customer_members').list(
+    caller,
+    new PaginatedFilter({
+      conditionTree: both(
+        where('customer_id', kyc.customer_id),
+        new ConditionTreeLeaf('until', 'Missing'),
+      ),
+    }),
+    new Projection('individual_id'),
+  );
+  const [hitId] = await idsOf(dataSource.getCollection('screening_hits'), status('OPEN'), 1);
+  await dataSource
+    .getCollection('screening_hits')
+    .update(caller, byId(hitId), { individual_id: member.individual_id });
+
+  return { ids: [kycId], setup: [] };
 }
 
 /** The input fields of a form, out of its pages and rows. */
@@ -315,7 +347,7 @@ const CASES: Record<string, Record<string, Case>> = {
     'Request missing documents': { rows: status('OPEN'), message: /sent in the app/ },
     'Check the company register': { rows: both(status('WAITING_CUSTOMER'), company) },
     'Send for senior sign-off': { rows: status('OPEN'), message: /sign-off/ },
-    'Park for screening': { rows: status('ESCALATED'), message: /parked/ },
+    'Park for screening': { prepare: caseWithOpenHit, message: /parked/ },
     'Hand to a person': { rows: status('OPEN'), message: /waits for a person/ },
     'Approve card acceptance': { rows: both(undecided, company), message: /approved/ },
     'Set a reserve': {
@@ -426,7 +458,7 @@ describe('the demo bank once booted', () => {
   });
 
   describe('computed fields', () => {
-    // A field the data source adds: not a column of data-model.json, not a relation.
+    // A field the data source adds: not a column of the data model, not a relation.
     const computedOf = (collection: Collection) =>
       Object.entries(collection.schema.fields)
         .filter(([, field]) => field.type === 'Column')
@@ -465,14 +497,20 @@ describe('the demo bank once booted', () => {
       await expect(dataSource.renderChart(caller, name)).resolves.toEqual(expect.anything());
     });
 
-    it.each(['senior', 'simplified', 'auto'])(
-      'should render the demo guide of the %s desk',
-      async desk => {
-        await expect(dataSource.renderChart(caller, 'demo_guide', { desk })).resolves.toEqual(
-          expect.anything(),
-        );
-      },
-    );
+    it.each(['senior', 'simplified'])('should render the demo guide of the %s desk', async desk => {
+      await expect(dataSource.renderChart(caller, 'demo_guide', { desk })).resolves.toEqual(
+        expect.anything(),
+      );
+    });
+
+    it('should count the tables and the queues in feature_facts, nothing else', async () => {
+      const facts = (await dataSource.renderChart(caller, 'feature_facts')) as {
+        records: Record<string, number>;
+      };
+
+      expect(Object.keys(facts).sort()).toEqual(['at', 'queues', 'records']);
+      expect(facts.records.customers).toBeGreaterThan(0);
+    });
 
     it('should render the demo guide of a showcase case', async () => {
       const kycCases = dataSource.getCollection('kyc_cases');
@@ -482,36 +520,9 @@ describe('the demo bank once booted', () => {
         dataSource.renderChart(caller, 'demo_guide', { id: String(id) }),
       ).resolves.toEqual(expect.anything());
     });
-
-    it.each(['customers', 'accounts', 'alerts', 'investigations', 'kyc_cases'])(
-      'should render the network chart of a %s record',
-      async name => {
-        const collection = dataSource.getCollection(name);
-        const [id] = await idsOf(collection, undefined, 1);
-
-        expect(collection.schema.charts).toContain('network');
-        await expect(collection.renderChart(caller, 'network', [id])).resolves.toMatchObject({
-          record: { collection: name, id },
-          nodes: expect.any(Array),
-        });
-      },
-    );
   });
 
   describe('Smart Actions', () => {
-    let delay: jest.SpyInstance;
-
-    beforeAll(() => {
-      // The simulated calls to outside services wait 700 ms: no need to wait in a test.
-      const realSetTimeout = global.setTimeout;
-      delay = jest
-        .spyOn(global, 'setTimeout')
-        .mockImplementation(((fn: () => void, ms?: number, ...args: unknown[]) =>
-          realSetTimeout(fn, ms === 700 ? 0 : ms, ...args)) as typeof setTimeout);
-    });
-
-    afterAll(() => delay.mockRestore());
-
     it('should have a case for every Smart Action, in declaration order', () => {
       const declared = Object.fromEntries(
         dataSource.collections

@@ -614,29 +614,28 @@ async function investigationFile(list, inv) {
   };
 }
 
-// field: label. The prefix groups them, so a workflow step can read one group by its name.
-const LABELS = {
-  case_type: 'Case · Type and origin',
-  case_summary: 'Case · Summary',
-  case_due: 'Case · Due date',
-  case_status: 'Case · Status',
-  signals_alerts: 'Alerts and hits · Alerts',
-  signals_hits: 'Alerts and hits · Screening hits',
-  tx_totals: 'Transactions · Totals',
-  tx_counterparties: 'Transactions · Counterparties',
-  tx_countries: 'Transactions · Countries',
-  customer_profile: 'Customer · Profile',
-  customer_activity: 'Customer · Activity vs profile',
-  customer_accounts: 'Customer · Accounts',
-  kyc_status: 'KYC · Status',
-  kyc_review: 'KYC · Next review',
-  req_open: 'Requests · Open',
-  req_answers: 'Requests · Answers',
-  sar_draft: 'SAR · Draft',
-  sar_narrative: 'SAR · Narrative',
-  sar_filing: 'SAR · Filing',
-};
-const FIELDS = Object.keys(LABELS);
+// The evidence fields; the prefix of a name groups them.
+const FIELDS = [
+  'case_type',
+  'case_summary',
+  'case_due',
+  'case_status',
+  'signals_alerts',
+  'signals_hits',
+  'tx_totals',
+  'tx_counterparties',
+  'tx_countries',
+  'customer_profile',
+  'customer_activity',
+  'customer_accounts',
+  'kyc_status',
+  'kyc_review',
+  'req_open',
+  'req_answers',
+  'sar_draft',
+  'sar_narrative',
+  'sar_filing',
+];
 
 function addInvestigationEvidence(collection) {
   // One computation per investigation and request, whichever fields are asked for.
@@ -666,4 +665,4 @@ function addInvestigationEvidence(collection) {
   );
 }
 
-export { FIELDS, LABELS, addInvestigationEvidence };
+export { FIELDS, addInvestigationEvidence };

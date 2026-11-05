@@ -536,7 +536,7 @@ async function idFields(list, kyc) {
   const last = ids
     .filter(ran)
     .sort((a, b) => String(b.verified_at).localeCompare(String(a.verified_at)))[0];
-  const source = last ? ` · Onfido ${last.provider_check_id}, ${stamp(last.verified_at)}` : '';
+  const source = last ? ` · ID check ${last.provider_check_id}, ${stamp(last.verified_at)}` : '';
   const count = (n, word) => `${n} ${word}${n > 1 ? 's' : ''}`;
   const selfies = faces.filter(Boolean).length;
   let result = `${OK} Passed: ${count(ids.length, 'ID')} and ${count(selfies, 'selfie')}${source}`;
@@ -715,7 +715,7 @@ function selfiePaper(p, doc, channel) {
     return { ok: false, line: `${BAD} ${who}: ${doc.failure_reason}`, ask: 'a new selfie' };
   }
 
-  return { ok: true, line: `${OK} ${who}: received, Onfido matches it to the ID` };
+  return { ok: true, line: `${OK} ${who}: received, the ID check matches it to the ID` };
 }
 
 function addressPaper(p, doc) {
@@ -1009,7 +1009,7 @@ async function caseFacts(list, kyc) {
   };
 }
 
-// field: label. The prefix groups them, so a workflow step can read one group by its name.
+// field: label. The prefix of a name groups them.
 const LABELS = {
   applicant_identity: 'Applicant · Identity',
   applicant_contact: 'Applicant · Contact',
@@ -1051,13 +1051,12 @@ const LABELS = {
 };
 const FIELDS = Object.keys(LABELS);
 
-// What the automatic onboarding decides on (the "Retail onboarding: automatic" workflow's "Clean
-// file?" step): a file is clean when its documents are complete, every ID and every selfie passed,
-// the screening found nobody and the suggested rating is LOW (each of these lines starts with ✓).
-// One field says it, so the decision is one rule Forest's workflow editor can show: "Automatic
-// check · Result" is CLEAN.
+// What the automatic onboarding decides on: a file is clean when its documents are complete, every
+// ID and every selfie passed, the screening found nobody and the suggested rating is LOW (each of
+// these lines starts with ✓).
+// One field says it, so the decision is one rule: "Automatic check · Result" is CLEAN.
 const CLEAN = 'CLEAN';
-// Each check and the word a reason starts with (short: the desks show it in a list column).
+// Each check and the word a reason starts with (short: it is read in a list column).
 const AUTO_CHECKS = {
   docs_complete: 'Documents',
   idcheck_result: 'ID check',
@@ -1202,17 +1201,14 @@ function addCaseFile(collection) {
       getValues: (records, context) => Promise.all(records.map(r => valueOf(name, r, context))),
     }),
   );
-  // Filterable, or Forest's workflow editor cannot offer it in a decision's rule (it lists only
-  // the filterable fields a read step pinned). Rarely filtered on: emulated, record by record.
+  // Filterable, so a rule can test it. Rarely filtered on: emulated, record by record.
   collection.emulateFieldFiltering('auto_check');
   collection.emulateFieldFiltering('risk_decided');
 }
 
 export {
-  CLEAN,
   FIELDS,
   applicantRating,
-  automaticCheck,
   checkReasons,
   companyRating,
   KBIS_MAX_DAYS,

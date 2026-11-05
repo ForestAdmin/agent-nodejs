@@ -1,4 +1,4 @@
-import { tables } from '../model/schema';
+import { tables } from '../seed/schema';
 
 // The freeze reasons are the dropdown of accounts.freeze_reason in the data model.
 const FREEZE_REASONS = tables.accounts.fields.find(f => f.name === 'freeze_reason').enum;

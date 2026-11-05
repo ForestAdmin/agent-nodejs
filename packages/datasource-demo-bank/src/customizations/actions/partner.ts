@@ -1,12 +1,12 @@
 /**
  * The two Smart Actions a partner's app calls through Forest's Gateway API (B2B2X: the partner
  * brings the customer, the bank does the KYC). The Gateway has no create or update route, so the
- * partner writes through actions (the CLI's PARTNER_PORTAL.md shows how).
+ * partner writes through actions.
  *
  * - "Submit application" (Global, on kyc_cases): the person, the retail customer and its OPEN
  *   onboarding case, channel PARTNER, partner = the partner's name on the customer and the case
  *   (a partner team's Forest scope reads it), also in the case notes ("Partner: Lagoon"). It
- *   lands in the Retail onboarding inbox like any application (live.ts writes them the same way).
+ *   waits in the Retail onboarding queue like any application (live.ts writes them the same way).
  * - "Upload document" (Single, on kyc_cases): one paper, fetched from the portal (uploads.ts) or
  *   given as a small File, stored like the papers the bank's app sends: a documents row waiting
  *   for its check, the file at the bank's own address.
@@ -15,7 +15,6 @@
  */
 import { randomUUID } from 'crypto';
 
-import { tables } from '../../model/schema';
 import {
   ID_FILES,
   applicant,
@@ -26,6 +25,7 @@ import {
 } from '../../seed/live';
 import { scanFlaw } from '../../seed/random';
 import { COUNTRIES, LANGUAGE } from '../../seed/reference';
+import { tables } from '../../seed/schema';
 import { badge, card } from '../shared/render';
 import { UploadError, fetchUpload, fromFileField, keep, safeName } from '../shared/uploads';
 
@@ -41,11 +41,6 @@ const RETAIL_PAPERS = [
   'BANK_STATEMENT',
 ];
 const REVIEW_YEARS = { LOW: 3, MEDIUM: 2, HIGH: 1 };
-// The flaws an ID's scan can show (random.ts scanFlaw); a selfie's or a bill's mean nothing on an ID.
-const ID_SCANS = ['clean', 'glare', 'cropped', 'name'];
-// A bill addressed to someone else is read as such on arrival (the bank reads the name and date).
-const OTHER_NAME = 'Name does not match the application: the bill is addressed to someone else';
-const READER = 'Document reading on arrival';
 const COUNTRY = /^[A-Z]{2}$/;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -274,7 +269,7 @@ function applicationCard(application, customer, kyc, risk) {
       ['Starting risk', { html: badge(risk, risk === 'LOW' ? 'green' : 'amber') }],
       ['Due', kyc.due_at && String(kyc.due_at).slice(0, 10)],
     ],
-    note: 'In the Retail onboarding inbox. The partner sends the papers with "Upload document".',
+    note: 'In the Retail onboarding queue. The partner sends the papers with "Upload document".',
   });
 }
 
@@ -348,10 +343,13 @@ const UPLOAD_FORM = [
   { label: 'Issuing country', type: 'String', description: 'IDs only; nationality by default' },
 ];
 
-/** An id whose scan shows `flaw` (random.ts scanFlaw), so the ID check reads what the file shows. */
-function idWithScan(flaw) {
+/**
+ * An id whose scan shows no flaw (random.ts scanFlaw): the simulated ID check reads its outcome
+ * from the document's id, and an uploaded ID has nothing wrong with it until a person says so.
+ */
+function cleanScanId() {
   let id = randomUUID();
-  while (scanFlaw(id) !== flaw) id = randomUUID();
+  while (scanFlaw(id) !== 'clean') id = randomUUID();
 
   return id;
 }
@@ -375,11 +373,11 @@ async function holderOf(run, customerId) {
 }
 
 /** The file, and the portal origin it came from (null for a File given inline). */
-async function receivedFile(values) {
+async function receivedFile(values, portalOrigins) {
   if (values.File?.buffer) return { file: fromFileField(values.File), origin: null };
 
   if (text(values['File URL'])) {
-    const file = await fetchUpload(values['File URL']);
+    const file = await fetchUpload(values['File URL'], portalOrigins);
 
     return { file, origin: new URL(text(values['File URL'])).origin };
   }
@@ -407,9 +405,7 @@ function uploadCard(kyc, type, row, file, origin) {
   return card({
     eyebrow: origin ? `Partner upload · ${origin}` : 'Partner upload',
     title: `${capital(label(type))} received`,
-    status: row.failure_reason
-      ? [`Refused: ${row.failure_reason}`, 'red']
-      : ['Waiting for its check', 'grey'],
+    status: ['Waiting for its check', 'grey'],
     rows: [
       ['Case', kyc.reference],
       [
@@ -423,7 +419,7 @@ function uploadCard(kyc, type, row, file, origin) {
       ['Issued', row.issued_at && String(row.issued_at).slice(0, 10)],
       ['Expires', row.expires_at && String(row.expires_at).slice(0, 10)],
     ],
-    note: 'Copied to the bank’s document store; the onboarding workflow checks it.',
+    note: 'Copied to the bank’s document store; it waits for its check.',
   });
 }
 
@@ -431,35 +427,26 @@ function uploadCard(kyc, type, row, file, origin) {
 function uploadRow(run, kyc, person, file, values) {
   const type = values['Document type'];
   const isId = ID_TYPES.includes(type);
-  const id = isId ? idWithScan(ID_SCANS.includes(file.scan) ? file.scan : 'clean') : randomUUID();
+  const id = isId ? cleanScanId() : randomUUID();
   const name = fileName(type, person, file, values['File name']);
-  // The date the customer typed, or the one printed on the paper.
-  const issued = values['Issued on'] || file.issued;
-  const otherName = type === 'PROOF_OF_ADDRESS' && file.scan === 'other_name';
 
   return {
     id,
     document_type: type,
     individual_id: person?.id || null,
     document_number: isId ? text(values['Document number']) || null : null,
-    issued_at: dayStamp(run, issued),
+    issued_at: dayStamp(run, values['Issued on']),
     expires_at: isId ? dayStamp(run, values['Expires on']) : null,
     issuing_country: isId
       ? text(values['Issuing country']).toUpperCase() || person?.nationality || null
       : null,
     file_name: name,
-    file_url: `https://files.forest-lab-bank.fr/kyc/${kyc.customer_id}/${id}/${name}`,
+    file_url: `https://files.demo-bank.example/kyc/${kyc.customer_id}/${id}/${name}`,
     partner: kyc.partner || null,
-    ...(otherName && {
-      check_result: 'FAILED',
-      failure_reason: OTHER_NAME,
-      verified_at: run.stamp(new Date()),
-      verified_by: READER,
-    }),
   };
 }
 
-async function uploadDocument(context, resultBuilder) {
+async function uploadDocument(context, resultBuilder, portalOrigins) {
   const kyc = await context.getRecord(['id', 'reference', 'status', 'customer_id', 'partner']);
 
   if (CLOSED_CASE.includes(kyc.status)) {
@@ -477,7 +464,7 @@ async function uploadDocument(context, resultBuilder) {
   let origin;
 
   try {
-    ({ file, origin } = await receivedFile(values));
+    ({ file, origin } = await receivedFile(values, portalOrigins));
   } catch (error) {
     if (error instanceof UploadError) return resultBuilder.error(error.message);
     throw error;
@@ -491,14 +478,16 @@ async function uploadDocument(context, resultBuilder) {
   await run.store.patch('kyc_cases', kyc.id, { updated_at: run.stamp(new Date()) });
 
   return resultBuilder.success(
-    `${capital(label(type))} added to ${kyc.reference}, ${
-      row.failure_reason ? `refused: ${row.failure_reason.toLowerCase()}` : 'waiting for its check'
-    }.`,
+    `${capital(label(type))} added to ${kyc.reference}, waiting for its check.`,
     { html: uploadCard(kyc, type, row, file, origin) },
   );
 }
 
-function addPartnerActions(collection) {
+/** `partnerPortalOrigins`: the portal addresses "Upload document" fetches files from. */
+function addPartnerActions(
+  collection,
+  { partnerPortalOrigins }: { partnerPortalOrigins: string[] },
+) {
   collection.addAction('Submit application', {
     scope: 'Global',
     form: APPLICATION_FORM,
@@ -507,8 +496,9 @@ function addPartnerActions(collection) {
   collection.addAction('Upload document', {
     scope: 'Single',
     form: UPLOAD_FORM,
-    execute: uploadDocument,
+    execute: (context, resultBuilder) =>
+      uploadDocument(context, resultBuilder, partnerPortalOrigins),
   });
 }
 
-export { RETAIL_PAPERS, addPartnerActions, declaredRisk, readApplication };
+export { addPartnerActions, readApplication };

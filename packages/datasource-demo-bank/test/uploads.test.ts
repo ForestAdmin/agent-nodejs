@@ -14,7 +14,7 @@ import {
 } from '../src/customizations/shared/uploads';
 
 // The first bytes of each file type the bank takes, and a text file it refuses.
-const PDF_TEXT = '%PDF-1.4\n%forest-lab-scan:glare\n%forest-lab-issued:2026-01-15\n%%EOF';
+const PDF_TEXT = '%PDF-1.4\n%%EOF';
 const PDF = Buffer.from(PDF_TEXT);
 const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00]);
 const JPEG = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10]);
@@ -41,31 +41,27 @@ async function refusal(call: () => unknown) {
 }
 
 describe('uploads', () => {
-  const savedOrigins = process.env.DEMO_BANK_PORTAL_ORIGINS;
-
-  afterEach(() => {
-    if (savedOrigins === undefined) delete process.env.DEMO_BANK_PORTAL_ORIGINS;
-    else process.env.DEMO_BANK_PORTAL_ORIGINS = savedOrigins;
-  });
-
   describe('allowedOrigins', () => {
-    it('should allow the local portal on port 3500 when DEMO_BANK_PORTAL_ORIGINS is not set', () => {
-      delete process.env.DEMO_BANK_PORTAL_ORIGINS;
-
+    it('should allow the local portal on port 3500 when no origins are given', () => {
       expect(allowedOrigins()).toEqual(['http://localhost:3500', 'http://127.0.0.1:3500']);
     });
 
-    it('should read DEMO_BANK_PORTAL_ORIGINS without spaces, trailing slashes or empty entries', () => {
-      process.env.DEMO_BANK_PORTAL_ORIGINS = ' https://portal.example/ , ,http://127.0.0.1:4000';
-
-      expect(allowedOrigins()).toEqual(['https://portal.example', 'http://127.0.0.1:4000']);
+    it('should read each origin without spaces or trailing slashes, skipping empty entries', () => {
+      expect(allowedOrigins([' https://portal.example/ ', ' ', 'http://127.0.0.1:4000'])).toEqual([
+        'https://portal.example',
+        'http://127.0.0.1:4000',
+      ]);
     });
 
     it('should read each entry as an origin: default port, case and path dropped, invalid skipped', () => {
-      process.env.DEMO_BANK_PORTAL_ORIGINS =
-        'https://P.Example.com:443/upload,not a link,localhost:3500,http://127.0.0.1:4000/';
-
-      expect(allowedOrigins()).toEqual(['https://p.example.com', 'http://127.0.0.1:4000']);
+      expect(
+        allowedOrigins([
+          'https://P.Example.com:443/upload',
+          'not a link',
+          'localhost:3500',
+          'http://127.0.0.1:4000/',
+        ]),
+      ).toEqual(['https://p.example.com', 'http://127.0.0.1:4000']);
     });
   });
 
@@ -106,15 +102,13 @@ describe('uploads', () => {
   });
 
   describe('fromFileField', () => {
-    it('should accept a PDF and read the scan flaw and issue date at its end', () => {
+    it('should accept a PDF, keeping its bytes and its name', () => {
       const file = fromFileField({ buffer: PDF, mimeType: 'text/plain', name: 'id.pdf' });
 
       expect(file).toEqual({
         buffer: PDF,
         mime: 'application/pdf',
         name: 'id.pdf',
-        scan: 'glare',
-        issued: '2026-01-15',
       });
     });
 
@@ -122,8 +116,6 @@ describe('uploads', () => {
       expect(fromFileField({ buffer: PNG, name: 'photo.pdf' })).toMatchObject({
         mime: 'image/png',
         name: 'photo.png',
-        scan: null,
-        issued: null,
       });
       expect(fromFileField({ buffer: JPEG, name: 'selfie' })).toMatchObject({
         mime: 'image/jpeg',
@@ -231,6 +223,8 @@ describe('uploads', () => {
     let origin: string;
     // An allowed address nothing listens on.
     let closedOrigin: string;
+    // The portal origins the bank takes files from.
+    let origins: string[];
 
     beforeAll(async () => {
       const closed = createServer();
@@ -249,7 +243,7 @@ describe('uploads', () => {
     });
 
     beforeEach(() => {
-      process.env.DEMO_BANK_PORTAL_ORIGINS = `${origin},${closedOrigin}`;
+      origins = [origin, closedOrigin];
     });
 
     afterAll(async () => {
@@ -260,82 +254,82 @@ describe('uploads', () => {
     });
 
     it('should fetch a PDF from the portal and name it from its Content-Disposition', async () => {
-      await expect(fetchUpload(` ${origin}/files/passport.pdf `)).resolves.toEqual({
+      await expect(fetchUpload(` ${origin}/files/passport.pdf `, origins)).resolves.toEqual({
         buffer: PDF,
         mime: 'application/pdf',
         name: 'Passport_scan.pdf',
-        scan: 'glare',
-        issued: '2026-01-15',
       });
     });
 
     it('should name a fetched file from its URL when the portal sends no file name', async () => {
-      await expect(fetchUpload(`${origin}/files/bill%20june.png`)).resolves.toMatchObject({
+      await expect(fetchUpload(`${origin}/files/bill%20june.png`, origins)).resolves.toMatchObject({
         mime: 'image/png',
         name: 'bill_june.png',
       });
     });
 
     it('should refuse a value that is not a valid link', async () => {
-      expect(await refusal(() => fetchUpload('not a link'))).toBe(
+      expect(await refusal(() => fetchUpload('not a link', origins))).toBe(
         'The file URL is not a valid link.',
       );
-      expect(await refusal(() => fetchUpload(undefined))).toBe('The file URL is not a valid link.');
+      expect(await refusal(() => fetchUpload(undefined, origins))).toBe(
+        'The file URL is not a valid link.',
+      );
     });
 
     it('should refuse a link outside the portal origins, naming the refused one only', async () => {
       const { port } = new URL(origin);
 
-      expect(await refusal(() => fetchUpload('https://files.example/passport.pdf'))).toBe(
+      expect(await refusal(() => fetchUpload('https://files.example/passport.pdf', origins))).toBe(
         'Files are only taken from the partner portal, not from https://files.example.',
       );
       // The same server under another name is another origin.
-      expect(await refusal(() => fetchUpload(`http://localhost:${port}/files/passport.pdf`))).toBe(
-        `Files are only taken from the partner portal, not from http://localhost:${port}.`,
-      );
+      expect(
+        await refusal(() => fetchUpload(`http://localhost:${port}/files/passport.pdf`, origins)),
+      ).toBe(`Files are only taken from the partner portal, not from http://localhost:${port}.`);
     });
 
     it('should take a file from an allowed origin written with a path and in capitals', async () => {
-      process.env.DEMO_BANK_PORTAL_ORIGINS = `${origin.toUpperCase()}/portal/`;
+      origins = [`${origin.toUpperCase()}/portal/`];
 
-      await expect(fetchUpload(`${origin}/files/passport.pdf`)).resolves.toMatchObject({
+      await expect(fetchUpload(`${origin}/files/passport.pdf`, origins)).resolves.toMatchObject({
         mime: 'application/pdf',
       });
     });
 
     it('should name a fetched file from its URL as sent when its escapes are broken', async () => {
-      await expect(fetchUpload(`${origin}/files/a%E0%A4%A.pdf`)).resolves.toMatchObject({
+      await expect(fetchUpload(`${origin}/files/a%E0%A4%A.pdf`, origins)).resolves.toMatchObject({
         mime: 'application/pdf',
         name: 'a_E0_A4_A.pdf',
       });
     });
 
     it('should refuse a redirect, even to a file on the portal', async () => {
-      expect(await refusal(() => fetchUpload(`${origin}/moved`))).toBe(
+      expect(await refusal(() => fetchUpload(`${origin}/moved`, origins))).toBe(
         `The partner portal did not hand over the file (${origin}).`,
       );
     });
 
     it('should refuse when the portal cannot be reached', async () => {
-      expect(await refusal(() => fetchUpload(`${closedOrigin}/files/passport.pdf`))).toBe(
+      expect(await refusal(() => fetchUpload(`${closedOrigin}/files/passport.pdf`, origins))).toBe(
         `The partner portal did not hand over the file (${closedOrigin}).`,
       );
     });
 
     it("should refuse with the portal's status when it does not answer 2xx", async () => {
-      expect(await refusal(() => fetchUpload(`${origin}/files/missing.pdf`))).toBe(
+      expect(await refusal(() => fetchUpload(`${origin}/files/missing.pdf`, origins))).toBe(
         'The partner portal answered 404.',
       );
     });
 
     it('should refuse a file announced over 5 MB before reading it', async () => {
-      expect(await refusal(() => fetchUpload(`${origin}/files/huge.pdf`))).toBe(
+      expect(await refusal(() => fetchUpload(`${origin}/files/huge.pdf`, origins))).toBe(
         'The file is larger than 5 MB.',
       );
     });
 
     it('should stop reading a body past 5 MB when no Content-Length announced it', async () => {
-      expect(await refusal(() => fetchUpload(`${origin}/files/endless.pdf`))).toBe(
+      expect(await refusal(() => fetchUpload(`${origin}/files/endless.pdf`, origins))).toBe(
         'The file is larger than 5 MB.',
       );
       expect(endlessEncoding).toBe('identity');
@@ -344,13 +338,13 @@ describe('uploads', () => {
     });
 
     it('should refuse when the portal hangs up while sending the file', async () => {
-      expect(await refusal(() => fetchUpload(`${origin}/files/hang-up.pdf`))).toBe(
+      expect(await refusal(() => fetchUpload(`${origin}/files/hang-up.pdf`, origins))).toBe(
         `The partner portal did not hand over the file (${origin}).`,
       );
     });
 
     it('should refuse a fetched file that is not a PDF, PNG or JPEG', async () => {
-      expect(await refusal(() => fetchUpload(`${origin}/files/notes.pdf`))).toBe(
+      expect(await refusal(() => fetchUpload(`${origin}/files/notes.pdf`, origins))).toBe(
         'The file is not a PDF, PNG or JPEG.',
       );
     });

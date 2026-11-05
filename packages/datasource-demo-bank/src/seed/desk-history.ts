@@ -2539,7 +2539,7 @@ function mlroQueue(ctx) {
 
 // ---- last pass: every person's step on a Paris working day ----------------------------------------
 
-const STAFF = '@forest-lab-bank.fr';
+const STAFF = '@demo-bank.example';
 // The cases whose steps people take, the history's and the other waves' (stories included).
 const PASS_TYPES = [
   'DISPUTE_REQUESTS',
@@ -2948,12 +2948,5 @@ function deskHistory(rows, stories) {
   return ctx;
 }
 
-export {
-  CARD_FRAUD,
-  CARD_FRAUD_HOURS,
-  COMPLIANCE_HOLD,
-  DUE_HOURS,
-  HISTORY,
-  PASS_TYPES,
-  deskHistory,
-};
+// eslint-disable-next-line import/prefer-default-export
+export { deskHistory };

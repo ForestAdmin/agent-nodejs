@@ -1322,7 +1322,7 @@ function validation(event, waiting) {
 
   return {
     validation_status: 'APPROVED',
-    validated_by: `${pick(['claire.morel', 'hugo.lambert', 'sofia.marin'])}@forest-lab-bank.fr`,
+    validated_by: `${pick(['claire.morel', 'hugo.lambert', 'sofia.marin'])}@demo-bank.example`,
     validated_at: iso(new Date(event.date.getTime() + between(10, 90) * 60000)),
   };
 }
@@ -1662,7 +1662,7 @@ function closingPayout(rows, account, payee) {
         sca_method: 'EXEMPTED',
         // A large payout is a large transfer: it was validated too.
         validation_status: Math.abs(balance) > HIGH_VALUE ? 'APPROVED' : 'NOT_REQUIRED',
-        validated_by: Math.abs(balance) > HIGH_VALUE ? 'claire.morel@forest-lab-bank.fr' : null,
+        validated_by: Math.abs(balance) > HIGH_VALUE ? 'claire.morel@demo-bank.example' : null,
         validated_at: Math.abs(balance) > HIGH_VALUE ? account.closed_at : null,
       },
     );
@@ -1949,23 +1949,15 @@ export {
   identity,
   personPayee,
   toDate,
-  monthLabel,
   digits,
   hex,
   upper,
   NOW,
-  FOREIGN_CURRENCY,
   cardOn,
-  businessEvents,
-  cardsFor,
   newBeneficiary,
   newCounterparty,
   newEmitter,
-  retailEvents,
   settle,
-  sharedParties,
   statement,
   transactionRow,
-  statementWindow,
-  HISTORY_DAYS,
 };

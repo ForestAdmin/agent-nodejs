@@ -1,9 +1,8 @@
 /**
- * The Hub's live counts: the API chart `hub_counts`, read by the demo layout's Hub (its landing
- * workspace) for the figures on the desk cards.
+ * The queue counts: the API chart `hub_counts`.
  *
- * - hubCounts(listRows): per segment queue (segments.ts), the tasks waiting in it and how many are
- *   past their deadline. The Hub adds up the queues of each desk.
+ * - hubCounts(listRows): per queue (segments.ts, by key), the tasks waiting in it and how many are
+ *   past their deadline.
  */
 import { SEGMENTS } from '../customizations/shared/segments';
 
@@ -52,7 +51,7 @@ async function hubCounts(listRows, now = new Date()) {
   return { at: now.toISOString(), queues: Object.fromEntries(queues) };
 }
 
-/** The API chart the Hub reads: `GET /forest/_charts/hub_counts`. */
+/** The API chart `GET /forest/_charts/hub_counts`. */
 function addHubChart(customizer) {
   customizer.addChart('hub_counts', async (context, resultBuilder) => {
     const listRows = (table, conditionTree, fields) =>
@@ -62,4 +61,5 @@ function addHubChart(customizer) {
   });
 }
 
-export { addHubChart, hubCounts };
+// eslint-disable-next-line import/prefer-default-export
+export { addHubChart };

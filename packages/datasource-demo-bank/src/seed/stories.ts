@@ -5,7 +5,7 @@
  * crime.ts can raise the alerts, open the investigations and file the SARs about exactly them.
  *
  * - Money mules: young customers receive victims' transfers and forward them within hours to the
- *   same accounts abroad. Two collectors tie six customers together (the network view's ring).
+ *   same accounts abroad. Two collectors tie six customers together (a ring).
  * - Split payments: a large sum arrives, then leaves in transfers just under the 10,000 EUR
  *   validation threshold.
  * - Account takeovers: a login from a new device abroad, an MFA reset, a phone change, a new payee

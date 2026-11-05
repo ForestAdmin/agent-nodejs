@@ -1,8 +1,8 @@
 /**
- * Files a customer sends through a partner's app (see the CLI's PARTNER_PORTAL.md),
- * copied by the bank. The Gateway API takes 16 KB per request, too little for a photo or a PDF, so the
- * "Upload document" action gets a link on the portal and fetches the file itself: only from the
- * portal's own address (DEMO_BANK_PORTAL_ORIGINS), only a PDF, PNG or JPEG, at most 5 MB.
+ * Files a customer sends through a partner's app, copied by the bank. The Gateway API takes 16 KB
+ * per request, too little for a photo or a PDF, so the "Upload document" action gets a link on the
+ * portal and fetches the file itself: only from the portal's own addresses (the data source's
+ * partnerPortalOrigins option), only a PDF, PNG or JPEG, at most 5 MB.
  *
  * Seeded documents are drawn from their record (render.ts); an uploaded one keeps its own file,
  * here, in memory. The SQLite file is seeded again on every boot, so the files and the rows they
@@ -13,19 +13,13 @@ const MAX_FILES = 300;
 // What the kept files may hold in all, as data URIs: base64 makes a 5 MB file about 6.7 MB.
 const MAX_STORED_BYTES = 50 * 1024 * 1024;
 const FETCH_TIMEOUT_MS = 5000;
-const DEFAULT_ORIGINS = 'http://localhost:3500,http://127.0.0.1:3500';
+const DEFAULT_PORTAL_ORIGINS = ['http://localhost:3500', 'http://127.0.0.1:3500'];
 // What the file is, from its first bytes: never from what the sender says it is.
 const SIGNATURES: [string, string, number[]][] = [
   ['application/pdf', 'pdf', [0x25, 0x50, 0x44, 0x46]],
   ['image/png', 'png', [0x89, 0x50, 0x4e, 0x47]],
   ['image/jpeg', 'jpg', [0xff, 0xd8, 0xff]],
 ];
-// The portal's sample files say which flaw their scan shows (render.ts draws it), so the checks
-// answer what the picture shows: an ID's flaw (random.ts scanFlaw reads the same from the
-// document's id), a selfie of another face, a bill addressed to someone else. And the date printed
-// on the paper, which the bank reads as a real one would (a proof of address must be recent).
-const SCAN_MARK = /%forest-lab-scan:(clean|glare|cropped|name|other_face|other_name)/;
-const ISSUED_MARK = /%forest-lab-issued:(\d{4}-\d{2}-\d{2})/;
 
 const TOO_LARGE = 'The file is larger than 5 MB.';
 
@@ -35,12 +29,11 @@ let storedBytes = 0;
 class UploadError extends Error {}
 
 /** The portal origins, each as the browser writes it: https://p.example:443/x is https://p.example. */
-const allowedOrigins = () =>
-  (process.env.DEMO_BANK_PORTAL_ORIGINS || DEFAULT_ORIGINS)
-    .split(',')
+const allowedOrigins = (origins: string[] = DEFAULT_PORTAL_ORIGINS) =>
+  origins
     .map(entry => {
       try {
-        return new URL(entry.trim()).origin;
+        return new URL(String(entry).trim()).origin;
       } catch {
         return null;
       }
@@ -84,15 +77,8 @@ function checked(buffer, name) {
   if (!buffer.length) throw new UploadError('The file is empty.');
   if (buffer.length > MAX_BYTES) throw new UploadError(TOO_LARGE);
   const { mime, extension } = sniff(buffer);
-  const tail = buffer.subarray(Math.max(0, buffer.length - 256)).toString('latin1');
 
-  return {
-    buffer,
-    mime,
-    name: safeName(name, extension),
-    scan: SCAN_MARK.exec(tail)?.[1] || null,
-    issued: ISSUED_MARK.exec(tail)?.[1] || null,
-  };
+  return { buffer, mime, name: safeName(name, extension) };
 }
 
 function nameFrom(response, url) {
@@ -142,8 +128,8 @@ async function bodyOf(response, origin) {
   return Buffer.concat(chunks);
 }
 
-/** Fetches a file the portal holds. Refuses any other address, and redirects. */
-async function fetchUpload(link) {
+/** Fetches a file the portal (at one of `origins`) holds. Refuses any other address, and redirects. */
+async function fetchUpload(link, origins: string[] = DEFAULT_PORTAL_ORIGINS) {
   let url;
 
   try {
@@ -152,7 +138,7 @@ async function fetchUpload(link) {
     throw new UploadError('The file URL is not a valid link.');
   }
 
-  if (!allowedOrigins().includes(url.origin)) {
+  if (!allowedOrigins(origins).includes(url.origin)) {
     throw new UploadError(`Files are only taken from the partner portal, not from ${url.origin}.`);
   }
 
@@ -184,13 +170,13 @@ function drop(id) {
   files.delete(id);
 }
 
-/** Keeps the file of document `id`, as the data URI Forest's file viewer opens, and what its scan
- * shows (the face match reads a selfie's). The oldest files go first past `limits`. */
-function keep(id, { buffer, mime, name, scan = null }, limits: { maxFiles?; maxBytes? } = {}) {
+/** Keeps the file of document `id`, as the data URI Forest's file viewer opens. The oldest files
+ * go first past `limits`. */
+function keep(id, { buffer, mime, name }, limits: { maxFiles?; maxBytes? } = {}) {
   const { maxFiles = MAX_FILES, maxBytes = MAX_STORED_BYTES } = limits;
   const uri = `data:${mime};name=${encodeURIComponent(name)};base64,${buffer.toString('base64')}`;
   drop(id);
-  files.set(id, { name, mime, scan, size: buffer.length, uri });
+  files.set(id, { name, mime, size: buffer.length, uri });
   storedBytes += uri.length;
 
   // The file just kept stays, even alone over the limit.
@@ -202,8 +188,8 @@ function keep(id, { buffer, mime, name, scan = null }, limits: { maxFiles?; maxB
 const uploaded = id => files.get(id) || null;
 
 export {
+  DEFAULT_PORTAL_ORIGINS,
   MAX_BYTES,
-  SCAN_MARK,
   UploadError,
   allowedOrigins,
   fetchUpload,

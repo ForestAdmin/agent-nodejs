@@ -71,9 +71,9 @@ import {
 import { BIC, frenchIban } from './reference';
 import { LIVENESS, REFUSAL, customerStatusAfter, refusalReason } from './refusals';
 import { accountRows, memberRows, newCustomer } from './retail';
+import { tables } from './schema';
 import { WEEKS } from '../charts/desk-charts';
 import { applicantRating, companyRating } from '../customizations/shared/case-file';
-import { tables } from '../model/schema';
 
 const HOUR = 3600 * 1000;
 const MINUTE = 60 * 1000;
@@ -106,7 +106,7 @@ const ANSWERS = {
 };
 // The synthetic identity wave: what its applications share.
 const WAVE = {
-  fingerprint: createHash('md5').update('forest-lab:synthetic-wave').digest('hex'),
+  fingerprint: createHash('md5').update('demo-bank:synthetic-wave').digest('hex'),
   device: 'Samsung Galaxy A54',
   version: '7.12.3',
   street: 'rue Gabriel Péri',
@@ -1032,4 +1032,4 @@ function onboardingFunnel(rows, { plan = plannedDecisions, channel = null } = {}
   return planned.map(({ app }) => app);
 }
 
-export { AUTO, decisionIn, holidayWeek, onboardingFunnel, renumber };
+export { decisionIn, holidayWeek, onboardingFunnel, renumber };

@@ -14,13 +14,13 @@ import path from 'path';
 
 import { SEGMENTS } from '../src/customizations/shared/segments';
 import { createDemoBankDataSource } from '../src/index';
-import { tables } from '../src/model/schema';
+import { tables } from '../src/seed/schema';
 
 const fixture = (name: string) =>
   JSON.parse(readFileSync(path.join(__dirname, 'fixtures', name), 'utf8'));
-// What the demo layout's buttons call, collection by collection, in declaration order.
+// The Smart Actions, collection by collection, in declaration order (it numbers their endpoints).
 const expectedActions = fixture('actions.json');
-// The API charts the demo workspaces' Custom components read, sorted.
+// The data source's API charts, sorted (they are read by name).
 const expectedCharts = fixture('charts.json');
 
 // Seeding writes about 300,000 rows.
@@ -62,15 +62,15 @@ describe('createDemoBankDataSource', () => {
       dataSource = await createDemoBankDataSource()(logger, restartAgent);
     });
 
-    it('should expose exactly the 59 tables of data-model.json as collections', () => {
+    it('should expose exactly the 59 tables of the data model as collections', () => {
       const names = dataSource.collections.map(c => c.name).sort();
 
       expect(names).toEqual(Object.keys(tables).sort());
       expect(names).toHaveLength(59);
     });
 
-    it('should declare the Smart Actions the demo layout calls, in their order', () => {
-      // The layout's buttons call /forest/_actions/<collection>/<index>/…: the order matters.
+    it('should declare the Smart Actions in their order', () => {
+      // Action endpoints are numbered /forest/_actions/<collection>/<index>/…: the order matters.
       const actions = Object.fromEntries(
         dataSource.collections
           .map(c => [c.name, Object.keys(c.schema.actions)])

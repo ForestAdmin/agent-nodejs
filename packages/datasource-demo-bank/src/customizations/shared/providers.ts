@@ -1,18 +1,19 @@
 /**
- * The outside services the Smart Actions stand in for. Nothing is called: each action answers from
- * the demo's own data, then says which service a real bank would have asked, marked as simulated.
+ * The outside services the Smart Actions stand in for, by their role. Nothing is called: each
+ * action answers from the demo's own data, then says which kind of service a real bank would have
+ * asked, marked as simulated.
  */
 import { createHash } from 'crypto';
 
 const PROVIDERS = {
   register: 'INPI · Registre national des entreprises',
-  idCheck: 'Onfido',
-  screening: 'ComplyAdvantage',
-  phone: 'Aircall',
-  payeeCheck: 'STET · SEPA Verification of Payee',
-  deviceIntel: 'SEON',
-  cardProcessor: 'Marqeta',
-  sepa: 'STET · SEPA interbank network',
+  idCheck: 'ID verification provider',
+  screening: 'Sanctions screening provider',
+  phone: 'Phone provider',
+  payeeCheck: 'Payment network · SEPA Verification of Payee',
+  deviceIntel: 'Fraud scoring provider',
+  cardProcessor: 'Card processor',
+  sepa: 'SEPA payment network',
   tracfin: 'TRACFIN · ERMES portal',
   dgTresor: 'DG Trésor · gel des avoirs',
 };

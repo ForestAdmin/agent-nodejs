@@ -29,7 +29,7 @@ const euros = n => `${Number(n).toLocaleString('fr-FR', { minimumFractionDigits:
 const label = code => (code ? code.replace(/_/g, ' ').toLowerCase() : '');
 const plural = (n, word) => `${n} ${word}${n > 1 ? 's' : ''}`;
 const NETWORKS = { VISA: 'Visa', MASTERCARD: 'Mastercard' };
-const TOOLS = { VISA: 'Visa Resolve Online', MASTERCARD: 'Mastercom' };
+const TOOLS = { VISA: 'Visa dispute system', MASTERCARD: 'Mastercard dispute system' };
 const ENTRY = {
   CHIP: 'Paid with chip and PIN',
   CONTACTLESS: 'Paid contactless',
@@ -203,7 +203,7 @@ function cardLine(f) {
 
     return `${OK} ${card} blocked${atIntake} (${label(f.card.blocked_reason)}) on ${stamp(
       f.card.blocked_at,
-    )} · ${PROVIDERS.cardProcessor} card processor (simulated)`;
+    )} · ${PROVIDERS.cardProcessor} (simulated)`;
   }
 
   if (f.card.status !== 'ACTIVE') return `○ ${card} ${label(f.card.status)}`;
@@ -463,25 +463,24 @@ async function chargebackFile(list, cb) {
   };
 }
 
-// field: label. The prefix groups them, so a workflow step can read one group by its name.
-const LABELS = {
-  cb_network: 'Chargeback · Network',
-  cb_reason: 'Chargeback · Reason code',
-  cb_amount: 'Chargeback · Amount',
-  cb_deadline: 'Chargeback · Deadline',
-  cb_round: 'Chargeback · Round',
-  card_status: 'Card · Status',
-  ev_answers: 'Evidence · Cardholder answers',
-  ev_documents: 'Evidence · Documents',
-  ev_3ds: 'Evidence · 3-D Secure',
-  ev_complete: 'Evidence · Complete',
-  merchant_name: 'Merchant · Name',
-  merchant_answer: 'Merchant · Answer',
-  merchant_suggested: 'Merchant · Suggested decision',
-  outcome_case: 'Outcome · Network case',
-  outcome_money: 'Outcome · Money',
-};
-const FIELDS = Object.keys(LABELS);
+// The evidence fields; the prefix of a name groups them.
+const FIELDS = [
+  'cb_network',
+  'cb_reason',
+  'cb_amount',
+  'cb_deadline',
+  'cb_round',
+  'card_status',
+  'ev_answers',
+  'ev_documents',
+  'ev_3ds',
+  'ev_complete',
+  'merchant_name',
+  'merchant_answer',
+  'merchant_suggested',
+  'outcome_case',
+  'outcome_money',
+];
 
 function addChargebackEvidence(collection) {
   const cache = new WeakMap();
@@ -502,4 +501,4 @@ function addChargebackEvidence(collection) {
   );
 }
 
-export { FIELDS, LABELS, SMALL, addChargebackEvidence };
+export { FIELDS, addChargebackEvidence };

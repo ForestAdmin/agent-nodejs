@@ -28,7 +28,7 @@ const md5 = text => createHash('md5').update(String(text)).digest('hex');
 
 /** A UUID v4 from a name: the same on every run, never drawn. */
 const idFor = name => {
-  const h = md5(`forest-lab-alert-cases:${name}`);
+  const h = md5(`demo-bank-alert-cases:${name}`);
 
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-8${h.slice(17, 20)}-${h.slice(
     20,

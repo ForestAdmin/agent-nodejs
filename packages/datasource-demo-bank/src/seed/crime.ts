@@ -46,7 +46,7 @@ const at = (date, hours) => new Date(date.getTime() + hours * HOUR);
 const later = (a, b) => (a > b ? a : b);
 const earlier = (a, b) => (a < b ? a : b);
 const past = date => earlier(date, new Date(NOW.getTime() - 5 * MINUTE));
-const mail = name => `${name}@forest-lab-bank.fr`;
+const mail = name => `${name}@demo-bank.example`;
 
 // Who works the cases, by team (fictional staff of the fictional bank).
 const TEAM = {
@@ -458,7 +458,7 @@ const ESCALATIONS = ['Screening hit to review'];
 // more papers and checks the registers).
 const onboardingDue = (opened, business) =>
   business ? addWorkingDays(opened, 10) : new Date(opened.getTime() + 5 * DAY);
-// A senior signs off medium and high risks (the workflows and the desk guide say so).
+// A senior signs off medium and high risks (the onboarding workflow's rule).
 const SENIOR_RISKS = ['MEDIUM', 'HIGH'];
 const SIGNOFF_REASON = 'Medium or high risk: senior sign-off';
 
@@ -550,7 +550,7 @@ function documentRow(ctx, kyc, fields) {
     verified_by: null,
     ...fields,
   };
-  row.file_url = `https://files.forest-lab-bank.fr/kyc/${row.customer_id}/${row.id}/${row.file_name}`;
+  row.file_url = `https://files.demo-bank.example/kyc/${row.customer_id}/${row.id}/${row.file_name}`;
   ctx.rows.documents.push(row);
 
   return row;
@@ -1099,8 +1099,8 @@ function applicationDocuments(ctx, kyc, customer, opened, by, reviewed, review) 
   const business = ctx.businesses.get(customer.business_id);
   const people = applicants(ctx, customer, business, state);
   const file = business && state !== 'done' ? nextCompanyFile(ctx, business) : 'complete';
-  // A complete company file comes with clean ID scans, still to check: the workflow's Onfido step
-  // passes them live. The incomplete ones keep the flaws a reviewer catches.
+  // A complete company file comes with clean ID scans, still to check: the ID check passes
+  // them live. The incomplete ones keep the flaws a reviewer catches.
   const complete = business && state !== 'done' && ['complete', 'card_request'].includes(file);
   const idState = complete ? 'clean' : state;
   people.forEach(p => personDocuments(ctx, kyc, p, at(opened, 0.1), checkedAt, by, idState));
@@ -1116,8 +1116,8 @@ function applicationDocuments(ctx, kyc, customer, opened, by, reviewed, review) 
   return asks ? askClient(ctx, kyc, people[0], business ? COMPANY_ASKS[file] : 'ONBOARDING') : null;
 }
 
-// Open retail applications take turns, so the Retail onboarding queue holds every path of its
-// workflow: approved as is, an ID Onfido refuses (name differs, card cut off), a possible sanctions
+// Open retail applications take turns, so the Retail onboarding queue holds every path an
+// application takes: approved as is, an ID the ID check refuses (name differs, card cut off), a possible sanctions
 // match, a medium risk (an inheritance above the declared income, a home outside the EU), and a
 // proof of address too old or never sent. Applied on the drawn rows with hashes, never new draws.
 const OPEN_RETAIL_FILES = [
@@ -1187,7 +1187,7 @@ function homonymEntry(ctx, person) {
   return row;
 }
 
-/** Clean scans Onfido passes and proofs of address from the last weeks, unless `file` says not. */
+/** Clean scans the ID check passes and proofs of address from the last weeks, unless `file` says not. */
 function retailPapers(ctx, kyc, file, first) {
   const docs = ctx.rows.documents.filter(doc => doc.kyc_case_id === kyc.id);
   const firsts = doc => doc.individual_id === first.id;
@@ -1233,7 +1233,7 @@ function nextRetailFile(ctx, kyc, customer) {
 }
 
 /**
- * A parked application: its IDs passed Onfido, then screening raised an open hit on its applicant
+ * A parked application: its IDs passed the ID check, then screening raised an open hit on its applicant
  * that the screening team has to decide on.
  */
 function parkedHit(ctx, kyc, person, escalated) {
@@ -3020,7 +3020,7 @@ function suspendedStoryCustomers(ctx) {
 
 /** A UUID v4 fixed by a seed text: new rows that are the same on every build. */
 function stableId(seed) {
-  const h = createHash('md5').update(`forest-lab:${seed}`).digest('hex');
+  const h = createHash('md5').update(`demo-bank:${seed}`).digest('hex');
 
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-8${h.slice(17, 20)}-${h.slice(
     20,
@@ -4050,7 +4050,6 @@ function financialCrime(rows, stories, waves = [], late = []) {
 
 export {
   financialCrime,
-  // For the onboarding funnel (onboarding-funnel.ts).
   SENIOR_RISKS,
   SIGNOFF_REASON,
   beneficialOwners,
@@ -4065,9 +4064,7 @@ export {
   newcomerDevices,
   payers,
   personDocuments,
-  // For the later waves (disputes.ts).
   HOUR,
-  TEAM,
   NOW,
   alert,
   at,

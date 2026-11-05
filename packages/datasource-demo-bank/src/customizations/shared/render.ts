@@ -40,20 +40,7 @@ function encode(text) {
 const rgb = hex =>
   [1, 3, 5].map(i => (parseInt(hex.slice(i, i + 2), 16) / 255).toFixed(3)).join(' ');
 
-// The same drawing as SVG, for a picture in a web page (the Onboarding desk's document preview).
-const SVG_FONTS = {
-  F1: 'font-family="Helvetica, Arial, sans-serif"',
-  F2: 'font-family="Helvetica, Arial, sans-serif" font-weight="bold"',
-  F3: 'font-family="Courier New, Courier, monospace"',
-};
-const xml = text =>
-  String(text ?? '').replace(
-    /[&<>"]/g,
-    c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]),
-  );
-const num = n => +Number(n).toFixed(2);
-
-/** One page, drawn twice as it goes: PDF operators (ops) and SVG elements (svg). */
+/** One page, drawn as PDF operators (ops). */
 class Page {
   width;
 
@@ -61,23 +48,14 @@ class Page {
 
   ops;
 
-  svg;
-
-  clips;
-
   constructor(width, height) {
-    Object.assign(this, { width, height, ops: [], svg: [], clips: 0 });
+    Object.assign(this, { width, height, ops: [] });
   }
 
   rect(x, y, w, h, fill, stroke?) {
     const box = `${x} ${this.height - y - h} ${w} ${h} re`;
     if (fill) this.ops.push(`${rgb(fill)} rg ${box} f`);
     if (stroke) this.ops.push(`${rgb(stroke)} RG 0.8 w ${box} S`);
-    this.svg.push(
-      `<rect x="${num(x)}" y="${num(y)}" width="${num(w)}" height="${num(h)}" fill="${
-        fill || 'none'
-      }"${stroke ? ` stroke="${stroke}" stroke-width="0.8"` : ''}/>`,
-    );
 
     return this;
   }
@@ -93,11 +71,6 @@ class Page {
         `${cx + rx} ${y - oy} ${cx + ox} ${y - ry} ${cx} ${y - ry} c ` +
         `${cx - ox} ${y - ry} ${cx - rx} ${y - oy} ${cx - rx} ${y} c f Q`,
     );
-    this.svg.push(
-      `<ellipse cx="${num(cx)}" cy="${num(cy)}" rx="${num(rx)}" ry="${num(ry)}" fill="${fill}"${
-        alpha ? ' opacity="0.88"' : ''
-      }/>`,
-    );
 
     return this;
   }
@@ -105,20 +78,12 @@ class Page {
   /** Everything drawn until `unclip()` stays inside the box. */
   clip(x, y, w, h) {
     this.ops.push(`q ${x} ${this.height - y - h} ${w} ${h} re W n`);
-    this.clips += 1;
-    const id = `clip${this.clips}`;
-    this.svg.push(
-      `<clipPath id="${id}"><rect x="${num(x)}" y="${num(y)}" width="${num(w)}" height="${num(
-        h,
-      )}"/></clipPath><g clip-path="url(#${id})">`,
-    );
 
     return this;
   }
 
   unclip() {
     this.ops.push('Q');
-    this.svg.push('</g>');
 
     return this;
   }
@@ -127,11 +92,6 @@ class Page {
   scribble(points, color) {
     const [first, ...rest] = points.map(([x, y]) => `${x} ${this.height - y}`);
     this.ops.push(`${rgb(color)} RG 1.2 w ${first} m ${rest.map(p => `${p} l`).join(' ')} S`);
-    this.svg.push(
-      `<polyline points="${points
-        .map(([x, y]) => `${num(x)},${num(y)}`)
-        .join(' ')}" fill="none" stroke="${color}" stroke-width="1.2"/>`,
-    );
 
     return this;
   }
@@ -154,25 +114,9 @@ class Page {
       `q ${alpha ? '/Faint gs ' : ''}BT /${font} ${size} Tf ${rgb(color)} rg ${matrix} Tm ` +
         `(${encode(value)}) Tj ET Q`,
     );
-    // PDF turns counterclockwise with y up; SVG has y down, so the angle changes sign.
-    const turn = angle ? ` transform="rotate(${num(-angle)} ${num(x)} ${num(y)})"` : '';
-    this.svg.push(
-      `<text x="${num(x)}" y="${num(y)}" font-size="${size}" ${SVG_FONTS[font]} fill="${color}"${
-        alpha ? ' opacity="0.16"' : ''
-      }${turn}>${xml(value)}</text>`,
-    );
 
     return this;
   }
-}
-
-/** The page as an SVG picture, on white like the PDF. */
-function svg(page) {
-  return (
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${page.width} ${page.height}" ` +
-    `width="${page.width}" height="${page.height}" xml:space="preserve">` +
-    `<rect width="${page.width}" height="${page.height}" fill="#ffffff"/>${page.svg.join('')}</svg>`
-  );
 }
 
 function pdf(page) {
@@ -610,11 +554,16 @@ function chargebackFile(cb) {
   const page = new Page(595, 842);
   const color = cb.network === 'VISA' ? '#1a1f71' : '#eb001b';
   page.rect(0, 0, 595, 90, color);
-  page.text(48, 52, `${cb.network === 'VISA' ? 'Visa Resolve Online' : 'Mastercom'} · Chargeback`, {
-    size: 18,
-    font: 'F2',
-    color: '#ffffff',
-  });
+  page.text(
+    48,
+    52,
+    `${cb.network === 'VISA' ? 'Visa' : 'Mastercard'} dispute system · Chargeback`,
+    {
+      size: 18,
+      font: 'F2',
+      color: '#ffffff',
+    },
+  );
   page.text(48, 140, `Case ${cb.reference || ''}`, { size: 16, font: 'F2' });
   page.text(48, 162, `Filed on ${day(cb.filed_at)} by Forest Lab Bank (issuer)`, {
     size: 10,
@@ -845,9 +794,6 @@ function draw(doc, owners = []) {
 
 const pdfUri = (doc, owners) =>
   `data:application/pdf;base64,${pdf(draw(doc, owners)).toString('base64')}`;
-
-/** The same document as an SVG picture (the desk's preview on hover). */
-const documentSvg = (doc, owners) => svg(draw(doc, owners));
 
 /** A document shows the address the person had when they sent it, not the one they moved to. */
 function addressAtUpload(doc, moves = []) {
@@ -1169,7 +1115,6 @@ export {
   card,
   chargebackUri,
   codeText,
-  documentSvg,
   draw,
   euros,
   frDate,
@@ -1178,5 +1123,4 @@ export {
   pdf,
   pdfUri,
   sarFile,
-  svg,
 };

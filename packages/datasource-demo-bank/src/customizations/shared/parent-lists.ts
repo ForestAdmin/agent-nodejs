@@ -2,7 +2,7 @@
  * The records a case points to, also listed under its Related Data (Forest only lists the records
  * pointing to it there), and the lists that skip a level.
  */
-import { relationNames } from '../../model/schema';
+import { relationNames } from '../../seed/schema';
 
 // Forest lists only the records pointing to this one under Related Data; the record this one points
 // to is a field. Case tables also list their parents there, as a list of one: [link, label].
@@ -218,4 +218,5 @@ function addParentLists(customizer) {
   );
 }
 
-export { PARENT_LISTS, SHARED_LISTS, addParentLists, parentListName };
+// eslint-disable-next-line import/prefer-default-export
+export { addParentLists };

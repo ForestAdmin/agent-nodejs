@@ -533,28 +533,27 @@ async function evidence(list, transfer) {
   };
 }
 
-// field: label. The prefix groups them, so a workflow step can read one group by its name.
-const LABELS = {
-  tr_amount: 'Transfer · Amount',
-  tr_scheme: 'Transfer · Scheme',
-  tr_requested: 'Transfer · Requested',
-  tr_via: 'Transfer · Initiated via',
-  tr_sca: 'Transfer · Customer authentication',
-  py_beneficiary: 'Payee · Beneficiary',
-  py_saved: 'Payee · Saved or new',
-  py_history: 'Payee · Earlier payments',
-  pc_result: 'Payee check · Result',
-  pc_iban: 'Payee check · IBAN',
-  ac_after: 'Account · Balance after',
-  ac_usual: 'Account · Usual largest payment',
-  sg_device: 'Signals · Device',
-  sg_changes: 'Signals · Recent changes',
-  sg_alerts: 'Signals · Alerts',
-  sg_result: 'Signals · Result',
-  call_result: 'Call · Result',
-  call_number: 'Call · Number called',
-};
-const FIELDS = Object.keys(LABELS);
+// The evidence fields; the prefix of a name groups them.
+const FIELDS = [
+  'tr_amount',
+  'tr_scheme',
+  'tr_requested',
+  'tr_via',
+  'tr_sca',
+  'py_beneficiary',
+  'py_saved',
+  'py_history',
+  'pc_result',
+  'pc_iban',
+  'ac_after',
+  'ac_usual',
+  'sg_device',
+  'sg_changes',
+  'sg_alerts',
+  'sg_result',
+  'call_result',
+  'call_number',
+];
 
 function addTransferEvidence(collection) {
   // One computation per transfer and request, whichever fields are asked for.
@@ -578,7 +577,6 @@ function addTransferEvidence(collection) {
 
 export {
   FIELDS,
-  LABELS,
   TRANSFER_FIELDS,
   addTransferEvidence,
   facts,

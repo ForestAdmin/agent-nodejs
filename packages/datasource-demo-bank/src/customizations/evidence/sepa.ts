@@ -1,12 +1,13 @@
 /**
  * The evidence a payments operator reads before answering a recall another bank sent us, as fields
  * of the SEPA dispute: why the money is asked back and by when, the payment it is about, whether
- * the money is still there, our customer's consent, and the answer we sent through STET. Recalls
+ * the money is still there, our customer's consent, and the answer we sent through the payment network. Recalls
  * we receive only (side WE_ARE_ASKED); the others show nothing in these fields.
  */
 import { createHash } from 'crypto';
 
 import { OTHER_BANKS } from '../../seed/reference';
+import { PROVIDERS } from '../shared/providers';
 
 const DAY = 24 * 3600 * 1000;
 const OK = '✓';
@@ -43,7 +44,7 @@ const BANK_OF_BIC = new Map(OTHER_BANKS.map(([, bic, name]) => [bic, name]));
 const bankOf = bic => (bic ? `${BANK_OF_BIC.get(bic) || 'another bank'} (${bic})` : 'unknown bank');
 
 /** The interbank message we answer with, same reference every time for the same recall. */
-const stetRef = (id, kind) =>
+const networkRef = (id, kind) =>
   `${kind === 'return' ? 'pacs.004' : 'camt.029'} ${createHash('md5')
     .update(`${id}${kind}`)
     .digest('hex')
@@ -398,7 +399,9 @@ function answerFields(f) {
       an_result: `${BAD} Refused on ${stamp(row.answered_at)}: ${
         String(answer?.reason || 'no reason recorded').split(' · ')[0]
       }`,
-      an_message: `${stetRef(row.id, 'refusal')}: negative answer sent to ${bank} through STET`,
+      an_message: `${networkRef(row.id, 'refusal')}: negative answer sent to ${bank} through the ${
+        PROVIDERS.sepa
+      }`,
     };
   }
 
@@ -408,7 +411,9 @@ function answerFields(f) {
     }: ${euros(row.amount_returned)} of ${euros(row.amount)} sent back on ${stamp(
       row.answered_at,
     )}`,
-    an_message: `${stetRef(row.id, 'return')}: return of funds sent to ${bank} through STET`,
+    an_message: `${networkRef(row.id, 'return')}: return of funds sent to ${bank} through the ${
+      PROVIDERS.sepa
+    }`,
   };
 }
 
@@ -425,22 +430,21 @@ async function evidence(list, row) {
   };
 }
 
-// field: label. The prefix groups them, so a workflow step can read one group by its name.
-const LABELS = {
-  rc_reason: 'Recall · Reason',
-  rc_bank: 'Recall · Asking bank',
-  rc_amount: 'Recall · Amount',
-  rc_deadline: 'Recall · Deadline',
-  og_received: 'Original payment · Received',
-  og_payer: 'Original payment · Payer',
-  fd_there: 'Funds · On the account',
-  fd_holds: 'Funds · Holds',
-  cu_holder: 'Customer · Account holder',
-  cu_consent: 'Customer · Consent',
-  an_result: 'Answer · Result',
-  an_message: 'Answer · Message',
-};
-const FIELDS = Object.keys(LABELS);
+// The evidence fields; the prefix of a name groups them.
+const FIELDS = [
+  'rc_reason',
+  'rc_bank',
+  'rc_amount',
+  'rc_deadline',
+  'og_received',
+  'og_payer',
+  'fd_there',
+  'fd_holds',
+  'cu_holder',
+  'cu_consent',
+  'an_result',
+  'an_message',
+];
 
 function addSepaEvidence(collection) {
   const cache = new WeakMap();
@@ -461,4 +465,4 @@ function addSepaEvidence(collection) {
   );
 }
 
-export { FIELDS, LABELS, NO_CONSENT, addSepaEvidence, money, reader, stetRef };
+export { FIELDS, NO_CONSENT, addSepaEvidence, money, reader, networkRef };

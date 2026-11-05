@@ -3,7 +3,7 @@
  * fields of the alert: a workflow "read" step only shows fields of one record, so each piece of
  * the file is one short text. Groups: Alert (what fired), Customer (declared profile against the
  * activity), Transactions (the alert's, summed up), Device (the login behind a takeover), Device
- * check (SEON), Payment (the transfer at stake), Call (Aircall), History, Result.
+ * check (fraud scoring), Payment (the transfer at stake), Call, History, Result.
  * Values start with ✓ (fine), ⚠ (look at it), ✗ (problem) or ○ (neutral). Never random: scores
  * and provider ids come from a hash of the alert.
  */
@@ -491,7 +491,7 @@ function transactionFields(txs, alert) {
   };
 }
 
-// ---- Device · and Device check · (SEON) -------------------------------------------------------
+// ---- Device · and Device check · (fraud scoring) ----------------------------------------------
 
 const DEVICE_NAMES = { IOS: 'iPhone', ANDROID: 'Android phone', WEB: 'web browser' };
 const deviceName = d => d.device_name || DEVICE_NAMES[d.platform] || 'device';
@@ -673,8 +673,8 @@ function deviceFields(f, payment) {
   };
 }
 
-/** What SEON answers about the login's device and IP, from the login itself. */
-function seonVerdict(alert, f) {
+/** What the fraud scoring provider answers about the login's device and IP, from the login. */
+function deviceVerdict(alert, f) {
   const ip = f.login.ip_address;
   let network = `home broadband in ${f.login.city} (${f.login.country}), the provider of the usual logins`;
 
@@ -696,7 +696,7 @@ function seonVerdict(alert, f) {
         time(f.login.created_at) - time(f.device.first_seen_at),
       )} before the login`
     : `the customer's ${deviceName(f.device)} since ${frDate(f.device.first_seen_at)}`;
-  const id = providerId('CHK', `${alert.id}:seon`);
+  const id = providerId('CHK', `${alert.id}:device`);
 
   if (f.takeover) {
     const why = [
@@ -707,7 +707,7 @@ function seonVerdict(alert, f) {
 
     return {
       takeover: true,
-      score: hashInt(`${alert.id}seon`, 88, 97),
+      score: hashInt(`${alert.id}device`, 88, 97),
       id,
       network,
       device,
@@ -719,7 +719,7 @@ function seonVerdict(alert, f) {
 
   return {
     takeover: false,
-    score: hashInt(`${alert.id}seon`, f.abroad ? 22 : 6, f.abroad ? 35 : 18),
+    score: hashInt(`${alert.id}device`, f.abroad ? 22 : 6, f.abroad ? 35 : 18),
     id,
     network,
     device,
@@ -730,7 +730,7 @@ function seonVerdict(alert, f) {
 function deviceCheckText(alert, f) {
   if (!f) return `${NEUTRAL} No login to check on this alert`;
   if (!alert.device_checked_at) return 'Not checked yet: the workflow runs "Check device and IP"';
-  const v = seonVerdict(alert, f);
+  const v = deviceVerdict(alert, f);
 
   return `${v.takeover ? BAD : OK} ${v.text}; risk ${v.score}/100 (${PROVIDERS.deviceIntel} ${
     v.id
@@ -742,7 +742,7 @@ function deviceCheckText(alert, f) {
 /** A recall we sent on the payment: waiting for the other bank, or its answer. */
 function recallText(recall) {
   if (recall.status === 'WAITING_OTHER_BANK') {
-    return `${LOOK} Recall ${recall.reference} sent through ${PROVIDERS.sepa} on ${stamp(
+    return `${LOOK} Recall ${recall.reference} sent through the ${PROVIDERS.sepa} on ${stamp(
       recall.requested_at,
     )}: waiting for the other bank (${recall.other_bank_bic || 'BIC unknown'}), answer due ${frDate(
       recall.response_due,
@@ -819,7 +819,7 @@ function payeeText(p, f) {
   }, IBAN ${iban}, ${added}, ${check}`;
 }
 
-// ---- Call · (Aircall) ---------------------------------------------------------------------------
+// ---- Call · -------------------------------------------------------------------------------------
 
 /** The number to call: the one on file before the last approved change (a fraudster changes it). */
 async function phoneOnFile(list, person) {
@@ -1036,32 +1036,31 @@ async function alertFile(list, record) {
   };
 }
 
-// field: label. The prefix groups them, so a workflow step can read one group by its name.
-const LABELS = {
-  alert_rule: 'Alert · Rule',
-  alert_score: 'Alert · Score and time',
-  customer_profile: 'Customer · Declared profile',
-  customer_expected: 'Customer · Expected each month',
-  customer_activity: 'Customer · Activity against declared',
-  customer_risk: 'Customer · Risk and KYC',
-  tx_summary: 'Transactions · Summary',
-  tx_counterparties: 'Transactions · Counterparties',
-  tx_countries: 'Transactions · Countries',
-  tx_flow: 'Transactions · Money in, money out',
-  device_login: 'Device · Login device',
-  device_place: 'Device · Login place',
-  device_timing: 'Device · Login to payment',
-  device_changes: 'Device · Security and contact changes',
-  device_check: 'Device check · Result',
-  payment_status: 'Payment · Status',
-  payment_payee: 'Payment · Payee',
-  call_result: 'Call · Outcome',
-  call_details: 'Call · Details',
-  history_alerts: 'History · Earlier alerts',
-  history_cases: 'History · Investigations',
-  result_outcome: 'Result · Outcome',
-};
-const FIELDS = Object.keys(LABELS);
+// The evidence fields; the prefix of a name groups them.
+const FIELDS = [
+  'alert_rule',
+  'alert_score',
+  'customer_profile',
+  'customer_expected',
+  'customer_activity',
+  'customer_risk',
+  'tx_summary',
+  'tx_counterparties',
+  'tx_countries',
+  'tx_flow',
+  'device_login',
+  'device_place',
+  'device_timing',
+  'device_changes',
+  'device_check',
+  'payment_status',
+  'payment_payee',
+  'call_result',
+  'call_details',
+  'history_alerts',
+  'history_cases',
+  'result_outcome',
+];
 
 function addAlertEvidence(collection) {
   // One computation per alert and request, whichever of the fields are asked for.
@@ -1085,7 +1084,6 @@ function addAlertEvidence(collection) {
 
 export {
   FIELDS,
-  LABELS,
   addAlertEvidence,
   alertTransactions,
   callAnswer,
@@ -1093,5 +1091,5 @@ export {
   paymentOf,
   paymentStatusText,
   phoneOnFile,
-  seonVerdict,
+  deviceVerdict,
 };

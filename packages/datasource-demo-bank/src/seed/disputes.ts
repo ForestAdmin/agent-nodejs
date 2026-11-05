@@ -360,22 +360,6 @@ function wonRefund(ctx, cb, account, date, merchant) {
   move(ctx, tx, 'REFUND', { chargeback: cb });
 }
 
-/** The claim ended against the customer: the provisional credit goes back, if the account can take it. */
-function reverseCredit(ctx, cb, account, date, merchant) {
-  if (!cb.provisional_credit_transaction_id) return;
-  if (spendable(ctx, account, date) < Number(cb.amount)) return;
-  const tx = post(
-    ctx,
-    account,
-    date,
-    'DEBIT',
-    cb.amount,
-    `ANNULATION CREDIT PROVISOIRE ${merchant}`,
-  );
-  cb.provisional_credit_reversed_at = iso(date);
-  move(ctx, tx, 'CREDIT_REVERSAL', { chargeback: cb });
-}
-
 /** Dates of each round, from filing to the decision. */
 function chargebackRounds(filed, status, fraud) {
   const days: Record<string, any> = { filed: 0 };
@@ -2392,7 +2376,7 @@ function routedClaim(ctx, tx, days, fields, options) {
   });
   const routed = route(dispute, 'CHARGEBACK', op('disputes'));
 
-  // A fraud claim: the intake desk blocks the card when it routes it (Marqeta).
+  // A fraud claim: the intake desk blocks the card when it routes it (card processor).
   if (dispute.reason === 'UNAUTHORIZED') {
     stolenCard(ctx, ctx.cards.get(ctx.cardOf.get(tx.id).card_id), at(routed, 0.01), 'FRAUD');
   }
@@ -2709,7 +2693,6 @@ export {
   provisionalCredit,
   wonRefund,
   reasonCode,
-  reverseCredit,
   sepaDispute,
   sepaHistory,
 };

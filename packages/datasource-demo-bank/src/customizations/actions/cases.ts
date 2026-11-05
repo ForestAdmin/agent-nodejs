@@ -1,13 +1,13 @@
 /**
- * Smart Actions of the case desks: investigations, high-value transfers, dispute requests,
- * chargebacks and SEPA disputes. Their names match the demo layout's workflow steps.
+ * Smart Actions on cases: investigations, high-value transfers, dispute requests, chargebacks and
+ * SEPA disputes.
  * Each one checks the state first, writes the status history, and books money moves like the
  * generators do (a transactions row, the balances, balance_after).
  */
 import { randomUUID } from 'crypto';
 
-import { tables } from '../../model/schema';
 import { OTHER_BANKS } from '../../seed/reference';
+import { tables } from '../../seed/schema';
 import {
   FRAUD_CODES,
   REASON_CODES,
@@ -16,7 +16,7 @@ import {
   UNAUTHORISED,
   ruledNote,
 } from '../evidence/disputes';
-import { NO_CONSENT, money, reader as sepaReader, stetRef } from '../evidence/sepa';
+import { NO_CONSENT, money, networkRef, reader as sepaReader } from '../evidence/sepa';
 import {
   TRANSFER_FIELDS,
   ibanValid,
@@ -52,10 +52,6 @@ const readable = code =>
     .replace(/_/g, ' ')
     .toLowerCase();
 const enumOf = (table, field) => tables[table].fields.find(f => f.name === field).enum;
-const simulate = () =>
-  new Promise(resolve => {
-    setTimeout(resolve, 700);
-  });
 /** Same digits on every run for the same record: a simulated provider answers from the data. */
 const digitsOf = (id, n) => String(parseInt(id.replace(/-/g, '').slice(0, 12), 16)).slice(-n);
 
@@ -788,7 +784,6 @@ function fileSar(collection) {
       if (closed) return resultBuilder.error(closed);
       const sar = await findSar(context, inv.id, ['DRAFT']);
       if (!sar) return resultBuilder.error('No draft SAR on this case: run "Draft SAR" first.');
-      await simulate();
       const declaration = ermesNumber(sar);
       await patch(context, 'sar_reports', sar.id, {
         status: 'SUBMITTED',
@@ -1332,7 +1327,6 @@ async function pendingTransfer(context) {
 async function checkPayee(context, resultBuilder) {
   const { transfer, f, error } = await pendingTransfer(context);
   if (error) return resultBuilder.error(error);
-  await simulate();
   const { payee } = f;
   // The other bank answers from its own file: what the payee check found when the payee was added.
   const result = payee.payee_check || 'NOT_POSSIBLE';
@@ -1381,7 +1375,6 @@ async function callBack(context, resultBuilder) {
   const { transfer, f, list, error } = await pendingTransfer(context);
   if (error) return resultBuilder.error(error);
   const phone = await phoneToCall(list, f.account.customer_id, f.tx.created_at);
-  await simulate();
   const { Outcome: outcome } = context.formValues;
   const code = CALL_CODES[outcome];
   // The note offered matches the scripted answer: with another outcome, it is not what was said.
@@ -1803,14 +1796,13 @@ async function openSepaDispute(context, dispute) {
   }
 
   // Sent at once through the interbank network: the case now waits for the other bank.
-  await simulate();
   await patch(context, 'sepa_disputes', row.id, { status: 'WAITING_OTHER_BANK' });
   await history(
     context,
     'SEPA_DISPUTES',
     row.id,
     ['OPEN', 'WAITING_OTHER_BANK'],
-    `Sent through ${PROVIDERS.sepa}`,
+    `Sent through the ${PROVIDERS.sepa}`,
   );
 
   return [{ ...row, status: 'WAITING_OTHER_BANK', refund }, null];
@@ -1835,7 +1827,6 @@ async function blockCard(context, cardTransactionId) {
   const card = payment?.card;
   if (!card?.id) return null;
   if (!['ACTIVE', 'PENDING'].includes(card.status)) return { card, blocked: false };
-  await simulate();
   const blockedAt = now();
   await patch(context, 'cards', card.id, {
     status: 'BLOCKED',
@@ -1851,7 +1842,7 @@ function blockText({ card, blocked }) {
   const name = `${codeText(card.network)} card •••• ${card.last_four_digits}`;
 
   if (blocked) {
-    return `${name} blocked (fraud) through ${PROVIDERS.cardProcessor}, ref ${blockReference(
+    return `${name} blocked (fraud) through the card processor, ref ${blockReference(
       card.id,
     )} (simulated)`;
   }
@@ -2273,7 +2264,6 @@ function fileWithNetwork(collection) {
       }
 
       await cancelOpenRequests(context, 'chargeback_id', cb.id, 'Filed with the network');
-      await simulate();
       const caseId =
         cb.processor_dispute_id ||
         `${cb.network === 'VISA' ? 'VROL' : 'MCOM'}-${digitsOf(cb.id, 10).padStart(10, '0')}`;
@@ -2321,7 +2311,10 @@ function fileWithNetwork(collection) {
 
       const visa = cb.network === 'VISA';
       const html = resultCard({
-        eyebrow: resultsFrom(visa ? 'Visa Resolve Online' : 'Mastercom', 'card network'),
+        eyebrow: resultsFrom(
+          visa ? 'Visa dispute system' : 'Mastercard dispute system',
+          'card network',
+        ),
         title: `Case ${caseId}`,
         status: ['Presented to the network', 'green'],
         rows: [
@@ -2337,7 +2330,7 @@ function fileWithNetwork(collection) {
 
       return resultBuilder.success(
         `${cb.reference} filed with ${codeText(cb.network)} through ${
-          visa ? 'Visa Resolve Online' : 'Mastercom'
+          visa ? 'Visa dispute system' : 'Mastercard dispute system'
         }, case ${caseId} (simulated).`,
         { html },
       );
@@ -2446,9 +2439,8 @@ function filePreArbitration(collection) {
         );
       }
 
-      await simulate();
       const visa = cb.network === 'VISA';
-      const tool = visa ? 'Visa Resolve Online' : 'Mastercom';
+      const tool = visa ? 'Visa dispute system' : 'Mastercard dispute system';
       const due = daysFromNow(visa ? 30 : 45);
       const answer = context.formValues['Our answer'];
       await moveTo(
@@ -2925,7 +2917,6 @@ function acceptAndReturn(collection) {
         return resultBuilder.error('No money left to return: refuse the recall.');
       }
 
-      await simulate();
       await releaseHolds(context, row, `Funds returned to ${bankName(row.other_bank_bic)}`);
       const tx = await book(
         context,
@@ -2936,7 +2927,7 @@ function acceptAndReturn(collection) {
       );
       await listMove(context, tx.id, 'RETURN', { sepa_dispute_id: row.id });
       const status = returnable >= Number(row.amount) - 0.01 ? 'ACCEPTED' : 'PARTIAL';
-      const message = stetRef(row.id, 'return');
+      const message = networkRef(row.id, 'return');
       await moveTo(
         context,
         'SEPA_DISPUTES',
@@ -3034,10 +3025,9 @@ function refuseWithReason(collection) {
       }
 
       const { Reason: reason } = context.formValues;
-      await simulate();
       await cancelOpenRequests(context, 'sepa_dispute_id', row.id, 'Recall refused');
       const released = await releaseHolds(context, row, `Recall refused: ${reason}`);
-      const message = stetRef(row.id, 'refusal');
+      const message = networkRef(row.id, 'refusal');
       await moveTo(
         context,
         'SEPA_DISPUTES',

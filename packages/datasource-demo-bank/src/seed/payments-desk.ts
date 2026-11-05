@@ -24,12 +24,12 @@ import { DAY, NOW, iso, isoDate, round2 } from './random';
 import { frenchIban, mod97 } from './reference';
 
 const HOUR = 3600 * 1000;
-const PAYMENTS = 'elodie.fontaine@forest-lab-bank.fr';
-const SUPPORT = 'yanis.mercier@forest-lab-bank.fr';
+const PAYMENTS = 'elodie.fontaine@demo-bank.example';
+const SUPPORT = 'yanis.mercier@demo-bank.example';
 
 // ---- deterministic ids and numbers (no draw from the seeded stream) ------------------------------
 
-const hash = key => createHash('md5').update(`forest-lab-payments:${key}`).digest('hex');
+const hash = key => createHash('md5').update(`demo-bank-payments:${key}`).digest('hex');
 
 const uid = key => {
   const h = hash(key);

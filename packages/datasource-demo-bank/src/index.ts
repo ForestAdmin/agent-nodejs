@@ -1,14 +1,15 @@
 /**
- * @forestadmin/datasource-demo-bank: a demo bank on a fresh SQLite database, the data source of the
- * Forest CLI's demo. Built like @forestadmin/datasource-demo-fintech:
+ * @forestadmin/datasource-demo-bank: a demo bank on a fresh SQLite database. Built like
+ * @forestadmin/datasource-demo-fintech:
  *
- * 1. seed (seed/): a new SQLite file at every boot, every table of the data model (model/data-model.json)
- *    filled with consistent rows, the same on every run, dated from today; then the demo cases;
+ * 1. seed (seed/): a new SQLite file at every boot, every table of the data model (seed/data-model.ts)
+ *    filled with consistent rows, the same on every run, dated from today, and the demo cases;
  * 2. introspect: the SQL data source discovers the tables; SQLite's text columns get their dropdowns
  *    and UUID types back (applyTypes);
  * 3. customize: the links of the data model, readable names and parent lists for every table
- *    (customizations/shared/), then one module per table (customizations/<table>.js) with its Smart
- *    Actions, computed fields and evidence, then the API charts the demo's workspaces read (charts/).
+ *    (customizations/shared/), then one module per table (customizations/<table>.ts) with its Smart
+ *    Actions, computed fields and evidence, then the API charts (charts/): weekly figures, queue
+ *    counts, the data model's map.
  */
 import type { DataSourceFactory } from '@forestadmin/datasource-toolkit';
 
@@ -16,7 +17,6 @@ import { DataSourceCustomizer } from '@forestadmin/datasource-customizer';
 import { createSqlDataSource } from '@forestadmin/datasource-sql';
 import { rm } from 'fs/promises';
 
-import { withFeatureSource } from './charts/features';
 import { addCharts } from './charts/index';
 import customizeAccounts from './customizations/accounts';
 import { addShowcaseCases } from './customizations/actions/showcase';
@@ -37,8 +37,9 @@ import customizeSepaDisputes from './customizations/sepa_disputes';
 import { addLinks } from './customizations/shared/links';
 import { addReadableNames } from './customizations/shared/names';
 import { addParentLists } from './customizations/shared/parent-lists';
-import { tables } from './model/schema';
+import { DEFAULT_PORTAL_ORIGINS } from './customizations/shared/uploads';
 import { seed } from './seed/index';
+import { tables } from './seed/schema';
 
 const STORAGE = 'db.sqlite';
 
@@ -59,9 +60,8 @@ function applyTypes(dataSource) {
 
 async function buildSeededSqlDataSource(logger, restartAgent) {
   await rm(STORAGE, { force: true });
-  await seed(STORAGE);
-  // The demo's two KYC cases, kept out of every queue but the KYC case desk's (showcase.ts).
-  await addShowcaseCases(STORAGE);
+  // With the demo's own KYC cases, kept out of every queue but their own (showcase.ts).
+  await seed(STORAGE, addShowcaseCases);
   const dataSource = await createSqlDataSource({ dialect: 'sqlite', storage: STORAGE })(
     logger,
     restartAgent,
@@ -71,8 +71,17 @@ async function buildSeededSqlDataSource(logger, restartAgent) {
   return dataSource;
 }
 
+export type DemoBankOptions = {
+  /**
+   * The partner portal addresses the "Upload document" Smart Action fetches files from.
+   * Default: http://localhost:3500 and http://127.0.0.1:3500.
+   */
+  partnerPortalOrigins?: string[];
+};
+
 // eslint-disable-next-line import/prefer-default-export
-export function createDemoBankDataSource(): DataSourceFactory {
+export function createDemoBankDataSource(options: DemoBankOptions = {}): DataSourceFactory {
+  const partnerPortalOrigins = options.partnerPortalOrigins ?? DEFAULT_PORTAL_ORIGINS;
   const customizer = new DataSourceCustomizer();
   customizer.addDataSource(buildSeededSqlDataSource);
 
@@ -81,13 +90,15 @@ export function createDemoBankDataSource(): DataSourceFactory {
   addReadableNames(customizer);
   addParentLists(customizer);
 
-  // One module per table: Smart Actions, computed fields, the evidence the workflows read.
+  // One module per table: Smart Actions, computed fields, the evidence fields.
   customizer.customizeCollection('individuals', customizeIndividuals);
   customizer.customizeCollection('accounts', customizeAccounts);
   customizer.customizeCollection('documents', customizeDocuments);
   customizer.customizeCollection('chargebacks', customizeChargebacks);
   customizer.customizeCollection('invoices', customizeInvoices);
-  customizer.customizeCollection('kyc_cases', customizeKycCases);
+  customizer.customizeCollection('kyc_cases', collection =>
+    customizeKycCases(collection, { partnerPortalOrigins }),
+  );
   customizer.customizeCollection('customers', customizeCustomers);
   customizer.customizeCollection('alerts', customizeAlerts);
   customizer.customizeCollection('screening_hits', customizeScreeningHits);
@@ -100,6 +111,5 @@ export function createDemoBankDataSource(): DataSourceFactory {
 
   addCharts(customizer);
 
-  // Remembered for the explainers' Smart Actions figure (charts/features.ts).
-  return withFeatureSource(customizer.getFactory());
+  return customizer.getFactory();
 }

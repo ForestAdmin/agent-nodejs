@@ -1,29 +1,28 @@
 /**
- * The demo's own two KYC cases, created at every boot after the seed, for the "Onboarding desk -
- * KYC Case" workspace. Their references carry SHOWCASE_MARK (KYC-DEMO-0001, -0002): every queue
- * but the desk's own list leaves them out (segments.ts), so a self-service visitor always finds
- * them waiting, whatever the robot or other desks do.
+ * The demo's own KYC cases, added to the seed's rows at every boot, before they are written.
+ * Their references carry SHOWCASE_MARK (KYC-DEMO-0001 to -0004): every queue but their own
+ * (kyc_showcase) leaves them out (segments.ts), so a self-service visitor always finds them
+ * waiting, whatever the robot or the teams do.
  *
  * - KYC-DEMO-0001, the happy path: a clean retail file (papers complete, an ID whose scan passes,
  *   nobody on a watchlist, income that explains the money expected in). The visitor takes it
- *   through the desk's actions one by one, up to Approve KYC.
+ *   through the onboarding Smart Actions one by one, up to Approve KYC.
  * - KYC-DEMO-0002, the escalation: the same clean papers and ID, but more money expected in than
- *   the declared income, so the risk is MEDIUM. The visitor runs the Retail onboarding workflow,
- *   which ends with "Send for senior sign-off": the case joins the senior officer's queue.
+ *   the declared income, so the risk is MEDIUM. Once its file is built and rated, "Send for senior
+ *   sign-off" puts the case in the senior officer's queue.
  * - KYC-DEMO-0003 and -0004, already in that queue (sent a few hours earlier, so ahead of case 2):
  *   an operator checked them and rated them MEDIUM (more money expected in than the income; funds
- *   from an inheritance with no notary deed). The senior officer's desk shows its inbox with them.
+ *   from an inheritance with no notary deed).
  *
- * Built like the presenter's "Send new applications" (demo-feed.ts KINDS), so the papers, the
- * history and the pre-score are those of a real application. "Reset the demo cases" (a Global
- * action on kyc_cases) removes the two and everything they gathered, and creates them again.
+ * Built like "Send new applications" (demo-feed.ts KINDS), so the papers, the history and the
+ * pre-score are those of a real application. "Reset the demo cases" (a Global action on kyc_cases)
+ * removes the four and everything they gathered, and creates them again.
  */
 import { randomUUID } from 'crypto';
-import knex from 'knex';
 
 import { KINDS } from './demo-feed';
-import { schema, tables } from '../../model/schema';
-import { forestStore, knexStore, newRetailApplicant, newRun } from '../../seed/live';
+import { forestStore, newRetailApplicant, newRun, rowsStore } from '../../seed/live';
+import { schema, tables } from '../../seed/schema';
 import { badge, card } from '../shared/render';
 import { SHOWCASE_MARK } from '../shared/segments';
 
@@ -66,7 +65,7 @@ const SHAPES = {
 const SENIOR_REASON = 'Medium or high risk: senior sign-off';
 const ID_AND_SELFIE = ['PASSPORT', 'NATIONAL_ID', 'DRIVERS_LICENSE', 'SELFIE'];
 const MINUTE = 60 * 1000;
-const operatorMail = name => `${name}@forest-lab-bank.fr`;
+const operatorMail = name => `${name}@demo-bank.example`;
 
 /** The same run, its clock `minutes` earlier: a case sent a few hours before the visit. */
 function earlier(run, minutes) {
@@ -113,7 +112,7 @@ async function sendToSenior(store, run, kycId, { by }) {
     });
   await line('status', 'OPEN', 'IN_REVIEW', 58, `Review started by ${who}`);
   await line('documents', null, 'Complete', 55, '3 papers checked');
-  await line('screening', null, 'No match', 45, 'ComplyAdvantage, simulated');
+  await line('screening', null, 'No match', 45, 'Sanctions screening provider, simulated');
   await line('risk_after', null, 'MEDIUM', 40, 'Risk rated MEDIUM');
   await line('status', 'IN_REVIEW', 'PENDING_APPROVAL', 38, SENIOR_REASON);
   await store.patch('kyc_cases', kycId, {
@@ -135,7 +134,7 @@ const normalize = s =>
     .toLowerCase()
     .trim();
 
-/** The two cases, written through `store` (live.ts: the seed's SQLite or the agent's data). */
+/** The four cases, written through `store` (live.ts: the seed's rows or the agent's data). */
 async function createShowcaseCases(store) {
   const run = newRun(store);
   const entries = await store.list(
@@ -166,15 +165,9 @@ async function createShowcaseCases(store) {
   }, Promise.resolve([]));
 }
 
-/** At boot, in the database at `storage` (the seeded SQLite file). */
-async function addShowcaseCases(storage) {
-  const db = knex({ client: 'sqlite3', connection: { filename: storage }, useNullAsDefault: true });
-
-  try {
-    await createShowcaseCases(knexStore(db));
-  } finally {
-    await db.destroy();
-  }
+/** At boot, in the seed's rows (table → rows), before they are written. */
+async function addShowcaseCases(rows) {
+  await createShowcaseCases(rowsStore(rows));
 }
 
 const hasId = table => tables[table].fields.some(f => f.name === 'id');
@@ -267,7 +260,7 @@ function resetCard({ created, removed }) {
       head: ['Case', 'Applicant', 'Story'],
       rows: created.map(c => [c.reference, c.name, { html: badge(c.story, 'grey') }]),
     },
-    note: 'A workflow run started on an old case stays in Forest: it now points to a removed case.',
+    note: 'Anything that pointed to an old case (a task, a link) now points to a removed case.',
   });
 }
 
@@ -285,6 +278,4 @@ function addShowcaseReset(collection) {
   });
 }
 
-const SENIOR_CASES = CASES.filter(c => c.senior).map(c => c.reference);
-
-export { CASES, RESET, SENIOR_CASES, addShowcaseCases, addShowcaseReset, resetShowcaseCases };
+export { CASES, addShowcaseCases, addShowcaseReset };

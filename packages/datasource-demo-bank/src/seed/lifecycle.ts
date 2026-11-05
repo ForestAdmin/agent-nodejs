@@ -725,7 +725,7 @@ function authorityRow(ctx, customer, fields) {
     ...fields,
   };
   if (person && row.type !== 'INFORMATION_REQUEST') row.protected_amount = SBI;
-  row.file_url = `https://files.forest-lab-bank.fr/legal/${row.id}/acte.pdf`;
+  row.file_url = `https://files.demo-bank.example/legal/${row.id}/acte.pdf`;
   ctx.rows.authority_requests.push(row);
 
   return row;

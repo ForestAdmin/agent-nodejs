@@ -1,8 +1,9 @@
 /**
- * A day in the life of the bank: new cases arrive while the demo runs, so the inboxes fill up live.
- * An inbox is a segment (a filter on a collection): a new row that matches it shows up in it.
+ * A day in the life of the bank: new cases arrive while the demo runs, so the queues fill up live.
+ * A queue is a filter on a table (customizations/shared/segments.ts): a new row that matches it is
+ * in it.
  *
- * What arrives, and the demo inbox it lands in:
+ * What arrives, and the queue it lands in:
  * - retail and business applicants: a new person or company, the customer in ONBOARDING, an OPEN
  *   onboarding KYC case and the documents sent from the app (Retail / Business onboarding);
  * - AML and fraud alerts, OPEN and unassigned, on real customers and their recent transactions
@@ -14,13 +15,12 @@
  *   INCOMING_FRAUD_RECALL alert (Fraud and takeover alerts) and holds what is left of the money.
  * Every case gets the next reference of its series and its status history (status_changes).
  *
- * Cases that match no inbox, on purpose: an adverse-media KYC review (type EVENT_REVIEW). No demo
- * inbox takes it: a catch-all inbox would need the segment "kyc_cases: status is OPEN and
- * type is not ONBOARDING". Unusual ones that still land in their inbox: a fraud alert raised by
- * hand after a customer's call (no rule), a dispute about a Wero payment to a scammer, a recall for
- * a technical error.
+ * The odd one, on purpose: an adverse-media KYC review (type EVENT_REVIEW), which no onboarding
+ * queue takes; only the fallback "Other KYC reviews" does. Unusual ones that still land in their
+ * queue: a fraud alert raised by hand after a customer's call (no rule), a dispute about a Wero
+ * payment to a scammer, a recall for a technical error.
  *
- * The way in: the global Smart Action "Start the day" on customers (n cases per inbox, at most 5),
+ * The way in: the global Smart Action "Start the day" on customers (n cases per queue, at most 5),
  * written through Forest's collections so the agent sees them at once (customizations/customers.ts).
  */
 import { randomUUID } from 'crypto';
@@ -32,7 +32,7 @@ import { homeAddress, person } from './retail';
 const MINUTE = 60 * 1000;
 const DAY = 24 * 60 * MINUTE;
 const MAX_PER_KIND = 5;
-const BANK = 'forest-lab-bank.fr';
+const BANK = 'demo-bank.example';
 
 // ---- randomness (not the seeded stream: every live day is different) ---------------------------
 
@@ -80,7 +80,7 @@ function businessDays(from, n) {
   return d;
 }
 
-// ---- stores: one API over Forest's collections (the action) or knex (the timer) ----------------
+// ---- stores: one API over Forest's collections (Smart Actions) or the seed's rows ---------------
 // where: [[field, op, value]], op in = in !in > < like null !null. Dates are Date objects.
 
 const FOREST_OPS = {
@@ -123,36 +123,56 @@ function forestStore(dataSource) {
 
 // The seed's format: 2026-10-22 22:23:31.952 +00:00.
 const dbStamp = d => d.toISOString().replace('T', ' ').replace('Z', ' +00:00');
-const sqlRow = row =>
-  Object.fromEntries(
-    Object.entries(row).map(([k, v]) => [k, typeof v === 'boolean' ? Number(v) : v]),
-  );
 
-function knexWhere(query, [field, op, v]) {
+/** One condition on a row of the seed, compared as SQLite compares the text it stores. */
+function matches(row, [field, op, v]) {
   const value = v instanceof Date ? dbStamp(v) : v;
-  if (op === 'in') return query.whereIn(field, value);
-  if (op === '!in') return query.whereNotIn(field, value);
-  if (op === 'like') return query.where(field, 'like', `${value}%`);
-  if (op === 'null') return query.whereNull(field);
-  if (op === '!null') return query.whereNotNull(field);
+  const x = row[field] ?? null;
+  if (op === 'in') return value.includes(x);
+  if (op === '!in') return x !== null && !value.includes(x);
+  if (op === 'like') return typeof x === 'string' && x.startsWith(value);
+  if (op === 'null') return x === null;
+  if (op === '!null') return x !== null;
+  if (x === null) return false;
+  if (op === '>') return x > value;
+  if (op === '<') return x < value;
 
-  return query.where(field, op, value);
+  return x === value;
 }
 
-function knexStore(db) {
+/** The seed's rows, before they are written: table → list of rows. */
+function rowsStore(rows) {
+  const byId = (table, id) => (rows[table] || []).find(row => row.id === id);
+
   return {
     stamp: dbStamp,
     async list(table, where, fields, { sort, limit }: Record<string, any> = {}) {
-      if (emptyIn(where)) return [];
-      const query = db(table).select(fields);
-      where.forEach(condition => knexWhere(query, condition));
-      if (sort) query.orderBy(sort[0], sort[1] === 'desc' ? 'desc' : 'asc');
-      if (limit) query.limit(limit);
+      let found = (rows[table] || []).filter(row => where.every(c => matches(row, c)));
 
-      return query;
+      if (sort) {
+        const [field, direction] = sort;
+        const order = direction === 'desc' ? -1 : 1;
+        found = [...found].sort((p, q) => {
+          const [x, y] = [p[field] ?? null, q[field] ?? null];
+          if (x === y) return 0;
+          if (x === null) return -order;
+          if (y === null) return order;
+
+          return x < y ? -order : order;
+        });
+      }
+
+      if (limit) found = found.slice(0, limit);
+
+      return found.map(row => Object.fromEntries(fields.map(name => [name, row[name] ?? null])));
     },
-    insert: (table, row) => db(table).insert(sqlRow(row)),
-    patch: (table, id, values) => db(table).where({ id }).update(sqlRow(values)),
+    async insert(table, row) {
+      rows[table] = rows[table] || [];
+      rows[table].push({ ...row });
+    },
+    async patch(table, id, values) {
+      Object.assign(byId(table, id) || {}, values);
+    },
   };
 }
 
@@ -1252,7 +1272,7 @@ function documentRow(run, kyc, minutesAgo, fields) {
     uploaded_at: run.at(minutesAgo),
     verified: false,
     verified_at: null,
-    // Not checked yet: the workflow's checks give the result.
+    // Not checked yet: the check actions give the result.
     check_result: null,
     source: 'CUSTOMER_APP',
     file_url: `https://files.${BANK}/kyc/${kyc.customer_id}/${id}/${fields.file_name}`,
@@ -1287,8 +1307,8 @@ function idDocument(run, kyc, who, minutesAgo, extra = {}) {
  * proof of address. `shape` fixes what is drawn at random otherwise (the presenter's button,
  * demo-feed.ts): `country`, `accept` (who applies), `channel`, `risk` (the customer's rating),
  * `monthlyIn` (who => money expected in a month), `idDocumentId` and `intake`: the app's
- * pre-score, written to the case's risk_before last, once every paper is there (an automated
- * inbox takes the case on that score, and must not find it half sent).
+ * pre-score, written to the case's risk_before last, once every paper is there (the queue
+ * "Retail onboarding: automatic" takes the case on that score, and must not find it half sent).
  */
 async function newRetailApplicant(run, shape) {
   const opts = shape && typeof shape === 'object' ? shape : {};
@@ -1470,7 +1490,7 @@ async function newBusinessApplicant(run) {
   };
 }
 
-/** The odd one: a press article names a customer. No inbox takes a KYC review that is not onboarding. */
+/** The odd one: a press article names a customer. Only "Other KYC reviews" takes such a review. */
 async function newAdverseMediaReview(run) {
   const customers = await list(
     run,
@@ -1514,34 +1534,34 @@ async function newAdverseMediaReview(run) {
 
   return {
     reference: kyc.reference,
-    text: `Adverse media review: ${customer.display_name} (matches no inbox segment)`,
+    text: `Adverse media review: ${customer.display_name} (in no onboarding queue)`,
     odd: true,
   };
 }
 
-// ---- the kinds, in the order the timer takes them -----------------------------------------------
+// ---- the kinds, in the order "Start the day" creates them ------------------------------------
 
 const KINDS: [string, string, (run, k) => Promise<any>][] = [
   ['kyc_retail', 'Retail onboarding', newRetailApplicant],
-  ['alerts_aml', 'AML alerts', newAmlAlert],
+  ['alerts_aml', 'AML alerts to review', newAmlAlert],
   ['transfers_validate', 'Transfers to validate', newHighValueTransfer],
   ['disputes_new', 'New disputes', newDispute],
   ['kyc_business', 'Business onboarding', newBusinessApplicant],
   ['alerts_fraud', 'Fraud and takeover alerts', newFraudAlert],
-  ['hits_open', 'Screening hits', newScreeningHit],
+  ['hits_open', 'Open hits', newScreeningHit],
   ['recalls_in', 'Recalls we received', newRecall],
-  ['kyc_review', 'No inbox (KYC review, not onboarding)', newAdverseMediaReview],
+  ['kyc_review', 'Other KYC reviews', newAdverseMediaReview],
 ];
 
 /** One case of a kind; k is its rank in the run (varies the story). Null when nothing fits. */
 async function createOne(run, kind, k) {
-  const [key, inbox, create] = KINDS.find(([name]) => name === kind);
+  const [key, queue, create] = KINDS.find(([name]) => name === kind);
   const created = await create(run, k);
 
-  return created && { kind: key, inbox, ...created };
+  return created && { kind: key, queue, ...created };
 }
 
-/** n cases per inbox, and one case for no inbox. */
+/** n cases per queue, and one adverse-media review. */
 async function startTheDay(store, n) {
   const run = newRun(store);
   const plan = KINDS.flatMap(([kind]) =>
@@ -1556,11 +1576,11 @@ const escape = s =>
   String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 function summaryHtml(created) {
-  const byInbox = new Map();
-  created.forEach(c => byInbox.set(c.inbox, [...(byInbox.get(c.inbox) || []), c]));
-  const sections = [...byInbox.entries()].map(
-    ([inbox, rows]) =>
-      `<p><strong>${escape(inbox)}</strong> (${rows.length})</p><ul>${rows
+  const byQueue = new Map();
+  created.forEach(c => byQueue.set(c.queue, [...(byQueue.get(c.queue) || []), c]));
+  const sections = [...byQueue.entries()].map(
+    ([queue, rows]) =>
+      `<p><strong>${escape(queue)}</strong> (${rows.length})</p><ul>${rows
         .map(
           r =>
             `<li>${escape(r.reference)}: ${escape(r.text)}${
@@ -1582,7 +1602,7 @@ function addLiveDay(collection) {
         type: 'Number',
         defaultValue: 3,
         isRequired: true,
-        description: 'New cases in each inbox, at most 5.',
+        description: 'New cases in each queue, at most 5.',
       },
     ],
     execute: async (context, resultBuilder) => {
@@ -1598,21 +1618,15 @@ function addLiveDay(collection) {
   });
 }
 
-// ---- the timer ---------------------------------------------------------------------------------
-
 export {
   ID_FILES,
   KINDS,
   addLiveDay,
-  // For the partner portal's actions (actions/partner.ts): an application, its case, its papers.
   applicant,
   documentRow,
   onboardingCase,
-  createOne,
   forestStore,
-  knexStore,
+  rowsStore,
   newRetailApplicant,
   newRun,
-  startTheDay,
-  summaryHtml,
 };

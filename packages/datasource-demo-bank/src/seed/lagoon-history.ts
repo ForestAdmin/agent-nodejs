@@ -9,7 +9,7 @@
  *   declined, or closed when the applicant stops answering. Never approved by the system: a partner
  *   application always meets a person.
  * - Open backlog: 7 applications, from 2 hours to 7 days old: new ones with clean papers, an ID
- *   Onfido will refuse (name differs), a proof of address never sent, one under review with every
+ *   the ID check will refuse (name differs), a proof of address never sent, one under review with every
  *   paper checked, two waiting on the client for a proof of address.
  * - Partners on every row: customers, their cases and their documents carry `partner`. The bank's
  *   older partner customers belong to Tidewell (retail) or Fernway (business), so a partner scope
@@ -247,4 +247,4 @@ function lagoonHistory(rows) {
   stampPartners(rows);
 }
 
-export { OTHER_PARTNERS, PARTNER, lagoonHistory, stampPartners };
+export { PARTNER, lagoonHistory };

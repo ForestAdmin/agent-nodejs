@@ -1,8 +1,5 @@
 {
-  "accounts": [
-    "Freeze account",
-    "Unfreeze account"
-  ],
+  "accounts": ["Freeze account", "Unfreeze account"],
   "alerts": [
     "Start review",
     "Check device and IP",
@@ -26,20 +23,9 @@
     "File pre-arbitration",
     "Accept representment"
   ],
-  "customers": [
-    "Change preferred language",
-    "Start the day"
-  ],
-  "dispute_requests": [
-    "Ask to contact the merchant",
-    "Route dispute"
-  ],
-  "documents": [
-    "Verify document",
-    "Check against the register",
-    "Accept",
-    "Reject with a reason"
-  ],
+  "customers": ["Change preferred language", "Start the day"],
+  "dispute_requests": ["Ask to contact the merchant", "Route dispute"],
+  "documents": ["Verify document", "Check against the register", "Accept", "Reject with a reason"],
   "investigations": [
     "Assign",
     "Request information",
@@ -80,9 +66,7 @@
     "Approve transfer",
     "Reject transfer"
   ],
-  "sar_reports": [
-    "Record TRACFIN answer"
-  ],
+  "sar_reports": ["Record TRACFIN answer"],
   "screening_hits": [
     "Discard as false positive",
     "Confirm true match",

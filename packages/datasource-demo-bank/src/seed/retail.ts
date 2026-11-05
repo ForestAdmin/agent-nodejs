@@ -230,7 +230,7 @@ function newCustomer() {
         ? null
         : isoDate(new Date(created.getTime() + between(0, 5) * DAY)),
       relationship_manager:
-        risk === 'HIGH' || chance(0.1) ? `${pick(MANAGERS)}@forest-lab-bank.fr` : null,
+        risk === 'HIGH' || chance(0.1) ? `${pick(MANAGERS)}@demo-bank.example` : null,
       created_at: iso(created),
       updated_at: iso(new Date(Math.max(created.getTime(), lastChange.getTime()))),
     },
@@ -361,13 +361,4 @@ function accountRows(drawn, nextAccountNumber) {
   return types.map(type => accountRow(type, plan, drawn, nextAccountNumber)).filter(Boolean);
 }
 
-export {
-  FREEZE_NOTES,
-  accountRows,
-  homeAddress,
-  memberRows,
-  newCustomer,
-  person,
-  OVERDRAFT,
-  PAYMENT_PLANS,
-};
+export { FREEZE_NOTES, accountRows, homeAddress, memberRows, newCustomer, person, OVERDRAFT };
