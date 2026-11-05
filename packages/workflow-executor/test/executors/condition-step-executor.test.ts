@@ -821,6 +821,28 @@ describe('ConditionStepExecutor', () => {
       );
     });
 
+    // A Sub-workflow run once per record calls the same workflow again, repeating its step ids.
+    describe('inside a Sub-workflow call', () => {
+      const fallbackOf = async (currentFrameStepIndexes: number[]) => {
+        const { context } = makeDeterministicContext(
+          amountArgs,
+          [{ name: 'amount', displayName: 'Amount', value: 150 }],
+          { callScope: { currentFrameStepIndexes } },
+        );
+        const result = await new ConditionStepExecutor(context).execute();
+
+        return (result.stepOutcome as ConditionStepOutcome).selectedOption;
+      };
+
+      it("reads the Get Data step of the call's own run", async () => {
+        expect(await fallbackOf([1])).toBe('High');
+      });
+
+      it("counts a Get Data step of another call's run as not reached", async () => {
+        expect(await fallbackOf([])).toBe(amountArgs.fallbackOption);
+      });
+    });
+
     // Build-time validation cannot catch this one: the Get Data step may let the AI pick its
     // fields, so nobody knows which ones it returns until the run.
     it('counts a condition the Get Data step failed to read as not met, and says so', async () => {

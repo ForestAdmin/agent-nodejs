@@ -52,6 +52,20 @@ export const CallScopeSchema = z
     // The call itself carries a pin, "workflow start" included. A pin resolving outwards to the run's
     // record sends no selectedRecordStepId, and this is what still tells it from an unpinned call.
     isPinned: z.literal(true).optional(),
+    // The position, in the pinned Multiple step's records, of the record a call opened once per
+    // record runs on.
+    callRecordIndex: z.number().int().nonnegative().optional(),
+    // The nearest enclosing call opened once per record, nested calls included: its Multiple step,
+    // read in the frame that pinned it, its record's position, and where its start entry sits.
+    recordCall: z
+      .object({
+        selectedRecordStepId: z.string().min(1),
+        pinnedFrameStepIndexes: z.array(z.number().int().nonnegative()),
+        recordIndex: z.number().int().nonnegative(),
+        startStepIndex: z.number().int().nonnegative(),
+      })
+      .strict()
+      .optional(),
   })
   .strict();
 export type CallScope = z.infer<typeof CallScopeSchema>;
