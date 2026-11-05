@@ -189,6 +189,45 @@ export class ActionRequiresApprovalError extends WorkflowOperatorError {
   }
 }
 
+// Finishing a step with branches by hand reports no branch until the native form carries one
+// (PRD-2013), so the Full AI fallback to that form is refused rather than left to break the run.
+export class ApprovalBranchesNeedFullAiError extends WorkflowOperatorError {
+  constructor(actionName: string, reason: string) {
+    super(
+      `Action "${actionName}" could not run automatically (${reason}), and its step has approval branches`,
+      'This step has Approved and Rejected branches, which only run automatically for now. Complete the action configuration so the AI can submit it, then revise the step.',
+    );
+  }
+}
+
+// The request was filed, but without its id the step can neither wait for it nor learn its review.
+export class ApprovalRequestUntrackedError extends WorkflowExecutorError {
+  constructor(actionName: string) {
+    super(
+      `Action "${actionName}" was submitted for approval, but the approval request id was not returned`,
+      'This action was submitted for approval, but the workflow cannot follow its review. Check the approval requests, then revise the step.',
+    );
+  }
+}
+
+export class ApprovalRequestFailedError extends WorkflowOperatorError {
+  constructor(approvalRequestId: string) {
+    super(
+      `Approval request ${approvalRequestId} was approved but the action failed when it ran`,
+      'The action was approved, but it failed when it ran. Check the approval request, then revise the step.',
+    );
+  }
+}
+
+export class ApprovalRequestGoneError extends WorkflowExecutorError {
+  constructor(approvalRequestId: string) {
+    super(
+      `Approval request ${approvalRequestId} no longer exists`,
+      'The approval request of this step no longer exists. Revise the step to submit the action again.',
+    );
+  }
+}
+
 // Approval-gated action whose approval request couldn't be filed — neither executed nor approved.
 export class ApprovalRequestCreationError extends WorkflowExecutorError {
   constructor(actionName: string, cause?: unknown) {

@@ -113,6 +113,35 @@ describe('toStepDefinition', () => {
       });
     });
 
+    it('should carry the approval outcomes of a trigger-action task saved with both branches', () => {
+      const task = makeTask({
+        taskType: ServerTaskTypeEnum.TriggerAction,
+        approvalOutcomes: true,
+        outgoing: [
+          { stepId: 'blocked', buttonText: 'approved', answer: 'approved' },
+          { stepId: 'kept', buttonText: 'rejected', answer: 'rejected' },
+        ],
+      } as Partial<ServerWorkflowTask>);
+
+      expect(toStepDefinition(task)).toEqual(
+        expect.objectContaining({ type: StepType.TriggerAction, approvalOutcomes: true }),
+      );
+    });
+
+    it('should leave approval outcomes off a trigger-action task the server sends as null', () => {
+      const task = makeTask({
+        taskType: ServerTaskTypeEnum.TriggerAction,
+        approvalOutcomes: null,
+      } as Partial<ServerWorkflowTask>);
+
+      expect(toStepDefinition(task)).toEqual({
+        type: StepType.TriggerAction,
+        prompt: 'Do something',
+        title: 'Test task',
+        executionType: ServerStepExecutionTypeEnum.AutomatedWithConfirmation,
+      });
+    });
+
     it('should map task with load-related-record taskType to load-related-record', () => {
       const task = makeTask({
         taskType: ServerTaskTypeEnum.LoadRelatedRecord,
