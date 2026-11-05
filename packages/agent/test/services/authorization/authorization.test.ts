@@ -1,6 +1,6 @@
 import type { Context } from 'koa';
 
-import { Projection } from '@forestadmin/datasource-toolkit';
+import { Projection, UnprocessableError } from '@forestadmin/datasource-toolkit';
 import {
   ChainedSQLQueryError,
   ChartType,
@@ -204,6 +204,23 @@ describe('AuthorizationService', () => {
         collectionName: 'books',
       });
       expect(ConditionTreeParser.fromPlainObject).toHaveBeenCalledWith(collection, { foo: 'bar' });
+    });
+
+    it('should throw an UnprocessableError when the scope cannot be parsed', async () => {
+      const forestAdminClient = factories.forestAdminClient.build();
+      const authorizationService = new AuthorizationService(forestAdminClient);
+      const context = { state: { user: { id: 666, renderingId: 42 } } } as Context;
+
+      (forestAdminClient.getScope as jest.Mock).mockResolvedValue({ foo: 'bar' });
+      (ConditionTreeParser.fromPlainObject as jest.Mock).mockImplementation(() => {
+        throw new Error('Failed to instantiate condition tree from json');
+      });
+
+      await expect(
+        authorizationService.getScope(factories.collection.build({ name: 'books' }), context),
+      ).rejects.toThrow(
+        new UnprocessableError('Invalid scope (Failed to instantiate condition tree from json)'),
+      );
     });
   });
 

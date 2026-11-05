@@ -281,7 +281,11 @@ export default class AuthorizationService {
 
     if (!scope) return null;
 
-    return ConditionTreeParser.fromPlainObject(collection, scope);
+    try {
+      return ConditionTreeParser.fromPlainObject(collection, scope);
+    } catch (error) {
+      throw new UnprocessableError(`Invalid scope (${error.message})`);
+    }
   }
 
   public invalidateScopeCache(renderingId: number | string) {
