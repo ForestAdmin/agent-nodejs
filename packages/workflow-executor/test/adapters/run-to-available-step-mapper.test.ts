@@ -240,6 +240,81 @@ describe('toAvailableStepExecution', () => {
     });
   });
 
+  describe('approval requests of the pending step', () => {
+    const triggerActionStepDef = () =>
+      makeTaskStepDef({
+        taskType: ServerTaskTypeEnum.TriggerAction,
+        title: 'Block card',
+        approvalOutcomes: true,
+      } as Partial<ServerWorkflowTask>);
+
+    it('should hand the replay the review state the server sent', () => {
+      const run = makeRun({
+        workflowHistory: [
+          makeStepHistory({
+            stepDefinition: triggerActionStepDef(),
+            context: {
+              awaitingInputReason: 'pending-approval',
+              approvalRequests: [
+                { id: 12, status: 'rejected', approverId: 3 },
+                { id: 13, status: 'pending', approverId: null },
+              ],
+            },
+          }),
+        ],
+      });
+
+      expect(toAvailableStepExecution(run)?.approvalRequests).toEqual([
+        { id: '12', status: 'rejected', approverId: 3 },
+        { id: '13', status: 'pending', approverId: null },
+      ]);
+    });
+
+    it('should read a request without a known status as unknown rather than fail the run', () => {
+      const run = makeRun({
+        workflowHistory: [
+          makeStepHistory({
+            stepDefinition: triggerActionStepDef(),
+            context: { approvalRequests: [{ id: 12 }, { id: 13, status: 'archived' }, {}] },
+          }),
+        ],
+      });
+
+      expect(toAvailableStepExecution(run)?.approvalRequests).toEqual([{ id: '12' }, { id: '13' }]);
+    });
+
+    it('should hand none when the pending step waits for no request', () => {
+      const run = makeRun({
+        workflowHistory: [makeStepHistory({ stepDefinition: triggerActionStepDef() })],
+      });
+
+      expect(toAvailableStepExecution(run)).not.toHaveProperty('approvalRequests');
+    });
+
+    it('should carry the branch a previous Trigger Action step took', () => {
+      const run = makeRun({
+        workflowHistory: [
+          makeStepHistory({
+            stepName: 'block-card',
+            stepIndex: 0,
+            done: true,
+            stepDefinition: triggerActionStepDef(),
+            context: { status: 'success', selectedOption: 'rejected', approverId: 3 },
+          }),
+          makeStepHistory({ stepName: 'next', stepIndex: 1 }),
+        ],
+      });
+
+      expect(toAvailableStepExecution(run)?.previousSteps[0].stepOutcome).toEqual({
+        type: 'record',
+        stepId: 'block-card',
+        stepIndex: 0,
+        status: 'success',
+        selectedOption: 'rejected',
+      });
+    });
+  });
+
   describe('previousSteps', () => {
     it('should include done steps preceding the available step', () => {
       const run = makeRun({
