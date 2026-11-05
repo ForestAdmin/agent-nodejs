@@ -1087,6 +1087,112 @@ describe('ConditionStepExecutor', () => {
       },
     );
 
+    describe('with a group of conditions', () => {
+      // risk = high AND (country in [FR, BE] OR amount > 10000)
+      const escalationArgs: ConditionPreRecordedArgs = {
+        optionConditions: [
+          {
+            option: 'Escalate',
+            aggregator: 'and',
+            conditions: [
+              { sourceStepId: 'get-1', fieldName: 'risk', operator: 'equal', value: 'high' },
+              {
+                aggregator: 'or',
+                conditions: [
+                  {
+                    sourceStepId: 'get-1',
+                    fieldName: 'country',
+                    operator: 'in',
+                    value: ['FR', 'BE'],
+                  },
+                  {
+                    sourceStepId: 'get-1',
+                    fieldName: 'amount',
+                    operator: 'greater_than',
+                    value: 10000,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+        fallbackOption: 'Other',
+      };
+
+      it('matches when the group is met through one of its conditions', async () => {
+        const { context, runStore } = makeDeterministicContext(escalationArgs, [
+          { name: 'risk', displayName: 'Risk', value: 'high' },
+          { name: 'country', displayName: 'Country', value: 'DE' },
+          { name: 'amount', displayName: 'Amount', value: 25000 },
+        ]);
+
+        const result = await new ConditionStepExecutor(context).execute();
+
+        expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('Escalate');
+        expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+          'run-1',
+          expect.objectContaining({
+            executionParams: expect.objectContaining({
+              evaluations: [
+                {
+                  option: 'Escalate',
+                  outcome: 'matched',
+                  conditions: [
+                    { index: 0, met: true },
+                    {
+                      index: 1,
+                      met: true,
+                      conditions: [
+                        { index: 0, met: false },
+                        { index: 1, met: true },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            }),
+          }),
+        );
+      });
+
+      it('records the group as not met, with the reason on the condition it could not read', async () => {
+        const { context, runStore } = makeDeterministicContext(escalationArgs, [
+          { name: 'risk', displayName: 'Risk', value: 'high' },
+          { name: 'country', displayName: 'Country', value: 'DE' },
+          { name: 'amount', displayName: 'Amount', error: 'Field not found: amount' },
+        ]);
+
+        const result = await new ConditionStepExecutor(context).execute();
+
+        expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('Other');
+        expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+          'run-1',
+          expect.objectContaining({
+            executionParams: expect.objectContaining({
+              evaluations: [
+                {
+                  option: 'Escalate',
+                  outcome: 'not-matched',
+                  conditions: [
+                    { index: 0, met: true },
+                    {
+                      index: 1,
+                      met: false,
+                      conditions: [
+                        { index: 0, met: false },
+                        { index: 1, met: null, reason: 'field-not-loaded' },
+                      ],
+                    },
+                  ],
+                },
+              ],
+              usedFallback: true,
+            }),
+          }),
+        );
+      });
+    });
+
     it('compares a decimal column returned as a string against the builder number', async () => {
       const { context } = makeDeterministicContext(amountArgs, [
         { name: 'amount', displayName: 'Amount', value: '150.00' },

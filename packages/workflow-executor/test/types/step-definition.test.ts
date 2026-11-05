@@ -346,3 +346,61 @@ describe('GuidanceStepDefinitionSchema executionType', () => {
     ).toBe(false);
   });
 });
+
+describe('ConditionStepDefinitionSchema condition groups', () => {
+  const base = { type: StepType.Condition as const, options: ['Escalate', 'Otherwise'] };
+  const risk = { sourceStepId: 'get-kyc', fieldName: 'risk', operator: 'equal', value: 'high' };
+  const country = {
+    sourceStepId: 'get-kyc',
+    fieldName: 'country',
+    operator: 'in',
+    value: ['FR', 'BE'],
+  };
+  const parseOption = (conditions: unknown[]) =>
+    ConditionStepDefinitionSchema.safeParse({
+      ...base,
+      preRecordedArgs: {
+        optionConditions: [{ option: 'Escalate', aggregator: 'and', conditions }],
+        fallbackOption: 'Otherwise',
+      },
+    });
+
+  it('accepts a group among the conditions of an option and round-trips it', () => {
+    const conditions = [risk, { aggregator: 'or', conditions: [country, risk] }];
+
+    const result = parseOption(conditions);
+
+    expect(result.success && result.data.preRecordedArgs?.optionConditions[0].conditions).toEqual(
+      conditions,
+    );
+  });
+
+  it('accepts a group nested in a group, as the stored model has no depth limit', () => {
+    const result = parseOption([
+      { aggregator: 'or', conditions: [risk, { aggregator: 'and', conditions: [country] }] },
+    ]);
+
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects an empty group, which would read as match nothing or match everything', () => {
+    const result = parseOption([risk, { aggregator: 'or', conditions: [] }]);
+
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects a group with an unknown aggregator', () => {
+    const result = parseOption([{ aggregator: 'xor', conditions: [risk] }]);
+
+    expect(result.success).toBe(false);
+  });
+
+  it('applies the condition rules inside a group', () => {
+    const result = parseOption([
+      { aggregator: 'or', conditions: [{ ...country, operator: 'equal', value: undefined }] },
+    ]);
+
+    expect(result.success).toBe(false);
+    expect(JSON.stringify(!result.success && result.error.issues)).toContain('value is required');
+  });
+});
