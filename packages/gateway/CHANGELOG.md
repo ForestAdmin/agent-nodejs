@@ -1,3 +1,18 @@
+# @forestadmin/gateway [1.2.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/gateway@1.1.7...@forestadmin/gateway@1.2.0) (2026-11-05)
+
+
+### Features
+
+* **agent-bff:** serve per-field filter operators on an always-on route ([#2058](https://github.com/ForestAdmin/agent-nodejs/issues/2058)) ([b62278e](https://github.com/ForestAdmin/agent-nodejs/commit/b62278e266400ddfe8df8487295911e2c05e6498))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-bff:** upgraded to 1.45.0
+
 ## @forestadmin/gateway [1.1.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/gateway@1.1.6...@forestadmin/gateway@1.1.7) (2026-11-04)
 
 
