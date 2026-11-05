@@ -3392,4 +3392,230 @@ describe('TriggerRecordActionStepExecutor', () => {
       });
     });
   });
+
+  describe('on a step saved with approval outcomes (Full AI)', () => {
+    const approvalStep = () =>
+      makeStep({ executionType: StepExecutionMode.FullyAutomated, approvalOutcomes: true });
+
+    const filedRecord = (approvalRequest?: { id: string }) => ({
+      type: 'trigger-action' as const,
+      stepIndex: 0,
+      idempotencyPhase: 'done' as const,
+      executionParams: { displayName: 'Block card', name: 'block_card' },
+      executionResult: {
+        success: true as const,
+        submissionOutcome: 'pending-approval' as const,
+        submittedBy: 'ai' as const,
+        ...(approvalRequest && { approvalRequest }),
+      },
+      selectedRecordRef: makeRecordRef(),
+    });
+
+    const replay = async (
+      approvalRequests: ExecutionContext['approvalRequests'],
+      record = filedRecord({ id: '12' }),
+    ) => {
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([record]),
+      });
+      const agentPort = makeMockAgentPort();
+      const context = makeContext({
+        agentPort,
+        runStore,
+        stepDefinition: approvalStep(),
+        ...(approvalRequests && { approvalRequests }),
+      });
+
+      const result = await new TriggerRecordActionStepExecutor(context).execute();
+
+      return { result, runStore, agentPort };
+    };
+
+    it('pauses on the approval request it filed instead of succeeding', async () => {
+      const agentPort = makeMockAgentPort();
+      (agentPort.executeAction as jest.Mock).mockResolvedValue({
+        approvalRequested: true,
+        approvalRequest: { id: '12' },
+      });
+      const runStore = makeMockRunStore();
+      const context = makeContext({ agentPort, runStore, stepDefinition: approvalStep() });
+
+      const result = await new TriggerRecordActionStepExecutor(context).execute();
+
+      expect(result.stepOutcome).toEqual({
+        type: 'record',
+        stepId: 'trigger-1',
+        stepIndex: 0,
+        status: 'awaiting-input',
+        awaitingInputReason: 'pending-approval',
+        approvalRequests: [{ id: '12' }],
+      });
+      expect(runStore.saveStepExecution).toHaveBeenLastCalledWith(
+        'run-1',
+        expect.objectContaining({
+          idempotencyPhase: 'done',
+          executionResult: expect.objectContaining({
+            submissionOutcome: 'pending-approval',
+            approvalRequest: { id: '12' },
+          }),
+        }),
+      );
+    });
+
+    it('errors the step instead of falling back to the native form when the AI leaves a required field empty', async () => {
+      const agentPort = makeMockAgentPort();
+      (agentPort.getActionForm as jest.Mock).mockResolvedValue({
+        fields: [{ name: 'reason', type: 'String', isRequired: true }],
+        canExecute: false,
+        requiredFields: ['reason'],
+        skippedFields: [],
+      });
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        agentPort,
+        runStore,
+        stepDefinition: approvalStep(),
+      });
+
+      const result = await new TriggerRecordActionStepExecutor(context).execute();
+
+      expect(result.stepOutcome).toEqual(
+        expect.objectContaining({
+          status: 'error',
+          error:
+            'This step has Approved and Rejected branches, which only run automatically for now. Complete the action configuration so the AI can submit it, then revise the step.',
+        }),
+      );
+      expect(agentPort.executeAction).not.toHaveBeenCalled();
+      expect(runStore.saveStepExecution).not.toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({ pendingData: expect.anything() }),
+      );
+    });
+
+    it('errors the step when the filed request comes back without an id', async () => {
+      const agentPort = makeMockAgentPort();
+      (agentPort.executeAction as jest.Mock).mockResolvedValue({ approvalRequested: true });
+      const context = makeContext({ agentPort, stepDefinition: approvalStep() });
+
+      const result = await new TriggerRecordActionStepExecutor(context).execute();
+
+      expect(result.stepOutcome).toEqual(
+        expect.objectContaining({
+          status: 'error',
+          error:
+            'This action was submitted for approval, but the workflow cannot follow its review. Check the approval requests, then revise the step.',
+        }),
+      );
+    });
+
+    it('goes down the approved branch when the action ran without needing an approval', async () => {
+      const context = makeContext({ stepDefinition: approvalStep() });
+
+      const result = await new TriggerRecordActionStepExecutor(context).execute();
+
+      expect(result.stepOutcome).toEqual({
+        type: 'record',
+        stepId: 'trigger-1',
+        stepIndex: 0,
+        status: 'success',
+        selectedOption: 'approved',
+      });
+    });
+
+    it.each([
+      ['approved', 3],
+      ['rejected', 4],
+    ] as const)(
+      'takes the %s branch on replay once the reviewer decided, naming the reviewer',
+      async (status, approverId) => {
+        const { result, runStore, agentPort } = await replay([{ id: '12', status, approverId }]);
+
+        expect(result.stepOutcome).toEqual({
+          type: 'record',
+          stepId: 'trigger-1',
+          stepIndex: 0,
+          status: 'success',
+          selectedOption: status,
+          approverId,
+        });
+        expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+          'run-1',
+          expect.objectContaining({
+            executionResult: expect.objectContaining({
+              submissionOutcome: 'pending-approval',
+              approvalOutcome: status,
+            }),
+          }),
+        );
+        expect(agentPort.executeAction).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each(['pending', 'in-progress', 'warning'] as const)(
+      'pauses again on replay while the request is %s',
+      async status => {
+        const { result, runStore } = await replay([{ id: '12', status }]);
+
+        expect(result.stepOutcome).toEqual(
+          expect.objectContaining({
+            status: 'awaiting-input',
+            awaitingInputReason: 'pending-approval',
+            approvalRequests: [{ id: '12' }],
+          }),
+        );
+        expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+      },
+    );
+
+    it('pauses again on replay when the server sends no review of the request', async () => {
+      const { result } = await replay(undefined);
+
+      expect(result.stepOutcome).toEqual(
+        expect.objectContaining({ status: 'awaiting-input', approvalRequests: [{ id: '12' }] }),
+      );
+    });
+
+    it('errors the step on replay when the approved action failed when it ran', async () => {
+      const { result } = await replay([{ id: '12', status: 'failed' }]);
+
+      expect(result.stepOutcome).toEqual(
+        expect.objectContaining({
+          status: 'error',
+          errorKind: 'operator',
+          error:
+            'The action was approved, but it failed when it ran. Check the approval request, then revise the step.',
+        }),
+      );
+    });
+
+    it('errors the step on replay when the request no longer exists', async () => {
+      const { result } = await replay([{ id: '12' }]);
+
+      expect(result.stepOutcome).toEqual(
+        expect.objectContaining({
+          status: 'error',
+          error:
+            'The approval request of this step no longer exists. Revise the step to submit the action again.',
+        }),
+      );
+    });
+
+    it('errors the step on replay when the filed request has no id', async () => {
+      const { result } = await replay([{ id: '12', status: 'approved' }], filedRecord());
+
+      expect(result.stepOutcome.status).toBe('error');
+    });
+
+    it('goes down the approved branch on replay of an action that already ran', async () => {
+      const { result } = await replay(undefined, {
+        ...filedRecord(),
+        executionResult: { success: true, actionResult: { ok: true } },
+      } as never);
+
+      expect(result.stepOutcome).toEqual(
+        expect.objectContaining({ status: 'success', selectedOption: 'approved' }),
+      );
+    });
+  });
 });
