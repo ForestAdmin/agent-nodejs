@@ -182,6 +182,7 @@ export default class StepExecutorFactory {
       user: step.user,
       timezone: step.timezone,
       callScope: step.callScope,
+      approvalRequests: step.approvalRequests,
       model: cfg.aiModelPort.getModel({
         aiConfigName: step.stepDefinition.aiConfigName,
         userId: step.user.id,
