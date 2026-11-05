@@ -50,3 +50,38 @@ export async function callAgent<T>(fn: () => Promise<T>, logger: Logger): Promis
     throw mapAgentError(error, { logger });
   }
 }
+
+export async function callAgentRecheckingExposure<T>(
+  fn: () => Promise<T>,
+  {
+    store,
+    logger,
+    collection,
+    assertStillExposed,
+  }: {
+    store: ReadModelStore;
+    logger: Logger;
+    collection: string;
+    assertStillExposed: (readModel: ReadModel) => void;
+  },
+): Promise<T> {
+  try {
+    return await callAgent(fn, logger);
+  } catch (error) {
+    logger('Warn', 'Capabilities lookup failed; re-checking exposure before rethrowing', {
+      collection,
+    });
+
+    let readModel: ReadModel;
+
+    try {
+      readModel = await resolveReadModel(store);
+    } catch {
+      throw error;
+    }
+
+    assertStillExposed(readModel);
+
+    throw error;
+  }
+}

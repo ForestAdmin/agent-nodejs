@@ -1,20 +1,18 @@
 import type {
   CollectionFields,
-  FilterableField,
   UnfoldedAction,
   UnfoldedCollection,
   UnfoldedRelation,
   Unfolding,
 } from './unfolding';
 import type { Logger } from '../ports/logger-port';
-import type { CapabilitiesFetcher, CapabilitiesResult } from '../read-model/capabilities-cache';
+import type { CapabilitiesFetcher } from '../read-model/capabilities-cache';
 import type ReadModel from '../read-model/read-model';
 import type ReadModelStore from '../read-model/read-model-store';
-import type { Operator } from '@forestadmin/datasource-toolkit';
 
 import { extractErrorMessage } from '../errors';
 import { normalizeFieldType } from '../read-model/field-type';
-import { normalizeOperator, toCanonicalOperatorSet } from '../validation/operator-normalizer';
+import collectFilterableFields from '../validation/filterable-fields';
 
 // A cold document costs one capabilities call per collection. They are capped rather than fired all
 // at once so a 200-collection deployment cannot open 200 sockets to the agent at the same time; a
@@ -59,75 +57,6 @@ const UNTYPED = (degraded: CollectionFields['degraded']): CollectionFields => ({
   filterable: [],
   degraded,
 });
-
-/**
- * The operators to document for one field, or null to leave the field out of the filterable set.
- *
- * An operator with no canonical mapping means the agent runs a newer operator set than this package.
- * The field is dropped rather than widened, because `capabilities-validator` normalizes a field's
- * WHOLE operator list before comparing the one that was sent: a skewed field answers 500
- * `mapping_error` on ANY filter, even a plain `Equal`. Documenting it as filterable would promise a
- * call the BFF never honours, and a raw snake_case operator must never reach the public document. The
- * skew is surfaced in the log instead — dropping the field keeps the document truthful, so it stays
- * cacheable.
- */
-function documentedOperators(
-  collection: string,
-  field: string,
-  operators: string[],
-  logger: Logger,
-): Operator[] | null {
-  const normalized: Operator[] = [];
-
-  for (const operator of operators) {
-    const canonical = normalizeOperator(operator);
-
-    if (!canonical) {
-      logger('Warn', 'Documenting a field as not filterable: one of its operators has no mapping', {
-        collection,
-        field,
-        operator,
-      });
-
-      return null;
-    }
-
-    normalized.push(canonical);
-  }
-
-  return toCanonicalOperatorSet(normalized);
-}
-
-/**
- * The filterable subset, plus whether a field was dropped as undocumentable rather than as genuinely
- * not filterable. The caller needs the two apart: a field with no operator is an ANSWER the document
- * can state, while a field dropped for operator skew leaves the filterable set incomplete, and an
- * incomplete set that ends up empty must not be documented as "nothing is filterable".
- */
-function collectFilterableFields(
-  collection: string,
-  capabilities: CapabilitiesResult,
-  logger: Logger,
-): { fields: FilterableField[]; undocumentable: boolean } {
-  const fields: FilterableField[] = [];
-  let undocumentable = false;
-
-  for (const field of capabilities.fields) {
-    if ((field.operators?.length ?? 0) > 0) {
-      const operators = documentedOperators(
-        collection,
-        field.name,
-        field.operators as string[],
-        logger,
-      );
-
-      if (operators === null) undocumentable = true;
-      else fields.push({ name: field.name, operators });
-    }
-  }
-
-  return { fields, undocumentable };
-}
 
 async function collectFields(
   collection: string,

@@ -164,7 +164,10 @@ describe.each(['', '/ai'])('both services under base path "%s"', P => {
       version,
       services: {
         mcp: 'ok',
-        api: { status: 'ok', configured: { oauth: true, ai: true, cors: true, openapi: true } },
+        api: {
+          status: 'ok',
+          configured: { oauth: true, ai: true, cors: true, openapi: true, filterOperators: true },
+        },
       },
     });
   });
@@ -516,6 +519,7 @@ describe('configuration', () => {
         ai: true,
         cors: true,
         openapi: true,
+        filterOperators: true,
       });
       expect(logger.mock.calls.filter(([level]) => level === 'Warn')).toEqual([]);
     } finally {

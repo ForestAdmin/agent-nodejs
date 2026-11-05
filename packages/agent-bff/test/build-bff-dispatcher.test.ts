@@ -139,6 +139,48 @@ describe('buildBff with an in-process dispatcher', () => {
     );
   });
 
+  describe('GET /agent/v1/collections/{collection}/filter-operators', () => {
+    function filterOperators(callback: Parameters<typeof request>[0]) {
+      return request(callback)
+        .get('/agent/v1/collections/books/filter-operators')
+        .set('Authorization', `Bearer ${sessionToken()}`);
+    }
+
+    it('should serve the canonical operators with the OpenAPI document left off', async () => {
+      const { callback } = await buildEmbedded(agentDispatcher());
+
+      const response = await filterOperators(callback);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({
+        collection: 'books',
+        fields: [
+          { field: 'id', operators: ['Equal'] },
+          { field: 'title', operators: ['Equal', 'Like'] },
+        ],
+      });
+    });
+
+    it('should answer 401 without credentials', async () => {
+      const dispatcher = agentDispatcher();
+      const { callback } = await buildEmbedded(dispatcher);
+
+      const response = await request(callback).get('/agent/v1/collections/books/filter-operators');
+
+      expect(response.status).toBe(401);
+      expect(dispatcher.request).not.toHaveBeenCalled();
+    });
+
+    it('should answer 501 like the data routes when no agent is reachable', async () => {
+      const { callback } = await buildEmbedded(undefined);
+
+      const response = await filterOperators(callback).set('X-Forest-Timezone', 'Europe/Paris');
+
+      expect(response.status).toBe(501);
+      expect(response.body.error).toMatchObject({ type: 'not_implemented' });
+    });
+  });
+
   describe('when neither a dispatcher nor an AGENT_URL is given', () => {
     it('should fall back to the stub instead of mounting a data edge', async () => {
       const { callback } = await buildEmbedded(undefined);
@@ -157,7 +199,15 @@ describe('buildBff with an in-process dispatcher', () => {
       const response = await request(callback).get('/health');
 
       expect(response.status).toBe(200);
-      expect(response.body).toMatchObject({ status: 'ok' });
+      expect(response.body).toMatchObject({ status: 'ok', configured: { filterOperators: true } });
+    });
+
+    it('should not advertise the filter-operators route when no agent is reachable', async () => {
+      const { callback } = await buildEmbedded(undefined);
+
+      const response = await request(callback).get('/health');
+
+      expect(response.body.configured.filterOperators).toBe(false);
     });
 
     it('should report degraded without an auth secret, dispatcher or not', async () => {
