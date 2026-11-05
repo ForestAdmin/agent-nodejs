@@ -31,6 +31,7 @@ import {
 import { mapCountResponse, mapListResponse } from './response-mappers';
 import {
   callAgent,
+  callAgentRecheckingExposure,
   decodeSegment,
   requireAgentToken,
   resolveReadModel,
@@ -83,11 +84,12 @@ function toValidationInput(body: ListRequestBody | RelationListRequestBody) {
   };
 }
 
-function resolveCapabilities(
+function resolveCapabilitiesOrRethrowUnlessVanished(
   deps: RequestHandlerDeps,
   collection: string,
+  assertStillExposed: (readModel: ReadModel) => void,
 ): Promise<{ capabilities: CapabilitiesResult; readModel: ReadModel }> {
-  return callAgent(
+  return callAgentRecheckingExposure(
     () =>
       deps.store.getCapabilities(
         collection,
@@ -98,34 +100,8 @@ function resolveCapabilities(
           logger: deps.logger,
         }),
       ),
-    deps.logger,
+    { store: deps.store, logger: deps.logger, collection, assertStillExposed },
   );
-}
-
-async function resolveCapabilitiesOrRethrowUnlessVanished(
-  deps: RequestHandlerDeps,
-  collection: string,
-  assertStillExposed: (readModel: ReadModel) => void,
-): Promise<{ capabilities: CapabilitiesResult; readModel: ReadModel }> {
-  try {
-    return await resolveCapabilities(deps, collection);
-  } catch (error) {
-    deps.logger('Warn', 'Capabilities lookup failed; re-checking exposure before rethrowing', {
-      collection,
-    });
-
-    let readModel: ReadModel;
-
-    try {
-      readModel = await resolveReadModel(deps.store);
-    } catch {
-      throw error;
-    }
-
-    assertStillExposed(readModel);
-
-    throw error;
-  }
 }
 
 async function resolveOwnCapabilities(

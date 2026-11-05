@@ -2,12 +2,13 @@ import type { AgentTransport } from '../agent/agent-transport';
 import type { Logger } from '../ports/logger-port';
 import type { AgentCapabilitiesFetcherOptions } from '../read-model/agent-capabilities-fetcher';
 import type { CapabilitiesFetcher } from '../read-model/capabilities-cache';
+import type ReadModel from '../read-model/read-model';
 import type ReadModelStore from '../read-model/read-model-store';
 import type { Operator } from '@forestadmin/datasource-toolkit';
 import type { Middleware } from 'koa';
 
 import {
-  callAgent,
+  callAgentRecheckingExposure,
   decodeSegment,
   requireAgentToken,
   resolveReadModel,
@@ -48,19 +49,21 @@ export default function createFilterOperatorsRoutesMiddleware({
     const collection = decodeSegment(match[1], 'collection name');
     const token = requireAgentToken(ctx);
 
-    if (!(await resolveReadModel(store)).isCollectionAllowed(collection)) {
-      throw unknownCollection(`Unknown collection: ${collection}`);
-    }
+    const assertStillExposed = (readModel: ReadModel) => {
+      if (!readModel.isCollectionAllowed(collection)) {
+        throw unknownCollection(`Unknown collection: ${collection}`);
+      }
+    };
+
+    assertStillExposed(await resolveReadModel(store));
 
     const fetcher = createFetcher({ transport, token, store, logger });
-    const { capabilities, readModel } = await callAgent(
+    const { capabilities, readModel } = await callAgentRecheckingExposure(
       () => store.getCapabilities(collection, fetcher),
-      logger,
+      { store, logger, collection, assertStillExposed },
     );
 
-    if (!readModel.isCollectionAllowed(collection)) {
-      throw unknownCollection(`Unknown collection: ${collection}`);
-    }
+    assertStillExposed(readModel);
 
     const { fields } = collectFilterableFields(collection, capabilities, logger);
     const body: FilterOperatorsResponse = {

@@ -10,6 +10,7 @@ import { createHttpTransport } from '../../src/agent/agent-transport';
 import createFilterOperatorsRoutesMiddleware from '../../src/filter-operators/filter-operators-routes-middleware';
 import createErrorMiddleware from '../../src/http/error-middleware';
 import CapabilitiesCache from '../../src/read-model/capabilities-cache';
+import SchemaUnavailableError from '../../src/read-model/errors';
 import ReadModel from '../../src/read-model/read-model';
 import ReadModelStore from '../../src/read-model/read-model-store';
 import SchemaCache from '../../src/read-model/schema-cache';
@@ -51,8 +52,9 @@ function buildApp({
   capabilities = jest.fn().mockResolvedValue(USERS_CAPABILITIES),
   agentToken = 'agent-jwt' as string | null,
 } = {}) {
+  const logger = () => undefined;
   const createFetcher = jest.fn((options: AgentCapabilitiesFetcherOptions) => {
-    expect(options.token).toBe(agentToken);
+    expect(options).toEqual({ transport: TRANSPORT, token: agentToken, store, logger });
 
     return capabilities;
   });
@@ -68,7 +70,7 @@ function buildApp({
     createFilterOperatorsRoutesMiddleware({
       store,
       transport: TRANSPORT,
-      logger: () => undefined,
+      logger,
       createFetcher,
     }),
   );
@@ -212,6 +214,42 @@ describe('filterOperatorsRoutesMiddleware', () => {
     expect(response.status).toBe(404);
     expect(response.body.error.type).toBe('unknown_collection');
     expect(response.body).not.toHaveProperty('fields');
+  });
+
+  it('should answer 404 when a failed read is followed by a refresh that drops the collection', async () => {
+    const store = makeStore();
+    const usersReadModel = await store.getReadModel();
+    jest
+      .spyOn(store, 'getReadModel')
+      .mockResolvedValueOnce(usersReadModel)
+      .mockResolvedValue(new ReadModel([]));
+    jest
+      .spyOn(store, 'getCapabilities')
+      .mockRejectedValue(new AgentHttpError(503, {}, 'Service Unavailable'));
+    const { callback } = buildApp({ store });
+
+    const response = await request(callback).get(ROUTE);
+
+    expect(response.status).toBe(404);
+    expect(response.body.error.type).toBe('unknown_collection');
+  });
+
+  it('should keep the agent failure when the exposure re-check cannot read the schema', async () => {
+    const store = makeStore();
+    const usersReadModel = await store.getReadModel();
+    jest
+      .spyOn(store, 'getReadModel')
+      .mockResolvedValueOnce(usersReadModel)
+      .mockRejectedValue(new SchemaUnavailableError());
+    jest
+      .spyOn(store, 'getCapabilities')
+      .mockRejectedValue(new AgentHttpError(503, {}, 'Service Unavailable'));
+    const { callback } = buildApp({ store });
+
+    const response = await request(callback).get(ROUTE);
+
+    expect(response.status).toBe(503);
+    expect(response.body.error.type).toBe('agent_unavailable');
   });
 
   it.each([
