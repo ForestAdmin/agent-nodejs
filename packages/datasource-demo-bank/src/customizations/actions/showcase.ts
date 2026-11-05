@@ -1,0 +1,281 @@
+/**
+ * The demo's own KYC cases, added to the seed's rows at every boot, before they are written.
+ * Their references carry SHOWCASE_MARK (KYC-DEMO-0001 to -0004): every queue but their own
+ * (kyc_showcase) leaves them out (segments.ts), so a self-service visitor always finds them
+ * waiting, whatever the robot or the teams do.
+ *
+ * - KYC-DEMO-0001, the happy path: a clean retail file (papers complete, an ID whose scan passes,
+ *   nobody on a watchlist, income that explains the money expected in). The visitor takes it
+ *   through the onboarding Smart Actions one by one, up to Approve KYC.
+ * - KYC-DEMO-0002, the escalation: the same clean papers and ID, but more money expected in than
+ *   the declared income, so the risk is MEDIUM. Once its file is built and rated, "Send for senior
+ *   sign-off" puts the case in the senior officer's queue.
+ * - KYC-DEMO-0003 and -0004, already in that queue (sent a few hours earlier, so ahead of case 2):
+ *   an operator checked them and rated them MEDIUM (more money expected in than the income; funds
+ *   from an inheritance with no notary deed).
+ *
+ * Built like "Send new applications" (demo-feed.ts KINDS), so the papers, the history and the
+ * pre-score are those of a real application. "Reset the demo cases" (a Global action on kyc_cases)
+ * removes the four and everything they gathered, and creates them again.
+ */
+import { randomUUID } from 'crypto';
+
+import { KINDS } from './demo-feed';
+import { forestStore, newRetailApplicant, newRun, rowsStore } from '../../seed/live';
+import { schema, tables } from '../../seed/schema';
+import { badge, card } from '../shared/render';
+import { SHOWCASE_MARK } from '../shared/segments';
+
+const CASES = [
+  {
+    reference: `KYC-${SHOWCASE_MARK}-0001`,
+    kind: 'clean',
+    story: 'The happy path: every check clean, approve it with the actions',
+  },
+  {
+    reference: `KYC-${SHOWCASE_MARK}-0002`,
+    kind: 'medium',
+    story: 'Medium risk: run Retail onboarding, it goes to a senior',
+  },
+  {
+    reference: `KYC-${SHOWCASE_MARK}-0003`,
+    kind: 'medium',
+    story: 'Waiting for a senior: more money expected in than the income',
+    senior: { by: 'lea.girard', hoursAgo: 3 },
+  },
+  {
+    reference: `KYC-${SHOWCASE_MARK}-0004`,
+    kind: 'inheritance',
+    story: 'Waiting for a senior: funds from an inheritance, no notary deed',
+    senior: { by: 'thomas.renaud', hoursAgo: 2 },
+  },
+];
+// Above 70k EUR a year the bank asks for a proof of income the app does not send: not clean.
+const PROOF_BANDS = ['FROM_70K_TO_120K', 'ABOVE_120K'];
+// The demo's shapes: demo-feed.ts's, and an inheritance with no notary deed (a MEDIUM risk).
+const SHAPES = {
+  ...Object.fromEntries(Object.entries(KINDS).map(([kind, k]) => [kind, k.shape])),
+  inheritance: () => ({
+    ...KINDS.clean.shape(),
+    accept: p => p.source_of_funds === 'INHERITANCE' && !PROOF_BANDS.includes(p.income_band),
+    risk: 'MEDIUM',
+    intake: 'MEDIUM',
+  }),
+};
+const SENIOR_REASON = 'Medium or high risk: senior sign-off';
+const ID_AND_SELFIE = ['PASSPORT', 'NATIONAL_ID', 'DRIVERS_LICENSE', 'SELFIE'];
+const MINUTE = 60 * 1000;
+const operatorMail = name => `${name}@demo-bank.example`;
+
+/** The same run, its clock `minutes` earlier: a case sent a few hours before the visit. */
+function earlier(run, minutes) {
+  const now = new Date(run.now.getTime() - minutes * MINUTE);
+
+  return { ...run, now, at: ago => run.store.stamp(new Date(now.getTime() - ago * MINUTE)) };
+}
+
+/**
+ * A case as an operator leaves it for a senior: papers and ID checked, screened clear, rated
+ * MEDIUM and sent for sign-off, each step a line in its history (as the actions write them).
+ */
+async function sendToSenior(store, run, kycId, { by }) {
+  const who = operatorMail(by);
+  const docs = await store.list(
+    'documents',
+    [
+      ['kyc_case_id', '=', kycId],
+      ['document_type', 'in', ID_AND_SELFIE],
+    ],
+    ['id'],
+  );
+  await Promise.all(
+    docs.map(doc =>
+      store.patch('documents', doc.id, {
+        check_result: 'PASSED',
+        verified: true,
+        verified_by: who,
+        verified_at: run.at(50),
+      }),
+    ),
+  );
+  const line = (field, from, to, minutesAgo, reason) =>
+    store.insert('status_changes', {
+      id: randomUUID(),
+      record_type: 'KYC_CASES',
+      record_id: kycId,
+      field,
+      old_value: from,
+      new_value: to,
+      changed_by: who,
+      changed_at: run.at(minutesAgo),
+      reason,
+    });
+  await line('status', 'OPEN', 'IN_REVIEW', 58, `Review started by ${who}`);
+  await line('documents', null, 'Complete', 55, '3 papers checked');
+  await line('screening', null, 'No match', 45, 'Sanctions screening provider, simulated');
+  await line('risk_after', null, 'MEDIUM', 40, 'Risk rated MEDIUM');
+  await line('status', 'IN_REVIEW', 'PENDING_APPROVAL', 38, SENIOR_REASON);
+  await store.patch('kyc_cases', kycId, {
+    status: 'PENDING_APPROVAL',
+    risk_after: 'MEDIUM',
+    assigned_to: who,
+    escalated_at: run.at(38),
+    escalation_reason: SENIOR_REASON,
+    updated_at: run.at(38),
+  });
+}
+
+const RESET = 'Reset the demo cases';
+
+const normalize = s =>
+  String(s || '')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .trim();
+
+/** The four cases, written through `store` (live.ts: the seed's rows or the agent's data). */
+async function createShowcaseCases(store) {
+  const run = newRun(store);
+  const entries = await store.list(
+    'watchlist_entries',
+    [['delisted_at', 'null']],
+    ['name', 'aliases'],
+  );
+  // Every name and alias on a watchlist, normalized as the screening compares them.
+  const listed = new Set(
+    entries.flatMap(e => [e.name, ...String(e.aliases || '').split(/[;,]/)]).map(normalize),
+  );
+
+  // One after the other: each takes the next case reference before it is renamed.
+  return CASES.reduce(async (previous, { reference, kind, story, senior }) => {
+    const done = await previous;
+    const shape = SHAPES[kind]();
+    const accept = shape.accept || (() => true);
+    const at = senior ? earlier(run, senior.hoursAgo * 60) : run;
+    const created = await newRetailApplicant(at, {
+      ...shape,
+      // The screening finds nobody: no applicant whose name is on a list.
+      accept: p => accept(p) && !listed.has(normalize(`${p.first_name} ${p.last_name}`)),
+    });
+    await store.patch('kyc_cases', created.kycId, { reference });
+    if (senior) await sendToSenior(store, at, created.kycId, senior);
+
+    return [...done, { reference, name: created.name, story }];
+  }, Promise.resolve([]));
+}
+
+/** At boot, in the seed's rows (table → rows), before they are written. */
+async function addShowcaseCases(rows) {
+  await createShowcaseCases(rowsStore(rows));
+}
+
+const hasId = table => tables[table].fields.some(f => f.name === 'id');
+const inIds = (field, ids) => ({ conditionTree: { field, operator: 'In', value: ids } });
+
+/**
+ * Every row the demo cases brought or gathered: the cases, their customers and people, and what
+ * hangs on them through the schema's links (papers, requests, hits, the account and card opened on
+ * approval…), followed from parent to child only, so shared data (watchlists, rules) is never
+ * reached. Table → ids, in the order they were found.
+ */
+async function showcaseRows(dataSource) {
+  const list = (table, field, ids) =>
+    dataSource.getCollection(table).list(inIds(field, ids), ['id']);
+  const cases = await dataSource.getCollection('kyc_cases').list(
+    inIds(
+      'reference',
+      CASES.map(c => c.reference),
+    ),
+    ['id', 'customer_id'],
+  );
+  const customers = [...new Set(cases.map(c => c.customer_id))];
+  const members = await dataSource
+    .getCollection('customer_members')
+    .list(inIds('customer_id', customers), ['individual_id']);
+  const found = new Map([
+    ['kyc_cases', new Set(cases.map(c => c.id))],
+    ['customers', new Set(customers)],
+    ['individuals', new Set(members.map(m => m.individual_id).filter(Boolean))],
+  ]);
+  let frontier = [...found.entries()].map(([table, ids]) => [table, [...ids]]);
+
+  while (frontier.length) {
+    const next = [];
+    // eslint-disable-next-line no-await-in-loop
+    await Promise.all(
+      frontier.flatMap(([parent, ids]) =>
+        schema.relations
+          .filter(r => r.parent === parent && hasId(r.child))
+          .map(async r => {
+            const rows = await list(r.child, r.foreignKey, ids);
+            const seen = found.get(r.child) || new Set();
+            const fresh = rows.map(row => row.id).filter(id => !seen.has(id));
+            if (!fresh.length) return;
+            fresh.forEach(id => seen.add(id));
+            found.set(r.child, seen);
+            next.push([r.child, fresh]);
+          }),
+      ),
+    );
+    frontier = next;
+  }
+
+  return found;
+}
+
+/** Remove the demo cases and all they gathered, then create them again, as at boot. */
+async function resetShowcaseCases(dataSource) {
+  const found = await showcaseRows(dataSource);
+  const remove = (table, field, ids) =>
+    ids.length ? dataSource.getCollection(table).delete(inIds(field, ids)) : null;
+  const all = [...found.values()].flatMap(ids => [...ids]);
+  // Their history, and the link tables with no id of their own (alert or investigation lines).
+  await remove('status_changes', 'record_id', all);
+  await Promise.all(
+    schema.relations
+      .filter(r => !hasId(r.child) && found.has(r.parent))
+      .map(r => remove(r.child, r.foreignKey, [...found.get(r.parent)])),
+  );
+
+  // Children first: the tables found last hang on the ones found before.
+  // eslint-disable-next-line no-restricted-syntax
+  for (const [table, ids] of [...found.entries()].reverse()) {
+    // eslint-disable-next-line no-await-in-loop
+    await remove(table, 'id', [...ids]);
+  }
+
+  const removed = [...found.values()].reduce((n, ids) => n + ids.size, 0);
+
+  return { created: await createShowcaseCases(forestStore(dataSource)), removed };
+}
+
+function resetCard({ created, removed }) {
+  return card({
+    eyebrow: 'Demo cases',
+    title: 'The demo cases are back at the start',
+    status: ['Ready', 'green'],
+    rows: [['Rows removed', `${removed} (the old cases and all they gathered)`]],
+    list: {
+      head: ['Case', 'Applicant', 'Story'],
+      rows: created.map(c => [c.reference, c.name, { html: badge(c.story, 'grey') }]),
+    },
+    note: 'Anything that pointed to an old case (a task, a link) now points to a removed case.',
+  });
+}
+
+function addShowcaseReset(collection) {
+  collection.addAction(RESET, {
+    scope: 'Global',
+    execute: async (context, resultBuilder) => {
+      const result = await resetShowcaseCases(context.dataSource);
+
+      return resultBuilder.success(
+        `Demo cases reset: ${result.created.map(c => `${c.reference} (${c.name})`).join(', ')}.`,
+        { html: resetCard(result) },
+      );
+    },
+  });
+}
+
+export { CASES, addShowcaseCases, addShowcaseReset };
