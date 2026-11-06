@@ -118,10 +118,34 @@ const DeterministicConditionSchema = z
   });
 export type DeterministicCondition = z.infer<typeof DeterministicConditionSchema>;
 
+const ConditionAggregatorSchema = z.enum(['and', 'or']);
+
+export interface DeterministicConditionGroup {
+  aggregator: z.infer<typeof ConditionAggregatorSchema>;
+  conditions: DeterministicConditionNode[];
+}
+export type DeterministicConditionNode = DeterministicCondition | DeterministicConditionGroup;
+
+// An empty group would read as "match nothing" (or) or "match everything" (and): rejected, never
+// evaluated. No depth limit: only the editor caps nesting.
+const DeterministicConditionNodeSchema: z.ZodType<DeterministicConditionNode> = z.lazy(() =>
+  z.union([
+    z.object({
+      aggregator: ConditionAggregatorSchema,
+      conditions: z.array(DeterministicConditionNodeSchema).min(1),
+    }),
+    DeterministicConditionSchema,
+  ]),
+);
+
+export const isDeterministicConditionGroup = (
+  node: DeterministicConditionNode,
+): node is DeterministicConditionGroup => 'aggregator' in node;
+
 const OptionConditionsSchema = z.object({
   option: z.string().min(1),
-  aggregator: z.enum(['and', 'or']),
-  conditions: z.array(DeterministicConditionSchema).min(1),
+  aggregator: ConditionAggregatorSchema,
+  conditions: z.array(DeterministicConditionNodeSchema).min(1),
 });
 export type OptionConditions = z.infer<typeof OptionConditionsSchema>;
 
