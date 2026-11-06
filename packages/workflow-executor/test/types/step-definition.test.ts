@@ -248,6 +248,89 @@ describe('ConditionStepDefinitionSchema deterministic conditions', () => {
     expect(JSON.stringify(!result.success && result.error.issues)).toContain('sourceType');
   });
 
+  describe('a sub-workflow End source', () => {
+    function parseEndCondition(condition: Record<string, unknown>) {
+      return ConditionStepDefinitionSchema.safeParse({
+        ...base,
+        preRecordedArgs: {
+          ...preRecordedArgs,
+          optionConditions: [
+            {
+              option: 'High value',
+              aggregator: 'and',
+              conditions: [
+                {
+                  sourceType: 'sub-workflow',
+                  sourceStepId: 'call-1',
+                  fieldName: 'end',
+                  ...condition,
+                },
+              ],
+            },
+          ],
+        },
+      });
+    }
+
+    it.each([
+      ['equal', 'end-1'],
+      ['not_equal', 'end-1'],
+      ['in', ['end-1', 'end-2']],
+      ['not_in', ['end-1']],
+    ])('accepts %s with %j', (operator, value) => {
+      const result = parseEndCondition({ operator, value });
+
+      expect(result.success).toBe(true);
+      expect(
+        result.success && result.data.preRecordedArgs?.optionConditions[0].conditions[0],
+      ).toEqual({
+        sourceType: 'sub-workflow',
+        sourceStepId: 'call-1',
+        fieldName: 'end',
+        operator,
+        value,
+      });
+    });
+
+    it('reports a missing value once, not also as a malformed one', () => {
+      const result = parseEndCondition({ operator: 'equal' });
+
+      expect(result.success).toBe(false);
+      expect(!result.success && result.error.issues.map(issue => issue.message)).toEqual([
+        'value is required for the "equal" operator',
+      ]);
+    });
+
+    it('rejects a field other than end', () => {
+      const result = parseEndCondition({ fieldName: 'status', operator: 'equal', value: 'end-1' });
+
+      expect(result.success).toBe(false);
+      expect(JSON.stringify(!result.success && result.error.issues)).toContain('fieldName');
+    });
+
+    it.each(['greater_than', 'contains', 'present'])('rejects the %s operator', operator => {
+      const result = parseEndCondition({ operator, value: 'end-1' });
+
+      expect(result.success).toBe(false);
+      expect(JSON.stringify(!result.success && result.error.issues)).toContain(
+        `the \\"${operator}\\" operator does not apply to a sub-workflow end`,
+      );
+    });
+
+    it.each([
+      ['equal', ['end-1']],
+      ['not_equal', ''],
+      ['in', 'end-1'],
+      ['not_in', []],
+      ['in', ['end-1', 2]],
+    ])('rejects %s with the malformed value %j', (operator, value) => {
+      const result = parseEndCondition({ operator, value });
+
+      expect(result.success).toBe(false);
+      expect(JSON.stringify(!result.success && result.error.issues)).toContain('"value"');
+    });
+  });
+
   it('rejects preRecordedArgs missing fallbackOption', () => {
     const result = ConditionStepDefinitionSchema.safeParse({
       ...base,

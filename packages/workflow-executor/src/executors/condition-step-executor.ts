@@ -219,6 +219,9 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
       case 'get-data':
         return this.resolveGetDataValue(condition, stepExecutions);
 
+      case 'sub-workflow':
+        return this.resolveSubWorkflowEndValue(condition);
+
       /* istanbul ignore next — the schema only lets a known source type through */
       default: {
         const unknownSourceType: never = condition.sourceType;
@@ -250,6 +253,13 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
     if (!field || !('value' in field)) return { found: false, reason: 'field-not-loaded' };
 
     return { found: true, value: field.value };
+  }
+
+  private resolveSubWorkflowEndValue(condition: DeterministicCondition): ResolvedConditionValue {
+    const call = this.context.subWorkflowEnds?.find(end => end.stepId === condition.sourceStepId);
+    if (!call) return { found: false, reason: 'source-step-not-reached' };
+
+    return { found: true, value: call.endStepId };
   }
 
   private readUserChoice(
