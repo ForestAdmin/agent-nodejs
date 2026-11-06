@@ -24,7 +24,6 @@ import {
   ActionFormValidationError,
   ActionNotFoundError,
   ActionRequiresApprovalError,
-  ApprovalBranchesNeedFullAiError,
   ApprovalRequestFailedError,
   ApprovalRequestGoneError,
   ApprovalRequestUntrackedError,
@@ -365,10 +364,6 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     form?: { fields: ActionFormField[]; aiFilledValues: AiFilledFormValue[] },
     fullAiFallback?: FullAiFallback,
   ): Promise<StepExecutionResult> {
-    if (fullAiFallback && this.hasApprovalOutcomes) {
-      throw new ApprovalBranchesNeedFullAiError(target.name, fullAiFallback.reason);
-    }
-
     await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'trigger-action',
       stepIndex: this.context.stepIndex,
@@ -673,7 +668,11 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     const { selectedRecordRef, displayName, name } = target;
     const confirmation = existingExecution.userConfirmation;
     const submissionOutcome = confirmation?.submissionOutcome ?? 'executed';
+    const approvalRequest = confirmation?.approvalRequest;
     const aiFilledValues = existingExecution.pendingData?.form?.aiFilledValues;
+    const pausesOnApproval = this.hasApprovalOutcomes && submissionOutcome === 'pending-approval';
+
+    if (pausesOnApproval && !approvalRequest) throw new ApprovalRequestUntrackedError(name);
 
     await this.context.runStore.saveStepExecution(this.context.runId, {
       ...existingExecution,
@@ -687,13 +686,26 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
         submissionOutcome,
         // AI-assisted = the human submitted natively (audit).
         submittedBy: 'user',
+        ...(approvalRequest && { approvalRequest }),
         ...(confirmation?.submittedValues && { submittedValues: confirmation.submittedValues }),
         ...(aiFilledValues?.length && { aiFilledValues }),
       },
       selectedRecordRef,
+      // The submission happened in the front: a re-dispatch replays this record (and, on a step
+      // with approval outcomes, its review) instead of going through the confirmation again.
+      idempotencyPhase: 'done',
     });
 
-    return this.buildOutcomeResult({ status: 'success' });
+    if (pausesOnApproval) return this.buildApprovalPause(approvalRequest);
+
+    if (submissionOutcome === 'pending-approval') {
+      return this.buildOutcomeResult({
+        status: 'success',
+        ...(approvalRequest && { approvalRequest }),
+      });
+    }
+
+    return this.buildExecutedResult();
   }
 
   private async selectAction(
