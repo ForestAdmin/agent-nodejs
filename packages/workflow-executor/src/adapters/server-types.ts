@@ -237,6 +237,8 @@ export interface ServerHydratedWorkflowRun {
   userProfile: ServerUserProfile;
   /** The project's IANA zone. Absent from an orchestrator that predates it, null when unset. */
   timezone?: string | null;
+  /** The run's root workflow name. Absent from an orchestrator that predates it. */
+  workflowName?: string | null;
 }
 
 // --- Update step request (POST /api/workflow-orchestrator/update-step) ---

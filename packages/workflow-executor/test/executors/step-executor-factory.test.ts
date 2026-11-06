@@ -1,3 +1,4 @@
+import type ActivityLog from '../../src/executors/activity-log';
 import type { StepContextConfig } from '../../src/executors/step-executor-factory';
 import type { ActivityLogPort } from '../../src/ports/activity-log-port';
 import type { AvailableStepExecution } from '../../src/types/execution-context';
@@ -117,6 +118,74 @@ describe('StepExecutorFactory.create', () => {
     expect(result.stepOutcome.error).toBe(
       'The Sub-workflow step that called this workflow takes its record from a step that did not run before it. Change the record on that Sub-workflow step.',
     );
+  });
+
+  describe("the run's workflow on the step's activity logs", () => {
+    const TARGET = { action: 'index', type: 'read', collectionId: 'col-1' } as const;
+
+    async function trackThroughBuiltContext(step: AvailableStepExecution) {
+      const port = {
+        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
+        markSucceeded: jest.fn().mockResolvedValue(undefined),
+        markFailed: jest.fn().mockResolvedValue(undefined),
+      };
+      const executor = await StepExecutorFactory.create(
+        step,
+        makeContextConfig(),
+        port,
+        jest.fn().mockResolvedValue({ tools: [], mcpServerName: 'srv' }),
+      );
+      const { activityLog } = (executor as unknown as { context: { activityLog: ActivityLog } })
+        .context;
+      await activityLog.track(TARGET, { operation: async () => undefined });
+
+      return port.createPending.mock.calls[0][0];
+    }
+
+    it('carries the run id, the workflow name and the step title', async () => {
+      const args = await trackThroughBuiltContext(
+        makeStep({
+          workflowName: 'Alert triage',
+          stepDefinition: {
+            type: StepType.Mcp,
+            executionType: StepExecutionMode.FullyAutomated,
+            mcpServerId: 'srv-1',
+            title: 'Freeze the account',
+          },
+        } as unknown as Partial<AvailableStepExecution>),
+      );
+
+      expect(args).toEqual({
+        renderingId: 1,
+        ...TARGET,
+        workflow: { runId: 'run-1', name: 'Alert triage', stepName: 'Freeze the account' },
+      });
+    });
+
+    it.each([
+      ['no title', undefined],
+      ['an empty title', ''],
+    ])('names a step with %s by its step id', async (_label, title) => {
+      const args = await trackThroughBuiltContext(
+        makeStep({
+          workflowName: 'Alert triage',
+          stepDefinition: {
+            type: StepType.Mcp,
+            executionType: StepExecutionMode.FullyAutomated,
+            mcpServerId: 'srv-1',
+            title,
+          },
+        } as unknown as Partial<AvailableStepExecution>),
+      );
+
+      expect(args.workflow).toEqual({ runId: 'run-1', name: 'Alert triage', stepName: 'step-1' });
+    });
+
+    it('carries no workflow when the run has no workflow name', async () => {
+      const args = await trackThroughBuiltContext(makeStep());
+
+      expect(args).toEqual({ renderingId: 1, ...TARGET });
+    });
   });
 
   it('passes the step user id to the tool fetcher', async () => {
