@@ -1,3 +1,10 @@
+# @forestadmin/datasource-mongoose [1.15.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.14.8...@forestadmin/datasource-mongoose@1.15.0) (2026-11-06)
+
+
+### Features
+
+* allow nested condition tree ([#2029](https://github.com/ForestAdmin/agent-nodejs/issues/2029)) ([1417b5b](https://github.com/ForestAdmin/agent-nodejs/commit/1417b5b4a04c9e876933d8370ab4ef83b79f740f))
+
 ## @forestadmin/datasource-mongoose [1.14.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongoose@1.14.7...@forestadmin/datasource-mongoose@1.14.8) (2026-11-03)
 
 
