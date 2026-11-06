@@ -86,6 +86,59 @@ describe('ForestadminClientActivityLogPort', () => {
       );
     });
 
+    it("forwards the run's workflow to the activity log service", async () => {
+      const service = makeService();
+      service.createActivityLog.mockResolvedValue({ id: 'log-1', attributes: { index: '0' } });
+      const port = makePort(service);
+
+      await port.createPending({
+        renderingId: 5,
+        action: 'update',
+        type: 'write',
+        collectionId: 'col-1',
+        recordId: [42],
+        label: 'Freeze',
+        workflow: { runId: '135900', name: 'Alert triage', stepName: 'Freeze the account' },
+      });
+
+      expect(service.createActivityLog).toHaveBeenCalledWith({
+        forestServerToken: 'tok',
+        renderingId: '5',
+        action: 'update',
+        type: 'write',
+        collectionName: 'col-1',
+        recordId: '42',
+        label: 'Freeze',
+        workflow: { runId: '135900', name: 'Alert triage', stepName: 'Freeze the account' },
+      });
+    });
+
+    it('sends no workflow to the activity log service when the run has none', async () => {
+      const service = makeService();
+      service.createActivityLog.mockResolvedValue({ id: 'log-1', attributes: { index: '0' } });
+      const port = makePort(service);
+
+      await port.createPending({
+        renderingId: 5,
+        action: 'index',
+        type: 'read',
+        collectionId: 'c',
+      });
+
+      // toStrictEqual, not toHaveBeenCalledWith: only it tells a missing key from an undefined one.
+      expect(service.createActivityLog.mock.calls[0]).toStrictEqual([
+        {
+          forestServerToken: 'tok',
+          renderingId: '5',
+          action: 'index',
+          type: 'read',
+          collectionName: 'c',
+          recordId: undefined,
+          label: undefined,
+        },
+      ]);
+    });
+
     it('retries on 503 and succeeds on the second attempt', async () => {
       const service = makeService();
       service.createActivityLog

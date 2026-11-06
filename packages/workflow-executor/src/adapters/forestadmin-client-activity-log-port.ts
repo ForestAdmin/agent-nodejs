@@ -35,6 +35,7 @@ export default class ForestadminClientActivityLogPort implements ActivityLogPort
             // Record ids are serialized to the pipe wire format here, never in the executor.
             recordId: args.recordId?.length ? serializeRecordId(args.recordId) : undefined,
             label: args.label,
+            ...(args.workflow && { workflow: args.workflow }),
           }),
         { logger: this.logger },
       );

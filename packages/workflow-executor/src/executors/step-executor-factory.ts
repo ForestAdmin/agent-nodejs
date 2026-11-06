@@ -21,6 +21,7 @@ import type {
   TriggerActionStepDefinition,
   UpdateRecordStepDefinition,
 } from '../types/validated/step-definition';
+import type { ActivityLogWorkflow } from '@forestadmin/forestadmin-client';
 
 import {
   OAuthReauthRequiredError,
@@ -156,6 +157,20 @@ export default class StepExecutorFactory {
     }
   }
 
+  // No name, no workflow: the activity-log route rejects a workflow without one. An untitled step is
+  // named by its id, as the orchestrator names it in its own workflow logs.
+  private static toActivityLogWorkflow(
+    step: AvailableStepExecution,
+  ): ActivityLogWorkflow | undefined {
+    if (!step.workflowName) return undefined;
+
+    return {
+      runId: step.runId,
+      name: step.workflowName,
+      stepName: step.stepDefinition.title || step.stepId,
+    };
+  }
+
   private static buildContext(
     step: AvailableStepExecution,
     cfg: StepContextConfig,
@@ -169,7 +184,11 @@ export default class StepExecutorFactory {
       step.runId,
       step.user.renderingId,
     );
-    const activityLog = new ActivityLog(activityLogPort, step.user);
+    const activityLog = new ActivityLog(
+      activityLogPort,
+      step.user,
+      StepExecutorFactory.toActivityLogWorkflow(step),
+    );
 
     return {
       runId: step.runId,

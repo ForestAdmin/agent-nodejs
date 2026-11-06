@@ -27,6 +27,7 @@ export default class ActivityLogsService {
       recordId,
       recordIds,
       label,
+      workflow,
     } = params;
 
     const body = {
@@ -40,6 +41,7 @@ export default class ActivityLogsService {
           status: 'pending',
           // Ensure all record IDs are converted to strings
           records: (recordIds || (recordId ? [recordId] : [])).map(String),
+          ...(workflow && { workflow }),
         },
         relationships: {
           rendering: {
