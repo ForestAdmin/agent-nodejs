@@ -24,6 +24,7 @@ import {
   ActionFormValidationError,
   ActionNotFoundError,
   ActionRequiresApprovalError,
+  ApprovalBranchesMissingError,
   ApprovalRequestFailedError,
   ApprovalRequestGoneError,
   ApprovalRequestUntrackedError,
@@ -99,6 +100,11 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
 
   private get hasApprovalOutcomes(): boolean {
     return this.context.stepDefinition.approvalOutcomes === true;
+  }
+
+  // Saved without branches by an editor that knows them; a step from an older editor has no value.
+  private get refusesApprovals(): boolean {
+    return this.context.stepDefinition.approvalOutcomes === false;
   }
 
   private buildApprovalPause(approvalRequest: { id: string }): StepExecutionResult {
@@ -185,6 +191,10 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       const isPendingApproval =
         result && !('skipped' in result) && result.submissionOutcome === 'pending-approval';
       const approvalRequest = isPendingApproval ? result.approvalRequest : undefined;
+
+      if (isPendingApproval && this.refusesApprovals) {
+        throw new ApprovalBranchesMissingError(existing.executionParams?.name ?? 'unknown');
+      }
 
       if (isPendingApproval && this.hasApprovalOutcomes) {
         if (!approvalRequest) {
@@ -639,6 +649,8 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
         idempotencyPhase: 'done',
       });
 
+      if (this.refusesApprovals) throw new ApprovalBranchesMissingError(name);
+
       if (this.hasApprovalOutcomes) {
         if (!outcome.approvalRequest) throw new ApprovalRequestUntrackedError(name);
 
@@ -709,6 +721,10 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     });
 
     if (pausesOnApproval) return this.buildApprovalPause(approvalRequest);
+
+    if (this.refusesApprovals && submissionOutcome === 'pending-approval') {
+      throw new ApprovalBranchesMissingError(name);
+    }
 
     if (submissionOutcome === 'pending-approval') {
       return this.buildOutcomeResult({
