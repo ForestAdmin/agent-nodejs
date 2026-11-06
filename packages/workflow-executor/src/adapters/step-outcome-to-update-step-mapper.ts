@@ -39,11 +39,18 @@ export default function toUpdateStepRequest(
   }
 
   if (outcome.type === 'record') {
-    const { approvalRequest, approvalRequests, awaitingInputReason, selectedOption, approverId } =
-      outcome;
+    const {
+      approvalRequest,
+      approvalRequests,
+      actionTarget,
+      awaitingInputReason,
+      selectedOption,
+      approverId,
+    } = outcome;
 
     if (approvalRequest !== undefined) context.approvalRequest = approvalRequest;
     if (approvalRequests !== undefined) context.approvalRequests = approvalRequests;
+    if (actionTarget !== undefined) context.actionTarget = actionTarget;
     if (awaitingInputReason !== undefined) context.awaitingInputReason = awaitingInputReason;
     if (selectedOption !== undefined) context.selectedOption = selectedOption;
     if (approverId !== undefined) context.approverId = approverId;

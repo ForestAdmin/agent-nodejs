@@ -3449,6 +3449,11 @@ describe('TriggerRecordActionStepExecutor', () => {
         status: 'awaiting-input',
         awaitingInputReason: 'pending-approval',
         approvalRequests: [{ id: '12' }],
+        actionTarget: {
+          collectionName: 'customers',
+          actionName: 'send-welcome-email',
+          recordId: '42',
+        },
       });
       expect(runStore.saveStepExecution).toHaveBeenLastCalledWith(
         'run-1',
@@ -3598,6 +3603,7 @@ describe('TriggerRecordActionStepExecutor', () => {
             status: 'awaiting-input',
             awaitingInputReason: 'pending-approval',
             approvalRequests: [{ id: '12' }],
+            actionTarget: { collectionName: 'customers', actionName: 'block_card', recordId: '42' },
           }),
         );
         expect(runStore.saveStepExecution).not.toHaveBeenCalled();
@@ -3715,6 +3721,7 @@ describe('TriggerRecordActionStepExecutor', () => {
           status: 'awaiting-input',
           awaitingInputReason: 'pending-approval',
           approvalRequests: [{ id: '12' }],
+          actionTarget: { collectionName: 'customers', actionName: 'block_card', recordId: '42' },
         });
         expect(runStore.saveStepExecution).toHaveBeenCalledWith(
           'run-1',
@@ -3834,6 +3841,36 @@ describe('TriggerRecordActionStepExecutor', () => {
         );
       },
     );
+
+    it('names a composite record id the way the agents write it in a request', async () => {
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([
+          {
+            ...confirmedRecord({
+              userConfirmed: true,
+              submissionOutcome: 'pending-approval',
+              approvalRequest: { id: '12' },
+            }),
+            selectedRecordRef: makeRecordRef({ collectionName: 'cards', recordId: [1, 'a'] }),
+          },
+        ]),
+      });
+      const context = makeContext({
+        runStore,
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.Manual,
+          approvalOutcomes: true,
+        }),
+      });
+
+      const result = await new TriggerRecordActionStepExecutor(context).execute();
+
+      expect(result.stepOutcome).toEqual(
+        expect.objectContaining({
+          actionTarget: { collectionName: 'cards', actionName: 'block_card', recordId: '1|a' },
+        }),
+      );
+    });
 
     it('errors the step when the form is declined without a branch', async () => {
       const { result, runStore } = await submit(

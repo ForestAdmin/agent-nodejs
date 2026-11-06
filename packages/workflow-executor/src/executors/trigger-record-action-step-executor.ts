@@ -9,6 +9,7 @@ import type {
 import type { ActionSchema, CollectionSchema, RecordRef } from '../types/validated/collection';
 import type { TriggerActionStepDefinition } from '../types/validated/step-definition';
 import type {
+  ApprovalActionTarget,
   ApprovalOutcome,
   ApprovalRequestRef,
   AwaitingInputReason,
@@ -33,6 +34,7 @@ import {
   StepStateError,
 } from '../errors';
 import RecordStepExecutor from './record-step-executor';
+import { serializeRecordId } from '../record-id';
 import { StepExecutionMode } from '../types/validated/step-definition';
 
 const TRIGGER_ACTION_SYSTEM_PROMPT = `You are an AI agent triggering an action on a record based on a user request.
@@ -92,6 +94,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     approvalRequest?: { id: string };
     awaitingInputReason?: AwaitingInputReason;
     approvalRequests?: ApprovalRequestRef[];
+    actionTarget?: ApprovalActionTarget;
     selectedOption?: ApprovalOutcome;
     approverId?: number | null;
   }): StepExecutionResult {
@@ -107,11 +110,21 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     return this.context.stepDefinition.approvalOutcomes === false;
   }
 
-  private buildApprovalPause(approvalRequest: { id: string }): StepExecutionResult {
+  private buildApprovalPause(
+    approvalRequest: { id: string },
+    { selectedRecordRef, actionName }: { selectedRecordRef: RecordRef; actionName?: string },
+  ): StepExecutionResult {
     return this.buildOutcomeResult({
       status: 'awaiting-input',
       awaitingInputReason: 'pending-approval',
       approvalRequests: [{ id: approvalRequest.id }],
+      ...(actionName && {
+        actionTarget: {
+          collectionName: selectedRecordRef.collectionName,
+          actionName,
+          recordId: serializeRecordId(selectedRecordRef.recordId),
+        },
+      }),
     });
   }
 
@@ -154,7 +167,12 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
   ): Promise<StepExecutionResult> {
     const review = this.context.approvalRequests?.find(({ id }) => id === approvalRequest.id);
 
-    if (!review) return this.buildApprovalPause(approvalRequest);
+    const ranAction = {
+      selectedRecordRef: existing.selectedRecordRef,
+      actionName: existing.executionParams?.name ?? existing.pendingData?.name,
+    };
+
+    if (!review) return this.buildApprovalPause(approvalRequest, ranAction);
 
     if (review.status === 'approved' || review.status === 'rejected') {
       await this.context.runStore.saveStepExecution(this.context.runId, {
@@ -178,7 +196,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     if (review.status === 'failed') throw new ApprovalRequestFailedError(approvalRequest.id);
     if (review.status === undefined) throw new ApprovalRequestGoneError(approvalRequest.id);
 
-    return this.buildApprovalPause(approvalRequest);
+    return this.buildApprovalPause(approvalRequest, ranAction);
   }
 
   protected override async checkIdempotency(): Promise<StepExecutionResult | null> {
@@ -654,7 +672,10 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       if (this.hasApprovalOutcomes) {
         if (!outcome.approvalRequest) throw new ApprovalRequestUntrackedError(name);
 
-        return this.buildApprovalPause(outcome.approvalRequest);
+        return this.buildApprovalPause(outcome.approvalRequest, {
+          selectedRecordRef,
+          actionName: name,
+        });
       }
 
       return this.buildOutcomeResult({
@@ -720,7 +741,9 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       idempotencyPhase: 'done',
     });
 
-    if (pausesOnApproval) return this.buildApprovalPause(approvalRequest);
+    if (pausesOnApproval) {
+      return this.buildApprovalPause(approvalRequest, { selectedRecordRef, actionName: name });
+    }
 
     if (this.refusesApprovals && submissionOutcome === 'pending-approval') {
       throw new ApprovalBranchesMissingError(name);

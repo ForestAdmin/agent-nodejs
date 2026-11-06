@@ -567,6 +567,7 @@ describe('workflow execution (integration)', () => {
         status: 'awaiting-input',
         awaitingInputReason: 'pending-approval',
         approvalRequests: [{ id: '12' }],
+        actionTarget: expect.objectContaining({ actionName: 'send_email' }),
       }),
     );
   });

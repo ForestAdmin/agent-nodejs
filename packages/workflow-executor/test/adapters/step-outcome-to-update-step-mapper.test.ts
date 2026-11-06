@@ -144,6 +144,7 @@ describe('toUpdateStepRequest', () => {
       status: 'awaiting-input',
       awaitingInputReason: 'pending-approval',
       approvalRequests: [{ id: '12' }],
+      actionTarget: { collectionName: 'cards', actionName: 'block_card', recordId: '1|a' },
     };
 
     const body = toUpdateStepRequest('42', outcome);
@@ -155,6 +156,7 @@ describe('toUpdateStepRequest', () => {
         status: 'awaiting-input',
         awaitingInputReason: 'pending-approval',
         approvalRequests: [{ id: '12' }],
+        actionTarget: { collectionName: 'cards', actionName: 'block_card', recordId: '1|a' },
       },
     });
   });
