@@ -166,6 +166,54 @@ describe('ConditionStepDefinitionSchema deterministic conditions', () => {
     },
   );
 
+  it('accepts a condition whose sourceType is get-data and keeps it', () => {
+    const condition = {
+      sourceType: 'get-data',
+      sourceStepId: 'get-data-1',
+      fieldName: 'amount',
+      operator: 'equal',
+      value: 1,
+    };
+
+    const parsed = ConditionStepDefinitionSchema.parse({
+      ...base,
+      preRecordedArgs: {
+        ...preRecordedArgs,
+        optionConditions: [{ option: 'High value', aggregator: 'and', conditions: [condition] }],
+      },
+    });
+
+    expect(parsed.preRecordedArgs?.optionConditions[0].conditions[0]).toEqual(condition);
+  });
+
+  // An executor that cannot resolve a source must refuse the run, not route it to the fallback.
+  it('rejects a condition whose sourceType this executor does not know', () => {
+    const result = ConditionStepDefinitionSchema.safeParse({
+      ...base,
+      preRecordedArgs: {
+        ...preRecordedArgs,
+        optionConditions: [
+          {
+            option: 'High value',
+            aggregator: 'and',
+            conditions: [
+              {
+                sourceType: 'unknown-source',
+                sourceStepId: 'get-data-1',
+                fieldName: 'amount',
+                operator: 'equal',
+                value: 1,
+              },
+            ],
+          },
+        ],
+      },
+    });
+
+    expect(result.success).toBe(false);
+    expect(JSON.stringify(!result.success && result.error.issues)).toContain('sourceType');
+  });
+
   it('rejects preRecordedArgs missing fallbackOption', () => {
     const result = ConditionStepDefinitionSchema.safeParse({
       ...base,

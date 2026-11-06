@@ -608,6 +608,45 @@ describe('ConditionStepExecutor', () => {
       });
     });
 
+    it('reads a Get Data step when the condition names get-data as its sourceType', async () => {
+      const explicitArgs: ConditionPreRecordedArgs = {
+        optionConditions: [
+          {
+            option: 'High',
+            aggregator: 'and',
+            conditions: [
+              {
+                sourceType: 'get-data',
+                sourceStepId: 'get-1',
+                fieldName: 'amount',
+                operator: 'greater_than',
+                value: 100,
+              },
+            ],
+          },
+        ],
+        fallbackOption: 'Other',
+      };
+      const { context, runStore } = makeDeterministicContext(explicitArgs, [
+        { name: 'amount', displayName: 'Amount', value: 150 },
+      ]);
+
+      const result = await new ConditionStepExecutor(context).execute();
+
+      expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('High');
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          executionParams: expect.objectContaining({
+            evaluations: [
+              { option: 'High', outcome: 'matched', conditions: [{ index: 0, met: true }] },
+            ],
+            usedFallback: false,
+          }),
+        }),
+      );
+    });
+
     it('does not evaluate options after the first match, even if they would also match', async () => {
       const bothMatch: ConditionPreRecordedArgs = {
         optionConditions: [

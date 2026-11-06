@@ -97,9 +97,15 @@ const VALUE_LESS_OPERATORS: readonly ConditionOperator[] = [
   'previous_year_to_date',
 ];
 
+export const CONDITION_SOURCE_TYPES = ['get-data'] as const;
+export type ConditionSourceType = (typeof CONDITION_SOURCE_TYPES)[number];
+export const DEFAULT_CONDITION_SOURCE_TYPE: ConditionSourceType = 'get-data';
+
 const DeterministicConditionSchema = z
   .object({
-    /** Stable BPMN id of the upstream Get Data step whose output holds the value. */
+    // Absent from an orchestrator that predates it, which only ever sends Get Data sources.
+    sourceType: z.enum(CONDITION_SOURCE_TYPES).optional(),
+    /** Stable BPMN id of the upstream step whose output holds the value. */
     sourceStepId: z.string().min(1),
     fieldName: z.string().min(1),
     operator: z.enum(CONDITION_OPERATORS),

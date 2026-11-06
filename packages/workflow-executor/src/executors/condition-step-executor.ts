@@ -5,6 +5,7 @@ import type {
   StepExecutionData,
 } from '../types/step-execution-data';
 import type {
+  ConditionSourceType,
   ConditionStepDefinition,
   DeterministicCondition,
   DeterministicConditionStep,
@@ -19,6 +20,7 @@ import BaseStepExecutor from './base-step-executor';
 import evaluateOperator, { type Clock } from './deterministic-condition-evaluator';
 import patchBodySchemas from '../http/pending-data-validators';
 import {
+  DEFAULT_CONDITION_SOURCE_TYPE,
   StepExecutionMode,
   StepType,
   isDeterministicConditionStep,
@@ -34,6 +36,15 @@ interface GatewayDecision {
   selectedOption: string | null;
   reasoning: string;
 }
+
+type ResolvedConditionValue =
+  | { found: true; value: unknown }
+  | { found: false; reason: ConditionNotLoadedReason };
+
+type ConditionValueResolver = (
+  condition: DeterministicCondition,
+  stepExecutions: StepExecutionData[],
+) => ResolvedConditionValue;
 
 const GATEWAY_SYSTEM_PROMPT = `You are an AI agent selecting the correct option for a workflow gateway decision.
 
@@ -206,12 +217,25 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
     return { met: evaluateOperator(condition.operator, resolved.value, condition.value, clock) };
   }
 
-  // Same live-path + most-recent-occurrence resolution as resolveSourceRecordRef: previousSteps
-  // are already restricted to the live path, and in a loop the same step id repeats.
+  private readonly conditionValueResolvers: Record<ConditionSourceType, ConditionValueResolver> = {
+    'get-data': (condition, stepExecutions) => this.resolveGetDataValue(condition, stepExecutions),
+  };
+
   private resolveConditionValue(
     condition: DeterministicCondition,
     stepExecutions: StepExecutionData[],
-  ): { found: true; value: unknown } | { found: false; reason: ConditionNotLoadedReason } {
+  ): ResolvedConditionValue {
+    const sourceType = condition.sourceType ?? DEFAULT_CONDITION_SOURCE_TYPE;
+
+    return this.conditionValueResolvers[sourceType](condition, stepExecutions);
+  }
+
+  // Same live-path + most-recent-occurrence resolution as resolveSourceRecordRef: previousSteps
+  // are already restricted to the live path, and in a loop the same step id repeats.
+  private resolveGetDataValue(
+    condition: DeterministicCondition,
+    stepExecutions: StepExecutionData[],
+  ): ResolvedConditionValue {
     const matches = this.context.previousSteps.filter(
       step =>
         step.stepDefinition.type === StepType.ReadRecord &&
