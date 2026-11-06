@@ -189,17 +189,6 @@ export class ActionRequiresApprovalError extends WorkflowOperatorError {
   }
 }
 
-// Finishing a step with branches by hand reports no branch until the native form carries one
-// (PRD-2013), so the Full AI fallback to that form is refused rather than left to break the run.
-export class ApprovalBranchesNeedFullAiError extends WorkflowOperatorError {
-  constructor(actionName: string, reason: string) {
-    super(
-      `Action "${actionName}" could not run automatically (${reason}), and its step has approval branches`,
-      'This step has Approved and Rejected branches, which only run automatically for now. Complete the action configuration so the AI can submit it, then revise the step.',
-    );
-  }
-}
-
 // The request was filed, but without its id the step can neither wait for it nor learn its review.
 export class ApprovalRequestUntrackedError extends WorkflowExecutorError {
   constructor(actionName: string) {
