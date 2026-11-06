@@ -3618,4 +3618,182 @@ describe('TriggerRecordActionStepExecutor', () => {
       );
     });
   });
+
+  describe('on a step saved with approval outcomes (native form)', () => {
+    const confirmedRecord = (
+      userConfirmation: TriggerRecordActionStepExecutionData['userConfirmation'],
+    ): TriggerRecordActionStepExecutionData => ({
+      type: 'trigger-action',
+      stepIndex: 0,
+      pendingData: {
+        displayName: 'Block card',
+        name: 'block_card',
+        form: { fields: [], aiFilledValues: [{ field: 'reason', value: 'fraud' }] },
+      },
+      userConfirmation,
+      selectedRecordRef: makeRecordRef(),
+    });
+
+    const submit = async (
+      userConfirmation: TriggerRecordActionStepExecutionData['userConfirmation'],
+      { executionType = StepExecutionMode.Manual, approvalOutcomes = true } = {},
+    ) => {
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([confirmedRecord(userConfirmation)]),
+      });
+      const agentPort = makeMockAgentPort();
+      const context = makeContext({
+        agentPort,
+        runStore,
+        stepDefinition: makeStep({ executionType, approvalOutcomes }),
+      });
+
+      const result = await new TriggerRecordActionStepExecutor(context).execute();
+
+      return { result, runStore, agentPort };
+    };
+
+    it.each([StepExecutionMode.Manual, StepExecutionMode.AutomatedWithConfirmation])(
+      'pauses on the approval request the user filed from the form (%s)',
+      async executionType => {
+        const { result, runStore, agentPort } = await submit(
+          {
+            userConfirmed: true,
+            submissionOutcome: 'pending-approval',
+            approvalRequest: { id: '12' },
+            submittedValues: { reason: 'fraud' },
+          },
+          { executionType },
+        );
+
+        expect(result.stepOutcome).toEqual({
+          type: 'record',
+          stepId: 'trigger-1',
+          stepIndex: 0,
+          status: 'awaiting-input',
+          awaitingInputReason: 'pending-approval',
+          approvalRequests: [{ id: '12' }],
+        });
+        expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+          'run-1',
+          expect.objectContaining({
+            idempotencyPhase: 'done',
+            executionResult: {
+              success: true,
+              submissionOutcome: 'pending-approval',
+              submittedBy: 'user',
+              approvalRequest: { id: '12' },
+              submittedValues: { reason: 'fraud' },
+              aiFilledValues: [{ field: 'reason', value: 'fraud' }],
+            },
+          }),
+        );
+        expect(agentPort.executeAction).not.toHaveBeenCalled();
+      },
+    );
+
+    it('errors the step when the form filed a request without its id', async () => {
+      const { result, runStore } = await submit({
+        userConfirmed: true,
+        submissionOutcome: 'pending-approval',
+      });
+
+      expect(result.stepOutcome).toEqual(
+        expect.objectContaining({
+          status: 'error',
+          error:
+            'This action was submitted for approval, but the workflow cannot follow its review. Check the approval requests, then revise the step.',
+        }),
+      );
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
+
+    it('goes down the approved branch when the form ran the action without an approval', async () => {
+      const { result } = await submit({
+        userConfirmed: true,
+        submissionOutcome: 'executed',
+        actionResult: { ok: true },
+      });
+
+      expect(result.stepOutcome).toEqual({
+        type: 'record',
+        stepId: 'trigger-1',
+        stepIndex: 0,
+        status: 'success',
+        selectedOption: 'approved',
+      });
+    });
+
+    it.each([
+      ['approved', 3],
+      ['rejected', 4],
+    ] as const)(
+      'takes the %s branch on replay of the request the form filed',
+      async (status, approverId) => {
+        const { runStore: submitStore } = await submit({
+          userConfirmed: true,
+          submissionOutcome: 'pending-approval',
+          approvalRequest: { id: '12' },
+        });
+        const savedRecord = (submitStore.saveStepExecution as jest.Mock).mock.calls[0][1];
+        const runStore = makeMockRunStore({
+          getStepExecutions: jest.fn().mockResolvedValue([savedRecord]),
+        });
+        const context = makeContext({
+          runStore,
+          stepDefinition: makeStep({
+            executionType: StepExecutionMode.Manual,
+            approvalOutcomes: true,
+          }),
+          approvalRequests: [{ id: '12', status, approverId }],
+        });
+
+        const result = await new TriggerRecordActionStepExecutor(context).execute();
+
+        expect(result.stepOutcome).toEqual({
+          type: 'record',
+          stepId: 'trigger-1',
+          stepIndex: 0,
+          status: 'success',
+          selectedOption: status,
+          approverId,
+        });
+        expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+          'run-1',
+          expect.objectContaining({
+            executionResult: expect.objectContaining({
+              submittedBy: 'user',
+              approvalOutcome: status,
+            }),
+          }),
+        );
+      },
+    );
+
+    it('succeeds with the request id on a step without approval outcomes', async () => {
+      const { result, runStore } = await submit(
+        {
+          userConfirmed: true,
+          submissionOutcome: 'pending-approval',
+          approvalRequest: { id: '12' },
+        },
+        { approvalOutcomes: false },
+      );
+
+      expect(result.stepOutcome).toEqual({
+        type: 'record',
+        stepId: 'trigger-1',
+        stepIndex: 0,
+        status: 'success',
+        approvalRequest: { id: '12' },
+      });
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          idempotencyPhase: 'done',
+          executionResult: expect.objectContaining({ approvalRequest: { id: '12' } }),
+        }),
+      );
+    });
+  });
 });
