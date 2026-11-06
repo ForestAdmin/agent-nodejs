@@ -118,7 +118,12 @@ describe('ForestadminClientActivityLogPort', () => {
       service.createActivityLog.mockResolvedValue({ id: 'log-1', attributes: { index: '0' } });
       const port = makePort(service);
 
-      await port.createPending({ renderingId: 5, action: 'index', type: 'read', collectionId: 'c' });
+      await port.createPending({
+        renderingId: 5,
+        action: 'index',
+        type: 'read',
+        collectionId: 'c',
+      });
 
       // toStrictEqual, not toHaveBeenCalledWith: only it tells a missing key from an undefined one.
       expect(service.createActivityLog.mock.calls[0]).toStrictEqual([
