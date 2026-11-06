@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@forestadmin/datasource-customizer": "1.73.3",
-    "@forestadmin/datasource-sql": "1.17.19",
+    "@forestadmin/datasource-sql": "1.17.20",
     "@forestadmin/datasource-toolkit": "1.56.3",
     "knex": "^3.1.0",
     "sqlite3": "^5.1.7"
