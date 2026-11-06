@@ -56,6 +56,21 @@ describe('ConditionStepDefinitionSchema executionType', () => {
   });
 });
 
+function withGetDataSource<T extends { optionConditions: Array<{ conditions: object[] }> }>(
+  args: T,
+): T {
+  return {
+    ...args,
+    optionConditions: args.optionConditions.map(optionCondition => ({
+      ...optionCondition,
+      conditions: optionCondition.conditions.map(condition => ({
+        ...condition,
+        sourceType: 'get-data',
+      })),
+    })),
+  };
+}
+
 describe('ConditionStepDefinitionSchema deterministic conditions', () => {
   const base = { type: StepType.Condition as const, options: ['High value', 'Fallback'] };
   const preRecordedArgs = {
@@ -79,14 +94,14 @@ describe('ConditionStepDefinitionSchema deterministic conditions', () => {
     });
 
     expect(parsed.executionType).toBe(StepExecutionMode.Manual);
-    expect(parsed.preRecordedArgs).toEqual(preRecordedArgs);
+    expect(parsed.preRecordedArgs).toEqual(withGetDataSource(preRecordedArgs));
   });
 
   it('accepts preRecordedArgs with no executionType at all', () => {
     const parsed = ConditionStepDefinitionSchema.parse({ ...base, preRecordedArgs });
 
     expect(parsed.executionType).toBe(StepExecutionMode.FullyAutomated);
-    expect(parsed.preRecordedArgs).toEqual(preRecordedArgs);
+    expect(parsed.preRecordedArgs).toEqual(withGetDataSource(preRecordedArgs));
   });
 
   // value supplied so the failure is the operator enum, not the value-less-operator refinement.
@@ -165,6 +180,156 @@ describe('ConditionStepDefinitionSchema deterministic conditions', () => {
       expect(JSON.stringify(!result.success && result.error.issues)).toContain(_label);
     },
   );
+
+  it.each([undefined, null])('reads a %s sourceType as get-data', sourceType => {
+    const parsed = ConditionStepDefinitionSchema.parse({
+      ...base,
+      preRecordedArgs: {
+        ...preRecordedArgs,
+        optionConditions: [
+          {
+            option: 'High value',
+            aggregator: 'and',
+            conditions: [
+              { sourceType, sourceStepId: 'get-data-1', fieldName: 'amount', operator: 'present' },
+            ],
+          },
+        ],
+      },
+    });
+
+    expect(parsed.preRecordedArgs?.optionConditions[0].conditions[0].sourceType).toBe('get-data');
+  });
+
+  it('accepts a condition whose sourceType is get-data and keeps it', () => {
+    const condition = {
+      sourceType: 'get-data',
+      sourceStepId: 'get-data-1',
+      fieldName: 'amount',
+      operator: 'equal',
+      value: 1,
+    };
+
+    const parsed = ConditionStepDefinitionSchema.parse({
+      ...base,
+      preRecordedArgs: {
+        ...preRecordedArgs,
+        optionConditions: [{ option: 'High value', aggregator: 'and', conditions: [condition] }],
+      },
+    });
+
+    expect(parsed.preRecordedArgs?.optionConditions[0].conditions[0]).toEqual(condition);
+  });
+
+  it('rejects a condition whose sourceType this executor does not know', () => {
+    const result = ConditionStepDefinitionSchema.safeParse({
+      ...base,
+      preRecordedArgs: {
+        ...preRecordedArgs,
+        optionConditions: [
+          {
+            option: 'High value',
+            aggregator: 'and',
+            conditions: [
+              {
+                sourceType: 'unknown-source',
+                sourceStepId: 'get-data-1',
+                fieldName: 'amount',
+                operator: 'equal',
+                value: 1,
+              },
+            ],
+          },
+        ],
+      },
+    });
+
+    expect(result.success).toBe(false);
+    expect(JSON.stringify(!result.success && result.error.issues)).toContain('sourceType');
+  });
+
+  describe('a sub-workflow End source', () => {
+    function parseEndCondition(condition: Record<string, unknown>) {
+      return ConditionStepDefinitionSchema.safeParse({
+        ...base,
+        preRecordedArgs: {
+          ...preRecordedArgs,
+          optionConditions: [
+            {
+              option: 'High value',
+              aggregator: 'and',
+              conditions: [
+                {
+                  sourceType: 'sub-workflow',
+                  sourceStepId: 'call-1',
+                  fieldName: 'end',
+                  ...condition,
+                },
+              ],
+            },
+          ],
+        },
+      });
+    }
+
+    it.each([
+      ['equal', 'end-1'],
+      ['not_equal', 'end-1'],
+      ['in', ['end-1', 'end-2']],
+      ['not_in', ['end-1']],
+    ])('accepts %s with %j', (operator, value) => {
+      const result = parseEndCondition({ operator, value });
+
+      expect(result.success).toBe(true);
+      expect(
+        result.success && result.data.preRecordedArgs?.optionConditions[0].conditions[0],
+      ).toEqual({
+        sourceType: 'sub-workflow',
+        sourceStepId: 'call-1',
+        fieldName: 'end',
+        operator,
+        value,
+      });
+    });
+
+    it('reports a missing value once, not also as a malformed one', () => {
+      const result = parseEndCondition({ operator: 'equal' });
+
+      expect(result.success).toBe(false);
+      expect(!result.success && result.error.issues.map(issue => issue.message)).toEqual([
+        'value is required for the "equal" operator',
+      ]);
+    });
+
+    it('rejects a field other than end', () => {
+      const result = parseEndCondition({ fieldName: 'status', operator: 'equal', value: 'end-1' });
+
+      expect(result.success).toBe(false);
+      expect(JSON.stringify(!result.success && result.error.issues)).toContain('fieldName');
+    });
+
+    it.each(['greater_than', 'contains', 'present'])('rejects the %s operator', operator => {
+      const result = parseEndCondition({ operator, value: 'end-1' });
+
+      expect(result.success).toBe(false);
+      expect(JSON.stringify(!result.success && result.error.issues)).toContain(
+        `the \\"${operator}\\" operator does not apply to a sub-workflow end`,
+      );
+    });
+
+    it.each([
+      ['equal', ['end-1']],
+      ['not_equal', ''],
+      ['in', 'end-1'],
+      ['not_in', []],
+      ['in', ['end-1', 2]],
+    ])('rejects %s with the malformed value %j', (operator, value) => {
+      const result = parseEndCondition({ operator, value });
+
+      expect(result.success).toBe(false);
+      expect(JSON.stringify(!result.success && result.error.issues)).toContain('"value"');
+    });
+  });
 
   it('rejects preRecordedArgs missing fallbackOption', () => {
     const result = ConditionStepDefinitionSchema.safeParse({

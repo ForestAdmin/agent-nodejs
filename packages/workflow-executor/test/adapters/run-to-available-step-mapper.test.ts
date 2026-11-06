@@ -1441,4 +1441,143 @@ describe('toAvailableStepExecution', () => {
       expect(result?.previousSteps[0].stepOutcome.stepId).toBe('child-1');
     });
   });
+
+  describe('sub-workflow ends', () => {
+    function makeStart(
+      stepName: string,
+      stepIndex: number,
+      overrides: Partial<ServerStepHistory> = {},
+    ) {
+      return makeStepHistory({
+        stepName,
+        stepIndex,
+        done: true,
+        childrenWorkflowId: 'wf-child',
+        ...overrides,
+        stepDefinition: {
+          type: ServerStepTypeEnum.StartSubWorkflow,
+          title: 'Call the sub-workflow',
+          executionType: ServerStepExecutionTypeEnum.Manual,
+          automaticCompletion: false,
+          outgoing: [{ stepId: 'next', buttonText: null }],
+          workflowId: 'wf-child',
+        } as never,
+      });
+    }
+
+    function makeClose(
+      endStepId: string,
+      stepIndex: number,
+      overrides: Partial<ServerStepHistory> = {},
+    ) {
+      return makeStepHistory({
+        stepName: endStepId,
+        stepIndex,
+        done: true,
+        ...overrides,
+        stepDefinition: {
+          type: ServerStepTypeEnum.CloseSubWorkflow,
+          title: 'Close the sub-workflow',
+          executionType: ServerStepExecutionTypeEnum.Manual,
+          automaticCompletion: false,
+          outgoing: [{ stepId: 'next', buttonText: null }],
+          parentWorkflowId: 'wf-1',
+        } as never,
+      });
+    }
+
+    function makeChild(stepName: string, stepIndex: number, done = true) {
+      return makeStepHistory({ stepName, stepIndex, done, childrenWorkflowId: 'wf-child' });
+    }
+
+    function pendingRoot(stepIndex: number) {
+      return makeStepHistory({ stepName: 'decision', stepIndex, done: false });
+    }
+
+    function endsOf(workflowHistory: ServerStepHistory[]) {
+      return toAvailableStepExecution(makeRun({ workflowHistory }))?.subWorkflowEnds;
+    }
+
+    it('pairs a returned call with the End its close step reached', () => {
+      expect(
+        endsOf([
+          makeStart('call-1', 0),
+          makeChild('child-1', 1),
+          makeClose('end-approved', 2),
+          pendingRoot(3),
+        ]),
+      ).toEqual([{ stepId: 'call-1', endStepId: 'end-approved' }]);
+    });
+
+    it('keeps the End of the most recent run of a Sub-workflow step in a loop', () => {
+      expect(
+        endsOf([
+          makeStart('call-1', 0),
+          makeClose('end-rejected', 1),
+          makeStart('call-2', 2),
+          makeClose('end-other', 3),
+          makeStart('call-1', 4),
+          makeClose('end-approved', 5),
+          pendingRoot(6),
+        ]),
+      ).toEqual([
+        { stepId: 'call-1', endStepId: 'end-approved' },
+        { stepId: 'call-2', endStepId: 'end-other' },
+      ]);
+    });
+
+    it('drops a returned call whose close step has no name, and still maps the run', () => {
+      expect(
+        endsOf([
+          makeStart('call-1', 0),
+          makeClose('', 1),
+          makeStart('call-2', 2),
+          makeClose('end-approved', 3),
+          pendingRoot(4),
+        ]),
+      ).toEqual([{ stepId: 'call-2', endStepId: 'end-approved' }]);
+    });
+
+    it('gives a root step the End of the call it made, not of the call nested in it', () => {
+      expect(
+        endsOf([
+          makeStart('call-outer', 0),
+          makeStart('call-inner', 1),
+          makeClose('end-inner', 2, { childrenWorkflowId: 'wf-child' }),
+          makeClose('end-outer', 3),
+          pendingRoot(4),
+        ]),
+      ).toEqual([{ stepId: 'call-outer', endStepId: 'end-outer' }]);
+    });
+
+    it('gives a step inside a call the Ends of the calls its own workflow made', () => {
+      expect(
+        endsOf([
+          makeStart('call-root-before', 0),
+          makeClose('end-root-before', 1),
+          makeStart('call-outer', 2),
+          makeStart('call-inner', 3),
+          makeClose('end-inner', 4, { childrenWorkflowId: 'wf-child' }),
+          makeChild('decision', 5, false),
+        ]),
+      ).toEqual([{ stepId: 'call-inner', endStepId: 'end-inner' }]);
+    });
+
+    it('lists no End for a call that has not returned yet', () => {
+      expect(endsOf([makeStart('call-1', 0), makeChild('decision', 1, false)])).toBeUndefined();
+    });
+
+    it.each([
+      ['revised', { revised: true }],
+      ['cancelled', { cancelled: true }],
+    ])('ignores a %s close step, which is off the live path', (_label, flags) => {
+      expect(
+        endsOf([makeStart('call-1', 0), makeClose('end-approved', 1, flags), pendingRoot(2)]),
+      ).toBeUndefined();
+    });
+
+    it('lists no End when the run made no call', () => {
+      expect(endsOf([pendingRoot(0)])).toBeUndefined();
+    });
+  });
 });

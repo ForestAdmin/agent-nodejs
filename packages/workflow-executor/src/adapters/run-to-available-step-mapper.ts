@@ -30,6 +30,7 @@ import {
   type CallScope,
   type Step,
   type StepUser,
+  type SubWorkflowEnd,
 } from '../types/validated/execution';
 import { WORKFLOW_START_STEP_ID } from '../types/validated/step-definition';
 import {
@@ -128,19 +129,26 @@ function toNonEmptyString(value: unknown): string | undefined {
   return typeof value === 'string' && value.length > 0 ? value : undefined;
 }
 
+interface OpenCall {
+  stepId: string;
+  stepIndex: number;
+  frameOpenedAt: number;
+  definition: ServerStartSubWorkflow;
+}
+
+interface CallStackWalk {
+  openCalls: OpenCall[];
+  frameOfStep: Map<number, number>;
+  closedCalls: Array<{ call: OpenCall; endStepId: string }>;
+}
+
 // Rebuilt from the raw history because previousSteps drops the navigation steps, and read the way
 // the orchestrator reads its own call stack so the two agree on which call is open.
-function toCallScope(
-  history: ServerStepHistory[],
-  pending: ServerStepHistory,
-): CallScope | undefined {
-  const openCalls: Array<{
-    stepIndex: number;
-    frameOpenedAt: number;
-    definition: ServerStartSubWorkflow;
-  }> = [];
+function walkCallStack(history: ServerStepHistory[], pending: ServerStepHistory): CallStackWalk {
+  const openCalls: OpenCall[] = [];
   // Tracked per step rather than as a range, because a frame's steps resume after each nested call.
   const frameOfStep = new Map<number, number>();
+  const closedCalls: CallStackWalk['closedCalls'] = [];
 
   history.forEach(entry => {
     if (entry.revised || entry.cancelled || entry.stepIndex >= pending.stepIndex) return;
@@ -149,20 +157,55 @@ function toCallScope(
 
     if (entry.stepDefinition.type === ServerStepTypeEnum.StartSubWorkflow) {
       openCalls.push({
+        stepId: entry.stepName,
         stepIndex: entry.stepIndex,
         frameOpenedAt,
         definition: entry.stepDefinition,
       });
     } else if (entry.stepDefinition.type === ServerStepTypeEnum.CloseSubWorkflow) {
-      openCalls.pop();
+      const call = openCalls.pop();
+      // The close step keeps the step key of the End the called workflow reached.
+      if (call) closedCalls.push({ call, endStepId: entry.stepName });
     } else {
       frameOfStep.set(entry.stepIndex, frameOpenedAt);
     }
   });
 
+  return { openCalls, frameOfStep, closedCalls };
+}
+
+// Undefined for a step of a called workflow while no call is open, a history with no frame to read.
+function frameOfPending(walk: CallStackWalk, pending: ServerStepHistory): number | undefined {
+  if (!pending.childrenWorkflowId) return ROOT_FRAME;
+
+  return walk.openCalls.at(-1)?.stepIndex;
+}
+
+// Step ids are unique only per workflow, so only the calls the pending step's own workflow made
+// can answer for it: a nested call's End belongs to the step that made it, not to its caller.
+// A navigation entry with no name is dropped rather than failing the whole run's validation.
+function toSubWorkflowEnds(
+  walk: CallStackWalk,
+  pending: ServerStepHistory,
+): SubWorkflowEnd[] | undefined {
+  const frame = frameOfPending(walk, pending);
+  const latestEndOf = new Map<string, string>();
+
+  walk.closedCalls
+    .filter(({ call, endStepId }) => call.frameOpenedAt === frame && call.stepId && endStepId)
+    .forEach(({ call, endStepId }) => latestEndOf.set(call.stepId, endStepId));
+
+  if (latestEndOf.size === 0) return undefined;
+
+  return [...latestEndOf].map(([stepId, endStepId]) => ({ stepId, endStepId }));
+}
+
+function toCallScope(walk: CallStackWalk, pending: ServerStepHistory): CallScope | undefined {
+  const { openCalls, frameOfStep } = walk;
+
   // A root step needs its frame too once a call has run: a closed call repeating a step id would
   // otherwise answer a root pin with its own record.
-  if (!pending.childrenWorkflowId) {
+  if (frameOfPending(walk, pending) === ROOT_FRAME) {
     const rootStepIndexes = [...frameOfStep]
       .filter(([, frame]) => frame === ROOT_FRAME)
       .map(([stepIndex]) => stepIndex);
@@ -177,7 +220,7 @@ function toCallScope(
 
   // A call pinning "workflow start" pins what that phrase means where it was written — the record
   // its own caller pinned — so the pin resolves outwards, and ends on the run's record.
-  const pinOf = (call: (typeof openCalls)[number]) =>
+  const pinOf = (call: OpenCall) =>
     toNonEmptyString(call.definition.preRecordedArgs?.selectedRecordStepId);
   const pinnedBy = [...openCalls].reverse().find(call => pinOf(call) !== WORKFLOW_START_STEP_ID);
   const pin = pinnedBy && pinOf(pinnedBy);
@@ -248,7 +291,9 @@ export default function toAvailableStepExecution(
   const pending = run.workflowHistory.at(-1) ?? null;
   if (!pending || pending.done) return null;
 
-  const callScope = toCallScope(run.workflowHistory, pending);
+  const callStack = walkCallStack(run.workflowHistory, pending);
+  const callScope = toCallScope(callStack, pending);
+  const subWorkflowEnds = toSubWorkflowEnds(callStack, pending);
 
   const result = {
     runId: String(run.id),
@@ -274,6 +319,7 @@ export default function toAvailableStepExecution(
     // user, since that one follows the browser.
     timezone: toProjectTimezone(run.timezone),
     ...(callScope && { callScope }),
+    ...(subWorkflowEnds && { subWorkflowEnds }),
   };
 
   // Defense against mapper bugs: zod asserts the shape we produce is what the domain expects,

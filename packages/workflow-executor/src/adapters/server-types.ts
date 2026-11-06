@@ -136,6 +136,7 @@ export interface ServerWorkflowCondition extends ServerWorkflowStepBase {
       option: string;
       aggregator: 'and' | 'or';
       conditions: Array<{
+        sourceType?: string;
         sourceStepId: string;
         fieldName: string;
         operator: string;

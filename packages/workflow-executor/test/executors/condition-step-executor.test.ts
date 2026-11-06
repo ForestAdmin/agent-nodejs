@@ -7,6 +7,7 @@ import type { FieldReadResult, StepExecutionData } from '../../src/types/step-ex
 import type { RecordRef } from '../../src/types/validated/collection';
 import type { ConditionStepDefinition } from '../../src/types/validated/step-definition';
 import type { ConditionStepOutcome } from '../../src/types/validated/step-outcome';
+import type { z } from 'zod';
 
 import { RunStorePortError } from '../../src/errors';
 import ActivityLog from '../../src/executors/activity-log';
@@ -14,7 +15,11 @@ import AgentWithLog from '../../src/executors/agent-with-log';
 import ConditionStepExecutor from '../../src/executors/condition-step-executor';
 import SchemaCache from '../../src/schema-cache';
 import SchemaResolver from '../../src/schema-resolver';
-import { StepExecutionMode, StepType } from '../../src/types/validated/step-definition';
+import {
+  ConditionStepDefinitionSchema,
+  StepExecutionMode,
+  StepType,
+} from '../../src/types/validated/step-definition';
 
 function makeStep(overrides: Partial<ConditionStepDefinition> = {}): ConditionStepDefinition {
   return {
@@ -26,15 +31,17 @@ function makeStep(overrides: Partial<ConditionStepDefinition> = {}): ConditionSt
   };
 }
 
-type ConditionPreRecordedArgs = NonNullable<ConditionStepDefinition['preRecordedArgs']>;
+type ConditionPreRecordedArgs = NonNullable<
+  z.input<typeof ConditionStepDefinitionSchema>['preRecordedArgs']
+>;
 
 // Published with aiDecision stripped, so a deterministic gateway arrives as manual: the args make it deterministic, not the mode.
 function makeDeterministicStep(
   preRecordedArgs: ConditionPreRecordedArgs,
   executionType: ConditionStepDefinition['executionType'] = StepExecutionMode.Manual,
 ): ConditionStepDefinition {
-  return makeStep({
-    executionType,
+  return ConditionStepDefinitionSchema.parse({
+    ...makeStep({ executionType }),
     options: [
       ...preRecordedArgs.optionConditions.map(o => o.option),
       preRecordedArgs.fallbackOption,
@@ -606,6 +613,45 @@ describe('ConditionStepExecutor', () => {
         },
         executionResult: { answer: 'High' },
       });
+    });
+
+    it('reads a Get Data step when the condition names get-data as its sourceType', async () => {
+      const explicitArgs: ConditionPreRecordedArgs = {
+        optionConditions: [
+          {
+            option: 'High',
+            aggregator: 'and',
+            conditions: [
+              {
+                sourceType: 'get-data',
+                sourceStepId: 'get-1',
+                fieldName: 'amount',
+                operator: 'greater_than',
+                value: 100,
+              },
+            ],
+          },
+        ],
+        fallbackOption: 'Other',
+      };
+      const { context, runStore } = makeDeterministicContext(explicitArgs, [
+        { name: 'amount', displayName: 'Amount', value: 150 },
+      ]);
+
+      const result = await new ConditionStepExecutor(context).execute();
+
+      expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('High');
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          executionParams: expect.objectContaining({
+            evaluations: [
+              { option: 'High', outcome: 'matched', conditions: [{ index: 0, met: true }] },
+            ],
+            usedFallback: false,
+          }),
+        }),
+      );
     });
 
     it('does not evaluate options after the first match, even if they would also match', async () => {
@@ -1245,6 +1291,124 @@ describe('ConditionStepExecutor', () => {
       const result = await new ConditionStepExecutor(context).execute();
 
       expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('High');
+    });
+  });
+
+  describe('deterministic evaluation of a Sub-workflow End', () => {
+    function endArgs(
+      operator: 'equal' | 'not_equal' | 'in' | 'not_in',
+      value: string | string[],
+    ): ConditionPreRecordedArgs {
+      return {
+        optionConditions: [
+          {
+            option: 'Approved path',
+            aggregator: 'and',
+            conditions: [
+              {
+                sourceType: 'sub-workflow',
+                sourceStepId: 'call-1',
+                fieldName: 'end',
+                operator,
+                value,
+              },
+            ],
+          },
+        ],
+        fallbackOption: 'Other',
+      };
+    }
+
+    function makeEndContext(
+      preRecordedArgs: ConditionPreRecordedArgs,
+      subWorkflowEnds: ExecutionContext['subWorkflowEnds'],
+    ) {
+      const runStore = makeMockRunStore({ getStepExecutions: jest.fn().mockResolvedValue([]) });
+      const context = makeContext({
+        runStore,
+        stepDefinition: makeDeterministicStep(preRecordedArgs),
+        subWorkflowEnds,
+      });
+
+      return { context, runStore };
+    }
+
+    const approvedCall = [{ stepId: 'call-1', endStepId: 'end-approved' }];
+
+    it.each([
+      ['equal', 'end-approved', 'Approved path'],
+      ['equal', 'end-rejected', 'Other'],
+      ['not_equal', 'end-rejected', 'Approved path'],
+      ['not_equal', 'end-approved', 'Other'],
+      ['in', ['end-rejected', 'end-approved'], 'Approved path'],
+      ['in', ['end-rejected', 'end-cancelled'], 'Other'],
+      ['not_in', ['end-rejected', 'end-cancelled'], 'Approved path'],
+      ['not_in', ['end-rejected', 'end-approved'], 'Other'],
+    ] as const)(
+      'with %s %j on a call that reached end-approved, selects %s',
+      async (operator, value, expectedOption) => {
+        const { context } = makeEndContext(
+          endArgs(operator, value as string | string[]),
+          approvedCall,
+        );
+
+        const result = await new ConditionStepExecutor(context).execute();
+
+        expect(result.stepOutcome.status).toBe('success');
+        expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe(expectedOption);
+      },
+    );
+
+    it('reads only the End of the Sub-workflow step the condition names', async () => {
+      const { context } = makeEndContext(endArgs('equal', 'end-approved'), [
+        { stepId: 'call-2', endStepId: 'end-approved' },
+        { stepId: 'call-1', endStepId: 'end-rejected' },
+      ]);
+
+      const result = await new ConditionStepExecutor(context).execute();
+
+      expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('Other');
+    });
+
+    it.each([
+      ['no call returned at all', undefined],
+      [
+        'only another Sub-workflow step returned',
+        [{ stepId: 'call-2', endStepId: 'end-approved' }],
+      ],
+    ])('counts the condition as not met, and says so, when %s', async (_label, subWorkflowEnds) => {
+      const { context, runStore } = makeEndContext(
+        endArgs('not_equal', 'end-rejected'),
+        subWorkflowEnds,
+      );
+
+      const result = await new ConditionStepExecutor(context).execute();
+
+      expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('Other');
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          executionParams: expect.objectContaining({
+            evaluations: [
+              {
+                option: 'Approved path',
+                outcome: 'not-matched',
+                conditions: [{ index: 0, met: null, reason: 'source-step-not-reached' }],
+              },
+            ],
+            usedFallback: true,
+          }),
+        }),
+      );
+      expect(context.logger).toHaveBeenCalledWith(
+        'Warn',
+        'Condition value could not be resolved, counting it as not met',
+        expect.objectContaining({
+          sourceType: 'sub-workflow',
+          sourceStepId: 'call-1',
+          reason: 'source-step-not-reached',
+        }),
+      );
     });
   });
 

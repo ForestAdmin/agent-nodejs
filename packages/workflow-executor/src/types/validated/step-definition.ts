@@ -97,9 +97,67 @@ const VALUE_LESS_OPERATORS: readonly ConditionOperator[] = [
   'previous_year_to_date',
 ];
 
+export const CONDITION_SOURCE_TYPES = ['get-data', 'sub-workflow'] as const;
+export type ConditionSourceType = (typeof CONDITION_SOURCE_TYPES)[number];
+
+const SUB_WORKFLOW_END_FIELD_NAME = 'end';
+const SUB_WORKFLOW_END_OPERATORS: readonly ConditionOperator[] = [
+  'equal',
+  'not_equal',
+  'in',
+  'not_in',
+];
+const SUB_WORKFLOW_END_LIST_OPERATORS: readonly ConditionOperator[] = ['in', 'not_in'];
+
+const isEndId = (value: unknown): boolean => typeof value === 'string' && value.length > 0;
+
+function checkSubWorkflowEndCondition(
+  condition: { fieldName: string; operator: ConditionOperator; value?: unknown },
+  ctx: z.RefinementCtx,
+): void {
+  if (condition.fieldName !== SUB_WORKFLOW_END_FIELD_NAME) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['fieldName'],
+      message: `a sub-workflow source only exposes the "${SUB_WORKFLOW_END_FIELD_NAME}" field`,
+    });
+  }
+
+  if (!SUB_WORKFLOW_END_OPERATORS.includes(condition.operator)) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['operator'],
+      message: `the "${condition.operator}" operator does not apply to a sub-workflow end`,
+    });
+
+    return;
+  }
+
+  if (condition.value === undefined) return;
+
+  const isList = SUB_WORKFLOW_END_LIST_OPERATORS.includes(condition.operator);
+  const validValue = isList
+    ? Array.isArray(condition.value) && condition.value.length > 0 && condition.value.every(isEndId)
+    : isEndId(condition.value);
+
+  if (!validValue) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['value'],
+      message: isList
+        ? `the "${condition.operator}" operator takes a non-empty list of end ids`
+        : `the "${condition.operator}" operator takes an end id`,
+    });
+  }
+}
+
 const DeterministicConditionSchema = z
   .object({
-    /** Stable BPMN id of the upstream Get Data step whose output holds the value. */
+    sourceType: z
+      .enum(CONDITION_SOURCE_TYPES)
+      .nullish()
+      .transform((value): ConditionSourceType => value ?? 'get-data'),
+    /** Stable BPMN id of the upstream step whose output holds the value. */
     sourceStepId: z.string().min(1),
     fieldName: z.string().min(1),
     operator: z.enum(CONDITION_OPERATORS),
@@ -115,6 +173,8 @@ const DeterministicConditionSchema = z
         message: `value is required for the "${condition.operator}" operator`,
       });
     }
+
+    if (condition.sourceType === 'sub-workflow') checkSubWorkflowEndCondition(condition, ctx);
   });
 export type DeterministicCondition = z.infer<typeof DeterministicConditionSchema>;
 
