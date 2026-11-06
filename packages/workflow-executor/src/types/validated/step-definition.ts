@@ -218,6 +218,12 @@ export const TriggerActionStepDefinitionSchema = z.object({
       actionName: z.string().optional(),
     })
     .optional(),
+  // Saved with an `approved` and a `rejected` branch: a request filed for approval pauses the step
+  // until it is reviewed, instead of succeeding as soon as it is filed.
+  approvalOutcomes: z
+    .boolean()
+    .nullish()
+    .transform(value => value ?? undefined),
 });
 export type TriggerActionStepDefinition = z.infer<typeof TriggerActionStepDefinitionSchema>;
 

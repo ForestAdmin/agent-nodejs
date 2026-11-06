@@ -521,6 +521,56 @@ describe('workflow execution (integration)', () => {
     );
   });
 
+  it('trigger-action manual with approval outcomes: the form files a request → pauses on it', async () => {
+    const step = buildPendingStep({
+      stepDefinition: {
+        type: StepType.TriggerAction,
+        executionType: StepExecutionMode.Manual,
+        prompt: 'Send the email',
+        preRecordedArgs: { selectedRecordStepId: 'workflow-start', actionName: 'send_email' },
+        approvalOutcomes: true,
+      },
+    });
+    const workflowPort = createMockWorkflowPort({
+      getAvailableRun: jest.fn().mockResolvedValue({
+        step,
+        auth: { forestServerToken: 'test-forest-token' },
+        lockedAt: null,
+      }),
+      getCollectionSchema: jest.fn().mockResolvedValue(COLLECTION_SCHEMA_WITH_ACTIONS),
+    });
+    const { server, agentPort, runStore } = createIntegrationSetup({ workflowPort });
+    await runStore.init();
+    const token = signToken({ id: STEP_USER.id });
+
+    await request(server.callback)
+      .post('/runs/run-1/trigger')
+      .set('Authorization', `Bearer ${token}`)
+      .send();
+    const res = await request(server.callback)
+      .post('/runs/run-1/trigger')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        pendingData: {
+          userConfirmed: true,
+          submissionOutcome: 'pending-approval',
+          approvalRequest: { id: '12' },
+        },
+      });
+
+    expect(res.status).toBe(200);
+    expect(agentPort.executeAction).not.toHaveBeenCalled();
+    expect(workflowPort.updateStepExecution).toHaveBeenLastCalledWith(
+      'run-1',
+      expect.objectContaining({
+        type: 'record',
+        status: 'awaiting-input',
+        awaitingInputReason: 'pending-approval',
+        approvalRequests: [{ id: '12' }],
+      }),
+    );
+  });
+
   it('trigger-action Full AI: a backend refusal pauses with its message for the run view', async () => {
     const model = createSequentialMockModel({
       name: 'fill_action_form',

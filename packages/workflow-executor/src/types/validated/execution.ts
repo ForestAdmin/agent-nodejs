@@ -56,6 +56,27 @@ export const CallScopeSchema = z
   .strict();
 export type CallScope = z.infer<typeof CallScopeSchema>;
 
+// Statuses the Forest server gives an approval request. A request without one was deleted or is
+// unknown to the server.
+export const ApprovalRequestStatusSchema = z.enum([
+  'pending',
+  'in-progress',
+  'warning',
+  'approved',
+  'rejected',
+  'failed',
+]);
+export type ApprovalRequestStatus = z.infer<typeof ApprovalRequestStatusSchema>;
+
+export const ApprovalRequestReviewSchema = z
+  .object({
+    id: z.string().min(1),
+    status: ApprovalRequestStatusSchema.optional(),
+    approverId: z.number().int().nullable().optional(),
+  })
+  .strict();
+export type ApprovalRequestReview = z.infer<typeof ApprovalRequestReviewSchema>;
+
 export const AvailableStepExecutionSchema = z
   .object({
     runId: z.string().min(1),
@@ -72,6 +93,8 @@ export const AvailableStepExecutionSchema = z
     // fires on a mapper bug.
     timezone: z.string().refine(IANAZone.isValidZone),
     callScope: CallScopeSchema.optional(),
+    // The review state of the requests the pending step paused on, read by its replay.
+    approvalRequests: z.array(ApprovalRequestReviewSchema).optional(),
   })
   .strict();
 export type AvailableStepExecution = z.infer<typeof AvailableStepExecutionSchema>;
