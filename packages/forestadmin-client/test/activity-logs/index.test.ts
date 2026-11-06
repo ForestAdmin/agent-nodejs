@@ -121,10 +121,27 @@ describe('ActivityLogsService', () => {
         type: 'read',
       });
 
-      const [, body] = mockForestAdminServerInterface.createActivityLog.mock.calls[0];
-      expect((body as { data: { attributes: object } }).data.attributes).not.toHaveProperty(
-        'workflow',
-      );
+      // toStrictEqual, not toHaveBeenCalledWith: only it tells a missing key from an undefined one.
+      expect(mockForestAdminServerInterface.createActivityLog.mock.calls[0]).toStrictEqual([
+        { forestServerUrl: options.forestServerUrl, bearerToken: 'test-token', headers: undefined },
+        {
+          data: {
+            id: 1,
+            type: 'activity-logs-requests',
+            attributes: {
+              type: 'read',
+              action: 'index',
+              label: undefined,
+              status: 'pending',
+              records: [],
+            },
+            relationships: {
+              rendering: { data: { id: '12345', type: 'renderings' } },
+              collection: { data: null },
+            },
+          },
+        },
+      ]);
     });
 
     it('should create an activity log with recordIds array', async () => {
