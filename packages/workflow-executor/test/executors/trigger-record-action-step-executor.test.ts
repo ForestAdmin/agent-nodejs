@@ -3806,6 +3806,59 @@ describe('TriggerRecordActionStepExecutor', () => {
       },
     );
 
+    it.each(['approved', 'rejected'] as const)(
+      'takes the %s branch the user picked when declining the form',
+      async selectedOption => {
+        const { result, runStore, agentPort } = await submit(
+          { userConfirmed: false, selectedOption },
+          { executionType: StepExecutionMode.AutomatedWithConfirmation },
+        );
+
+        expect(result.stepOutcome).toEqual({
+          type: 'record',
+          stepId: 'trigger-1',
+          stepIndex: 0,
+          status: 'success',
+          selectedOption,
+        });
+        expect(agentPort.executeAction).not.toHaveBeenCalled();
+        expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+          'run-1',
+          expect.objectContaining({ executionResult: { skipped: true, selectedOption } }),
+        );
+      },
+    );
+
+    it('errors the step when the form is declined without a branch', async () => {
+      const { result, runStore } = await submit(
+        { userConfirmed: false },
+        { executionType: StepExecutionMode.AutomatedWithConfirmation },
+      );
+
+      expect(result.stepOutcome).toEqual(
+        expect.objectContaining({ status: 'error', error: expect.any(String) }),
+      );
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
+
+    it('skips without a branch when declining the form of a step without approval outcomes', async () => {
+      const { result, runStore } = await submit(
+        { userConfirmed: false, selectedOption: 'rejected' },
+        { executionType: StepExecutionMode.AutomatedWithConfirmation, approvalOutcomes: false },
+      );
+
+      expect(result.stepOutcome).toEqual({
+        type: 'record',
+        stepId: 'trigger-1',
+        stepIndex: 0,
+        status: 'success',
+      });
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({ executionResult: { skipped: true } }),
+      );
+    });
+
     it('succeeds with the request id on a step without approval outcomes', async () => {
       const { result, runStore } = await submit(
         {

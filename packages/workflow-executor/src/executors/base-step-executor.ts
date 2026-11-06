@@ -214,7 +214,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
   }
 
   // userConfirmed branches: undefined → re-emit awaiting-input (POST not yet called);
-  // false → save as skipped + success outcome; true → resolveAndExecute.
+  // false → declineConfirmation; true → resolveAndExecute.
   protected async handleConfirmationFlow<TExec extends ConfirmableStepExecutionData>(
     execution: TExec,
     resolveAndExecute: (execution: TExec) => Promise<StepExecutionResult>,
@@ -229,16 +229,20 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
       return this.buildOutcomeResult({ status: 'awaiting-input' });
     }
 
-    if (!userConfirmed) {
-      await this.context.runStore.saveStepExecution(this.context.runId, {
-        ...execution,
-        executionResult: { skipped: true },
-      } as StepExecutionData);
-
-      return this.buildOutcomeResult({ status: 'success' });
-    }
+    if (!userConfirmed) return this.declineConfirmation(execution);
 
     return resolveAndExecute(execution);
+  }
+
+  protected async declineConfirmation(
+    execution: ConfirmableStepExecutionData,
+  ): Promise<StepExecutionResult> {
+    await this.context.runStore.saveStepExecution(this.context.runId, {
+      ...execution,
+      executionResult: { skipped: true },
+    } as StepExecutionData);
+
+    return this.buildOutcomeResult({ status: 'success' });
   }
 
   protected buildContextMessage(): SystemMessage {

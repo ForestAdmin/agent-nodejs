@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { deserializeRecordId } from '../record-id';
+import { ApprovalOutcomeSchema } from '../types/validated/step-outcome';
 
 // Per-step-type schemas for the userConfirmation payload sent by the front via
 // POST /runs/:runId/trigger. Validated into `execution.userConfirmation`; schemas
@@ -32,6 +33,8 @@ const triggerActionPatchSchema = z
       .object({ id: z.string().min(1) })
       .strict()
       .optional(),
+    // The branch the user picks when declining the form of a step with approval outcomes.
+    selectedOption: ApprovalOutcomeSchema.optional(),
   })
   .strict();
 

@@ -109,6 +109,30 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     });
   }
 
+  // Declining the form takes the branch the user picks (product question Q7): falling through to
+  // Approved would read as an approval nobody gave.
+  protected override async declineConfirmation(
+    execution: TriggerRecordActionStepExecutionData,
+  ): Promise<StepExecutionResult> {
+    if (!this.hasApprovalOutcomes) return super.declineConfirmation(execution);
+
+    const selectedOption = execution.userConfirmation?.selectedOption;
+
+    if (!selectedOption) {
+      throw new StepStateError(
+        `Declining the form of a step with approval outcomes requires a selectedOption ` +
+          `(run "${this.context.runId}", step ${this.context.stepIndex})`,
+      );
+    }
+
+    await this.context.runStore.saveStepExecution(this.context.runId, {
+      ...execution,
+      executionResult: { skipped: true, selectedOption },
+    });
+
+    return this.buildOutcomeResult({ status: 'success', selectedOption });
+  }
+
   private buildExecutedResult(): StepExecutionResult {
     return this.buildOutcomeResult({
       status: 'success',
