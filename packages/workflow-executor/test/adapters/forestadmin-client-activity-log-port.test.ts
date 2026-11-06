@@ -120,7 +120,18 @@ describe('ForestadminClientActivityLogPort', () => {
 
       await port.createPending({ renderingId: 5, action: 'index', type: 'read', collectionId: 'c' });
 
-      expect(service.createActivityLog.mock.calls[0][0]).not.toHaveProperty('workflow');
+      // toStrictEqual, not toHaveBeenCalledWith: only it tells a missing key from an undefined one.
+      expect(service.createActivityLog.mock.calls[0]).toStrictEqual([
+        {
+          forestServerToken: 'tok',
+          renderingId: '5',
+          action: 'index',
+          type: 'read',
+          collectionName: 'c',
+          recordId: undefined,
+          label: undefined,
+        },
+      ]);
     });
 
     it('retries on 503 and succeeds on the second attempt', async () => {
