@@ -109,6 +109,7 @@ describe('Capabilities', () => {
             canUseAuditTrailTimeline: false,
             canSortAuditTrailTimeline: false,
             checksRelationReadPermissions: true,
+            canUseNestedConditionTree: true,
           },
           collections: [],
         });
@@ -137,6 +138,7 @@ describe('Capabilities', () => {
             canUseAuditTrailTimeline: false,
             canSortAuditTrailTimeline: false,
             checksRelationReadPermissions: true,
+            canUseNestedConditionTree: true,
           },
           collections: [],
         });
@@ -176,6 +178,7 @@ describe('Capabilities', () => {
             canUseAuditTrailTimeline: false,
             canSortAuditTrailTimeline: false,
             checksRelationReadPermissions: true,
+            canUseNestedConditionTree: true,
           },
           collections: [],
         });
@@ -278,6 +281,7 @@ describe('Capabilities', () => {
             canUseAuditTrailTimeline: false,
             canSortAuditTrailTimeline: false,
             checksRelationReadPermissions: true,
+            canUseNestedConditionTree: true,
           },
           collections: [
             {

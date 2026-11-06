@@ -109,6 +109,32 @@ describe('QueryStringParser', () => {
 
       expect(fn).toThrow(ValidationError);
     });
+
+    test('should reject a bulk action selection holding an empty nested group', () => {
+      const context = createMockContext({
+        requestBody: {
+          data: {
+            attributes: {
+              all_records_subset_query: {
+                filters: JSON.stringify({
+                  aggregator: 'and',
+                  conditions: [
+                    { field: 'name', operator: 'equal', value: 'Foundation' },
+                    { aggregator: 'or', conditions: [] },
+                  ],
+                }),
+              },
+            },
+          },
+        },
+      });
+
+      const fn = () => QueryStringParser.parseConditionTree(collectionSimple, context);
+
+      expect(fn).toThrow(
+        new ValidationError('Invalid filters (A nested group of conditions cannot be empty)'),
+      );
+    });
   });
 
   describe('parseProjection', () => {
