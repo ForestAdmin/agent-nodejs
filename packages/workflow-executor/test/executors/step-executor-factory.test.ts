@@ -119,6 +119,50 @@ describe('StepExecutorFactory.create', () => {
     );
   });
 
+  it('hands the returned Sub-workflow calls to the executor it builds', async () => {
+    const step = makeStep({
+      stepDefinition: {
+        type: StepType.Condition,
+        executionType: StepExecutionMode.Manual,
+        options: ['Approved path', 'Other'],
+        preRecordedArgs: {
+          optionConditions: [
+            {
+              option: 'Approved path',
+              aggregator: 'and',
+              conditions: [
+                {
+                  sourceType: 'sub-workflow',
+                  sourceStepId: 'call-1',
+                  fieldName: 'end',
+                  operator: 'equal',
+                  value: 'end-approved',
+                },
+              ],
+            },
+          ],
+          fallbackOption: 'Other',
+        },
+      },
+      subWorkflowEnds: [{ stepId: 'call-1', stepIndex: 1, endStepId: 'end-approved' }],
+    });
+    const config = {
+      ...makeContextConfig(),
+      runStore: {
+        getStepExecutions: jest.fn().mockResolvedValue([]),
+        saveStepExecution: jest.fn().mockResolvedValue(undefined),
+      },
+    } as unknown as StepContextConfig;
+
+    const executor = await StepExecutorFactory.create(step, config, activityLogPort, jest.fn());
+    const result = await executor.execute();
+
+    expect(result.stepOutcome).toMatchObject({
+      status: 'success',
+      selectedOption: 'Approved path',
+    });
+  });
+
   it('passes the step user id to the tool fetcher', async () => {
     const fetchRemoteTools = jest.fn().mockResolvedValue({ tools: [], mcpServerName: 'srv' });
 

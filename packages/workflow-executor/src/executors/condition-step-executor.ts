@@ -219,6 +219,9 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
       case 'get-data':
         return this.resolveGetDataValue(condition, stepExecutions);
 
+      case 'sub-workflow':
+        return this.resolveSubWorkflowEndValue(condition);
+
       /* istanbul ignore next — the schema only lets a known source type through */
       default: {
         const unknownSourceType: never = condition.sourceType;
@@ -250,6 +253,18 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
     if (!field || !('value' in field)) return { found: false, reason: 'field-not-loaded' };
 
     return { found: true, value: field.value };
+  }
+
+  // The mapper keeps only the calls this step's own workflow made, in history order, so the last
+  // match is the most recent run of that Sub-workflow step on the live path.
+  private resolveSubWorkflowEndValue(condition: DeterministicCondition): ResolvedConditionValue {
+    const calls = (this.context.subWorkflowEnds ?? []).filter(
+      call => call.stepId === condition.sourceStepId,
+    );
+    const lastCall = calls[calls.length - 1];
+    if (!lastCall) return { found: false, reason: 'source-step-not-reached' };
+
+    return { found: true, value: lastCall.endStepId };
   }
 
   private readUserChoice(

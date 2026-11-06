@@ -56,6 +56,17 @@ export const CallScopeSchema = z
   .strict();
 export type CallScope = z.infer<typeof CallScopeSchema>;
 
+// A Sub-workflow call the pending step's own workflow made and that has returned, with the End it
+// reached. In history order, so a loop's most recent call comes last.
+export const SubWorkflowEndSchema = z
+  .object({
+    stepId: z.string().min(1),
+    stepIndex: z.number().int().nonnegative(),
+    endStepId: z.string().min(1),
+  })
+  .strict();
+export type SubWorkflowEnd = z.infer<typeof SubWorkflowEndSchema>;
+
 export const AvailableStepExecutionSchema = z
   .object({
     runId: z.string().min(1),
@@ -72,6 +83,7 @@ export const AvailableStepExecutionSchema = z
     // fires on a mapper bug.
     timezone: z.string().refine(IANAZone.isValidZone),
     callScope: CallScopeSchema.optional(),
+    subWorkflowEnds: z.array(SubWorkflowEndSchema).optional(),
   })
   .strict();
 export type AvailableStepExecution = z.infer<typeof AvailableStepExecutionSchema>;

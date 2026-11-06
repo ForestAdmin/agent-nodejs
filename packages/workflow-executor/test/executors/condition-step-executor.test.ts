@@ -1294,6 +1294,135 @@ describe('ConditionStepExecutor', () => {
     });
   });
 
+  describe('deterministic evaluation of a Sub-workflow End', () => {
+    function endArgs(
+      operator: 'equal' | 'not_equal' | 'in' | 'not_in',
+      value: string | string[],
+    ): ConditionPreRecordedArgs {
+      return {
+        optionConditions: [
+          {
+            option: 'Approved path',
+            aggregator: 'and',
+            conditions: [
+              {
+                sourceType: 'sub-workflow',
+                sourceStepId: 'call-1',
+                fieldName: 'end',
+                operator,
+                value,
+              },
+            ],
+          },
+        ],
+        fallbackOption: 'Other',
+      };
+    }
+
+    function makeEndContext(
+      preRecordedArgs: ConditionPreRecordedArgs,
+      subWorkflowEnds: ExecutionContext['subWorkflowEnds'],
+    ) {
+      const runStore = makeMockRunStore({ getStepExecutions: jest.fn().mockResolvedValue([]) });
+      const context = makeContext({
+        runStore,
+        stepDefinition: makeDeterministicStep(preRecordedArgs),
+        subWorkflowEnds,
+      });
+
+      return { context, runStore };
+    }
+
+    const approvedCall = [{ stepId: 'call-1', stepIndex: 1, endStepId: 'end-approved' }];
+
+    it.each([
+      ['equal', 'end-approved', 'Approved path'],
+      ['equal', 'end-rejected', 'Other'],
+      ['not_equal', 'end-rejected', 'Approved path'],
+      ['not_equal', 'end-approved', 'Other'],
+      ['in', ['end-rejected', 'end-approved'], 'Approved path'],
+      ['in', ['end-rejected', 'end-cancelled'], 'Other'],
+      ['not_in', ['end-rejected', 'end-cancelled'], 'Approved path'],
+      ['not_in', ['end-rejected', 'end-approved'], 'Other'],
+    ] as const)(
+      'with %s %j on a call that reached end-approved, selects %s',
+      async (operator, value, expectedOption) => {
+        const { context } = makeEndContext(
+          endArgs(operator, value as string | string[]),
+          approvedCall,
+        );
+
+        const result = await new ConditionStepExecutor(context).execute();
+
+        expect(result.stepOutcome.status).toBe('success');
+        expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe(expectedOption);
+      },
+    );
+
+    it('reads the End of the most recent run of the Sub-workflow step (loop)', async () => {
+      const { context } = makeEndContext(endArgs('equal', 'end-approved'), [
+        { stepId: 'call-1', stepIndex: 1, endStepId: 'end-rejected' },
+        { stepId: 'call-1', stepIndex: 5, endStepId: 'end-approved' },
+      ]);
+
+      const result = await new ConditionStepExecutor(context).execute();
+
+      expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('Approved path');
+    });
+
+    it('reads only the End of the Sub-workflow step the condition names', async () => {
+      const { context } = makeEndContext(endArgs('equal', 'end-approved'), [
+        { stepId: 'call-2', stepIndex: 3, endStepId: 'end-approved' },
+        { stepId: 'call-1', stepIndex: 1, endStepId: 'end-rejected' },
+      ]);
+
+      const result = await new ConditionStepExecutor(context).execute();
+
+      expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('Other');
+    });
+
+    it.each([
+      ['no call returned at all', undefined],
+      [
+        'only another Sub-workflow step returned',
+        [{ stepId: 'call-2', stepIndex: 1, endStepId: 'end-approved' }],
+      ],
+    ])('counts the condition as not met, and says so, when %s', async (_label, subWorkflowEnds) => {
+      const { context, runStore } = makeEndContext(
+        endArgs('not_equal', 'end-rejected'),
+        subWorkflowEnds,
+      );
+
+      const result = await new ConditionStepExecutor(context).execute();
+
+      expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('Other');
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          executionParams: expect.objectContaining({
+            evaluations: [
+              {
+                option: 'Approved path',
+                outcome: 'not-matched',
+                conditions: [{ index: 0, met: null, reason: 'source-step-not-reached' }],
+              },
+            ],
+            usedFallback: true,
+          }),
+        }),
+      );
+      expect(context.logger).toHaveBeenCalledWith(
+        'Warn',
+        'Condition value could not be resolved, counting it as not met',
+        expect.objectContaining({
+          sourceType: 'sub-workflow',
+          sourceStepId: 'call-1',
+          reason: 'source-step-not-reached',
+        }),
+      );
+    });
+  });
+
   describe('executionType=Manual', () => {
     it('returns awaiting-input without preRecordedArgs, no AI and no save, when no incomingPendingData', async () => {
       const mockModel = makeMockModel();
