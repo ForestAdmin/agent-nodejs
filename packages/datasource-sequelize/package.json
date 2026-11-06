@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/datasource-sequelize",
-  "version": "1.13.16",
+  "version": "1.14.0",
   "main": "dist/index.js",
   "license": "Apache-2.0",
   "publishConfig": {

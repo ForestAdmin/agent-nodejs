@@ -1,3 +1,10 @@
+# @forestadmin/datasource-sequelize [1.14.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.13.16...@forestadmin/datasource-sequelize@1.14.0) (2026-11-06)
+
+
+### Features
+
+* allow nested condition tree ([#2029](https://github.com/ForestAdmin/agent-nodejs/issues/2029)) ([1417b5b](https://github.com/ForestAdmin/agent-nodejs/commit/1417b5b4a04c9e876933d8370ab4ef83b79f740f))
+
 ## @forestadmin/datasource-sequelize [1.13.16](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.13.15...@forestadmin/datasource-sequelize@1.13.16) (2026-11-03)
 
 
