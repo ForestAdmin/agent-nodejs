@@ -1,3 +1,10 @@
+# @forestadmin/agent [1.113.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.112.0...@forestadmin/agent@1.113.0) (2026-11-06)
+
+
+### Features
+
+* allow nested condition tree ([#2029](https://github.com/ForestAdmin/agent-nodejs/issues/2029)) ([1417b5b](https://github.com/ForestAdmin/agent-nodejs/commit/1417b5b4a04c9e876933d8370ab4ef83b79f740f))
+
 # @forestadmin/agent [1.112.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.111.12...@forestadmin/agent@1.112.0) (2026-11-05)
 
 
