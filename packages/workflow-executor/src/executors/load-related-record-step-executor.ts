@@ -589,6 +589,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
         relatedData,
         suggestedFields,
         this.context.stepDefinition.prompt,
+        relatedSchema.collectionDisplayName,
         opts.allowNone,
       ),
     );
@@ -765,6 +766,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     candidates: RecordData[],
     fieldNames: string[],
     prompt: string | undefined,
+    collectionDisplayName: string,
     allowNone = false,
   ): Promise<{ index: number; confident: boolean }> {
     const filteredCandidates = candidates.map((c, i) => {
@@ -836,6 +838,9 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       this.buildContextMessage(),
       new SystemMessage(SELECT_RECORD_SYSTEM_PROMPT),
       ...(noneAllowed ? [new SystemMessage(SELECT_RECORD_NONE_ALLOWED_PROMPT)] : []),
+      // Without it the AI judges whether each candidate is what the request names: "the dvds
+      // priced above $8" over titles reading like bicycles drew "not confident they are DVDs".
+      new SystemMessage(`The related records are from the "${collectionDisplayName}" collection.`),
       new SystemMessage(`Candidates:\n${lines.join('\n')}`),
       new HumanMessage(`**Request**: ${prompt ?? 'Select the most relevant record.'}`),
     ];
