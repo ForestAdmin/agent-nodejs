@@ -199,6 +199,17 @@ export class ApprovalRequestUntrackedError extends WorkflowExecutorError {
   }
 }
 
+// The editor saved the step without Approved and Rejected branches, then the rights changed: the
+// run cannot follow a review it has no branch for (product question Q14).
+export class ApprovalBranchesMissingError extends WorkflowConfigurationError {
+  constructor(actionName: string) {
+    super(
+      `Action "${actionName}" requires an approval, but the step was saved without Approved and Rejected branches`,
+      'This action now requires an approval. Re-save the workflow in the editor to add the Approved and Rejected branches.',
+    );
+  }
+}
+
 export class ApprovalRequestFailedError extends WorkflowOperatorError {
   constructor(approvalRequestId: string) {
     super(
