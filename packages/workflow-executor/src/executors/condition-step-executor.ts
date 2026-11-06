@@ -35,6 +35,10 @@ interface GatewayDecision {
   reasoning: string;
 }
 
+type ResolvedConditionValue =
+  | { found: true; value: unknown }
+  | { found: false; reason: ConditionNotLoadedReason };
+
 const GATEWAY_SYSTEM_PROMPT = `You are an AI agent selecting the correct option for a workflow gateway decision.
 
 **Task**: Analyze the question and available options, then select the option that DIRECTLY answers the question. Options must be literal answers, not interpretations.
@@ -195,6 +199,7 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
     if (resolved.found === false) {
       this.context.logger('Warn', 'Condition value could not be resolved, counting it as not met', {
         ...this.logCtx,
+        sourceType: condition.sourceType,
         sourceStepId: condition.sourceStepId,
         fieldName: condition.fieldName,
         reason: resolved.reason,
@@ -206,12 +211,30 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
     return { met: evaluateOperator(condition.operator, resolved.value, condition.value, clock) };
   }
 
-  // Same live-path + most-recent-occurrence resolution as resolveSourceRecordRef: previousSteps
-  // are already restricted to the live path, and in a loop the same step id repeats.
   private resolveConditionValue(
     condition: DeterministicCondition,
     stepExecutions: StepExecutionData[],
-  ): { found: true; value: unknown } | { found: false; reason: ConditionNotLoadedReason } {
+  ): ResolvedConditionValue {
+    switch (condition.sourceType) {
+      case 'get-data':
+        return this.resolveGetDataValue(condition, stepExecutions);
+
+      /* istanbul ignore next — the schema only lets a known source type through */
+      default: {
+        const unknownSourceType: never = condition.sourceType;
+        throw new InvalidStepDefinitionError(
+          `unknown condition source type "${String(unknownSourceType)}"`,
+        );
+      }
+    }
+  }
+
+  // Same live-path + most-recent-occurrence resolution as resolveSourceRecordRef: previousSteps
+  // are already restricted to the live path, and in a loop the same step id repeats.
+  private resolveGetDataValue(
+    condition: DeterministicCondition,
+    stepExecutions: StepExecutionData[],
+  ): ResolvedConditionValue {
     const matches = this.context.previousSteps.filter(
       step =>
         step.stepDefinition.type === StepType.ReadRecord &&
