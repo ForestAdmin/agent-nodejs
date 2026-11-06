@@ -1,5 +1,9 @@
 import type { RecordId } from '../types/validated/collection';
-import type { ActivityLogAction, ActivityLogType } from '@forestadmin/forestadmin-client';
+import type {
+  ActivityLogAction,
+  ActivityLogType,
+  ActivityLogWorkflow,
+} from '@forestadmin/forestadmin-client';
 
 export interface CreateActivityLogArgs {
   renderingId: number;
@@ -9,6 +13,7 @@ export interface CreateActivityLogArgs {
   collectionId: string;
   recordId?: RecordId;
   label?: string;
+  workflow?: ActivityLogWorkflow;
 }
 
 export interface ActivityLogHandle {
