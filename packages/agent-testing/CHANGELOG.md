@@ -1,3 +1,13 @@
+## @forestadmin/agent-testing [1.2.84](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-testing@1.2.83...@forestadmin/agent-testing@1.2.84) (2026-11-06)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.113.0
+
 ## @forestadmin/agent-testing [1.2.83](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-testing@1.2.82...@forestadmin/agent-testing@1.2.83) (2026-11-05)
 
 
