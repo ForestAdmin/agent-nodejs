@@ -5,7 +5,6 @@ import type {
   StepExecutionData,
 } from '../types/step-execution-data';
 import type {
-  ConditionSourceType,
   ConditionStepDefinition,
   DeterministicCondition,
   DeterministicConditionStep,
@@ -20,7 +19,6 @@ import BaseStepExecutor from './base-step-executor';
 import evaluateOperator, { type Clock } from './deterministic-condition-evaluator';
 import patchBodySchemas from '../http/pending-data-validators';
 import {
-  DEFAULT_CONDITION_SOURCE_TYPE,
   StepExecutionMode,
   StepType,
   isDeterministicConditionStep,
@@ -40,11 +38,6 @@ interface GatewayDecision {
 type ResolvedConditionValue =
   | { found: true; value: unknown }
   | { found: false; reason: ConditionNotLoadedReason };
-
-type ConditionValueResolver = (
-  condition: DeterministicCondition,
-  stepExecutions: StepExecutionData[],
-) => ResolvedConditionValue;
 
 const GATEWAY_SYSTEM_PROMPT = `You are an AI agent selecting the correct option for a workflow gateway decision.
 
@@ -206,6 +199,7 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
     if (resolved.found === false) {
       this.context.logger('Warn', 'Condition value could not be resolved, counting it as not met', {
         ...this.logCtx,
+        sourceType: condition.sourceType,
         sourceStepId: condition.sourceStepId,
         fieldName: condition.fieldName,
         reason: resolved.reason,
@@ -217,17 +211,22 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
     return { met: evaluateOperator(condition.operator, resolved.value, condition.value, clock) };
   }
 
-  private readonly conditionValueResolvers: Record<ConditionSourceType, ConditionValueResolver> = {
-    'get-data': (condition, stepExecutions) => this.resolveGetDataValue(condition, stepExecutions),
-  };
-
   private resolveConditionValue(
     condition: DeterministicCondition,
     stepExecutions: StepExecutionData[],
   ): ResolvedConditionValue {
-    const sourceType = condition.sourceType ?? DEFAULT_CONDITION_SOURCE_TYPE;
+    switch (condition.sourceType) {
+      case 'get-data':
+        return this.resolveGetDataValue(condition, stepExecutions);
 
-    return this.conditionValueResolvers[sourceType](condition, stepExecutions);
+      /* istanbul ignore next — the schema only lets a known source type through */
+      default: {
+        const unknownSourceType: never = condition.sourceType;
+        throw new InvalidStepDefinitionError(
+          `unknown condition source type "${String(unknownSourceType)}"`,
+        );
+      }
+    }
   }
 
   // Same live-path + most-recent-occurrence resolution as resolveSourceRecordRef: previousSteps

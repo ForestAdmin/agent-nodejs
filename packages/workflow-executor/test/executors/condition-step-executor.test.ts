@@ -7,6 +7,7 @@ import type { FieldReadResult, StepExecutionData } from '../../src/types/step-ex
 import type { RecordRef } from '../../src/types/validated/collection';
 import type { ConditionStepDefinition } from '../../src/types/validated/step-definition';
 import type { ConditionStepOutcome } from '../../src/types/validated/step-outcome';
+import type { z } from 'zod';
 
 import { RunStorePortError } from '../../src/errors';
 import ActivityLog from '../../src/executors/activity-log';
@@ -14,7 +15,11 @@ import AgentWithLog from '../../src/executors/agent-with-log';
 import ConditionStepExecutor from '../../src/executors/condition-step-executor';
 import SchemaCache from '../../src/schema-cache';
 import SchemaResolver from '../../src/schema-resolver';
-import { StepExecutionMode, StepType } from '../../src/types/validated/step-definition';
+import {
+  ConditionStepDefinitionSchema,
+  StepExecutionMode,
+  StepType,
+} from '../../src/types/validated/step-definition';
 
 function makeStep(overrides: Partial<ConditionStepDefinition> = {}): ConditionStepDefinition {
   return {
@@ -26,15 +31,17 @@ function makeStep(overrides: Partial<ConditionStepDefinition> = {}): ConditionSt
   };
 }
 
-type ConditionPreRecordedArgs = NonNullable<ConditionStepDefinition['preRecordedArgs']>;
+type ConditionPreRecordedArgs = NonNullable<
+  z.input<typeof ConditionStepDefinitionSchema>['preRecordedArgs']
+>;
 
 // Published with aiDecision stripped, so a deterministic gateway arrives as manual: the args make it deterministic, not the mode.
 function makeDeterministicStep(
   preRecordedArgs: ConditionPreRecordedArgs,
   executionType: ConditionStepDefinition['executionType'] = StepExecutionMode.Manual,
 ): ConditionStepDefinition {
-  return makeStep({
-    executionType,
+  return ConditionStepDefinitionSchema.parse({
+    ...makeStep({ executionType }),
     options: [
       ...preRecordedArgs.optionConditions.map(o => o.option),
       preRecordedArgs.fallbackOption,
