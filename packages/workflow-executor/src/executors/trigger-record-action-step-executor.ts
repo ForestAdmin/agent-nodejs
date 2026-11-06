@@ -24,7 +24,6 @@ import {
   ActionFormValidationError,
   ActionNotFoundError,
   ActionRequiresApprovalError,
-  ApprovalBranchesNeedFullAiError,
   ApprovalRequestFailedError,
   ApprovalRequestGoneError,
   ApprovalRequestUntrackedError,
@@ -355,10 +354,6 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     form?: { fields: ActionFormField[]; aiFilledValues: AiFilledFormValue[] },
     fullAiFallback?: FullAiFallback,
   ): Promise<StepExecutionResult> {
-    if (fullAiFallback && this.hasApprovalOutcomes) {
-      throw new ApprovalBranchesNeedFullAiError(target.name, fullAiFallback.reason);
-    }
-
     await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'trigger-action',
       stepIndex: this.context.stepIndex,

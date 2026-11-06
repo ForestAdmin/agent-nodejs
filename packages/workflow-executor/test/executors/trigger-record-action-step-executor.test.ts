@@ -3462,7 +3462,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       );
     });
 
-    it('errors the step instead of falling back to the native form when the AI leaves a required field empty', async () => {
+    it('falls back to the native form when the AI leaves a required field empty', async () => {
       const agentPort = makeMockAgentPort();
       (agentPort.getActionForm as jest.Mock).mockResolvedValue({
         fields: [{ name: 'reason', type: 'String', isRequired: true }],
@@ -3479,17 +3479,53 @@ describe('TriggerRecordActionStepExecutor', () => {
 
       const result = await new TriggerRecordActionStepExecutor(context).execute();
 
-      expect(result.stepOutcome).toEqual(
+      expect(result.stepOutcome).toEqual({
+        type: 'record',
+        stepId: 'trigger-1',
+        stepIndex: 0,
+        status: 'awaiting-input',
+      });
+      expect(agentPort.executeAction).not.toHaveBeenCalled();
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
         expect.objectContaining({
-          status: 'error',
-          error:
-            'This step has Approved and Rejected branches, which only run automatically for now. Complete the action configuration so the AI can submit it, then revise the step.',
+          pendingData: expect.objectContaining({
+            fullAiFallback: { reason: 'required-fields-missing' },
+          }),
         }),
       );
-      expect(agentPort.executeAction).not.toHaveBeenCalled();
-      expect(runStore.saveStepExecution).not.toHaveBeenCalledWith(
-        'run-1',
-        expect.objectContaining({ pendingData: expect.anything() }),
+    });
+
+    it('pauses on the approval request filed from the native form of the fallback', async () => {
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([
+          {
+            type: 'trigger-action',
+            stepIndex: 0,
+            pendingData: {
+              displayName: 'Block card',
+              name: 'block_card',
+              fullAiFallback: { reason: 'required-fields-missing' },
+            },
+            userConfirmation: {
+              userConfirmed: true,
+              submissionOutcome: 'pending-approval',
+              approvalRequest: { id: '12' },
+            },
+            selectedRecordRef: makeRecordRef(),
+          },
+        ]),
+      });
+      const context = makeContext({ runStore, stepDefinition: approvalStep() });
+
+      const result = await new TriggerRecordActionStepExecutor(context).execute();
+
+      expect(result.stepOutcome).toEqual(
+        expect.objectContaining({
+          status: 'awaiting-input',
+          awaitingInputReason: 'pending-approval',
+          approvalRequests: [{ id: '12' }],
+        }),
       );
     });
 
