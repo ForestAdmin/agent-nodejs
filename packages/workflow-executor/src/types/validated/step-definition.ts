@@ -100,7 +100,7 @@ const VALUE_LESS_OPERATORS: readonly ConditionOperator[] = [
 export const CONDITION_SOURCE_TYPES = ['get-data', 'sub-workflow'] as const;
 export type ConditionSourceType = (typeof CONDITION_SOURCE_TYPES)[number];
 
-export const SUB_WORKFLOW_END_FIELD_NAME = 'end';
+const SUB_WORKFLOW_END_FIELD_NAME = 'end';
 const SUB_WORKFLOW_END_OPERATORS: readonly ConditionOperator[] = [
   'equal',
   'not_equal',
@@ -132,6 +132,8 @@ function checkSubWorkflowEndCondition(
 
     return;
   }
+
+  if (condition.value === undefined) return;
 
   const isList = SUB_WORKFLOW_END_LIST_OPERATORS.includes(condition.operator);
   const validValue = isList

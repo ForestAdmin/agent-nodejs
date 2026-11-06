@@ -1333,7 +1333,7 @@ describe('ConditionStepExecutor', () => {
       return { context, runStore };
     }
 
-    const approvedCall = [{ stepId: 'call-1', stepIndex: 1, endStepId: 'end-approved' }];
+    const approvedCall = [{ stepId: 'call-1', endStepId: 'end-approved' }];
 
     it.each([
       ['equal', 'end-approved', 'Approved path'],
@@ -1359,21 +1359,10 @@ describe('ConditionStepExecutor', () => {
       },
     );
 
-    it('reads the End of the most recent run of the Sub-workflow step (loop)', async () => {
-      const { context } = makeEndContext(endArgs('equal', 'end-approved'), [
-        { stepId: 'call-1', stepIndex: 1, endStepId: 'end-rejected' },
-        { stepId: 'call-1', stepIndex: 5, endStepId: 'end-approved' },
-      ]);
-
-      const result = await new ConditionStepExecutor(context).execute();
-
-      expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('Approved path');
-    });
-
     it('reads only the End of the Sub-workflow step the condition names', async () => {
       const { context } = makeEndContext(endArgs('equal', 'end-approved'), [
-        { stepId: 'call-2', stepIndex: 3, endStepId: 'end-approved' },
-        { stepId: 'call-1', stepIndex: 1, endStepId: 'end-rejected' },
+        { stepId: 'call-2', endStepId: 'end-approved' },
+        { stepId: 'call-1', endStepId: 'end-rejected' },
       ]);
 
       const result = await new ConditionStepExecutor(context).execute();
@@ -1385,7 +1374,7 @@ describe('ConditionStepExecutor', () => {
       ['no call returned at all', undefined],
       [
         'only another Sub-workflow step returned',
-        [{ stepId: 'call-2', stepIndex: 1, endStepId: 'end-approved' }],
+        [{ stepId: 'call-2', endStepId: 'end-approved' }],
       ],
     ])('counts the condition as not met, and says so, when %s', async (_label, subWorkflowEnds) => {
       const { context, runStore } = makeEndContext(

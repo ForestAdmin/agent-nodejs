@@ -174,24 +174,30 @@ function walkCallStack(history: ServerStepHistory[], pending: ServerStepHistory)
   return { openCalls, frameOfStep, closedCalls };
 }
 
-function frameOfPending(walk: CallStackWalk, pending: ServerStepHistory): number {
+// Undefined for a step of a called workflow while no call is open, a history with no frame to read.
+function frameOfPending(walk: CallStackWalk, pending: ServerStepHistory): number | undefined {
   if (!pending.childrenWorkflowId) return ROOT_FRAME;
 
-  return walk.openCalls.at(-1)?.stepIndex ?? ROOT_FRAME;
+  return walk.openCalls.at(-1)?.stepIndex;
 }
 
 // Step ids are unique only per workflow, so only the calls the pending step's own workflow made
 // can answer for it: a nested call's End belongs to the step that made it, not to its caller.
+// A navigation entry with no name is dropped rather than failing the whole run's validation.
 function toSubWorkflowEnds(
   walk: CallStackWalk,
   pending: ServerStepHistory,
 ): SubWorkflowEnd[] | undefined {
   const frame = frameOfPending(walk, pending);
-  const ends = walk.closedCalls
-    .filter(({ call }) => call.frameOpenedAt === frame)
-    .map(({ call, endStepId }) => ({ stepId: call.stepId, stepIndex: call.stepIndex, endStepId }));
+  const latestEndOf = new Map<string, string>();
 
-  return ends.length > 0 ? ends : undefined;
+  walk.closedCalls
+    .filter(({ call, endStepId }) => call.frameOpenedAt === frame && call.stepId && endStepId)
+    .forEach(({ call, endStepId }) => latestEndOf.set(call.stepId, endStepId));
+
+  if (latestEndOf.size === 0) return undefined;
+
+  return [...latestEndOf].map(([stepId, endStepId]) => ({ stepId, endStepId }));
 }
 
 function toCallScope(walk: CallStackWalk, pending: ServerStepHistory): CallScope | undefined {
@@ -199,7 +205,7 @@ function toCallScope(walk: CallStackWalk, pending: ServerStepHistory): CallScope
 
   // A root step needs its frame too once a call has run: a closed call repeating a step id would
   // otherwise answer a root pin with its own record.
-  if (!pending.childrenWorkflowId) {
+  if (frameOfPending(walk, pending) === ROOT_FRAME) {
     const rootStepIndexes = [...frameOfStep]
       .filter(([, frame]) => frame === ROOT_FRAME)
       .map(([stepIndex]) => stepIndex);

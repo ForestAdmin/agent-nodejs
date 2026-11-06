@@ -255,16 +255,11 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
     return { found: true, value: field.value };
   }
 
-  // The mapper keeps only the calls this step's own workflow made, in history order, so the last
-  // match is the most recent run of that Sub-workflow step on the live path.
   private resolveSubWorkflowEndValue(condition: DeterministicCondition): ResolvedConditionValue {
-    const calls = (this.context.subWorkflowEnds ?? []).filter(
-      call => call.stepId === condition.sourceStepId,
-    );
-    const lastCall = calls[calls.length - 1];
-    if (!lastCall) return { found: false, reason: 'source-step-not-reached' };
+    const call = this.context.subWorkflowEnds?.find(end => end.stepId === condition.sourceStepId);
+    if (!call) return { found: false, reason: 'source-step-not-reached' };
 
-    return { found: true, value: lastCall.endStepId };
+    return { found: true, value: call.endStepId };
   }
 
   private readUserChoice(

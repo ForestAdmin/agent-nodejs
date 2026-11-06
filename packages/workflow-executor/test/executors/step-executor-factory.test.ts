@@ -144,7 +144,7 @@ describe('StepExecutorFactory.create', () => {
           fallbackOption: 'Other',
         },
       },
-      subWorkflowEnds: [{ stepId: 'call-1', stepIndex: 1, endStepId: 'end-approved' }],
+      subWorkflowEnds: [{ stepId: 'call-1', endStepId: 'end-approved' }],
     });
     const config = {
       ...makeContextConfig(),

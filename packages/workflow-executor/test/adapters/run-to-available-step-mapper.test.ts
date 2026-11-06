@@ -1506,22 +1506,36 @@ describe('toAvailableStepExecution', () => {
           makeClose('end-approved', 2),
           pendingRoot(3),
         ]),
-      ).toEqual([{ stepId: 'call-1', stepIndex: 0, endStepId: 'end-approved' }]);
+      ).toEqual([{ stepId: 'call-1', endStepId: 'end-approved' }]);
     });
 
-    it('lists every run of a Sub-workflow step in a loop, oldest first', () => {
+    it('keeps the End of the most recent run of a Sub-workflow step in a loop', () => {
       expect(
         endsOf([
           makeStart('call-1', 0),
           makeClose('end-rejected', 1),
-          makeStart('call-1', 2),
+          makeStart('call-2', 2),
+          makeClose('end-other', 3),
+          makeStart('call-1', 4),
+          makeClose('end-approved', 5),
+          pendingRoot(6),
+        ]),
+      ).toEqual([
+        { stepId: 'call-1', endStepId: 'end-approved' },
+        { stepId: 'call-2', endStepId: 'end-other' },
+      ]);
+    });
+
+    it('drops a returned call whose close step has no name, and still maps the run', () => {
+      expect(
+        endsOf([
+          makeStart('call-1', 0),
+          makeClose('', 1),
+          makeStart('call-2', 2),
           makeClose('end-approved', 3),
           pendingRoot(4),
         ]),
-      ).toEqual([
-        { stepId: 'call-1', stepIndex: 0, endStepId: 'end-rejected' },
-        { stepId: 'call-1', stepIndex: 2, endStepId: 'end-approved' },
-      ]);
+      ).toEqual([{ stepId: 'call-2', endStepId: 'end-approved' }]);
     });
 
     it('gives a root step the End of the call it made, not of the call nested in it', () => {
@@ -1533,7 +1547,7 @@ describe('toAvailableStepExecution', () => {
           makeClose('end-outer', 3),
           pendingRoot(4),
         ]),
-      ).toEqual([{ stepId: 'call-outer', stepIndex: 0, endStepId: 'end-outer' }]);
+      ).toEqual([{ stepId: 'call-outer', endStepId: 'end-outer' }]);
     });
 
     it('gives a step inside a call the Ends of the calls its own workflow made', () => {
@@ -1546,7 +1560,7 @@ describe('toAvailableStepExecution', () => {
           makeClose('end-inner', 4, { childrenWorkflowId: 'wf-child' }),
           makeChild('decision', 5, false),
         ]),
-      ).toEqual([{ stepId: 'call-inner', stepIndex: 3, endStepId: 'end-inner' }]);
+      ).toEqual([{ stepId: 'call-inner', endStepId: 'end-inner' }]);
     });
 
     it('lists no End for a call that has not returned yet', () => {

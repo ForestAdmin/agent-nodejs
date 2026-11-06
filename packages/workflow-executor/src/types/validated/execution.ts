@@ -56,12 +56,9 @@ export const CallScopeSchema = z
   .strict();
 export type CallScope = z.infer<typeof CallScopeSchema>;
 
-// A Sub-workflow call the pending step's own workflow made and that has returned, with the End it
-// reached. In history order, so a loop's most recent call comes last.
 export const SubWorkflowEndSchema = z
   .object({
     stepId: z.string().min(1),
-    stepIndex: z.number().int().nonnegative(),
     endStepId: z.string().min(1),
   })
   .strict();

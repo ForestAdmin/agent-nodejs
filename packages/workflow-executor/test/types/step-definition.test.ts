@@ -292,6 +292,15 @@ describe('ConditionStepDefinitionSchema deterministic conditions', () => {
       });
     });
 
+    it('reports a missing value once, not also as a malformed one', () => {
+      const result = parseEndCondition({ operator: 'equal' });
+
+      expect(result.success).toBe(false);
+      expect(!result.success && result.error.issues.map(issue => issue.message)).toEqual([
+        'value is required for the "equal" operator',
+      ]);
+    });
+
     it('rejects a field other than end', () => {
       const result = parseEndCondition({ fieldName: 'status', operator: 'equal', value: 'end-1' });
 
