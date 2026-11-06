@@ -367,4 +367,43 @@ describe('toUpdateStepRequest', () => {
       expect(body.stepUpdate.attributes.context).not.toHaveProperty('errorKind');
     });
   });
+
+  describe('a step dispatched while it carried an error', () => {
+    const outcome = (status: 'success' | 'awaiting-input' | 'error'): StepOutcome => ({
+      type: 'record',
+      stepId: 'step-1',
+      stepIndex: 3,
+      status,
+      ...(status === 'error' && { error: '1 of 3 records failed.' }),
+    });
+
+    it.each(['success', 'awaiting-input'] as const)(
+      'reports the error cleared, as null, when the step now ends in %s',
+      status => {
+        const body = toUpdateStepRequest('42', outcome(status), { clearsError: true });
+
+        expect(body.stepUpdate.attributes.context).toStrictEqual({
+          status,
+          error: null,
+          errorKind: null,
+          errorSourceStepIndex: null,
+        });
+      },
+    );
+
+    it('reports a new error as it is, without clearing anything', () => {
+      const body = toUpdateStepRequest('42', outcome('error'), { clearsError: true });
+
+      expect(body.stepUpdate.attributes.context).toStrictEqual({
+        status: 'error',
+        error: '1 of 3 records failed.',
+      });
+    });
+
+    it("sends exactly today's report for a step dispatched without an error", () => {
+      expect(toUpdateStepRequest('42', outcome('success'), { clearsError: false })).toStrictEqual(
+        toUpdateStepRequest('42', outcome('success')),
+      );
+    });
+  });
 });

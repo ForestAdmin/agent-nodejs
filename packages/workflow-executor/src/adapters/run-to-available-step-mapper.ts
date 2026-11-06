@@ -221,6 +221,12 @@ function toStepUser(runId: number, profile: ServerUserProfile): StepUser {
   return toSharedStepUser(profile);
 }
 
+function carriesError(pending: ServerStepHistory): boolean {
+  const { error } = (pending.context ?? {}) as { error?: unknown };
+
+  return typeof error === 'string' && error.length > 0;
+}
+
 // Returns null when the run has no available step (terminal state or all done/cancelled).
 // Throws InvalidStepDefinitionError on missing required fields (collectionId, collectionName,
 // userProfile) or an unmappable step definition.
@@ -274,6 +280,7 @@ export default function toAvailableStepExecution(
     // user, since that one follows the browser.
     timezone: toProjectTimezone(run.timezone),
     ...(callScope && { callScope }),
+    ...(carriesError(pending) && { carriesError: true as const }),
   };
 
   // Defense against mapper bugs: zod asserts the shape we produce is what the domain expects,
