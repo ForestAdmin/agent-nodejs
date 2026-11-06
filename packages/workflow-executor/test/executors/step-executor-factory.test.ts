@@ -178,13 +178,18 @@ describe('StepExecutorFactory.create', () => {
         } as unknown as Partial<AvailableStepExecution>),
       );
 
-      expect(args.workflow).toEqual({ runId: 'run-1', name: 'Alert triage', stepName: 'step-1' });
+      expect(args).toEqual({
+        renderingId: 1,
+        ...TARGET,
+        workflow: { runId: 'run-1', name: 'Alert triage', stepName: 'step-1' },
+      });
     });
 
     it('carries no workflow when the run has no workflow name', async () => {
       const args = await trackThroughBuiltContext(makeStep());
 
-      expect(args).toEqual({ renderingId: 1, ...TARGET });
+      // toStrictEqual, not toEqual: only it tells a missing key from an undefined one.
+      expect(args).toStrictEqual({ renderingId: 1, ...TARGET });
     });
   });
 
