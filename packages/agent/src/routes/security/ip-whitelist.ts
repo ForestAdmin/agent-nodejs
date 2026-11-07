@@ -2,16 +2,15 @@ import type { IpWhitelistConfiguration } from '@forestadmin/forestadmin-client';
 import type Router from '@koa/router';
 import type { Context, Next } from 'koa';
 
-import { BlockList, isIPv6 } from 'net';
+import { BlockList } from 'net';
 
 import { HttpCode, RouteType } from '../../types';
 import BaseRoute from '../base-route';
+import resolveClientIp, { ipVersion } from './client-ip';
 
 type IpRule = IpWhitelistConfiguration['ipRules'][number];
 
 const LOOPBACK_IPS = ['127.0.0.1', '::1', '::ffff:127.0.0.1'];
-
-const ipVersion = (ip: string): 'ipv4' | 'ipv6' => (isIPv6(ip) ? 'ipv6' : 'ipv4');
 
 export default class IpWhitelist extends BaseRoute {
   type = RouteType.Authentication;
@@ -58,7 +57,10 @@ export default class IpWhitelist extends BaseRoute {
         return next();
       }
 
-      const currentIp = `${context.request.headers['x-forwarded-for'] ?? context.request.ip}`;
+      const currentIp = resolveClientIp(
+        context.req?.socket?.remoteAddress ?? '',
+        context.request.headers['x-forwarded-for'],
+      );
 
       if (!this.allowedIps.check(currentIp, ipVersion(currentIp))) {
         return context.throw(HttpCode.Forbidden, `IP address rejected (${currentIp})`);
