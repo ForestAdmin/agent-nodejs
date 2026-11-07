@@ -4,13 +4,27 @@ on:
   schedule:
     - cron: "0 6 * * 1" # Mondays 06:00 UTC
   workflow_dispatch:
+  # Only the files that decide which models we advertise: the sweep calls the paid provider APIs
+  # and takes up to 30 minutes, too much to pay on every ai-proxy change.
+  pull_request:
+    paths:
+      - packages/ai-proxy/src/supported-models.ts
+      - packages/ai-proxy/test/llm.integration.test.ts
+      - packages/ai-proxy/test/bedrock.integration.test.ts
+      - .github/workflows/llm-integration-tests.yml
 
 permissions:
   contents: read
 
+concurrency:
+  group: llm-integration-tests-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   llm-integration-tests:
     name: LLM Integration Tests (ai-proxy)
+    # Fork PRs get no secrets, and the Bedrock suite fails without AWS_REGION.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     # The Bedrock sweep walks the catalogue serially with maxRetries 0; 15 would cancel the job
     # before its own budget expires, which reads as "cancelled" rather than as a result.
