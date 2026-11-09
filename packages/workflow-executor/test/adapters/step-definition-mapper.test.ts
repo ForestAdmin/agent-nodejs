@@ -128,6 +128,17 @@ describe('toStepDefinition', () => {
       );
     });
 
+    it('should keep a trigger-action task the editor saved without branches', () => {
+      const task = makeTask({
+        taskType: ServerTaskTypeEnum.TriggerAction,
+        approvalOutcomes: false,
+      } as Partial<ServerWorkflowTask>);
+
+      expect(toStepDefinition(task)).toEqual(
+        expect.objectContaining({ type: StepType.TriggerAction, approvalOutcomes: false }),
+      );
+    });
+
     it('should leave approval outcomes off a trigger-action task the server sends as null', () => {
       const task = makeTask({
         taskType: ServerTaskTypeEnum.TriggerAction,
