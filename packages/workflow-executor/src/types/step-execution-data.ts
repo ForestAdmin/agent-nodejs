@@ -165,7 +165,8 @@ export interface TriggerRecordActionStepExecutionData
         // Set once the request is reviewed, on a step saved with approval outcomes.
         approvalOutcome?: ApprovalOutcome;
       }
-    | { skipped: true };
+    // selectedOption: the branch picked when declining the form of a step with approval outcomes.
+    | { skipped: true; selectedOption?: ApprovalOutcome };
   pendingData?: TriggerActionPendingData;
   selectedRecordRef: RecordRef;
 }

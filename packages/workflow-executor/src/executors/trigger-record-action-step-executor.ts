@@ -9,6 +9,7 @@ import type {
 import type { ActionSchema, CollectionSchema, RecordRef } from '../types/validated/collection';
 import type { TriggerActionStepDefinition } from '../types/validated/step-definition';
 import type {
+  ApprovalActionTarget,
   ApprovalOutcome,
   ApprovalRequestRef,
   AwaitingInputReason,
@@ -24,6 +25,7 @@ import {
   ActionFormValidationError,
   ActionNotFoundError,
   ActionRequiresApprovalError,
+  ApprovalBranchesMissingError,
   ApprovalRequestFailedError,
   ApprovalRequestGoneError,
   ApprovalRequestUntrackedError,
@@ -32,6 +34,7 @@ import {
   StepStateError,
 } from '../errors';
 import RecordStepExecutor from './record-step-executor';
+import { serializeRecordId } from '../record-id';
 import { StepExecutionMode } from '../types/validated/step-definition';
 
 const TRIGGER_ACTION_SYSTEM_PROMPT = `You are an AI agent triggering an action on a record based on a user request.
@@ -81,6 +84,8 @@ interface ActionTarget extends ActionRef {
   approvalMessage?: string;
 }
 
+type RanAction = { selectedRecordRef: RecordRef; actionName: string };
+
 export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<TriggerActionStepDefinition> {
   // The approval fields live here, off the shared record builder; super spreads them onto the outcome.
   protected override buildOutcomeResult(outcome: {
@@ -91,6 +96,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     approvalRequest?: { id: string };
     awaitingInputReason?: AwaitingInputReason;
     approvalRequests?: ApprovalRequestRef[];
+    actionTarget?: ApprovalActionTarget;
     selectedOption?: ApprovalOutcome;
     approverId?: number | null;
   }): StepExecutionResult {
@@ -101,12 +107,74 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     return this.context.stepDefinition.approvalOutcomes === true;
   }
 
-  private buildApprovalPause(approvalRequest: { id: string }): StepExecutionResult {
+  // Saved without branches by an editor that knows them; a step from an older editor has no value.
+  private get refusesApprovals(): boolean {
+    return this.context.stepDefinition.approvalOutcomes === false;
+  }
+
+  private buildApprovalPause(
+    approvalRequest: { id: string },
+    { selectedRecordRef, actionName }: RanAction,
+  ): StepExecutionResult {
     return this.buildOutcomeResult({
       status: 'awaiting-input',
       awaitingInputReason: 'pending-approval',
       approvalRequests: [{ id: approvalRequest.id }],
+      actionTarget: {
+        collectionName: selectedRecordRef.collectionName,
+        actionName,
+        recordId: serializeRecordId(selectedRecordRef.recordId),
+      },
     });
+  }
+
+  // The one decision for a request the AI or the native form filed, on its first report or on a
+  // replay of the record saved `done` (filedRecord), which consults the review.
+  private async settleFiledApproval(
+    approvalRequest: { id: string } | undefined,
+    ranAction: RanAction,
+    filedRecord?: TriggerRecordActionStepExecutionData,
+  ): Promise<StepExecutionResult> {
+    if (this.refusesApprovals) {
+      throw new ApprovalBranchesMissingError(ranAction.actionName, approvalRequest?.id);
+    }
+
+    if (this.hasApprovalOutcomes) {
+      if (!approvalRequest) throw new ApprovalRequestUntrackedError(ranAction.actionName);
+
+      return filedRecord
+        ? this.replayReviewedApproval(filedRecord, approvalRequest, ranAction)
+        : this.buildApprovalPause(approvalRequest, ranAction);
+    }
+
+    return this.buildOutcomeResult({
+      status: 'success',
+      ...(approvalRequest && { approvalRequest }),
+    });
+  }
+
+  // Declining the form takes the branch the user picks (product question Q7): falling through to
+  // Approved would read as an approval nobody gave.
+  protected override async declineConfirmation(
+    execution: TriggerRecordActionStepExecutionData,
+  ): Promise<StepExecutionResult> {
+    if (!this.hasApprovalOutcomes) return super.declineConfirmation(execution);
+
+    const selectedOption = execution.userConfirmation?.selectedOption;
+
+    if (!selectedOption) {
+      throw new StepStateError(
+        `Declining the form of a step with approval outcomes requires a selectedOption ` +
+          `(run "${this.context.runId}", step ${this.context.stepIndex})`,
+      );
+    }
+
+    await this.context.runStore.saveStepExecution(this.context.runId, {
+      ...execution,
+      executionResult: { skipped: true, selectedOption },
+    });
+
+    return this.buildOutcomeResult({ status: 'success', selectedOption });
   }
 
   private buildExecutedResult(): StepExecutionResult {
@@ -121,10 +189,11 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
   private async replayReviewedApproval(
     existing: TriggerRecordActionStepExecutionData,
     approvalRequest: { id: string },
+    ranAction: RanAction,
   ): Promise<StepExecutionResult> {
     const review = this.context.approvalRequests?.find(({ id }) => id === approvalRequest.id);
 
-    if (!review) return this.buildApprovalPause(approvalRequest);
+    if (!review) return this.buildApprovalPause(approvalRequest, ranAction);
 
     if (review.status === 'approved' || review.status === 'rejected') {
       await this.context.runStore.saveStepExecution(this.context.runId, {
@@ -148,7 +217,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     if (review.status === 'failed') throw new ApprovalRequestFailedError(approvalRequest.id);
     if (review.status === undefined) throw new ApprovalRequestGoneError(approvalRequest.id);
 
-    return this.buildApprovalPause(approvalRequest);
+    return this.buildApprovalPause(approvalRequest, ranAction);
   }
 
   protected override async checkIdempotency(): Promise<StepExecutionResult | null> {
@@ -162,30 +231,26 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
         result && !('skipped' in result) && result.submissionOutcome === 'pending-approval';
       const approvalRequest = isPendingApproval ? result.approvalRequest : undefined;
 
-      if (isPendingApproval && this.hasApprovalOutcomes) {
+      if (isPendingApproval) {
         if (!approvalRequest) {
-          throw new ApprovalRequestUntrackedError(existing.executionParams?.name ?? 'unknown');
+          this.context.logger(
+            'Warn',
+            'Replayed a pending-approval step with no approval id; no deep-link available.',
+            { stepIndex: this.context.stepIndex, renderingId: this.context.user.renderingId },
+          );
         }
 
-        return this.replayReviewedApproval(existing, approvalRequest);
+        const ranAction = {
+          selectedRecordRef: existing.selectedRecordRef,
+          actionName: existing.executionParams?.name ?? existing.pendingData?.name ?? 'unknown',
+        };
+
+        return this.settleFiledApproval(approvalRequest, ranAction, existing);
       }
 
-      if (!isPendingApproval && result && !('skipped' in result)) {
-        return this.buildExecutedResult();
-      }
+      if (result && !('skipped' in result)) return this.buildExecutedResult();
 
-      if (isPendingApproval && !approvalRequest) {
-        this.context.logger(
-          'Warn',
-          'Replayed a pending-approval step with no approval id; no deep-link available.',
-          { stepIndex: this.context.stepIndex, renderingId: this.context.user.renderingId },
-        );
-      }
-
-      return this.buildOutcomeResult({
-        status: 'success',
-        ...(approvalRequest && { approvalRequest }),
-      });
+      return this.buildOutcomeResult({ status: 'success' });
     }
 
     if (existing?.idempotencyPhase === 'executing') {
@@ -335,6 +400,11 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
           reason: 'backend-refused',
           ...(error.backendMessage && { backendMessage: error.backendMessage }),
         });
+      }
+
+      // Handing the form to a human would only file a request the step then errors on.
+      if (error instanceof ActionRequiresApprovalError && this.refusesApprovals) {
+        throw new ApprovalBranchesMissingError(target.name);
       }
 
       if (error instanceof ActionRequiresApprovalError) {
@@ -615,15 +685,9 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
         idempotencyPhase: 'done',
       });
 
-      if (this.hasApprovalOutcomes) {
-        if (!outcome.approvalRequest) throw new ApprovalRequestUntrackedError(name);
-
-        return this.buildApprovalPause(outcome.approvalRequest);
-      }
-
-      return this.buildOutcomeResult({
-        status: 'success',
-        ...(outcome.approvalRequest && { approvalRequest: outcome.approvalRequest }),
+      return this.settleFiledApproval(outcome.approvalRequest, {
+        selectedRecordRef,
+        actionName: name,
       });
     }
 
@@ -684,13 +748,8 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       idempotencyPhase: 'done',
     });
 
-    if (pausesOnApproval) return this.buildApprovalPause(approvalRequest);
-
     if (submissionOutcome === 'pending-approval') {
-      return this.buildOutcomeResult({
-        status: 'success',
-        ...(approvalRequest && { approvalRequest }),
-      });
+      return this.settleFiledApproval(approvalRequest, { selectedRecordRef, actionName: name });
     }
 
     return this.buildExecutedResult();
