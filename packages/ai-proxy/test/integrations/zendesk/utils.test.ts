@@ -7,19 +7,10 @@ import {
 
 describe('zendesk/utils', () => {
   describe('getZendeskConfig', () => {
-    it('should return baseUrl and headers with basic auth', () => {
+    it('should return the base URL of the subdomain', () => {
       const config = { subdomain: 'mycompany', email: 'agent@test.com', apiToken: 'secret123' };
 
-      const result = getZendeskConfig(config);
-
-      const expectedAuth = Buffer.from('agent@test.com/token:secret123').toString('base64');
-      expect(result).toEqual({
-        baseUrl: 'https://mycompany.zendesk.com/api/v2',
-        headers: {
-          Authorization: `Basic ${expectedAuth}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      expect(getZendeskConfig(config).baseUrl).toBe('https://mycompany.zendesk.com/api/v2');
     });
 
     it.each(['my-company', 'Acme1', 'a', 'a'.repeat(63)])(

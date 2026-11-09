@@ -1,3 +1,4 @@
+import fetchWithoutRedirect from '../../../../src/integrations/fetch-without-redirect';
 import createGetTicketTool from '../../../../src/integrations/zendesk/tools/get-ticket';
 
 const mockResponse = { ticket: { id: 42, subject: 'Help' } };
@@ -9,6 +10,8 @@ global.fetch = jest.fn().mockResolvedValue({
 
 describe('createGetTicketTool', () => {
   const headers = { Authorization: 'Basic abc' };
+  const request = (url: string, init: RequestInit = {}) =>
+    fetchWithoutRedirect(url, { ...init, headers });
   const baseUrl = 'https://test.zendesk.com/api/v2';
 
   beforeEach(() => jest.clearAllMocks());
@@ -21,7 +24,7 @@ describe('createGetTicketTool', () => {
       json: async () => ({ error: 'RecordNotFound' }),
     });
 
-    const tool = createGetTicketTool(headers, baseUrl);
+    const tool = createGetTicketTool(request, baseUrl);
 
     await expect(tool.invoke({ ticket_id: 999 })).rejects.toThrow(
       'Zendesk get ticket failed (404): RecordNotFound',
@@ -29,7 +32,7 @@ describe('createGetTicketTool', () => {
   });
 
   it('should fetch the ticket by id', async () => {
-    const tool = createGetTicketTool(headers, baseUrl);
+    const tool = createGetTicketTool(request, baseUrl);
 
     const result = await tool.invoke({ ticket_id: 42 });
 

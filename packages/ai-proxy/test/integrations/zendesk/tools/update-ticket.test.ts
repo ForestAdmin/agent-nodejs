@@ -1,3 +1,4 @@
+import fetchWithoutRedirect from '../../../../src/integrations/fetch-without-redirect';
 import createUpdateTicketTool from '../../../../src/integrations/zendesk/tools/update-ticket';
 
 const mockResponse = { ticket: { id: 7, status: 'solved' } };
@@ -9,6 +10,8 @@ global.fetch = jest.fn().mockResolvedValue({
 
 describe('createUpdateTicketTool', () => {
   const headers = { Authorization: 'Basic abc', 'Content-Type': 'application/json' };
+  const request = (url: string, init: RequestInit = {}) =>
+    fetchWithoutRedirect(url, { ...init, headers });
   const baseUrl = 'https://test.zendesk.com/api/v2';
 
   beforeEach(() => jest.clearAllMocks());
@@ -21,7 +24,7 @@ describe('createUpdateTicketTool', () => {
       json: async () => ({ error: 'RecordNotFound' }),
     });
 
-    const tool = createUpdateTicketTool(headers, baseUrl);
+    const tool = createUpdateTicketTool(request, baseUrl);
 
     await expect(tool.invoke({ ticket_id: 999, status: 'solved' })).rejects.toThrow(
       'Zendesk update ticket failed (404): RecordNotFound',
@@ -29,7 +32,7 @@ describe('createUpdateTicketTool', () => {
   });
 
   it('should update a ticket with a single field', async () => {
-    const tool = createUpdateTicketTool(headers, baseUrl);
+    const tool = createUpdateTicketTool(request, baseUrl);
 
     const result = await tool.invoke({ ticket_id: 7, status: 'solved' });
 
@@ -43,7 +46,7 @@ describe('createUpdateTicketTool', () => {
   });
 
   it('should update a ticket with multiple fields', async () => {
-    const tool = createUpdateTicketTool(headers, baseUrl);
+    const tool = createUpdateTicketTool(request, baseUrl);
 
     await tool.invoke({
       ticket_id: 7,
@@ -77,7 +80,7 @@ describe('createUpdateTicketTool', () => {
   });
 
   it('should send empty ticket object when no optional fields provided', async () => {
-    const tool = createUpdateTicketTool(headers, baseUrl);
+    const tool = createUpdateTicketTool(request, baseUrl);
 
     await tool.invoke({ ticket_id: 7 });
 
