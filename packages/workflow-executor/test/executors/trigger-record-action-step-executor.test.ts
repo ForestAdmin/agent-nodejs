@@ -980,6 +980,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       agentPort: AgentPort,
       runStore: ReturnType<typeof makeMockRunStore>,
       logger: jest.Mock = jest.fn(),
+      approvalOutcomes?: boolean,
     ) {
       return makeContext({
         model: makeMockModel({ values: { amount: 50 } }, 'fill_action_form').model,
@@ -992,6 +993,7 @@ describe('TriggerRecordActionStepExecutor', () => {
             selectedRecordStepId: 'workflow-start',
             actionName: 'send-welcome-email',
           },
+          ...(approvalOutcomes !== undefined && { approvalOutcomes }),
         }),
       });
     }
@@ -2030,6 +2032,25 @@ describe('TriggerRecordActionStepExecutor', () => {
         'Action "send-welcome-email" requires an approval and cannot be submitted programmatically',
         expect.objectContaining({ runId: 'run-1', stepIndex: 0 }),
       );
+    });
+
+    it('errors instead of handing the form to a human on a step saved without branches', async () => {
+      const agentPort = makeMockAgentPort();
+      mockFillThenComplete(agentPort);
+      (agentPort.executeAction as jest.Mock).mockRejectedValue(
+        new ActionRequiresApprovalError('send-welcome-email', [7]),
+      );
+      const runStore = makeMockRunStore();
+
+      const result = await new TriggerRecordActionStepExecutor(
+        fullAiContext(agentPort, runStore, jest.fn(), false),
+      ).execute();
+
+      expect(result.stepOutcome).toEqual(
+        expect.objectContaining({ status: 'error', errorKind: 'configuration' }),
+      );
+      const lastSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+      expect(lastSave).not.toHaveProperty('pendingData');
     });
 
     it('falls back to AI-assisted when the submission is rejected by validation', async () => {
@@ -3940,7 +3961,8 @@ describe('TriggerRecordActionStepExecutor', () => {
           errorKind: 'configuration',
           error:
             'This action now requires an approval. Re-save the workflow in the editor to add the ' +
-            'Approved and Rejected branches.',
+            'Approved and Rejected branches. Approval request 12 stays open: reject it in ' +
+            'Approvals if the action must not run.',
         }),
       );
 
