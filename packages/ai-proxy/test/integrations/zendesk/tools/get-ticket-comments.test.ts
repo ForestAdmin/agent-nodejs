@@ -1,3 +1,4 @@
+import fetchWithoutRedirect from '../../../../src/integrations/fetch-without-redirect';
 import createGetTicketCommentsTool from '../../../../src/integrations/zendesk/tools/get-ticket-comments';
 
 const mockResponse = { comments: [{ id: 1, body: 'Hello' }] };
@@ -9,6 +10,8 @@ global.fetch = jest.fn().mockResolvedValue({
 
 describe('createGetTicketCommentsTool', () => {
   const headers = { Authorization: 'Basic abc' };
+  const request = (url: string, init: RequestInit = {}) =>
+    fetchWithoutRedirect(url, { ...init, headers });
   const baseUrl = 'https://test.zendesk.com/api/v2';
 
   beforeEach(() => jest.clearAllMocks());
@@ -21,7 +24,7 @@ describe('createGetTicketCommentsTool', () => {
       json: async () => ({ error: 'RecordNotFound' }),
     });
 
-    const tool = createGetTicketCommentsTool(headers, baseUrl);
+    const tool = createGetTicketCommentsTool(request, baseUrl);
 
     await expect(tool.invoke({ ticket_id: 999 })).rejects.toThrow(
       'Zendesk get ticket comments failed (404): RecordNotFound',
@@ -29,7 +32,7 @@ describe('createGetTicketCommentsTool', () => {
   });
 
   it('should fetch comments for a ticket', async () => {
-    const tool = createGetTicketCommentsTool(headers, baseUrl);
+    const tool = createGetTicketCommentsTool(request, baseUrl);
 
     const result = await tool.invoke({ ticket_id: 10 });
 
