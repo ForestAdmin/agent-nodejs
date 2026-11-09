@@ -26,7 +26,6 @@ const CLIENT_REFUSED_MESSAGE =
   "Zendesk refused the connector's OAuth client. An admin must update the Zendesk connector's credentials.";
 
 // Providers are rebuilt on every request, so the cache has to outlive them.
-// ponytail: never evicted, one entry per OAuth client; add eviction if clients ever churn.
 const accessTokens = new Map<string, Promise<AccessToken>>();
 
 async function requestAccessToken(config: OAuthClientConfig): Promise<AccessToken> {
@@ -52,7 +51,13 @@ async function requestAccessToken(config: OAuthClientConfig): Promise<AccessToke
     throw new AIToolUnprocessableError(`Zendesk token request failed (${response.status})`);
   }
 
-  const { access_token: value, expires_in: expiresIn } = await response.json();
+  const body = await response.json().catch(() => null);
+
+  if (typeof body?.access_token !== 'string' || !body.access_token) {
+    throw new AIToolUnprocessableError('Zendesk token response carried no access token');
+  }
+
+  const { access_token: value, expires_in: expiresIn } = body;
 
   return {
     value,
@@ -62,12 +67,26 @@ async function requestAccessToken(config: OAuthClientConfig): Promise<AccessToke
   };
 }
 
+function dropExpiredAccessTokens(): void {
+  accessTokens.forEach((entry, cacheKey) => {
+    entry.then(
+      ({ expiresAt }) => {
+        if (expiresAt <= Date.now() && accessTokens.get(cacheKey) === entry) {
+          accessTokens.delete(cacheKey);
+        }
+      },
+      () => undefined, // A failed request already removed its own entry.
+    );
+  });
+}
+
 async function getAccessToken(config: OAuthClientConfig, cacheKey: string): Promise<string> {
   const cached = accessTokens.get(cacheKey);
 
   if (cached) {
     const token = await cached;
     if (token.expiresAt > Date.now()) return token.value;
+    if (accessTokens.get(cacheKey) !== cached) return getAccessToken(config, cacheKey);
     accessTokens.delete(cacheKey);
   }
 
@@ -76,6 +95,7 @@ async function getAccessToken(config: OAuthClientConfig, cacheKey: string): Prom
     throw error;
   });
   accessTokens.set(cacheKey, pending);
+  dropExpiredAccessTokens();
 
   return (await pending).value;
 }
