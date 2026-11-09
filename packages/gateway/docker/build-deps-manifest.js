@@ -43,8 +43,8 @@ const OTEL_DEPENDENCIES = {
 // They mirror the monorepo root's `resolutions` for the packages that actually
 // appear in this closure — the isolated install does not inherit the root ones.
 const RESOLUTIONS = {
-  // qs DoS + array-limit bypass (Dependabot #488-#489, patched in 6.16.0).
-  '**/qs': '^6.16.0',
+  // qs DoS + array-limit bypass (Dependabot #488-#489, patched in 6.16.0; #679 toString DoS, patched 6.16.1).
+  '**/qs': '^6.16.1',
   // jsonapi-serializer pins lodash ^4.17.x.
   '**/lodash': '^4.18.0',
   // auto-instrumentations-node pins propagator-jaeger 2.8.0 (CVE-2026-59892, fixed in 2.9.0).
@@ -55,6 +55,8 @@ const RESOLUTIONS = {
   '**/ajv/fast-uri': '^3.1.6',
   // Mirrors the root resolutions: express 5 (mcp-server, MCP SDK) pins an unpatched body-parser.
   '**/express/body-parser': '^2.3.0',
+  // Dependabot #694 — glob AbortSignal cancellation bypass (<= 14.0.1). gaxios pins rimraf ^5 which pulls glob ^10; bumping to rimraf 6 pulls glob ^14.0.3.
+  '**/rimraf': '^6.1.4',
 };
 
 function generate(packagesDir, outFile) {

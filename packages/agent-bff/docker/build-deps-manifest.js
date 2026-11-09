@@ -41,10 +41,14 @@ const OTEL_DEPENDENCIES = {
 // They mirror the monorepo root's `resolutions` for the packages that actually
 // appear in this closure — the isolated install does not inherit the root ones.
 const RESOLUTIONS = {
-  // superagent pins qs ^6.x (GHSA-hrpp-h998-j3pp prototype pollution).
-  '**/qs': '>=6.15.2',
+  // superagent pins qs ^6.x (GHSA-hrpp-h998-j3pp prototype pollution + Dependabot #679 toString DoS, patched 6.16.1).
+  '**/qs': '^6.16.1',
   // jsonapi-serializer pins lodash ^4.17.x.
   '**/lodash': '^4.18.0',
+  // Dependabot #689 — systeminformation Windows command injection via services(), patched 5.33.16.
+  '**/systeminformation': '^5.33.16',
+  // Dependabot #692 — glob AbortSignal cancellation bypass (<= 14.0.1). gaxios pins rimraf ^5 which pulls glob ^10; bumping to rimraf 6 pulls glob ^14.0.3.
+  '**/rimraf': '^6.1.4',
 };
 
 function generate(packagesDir, outFile) {
