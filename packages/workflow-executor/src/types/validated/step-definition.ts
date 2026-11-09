@@ -127,7 +127,7 @@ export interface DeterministicConditionGroup {
 export type DeterministicConditionNode = DeterministicCondition | DeterministicConditionGroup;
 
 // An empty group would read as "match nothing" (or) or "match everything" (and): rejected, never
-// evaluated. No depth limit: only the editor caps nesting.
+// evaluated. No depth limit here: the orchestrator parser refuses more than 10 levels.
 const DeterministicConditionNodeSchema: z.ZodType<DeterministicConditionNode> = z.lazy(() =>
   z.union([
     z.object({
