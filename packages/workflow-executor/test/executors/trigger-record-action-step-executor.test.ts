@@ -412,7 +412,7 @@ describe('TriggerRecordActionStepExecutor', () => {
 
       expect(agentPort.executeAction).toHaveBeenCalledWith(
         expect.not.objectContaining({ skipApprovalRequest: expect.anything() }),
-        expect.anything(),
+        { user: expect.objectContaining({ id: 1 }), forestServerToken: undefined },
       );
       // Non-blocking: the run continues (success), not awaiting-input.
       expect(result.stepOutcome).toEqual(
@@ -2071,7 +2071,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       );
       expect(agentPort.executeAction).toHaveBeenCalledWith(
         expect.objectContaining({ skipApprovalRequest: true }),
-        expect.anything(),
+        { user: expect.objectContaining({ id: 1 }), forestServerToken: undefined },
       );
       expect(runStore.saveStepExecution).not.toHaveBeenCalledWith(
         'run-1',
@@ -2110,7 +2110,7 @@ describe('TriggerRecordActionStepExecutor', () => {
 
       expect(agentPort.executeAction).toHaveBeenCalledWith(
         expect.not.objectContaining({ skipApprovalRequest: expect.anything() }),
-        expect.anything(),
+        { user: expect.objectContaining({ id: 1 }), forestServerToken: undefined },
       );
       expect(result.stepOutcome).toEqual(
         expect.objectContaining({
@@ -3533,7 +3533,7 @@ describe('TriggerRecordActionStepExecutor', () => {
 
       expect(agentPort.executeAction).toHaveBeenCalledWith(
         expect.not.objectContaining({ skipApprovalRequest: expect.anything() }),
-        expect.anything(),
+        { user: expect.objectContaining({ id: 1 }), forestServerToken: undefined },
       );
       expect(result.stepOutcome).toEqual({
         type: 'record',
@@ -4130,7 +4130,7 @@ describe('TriggerRecordActionStepExecutor', () => {
           approvalMessage: 'User requested welcome email',
           skipApprovalRequest: true,
         },
-        expect.anything(),
+        { user: expect.objectContaining({ id: 1 }), forestServerToken: undefined },
       );
       expect(result.stepOutcome).toEqual(
         expect.objectContaining({
@@ -4157,6 +4157,28 @@ describe('TriggerRecordActionStepExecutor', () => {
       const redispatched = await new TriggerRecordActionStepExecutor(context).execute();
 
       expect(redispatched.stepOutcome).toEqual(
+        expect.objectContaining({
+          status: 'error',
+          errorKind: 'configuration',
+          error:
+            'This action now requires an approval. Re-save the workflow in the editor to add ' +
+            'the Approved and Rejected branches.',
+        }),
+      );
+    });
+
+    it('still errors on the missing branches when clearing the refused record fails', async () => {
+      const agentPort = makeMockAgentPort();
+      mockAgentFilingUnlessSkipped(agentPort);
+      const runStore = makeMockRunStore({
+        deleteStepExecution: jest.fn().mockRejectedValue(new Error('run store down')),
+      });
+      const context = makeContext({ agentPort, runStore, stepDefinition: savedWithoutBranches() });
+
+      const result = await new TriggerRecordActionStepExecutor(context).execute();
+
+      expect(runStore.deleteStepExecution).toHaveBeenCalledWith('run-1', 0);
+      expect(result.stepOutcome).toEqual(
         expect.objectContaining({
           status: 'error',
           errorKind: 'configuration',

@@ -18,6 +18,7 @@ import {
   ActionFormValidationError,
   ActionNotFoundError,
   ActionRequiresApprovalError,
+  ApprovalBranchesMissingError,
   ApprovalRequestUntrackedError,
   NoActionsError,
   PinnedArgNotFoundError,
@@ -506,6 +507,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
           ...(target.isGlobal ? {} : { id: selectedRecordRef.recordId }),
           ...(form && { values: form.values }),
           ...(target.approvalMessage && { approvalMessage: target.approvalMessage }),
+          // A request filed here would stay open with no run to follow its review.
           ...(this.approvals.refuses && { skipApprovalRequest: true }),
         },
         {
@@ -518,7 +520,12 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
             }),
         },
       )
-      .catch(error => this.approvals.mapRefusal(error, name));
+      .catch(async error => {
+        if (!(error instanceof ActionRequiresApprovalError && this.approvals.refuses)) throw error;
+
+        await this.clearRefusedExecution();
+        throw new ApprovalBranchesMissingError(name);
+      });
 
     const submission = form && {
       submittedBy: 'ai' as const,
@@ -576,6 +583,19 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     });
 
     return this.approvals.executedResult();
+  }
+
+  // Nothing ran, so the `executing` record beforeCall wrote must not make a re-dispatch read the
+  // step as interrupted. Failing to clear it must not hide the configuration error either.
+  private async clearRefusedExecution(): Promise<void> {
+    try {
+      await this.context.runStore.deleteStepExecution(this.context.runId, this.context.stepIndex);
+    } catch (error) {
+      this.context.logger('Warn', 'Could not clear the refused step execution', {
+        ...this.logCtx,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 
   /**

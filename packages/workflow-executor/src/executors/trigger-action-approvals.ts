@@ -12,7 +12,6 @@ import type {
 } from '../types/validated/step-outcome';
 
 import {
-  ActionRequiresApprovalError,
   ApprovalBranchesMissingError,
   ApprovalRequestFailedError,
   ApprovalRequestGoneError,
@@ -56,18 +55,6 @@ export default class TriggerActionApprovals {
   // Saved without branches by an editor that knows them; a step from an older editor has no value.
   get refuses(): boolean {
     return this.context.stepDefinition.approvalOutcomes === false;
-  }
-
-  // A request filed by the executor on a step that refuses approvals would stay open with no run
-  // to follow its review, so the agent is asked to refuse instead.
-  async mapRefusal(error: unknown, actionName: string): Promise<never> {
-    if (error instanceof ActionRequiresApprovalError && this.refuses) {
-      // Nothing ran: a re-dispatch must ask the agent again, not read the step as interrupted.
-      await this.context.runStore.deleteStepExecution(this.context.runId, this.context.stepIndex);
-      throw new ApprovalBranchesMissingError(actionName);
-    }
-
-    throw error;
   }
 
   // The one decision for a request the AI or the native form filed, on its first report or on a
