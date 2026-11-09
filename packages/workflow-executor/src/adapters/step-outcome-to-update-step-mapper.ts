@@ -29,8 +29,8 @@ export default function toUpdateStepRequest(
   const context: Record<string, unknown> = { status: outcome.status };
 
   // The orchestrator merges each report into the context the error left, and keeps a null where
-  // it drops an undefined key, so only a null clears it.
-  if (options?.clearsError && outcome.status !== 'error') {
+  // it drops an undefined key, so only a null clears it. A new error sets its own fields below.
+  if (options?.clearsError) {
     context.error = null;
     context.errorKind = null;
     context.errorSourceStepIndex = null;

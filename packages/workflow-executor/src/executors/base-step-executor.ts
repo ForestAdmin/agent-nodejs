@@ -27,6 +27,7 @@ import {
   WorkflowExecutorError,
   extractErrorMessage,
   isAiConfigurationError,
+  toErrorOutcome,
 } from '../errors';
 import patchBodySchemas from '../http/pending-data-validators';
 import StepSummaryBuilder from './summary/step-summary-builder';
@@ -126,14 +127,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
   // Both catch branches below route through here, so neither can drop the classification. The
   // factory's own catch (step-executor-factory.ts) builds its outcome separately and does not.
   private buildErrorOutcome(error: WorkflowExecutorError): StepExecutionResult {
-    return this.buildOutcomeResult({
-      status: 'error',
-      error: error.userMessage,
-      ...(error.errorKind !== undefined && { errorKind: error.errorKind }),
-      ...(error.errorSourceStepIndex !== undefined && {
-        errorSourceStepIndex: error.errorSourceStepIndex,
-      }),
-    });
+    return this.buildOutcomeResult({ status: 'error', ...toErrorOutcome(error) });
   }
 
   protected abstract doExecute(): Promise<StepExecutionResult>;

@@ -391,12 +391,27 @@ describe('toUpdateStepRequest', () => {
       },
     );
 
-    it('reports a new error as it is, without clearing anything', () => {
+    it("clears the old error's classification when a new error carries none", () => {
       const body = toUpdateStepRequest('42', outcome('error'), { clearsError: true });
 
       expect(body.stepUpdate.attributes.context).toStrictEqual({
         status: 'error',
         error: '1 of 3 records failed.',
+        errorKind: null,
+        errorSourceStepIndex: null,
+      });
+    });
+
+    it('reports the classification a new error carries', () => {
+      const body = toUpdateStepRequest(
+        '42',
+        { ...outcome('error'), errorKind: 'operator', errorSourceStepIndex: 1 } as StepOutcome,
+        { clearsError: true },
+      );
+
+      expect(body.stepUpdate.attributes.context).toMatchObject({
+        errorKind: 'operator',
+        errorSourceStepIndex: 1,
       });
     });
 

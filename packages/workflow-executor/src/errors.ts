@@ -884,6 +884,17 @@ export class DomainValidationError extends WorkflowExecutorError {
   }
 }
 
+// The fields of a step outcome an error sets. Every executor spreads this, so none can drop one.
+export function toErrorOutcome(error: WorkflowExecutorError) {
+  return {
+    error: error.userMessage,
+    ...(error.errorKind !== undefined && { errorKind: error.errorKind }),
+    ...(error.errorSourceStepIndex !== undefined && {
+      errorSourceStepIndex: error.errorSourceStepIndex,
+    }),
+  };
+}
+
 // Carries MalformedRunInfo so the Runner can report the run without re-parsing the message.
 export class MalformedRunError extends WorkflowExecutorError {
   readonly info: MalformedRunInfo;

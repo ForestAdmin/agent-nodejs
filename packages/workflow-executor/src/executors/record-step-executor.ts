@@ -178,6 +178,12 @@ export default abstract class RecordStepExecutor<
     if (sourceStep) {
       const stepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
       const execution = this.resolveStepExecution(sourceStep, stepExecutions);
+
+      // A step that ran once per record keeps what it loaded in its iterations, not in a result.
+      if (isPerRecordExecution(execution)) {
+        throw new SourceLoadsSeveralRecordsError(sourceStep.stepDefinition.title);
+      }
+
       const result = execution?.type === 'load-related-record' && execution.executionResult;
 
       if (result && 'record' in result) return result.record;

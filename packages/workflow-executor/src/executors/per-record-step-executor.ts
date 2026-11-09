@@ -21,6 +21,7 @@ import {
   StepTimeoutError,
   WorkflowExecutorError,
   extractErrorMessage,
+  toErrorOutcome,
 } from '../errors';
 import { findStepExecution } from './base-step-executor';
 import IterationRunStore, { isSameRecord } from './iteration-run-store';
@@ -84,13 +85,7 @@ export default class PerRecordStepExecutor implements IStepExecutor {
       });
 
       if (error instanceof WorkflowExecutorError) {
-        return this.outcome('error', {
-          error: error.userMessage,
-          ...(error.errorKind !== undefined && { errorKind: error.errorKind }),
-          ...(error.errorSourceStepIndex !== undefined && {
-            errorSourceStepIndex: error.errorSourceStepIndex,
-          }),
-        });
+        return this.outcome('error', toErrorOutcome(error));
       }
 
       return this.outcome('error', { error: 'Unexpected error during step execution' });
