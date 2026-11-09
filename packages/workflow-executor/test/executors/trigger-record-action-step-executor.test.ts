@@ -23,6 +23,7 @@ import AgentWithLog from '../../src/executors/agent-with-log';
 import TriggerRecordActionStepExecutor from '../../src/executors/trigger-record-action-step-executor';
 import SchemaCache from '../../src/schema-cache';
 import SchemaResolver from '../../src/schema-resolver';
+import InMemoryStore from '../../src/stores/in-memory-store';
 import { StepExecutionMode, StepType } from '../../src/types/validated/step-definition';
 
 function makeStep(
@@ -4143,6 +4144,26 @@ describe('TriggerRecordActionStepExecutor', () => {
       expect(runStore.saveStepExecution).not.toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({ idempotencyPhase: 'done' }),
+      );
+    });
+
+    it('errors the same way when the step is dispatched again after the refusal', async () => {
+      const agentPort = makeMockAgentPort();
+      mockAgentFilingUnlessSkipped(agentPort);
+      const runStore = new InMemoryStore();
+      const context = makeContext({ agentPort, runStore, stepDefinition: savedWithoutBranches() });
+
+      await new TriggerRecordActionStepExecutor(context).execute();
+      const redispatched = await new TriggerRecordActionStepExecutor(context).execute();
+
+      expect(redispatched.stepOutcome).toEqual(
+        expect.objectContaining({
+          status: 'error',
+          errorKind: 'configuration',
+          error:
+            'This action now requires an approval. Re-save the workflow in the editor to add ' +
+            'the Approved and Rejected branches.',
+        }),
       );
     });
 

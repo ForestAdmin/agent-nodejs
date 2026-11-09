@@ -647,8 +647,13 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
             }),
         },
       )
-      .catch(error => {
+      .catch(async error => {
         if (error instanceof ActionRequiresApprovalError && this.refusesApprovals) {
+          // Nothing ran: a re-dispatch must ask the agent again, not read the step as interrupted.
+          await this.context.runStore.deleteStepExecution(
+            this.context.runId,
+            this.context.stepIndex,
+          );
           throw new ApprovalBranchesMissingError(name);
         }
 
