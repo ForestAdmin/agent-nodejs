@@ -402,11 +402,6 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
         });
       }
 
-      // Handing the form to a human would only file a request the step then errors on.
-      if (error instanceof ActionRequiresApprovalError && this.refusesApprovals) {
-        throw new ApprovalBranchesMissingError(target.name);
-      }
-
       if (error instanceof ActionRequiresApprovalError) {
         this.context.logger('Warn', error.message, this.logCtx);
 
@@ -630,25 +625,35 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
   ): Promise<StepExecutionResult> {
     const { selectedRecordRef, displayName, name } = target;
 
-    const outcome = await this.context.agent.executeAction(
-      {
-        collection: selectedRecordRef.collectionName,
-        action: name,
-        // Global actions run on no record — omit the id so the approval isn't linked to one.
-        ...(target.isGlobal ? {} : { id: selectedRecordRef.recordId }),
-        ...(form && { values: form.values }),
-        ...(target.approvalMessage && { approvalMessage: target.approvalMessage }),
-      },
-      {
-        beforeCall: () =>
-          this.context.runStore.saveStepExecution(this.context.runId, {
-            type: 'trigger-action',
-            stepIndex: this.context.stepIndex,
-            selectedRecordRef,
-            idempotencyPhase: 'executing',
-          }),
-      },
-    );
+    const outcome = await this.context.agent
+      .executeAction(
+        {
+          collection: selectedRecordRef.collectionName,
+          action: name,
+          // Global actions run on no record — omit the id so the approval isn't linked to one.
+          ...(target.isGlobal ? {} : { id: selectedRecordRef.recordId }),
+          ...(form && { values: form.values }),
+          ...(target.approvalMessage && { approvalMessage: target.approvalMessage }),
+          // A request filed here would stay open with no run to follow its review.
+          ...(this.refusesApprovals && { skipApprovalRequest: true }),
+        },
+        {
+          beforeCall: () =>
+            this.context.runStore.saveStepExecution(this.context.runId, {
+              type: 'trigger-action',
+              stepIndex: this.context.stepIndex,
+              selectedRecordRef,
+              idempotencyPhase: 'executing',
+            }),
+        },
+      )
+      .catch(error => {
+        if (error instanceof ActionRequiresApprovalError && this.refusesApprovals) {
+          throw new ApprovalBranchesMissingError(name);
+        }
+
+        throw error;
+      });
 
     const submission = form && {
       submittedBy: 'ai' as const,

@@ -59,6 +59,17 @@ function makeMockAgentPort(): AgentPort {
   } as unknown as AgentPort;
 }
 
+// Like agent-client: files the approval request unless the query asks to skip it.
+function mockAgentFilingUnlessSkipped(agentPort: AgentPort): void {
+  (agentPort.executeAction as jest.Mock).mockImplementation(async query => {
+    if (query.skipApprovalRequest) {
+      throw new ActionRequiresApprovalError('send-welcome-email', [7]);
+    }
+
+    return { approvalRequested: true, approvalRequest: { id: '12' } };
+  });
+}
+
 function makeCollectionSchema(overrides: Partial<CollectionSchema> = {}): CollectionSchema {
   return {
     collectionName: 'customers',
@@ -398,6 +409,10 @@ describe('TriggerRecordActionStepExecutor', () => {
 
       const result = await new TriggerRecordActionStepExecutor(context).execute();
 
+      expect(agentPort.executeAction).toHaveBeenCalledWith(
+        expect.not.objectContaining({ skipApprovalRequest: expect.anything() }),
+        expect.anything(),
+      );
       // Non-blocking: the run continues (success), not awaiting-input.
       expect(result.stepOutcome).toEqual(
         expect.objectContaining({ status: 'success', approvalRequest: { id: 'req_42' } }),
@@ -2037,9 +2052,7 @@ describe('TriggerRecordActionStepExecutor', () => {
     it('errors instead of handing the form to a human on a step saved without branches', async () => {
       const agentPort = makeMockAgentPort();
       mockFillThenComplete(agentPort);
-      (agentPort.executeAction as jest.Mock).mockRejectedValue(
-        new ActionRequiresApprovalError('send-welcome-email', [7]),
-      );
+      mockAgentFilingUnlessSkipped(agentPort);
       const runStore = makeMockRunStore();
 
       const result = await new TriggerRecordActionStepExecutor(
@@ -2047,10 +2060,64 @@ describe('TriggerRecordActionStepExecutor', () => {
       ).execute();
 
       expect(result.stepOutcome).toEqual(
-        expect.objectContaining({ status: 'error', errorKind: 'configuration' }),
+        expect.objectContaining({
+          status: 'error',
+          errorKind: 'configuration',
+          error:
+            'This action now requires an approval. Re-save the workflow in the editor to add ' +
+            'the Approved and Rejected branches.',
+        }),
+      );
+      expect(agentPort.executeAction).toHaveBeenCalledWith(
+        expect.objectContaining({ skipApprovalRequest: true }),
+        expect.anything(),
+      );
+      expect(runStore.saveStepExecution).not.toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({ idempotencyPhase: 'done' }),
       );
       const lastSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
       expect(lastSave).not.toHaveProperty('pendingData');
+    });
+
+    it('still hands the form back on a validation rejection when the step was saved without branches', async () => {
+      const agentPort = makeMockAgentPort();
+      mockFillThenComplete(agentPort);
+      (agentPort.executeAction as jest.Mock).mockRejectedValue(
+        new ActionFormValidationError('send-welcome-email'),
+      );
+      const runStore = makeMockRunStore();
+
+      const result = await new TriggerRecordActionStepExecutor(
+        fullAiContext(agentPort, runStore, jest.fn(), false),
+      ).execute();
+
+      expect(result.stepOutcome.status).toBe('awaiting-input');
+      const lastSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+      expect(lastSave.pendingData.fullAiFallback).toEqual({ reason: 'backend-refused' });
+    });
+
+    it('pauses on the request it filed from the form on a step with branches', async () => {
+      const agentPort = makeMockAgentPort();
+      mockFillThenComplete(agentPort);
+      mockAgentFilingUnlessSkipped(agentPort);
+      const runStore = makeMockRunStore();
+
+      const result = await new TriggerRecordActionStepExecutor(
+        fullAiContext(agentPort, runStore, jest.fn(), true),
+      ).execute();
+
+      expect(agentPort.executeAction).toHaveBeenCalledWith(
+        expect.not.objectContaining({ skipApprovalRequest: expect.anything() }),
+        expect.anything(),
+      );
+      expect(result.stepOutcome).toEqual(
+        expect.objectContaining({
+          status: 'awaiting-input',
+          awaitingInputReason: 'pending-approval',
+          approvalRequests: [{ id: '12' }],
+        }),
+      );
     });
 
     it('falls back to AI-assisted when the submission is rejected by validation', async () => {
@@ -3463,6 +3530,10 @@ describe('TriggerRecordActionStepExecutor', () => {
 
       const result = await new TriggerRecordActionStepExecutor(context).execute();
 
+      expect(agentPort.executeAction).toHaveBeenCalledWith(
+        expect.not.objectContaining({ skipApprovalRequest: expect.anything() }),
+        expect.anything(),
+      );
       expect(result.stepOutcome).toEqual({
         type: 'record',
         stepId: 'trigger-1',
@@ -4040,6 +4111,39 @@ describe('TriggerRecordActionStepExecutor', () => {
 
       expectBranchesMissing(result);
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
+
+    it('errors without filing a request when the agent asks for an approval', async () => {
+      const agentPort = makeMockAgentPort();
+      mockAgentFilingUnlessSkipped(agentPort);
+      const runStore = makeMockRunStore();
+      const context = makeContext({ agentPort, runStore, stepDefinition: savedWithoutBranches() });
+
+      const result = await new TriggerRecordActionStepExecutor(context).execute();
+
+      expect(agentPort.executeAction).toHaveBeenCalledWith(
+        {
+          collection: 'customers',
+          action: 'send-welcome-email',
+          id: [42],
+          approvalMessage: 'User requested welcome email',
+          skipApprovalRequest: true,
+        },
+        expect.anything(),
+      );
+      expect(result.stepOutcome).toEqual(
+        expect.objectContaining({
+          status: 'error',
+          errorKind: 'configuration',
+          error:
+            'This action now requires an approval. Re-save the workflow in the editor to add ' +
+            'the Approved and Rejected branches.',
+        }),
+      );
+      expect(runStore.saveStepExecution).not.toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({ idempotencyPhase: 'done' }),
+      );
     });
 
     it('succeeds when the action ran without an approval', async () => {
