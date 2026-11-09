@@ -87,6 +87,8 @@ describe('zendesk OAuth client authentication', () => {
       await Promise.all([request(url, {}), request(url, {})]);
 
       expect(fetchMock).toHaveBeenCalledTimes(3);
+      expect(fetchMock).toHaveBeenNthCalledWith(2, url, bearer('token-1'));
+      expect(fetchMock).toHaveBeenNthCalledWith(3, url, bearer('token-1'));
     });
 
     it('should request a new token once the previous one has expired', async () => {
@@ -105,6 +107,23 @@ describe('zendesk OAuth client authentication', () => {
       expect(fetchMock).toHaveBeenNthCalledWith(4, url, bearer('token-2'));
     });
 
+    it('should request one new token for concurrent calls after expiry', async () => {
+      const config = makeConfig();
+      const now = jest.spyOn(Date, 'now').mockReturnValue(1_000_000);
+      fetchMock.mockResolvedValueOnce(tokenResponse('token-1', 1800));
+      fetchMock.mockResolvedValueOnce(apiResponse(200));
+      fetchMock.mockResolvedValueOnce(tokenResponse('token-2', 1800));
+      fetchMock.mockResolvedValue(apiResponse(200));
+      const { request } = getZendeskConfig(config);
+
+      await request(url, {});
+      now.mockReturnValue(1_000_000 + 1800 * 1000);
+      await Promise.all([request(url, {}), request(url, {})]);
+
+      expect(fetchMock).toHaveBeenCalledTimes(5);
+      expect(fetchMock).toHaveBeenNthCalledWith(5, url, bearer('token-2'));
+    });
+
     it('should keep a token that comes without an expiry', async () => {
       const config = makeConfig();
       fetchMock.mockResolvedValueOnce(tokenResponse('token-1'));
@@ -115,6 +134,7 @@ describe('zendesk OAuth client authentication', () => {
       await request(url, {});
 
       expect(fetchMock).toHaveBeenCalledTimes(3);
+      expect(fetchMock).toHaveBeenNthCalledWith(3, url, bearer('token-1'));
     });
 
     it('should get one new token and retry once after a 401', async () => {
@@ -171,6 +191,41 @@ describe('zendesk OAuth client authentication', () => {
       await expect(request(url, {})).resolves.toMatchObject({ status: 200 });
     });
 
+    it.each([
+      ['an empty body', async () => ({})],
+      ['a blank token', async () => ({ access_token: '' })],
+      ['a body that is not JSON', () => Promise.reject(new SyntaxError('Unexpected token'))],
+    ])('should fail without caching when Zendesk answers with %s', async (_, json) => {
+      const config = makeConfig();
+      fetchMock.mockResolvedValueOnce({ ok: true, status: 200, json });
+      fetchMock.mockResolvedValueOnce(tokenResponse('token-1', 1800));
+      fetchMock.mockResolvedValueOnce(apiResponse(200));
+      const { request } = getZendeskConfig(config);
+
+      await expect(request(url, {})).rejects.toThrow(
+        new AIToolUnprocessableError('Zendesk token response carried no access token'),
+      );
+      await request(url, {});
+
+      expect(fetchMock).toHaveBeenNthCalledWith(3, url, bearer('token-1'));
+    });
+
+    it('should drop the expired token of a rotated secret when a new token is stored', async () => {
+      const config = makeConfig();
+      const now = jest.spyOn(Date, 'now').mockReturnValue(1_000_000);
+      const deleted = jest.spyOn(Map.prototype, 'delete');
+      fetchMock.mockResolvedValueOnce(tokenResponse('token-1', 1800));
+      fetchMock.mockResolvedValueOnce(apiResponse(200));
+      fetchMock.mockResolvedValueOnce(tokenResponse('token-2', 1800));
+      fetchMock.mockResolvedValueOnce(apiResponse(200));
+
+      await getZendeskConfig(config).request(url, {});
+      now.mockReturnValue(1_000_000 + 1800 * 1000);
+      await getZendeskConfig({ ...config, clientSecret: 'rotated' }).request(url, {});
+
+      expect(deleted).toHaveBeenCalledWith(expect.stringMatching(/^[0-9a-f]{64}$/));
+    });
+
     it('should not share a token between two secrets of the same client', async () => {
       const config = makeConfig();
       fetchMock.mockResolvedValueOnce(tokenResponse('token-1', 1800));
@@ -192,6 +247,10 @@ describe('zendesk OAuth client authentication', () => {
       await expect(validateZendeskConfig(makeConfig())).resolves.toBeUndefined();
 
       expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(fetchMock).toHaveBeenCalledWith(
+        'https://acme.zendesk.com/oauth/tokens',
+        expect.objectContaining({ method: 'POST' }),
+      );
     });
 
     it('should refuse a client Zendesk refuses', async () => {
