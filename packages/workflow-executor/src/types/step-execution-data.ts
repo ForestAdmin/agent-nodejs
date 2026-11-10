@@ -34,15 +34,22 @@ export type ConditionNotLoadedReason = 'source-step-not-reached' | 'field-not-lo
 /**
  * `index` is the position in the definition's conditions at the same level. `met: null` = the
  * value could not be evaluated. `reason` accompanies `met: null` only when nothing was read at all:
- * a value read as null carries none, which is how the run view tells the two apart. A group
- * carries its own result, so the run view never re-derives the aggregation, and its children's.
+ * a value read as null carries none, which is how the run view tells the two apart.
  */
-export interface ConditionResult {
+interface ConditionLeafResult {
   index: number;
   met: boolean | null;
   reason?: ConditionNotLoadedReason;
-  conditions?: ConditionResult[];
 }
+
+// A group carries its own result, so the run view never re-derives the aggregation.
+interface ConditionGroupResult {
+  index: number;
+  met: boolean;
+  conditions: ConditionResult[];
+}
+
+export type ConditionResult = ConditionLeafResult | ConditionGroupResult;
 
 export interface ConditionEvaluation {
   option: string;
