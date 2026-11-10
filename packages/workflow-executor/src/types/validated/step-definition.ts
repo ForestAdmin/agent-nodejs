@@ -178,10 +178,48 @@ const DeterministicConditionSchema = z
   });
 export type DeterministicCondition = z.infer<typeof DeterministicConditionSchema>;
 
+const ConditionAggregatorSchema = z.enum(['and', 'or']);
+
+export interface DeterministicConditionGroup {
+  aggregator: z.infer<typeof ConditionAggregatorSchema>;
+  conditions: DeterministicConditionNode[];
+}
+export type DeterministicConditionNode = DeterministicCondition | DeterministicConditionGroup;
+
+const isGroupShaped = (node: unknown): boolean =>
+  typeof node === 'object' && node !== null && 'aggregator' in node;
+
+// Dispatched on shape rather than through z.union: a union failing on both branches reports a bare
+// "Invalid input", hiding which field of the condition is wrong.
+const DeterministicConditionNodeSchema: z.ZodType<DeterministicConditionNode> = z.lazy(() => {
+  // An empty group would read as "match nothing" (or) or "match everything" (and): rejected, never
+  // evaluated. No depth limit here: the orchestrator parser refuses more than 10 levels.
+  const groupSchema = z.object({
+    aggregator: ConditionAggregatorSchema,
+    conditions: z.array(DeterministicConditionNodeSchema).min(1),
+  });
+
+  return z.unknown().transform((node, ctx): DeterministicConditionNode => {
+    const schema = isGroupShaped(node) ? groupSchema : DeterministicConditionSchema;
+    const result = schema.safeParse(node);
+    if (result.success) return result.data;
+
+    result.error.issues.forEach(({ path, message }) =>
+      ctx.addIssue({ code: 'custom', path, message }),
+    );
+
+    return z.NEVER;
+  });
+});
+
+export const isDeterministicConditionGroup = (
+  node: DeterministicConditionNode,
+): node is DeterministicConditionGroup => isGroupShaped(node);
+
 const OptionConditionsSchema = z.object({
   option: z.string().min(1),
-  aggregator: z.enum(['and', 'or']),
-  conditions: z.array(DeterministicConditionSchema).min(1),
+  aggregator: ConditionAggregatorSchema,
+  conditions: z.array(DeterministicConditionNodeSchema).min(1),
 });
 export type OptionConditions = z.infer<typeof OptionConditionsSchema>;
 

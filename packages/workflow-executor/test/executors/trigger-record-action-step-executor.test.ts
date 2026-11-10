@@ -1206,6 +1206,163 @@ describe('TriggerRecordActionStepExecutor', () => {
       );
     });
 
+    describe('a placeholder the AI sends instead of leaving a field empty', () => {
+      const transferFields = [
+        {
+          name: 'operation_type',
+          type: 'Enum',
+          isRequired: true,
+          enumValues: ['Deposit', 'Transfer'],
+        },
+        { name: 'destination_account', type: 'String', isRequired: true },
+        { name: 'memo', type: 'String', isRequired: false },
+      ];
+
+      function mockAgentApplyingValues(agentPort: AgentPort) {
+        (agentPort.getActionForm as jest.Mock).mockImplementation(
+          ({ values = {} }: { values?: Record<string, unknown> }) => {
+            const fields = transferFields.map(field =>
+              field.name in values ? { ...field, value: values[field.name] } : field,
+            );
+            const requiredFields = fields
+              .filter(field => field.isRequired && !('value' in field))
+              .map(field => field.name);
+
+            return Promise.resolve({
+              fields,
+              canExecute: requiredFields.length === 0,
+              requiredFields,
+              skippedFields: [],
+            });
+          },
+        );
+        (agentPort.executeAction as jest.Mock).mockResolvedValue({ result: { success: 'ok' } });
+      }
+
+      function transferContext(
+        aiValues: Record<string, unknown>,
+        agentPort: AgentPort,
+        runStore: ReturnType<typeof makeMockRunStore>,
+      ) {
+        const mockModel = makeMockModel({ values: aiValues }, 'fill_action_form');
+
+        return {
+          mockModel,
+          context: makeContext({
+            model: mockModel.model,
+            agentPort,
+            runStore,
+            stepDefinition: makeStep({
+              executionType: StepExecutionMode.FullyAutomated,
+              prompt: 'Operation type: Transfer. Do not fill the destination account',
+              preRecordedArgs: {
+                selectedRecordStepId: 'workflow-start',
+                actionName: 'send-welcome-email',
+              },
+            }),
+          }),
+        };
+      }
+
+      it.each(['<UNKNOWN>', '<unknown>', ' <destination account> '])(
+        'pauses as AI-assisted with the required field empty when the AI sends %j',
+        async placeholder => {
+          const agentPort = makeMockAgentPort();
+          mockAgentApplyingValues(agentPort);
+          const runStore = makeMockRunStore();
+          const { context } = transferContext(
+            { operation_type: 'Transfer', destination_account: placeholder },
+            agentPort,
+            runStore,
+          );
+
+          const result = await new TriggerRecordActionStepExecutor(context).execute();
+
+          expect(result.stepOutcome.status).toBe('awaiting-input');
+          expect(agentPort.executeAction).not.toHaveBeenCalled();
+          expect(runStore.saveStepExecution).toHaveBeenLastCalledWith(
+            'run-1',
+            expect.objectContaining({
+              pendingData: expect.objectContaining({
+                form: {
+                  fields: [
+                    { ...transferFields[0], value: 'Transfer' },
+                    transferFields[1],
+                    transferFields[2],
+                  ],
+                  aiFilledValues: [{ field: 'operation_type', value: 'Transfer' }],
+                },
+                fullAiFallback: { reason: 'required-fields-missing' },
+              }),
+            }),
+          );
+        },
+      );
+
+      it.each(['FR7630006000011234567890189', 'Jane <jane@acme.com>', '<b>ACC-42</b>'])(
+        'submits when the AI fills the required field with the real value %j',
+        async realValue => {
+          const agentPort = makeMockAgentPort();
+          mockAgentApplyingValues(agentPort);
+          const runStore = makeMockRunStore();
+          const { context } = transferContext(
+            { operation_type: 'Transfer', destination_account: realValue },
+            agentPort,
+            runStore,
+          );
+
+          const result = await new TriggerRecordActionStepExecutor(context).execute();
+
+          expect(result.stepOutcome.status).toBe('success');
+          expect(agentPort.executeAction).toHaveBeenCalledWith(
+            expect.objectContaining({
+              values: { operation_type: 'Transfer', destination_account: realValue },
+            }),
+            expect.anything(),
+          );
+        },
+      );
+
+      it('submits with an optional field left empty when the AI sends a placeholder for it', async () => {
+        const agentPort = makeMockAgentPort();
+        mockAgentApplyingValues(agentPort);
+        const runStore = makeMockRunStore();
+        const { context } = transferContext(
+          { operation_type: 'Transfer', destination_account: 'ACC-42', memo: '<UNKNOWN>' },
+          agentPort,
+          runStore,
+        );
+
+        const result = await new TriggerRecordActionStepExecutor(context).execute();
+
+        expect(result.stepOutcome.status).toBe('success');
+        expect(agentPort.executeAction).toHaveBeenCalledWith(
+          expect.objectContaining({
+            values: { operation_type: 'Transfer', destination_account: 'ACC-42' },
+          }),
+          expect.anything(),
+        );
+      });
+
+      it('tells the AI that leaving a required field out is expected and placeholders are not', async () => {
+        const agentPort = makeMockAgentPort();
+        mockAgentApplyingValues(agentPort);
+        const { context, mockModel } = transferContext(
+          { operation_type: 'Transfer' },
+          agentPort,
+          makeMockRunStore(),
+        );
+
+        await new TriggerRecordActionStepExecutor(context).execute();
+
+        const prompt = (mockModel.invoke.mock.calls[0][0] as { content: unknown }[])
+          .map(m => m.content)
+          .join('\n');
+        expect(prompt).toContain('This applies to required fields too');
+        expect(prompt).toContain('Never send a placeholder such as "<UNKNOWN>"');
+      });
+    });
+
     describe('values applied in the form order', () => {
       const closingFields = [
         { name: 'closing_reason_initiative', type: 'Enum', isRequired: true },

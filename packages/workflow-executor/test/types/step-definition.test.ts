@@ -198,7 +198,9 @@ describe('ConditionStepDefinitionSchema deterministic conditions', () => {
       },
     });
 
-    expect(parsed.preRecordedArgs?.optionConditions[0].conditions[0].sourceType).toBe('get-data');
+    expect(parsed.preRecordedArgs?.optionConditions[0].conditions[0]).toMatchObject({
+      sourceType: 'get-data',
+    });
   });
 
   it('accepts a condition whose sourceType is get-data and keeps it', () => {
@@ -245,7 +247,12 @@ describe('ConditionStepDefinitionSchema deterministic conditions', () => {
     });
 
     expect(result.success).toBe(false);
-    expect(JSON.stringify(!result.success && result.error.issues)).toContain('sourceType');
+    expect(!result.success && result.error.issues).toEqual([
+      expect.objectContaining({
+        path: ['preRecordedArgs', 'optionConditions', 0, 'conditions', 0, 'sourceType'],
+        message: expect.stringContaining('"get-data"'),
+      }),
+    ]);
   });
 
   describe('a sub-workflow End source', () => {
@@ -509,5 +516,138 @@ describe('GuidanceStepDefinitionSchema executionType', () => {
     expect(
       GuidanceStepDefinitionSchema.safeParse({ ...base, executionType: 'not-a-mode' }).success,
     ).toBe(false);
+  });
+});
+
+describe('ConditionStepDefinitionSchema condition groups', () => {
+  const base = { type: StepType.Condition as const, options: ['Escalate', 'Otherwise'] };
+  const risk = { sourceStepId: 'get-kyc', fieldName: 'risk', operator: 'equal', value: 'high' };
+  const country = {
+    sourceStepId: 'get-kyc',
+    fieldName: 'country',
+    operator: 'in',
+    value: ['FR', 'BE'],
+  };
+  const parseOption = (conditions: unknown[]) =>
+    ConditionStepDefinitionSchema.safeParse({
+      ...base,
+      preRecordedArgs: {
+        optionConditions: [{ option: 'Escalate', aggregator: 'and', conditions }],
+        fallbackOption: 'Otherwise',
+      },
+    });
+
+  it('accepts a group among the conditions of an option and round-trips it', () => {
+    const result = parseOption([risk, { aggregator: 'or', conditions: [country, risk] }]);
+
+    const asGetData = { sourceType: 'get-data' };
+    expect(result.success && result.data.preRecordedArgs?.optionConditions[0].conditions).toEqual([
+      { ...risk, ...asGetData },
+      {
+        aggregator: 'or',
+        conditions: [
+          { ...country, ...asGetData },
+          { ...risk, ...asGetData },
+        ],
+      },
+    ]);
+  });
+
+  it('accepts a group nested in a group, as the stored model has no depth limit', () => {
+    const result = parseOption([
+      { aggregator: 'or', conditions: [risk, { aggregator: 'and', conditions: [country] }] },
+    ]);
+
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects an empty group, which would read as match nothing or match everything', () => {
+    const result = parseOption([risk, { aggregator: 'or', conditions: [] }]);
+
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects a group with an unknown aggregator', () => {
+    const result = parseOption([{ aggregator: 'xor', conditions: [risk] }]);
+
+    expect(result.success).toBe(false);
+  });
+
+  it('applies the condition rules inside a group', () => {
+    const result = parseOption([
+      { aggregator: 'or', conditions: [{ ...country, operator: 'equal', value: undefined }] },
+    ]);
+
+    expect(result.success).toBe(false);
+    expect(JSON.stringify(!result.success && result.error.issues)).toContain('value is required');
+  });
+
+  it('accepts a sub-workflow End condition inside a group', () => {
+    const end = {
+      sourceType: 'sub-workflow',
+      sourceStepId: 'call-1',
+      fieldName: 'end',
+      operator: 'in',
+      value: ['end-approved'],
+    };
+
+    const result = parseOption([{ aggregator: 'or', conditions: [risk, end] }]);
+
+    expect(result.success && result.data.preRecordedArgs?.optionConditions[0].conditions).toEqual([
+      { aggregator: 'or', conditions: [{ ...risk, sourceType: 'get-data' }, end] },
+    ]);
+  });
+
+  it('applies the sub-workflow End rules inside a group, naming the field at fault', () => {
+    const result = parseOption([
+      {
+        aggregator: 'and',
+        conditions: [
+          risk,
+          {
+            sourceType: 'sub-workflow',
+            sourceStepId: 'call-1',
+            fieldName: 'end',
+            operator: 'greater_than',
+            value: 'end-1',
+          },
+        ],
+      },
+    ]);
+
+    expect(!result.success && result.error.issues).toEqual([
+      expect.objectContaining({
+        path: [
+          'preRecordedArgs',
+          'optionConditions',
+          0,
+          'conditions',
+          0,
+          'conditions',
+          1,
+          'operator',
+        ],
+        message: 'the "greater_than" operator does not apply to a sub-workflow end',
+      }),
+    ]);
+  });
+
+  it.each([
+    ['sourceType', { ...risk, sourceType: 'unknown-source' }],
+    ['operator', { ...risk, operator: 'unknown-operator' }],
+  ])('names the field at fault when a condition has an unknown %s', (field, condition) => {
+    const result = parseOption([{ aggregator: 'or', conditions: [condition] }]);
+
+    expect(!result.success && result.error.issues.map(issue => issue.path)).toEqual([
+      ['preRecordedArgs', 'optionConditions', 0, 'conditions', 0, 'conditions', 0, field],
+    ]);
+  });
+
+  it('names the field at fault in a malformed group rather than reading it as a condition', () => {
+    const result = parseOption([{ aggregator: 'xor', conditions: [risk] }]);
+
+    expect(!result.success && result.error.issues.map(issue => issue.path)).toEqual([
+      ['preRecordedArgs', 'optionConditions', 0, 'conditions', 0, 'aggregator'],
+    ]);
   });
 });

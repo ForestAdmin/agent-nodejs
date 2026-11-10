@@ -124,6 +124,16 @@ export interface ServerWorkflowEnd extends ServerWorkflowStepBase {
   outgoing: [];
 }
 
+export type ServerWorkflowConditionNode =
+  | {
+      sourceType?: string | null;
+      sourceStepId: string;
+      fieldName: string;
+      operator: string;
+      value?: unknown;
+    }
+  | { aggregator: 'and' | 'or'; conditions: ServerWorkflowConditionNode[] };
+
 export interface ServerWorkflowCondition extends ServerWorkflowStepBase {
   type: ServerStepTypeEnum.Condition;
   executionType: ServerStepExecutionTypeEnum.Manual | ServerStepExecutionTypeEnum.FullyAutomated;
@@ -135,13 +145,7 @@ export interface ServerWorkflowCondition extends ServerWorkflowStepBase {
     optionConditions: Array<{
       option: string;
       aggregator: 'and' | 'or';
-      conditions: Array<{
-        sourceType?: string;
-        sourceStepId: string;
-        fieldName: string;
-        operator: string;
-        value?: unknown;
-      }>;
+      conditions: ServerWorkflowConditionNode[];
     }>;
     fallbackOption: string;
   };

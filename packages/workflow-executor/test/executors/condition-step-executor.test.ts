@@ -1133,6 +1133,225 @@ describe('ConditionStepExecutor', () => {
       },
     );
 
+    describe('with a group of conditions', () => {
+      // risk = high AND (country in [FR, BE] OR amount > 10000)
+      const escalationArgs: ConditionPreRecordedArgs = {
+        optionConditions: [
+          {
+            option: 'Escalate',
+            aggregator: 'and',
+            conditions: [
+              { sourceStepId: 'get-1', fieldName: 'risk', operator: 'equal', value: 'high' },
+              {
+                aggregator: 'or',
+                conditions: [
+                  {
+                    sourceStepId: 'get-1',
+                    fieldName: 'country',
+                    operator: 'in',
+                    value: ['FR', 'BE'],
+                  },
+                  {
+                    sourceStepId: 'get-1',
+                    fieldName: 'amount',
+                    operator: 'greater_than',
+                    value: 10000,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+        fallbackOption: 'Other',
+      };
+
+      it('matches when the group is met through one of its conditions', async () => {
+        const { context, runStore } = makeDeterministicContext(escalationArgs, [
+          { name: 'risk', displayName: 'Risk', value: 'high' },
+          { name: 'country', displayName: 'Country', value: 'DE' },
+          { name: 'amount', displayName: 'Amount', value: 25000 },
+        ]);
+
+        const result = await new ConditionStepExecutor(context).execute();
+
+        expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('Escalate');
+        expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+          'run-1',
+          expect.objectContaining({
+            executionParams: expect.objectContaining({
+              evaluations: [
+                {
+                  option: 'Escalate',
+                  outcome: 'matched',
+                  conditions: [
+                    { index: 0, met: true },
+                    {
+                      index: 1,
+                      met: true,
+                      conditions: [
+                        { index: 0, met: false },
+                        { index: 1, met: true },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            }),
+          }),
+        );
+      });
+
+      it('records the group as not met, with the reason on the condition it could not read', async () => {
+        const { context, runStore } = makeDeterministicContext(escalationArgs, [
+          { name: 'risk', displayName: 'Risk', value: 'high' },
+          { name: 'country', displayName: 'Country', value: 'DE' },
+          { name: 'amount', displayName: 'Amount', error: 'Field not found: amount' },
+        ]);
+
+        const result = await new ConditionStepExecutor(context).execute();
+
+        expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('Other');
+        expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+          'run-1',
+          expect.objectContaining({
+            executionParams: expect.objectContaining({
+              evaluations: [
+                {
+                  option: 'Escalate',
+                  outcome: 'not-matched',
+                  conditions: [
+                    { index: 0, met: true },
+                    {
+                      index: 1,
+                      met: false,
+                      conditions: [
+                        { index: 0, met: false },
+                        { index: 1, met: null, reason: 'field-not-loaded' },
+                      ],
+                    },
+                  ],
+                },
+              ],
+              usedFallback: true,
+            }),
+          }),
+        );
+      });
+
+      it('records the group as not met without a reason when none of its conditions could be read', async () => {
+        const { context, runStore } = makeDeterministicContext(escalationArgs, [
+          { name: 'risk', displayName: 'Risk', value: 'high' },
+          { name: 'country', displayName: 'Country', error: 'Field not found: country' },
+          { name: 'amount', displayName: 'Amount', error: 'Field not found: amount' },
+        ]);
+
+        const result = await new ConditionStepExecutor(context).execute();
+
+        expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('Other');
+        expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+          'run-1',
+          expect.objectContaining({
+            executionParams: expect.objectContaining({
+              evaluations: [
+                {
+                  option: 'Escalate',
+                  outcome: 'not-matched',
+                  conditions: [
+                    { index: 0, met: true },
+                    {
+                      index: 1,
+                      met: false,
+                      conditions: [
+                        { index: 0, met: null, reason: 'field-not-loaded' },
+                        { index: 1, met: null, reason: 'field-not-loaded' },
+                      ],
+                    },
+                  ],
+                },
+              ],
+              usedFallback: true,
+            }),
+          }),
+        );
+      });
+
+      it('evaluates a group nested inside a group and traces every level', async () => {
+        // risk = high AND (country = FR OR (amount > 10000 AND vip = true))
+        const nestedArgs: ConditionPreRecordedArgs = {
+          optionConditions: [
+            {
+              option: 'Escalate',
+              aggregator: 'and',
+              conditions: [
+                { sourceStepId: 'get-1', fieldName: 'risk', operator: 'equal', value: 'high' },
+                {
+                  aggregator: 'or',
+                  conditions: [
+                    { sourceStepId: 'get-1', fieldName: 'country', operator: 'equal', value: 'FR' },
+                    {
+                      aggregator: 'and',
+                      conditions: [
+                        {
+                          sourceStepId: 'get-1',
+                          fieldName: 'amount',
+                          operator: 'greater_than',
+                          value: 10000,
+                        },
+                        { sourceStepId: 'get-1', fieldName: 'vip', operator: 'equal', value: true },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+          fallbackOption: 'Other',
+        };
+        const { context, runStore } = makeDeterministicContext(nestedArgs, [
+          { name: 'risk', displayName: 'Risk', value: 'high' },
+          { name: 'country', displayName: 'Country', value: 'DE' },
+          { name: 'amount', displayName: 'Amount', value: 25000 },
+          { name: 'vip', displayName: 'VIP', value: true },
+        ]);
+
+        const result = await new ConditionStepExecutor(context).execute();
+
+        expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('Escalate');
+        expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+          'run-1',
+          expect.objectContaining({
+            executionParams: expect.objectContaining({
+              evaluations: [
+                {
+                  option: 'Escalate',
+                  outcome: 'matched',
+                  conditions: [
+                    { index: 0, met: true },
+                    {
+                      index: 1,
+                      met: true,
+                      conditions: [
+                        { index: 0, met: false },
+                        {
+                          index: 1,
+                          met: true,
+                          conditions: [
+                            { index: 0, met: true },
+                            { index: 1, met: true },
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+              usedFallback: false,
+            }),
+          }),
+        );
+      });
+    });
+
     it('compares a decimal column returned as a string against the builder number', async () => {
       const { context } = makeDeterministicContext(amountArgs, [
         { name: 'amount', displayName: 'Amount', value: '150.00' },
@@ -1407,6 +1626,78 @@ describe('ConditionStepExecutor', () => {
           sourceType: 'sub-workflow',
           sourceStepId: 'call-1',
           reason: 'source-step-not-reached',
+        }),
+      );
+    });
+
+    it('evaluates an End condition nested in a group next to a Get Data one, tracing each', async () => {
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest
+          .fn()
+          .mockResolvedValue([
+            makeReadRecordExecution(1, [{ name: 'amount', displayName: 'Amount', value: 50 }]),
+          ]),
+      });
+      const context = makeContext({
+        runStore,
+        previousSteps: [makeGetDataStep('get-1', 1)],
+        subWorkflowEnds: approvedCall,
+        stepDefinition: makeDeterministicStep({
+          optionConditions: [
+            {
+              option: 'Approved path',
+              aggregator: 'and',
+              conditions: [
+                {
+                  aggregator: 'or',
+                  conditions: [
+                    {
+                      sourceStepId: 'get-1',
+                      fieldName: 'amount',
+                      operator: 'greater_than',
+                      value: 100,
+                    },
+                    {
+                      sourceType: 'sub-workflow',
+                      sourceStepId: 'call-1',
+                      fieldName: 'end',
+                      operator: 'equal',
+                      value: 'end-approved',
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+          fallbackOption: 'Other',
+        }),
+      });
+
+      const result = await new ConditionStepExecutor(context).execute();
+
+      expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('Approved path');
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          executionParams: expect.objectContaining({
+            evaluations: [
+              {
+                option: 'Approved path',
+                outcome: 'matched',
+                conditions: [
+                  {
+                    index: 0,
+                    met: true,
+                    conditions: [
+                      { index: 0, met: false },
+                      { index: 1, met: true },
+                    ],
+                  },
+                ],
+              },
+            ],
+            usedFallback: false,
+          }),
         }),
       );
     });

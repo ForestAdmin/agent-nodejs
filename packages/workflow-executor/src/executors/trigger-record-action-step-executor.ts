@@ -40,8 +40,18 @@ Important rules:
 - Otherwise, fill a field only when the workflow context gives you the value with confidence.
 - A field's "current" value is just its existing default; override it when the request asks you to.
 - If neither the request nor the workflow context gives you a field's value, LEAVE IT OUT — never guess or assume.
+- This applies to required fields too: a required field you leave out is completed by a human reviewer.
+- Never send a placeholder such as "<UNKNOWN>" or "TBD" — leave the field out instead.
 - For Enum fields, use exactly one of the allowed values, otherwise leave the field out.
 - Do not invent identifiers, dates, amounts, or file contents that are absent from both the request and the context.`;
+
+const PLACEHOLDER_VALUE = /^<[\w\s-]+>$/;
+
+// Models asked to leave a field out still send a token like "<UNKNOWN>"; the agent would count it
+// as a value and the action would run with it.
+function isPlaceholder(value: unknown): boolean {
+  return typeof value === 'string' && PLACEHOLDER_VALUE.test(value.trim());
+}
 
 function isMissing(value: unknown): boolean {
   return value === undefined || value === null || value === '';
@@ -335,6 +345,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
 
         if (
           !isMissing(value) &&
+          !isPlaceholder(value) &&
           formField &&
           isAmongOptions(formField, value) &&
           (!filledByAi || reopened)
@@ -421,7 +432,8 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       description:
         'Provide values for the action form fields you have enough context to fill. ' +
         'Return a `values` object keyed by field name. Leave a field OUT entirely if you are ' +
-        'not sure — never guess or assume. For single-choice fields (Enum/dropdown/radio) submit ' +
+        'not sure — never guess or assume, and never send a placeholder; a required field left ' +
+        'out is completed by a human reviewer. For single-choice fields (Enum/dropdown/radio) submit ' +
         'exactly one of the allowed values; for multi-select fields (checkboxes / list types) ' +
         'submit an array of allowed values. Submit the value, not the label.',
       schema: z.object({

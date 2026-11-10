@@ -1563,6 +1563,19 @@ describe('toAvailableStepExecution', () => {
       ).toEqual([{ stepId: 'call-inner', endStepId: 'end-inner' }]);
     });
 
+    it('gives a step of a second call none of the Ends a first call of the same workflow made', () => {
+      expect(
+        endsOf([
+          makeStart('call-outer', 0),
+          makeStart('call-inner', 1),
+          makeClose('end-inner-first', 2, { childrenWorkflowId: 'wf-child' }),
+          makeClose('end-outer', 3),
+          makeStart('call-outer', 4),
+          makeChild('decision', 5, false),
+        ]),
+      ).toBeUndefined();
+    });
+
     it('lists no End for a call that has not returned yet', () => {
       expect(endsOf([makeStart('call-1', 0), makeChild('decision', 1, false)])).toBeUndefined();
     });
