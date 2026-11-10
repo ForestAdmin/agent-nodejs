@@ -31,15 +31,31 @@ export interface WithUserConfirmation<T extends Record<string, unknown> = Record
 // and the run view is what words this for the operator.
 export type ConditionNotLoadedReason = 'source-step-not-reached' | 'field-not-loaded';
 
+/**
+ * `index` is the position in the definition's conditions at the same level. `met: null` = the
+ * value could not be evaluated. `reason` accompanies `met: null` only when nothing was read at all:
+ * a value read as null carries none, which is how the run view tells the two apart.
+ */
+interface ConditionLeafResult {
+  index: number;
+  met: boolean | null;
+  reason?: ConditionNotLoadedReason;
+}
+
+// A group carries its own result, so the run view never re-derives the aggregation.
+interface ConditionGroupResult {
+  index: number;
+  met: boolean;
+  conditions: ConditionResult[];
+}
+
+export type ConditionResult = ConditionLeafResult | ConditionGroupResult;
+
 export interface ConditionEvaluation {
   option: string;
   outcome: 'matched' | 'not-matched' | 'not-evaluated';
-  /**
-   * Absent when outcome is 'not-evaluated'. `met: null` = the value could not be evaluated.
-   * `reason` accompanies `met: null` only when nothing was read at all: a value read as null
-   * carries none, which is how the run view tells the two apart.
-   */
-  conditions?: Array<{ index: number; met: boolean | null; reason?: ConditionNotLoadedReason }>;
+  /** Absent when outcome is 'not-evaluated'. */
+  conditions?: ConditionResult[];
 }
 
 // Deterministic evaluation trace read by the run view (PRD-472 contract shape). The fallback

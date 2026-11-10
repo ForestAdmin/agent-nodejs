@@ -2,11 +2,13 @@ import type { StepExecutionResult } from '../types/execution-context';
 import type {
   ConditionEvaluation,
   ConditionNotLoadedReason,
+  ConditionResult,
   StepExecutionData,
 } from '../types/step-execution-data';
 import type {
   ConditionStepDefinition,
   DeterministicCondition,
+  DeterministicConditionGroup,
   DeterministicConditionStep,
 } from '../types/validated/step-definition';
 import type { ConditionStepOutcome, ErrorKind } from '../types/validated/step-outcome';
@@ -21,6 +23,7 @@ import patchBodySchemas from '../http/pending-data-validators';
 import {
   StepExecutionMode,
   StepType,
+  isDeterministicConditionGroup,
   isDeterministicConditionStep,
 } from '../types/validated/step-definition';
 
@@ -136,15 +139,11 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
         return { option, outcome: 'not-evaluated' } satisfies ConditionEvaluation;
       }
 
-      const results = conditions.map((condition, index) => {
-        const { met, reason } = this.evaluateCondition(condition, stepExecutions, clock);
-
-        return { index, met, ...(reason && { reason }) };
-      });
-      const matched =
-        aggregator === 'or'
-          ? results.some(result => result.met === true)
-          : results.every(result => result.met === true);
+      const { met: matched, conditions: results } = this.evaluateGroup(
+        { aggregator, conditions },
+        stepExecutions,
+        clock,
+      );
       if (matched) matchedOption = option;
 
       return {
@@ -180,6 +179,30 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
     });
 
     return this.buildOutcomeResult({ status: 'success', selectedOption });
+  }
+
+  private evaluateGroup(
+    { aggregator, conditions }: DeterministicConditionGroup,
+    stepExecutions: StepExecutionData[],
+    clock: Clock,
+  ): { met: boolean; conditions: ConditionResult[] } {
+    const results = conditions.map((node, index): ConditionResult => {
+      if (isDeterministicConditionGroup(node)) {
+        return { index, ...this.evaluateGroup(node, stepExecutions, clock) };
+      }
+
+      const { met, reason } = this.evaluateCondition(node, stepExecutions, clock);
+
+      return { index, met, ...(reason && { reason }) };
+    });
+
+    return {
+      met:
+        aggregator === 'or'
+          ? results.some(result => result.met === true)
+          : results.every(result => result.met === true),
+      conditions: results,
+    };
   }
 
   private evaluateCondition(
