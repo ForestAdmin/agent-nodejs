@@ -1105,6 +1105,26 @@ describe('AgentClientAgentPort', () => {
       });
     });
 
+    it('asks agent-client not to file the approval request when the query skips it', async () => {
+      mockAction.execute.mockResolvedValue({ success: 'done' });
+
+      await port.executeAction(
+        {
+          collection: 'users',
+          action: 'sendEmail',
+          id: [1],
+          approvalMessage: 'AI reasoning',
+          skipApprovalRequest: true,
+        },
+        { user },
+      );
+
+      expect(mockAction.execute).toHaveBeenCalledWith({
+        approvalRequestMessage: 'AI reasoning',
+        skipApprovalRequest: true,
+      });
+    });
+
     it('wires the forestServer connection into agent-client when a server token is supplied', async () => {
       const portWithServer = new AgentClientAgentPort({
         agentUrl: 'http://localhost:3310',
