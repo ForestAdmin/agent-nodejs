@@ -1299,29 +1299,29 @@ describe('TriggerRecordActionStepExecutor', () => {
         },
       );
 
-      it('submits when the AI fills the required field with a real value', async () => {
-        const agentPort = makeMockAgentPort();
-        mockAgentApplyingValues(agentPort);
-        const runStore = makeMockRunStore();
-        const { context } = transferContext(
-          { operation_type: 'Transfer', destination_account: 'FR7630006000011234567890189' },
-          agentPort,
-          runStore,
-        );
+      it.each(['FR7630006000011234567890189', 'Jane <jane@acme.com>', '<b>ACC-42</b>'])(
+        'submits when the AI fills the required field with the real value %j',
+        async realValue => {
+          const agentPort = makeMockAgentPort();
+          mockAgentApplyingValues(agentPort);
+          const runStore = makeMockRunStore();
+          const { context } = transferContext(
+            { operation_type: 'Transfer', destination_account: realValue },
+            agentPort,
+            runStore,
+          );
 
-        const result = await new TriggerRecordActionStepExecutor(context).execute();
+          const result = await new TriggerRecordActionStepExecutor(context).execute();
 
-        expect(result.stepOutcome.status).toBe('success');
-        expect(agentPort.executeAction).toHaveBeenCalledWith(
-          expect.objectContaining({
-            values: {
-              operation_type: 'Transfer',
-              destination_account: 'FR7630006000011234567890189',
-            },
-          }),
-          expect.anything(),
-        );
-      });
+          expect(result.stepOutcome.status).toBe('success');
+          expect(agentPort.executeAction).toHaveBeenCalledWith(
+            expect.objectContaining({
+              values: { operation_type: 'Transfer', destination_account: realValue },
+            }),
+            expect.anything(),
+          );
+        },
+      );
 
       it('submits with an optional field left empty when the AI sends a placeholder for it', async () => {
         const agentPort = makeMockAgentPort();
