@@ -2,7 +2,7 @@ import type FieldFormStates from '../../src/action-fields/field-form-states';
 import type HttpRequester from '../../src/http-requester';
 
 import Action, { extractErrorDetail } from '../../src/domains/action';
-import AgentHttpError from '../../src/errors';
+import AgentHttpError, { ActionRequiresApprovalError } from '../../src/errors';
 
 jest.mock('../../src/http-requester');
 jest.mock('../../src/action-fields/field-form-states');
@@ -234,6 +234,38 @@ describe('Action', () => {
       const result = await approvalAction.execute();
 
       expect(result).toEqual({ approvalRequested: true, approvalRequest: { id: 'req_42' } });
+    });
+
+    it('throws ActionRequiresApprovalError without filing a request when asked to skip it', async () => {
+      fieldsFormStates.getFields.mockReturnValue([] as any);
+      const createApprovalRequest = jest.fn().mockResolvedValue({ id: 'req_42' });
+      const approvalAction = new Action(
+        'users',
+        'send-email',
+        httpRequester,
+        '/forest/actions/send-email',
+        fieldsFormStates,
+        ['1'],
+        undefined,
+        createApprovalRequest,
+      );
+      httpRequester.query.mockRejectedValue(
+        new AgentHttpError(403, {
+          errors: [
+            {
+              name: 'CustomActionRequiresApprovalError',
+              detail: 'Needs approval',
+              data: { roleIdsAllowedToApprove: [7] },
+            },
+          ],
+        }),
+      );
+
+      const error = await approvalAction.execute({ skipApprovalRequest: true }).catch(e => e);
+
+      expect(error).toBeInstanceOf(ActionRequiresApprovalError);
+      expect(error).toMatchObject({ message: 'Needs approval', roleIdsAllowedToApprove: [7] });
+      expect(createApprovalRequest).not.toHaveBeenCalled();
     });
 
     it('throws ApprovalRequestCreationError when filing the approval request fails', async () => {

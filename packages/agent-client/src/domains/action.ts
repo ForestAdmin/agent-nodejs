@@ -103,6 +103,7 @@ export type ActionExecuteOptions = {
   signedApprovalRequest?: Record<string, unknown>;
   // Posted as a comment on the approval request when the action is approval-gated.
   approvalRequestMessage?: string;
+  skipApprovalRequest?: boolean;
 };
 
 export type ActionExecuteResult =
@@ -149,7 +150,7 @@ export default class Action {
   }
 
   async execute(options: ActionExecuteOptions = {}): Promise<ActionExecuteResult> {
-    const { signedApprovalRequest, approvalRequestMessage } = options;
+    const { signedApprovalRequest, approvalRequestMessage, skipApprovalRequest } = options;
     const requestBody = {
       data: {
         attributes: {
@@ -172,7 +173,11 @@ export default class Action {
     } catch (error) {
       const mapped = toActionError(error);
 
-      if (mapped instanceof ActionRequiresApprovalError && this.createApprovalRequest) {
+      if (
+        mapped instanceof ActionRequiresApprovalError &&
+        this.createApprovalRequest &&
+        !skipApprovalRequest
+      ) {
         const inputs = this.fieldsFormStates.getFields().map(field => ({
           name: field.getName(),
           type: field.getType(),
