@@ -1,3 +1,10 @@
+# @forestadmin/workflow-executor [1.36.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.35.8...@forestadmin/workflow-executor@1.36.0) (2026-11-10)
+
+
+### Features
+
+* **wf nested condition:** allow nested condition on gateway step ([#2064](https://github.com/ForestAdmin/agent-nodejs/issues/2064)) ([aa0c257](https://github.com/ForestAdmin/agent-nodejs/commit/aa0c25759458b7cadb3c20960d62451b1651606f))
+
 ## @forestadmin/workflow-executor [1.35.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.35.7...@forestadmin/workflow-executor@1.35.8) (2026-11-10)
 
 
