@@ -132,7 +132,7 @@ export default class IterationRunStore implements RunStore {
       'records' in row.executionResult
     ) {
       const record = row.executionResult.records.find(r => isSameRecord(r, this.sourceRecordRef));
-      if (!record) return [row];
+      if (!record) return [];
 
       return [{ ...row, executionResult: { relation: row.executionResult.relation, record } }];
     }

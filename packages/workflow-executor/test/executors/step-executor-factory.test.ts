@@ -158,6 +158,57 @@ describe('StepExecutorFactory.create', () => {
       expect(executor).toBeInstanceOf(PerRecordStepExecutor);
     });
 
+    const loadOwner = (selectedRecordStepId: string, stepIndex = 1) => ({
+      stepDefinition: {
+        type: StepType.LoadRelatedRecord,
+        executionType: StepExecutionMode.Manual,
+        preRecordedArgs: { selectedRecordStepId, relationName: 'owner' },
+      },
+      stepOutcome: { type: 'record', stepId: 'load-owner', stepIndex, status: 'success' },
+    });
+    const readFrom = (selectedRecordStepId: string) => ({
+      type: StepType.ReadRecord,
+      executionType: StepExecutionMode.FullyAutomated,
+      preRecordedArgs: { selectedRecordStepId, fieldNames: ['name'] },
+    });
+    const createWith = (previousSteps: unknown[], callScope?: unknown) =>
+      StepExecutorFactory.create(
+        makeStep({
+          stepIndex: 2,
+          stepDefinition: readFrom('load-owner'),
+          previousSteps,
+          callScope,
+        } as unknown as Partial<AvailableStepExecution>),
+        makeContextConfig(),
+        activityLogPort,
+        jest.fn(),
+      );
+
+    it('reads a chained step once per record of the Multiple step at the root of its chain', async () => {
+      const owner = loadOwner('load-stores');
+      const executor = await createWith([loadStores, owner]);
+
+      expect(executor).toBeInstanceOf(PerRecordStepExecutor);
+      expect((executor as unknown as { source: unknown }).source).toStrictEqual({
+        root: loadStores,
+        direct: owner,
+      });
+    });
+
+    it('runs a step pinned to a load that is not Multiple once', async () => {
+      const executor = await createWith([loadOwner(WORKFLOW_START_STEP_ID, 0)]);
+
+      expect(executor).not.toBeInstanceOf(PerRecordStepExecutor);
+    });
+
+    it('runs a step once when the Multiple step sits outside its sub-workflow frame', async () => {
+      const executor = await createWith([loadStores, loadOwner('load-stores')], {
+        currentFrameStepIndexes: [1],
+      });
+
+      expect(executor).not.toBeInstanceOf(PerRecordStepExecutor);
+    });
+
     it('runs an MCP step once', async () => {
       const executor = await create({
         type: StepType.Mcp,

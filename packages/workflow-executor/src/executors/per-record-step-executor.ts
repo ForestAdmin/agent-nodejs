@@ -354,13 +354,34 @@ export default class PerRecordStepExecutor implements IStepExecutor {
     if (!timeoutS || timeoutS <= 0) return execution;
 
     let timer: NodeJS.Timeout | undefined;
-    execution.catch(() => undefined);
+    let timedOut = false;
+    // The abandoned call still ends, and only this log says how: a change it had started may land.
+    execution.then(
+      result => {
+        if (!timedOut) return;
+        this.context.logger('Warn', 'A record past its step timeout finished late', {
+          ...this.logCtx,
+          sourceRecordId: this.idOf(iteration()),
+          stepStatus: result.stepOutcome.status,
+          error: result.stepOutcome.error,
+        });
+      },
+      error => {
+        if (!timedOut) return;
+        this.context.logger('Warn', 'A record past its step timeout failed late', {
+          ...this.logCtx,
+          sourceRecordId: this.idOf(iteration()),
+          error: extractErrorMessage(error),
+        });
+      },
+    );
 
     try {
       return await Promise.race([
         execution,
         new Promise<StepExecutionResult>(resolve => {
           timer = setTimeout(() => {
+            timedOut = true;
             store.abandon();
             // Past its write-ahead marker, the change has started and may still land.
             const changeStarted = iteration().idempotencyPhase === 'executing';

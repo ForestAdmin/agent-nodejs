@@ -865,8 +865,8 @@ describe('ForestServerWorkflowPort', () => {
       });
     });
 
-    it.each([404, 500])(
-      'says the renewal was unavailable, and warns, when the orchestrator answers %i',
+    it.each([401, 403, 500])(
+      'says the renewal was unavailable, and warns with the HTTP code, when the orchestrator answers %i',
       async status => {
         const logger = jest.fn();
         const portWithLogger = new ForestServerWorkflowPort({ ...options, logger });
@@ -877,10 +877,28 @@ describe('ForestServerWorkflowPort', () => {
         });
         expect(logger).toHaveBeenCalledWith('Warn', 'Failed to renew the lock of a run', {
           runId: '42',
+          httpStatus: status,
+          errorName: 'Error',
           error: `HTTP ${status}`,
         });
       },
     );
+
+    it('says a missing renewal route once as a warning, then at debug level', async () => {
+      const logger = jest.fn();
+      const portWithLogger = new ForestServerWorkflowPort({ ...options, logger });
+      mockQuery.mockRejectedValue(makeHttpError(404));
+
+      await expect(portWithLogger.renewRunLock('42', 'lock-1')).resolves.toStrictEqual({
+        status: 'unavailable',
+      });
+      await portWithLogger.renewRunLock('42', 'lock-1');
+
+      expect(logger.mock.calls.map(([level, message]) => [level, message])).toStrictEqual([
+        ['Warn', expect.stringContaining('cannot renew the lock of a run')],
+        ['Debug', expect.stringContaining('cannot renew the lock of a run')],
+      ]);
+    });
   });
 
   describe('getCollectionSchema', () => {

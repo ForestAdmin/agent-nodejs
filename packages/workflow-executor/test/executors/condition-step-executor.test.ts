@@ -1826,7 +1826,51 @@ describe('ConditionStepExecutor', () => {
         expect(result.stepOutcome.status).toBe('awaiting-input');
         const saved = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)[1];
         expect(saved.executionParams.unchecked).toStrictEqual(['2']);
+        expect(
+          saved.executionParams.evaluations.map((e: { outcome: string }) => e.outcome),
+        ).toStrictEqual(['not-matched', 'not-evaluated']);
       });
+    });
+
+    it.each([
+      ['an option the step does not offer', { selectedOption: 'Nope' }],
+      ['a malformed answer', { option: 'Escalate' }],
+    ])('refuses %s to a paused decision, saving nothing', async (_label, incomingPendingData) => {
+      const paused = {
+        type: 'condition',
+        stepIndex: 0,
+        executionParams: {
+          evaluations: [],
+          unchecked: ['2'],
+          evaluatedAt: '2026-10-20T10:00:00.000Z',
+          timezone: 'UTC',
+        },
+      } as unknown as StepExecutionData;
+      const { context, runStore } = contextFor(quantified('any'), [paused], {
+        incomingPendingData,
+      });
+
+      const result = await new ConditionStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
+
+    it('warns that an option submitted to a decision nobody paused is ignored', async () => {
+      const { context } = contextFor(
+        quantified('any'),
+        [perRecordRead(2, [{ id: 1, pep: true }])],
+        { incomingPendingData: { selectedOption: 'Review' } },
+      );
+
+      const result = await new ConditionStepExecutor(context).execute();
+
+      expect(result.stepOutcome).toMatchObject({ status: 'success', selectedOption: 'Escalate' });
+      expect(context.logger).toHaveBeenCalledWith(
+        'Warn',
+        'Ignoring a submitted option: this decision is evaluated from its conditions',
+        expect.objectContaining({ stepIndex: 0 }),
+      );
     });
 
     it("completes a paused decision with the operator's choice of branch", async () => {

@@ -794,6 +794,51 @@ describe('a step running once per record', () => {
           timeoutS: 1,
           changeStarted: false,
         });
+        expect(logger).toHaveBeenCalledWith('Warn', 'A record past its step timeout finished late', {
+          runId: RUN_ID,
+          stepId: 'current-step',
+          stepIndex: 3,
+          stepType: StepType.ReadRecord,
+          sourceRecordId: '1',
+          stepStatus: 'error',
+          error: expect.any(String),
+        });
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    it('logs how a timed-out record failed once it fails late', async () => {
+      jest.useFakeTimers({ doNotFake: ['nextTick', 'setImmediate'] });
+
+      try {
+        const agentPort = makeAgentPort();
+
+        let failSlowRead: () => void = () => {};
+
+        agentPort.getRecord.mockImplementationOnce(
+          () =>
+            new Promise((_resolve, reject) => {
+              failSlowRead = () => reject(new Error('agent unreachable'));
+            }),
+        );
+        const { run, logger } = await setup({
+          stepDefinition: readUbos(),
+          agentPort,
+          stepTimeoutS: 1,
+        });
+
+        const pending = run();
+        await jest.advanceTimersByTimeAsync(1_000);
+        await pending;
+        failSlowRead();
+        await jest.advanceTimersByTimeAsync(10);
+
+        expect(logger).toHaveBeenCalledWith(
+          'Warn',
+          expect.stringMatching(/past its step timeout (failed|finished) late/),
+          expect.objectContaining({ sourceRecordId: '1' }),
+        );
       } finally {
         jest.useRealTimers();
       }

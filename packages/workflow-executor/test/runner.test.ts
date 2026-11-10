@@ -2343,6 +2343,26 @@ describe('a step running once per record', () => {
     expect(workflowPort.updateStepExecution).toHaveBeenCalledWith('run-1', outcome);
   });
 
+  it('renews a chained step with the lock its own dispatch carries', async () => {
+    const workflowPort = createMockWorkflowPort();
+    workflowPort.renewRunLock.mockResolvedValue({ status: 'unavailable' });
+    workflowPort.updateStepExecution
+      .mockResolvedValueOnce({
+        step: makePendingStep({ runId: 'run-1', stepId: 'step-1', stepIndex: 1 }),
+        auth: { forestServerToken: 'token-chained' },
+        lockedAt: 'lock-9',
+      })
+      .mockResolvedValueOnce(null);
+    fakeLoop(1, () => ({ stepOutcome: outcome }));
+
+    await triggerWith(workflowPort);
+
+    expect(workflowPort.renewRunLock.mock.calls).toStrictEqual([
+      ['run-1', 'lock-0'],
+      ['run-1', 'lock-9'],
+    ]);
+  });
+
   it('hands the run back with the lock it last renewed when the step yields', async () => {
     const workflowPort = createMockWorkflowPort();
     workflowPort.renewRunLock.mockResolvedValue({ status: 'renewed', lockedAt: 'lock-1' });
