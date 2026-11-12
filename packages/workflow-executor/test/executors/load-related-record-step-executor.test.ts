@@ -1415,6 +1415,66 @@ describe('LoadRelatedRecordStepExecutor', () => {
       // Anchor on the distinctive decline phrasing, not bare "-1" (the context date contains "-1").
       expect(content).toContain('return -1');
     });
+
+    it('tells the AI which collection the candidates come from in the record-selection prompt', async () => {
+      const customersWithAddress = makeCollectionSchema({
+        fields: [
+          {
+            fieldName: 'address',
+            displayName: 'Address',
+            isRelationship: true,
+            relationType: 'HasMany',
+            relatedCollectionName: 'addresses',
+          },
+        ],
+      });
+      const addressSchema = makeCollectionSchema({
+        collectionName: 'addresses',
+        collectionDisplayName: 'Addresses',
+        fields: [{ fieldName: 'city', displayName: 'City', isRelationship: false }],
+      });
+      const relatedData: RecordData[] = [
+        { collectionName: 'addresses', recordId: [1], values: { city: 'Paris' } },
+        { collectionName: 'addresses', recordId: [2], values: { city: 'Lyon' } },
+      ];
+      const invoke = jest
+        .fn()
+        .mockResolvedValueOnce({
+          tool_calls: [{ name: 'select-fields', args: { fieldNames: ['City'] }, id: 'c2' }],
+        })
+        .mockResolvedValueOnce({
+          tool_calls: [
+            {
+              name: 'select-record-by-content',
+              args: { recordIndex: 0, reasoning: 'match' },
+              id: 'c3',
+            },
+          ],
+        });
+      const bindTools = jest.fn().mockReturnValue({ invoke });
+      const model = { bindTools } as unknown as ExecutionContext['model'];
+      const context = makeContext({
+        model,
+        agentPort: makeMockAgentPort(relatedData),
+        runStore: makeMockRunStore(),
+        workflowPort: makeMockWorkflowPort({
+          customers: customersWithAddress,
+          addresses: addressSchema,
+        }),
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.AutomatedWithConfirmation,
+          preRecordedArgs: { relationName: 'address' },
+        }),
+      });
+
+      await new LoadRelatedRecordStepExecutor(context).execute();
+
+      // 2nd AI call = record selection. Without the collection the AI judges whether each candidate
+      // is what the request names, and doubts a match it would otherwise be sure of.
+      const recordSelectionMessages = invoke.mock.calls[1][0] as Array<{ content: unknown }>;
+      const content = recordSelectionMessages.map(m => String(m.content)).join('\n');
+      expect(content).toContain('The related records are from the "Addresses" collection.');
+    });
   });
 
   describe('executionType=FullyAutomated: AI judges none relevant → confirmation', () => {
