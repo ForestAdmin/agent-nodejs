@@ -658,6 +658,16 @@ export class InvalidPreRecordedArgsError extends WorkflowConfigurationError {
   }
 }
 
+export class MissingPreRecordedValueError extends WorkflowConfigurationError {
+  constructor(fieldDisplayName: string) {
+    super(
+      `Missing pre-recorded value for field "${fieldDisplayName}"`,
+      `No value is set for the "${fieldDisplayName}" field on this step. ` +
+        'Edit the step to set one.',
+    );
+  }
+}
+
 export class InvalidPreRecordedValueError extends WorkflowConfigurationError {
   constructor(fieldDisplayName: string, reason: string) {
     super(
