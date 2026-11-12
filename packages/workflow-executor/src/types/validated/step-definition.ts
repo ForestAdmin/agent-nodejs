@@ -216,6 +216,10 @@ export const UpdateRecordStepDefinitionSchema = z.object({
       /** Technical name of the field to update */
       fieldName: z.string().optional(),
       value: z.unknown().optional(),
+      /** Technical names of the fields to update; supersedes fieldName when present */
+      fieldNames: z.array(z.string().min(1)).min(1).optional(),
+      /** Value to write, keyed by technical field name */
+      values: z.record(z.string(), z.unknown()).optional(),
     })
     .optional(),
 });

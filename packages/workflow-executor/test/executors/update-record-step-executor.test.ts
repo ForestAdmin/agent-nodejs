@@ -2239,6 +2239,277 @@ describe('UpdateRecordStepExecutor', () => {
     });
   });
 
+  describe('multi-field pre-recorded args', () => {
+    const multiFieldSchema = makeCollectionSchema({
+      fields: [
+        {
+          fieldName: 'status',
+          displayName: 'Status',
+          isRelationship: false,
+          type: 'Enum',
+          enumValues: ['active', 'inactive'],
+        },
+        { fieldName: 'age', displayName: 'Age', isRelationship: false, type: 'Number' },
+        { fieldName: 'isActive', displayName: 'Is Active', isRelationship: false, type: 'Boolean' },
+        { fieldName: 'note', displayName: 'Note', isRelationship: false, type: 'String' },
+        { fieldName: 'orders', displayName: 'Orders', isRelationship: true, type: null },
+      ],
+    });
+
+    function makeMultiFieldContext(
+      preRecordedArgs: UpdateRecordStepDefinition['preRecordedArgs'],
+      executionType: UpdateRecordStepDefinition['executionType'] = StepExecutionMode.FullyAutomated,
+    ) {
+      const mockModel = makeMockModel();
+      const runStore = makeMockRunStore();
+      const agentPort = makeMockAgentPort();
+      const activityLogPort = {
+        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
+        markSucceeded: jest.fn().mockResolvedValue(undefined),
+        markFailed: jest.fn().mockResolvedValue(undefined),
+      };
+      const context = makeContext({
+        model: mockModel.model,
+        runStore,
+        agentPort,
+        activityLogPort,
+        workflowPort: makeMockWorkflowPort({ customers: multiFieldSchema }),
+        stepDefinition: makeStep({ executionType, preRecordedArgs }),
+      });
+
+      return {
+        executor: new UpdateRecordStepExecutor(context),
+        mockModel,
+        runStore,
+        agentPort,
+        activityLogPort,
+        context,
+      };
+    }
+
+    it('writes every field, coerced to its type, in a single updateRecord call without AI', async () => {
+      const { executor, mockModel, agentPort, context } = makeMultiFieldContext({
+        fieldNames: ['status', 'age', 'isActive'],
+        values: { status: 'inactive', age: '42', isActive: 'true' },
+      });
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(mockModel.bindTools).not.toHaveBeenCalled();
+      expect(agentPort.updateRecord).toHaveBeenCalledTimes(1);
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        {
+          collection: 'customers',
+          id: [42],
+          values: { status: 'inactive', age: 42, isActive: true },
+        },
+        context.user,
+      );
+    });
+
+    it('lists every written field in executionParams', async () => {
+      const { executor, runStore } = makeMultiFieldContext({
+        fieldNames: ['status', 'age'],
+        values: { status: 'active', age: 7 },
+      });
+
+      await executor.execute();
+
+      expect(runStore.saveStepExecution).toHaveBeenLastCalledWith(
+        'run-1',
+        expect.objectContaining({
+          idempotencyPhase: 'done',
+          executionParams: {
+            fields: [
+              { displayName: 'Status', name: 'status', value: 'active' },
+              { displayName: 'Age', name: 'age', value: 7 },
+            ],
+          },
+        }),
+      );
+    });
+
+    it('creates a single activity log entry for the step', async () => {
+      const { executor, activityLogPort } = makeMultiFieldContext({
+        fieldNames: ['status', 'age', 'note'],
+        values: { status: 'active', age: 7, note: 'vip' },
+      });
+
+      await executor.execute();
+
+      expect(activityLogPort.createPending).toHaveBeenCalledTimes(1);
+      expect(activityLogPort.createPending).toHaveBeenCalledWith({
+        renderingId: 1,
+        action: 'update',
+        type: 'write',
+        collectionId: 'col-customers',
+        recordId: [42],
+        label: 'updated',
+      });
+    });
+
+    it('writes null to clear a field', async () => {
+      const { executor, agentPort, context } = makeMultiFieldContext({
+        fieldNames: ['status', 'note'],
+        values: { status: 'active', note: null },
+      });
+
+      await executor.execute();
+
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], values: { status: 'active', note: null } },
+        context.user,
+      );
+    });
+
+    it('writes a field listed twice only once, and ignores values of unlisted fields', async () => {
+      const { executor, agentPort, runStore, context } = makeMultiFieldContext({
+        fieldNames: ['status', 'status'],
+        values: { status: 'active', note: 'stale row' },
+      });
+
+      await executor.execute();
+
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], values: { status: 'active' } },
+        context.user,
+      );
+      expect(runStore.saveStepExecution).toHaveBeenLastCalledWith(
+        'run-1',
+        expect.objectContaining({
+          executionParams: { fields: [{ displayName: 'Status', name: 'status', value: 'active' }] },
+        }),
+      );
+    });
+
+    it('uses fieldNames and ignores a legacy fieldName/value left on the definition', async () => {
+      const { executor, agentPort, context } = makeMultiFieldContext({
+        fieldName: 'note',
+        value: 'legacy',
+        fieldNames: ['status'],
+        values: { status: 'active' },
+      });
+
+      await executor.execute();
+
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], values: { status: 'active' } },
+        context.user,
+      );
+    });
+
+    it('fails as a configuration error naming the field when a value cannot be coerced, writing nothing', async () => {
+      const { executor, agentPort, runStore } = makeMultiFieldContext({
+        fieldNames: ['status', 'age', 'isActive'],
+        values: { status: 'active', age: 'forty-two', isActive: true },
+      });
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.errorKind).toBe('configuration');
+      expect(result.stepOutcome.error).toBe(
+        'The value set on this step can\'t be written to the "Age" field. ' +
+          'Edit the step to set a valid value.',
+      );
+      expect(agentPort.updateRecord).not.toHaveBeenCalled();
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
+
+    it('fails with the pinned field not found error when a field no longer exists', async () => {
+      const { executor, agentPort } = makeMultiFieldContext({
+        fieldNames: ['status', 'removed'],
+        values: { status: 'active', removed: 'x' },
+      });
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.errorKind).toBe('configuration');
+      expect(result.stepOutcome.error).toBe(
+        'The field pinned on this step no longer exists on this record. Edit the step to pick another one.',
+      );
+      expect(agentPort.updateRecord).not.toHaveBeenCalled();
+    });
+
+    it('fails as a configuration error naming the field when its value is missing', async () => {
+      const { executor, agentPort } = makeMultiFieldContext({
+        fieldNames: ['status', 'age'],
+        values: { status: 'active' },
+      });
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.errorKind).toBe('configuration');
+      expect(result.stepOutcome.error).toBe(
+        'No value is set for the "Age" field on this step. Edit the step to set one.',
+      );
+      expect(agentPort.updateRecord).not.toHaveBeenCalled();
+    });
+
+    it('fails as a configuration error naming the first field when values is absent', async () => {
+      const { executor, mockModel, agentPort } = makeMultiFieldContext({
+        fieldNames: ['status', 'age'],
+      });
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        'No value is set for the "Status" field on this step. Edit the step to set one.',
+      );
+      expect(mockModel.bindTools).not.toHaveBeenCalled();
+      expect(agentPort.updateRecord).not.toHaveBeenCalled();
+    });
+
+    it('fails when a pinned field is a relationship', async () => {
+      const { executor, agentPort } = makeMultiFieldContext({
+        fieldNames: ['status', 'orders'],
+        values: { status: 'active', orders: null },
+      });
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.errorKind).toBe('configuration');
+      expect(result.stepOutcome.error).toBe(
+        'The "Orders" field is a relationship, which this step can\'t update. ' +
+          'Edit the step to pick another field.',
+      );
+      expect(agentPort.updateRecord).not.toHaveBeenCalled();
+    });
+
+    it('fails as a configuration error outside Automatic mode, without asking for confirmation', async () => {
+      const { executor, agentPort, runStore } = makeMultiFieldContext(
+        { fieldNames: ['status'], values: { status: 'active' } },
+        StepExecutionMode.AutomatedWithConfirmation,
+      );
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.errorKind).toBe('configuration');
+      expect(result.stepOutcome.error).toBe('The pre-configured step parameters are invalid');
+      expect(agentPort.updateRecord).not.toHaveBeenCalled();
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
+
+    it('keeps the single-field executionParams shape for a legacy definition', async () => {
+      const { executor, runStore } = makeMultiFieldContext({ fieldName: 'age', value: '7' });
+
+      await executor.execute();
+
+      expect(runStore.saveStepExecution).toHaveBeenLastCalledWith(
+        'run-1',
+        expect.objectContaining({
+          executionParams: { displayName: 'Age', name: 'age', value: 7 },
+        }),
+      );
+    });
+  });
+
   describe('AI-returned value coercion', () => {
     function makeAiContext(field: CollectionSchema['fields'][number], aiValue: unknown) {
       const agentPort = makeMockAgentPort();

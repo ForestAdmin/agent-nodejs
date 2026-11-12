@@ -111,7 +111,7 @@ export interface UpdateRecordStepExecutionData
   extends MutatingStepExecutionData,
     WithUserConfirmation<UpdateRecordConfirmation> {
   type: 'update-record';
-  executionParams?: FieldWithValue;
+  executionParams?: FieldWithValue | { fields: FieldWithValue[] };
   // User confirmed → values returned by updateRecord. User rejected → skipped.
   executionResult?: { updatedValues: Record<string, unknown> } | { skipped: true };
   pendingData?: FieldWithValue;

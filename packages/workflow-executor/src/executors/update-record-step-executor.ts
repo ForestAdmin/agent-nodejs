@@ -12,6 +12,7 @@ import {
   FieldTypeMissingError,
   InvalidPreRecordedArgsError,
   InvalidPreRecordedValueError,
+  MissingPreRecordedValueError,
   NoWritableFieldsError,
   PendingFieldNotFoundError,
   PinnedArgNotFoundError,
@@ -241,9 +242,7 @@ function coerceFieldValue(
   return parsed.data;
 }
 
-interface UpdateTarget extends FieldWithValue {
-  selectedRecordRef: RecordRef;
-}
+type UpdateRecordExecutionParams = NonNullable<UpdateRecordStepExecutionData['executionParams']>;
 
 export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateRecordStepDefinition> {
   protected override async checkIdempotency(): Promise<StepExecutionResult | null> {
@@ -277,15 +276,14 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
         const isOverridden = userConfirmation?.value !== undefined;
         const rawValue = isOverridden ? userConfirmation.value : pendingData.value;
 
-        const target: UpdateTarget = {
-          selectedRecordRef,
+        const executionParams: FieldWithValue = {
           ...pendingData,
           // The value comes from an `unknown` HTTP value (may be a boolean or array), so coerce
           // it to the field's native type before updating. Idempotent on already-typed values.
           value: await this.coerceOverride(selectedRecordRef, pendingData, rawValue, isOverridden),
         };
 
-        return this.resolveAndUpdate(target, exec);
+        return this.resolveAndUpdate(selectedRecordRef, executionParams, exec);
       });
     }
 
@@ -324,6 +322,15 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
             preRecordedArgs?.selectedRecordStepIndex,
           );
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
+
+    if (preRecordedArgs?.fieldNames !== undefined) {
+      return this.updatePinnedFields(
+        selectedRecordRef,
+        schema,
+        preRecordedArgs.fieldNames,
+        preRecordedArgs.values ?? {},
+      );
+    }
 
     // A value without a field is meaningless (nothing to write it to).
     if (preRecordedArgs?.value !== undefined && preRecordedArgs?.fieldName === undefined) {
@@ -364,8 +371,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
       ({ field, value } = await this.selectFieldAndValue(schema, step.prompt));
     }
 
-    const target: UpdateTarget = {
-      selectedRecordRef,
+    const fieldWithValue: FieldWithValue = {
       displayName: field.displayName,
       name: field.fieldName,
       value,
@@ -373,36 +379,81 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
 
     // Branch B -- fully automated execution
     if (step.executionType === StepExecutionMode.FullyAutomated) {
-      return this.resolveAndUpdate(target);
+      return this.resolveAndUpdate(selectedRecordRef, fieldWithValue);
     }
 
     // Branch C -- Awaiting confirmation
     await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'update-record',
       stepIndex: this.context.stepIndex,
-      pendingData: {
-        displayName: target.displayName,
-        name: target.name,
-        value: target.value,
-      },
-      selectedRecordRef: target.selectedRecordRef,
+      pendingData: fieldWithValue,
+      selectedRecordRef,
     });
 
     return this.buildOutcomeResult({ status: 'awaiting-input' });
   }
 
+  // Every field is validated before anything is written, so one bad value leaves the record as is.
+  private async updatePinnedFields(
+    selectedRecordRef: RecordRef,
+    schema: CollectionSchema,
+    fieldNames: string[],
+    values: Record<string, unknown>,
+  ): Promise<StepExecutionResult> {
+    if (this.context.stepDefinition.executionType !== StepExecutionMode.FullyAutomated) {
+      throw new InvalidPreRecordedArgsError('fieldNames is only supported in Automatic mode');
+    }
+
+    const fields = [...new Set(fieldNames)].map(fieldName =>
+      this.resolvePinnedFieldValue(schema, fieldName, values[fieldName]),
+    );
+
+    return this.resolveAndUpdate(selectedRecordRef, { fields });
+  }
+
+  private resolvePinnedFieldValue(
+    schema: CollectionSchema,
+    fieldName: string,
+    value: unknown,
+  ): FieldWithValue {
+    const field = this.findFieldByTechnicalName(schema, fieldName);
+
+    if (!field) {
+      throw new PinnedArgNotFoundError('field', fieldName, schema.collectionName);
+    }
+
+    if (field.isRelationship) {
+      throw new RelationshipFieldNotUpdatableError(field.displayName, schema.collectionName);
+    }
+
+    // `null` clears the field; only an absent key is a missing value.
+    if (value === undefined) {
+      throw new MissingPreRecordedValueError(field.displayName);
+    }
+
+    return {
+      displayName: field.displayName,
+      name: field.fieldName,
+      value: coerceFieldValue(field, value, schema.collectionName, {
+        strict: true,
+        toError: (name, reason) => new InvalidPreRecordedValueError(name, reason),
+      }),
+    };
+  }
+
   // existingExecution (confirmation flow) is spread into the saved execution to preserve pendingData.
   private async resolveAndUpdate(
-    target: UpdateTarget,
+    selectedRecordRef: RecordRef,
+    executionParams: UpdateRecordExecutionParams,
     existingExecution?: UpdateRecordStepExecutionData,
   ): Promise<StepExecutionResult> {
-    const { selectedRecordRef, displayName, name, value } = target;
+    const fields = 'fields' in executionParams ? executionParams.fields : [executionParams];
 
     const updated = await this.context.agent.updateRecord(
       {
         collection: selectedRecordRef.collectionName,
         id: selectedRecordRef.recordId,
-        values: { [name]: value },
+        values: Object.fromEntries(fields.map(({ name, value }) => [name, value])),
       },
       {
         beforeCall: () =>
@@ -420,7 +471,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
       ...existingExecution,
       type: 'update-record',
       stepIndex: this.context.stepIndex,
-      executionParams: { displayName, name, value },
+      executionParams,
       executionResult: { updatedValues: updated.values },
       selectedRecordRef,
       idempotencyPhase: 'done',

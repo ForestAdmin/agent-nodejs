@@ -4,6 +4,7 @@ import {
   LoadRelatedRecordStepDefinitionSchema,
   StepExecutionMode,
   StepType,
+  UpdateRecordStepDefinitionSchema,
 } from '../../src/types/validated/step-definition';
 
 describe('ConditionStepDefinitionSchema executionType', () => {
@@ -313,6 +314,40 @@ describe('LoadRelatedRecordStepDefinitionSchema executionType', () => {
     const result = LoadRelatedRecordStepDefinitionSchema.safeParse({
       ...base,
       executionType: 'not-a-mode',
+    });
+
+    expect(result.success).toBe(false);
+  });
+});
+
+describe('UpdateRecordStepDefinitionSchema multi-field preRecordedArgs', () => {
+  const base = { type: StepType.UpdateRecord as const };
+
+  it('keeps fieldNames and values as given', () => {
+    const parsed = UpdateRecordStepDefinitionSchema.parse({
+      ...base,
+      preRecordedArgs: { fieldNames: ['status', 'age'], values: { status: 'active', age: null } },
+    });
+
+    expect(parsed.preRecordedArgs).toEqual({
+      fieldNames: ['status', 'age'],
+      values: { status: 'active', age: null },
+    });
+  });
+
+  it('rejects an empty fieldNames list', () => {
+    const result = UpdateRecordStepDefinitionSchema.safeParse({
+      ...base,
+      preRecordedArgs: { fieldNames: [], values: {} },
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects an empty field name', () => {
+    const result = UpdateRecordStepDefinitionSchema.safeParse({
+      ...base,
+      preRecordedArgs: { fieldNames: ['status', ''], values: { status: 'active' } },
     });
 
     expect(result.success).toBe(false);
