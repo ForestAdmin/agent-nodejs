@@ -1856,7 +1856,10 @@ describe('ConditionStepExecutor', () => {
         expect(saved.executionParams.unchecked).toStrictEqual(['2']);
         expect(saved.executionParams.evaluations[0].conditions[1]).toMatchObject({
           met: false,
-          conditions: [{ index: 0, met: null }, { index: 1, met: false }],
+          conditions: [
+            { index: 0, met: null },
+            { index: 1, met: false },
+          ],
         });
       });
 
@@ -1867,7 +1870,9 @@ describe('ConditionStepExecutor', () => {
               {
                 option: 'Escalate',
                 aggregator: 'and',
-                conditions: [{ aggregator: 'or', conditions: [pep('any', true), pep('any', false)] }],
+                conditions: [
+                  { aggregator: 'or', conditions: [pep('any', true), pep('any', false)] },
+                ],
               },
             ],
             fallbackOption: 'Approve',

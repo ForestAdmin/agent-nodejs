@@ -794,15 +794,19 @@ describe('a step running once per record', () => {
           timeoutS: 1,
           changeStarted: false,
         });
-        expect(logger).toHaveBeenCalledWith('Warn', 'A record past its step timeout finished late', {
-          runId: RUN_ID,
-          stepId: 'current-step',
-          stepIndex: 3,
-          stepType: StepType.ReadRecord,
-          sourceRecordId: '1',
-          stepStatus: 'error',
-          error: expect.any(String),
-        });
+        expect(logger).toHaveBeenCalledWith(
+          'Warn',
+          'A record past its step timeout finished late',
+          {
+            runId: RUN_ID,
+            stepId: 'current-step',
+            stepIndex: 3,
+            stepType: StepType.ReadRecord,
+            sourceRecordId: '1',
+            stepStatus: 'error',
+            error: expect.any(String),
+          },
+        );
       } finally {
         jest.useRealTimers();
       }
