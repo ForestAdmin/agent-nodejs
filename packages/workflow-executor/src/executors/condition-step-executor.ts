@@ -47,7 +47,7 @@ interface GatewayDecision {
   reasoning: string;
 }
 
-interface ConditionResult {
+interface EvaluatedCondition {
   met: boolean | null;
   reason?: ConditionNotLoadedReason;
   records?: { matched: number; evaluated: number; unchecked?: string[] };
@@ -227,9 +227,9 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
       }
 
       const group = this.evaluateGroup(option, { aggregator, conditions }, stepExecutions, clock);
+
       // Only a record without a value that could still change a quantified condition leaves the
       // option undecided.
-
       if (group.verdict === null) group.unchecked.forEach(recordId => unchecked.add(recordId));
 
       const matched = group.verdict === true;
@@ -338,7 +338,7 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
     condition: DeterministicCondition,
     stepExecutions: StepExecutionData[],
     clock: Clock,
-  ): ConditionResult {
+  ): EvaluatedCondition {
     const resolved = this.resolveConditionValue(condition, stepExecutions);
 
     if (resolved.found === 'per-record') {
@@ -377,7 +377,7 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
     condition: DeterministicCondition,
     values: Array<{ recordId: string; found: boolean; value?: unknown }>,
     clock: Clock,
-  ): ConditionResult {
+  ): EvaluatedCondition {
     const unchecked: string[] = [];
     let matched = 0;
     let evaluated = 0;

@@ -1830,6 +1830,55 @@ describe('ConditionStepExecutor', () => {
           saved.executionParams.evaluations.map((e: { outcome: string }) => e.outcome),
         ).toStrictEqual(['not-matched', 'not-evaluated']);
       });
+
+      it('pauses when the undecided condition sits in a group its option still depends on', async () => {
+        const { context, runStore } = contextFor(
+          {
+            optionConditions: [
+              {
+                option: 'Escalate',
+                aggregator: 'and',
+                conditions: [
+                  pep('any', false),
+                  { aggregator: 'or', conditions: [pep('any', true), pep('every', true)] },
+                ],
+              },
+            ],
+            fallbackOption: 'Approve',
+          },
+          reads,
+        );
+
+        const result = await new ConditionStepExecutor(context).execute();
+
+        expect(result.stepOutcome.status).toBe('awaiting-input');
+        const saved = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)[1];
+        expect(saved.executionParams.unchecked).toStrictEqual(['2']);
+        expect(saved.executionParams.evaluations[0].conditions[1]).toMatchObject({
+          met: false,
+          conditions: [{ index: 0, met: null }, { index: 1, met: false }],
+        });
+      });
+
+      it('decides an option whose group another of its conditions already meets', async () => {
+        const { context } = contextFor(
+          {
+            optionConditions: [
+              {
+                option: 'Escalate',
+                aggregator: 'and',
+                conditions: [{ aggregator: 'or', conditions: [pep('any', true), pep('any', false)] }],
+              },
+            ],
+            fallbackOption: 'Approve',
+          },
+          reads,
+        );
+
+        const result = await new ConditionStepExecutor(context).execute();
+
+        expect(result.stepOutcome).toMatchObject({ status: 'success', selectedOption: 'Escalate' });
+      });
     });
 
     it.each([
