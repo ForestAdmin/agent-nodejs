@@ -125,7 +125,13 @@ export interface ServerWorkflowEnd extends ServerWorkflowStepBase {
 }
 
 export type ServerWorkflowConditionNode =
-  | { sourceStepId: string; fieldName: string; operator: string; value?: unknown }
+  | {
+      sourceType?: string | null;
+      sourceStepId: string;
+      fieldName: string;
+      operator: string;
+      value?: unknown;
+    }
   | { aggregator: 'and' | 'or'; conditions: ServerWorkflowConditionNode[] };
 
 export interface ServerWorkflowCondition extends ServerWorkflowStepBase {
