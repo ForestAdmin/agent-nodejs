@@ -46,14 +46,16 @@ const RESOLUTIONS = {
   '**/ajv/fast-uri': '^3.1.9',
   // body-parser DoS via trailing bytes after compressed body (Dependabot #660, patched 2.4.0).
   '**/express/body-parser': '^2.4.0',
-  // qs DoS + array-limit bypass (Dependabot #488-#489, patched in 6.16.0).
-  '**/qs': '^6.16.0',
+  // qs DoS + array-limit bypass (Dependabot #488-#489, patched in 6.16.0; #679 toString DoS, patched 6.16.1).
+  '**/qs': '^6.16.1',
   // moment path traversal via non-string locale (Dependabot #536, patched 2.31.0).
   '**/moment': '^2.31.0',
   // ip-address isLinkLocal/NAT64/isInSubnet SSRF cluster (Dependabot #537-#538, patched 10.7.1).
   '**/ip-address': '^10.7.1',
   // brace-expansion quadratic/recursive DoS cluster (Dependabot #533-#535, patched 2.1.7).
   '**/minimatch/brace-expansion': '^2.1.7',
+  // Dependabot #696 — glob AbortSignal cancellation bypass (<= 14.0.1). gaxios pins rimraf ^5 which pulls glob ^10; bumping to rimraf 6 pulls glob ^14.0.3.
+  '**/rimraf': '^6.1.4',
 };
 
 function generate(packagesDir, outFile) {
