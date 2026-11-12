@@ -1,5 +1,6 @@
 import type { ActionFormField } from '../ports/agent-port';
 import type { RecordId, RecordRef } from './validated/collection';
+import type { ApprovalOutcome } from './validated/step-outcome';
 import type {
   LoadRelatedRecordConfirmation,
   McpConfirmation,
@@ -177,8 +178,11 @@ export interface TriggerRecordActionStepExecutionData
         // (human via the native front). Absent for formless/legacy flows.
         submittedBy?: 'ai' | 'user';
         approvalRequest?: { id: string };
+        // Set once the request is reviewed, on a step saved with approval outcomes.
+        approvalOutcome?: ApprovalOutcome;
       }
-    | { skipped: true };
+    // selectedOption: the branch picked when declining the form of a step with approval outcomes.
+    | { skipped: true; selectedOption?: ApprovalOutcome };
   pendingData?: TriggerActionPendingData;
   selectedRecordRef: RecordRef;
 }

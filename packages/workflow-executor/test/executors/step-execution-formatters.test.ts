@@ -202,6 +202,32 @@ describe('StepExecutionFormatters', () => {
         expect(summary).toContain('has NOT been executed');
       });
 
+      it.each([
+        ['approved', 'It was APPROVED and run by the reviewer — its result is not available here.'],
+        ['rejected', 'It was REJECTED by the reviewer and has NOT been executed.'],
+      ] as const)(
+        'reports the %s review of an action submitted for approval',
+        (approvalOutcome, expectedLine) => {
+          const execution: StepExecutionData = {
+            type: 'trigger-action',
+            stepIndex: 1,
+            selectedRecordRef: recordRef,
+            executionParams: { name: 'block_card', displayName: 'Block card' },
+            executionResult: {
+              success: true,
+              submissionOutcome: 'pending-approval',
+              submittedBy: 'ai',
+              approvalRequest: { id: '12' },
+              approvalOutcome,
+            },
+          };
+
+          expect(StepExecutionFormatters.format(execution)).toBe(
+            `  Submitted action "Block card" for approval (by AI). ${expectedLine}`,
+          );
+        },
+      );
+
       it('reports a Full AI execution as submitted by AI with the pre-filled fields', () => {
         const execution: StepExecutionData = {
           type: 'trigger-action',

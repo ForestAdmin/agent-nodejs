@@ -51,6 +51,14 @@ export default class StepExecutionFormatters {
     const action = execution.executionParams?.displayName ?? 'the action';
     const submitter = executionResult.submittedBy === 'ai' ? 'AI' : 'the user';
 
+    if (executionResult.approvalOutcome === 'approved') {
+      return `  Submitted action "${action}" for approval (by ${submitter}). It was APPROVED and run by the reviewer — its result is not available here.`;
+    }
+
+    if (executionResult.approvalOutcome === 'rejected') {
+      return `  Submitted action "${action}" for approval (by ${submitter}). It was REJECTED by the reviewer and has NOT been executed.`;
+    }
+
     if (executionResult.submissionOutcome === 'pending-approval') {
       return `  Submitted action "${action}" for approval (by ${submitter}). It is AWAITING APPROVAL and has NOT been executed — no result is available yet.`;
     }

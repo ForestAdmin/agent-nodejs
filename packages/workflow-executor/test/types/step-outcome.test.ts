@@ -176,3 +176,42 @@ describe('errorSourceStepIndex on step outcomes', () => {
     ).toThrow();
   });
 });
+
+describe('RecordStepOutcomeSchema — approval outcomes', () => {
+  const base = { type: 'record' as const, stepId: 'step-1', stepIndex: 2 };
+
+  it('accepts a pause on approval requests', () => {
+    expect(
+      RecordStepOutcomeSchema.parse({
+        ...base,
+        status: 'awaiting-input',
+        awaitingInputReason: 'pending-approval',
+        approvalRequests: [{ id: '12' }],
+      }),
+    ).toEqual({
+      ...base,
+      status: 'awaiting-input',
+      awaitingInputReason: 'pending-approval',
+      approvalRequests: [{ id: '12' }],
+    });
+  });
+
+  it.each(['approved', 'rejected'])('accepts the %s branch with its reviewer', selectedOption => {
+    expect(
+      RecordStepOutcomeSchema.parse({ ...base, status: 'success', selectedOption, approverId: 3 }),
+    ).toEqual({ ...base, status: 'success', selectedOption, approverId: 3 });
+  });
+
+  it('accepts an approved branch nobody reviewed', () => {
+    expect(
+      RecordStepOutcomeSchema.parse({ ...base, status: 'success', selectedOption: 'approved' })
+        .approverId,
+    ).toBeUndefined();
+  });
+
+  it('rejects a branch other than approved or rejected', () => {
+    expect(() =>
+      RecordStepOutcomeSchema.parse({ ...base, status: 'success', selectedOption: 'maybe' }),
+    ).toThrow();
+  });
+});

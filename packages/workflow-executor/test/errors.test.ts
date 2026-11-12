@@ -8,6 +8,7 @@ import {
   ActionRequiresApprovalError,
   AgentPortError,
   AiModelPortError,
+  ApprovalBranchesMissingError,
   FieldNotFoundError,
   FieldTypeMissingError,
   InvalidAiRequestError,
@@ -293,6 +294,7 @@ describe('errorKind classification', () => {
     ['FieldTypeMissingError', new FieldTypeMissingError('status', 'customers')],
     ['InvalidAiRequestError', new InvalidAiRequestError('SystemMessage at position 3')],
     ['InvalidPreRecordedArgsError', new InvalidPreRecordedArgsError('no record at step index 4')],
+    ['ApprovalBranchesMissingError', new ApprovalBranchesMissingError('block_card')],
   ])('classifies %s as configuration', (_, error) => {
     expect(error.errorKind).toBe('configuration');
   });

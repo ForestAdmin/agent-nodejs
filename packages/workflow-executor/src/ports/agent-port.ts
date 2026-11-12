@@ -47,6 +47,7 @@ export type ExecuteActionQuery = {
   values?: Record<string, unknown>;
   // AI reasoning, posted as a comment on the approval request when the action is approval-gated.
   approvalMessage?: string;
+  skipApprovalRequest?: boolean;
 };
 
 export type GetActionFormQuery = {

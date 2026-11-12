@@ -136,6 +136,50 @@ describe('toUpdateStepRequest', () => {
     });
   });
 
+  it('reports a pause on approval requests with its reason and the requests it waits for', () => {
+    const outcome: StepOutcome = {
+      type: 'record',
+      stepId: 'step-1',
+      stepIndex: 1,
+      status: 'awaiting-input',
+      awaitingInputReason: 'pending-approval',
+      approvalRequests: [{ id: '12' }],
+      actionTarget: { collectionName: 'cards', actionName: 'block_card', recordId: '1|a' },
+    };
+
+    const body = toUpdateStepRequest('42', outcome);
+
+    expect(body.executionStatus).toEqual({ type: 'awaiting-input' });
+    expect(body.stepUpdate.attributes).toEqual({
+      done: false,
+      context: {
+        status: 'awaiting-input',
+        awaitingInputReason: 'pending-approval',
+        approvalRequests: [{ id: '12' }],
+        actionTarget: { collectionName: 'cards', actionName: 'block_card', recordId: '1|a' },
+      },
+    });
+  });
+
+  it('reports the branch of a reviewed approval and its reviewer', () => {
+    const outcome: StepOutcome = {
+      type: 'record',
+      stepId: 'step-1',
+      stepIndex: 1,
+      status: 'success',
+      selectedOption: 'rejected',
+      approverId: 3,
+    };
+
+    const body = toUpdateStepRequest('42', outcome);
+
+    expect(body.stepUpdate.attributes.context).toEqual({
+      status: 'success',
+      selectedOption: 'rejected',
+      approverId: 3,
+    });
+  });
+
   it('omits approvalRequest from the context when the record outcome has none', () => {
     const outcome: StepOutcome = {
       type: 'record',

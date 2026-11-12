@@ -11,8 +11,26 @@ export type RecordStepStatus = z.infer<typeof RecordStepStatusSchema>;
 
 // Typed reason for an awaiting-input pause the user must resolve out of band: the Forest server
 // validates it and the front reads it to prompt the matching action.
-export const AwaitingInputReasonSchema = z.enum(['needs-oauth-reauth']);
+export const AwaitingInputReasonSchema = z.enum(['needs-oauth-reauth', 'pending-approval']);
 export type AwaitingInputReason = z.infer<typeof AwaitingInputReasonSchema>;
+
+// The branch a Trigger Action step with approval outcomes takes, named after the outgoing flow.
+export const ApprovalOutcomeSchema = z.enum(['approved', 'rejected']);
+export type ApprovalOutcome = z.infer<typeof ApprovalOutcomeSchema>;
+
+export const ApprovalRequestRefSchema = z.object({ id: z.string().min(1) }).strict();
+export type ApprovalRequestRef = z.infer<typeof ApprovalRequestRefSchema>;
+
+// What the paused step ran: the orchestrator links a request only when it was filed for it. Ids,
+// never record values, so it stays within what a StepOutcome may carry.
+export const ApprovalActionTargetSchema = z
+  .object({
+    collectionName: z.string().min(1),
+    actionName: z.string().min(1),
+    recordId: z.string().min(1),
+  })
+  .strict();
+export type ApprovalActionTarget = z.infer<typeof ApprovalActionTargetSchema>;
 
 // Every value crosses the wire before any consumer branches on it, since widening it is cheap.
 // 'empty-source' and 'call-site' are split from configuration because each names the step to fix.
@@ -64,6 +82,14 @@ export const RecordStepOutcomeSchema = z
     type: z.literal('record'),
     status: RecordStepStatusSchema,
     approvalRequest: z.object({ id: z.string() }).optional(),
+    /** Present when status is 'awaiting-input' because the step waits for its approval requests. */
+    awaitingInputReason: AwaitingInputReasonSchema.optional(),
+    approvalRequests: z.array(ApprovalRequestRefSchema).optional(),
+    actionTarget: ApprovalActionTargetSchema.optional(),
+    /** Present on a Trigger Action step with approval outcomes once it succeeds. */
+    selectedOption: ApprovalOutcomeSchema.optional(),
+    /** The reviewer who decided `selectedOption`; absent when no review was needed. */
+    approverId: z.number().int().nullable().optional(),
   })
   .strict();
 export type RecordStepOutcome = z.infer<typeof RecordStepOutcomeSchema>;
