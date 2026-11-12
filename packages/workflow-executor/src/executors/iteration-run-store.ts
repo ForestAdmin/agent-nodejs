@@ -34,9 +34,14 @@ function asExecution(row: StepExecutionData, iteration: StepIteration): StepExec
 }
 
 // An earlier step as one record sees it: a step that ran once per record shows that record's
-// iteration, and a Multiple step shows that record alone among those it loaded, or nothing when
-// it did not load it.
-export function narrowToRecord(row: StepExecutionData, record: RecordRef): StepExecutionData[] {
+// iteration, and a Multiple step shows that record alone among those it loaded. A Multiple step
+// that did not load it is hidden from a record's own step, but read whole inside a call opened
+// for the record (`keepUnloaded`), since the call's record was never among its records.
+export function narrowToRecord(
+  row: StepExecutionData,
+  record: RecordRef,
+  { keepUnloaded = false }: { keepUnloaded?: boolean } = {},
+): StepExecutionData[] {
   if (isPerRecordExecution(row)) {
     const match = row.iterations.find(it => isSameRecord(it.sourceRecordRef, record));
 
@@ -49,7 +54,7 @@ export function narrowToRecord(row: StepExecutionData, record: RecordRef): StepE
     'records' in row.executionResult
   ) {
     const loaded = row.executionResult.records.find(r => isSameRecord(r, record));
-    if (!loaded) return [];
+    if (!loaded) return keepUnloaded ? [row] : [];
 
     return [
       { ...row, executionResult: { relation: row.executionResult.relation, record: loaded } },

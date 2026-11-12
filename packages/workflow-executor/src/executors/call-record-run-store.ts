@@ -30,7 +30,9 @@ export default class CallRecordRunStore implements RunStore {
     const rows = await this.base.getStepExecutions(runId);
 
     return rows.flatMap(row =>
-      row.stepIndex > this.callStartStepIndex ? [row] : narrowToRecord(row, this.record),
+      row.stepIndex > this.callStartStepIndex
+        ? [row]
+        : narrowToRecord(row, this.record, { keepUnloaded: true }),
     );
   }
 
