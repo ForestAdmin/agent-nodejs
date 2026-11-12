@@ -72,6 +72,8 @@ export const AvailableStepExecutionSchema = z
     // fires on a mapper bug.
     timezone: z.string().refine(IANAZone.isValidZone),
     callScope: CallScopeSchema.optional(),
+    // Absent from an orchestrator that predates it; the run's activity logs then carry no workflow.
+    workflowName: z.string().min(1).optional(),
   })
   .strict();
 export type AvailableStepExecution = z.infer<typeof AvailableStepExecutionSchema>;
