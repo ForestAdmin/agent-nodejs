@@ -1,3 +1,10 @@
+# @forestadmin/workflow-executor [1.37.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.36.0...@forestadmin/workflow-executor@1.37.0) (2026-11-13)
+
+
+### Features
+
+* **workflow-executor:** run steps once per record of a Multiple related-records step ([#2026](https://github.com/ForestAdmin/agent-nodejs/issues/2026)) ([6b078e1](https://github.com/ForestAdmin/agent-nodejs/commit/6b078e171f92244c34017ba86283afd8c389d098))
+
 # @forestadmin/workflow-executor [1.36.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.35.8...@forestadmin/workflow-executor@1.36.0) (2026-11-10)
 
 
