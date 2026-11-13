@@ -1,3 +1,4 @@
+import fetchWithoutRedirect from '../../../../src/integrations/fetch-without-redirect';
 import createCreateTicketTool from '../../../../src/integrations/zendesk/tools/create-ticket';
 
 const mockResponse = { ticket: { id: 99, subject: 'New ticket' } };
@@ -9,6 +10,8 @@ global.fetch = jest.fn().mockResolvedValue({
 
 describe('createCreateTicketTool', () => {
   const headers = { Authorization: 'Basic abc', 'Content-Type': 'application/json' };
+  const request = (url: string, init: RequestInit = {}) =>
+    fetchWithoutRedirect(url, { ...init, headers });
   const baseUrl = 'https://test.zendesk.com/api/v2';
 
   beforeEach(() => jest.clearAllMocks());
@@ -21,7 +24,7 @@ describe('createCreateTicketTool', () => {
       json: async () => ({ error: 'Validation failed' }),
     });
 
-    const tool = createCreateTicketTool(headers, baseUrl);
+    const tool = createCreateTicketTool(request, baseUrl);
 
     await expect(tool.invoke({ subject: 'Bug', description: 'It broke' })).rejects.toThrow(
       'Zendesk create ticket failed (422): Validation failed',
@@ -29,7 +32,7 @@ describe('createCreateTicketTool', () => {
   });
 
   it('should create a ticket with required fields', async () => {
-    const tool = createCreateTicketTool(headers, baseUrl);
+    const tool = createCreateTicketTool(request, baseUrl);
 
     const result = await tool.invoke({ subject: 'Bug', description: 'It broke' });
 
@@ -43,7 +46,7 @@ describe('createCreateTicketTool', () => {
   });
 
   it('should create a ticket with all optional fields', async () => {
-    const tool = createCreateTicketTool(headers, baseUrl);
+    const tool = createCreateTicketTool(request, baseUrl);
 
     await tool.invoke({
       subject: 'Bug',
@@ -78,7 +81,7 @@ describe('createCreateTicketTool', () => {
   });
 
   it('should create a ticket with recipient email', async () => {
-    const tool = createCreateTicketTool(headers, baseUrl);
+    const tool = createCreateTicketTool(request, baseUrl);
 
     await tool.invoke({
       subject: 'Bug',
@@ -101,7 +104,7 @@ describe('createCreateTicketTool', () => {
   });
 
   it('should create a ticket with status', async () => {
-    const tool = createCreateTicketTool(headers, baseUrl);
+    const tool = createCreateTicketTool(request, baseUrl);
 
     await tool.invoke({
       subject: 'Bug',
@@ -124,7 +127,7 @@ describe('createCreateTicketTool', () => {
   });
 
   it('should create a ticket with requester email', async () => {
-    const tool = createCreateTicketTool(headers, baseUrl);
+    const tool = createCreateTicketTool(request, baseUrl);
 
     await tool.invoke({
       subject: 'Bug',
@@ -147,7 +150,7 @@ describe('createCreateTicketTool', () => {
   });
 
   it('should create a ticket with requester email and name', async () => {
-    const tool = createCreateTicketTool(headers, baseUrl);
+    const tool = createCreateTicketTool(request, baseUrl);
 
     await tool.invoke({
       subject: 'Bug',
@@ -171,7 +174,7 @@ describe('createCreateTicketTool', () => {
   });
 
   it('should create a ticket with requester name only', async () => {
-    const tool = createCreateTicketTool(headers, baseUrl);
+    const tool = createCreateTicketTool(request, baseUrl);
 
     await tool.invoke({
       subject: 'Bug',
