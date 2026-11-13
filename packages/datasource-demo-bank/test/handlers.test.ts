@@ -377,7 +377,13 @@ const CASES: Record<string, Record<string, Case>> = {
       message: /approved/,
     },
     'Approve KYC - Medium or High': { rows: status('PENDING_APPROVAL'), message: /approved/ },
-    'Reject KYC': { rows: status('IN_REVIEW'), message: /rejected\./ },
+    'Reject KYC': {
+      rows: status('IN_REVIEW'),
+      // The form's default code is NO_RESPONSE on a case with an unanswered request, which closes it
+      // rather than rejecting it; which case the test lands on moves with the hour the data is built.
+      values: { 'Reason code': 'RISK_APPETITE' },
+      message: /rejected\./,
+    },
     'Change preferred language': { rows: status('IN_REVIEW') },
     'Submit application': { values: application, message: /^Application KYC-/ },
     'Upload document': {
@@ -403,10 +409,24 @@ const CASES: Record<string, Record<string, Case>> = {
     'Discard as false positive': { rows: status('OPEN'), message: /false positive/ },
     'Confirm true match': { rows: status('OPEN'), message: /confirmed as a sanctions match/ },
     'Release held payment': {
-      // A payment-screening hit discarded just now: its payment is still held.
+      // A payment-screening hit discarded just now: its payment is still held. Few seeded hits are on
+      // a payment, and the actions before this one may decide them, so the test puts one there: the
+      // first payment hit opened again, its payment held, then discarded.
       prepare: async dataSource => {
         const hits = dataSource.getCollection('screening_hits');
-        const [id] = await idsOf(hits, both(status('OPEN'), where('trigger', 'PAYMENT')), 1);
+        const [{ id, transaction_id: transactionId }] = await hits.list(
+          caller,
+          new PaginatedFilter({
+            conditionTree: where('trigger', 'PAYMENT'),
+            page: new Page(0, 1),
+            sort: new Sort({ field: 'id', ascending: true }),
+          }),
+          new Projection('id', 'transaction_id'),
+        );
+        await hits.update(caller, byId(id), { status: 'OPEN' });
+        await dataSource
+          .getCollection('transactions')
+          .update(caller, byId(transactionId), { status: 'HELD' });
         const discarded = await hits.execute(
           caller,
           'Discard as false positive',
