@@ -101,6 +101,7 @@ function makeMockWorkflowPort(
     hasRunAccess: jest.fn().mockResolvedValue(true),
     reportExecutorMetadata: jest.fn().mockResolvedValue(undefined),
     releaseRun: jest.fn().mockResolvedValue(undefined),
+    renewRunLock: jest.fn().mockResolvedValue({ status: 'renewed', lockedAt: 'renewed-lock' }),
   };
 }
 
@@ -1271,6 +1272,24 @@ describe('ReadRecordStepExecutor', () => {
       expect(result.stepOutcome.error).toBe(
         "This step uses its source step as its source, but that step didn't load any record.",
       );
+    });
+
+    it('says the pinned source loads several records when it ran once per record', async () => {
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest
+          .fn()
+          .mockResolvedValue([{ type: 'load-related-record', stepIndex: 1, iterations: [] }]),
+      });
+      const context = makeContext({
+        runStore,
+        previousSteps: [makeLoadRelatedPreviousStep(1)],
+        stepDefinition: makeStep({ preRecordedArgs: { selectedRecordStepId: 'load-1' } }),
+      });
+
+      const result = await new ReadRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toContain('several');
     });
 
     it('runs zero AI rounds when both selectedRecordStepId and fieldNames are pre-recorded', async () => {

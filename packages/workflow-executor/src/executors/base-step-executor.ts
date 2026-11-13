@@ -27,9 +27,28 @@ import {
   WorkflowExecutorError,
   extractErrorMessage,
   isAiConfigurationError,
+  toErrorOutcome,
 } from '../errors';
 import patchBodySchemas from '../http/pending-data-validators';
 import StepSummaryBuilder from './summary/step-summary-builder';
+
+// A step the executor ran has its execution at its own stepIndex. A revision clone never ran, so
+// it inherits the record of the step it copied (originalStepIndex).
+export function findStepExecution(
+  step: Step,
+  executions: StepExecutionData[],
+): StepExecutionData | undefined {
+  const own = executions.find(e => e.stepIndex === step.stepOutcome.stepIndex);
+  if (own) return own;
+
+  // An errored clone persists nothing, so inheriting the copied record would resurface the
+  // superseded original's — only fall back when the clone didn't run-and-fail.
+  if (step.originalStepIndex !== undefined && step.stepOutcome.status !== 'error') {
+    return executions.find(e => e.stepIndex === step.originalStepIndex);
+  }
+
+  return undefined;
+}
 
 export default abstract class BaseStepExecutor<TStep extends StepDefinition = StepDefinition>
   implements IStepExecutor
@@ -108,14 +127,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
   // Both catch branches below route through here, so neither can drop the classification. The
   // factory's own catch (step-executor-factory.ts) builds its outcome separately and does not.
   private buildErrorOutcome(error: WorkflowExecutorError): StepExecutionResult {
-    return this.buildOutcomeResult({
-      status: 'error',
-      error: error.userMessage,
-      ...(error.errorKind !== undefined && { errorKind: error.errorKind }),
-      ...(error.errorSourceStepIndex !== undefined && {
-        errorSourceStepIndex: error.errorSourceStepIndex,
-      }),
-    });
+    return this.buildOutcomeResult({ status: 'error', ...toErrorOutcome(error) });
   }
 
   protected abstract doExecute(): Promise<StepExecutionResult>;
@@ -257,6 +269,10 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
       lines.push(`Step title: "${stepDefinition.title}"`);
     }
 
+    if (this.context.perRecordLabel) {
+      lines.push(`This step runs once per record. This run is for ${this.context.perRecordLabel}.`);
+    }
+
     return new SystemMessage(lines.join('\n'));
   }
 
@@ -283,16 +299,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     step: Step,
     executions: StepExecutionData[],
   ): StepExecutionData | undefined {
-    const own = executions.find(e => e.stepIndex === step.stepOutcome.stepIndex);
-    if (own) return own;
-
-    // An errored clone persists nothing, so inheriting the copied record would resurface the
-    // superseded original's — only fall back when the clone didn't run-and-fail.
-    if (step.originalStepIndex !== undefined && step.stepOutcome.status !== 'error') {
-      return executions.find(e => e.stepIndex === step.originalStepIndex);
-    }
-
-    return undefined;
+    return findStepExecution(step, executions);
   }
 
   private static mergeLeadingSystemMessages(messages: BaseMessage[]): BaseMessage[] {
