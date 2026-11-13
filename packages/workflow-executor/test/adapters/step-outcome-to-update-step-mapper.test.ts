@@ -136,6 +136,23 @@ describe('toUpdateStepRequest', () => {
     });
   });
 
+  it('sends the record count of a Multiple step in the context', () => {
+    const outcome: StepOutcome = {
+      type: 'record',
+      stepId: 'load-ubos',
+      stepIndex: 1,
+      status: 'success',
+      loadedRecordCount: 3,
+    };
+
+    const body = toUpdateStepRequest('42', outcome);
+
+    expect(body.stepUpdate.attributes.context).toEqual({
+      status: 'success',
+      loadedRecordCount: 3,
+    });
+  });
+
   it('omits approvalRequest from the context when the record outcome has none', () => {
     const outcome: StepOutcome = {
       type: 'record',

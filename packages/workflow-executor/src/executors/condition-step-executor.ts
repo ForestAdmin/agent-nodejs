@@ -26,6 +26,7 @@ import {
 } from '../errors';
 import BaseStepExecutor from './base-step-executor';
 import evaluateOperator, { type Clock } from './deterministic-condition-evaluator';
+import { findLatestStepInFrame } from './record-step-executor';
 import patchBodySchemas from '../http/pending-data-validators';
 import { serializeRecordId } from '../record-id';
 import { isPerRecordExecution } from '../types/step-execution-data';
@@ -422,12 +423,13 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
     | { found: true; value: unknown }
     | { found: 'per-record'; values: Array<{ recordId: string; found: boolean; value?: unknown }> }
     | { found: false; reason: ConditionNotLoadedReason } {
-    const matches = this.context.previousSteps.filter(
-      step =>
-        step.stepDefinition.type === StepType.ReadRecord &&
-        step.stepOutcome.stepId === condition.sourceStepId,
+    // Inside a call, only this call's own steps: another call of the workflow repeats the id.
+    const sourceStep = findLatestStepInFrame(
+      this.context.previousSteps,
+      StepType.ReadRecord,
+      condition.sourceStepId,
+      this.context.callScope?.currentFrameStepIndexes,
     );
-    const sourceStep = matches[matches.length - 1];
     if (!sourceStep) return { found: false, reason: 'source-step-not-reached' };
 
     const execution = this.resolveStepExecution(sourceStep, stepExecutions);

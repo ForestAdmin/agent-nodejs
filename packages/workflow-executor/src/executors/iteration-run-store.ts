@@ -33,6 +33,37 @@ function asExecution(row: StepExecutionData, iteration: StepIteration): StepExec
   return execution as unknown as StepExecutionData;
 }
 
+// An earlier step as one record sees it: a step that ran once per record shows that record's
+// iteration, and a Multiple step shows that record alone among those it loaded. A Multiple step
+// that did not load it is hidden from a record's own step, but read whole inside a call opened
+// for the record (`keepUnloaded`), since the call's record was never among its records.
+export function narrowToRecord(
+  row: StepExecutionData,
+  record: RecordRef,
+  { keepUnloaded = false }: { keepUnloaded?: boolean } = {},
+): StepExecutionData[] {
+  if (isPerRecordExecution(row)) {
+    const match = row.iterations.find(it => isSameRecord(it.sourceRecordRef, record));
+
+    return match ? [asExecution(row, match)] : [];
+  }
+
+  if (
+    row.type === 'load-related-record' &&
+    row.executionResult !== undefined &&
+    'records' in row.executionResult
+  ) {
+    const loaded = row.executionResult.records.find(r => isSameRecord(r, record));
+    if (!loaded) return keepUnloaded ? [row] : [];
+
+    return [
+      { ...row, executionResult: { relation: row.executionResult.relation, record: loaded } },
+    ];
+  }
+
+  return [row];
+}
+
 export interface IterationHandle {
   get(): StepIteration;
   set(iteration: StepIteration): Promise<void>;
@@ -118,25 +149,6 @@ export default class IterationRunStore implements RunStore {
         : [];
     }
 
-    if (isPerRecordExecution(row)) {
-      const match = row.iterations.find(it =>
-        isSameRecord(it.sourceRecordRef, this.sourceRecordRef),
-      );
-
-      return match ? [asExecution(row, match)] : [];
-    }
-
-    if (
-      row.type === 'load-related-record' &&
-      row.executionResult !== undefined &&
-      'records' in row.executionResult
-    ) {
-      const record = row.executionResult.records.find(r => isSameRecord(r, this.sourceRecordRef));
-      if (!record) return [];
-
-      return [{ ...row, executionResult: { relation: row.executionResult.relation, record } }];
-    }
-
-    return [row];
+    return narrowToRecord(row, this.sourceRecordRef);
   }
 }

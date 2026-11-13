@@ -848,7 +848,11 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       selectedRecordRef,
     });
 
-    return this.buildOutcomeResult({ status: 'success' });
+    return this.buildOutcomeResult({
+      status: 'success',
+      ...('records' in loaded &&
+        loaded.records.length > 0 && { loadedRecordCount: loaded.records.length }),
+    });
   }
 
   // What the candidate ranking needs of this step: its AI, the context it gives the AI, its logs.

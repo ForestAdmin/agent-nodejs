@@ -14,7 +14,8 @@ import type {
   RunControl,
   StepExecutionResult,
 } from '../types/execution-context';
-import type { Step } from '../types/validated/execution';
+import type { RecordRef } from '../types/validated/collection';
+import type { CallScope, Step } from '../types/validated/execution';
 import type {
   ConditionStepDefinition,
   GuidanceStepDefinition,
@@ -26,6 +27,7 @@ import type {
 } from '../types/validated/step-definition';
 
 import {
+  CallRecordNotLoadedError,
   OAuthReauthRequiredError,
   StepStateError,
   WorkflowExecutorError,
@@ -35,6 +37,8 @@ import {
 import SchemaResolver from '../schema-resolver';
 import ActivityLog from './activity-log';
 import AgentWithLog from './agent-with-log';
+import { findStepExecution } from './base-step-executor';
+import CallRecordRunStore from './call-record-run-store';
 import ConditionStepExecutor from './condition-step-executor';
 import GuidanceStepExecutor from './guidance-step-executor';
 import LoadRelatedRecordStepExecutor from './load-related-record-step-executor';
@@ -86,6 +90,28 @@ function findPerRecordSource(step: AvailableStepExecution): PerRecordSource | nu
   return null;
 }
 
+// The record a call opened once per record runs on: its Multiple step's record at the call's
+// position. Without it the step would see every record the calling workflow loaded, so it fails.
+async function findCallRecord(
+  step: AvailableStepExecution,
+  call: NonNullable<CallScope['recordCall']>,
+  runStore: RunStore,
+): Promise<RecordRef> {
+  const source = findPinnedLoadStep(
+    step.previousSteps,
+    call.selectedRecordStepId,
+    call.pinnedFrameStepIndexes,
+  );
+  const execution =
+    source && findStepExecution(source, await runStore.getStepExecutions(step.runId));
+  const result = execution?.type === 'load-related-record' ? execution.executionResult : undefined;
+  const record = result && 'records' in result ? result.records[call.recordIndex] : undefined;
+
+  if (!record) throw new CallRecordNotLoadedError(source?.stepDefinition.title);
+
+  return record;
+}
+
 function createRecordExecutor(context: ExecutionContext): IStepExecutor {
   switch (context.stepDefinition.type) {
     case StepType.ReadRecord:
@@ -125,13 +151,24 @@ export default class StepExecutorFactory {
     forestServerToken?: string,
   ): Promise<IStepExecutor> {
     try {
-      const context = StepExecutorFactory.buildContext(
+      const builtContext = StepExecutorFactory.buildContext(
         step,
         contextConfig,
         activityLogPort,
         incomingPendingData,
         forestServerToken,
       );
+      const recordCall = step.callScope?.recordCall;
+      const context: ExecutionContext = recordCall
+        ? {
+            ...builtContext,
+            runStore: new CallRecordRunStore(
+              builtContext.runStore,
+              await findCallRecord(step, recordCall, builtContext.runStore),
+              recordCall.startStepIndex,
+            ),
+          }
+        : builtContext;
       const perRecordSource = findPerRecordSource(step);
 
       if (perRecordSource) {
@@ -217,6 +254,8 @@ export default class StepExecutorFactory {
               error instanceof WorkflowExecutorError
                 ? error.userMessage
                 : 'An unexpected error occurred.',
+            ...(error instanceof WorkflowExecutorError &&
+              error.errorKind !== undefined && { errorKind: error.errorKind }),
           },
         }),
       };

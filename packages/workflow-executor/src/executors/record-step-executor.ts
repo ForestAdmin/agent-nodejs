@@ -9,6 +9,7 @@ import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin
 import { z } from 'zod';
 
 import {
+  CallRecordNotLoadedError,
   InvalidAIResponseError,
   InvalidPreRecordedArgsError,
   NoRecordsError,
@@ -16,6 +17,7 @@ import {
   SourceRecordCollectionMismatchError,
   SourceRecordMissingError,
   SourceRecordStepNotReachedError,
+  SourceRunsOncePerRecordError,
 } from '../errors';
 import BaseStepExecutor from './base-step-executor';
 import { isPerRecordExecution } from '../types/step-execution-data';
@@ -38,21 +40,31 @@ export function classifyMissingSourceRecord(execution?: StepExecutionData): Erro
   return pendingData.availableRecordIds.length > 0 ? 'operator' : 'empty-source';
 }
 
-// The step a pin names: the latest Load Related Record with that id, because a loop repeats ids,
-// and only inside the frame when one is given, since step ids are unique only per workflow.
-export function findPinnedLoadStep(
+// The latest step of that type with that id, because a loop repeats ids, and only inside the frame
+// when one is given, since step ids are unique only per workflow and every call repeats them.
+export function findLatestStepInFrame(
   previousSteps: readonly Step[],
+  type: StepType,
   stepId: string,
   frameStepIndexes?: number[],
 ): Step | undefined {
   return previousSteps
     .filter(
       step =>
-        step.stepDefinition.type === StepType.LoadRelatedRecord &&
+        step.stepDefinition.type === type &&
         step.stepOutcome.stepId === stepId &&
         (frameStepIndexes === undefined || frameStepIndexes.includes(step.stepOutcome.stepIndex)),
     )
     .at(-1);
+}
+
+// The step a pin names.
+export function findPinnedLoadStep(
+  previousSteps: readonly Step[],
+  stepId: string,
+  frameStepIndexes?: number[],
+): Step | undefined {
+  return findLatestStepInFrame(previousSteps, StepType.LoadRelatedRecord, stepId, frameStepIndexes);
 }
 
 // Every record a load-related-record execution loaded: one, several, or one per record it ran for.
@@ -83,6 +95,7 @@ export default abstract class RecordStepExecutor<
     error?: string;
     errorKind?: ErrorKind;
     errorSourceStepIndex?: number;
+    loadedRecordCount?: number;
   }): StepExecutionResult {
     return {
       stepOutcome: {
@@ -147,6 +160,7 @@ export default abstract class RecordStepExecutor<
       const pinned = await this.resolveStepRecordRef(
         callScope.selectedRecordStepId,
         callScope.pinnedFrameStepIndexes,
+        { recordIndex: callScope.callRecordIndex },
       );
       // The pin names a step of the calling workflow, so a miss is that Sub-workflow step's to fix.
       if (!pinned) throw new SourceRecordStepNotReachedError(callScope.selectedRecordStepId);
@@ -168,29 +182,39 @@ export default abstract class RecordStepExecutor<
     return record;
   }
 
-  // Undefined on a miss so each caller names its own error. A call's pin passes its frame.
+  // Undefined on a miss so each caller names its own error. A call's pin passes its frame, and
+  // the record index the orchestrator gave a call opened once per record of a Multiple step.
   private async resolveStepRecordRef(
     stepId: string,
     frameStepIndexes?: number[],
+    call?: { recordIndex?: number },
   ): Promise<RecordRef | undefined> {
     const sourceStep = findPinnedLoadStep(this.context.previousSteps, stepId, frameStepIndexes);
 
     if (sourceStep) {
       const stepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
       const execution = this.resolveStepExecution(sourceStep, stepExecutions);
+      const { title } = sourceStep.stepDefinition;
 
-      // A step that ran once per record keeps what it loaded in its iterations, not in a result.
+      // A step that ran once per record keeps what it loaded in its iterations, not in a result. A
+      // step's own pin on one runs once per record, so a call's pin is the one expected here.
       if (isPerRecordExecution(execution)) {
-        throw new SourceLoadsSeveralRecordsError(sourceStep.stepDefinition.title);
+        throw call
+          ? new SourceRunsOncePerRecordError(title)
+          : new SourceLoadsSeveralRecordsError(title);
       }
 
       const result = execution?.type === 'load-related-record' && execution.executionResult;
 
       if (result && 'record' in result) return result.record;
 
-      // A step's own pin on a Multiple step runs once per record, so only a call's pin gets here.
       if (result && 'records' in result) {
-        throw new SourceLoadsSeveralRecordsError(sourceStep.stepDefinition.title);
+        if (call?.recordIndex === undefined) throw new SourceLoadsSeveralRecordsError(title);
+
+        const record = result.records[call.recordIndex];
+        if (!record) throw new CallRecordNotLoadedError(title);
+
+        return record;
       }
 
       // The source step exists but loaded nothing → clear "no source record" message,

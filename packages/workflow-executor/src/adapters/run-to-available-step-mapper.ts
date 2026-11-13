@@ -113,9 +113,11 @@ function tryMapStep(s: ServerStepHistory): Step | null {
 function toPreviousSteps(
   history: ServerStepHistory[],
   pendingStepIndex: number,
+  excludedStepIndexes: number[],
 ): ReadonlyArray<Step> {
   return history
     .filter(s => s.done && !s.revised && !s.cancelled && s.stepIndex < pendingStepIndex)
+    .filter(s => !excludedStepIndexes.includes(s.stepIndex))
     .map(s => tryMapStep(s))
     .filter((s): s is Step => s !== null);
 }
@@ -128,17 +130,30 @@ function toNonEmptyString(value: unknown): string | undefined {
   return typeof value === 'string' && value.length > 0 ? value : undefined;
 }
 
+function toCallRecordIndex(context: ServerStepHistory['context']): number | undefined {
+  const value = context?.callRecordIndex;
+
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? value : undefined;
+}
+
 // Rebuilt from the raw history because previousSteps drops the navigation steps, and read the way
 // the orchestrator reads its own call stack so the two agree on which call is open.
+// excludedStepIndexes: inside a call opened once per record, the steps of every other call opened
+// once per record from the same calling frame, which are another record's run or another pass's.
 function toCallScope(
   history: ServerStepHistory[],
   pending: ServerStepHistory,
-): CallScope | undefined {
-  const openCalls: Array<{
+): { callScope?: CallScope; excludedStepIndexes: number[] } {
+  type Call = {
     stepIndex: number;
     frameOpenedAt: number;
     definition: ServerStartSubWorkflow;
-  }> = [];
+    callRecordIndex?: number;
+    // Every step run inside the call, nested calls included.
+    stepIndexes: number[];
+  };
+  const openCalls: Call[] = [];
+  const closedRecordCalls: Call[] = [];
   // Tracked per step rather than as a range, because a frame's steps resume after each nested call.
   const frameOfStep = new Map<number, number>();
 
@@ -152,11 +167,19 @@ function toCallScope(
         stepIndex: entry.stepIndex,
         frameOpenedAt,
         definition: entry.stepDefinition,
+        callRecordIndex: toCallRecordIndex(entry.context),
+        stepIndexes: [],
       });
     } else if (entry.stepDefinition.type === ServerStepTypeEnum.CloseSubWorkflow) {
-      openCalls.pop();
+      const closed = openCalls.pop();
+
+      if (closed) {
+        openCalls.at(-1)?.stepIndexes.push(...closed.stepIndexes);
+        if (closed.callRecordIndex !== undefined) closedRecordCalls.push(closed);
+      }
     } else {
       frameOfStep.set(entry.stepIndex, frameOpenedAt);
+      openCalls.at(-1)?.stepIndexes.push(entry.stepIndex);
     }
   });
 
@@ -167,13 +190,16 @@ function toCallScope(
       .filter(([, frame]) => frame === ROOT_FRAME)
       .map(([stepIndex]) => stepIndex);
 
-    return rootStepIndexes.length < frameOfStep.size
-      ? { currentFrameStepIndexes: rootStepIndexes }
-      : undefined;
+    return {
+      excludedStepIndexes: [],
+      ...(rootStepIndexes.length < frameOfStep.size && {
+        callScope: { currentFrameStepIndexes: rootStepIndexes },
+      }),
+    };
   }
 
   const innermost = openCalls.at(-1);
-  if (!innermost) return undefined;
+  if (!innermost) return { excludedStepIndexes: [] };
 
   // A call pinning "workflow start" pins what that phrase means where it was written — the record
   // its own caller pinned — so the pin resolves outwards, and ends on the run's record.
@@ -200,12 +226,41 @@ function toCallScope(
     .filter(([, frame]) => frame === innermost.stepIndex)
     .map(([stepIndex]) => stepIndex);
 
+  // The record a "workflow start" pin resolves to is the one the pinning call took.
+  const callRecordIndex = pin !== undefined ? pinnedBy?.callRecordIndex : undefined;
+  const recordCallAt = openCalls.map(call => call.callRecordIndex !== undefined).lastIndexOf(true);
+  const recordCall = recordCallAt === -1 ? undefined : openCalls[recordCallAt];
+  const recordCallPin = recordCall && pinOf(recordCall);
+  const excludedStepIndexes = recordCall
+    ? closedRecordCalls
+        .filter(call => call.frameOpenedAt === recordCall.frameOpenedAt)
+        .flatMap(call => call.stepIndexes)
+    : [];
+
   return {
-    currentFrameStepIndexes,
-    ...(pinnedBy !== undefined &&
-      pin !== undefined && { selectedRecordStepId: pin, pinnedFrameStepIndexes }),
-    ...(calledWorkflowCollectionName !== undefined && { calledWorkflowCollectionName }),
-    ...(pinOf(innermost) !== undefined && { isPinned: true as const }),
+    excludedStepIndexes,
+    callScope: {
+      currentFrameStepIndexes,
+      ...(pinnedBy !== undefined &&
+        pin !== undefined && { selectedRecordStepId: pin, pinnedFrameStepIndexes }),
+      ...(calledWorkflowCollectionName !== undefined && { calledWorkflowCollectionName }),
+      ...(pinOf(innermost) !== undefined && { isPinned: true as const }),
+      ...(callRecordIndex !== undefined && { callRecordIndex }),
+      ...(recordCall?.callRecordIndex !== undefined &&
+        recordCallPin !== undefined && {
+          recordCall: {
+            selectedRecordStepId: recordCallPin,
+            pinnedFrameStepIndexes: [...frameOfStep]
+              .filter(
+                ([stepIndex, frame]) =>
+                  frame === recordCall.frameOpenedAt && stepIndex < recordCall.stepIndex,
+              )
+              .map(([stepIndex]) => stepIndex),
+            recordIndex: recordCall.callRecordIndex,
+            startStepIndex: recordCall.stepIndex,
+          },
+        }),
+    },
   };
 }
 
@@ -254,7 +309,7 @@ export default function toAvailableStepExecution(
   const pending = run.workflowHistory.at(-1) ?? null;
   if (!pending || pending.done) return null;
 
-  const callScope = toCallScope(run.workflowHistory, pending);
+  const { callScope, excludedStepIndexes } = toCallScope(run.workflowHistory, pending);
 
   const result = {
     runId: String(run.id),
@@ -268,7 +323,7 @@ export default function toAvailableStepExecution(
       stepIndex: 0,
     },
     stepDefinition: toStepDefinition(pending.stepDefinition),
-    previousSteps: toPreviousSteps(run.workflowHistory, pending.stepIndex),
+    previousSteps: toPreviousSteps(run.workflowHistory, pending.stepIndex, excludedStepIndexes),
     user: toStepUser(run.id, run.userProfile),
     // UTC when the project has none set, when the orchestrator is too old to send one, and when
     // the name is not a zone Luxon knows: a relative date must resolve the same on every executor
