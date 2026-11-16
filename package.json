@@ -86,6 +86,7 @@
     "**/@oclif/core/minimatch/brace-expansion": "^2.1.7",
     "**/filelist/minimatch/brace-expansion": "^2.1.7",
     "**/@redocly/openapi-core/minimatch/brace-expansion": "^2.1.7",
+    "minimatch": "^11.0.1",
     "**/nx/brace-expansion": "^5.0.12",
     "**/lerna/nx": "^22.7.10",
     "**/@langchain/mcp-adapters/@modelcontextprotocol/sdk": "^1.31.0",
