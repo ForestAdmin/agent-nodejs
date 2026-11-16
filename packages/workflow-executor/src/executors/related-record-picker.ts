@@ -196,6 +196,7 @@ export async function selectBestRecordIndex(
   candidates: RecordData[],
   fieldNames: string[],
   prompt: string | undefined,
+  collectionDisplayName: string,
   allowNone = false,
 ): Promise<{ index: number; confident: boolean }> {
   const { lines, shown, truncated } = candidateLines(candidates, fieldNames);
@@ -241,6 +242,9 @@ export async function selectBestRecordIndex(
     ai.contextMessage,
     new SystemMessage(SELECT_RECORD_SYSTEM_PROMPT),
     ...(noneAllowed ? [new SystemMessage(SELECT_RECORD_NONE_ALLOWED_PROMPT)] : []),
+    // Same line as the Multiple pick: without it the AI judges whether a candidate is what the
+    // request names, and marks a correct pick unsure.
+    new SystemMessage(`The related records are from the "${collectionDisplayName}" collection.`),
     new SystemMessage(`Candidates:\n${lines.join('\n')}`),
     new HumanMessage(`**Request**: ${prompt ?? 'Select the most relevant record.'}`),
   ];
