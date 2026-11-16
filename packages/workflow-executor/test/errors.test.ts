@@ -15,6 +15,7 @@ import {
   InvalidPreRecordedArgsError,
   MissingPreRecordedValueError,
   MissingToolCallError,
+  MultiFieldUpdateRequiresAutomaticError,
   NoActionsError,
   NoMcpToolsError,
   NoReadableFieldsError,
@@ -295,6 +296,7 @@ describe('errorKind classification', () => {
     ['InvalidAiRequestError', new InvalidAiRequestError('SystemMessage at position 3')],
     ['InvalidPreRecordedArgsError', new InvalidPreRecordedArgsError('no record at step index 4')],
     ['MissingPreRecordedValueError', new MissingPreRecordedValueError('Status')],
+    ['MultiFieldUpdateRequiresAutomaticError', new MultiFieldUpdateRequiresAutomaticError()],
   ])('classifies %s as configuration', (_, error) => {
     expect(error.errorKind).toBe('configuration');
   });

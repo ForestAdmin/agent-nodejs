@@ -658,6 +658,16 @@ export class InvalidPreRecordedArgsError extends WorkflowConfigurationError {
   }
 }
 
+export class MultiFieldUpdateRequiresAutomaticError extends WorkflowConfigurationError {
+  constructor() {
+    super(
+      'Invalid pre-recorded args: fieldNames is only supported in Automatic mode',
+      'This step updates several fields, which only works in Automatic mode. ' +
+        'Edit the step to set it to Automatic.',
+    );
+  }
+}
+
 export class MissingPreRecordedValueError extends WorkflowConfigurationError {
   constructor(fieldDisplayName: string) {
     super(

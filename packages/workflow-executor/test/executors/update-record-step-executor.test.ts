@@ -2253,6 +2253,12 @@ describe('UpdateRecordStepExecutor', () => {
         { fieldName: 'isActive', displayName: 'Is Active', isRelationship: false, type: 'Boolean' },
         { fieldName: 'note', displayName: 'Note', isRelationship: false, type: 'String' },
         { fieldName: 'orders', displayName: 'Orders', isRelationship: true, type: null },
+        {
+          fieldName: 'constructor',
+          displayName: 'Constructor',
+          isRelationship: false,
+          type: 'String',
+        },
       ],
     });
 
@@ -2268,12 +2274,13 @@ describe('UpdateRecordStepExecutor', () => {
         markSucceeded: jest.fn().mockResolvedValue(undefined),
         markFailed: jest.fn().mockResolvedValue(undefined),
       };
+      const workflowPort = makeMockWorkflowPort({ customers: multiFieldSchema });
       const context = makeContext({
         model: mockModel.model,
         runStore,
         agentPort,
         activityLogPort,
-        workflowPort: makeMockWorkflowPort({ customers: multiFieldSchema }),
+        workflowPort,
         stepDefinition: makeStep({ executionType, preRecordedArgs }),
       });
 
@@ -2283,6 +2290,7 @@ describe('UpdateRecordStepExecutor', () => {
         runStore,
         agentPort,
         activityLogPort,
+        workflowPort,
         context,
       };
     }
@@ -2481,7 +2489,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(agentPort.updateRecord).not.toHaveBeenCalled();
     });
 
-    it('fails as a configuration error outside Automatic mode, without asking for confirmation', async () => {
+    it('fails as a configuration error naming Automatic mode outside it, without asking for confirmation', async () => {
       const { executor, agentPort, runStore } = makeMultiFieldContext(
         { fieldNames: ['status'], values: { status: 'active' } },
         StepExecutionMode.AutomatedWithConfirmation,
@@ -2491,9 +2499,46 @@ describe('UpdateRecordStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.errorKind).toBe('configuration');
-      expect(result.stepOutcome.error).toBe('The pre-configured step parameters are invalid');
+      expect(result.stepOutcome.error).toBe(
+        'This step updates several fields, which only works in Automatic mode. ' +
+          'Edit the step to set it to Automatic.',
+      );
       expect(agentPort.updateRecord).not.toHaveBeenCalled();
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
+
+    it('rejects a non-Automatic mode before resolving the record or fetching the schema', async () => {
+      const { executor, mockModel, workflowPort } = makeMultiFieldContext(
+        {
+          selectedRecordStepId: 'missing-step',
+          fieldNames: ['status'],
+          values: { status: 'active' },
+        },
+        StepExecutionMode.AutomatedWithConfirmation,
+      );
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.error).toBe(
+        'This step updates several fields, which only works in Automatic mode. ' +
+          'Edit the step to set it to Automatic.',
+      );
+      expect(mockModel.bindTools).not.toHaveBeenCalled();
+      expect(workflowPort.getCollectionSchema).not.toHaveBeenCalled();
+    });
+
+    it('treats a field named after an Object.prototype member as missing when values lacks it', async () => {
+      const { executor, agentPort } = makeMultiFieldContext({
+        fieldNames: ['status', 'constructor'],
+        values: { status: 'active' },
+      });
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.error).toBe(
+        'No value is set for the "Constructor" field on this step. Edit the step to set one.',
+      );
+      expect(agentPort.updateRecord).not.toHaveBeenCalled();
     });
 
     it('keeps the single-field executionParams shape for a legacy definition', async () => {

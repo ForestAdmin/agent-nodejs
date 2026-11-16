@@ -13,6 +13,7 @@ import {
   InvalidPreRecordedArgsError,
   InvalidPreRecordedValueError,
   MissingPreRecordedValueError,
+  MultiFieldUpdateRequiresAutomaticError,
   NoWritableFieldsError,
   PendingFieldNotFoundError,
   PinnedArgNotFoundError,
@@ -313,6 +314,13 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     const { stepDefinition: step } = this.context;
     const { preRecordedArgs } = step;
 
+    if (
+      preRecordedArgs?.fieldNames !== undefined &&
+      step.executionType !== StepExecutionMode.FullyAutomated
+    ) {
+      throw new MultiFieldUpdateRequiresAutomaticError();
+    }
+
     const selectedRecordRef =
       preRecordedArgs?.selectedRecordStepId !== undefined
         ? await this.resolveSourceRecordRef(preRecordedArgs.selectedRecordStepId)
@@ -393,19 +401,18 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     return this.buildOutcomeResult({ status: 'awaiting-input' });
   }
 
-  // Every field is validated before anything is written, so one bad value leaves the record as is.
   private async updatePinnedFields(
     selectedRecordRef: RecordRef,
     schema: CollectionSchema,
     fieldNames: string[],
     values: Record<string, unknown>,
   ): Promise<StepExecutionResult> {
-    if (this.context.stepDefinition.executionType !== StepExecutionMode.FullyAutomated) {
-      throw new InvalidPreRecordedArgsError('fieldNames is only supported in Automatic mode');
-    }
-
     const fields = [...new Set(fieldNames)].map(fieldName =>
-      this.resolvePinnedFieldValue(schema, fieldName, values[fieldName]),
+      this.resolvePinnedFieldValue(
+        schema,
+        fieldName,
+        Object.prototype.hasOwnProperty.call(values, fieldName) ? values[fieldName] : undefined,
+      ),
     );
 
     return this.resolveAndUpdate(selectedRecordRef, { fields });
