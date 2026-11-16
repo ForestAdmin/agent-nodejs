@@ -2,7 +2,12 @@ import type { ZendeskConfig } from './tools';
 
 import { createHash } from 'crypto';
 
-import { AIBadRequestError, AIToolUnprocessableError, McpConnectionError } from '../../errors';
+import {
+  AIBadRequestError,
+  AIToolCredentialsRefusedError,
+  AIToolUnprocessableError,
+  McpConnectionError,
+} from '../../errors';
 import fetchWithoutRedirect from '../fetch-without-redirect';
 
 // A Zendesk subdomain is a single DNS label. Anything else could redirect URL building to an
@@ -44,7 +49,7 @@ async function requestAccessToken(config: OAuthClientConfig): Promise<AccessToke
   );
 
   if (CLIENT_REFUSED_STATUSES.includes(response.status)) {
-    throw new AIToolUnprocessableError(CLIENT_REFUSED_MESSAGE);
+    throw new AIToolCredentialsRefusedError(CLIENT_REFUSED_MESSAGE);
   }
 
   if (!response.ok) {
@@ -120,7 +125,7 @@ function createOAuthClientRequest(config: OAuthClientConfig): ZendeskRequest {
 
     accessTokens.delete(cacheKey);
     const retried = await send(url, init);
-    if (retried.status === 401) throw new AIToolUnprocessableError(CLIENT_REFUSED_MESSAGE);
+    if (retried.status === 401) throw new AIToolCredentialsRefusedError(CLIENT_REFUSED_MESSAGE);
 
     return retried;
   };

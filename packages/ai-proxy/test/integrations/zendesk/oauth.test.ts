@@ -156,9 +156,10 @@ describe('zendesk OAuth client authentication', () => {
       fetchMock.mockResolvedValueOnce(tokenResponse('token-2', 1800));
       fetchMock.mockResolvedValueOnce(apiResponse(401));
 
-      await expect(getZendeskConfig(makeConfig()).request(url, {})).rejects.toThrow(
-        new AIToolUnprocessableError(ADMIN_MESSAGE),
-      );
+      await expect(getZendeskConfig(makeConfig()).request(url, {})).rejects.toMatchObject({
+        name: 'AIToolCredentialsRefusedError',
+        message: ADMIN_MESSAGE,
+      });
     });
 
     it.each([400, 401, 403])(
@@ -166,9 +167,10 @@ describe('zendesk OAuth client authentication', () => {
       async status => {
         fetchMock.mockResolvedValueOnce(apiResponse(status));
 
-        await expect(getZendeskConfig(makeConfig()).request(url, {})).rejects.toThrow(
-          new AIToolUnprocessableError(ADMIN_MESSAGE),
-        );
+        await expect(getZendeskConfig(makeConfig()).request(url, {})).rejects.toMatchObject({
+          name: 'AIToolCredentialsRefusedError',
+          message: ADMIN_MESSAGE,
+        });
       },
     );
 
