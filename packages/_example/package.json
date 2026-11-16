@@ -41,6 +41,7 @@
     "clean": "rm -rf coverage dist",
     "lint": "eslint src test",
     "start": "node --enable-source-maps --async-stack-traces --import tsx src/serve.ts",
+    "start:typecheck": "node --enable-source-maps --async-stack-traces -r ts-node/register src/serve.ts",
     "start:watch": "node --enable-source-maps --async-stack-traces --import tsx --watch src/serve.ts",
     "start:watch:inspect": "node --enable-source-maps --async-stack-traces --import tsx --watch --inspect src/serve.ts",
     "test": "jest",
