@@ -1,3 +1,10 @@
+## @forestadmin/workflow-executor [1.37.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.37.0...@forestadmin/workflow-executor@1.37.1) (2026-11-16)
+
+
+### Bug Fixes
+
+* **workflow-executor:** name the related collection when the AI picks a record ([#2061](https://github.com/ForestAdmin/agent-nodejs/issues/2061)) ([47e2c3c](https://github.com/ForestAdmin/agent-nodejs/commit/47e2c3c73701d1038b8acb29d8f88eb03eb80e52))
+
 # @forestadmin/workflow-executor [1.37.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.36.0...@forestadmin/workflow-executor@1.37.0) (2026-11-13)
 
 
