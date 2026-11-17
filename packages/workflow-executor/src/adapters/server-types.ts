@@ -77,7 +77,13 @@ interface ServerWorkflowTaskUpdateData extends ServerWorkflowTaskBase {
   executionType:
     | ServerStepExecutionTypeEnum.FullyAutomated
     | ServerStepExecutionTypeEnum.AutomatedWithConfirmation;
-  preRecordedArgs?: { selectedRecordStepId?: string; fieldName?: string; value?: unknown };
+  preRecordedArgs?: {
+    selectedRecordStepId?: string;
+    fieldName?: string;
+    value?: unknown;
+    fieldNames?: string[];
+    values?: Record<string, unknown>;
+  };
 }
 
 interface ServerWorkflowTaskTriggerAction extends ServerWorkflowTaskBase {
