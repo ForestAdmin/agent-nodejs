@@ -1,3 +1,10 @@
+## @forestadmin/workflow-executor [1.37.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.37.1...@forestadmin/workflow-executor@1.37.2) (2026-11-17)
+
+
+### Bug Fixes
+
+* **security:** patch 30 Dependabot alerts ([#2078](https://github.com/ForestAdmin/agent-nodejs/issues/2078)) ([4dc3ddd](https://github.com/ForestAdmin/agent-nodejs/commit/4dc3ddd75629b88d0c5ccf88edad630e49cb6c12))
+
 ## @forestadmin/workflow-executor [1.37.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.37.0...@forestadmin/workflow-executor@1.37.1) (2026-11-16)
 
 
