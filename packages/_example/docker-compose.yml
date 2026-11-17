@@ -15,6 +15,7 @@ services:
   mysql:
     image: mysql:oracle
     container_name: forest_agent_example_mysql
+    command: --performance-schema=OFF --innodb-buffer-pool-size=32M
     ports:
       - '3306:3306'
     environment:
@@ -34,6 +35,8 @@ services:
     environment:
       - MSSQL_SA_PASSWORD=yourStrong(!)Password
       - ACCEPT_EULA=Y
+      # 2 GB is the SQL Server floor: lower values are raised to 2000 MB anyway
+      - MSSQL_MEMORY_LIMIT_MB=2048
     volumes:
       - mssql-data:/var/opt/mssql
 
@@ -69,7 +72,7 @@ services:
       - MONGO_INITDB_ROOT_USERNAME=root
       - MONGO_INITDB_ROOT_PASSWORD=password
     volumes:
-      - mongodb-data:/var/lib/mongodb
+      - mongodb-data:/data/db
 
 volumes:
   postgres-data:
