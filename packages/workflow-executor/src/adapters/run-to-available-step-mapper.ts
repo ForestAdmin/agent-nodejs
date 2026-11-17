@@ -239,6 +239,7 @@ function toCallScope(
       .filter(stepIndex => stepNameOf.get(stepIndex) === callPin)
       .at(-1);
   };
+
   const isSameRecordCall = (a: Call, b: Call) => {
     const source = sourceOf(a);
 

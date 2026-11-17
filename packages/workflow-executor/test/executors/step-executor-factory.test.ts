@@ -321,6 +321,7 @@ describe('StepExecutorFactory.create', () => {
       },
       stepOutcome: { type: 'record', stepId: 'load-ubos', stepIndex: 1, status: 'success' },
     };
+
     const run = async (execution: unknown) => {
       const step = makeStep({
         stepIndex: 3,
