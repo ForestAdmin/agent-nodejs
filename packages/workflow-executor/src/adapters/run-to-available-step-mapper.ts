@@ -115,9 +115,11 @@ function toPreviousSteps(
   pendingStepIndex: number,
   excludedStepIndexes: number[],
 ): ReadonlyArray<Step> {
+  const excluded = new Set(excludedStepIndexes);
+
   return history
     .filter(s => s.done && !s.revised && !s.cancelled && s.stepIndex < pendingStepIndex)
-    .filter(s => !excludedStepIndexes.includes(s.stepIndex))
+    .filter(s => !excluded.has(s.stepIndex))
     .map(s => tryMapStep(s))
     .filter((s): s is Step => s !== null);
 }
@@ -138,8 +140,9 @@ function toCallRecordIndex(context: ServerStepHistory['context']): number | unde
 
 // Rebuilt from the raw history because previousSteps drops the navigation steps, and read the way
 // the orchestrator reads its own call stack so the two agree on which call is open.
-// excludedStepIndexes: inside a call opened once per record, the steps of every other call opened
-// once per record from the same calling frame, which are another record's run or another pass's.
+// excludedStepIndexes: inside calls opened once per record, the steps of every closed call opened
+// once per record from the same calling frame as one of them for another record: another record's
+// run, at any level of nesting. A call for the same record of the same Multiple step stays in.
 function toCallScope(
   history: ServerStepHistory[],
   pending: ServerStepHistory,
@@ -156,6 +159,7 @@ function toCallScope(
   const closedRecordCalls: Call[] = [];
   // Tracked per step rather than as a range, because a frame's steps resume after each nested call.
   const frameOfStep = new Map<number, number>();
+  const stepNameOf = new Map<number, string>();
 
   history.forEach(entry => {
     if (entry.revised || entry.cancelled || entry.stepIndex >= pending.stepIndex) return;
@@ -179,6 +183,7 @@ function toCallScope(
       }
     } else {
       frameOfStep.set(entry.stepIndex, frameOpenedAt);
+      stepNameOf.set(entry.stepIndex, entry.stepName);
       openCalls.at(-1)?.stepIndexes.push(entry.stepIndex);
     }
   });
@@ -201,9 +206,15 @@ function toCallScope(
   const innermost = openCalls.at(-1);
   if (!innermost) return { excludedStepIndexes: [] };
 
+  // The steps of the frame a call opened from that ran before it, where its pin is read.
+  const pinnedFrameOf = (call: Call) =>
+    [...frameOfStep]
+      .filter(([stepIndex, frame]) => frame === call.frameOpenedAt && stepIndex < call.stepIndex)
+      .map(([stepIndex]) => stepIndex);
+
   // A call pinning "workflow start" pins what that phrase means where it was written — the record
   // its own caller pinned — so the pin resolves outwards, and ends on the run's record.
-  const pinOf = (call: (typeof openCalls)[number]) =>
+  const pinOf = (call: Call) =>
     toNonEmptyString(call.definition.preRecordedArgs?.selectedRecordStepId);
   const pinnedBy = [...openCalls].reverse().find(call => pinOf(call) !== WORKFLOW_START_STEP_ID);
   const pin = pinnedBy && pinOf(pinnedBy);
@@ -214,28 +225,39 @@ function toCallScope(
 
   // Step ids are unique only per workflow, so outside the frame that wrote the pin a copy, a
   // self-call or an already closed sibling would answer with its own record.
-  const pinnedFrameStepIndexes =
-    pinnedBy &&
-    [...frameOfStep]
-      .filter(
-        ([stepIndex, frame]) => frame === pinnedBy.frameOpenedAt && stepIndex < pinnedBy.stepIndex,
-      )
-      .map(([stepIndex]) => stepIndex);
+  const pinnedFrameStepIndexes = pinnedBy && pinnedFrameOf(pinnedBy);
 
   const currentFrameStepIndexes = [...frameOfStep]
     .filter(([, frame]) => frame === innermost.stepIndex)
     .map(([stepIndex]) => stepIndex);
 
-  // The record a "workflow start" pin resolves to is the one the pinning call took.
-  const callRecordIndex = pin !== undefined ? pinnedBy?.callRecordIndex : undefined;
-  const recordCallAt = openCalls.map(call => call.callRecordIndex !== undefined).lastIndexOf(true);
-  const recordCall = recordCallAt === -1 ? undefined : openCalls[recordCallAt];
-  const recordCallPin = recordCall && pinOf(recordCall);
-  const excludedStepIndexes = recordCall
-    ? closedRecordCalls
-        .filter(call => call.frameOpenedAt === recordCall.frameOpenedAt)
-        .flatMap(call => call.stepIndexes)
-    : [];
+  // The run of its Multiple step a call's record index counts in, undefined when none is in view.
+  const sourceOf = (call: Call) => {
+    const callPin = pinOf(call);
+
+    return pinnedFrameOf(call)
+      .filter(stepIndex => stepNameOf.get(stepIndex) === callPin)
+      .at(-1);
+  };
+  const isSameRecordCall = (a: Call, b: Call) => {
+    const source = sourceOf(a);
+
+    return (
+      source !== undefined && source === sourceOf(b) && a.callRecordIndex === b.callRecordIndex
+    );
+  };
+
+  // Outermost first, so each one's record narrows what the calls inside it read.
+  const recordCalls = openCalls.filter(
+    call => call.callRecordIndex !== undefined && pinOf(call) !== undefined,
+  );
+  const excludedStepIndexes = closedRecordCalls
+    .filter(closed =>
+      recordCalls.some(
+        open => closed.frameOpenedAt === open.frameOpenedAt && !isSameRecordCall(closed, open),
+      ),
+    )
+    .flatMap(call => call.stepIndexes);
 
   return {
     excludedStepIndexes,
@@ -245,21 +267,14 @@ function toCallScope(
         pin !== undefined && { selectedRecordStepId: pin, pinnedFrameStepIndexes }),
       ...(calledWorkflowCollectionName !== undefined && { calledWorkflowCollectionName }),
       ...(pinOf(innermost) !== undefined && { isPinned: true as const }),
-      ...(callRecordIndex !== undefined && { callRecordIndex }),
-      ...(recordCall?.callRecordIndex !== undefined &&
-        recordCallPin !== undefined && {
-          recordCall: {
-            selectedRecordStepId: recordCallPin,
-            pinnedFrameStepIndexes: [...frameOfStep]
-              .filter(
-                ([stepIndex, frame]) =>
-                  frame === recordCall.frameOpenedAt && stepIndex < recordCall.stepIndex,
-              )
-              .map(([stepIndex]) => stepIndex),
-            recordIndex: recordCall.callRecordIndex,
-            startStepIndex: recordCall.stepIndex,
-          },
-        }),
+      ...(recordCalls.length > 0 && {
+        recordCalls: recordCalls.map(call => ({
+          selectedRecordStepId: pinOf(call) as string,
+          pinnedFrameStepIndexes: pinnedFrameOf(call),
+          recordIndex: call.callRecordIndex as number,
+          startStepIndex: call.stepIndex,
+        })),
+      }),
     },
   };
 }

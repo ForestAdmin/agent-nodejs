@@ -1,5 +1,6 @@
 import type { StepContextConfig } from '../../src/executors/step-executor-factory';
 import type { ActivityLogPort } from '../../src/ports/activity-log-port';
+import type { RunStore } from '../../src/ports/run-store';
 import type { AvailableStepExecution } from '../../src/types/execution-context';
 
 import { OAuthReauthRequiredError } from '../../src/errors';
@@ -191,12 +192,14 @@ describe('StepExecutorFactory.create', () => {
       ],
       callScope: {
         currentFrameStepIndexes: [],
-        recordCall: {
-          selectedRecordStepId: 'load-ubos',
-          pinnedFrameStepIndexes: [1],
-          recordIndex: 1,
-          startStepIndex: 2,
-        },
+        recordCalls: [
+          {
+            selectedRecordStepId: 'load-ubos',
+            pinnedFrameStepIndexes: [1],
+            recordIndex: 1,
+            startStepIndex: 2,
+          },
+        ],
       },
     } as unknown as Partial<AvailableStepExecution>);
 
@@ -231,12 +234,14 @@ describe('StepExecutorFactory.create', () => {
       ],
       callScope: {
         currentFrameStepIndexes: [],
-        recordCall: {
-          selectedRecordStepId: 'load-ubos',
-          pinnedFrameStepIndexes: [1],
-          recordIndex: 5,
-          startStepIndex: 2,
-        },
+        recordCalls: [
+          {
+            selectedRecordStepId: 'load-ubos',
+            pinnedFrameStepIndexes: [1],
+            recordIndex: 5,
+            startStepIndex: 2,
+          },
+        ],
       },
     } as unknown as Partial<AvailableStepExecution>);
     const config = {
@@ -280,12 +285,14 @@ describe('StepExecutorFactory.create', () => {
       },
       callScope: {
         currentFrameStepIndexes: [],
-        recordCall: {
-          selectedRecordStepId: 'load-ubos',
-          pinnedFrameStepIndexes: [],
-          recordIndex: 0,
-          startStepIndex: 2,
-        },
+        recordCalls: [
+          {
+            selectedRecordStepId: 'load-ubos',
+            pinnedFrameStepIndexes: [],
+            recordIndex: 0,
+            startStepIndex: 2,
+          },
+        ],
       },
     } as unknown as Partial<AvailableStepExecution>);
     const config = {
@@ -296,7 +303,163 @@ describe('StepExecutorFactory.create', () => {
     const executor = await StepExecutorFactory.create(step, config, activityLogPort, jest.fn());
     const result = await executor.execute();
 
-    expect(result.stepOutcome).toMatchObject({ status: 'error', errorKind: 'call-site' });
+    expect(result.stepOutcome).toMatchObject({
+      status: 'error',
+      errorKind: 'call-site',
+      error:
+        'The Sub-workflow step that called this workflow takes its record from a step that did not run before it. Change the record on that Sub-workflow step.',
+    });
+  });
+
+  describe('a per-record call whose Multiple step has no record at its index', () => {
+    const loadUbos = {
+      stepDefinition: {
+        type: StepType.LoadRelatedRecord,
+        executionType: StepExecutionMode.FullyAutomated,
+        title: 'Load UBOs',
+        preRecordedArgs: { multiple: true },
+      },
+      stepOutcome: { type: 'record', stepId: 'load-ubos', stepIndex: 1, status: 'success' },
+    };
+    const run = async (execution: unknown) => {
+      const step = makeStep({
+        stepIndex: 3,
+        stepDefinition: {
+          type: StepType.ReadRecord,
+          executionType: StepExecutionMode.FullyAutomated,
+          prompt: "Read the UBO's share",
+        },
+        previousSteps: [loadUbos],
+        callScope: {
+          currentFrameStepIndexes: [],
+          recordCalls: [
+            {
+              selectedRecordStepId: 'load-ubos',
+              pinnedFrameStepIndexes: [1],
+              recordIndex: 0,
+              startStepIndex: 2,
+            },
+          ],
+        },
+      } as unknown as Partial<AvailableStepExecution>);
+      const config = {
+        ...makeContextConfig(),
+        runStore: { getStepExecutions: jest.fn().mockResolvedValue([execution]) },
+      } as unknown as StepContextConfig;
+
+      return (await StepExecutorFactory.create(step, config, activityLogPort, jest.fn())).execute();
+    };
+
+    it('names the empty Multiple step when it loaded nothing', async () => {
+      const result = await run({
+        type: 'load-related-record',
+        stepIndex: 1,
+        executionResult: { skipped: true },
+      });
+
+      expect(result.stepOutcome).toMatchObject({
+        status: 'error',
+        errorKind: 'empty-source',
+        error: 'This step uses "Load UBOs" as its source, but that step didn\'t load any record.',
+      });
+    });
+
+    it('refuses a pinned step that ran once per record', async () => {
+      const result = await run({
+        type: 'load-related-record',
+        stepIndex: 1,
+        iterations: [
+          { sourceRecordRef: { collectionName: 'customers', recordId: [1], stepIndex: 0 } },
+        ],
+      });
+
+      expect(result.stepOutcome).toMatchObject({
+        status: 'error',
+        errorKind: 'call-site',
+        error:
+          'The Sub-workflow step that called this workflow takes its record from "Load UBOs", which runs once for each record of a Multiple step. Set its record to a step that loads one record.',
+      });
+    });
+  });
+
+  // Each enclosing per-record call narrows the steps before it to its own record, so a call nested
+  // in UBO #2's call never reads another UBO's records.
+  it('narrows the calling workflow to every enclosing per-record call', async () => {
+    const ubo = (id: number) => ({ collectionName: 'ubos', recordId: [id], stepIndex: 0 });
+    const doc = (id: number) => ({ collectionName: 'documents', recordId: [id], stepIndex: 2 });
+    const loadStep = (stepId: string, stepIndex: number, title: string) => ({
+      stepDefinition: {
+        type: StepType.LoadRelatedRecord,
+        executionType: StepExecutionMode.FullyAutomated,
+        title,
+        preRecordedArgs: { multiple: true },
+      },
+      stepOutcome: { type: 'record', stepId, stepIndex, status: 'success' },
+    });
+    const getStepExecutions = jest.fn().mockResolvedValue([
+      {
+        type: 'load-related-record',
+        stepIndex: 0,
+        executionResult: {
+          relation: { name: 'ubos', displayName: 'UBOs' },
+          records: [ubo(1), ubo(2)],
+        },
+      },
+      {
+        type: 'load-related-record',
+        stepIndex: 2,
+        executionResult: {
+          relation: { name: 'documents', displayName: 'Documents' },
+          records: [doc(7), doc(8)],
+        },
+      },
+    ]);
+    const step = makeStep({
+      stepIndex: 4,
+      stepDefinition: { type: StepType.Guidance, executionType: StepExecutionMode.Manual },
+      previousSteps: [
+        loadStep('load-ubos', 0, 'Load UBOs'),
+        loadStep('load-docs', 2, 'Load documents'),
+      ],
+      callScope: {
+        currentFrameStepIndexes: [],
+        recordCalls: [
+          {
+            selectedRecordStepId: 'load-ubos',
+            pinnedFrameStepIndexes: [0],
+            recordIndex: 1,
+            startStepIndex: 1,
+          },
+          {
+            selectedRecordStepId: 'load-docs',
+            pinnedFrameStepIndexes: [2],
+            recordIndex: 0,
+            startStepIndex: 3,
+          },
+        ],
+      },
+    } as unknown as Partial<AvailableStepExecution>);
+    const config = { ...makeContextConfig(), runStore: { getStepExecutions } };
+
+    const executor = await StepExecutorFactory.create(
+      step,
+      config as unknown as StepContextConfig,
+      activityLogPort,
+      jest.fn(),
+    );
+    const { runStore } = (executor as unknown as { context: { runStore: RunStore } }).context;
+
+    expect(await runStore.getStepExecutions('run-1')).toEqual([
+      expect.objectContaining({
+        stepIndex: 0,
+        executionResult: expect.objectContaining({ record: ubo(2) }),
+      }),
+      expect.objectContaining({
+        stepIndex: 2,
+        executionResult: expect.objectContaining({ record: doc(7) }),
+      }),
+    ]);
+    expect(getStepExecutions).toHaveBeenCalledTimes(2);
   });
 
   describe('after a Multiple step', () => {

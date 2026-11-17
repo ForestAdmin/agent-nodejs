@@ -1675,16 +1675,9 @@ describe('ReadRecordStepExecutor', () => {
             fields: [{ fieldName: 'total', displayName: 'Total', isRelationship: false }],
           }),
         });
-      const callContext = (
-        callRecordIndex: number | undefined,
-        overrides: Parameters<typeof makeContext>[0] = {},
-      ) =>
+      const callContext = (overrides: Parameters<typeof makeContext>[0] = {}) =>
         makeCalledContext(
-          {
-            selectedRecordStepId: 'load-1',
-            calledWorkflowCollectionName: 'ubos',
-            ...(callRecordIndex !== undefined && { callRecordIndex }),
-          },
+          { selectedRecordStepId: 'load-1', calledWorkflowCollectionName: 'ubos' },
           {
             runStore: makeMockRunStore({
               getStepExecutions: jest.fn().mockResolvedValue([multipleExecution]),
@@ -1696,10 +1689,18 @@ describe('ReadRecordStepExecutor', () => {
           },
         );
 
-      it("resolves workflow-start to the Multiple step's record at the call's index", async () => {
+      // The factory narrows the run store to the call's record, so the pin reads that record alone.
+      it("resolves workflow-start to the call's record of the Multiple step", async () => {
         const agentPort = makeMockAgentPort({ ubos: { values: { share: 30 } } });
+        const runStore = new CallRecordRunStore(
+          makeMockRunStore({ getStepExecutions: jest.fn().mockResolvedValue([multipleExecution]) }),
+          uboRef(2),
+          2,
+        );
 
-        const result = await new ReadRecordStepExecutor(callContext(1, { agentPort })).execute();
+        const result = await new ReadRecordStepExecutor(
+          callContext({ agentPort, runStore }),
+        ).execute();
 
         expect(agentPort.getRecord).toHaveBeenCalledWith(
           expect.objectContaining({ collection: 'ubos', id: [2], fields: ['share'] }),
@@ -1708,23 +1709,8 @@ describe('ReadRecordStepExecutor', () => {
         expect(result.stepOutcome.status).toBe('success');
       });
 
-      it('fails at the call site when the index is past the records the Multiple step loaded', async () => {
-        const agentPort = makeMockAgentPort();
-
-        const result = await new ReadRecordStepExecutor(callContext(3, { agentPort })).execute();
-
-        expect(result.stepOutcome).toMatchObject({
-          status: 'error',
-          errorKind: 'call-site',
-          error:
-            'The Sub-workflow step that called this workflow runs once for each record of "Load UBOs", ' +
-            'but this run\'s record is not among the records it loaded. Revise "Load UBOs" to load them again.',
-        });
-        expect(agentPort.getRecord).not.toHaveBeenCalled();
-      });
-
-      it('still refuses a call on a Multiple step that carries no index', async () => {
-        const result = await new ReadRecordStepExecutor(callContext(undefined)).execute();
+      it('still refuses a call on a Multiple step opened once for all its records', async () => {
+        const result = await new ReadRecordStepExecutor(callContext()).execute();
 
         expect(result.stepOutcome).toMatchObject({
           status: 'error',
@@ -1752,7 +1738,7 @@ describe('ReadRecordStepExecutor', () => {
         };
 
         const result = await new ReadRecordStepExecutor(
-          callContext(0, {
+          callContext({
             runStore: makeMockRunStore({
               getStepExecutions: jest.fn().mockResolvedValue([perRecordExecution]),
             }),
@@ -1807,7 +1793,7 @@ describe('ReadRecordStepExecutor', () => {
         });
 
         const result = await new ReadRecordStepExecutor(
-          callContext(1, {
+          callContext({
             agentPort,
             model: { bindTools } as unknown as ExecutionContext['model'],
             runStore: new CallRecordRunStore(baseStore, uboRef(2), 2),

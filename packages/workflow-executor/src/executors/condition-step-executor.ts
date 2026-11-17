@@ -24,9 +24,8 @@ import {
   MissingConditionQuantifierError,
   StepStateError,
 } from '../errors';
-import BaseStepExecutor from './base-step-executor';
+import BaseStepExecutor, { findLatestStepInFrame } from './base-step-executor';
 import evaluateOperator, { type Clock } from './deterministic-condition-evaluator';
-import { findLatestStepInFrame } from './record-step-executor';
 import patchBodySchemas from '../http/pending-data-validators';
 import { serializeRecordId } from '../record-id';
 import { isPerRecordExecution } from '../types/step-execution-data';

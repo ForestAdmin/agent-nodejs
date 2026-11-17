@@ -101,6 +101,23 @@ describe('CallRecordRunStore', () => {
     expect(await store.getStepExecutions('run-1')).toEqual([directorsRow]);
   });
 
+  // A Get Data run once per invoice belongs to every UBO's call, as the invoices step itself does.
+  it('reads a step that ran once per record of another Multiple step whole, as that step is', async () => {
+    const invoice = (id: number): RecordRef => ({
+      collectionName: 'invoices',
+      recordId: [id],
+      stepIndex: 3,
+    });
+    const perInvoiceRow = {
+      ...perRecordRow,
+      stepIndex: 4,
+      iterations: [1, 2].map(id => ({ sourceRecordRef: invoice(id), attempt: 1 })),
+    } as unknown as StepExecutionData;
+    const store = new CallRecordRunStore(makeBaseStore([perInvoiceRow]), ubo(2), 5);
+
+    expect(await store.getStepExecutions('run-1')).toEqual([perInvoiceRow]);
+  });
+
   it('opens and closes without touching the run store it wraps', async () => {
     const base = makeBaseStore([]);
     const store = new CallRecordRunStore(base, ubo(2), 4);

@@ -14,6 +14,7 @@ import type {
   RunControl,
   StepExecutionResult,
 } from '../types/execution-context';
+import type { StepExecutionData } from '../types/step-execution-data';
 import type { RecordRef } from '../types/validated/collection';
 import type { CallScope, Step } from '../types/validated/execution';
 import type {
@@ -29,6 +30,9 @@ import type {
 import {
   CallRecordNotLoadedError,
   OAuthReauthRequiredError,
+  SourceRecordMissingError,
+  SourceRecordStepNotReachedError,
+  SourceRunsOncePerRecordError,
   StepStateError,
   WorkflowExecutorError,
   causeMessage,
@@ -45,13 +49,16 @@ import LoadRelatedRecordStepExecutor from './load-related-record-step-executor';
 import McpStepExecutor from './mcp-step-executor';
 import PerRecordStepExecutor from './per-record-step-executor';
 import ReadRecordStepExecutor from './read-record-step-executor';
-import { findPinnedLoadStep } from './record-step-executor';
+import { classifyMissingSourceRecord, findPinnedLoadStep } from './record-step-executor';
 import TriggerRecordActionStepExecutor from './trigger-record-action-step-executor';
 import UpdateRecordStepExecutor from './update-record-step-executor';
+import { isPerRecordExecution } from '../types/step-execution-data';
 import { StepType, WORKFLOW_START_STEP_ID } from '../types/validated/step-definition';
 import { stepTypeToOutcomeType } from '../types/validated/step-outcome';
 
 export type { RunControl };
+
+type RecordCall = NonNullable<CallScope['recordCalls']>[number];
 
 // The record steps that run once per record when their source chain starts at a Multiple step.
 const PER_RECORD_STEP_TYPES = [
@@ -91,25 +98,55 @@ function findPerRecordSource(step: AvailableStepExecution): PerRecordSource | nu
 }
 
 // The record a call opened once per record runs on: its Multiple step's record at the call's
-// position. Without it the step would see every record the calling workflow loaded, so it fails.
-async function findCallRecord(
+// position. Without it the step would see every record the calling workflow loaded, so it fails,
+// naming what to fix: the Sub-workflow step's pin, or the records its Multiple step loaded.
+function findCallRecord(
   step: AvailableStepExecution,
-  call: NonNullable<CallScope['recordCall']>,
-  runStore: RunStore,
-): Promise<RecordRef> {
+  call: RecordCall,
+  executions: StepExecutionData[],
+): RecordRef {
   const source = findPinnedLoadStep(
     step.previousSteps,
     call.selectedRecordStepId,
     call.pinnedFrameStepIndexes,
   );
-  const execution =
-    source && findStepExecution(source, await runStore.getStepExecutions(step.runId));
+  if (!source) throw new SourceRecordStepNotReachedError(call.selectedRecordStepId);
+
+  const execution = findStepExecution(source, executions);
+  const { title } = source.stepDefinition;
+  if (isPerRecordExecution(execution)) throw new SourceRunsOncePerRecordError(title);
+
   const result = execution?.type === 'load-related-record' ? execution.executionResult : undefined;
-  const record = result && 'records' in result ? result.records[call.recordIndex] : undefined;
 
-  if (!record) throw new CallRecordNotLoadedError(source?.stepDefinition.title);
+  if (result && 'records' in result) {
+    const record = result.records[call.recordIndex];
+    if (!record) throw new CallRecordNotLoadedError(title);
 
-  return record;
+    return record;
+  }
+
+  throw new SourceRecordMissingError(title, {
+    errorKind: classifyMissingSourceRecord(execution),
+    errorSourceStepIndex: source.stepOutcome.stepIndex,
+  });
+}
+
+// Each enclosing call narrows what the calls inside it read, so a call nested in another record's
+// call reads the outer workflow as the outer record sees it. Every record is read off one fetch.
+async function scopeToRecordCalls(
+  step: AvailableStepExecution,
+  runStore: RunStore,
+): Promise<RunStore> {
+  const calls = step.callScope?.recordCalls;
+  if (!calls) return runStore;
+
+  const executions = await runStore.getStepExecutions(step.runId);
+
+  return calls.reduce<RunStore>(
+    (store, call) =>
+      new CallRecordRunStore(store, findCallRecord(step, call, executions), call.startStepIndex),
+    runStore,
+  );
 }
 
 function createRecordExecutor(context: ExecutionContext): IStepExecutor {
@@ -158,17 +195,10 @@ export default class StepExecutorFactory {
         incomingPendingData,
         forestServerToken,
       );
-      const recordCall = step.callScope?.recordCall;
-      const context: ExecutionContext = recordCall
-        ? {
-            ...builtContext,
-            runStore: new CallRecordRunStore(
-              builtContext.runStore,
-              await findCallRecord(step, recordCall, builtContext.runStore),
-              recordCall.startStepIndex,
-            ),
-          }
-        : builtContext;
+      const context: ExecutionContext = {
+        ...builtContext,
+        runStore: await scopeToRecordCalls(step, builtContext.runStore),
+      };
       const perRecordSource = findPerRecordSource(step);
 
       if (perRecordSource) {
