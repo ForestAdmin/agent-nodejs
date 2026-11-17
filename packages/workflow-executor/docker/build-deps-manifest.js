@@ -27,9 +27,9 @@ const WORKSPACE_PACKAGES = [
 
 // Pinned to exact versions — OTel ships only in the Docker image.
 const OTEL_DEPENDENCIES = {
-  '@opentelemetry/sdk-node': '0.221.0',
-  '@opentelemetry/auto-instrumentations-node': '0.79.0',
-  '@opentelemetry/exporter-trace-otlp-http': '0.221.0',
+  '@opentelemetry/sdk-node': '0.222.0',
+  '@opentelemetry/auto-instrumentations-node': '0.80.0',
+  '@opentelemetry/exporter-trace-otlp-http': '0.222.0',
 };
 
 // Security pins for transitive deps whose parents never ship a patched range.
