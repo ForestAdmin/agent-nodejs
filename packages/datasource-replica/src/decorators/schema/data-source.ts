@@ -1,5 +1,5 @@
 import type { CollectionReplicaSchema, ResolvedOptions } from '../../types';
-import type { DataSource } from '@forestadmin/datasource-toolkit';
+import type { DataSource, DataSourceSchema } from '@forestadmin/datasource-toolkit';
 
 import { DataSourceDecorator } from '@forestadmin/datasource-toolkit';
 
@@ -12,6 +12,10 @@ export default class SchemaDataSourceDecorator extends DataSourceDecorator<Schem
     super(childDataSource, SchemaCollectionDecorator);
 
     this.flatSchema = options.flattenSchema;
+  }
+
+  override get schema(): DataSourceSchema {
+    return { ...this.childDataSource.schema, databases: [] };
   }
 
   getFields(name: string): CollectionReplicaSchema['fields'] {

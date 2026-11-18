@@ -19,6 +19,18 @@ describe('ChartDataSourceDecorator', () => {
         expect(decorator.schema).toStrictEqual({ charts: [] });
       });
 
+      test('schema should keep the databases of the child datasource', () => {
+        const withDatabases = factories.dataSource.build({
+          schema: { charts: [], databases: [{ type: 'postgres', name: 'mydb' }] },
+        });
+        const decorated = new ChartDataSourceDecorator(withDatabases);
+
+        expect(decorated.schema).toStrictEqual({
+          charts: [],
+          databases: [{ type: 'postgres', name: 'mydb' }],
+        });
+      });
+
       test('renderChart should proxy call', async () => {
         const caller = factories.caller.build();
 

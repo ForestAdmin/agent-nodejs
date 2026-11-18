@@ -27,7 +27,27 @@ describe('DataSourceCustomizer', () => {
     );
 
     await customizer.getDataSource(logger);
-    expect(customizer.schema).toStrictEqual({ charts: ['foo'] });
+    expect(customizer.schema).toStrictEqual({ charts: ['foo'], databases: [] });
+  });
+
+  it('schema should concatenate the databases of every added datasource', async () => {
+    const customizer = new DataSourceCustomizer();
+    customizer.addDataSource(async () =>
+      factories.dataSource.build({
+        schema: { charts: [], databases: [{ type: 'postgres', name: 'one' }] },
+      }),
+    );
+    customizer.addDataSource(async () =>
+      factories.dataSource.build({
+        schema: { charts: [], databases: [{ type: 'mongodb', name: 'two' }] },
+      }),
+    );
+
+    await customizer.getDataSource(logger);
+    expect(customizer.schema.databases).toStrictEqual([
+      { type: 'postgres', name: 'one' },
+      { type: 'mongodb', name: 'two' },
+    ]);
   });
 
   it('collections should return an array of collection customizers', async () => {
@@ -52,7 +72,7 @@ describe('DataSourceCustomizer', () => {
       expect(factory).toBeInstanceOf(Function);
 
       const dataSource = await factory(logger, jest.fn());
-      expect(dataSource.schema).toStrictEqual({ charts: [] });
+      expect(dataSource.schema).toStrictEqual({ charts: [], databases: [] });
       expect(dataSource.collections).toHaveLength(1);
       expect(dataSource.collections[0].name).toBe('foo');
     });
