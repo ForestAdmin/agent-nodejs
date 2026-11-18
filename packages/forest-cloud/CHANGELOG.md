@@ -1,3 +1,18 @@
+## @forestadmin/forest-cloud [1.12.271](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.270...@forestadmin/forest-cloud@1.12.271) (2026-11-18)
+
+
+### Bug Fixes
+
+* **forest-cloud:** point its workspace pins at the versions the repository holds ([#2088](https://github.com/ForestAdmin/agent-nodejs/issues/2088)) ([a00b33e](https://github.com/ForestAdmin/agent-nodejs/commit/a00b33e499090d54c206f7d41ad81297674fdc4b))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.113.8
+
 ## @forestadmin/forest-cloud [1.12.270](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.269...@forestadmin/forest-cloud@1.12.270) (2026-11-18)
 
 
