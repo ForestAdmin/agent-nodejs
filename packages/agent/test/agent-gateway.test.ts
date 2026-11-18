@@ -387,6 +387,23 @@ describe('Agent.addGateway', () => {
         expect(env.AI_API_KEY).toBeUndefined();
       });
 
+      it("should fall back to the runtime's setting when the Gateway's own ai is all blank", async () => {
+        const { agent } = buildAgent();
+        agent
+          .addWorkflowExecutor({
+            agentUrl: 'http://localhost:3351',
+            inMemory: true,
+            ai: { provider: 'openai', model: 'gpt-4.1', apiKey: 'rt-key' },
+          })
+          .addGateway({ api: { ai: { provider: undefined, model: ' ', apiKey: '' } as never } });
+
+        await agent.start();
+
+        expect(mockParseConfig).toHaveBeenCalledWith(
+          expect.objectContaining({ AI_PROVIDER: 'openai', AI_MODEL: 'gpt-4.1' }),
+        );
+      });
+
       it("should hand the Gateway's own bedrock region when both settings have one", async () => {
         const { agent } = buildAgent();
         agent
