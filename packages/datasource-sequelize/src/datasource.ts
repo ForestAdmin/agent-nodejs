@@ -68,9 +68,10 @@ function describeDatabase(instance: Sequelize): DataSourceDatabase {
   const dialect = instance.getDialect();
 
   if (dialect === 'sqlite') {
-    const storage = isEphemeralSqlite(instance) ? null : (instance as SequelizeExt).options.storage;
+    const { storage, host } = (instance as SequelizeExt).options;
+    const file = isEphemeralSqlite(instance) ? null : storage ?? host;
 
-    return makeDatabaseEntry('sqlite', storage && win32.basename(storage));
+    return makeDatabaseEntry('sqlite', file && win32.basename(file));
   }
 
   const name = resolveDatabaseName(instance);

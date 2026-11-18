@@ -120,6 +120,14 @@ describe('SequelizeDataSource', () => {
       ]);
     });
 
+    it('should report the file name for a sqlite host instead of a storage', () => {
+      const sequelize = new Sequelize({ dialect: 'sqlite', host: '/abs/dir/app.db' });
+
+      expect(new SequelizeDataSource(sequelize).schema.databases).toStrictEqual([
+        { type: 'sqlite', name: 'app.db' },
+      ]);
+    });
+
     it('should report no name for an in-memory sqlite database', () => {
       const sequelize = new Sequelize('sqlite::memory:');
 
