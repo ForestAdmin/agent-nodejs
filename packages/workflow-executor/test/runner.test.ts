@@ -1181,6 +1181,7 @@ describe('trigger acknowledgement', () => {
     expect(registry.has('run-1')).toBe(true);
     expect(workflowPort.updateStepExecution).not.toHaveBeenCalled();
 
+    await flushPromises();
     unblockRef.fn();
     await drainRuns(runner);
 
