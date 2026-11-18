@@ -101,7 +101,10 @@ describe('runCli', () => {
       const server = await runCli({ ...OAUTH_ENV }, logger);
 
       try {
-        expect(logger).not.toHaveBeenCalledWith('Info', expect.stringContaining('AI queries go to'));
+        expect(logger).not.toHaveBeenCalledWith(
+          'Info',
+          expect.stringContaining('AI queries go to'),
+        );
       } finally {
         await server.stop();
       }

@@ -1,8 +1,8 @@
 import type { AgentTransport } from './agent/agent-transport';
 import type { AgentDispatcher } from './agent/in-process-transport';
+import type { CustomerModel } from './ai/customer-model-query';
 import type { ResolvedApiKeyConfig } from './api-key/api-key-edge';
 import type { OAuthEdge } from './build-bff';
-import type { CustomerModel } from './ai/customer-model-query';
 import type { BFFConfig } from './config/env-config';
 import type { UnfoldSource } from './openapi/unfolded-document';
 import type { Logger } from './ports/logger-port';
