@@ -149,13 +149,16 @@ export default class EmbeddedBff {
   private aiEnv(runtimeAi: EmbedAi): NodeJS.ProcessEnv {
     if (!this.mount.gateway) return {};
 
-    const ownAi = this.embedOptions.ai;
+    // Counted as set only when a field is non-blank, as parseAi reads its own variables: a blank
+    // `ai` must not hide the runtime's provider and send ticket content to Forest's AI server.
+    const own = aiEnv(this.embedOptions.ai, 'BFF_');
+    const ownAi = Object.values(own).some(value => value?.trim()) ? this.embedOptions.ai : undefined;
     const chosen = ownAi ?? runtimeAi;
 
     // Only the setting that wins reaches parseConfig, so the precedence is decided here alone and
     // the region always belongs to the provider it is handed with.
     return {
-      ...(ownAi ? aiEnv(ownAi, 'BFF_') : aiEnv(runtimeAi, '')),
+      ...(ownAi ? own : aiEnv(runtimeAi, '')),
       AWS_REGION: (chosen && 'region' in chosen && chosen.region) || process.env.AWS_REGION,
       AWS_DEFAULT_REGION: process.env.AWS_DEFAULT_REGION,
     };
