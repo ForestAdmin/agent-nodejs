@@ -2492,27 +2492,12 @@
   resolved "https://registry.yarnpkg.com/@forestadmin/context/-/context-1.37.1.tgz#301486c456061d43cb653b3e8be60644edb3f71a"
   integrity sha512-H4U1fAkzC3pm44Cdb/RoRZytI4SZlqb9YNv72ChUnUPJkNUSo2+o5JxDpjWRM1OmIb87Bv4274U3W3AmVhuwQQ==
 
-"@forestadmin/datasource-mongoose@1.14.8":
-  version "1.14.8"
-  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-mongoose/-/datasource-mongoose-1.14.8.tgz#dcfb08b0d61576eea41e2fa29902a8628a1a6423"
-  integrity sha512-dY+AEGaj4Py2SGXNlRO7iBkoa9asStDI1jBrSJaO8hycu2NMBooTar38GOLDHJedkhLI7LWq/f6GWJm2a/v8fQ==
-  dependencies:
-    "@forestadmin/datasource-toolkit" "1.56.3"
-    luxon "^3.2.1"
-
 "@forestadmin/datasource-sequelize@1.10.5":
   version "1.10.5"
   resolved "https://registry.yarnpkg.com/@forestadmin/datasource-sequelize/-/datasource-sequelize-1.10.5.tgz#e8353e0cb8bc38ad109b4224f472aa6be59bb569"
   integrity sha512-1RRHxghW3eGyvOaQNiQZbGZtPBoh2k1SzbNdS7bcMjN7rX96QFSWyKIZtWI+WXyVgphpAR6kn2GQMb9TT6YVnA==
   dependencies:
     "@forestadmin/datasource-toolkit" "1.43.0"
-
-"@forestadmin/datasource-sequelize@1.13.16":
-  version "1.13.16"
-  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-sequelize/-/datasource-sequelize-1.13.16.tgz#3778297c3bbe7c4b430576a98008d1a52fd78231"
-  integrity sha512-Y58Kx92HGaqi6a8IeoeYJIs4NiJ8KjDv/tBH64fozyCMHC294eGnmNxRKMyLesHmu1XYeIqGxaxBDNvrT9nmDw==
-  dependencies:
-    "@forestadmin/datasource-toolkit" "1.56.3"
 
 "@forestadmin/datasource-sql@1.14.31":
   version "1.14.31"
@@ -2525,19 +2510,6 @@
     pluralize "^8.0.0"
     sequelize "^6.28.0"
     socks "^2.7.1"
-    ssh2 "^1.14.0"
-
-"@forestadmin/datasource-sql@1.17.19":
-  version "1.17.19"
-  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-sql/-/datasource-sql-1.17.19.tgz#d7fe1190d9c3941bd31f2c8199f8a21ffd326afd"
-  integrity sha512-ba3I1XqqnyqXiIaKIc2+1ESYxJ0LZjb0FkO2Ww+TDhosvIc7q/KbQ4CUyxIj27QiGqM/cQ53Ubzk2IuPFhPEag==
-  dependencies:
-    "@forestadmin/datasource-sequelize" "1.13.16"
-    "@forestadmin/datasource-toolkit" "1.56.3"
-    "@types/ssh2" "^1.11.11"
-    pluralize "^8.0.0"
-    sequelize "^6.37.8"
-    socks "^2.8.4"
     ssh2 "^1.14.0"
 
 "@forestadmin/datasource-toolkit@1.43.0":
