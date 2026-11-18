@@ -1721,6 +1721,43 @@ describe('ReadRecordStepExecutor', () => {
         });
       });
 
+      // With no record loaded the orchestrator opens one call without an index.
+      it('says the Multiple step loaded no record for the Sub-workflow to run for', async () => {
+        const multipleStep = makePinnedSourceStep('Load UBOs');
+        const emptyExecution = {
+          type: 'load-related-record',
+          stepIndex: 1,
+          executionParams: { name: 'ubos', displayName: 'UBOs' },
+          executionResult: { skipped: true },
+          selectedRecordRef: makeRecordRef(),
+        };
+
+        const result = await new ReadRecordStepExecutor(
+          callContext({
+            runStore: makeMockRunStore({
+              getStepExecutions: jest.fn().mockResolvedValue([emptyExecution]),
+            }),
+            previousSteps: [
+              {
+                ...multipleStep,
+                stepDefinition: {
+                  ...multipleStep.stepDefinition,
+                  preRecordedArgs: { multiple: true },
+                },
+              } as Step,
+            ],
+          }),
+        ).execute();
+
+        expect(result.stepOutcome).toMatchObject({
+          status: 'error',
+          errorKind: 'empty-source',
+          errorSourceStepIndex: 1,
+          error:
+            '"Load UBOs" loaded no UBOs, so the Sub-workflow that runs once for each has none to run for.',
+        });
+      });
+
       it('refuses a call pinned to a step that runs once per record without being Multiple', async () => {
         const perRecordExecution = {
           type: 'load-related-record',

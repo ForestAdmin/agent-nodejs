@@ -2,7 +2,10 @@ import type { StepExecutionResult } from '../types/execution-context';
 import type { StepExecutionData } from '../types/step-execution-data';
 import type { CollectionSchema, FieldSchema, RecordRef } from '../types/validated/collection';
 import type { Step } from '../types/validated/execution';
-import type { StepDefinition } from '../types/validated/step-definition';
+import type {
+  LoadRelatedRecordStepDefinition,
+  StepDefinition,
+} from '../types/validated/step-definition';
 import type { ErrorKind, RecordStepStatus } from '../types/validated/step-outcome';
 
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
@@ -194,10 +197,25 @@ export default abstract class RecordStepExecutor<
       if (result && 'records' in result) throw new SourceLoadsSeveralRecordsError(title);
 
       // The source step exists but loaded nothing → clear "no source record" message,
-      // distinct from a config pointing at a non-existent step.
+      // distinct from a config pointing at a non-existent step. A call's pin on an empty Multiple
+      // step gets here: with no record loaded, the orchestrator opened one call without an index.
+      const isList =
+        isCallPin &&
+        (sourceStep.stepDefinition as LoadRelatedRecordStepDefinition).preRecordedArgs?.multiple ===
+          true;
+
       throw new SourceRecordMissingError(sourceStep.stepDefinition.title, {
         errorKind: classifyMissingSourceRecord(execution),
         errorSourceStepIndex: sourceStep.stepOutcome.stepIndex,
+        ...(isList && {
+          emptyList: {
+            recordsName:
+              execution?.type === 'load-related-record'
+                ? execution.executionParams?.displayName
+                : undefined,
+            forCall: true,
+          },
+        }),
       });
     }
 

@@ -672,15 +672,32 @@ export class InvalidPreRecordedValueError extends WorkflowConfigurationError {
 // no source to act on ("no source record"). Distinct from a bad config — the
 // user can continue without. Wording is step-type-neutral (shared by load-related and trigger-action).
 // The kind comes from the throw site: only there is it known whether a candidate was on offer.
+// A Multiple source loaded an empty list: what its records are called, and whether a Sub-workflow
+// call, rather than the failing step itself, was to run once for each.
+export type EmptySourceList = { recordsName?: string; forCall?: boolean };
+
+function emptyListMessage(sourceTitle: string | undefined, list: EmptySourceList): string {
+  const source = sourceTitle ? `"${sourceTitle}"` : 'Its source step';
+  const runner = list.forCall ? 'the Sub-workflow that runs once for each' : 'this step';
+
+  return `${source} loaded no ${list.recordsName ?? 'records'}, so ${runner} has none to run for.`;
+}
+
 export class SourceRecordMissingError extends WorkflowExecutorError {
   constructor(
     sourceTitle?: string,
-    options: { errorKind?: ErrorKind; errorSourceStepIndex?: number } = {},
+    options: {
+      errorKind?: ErrorKind;
+      errorSourceStepIndex?: number;
+      emptyList?: EmptySourceList;
+    } = {},
   ) {
     const from = sourceTitle ? `"${sourceTitle}"` : 'its source step';
     super(
       `Source step ${from} loaded no record`,
-      `This step uses ${from} as its source, but that step didn't load any record.`,
+      options.emptyList
+        ? emptyListMessage(sourceTitle, options.emptyList)
+        : `This step uses ${from} as its source, but that step didn't load any record.`,
     );
     this.errorKind = options.errorKind ?? this.errorKind;
     this.errorSourceStepIndex = options.errorSourceStepIndex;
