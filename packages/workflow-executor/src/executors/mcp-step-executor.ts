@@ -18,6 +18,7 @@ import {
   SystemMessage,
   isMcpAuthError,
 } from '@forestadmin/ai-proxy';
+import { isDeepStrictEqual } from 'node:util';
 import { z } from 'zod';
 
 import {
@@ -188,7 +189,17 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
   private async continueLoop(execution: McpStepExecutionData): Promise<StepExecutionResult> {
     this.throwIfTimedOut();
     const toolCalls = execution.toolCalls ?? [];
-    const next = await this.selectNextMove(toolCalls);
+    let next = await this.selectNextMove(toolCalls);
+
+    if (!('summary' in next) && this.repeatsLastCall(next, toolCalls)) {
+      this.context.logger('Warn', 'MCP step AI proposed the tool call it just made', {
+        ...this.logCtx,
+        toolName: next.name,
+      });
+      this.throwIfTimedOut();
+      const finalMove = await this.selectNextMove(toolCalls, { finalAnswerOnly: true });
+      next = 'summary' in finalMove ? finalMove : { summary: '' };
+    }
 
     if ('summary' in next) return this.persistFinalAnswer(execution, toolCalls, next.summary);
     if (toolCalls.length >= MAX_TOOL_CALLS) throw new McpToolCallLimitError(MAX_TOOL_CALLS);
@@ -325,8 +336,21 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     }
   }
 
+  // Only the last call: re-reading after a write (status, restart, status) is a legitimate repeat.
+  private repeatsLastCall(call: McpToolCall, toolCalls: McpExecutedToolCall[]): boolean {
+    const last = toolCalls[toolCalls.length - 1];
+
+    return (
+      last !== undefined &&
+      last.name === call.name &&
+      last.sourceId === call.sourceId &&
+      isDeepStrictEqual(last.input, call.input)
+    );
+  }
+
   private async selectNextMove(
     toolCalls: McpExecutedToolCall[],
+    { finalAnswerOnly = false } = {},
   ): Promise<McpToolCall | { summary: string }> {
     const tools = this.requireTools();
     const messages = [
@@ -336,10 +360,10 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
       new HumanMessage(this.buildRequest(toolCalls)),
     ];
 
-    const { toolName, args } = await this.invokeWithTools(messages, [
-      ...tools.map(t => t.base),
-      COMPLETE_STEP_TOOL,
-    ]);
+    const { toolName, args } = await this.invokeWithTools(
+      messages,
+      finalAnswerOnly ? [COMPLETE_STEP_TOOL] : [...tools.map(t => t.base), COMPLETE_STEP_TOOL],
+    );
 
     if (toolName === COMPLETE_STEP_TOOL.name) {
       return { summary: typeof args.summary === 'string' ? args.summary : '' };
