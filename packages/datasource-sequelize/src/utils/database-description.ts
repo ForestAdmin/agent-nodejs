@@ -21,18 +21,6 @@ const DIALECTS_READING_DATABASE_FROM_DIALECT_OPTIONS = new Set([
   'db2',
 ]);
 
-/** The sqlite file Sequelize would open, or null when the database is ephemeral. */
-function sqliteStorageFile(instance: Sequelize): string | null {
-  const { storage, host } = (instance as SequelizeExt).options;
-  const file = storage ?? host;
-
-  return file && !EPHEMERAL_SQLITE_STORAGES.includes(file) ? file : null;
-}
-
-export function isEphemeralSqlite(instance: Sequelize): boolean {
-  return instance.getDialect() === 'sqlite' && sqliteStorageFile(instance) === null;
-}
-
 /** The connection parameters a query against the write pool runs with. */
 interface EffectiveConnectionConfig {
   database?: string | null;
@@ -68,6 +56,18 @@ function effectiveConnectionConfig(instance: Sequelize): EffectiveConnectionConf
   };
 }
 
+/** The sqlite file Sequelize would open, or null when the database is ephemeral. */
+function sqliteStorageFile(instance: Sequelize): string | null {
+  const { storage, host } = (instance as SequelizeExt).options;
+  const file = storage ?? host;
+
+  return file && !EPHEMERAL_SQLITE_STORAGES.includes(file) ? file : null;
+}
+
+export function isEphemeralSqlite(instance: Sequelize): boolean {
+  return instance.getDialect() === 'sqlite' && sqliteStorageFile(instance) === null;
+}
+
 function resolveDatabaseName(instance: Sequelize): string | null {
   const config = effectiveConnectionConfig(instance);
   const dialect = instance.getDialect();
@@ -87,11 +87,15 @@ function resolveDatabaseName(instance: Sequelize): string | null {
   return config.database ?? null;
 }
 
-/** An explicit descriptor or connect string holds a connect target, not a database name. */
+/**
+ * An empty host makes Sequelize use `database` as the oracle connect string, so it holds a
+ * connect target, not a database name; so do explicit descriptors and connect strings.
+ */
 function isPlainOracleName(instance: Sequelize, name: string | null): boolean {
   const config = effectiveConnectionConfig(instance);
 
   return (
+    !!config.host &&
     config.dialectOptions?.connectString === undefined &&
     name !== null &&
     !ORACLE_CONNECT_DESCRIPTOR.test(name)

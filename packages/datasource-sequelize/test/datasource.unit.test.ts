@@ -351,6 +351,33 @@ describe('SequelizeDataSource', () => {
       ]);
     });
 
+    it('should leak no host from an oracle easy connect host used as database name', () => {
+      const sequelize = {
+        models: {},
+        getDialect: () => 'oracle',
+        config: { database: 'SENTINEL_HOST', host: '', replication: false },
+      } as unknown as Sequelize;
+
+      expect(new SequelizeDataSource(sequelize).schema.databases).toStrictEqual([
+        { type: 'oracle', name: null },
+      ]);
+      expect(JSON.stringify(new SequelizeDataSource(sequelize).schema.databases)).not.toContain(
+        'SENTINEL_HOST',
+      );
+    });
+
+    it('should leak no host from an oracle replication write without host', () => {
+      const sequelize = {
+        models: {},
+        getDialect: () => 'oracle',
+        config: { database: 'ORCL', host: 'db-host', replication: { write: { host: '' } } },
+      } as unknown as Sequelize;
+
+      expect(new SequelizeDataSource(sequelize).schema.databases).toStrictEqual([
+        { type: 'oracle', name: null },
+      ]);
+    });
+
     it('should leak no host from an oracle connect descriptor used as database name', () => {
       const sequelize = {
         models: {},
