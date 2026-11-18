@@ -39,11 +39,20 @@ export function recordsResultContent(
   return apps ? [...content, { type: 'text' as const, text: RECORDS_VIEW_NOTE }] : content;
 }
 
-export function recordsViewToolMeta(): Record<string, unknown> {
+function recordsViewToolMeta(): Record<string, unknown> {
   return {
     ui: { resourceUri: RECORDS_VIEW_URI },
     [LEGACY_RESOURCE_URI_META_KEY]: RECORDS_VIEW_URI,
   };
+}
+
+export function recordsToolConfig(
+  description: string,
+  apps: McpApps | undefined,
+): { description: string; _meta?: Record<string, unknown> } {
+  if (!apps) return { description };
+
+  return { description: `${description}${RECORDS_VIEW_DESCRIPTION}`, _meta: recordsViewToolMeta() };
 }
 
 export function registerRecordsView(mcpServer: McpServer, apps: McpApps): void {

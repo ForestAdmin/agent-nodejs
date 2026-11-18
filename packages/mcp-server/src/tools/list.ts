@@ -4,11 +4,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import { z } from 'zod';
 
-import {
-  RECORDS_VIEW_DESCRIPTION,
-  recordsResultContent,
-  recordsViewToolMeta,
-} from '../apps/records-view';
+import { recordsResultContent, recordsToolConfig } from '../apps/records-view';
 import filterSchema from '../schemas/filter';
 import buildClient from '../utils/agent-caller';
 import { fetchForestSchema, getFieldsOfCollection } from '../utils/schema-fetcher';
@@ -92,9 +88,8 @@ export default function declareListTool(mcpServer: McpServer, ctx: ToolContext):
     {
       annotations: { readOnlyHint: true },
       title: 'List records from a collection',
-      description: `${LIST_DESCRIPTION}${ctx.apps ? RECORDS_VIEW_DESCRIPTION : ''}`,
+      ...recordsToolConfig(LIST_DESCRIPTION, ctx.apps),
       inputSchema: listArgumentShape,
-      ...(ctx.apps && { _meta: recordsViewToolMeta() }),
     },
     async (options: ListArgument, extra) => {
       const { rpcClient } = buildClient(extra, ctx.agentDispatcher);

@@ -8,11 +8,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
 import { createListArgumentShape } from './list';
-import {
-  RECORDS_VIEW_DESCRIPTION,
-  recordsResultContent,
-  recordsViewToolMeta,
-} from '../apps/records-view';
+import { recordsResultContent, recordsToolConfig } from '../apps/records-view';
 import buildClient from '../utils/agent-caller';
 import { fetchForestSchema, getFieldsOfCollection } from '../utils/schema-fetcher';
 import registerToolWithLogging from '../utils/tool-with-logging';
@@ -89,9 +85,8 @@ export default function declareListRelatedTool(mcpServer: McpServer, ctx: ToolCo
     {
       annotations: { readOnlyHint: true },
       title: 'List records from a relation',
-      description: `${LIST_RELATED_DESCRIPTION}${ctx.apps ? RECORDS_VIEW_DESCRIPTION : ''}`,
+      ...recordsToolConfig(LIST_RELATED_DESCRIPTION, ctx.apps),
       inputSchema: listArgumentShape,
-      ...(ctx.apps && { _meta: recordsViewToolMeta() }),
     },
     async (options: HasManyArgument, extra) => {
       const { rpcClient } = buildClient(extra, ctx.agentDispatcher);
