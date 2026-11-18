@@ -150,9 +150,10 @@ export default class EmbeddedBff {
     const ownAi = this.embedOptions.ai;
     const chosen = ownAi ?? runtimeAi;
 
+    // Only the setting that wins reaches parseConfig, so the precedence is decided here alone and
+    // the region always belongs to the provider it is handed with.
     return {
-      ...aiEnv(ownAi, 'BFF_'),
-      ...aiEnv(runtimeAi, ''),
+      ...(ownAi ? aiEnv(ownAi, 'BFF_') : aiEnv(runtimeAi, '')),
       AWS_REGION: (chosen && 'region' in chosen && chosen.region) || process.env.AWS_REGION,
       AWS_DEFAULT_REGION: process.env.AWS_DEFAULT_REGION,
     };

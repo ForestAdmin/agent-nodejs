@@ -368,6 +368,25 @@ describe('Agent.addGateway', () => {
         );
       });
 
+      it("should hand only the Gateway's own setting when both are set, so the config parser has nothing to rank", async () => {
+        const { agent } = buildAgent();
+        agent
+          .addWorkflowExecutor({
+            agentUrl: 'http://localhost:3351',
+            inMemory: true,
+            ai: { provider: 'openai', model: 'gpt-4.1', apiKey: 'rt-key' },
+          })
+          .addGateway({ api: { ai: { provider: 'anthropic', model: 'claude', apiKey: 'own-key' } } });
+
+        await agent.start();
+
+        const env = mockParseConfig.mock.calls[0][0];
+        expect(env).toMatchObject({ BFF_AI_PROVIDER: 'anthropic', BFF_AI_MODEL: 'claude' });
+        expect(env.AI_PROVIDER).toBeUndefined();
+        expect(env.AI_MODEL).toBeUndefined();
+        expect(env.AI_API_KEY).toBeUndefined();
+      });
+
       it("should hand the Gateway's own bedrock region when both settings have one", async () => {
         const { agent } = buildAgent();
         agent
@@ -383,11 +402,7 @@ describe('Agent.addGateway', () => {
         await agent.start();
 
         expect(mockParseConfig).toHaveBeenCalledWith(
-          expect.objectContaining({
-            BFF_AI_PROVIDER: 'bedrock',
-            AI_PROVIDER: 'bedrock',
-            AWS_REGION: 'us-east-1',
-          }),
+          expect.objectContaining({ BFF_AI_PROVIDER: 'bedrock', AWS_REGION: 'us-east-1' }),
         );
       });
     });
