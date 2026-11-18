@@ -3,12 +3,16 @@ import type { AgentTransport } from './agent/agent-transport';
 import type { AgentDispatcher } from './agent/in-process-transport';
 import type { ResolvedApiKeyConfig } from './api-key/api-key-edge';
 import type { OAuthEdge } from './build-bff';
+import type { CustomerModel } from './ai/customer-model-query';
 import type { BFFConfig } from './config/env-config';
 import type { UnfoldSource } from './openapi/unfolded-document';
 import type { Logger } from './ports/logger-port';
 import type { Metrics } from './ports/metrics-port';
 import type ReadModelStore from './read-model/read-model-store';
+import type { AiConfiguration } from '@forestadmin/ai-proxy';
 import type { Middleware } from 'koa';
+
+import { AiClient } from '@forestadmin/ai-proxy';
 
 import createActionRoutesMiddleware from './action/action-routes-middleware';
 import createActivityLogWriter from './activity-log/activity-log-writer';
@@ -186,6 +190,20 @@ function buildAgentRouteMiddlewares(
   };
 }
 
+/** Same retry budget as the runtime: a provider's brief overload should not fail a Zendesk agent. */
+const CUSTOMER_MODEL_MAX_RETRIES = 2;
+
+/** Built at boot, so a model the provider client refuses stops the Gateway, not the first query. */
+function buildCustomerModel(ai: AiConfiguration, timeoutMs: number, logger: Logger): CustomerModel {
+  const model = new AiClient({
+    aiConfigurations: [{ maxRetries: CUSTOMER_MODEL_MAX_RETRIES, ...ai } as AiConfiguration],
+  }).getModel();
+
+  logger('Info', `AI queries go to the ${ai.provider} model ${ai.model}, not Forest's AI server`);
+
+  return { model, modelName: ai.model, timeoutMs };
+}
+
 export function buildAiMiddlewares(
   config: BFFConfig,
   oauth: OAuthEdge,
@@ -209,6 +227,7 @@ export function buildAiMiddlewares(
       client,
       sessionTokens: session.sessionTokens,
       resolveEnvironmentId,
+      customerModel: config.ai && buildCustomerModel(config.ai, config.aiTimeoutMs, logger),
       logger,
     }),
   ];

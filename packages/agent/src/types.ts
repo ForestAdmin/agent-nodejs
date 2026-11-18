@@ -190,7 +190,7 @@ export type BffEmbedOptions = {
    * idempotent.
    */
   agentTimeoutMs?: number;
-  /** How long the AI relay waits for the Forest server. Defaults to 120s. */
+  /** How long an AI query waits for Forest's AI server or the customer's provider. Defaults to 120s. */
   aiTimeoutMs?: number;
   /**
    * Serve `/bff/docs` and `/bff/agent/openapi.json`. Defaults to `false` when embedded: the
@@ -217,11 +217,20 @@ export type McpEmbedOptions = {
   fileUploads?: false | FileUploadsOptions;
 };
 
+export type GatewayApiOptions = BffEmbedOptions & {
+  /**
+   * The AI provider answering the Zendesk app's AI queries instead of Forest's AI server, in the
+   * shape `addWorkflowExecutor({ ai })` takes. Omitted, the API uses the embedded runtime's `ai`
+   * when there is one, and Forest's AI server otherwise.
+   */
+  ai?: WorkflowExecutorEmbedOptions['ai'];
+};
+
 export type GatewayOptions = {
   basePath?: string;
   allowedOAuthClients?: string[];
   mcp?: Omit<McpEmbedOptions, 'basePath' | 'allowedOAuthClients'> | boolean;
-  api?: BffEmbedOptions | boolean;
+  api?: GatewayApiOptions | boolean;
 };
 
 // Runtime view of `auditTrail`: the validator has built the SQL store from the connection string.

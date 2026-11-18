@@ -3,6 +3,7 @@
 import type { Logger, LoggerLevel } from './ports/logger-port';
 import type { AiConfiguration } from '@forestadmin/ai-proxy';
 
+import { AiEnvConfigurationError, parseAiEnv } from '@forestadmin/ai-proxy';
 import { z } from 'zod';
 
 import createConsoleLogger from './adapters/console-logger';
@@ -165,63 +166,15 @@ export function pickLogger(
   return stdout.isTTY ? createPrettyLogger(level) : createConsoleLogger(level);
 }
 
-const AI_CONFIG_ALL_OR_NOTHING =
-  'AI config must be all-or-nothing: set AI_PROVIDER and AI_MODEL together (plus AI_API_KEY, ' +
-  'except for bedrock) or leave all unset.';
-
-function parseBedrockConfig(env: NodeJS.ProcessEnv, model: string): AiConfiguration {
-  if (env.AI_API_KEY) {
-    throw new ConfigurationError(
-      'AI_API_KEY is not used with bedrock: credentials come from the AWS credential chain ' +
-        '(IAM role, AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY, shared profile). Unset it.',
-    );
-  }
-
-  // Checked here rather than left to the AWS SDK, which would only fail on the first AI step of
-  // the first workflow run — long after a misconfigured executor reported itself healthy.
-  const region = env.AWS_REGION || env.AWS_DEFAULT_REGION;
-
-  if (!region) {
-    throw new ConfigurationError(
-      'AI_PROVIDER=bedrock requires AWS_REGION (or AWS_DEFAULT_REGION).',
-    );
-  }
-
-  return { name: 'default', provider: 'bedrock', model, region };
-}
-
 function parseAiConfig(env: NodeJS.ProcessEnv): AiConfiguration[] | undefined {
-  const { AI_PROVIDER, AI_MODEL, AI_API_KEY } = env;
+  try {
+    const config = parseAiEnv(env);
 
-  if (!AI_PROVIDER && !AI_MODEL && !AI_API_KEY) return undefined;
-
-  if (!AI_PROVIDER || !AI_MODEL) {
-    throw new ConfigurationError(AI_CONFIG_ALL_OR_NOTHING);
+    return config && [config];
+  } catch (error) {
+    if (error instanceof AiEnvConfigurationError) throw new ConfigurationError(error.message);
+    throw error;
   }
-
-  if (AI_PROVIDER === 'bedrock') return [parseBedrockConfig(env, AI_MODEL)];
-
-  if (AI_PROVIDER !== 'anthropic' && AI_PROVIDER !== 'openai') {
-    throw new ConfigurationError(
-      `AI_PROVIDER must be "anthropic", "openai" or "bedrock", got "${AI_PROVIDER}"`,
-    );
-  }
-
-  if (!AI_API_KEY) {
-    throw new ConfigurationError(
-      `AI_API_KEY is required for AI_PROVIDER=${AI_PROVIDER}. Only bedrock reads its credentials ` +
-        'from the AWS credential chain.',
-    );
-  }
-
-  return [
-    {
-      name: 'default',
-      provider: AI_PROVIDER,
-      model: AI_MODEL,
-      apiKey: AI_API_KEY,
-    },
-  ];
 }
 
 const DEFAULT_DATABASE_PORT = 5432;

@@ -47,6 +47,11 @@ export default class EmbeddedWorkflowExecutor {
    * Register the embedded executor and return the loopback URL the agent must proxy
    * `/_internal/executor/*` to. Throws when the remote `workflowExecutorUrl` option is also set.
    */
+  /** The runtime's AI provider, which an embedded Gateway API without its own `ai` shares. */
+  get ai(): WorkflowExecutorEmbedOptions['ai'] {
+    return this.config?.ai;
+  }
+
   configure(embedOptions: WorkflowExecutorEmbedOptions): string {
     if (this.options.workflowExecutorUrl) {
       throw new Error(

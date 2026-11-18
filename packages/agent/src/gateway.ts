@@ -1,4 +1,4 @@
-import type { BffEmbedOptions, GatewayOptions, McpEmbedOptions, RootHandler } from './types';
+import type { GatewayApiOptions, GatewayOptions, McpEmbedOptions, RootHandler } from './types';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires, import/no-dynamic-require, global-require
 const { peerDependencies, version } = require('../package.json') as {
@@ -40,7 +40,7 @@ export function mcpUnavailable(
 
 export type GatewayMcpOptions = Omit<McpEmbedOptions, 'basePath' | 'allowedOAuthClients'>;
 
-export type GatewayServices = { mcp: GatewayMcpOptions | null; api: BffEmbedOptions | null };
+export type GatewayServices = { mcp: GatewayMcpOptions | null; api: GatewayApiOptions | null };
 
 const TOP_LEVEL_OPTIONS = ['basePath', 'allowedOAuthClients'] as const;
 

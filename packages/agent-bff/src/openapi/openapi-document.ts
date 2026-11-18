@@ -298,7 +298,7 @@ function registerAiQueryPath(
     method: 'post',
     path: `${ROUTE_PREFIX}/ai/query`,
     operationId: 'aiQuery',
-    summary: 'Relay an AI query to the Forest server',
+    summary: "Answer an AI query, through Forest's AI server or the customer's provider",
     description:
       'Relays the body unchanged to the Forest AI proxy, authenticated with the OAuth session ' +
       'held by the Gateway API. Requires a session: an API key is rejected with 403 oauth_required, ' +
@@ -308,7 +308,10 @@ function registerAiQueryPath(
       'other route, and only application/json and application/*+json are read: any other ' +
       'content type, and a body sent with none at all, is rejected with 415 before the relay. ' +
       'This path is published only by a deployment whose OAuth configuration is complete, ' +
-      'since the relay needs a session.',
+      'since the relay needs a session. When the Gateway has its own AI provider configured, ' +
+      'the query goes to that provider instead and never to the Forest server: it then takes ' +
+      'only system, user and assistant messages with text content and no tools, and answers ' +
+      'in the same chat-completion shape.',
     security: [{ [SESSION_SCHEME]: [] }],
     request: {
       body: { required: true, content: { 'application/json': { schema: AiQueryRequestSchema } } },

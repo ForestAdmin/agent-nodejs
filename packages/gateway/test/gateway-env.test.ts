@@ -278,6 +278,9 @@ describe('parseGatewayEnv aliases', () => {
       ['FOREST_GATEWAY_API_DEFAULT_TIMEZONE', 'BFF_DEFAULT_TIMEZONE'],
       ['FOREST_GATEWAY_API_AGENT_TIMEOUT_MS', 'BFF_AGENT_TIMEOUT_MS'],
       ['FOREST_GATEWAY_API_AI_TIMEOUT_MS', 'BFF_AI_TIMEOUT_MS'],
+      ['FOREST_GATEWAY_API_AI_PROVIDER', 'BFF_AI_PROVIDER'],
+      ['FOREST_GATEWAY_API_AI_MODEL', 'BFF_AI_MODEL'],
+      ['FOREST_GATEWAY_API_AI_API_KEY', 'BFF_AI_API_KEY'],
       ['FOREST_GATEWAY_API_OPENAPI_ENABLED', 'BFF_OPENAPI_ENABLED'],
       ['FOREST_GATEWAY_API_RATE_LIMIT_MAX_REQUESTS', 'BFF_RATE_LIMIT_MAX_REQUESTS'],
       ['FOREST_GATEWAY_API_RATE_LIMIT_WINDOW_MS', 'BFF_RATE_LIMIT_WINDOW_MS'],
@@ -288,6 +291,20 @@ describe('parseGatewayEnv aliases', () => {
 
       expect(gateway.api?.env[bffKey]).toBe(value);
       expect(gateway.api?.labels[bffKey]).toBe(name);
+      expect(gateway.warnings).toEqual([]);
+    });
+
+    it("should hand the runtime's AI_* setting to the API under its own names", () => {
+      const gateway = parseGatewayEnv({
+        FOREST_GATEWAY_SERVICES: 'api',
+        AI_PROVIDER: 'openai',
+        AI_MODEL: 'gpt-4.1',
+        AI_API_KEY: 'sk',
+      });
+
+      expect(gateway.api?.env).toEqual(
+        expect.objectContaining({ AI_PROVIDER: 'openai', AI_MODEL: 'gpt-4.1', AI_API_KEY: 'sk' }),
+      );
       expect(gateway.warnings).toEqual([]);
     });
 

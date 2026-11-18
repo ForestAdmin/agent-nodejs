@@ -43,4 +43,39 @@ describe('runCli', () => {
       }
     });
   });
+
+  describe("when the Gateway has the customer's AI provider", () => {
+    it('should say at boot which model answers AI queries instead of Forest', async () => {
+      const logger = jest.fn();
+      const server = await runCli(
+        {
+          ...OAUTH_ENV,
+          BFF_AI_PROVIDER: 'openai',
+          BFF_AI_MODEL: 'gpt-4.1',
+          BFF_AI_API_KEY: 'sk-test',
+        },
+        logger,
+      );
+
+      try {
+        expect(logger).toHaveBeenCalledWith(
+          'Info',
+          "AI queries go to the openai model gpt-4.1, not Forest's AI server",
+        );
+      } finally {
+        await server.stop();
+      }
+    });
+
+    it('should log nothing about the customer model when none is set', async () => {
+      const logger = jest.fn();
+      const server = await runCli({ ...OAUTH_ENV }, logger);
+
+      try {
+        expect(logger).not.toHaveBeenCalledWith('Info', expect.stringContaining('AI queries go to'));
+      } finally {
+        await server.stop();
+      }
+    });
+  });
 });

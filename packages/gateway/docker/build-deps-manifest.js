@@ -21,6 +21,7 @@ const WORKSPACE_PACKAGES = [
   'agent-bff',
   'agent-client',
   'agent-toolkit',
+  'ai-proxy',
   'datasource-toolkit',
   'forestadmin-client',
   'mcp-server',

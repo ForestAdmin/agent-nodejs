@@ -7,7 +7,7 @@ const AI_QUERY_PATH = '/api/ai-proxy/ai-query';
 const JSON_CONTENT_TYPE = 'application/json';
 const TIMEOUT_ERROR_NAME = 'TimeoutError';
 
-function isTimeout(error: unknown): boolean {
+export function isTimeout(error: unknown): boolean {
   if (typeof error !== 'object' || error === null) return false;
 
   return (error as { name?: unknown }).name === TIMEOUT_ERROR_NAME;
