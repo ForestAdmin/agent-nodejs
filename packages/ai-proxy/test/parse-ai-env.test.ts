@@ -16,9 +16,12 @@ describe('parseAiEnv', () => {
   });
 
   it('should build an openai configuration', () => {
-    expect(parseAiEnv({ AI_PROVIDER: 'openai', AI_MODEL: 'gpt-4.1', AI_API_KEY: 'sk-2' })).toEqual(
-      { name: 'default', provider: 'openai', model: 'gpt-4.1', apiKey: 'sk-2' },
-    );
+    expect(parseAiEnv({ AI_PROVIDER: 'openai', AI_MODEL: 'gpt-4.1', AI_API_KEY: 'sk-2' })).toEqual({
+      name: 'default',
+      provider: 'openai',
+      model: 'gpt-4.1',
+      apiKey: 'sk-2',
+    });
   });
 
   it.each([
@@ -44,9 +47,9 @@ describe('parseAiEnv', () => {
 
   describe('with bedrock', () => {
     it('should take the region from AWS_REGION', () => {
-      expect(parseAiEnv({ AI_PROVIDER: 'bedrock', AI_MODEL: 'm', AWS_REGION: 'eu-west-3' })).toEqual(
-        { name: 'default', provider: 'bedrock', model: 'm', region: 'eu-west-3' },
-      );
+      expect(
+        parseAiEnv({ AI_PROVIDER: 'bedrock', AI_MODEL: 'm', AWS_REGION: 'eu-west-3' }),
+      ).toEqual({ name: 'default', provider: 'bedrock', model: 'm', region: 'eu-west-3' });
     });
 
     it('should fall back to AWS_DEFAULT_REGION', () => {

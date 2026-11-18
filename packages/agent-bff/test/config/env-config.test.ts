@@ -649,12 +649,12 @@ describe('parseConfig', () => {
     });
 
     it("should refuse a partial own setting rather than fall back to the runtime's", () => {
-      expect(() =>
-        parseConfig({ ...VALID_ENV, ...RUNTIME, BFF_AI_PROVIDER: 'anthropic' }),
-      ).toThrow(ConfigurationError);
-      expect(() =>
-        parseConfig({ ...VALID_ENV, ...RUNTIME, BFF_AI_PROVIDER: 'anthropic' }),
-      ).toThrow('BFF_AI_PROVIDER and BFF_AI_MODEL');
+      expect(() => parseConfig({ ...VALID_ENV, ...RUNTIME, BFF_AI_PROVIDER: 'anthropic' })).toThrow(
+        ConfigurationError,
+      );
+      expect(() => parseConfig({ ...VALID_ENV, ...RUNTIME, BFF_AI_PROVIDER: 'anthropic' })).toThrow(
+        'BFF_AI_PROVIDER and BFF_AI_MODEL',
+      );
     });
 
     it('should refuse an invalid runtime setting at boot', () => {
@@ -676,10 +676,13 @@ describe('parseConfig', () => {
 
     it('should name the label of the variable in error messages', () => {
       expect(() =>
-        parseConfig({ ...VALID_ENV, BFF_AI_PROVIDER: 'anthropic' }, {
-          BFF_AI_PROVIDER: 'api.ai.provider',
-          BFF_AI_MODEL: 'api.ai.model',
-        }),
+        parseConfig(
+          { ...VALID_ENV, BFF_AI_PROVIDER: 'anthropic' },
+          {
+            BFF_AI_PROVIDER: 'api.ai.provider',
+            BFF_AI_MODEL: 'api.ai.model',
+          },
+        ),
       ).toThrow('api.ai.provider and api.ai.model');
     });
 
@@ -718,7 +721,9 @@ describe('parseConfig', () => {
           { ...VALID_ENV, BFF_AI_PROVIDER: 'bedrock', BFF_AI_MODEL: 'anthropic.claude-sonnet-4' },
           { BFF_AI_PROVIDER: 'api.ai.provider', AWS_REGION: 'the ai region or AWS_REGION' },
         ),
-      ).toThrow('api.ai.provider=bedrock requires the ai region or AWS_REGION (or AWS_DEFAULT_REGION).');
+      ).toThrow(
+        'api.ai.provider=bedrock requires the ai region or AWS_REGION (or AWS_DEFAULT_REGION).',
+      );
     });
   });
 

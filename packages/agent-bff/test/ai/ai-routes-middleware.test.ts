@@ -1,6 +1,6 @@
 import type AiProxyClient from '../../src/ai/ai-proxy-client';
-import type { CustomerModel } from '../../src/ai/customer-model-query';
 import type { AiProxyResponse } from '../../src/ai/ai-proxy-client';
+import type { CustomerModel } from '../../src/ai/customer-model-query';
 
 import { bodyParser } from '@koa/bodyparser';
 import jsonwebtoken from 'jsonwebtoken';

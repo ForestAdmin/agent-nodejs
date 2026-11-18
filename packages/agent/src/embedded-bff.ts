@@ -150,7 +150,9 @@ export default class EmbeddedBff {
     // Counted as set only when a field is non-blank, as parseAi reads its own variables: a blank
     // `ai` must not hide the runtime's provider and send ticket content to Forest's AI server.
     const own = aiEnv(this.embedOptions.ai, 'BFF_');
-    const ownAi = Object.values(own).some(value => value?.trim()) ? this.embedOptions.ai : undefined;
+    const ownAi = Object.values(own).some(value => value?.trim())
+      ? this.embedOptions.ai
+      : undefined;
     const chosen = ownAi ?? runtimeAi;
 
     // Only the setting that wins reaches parseConfig, so the precedence is decided here alone and

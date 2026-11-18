@@ -292,13 +292,11 @@ describe('Agent.addGateway', () => {
 
       it('should read the runtime ai whatever the order of the add calls', async () => {
         const { agent } = buildAgent();
-        agent
-          .addGateway({ api: true })
-          .addWorkflowExecutor({
-            agentUrl: 'http://localhost:3351',
-            inMemory: true,
-            ai: { provider: 'openai', model: 'gpt-4.1', apiKey: 'rt-key' },
-          });
+        agent.addGateway({ api: true }).addWorkflowExecutor({
+          agentUrl: 'http://localhost:3351',
+          inMemory: true,
+          ai: { provider: 'openai', model: 'gpt-4.1', apiKey: 'rt-key' },
+        });
 
         await agent.start();
 
@@ -376,7 +374,9 @@ describe('Agent.addGateway', () => {
             inMemory: true,
             ai: { provider: 'openai', model: 'gpt-4.1', apiKey: 'rt-key' },
           })
-          .addGateway({ api: { ai: { provider: 'anthropic', model: 'claude', apiKey: 'own-key' } } });
+          .addGateway({
+            api: { ai: { provider: 'anthropic', model: 'claude', apiKey: 'own-key' } },
+          });
 
         await agent.start();
 
