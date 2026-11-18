@@ -33,6 +33,7 @@ export const GATEWAY_API_CONFIG_LABELS: ConfigLabels = {
   AI_PROVIDER: 'addWorkflowExecutor ai.provider',
   AI_MODEL: 'addWorkflowExecutor ai.model',
   AI_API_KEY: 'addWorkflowExecutor ai.apiKey',
+  AWS_REGION: 'the ai region or AWS_REGION',
   BFF_OPENAPI_ENABLED: 'api.openapiEnabled',
 };
 

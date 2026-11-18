@@ -745,6 +745,44 @@ describe('parseConfig', () => {
         }),
       ).toThrow('api.ai.provider and api.ai.model');
     });
+
+    it('should trim padded values like every other variable', () => {
+      expect(
+        parseConfig({
+          ...VALID_ENV,
+          BFF_AI_PROVIDER: ' anthropic ',
+          BFF_AI_MODEL: 'claude ',
+          BFF_AI_API_KEY: ' own-key',
+        }).ai,
+      ).toEqual({ name: 'default', provider: 'anthropic', model: 'claude', apiKey: 'own-key' });
+    });
+
+    it('should read a whitespace-only runtime setting as unset', () => {
+      expect(parseConfig({ ...VALID_ENV, AI_PROVIDER: '  ', AI_MODEL: ' ' }).ai).toBeUndefined();
+    });
+
+    it('should refuse at boot a model the provider client refuses, naming its variable', () => {
+      const env = {
+        ...VALID_ENV,
+        BFF_AI_PROVIDER: 'bedrock',
+        BFF_AI_MODEL: 'amazon.titan-text-express-v1',
+        AWS_REGION: 'eu-west-3',
+      };
+
+      expect(() => parseConfig(env)).toThrow(ConfigurationError);
+      expect(() => parseConfig(env, { BFF_AI_MODEL: 'api.ai.model' })).toThrow(
+        'Invalid configuration: api.ai.model:',
+      );
+    });
+
+    it('should name the region label when bedrock has no region', () => {
+      expect(() =>
+        parseConfig(
+          { ...VALID_ENV, BFF_AI_PROVIDER: 'bedrock', BFF_AI_MODEL: 'anthropic.claude-sonnet-4' },
+          { BFF_AI_PROVIDER: 'api.ai.provider', AWS_REGION: 'the ai region or AWS_REGION' },
+        ),
+      ).toThrow('api.ai.provider=bedrock requires the ai region or AWS_REGION (or AWS_DEFAULT_REGION).');
+    });
   });
 
   describe('with the addGateway({ api }) label map', () => {

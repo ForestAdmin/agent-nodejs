@@ -35,10 +35,16 @@ export async function queryCustomerModel(
   { model, modelName, timeoutMs }: CustomerModel,
   messages: OpenAIMessage[],
 ) {
-  // Anthropic and Bedrock refuse more than one leading system message; OpenAI takes the merged one.
-  const response = await model.invoke(AnthropicAdapter.convertMessages(messages), {
-    signal: AbortSignal.timeout(timeoutMs),
-  });
+  const signal = AbortSignal.timeout(timeoutMs);
+  let response: unknown;
+
+  try {
+    // Anthropic and Bedrock refuse more than one leading system message; OpenAI takes the merged one.
+    response = await model.invoke(AnthropicAdapter.convertMessages(messages), { signal });
+  } catch (error) {
+    // Bedrock and OpenAI report the abort as an AbortError: the signal's own reason says it timed out.
+    throw signal.aborted ? signal.reason : error;
+  }
 
   return LangChainAdapter.convertResponse(
     response as Parameters<typeof LangChainAdapter.convertResponse>[0],

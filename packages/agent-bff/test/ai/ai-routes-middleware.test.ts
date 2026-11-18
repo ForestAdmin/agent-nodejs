@@ -432,12 +432,13 @@ describe("createAiRoutesMiddleware with the customer's model", () => {
   function makeCustomerApp(
     invoke: jest.Mock = jest.fn().mockResolvedValue(aiMessage('{"summary":"refund"}')),
     context: AppContext = {},
+    timeoutMs = 1000,
   ) {
     const query = jest.fn();
     const customerModel: CustomerModel = {
       model: { invoke } as unknown as CustomerModel['model'],
       modelName: 'claude-sonnet',
-      timeoutMs: 1000,
+      timeoutMs,
     };
 
     return { ...makeApp({ query, customerModel, ...context }), invoke, query };
@@ -571,14 +572,35 @@ describe("createAiRoutesMiddleware with the customer's model", () => {
       });
     });
 
-    it('should answer 504 upstream_timeout when the model times out', async () => {
-      const timeout = Object.assign(new Error('aborted'), { name: 'TimeoutError' });
-      const { app } = makeCustomerApp(jest.fn().mockRejectedValue(timeout));
+    // Bedrock's and OpenAI's clients reject an aborted call with an AbortError, never a TimeoutError.
+    function abortedOnSignal() {
+      return jest.fn(
+        (_messages: unknown, { signal }: { signal: AbortSignal }) =>
+          new Promise((_resolve, reject) => {
+            signal.addEventListener('abort', () =>
+              reject(Object.assign(new Error('Request aborted'), { name: 'AbortError' })),
+            );
+          }),
+      );
+    }
+
+    it('should answer 504 upstream_timeout when the model is still answering after timeoutMs', async () => {
+      const { app } = makeCustomerApp(abortedOnSignal(), {}, 20);
 
       const response = await request(app.callback()).post(AI_QUERY_ROUTE).send(BODY);
 
       expect(response.status).toBe(504);
       expect(response.body.error.type).toBe('upstream_timeout');
+    });
+
+    it('should answer 500 upstream_error for an AbortError raised before the timeout', async () => {
+      const aborted = Object.assign(new Error('Request aborted'), { name: 'AbortError' });
+      const { app } = makeCustomerApp(jest.fn().mockRejectedValue(aborted));
+
+      const response = await request(app.callback()).post(AI_QUERY_ROUTE).send(BODY);
+
+      expect(response.status).toBe(500);
+      expect(response.body.error.type).toBe('upstream_error');
     });
   });
 });

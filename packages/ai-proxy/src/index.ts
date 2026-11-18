@@ -11,6 +11,7 @@ export { LangChainAdapter } from './langchain-adapter';
 export type { OpenAIMessage } from './langchain-adapter';
 export { AI_ENV_KEYS, AiEnvConfigurationError, parseAiEnv } from './parse-ai-env';
 export type { AiEnvKeys } from './parse-ai-env';
+export { default as validateAiConfigurations } from './validate-ai-configurations';
 
 export {
   FOREST_INTEGRATION_NAMES,

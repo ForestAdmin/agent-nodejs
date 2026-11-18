@@ -1,10 +1,16 @@
 import type { Logger } from '../src/ports/logger-port';
 
 import AiProxyClient from '../src/ai/ai-proxy-client';
+import createAiRoutesMiddleware from '../src/ai/ai-routes-middleware';
 import runCli from '../src/cli-core';
 import { restoreFetchAfterEach, stubEnvironmentIdFetch } from './helpers/fetch-stub';
 
 jest.mock('../src/ai/ai-proxy-client');
+jest.mock('../src/ai/ai-routes-middleware', () => {
+  const actual = jest.requireActual('../src/ai/ai-routes-middleware');
+
+  return { __esModule: true, ...actual, default: jest.fn(actual.default) };
+});
 
 const OAUTH_ENV = {
   FOREST_AUTH_SECRET: 'auth-secret',
@@ -61,6 +67,29 @@ describe('runCli', () => {
         expect(logger).toHaveBeenCalledWith(
           'Info',
           "AI queries go to the openai model gpt-4.1, not Forest's AI server",
+        );
+      } finally {
+        await server.stop();
+      }
+    });
+
+    it("should give the customer's model BFF_AI_TIMEOUT_MS as its timeout", async () => {
+      const server = await runCli(
+        {
+          ...OAUTH_ENV,
+          BFF_AI_TIMEOUT_MS: '4321',
+          BFF_AI_PROVIDER: 'openai',
+          BFF_AI_MODEL: 'gpt-4.1',
+          BFF_AI_API_KEY: 'sk-test',
+        },
+        noopLogger,
+      );
+
+      try {
+        expect(createAiRoutesMiddleware).toHaveBeenCalledWith(
+          expect.objectContaining({
+            customerModel: expect.objectContaining({ modelName: 'gpt-4.1', timeoutMs: 4321 }),
+          }),
         );
       } finally {
         await server.stop();
