@@ -349,6 +349,47 @@ describe('Agent.addGateway', () => {
           expect.objectContaining({ AWS_REGION: 'us-east-1' }),
         );
       });
+
+      it("should hand the runtime's bedrock region to a Gateway without its own ai", async () => {
+        process.env.AWS_REGION = 'eu-west-3';
+        const { agent } = buildAgent();
+        agent
+          .addWorkflowExecutor({
+            agentUrl: 'http://localhost:3351',
+            inMemory: true,
+            ai: { provider: 'bedrock', model: 'anthropic.claude', region: 'ap-south-1' },
+          })
+          .addGateway({ api: true });
+
+        await agent.start();
+
+        expect(mockParseConfig).toHaveBeenCalledWith(
+          expect.objectContaining({ AI_PROVIDER: 'bedrock', AWS_REGION: 'ap-south-1' }),
+        );
+      });
+
+      it("should hand the Gateway's own bedrock region when both settings have one", async () => {
+        const { agent } = buildAgent();
+        agent
+          .addWorkflowExecutor({
+            agentUrl: 'http://localhost:3351',
+            inMemory: true,
+            ai: { provider: 'bedrock', model: 'anthropic.claude', region: 'ap-south-1' },
+          })
+          .addGateway({
+            api: { ai: { provider: 'bedrock', model: 'anthropic.claude', region: 'us-east-1' } },
+          });
+
+        await agent.start();
+
+        expect(mockParseConfig).toHaveBeenCalledWith(
+          expect.objectContaining({
+            BFF_AI_PROVIDER: 'bedrock',
+            AI_PROVIDER: 'bedrock',
+            AWS_REGION: 'us-east-1',
+          }),
+        );
+      });
     });
 
     it('should hand the MCP its options, the normalized basePath and the Gateway allowlist', async () => {

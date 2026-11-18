@@ -1,6 +1,11 @@
 import type { AiConfiguration, AiEnvKeys } from '@forestadmin/ai-proxy';
 
-import { AI_ENV_KEYS, AiEnvConfigurationError, parseAiEnv } from '@forestadmin/ai-proxy';
+import {
+  AI_ENV_KEYS,
+  AiEnvConfigurationError,
+  parseAiEnv,
+  validateAiConfigurations,
+} from '@forestadmin/ai-proxy';
 import { z } from 'zod';
 
 import {
@@ -37,6 +42,7 @@ export const CONFIG_KEYS = [
   'AI_PROVIDER',
   'AI_MODEL',
   'AI_API_KEY',
+  'AWS_REGION',
   'BFF_OPENAPI_ENABLED',
   'BFF_RATE_LIMIT_MAX_REQUESTS',
   'BFF_RATE_LIMIT_WINDOW_MS',
@@ -230,9 +236,14 @@ function parseAi(
 ): AiConfiguration | undefined {
   const ownIsSet = Object.values(GATEWAY_AI_ENV_KEYS).some(key => normalize(env[key]));
   const keys = ownIsSet ? GATEWAY_AI_ENV_KEYS : AI_ENV_KEYS;
+  // Trimmed like every other variable, so a padded value is neither refused nor sent as a key.
+  const trimmed = Object.fromEntries(
+    Object.values(keys).map(key => [key, normalize(env[key])?.trim()]),
+  );
+  let ai: AiConfiguration | undefined;
 
   try {
-    return parseAiEnv(env, keys, key => label(key as ConfigKey));
+    ai = parseAiEnv({ ...env, ...trimmed }, keys, key => label(key as ConfigKey));
   } catch (error) {
     if (error instanceof AiEnvConfigurationError) {
       throw new ConfigurationError(`Invalid configuration: ${error.message}`);
@@ -240,6 +251,17 @@ function parseAi(
 
     throw error;
   }
+
+  // Checked here, not when the model is built: an embedded Gateway builds it after the agent mounted.
+  try {
+    if (ai) validateAiConfigurations([ai]);
+  } catch (error) {
+    throw new ConfigurationError(
+      `Invalid configuration: ${label(keys.model as ConfigKey)}: ${(error as Error).message}`,
+    );
+  }
+
+  return ai;
 }
 
 export function parseConfig(env: NodeJS.ProcessEnv, labels: ConfigLabels = {}): BFFConfig {

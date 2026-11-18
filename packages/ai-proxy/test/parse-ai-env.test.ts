@@ -36,9 +36,9 @@ describe('parseAiEnv', () => {
     );
   });
 
-  it('should require an api key for anthropic and openai', () => {
-    expect(() => parseAiEnv({ AI_PROVIDER: 'anthropic', AI_MODEL: 'claude' })).toThrow(
-      'AI_API_KEY is required for AI_PROVIDER=anthropic',
+  it.each(['anthropic', 'openai'])('should require an api key for %s', provider => {
+    expect(() => parseAiEnv({ AI_PROVIDER: provider, AI_MODEL: 'm' })).toThrow(
+      `AI_API_KEY is required for AI_PROVIDER=${provider}`,
     );
   });
 
@@ -86,6 +86,14 @@ describe('parseAiEnv', () => {
       expect(() => parseAiEnv({ BFF_AI_PROVIDER: 'openai' }, keys, label)).toThrow(
         'label:BFF_AI_PROVIDER and label:BFF_AI_MODEL',
       );
+    });
+
+    it('should name the region variable through the label', () => {
+      const label = (key: string) => `label:${key}`;
+
+      expect(() =>
+        parseAiEnv({ BFF_AI_PROVIDER: 'bedrock', BFF_AI_MODEL: 'm' }, keys, label),
+      ).toThrow('label:BFF_AI_PROVIDER=bedrock requires label:AWS_REGION (or AWS_DEFAULT_REGION).');
     });
   });
 });

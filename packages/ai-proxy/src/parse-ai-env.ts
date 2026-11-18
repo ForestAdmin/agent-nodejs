@@ -59,7 +59,7 @@ export function parseAiEnv(
 
     if (!region) {
       throw new AiEnvConfigurationError(
-        `${providerName}=bedrock requires AWS_REGION (or AWS_DEFAULT_REGION).`,
+        `${providerName}=bedrock requires ${label('AWS_REGION')} (or AWS_DEFAULT_REGION).`,
       );
     }
 
