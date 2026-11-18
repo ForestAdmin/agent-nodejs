@@ -12,6 +12,7 @@ export type McpEnvLabels = {
   accessTokenTtl: string;
   refreshTokenTtl: string;
   fileUploads: string;
+  apps: string;
   uploadStorageModule: string;
   agentUrl: string;
   port: string;
@@ -34,6 +35,7 @@ export type ParsedMcpEnv = {
     | 'allowedOAuthClients'
     | 'agentUrl'
     | 'tokenTtl'
+    | 'apps'
   > & { fileUploads?: false };
   listener: McpListenerSettings;
   uploadStorageModule?: string;
@@ -48,6 +50,7 @@ export const DEFAULT_MCP_ENV_LABELS: McpEnvLabels = {
   accessTokenTtl: 'tokenTtl.accessTokenSeconds',
   refreshTokenTtl: 'tokenTtl.refreshTokenSeconds',
   fileUploads: 'FOREST_MCP_FILE_UPLOADS',
+  apps: 'FOREST_MCP_APPS',
   uploadStorageModule: 'FOREST_MCP_UPLOAD_STORAGE_MODULE',
   agentUrl: 'agentUrl',
   port: MCP_LISTENER_ENV.port,
@@ -65,6 +68,7 @@ function resolveLabels(labels: Partial<McpEnvLabels>): McpEnvLabels {
 }
 
 const FILE_UPLOADS_FLAGS = ['true', 'false'];
+const APPS_FLAGS = ['true', 'false'];
 const HTTP_PROTOCOLS = ['http:', 'https:'];
 
 function parseSeconds(value: string | undefined, label: string): number | undefined {
@@ -122,6 +126,16 @@ function parseFileUploadsOff(rawFlag: string | undefined, label: string): boolea
   return rawFlag === 'false';
 }
 
+function parseAppsOn(rawFlag: string | undefined, label: string): boolean {
+  if (rawFlag !== undefined && !APPS_FLAGS.includes(rawFlag)) {
+    throw new Error(
+      `Invalid ${label} "${rawFlag}": use 'true' to turn MCP Apps on. They are off by default.`,
+    );
+  }
+
+  return rawFlag === 'true';
+}
+
 export function parseMcpListenerEnv(
   env: McpEnv,
   labels: Partial<McpEnvLabels> = {},
@@ -137,6 +151,7 @@ export function parseMcpListenerEnv(
 export default function parseMcpEnv(env: McpEnv, labels: Partial<McpEnvLabels> = {}): ParsedMcpEnv {
   const label = resolveLabels(labels);
   const fileUploadsOff = parseFileUploadsOff(env.FOREST_MCP_FILE_UPLOADS, label.fileUploads);
+  const appsOn = parseAppsOn(env.FOREST_MCP_APPS, label.apps);
 
   normalizeAgentUrl(env.FOREST_AGENT_URL, label.agentUrl);
 
@@ -160,6 +175,7 @@ export default function parseMcpEnv(env: McpEnv, labels: Partial<McpEnvLabels> =
         ),
       },
       ...(fileUploadsOff && { fileUploads: false as const }),
+      ...(appsOn && { apps: true }),
     },
     listener: parseMcpListenerEnv(env, label),
     uploadStorageModule: fileUploadsOff ? undefined : env.FOREST_MCP_UPLOAD_STORAGE_MODULE,
