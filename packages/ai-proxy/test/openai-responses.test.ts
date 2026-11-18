@@ -461,6 +461,31 @@ describe('ProviderDispatcher with a Responses API model', () => {
       });
     });
 
+    it('keeps the cache-write token count apart from the cached one', async () => {
+      const { dispatcher } = buildDispatcher(
+        'gpt-6-luna',
+        undefined,
+        {},
+        {
+          usage: {
+            input_tokens: 3000,
+            output_tokens: 20,
+            total_tokens: 3020,
+            input_tokens_details: { cached_tokens: 0, cache_write_tokens: 2048 },
+          },
+        },
+      );
+
+      const response = await dispatcher.dispatch(body());
+
+      expect(response.usage).toEqual({
+        prompt_tokens: 3000,
+        completion_tokens: 20,
+        total_tokens: 3020,
+        prompt_tokens_details: { cached_tokens: 0, cache_write_tokens: 2048 },
+      });
+    });
+
     it('reports the model that served the call and when OpenAI created the response', async () => {
       const { dispatcher } = buildDispatcher(
         'gpt-6-luna',

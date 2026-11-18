@@ -51,7 +51,7 @@ interface UsageMetadata {
   input_tokens?: number;
   output_tokens?: number;
   total_tokens?: number;
-  input_token_details?: { cache_read?: number };
+  input_token_details?: { cache_read?: number; cache_creation?: number };
   output_token_details?: { reasoning?: number };
 }
 
@@ -148,6 +148,11 @@ export class LangChainAdapter {
     const isResponsesApi = metadata?.object === 'response';
     const refusal = response.additional_kwargs?.refusal;
     const cachedTokens = usageMetadata?.input_token_details?.cache_read;
+    const cacheWriteTokens = usageMetadata?.input_token_details?.cache_creation;
+    const promptTokensDetails = {
+      ...(typeof cachedTokens === 'number' && { cached_tokens: cachedTokens }),
+      ...(typeof cacheWriteTokens === 'number' && { cache_write_tokens: cacheWriteTokens }),
+    };
     const reasoningTokens = usageMetadata?.output_token_details?.reasoning;
 
     return {
@@ -175,8 +180,8 @@ export class LangChainAdapter {
         prompt_tokens: usageMetadata?.input_tokens ?? 0,
         completion_tokens: usageMetadata?.output_tokens ?? 0,
         total_tokens: usageMetadata?.total_tokens ?? 0,
-        ...(typeof cachedTokens === 'number' && {
-          prompt_tokens_details: { cached_tokens: cachedTokens },
+        ...(Object.keys(promptTokensDetails).length > 0 && {
+          prompt_tokens_details: promptTokensDetails,
         }),
         ...(typeof reasoningTokens === 'number' && {
           completion_tokens_details: { reasoning_tokens: reasoningTokens },
