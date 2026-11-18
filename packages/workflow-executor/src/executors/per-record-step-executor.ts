@@ -147,6 +147,12 @@ export default class PerRecordStepExecutor implements IStepExecutor {
       throw new SourceRecordMissingError(root.stepDefinition.title, {
         errorKind: classifyMissingSourceRecord(rootExecution),
         errorSourceStepIndex: root.stepOutcome.stepIndex,
+        emptyList: {
+          recordsName:
+            rootExecution?.type === 'load-related-record'
+              ? rootExecution.executionParams?.displayName
+              : undefined,
+        },
       });
     }
 

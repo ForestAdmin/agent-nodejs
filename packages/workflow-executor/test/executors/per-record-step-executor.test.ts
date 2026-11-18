@@ -340,6 +340,7 @@ describe('a step running once per record', () => {
           {
             type: 'load-related-record',
             stepIndex: 1,
+            executionParams: { name: 'ubos', displayName: 'UBOs' },
             executionResult: { skipped: true },
             selectedRecordRef: COMPANY,
           },
@@ -352,6 +353,7 @@ describe('a step running once per record', () => {
         status: 'error',
         errorKind: 'empty-source',
         errorSourceStepIndex: 1,
+        error: expect.stringMatching(/^".+" loaded no UBOs, so this step has none to run for\.$/),
       });
       expect(agentPort.getRecord).not.toHaveBeenCalled();
     });

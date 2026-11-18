@@ -2,7 +2,10 @@ import type { StepExecutionResult } from '../types/execution-context';
 import type { StepExecutionData } from '../types/step-execution-data';
 import type { CollectionSchema, FieldSchema, RecordRef } from '../types/validated/collection';
 import type { Step } from '../types/validated/execution';
-import type { StepDefinition } from '../types/validated/step-definition';
+import type {
+  LoadRelatedRecordStepDefinition,
+  StepDefinition,
+} from '../types/validated/step-definition';
 import type { ErrorKind, RecordStepStatus } from '../types/validated/step-outcome';
 
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
@@ -16,8 +19,9 @@ import {
   SourceRecordCollectionMismatchError,
   SourceRecordMissingError,
   SourceRecordStepNotReachedError,
+  SourceRunsOncePerRecordError,
 } from '../errors';
-import BaseStepExecutor from './base-step-executor';
+import BaseStepExecutor, { findLatestStepInFrame } from './base-step-executor';
 import { isPerRecordExecution } from '../types/step-execution-data';
 import { StepType, WORKFLOW_START_STEP_ID } from '../types/validated/step-definition';
 
@@ -38,21 +42,13 @@ export function classifyMissingSourceRecord(execution?: StepExecutionData): Erro
   return pendingData.availableRecordIds.length > 0 ? 'operator' : 'empty-source';
 }
 
-// The step a pin names: the latest Load Related Record with that id, because a loop repeats ids,
-// and only inside the frame when one is given, since step ids are unique only per workflow.
+// The step a pin names.
 export function findPinnedLoadStep(
   previousSteps: readonly Step[],
   stepId: string,
   frameStepIndexes?: number[],
 ): Step | undefined {
-  return previousSteps
-    .filter(
-      step =>
-        step.stepDefinition.type === StepType.LoadRelatedRecord &&
-        step.stepOutcome.stepId === stepId &&
-        (frameStepIndexes === undefined || frameStepIndexes.includes(step.stepOutcome.stepIndex)),
-    )
-    .at(-1);
+  return findLatestStepInFrame(previousSteps, StepType.LoadRelatedRecord, stepId, frameStepIndexes);
 }
 
 // Every record a load-related-record execution loaded: one, several, or one per record it ran for.
@@ -83,6 +79,7 @@ export default abstract class RecordStepExecutor<
     error?: string;
     errorKind?: ErrorKind;
     errorSourceStepIndex?: number;
+    loadedRecordCount?: number;
   }): StepExecutionResult {
     return {
       stepOutcome: {
@@ -147,6 +144,7 @@ export default abstract class RecordStepExecutor<
       const pinned = await this.resolveStepRecordRef(
         callScope.selectedRecordStepId,
         callScope.pinnedFrameStepIndexes,
+        true,
       );
       // The pin names a step of the calling workflow, so a miss is that Sub-workflow step's to fix.
       if (!pinned) throw new SourceRecordStepNotReachedError(callScope.selectedRecordStepId);
@@ -168,36 +166,56 @@ export default abstract class RecordStepExecutor<
     return record;
   }
 
-  // Undefined on a miss so each caller names its own error. A call's pin passes its frame.
+  // Undefined on a miss so each caller names its own error. A call's pin passes its frame, and
+  // the record index the orchestrator gave a call opened once per record of a Multiple step.
   private async resolveStepRecordRef(
     stepId: string,
     frameStepIndexes?: number[],
+    isCallPin = false,
   ): Promise<RecordRef | undefined> {
     const sourceStep = findPinnedLoadStep(this.context.previousSteps, stepId, frameStepIndexes);
 
     if (sourceStep) {
       const stepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
       const execution = this.resolveStepExecution(sourceStep, stepExecutions);
+      const { title } = sourceStep.stepDefinition;
 
-      // A step that ran once per record keeps what it loaded in its iterations, not in a result.
+      // A step that ran once per record keeps what it loaded in its iterations, not in a result. A
+      // step's own pin on one runs once per record, so a call's pin is the one expected here.
       if (isPerRecordExecution(execution)) {
-        throw new SourceLoadsSeveralRecordsError(sourceStep.stepDefinition.title);
+        throw isCallPin
+          ? new SourceRunsOncePerRecordError(title)
+          : new SourceLoadsSeveralRecordsError(title);
       }
 
       const result = execution?.type === 'load-related-record' && execution.executionResult;
 
       if (result && 'record' in result) return result.record;
 
-      // A step's own pin on a Multiple step runs once per record, so only a call's pin gets here.
-      if (result && 'records' in result) {
-        throw new SourceLoadsSeveralRecordsError(sourceStep.stepDefinition.title);
-      }
+      // A call opened once per record reads its pinned step narrowed to its record, above, so a
+      // call's pin on a Multiple step gets here only when the call was opened once for all of them.
+      if (result && 'records' in result) throw new SourceLoadsSeveralRecordsError(title);
 
       // The source step exists but loaded nothing → clear "no source record" message,
-      // distinct from a config pointing at a non-existent step.
+      // distinct from a config pointing at a non-existent step. A call's pin on an empty Multiple
+      // step gets here: with no record loaded, the orchestrator opened one call without an index.
+      const isList =
+        isCallPin &&
+        (sourceStep.stepDefinition as LoadRelatedRecordStepDefinition).preRecordedArgs?.multiple ===
+          true;
+
       throw new SourceRecordMissingError(sourceStep.stepDefinition.title, {
         errorKind: classifyMissingSourceRecord(execution),
         errorSourceStepIndex: sourceStep.stepOutcome.stepIndex,
+        ...(isList && {
+          emptyList: {
+            recordsName:
+              execution?.type === 'load-related-record'
+                ? execution.executionParams?.displayName
+                : undefined,
+            forCall: true,
+          },
+        }),
       });
     }
 
