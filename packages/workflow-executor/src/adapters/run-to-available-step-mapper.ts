@@ -141,8 +141,9 @@ function toCallRecordIndex(context: ServerStepHistory['context']): number | unde
 // Rebuilt from the raw history because previousSteps drops the navigation steps, and read the way
 // the orchestrator reads its own call stack so the two agree on which call is open.
 // excludedStepIndexes: inside calls opened once per record, the steps of every closed call opened
-// once per record from the same calling frame as one of them for another record: another record's
-// run, at any level of nesting. A call for the same record of the same Multiple step stays in.
+// once per record of the same Multiple step from the same calling frame for another record: another
+// record's run, at any level of nesting. A call for the same record of the same run of that step
+// stays in, and so does a call pinned to another Multiple step, which held none of these records.
 function toCallScope(
   history: ServerStepHistory[],
   pending: ServerStepHistory,
@@ -248,6 +249,12 @@ function toCallScope(
     );
   };
 
+  // A call pinned to the same Multiple step can hold another of these records, an earlier run of
+  // that step included, since it may load the same records again. One pinned to another Multiple
+  // step held none of them, so it reads whole, as CallRecordRunStore reads that step's rows.
+  const isOtherRecordCall = (closed: Call, open: Call) =>
+    pinOf(closed) === pinOf(open) && !isSameRecordCall(closed, open);
+
   // Outermost first, so each one's record narrows what the calls inside it read.
   const recordCalls = openCalls.filter(
     call => call.callRecordIndex !== undefined && pinOf(call) !== undefined,
@@ -255,7 +262,7 @@ function toCallScope(
   const excludedStepIndexes = closedRecordCalls
     .filter(closed =>
       recordCalls.some(
-        open => closed.frameOpenedAt === open.frameOpenedAt && !isSameRecordCall(closed, open),
+        open => closed.frameOpenedAt === open.frameOpenedAt && isOtherRecordCall(closed, open),
       ),
     )
     .flatMap(call => call.stepIndexes);

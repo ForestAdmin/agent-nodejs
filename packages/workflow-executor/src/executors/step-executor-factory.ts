@@ -37,6 +37,7 @@ import {
   WorkflowExecutorError,
   causeMessage,
   extractErrorMessage,
+  toErrorOutcome,
 } from '../errors';
 import SchemaResolver from '../schema-resolver';
 import ActivityLog from './activity-log';
@@ -280,12 +281,9 @@ export default class StepExecutorFactory {
             stepId: step.stepId,
             stepIndex: step.stepIndex,
             status: 'error',
-            error:
-              error instanceof WorkflowExecutorError
-                ? error.userMessage
-                : 'An unexpected error occurred.',
-            ...(error instanceof WorkflowExecutorError &&
-              error.errorKind !== undefined && { errorKind: error.errorKind }),
+            ...(error instanceof WorkflowExecutorError
+              ? toErrorOutcome(error)
+              : { error: 'An unexpected error occurred.' }),
           },
         }),
       };

@@ -1670,8 +1670,32 @@ describe('toAvailableStepExecution', () => {
         expect(result?.previousSteps.map(step => step.stepOutcome.stepIndex)).toEqual([0, 5]);
       });
 
-      // Another Sub-workflow step, or another pass of a loop, gives the same index to another record.
-      it('keeps every other per-record call of the calling workflow out of previousSteps, whatever its index', () => {
+      it('keeps a call over another Multiple step in previousSteps, whatever its index', () => {
+        const run = makeRun({
+          workflowHistory: [
+            makeStepHistory({ stepName: 'load-ubos', stepIndex: 0, done: true }),
+            makeStepHistory({ stepName: 'load-invoices', stepIndex: 1, done: true }),
+            makeStartSubWorkflowHistory(
+              { stepName: 'call-x', stepIndex: 2, context: { callRecordIndex: 0 } },
+              { selectedRecordStepId: 'load-invoices', calledWorkflowCollectionName: 'invoices' },
+            ),
+            makeChildStepHistory({ stepName: 'x1', stepIndex: 3, done: true }),
+            makeCloseSubWorkflowHistory({ stepName: 'close-x', stepIndex: 4 }),
+            makeStartSubWorkflowHistory(
+              { stepName: 'call-y', stepIndex: 5, context: { callRecordIndex: 0 } },
+              { selectedRecordStepId: 'load-ubos', calledWorkflowCollectionName: 'ubos' },
+            ),
+            makeChildStepHistory({ stepName: 'y1', stepIndex: 6, done: false }),
+          ],
+        });
+
+        const result = toAvailableStepExecution(run);
+
+        expect(result?.previousSteps.map(step => step.stepOutcome.stepIndex)).toEqual([0, 1, 3]);
+      });
+
+      // The pin alone tells the lists apart, so it holds with neither Multiple step in view.
+      it('keeps a call pinned to another Multiple step in previousSteps, whatever its index', () => {
         const run = makeRun({
           workflowHistory: [
             makeStartSubWorkflowHistory(
@@ -1691,7 +1715,7 @@ describe('toAvailableStepExecution', () => {
 
         const result = toAvailableStepExecution(run);
 
-        expect(result?.previousSteps.map(step => step.stepOutcome.stepIndex)).toEqual([4]);
+        expect(result?.previousSteps.map(step => step.stepOutcome.stepIndex)).toEqual([1, 4]);
       });
 
       it("keeps a call nested in another record's call out of previousSteps", () => {

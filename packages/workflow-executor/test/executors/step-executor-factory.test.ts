@@ -351,7 +351,7 @@ describe('StepExecutorFactory.create', () => {
       return (await StepExecutorFactory.create(step, config, activityLogPort, jest.fn())).execute();
     };
 
-    it('names the empty Multiple step when it loaded nothing', async () => {
+    it('names the empty Multiple step when it loaded nothing, and points at it', async () => {
       const result = await run({
         type: 'load-related-record',
         stepIndex: 1,
@@ -361,6 +361,7 @@ describe('StepExecutorFactory.create', () => {
       expect(result.stepOutcome).toMatchObject({
         status: 'error',
         errorKind: 'empty-source',
+        errorSourceStepIndex: 1,
         error: 'This step uses "Load UBOs" as its source, but that step didn\'t load any record.',
       });
     });
