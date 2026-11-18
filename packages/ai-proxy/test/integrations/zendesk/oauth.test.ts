@@ -1,3 +1,5 @@
+import { createHash } from 'crypto';
+
 import { AIToolUnprocessableError, McpConnectionError } from '../../../src/errors';
 import { getZendeskConfig, validateZendeskConfig } from '../../../src/integrations/zendesk/utils';
 
@@ -24,6 +26,12 @@ function tokenResponse(accessToken: string, expiresIn?: number) {
 
 function apiResponse(status: number) {
   return { ok: status < 400, status, statusText: 'status', json: async () => ({}) };
+}
+
+function cacheKeyOf({ subdomain, clientId, clientSecret }: ReturnType<typeof makeConfig>) {
+  return createHash('sha256')
+    .update(JSON.stringify([subdomain, clientId, clientSecret]))
+    .digest('hex');
 }
 
 function bearer(token: string) {
@@ -221,11 +229,14 @@ describe('zendesk OAuth client authentication', () => {
       fetchMock.mockResolvedValueOnce(tokenResponse('token-2', 1800));
       fetchMock.mockResolvedValueOnce(apiResponse(200));
 
+      const rotated = { ...config, clientSecret: 'rotated' };
+
       await getZendeskConfig(config).request(url, {});
       now.mockReturnValue(1_000_000 + 1800 * 1000);
-      await getZendeskConfig({ ...config, clientSecret: 'rotated' }).request(url, {});
+      await getZendeskConfig(rotated).request(url, {});
 
-      expect(deleted).toHaveBeenCalledWith(expect.stringMatching(/^[0-9a-f]{64}$/));
+      expect(deleted).toHaveBeenCalledWith(cacheKeyOf(config));
+      expect(deleted).not.toHaveBeenCalledWith(cacheKeyOf(rotated));
     });
 
     it('should not share a token between two secrets of the same client', async () => {
