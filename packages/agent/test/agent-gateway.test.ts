@@ -30,6 +30,11 @@ jest.mock('@forestadmin/agent-bff', () => ({
   version: jest.requireActual('../package.json').peerDependencies['@forestadmin/agent-bff'],
 }));
 
+jest.mock('@forestadmin/workflow-executor', () => ({
+  __esModule: true,
+  buildInMemoryExecutor: () => ({ start: jest.fn(), stop: jest.fn() }),
+}));
+
 let mcpServerSpy: jest.SpyInstance;
 let mockGetHttpCallback: jest.Mock;
 
@@ -237,6 +242,113 @@ describe('Agent.addGateway', () => {
           BFF_OPENAPI_ENABLED: 'false',
         }),
       );
+    });
+
+    describe('when choosing the AI provider of the API', () => {
+      const savedRegion = process.env.AWS_REGION;
+
+      afterEach(() => {
+        if (savedRegion === undefined) delete process.env.AWS_REGION;
+        else process.env.AWS_REGION = savedRegion;
+      });
+
+      it("should pass the Gateway's own api.ai as its own setting", async () => {
+        const { agent } = buildAgent();
+        agent.addGateway({
+          api: { ai: { provider: 'anthropic', model: 'claude', apiKey: 'own-key' } },
+        });
+
+        await agent.start();
+
+        expect(mockParseConfig).toHaveBeenCalledWith(
+          expect.objectContaining({
+            BFF_AI_PROVIDER: 'anthropic',
+            BFF_AI_MODEL: 'claude',
+            BFF_AI_API_KEY: 'own-key',
+          }),
+        );
+      });
+
+      it("should pass the embedded runtime's ai as the runtime's setting", async () => {
+        const { agent } = buildAgent();
+        agent
+          .addWorkflowExecutor({
+            agentUrl: 'http://localhost:3351',
+            inMemory: true,
+            ai: { provider: 'openai', model: 'gpt-4.1', apiKey: 'rt-key' },
+          })
+          .addGateway({ api: true });
+
+        await agent.start();
+
+        expect(mockParseConfig).toHaveBeenCalledWith(
+          expect.objectContaining({
+            AI_PROVIDER: 'openai',
+            AI_MODEL: 'gpt-4.1',
+            AI_API_KEY: 'rt-key',
+          }),
+        );
+      });
+
+      it('should read the runtime ai whatever the order of the add calls', async () => {
+        const { agent } = buildAgent();
+        agent
+          .addGateway({ api: true })
+          .addWorkflowExecutor({
+            agentUrl: 'http://localhost:3351',
+            inMemory: true,
+            ai: { provider: 'openai', model: 'gpt-4.1', apiKey: 'rt-key' },
+          });
+
+        await agent.start();
+
+        expect(mockParseConfig).toHaveBeenCalledWith(
+          expect.objectContaining({ AI_PROVIDER: 'openai' }),
+        );
+      });
+
+      it('should not hand the runtime ai to the deprecated addBff, which checks no package version', async () => {
+        const { agent } = buildAgent();
+        agent
+          .addWorkflowExecutor({
+            agentUrl: 'http://localhost:3351',
+            inMemory: true,
+            ai: { provider: 'openai', model: 'gpt-4.1', apiKey: 'rt-key' },
+          })
+          .addBff({});
+
+        await agent.start();
+
+        expect(mockParseConfig).toHaveBeenCalledWith(
+          expect.not.objectContaining({ AI_PROVIDER: 'openai' }),
+        );
+      });
+
+      it('should hand a bedrock setting without region the process AWS_REGION', async () => {
+        process.env.AWS_REGION = 'eu-west-3';
+        const { agent } = buildAgent();
+        agent.addGateway({ api: { ai: { provider: 'bedrock', model: 'anthropic.claude' } } });
+
+        await agent.start();
+
+        expect(mockParseConfig).toHaveBeenCalledWith(
+          expect.objectContaining({ BFF_AI_PROVIDER: 'bedrock', AWS_REGION: 'eu-west-3' }),
+        );
+      });
+
+      it("should prefer the bedrock setting's own region over AWS_REGION", async () => {
+        process.env.AWS_REGION = 'eu-west-3';
+        const { agent } = buildAgent();
+        agent.addGateway({
+          api: { ai: { provider: 'bedrock', model: 'anthropic.claude', region: 'us-east-1' } },
+        });
+
+        await agent.start();
+
+        expect(mockParseConfig).toHaveBeenCalledWith(
+          expect.objectContaining({ AWS_REGION: 'us-east-1' }),
+        );
+      });
     });
 
     it('should hand the MCP its options, the normalized basePath and the Gateway allowlist', async () => {

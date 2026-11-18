@@ -1,7 +1,17 @@
+/* eslint-disable import/no-relative-packages */
+import path from 'path';
+
 import jestConfig from '../../jest.config';
+
+// Jest < 30 doesn't resolve wildcard exports in package.json, and @anthropic-ai/sdk, which
+// @forestadmin/ai-proxy loads, uses "./lib/*" exports.
+const anthropicSdkDir = path.dirname(require.resolve('@anthropic-ai/sdk'));
 
 export default {
   ...jestConfig,
   collectCoverageFrom: ['<rootDir>/src/**/*.ts'],
   testMatch: ['<rootDir>/test/**/*.test.ts'],
+  moduleNameMapper: {
+    '^@anthropic-ai/sdk/(.*)$': `${anthropicSdkDir}/$1`,
+  },
 };

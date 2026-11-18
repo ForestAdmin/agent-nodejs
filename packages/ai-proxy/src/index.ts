@@ -6,6 +6,11 @@ import ToolSourceChecker from './tool-source-checker';
 export { createAiProvider } from './create-ai-provider';
 export { createBaseChatModel } from './create-base-chat-model';
 export { default as ProviderDispatcher } from './provider-dispatcher';
+export { default as AnthropicAdapter } from './anthropic-adapter';
+export { LangChainAdapter } from './langchain-adapter';
+export type { OpenAIMessage } from './langchain-adapter';
+export { AI_ENV_KEYS, AiEnvConfigurationError, parseAiEnv } from './parse-ai-env';
+export type { AiEnvKeys } from './parse-ai-env';
 
 export {
   FOREST_INTEGRATION_NAMES,

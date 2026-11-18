@@ -120,7 +120,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
       // handed to addBff(), so a mistyped key must fail on that line rather than leave the host
       // serving /forest with a permanently bricked /bff.
       await this.embeddedServices.prepareGateway();
-      await this.embeddedServices.bff?.prepare();
+      await this.embeddedServices.bff?.prepare(this.embeddedExecutor?.ai);
       if (this.isStopped) await this.embeddedServices.bff?.stop();
       if (this.embeddedServices.hasGateway) this.embeddedServices.setRootHandlers();
       if (this.isStopped) return;

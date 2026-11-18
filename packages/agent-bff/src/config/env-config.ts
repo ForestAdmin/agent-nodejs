@@ -1,3 +1,6 @@
+import type { AiConfiguration, AiEnvKeys } from '@forestadmin/ai-proxy';
+
+import { AI_ENV_KEYS, AiEnvConfigurationError, parseAiEnv } from '@forestadmin/ai-proxy';
 import { z } from 'zod';
 
 import {
@@ -29,6 +32,12 @@ export const CONFIG_KEYS = [
   'BFF_AGENT_TIMEOUT_MS',
   'BFF_ACTION_TIMEOUT_MS',
   'BFF_AI_TIMEOUT_MS',
+  'BFF_AI_PROVIDER',
+  'BFF_AI_MODEL',
+  'BFF_AI_API_KEY',
+  'AI_PROVIDER',
+  'AI_MODEL',
+  'AI_API_KEY',
   'BFF_OPENAPI_ENABLED',
   'BFF_RATE_LIMIT_MAX_REQUESTS',
   'BFF_RATE_LIMIT_WINDOW_MS',
@@ -70,6 +79,8 @@ export interface BFFConfig {
    */
   actionTimeoutMs: number;
   aiTimeoutMs: number;
+  /** The customer's AI provider; unset, AI queries go to Forest's AI server. */
+  ai?: AiConfiguration;
   openapiEnabled: boolean;
   rateLimitMaxRequests: number;
   rateLimitWindowMs: number;
@@ -213,6 +224,31 @@ function resolveAllowedOrigins(raw: string | undefined, label: string): string[]
   return origins.includes(ZENDESK_APP_ORIGIN) ? origins : [...origins, ZENDESK_APP_ORIGIN];
 }
 
+const GATEWAY_AI_ENV_KEYS = {
+  provider: 'BFF_AI_PROVIDER',
+  model: 'BFF_AI_MODEL',
+  apiKey: 'BFF_AI_API_KEY',
+} as const satisfies AiEnvKeys;
+
+/** The Gateway's own setting wins; without one, it shares the runtime's `AI_*` setting. */
+function parseAi(
+  env: NodeJS.ProcessEnv,
+  label: (key: ConfigKey) => string,
+): AiConfiguration | undefined {
+  const ownIsSet = Object.values(GATEWAY_AI_ENV_KEYS).some(key => normalize(env[key]));
+  const keys = ownIsSet ? GATEWAY_AI_ENV_KEYS : AI_ENV_KEYS;
+
+  try {
+    return parseAiEnv(env, keys, key => label(key as ConfigKey));
+  } catch (error) {
+    if (error instanceof AiEnvConfigurationError) {
+      throw new ConfigurationError(`Invalid configuration: ${error.message}`);
+    }
+
+    throw error;
+  }
+}
+
 export function parseConfig(env: NodeJS.ProcessEnv, labels: ConfigLabels = {}): BFFConfig {
   const label = labeler(labels);
   const normalized = Object.fromEntries(
@@ -272,6 +308,7 @@ export function parseConfig(env: NodeJS.ProcessEnv, labels: ConfigLabels = {}): 
       label('BFF_AI_TIMEOUT_MS'),
       DEFAULT_AI_TIMEOUT_MS,
     ),
+    ai: parseAi(env, label),
     openapiEnabled: parseOpenApiEnabled(env.BFF_OPENAPI_ENABLED, label('BFF_OPENAPI_ENABLED')),
     rateLimitMaxRequests: parseBoundedInteger(
       env.BFF_RATE_LIMIT_MAX_REQUESTS,

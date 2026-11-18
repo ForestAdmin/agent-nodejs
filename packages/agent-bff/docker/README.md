@@ -7,7 +7,7 @@ keeps the image small with a fully pinned dependency tree.
 ## How it works
 
 - [`build-deps-manifest.js`](./build-deps-manifest.js) merges the external
-  (non-`@forestadmin`) runtime dependencies of the BFF and its 4 workspace
+  (non-`@forestadmin`) runtime dependencies of the BFF and its 5 workspace
   dependencies, plus the OpenTelemetry packages, into a single `package.json`.
   Three OTel packages are named there; `sdk-node` drags in every OTLP exporter
   and the Zipkin one behind them, which is what lets the image honour
@@ -40,7 +40,7 @@ runners; on a slim box python3 is the one likely to be missing.
 
 Only `deps/yarn.lock` is committed — the manifest is generated on demand (the
 Docker build regenerates it too), so there is no stale `package.json` to drift.
-Run this whenever a runtime dependency of one of the 5 workspace packages
+Run this whenever a runtime dependency of one of the 6 workspace packages
 changes **or when the `OTEL_DEPENDENCIES` versions in `build-deps-manifest.js`
 are bumped** (the build will fail with `--frozen-lockfile` until you do):
 
