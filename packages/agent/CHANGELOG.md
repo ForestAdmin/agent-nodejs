@@ -1,3 +1,19 @@
+## @forestadmin/agent [1.113.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.113.6...@forestadmin/agent@1.113.7) (2026-11-18)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.74.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.57.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.44.3
+* **@forestadmin/mcp-server:** upgraded to 1.29.6
+* **@forestadmin/agent-bff:** upgraded to 1.45.2
+* **@forestadmin/datasource-sql:** upgraded to 1.18.0
+* **@forestadmin/workflow-executor:** upgraded to 1.37.4
+
 ## @forestadmin/agent [1.113.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.113.5...@forestadmin/agent@1.113.6) (2026-11-18)
 
 
