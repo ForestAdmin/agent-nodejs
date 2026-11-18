@@ -45,6 +45,7 @@ export type ForestServerAction = {
   layout?: ForestServerActionFormLayoutElement[];
   description?: string;
   submitButtonLabel?: string;
+  pendingRefreshInterval?: number;
   hooks: {
     load: boolean;
     change: Array<unknown>;
@@ -75,6 +76,7 @@ export type ForestServerActionFieldCommon<
   hook: string;
   isReadOnly: boolean;
   isRequired: boolean;
+  isPending?: boolean;
   enums: null | string[];
   widgetEdit: TWidgetEdit;
 };

@@ -147,7 +147,7 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
 
     for (const [
       name,
-      { form, scope, generateFile, description, submitButtonLabel },
+      { form, scope, generateFile, description, submitButtonLabel, pendingRefreshInterval },
     ] of Object.entries(this.actions)) {
       // An action form can be send in the schema to avoid calling the load handler
       // as long as there is nothing dynamic in it
@@ -159,6 +159,7 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
         staticForm: !isDynamic,
         description,
         submitButtonLabel,
+        pendingRefreshInterval,
       };
     }
 

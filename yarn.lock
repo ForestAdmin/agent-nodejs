@@ -2492,14 +2492,6 @@
   resolved "https://registry.yarnpkg.com/@forestadmin/context/-/context-1.37.1.tgz#301486c456061d43cb653b3e8be60644edb3f71a"
   integrity sha512-H4U1fAkzC3pm44Cdb/RoRZytI4SZlqb9YNv72ChUnUPJkNUSo2+o5JxDpjWRM1OmIb87Bv4274U3W3AmVhuwQQ==
 
-"@forestadmin/datasource-mongoose@1.14.8":
-  version "1.14.8"
-  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-mongoose/-/datasource-mongoose-1.14.8.tgz#dcfb08b0d61576eea41e2fa29902a8628a1a6423"
-  integrity sha512-dY+AEGaj4Py2SGXNlRO7iBkoa9asStDI1jBrSJaO8hycu2NMBooTar38GOLDHJedkhLI7LWq/f6GWJm2a/v8fQ==
-  dependencies:
-    "@forestadmin/datasource-toolkit" "1.56.3"
-    luxon "^3.2.1"
-
 "@forestadmin/datasource-sequelize@1.10.5":
   version "1.10.5"
   resolved "https://registry.yarnpkg.com/@forestadmin/datasource-sequelize/-/datasource-sequelize-1.10.5.tgz#e8353e0cb8bc38ad109b4224f472aa6be59bb569"

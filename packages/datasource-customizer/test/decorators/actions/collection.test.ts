@@ -371,6 +371,46 @@ describe('ActionDecorator', () => {
     });
   });
 
+  describe('with single action with a pending field', () => {
+    beforeEach(() => {
+      newBooks.addAction('fetch documents', {
+        scope: 'Single',
+        pendingRefreshInterval: 10,
+        execute: (context, resultBuilder) => resultBuilder.success(),
+        form: [
+          { label: 'received', type: 'Number' },
+          {
+            label: 'documents',
+            type: 'String',
+            isPending: context => context.formValues.received !== 5,
+          },
+        ],
+      });
+    });
+
+    test('should expose the pending refresh interval in the schema', () => {
+      expect(newBooks.schema.actions['fetch documents']).toEqual(
+        expect.objectContaining({ pendingRefreshInterval: 10 }),
+      );
+    });
+
+    test('should flag the field as pending while its data is not ready', async () => {
+      const fields = await newBooks.getForm(factories.caller.build(), 'fetch documents', {
+        received: 3,
+      });
+
+      expect(fields[1]).toEqual(expect.objectContaining({ id: 'documents', isPending: true }));
+    });
+
+    test('should not flag the field as pending once its data is ready', async () => {
+      const fields = await newBooks.getForm(factories.caller.build(), 'fetch documents', {
+        received: 5,
+      });
+
+      expect(fields[1]).toEqual(expect.objectContaining({ id: 'documents', isPending: false }));
+    });
+  });
+
   describe('with single action with dynamic form', () => {
     beforeEach(() => {
       newBooks.addAction('make photocopy', {

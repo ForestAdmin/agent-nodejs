@@ -103,6 +103,7 @@ export default class SchemaGeneratorActions {
       ...layout,
       description: schema.description,
       submitButtonLabel: schema.submitButtonLabel,
+      pendingRefreshInterval: schema.pendingRefreshInterval,
       hooks: {
         load: !schema.staticForm,
         // Always registering the change hook has no consequences, even if we don't use it.
@@ -129,8 +130,8 @@ export default class SchemaGeneratorActions {
 
   /** Build schema for given field */
   static buildFieldSchema(dataSource: DataSource, field: ActionField): ForestServerActionField {
-    const { id, label, description, isRequired, isReadOnly, watchChanges, type } = field;
-    const output = { field: id, label, description, isRequired, isReadOnly } as Record<
+    const { id, label, description, isRequired, isReadOnly, isPending, watchChanges, type } = field;
+    const output = { field: id, label, description, isRequired, isReadOnly, isPending } as Record<
       string,
       unknown
     >;

@@ -14,6 +14,7 @@ export type ActionSchema = {
   staticForm?: boolean;
   description?: string;
   submitButtonLabel?: string;
+  pendingRefreshInterval?: number;
 };
 
 export type DataSourceSchema = {
