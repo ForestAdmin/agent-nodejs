@@ -1,3 +1,13 @@
+## @forestadmin/agent [1.113.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.113.5...@forestadmin/agent@1.113.6) (2026-11-18)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/workflow-executor:** upgraded to 1.37.3
+
 ## @forestadmin/agent [1.113.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.113.4...@forestadmin/agent@1.113.5) (2026-11-17)
 
 
