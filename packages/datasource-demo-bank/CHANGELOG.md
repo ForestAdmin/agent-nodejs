@@ -1,3 +1,15 @@
+## @forestadmin/datasource-demo-bank [1.0.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-demo-bank@1.0.0...@forestadmin/datasource-demo-bank@1.0.1) (2026-11-18)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.74.0
+* **@forestadmin/datasource-sql:** upgraded to 1.18.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.57.0
+
 # @forestadmin/datasource-demo-bank 1.0.0 (2026-11-06)
 
 
