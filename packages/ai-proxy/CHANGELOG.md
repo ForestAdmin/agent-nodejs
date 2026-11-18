@@ -1,3 +1,10 @@
+# @forestadmin/ai-proxy [1.16.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.15.3...@forestadmin/ai-proxy@1.16.0) (2026-11-18)
+
+
+### Features
+
+* **ai-proxy:** report cache-write tokens in the completion usage ([#2084](https://github.com/ForestAdmin/agent-nodejs/issues/2084)) ([8fcaaaf](https://github.com/ForestAdmin/agent-nodejs/commit/8fcaaafa38b5ab19ad4b88bd82c92272652a4f5e))
+
 ## @forestadmin/ai-proxy [1.15.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.15.2...@forestadmin/ai-proxy@1.15.3) (2026-11-03)
 
 
