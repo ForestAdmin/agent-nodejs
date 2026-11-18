@@ -32,6 +32,15 @@ describe('createDynamoDBDataSource', () => {
     });
   });
 
+  it('reports the dynamodb type with no database name', async () => {
+    const dataSource = await createDynamoDBDataSource({ client: fakeClient(handlers()) })(
+      jest.fn(),
+      jest.fn(),
+    );
+
+    expect(dataSource.schema.databases).toStrictEqual([{ type: 'dynamodb', name: null }]);
+  });
+
   it('only introspects the listed tables', async () => {
     const client = fakeClient(handlers());
 

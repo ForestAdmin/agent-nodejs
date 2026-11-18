@@ -350,4 +350,49 @@ describe('MongooseDatasource', () => {
       expect(fn).toThrow('it is already at the root of a collection.');
     });
   });
+
+  describe('schema.databases', () => {
+    test('should report the database name of an opened connection', () => {
+      const connection = mongoose.createConnection();
+      Object.defineProperty(connection, 'name', { value: 'mydb' });
+
+      expect(new MongooseDatasource(connection).schema.databases).toStrictEqual([
+        { type: 'mongodb', name: 'mydb' },
+      ]);
+    });
+
+    test('should report the default connection of a Mongoose instance', () => {
+      const instance = new mongoose.Mongoose();
+      Object.defineProperty(instance.connection, 'name', { value: 'mydb' });
+
+      expect(new MongooseDatasource(instance).schema.databases).toStrictEqual([
+        { type: 'mongodb', name: 'mydb' },
+      ]);
+    });
+
+    test('should report no name for a connection that is not open yet', () => {
+      expect(new MongooseDatasource(mongoose.createConnection()).schema.databases).toStrictEqual([
+        { type: 'mongodb', name: null },
+      ]);
+    });
+
+    test('should report no name when the instance has no default connection', () => {
+      const instance = new mongoose.Mongoose({ createInitialConnection: false });
+
+      expect(new MongooseDatasource(instance).schema.databases).toStrictEqual([
+        { type: 'mongodb', name: null },
+      ]);
+    });
+
+    test('should read the name on every access', () => {
+      const connection = mongoose.createConnection();
+      const datasource = new MongooseDatasource(connection);
+
+      expect(datasource.schema.databases).toStrictEqual([{ type: 'mongodb', name: null }]);
+
+      Object.defineProperty(connection, 'name', { value: 'mydb' });
+
+      expect(datasource.schema.databases).toStrictEqual([{ type: 'mongodb', name: 'mydb' }]);
+    });
+  });
 });

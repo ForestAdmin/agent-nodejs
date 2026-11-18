@@ -1,9 +1,10 @@
 import type { SequelizeExt } from './type-overrides';
 import type { SequelizeDatasourceOptions } from './types';
-import type { Logger } from '@forestadmin/datasource-toolkit';
+import type { DataSourceDatabase, DataSourceSchema, Logger } from '@forestadmin/datasource-toolkit';
 import type { Sequelize } from 'sequelize';
 
-import { BaseDataSource } from '@forestadmin/datasource-toolkit';
+import { BaseDataSource, makeDatabaseEntry } from '@forestadmin/datasource-toolkit';
+import { win32 } from 'path';
 import { QueryTypes } from 'sequelize';
 
 import SequelizeCollection from './collection';
@@ -13,6 +14,14 @@ interface NativeQueryConnection {
 }
 
 const EPHEMERAL_SQLITE_STORAGES = [':memory:', ''];
+const DATABASE_DIALECTS = new Set(['postgres', 'mysql', 'mariadb', 'mssql', 'sqlite', 'oracle']);
+const ORACLE_CONNECT_DESCRIPTOR = /[:/()]/;
+const DIALECTS_READING_DATABASE_FROM_DIALECT_OPTIONS = new Set([
+  'mysql',
+  'mariadb',
+  'snowflake',
+  'db2',
+]);
 
 function isEphemeralSqlite(instance: Sequelize): boolean {
   const { storage, host } = (instance as SequelizeExt).options;
@@ -21,6 +30,56 @@ function isEphemeralSqlite(instance: Sequelize): boolean {
     instance.getDialect() === 'sqlite' &&
     EPHEMERAL_SQLITE_STORAGES.includes(storage ?? (host || ':memory:'))
   );
+}
+
+function resolveDatabaseName(instance: Sequelize): string {
+  const { database, dialectOptions, replication } = instance.config;
+  const dialect = instance.getDialect();
+  const driverOptions = dialectOptions as
+    | { database?: string; options?: { database?: string } }
+    | undefined;
+
+  if (
+    DIALECTS_READING_DATABASE_FROM_DIALECT_OPTIONS.has(dialect) &&
+    driverOptions?.database !== undefined
+  ) {
+    return driverOptions.database;
+  }
+
+  if (dialect === 'mssql' && driverOptions?.options?.database !== undefined) {
+    return driverOptions.options.database;
+  }
+
+  if (replication && replication.write?.database !== undefined) {
+    return replication.write.database;
+  }
+
+  return database;
+}
+
+function isPlainOracleName(instance: Sequelize, name: string): boolean {
+  const { connectString } =
+    (instance.config.dialectOptions as { connectString?: string } | undefined) ?? {};
+
+  return connectString === undefined && name !== null && !ORACLE_CONNECT_DESCRIPTOR.test(name);
+}
+
+function describeDatabase(instance: Sequelize): DataSourceDatabase {
+  const dialect = instance.getDialect();
+
+  if (dialect === 'sqlite') {
+    const storage = isEphemeralSqlite(instance) ? null : (instance as SequelizeExt).options.storage;
+
+    return makeDatabaseEntry('sqlite', storage && win32.basename(storage));
+  }
+
+  const name = resolveDatabaseName(instance);
+
+  if (dialect === 'oracle' && !isPlainOracleName(instance, name)) {
+    return makeDatabaseEntry('oracle', null);
+  }
+
+  return makeDatabaseEntry(DATABASE_DIALECTS.has(dialect) ? dialect : 'other', name);
 }
 
 export default class SequelizeDataSource extends BaseDataSource<SequelizeCollection> {
@@ -49,6 +108,10 @@ export default class SequelizeDataSource extends BaseDataSource<SequelizeCollect
 
   async close(): Promise<void> {
     await this.sequelize.close();
+  }
+
+  override get schema(): DataSourceSchema {
+    return { ...super.schema, databases: [describeDatabase(this.sequelize)] };
   }
 
   protected createCollections(models: Sequelize['models'], logger?: Logger) {
