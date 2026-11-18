@@ -34,7 +34,7 @@
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "8.5.0",
     "@forestadmin/agent-client": "1.19.1",
-    "@forestadmin/ai-proxy": "1.15.3",
+    "@forestadmin/ai-proxy": "1.16.0",
     "@forestadmin/datasource-toolkit": "1.56.3",
     "@forestadmin/forestadmin-client": "1.44.2",
     "@koa/bodyparser": "^6.1.0",
