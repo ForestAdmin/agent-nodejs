@@ -33,12 +33,45 @@ export function isEphemeralSqlite(instance: Sequelize): boolean {
   return instance.getDialect() === 'sqlite' && sqliteStorageFile(instance) === null;
 }
 
-function resolveDatabaseName(instance: Sequelize): string {
-  const { database, dialectOptions, replication } = instance.config;
+/** The connection parameters a query against the write pool runs with. */
+interface EffectiveConnectionConfig {
+  database?: string | null;
+  host?: string | null;
+  dialectOptions?: {
+    database?: string;
+    options?: { database?: string };
+    connectString?: string;
+  };
+  replication?: false | { write?: EffectiveConnectionConfig };
+}
+
+/** `_.defaults` semantics: only an undefined value falls back to the global config. */
+function withGlobalDefault<T>(value: T | undefined, globalValue: T | undefined): T | undefined {
+  return value === undefined ? globalValue : value;
+}
+
+/**
+ * The write pool connects with `replication.write`, where Sequelize fills every unset key
+ * from the global config (`initPools` defaults that merge on a clone of the config, so it
+ * is rebuilt here); without replication, the global config is what the pool uses.
+ */
+function effectiveConnectionConfig(instance: Sequelize): EffectiveConnectionConfig {
+  const globalConfig = instance.config as EffectiveConnectionConfig;
+  const write = globalConfig.replication && globalConfig.replication.write;
+
+  if (!write) return globalConfig;
+
+  return {
+    database: withGlobalDefault(write.database, globalConfig.database),
+    host: withGlobalDefault(write.host, globalConfig.host),
+    dialectOptions: withGlobalDefault(write.dialectOptions, globalConfig.dialectOptions),
+  };
+}
+
+function resolveDatabaseName(instance: Sequelize): string | null {
+  const config = effectiveConnectionConfig(instance);
   const dialect = instance.getDialect();
-  const driverOptions = dialectOptions as
-    | { database?: string; options?: { database?: string } }
-    | undefined;
+  const driverOptions = config.dialectOptions;
 
   if (
     DIALECTS_READING_DATABASE_FROM_DIALECT_OPTIONS.has(dialect) &&
@@ -51,18 +84,18 @@ function resolveDatabaseName(instance: Sequelize): string {
     return driverOptions.options.database;
   }
 
-  if (replication && replication.write?.database !== undefined) {
-    return replication.write.database;
-  }
-
-  return database;
+  return config.database ?? null;
 }
 
-function isPlainOracleName(instance: Sequelize, name: string): boolean {
-  const { connectString } =
-    (instance.config.dialectOptions as { connectString?: string } | undefined) ?? {};
+/** An explicit descriptor or connect string holds a connect target, not a database name. */
+function isPlainOracleName(instance: Sequelize, name: string | null): boolean {
+  const config = effectiveConnectionConfig(instance);
 
-  return connectString === undefined && name !== null && !ORACLE_CONNECT_DESCRIPTOR.test(name);
+  return (
+    config.dialectOptions?.connectString === undefined &&
+    name !== null &&
+    !ORACLE_CONNECT_DESCRIPTOR.test(name)
+  );
 }
 
 export function describeDatabase(instance: Sequelize): DataSourceDatabase {

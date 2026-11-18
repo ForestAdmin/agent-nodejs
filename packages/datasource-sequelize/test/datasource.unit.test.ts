@@ -1,3 +1,5 @@
+import type { Options } from 'sequelize';
+
 import { QueryTypes, Sequelize } from 'sequelize';
 
 import { SequelizeCollection, SequelizeDataSource } from '../src';
@@ -82,6 +84,18 @@ describe('SequelizeDataSource', () => {
 
       expect(new SequelizeDataSource(sequelize).schema.databases).toStrictEqual([
         { type: 'mysql', name: 'mydb' },
+      ]);
+    });
+
+    it('should report the mariadb dialect and database name', () => {
+      const sequelize = new Sequelize({
+        dialect: 'mariadb',
+        database: 'mariadb_db',
+        username: 'SENTINEL_USER',
+      });
+
+      expect(new SequelizeDataSource(sequelize).schema.databases).toStrictEqual([
+        { type: 'mariadb', name: 'mariadb_db' },
       ]);
     });
 
@@ -179,6 +193,38 @@ describe('SequelizeDataSource', () => {
       ]);
     });
 
+    it('should report the write dialectOptions database over the configured one when replication is set', () => {
+      const options = {
+        dialect: 'mysql' as const,
+        database: 'configured',
+        replication: {
+          write: { host: 'primary', dialectOptions: { database: 'real' } },
+          read: [{ host: 'replica' }],
+        },
+      };
+      const sequelize = new Sequelize(options as Options);
+
+      expect(new SequelizeDataSource(sequelize).schema.databases).toStrictEqual([
+        { type: 'mysql', name: 'real' },
+      ]);
+    });
+
+    it('should report the global dialectOptions database over the write one when replication is set', () => {
+      const sequelize = new Sequelize({
+        dialect: 'mysql',
+        database: 'configured',
+        dialectOptions: { database: 'flat' },
+        replication: {
+          write: { host: 'primary', database: 'write_db' },
+          read: [{ host: 'replica' }],
+        },
+      });
+
+      expect(new SequelizeDataSource(sequelize).schema.databases).toStrictEqual([
+        { type: 'mysql', name: 'flat' },
+      ]);
+    });
+
     it('should report no name for an explicit null write database', () => {
       const sequelize = {
         models: {},
@@ -270,6 +316,38 @@ describe('SequelizeDataSource', () => {
 
       expect(new SequelizeDataSource(sequelize).schema.databases).toStrictEqual([
         { type: 'mssql', name: 'plain' },
+      ]);
+    });
+
+    it('should report the dialectOptions database on snowflake', () => {
+      const sequelize = {
+        models: {},
+        getDialect: () => 'snowflake',
+        config: {
+          database: 'fallback',
+          dialectOptions: { database: 'snow_db' },
+          replication: false,
+        },
+      } as unknown as Sequelize;
+
+      expect(new SequelizeDataSource(sequelize).schema.databases).toStrictEqual([
+        { type: 'other', name: 'snow_db' },
+      ]);
+    });
+
+    it('should report the dialectOptions database on db2', () => {
+      const sequelize = {
+        models: {},
+        getDialect: () => 'db2',
+        config: {
+          database: 'fallback',
+          dialectOptions: { database: 'db2_db' },
+          replication: false,
+        },
+      } as unknown as Sequelize;
+
+      expect(new SequelizeDataSource(sequelize).schema.databases).toStrictEqual([
+        { type: 'other', name: 'db2_db' },
       ]);
     });
 
