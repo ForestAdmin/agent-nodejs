@@ -215,6 +215,7 @@ export type McpEmbedOptions = {
   tokenTtl?: TokenTtlOptions;
   allowedOAuthClients?: string[];
   fileUploads?: false | FileUploadsOptions;
+  apps?: boolean;
 };
 
 export type GatewayOptions = {
