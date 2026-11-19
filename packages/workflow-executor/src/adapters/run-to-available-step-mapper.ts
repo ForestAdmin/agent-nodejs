@@ -333,6 +333,7 @@ export default function toAvailableStepExecution(
   if (!pending || pending.done) return null;
 
   const { callScope, excludedStepIndexes } = toCallScope(run.workflowHistory, pending);
+  const workflowName = toNonEmptyString(run.workflowName);
 
   const result = {
     runId: String(run.id),
@@ -359,6 +360,7 @@ export default function toAvailableStepExecution(
     timezone: toProjectTimezone(run.timezone),
     ...(callScope && { callScope }),
     ...(carriesError(pending) && { carriesError: true as const }),
+    ...(workflowName && { workflowName }),
   };
 
   // Defense against mapper bugs: zod asserts the shape we produce is what the domain expects,

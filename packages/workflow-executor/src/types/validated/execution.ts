@@ -89,6 +89,8 @@ export const AvailableStepExecutionSchema = z
     callScope: CallScopeSchema.optional(),
     // The step still carries the error of its last report: a success or a pause clears it.
     carriesError: z.literal(true).optional(),
+    // Absent from an orchestrator that predates it; the run's activity logs then carry no workflow.
+    workflowName: z.string().min(1).optional(),
   })
   .strict();
 export type AvailableStepExecution = z.infer<typeof AvailableStepExecutionSchema>;

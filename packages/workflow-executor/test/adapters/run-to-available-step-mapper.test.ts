@@ -146,6 +146,21 @@ describe('toAvailableStepExecution', () => {
     },
   );
 
+  it('should forward the workflow name the orchestrator sends', () => {
+    const result = toAvailableStepExecution(makeRun({ workflowName: 'Alert triage' }));
+
+    expect(result?.workflowName).toBe('Alert triage');
+  });
+
+  it.each([null, undefined, ''])(
+    'should leave the workflow name out when the orchestrator sends %p',
+    workflowName => {
+      const result = toAvailableStepExecution(makeRun({ workflowName }));
+
+      expect(result).not.toHaveProperty('workflowName');
+    },
+  );
+
   it('should forward the run triggerType', () => {
     const run = makeRun({ triggerType: ServerWorkflowTriggerType.webhook });
 
