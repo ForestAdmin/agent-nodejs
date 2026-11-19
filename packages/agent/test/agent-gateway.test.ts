@@ -354,6 +354,20 @@ describe('Agent.addGateway', () => {
         }
       });
 
+      it('should hand a bedrock setting with a blank region the process AWS_REGION', async () => {
+        process.env.AWS_REGION = 'eu-west-3';
+        const { agent } = buildAgent();
+        agent.addGateway({
+          api: { ai: { provider: 'bedrock', model: 'anthropic.claude', region: '  ' } },
+        });
+
+        await agent.start();
+
+        expect(mockParseConfig).toHaveBeenCalledWith(
+          expect.objectContaining({ BFF_AI_PROVIDER: 'bedrock', AWS_REGION: 'eu-west-3' }),
+        );
+      });
+
       it("should prefer the bedrock setting's own region over AWS_REGION", async () => {
         process.env.AWS_REGION = 'eu-west-3';
         const { agent } = buildAgent();

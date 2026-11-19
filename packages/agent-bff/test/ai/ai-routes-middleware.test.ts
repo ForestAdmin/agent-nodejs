@@ -515,6 +515,15 @@ describe("createAiRoutesMiddleware with the customer's model", () => {
       ['an empty message list', { messages: [] }],
       ['a message without content', { messages: [{ role: 'user' }] }],
       ['an unknown role', { messages: [{ role: 'tool', content: 'x' }] }],
+      [
+        'a system message not opening the conversation',
+        {
+          messages: [
+            { role: 'user', content: 'hi' },
+            { role: 'system', content: 'be brief' },
+          ],
+        },
+      ],
     ])('should refuse %s with 400', async (_label, body) => {
       const { app, invoke } = makeCustomerApp();
 

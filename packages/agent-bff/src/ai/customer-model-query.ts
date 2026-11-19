@@ -14,7 +14,10 @@ export interface CustomerModel {
 const requestSchema = z.object({
   messages: z
     .array(z.object({ role: z.enum(['system', 'user', 'assistant']), content: z.string() }))
-    .min(1),
+    .min(1)
+    // Anthropic and Bedrock refuse a conversation not opening with its system message, and the
+    // adapter only merges system messages when there are several.
+    .refine(messages => messages.findIndex(({ role }) => role === 'system') <= 0),
   // The model is called without tools, so a caller asking for some would get an answer ignoring them.
   tools: z.array(z.unknown()).max(0).optional(),
 });
@@ -24,7 +27,8 @@ export function parseCustomerModelRequest(body: unknown): OpenAIMessage[] {
 
   if (!parsed.success) {
     throw invalidRequest(
-      'An AI query takes messages with a system, user or assistant role and text content, and no tools',
+      'An AI query takes messages with a system, user or assistant role and text content, ' +
+        'a system message opening the conversation, and no tools',
     );
   }
 

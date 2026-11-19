@@ -310,8 +310,8 @@ function registerAiQueryPath(
       'This path is published only by a deployment whose OAuth configuration is complete, ' +
       'since the relay needs a session. When the Gateway has its own AI provider configured, ' +
       'the query goes to that provider instead and never to the Forest server: it then takes ' +
-      'only system, user and assistant messages with text content and no tools, and answers ' +
-      'in the same chat-completion shape.',
+      'only system, user and assistant messages with text content, a system message opening ' +
+      'the conversation, and no tools, and answers in the same chat-completion shape.',
     security: [{ [SESSION_SCHEME]: [] }],
     request: {
       body: { required: true, content: { 'application/json': { schema: AiQueryRequestSchema } } },

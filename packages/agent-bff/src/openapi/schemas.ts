@@ -526,7 +526,8 @@ export const AiQueryRequestSchema = z.unknown().openapi('AiQueryRequest', {
     '`messages`, and optionally `tools`, `tool_choice`, `parallel_tool_calls`. A malformed body ' +
     'is rejected by the Forest server, not here. When the Gateway has its own AI provider ' +
     'configured, the Gateway API validates the body itself instead: only system, user and ' +
-    'assistant messages with text content and no tools, otherwise 400 invalid_request.',
+    'assistant messages with text content, a system message opening the conversation, and no ' +
+    'tools, otherwise 400 invalid_request.',
 });
 
 export const ErrorResponseSchema = z
