@@ -10,8 +10,26 @@ import CollectionChart from './collection-chart';
 import Relation from './relation';
 import Segment from './segment';
 import FieldFormStates from '../action-fields/field-form-states';
+import { RecordNotFoundError } from '../errors';
 import QuerySerializer from '../query-serializer';
 import serializeRecordId from '../record-id';
+
+const JSON_API_DOCUMENT_KEYS = new Set(['data', 'jsonapi', 'meta', 'links', 'included']);
+
+// The deserializer fails on `data: null` and the requester then hands back the raw document, so a
+// missing record arrives as `{ jsonapi, data: null }`, or as an empty body from some agents.
+function holdsNoRecord(body: unknown): boolean {
+  if (body === null || body === undefined || body === '') return true;
+  if (typeof body !== 'object') return false;
+
+  const keys = Object.keys(body);
+
+  return (
+    keys.length === 0 ||
+    ((body as { data?: unknown }).data === null &&
+      keys.every(key => JSON_API_DOCUMENT_KEYS.has(key)))
+  );
+}
 
 export default class Collection extends CollectionChart {
   protected readonly name: string;
@@ -173,11 +191,13 @@ export default class Collection extends CollectionChart {
     const serializedId = serializeRecordId(id);
     const requestBody = { data: { attributes, type: this.name, id: serializedId } };
 
-    return this.httpRequester.query<Data>({
+    const record = await this.httpRequester.query<Data>({
       method: 'put',
       path: `/forest/${this.name}/${serializedId}`,
       body: requestBody,
     });
+
+    return this.assertRecordFound(record, serializedId);
   }
 
   async getOne<Data = unknown>(
@@ -185,12 +205,24 @@ export default class Collection extends CollectionChart {
     options?: SelectOptions,
     { skipDeserialization = false }: { skipDeserialization?: boolean } = {},
   ): Promise<Data> {
-    return this.httpRequester.query<Data>({
+    const serializedId = serializeRecordId(id);
+    const record = await this.httpRequester.query<Data>({
       method: 'get',
-      path: `/forest/${this.name}/${serializeRecordId(id)}`,
+      path: `/forest/${this.name}/${serializedId}`,
       query: QuerySerializer.serialize(options, this.name),
       skipDeserialization,
     });
+
+    // A raw body is the caller's to read: `data: null` is a valid JSON:API answer there.
+    if (skipDeserialization) return record;
+
+    return this.assertRecordFound(record, serializedId);
+  }
+
+  private assertRecordFound<Data>(record: Data, serializedId: string): Data {
+    if (holdsNoRecord(record)) throw new RecordNotFoundError(this.name, serializedId);
+
+    return record;
   }
 
   private getActionInfo(
