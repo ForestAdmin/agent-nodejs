@@ -726,6 +726,22 @@ describe('parseConfig', () => {
       );
     });
 
+    it('should let an error reading the AI setting through, not relabel it a configuration error', () => {
+      const failure = new Error('environment unreadable');
+      const env = new Proxy(
+        { ...VALID_ENV },
+        {
+          get: (target, key) => {
+            if (key === 'AI_PROVIDER') throw failure;
+
+            return target[key as keyof typeof target];
+          },
+        },
+      );
+
+      expect(() => parseConfig(env)).toThrow(failure);
+    });
+
     it('should take a bedrock region from AWS_REGION', () => {
       expect(
         parseConfig({
