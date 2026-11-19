@@ -1,3 +1,18 @@
+## @forestadmin/workflow-executor [1.40.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.40.0...@forestadmin/workflow-executor@1.40.1) (2026-11-19)
+
+
+### Bug Fixes
+
+* **workflow-executor:** replay an MCP step's tool calls as native tool messages ([#2091](https://github.com/ForestAdmin/agent-nodejs/issues/2091)) ([fb12518](https://github.com/ForestAdmin/agent-nodejs/commit/fb125181a6104c67ce38a8eb1b9b40578d25d778))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/ai-proxy:** upgraded to 1.17.1
+
 # @forestadmin/workflow-executor [1.40.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.39.0...@forestadmin/workflow-executor@1.40.0) (2026-11-19)
 
 
