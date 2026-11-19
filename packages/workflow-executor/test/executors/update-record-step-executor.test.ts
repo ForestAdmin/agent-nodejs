@@ -11,6 +11,7 @@ import type { UpdateRecordStepDefinition } from '../../src/types/validated/step-
 import {
   ActivityLogCreationError,
   AgentPortError,
+  RecordNotFoundError,
   RunStorePortError,
   StepStateError,
 } from '../../src/errors';
@@ -2305,6 +2306,7 @@ describe('UpdateRecordStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('success');
       expect(mockModel.bindTools).not.toHaveBeenCalled();
+      expect(agentPort.getRecord).not.toHaveBeenCalled();
       expect(agentPort.updateRecord).toHaveBeenCalledTimes(1);
       expect(agentPort.updateRecord).toHaveBeenCalledWith(
         {
@@ -2534,9 +2536,12 @@ describe('UpdateRecordStepExecutor', () => {
       ],
     });
 
+    const currentValues = { status: 'active', age: 30, isActive: true };
+
     function makeSuggestionContext(
       preRecordedArgs: UpdateRecordStepDefinition['preRecordedArgs'],
       aiValues?: Record<string, unknown>,
+      activityLogPort?: ActivityLogPort,
     ) {
       const mockModel = makeMockModel(
         aiValues ? { values: aiValues, reasoning: 'r' } : undefined,
@@ -2544,10 +2549,16 @@ describe('UpdateRecordStepExecutor', () => {
       );
       const runStore = makeMockRunStore();
       const agentPort = makeMockAgentPort();
+      (agentPort.getRecord as jest.Mock).mockResolvedValue({
+        collectionName: 'customers',
+        recordId: [42],
+        values: currentValues,
+      });
       const context = makeContext({
         model: mockModel.model,
         runStore,
         agentPort,
+        activityLogPort,
         workflowPort: makeMockWorkflowPort({ customers: suggestionSchema }),
         stepDefinition: makeStep({
           executionType: StepExecutionMode.AutomatedWithConfirmation,
@@ -2584,9 +2595,9 @@ describe('UpdateRecordStepExecutor', () => {
         stepIndex: 0,
         pendingData: {
           fields: [
-            { displayName: 'Status', name: 'status', value: 'inactive' },
-            { displayName: 'Age', name: 'age', value: 42 },
-            { displayName: 'Is Active', name: 'isActive', value: false },
+            { displayName: 'Status', name: 'status', value: 'inactive', previousValue: 'active' },
+            { displayName: 'Age', name: 'age', value: 42, previousValue: 30 },
+            { displayName: 'Is Active', name: 'isActive', value: false, previousValue: true },
           ],
         },
         selectedRecordRef: makeRecordRef(),
@@ -2654,8 +2665,8 @@ describe('UpdateRecordStepExecutor', () => {
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
 
-    it('fails naming the field when the AI leaves one out, saving nothing', async () => {
-      const { executor, runStore, context } = makeSuggestionContext(
+    it('fails naming the field when the AI leaves one out, reading and saving nothing', async () => {
+      const { executor, runStore, context, agentPort } = makeSuggestionContext(
         { fieldNames: ['status', 'age'] },
         { field_0: 'inactive' },
       );
@@ -2668,6 +2679,7 @@ describe('UpdateRecordStepExecutor', () => {
         'Invalid value for field "Age": missing from the AI response',
         expect.anything(),
       );
+      expect(agentPort.getRecord).not.toHaveBeenCalled();
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
 
@@ -2689,17 +2701,17 @@ describe('UpdateRecordStepExecutor', () => {
         expect.objectContaining({
           pendingData: {
             fields: [
-              { displayName: 'Status', name: 'status', value: 'inactive' },
-              { displayName: 'Age', name: 'age', value: 7 },
-              { displayName: 'Is Active', name: 'isActive', value: true },
+              { displayName: 'Status', name: 'status', value: 'inactive', previousValue: 'active' },
+              { displayName: 'Age', name: 'age', value: 7, previousValue: 30 },
+              { displayName: 'Is Active', name: 'isActive', value: true, previousValue: true },
             ],
           },
         }),
       );
     });
 
-    it('pauses without calling the AI when every field has a pinned value', async () => {
-      const { executor, mockModel, runStore } = makeSuggestionContext({
+    it('pauses without calling the AI when every field has a pinned value, still reading the record', async () => {
+      const { executor, mockModel, runStore, agentPort } = makeSuggestionContext({
         fieldNames: ['status', 'age'],
         values: { status: 'active', age: null },
       });
@@ -2708,13 +2720,17 @@ describe('UpdateRecordStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('awaiting-input');
       expect(mockModel.bindTools).not.toHaveBeenCalled();
+      expect(agentPort.getRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], fields: ['status', 'age'] },
+        expect.objectContaining({ id: 1 }),
+      );
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({
           pendingData: {
             fields: [
-              { displayName: 'Status', name: 'status', value: 'active' },
-              { displayName: 'Age', name: 'age', value: null },
+              { displayName: 'Status', name: 'status', value: 'active', previousValue: 'active' },
+              { displayName: 'Age', name: 'age', value: null, previousValue: 30 },
             ],
           },
         }),
@@ -2737,8 +2753,10 @@ describe('UpdateRecordStepExecutor', () => {
       expect(mockModel.bindTools).not.toHaveBeenCalled();
     });
 
-    it('rejects a pinned relationship before calling the AI', async () => {
-      const { executor, mockModel } = makeSuggestionContext({ fieldNames: ['status', 'orders'] });
+    it('rejects a pinned relationship before calling the AI or reading the record', async () => {
+      const { executor, mockModel, agentPort } = makeSuggestionContext({
+        fieldNames: ['status', 'orders'],
+      });
 
       const result = await executor.execute();
 
@@ -2748,6 +2766,7 @@ describe('UpdateRecordStepExecutor', () => {
           'Edit the step to pick another field.',
       );
       expect(mockModel.bindTools).not.toHaveBeenCalled();
+      expect(agentPort.getRecord).not.toHaveBeenCalled();
     });
 
     it('rejects a pinned field missing from the schema before calling the AI', async () => {
@@ -2786,7 +2805,9 @@ describe('UpdateRecordStepExecutor', () => {
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({
-          pendingData: { fields: [{ displayName: 'Age', name: 'age', value: 3 }] },
+          pendingData: {
+            fields: [{ displayName: 'Age', name: 'age', value: 3, previousValue: 30 }],
+          },
         }),
       );
     });
@@ -2794,9 +2815,11 @@ describe('UpdateRecordStepExecutor', () => {
     it('keeps the single-field tool and pending data shape for a legacy fieldName', async () => {
       const mockModel = makeMockModel({ value: '42', reasoning: 'r' }, 'set-record-field-value');
       const runStore = makeMockRunStore();
+      const agentPort = makeMockAgentPort();
       const context = makeContext({
         model: mockModel.model,
         runStore,
+        agentPort,
         workflowPort: makeMockWorkflowPort({ customers: suggestionSchema }),
         stepDefinition: makeStep({ preRecordedArgs: { fieldName: 'age' } }),
       });
@@ -2811,6 +2834,121 @@ describe('UpdateRecordStepExecutor', () => {
           pendingData: { displayName: 'Age', name: 'age', value: 42 },
         }),
       );
+      expect(agentPort.getRecord).not.toHaveBeenCalled();
+    });
+
+    describe('current value of each field', () => {
+      it('reads every pinned field in one projection after the AI answers', async () => {
+        const { executor, mockModel, agentPort } = makeSuggestionContext(
+          { fieldNames: ['status', 'age', 'isActive'] },
+          { field_0: 'inactive', field_1: 42, field_2: false },
+        );
+
+        await executor.execute();
+
+        expect(agentPort.getRecord).toHaveBeenCalledTimes(1);
+        expect(agentPort.getRecord).toHaveBeenCalledWith(
+          { collection: 'customers', id: [42], fields: ['status', 'age', 'isActive'] },
+          expect.objectContaining({ id: 1 }),
+        );
+        expect(mockModel.invoke.mock.invocationCallOrder[0]).toBeLessThan(
+          (agentPort.getRecord as jest.Mock).mock.invocationCallOrder[0],
+        );
+      });
+
+      it('stores null for a field that is empty or absent from the read record', async () => {
+        const { executor, runStore, agentPort } = makeSuggestionContext(
+          { fieldNames: ['status', 'age'] },
+          { field_0: 'inactive', field_1: 42 },
+        );
+        (agentPort.getRecord as jest.Mock).mockResolvedValue({
+          collectionName: 'customers',
+          recordId: [42],
+          values: { status: null },
+        });
+
+        await executor.execute();
+
+        expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+          'run-1',
+          expect.objectContaining({
+            pendingData: {
+              fields: [
+                { displayName: 'Status', name: 'status', value: 'inactive', previousValue: null },
+                { displayName: 'Age', name: 'age', value: 42, previousValue: null },
+              ],
+            },
+          }),
+        );
+      });
+
+      it('fails like a failed update when the read fails, saving and writing nothing', async () => {
+        const { executor, runStore, agentPort, context } = makeSuggestionContext(
+          { fieldNames: ['status', 'age'] },
+          { field_0: 'inactive', field_1: 42 },
+        );
+        (agentPort.getRecord as jest.Mock).mockRejectedValue(
+          new AgentPortError('getRecord', new Error('DB connection lost')),
+        );
+
+        const result = await executor.execute();
+
+        expect(result.stepOutcome.status).toBe('error');
+        expect(result.stepOutcome.errorKind).toBeUndefined();
+        expect(result.stepOutcome.error).toBe(
+          'An error occurred while accessing your data. Please try again.',
+        );
+        expect(context.logger).toHaveBeenCalledWith(
+          'Error',
+          'Agent port "getRecord" failed: DB connection lost',
+          expect.objectContaining({ cause: 'DB connection lost' }),
+        );
+        expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+        expect(agentPort.updateRecord).not.toHaveBeenCalled();
+      });
+
+      it('fails as an operator error when the record was deleted before the pause', async () => {
+        const { executor, runStore, agentPort } = makeSuggestionContext(
+          { fieldNames: ['status', 'age'] },
+          { field_0: 'inactive', field_1: 42 },
+        );
+        (agentPort.getRecord as jest.Mock).mockRejectedValue(
+          new RecordNotFoundError('customers', [42]),
+        );
+
+        const result = await executor.execute();
+
+        expect(result.stepOutcome.status).toBe('error');
+        expect(result.stepOutcome.errorKind).toBe('operator');
+        expect(result.stepOutcome.error).toBe(
+          'The record no longer exists. It may have been deleted.',
+        );
+        expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+      });
+
+      it('logs the read in the activity log against the selected record', async () => {
+        const activityLogPort = {
+          createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
+          markSucceeded: jest.fn().mockResolvedValue(undefined),
+          markFailed: jest.fn().mockResolvedValue(undefined),
+        };
+        const { executor } = makeSuggestionContext(
+          { fieldNames: ['status', 'age'] },
+          { field_0: 'inactive', field_1: 42 },
+          activityLogPort,
+        );
+
+        await executor.execute();
+
+        expect(activityLogPort.createPending).toHaveBeenCalledTimes(1);
+        expect(activityLogPort.createPending).toHaveBeenCalledWith({
+          renderingId: 1,
+          action: 'index',
+          type: 'read',
+          collectionId: 'col-customers',
+          recordId: [42],
+        });
+      });
     });
 
     describe('confirmation of a multi-field pending update', () => {
@@ -2820,8 +2958,8 @@ describe('UpdateRecordStepExecutor', () => {
           stepIndex: 0,
           pendingData: {
             fields: [
-              { displayName: 'Status', name: 'status', value: 'inactive' },
-              { displayName: 'Age', name: 'age', value: 42 },
+              { displayName: 'Status', name: 'status', value: 'inactive', previousValue: 'active' },
+              { displayName: 'Age', name: 'age', value: 42, previousValue: 30 },
             ],
           },
           userConfirmation: { userConfirmed },
