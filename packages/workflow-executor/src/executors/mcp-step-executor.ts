@@ -376,7 +376,7 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
 
       return [
         new AIMessage({ content: '', tool_calls: [{ id, name, args: input, type: 'tool_call' }] }),
-        // Bedrock refuses a tool result whose text is blank.
+        // A blank result reads as nothing; the sentence tells the model the call ran and returned nothing.
         new ToolMessage({ tool_call_id: id, content: text.trim() ? text : EMPTY_TOOL_RESULT }),
       ];
     });
