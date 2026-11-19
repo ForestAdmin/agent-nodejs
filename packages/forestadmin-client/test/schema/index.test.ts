@@ -75,7 +75,7 @@ describe('SchemaService', () => {
       });
 
       expect(mockForestAdminServerInterface.postSchema).toHaveBeenCalledWith(
-        expect.anything(),
+        { envSecret: options.envSecret, forestServerUrl: options.forestServerUrl },
         expect.objectContaining({
           meta: expect.objectContaining({
             stack: { engine: 'nodejs', engine_version: '16.0.0', databases },
