@@ -1,3 +1,10 @@
+# @forestadmin/ai-proxy [1.17.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.16.1...@forestadmin/ai-proxy@1.17.0) (2026-11-19)
+
+
+### Features
+
+* **ai-proxy:** let the Zendesk connector authenticate with an OAuth client ([#2072](https://github.com/ForestAdmin/agent-nodejs/issues/2072)) ([e530c73](https://github.com/ForestAdmin/agent-nodejs/commit/e530c739110f30f853d73442ccb3f5acd3688ef5))
+
 ## @forestadmin/ai-proxy [1.16.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.16.0...@forestadmin/ai-proxy@1.16.1) (2026-11-18)
 
 
