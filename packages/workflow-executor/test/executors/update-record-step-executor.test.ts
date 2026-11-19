@@ -2882,6 +2882,33 @@ describe('UpdateRecordStepExecutor', () => {
         );
       });
 
+      it('keeps a current value of 0, false or an empty string instead of storing null', async () => {
+        const { executor, runStore, agentPort } = makeSuggestionContext(
+          { fieldNames: ['status', 'age', 'isActive'] },
+          { field_0: 'inactive', field_1: 42, field_2: true },
+        );
+        (agentPort.getRecord as jest.Mock).mockResolvedValue({
+          collectionName: 'customers',
+          recordId: [42],
+          values: { status: '', age: 0, isActive: false },
+        });
+
+        await executor.execute();
+
+        expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+          'run-1',
+          expect.objectContaining({
+            pendingData: {
+              fields: [
+                { displayName: 'Status', name: 'status', value: 'inactive', previousValue: '' },
+                { displayName: 'Age', name: 'age', value: 42, previousValue: 0 },
+                { displayName: 'Is Active', name: 'isActive', value: true, previousValue: false },
+              ],
+            },
+          }),
+        );
+      });
+
       it('fails like a failed update when the read fails, saving and writing nothing', async () => {
         const { executor, runStore, agentPort, context } = makeSuggestionContext(
           { fieldNames: ['status', 'age'] },
