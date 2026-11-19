@@ -161,7 +161,7 @@ export default class EmbeddedBff {
     // the region always belongs to the provider it is handed with.
     return {
       ...(ownAi ? own : aiEnv(runtimeAi, '')),
-      AWS_REGION: (chosen && 'region' in chosen && chosen.region) || process.env.AWS_REGION,
+      AWS_REGION: (chosen && 'region' in chosen && chosen.region?.trim()) || process.env.AWS_REGION,
       AWS_DEFAULT_REGION: process.env.AWS_DEFAULT_REGION,
     };
   }
