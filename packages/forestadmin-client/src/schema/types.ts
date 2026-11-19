@@ -1,4 +1,4 @@
-import type { PrimitiveTypes } from '@forestadmin/datasource-toolkit';
+import type { DataSourceDatabase, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 
 export type ForestSchema = {
   collections: ForestServerCollection[];
@@ -9,6 +9,7 @@ export type ForestSchema = {
     stack: {
       engine: string;
       engine_version: string;
+      databases?: DataSourceDatabase[];
     };
   };
 };
