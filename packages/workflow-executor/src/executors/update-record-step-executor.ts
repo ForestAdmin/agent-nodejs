@@ -13,7 +13,6 @@ import {
   InvalidPreRecordedArgsError,
   InvalidPreRecordedValueError,
   MissingPreRecordedValueError,
-  MultiFieldUpdateRequiresAutomaticError,
   NoWritableFieldsError,
   PendingFieldNotFoundError,
   PinnedArgNotFoundError,
@@ -30,6 +29,25 @@ Important rules:
 - Be precise: only update the field that is directly relevant to the request.
 - Final answer is definitive, you won't receive any other input from the user.
 - Do not refer to yourself as "I" in the response, use a passive formulation instead.`;
+
+const UPDATE_RECORD_FIELDS_SYSTEM_PROMPT = `You are an AI agent updating several fields on a record based on a user request.
+Provide a new value for each of the listed fields.
+
+Important rules:
+- Be precise: derive each value from the request and the workflow context.
+- Use null only when the request asks to clear a field.
+- Final answer is definitive, you won't receive any other input from the user.
+- Do not refer to yourself as "I" in the response, use a passive formulation instead.`;
+
+// Some providers only accept tool property keys matching ^[a-zA-Z0-9_.-]{1,64}$, which a display
+// name like "First name" breaks, so each field gets a positional key.
+function toFieldValueKey(index: number): string {
+  return `field_${index}`;
+}
+
+function hasOwn(values: Record<string, unknown> | undefined, key: string): boolean {
+  return values !== undefined && Object.prototype.hasOwnProperty.call(values, key);
+}
 
 const jsonStringSchema = z
   .string()
@@ -272,6 +290,11 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
       return this.handleConfirmationFlow<UpdateRecordStepExecutionData>(pending, async exec => {
         const { selectedRecordRef, userConfirmation } = exec;
         const pendingData = exec.pendingData!;
+
+        if ('fields' in pendingData) {
+          throw new StepStateError('Confirming a multi-field update is not supported yet');
+        }
+
         // A user override of `null` (clearing the field) must win over the AI suggestion, so
         // distinguish "no override" (undefined) from "override to null".
         const isOverridden = userConfirmation?.value !== undefined;
@@ -314,13 +337,6 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     const { stepDefinition: step } = this.context;
     const { preRecordedArgs } = step;
 
-    if (
-      preRecordedArgs?.fieldNames !== undefined &&
-      step.executionType !== StepExecutionMode.FullyAutomated
-    ) {
-      throw new MultiFieldUpdateRequiresAutomaticError();
-    }
-
     const selectedRecordRef =
       preRecordedArgs?.selectedRecordStepId !== undefined
         ? await this.resolveSourceRecordRef(preRecordedArgs.selectedRecordStepId)
@@ -332,11 +348,23 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
 
     if (preRecordedArgs?.fieldNames !== undefined) {
-      return this.updatePinnedFields(
+      const fieldNames = [...new Set(preRecordedArgs.fieldNames)];
+
+      if (step.executionType === StepExecutionMode.FullyAutomated) {
+        return this.updatePinnedFields(
+          selectedRecordRef,
+          schema,
+          fieldNames,
+          preRecordedArgs.values ?? {},
+        );
+      }
+
+      return this.suggestPinnedFields(
         selectedRecordRef,
         schema,
-        preRecordedArgs.fieldNames,
-        preRecordedArgs.values ?? {},
+        fieldNames,
+        preRecordedArgs.values,
+        step.prompt,
       );
     }
 
@@ -407,22 +435,58 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     fieldNames: string[],
     values: Record<string, unknown>,
   ): Promise<StepExecutionResult> {
-    const fields = [...new Set(fieldNames)].map(fieldName =>
-      this.resolvePinnedFieldValue(
-        schema,
-        fieldName,
-        Object.prototype.hasOwnProperty.call(values, fieldName) ? values[fieldName] : undefined,
-      ),
-    );
+    const fields = fieldNames.map(fieldName => {
+      const field = this.findPinnedWritableField(schema, fieldName);
+
+      // `null` clears the field; only an absent key is a missing value.
+      if (!hasOwn(values, fieldName)) {
+        throw new MissingPreRecordedValueError(field.displayName);
+      }
+
+      return this.toPinnedFieldWithValue(schema, field, values[fieldName]);
+    });
 
     return this.resolveAndUpdate(selectedRecordRef, { fields });
   }
 
-  private resolvePinnedFieldValue(
+  private async suggestPinnedFields(
+    selectedRecordRef: RecordRef,
     schema: CollectionSchema,
-    fieldName: string,
-    value: unknown,
-  ): FieldWithValue {
+    fieldNames: string[],
+    values: Record<string, unknown> | undefined,
+    prompt: string | undefined,
+  ): Promise<StepExecutionResult> {
+    const pinnedFields = fieldNames.map(fieldName =>
+      this.findPinnedWritableField(schema, fieldName),
+    );
+    const resolvedFields = new Map<string, FieldWithValue>(
+      pinnedFields
+        .filter(field => hasOwn(values, field.fieldName))
+        .map(field => [
+          field.fieldName,
+          this.toPinnedFieldWithValue(schema, field, values?.[field.fieldName]),
+        ]),
+    );
+    const fieldsToSuggest = pinnedFields.filter(field => !resolvedFields.has(field.fieldName));
+
+    if (fieldsToSuggest.length > 0) {
+      const suggestions = await this.suggestValuesForFields(schema, fieldsToSuggest, prompt);
+      suggestions.forEach(suggestion => resolvedFields.set(suggestion.name, suggestion));
+    }
+
+    await this.context.runStore.saveStepExecution(this.context.runId, {
+      type: 'update-record',
+      stepIndex: this.context.stepIndex,
+      pendingData: {
+        fields: pinnedFields.flatMap(field => resolvedFields.get(field.fieldName) ?? []),
+      },
+      selectedRecordRef,
+    });
+
+    return this.buildOutcomeResult({ status: 'awaiting-input' });
+  }
+
+  private findPinnedWritableField(schema: CollectionSchema, fieldName: string): FieldSchema {
     const field = this.findFieldByTechnicalName(schema, fieldName);
 
     if (!field) {
@@ -433,11 +497,14 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
       throw new RelationshipFieldNotUpdatableError(field.displayName, schema.collectionName);
     }
 
-    // `null` clears the field; only an absent key is a missing value.
-    if (value === undefined) {
-      throw new MissingPreRecordedValueError(field.displayName);
-    }
+    return field;
+  }
 
+  private toPinnedFieldWithValue(
+    schema: CollectionSchema,
+    field: FieldSchema,
+    value: unknown,
+  ): FieldWithValue {
     return {
       displayName: field.displayName,
       name: field.fieldName,
@@ -554,6 +621,64 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     // The AI tool schema is JSON-Schema-safe (plain z.boolean() for Boolean), so it does not coerce
     // a stray "true"/"42" string — coerceFieldValue normalizes the value to the field's native type.
     return coerceFieldValue(field, value, schema.collectionName);
+  }
+
+  private async suggestValuesForFields(
+    schema: CollectionSchema,
+    fields: FieldSchema[],
+    prompt: string | undefined,
+  ): Promise<FieldWithValue[]> {
+    const fieldList = fields.map(field => `"${field.displayName}"`).join(', ');
+    const tool = new DynamicStructuredTool({
+      name: 'set-record-field-values',
+      description: `Provide the new value of each of these fields: ${fieldList}.`,
+      schema: z.object({
+        reasoning: z.string().describe('Why these values were chosen'),
+        values: z.object(
+          Object.fromEntries(
+            fields.map((field, index) => [
+              toFieldValueKey(index),
+              buildZodSchemaForField(field, schema.collectionName, true)
+                .nullable()
+                .describe(`New value of the "${field.displayName}" field`),
+            ]),
+          ),
+        ),
+      }),
+      func: undefined,
+    });
+
+    const messages = [
+      this.buildContextMessage(),
+      ...(await this.buildPreviousStepsMessages()),
+      new SystemMessage(UPDATE_RECORD_FIELDS_SYSTEM_PROMPT),
+      new SystemMessage(
+        `The selected record belongs to the "${schema.collectionDisplayName}" collection. ` +
+          `Set the value of each of these fields: ${fieldList}.`,
+      ),
+      new HumanMessage(`**Request**: ${prompt ?? `Set the value of each of these fields.`}`),
+    ];
+
+    const { values } = await this.invokeWithTool<{ values?: Record<string, unknown> }>(
+      messages,
+      tool,
+    );
+
+    return fields.map((field, index) => {
+      const key = toFieldValueKey(index);
+
+      if (!hasOwn(values, key)) {
+        throw new StepStateError(
+          `Invalid value for field "${field.displayName}": missing from the AI response`,
+        );
+      }
+
+      return {
+        displayName: field.displayName,
+        name: field.fieldName,
+        value: coerceFieldValue(field, values?.[key], schema.collectionName),
+      };
+    });
   }
 
   private buildUpdateFieldTool(schema: CollectionSchema): DynamicStructuredTool {

@@ -107,6 +107,12 @@ export interface ReadRecordStepExecutionData extends BaseStepExecutionData {
 
 // -- Update Record --
 
+export type PendingFieldWithValue = FieldWithValue & { previousValue?: unknown };
+
+export interface UpdateRecordFieldsPendingData {
+  fields: PendingFieldWithValue[];
+}
+
 export interface UpdateRecordStepExecutionData
   extends MutatingStepExecutionData,
     WithUserConfirmation<UpdateRecordConfirmation> {
@@ -114,7 +120,7 @@ export interface UpdateRecordStepExecutionData
   executionParams?: FieldWithValue | { fields: FieldWithValue[] };
   // User confirmed → values returned by updateRecord. User rejected → skipped.
   executionResult?: { updatedValues: Record<string, unknown> } | { skipped: true };
-  pendingData?: FieldWithValue;
+  pendingData?: FieldWithValue | UpdateRecordFieldsPendingData;
   selectedRecordRef: RecordRef;
 }
 

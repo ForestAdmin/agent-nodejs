@@ -30,6 +30,8 @@ export type {
   ConditionStepExecutionData,
   ReadRecordStepExecutionData,
   UpdateRecordStepExecutionData,
+  UpdateRecordFieldsPendingData,
+  PendingFieldWithValue,
   TriggerRecordActionStepExecutionData,
   RecordStepExecutionData,
   LoadRelatedRecordPendingData,
