@@ -58,6 +58,31 @@ describe('SchemaService', () => {
         'Schema was updated, sending new version (hash: f61f747c5f1de29c3aa2a93da76a723ee3f50785)',
       );
     });
+
+    test('should post the stack databases in the serialized meta', async () => {
+      const options = factories.forestAdminClientOptions.build();
+      const schemaService = new SchemaService(mockForestAdminServerInterface, options);
+      const databases = [{ type: 'postgres', name: 'shop' }];
+
+      await schemaService.postSchema({
+        collections: [],
+        meta: {
+          liana: 'forest-nodejs-agent',
+          liana_version: '1.0.0',
+          liana_features: null,
+          stack: { engine: 'nodejs', engine_version: '16.0.0', databases },
+        },
+      });
+
+      expect(mockForestAdminServerInterface.postSchema).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          meta: expect.objectContaining({
+            stack: { engine: 'nodejs', engine_version: '16.0.0', databases },
+          }),
+        }),
+      );
+    });
   });
 
   describe('the server knows the schema', () => {
