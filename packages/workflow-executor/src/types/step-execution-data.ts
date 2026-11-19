@@ -107,7 +107,7 @@ export interface ReadRecordStepExecutionData extends BaseStepExecutionData {
 
 // -- Update Record --
 
-export type PendingFieldWithValue = FieldWithValue & { previousValue?: unknown };
+export type PendingFieldWithValue = FieldWithValue & { previousValue: unknown };
 
 export interface UpdateRecordFieldsPendingData {
   fields: PendingFieldWithValue[];

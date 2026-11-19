@@ -474,11 +474,23 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
       suggestions.forEach(suggestion => resolvedFields.set(suggestion.name, suggestion));
     }
 
+    const { values: currentValues } = await this.context.agent.getRecord({
+      collection: selectedRecordRef.collectionName,
+      id: selectedRecordRef.recordId,
+      fields: pinnedFields.map(field => field.fieldName),
+    });
+
     await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'update-record',
       stepIndex: this.context.stepIndex,
       pendingData: {
-        fields: pinnedFields.flatMap(field => resolvedFields.get(field.fieldName) ?? []),
+        fields: pinnedFields.flatMap(field => {
+          const resolved = resolvedFields.get(field.fieldName);
+
+          return resolved
+            ? [{ ...resolved, previousValue: currentValues[field.fieldName] ?? null }]
+            : [];
+        }),
       },
       selectedRecordRef,
     });
