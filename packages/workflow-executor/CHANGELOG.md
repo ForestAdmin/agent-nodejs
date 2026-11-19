@@ -1,3 +1,19 @@
+# @forestadmin/workflow-executor [1.39.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.38.0...@forestadmin/workflow-executor@1.39.0) (2026-11-19)
+
+
+### Features
+
+* **workflow-executor:** tie the executor's activity logs to their workflow run ([#2069](https://github.com/ForestAdmin/agent-nodejs/issues/2069)) ([6b130ed](https://github.com/ForestAdmin/agent-nodejs/commit/6b130ede804b31ee69a83b7f8199f51c2a16785d))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.19.3
+* **@forestadmin/forestadmin-client:** upgraded to 1.45.0
+
 # @forestadmin/workflow-executor [1.38.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.37.4...@forestadmin/workflow-executor@1.38.0) (2026-11-18)
 
 
