@@ -1,3 +1,27 @@
+# @forestadmin/forestadmin-client [1.46.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.45.0...@forestadmin/forestadmin-client@1.46.0) (2026-11-19)
+
+
+### Features
+
+* **agent:** report databases in the schema push, not in the schema file ([#2093](https://github.com/ForestAdmin/agent-nodejs/issues/2093)) ([5d85882](https://github.com/ForestAdmin/agent-nodejs/commit/5d858828ce5d9daeb4fd92c11ee472e6a9f63449))
+
+# @forestadmin/forestadmin-client [1.45.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.44.3...@forestadmin/forestadmin-client@1.45.0) (2026-11-19)
+
+
+### Features
+
+* **workflow-executor:** tie the executor's activity logs to their workflow run ([#2069](https://github.com/ForestAdmin/agent-nodejs/issues/2069)) ([6b130ed](https://github.com/ForestAdmin/agent-nodejs/commit/6b130ede804b31ee69a83b7f8199f51c2a16785d))
+
+## @forestadmin/forestadmin-client [1.44.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.44.2...@forestadmin/forestadmin-client@1.44.3) (2026-11-18)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.57.0
+
 ## @forestadmin/forestadmin-client [1.44.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.44.1...@forestadmin/forestadmin-client@1.44.2) (2026-11-03)
 
 

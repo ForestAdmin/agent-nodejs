@@ -1,3 +1,39 @@
+## @forestadmin/gateway [1.2.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/gateway@1.2.3...@forestadmin/gateway@1.2.4) (2026-11-19)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-bff:** upgraded to 1.45.4
+* **@forestadmin/forestadmin-client:** upgraded to 1.46.0
+* **@forestadmin/mcp-server:** upgraded to 1.29.8
+
+## @forestadmin/gateway [1.2.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/gateway@1.2.2...@forestadmin/gateway@1.2.3) (2026-11-19)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-bff:** upgraded to 1.45.3
+* **@forestadmin/forestadmin-client:** upgraded to 1.45.0
+* **@forestadmin/mcp-server:** upgraded to 1.29.7
+
+## @forestadmin/gateway [1.2.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/gateway@1.2.1...@forestadmin/gateway@1.2.2) (2026-11-18)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-bff:** upgraded to 1.45.2
+* **@forestadmin/forestadmin-client:** upgraded to 1.44.3
+* **@forestadmin/mcp-server:** upgraded to 1.29.6
+
 ## @forestadmin/gateway [1.2.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/gateway@1.2.0...@forestadmin/gateway@1.2.1) (2026-11-17)
 
 

@@ -533,6 +533,14 @@ export class McpToolInvocationError extends WorkflowExecutorError {
   }
 }
 
+// The connector's provider refused its credentials: the provider's message tells an admin what to fix.
+export class McpCredentialsRefusedError extends WorkflowConfigurationError {
+  constructor(toolName: string, cause: Error) {
+    super(`MCP tool "${toolName}" invocation failed: ${cause.message}`, cause.message);
+    this.cause = cause;
+  }
+}
+
 export class ConfigurationError extends Error {
   constructor(message: string) {
     super(message);
@@ -672,15 +680,32 @@ export class InvalidPreRecordedValueError extends WorkflowConfigurationError {
 // no source to act on ("no source record"). Distinct from a bad config — the
 // user can continue without. Wording is step-type-neutral (shared by load-related and trigger-action).
 // The kind comes from the throw site: only there is it known whether a candidate was on offer.
+// A Multiple source loaded an empty list: what its records are called, and whether a Sub-workflow
+// call, rather than the failing step itself, was to run once for each.
+export type EmptySourceList = { recordsName?: string; forCall?: boolean };
+
+function emptyListMessage(sourceTitle: string | undefined, list: EmptySourceList): string {
+  const source = sourceTitle ? `"${sourceTitle}"` : 'Its source step';
+  const runner = list.forCall ? 'the Sub-workflow that runs once for each' : 'this step';
+
+  return `${source} loaded no ${list.recordsName ?? 'records'}, so ${runner} has none to run for.`;
+}
+
 export class SourceRecordMissingError extends WorkflowExecutorError {
   constructor(
     sourceTitle?: string,
-    options: { errorKind?: ErrorKind; errorSourceStepIndex?: number } = {},
+    options: {
+      errorKind?: ErrorKind;
+      errorSourceStepIndex?: number;
+      emptyList?: EmptySourceList;
+    } = {},
   ) {
     const from = sourceTitle ? `"${sourceTitle}"` : 'its source step';
     super(
       `Source step ${from} loaded no record`,
-      `This step uses ${from} as its source, but that step didn't load any record.`,
+      options.emptyList
+        ? emptyListMessage(sourceTitle, options.emptyList)
+        : `This step uses ${from} as its source, but that step didn't load any record.`,
     );
     this.errorKind = options.errorKind ?? this.errorKind;
     this.errorSourceStepIndex = options.errorSourceStepIndex;
@@ -728,14 +753,38 @@ export class RecordChangeInterruptedError extends WorkflowExecutorError {
   }
 }
 
-// Not SourceRecordMissingError: the source loaded several records, which a Sub-workflow cannot take
-// until it runs once per record, so the remedy is the calling Sub-workflow step.
+// Not SourceRecordMissingError: the source loaded several records and the call carries no record
+// index, as from an orchestrator that opens one call only, so the remedy is the Sub-workflow step.
 export class SourceLoadsSeveralRecordsError extends WorkflowCallSiteError {
   constructor(stepTitle?: string) {
     const step = stepTitle ? `"${stepTitle}"` : 'a step';
     super(
       `Sub-workflow call pins ${step}, which loads several records`,
       `The Sub-workflow step that called this workflow takes its record from ${step}, which loads several records. Set its record to a step that loads one.`,
+    );
+  }
+}
+
+// A call opened once per record names its record by position, so a position past the records the
+// Multiple step loaded means the call no longer matches that step.
+export class CallRecordNotLoadedError extends WorkflowCallSiteError {
+  constructor(stepTitle?: string) {
+    const step = stepTitle ? `"${stepTitle}"` : 'a step';
+    super(
+      `Sub-workflow call's record index is past the records ${step} loaded`,
+      `The Sub-workflow step that called this workflow runs once for each record of ${step}, but this run's record is not among the records it loaded. Revise ${step} to load them again.`,
+    );
+  }
+}
+
+// A Sub-workflow runs once per record only on the Multiple step itself: a step loading one record
+// per record of it may have found none for some, leaving those calls without a record.
+export class SourceRunsOncePerRecordError extends WorkflowCallSiteError {
+  constructor(stepTitle?: string) {
+    const step = stepTitle ? `"${stepTitle}"` : 'a step';
+    super(
+      `Sub-workflow call pins ${step}, which runs once per record`,
+      `The Sub-workflow step that called this workflow takes its record from ${step}, which runs once for each record of a Multiple step. Set its record to a step that loads one record.`,
     );
   }
 }

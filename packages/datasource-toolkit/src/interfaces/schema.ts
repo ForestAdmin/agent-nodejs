@@ -16,8 +16,11 @@ export type ActionSchema = {
   submitButtonLabel?: string;
 };
 
+export type DataSourceDatabase = { type: string; name: string | null };
+
 export type DataSourceSchema = {
   charts: string[];
+  databases?: DataSourceDatabase[];
 };
 
 export type CollectionSchema = {

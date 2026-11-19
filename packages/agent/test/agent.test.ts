@@ -148,6 +148,27 @@ describe('Agent', () => {
       });
     });
 
+    test('start should post the stack databases but keep them out of the schema file', async () => {
+      const databases = [{ type: 'postgres', name: 'shop_production' }];
+      jest
+        .mocked(DataSourceCustomizer.prototype.getDataSource)
+        .mockResolvedValue(factories.dataSource.build({ schema: { charts: [], databases } }));
+
+      const agent = new Agent(options);
+      await agent.start();
+
+      expect(mockPostSchema).toHaveBeenCalledWith(
+        expect.objectContaining({
+          meta: expect.objectContaining({
+            stack: expect.objectContaining({ engine: 'nodejs', databases }),
+          }),
+        }),
+      );
+      const written = await readFile(options.schemaPath, 'utf8');
+      expect(JSON.parse(written).meta.stack).not.toHaveProperty('databases');
+      expect(written).not.toContain('shop_production');
+    });
+
     test('that should upload the schema with experimental features', async () => {
       const agent = new Agent({
         ...options,
@@ -303,6 +324,21 @@ describe('Agent', () => {
         expect(logger).toHaveBeenCalledWith('Info', `Schema written to ${options.schemaPath}`);
       });
 
+      test('should keep the datasource databases out of the written schema', async () => {
+        jest.mocked(DataSourceCustomizer.prototype.getDataSource).mockResolvedValue(
+          factories.dataSource.build({
+            schema: { charts: [], databases: [{ type: 'postgres', name: 'shop_production' }] },
+          }),
+        );
+        const agent = new Agent(options);
+
+        await agent.generateSchemaOnly();
+
+        const written = await readFile(options.schemaPath, 'utf8');
+        expect(JSON.parse(written).meta.stack).not.toHaveProperty('databases');
+        expect(written).not.toContain('shop_production');
+      });
+
       test('should write the typings when typingsPath is set', async () => {
         const agent = new Agent(options);
 
@@ -419,6 +455,24 @@ describe('Agent', () => {
           }),
         }),
       );
+    });
+
+    test('start should post the stack databases while only reading the schema file', async () => {
+      const databases = [{ type: 'postgres', name: 'shop_production' }];
+      jest
+        .mocked(DataSourceCustomizer.prototype.getDataSource)
+        .mockResolvedValue(factories.dataSource.build({ schema: { charts: [], databases } }));
+      const before = await readFile(options.schemaPath, 'utf8');
+
+      const agent = new Agent(options);
+      await agent.start();
+
+      expect(mockPostSchema).toHaveBeenCalledWith(
+        expect.objectContaining({
+          meta: expect.objectContaining({ stack: expect.objectContaining({ databases }) }),
+        }),
+      );
+      expect(await readFile(options.schemaPath, 'utf8')).toBe(before);
     });
 
     test('start should not update schema when specified', async () => {

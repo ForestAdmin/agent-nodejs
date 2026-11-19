@@ -341,6 +341,25 @@ describe('LoadRelatedRecordStepExecutor', () => {
         }),
       );
     });
+
+    it('reports no record count for a Single step', async () => {
+      const context = makeContext({
+        model: makeMockModel({
+          relation: relationOption({
+            recordId: [42],
+            relationDisplayName: 'Order',
+            relatedCollectionName: 'orders',
+          }),
+          reasoning: 'User requested order',
+        }).model,
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+
+      const result = await new LoadRelatedRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(result.stepOutcome).not.toHaveProperty('loadedRecordCount');
+    });
   });
 
   describe('multi-target polymorphic relation (resolved per record)', () => {
@@ -5203,6 +5222,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const result = await new LoadRelatedRecordStepExecutor(context).execute();
 
       expect(result.stepOutcome.status).toBe('success');
+      expect(result.stepOutcome).not.toHaveProperty('loadedRecordCount');
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({ executionResult: { skipped: true } }),
@@ -5289,6 +5309,20 @@ describe('LoadRelatedRecordStepExecutor', () => {
           'run-1',
           expect.objectContaining({ executionResult: expect.anything() }),
         );
+      });
+
+      // The orchestrator opens one Sub-workflow call per record from this count.
+      it('reports how many records it loaded', async () => {
+        const { result } = await confirm({ userConfirmed: true, selectedRecordIds: ['3', '1'] });
+
+        expect(result.stepOutcome).toMatchObject({ status: 'success', loadedRecordCount: 2 });
+      });
+
+      it('reports no record count when the confirmation declines', async () => {
+        const { result } = await confirm({ userConfirmed: false });
+
+        expect(result.stepOutcome.status).toBe('success');
+        expect(result.stepOutcome).not.toHaveProperty('loadedRecordCount');
       });
 
       it('loads none when the confirmation declines', async () => {

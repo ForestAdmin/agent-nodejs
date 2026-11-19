@@ -1,10 +1,14 @@
 import type ArrayCollection from './array-collection';
 import type { CollectionSettings, TableModel } from './types';
 import type { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
-import type { Logger } from '@forestadmin/datasource-toolkit';
+import type { DataSourceSchema, Logger } from '@forestadmin/datasource-toolkit';
 
 import { ExecuteStatementCommand } from '@aws-sdk/lib-dynamodb';
-import { BaseDataSource, ValidationError } from '@forestadmin/datasource-toolkit';
+import {
+  BaseDataSource,
+  ValidationError,
+  makeDatabaseEntry,
+} from '@forestadmin/datasource-toolkit';
 
 import DynamoDBCollection from './collection';
 import { ScanLimitExceededError } from './errors';
@@ -43,6 +47,10 @@ export default class DynamoDBDataSource extends BaseDataSource<
     }
 
     logger('Info', 'DynamoDBDataSource - Built');
+  }
+
+  override get schema(): DataSourceSchema {
+    return { ...super.schema, databases: [makeDatabaseEntry('dynamodb', null)] };
   }
 
   /** Runs a PartiQL SELECT: `$name` placeholders become positional parameters. */

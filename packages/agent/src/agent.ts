@@ -583,7 +583,10 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     }
 
     // Send schema to forest servers
-    await this.options.forestAdminClient.postSchema({ ...schema, meta });
+    await this.options.forestAdminClient.postSchema({
+      ...schema,
+      meta: { ...meta, stack: { ...meta.stack, databases: dataSource.schema.databases } },
+    });
   }
 
   /**

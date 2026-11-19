@@ -22,7 +22,10 @@ export default class CompositeDatasource<T extends Collection = Collection>
   }
 
   get schema(): DataSourceSchema {
-    return { charts: this.dataSources.flatMap(dataSource => dataSource.schema.charts) };
+    return {
+      charts: this.dataSources.flatMap(dataSource => dataSource.schema.charts),
+      databases: this.dataSources.flatMap(dataSource => dataSource.schema.databases ?? []),
+    };
   }
 
   get collections(): T[] {

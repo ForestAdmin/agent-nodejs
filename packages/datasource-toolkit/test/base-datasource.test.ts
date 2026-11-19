@@ -30,7 +30,7 @@ describe('BaseDataSource', () => {
 
     it('should export an empty schema', () => {
       const dataSource = new DataSourceWithCollection();
-      expect(dataSource.schema).toStrictEqual({ charts: [] });
+      expect(dataSource.schema).toStrictEqual({ charts: [], databases: [] });
     });
 
     it('should get collection from datasource', () => {

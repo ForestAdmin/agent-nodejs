@@ -14,7 +14,9 @@ import type {
   RunControl,
   StepExecutionResult,
 } from '../types/execution-context';
-import type { Step } from '../types/validated/execution';
+import type { StepExecutionData } from '../types/step-execution-data';
+import type { RecordRef } from '../types/validated/collection';
+import type { CallScope, Step } from '../types/validated/execution';
 import type {
   ConditionStepDefinition,
   GuidanceStepDefinition,
@@ -24,30 +26,41 @@ import type {
   TriggerActionStepDefinition,
   UpdateRecordStepDefinition,
 } from '../types/validated/step-definition';
+import type { ActivityLogWorkflow } from '@forestadmin/forestadmin-client';
 
 import {
+  CallRecordNotLoadedError,
   OAuthReauthRequiredError,
+  SourceRecordMissingError,
+  SourceRecordStepNotReachedError,
+  SourceRunsOncePerRecordError,
   StepStateError,
   WorkflowExecutorError,
   causeMessage,
   extractErrorMessage,
+  toErrorOutcome,
 } from '../errors';
 import SchemaResolver from '../schema-resolver';
 import ActivityLog from './activity-log';
 import AgentWithLog from './agent-with-log';
+import { findStepExecution } from './base-step-executor';
+import CallRecordRunStore from './call-record-run-store';
 import ConditionStepExecutor from './condition-step-executor';
 import GuidanceStepExecutor from './guidance-step-executor';
 import LoadRelatedRecordStepExecutor from './load-related-record-step-executor';
 import McpStepExecutor from './mcp-step-executor';
 import PerRecordStepExecutor from './per-record-step-executor';
 import ReadRecordStepExecutor from './read-record-step-executor';
-import { findPinnedLoadStep } from './record-step-executor';
+import { classifyMissingSourceRecord, findPinnedLoadStep } from './record-step-executor';
 import TriggerRecordActionStepExecutor from './trigger-record-action-step-executor';
 import UpdateRecordStepExecutor from './update-record-step-executor';
+import { isPerRecordExecution } from '../types/step-execution-data';
 import { StepType, WORKFLOW_START_STEP_ID } from '../types/validated/step-definition';
 import { stepTypeToOutcomeType } from '../types/validated/step-outcome';
 
 export type { RunControl };
+
+type RecordCall = NonNullable<CallScope['recordCalls']>[number];
 
 // The record steps that run once per record when their source chain starts at a Multiple step.
 const PER_RECORD_STEP_TYPES = [
@@ -84,6 +97,58 @@ function findPerRecordSource(step: AvailableStepExecution): PerRecordSource | nu
   }
 
   return null;
+}
+
+// The record a call opened once per record runs on: its Multiple step's record at the call's
+// position. Without it the step would see every record the calling workflow loaded, so it fails,
+// naming what to fix: the Sub-workflow step's pin, or the records its Multiple step loaded.
+function findCallRecord(
+  step: AvailableStepExecution,
+  call: RecordCall,
+  executions: StepExecutionData[],
+): RecordRef {
+  const source = findPinnedLoadStep(
+    step.previousSteps,
+    call.selectedRecordStepId,
+    call.pinnedFrameStepIndexes,
+  );
+  if (!source) throw new SourceRecordStepNotReachedError(call.selectedRecordStepId);
+
+  const execution = findStepExecution(source, executions);
+  const { title } = source.stepDefinition;
+  if (isPerRecordExecution(execution)) throw new SourceRunsOncePerRecordError(title);
+
+  const result = execution?.type === 'load-related-record' ? execution.executionResult : undefined;
+
+  if (result && 'records' in result) {
+    const record = result.records[call.recordIndex];
+    if (!record) throw new CallRecordNotLoadedError(title);
+
+    return record;
+  }
+
+  throw new SourceRecordMissingError(title, {
+    errorKind: classifyMissingSourceRecord(execution),
+    errorSourceStepIndex: source.stepOutcome.stepIndex,
+  });
+}
+
+// Each enclosing call narrows what the calls inside it read, so a call nested in another record's
+// call reads the outer workflow as the outer record sees it. Every record is read off one fetch.
+async function scopeToRecordCalls(
+  step: AvailableStepExecution,
+  runStore: RunStore,
+): Promise<RunStore> {
+  const calls = step.callScope?.recordCalls;
+  if (!calls) return runStore;
+
+  const executions = await runStore.getStepExecutions(step.runId);
+
+  return calls.reduce<RunStore>(
+    (store, call) =>
+      new CallRecordRunStore(store, findCallRecord(step, call, executions), call.startStepIndex),
+    runStore,
+  );
 }
 
 function createRecordExecutor(context: ExecutionContext): IStepExecutor {
@@ -125,13 +190,17 @@ export default class StepExecutorFactory {
     forestServerToken?: string,
   ): Promise<IStepExecutor> {
     try {
-      const context = StepExecutorFactory.buildContext(
+      const builtContext = StepExecutorFactory.buildContext(
         step,
         contextConfig,
         activityLogPort,
         incomingPendingData,
         forestServerToken,
       );
+      const context: ExecutionContext = {
+        ...builtContext,
+        runStore: await scopeToRecordCalls(step, builtContext.runStore),
+      };
       const perRecordSource = findPerRecordSource(step);
 
       if (perRecordSource) {
@@ -213,14 +282,27 @@ export default class StepExecutorFactory {
             stepId: step.stepId,
             stepIndex: step.stepIndex,
             status: 'error',
-            error:
-              error instanceof WorkflowExecutorError
-                ? error.userMessage
-                : 'An unexpected error occurred.',
+            ...(error instanceof WorkflowExecutorError
+              ? toErrorOutcome(error)
+              : { error: 'An unexpected error occurred.' }),
           },
         }),
       };
     }
+  }
+
+  // No name, no workflow: the activity-log route rejects a workflow without one. An untitled step is
+  // named by its id, as the orchestrator names it in its own workflow logs.
+  private static toActivityLogWorkflow(
+    step: AvailableStepExecution,
+  ): ActivityLogWorkflow | undefined {
+    if (!step.workflowName) return undefined;
+
+    return {
+      runId: step.runId,
+      name: step.workflowName,
+      stepName: step.stepDefinition.title || step.stepId,
+    };
   }
 
   private static buildContext(
@@ -236,7 +318,11 @@ export default class StepExecutorFactory {
       step.runId,
       step.user.renderingId,
     );
-    const activityLog = new ActivityLog(activityLogPort, step.user);
+    const activityLog = new ActivityLog(
+      activityLogPort,
+      step.user,
+      StepExecutorFactory.toActivityLogWorkflow(step),
+    );
 
     return {
       runId: step.runId,
