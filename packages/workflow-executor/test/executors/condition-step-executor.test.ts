@@ -1611,6 +1611,22 @@ describe('ConditionStepExecutor', () => {
       expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('Other');
     });
 
+    it('fails as a configuration error when the Sub-workflow step ran once per record', async () => {
+      const { context, runStore } = makeEndContext(endArgs('equal', 'end-approved'), [
+        { stepId: 'call-1', perRecord: true },
+      ]);
+
+      const result = await new ConditionStepExecutor(context).execute();
+
+      expect(result.stepOutcome).toMatchObject({
+        status: 'error',
+        errorKind: 'configuration',
+        error:
+          'The option "Approved path" reads the End of a Sub-workflow step that runs once for each record, so it reached several Ends. A decision cannot read them yet. Reconfigure this decision step.',
+      });
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
+
     it.each([
       ['no call returned at all', undefined],
       [

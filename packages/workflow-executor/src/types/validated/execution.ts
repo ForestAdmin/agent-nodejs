@@ -71,12 +71,11 @@ export const CallScopeSchema = z
   .strict();
 export type CallScope = z.infer<typeof CallScopeSchema>;
 
-export const SubWorkflowEndSchema = z
-  .object({
-    stepId: z.string().min(1),
-    endStepId: z.string().min(1),
-  })
-  .strict();
+// A Sub-workflow step run once per record reached one End per record: none of them is its End.
+export const SubWorkflowEndSchema = z.union([
+  z.object({ stepId: z.string().min(1), endStepId: z.string().min(1) }).strict(),
+  z.object({ stepId: z.string().min(1), perRecord: z.literal(true) }).strict(),
+]);
 export type SubWorkflowEnd = z.infer<typeof SubWorkflowEndSchema>;
 
 export const AvailableStepExecutionSchema = z

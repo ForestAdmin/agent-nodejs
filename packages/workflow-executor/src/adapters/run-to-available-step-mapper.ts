@@ -207,20 +207,29 @@ function frameOfPending(walk: CallStackWalk, pending: ServerStepHistory): number
 // Step ids are unique only per workflow, so only the calls the pending step's own workflow made
 // can answer for it: a nested call's End belongs to the step that made it, not to its caller.
 // A navigation entry with no name is dropped rather than failing the whole run's validation.
+// A Sub-workflow step whose latest run was once per record reached one End per record, so it is
+// reported as such rather than by the End of whichever record ran last.
 function toSubWorkflowEnds(
   walk: CallStackWalk,
   pending: ServerStepHistory,
 ): SubWorkflowEnd[] | undefined {
   const frame = frameOfPending(walk, pending);
-  const latestEndOf = new Map<string, string>();
+  const latestEndOf = new Map<string, SubWorkflowEnd>();
 
   walk.closedCalls
     .filter(({ call, endStepId }) => call.frameOpenedAt === frame && call.stepId && endStepId)
-    .forEach(({ call, endStepId }) => latestEndOf.set(call.stepId, endStepId));
+    .forEach(({ call, endStepId }) =>
+      latestEndOf.set(
+        call.stepId,
+        call.callRecordIndex !== undefined
+          ? { stepId: call.stepId, perRecord: true }
+          : { stepId: call.stepId, endStepId },
+      ),
+    );
 
   if (latestEndOf.size === 0) return undefined;
 
-  return [...latestEndOf].map(([stepId, endStepId]) => ({ stepId, endStepId }));
+  return [...latestEndOf.values()];
 }
 
 // excludedStepIndexes: inside calls opened once per record, the steps of every closed call opened

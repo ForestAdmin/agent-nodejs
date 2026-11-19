@@ -22,6 +22,7 @@ import {
   InvalidStepDefinitionError,
   MalformedToolCallError,
   MissingConditionQuantifierError,
+  PerRecordSubWorkflowEndConditionError,
   StepStateError,
 } from '../errors';
 import BaseStepExecutor, { findLatestStepInFrame } from './base-step-executor';
@@ -344,7 +345,7 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
     stepExecutions: StepExecutionData[],
     clock: Clock,
   ): EvaluatedCondition {
-    const resolved = this.resolveConditionValue(condition, stepExecutions);
+    const resolved = this.resolveConditionValue(option, condition, stepExecutions);
 
     if (resolved.found === 'per-record') {
       if (!condition.quantifier) {
@@ -422,6 +423,7 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
   // Same live-path + most-recent-occurrence resolution as resolveSourceRecordRef: previousSteps
   // are already restricted to the live path, and in a loop the same step id repeats.
   private resolveConditionValue(
+    option: string,
     condition: DeterministicCondition,
     stepExecutions: StepExecutionData[],
   ): ResolvedConditionValue {
@@ -430,7 +432,7 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
         return this.resolveGetDataValue(condition, stepExecutions);
 
       case 'sub-workflow':
-        return this.resolveSubWorkflowEndValue(condition);
+        return this.resolveSubWorkflowEndValue(option, condition);
 
       /* istanbul ignore next — the schema only lets a known source type through */
       default: {
@@ -482,9 +484,16 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
     return { found: true, value: field.value };
   }
 
-  private resolveSubWorkflowEndValue(condition: DeterministicCondition): ResolvedConditionValue {
+  private resolveSubWorkflowEndValue(
+    option: string,
+    condition: DeterministicCondition,
+  ): ResolvedConditionValue {
     const call = this.context.subWorkflowEnds?.find(end => end.stepId === condition.sourceStepId);
     if (!call) return { found: false, reason: 'source-step-not-reached' };
+
+    if ('perRecord' in call) {
+      throw new PerRecordSubWorkflowEndConditionError(option, condition.sourceStepId);
+    }
 
     return { found: true, value: call.endStepId };
   }

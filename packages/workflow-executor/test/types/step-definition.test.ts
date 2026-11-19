@@ -315,6 +315,18 @@ describe('ConditionStepDefinitionSchema deterministic conditions', () => {
       expect(JSON.stringify(!result.success && result.error.issues)).toContain('fieldName');
     });
 
+    it.each(['any', 'every', 'none'])('rejects the %s quantifier', quantifier => {
+      const result = parseEndCondition({ operator: 'equal', value: 'end-1', quantifier });
+
+      expect(result.success).toBe(false);
+      expect(!result.success && result.error.issues).toEqual([
+        expect.objectContaining({
+          path: expect.arrayContaining(['quantifier']),
+          message: 'a sub-workflow end takes no quantifier',
+        }),
+      ]);
+    });
+
     it.each(['greater_than', 'contains', 'present'])('rejects the %s operator', operator => {
       const result = parseEndCondition({ operator, value: 'end-1' });
 

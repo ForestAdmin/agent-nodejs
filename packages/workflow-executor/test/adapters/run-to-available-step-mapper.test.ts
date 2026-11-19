@@ -1910,6 +1910,42 @@ describe('toAvailableStepExecution', () => {
       ]);
     });
 
+    it('reports a Sub-workflow step run once per record as such, not by its last record End', () => {
+      expect(
+        endsOf([
+          makeStart('call-1', 0, { context: { callRecordIndex: 0 } }),
+          makeClose('end-approved', 1),
+          makeStart('call-1', 2, { context: { callRecordIndex: 1 } }),
+          makeClose('end-rejected', 3),
+          pendingRoot(4),
+        ]),
+      ).toEqual([{ stepId: 'call-1', perRecord: true }]);
+    });
+
+    it('reads a Sub-workflow step run once by its End, even after a run per record', () => {
+      expect(
+        endsOf([
+          makeStart('call-1', 0, { context: { callRecordIndex: 0 } }),
+          makeClose('end-rejected', 1),
+          makeStart('call-1', 2),
+          makeClose('end-approved', 3),
+          pendingRoot(4),
+        ]),
+      ).toEqual([{ stepId: 'call-1', endStepId: 'end-approved' }]);
+    });
+
+    it('reports a Sub-workflow step run per record after a run once as run per record', () => {
+      expect(
+        endsOf([
+          makeStart('call-1', 0),
+          makeClose('end-approved', 1),
+          makeStart('call-1', 2, { context: { callRecordIndex: 0 } }),
+          makeClose('end-approved', 3),
+          pendingRoot(4),
+        ]),
+      ).toEqual([{ stepId: 'call-1', perRecord: true }]);
+    });
+
     it('drops a returned call whose close step has no name, and still maps the run', () => {
       expect(
         endsOf([

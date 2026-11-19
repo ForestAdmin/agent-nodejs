@@ -115,9 +115,23 @@ const SUB_WORKFLOW_END_LIST_OPERATORS: readonly ConditionOperator[] = ['in', 'no
 const isEndId = (value: unknown): boolean => typeof value === 'string' && value.length > 0;
 
 function checkSubWorkflowEndCondition(
-  condition: { fieldName: string; operator: ConditionOperator; value?: unknown },
+  condition: {
+    fieldName: string;
+    operator: ConditionOperator;
+    value?: unknown;
+    quantifier?: ConditionQuantifier;
+  },
   ctx: z.RefinementCtx,
 ): void {
+  // A Sub-workflow End is read from a call made once: no record set to quantify over yet.
+  if (condition.quantifier !== undefined) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['quantifier'],
+      message: 'a sub-workflow end takes no quantifier',
+    });
+  }
+
   if (condition.fieldName !== SUB_WORKFLOW_END_FIELD_NAME) {
     ctx.addIssue({
       code: 'custom',
