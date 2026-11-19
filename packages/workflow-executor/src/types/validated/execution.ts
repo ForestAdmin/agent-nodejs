@@ -80,6 +80,7 @@ export const ApprovalRequestStatusSchema = z.enum([
   'approved',
   'rejected',
   'failed',
+  'canceled',
 ]);
 export type ApprovalRequestStatus = z.infer<typeof ApprovalRequestStatusSchema>;
 
