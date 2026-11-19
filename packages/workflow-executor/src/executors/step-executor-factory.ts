@@ -29,6 +29,7 @@ import type {
 import type { ActivityLogWorkflow } from '@forestadmin/forestadmin-client';
 
 import {
+  ApprovalOutcomesPerRecordError,
   CallRecordNotLoadedError,
   OAuthReauthRequiredError,
   SourceRecordMissingError,
@@ -204,6 +205,10 @@ export default class StepExecutorFactory {
       const perRecordSource = findPerRecordSource(step);
 
       if (perRecordSource) {
+        if ((step.stepDefinition as TriggerActionStepDefinition).approvalOutcomes === true) {
+          throw new ApprovalOutcomesPerRecordError();
+        }
+
         return new PerRecordStepExecutor(context, perRecordSource, createRecordExecutor);
       }
 

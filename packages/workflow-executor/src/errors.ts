@@ -201,6 +201,17 @@ export class ApprovalRequestUntrackedError extends WorkflowExecutorError {
 
 // The editor saved the step without Approved and Rejected branches, then the rights changed: the
 // run cannot follow a review it has no branch for (product question Q14).
+// Checked before the per-record wrapper runs: it keeps only each record's status, so a pause on an
+// approval would lose the request to review and never resume.
+export class ApprovalOutcomesPerRecordError extends WorkflowConfigurationError {
+  constructor() {
+    super(
+      'Trigger Action step with approval branches runs once per record',
+      'This step runs once for each record of a Multiple step, where approval branches are not supported. Set its record to a step that loads one record.',
+    );
+  }
+}
+
 export class ApprovalBranchesMissingError extends WorkflowConfigurationError {
   constructor(actionName: string, approvalRequestId?: string) {
     // A request filed before the error stays open and linked to no run: naming it is the only way

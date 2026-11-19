@@ -501,6 +501,35 @@ describe('StepExecutorFactory.create', () => {
       expect(executor).toBeInstanceOf(PerRecordStepExecutor);
     });
 
+    it('refuses a Trigger Action with approval branches with a configuration error', async () => {
+      const executor = await create({
+        type: StepType.TriggerAction,
+        executionType: StepExecutionMode.FullyAutomated,
+        preRecordedArgs: { selectedRecordStepId: 'load-stores', actionName: 'refund' },
+        approvalOutcomes: true,
+      });
+
+      expect(executor).not.toBeInstanceOf(PerRecordStepExecutor);
+      await expect(executor.execute()).resolves.toEqual({
+        stepOutcome: expect.objectContaining({
+          status: 'error',
+          errorKind: 'configuration',
+          error: expect.stringContaining('approval branches are not supported'),
+        }),
+      });
+    });
+
+    it('runs a Trigger Action without approval branches once per record', async () => {
+      const executor = await create({
+        type: StepType.TriggerAction,
+        executionType: StepExecutionMode.FullyAutomated,
+        preRecordedArgs: { selectedRecordStepId: 'load-stores', actionName: 'refund' },
+        approvalOutcomes: false,
+      });
+
+      expect(executor).toBeInstanceOf(PerRecordStepExecutor);
+    });
+
     const loadOwner = (selectedRecordStepId: string, stepIndex = 1) => ({
       stepDefinition: {
         type: StepType.LoadRelatedRecord,
