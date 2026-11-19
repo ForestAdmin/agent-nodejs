@@ -1,3 +1,21 @@
+# @forestadmin/agent [1.114.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.113.11...@forestadmin/agent@1.114.0) (2026-11-19)
+
+
+### Features
+
+* **agent:** report databases in the schema push, not in the schema file ([#2093](https://github.com/ForestAdmin/agent-nodejs/issues/2093)) ([5d85882](https://github.com/ForestAdmin/agent-nodejs/commit/5d858828ce5d9daeb4fd92c11ee472e6a9f63449))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.46.0
+* **@forestadmin/mcp-server:** upgraded to 1.29.8
+* **@forestadmin/agent-bff:** upgraded to 1.45.4
+* **@forestadmin/workflow-executor:** upgraded to 1.40.2
+
 ## @forestadmin/agent [1.113.11](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.113.10...@forestadmin/agent@1.113.11) (2026-11-19)
 
 
