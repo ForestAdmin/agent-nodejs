@@ -372,14 +372,12 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
   private static replayToolCalls(toolCalls: McpExecutedToolCall[]): Array<AIMessage | ToolMessage> {
     return toolCalls.flatMap(({ name, input, result }, index) => {
       const id = `call_${index}`;
+      const text = StepExecutionFormatters.formatToolResult(result);
 
       return [
         new AIMessage({ content: '', tool_calls: [{ id, name, args: input, type: 'tool_call' }] }),
-        // Bedrock refuses a tool result whose text is empty.
-        new ToolMessage({
-          tool_call_id: id,
-          content: StepExecutionFormatters.formatToolResult(result) || EMPTY_TOOL_RESULT,
-        }),
+        // Bedrock refuses a tool result whose text is blank.
+        new ToolMessage({ tool_call_id: id, content: text.trim() ? text : EMPTY_TOOL_RESULT }),
       ];
     });
   }

@@ -116,12 +116,6 @@ function makeEndlessModel(toolName: string, toolArgs: Record<string, unknown>) {
   return { model: model as unknown as ExecutionContext['model'], invoke };
 }
 
-function requestSentOnDecision(modelInvoke: jest.Mock, decision: number): string {
-  const messages = modelInvoke.mock.calls[decision][0] as Array<{ content: string }>;
-
-  return messages[messages.length - 1].content;
-}
-
 type SentMessage = {
   getType: () => string;
   content: unknown;
@@ -587,7 +581,10 @@ describe('McpStepExecutor', () => {
       ]);
     });
 
-    it('tells the AI the tool returned nothing when its result is empty', async () => {
+    it.each([
+      ['empty', ''],
+      ['only whitespace', ' \n\t'],
+    ])('tells the AI the tool returned nothing when its result is %s', async (_, toolResult) => {
       const { model, invoke: modelInvoke } = makeMockModel('archive_page', { pageId: 'p1' });
       const context = makeContext({
         model,
@@ -595,7 +592,10 @@ describe('McpStepExecutor', () => {
       });
 
       await new McpStepExecutor(context, [
-        new MockRemoteTool({ name: 'archive_page', invoke: jest.fn().mockResolvedValue('') }),
+        new MockRemoteTool({
+          name: 'archive_page',
+          invoke: jest.fn().mockResolvedValue(toolResult),
+        }),
       ]).execute();
 
       expect(conversationSentOnDecision(modelInvoke, 1)).toEqual([
