@@ -180,6 +180,35 @@ describe('patchBodySchemas', () => {
       expect(result.selectedRecordId).toEqual(['pk1', 'pk2']);
     });
 
+    describe('selectedRecordIds, on a Multiple step', () => {
+      it('deserializes each picked record from its pipe string', () => {
+        expect(
+          schema.parse({ userConfirmed: true, selectedRecordIds: ['pk1|pk2', '42'] }),
+        ).toStrictEqual({ userConfirmed: true, selectedRecordIds: [['pk1', 'pk2'], ['42']] });
+      });
+
+      it.each([
+        ['an empty list', []],
+        ['more than 50 records', Array.from({ length: 51 }, (_, i) => String(i))],
+        ['an empty id', ['']],
+        ['an id with an empty segment', ['pk1|']],
+      ])('refuses %s', (_label, selectedRecordIds) => {
+        expect(() => schema.parse({ userConfirmed: true, selectedRecordIds })).toThrow();
+      });
+
+      it('refuses a relation override confirmed with selectedRecordIds alone', () => {
+        expect(() =>
+          schema.parse({ userConfirmed: true, fieldName: 'ubos', selectedRecordIds: ['1'] }),
+        ).toThrow();
+      });
+
+      it('refuses the same record picked twice', () => {
+        expect(() =>
+          schema.parse({ userConfirmed: true, selectedRecordIds: ['pk1|pk2', '42', 'pk1|pk2'] }),
+        ).toThrow();
+      });
+    });
+
     it('deserializes single selectedRecordId', () => {
       const result = schema.parse({ userConfirmed: true, selectedRecordId: '42' }) as {
         selectedRecordId: unknown;

@@ -67,6 +67,83 @@ describe('ActivityLogsService', () => {
       );
     });
 
+    it('should send the workflow run as attributes.workflow when it is given', async () => {
+      mockForestAdminServerInterface.createActivityLog.mockResolvedValue({
+        id: 'log-123',
+        attributes: { index: 'idx-456' },
+      });
+
+      const service = new ActivityLogsService(mockForestAdminServerInterface, options);
+      await service.createActivityLog({
+        forestServerToken: 'test-token',
+        renderingId: '12345',
+        action: 'update',
+        type: 'write',
+        collectionName: 'users',
+        recordId: '42',
+        workflow: { runId: '135900', name: 'Alert triage', stepName: 'Freeze the account' },
+      });
+
+      expect(mockForestAdminServerInterface.createActivityLog).toHaveBeenCalledWith(
+        { forestServerUrl: options.forestServerUrl, bearerToken: 'test-token', headers: undefined },
+        {
+          data: {
+            id: 1,
+            type: 'activity-logs-requests',
+            attributes: {
+              type: 'write',
+              action: 'update',
+              label: undefined,
+              status: 'pending',
+              records: ['42'],
+              workflow: { runId: '135900', name: 'Alert triage', stepName: 'Freeze the account' },
+            },
+            relationships: {
+              rendering: { data: { id: '12345', type: 'renderings' } },
+              collection: { data: { id: 'users', type: 'collections' } },
+            },
+          },
+        },
+      );
+    });
+
+    it('should send no workflow key when no workflow is given', async () => {
+      mockForestAdminServerInterface.createActivityLog.mockResolvedValue({
+        id: 'log-123',
+        attributes: { index: 'idx-456' },
+      });
+
+      const service = new ActivityLogsService(mockForestAdminServerInterface, options);
+      await service.createActivityLog({
+        forestServerToken: 'test-token',
+        renderingId: '12345',
+        action: 'index',
+        type: 'read',
+      });
+
+      // toStrictEqual, not toHaveBeenCalledWith: only it tells a missing key from an undefined one.
+      expect(mockForestAdminServerInterface.createActivityLog.mock.calls[0]).toStrictEqual([
+        { forestServerUrl: options.forestServerUrl, bearerToken: 'test-token', headers: undefined },
+        {
+          data: {
+            id: 1,
+            type: 'activity-logs-requests',
+            attributes: {
+              type: 'read',
+              action: 'index',
+              label: undefined,
+              status: 'pending',
+              records: [],
+            },
+            relationships: {
+              rendering: { data: { id: '12345', type: 'renderings' } },
+              collection: { data: null },
+            },
+          },
+        },
+      ]);
+    });
+
     it('should create an activity log with recordIds array', async () => {
       const mockActivityLog = {
         id: 'log-123',

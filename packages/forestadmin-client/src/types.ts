@@ -285,6 +285,15 @@ export interface CreateActivityLogParams {
   recordId?: string | number;
   recordIds?: string[] | number[];
   label?: string;
+  workflow?: ActivityLogWorkflow;
+}
+
+/** The workflow run an activity log belongs to, as the browser engine sends it. */
+export interface ActivityLogWorkflow {
+  runId: string;
+  name: string;
+  stepName?: string;
+  optionName?: string;
 }
 
 export interface UpdateActivityLogStatusParams {

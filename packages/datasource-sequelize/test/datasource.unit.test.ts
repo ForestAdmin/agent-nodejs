@@ -1,3 +1,5 @@
+import type { Options } from 'sequelize';
+
 import { QueryTypes, Sequelize } from 'sequelize';
 
 import { SequelizeCollection, SequelizeDataSource } from '../src';
@@ -62,6 +64,386 @@ describe('SequelizeDataSource', () => {
     });
 
     expect(dataSource.nativeQueryConnections).toEqual({ main: { instance: sequelize } });
+  });
+
+  describe('schema.databases', () => {
+    it('should report the postgres dialect and database name', () => {
+      const sequelize = new Sequelize(
+        'postgres://SENTINEL_USER:SENTINEL_SECRET@SENTINEL_HOST:5432/mydb',
+      );
+
+      expect(new SequelizeDataSource(sequelize).schema.databases).toStrictEqual([
+        { type: 'postgres', name: 'mydb' },
+      ]);
+    });
+
+    it('should report the mysql dialect and database name', () => {
+      const sequelize = new Sequelize(
+        'mysql://SENTINEL_USER:SENTINEL_SECRET@SENTINEL_HOST:3306/mydb',
+      );
+
+      expect(new SequelizeDataSource(sequelize).schema.databases).toStrictEqual([
+        { type: 'mysql', name: 'mydb' },
+      ]);
+    });
+
+    it('should report the mariadb dialect and database name', () => {
+      const sequelize = new Sequelize({
+        dialect: 'mariadb',
+        database: 'mariadb_db',
+        username: 'SENTINEL_USER',
+      });
+
+      expect(new SequelizeDataSource(sequelize).schema.databases).toStrictEqual([
+        { type: 'mariadb', name: 'mariadb_db' },
+      ]);
+    });
+
+    it('should leak no credential from the connection string', () => {
+      const sequelize = new Sequelize(
+        'postgres://SENTINEL_USER:SENTINEL_SECRET@SENTINEL_HOST:5432/mydb',
+      );
+      const serialized = JSON.stringify(new SequelizeDataSource(sequelize).schema.databases);
+
+      expect(serialized).not.toContain('SENTINEL_USER');
+      expect(serialized).not.toContain('SENTINEL_SECRET');
+      expect(serialized).not.toContain('SENTINEL_HOST');
+    });
+
+    it('should report the file name for an absolute sqlite storage', () => {
+      const sequelize = new Sequelize({ dialect: 'sqlite', storage: '/abs/dir/app.db' });
+
+      expect(new SequelizeDataSource(sequelize).schema.databases).toStrictEqual([
+        { type: 'sqlite', name: 'app.db' },
+      ]);
+    });
+
+    it('should report the file name for a relative sqlite uri', () => {
+      const sequelize = new Sequelize('sqlite:./rel/app.db');
+
+      expect(new SequelizeDataSource(sequelize).schema.databases).toStrictEqual([
+        { type: 'sqlite', name: 'app.db' },
+      ]);
+    });
+
+    it('should report the file name for a windows sqlite storage', () => {
+      const sequelize = new Sequelize({ dialect: 'sqlite', storage: 'C:\\data\\app.db' });
+
+      expect(new SequelizeDataSource(sequelize).schema.databases).toStrictEqual([
+        { type: 'sqlite', name: 'app.db' },
+      ]);
+    });
+
+    it('should report the file name for a sqlite host instead of a storage', () => {
+      const sequelize = new Sequelize({ dialect: 'sqlite', host: '/abs/dir/app.db' });
+
+      expect(new SequelizeDataSource(sequelize).schema.databases).toStrictEqual([
+        { type: 'sqlite', name: 'app.db' },
+      ]);
+    });
+
+    it('should report no name for an in-memory sqlite database', () => {
+      const sequelize = new Sequelize('sqlite::memory:');
+
+      expect(new SequelizeDataSource(sequelize).schema.databases).toStrictEqual([
+        { type: 'sqlite', name: null },
+      ]);
+    });
+
+    it('should report no name for a sqlite database without storage', () => {
+      const sequelize = new Sequelize({ dialect: 'sqlite' });
+
+      expect(new SequelizeDataSource(sequelize).schema.databases).toStrictEqual([
+        { type: 'sqlite', name: null },
+      ]);
+    });
+
+    it('should report the write database over the global fallback when replication is set', () => {
+      const sequelize = new Sequelize({
+        dialect: 'postgres',
+        database: 'fallback',
+        replication: { write: { database: 'production' }, read: [{ database: 'replica' }] },
+      });
+
+      expect(new SequelizeDataSource(sequelize).schema.databases).toStrictEqual([
+        { type: 'postgres', name: 'production' },
+      ]);
+    });
+
+    it('should report the write database when no global database is set', () => {
+      const sequelize = new Sequelize({
+        dialect: 'postgres',
+        replication: { write: { database: 'production' }, read: [{ database: 'replica' }] },
+      });
+
+      expect(new SequelizeDataSource(sequelize).schema.databases).toStrictEqual([
+        { type: 'postgres', name: 'production' },
+      ]);
+    });
+
+    it('should fall back to the global database when the write connection sets none', () => {
+      const sequelize = new Sequelize({
+        dialect: 'postgres',
+        database: 'production',
+        replication: { write: { host: 'primary' }, read: [{ host: 'replica' }] },
+      });
+
+      expect(new SequelizeDataSource(sequelize).schema.databases).toStrictEqual([
+        { type: 'postgres', name: 'production' },
+      ]);
+    });
+
+    it('should report the write dialectOptions database over the configured one when replication is set', () => {
+      const options = {
+        dialect: 'mysql' as const,
+        database: 'configured',
+        replication: {
+          write: { host: 'primary', dialectOptions: { database: 'real' } },
+          read: [{ host: 'replica' }],
+        },
+      };
+      const sequelize = new Sequelize(options as Options);
+
+      expect(new SequelizeDataSource(sequelize).schema.databases).toStrictEqual([
+        { type: 'mysql', name: 'real' },
+      ]);
+    });
+
+    it('should report the global dialectOptions database over the write one when replication is set', () => {
+      const sequelize = new Sequelize({
+        dialect: 'mysql',
+        database: 'configured',
+        dialectOptions: { database: 'flat' },
+        replication: {
+          write: { host: 'primary', database: 'write_db' },
+          read: [{ host: 'replica' }],
+        },
+      });
+
+      expect(new SequelizeDataSource(sequelize).schema.databases).toStrictEqual([
+        { type: 'mysql', name: 'flat' },
+      ]);
+    });
+
+    it('should report no name for an explicit null write database', () => {
+      const sequelize = {
+        models: {},
+        getDialect: () => 'postgres',
+        config: { database: 'fallback', replication: { write: { database: null } } },
+      } as unknown as Sequelize;
+
+      expect(new SequelizeDataSource(sequelize).schema.databases).toStrictEqual([
+        { type: 'postgres', name: null },
+      ]);
+    });
+
+    it('should fall back to the global database when replication sets no write connection', () => {
+      const sequelize = {
+        models: {},
+        getDialect: () => 'postgres',
+        config: { database: 'fallback', replication: { read: [{ host: 'replica' }] } },
+      } as unknown as Sequelize;
+
+      expect(new SequelizeDataSource(sequelize).schema.databases).toStrictEqual([
+        { type: 'postgres', name: 'fallback' },
+      ]);
+    });
+
+    it('should report a name over 128 characters as null', () => {
+      const sequelize = new Sequelize({ dialect: 'postgres', database: 'a'.repeat(129) });
+
+      expect(new SequelizeDataSource(sequelize).schema.databases).toStrictEqual([
+        { type: 'postgres', name: null },
+      ]);
+    });
+
+    it('should report an unmapped dialect as other', () => {
+      const sequelize = {
+        models: {},
+        getDialect: () => 'db2',
+        config: { database: 'mydb', replication: false },
+      } as unknown as Sequelize;
+
+      expect(new SequelizeDataSource(sequelize).schema.databases).toStrictEqual([
+        { type: 'other', name: 'mydb' },
+      ]);
+    });
+
+    it('should report the database set through the uri query string on mysql', () => {
+      const sequelize = new Sequelize(
+        'mysql://SENTINEL_USER:SENTINEL_SECRET@SENTINEL_HOST:3306/fallback?database=production',
+      );
+      const { schema } = new SequelizeDataSource(sequelize);
+
+      expect(schema.databases).toStrictEqual([{ type: 'mysql', name: 'production' }]);
+      expect(JSON.stringify(schema.databases)).not.toContain('SENTINEL_');
+    });
+
+    it('should ignore a dialectOptions database on dialects that do not read it', () => {
+      const sequelize = {
+        models: {},
+        getDialect: () => 'postgres',
+        config: { database: 'pathdb', dialectOptions: { database: 'other' }, replication: false },
+      } as unknown as Sequelize;
+
+      expect(new SequelizeDataSource(sequelize).schema.databases).toStrictEqual([
+        { type: 'postgres', name: 'pathdb' },
+      ]);
+    });
+
+    it('should report the nested options database on mssql', () => {
+      const sequelize = {
+        models: {},
+        getDialect: () => 'mssql',
+        config: {
+          database: 'fallback',
+          dialectOptions: { options: { database: 'real' } },
+          replication: false,
+        },
+      } as unknown as Sequelize;
+
+      expect(new SequelizeDataSource(sequelize).schema.databases).toStrictEqual([
+        { type: 'mssql', name: 'real' },
+      ]);
+    });
+
+    it('should report the config database on mssql without a nested override', () => {
+      const sequelize = {
+        models: {},
+        getDialect: () => 'mssql',
+        config: { database: 'plain', replication: false },
+      } as unknown as Sequelize;
+
+      expect(new SequelizeDataSource(sequelize).schema.databases).toStrictEqual([
+        { type: 'mssql', name: 'plain' },
+      ]);
+    });
+
+    it('should report the dialectOptions database on snowflake', () => {
+      const sequelize = {
+        models: {},
+        getDialect: () => 'snowflake',
+        config: {
+          database: 'fallback',
+          dialectOptions: { database: 'snow_db' },
+          replication: false,
+        },
+      } as unknown as Sequelize;
+
+      expect(new SequelizeDataSource(sequelize).schema.databases).toStrictEqual([
+        { type: 'other', name: 'snow_db' },
+      ]);
+    });
+
+    it('should report the dialectOptions database on db2', () => {
+      const sequelize = {
+        models: {},
+        getDialect: () => 'db2',
+        config: {
+          database: 'fallback',
+          dialectOptions: { database: 'db2_db' },
+          replication: false,
+        },
+      } as unknown as Sequelize;
+
+      expect(new SequelizeDataSource(sequelize).schema.databases).toStrictEqual([
+        { type: 'other', name: 'db2_db' },
+      ]);
+    });
+
+    it('should leak no host from an oracle easy connect host used as database name', () => {
+      const sequelize = {
+        models: {},
+        getDialect: () => 'oracle',
+        config: { database: 'SENTINEL_HOST', host: '', replication: false },
+      } as unknown as Sequelize;
+
+      expect(new SequelizeDataSource(sequelize).schema.databases).toStrictEqual([
+        { type: 'oracle', name: null },
+      ]);
+      expect(JSON.stringify(new SequelizeDataSource(sequelize).schema.databases)).not.toContain(
+        'SENTINEL_HOST',
+      );
+    });
+
+    it('should leak no host from an oracle replication write without host', () => {
+      const sequelize = {
+        models: {},
+        getDialect: () => 'oracle',
+        config: { database: 'ORCL', host: 'db-host', replication: { write: { host: '' } } },
+      } as unknown as Sequelize;
+
+      expect(new SequelizeDataSource(sequelize).schema.databases).toStrictEqual([
+        { type: 'oracle', name: null },
+      ]);
+    });
+
+    it('should leak no host from an oracle connect descriptor used as database name', () => {
+      const sequelize = {
+        models: {},
+        getDialect: () => 'oracle',
+        config: { database: 'SENTINEL_HOST:1521/SERVICE', host: '', replication: false },
+      } as unknown as Sequelize;
+
+      expect(new SequelizeDataSource(sequelize).schema.databases).toStrictEqual([
+        { type: 'oracle', name: null },
+      ]);
+      expect(JSON.stringify(new SequelizeDataSource(sequelize).schema.databases)).not.toContain(
+        'SENTINEL_HOST',
+      );
+    });
+
+    it('should leak no host from an oracle description descriptor used as database name', () => {
+      const sequelize = {
+        models: {},
+        getDialect: () => 'oracle',
+        config: {
+          database:
+            '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=SENTINEL_HOST)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME=ORCL)))',
+          host: '',
+          replication: false,
+        },
+      } as unknown as Sequelize;
+
+      expect(new SequelizeDataSource(sequelize).schema.databases).toStrictEqual([
+        { type: 'oracle', name: null },
+      ]);
+      expect(JSON.stringify(new SequelizeDataSource(sequelize).schema.databases)).not.toContain(
+        'SENTINEL_HOST',
+      );
+    });
+
+    it('should leak no host from an oracle connect string overriding the database', () => {
+      const sequelize = {
+        models: {},
+        getDialect: () => 'oracle',
+        config: {
+          database: 'ORCL',
+          host: 'db-host',
+          dialectOptions: { connectString: 'SENTINEL_HOST:1521/OTHER' },
+          replication: false,
+        },
+      } as unknown as Sequelize;
+
+      expect(new SequelizeDataSource(sequelize).schema.databases).toStrictEqual([
+        { type: 'oracle', name: null },
+      ]);
+      expect(JSON.stringify(new SequelizeDataSource(sequelize).schema.databases)).not.toContain(
+        'SENTINEL_HOST',
+      );
+    });
+
+    it('should report a plain oracle service name', () => {
+      const sequelize = {
+        models: {},
+        getDialect: () => 'oracle',
+        config: { database: 'ORCL', host: 'db-host', replication: false },
+      } as unknown as Sequelize;
+
+      expect(new SequelizeDataSource(sequelize).schema.databases).toStrictEqual([
+        { type: 'oracle', name: 'ORCL' },
+      ]);
+    });
   });
 
   describe('executeNativeQuery', () => {

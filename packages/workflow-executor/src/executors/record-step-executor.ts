@@ -1,7 +1,11 @@
 import type { StepExecutionResult } from '../types/execution-context';
 import type { StepExecutionData } from '../types/step-execution-data';
 import type { CollectionSchema, FieldSchema, RecordRef } from '../types/validated/collection';
-import type { StepDefinition } from '../types/validated/step-definition';
+import type { Step } from '../types/validated/execution';
+import type {
+  LoadRelatedRecordStepDefinition,
+  StepDefinition,
+} from '../types/validated/step-definition';
 import type { ErrorKind, RecordStepStatus } from '../types/validated/step-outcome';
 
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
@@ -11,16 +15,19 @@ import {
   InvalidAIResponseError,
   InvalidPreRecordedArgsError,
   NoRecordsError,
+  SourceLoadsSeveralRecordsError,
   SourceRecordCollectionMismatchError,
   SourceRecordMissingError,
   SourceRecordStepNotReachedError,
+  SourceRunsOncePerRecordError,
 } from '../errors';
-import BaseStepExecutor from './base-step-executor';
+import BaseStepExecutor, { findLatestStepInFrame } from './base-step-executor';
+import { isPerRecordExecution } from '../types/step-execution-data';
 import { StepType, WORKFLOW_START_STEP_ID } from '../types/validated/step-definition';
 
 // Candidates passed over are the operator's call, and none at all is a source the operator can go
 // back to. Neither is a configuration fault, so neither is classified as one.
-function classifyMissingSourceRecord(execution?: StepExecutionData): ErrorKind | undefined {
+export function classifyMissingSourceRecord(execution?: StepExecutionData): ErrorKind | undefined {
   if (execution?.type !== 'load-related-record') return undefined;
 
   const { pendingData, executionResult } = execution;
@@ -35,6 +42,35 @@ function classifyMissingSourceRecord(execution?: StepExecutionData): ErrorKind |
   return pendingData.availableRecordIds.length > 0 ? 'operator' : 'empty-source';
 }
 
+// The step a pin names.
+export function findPinnedLoadStep(
+  previousSteps: readonly Step[],
+  stepId: string,
+  frameStepIndexes?: number[],
+): Step | undefined {
+  return findLatestStepInFrame(previousSteps, StepType.LoadRelatedRecord, stepId, frameStepIndexes);
+}
+
+// Every record a load-related-record execution loaded: one, several, or one per record it ran for.
+function loadedRecordsOf(execution: StepExecutionData | undefined): RecordRef[] {
+  if (isPerRecordExecution(execution)) {
+    return execution.iterations.flatMap(iteration => {
+      const result = iteration.executionResult;
+
+      return result && 'record' in result ? [result.record] : [];
+    });
+  }
+
+  if (execution?.type !== 'load-related-record' || execution.executionResult === undefined) {
+    return [];
+  }
+
+  const result = execution.executionResult;
+  if ('records' in result) return result.records;
+
+  return 'record' in result ? [result.record] : [];
+}
+
 export default abstract class RecordStepExecutor<
   TStep extends StepDefinition = StepDefinition,
 > extends BaseStepExecutor<TStep> {
@@ -43,6 +79,7 @@ export default abstract class RecordStepExecutor<
     error?: string;
     errorKind?: ErrorKind;
     errorSourceStepIndex?: number;
+    loadedRecordCount?: number;
   }): StepExecutionResult {
     return {
       stepOutcome: {
@@ -107,6 +144,7 @@ export default abstract class RecordStepExecutor<
       const pinned = await this.resolveStepRecordRef(
         callScope.selectedRecordStepId,
         callScope.pinnedFrameStepIndexes,
+        true,
       );
       // The pin names a step of the calling workflow, so a miss is that Sub-workflow step's to fix.
       if (!pinned) throw new SourceRecordStepNotReachedError(callScope.selectedRecordStepId);
@@ -128,37 +166,56 @@ export default abstract class RecordStepExecutor<
     return record;
   }
 
-  // Undefined on a miss so each caller names its own error, and the latest match because a loop
-  // repeats ids. A call's pin passes its frame, since step ids are unique only per workflow.
+  // Undefined on a miss so each caller names its own error. A call's pin passes its frame, and
+  // the record index the orchestrator gave a call opened once per record of a Multiple step.
   private async resolveStepRecordRef(
     stepId: string,
     frameStepIndexes?: number[],
+    isCallPin = false,
   ): Promise<RecordRef | undefined> {
-    const matches = this.context.previousSteps.filter(
-      step =>
-        step.stepDefinition.type === StepType.LoadRelatedRecord &&
-        step.stepOutcome.stepId === stepId &&
-        (frameStepIndexes === undefined || frameStepIndexes.includes(step.stepOutcome.stepIndex)),
-    );
-    const sourceStep = matches[matches.length - 1];
+    const sourceStep = findPinnedLoadStep(this.context.previousSteps, stepId, frameStepIndexes);
 
     if (sourceStep) {
       const stepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
       const execution = this.resolveStepExecution(sourceStep, stepExecutions);
+      const { title } = sourceStep.stepDefinition;
 
-      if (
-        execution?.type === 'load-related-record' &&
-        execution.executionResult !== undefined &&
-        'record' in execution.executionResult
-      ) {
-        return execution.executionResult.record;
+      // A step that ran once per record keeps what it loaded in its iterations, not in a result. A
+      // step's own pin on one runs once per record, so a call's pin is the one expected here.
+      if (isPerRecordExecution(execution)) {
+        throw isCallPin
+          ? new SourceRunsOncePerRecordError(title)
+          : new SourceLoadsSeveralRecordsError(title);
       }
 
+      const result = execution?.type === 'load-related-record' && execution.executionResult;
+
+      if (result && 'record' in result) return result.record;
+
+      // A call opened once per record reads its pinned step narrowed to its record, above, so a
+      // call's pin on a Multiple step gets here only when the call was opened once for all of them.
+      if (result && 'records' in result) throw new SourceLoadsSeveralRecordsError(title);
+
       // The source step exists but loaded nothing → clear "no source record" message,
-      // distinct from a config pointing at a non-existent step.
+      // distinct from a config pointing at a non-existent step. A call's pin on an empty Multiple
+      // step gets here: with no record loaded, the orchestrator opened one call without an index.
+      const isList =
+        isCallPin &&
+        (sourceStep.stepDefinition as LoadRelatedRecordStepDefinition).preRecordedArgs?.multiple ===
+          true;
+
       throw new SourceRecordMissingError(sourceStep.stepDefinition.title, {
         errorKind: classifyMissingSourceRecord(execution),
         errorSourceStepIndex: sourceStep.stepOutcome.stepIndex,
+        ...(isList && {
+          emptyList: {
+            recordsName:
+              execution?.type === 'load-related-record'
+                ? execution.executionParams?.displayName
+                : undefined,
+            forCall: true,
+          },
+        }),
       });
     }
 
@@ -170,21 +227,11 @@ export default abstract class RecordStepExecutor<
   // originalStepIndex.
   protected async getAvailableRecordRefs(): Promise<RecordRef[]> {
     const stepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
-    const relatedRecords = this.context.previousSteps.flatMap(step => {
-      if (step.stepDefinition.type !== StepType.LoadRelatedRecord) return [];
-
-      const execution = this.resolveStepExecution(step, stepExecutions);
-
-      if (
-        execution?.type === 'load-related-record' &&
-        execution.executionResult !== undefined &&
-        'record' in execution.executionResult
-      ) {
-        return [execution.executionResult.record];
-      }
-
-      return [];
-    });
+    const relatedRecords = this.context.previousSteps.flatMap(step =>
+      step.stepDefinition.type === StepType.LoadRelatedRecord
+        ? loadedRecordsOf(this.resolveStepExecution(step, stepExecutions))
+        : [],
+    );
 
     return [this.context.baseRecordRef, ...relatedRecords];
   }

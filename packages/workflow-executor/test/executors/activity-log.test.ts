@@ -55,6 +55,24 @@ describe('ActivityLog', () => {
       expect(port.markFailed).not.toHaveBeenCalled();
     });
 
+    it("stamps the run's workflow on the activity log it creates", async () => {
+      const port = makeActivityLogPort();
+      const workflow = { runId: '135900', name: 'Alert triage', stepName: 'Freeze the account' };
+      const activityLog = new ActivityLog(port, makeUser(), workflow);
+
+      await activityLog.track(TARGET, { operation: async () => 'done' });
+
+      expect(port.createPending).toHaveBeenCalledWith({
+        renderingId: 1,
+        action: 'action',
+        type: 'write',
+        label: 'my-mcp-server',
+        collectionId: 'col-1',
+        recordId: [7],
+        workflow: { runId: '135900', name: 'Alert triage', stepName: 'Freeze the account' },
+      });
+    });
+
     it('runs beforeCall between createPending and the operation', async () => {
       const order: string[] = [];
       const port = makeActivityLogPort();

@@ -20,12 +20,16 @@ function formatToolResult(result: unknown): string {
 }
 
 export default class StepExecutionFormatters {
+  static formatToolResult = formatToolResult;
+
   // Returns null when no custom format is defined for the step type or when execution data
   // doesn't satisfy formatter preconditions — caller falls back to generic Input:/Output:.
   static format(execution: StepExecutionData): string | null {
     switch (execution.type) {
       case 'load-related-record':
-        return StepExecutionFormatters.formatLoadRelatedRecord(execution);
+        return StepExecutionFormatters.formatLoadRelatedRecord(
+          execution as LoadRelatedRecordStepExecutionData,
+        );
       case 'mcp':
         return StepExecutionFormatters.formatMcp(execution as McpStepExecutionData);
       case 'guidance':
@@ -149,10 +153,12 @@ export default class StepExecutionFormatters {
     if ('skipped' in executionResult) return null; // user skipped — generic fallback
 
     const { selectedRecordRef } = execution;
-    const { relation, record } = executionResult;
+    const { relation } = executionResult;
+    const records =
+      'records' in executionResult ? executionResult.records : [executionResult.record];
     const sourceId = selectedRecordRef.recordId.join(', ');
-    const recordId = record.recordId.join(', ');
+    const loaded = records.map(r => `${r.collectionName} #${r.recordId.join(', ')}`).join(', ');
 
-    return `  Loaded: ${selectedRecordRef.collectionName} #${sourceId} → [${relation.displayName}] → ${record.collectionName} #${recordId} (step ${record.stepIndex})`;
+    return `  Loaded: ${selectedRecordRef.collectionName} #${sourceId} → [${relation.displayName}] → ${loaded} (step ${records[0].stepIndex})`;
   }
 }

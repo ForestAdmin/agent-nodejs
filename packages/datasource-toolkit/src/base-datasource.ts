@@ -19,7 +19,7 @@ export default class BaseDataSource<T extends Collection = Collection> implement
   }
 
   get schema(): DataSourceSchema {
-    return { charts: [] };
+    return { charts: [], databases: [] };
   }
 
   getCollection(name: string): T {

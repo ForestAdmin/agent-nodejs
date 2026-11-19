@@ -130,6 +130,14 @@ export class AIToolUnprocessableError extends UnprocessableError {
   }
 }
 
+// Carries a message meant for the user: the credentials need an admin, not a retry.
+export class AIToolCredentialsRefusedError extends AIToolUnprocessableError {
+  constructor(message: string) {
+    super(message);
+    this.name = 'AIToolCredentialsRefusedError';
+  }
+}
+
 export class AIToolNotFoundError extends AINotFoundError {
   constructor(message: string) {
     super(message);

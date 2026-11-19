@@ -1,8 +1,8 @@
 import type { MongooseOptions, Stack } from './types';
-import type { Logger } from '@forestadmin/datasource-toolkit';
+import type { DataSourceSchema, Logger } from '@forestadmin/datasource-toolkit';
 import type { Connection, Model, Mongoose } from 'mongoose';
 
-import { BaseDataSource } from '@forestadmin/datasource-toolkit';
+import { BaseDataSource, makeDatabaseEntry } from '@forestadmin/datasource-toolkit';
 
 import MongooseCollection from './collection';
 import MongooseSchema from './mongoose/schema';
@@ -12,7 +12,7 @@ import RelationGenerator from './utils/schema/relations';
 
 export default class MongooseDatasource extends BaseDataSource<MongooseCollection> {
   constructor(
-    connection: Connection | Mongoose,
+    private readonly givenConnection: Connection | Mongoose,
     options: MongooseOptions = {},
     logger: Logger = null,
   ) {
@@ -28,13 +28,16 @@ export default class MongooseDatasource extends BaseDataSource<MongooseCollectio
     }
 
     if (options?.debug) {
-      connection.set('debug', (collectionName: string, method: string, args: unknown[]) => {
-        logger('Debug', `${collectionName}.${method}: ${JSON.stringify(args)}`);
-      });
+      this.givenConnection.set(
+        'debug',
+        (collectionName: string, method: string, args: unknown[]) => {
+          logger('Debug', `${collectionName}.${method}: ${JSON.stringify(args)}`);
+        },
+      );
     }
 
     // Create collections (with only many to one relations).
-    for (const model of Object.values(connection.models)) {
+    for (const model of Object.values(this.givenConnection.models)) {
       const schema = MongooseSchema.fromModel(model);
       const { asFields, asModels } = OptionsParser.parseOptions(model, options);
 
@@ -43,6 +46,13 @@ export default class MongooseDatasource extends BaseDataSource<MongooseCollectio
 
     // Add one-to-many, one-to-one and many-to-many relations.
     RelationGenerator.addImplicitRelations(this.collections);
+  }
+
+  override get schema(): DataSourceSchema {
+    const connection =
+      'connection' in this.givenConnection ? this.givenConnection.connection : this.givenConnection;
+
+    return { ...super.schema, databases: [makeDatabaseEntry('mongodb', connection?.name)] };
   }
 
   /** Create all collections for a given model */

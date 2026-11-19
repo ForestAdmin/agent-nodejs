@@ -146,6 +146,21 @@ describe('toAvailableStepExecution', () => {
     },
   );
 
+  it('should forward the workflow name the orchestrator sends', () => {
+    const result = toAvailableStepExecution(makeRun({ workflowName: 'Alert triage' }));
+
+    expect(result?.workflowName).toBe('Alert triage');
+  });
+
+  it.each([null, undefined, ''])(
+    'should leave the workflow name out when the orchestrator sends %p',
+    workflowName => {
+      const result = toAvailableStepExecution(makeRun({ workflowName }));
+
+      expect(result).not.toHaveProperty('workflowName');
+    },
+  );
+
   it('should forward the run triggerType', () => {
     const run = makeRun({ triggerType: ServerWorkflowTriggerType.webhook });
 
@@ -237,6 +252,28 @@ describe('toAvailableStepExecution', () => {
       prompt: 'follow the guide',
       title: 'guidance',
       executionType: ServerStepExecutionTypeEnum.Manual,
+    });
+  });
+
+  describe('carriesError', () => {
+    it('marks the step dispatched while it still carries an error from its last report', () => {
+      const run = makeRun({
+        workflowHistory: [
+          makeStepHistory({ context: { status: 'error', error: '1 of 3 records failed.' } }),
+        ],
+      });
+
+      expect(toAvailableStepExecution(run)?.carriesError).toBe(true);
+    });
+
+    it.each([
+      ['no context', undefined],
+      ['an empty error', { error: '' }],
+      ['an error cleared as null', { error: null }],
+    ])('leaves the mark off a step with %s', (_label, context) => {
+      const run = makeRun({ workflowHistory: [makeStepHistory({ context } as never)] });
+
+      expect(toAvailableStepExecution(run)).not.toHaveProperty('carriesError');
     });
   });
 
@@ -1415,6 +1452,353 @@ describe('toAvailableStepExecution', () => {
         collectionName: 'customers',
         recordId: ['123'],
         stepIndex: 0,
+      });
+    });
+
+    describe('a call opened once per record', () => {
+      it('carries the record index of the call the pending step runs inside', () => {
+        const run = makeRun({
+          workflowHistory: [
+            makeStartSubWorkflowHistory(
+              {
+                stepName: 'call-1',
+                stepIndex: 0,
+                context: { callRecordIndex: 1, callRecordCount: 3 },
+              },
+              { selectedRecordStepId: 'load-ubos', calledWorkflowCollectionName: 'ubos' },
+            ),
+            makeChildStepHistory({ stepName: 'child-1', stepIndex: 1, done: false }),
+          ],
+        });
+
+        expect(callScopeOf(run)).toEqual({
+          currentFrameStepIndexes: [],
+          selectedRecordStepId: 'load-ubos',
+          pinnedFrameStepIndexes: [],
+          calledWorkflowCollectionName: 'ubos',
+          isPinned: true,
+          recordCalls: [
+            {
+              selectedRecordStepId: 'load-ubos',
+              pinnedFrameStepIndexes: [],
+              recordIndex: 1,
+              startStepIndex: 0,
+            },
+          ],
+        });
+      });
+
+      it.each([-1, 1.5, '1', null, 2 ** 53])('drops a record index of %p', callRecordIndex => {
+        const run = makeRun({
+          workflowHistory: [
+            makeStartSubWorkflowHistory(
+              { stepName: 'call-1', stepIndex: 0, context: { callRecordIndex } },
+              { selectedRecordStepId: 'load-ubos', calledWorkflowCollectionName: 'ubos' },
+            ),
+            makeChildStepHistory({ stepName: 'child-1', stepIndex: 1, done: false }),
+          ],
+        });
+
+        expect(callScopeOf(run)).not.toHaveProperty('recordCalls');
+      });
+
+      // A nested call pins a step of the record's call, so it carries no index of its own.
+      it('scopes a call nested in a per-record call to that per-record call', () => {
+        const run = makeRun({
+          workflowHistory: [
+            makeStepHistory({ stepName: 'load-ubos', stepIndex: 0, done: true }),
+            makeStartSubWorkflowHistory(
+              { stepName: 'call-1', stepIndex: 1, context: { callRecordIndex: 1 } },
+              { selectedRecordStepId: 'load-ubos', calledWorkflowCollectionName: 'ubos' },
+            ),
+            makeChildStepHistory({ stepName: 'load-address', stepIndex: 2, done: true }),
+            makeStartSubWorkflowHistory(
+              { stepName: 'call-2', stepIndex: 3 },
+              { selectedRecordStepId: 'load-address', calledWorkflowCollectionName: 'addresses' },
+            ),
+            makeStepHistory({
+              stepName: 'grandchild-1',
+              stepIndex: 4,
+              done: true,
+              childrenWorkflowId: 'wf-grandchild',
+            }),
+            makeStepHistory({
+              stepName: 'grandchild-2',
+              stepIndex: 5,
+              done: false,
+              childrenWorkflowId: 'wf-grandchild',
+            }),
+          ],
+        });
+
+        const callScope = callScopeOf(run);
+
+        expect(callScope?.recordCalls).toEqual([
+          {
+            selectedRecordStepId: 'load-ubos',
+            pinnedFrameStepIndexes: [0],
+            recordIndex: 1,
+            startStepIndex: 1,
+          },
+        ]);
+      });
+
+      // A per-record call nested in another one: UBO #1's run must not read UBO #0's.
+      it("keeps another record's run out of previousSteps when per-record calls nest", () => {
+        const run = makeRun({
+          workflowHistory: [
+            makeStepHistory({ stepName: 'load-ubos', stepIndex: 0, done: true }),
+            makeStartSubWorkflowHistory(
+              { stepName: 'call-a', stepIndex: 1, context: { callRecordIndex: 0 } },
+              { selectedRecordStepId: 'load-ubos', calledWorkflowCollectionName: 'ubos' },
+            ),
+            makeChildStepHistory({ stepName: 'load-docs', stepIndex: 2, done: true }),
+            makeStartSubWorkflowHistory(
+              { stepName: 'call-b', stepIndex: 3, context: { callRecordIndex: 0 } },
+              { selectedRecordStepId: 'load-docs', calledWorkflowCollectionName: 'documents' },
+            ),
+            makeStepHistory({
+              stepName: 'b1',
+              stepIndex: 4,
+              done: true,
+              childrenWorkflowId: 'wf-grandchild',
+            }),
+            makeCloseSubWorkflowHistory({ stepName: 'close-b', stepIndex: 5 }),
+            makeCloseSubWorkflowHistory({ stepName: 'close-a', stepIndex: 6 }),
+            makeStartSubWorkflowHistory(
+              { stepName: 'call-a', stepIndex: 7, context: { callRecordIndex: 1 } },
+              { selectedRecordStepId: 'load-ubos', calledWorkflowCollectionName: 'ubos' },
+            ),
+            makeChildStepHistory({ stepName: 'load-docs', stepIndex: 8, done: true }),
+            makeStartSubWorkflowHistory(
+              { stepName: 'call-b', stepIndex: 9, context: { callRecordIndex: 0 } },
+              { selectedRecordStepId: 'load-docs', calledWorkflowCollectionName: 'documents' },
+            ),
+            makeStepHistory({
+              stepName: 'b1',
+              stepIndex: 10,
+              done: false,
+              childrenWorkflowId: 'wf-grandchild',
+            }),
+          ],
+        });
+
+        const result = toAvailableStepExecution(run);
+
+        expect(result?.previousSteps.map(step => step.stepOutcome.stepIndex)).toEqual([0, 8]);
+        expect(result?.callScope?.recordCalls).toEqual([
+          {
+            selectedRecordStepId: 'load-ubos',
+            pinnedFrameStepIndexes: [0],
+            recordIndex: 1,
+            startStepIndex: 7,
+          },
+          {
+            selectedRecordStepId: 'load-docs',
+            pinnedFrameStepIndexes: [8],
+            recordIndex: 0,
+            startStepIndex: 9,
+          },
+        ]);
+      });
+
+      // Two Sub-workflow steps over the same Multiple step: Y for UBO #0 reads X's run for UBO #0.
+      it('keeps an earlier call for the same record of the same Multiple step in previousSteps', () => {
+        const run = makeRun({
+          workflowHistory: [
+            makeStepHistory({ stepName: 'load-ubos', stepIndex: 0, done: true }),
+            makeStartSubWorkflowHistory(
+              { stepName: 'call-x', stepIndex: 1, context: { callRecordIndex: 0 } },
+              { selectedRecordStepId: 'load-ubos', calledWorkflowCollectionName: 'ubos' },
+            ),
+            makeChildStepHistory({ stepName: 'x1', stepIndex: 2, done: true }),
+            makeCloseSubWorkflowHistory({ stepName: 'close-x', stepIndex: 3 }),
+            makeStartSubWorkflowHistory(
+              { stepName: 'call-x', stepIndex: 4, context: { callRecordIndex: 1 } },
+              { selectedRecordStepId: 'load-ubos', calledWorkflowCollectionName: 'ubos' },
+            ),
+            makeChildStepHistory({ stepName: 'x1', stepIndex: 5, done: true }),
+            makeCloseSubWorkflowHistory({ stepName: 'close-x', stepIndex: 6 }),
+            makeStartSubWorkflowHistory(
+              { stepName: 'call-y', stepIndex: 7, context: { callRecordIndex: 0 } },
+              { selectedRecordStepId: 'load-ubos', calledWorkflowCollectionName: 'ubos' },
+            ),
+            makeChildStepHistory({ stepName: 'y1', stepIndex: 8, done: false }),
+          ],
+        });
+
+        const result = toAvailableStepExecution(run);
+
+        expect(result?.previousSteps.map(step => step.stepOutcome.stepIndex)).toEqual([0, 2]);
+      });
+
+      // The same index counts in another list once the Multiple step ran again.
+      it('keeps out an earlier call for the same index of an earlier run of the Multiple step', () => {
+        const run = makeRun({
+          workflowHistory: [
+            makeStepHistory({ stepName: 'load-ubos', stepIndex: 0, done: true }),
+            makeStartSubWorkflowHistory(
+              { stepName: 'call-x', stepIndex: 1, context: { callRecordIndex: 0 } },
+              { selectedRecordStepId: 'load-ubos', calledWorkflowCollectionName: 'ubos' },
+            ),
+            makeChildStepHistory({ stepName: 'x1', stepIndex: 2, done: true }),
+            makeCloseSubWorkflowHistory({ stepName: 'close-x', stepIndex: 3 }),
+            makeStepHistory({ stepName: 'load-ubos', stepIndex: 4, done: true }),
+            makeStartSubWorkflowHistory(
+              { stepName: 'call-y', stepIndex: 5, context: { callRecordIndex: 0 } },
+              { selectedRecordStepId: 'load-ubos', calledWorkflowCollectionName: 'ubos' },
+            ),
+            makeChildStepHistory({ stepName: 'y1', stepIndex: 6, done: false }),
+          ],
+        });
+
+        const result = toAvailableStepExecution(run);
+
+        expect(result?.previousSteps.map(step => step.stepOutcome.stepIndex)).toEqual([0, 4]);
+      });
+
+      it("keeps the other records' calls out of previousSteps, and the calling workflow's steps in", () => {
+        const run = makeRun({
+          workflowHistory: [
+            makeStepHistory({ stepName: 'load-ubos', stepIndex: 0, done: true }),
+            makeStartSubWorkflowHistory(
+              { stepName: 'call-1', stepIndex: 1, context: { callRecordIndex: 0 } },
+              { selectedRecordStepId: 'load-ubos', calledWorkflowCollectionName: 'ubos' },
+            ),
+            makeChildStepHistory({ stepName: 'child-1', stepIndex: 2, done: true }),
+            makeCloseSubWorkflowHistory({
+              stepName: 'close-1',
+              stepIndex: 3,
+              context: { callRecordIndex: 0 },
+            }),
+            makeStartSubWorkflowHistory(
+              { stepName: 'call-1', stepIndex: 4, context: { callRecordIndex: 1 } },
+              { selectedRecordStepId: 'load-ubos', calledWorkflowCollectionName: 'ubos' },
+            ),
+            makeChildStepHistory({ stepName: 'child-1', stepIndex: 5, done: true }),
+            makeChildStepHistory({ stepName: 'child-2', stepIndex: 6, done: false }),
+          ],
+        });
+
+        const result = toAvailableStepExecution(run);
+
+        expect(result?.previousSteps.map(step => step.stepOutcome.stepIndex)).toEqual([0, 5]);
+      });
+
+      it('keeps a call over another Multiple step in previousSteps, whatever its index', () => {
+        const run = makeRun({
+          workflowHistory: [
+            makeStepHistory({ stepName: 'load-ubos', stepIndex: 0, done: true }),
+            makeStepHistory({ stepName: 'load-invoices', stepIndex: 1, done: true }),
+            makeStartSubWorkflowHistory(
+              { stepName: 'call-x', stepIndex: 2, context: { callRecordIndex: 0 } },
+              { selectedRecordStepId: 'load-invoices', calledWorkflowCollectionName: 'invoices' },
+            ),
+            makeChildStepHistory({ stepName: 'x1', stepIndex: 3, done: true }),
+            makeCloseSubWorkflowHistory({ stepName: 'close-x', stepIndex: 4 }),
+            makeStartSubWorkflowHistory(
+              { stepName: 'call-y', stepIndex: 5, context: { callRecordIndex: 0 } },
+              { selectedRecordStepId: 'load-ubos', calledWorkflowCollectionName: 'ubos' },
+            ),
+            makeChildStepHistory({ stepName: 'y1', stepIndex: 6, done: false }),
+          ],
+        });
+
+        const result = toAvailableStepExecution(run);
+
+        expect(result?.previousSteps.map(step => step.stepOutcome.stepIndex)).toEqual([0, 1, 3]);
+      });
+
+      // The pin alone tells the lists apart, so it holds with neither Multiple step in view.
+      it('keeps a call pinned to another Multiple step in previousSteps, whatever its index', () => {
+        const run = makeRun({
+          workflowHistory: [
+            makeStartSubWorkflowHistory(
+              { stepName: 'call-ubos', stepIndex: 0, context: { callRecordIndex: 0 } },
+              { selectedRecordStepId: 'load-ubos', calledWorkflowCollectionName: 'ubos' },
+            ),
+            makeChildStepHistory({ stepName: 'child-1', stepIndex: 1, done: true }),
+            makeCloseSubWorkflowHistory({ stepName: 'close-1', stepIndex: 2 }),
+            makeStartSubWorkflowHistory(
+              { stepName: 'call-directors', stepIndex: 3, context: { callRecordIndex: 0 } },
+              { selectedRecordStepId: 'load-directors', calledWorkflowCollectionName: 'ubos' },
+            ),
+            makeChildStepHistory({ stepName: 'child-1', stepIndex: 4, done: true }),
+            makeChildStepHistory({ stepName: 'child-2', stepIndex: 5, done: false }),
+          ],
+        });
+
+        const result = toAvailableStepExecution(run);
+
+        expect(result?.previousSteps.map(step => step.stepOutcome.stepIndex)).toEqual([1, 4]);
+      });
+
+      it("keeps a call nested in another record's call out of previousSteps", () => {
+        const run = makeRun({
+          workflowHistory: [
+            makeStartSubWorkflowHistory(
+              { stepName: 'call-1', stepIndex: 0, context: { callRecordIndex: 0 } },
+              { selectedRecordStepId: 'load-ubos', calledWorkflowCollectionName: 'ubos' },
+            ),
+            makeStartSubWorkflowHistory(
+              { stepName: 'call-2', stepIndex: 1 },
+              { selectedRecordStepId: 'workflow-start', calledWorkflowCollectionName: 'ubos' },
+            ),
+            makeStepHistory({
+              stepName: 'grandchild-1',
+              stepIndex: 2,
+              done: true,
+              childrenWorkflowId: 'wf-grandchild',
+            }),
+            makeCloseSubWorkflowHistory({ stepName: 'close-2', stepIndex: 3 }),
+            makeCloseSubWorkflowHistory({ stepName: 'close-1', stepIndex: 4 }),
+            makeStartSubWorkflowHistory(
+              { stepName: 'call-1', stepIndex: 5, context: { callRecordIndex: 1 } },
+              { selectedRecordStepId: 'load-ubos', calledWorkflowCollectionName: 'ubos' },
+            ),
+            makeChildStepHistory({ stepName: 'child-1', stepIndex: 6, done: false }),
+          ],
+        });
+
+        const result = toAvailableStepExecution(run);
+
+        expect(result?.previousSteps).toEqual([]);
+      });
+
+      // An unbalanced close is read as the orchestrator reads it, never as a reason to fail the run.
+      it('passes over a close with no call open', () => {
+        const run = makeRun({
+          workflowHistory: [
+            makeCloseSubWorkflowHistory({ stepName: 'close-1', stepIndex: 0 }),
+            makeStepHistory({ stepName: 'after', stepIndex: 1, done: false }),
+          ],
+        });
+
+        expect(toAvailableStepExecution(run)?.previousSteps).toEqual([]);
+      });
+
+      it('keeps every call in previousSteps once the step runs after them, in the calling workflow', () => {
+        const run = makeRun({
+          workflowHistory: [
+            makeStartSubWorkflowHistory(
+              { stepName: 'call-1', stepIndex: 0, context: { callRecordIndex: 0 } },
+              { selectedRecordStepId: 'load-ubos', calledWorkflowCollectionName: 'ubos' },
+            ),
+            makeChildStepHistory({ stepName: 'child-1', stepIndex: 1, done: true }),
+            makeCloseSubWorkflowHistory({ stepName: 'close-1', stepIndex: 2 }),
+            makeStartSubWorkflowHistory(
+              { stepName: 'call-1', stepIndex: 3, context: { callRecordIndex: 1 } },
+              { selectedRecordStepId: 'load-ubos', calledWorkflowCollectionName: 'ubos' },
+            ),
+            makeChildStepHistory({ stepName: 'child-1', stepIndex: 4, done: true }),
+            makeCloseSubWorkflowHistory({ stepName: 'close-1', stepIndex: 5 }),
+            makeStepHistory({ stepName: 'after', stepIndex: 6, done: false }),
+          ],
+        });
+
+        const result = toAvailableStepExecution(run);
+
+        expect(result?.previousSteps.map(step => step.stepOutcome.stepIndex)).toEqual([1, 4]);
       });
     });
 

@@ -136,6 +136,23 @@ describe('toUpdateStepRequest', () => {
     });
   });
 
+  it('sends the record count of a Multiple step in the context', () => {
+    const outcome: StepOutcome = {
+      type: 'record',
+      stepId: 'load-ubos',
+      stepIndex: 1,
+      status: 'success',
+      loadedRecordCount: 3,
+    };
+
+    const body = toUpdateStepRequest('42', outcome);
+
+    expect(body.stepUpdate.attributes.context).toEqual({
+      status: 'success',
+      loadedRecordCount: 3,
+    });
+  });
+
   it('omits approvalRequest from the context when the record outcome has none', () => {
     const outcome: StepOutcome = {
       type: 'record',
@@ -365,6 +382,60 @@ describe('toUpdateStepRequest', () => {
         error: 'AI gateway unreachable',
       });
       expect(body.stepUpdate.attributes.context).not.toHaveProperty('errorKind');
+    });
+  });
+
+  describe('a step dispatched while it carried an error', () => {
+    const outcome = (status: 'success' | 'awaiting-input' | 'error'): StepOutcome => ({
+      type: 'record',
+      stepId: 'step-1',
+      stepIndex: 3,
+      status,
+      ...(status === 'error' && { error: '1 of 3 records failed.' }),
+    });
+
+    it.each(['success', 'awaiting-input'] as const)(
+      'reports the error cleared, as null, when the step now ends in %s',
+      status => {
+        const body = toUpdateStepRequest('42', outcome(status), { clearsError: true });
+
+        expect(body.stepUpdate.attributes.context).toStrictEqual({
+          status,
+          error: null,
+          errorKind: null,
+          errorSourceStepIndex: null,
+        });
+      },
+    );
+
+    it("clears the old error's classification when a new error carries none", () => {
+      const body = toUpdateStepRequest('42', outcome('error'), { clearsError: true });
+
+      expect(body.stepUpdate.attributes.context).toStrictEqual({
+        status: 'error',
+        error: '1 of 3 records failed.',
+        errorKind: null,
+        errorSourceStepIndex: null,
+      });
+    });
+
+    it('reports the classification a new error carries', () => {
+      const body = toUpdateStepRequest(
+        '42',
+        { ...outcome('error'), errorKind: 'operator', errorSourceStepIndex: 1 } as StepOutcome,
+        { clearsError: true },
+      );
+
+      expect(body.stepUpdate.attributes.context).toMatchObject({
+        errorKind: 'operator',
+        errorSourceStepIndex: 1,
+      });
+    });
+
+    it("sends exactly today's report for a step dispatched without an error", () => {
+      expect(toUpdateStepRequest('42', outcome('success'), { clearsError: false })).toStrictEqual(
+        toUpdateStepRequest('42', outcome('success')),
+      );
     });
   });
 });

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { deserializeRecordId } from '../record-id';
+import { deserializeRecordId, serializeRecordId } from '../record-id';
 
 // Per-step-type schemas for the userConfirmation payload sent by the front via
 // POST /runs/:runId/trigger. Validated into `execution.userConfirmation`; schemas
@@ -45,6 +45,16 @@ const mcpPatchSchema = z.object({ userConfirmed: z.boolean() }).strict();
 //      finalizing. The executor refreshes pendingData and stays awaiting-input.
 //      Required when the frontend lets the user switch relations: the IDs originally
 //      stored under `availableRecordIds` belong to the AI-suggested relation only.
+// The Forest Runtime lists at most this many candidates on a Load Related Record step.
+export const MAX_SELECTED_RECORDS = 50;
+
+// Pipe-separated id (e.g. 'id1|id2'), deserialized to an id array; empty segments would build a bogus PK.
+const recordIdSchema = z
+  .string()
+  .min(1)
+  .transform(deserializeRecordId)
+  .pipe(z.array(z.string().min(1)));
+
 const loadRelatedRecordPatchSchema = z
   .object({
     userConfirmed: z.boolean().optional(),
@@ -57,11 +67,16 @@ const loadRelatedRecordPatchSchema = z
     // deserialized to an id array. Required when confirming with a relation override —
     // the original record ID belongs to a different collection and cannot be reused.
     // The .pipe(...) rejects empty segments that would build a bogus PK.
-    selectedRecordId: z
-      .string()
+    selectedRecordId: recordIdSchema.optional(),
+    // A Multiple step: every record picked, each among the candidates offered.
+    // A record picked twice would run every step after it twice on that record.
+    selectedRecordIds: z
+      .array(recordIdSchema)
       .min(1)
-      .transform(deserializeRecordId)
-      .pipe(z.array(z.string().min(1)))
+      .max(MAX_SELECTED_RECORDS)
+      .refine(ids => new Set(ids.map(serializeRecordId)).size === ids.length, {
+        message: 'each record can be picked once',
+      })
       .optional(),
   })
   .strict()
@@ -69,7 +84,9 @@ const loadRelatedRecordPatchSchema = z
     data => {
       // Preview patch (no confirm): fieldName alone is sufficient.
       if (data.userConfirmed === undefined) return data.fieldName !== undefined;
-      // Confirm patch with relation override: selectedRecordId required.
+
+      // Confirm patch with relation override: the record picked is required. A Multiple step's
+      // relation is never switched, so the override never comes with selectedRecordIds.
       if (data.fieldName !== undefined) return data.selectedRecordId !== undefined;
 
       return true;

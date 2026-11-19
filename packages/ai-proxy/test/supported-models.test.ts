@@ -71,6 +71,20 @@ describe('isModelSupportingTools', () => {
     expect(isModelSupportingTools(model)).toBe(false);
   });
 
+  it.each(['gpt-5-mini', 'gpt-5-mini-2025-08-07'])(
+    'should return false for %s (repeats a call it already made on long MCP steps)',
+    model => {
+      expect(isModelSupportingTools(model)).toBe(false);
+    },
+  );
+
+  it.each(['gpt-5', 'gpt-5-nano', 'gpt-5-2025-08-07'])(
+    'should keep the neighbouring %s supported',
+    model => {
+      expect(isModelSupportingTools(model)).toBe(true);
+    },
+  );
+
   it.each(['gpt-6-astra', 'gpt-6-luna', 'gpt-6-sol', 'gpt-6.1-sol'])(
     'should return true for %s (served through the Responses API)',
     model => {

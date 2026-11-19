@@ -1,11 +1,12 @@
+import type { ZendeskRequest } from '../utils';
+
 import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 
-import fetchWithoutRedirect from '../../fetch-without-redirect';
 import { assertResponseOk } from '../utils';
 
 export default function createUpdateTicketTool(
-  headers: Record<string, string>,
+  request: ZendeskRequest,
   baseUrl: string,
 ): DynamicStructuredTool {
   return new DynamicStructuredTool({
@@ -77,9 +78,8 @@ export default function createUpdateTicketTool(
       if (custom_fields !== undefined) ticketUpdate.custom_fields = custom_fields;
       if (due_at !== undefined) ticketUpdate.due_at = due_at;
 
-      const response = await fetchWithoutRedirect(`${baseUrl}/tickets/${ticket_id}.json`, {
+      const response = await request(`${baseUrl}/tickets/${ticket_id}.json`, {
         method: 'PUT',
-        headers,
         body: JSON.stringify({ ticket: ticketUpdate }),
       });
 

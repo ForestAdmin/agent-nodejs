@@ -30,6 +30,7 @@ const OPENAI_UNSUPPORTED_PREFIXES = [
   'sora', // sora-2, sora-2-pro
   'codex', // codex-mini-latest
   'gpt-5.6', // Never checked against the live API: LangChain sends every variant to v1/responses
+  'gpt-5-mini', // Repeats a call it already made on long MCP steps (17/25 runs on an 8-call step)
 ];
 
 const OPENAI_UNSUPPORTED_PATTERNS = [

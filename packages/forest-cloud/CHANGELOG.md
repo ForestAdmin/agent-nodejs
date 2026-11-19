@@ -1,3 +1,90 @@
+## @forestadmin/forest-cloud [1.12.274](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.273...@forestadmin/forest-cloud@1.12.274) (2026-11-19)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.113.11
+
+## @forestadmin/forest-cloud [1.12.273](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.272...@forestadmin/forest-cloud@1.12.273) (2026-11-19)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.113.10
+
+## @forestadmin/forest-cloud [1.12.272](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.271...@forestadmin/forest-cloud@1.12.272) (2026-11-19)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.113.9
+
+## @forestadmin/forest-cloud [1.12.271](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.270...@forestadmin/forest-cloud@1.12.271) (2026-11-18)
+
+
+### Bug Fixes
+
+* **forest-cloud:** point its workspace pins at the versions the repository holds ([#2088](https://github.com/ForestAdmin/agent-nodejs/issues/2088)) ([a00b33e](https://github.com/ForestAdmin/agent-nodejs/commit/a00b33e499090d54c206f7d41ad81297674fdc4b))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.113.8
+
+## @forestadmin/forest-cloud [1.12.270](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.269...@forestadmin/forest-cloud@1.12.270) (2026-11-18)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.113.6
+
+## @forestadmin/forest-cloud [1.12.269](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.268...@forestadmin/forest-cloud@1.12.269) (2026-11-17)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.113.5
+* **@forestadmin/datasource-mongo:** upgraded to 1.6.19
+* **@forestadmin/datasource-mongoose:** upgraded to 1.15.1
+
+## @forestadmin/forest-cloud [1.12.268](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.267...@forestadmin/forest-cloud@1.12.268) (2026-11-16)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.113.4
+
+## @forestadmin/forest-cloud [1.12.267](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.266...@forestadmin/forest-cloud@1.12.267) (2026-11-13)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.113.3
+
 ## @forestadmin/forest-cloud [1.12.266](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.265...@forestadmin/forest-cloud@1.12.266) (2026-11-10)
 
 

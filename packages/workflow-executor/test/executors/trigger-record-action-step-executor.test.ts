@@ -112,6 +112,7 @@ function makeMockWorkflowPort(
     hasRunAccess: jest.fn().mockResolvedValue(true),
     reportExecutorMetadata: jest.fn().mockResolvedValue(undefined),
     releaseRun: jest.fn().mockResolvedValue(undefined),
+    renewRunLock: jest.fn().mockResolvedValue({ status: 'renewed', lockedAt: 'renewed-lock' }),
   };
 }
 
