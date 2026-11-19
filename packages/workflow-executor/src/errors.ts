@@ -238,6 +238,15 @@ export class ApprovalRequestFailedError extends WorkflowOperatorError {
   }
 }
 
+export class ApprovalRequestCanceledError extends WorkflowOperatorError {
+  constructor(approvalRequestId: string) {
+    super(
+      `Approval request ${approvalRequestId} was canceled by its requester`,
+      'The approval request of this step was canceled by its requester. Abort the run, or revise the step to submit the action again.',
+    );
+  }
+}
+
 export class ApprovalRequestGoneError extends WorkflowExecutorError {
   constructor(approvalRequestId: string) {
     super(

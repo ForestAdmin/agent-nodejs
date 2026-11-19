@@ -3882,6 +3882,19 @@ describe('TriggerRecordActionStepExecutor', () => {
       );
     });
 
+    it('errors the step on replay when its requester canceled the request', async () => {
+      const { result } = await replay([{ id: '12', status: 'canceled' }]);
+
+      expect(result.stepOutcome).toEqual(
+        expect.objectContaining({
+          status: 'error',
+          errorKind: 'operator',
+          error:
+            'The approval request of this step was canceled by its requester. Abort the run, or revise the step to submit the action again.',
+        }),
+      );
+    });
+
     it('errors the step on replay when the request no longer exists', async () => {
       const { result } = await replay([{ id: '12' }]);
 
