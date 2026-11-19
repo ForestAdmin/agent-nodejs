@@ -95,6 +95,36 @@ describe('patchBodySchemas', () => {
     it('rejects unknown fields (strict schema)', () => {
       expect(() => schema.parse({ userConfirmed: true, value: 'x', extra: 'leak' })).toThrow();
     });
+
+    it('accepts a values map keyed by field name (multi-field confirmation)', () => {
+      expect(
+        schema.parse({ userConfirmed: true, values: { status: 'active', age: '42', note: null } }),
+      ).toEqual({ userConfirmed: true, values: { status: 'active', age: '42', note: null } });
+    });
+
+    it('accepts an empty values map', () => {
+      expect(schema.parse({ userConfirmed: true, values: {} })).toEqual({
+        userConfirmed: true,
+        values: {},
+      });
+    });
+
+    it('rejects values that is not an object', () => {
+      expect(() => schema.parse({ userConfirmed: true, values: ['active'] })).toThrow();
+    });
+
+    it('rejects value and values together', () => {
+      const parsed = schema.safeParse({
+        userConfirmed: true,
+        value: 'x',
+        values: { status: 'active' },
+      });
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.error?.issues.map(issue => issue.message)).toEqual([
+        'Send either "value" or "values", not both',
+      ]);
+    });
   });
 
   describe('trigger-action', () => {

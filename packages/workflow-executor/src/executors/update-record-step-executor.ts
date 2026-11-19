@@ -292,7 +292,27 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
         const pendingData = exec.pendingData!;
 
         if ('fields' in pendingData) {
-          throw new StepStateError('Confirming a multi-field update is not supported yet');
+          if (userConfirmation?.value !== undefined) {
+            throw new StepStateError(
+              'A multi-field update must be confirmed with "values", not "value"',
+            );
+          }
+
+          return this.resolveAndUpdate(
+            selectedRecordRef,
+            await this.applyConfirmedValues(
+              selectedRecordRef,
+              pendingData.fields,
+              userConfirmation?.values ?? {},
+            ),
+            exec,
+          );
+        }
+
+        if (userConfirmation?.values !== undefined) {
+          throw new StepStateError(
+            'A single-field update must be confirmed with "value", not "values"',
+          );
         }
 
         // A user override of `null` (clearing the field) must win over the AI suggestion, so
@@ -315,6 +335,40 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     return this.handleFirstCall();
   }
 
+  private async applyConfirmedValues(
+    selectedRecordRef: RecordRef,
+    pendingFields: FieldWithValue[],
+    values: Record<string, unknown>,
+  ): Promise<{ fields: FieldWithValue[] }> {
+    const pendingNames = new Set(pendingFields.map(({ name }) => name));
+    const unknownName = Object.keys(values).find(name => !pendingNames.has(name));
+
+    if (unknownName !== undefined) {
+      throw new StepStateError(
+        `Cannot confirm field "${unknownName}": this step does not update it`,
+      );
+    }
+
+    const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
+
+    return {
+      fields: pendingFields.map(({ displayName, name, value }) => {
+        const isOverridden = hasOwn(values, name);
+
+        return {
+          displayName,
+          name,
+          value: this.coerceConfirmedValue(
+            schema,
+            name,
+            isOverridden ? values[name] : value,
+            isOverridden,
+          ),
+        };
+      }),
+    };
+  }
+
   private async coerceOverride(
     selectedRecordRef: RecordRef,
     pendingData: FieldWithValue,
@@ -322,15 +376,23 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     isOverridden: boolean,
   ): Promise<unknown> {
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
-    const fieldSchema = this.findFieldByTechnicalName(schema, pendingData.name);
+
+    return this.coerceConfirmedValue(schema, pendingData.name, value, isOverridden);
+  }
+
+  private coerceConfirmedValue(
+    schema: CollectionSchema,
+    fieldName: string,
+    value: unknown,
+    isOverridden: boolean,
+  ): unknown {
+    const fieldSchema = this.findFieldByTechnicalName(schema, fieldName);
 
     if (!fieldSchema) {
-      throw new PendingFieldNotFoundError(pendingData.name, schema.collectionName);
+      throw new PendingFieldNotFoundError(fieldName, schema.collectionName);
     }
 
-    return coerceFieldValue(fieldSchema, value, selectedRecordRef.collectionName, {
-      strict: isOverridden,
-    });
+    return coerceFieldValue(fieldSchema, value, schema.collectionName, { strict: isOverridden });
   }
 
   private async handleFirstCall(): Promise<StepExecutionResult> {
