@@ -88,7 +88,7 @@ export default function declareListTool(mcpServer: McpServer, ctx: ToolContext):
     {
       annotations: { readOnlyHint: true },
       title: 'List records from a collection',
-      ...recordsToolConfig(LIST_DESCRIPTION, ctx.apps),
+      ...recordsToolConfig(LIST_DESCRIPTION, ctx.recordsView),
       inputSchema: listArgumentShape,
     },
     async (options: ListArgument, extra) => {
@@ -125,7 +125,7 @@ export default function declareListTool(mcpServer: McpServer, ctx: ToolContext):
             response = { records };
           }
 
-          return { content: recordsResultContent(response, ctx.apps) };
+          return { content: recordsResultContent(response, ctx.recordsView) };
         },
         errorEnhancer: async errorMessage => {
           // Enhance "Invalid sort" errors with available sortable fields

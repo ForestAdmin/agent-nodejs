@@ -85,7 +85,7 @@ export default function declareListRelatedTool(mcpServer: McpServer, ctx: ToolCo
     {
       annotations: { readOnlyHint: true },
       title: 'List records from a relation',
-      ...recordsToolConfig(LIST_RELATED_DESCRIPTION, ctx.apps),
+      ...recordsToolConfig(LIST_RELATED_DESCRIPTION, ctx.recordsView),
       inputSchema: listArgumentShape,
     },
     async (options: HasManyArgument, extra) => {
@@ -131,7 +131,7 @@ export default function declareListRelatedTool(mcpServer: McpServer, ctx: ToolCo
             response = { records };
           }
 
-          return { content: recordsResultContent(response, ctx.apps) };
+          return { content: recordsResultContent(response, ctx.recordsView) };
         },
         errorEnhancer: createErrorEnhancer(forestServerClient, options, logger),
       });

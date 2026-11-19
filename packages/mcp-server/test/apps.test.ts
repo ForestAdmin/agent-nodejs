@@ -160,7 +160,7 @@ describe('MCP Apps records view', () => {
 
       expect(listTools).toHaveLength(2);
       listTools.forEach(({ description }) =>
-        expect(description).not.toContain(RECORDS_VIEW_DESCRIPTION.trim()),
+        expect(description).not.toContain(RECORDS_VIEW_DESCRIPTION),
       );
     });
 

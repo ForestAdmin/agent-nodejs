@@ -33,7 +33,7 @@
   "scripts": {
     "build": "tsc && yarn build:copy",
     "build:copy": "mkdir -p dist/apps && cp src/apps/records-view.html dist/apps/",
-    "build:watch": "tsc --watch",
+    "build:watch": "yarn build:copy && tsc --watch",
     "start": "node dist/cli.js",
     "start:dev": "node --env-file=.env dist/cli.js",
     "clean": "rm -rf coverage dist",

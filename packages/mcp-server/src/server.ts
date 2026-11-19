@@ -26,7 +26,7 @@ import cors from 'cors';
 import express from 'express';
 import * as http from 'http';
 
-import { loadMcpApps, registerRecordsView } from './apps/records-view';
+import { RECORDS_VIEW_TOOLS, loadMcpApps, registerRecordsView } from './apps/records-view';
 import EphemeralStorage from './file-uploads/ephemeral-storage';
 import { resolveFileUploads } from './file-uploads/types';
 import ForestOAuthProvider from './forest-oauth-provider';
@@ -91,7 +91,6 @@ function logErrorWithStack(logger: Logger, message: string, err: Error): void {
 }
 
 const DEFAULT_PORT = 3931;
-const RECORDS_VIEW_TOOLS: ToolName[] = ['list', 'listRelated'];
 
 /** Fields that are safe to log for each tool (non-sensitive data) */
 const SAFE_ARGUMENTS_FOR_LOGGING: Record<string, string[]> = {
@@ -288,7 +287,7 @@ export default class ForestMCPServer {
       collectionNames: this.collectionNames,
       agentDispatcher: this.agentDispatcher,
       fileUploads: this.fileUploads,
-      apps: this.apps,
+      recordsView: Boolean(this.apps),
     };
 
     const allTools: Array<{ name: ToolName; register: () => string }> = [

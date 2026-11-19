@@ -1,4 +1,3 @@
-import type { McpApps } from './apps/records-view';
 import type { ResolvedFileUploads } from './file-uploads/types';
 import type { ForestServerClient } from './http-client';
 import type { InProcessAgentDispatcher } from './in-process-agent-dispatcher';
@@ -10,5 +9,5 @@ export interface ToolContext {
   collectionNames: string[];
   agentDispatcher?: InProcessAgentDispatcher;
   fileUploads?: ResolvedFileUploads;
-  apps?: McpApps;
+  recordsView?: boolean;
 }

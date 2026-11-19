@@ -1097,7 +1097,6 @@ describe('declareListTool', () => {
   });
 
   describe('with MCP Apps on', () => {
-    const apps = { recordsViewHtml: '<html></html>' };
     const mockExtra = {
       authInfo: {
         token: 'test-token',
@@ -1110,13 +1109,13 @@ describe('declareListTool', () => {
         forestServerClient: mockForestServerClient,
         logger: mockLogger,
         collectionNames: [],
-        apps,
+        recordsView: true,
       });
     });
 
     it('tells the model that the records are already shown in a table', () => {
       expect(registeredToolConfig.description).toBe(
-        `Retrieve a list of records from the specified collection. Send schema field names; read each value under its \`recordKey\` when describeCollection publishes one. Never read a field whose \`recordKey\` is null; project a field listing \`sharesRecordKeyWith\` without the fields it lists.${RECORDS_VIEW_DESCRIPTION}`,
+        `Retrieve a list of records from the specified collection. Send schema field names; read each value under its \`recordKey\` when describeCollection publishes one. Never read a field whose \`recordKey\` is null; project a field listing \`sharesRecordKeyWith\` without the fields it lists. ${RECORDS_VIEW_DESCRIPTION}`,
       );
     });
 
