@@ -9,6 +9,16 @@ describe('parseAiEnv', () => {
     expect(parseAiEnv({ AI_PROVIDER: '', AI_MODEL: '', AI_API_KEY: '' })).toBeUndefined();
   });
 
+  it('should treat whitespace-only values as unset', () => {
+    expect(parseAiEnv({ AI_PROVIDER: '  ', AI_MODEL: ' ', AI_API_KEY: '\t' })).toBeUndefined();
+  });
+
+  it('should trim padded values', () => {
+    expect(
+      parseAiEnv({ AI_PROVIDER: ' anthropic ', AI_MODEL: 'claude ', AI_API_KEY: ' sk-1' }),
+    ).toEqual({ name: 'default', provider: 'anthropic', model: 'claude', apiKey: 'sk-1' });
+  });
+
   it('should build an anthropic configuration', () => {
     expect(
       parseAiEnv({ AI_PROVIDER: 'anthropic', AI_MODEL: 'claude', AI_API_KEY: 'sk-1' }),
@@ -62,6 +72,18 @@ describe('parseAiEnv', () => {
       expect(() =>
         parseAiEnv({ AI_PROVIDER: 'bedrock', AI_MODEL: 'm', AI_API_KEY: 'k', AWS_REGION: 'r' }),
       ).toThrow('AI_API_KEY is not used with bedrock');
+    });
+
+    it('should trim a padded region', () => {
+      expect(
+        parseAiEnv({ AI_PROVIDER: 'bedrock', AI_MODEL: 'm', AWS_REGION: ' eu-west-3 ' }),
+      ).toMatchObject({ region: 'eu-west-3' });
+    });
+
+    it('should refuse a whitespace-only region at parse time', () => {
+      expect(() => parseAiEnv({ AI_PROVIDER: 'bedrock', AI_MODEL: 'm', AWS_REGION: '  ' })).toThrow(
+        'AI_PROVIDER=bedrock requires AWS_REGION (or AWS_DEFAULT_REGION).',
+      );
     });
 
     it('should require a region', () => {

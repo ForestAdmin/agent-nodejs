@@ -697,6 +697,18 @@ describe('parseConfig', () => {
       ).toEqual({ name: 'default', provider: 'anthropic', model: 'claude', apiKey: 'own-key' });
     });
 
+    it.each([
+      ['empty', { BFF_AI_PROVIDER: '', BFF_AI_MODEL: '', BFF_AI_API_KEY: '' }],
+      ['whitespace-only', { BFF_AI_PROVIDER: ' ', BFF_AI_MODEL: '  ', BFF_AI_API_KEY: '\t' }],
+    ])("should use the runtime's setting when the Gateway's own lines are %s", (_label, own) => {
+      expect(parseConfig({ ...VALID_ENV, ...RUNTIME, ...own }).ai).toEqual({
+        name: 'default',
+        provider: 'openai',
+        model: 'gpt-4.1',
+        apiKey: 'runtime-key',
+      });
+    });
+
     it('should read a whitespace-only runtime setting as unset', () => {
       expect(parseConfig({ ...VALID_ENV, AI_PROVIDER: '  ', AI_MODEL: ' ' }).ai).toBeUndefined();
     });
