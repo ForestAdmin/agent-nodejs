@@ -334,6 +334,26 @@ describe('Agent.addGateway', () => {
         );
       });
 
+      it('should hand a bedrock setting without region the process AWS_DEFAULT_REGION alone', async () => {
+        const savedDefaultRegion = process.env.AWS_DEFAULT_REGION;
+        delete process.env.AWS_REGION;
+        process.env.AWS_DEFAULT_REGION = 'ca-central-1';
+
+        try {
+          const { agent } = buildAgent();
+          agent.addGateway({ api: { ai: { provider: 'bedrock', model: 'anthropic.claude' } } });
+
+          await agent.start();
+
+          const env = mockParseConfig.mock.calls[0][0];
+          expect(env).toMatchObject({ AWS_DEFAULT_REGION: 'ca-central-1' });
+          expect(env.AWS_REGION).toBeUndefined();
+        } finally {
+          if (savedDefaultRegion === undefined) delete process.env.AWS_DEFAULT_REGION;
+          else process.env.AWS_DEFAULT_REGION = savedDefaultRegion;
+        }
+      });
+
       it("should prefer the bedrock setting's own region over AWS_REGION", async () => {
         process.env.AWS_REGION = 'eu-west-3';
         const { agent } = buildAgent();

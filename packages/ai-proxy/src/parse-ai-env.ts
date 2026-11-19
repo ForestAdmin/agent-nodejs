@@ -31,9 +31,11 @@ export function parseAiEnv(
   keys: AiEnvKeys = AI_ENV_KEYS,
   label: (key: string) => string = key => key,
 ): AiConfiguration | undefined {
-  const provider = env[keys.provider];
-  const model = env[keys.model];
-  const apiKey = env[keys.apiKey];
+  // Trimmed, so a padded value is neither refused nor sent to the provider, and blank reads as unset.
+  const read = (key: string) => env[key]?.trim() || undefined;
+  const provider = read(keys.provider);
+  const model = read(keys.model);
+  const apiKey = read(keys.apiKey);
   const [providerName, modelName, apiKeyName] = [keys.provider, keys.model, keys.apiKey].map(label);
 
   if (!provider && !model && !apiKey) return undefined;
@@ -55,7 +57,7 @@ export function parseAiEnv(
 
     // Checked here rather than left to the AWS SDK, which would only fail on the first AI call,
     // long after a misconfigured process reported itself healthy.
-    const region = env.AWS_REGION || env.AWS_DEFAULT_REGION;
+    const region = read('AWS_REGION') || read('AWS_DEFAULT_REGION');
 
     if (!region) {
       throw new AiEnvConfigurationError(

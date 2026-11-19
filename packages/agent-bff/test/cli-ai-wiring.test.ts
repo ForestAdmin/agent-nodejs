@@ -1,11 +1,18 @@
 import type { Logger } from '../src/ports/logger-port';
 
+import { AiClient } from '@forestadmin/ai-proxy';
+
 import AiProxyClient from '../src/ai/ai-proxy-client';
 import createAiRoutesMiddleware from '../src/ai/ai-routes-middleware';
 import runCli from '../src/cli-core';
 import { restoreFetchAfterEach, stubEnvironmentIdFetch } from './helpers/fetch-stub';
 
 jest.mock('../src/ai/ai-proxy-client');
+jest.mock('@forestadmin/ai-proxy', () => {
+  const actual = jest.requireActual('@forestadmin/ai-proxy');
+
+  return { ...actual, AiClient: jest.fn((...args) => new actual.AiClient(...args)) };
+});
 jest.mock('../src/ai/ai-routes-middleware', () => {
   const actual = jest.requireActual('../src/ai/ai-routes-middleware');
 
@@ -29,6 +36,7 @@ describe('runCli', () => {
 
   beforeEach(() => {
     (AiProxyClient as unknown as jest.Mock).mockClear();
+    (AiClient as unknown as jest.Mock).mockClear();
     stubEnvironmentIdFetch();
   });
 
@@ -91,6 +99,54 @@ describe('runCli', () => {
             customerModel: expect.objectContaining({ modelName: 'gpt-4.1', timeoutMs: 4321 }),
           }),
         );
+      } finally {
+        await server.stop();
+      }
+    });
+
+    it("should hand AiClient the customer's setting with the runtime's retry budget", async () => {
+      const server = await runCli(
+        {
+          ...OAUTH_ENV,
+          BFF_AI_PROVIDER: 'openai',
+          BFF_AI_MODEL: 'gpt-4.1',
+          BFF_AI_API_KEY: 'sk-test',
+        },
+        noopLogger,
+      );
+
+      try {
+        expect(AiClient).toHaveBeenCalledWith({
+          aiConfigurations: [
+            {
+              name: 'default',
+              provider: 'openai',
+              model: 'gpt-4.1',
+              apiKey: 'sk-test',
+              maxRetries: 2,
+            },
+          ],
+        });
+      } finally {
+        await server.stop();
+      }
+    });
+
+    it("should hand AiClient a bedrock setting's region", async () => {
+      const server = await runCli(
+        {
+          ...OAUTH_ENV,
+          BFF_AI_PROVIDER: 'bedrock',
+          BFF_AI_MODEL: 'anthropic.claude-sonnet-4',
+          AWS_REGION: 'eu-west-3',
+        },
+        noopLogger,
+      );
+
+      try {
+        expect(AiClient).toHaveBeenCalledWith({
+          aiConfigurations: [expect.objectContaining({ provider: 'bedrock', region: 'eu-west-3' })],
+        });
       } finally {
         await server.stop();
       }

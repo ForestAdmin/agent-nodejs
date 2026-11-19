@@ -243,14 +243,10 @@ function parseAi(
 ): AiConfiguration | undefined {
   const ownIsSet = Object.values(GATEWAY_AI_ENV_KEYS).some(key => normalize(env[key]));
   const keys = ownIsSet ? GATEWAY_AI_ENV_KEYS : AI_ENV_KEYS;
-  // Trimmed like every other variable, so a padded value is neither refused nor sent as a key.
-  const trimmed = Object.fromEntries(
-    Object.values(keys).map(key => [key, normalize(env[key])?.trim()]),
-  );
   let ai: AiConfiguration | undefined;
 
   try {
-    ai = parseAiEnv({ ...env, ...trimmed }, keys, key => label(key as ConfigKey));
+    ai = parseAiEnv(env, keys, key => label(key as ConfigKey));
   } catch (error) {
     if (error instanceof AiEnvConfigurationError) {
       throw new ConfigurationError(`Invalid configuration: ${error.message}`);
