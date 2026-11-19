@@ -533,6 +533,14 @@ export class McpToolInvocationError extends WorkflowExecutorError {
   }
 }
 
+// The connector's provider refused its credentials: the provider's message tells an admin what to fix.
+export class McpCredentialsRefusedError extends WorkflowConfigurationError {
+  constructor(toolName: string, cause: Error) {
+    super(`MCP tool "${toolName}" invocation failed: ${cause.message}`, cause.message);
+    this.cause = cause;
+  }
+}
+
 export class ConfigurationError extends Error {
   constructor(message: string) {
     super(message);

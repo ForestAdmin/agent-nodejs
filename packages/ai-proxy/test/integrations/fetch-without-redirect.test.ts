@@ -73,7 +73,11 @@ describe('fetchWithoutRedirect', () => {
 
   it('should keep a Zendesk tool from returning what a redirect points to', async () => {
     redirectStatus = 302;
-    const tool = createGetTicketTool({ Authorization: 'Basic abc' }, redirectingUrl);
+    const tool = createGetTicketTool(
+      (url, init = {}) =>
+        fetchWithoutRedirect(url, { ...init, headers: { Authorization: 'Basic abc' } }),
+      redirectingUrl,
+    );
 
     await expect(tool.invoke({ ticket_id: 1 })).rejects.toThrow(AIToolUnprocessableError);
     expect(internalHits).toEqual([]);

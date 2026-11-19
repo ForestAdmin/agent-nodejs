@@ -1,6 +1,13 @@
 import type { ZendeskConfig } from './tools';
 
-import { AIBadRequestError, AIToolUnprocessableError, McpConnectionError } from '../../errors';
+import { createHash } from 'crypto';
+
+import {
+  AIBadRequestError,
+  AIToolCredentialsRefusedError,
+  AIToolUnprocessableError,
+  McpConnectionError,
+} from '../../errors';
 import fetchWithoutRedirect from '../fetch-without-redirect';
 
 // A Zendesk subdomain is a single DNS label. Anything else could redirect URL building to an
@@ -13,17 +20,149 @@ export function assertValidSubdomain(subdomain: string): void {
   }
 }
 
+export type ZendeskRequest = (url: string, init?: RequestInit) => Promise<Response>;
+type OAuthClientConfig = Extract<ZendeskConfig, { clientId: string }>;
+type AccessToken = { value: string; expiresAt: number };
+
+const TOKEN_SCOPE = 'tickets:read tickets:write';
+// Zendesk issues a token that never expires to a client created before April 30, 2026, unless asked.
+const TOKEN_LIFETIME_SECONDS = 1800;
+const TOKEN_EXPIRY_MARGIN_SECONDS = 60;
+const CLIENT_REFUSED_STATUSES = [400, 401, 403];
+const CLIENT_REFUSED_MESSAGE =
+  "Zendesk refused the connector's OAuth client. An admin must update the Zendesk connector's credentials.";
+
+// Providers are rebuilt on every request, so the cache has to outlive them.
+const accessTokens = new Map<string, Promise<AccessToken>>();
+
+async function requestAccessToken(config: OAuthClientConfig): Promise<AccessToken> {
+  const response = await fetchWithoutRedirect(
+    `https://${config.subdomain}.zendesk.com/oauth/tokens`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        grant_type: 'client_credentials',
+        client_id: config.clientId,
+        client_secret: config.clientSecret,
+        scope: TOKEN_SCOPE,
+        expires_in: TOKEN_LIFETIME_SECONDS,
+      }),
+    },
+  );
+
+  if (CLIENT_REFUSED_STATUSES.includes(response.status)) {
+    throw new AIToolCredentialsRefusedError(CLIENT_REFUSED_MESSAGE);
+  }
+
+  if (!response.ok) {
+    throw new AIToolUnprocessableError(`Zendesk token request failed (${response.status})`);
+  }
+
+  const body = await response.json().catch(() => null);
+
+  if (typeof body?.access_token !== 'string' || !body.access_token) {
+    throw new AIToolUnprocessableError('Zendesk token response carried no access token');
+  }
+
+  const { access_token: value, expires_in: expiresIn } = body;
+
+  return {
+    value,
+    expiresAt: expiresIn
+      ? Date.now() + (expiresIn - TOKEN_EXPIRY_MARGIN_SECONDS) * 1000
+      : Number.POSITIVE_INFINITY,
+  };
+}
+
+function dropExpiredAccessTokens(): void {
+  accessTokens.forEach((entry, cacheKey) => {
+    entry.then(
+      ({ expiresAt }) => {
+        if (expiresAt <= Date.now() && accessTokens.get(cacheKey) === entry) {
+          accessTokens.delete(cacheKey);
+        }
+      },
+      () => undefined, // A failed request already removed its own entry.
+    );
+  });
+}
+
+async function getAccessToken(config: OAuthClientConfig, cacheKey: string): Promise<string> {
+  const cached = accessTokens.get(cacheKey);
+
+  if (cached) {
+    const token = await cached;
+    if (token.expiresAt > Date.now()) return token.value;
+    if (accessTokens.get(cacheKey) !== cached) return getAccessToken(config, cacheKey);
+    accessTokens.delete(cacheKey);
+  }
+
+  const pending = requestAccessToken(config).catch(error => {
+    accessTokens.delete(cacheKey);
+    throw error;
+  });
+  accessTokens.set(cacheKey, pending);
+  dropExpiredAccessTokens();
+
+  return (await pending).value;
+}
+
+// Another call may already have replaced the refused token with a fresh one, which stays.
+async function dropRefusedAccessToken(cacheKey: string, refused: string): Promise<void> {
+  const cached = accessTokens.get(cacheKey);
+  const token = await cached?.catch(() => null);
+
+  if (token?.value === refused && accessTokens.get(cacheKey) === cached) {
+    accessTokens.delete(cacheKey);
+  }
+}
+
+function createOAuthClientRequest(config: OAuthClientConfig): ZendeskRequest {
+  const cacheKey = createHash('sha256')
+    .update(JSON.stringify([config.subdomain, config.clientId, config.clientSecret]))
+    .digest('hex');
+
+  const send = async (url: string, init: RequestInit) => {
+    const token = await getAccessToken(config, cacheKey);
+    const response = await fetchWithoutRedirect(url, {
+      ...init,
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    });
+
+    return { token, response };
+  };
+
+  return async (url, init = {}) => {
+    const { token, response } = await send(url, init);
+    if (response.status !== 401) return response;
+
+    await dropRefusedAccessToken(cacheKey, token);
+    const retried = await send(url, init);
+
+    if (retried.response.status === 401) {
+      throw new AIToolCredentialsRefusedError(CLIENT_REFUSED_MESSAGE);
+    }
+
+    return retried.response;
+  };
+}
+
+function createApiTokenRequest(config: Extract<ZendeskConfig, { apiToken: string }>) {
+  const auth = Buffer.from(`${config.email}/token:${config.apiToken}`).toString('base64');
+  const headers = { Authorization: `Basic ${auth}`, 'Content-Type': 'application/json' };
+
+  return ((url, init = {}) => fetchWithoutRedirect(url, { ...init, headers })) as ZendeskRequest;
+}
+
 export function getZendeskConfig(config: ZendeskConfig) {
   assertValidSubdomain(config.subdomain);
 
-  const baseUrl = `https://${config.subdomain}.zendesk.com/api/v2`;
-  const auth = Buffer.from(`${config.email}/token:${config.apiToken}`).toString('base64');
-  const headers = {
-    Authorization: `Basic ${auth}`,
-    'Content-Type': 'application/json',
+  return {
+    baseUrl: `https://${config.subdomain}.zendesk.com/api/v2`,
+    request:
+      'clientId' in config ? createOAuthClientRequest(config) : createApiTokenRequest(config),
   };
-
-  return { baseUrl, headers };
 }
 
 export async function assertResponseOk(response: Response, action: string) {
@@ -44,9 +183,22 @@ export async function assertResponseOk(response: Response, action: string) {
 }
 
 export async function validateZendeskConfig(config: ZendeskConfig) {
-  const { baseUrl, headers } = getZendeskConfig(config);
+  const { baseUrl, request } = getZendeskConfig(config);
 
-  const response = await fetchWithoutRedirect(`${baseUrl}/users/me`, { headers });
+  if ('clientId' in config) {
+    // Bypasses the cache: a token issued earlier says nothing about the client today.
+    try {
+      await requestAccessToken(config);
+    } catch (error) {
+      throw new McpConnectionError(
+        `Failed to validate Zendesk config: ${(error as Error).message}`,
+      );
+    }
+
+    return;
+  }
+
+  const response = await request(`${baseUrl}/users/me`);
 
   if (!response.ok) {
     let errorMessage = response.statusText || 'Unknown error';

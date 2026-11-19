@@ -21,6 +21,7 @@ import {
 import { z } from 'zod';
 
 import {
+  McpCredentialsRefusedError,
   McpToolCallLimitError,
   McpToolInvocationError,
   McpToolNotFoundError,
@@ -35,6 +36,12 @@ import StepExecutionFormatters from './summary/step-execution-formatters';
 import { StepExecutionMode } from '../types/validated/step-definition';
 
 const MAX_TOOL_CALLS = 10;
+
+// Matched by name: the tool may come from another copy of ai-proxy than the one imported here.
+const toInvocationError = (toolName: string, cause: unknown) =>
+  cause instanceof Error && cause.name === 'AIToolCredentialsRefusedError'
+    ? new McpCredentialsRefusedError(toolName, cause)
+    : new McpToolInvocationError(toolName, cause);
 
 const COMPLETE_STEP_TOOL = new DynamicStructuredTool({
   name: 'complete-step',
@@ -284,7 +291,7 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
       return await tool.base.invoke(target.input);
     } catch (cause) {
       if (!this.reloadWithFreshAuth || !isMcpAuthError(cause)) {
-        throw new McpToolInvocationError(target.name, cause);
+        throw toInvocationError(target.name, cause);
       }
 
       let refreshedTools: RemoteTool[];
@@ -320,7 +327,7 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
           throw new OAuthReauthRequiredError(this.context.stepDefinition.mcpServerId);
         }
 
-        throw new McpToolInvocationError(target.name, retryCause);
+        throw toInvocationError(target.name, retryCause);
       }
     }
   }

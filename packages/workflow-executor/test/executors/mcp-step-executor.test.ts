@@ -6,6 +6,7 @@ import type { ExecutionContext } from '../../src/types/execution-context';
 import type { McpStepExecutionData } from '../../src/types/step-execution-data';
 import type { McpStepDefinition } from '../../src/types/validated/step-definition';
 
+import { AIToolCredentialsRefusedError } from '@forestadmin/ai-proxy/src/errors';
 import RemoteTool from '@forestadmin/ai-proxy/src/remote-tool';
 
 import { OAuthReauthRequiredError, RunStorePortError, StepStateError } from '../../src/errors';
@@ -1456,6 +1457,31 @@ describe('McpStepExecutor', () => {
         'MCP tool "send_notification" invocation failed: Connection refused',
         expect.objectContaining({ cause: 'Connection refused' }),
       );
+    });
+  });
+
+  describe('when the connector refuses its credentials', () => {
+    it('shows the step the message telling an admin to update them', async () => {
+      const adminMessage =
+        "Zendesk refused the connector's OAuth client. An admin must update the Zendesk connector's credentials.";
+      const tool = new MockRemoteTool({
+        name: 'send_notification',
+        sourceId: 'mcp-server-1',
+        invoke: jest.fn().mockRejectedValue(new AIToolCredentialsRefusedError(adminMessage)),
+      });
+      const { model } = makeMockModel('send_notification', {});
+      const context = makeContext({
+        model,
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+
+      const result = await new McpStepExecutor(context, [tool]).execute();
+
+      expect(result.stepOutcome).toMatchObject({
+        status: 'error',
+        error: adminMessage,
+        errorKind: 'configuration',
+      });
     });
   });
 
