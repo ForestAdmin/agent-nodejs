@@ -69,6 +69,7 @@ describe('zendesk OAuth client authentication', () => {
           client_id: config.clientId,
           client_secret: config.clientSecret,
           scope: 'tickets:read tickets:write',
+          expires_in: 1800,
         }),
       });
       expect(fetchMock).toHaveBeenNthCalledWith(2, url, bearer('token-1'));
@@ -156,6 +157,27 @@ describe('zendesk OAuth client authentication', () => {
 
       expect(response.status).toBe(200);
       expect(fetchMock).toHaveBeenNthCalledWith(4, url, bearer('token-2'));
+    });
+
+    it('should request one new token when concurrent calls get a 401 on the same token', async () => {
+      let tokenRequests = 0;
+      fetchMock.mockImplementation(async (target: string, init: RequestInit) => {
+        if (target.endsWith('/oauth/tokens')) {
+          tokenRequests += 1;
+
+          return tokenResponse(`token-${tokenRequests}`, 1800);
+        }
+
+        const refused = (init.headers as Record<string, string>).Authorization === 'Bearer token-1';
+
+        return apiResponse(refused ? 401 : 200);
+      });
+      const { request } = getZendeskConfig(makeConfig());
+
+      const responses = await Promise.all([request(url, {}), request(url, {})]);
+
+      expect(responses.map(({ status }) => status)).toEqual([200, 200]);
+      expect(tokenRequests).toBe(2);
     });
 
     it('should tell an admin to update the connector when the retry gets a 401 too', async () => {

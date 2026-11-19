@@ -25,6 +25,8 @@ type OAuthClientConfig = Extract<ZendeskConfig, { clientId: string }>;
 type AccessToken = { value: string; expiresAt: number };
 
 const TOKEN_SCOPE = 'tickets:read tickets:write';
+// Zendesk issues a token that never expires to a client created before April 30, 2026, unless asked.
+const TOKEN_LIFETIME_SECONDS = 1800;
 const TOKEN_EXPIRY_MARGIN_SECONDS = 60;
 const CLIENT_REFUSED_STATUSES = [400, 401, 403];
 const CLIENT_REFUSED_MESSAGE =
@@ -44,6 +46,7 @@ async function requestAccessToken(config: OAuthClientConfig): Promise<AccessToke
         client_id: config.clientId,
         client_secret: config.clientSecret,
         scope: TOKEN_SCOPE,
+        expires_in: TOKEN_LIFETIME_SECONDS,
       }),
     },
   );
@@ -105,29 +108,43 @@ async function getAccessToken(config: OAuthClientConfig, cacheKey: string): Prom
   return (await pending).value;
 }
 
+// Another call may already have replaced the refused token with a fresh one, which stays.
+async function dropRefusedAccessToken(cacheKey: string, refused: string): Promise<void> {
+  const cached = accessTokens.get(cacheKey);
+  const token = await cached?.catch(() => null);
+
+  if (token?.value === refused && accessTokens.get(cacheKey) === cached) {
+    accessTokens.delete(cacheKey);
+  }
+}
+
 function createOAuthClientRequest(config: OAuthClientConfig): ZendeskRequest {
   const cacheKey = createHash('sha256')
     .update(JSON.stringify([config.subdomain, config.clientId, config.clientSecret]))
     .digest('hex');
 
-  const send = async (url: string, init: RequestInit) =>
-    fetchWithoutRedirect(url, {
+  const send = async (url: string, init: RequestInit) => {
+    const token = await getAccessToken(config, cacheKey);
+    const response = await fetchWithoutRedirect(url, {
       ...init,
-      headers: {
-        Authorization: `Bearer ${await getAccessToken(config, cacheKey)}`,
-        'Content-Type': 'application/json',
-      },
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     });
 
+    return { token, response };
+  };
+
   return async (url, init = {}) => {
-    const response = await send(url, init);
+    const { token, response } = await send(url, init);
     if (response.status !== 401) return response;
 
-    accessTokens.delete(cacheKey);
+    await dropRefusedAccessToken(cacheKey, token);
     const retried = await send(url, init);
-    if (retried.status === 401) throw new AIToolCredentialsRefusedError(CLIENT_REFUSED_MESSAGE);
 
-    return retried;
+    if (retried.response.status === 401) {
+      throw new AIToolCredentialsRefusedError(CLIENT_REFUSED_MESSAGE);
+    }
+
+    return retried.response;
   };
 }
 
