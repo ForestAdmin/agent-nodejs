@@ -1,3 +1,10 @@
+## @forestadmin/agent [1.114.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.114.1...@forestadmin/agent@1.114.2) (2026-11-20)
+
+
+### Bug Fixes
+
+* **agent:** tolerate an empty count when breaking a one-to-one relation ([#2100](https://github.com/ForestAdmin/agent-nodejs/issues/2100)) ([6818188](https://github.com/ForestAdmin/agent-nodejs/commit/68181887a6eb343c23d69117bb037afe920a0782))
+
 ## @forestadmin/agent [1.114.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.114.0...@forestadmin/agent@1.114.1) (2026-11-20)
 
 
