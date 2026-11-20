@@ -124,12 +124,15 @@ describe('FilterFactory', () => {
           aggregator: 'And',
           conditions: [
             {
-              operator: 'GreaterThan',
+              operator: 'GreaterThanOrEqual',
               value: newDate.startOf(duration as DateTimeUnit).toISO(),
             },
             {
               operator: 'LessThan',
-              value: newDate.endOf(duration as DateTimeUnit).toISO(),
+              value: newDate
+                .startOf(duration as DateTimeUnit)
+                .plus({ [duration]: 1 })
+                .toISO(),
             },
           ],
         });
@@ -157,7 +160,7 @@ describe('FilterFactory', () => {
           aggregator: 'And',
           conditions: [
             {
-              operator: 'GreaterThan',
+              operator: 'GreaterThanOrEqual',
               value: newDate.minus({ days: 6 }).startOf('day').toISO(),
             },
             {
@@ -190,7 +193,7 @@ describe('FilterFactory', () => {
           aggregator: 'And',
           conditions: [
             {
-              operator: 'GreaterThan',
+              operator: 'GreaterThanOrEqual',
               value: newDate.minus({ days: 6 }).startOf('day').toISO(),
             },
             {
