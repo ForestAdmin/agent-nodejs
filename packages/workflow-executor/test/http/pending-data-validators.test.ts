@@ -110,7 +110,10 @@ describe('patchBodySchemas', () => {
     });
 
     it('rejects values that is not an object', () => {
-      expect(() => schema.parse({ userConfirmed: true, values: ['active'] })).toThrow();
+      const parsed = schema.safeParse({ userConfirmed: true, values: ['active'] });
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.error?.issues.map(issue => issue.path)).toEqual([['values']]);
     });
 
     it('rejects value and values together', () => {
@@ -124,6 +127,12 @@ describe('patchBodySchemas', () => {
       expect(parsed.error?.issues.map(issue => issue.message)).toEqual([
         'Send either "value" or "values", not both',
       ]);
+    });
+
+    it('accepts value and values together on a rejection, which skips the step', () => {
+      expect(
+        schema.parse({ userConfirmed: false, value: 'x', values: { status: 'active' } }),
+      ).toEqual({ userConfirmed: false, value: 'x', values: { status: 'active' } });
     });
   });
 

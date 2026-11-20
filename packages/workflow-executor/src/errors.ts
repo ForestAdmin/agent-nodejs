@@ -288,10 +288,10 @@ export class RelationshipFieldNotUpdatableError extends WorkflowConfigurationErr
 }
 
 export class PendingFieldNotFoundError extends WorkflowConfigurationError {
-  constructor(name: string, collectionName: string) {
+  constructor(displayName: string, name: string, collectionName: string) {
     super(
       `Field "${name}" awaiting confirmation not found in collection "${collectionName}"`,
-      'The field this step was about to update no longer exists on this record.',
+      `The "${displayName}" field this step was about to update no longer exists on this record.`,
     );
   }
 }
@@ -675,6 +675,29 @@ export class InvalidPreRecordedValueError extends WorkflowConfigurationError {
       `The value set on this step can't be written to the "${fieldDisplayName}" field. ` +
         'Edit the step to set a valid value.',
     );
+  }
+}
+
+export interface InvalidConfirmedField {
+  displayName: string;
+  reason: string;
+}
+
+export class InvalidConfirmedValueError extends WorkflowOperatorError {
+  readonly invalidFields: InvalidConfirmedField[];
+
+  constructor(invalidFields: InvalidConfirmedField[]) {
+    const names = invalidFields.map(({ displayName }) => `"${displayName}"`).join(', ');
+
+    super(
+      invalidFields
+        .map(({ displayName, reason }) => `Invalid value for field "${displayName}": ${reason}`)
+        .join('; '),
+      invalidFields.length === 1
+        ? `The value entered for ${names} isn't valid for this field. Please review it and try again.`
+        : `The values entered for ${names} aren't valid for these fields. Please review them and try again.`,
+    );
+    this.invalidFields = invalidFields;
   }
 }
 

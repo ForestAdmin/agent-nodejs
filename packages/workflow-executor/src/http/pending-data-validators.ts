@@ -13,7 +13,7 @@ const updateRecordPatchSchema = z
     values: z.record(z.string(), z.unknown()).optional(),
   })
   .strict()
-  .refine(data => data.value === undefined || data.values === undefined, {
+  .refine(data => !data.userConfirmed || data.value === undefined || data.values === undefined, {
     message: 'Send either "value" or "values", not both',
   });
 
