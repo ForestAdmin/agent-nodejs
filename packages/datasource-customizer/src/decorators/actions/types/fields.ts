@@ -27,6 +27,8 @@ type BaseDynamicField<Type, Context, Result> = {
   description?: ValueOrHandler<Context, string>;
   isRequired?: ValueOrHandler<Context, boolean>;
   isReadOnly?: ValueOrHandler<Context, boolean>;
+  // The front shows the field as waiting and re-runs the form hooks until it is no longer pending.
+  isPending?: ValueOrHandler<Context, boolean>;
   if?: Handler<Context, unknown>;
   value?: ValueOrHandler<Context, Result>;
   defaultValue?: ValueOrHandler<Context, Result>;

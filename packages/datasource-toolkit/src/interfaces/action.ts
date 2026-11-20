@@ -31,6 +31,7 @@ export interface ActionFieldBase extends ActionFormElementBase {
   description?: string;
   isRequired?: boolean;
   isReadOnly?: boolean;
+  isPending?: boolean;
   value?: unknown;
   watchChanges: boolean;
 }
