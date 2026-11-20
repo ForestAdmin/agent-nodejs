@@ -1,3 +1,10 @@
+# @forestadmin/workflow-executor [1.41.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.40.2...@forestadmin/workflow-executor@1.41.0) (2026-11-20)
+
+
+### Features
+
+* **workflow-executor:** let the AI draft Guidance Task answers as rich text ([#2081](https://github.com/ForestAdmin/agent-nodejs/issues/2081)) ([ae05ede](https://github.com/ForestAdmin/agent-nodejs/commit/ae05ede98214c2ee26d3a48609108ffc2456c906))
+
 ## @forestadmin/workflow-executor [1.40.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.40.1...@forestadmin/workflow-executor@1.40.2) (2026-11-19)
 
 
