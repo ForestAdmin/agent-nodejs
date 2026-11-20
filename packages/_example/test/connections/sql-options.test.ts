@@ -7,6 +7,30 @@ describe('sql connection options', () => {
     expect(isLightMode('false')).toBe(false);
   });
 
+  describe('when no mode is passed', () => {
+    const { EXAMPLE_LIGHT } = process.env;
+
+    afterEach(() => {
+      if (EXAMPLE_LIGHT === undefined) delete process.env.EXAMPLE_LIGHT;
+      else process.env.EXAMPLE_LIGHT = EXAMPLE_LIGHT;
+    });
+
+    it('reads EXAMPLE_LIGHT=false and points to the full mode container', () => {
+      process.env.EXAMPLE_LIGHT = 'false';
+
+      expect(sqlUri('mysql')).toBe('mysql://example:password@localhost:3306/example');
+      expect(sqlOptions('mssql')).toEqual(
+        expect.objectContaining({ dialect: 'mssql', port: 1433 }),
+      );
+    });
+
+    it('defaults to light mode when EXAMPLE_LIGHT is unset', () => {
+      delete process.env.EXAMPLE_LIGHT;
+
+      expect(sqlUri('mysql')).toBe('postgres://example:password@localhost:5442/example_mysql');
+    });
+  });
+
   it('points each engine to its own container in full mode', () => {
     expect(sqlUri('mysql', false)).toBe('mysql://example:password@localhost:3306/example');
     expect(sqlUri('mariadb', false)).toBe('mariadb://example:password@localhost:3808/example');
