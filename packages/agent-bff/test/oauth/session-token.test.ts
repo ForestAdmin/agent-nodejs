@@ -26,10 +26,12 @@ function codec(key = KEY, now = () => NOW, logger: Logger = () => undefined) {
   return createSessionTokenCodec(createTokenCipher(key), { now, sessionTtlSeconds: 3600, logger });
 }
 
+// Flips a decoded byte, not a base64 character: a character in the padding bits decodes unchanged.
 function flipLastCiphertextChar(token: string): string {
   const blob = JSON.parse(Buffer.from(token, 'base64url').toString('utf8'));
-  const last = blob.ciphertext.at(-2) === 'A' ? 'B' : 'A';
-  blob.ciphertext = `${blob.ciphertext.slice(0, -2)}${last}${blob.ciphertext.at(-1)}`;
+  const ciphertext = Buffer.from(blob.ciphertext, 'base64');
+  ciphertext[ciphertext.length - 1] = (ciphertext[ciphertext.length - 1] + 1) % 256;
+  blob.ciphertext = ciphertext.toString('base64');
 
   return Buffer.from(JSON.stringify(blob)).toString('base64url');
 }
