@@ -10,8 +10,12 @@ const updateRecordPatchSchema = z
   .object({
     userConfirmed: z.boolean(),
     value: z.unknown().optional(),
+    values: z.record(z.string(), z.unknown()).optional(),
   })
-  .strict();
+  .strict()
+  .refine(data => !data.userConfirmed || data.value === undefined || data.values === undefined, {
+    message: 'Send either "value" or "values", not both',
+  });
 
 const triggerActionPatchSchema = z
   .object({

@@ -2979,27 +2979,32 @@ describe('UpdateRecordStepExecutor', () => {
     });
 
     describe('confirmation of a multi-field pending update', () => {
-      function makeConfirmationContext(userConfirmed: boolean) {
+      const pendingFields = [
+        { displayName: 'Status', name: 'status', value: 'inactive', previousValue: 'active' },
+        { displayName: 'Age', name: 'age', value: 42, previousValue: 30 },
+        { displayName: 'Is Active', name: 'isActive', value: false, previousValue: true },
+      ];
+
+      function makeConfirmationContext(
+        incomingPendingData: unknown,
+        schema: CollectionSchema = suggestionSchema,
+      ) {
         const execution: UpdateRecordStepExecutionData = {
           type: 'update-record',
           stepIndex: 0,
-          pendingData: {
-            fields: [
-              { displayName: 'Status', name: 'status', value: 'inactive', previousValue: 'active' },
-              { displayName: 'Age', name: 'age', value: 42, previousValue: 30 },
-            ],
-          },
-          userConfirmation: { userConfirmed },
+          pendingData: { fields: pendingFields },
           selectedRecordRef: makeRecordRef(),
         };
         const runStore = makeMockRunStore({
           getStepExecutions: jest.fn().mockResolvedValue([execution]),
         });
-        const agentPort = makeMockAgentPort();
+        const updatedValues = { status: 'inactive', age: 50, isActive: false };
+        const agentPort = makeMockAgentPort(updatedValues);
         const context = makeContext({
           runStore,
           agentPort,
-          workflowPort: makeMockWorkflowPort({ customers: suggestionSchema }),
+          incomingPendingData,
+          workflowPort: makeMockWorkflowPort({ customers: schema }),
         });
 
         return {
@@ -3008,25 +3013,245 @@ describe('UpdateRecordStepExecutor', () => {
           agentPort,
           execution,
           context,
+          updatedValues,
         };
       }
 
-      it('refuses to write an accepted multi-field update until confirmation supports it', async () => {
-        const { executor, agentPort, context } = makeConfirmationContext(true);
+      it('writes the override and the kept suggestions in one update, then completes the step', async () => {
+        const { executor, runStore, agentPort, updatedValues } = makeConfirmationContext({
+          userConfirmed: true,
+          values: { age: '50' },
+        });
+
+        const result = await executor.execute();
+
+        expect(result.stepOutcome.status).toBe('success');
+        expect(agentPort.updateRecord).toHaveBeenCalledTimes(1);
+        expect(agentPort.updateRecord).toHaveBeenCalledWith(
+          {
+            collection: 'customers',
+            id: [42],
+            values: { status: 'inactive', age: 50, isActive: false },
+          },
+          expect.objectContaining({ id: 1 }),
+        );
+        expect((runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1]).toEqual({
+          type: 'update-record',
+          stepIndex: 0,
+          pendingData: { fields: pendingFields },
+          userConfirmation: { userConfirmed: true, values: { age: '50' } },
+          selectedRecordRef: makeRecordRef(),
+          executionParams: {
+            fields: [
+              { displayName: 'Status', name: 'status', value: 'inactive' },
+              { displayName: 'Age', name: 'age', value: 50 },
+              { displayName: 'Is Active', name: 'isActive', value: false },
+            ],
+          },
+          executionResult: { updatedValues },
+          idempotencyPhase: 'done',
+        });
+      });
+
+      it('writes every suggestion when the user confirms without overriding any field', async () => {
+        const { executor, agentPort } = makeConfirmationContext({ userConfirmed: true });
+
+        await executor.execute();
+
+        expect(agentPort.updateRecord).toHaveBeenCalledWith(
+          {
+            collection: 'customers',
+            id: [42],
+            values: { status: 'inactive', age: 42, isActive: false },
+          },
+          expect.objectContaining({ id: 1 }),
+        );
+      });
+
+      it('writes every suggestion when values is empty', async () => {
+        const { executor, agentPort } = makeConfirmationContext({
+          userConfirmed: true,
+          values: {},
+        });
+
+        await executor.execute();
+
+        expect(agentPort.updateRecord).toHaveBeenCalledWith(
+          {
+            collection: 'customers',
+            id: [42],
+            values: { status: 'inactive', age: 42, isActive: false },
+          },
+          expect.objectContaining({ id: 1 }),
+        );
+      });
+
+      it('clears a field the user overrides with null', async () => {
+        const { executor, agentPort } = makeConfirmationContext({
+          userConfirmed: true,
+          values: { status: null },
+        });
+
+        await executor.execute();
+
+        expect(agentPort.updateRecord).toHaveBeenCalledWith(
+          {
+            collection: 'customers',
+            id: [42],
+            values: { status: null, age: 42, isActive: false },
+          },
+          expect.objectContaining({ id: 1 }),
+        );
+      });
+
+      it('coerces an override strictly, rejecting a fraction a number cannot hold', async () => {
+        const { executor, agentPort, context } = makeConfirmationContext({
+          userConfirmed: true,
+          values: { age: '4503599627370496.5' },
+        });
 
         const result = await executor.execute();
 
         expect(result.stepOutcome.status).toBe('error');
         expect(context.logger).toHaveBeenCalledWith(
           'Error',
-          'Confirming a multi-field update is not supported yet',
+          'Invalid value for field "Age": expected a number or a decimal string, e.g. 12, -3 or 12.5',
           expect.anything(),
         );
         expect(agentPort.updateRecord).not.toHaveBeenCalled();
       });
 
+      it('fails naming the field and writes nothing when an override cannot be coerced', async () => {
+        const { executor, runStore, agentPort, context } = makeConfirmationContext({
+          userConfirmed: true,
+          values: { status: 'archived', age: 'forty' },
+        });
+
+        const result = await executor.execute();
+
+        expect(result.stepOutcome.status).toBe('error');
+        expect(context.logger).toHaveBeenCalledWith(
+          'Error',
+          expect.stringMatching(/^Invalid value for field "Status": /),
+          expect.anything(),
+        );
+        expect(agentPort.updateRecord).not.toHaveBeenCalled();
+        expect(runStore.saveStepExecution).not.toHaveBeenCalledWith(
+          'run-1',
+          expect.objectContaining({ idempotencyPhase: expect.anything() }),
+        );
+      });
+
+      it('fails as an operator error naming every field whose override cannot be coerced', async () => {
+        const { executor, agentPort } = makeConfirmationContext({
+          userConfirmed: true,
+          values: { status: 'archived', age: 'forty', isActive: true },
+        });
+
+        const result = await executor.execute();
+
+        expect(result.stepOutcome.status).toBe('error');
+        expect(result.stepOutcome.errorKind).toBe('operator');
+        expect(result.stepOutcome.error).toBe(
+          'The values entered for "Status", "Age" aren\'t valid for these fields. Please review them and try again.',
+        );
+        expect(agentPort.updateRecord).not.toHaveBeenCalled();
+      });
+
+      it('fails naming the key and writes nothing when values holds a field the step does not update', async () => {
+        const { executor, agentPort, context } = makeConfirmationContext({
+          userConfirmed: true,
+          values: { age: 50, email: 'john@doe.com' },
+        });
+
+        const result = await executor.execute();
+
+        expect(result.stepOutcome.status).toBe('error');
+        expect(context.logger).toHaveBeenCalledWith(
+          'Error',
+          'Cannot confirm field "email": this step does not update it',
+          expect.anything(),
+        );
+        expect(agentPort.updateRecord).not.toHaveBeenCalled();
+      });
+
+      it('fails and writes nothing when a single value is sent for a multi-field update', async () => {
+        const { executor, agentPort, context } = makeConfirmationContext({
+          userConfirmed: true,
+          value: 'inactive',
+        });
+
+        const result = await executor.execute();
+
+        expect(result.stepOutcome.status).toBe('error');
+        expect(context.logger).toHaveBeenCalledWith(
+          'Error',
+          'A multi-field update must be confirmed with "values", not "value"',
+          expect.anything(),
+        );
+        expect(agentPort.updateRecord).not.toHaveBeenCalled();
+      });
+
+      it('fails and writes nothing when a null single value is sent for a multi-field update', async () => {
+        const { executor, agentPort, context } = makeConfirmationContext({
+          userConfirmed: true,
+          value: null,
+        });
+
+        const result = await executor.execute();
+
+        expect(result.stepOutcome.status).toBe('error');
+        expect(context.logger).toHaveBeenCalledWith(
+          'Error',
+          'A multi-field update must be confirmed with "values", not "value"',
+          expect.anything(),
+        );
+        expect(agentPort.updateRecord).not.toHaveBeenCalled();
+      });
+
+      it('escapes and truncates an unknown key before echoing it in the error', async () => {
+        const forgedKey = `x\n[Error] forged line${'a'.repeat(200)}`;
+        const { executor, agentPort, context } = makeConfirmationContext({
+          userConfirmed: true,
+          values: { [forgedKey]: 1 },
+        });
+
+        const result = await executor.execute();
+
+        expect(result.stepOutcome.status).toBe('error');
+        expect(context.logger).toHaveBeenCalledWith(
+          'Error',
+          `Cannot confirm field ${JSON.stringify(
+            forgedKey.slice(0, 100),
+          )}: this step does not update it`,
+          expect.anything(),
+        );
+        expect(agentPort.updateRecord).not.toHaveBeenCalled();
+      });
+
+      it('fails as a configuration error when a pending field left the schema during the pause', async () => {
+        const { executor, agentPort } = makeConfirmationContext(
+          { userConfirmed: true },
+          makeCollectionSchema({
+            fields: suggestionSchema.fields.filter(field => field.fieldName !== 'age'),
+          }),
+        );
+
+        const result = await executor.execute();
+
+        expect(result.stepOutcome.status).toBe('error');
+        expect(result.stepOutcome.errorKind).toBe('configuration');
+        expect(result.stepOutcome.error).toBe(
+          'The "Age" field this step was about to update no longer exists on this record.',
+        );
+        expect(agentPort.updateRecord).not.toHaveBeenCalled();
+      });
+
       it('skips the step when the user rejects it, writing nothing', async () => {
-        const { executor, runStore, agentPort, execution } = makeConfirmationContext(false);
+        const { executor, runStore, agentPort, execution } = makeConfirmationContext({
+          userConfirmed: false,
+          values: { age: 50 },
+        });
 
         const result = await executor.execute();
 
@@ -3034,9 +3259,39 @@ describe('UpdateRecordStepExecutor', () => {
         expect(agentPort.updateRecord).not.toHaveBeenCalled();
         expect(runStore.saveStepExecution).toHaveBeenCalledWith('run-1', {
           ...execution,
+          userConfirmation: { userConfirmed: false, values: { age: 50 } },
           executionResult: { skipped: true },
         });
       });
+    });
+  });
+
+  describe('confirmation of a single-field pending update with values', () => {
+    it('fails and writes nothing, since values belongs to a multi-field update', async () => {
+      const execution: UpdateRecordStepExecutionData = {
+        type: 'update-record',
+        stepIndex: 0,
+        pendingData: { displayName: 'Status', name: 'status', value: 'inactive' },
+        selectedRecordRef: makeRecordRef(),
+      };
+      const agentPort = makeMockAgentPort();
+      const context = makeContext({
+        agentPort,
+        runStore: makeMockRunStore({
+          getStepExecutions: jest.fn().mockResolvedValue([execution]),
+        }),
+        incomingPendingData: { userConfirmed: true, values: { status: 'active' } },
+      });
+
+      const result = await new UpdateRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(context.logger).toHaveBeenCalledWith(
+        'Error',
+        'A single-field update must be confirmed with "value", not "values"',
+        expect.anything(),
+      );
+      expect(agentPort.updateRecord).not.toHaveBeenCalled();
     });
   });
 
@@ -3752,7 +4007,7 @@ describe('UpdateRecordStepExecutor', () => {
       );
     });
 
-    it('fails with a StepStateError on coercion mismatch without updating', async () => {
+    it('fails as an operator error naming the field on coercion mismatch without updating', async () => {
       const { executor, agentPort } = makeCoercionContext(numberArrayField, null, {
         userConfirmed: true,
         value: ['abc'],
@@ -3761,8 +4016,9 @@ describe('UpdateRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.errorKind).toBe('operator');
       expect(result.stepOutcome.error).toBe(
-        'An unexpected error occurred while processing this step.',
+        'The value entered for "Scores" isn\'t valid for this field. Please review it and try again.',
       );
       expect(agentPort.updateRecord).not.toHaveBeenCalled();
     });
@@ -3782,8 +4038,9 @@ describe('UpdateRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.errorKind).toBe('operator');
       expect(result.stepOutcome.error).toBe(
-        'An unexpected error occurred while processing this step.',
+        'The value entered for "Age" isn\'t valid for this field. Please review it and try again.',
       );
       expect(agentPort.updateRecord).not.toHaveBeenCalled();
     });
@@ -3998,7 +4255,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.errorKind).toBe('configuration');
       expect(result.stepOutcome.error).toBe(
-        'The field this step was about to update no longer exists on this record.',
+        'The "Status" field this step was about to update no longer exists on this record.',
       );
       expect(context.logger).toHaveBeenCalledWith(
         'Error',
@@ -4017,8 +4274,9 @@ describe('UpdateRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.errorKind).toBe('operator');
       expect(result.stepOutcome.error).toBe(
-        'An unexpected error occurred while processing this step.',
+        'The value entered for "Is Active" isn\'t valid for this field. Please review it and try again.',
       );
       expect(agentPort.updateRecord).not.toHaveBeenCalled();
     });

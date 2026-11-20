@@ -1,4 +1,4 @@
-import type { WorkflowExecutorError } from '../errors';
+import type { InvalidConfirmedField, WorkflowExecutorError } from '../errors';
 import type { StepExecutionResult } from '../types/execution-context';
 import type { FieldWithValue, UpdateRecordStepExecutionData } from '../types/step-execution-data';
 import type { CollectionSchema, FieldSchema, RecordRef } from '../types/validated/collection';
@@ -10,6 +10,7 @@ import { z } from 'zod';
 import {
   FieldNotFoundError,
   FieldTypeMissingError,
+  InvalidConfirmedValueError,
   InvalidPreRecordedArgsError,
   InvalidPreRecordedValueError,
   MissingPreRecordedValueError,
@@ -44,6 +45,8 @@ Important rules:
 function toFieldValueKey(index: number): string {
   return `field_${index}`;
 }
+
+const MAX_ECHOED_KEY_LENGTH = 100;
 
 function hasOwn(values: Record<string, unknown> | undefined, key: string): boolean {
   return values !== undefined && Object.prototype.hasOwnProperty.call(values, key);
@@ -292,7 +295,27 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
         const pendingData = exec.pendingData!;
 
         if ('fields' in pendingData) {
-          throw new StepStateError('Confirming a multi-field update is not supported yet');
+          if (userConfirmation?.value !== undefined) {
+            throw new StepStateError(
+              'A multi-field update must be confirmed with "values", not "value"',
+            );
+          }
+
+          return this.resolveAndUpdate(
+            selectedRecordRef,
+            await this.applyConfirmedValues(
+              selectedRecordRef,
+              pendingData.fields,
+              userConfirmation?.values ?? {},
+            ),
+            exec,
+          );
+        }
+
+        if (userConfirmation?.values !== undefined) {
+          throw new StepStateError(
+            'A single-field update must be confirmed with "value", not "values"',
+          );
         }
 
         // A user override of `null` (clearing the field) must win over the AI suggestion, so
@@ -315,6 +338,52 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     return this.handleFirstCall();
   }
 
+  private async applyConfirmedValues(
+    selectedRecordRef: RecordRef,
+    pendingFields: FieldWithValue[],
+    values: Record<string, unknown>,
+  ): Promise<{ fields: FieldWithValue[] }> {
+    const pendingNames = new Set(pendingFields.map(({ name }) => name));
+    const unknownName = Object.keys(values).find(name => !pendingNames.has(name));
+
+    if (unknownName !== undefined) {
+      throw new StepStateError(
+        `Cannot confirm field ${JSON.stringify(
+          unknownName.slice(0, MAX_ECHOED_KEY_LENGTH),
+        )}: this step does not update it`,
+      );
+    }
+
+    const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
+    const invalidFields: InvalidConfirmedField[] = [];
+
+    const fields = pendingFields.map(({ displayName, name, value }) => {
+      const isOverridden = hasOwn(values, name);
+
+      try {
+        return {
+          displayName,
+          name,
+          value: this.coerceConfirmedValue(
+            schema,
+            { displayName, name },
+            isOverridden ? values[name] : value,
+            isOverridden,
+          ),
+        };
+      } catch (error) {
+        if (!(error instanceof InvalidConfirmedValueError)) throw error;
+        invalidFields.push(...error.invalidFields);
+
+        return { displayName, name, value };
+      }
+    });
+
+    if (invalidFields.length > 0) throw new InvalidConfirmedValueError(invalidFields);
+
+    return { fields };
+  }
+
   private async coerceOverride(
     selectedRecordRef: RecordRef,
     pendingData: FieldWithValue,
@@ -322,14 +391,28 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     isOverridden: boolean,
   ): Promise<unknown> {
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
-    const fieldSchema = this.findFieldByTechnicalName(schema, pendingData.name);
+
+    return this.coerceConfirmedValue(schema, pendingData, value, isOverridden);
+  }
+
+  private coerceConfirmedValue(
+    schema: CollectionSchema,
+    { displayName, name }: Pick<FieldWithValue, 'displayName' | 'name'>,
+    value: unknown,
+    isOverridden: boolean,
+  ): unknown {
+    const fieldSchema = this.findFieldByTechnicalName(schema, name);
 
     if (!fieldSchema) {
-      throw new PendingFieldNotFoundError(pendingData.name, schema.collectionName);
+      throw new PendingFieldNotFoundError(displayName, name, schema.collectionName);
     }
 
-    return coerceFieldValue(fieldSchema, value, selectedRecordRef.collectionName, {
+    return coerceFieldValue(fieldSchema, value, schema.collectionName, {
       strict: isOverridden,
+      ...(isOverridden && {
+        toError: (fieldDisplayName, reason) =>
+          new InvalidConfirmedValueError([{ displayName: fieldDisplayName, reason }]),
+      }),
     });
   }
 
