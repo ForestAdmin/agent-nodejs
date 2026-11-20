@@ -348,6 +348,27 @@ describe('McpStepExecutor', () => {
       expect(boundTools.map(t => t.name)).toEqual(['send_notification', COMPLETE_STEP]);
     });
 
+    it('asks the AI for a final answer in markdown, without HTML', async () => {
+      const { model, bindTools, invoke: modelInvoke } = makeMockModel('send_notification', {});
+      const context = makeContext({
+        model,
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+
+      await new McpStepExecutor(context, [
+        new MockRemoteTool({ name: 'send_notification' }),
+      ]).execute();
+
+      const boundTools = bindTools.mock.calls[0][0] as Array<{
+        name: string;
+        schema: { shape: { summary: { description: string } } };
+      }>;
+      const completeStep = boundTools.find(t => t.name === COMPLETE_STEP);
+      const systemPrompt = (modelInvoke.mock.calls[0][0] as Array<{ content: string }>)[0].content;
+      expect(completeStep.schema.shape.summary.description).toContain('Markdown');
+      expect(systemPrompt).toContain('Format the answer in Markdown, never in HTML.');
+    });
+
     it('fails the step without running an 11th call when the AI asks for more than 10', async () => {
       const invokeFn = jest.fn().mockResolvedValue('sent');
       const { model, invoke: modelInvoke } = makeEndlessModel('send_notification', {});
