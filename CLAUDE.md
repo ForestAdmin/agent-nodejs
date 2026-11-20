@@ -101,8 +101,8 @@ Apply these on every change:
   right project, environment and user. Never trust an ID coming from the request.
 - Any input coming from a user, a customer agent, a webhook or an LLM is validated
   before use. No string concatenation in queries or shell commands.
-- No secret, token, PII, customer data or customer name in code, logs, error messages,
-  test fixtures or prompts.
+- No secret, token, PII, customer schema, customer identifier or customer name in code,
+  logs, error messages, test fixtures, issues or prompts.
 - On public repositories, the same holds for branch names, commit messages, and PR and
   issue titles, descriptions, comments and reviews, which also carry no description of
   an open or accepted weakness and no details of private repositories. Refer to a
@@ -124,7 +124,8 @@ When fixing a vulnerability in our own code on a public repository:
 - Use neutral wording in the branch name, commit messages, PR title and description,
   code comments, changelog and release notes. Write "Harden filter validation", not
   "Fix SQL injection in filters". No `security/` branch prefix, no `:lock: security`
-  label, no CVE id before the advisory is published.
+  label, no CVE id before the advisory is published. Since that label is what notifies
+  first-level support, flag the PR to them privately instead.
 - No exploit details, payloads or proof of concept anywhere in the repository,
   including test names and fixtures. Keep regression tests neutral: name them by the
   behaviour kept, not by the attack. Write "scopes records to the caller's project",
