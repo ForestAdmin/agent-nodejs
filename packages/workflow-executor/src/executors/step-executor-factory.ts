@@ -335,6 +335,7 @@ export default class StepExecutorFactory {
       user: step.user,
       timezone: step.timezone,
       callScope: step.callScope,
+      subWorkflowEnds: step.subWorkflowEnds,
       model: cfg.aiModelPort.getModel({
         aiConfigName: step.stepDefinition.aiConfigName,
         userId: step.user.id,
