@@ -785,6 +785,16 @@ describe('Agent', () => {
       );
     });
 
+    test('should pass apps to ForestMCPServer', async () => {
+      const options = factories.forestAdminHttpDriverOptions.build();
+      const agent = new Agent(options);
+
+      agent.mountAiMcpServer({ apps: true });
+      await agent.start();
+
+      expect(mcpServerSpy).toHaveBeenCalledWith(expect.objectContaining({ apps: true }));
+    });
+
     test('should pass allowedOAuthClients to ForestMCPServer', async () => {
       const options = factories.forestAdminHttpDriverOptions.build();
       const agent = new Agent(options);

@@ -27,11 +27,13 @@
   },
   "files": [
     "dist/**/*.js",
-    "dist/**/*.d.ts"
+    "dist/**/*.d.ts",
+    "dist/**/*.html"
   ],
   "scripts": {
-    "build": "tsc",
-    "build:watch": "tsc --watch",
+    "build": "tsc && yarn build:copy",
+    "build:copy": "mkdir -p dist/apps && cp src/apps/records-view.html dist/apps/",
+    "build:watch": "yarn build:copy && tsc --watch",
     "start": "node dist/cli.js",
     "start:dev": "node --env-file=.env dist/cli.js",
     "clean": "rm -rf coverage dist",

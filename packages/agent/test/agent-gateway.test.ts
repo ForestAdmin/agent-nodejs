@@ -259,6 +259,15 @@ describe('Agent.addGateway', () => {
       );
     });
 
+    it('should hand the MCP its apps option', async () => {
+      const { agent } = buildAgent();
+      agent.addGateway({ mcp: { apps: true } });
+
+      await agent.start();
+
+      expect(mcpServerSpy).toHaveBeenCalledWith(expect.objectContaining({ apps: true }));
+    });
+
     it('should hand the API the Gateway allowlist when only the API is on', async () => {
       const { agent } = buildAgent();
       agent.addGateway({ allowedOAuthClients: ['claude.ai'], api: { tokenEncryptionKey: 'key' } });

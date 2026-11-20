@@ -12,6 +12,7 @@ export type McpEnvLabels = {
   accessTokenTtl: string;
   refreshTokenTtl: string;
   fileUploads: string;
+  apps: string;
   uploadStorageModule: string;
   agentUrl: string;
   port: string;
@@ -34,6 +35,7 @@ export type ParsedMcpEnv = {
     | 'allowedOAuthClients'
     | 'agentUrl'
     | 'tokenTtl'
+    | 'apps'
   > & { fileUploads?: false };
   listener: McpListenerSettings;
   uploadStorageModule?: string;
@@ -48,6 +50,7 @@ export const DEFAULT_MCP_ENV_LABELS: McpEnvLabels = {
   accessTokenTtl: 'tokenTtl.accessTokenSeconds',
   refreshTokenTtl: 'tokenTtl.refreshTokenSeconds',
   fileUploads: 'FOREST_MCP_FILE_UPLOADS',
+  apps: 'FOREST_MCP_APPS',
   uploadStorageModule: 'FOREST_MCP_UPLOAD_STORAGE_MODULE',
   agentUrl: 'agentUrl',
   port: MCP_LISTENER_ENV.port,
@@ -64,7 +67,7 @@ function resolveLabels(labels: Partial<McpEnvLabels>): McpEnvLabels {
   ) as McpEnvLabels;
 }
 
-const FILE_UPLOADS_FLAGS = ['true', 'false'];
+const BOOLEAN_FLAGS = ['true', 'false'];
 const HTTP_PROTOCOLS = ['http:', 'https:'];
 
 function parseSeconds(value: string | undefined, label: string): number | undefined {
@@ -111,15 +114,12 @@ function parsePublicUrl(configuredUrl: string | undefined, label: string): strin
   return configuredUrl;
 }
 
-function parseFileUploadsOff(rawFlag: string | undefined, label: string): boolean {
-  if (rawFlag !== undefined && !FILE_UPLOADS_FLAGS.includes(rawFlag)) {
-    throw new Error(
-      `Invalid ${label} "${rawFlag}": use 'false' to turn action file uploads off. ` +
-        'They are on by default.',
-    );
+function parseBooleanFlag(rawFlag: string | undefined, label: string, hint: string): boolean {
+  if (rawFlag !== undefined && !BOOLEAN_FLAGS.includes(rawFlag)) {
+    throw new Error(`Invalid ${label} "${rawFlag}": ${hint}`);
   }
 
-  return rawFlag === 'false';
+  return rawFlag === 'true';
 }
 
 export function parseMcpListenerEnv(
@@ -136,7 +136,16 @@ export function parseMcpListenerEnv(
 
 export default function parseMcpEnv(env: McpEnv, labels: Partial<McpEnvLabels> = {}): ParsedMcpEnv {
   const label = resolveLabels(labels);
-  const fileUploadsOff = parseFileUploadsOff(env.FOREST_MCP_FILE_UPLOADS, label.fileUploads);
+  const fileUploadsOff = !parseBooleanFlag(
+    env.FOREST_MCP_FILE_UPLOADS ?? 'true',
+    label.fileUploads,
+    "use 'false' to turn action file uploads off. They are on by default.",
+  );
+  const appsOn = parseBooleanFlag(
+    env.FOREST_MCP_APPS,
+    label.apps,
+    "use 'true' to turn MCP Apps on. They are off by default.",
+  );
 
   normalizeAgentUrl(env.FOREST_AGENT_URL, label.agentUrl);
 
@@ -160,6 +169,7 @@ export default function parseMcpEnv(env: McpEnv, labels: Partial<McpEnvLabels> =
         ),
       },
       ...(fileUploadsOff && { fileUploads: false as const }),
+      ...(appsOn && { apps: true }),
     },
     listener: parseMcpListenerEnv(env, label),
     uploadStorageModule: fileUploadsOff ? undefined : env.FOREST_MCP_UPLOAD_STORAGE_MODULE,

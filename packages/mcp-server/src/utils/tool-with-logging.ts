@@ -23,6 +23,7 @@ interface ToolConfig<TSchema extends ZodRawShape> {
   description: string;
   inputSchema: TSchema;
   annotations?: ToolAnnotations;
+  _meta?: Record<string, unknown>;
 }
 
 type RegisterToolConfig = Parameters<McpServer['registerTool']>[1];
