@@ -11,7 +11,7 @@ export default (collection: DvdCustomizer) =>
       dependencies: ['id'],
       getValues: async (records, context) => {
         const rows = await context.collection.nativeDriver.rawQuery(
-          'SELECT dvd_id, COUNT(*) AS count FROM dvd_rental WHERE dvd_id IN (:ids) GROUP BY dvd_id',
+          'SELECT dvd_id, CAST(COUNT(*) AS INTEGER) AS count FROM dvd_rental WHERE dvd_id IN (:ids) GROUP BY dvd_id',
           { ids: records.map(r => r.id) },
         );
 
@@ -30,7 +30,7 @@ export default (collection: DvdCustomizer) =>
         };
 
         await sequelizeMsSql.query(
-          'UPDATE dvd SET rental_price = ROUND(rental_price * :multiplier, 2) WHERE id IN (:ids)',
+          'UPDATE dvd SET rental_price = CAST(rental_price * :multiplier AS DECIMAL(10, 2)) WHERE id IN (:ids)',
           { replacements },
         );
 

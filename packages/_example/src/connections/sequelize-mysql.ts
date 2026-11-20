@@ -1,7 +1,8 @@
 import { DataTypes, Sequelize } from 'sequelize';
 
-const connectionString = 'mysql://example:password@localhost:3306/example';
-const sequelizeMySql = new Sequelize(connectionString, { logging: false });
+import { sqlUri } from './sql-options';
+
+const sequelizeMySql = new Sequelize(sqlUri('mysql'), { logging: false });
 
 sequelizeMySql.define(
   'store',

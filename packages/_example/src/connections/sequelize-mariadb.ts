@@ -1,7 +1,8 @@
 import { DataTypes, Sequelize } from 'sequelize';
 
-const uri = 'mariadb://example:password@localhost:3808/example';
-const sequelize = new Sequelize(uri, { logging: false });
+import { sqlUri } from './sql-options';
+
+const sequelize = new Sequelize(sqlUri('mariadb'), { logging: false });
 
 const card = sequelize.define(
   'card',

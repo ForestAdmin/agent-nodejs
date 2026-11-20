@@ -1,7 +1,8 @@
 import { DataTypes, Sequelize } from 'sequelize';
 
-const uri = 'mssql://sa:yourStrong(!)Password@localhost:1433';
-const sequelizeMsSql = new Sequelize(`${uri}/example`, { logging: false });
+import { sqlUri } from './sql-options';
+
+const sequelizeMsSql = new Sequelize(sqlUri('mssql'), { logging: false });
 
 const dvd = sequelizeMsSql.define(
   'dvd',

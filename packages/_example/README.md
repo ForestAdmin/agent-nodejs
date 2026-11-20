@@ -26,22 +26,43 @@ This package serves as an example agent for Forest Admin. Its purpose is to demo
     cd packages/_example
     ```
 
-2. **Setup and Seed Databases**
+2. **Configure the Agent**
 
-   The agent utilizes multiple databases. You can conveniently spin up all the required databases in Docker containers using:
+   Create a copy of the `.env.example` file and rename it to `.env`. Configure the agent by providing necessary credentials in the `.env` file.
+
+3. **Setup and Seed Databases**
+
+   The agent uses Postgres, MySQL, MariaDB, MSSQL and MongoDB. Two ways to run them:
+
+   - **Light mode**, the default (under 1 GB of RAM): only the `postgres` and `mongodb` containers
+     run, and the MySQL, MariaDB and MSSQL models live in their own databases of the Postgres
+     container (`example_mysql`, `example_mariadb`, `example_mssql`).
+     Forest sees the same collections, fields and relations as in full mode.
+
+     ```bash
+     docker compose up -d
+     ```
+
+   - **Full mode** (MSSQL alone can take up to 2 GB of RAM): every engine in its own container,
+     with `EXAMPLE_LIGHT=false` in `.env`.
+
+     ```bash
+     docker compose --profile full up -d
+     ```
+
+   The three light-mode databases are created when the Postgres volume is first initialized. If
+   your volume is older than that, create them once:
 
     ```bash
-    docker compose up -d
+    docker compose exec postgres psql -U example -d example -f /docker-entrypoint-initdb.d/light-mode-databases.sql
     ```
-   And seed the databases with:
+
+   Then seed the databases, in either mode:
 
     ```bash
     yarn db:seed
     ```
 
-3. **Configure the Agent**
-
-   Create a copy of the `.env.example` file and rename it to `.env`. Configure the agent by providing necessary credentials in the `.env` file.
 
 ## Running the Agent
 
