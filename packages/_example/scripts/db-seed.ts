@@ -25,7 +25,7 @@ async function createReviewRecords(connection: Sequelize, storeRecords: any[]): 
 
   for (let i = 0; i < 10; i += 1) {
     reviewRecords.push({
-      message: faker.lorem.paragraph(1),
+      message: faker.lorem.sentence(),
       title: faker.random.words(3),
       storeId: faker.datatype.boolean() ? null : faker.helpers.arrayElement(storeRecords).id,
     });
@@ -147,6 +147,17 @@ async function createCustomerCardRecords(connection: Sequelize): Promise<any[]> 
   return customerRecords;
 }
 
+async function advancePostgresSequencesPastSeededIds(connection: Sequelize, tables: string[]) {
+  if (connection.getDialect() !== 'postgres') return;
+
+  for (const table of tables) {
+    // eslint-disable-next-line no-await-in-loop
+    await connection.query(
+      `SELECT setval(pg_get_serial_sequence('${table}', 'id'), MAX(id)) FROM ${table}`,
+    );
+  }
+}
+
 async function createDvdRentalsRecords(
   connection: Sequelize,
   storeRecords: any[],
@@ -193,6 +204,7 @@ async function createDvdRentalsRecords(
   ]);
 
   await connection.model('dvd_rental').bulkCreate(dvdRentalRecords);
+  await advancePostgresSequencesPastSeededIds(connection, ['dvd', 'rental']);
 }
 
 async function clearDatabases(mongooseInstance: Connection, sequelizeInstances: Sequelize[]) {
@@ -233,7 +245,7 @@ async function seedData() {
 
     await sequelizeMariaDb.query(`
       CREATE OR REPLACE VIEW active_cards AS
-      SELECT * FROM card WHERE is_active = 1
+      SELECT * FROM card WHERE is_active = TRUE
     `);
   } catch (error) {
     console.error('---------------');

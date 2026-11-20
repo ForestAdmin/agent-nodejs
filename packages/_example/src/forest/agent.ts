@@ -23,6 +23,7 @@ import mongoose, { connectionString } from '../connections/mongoose';
 import sequelizeMsSql from '../connections/sequelize-mssql';
 import sequelizeMySql from '../connections/sequelize-mysql';
 import sequelizePostgres from '../connections/sequelize-postgres';
+import { sqlOptions, sqlUri } from '../connections/sql-options';
 
 const ZENDESK_OAUTH_DOMAIN = 'forestadmin.com';
 
@@ -59,20 +60,14 @@ export default function makeAgent() {
 
     .addDataSource(
       // Using an URI
-      createSqlDataSource('mariadb://example:password@localhost:3808/example', {
+      createSqlDataSource(sqlUri('mariadb'), {
         liveQueryConnections: 'Main database',
       }),
       { include: ['customer'] },
     )
     .addDataSource(
       // Using a connection object
-      createSqlDataSource({
-        dialect: 'mariadb',
-        username: 'example',
-        password: 'password',
-        port: 3808,
-        database: 'example',
-      }),
+      createSqlDataSource(sqlOptions('mariadb')),
       { include: ['card', 'active_cards'] }, // active_cards is a view
     )
     .addDataSource(createTypicode())
