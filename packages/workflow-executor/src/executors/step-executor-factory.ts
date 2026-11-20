@@ -29,6 +29,7 @@ import type {
 import type { ActivityLogWorkflow } from '@forestadmin/forestadmin-client';
 
 import {
+  ApprovalOutcomesPerRecordError,
   CallRecordNotLoadedError,
   OAuthReauthRequiredError,
   SourceRecordMissingError,
@@ -204,6 +205,10 @@ export default class StepExecutorFactory {
       const perRecordSource = findPerRecordSource(step);
 
       if (perRecordSource) {
+        if ((step.stepDefinition as TriggerActionStepDefinition).approvalOutcomes === true) {
+          throw new ApprovalOutcomesPerRecordError();
+        }
+
         return new PerRecordStepExecutor(context, perRecordSource, createRecordExecutor);
       }
 
@@ -335,6 +340,7 @@ export default class StepExecutorFactory {
       user: step.user,
       timezone: step.timezone,
       callScope: step.callScope,
+      approvalRequests: step.approvalRequests,
       model: cfg.aiModelPort.getModel({
         aiConfigName: step.stepDefinition.aiConfigName,
         userId: step.user.id,
