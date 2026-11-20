@@ -124,7 +124,8 @@ When fixing a vulnerability in our own code on a public repository:
 - Use neutral wording in the branch name, commit messages, PR title and description,
   code comments, changelog and release notes. Write "Harden filter validation", not
   "Fix SQL injection in filters". No `security/` branch prefix, no `:lock: security`
-  label, no CVE id before the advisory is published.
+  label, no CVE id before the advisory is published. Since that label is what notifies
+  first-level support, flag the PR to them privately instead.
 - No exploit details, payloads or proof of concept anywhere in the repository,
   including test names and fixtures. Keep regression tests neutral: name them by the
   behaviour kept, not by the attack. Write "scopes records to the caller's project",
