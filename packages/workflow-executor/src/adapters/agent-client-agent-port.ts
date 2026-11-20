@@ -191,9 +191,17 @@ export default class AgentClientAgentPort implements AgentPort {
   ): Promise<RecordData> {
     return this.callAgent('updateRecord', async () => {
       const client = this.createClient(user);
-      const updatedRecord = await client
-        .collection(collection)
-        .update<Record<string, unknown>>(id, values);
+      let updatedRecord: Record<string, unknown>;
+
+      try {
+        updatedRecord = await client
+          .collection(collection)
+          .update<Record<string, unknown>>(id, values);
+      } catch (error) {
+        if (HttpRequester.is404Error(error)) throw new RecordNotFoundError(collection, id);
+
+        throw error;
+      }
 
       return {
         collectionName: collection,

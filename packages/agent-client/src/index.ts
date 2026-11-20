@@ -14,6 +14,7 @@ import AgentHttpError, {
   ActionRequiresApprovalError,
   ApprovalRequestCreationError,
   InvalidActionFileValueError,
+  RecordNotFoundError,
   UnknownActionFieldError,
 } from './errors';
 import HttpRequester from './http-requester';
@@ -29,6 +30,7 @@ export {
   ActionFormValidationError,
   ApprovalRequestCreationError,
   InvalidActionFileValueError,
+  RecordNotFoundError,
   UnknownActionFieldError,
 };
 export type {
