@@ -108,9 +108,14 @@ function makeMockModel(toolName: string, toolArgs: Record<string, unknown>) {
   return makeLoopModel([[toolName, toolArgs]]);
 }
 
-// Never completes: proposes the same call on every decision.
+// Never completes: proposes a call it has not made yet on every decision.
 function makeEndlessModel(toolName: string, toolArgs: Record<string, unknown>) {
-  const invoke = jest.fn().mockResolvedValue(toolCallResponse(toolName, toolArgs));
+  let attempt = 0;
+  const invoke = jest.fn().mockImplementation(async () => {
+    attempt += 1;
+
+    return toolCallResponse(toolName, { ...toolArgs, attempt });
+  });
   const model = { bindTools: jest.fn().mockReturnValue({ invoke }) };
 
   return { model: model as unknown as ExecutionContext['model'], invoke };
@@ -369,6 +374,195 @@ describe('McpStepExecutor', () => {
       });
       expect(invokeFn).toHaveBeenCalledTimes(10);
       expect(modelInvoke).toHaveBeenCalledTimes(11);
+    });
+
+    describe('when the AI proposes the call it just made', () => {
+      function runRepeatedCall() {
+        const screenInvoke = jest.fn().mockResolvedValue('No match found.');
+        const { model, bindTools, invoke } = makeLoopModel(
+          [
+            ['screen_customer', { customer: 'John Doe' }],
+            ['screen_customer', { customer: 'John Doe' }],
+          ],
+          'No match found.',
+        );
+        const runStore = makeMockRunStore();
+        const logger = jest.fn();
+        const context = makeContext({
+          model,
+          runStore,
+          logger,
+          stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+        });
+        const execution = new McpStepExecutor(context, [
+          new MockRemoteTool({ name: 'screen_customer', invoke: screenInvoke }),
+        ]).execute();
+
+        return { execution, screenInvoke, bindTools, invoke, runStore, logger };
+      }
+
+      it('does not run it again and completes with the answer the AI gives when it can only complete', async () => {
+        const { execution, screenInvoke, bindTools, invoke, runStore } = runRepeatedCall();
+
+        const result = await execution;
+
+        expect(result.stepOutcome.status).toBe('success');
+        expect(screenInvoke).toHaveBeenCalledTimes(1);
+        expect(invoke).toHaveBeenCalledTimes(3);
+        const lastBoundTools = bindTools.mock.calls[2][0] as Array<{ name: string }>;
+        expect(lastBoundTools.map(t => t.name)).toEqual([COMPLETE_STEP]);
+        expect(runStore.saveStepExecution).toHaveBeenLastCalledWith('run-1', {
+          type: 'mcp',
+          stepIndex: 0,
+          toolCalls: [executedCall('screen_customer', { customer: 'John Doe' }, 'No match found.')],
+          executionParams: {
+            name: 'screen_customer',
+            sourceId: 'mcp-server-1',
+            input: { customer: 'John Doe' },
+          },
+          executionResult: {
+            success: true,
+            toolResult: 'No match found.',
+            formattedResponse: 'No match found.',
+          },
+          idempotencyPhase: 'done',
+        });
+      });
+
+      it('logs a warning naming the repeated tool', async () => {
+        const { execution, logger } = runRepeatedCall();
+
+        await execution;
+
+        expect(logger).toHaveBeenCalledWith(
+          'Warn',
+          'MCP step AI proposed the tool call it just made',
+          expect.objectContaining({ toolName: 'screen_customer' }),
+        );
+      });
+    });
+
+    it('ends the step without an answer when the AI still picks a tool on its final turn', async () => {
+      const screenInvoke = jest.fn().mockResolvedValue('No match found.');
+      const { model } = makeLoopModel([
+        ['screen_customer', { customer: 'John Doe' }],
+        ['screen_customer', { customer: 'John Doe' }],
+        ['screen_customer', { customer: 'John Doe' }],
+      ]);
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        model,
+        runStore,
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+
+      const result = await new McpStepExecutor(context, [
+        new MockRemoteTool({ name: 'screen_customer', invoke: screenInvoke }),
+      ]).execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(screenInvoke).toHaveBeenCalledTimes(1);
+      const saves = (runStore.saveStepExecution as jest.Mock).mock.calls;
+      const lastSaved = saves[saves.length - 1][1] as McpStepExecutionData;
+      expect(lastSaved.idempotencyPhase).toBe('done');
+      expect(lastSaved.executionResult).toEqual({ success: true, toolResult: 'No match found.' });
+    });
+
+    it('runs a call again once another call was made in between', async () => {
+      const statusInvoke = jest.fn().mockResolvedValue('stopped');
+      const restartInvoke = jest.fn().mockResolvedValue('restarted');
+      const { model } = makeLoopModel([
+        ['get_job_status', { id: 'job-1' }],
+        ['restart_job', { id: 'job-1' }],
+        ['get_job_status', { id: 'job-1' }],
+      ]);
+      const context = makeContext({
+        model,
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+
+      const result = await new McpStepExecutor(context, [
+        new MockRemoteTool({ name: 'get_job_status', invoke: statusInvoke }),
+        new MockRemoteTool({ name: 'restart_job', invoke: restartInvoke }),
+      ]).execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(statusInvoke.mock.calls).toEqual([[{ id: 'job-1' }], [{ id: 'job-1' }]]);
+      expect(restartInvoke).toHaveBeenCalledWith({ id: 'job-1' });
+    });
+
+    it('completes instead of failing when the AI repeats its 10th call', async () => {
+      const invokeFn = jest.fn().mockResolvedValue('sent');
+      const distinctCalls = Array.from(
+        { length: 10 },
+        (_, i): [string, Record<string, unknown>] => ['send_notification', { n: i }],
+      );
+      const { model } = makeLoopModel([...distinctCalls, ['send_notification', { n: 9 }]], 'Sent.');
+      const context = makeContext({
+        model,
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+
+      const result = await new McpStepExecutor(context, [
+        new MockRemoteTool({ name: 'send_notification', invoke: invokeFn }),
+      ]).execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(invokeFn).toHaveBeenCalledTimes(10);
+    });
+
+    it('completes without asking to confirm a repeat of the call it resumes from', async () => {
+      const screenInvoke = jest.fn().mockResolvedValue('No match found.');
+      const execution: McpStepExecutionData = {
+        type: 'mcp',
+        stepIndex: 0,
+        toolCalls: [executedCall('screen_customer', { customer: 'John Doe' }, 'No match found.')],
+      };
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([execution]),
+      });
+      const { model } = makeLoopModel(
+        [['screen_customer', { customer: 'John Doe' }]],
+        'No match found.',
+      );
+      const context = makeContext({ model, runStore });
+
+      const result = await new McpStepExecutor(context, [
+        new MockRemoteTool({ name: 'screen_customer', invoke: screenInvoke }),
+      ]).execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(screenInvoke).not.toHaveBeenCalled();
+      const saves = (runStore.saveStepExecution as jest.Mock).mock.calls;
+      const lastSaved = saves[saves.length - 1][1] as McpStepExecutionData;
+      expect(lastSaved.pendingData).toBeUndefined();
+      expect(lastSaved.executionResult).toEqual({
+        success: true,
+        toolResult: 'No match found.',
+        formattedResponse: 'No match found.',
+      });
+    });
+
+    it('runs the same tool again when the AI calls it with another input', async () => {
+      const screenInvoke = jest.fn().mockResolvedValue('No match found.');
+      const { model } = makeLoopModel([
+        ['screen_customer', { customer: 'John Doe' }],
+        ['screen_customer', { customer: 'Jane Doe' }],
+      ]);
+      const context = makeContext({
+        model,
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+
+      const result = await new McpStepExecutor(context, [
+        new MockRemoteTool({ name: 'screen_customer', invoke: screenInvoke }),
+      ]).execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(screenInvoke.mock.calls).toEqual([
+        [{ customer: 'John Doe' }],
+        [{ customer: 'Jane Doe' }],
+      ]);
     });
 
     describe('once the step has timed out', () => {
