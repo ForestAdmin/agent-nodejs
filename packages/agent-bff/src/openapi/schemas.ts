@@ -519,12 +519,15 @@ export const PermissionHintsSchema = z
 
 export const AiQueryRequestSchema = z.unknown().openapi('AiQueryRequest', {
   description:
-    'Passed through to the Forest AI proxy without validation or rewriting, so the authority on ' +
-    'this shape is the upstream contract, not the Gateway API. It is left free-form on purpose: the Gateway API ' +
+    'By default, passed through to the Forest AI proxy without validation or rewriting, so ' +
+    'the authority on this shape is the upstream contract, not the Gateway API. It is left free-form on purpose: the Gateway API ' +
     'enforces nothing here, and a shape published from this side would drift from the upstream ' +
     'one nobody keeps it in sync with. In practice it is the OpenAI chat-completion body — ' +
     '`messages`, and optionally `tools`, `tool_choice`, `parallel_tool_calls`. A malformed body ' +
-    'is rejected by the Forest server, not here.',
+    'is rejected by the Forest server, not here. When the Gateway has its own AI provider ' +
+    'configured, the Gateway API validates the body itself instead: only system, user and ' +
+    'assistant messages with text content, a system message opening the conversation, and no ' +
+    'tools, otherwise 400 invalid_request.',
 });
 
 export const ErrorResponseSchema = z

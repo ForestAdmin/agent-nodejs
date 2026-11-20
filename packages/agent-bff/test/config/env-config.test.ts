@@ -615,6 +615,146 @@ describe('parseConfig', () => {
     });
   });
 
+  describe('when resolving the AI provider', () => {
+    const OWN = { BFF_AI_PROVIDER: 'anthropic', BFF_AI_MODEL: 'claude', BFF_AI_API_KEY: 'own-key' };
+    const RUNTIME = { AI_PROVIDER: 'openai', AI_MODEL: 'gpt-4.1', AI_API_KEY: 'runtime-key' };
+
+    it('should leave ai unset when neither the Gateway nor the runtime sets one', () => {
+      expect(parseConfig({ ...VALID_ENV }).ai).toBeUndefined();
+    });
+
+    it("should use the Gateway's own setting", () => {
+      expect(parseConfig({ ...VALID_ENV, ...OWN }).ai).toEqual({
+        name: 'default',
+        provider: 'anthropic',
+        model: 'claude',
+        apiKey: 'own-key',
+      });
+    });
+
+    it("should fall back to the runtime's setting when the Gateway sets none", () => {
+      expect(parseConfig({ ...VALID_ENV, ...RUNTIME }).ai).toEqual({
+        name: 'default',
+        provider: 'openai',
+        model: 'gpt-4.1',
+        apiKey: 'runtime-key',
+      });
+    });
+
+    it("should prefer the Gateway's own setting over the runtime's", () => {
+      expect(parseConfig({ ...VALID_ENV, ...RUNTIME, ...OWN }).ai).toMatchObject({
+        provider: 'anthropic',
+        apiKey: 'own-key',
+      });
+    });
+
+    it("should refuse a partial own setting rather than fall back to the runtime's", () => {
+      expect(() => parseConfig({ ...VALID_ENV, ...RUNTIME, BFF_AI_PROVIDER: 'anthropic' })).toThrow(
+        ConfigurationError,
+      );
+      expect(() => parseConfig({ ...VALID_ENV, ...RUNTIME, BFF_AI_PROVIDER: 'anthropic' })).toThrow(
+        'BFF_AI_PROVIDER and BFF_AI_MODEL',
+      );
+    });
+
+    it('should refuse an invalid runtime setting at boot', () => {
+      expect(() => parseConfig({ ...VALID_ENV, AI_PROVIDER: 'bogus', AI_MODEL: 'm' })).toThrow(
+        'Invalid configuration: AI_PROVIDER must be "anthropic", "openai" or "bedrock"',
+      );
+    });
+
+    it('should let an error reading the AI setting through, not relabel it a configuration error', () => {
+      const failure = new Error('environment unreadable');
+      const env = new Proxy(
+        { ...VALID_ENV },
+        {
+          get: (target, key) => {
+            if (key === 'AI_PROVIDER') throw failure;
+
+            return target[key as keyof typeof target];
+          },
+        },
+      );
+
+      expect(() => parseConfig(env)).toThrow(failure);
+    });
+
+    it('should take a bedrock region from AWS_REGION', () => {
+      expect(
+        parseConfig({
+          ...VALID_ENV,
+          BFF_AI_PROVIDER: 'bedrock',
+          BFF_AI_MODEL: 'anthropic.claude-sonnet-4',
+          AWS_REGION: 'eu-west-3',
+        }).ai,
+      ).toMatchObject({ provider: 'bedrock', region: 'eu-west-3' });
+    });
+
+    it('should name the label of the variable in error messages', () => {
+      expect(() =>
+        parseConfig(
+          { ...VALID_ENV, BFF_AI_PROVIDER: 'anthropic' },
+          {
+            BFF_AI_PROVIDER: 'api.ai.provider',
+            BFF_AI_MODEL: 'api.ai.model',
+          },
+        ),
+      ).toThrow('api.ai.provider and api.ai.model');
+    });
+
+    it('should trim padded values like every other variable', () => {
+      expect(
+        parseConfig({
+          ...VALID_ENV,
+          BFF_AI_PROVIDER: ' anthropic ',
+          BFF_AI_MODEL: 'claude ',
+          BFF_AI_API_KEY: ' own-key',
+        }).ai,
+      ).toEqual({ name: 'default', provider: 'anthropic', model: 'claude', apiKey: 'own-key' });
+    });
+
+    it.each([
+      ['empty', { BFF_AI_PROVIDER: '', BFF_AI_MODEL: '', BFF_AI_API_KEY: '' }],
+      ['whitespace-only', { BFF_AI_PROVIDER: ' ', BFF_AI_MODEL: '  ', BFF_AI_API_KEY: '\t' }],
+    ])("should use the runtime's setting when the Gateway's own lines are %s", (_label, own) => {
+      expect(parseConfig({ ...VALID_ENV, ...RUNTIME, ...own }).ai).toEqual({
+        name: 'default',
+        provider: 'openai',
+        model: 'gpt-4.1',
+        apiKey: 'runtime-key',
+      });
+    });
+
+    it('should read a whitespace-only runtime setting as unset', () => {
+      expect(parseConfig({ ...VALID_ENV, AI_PROVIDER: '  ', AI_MODEL: ' ' }).ai).toBeUndefined();
+    });
+
+    it('should refuse at boot a model the provider client refuses, naming its variable', () => {
+      const env = {
+        ...VALID_ENV,
+        BFF_AI_PROVIDER: 'bedrock',
+        BFF_AI_MODEL: 'amazon.titan-text-express-v1',
+        AWS_REGION: 'eu-west-3',
+      };
+
+      expect(() => parseConfig(env)).toThrow(ConfigurationError);
+      expect(() => parseConfig(env, { BFF_AI_MODEL: 'api.ai.model' })).toThrow(
+        'Invalid configuration: api.ai.model:',
+      );
+    });
+
+    it('should name the region label when bedrock has no region', () => {
+      expect(() =>
+        parseConfig(
+          { ...VALID_ENV, BFF_AI_PROVIDER: 'bedrock', BFF_AI_MODEL: 'anthropic.claude-sonnet-4' },
+          { BFF_AI_PROVIDER: 'api.ai.provider', AWS_REGION: 'the ai region or AWS_REGION' },
+        ),
+      ).toThrow(
+        'api.ai.provider=bedrock requires the ai region or AWS_REGION (or AWS_DEFAULT_REGION).',
+      );
+    });
+  });
+
   describe('with the addGateway({ api }) label map', () => {
     const LABELS: ConfigLabels = {
       FOREST_AUTH_SECRET: 'authSecret',

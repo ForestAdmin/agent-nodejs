@@ -1,15 +1,19 @@
 import type AiProxyClient from './ai-proxy-client';
 import type { AiProxyResponse } from './ai-proxy-client';
+import type { CustomerModel } from './customer-model-query';
 import type { BffAccessTokenPayload } from '../oauth/bff-token';
 import type { EnvironmentIdResolver } from '../oauth/environment-id';
 import type { SessionTokenCodec } from '../oauth/session-token';
 import type { Logger } from '../ports/logger-port';
 import type { Context, Middleware } from 'koa';
 
-import { AiProxyTimeoutError } from './ai-proxy-client';
+import { AiProxyTimeoutError, isTimeout } from './ai-proxy-client';
+import { parseCustomerModelRequest, queryCustomerModel } from './customer-model-query';
 import { requireRenderingId } from '../auth/auth-mode';
 import { unauthorized } from '../http/bff-http-error';
 import {
+  aiProviderError,
+  aiProviderTimeout,
   environmentUnresolved,
   oauthRequired,
   upstreamError,
@@ -29,6 +33,8 @@ export interface AiRoutesMiddlewareOptions {
   client: AiProxyClient;
   sessionTokens: SessionTokenCodec;
   resolveEnvironmentId?: EnvironmentIdResolver;
+  /** Set, queries go to the customer's model and never to Forest's AI server, even on failure. */
+  customerModel?: CustomerModel;
   logger: Logger;
 }
 
@@ -105,10 +111,29 @@ function relayJsonBodyOrGenericError(
   ctx.body = JSON.stringify(response.body);
 }
 
+async function answerWithCustomerModel(
+  ctx: Context,
+  customerModel: CustomerModel,
+  logger: Logger,
+): Promise<void> {
+  const messages = parseCustomerModelRequest(ctx.request.body);
+
+  try {
+    ctx.body = await queryCustomerModel(customerModel, messages);
+  } catch (error) {
+    logger('Warn', 'AI query failed against the AI provider', { cause: describeFailure(error) });
+
+    if (isTimeout(error)) throw aiProviderTimeout();
+
+    throw aiProviderError();
+  }
+}
+
 export default function createAiRoutesMiddleware({
   client,
   sessionTokens,
   resolveEnvironmentId,
+  customerModel,
   logger,
 }: AiRoutesMiddlewareOptions): Middleware {
   return async function aiRoutesMiddleware(ctx, next) {
@@ -122,6 +147,12 @@ export default function createAiRoutesMiddleware({
     const renderingId = requireRenderingId(principal);
 
     const saasAccessToken = resolveServerAccess(principal, sessionTokens);
+
+    if (customerModel) {
+      await answerWithCustomerModel(ctx, customerModel, logger);
+
+      return;
+    }
 
     const environmentId = await resolveEnvironmentIdOrRefuse(resolveEnvironmentId, logger);
 

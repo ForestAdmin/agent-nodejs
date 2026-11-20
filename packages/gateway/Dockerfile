@@ -41,6 +41,7 @@ COPY packages/gateway/package.json            ./packages/gateway/package.json
 COPY packages/agent-bff/package.json          ./packages/agent-bff/package.json
 COPY packages/agent-client/package.json       ./packages/agent-client/package.json
 COPY packages/agent-toolkit/package.json      ./packages/agent-toolkit/package.json
+COPY packages/ai-proxy/package.json           ./packages/ai-proxy/package.json
 COPY packages/datasource-toolkit/package.json ./packages/datasource-toolkit/package.json
 COPY packages/forestadmin-client/package.json ./packages/forestadmin-client/package.json
 COPY packages/mcp-server/package.json         ./packages/mcp-server/package.json
@@ -72,6 +73,8 @@ COPY --from=builder /app/packages/agent-client/dist         ./node_modules/@fore
 COPY --from=builder /app/packages/agent-client/package.json ./node_modules/@forestadmin/agent-client/package.json
 COPY --from=builder /app/packages/agent-toolkit/dist        ./node_modules/@forestadmin/agent-toolkit/dist
 COPY --from=builder /app/packages/agent-toolkit/package.json ./node_modules/@forestadmin/agent-toolkit/package.json
+COPY --from=builder /app/packages/ai-proxy/dist             ./node_modules/@forestadmin/ai-proxy/dist
+COPY --from=builder /app/packages/ai-proxy/package.json     ./node_modules/@forestadmin/ai-proxy/package.json
 COPY --from=builder /app/packages/datasource-toolkit/dist   ./node_modules/@forestadmin/datasource-toolkit/dist
 COPY --from=builder /app/packages/datasource-toolkit/package.json ./node_modules/@forestadmin/datasource-toolkit/package.json
 COPY --from=builder /app/packages/forestadmin-client/dist   ./node_modules/@forestadmin/forestadmin-client/dist

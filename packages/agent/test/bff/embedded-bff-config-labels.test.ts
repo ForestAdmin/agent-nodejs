@@ -67,6 +67,26 @@ describe('EmbeddedBff config labels', () => {
       );
     });
 
+    it('should name api.ai.*, not BFF_AI_*, on a partial own ai setting', async () => {
+      const embedded = new EmbeddedBff(
+        factories.forestAdminHttpDriverOptions.build(),
+        { ai: { provider: 'anthropic' } } as never,
+        { prefix: '/api', name: 'The Gateway API', gateway: true },
+      );
+
+      await expect(embedded.prepare()).rejects.toThrow(
+        'set api.ai.provider and api.ai.model together',
+      );
+    });
+
+    it("should name addWorkflowExecutor's ai.*, not AI_*, on a partial runtime ai setting", async () => {
+      const embedded = buildEmbedded(true);
+
+      await expect(embedded.prepare({ provider: 'anthropic' } as never)).rejects.toThrow(
+        'set addWorkflowExecutor ai.provider and addWorkflowExecutor ai.model together',
+      );
+    });
+
     it('should pass the gateway labels and the agent version to buildBff', async () => {
       const embedded = buildEmbedded(true);
       const bff = { callback: jest.fn(), invalidate: jest.fn() } as unknown as Bff;

@@ -1,7 +1,7 @@
 // Generates the package.json for the Docker image's isolated runtime deps.
 //
 // It merges the external (non-@forestadmin) runtime dependencies of the BFF and
-// its 4 workspace dependencies into a single manifest, plus the OpenTelemetry
+// its 5 workspace dependencies into a single manifest, plus the OpenTelemetry
 // packages used for APM (Docker-only; not shipped to npm consumers of the CLI).
 //
 // The output is deterministic (sorted keys). A committed yarn.lock sits next to
@@ -20,6 +20,7 @@ const WORKSPACE_PACKAGES = [
   'agent-bff',
   'agent-client',
   'agent-toolkit',
+  'ai-proxy',
   'datasource-toolkit',
   'forestadmin-client',
 ];

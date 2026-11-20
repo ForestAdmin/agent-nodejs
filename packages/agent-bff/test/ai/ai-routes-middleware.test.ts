@@ -1,5 +1,6 @@
 import type AiProxyClient from '../../src/ai/ai-proxy-client';
 import type { AiProxyResponse } from '../../src/ai/ai-proxy-client';
+import type { CustomerModel } from '../../src/ai/customer-model-query';
 
 import { bodyParser } from '@koa/bodyparser';
 import jsonwebtoken from 'jsonwebtoken';
@@ -33,6 +34,7 @@ interface AppContext {
   renderingId?: string;
   environmentId?: number;
   resolveEnvironmentId?: () => Promise<number>;
+  customerModel?: CustomerModel;
 }
 
 function buildApp(
@@ -43,6 +45,7 @@ function buildApp(
     renderingId = '42',
     environmentId = 7,
     resolveEnvironmentId = async () => environmentId,
+    customerModel,
   }: AppContext,
 ) {
   const logger = jest.fn();
@@ -75,6 +78,7 @@ function buildApp(
       client,
       sessionTokens,
       resolveEnvironmentId,
+      customerModel,
       logger,
     }),
   );
@@ -408,6 +412,204 @@ describe('createAiRoutesMiddleware', () => {
 
       expect(response.status).toBe(502);
       expect(JSON.stringify(response.body)).not.toContain('10.0.0.1');
+    });
+  });
+});
+
+describe("createAiRoutesMiddleware with the customer's model", () => {
+  const BODY = {
+    messages: [
+      { role: 'system', content: 'You suggest actions.' },
+      { role: 'user', content: 'Ticket: refund please' },
+    ],
+    tools: [],
+  };
+
+  function aiMessage(content: string) {
+    return { id: 'msg_1', content, tool_calls: [], invalid_tool_calls: [], additional_kwargs: {} };
+  }
+
+  function makeCustomerApp(
+    invoke: jest.Mock = jest.fn().mockResolvedValue(aiMessage('{"summary":"refund"}')),
+    context: AppContext = {},
+    timeoutMs = 1000,
+  ) {
+    const query = jest.fn();
+    const customerModel: CustomerModel = {
+      model: { invoke } as unknown as CustomerModel['model'],
+      modelName: 'claude-sonnet',
+      timeoutMs,
+    };
+
+    return { ...makeApp({ query, customerModel, ...context }), invoke, query };
+  }
+
+  describe('when the model answers', () => {
+    it('should answer in the OpenAI shape the Zendesk app reads', async () => {
+      const { app } = makeCustomerApp();
+
+      const response = await request(app.callback()).post(AI_QUERY_ROUTE).send(BODY);
+
+      expect(response.status).toBe(200);
+      expect(response.body.choices[0].message).toMatchObject({
+        role: 'assistant',
+        content: '{"summary":"refund"}',
+      });
+    });
+
+    it("should never contact Forest's AI server", async () => {
+      const { app, query } = makeCustomerApp();
+
+      await request(app.callback()).post(AI_QUERY_ROUTE).send(BODY);
+
+      expect(query).not.toHaveBeenCalled();
+    });
+
+    it('should send the system and user messages to the model, with a timeout signal', async () => {
+      const { app, invoke } = makeCustomerApp();
+
+      await request(app.callback()).post(AI_QUERY_ROUTE).send(BODY);
+
+      const [messages, options] = invoke.mock.calls[0];
+      expect(messages.map((m: { content: string }) => m.content)).toEqual([
+        'You suggest actions.',
+        'Ticket: refund please',
+      ]);
+      expect(options.signal).toBeInstanceOf(AbortSignal);
+    });
+
+    it('should merge several system messages into one, which Anthropic and Bedrock require', async () => {
+      const { app, invoke } = makeCustomerApp();
+
+      await request(app.callback())
+        .post(AI_QUERY_ROUTE)
+        .send({
+          messages: [
+            { role: 'system', content: 'A' },
+            { role: 'user', content: 'question' },
+            { role: 'system', content: 'B' },
+          ],
+        });
+
+      expect(invoke.mock.calls[0][0].map((m: { content: string }) => m.content)).toEqual([
+        'A\n\nB',
+        'question',
+      ]);
+    });
+  });
+
+  describe('when the request is not one the model path serves', () => {
+    it('should refuse tools with 400, since the model is called without them', async () => {
+      const { app, invoke } = makeCustomerApp();
+
+      const response = await request(app.callback())
+        .post(AI_QUERY_ROUTE)
+        .send({ ...BODY, tools: [{ type: 'function', function: { name: 'x' } }] });
+
+      expect(response.status).toBe(400);
+      expect(invoke).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['no messages', {}],
+      ['an empty message list', { messages: [] }],
+      ['a message without content', { messages: [{ role: 'user' }] }],
+      ['an unknown role', { messages: [{ role: 'tool', content: 'x' }] }],
+      [
+        'a system message not opening the conversation',
+        {
+          messages: [
+            { role: 'user', content: 'hi' },
+            { role: 'system', content: 'be brief' },
+          ],
+        },
+      ],
+    ])('should refuse %s with 400', async (_label, body) => {
+      const { app, invoke } = makeCustomerApp();
+
+      const response = await request(app.callback()).post(AI_QUERY_ROUTE).send(body);
+
+      expect(response.status).toBe(400);
+      expect(invoke).not.toHaveBeenCalled();
+    });
+
+    it('should still require an OAuth session', async () => {
+      const { app, invoke } = makeCustomerApp(undefined, { authMode: 'api-key' });
+
+      const response = await request(app.callback()).post(AI_QUERY_ROUTE).send(BODY);
+
+      expect(response.status).toBe(403);
+      expect(invoke).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('when the model fails', () => {
+    it("should answer 500 upstream_error and never fall back to Forest's AI server", async () => {
+      const { app, query } = makeCustomerApp(jest.fn().mockRejectedValue(new Error('boom')));
+
+      const response = await request(app.callback()).post(AI_QUERY_ROUTE).send(BODY);
+
+      expect(response.status).toBe(500);
+      expect(response.body.error.type).toBe('upstream_error');
+      expect(query).not.toHaveBeenCalled();
+    });
+
+    it('should not relay a provider 401, which the app would read as an expired Forest session', async () => {
+      const providerError = Object.assign(new Error('invalid x-api-key'), { status: 401 });
+      const { app } = makeCustomerApp(jest.fn().mockRejectedValue(providerError));
+
+      const response = await request(app.callback()).post(AI_QUERY_ROUTE).send(BODY);
+
+      expect(response.status).toBe(500);
+    });
+
+    it('should not name the Forest server in its message', async () => {
+      const { app } = makeCustomerApp(jest.fn().mockRejectedValue(new Error('boom')));
+
+      const response = await request(app.callback()).post(AI_QUERY_ROUTE).send(BODY);
+
+      expect(JSON.stringify(response.body)).not.toMatch(/Forest/);
+    });
+
+    it('should log the failure against the AI provider with its cause', async () => {
+      const { app, logger } = makeCustomerApp(jest.fn().mockRejectedValue(new Error('boom')));
+
+      await request(app.callback()).post(AI_QUERY_ROUTE).send(BODY);
+
+      expect(logger).toHaveBeenCalledWith('Warn', 'AI query failed against the AI provider', {
+        cause: 'Error: boom',
+      });
+    });
+
+    // Bedrock's and OpenAI's clients reject an aborted call with an AbortError, never a TimeoutError.
+    function abortedOnSignal() {
+      return jest.fn(
+        (_messages: unknown, { signal }: { signal: AbortSignal }) =>
+          new Promise((_resolve, reject) => {
+            signal.addEventListener('abort', () =>
+              reject(Object.assign(new Error('Request aborted'), { name: 'AbortError' })),
+            );
+          }),
+      );
+    }
+
+    it('should answer 504 upstream_timeout when the model is still answering after timeoutMs', async () => {
+      const { app } = makeCustomerApp(abortedOnSignal(), {}, 20);
+
+      const response = await request(app.callback()).post(AI_QUERY_ROUTE).send(BODY);
+
+      expect(response.status).toBe(504);
+      expect(response.body.error.type).toBe('upstream_timeout');
+    });
+
+    it('should answer 500 upstream_error for an AbortError raised before the timeout', async () => {
+      const aborted = Object.assign(new Error('Request aborted'), { name: 'AbortError' });
+      const { app } = makeCustomerApp(jest.fn().mockRejectedValue(aborted));
+
+      const response = await request(app.callback()).post(AI_QUERY_ROUTE).send(BODY);
+
+      expect(response.status).toBe(500);
+      expect(response.body.error.type).toBe('upstream_error');
     });
   });
 });
