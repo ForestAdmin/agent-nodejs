@@ -101,8 +101,12 @@ Apply these on every change:
   right project, environment and user. Never trust an ID coming from the request.
 - Any input coming from a user, a customer agent, a webhook or an LLM is validated
   before use. No string concatenation in queries or shell commands.
-- No secret, token, PII or customer data in code, logs, error messages, test fixtures
-  or prompts.
+- No secret, token, PII, customer data or customer name in code, logs, error messages,
+  test fixtures or prompts.
+- On public repositories, the same holds for branch names, commit messages, and PR and
+  issue titles, descriptions, comments and reviews, which also carry no description of
+  an open or accepted weakness and no details of private repositories. Refer to a
+  customer as "a customer" and put the specifics in the Linear ticket.
 - Before adding a dependency, check that it exists and is legitimate (publisher,
   activity, repository). Never add a package only because its name seems plausible.
 - Write negative tests: access denied, wrong tenant, invalid input, expired token.
@@ -125,8 +129,9 @@ When fixing a vulnerability in our own code on a public repository:
   including test names and fixtures. Keep regression tests neutral: name them by the
   behaviour kept, not by the attack. Write "scopes records to the caller's project",
   not "rejects a record id from another tenant".
-- Do not post the vulnerability analysis in PR comments or reviews. Keep it in the
-  Linear ticket or a GitHub private security advisory.
+- The public-repository rule above applies here too: keep the vulnerability analysis in
+  the Linear ticket or a GitHub private security advisory, never in PR comments or
+  reviews.
 - Reporters go through the security policy:
   https://github.com/ForestAdmin/.github/blob/main/SECURITY.md
 
