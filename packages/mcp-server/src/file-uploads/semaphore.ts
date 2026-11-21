@@ -35,3 +35,26 @@ export default function createSemaphore(limit: number): RunExclusive {
     }
   };
 }
+
+export type RunPerKey = <T>(key: string, task: () => Promise<T>) => Promise<T>;
+
+export function createPerKeyLimit(limit: number, refusal: string): RunPerKey {
+  const active = new Map<string, number>();
+
+  return async <T>(key: string, task: () => Promise<T>): Promise<T> => {
+    const count = active.get(key) ?? 0;
+
+    if (count >= limit) throw new Error(refusal);
+
+    active.set(key, count + 1);
+
+    try {
+      return await task();
+    } finally {
+      const remaining = (active.get(key) ?? 1) - 1;
+
+      if (remaining > 0) active.set(key, remaining);
+      else active.delete(key);
+    }
+  };
+}

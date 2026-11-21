@@ -208,6 +208,12 @@ export FOREST_MCP_APPS=true
 npx forest-mcp-server
 ```
 
+### Uploading action files from the view
+
+With `apps: true`, the server also registers `uploadActionFile`, a tool declared with `_meta.ui.visibility: ['app']`: a host that implements MCP Apps lets the records view call it and hides it from the model, which keeps using `requestActionFileUpload`. The view sends the file as base64. The server refuses a file above `fileUploads.maxBytes` before any storage call, stores it through the configured `fileUploads` backend (in process for the in-memory store, a server-side request to `createUploadUrl` otherwise), and returns a `fileHandle` bound to the calling user, in the same format `requestActionFileUpload` returns. Without `fileUploads`, the tool answers with an error naming the option. The visibility only hides the tool from the model: the tool requires the same authenticated user as every other tool, runs at most 2 uploads at once per user, never follows a redirect from the storage destination, and pins the sha256 of the received bytes in the handle, which `executeAction` re-verifies.
+
+The bytes travel inside a `tools/call` message, so a host's message size limit can refuse a file below `maxBytes`.
+
 ## Action File Uploads
 
 > **Experimental.** The MCP specification is still designing its own file transfer story

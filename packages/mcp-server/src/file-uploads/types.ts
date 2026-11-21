@@ -1,7 +1,7 @@
-import type { RunExclusive } from './semaphore';
+import type { RunExclusive, RunPerKey } from './semaphore';
 import type { Logger } from '../server';
 
-import createSemaphore from './semaphore';
+import createSemaphore, { createPerKeyLimit } from './semaphore';
 
 /** Storage backend for the action file upload side-channel. See the README for the flow. */
 export interface UploadStorage {
@@ -71,6 +71,7 @@ export interface ResolvedFileUploads {
   ephemeralMaxTotalBytes: number;
   authSecret: string;
   limitDownload: RunExclusive;
+  limitUploadPerUser: RunPerKey;
 }
 
 const DEFAULT_KEY_PREFIX = 'mcp-uploads/';
@@ -79,6 +80,7 @@ const DEFAULT_HANDLE_TTL_SECONDS = 45 * 60;
 const DEFAULT_MAX_BYTES = 20 * 1024 * 1024;
 const DEFAULT_MAX_CONCURRENT_DOWNLOADS = 5;
 const DEFAULT_DOWNLOAD_TIMEOUT_SECONDS = 15;
+export const MAX_CONCURRENT_UPLOADS_PER_USER = 2;
 // Deliberately absolute rather than a multiple of maxBytes: derived, raising the per-file limit
 // would multiply what the process can hold, which is the opposite of what setting it suggests.
 export const DEFAULT_EPHEMERAL_MAX_TOTAL_BYTES = 64 * 1024 * 1024;
@@ -141,6 +143,10 @@ export function resolveFileUploads(
     limitDownload: createSemaphore(
       positiveInteger('maxConcurrentDownloads', options.maxConcurrentDownloads) ??
         DEFAULT_MAX_CONCURRENT_DOWNLOADS,
+    ),
+    limitUploadPerUser: createPerKeyLimit(
+      MAX_CONCURRENT_UPLOADS_PER_USER,
+      `Only ${MAX_CONCURRENT_UPLOADS_PER_USER} uploads can run at once for a user: wait for one to finish.`,
     ),
   };
 }

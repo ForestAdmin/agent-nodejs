@@ -47,6 +47,7 @@ import declareListWorkflowsTool from './tools/list-workflows';
 import declareRequestActionFileUploadTool from './tools/request-action-file-upload';
 import declareTriggerWorkflowTool from './tools/trigger-workflow';
 import declareUpdateTool from './tools/update';
+import declareUploadActionFileTool from './tools/upload-action-file';
 import normalizeAgentUrl from './utils/normalize-agent-url';
 import { fetchForestSchema, getCollectionNames } from './utils/schema-fetcher';
 import interceptResponseForErrorLogging from './utils/sse-error-logger';
@@ -103,6 +104,7 @@ const SAFE_ARGUMENTS_FOR_LOGGING: Record<string, string[]> = {
   getActionForm: ['collectionName', 'actionName', 'recordIds'],
   executeAction: ['collectionName', 'actionName', 'recordIds'],
   requestActionFileUpload: ['mimeType'],
+  uploadActionFile: ['mimeType'],
   associate: ['collectionName', 'relationName', 'parentRecordId', 'targetRecordId'],
   dissociate: ['collectionName', 'relationName', 'parentRecordId', 'targetRecordIds'],
   listWorkflows: ['collectionName'],
@@ -323,6 +325,7 @@ export default class ForestMCPServer {
 
     if (this.apps && RECORDS_VIEW_TOOLS.some(name => this.enabledTools.has(name))) {
       registerRecordsView(mcpServer, this.apps);
+      declareUploadActionFileTool(mcpServer, ctx);
     }
 
     this.logger(

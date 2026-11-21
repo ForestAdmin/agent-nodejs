@@ -23,6 +23,8 @@ const RECORDS_VIEW_META = {
   ui: { resourceUri: RECORDS_VIEW_URI },
   'ui/resourceUri': RECORDS_VIEW_URI,
 };
+const APP_ONLY_META = { ui: { visibility: ['app'] } };
+const VIEW_TOOLS = ['list', 'listRelated', 'uploadActionFile'];
 
 async function connect(options: Partial<ForestMCPServerOptions>) {
   clearSchemaCache();
@@ -107,11 +109,15 @@ describe('MCP Apps records view', () => {
       expect(metas.listRelated).toEqual(RECORDS_VIEW_META);
     });
 
+    it('declares the upload tool for the app only', async () => {
+      const metas = await toolMetas(session.client);
+
+      expect(metas.uploadActionFile).toEqual(APP_ONLY_META);
+    });
+
     it('leaves every other tool without a view', async () => {
       const metas = await toolMetas(session.client);
-      const others = Object.entries(metas).filter(
-        ([name]) => name !== 'list' && name !== 'listRelated',
-      );
+      const others = Object.entries(metas).filter(([name]) => !VIEW_TOOLS.includes(name));
 
       expect(others.length).toBeGreaterThan(0);
       others.forEach(([, meta]) => expect(meta).toBeUndefined());
@@ -154,6 +160,12 @@ describe('MCP Apps records view', () => {
       Object.values(metas).forEach(meta => expect(meta).toBeUndefined());
     });
 
+    it('does not register the upload tool', async () => {
+      const { tools } = await session.client.listTools();
+
+      expect(tools.map(({ name }) => name)).not.toContain('uploadActionFile');
+    });
+
     it('keeps the list tool descriptions free of the view instruction', async () => {
       const { tools } = await session.client.listTools();
       const listTools = tools.filter(({ name }) => name === 'list' || name === 'listRelated');
@@ -188,7 +200,10 @@ describe('MCP Apps records view', () => {
     const session = await connect({ apps: true, enabledTools: ['create'] });
 
     try {
+      const { tools } = await session.client.listTools();
+
       expect(session.client.getServerCapabilities()?.resources).toBeUndefined();
+      expect(tools.map(({ name }) => name)).not.toContain('uploadActionFile');
     } finally {
       await session.close();
     }
