@@ -108,6 +108,12 @@ export default class EphemeralStorage implements UploadStorage {
     return stored.body;
   }
 
+  hasRoomFor(bytes: number): boolean {
+    this.expire();
+
+    return this.storedBytes + this.inFlightBytes + bytes <= this.options.maxTotalBytes;
+  }
+
   put(key: string, body: Buffer): void {
     const { maxBytes, maxTotalBytes } = this.options;
 

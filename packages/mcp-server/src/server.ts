@@ -47,7 +47,7 @@ import declareListWorkflowsTool from './tools/list-workflows';
 import declareRequestActionFileUploadTool from './tools/request-action-file-upload';
 import declareTriggerWorkflowTool from './tools/trigger-workflow';
 import declareUpdateTool from './tools/update';
-import declareUploadActionFileTool from './tools/upload-action-file';
+import declareUploadActionFileTool, { appUploadBodyLimit } from './tools/upload-action-file';
 import normalizeAgentUrl from './utils/normalize-agent-url';
 import { fetchForestSchema, getCollectionNames } from './utils/schema-fetcher';
 import interceptResponseForErrorLogging from './utils/sse-error-logger';
@@ -92,6 +92,15 @@ function logErrorWithStack(logger: Logger, message: string, err: Error): void {
 }
 
 const DEFAULT_PORT = 3931;
+
+function skipPath(
+  method: string,
+  path: string,
+  handler: express.RequestHandler,
+): express.RequestHandler {
+  return (req, res, next) =>
+    req.method === method && req.path === path ? next() : handler(req, res, next);
+}
 
 /** Fields that are safe to log for each tool (non-sensitive data) */
 const SAFE_ARGUMENTS_FOR_LOGGING: Record<string, string[]> = {
@@ -323,7 +332,7 @@ export default class ForestMCPServer {
 
     const toolNames = enabledToolEntries.map(tool => tool.register());
 
-    if (this.apps && RECORDS_VIEW_TOOLS.some(name => this.enabledTools.has(name))) {
+    if (this.apps && this.isRecordsViewEnabled()) {
       registerRecordsView(mcpServer, this.apps);
       declareUploadActionFileTool(mcpServer, ctx);
     }
@@ -342,6 +351,16 @@ export default class ForestMCPServer {
     }
 
     return mcpServer;
+  }
+
+  private isRecordsViewEnabled(): boolean {
+    return Boolean(this.apps) && RECORDS_VIEW_TOOLS.some(name => this.enabledTools.has(name));
+  }
+
+  private appUploadBodyParsers(): express.RequestHandler[] {
+    if (!this.fileUploads || !this.isRecordsViewEnabled()) return [];
+
+    return [express.json({ limit: appUploadBodyLimit(this.fileUploads.appUploadMaxBytes) })];
   }
 
   private resolveEnabledTools(options?: ForestMCPServerOptions): Set<ToolName> {
@@ -640,7 +659,10 @@ export default class ForestMCPServer {
       app.use(uploadsPath, this.ephemeralStorage.createRouter());
     }
 
-    app.use(express.json());
+    const mcpPath = `${prefix}/mcp`;
+    const appUploadParsers = this.appUploadBodyParsers();
+
+    app.use(appUploadParsers.length ? skipPath('POST', mcpPath, express.json()) : express.json());
     app.use(express.urlencoded({ extended: true }));
 
     // Request logging middleware - logs every request with response status
@@ -701,12 +723,13 @@ export default class ForestMCPServer {
     ).href;
 
     app.post(
-      `${prefix}/mcp`,
+      mcpPath,
       requireBearerAuth({
         verifier: oauthProvider,
         requiredScopes: ['mcp:read'],
         resourceMetadataUrl,
       }),
+      ...appUploadParsers,
       (req, res) => {
         this.handleMcpRequest(req, res).catch(error => {
           const mcpMethod = req.body?.method || 'unknown';

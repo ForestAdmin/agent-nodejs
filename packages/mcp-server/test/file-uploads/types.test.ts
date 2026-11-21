@@ -32,9 +32,31 @@ describe('resolveFileUploads', () => {
       uploadUrlTtlSeconds: 15 * 60,
       handleTtlSeconds: 45 * 60,
       maxBytes: 20 * 1024 * 1024,
+      appUploadMaxBytes: 5 * 1024 * 1024,
       authSecret: AUTH_SECRET,
     });
     expect(logger).not.toHaveBeenCalled();
+  });
+
+  it('keeps appUploadMaxBytes when it is below maxBytes', () => {
+    const resolved = resolveFileUploads({ storage, appUploadMaxBytes: 1024 }, AUTH_SECRET);
+
+    expect(resolved?.appUploadMaxBytes).toBe(1024);
+  });
+
+  it('caps appUploadMaxBytes at maxBytes', () => {
+    const resolved = resolveFileUploads(
+      { storage, maxBytes: 1024, appUploadMaxBytes: 4096 },
+      AUTH_SECRET,
+    );
+
+    expect(resolved?.appUploadMaxBytes).toBe(1024);
+  });
+
+  it('rejects an appUploadMaxBytes that is not a positive integer', () => {
+    expect(() => resolveFileUploads({ storage, appUploadMaxBytes: 0 }, AUTH_SECRET)).toThrow(
+      'Invalid fileUploads.appUploadMaxBytes "0": it must be a positive integer.',
+    );
   });
 
   it('keeps the values it is given', () => {

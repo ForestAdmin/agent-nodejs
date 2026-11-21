@@ -23,6 +23,7 @@ const BASE64_PATTERN = /^[A-Za-z0-9+/]*={0,2}$/;
 const BASE64_BLOCK_LENGTH = 4;
 const BYTES_PER_BASE64_BLOCK = 3;
 const MILLISECONDS_PER_SECOND = 1000;
+const JSON_RPC_ENVELOPE_BYTES = 64 * 1024;
 
 interface UploadActionFileArgument {
   filename: string;
@@ -32,6 +33,10 @@ interface UploadActionFileArgument {
 
 export function maxBase64Length(maxBytes: number): number {
   return Math.ceil(maxBytes / BYTES_PER_BASE64_BLOCK) * BASE64_BLOCK_LENGTH;
+}
+
+export function appUploadBodyLimit(appUploadMaxBytes: number): number {
+  return maxBase64Length(appUploadMaxBytes) + JSON_RPC_ENVELOPE_BYTES;
 }
 
 function decodedLength(contentBase64: string): number {
@@ -44,7 +49,9 @@ function decodedLength(contentBase64: string): number {
   return (contentBase64.length / BASE64_BLOCK_LENGTH) * BYTES_PER_BASE64_BLOCK - padding;
 }
 
-function decodeWithinLimit(contentBase64: string, maxBytes: number): Buffer {
+function decodeWithinLimit(contentBase64: string, fileUploads: ResolvedFileUploads): Buffer {
+  const { appUploadMaxBytes: maxBytes, storage } = fileUploads;
+
   if (contentBase64.length > maxBase64Length(maxBytes)) {
     throw new Error(`The file is above the ${maxBytes} byte limit.`);
   }
@@ -55,7 +62,15 @@ function decodeWithinLimit(contentBase64: string, maxBytes: number): Buffer {
     throw new Error(`The file is ${size} bytes, above the ${maxBytes} byte limit.`);
   }
 
+  if (storage instanceof EphemeralStorage && !storage.hasRoomFor(size)) {
+    throw new Error('Could not store the file: the in-memory store is full.');
+  }
+
   return Buffer.from(contentBase64, 'base64');
+}
+
+function bytesOf(body: Buffer): Uint8Array<ArrayBuffer> {
+  return new Uint8Array(body.buffer as ArrayBuffer, body.byteOffset, body.length);
 }
 
 async function putToRemoteStorage(
@@ -73,10 +88,12 @@ async function putToRemoteStorage(
   const response = await fetch(destination.url, {
     method: destination.method ?? 'PUT',
     headers: destination.headers ?? { 'Content-Type': target.mimeType },
-    body: new Uint8Array(body),
+    body: bytesOf(body),
     redirect: 'error',
     signal: AbortSignal.timeout(fileUploads.downloadTimeoutSeconds * MILLISECONDS_PER_SECOND),
   });
+
+  await response.body?.cancel();
 
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
 }
@@ -106,7 +123,7 @@ async function putToStorage(
   } catch (error) {
     logger(
       'Warn',
-      `[fileUploads] uploadActionFile could not store ${target.key}: ${(error as Error).message}`,
+      `[fileUploads] uploadActionFile could not store a file: ${(error as Error).message}`,
     );
     throw new Error('Could not store the file: the storage backend refused it or did not answer.');
   }
@@ -120,8 +137,8 @@ async function uploadActionFile(
 ): Promise<{ fileHandle: string; name: string; mimeType: string; size: number }> {
   assertMediaType(options.mimeType);
 
-  const body = decodeWithinLimit(options.contentBase64, fileUploads.maxBytes);
-  const sha256Base64 = crypto.createHash('sha256').update(new Uint8Array(body)).digest('base64');
+  const body = decodeWithinLimit(options.contentBase64, fileUploads);
+  const sha256Base64 = crypto.createHash('sha256').update(bytesOf(body)).digest('base64');
   const target = createUploadTarget(fileUploads, options.filename, options.mimeType, sha256Base64);
 
   await putToStorage(fileUploads, target, body, logger);
@@ -151,7 +168,7 @@ export default function declareUploadActionFileTool(
         filename: z.string().trim().min(1).describe('Original file name.'),
         mimeType: z.string().describe('Media type of the file, e.g. "application/pdf".'),
         contentBase64: (ctx.fileUploads
-          ? z.string().max(maxBase64Length(ctx.fileUploads.maxBytes))
+          ? z.string().max(maxBase64Length(ctx.fileUploads.appUploadMaxBytes))
           : z.string()
         ).describe('File content, standard base64 without a prefix.'),
       },

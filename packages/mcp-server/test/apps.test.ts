@@ -72,8 +72,21 @@ async function connect(options: Partial<ForestMCPServerOptions>) {
     }),
   );
 
+  const post = (body: string, authorization?: string) =>
+    savedFetch(`http://127.0.0.1:${port}/mcp`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json, text/event-stream',
+        ...(authorization && { Authorization: authorization }),
+      },
+      body,
+    });
+
   return {
     client,
+    postAuthenticated: (body: string) => post(body, `Bearer ${token}`),
+    postAnonymous: (body: string) => post(body),
     close: async () => {
       global.fetch = savedFetch;
       await client.close();
@@ -204,6 +217,81 @@ describe('MCP Apps records view', () => {
 
       expect(session.client.getServerCapabilities()?.resources).toBeUndefined();
       expect(tools.map(({ name }) => name)).not.toContain('uploadActionFile');
+    } finally {
+      await session.close();
+    }
+  });
+});
+
+describe('uploadActionFile request bodies', () => {
+  const ONE_MIB = 1024 * 1024;
+  const toolCall = (contentBase64: string) =>
+    JSON.stringify({
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'tools/call',
+      params: {
+        name: 'uploadActionFile',
+        arguments: { filename: 'a.pdf', mimeType: 'application/pdf', contentBase64 },
+      },
+    });
+
+  it('accepts a file above the default 100 KB body limit once authenticated', async () => {
+    const session = await connect({ apps: true });
+
+    try {
+      const result = await session.client.callTool({
+        name: 'uploadActionFile',
+        arguments: {
+          filename: 'a.pdf',
+          mimeType: 'application/pdf',
+          contentBase64: Buffer.alloc(ONE_MIB, 1).toString('base64'),
+        },
+      });
+      const [content] = result.content as Array<{ text: string }>;
+
+      expect(result.isError).toBeFalsy();
+      expect(JSON.parse(content.text)).toMatchObject({ size: ONE_MIB });
+    } finally {
+      await session.close();
+    }
+  });
+
+  it('rejects a large body without a token before parsing it', async () => {
+    const session = await connect({ apps: true });
+
+    try {
+      const response = await session.postAnonymous(
+        toolCall(Buffer.alloc(ONE_MIB, 1).toString('base64')),
+      );
+
+      expect(response.status).toBe(401);
+    } finally {
+      await session.close();
+    }
+  });
+
+  it('refuses an authenticated body above the app upload limit', async () => {
+    const session = await connect({ apps: true, fileUploads: { appUploadMaxBytes: 1024 } });
+
+    try {
+      const response = await session.postAuthenticated(toolCall('A'.repeat(90 * 1024)));
+
+      expect(response.ok).toBe(false);
+    } finally {
+      await session.close();
+    }
+  });
+
+  it('keeps the default body limit when apps are off', async () => {
+    const session = await connect({});
+
+    try {
+      const response = await session.postAuthenticated(
+        toolCall(Buffer.alloc(ONE_MIB, 1).toString('base64')),
+      );
+
+      expect(response.ok).toBe(false);
     } finally {
       await session.close();
     }

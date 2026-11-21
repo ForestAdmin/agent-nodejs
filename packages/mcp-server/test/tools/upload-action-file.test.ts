@@ -143,6 +143,17 @@ describe('declareUploadActionFileTool', () => {
     ).rejects.toThrow('Handle was issued to another user');
   });
 
+  it('applies appUploadMaxBytes rather than maxBytes', async () => {
+    declare(resolveFileUploads({ storage, appUploadMaxBytes: PDF_BYTES.length - 1 }, AUTH_SECRET));
+
+    const result = await upload({ contentBase64: PDF_BYTES.toString('base64') });
+
+    expect(result.content[0].text).toBe(
+      `The file is ${PDF_BYTES.length} bytes, above the ${PDF_BYTES.length - 1} byte limit.`,
+    );
+    expect(storage.createUploadUrl).not.toHaveBeenCalled();
+  });
+
   it('refuses base64 longer than maxBytes allows before decoding it', async () => {
     declare(resolveFileUploads({ storage, maxBytes: 3 }, AUTH_SECRET));
     const bufferFrom = jest.spyOn(Buffer, 'from');
@@ -384,14 +395,15 @@ describe('declareUploadActionFileTool', () => {
       ).toBe(true);
     });
 
-    it('reports a full store', async () => {
+    it('reports a full store before decoding the file', async () => {
       declare(ephemeralUploads(PDF_BYTES.length - 1));
+      const bufferFrom = jest.spyOn(Buffer, 'from');
 
       const result = await upload({ contentBase64: PDF_BYTES.toString('base64') });
 
-      expect(result.content[0].text).toBe(
-        `Could not store the file: the in-memory store is full (${PDF_BYTES.length - 1} bytes)`,
-      );
+      expect(result.content[0].text).toBe('Could not store the file: the in-memory store is full.');
+      expect(bufferFrom).not.toHaveBeenCalledWith(expect.any(String), 'base64');
+      bufferFrom.mockRestore();
     });
   });
 });
