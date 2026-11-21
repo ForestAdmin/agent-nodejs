@@ -32,10 +32,16 @@ describe('resolveFileUploads', () => {
       uploadUrlTtlSeconds: 15 * 60,
       handleTtlSeconds: 45 * 60,
       maxBytes: 20 * 1024 * 1024,
-      appUploadMaxBytes: 5 * 1024 * 1024,
+      appUploadMaxBytes: 20 * 1024 * 1024,
       authSecret: AUTH_SECRET,
     });
     expect(logger).not.toHaveBeenCalled();
+  });
+
+  it('defaults appUploadMaxBytes to a configured maxBytes', () => {
+    const resolved = resolveFileUploads({ storage, maxBytes: 2048 }, AUTH_SECRET);
+
+    expect(resolved?.appUploadMaxBytes).toBe(2048);
   });
 
   it('keeps appUploadMaxBytes when it is below maxBytes', () => {

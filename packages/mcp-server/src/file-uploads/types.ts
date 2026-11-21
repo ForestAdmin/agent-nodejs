@@ -49,7 +49,7 @@ export interface FileUploadsOptions {
   maxBytes?: number;
   /**
    * Largest file the MCP Apps records view may upload through `uploadActionFile`, which carries it
-   * as base64 inside the request body. Defaults to 5 MiB, never above `maxBytes`.
+   * as base64 inside the request body. Defaults to `maxBytes`, never above it.
    */
   appUploadMaxBytes?: number;
   maxConcurrentDownloads?: number;
@@ -87,7 +87,6 @@ const DEFAULT_MAX_BYTES = 20 * 1024 * 1024;
 const DEFAULT_MAX_CONCURRENT_DOWNLOADS = 5;
 const DEFAULT_DOWNLOAD_TIMEOUT_SECONDS = 15;
 export const MAX_CONCURRENT_UPLOADS_PER_USER = 2;
-export const DEFAULT_APP_UPLOAD_MAX_BYTES = 5 * 1024 * 1024;
 // Deliberately absolute rather than a multiple of maxBytes: derived, raising the per-file limit
 // would multiply what the process can hold, which is the opposite of what setting it suggests.
 export const DEFAULT_EPHEMERAL_MAX_TOTAL_BYTES = 64 * 1024 * 1024;
@@ -143,8 +142,7 @@ export function resolveFileUploads(
     handleTtlSeconds,
     maxBytes,
     appUploadMaxBytes: Math.min(
-      positiveInteger('appUploadMaxBytes', options.appUploadMaxBytes) ??
-        DEFAULT_APP_UPLOAD_MAX_BYTES,
+      positiveInteger('appUploadMaxBytes', options.appUploadMaxBytes) ?? maxBytes,
       maxBytes,
     ),
     downloadTimeoutSeconds:
