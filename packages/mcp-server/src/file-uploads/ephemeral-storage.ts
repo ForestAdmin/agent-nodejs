@@ -108,34 +108,6 @@ export default class EphemeralStorage implements UploadStorage {
     return stored.body;
   }
 
-  hasRoomFor(bytes: number): boolean {
-    this.expire();
-
-    return this.storedBytes + this.inFlightBytes + bytes <= this.options.maxTotalBytes;
-  }
-
-  put(key: string, body: Buffer): void {
-    const { maxBytes, maxTotalBytes } = this.options;
-
-    this.expire();
-
-    if (!this.issued.delete(key)) {
-      throw new Error('no upload was authorized for this key, or it was already used');
-    }
-
-    if (body.length > maxBytes) {
-      throw new Error(`the file is larger than the ${maxBytes} byte limit`);
-    }
-
-    this.forget(key);
-
-    if (this.storedBytes + this.inFlightBytes + body.length > maxTotalBytes) {
-      throw new Error(`the in-memory store is full (${maxTotalBytes} bytes)`);
-    }
-
-    this.write(key, body);
-  }
-
   async getSize(key: string): Promise<number | undefined> {
     return this.read(key)?.body.length;
   }

@@ -1,19 +1,17 @@
 import type { ToolContext } from '../tool-context';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
+import * as crypto from 'crypto';
 import { z } from 'zod';
 
-import {
-  assertMediaType,
-  createUploadTarget,
-  issueFileHandle,
-  requireFileUploads,
-  requireUserId,
-} from '../file-uploads/upload-target';
+import { UPLOADED_FILE_PREFIX } from '../file-uploads/file-reference';
+import { signUploadHandle } from '../file-uploads/handles';
 import registerToolWithLogging from '../utils/tool-with-logging';
 
+const MIME_TYPE_PATTERN = /^[\w.+-]+\/[\w.+-]+$/;
 const SHA256_HEX_PATTERN = /^[0-9a-f]{64}$/i;
 const SHA256_BASE64_PATTERN = /^[A-Za-z0-9+/]{43}=$/;
+const MAX_FILENAME_LENGTH = 128;
 
 // Names the requirement rather than a menu path: the setting that satisfies it is not in the same
 // place in every client, and on a managed workspace the end user may have no access to it at all.
@@ -30,6 +28,20 @@ interface RequestActionFileUploadArgument {
   filename: string;
   mimeType: string;
   sha256?: string;
+}
+
+// The storage key delimits segments with '/', so keep a conservative charset. Truncation keeps
+// the tail so the extension survives. A name made only of dots would let a backend that joins
+// paths climb out of the per-upload directory.
+function sanitizeFilename(filename: string): string {
+  const safe = filename
+    .trim()
+    .slice(-MAX_FILENAME_LENGTH)
+    // Unicode-aware: ASCII \w turns `facture-été.pdf` into `facture-_t_.pdf`, so the accented
+    // letters vanish while the spaces and parentheses survive. Same key safety, no `/`.
+    .replace(/[^\p{L}\p{N}._\- ()]/gu, '_');
+
+  return !safe || /^\.+$/.test(safe) ? 'file' : safe;
 }
 
 function normalizeSha256(sha256: string | undefined): string | undefined {
@@ -80,20 +92,47 @@ The url accepts one upload: to send different bytes, call this tool again for a 
       },
     },
     async (options: RequestActionFileUploadArgument, extra) => {
-      const uploads = requireFileUploads(fileUploads);
-      const userId = requireUserId(extra.authInfo);
+      if (!fileUploads) {
+        throw new Error(
+          'File uploads are not configured on this server. ' +
+            'Ask the administrator to set the fileUploads option to enable action file fields.',
+        );
+      }
 
-      assertMediaType(options.mimeType);
+      const userId = extra.authInfo?.extra?.userId as number | string | undefined;
+
+      if (userId === undefined || userId === null) {
+        throw new Error('Cannot request a file upload without an authenticated user');
+      }
+
+      if (!MIME_TYPE_PATTERN.test(options.mimeType)) {
+        throw new Error(
+          `"${options.mimeType}" is not a media type. Expected a type/subtype pair, e.g. application/pdf.`,
+        );
+      }
 
       const sha256Base64 = normalizeSha256(options.sha256);
-      const target = createUploadTarget(uploads, options.filename, options.mimeType, sha256Base64);
+      const safeName = sanitizeFilename(options.filename);
+      const key = `${fileUploads.keyPrefix}${crypto.randomUUID()}/${safeName}`;
 
-      const destination = await uploads.storage.createUploadUrl({
-        key: target.key,
+      const destination = await fileUploads.storage.createUploadUrl({
+        key,
         mimeType: options.mimeType,
         ...(sha256Base64 && { sha256: sha256Base64 }),
-        expiresInSeconds: uploads.uploadUrlTtlSeconds,
+        expiresInSeconds: fileUploads.uploadUrlTtlSeconds,
       });
+
+      const handle = signUploadHandle(
+        {
+          key,
+          name: safeName,
+          mimeType: options.mimeType,
+          userId,
+          ...(sha256Base64 && { sha256Base64 }),
+        },
+        fileUploads.authSecret,
+        fileUploads.handleTtlSeconds,
+      );
 
       return {
         content: [
@@ -103,9 +142,9 @@ The url accepts one upload: to send different bytes, call this tool again for a 
               uploadUrl: destination.url,
               method: destination.method ?? 'PUT',
               headers: destination.headers ?? { 'Content-Type': options.mimeType },
-              expiresInSeconds: uploads.uploadUrlTtlSeconds,
-              maxBytes: uploads.maxBytes,
-              fileHandle: issueFileHandle(target, userId, uploads),
+              expiresInSeconds: fileUploads.uploadUrlTtlSeconds,
+              maxBytes: fileUploads.maxBytes,
+              fileHandle: `${UPLOADED_FILE_PREFIX}${handle}`,
               // Repeated in the response so the model has the diagnosis in context at the moment
               // its upload fails, not only when it first read the tool description.
               prerequisite: UPLOAD_PREREQUISITE,

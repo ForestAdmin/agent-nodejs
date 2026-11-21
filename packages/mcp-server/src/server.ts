@@ -47,7 +47,6 @@ import declareListWorkflowsTool from './tools/list-workflows';
 import declareRequestActionFileUploadTool from './tools/request-action-file-upload';
 import declareTriggerWorkflowTool from './tools/trigger-workflow';
 import declareUpdateTool from './tools/update';
-import declareUploadActionFileTool, { appUploadBodyLimit } from './tools/upload-action-file';
 import normalizeAgentUrl from './utils/normalize-agent-url';
 import { fetchForestSchema, getCollectionNames } from './utils/schema-fetcher';
 import interceptResponseForErrorLogging from './utils/sse-error-logger';
@@ -93,15 +92,6 @@ function logErrorWithStack(logger: Logger, message: string, err: Error): void {
 
 const DEFAULT_PORT = 3931;
 
-function skipPath(
-  method: string,
-  path: string,
-  handler: express.RequestHandler,
-): express.RequestHandler {
-  return (req, res, next) =>
-    req.method === method && req.path === path ? next() : handler(req, res, next);
-}
-
 /** Fields that are safe to log for each tool (non-sensitive data) */
 const SAFE_ARGUMENTS_FOR_LOGGING: Record<string, string[]> = {
   list: ['collectionName'],
@@ -113,7 +103,6 @@ const SAFE_ARGUMENTS_FOR_LOGGING: Record<string, string[]> = {
   getActionForm: ['collectionName', 'actionName', 'recordIds'],
   executeAction: ['collectionName', 'actionName', 'recordIds'],
   requestActionFileUpload: ['mimeType'],
-  uploadActionFile: ['mimeType'],
   associate: ['collectionName', 'relationName', 'parentRecordId', 'targetRecordId'],
   dissociate: ['collectionName', 'relationName', 'parentRecordId', 'targetRecordIds'],
   listWorkflows: ['collectionName'],
@@ -332,9 +321,8 @@ export default class ForestMCPServer {
 
     const toolNames = enabledToolEntries.map(tool => tool.register());
 
-    if (this.apps && this.isRecordsViewEnabled()) {
+    if (this.apps && RECORDS_VIEW_TOOLS.some(name => this.enabledTools.has(name))) {
       registerRecordsView(mcpServer, this.apps);
-      declareUploadActionFileTool(mcpServer, ctx);
     }
 
     this.logger(
@@ -351,16 +339,6 @@ export default class ForestMCPServer {
     }
 
     return mcpServer;
-  }
-
-  private isRecordsViewEnabled(): boolean {
-    return Boolean(this.apps) && RECORDS_VIEW_TOOLS.some(name => this.enabledTools.has(name));
-  }
-
-  private appUploadBodyParsers(): express.RequestHandler[] {
-    if (!this.fileUploads || !this.isRecordsViewEnabled()) return [];
-
-    return [express.json({ limit: appUploadBodyLimit(this.fileUploads.appUploadMaxBytes) })];
   }
 
   private resolveEnabledTools(options?: ForestMCPServerOptions): Set<ToolName> {
@@ -659,10 +637,7 @@ export default class ForestMCPServer {
       app.use(uploadsPath, this.ephemeralStorage.createRouter());
     }
 
-    const mcpPath = `${prefix}/mcp`;
-    const appUploadParsers = this.appUploadBodyParsers();
-
-    app.use(appUploadParsers.length ? skipPath('POST', mcpPath, express.json()) : express.json());
+    app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
 
     // Request logging middleware - logs every request with response status
@@ -723,13 +698,12 @@ export default class ForestMCPServer {
     ).href;
 
     app.post(
-      mcpPath,
+      `${prefix}/mcp`,
       requireBearerAuth({
         verifier: oauthProvider,
         requiredScopes: ['mcp:read'],
         resourceMetadataUrl,
       }),
-      ...appUploadParsers,
       (req, res) => {
         this.handleMcpRequest(req, res).catch(error => {
           const mcpMethod = req.body?.method || 'unknown';
