@@ -395,6 +395,20 @@ describe('declareUploadActionFileTool', () => {
       ).toBe(true);
     });
 
+    it('reports a refusal of the in-memory store', async () => {
+      const fileUploads = ephemeralUploads();
+      jest.spyOn(fileUploads.storage as EphemeralStorage, 'put').mockImplementation(() => {
+        throw new Error('the in-memory store is full (1024 bytes)');
+      });
+      declare(fileUploads);
+
+      const result = await upload({ contentBase64: PDF_BYTES.toString('base64') });
+
+      expect(result.content[0].text).toBe(
+        'Could not store the file: the in-memory store is full (1024 bytes)',
+      );
+    });
+
     it('reports a full store before decoding the file', async () => {
       declare(ephemeralUploads(PDF_BYTES.length - 1));
       const bufferFrom = jest.spyOn(Buffer, 'from');

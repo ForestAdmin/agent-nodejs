@@ -263,6 +263,51 @@ describe('EphemeralStorage', () => {
     });
   });
 
+  describe('put', () => {
+    it('stores the body under an issued key', async () => {
+      await storage.createUploadUrl({ key: 'k' });
+
+      storage.put('k', Buffer.from('hello'));
+
+      await expect(storage.download('k')).resolves.toEqual(Buffer.from('hello'));
+    });
+
+    it('refuses a key that was never issued', () => {
+      expect(() => storage.put('k', Buffer.from('x'))).toThrow(
+        'no upload was authorized for this key, or it was already used',
+      );
+    });
+
+    it('refuses a key that was already used', async () => {
+      await storage.createUploadUrl({ key: 'k' });
+      storage.put('k', Buffer.from('x'));
+
+      expect(() => storage.put('k', Buffer.from('y'))).toThrow(
+        'no upload was authorized for this key, or it was already used',
+      );
+    });
+
+    it('refuses a body over maxBytes', async () => {
+      await storage.createUploadUrl({ key: 'k' });
+
+      expect(() => storage.put('k', Buffer.alloc(1025))).toThrow(
+        'the file is larger than the 1024 byte limit',
+      );
+      await expect(storage.getSize('k')).resolves.toBeUndefined();
+    });
+
+    it('refuses a body that does not fit in maxTotalBytes', async () => {
+      configure({ maxTotalBytes: 1500 });
+      await put('first', Buffer.alloc(1000));
+      await storage.createUploadUrl({ key: 'second' });
+
+      expect(() => storage.put('second', Buffer.alloc(1000))).toThrow(
+        'the in-memory store is full (1500 bytes)',
+      );
+      await expect(storage.getSize('second')).resolves.toBeUndefined();
+    });
+  });
+
   describe('expiry', () => {
     it('forgets an object past its ttl', async () => {
       await put('k', Buffer.from('hi'));
