@@ -1,3 +1,4 @@
+import type { UploadOrigins } from './apps/upload-origins';
 import type { ResolvedFileUploads } from './file-uploads/types';
 import type { ForestServerClient } from './http-client';
 import type { InProcessAgentDispatcher } from './in-process-agent-dispatcher';
@@ -10,4 +11,5 @@ export interface ToolContext {
   agentDispatcher?: InProcessAgentDispatcher;
   fileUploads?: ResolvedFileUploads;
   recordsView?: boolean;
+  uploadOrigins?: UploadOrigins;
 }

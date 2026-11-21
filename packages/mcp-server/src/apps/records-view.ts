@@ -1,3 +1,4 @@
+import type { UploadOrigins } from './upload-origins';
 import type { ToolName } from '../server';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
@@ -57,7 +58,19 @@ export function recordsToolConfig(
   };
 }
 
-export function registerRecordsView(mcpServer: McpServer, apps: McpApps): void {
+function recordsViewContentMeta(uploadOrigins?: UploadOrigins): {
+  _meta?: { ui: { csp: { connectDomains: string[] } } };
+} {
+  const connectDomains = uploadOrigins?.list() ?? [];
+
+  return connectDomains.length ? { _meta: { ui: { csp: { connectDomains } } } } : {};
+}
+
+export function registerRecordsView(
+  mcpServer: McpServer,
+  apps: McpApps,
+  uploadOrigins?: UploadOrigins,
+): void {
   mcpServer.registerResource(
     RECORDS_VIEW_NAME,
     RECORDS_VIEW_URI,
@@ -68,7 +81,12 @@ export function registerRecordsView(mcpServer: McpServer, apps: McpApps): void {
     },
     async () => ({
       contents: [
-        { uri: RECORDS_VIEW_URI, mimeType: MCP_APP_MIME_TYPE, text: apps.recordsViewHtml },
+        {
+          uri: RECORDS_VIEW_URI,
+          mimeType: MCP_APP_MIME_TYPE,
+          text: apps.recordsViewHtml,
+          ...recordsViewContentMeta(uploadOrigins),
+        },
       ],
     }),
   );

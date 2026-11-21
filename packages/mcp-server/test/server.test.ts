@@ -4159,6 +4159,72 @@ describe('file uploads without a storage backend', () => {
     expect(response.body).toEqual({ error: expect.stringContaining('no upload was authorized') });
   });
 
+  describe('when called cross-origin from an MCP Apps view', () => {
+    const VIEW_ORIGIN = 'https://abc123.claudemcpcontent.com';
+
+    const buildWithStorage = async (options: Record<string, unknown> = {}) => {
+      const server = build(options);
+      const app = await server.buildExpressApp(new URL('https://agent.example'));
+      const { ephemeralStorage: storage } = server as unknown as {
+        ephemeralStorage: EphemeralStorage;
+      };
+
+      return { app, storage };
+    };
+
+    it('answers the preflight of a PUT with a Content-Type', async () => {
+      const { app } = await buildWithStorage();
+
+      const response = await request(app)
+        .options('/mcp/uploads/mcp-uploads%2Fuuid%2Fa.pdf')
+        .set('Origin', VIEW_ORIGIN)
+        .set('Access-Control-Request-Method', 'PUT')
+        .set('Access-Control-Request-Headers', 'content-type');
+
+      expect(response.status).toBe(204);
+      expect(response.headers['access-control-allow-origin']).toBe('*');
+      expect(response.headers['access-control-allow-methods']).toContain('PUT');
+      expect(response.headers['access-control-allow-headers']).toBe('content-type');
+    });
+
+    it('keeps a 404 for a key it never issued readable', async () => {
+      const { app } = await buildWithStorage();
+
+      const response = await request(app)
+        .put('/mcp/uploads/never-issued')
+        .set('Origin', VIEW_ORIGIN)
+        .send('hello');
+
+      expect(response.status).toBe(404);
+      expect(response.headers['access-control-allow-origin']).toBe('*');
+    });
+
+    it('keeps a 409 for a reused url readable', async () => {
+      const { app, storage } = await buildWithStorage();
+      const { url } = await storage.createUploadUrl({ key: 'mcp-uploads/uuid/a.txt' });
+      const { pathname } = new URL(url);
+
+      await request(app).put(pathname).set('Origin', VIEW_ORIGIN).send('hello');
+      const response = await request(app).put(pathname).set('Origin', VIEW_ORIGIN).send('again');
+
+      expect(response.status).toBe(409);
+      expect(response.headers['access-control-allow-origin']).toBe('*');
+    });
+
+    it('keeps a 413 for a file over maxBytes readable', async () => {
+      const { app, storage } = await buildWithStorage({ fileUploads: { maxBytes: 4 } });
+      const { url } = await storage.createUploadUrl({ key: 'mcp-uploads/uuid/a.txt' });
+
+      const response = await request(app)
+        .put(new URL(url).pathname)
+        .set('Origin', VIEW_ORIGIN)
+        .send('too large');
+
+      expect(response.status).toBe(413);
+      expect(response.headers['access-control-allow-origin']).toBe('*');
+    });
+  });
+
   // The url handed to the client is built from the server's own base url, while the route is
   // mounted from the prefix. Uploading to the url it actually returns is the only check that the
   // two agree — everything else here asks the route about a path the test itself wrote.

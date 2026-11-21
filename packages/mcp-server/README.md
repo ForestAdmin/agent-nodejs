@@ -208,6 +208,19 @@ export FOREST_MCP_APPS=true
 npx forest-mcp-server
 ```
 
+### Uploading action files from the view
+
+The view uploads a file field the same way a model does, through [Action File Uploads](#action-file-uploads): it calls `requestActionFileUpload`, sends the bytes straight to the returned `uploadUrl`, and passes the `fileHandle` to `executeAction`. The bytes never travel inside an MCP message, and the upload keeps every guarantee of that flow: a single-use URL, `maxBytes` enforced while the body streams in, a handle bound to the user, and the pinned `sha256` re-verified when the action runs.
+
+A host blocks every request from a view unless the view's resource declares the origin, so the server declares it under `_meta.ui.csp.connectDomains` on the `ui://forest/records` content:
+
+- **In-memory store (no `storage`)**: automatic. The origin is the server's own public URL, the one its upload URLs are built from, so it is declared from the first read of the view. The upload endpoint already answers CORS for any origin, preflight included.
+- **Custom `storage`**: the server adds the origin of each `uploadUrl` your `createUploadUrl` returns, from the first one it issues. It never calls `createUploadUrl` just to learn the origin, so the view read before the first upload of the process declares none, and a host that caches the view (Claude Desktop keeps it for the whole app session) needs a reload before the view can upload. You set the bucket's CORS yourself: allow `PUT` from any origin (`*`), with the `Content-Type` request header and every header your `createUploadUrl` returns, such as `x-amz-checksum-sha256`. Views run on per-conversation origins, so no fixed origin can be listed instead.
+
+Only `https:` origins are declared, plus `http://localhost` for local development; an upload URL on any other `http:` host is never declared, and the view cannot reach it. The server logs a warning when it skips one.
+
+The declared origins are shared by every user of the server, and each one opens a whole host to the view, not one URL. So `createUploadUrl` should return a host that never depends on the caller's input, and preferably one dedicated to your uploads: a virtual-hosted bucket URL (`https://<bucket>.s3.<region>.amazonaws.com`) rather than a path-style host shared with every other bucket. The server keeps at most 16 origins and ignores new ones past that, with a warning.
+
 ## Action File Uploads
 
 > **Experimental.** The MCP specification is still designing its own file transfer story

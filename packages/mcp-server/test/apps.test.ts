@@ -126,14 +126,83 @@ describe('MCP Apps records view', () => {
       ]);
     });
 
-    it('serves the bundled HTML as an MCP App resource, without a sandbox domain', async () => {
+    it('serves the bundled HTML, allowed to connect to the in-memory upload origin', async () => {
       const { contents } = await session.client.readResource({ uri: RECORDS_VIEW_URI });
 
       expect(contents).toEqual([
-        { uri: RECORDS_VIEW_URI, mimeType: MCP_APP_MIME_TYPE, text: loadMcpApps().recordsViewHtml },
+        {
+          uri: RECORDS_VIEW_URI,
+          mimeType: MCP_APP_MIME_TYPE,
+          text: loadMcpApps().recordsViewHtml,
+          _meta: { ui: { csp: { connectDomains: ['https://api.example.com'] } } },
+        },
       ]);
-      expect(contents[0]).not.toHaveProperty('_meta');
       expect(contents[0]).toHaveProperty('text', expect.stringMatching(/^<!doctype html>/));
+    });
+
+    it('allows exactly the origin of the upload urls it issues', async () => {
+      const result = await session.client.callTool({
+        name: 'requestActionFileUpload',
+        arguments: { filename: 'a.pdf', mimeType: 'application/pdf' },
+      });
+      const { uploadUrl } = JSON.parse((result.content as Array<{ text: string }>)[0].text) as {
+        uploadUrl: string;
+      };
+      const { contents } = await session.client.readResource({ uri: RECORDS_VIEW_URI });
+
+      expect(new URL(uploadUrl).origin).toBe('https://api.example.com');
+      expect(contents[0]).toHaveProperty('_meta', {
+        ui: { csp: { connectDomains: ['https://api.example.com'] } },
+      });
+    });
+  });
+
+  describe('with a custom upload storage', () => {
+    let session: Awaited<ReturnType<typeof connect>>;
+    const createUploadUrl = jest.fn();
+
+    const readConnectDomains = async () => {
+      const { contents } = await session.client.readResource({ uri: RECORDS_VIEW_URI });
+      const [{ _meta: meta }] = contents;
+
+      return (meta as { ui?: { csp?: { connectDomains?: string[] } } } | undefined)?.ui?.csp
+        ?.connectDomains;
+    };
+
+    const requestUpload = (url: string) => {
+      createUploadUrl.mockResolvedValueOnce({ url });
+
+      return session.client.callTool({
+        name: 'requestActionFileUpload',
+        arguments: { filename: 'a.pdf', mimeType: 'application/pdf' },
+      });
+    };
+
+    beforeAll(async () => {
+      session = await connect({
+        apps: true,
+        fileUploads: {
+          storage: { createUploadUrl, download: jest.fn(), getSize: jest.fn() },
+        },
+      });
+    });
+
+    afterAll(async () => {
+      await session.close();
+    });
+
+    it('declares no csp before it has issued an upload url', async () => {
+      const { contents } = await session.client.readResource({ uri: RECORDS_VIEW_URI });
+
+      expect(contents[0]).not.toHaveProperty('_meta');
+    });
+
+    it('adds the origin of each issued url once, and skips one that is not https', async () => {
+      await requestUpload('https://bucket.example.com/mcp-uploads/1/a.pdf?X-Sig=1');
+      await requestUpload('http://bucket.example.com/mcp-uploads/2/a.pdf');
+      await requestUpload('https://bucket.example.com/mcp-uploads/3/a.pdf?X-Sig=3');
+
+      await expect(readConnectDomains()).resolves.toEqual(['https://bucket.example.com']);
     });
   });
 

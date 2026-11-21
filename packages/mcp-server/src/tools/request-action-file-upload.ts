@@ -56,7 +56,7 @@ export default function declareRequestActionFileUploadTool(
   mcpServer: McpServer,
   ctx: ToolContext,
 ): string {
-  const { logger, fileUploads } = ctx;
+  const { logger, fileUploads, uploadOrigins } = ctx;
 
   return registerToolWithLogging(
     mcpServer,
@@ -121,6 +121,8 @@ The url accepts one upload: to send different bytes, call this tool again for a 
         ...(sha256Base64 && { sha256: sha256Base64 }),
         expiresInSeconds: fileUploads.uploadUrlTtlSeconds,
       });
+
+      uploadOrigins?.add(destination.url);
 
       const handle = signUploadHandle(
         {

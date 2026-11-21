@@ -3,6 +3,7 @@
 import './polyfills';
 
 import type { McpApps } from './apps/records-view';
+import type { UploadOrigins } from './apps/upload-origins';
 import type { FileUploadsOptions, ResolvedFileUploads } from './file-uploads/types';
 import type { ForestServerClient } from './http-client';
 import type { InProcessAgentDispatcher } from './in-process-agent-dispatcher';
@@ -27,6 +28,7 @@ import express from 'express';
 import * as http from 'http';
 
 import { RECORDS_VIEW_TOOLS, loadMcpApps, registerRecordsView } from './apps/records-view';
+import { createUploadOrigins } from './apps/upload-origins';
 import EphemeralStorage from './file-uploads/ephemeral-storage';
 import { resolveFileUploads } from './file-uploads/types';
 import ForestOAuthProvider from './forest-oauth-provider';
@@ -214,6 +216,7 @@ export default class ForestMCPServer {
   private fileUploadsOptions?: FileUploadsOptions;
   private fileUploads?: ResolvedFileUploads;
   private apps?: McpApps;
+  private uploadOrigins?: UploadOrigins;
   private ephemeralStorage?: EphemeralStorage;
 
   constructor(options?: ForestMCPServerOptions) {
@@ -230,6 +233,7 @@ export default class ForestMCPServer {
 
     this.allowedOAuthClients = normalizeDomainList(options?.allowedOAuthClients);
     this.apps = options?.apps ? loadMcpApps() : undefined;
+    this.uploadOrigins = this.apps ? createUploadOrigins(this.logger) : undefined;
     // Resolved in buildExpressApp, where the auth secret is known to be set.
     this.fileUploadsOptions = options?.fileUploads || undefined;
 
@@ -288,6 +292,7 @@ export default class ForestMCPServer {
       agentDispatcher: this.agentDispatcher,
       fileUploads: this.fileUploads,
       recordsView: Boolean(this.apps),
+      uploadOrigins: this.uploadOrigins,
     };
 
     const allTools: Array<{ name: ToolName; register: () => string }> = [
@@ -322,7 +327,7 @@ export default class ForestMCPServer {
     const toolNames = enabledToolEntries.map(tool => tool.register());
 
     if (this.apps && RECORDS_VIEW_TOOLS.some(name => this.enabledTools.has(name))) {
-      registerRecordsView(mcpServer, this.apps);
+      registerRecordsView(mcpServer, this.apps, this.uploadOrigins);
     }
 
     this.logger(
@@ -625,14 +630,16 @@ export default class ForestMCPServer {
     // claim, and this endpoint needs the raw body. Also ahead of allowedMethods(['POST']).
     if (this.ephemeralStorage && this.fileUploads) {
       const uploadsPath = `${prefix}/mcp/uploads`;
+      const publicBaseUrl = new URL(uploadsPath, effectiveBaseUrl).href;
 
       this.ephemeralStorage.configure({
         maxBytes: this.fileUploads.maxBytes,
         maxTotalBytes: this.fileUploads.ephemeralMaxTotalBytes,
         ttlSeconds: this.fileUploads.handleTtlSeconds,
         issuedTtlSeconds: this.fileUploads.uploadUrlTtlSeconds,
-        publicBaseUrl: new URL(uploadsPath, effectiveBaseUrl).href,
+        publicBaseUrl,
       });
+      this.uploadOrigins?.add(publicBaseUrl);
 
       app.use(uploadsPath, this.ephemeralStorage.createRouter());
     }
