@@ -24,6 +24,21 @@ type BaseDynamicField<Type, Context, Result> = {
   type: Type;
   id?: string;
   label: string;
+  /**
+   * the name used to access your value from the context.
+   * different from the label as it is not shown to the user
+   * @example
+   * //in your action field definition:
+   * {
+   *  label: "Discount percentage"
+   *  name: "percentage"
+   *  ...
+   * }
+   *
+   * //in your execution
+   * await context.collection.update(context.filter, { percentage: context.formValues.percentage });
+   */
+  name: string;
   description?: ValueOrHandler<Context, string>;
   isRequired?: ValueOrHandler<Context, boolean>;
   isReadOnly?: ValueOrHandler<Context, boolean>;

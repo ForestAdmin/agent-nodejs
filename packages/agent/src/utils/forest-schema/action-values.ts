@@ -37,6 +37,8 @@ export default class ForestValueConverter {
           data[key] = value;
         }
       }
+
+      data[field.name] = data[key];
     }
 
     return data;
