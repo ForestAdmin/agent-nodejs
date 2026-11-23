@@ -41,11 +41,12 @@ function createClient(options: BuildClientOptions) {
   const { agentDispatcher } = ctx;
   const token = request.authInfo?.token;
   const url = request.authInfo?.extra?.environmentApiEndpoint;
-  const { forestServerToken, renderingId } = (request.authInfo?.extra ?? {}) as AuthData;
 
   if (!token) {
     throw new Error('Authentication token is missing');
   }
+
+  const { forestServerToken, renderingId } = getAuthContext(request);
 
   const httpRequester = agentDispatcher
     ? new InProcessHttpRequester(token, agentDispatcher)
@@ -55,10 +56,9 @@ function createClient(options: BuildClientOptions) {
     throw new Error('Environment API endpoint is missing or invalid');
   }
 
-  const forestServer =
-    forestServerUrl && forestServerToken && renderingId != null
-      ? { serverUrl: forestServerUrl, serverToken: forestServerToken, renderingId }
-      : undefined;
+  const forestServer = forestServerUrl
+    ? { serverUrl: forestServerUrl, serverToken: forestServerToken, renderingId }
+    : undefined;
 
   const rpcClient = createRemoteAgentClient({
     token,
