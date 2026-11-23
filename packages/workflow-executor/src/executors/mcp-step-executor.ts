@@ -12,6 +12,7 @@ import type {
 } from '../types/validated/step-outcome';
 import type { RemoteTool } from '@forestadmin/ai-proxy';
 
+import { ActivityLogBlockedError, withActivityLog } from '@forestadmin/agent-client';
 import {
   AIMessage,
   DynamicStructuredTool,
@@ -23,6 +24,7 @@ import {
 import { z } from 'zod';
 
 import {
+  ActivityLogCreationError,
   McpCredentialsRefusedError,
   McpToolCallLimitError,
   McpToolInvocationError,
@@ -34,6 +36,7 @@ import {
   StepTimeoutError,
 } from '../errors';
 import BaseStepExecutor from './base-step-executor';
+import { serializeRecordId } from '../record-id';
 import StepExecutionFormatters from './summary/step-execution-formatters';
 import { StepExecutionMode } from '../types/validated/step-definition';
 
@@ -230,23 +233,30 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     const tool = tools.find(t => t.base.name === target.name && t.sourceId === target.sourceId);
     if (!tool) throw new McpToolNotFoundError(target.name);
 
-    const result = await this.context.activityLog.track(
-      {
-        action: 'action',
-        type: 'write',
-        label: this.context.stepDefinition.mcpServerId,
-        collectionId: this.context.collectionId,
-        recordId: this.context.baseRecordRef.recordId,
-      },
-      {
-        operation: () => this.invokeWithReauthRetry(tool, target),
-        beforeCall: () =>
+    const { collectionName, recordId } = this.context.baseRecordRef;
+    let result: unknown;
+
+    try {
+      result = await withActivityLog(
+        { ...this.context.activityLog, collectionIdOf: async () => this.context.collectionId },
+        {
+          action: 'action',
+          collectionName,
+          recordIds: [serializeRecordId(recordId)],
+          label: this.context.stepDefinition.mcpServerId,
+        },
+        () => this.invokeWithReauthRetry(tool, target),
+        () =>
           this.context.runStore.saveStepExecution(this.context.runId, {
             ...execution,
             idempotencyPhase: 'executing',
           }),
-      },
-    );
+      );
+    } catch (error) {
+      if (error instanceof ActivityLogBlockedError) throw new ActivityLogCreationError(error);
+
+      throw error;
+    }
 
     const { name, sourceId, input } = target;
     const executed: McpStepExecutionData = {

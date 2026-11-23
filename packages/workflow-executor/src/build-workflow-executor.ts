@@ -15,7 +15,6 @@ import AlwaysErrorAiModelPort from './adapters/always-error-ai-model-port';
 import createConsoleLogger from './adapters/console-logger';
 import ForestServerAutomationPort from './adapters/forest-server-automation-port';
 import ForestServerWorkflowPort from './adapters/forest-server-workflow-port';
-import ForestadminClientActivityLogPortFactory from './adapters/forestadmin-client-activity-log-port-factory';
 import ServerAiAdapter from './adapters/server-ai-adapter';
 import AutomationPoller from './automation/automation-poller';
 import CredentialEncryption from './crypto/credential-encryption';
@@ -159,10 +158,6 @@ function buildCommonDependencies(options: ExecutorOptions) {
     forestServerUrl,
     headers: { 'Forest-Application-Source': 'WorkflowExecutor' },
   });
-  const activityLogPortFactory = new ForestadminClientActivityLogPortFactory(
-    activityLogsService,
-    logger,
-  );
 
   return {
     agentPort,
@@ -171,7 +166,7 @@ function buildCommonDependencies(options: ExecutorOptions) {
     schemaCache,
     workflowPort,
     aiModelPort,
-    activityLogPortFactory,
+    activityLogsService,
     logger,
     pollingIntervalS: positiveOrDefault(options.pollingIntervalS, DEFAULT_POLLING_INTERVAL_S),
     // Zero survives the default: it is how an operator turns the sweep off.

@@ -2,6 +2,7 @@ import type {
   ActionCaller,
   ActionForm,
   ActionFormField,
+  AgentAudit,
   AgentPort,
   ExecuteActionQuery,
   ExecuteActionResult,
@@ -16,9 +17,15 @@ import type {
 import type SchemaCache from '../schema-cache';
 import type { StepUser } from '../types/execution-context';
 import type { RecordData } from '../types/validated/collection';
-import type { ActionEndpointsByCollection, SelectOptions } from '@forestadmin/agent-client';
+import type {
+  Action,
+  ActionEndpointsByCollection,
+  ActivityLogContext,
+  SelectOptions,
+} from '@forestadmin/agent-client';
 
 import {
+  ActivityLogBlockedError,
   AgentHttpError,
   ActionFormValidationError as ClientActionFormValidationError,
   ActionRequiresApprovalError as ClientActionRequiresApprovalError,
@@ -27,6 +34,7 @@ import {
   UnknownActionFieldError,
   createRemoteAgentClient,
   extractErrorDetail,
+  isApprovalRequested,
 } from '@forestadmin/agent-client';
 
 import { agentPortError, flattenAgentMessage } from './agent-errors';
@@ -34,6 +42,7 @@ import { mintStepToken } from './step-user';
 import {
   ActionFormValidationError,
   ActionRequiresApprovalError,
+  ActivityLogCreationError,
   AgentProbeError,
   ApprovalRequestCreationError,
   RecordNotFoundError,
@@ -152,9 +161,13 @@ export default class AgentClientAgentPort implements AgentPort {
     this.forestServerUrl = params.forestServerUrl;
   }
 
-  async getRecord({ collection, id, fields }: GetRecordQuery, user: StepUser): Promise<RecordData> {
+  async getRecord(
+    { collection, id, fields }: GetRecordQuery,
+    user: StepUser,
+    audit?: AgentAudit,
+  ): Promise<RecordData> {
     return this.callAgent('getRecord', async () => {
-      const client = this.createClient(user);
+      const client = this.createClient(user, undefined, audit?.context);
       // Fetch by id through the agent's by-id route (like update/delete): the recordId is an
       // opaque ordered token and the agent — the only party that knows the primary key column
       // order — does the matching. No primaryKeyFields ordering assumption here.
@@ -163,7 +176,11 @@ export default class AgentClientAgentPort implements AgentPort {
       try {
         record = await client
           .collection(collection)
-          .getOne<Record<string, unknown>>(id, { ...(fields?.length && { fields }) });
+          .getOne<Record<string, unknown>>(
+            id,
+            { ...(fields?.length && { fields }) },
+            { activityLog: audit?.call },
+          );
       } catch (error) {
         if (HttpRequester.is404Error(error)) {
           throw new RecordNotFoundError(collection, id);
@@ -188,12 +205,13 @@ export default class AgentClientAgentPort implements AgentPort {
   async updateRecord(
     { collection, id, values }: UpdateRecordQuery,
     user: StepUser,
+    audit?: AgentAudit,
   ): Promise<RecordData> {
     return this.callAgent('updateRecord', async () => {
-      const client = this.createClient(user);
+      const client = this.createClient(user, undefined, audit?.context);
       const updatedRecord = await client
         .collection(collection)
-        .update<Record<string, unknown>>(id, values);
+        .update<Record<string, unknown>>(id, values, audit?.call);
 
       return {
         collectionName: collection,
@@ -206,17 +224,21 @@ export default class AgentClientAgentPort implements AgentPort {
   async getRelatedData(
     { collection, id, relation, relatedSchema, limit, fields, filters }: GetRelatedDataQuery,
     user: StepUser,
+    audit?: AgentAudit,
   ): Promise<RecordData[]> {
     return this.callAgent('getRelatedData', async () => {
-      const client = this.createClient(user);
+      const client = this.createClient(user, undefined, audit?.context);
       const rows = await client
         .collection(collection)
         .relation(relation, id)
-        .list<Record<string, unknown>>({
-          ...(limit !== null && { pagination: { size: limit, number: 1 } }),
-          ...(fields?.length && { fields }),
-          ...(filters !== undefined && { filters: filters as SelectOptions['filters'] }),
-        });
+        .list<Record<string, unknown>>(
+          {
+            ...(limit !== null && { pagination: { size: limit, number: 1 } }),
+            ...(fields?.length && { fields }),
+            ...(filters !== undefined && { filters: filters as SelectOptions['filters'] }),
+          },
+          audit?.call,
+        );
 
       return rows.map(row => {
         const restored = restoreFieldNames(
@@ -250,6 +272,7 @@ export default class AgentClientAgentPort implements AgentPort {
   async getSingleRelatedData(
     { collection, id, relation, relatedSchema, fields }: GetSingleRelatedDataQuery,
     user: StepUser,
+    audit?: AgentAudit,
   ): Promise<RecordData | null> {
     return this.callAgent('getSingleRelatedData', async () => {
       // The agent can't parse multiple sub-fields on one relation in a single projection
@@ -262,12 +285,12 @@ export default class AgentClientAgentPort implements AgentPort {
       let body: RawRecordBody;
 
       try {
-        body = await this.createClient(user)
+        body = await this.createClient(user, undefined, audit?.context)
           .collection(collection)
           .getOne<RawRecordBody>(
             id,
             { fields: [`${relation}@@@${projectedField}`] },
-            { skipDeserialization: true },
+            { skipDeserialization: true, activityLog: audit?.call },
           );
       } catch (error) {
         if (HttpRequester.is404Error(error)) throw new RecordNotFoundError(collection, id);
@@ -336,13 +359,14 @@ export default class AgentClientAgentPort implements AgentPort {
   async executeAction(
     { collection, action, id, values, approvalMessage, skipApprovalRequest }: ExecuteActionQuery,
     { user, forestServerToken }: ActionCaller,
+    audit?: AgentAudit,
   ): Promise<ExecuteActionResult> {
     return this.callAgent('executeAction', async () => {
-      const client = this.createClient(user, forestServerToken);
-      const recordIds = id?.length ? [id] : [];
-      const act = await client.collection(collection).action(action, { recordIds });
+      const client = this.createClient(user, forestServerToken, audit?.context);
 
-      if (values) {
+      const fill = async (act: Action) => {
+        if (!values) return;
+
         try {
           await act.setFields(values);
         } catch (cause) {
@@ -352,27 +376,23 @@ export default class AgentClientAgentPort implements AgentPort {
 
           throw cause;
         }
-      }
+      };
+
+      let executeResult: Awaited<ReturnType<Action['execute']>>;
 
       try {
-        const executeResult = await act.execute({
+        executeResult = await client.collection(collection).executeAction(action, {
+          recordIds: id?.length ? [id] : [],
           approvalRequestMessage: approvalMessage,
           skipApprovalRequest,
+          fill,
+          activityLog: audit?.call,
         });
-
-        return typeof executeResult === 'object' &&
-          executeResult !== null &&
-          'approvalRequested' in executeResult
-          ? {
-              approvalRequested: true,
-              ...(executeResult.approvalRequest && {
-                approvalRequest: executeResult.approvalRequest,
-              }),
-            }
-          : { result: executeResult };
       } catch (cause) {
         throw mapActionExecutionError(action, cause);
       }
+
+      return isApprovalRequested(executeResult) ? executeResult : { result: executeResult };
     });
   }
 
@@ -437,6 +457,7 @@ export default class AgentClientAgentPort implements AgentPort {
       return await fn();
     } catch (cause) {
       if (cause instanceof WorkflowExecutorError) throw cause;
+      if (cause instanceof ActivityLogBlockedError) throw new ActivityLogCreationError(cause);
       throw agentPortError(operation, cause);
     }
   }
@@ -445,11 +466,16 @@ export default class AgentClientAgentPort implements AgentPort {
     return mintStepToken(user, this.authSecret);
   }
 
-  private createClient(user: StepUser, forestServerToken?: string) {
+  private createClient(
+    user: StepUser,
+    forestServerToken?: string,
+    activityLog?: ActivityLogContext,
+  ) {
     return createRemoteAgentClient({
       url: this.agentUrl,
       token: this.mintToken(user),
       actionEndpoints: this.buildActionEndpoints(user.renderingId),
+      activityLog,
       ...(this.forestServerUrl && forestServerToken
         ? {
             forestServer: {

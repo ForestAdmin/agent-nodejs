@@ -1,5 +1,10 @@
 import type { StepUser } from '../types/execution-context';
 import type { CollectionSchema, RecordData } from '../types/validated/collection';
+import type {
+  ActivityLogCallOptions,
+  ActivityLogContext,
+  ApprovalRequestedResult,
+} from '@forestadmin/agent-client';
 
 export type Id = string | number;
 
@@ -88,21 +93,26 @@ export type GetActionFormInfoQuery = { collection: string; action: string; id: I
 
 export type ResolvePolymorphicTypeQuery = { collection: string; id: Id[]; relation: string };
 
-export type ExecuteActionResult =
-  | { approvalRequested: true; approvalRequest?: { id: string } }
-  | { result: unknown };
+export type ExecuteActionResult = ApprovalRequestedResult | { result: unknown };
+
+export type AgentAudit = { context: ActivityLogContext; call?: ActivityLogCallOptions };
 
 // Kept off StepUser: mintToken splats StepUser into the agent JWT, a token there would leak.
 export type ActionCaller = { user: StepUser; forestServerToken?: string };
 
 export interface AgentPort {
-  getRecord(query: GetRecordQuery, user: StepUser): Promise<RecordData>;
-  updateRecord(query: UpdateRecordQuery, user: StepUser): Promise<RecordData>;
-  getRelatedData(query: GetRelatedDataQuery, user: StepUser): Promise<RecordData[]>;
+  getRecord(query: GetRecordQuery, user: StepUser, audit?: AgentAudit): Promise<RecordData>;
+  updateRecord(query: UpdateRecordQuery, user: StepUser, audit?: AgentAudit): Promise<RecordData>;
+  getRelatedData(
+    query: GetRelatedDataQuery,
+    user: StepUser,
+    audit?: AgentAudit,
+  ): Promise<RecordData[]>;
   // Returns null when the parent has no related record (xToOne with no linkage).
   getSingleRelatedData(
     query: GetSingleRelatedDataQuery,
     user: StepUser,
+    audit?: AgentAudit,
   ): Promise<RecordData | null>;
   // Reads a polymorphic relation's target from the raw JSON:API linkage ({ type, id }), which the
   // agent-client deserializer drops. Returns null when the record has no linked target.
@@ -110,7 +120,11 @@ export interface AgentPort {
     query: ResolvePolymorphicTypeQuery,
     user: StepUser,
   ): Promise<{ type: string; id: string } | null>;
-  executeAction(query: ExecuteActionQuery, caller: ActionCaller): Promise<ExecuteActionResult>;
+  executeAction(
+    query: ExecuteActionQuery,
+    caller: ActionCaller,
+    audit?: AgentAudit,
+  ): Promise<ExecuteActionResult>;
   // Old Ruby agents with hooks.load=false return 404; agent-client falls back to the fields
   // passed via ActionEndpointsByCollection (populated from the orchestrator's schema).
   getActionFormInfo(query: GetActionFormInfoQuery, user: StepUser): Promise<{ hasForm: boolean }>;

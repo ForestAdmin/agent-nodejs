@@ -1,8 +1,9 @@
-import type ActivityLog from '../../src/executors/activity-log';
 import type { StepContextConfig } from '../../src/executors/step-executor-factory';
-import type { ActivityLogPort } from '../../src/ports/activity-log-port';
 import type { RunStore } from '../../src/ports/run-store';
 import type { AvailableStepExecution } from '../../src/types/execution-context';
+import type { ActivityLogContext } from '@forestadmin/agent-client';
+
+import { drainActivityLogs, withActivityLog } from '@forestadmin/agent-client';
 
 import { OAuthReauthRequiredError } from '../../src/errors';
 import GuidanceStepExecutor from '../../src/executors/guidance-step-executor';
@@ -16,11 +17,13 @@ import {
   WORKFLOW_START_STEP_ID,
 } from '../../src/types/validated/step-definition';
 
-const activityLogPort = {
-  createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
-  markSucceeded: jest.fn().mockResolvedValue(undefined),
-  markFailed: jest.fn().mockResolvedValue(undefined),
-} as unknown as ActivityLogPort;
+function fakeActivityLogsService() {
+  return {
+    createActivityLog: jest.fn().mockResolvedValue({ id: 'log-1', attributes: { index: '0' } }),
+    createMcpActivityLog: jest.fn(),
+    updateActivityLogStatus: jest.fn().mockResolvedValue(undefined),
+  };
+}
 
 function makeStep(overrides: Partial<AvailableStepExecution> = {}): AvailableStepExecution {
   return {
@@ -59,17 +62,21 @@ function makeContextConfig(): StepContextConfig {
     runStore: {},
     schemaCache: new SchemaCache(),
     logger: jest.fn(),
+    activityLogsService: fakeActivityLogsService(),
   } as unknown as StepContextConfig;
 }
 
 describe('StepExecutorFactory.create', () => {
+  afterEach(async () => {
+    await drainActivityLogs();
+  });
+
   it('maps OAuthReauthRequiredError from tool loading to an awaiting-input outcome with the typed reason', async () => {
     const fetchRemoteTools = jest.fn().mockRejectedValue(new OAuthReauthRequiredError('srv-1'));
 
     const executor = await StepExecutorFactory.create(
       makeStep(),
       makeContextConfig(),
-      activityLogPort,
       fetchRemoteTools,
     );
     const result = await executor.execute();
@@ -89,7 +96,6 @@ describe('StepExecutorFactory.create', () => {
     const executor = await StepExecutorFactory.create(
       makeStep(),
       makeContextConfig(),
-      activityLogPort,
       fetchRemoteTools,
     );
     const result = await executor.execute();
@@ -110,12 +116,7 @@ describe('StepExecutorFactory.create', () => {
       callScope: { selectedRecordStepId: 'load-1', calledWorkflowCollectionName: 'orders' },
     } as unknown as Partial<AvailableStepExecution>);
 
-    const executor = await StepExecutorFactory.create(
-      step,
-      makeContextConfig(),
-      activityLogPort,
-      jest.fn(),
-    );
+    const executor = await StepExecutorFactory.create(step, makeContextConfig(), jest.fn());
     const result = await executor.execute();
 
     expect(result.stepOutcome.status).toBe('error');
@@ -204,7 +205,7 @@ describe('StepExecutorFactory.create', () => {
       },
     } as unknown as Partial<AvailableStepExecution>);
 
-    const executor = await StepExecutorFactory.create(step, config, activityLogPort, jest.fn());
+    const executor = await StepExecutorFactory.create(step, config, jest.fn());
     await executor.execute();
 
     expect(bindTools.mock.calls[0][0][0].schema.shape.recordIdentifier.options).toEqual([
@@ -261,7 +262,7 @@ describe('StepExecutorFactory.create', () => {
       },
     } as unknown as StepContextConfig;
 
-    const executor = await StepExecutorFactory.create(step, config, activityLogPort, jest.fn());
+    const executor = await StepExecutorFactory.create(step, config, jest.fn());
     const result = await executor.execute();
 
     expect(result.stepOutcome).toEqual({
@@ -301,7 +302,7 @@ describe('StepExecutorFactory.create', () => {
       runStore: { getStepExecutions: jest.fn().mockResolvedValue([]) },
     } as unknown as StepContextConfig;
 
-    const executor = await StepExecutorFactory.create(step, config, activityLogPort, jest.fn());
+    const executor = await StepExecutorFactory.create(step, config, jest.fn());
     const result = await executor.execute();
 
     expect(result.stepOutcome).toMatchObject({
@@ -349,7 +350,7 @@ describe('StepExecutorFactory.create', () => {
         runStore: { getStepExecutions: jest.fn().mockResolvedValue([execution]) },
       } as unknown as StepContextConfig;
 
-      return (await StepExecutorFactory.create(step, config, activityLogPort, jest.fn())).execute();
+      return (await StepExecutorFactory.create(step, config, jest.fn())).execute();
     };
 
     it('names the empty Multiple step when it loaded nothing, and points at it', async () => {
@@ -447,7 +448,6 @@ describe('StepExecutorFactory.create', () => {
     const executor = await StepExecutorFactory.create(
       step,
       config as unknown as StepContextConfig,
-      activityLogPort,
       jest.fn(),
     );
     const { runStore } = (executor as unknown as { context: { runStore: RunStore } }).context;
@@ -487,7 +487,6 @@ describe('StepExecutorFactory.create', () => {
           previousSteps: [loadStores],
         } as unknown as Partial<AvailableStepExecution>),
         makeContextConfig(),
-        activityLogPort,
         jest.fn().mockResolvedValue({ tools: [], mcpServerName: 'srv' }),
       );
 
@@ -552,7 +551,6 @@ describe('StepExecutorFactory.create', () => {
           callScope,
         } as unknown as Partial<AvailableStepExecution>),
         makeContextConfig(),
-        activityLogPort,
         jest.fn(),
       );
 
@@ -602,26 +600,73 @@ describe('StepExecutorFactory.create', () => {
   });
 
   describe("the run's workflow on the step's activity logs", () => {
-    const TARGET = { action: 'index', type: 'read', collectionId: 'col-1' } as const;
+    const TARGET = { action: 'index', type: 'read' } as const;
 
     async function trackThroughBuiltContext(step: AvailableStepExecution) {
-      const port = {
-        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
-        markSucceeded: jest.fn().mockResolvedValue(undefined),
-        markFailed: jest.fn().mockResolvedValue(undefined),
-      };
+      const config = makeContextConfig();
       const executor = await StepExecutorFactory.create(
         step,
-        makeContextConfig(),
-        port,
+        config,
+        jest.fn().mockResolvedValue({ tools: [], mcpServerName: 'srv' }),
+        undefined,
+        'forest-token',
+      );
+      const { activityLog } = (
+        executor as unknown as { context: { activityLog: ActivityLogContext } }
+      ).context;
+      await withActivityLog(activityLog, { action: 'index' }, async () => undefined);
+
+      const { forestServerToken, renderingId, collectionName, recordIds, label, ...rest } = (
+        config.activityLogsService.createActivityLog as jest.Mock
+      ).mock.calls[0][0];
+
+      expect({ forestServerToken, renderingId, collectionName, recordIds, label }).toEqual({
+        forestServerToken: 'forest-token',
+        renderingId: '1',
+        collectionName: undefined,
+        recordIds: undefined,
+        label: undefined,
+      });
+
+      return rest;
+    }
+
+    it("writes the entry with the collection's numeric id and retries its creation", async () => {
+      const config = makeContextConfig();
+      (config as unknown as { workflowPort: unknown }).workflowPort = {
+        getCollectionSchema: jest.fn().mockResolvedValue({ collectionId: 'col-42' }),
+      };
+      const executor = await StepExecutorFactory.create(
+        makeStep(),
+        config,
+        jest.fn().mockResolvedValue({ tools: [], mcpServerName: 'srv' }),
+        undefined,
+        'forest-token',
+      );
+      const { activityLog } = (
+        executor as unknown as { context: { activityLog: ActivityLogContext } }
+      ).context;
+
+      await expect(activityLog.collectionIdOf?.('customers')).resolves.toBe('col-42');
+      expect(activityLog.retryCreation).toBe(true);
+    });
+
+    it('blocks a write when the run carries no Forest server token', async () => {
+      const config = makeContextConfig();
+      const executor = await StepExecutorFactory.create(
+        makeStep(),
+        config,
         jest.fn().mockResolvedValue({ tools: [], mcpServerName: 'srv' }),
       );
-      const { activityLog } = (executor as unknown as { context: { activityLog: ActivityLog } })
-        .context;
-      await activityLog.track(TARGET, { operation: async () => undefined });
+      const { activityLog } = (
+        executor as unknown as { context: { activityLog: ActivityLogContext } }
+      ).context;
 
-      return port.createPending.mock.calls[0][0];
-    }
+      await expect(
+        withActivityLog(activityLog, { action: 'update' }, async () => undefined),
+      ).rejects.toMatchObject({ reason: 'unavailable' });
+      expect(config.activityLogsService.createActivityLog).not.toHaveBeenCalled();
+    });
 
     it('carries the run id, the workflow name and the step title', async () => {
       const args = await trackThroughBuiltContext(
@@ -637,7 +682,6 @@ describe('StepExecutorFactory.create', () => {
       );
 
       expect(args).toEqual({
-        renderingId: 1,
         ...TARGET,
         workflow: { runId: 'run-1', name: 'Alert triage', stepName: 'Freeze the account' },
       });
@@ -660,7 +704,6 @@ describe('StepExecutorFactory.create', () => {
       );
 
       expect(args).toEqual({
-        renderingId: 1,
         ...TARGET,
         workflow: { runId: 'run-1', name: 'Alert triage', stepName: 'step-1' },
       });
@@ -670,7 +713,7 @@ describe('StepExecutorFactory.create', () => {
       const args = await trackThroughBuiltContext(makeStep());
 
       // toStrictEqual, not toEqual: only it tells a missing key from an undefined one.
-      expect(args).toStrictEqual({ renderingId: 1, ...TARGET });
+      expect(args).toStrictEqual({ ...TARGET });
     });
   });
 
@@ -721,12 +764,7 @@ describe('StepExecutorFactory.create', () => {
   it('passes the step user id to the tool fetcher', async () => {
     const fetchRemoteTools = jest.fn().mockResolvedValue({ tools: [], mcpServerName: 'srv' });
 
-    await StepExecutorFactory.create(
-      makeStep(),
-      makeContextConfig(),
-      activityLogPort,
-      fetchRemoteTools,
-    );
+    await StepExecutorFactory.create(makeStep(), makeContextConfig(), fetchRemoteTools);
 
     expect(fetchRemoteTools).toHaveBeenCalledWith('srv-1', 7);
   });

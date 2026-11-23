@@ -1,4 +1,3 @@
-import type { ActivityLogPort } from '../../src/ports/activity-log-port';
 import type { AgentPort } from '../../src/ports/agent-port';
 import type { RunStore } from '../../src/ports/run-store';
 import type { WorkflowPort } from '../../src/ports/workflow-port';
@@ -7,9 +6,10 @@ import type { LoadRelatedRecordStepExecutionData } from '../../src/types/step-ex
 import type { CollectionSchema, RecordData, RecordRef } from '../../src/types/validated/collection';
 import type { Step } from '../../src/types/validated/execution';
 import type { LoadRelatedRecordStepDefinition } from '../../src/types/validated/step-definition';
+import type { ActivityLogContext } from '@forestadmin/agent-client';
 
+import activityLogContext from './activity-log-context';
 import { AgentPortError, RunStorePortError } from '../../src/errors';
-import ActivityLog from '../../src/executors/activity-log';
 import AgentWithLog from '../../src/executors/agent-with-log';
 import LoadRelatedRecordStepExecutor from '../../src/executors/load-related-record-step-executor';
 import SchemaCache from '../../src/schema-cache';
@@ -75,6 +75,13 @@ function makeRelatedRecordData(overrides: Partial<RecordData> = {}): RecordData 
     values: { total: 150 },
     ...overrides,
   };
+}
+
+function relationReads(agentPort: AgentPort) {
+  return [
+    ...(agentPort.getRelatedData as jest.Mock).mock.calls,
+    ...(agentPort.getSingleRelatedData as jest.Mock).mock.calls,
+  ].map(([query, , audit]) => ({ query, audit }));
 }
 
 function makeMockAgentPort(relatedData: RecordData[] = [makeRelatedRecordData()]): AgentPort {
@@ -175,8 +182,7 @@ function makeMockModel(
 function makeContext(
   overrides: Partial<ExecutionContext<LoadRelatedRecordStepDefinition>> & {
     agentPort?: AgentPort;
-    activityLogPort?: ActivityLogPort;
-    activityLog?: ActivityLog;
+    activityLog?: ActivityLogContext;
     workflowPort?: WorkflowPort;
   } = {},
 ): ExecutionContext<LoadRelatedRecordStepDefinition> {
@@ -219,16 +225,7 @@ function makeContext(
     ...overrides,
   };
 
-  const activityLog =
-    overrides.activityLog ??
-    new ActivityLog(
-      overrides.activityLogPort ?? {
-        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
-        markSucceeded: jest.fn().mockResolvedValue(undefined),
-        markFailed: jest.fn().mockResolvedValue(undefined),
-      },
-      base.user,
-    );
+  const activityLog = overrides.activityLog ?? activityLogContext();
 
   return {
     ...base,
@@ -319,6 +316,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
           relatedSchema: expect.objectContaining({ collectionName: 'orders' }),
         }),
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
       expect(agentPort.getRelatedData).not.toHaveBeenCalled();
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
@@ -411,6 +409,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
           relatedSchema: expect.objectContaining({ collectionName: 'orders' }),
         }),
         expect.anything(),
+        expect.anything(),
       );
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
@@ -441,6 +440,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         expect.objectContaining({
           relatedSchema: expect.objectContaining({ collectionName: 'orders' }),
         }),
+        expect.anything(),
         expect.anything(),
       );
     });
@@ -588,6 +588,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
           relatedSchema: expect.objectContaining({ collectionName: 'addresses' }),
         }),
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
 
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
@@ -664,6 +665,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       expect(agentPort.getRelatedData).toHaveBeenCalledWith(
         expect.objectContaining({ collection: 'customers', relation: 'address', filters }),
         expect.anything(),
+        expect.anything(),
       );
     });
 
@@ -722,6 +724,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
       expect(agentPort.getRelatedData).toHaveBeenCalledWith(
         expect.objectContaining({ collection: 'customers', relation: 'address', filters }),
+        expect.anything(),
         expect.anything(),
       );
     });
@@ -994,6 +997,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
           relatedSchema: expect.objectContaining({ collectionName: 'profiles' }),
         }),
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
       expect(agentPort.getRelatedData).not.toHaveBeenCalled();
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
@@ -1073,6 +1077,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
           relatedSchema: expect.objectContaining({ collectionName: 'tags' }),
         }),
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
       expect(agentPort.getSingleRelatedData).not.toHaveBeenCalled();
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
@@ -1825,11 +1830,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
   describe('operation activity log', () => {
     it('logs listRelatedData against the source record and its collection, not the trigger', async () => {
       const runStore = makeMockRunStore();
-      const activityLogPort = {
-        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
-        markSucceeded: jest.fn().mockResolvedValue(undefined),
-        markFailed: jest.fn().mockResolvedValue(undefined),
-      };
+      const agentPort = makeMockAgentPort();
       const { model } = makeMockModel({
         relation: relationOption({
           recordId: [42],
@@ -1841,29 +1842,26 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const context = makeContext({
         model,
         runStore,
-        activityLogPort,
+        agentPort,
         stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
 
       await new LoadRelatedRecordStepExecutor(context).execute();
 
-      expect(activityLogPort.createPending).toHaveBeenCalledWith({
-        renderingId: 1,
-        action: 'listRelatedData',
-        type: 'read',
-        collectionId: 'col-customers',
-        recordId: [42],
-        label: 'list relation "Order"',
-      });
+      expect(relationReads(agentPort)).toEqual([
+        {
+          query: expect.objectContaining({ collection: 'customers', id: [42] }),
+          audit: {
+            context: context.activityLog,
+            call: { action: 'listRelatedData', label: 'list relation "Order"' },
+          },
+        },
+      ]);
     });
 
     it('logs the relation read once on the awaiting-input (Branch C) path', async () => {
       const runStore = makeMockRunStore();
-      const activityLogPort = {
-        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
-        markSucceeded: jest.fn().mockResolvedValue(undefined),
-        markFailed: jest.fn().mockResolvedValue(undefined),
-      };
+      const agentPort = makeMockAgentPort();
       const { model } = makeMockModel({
         relation: relationOption({
           recordId: [42],
@@ -1872,21 +1870,20 @@ describe('LoadRelatedRecordStepExecutor', () => {
         }),
         reasoning: 'r',
       });
-      const context = makeContext({ model, runStore, activityLogPort });
+      const context = makeContext({ model, runStore, agentPort });
 
       const result = await new LoadRelatedRecordStepExecutor(context).execute();
 
       expect(result.stepOutcome.status).toBe('awaiting-input');
-      expect(activityLogPort.createPending).toHaveBeenCalledTimes(1);
-      expect(activityLogPort.createPending).toHaveBeenCalledWith(
-        expect.objectContaining({
-          action: 'listRelatedData',
-          type: 'read',
-          collectionId: 'col-customers',
-          recordId: [42],
-          label: 'list relation "Order"',
-        }),
-      );
+      expect(relationReads(agentPort)).toEqual([
+        {
+          query: expect.objectContaining({ collection: 'customers', id: [42] }),
+          audit: {
+            context: context.activityLog,
+            call: { action: 'listRelatedData', label: 'list relation "Order"' },
+          },
+        },
+      ]);
     });
   });
 
@@ -1917,6 +1914,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
           relatedSchema: expect.objectContaining({ collectionName: 'orders' }),
         }),
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
       expect(agentPort.getRelatedData).not.toHaveBeenCalled();
       // 2 relations on the source → one select-relation-to-follow AI call; xToOne target then
@@ -2881,6 +2879,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
           relatedSchema: expect.objectContaining({ collectionName: 'orders' }),
         }),
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
       expect(agentPort.getRelatedData).not.toHaveBeenCalled();
 
@@ -3106,6 +3105,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
           fields: ['reference'],
         }),
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
 
       const saved = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
@@ -3136,6 +3136,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       expect(agentPort.getSingleRelatedData).toHaveBeenCalledWith(
         expect.not.objectContaining({ fields: expect.anything() }),
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
 
       const saved = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
@@ -4078,6 +4079,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
           relation: 'order',
         }),
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
       expect(agentPort.getRelatedData).not.toHaveBeenCalled();
     });
@@ -4404,6 +4406,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
           relatedSchema: expect.objectContaining({ collectionName: 'dvd' }),
         }),
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
 
       // The persisted result is the AI-ranked dvd (Titanic #41), sourced from the store.
@@ -4494,6 +4497,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
           relatedSchema: expect.objectContaining({ collectionName: 'cards' }),
         }),
         expect.anything(),
+        expect.anything(),
       );
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
@@ -4558,6 +4562,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       expect(agentPort.getSingleRelatedData).toHaveBeenCalledWith(
         expect.objectContaining({ collection: 'orders', id: [99], relation: 'customer' }),
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
@@ -4588,6 +4593,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       expect(agentPort.getSingleRelatedData).toHaveBeenCalledWith(
         expect.objectContaining({ collection: 'customers', relation: 'order' }),
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
     });
 
@@ -4646,6 +4652,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       expect(agentPort.getSingleRelatedData).toHaveBeenCalledWith(
         expect.objectContaining({ collection: 'orders', id: [99], relation: 'customer' }),
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
     });
 
@@ -4912,6 +4919,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
           relation: 'order',
         }),
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
     });
   });
@@ -5067,6 +5075,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       expect(agentPort.getRelatedData).toHaveBeenCalledWith(
         expect.objectContaining({ collection: 'companies', relation: 'ubos', limit: 51 }),
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
     });
 

@@ -1,4 +1,3 @@
-import type { ActivityLogPort } from '../../src/ports/activity-log-port';
 import type { AgentPort } from '../../src/ports/agent-port';
 import type { RunStore } from '../../src/ports/run-store';
 import type { WorkflowPort } from '../../src/ports/workflow-port';
@@ -6,9 +5,10 @@ import type { ExecutionContext } from '../../src/types/execution-context';
 import type { CollectionSchema, RecordRef } from '../../src/types/validated/collection';
 import type { CallScope, Step } from '../../src/types/validated/execution';
 import type { ReadRecordStepDefinition } from '../../src/types/validated/step-definition';
+import type { ActivityLogContext } from '@forestadmin/agent-client';
 
+import activityLogContext from './activity-log-context';
 import { AgentPortError, NoRecordsError, RecordNotFoundError } from '../../src/errors';
-import ActivityLog from '../../src/executors/activity-log';
 import AgentWithLog from '../../src/executors/agent-with-log';
 import CallRecordRunStore from '../../src/executors/call-record-run-store';
 import ReadRecordStepExecutor from '../../src/executors/read-record-step-executor';
@@ -119,19 +119,10 @@ function makeMockModel(
   return { model, bindTools, invoke };
 }
 
-function makeMockActivityLogPort(): ActivityLogPort {
-  return {
-    createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
-    markSucceeded: jest.fn().mockResolvedValue(undefined),
-    markFailed: jest.fn().mockResolvedValue(undefined),
-  };
-}
-
 function makeContext(
   overrides: Partial<ExecutionContext<ReadRecordStepDefinition>> & {
     agentPort?: AgentPort;
-    activityLogPort?: ActivityLogPort;
-    activityLog?: ActivityLog;
+    activityLog?: ActivityLogContext;
     workflowPort?: WorkflowPort;
   } = {},
 ): ExecutionContext<ReadRecordStepDefinition> {
@@ -168,9 +159,7 @@ function makeContext(
     ...overrides,
   };
 
-  const activityLog =
-    overrides.activityLog ??
-    new ActivityLog(overrides.activityLogPort ?? makeMockActivityLogPort(), base.user);
+  const activityLog = overrides.activityLog ?? activityLogContext();
 
   return {
     ...base,
@@ -293,6 +282,7 @@ describe('ReadRecordStepExecutor', () => {
       expect(agentPort.getRecord).toHaveBeenCalledWith(
         { collection: 'customers', id: [42], fields: ['name', 'email'] },
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
     });
 
@@ -308,6 +298,7 @@ describe('ReadRecordStepExecutor', () => {
       expect(agentPort.getRecord).toHaveBeenCalledWith(
         { collection: 'customers', id: [42], fields: ['email'] },
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
     });
 
@@ -571,18 +562,12 @@ describe('ReadRecordStepExecutor', () => {
       const agentPort = makeMockAgentPort({
         orders: { values: { total: 150 } },
       });
-      const activityLogPort = {
-        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
-        markSucceeded: jest.fn().mockResolvedValue(undefined),
-        markFailed: jest.fn().mockResolvedValue(undefined),
-      };
       const context = makeContext({
         baseRecordRef,
         model,
         runStore,
         workflowPort,
         agentPort,
-        activityLogPort,
         previousSteps: [makeLoadRelatedPreviousStep(2)],
       });
       const executor = new ReadRecordStepExecutor(context);
@@ -602,13 +587,11 @@ describe('ReadRecordStepExecutor', () => {
           }),
         }),
       );
-      expect(activityLogPort.createPending).toHaveBeenCalledWith({
-        renderingId: 1,
-        action: 'index',
-        type: 'read',
-        collectionId: 'col-orders',
-        recordId: [99],
-      });
+      expect(agentPort.getRecord).toHaveBeenCalledWith(
+        expect.objectContaining({ collection: 'orders', id: [99] }),
+        expect.anything(),
+        { context: context.activityLog },
+      );
     });
 
     it('includes step index in select-record tool schema when records have stepIndex', async () => {
@@ -1199,6 +1182,7 @@ describe('ReadRecordStepExecutor', () => {
       expect(agentPort.getRecord).toHaveBeenCalledWith(
         expect.objectContaining({ collection: 'orders', id: [99] }),
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
     });
 
@@ -1220,6 +1204,7 @@ describe('ReadRecordStepExecutor', () => {
       expect(agentPort.getRecord).toHaveBeenCalledWith(
         expect.objectContaining({ collection: 'customers', id: [42] }),
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
     });
 
@@ -1336,6 +1321,7 @@ describe('ReadRecordStepExecutor', () => {
       expect(agentPort.getRecord).toHaveBeenCalledWith(
         expect.objectContaining({ collection: 'orders', id: [99], fields: ['total'] }),
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
     });
   });
@@ -1394,6 +1380,7 @@ describe('ReadRecordStepExecutor', () => {
       expect(agentPort.getRecord).toHaveBeenCalledWith(
         expect.objectContaining({ collection: 'customers', id: [42] }),
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
     });
 
@@ -1439,6 +1426,7 @@ describe('ReadRecordStepExecutor', () => {
       expect(agentPort.getRecord).toHaveBeenCalledWith(
         expect.objectContaining({ collection: 'orders', id: [99] }),
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
     });
 
@@ -1477,6 +1465,7 @@ describe('ReadRecordStepExecutor', () => {
       expect(agentPort.getRecord).toHaveBeenCalledWith(
         expect.objectContaining({ collection: 'customers', id: [42] }),
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
     });
 
@@ -1514,6 +1503,7 @@ describe('ReadRecordStepExecutor', () => {
       expect(agentPort.getRecord).toHaveBeenCalledWith(
         expect.objectContaining({ collection: 'customers', id: [42] }),
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
     });
 
@@ -1645,6 +1635,7 @@ describe('ReadRecordStepExecutor', () => {
       expect(agentPort.getRecord).toHaveBeenCalledWith(
         expect.objectContaining({ collection: 'orders', id: [99], fields: ['total'] }),
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
       expect(result.stepOutcome.status).toBe('success');
     });
@@ -1705,6 +1696,7 @@ describe('ReadRecordStepExecutor', () => {
         expect(agentPort.getRecord).toHaveBeenCalledWith(
           expect.objectContaining({ collection: 'ubos', id: [2], fields: ['share'] }),
           expect.objectContaining({ id: 1 }),
+          expect.anything(),
         );
         expect(result.stepOutcome.status).toBe('success');
       });
@@ -1848,6 +1840,7 @@ describe('ReadRecordStepExecutor', () => {
         expect(agentPort.getRecord).toHaveBeenCalledWith(
           expect.objectContaining({ collection: 'ubos', id: [2], fields: ['share'] }),
           expect.objectContaining({ id: 1 }),
+          expect.anything(),
         );
         expect(result.stepOutcome.status).toBe('success');
       });
@@ -1904,6 +1897,7 @@ describe('ReadRecordStepExecutor', () => {
         expect(agentPort.getRecord).toHaveBeenCalledWith(
           expect.objectContaining({ collection: 'orders', id: [111] }),
           expect.anything(),
+          expect.anything(),
         );
         expect(result.stepOutcome.status).toBe('success');
       },
@@ -1951,6 +1945,7 @@ describe('ReadRecordStepExecutor', () => {
       expect(agentPort.getRecord).toHaveBeenCalledWith(
         expect.objectContaining({ collection: 'orders', id: [99], fields: ['total'] }),
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
       expect(result.stepOutcome.status).toBe('success');
     });
@@ -1968,6 +1963,7 @@ describe('ReadRecordStepExecutor', () => {
       expect(agentPort.getRecord).toHaveBeenCalledWith(
         expect.objectContaining({ collection: 'customers', id: [42], fields: ['email'] }),
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
     });
 
@@ -1987,6 +1983,7 @@ describe('ReadRecordStepExecutor', () => {
       expect(agentPort.getRecord).toHaveBeenCalledWith(
         expect.objectContaining({ collection: 'customers', id: [42], fields: ['email'] }),
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
     });
 
@@ -2028,6 +2025,7 @@ describe('ReadRecordStepExecutor', () => {
       expect(agentPort.getRecord).toHaveBeenCalledWith(
         expect.objectContaining({ collection: 'customers', id: [42], fields: ['email'] }),
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
     });
 
@@ -2063,6 +2061,7 @@ describe('ReadRecordStepExecutor', () => {
       expect(agentPort.getRecord).toHaveBeenCalledWith(
         expect.objectContaining({ collection: 'customers', id: [42], fields: ['email'] }),
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
     });
 
@@ -2127,6 +2126,7 @@ describe('ReadRecordStepExecutor', () => {
       expect(agentPort.getRecord).toHaveBeenCalledWith(
         expect.objectContaining({ collection: 'orders', id: [99] }),
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
       expect(result.stepOutcome.status).toBe('success');
     });
@@ -2175,6 +2175,7 @@ describe('ReadRecordStepExecutor', () => {
       expect(agentPort.getRecord).toHaveBeenCalledWith(
         expect.objectContaining({ collection: 'orders', id: [99] }),
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
     });
 
@@ -2196,6 +2197,7 @@ describe('ReadRecordStepExecutor', () => {
       expect(agentPort.getRecord).toHaveBeenCalledWith(
         expect.objectContaining({ collection: 'customers', id: [42] }),
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
     });
 
@@ -2219,11 +2221,13 @@ describe('ReadRecordStepExecutor', () => {
         1,
         expect.objectContaining({ collection: 'orders', id: [99] }),
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
       expect(agentPort.getRecord).toHaveBeenNthCalledWith(
         2,
         expect.objectContaining({ collection: 'orders', id: [99] }),
         expect.objectContaining({ id: 1 }),
+        expect.anything(),
       );
     });
 

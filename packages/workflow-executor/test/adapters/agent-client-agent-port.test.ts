@@ -1,7 +1,9 @@
 /* eslint-disable max-classes-per-file */
 import type { StepUser } from '../../src/types/execution-context';
+import type { ExecuteActionOptions } from '@forestadmin/agent-client';
 
 import {
+  ActivityLogBlockedError,
   AgentHttpError,
   ActionRequiresApprovalError as ClientApprovalError,
   ApprovalRequestCreationError as ClientApprovalRequestCreationError,
@@ -18,6 +20,7 @@ import AgentClientAgentPort from '../../src/adapters/agent-client-agent-port';
 import {
   ActionFormValidationError,
   ActionRequiresApprovalError,
+  ActivityLogCreationError,
   AgentPortError,
   AgentProbeError,
   ApprovalRequestCreationError,
@@ -88,6 +91,9 @@ jest.mock('@forestadmin/agent-client', () => {
     HttpRequester: { is404Error: jest.fn() },
     extractErrorDetail: jest.requireActual('@forestadmin/agent-client').extractErrorDetail,
     toAgentTokenClaims: jest.requireActual('@forestadmin/agent-client').toAgentTokenClaims,
+    isApprovalRequested: jest.requireActual('@forestadmin/agent-client').isApprovalRequested,
+    ActivityLogBlockedError: jest.requireActual('@forestadmin/agent-client')
+      .ActivityLogBlockedError,
   };
 });
 
@@ -113,7 +119,23 @@ function createMockClient() {
     update: jest.fn(),
     relation: jest.fn().mockReturnValue(mockRelation),
     action: jest.fn().mockResolvedValue(mockAction),
+    executeAction: jest.fn(),
   };
+  mockCollection.executeAction.mockImplementation(
+    async (
+      name: string,
+      {
+        fill,
+        approvalRequestMessage,
+        recordIds,
+      }: ExecuteActionOptions & { fill?: (action: typeof mockAction) => Promise<void> },
+    ) => {
+      const action = await mockCollection.action(name, { recordIds });
+      if (fill) await fill(action);
+
+      return action.execute({ approvalRequestMessage });
+    },
+  );
 
   const client = {
     collection: jest.fn().mockReturnValue(mockCollection),
@@ -200,7 +222,7 @@ describe('AgentClientAgentPort', () => {
 
       const result = await port.getRecord({ collection: 'users', id: [42] }, user);
 
-      expect(mockCollection.getOne).toHaveBeenCalledWith([42], {});
+      expect(mockCollection.getOne).toHaveBeenCalledWith([42], {}, { activityLog: undefined });
       expect(result).toEqual({
         collectionName: 'users',
         recordId: [42],
@@ -214,7 +236,7 @@ describe('AgentClientAgentPort', () => {
       await port.getRecord({ collection: 'orders', id: [1, 2] }, user);
 
       // The id is forwarded as-is; the agent resolves the primary key column order.
-      expect(mockCollection.getOne).toHaveBeenCalledWith([1, 2], {});
+      expect(mockCollection.getOne).toHaveBeenCalledWith([1, 2], {}, { activityLog: undefined });
     });
 
     it('should throw a RecordNotFoundError when no record is found', async () => {
@@ -257,7 +279,11 @@ describe('AgentClientAgentPort', () => {
 
       await port.getRecord({ collection: 'users', id: [42], fields: ['id', 'name'] }, user);
 
-      expect(mockCollection.getOne).toHaveBeenCalledWith([42], { fields: ['id', 'name'] });
+      expect(mockCollection.getOne).toHaveBeenCalledWith(
+        [42],
+        { fields: ['id', 'name'] },
+        { activityLog: undefined },
+      );
     });
 
     it('should not pass fields to getOne when fields is an empty array', async () => {
@@ -265,7 +291,7 @@ describe('AgentClientAgentPort', () => {
 
       await port.getRecord({ collection: 'users', id: [42], fields: [] }, user);
 
-      expect(mockCollection.getOne).toHaveBeenCalledWith([42], {});
+      expect(mockCollection.getOne).toHaveBeenCalledWith([42], {}, { activityLog: undefined });
     });
 
     it('should restore snake_case field names when agent returns camelCase keys', async () => {
@@ -286,7 +312,7 @@ describe('AgentClientAgentPort', () => {
 
       await port.getRecord({ collection: 'users', id: [42] }, user);
 
-      expect(mockCollection.getOne).toHaveBeenCalledWith([42], {});
+      expect(mockCollection.getOne).toHaveBeenCalledWith([42], {}, { activityLog: undefined });
     });
 
     it('works without a cached schema (no primary-key lookup needed)', async () => {
@@ -294,7 +320,7 @@ describe('AgentClientAgentPort', () => {
 
       const result = await port.getRecord({ collection: 'unknown', id: [1] }, user);
 
-      expect(mockCollection.getOne).toHaveBeenCalledWith([1], {});
+      expect(mockCollection.getOne).toHaveBeenCalledWith([1], {}, { activityLog: undefined });
       expect(result.collectionName).toBe('unknown');
     });
   });
@@ -339,7 +365,7 @@ describe('AgentClientAgentPort', () => {
         user,
       );
 
-      expect(mockCollection.update).toHaveBeenCalledWith([42], { name: 'Bob' });
+      expect(mockCollection.update).toHaveBeenCalledWith([42], { name: 'Bob' }, undefined);
       expect(result).toEqual({
         collectionName: 'users',
         recordId: [42],
@@ -355,7 +381,7 @@ describe('AgentClientAgentPort', () => {
         user,
       );
 
-      expect(mockCollection.update).toHaveBeenCalledWith([1, 2], { status: 'done' });
+      expect(mockCollection.update).toHaveBeenCalledWith([1, 2], { status: 'done' }, undefined);
     });
 
     it('should restore snake_case field names when agent returns camelCase keys', async () => {
@@ -538,6 +564,7 @@ describe('AgentClientAgentPort', () => {
 
       expect(mockRelation.list).toHaveBeenCalledWith(
         expect.objectContaining({ pagination: { size: 5, number: 1 } }),
+        undefined,
       );
     });
 
@@ -555,7 +582,7 @@ describe('AgentClientAgentPort', () => {
         user,
       );
 
-      expect(mockRelation.list).toHaveBeenCalledWith({});
+      expect(mockRelation.list).toHaveBeenCalledWith({}, undefined);
     });
 
     it('returns an empty array when no related data exists', async () => {
@@ -592,6 +619,7 @@ describe('AgentClientAgentPort', () => {
 
       expect(mockRelation.list).toHaveBeenCalledWith(
         expect.objectContaining({ fields: ['title'] }),
+        undefined,
       );
     });
 
@@ -611,6 +639,7 @@ describe('AgentClientAgentPort', () => {
 
       expect(mockRelation.list).toHaveBeenCalledWith(
         expect.not.objectContaining({ fields: expect.anything() }),
+        undefined,
       );
     });
   });
@@ -671,7 +700,12 @@ describe('AgentClientAgentPort', () => {
 
         // User 7 is the smart target; `included` carries only User 6, the real association.
         expect(railsBody.included.map(i => i.id)).toEqual(['6']);
-        expect(mockCollection.getOne).toHaveBeenNthCalledWith(2, ['7'], { fields: ['name'] });
+        expect(mockCollection.getOne).toHaveBeenNthCalledWith(
+          2,
+          ['7'],
+          { fields: ['name'] },
+          { activityLog: undefined },
+        );
         expect(result).toEqual({
           collectionName: 'User',
           recordId: ['7'],
@@ -705,9 +739,14 @@ describe('AgentClientAgentPort', () => {
         { fields: ['card@@@reference'] },
         { skipDeserialization: true },
       );
-      expect(mockCollection.getOne).toHaveBeenNthCalledWith(2, ['uuid-1'], {
-        fields: ['reference'],
-      });
+      expect(mockCollection.getOne).toHaveBeenNthCalledWith(
+        2,
+        ['uuid-1'],
+        {
+          fields: ['reference'],
+        },
+        { activityLog: undefined },
+      );
       expect(mockClient.collection).toHaveBeenCalledWith('cards');
       expect(result).toEqual({
         collectionName: 'cards',
@@ -733,9 +772,14 @@ describe('AgentClientAgentPort', () => {
         user,
       );
 
-      expect(mockCollection.getOne).toHaveBeenNthCalledWith(2, ['uuid-1'], {
-        fields: ['reference'],
-      });
+      expect(mockCollection.getOne).toHaveBeenNthCalledWith(
+        2,
+        ['uuid-1'],
+        {
+          fields: ['reference'],
+        },
+        { activityLog: undefined },
+      );
       expect(result?.recordId).toEqual(['uuid-1']);
     });
 
@@ -759,7 +803,12 @@ describe('AgentClientAgentPort', () => {
         user,
       );
 
-      expect(mockCollection.getOne).toHaveBeenNthCalledWith(2, ['2'], { fields: ['reference'] });
+      expect(mockCollection.getOne).toHaveBeenNthCalledWith(
+        2,
+        ['2'],
+        { fields: ['reference'] },
+        { activityLog: undefined },
+      );
       expect(result?.recordId).toEqual(['2']);
     });
 
@@ -786,7 +835,12 @@ describe('AgentClientAgentPort', () => {
         { fields: ['card@@@id'] },
         { skipDeserialization: true },
       );
-      expect(mockCollection.getOne).toHaveBeenNthCalledWith(2, ['uuid-1'], { fields: ['id'] });
+      expect(mockCollection.getOne).toHaveBeenNthCalledWith(
+        2,
+        ['uuid-1'],
+        { fields: ['id'] },
+        { activityLog: undefined },
+      );
       expect(result).toEqual({
         collectionName: 'cards',
         recordId: ['uuid-1'],
@@ -882,7 +936,12 @@ describe('AgentClientAgentPort', () => {
         { fields: ['order@@@reference'] },
         { skipDeserialization: true },
       );
-      expect(mockCollection.getOne).toHaveBeenNthCalledWith(2, ['99'], { fields: ['reference'] });
+      expect(mockCollection.getOne).toHaveBeenNthCalledWith(
+        2,
+        ['99'],
+        { fields: ['reference'] },
+        { activityLog: undefined },
+      );
       expect(result?.values).toEqual({ reference: 'ORD-2026-001' });
     });
 
@@ -957,9 +1016,14 @@ describe('AgentClientAgentPort', () => {
         user,
       );
 
-      expect(mockCollection.getOne).toHaveBeenNthCalledWith(2, ['acme', '7'], {
-        fields: ['reference'],
-      });
+      expect(mockCollection.getOne).toHaveBeenNthCalledWith(
+        2,
+        ['acme', '7'],
+        {
+          fields: ['reference'],
+        },
+        { activityLog: undefined },
+      );
       expect(result?.recordId).toEqual(['acme', '7']);
     });
 
@@ -982,9 +1046,14 @@ describe('AgentClientAgentPort', () => {
         user,
       );
 
-      expect(mockCollection.getOne).toHaveBeenNthCalledWith(2, ['acme|corp'], {
-        fields: ['reference'],
-      });
+      expect(mockCollection.getOne).toHaveBeenNthCalledWith(
+        2,
+        ['acme|corp'],
+        {
+          fields: ['reference'],
+        },
+        { activityLog: undefined },
+      );
       expect(result?.recordId).toEqual(['acme|corp']);
     });
 
@@ -1530,6 +1599,87 @@ describe('AgentClientAgentPort', () => {
 
       // Parity with executeAction: a global action carries no recordId.
       expect(mockCollection.action).toHaveBeenCalledWith('archive', { recordIds: [] });
+    });
+  });
+
+  describe('activity log', () => {
+    const context = {
+      service: {},
+      credentials: () => ({ forestServerToken: 't', renderingId: 1 }),
+    };
+
+    it('builds the client with the step context and names the entry of the call', async () => {
+      mockCollection.getOne.mockResolvedValue({ id: 42 });
+      const call = { label: 'read it' };
+
+      await port.getRecord({ collection: 'users', id: [42] }, user, {
+        context: context as never,
+        call,
+      });
+
+      expect(mockedCreateRemoteAgentClient).toHaveBeenCalledWith(
+        expect.objectContaining({ activityLog: context }),
+      );
+      expect(mockCollection.getOne).toHaveBeenCalledWith([42], {}, { activityLog: call });
+    });
+
+    it('hands the write-ahead hook of an action to agent-client', async () => {
+      mockAction.execute.mockResolvedValue({ success: 'done' });
+      const beforeCall = jest.fn();
+
+      await port.executeAction(
+        { collection: 'users', action: 'sendEmail', id: [1] },
+        { user },
+        {
+          context: context as never,
+          call: { beforeCall },
+        },
+      );
+
+      expect(mockCollection.executeAction).toHaveBeenCalledWith(
+        'sendEmail',
+        expect.objectContaining({ activityLog: { beforeCall } }),
+      );
+    });
+
+    it('opens no entry for the target read of a single relation', async () => {
+      mockCollection.getOne
+        .mockResolvedValueOnce({ data: { relationships: { author: { data: { id: '7' } } } } })
+        .mockResolvedValueOnce({ id: 7 });
+
+      await port.getSingleRelatedData(
+        {
+          collection: 'posts',
+          id: [1],
+          relation: 'author',
+          relatedSchema: {
+            collectionName: 'users',
+            collectionId: 'col-users',
+            collectionDisplayName: 'Users',
+            primaryKeyFields: ['id'],
+            fields: [],
+            actions: [],
+          },
+        },
+        user,
+        { context: context as never },
+      );
+
+      expect(
+        mockedCreateRemoteAgentClient.mock.calls.map(([options]) => options.activityLog),
+      ).toEqual([context, undefined]);
+    });
+
+    it('turns an operation blocked by its activity log into ActivityLogCreationError', async () => {
+      const blocked = new ActivityLogBlockedError('unavailable');
+      mockCollection.update.mockRejectedValue(blocked);
+
+      const error = await port
+        .updateRecord({ collection: 'users', id: [1], values: { name: 'a' } }, user)
+        .catch(e => e);
+
+      expect(error).toBeInstanceOf(ActivityLogCreationError);
+      expect(error.cause).toBe(blocked);
     });
   });
 

@@ -4,6 +4,7 @@ import type { WorkflowPort } from '../../src/ports/workflow-port';
 import type { AvailableStepExecution, StepUser } from '../../src/types/execution-context';
 import type { CollectionSchema } from '../../src/types/validated/collection';
 import type { BaseChatModel, RemoteTool } from '@forestadmin/ai-proxy';
+import type { ActivityLogsServiceInterface } from '@forestadmin/forestadmin-client';
 
 import jsonwebtoken from 'jsonwebtoken';
 import request from 'supertest';
@@ -216,14 +217,11 @@ function createIntegrationSetup(overrides?: {
     runStore,
     schemaCache,
     aiModelPort: aiClient,
-    activityLogPortFactory: {
-      forRun: jest.fn().mockReturnValue({
-        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
-        markSucceeded: jest.fn().mockResolvedValue(undefined),
-        markFailed: jest.fn().mockResolvedValue(undefined),
-      }),
-      drain: jest.fn().mockResolvedValue(undefined),
-    },
+    activityLogsService: {
+      createActivityLog: jest.fn().mockResolvedValue({ id: 'log-1', attributes: { index: '0' } }),
+      createMcpActivityLog: jest.fn(),
+      updateActivityLogStatus: jest.fn().mockResolvedValue(undefined),
+    } as unknown as ActivityLogsServiceInterface,
     pollingIntervalS: overrides?.pollingIntervalS ?? 60,
     envSecret: ENV_SECRET,
     authSecret: AUTH_SECRET,
@@ -326,6 +324,7 @@ describe('workflow execution (integration)', () => {
         fields: ['email'],
       }),
       expect.objectContaining({ id: STEP_USER.id }),
+      expect.anything(),
     );
 
     // Assert — step data was saved in the RunStore
@@ -451,6 +450,7 @@ describe('workflow execution (integration)', () => {
         values: { status: 'active' },
       }),
       expect.objectContaining({ id: STEP_USER.id }),
+      expect.anything(),
     );
     expect(workflowPort.updateStepExecution).toHaveBeenCalledWith(
       'run-1',

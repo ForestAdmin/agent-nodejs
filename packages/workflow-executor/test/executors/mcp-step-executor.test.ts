@@ -1,16 +1,17 @@
-import type { ActivityLogPort } from '../../src/ports/activity-log-port';
 import type { AgentPort } from '../../src/ports/agent-port';
 import type { RunStore } from '../../src/ports/run-store';
 import type { WorkflowPort } from '../../src/ports/workflow-port';
 import type { ExecutionContext } from '../../src/types/execution-context';
 import type { McpStepExecutionData } from '../../src/types/step-execution-data';
 import type { McpStepDefinition } from '../../src/types/validated/step-definition';
+import type { ActivityLogContext } from '@forestadmin/agent-client';
 
+import { drainActivityLogs } from '@forestadmin/agent-client';
 import { AIToolCredentialsRefusedError } from '@forestadmin/ai-proxy/src/errors';
 import RemoteTool from '@forestadmin/ai-proxy/src/remote-tool';
 
+import activityLogContext from './activity-log-context';
 import { OAuthReauthRequiredError, RunStorePortError, StepStateError } from '../../src/errors';
-import ActivityLog from '../../src/executors/activity-log';
 import AgentWithLog from '../../src/executors/agent-with-log';
 import McpStepExecutor from '../../src/executors/mcp-step-executor';
 import SchemaCache from '../../src/schema-cache';
@@ -141,12 +142,14 @@ function conversationSentOnDecision(modelInvoke: jest.Mock, decision: number) {
   });
 }
 
-function makeActivityLogPort() {
-  return {
-    createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
-    markSucceeded: jest.fn().mockResolvedValue(undefined),
-    markFailed: jest.fn().mockResolvedValue(undefined),
-  };
+function serviceOf(context: ExecutionContext): Record<string, jest.Mock> {
+  return context.activityLog.service as unknown as Record<string, jest.Mock>;
+}
+
+async function statusesOf(context: ExecutionContext): Promise<string[]> {
+  await drainActivityLogs();
+
+  return serviceOf(context).updateActivityLogStatus.mock.calls.map(([params]) => params.status);
 }
 
 function executedCall(name: string, input: Record<string, unknown>, result: unknown) {
@@ -156,8 +159,7 @@ function executedCall(name: string, input: Record<string, unknown>, result: unkn
 function makeContext(
   overrides: Partial<ExecutionContext<McpStepDefinition>> & {
     agentPort?: AgentPort;
-    activityLogPort?: ActivityLogPort;
-    activityLog?: ActivityLog;
+    activityLog?: ActivityLogContext;
     workflowPort?: WorkflowPort;
   } = {},
 ): ExecutionContext<McpStepDefinition> {
@@ -192,16 +194,7 @@ function makeContext(
     ...overrides,
   };
 
-  const activityLog =
-    overrides.activityLog ??
-    new ActivityLog(
-      overrides.activityLogPort ?? {
-        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
-        markSucceeded: jest.fn().mockResolvedValue(undefined),
-        markFailed: jest.fn().mockResolvedValue(undefined),
-      },
-      base.user,
-    );
+  const activityLog = overrides.activityLog ?? activityLogContext();
 
   return {
     ...base,
@@ -461,13 +454,11 @@ describe('McpStepExecutor', () => {
 
     it('succeeds with the AI answer without calling any tool when the AI completes first', async () => {
       const invokeFn = jest.fn();
-      const activityLogPort = makeActivityLogPort();
       const { model } = makeLoopModel([], 'The previous step already holds the address.');
       const runStore = makeMockRunStore();
       const context = makeContext({
         model,
         runStore,
-        activityLogPort,
         stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
 
@@ -477,7 +468,7 @@ describe('McpStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('success');
       expect(invokeFn).not.toHaveBeenCalled();
-      expect(activityLogPort.createPending).not.toHaveBeenCalled();
+      expect(serviceOf(context).createActivityLog).not.toHaveBeenCalled();
       expect(runStore.saveStepExecution).toHaveBeenCalledTimes(1);
       expect(runStore.saveStepExecution).toHaveBeenCalledWith('run-1', {
         type: 'mcp',
@@ -1704,11 +1695,6 @@ describe('McpStepExecutor', () => {
     it('returns success without re-executing or emitting activity log when idempotencyPhase is done', async () => {
       const toolInvoke = jest.fn().mockResolvedValue('tool-result');
       const tool = new MockRemoteTool({ name: 'send_notification', invoke: toolInvoke });
-      const activityLogPort = {
-        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
-        markSucceeded: jest.fn().mockResolvedValue(undefined),
-        markFailed: jest.fn().mockResolvedValue(undefined),
-      };
       const doneExecution: McpStepExecutionData = {
         type: 'mcp',
         stepIndex: 0,
@@ -1719,7 +1705,7 @@ describe('McpStepExecutor', () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([doneExecution]),
       });
-      const context = makeContext({ runStore, activityLogPort });
+      const context = makeContext({ runStore });
       const executor = new McpStepExecutor(context, [tool]);
 
       const result = await executor.execute();
@@ -1727,17 +1713,12 @@ describe('McpStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('success');
       expect(toolInvoke).not.toHaveBeenCalled();
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
-      expect(activityLogPort.createPending).not.toHaveBeenCalled();
+      expect(serviceOf(context).createActivityLog).not.toHaveBeenCalled();
     });
 
     it('returns error without activity log when idempotencyPhase is executing', async () => {
       const toolInvoke = jest.fn().mockResolvedValue('tool-result');
       const tool = new MockRemoteTool({ name: 'send_notification', invoke: toolInvoke });
-      const activityLogPort = {
-        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
-        markSucceeded: jest.fn().mockResolvedValue(undefined),
-        markFailed: jest.fn().mockResolvedValue(undefined),
-      };
       const executingExecution: McpStepExecutionData = {
         type: 'mcp',
         stepIndex: 0,
@@ -1746,7 +1727,7 @@ describe('McpStepExecutor', () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([executingExecution]),
       });
-      const context = makeContext({ runStore, activityLogPort });
+      const context = makeContext({ runStore });
       const executor = new McpStepExecutor(context, [tool]);
 
       const result = await executor.execute();
@@ -1756,7 +1737,7 @@ describe('McpStepExecutor', () => {
         'An unexpected error occurred while processing this step.',
       );
       expect(toolInvoke).not.toHaveBeenCalled();
-      expect(activityLogPort.createPending).not.toHaveBeenCalled();
+      expect(serviceOf(context).createActivityLog).not.toHaveBeenCalled();
     });
 
     it('keeps the step marked executing from the first call until the final answer, marking it done only with that answer', async () => {
@@ -1900,7 +1881,6 @@ describe('McpStepExecutor', () => {
 
   describe('activity log', () => {
     it('opens one activity-log entry per executed call', async () => {
-      const activityLogPort = makeActivityLogPort();
       const tools = [
         new MockRemoteTool({ name: 'search_pages' }),
         new MockRemoteTool({ name: 'get_page' }),
@@ -1911,7 +1891,6 @@ describe('McpStepExecutor', () => {
       ]);
       const context = makeContext({
         model,
-        activityLogPort,
         stepDefinition: makeStep({
           executionType: StepExecutionMode.FullyAutomated,
           mcpServerId: 'my-mcp-server',
@@ -1920,21 +1899,16 @@ describe('McpStepExecutor', () => {
 
       await new McpStepExecutor(context, tools).execute();
 
-      expect(activityLogPort.createPending.mock.calls).toEqual([
+      expect(serviceOf(context).createActivityLog.mock.calls).toEqual([
         [expect.objectContaining({ label: 'my-mcp-server', type: 'write' })],
         [expect.objectContaining({ label: 'my-mcp-server', type: 'write' })],
       ]);
-      expect(activityLogPort.markSucceeded).toHaveBeenCalledTimes(2);
+      expect(await statusesOf(context)).toEqual(['completed', 'completed']);
     });
 
     it('logs against the run base record with collectionId, renderingId, action, type and mcpServerId as label', async () => {
       const tool = new MockRemoteTool({ name: 'send_notification', sourceId: 'mcp-server-1' });
       const { model } = makeMockModel('send_notification', { message: 'Hello' });
-      const activityLogPort = {
-        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
-        markSucceeded: jest.fn().mockResolvedValue(undefined),
-        markFailed: jest.fn().mockResolvedValue(undefined),
-      };
       const context = makeContext({
         model,
         collectionId: 'col-1',
@@ -1942,20 +1916,47 @@ describe('McpStepExecutor', () => {
           executionType: StepExecutionMode.FullyAutomated,
           mcpServerId: 'my-mcp-server',
         }),
-        activityLogPort,
       });
       const executor = new McpStepExecutor(context, [tool]);
 
       await executor.execute();
 
-      expect(activityLogPort.createPending).toHaveBeenCalledWith({
-        renderingId: 1,
+      expect(serviceOf(context).createActivityLog).toHaveBeenCalledWith({
+        forestServerToken: 'forest-token',
+        renderingId: '1',
         action: 'action',
         type: 'write',
-        collectionId: 'col-1',
-        recordId: [42],
+        collectionName: 'col-1',
+        recordIds: ['42'],
         label: 'my-mcp-server',
       });
+    });
+  });
+
+  describe('when the activity log cannot be written', () => {
+    it('stops the step before calling the tool and says the step could not be audited', async () => {
+      const invoke = jest.fn();
+      const tool = new MockRemoteTool({
+        name: 'send_notification',
+        sourceId: 'mcp-server-1',
+        invoke,
+      });
+      const { model } = makeMockModel('send_notification', { message: 'Hello' });
+      const activityLog = activityLogContext();
+      (activityLog.service.createActivityLog as jest.Mock).mockRejectedValue(new Error('down'));
+      const context = makeContext({
+        model,
+        activityLog,
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+
+      const result = await new McpStepExecutor(context, [tool]).execute();
+
+      expect(invoke).not.toHaveBeenCalled();
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        'Could not record this step in the audit log. Please try again, or contact your administrator if the problem persists.',
+      );
     });
   });
 
@@ -2411,12 +2412,6 @@ describe('McpStepExecutor — re-auth pause hardening', () => {
 
   describe('re-auth pause surfaces the tool-call failure in the audit log', () => {
     it('marks the activity-log entry failed while the step pauses for re-auth', async () => {
-      // GIVEN an activity-log port we can inspect.
-      const activityLogPort = {
-        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
-        markSucceeded: jest.fn().mockResolvedValue(undefined),
-        markFailed: jest.fn().mockResolvedValue(undefined),
-      };
       const tool = new MockRemoteTool({
         name: 'send_notification',
         sourceId: 'mcp-server-1',
@@ -2424,7 +2419,6 @@ describe('McpStepExecutor — re-auth pause hardening', () => {
       });
       const reloadWithFreshAuth = jest.fn().mockRejectedValue(new OAuthReauthRequiredError('srv'));
       const context = makeContext({
-        activityLogPort,
         stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
 
@@ -2438,9 +2432,8 @@ describe('McpStepExecutor — re-auth pause hardening', () => {
 
       // THEN the failed tool call is audited as failed, while the step itself pauses (not errors).
       expect(result.stepOutcome.status).toBe('awaiting-input');
-      expect(activityLogPort.createPending).toHaveBeenCalledTimes(1);
-      expect(activityLogPort.markFailed).toHaveBeenCalledTimes(1);
-      expect(activityLogPort.markSucceeded).not.toHaveBeenCalled();
+      expect(serviceOf(context).createActivityLog).toHaveBeenCalledTimes(1);
+      expect(await statusesOf(context)).toEqual(['failed']);
     });
   });
 });
