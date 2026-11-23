@@ -145,6 +145,26 @@ describe('action routes activity log', () => {
       expect(service.createMcpActivityLog).not.toHaveBeenCalled();
     });
 
+    it('should load a form without resolving what the activity log of an execute needs', async () => {
+      const service = fakeActivityLogsService();
+
+      const withoutRendering: Middleware = async (ctx, next) => {
+        ctx.state.authMode = 'api-key';
+        await next();
+      };
+
+      (ActivityLogsService as jest.Mock).mockClear();
+
+      const response = await request(
+        buildApp({ service, credentials: withoutRendering }).callback(),
+      )
+        .post('/agent/v1/users/actions/approve/form')
+        .send({ recordIds: ['42'] });
+
+      expect(response.status).toBe(200);
+      expect(ActivityLogsService).not.toHaveBeenCalled();
+    });
+
     it('should mark the log completed once the action ran', async () => {
       const service = fakeActivityLogsService();
 
