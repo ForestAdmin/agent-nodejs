@@ -103,9 +103,14 @@ export default function declareListRelatedTool(mcpServer: McpServer, ctx: ToolCo
       const label = `list relation "${options.relationName}"${extraLabel}`;
 
       try {
+        const reference = getFieldsOfCollection(
+          await fetchForestSchema(forestServerClient),
+          options.collectionName,
+        ).find(field => field.field === options.relationName)?.reference;
+        const listedCollectionName = reference?.split('.').slice(0, -1).join('.');
         const relation = rpcClient
           .collection(options.collectionName)
-          .relation(options.relationName, options.parentRecordId);
+          .relation(options.relationName, options.parentRecordId, listedCollectionName);
 
         const response = options.enableCount
           ? await relation.listAndCount(options as SelectOptions, { label })

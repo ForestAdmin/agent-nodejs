@@ -30,6 +30,8 @@ describe('declareListRelatedTool', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockFetchForestSchema.mockResolvedValue({ collections: [] });
+    mockGetFieldsOfCollection.mockReturnValue([]);
 
     mockForestServerClient = createMockForestServerClient();
 
@@ -251,7 +253,26 @@ describe('declareListRelatedTool', () => {
         mockExtra,
       );
 
-      expect(mockRelation).toHaveBeenCalledWith('orders', 42);
+      expect(mockRelation).toHaveBeenCalledWith('orders', 42, undefined);
+    });
+
+    it('lists the relation on the collection its schema field references', async () => {
+      const mockList = jest.fn().mockResolvedValue([]);
+      const mockRelation = jest.fn().mockReturnValue({ list: mockList });
+      mockBuildClient.mockReturnValue({
+        rpcClient: { collection: jest.fn().mockReturnValue({ relation: mockRelation }) },
+        authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+      } as unknown as ReturnType<typeof buildClient>);
+      mockGetFieldsOfCollection.mockReturnValue([
+        { field: 'reports', reference: 'employees.id', relationship: 'HasMany' },
+      ] as unknown as ReturnType<typeof schemaFetcher.getFieldsOfCollection>);
+
+      await registeredToolHandler(
+        { collectionName: 'employees', relationName: 'reports', parentRecordId: 42 },
+        mockExtra,
+      );
+
+      expect(mockRelation).toHaveBeenCalledWith('reports', 42, 'employees');
     });
 
     it('should call relation with string parentRecordId', async () => {
@@ -268,7 +289,7 @@ describe('declareListRelatedTool', () => {
         mockExtra,
       );
 
-      expect(mockRelation).toHaveBeenCalledWith('orders', 'uuid-123');
+      expect(mockRelation).toHaveBeenCalledWith('orders', 'uuid-123', undefined);
     });
 
     it('should return results as JSON text content with records wrapper', async () => {
